@@ -1,6 +1,8 @@
 from typing import (
+    Any,
     Hashable,
     Literal,
+    overload,
 )
 
 import numpy as np
@@ -13,14 +15,15 @@ def unique_label_indices(
 
 class Factorizer:
     count: int
+    uniques: Any
     def __init__(self, size_hint: int) -> None: ...
     def get_count(self) -> int: ...
     def factorize(
         self,
         values: np.ndarray,
-        sort: bool = ...,
         na_sentinel=...,
         na_value=...,
+        mask=...,
     ) -> npt.NDArray[np.intp]: ...
 
 class ObjectFactorizer(Factorizer):
@@ -154,18 +157,20 @@ class HashTable:
     def __contains__(self, key: Hashable) -> bool: ...
     def sizeof(self, deep: bool = ...) -> int: ...
     def get_state(self) -> dict[str, int]: ...
-    # TODO: `item` type is subclass-specific
-    def get_item(self, item): ...  # TODO: return type?
-    def set_item(self, item, val) -> None: ...
+    # TODO: `val/key` type is subclass-specific
+    def get_item(self, val): ...  # TODO: return type?
+    def set_item(self, key, val) -> None: ...
     def get_na(self): ...  # TODO: return type?
     def set_na(self, val) -> None: ...
     def map_locations(
         self,
         values: np.ndarray,  # np.ndarray[subclass-specific]
+        mask: npt.NDArray[np.bool_] | None = ...,
     ) -> None: ...
     def lookup(
         self,
         values: np.ndarray,  # np.ndarray[subclass-specific]
+        mask: npt.NDArray[np.bool_] | None = ...,
     ) -> npt.NDArray[np.intp]: ...
     def get_labels(
         self,
@@ -176,20 +181,40 @@ class HashTable:
         na_value: object = ...,
         mask=...,
     ) -> npt.NDArray[np.intp]: ...
+    @overload
     def unique(
         self,
         values: np.ndarray,  # np.ndarray[subclass-specific]
-        return_inverse: bool = ...,
+        *,
+        return_inverse: Literal[False] = ...,
+        mask: None = ...,
+    ) -> np.ndarray: ...  # np.ndarray[subclass-specific]
+    @overload
+    def unique(
+        self,
+        values: np.ndarray,  # np.ndarray[subclass-specific]
+        *,
+        return_inverse: Literal[True],
+        mask: None = ...,
+    ) -> tuple[np.ndarray, npt.NDArray[np.intp]]: ...  # np.ndarray[subclass-specific]
+    @overload
+    def unique(
+        self,
+        values: np.ndarray,  # np.ndarray[subclass-specific]
+        *,
+        return_inverse: Literal[False] = ...,
+        mask: npt.NDArray[np.bool_],
     ) -> tuple[
-        np.ndarray,  # np.ndarray[subclass-specific]
-        npt.NDArray[np.intp],
-    ] | np.ndarray: ...  # np.ndarray[subclass-specific]
+        np.ndarray,
+        npt.NDArray[np.bool_],
+    ]: ...  # np.ndarray[subclass-specific]
     def factorize(
         self,
         values: np.ndarray,  # np.ndarray[subclass-specific]
         na_sentinel: int = ...,
         na_value: object = ...,
         mask=...,
+        ignore_na: bool = True,
     ) -> tuple[np.ndarray, npt.NDArray[np.intp]]: ...  # np.ndarray[subclass-specific]
 
 class Complex128HashTable(HashTable): ...
@@ -232,7 +257,7 @@ def value_count(
     values: np.ndarray,
     dropna: bool,
     mask: npt.NDArray[np.bool_] | None = ...,
-) -> tuple[np.ndarray, npt.NDArray[np.int64]]: ...  # np.ndarray[same-as-values]
+) -> tuple[np.ndarray, npt.NDArray[np.int64], int]: ...  # np.ndarray[same-as-values]
 
 # arr and values should have same dtype
 def ismember(

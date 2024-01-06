@@ -4,17 +4,18 @@ on:
   push:
     branches:
       - main
-      - 1.5.x
+      - 2.2.x
     tags:
       - '*'
   pull_request:
     branches:
       - main
-      - 1.5.x
+      - 2.2.x
 
 env:
   ENV_FILE: environment.yml
   PANDAS_CI: 1
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 permissions:
   contents: read
@@ -22,7 +23,7 @@ permissions:
 jobs:
   web_and_docs:
     name: Doc Build and Upload
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -35,7 +36,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
@@ -44,6 +45,9 @@ jobs:
 
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
+
+    - name: Test website
+      run: python -m pytest web/
 
     - name: Build website
       run: python web/pandas_web.py web/pandas --target-path=web/build
@@ -66,7 +70,7 @@ jobs:
       run: cp doc/cheatsheet/Pandas_Cheat_Sheet* web/build/
 
     - name: Upload web
-      run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' web/build/ web@${{ secrets.server_ip }}:/var/www/html
+      run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' --exclude='benchmarks' web/build/ web@${{ secrets.server_ip }}:/var/www/html
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     - name: Upload dev docs
@@ -81,8 +85,15 @@ jobs:
       run: mv doc/build/html web/build/docs
 
     - name: Save website as an artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: website
         path: web/build
         retention-days: 14
+
+    - name: Trigger web/doc preview
+      run: curl -X POST https://pandas.pydata.org/preview/submit/$RUN_ID/$PR_ID/
+      env:
+        RUN_ID: ${{ github.run_id }}
+        PR_ID: ${{ github.event.pull_request.number }}
+      if: github.event_name == 'pull_request'

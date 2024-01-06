@@ -15,13 +15,6 @@ from pandas import (
 import pandas._testing as tm
 
 
-def _check_cast(df, v):
-    """
-    Check if all dtypes of df are equal to v
-    """
-    assert all(s.dtype.name == v for _, s in df.items())
-
-
 class TestDataFrameDataTypes:
     def test_empty_frame_dtypes(self):
         empty_df = DataFrame()
@@ -69,15 +62,15 @@ class TestDataFrameDataTypes:
 
     def test_dtypes_are_correct_after_column_slice(self):
         # GH6525
-        df = DataFrame(index=range(5), columns=list("abc"), dtype=np.float_)
+        df = DataFrame(index=range(5), columns=list("abc"), dtype=np.float64)
         tm.assert_series_equal(
             df.dtypes,
-            Series({"a": np.float_, "b": np.float_, "c": np.float_}),
+            Series({"a": np.float64, "b": np.float64, "c": np.float64}),
         )
-        tm.assert_series_equal(df.iloc[:, 2:].dtypes, Series({"c": np.float_}))
+        tm.assert_series_equal(df.iloc[:, 2:].dtypes, Series({"c": np.float64}))
         tm.assert_series_equal(
             df.dtypes,
-            Series({"a": np.float_, "b": np.float_, "c": np.float_}),
+            Series({"a": np.float64, "b": np.float64, "c": np.float64}),
         )
 
     @pytest.mark.parametrize(
@@ -103,10 +96,12 @@ class TestDataFrameDataTypes:
         tm.assert_series_equal(result, expected)
 
         # compat, GH 8722
-        with option_context("use_inf_as_na", True):
-            df = DataFrame([[1]])
-            result = df.dtypes
-            tm.assert_series_equal(result, Series({0: np.dtype("int64")}))
+        msg = "use_inf_as_na option is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with option_context("use_inf_as_na", True):
+                df = DataFrame([[1]])
+                result = df.dtypes
+                tm.assert_series_equal(result, Series({0: np.dtype("int64")}))
 
     def test_dtypes_timedeltas(self):
         df = DataFrame(
@@ -147,9 +142,12 @@ class TestDataFrameDataTypes:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_frame_apply_np_array_return_type(self):
+    def test_frame_apply_np_array_return_type(self, using_infer_string):
         # GH 35517
         df = DataFrame([["foo"]])
         result = df.apply(lambda col: np.array("bar"))
-        expected = Series(["bar"])
+        if using_infer_string:
+            expected = Series([np.array(["bar"])])
+        else:
+            expected = Series(["bar"])
         tm.assert_series_equal(result, expected)

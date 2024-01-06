@@ -510,7 +510,6 @@ class TestFY5253LastOfMonthQuarter:
 
 
 class TestFY5253NearestEndMonthQuarter:
-
     offset_nem_sat_aug_4 = makeFY5253NearestEndMonthQuarter(
         1, startingMonth=8, weekday=WeekDay.SAT, qtr_with_extra_week=4
     )

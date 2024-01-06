@@ -13,9 +13,6 @@ from pandas.io.pytables import (
 )
 
 pytest.importorskip("tables")
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:`np.object` is a deprecated alias:DeprecationWarning"
-)
 
 
 class TestHDFStoreSubclass:
@@ -27,7 +24,7 @@ class TestHDFStoreSubclass:
         expected = DataFrame(data, dtype=np.intp)
 
         path = tmp_path / "temp.h5"
-        sdf.to_hdf(path, "df")
+        sdf.to_hdf(path, key="df")
         result = read_hdf(path, "df")
         tm.assert_frame_equal(result, expected)
 
@@ -44,7 +41,7 @@ class TestHDFStoreSubclass:
         expected = Series(data, dtype=np.intp)
 
         path = tmp_path / "temp.h5"
-        sser.to_hdf(path, "ser")
+        sser.to_hdf(path, key="ser")
         result = read_hdf(path, "ser")
         tm.assert_series_equal(result, expected)
 

@@ -12,29 +12,31 @@ from __future__ import annotations
 import os
 import platform
 import sys
+from typing import TYPE_CHECKING
 
-from pandas._typing import F
-import pandas.compat._compressors
 from pandas.compat._constants import (
     IS64,
-    PY39,
+    ISMUSL,
     PY310,
     PY311,
+    PY312,
     PYPY,
 )
-from pandas.compat.numpy import (
-    is_numpy_dev,
-    np_version_under1p21,
-)
+import pandas.compat.compressors
+from pandas.compat.numpy import is_numpy_dev
 from pandas.compat.pyarrow import (
-    pa_version_under6p0,
-    pa_version_under7p0,
-    pa_version_under8p0,
-    pa_version_under9p0,
+    pa_version_under10p1,
+    pa_version_under11p0,
+    pa_version_under13p0,
+    pa_version_under14p0,
+    pa_version_under14p1,
 )
 
+if TYPE_CHECKING:
+    from pandas._typing import F
 
-def set_function_name(f: F, name: str, cls) -> F:
+
+def set_function_name(f: F, name: str, cls: type) -> F:
     """
     Bind the name/qualname attributes of the function.
     """
@@ -106,6 +108,18 @@ def is_platform_arm() -> bool:
     )
 
 
+def is_platform_power() -> bool:
+    """
+    Checking if the running platform use Power architecture.
+
+    Returns
+    -------
+    bool
+        True if the running platform uses ARM architecture.
+    """
+    return platform.machine() in ("ppc64", "ppc64le")
+
+
 def is_ci_environment() -> bool:
     """
     Checking if running in a continuous integration environment by checking
@@ -119,7 +133,7 @@ def is_ci_environment() -> bool:
     return os.environ.get("PANDAS_CI", "0") == "1"
 
 
-def get_lzma_file() -> type[pandas.compat._compressors.LZMAFile]:
+def get_lzma_file() -> type[pandas.compat.compressors.LZMAFile]:
     """
     Importing the `LZMAFile` class from the `lzma` module.
 
@@ -133,25 +147,49 @@ def get_lzma_file() -> type[pandas.compat._compressors.LZMAFile]:
     RuntimeError
         If the `lzma` module was not imported correctly, or didn't exist.
     """
-    if not pandas.compat._compressors.has_lzma:
+    if not pandas.compat.compressors.has_lzma:
         raise RuntimeError(
             "lzma module not available. "
             "A Python re-install with the proper dependencies, "
             "might be required to solve this issue."
         )
-    return pandas.compat._compressors.LZMAFile
+    return pandas.compat.compressors.LZMAFile
+
+
+def get_bz2_file() -> type[pandas.compat.compressors.BZ2File]:
+    """
+    Importing the `BZ2File` class from the `bz2` module.
+
+    Returns
+    -------
+    class
+        The `BZ2File` class from the `bz2` module.
+
+    Raises
+    ------
+    RuntimeError
+        If the `bz2` module was not imported correctly, or didn't exist.
+    """
+    if not pandas.compat.compressors.has_bz2:
+        raise RuntimeError(
+            "bz2 module not available. "
+            "A Python re-install with the proper dependencies, "
+            "might be required to solve this issue."
+        )
+    return pandas.compat.compressors.BZ2File
 
 
 __all__ = [
     "is_numpy_dev",
-    "np_version_under1p21",
-    "pa_version_under6p0",
-    "pa_version_under7p0",
-    "pa_version_under8p0",
-    "pa_version_under9p0",
+    "pa_version_under10p1",
+    "pa_version_under11p0",
+    "pa_version_under13p0",
+    "pa_version_under14p0",
+    "pa_version_under14p1",
     "IS64",
-    "PY39",
+    "ISMUSL",
     "PY310",
     "PY311",
+    "PY312",
     "PYPY",
 ]

@@ -4,16 +4,15 @@ Module for formatting output data in console (to string).
 from __future__ import annotations
 
 from shutil import get_terminal_size
-from typing import (
-    TYPE_CHECKING,
-    Iterable,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from pandas.io.formats.format import DataFrameFormatter
 
 
@@ -29,7 +28,7 @@ class StringFormatter:
     def to_string(self) -> str:
         text = self._get_string_representation()
         if self.fmt.should_show_dimensions:
-            text = "".join([text, self.fmt.dimensions_info])
+            text = f"{text}{self.fmt.dimensions_info}"
         return text
 
     def _get_strcols(self) -> list[list[str]]:
@@ -135,12 +134,6 @@ class StringFormatter:
         col_bins = _binify(col_widths, lwidth)
         nbins = len(col_bins)
 
-        if self.fmt.is_truncated_vertically:
-            assert self.fmt.max_rows_fitted is not None
-            nrows = self.fmt.max_rows_fitted + 1
-        else:
-            nrows = len(self.frame)
-
         str_lst = []
         start = 0
         for i, end in enumerate(col_bins):
@@ -148,6 +141,7 @@ class StringFormatter:
             if self.fmt.index:
                 row.insert(0, idx)
             if nbins > 1:
+                nrows = len(row[-1])
                 if end <= len(strcols) and i < nbins - 1:
                     row.append([" \\"] + ["  "] * (nrows - 1))
                 else:
@@ -166,7 +160,7 @@ class StringFormatter:
         dif = max_len - width
         # '+ 1' to avoid too wide repr (GH PR #17023)
         adj_dif = dif + 1
-        col_lens = Series([Series(ele).apply(len).max() for ele in strcols])
+        col_lens = Series([Series(ele).str.len().max() for ele in strcols])
         n_cols = len(col_lens)
         counter = 0
         while adj_dif > 0 and n_cols > 1:

@@ -7,8 +7,12 @@ import pandas.util._test_decorators as td
 
 import pandas
 
-dummy_backend = types.ModuleType("pandas_dummy_backend")
-setattr(dummy_backend, "plot", lambda *args, **kwargs: "used_dummy")
+
+@pytest.fixture
+def dummy_backend():
+    db = types.ModuleType("pandas_dummy_backend")
+    setattr(db, "plot", lambda *args, **kwargs: "used_dummy")
+    return db
 
 
 @pytest.fixture
@@ -26,7 +30,7 @@ def test_backend_is_not_module():
     assert pandas.options.plotting.backend == "matplotlib"
 
 
-def test_backend_is_correct(monkeypatch, restore_backend):
+def test_backend_is_correct(monkeypatch, restore_backend, dummy_backend):
     monkeypatch.setitem(sys.modules, "pandas_dummy_backend", dummy_backend)
 
     pandas.set_option("plotting.backend", "pandas_dummy_backend")
@@ -36,7 +40,7 @@ def test_backend_is_correct(monkeypatch, restore_backend):
     )
 
 
-def test_backend_can_be_set_in_plot_call(monkeypatch, restore_backend):
+def test_backend_can_be_set_in_plot_call(monkeypatch, restore_backend, dummy_backend):
     monkeypatch.setitem(sys.modules, "pandas_dummy_backend", dummy_backend)
     df = pandas.DataFrame([1, 2, 3])
 
@@ -44,7 +48,7 @@ def test_backend_can_be_set_in_plot_call(monkeypatch, restore_backend):
     assert df.plot(backend="pandas_dummy_backend") == "used_dummy"
 
 
-def test_register_entrypoint(restore_backend, tmp_path, monkeypatch):
+def test_register_entrypoint(restore_backend, tmp_path, monkeypatch, dummy_backend):
     monkeypatch.syspath_prepend(tmp_path)
     monkeypatch.setitem(sys.modules, "pandas_dummy_backend", dummy_backend)
 
@@ -76,7 +80,7 @@ def test_setting_backend_without_plot_raises(monkeypatch):
     assert pandas.options.plotting.backend == "matplotlib"
 
 
-@td.skip_if_mpl
+@td.skip_if_installed("matplotlib")
 def test_no_matplotlib_ok():
     msg = (
         'matplotlib is required for plotting when the default backend "matplotlib" is '
@@ -86,7 +90,7 @@ def test_no_matplotlib_ok():
         pandas.plotting._core._get_plot_backend("matplotlib")
 
 
-def test_extra_kinds_ok(monkeypatch, restore_backend):
+def test_extra_kinds_ok(monkeypatch, restore_backend, dummy_backend):
     # https://github.com/pandas-dev/pandas/pull/28647
     monkeypatch.setitem(sys.modules, "pandas_dummy_backend", dummy_backend)
     pandas.set_option("plotting.backend", "pandas_dummy_backend")

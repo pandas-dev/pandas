@@ -4,6 +4,8 @@ Helper functions to generate range-like data for DatetimeArray
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from pandas._libs.lib import i8max
@@ -14,7 +16,9 @@ from pandas._libs.tslibs import (
     Timestamp,
     iNaT,
 )
-from pandas._typing import npt
+
+if TYPE_CHECKING:
+    from pandas._typing import npt
 
 
 def generate_regular_range(
@@ -46,20 +50,20 @@ def generate_regular_range(
     ndarray[np.int64]
         Representing the given resolution.
     """
-    istart = start.value if start is not None else None
-    iend = end.value if end is not None else None
+    istart = start._value if start is not None else None
+    iend = end._value if end is not None else None
     freq.nanos  # raises if non-fixed frequency
     td = Timedelta(freq)
+    b: int
+    e: int
     try:
-        td = td.as_unit(  # pyright: ignore[reportGeneralTypeIssues]
-            unit, round_ok=False
-        )
+        td = td.as_unit(unit, round_ok=False)
     except ValueError as err:
         raise ValueError(
             f"freq={freq} is incompatible with unit={unit}. "
             "Use a lower freq or a higher unit instead."
         ) from err
-    stride = int(td.value)
+    stride = int(td._value)
 
     if periods is None and istart is not None and iend is not None:
         b = istart
@@ -153,7 +157,7 @@ def _generate_range_overflow_safe(
     remaining = periods - mid_periods
     assert 0 < remaining < periods, (remaining, periods, endpoint, stride)
 
-    midpoint = _generate_range_overflow_safe(endpoint, mid_periods, stride, side)
+    midpoint = int(_generate_range_overflow_safe(endpoint, mid_periods, stride, side))
     return _generate_range_overflow_safe(midpoint, remaining, stride, side)
 
 
@@ -177,9 +181,7 @@ def _generate_range_overflow_safe_signed(
                 # Putting this into a DatetimeArray/TimedeltaArray
                 #  would incorrectly be interpreted as NaT
                 raise OverflowError
-            # error: Incompatible return value type (got "signedinteger[_64Bit]",
-            # expected "int")
-            return result  # type: ignore[return-value]
+            return int(result)
         except (FloatingPointError, OverflowError):
             # with endpoint negative and addend positive we risk
             #  FloatingPointError; with reversed signed we risk OverflowError
@@ -194,15 +196,11 @@ def _generate_range_overflow_safe_signed(
             #  exceed implementation bounds, but when passing the result to
             #  np.arange will get a result slightly within the bounds
 
-            # error: Incompatible types in assignment (expression has type
-            # "unsignedinteger[_64Bit]", variable has type "signedinteger[_64Bit]")
-            result = np.uint64(endpoint) + np.uint64(addend)  # type: ignore[assignment]
+            uresult = np.uint64(endpoint) + np.uint64(addend)
             i64max = np.uint64(i8max)
-            assert result > i64max
-            if result <= i64max + np.uint64(stride):
-                # error: Incompatible return value type (got "unsignedinteger", expected
-                # "int")
-                return result  # type: ignore[return-value]
+            assert uresult > i64max
+            if uresult <= i64max + np.uint64(stride):
+                return int(uresult)
 
     raise OutOfBoundsDatetime(
         f"Cannot generate range with {side}={endpoint} and periods={periods}"

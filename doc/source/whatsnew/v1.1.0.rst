@@ -55,7 +55,7 @@ For example:
    pi = dti.to_period("D")
    ser_monotonic = pd.Series(np.arange(30), index=pi)
    shuffler = list(range(0, 30, 2)) + list(range(1, 31, 2))
-   ser = ser_monotonic[shuffler]
+   ser = ser_monotonic.iloc[shuffler]
    ser
 
 .. ipython:: python
@@ -208,7 +208,14 @@ For example:
     tz_strs = ["2010-01-01 12:00:00 +0100", "2010-01-01 12:00:00 -0100",
                "2010-01-01 12:00:00 +0300", "2010-01-01 12:00:00 +0400"]
     pd.to_datetime(tz_strs, format='%Y-%m-%d %H:%M:%S %z', utc=True)
-    pd.to_datetime(tz_strs, format='%Y-%m-%d %H:%M:%S %z')
+
+.. code-block:: ipython
+
+   In[37]: pd.to_datetime(tz_strs, format='%Y-%m-%d %H:%M:%S %z')
+   Out[37]:
+   Index([2010-01-01 12:00:00+01:00, 2010-01-01 12:00:00-01:00,
+          2010-01-01 12:00:00+03:00, 2010-01-01 12:00:00+04:00],
+         dtype='object')
 
 .. _whatsnew_110.grouper_resample_origin:
 
@@ -306,9 +313,9 @@ Other enhancements
 - :meth:`melt` has gained an ``ignore_index`` (default ``True``) argument that, if set to ``False``, prevents the method from dropping the index (:issue:`17440`).
 - :meth:`Series.update` now accepts objects that can be coerced to a :class:`Series`,
   such as ``dict`` and ``list``, mirroring the behavior of :meth:`DataFrame.update` (:issue:`33215`)
-- :meth:`~pandas.core.groupby.DataFrameGroupBy.transform` and :meth:`~pandas.core.groupby.DataFrameGroupBy.aggregate` have gained ``engine`` and ``engine_kwargs`` arguments that support executing functions with ``Numba`` (:issue:`32854`, :issue:`33388`)
-- :meth:`~pandas.core.resample.Resampler.interpolate` now supports SciPy interpolation method :class:`scipy.interpolate.CubicSpline` as method ``cubicspline`` (:issue:`33670`)
-- :class:`~pandas.core.groupby.DataFrameGroupBy` and :class:`~pandas.core.groupby.SeriesGroupBy` now implement the ``sample`` method for doing random sampling within groups (:issue:`31775`)
+- :meth:`.DataFrameGroupBy.transform` and :meth:`.DataFrameGroupBy.aggregate` have gained ``engine`` and ``engine_kwargs`` arguments that support executing functions with ``Numba`` (:issue:`32854`, :issue:`33388`)
+- :meth:`.Resampler.interpolate` now supports SciPy interpolation method :class:`scipy.interpolate.CubicSpline` as method ``cubicspline`` (:issue:`33670`)
+- :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` now implement the ``sample`` method for doing random sampling within groups (:issue:`31775`)
 - :meth:`DataFrame.to_numpy` now supports the ``na_value`` keyword to control the NA sentinel in the output array (:issue:`33820`)
 - Added :class:`api.extension.ExtensionArray.equals` to the extension array interface, similar to :meth:`Series.equals` (:issue:`27081`)
 - The minimum supported dta version has increased to 105 in :func:`read_stata` and :class:`~pandas.io.stata.StataReader`  (:issue:`26667`).
@@ -320,10 +327,10 @@ Other enhancements
   and :class:`~pandas.io.stata.StataWriterUTF8` (:issue:`26599`).
 - :meth:`HDFStore.put` now accepts a ``track_times`` parameter. This parameter is passed to the ``create_table`` method of ``PyTables`` (:issue:`32682`).
 - :meth:`Series.plot` and :meth:`DataFrame.plot` now accepts ``xlabel`` and ``ylabel`` parameters to present labels on x and y axis (:issue:`9093`).
-- Made :class:`pandas.core.window.rolling.Rolling` and :class:`pandas.core.window.expanding.Expanding` iterable（:issue:`11704`)
+- Made :class:`.Rolling` and :class:`.Expanding` iterable（:issue:`11704`)
 - Made ``option_context`` a :class:`contextlib.ContextDecorator`, which allows it to be used as a decorator over an entire function (:issue:`34253`).
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now accept an ``errors`` argument (:issue:`22610`)
-- :meth:`~pandas.core.groupby.DataFrameGroupBy.groupby.transform` now allows ``func`` to be ``pad``, ``backfill`` and ``cumcount`` (:issue:`31269`).
+- :meth:`.DataFrameGroupBy.groupby.transform` now allows ``func`` to be ``pad``, ``backfill`` and ``cumcount`` (:issue:`31269`).
 - :func:`read_json` now accepts an ``nrows`` parameter. (:issue:`33916`).
 - :meth:`DataFrame.hist`, :meth:`Series.hist`, :meth:`core.groupby.DataFrameGroupBy.hist`, and :meth:`core.groupby.SeriesGroupBy.hist` have gained the ``legend`` argument. Set to True to show a legend in the histogram. (:issue:`6279`)
 - :func:`concat` and :meth:`~DataFrame.append` now preserve extension dtypes, for example
@@ -337,7 +344,7 @@ Other enhancements
 - :meth:`~Series.explode` now accepts ``ignore_index`` to reset the index, similar to :meth:`pd.concat` or :meth:`DataFrame.sort_values` (:issue:`34932`).
 - :meth:`DataFrame.to_markdown` and :meth:`Series.to_markdown` now accept ``index`` argument as an alias for tabulate's ``showindex`` (:issue:`32667`)
 - :meth:`read_csv` now accepts string values like "0", "0.0", "1", "1.0" as convertible to the nullable Boolean dtype (:issue:`34859`)
-- :class:`pandas.core.window.ExponentialMovingWindow` now supports a ``times`` argument that allows ``mean`` to be calculated with observations spaced by the timestamps in ``times`` (:issue:`34839`)
+- :class:`.ExponentialMovingWindow` now supports a ``times`` argument that allows ``mean`` to be calculated with observations spaced by the timestamps in ``times`` (:issue:`34839`)
 - :meth:`DataFrame.agg` and :meth:`Series.agg` now accept named aggregation for renaming the output columns/indexes. (:issue:`26513`)
 - ``compute.use_numba`` now exists as a configuration option that utilizes the numba engine when available (:issue:`33966`, :issue:`35374`)
 - :meth:`Series.plot` now supports asymmetric error bars. Previously, if :meth:`Series.plot` received a "2xN" array with error values for ``yerr`` and/or ``xerr``, the left/lower values (first row) were mirrored, while the right/upper values (second row) were ignored. Now, the first row represents the left/lower error values and the second row the right/upper error values. (:issue:`9536`)
@@ -622,7 +629,7 @@ Using :meth:`DataFrame.groupby` with ``as_index=False`` and the function ``idxma
 
    df.groupby("a", as_index=False).nunique()
 
-The method :meth:`~pandas.core.groupby.DataFrameGroupBy.size` would previously ignore ``as_index=False``. Now the grouping columns are returned as columns, making the result a :class:`DataFrame` instead of a :class:`Series`. (:issue:`32599`)
+The method :meth:`.DataFrameGroupBy.size` would previously ignore ``as_index=False``. Now the grouping columns are returned as columns, making the result a :class:`DataFrame` instead of a :class:`Series`. (:issue:`32599`)
 
 *Previous behavior*:
 
@@ -643,10 +650,10 @@ The method :meth:`~pandas.core.groupby.DataFrameGroupBy.size` would previously i
 
 .. _whatsnew_110.api_breaking.groupby_results_lost_as_index_false:
 
-:meth:`~pandas.core.groupby.DataFrameGroupby.agg` lost results with ``as_index=False`` when relabeling columns
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:meth:`.DataFrameGroupby.agg` lost results with ``as_index=False`` when relabeling columns
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Previously :meth:`~pandas.core.groupby.DataFrameGroupby.agg` lost the result columns, when the ``as_index`` option was
+Previously :meth:`.DataFrameGroupby.agg` lost the result columns, when the ``as_index`` option was
 set to ``False`` and the result columns were relabeled. In this case the result values were replaced with
 the previous index (:issue:`32240`).
 
@@ -871,14 +878,14 @@ Performance improvements
   sparse values from ``scipy.sparse`` matrices using the
   :meth:`DataFrame.sparse.from_spmatrix` constructor (:issue:`32821`,
   :issue:`32825`,  :issue:`32826`, :issue:`32856`, :issue:`32858`).
-- Performance improvement for groupby methods :meth:`~pandas.core.groupby.groupby.Groupby.first`
-  and :meth:`~pandas.core.groupby.groupby.Groupby.last` (:issue:`34178`)
+- Performance improvement for groupby methods :meth:`.Groupby.first`
+  and :meth:`.Groupby.last` (:issue:`34178`)
 - Performance improvement in :func:`factorize` for nullable (integer and Boolean) dtypes (:issue:`33064`).
 - Performance improvement when constructing :class:`Categorical` objects (:issue:`33921`)
 - Fixed performance regression in :func:`pandas.qcut` and :func:`pandas.cut` (:issue:`33921`)
 - Performance improvement in reductions (``sum``, ``prod``, ``min``, ``max``) for nullable (integer and Boolean) dtypes (:issue:`30982`, :issue:`33261`, :issue:`33442`).
 - Performance improvement in arithmetic operations between two :class:`DataFrame` objects (:issue:`32779`)
-- Performance improvement in :class:`pandas.core.groupby.RollingGroupby` (:issue:`34052`)
+- Performance improvement in :class:`.RollingGroupby` (:issue:`34052`)
 - Performance improvement in arithmetic operations (``sub``, ``add``, ``mul``, ``div``) for :class:`MultiIndex` (:issue:`34297`)
 - Performance improvement in ``DataFrame[bool_indexer]`` when ``bool_indexer`` is a ``list`` (:issue:`33924`)
 - Significant performance improvement of :meth:`io.formats.style.Styler.render` with styles added with various ways such as :meth:`io.formats.style.Styler.apply`, :meth:`io.formats.style.Styler.applymap` or :meth:`io.formats.style.Styler.bar` (:issue:`19917`)

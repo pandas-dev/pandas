@@ -55,9 +55,9 @@ def test_drop_with_non_unique_datetime_index_and_invalid_keys():
 
     # define dataframe with unique datetime index
     df = DataFrame(
-        np.random.randn(5, 3),
+        np.random.default_rng(2).standard_normal((5, 3)),
         columns=["a", "b", "c"],
-        index=pd.date_range("2012", freq="H", periods=5),
+        index=pd.date_range("2012", freq="h", periods=5),
     )
     # create dataframe with non-unique datetime index
     df = df.iloc[[0, 2, 2, 3]].copy()
@@ -159,7 +159,9 @@ class TestDataFrameDrop:
 
         # inplace cache issue
         # GH#5628
-        df = DataFrame(np.random.randn(10, 3), columns=list("abc"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 3)), columns=list("abc")
+        )
         expected = df[~(df.b > 0)]
         return_value = df.drop(labels=df[df.b > 0].index, inplace=True)
         assert return_value is None
@@ -185,10 +187,7 @@ class TestDataFrameDrop:
         not_lexsorted_df = not_lexsorted_df.reset_index()
         assert not not_lexsorted_df.columns._is_lexsorted()
 
-        # compare the results
-        tm.assert_frame_equal(lexsorted_df, not_lexsorted_df)
-
-        expected = lexsorted_df.drop("a", axis=1)
+        expected = lexsorted_df.drop("a", axis=1).astype(float)
         with tm.assert_produces_warning(PerformanceWarning):
             result = not_lexsorted_df.drop("a", axis=1)
 
@@ -233,19 +232,16 @@ class TestDataFrameDrop:
         with pytest.raises(ValueError, match=msg):
             df.drop(axis=1)
 
-    data = [[1, 2, 3], [1, 2, 3]]
-
     @pytest.mark.parametrize(
         "actual",
         [
-            DataFrame(data=data, index=["a", "a"]),
-            DataFrame(data=data, index=["a", "b"]),
-            DataFrame(data=data, index=["a", "b"]).set_index([0, 1]),
-            DataFrame(data=data, index=["a", "a"]).set_index([0, 1]),
+            DataFrame([[1, 2, 3], [1, 2, 3]], index=["a", "a"]),
+            DataFrame([[1, 2, 3], [1, 2, 3]], index=["a", "b"]),
+            DataFrame([[1, 2, 3], [1, 2, 3]], index=["a", "b"]).set_index([0, 1]),
+            DataFrame([[1, 2, 3], [1, 2, 3]], index=["a", "a"]).set_index([0, 1]),
         ],
     )
     def test_raise_on_drop_duplicate_index(self, actual):
-
         # GH#19186
         level = 0 if isinstance(actual.index, MultiIndex) else None
         msg = re.escape("\"['c'] not found in axis\"")
@@ -304,7 +300,7 @@ class TestDataFrameDrop:
 
         tuples = sorted(zip(*arrays))
         index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(np.random.randn(4, 6), columns=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((4, 6)), columns=index)
 
         result = df.drop("a", axis=1)
         expected = df.drop([("a", "", "")], axis=1)
@@ -405,11 +401,11 @@ class TestDataFrameDrop:
         idx = Index([2, 3, 4, 4, 5], name="id")
         idxdt = pd.to_datetime(
             [
-                "201603231400",
-                "201603231500",
-                "201603231600",
-                "201603231600",
-                "201603231700",
+                "2016-03-23 14:00",
+                "2016-03-23 15:00",
+                "2016-03-23 16:00",
+                "2016-03-23 16:00",
+                "2016-03-23 17:00",
             ]
         )
         df = DataFrame(np.arange(10).reshape(5, 2), columns=list("ab"), index=idx)
@@ -439,7 +435,7 @@ class TestDataFrameDrop:
             [[0, 0, 0, 1, 1, 1], [1, 2, 3, 1, 2, 3]], names=["one", "two"]
         )
 
-        df = DataFrame(np.random.randn(6, 3), index=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((6, 3)), index=index)
 
         result = df.drop([(0, 2)])
         assert result.index.names == ("one", "two")
@@ -498,9 +494,9 @@ class TestDataFrameDrop:
         # drop buggy GH#6240
         df = DataFrame(
             {
-                "A": np.random.randn(5),
-                "B": np.random.randn(5),
-                "C": np.random.randn(5),
+                "A": np.random.default_rng(2).standard_normal(5),
+                "B": np.random.default_rng(2).standard_normal(5),
+                "C": np.random.default_rng(2).standard_normal(5),
                 "D": ["a", "b", "c", "d", "e"],
             }
         )
@@ -512,7 +508,7 @@ class TestDataFrameDrop:
 
     def test_drop_inplace_no_leftover_column_reference(self):
         # GH 13934
-        df = DataFrame({"a": [1, 2, 3]})
+        df = DataFrame({"a": [1, 2, 3]}, columns=Index(["a"], dtype="object"))
         a = df.a
         df.drop(["a"], axis=1, inplace=True)
         tm.assert_index_equal(df.columns, Index([], dtype="object"))
@@ -535,4 +531,14 @@ class TestDataFrameDrop:
         expected = DataFrame(
             {"a": [1], "b": 100}, dtype=any_numeric_ea_dtype
         ).set_index(idx)
+        tm.assert_frame_equal(result, expected)
+
+    def test_drop_parse_strings_datetime_index(self):
+        # GH #5355
+        df = DataFrame(
+            {"a": [1, 2], "b": [1, 2]},
+            index=[Timestamp("2000-01-03"), Timestamp("2000-01-04")],
+        )
+        result = df.drop("2000-01-03", axis=0)
+        expected = DataFrame({"a": [2], "b": [2]}, index=[Timestamp("2000-01-04")])
         tm.assert_frame_equal(result, expected)

@@ -18,8 +18,12 @@ from cpython.object cimport (
     Py_LT,
     Py_NE,
 )
+from libc.stdint cimport INT64_MAX
 
 import_datetime()
+PandasDateTime_IMPORT
+
+import operator
 
 import numpy as np
 
@@ -27,15 +31,23 @@ cimport numpy as cnp
 
 cnp.import_array()
 from numpy cimport (
+    PyArray_DatetimeMetaData,
+    PyDatetimeScalarObject,
     int64_t,
     ndarray,
     uint8_t,
 )
 
+from pandas._libs.tslibs.dtypes cimport (
+    get_supported_reso,
+    is_supported_unit,
+    npy_unit_to_abbrev,
+    npy_unit_to_attrname,
+)
 from pandas._libs.tslibs.util cimport get_c_string_buf_and_size
 
 
-cdef extern from "src/datetime/np_datetime.h":
+cdef extern from "pandas/datetime/pd_datetime.h":
     int cmp_npy_datetimestruct(npy_datetimestruct *a,
                                npy_datetimestruct *b)
 
@@ -48,35 +60,18 @@ cdef extern from "src/datetime/np_datetime.h":
 
     PyArray_DatetimeMetaData get_datetime_metadata_from_dtype(cnp.PyArray_Descr *dtype)
 
-cdef extern from "src/datetime/np_datetime_strings.h":
     int parse_iso_8601_datetime(const char *str, int len, int want_exc,
                                 npy_datetimestruct *out,
                                 NPY_DATETIMEUNIT *out_bestunit,
                                 int *out_local, int *out_tzoffset,
-                                const char *format, int format_len, int exact)
-
+                                const char *format, int format_len,
+                                FormatRequirement exact)
 
 # ----------------------------------------------------------------------
 # numpy object inspection
 
-cdef inline npy_datetime get_datetime64_value(object obj) nogil:
-    """
-    returns the int64 value underlying scalar numpy datetime64 object
 
-    Note that to interpret this as a datetime, the corresponding unit is
-    also needed.  That can be found using `get_datetime64_unit`.
-    """
-    return (<PyDatetimeScalarObject*>obj).obval
-
-
-cdef inline npy_timedelta get_timedelta64_value(object obj) nogil:
-    """
-    returns the int64 value underlying scalar numpy timedelta64 object
-    """
-    return (<PyTimedeltaScalarObject*>obj).obval
-
-
-cdef inline NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil:
+cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) noexcept nogil:
     """
     returns the unit part of the dtype for a numpy datetime64 object.
     """
@@ -96,6 +91,28 @@ cdef NPY_DATETIMEUNIT get_unit_from_dtype(cnp.dtype dtype):
 def py_get_unit_from_dtype(dtype):
     # for testing get_unit_from_dtype; adds 896 bytes to the .so file.
     return get_unit_from_dtype(dtype)
+
+
+def get_supported_dtype(dtype: cnp.dtype) -> cnp.dtype:
+    reso = get_unit_from_dtype(dtype)
+    new_reso = get_supported_reso(reso)
+    new_unit = npy_unit_to_abbrev(new_reso)
+
+    # Accessing dtype.kind here incorrectly(?) gives "" instead of "m"/"M",
+    #  so we check type_num instead
+    if dtype.type_num == cnp.NPY_DATETIME:
+        new_dtype = np.dtype(f"M8[{new_unit}]")
+    else:
+        new_dtype = np.dtype(f"m8[{new_unit}]")
+    return new_dtype
+
+
+def is_supported_dtype(dtype: cnp.dtype) -> bool:
+    if dtype.type_num not in [cnp.NPY_DATETIME, cnp.NPY_TIMEDELTA]:
+        raise ValueError("is_unitless dtype must be datetime64 or timedelta64")
+    cdef:
+        NPY_DATETIMEUNIT unit = get_unit_from_dtype(dtype)
+    return is_supported_unit(unit)
 
 
 def is_unitless(dtype: cnp.dtype) -> bool:
@@ -136,7 +153,7 @@ cdef bint cmp_dtstructs(
         return cmp_res == -1 or cmp_res == 0
 
 
-cdef inline bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1:
+cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1:
     """
     cmp_scalar is a more performant version of PyObject_RichCompare
     typed for int64_t arguments.
@@ -158,6 +175,13 @@ cdef inline bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1:
 class OutOfBoundsDatetime(ValueError):
     """
     Raised when the datetime is outside the range that can be represented.
+
+    Examples
+    --------
+    >>> pd.to_datetime("08335394550")
+    Traceback (most recent call last):
+    OutOfBoundsDatetime: Parsing "08335394550" to datetime overflows,
+    at position 0
     """
     pass
 
@@ -167,6 +191,13 @@ class OutOfBoundsTimedelta(ValueError):
     Raised when encountering a timedelta value that cannot be represented.
 
     Representation should be within a timedelta64[ns].
+
+    Examples
+    --------
+    >>> pd.date_range(start="1/1/1700", freq="B", periods=100000)
+    Traceback (most recent call last):
+    OutOfBoundsTimedelta: Cannot cast 139999 days 00:00:00
+    to unit='ns' without overflow.
     """
     # Timedelta analogue to OutOfBoundsDatetime
     pass
@@ -196,6 +227,11 @@ cdef get_implementation_bounds(
         raise NotImplementedError(reso)
 
 
+cdef str dts_to_iso_string(npy_datetimestruct *dts):
+    return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+            f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}")
+
+
 cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=NPY_FR_ns):
     """Raises OutOfBoundsDatetime if the given date is outside the range that
     can be represented by nanosecond-resolution 64-bit integers."""
@@ -211,10 +247,9 @@ cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=NPY_FR_ns):
         error = True
 
     if error:
-        fmt = (f'{dts.year}-{dts.month:02d}-{dts.day:02d} '
-               f'{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}')
-        # TODO: "nanosecond" in the message assumes NPY_FR_ns
-        raise OutOfBoundsDatetime(f'Out of bounds nanosecond timestamp: {fmt}')
+        fmt = dts_to_iso_string(dts)
+        attrname = npy_unit_to_attrname[unit]
+        raise OutOfBoundsDatetime(f"Out of bounds {attrname} timestamp: {fmt}")
 
 
 # ----------------------------------------------------------------------
@@ -229,7 +264,7 @@ def py_td64_to_tdstruct(int64_t td64, NPY_DATETIMEUNIT unit):
     return tds  # <- returned as a dict to python
 
 
-cdef inline void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts):
+cdef void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts) noexcept:
     if PyDateTime_CheckExact(dt):
         dts.year = PyDateTime_GET_YEAR(dt)
     else:
@@ -246,17 +281,26 @@ cdef inline void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts):
     dts.ps = dts.as = 0
 
 
-cdef inline int64_t pydatetime_to_dt64(datetime val,
-                                       npy_datetimestruct *dts,
-                                       NPY_DATETIMEUNIT reso=NPY_FR_ns):
+cdef int64_t pydatetime_to_dt64(datetime val,
+                                npy_datetimestruct *dts,
+                                NPY_DATETIMEUNIT reso=NPY_FR_ns) except? -1:
     """
     Note we are assuming that the datetime object is timezone-naive.
     """
+    cdef int64_t result
     pydatetime_to_dtstruct(val, dts)
-    return npy_datetimestruct_to_datetime(reso, dts)
+    try:
+        result = npy_datetimestruct_to_datetime(reso, dts)
+    except OverflowError as err:
+        attrname = npy_unit_to_attrname[reso]
+        raise OutOfBoundsDatetime(
+            f"Out of bounds {attrname} timestamp: {val}"
+        ) from err
+
+    return result
 
 
-cdef inline void pydate_to_dtstruct(date val, npy_datetimestruct *dts):
+cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts) noexcept:
     dts.year = PyDateTime_GET_YEAR(val)
     dts.month = PyDateTime_GET_MONTH(val)
     dts.day = PyDateTime_GET_DAY(val)
@@ -264,14 +308,23 @@ cdef inline void pydate_to_dtstruct(date val, npy_datetimestruct *dts):
     dts.ps = dts.as = 0
     return
 
-cdef inline int64_t pydate_to_dt64(
+
+cdef int64_t pydate_to_dt64(
     date val, npy_datetimestruct *dts, NPY_DATETIMEUNIT reso=NPY_FR_ns
-):
+) except? -1:
+    cdef int64_t result
     pydate_to_dtstruct(val, dts)
-    return npy_datetimestruct_to_datetime(reso, dts)
+
+    try:
+        result = npy_datetimestruct_to_datetime(reso, dts)
+    except OverflowError as err:
+        attrname = npy_unit_to_attrname[reso]
+        raise OutOfBoundsDatetime(f"Out of bounds {attrname} timestamp: {val}") from err
+
+    return result
 
 
-cdef inline int string_to_dts(
+cdef int string_to_dts(
     str val,
     npy_datetimestruct* dts,
     NPY_DATETIMEUNIT* out_bestunit,
@@ -286,17 +339,20 @@ cdef inline int string_to_dts(
         const char* buf
         Py_ssize_t format_length
         const char* format_buf
+        FormatRequirement format_requirement
 
     buf = get_c_string_buf_and_size(val, &length)
     if format is None:
-        format_buf = b''
+        format_buf = b""
         format_length = 0
-        exact = False
+        format_requirement = INFER_FORMAT
     else:
         format_buf = get_c_string_buf_and_size(format, &format_length)
+        format_requirement = <FormatRequirement>exact
     return parse_iso_8601_datetime(buf, length, want_exc,
                                    dts, out_bestunit, out_local, out_tzoffset,
-                                   format_buf, format_length, exact)
+                                   format_buf, format_length,
+                                   format_requirement)
 
 
 cpdef ndarray astype_overflowsafe(
@@ -304,6 +360,7 @@ cpdef ndarray astype_overflowsafe(
     cnp.dtype dtype,
     bint copy=True,
     bint round_ok=True,
+    bint is_coerce=False,
 ):
     """
     Convert an ndarray with datetime64[X] to datetime64[Y]
@@ -312,10 +369,10 @@ cpdef ndarray astype_overflowsafe(
     """
     if values.descr.type_num == dtype.type_num == cnp.NPY_DATETIME:
         # i.e. dtype.kind == "M"
-        pass
+        dtype_name = "datetime64"
     elif values.descr.type_num == dtype.type_num == cnp.NPY_TIMEDELTA:
         # i.e. dtype.kind == "m"
-        pass
+        dtype_name = "timedelta64"
     else:
         raise TypeError(
             "astype_overflowsafe values.dtype and dtype must be either "
@@ -326,14 +383,14 @@ cpdef ndarray astype_overflowsafe(
         NPY_DATETIMEUNIT from_unit = get_unit_from_dtype(values.dtype)
         NPY_DATETIMEUNIT to_unit = get_unit_from_dtype(dtype)
 
-    if (
-        from_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC
-        or to_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC
-    ):
+    if from_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+        raise TypeError(f"{dtype_name} values must have a unit specified")
+
+    if to_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         # without raising explicitly here, we end up with a SystemError
         # built-in function [...] returned a result with an error
         raise ValueError(
-            "datetime64/timedelta64 values and dtype must have a unit specified"
+            f"{dtype_name} dtype must have a unit specified"
         )
 
     if from_unit == to_unit:
@@ -343,13 +400,10 @@ cpdef ndarray astype_overflowsafe(
         return values
 
     elif from_unit > to_unit:
-        if round_ok:
-            # e.g. ns -> us, so there is no risk of overflow, so we can use
-            #  numpy's astype safely. Note there _is_ risk of truncation.
-            return values.astype(dtype)
-        else:
-            iresult2 = astype_round_check(values.view("i8"), from_unit, to_unit)
-            return iresult2.view(dtype)
+        iresult2 = _astype_overflowsafe_to_smaller_unit(
+            values.view("i8"), from_unit, to_unit, round_ok=round_ok
+        )
+        return iresult2.view(dtype)
 
     if (<object>values).dtype.byteorder == ">":
         # GH#29684 we incorrectly get OutOfBoundsDatetime if we dont swap
@@ -381,7 +435,9 @@ cpdef ndarray astype_overflowsafe(
             try:
                 check_dts_bounds(&dts, to_unit)
             except OutOfBoundsDatetime as err:
-                if is_td:
+                if is_coerce:
+                    new_value = NPY_DATETIME_NAT
+                elif is_td:
                     from_abbrev = np.datetime_data(values.dtype)[0]
                     np_val = np.timedelta64(value, from_abbrev)
                     msg = (
@@ -391,8 +447,8 @@ cpdef ndarray astype_overflowsafe(
                     raise OutOfBoundsTimedelta(msg) from err
                 else:
                     raise
-
-            new_value = npy_datetimestruct_to_datetime(to_unit, &dts)
+            else:
+                new_value = npy_datetimestruct_to_datetime(to_unit, &dts)
 
         # Analogous to: iresult[i] = new_value
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = new_value
@@ -402,7 +458,7 @@ cpdef ndarray astype_overflowsafe(
     return iresult.view(dtype)
 
 
-# TODO: try to upstream this fix to numpy
+# TODO(numpy#16352): try to upstream this fix to numpy
 def compare_mismatched_resolutions(ndarray left, ndarray right, op):
     """
     Overflow-safe comparison of timedelta64/datetime64 with mismatched resolutions.
@@ -413,7 +469,7 @@ def compare_mismatched_resolutions(ndarray left, ndarray right, op):
     array([ True])
     """
 
-    if left.dtype.kind != right.dtype.kind or left.dtype.kind not in ["m", "M"]:
+    if left.dtype.kind != right.dtype.kind or left.dtype.kind not in "mM":
         raise ValueError("left and right must both be timedelta64 or both datetime64")
 
     cdef:
@@ -460,11 +516,7 @@ def compare_mismatched_resolutions(ndarray left, ndarray right, op):
     return result
 
 
-import operator
-
-
 cdef int op_to_op_code(op):
-    # TODO: should exist somewhere?
     if op is operator.eq:
         return Py_EQ
     if op is operator.ne:
@@ -479,13 +531,20 @@ cdef int op_to_op_code(op):
         return Py_GT
 
 
-cdef ndarray astype_round_check(
+cdef ndarray _astype_overflowsafe_to_smaller_unit(
     ndarray i8values,
     NPY_DATETIMEUNIT from_unit,
-    NPY_DATETIMEUNIT to_unit
+    NPY_DATETIMEUNIT to_unit,
+    bint round_ok,
 ):
-    # cases with from_unit > to_unit, e.g. ns->us, raise if the conversion
-    #  involves truncation, e.g. 1500ns->1us
+    """
+    Overflow-safe conversion for cases with from_unit > to_unit, e.g. ns->us.
+    In addition for checking for overflows (which can occur near the lower
+    implementation bound, see numpy#22346), this checks for truncation,
+    e.g. 1500ns->1us.
+    """
+    # e.g. test_astype_ns_to_ms_near_bounds is a case with round_ok=True where
+    #  just using numpy's astype silently fails
     cdef:
         Py_ssize_t i, N = i8values.size
 
@@ -508,9 +567,7 @@ cdef ndarray astype_round_check(
             new_value = NPY_DATETIME_NAT
         else:
             new_value, mod = divmod(value, mult)
-            if mod != 0:
-                # TODO: avoid runtime import
-                from pandas._libs.tslibs.dtypes import npy_unit_to_abbrev
+            if not round_ok and mod != 0:
                 from_abbrev = npy_unit_to_abbrev(from_unit)
                 to_abbrev = npy_unit_to_abbrev(to_unit)
                 raise ValueError(
@@ -525,7 +582,6 @@ cdef ndarray astype_round_check(
     return iresult
 
 
-@cython.overflowcheck(True)
 cdef int64_t get_conversion_factor(
     NPY_DATETIMEUNIT from_unit,
     NPY_DATETIMEUNIT to_unit
@@ -533,37 +589,56 @@ cdef int64_t get_conversion_factor(
     """
     Find the factor by which we need to multiply to convert from from_unit to to_unit.
     """
+    cdef int64_t value, overflow_limit, factor
     if (
         from_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         or to_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC
     ):
         raise ValueError("unit-less resolutions are not supported")
     if from_unit > to_unit:
-        raise ValueError
+        raise ValueError("from_unit must be <= to_unit")
 
     if from_unit == to_unit:
         return 1
 
     if from_unit == NPY_DATETIMEUNIT.NPY_FR_W:
-        return 7 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_D, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_D, to_unit)
+        factor = 7
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_D:
-        return 24 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_h, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_h, to_unit)
+        factor = 24
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_h:
-        return 60 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_m, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_m, to_unit)
+        factor = 60
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_m:
-        return 60 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_s, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_s, to_unit)
+        factor = 60
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_s:
-        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ms, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ms, to_unit)
+        factor = 1000
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_ms:
-        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_us, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_us, to_unit)
+        factor = 1000
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_us:
-        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ns, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ns, to_unit)
+        factor = 1000
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_ns:
-        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ps, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ps, to_unit)
+        factor = 1000
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_ps:
-        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_fs, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_fs, to_unit)
+        factor = 1000
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_fs:
-        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_as, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_as, to_unit)
+        factor = 1000
+    else:
+        raise ValueError("Converting from M or Y units is not supported.")
+
+    overflow_limit = INT64_MAX // factor
+    if value > overflow_limit or value < -overflow_limit:
+        raise OverflowError("result would overflow")
+
+    return factor * value
 
 
 cdef int64_t convert_reso(
@@ -573,7 +648,7 @@ cdef int64_t convert_reso(
     bint round_ok,
 ) except? -1:
     cdef:
-        int64_t res_value, mult, div, mod
+        int64_t res_value, mult, div, mod, overflow_limit
 
     if from_reso == to_reso:
         return value
@@ -602,9 +677,12 @@ cdef int64_t convert_reso(
     else:
         # e.g. ns -> us, risk of overflow, but no risk of lossy rounding
         mult = get_conversion_factor(from_reso, to_reso)
-        with cython.overflowcheck(True):
+        overflow_limit = INT64_MAX // mult
+        if value > overflow_limit or value < -overflow_limit:
             # Note: caller is responsible for re-raising as OutOfBoundsTimedelta
-            res_value = value * mult
+            raise OverflowError("result would overflow")
+
+        res_value = value * mult
 
     return res_value
 
@@ -616,7 +694,52 @@ cdef int64_t _convert_reso_with_dtstruct(
 ) except? -1:
     cdef:
         npy_datetimestruct dts
+        int64_t result
 
     pandas_datetime_to_datetimestruct(value, from_unit, &dts)
-    check_dts_bounds(&dts, to_unit)
-    return npy_datetimestruct_to_datetime(to_unit, &dts)
+    try:
+        result = npy_datetimestruct_to_datetime(to_unit, &dts)
+    except OverflowError as err:
+        raise OutOfBoundsDatetime from err
+
+    return result
+
+
+@cython.overflowcheck(True)
+cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
+    """
+    Overflow-safe addition for datetime64/timedelta64 dtypes.
+
+    `right` may either be zero-dim or of the same shape as `left`.
+    """
+    cdef:
+        Py_ssize_t N = left.size
+        int64_t lval, rval, res_value
+        ndarray iresult = cnp.PyArray_EMPTY(
+            left.ndim, left.shape, cnp.NPY_INT64, 0
+        )
+        cnp.broadcast mi = cnp.PyArray_MultiIterNew3(iresult, left, right)
+
+    # Note: doing this try/except outside the loop improves performance over
+    #  doing it inside the loop.
+    try:
+        for i in range(N):
+            # Analogous to: lval = lvalues[i]
+            lval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
+            # Analogous to: rval = rvalues[i]
+            rval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 2))[0]
+
+            if lval == NPY_DATETIME_NAT or rval == NPY_DATETIME_NAT:
+                res_value = NPY_DATETIME_NAT
+            else:
+                res_value = lval + rval
+
+            # Analogous to: result[i] = res_value
+            (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_value
+
+            cnp.PyArray_MultiIter_NEXT(mi)
+    except OverflowError as err:
+        raise OverflowError("Overflow in int64 addition") from err
+
+    return iresult

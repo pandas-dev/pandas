@@ -14,6 +14,7 @@ import importlib
 import inspect
 import logging
 import os
+import re
 import sys
 import warnings
 
@@ -56,8 +57,7 @@ extensions = [
     "matplotlib.sphinxext.plot_directive",
     "numpydoc",
     "sphinx_copybutton",
-    "sphinx_panels",
-    "sphinx_toggleprompt",
+    "sphinx_design",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.coverage",
@@ -101,24 +101,24 @@ if pattern:
         reldir = os.path.relpath(dirname, source_path)
         for fname in fnames:
             if os.path.splitext(fname)[-1] in (".rst", ".ipynb"):
-                fname = os.path.relpath(os.path.join(dirname, fname), source_path)
+                rel_fname = os.path.relpath(os.path.join(dirname, fname), source_path)
 
-                if fname == "index.rst" and os.path.abspath(dirname) == source_path:
+                if rel_fname == "index.rst" and os.path.abspath(dirname) == source_path:
                     continue
                 if pattern == "-api" and reldir.startswith("reference"):
-                    exclude_patterns.append(fname)
+                    exclude_patterns.append(rel_fname)
                 elif (
                     pattern == "whatsnew"
                     and not reldir.startswith("reference")
                     and reldir != "whatsnew"
                 ):
-                    exclude_patterns.append(fname)
-                elif single_doc and fname != pattern:
-                    exclude_patterns.append(fname)
+                    exclude_patterns.append(rel_fname)
+                elif single_doc and rel_fname != pattern:
+                    exclude_patterns.append(rel_fname)
 
-with open(os.path.join(source_path, "index.rst.template")) as f:
+with open(os.path.join(source_path, "index.rst.template"), encoding="utf-8") as f:
     t = jinja2.Template(f.read())
-with open(os.path.join(source_path, "index.rst"), "w") as f:
+with open(os.path.join(source_path, "index.rst"), "w", encoding="utf-8") as f:
     f.write(
         t.render(
             include_api=include_api,
@@ -129,6 +129,8 @@ autosummary_generate = True if include_api else ["index"]
 autodoc_typehints = "none"
 
 # numpydoc
+numpydoc_show_class_members = False
+numpydoc_show_inherited_class_members = False
 numpydoc_attributes_as_param_list = False
 
 # matplotlib plot directive
@@ -141,10 +143,6 @@ import pandas as pd"""
 
 # nbsphinx do not use requirejs (breaks bootstrap)
 nbsphinx_requirejs_path = ""
-
-# sphinx-panels shouldn't add bootstrap css since the pydata-sphinx-theme
-# already loads it
-panels_add_bootstrap_css = False
 
 # https://sphinx-toggleprompt.readthedocs.io/en/stable/#offset
 toggleprompt_offset_right = 35
@@ -164,7 +162,7 @@ master_doc = "index"
 # General information about the project.
 project = "pandas"
 # We have our custom "pandas_footer.html" template, using copyright for the current year
-copyright = f"{datetime.now().year}"
+copyright = f"{datetime.now().year},"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -232,24 +230,38 @@ html_theme = "pydata_sphinx_theme"
 # further.  For a list of options available for each theme, see the
 # documentation.
 
-switcher_version = version
 if ".dev" in version:
     switcher_version = "dev"
 elif "rc" in version:
     switcher_version = version.split("rc", maxsplit=1)[0] + " (rc)"
+else:
+    # only keep major.minor version number to match versions.json
+    switcher_version = ".".join(version.split(".")[:2])
 
 html_theme_options = {
     "external_links": [],
-    "footer_items": ["pandas_footer", "sphinx-version"],
+    "footer_start": ["pandas_footer", "sphinx-version"],
     "github_url": "https://github.com/pandas-dev/pandas",
     "twitter_url": "https://twitter.com/pandas_dev",
-    "google_analytics_id": "UA-27880019-2",
+    "analytics": {
+        "plausible_analytics_domain": "pandas.pydata.org",
+        "plausible_analytics_url": "https://views.scientific-python.org/js/script.js",
+    },
     "logo": {"image_dark": "https://pandas.pydata.org/static/img/pandas_white.svg"},
+    "navbar_align": "left",
     "navbar_end": ["version-switcher", "theme-switcher", "navbar-icon-links"],
     "switcher": {
-        "json_url": "/versions.json",
+        "json_url": "https://pandas.pydata.org/versions.json",
         "version_match": switcher_version,
     },
+    "show_version_warning_banner": True,
+    "icon_links": [
+        {
+            "name": "Mastodon",
+            "url": "https://fosstodon.org/@pandas_dev",
+            "icon": "fa-brands fa-mastodon",
+        },
+    ],
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -344,10 +356,8 @@ for old, new in moved_classes:
     methods = [
         x for x in dir(klass) if not x.startswith("_") or x in ("__iter__", "__array__")
     ]
-
-    for method in methods:
-        # ... and each of its public methods
-        moved_api_pages.append((f"{old}.{method}", f"{new}.{method}"))
+    # ... and each of its public methods
+    moved_api_pages.extend((f"{old}.{method}", f"{new}.{method}") for method in methods)
 
 if include_api:
     html_additional_pages = {
@@ -450,7 +460,6 @@ if include_api:
         "dateutil": ("https://dateutil.readthedocs.io/en/latest/", None),
         "matplotlib": ("https://matplotlib.org/stable/", None),
         "numpy": ("https://numpy.org/doc/stable/", None),
-        "pandas-gbq": ("https://pandas-gbq.readthedocs.io/en/latest/", None),
         "py": ("https://pylib.readthedocs.io/en/latest/", None),
         "python": ("https://docs.python.org/3/", None),
         "scipy": ("https://docs.scipy.org/doc/scipy/", None),
@@ -459,11 +468,10 @@ if include_api:
 
 # extlinks alias
 extlinks = {
-    "issue": ("https://github.com/pandas-dev/pandas/issues/%s", "GH"),
+    "issue": ("https://github.com/pandas-dev/pandas/issues/%s", "GH %s"),
 }
 
 
-ipython_warning_is_error = False
 ipython_execlines = [
     "import numpy as np",
     "import pandas as pd",
@@ -498,7 +506,7 @@ class AccessorDocumenter(MethodDocumenter):
     # lower than MethodDocumenter so this is not chosen for normal methods
     priority = 0.6
 
-    def format_signature(self):
+    def format_signature(self) -> str:
         # this method gives an error/warning for the accessors, therefore
         # overriding it (accessor has no arguments)
         return ""
@@ -583,14 +591,7 @@ class AccessorCallableDocumenter(AccessorLevelDocumenter, MethodDocumenter):
     priority = 0.5
 
     def format_name(self):
-        if sys.version_info < (3, 9):
-            # NOTE pyupgrade will remove this when we run it with --py39-plus
-            # so don't remove the unnecessary `else` statement below
-            from pandas.util._str_methods import removesuffix
-
-            return removesuffix(MethodDocumenter.format_name(self), ".__call__")
-        else:
-            return MethodDocumenter.format_name(self).removesuffix(".__call__")
+        return MethodDocumenter.format_name(self).removesuffix(".__call__")
 
 
 class PandasAutosummary(Autosummary):
@@ -635,7 +636,7 @@ class PandasAutosummary(Autosummary):
 
 
 # based on numpy doc/source/conf.py
-def linkcode_resolve(domain, info):
+def linkcode_resolve(domain, info) -> str | None:
     """
     Determine the URL corresponding to Python object
     """
@@ -697,12 +698,12 @@ def linkcode_resolve(domain, info):
 
 # remove the docstring of the flags attribute (inherited from numpy ndarray)
 # because these give doc build errors (see GH issue 5331)
-def remove_flags_docstring(app, what, name, obj, options, lines):
+def remove_flags_docstring(app, what, name, obj, options, lines) -> None:
     if what == "attribute" and name.endswith(".flags"):
         del lines[:]
 
 
-def process_class_docstrings(app, what, name, obj, options, lines):
+def process_class_docstrings(app, what, name, obj, options, lines) -> None:
     """
     For those classes for which we use ::
 
@@ -754,7 +755,7 @@ _BUSINED_ALIASES = [
 ]
 
 
-def process_business_alias_docstrings(app, what, name, obj, options, lines):
+def process_business_alias_docstrings(app, what, name, obj, options, lines) -> None:
     """
     Starting with sphinx 3.4, the "autodoc-process-docstring" event also
     gets called for alias classes. This results in numpydoc adding the
@@ -777,7 +778,7 @@ if pattern:
     suppress_warnings.append("ref.ref")
 
 
-def rstjinja(app, docname, source):
+def rstjinja(app, docname, source) -> None:
     """
     Render our pages as a jinja template for fancy templating goodness.
     """
@@ -790,7 +791,7 @@ def rstjinja(app, docname, source):
     source[0] = rendered
 
 
-def setup(app):
+def setup(app) -> None:
     app.connect("source-read", rstjinja)
     app.connect("autodoc-process-docstring", remove_flags_docstring)
     app.connect("autodoc-process-docstring", process_class_docstrings)
@@ -800,3 +801,49 @@ def setup(app):
     app.add_autodocumenter(AccessorMethodDocumenter)
     app.add_autodocumenter(AccessorCallableDocumenter)
     app.add_directive("autosummary", PandasAutosummary)
+
+
+# Ignore list for broken links,found in CI run checks for broken-linkcheck.yml
+
+linkcheck_ignore = [
+    "^http://$",
+    "^https://$",
+    *[
+        re.escape(link)
+        for link in [
+            "http://scatterci.github.io/pydata/pandas",
+            "http://specs.frictionlessdata.io/json-table-schema/",
+            "https://cloud.google.com/bigquery/docs/access-control#roles",
+            "https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query",
+            "https://crates.io/crates/calamine",
+            "https://devguide.python.org/setup/#macos",
+            "https://en.wikipedia.org/wiki/Imputation_statistics",
+            "https://en.wikipedia.org/wiki/Imputation_(statistics",
+            "https://github.com/noatamir/pandas-dev",
+            "https://github.com/pandas-dev/pandas/blob/main/pandas/plotting/__init__.py#L1",
+            "https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/generic.py#L568",
+            "https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/frame.py#L1495",
+            "https://github.com/pandas-dev/pandas/issues/174151",
+            "https://gitpod.io/#https://github.com/USERNAME/pandas",
+            "https://manishamde.github.io/blog/2013/03/07/pandas-and-python-top-10/",
+            "https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table",
+            "https://nipunbatra.github.io/blog/visualisation/2013/05/01/aggregation-timeseries.html",
+            "https://nbviewer.ipython.org/gist/metakermit/5720498",
+            "https://numpy.org/doc/stable/user/basics.byteswapping.html",
+            "https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-8-0",
+            "https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking",
+            "https://pandas.pydata.org/pandas-docs/stable/ecosystem.html",
+            "https://sqlalchemy.readthedocs.io/en/latest/dialects/index.html",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245912.htm",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000214639.htm",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002283942.htm",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245965.htm",
+            "https://support.sas.com/documentation/cdl/en/imlug/66845/HTML/default/viewer.htm#imlug_langref_sect455.htm",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002284668.htm",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002978282.htm",
+            "https://wesmckinney.com/blog/update-on-upcoming-pandas-v0-10-new-file-parser-other-performance-wins/",
+            "https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022",
+            "pandas.zip",
+        ]
+    ],
+]

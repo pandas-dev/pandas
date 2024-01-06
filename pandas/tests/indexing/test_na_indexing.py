@@ -34,7 +34,7 @@ def test_series_mask_boolean(values, dtype, mask, indexer_class, frame):
     if frame:
         if len(values) == 0:
             # Otherwise obj is an empty DataFrame with shape (0, 1)
-            obj = pd.DataFrame(dtype=dtype)
+            obj = pd.DataFrame(dtype=dtype, index=index)
         else:
             obj = obj.to_frame()
 
@@ -54,7 +54,6 @@ def test_series_mask_boolean(values, dtype, mask, indexer_class, frame):
         msg = "iLocation based boolean indexing cannot use an indexable as a mask"
         with pytest.raises(ValueError, match=msg):
             result = obj.iloc[mask]
-            tm.assert_equal(result, expected)
     else:
         result = obj.iloc[mask]
         tm.assert_equal(result, expected)

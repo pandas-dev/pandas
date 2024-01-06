@@ -3,11 +3,12 @@ from functools import partial
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import is_unsigned_integer_dtype
 from pandas.core.dtypes.dtypes import IntervalDtype
 
 from pandas import (
     Categorical,
+    CategoricalDtype,
     CategoricalIndex,
     Index,
     Interval,
@@ -18,17 +19,8 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-)
 from pandas.core.arrays import IntervalArray
 import pandas.core.common as com
-
-
-@pytest.fixture(params=[None, "foo"])
-def name(request):
-    return request.param
 
 
 class ConstructorTests:
@@ -39,34 +31,42 @@ class ConstructorTests:
     """
 
     @pytest.mark.parametrize(
-        "breaks",
+        "breaks_and_expected_subtype",
         [
-            [3, 14, 15, 92, 653],
-            np.arange(10, dtype="int64"),
-            Int64Index(range(-10, 11)),
-            Float64Index(np.arange(20, 30, 0.5)),
-            date_range("20180101", periods=10),
-            date_range("20180101", periods=10, tz="US/Eastern"),
-            timedelta_range("1 day", periods=10),
+            ([3, 14, 15, 92, 653], np.int64),
+            (np.arange(10, dtype="int64"), np.int64),
+            (Index(np.arange(-10, 11, dtype=np.int64)), np.int64),
+            (Index(np.arange(10, 31, dtype=np.uint64)), np.uint64),
+            (Index(np.arange(20, 30, 0.5), dtype=np.float64), np.float64),
+            (date_range("20180101", periods=10), "<M8[ns]"),
+            (
+                date_range("20180101", periods=10, tz="US/Eastern"),
+                "datetime64[ns, US/Eastern]",
+            ),
+            (timedelta_range("1 day", periods=10), "<m8[ns]"),
         ],
     )
-    def test_constructor(self, constructor, breaks, closed, name):
+    @pytest.mark.parametrize("name", [None, "foo"])
+    def test_constructor(self, constructor, breaks_and_expected_subtype, closed, name):
+        breaks, expected_subtype = breaks_and_expected_subtype
+
         result_kwargs = self.get_kwargs_from_breaks(breaks, closed)
+
         result = constructor(closed=closed, name=name, **result_kwargs)
 
         assert result.closed == closed
         assert result.name == name
-        assert result.dtype.subtype == getattr(breaks, "dtype", "int64")
-        tm.assert_index_equal(result.left, Index(breaks[:-1]))
-        tm.assert_index_equal(result.right, Index(breaks[1:]))
+        assert result.dtype.subtype == expected_subtype
+        tm.assert_index_equal(result.left, Index(breaks[:-1], dtype=expected_subtype))
+        tm.assert_index_equal(result.right, Index(breaks[1:], dtype=expected_subtype))
 
     @pytest.mark.parametrize(
         "breaks, subtype",
         [
-            (Int64Index([0, 1, 2, 3, 4]), "float64"),
-            (Int64Index([0, 1, 2, 3, 4]), "datetime64[ns]"),
-            (Int64Index([0, 1, 2, 3, 4]), "timedelta64[ns]"),
-            (Float64Index([0, 1, 2, 3, 4]), "int64"),
+            (Index([0, 1, 2, 3, 4], dtype=np.int64), "float64"),
+            (Index([0, 1, 2, 3, 4], dtype=np.int64), "datetime64[ns]"),
+            (Index([0, 1, 2, 3, 4], dtype=np.int64), "timedelta64[ns]"),
+            (Index([0, 1, 2, 3, 4], dtype=np.float64), "int64"),
             (date_range("2017-01-01", periods=5), "int64"),
             (timedelta_range("1 day", periods=5), "int64"),
         ],
@@ -85,10 +85,9 @@ class ConstructorTests:
     @pytest.mark.parametrize(
         "breaks",
         [
-            Int64Index([0, 1, 2, 3, 4]),
-            Int64Index([0, 1, 2, 3, 4]),
-            Int64Index([0, 1, 2, 3, 4]),
-            Float64Index([0, 1, 2, 3, 4]),
+            Index([0, 1, 2, 3, 4], dtype=np.int64),
+            Index([0, 1, 2, 3, 4], dtype=np.uint64),
+            Index([0, 1, 2, 3, 4], dtype=np.float64),
             date_range("2017-01-01", periods=5),
             timedelta_range("1 day", periods=5),
         ],
@@ -101,7 +100,6 @@ class ConstructorTests:
 
         for dtype in (iv_dtype, str(iv_dtype)):
             with tm.assert_produces_warning(None):
-
                 result = constructor(dtype=dtype, closed="left", **result_kwargs)
             assert result.dtype.closed == "left"
 
@@ -123,6 +121,7 @@ class ConstructorTests:
         [
             [],
             np.array([], dtype="int64"),
+            np.array([], dtype="uint64"),
             np.array([], dtype="float64"),
             np.array([], dtype="datetime64[ns]"),
             np.array([], dtype="timedelta64[ns]"),
@@ -244,13 +243,36 @@ class TestFromArrays(ConstructorTests):
         right = np.arange(1, 10, dtype=right_subtype)
         result = IntervalIndex.from_arrays(left, right)
 
-        expected_left = Float64Index(left)
-        expected_right = Float64Index(right)
+        expected_left = Index(left, dtype=np.float64)
+        expected_right = Index(right, dtype=np.float64)
         expected_subtype = np.float64
 
         tm.assert_index_equal(result.left, expected_left)
         tm.assert_index_equal(result.right, expected_right)
         assert result.dtype.subtype == expected_subtype
+
+    @pytest.mark.parametrize("interval_cls", [IntervalArray, IntervalIndex])
+    def test_from_arrays_mismatched_datetimelike_resos(self, interval_cls):
+        # GH#55714
+        left = date_range("2016-01-01", periods=3, unit="s")
+        right = date_range("2017-01-01", periods=3, unit="ms")
+        result = interval_cls.from_arrays(left, right)
+        expected = interval_cls.from_arrays(left.as_unit("ms"), right)
+        tm.assert_equal(result, expected)
+
+        # td64
+        left2 = left - left[0]
+        right2 = right - left[0]
+        result2 = interval_cls.from_arrays(left2, right2)
+        expected2 = interval_cls.from_arrays(left2.as_unit("ms"), right2)
+        tm.assert_equal(result2, expected2)
+
+        # dt64tz
+        left3 = left.tz_localize("UTC")
+        right3 = right.tz_localize("UTC")
+        result3 = interval_cls.from_arrays(left3, right3)
+        expected3 = interval_cls.from_arrays(left3.as_unit("ms"), right3)
+        tm.assert_equal(result3, expected3)
 
 
 class TestFromBreaks(ConstructorTests):
@@ -303,13 +325,16 @@ class TestFromTuples(ConstructorTests):
         converts intervals in breaks format to a dictionary of kwargs to
         specific to the format expected by IntervalIndex.from_tuples
         """
+        if is_unsigned_integer_dtype(breaks):
+            pytest.skip(f"{breaks.dtype} not relevant IntervalIndex.from_tuples tests")
+
         if len(breaks) == 0:
             return {"data": breaks}
 
         tuples = list(zip(breaks[:-1], breaks[1:]))
         if isinstance(breaks, (list, tuple)):
             return {"data": tuples}
-        elif is_categorical_dtype(breaks):
+        elif isinstance(getattr(breaks, "dtype", None), CategoricalDtype):
             return {"data": breaks._constructor(tuples)}
         return {"data": com.asarray_tuplesafe(tuples)}
 
@@ -341,14 +366,6 @@ class TestFromTuples(ConstructorTests):
 class TestClassConstructors(ConstructorTests):
     """Tests specific to the IntervalIndex/Index constructors"""
 
-    @pytest.fixture(
-        params=[IntervalIndex, partial(Index, dtype="interval")],
-        ids=["IntervalIndex", "Index"],
-    )
-    def klass(self, request):
-        # We use a separate fixture here to include Index.__new__ with dtype kwarg
-        return request.param
-
     @pytest.fixture
     def constructor(self):
         return IntervalIndex
@@ -358,6 +375,9 @@ class TestClassConstructors(ConstructorTests):
         converts intervals in breaks format to a dictionary of kwargs to
         specific to the format expected by the IntervalIndex/Index constructors
         """
+        if is_unsigned_integer_dtype(breaks):
+            pytest.skip(f"{breaks.dtype} not relevant for class constructor tests")
+
         if len(breaks) == 0:
             return {"data": breaks}
 
@@ -368,7 +388,7 @@ class TestClassConstructors(ConstructorTests):
 
         if isinstance(breaks, list):
             return {"data": ivs}
-        elif is_categorical_dtype(breaks):
+        elif isinstance(getattr(breaks, "dtype", None), CategoricalDtype):
             return {"data": breaks._constructor(ivs)}
         return {"data": np.array(ivs, dtype=object)}
 
@@ -384,6 +404,11 @@ class TestClassConstructors(ConstructorTests):
         # the interval of strings is already forbidden.
         pass
 
+    @pytest.mark.parametrize(
+        "klass",
+        [IntervalIndex, partial(Index, dtype="interval")],
+        ids=["IntervalIndex", "Index"],
+    )
     def test_constructor_errors(self, klass):
         # mismatched closed within intervals with no constructor override
         ivs = [Interval(0, 1, closed="right"), Interval(2, 3, closed="left")]
@@ -453,6 +478,23 @@ class TestClassConstructors(ConstructorTests):
         result = Index(intervals)
         expected = Index(intervals, dtype=object)
         tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("timezone", ["UTC", "US/Pacific", "GMT"])
+def test_interval_index_subtype(timezone, inclusive_endpoints_fixture):
+    # GH#46999
+    dates = date_range("2022", periods=3, tz=timezone)
+    dtype = f"interval[datetime64[ns, {timezone}], {inclusive_endpoints_fixture}]"
+    result = IntervalIndex.from_arrays(
+        ["2022-01-01", "2022-01-02"],
+        ["2022-01-02", "2022-01-03"],
+        closed=inclusive_endpoints_fixture,
+        dtype=dtype,
+    )
+    expected = IntervalIndex.from_arrays(
+        dates[:-1], dates[1:], closed=inclusive_endpoints_fixture
+    )
+    tm.assert_index_equal(result, expected)
 
 
 def test_dtype_closed_mismatch():

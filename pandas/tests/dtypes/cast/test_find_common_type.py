@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
@@ -70,6 +71,7 @@ from pandas import (
     ],
 )
 def test_numpy_dtypes(source_dtypes, expected_common_dtype):
+    source_dtypes = [pandas_dtype(x) for x in source_dtypes]
     assert find_common_type(source_dtypes) == expected_common_dtype
 
 
@@ -120,7 +122,7 @@ def test_period_dtype_match():
     [
         DatetimeTZDtype(unit="ns", tz="Asia/Tokyo"),
         PeriodDtype(freq="2D"),
-        PeriodDtype(freq="H"),
+        PeriodDtype(freq="h"),
         np.dtype("datetime64[ns]"),
         object,
         np.int64,

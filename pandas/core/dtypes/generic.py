@@ -24,16 +24,11 @@ if TYPE_CHECKING:
     from pandas.core.arrays import (
         DatetimeArray,
         ExtensionArray,
-        PandasArray,
+        NumpyExtensionArray,
         PeriodArray,
         TimedeltaArray,
     )
     from pandas.core.generic import NDFrame
-    from pandas.core.indexes.api import (
-        Float64Index,
-        Int64Index,
-        UInt64Index,
-    )
 
 
 # define abstract base classes to enable isinstance type checking on our
@@ -62,21 +57,9 @@ def create_pandas_abc_type(name, attr, comp):
     return meta(name, (), dct)
 
 
-ABCInt64Index = cast(
-    "Type[Int64Index]",
-    create_pandas_abc_type("ABCInt64Index", "_typ", ("int64index",)),
-)
-ABCUInt64Index = cast(
-    "Type[UInt64Index]",
-    create_pandas_abc_type("ABCUInt64Index", "_typ", ("uint64index",)),
-)
 ABCRangeIndex = cast(
     "Type[RangeIndex]",
     create_pandas_abc_type("ABCRangeIndex", "_typ", ("rangeindex",)),
-)
-ABCFloat64Index = cast(
-    "Type[Float64Index]",
-    create_pandas_abc_type("ABCFloat64Index", "_typ", ("float64index",)),
 )
 ABCMultiIndex = cast(
     "Type[MultiIndex]",
@@ -109,11 +92,7 @@ ABCIndex = cast(
         "_typ",
         {
             "index",
-            "int64index",
             "rangeindex",
-            "float64index",
-            "uint64index",
-            "numericindex",
             "multiindex",
             "datetimeindex",
             "timedeltaindex",
@@ -162,7 +141,7 @@ ABCExtensionArray = cast(
         {"extension", "categorical", "periodarray", "datetimearray", "timedeltaarray"},
     ),
 )
-ABCPandasArray = cast(
-    "Type[PandasArray]",
-    create_pandas_abc_type("ABCPandasArray", "_typ", ("npy_extension",)),
+ABCNumpyExtensionArray = cast(
+    "Type[NumpyExtensionArray]",
+    create_pandas_abc_type("ABCNumpyExtensionArray", "_typ", ("npy_extension",)),
 )

@@ -112,7 +112,7 @@ The pandas method is :func:`read_csv`, which works similarly.
 .. ipython:: python
 
    url = (
-       "https://raw.github.com/pandas-dev/"
+       "https://raw.githubusercontent.com/pandas-dev/"
        "pandas/main/pandas/tests/io/data/csv/tips.csv"
    )
    tips = pd.read_csv(url)

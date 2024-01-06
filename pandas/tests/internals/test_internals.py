@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.internals import BlockPlacement
-import pandas.util._test_decorators as td
+from pandas.compat import IS64
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -39,12 +39,9 @@ from pandas.core.internals import (
 )
 from pandas.core.internals.blocks import (
     ensure_block_shape,
+    maybe_coerce_values,
     new_block,
 )
-
-# this file contains BlockManager specific tests
-# TODO(ArrayManager) factor out interleave_dtype tests
-pytestmark = td.skip_array_manager_invalid_test
 
 
 @pytest.fixture(params=[new_block, make_block])
@@ -167,6 +164,7 @@ def create_block(typestr, placement, item_shape=None, num_offset=0, maker=new_bl
     else:
         raise ValueError(f'Unsupported typestr: "{typestr}"')
 
+    values = maybe_coerce_values(values)
     return maker(values, placement=placement, ndim=len(shape))
 
 
@@ -285,7 +283,7 @@ class TestBlock:
     def test_delete(self, fblock):
         newb = fblock.copy()
         locs = newb.mgr_locs
-        nb = newb.delete(0)
+        nb = newb.delete(0)[0]
         assert newb.mgr_locs is locs
 
         assert nb is not newb
@@ -299,21 +297,25 @@ class TestBlock:
         newb = fblock.copy()
         locs = newb.mgr_locs
         nb = newb.delete(1)
+        assert len(nb) == 2
         assert newb.mgr_locs is locs
 
         tm.assert_numpy_array_equal(
-            nb.mgr_locs.as_array, np.array([0, 4], dtype=np.intp)
+            nb[0].mgr_locs.as_array, np.array([0], dtype=np.intp)
+        )
+        tm.assert_numpy_array_equal(
+            nb[1].mgr_locs.as_array, np.array([4], dtype=np.intp)
         )
         assert not (newb.values[1] == 2).all()
-        assert (nb.values[1] == 2).all()
+        assert (nb[1].values[0] == 2).all()
 
         newb = fblock.copy()
-        locs = newb.mgr_locs
         nb = newb.delete(2)
+        assert len(nb) == 1
         tm.assert_numpy_array_equal(
-            nb.mgr_locs.as_array, np.array([0, 2], dtype=np.intp)
+            nb[0].mgr_locs.as_array, np.array([0, 2], dtype=np.intp)
         )
-        assert (nb.values[1] == 1).all()
+        assert (nb[0].values[1] == 1).all()
 
         newb = fblock.copy()
 
@@ -328,19 +330,23 @@ class TestBlock:
         assert isinstance(blk.values, TimedeltaArray)
 
         nb = blk.delete(1)
-        assert isinstance(nb.values, TimedeltaArray)
+        assert len(nb) == 2
+        assert isinstance(nb[0].values, TimedeltaArray)
+        assert isinstance(nb[1].values, TimedeltaArray)
 
         df = DataFrame(arr.view("M8[ns]"))
         blk = df._mgr.blocks[0]
         assert isinstance(blk.values, DatetimeArray)
 
         nb = blk.delete([1, 3])
-        assert isinstance(nb.values, DatetimeArray)
+        assert len(nb) == 2
+        assert isinstance(nb[0].values, DatetimeArray)
+        assert isinstance(nb[1].values, DatetimeArray)
 
     def test_split(self):
         # GH#37799
-        values = np.random.randn(3, 4)
-        blk = new_block(values, placement=[3, 1, 6], ndim=2)
+        values = np.random.default_rng(2).standard_normal((3, 4))
+        blk = new_block(values, placement=BlockPlacement([3, 1, 6]), ndim=2)
         result = blk._split()
 
         # check that we get views, not copies
@@ -349,9 +355,9 @@ class TestBlock:
 
         assert len(result) == 3
         expected = [
-            new_block(values[[0]], placement=[3], ndim=2),
-            new_block(values[[1]], placement=[1], ndim=2),
-            new_block(values[[2]], placement=[6], ndim=2),
+            new_block(values[[0]], placement=BlockPlacement([3]), ndim=2),
+            new_block(values[[1]], placement=BlockPlacement([1]), ndim=2),
+            new_block(values[[2]], placement=BlockPlacement([6]), ndim=2),
         ]
         for res, exp in zip(result, expected):
             assert_block_equal(res, exp)
@@ -375,8 +381,8 @@ class TestBlockManager:
 
         msg = "Gaps in blk ref_locs"
 
+        mgr = BlockManager(blocks, axes)
         with pytest.raises(AssertionError, match=msg):
-            mgr = BlockManager(blocks, axes)
             mgr._rebuild_blknos_and_blklocs()
 
         blocks[0].mgr_locs = BlockPlacement(np.array([0]))
@@ -385,9 +391,11 @@ class TestBlockManager:
         mgr.iget(1)
 
     def test_pickle(self, mgr):
-
         mgr2 = tm.round_trip_pickle(mgr)
-        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+        tm.assert_frame_equal(
+            DataFrame._from_mgr(mgr, axes=mgr.axes),
+            DataFrame._from_mgr(mgr2, axes=mgr2.axes),
+        )
 
         # GH2431
         assert hasattr(mgr2, "_is_consolidated")
@@ -401,23 +409,32 @@ class TestBlockManager:
     def test_non_unique_pickle(self, mgr_string):
         mgr = create_mgr(mgr_string)
         mgr2 = tm.round_trip_pickle(mgr)
-        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+        tm.assert_frame_equal(
+            DataFrame._from_mgr(mgr, axes=mgr.axes),
+            DataFrame._from_mgr(mgr2, axes=mgr2.axes),
+        )
 
     def test_categorical_block_pickle(self):
         mgr = create_mgr("a: category")
         mgr2 = tm.round_trip_pickle(mgr)
-        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+        tm.assert_frame_equal(
+            DataFrame._from_mgr(mgr, axes=mgr.axes),
+            DataFrame._from_mgr(mgr2, axes=mgr2.axes),
+        )
 
         smgr = create_single_mgr("category")
         smgr2 = tm.round_trip_pickle(smgr)
-        tm.assert_series_equal(Series(smgr), Series(smgr2))
+        tm.assert_series_equal(
+            Series()._constructor_from_mgr(smgr, axes=smgr.axes),
+            Series()._constructor_from_mgr(smgr2, axes=smgr2.axes),
+        )
 
     def test_iget(self):
         cols = Index(list("abc"))
-        values = np.random.rand(3, 3)
+        values = np.random.default_rng(2).random((3, 3))
         block = new_block(
             values=values.copy(),
-            placement=np.arange(3, dtype=np.intp),
+            placement=BlockPlacement(np.arange(3, dtype=np.intp)),
             ndim=values.ndim,
         )
         mgr = BlockManager(blocks=(block,), axes=[cols, Index(np.arange(3))])
@@ -452,31 +469,35 @@ class TestBlockManager:
         idx = mgr2.items.get_loc("baz")
         assert mgr2.iget(idx).dtype == np.object_
 
-        mgr2.insert(len(mgr2.items), "quux", np.random.randn(N).astype(int))
+        mgr2.insert(
+            len(mgr2.items),
+            "quux",
+            np.random.default_rng(2).standard_normal(N).astype(int),
+        )
         idx = mgr2.items.get_loc("quux")
-        assert mgr2.iget(idx).dtype == np.int_
+        assert mgr2.iget(idx).dtype == np.dtype(int)
 
-        mgr2.iset(mgr2.items.get_loc("quux"), np.random.randn(N))
-        assert mgr2.iget(idx).dtype == np.float_
+        mgr2.iset(
+            mgr2.items.get_loc("quux"), np.random.default_rng(2).standard_normal(N)
+        )
+        assert mgr2.iget(idx).dtype == np.float64
 
     def test_copy(self, mgr):
         cp = mgr.copy(deep=False)
         for blk, cp_blk in zip(mgr.blocks, cp.blocks):
-
             # view assertion
             tm.assert_equal(cp_blk.values, blk.values)
             if isinstance(blk.values, np.ndarray):
                 assert cp_blk.values.base is blk.values.base
             else:
                 # DatetimeTZBlock has DatetimeIndex values
-                assert cp_blk.values._data.base is blk.values._data.base
+                assert cp_blk.values._ndarray.base is blk.values._ndarray.base
 
         # copy(deep=True) consolidates, so the block-wise assertions will
         #  fail is mgr is not consolidated
         mgr._consolidate_inplace()
         cp = mgr.copy(deep=True)
         for blk, cp_blk in zip(mgr.blocks, cp.blocks):
-
             bvals = blk.values
             cpvals = cp_blk.values
 
@@ -565,7 +586,7 @@ class TestBlockManager:
         else:
             assert tmgr.iget(3).dtype.type == t
 
-    def test_convert(self):
+    def test_convert(self, using_infer_string):
         def _compare(old_mgr, new_mgr):
             """compare the blocks, numeric compare ==, object don't"""
             old_blocks = set(old_mgr.blocks)
@@ -591,7 +612,7 @@ class TestBlockManager:
 
         # noops
         mgr = create_mgr("f: i8; g: f8")
-        new_mgr = mgr.convert()
+        new_mgr = mgr.convert(copy=True)
         _compare(mgr, new_mgr)
 
         # convert
@@ -599,10 +620,11 @@ class TestBlockManager:
         mgr.iset(0, np.array(["1"] * N, dtype=np.object_))
         mgr.iset(1, np.array(["2."] * N, dtype=np.object_))
         mgr.iset(2, np.array(["foo."] * N, dtype=np.object_))
-        new_mgr = mgr.convert(numeric=True)
-        assert new_mgr.iget(0).dtype == np.int64
-        assert new_mgr.iget(1).dtype == np.float64
-        assert new_mgr.iget(2).dtype == np.object_
+        new_mgr = mgr.convert(copy=True)
+        dtype = "string[pyarrow_numpy]" if using_infer_string else np.object_
+        assert new_mgr.iget(0).dtype == dtype
+        assert new_mgr.iget(1).dtype == dtype
+        assert new_mgr.iget(2).dtype == dtype
         assert new_mgr.iget(3).dtype == np.int64
         assert new_mgr.iget(4).dtype == np.float64
 
@@ -612,23 +634,16 @@ class TestBlockManager:
         mgr.iset(0, np.array(["1"] * N, dtype=np.object_))
         mgr.iset(1, np.array(["2."] * N, dtype=np.object_))
         mgr.iset(2, np.array(["foo."] * N, dtype=np.object_))
-        new_mgr = mgr.convert(numeric=True)
-        assert new_mgr.iget(0).dtype == np.int64
-        assert new_mgr.iget(1).dtype == np.float64
-        assert new_mgr.iget(2).dtype == np.object_
+        new_mgr = mgr.convert(copy=True)
+        assert new_mgr.iget(0).dtype == dtype
+        assert new_mgr.iget(1).dtype == dtype
+        assert new_mgr.iget(2).dtype == dtype
         assert new_mgr.iget(3).dtype == np.int32
         assert new_mgr.iget(4).dtype == np.bool_
         assert new_mgr.iget(5).dtype.type, np.datetime64
         assert new_mgr.iget(6).dtype == np.int64
         assert new_mgr.iget(7).dtype == np.float64
         assert new_mgr.iget(8).dtype == np.float16
-
-    def test_invalid_ea_block(self):
-        with pytest.raises(ValueError, match="need to split"):
-            create_mgr("a: category; b: category")
-
-        with pytest.raises(ValueError, match="need to split"):
-            create_mgr("a: category2; b: category2")
 
     def test_interleave(self):
         # self
@@ -699,11 +714,11 @@ class TestBlockManager:
         assert mgr.as_array().dtype == "object"
 
     def test_consolidate_ordering_issues(self, mgr):
-        mgr.iset(mgr.items.get_loc("f"), np.random.randn(N))
-        mgr.iset(mgr.items.get_loc("d"), np.random.randn(N))
-        mgr.iset(mgr.items.get_loc("b"), np.random.randn(N))
-        mgr.iset(mgr.items.get_loc("g"), np.random.randn(N))
-        mgr.iset(mgr.items.get_loc("h"), np.random.randn(N))
+        mgr.iset(mgr.items.get_loc("f"), np.random.default_rng(2).standard_normal(N))
+        mgr.iset(mgr.items.get_loc("d"), np.random.default_rng(2).standard_normal(N))
+        mgr.iset(mgr.items.get_loc("b"), np.random.default_rng(2).standard_normal(N))
+        mgr.iset(mgr.items.get_loc("g"), np.random.default_rng(2).standard_normal(N))
+        mgr.iset(mgr.items.get_loc("h"), np.random.default_rng(2).standard_normal(N))
 
         # we have datetime/tz blocks in mgr
         cons = mgr.consolidate()
@@ -770,24 +785,6 @@ class TestBlockManager:
                 np.array([100.0, 200.0, 300.0]),
             )
 
-        numeric2 = mgr.get_numeric_data(copy=True)
-        tm.assert_index_equal(numeric.items, Index(["int", "float", "complex", "bool"]))
-        numeric2.iset(
-            numeric2.items.get_loc("float"),
-            np.array([1000.0, 2000.0, 3000.0]),
-            inplace=True,
-        )
-        if using_copy_on_write:
-            tm.assert_almost_equal(
-                mgr.iget(mgr.items.get_loc("float")).internal_values(),
-                np.array([1.0, 1.0, 1.0]),
-            )
-        else:
-            tm.assert_almost_equal(
-                mgr.iget(mgr.items.get_loc("float")).internal_values(),
-                np.array([100.0, 200.0, 300.0]),
-            )
-
     def test_get_bool_data(self, using_copy_on_write):
         mgr = create_mgr(
             "int: int; float: float; complex: complex;"
@@ -804,20 +801,6 @@ class TestBlockManager:
         )
 
         bools.iset(0, np.array([True, False, True]), inplace=True)
-        if using_copy_on_write:
-            tm.assert_numpy_array_equal(
-                mgr.iget(mgr.items.get_loc("bool")).internal_values(),
-                np.array([True, True, True]),
-            )
-        else:
-            tm.assert_numpy_array_equal(
-                mgr.iget(mgr.items.get_loc("bool")).internal_values(),
-                np.array([True, False, True]),
-            )
-
-        # Check sharing
-        bools2 = mgr.get_bool_data(copy=True)
-        bools2.iset(0, np.array([False, True, False]))
         if using_copy_on_write:
             tm.assert_numpy_array_equal(
                 mgr.iget(mgr.items.get_loc("bool")).internal_values(),
@@ -875,6 +858,30 @@ class TestBlockManager:
         with pytest.raises(ValueError, match=msg):
             bm1.replace_list([1], [2], inplace=value)
 
+    def test_iset_split_block(self):
+        bm = create_mgr("a,b,c: i8; d: f8")
+        bm._iset_split_block(0, np.array([0]))
+        tm.assert_numpy_array_equal(
+            bm.blklocs, np.array([0, 0, 1, 0], dtype="int64" if IS64 else "int32")
+        )
+        # First indexer currently does not have a block associated with it in case
+        tm.assert_numpy_array_equal(
+            bm.blknos, np.array([0, 0, 0, 1], dtype="int64" if IS64 else "int32")
+        )
+        assert len(bm.blocks) == 2
+
+    def test_iset_split_block_values(self):
+        bm = create_mgr("a,b,c: i8; d: f8")
+        bm._iset_split_block(0, np.array([0]), np.array([list(range(10))]))
+        tm.assert_numpy_array_equal(
+            bm.blklocs, np.array([0, 0, 1, 0], dtype="int64" if IS64 else "int32")
+        )
+        # First indexer currently does not have a block associated with it in case
+        tm.assert_numpy_array_equal(
+            bm.blknos, np.array([0, 2, 2, 1], dtype="int64" if IS64 else "int32")
+        )
+        assert len(bm.blocks) == 3
+
 
 def _as_array(mgr):
     if mgr.ndim == 1:
@@ -917,12 +924,17 @@ class TestIndexing:
 
             if isinstance(slobj, slice):
                 sliced = mgr.get_slice(slobj, axis=axis)
-            elif mgr.ndim == 1 and axis == 0:
-                sliced = mgr.getitem_mgr(slobj)
+            elif (
+                mgr.ndim == 1
+                and axis == 0
+                and isinstance(slobj, np.ndarray)
+                and slobj.dtype == bool
+            ):
+                sliced = mgr.get_rows_with_mask(slobj)
             else:
                 # BlockManager doesn't support non-slice, SingleBlockManager
                 #  doesn't support axis > 0
-                return
+                raise TypeError(slobj)
 
             mat_slobj = (slice(None),) * axis + (slobj,)
             tm.assert_numpy_array_equal(
@@ -943,7 +955,6 @@ class TestIndexing:
                 # 2D only support slice objects
 
                 # boolean mask
-                assert_slice_ok(mgr, ax, np.array([], dtype=np.bool_))
                 assert_slice_ok(mgr, ax, np.ones(mgr.shape[ax], dtype=np.bool_))
                 assert_slice_ok(mgr, ax, np.zeros(mgr.shape[ax], dtype=np.bool_))
 
@@ -952,14 +963,6 @@ class TestIndexing:
                     assert_slice_ok(
                         mgr, ax, np.array([True, True, False], dtype=np.bool_)
                     )
-
-                # fancy indexer
-                assert_slice_ok(mgr, ax, [])
-                assert_slice_ok(mgr, ax, list(range(mgr.shape[ax])))
-
-                if mgr.shape[ax] >= 3:
-                    assert_slice_ok(mgr, ax, [0, 1, 2])
-                    assert_slice_ok(mgr, ax, [-1, -2, -3])
 
     @pytest.mark.parametrize("mgr", MANAGERS)
     def test_take(self, mgr):
@@ -973,13 +976,15 @@ class TestIndexing:
 
         for ax in range(mgr.ndim):
             # take/fancy indexer
-            assert_take_ok(mgr, ax, indexer=[])
-            assert_take_ok(mgr, ax, indexer=[0, 0, 0])
-            assert_take_ok(mgr, ax, indexer=list(range(mgr.shape[ax])))
+            assert_take_ok(mgr, ax, indexer=np.array([], dtype=np.intp))
+            assert_take_ok(mgr, ax, indexer=np.array([0, 0, 0], dtype=np.intp))
+            assert_take_ok(
+                mgr, ax, indexer=np.array(list(range(mgr.shape[ax])), dtype=np.intp)
+            )
 
             if mgr.shape[ax] >= 3:
-                assert_take_ok(mgr, ax, indexer=[0, 1, 2])
-                assert_take_ok(mgr, ax, indexer=[-1, -2, -3])
+                assert_take_ok(mgr, ax, indexer=np.array([0, 1, 2], dtype=np.intp))
+                assert_take_ok(mgr, ax, indexer=np.array([-1, -2, -3], dtype=np.intp))
 
     @pytest.mark.parametrize("mgr", MANAGERS)
     @pytest.mark.parametrize("fill_value", [None, np.nan, 100.0])
@@ -1153,7 +1158,6 @@ class TestBlockPlacement:
             [-1],
             [-1, -2, -3],
             [-10],
-            [-1],
             [-1, 0, 1, 2],
             [-2, 0, 2, 4],
             [1, 0, -1],
@@ -1269,7 +1273,7 @@ class TestCanHoldElement:
     def test_interval_can_hold_element_emptylist(self, dtype, element):
         arr = np.array([1, 3, 4], dtype=dtype)
         ii = IntervalIndex.from_breaks(arr)
-        blk = new_block(ii._data, [1], ndim=2)
+        blk = new_block(ii._data, BlockPlacement([1]), ndim=2)
 
         assert blk._can_hold_element([])
         # TODO: check this holds for all blocks
@@ -1278,7 +1282,7 @@ class TestCanHoldElement:
     def test_interval_can_hold_element(self, dtype, element):
         arr = np.array([1, 3, 4, 9], dtype=dtype)
         ii = IntervalIndex.from_breaks(arr)
-        blk = new_block(ii._data, [1], ndim=2)
+        blk = new_block(ii._data, BlockPlacement([1]), ndim=2)
 
         elem = element(ii)
         self.check_series_setitem(elem, ii, True)
@@ -1288,27 +1292,30 @@ class TestCanHoldElement:
         # `elem` to not have the same length as `arr`
         ii2 = IntervalIndex.from_breaks(arr[:-1], closed="neither")
         elem = element(ii2)
-        self.check_series_setitem(elem, ii, False)
+        with tm.assert_produces_warning(FutureWarning):
+            self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)
 
         ii3 = IntervalIndex.from_breaks([Timestamp(1), Timestamp(3), Timestamp(4)])
         elem = element(ii3)
-        self.check_series_setitem(elem, ii, False)
+        with tm.assert_produces_warning(FutureWarning):
+            self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)
 
         ii4 = IntervalIndex.from_breaks([Timedelta(1), Timedelta(3), Timedelta(4)])
         elem = element(ii4)
-        self.check_series_setitem(elem, ii, False)
+        with tm.assert_produces_warning(FutureWarning):
+            self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)
 
     def test_period_can_hold_element_emptylist(self):
-        pi = period_range("2016", periods=3, freq="A")
-        blk = new_block(pi._data.reshape(1, 3), [1], ndim=2)
+        pi = period_range("2016", periods=3, freq="Y")
+        blk = new_block(pi._data.reshape(1, 3), BlockPlacement([1]), ndim=2)
 
         assert blk._can_hold_element([])
 
     def test_period_can_hold_element(self, element):
-        pi = period_range("2016", periods=3, freq="A")
+        pi = period_range("2016", periods=3, freq="Y")
 
         elem = element(pi)
         self.check_series_setitem(elem, pi, True)
@@ -1317,15 +1324,13 @@ class TestCanHoldElement:
         # `elem` to not have the same length as `arr`
         pi2 = pi.asfreq("D")[:-1]
         elem = element(pi2)
-        self.check_series_setitem(elem, pi, False)
+        with tm.assert_produces_warning(FutureWarning):
+            self.check_series_setitem(elem, pi, False)
 
-        dti = pi.to_timestamp("S")[:-1]
+        dti = pi.to_timestamp("s")[:-1]
         elem = element(dti)
-        self.check_series_setitem(elem, pi, False)
-
-    def check_setting(self, elem, index: Index, inplace: bool):
-        self.check_series_setitem(elem, index, inplace)
-        self.check_frame_setitem(elem, index, inplace)
+        with tm.assert_produces_warning(FutureWarning):
+            self.check_series_setitem(elem, pi, False)
 
     def check_can_hold_element(self, obj, elem, inplace: bool):
         blk = obj._mgr.blocks[0]
@@ -1336,7 +1341,7 @@ class TestCanHoldElement:
 
     def check_series_setitem(self, elem, index: Index, inplace: bool):
         arr = index._data.copy()
-        ser = Series(arr)
+        ser = Series(arr, copy=False)
 
         self.check_can_hold_element(ser, elem, inplace)
 
@@ -1349,23 +1354,6 @@ class TestCanHoldElement:
             assert ser.array is arr  # i.e. setting was done inplace
         else:
             assert ser.dtype == object
-
-    def check_frame_setitem(self, elem, index: Index, inplace: bool):
-        arr = index._data.copy()
-        df = DataFrame(arr)
-
-        self.check_can_hold_element(df, elem, inplace)
-
-        if is_scalar(elem):
-            df.iloc[0, 0] = elem
-        else:
-            df.iloc[: len(elem), 0] = elem
-
-        if inplace:
-            # assertion here implies setting was done inplace
-            assert df._mgr.arrays[0] is arr
-        else:
-            assert df.dtypes[0] == object
 
 
 class TestShouldStore:
@@ -1385,13 +1373,15 @@ class TestShouldStore:
         assert not blk.should_store(np.asarray(cat))
 
 
-def test_validate_ndim(block_maker):
+def test_validate_ndim():
     values = np.array([1.0, 2.0])
-    placement = slice(2)
+    placement = BlockPlacement(slice(2))
     msg = r"Wrong number of dimensions. values.ndim != ndim \[1 != 2\]"
+    depr_msg = "make_block is deprecated"
 
     with pytest.raises(ValueError, match=msg):
-        block_maker(values, placement, ndim=2)
+        with tm.assert_produces_warning(DeprecationWarning, match=depr_msg):
+            make_block(values, placement, ndim=2)
 
 
 def test_block_shape():
@@ -1404,25 +1394,31 @@ def test_block_shape():
 
 def test_make_block_no_pandas_array(block_maker):
     # https://github.com/pandas-dev/pandas/pull/24866
-    arr = pd.arrays.PandasArray(np.array([1, 2]))
+    arr = pd.arrays.NumpyExtensionArray(np.array([1, 2]))
 
-    # PandasArray, no dtype
-    result = block_maker(arr, slice(len(arr)), ndim=arr.ndim)
+    warn = None if block_maker is not make_block else DeprecationWarning
+    msg = "make_block is deprecated and will be removed in a future version"
+
+    # NumpyExtensionArray, no dtype
+    with tm.assert_produces_warning(warn, match=msg):
+        result = block_maker(arr, BlockPlacement(slice(len(arr))), ndim=arr.ndim)
     assert result.dtype.kind in ["i", "u"]
 
     if block_maker is make_block:
-        # new_block requires caller to unwrap PandasArray
+        # new_block requires caller to unwrap NumpyExtensionArray
         assert result.is_extension is False
 
-        # PandasArray, PandasDtype
-        result = block_maker(arr, slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
+        # NumpyExtensionArray, NumpyEADtype
+        with tm.assert_produces_warning(warn, match=msg):
+            result = block_maker(arr, slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
         assert result.dtype.kind in ["i", "u"]
         assert result.is_extension is False
 
         # new_block no longer taked dtype keyword
-        # ndarray, PandasDtype
-        result = block_maker(
-            arr.to_numpy(), slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim
-        )
+        # ndarray, NumpyEADtype
+        with tm.assert_produces_warning(warn, match=msg):
+            result = block_maker(
+                arr.to_numpy(), slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim
+            )
         assert result.dtype.kind in ["i", "u"]
         assert result.is_extension is False

@@ -1,18 +1,11 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <script type="text/javascript">
-            var _gaq = _gaq || []; _gaq.push(['_setAccount', 'UA-27880019-2']); _gaq.push(['_trackPageview']);
-            (function() {
-                var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-                ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-                var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-            })();
-        </script>
+        <script defer data-domain="pandas.pydata.org" src="https://views.scientific-python.org/js/script.js"></script>
         <title>pandas - Python Data Analysis Library</title>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-        <link rel='shortcut icon' type='image/x-icon' id='favicon-tag' href='{{ base_url }}/static/img/favicon.ico'/>
+        <link rel='shortcut icon' type='image/x-icon' id='favicon-tag' href='{{ base_url }}static/img/favicon.ico'/>
         <link rel="stylesheet"
               href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css"
               integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x"
@@ -31,7 +24,7 @@
                         <span class="navbar-toggler-icon"></span>
                     </button>
 
-                    {% if static.logo %}<a class="navbar-brand" href="{{ base_url }}/"><img alt="" src="{{ base_url }}{{ static.logo }}"/></a>{% endif %}
+                    {% if static.logo %}<a class="navbar-brand" href="{{ base_url }}."><img alt="" src="{{ base_url }}{{ static.logo }}"/></a>{% endif %}
 
                     <div class="collapse navbar-collapse" id="nav-content">   
                         <ul class="navbar-nav ms-auto">
@@ -72,6 +65,11 @@
                 <li class="list-inline-item">
                     <a href="https://t.me/s/pandas_dev">
                         <i class="fab fa-telegram"></i>
+                    </a>
+                </li>
+                <li class="list-inline-item">
+                    <a href="https://fosstodon.org/@pandas_dev" rel="me">
+                        <i class="fab fa-mastodon"></i>
                     </a>
                 </li>
                 <li class="list-inline-item">

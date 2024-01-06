@@ -6,20 +6,19 @@ from pandas import (
     Index,
 )
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 
 
 def test_pipe():
     # Test the pipe method of DataFrameGroupBy.
     # Issue #17871
 
-    random_state = np.random.RandomState(1234567890)
+    random_state = np.random.default_rng(2)
 
     df = DataFrame(
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
-            "B": random_state.randn(8),
-            "C": random_state.randn(8),
+            "B": random_state.standard_normal(8),
+            "C": random_state.standard_normal(8),
         }
     )
 
@@ -37,7 +36,7 @@ def test_pipe():
     result = df.groupby("A").pipe(f).pipe(square)
 
     index = Index(["bar", "foo"], dtype="object", name="A")
-    expected = pd.Series([8.99110003361, 8.17516964785], name="B", index=index)
+    expected = pd.Series([3.749306591013693, 6.717707873081384], name="B", index=index)
 
     tm.assert_series_equal(expected, result)
 
@@ -76,6 +75,6 @@ def test_pipe_args():
     ser = pd.Series([1, 1, 2, 2, 3, 3])
     result = ser.groupby(ser).pipe(lambda grp: grp.sum() * grp.count())
 
-    expected = pd.Series([4, 8, 12], index=Int64Index([1, 2, 3]))
+    expected = pd.Series([4, 8, 12], index=Index([1, 2, 3], dtype=np.int64))
 
     tm.assert_series_equal(result, expected)

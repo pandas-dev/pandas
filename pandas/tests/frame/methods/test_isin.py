@@ -217,3 +217,11 @@ class TestDataFrameIsIn:
         result = df.isin(arr)
         expected = DataFrame([True, True, True])
         tm.assert_frame_equal(result, expected)
+
+    def test_isin_not_lossy(self):
+        # GH 53514
+        val = 1666880195890293744
+        df = DataFrame({"a": [val], "b": [1.0]})
+        result = df.isin([val])
+        expected = DataFrame({"a": [True], "b": [False]})
+        tm.assert_frame_equal(result, expected)

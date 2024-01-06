@@ -127,6 +127,7 @@ for some tips and tricks to get the doctests passing.
 When doing a PR with a docstring update, it is good to post the
 output of the validation script in a comment on github.
 
+.. _contributing.howto-build-docs:
 
 How to build the pandas documentation
 ---------------------------------------
@@ -188,9 +189,7 @@ to speed up the documentation build. You can override this::
     python make.py html --num-jobs 4
 
 Open the following file in a web browser to see the full documentation you
-just built::
-
-    doc/build/html/index.html
+just built ``doc/build/html/index.html``.
 
 And you'll have the satisfaction of seeing your new and improved documentation!
 

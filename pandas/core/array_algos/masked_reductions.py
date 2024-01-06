@@ -4,17 +4,23 @@ for missing values.
 """
 from __future__ import annotations
 
-from typing import Callable
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+)
+import warnings
 
 import numpy as np
 
 from pandas._libs import missing as libmissing
-from pandas._typing import (
-    AxisInt,
-    npt,
-)
 
 from pandas.core.nanops import check_below_min_count
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        AxisInt,
+        npt,
+    )
 
 
 def _reductions(
@@ -46,7 +52,7 @@ def _reductions(
     axis : int, optional, default None
     """
     if not skipna:
-        if mask.any(axis=axis) or check_below_min_count(values.shape, None, min_count):
+        if mask.any() or check_below_min_count(values.shape, None, min_count):
             return libmissing.NA
         else:
             return func(values, axis=axis, **kwargs)
@@ -113,11 +119,11 @@ def _minmax(
             # min/max with empty array raise in numpy, pandas returns NA
             return libmissing.NA
         else:
-            return func(values)
+            return func(values, axis=axis)
     else:
         subset = values[~mask]
         if subset.size:
-            return func(subset)
+            return func(subset, axis=axis)
         else:
             # min/max with empty array raise in numpy, pandas returns NA
             return libmissing.NA
@@ -166,6 +172,26 @@ def var(
     if not values.size or mask.all():
         return libmissing.NA
 
-    return _reductions(
-        np.var, values=values, mask=mask, skipna=skipna, axis=axis, ddof=ddof
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        return _reductions(
+            np.var, values=values, mask=mask, skipna=skipna, axis=axis, ddof=ddof
+        )
+
+
+def std(
+    values: np.ndarray,
+    mask: npt.NDArray[np.bool_],
+    *,
+    skipna: bool = True,
+    axis: AxisInt | None = None,
+    ddof: int = 1,
+):
+    if not values.size or mask.all():
+        return libmissing.NA
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        return _reductions(
+            np.std, values=values, mask=mask, skipna=skipna, axis=axis, ddof=ddof
+        )

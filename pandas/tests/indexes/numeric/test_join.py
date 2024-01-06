@@ -11,13 +11,13 @@ class TestJoinInt64Index:
 
         joined, lidx, ridx = left.join(left, return_indexers=True)
 
-        exp_joined = Index([3, 3, 3, 3, 4, 4, 4, 4])
+        exp_joined = Index([4, 4, 4, 4, 3, 3, 3, 3])
         tm.assert_index_equal(joined, exp_joined)
 
-        exp_lidx = np.array([2, 2, 3, 3, 0, 0, 1, 1], dtype=np.intp)
+        exp_lidx = np.array([0, 0, 1, 1, 2, 2, 3, 3], dtype=np.intp)
         tm.assert_numpy_array_equal(lidx, exp_lidx)
 
-        exp_ridx = np.array([2, 3, 2, 3, 0, 1, 0, 1], dtype=np.intp)
+        exp_ridx = np.array([0, 1, 0, 1, 2, 3, 2, 3], dtype=np.intp)
         tm.assert_numpy_array_equal(ridx, exp_ridx)
 
     def test_join_inner(self):
@@ -313,15 +313,11 @@ class TestJoinUInt64Index:
         tm.assert_numpy_array_equal(ridx, eridx)
 
     def test_join_non_int_index(self, index_large):
-        other = Index(
-            2**63 + np.array([1, 5, 7, 10, 20], dtype="uint64"), dtype=object
-        )
+        other = Index(2**63 + np.array([1, 5, 7, 10, 20], dtype="uint64"), dtype=object)
 
         outer = index_large.join(other, how="outer")
         outer2 = other.join(index_large, how="outer")
-        expected = Index(
-            2**63 + np.array([0, 1, 5, 7, 10, 15, 20, 25], dtype="uint64")
-        )
+        expected = Index(2**63 + np.array([0, 1, 5, 7, 10, 15, 20, 25], dtype="uint64"))
         tm.assert_index_equal(outer, outer2)
         tm.assert_index_equal(outer, expected)
 
@@ -353,9 +349,7 @@ class TestJoinUInt64Index:
         noidx_res = index_large.join(other, how="outer")
         tm.assert_index_equal(res, noidx_res)
 
-        eres = Index(
-            2**63 + np.array([0, 1, 2, 7, 10, 12, 15, 20, 25], dtype="uint64")
-        )
+        eres = Index(2**63 + np.array([0, 1, 2, 7, 10, 12, 15, 20, 25], dtype="uint64"))
         elidx = np.array([0, -1, -1, -1, 1, -1, 2, 3, 4], dtype=np.intp)
         eridx = np.array([-1, 3, 4, 0, 5, 1, -1, -1, 2], dtype=np.intp)
 

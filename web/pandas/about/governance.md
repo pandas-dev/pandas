@@ -3,7 +3,7 @@
 The official version of this document, along with a list of
 individuals and institutions in the roles defined in the governance
 section below, is contained in the
-[Project governance](https://pandas.pydata.org/about/governance.html)
+[Project governance]({{ base_url }}about/governance.html)
 page of the pandas website.
 
 ## The Project
@@ -128,7 +128,7 @@ In particular, the Core Team may:
     and merging pull requests.
 -   Make decisions about the Services that are run by The Project and manage
     those Services for the benefit of the Project and Community.
--   Make decisions when regular community discussion doesn’t produce consensus
+-   Make decisions when regular community discussion doesn't produce consensus
     on an issue in a reasonable time frame.
 
 ### Core Team membership
@@ -157,7 +157,7 @@ they will be considered for removal from the Core Team. Before removal,
 inactive Member will be approached by the BDFL to see if they plan on returning
 to active participation. If not they will be removed immediately upon a Core
 Team vote. If they plan on returning to active participation soon, they will be
-given a grace period of one year. If they don’t return to active participation
+given a grace period of one year. If they don't return to active participation
 within that time period they will be removed by vote of the Core Team without
 further grace period. All former Core Team members can be considered for
 membership again at any time in the future, like any other Project Contributor.
@@ -228,7 +228,7 @@ interactions with NumFOCUS.
   Team.
 - This Subcommittee shall NOT make decisions about the direction, scope or
   technical direction of the Project.
-- This Subcommittee will have at least 5 members. No more than 2 Subcommitee
+- This Subcommittee will have at least 5 members. No more than 2 Subcommittee
   Members can report to one person (either directly or indirectly) through
   employment or contracting work (including the reportee, i.e. the reportee + 1
   is the max). This avoids effective majorities resting on one person.

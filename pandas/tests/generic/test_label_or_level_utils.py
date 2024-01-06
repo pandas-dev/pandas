@@ -34,15 +34,6 @@ def df_ambig(df):
     return df
 
 
-@pytest.fixture
-def df_duplabels(df):
-    """DataFrame with level 'L1' and labels 'L2', 'L3', and 'L2'"""
-    df = df.set_index(["L1"])
-    df = pd.concat([df, df["L2"]], axis=1)
-
-    return df
-
-
 # Test is label/level reference
 # =============================
 def get_labels_levels(df_levels):
@@ -68,7 +59,6 @@ def assert_level_reference(frame, levels, axis):
 # DataFrame
 # ---------
 def test_is_level_or_label_reference_df_simple(df_levels, axis):
-
     axis = df_levels._get_axis_number(axis)
     # Compute expected labels and levels
     expected_labels, expected_levels = get_labels_levels(df_levels)
@@ -83,7 +73,6 @@ def test_is_level_or_label_reference_df_simple(df_levels, axis):
 
 
 def test_is_level_reference_df_ambig(df_ambig, axis):
-
     axis = df_ambig._get_axis_number(axis)
 
     # Transpose frame if axis == 1
@@ -105,7 +94,6 @@ def test_is_level_reference_df_ambig(df_ambig, axis):
 # Series
 # ------
 def test_is_level_reference_series_simple_axis0(df):
-
     # Make series with L1 as index
     s = df.set_index("L1").L2
     assert_level_reference(s, ["L1"], axis=0)
@@ -118,7 +106,6 @@ def test_is_level_reference_series_simple_axis0(df):
 
 
 def test_is_level_reference_series_axis1_error(df):
-
     # Make series with L1 as index
     s = df.set_index("L1").L2
 
@@ -129,10 +116,10 @@ def test_is_level_reference_series_axis1_error(df):
 # Test _check_label_or_level_ambiguity_df
 # =======================================
 
+
 # DataFrame
 # ---------
 def test_check_label_or_level_ambiguity_df(df_ambig, axis):
-
     axis = df_ambig._get_axis_number(axis)
     # Transpose frame if axis == 1
     if axis == 1:
@@ -156,7 +143,6 @@ def test_check_label_or_level_ambiguity_df(df_ambig, axis):
 # Series
 # ------
 def test_check_label_or_level_ambiguity_series(df):
-
     # A series has no columns and therefore references are never ambiguous
 
     # Make series with L1 as index
@@ -172,7 +158,6 @@ def test_check_label_or_level_ambiguity_series(df):
 
 
 def test_check_label_or_level_ambiguity_series_axis1_error(df):
-
     # Make series with L1 as index
     s = df.set_index("L1").L2
 
@@ -209,7 +194,6 @@ def assert_level_values(frame, levels, axis):
 # DataFrame
 # ---------
 def test_get_label_or_level_values_df_simple(df_levels, axis):
-
     # Compute expected labels and levels
     expected_labels, expected_levels = get_labels_levels(df_levels)
 
@@ -224,7 +208,6 @@ def test_get_label_or_level_values_df_simple(df_levels, axis):
 
 
 def test_get_label_or_level_values_df_ambig(df_ambig, axis):
-
     axis = df_ambig._get_axis_number(axis)
     # Transpose frame if axis == 1
     if axis == 1:
@@ -237,8 +220,9 @@ def test_get_label_or_level_values_df_ambig(df_ambig, axis):
     assert_label_values(df_ambig, ["L3"], axis=axis)
 
 
-def test_get_label_or_level_values_df_duplabels(df_duplabels, axis):
-
+def test_get_label_or_level_values_df_duplabels(df, axis):
+    df = df.set_index(["L1"])
+    df_duplabels = pd.concat([df, df["L2"]], axis=1)
     axis = df_duplabels._get_axis_number(axis)
     # Transpose frame if axis == 1
     if axis == 1:
@@ -263,7 +247,6 @@ def test_get_label_or_level_values_df_duplabels(df_duplabels, axis):
 # Series
 # ------
 def test_get_label_or_level_values_series_axis0(df):
-
     # Make series with L1 as index
     s = df.set_index("L1").L2
     assert_level_values(s, ["L1"], axis=0)
@@ -274,7 +257,6 @@ def test_get_label_or_level_values_series_axis0(df):
 
 
 def test_get_label_or_level_values_series_axis1_error(df):
-
     # Make series with L1 as index
     s = df.set_index("L1").L2
 
@@ -313,7 +295,6 @@ def assert_levels_dropped(frame, levels, axis):
 # DataFrame
 # ---------
 def test_drop_labels_or_levels_df(df_levels, axis):
-
     # Compute expected labels and levels
     expected_labels, expected_levels = get_labels_levels(df_levels)
 
@@ -333,7 +314,6 @@ def test_drop_labels_or_levels_df(df_levels, axis):
 # Series
 # ------
 def test_drop_labels_or_levels_series(df):
-
     # Make series with L1 as index
     s = df.set_index("L1").L2
     assert_levels_dropped(s, ["L1"], axis=0)

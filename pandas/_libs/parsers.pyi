@@ -12,6 +12,7 @@ from pandas._typing import (
 )
 
 STR_NA_VALUES: set[str]
+DEFAULT_BUFFER_HEURISTIC: int
 
 def sanitize_objects(
     values: npt.NDArray[np.object_],
@@ -58,7 +59,6 @@ class TextReader:
         skiprows=...,
         skipfooter: int = ...,  # int64_t
         verbose: bool = ...,
-        mangle_dupe_cols: bool = ...,
         float_precision: Literal["round_trip", "legacy", "high"] | None = ...,
         skip_blank_lines: bool = ...,
         encoding_errors: bytes | str = ...,
@@ -68,3 +68,10 @@ class TextReader:
     def close(self) -> None: ...
     def read(self, rows: int | None = ...) -> dict[int, ArrayLike]: ...
     def read_low_memory(self, rows: int | None) -> list[dict[int, ArrayLike]]: ...
+
+# _maybe_upcast, na_values are only exposed for testing
+na_values: dict
+
+def _maybe_upcast(
+    arr, use_dtype_backend: bool = ..., dtype_backend: str = ...
+) -> np.ndarray: ...

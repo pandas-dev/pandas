@@ -10,7 +10,7 @@
                         built on top of the <a href="https://www.python.org">Python</a> programming language.
                     </p>
                     <p>
-                        <a class="btn btn-primary" href="{{ base_url }}/getting_started.html">Install pandas now!</a>
+                        <a class="btn btn-primary" href="{{ base_url }}getting_started.html">Install pandas now!</a>
                     </p>
                 </section>
 
@@ -19,25 +19,25 @@
                         <h5>Getting started</h5>
                         <ul>
                             <!-- <li><a href="{{ base_url }}/try.html">Try pandas online</a></li> -->
-                            <li><a href="{{ base_url }}/getting_started.html">Install pandas</a></li>
-                            <li><a href="{{ base_url }}/docs/getting_started/index.html">Getting started</a></li>
+                            <li><a href="{{ base_url }}getting_started.html">Install pandas</a></li>
+                            <li><a href="{{ base_url }}docs/getting_started/index.html">Getting started</a></li>
                         </ul>
                     </div>
                     <div class="col-md-4">
                         <h5>Documentation</h5>
                         <ul>
-                            <li><a href="{{ base_url }}/docs/user_guide/index.html">User guide</a></li>
-                            <li><a href="{{ base_url }}/docs/reference/index.html">API reference</a></li>
-                            <li><a href="{{ base_url }}/docs/development/index.html">Contributing to pandas</a></li>
-                            <li><a href="{{ base_url }}/docs/whatsnew/index.html">Release notes</a></li>
+                            <li><a href="{{ base_url }}docs/user_guide/index.html">User guide</a></li>
+                            <li><a href="{{ base_url }}docs/reference/index.html">API reference</a></li>
+                            <li><a href="{{ base_url }}docs/development/index.html">Contributing to pandas</a></li>
+                            <li><a href="{{ base_url }}docs/whatsnew/index.html">Release notes</a></li>
                         </ul>
                     </div>
                     <div class="col-md-4">
                         <h5>Community</h5>
                         <ul>
-                            <li><a href="{{ base_url }}/about/index.html">About pandas</a></li>
+                            <li><a href="{{ base_url }}about/index.html">About pandas</a></li>
                             <li><a href="https://stackoverflow.com/questions/tagged/pandas">Ask a question</a></li>
-                            <li><a href="{{ base_url }}/community/ecosystem.html">Ecosystem</a></li>
+                            <li><a href="{{ base_url }}community/ecosystem.html">Ecosystem</a></li>
                         </ul>
                     </div>
                 </div>
@@ -56,16 +56,16 @@
                             {% endfor %}
                         </div>
                     {% endfor %}
-                    <p class="mt-4">The full list of companies supporting <i>pandas</i> is available in the <a href="{{ base_url }}/about/sponsors.html">sponsors page</a>.
+                    <p class="mt-4">The full list of companies supporting <i>pandas</i> is available in the <a href="{{ base_url }}about/sponsors.html">sponsors page</a>.
                 </section>
             </div>
             <div class="col-md-3">
                 {% if releases %}
                     <h4>Latest version: {{ releases[0].name }}</h4>
                     <ul>
-                        <li><a href="docs/whatsnew/v{{ releases[0].name }}.html">What's new in {{ releases[0].name }}</a></li>
+                        <li><a href="{{ base_url }}docs/whatsnew/v{{ releases[0].name }}.html">What's new in {{ releases[0].name }}</a></li>
                         <li>Release date:<br/>{{ releases[0].published.strftime("%b %d, %Y") }}</li>
-                        <li><a href="{{ base_url}}/docs/">Documentation (web)</a></li>
+                        <li><a href="{{ base_url}}docs/">Documentation (web)</a></li>
                         <li><a href="{{ releases[0].url }}">Download source code</a></li>
                     </ul>
                 {% endif %}
@@ -75,6 +75,11 @@
                         <li class="list-inline-item">
                             <a href="https://t.me/s/pandas_dev">
                                 <i class="follow-us-button fab fa-telegram"></i>
+                            </a>
+                        </li>
+                        <li class="list-inline-item">
+                            <a href="https://fosstodon.org/@pandas_dev" rel="me">
+                                <i class="follow-us-button fab fa-mastodon"></i>
                             </a>
                         </li>
                         <li class="list-inline-item">
@@ -88,7 +93,7 @@
 				<h4>Get the book</h4>
 				<p class="book">
 					<a href="https://amzn.to/3DyLaJc">
-						<img class="img-fluid" alt="Python for Data Analysis" src="{{ base_url }}/static/img/pydata_book.gif"/>
+						<img class="img-fluid" alt="Python for Data Analysis" src="{{ base_url }}static/img/pydata_book.gif"/>
 					</a>
 				</p>
                 {% if releases[1:5] %}

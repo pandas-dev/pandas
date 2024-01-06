@@ -55,7 +55,6 @@ class Unique:
 
 
 class NumericSeriesIndexing:
-
     params = [
         (np.int64, np.uint64, np.float64),
         (10**4, 10**5, 5 * 10**5, 10**6, 5 * 10**6),
@@ -73,7 +72,6 @@ class NumericSeriesIndexing:
 
 
 class NumericSeriesIndexingShuffled:
-
     params = [
         (np.int64, np.uint64, np.float64),
         (10**4, 10**5, 5 * 10**5, 10**6, 5 * 10**6),

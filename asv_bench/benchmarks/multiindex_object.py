@@ -5,14 +5,13 @@ import numpy as np
 from pandas import (
     NA,
     DataFrame,
+    Index,
     MultiIndex,
     RangeIndex,
     Series,
     array,
     date_range,
 )
-
-from .pandas_vb_common import tm
 
 
 class GetLoc:
@@ -144,7 +143,11 @@ class Integer:
 class Duplicated:
     def setup(self):
         n, k = 200, 5000
-        levels = [np.arange(n), tm.makeStringIndex(n).values, 1000 + np.arange(n)]
+        levels = [
+            np.arange(n),
+            Index([f"i-{i}" for i in range(n)], dtype=object).values,
+            1000 + np.arange(n),
+        ]
         codes = [np.random.choice(n, (k * n)) for lev in levels]
         self.mi = MultiIndex(levels=levels, codes=codes)
 
@@ -178,7 +181,6 @@ class Sortlevel:
 
 
 class SortValues:
-
     params = ["int64", "Int64"]
     param_names = ["dtype"]
 
@@ -193,7 +195,6 @@ class SortValues:
 
 class Values:
     def setup_cache(self):
-
         level1 = range(1000)
         level2 = date_range(start="1/1/2012", periods=100)
         mi = MultiIndex.from_product([level1, level2])
@@ -208,7 +209,6 @@ class Values:
 
 class CategoricalLevel:
     def setup(self):
-
         self.df = DataFrame(
             {
                 "a": np.arange(1_000_000, dtype=np.int32),
@@ -234,7 +234,6 @@ class Equals:
 
 
 class SetOperations:
-
     params = [
         ("monotonic", "non_monotonic"),
         ("datetime", "int", "string", "ea_int"),
@@ -253,7 +252,7 @@ class SetOperations:
         level2 = range(N // 1000)
         int_left = MultiIndex.from_product([level1, level2])
 
-        level2 = tm.makeStringIndex(N // 1000).values
+        level2 = Index([f"i-{i}" for i in range(N // 1000)], dtype=object).values
         str_left = MultiIndex.from_product([level1, level2])
 
         level2 = range(N // 1000)
@@ -278,7 +277,6 @@ class SetOperations:
 
 
 class Difference:
-
     params = [
         ("datetime", "int", "string", "ea_int"),
     ]
@@ -298,7 +296,7 @@ class Difference:
         level2[0] = NA
         ea_int_left = MultiIndex.from_product([level1, level2])
 
-        level2 = tm.makeStringIndex(N // 1000).values
+        level2 = Index([f"i-{i}" for i in range(N // 1000)], dtype=object).values
         str_left = MultiIndex.from_product([level1, level2])
 
         data = {
@@ -359,7 +357,7 @@ class Isin:
         level2 = range(N // 1000)
         int_midx = MultiIndex.from_product([level1, level2])
 
-        level2 = tm.makeStringIndex(N // 1000).values
+        level2 = Index([f"i-{i}" for i in range(N // 1000)], dtype=object).values
         str_midx = MultiIndex.from_product([level1, level2])
 
         data = {
@@ -399,6 +397,32 @@ class Putmask:
 
     def time_putmask_all_different(self):
         self.midx.putmask(self.mask, self.midx_values_different)
+
+
+class Append:
+    params = ["datetime64[ns]", "int64", "string"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        N1 = 1000
+        N2 = 500
+        left_level1 = range(N1)
+        right_level1 = range(N1, N1 + N1)
+
+        if dtype == "datetime64[ns]":
+            level2 = date_range(start="2000-01-01", periods=N2)
+        elif dtype == "int64":
+            level2 = range(N2)
+        elif dtype == "string":
+            level2 = Index([f"i-{i}" for i in range(N2)], dtype=object)
+        else:
+            raise NotImplementedError
+
+        self.left = MultiIndex.from_product([left_level1, level2])
+        self.right = MultiIndex.from_product([right_level1, level2])
+
+    def time_append(self, dtype):
+        self.left.append(self.right)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

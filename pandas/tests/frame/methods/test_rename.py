@@ -4,8 +4,6 @@ import inspect
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     Index,
@@ -52,13 +50,12 @@ class TestRename:
         # index
         data = {"A": {"foo": 0, "bar": 1}}
 
-        # gets sorted alphabetical
         df = DataFrame(data)
         renamed = df.rename(index={"foo": "bar", "bar": "foo"})
-        tm.assert_index_equal(renamed.index, Index(["foo", "bar"]))
+        tm.assert_index_equal(renamed.index, Index(["bar", "foo"]))
 
         renamed = df.rename(index=str.upper)
-        tm.assert_index_equal(renamed.index, Index(["BAR", "FOO"]))
+        tm.assert_index_equal(renamed.index, Index(["FOO", "BAR"]))
 
         # have to pass something
         with pytest.raises(TypeError, match="must pass an index to rename"):
@@ -89,7 +86,7 @@ class TestRename:
     def test_rename_chainmap(self, args, kwargs):
         # see gh-23859
         colAData = range(1, 11)
-        colBdata = np.random.randn(10)
+        colBdata = np.random.default_rng(2).standard_normal(10)
 
         df = DataFrame({"A": colAData, "B": colBdata})
         result = df.rename(*args, **kwargs)
@@ -98,7 +95,6 @@ class TestRename:
         tm.assert_frame_equal(result, expected)
 
     def test_rename_multiindex(self):
-
         tuples_index = [("foo1", "bar1"), ("foo2", "bar2")]
         tuples_columns = [("fizz1", "buzz1"), ("fizz2", "buzz2")]
         index = MultiIndex.from_tuples(tuples_index, names=["foo", "bar"])
@@ -168,17 +164,12 @@ class TestRename:
         renamed = df.rename(index={"foo1": "foo3", "bar2": "bar3"}, level=0)
         tm.assert_index_equal(renamed.index, new_index)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) setitem copy/view
-    def test_rename_nocopy(self, float_frame, using_copy_on_write):
+    def test_rename_nocopy(self, float_frame, using_copy_on_write, warn_copy_on_write):
         renamed = float_frame.rename(columns={"C": "foo"}, copy=False)
 
         assert np.shares_memory(renamed["foo"]._values, float_frame["C"]._values)
 
-        # TODO(CoW) this also shouldn't warn in case of CoW, but the heuristic
-        # checking if the array shares memory doesn't work if CoW happened
-        with tm.assert_produces_warning(FutureWarning if using_copy_on_write else None):
-            # This loc setitem already happens inplace, so no warning
-            #  that this will change in the future
+        with tm.assert_cow_warning(warn_copy_on_write):
             renamed.loc[:, "foo"] = 1.0
         if using_copy_on_write:
             assert not (float_frame["C"] == 1.0).all()
@@ -334,7 +325,7 @@ class TestRename:
 
         # Duplicates
         with pytest.raises(TypeError, match="multiple values"):
-            df.rename(id, mapper=id)  # pylint: disable=redundant-keyword-arg
+            df.rename(id, mapper=id)
 
     def test_rename_positional_raises(self):
         # GH 29136
@@ -397,8 +388,6 @@ class TestRename:
         # TODO: can we construct this without merge?
         k = merge(df4, df5, how="inner", left_index=True, right_index=True)
         result = k.rename(columns={"TClose_x": "TClose", "TClose_y": "QT_Close"})
-        str(result)
-        result.dtypes
 
         expected = DataFrame(
             [[0.0454, 22.02, 0.0422, 20130331, 600809, "饡驦", 30.01]],

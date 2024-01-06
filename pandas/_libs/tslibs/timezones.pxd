@@ -5,7 +5,6 @@ from cpython.datetime cimport (
 )
 
 
-cdef tzinfo utc_pytz
 cdef tzinfo utc_stdlib
 
 cpdef bint is_utc(tzinfo tz)

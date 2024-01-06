@@ -1,7 +1,7 @@
+from collections.abc import Generator
 from contextlib import contextmanager
 import pathlib
 import tempfile
-from typing import Generator
 
 import pytest
 
@@ -27,7 +27,6 @@ def safe_close(store):
 def ensure_clean_store(
     path, mode="a", complevel=None, complib=None, fletcher32=False
 ) -> Generator[HDFStore, None, None]:
-
     with tempfile.TemporaryDirectory() as tmpdirname:
         tmp_path = pathlib.Path(tmpdirname, path)
         with HDFStore(

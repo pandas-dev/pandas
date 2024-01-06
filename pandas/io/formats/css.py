@@ -5,15 +5,20 @@ from __future__ import annotations
 
 import re
 from typing import (
+    TYPE_CHECKING,
     Callable,
-    Generator,
-    Iterable,
-    Iterator,
 )
 import warnings
 
 from pandas.errors import CSSWarning
 from pandas.util._exceptions import find_stack_level
+
+if TYPE_CHECKING:
+    from collections.abc import (
+        Generator,
+        Iterable,
+        Iterator,
+    )
 
 
 def _side_expander(prop_fmt: str) -> Callable:
@@ -105,9 +110,9 @@ def _border_expander(side: str = "") -> Callable:
             f"border{side}-width": "medium",
         }
         for token in tokens:
-            if token in self.BORDER_STYLES:
+            if token.lower() in self.BORDER_STYLES:
                 border_declarations[f"border{side}-style"] = token
-            elif any(ratio in token for ratio in self.BORDER_WIDTH_RATIOS):
+            elif any(ratio in token.lower() for ratio in self.BORDER_WIDTH_RATIOS):
                 border_declarations[f"border{side}-width"] = token
             else:
                 border_declarations[f"border{side}-color"] = token
@@ -181,6 +186,13 @@ class CSSResolver:
         "ridge",
         "inset",
         "outset",
+        "mediumdashdot",
+        "dashdotdot",
+        "hair",
+        "mediumdashdotdot",
+        "dashdot",
+        "slantdashdot",
+        "mediumdashed",
     ]
 
     SIDE_SHORTHANDS = {
@@ -201,10 +213,8 @@ class CSSResolver:
             f"border-{prop}": _side_expander(f"border-{{:s}}-{prop}")
             for prop in ["color", "style", "width"]
         },
-        **{
-            "margin": _side_expander("margin-{:s}"),
-            "padding": _side_expander("padding-{:s}"),
-        },
+        "margin": _side_expander("margin-{:s}"),
+        "padding": _side_expander("padding-{:s}"),
     }
 
     def __call__(
@@ -329,8 +339,8 @@ class CSSResolver:
                     )
         return props
 
-    def size_to_pt(self, in_val, em_pt=None, conversions=UNIT_RATIOS):
-        def _error():
+    def size_to_pt(self, in_val, em_pt=None, conversions=UNIT_RATIOS) -> str:
+        def _error() -> str:
             warnings.warn(
                 f"Unhandled size: {repr(in_val)}",
                 CSSWarning,

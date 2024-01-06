@@ -12,11 +12,10 @@ from odf.text import P
 from pandas import (
     DataFrame,
     ExcelWriter,
+    Index,
     date_range,
     read_excel,
 )
-
-from ..pandas_vb_common import tm
 
 
 def _generate_dataframe():
@@ -25,14 +24,13 @@ def _generate_dataframe():
     df = DataFrame(
         np.random.randn(N, C),
         columns=[f"float{i}" for i in range(C)],
-        index=date_range("20000101", periods=N, freq="H"),
+        index=date_range("20000101", periods=N, freq="h"),
     )
-    df["object"] = tm.makeStringIndex(N)
+    df["object"] = Index([f"i-{i}" for i in range(N)], dtype=object)
     return df
 
 
 class WriteExcel:
-
     params = ["openpyxl", "xlsxwriter"]
     param_names = ["engine"]
 
@@ -42,9 +40,8 @@ class WriteExcel:
     def time_write_excel(self, engine):
         bio = BytesIO()
         bio.seek(0)
-        writer = ExcelWriter(bio, engine=engine)
-        self.df.to_excel(writer, sheet_name="Sheet1")
-        writer.save()
+        with ExcelWriter(bio, engine=engine) as writer:
+            self.df.to_excel(writer, sheet_name="Sheet1")
 
 
 class WriteExcelStyled:
@@ -57,17 +54,15 @@ class WriteExcelStyled:
     def time_write_excel_style(self, engine):
         bio = BytesIO()
         bio.seek(0)
-        writer = ExcelWriter(bio, engine=engine)
-        df_style = self.df.style
-        df_style.applymap(lambda x: "border: red 1px solid;")
-        df_style.applymap(lambda x: "color: blue")
-        df_style.applymap(lambda x: "border-color: green black", subset=["float1"])
-        df_style.to_excel(writer, sheet_name="Sheet1")
-        writer.save()
+        with ExcelWriter(bio, engine=engine) as writer:
+            df_style = self.df.style
+            df_style.map(lambda x: "border: red 1px solid;")
+            df_style.map(lambda x: "color: blue")
+            df_style.map(lambda x: "border-color: green black", subset=["float1"])
+            df_style.to_excel(writer, sheet_name="Sheet1")
 
 
 class ReadExcel:
-
     params = ["openpyxl", "odf"]
     param_names = ["engine"]
     fname_excel = "spreadsheet.xlsx"

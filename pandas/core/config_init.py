@@ -210,13 +210,6 @@ pc_ambiguous_as_wide_doc = """
     (default: False)
 """
 
-pc_latex_repr_doc = """
-: boolean
-    Whether to produce a latex DataFrame representation for jupyter
-    environments that support it.
-    (default: False)
-"""
-
 pc_table_schema_doc = """
 : boolean
     Whether to publish a Table Schema representation for frontends
@@ -272,7 +265,7 @@ pc_max_seq_items = """
 """
 
 pc_max_info_rows_doc = """
-: int or None
+: int
     df.info() will usually show null-counts for each column.
     For large frames this can be quite slow. max_info_rows and max_info_cols
     limit this null check only to frames with smaller dimensions than
@@ -282,7 +275,7 @@ pc_max_info_rows_doc = """
 pc_large_repr_doc = """
 : 'truncate'/'info'
     For DataFrames exceeding max_rows/max_cols, the repr (and HTML repr) can
-    show a truncated table (the default from 0.13), or switch to the view from
+    show a truncated table, or switch to the view from
     df.info() (the behaviour in earlier versions of pandas).
 """
 
@@ -290,41 +283,6 @@ pc_memory_usage_doc = """
 : bool, string or None
     This specifies if the memory usage of a DataFrame should be displayed when
     df.info() is called. Valid values True,False,'deep'
-"""
-
-pc_latex_escape = """
-: bool
-    This specifies if the to_latex method of a Dataframe uses escapes special
-    characters.
-    Valid values: False,True
-"""
-
-pc_latex_longtable = """
-:bool
-    This specifies if the to_latex method of a Dataframe uses the longtable
-    format.
-    Valid values: False,True
-"""
-
-pc_latex_multicolumn = """
-: bool
-    This specifies if the to_latex method of a Dataframe uses multicolumns
-    to pretty-print MultiIndex columns.
-    Valid values: False,True
-"""
-
-pc_latex_multicolumn_format = """
-: string
-    This specifies the format for multicolumn headers.
-    Can be surrounded with '|'.
-    Valid values: 'l', 'c', 'r', 'p{<width>}'
-"""
-
-pc_latex_multirow = """
-: bool
-    This specifies if the to_latex method of a Dataframe uses multirows
-    to pretty-print MultiIndex rows.
-    Valid values: False,True
 """
 
 
@@ -364,14 +322,14 @@ with cf.config_prefix("display"):
         "max_info_rows",
         1690785,
         pc_max_info_rows_doc,
-        validator=is_instance_factory((int, type(None))),
+        validator=is_int,
     )
     cf.register_option("max_rows", 60, pc_max_rows_doc, validator=is_nonnegative_int)
     cf.register_option(
         "min_rows",
         10,
         pc_min_rows_doc,
-        validator=is_instance_factory([type(None), int]),
+        validator=is_instance_factory((type(None), int)),
     )
     cf.register_option("max_categories", 8, pc_max_categories_doc, validator=is_int)
 
@@ -411,7 +369,7 @@ with cf.config_prefix("display"):
     cf.register_option("chop_threshold", None, pc_chop_threshold_doc)
     cf.register_option("max_seq_items", 100, pc_max_seq_items)
     cf.register_option(
-        "width", 80, pc_width_doc, validator=is_instance_factory([type(None), int])
+        "width", 80, pc_width_doc, validator=is_instance_factory((type(None), int))
     )
     cf.register_option(
         "memory_usage",
@@ -425,16 +383,6 @@ with cf.config_prefix("display"):
     cf.register_option(
         "unicode.ambiguous_as_wide", False, pc_east_asian_width_doc, validator=is_bool
     )
-    cf.register_option("latex.repr", False, pc_latex_repr_doc, validator=is_bool)
-    cf.register_option("latex.escape", True, pc_latex_escape, validator=is_bool)
-    cf.register_option("latex.longtable", False, pc_latex_longtable, validator=is_bool)
-    cf.register_option(
-        "latex.multicolumn", True, pc_latex_multicolumn, validator=is_bool
-    )
-    cf.register_option(
-        "latex.multicolumn_format", "l", pc_latex_multicolumn, validator=is_text
-    )
-    cf.register_option("latex.multirow", False, pc_latex_multirow, validator=is_bool)
     cf.register_option(
         "html.table_schema",
         False,
@@ -458,17 +406,13 @@ tc_sim_interactive_doc = """
 with cf.config_prefix("mode"):
     cf.register_option("sim_interactive", False, tc_sim_interactive_doc)
 
-use_inf_as_null_doc = """
-: boolean
-    use_inf_as_null had been deprecated and will be removed in a future
-    version. Use `use_inf_as_na` instead.
-"""
-
 use_inf_as_na_doc = """
 : boolean
     True means treat None, NaN, INF, -INF as NA (old way),
     False means None and NaN are null, but INF, -INF are not NA
     (new way).
+
+    This option is deprecated in pandas 2.1.0 and will be removed in 3.0.
 """
 
 # We don't want to start importing everything at the global context level
@@ -476,6 +420,7 @@ use_inf_as_na_doc = """
 
 
 def use_inf_as_na_cb(key) -> None:
+    # TODO(3.0): enforcing this deprecation will close GH#52501
     from pandas.core.dtypes.missing import _use_inf_as_na
 
     _use_inf_as_na(key)
@@ -483,15 +428,13 @@ def use_inf_as_na_cb(key) -> None:
 
 with cf.config_prefix("mode"):
     cf.register_option("use_inf_as_na", False, use_inf_as_na_doc, cb=use_inf_as_na_cb)
-    cf.register_option(
-        "use_inf_as_null", False, use_inf_as_null_doc, cb=use_inf_as_na_cb
-    )
-
 
 cf.deprecate_option(
-    "mode.use_inf_as_null", msg=use_inf_as_null_doc, rkey="mode.use_inf_as_na"
+    # GH#51684
+    "mode.use_inf_as_na",
+    "use_inf_as_na option is deprecated and will be removed in a future "
+    "version. Convert inf values to NaN before operating instead.",
 )
-
 
 data_manager_doc = """
 : string
@@ -511,6 +454,13 @@ with cf.config_prefix("mode"):
         validator=is_one_of_factory(["block", "array"]),
     )
 
+cf.deprecate_option(
+    # GH#55043
+    "mode.data_manager",
+    "data_manager option is deprecated and will be removed in a future "
+    "version. Only the BlockManager will be available.",
+)
+
 
 # TODO better name?
 copy_on_write_doc = """
@@ -526,9 +476,11 @@ with cf.config_prefix("mode"):
         "copy_on_write",
         # Get the default from an environment variable, if set, otherwise defaults
         # to False. This environment variable can be set for testing.
-        os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "1",
+        "warn"
+        if os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "warn"
+        else os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "1",
         copy_on_write_doc,
-        validator=is_bool,
+        validator=is_one_of_factory([True, False, "warn"]),
     )
 
 
@@ -550,7 +502,8 @@ with cf.config_prefix("mode"):
 
 string_storage_doc = """
 : string
-    The default storage for StringDtype.
+    The default storage for StringDtype. This option is ignored if
+    ``future.infer_string`` is set to True.
 """
 
 with cf.config_prefix("mode"):
@@ -558,8 +511,9 @@ with cf.config_prefix("mode"):
         "string_storage",
         "python",
         string_storage_doc,
-        validator=is_one_of_factory(["python", "pyarrow"]),
+        validator=is_one_of_factory(["python", "pyarrow", "pyarrow_numpy"]),
     )
+
 
 # Set up the io.excel specific reader configuration.
 reader_engine_doc = """
@@ -568,11 +522,11 @@ reader_engine_doc = """
     auto, {others}.
 """
 
-_xls_options = ["xlrd"]
-_xlsm_options = ["xlrd", "openpyxl"]
-_xlsx_options = ["xlrd", "openpyxl"]
-_ods_options = ["odf"]
-_xlsb_options = ["pyxlsb"]
+_xls_options = ["xlrd", "calamine"]
+_xlsm_options = ["xlrd", "openpyxl", "calamine"]
+_xlsx_options = ["xlrd", "openpyxl", "calamine"]
+_ods_options = ["odf", "calamine"]
+_xlsb_options = ["pyxlsb", "calamine"]
 
 
 with cf.config_prefix("io.excel.xls"):
@@ -687,20 +641,6 @@ with cf.config_prefix("io.sql"):
         validator=is_one_of_factory(["auto", "sqlalchemy"]),
     )
 
-io_nullable_backend_doc = """
-: string
-    The nullable dtype implementation to return when ``use_nullable_dtypes=True``.
-    Available options: 'pandas', 'pyarrow', the default is 'pandas'.
-"""
-
-with cf.config_prefix("io.nullable_backend"):
-    cf.register_option(
-        "io_nullable_backend",
-        "pandas",
-        io_nullable_backend_doc,
-        validator=is_one_of_factory(["pandas", "pyarrow"]),
-    )
-
 # --------
 # Plotting
 # ---------
@@ -790,13 +730,13 @@ styler_max_elements = """
 styler_max_rows = """
 : int, optional
     The maximum number of rows that will be rendered. May still be reduced to
-    satsify ``max_elements``, which takes precedence.
+    satisfy ``max_elements``, which takes precedence.
 """
 
 styler_max_columns = """
 : int, optional
     The maximum number of columns that will be rendered. May still be reduced to
-    satsify ``max_elements``, which takes precedence.
+    satisfy ``max_elements``, which takes precedence.
 """
 
 styler_precision = """
@@ -910,28 +850,32 @@ with cf.config_prefix("styler"):
         "format.thousands",
         None,
         styler_thousands,
-        validator=is_instance_factory([type(None), str]),
+        validator=is_instance_factory((type(None), str)),
     )
 
     cf.register_option(
         "format.na_rep",
         None,
         styler_na_rep,
-        validator=is_instance_factory([type(None), str]),
+        validator=is_instance_factory((type(None), str)),
     )
 
     cf.register_option(
         "format.escape",
         None,
         styler_escape,
-        validator=is_one_of_factory([None, "html", "latex"]),
+        validator=is_one_of_factory([None, "html", "latex", "latex-math"]),
     )
 
+    # error: Argument 1 to "is_instance_factory" has incompatible type "tuple[
+    # ..., <typing special form>, ...]"; expected "type | tuple[type, ...]"
     cf.register_option(
         "format.formatter",
         None,
         styler_formatter,
-        validator=is_instance_factory([type(None), dict, Callable, str]),
+        validator=is_instance_factory(
+            (type(None), dict, Callable, str)  # type: ignore[arg-type]
+        ),
     )
 
     cf.register_option("html.mathjax", True, styler_mathjax, validator=is_bool)
@@ -958,5 +902,27 @@ with cf.config_prefix("styler"):
         "latex.environment",
         None,
         styler_environment,
-        validator=is_instance_factory([type(None), str]),
+        validator=is_instance_factory((type(None), str)),
+    )
+
+
+with cf.config_prefix("future"):
+    cf.register_option(
+        "infer_string",
+        False,
+        "Whether to infer sequence of str objects as pyarrow string "
+        "dtype, which will be the default in pandas 3.0 "
+        "(at which point this option will be deprecated).",
+        validator=is_one_of_factory([True, False]),
+    )
+
+    cf.register_option(
+        "no_silent_downcasting",
+        False,
+        "Whether to opt-in to the future behavior which will *not* silently "
+        "downcast results from Series and DataFrame `where`, `mask`, and `clip` "
+        "methods. "
+        "Silent downcasting will be removed in pandas 3.0 "
+        "(at which point this option will be deprecated).",
+        validator=is_one_of_factory([True, False]),
     )

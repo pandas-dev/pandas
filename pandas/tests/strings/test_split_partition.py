@@ -12,6 +12,10 @@ from pandas import (
     Series,
     _testing as tm,
 )
+from pandas.tests.strings import (
+    _convert_na_value,
+    object_pyarrow_numpy,
+)
 
 
 @pytest.mark.parametrize("method", ["split", "rsplit"])
@@ -20,6 +24,7 @@ def test_split(any_string_dtype, method):
 
     result = getattr(values.str, method)("_")
     exp = Series([["a", "b", "c"], ["c", "d", "e"], np.nan, ["f", "g", "h"]])
+    exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
 
 
@@ -29,6 +34,7 @@ def test_split_more_than_one_char(any_string_dtype, method):
     values = Series(["a__b__c", "c__d__e", np.nan, "f__g__h"], dtype=any_string_dtype)
     result = getattr(values.str, method)("__")
     exp = Series([["a", "b", "c"], ["c", "d", "e"], np.nan, ["f", "g", "h"]])
+    exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
 
     result = getattr(values.str, method)("__", expand=False)
@@ -40,6 +46,7 @@ def test_split_more_regex_split(any_string_dtype):
     values = Series(["a,b_c", "c_d,e", np.nan, "f,g,h"], dtype=any_string_dtype)
     result = values.str.split("[,_]")
     exp = Series([["a", "b", "c"], ["c", "d", "e"], np.nan, ["f", "g", "h"]])
+    exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
 
 
@@ -95,7 +102,7 @@ def test_split_object_mixed(expand, method):
             ["d", "e", "f"],
             np.nan,
             np.nan,
-            np.nan,
+            None,
             np.nan,
             np.nan,
         ]
@@ -109,8 +116,8 @@ def test_split_object_mixed(expand, method):
 def test_split_n(any_string_dtype, method, n):
     s = Series(["a b", pd.NA, "b c"], dtype=any_string_dtype)
     expected = Series([["a", "b"], pd.NA, ["b", "c"]])
-
     result = getattr(s.str, method)(" ", n=n)
+    expected = _convert_na_value(s, expected)
     tm.assert_series_equal(result, expected)
 
 
@@ -119,6 +126,7 @@ def test_rsplit(any_string_dtype):
     values = Series(["a,b_c", "c_d,e", np.nan, "f,g,h"], dtype=any_string_dtype)
     result = values.str.rsplit("[,_]")
     exp = Series([["a,b_c"], ["c_d,e"], np.nan, ["f,g,h"]])
+    exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
 
 
@@ -127,6 +135,7 @@ def test_rsplit_max_number(any_string_dtype):
     values = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"], dtype=any_string_dtype)
     result = values.str.rsplit("_", n=1)
     exp = Series([["a_b", "c"], ["c_d", "e"], np.nan, ["f_g", "h"]])
+    exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
 
 
@@ -144,9 +153,9 @@ def test_split_blank_string_with_non_empty(any_string_dtype):
     exp = DataFrame(
         [
             ["a", "b", "c"],
-            ["a", "b", np.nan],
-            [np.nan, np.nan, np.nan],
-            [np.nan, np.nan, np.nan],
+            ["a", "b", None],
+            [None, None, None],
+            [None, None, None],
         ],
         dtype=any_string_dtype,
     )
@@ -228,9 +237,9 @@ def test_split_to_dataframe_unequal_splits(any_string_dtype):
             0: ["some", "one"],
             1: ["unequal", "of"],
             2: ["splits", "these"],
-            3: [np.nan, "things"],
-            4: [np.nan, "is"],
-            5: [np.nan, "not"],
+            3: [None, "things"],
+            4: [None, "is"],
+            5: [None, "not"],
         },
         dtype=any_string_dtype,
     )
@@ -375,7 +384,7 @@ def test_split_nan_expand(any_string_dtype):
     # check that these are actually np.nan/pd.NA and not None
     # TODO see GH 18463
     # tm.assert_frame_equal does not differentiate
-    if any_string_dtype == "object":
+    if any_string_dtype in object_pyarrow_numpy:
         assert all(np.isnan(x) for x in result.iloc[1])
     else:
         assert all(x is pd.NA for x in result.iloc[1])
@@ -440,6 +449,7 @@ def test_partition_series_more_than_one_char(method, exp, any_string_dtype):
     s = Series(["a__b__c", "c__d__e", np.nan, "f__g__h", None], dtype=any_string_dtype)
     result = getattr(s.str, method)("__", expand=False)
     expected = Series(exp)
+    expected = _convert_na_value(s, expected)
     tm.assert_series_equal(result, expected)
 
 
@@ -462,6 +472,7 @@ def test_partition_series_none(any_string_dtype, method, exp):
     s = Series(["a b c", "c d e", np.nan, "f g h", None], dtype=any_string_dtype)
     result = getattr(s.str, method)(expand=False)
     expected = Series(exp)
+    expected = _convert_na_value(s, expected)
     tm.assert_series_equal(result, expected)
 
 
@@ -484,6 +495,7 @@ def test_partition_series_not_split(any_string_dtype, method, exp):
     s = Series(["abc", "cde", np.nan, "fgh", None], dtype=any_string_dtype)
     result = getattr(s.str, method)("_", expand=False)
     expected = Series(exp)
+    expected = _convert_na_value(s, expected)
     tm.assert_series_equal(result, expected)
 
 
@@ -507,6 +519,7 @@ def test_partition_series_unicode(any_string_dtype, method, exp):
 
     result = getattr(s.str, method)("_", expand=False)
     expected = Series(exp)
+    expected = _convert_na_value(s, expected)
     tm.assert_series_equal(result, expected)
 
 
@@ -668,14 +681,16 @@ def test_partition_sep_kwarg(any_string_dtype, method):
 def test_get():
     ser = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"])
     result = ser.str.split("_").str.get(1)
-    expected = Series(["b", "d", np.nan, "g"])
+    expected = Series(["b", "d", np.nan, "g"], dtype=object)
     tm.assert_series_equal(result, expected)
 
 
 def test_get_mixed_object():
     ser = Series(["a_b_c", np.nan, "c_d_e", True, datetime.today(), None, 1, 2.0])
     result = ser.str.split("_").str.get(1)
-    expected = Series(["b", np.nan, "d", np.nan, np.nan, np.nan, np.nan, np.nan])
+    expected = Series(
+        ["b", np.nan, "d", np.nan, np.nan, None, np.nan, np.nan], dtype=object
+    )
     tm.assert_series_equal(result, expected)
 
 
@@ -683,7 +698,7 @@ def test_get_mixed_object():
 def test_get_bounds(idx):
     ser = Series(["1_2_3_4_5", "6_7_8_9_10", "11_12"])
     result = ser.str.split("_").str.get(idx)
-    expected = Series(["3", "8", np.nan])
+    expected = Series(["3", "8", np.nan], dtype=object)
     tm.assert_series_equal(result, expected)
 
 

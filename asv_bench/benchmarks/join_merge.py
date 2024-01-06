@@ -14,8 +14,6 @@ from pandas import (
     merge_asof,
 )
 
-from .pandas_vb_common import tm
-
 try:
     from pandas import merge_ordered
 except ImportError:
@@ -23,13 +21,12 @@ except ImportError:
 
 
 class Concat:
-
     params = [0, 1]
     param_names = ["axis"]
 
     def setup(self, axis):
         N = 1000
-        s = Series(N, index=tm.makeStringIndex(N))
+        s = Series(N, index=Index([f"i-{i}" for i in range(N)], dtype=object))
         self.series = [s[i:-i] for i in range(1, 10)] * 50
         self.small_frames = [DataFrame(np.random.randn(5, 4))] * 1000
         df = DataFrame(
@@ -56,7 +53,6 @@ class Concat:
 
 
 class ConcatDataFrames:
-
     params = ([0, 1], [True, False])
     param_names = ["axis", "ignore_index"]
 
@@ -74,9 +70,15 @@ class ConcatDataFrames:
 
 
 class ConcatIndexDtype:
-
     params = (
-        ["datetime64[ns]", "int64", "Int64", "string[python]", "string[pyarrow]"],
+        [
+            "datetime64[ns]",
+            "int64",
+            "Int64",
+            "int64[pyarrow]",
+            "string[python]",
+            "string[pyarrow]",
+        ],
         ["monotonic", "non_monotonic", "has_na"],
         [0, 1],
         [True, False],
@@ -87,10 +89,10 @@ class ConcatIndexDtype:
         N = 10_000
         if dtype == "datetime64[ns]":
             vals = date_range("1970-01-01", periods=N)
-        elif dtype in ("int64", "Int64"):
+        elif dtype in ("int64", "Int64", "int64[pyarrow]"):
             vals = np.arange(N, dtype=np.int64)
         elif dtype in ("string[python]", "string[pyarrow]"):
-            vals = tm.makeStringIndex(N)
+            vals = Index([f"i-{i}" for i in range(N)], dtype=object)
         else:
             raise NotImplementedError
 
@@ -114,13 +116,12 @@ class ConcatIndexDtype:
 
 
 class Join:
-
     params = [True, False]
     param_names = ["sort"]
 
     def setup(self, sort):
-        level1 = tm.makeStringIndex(10).values
-        level2 = tm.makeStringIndex(1000).values
+        level1 = Index([f"i-{i}" for i in range(10)], dtype=object).values
+        level2 = Index([f"i-{i}" for i in range(1000)], dtype=object).values
         codes1 = np.arange(10).repeat(1000)
         codes2 = np.tile(np.arange(1000), 10)
         index2 = MultiIndex(levels=[level1, level2], codes=[codes1, codes2])
@@ -168,12 +169,12 @@ class Join:
 
 class JoinIndex:
     def setup(self):
-        N = 50000
+        N = 5000
         self.left = DataFrame(
-            np.random.randint(1, N / 500, (N, 2)), columns=["jim", "joe"]
+            np.random.randint(1, N / 50, (N, 2)), columns=["jim", "joe"]
         )
         self.right = DataFrame(
-            np.random.randint(1, N / 500, (N, 2)), columns=["jolie", "jolia"]
+            np.random.randint(1, N / 50, (N, 2)), columns=["jolie", "jolia"]
         ).set_index("jolie")
 
     def time_left_outer_join_index(self):
@@ -209,8 +210,8 @@ class JoinNonUnique:
     # outer join of non-unique
     # GH 6329
     def setup(self):
-        date_index = date_range("01-Jan-2013", "23-Jan-2013", freq="T")
-        daily_dates = date_index.to_period("D").to_timestamp("S", "S")
+        date_index = date_range("01-Jan-2013", "23-Jan-2013", freq="min")
+        daily_dates = date_index.to_period("D").to_timestamp("s", "s")
         self.fracofday = date_index.values - daily_dates.values
         self.fracofday = self.fracofday.astype("timedelta64[ns]")
         self.fracofday = self.fracofday.astype(np.float64) / 86_400_000_000_000
@@ -223,14 +224,13 @@ class JoinNonUnique:
 
 
 class Merge:
-
     params = [True, False]
     param_names = ["sort"]
 
     def setup(self, sort):
         N = 10000
-        indices = tm.makeStringIndex(N).values
-        indices2 = tm.makeStringIndex(N).values
+        indices = Index([f"i-{i}" for i in range(N)], dtype=object).values
+        indices2 = Index([f"i-{i}" for i in range(N)], dtype=object).values
         key = np.tile(indices[:8000], 10)
         key2 = np.tile(indices2[:8000], 10)
         self.left = DataFrame(
@@ -273,8 +273,44 @@ class Merge:
         merge(self.left.loc[:2000], self.right.loc[:2000], how="cross", sort=sort)
 
 
-class I8Merge:
+class MergeEA:
+    params = [
+        [
+            "Int64",
+            "Int32",
+            "Int16",
+            "UInt64",
+            "UInt32",
+            "UInt16",
+            "Float64",
+            "Float32",
+        ],
+        [True, False],
+    ]
+    param_names = ["dtype", "monotonic"]
 
+    def setup(self, dtype, monotonic):
+        N = 10_000
+        indices = np.arange(1, N)
+        key = np.tile(indices[:8000], 10)
+        self.left = DataFrame(
+            {"key": Series(key, dtype=dtype), "value": np.random.randn(80000)}
+        )
+        self.right = DataFrame(
+            {
+                "key": Series(indices[2000:], dtype=dtype),
+                "value2": np.random.randn(7999),
+            }
+        )
+        if monotonic:
+            self.left = self.left.sort_values("key")
+            self.right = self.right.sort_values("key")
+
+    def time_merge(self, dtype, monotonic):
+        merge(self.left, self.right)
+
+
+class I8Merge:
     params = ["inner", "outer", "left", "right"]
     param_names = ["how"]
 
@@ -292,18 +328,54 @@ class I8Merge:
         merge(self.left, self.right, how=how)
 
 
+class MergeDatetime:
+    params = [
+        [
+            ("ns", "ns"),
+            ("ms", "ms"),
+            ("ns", "ms"),
+        ],
+        [None, "Europe/Brussels"],
+        [True, False],
+    ]
+    param_names = ["units", "tz", "monotonic"]
+
+    def setup(self, units, tz, monotonic):
+        unit_left, unit_right = units
+        N = 10_000
+        keys = Series(date_range("2012-01-01", freq="min", periods=N, tz=tz))
+        self.left = DataFrame(
+            {
+                "key": keys.sample(N * 10, replace=True).dt.as_unit(unit_left),
+                "value1": np.random.randn(N * 10),
+            }
+        )
+        self.right = DataFrame(
+            {
+                "key": keys[:8000].dt.as_unit(unit_right),
+                "value2": np.random.randn(8000),
+            }
+        )
+        if monotonic:
+            self.left = self.left.sort_values("key")
+            self.right = self.right.sort_values("key")
+
+    def time_merge(self, units, tz, monotonic):
+        merge(self.left, self.right)
+
+
 class MergeCategoricals:
     def setup(self):
         self.left_object = DataFrame(
             {
-                "X": np.random.choice(range(0, 10), size=(10000,)),
+                "X": np.random.choice(range(10), size=(10000,)),
                 "Y": np.random.choice(["one", "two", "three"], size=(10000,)),
             }
         )
 
         self.right_object = DataFrame(
             {
-                "X": np.random.choice(range(0, 10), size=(10000,)),
+                "X": np.random.choice(range(10), size=(10000,)),
                 "Z": np.random.choice(["jjj", "kkk", "sss"], size=(10000,)),
             }
         )
@@ -336,7 +408,7 @@ class MergeCategoricals:
 
 class MergeOrdered:
     def setup(self):
-        groups = tm.makeStringIndex(10).values
+        groups = Index([f"i-{i}" for i in range(10)], dtype=object).values
         self.left = DataFrame(
             {
                 "group": groups.repeat(5000),

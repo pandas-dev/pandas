@@ -2,22 +2,32 @@
 from __future__ import annotations
 
 import pickle
-from typing import Any
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import warnings
 
-from pandas._typing import (
-    CompressionOptions,
-    FilePath,
-    ReadPickleBuffer,
-    StorageOptions,
-    WriteBuffer,
-)
 from pandas.compat import pickle_compat as pc
 from pandas.util._decorators import doc
 
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import get_handle
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        CompressionOptions,
+        FilePath,
+        ReadPickleBuffer,
+        StorageOptions,
+        WriteBuffer,
+    )
+
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 @doc(
@@ -29,7 +39,7 @@ def to_pickle(
     filepath_or_buffer: FilePath | WriteBuffer[bytes],
     compression: CompressionOptions = "infer",
     protocol: int = pickle.HIGHEST_PROTOCOL,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
 ) -> None:
     """
     Pickle (serialize) object to file.
@@ -41,9 +51,7 @@ def to_pickle(
     filepath_or_buffer : str, path object, or file-like object
         String, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a binary ``write()`` function.
-
-        .. versionchanged:: 1.0.0
-           Accept URL. URL has to be of S3 or GCS.
+        Also accepts URL. URL has to be of S3 or GCS.
     {compression_options}
 
         .. versionchanged:: 1.4.0 Zstandard support.
@@ -58,8 +66,6 @@ def to_pickle(
         HIGHEST_PROTOCOL.
 
     {storage_options}
-
-        .. versionadded:: 1.2.0
 
         .. [1] https://docs.python.org/3/library/pickle.html
 
@@ -112,8 +118,8 @@ def to_pickle(
 def read_pickle(
     filepath_or_buffer: FilePath | ReadPickleBuffer,
     compression: CompressionOptions = "infer",
-    storage_options: StorageOptions = None,
-):
+    storage_options: StorageOptions | None = None,
+) -> DataFrame | Series:
     """
     Load pickled pandas object (or any object) from file.
 
@@ -127,9 +133,7 @@ def read_pickle(
     filepath_or_buffer : str, path object, or file-like object
         String, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a binary ``readlines()`` function.
-
-        .. versionchanged:: 1.0.0
-           Accept URL. URL is not limited to S3 and GCS.
+        Also accepts URL. URL is not limited to S3 and GCS.
 
     {decompression_options}
 
@@ -137,11 +141,9 @@ def read_pickle(
 
     {storage_options}
 
-        .. versionadded:: 1.2.0
-
     Returns
     -------
-    unpickled : same type as object stored in file
+    same type as object stored in file
 
     See Also
     --------
@@ -187,7 +189,6 @@ def read_pickle(
         is_text=False,
         storage_options=storage_options,
     ) as handles:
-
         # 1) try standard library Pickle
         # 2) try pickle_compat (older pandas version) to handle subclass changes
         # 3) try pickle_compat with latin-1 encoding upon a UnicodeDecodeError

@@ -10,11 +10,16 @@ from abc import (
 )
 import enum
 from typing import (
+    TYPE_CHECKING,
     Any,
-    Iterable,
-    Sequence,
     TypedDict,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import (
+        Iterable,
+        Sequence,
+    )
 
 
 class DlpackDeviceType(enum.IntEnum):
@@ -210,7 +215,6 @@ class Column(ABC):
           doesn't need its own version or ``__column__`` protocol.
     """
 
-    @property
     @abstractmethod
     def size(self) -> int:
         """

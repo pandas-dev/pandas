@@ -1,4 +1,5 @@
 from pandas.core.dtypes.common import (
+    is_any_real_numeric_dtype,
     is_array_like,
     is_bool,
     is_bool_dtype,
@@ -41,6 +42,7 @@ from pandas.core.dtypes.common import (
 )
 
 __all__ = [
+    "is_any_real_numeric_dtype",
     "is_array_like",
     "is_bool",
     "is_bool_dtype",

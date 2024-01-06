@@ -21,40 +21,45 @@ from datetime import (
     timedelta,
 )
 import sys
-from typing import cast
+from typing import TYPE_CHECKING
 
 import numpy as np
 
-from pandas._typing import (
-    CompressionOptions,
-    FilePath,
-    ReadBuffer,
-)
-from pandas.errors import (
-    EmptyDataError,
-    OutOfBoundsDatetime,
-)
-
-import pandas as pd
-from pandas import (
-    DataFrame,
-    isna,
-)
-
-from pandas.io.common import get_handle
-from pandas.io.sas._byteswap import (
+from pandas._libs.byteswap import (
     read_double_with_byteswap,
     read_float_with_byteswap,
     read_uint16_with_byteswap,
     read_uint32_with_byteswap,
     read_uint64_with_byteswap,
 )
-from pandas.io.sas._sas import (
+from pandas._libs.sas import (
     Parser,
     get_subheader_index,
 )
+from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
+from pandas.errors import EmptyDataError
+
+import pandas as pd
+from pandas import (
+    DataFrame,
+    Timestamp,
+    isna,
+)
+
+from pandas.io.common import get_handle
 import pandas.io.sas.sas_constants as const
 from pandas.io.sas.sasreader import ReaderBase
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        CompressionOptions,
+        FilePath,
+        ReadBuffer,
+    )
+
+
+_unix_origin = Timestamp("1970-01-01")
+_sas_origin = Timestamp("1960-01-01")
 
 
 def _parse_datetime(sas_datetime: float, unit: str):
@@ -81,7 +86,7 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
     ----------
     sas_datetimes : {Series, Sequence[float]}
        Dates or datetimes in SAS
-    unit : {str}
+    unit : {'d', 's'}
        "d" if the floats represent dates, "s" for datetimes
 
     Returns
@@ -89,12 +94,16 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
     Series
        Series of datetime64 dtype or datetime.datetime.
     """
-    try:
-        return pd.to_datetime(sas_datetimes, unit=unit, origin="1960-01-01")
-    except OutOfBoundsDatetime:
-        s_series = sas_datetimes.apply(_parse_datetime, unit=unit)
-        s_series = cast(pd.Series, s_series)
-        return s_series
+    td = (_sas_origin - _unix_origin).as_unit("s")
+    if unit == "s":
+        millis = cast_from_unit_vectorized(
+            sas_datetimes._values, unit="s", out_unit="ms"
+        )
+        dt64ms = millis.view("M8[ms]") + td
+        return pd.Series(dt64ms, index=sas_datetimes.index, copy=False)
+    else:
+        vals = np.array(sas_datetimes, dtype="M8[D]") + td
+        return pd.Series(vals, dtype="M8[s]", index=sas_datetimes.index, copy=False)
 
 
 class _Column:
@@ -170,7 +179,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         convert_header_text: bool = True,
         compression: CompressionOptions = "infer",
     ) -> None:
-
         self.index = index
         self.convert_dates = convert_dates
         self.blank_missing = blank_missing
@@ -241,7 +249,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self.handles.close()
 
     def _get_properties(self) -> None:
-
         # Check magic number
         self._path_or_buf.seek(0)
         self._cached_page = self._path_or_buf.read(288)
@@ -446,7 +453,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                 subheader_processor(subheader_offset, subheader_length)
 
     def _process_rowsize_subheader(self, offset: int, length: int) -> None:
-
         int_len = self._int_length
         lcs_offset = offset
         lcp_offset = offset
@@ -491,7 +497,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         pass
 
     def _process_columntext_subheader(self, offset: int, length: int) -> None:
-
         offset += self._int_length
         text_block_size = self._read_uint(offset, const.text_block_size_length)
 
@@ -655,7 +660,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self.columns.append(col)
 
     def read(self, nrows: int | None = None) -> DataFrame:
-
         if (nrows is None) and (self.chunksize is not None):
             nrows = self.chunksize
         elif nrows is None:
@@ -712,7 +716,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         return False
 
     def _chunk_to_dataframe(self) -> DataFrame:
-
         n = self._current_row_in_chunk_index
         m = self._current_row_in_file_index
         ix = range(m - n, m)
@@ -720,12 +723,11 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
         js, jb = 0, 0
         for j in range(self.column_count):
-
             name = self.column_names[j]
 
             if self._column_types[j] == b"d":
                 col_arr = self._byte_chunk[jb, :].view(dtype=self.byte_order + "d")
-                rslt[name] = pd.Series(col_arr, dtype=np.float64, index=ix)
+                rslt[name] = pd.Series(col_arr, dtype=np.float64, index=ix, copy=False)
                 if self.convert_dates:
                     if self.column_formats[j] in const.sas_date_formats:
                         rslt[name] = _convert_datetimes(rslt[name], "d")
@@ -733,7 +735,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                         rslt[name] = _convert_datetimes(rslt[name], "s")
                 jb += 1
             elif self._column_types[j] == b"s":
-                rslt[name] = pd.Series(self._string_chunk[js, :], index=ix)
+                rslt[name] = pd.Series(self._string_chunk[js, :], index=ix, copy=False)
                 if self.convert_text and (self.encoding is not None):
                     rslt[name] = self._decode_string(rslt[name].str)
                 js += 1

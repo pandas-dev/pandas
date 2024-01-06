@@ -61,21 +61,55 @@ In the example above, the functions ``f``, ``g``, and ``h`` each expected the Da
 When the function you wish to apply takes its data anywhere other than the first argument, pass a tuple
 of ``(function, keyword)`` indicating where the DataFrame should flow. For example:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-   import statsmodels.formula.api as sm
+    In [1]: import statsmodels.formula.api as sm
 
-   bb = pd.read_csv("data/baseball.csv", index_col="id")
+    In [2]: bb = pd.read_csv("data/baseball.csv", index_col="id")
 
-   # sm.ols takes (formula, data)
-   (
-       bb.query("h > 0")
-       .assign(ln_h=lambda df: np.log(df.h))
-       .pipe((sm.ols, "data"), "hr ~ ln_h + year + g + C(lg)")
-       .fit()
-       .summary()
-   )
+    # sm.ols takes (formula, data)
+    In [3]: (
+    ...:     bb.query("h > 0")
+    ...:     .assign(ln_h=lambda df: np.log(df.h))
+    ...:     .pipe((sm.ols, "data"), "hr ~ ln_h + year + g + C(lg)")
+    ...:     .fit()
+    ...:     .summary()
+    ...: )
+    ...:
+    Out[3]:
+    <class 'statsmodels.iolib.summary.Summary'>
+    """
+                                OLS Regression Results
+    ==============================================================================
+    Dep. Variable:                     hr   R-squared:                       0.685
+    Model:                            OLS   Adj. R-squared:                  0.665
+    Method:                 Least Squares   F-statistic:                     34.28
+    Date:                Tue, 22 Nov 2022   Prob (F-statistic):           3.48e-15
+    Time:                        05:35:23   Log-Likelihood:                -205.92
+    No. Observations:                  68   AIC:                             421.8
+    Df Residuals:                      63   BIC:                             432.9
+    Df Model:                           4
+    Covariance Type:            nonrobust
+    ===============================================================================
+                    coef    std err          t      P>|t|      [0.025      0.975]
+    -------------------------------------------------------------------------------
+    Intercept   -8484.7720   4664.146     -1.819      0.074   -1.78e+04     835.780
+    C(lg)[T.NL]    -2.2736      1.325     -1.716      0.091      -4.922       0.375
+    ln_h           -1.3542      0.875     -1.547      0.127      -3.103       0.395
+    year            4.2277      2.324      1.819      0.074      -0.417       8.872
+    g               0.1841      0.029      6.258      0.000       0.125       0.243
+    ==============================================================================
+    Omnibus:                       10.875   Durbin-Watson:                   1.999
+    Prob(Omnibus):                  0.004   Jarque-Bera (JB):               17.298
+    Skew:                           0.537   Prob(JB):                     0.000175
+    Kurtosis:                       5.225   Cond. No.                     1.49e+07
+    ==============================================================================
+
+    Notes:
+    [1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+    [2] The condition number is large, 1.49e+07. This might indicate that there are
+    strong multicollinearity or other numerical problems.
+    """
 
 The pipe method is inspired by unix pipes, which stream text through
 processes. More recently dplyr_ and magrittr_ have introduced the

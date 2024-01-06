@@ -10,8 +10,6 @@ from pandas import (
     date_range,
 )
 
-from .pandas_vb_common import tm
-
 
 class SeriesConstructor:
     def setup(self):
@@ -28,9 +26,6 @@ class SeriesConstructor:
     def time_constructor_no_data(self):
         Series(data=None, index=self.idx)
 
-    def time_constructor_fastpath(self):
-        Series(self.array, index=self.idx2, name="name", fastpath=True)
-
 
 class ToFrame:
     params = [["int64", "datetime64[ns]", "category", "Int64"], [None, "foo"]]
@@ -46,7 +41,6 @@ class ToFrame:
 
 
 class NSort:
-
     params = ["first", "last", "all"]
     param_names = ["keep"]
 
@@ -61,7 +55,6 @@ class NSort:
 
 
 class Dropna:
-
     params = ["int", "datetime"]
     param_names = ["dtype"]
 
@@ -69,7 +62,7 @@ class Dropna:
         N = 10**6
         data = {
             "int": np.random.randint(1, 10, N),
-            "datetime": date_range("2000-01-01", freq="S", periods=N),
+            "datetime": date_range("2000-01-01", freq="s", periods=N),
         }
         self.s = Series(data[dtype])
         if dtype == "datetime":
@@ -80,33 +73,33 @@ class Dropna:
 
 
 class Fillna:
-
     params = [
         [
             "datetime64[ns]",
+            "float32",
             "float64",
+            "Float64",
             "Int64",
             "int64[pyarrow]",
             "string",
             "string[pyarrow]",
         ],
-        [None, "pad", "backfill"],
     ]
-    param_names = ["dtype", "method"]
+    param_names = ["dtype"]
 
-    def setup(self, dtype, method):
+    def setup(self, dtype):
         N = 10**6
         if dtype == "datetime64[ns]":
-            data = date_range("2000-01-01", freq="S", periods=N)
+            data = date_range("2000-01-01", freq="s", periods=N)
             na_value = NaT
-        elif dtype == "float64":
+        elif dtype in ("float64", "Float64"):
             data = np.random.randn(N)
             na_value = np.nan
         elif dtype in ("Int64", "int64[pyarrow]"):
             data = np.arange(N)
             na_value = NA
         elif dtype in ("string", "string[pyarrow]"):
-            data = tm.rands_array(5, N)
+            data = np.array([str(i) * 5 for i in range(N)], dtype=object)
             na_value = NA
         else:
             raise NotImplementedError
@@ -116,13 +109,17 @@ class Fillna:
         self.ser = ser
         self.fill_value = fill_value
 
-    def time_fillna(self, dtype, method):
-        value = self.fill_value if method is None else None
-        self.ser.fillna(value=value, method=method)
+    def time_fillna(self, dtype):
+        self.ser.fillna(value=self.fill_value)
+
+    def time_ffill(self, dtype):
+        self.ser.ffill()
+
+    def time_bfill(self, dtype):
+        self.ser.bfill()
 
 
 class SearchSorted:
-
     goal_time = 0.2
     params = [
         "int8",
@@ -151,7 +148,6 @@ class SearchSorted:
 
 
 class Map:
-
     params = (["dict", "Series", "lambda"], ["object", "category", "int"])
     param_names = "mapper"
 
@@ -198,7 +194,6 @@ class ClipDt:
 
 
 class ValueCounts:
-
     params = [[10**3, 10**4, 10**5], ["int", "uint", "float", "object"]]
     param_names = ["N", "dtype"]
 
@@ -210,7 +205,6 @@ class ValueCounts:
 
 
 class ValueCountsEA:
-
     params = [[10**3, 10**4, 10**5], [True, False]]
     param_names = ["N", "dropna"]
 
@@ -223,7 +217,6 @@ class ValueCountsEA:
 
 
 class ValueCountsObjectDropNAFalse:
-
     params = [10**3, 10**4, 10**5]
     param_names = ["N"]
 
@@ -235,7 +228,6 @@ class ValueCountsObjectDropNAFalse:
 
 
 class Mode:
-
     params = [[10**3, 10**4, 10**5], ["int", "uint", "float", "object"]]
     param_names = ["N", "dtype"]
 
@@ -247,7 +239,6 @@ class Mode:
 
 
 class ModeObjectDropNAFalse:
-
     params = [10**3, 10**4, 10**5]
     param_names = ["N"]
 
@@ -260,7 +251,7 @@ class ModeObjectDropNAFalse:
 
 class Dir:
     def setup(self):
-        self.s = Series(index=tm.makeStringIndex(10000))
+        self.s = Series(index=Index([f"i-{i}" for i in range(10000)], dtype=object))
 
     def time_dir_strings(self):
         dir(self.s)
@@ -276,7 +267,6 @@ class SeriesGetattr:
 
 
 class All:
-
     params = [[10**3, 10**6], ["fast", "slow"], ["bool", "boolean"]]
     param_names = ["N", "case", "dtype"]
 
@@ -289,7 +279,6 @@ class All:
 
 
 class Any:
-
     params = [[10**3, 10**6], ["fast", "slow"], ["bool", "boolean"]]
     param_names = ["N", "case", "dtype"]
 
@@ -302,7 +291,6 @@ class Any:
 
 
 class NanOps:
-
     params = [
         [
             "var",
@@ -327,7 +315,7 @@ class NanOps:
         if func == "argmax" and dtype in {"Int64", "boolean"}:
             # Skip argmax for nullable int since this doesn't work yet (GH-24382)
             raise NotImplementedError
-        self.s = Series([1] * N, dtype=dtype)
+        self.s = Series(np.ones(N), dtype=dtype)
         self.func = getattr(self.s, func)
 
     def time_func(self, func, N, dtype):
@@ -335,7 +323,6 @@ class NanOps:
 
 
 class Rank:
-
     param_names = ["dtype"]
     params = [
         ["int", "uint", "float", "object"],
@@ -349,7 +336,6 @@ class Rank:
 
 
 class Iter:
-
     param_names = ["dtype"]
     params = [
         "bool",
@@ -379,6 +365,57 @@ class Iter:
     def time_iter(self, dtype):
         for v in self.s:
             pass
+
+
+class ToNumpy:
+    def setup(self):
+        N = 1_000_000
+        self.ser = Series(
+            np.random.randn(
+                N,
+            )
+        )
+
+    def time_to_numpy(self):
+        self.ser.to_numpy()
+
+    def time_to_numpy_double_copy(self):
+        self.ser.to_numpy(dtype="float64", copy=True)
+
+    def time_to_numpy_copy(self):
+        self.ser.to_numpy(copy=True)
+
+    def time_to_numpy_float_with_nan(self):
+        self.ser.to_numpy(dtype="float64", na_value=np.nan)
+
+
+class Replace:
+    param_names = ["num_to_replace"]
+    params = [100, 1000]
+
+    def setup(self, num_to_replace):
+        N = 1_000_000
+        self.arr = np.random.randn(N)
+        self.arr1 = self.arr.copy()
+        np.random.shuffle(self.arr1)
+        self.ser = Series(self.arr)
+
+        self.to_replace_list = np.random.choice(self.arr, num_to_replace)
+        self.values_list = np.random.choice(self.arr1, num_to_replace)
+
+        self.replace_dict = dict(zip(self.to_replace_list, self.values_list))
+
+    def time_replace_dict(self, num_to_replace):
+        self.ser.replace(self.replace_dict)
+
+    def peakmem_replace_dict(self, num_to_replace):
+        self.ser.replace(self.replace_dict)
+
+    def time_replace_list(self, num_to_replace):
+        self.ser.replace(self.to_replace_list, self.values_list)
+
+    def peakmem_replace_list(self, num_to_replace):
+        self.ser.replace(self.to_replace_list, self.values_list)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

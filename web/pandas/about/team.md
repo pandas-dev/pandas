@@ -4,12 +4,13 @@
 
 _pandas_ is made with love by more than [2,000 volunteer contributors](https://github.com/pandas-dev/pandas/graphs/contributors).
 
-If you want to support pandas development, you can find information in the [donations page](../donate.html).
+If you want to support pandas development, you can find information in the [donations page]({{ base_url }}donate.html).
 
 ## Active maintainers
 
 <div class="card-group maintainers">
-    {% for person in maintainers.active_with_github_info %}
+    {% for username in maintainers.active %}
+        {% set person = maintainers.github_info.get(username) %}
         <div class="card">
             <img class="card-img-top" alt="" src="{{ person.avatar_url }}"/>
             <div class="card-body">
@@ -34,7 +35,7 @@ If you want to support pandas development, you can find information in the [dona
 > or anyone willing to increase the diversity of our team.
 > We have identified visible gaps and obstacles in sustaining diversity and inclusion in the open-source communities and we are proactive in increasing
 > the diversity of our team.
-> We have a [code of conduct](../community/coc.html) to ensure a friendly and welcoming environment.
+> We have a [code of conduct]({{ base_url }}community/coc.html) to ensure a friendly and welcoming environment.
 > Please send an email to [pandas-code-of-conduct-committee](mailto:pandas-coc@googlegroups.com), if you think we can do a
 > better job at achieving this goal.
 
@@ -42,28 +43,41 @@ If you want to support pandas development, you can find information in the [dona
 
 Wes McKinney is the Benevolent Dictator for Life (BDFL).
 
-The project governance is available in the [project governance page](governance.html).
+The project governance is available in the [project governance page]({{ base_url }}governance.html).
 
-## Code of conduct committee
+## Workgroups
 
-<ul>
-    {% for person in maintainers.coc %}
-        <li>{{ person }}</li>
-    {% endfor %}
-</ul>
+{% for k, workgroup in workgroups.items() %}
 
-## NumFOCUS committee
+### {{ workgroup.name }}
 
 <ul>
-    {% for person in maintainers.numfocus %}
-        <li>{{ person }}</li>
-    {% endfor %}
+    <li><b>Contact:</b>
+        <a id="{{ workgroup.name|replace(' ', '-') }}" href="mailto:asp.{{ workgroup.contact }}">asp.{{ workgroup.contact }}</a>
+        <script TYPE="text/javascript">
+            var mail_tag_id = '{{ workgroup.name|replace(' ', '-') }}';
+            var mail_tag_element = document.getElementById( mail_tag_id );
+            mail_tag_element.innerHTML = mail_tag_element.innerHTML.replace(/^asp./, "");
+            mail_tag_element.setAttribute('href', "mailto:"+mail_tag_element.innerHTML);
+        </script>
+    </li>
+    <li><b>Responsibilities:</b> {{ workgroup.responsibilities }}</li>
+    <li><b>Members:</b>
+        <ul>
+            {% for person in workgroup.members %}
+                <li>{{ person }}{% if loop.first %} (lead){% endif %}</li>
+            {% endfor %}
+        </ul>
+    </li>
 </ul>
+
+{% endfor %}
 
 ## Inactive maintainers
 
 <ul>
-    {% for person in maintainers.inactive_with_github_info %}
+    {% for username in maintainers.inactive %}
+        {% set person = maintainers.github_info.get(username) %}
         <li>
             <a href="{{ person.blog or person.html_url }}">
                 {{ person.name or person.login }}

@@ -9,7 +9,6 @@ except ImportError:
 
 
 class Eval:
-
     params = [["numexpr", "python"], [1, "all"]]
     param_names = ["engine", "threads"]
 
@@ -45,7 +44,7 @@ class Query:
     def setup(self):
         N = 10**6
         halfway = (N // 2) - 1
-        index = pd.date_range("20010101", periods=N, freq="T")
+        index = pd.date_range("20010101", periods=N, freq="min")
         s = pd.Series(index)
         self.ts = s.iloc[halfway]
         self.df = pd.DataFrame({"a": np.random.randn(N), "dates": index}, index=index)

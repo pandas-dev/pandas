@@ -15,26 +15,6 @@ import pandas._testing as tm
 
 @pytest.fixture(
     params=[
-        RuntimeWarning,
-        ResourceWarning,
-        UserWarning,
-        FutureWarning,
-        DeprecationWarning,
-        PerformanceWarning,
-        DtypeWarning,
-    ],
-)
-def category(request):
-    """
-    Return unique warning.
-
-    Useful for testing behavior of tm.assert_produces_warning with various categories.
-    """
-    return request.param
-
-
-@pytest.fixture(
-    params=[
         (RuntimeWarning, UserWarning),
         (UserWarning, FutureWarning),
         (FutureWarning, RuntimeWarning),
@@ -73,6 +53,18 @@ def test_assert_produces_warning_honors_filter():
         f()
 
 
+@pytest.mark.parametrize(
+    "category",
+    [
+        RuntimeWarning,
+        ResourceWarning,
+        UserWarning,
+        FutureWarning,
+        DeprecationWarning,
+        PerformanceWarning,
+        DtypeWarning,
+    ],
+)
 @pytest.mark.parametrize(
     "message, match",
     [
@@ -210,3 +202,32 @@ class TestFalseOrNoneExpectedWarning:
     def test_no_raise_with_false_raise_on_extra(self, false_or_none):
         with tm.assert_produces_warning(false_or_none, raise_on_extra_warnings=False):
             f()
+
+
+def test_raises_during_exception():
+    msg = "Did not see expected warning of class 'UserWarning'"
+    with pytest.raises(AssertionError, match=msg):
+        with tm.assert_produces_warning(UserWarning):
+            raise ValueError
+
+    with pytest.raises(AssertionError, match=msg):
+        with tm.assert_produces_warning(UserWarning):
+            warnings.warn("FutureWarning", FutureWarning)
+            raise IndexError
+
+    msg = "Caused unexpected warning"
+    with pytest.raises(AssertionError, match=msg):
+        with tm.assert_produces_warning(None):
+            warnings.warn("FutureWarning", FutureWarning)
+            raise SystemError
+
+
+def test_passes_during_exception():
+    with pytest.raises(SyntaxError, match="Error"):
+        with tm.assert_produces_warning(None):
+            raise SyntaxError("Error")
+
+    with pytest.raises(ValueError, match="Error"):
+        with tm.assert_produces_warning(FutureWarning, match="FutureWarning"):
+            warnings.warn("FutureWarning", FutureWarning)
+            raise ValueError("Error")

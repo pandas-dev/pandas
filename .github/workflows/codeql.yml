@@ -8,13 +8,17 @@ concurrency:
   group: ${{ github.repository }}-${{ github.head_ref || github.sha }}-${{ github.workflow }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   analyze:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       actions: read
       contents: read
       security-events: write
+    if: github.repository_owner == 'pandas-dev'
 
     strategy:
       fail-fast: false
@@ -23,9 +27,9 @@ jobs:
           - python
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: github/codeql-action/init@v2
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
-      - uses: github/codeql-action/autobuild@v2
-      - uses: github/codeql-action/analyze@v2
+      - uses: github/codeql-action/autobuild@v3
+      - uses: github/codeql-action/analyze@v3

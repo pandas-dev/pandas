@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_extension_array_dtype
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -108,18 +106,14 @@ def test_series_not_equal_metadata_mismatch(kwargs):
 
 
 @pytest.mark.parametrize("data1,data2", [(0.12345, 0.12346), (0.1235, 0.1236)])
-@pytest.mark.parametrize("dtype", ["float32", "float64", "Float32"])
 @pytest.mark.parametrize("decimals", [0, 1, 2, 3, 5, 10])
-def test_less_precise(data1, data2, dtype, decimals):
+def test_less_precise(data1, data2, any_float_dtype, decimals):
     rtol = 10**-decimals
-    s1 = Series([data1], dtype=dtype)
-    s2 = Series([data2], dtype=dtype)
+    s1 = Series([data1], dtype=any_float_dtype)
+    s2 = Series([data2], dtype=any_float_dtype)
 
     if decimals in (5, 10) or (decimals >= 3 and abs(data1 - data2) >= 0.0005):
-        if is_extension_array_dtype(dtype):
-            msg = "ExtensionArray are different"
-        else:
-            msg = "Series values are different"
+        msg = "Series values are different"
         with pytest.raises(AssertionError, match=msg):
             tm.assert_series_equal(s1, s2, rtol=rtol)
     else:
@@ -219,8 +213,18 @@ Series values are different \\(33\\.33333 %\\)
         tm.assert_series_equal(s1, s2, rtol=rtol)
 
 
-def test_series_equal_categorical_values_mismatch(rtol):
-    msg = """Series are different
+def test_series_equal_categorical_values_mismatch(rtol, using_infer_string):
+    if using_infer_string:
+        msg = """Series are different
+
+Series values are different \\(66\\.66667 %\\)
+\\[index\\]: \\[0, 1, 2\\]
+\\[left\\]:  \\['a', 'b', 'c'\\]
+Categories \\(3, string\\): \\[a, b, c\\]
+\\[right\\]: \\['a', 'c', 'b'\\]
+Categories \\(3, string\\): \\[a, b, c\\]"""
+    else:
+        msg = """Series are different
 
 Series values are different \\(66\\.66667 %\\)
 \\[index\\]: \\[0, 1, 2\\]
@@ -237,9 +241,9 @@ Categories \\(3, object\\): \\['a', 'b', 'c'\\]"""
 
 
 def test_series_equal_datetime_values_mismatch(rtol):
-    msg = """numpy array are different
+    msg = """Series are different
 
-numpy array values are different \\(100.0 %\\)
+Series values are different \\(100.0 %\\)
 \\[index\\]: \\[0, 1, 2\\]
 \\[left\\]:  \\[1514764800000000000, 1514851200000000000, 1514937600000000000\\]
 \\[right\\]: \\[1549065600000000000, 1549152000000000000, 1549238400000000000\\]"""
@@ -251,13 +255,18 @@ numpy array values are different \\(100.0 %\\)
         tm.assert_series_equal(s1, s2, rtol=rtol)
 
 
-def test_series_equal_categorical_mismatch(check_categorical):
-    msg = """Attributes of Series are different
+def test_series_equal_categorical_mismatch(check_categorical, using_infer_string):
+    if using_infer_string:
+        dtype = "string"
+    else:
+        dtype = "object"
+    msg = f"""Attributes of Series are different
 
 Attribute "dtype" are different
-\\[left\\]:  CategoricalDtype\\(categories=\\['a', 'b'\\], ordered=False\\)
+\\[left\\]:  CategoricalDtype\\(categories=\\['a', 'b'\\], ordered=False, \
+categories_dtype={dtype}\\)
 \\[right\\]: CategoricalDtype\\(categories=\\['a', 'b', 'c'\\], \
-ordered=False\\)"""
+ordered=False, categories_dtype={dtype}\\)"""
 
     s1 = Series(Categorical(["a", "b"]))
     s2 = Series(Categorical(["a", "b"], categories=list("abc")))
@@ -352,11 +361,17 @@ Series values are different \\(100\\.0 %\\)
         tm.assert_series_equal(s3, s1, check_exact=True)
 
 
-@pytest.mark.parametrize("right_dtype", ["Int32", "int64"])
-def test_assert_series_equal_ignore_extension_dtype_mismatch(right_dtype):
+def test_assert_series_equal_ignore_extension_dtype_mismatch():
     # https://github.com/pandas-dev/pandas/issues/35715
     left = Series([1, 2, 3], dtype="Int64")
-    right = Series([1, 2, 3], dtype=right_dtype)
+    right = Series([1, 2, 3], dtype="Int32")
+    tm.assert_series_equal(left, right, check_dtype=False)
+
+
+def test_assert_series_equal_ignore_extension_dtype_mismatch_cross_class():
+    # https://github.com/pandas-dev/pandas/issues/35715
+    left = Series([1, 2, 3], dtype="Int64")
+    right = Series([1, 2, 3], dtype="int64")
     tm.assert_series_equal(left, right, check_dtype=False)
 
 
@@ -409,3 +424,40 @@ def test_identical_nested_series_is_equal():
     tm.assert_series_equal(x, x, check_exact=True)
     tm.assert_series_equal(x, y)
     tm.assert_series_equal(x, y, check_exact=True)
+
+
+@pytest.mark.parametrize("dtype", ["datetime64", "timedelta64"])
+def test_check_dtype_false_different_reso(dtype):
+    # GH 52449
+    ser_s = Series([1000213, 2131232, 21312331]).astype(f"{dtype}[s]")
+    ser_ms = ser_s.astype(f"{dtype}[ms]")
+    with pytest.raises(AssertionError, match="Attributes of Series are different"):
+        tm.assert_series_equal(ser_s, ser_ms)
+    tm.assert_series_equal(ser_ms, ser_s, check_dtype=False)
+
+    ser_ms -= Series([1, 1, 1]).astype(f"{dtype}[ms]")
+
+    with pytest.raises(AssertionError, match="Series are different"):
+        tm.assert_series_equal(ser_s, ser_ms)
+
+    with pytest.raises(AssertionError, match="Series are different"):
+        tm.assert_series_equal(ser_s, ser_ms, check_dtype=False)
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "int64"])
+def test_large_unequal_ints(dtype):
+    # https://github.com/pandas-dev/pandas/issues/55882
+    left = Series([1577840521123000], dtype=dtype)
+    right = Series([1577840521123543], dtype=dtype)
+    with pytest.raises(AssertionError, match="Series are different"):
+        tm.assert_series_equal(left, right)
+
+
+@pytest.mark.parametrize("dtype", [None, object])
+@pytest.mark.parametrize("check_exact", [True, False])
+@pytest.mark.parametrize("val", [3, 3.5])
+def test_ea_and_numpy_no_dtype_check(val, check_exact, dtype):
+    # GH#56651
+    left = Series([1, 2, val], dtype=dtype)
+    right = Series(pd.array([1, 2, val]))
+    tm.assert_series_equal(left, right, check_dtype=False, check_exact=check_exact)

@@ -9,13 +9,15 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import Scalar
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.util.numba_ import jit_user_function
 
+if TYPE_CHECKING:
+    from pandas._typing import Scalar
 
-@functools.lru_cache(maxsize=None)
+
+@functools.cache
 def generate_numba_apply_func(
     func: Callable[..., Scalar],
     nopython: bool,
@@ -46,7 +48,7 @@ def generate_numba_apply_func(
     -------
     Numba function
     """
-    numba_func = jit_user_function(func, nopython, nogil, parallel)
+    numba_func = jit_user_function(func)
     if TYPE_CHECKING:
         import numba
     else:
@@ -75,7 +77,7 @@ def generate_numba_apply_func(
     return roll_apply
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def generate_numba_ewm_func(
     nopython: bool,
     nogil: bool,
@@ -141,7 +143,6 @@ def generate_numba_ewm_func(
                 is_observation = not np.isnan(cur)
                 nobs += is_observation
                 if not np.isnan(weighted):
-
                     if is_observation or not ignore_na:
                         if normalize:
                             # note that len(deltas) = len(vals) - 1 and deltas[i]
@@ -174,7 +175,7 @@ def generate_numba_ewm_func(
     return ewm
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def generate_numba_table_func(
     func: Callable[..., np.ndarray],
     nopython: bool,
@@ -206,7 +207,7 @@ def generate_numba_table_func(
     -------
     Numba function
     """
-    numba_func = jit_user_function(func, nopython, nogil, parallel)
+    numba_func = jit_user_function(func)
     if TYPE_CHECKING:
         import numba
     else:
@@ -240,7 +241,7 @@ def generate_numba_table_func(
 # This function will no longer be needed once numba supports
 # axis for all np.nan* agg functions
 # https://github.com/numba/numba/issues/1269
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def generate_manual_numpy_nan_agg_with_axis(nan_func):
     if TYPE_CHECKING:
         import numba
@@ -258,7 +259,7 @@ def generate_manual_numpy_nan_agg_with_axis(nan_func):
     return nan_agg_with_axis
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def generate_numba_ewm_table_func(
     nopython: bool,
     nogil: bool,

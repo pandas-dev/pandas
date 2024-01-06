@@ -1,14 +1,15 @@
 # PDEP-4: Consistent datetime parsing
 
 - Created: 18 September 2022
-- Status: Accepted
+- Status: Implemented
 - Discussion: [#48621](https://github.com/pandas-dev/pandas/pull/48621)
 - Author: [Marco Gorelli](https://github.com/MarcoGorelli)
-- Revision: 1
+- Revision: 2
 
 ## Abstract
 
 The suggestion is that:
+
 - ``to_datetime`` becomes strict and uses the same datetime format to parse all elements in its input.
   The format will either be inferred from the first non-NaN element (if `format` is not provided by the user), or from
   `format`;
@@ -42,6 +43,7 @@ Out[2]: DatetimeIndex(['2000-12-01', '2000-01-13'], dtype='datetime64[ns]', freq
 ## Detailed Description
 
 Concretely, the suggestion is:
+
 - if no ``format`` is specified, ``pandas`` will guess the format from the first non-NaN row
   and parse the rest of the input according to that format. Errors will be handled
   according to the ``errors`` argument - there will be no silent switching of format;
@@ -56,16 +58,19 @@ Concretely, the suggestion is:
 If a user has dates in a mixed format, they can still use flexible parsing and accept
 the risks that poses, e.g.:
 ```ipython
-In [3]: pd.Series(['12-01-2000 00:00:00', '13-01-2000 00:00:00']).apply(pd.to_datetime)
-Out[3]:
-0   2000-12-01
-1   2000-01-13
-dtype: datetime64[ns]
+In [3]: pd.to_datetime(['12-01-2000 00:00:00', '13-01-2000 00:00:00'], format='mixed')
+Out[3]: DatetimeIndex(['2000-12-01', '2000-01-13'], dtype='datetime64[ns]', freq=None)
+```
+or, if their dates are all ISO8601,
+```ipython
+In [4]: pd.to_datetime(['2020-01-01', '2020-01-01 03:00'], format='ISO8601')
+Out[4]: DatetimeIndex(['2020-01-01 00:00:00', '2020-01-01 03:00:00'], dtype='datetime64[ns]', freq=None)
 ```
 
 ## Usage and Impact
 
 My expectation is that the impact would be a net-positive:
+
 - potentially severe bugs in people's code will be caught early;
 - users who actually want mixed formats can still parse them, but now they'd be forced to be
   very explicit about it;
@@ -80,6 +85,7 @@ The whatsnew notes read
 > In the next major version release, 2.0, several larger API changes are being considered without a formal deprecation.
 
 I'd suggest making this change as part of the above, because:
+
 - it would only help prevent bugs, not introduce any;
 - given the severity of bugs that can result from the current behaviour, waiting another 2 years until pandas 3.0.0
   would potentially cause a lot of damage.
@@ -95,3 +101,4 @@ We could make ``guess_datetime_format`` smarter by using a random sample of elem
 ### PDEP History
 
 - 18 September 2022: Initial draft
+- 25 January 2023: Amended to mention ``format='ISO8601'`` and ``format='mixed'`` options

@@ -263,14 +263,6 @@ All instances of ``CategoricalDtype`` compare equal to the string ``'category'``
 
    c1 == "category"
 
-.. warning::
-
-   Since ``dtype='category'`` is essentially ``CategoricalDtype(None, False)``,
-   and since all instances ``CategoricalDtype`` compare equal to ``'category'``,
-   all instances of ``CategoricalDtype`` compare equal to a
-   ``CategoricalDtype(None, False)``, regardless of ``categories`` or
-   ``ordered``.
-
 Description
 -----------
 
@@ -437,9 +429,9 @@ meaning and certain operations are possible. If the categorical is unordered, ``
 .. ipython:: python
 
     s = pd.Series(pd.Categorical(["a", "b", "c", "a"], ordered=False))
-    s.sort_values(inplace=True)
+    s = s.sort_values()
     s = pd.Series(["a", "b", "c", "a"]).astype(CategoricalDtype(ordered=True))
-    s.sort_values(inplace=True)
+    s = s.sort_values()
     s
     s.min(), s.max()
 
@@ -459,7 +451,7 @@ This is even true for strings and numeric data:
     s = pd.Series([1, 2, 3, 1], dtype="category")
     s = s.cat.set_categories([2, 3, 1], ordered=True)
     s
-    s.sort_values(inplace=True)
+    s = s.sort_values()
     s
     s.min(), s.max()
 
@@ -477,7 +469,7 @@ necessarily make the sort order the same as the categories order.
     s = pd.Series([1, 2, 3, 1], dtype="category")
     s = s.cat.reorder_categories([2, 3, 1], ordered=True)
     s
-    s.sort_values(inplace=True)
+    s = s.sort_values()
     s
     s.min(), s.max()
 
@@ -615,7 +607,7 @@ even if some categories are not present in the data:
     s = pd.Series(pd.Categorical(["a", "b", "c", "c"], categories=["c", "a", "b", "d"]))
     s.value_counts()
 
-``DataFrame`` methods like :meth:`DataFrame.sum` also show "unused" categories.
+``DataFrame`` methods like :meth:`DataFrame.sum` also show "unused" categories when ``observed=False``.
 
 .. ipython:: python
 
@@ -625,10 +617,10 @@ even if some categories are not present in the data:
     df = pd.DataFrame(
         data=[[1, 2, 3], [4, 5, 6]],
         columns=pd.MultiIndex.from_arrays([["A", "B", "B"], columns]),
-    )
-    df.groupby(axis=1, level=1).sum()
+    ).T
+    df.groupby(level=1, observed=False).sum()
 
-Groupby will also show "unused" categories:
+Groupby will also show "unused" categories when ``observed=False``:
 
 .. ipython:: python
 
@@ -636,7 +628,7 @@ Groupby will also show "unused" categories:
         ["a", "b", "b", "b", "c", "c", "c"], categories=["a", "b", "c", "d"]
     )
     df = pd.DataFrame({"cats": cats, "values": [1, 2, 2, 2, 3, 4, 5]})
-    df.groupby("cats").mean()
+    df.groupby("cats", observed=False).mean()
 
     cats2 = pd.Categorical(["a", "a", "b", "b"], categories=["a", "b", "c"])
     df2 = pd.DataFrame(
@@ -646,7 +638,7 @@ Groupby will also show "unused" categories:
             "values": [1, 2, 3, 4],
         }
     )
-    df2.groupby(["cats", "B"]).mean()
+    df2.groupby(["cats", "B"], observed=False).mean()
 
 
 Pivot tables:
@@ -655,7 +647,7 @@ Pivot tables:
 
     raw_cat = pd.Categorical(["a", "a", "b", "b"], categories=["a", "b", "c"])
     df = pd.DataFrame({"A": raw_cat, "B": ["c", "d", "c", "d"], "values": [1, 2, 3, 4]})
-    pd.pivot_table(df, values="values", index=["A", "B"])
+    pd.pivot_table(df, values="values", index=["A", "B"], observed=False)
 
 Data munging
 ------------
@@ -787,6 +779,7 @@ Setting values by assigning categorical data will also check that the ``categori
 Assigning a ``Categorical`` to parts of a column of other types will use the values:
 
 .. ipython:: python
+    :okwarning:
 
     df = pd.DataFrame({"a": [1, 1, 1, 1, 1], "b": ["a", "a", "a", "a", "a"]})
     df.loc[1:2, "a"] = pd.Categorical(["b", "b"], categories=["a", "b"])
@@ -839,9 +832,6 @@ The following table summarizes the results of merging ``Categoricals``:
 | category (int)    | category (float)       | False                | float (dtype is inferred)   |
 +-------------------+------------------------+----------------------+-----------------------------+
 
-See also the section on :ref:`merge dtypes<merging.dtypes>` for notes about
-preserving merge dtypes and performance.
-
 .. _categorical.union:
 
 Unioning
@@ -880,13 +870,12 @@ categoricals of the same categories and order information
 
 The below raises ``TypeError`` because the categories are ordered and not identical.
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
-   In [1]: a = pd.Categorical(["a", "b"], ordered=True)
-   In [2]: b = pd.Categorical(["a", "b", "c"], ordered=True)
-   In [3]: union_categoricals([a, b])
-   Out[3]:
-   TypeError: to union ordered Categoricals, all categories must be the same
+   a = pd.Categorical(["a", "b"], ordered=True)
+   b = pd.Categorical(["a", "b", "c"], ordered=True)
+   union_categoricals([a, b])
 
 Ordered categoricals with different categories or orderings can be combined by
 using the ``ignore_ordered=True`` argument.

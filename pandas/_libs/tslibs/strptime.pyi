@@ -7,6 +7,8 @@ def array_strptime(
     fmt: str | None,
     exact: bool = ...,
     errors: str = ...,
+    utc: bool = ...,
+    creso: int = ...,  # NPY_DATETIMEUNIT
 ) -> tuple[np.ndarray, np.ndarray]: ...
 
 # first ndarray is M8[ns], second is object ndarray of tzinfo | None

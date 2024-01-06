@@ -16,7 +16,11 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-from typing import Iterable
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
 
 CAPITALIZATION_EXCEPTIONS = {
     "pandas",
@@ -151,6 +155,10 @@ CAPITALIZATION_EXCEPTIONS = {
     "Numba",
     "Timestamp",
     "PyArrow",
+    "Gitpod",
+    "Liveserve",
+    "I",
+    "VSCode",
 }
 
 CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}
@@ -222,18 +230,18 @@ def find_titles(rst_file: str) -> Iterable[tuple[str, int]]:
         The corresponding line number of the heading.
     """
 
-    with open(rst_file) as fd:
+    with open(rst_file, encoding="utf-8") as fd:
         previous_line = ""
         for i, line in enumerate(fd):
-            line = line[:-1]
-            line_chars = set(line)
+            line_no_last_elem = line[:-1]
+            line_chars = set(line_no_last_elem)
             if (
                 len(line_chars) == 1
                 and line_chars.pop() in symbols
-                and len(line) == len(previous_line)
+                and len(line_no_last_elem) == len(previous_line)
             ):
                 yield re.sub(r"[`\*_]", "", previous_line), i
-            previous_line = line
+            previous_line = line_no_last_elem
 
 
 def main(source_paths: list[str]) -> int:

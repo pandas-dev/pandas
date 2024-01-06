@@ -36,14 +36,14 @@ headers included in the request.  This can be used to control the User-Agent
 header or send other custom headers (:issue:`36688`).
 For example:
 
-.. ipython:: python
+.. code-block:: ipython
 
-    headers = {"User-Agent": "pandas"}
-    df = pd.read_csv(
-        "https://download.bls.gov/pub/time.series/cu/cu.item",
-        sep="\t",
-        storage_options=headers
-    )
+    In [1]: headers = {"User-Agent": "pandas"}
+    In [2]: df = pd.read_csv(
+       ...:     "https://download.bls.gov/pub/time.series/cu/cu.item",
+       ...:     sep="\t",
+       ...:     storage_options=headers
+       ...: )
 
 .. _whatsnew_130.enhancements.read_to_xml:
 
@@ -501,13 +501,17 @@ Consistent casting with setting into Boolean Series
 Setting non-boolean values into a :class:`Series` with ``dtype=bool`` now consistently
 casts to ``dtype=object`` (:issue:`38709`)
 
-.. ipython:: python
+.. code-block:: ipython
 
-   orig = pd.Series([True, False])
-   ser = orig.copy()
-   ser.iloc[1] = np.nan
-   ser2 = orig.copy()
-   ser2.iloc[1] = 2.0
+   In [1]: orig = pd.Series([True, False])
+
+   In [2]: ser = orig.copy()
+
+   In [3]: ser.iloc[1] = np.nan
+
+   In [4]: ser2 = orig.copy()
+
+   In [5]: ser2.iloc[1] = 2.0
 
 *Previous behavior*:
 
@@ -527,10 +531,19 @@ casts to ``dtype=object`` (:issue:`38709`)
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   ser
-   ser2
+   In [1]: ser
+   Out [1]:
+   0    True
+   1     NaN
+   dtype: object
+
+   In [2]:ser2
+   Out [2]:
+   0    True
+   1     2.0
+   dtype: object
 
 
 .. _whatsnew_130.notable_bug_fixes.rolling_groupby_column:

@@ -13,7 +13,7 @@ import pandas._testing as tm
 
 class TestDataFrameDiff:
     def test_diff_requires_integer(self):
-        df = DataFrame(np.random.randn(2, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((2, 2)))
         with pytest.raises(ValueError, match="periods must be an integer"):
             df.diff(1.5)
 
@@ -70,29 +70,30 @@ class TestDataFrameDiff:
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("tz", [None, "UTC"])
-    def test_diff_datetime_axis0_with_nat(self, tz):
+    def test_diff_datetime_axis0_with_nat(self, tz, unit):
         # GH#32441
-        dti = pd.DatetimeIndex(["NaT", "2019-01-01", "2019-01-02"], tz=tz)
+        dti = pd.DatetimeIndex(["NaT", "2019-01-01", "2019-01-02"], tz=tz).as_unit(unit)
         ser = Series(dti)
 
         df = ser.to_frame()
 
         result = df.diff()
-        ex_index = pd.TimedeltaIndex([pd.NaT, pd.NaT, pd.Timedelta(days=1)])
+        ex_index = pd.TimedeltaIndex([pd.NaT, pd.NaT, pd.Timedelta(days=1)]).as_unit(
+            unit
+        )
         expected = Series(ex_index).to_frame()
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("tz", [pytest.param(None, marks=pytest.mark.xfail), "UTC"])
+    @pytest.mark.parametrize("tz", [None, "UTC"])
     def test_diff_datetime_with_nat_zero_periods(self, tz):
         # diff on NaT values should give NaT, not timedelta64(0)
         dti = date_range("2016-01-01", periods=4, tz=tz)
         ser = Series(dti)
-        df = ser.to_frame()
+        df = ser.to_frame().copy()
 
         df[1] = ser.copy()
 
-        with tm.assert_produces_warning(None):
-            df.iloc[:, 0] = pd.NaT
+        df.iloc[:, 0] = pd.NaT
 
         expected = df - df
         assert expected[0].isna().all()
@@ -141,7 +142,7 @@ class TestDataFrameDiff:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_diff_timedelta(self):
+    def test_diff_timedelta(self, unit):
         # GH#4533
         df = DataFrame(
             {
@@ -149,15 +150,17 @@ class TestDataFrameDiff:
                 "value": [1.0, 2.0],
             }
         )
+        df["time"] = df["time"].dt.as_unit(unit)
 
         res = df.diff()
         exp = DataFrame(
             [[pd.NaT, np.nan], [pd.Timedelta("00:01:00"), 1]], columns=["time", "value"]
         )
+        exp["time"] = exp["time"].dt.as_unit(unit)
         tm.assert_frame_equal(res, exp)
 
     def test_diff_mixed_dtype(self):
-        df = DataFrame(np.random.randn(5, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         df["A"] = np.array([1, 2, 3, 4, 5], dtype=object)
 
         result = df.diff()
@@ -286,7 +289,7 @@ class TestDataFrameDiff:
 
     def test_diff_readonly(self):
         # https://github.com/pandas-dev/pandas/issues/35559
-        arr = np.random.randn(5, 2)
+        arr = np.random.default_rng(2).standard_normal((5, 2))
         arr.flags.writeable = False
         df = DataFrame(arr)
         result = df.diff()

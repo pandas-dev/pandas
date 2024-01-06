@@ -14,77 +14,74 @@ from pandas.core.arrays.sparse import (
     make_sparse_index,
 )
 
-TEST_LENGTH = 20
 
-plain_case = [
-    [0, 7, 15],
-    [3, 5, 5],
-    [2, 9, 14],
-    [2, 3, 5],
-    [2, 9, 15],
-    [1, 3, 4],
-]
-delete_blocks = [
-    [0, 5],
-    [4, 4],
-    [1],
-    [4],
-    [1],
-    [3],
-]
-split_blocks = [
-    [0],
-    [10],
-    [0, 5],
-    [3, 7],
-    [0, 5],
-    [3, 5],
-]
-skip_block = [
-    [10],
-    [5],
-    [0, 12],
-    [5, 3],
-    [12],
-    [3],
-]
+@pytest.fixture
+def test_length():
+    return 20
 
-no_intersect = [
-    [0, 10],
-    [4, 6],
-    [5, 17],
-    [4, 2],
-    [],
-    [],
-]
 
-one_empty = [
-    [0],
-    [5],
-    [],
-    [],
-    [],
-    [],
-]
-
-both_empty = [  # type: ignore[var-annotated]
-    [],
-    [],
-    [],
-    [],
-    [],
-    [],
-]
-
-CASES = [plain_case, delete_blocks, split_blocks, skip_block, no_intersect, one_empty]
-IDS = [
-    "plain_case",
-    "delete_blocks",
-    "split_blocks",
-    "skip_block",
-    "no_intersect",
-    "one_empty",
-]
+@pytest.fixture(
+    params=[
+        [
+            [0, 7, 15],
+            [3, 5, 5],
+            [2, 9, 14],
+            [2, 3, 5],
+            [2, 9, 15],
+            [1, 3, 4],
+        ],
+        [
+            [0, 5],
+            [4, 4],
+            [1],
+            [4],
+            [1],
+            [3],
+        ],
+        [
+            [0],
+            [10],
+            [0, 5],
+            [3, 7],
+            [0, 5],
+            [3, 5],
+        ],
+        [
+            [10],
+            [5],
+            [0, 12],
+            [5, 3],
+            [12],
+            [3],
+        ],
+        [
+            [0, 10],
+            [4, 6],
+            [5, 17],
+            [4, 2],
+            [],
+            [],
+        ],
+        [
+            [0],
+            [5],
+            [],
+            [],
+            [],
+            [],
+        ],
+    ],
+    ids=[
+        "plain_case",
+        "delete_blocks",
+        "split_blocks",
+        "skip_block",
+        "no_intersect",
+        "one_empty",
+    ],
+)
+def cases(request):
+    return request.param
 
 
 class TestSparseIndexUnion:
@@ -101,7 +98,7 @@ class TestSparseIndexUnion:
             [[0, 10], [3, 3], [5, 15], [2, 2], [0, 5, 10, 15], [3, 2, 3, 2]],
         ],
     )
-    def test_index_make_union(self, xloc, xlen, yloc, ylen, eloc, elen):
+    def test_index_make_union(self, xloc, xlen, yloc, ylen, eloc, elen, test_length):
         # Case 1
         # x: ----
         # y:     ----
@@ -132,8 +129,8 @@ class TestSparseIndexUnion:
         # Case 8
         # x: ----       ---
         # y:       ---       ---
-        xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
-        yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
+        xindex = BlockIndex(test_length, xloc, xlen)
+        yindex = BlockIndex(test_length, yloc, ylen)
         bresult = xindex.make_union(yindex)
         assert isinstance(bresult, BlockIndex)
         tm.assert_numpy_array_equal(bresult.blocs, np.array(eloc, dtype=np.int32))
@@ -180,12 +177,12 @@ class TestSparseIndexUnion:
 
 class TestSparseIndexIntersect:
     @td.skip_if_windows
-    @pytest.mark.parametrize("xloc, xlen, yloc, ylen, eloc, elen", CASES, ids=IDS)
-    def test_intersect(self, xloc, xlen, yloc, ylen, eloc, elen):
-        xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
-        yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
-        expected = BlockIndex(TEST_LENGTH, eloc, elen)
-        longer_index = BlockIndex(TEST_LENGTH + 1, yloc, ylen)
+    def test_intersect(self, cases, test_length):
+        xloc, xlen, yloc, ylen, eloc, elen = cases
+        xindex = BlockIndex(test_length, xloc, xlen)
+        yindex = BlockIndex(test_length, yloc, ylen)
+        expected = BlockIndex(test_length, eloc, elen)
+        longer_index = BlockIndex(test_length + 1, yloc, ylen)
 
         result = xindex.intersect(yindex)
         assert result.equals(expected)
@@ -212,6 +209,8 @@ class TestSparseIndexIntersect:
     @pytest.mark.parametrize(
         "case",
         [
+            # Argument 2 to "IntIndex" has incompatible type "ndarray[Any,
+            # dtype[signedinteger[_32Bit]]]"; expected "Sequence[int]"
             IntIndex(5, np.array([1, 2], dtype=np.int32)),  # type: ignore[arg-type]
             IntIndex(5, np.array([0, 2, 4], dtype=np.int32)),  # type: ignore[arg-type]
             IntIndex(0, np.array([], dtype=np.int32)),  # type: ignore[arg-type]
@@ -432,7 +431,6 @@ class TestBlockIndex:
 
 class TestIntIndex:
     def test_check_integrity(self):
-
         # Too many indices than specified in self.length
         msg = "Too many indices"
 
@@ -492,10 +490,10 @@ class TestIntIndex:
         assert index.equals(index)
         assert not index.equals(IntIndex(10, [0, 1, 2, 3]))
 
-    @pytest.mark.parametrize("xloc, xlen, yloc, ylen, eloc, elen", CASES, ids=IDS)
-    def test_to_block_index(self, xloc, xlen, yloc, ylen, eloc, elen):
-        xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
-        yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
+    def test_to_block_index(self, cases, test_length):
+        xloc, xlen, yloc, ylen, _, _ = cases
+        xindex = BlockIndex(test_length, xloc, xlen)
+        yindex = BlockIndex(test_length, yloc, ylen)
 
         # see if survive the round trip
         xbindex = xindex.to_int_index().to_block_index()
@@ -511,13 +509,13 @@ class TestIntIndex:
 
 class TestSparseOperators:
     @pytest.mark.parametrize("opname", ["add", "sub", "mul", "truediv", "floordiv"])
-    @pytest.mark.parametrize("xloc, xlen, yloc, ylen, eloc, elen", CASES, ids=IDS)
-    def test_op(self, opname, xloc, xlen, yloc, ylen, eloc, elen):
+    def test_op(self, opname, cases, test_length):
+        xloc, xlen, yloc, ylen, _, _ = cases
         sparse_op = getattr(splib, f"sparse_{opname}_float64")
         python_op = getattr(operator, opname)
 
-        xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
-        yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
+        xindex = BlockIndex(test_length, xloc, xlen)
+        yindex = BlockIndex(test_length, yloc, ylen)
 
         xdindex = xindex.to_int_index()
         ydindex = yindex.to_int_index()
@@ -541,10 +539,10 @@ class TestSparseOperators:
 
         # check versus Series...
         xseries = Series(x, xdindex.indices)
-        xseries = xseries.reindex(np.arange(TEST_LENGTH)).fillna(xfill)
+        xseries = xseries.reindex(np.arange(test_length)).fillna(xfill)
 
         yseries = Series(y, ydindex.indices)
-        yseries = yseries.reindex(np.arange(TEST_LENGTH)).fillna(yfill)
+        yseries = yseries.reindex(np.arange(test_length)).fillna(yfill)
 
         series_result = python_op(xseries, yseries)
         series_result = series_result.reindex(ri_index.indices)

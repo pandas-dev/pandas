@@ -7,6 +7,7 @@ import numpy as np
 from pandas import (
     NA,
     DataFrame,
+    Float64Dtype,
     Series,
     StringDtype,
     Timedelta,
@@ -17,14 +18,14 @@ import pandas._testing as tm
 
 class TestDataFrameMask:
     def test_mask(self):
-        df = DataFrame(np.random.randn(5, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         cond = df > 0
 
         rs = df.where(cond, np.nan)
         tm.assert_frame_equal(rs, df.mask(df <= 0))
         tm.assert_frame_equal(rs, df.mask(~cond))
 
-        other = DataFrame(np.random.randn(5, 3))
+        other = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         rs = df.where(cond, other)
         tm.assert_frame_equal(rs, df.mask(df <= 0, other))
         tm.assert_frame_equal(rs, df.mask(~cond, other))
@@ -39,7 +40,7 @@ class TestDataFrameMask:
 
     def test_mask_inplace(self):
         # GH#8801
-        df = DataFrame(np.random.randn(5, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         cond = df > 0
 
         rdf = df.copy()
@@ -84,7 +85,7 @@ class TestDataFrameMask:
 
     def test_mask_dtype_bool_conversion(self):
         # GH#3733
-        df = DataFrame(data=np.random.randn(100, 50))
+        df = DataFrame(data=np.random.default_rng(2).standard_normal((100, 50)))
         df = df.where(df > 0)  # create nans
         bools = df > 0
         mask = isna(df)
@@ -130,3 +131,22 @@ def test_mask_where_dtype_timedelta():
         [np.nan, np.nan, np.nan, Timedelta("3 day"), Timedelta("4 day")]
     )
     tm.assert_frame_equal(df.where(df > Timedelta(2, unit="d")), expected)
+
+
+def test_mask_return_dtype():
+    # GH#50488
+    ser = Series([0.0, 1.0, 2.0, 3.0], dtype=Float64Dtype())
+    cond = ~ser.isna()
+    other = Series([True, False, True, False])
+    excepted = Series([1.0, 0.0, 1.0, 0.0], dtype=ser.dtype)
+    result = ser.mask(cond, other)
+    tm.assert_series_equal(result, excepted)
+
+
+def test_mask_inplace_no_other():
+    # GH#51685
+    df = DataFrame({"a": [1.0, 2.0], "b": ["x", "y"]})
+    cond = DataFrame({"a": [True, False], "b": [False, True]})
+    df.mask(cond, inplace=True)
+    expected = DataFrame({"a": [np.nan, 2], "b": ["x", np.nan]})
+    tm.assert_frame_equal(df, expected)

@@ -5,7 +5,6 @@ import pandas as pd
 import pandas._testing as tm
 
 
-@pytest.mark.parametrize("ordered", [True, False])
 @pytest.mark.parametrize("categories", [["b", "a", "c"], ["a", "b", "c", "d"]])
 def test_factorize(categories, ordered):
     cat = pd.Categorical(
@@ -56,6 +55,15 @@ def test_isin_cats():
 
     result = cat.isin(["a", "c"])
     expected = np.array([True, False, False], dtype=bool)
+    tm.assert_numpy_array_equal(expected, result)
+
+
+@pytest.mark.parametrize("value", [[""], [None, ""], [pd.NaT, ""]])
+def test_isin_cats_corner_cases(value):
+    # GH36550
+    cat = pd.Categorical([""])
+    result = cat.isin(value)
+    expected = np.array([True], dtype=bool)
     tm.assert_numpy_array_equal(expected, result)
 
 

@@ -45,7 +45,6 @@ offset_objs = non_apply + other_offsets
 
 
 class OnOffset:
-
     params = offset_objs
     param_names = ["offset"]
 
@@ -63,7 +62,6 @@ class OnOffset:
 
 
 class OffestDatetimeArithmetic:
-
     params = offset_objs
     param_names = ["offset"]
 

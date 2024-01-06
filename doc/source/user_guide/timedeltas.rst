@@ -259,9 +259,6 @@ an alternative is to divide by another timedelta object. Note that division by t
    # to days
    td / np.timedelta64(1, "D")
 
-   # to months (these are constant months)
-   td / np.timedelta64(1, "M")
-
 Dividing or multiplying a ``timedelta64[ns]`` Series by an integer or integer Series
 yields another ``timedelta64[ns]`` dtypes Series.
 
@@ -393,9 +390,9 @@ The ``freq`` parameter can passed a variety of :ref:`frequency aliases <timeseri
 
 .. ipython:: python
 
-   pd.timedelta_range(start="1 days", end="2 days", freq="30T")
+   pd.timedelta_range(start="1 days", end="2 days", freq="30min")
 
-   pd.timedelta_range(start="1 days", periods=5, freq="2D5H")
+   pd.timedelta_range(start="1 days", periods=5, freq="2D5h")
 
 
 Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
@@ -477,7 +474,7 @@ Scalars type ops work as well. These can potentially return a *different* type o
    # division can result in a Timedelta if the divisor is an integer
    tdi / 2
 
-   # or a Float64Index if the divisor is a Timedelta
+   # or a float64 Index if the divisor is a Timedelta
    tdi / tdi[0]
 
 .. _timedeltas.resampling:

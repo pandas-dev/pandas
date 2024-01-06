@@ -19,17 +19,14 @@ from collections import (
 )
 import itertools
 import numbers
-import random
 import string
 import sys
 from typing import (
+    TYPE_CHECKING,
     Any,
-    Mapping,
 )
 
 import numpy as np
-
-from pandas._typing import type_t
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -44,6 +41,11 @@ from pandas.api.extensions import (
     ExtensionDtype,
 )
 from pandas.core.indexers import unpack_tuple_and_ellipses
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from pandas._typing import type_t
 
 
 class JSONDtype(ExtensionDtype):
@@ -81,7 +83,7 @@ class JSONArray(ExtensionArray):
         # self._values = self.values = self.data
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
         return cls(scalars)
 
     @classmethod
@@ -110,11 +112,13 @@ class JSONArray(ExtensionArray):
         else:
             item = pd.api.indexers.check_array_indexer(self, item)
             if is_bool_dtype(item.dtype):
-                return self._from_sequence([x for x, m in zip(self, item) if m])
+                return type(self)._from_sequence(
+                    [x for x, m in zip(self, item) if m], dtype=self.dtype
+                )
             # integer
             return type(self)([self.data[i] for i in item])
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         if isinstance(key, numbers.Integral):
             self.data[key] = value
         else:
@@ -185,7 +189,7 @@ class JSONArray(ExtensionArray):
             except IndexError as err:
                 raise IndexError(msg) from err
 
-        return self._from_sequence(output)
+        return type(self)._from_sequence(output, dtype=self.dtype)
 
     def copy(self):
         return type(self)(self.data[:])
@@ -204,7 +208,8 @@ class JSONArray(ExtensionArray):
             return self
         elif isinstance(dtype, StringDtype):
             value = self.astype(str)  # numpy doesn't like nested dicts
-            return dtype.construct_array_type()._from_sequence(value, copy=False)
+            arr_cls = dtype.construct_array_type()
+            return arr_cls._from_sequence(value, dtype=dtype, copy=False)
 
         return np.array([dict(x) for x in self], dtype=dtype, copy=copy)
 
@@ -230,14 +235,19 @@ class JSONArray(ExtensionArray):
         frozen = [tuple(x.items()) for x in self]
         return construct_1d_object_array_from_listlike(frozen)
 
+    def _pad_or_backfill(self, *, method, limit=None, copy=True):
+        # GH#56616 - test EA method without limit_area argument
+        return super()._pad_or_backfill(method=method, limit=limit, copy=copy)
+
 
 def make_data():
     # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer
+    rng = np.random.default_rng(2)
     return [
         UserDict(
             [
-                (random.choice(string.ascii_letters), random.randint(0, 100))
-                for _ in range(random.randint(0, 10))
+                (rng.choice(list(string.ascii_letters)), rng.integers(0, 100))
+                for _ in range(rng.integers(0, 10))
             ]
         )
         for _ in range(100)

@@ -6,6 +6,7 @@ import pytest
 from pandas import (
     DataFrame,
     MultiIndex,
+    Series,
     option_context,
 )
 
@@ -22,7 +23,9 @@ from pandas.io.formats.style_render import (
 
 @pytest.fixture
 def df():
-    return DataFrame({"A": [0, 1], "B": [-0.61, -1.22], "C": ["ab", "cd"]})
+    return DataFrame(
+        {"A": [0, 1], "B": [-0.61, -1.22], "C": Series(["ab", "cd"], dtype=object)}
+    )
 
 
 @pytest.fixture
@@ -744,9 +747,9 @@ def test_apply_map_header_render_mi(df_ext, index, columns, siunitx):
     func = lambda v: "bfseries: --rwrap" if "A" in v or "Z" in v or "c" in v else None
 
     if index:
-        styler.applymap_index(func, axis="index")
+        styler.map_index(func, axis="index")
     if columns:
-        styler.applymap_index(func, axis="columns")
+        styler.map_index(func, axis="columns")
 
     result = styler.to_latex(siunitx=siunitx)
 
@@ -796,7 +799,7 @@ def test_siunitx_basic_headers(styler):
 
 @pytest.mark.parametrize("axis", ["index", "columns"])
 def test_css_convert_apply_index(styler, axis):
-    styler.applymap_index(lambda x: "font-weight: bold;", axis=axis)
+    styler.map_index(lambda x: "font-weight: bold;", axis=axis)
     for label in getattr(styler, axis):
         assert f"\\bfseries {label}" in styler.to_latex(convert_css=True)
 
@@ -829,8 +832,8 @@ def test_latex_hiding_index_columns_multiindex_alignment():
     styler.hide(level=1, axis=0).hide(level=0, axis=1)
     styler.hide([("i0", "i1", "i2")], axis=0)
     styler.hide([("c0", "c1", "c2")], axis=1)
-    styler.applymap(lambda x: "color:{red};" if x == 5 else "")
-    styler.applymap_index(lambda x: "color:{blue};" if "j" in x else "")
+    styler.map(lambda x: "color:{red};" if x == 5 else "")
+    styler.map_index(lambda x: "color:{blue};" if "j" in x else "")
     result = styler.to_latex()
     expected = dedent(
         """\
@@ -863,7 +866,7 @@ def test_apply_index_hidden_levels():
         columns=MultiIndex.from_tuples([(0, 1)], names=["c0", "c1"]),
     ).style
     styler.hide(level=1)
-    styler.applymap_index(lambda v: "color: red;", level=0, axis=1)
+    styler.map_index(lambda v: "color: red;", level=0, axis=1)
     result = styler.to_latex(convert_css=True)
     expected = dedent(
         """\
@@ -1021,6 +1024,26 @@ def test_concat_recursion():
     styler3 = DataFrame([[3], [9]]).style.hide([1]).highlight_min(color="blue")
 
     result = styler1.concat(styler2.concat(styler3)).to_latex(convert_css=True)
+    expected = dedent(
+        """\
+    \\begin{tabular}{lr}
+     & 0 \\\\
+    0 & {\\cellcolor{red}} 1 \\\\
+    1 & {\\cellcolor{green}} 2 \\\\
+    0 & {\\cellcolor{blue}} 3 \\\\
+    \\end{tabular}
+    """
+    )
+    assert result == expected
+
+
+def test_concat_chain():
+    # tests hidden row recursion and applied styles
+    styler1 = DataFrame([[1], [9]]).style.hide([1]).highlight_min(color="red")
+    styler2 = DataFrame([[9], [2]]).style.hide([0]).highlight_min(color="green")
+    styler3 = DataFrame([[3], [9]]).style.hide([1]).highlight_min(color="blue")
+
+    result = styler1.concat(styler2).concat(styler3).to_latex(convert_css=True)
     expected = dedent(
         """\
     \\begin{tabular}{lr}

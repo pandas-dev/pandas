@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import AxisInt
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -16,6 +15,8 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import AxisInt
+
     from pandas.core.generic import NDFrame
 
 

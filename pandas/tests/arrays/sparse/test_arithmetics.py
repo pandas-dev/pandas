@@ -4,11 +4,9 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas import SparseDtype
 import pandas._testing as tm
-from pandas.core.arrays.sparse import (
-    SparseArray,
-    SparseDtype,
-)
+from pandas.core.arrays.sparse import SparseArray
 
 
 @pytest.fixture(params=["integer", "block"])
@@ -435,9 +433,6 @@ def test_ufuncs(ufunc, arr):
     [
         (SparseArray([0, 0, 0]), np.array([0, 1, 2])),
         (SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
-        (SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
-        (SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
-        (SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
     ],
 )
 @pytest.mark.parametrize("ufunc", [np.add, np.greater])
@@ -477,8 +472,8 @@ def test_mismatched_length_cmp_op(cons):
 @pytest.mark.parametrize("fill_value", [np.nan, 3])
 def test_binary_operators(op, fill_value):
     op = getattr(operator, op)
-    data1 = np.random.randn(20)
-    data2 = np.random.randn(20)
+    data1 = np.random.default_rng(2).standard_normal(20)
+    data2 = np.random.default_rng(2).standard_normal(20)
 
     data1[::2] = fill_value
     data2[::3] = fill_value

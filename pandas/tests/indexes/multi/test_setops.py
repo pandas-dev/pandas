@@ -11,6 +11,10 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
+from pandas.api.types import (
+    is_float_dtype,
+    is_unsigned_integer_dtype,
+)
 
 
 @pytest.mark.parametrize("case", [0.5, "xxx"])
@@ -127,7 +131,6 @@ def test_empty(idx):
 
 
 def test_difference(idx, sort):
-
     first = idx
     result = first.difference(idx[-3:], sort=sort)
     vals = idx[:-3].values
@@ -200,9 +203,7 @@ def test_difference_sort_special():
     tm.assert_index_equal(result, idx)
 
 
-@pytest.mark.xfail(reason="Not implemented.")
 def test_difference_sort_special_true():
-    # TODO(GH#25151): decide on True behaviour
     idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
     result = idx.difference([], sort=True)
     expected = MultiIndex.from_product([[0, 1], ["a", "b"]])
@@ -229,8 +230,10 @@ def test_difference_sort_incomparable_true():
     idx = MultiIndex.from_product([[1, pd.Timestamp("2000"), 2], ["a", "b"]])
     other = MultiIndex.from_product([[3, pd.Timestamp("2000"), 4], ["c", "d"]])
 
-    msg = "The 'sort' keyword only takes the values of None or False; True was passed."
-    with pytest.raises(ValueError, match=msg):
+    # TODO: this is raising in constructing a Categorical when calling
+    #  algos.safe_sort. Should we catch and re-raise with a better message?
+    msg = "'values' is not ordered, please explicitly specify the categories order "
+    with pytest.raises(TypeError, match=msg):
         idx.difference(other, sort=True)
 
 
@@ -240,10 +243,10 @@ def test_union(idx, sort):
 
     the_union = piece1.union(piece2, sort=sort)
 
-    if sort is None:
-        tm.assert_index_equal(the_union, idx.sort_values())
-
-    assert tm.equalContents(the_union, idx)
+    if sort in (None, False):
+        tm.assert_index_equal(the_union.sort_values(), idx.sort_values())
+    else:
+        tm.assert_index_equal(the_union, idx)
 
     # corner case, pass self or empty thing:
     the_union = idx.union(idx, sort=sort)
@@ -255,24 +258,28 @@ def test_union(idx, sort):
     tuples = idx.values
     result = idx[:4].union(tuples[4:], sort=sort)
     if sort is None:
-        tm.equalContents(result, idx)
+        tm.assert_index_equal(result.sort_values(), idx.sort_values())
     else:
         assert result.equals(idx)
 
 
-def test_union_with_regular_index(idx):
+def test_union_with_regular_index(idx, using_infer_string):
     other = Index(["A", "B", "C"])
 
     result = other.union(idx)
     assert ("foo", "one") in result
     assert "B" in result
 
-    msg = "The values in the array are unorderable"
-    with tm.assert_produces_warning(RuntimeWarning, match=msg):
-        result2 = idx.union(other)
-    # This is more consistent now, if sorting fails then we don't sort at all
-    # in the MultiIndex case.
-    assert not result.equals(result2)
+    if using_infer_string:
+        with pytest.raises(NotImplementedError, match="Can only union"):
+            idx.union(other)
+    else:
+        msg = "The values in the array are unorderable"
+        with tm.assert_produces_warning(RuntimeWarning, match=msg):
+            result2 = idx.union(other)
+        # This is more consistent now, if sorting fails then we don't sort at all
+        # in the MultiIndex case.
+        assert not result.equals(result2)
 
 
 def test_intersection(idx, sort):
@@ -281,9 +288,10 @@ def test_intersection(idx, sort):
 
     the_int = piece1.intersection(piece2, sort=sort)
 
-    if sort is None:
+    if sort in (None, True):
         tm.assert_index_equal(the_int, idx[3:5])
-    assert tm.equalContents(the_int, idx[3:5])
+    else:
+        tm.assert_index_equal(the_int.sort_values(), idx[3:5])
 
     # corner case, pass self
     the_int = idx.intersection(idx, sort=sort)
@@ -340,12 +348,11 @@ def test_intersect_equal_sort():
     tm.assert_index_equal(idx.intersection(idx, sort=None), idx)
 
 
-@pytest.mark.xfail(reason="Not implemented.")
 def test_intersect_equal_sort_true():
-    # TODO(GH#25151): decide on True behaviour
     idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
-    sorted_ = MultiIndex.from_product([[0, 1], ["a", "b"]])
-    tm.assert_index_equal(idx.intersection(idx, sort=True), sorted_)
+    expected = MultiIndex.from_product([[0, 1], ["a", "b"]])
+    result = idx.intersection(idx, sort=True)
+    tm.assert_index_equal(result, expected)
 
 
 @pytest.mark.parametrize("slice_", [slice(None), slice(0)])
@@ -362,10 +369,7 @@ def test_union_sort_other_empty(slice_):
     tm.assert_index_equal(idx.union(other, sort=False), idx)
 
 
-@pytest.mark.xfail(reason="Not implemented.")
 def test_union_sort_other_empty_sort():
-    # TODO(GH#25151): decide on True behaviour
-    # # sort=True
     idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
     other = idx[:0]
     result = idx.union(other, sort=True)
@@ -387,12 +391,10 @@ def test_union_sort_other_incomparable():
     tm.assert_index_equal(result, idx)
 
 
-@pytest.mark.xfail(reason="Not implemented.")
 def test_union_sort_other_incomparable_sort():
-    # TODO(GH#25151): decide on True behaviour
-    # # sort=True
     idx = MultiIndex.from_product([[1, pd.Timestamp("2000")], ["a", "b"]])
-    with pytest.raises(TypeError, match="Cannot compare"):
+    msg = "'<' not supported between instances of 'Timestamp' and 'int'"
+    with pytest.raises(TypeError, match=msg):
         idx.union(idx[:1], sort=True)
 
 
@@ -431,12 +433,15 @@ def test_union_multiindex_empty_rangeindex():
 @pytest.mark.parametrize(
     "method", ["union", "intersection", "difference", "symmetric_difference"]
 )
-def test_setops_disallow_true(method):
+def test_setops_sort_validation(method):
     idx1 = MultiIndex.from_product([["a", "b"], [1, 2]])
     idx2 = MultiIndex.from_product([["b", "c"], [1, 2]])
 
     with pytest.raises(ValueError, match="The 'sort' keyword only takes"):
-        getattr(idx1, method)(idx2, sort=True)
+        getattr(idx1, method)(idx2, sort=2)
+
+    # sort=True is supported as of GH#?
+    getattr(idx1, method)(idx2, sort=True)
 
 
 @pytest.mark.parametrize("val", [pd.NA, 100])
@@ -454,7 +459,7 @@ def test_difference_keep_ea_dtypes(any_numeric_ea_dtype, val):
 
     result = midx.difference(midx.sort_values(ascending=False))
     expected = MultiIndex.from_arrays(
-        [Series([], dtype=any_numeric_ea_dtype), Series([], dtype=int)],
+        [Series([], dtype=any_numeric_ea_dtype), Series([], dtype=np.int64)],
         names=["a", None],
     )
     tm.assert_index_equal(result, expected)
@@ -619,11 +624,11 @@ def test_union_with_duplicates_keep_ea_dtype(dupe_val, any_numeric_ea_dtype):
     tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_union_duplicates(index, request):
     # GH#38977
     if index.empty or isinstance(index, (IntervalIndex, CategoricalIndex)):
-        # No duplicates in empty indexes
-        return
+        pytest.skip(f"No duplicates in an empty {type(index).__name__}")
 
     values = index.unique().values.tolist()
     mi1 = MultiIndex.from_arrays([values, [1] * len(values)])
@@ -632,14 +637,24 @@ def test_union_duplicates(index, request):
     expected = mi2.sort_values()
     tm.assert_index_equal(result, expected)
 
-    if mi2.levels[0].dtype == np.uint64 and (mi2.get_level_values(0) < 2**63).all():
+    if (
+        is_unsigned_integer_dtype(mi2.levels[0])
+        and (mi2.get_level_values(0) < 2**63).all()
+    ):
         # GH#47294 - union uses lib.fast_zip, converting data to Python integers
         # and loses type information. Result is then unsigned only when values are
         # sufficiently large to require unsigned dtype. This happens only if other
         # has dups or one of both have missing values
         expected = expected.set_levels(
-            [expected.levels[0].astype(int), expected.levels[1]]
+            [expected.levels[0].astype(np.int64), expected.levels[1]]
         )
+    elif is_float_dtype(mi2.levels[0]):
+        # mi2 has duplicates witch is a different path than above, Fix that path
+        # to use correct float dtype?
+        expected = expected.set_levels(
+            [expected.levels[0].astype(float), expected.levels[1]]
+        )
+
     result = mi1.union(mi2)
     tm.assert_index_equal(result, expected)
 
@@ -692,6 +707,43 @@ def test_intersection_lexsort_depth(levels1, levels2, codes1, codes2, names):
     assert mi_int._lexsort_depth == 2
 
 
+@pytest.mark.parametrize(
+    "a",
+    [pd.Categorical(["a", "b"], categories=["a", "b"]), ["a", "b"]],
+)
+@pytest.mark.parametrize(
+    "b",
+    [
+        pd.Categorical(["a", "b"], categories=["b", "a"], ordered=True),
+        pd.Categorical(["a", "b"], categories=["b", "a"]),
+    ],
+)
+def test_intersection_with_non_lex_sorted_categories(a, b):
+    # GH#49974
+    other = ["1", "2"]
+
+    df1 = DataFrame({"x": a, "y": other})
+    df2 = DataFrame({"x": b, "y": other})
+
+    expected = MultiIndex.from_arrays([a, other], names=["x", "y"])
+
+    res1 = MultiIndex.from_frame(df1).intersection(
+        MultiIndex.from_frame(df2.sort_values(["x", "y"]))
+    )
+    res2 = MultiIndex.from_frame(df1).intersection(MultiIndex.from_frame(df2))
+    res3 = MultiIndex.from_frame(df1.sort_values(["x", "y"])).intersection(
+        MultiIndex.from_frame(df2)
+    )
+    res4 = MultiIndex.from_frame(df1.sort_values(["x", "y"])).intersection(
+        MultiIndex.from_frame(df2.sort_values(["x", "y"]))
+    )
+
+    tm.assert_index_equal(res1, expected)
+    tm.assert_index_equal(res2, expected)
+    tm.assert_index_equal(res3, expected)
+    tm.assert_index_equal(res4, expected)
+
+
 @pytest.mark.parametrize("val", [pd.NA, 100])
 def test_intersection_keep_ea_dtypes(val, any_numeric_ea_dtype):
     # GH#48604
@@ -708,7 +760,12 @@ def test_intersection_keep_ea_dtypes(val, any_numeric_ea_dtype):
 
 def test_union_with_na_when_constructing_dataframe():
     # GH43222
-    series1 = Series((1,), index=MultiIndex.from_tuples(((None, None),)))
+    series1 = Series(
+        (1,),
+        index=MultiIndex.from_arrays(
+            [Series([None], dtype="string"), Series([None], dtype="string")]
+        ),
+    )
     series2 = Series((10, 20), index=MultiIndex.from_tuples(((None, None), ("a", "b"))))
     result = DataFrame([series1, series2])
     expected = DataFrame({(np.nan, np.nan): [1.0, 10.0], ("a", "b"): [np.nan, 20.0]})

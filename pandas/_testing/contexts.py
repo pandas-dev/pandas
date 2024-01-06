@@ -4,23 +4,36 @@ from contextlib import contextmanager
 import os
 from pathlib import Path
 import tempfile
-from types import TracebackType
 from typing import (
     IO,
+    TYPE_CHECKING,
     Any,
-    Generator,
 )
 import uuid
 
-import numpy as np
+from pandas._config import using_copy_on_write
+
+from pandas.compat import PYPY
+from pandas.errors import ChainedAssignmentError
 
 from pandas import set_option
 
 from pandas.io.common import get_handle
 
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
+    from pandas._typing import (
+        BaseBuffer,
+        CompressionOptions,
+        FilePath,
+    )
+
 
 @contextmanager
-def decompress_file(path, compression) -> Generator[IO[bytes], None, None]:
+def decompress_file(
+    path: FilePath | BaseBuffer, compression: CompressionOptions
+) -> Generator[IO[bytes], None, None]:
     """
     Open a compressed file and return a file object.
 
@@ -114,9 +127,12 @@ def ensure_clean(
     path.touch()
 
     handle_or_str: str | IO = str(path)
+    encoding = kwargs.pop("encoding", None)
     if return_filelike:
         kwargs.setdefault("mode", "w+b")
-        handle_or_str = open(path, **kwargs)
+        if encoding is None and "b" not in kwargs["mode"]:
+            encoding = "utf-8"
+        handle_or_str = open(path, encoding=encoding, **kwargs)
 
     try:
         yield handle_or_str
@@ -128,23 +144,7 @@ def ensure_clean(
 
 
 @contextmanager
-def ensure_safe_environment_variables() -> Generator[None, None, None]:
-    """
-    Get a context manager to safely set environment variables
-
-    All changes will be undone on close, hence environment variables set
-    within this contextmanager will neither persist nor change global state.
-    """
-    saved_environ = dict(os.environ)
-    try:
-        yield
-    finally:
-        os.environ.clear()
-        os.environ.update(saved_environ)
-
-
-@contextmanager
-def with_csv_dialect(name, **kwargs) -> Generator[None, None, None]:
+def with_csv_dialect(name: str, **kwargs) -> Generator[None, None, None]:
     """
     Context manager to temporarily register a CSV dialect for parsing CSV.
 
@@ -195,35 +195,63 @@ def use_numexpr(use, min_elements=None) -> Generator[None, None, None]:
         set_option("compute.use_numexpr", olduse)
 
 
-class RNGContext:
+def raises_chained_assignment_error(warn=True, extra_warnings=(), extra_match=()):
+    from pandas._testing import assert_produces_warning
+
+    if not warn:
+        from contextlib import nullcontext
+
+        return nullcontext()
+
+    if PYPY and not extra_warnings:
+        from contextlib import nullcontext
+
+        return nullcontext()
+    elif PYPY and extra_warnings:
+        return assert_produces_warning(
+            extra_warnings,
+            match="|".join(extra_match),
+        )
+    else:
+        if using_copy_on_write():
+            warning = ChainedAssignmentError
+            match = (
+                "A value is trying to be set on a copy of a DataFrame or Series "
+                "through chained assignment"
+            )
+        else:
+            warning = FutureWarning  # type: ignore[assignment]
+            # TODO update match
+            match = "ChainedAssignmentError"
+        if extra_warnings:
+            warning = (warning, *extra_warnings)  # type: ignore[assignment]
+        return assert_produces_warning(
+            warning,
+            match="|".join((match, *extra_match)),
+        )
+
+
+def assert_cow_warning(warn=True, match=None, **kwargs):
     """
-    Context manager to set the numpy random number generator speed. Returns
-    to the original value upon exiting the context manager.
+    Assert that a warning is raised in the CoW warning mode.
 
     Parameters
     ----------
-    seed : int
-        Seed for numpy.random.seed
-
-    Examples
-    --------
-    with RNGContext(42):
-        np.random.randn()
+    warn : bool, default True
+        By default, check that a warning is raised. Can be turned off by passing False.
+    match : str
+        The warning message to match against, if different from the default.
+    kwargs
+        Passed through to assert_produces_warning
     """
+    from pandas._testing import assert_produces_warning
 
-    def __init__(self, seed) -> None:
-        self.seed = seed
+    if not warn:
+        from contextlib import nullcontext
 
-    def __enter__(self) -> None:
+        return nullcontext()
 
-        self.start_state = np.random.get_state()
-        np.random.seed(self.seed)
+    if not match:
+        match = "Setting a value on a view"
 
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-
-        np.random.set_state(self.start_state)
+    return assert_produces_warning(FutureWarning, match=match, **kwargs)

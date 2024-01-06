@@ -12,16 +12,26 @@ import pandas._testing as tm
 from pandas.core.algorithms import safe_sort
 
 
+def equal_contents(arr1, arr2) -> bool:
+    """
+    Checks if the set of unique elements of arr1 and arr2 are equivalent.
+    """
+    return frozenset(arr1) == frozenset(arr2)
+
+
 class TestIndexSetOps:
     @pytest.mark.parametrize(
         "method", ["union", "intersection", "difference", "symmetric_difference"]
     )
-    def test_setops_disallow_true(self, method):
+    def test_setops_sort_validation(self, method):
         idx1 = Index(["a", "b"])
         idx2 = Index(["b", "c"])
 
         with pytest.raises(ValueError, match="The 'sort' keyword only takes"):
-            getattr(idx1, method)(idx2, sort=True)
+            getattr(idx1, method)(idx2, sort=2)
+
+        # sort=True is supported as of GH#??
+        getattr(idx1, method)(idx2, sort=True)
 
     def test_setops_preserve_object_dtype(self):
         idx = Index([1, 2, 3], dtype=object)
@@ -68,7 +78,7 @@ class TestIndexSetOps:
 
         result = first.union(klass(second.values))
 
-        assert tm.equalContents(result, index)
+        assert equal_contents(result, index)
 
     def test_union_sort_other_incomparable(self):
         # https://github.com/pandas-dev/pandas/issues/24959
@@ -88,17 +98,12 @@ class TestIndexSetOps:
         result = idx.union(idx[:1], sort=False)
         tm.assert_index_equal(result, idx)
 
-    @pytest.mark.xfail(reason="GH#25151 need to decide on True behavior")
     def test_union_sort_other_incomparable_true(self):
-        # TODO(GH#25151): decide on True behaviour
-        # sort=True
         idx = Index([1, pd.Timestamp("2000")])
         with pytest.raises(TypeError, match=".*"):
             idx.union(idx[:1], sort=True)
 
-    @pytest.mark.xfail(reason="GH#25151 need to decide on True behavior")
     def test_intersection_equal_sort_true(self):
-        # TODO(GH#25151): decide on True behaviour
         idx = Index(["c", "a", "b"])
         sorted_ = Index(["a", "b", "c"])
         tm.assert_index_equal(idx.intersection(idx, sort=True), sorted_)
@@ -121,7 +126,7 @@ class TestIndexSetOps:
         second = index[:3]
 
         result = first.intersection(klass(second.values), sort=sort)
-        assert tm.equalContents(result, second)
+        assert equal_contents(result, second)
 
     def test_intersection_nosort(self):
         result = Index(["c", "b", "a"]).intersection(["b", "a"])
@@ -149,7 +154,7 @@ class TestIndexSetOps:
     def test_intersection_non_monotonic_non_unique(self, index2, expected_arr, sort):
         # non-monotonic non-unique
         index1 = Index(["A", "B", "A", "C"])
-        expected = Index(expected_arr, dtype="object")
+        expected = Index(expected_arr)
         result = index1.intersection(index2, sort=sort)
         if sort is None:
             expected = expected.sort_values()
@@ -184,7 +189,7 @@ class TestIndexSetOps:
                 "intersection",
                 np.array(
                     [(1, "A"), (2, "A"), (1, "B"), (2, "B")],
-                    dtype=[("num", int), ("let", "a1")],
+                    dtype=[("num", int), ("let", "S1")],
                 ),
                 False,
             ),
@@ -192,7 +197,7 @@ class TestIndexSetOps:
                 "intersection",
                 np.array(
                     [(1, "A"), (1, "B"), (2, "A"), (2, "B")],
-                    dtype=[("num", int), ("let", "a1")],
+                    dtype=[("num", int), ("let", "S1")],
                 ),
                 None,
             ),
@@ -200,7 +205,7 @@ class TestIndexSetOps:
                 "union",
                 np.array(
                     [(1, "A"), (1, "B"), (1, "C"), (2, "A"), (2, "B"), (2, "C")],
-                    dtype=[("num", int), ("let", "a1")],
+                    dtype=[("num", int), ("let", "S1")],
                 ),
                 None,
             ),
@@ -210,13 +215,13 @@ class TestIndexSetOps:
         index1 = Index(
             np.array(
                 [(1, "A"), (2, "A"), (1, "B"), (2, "B")],
-                dtype=[("num", int), ("let", "a1")],
+                dtype=[("num", int), ("let", "S1")],
             )
         )
         index2 = Index(
             np.array(
                 [(1, "A"), (2, "A"), (1, "B"), (2, "B"), (1, "C"), (2, "C")],
-                dtype=[("num", int), ("let", "a1")],
+                dtype=[("num", int), ("let", "S1")],
             )
         )
 
@@ -246,7 +251,7 @@ class TestIndexSetOps:
             tm.assert_index_equal(union, expected)
         else:
             expected = Index(vals, name=expected_name)
-            tm.equalContents(union, expected)
+            tm.assert_index_equal(union.sort_values(), expected.sort_values())
 
     @pytest.mark.parametrize(
         "diff_type, expected",

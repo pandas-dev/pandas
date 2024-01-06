@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-from typing import Iterable
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 import pandas as pd
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 
 class TablePlotter:
@@ -77,9 +80,9 @@ class TablePlotter:
             # left
             max_left_cols = max(self._shape(df)[1] for df in left)
             max_left_rows = max(self._shape(df)[0] for df in left)
-            for i, (l, label) in enumerate(zip(left, labels)):
+            for i, (_left, _label) in enumerate(zip(left, labels)):
                 ax = fig.add_subplot(gs[i, 0:max_left_cols])
-                self._make_table(ax, l, title=label, height=1.0 / max_left_rows)
+                self._make_table(ax, _left, title=_label, height=1.0 / max_left_rows)
             # right
             ax = plt.subplot(gs[:, max_left_cols:])
             self._make_table(ax, right, title="Result", height=1.05 / vcells)
@@ -90,10 +93,10 @@ class TablePlotter:
             gs = gridspec.GridSpec(1, hcells)
             # left
             i = 0
-            for df, label in zip(left, labels):
+            for df, _label in zip(left, labels):
                 sp = self._shape(df)
                 ax = fig.add_subplot(gs[0, i : i + sp[1]])
-                self._make_table(ax, df, title=label, height=height)
+                self._make_table(ax, df, title=_label, height=height)
                 i += sp[1]
             # right
             ax = plt.subplot(gs[0, i:])

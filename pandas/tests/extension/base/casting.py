@@ -1,15 +1,14 @@
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p21
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas.core.internals import ObjectBlock
-from pandas.tests.extension.base.base import BaseExtensionTests
+import pandas._testing as tm
+from pandas.core.internals.blocks import NumpyBlock
 
 
-class BaseCastingTests(BaseExtensionTests):
+class BaseCastingTests:
     """Casting to and from ExtensionDtypes"""
 
     def test_astype_object_series(self, all_data):
@@ -17,7 +16,9 @@ class BaseCastingTests(BaseExtensionTests):
         result = ser.astype(object)
         assert result.dtype == np.dtype(object)
         if hasattr(result._mgr, "blocks"):
-            assert isinstance(result._mgr.blocks[0], ObjectBlock)
+            blk = result._mgr.blocks[0]
+            assert isinstance(blk, NumpyBlock)
+            assert blk.is_object
         assert isinstance(result._mgr.array, np.ndarray)
         assert result._mgr.array.dtype == np.dtype(object)
 
@@ -26,16 +27,15 @@ class BaseCastingTests(BaseExtensionTests):
 
         result = df.astype(object)
         if hasattr(result._mgr, "blocks"):
-            blk = result._data.blocks[0]
-            assert isinstance(blk, ObjectBlock), type(blk)
+            blk = result._mgr.blocks[0]
+            assert isinstance(blk, NumpyBlock), type(blk)
+            assert blk.is_object
         assert isinstance(result._mgr.arrays[0], np.ndarray)
         assert result._mgr.arrays[0].dtype == np.dtype(object)
 
-        # earlier numpy raises TypeError on e.g. np.dtype(np.int64) == "Int64"
-        if not np_version_under1p21:
-            # check that we can compare the dtypes
-            comp = result.dtypes == df.dtypes
-            assert not comp.any()
+        # check that we can compare the dtypes
+        comp = result.dtypes == df.dtypes
+        assert not comp.any()
 
     def test_tolist(self, data):
         result = pd.Series(data).tolist()
@@ -45,37 +45,38 @@ class BaseCastingTests(BaseExtensionTests):
     def test_astype_str(self, data):
         result = pd.Series(data[:5]).astype(str)
         expected = pd.Series([str(x) for x in data[:5]], dtype=str)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "nullable_string_dtype",
         [
             "string[python]",
-            pytest.param(
-                "string[pyarrow]", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
-            ),
+            pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
         ],
     )
     def test_astype_string(self, data, nullable_string_dtype):
-        # GH-33465
+        # GH-33465, GH#45326 as of 2.0 we decode bytes instead of calling str(obj)
         result = pd.Series(data[:5]).astype(nullable_string_dtype)
-        expected = pd.Series([str(x) for x in data[:5]], dtype=nullable_string_dtype)
-        self.assert_series_equal(result, expected)
+        expected = pd.Series(
+            [str(x) if not isinstance(x, bytes) else x.decode() for x in data[:5]],
+            dtype=nullable_string_dtype,
+        )
+        tm.assert_series_equal(result, expected)
 
     def test_to_numpy(self, data):
         expected = np.asarray(data)
 
         result = data.to_numpy()
-        self.assert_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         result = pd.Series(data).to_numpy()
-        self.assert_equal(result, expected)
+        tm.assert_equal(result, expected)
 
     def test_astype_empty_dataframe(self, dtype):
         # https://github.com/pandas-dev/pandas/issues/33113
         df = pd.DataFrame()
         result = df.astype(dtype)
-        self.assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
     @pytest.mark.parametrize("copy", [True, False])
     def test_astype_own_type(self, data, copy):
@@ -83,4 +84,4 @@ class BaseCastingTests(BaseExtensionTests):
         # https://github.com/pandas-dev/pandas/issues/28488
         result = data.astype(data.dtype, copy=copy)
         assert (result is data) is (not copy)
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)

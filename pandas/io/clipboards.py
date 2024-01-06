@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 from io import StringIO
+from typing import TYPE_CHECKING
 import warnings
 
+from pandas._libs import lib
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.generic import ABCDataFrame
 
@@ -13,24 +16,60 @@ from pandas import (
     option_context,
 )
 
+if TYPE_CHECKING:
+    from pandas._typing import DtypeBackend
 
-def read_clipboard(sep: str = r"\s+", **kwargs):  # pragma: no cover
+
+def read_clipboard(
+    sep: str = r"\s+",
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+    **kwargs,
+):  # pragma: no cover
     r"""
-    Read text from clipboard and pass to read_csv.
+    Read text from clipboard and pass to :func:`~pandas.read_csv`.
+
+    Parses clipboard contents similar to how CSV files are parsed
+    using :func:`~pandas.read_csv`.
 
     Parameters
     ----------
-    sep : str, default '\s+'
-        A string or regex delimiter. The default of '\s+' denotes
+    sep : str, default '\\s+'
+        A string or regex delimiter. The default of ``'\\s+'`` denotes
         one or more whitespace characters.
 
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
+
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
+
+        .. versionadded:: 2.0
+
     **kwargs
-        See read_csv for the full argument list.
+        See :func:`~pandas.read_csv` for the full argument list.
 
     Returns
     -------
     DataFrame
-        A parsed DataFrame object.
+        A parsed :class:`~pandas.DataFrame` object.
+
+    See Also
+    --------
+    DataFrame.to_clipboard : Copy object to the system clipboard.
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
+    read_fwf : Read a table of fixed-width formatted lines into DataFrame.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
+    >>> df.to_clipboard()  # doctest: +SKIP
+    >>> pd.read_clipboard()  # doctest: +SKIP
+         A  B  C
+    0    1  2  3
+    1    4  5  6
     """
     encoding = kwargs.pop("encoding", "utf-8")
 
@@ -38,6 +77,8 @@ def read_clipboard(sep: str = r"\s+", **kwargs):  # pragma: no cover
     # supports
     if encoding is not None and encoding.lower().replace("-", "") != "utf8":
         raise NotImplementedError("reading from clipboard only supports utf-8 encoding")
+
+    check_dtype_backend(dtype_backend)
 
     from pandas.io.clipboard import clipboard_get
     from pandas.io.parsers import read_csv
@@ -85,7 +126,7 @@ def read_clipboard(sep: str = r"\s+", **kwargs):  # pragma: no cover
             stacklevel=find_stack_level(),
         )
 
-    return read_csv(StringIO(text), sep=sep, **kwargs)
+    return read_csv(StringIO(text), sep=sep, dtype_backend=dtype_backend, **kwargs)
 
 
 def to_clipboard(

@@ -8,22 +8,25 @@ from collections import (
 )
 import copy
 from typing import (
+    TYPE_CHECKING,
     Any,
     DefaultDict,
-    Iterable,
 )
 
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
-from pandas._typing import (
-    IgnoreRaise,
-    Scalar,
-)
-from pandas.util._decorators import deprecate
 
 import pandas as pd
 from pandas import DataFrame
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from pandas._typing import (
+        IgnoreRaise,
+        Scalar,
+    )
 
 
 def convert_to_line_delimits(s: str) -> str:
@@ -64,8 +67,6 @@ def nested_to_record(
 
     max_level: int, optional, default: None
         The max depth to normalize.
-
-        .. versionadded:: 0.25.0
 
     Returns
     -------
@@ -148,13 +149,13 @@ def _normalise_json(
     if isinstance(data, dict):
         for key, value in data.items():
             new_key = f"{key_string}{separator}{key}"
+
+            if not key_string:
+                new_key = new_key.removeprefix(separator)
+
             _normalise_json(
                 data=value,
-                # to avoid adding the separator to the start of every key
-                # GH#43831 avoid adding key if key_string blank
-                key_string=new_key
-                if new_key[: len(separator)] != separator
-                else new_key[len(separator) :],
+                key_string=new_key,
                 normalized_dict=normalized_dict,
                 separator=separator,
             )
@@ -241,7 +242,7 @@ def _simple_json_normalize(
     return normalised_json_object
 
 
-def _json_normalize(
+def json_normalize(
     data: dict | list[dict],
     record_path: str | list | None = None,
     meta: str | list[str | list[str]] | None = None,
@@ -282,8 +283,6 @@ def _json_normalize(
     max_level : int, default None
         Max number of levels(depth of dict) to normalize.
         if None, normalizes all levels.
-
-        .. versionadded:: 0.25.0
 
     Returns
     -------
@@ -531,10 +530,15 @@ def _json_normalize(
             raise ValueError(
                 f"Conflicting metadata name {k}, need distinguishing prefix "
             )
-        result[k] = np.array(v, dtype=object).repeat(lengths)
+        # GH 37782
+
+        values = np.array(v, dtype=object)
+
+        if values.ndim > 1:
+            # GH 37782
+            values = np.empty((len(v),), dtype=object)
+            for i, v in enumerate(v):
+                values[i] = v
+
+        result[k] = values.repeat(lengths)
     return result
-
-
-json_normalize = deprecate(
-    "pandas.io.json.json_normalize", _json_normalize, "1.0.0", "pandas.json_normalize"
-)

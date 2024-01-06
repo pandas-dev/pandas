@@ -1,0 +1,5 @@
+# Test: empty version
+dependencies:
+  - jinja2
+  - scipy
+  - SQLAlchemy

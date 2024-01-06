@@ -1,18 +1,20 @@
 from __future__ import annotations
 
 import abc
-from collections.abc import Callable  # noqa: PDF001
-import re
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Literal,
 )
 
 import numpy as np
 
-from pandas._typing import Scalar
-
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+    import re
+
+    from pandas._typing import Scalar
+
     from pandas import Series
 
 
@@ -45,7 +47,7 @@ class BaseStringArrayMethods(abc.ABC):
     @abc.abstractmethod
     def _str_pad(
         self,
-        width,
+        width: int,
         side: Literal["left", "right", "both"] = "left",
         fillchar: str = " ",
     ):
@@ -78,7 +80,7 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_repeat(self, repeats):
+    def _str_repeat(self, repeats: int | Sequence[int]):
         pass
 
     @abc.abstractmethod
@@ -126,15 +128,15 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_join(self, sep):
+    def _str_join(self, sep: str):
         pass
 
     @abc.abstractmethod
-    def _str_partition(self, sep, expand):
+    def _str_partition(self, sep: str, expand):
         pass
 
     @abc.abstractmethod
-    def _str_rpartition(self, sep, expand):
+    def _str_rpartition(self, sep: str, expand):
         pass
 
     @abc.abstractmethod
@@ -154,7 +156,7 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_wrap(self, width, **kwargs):
+    def _str_wrap(self, width: int, **kwargs):
         pass
 
     @abc.abstractmethod
@@ -246,7 +248,9 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_split(self, pat=None, n=-1, expand: bool = False):
+    def _str_split(
+        self, pat=None, n=-1, expand: bool = False, regex: bool | None = None
+    ):
         pass
 
     @abc.abstractmethod

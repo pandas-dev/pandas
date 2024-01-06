@@ -17,8 +17,6 @@ from pandas import (
     to_timedelta,
 )
 
-from .pandas_vb_common import tm
-
 method_blocklist = {
     "object": {
         "diff",
@@ -57,6 +55,40 @@ method_blocklist = {
     },
 }
 
+# These aggregations don't have a kernel implemented for them yet
+_numba_unsupported_methods = [
+    "all",
+    "any",
+    "bfill",
+    "count",
+    "cumcount",
+    "cummax",
+    "cummin",
+    "cumprod",
+    "cumsum",
+    "describe",
+    "diff",
+    "ffill",
+    "first",
+    "head",
+    "idxmax",
+    "idxmin",
+    "last",
+    "median",
+    "nunique",
+    "pct_change",
+    "prod",
+    "quantile",
+    "rank",
+    "sem",
+    "shift",
+    "size",
+    "skew",
+    "tail",
+    "unique",
+    "value_counts",
+]
+
 
 class ApplyDictReturn:
     def setup(self):
@@ -70,7 +102,6 @@ class ApplyDictReturn:
 
 
 class Apply:
-
     param_names = ["factor"]
     params = [4, 5]
 
@@ -125,7 +156,6 @@ class ApplyNonUniqueUnsortedIndex:
 
 
 class Groups:
-
     param_names = ["key"]
     params = ["int64_small", "int64_large", "object_small", "object_large"]
 
@@ -135,10 +165,14 @@ class Groups:
             "int64_small": Series(np.random.randint(0, 100, size=size)),
             "int64_large": Series(np.random.randint(0, 10000, size=size)),
             "object_small": Series(
-                tm.makeStringIndex(100).take(np.random.randint(0, 100, size=size))
+                Index([f"i-{i}" for i in range(100)], dtype=object).take(
+                    np.random.randint(0, 100, size=size)
+                )
             ),
             "object_large": Series(
-                tm.makeStringIndex(10000).take(np.random.randint(0, 10000, size=size))
+                Index([f"i-{i}" for i in range(10000)], dtype=object).take(
+                    np.random.randint(0, 10000, size=size)
+                )
             ),
         }
         return data
@@ -154,7 +188,6 @@ class Groups:
 
 
 class GroupManyLabels:
-
     params = [1, 1000]
     param_names = ["ncols"]
 
@@ -169,7 +202,6 @@ class GroupManyLabels:
 
 
 class Nth:
-
     param_names = ["dtype"]
     params = ["float32", "float64", "datetime", "object"]
 
@@ -208,7 +240,7 @@ class Nth:
 
 class DateAttributes:
     def setup(self):
-        rng = date_range("1/1/2000", "12/31/2005", freq="H")
+        rng = date_range("1/1/2000", "12/31/2005", freq="h")
         self.year, self.month, self.day = rng.year, rng.month, rng.day
         self.ts = Series(np.random.randn(len(rng)), index=rng)
 
@@ -301,16 +333,11 @@ class AggFunctions:
             {"value1": "mean", "value2": "var", "value3": "sum"}
         )
 
-    def time_different_numpy_functions(self, df):
-        df.groupby(["key1", "key2"]).agg(
-            {"value1": np.mean, "value2": np.var, "value3": np.sum}
-        )
+    def time_different_str_functions_multicol(self, df):
+        df.groupby(["key1", "key2"]).agg(["sum", "min", "max"])
 
-    def time_different_python_functions_multicol(self, df):
-        df.groupby(["key1", "key2"]).agg([sum, min, max])
-
-    def time_different_python_functions_singlecol(self, df):
-        df.groupby("key1")[["value1", "value2", "value3"]].agg([sum, min, max])
+    def time_different_str_functions_singlecol(self, df):
+        df.groupby("key1").agg({"value1": "mean", "value2": "var", "value3": "sum"})
 
 
 class GroupStrings:
@@ -353,8 +380,8 @@ class MultiColumn:
     def time_col_select_lambda_sum(self, df):
         df.groupby(["key1", "key2"])["data1"].agg(lambda x: x.values.sum())
 
-    def time_col_select_numpy_sum(self, df):
-        df.groupby(["key1", "key2"])["data1"].agg(np.sum)
+    def time_col_select_str_sum(self, df):
+        df.groupby(["key1", "key2"])["data1"].agg("sum")
 
 
 class Size:
@@ -380,7 +407,7 @@ class Size:
         self.df.groupby(["key1", "key2"]).size()
 
     def time_category_size(self):
-        self.draws.groupby(self.cats).size()
+        self.draws.groupby(self.cats, observed=True).size()
 
 
 class Shift:
@@ -395,7 +422,7 @@ class Shift:
         self.df.groupby("g").shift(fill_value=99)
 
 
-class FillNA:
+class Fillna:
     def setup(self):
         N = 100
         self.df = DataFrame(
@@ -403,20 +430,19 @@ class FillNA:
         ).set_index("group")
 
     def time_df_ffill(self):
-        self.df.groupby("group").fillna(method="ffill")
+        self.df.groupby("group").ffill()
 
     def time_df_bfill(self):
-        self.df.groupby("group").fillna(method="bfill")
+        self.df.groupby("group").bfill()
 
     def time_srs_ffill(self):
-        self.df.groupby("group")["value"].fillna(method="ffill")
+        self.df.groupby("group")["value"].ffill()
 
     def time_srs_bfill(self):
-        self.df.groupby("group")["value"].fillna(method="bfill")
+        self.df.groupby("group")["value"].bfill()
 
 
 class GroupByMethods:
-
     param_names = ["dtype", "method", "application", "ncols"]
     params = [
         ["int", "int16", "float", "object", "datetime", "uint"],
@@ -458,9 +484,10 @@ class GroupByMethods:
         ],
         ["direct", "transformation"],
         [1, 5],
+        ["cython", "numba"],
     ]
 
-    def setup(self, dtype, method, application, ncols):
+    def setup(self, dtype, method, application, ncols, engine):
         if method in method_blocklist.get(dtype, {}):
             raise NotImplementedError  # skip benchmark
 
@@ -477,6 +504,19 @@ class GroupByMethods:
             "size",
         ]:
             # DataFrameGroupBy doesn't have these methods
+            raise NotImplementedError
+
+        # Numba currently doesn't support
+        # multiple transform functions or strs for transform,
+        # grouping on multiple columns
+        # and we lack kernels for a bunch of methods
+        if (
+            engine == "numba"
+            and method in _numba_unsupported_methods
+            or ncols > 1
+            or application == "transformation"
+            or dtype == "datetime"
+        ):
             raise NotImplementedError
 
         if method == "describe":
@@ -510,17 +550,30 @@ class GroupByMethods:
         if len(cols) == 1:
             cols = cols[0]
 
-        if application == "transformation":
-            self.as_group_method = lambda: df.groupby("key")[cols].transform(method)
-            self.as_field_method = lambda: df.groupby(cols)["key"].transform(method)
-        else:
-            self.as_group_method = getattr(df.groupby("key")[cols], method)
-            self.as_field_method = getattr(df.groupby(cols)["key"], method)
+        # Not everything supports the engine keyword yet
+        kwargs = {}
+        if engine == "numba":
+            kwargs["engine"] = engine
 
-    def time_dtype_as_group(self, dtype, method, application, ncols):
+        if application == "transformation":
+            self.as_group_method = lambda: df.groupby("key")[cols].transform(
+                method, **kwargs
+            )
+            self.as_field_method = lambda: df.groupby(cols)["key"].transform(
+                method, **kwargs
+            )
+        else:
+            self.as_group_method = partial(
+                getattr(df.groupby("key")[cols], method), **kwargs
+            )
+            self.as_field_method = partial(
+                getattr(df.groupby(cols)["key"], method), **kwargs
+            )
+
+    def time_dtype_as_group(self, dtype, method, application, ncols, engine):
         self.as_group_method()
 
-    def time_dtype_as_field(self, dtype, method, application, ncols):
+    def time_dtype_as_field(self, dtype, method, application, ncols, engine):
         self.as_field_method()
 
 
@@ -539,6 +592,8 @@ class GroupByCythonAgg:
             "prod",
             "min",
             "max",
+            "idxmin",
+            "idxmax",
             "mean",
             "median",
             "var",
@@ -557,6 +612,22 @@ class GroupByCythonAgg:
 
     def time_frame_agg(self, dtype, method):
         self.df.groupby("key").agg(method)
+
+
+class GroupByNumbaAgg(GroupByCythonAgg):
+    """
+    Benchmarks specifically targeting our numba aggregation algorithms
+    (using a big enough dataframe with simple key, so a large part of the
+    time is actually spent in the grouped aggregation).
+    """
+
+    def setup(self, dtype, method):
+        if method in _numba_unsupported_methods:
+            raise NotImplementedError
+        super().setup(dtype, method)
+
+    def time_frame_agg(self, dtype, method):
+        self.df.groupby("key").agg(method, engine="numba")
 
 
 class GroupByCythonAggEaDtypes:
@@ -644,7 +715,7 @@ class RankWithTies:
         if dtype == "datetime64":
             data = np.array([Timestamp("2011/01/01")] * N, dtype=dtype)
         else:
-            data = np.array([1] * N, dtype=dtype)
+            data = np.ones(N, dtype=dtype)
         self.df = DataFrame({"values": data, "key": ["foo"] * N})
 
     def time_rank_ties(self, dtype, tie_method):
@@ -693,7 +764,10 @@ class String:
 
 
 class Categories:
-    def setup(self):
+    params = [True, False]
+    param_names = ["observed"]
+
+    def setup(self, observed):
         N = 10**5
         arr = np.random.random(N)
         data = {"a": Categorical(np.random.randint(10000, size=N)), "b": arr}
@@ -711,23 +785,68 @@ class Categories:
         }
         self.df_extra_cat = DataFrame(data)
 
+    def time_groupby_sort(self, observed):
+        self.df.groupby("a", observed=observed)["b"].count()
+
+    def time_groupby_nosort(self, observed):
+        self.df.groupby("a", observed=observed, sort=False)["b"].count()
+
+    def time_groupby_ordered_sort(self, observed):
+        self.df_ordered.groupby("a", observed=observed)["b"].count()
+
+    def time_groupby_ordered_nosort(self, observed):
+        self.df_ordered.groupby("a", observed=observed, sort=False)["b"].count()
+
+    def time_groupby_extra_cat_sort(self, observed):
+        self.df_extra_cat.groupby("a", observed=observed)["b"].count()
+
+    def time_groupby_extra_cat_nosort(self, observed):
+        self.df_extra_cat.groupby("a", observed=observed, sort=False)["b"].count()
+
+
+class MultipleCategories:
+    def setup(self):
+        N = 10**3
+        arr = np.random.random(N)
+        data = {
+            "a1": Categorical(np.random.randint(10000, size=N)),
+            "a2": Categorical(np.random.randint(10000, size=N)),
+            "b": arr,
+        }
+        self.df = DataFrame(data)
+        data = {
+            "a1": Categorical(np.random.randint(10000, size=N), ordered=True),
+            "a2": Categorical(np.random.randint(10000, size=N), ordered=True),
+            "b": arr,
+        }
+        self.df_ordered = DataFrame(data)
+        data = {
+            "a1": Categorical(np.random.randint(100, size=N), categories=np.arange(N)),
+            "a2": Categorical(np.random.randint(100, size=N), categories=np.arange(N)),
+            "b": arr,
+        }
+        self.df_extra_cat = DataFrame(data)
+
     def time_groupby_sort(self):
-        self.df.groupby("a")["b"].count()
+        self.df.groupby(["a1", "a2"], observed=False)["b"].count()
 
     def time_groupby_nosort(self):
-        self.df.groupby("a", sort=False)["b"].count()
+        self.df.groupby(["a1", "a2"], observed=False, sort=False)["b"].count()
 
     def time_groupby_ordered_sort(self):
-        self.df_ordered.groupby("a")["b"].count()
+        self.df_ordered.groupby(["a1", "a2"], observed=False)["b"].count()
 
     def time_groupby_ordered_nosort(self):
-        self.df_ordered.groupby("a", sort=False)["b"].count()
+        self.df_ordered.groupby(["a1", "a2"], observed=False, sort=False)["b"].count()
 
     def time_groupby_extra_cat_sort(self):
-        self.df_extra_cat.groupby("a")["b"].count()
+        self.df_extra_cat.groupby(["a1", "a2"], observed=False)["b"].count()
 
     def time_groupby_extra_cat_nosort(self):
-        self.df_extra_cat.groupby("a", sort=False)["b"].count()
+        self.df_extra_cat.groupby(["a1", "a2"], observed=False, sort=False)["b"].count()
+
+    def time_groupby_transform(self):
+        self.df_extra_cat.groupby(["a1", "a2"], observed=False)["b"].cumsum()
 
 
 class Datelike:
@@ -773,12 +892,29 @@ class SumMultiLevel:
         self.df.groupby(level=[0, 1]).sum()
 
 
+class SumTimeDelta:
+    # GH 20660
+    def setup(self):
+        N = 10**4
+        self.df = DataFrame(
+            np.random.randint(1000, 100000, (N, 100)),
+            index=np.random.randint(200, size=(N,)),
+        ).astype("timedelta64[ns]")
+        self.df_int = self.df.copy().astype("int64")
+
+    def time_groupby_sum_timedelta(self):
+        self.df.groupby(lambda x: x).sum()
+
+    def time_groupby_sum_int(self):
+        self.df_int.groupby(lambda x: x).sum()
+
+
 class Transform:
     def setup(self):
         n1 = 400
         n2 = 250
         index = MultiIndex(
-            levels=[np.arange(n1), tm.makeStringIndex(n2)],
+            levels=[np.arange(n1), Index([f"i-{i}" for i in range(n2)], dtype=object)],
             codes=[np.repeat(range(n1), n2).tolist(), list(range(n2)) * n1],
             names=["lev1", "lev2"],
         )
@@ -817,8 +953,8 @@ class Transform:
     def time_transform_lambda_max(self):
         self.df.groupby(level="lev1").transform(lambda x: max(x))
 
-    def time_transform_ufunc_max(self):
-        self.df.groupby(level="lev1").transform(np.max)
+    def time_transform_str_max(self):
+        self.df.groupby(level="lev1").transform("max")
 
     def time_transform_lambda_max_tall(self):
         self.df_tall.groupby(level=0).transform(lambda x: np.max(x, axis=0))
@@ -849,7 +985,7 @@ class TransformBools:
         self.df = DataFrame({"signal": np.random.rand(N)})
 
     def time_transform_mean(self):
-        self.df["signal"].groupby(self.g).transform(np.mean)
+        self.df["signal"].groupby(self.g).transform("mean")
 
 
 class TransformNaN:
@@ -865,7 +1001,6 @@ class TransformNaN:
 
 
 class TransformEngine:
-
     param_names = ["parallel"]
     params = [[True, False]]
 
@@ -908,7 +1043,6 @@ class TransformEngine:
 
 
 class AggEngine:
-
     param_names = ["parallel"]
     params = [[True, False]]
 

@@ -4,6 +4,7 @@ import numpy as np
 
 from pandas import (
     DataFrame,
+    Index,
     concat,
     date_range,
     json_normalize,
@@ -11,14 +12,10 @@ from pandas import (
     timedelta_range,
 )
 
-from ..pandas_vb_common import (
-    BaseIO,
-    tm,
-)
+from ..pandas_vb_common import BaseIO
 
 
 class ReadJSON(BaseIO):
-
     fname = "__test__.json"
     params = (["split", "index", "records"], ["int", "datetime"])
     param_names = ["orient", "index"]
@@ -27,7 +24,7 @@ class ReadJSON(BaseIO):
         N = 100000
         indexes = {
             "int": np.arange(N),
-            "datetime": date_range("20000101", periods=N, freq="H"),
+            "datetime": date_range("20000101", periods=N, freq="h"),
         }
         df = DataFrame(
             np.random.randn(N, 5),
@@ -41,7 +38,6 @@ class ReadJSON(BaseIO):
 
 
 class ReadJSONLines(BaseIO):
-
     fname = "__test_lines__.json"
     params = ["int", "datetime"]
     param_names = ["index"]
@@ -50,7 +46,7 @@ class ReadJSONLines(BaseIO):
         N = 100000
         indexes = {
             "int": np.arange(N),
-            "datetime": date_range("20000101", periods=N, freq="H"),
+            "datetime": date_range("20000101", periods=N, freq="h"),
         }
         df = DataFrame(
             np.random.randn(N, 5),
@@ -100,7 +96,6 @@ class NormalizeJSON(BaseIO):
 
 
 class ToJSON(BaseIO):
-
     fname = "__test__.json"
     params = [
         ["split", "columns", "index", "values", "records"],
@@ -111,13 +106,13 @@ class ToJSON(BaseIO):
     def setup(self, orient, frame):
         N = 10**5
         ncols = 5
-        index = date_range("20000101", periods=N, freq="H")
+        index = date_range("20000101", periods=N, freq="h")
         timedeltas = timedelta_range(start=1, periods=N, freq="s")
         datetimes = date_range(start=1, periods=N, freq="s")
         ints = np.random.randint(100000000, size=N)
         longints = sys.maxsize * np.random.randint(100000000, size=N)
         floats = np.random.randn(N)
-        strings = tm.makeStringIndex(N)
+        strings = Index([f"i-{i}" for i in range(N)], dtype=object)
         self.df = DataFrame(np.random.randn(N, ncols), index=np.arange(N))
         self.df_date_idx = DataFrame(np.random.randn(N, ncols), index=index)
         self.df_td_int_ts = DataFrame(
@@ -194,7 +189,7 @@ class ToJSONISO(BaseIO):
 
     def setup(self, orient):
         N = 10**5
-        index = date_range("20000101", periods=N, freq="H")
+        index = date_range("20000101", periods=N, freq="h")
         timedeltas = timedelta_range(start=1, periods=N, freq="s")
         datetimes = date_range(start=1, periods=N, freq="s")
         self.df = DataFrame(
@@ -212,19 +207,18 @@ class ToJSONISO(BaseIO):
 
 
 class ToJSONLines(BaseIO):
-
     fname = "__test__.json"
 
     def setup(self):
         N = 10**5
         ncols = 5
-        index = date_range("20000101", periods=N, freq="H")
+        index = date_range("20000101", periods=N, freq="h")
         timedeltas = timedelta_range(start=1, periods=N, freq="s")
         datetimes = date_range(start=1, periods=N, freq="s")
         ints = np.random.randint(100000000, size=N)
         longints = sys.maxsize * np.random.randint(100000000, size=N)
         floats = np.random.randn(N)
-        strings = tm.makeStringIndex(N)
+        strings = Index([f"i-{i}" for i in range(N)], dtype=object)
         self.df = DataFrame(np.random.randn(N, ncols), index=np.arange(N))
         self.df_date_idx = DataFrame(np.random.randn(N, ncols), index=index)
         self.df_td_int_ts = DataFrame(
@@ -294,7 +288,8 @@ class ToJSONLines(BaseIO):
 class ToJSONMem:
     def setup_cache(self):
         df = DataFrame([[1]])
-        frames = {"int": df, "float": df.astype(float)}
+        df2 = DataFrame(range(8), date_range("1/1/2000", periods=8, freq="min"))
+        frames = {"int": df, "float": df.astype(float), "datetime": df2}
 
         return frames
 
@@ -307,6 +302,11 @@ class ToJSONMem:
         df = frames["float"]
         for _ in range(100_000):
             df.to_json()
+
+    def peakmem_time(self, frames):
+        df = frames["datetime"]
+        for _ in range(10_000):
+            df.to_json(orient="table")
 
 
 from ..pandas_vb_common import setup  # noqa: F401 isort:skip

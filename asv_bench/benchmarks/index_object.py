@@ -12,11 +12,8 @@ from pandas import (
     date_range,
 )
 
-from .pandas_vb_common import tm
-
 
 class SetOperations:
-
     params = (
         ["monotonic", "non_monotonic"],
         ["datetime", "date_string", "int", "strings", "ea_int"],
@@ -26,12 +23,12 @@ class SetOperations:
 
     def setup(self, index_structure, dtype, method):
         N = 10**5
-        dates_left = date_range("1/1/2000", periods=N, freq="T")
+        dates_left = date_range("1/1/2000", periods=N, freq="min")
         fmt = "%Y-%m-%d %H:%M:%S"
         date_str_left = Index(dates_left.strftime(fmt))
         int_left = Index(np.arange(N))
         ea_int_left = Index(np.arange(N), dtype="Int64")
-        str_left = tm.makeStringIndex(N)
+        str_left = Index([f"i-{i}" for i in range(N)], dtype=object)
 
         data = {
             "datetime": dates_left,
@@ -125,7 +122,6 @@ class IndexEquals:
 
 class IndexAppend:
     def setup(self):
-
         N = 10_000
         self.range_idx = RangeIndex(0, 100)
         self.int_idx = self.range_idx.astype(int)
@@ -152,21 +148,23 @@ class IndexAppend:
 
 
 class Indexing:
-
     params = ["String", "Float", "Int"]
     param_names = ["dtype"]
 
     def setup(self, dtype):
         N = 10**6
-        self.idx = getattr(tm, f"make{dtype}Index")(N)
+        if dtype == "String":
+            self.idx = Index([f"i-{i}" for i in range(N)], dtype=object)
+        elif dtype == "Float":
+            self.idx = Index(np.arange(N), dtype=np.float64)
+        elif dtype == "Int":
+            self.idx = Index(np.arange(N), dtype=np.int64)
         self.array_mask = (np.arange(N) % 3) == 0
         self.series_mask = Series(self.array_mask)
         self.sorted = self.idx.sort_values()
         half = N // 2
         self.non_unique = self.idx[:half].append(self.idx[:half])
-        self.non_unique_sorted = (
-            self.sorted[:half].append(self.sorted[:half]).sort_values()
-        )
+        self.non_unique_sorted = self.sorted[:half].repeat(2)
         self.key = self.sorted[N // 4]
 
     def time_boolean_array(self, dtype):

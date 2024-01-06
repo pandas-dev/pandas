@@ -57,7 +57,6 @@ class TestTimestampComparison:
 
     @pytest.mark.parametrize("reverse", [True, False])
     def test_comparison_dt64_ndarray_tzaware(self, reverse, comparison_op):
-
         ts = Timestamp("2021-01-01 00:00:00.00000", tz="UTC")
         arr = np.array([ts.asm8, ts.asm8], dtype="M8[ns]")
 

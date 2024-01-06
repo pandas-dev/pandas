@@ -6,8 +6,8 @@ import seaborn as sns
 from pandas import DataFrame
 
 setup_common = """from pandas import DataFrame
-from numpy.random import randn
-df = DataFrame(randn(%d, 3), columns=list('abc'))
+import numpy as np
+df = DataFrame(np.random.randn(%d, 3), columns=list('abc'))
 %s"""
 
 setup_with = "s = 'a + b * (c ** 2 + b ** 2 - a) / (a * c) ** 3'"
@@ -64,7 +64,7 @@ def bench(mn=3, mx=7, num=100, engines=("python", "numexpr"), verbose=False):
     return ev, qu
 
 
-def plot_perf(df, engines, title, filename=None):
+def plot_perf(df, engines, title, filename=None) -> None:
     from matplotlib.pyplot import figure
 
     sns.set()

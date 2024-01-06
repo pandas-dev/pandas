@@ -35,12 +35,20 @@ class DropDuplicates:
     @pytest.mark.parametrize(
         "keep, expected, index",
         [
-            ("first", np.concatenate(([False] * 10, [True] * 5)), np.arange(0, 10)),
-            ("last", np.concatenate(([True] * 5, [False] * 10)), np.arange(5, 15)),
+            (
+                "first",
+                np.concatenate(([False] * 10, [True] * 5)),
+                np.arange(0, 10, dtype=np.int64),
+            ),
+            (
+                "last",
+                np.concatenate(([True] * 5, [False] * 10)),
+                np.arange(5, 15, dtype=np.int64),
+            ),
             (
                 False,
                 np.concatenate(([True] * 5, [False] * 5, [True] * 5)),
-                np.arange(5, 10),
+                np.arange(5, 10, dtype=np.int64),
             ),
         ],
     )
@@ -55,11 +63,12 @@ class DropDuplicates:
         tm.assert_index_equal(result, expected)
 
         result = Series(idx).drop_duplicates(keep=keep)
-        tm.assert_series_equal(result, Series(expected, index=index))
+        expected = Series(expected, index=index)
+        tm.assert_series_equal(result, expected)
 
 
 class TestDropDuplicatesPeriodIndex(DropDuplicates):
-    @pytest.fixture(params=["D", "3D", "H", "2H", "T", "2T", "S", "3S"])
+    @pytest.fixture(params=["D", "3D", "h", "2h", "min", "2min", "s", "3s"])
     def freq(self, request):
         return request.param
 
