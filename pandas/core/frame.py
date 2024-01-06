@@ -233,6 +233,7 @@ if TYPE_CHECKING:
         IndexLabel,
         JoinValidate,
         Level,
+        ListLike,
         MergeHow,
         MergeValidate,
         MutableMappingT,
@@ -335,9 +336,6 @@ how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
       join; preserve the order of the left keys.
     * cross: creates the cartesian product from both frames, preserves the order
       of the left keys.
-
-      .. versionadded:: 1.2.0
-
 on : label or list
     Column or index level names to join on. These must be found in both
     DataFrames. If `on` is None and not merging on indexes then this defaults
@@ -725,6 +723,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         manager = _get_option("mode.data_manager", silent=True)
 
+        is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
+        data_dtype = getattr(data, "dtype", None)
+        original_dtype = dtype
+
         # GH47215
         if isinstance(index, set):
             raise ValueError("index cannot be a set")
@@ -910,6 +912,18 @@ class DataFrame(NDFrame, OpsMixin):
         mgr = mgr_to_mgr(mgr, typ=manager)
 
         NDFrame.__init__(self, mgr)
+
+        if original_dtype is None and is_pandas_object and data_dtype == np.object_:
+            if self.dtypes.iloc[0] != data_dtype:
+                warnings.warn(
+                    "Dtype inference on a pandas object "
+                    "(Series, Index, ExtensionArray) is deprecated. The DataFrame "
+                    "constructor will keep the original dtype in the future. "
+                    "Call `infer_objects` on the result to get the old "
+                    "behavior.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
 
     # ----------------------------------------------------------------------
 
@@ -1391,9 +1405,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return Styler(self)
 
-    _shared_docs[
-        "items"
-    ] = r"""
+    _shared_docs["items"] = r"""
         Iterate over (column name, Series) pairs.
 
         Iterates over the DataFrame columns, returning a tuple with
@@ -2016,8 +2028,7 @@ class DataFrame(NDFrame, OpsMixin):
         orient: Literal[
             "dict", "list", "series", "split", "tight", "records", "index"
         ] = "dict",
-        into: type[MutableMappingT]
-        | MutableMappingT = dict,  # type: ignore[assignment]
+        into: type[MutableMappingT] | MutableMappingT = dict,  # type: ignore[assignment]
         index: bool = True,
     ) -> MutableMappingT | list[MutableMappingT]:
         """
@@ -2055,7 +2066,9 @@ class DataFrame(NDFrame, OpsMixin):
         index : bool, default True
             Whether to include the index item (and index_names item if `orient`
             is 'tight') in the returned dictionary. Can only be ``False``
-            when `orient` is 'split' or 'tight'.
+            when `orient` is 'split' or 'tight'. Note that when `orient` is
+            'records', this parameter does not take effect (index item always
+            not included).
 
             .. versionadded:: 2.0.0
 
@@ -2780,8 +2793,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         {storage_options}
 
-            .. versionadded:: 1.2.0
-
         value_labels : dict of dicts
             Dictionary containing columns as keys and dictionaries of column value
             to labels as values. Labels for a single variable must be 32,000
@@ -2994,11 +3005,6 @@ class DataFrame(NDFrame, OpsMixin):
             object implementing a binary ``write()`` function. If None, the result is
             returned as bytes. If a string or path, it will be used as Root Directory
             path when writing a partitioned dataset.
-
-            .. versionchanged:: 1.2.0
-
-            Previously this was "fname"
-
         engine : {{'auto', 'pyarrow', 'fastparquet'}}, default 'auto'
             Parquet library to use. If 'auto', then the option
             ``io.parquet.engine`` is used. The default ``io.parquet.engine``
@@ -3020,8 +3026,6 @@ class DataFrame(NDFrame, OpsMixin):
             Columns are partitioned in the order they are given.
             Must be None if path is not a string.
         {storage_options}
-
-            .. versionadded:: 1.2.0
 
         **kwargs
             Additional arguments passed to the parquet library. See
@@ -3707,7 +3711,7 @@ class DataFrame(NDFrame, OpsMixin):
         many repeated values.
 
         >>> df['object'].astype('category').memory_usage(deep=True)
-        5244
+        5136
         """
         result = self._constructor_sliced(
             [c.memory_usage(index=False, deep=deep) for col, c in self.items()],
@@ -4312,7 +4316,7 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 self._iset_not_inplace(key, value)
 
-    def _iset_not_inplace(self, key, value):
+    def _iset_not_inplace(self, key, value) -> None:
         # GH#39510 when setting with df[key] = obj with a list-like key and
         #  list-like value, we iterate over those listlikes and set columns
         #  one at a time.  This is different from dispatching to
@@ -4356,7 +4360,7 @@ class DataFrame(NDFrame, OpsMixin):
             finally:
                 self.columns = orig_columns
 
-    def _setitem_frame(self, key, value):
+    def _setitem_frame(self, key, value) -> None:
         # support boolean setting with DataFrame input, e.g.
         # df[df > df2] = 0
         if isinstance(key, np.ndarray):
@@ -5227,8 +5231,9 @@ class DataFrame(NDFrame, OpsMixin):
             # TODO: Remove kludge in sanitize_array for string mode when enforcing
             # this deprecation
             warnings.warn(
-                "Setting an Index with object dtype into a DataFrame will no longer "
-                "infer another dtype. Cast the Index explicitly before setting.",
+                "Setting an Index with object dtype into a DataFrame will stop "
+                "inferring another dtype in a future version. Cast the Index "
+                "explicitly before setting it into the DataFrame.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
@@ -5344,11 +5349,11 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def drop(
         self,
-        labels: IndexLabel = ...,
+        labels: IndexLabel | ListLike = ...,
         *,
         axis: Axis = ...,
-        index: IndexLabel = ...,
-        columns: IndexLabel = ...,
+        index: IndexLabel | ListLike = ...,
+        columns: IndexLabel | ListLike = ...,
         level: Level = ...,
         inplace: Literal[True],
         errors: IgnoreRaise = ...,
@@ -5358,11 +5363,11 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def drop(
         self,
-        labels: IndexLabel = ...,
+        labels: IndexLabel | ListLike = ...,
         *,
         axis: Axis = ...,
-        index: IndexLabel = ...,
-        columns: IndexLabel = ...,
+        index: IndexLabel | ListLike = ...,
+        columns: IndexLabel | ListLike = ...,
         level: Level = ...,
         inplace: Literal[False] = ...,
         errors: IgnoreRaise = ...,
@@ -5372,11 +5377,11 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def drop(
         self,
-        labels: IndexLabel = ...,
+        labels: IndexLabel | ListLike = ...,
         *,
         axis: Axis = ...,
-        index: IndexLabel = ...,
-        columns: IndexLabel = ...,
+        index: IndexLabel | ListLike = ...,
+        columns: IndexLabel | ListLike = ...,
         level: Level = ...,
         inplace: bool = ...,
         errors: IgnoreRaise = ...,
@@ -5385,11 +5390,11 @@ class DataFrame(NDFrame, OpsMixin):
 
     def drop(
         self,
-        labels: IndexLabel | None = None,
+        labels: IndexLabel | ListLike = None,
         *,
         axis: Axis = 0,
-        index: IndexLabel | None = None,
-        columns: IndexLabel | None = None,
+        index: IndexLabel | ListLike = None,
+        columns: IndexLabel | ListLike = None,
         level: Level | None = None,
         inplace: bool = False,
         errors: IgnoreRaise = "raise",
@@ -6907,14 +6912,7 @@ class DataFrame(NDFrame, OpsMixin):
             vals = (col.values for name, col in self.items() if name in subset)
             labels, shape = map(list, zip(*map(f, vals)))
 
-            ids = get_group_index(
-                labels,
-                # error: Argument 1 to "tuple" has incompatible type "List[_T]";
-                # expected "Iterable[int]"
-                tuple(shape),  # type: ignore[arg-type]
-                sort=False,
-                xnull=False,
-            )
+            ids = get_group_index(labels, tuple(shape), sort=False, xnull=False)
             result = self._constructor_sliced(duplicated(ids, keep), index=self.index)
         return result.__finalize__(self, method="duplicated")
 
@@ -7463,7 +7461,7 @@ class DataFrame(NDFrame, OpsMixin):
             subset = self.columns.tolist()
 
         name = "proportion" if normalize else "count"
-        counts = self.groupby(subset, dropna=dropna, observed=False).grouper.size()
+        counts = self.groupby(subset, dropna=dropna, observed=False)._grouper.size()
         counts.name = name
 
         if sort:
@@ -9138,9 +9136,7 @@ class DataFrame(NDFrame, OpsMixin):
             dropna=dropna,
         )
 
-    _shared_docs[
-        "pivot"
-    ] = """
+    _shared_docs["pivot"] = """
         Return reshaped DataFrame organized by given index / column values.
 
         Reshape data (produce a "pivot" table) based on column values. Uses
@@ -9284,9 +9280,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return pivot(self, index=index, columns=columns, values=values)
 
-    _shared_docs[
-        "pivot_table"
-    ] = """
+    _shared_docs["pivot_table"] = """
         Create a spreadsheet-style pivot table as a DataFrame.
 
         The levels in the pivot table will be stored in MultiIndex objects
@@ -10564,9 +10558,6 @@ class DataFrame(NDFrame, OpsMixin):
               of the calling's one.
             * cross: creates the cartesian product from both frames, preserves the order
               of the left keys.
-
-              .. versionadded:: 1.2.0
-
         lsuffix : str, default ''
             Suffix to use from left frame's overlapping columns.
         rsuffix : str, default ''
@@ -12533,7 +12524,7 @@ class DataFrame(NDFrame, OpsMixin):
         mgr = cast(BlockManager, mgr_to_mgr(mgr, "block"))
         return {
             k: self._constructor_from_mgr(v, axes=v.axes).__finalize__(self)
-            for k, v, in mgr.to_dict().items()
+            for k, v in mgr.to_dict().items()
         }
 
     @property

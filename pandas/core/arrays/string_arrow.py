@@ -41,6 +41,7 @@ from pandas.core.arrays.string_ import (
     BaseStringArray,
     StringDtype,
 )
+from pandas.core.ops import invalid_comparison
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 if not pa_version_under10p1:
@@ -58,6 +59,7 @@ if TYPE_CHECKING:
         AxisInt,
         Dtype,
         Scalar,
+        Self,
         npt,
     )
 
@@ -81,8 +83,6 @@ def _chk_pyarrow_available() -> None:
 class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringArray):
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
-
-    .. versionadded:: 1.2.0
 
     .. warning::
 
@@ -128,16 +128,39 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _storage = "pyarrow"
 
     def __init__(self, values) -> None:
+        _chk_pyarrow_available()
+        if isinstance(values, (pa.Array, pa.ChunkedArray)) and pa.types.is_string(
+            values.type
+        ):
+            values = pc.cast(values, pa.large_string())
+
         super().__init__(values)
         self._dtype = StringDtype(storage=self._storage)
 
-        if not pa.types.is_string(self._pa_array.type) and not (
+        if not pa.types.is_large_string(self._pa_array.type) and not (
             pa.types.is_dictionary(self._pa_array.type)
-            and pa.types.is_string(self._pa_array.type.value_type)
+            and pa.types.is_large_string(self._pa_array.type.value_type)
         ):
             raise ValueError(
-                "ArrowStringArray requires a PyArrow (chunked) array of string type"
+                "ArrowStringArray requires a PyArrow (chunked) array of "
+                "large_string type"
             )
+
+    @classmethod
+    def _box_pa_scalar(cls, value, pa_type: pa.DataType | None = None) -> pa.Scalar:
+        pa_scalar = super()._box_pa_scalar(value, pa_type)
+        if pa.types.is_string(pa_scalar.type) and pa_type is None:
+            pa_scalar = pc.cast(pa_scalar, pa.large_string())
+        return pa_scalar
+
+    @classmethod
+    def _box_pa_array(
+        cls, value, pa_type: pa.DataType | None = None, copy: bool = False
+    ) -> pa.Array | pa.ChunkedArray:
+        pa_array = super()._box_pa_array(value, pa_type)
+        if pa.types.is_string(pa_array.type) and pa_type is None:
+            pa_array = pc.cast(pa_array, pa.large_string())
+        return pa_array
 
     def __len__(self) -> int:
         """
@@ -150,7 +173,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return len(self._pa_array)
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
+    def _from_sequence(
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
+    ) -> Self:
         from pandas.core.arrays.masked import BaseMaskedArray
 
         _chk_pyarrow_available()
@@ -179,7 +204,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     @classmethod
     def _from_sequence_of_strings(
         cls, strings, dtype: Dtype | None = None, copy: bool = False
-    ):
+    ) -> Self:
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     @property
@@ -411,13 +436,13 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     def _str_fullmatch(
         self, pat, case: bool = True, flags: int = 0, na: Scalar | None = None
     ):
-        if not pat.endswith("$") or pat.endswith("//$"):
+        if not pat.endswith("$") or pat.endswith("\\$"):
             pat = f"{pat}$"
         return self._str_match(pat, case, flags, na)
 
     def _str_slice(
         self, start: int | None = None, stop: int | None = None, step: int | None = None
-    ):
+    ) -> Self:
         if stop is None:
             return super()._str_slice(start, stop, step)
         if start is None:
@@ -468,27 +493,27 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         result = pc.utf8_length(self._pa_array)
         return self._convert_int_dtype(result)
 
-    def _str_lower(self):
+    def _str_lower(self) -> Self:
         return type(self)(pc.utf8_lower(self._pa_array))
 
-    def _str_upper(self):
+    def _str_upper(self) -> Self:
         return type(self)(pc.utf8_upper(self._pa_array))
 
-    def _str_strip(self, to_strip=None):
+    def _str_strip(self, to_strip=None) -> Self:
         if to_strip is None:
             result = pc.utf8_trim_whitespace(self._pa_array)
         else:
             result = pc.utf8_trim(self._pa_array, characters=to_strip)
         return type(self)(result)
 
-    def _str_lstrip(self, to_strip=None):
+    def _str_lstrip(self, to_strip=None) -> Self:
         if to_strip is None:
             result = pc.utf8_ltrim_whitespace(self._pa_array)
         else:
             result = pc.utf8_ltrim(self._pa_array, characters=to_strip)
         return type(self)(result)
 
-    def _str_rstrip(self, to_strip=None):
+    def _str_rstrip(self, to_strip=None) -> Self:
         if to_strip is None:
             result = pc.utf8_rtrim_whitespace(self._pa_array)
         else:
@@ -576,15 +601,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
     _storage = "pyarrow_numpy"
 
-    def __init__(self, values) -> None:
-        _chk_pyarrow_available()
-
-        if isinstance(values, (pa.Array, pa.ChunkedArray)) and pa.types.is_large_string(
-            values.type
-        ):
-            values = pc.cast(values, pa.string())
-        super().__init__(values)
-
     @classmethod
     def _result_converter(cls, values, na=None):
         if not isna(na):
@@ -664,7 +680,10 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
         return result
 
     def _cmp_method(self, other, op):
-        result = super()._cmp_method(other, op)
+        try:
+            result = super()._cmp_method(other, op)
+        except pa.ArrowNotImplementedError:
+            return invalid_comparison(self, other, op)
         if op == operator.ne:
             return result.to_numpy(np.bool_, na_value=True)
         else:

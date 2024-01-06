@@ -269,7 +269,7 @@ class _HtmlFrameParser:
         # Both lxml and BeautifulSoup have the same implementation:
         return obj.get(attr)
 
-    def _href_getter(self, obj):
+    def _href_getter(self, obj) -> str | None:
         """
         Return a href if the DOM node contains a child <a> or None.
 
@@ -392,7 +392,7 @@ class _HtmlFrameParser:
         """
         raise AbstractMethodError(self)
 
-    def _equals_tag(self, obj, tag):
+    def _equals_tag(self, obj, tag) -> bool:
         """
         Return whether an individual DOM node matches a tag
 
@@ -629,7 +629,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
     def _text_getter(self, obj):
         return obj.text
 
-    def _equals_tag(self, obj, tag):
+    def _equals_tag(self, obj, tag) -> bool:
         return obj.name == tag
 
     def _parse_td(self, row):
@@ -758,7 +758,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
             raise ValueError(f"No tables found matching regex {repr(pattern)}")
         return tables
 
-    def _equals_tag(self, obj, tag):
+    def _equals_tag(self, obj, tag) -> bool:
         return obj.tag == tag
 
     def _build_doc(self):

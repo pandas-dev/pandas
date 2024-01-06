@@ -32,11 +32,6 @@ from pandas.io.stata import (
     read_stata,
 )
 
-# TODO(CoW-warn) avoid warnings in the stata reader code
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Setting a value on a view:FutureWarning"
-)
-
 
 @pytest.fixture
 def mixed_frame():
@@ -140,7 +135,6 @@ class TestStata:
 
         tm.assert_frame_equal(parsed, expected)
 
-    @pytest.mark.filterwarnings("always")
     def test_read_dta2(self, datapath):
         expected = DataFrame.from_records(
             [
@@ -183,13 +177,11 @@ class TestStata:
         path2 = datapath("io", "data", "stata", "stata2_115.dta")
         path3 = datapath("io", "data", "stata", "stata2_117.dta")
 
-        # TODO(CoW-warn) avoid warnings in the stata reader code
-        # once fixed -> remove `raise_on_extra_warnings=False` again
-        with tm.assert_produces_warning(UserWarning, raise_on_extra_warnings=False):
+        with tm.assert_produces_warning(UserWarning):
             parsed_114 = self.read_dta(path1)
-        with tm.assert_produces_warning(UserWarning, raise_on_extra_warnings=False):
+        with tm.assert_produces_warning(UserWarning):
             parsed_115 = self.read_dta(path2)
-        with tm.assert_produces_warning(UserWarning, raise_on_extra_warnings=False):
+        with tm.assert_produces_warning(UserWarning):
             parsed_117 = self.read_dta(path3)
             # FIXME: don't leave commented-out
             # 113 is buggy due to limits of date format support in Stata
@@ -965,20 +957,18 @@ class TestStata:
 
         msg = "columns contains duplicate entries"
         with pytest.raises(ValueError, match=msg):
-            columns = ["byte_", "byte_"]
             read_stata(
                 datapath("io", "data", "stata", "stata6_117.dta"),
                 convert_dates=True,
-                columns=columns,
+                columns=["byte_", "byte_"],
             )
 
         msg = "The following columns were not found in the Stata data set: not_found"
         with pytest.raises(ValueError, match=msg):
-            columns = ["byte_", "int_", "long_", "not_found"]
             read_stata(
                 datapath("io", "data", "stata", "stata6_117.dta"),
                 convert_dates=True,
-                columns=columns,
+                columns=["byte_", "int_", "long_", "not_found"],
             )
 
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
@@ -2204,16 +2194,16 @@ def test_non_categorical_value_labels():
             assert reader_value_labels == expected
 
         msg = "Can't create value labels for notY, it wasn't found in the dataset."
+        value_labels = {"notY": {7: "label1", 8: "label2"}}
         with pytest.raises(KeyError, match=msg):
-            value_labels = {"notY": {7: "label1", 8: "label2"}}
             StataWriter(path, data, value_labels=value_labels)
 
         msg = (
             "Can't create value labels for Z, value labels "
             "can only be applied to numeric columns."
         )
+        value_labels = {"Z": {1: "a", 2: "k", 3: "j", 4: "i"}}
         with pytest.raises(ValueError, match=msg):
-            value_labels = {"Z": {1: "a", 2: "k", 3: "j", 4: "i"}}
             StataWriter(path, data, value_labels=value_labels)
 
 

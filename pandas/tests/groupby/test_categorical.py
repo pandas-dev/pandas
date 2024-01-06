@@ -618,7 +618,6 @@ def test_dataframe_categorical_with_nan(observed):
 
 @pytest.mark.parametrize("ordered", [True, False])
 @pytest.mark.parametrize("observed", [True, False])
-@pytest.mark.parametrize("sort", [True, False])
 def test_dataframe_categorical_ordered_observed_sort(ordered, observed, sort):
     # GH 25871: Fix groupby sorting on ordered Categoricals
     # GH 25167: Groupby with observed=True doesn't sort
@@ -648,7 +647,7 @@ def test_dataframe_categorical_ordered_observed_sort(ordered, observed, sort):
             f"for (ordered={ordered}, observed={observed}, sort={sort})\n"
             f"Result:\n{result}"
         )
-        assert False, msg
+        pytest.fail(msg)
 
 
 def test_datetime():

@@ -121,7 +121,10 @@ class TestJoin:
         assert "key1.foo" in joined
         assert "key2.bar" in joined
 
-    def test_join_on(self, target_source):
+    @pytest.mark.parametrize(
+        "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
+    )
+    def test_join_on(self, target_source, infer_string):
         target, source = target_source
 
         merged = target.join(source, on="C")
@@ -153,8 +156,8 @@ class TestJoin:
         # overlap
         source_copy = source.copy()
         msg = (
-            "You are trying to merge on float64 and object columns for key 'A'. "
-            "If you wish to proceed you should use pd.concat"
+            "You are trying to merge on float64 and object|string columns for key "
+            "'A'. If you wish to proceed you should use pd.concat"
         )
         with pytest.raises(ValueError, match=msg):
             target.join(source_copy, on="A")
@@ -233,7 +236,8 @@ class TestJoin:
     def test_join_on_pass_vector(self, target_source):
         target, source = target_source
         expected = target.join(source, on="C")
-        del expected["C"]
+        expected = expected.rename(columns={"C": "key_0"})
+        expected = expected[["key_0", "A", "B", "D", "MergedA", "MergedD"]]
 
         join_col = target.pop("C")
         result = target.join(source, on=join_col)

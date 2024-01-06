@@ -10,7 +10,7 @@ PATH = "t.py"
 
 
 @pytest.mark.parametrize("content", [BAD_FILE_0, BAD_FILE_1])
-def test_inconsistent_usage(content, capsys):
+def test_inconsistent_usage(content, capsys) -> None:
     result_msg = (
         "t.py:2:0: Don't use pd.array in core, import array as pd_array instead\n"
     )
@@ -21,6 +21,6 @@ def test_inconsistent_usage(content, capsys):
 
 
 @pytest.mark.parametrize("content", [GOOD_FILE_0, GOOD_FILE_1])
-def test_consistent_usage(content):
+def test_consistent_usage(content) -> None:
     # should not raise
     use_pd_array(content, PATH)

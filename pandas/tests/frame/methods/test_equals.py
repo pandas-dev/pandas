@@ -14,11 +14,11 @@ class TestEquals:
         df2 = DataFrame({"a": ["s", "d"], "b": [1, 2]})
         assert df1.equals(df2) is False
 
-    def test_equals_different_blocks(self, using_array_manager, using_infer_string):
+    def test_equals_different_blocks(self, using_infer_string):
         # GH#9330
         df0 = DataFrame({"A": ["x", "y"], "B": [1, 2], "C": ["w", "z"]})
         df1 = df0.reset_index()[["A", "B", "C"]]
-        if not using_array_manager and not using_infer_string:
+        if not using_infer_string:
             # this assert verifies that the above operations have
             # induced a block rearrangement
             assert df0._mgr.blocks[0].dtype != df1._mgr.blocks[0].dtype

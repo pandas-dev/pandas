@@ -98,7 +98,6 @@ class TestMergeMulti:
     def test_left_join_multi_index(self, sort, infer_string):
         with option_context("future.infer_string", infer_string):
             icols = ["1st", "2nd", "3rd"]
-
             def bind_cols(df):
                 iord = lambda a: 0 if a != a else ord(a)
                 f = lambda ts: ts.map(iord) - ord("a")
@@ -157,7 +156,6 @@ class TestMergeMulti:
 
             run_asserts(left, right, sort)
 
-    @pytest.mark.parametrize("sort", [False, True])
     def test_merge_right_vs_left(self, left, right, sort):
         # compare left vs right merge with multikey
         on_cols = ["key1", "key2"]

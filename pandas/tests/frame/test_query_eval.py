@@ -1187,7 +1187,7 @@ class TestDataFrameQueryBacktickQuoting:
         by backticks. The last two columns cannot be escaped by backticks
         and should raise a ValueError.
         """
-        yield DataFrame(
+        return DataFrame(
             {
                 "A": [1, 2, 3],
                 "B B": [3, 2, 1],

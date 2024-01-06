@@ -22,7 +22,7 @@ dependencies:
 
   # required dependencies
   - python-dateutil=2.8.2
-  - numpy=1.22.4, <2
+  - numpy=1.22.4
   - pytz=2020.1
 
   # optional dependencies
