@@ -1,0 +1,26 @@
+#include<stdio.h>
+void postfix()
+{
+char symbol;
+precdurce token;
+int n=0;
+int top=;
+stack[0]=eos;
+for(token=get token(&symbol,&n);token!=eos;token=get token(&symbol&n))
+{
+if(token==operand)
+printf("%c",symbol);
+else if(token==rparen)
+{
+while(stack[top]!=lparon)
+printf("%c",pop());
+else
+{
+while(icp[token]<=isp[stack[top]])
+printf("%c",pop());
+}
+}
+while((tocken=pop())!=eos)
+printf("%c",token);
+}
+}
