@@ -778,7 +778,7 @@ class CategoricalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         return name
 
     def _delegate_property_get(self, name: str):
-        return getattr(self._parent, self._name(name))
+        getattr(self._parent, self._name(name))
 
     # error: Signature of "_delegate_property_set" incompatible with supertype
     # "PandasDelegate"
