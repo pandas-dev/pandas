@@ -233,6 +233,7 @@ if TYPE_CHECKING:
         IndexLabel,
         JoinValidate,
         Level,
+        ListLike,
         MergeHow,
         MergeValidate,
         MutableMappingT,
@@ -1404,9 +1405,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return Styler(self)
 
-    _shared_docs[
-        "items"
-    ] = r"""
+    _shared_docs["items"] = r"""
         Iterate over (column name, Series) pairs.
 
         Iterates over the DataFrame columns, returning a tuple with
@@ -2029,8 +2028,7 @@ class DataFrame(NDFrame, OpsMixin):
         orient: Literal[
             "dict", "list", "series", "split", "tight", "records", "index"
         ] = "dict",
-        into: type[MutableMappingT]
-        | MutableMappingT = dict,  # type: ignore[assignment]
+        into: type[MutableMappingT] | MutableMappingT = dict,  # type: ignore[assignment]
         index: bool = True,
     ) -> MutableMappingT | list[MutableMappingT]:
         """
@@ -2068,7 +2066,9 @@ class DataFrame(NDFrame, OpsMixin):
         index : bool, default True
             Whether to include the index item (and index_names item if `orient`
             is 'tight') in the returned dictionary. Can only be ``False``
-            when `orient` is 'split' or 'tight'.
+            when `orient` is 'split' or 'tight'. Note that when `orient` is
+            'records', this parameter does not take effect (index item always
+            not included).
 
             .. versionadded:: 2.0.0
 
@@ -5349,11 +5349,11 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def drop(
         self,
-        labels: IndexLabel = ...,
+        labels: IndexLabel | ListLike = ...,
         *,
         axis: Axis = ...,
-        index: IndexLabel = ...,
-        columns: IndexLabel = ...,
+        index: IndexLabel | ListLike = ...,
+        columns: IndexLabel | ListLike = ...,
         level: Level = ...,
         inplace: Literal[True],
         errors: IgnoreRaise = ...,
@@ -5363,11 +5363,11 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def drop(
         self,
-        labels: IndexLabel = ...,
+        labels: IndexLabel | ListLike = ...,
         *,
         axis: Axis = ...,
-        index: IndexLabel = ...,
-        columns: IndexLabel = ...,
+        index: IndexLabel | ListLike = ...,
+        columns: IndexLabel | ListLike = ...,
         level: Level = ...,
         inplace: Literal[False] = ...,
         errors: IgnoreRaise = ...,
@@ -5377,11 +5377,11 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def drop(
         self,
-        labels: IndexLabel = ...,
+        labels: IndexLabel | ListLike = ...,
         *,
         axis: Axis = ...,
-        index: IndexLabel = ...,
-        columns: IndexLabel = ...,
+        index: IndexLabel | ListLike = ...,
+        columns: IndexLabel | ListLike = ...,
         level: Level = ...,
         inplace: bool = ...,
         errors: IgnoreRaise = ...,
@@ -5390,11 +5390,11 @@ class DataFrame(NDFrame, OpsMixin):
 
     def drop(
         self,
-        labels: IndexLabel | None = None,
+        labels: IndexLabel | ListLike = None,
         *,
         axis: Axis = 0,
-        index: IndexLabel | None = None,
-        columns: IndexLabel | None = None,
+        index: IndexLabel | ListLike = None,
+        columns: IndexLabel | ListLike = None,
         level: Level | None = None,
         inplace: bool = False,
         errors: IgnoreRaise = "raise",
@@ -9136,9 +9136,7 @@ class DataFrame(NDFrame, OpsMixin):
             dropna=dropna,
         )
 
-    _shared_docs[
-        "pivot"
-    ] = """
+    _shared_docs["pivot"] = """
         Return reshaped DataFrame organized by given index / column values.
 
         Reshape data (produce a "pivot" table) based on column values. Uses
@@ -9282,9 +9280,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return pivot(self, index=index, columns=columns, values=values)
 
-    _shared_docs[
-        "pivot_table"
-    ] = """
+    _shared_docs["pivot_table"] = """
         Create a spreadsheet-style pivot table as a DataFrame.
 
         The levels in the pivot table will be stored in MultiIndex objects
@@ -12528,7 +12524,7 @@ class DataFrame(NDFrame, OpsMixin):
         mgr = cast(BlockManager, mgr_to_mgr(mgr, "block"))
         return {
             k: self._constructor_from_mgr(v, axes=v.axes).__finalize__(self)
-            for k, v, in mgr.to_dict().items()
+            for k, v in mgr.to_dict().items()
         }
 
     @property

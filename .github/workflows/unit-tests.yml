@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - 2.1.x
+      - 2.2.x
   pull_request:
     branches:
       - main
-      - 2.1.x
+      - 2.2.x
     paths-ignore:
       - "doc/**"
       - "web/**"
@@ -92,7 +92,7 @@ jobs:
           - name: "Numpy Dev"
             env_file: actions-311-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
-            test_args: "-W error::FutureWarning"
+            test_args: "-W error::DeprecationWarning -W error::FutureWarning"
           - name: "Pyarrow Nightly"
             env_file: actions-311-pyarrownightly.yaml
             pattern: "not slow and not network and not single_cpu"

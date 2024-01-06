@@ -466,8 +466,8 @@ def test_more_flexible_frame_multi_function(df):
 
     # this uses column selection & renaming
     msg = r"nested renamer is not supported"
+    d = {"C": "mean", "D": {"foo": "mean", "bar": "std"}}
     with pytest.raises(SpecificationError, match=msg):
-        d = {"C": "mean", "D": {"foo": "mean", "bar": "std"}}
         grouped.aggregate(d)
 
     # But without renaming, these functions are OK
@@ -1188,9 +1188,7 @@ class TestLambdaMangling:
 
         # check pd.NameAgg case
         result1 = df.groupby(by="kind").agg(
-            height_sqr_min=pd.NamedAgg(
-                column="height", aggfunc=lambda x: np.min(x**2)
-            ),
+            height_sqr_min=pd.NamedAgg(column="height", aggfunc=lambda x: np.min(x**2)),
             height_max=pd.NamedAgg(column="height", aggfunc="max"),
             weight_max=pd.NamedAgg(column="weight", aggfunc="max"),
         )
@@ -1245,9 +1243,7 @@ class TestLambdaMangling:
 
         # check pd.NamedAgg case
         result2 = df.groupby(by="kind").agg(
-            height_sqr_min=pd.NamedAgg(
-                column="height", aggfunc=lambda x: np.min(x**2)
-            ),
+            height_sqr_min=pd.NamedAgg(column="height", aggfunc=lambda x: np.min(x**2)),
             height_max=pd.NamedAgg(column="height", aggfunc="max"),
             weight_max=pd.NamedAgg(column="weight", aggfunc="max"),
             height_max_2=pd.NamedAgg(column="height", aggfunc=lambda x: np.max(x)),
