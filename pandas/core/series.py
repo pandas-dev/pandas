@@ -4804,7 +4804,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
             .. versionadded:: 2.1.0
 
-            .. versionchange:: 2.2.0
+            .. versionchanged:: 2.2.0
 
                 Specifying ``by_row="compat"`` is deprecated and will be removed in
                 a future version of pandas. To operate row-by-row, use Series.map.
