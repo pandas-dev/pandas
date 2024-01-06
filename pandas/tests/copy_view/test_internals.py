@@ -83,7 +83,6 @@ def test_switch_options():
         ([0, 1, 2], np.array([[-1, -2, -3], [-4, -5, -6], [-4, -5, -6]]).T),
         ([1, 2], np.array([[-1, -2, -3], [-4, -5, -6]]).T),
         ([1, 3], np.array([[-1, -2, -3], [-4, -5, -6]]).T),
-        ([1, 3], np.array([[-1, -2, -3], [-4, -5, -6]]).T),
     ],
 )
 def test_iset_splits_blocks_inplace(using_copy_on_write, locs, arr, dtype):
