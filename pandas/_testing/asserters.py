@@ -699,9 +699,9 @@ def assert_extension_array_equal(
     right,
     check_dtype: bool | Literal["equiv"] = True,
     index_values=None,
-    check_exact: bool = False,
-    rtol: float = 1.0e-5,
-    atol: float = 1.0e-8,
+    check_exact: bool | lib.NoDefault = lib.no_default,
+    rtol: float | lib.NoDefault = lib.no_default,
+    atol: float | lib.NoDefault = lib.no_default,
     obj: str = "ExtensionArray",
 ) -> None:
     """
@@ -745,6 +745,23 @@ def assert_extension_array_equal(
     >>> b, c = a.array, a.array
     >>> tm.assert_extension_array_equal(b, c)
     """
+    if (
+        check_exact is lib.no_default
+        and rtol is lib.no_default
+        and atol is lib.no_default
+    ):
+        check_exact = (
+            is_numeric_dtype(left.dtype)
+            and not is_float_dtype(left.dtype)
+            or is_numeric_dtype(right.dtype)
+            and not is_float_dtype(right.dtype)
+        )
+    elif check_exact is lib.no_default:
+        check_exact = False
+
+    rtol = rtol if rtol is not lib.no_default else 1.0e-5
+    atol = atol if atol is not lib.no_default else 1.0e-8
+
     assert isinstance(left, ExtensionArray), "left is not an ExtensionArray"
     assert isinstance(right, ExtensionArray), "right is not an ExtensionArray"
     if check_dtype:
@@ -790,10 +807,7 @@ def assert_extension_array_equal(
 
     left_valid = left[~left_na].to_numpy(dtype=object)
     right_valid = right[~right_na].to_numpy(dtype=object)
-    if check_exact or (
-        (is_numeric_dtype(left.dtype) and not is_float_dtype(left.dtype))
-        or (is_numeric_dtype(right.dtype) and not is_float_dtype(right.dtype))
-    ):
+    if check_exact:
         assert_numpy_array_equal(
             left_valid, right_valid, obj=obj, index_values=index_values
         )
@@ -1085,14 +1099,14 @@ def assert_frame_equal(
     check_frame_type: bool = True,
     check_names: bool = True,
     by_blocks: bool = False,
-    check_exact: bool = False,
+    check_exact: bool | lib.NoDefault = lib.no_default,
     check_datetimelike_compat: bool = False,
     check_categorical: bool = True,
     check_like: bool = False,
     check_freq: bool = True,
     check_flags: bool = True,
-    rtol: float = 1.0e-5,
-    atol: float = 1.0e-8,
+    rtol: float | lib.NoDefault = lib.no_default,
+    atol: float | lib.NoDefault = lib.no_default,
     obj: str = "DataFrame",
 ) -> None:
     """
@@ -1187,6 +1201,22 @@ def assert_frame_equal(
     >>> assert_frame_equal(df1, df2, check_dtype=False)
     """
     __tracebackhide__ = True
+    if (
+        check_exact is lib.no_default
+        and rtol is lib.no_default
+        and atol is lib.no_default
+    ):
+        check_exact = (
+            is_numeric_dtype(left.dtype)
+            and not is_float_dtype(left.dtype)
+            or is_numeric_dtype(right.dtype)
+            and not is_float_dtype(right.dtype)
+        )
+    elif check_exact is lib.no_default:
+        check_exact = False
+
+    rtol = rtol if rtol is not lib.no_default else 1.0e-5
+    atol = atol if atol is not lib.no_default else 1.0e-8
 
     # instance validation
     _check_isinstance(left, right, DataFrame)
