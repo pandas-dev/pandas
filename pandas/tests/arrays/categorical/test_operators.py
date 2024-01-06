@@ -307,29 +307,23 @@ class TestCategoricalOps:
         with pytest.raises(TypeError, match=msg):
             a < cat_rev
 
-    @pytest.mark.parametrize(
-        "ctor",
-        [
-            lambda *args, **kwargs: Categorical(*args, **kwargs),
-            lambda *args, **kwargs: Series(Categorical(*args, **kwargs)),
-        ],
-    )
-    def test_unordered_different_order_equal(self, ctor):
+    @pytest.mark.parametrize("box", [lambda x: x, Series])
+    def test_unordered_different_order_equal(self, box):
         # https://github.com/pandas-dev/pandas/issues/16014
-        c1 = ctor(["a", "b"], categories=["a", "b"], ordered=False)
-        c2 = ctor(["a", "b"], categories=["b", "a"], ordered=False)
+        c1 = box(Categorical(["a", "b"], categories=["a", "b"], ordered=False))
+        c2 = box(Categorical(["a", "b"], categories=["b", "a"], ordered=False))
         assert (c1 == c2).all()
 
-        c1 = ctor(["a", "b"], categories=["a", "b"], ordered=False)
-        c2 = ctor(["b", "a"], categories=["b", "a"], ordered=False)
+        c1 = box(Categorical(["a", "b"], categories=["a", "b"], ordered=False))
+        c2 = box(Categorical(["b", "a"], categories=["b", "a"], ordered=False))
         assert (c1 != c2).all()
 
-        c1 = ctor(["a", "a"], categories=["a", "b"], ordered=False)
-        c2 = ctor(["b", "b"], categories=["b", "a"], ordered=False)
+        c1 = box(Categorical(["a", "a"], categories=["a", "b"], ordered=False))
+        c2 = box(Categorical(["b", "b"], categories=["b", "a"], ordered=False))
         assert (c1 != c2).all()
 
-        c1 = ctor(["a", "a"], categories=["a", "b"], ordered=False)
-        c2 = ctor(["a", "b"], categories=["b", "a"], ordered=False)
+        c1 = box(Categorical(["a", "a"], categories=["a", "b"], ordered=False))
+        c2 = box(Categorical(["a", "b"], categories=["b", "a"], ordered=False))
         result = c1 == c2
         tm.assert_numpy_array_equal(np.array(result), np.array([True, False]))
 
