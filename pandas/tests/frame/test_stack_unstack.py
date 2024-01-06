@@ -1217,16 +1217,16 @@ class TestDataFrameReshape:
     )
     @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     @pytest.mark.parametrize(
-        "index, columns",
+        "index",
         [
-            ([0, 0, 1, 1], MultiIndex.from_product([[1, 2], ["a", "b"]])),
-            ([0, 0, 2, 3], MultiIndex.from_product([[1, 2], ["a", "b"]])),
-            ([0, 1, 2, 3], MultiIndex.from_product([[1, 2], ["a", "b"]])),
+            [0, 0, 1, 1],
+            [0, 0, 2, 3],
+            [0, 1, 2, 3],
         ],
     )
-    def test_stack_multi_columns_non_unique_index(self, index, columns, future_stack):
+    def test_stack_multi_columns_non_unique_index(self, index, future_stack):
         # GH-28301
-
+        columns = MultiIndex.from_product([[1, 2], ["a", "b"]])
         df = DataFrame(index=index, columns=columns).fillna(1)
         stacked = df.stack(future_stack=future_stack)
         new_index = MultiIndex.from_tuples(stacked.index.to_numpy())
@@ -1720,11 +1720,10 @@ class TestStackUnstackMultiLevel:
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "idx, columns, exp_idx",
+        "idx, exp_idx",
         [
             [
                 list("abab"),
-                ["1st", "2nd", "1st"],
                 MultiIndex(
                     levels=[["a", "b"], ["1st", "2nd"]],
                     codes=[np.tile(np.arange(2).repeat(3), 2), np.tile([0, 1, 0], 4)],
@@ -1732,7 +1731,6 @@ class TestStackUnstackMultiLevel:
             ],
             [
                 MultiIndex.from_tuples((("a", 2), ("b", 1), ("a", 1), ("b", 2))),
-                ["1st", "2nd", "1st"],
                 MultiIndex(
                     levels=[["a", "b"], [1, 2], ["1st", "2nd"]],
                     codes=[
@@ -1744,12 +1742,12 @@ class TestStackUnstackMultiLevel:
             ],
         ],
     )
-    def test_stack_duplicate_index(self, idx, columns, exp_idx, future_stack):
+    def test_stack_duplicate_index(self, idx, exp_idx, future_stack):
         # GH10417
         df = DataFrame(
             np.arange(12).reshape(4, 3),
             index=idx,
-            columns=columns,
+            columns=["1st", "2nd", "1st"],
         )
         if future_stack:
             msg = "Columns with duplicate values are not supported in stack"

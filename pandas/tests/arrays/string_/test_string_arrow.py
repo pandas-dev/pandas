@@ -220,22 +220,22 @@ def test_setitem_invalid_indexer_raises():
 
     arr = ArrowStringArray(pa.array(list("abcde")))
 
-    with pytest.raises(IndexError, match=None):
+    with tm.external_error_raised(IndexError):
         arr[5] = "foo"
 
-    with pytest.raises(IndexError, match=None):
+    with tm.external_error_raised(IndexError):
         arr[-6] = "foo"
 
-    with pytest.raises(IndexError, match=None):
+    with tm.external_error_raised(IndexError):
         arr[[0, 5]] = "foo"
 
-    with pytest.raises(IndexError, match=None):
+    with tm.external_error_raised(IndexError):
         arr[[0, -6]] = "foo"
 
-    with pytest.raises(IndexError, match=None):
+    with tm.external_error_raised(IndexError):
         arr[[True, True, False]] = "foo"
 
-    with pytest.raises(ValueError, match=None):
+    with tm.external_error_raised(ValueError):
         arr[[0, 1]] = ["foo", "bar", "baz"]
 
 

@@ -786,6 +786,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in :func:`read_csv` with ``engine="pyarrow"`` causing rounding errors for large integers (:issue:`52505`)
+- Bug in :meth:`Series.__floordiv__` and :meth:`Series.__truediv__` for :class:`ArrowDtype` with integral dtypes raising for large divisors (:issue:`56706`)
 - Bug in :meth:`Series.__floordiv__` for :class:`ArrowDtype` with integral dtypes raising for large values (:issue:`56645`)
 - Bug in :meth:`Series.pow` not filling missing values correctly (:issue:`55512`)
 
