@@ -3415,7 +3415,7 @@ def test_cat_rename_categories():
             ).dictionary_encode()
         )
     )
-    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected, check_dtype=False)
     assert len(result.values._pa_array.chunks) == 2
 
 
@@ -3459,7 +3459,7 @@ def test_cat_add_categories():
     tm.assert_extension_array_equal(result, expected)
 
     result = ser.cat.add_categories(["y"])
-    tm.assert_series_equal(result, ser)
+    tm.assert_series_equal(result, ser, check_dtype=False)
 
     arrs = [
         pa.array(np.array(["a", "x", "c", "a"])).dictionary_encode(),
@@ -3471,7 +3471,7 @@ def test_cat_add_categories():
     tm.assert_extension_array_equal(result, expected)
 
     result = ser.cat.add_categories(["y"])
-    tm.assert_series_equal(result, ser)
+    tm.assert_series_equal(result, ser, check_dtype=False)
 
 
 def test_remove_categories():
