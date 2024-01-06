@@ -716,7 +716,12 @@ def assert_extension_array_equal(
     index_values : Index | numpy.ndarray, default None
         Optional index (shared by both left and right), used in output.
     check_exact : bool, default False
-        Whether to compare number exactly. Only takes effect for float dtypes.
+        Whether to compare number exactly.
+
+        .. versionchanged:: 2.2.0
+
+            Defaults to True for integer dtypes if none of
+            ``check_exact``, ``rtol`` and ``atol`` are specified.
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
     atol : float, default 1e-8
@@ -1122,7 +1127,12 @@ def assert_frame_equal(
         Specify how to compare internal data. If False, compare by columns.
         If True, compare by blocks.
     check_exact : bool, default False
-        Whether to compare number exactly. Only takes effect for float dtypes.
+        Whether to compare number exactly.
+
+        .. versionchanged:: 2.2.0
+
+            Defaults to True for integer dtypes if none of
+            ``check_exact``, ``rtol`` and ``atol`` are specified.
     check_datetimelike_compat : bool, default False
         Compare datetime-like which is comparable ignoring dtype.
     check_categorical : bool, default True
