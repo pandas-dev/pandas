@@ -66,8 +66,8 @@ class BaseOpsUtil:
     #  case that still requires overriding _check_op or _combine, please let
     #  us know at github.com/pandas-dev/pandas/issues
     @final
-    def check_opname(self, ser: pd.Series, op_name: str, other, *args, **kwargs):
-        exc = self._get_expected_exception(op_name, ser, other, *args, **kwargs)
+    def check_opname(self, ser: pd.Series, op_name: str, other):
+        exc = self._get_expected_exception(op_name, ser, other)
         op = self.get_op_from_name(op_name)
 
         self._check_op(ser, op, other, op_name, exc)
@@ -103,16 +103,12 @@ class BaseOpsUtil:
 
     # see comment on check_opname
     @final
-    def _check_divmod_op(self, ser: pd.Series, op, other, *args, **kwargs):
+    def _check_divmod_op(self, ser: pd.Series, op, other):
         # check that divmod behavior matches behavior of floordiv+mod
         if op is divmod:
-            exc = self._get_expected_exception(
-                "__divmod__", ser, other, *args, **kwargs
-            )
+            exc = self._get_expected_exception("__divmod__", ser, other)
         else:
-            exc = self._get_expected_exception(
-                "__rdivmod__", ser, other, *args, **kwargs
-            )
+            exc = self._get_expected_exception("__rdivmod__", ser, other)
         if exc is None:
             result_div, result_mod = op(ser, other)
             if op is divmod:
@@ -144,61 +140,53 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
     series_array_exc: type[Exception] | None = TypeError
     divmod_exc: type[Exception] | None = TypeError
 
-    def test_arith_series_with_scalar(
-        self, data, all_arithmetic_operators, *args, **kwargs
-    ):
+    def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         # series & scalar
         if all_arithmetic_operators == "__rmod__" and is_string_dtype(data.dtype):
             pytest.skip("Skip testing Python string formatting")
 
         op_name = all_arithmetic_operators
         ser = pd.Series(data)
-        self.check_opname(ser, op_name, ser.iloc[0], *args, **kwargs)
+        self.check_opname(ser, op_name, ser.iloc[0])
 
-    def test_arith_frame_with_scalar(
-        self, data, all_arithmetic_operators, *args, **kwargs
-    ):
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
         # frame & scalar
         if all_arithmetic_operators == "__rmod__" and is_string_dtype(data.dtype):
             pytest.skip("Skip testing Python string formatting")
 
         op_name = all_arithmetic_operators
         df = pd.DataFrame({"A": data})
-        self.check_opname(df, op_name, data[0], *args, **kwargs)
+        self.check_opname(df, op_name, data[0])
 
-    def test_arith_series_with_array(
-        self, data, all_arithmetic_operators, *args, **kwargs
-    ):
+    def test_arith_series_with_array(self, data, all_arithmetic_operators):
         # ndarray & other series
         op_name = all_arithmetic_operators
         ser = pd.Series(data)
-        self.check_opname(
-            ser, op_name, pd.Series([ser.iloc[0]] * len(ser)), *args, **kwargs
-        )
+        self.check_opname(ser, op_name, pd.Series([ser.iloc[0]] * len(ser)))
 
-    def test_divmod(self, data, *args, **kwargs):
+    def test_divmod(self, data):
         ser = pd.Series(data)
-        self._check_divmod_op(ser, divmod, 1, *args, **kwargs)
-        self._check_divmod_op(1, ops.rdivmod, ser, *args, **kwargs)
+        self._check_divmod_op(ser, divmod, 1)
+        self._check_divmod_op(1, ops.rdivmod, ser)
 
-    def test_divmod_series_array(self, data, data_for_twos, *args, **kwargs):
+    def test_divmod_series_array(self, data, data_for_twos):
         ser = pd.Series(data)
-        self._check_divmod_op(ser, divmod, data, *args, **kwargs)
+        self._check_divmod_op(ser, divmod, data)
 
         other = data_for_twos
-        self._check_divmod_op(other, ops.rdivmod, ser, *args, **kwargs)
+        self._check_divmod_op(other, ops.rdivmod, ser)
 
         other = pd.Series(other)
-        self._check_divmod_op(other, ops.rdivmod, ser, *args, **kwargs)
+        self._check_divmod_op(other, ops.rdivmod, ser)
 
-    def test_add_series_with_extension_array(self, data, *args, **kwargs):
+    def test_add_series_with_extension_array(self, data):
         # Check adding an ExtensionArray to a Series of the same dtype matches
         # the behavior of adding the arrays directly and then wrapping in a
         # Series.
 
         ser = pd.Series(data)
 
-        exc = self._get_expected_exception("__add__", ser, data, *args, **kwargs)
+        exc = self._get_expected_exception("__add__", ser, data)
         if exc is not None:
             with pytest.raises(exc):
                 ser + data
