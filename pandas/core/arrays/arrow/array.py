@@ -2118,7 +2118,7 @@ class ArrowExtensionArray(
         cls,
         values: pa.Array | pa.ChunkedArray,
         mask: npt.NDArray[np.bool_] | bool,
-        replacements: ArrayLike | Scalar,
+        replacements: ArrayLike | Scalar | None,
     ) -> pa.Array | pa.ChunkedArray:
         """
         Replace items selected with a mask.
@@ -2984,7 +2984,7 @@ class ArrowExtensionArray(
     def _cat_remove_unused_categories(self):
         arr = self._pa_array.combine_chunks()
 
-        idx, inv = np.unique(arr.indices.to_numpy(), return_inverse=True)
+        idx, inv = np.unique(arr.indices.to_numpy(dtype=np.intp), return_inverse=True)
 
         if idx.size != 0 and idx[0] == -1:  # na sentinel
             idx, inv = idx[1:], inv - 1
