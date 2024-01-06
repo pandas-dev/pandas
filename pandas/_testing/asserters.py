@@ -1201,22 +1201,9 @@ def assert_frame_equal(
     >>> assert_frame_equal(df1, df2, check_dtype=False)
     """
     __tracebackhide__ = True
-    if (
-        check_exact is lib.no_default
-        and rtol is lib.no_default
-        and atol is lib.no_default
-    ):
-        check_exact = (
-            is_numeric_dtype(left.dtype)
-            and not is_float_dtype(left.dtype)
-            or is_numeric_dtype(right.dtype)
-            and not is_float_dtype(right.dtype)
-        )
-    elif check_exact is lib.no_default:
-        check_exact = False
-
-    rtol = rtol if rtol is not lib.no_default else 1.0e-5
-    atol = atol if atol is not lib.no_default else 1.0e-8
+    _rtol = rtol if rtol is not lib.no_default else 1.0e-5
+    _atol = atol if atol is not lib.no_default else 1.0e-8
+    _check_exact = check_exact if check_exact is not lib.no_default else False
 
     # instance validation
     _check_isinstance(left, right, DataFrame)
@@ -1240,11 +1227,11 @@ def assert_frame_equal(
         right.index,
         exact=check_index_type,
         check_names=check_names,
-        check_exact=check_exact,
+        check_exact=_check_exact,
         check_categorical=check_categorical,
         check_order=not check_like,
-        rtol=rtol,
-        atol=atol,
+        rtol=_rtol,
+        atol=_atol,
         obj=f"{obj}.index",
     )
 
@@ -1254,11 +1241,11 @@ def assert_frame_equal(
         right.columns,
         exact=check_column_type,
         check_names=check_names,
-        check_exact=check_exact,
+        check_exact=_check_exact,
         check_categorical=check_categorical,
         check_order=not check_like,
-        rtol=rtol,
-        atol=atol,
+        rtol=_rtol,
+        atol=_atol,
         obj=f"{obj}.columns",
     )
 
