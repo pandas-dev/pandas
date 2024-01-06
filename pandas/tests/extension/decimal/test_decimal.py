@@ -351,53 +351,6 @@ def test_astype_dispatches(frame_or_series):
     assert result.dtype.context.prec == ctx.prec
 
 
-class TestArithmeticOps(base.BaseArithmeticOpsTests):
-    series_scalar_exc = None
-    frame_scalar_exc = None
-    series_array_exc = None
-
-    def _get_expected_exception(
-        self, op_name: str, obj, other
-    ) -> type[Exception] | None:
-        return None
-
-    def test_arith_series_with_array(self, data, all_arithmetic_operators):
-        op_name = all_arithmetic_operators
-        s = pd.Series(data)
-
-        context = decimal.getcontext()
-        divbyzerotrap = context.traps[decimal.DivisionByZero]
-        invalidoptrap = context.traps[decimal.InvalidOperation]
-        context.traps[decimal.DivisionByZero] = 0
-        context.traps[decimal.InvalidOperation] = 0
-
-        # Decimal supports ops with int, but not float
-        other = pd.Series([int(d * 100) for d in data])
-        self.check_opname(s, op_name, other)
-
-        if "mod" not in op_name:
-            self.check_opname(s, op_name, s * 2)
-
-        self.check_opname(s, op_name, 0)
-        self.check_opname(s, op_name, 5)
-        context.traps[decimal.DivisionByZero] = divbyzerotrap
-        context.traps[decimal.InvalidOperation] = invalidoptrap
-
-
-class TestComparisonOps(base.BaseComparisonOpsTests):
-    def test_compare_scalar(self, data, comparison_op):
-        s = pd.Series(data)
-        self._compare_other(s, data, comparison_op, 0.5)
-
-    def test_compare_array(self, data, comparison_op):
-        s = pd.Series(data)
-
-        alter = np.random.default_rng(2).choice([-1, 0, 1], len(data))
-        # Randomly double, halve or keep same value
-        other = pd.Series(data) * [decimal.Decimal(pow(2.0, i)) for i in alter]
-        self._compare_other(s, data, comparison_op, other)
-
-
 class DecimalArrayWithoutFromSequence(DecimalArray):
     """Helper class for testing error handling in _from_sequence."""
 
