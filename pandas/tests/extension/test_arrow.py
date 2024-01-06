@@ -691,28 +691,6 @@ class TestArrowArray(base.ExtensionTests):
     def test_view(self, data):
         super().test_view(data)
 
-    def test_fillna_no_op_returns_copy(self, data, request):
-        if data.dtype.kind == "c":
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=(
-                        "no cython implementation of "
-                        f"backfill(ndarray[{data.dtype.name}_t],"
-                        f"ndarray[{data.dtype.name}_t], int64_t) in libs/algos.pxd"
-                    )
-                )
-            )
-        data = data[~data.isna()]
-
-        valid = data[0]
-        result = data.fillna(valid)
-        assert result is not data
-        tm.assert_extension_array_equal(result, data)
-
-        result = data.fillna(method="backfill")
-        assert result is not data
-        tm.assert_extension_array_equal(result, data)
-
     @pytest.mark.xfail(
         reason="GH 45419: pyarrow.ChunkedArray does not support views", run=False
     )
