@@ -691,7 +691,7 @@ class TestArrowArray(base.ExtensionTests):
     def test_view(self, data):
         super().test_view(data)
 
-    def test_fillna_no_op_returns_copy(self, data, request):
+    def test_fillna_no_op_returns_copy(self, data):
         data = data[~data.isna()]
 
         valid = data[0]
