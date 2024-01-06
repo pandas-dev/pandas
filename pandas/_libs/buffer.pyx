@@ -6,8 +6,6 @@ from libc.stdint cimport uint8_t
 
 
 cdef class CBuffer:
-    cdef object _x_handle
-
     def __getbuffer__(self, Py_buffer *buffer, int flags):
         cdef Py_ssize_t itemsize = sizeof(uint8_t)
         cdef Py_ssize_t[1] shape = tuple((self.bufsize // itemsize,))
@@ -24,7 +22,6 @@ cdef class CBuffer:
         buffer.shape = shape
         buffer.strides = strides
         buffer.suboffsets = NULL
-        self._x_handle = self._x
 
     def __releasebuffer__(self, Py_buffer *buffer):
         pass
