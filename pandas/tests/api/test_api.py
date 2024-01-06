@@ -336,6 +336,7 @@ class TestApi(Base):
         "take",
         "ExtensionArray",
         "ExtensionScalarOpsMixin",
+        "NDArrayBackedExtensionArray",
     ]
 
     def test_api(self):
@@ -355,34 +356,6 @@ class TestApi(Base):
 
     def test_api_extensions(self):
         self.check(api_extensions, self.allowed_api_extensions)
-
-
-class TestExtensions(Base):
-    # top-level classes
-    classes = [
-        "ExtensionDtype",
-        "ExtensionArray",
-        "ExtensionScalarOpsMixin",
-        "NDArrayBackedExtensionArray",
-    ]
-
-    # top-level functions
-    funcs = [
-        "register_extension_dtype",
-        "register_dataframe_accessor",
-        "register_index_accessor",
-        "register_series_accessor",
-        "take",
-    ]
-
-    # misc
-    misc = ["no_default"]
-
-    def test_api(self):
-        checkthese = self.classes + self.funcs + self.misc
-
-        self.check(namespace=extensions, expected=checkthese)
-
 
 class TestTesting(Base):
     funcs = [
