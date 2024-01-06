@@ -159,11 +159,6 @@ Implement the following:
   Convert a value or values for use in setting a value or values in the backing
   NumPy array.
 
-``_validate_searchsorted_value``
-  Convert a value for use in searching for a value in the backing NumPy array.
-  Note: in most cases, the implementation can be identical to that of
-  ``_validate_setitem_value``.
-
 .. code-block:: python
 
     class DateArray(NDArrayBackedExtensionArray):
