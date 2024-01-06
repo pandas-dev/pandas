@@ -15,8 +15,6 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 Note: we do not bother with base.BaseIndexTests because NumpyExtensionArray
 will never be held in an Index.
 """
-from __future__ import annotations
-
 import numpy as np
 import pytest
 

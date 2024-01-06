@@ -240,16 +240,7 @@ class TestSparseArray(base.ExtensionTests):
             super().test_fillna_limit_backfill(data_missing)
 
     def test_fillna_no_op_returns_copy(self, data, request):
-        if data.dtype.kind == "c":
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=(
-                        "no cython implementation of "
-                        f"backfill(ndarray[{data.dtype.name}_t],"
-                        f"ndarray[{data.dtype.name}_t], int64_t) in libs/algos.pxd"
-                    )
-                )
-            )
+        # `data` never contains complex numbers in these tests
         if np.isnan(data.fill_value):
             request.applymarker(
                 pytest.mark.xfail(reason="returns array with different fill value")
