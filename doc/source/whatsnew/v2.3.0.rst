@@ -108,7 +108,7 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
-- Fixed bug in :meth:`Series.diff` and :meth:`algorithms.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
+- Fixed bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
 
 
 Categorical
