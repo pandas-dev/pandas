@@ -3402,6 +3402,22 @@ def test_cat_rename_categories():
     result = ser.cat.rename_categories(lambda x: "b" if x == "a" else x)
     tm.assert_series_equal(result, expected)
 
+    arrs = [
+        pa.array(np.array(["a", "x", "c", "a"])).dictionary_encode(),
+        pa.array(np.array(["a", "x", "c", "a"])).dictionary_encode(),
+    ]
+    ser = pd.Series(ArrowExtensionArray(pa.chunked_array(arrs)))
+    result = ser.cat.rename_categories(["a", "b", "c", "d"])
+    expected = pd.Series(
+        ArrowExtensionArray(
+            pa.array(
+                np.array(["a", "b", "c", "a", "a", "b", "c", "a"])
+            ).dictionary_encode()
+        )
+    )
+    tm.assert_series_equal(result, expected)
+    assert len(result.values._pa_array.chunks) == 2
+
 
 def test_cat_reorder_categories():
     arrs = [
@@ -3416,3 +3432,17 @@ def test_cat_reorder_categories():
         ArrowExtensionArray(pa.DictionaryArray.from_arrays(indices, dictionary))
     )
     tm.assert_series_equal(result, expected)
+
+    arrs = [
+        pa.array(np.array(["a", "x", "c", "a"])).dictionary_encode(),
+        pa.array(np.array(["a", "x", "c"])).dictionary_encode(),
+    ]
+    ser = pd.Series(ArrowExtensionArray(pa.chunked_array(arrs)))
+    result = ser.cat.reorder_categories(["x", "c", "a"])
+    indices = pa.array([2, 0, 1, 2, 2, 0, 1], type=pa.int8())
+    dictionary = pa.array(["x", "c", "a"])
+    expected = pd.Series(
+        ArrowExtensionArray(pa.DictionaryArray.from_arrays(indices, dictionary))
+    )
+    tm.assert_series_equal(result, expected)
+    assert len(result.values._pa_array.chunks) == 2

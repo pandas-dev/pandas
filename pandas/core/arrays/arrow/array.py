@@ -2898,6 +2898,14 @@ class ArrowExtensionArray(
         result = self._pa_array.cast(pa.timestamp(current_unit, tz))
         return type(self)(result)
 
+    @functools.cached_property
+    def _cat_identical_categories(self) -> bool:
+        base_cats = self._pa_array.chunks[0].dictionary
+        return all(
+            pc.all(pc.equal(arr.dictionary, base_cats)).as_py()
+            for arr in self._pa_array.chunks[1:]
+        )
+
     @property
     def _cat_categories(self):
         return type(self)(
@@ -2905,6 +2913,12 @@ class ArrowExtensionArray(
                 pa.concat_arrays([arr.dictionary for arr in self._pa_array.chunks])
             )
         )
+
+    def _cat_cats_with_identity_check(self):
+        if self._cat_identical_categories:
+            return type(self)(self._pa_array.chunks[0].dictionary)
+        else:
+            return self._cat_categories
 
     @property
     def _cat_ordered(self):
@@ -2916,32 +2930,46 @@ class ArrowExtensionArray(
             def mapper(item):
                 return new_categories.get(item, item)
 
-            new_categories = self._cat_categories.map(mapper)
+            new_categories = self._cat_cats_with_identity_check().map(mapper)
         elif callable(new_categories):
             mapper = new_categories
-            new_categories = self._cat_categories.map(mapper)
+            new_categories = self._cat_cats_with_identity_check().map(mapper)
 
-        # TODO: Find a way to work around combine_chunks
-        arr = self._pa_array.combine_chunks()
-        arr = pa.DictionaryArray.from_arrays(arr.indices, new_categories)
-        return type(self)(pa.chunked_array([arr]))
+        if not self._cat_identical_categories:
+            pa_array = pa.chunked_array([self._pa_array.combine_chunks()])
+        else:
+            pa_array = self._pa_array
+        arrs = [
+            pa.DictionaryArray.from_arrays(arr.indices, new_categories)
+            for arr in pa_array.chunks
+        ]
+        return type(self)(pa.chunked_array(arrs))
 
     def _cat_reorder_categories(self, new_categories, ordered=None) -> Self:
         from pandas.core.arrays.categorical import recode_for_categories
         from pandas.core.indexes.base import Index
 
-        arr = self._pa_array.combine_chunks()
-        if len(arr.dictionary) != len(new_categories) or not pc.all(
-            pc.is_in(arr.dictionary, pa.array(new_categories))
+        if not self._cat_identical_categories:
+            pa_array = pa.chunked_array([self._pa_array.combine_chunks()])
+        else:
+            pa_array = self._pa_array
+
+        if len(pa_array.chunks[0].dictionary) != len(new_categories) or not pc.all(
+            pc.is_in(pa_array.chunks[0].dictionary, pa.array(new_categories))
         ):
             raise ValueError(
                 "items in new_categories are not the same as in old categories"
             )
-        codes = recode_for_categories(
-            arr.indices, arr.dictionary, Index(new_categories)
-        )
-        arr = pa.DictionaryArray.from_arrays(codes, new_categories, ordered=ordered)
-        return type(self)(pa.chunked_array([arr]))
+
+        arrs = []
+        for chunk in pa_array.chunks:
+            codes = recode_for_categories(
+                chunk.indices, chunk.dictionary, Index(new_categories)
+            )
+            arrs.append(
+                pa.DictionaryArray.from_arrays(codes, new_categories, ordered=ordered)
+            )
+        return type(self)(pa.chunked_array(arrs))
 
 
 def transpose_homogeneous_pyarrow(

@@ -778,12 +778,12 @@ class CategoricalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         return name
 
     def _delegate_property_get(self, name: str):
-        getattr(self._parent, self._name(name))
+        return getattr(self._parent, self._name(name))
 
     # error: Signature of "_delegate_property_set" incompatible with supertype
     # "PandasDelegate"
     def _delegate_property_set(self, name: str, new_values):  # type: ignore[override]
-        return setattr(self._parent, self._name(name), new_values)
+        setattr(self._parent, self._name(name), new_values)
 
     @property
     def codes(self) -> Series:
