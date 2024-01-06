@@ -466,8 +466,8 @@ def test_more_flexible_frame_multi_function(df):
 
     # this uses column selection & renaming
     msg = r"nested renamer is not supported"
+    d = {"C": "mean", "D": {"foo": "mean", "bar": "std"}}
     with pytest.raises(SpecificationError, match=msg):
-        d = {"C": "mean", "D": {"foo": "mean", "bar": "std"}}
         grouped.aggregate(d)
 
     # But without renaming, these functions are OK

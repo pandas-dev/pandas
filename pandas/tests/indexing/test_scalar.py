@@ -53,8 +53,8 @@ class TestScalar:
     def test_iat_set_other(self, index, frame_or_series):
         f = frame_or_series(range(len(index)), index=index)
         msg = "iAt based indexing can only have integer indexers"
+        idx = next(generate_indices(f, False))
         with pytest.raises(ValueError, match=msg):
-            idx = next(generate_indices(f, False))
             f.iat[idx] = 1
 
     @pytest.mark.parametrize(
