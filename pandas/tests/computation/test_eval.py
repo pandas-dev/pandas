@@ -522,14 +522,15 @@ class TestEval:
         "lhs",
         [
             # Float
-            DataFrame(np.random.default_rng(2).standard_normal((5, 2))),
+            np.random.default_rng(2).standard_normal((5, 2)),
             # Int
-            DataFrame(np.random.default_rng(2).integers(5, size=(5, 2))),
+            np.random.default_rng(2).integers(5, size=(5, 2)),
             # bool doesn't work with numexpr but works elsewhere
-            DataFrame(np.random.default_rng(2).standard_normal((5, 2)) > 0.5),
+            np.array([True, False, True, False, True], dtype=np.bool_),
         ],
     )
     def test_frame_pos(self, lhs, engine, parser):
+        lhs = DataFrame(lhs)
         expr = "+lhs"
         expect = lhs
 
@@ -540,14 +541,15 @@ class TestEval:
         "lhs",
         [
             # Float
-            Series(np.random.default_rng(2).standard_normal(5)),
+            np.random.default_rng(2).standard_normal(5),
             # Int
-            Series(np.random.default_rng(2).integers(5, size=5)),
+            np.random.default_rng(2).integers(5, size=5),
             # bool doesn't work with numexpr but works elsewhere
-            Series(np.random.default_rng(2).standard_normal(5) > 0.5),
+            np.array([True, False, True, False, True], dtype=np.bool_),
         ],
     )
     def test_series_pos(self, lhs, engine, parser):
+        lhs = Series(lhs)
         expr = "+lhs"
         expect = lhs
 

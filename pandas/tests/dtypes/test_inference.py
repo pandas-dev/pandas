@@ -1078,15 +1078,15 @@ class TestTypeInference:
     @pytest.mark.parametrize(
         "arr, skipna",
         [
-            (np.array([1, 2, np.nan, np.nan, 3], dtype="O"), False),
-            (np.array([1, 2, np.nan, np.nan, 3], dtype="O"), True),
-            (np.array([1, 2, 3, np.int64(4), np.int32(5), np.nan], dtype="O"), False),
-            (np.array([1, 2, 3, np.int64(4), np.int32(5), np.nan], dtype="O"), True),
+            ([1, 2, np.nan, np.nan, 3], False),
+            ([1, 2, np.nan, np.nan, 3], True),
+            ([1, 2, 3, np.int64(4), np.int32(5), np.nan], False),
+            ([1, 2, 3, np.int64(4), np.int32(5), np.nan], True),
         ],
     )
     def test_integer_na(self, arr, skipna):
         # GH 27392
-        result = lib.infer_dtype(arr, skipna=skipna)
+        result = lib.infer_dtype(np.array(arr, dtype="O"), skipna=skipna)
         expected = "integer" if skipna else "integer-na"
         assert result == expected
 
@@ -1287,13 +1287,13 @@ class TestTypeInference:
     @pytest.mark.parametrize(
         "arr",
         [
-            np.array([Timestamp("2011-01-01"), Timestamp("2011-01-02")]),
-            np.array([datetime(2011, 1, 1), datetime(2012, 2, 1)]),
-            np.array([datetime(2011, 1, 1), Timestamp("2011-01-02")]),
+            [Timestamp("2011-01-01"), Timestamp("2011-01-02")],
+            [datetime(2011, 1, 1), datetime(2012, 2, 1)],
+            [datetime(2011, 1, 1), Timestamp("2011-01-02")],
         ],
     )
     def test_infer_dtype_datetime(self, arr):
-        assert lib.infer_dtype(arr, skipna=True) == "datetime"
+        assert lib.infer_dtype(np.array(arr), skipna=True) == "datetime"
 
     @pytest.mark.parametrize("na_value", [pd.NaT, np.nan])
     @pytest.mark.parametrize(
@@ -1902,14 +1902,15 @@ class TestIsScalar:
     @pytest.mark.parametrize(
         "zerodim",
         [
-            np.array(1),
-            np.array("foobar"),
-            np.array(np.datetime64("2014-01-01")),
-            np.array(np.timedelta64(1, "h")),
-            np.array(np.datetime64("NaT")),
+            1,
+            "foobar",
+            np.datetime64("2014-01-01"),
+            np.timedelta64(1, "h"),
+            np.datetime64("NaT"),
         ],
     )
     def test_is_scalar_numpy_zerodim_arrays(self, zerodim):
+        zerodim = np.array(zerodim)
         assert not is_scalar(zerodim)
         assert is_scalar(lib.item_from_zerodim(zerodim))
 

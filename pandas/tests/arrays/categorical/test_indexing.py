@@ -51,12 +51,10 @@ class TestCategoricalIndexingWithFactor:
 
         tm.assert_categorical_equal(c, expected)
 
-    @pytest.mark.parametrize(
-        "other",
-        [Categorical(["b", "a"]), Categorical(["b", "a"], categories=["b", "a"])],
-    )
-    def test_setitem_same_but_unordered(self, other):
+    @pytest.mark.parametrize("categories", [None, ["b", "a"]])
+    def test_setitem_same_but_unordered(self, categories):
         # GH-24142
+        other = Categorical(["b", "a"], categories=categories)
         target = Categorical(["a", "b"], categories=["a", "b"])
         mask = np.array([True, False])
         target[mask] = other[mask]
