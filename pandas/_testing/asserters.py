@@ -25,6 +25,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
+    CategoricalDtypeType,
     DatetimeTZDtype,
     ExtensionDtype,
     NumpyEADtype,
@@ -931,6 +932,15 @@ def assert_series_equal(
             pass
         else:
             assert_attr_equal("dtype", left, right, obj=f"Attributes of {obj}")
+        if (
+            isinstance(left.dtype, pd.ArrowDtype)
+            and issubclass(left.dtype.type, CategoricalDtypeType)
+            and isinstance(right.dtype, pd.ArrowDtype)
+            and issubclass(right.dtype.type, CategoricalDtypeType)
+        ):
+            assert_extension_array_equal(
+                left.cat.categories, right.cat.categories, obj="Categories"
+            )
     if check_exact or (
         (is_numeric_dtype(left.dtype) and not is_float_dtype(left.dtype))
         or (is_numeric_dtype(right.dtype) and not is_float_dtype(right.dtype))

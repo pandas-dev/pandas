@@ -1,7 +1,10 @@
+import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import Categorical
 import pandas._testing as tm
+from pandas.core.arrays import ArrowExtensionArray
 
 
 @pytest.mark.parametrize(
@@ -88,3 +91,23 @@ Attribute "ordered" are different
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_categorical_equal(c1, c2, obj=obj)
+
+
+def test_arrow_dictionary_dtype():
+    pa = pytest.importorskip("pyarrow")
+
+    pa_arr = pa.array(np.array(["a", "x", "c", "a"])).dictionary_encode()
+    arr = pd.Series(ArrowExtensionArray(pa.chunked_array([pa_arr])))
+    exp = pd.Series(
+        ArrowExtensionArray(
+            pa.chunked_array(
+                [
+                    pa.DictionaryArray.from_arrays(
+                        pa_arr.indices, pa.array(np.array(["a", "x", "c", "y"]))
+                    )
+                ]
+            )
+        )
+    )
+    with pytest.raises(AssertionError, match="Categories NA mask are different"):
+        tm.assert_series_equal(arr, exp)
