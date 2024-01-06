@@ -450,8 +450,8 @@ class TestSlicing:
         with pytest.raises(ValueError, match="Both dates must"):
             df[start : end[:-4] + "1:00"]
 
+        df = df.tz_localize(None)
         with pytest.raises(ValueError, match="The index must be timezone"):
-            df = df.tz_localize(None)
             df[start:end]
 
     def test_slice_reduce_to_series(self):

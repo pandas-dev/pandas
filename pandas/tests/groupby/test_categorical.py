@@ -647,7 +647,7 @@ def test_dataframe_categorical_ordered_observed_sort(ordered, observed, sort):
             f"for (ordered={ordered}, observed={observed}, sort={sort})\n"
             f"Result:\n{result}"
         )
-        assert False, msg
+        pytest.fail(msg)
 
 
 def test_datetime():

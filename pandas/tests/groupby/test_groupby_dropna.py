@@ -410,7 +410,6 @@ def test_groupby_drop_nan_with_multi_index():
         "UInt64",
         "Int64",
         "Float32",
-        "Int64",
         "Float64",
         "category",
         "string",
