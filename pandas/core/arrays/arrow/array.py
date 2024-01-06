@@ -2971,6 +2971,20 @@ class ArrowExtensionArray(
             )
         return type(self)(pa.chunked_array(arrs))
 
+    def _cat_add_categories(self, new_categories):
+        chunks = self._pa_array.chunks
+        new_cats = pa.array(
+            self._box_pa_array(new_categories), type=chunks[0].dictionary.type
+        )
+        cats = pa.chunked_array([chunks[-1].dictionary, new_cats]).combine_chunks()
+        if not self._cat_identical_categories:
+            chunks[-1] = pa.DictionaryArray.from_arrays(chunks[-1].indices, cats)
+        else:
+            chunks = [
+                pa.DictionaryArray.from_arrays(chunk.indices, cats) for chunk in chunks
+            ]
+        return type(self)(pa.chunked_array(chunks))
+
 
 def transpose_homogeneous_pyarrow(
     arrays: Sequence[ArrowExtensionArray],

@@ -3446,3 +3446,29 @@ def test_cat_reorder_categories():
     )
     tm.assert_series_equal(result, expected)
     assert len(result.values._pa_array.chunks) == 2
+
+
+def test_cat_add_categories():
+    arrs = [
+        pa.array(np.array(["a", "x", "c", "a"])).dictionary_encode(),
+        pa.array(np.array(["a", "d", "c"])).dictionary_encode(),
+    ]
+    ser = pd.Series(ArrowExtensionArray(pa.chunked_array(arrs)))
+    result = ser.cat.add_categories(["y"]).cat.categories
+    expected = ArrowExtensionArray(pa.array(["a", "x", "c", "d", "y"]))
+    tm.assert_extension_array_equal(result, expected)
+
+    result = ser.cat.add_categories(["y"])
+    tm.assert_series_equal(result, ser)
+
+    arrs = [
+        pa.array(np.array(["a", "x", "c", "a"])).dictionary_encode(),
+        pa.array(np.array(["a", "x", "c"])).dictionary_encode(),
+    ]
+    ser = pd.Series(ArrowExtensionArray(pa.chunked_array(arrs)))
+    result = ser.cat.add_categories(["y"]).cat.categories
+    expected = ArrowExtensionArray(pa.array(["a", "x", "c", "y"]))
+    tm.assert_extension_array_equal(result, expected)
+
+    result = ser.cat.add_categories(["y"])
+    tm.assert_series_equal(result, ser)
