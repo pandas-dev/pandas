@@ -497,10 +497,9 @@ def test_wrong_file_path(parser):
     )
     filename = os.path.join("data", "html", "books.xml")
 
-    with pytest.raises(
-        FutureWarning,
-        match=msg,
-    ):
+    with tm.assert_produces_warning(
+            FutureWarning,
+            match=msg):
         read_xml(filename, parser=parser)
 
 
