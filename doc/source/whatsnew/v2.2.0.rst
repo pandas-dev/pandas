@@ -313,6 +313,7 @@ Other enhancements
 
 - :meth:`~DataFrame.to_sql` with method parameter set to ``multi`` works with Oracle on the backend
 - :attr:`Series.attrs` / :attr:`DataFrame.attrs` now uses a deepcopy for propagating ``attrs`` (:issue:`54134`).
+- :class:`NDArrayBackedExtensionArray` now exposed in the public API (:issue:`45544`)
 - :func:`get_dummies` now returning  extension dtypes ``boolean`` or ``bool[pyarrow]`` that are compatible with the input dtype (:issue:`56273`)
 - :func:`read_csv` now supports ``on_bad_lines`` parameter with ``engine="pyarrow"`` (:issue:`54480`)
 - :func:`read_sas` returns ``datetime64`` dtypes with resolutions better matching those stored natively in SAS, and avoids returning object-dtype in cases that cannot be stored with ``datetime64[ns]`` dtype (:issue:`56127`)
@@ -329,7 +330,6 @@ Other enhancements
 - Improved error message that appears in :meth:`DatetimeIndex.to_period` with frequencies which are not supported as period frequencies, such as ``"BMS"`` (:issue:`56243`)
 - Improved error message when constructing :class:`Period` with invalid offsets such as ``"QS"`` (:issue:`55785`)
 - The dtypes ``string[pyarrow]`` and ``string[pyarrow_numpy]`` now both utilize the ``large_string`` type from PyArrow to avoid overflow for long columns (:issue:`56259`)
-- :class:`NDArrayBackedExtensionArray` now exposed in the public API (:issue:`45544`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_220.notable_bug_fixes:
