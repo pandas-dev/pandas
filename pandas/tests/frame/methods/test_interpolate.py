@@ -498,8 +498,45 @@ class TestDataFrameInterpolate:
         assert result is None
         tm.assert_frame_equal(df, expected)
 
-    def test_interpolate_ea_raise(self):
+    @pytest.mark.parametrize(
+        "dtype",
+        ["Int64", "UInt64", "Int32", "Int16", "Int8", "UInt32", "UInt16", "UInt8"],
+    )
+    def test_interpolate_ea(self, dtype):
         # GH#55347
-        df = DataFrame({"a": [1, None, 2]}, dtype="Int64")
-        with pytest.raises(NotImplementedError, match="does not implement"):
-            df.interpolate()
+        df = DataFrame({"a": [1, None, None, None, 3]}, dtype=dtype)
+        orig = df.copy()
+        result = df.interpolate(limit=2)
+        expected = DataFrame({"a": [1, 1.5, 2.0, None, 3]}, dtype="Float64")
+        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(df, orig)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "Float64",
+            "Float32",
+            pytest.param("float32[pyarrow]", marks=td.skip_if_no("pyarrow")),
+            pytest.param("float64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    def test_interpolate_ea_float(self, dtype):
+        # GH#55347
+        df = DataFrame({"a": [1, None, None, None, 3]}, dtype=dtype)
+        orig = df.copy()
+        result = df.interpolate(limit=2)
+        expected = DataFrame({"a": [1, 1.5, 2.0, None, 3]}, dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(df, orig)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        ["int64", "uint64", "int32", "int16", "int8", "uint32", "uint16", "uint8"],
+    )
+    def test_interpolate_arrow(self, dtype):
+        # GH#55347
+        pytest.importorskip("pyarrow")
+        df = DataFrame({"a": [1, None, None, None, 3]}, dtype=dtype + "[pyarrow]")
+        result = df.interpolate(limit=2)
+        expected = DataFrame({"a": [1, 1.5, 2.0, None, 3]}, dtype="float64[pyarrow]")
+        tm.assert_frame_equal(result, expected)
