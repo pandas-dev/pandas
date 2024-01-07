@@ -1565,9 +1565,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             **kwargs,
         )
         if not copy:
-            return self
+            return self  # type: ignore[return-value]
         if self.dtype.kind == "f":
-            return type(self)._simple_new(data, mask)
+            return type(self)._simple_new(data, mask)  # type: ignore[return-value]
         else:
             from pandas.core.arrays import FloatingArray
 
