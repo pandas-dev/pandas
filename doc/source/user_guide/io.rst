@@ -3017,11 +3017,10 @@ Biomedical and Life Science Jorurnals:
 
 .. code-block:: python
 
-   df = pd.read_xml(
+   pd.read_xml(
        "s3://pmc-oa-opendata/oa_comm/xml/all/PMC1236943.xml",
        xpath=".//journal-meta",
    )
-   df
 
 With `lxml`_ as default ``parser``, you access the full-featured XML library
 that extends Python's ElementTree API. One powerful tool is ability to query
