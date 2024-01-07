@@ -8,6 +8,7 @@ from pandas._libs.tslibs.offsets import MonthEnd
 from pandas import (
     DataFrame,
     DatetimeIndex,
+    PeriodIndex,
     Series,
     date_range,
     period_range,
@@ -257,3 +258,12 @@ class TestAsFreq:
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):
             result = df.asfreq(freq=freq_depr)
         tm.assert_frame_equal(result, expected)
+
+    def test_asfreq_unsupported_freq(self):
+        index = PeriodIndex(["2020-01-01", "2021-01-01"], freq="M")
+        df = DataFrame({"a": Series([0, 1], index=index)})
+
+        try:
+            df.asfreq(freq="2MS")
+        except TypeError as err:
+            assert '"2MS" is not supported as a period frequency' == str(err)
