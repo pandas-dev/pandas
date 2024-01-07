@@ -357,6 +357,7 @@ class TestApi(Base):
     def test_api_extensions(self):
         self.check(api_extensions, self.allowed_api_extensions)
 
+
 class TestTesting(Base):
     funcs = [
         "assert_frame_equal",

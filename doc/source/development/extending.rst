@@ -185,11 +185,8 @@ Implement the following:
 
         def _validate_setitem_value(self, value):
             if pandas.api.types.is_list_like(value):
-                return [self._validate_scalar(v) for v in value]
+                return np.array([self._validate_scalar(v) for v in value], dtype = self.dtype)
             return self._validate_scalar(value)
-
-        def _validate_searchsorted_value(self, value):
-            return self._validate_setitem_value(value)
 
 
 To support 2D arrays, use the ``_from_backing_data`` helper function when a

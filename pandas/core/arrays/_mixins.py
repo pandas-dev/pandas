@@ -92,6 +92,12 @@ def ravel_compat(meth: F) -> F:
 class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     """
     ExtensionArray that is backed by a single NumPy ndarray.
+
+    Examples
+    --------
+    Please see the following:
+
+    https://pandas.pydata.org/docs/development/extending.html#NDArrayBackedExtensionArray
     """
 
     _ndarray: np.ndarray
@@ -442,21 +448,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     # ------------------------------------------------------------------------
     # Index compat methods
 
+    @doc(ExtensionArray.insert)
     def insert(self, loc: int, item) -> Self:
-        """
-        Make new ExtensionArray inserting new item at location.
-
-        Follows Python list.append semantics for negative values.
-
-        Parameters
-        ----------
-        loc : int
-        item : object
-
-        Returns
-        -------
-        type(self)
-        """
         loc = validate_insert_loc(loc, len(self))
 
         code = self._validate_scalar(item)
@@ -475,19 +468,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     #  These are not part of the EA API, but we implement them because
     #  pandas assumes they're there.
 
+    @doc(ExtensionArray.value_counts)
     def value_counts(self, dropna: bool = True) -> Series:
-        """
-        Return a Series containing counts of unique values.
-
-        Parameters
-        ----------
-        dropna : bool, default True
-            Don't include counts of NA values.
-
-        Returns
-        -------
-        Series
-        """
         if self.ndim != 1:
             raise NotImplementedError
 
