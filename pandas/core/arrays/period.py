@@ -732,7 +732,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         PeriodIndex(['2010-01', '2011-01', '2012-01', '2013-01', '2014-01',
         '2015-01'], dtype='period[M]')
         """
-        freq_str = freq if isinstance(freq, str) else ""
+        freq_str = freq if isinstance(freq, str) else freq.freqstr
 
         how = libperiod.validate_end_alias(how)
         if isinstance(freq, BaseOffset):
