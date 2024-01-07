@@ -263,7 +263,7 @@ class TestAsFreq:
         index = PeriodIndex(["2020-01-01", "2021-01-01"], freq="M")
         df = DataFrame({"a": Series([0, 1], index=index)})
 
-        try:
+        with pytest.raises(
+            TypeError, match='"2MS" is not supported as a period frequency'
+        ):
             df.asfreq(freq="2MS")
-        except TypeError as err:
-            assert '"2MS" is not supported as a period frequency' == str(err)
