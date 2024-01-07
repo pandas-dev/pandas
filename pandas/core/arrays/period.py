@@ -732,10 +732,15 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         PeriodIndex(['2010-01', '2011-01', '2012-01', '2013-01', '2014-01',
         '2015-01'], dtype='period[M]')
         """
+        freq_str = freq if isinstance(freq, str) else ""
+
         how = libperiod.validate_end_alias(how)
         if isinstance(freq, BaseOffset):
             freq = freq_to_period_freqstr(freq.n, freq.name)
         freq = Period._maybe_convert_freq(freq)
+
+        if not hasattr(freq, "_period_dtype_code"):
+            raise TypeError(f'"{freq_str}" is not supported as a period frequency')
 
         base1 = self._dtype._dtype_code
         base2 = freq._period_dtype_code
