@@ -3015,8 +3015,7 @@ Read in the content of the "books.xml" as instance of ``StringIO`` or
 Even read XML from AWS S3 buckets such as NIH NCBI PMC Article Datasets providing
 Biomedical and Life Science Jorurnals:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: python
 
    df = pd.read_xml(
        "s3://pmc-oa-opendata/oa_comm/xml/all/PMC1236943.xml",
