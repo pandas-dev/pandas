@@ -508,3 +508,13 @@ def test_dtype_closed_mismatch():
 
     with pytest.raises(ValueError, match=msg):
         IntervalArray([], dtype=dtype, closed="neither")
+
+
+def test_masked_dtype():
+    # GH#56765
+    bins = [(0.0, 0.4), (0.4, 0.6)]
+    interval_dtype = IntervalDtype(subtype="Float64", closed="left")
+    result = IntervalIndex.from_tuples(bins, closed="left", dtype=interval_dtype)
+    assert result.dtype == interval_dtype
+    expected = IntervalIndex.from_tuples(bins, closed="left").astype(interval_dtype)
+    tm.assert_index_equal(result, expected)
