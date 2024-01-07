@@ -873,6 +873,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.asfreq` and :meth:`Series.asfreq` with a :class:`DatetimeIndex` with non-nanosecond resolution incorrectly converting to nanosecond resolution (:issue:`55958`)
 - Bug in :meth:`DataFrame.ewm` when passed ``times`` with non-nanosecond ``datetime64`` or :class:`DatetimeTZDtype` dtype (:issue:`56262`)
 - Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` where grouping by a combination of ``Decimal`` and NA values would fail when ``sort=True`` (:issue:`54847`)
+- Bug in :meth:`DataFrame.groupby` for DataFrame subclasses when selecting a subset of columns to apply the function to (:issue:`56761`)
 - Bug in :meth:`DataFrame.resample` not respecting ``closed`` and ``label`` arguments for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55282`)
 - Bug in :meth:`DataFrame.resample` when resampling on a :class:`ArrowDtype` of ``pyarrow.timestamp`` or ``pyarrow.duration`` type (:issue:`55989`)
 - Bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55281`)
