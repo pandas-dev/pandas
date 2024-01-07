@@ -47,9 +47,9 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     ensure_object,
-    is_extension_array_dtype,
     is_numeric_dtype,
     is_string_dtype,
 )
@@ -592,7 +592,8 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
     for col in data:
         # Cast from unsupported types to supported types
         is_nullable_int = (
-            is_extension_array_dtype(data[col].dtype) and data[col].dtype.kind in "iub"
+            isinstance(data[col].dtype, ExtensionDtype)
+            and data[col].dtype.kind in "iub"
         )
         # We need to find orig_missing before altering data below
         orig_missing = data[col].isna()
@@ -600,7 +601,7 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
             fv = 0 if data[col].dtype.kind in "iu" else False
             # Replace with NumPy-compatible column
             data[col] = data[col].fillna(fv).astype(data[col].dtype.numpy_dtype)
-        elif is_extension_array_dtype(data[col].dtype):
+        elif isinstance(data[col].dtype, ExtensionDtype):
             if getattr(data[col].dtype, "numpy_dtype", None) is not None:
                 data[col] = data[col].astype(data[col].dtype.numpy_dtype)
             elif is_string_dtype(data[col].dtype):
