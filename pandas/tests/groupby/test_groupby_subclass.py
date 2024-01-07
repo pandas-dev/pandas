@@ -83,6 +83,7 @@ def test_groupby_preserves_metadata():
     result = custom_df.groupby("c").apply(func, include_groups=False)
     tm.assert_series_equal(result, expected)
 
+    # https://github.com/pandas-dev/pandas/pull/56761
     result = custom_df.groupby("c")[["a", "b"]].apply(func)
     tm.assert_series_equal(result, expected)
 
