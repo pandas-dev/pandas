@@ -100,6 +100,7 @@ if TYPE_CHECKING:
         NumpyValueArrayLike,
     )
     from pandas._libs.missing import NAType
+    from pandas.core.arrays import FloatingArray
 
 from pandas.compat.numpy import function as nv
 
@@ -1531,7 +1532,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         limit_area,
         copy: bool,
         **kwargs,
-    ) -> Self:
+    ) -> FloatingArray:
         """
         See NDFrame.interpolate.__doc__.
         """
