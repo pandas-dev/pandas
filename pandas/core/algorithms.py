@@ -47,6 +47,7 @@ from pandas.core.dtypes.common import (
     is_complex_dtype,
     is_dict_like,
     is_extension_array_dtype,
+    is_float,
     is_float_dtype,
     is_integer,
     is_integer_dtype,
@@ -1361,7 +1362,12 @@ def diff(arr, n: int, axis: AxisInt = 0):
     shifted
     """
 
-    n = int(n)
+    # added a check on the integer value of period
+    # see https://github.com/pandas-dev/pandas/issues/56607
+    if not lib.is_integer(n):
+        if not (is_float(n) and n.is_integer()):
+            raise ValueError("periods must be an integer")
+        n = int(n)
     na = np.nan
     dtype = arr.dtype
 
