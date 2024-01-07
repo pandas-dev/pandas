@@ -3,6 +3,8 @@ from functools import partial
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
 from pandas.core.dtypes.dtypes import IntervalDtype
 
@@ -510,10 +512,14 @@ def test_dtype_closed_mismatch():
         IntervalArray([], dtype=dtype, closed="neither")
 
 
-def test_masked_dtype():
+@pytest.mark.parametrize(
+    "dtype",
+    ["Float64", pytest.param("float64[pyarrow]", marks=td.skip_if_no("pyarrow"))],
+)
+def test_ea_dtype(dtype):
     # GH#56765
     bins = [(0.0, 0.4), (0.4, 0.6)]
-    interval_dtype = IntervalDtype(subtype="Float64", closed="left")
+    interval_dtype = IntervalDtype(subtype=dtype, closed="left")
     result = IntervalIndex.from_tuples(bins, closed="left", dtype=interval_dtype)
     assert result.dtype == interval_dtype
     expected = IntervalIndex.from_tuples(bins, closed="left").astype(interval_dtype)
