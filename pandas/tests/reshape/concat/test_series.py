@@ -30,11 +30,11 @@ class TestSeriesConcat:
 
         result = concat(pieces, keys=[0, 1, 2])
         expected = ts.copy()
-
-        ts.index = DatetimeIndex(np.array(ts.index.values, dtype="M8[ns]"))
-
         exp_codes = [np.repeat([0, 1, 2], [len(x) for x in pieces]), np.arange(len(ts))]
-        exp_index = MultiIndex(levels=[[0, 1, 2], ts.index], codes=exp_codes)
+        exp_index = MultiIndex(
+            levels=[[0, 1, 2], DatetimeIndex(ts.index.to_numpy(dtype="M8[ns]"))],
+            codes=exp_codes,
+        )
         expected.index = exp_index
         tm.assert_series_equal(result, expected)
 

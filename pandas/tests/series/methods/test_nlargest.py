@@ -177,7 +177,7 @@ class TestSeriesNLargestNSmallest:
             arr = np.random.default_rng(2).standard_normal(10)
         arr = arr.astype(dtype.lower(), copy=False)
 
-        ser = Series(arr.copy(), dtype=dtype)
+        ser = Series(arr, dtype=dtype, copy=True)
         ser[1] = pd.NA
         result = ser.nlargest(5)
 

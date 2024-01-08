@@ -396,11 +396,11 @@ class TestSeriesLogicalOps:
         # vs empty
         empty = Series([], dtype=object)
 
-        result = a & empty.copy()
+        result = a & empty
         expected = Series([False, False, False], list("abc"))
         tm.assert_series_equal(result, expected)
 
-        result = a | empty.copy()
+        result = a | empty
         expected = Series([True, True, False], list("abc"))
         tm.assert_series_equal(result, expected)
 

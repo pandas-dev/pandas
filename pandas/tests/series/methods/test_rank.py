@@ -106,7 +106,7 @@ class TestSeriesRank:
         tm.assert_series_equal(iranks, exp)
 
         iseries = Series(np.repeat(np.nan, 100))
-        exp = iseries.copy()
+        exp = iseries
         iranks = iseries.rank(pct=True)
         tm.assert_series_equal(iranks, exp)
 

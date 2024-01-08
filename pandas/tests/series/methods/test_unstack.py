@@ -148,7 +148,7 @@ def test_unstack_multi_index_categorical_values():
     dti = ser.index.levels[0]
     c = pd.Categorical(["foo"] * len(dti))
     expected = DataFrame(
-        {"A": c.copy(), "B": c.copy(), "C": c.copy(), "D": c.copy()},
+        {"A": c, "B": c, "C": c, "D": c},
         columns=Index(list("ABCD"), name="minor"),
         index=dti.rename("major"),
     )

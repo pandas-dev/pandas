@@ -126,9 +126,7 @@ class TestMergeMulti:
             "2nd",
             np.random.default_rng(2).integers(0, 10, len(left)).astype("float"),
         )
-
-        i = np.random.default_rng(2).permutation(len(left))
-        right = left.iloc[i].copy()
+        right = left.sample(frac=1, random_state=np.random.default_rng(2))
 
         left["4th"] = bind_cols(left)
         right["5th"] = -bind_cols(right)
