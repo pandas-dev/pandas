@@ -927,7 +927,6 @@ class TestDataFrameSortIndexKey:
         result = df.sort_index(level=[0, 1], na_position="last")
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_index_multiindex_sort_remaining(self, ascending):
         # GH #24247
         df = DataFrame(
@@ -993,4 +992,12 @@ def test_sort_index_with_sliced_multiindex():
             names=["group", "str"],
         ),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_axis_columns_ignore_index():
+    # GH 56478
+    df = DataFrame([[1, 2]], columns=["d", "c"])
+    result = df.sort_index(axis="columns", ignore_index=True)
+    expected = DataFrame([[2, 1]])
     tm.assert_frame_equal(result, expected)

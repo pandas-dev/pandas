@@ -179,7 +179,6 @@ class TestTableSchemaType:
             pd.Categorical([1]),
             pd.Series(pd.Categorical([1])),
             pd.CategoricalIndex([1]),
-            pd.Categorical([1]),
         ],
     )
     def test_as_json_table_type_categorical_data(self, cat_data):
@@ -801,7 +800,7 @@ class TestTableOrientReader:
                 "A": [1, 2, 3, 4],
                 "B": ["a", "b", "c", "c"],
                 "C": pd.date_range("2016-01-01", freq="d", periods=4),
-                # 'D': pd.timedelta_range('1H', periods=4, freq='T'),
+                # 'D': pd.timedelta_range('1h', periods=4, freq='min'),
                 "E": pd.Series(pd.Categorical(["a", "b", "c", "c"])),
                 "F": pd.Series(pd.Categorical(["a", "b", "c", "c"], ordered=True)),
                 "G": [1.1, 2.2, 3.3, 4.4],

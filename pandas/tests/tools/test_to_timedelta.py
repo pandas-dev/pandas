@@ -32,12 +32,10 @@ class TestTimedeltas:
         with pytest.raises(TypeError, match=msg):
             ser.to_frame().apply(to_timedelta)
 
-    @pytest.mark.parametrize("readonly", [True, False])
-    def test_to_timedelta_readonly(self, readonly):
+    def test_to_timedelta_readonly(self, writable):
         # GH#34857
         arr = np.array([], dtype=object)
-        if readonly:
-            arr.setflags(write=False)
+        arr.setflags(write=writable)
         result = to_timedelta(arr)
         expected = to_timedelta([])
         tm.assert_index_equal(result, expected)
@@ -98,7 +96,7 @@ class TestTimedeltas:
             TimedeltaIndex(arr)
 
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
-            TimedeltaArray._from_sequence(arr)
+            TimedeltaArray._from_sequence(arr, dtype="m8[s]")
 
     @pytest.mark.parametrize(
         "arg", [np.arange(10).reshape(2, 5), pd.DataFrame(np.arange(10).reshape(2, 5))]

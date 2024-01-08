@@ -70,6 +70,7 @@ from pandas.core.algorithms import (
     unique,
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
+from pandas.core.missing import _fill_limit_area_1d
 from pandas.core.sorting import (
     nargminmax,
     nargsort,
@@ -81,6 +82,7 @@ if TYPE_CHECKING:
         Sequence,
     )
 
+    from pandas._libs.missing import NAType
     from pandas._typing import (
         ArrayLike,
         AstypeArg,
@@ -266,7 +268,9 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
+    def _from_sequence(
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
+    ) -> Self:
         """
         Construct a new ExtensionArray from a sequence of scalars.
 
@@ -329,7 +333,7 @@ class ExtensionArray:
     @classmethod
     def _from_sequence_of_strings(
         cls, strings, *, dtype: Dtype | None = None, copy: bool = False
-    ):
+    ) -> Self:
         """
         Construct a new ExtensionArray from a sequence of strings.
 
@@ -954,7 +958,12 @@ class ExtensionArray:
         )
 
     def _pad_or_backfill(
-        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
     ) -> Self:
         """
         Pad or backfill values, used by Series/DataFrame ffill and bfill.
@@ -1012,6 +1021,12 @@ class ExtensionArray:
                 DeprecationWarning,
                 stacklevel=find_stack_level(),
             )
+            if limit_area is not None:
+                raise NotImplementedError(
+                    f"{type(self).__name__} does not implement limit_area "
+                    "(added in pandas 2.2). 3rd-party ExtnsionArray authors "
+                    "need to add this argument to _pad_or_backfill."
+                )
             return self.fillna(method=method, limit=limit)
 
         mask = self.isna()
@@ -1021,6 +1036,8 @@ class ExtensionArray:
             meth = missing.clean_fill_method(method)
 
             npmask = np.asarray(mask)
+            if limit_area is not None and not npmask.all():
+                _fill_limit_area_1d(npmask, limit_area)
             if meth == "pad":
                 indexer = libalgos.get_fill_indexer(npmask, limit=limit)
                 return self.take(indexer, allow_fill=True)
@@ -1104,7 +1121,9 @@ class ExtensionArray:
         # error: Argument 2 to "check_value_size" has incompatible type
         # "ExtensionArray"; expected "ndarray"
         value = missing.check_value_size(
-            value, mask, len(self)  # type: ignore[arg-type]
+            value,
+            mask,  # type: ignore[arg-type]
+            len(self),
         )
 
         if mask.any():
@@ -1355,7 +1374,7 @@ class ExtensionArray:
             equal_na = self.isna() & other.isna()  # type: ignore[operator]
             return bool((equal_values | equal_na).all())
 
-    def isin(self, values) -> npt.NDArray[np.bool_]:
+    def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         """
         Pointwise comparison for set containment in the given values.
 
@@ -1363,7 +1382,7 @@ class ExtensionArray:
 
         Parameters
         ----------
-        values : Sequence
+        values : np.ndarray or ExtensionArray
 
         Returns
         -------
@@ -1473,9 +1492,7 @@ class ExtensionArray:
         uniques_ea = self._from_factorized(uniques, self)
         return codes, uniques_ea
 
-    _extension_array_shared_docs[
-        "repeat"
-    ] = """
+    _extension_array_shared_docs["repeat"] = """
         Repeat elements of a %(klass)s.
 
         Returns a new %(klass)s where each element of the current %(klass)s
@@ -1994,7 +2011,7 @@ class ExtensionArray:
         ...                                      hash_key="1000000000000000",
         ...                                      categorize=False
         ...                                      )
-        array([11381023671546835630,  4641644667904626417], dtype=uint64)
+        array([ 6238072747940578789, 15839785061582574730], dtype=uint64)
         """
         from pandas.core.util.hashing import hash_array
 
@@ -2385,10 +2402,26 @@ class ExtensionArray:
 
 
 class ExtensionArraySupportsAnyAll(ExtensionArray):
-    def any(self, *, skipna: bool = True) -> bool:
+    @overload
+    def any(self, *, skipna: Literal[True] = ...) -> bool:
+        ...
+
+    @overload
+    def any(self, *, skipna: bool) -> bool | NAType:
+        ...
+
+    def any(self, *, skipna: bool = True) -> bool | NAType:
         raise AbstractMethodError(self)
 
-    def all(self, *, skipna: bool = True) -> bool:
+    @overload
+    def all(self, *, skipna: Literal[True] = ...) -> bool:
+        ...
+
+    @overload
+    def all(self, *, skipna: bool) -> bool | NAType:
+        ...
+
+    def all(self, *, skipna: bool = True) -> bool | NAType:
         raise AbstractMethodError(self)
 
 

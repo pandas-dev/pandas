@@ -89,7 +89,10 @@ class SharedTests:
     def arr1d(self):
         """Fixture returning DatetimeArray with daily frequency."""
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
-        arr = self.array_cls(data, freq="D")
+        if self.array_cls is PeriodArray:
+            arr = self.array_cls(data, freq="D")
+        else:
+            arr = self.index_cls(data, freq="D")._data
         return arr
 
     def test_compare_len1_raises(self, arr1d):
@@ -161,7 +164,7 @@ class SharedTests:
         if self.array_cls is PeriodArray:
             arr = PeriodArray(data, dtype="period[D]")
         else:
-            arr = self.array_cls(data)
+            arr = self.index_cls(data)._data
         idx = self.index_cls._simple_new(arr)
 
         takers = [1, 4, 94]
@@ -183,9 +186,7 @@ class SharedTests:
             arr1d.take([0, 1], allow_fill=True, fill_value=fill_value)
 
     def test_take_fill(self, arr1d):
-        np.arange(10, dtype="i8") * 24 * 3600 * 10**9
-
-        arr = arr1d  # self.array_cls(data, freq="D")
+        arr = arr1d
 
         result = arr.take([-1, 1], allow_fill=True, fill_value=None)
         assert result[0] is NaT
@@ -213,7 +214,7 @@ class SharedTests:
         arr = arr1d
         idx = self.index_cls(arr)
         idx = idx.insert(0, NaT)
-        arr = self.array_cls(idx)
+        arr = arr1d
 
         result = arr._concat_same_type([arr[:-1], arr[1:], arr])
         arr2 = arr.astype(object)
@@ -253,7 +254,7 @@ class SharedTests:
         if self.array_cls is PeriodArray:
             arr = self.array_cls(data, dtype="period[D]")
         else:
-            arr = self.array_cls(data)
+            arr = self.array_cls._from_sequence(data)
         arr[4] = NaT
 
         fill_value = arr[3] if method == "pad" else arr[5]
@@ -269,7 +270,7 @@ class SharedTests:
         if self.array_cls is PeriodArray:
             arr = self.array_cls(data, dtype="period[D]")
         else:
-            arr = self.array_cls(data)
+            arr = self.array_cls._from_sequence(data)
 
         # scalar
         result = arr.searchsorted(arr[1])
@@ -341,7 +342,7 @@ class SharedTests:
         if self.array_cls is PeriodArray:
             arr = self.array_cls(i8vals, dtype="period[ns]")
         else:
-            arr = self.array_cls(i8vals, freq="ns")
+            arr = self.index_cls(i8vals, freq="ns")._data
         arr[0]  # should not raise OutOfBoundsDatetime
 
         index = pd.Index(arr)
@@ -352,13 +353,15 @@ class SharedTests:
 
     def test_getitem_2d(self, arr1d):
         # 2d slicing on a 1D array
-        expected = type(arr1d)(arr1d._ndarray[:, np.newaxis], dtype=arr1d.dtype)
+        expected = type(arr1d)._simple_new(
+            arr1d._ndarray[:, np.newaxis], dtype=arr1d.dtype
+        )
         result = arr1d[:, np.newaxis]
         tm.assert_equal(result, expected)
 
         # Lookup on a 2D array
         arr2d = expected
-        expected = type(arr2d)(arr2d._ndarray[:3, 0], dtype=arr2d.dtype)
+        expected = type(arr2d)._simple_new(arr2d._ndarray[:3, 0], dtype=arr2d.dtype)
         result = arr2d[:3, 0]
         tm.assert_equal(result, expected)
 
@@ -411,7 +414,7 @@ class SharedTests:
         if self.array_cls is PeriodArray:
             arr = self.array_cls(data, dtype="period[D]")
         else:
-            arr = self.array_cls(data, freq="D")
+            arr = self.index_cls(data, freq="D")._data
 
         arr[0] = arr[1]
         expected = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
@@ -526,7 +529,7 @@ class SharedTests:
         if self.array_cls is PeriodArray:
             arr = self.array_cls(data, dtype="period[D]")
         else:
-            arr = self.array_cls(data, freq="D")
+            arr = self.index_cls(data, freq="D")._data
 
         expected = arr + pd.Timedelta(days=1)
         arr += pd.Timedelta(days=1)
@@ -591,10 +594,13 @@ class SharedTests:
 
     def test_from_integer_array(self):
         arr = np.array([1, 2, 3], dtype=np.int64)
-        expected = self.array_cls(arr, dtype=self.example_dtype)
-
         data = pd.array(arr, dtype="Int64")
-        result = self.array_cls(data, dtype=self.example_dtype)
+        if self.array_cls is PeriodArray:
+            expected = self.array_cls(arr, dtype=self.example_dtype)
+            result = self.array_cls(data, dtype=self.example_dtype)
+        else:
+            expected = self.array_cls._from_sequence(arr, dtype=self.example_dtype)
+            result = self.array_cls._from_sequence(data, dtype=self.example_dtype)
 
         tm.assert_extension_array_equal(result, expected)
 
@@ -631,7 +637,7 @@ class TestDatetimeArray(SharedTests):
         tm.assert_datetime_array_equal(result, expected)
 
     def test_array_interface(self, datetime_index):
-        arr = DatetimeArray(datetime_index)
+        arr = datetime_index._data
 
         # default asarray gives the same underlying data (for tz naive)
         result = np.asarray(arr)
@@ -725,10 +731,10 @@ class TestDatetimeArray(SharedTests):
     def test_from_array_keeps_base(self):
         # Ensure that DatetimeArray._ndarray.base isn't lost.
         arr = np.array(["2000-01-01", "2000-01-02"], dtype="M8[ns]")
-        dta = DatetimeArray(arr)
+        dta = DatetimeArray._from_sequence(arr)
 
         assert dta._ndarray is arr
-        dta = DatetimeArray(arr[:0])
+        dta = DatetimeArray._from_sequence(arr[:0])
         assert dta._ndarray.base is arr
 
     def test_from_dti(self, arr1d):
@@ -753,7 +759,7 @@ class TestDatetimeArray(SharedTests):
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_to_period(self, datetime_index, freqstr):
         dti = datetime_index
-        arr = DatetimeArray(dti)
+        arr = dti._data
 
         freqstr = freq_to_period_freqstr(1, freqstr)
         expected = dti.to_period(freq=freqstr)
@@ -855,14 +861,10 @@ class TestDatetimeArray(SharedTests):
 
     def test_concat_same_type_different_freq(self, unit):
         # we *can* concatenate DTI with different freqs.
-        a = DatetimeArray(
-            pd.date_range("2000", periods=2, freq="D", tz="US/Central", unit=unit)
-        )
-        b = DatetimeArray(
-            pd.date_range("2000", periods=2, freq="h", tz="US/Central", unit=unit)
-        )
+        a = pd.date_range("2000", periods=2, freq="D", tz="US/Central", unit=unit)._data
+        b = pd.date_range("2000", periods=2, freq="h", tz="US/Central", unit=unit)._data
         result = DatetimeArray._concat_same_type([a, b])
-        expected = DatetimeArray(
+        expected = (
             pd.to_datetime(
                 [
                     "2000-01-01 00:00:00",
@@ -873,6 +875,7 @@ class TestDatetimeArray(SharedTests):
             )
             .tz_localize("US/Central")
             .as_unit(unit)
+            ._data
         )
 
         tm.assert_datetime_array_equal(result, expected)
@@ -886,7 +889,7 @@ class TestDatetimeArray(SharedTests):
 
     def test_strftime_nat(self):
         # GH 29578
-        arr = DatetimeArray(DatetimeIndex(["2019-01-01", NaT]))
+        arr = DatetimeIndex(["2019-01-01", NaT])._data
 
         result = arr.strftime("%Y-%m-%d")
         expected = np.array(["2019-01-01", np.nan], dtype=object)
@@ -901,7 +904,7 @@ class TestTimedeltaArray(SharedTests):
 
     def test_from_tdi(self):
         tdi = TimedeltaIndex(["1 Day", "3 Hours"])
-        arr = TimedeltaArray(tdi)
+        arr = tdi._data
         assert list(arr) == list(tdi)
 
         # Check that Index.__new__ knows what to do with TimedeltaArray
@@ -911,7 +914,7 @@ class TestTimedeltaArray(SharedTests):
 
     def test_astype_object(self):
         tdi = TimedeltaIndex(["1 Day", "3 Hours"])
-        arr = TimedeltaArray(tdi)
+        arr = tdi._data
         asobj = arr.astype("O")
         assert isinstance(asobj, np.ndarray)
         assert asobj.dtype == "O"
@@ -919,7 +922,7 @@ class TestTimedeltaArray(SharedTests):
 
     def test_to_pytimedelta(self, timedelta_index):
         tdi = timedelta_index
-        arr = TimedeltaArray(tdi)
+        arr = tdi._data
 
         expected = tdi.to_pytimedelta()
         result = arr.to_pytimedelta()
@@ -928,7 +931,7 @@ class TestTimedeltaArray(SharedTests):
 
     def test_total_seconds(self, timedelta_index):
         tdi = timedelta_index
-        arr = TimedeltaArray(tdi)
+        arr = tdi._data
 
         expected = tdi.total_seconds()
         result = arr.total_seconds()
@@ -938,7 +941,7 @@ class TestTimedeltaArray(SharedTests):
     @pytest.mark.parametrize("propname", TimedeltaArray._field_ops)
     def test_int_properties(self, timedelta_index, propname):
         tdi = timedelta_index
-        arr = TimedeltaArray(tdi)
+        arr = tdi._data
 
         result = getattr(arr, propname)
         expected = np.array(getattr(tdi, propname), dtype=result.dtype)
@@ -946,7 +949,7 @@ class TestTimedeltaArray(SharedTests):
         tm.assert_numpy_array_equal(result, expected)
 
     def test_array_interface(self, timedelta_index):
-        arr = TimedeltaArray(timedelta_index)
+        arr = timedelta_index._data
 
         # default asarray gives the same underlying data
         result = np.asarray(arr)
@@ -989,7 +992,7 @@ class TestTimedeltaArray(SharedTests):
 
     def test_take_fill_valid(self, timedelta_index, fixed_now_ts):
         tdi = timedelta_index
-        arr = TimedeltaArray(tdi)
+        arr = tdi._data
 
         td1 = pd.Timedelta(days=1)
         result = arr.take([-1, 1], allow_fill=True, fill_value=td1)
@@ -1064,7 +1067,7 @@ class TestPeriodArray(SharedTests):
         pi = self.index_cls(arr1d)
         arr = arr1d
 
-        expected = DatetimeArray(pi.to_timestamp(how=how))
+        expected = DatetimeIndex(pi.to_timestamp(how=how))._data
         result = arr.to_timestamp(how=how)
         assert isinstance(result, DatetimeArray)
 
@@ -1176,7 +1179,7 @@ class TestPeriodArray(SharedTests):
     ids=lambda x: type(x).__name__,
 )
 def test_casting_nat_setitem_array(arr, casting_nats):
-    expected = type(arr)._from_sequence([NaT, arr[1], arr[2]])
+    expected = type(arr)._from_sequence([NaT, arr[1], arr[2]], dtype=arr.dtype)
 
     for nat in casting_nats:
         arr = arr.copy()
@@ -1310,12 +1313,14 @@ def test_from_pandas_array(dtype):
 
     cls = {"M8[ns]": DatetimeArray, "m8[ns]": TimedeltaArray}[dtype]
 
-    result = cls(arr)
-    expected = cls(data)
+    depr_msg = f"{cls.__name__}.__init__ is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        result = cls(arr)
+        expected = cls(data)
     tm.assert_extension_array_equal(result, expected)
 
-    result = cls._from_sequence(arr)
-    expected = cls._from_sequence(data)
+    result = cls._from_sequence(arr, dtype=dtype)
+    expected = cls._from_sequence(data, dtype=dtype)
     tm.assert_extension_array_equal(result, expected)
 
     func = {"M8[ns]": pd.to_datetime, "m8[ns]": pd.to_timedelta}[dtype]

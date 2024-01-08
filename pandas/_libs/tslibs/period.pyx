@@ -2701,8 +2701,8 @@ class Period(_Period):
                 year=None, month=None, quarter=None, day=None,
                 hour=None, minute=None, second=None):
         # freq points to a tuple (base, mult);  base is one of the defined
-        # periods such as A, Q, etc. Every five minutes would be, e.g.,
-        # ('T', 5) but may be passed in as a string like '5T'
+        # periods such as Y, Q, etc. Every five minutes would be, e.g.,
+        # ('min', 5) but may be passed in as a string like '5min'
 
         # ordinal is the period offset from the gregorian proleptic epoch
 

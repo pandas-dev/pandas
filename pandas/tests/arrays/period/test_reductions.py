@@ -1,5 +1,3 @@
-import pytest
-
 import pandas as pd
 from pandas.core.arrays import period_array
 
@@ -32,7 +30,6 @@ class TestReductions:
         result = arr.max(skipna=False)
         assert result is pd.NaT
 
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_min_max_empty(self, skipna):
         arr = period_array([], freq="D")
         result = arr.min(skipna=skipna)

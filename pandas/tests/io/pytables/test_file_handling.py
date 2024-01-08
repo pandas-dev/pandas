@@ -258,7 +258,7 @@ def test_complibs_default_settings_override(tmp_path, setup_path):
 @pytest.mark.filterwarnings("ignore:object name is not a valid")
 @pytest.mark.skipif(
     not PY311 and is_ci_environment() and is_platform_linux(),
-    reason="Segfaulting in a CI environment"
+    reason="Segfaulting in a CI environment",
     # with xfail, would sometimes raise UnicodeDecodeError
     # invalid state byte
 )
@@ -341,7 +341,15 @@ def test_latin_encoding(tmp_path, setup_path, dtype, val):
     ser.to_hdf(store, key=key, format="table", encoding=enc, nan_rep=nan_rep)
     retr = read_hdf(store, key)
 
-    s_nan = ser.replace(nan_rep, np.nan)
+    # TODO:(3.0): once Categorical replace deprecation is enforced,
+    #  we may be able to re-simplify the construction of s_nan
+    if dtype == "category":
+        if nan_rep in ser.cat.categories:
+            s_nan = ser.cat.remove_categories([nan_rep])
+        else:
+            s_nan = ser
+    else:
+        s_nan = ser.replace(nan_rep, np.nan)
 
     tm.assert_series_equal(s_nan, retr)
 

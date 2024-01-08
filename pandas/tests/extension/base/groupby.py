@@ -21,15 +21,19 @@ class BaseGroupbyTests:
 
     def test_grouping_grouper(self, data_for_grouping):
         df = pd.DataFrame(
-            {"A": ["B", "B", None, None, "A", "A", "B", "C"], "B": data_for_grouping}
+            {
+                "A": pd.Series(
+                    ["B", "B", None, None, "A", "A", "B", "C"], dtype=object
+                ),
+                "B": data_for_grouping,
+            }
         )
-        gr1 = df.groupby("A").grouper.groupings[0]
-        gr2 = df.groupby("B").grouper.groupings[0]
+        gr1 = df.groupby("A")._grouper.groupings[0]
+        gr2 = df.groupby("B")._grouper.groupings[0]
 
         tm.assert_numpy_array_equal(gr1.grouping_vector, df.A.values)
         tm.assert_extension_array_equal(gr2.grouping_vector, data_for_grouping)
 
-    @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
 

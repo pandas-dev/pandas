@@ -13,25 +13,6 @@ from pandas.util.version import Version
 
 
 @pytest.fixture
-def df_duplicates():
-    return pd.DataFrame(
-        {"a": [1, 2, 3, 4, 4], "b": [1, 1, 1, 1, 1], "c": [0, 1, 2, 5, 4]},
-        index=[0, 0, 1, 1, 1],
-    )
-
-
-@pytest.fixture
-def df_strings():
-    return pd.DataFrame(
-        {
-            "a": np.random.default_rng(2).permutation(10),
-            "b": list(ascii_lowercase[:10]),
-            "c": np.random.default_rng(2).permutation(10).astype("float64"),
-        }
-    )
-
-
-@pytest.fixture
 def df_main_dtypes():
     return pd.DataFrame(
         {
@@ -81,12 +62,18 @@ class TestNLargestNSmallest:
         ],
     )
     @pytest.mark.parametrize("n", range(1, 11))
-    def test_nlargest_n(self, df_strings, nselect_method, n, order):
+    def test_nlargest_n(self, nselect_method, n, order):
         # GH#10393
-        df = df_strings
+        df = pd.DataFrame(
+            {
+                "a": np.random.default_rng(2).permutation(10),
+                "b": list(ascii_lowercase[:10]),
+                "c": np.random.default_rng(2).permutation(10).astype("float64"),
+            }
+        )
         if "b" in order:
             error_msg = (
-                f"Column 'b' has dtype object, "
+                f"Column 'b' has dtype (object|string), "
                 f"cannot use method '{nselect_method}' with this dtype"
             )
             with pytest.raises(TypeError, match=error_msg):
@@ -156,10 +143,13 @@ class TestNLargestNSmallest:
         [["a", "b", "c"], ["c", "b", "a"], ["a"], ["b"], ["a", "b"], ["c", "b"]],
     )
     @pytest.mark.parametrize("n", range(1, 6))
-    def test_nlargest_n_duplicate_index(self, df_duplicates, n, order, request):
+    def test_nlargest_n_duplicate_index(self, n, order, request):
         # GH#13412
 
-        df = df_duplicates
+        df = pd.DataFrame(
+            {"a": [1, 2, 3, 4, 4], "b": [1, 1, 1, 1, 1], "c": [0, 1, 2, 5, 4]},
+            index=[0, 0, 1, 1, 1],
+        )
         result = df.nsmallest(n, order)
         expected = df.sort_values(order).head(n)
         tm.assert_frame_equal(result, expected)

@@ -188,18 +188,14 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
     ]
 
-    for item in items:
-        if is_doctest:
+    if is_doctest:
+        for item in items:
             # autouse=True for the add_doctest_imports can lead to expensive teardowns
             # since doctest_namespace is a session fixture
             item.add_marker(pytest.mark.usefixtures("add_doctest_imports"))
 
             for path, message in ignored_doctest_warnings:
                 ignore_doctest_warning(item, path, message)
-
-        # mark all tests in the pandas/tests/frame directory with "arraymanager"
-        if "/frame/" in item.nodeid:
-            item.add_marker(pytest.mark.arraymanager)
 
 
 hypothesis_health_checks = [hypothesis.HealthCheck.too_slow]
@@ -285,17 +281,6 @@ def axis(request):
     return request.param
 
 
-axis_frame = axis
-
-
-@pytest.fixture(params=[1, "columns"], ids=lambda x: f"axis={repr(x)}")
-def axis_1(request):
-    """
-    Fixture for returning aliases of axis 1 of a DataFrame.
-    """
-    return request.param
-
-
 @pytest.fixture(params=[True, False, None])
 def observed(request):
     """
@@ -313,6 +298,22 @@ def observed(request):
 def ordered(request):
     """
     Boolean 'ordered' parameter for Categorical.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def dropna(request):
+    """
+    Boolean 'dropna' parameter.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def sort(request):
+    """
+    Boolean 'sort' parameter.
     """
     return request.param
 
@@ -418,6 +419,74 @@ def nselect_method(request):
     return request.param
 
 
+@pytest.fixture(params=[None, "ignore"])
+def na_action(request):
+    """
+    Fixture for 'na_action' argument in map.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def ascending(request):
+    """
+    Fixture for 'na_action' argument in sort_values/sort_index/rank.
+    """
+    return request.param
+
+
+@pytest.fixture(params=["average", "min", "max", "first", "dense"])
+def rank_method(request):
+    """
+    Fixture for 'rank' argument in rank.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def as_index(request):
+    """
+    Fixture for 'as_index' argument in groupby.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def cache(request):
+    """
+    Fixture for 'cache' argument in to_datetime.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def parallel(request):
+    """
+    Fixture for parallel keyword argument for numba.jit.
+    """
+    return request.param
+
+
+# Can parameterize nogil & nopython over True | False, but limiting per
+# https://github.com/pandas-dev/pandas/pull/41971#issuecomment-860607472
+
+
+@pytest.fixture(params=[False])
+def nogil(request):
+    """
+    Fixture for nogil keyword argument for numba.jit.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True])
+def nopython(request):
+    """
+    Fixture for nopython keyword argument for numba.jit.
+    """
+    return request.param
+
+
 # ----------------------------------------------------------------
 # Missing values & co.
 # ----------------------------------------------------------------
@@ -480,10 +549,6 @@ def index_or_series(request):
     See GH#29725
     """
     return request.param
-
-
-# Generate cartesian product of index_or_series fixture:
-index_or_series2 = index_or_series
 
 
 @pytest.fixture(params=[Index, Series, pd.array], ids=["index", "series", "array"])
@@ -678,10 +743,6 @@ def index(request):
     return indices_dict[request.param].copy()
 
 
-# Needed to generate cartesian product of indices
-index_fixture2 = index
-
-
 @pytest.fixture(
     params=[
         key for key, value in indices_dict.items() if not isinstance(value, MultiIndex)
@@ -693,10 +754,6 @@ def index_flat(request):
     """
     key = request.param
     return indices_dict[key].copy()
-
-
-# Alias so we can test with cartesian product of index_flat
-index_flat2 = index_flat
 
 
 @pytest.fixture(
@@ -863,8 +920,8 @@ def float_frame() -> DataFrame:
     """
     return DataFrame(
         np.random.default_rng(2).standard_normal((30, 4)),
-        index=Index([f"foo_{i}" for i in range(30)], dtype=object),
-        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"foo_{i}" for i in range(30)]),
+        columns=Index(list("ABCD")),
     )
 
 
@@ -1353,7 +1410,7 @@ def fixed_now_ts() -> Timestamp:
     """
     Fixture emits fixed Timestamp.now()
     """
-    return Timestamp(
+    return Timestamp(  # pyright: ignore[reportGeneralTypeIssues]
         year=2021, month=1, day=1, hour=12, minute=4, second=13, microsecond=22
     )
 
@@ -1781,16 +1838,6 @@ def ip():
     return InteractiveShell(config=c)
 
 
-@pytest.fixture(params=["bsr", "coo", "csc", "csr", "dia", "dok", "lil"])
-def spmatrix(request):
-    """
-    Yields scipy sparse matrix classes.
-    """
-    sparse = pytest.importorskip("scipy.sparse")
-
-    return getattr(sparse, request.param + "_matrix")
-
-
 @pytest.fixture(
     params=[
         getattr(pd.offsets, o)
@@ -1882,14 +1929,6 @@ def indexer_ial(request):
 
 
 @pytest.fixture
-def using_array_manager() -> bool:
-    """
-    Fixture to check if the array manager is being used.
-    """
-    return _get_option("mode.data_manager", silent=True) == "array"
-
-
-@pytest.fixture
 def using_copy_on_write() -> bool:
     """
     Fixture to check if Copy-on-Write is enabled.
@@ -1903,7 +1942,7 @@ def using_copy_on_write() -> bool:
 @pytest.fixture
 def warn_copy_on_write() -> bool:
     """
-    Fixture to check if Copy-on-Write is enabled.
+    Fixture to check if Copy-on-Write is in warning mode.
     """
     return (
         pd.options.mode.copy_on_write == "warn"
@@ -1914,9 +1953,9 @@ def warn_copy_on_write() -> bool:
 @pytest.fixture
 def using_infer_string() -> bool:
     """
-    Fixture to check if infer_string is enabled.
+    Fixture to check if infer string option is enabled.
     """
-    return pd.options.future.infer_string
+    return pd.options.future.infer_string is True
 
 
 warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
@@ -1932,6 +1971,6 @@ def warsaw(request) -> str:
     return request.param
 
 
-@pytest.fixture()
+@pytest.fixture
 def arrow_string_storage():
     return ("pyarrow", "pyarrow_numpy")

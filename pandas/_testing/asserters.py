@@ -4,6 +4,7 @@ import operator
 from typing import (
     TYPE_CHECKING,
     Literal,
+    NoReturn,
     cast,
 )
 
@@ -143,7 +144,7 @@ def assert_almost_equal(
         )
 
 
-def _check_isinstance(left, right, cls):
+def _check_isinstance(left, right, cls) -> None:
     """
     Helper method for our assert_* methods that ensures that
     the two objects being compared have the right type before
@@ -209,8 +210,6 @@ def assert_index_equal(
         Whether to compare the order of index entries as well as their values.
         If True, both indexes must contain the same elements, in the same order.
         If False, both indexes must contain the same elements, but in any order.
-
-        .. versionadded:: 1.2.0
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
     atol : float, default 1e-8
@@ -578,7 +577,7 @@ def assert_timedelta_array_equal(
 
 def raise_assert_detail(
     obj, message, left, right, diff=None, first_diff=None, index_values=None
-):
+) -> NoReturn:
     __tracebackhide__ = True
 
     msg = f"""{obj} are different
@@ -666,7 +665,7 @@ def assert_numpy_array_equal(
         if left_base is right_base:
             raise AssertionError(f"{repr(left_base)} is {repr(right_base)}")
 
-    def _raise(left, right, err_msg):
+    def _raise(left, right, err_msg) -> NoReturn:
         if err_msg is None:
             if left.shape != right.shape:
                 raise_assert_detail(
@@ -853,9 +852,6 @@ def assert_series_equal(
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
     check_flags : bool, default True
         Whether to check the `flags` attribute.
-
-        .. versionadded:: 1.2.0
-
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
     atol : float, default 1e-8
@@ -953,9 +949,15 @@ def assert_series_equal(
                 obj=str(obj),
             )
         else:
+            # convert both to NumPy if not, check_dtype would raise earlier
+            lv, rv = left_values, right_values
+            if isinstance(left_values, ExtensionArray):
+                lv = left_values.to_numpy()
+            if isinstance(right_values, ExtensionArray):
+                rv = right_values.to_numpy()
             assert_numpy_array_equal(
-                left_values,
-                right_values,
+                lv,
+                rv,
                 check_dtype=check_dtype,
                 obj=str(obj),
                 index_values=left.index,
@@ -1206,8 +1208,8 @@ def assert_frame_equal(
 
     # compare by blocks
     if by_blocks:
-        rblocks = right._to_dict_of_blocks(copy=False)
-        lblocks = left._to_dict_of_blocks(copy=False)
+        rblocks = right._to_dict_of_blocks()
+        lblocks = left._to_dict_of_blocks()
         for dtype in list(set(list(lblocks.keys()) + list(rblocks.keys()))):
             assert dtype in lblocks
             assert dtype in rblocks

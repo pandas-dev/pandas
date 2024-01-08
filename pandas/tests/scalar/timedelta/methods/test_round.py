@@ -61,6 +61,7 @@ class TestTimedeltaRound:
             with pytest.raises(ValueError, match=msg):
                 t1.round(freq)
 
+    @pytest.mark.skip_ubsan
     def test_round_implementation_bounds(self):
         # See also: analogous test for Timestamp
         # GH#38964
@@ -86,6 +87,7 @@ class TestTimedeltaRound:
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             Timedelta.max.round("s")
 
+    @pytest.mark.skip_ubsan
     @given(val=st.integers(min_value=iNaT + 1, max_value=lib.i8max))
     @pytest.mark.parametrize(
         "method", [Timedelta.round, Timedelta.floor, Timedelta.ceil]
@@ -168,7 +170,6 @@ class TestTimedeltaRound:
         nanos = 24 * 60 * 60 * 1_000_000_000
         checker(td, nanos, "D")
 
-    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_round_non_nano(self, unit):
         td = Timedelta("1 days 02:34:57").as_unit(unit)
 
