@@ -132,7 +132,7 @@ cdef bint parse_today_now(
         if infer_reso:
             creso = NPY_DATETIMEUNIT.NPY_FR_us
         if utc:
-            ts = <_Timestamp>Timestamp.utcnow()
+            ts = <_Timestamp>Timestamp.now(timezone.utc)
             iresult[0] = ts._as_creso(creso)._value
         else:
             # GH#18705 make sure to_datetime("now") matches Timestamp("now")

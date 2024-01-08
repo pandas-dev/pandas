@@ -1418,6 +1418,14 @@ class Timestamp(_Timestamp):
         >>> pd.Timestamp.utcnow()   # doctest: +SKIP
         Timestamp('2020-11-16 22:50:18.092888+0000', tz='UTC')
         """
+        warnings.warn(
+            # The stdlib datetime.utcnow is deprecated, so we deprecate to match.
+            #  GH#56680
+            "Timestamp.utcnow is deprecated and will be removed in a future "
+            "version. Use Timestamp.now('UTC') instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return cls.now(UTC)
 
     @classmethod
@@ -1438,6 +1446,14 @@ class Timestamp(_Timestamp):
         Timestamp('2020-03-14 15:32:52+0000', tz='UTC')
         """
         # GH#22451
+        warnings.warn(
+            # The stdlib datetime.utcfromtimestamp is deprecated, so we deprecate
+            #  to match. GH#56680
+            "Timestamp.utcfromtimestamp is deprecated and will be removed in a "
+            "future version. Use Timestamp.fromtimestamp(ts, 'UTC') instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return cls.fromtimestamp(ts, tz="UTC")
 
     @classmethod
