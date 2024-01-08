@@ -353,3 +353,10 @@ def test_interchange_from_corrected_buffer_dtypes(monkeypatch) -> None:
     interchange.get_column_by_name = lambda _: column
     monkeypatch.setattr(df, "__dataframe__", lambda allow_copy: interchange)
     pd.api.interchange.from_dataframe(df)
+
+
+def test_empty_string_column():
+    df = pd.Series([], name="a", dtype=str).to_frame()
+    df2 = df.__dataframe__()
+    result = pd.api.interchange.from_dataframe(df2)
+    tm.assert_frame_equal(df, result)
