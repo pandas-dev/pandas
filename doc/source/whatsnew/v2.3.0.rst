@@ -92,7 +92,8 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
--
+- Deprecated :meth:`Timestamp.utcfromtimestamp`, use ``Timestamp.fromtimestamp(ts, "UTC")`` instead (:issue:`56680`)
+- Deprecated :meth:`Timestamp.utcnow`, use ``Timestamp.now("UTC")`` instead (:issue:`56680`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -108,6 +109,8 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
+- Fixed bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
+
 
 Categorical
 ^^^^^^^^^^^
