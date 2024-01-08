@@ -1030,7 +1030,7 @@ class PythonParser(ParserBase):
             for i, _content in iter_content:
                 actual_len = len(_content)
 
-                if actual_len > col_len:
+                if actual_len != col_len:
                     if callable(self.on_bad_lines):
                         new_l = self.on_bad_lines(_content)
                         if new_l is not None:
