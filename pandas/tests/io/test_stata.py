@@ -11,6 +11,8 @@ import zipfile
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import CategoricalDtype
 import pandas._testing as tm
@@ -1918,6 +1920,41 @@ the string values returned are correct."""
         with tm.ensure_clean() as path:
             with pytest.raises(ValueError, match="You must use version 119"):
                 StataWriterUTF8(path, df, version=118)
+
+    @pytest.mark.parametrize(
+        "dtype_backend",
+        ["numpy_nullable", pytest.param("pyarrow", marks=td.skip_if_no("pyarrow"))],
+    )
+    def test_read_write_ea_dtypes(self, dtype_backend):
+        df = DataFrame(
+            {
+                "a": [1, 2, None],
+                "b": ["a", "b", "c"],
+                "c": [True, False, None],
+                "d": [1.5, 2.5, 3.5],
+                "e": pd.date_range("2020-12-31", periods=3, freq="D"),
+            },
+            index=pd.Index([0, 1, 2], name="index"),
+        )
+        df = df.convert_dtypes(dtype_backend=dtype_backend)
+        df.to_stata("test_stata.dta", version=118)
+
+        with tm.ensure_clean() as path:
+            df.to_stata(path)
+            written_and_read_again = self.read_dta(path)
+
+        expected = DataFrame(
+            {
+                "a": [1, 2, np.nan],
+                "b": ["a", "b", "c"],
+                "c": [1.0, 0, np.nan],
+                "d": [1.5, 2.5, 3.5],
+                "e": pd.date_range("2020-12-31", periods=3, freq="D"),
+            },
+            index=pd.Index([0, 1, 2], name="index", dtype=np.int32),
+        )
+
+        tm.assert_frame_equal(written_and_read_again.set_index("index"), expected)
 
 
 @pytest.mark.parametrize("version", [105, 108, 111, 113, 114])

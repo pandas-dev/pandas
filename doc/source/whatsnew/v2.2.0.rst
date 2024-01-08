@@ -848,6 +848,7 @@ I/O
 - Bug in :func:`read_json` not handling dtype conversion properly if ``infer_string`` is set (:issue:`56195`)
 - Bug in :meth:`DataFrame.to_excel`, with ``OdsWriter`` (``ods`` files) writing Boolean/string value (:issue:`54994`)
 - Bug in :meth:`DataFrame.to_hdf` and :func:`read_hdf` with ``datetime64`` dtypes with non-nanosecond resolution failing to round-trip correctly (:issue:`55622`)
+- Bug in :meth:`DataFrame.to_stata` raising for extension dtypes (:issue:`54671`)
 - Bug in :meth:`~pandas.read_excel` with ``engine="odf"`` (``ods`` files) when a string cell contains an annotation (:issue:`55200`)
 - Bug in :meth:`~pandas.read_excel` with an ODS file without cached formatted cell for float values (:issue:`55219`)
 - Bug where :meth:`DataFrame.to_json` would raise an ``OverflowError`` instead of a ``TypeError`` with unsupported NumPy types (:issue:`55403`)
