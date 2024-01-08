@@ -97,6 +97,7 @@ class TestMergeMulti:
     def test_left_join_multi_index(self, sort, infer_string):
         with option_context("future.infer_string", infer_string):
             icols = ["1st", "2nd", "3rd"]
+
             def bind_cols(df):
                 iord = lambda a: 0 if a != a else ord(a)
                 f = lambda ts: ts.map(iord) - ord("a")
