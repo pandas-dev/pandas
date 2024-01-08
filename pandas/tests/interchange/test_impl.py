@@ -357,6 +357,7 @@ def test_interchange_from_corrected_buffer_dtypes(monkeypatch) -> None:
 
 def test_large_string():
     # GH#56702
+    pytest.importorskip("pyarrow")
     df = pd.DataFrame({"a": ["x"]}, dtype="large_string[pyarrow]")
     result = pd.api.interchange.from_dataframe(df.__dataframe__())
     expected = pd.DataFrame({"a": ["x"]}, dtype="object")
