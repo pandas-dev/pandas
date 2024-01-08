@@ -92,8 +92,7 @@ class TestSeriesSortValues:
                 s.sort_values(inplace=True)
 
     def test_sort_values_categorical(self):
-        c = Categorical(["a", "b", "b", "a"], ordered=False)
-        cat = Series(c.copy())
+        cat = Series(Categorical(["a", "b", "b", "a"], ordered=False))
 
         # sort in the categories order
         expected = Series(

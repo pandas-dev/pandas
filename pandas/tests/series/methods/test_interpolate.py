@@ -224,8 +224,7 @@ class TestSeriesInterpolateData:
 
         result = s.interpolate(method="index")
 
-        expected = s.copy()
-        bad = isna(expected.values)
+        bad = isna(s)
         good = ~bad
         expected = Series(
             np.interp(vals[bad], vals[good], s.values[good]), index=s.index[bad]

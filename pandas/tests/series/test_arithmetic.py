@@ -241,7 +241,7 @@ class TestSeriesArithmetic:
         result = datetime_series + empty
         assert np.isnan(result).all()
 
-        result = empty + empty.copy()
+        result = empty + empty
         assert len(result) == 0
 
     def test_add_float_plus_int(self, datetime_series):
