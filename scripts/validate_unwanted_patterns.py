@@ -95,65 +95,6 @@ def _get_literal_string_prefix_len(token_string: str) -> int:
         return 0
 
 
-def bare_pytest_raises(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
-    """
-    Test Case for bare pytest raises.
-
-    For example, this is wrong:
-
-    >>> with pytest.raise(ValueError):
-    ...     # Some code that raises ValueError
-
-    And this is what we want instead:
-
-    >>> with pytest.raise(ValueError, match="foo"):
-    ...     # Some code that raises ValueError
-
-    Parameters
-    ----------
-    file_obj : IO
-        File-like object containing the Python code to validate.
-
-    Yields
-    ------
-    line_number : int
-        Line number of unconcatenated string.
-    msg : str
-        Explanation of the error.
-
-    Notes
-    -----
-    GH #23922
-    """
-    contents = file_obj.read()
-    tree = ast.parse(contents)
-
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.Call):
-            continue
-
-        try:
-            if not (node.func.value.id == "pytest" and node.func.attr == "raises"):
-                continue
-        except AttributeError:
-            continue
-
-        if not node.keywords:
-            yield (
-                node.lineno,
-                "Bare pytests raise have been found. "
-                "Please pass in the argument 'match' as well the exception.",
-            )
-        # Means that there are arguments that are being passed in,
-        # now we validate that `match` is one of the passed in arguments
-        elif not any(keyword.arg == "match" for keyword in node.keywords):
-            yield (
-                node.lineno,
-                "Bare pytests raise have been found. "
-                "Please pass in the argument 'match' as well the exception.",
-            )
-
-
 PRIVATE_FUNCTIONS_ALLOWED = {"sys._getframe"}  # no known alternative
 
 
@@ -457,7 +398,6 @@ def main(
 
 if __name__ == "__main__":
     available_validation_types: list[str] = [
-        "bare_pytest_raises",
         "private_function_across_module",
         "private_import_across_module",
         "strings_with_wrong_placed_whitespace",

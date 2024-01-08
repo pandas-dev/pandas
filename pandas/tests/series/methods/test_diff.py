@@ -10,6 +10,11 @@ import pandas._testing as tm
 
 
 class TestSeriesDiff:
+    def test_diff_series_requires_integer(self):
+        series = Series(np.random.default_rng(2).standard_normal(2))
+        with pytest.raises(ValueError, match="periods must be an integer"):
+            series.diff(1.5)
+
     def test_diff_np(self):
         # TODO(__array_function__): could make np.diff return a Series
         #  matching ser.diff()
