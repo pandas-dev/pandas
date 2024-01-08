@@ -2789,12 +2789,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: float64
         """
         nv.validate_round(args, kwargs)
-        result = self._values.round(decimals)
-        result = self._constructor(result, index=self.index, copy=False).__finalize__(
+        new_mgr = self._mgr.round(decimals=decimals, using_cow=using_copy_on_write())
+        return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(
             self, method="round"
         )
-
-        return result
 
     @overload
     def quantile(
