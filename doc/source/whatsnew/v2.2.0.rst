@@ -789,6 +789,7 @@ Numeric
 - Bug in :meth:`Series.__floordiv__` and :meth:`Series.__truediv__` for :class:`ArrowDtype` with integral dtypes raising for large divisors (:issue:`56706`)
 - Bug in :meth:`Series.__floordiv__` for :class:`ArrowDtype` with integral dtypes raising for large values (:issue:`56645`)
 - Bug in :meth:`Series.pow` not filling missing values correctly (:issue:`55512`)
+- Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` matching float ``0.0`` with ``False`` and vice versa (:issue:`55398`)
 
 Conversion
 ^^^^^^^^^^
