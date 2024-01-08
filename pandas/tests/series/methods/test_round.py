@@ -63,3 +63,12 @@ class TestSeriesRound:
         round_method = getattr(ser.dt, method)
         result = round_method(freq)
         tm.assert_series_equal(result, expected)
+
+    def test_round_ea_boolean(self):
+        # GH#55936
+        ser = Series([True, False], dtype="boolean")
+        expected = ser.copy()
+        result = ser.round(2)
+        tm.assert_series_equal(result, expected)
+        result.iloc[0] = False
+        tm.assert_series_equal(ser, expected)
