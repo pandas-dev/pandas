@@ -1072,6 +1072,7 @@ class TestToDatetime:
     def test_to_datetime_today_now_unicode_bytes(self, arg):
         to_datetime([arg])
 
+    @pytest.mark.filterwarnings("ignore:Timestamp.utcnow is deprecated:FutureWarning")
     @pytest.mark.parametrize(
         "format, expected_ds",
         [

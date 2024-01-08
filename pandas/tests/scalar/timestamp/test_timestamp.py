@@ -270,7 +270,9 @@ class TestTimestamp:
             ts.tz = tz
 
     def test_default_to_stdlib_utc(self):
-        assert Timestamp.utcnow().tz is timezone.utc
+        msg = "Timestamp.utcnow is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert Timestamp.utcnow().tz is timezone.utc
         assert Timestamp.now("UTC").tz is timezone.utc
         assert Timestamp("2016-01-01", tz="UTC").tz is timezone.utc
 
@@ -313,11 +315,15 @@ class TestTimestamp:
         compare(Timestamp.now(), datetime.now())
         compare(Timestamp.now("UTC"), datetime.now(pytz.timezone("UTC")))
         compare(Timestamp.now("UTC"), datetime.now(tzutc()))
-        compare(Timestamp.utcnow(), datetime.now(timezone.utc))
+        msg = "Timestamp.utcnow is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            compare(Timestamp.utcnow(), datetime.now(timezone.utc))
         compare(Timestamp.today(), datetime.today())
         current_time = calendar.timegm(datetime.now().utctimetuple())
 
-        ts_utc = Timestamp.utcfromtimestamp(current_time)
+        msg = "Timestamp.utcfromtimestamp is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ts_utc = Timestamp.utcfromtimestamp(current_time)
         assert ts_utc.timestamp() == current_time
         compare(
             Timestamp.fromtimestamp(current_time), datetime.fromtimestamp(current_time)
