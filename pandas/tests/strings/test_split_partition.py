@@ -546,7 +546,7 @@ def test_partition_series_stdlib(any_string_dtype, method):
         ],
     ],
 )
-def test_partition_index(method, expand, exp, exp_levels):
+def test_partition_index(method, exp):
     # https://github.com/pandas-dev/pandas/issues/23558
 
     values = Index(["a_b_c", "c_d_e", "f_g_h", np.nan, None])
