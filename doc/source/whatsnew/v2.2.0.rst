@@ -893,6 +893,7 @@ Reshaping
 - Bug in :func:`merge_asof` when using a :class:`Timedelta` tolerance on a :class:`ArrowDtype` column (:issue:`56486`)
 - Bug in :func:`merge` not raising when merging datetime columns with timedelta columns (:issue:`56455`)
 - Bug in :func:`merge` not raising when merging string columns with numeric columns (:issue:`56441`)
+- Bug in :func:`merge` not sorting for new string dtype (:issue:`56442`)
 - Bug in :func:`merge` returning columns in incorrect order when left and/or right is empty (:issue:`51929`)
 - Bug in :meth:`DataFrame.melt` where an exception was raised if ``var_name`` was not a string (:issue:`55948`)
 - Bug in :meth:`DataFrame.melt` where it would not preserve the datetime (:issue:`55254`)
