@@ -1962,6 +1962,27 @@ def test_str_find_negative_start_negative_end():
     tm.assert_series_equal(result, expected)
 
 
+def test_str_find_large_start():
+    # GH 56791
+    ser = pd.Series(["abcdefg", None], dtype=ArrowDtype(pa.string()))
+    if pa_version_under13p0:
+        # https://github.com/apache/arrow/issues/36311
+        with pytest.raises(pa.lib.ArrowInvalid, match="Negative buffer resize"):
+            ser.str.find(sub="d", start=16)
+    else:
+        result = ser.str.find(sub="d", start=16)
+        expected = pd.Series([-1, None], dtype=ArrowDtype(pa.int64()))
+        tm.assert_series_equal(result, expected)
+
+
+def test_str_find_negative_start_negative_end_no_match():
+    # GH 56791
+    ser = pd.Series(["abcdefg", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.find(sub="d", start=-3, end=-6)
+    expected = pd.Series([-1, None], dtype=ArrowDtype(pa.int64()))
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "i, exp",
     [
