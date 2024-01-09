@@ -343,8 +343,8 @@ class BaseSetitemTests:
 
     def test_setitem_scalar_key_sequence_raise(self, data):
         arr = data[:5].copy()
-        # complex128 data raises TypeError; other numeric types raise ValueError
-        with pytest.raises((ValueError, TypeError)):
+        msg = ""  # messages vary by subclass, so we do not test it
+        with pytest.raises(ValueError, match=msg):
             arr[0] = arr[[0, 1]]
 
     def test_setitem_preserves_views(self, data):

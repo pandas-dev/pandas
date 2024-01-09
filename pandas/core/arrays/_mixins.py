@@ -259,7 +259,13 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     def __setitem__(self, key, value) -> None:
         key = check_array_indexer(self, key)
         value = self._validate_setitem_value(value)
-        self._ndarray[key] = value
+        try:
+            self._ndarray[key] = value
+        except TypeError as exc:
+            # Don't let Python's handling of `complex` make extra complexity for Pandas
+            if self._ndarray.dtype.kind == "c":
+                raise ValueError(*(x.replace("real", "complex") for x in exc.args))
+            raise exc
 
     def _validate_setitem_value(self, value):
         return value
