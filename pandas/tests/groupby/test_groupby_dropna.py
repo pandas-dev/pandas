@@ -167,12 +167,11 @@ def test_groupby_dropna_series_by(dropna, expected):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("dropna", (False, True))
 def test_grouper_dropna_propagation(dropna):
     # GH 36604
     df = pd.DataFrame({"A": [0, 0, 1, None], "B": [1, 2, 3, None]})
     gb = df.groupby("A", dropna=dropna)
-    assert gb.grouper.dropna == dropna
+    assert gb._grouper.dropna == dropna
 
 
 @pytest.mark.parametrize(
@@ -411,7 +410,6 @@ def test_groupby_drop_nan_with_multi_index():
         "UInt64",
         "Int64",
         "Float32",
-        "Int64",
         "Float64",
         "category",
         "string",
@@ -546,9 +544,9 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
 
     gb_filled = df_filled.groupby(keys, observed=observed, sort=sort, as_index=True)
     expected = getattr(gb_filled, reduction_func)(*args_filled).reset_index()
-    expected["x"] = expected["x"].replace(4, None)
+    expected["x"] = expected["x"].cat.remove_categories([4])
     if index_kind == "multi":
-        expected["x2"] = expected["x2"].replace(4, None)
+        expected["x2"] = expected["x2"].cat.remove_categories([4])
     if as_index:
         if index_kind == "multi":
             expected = expected.set_index(["x", "x2"])

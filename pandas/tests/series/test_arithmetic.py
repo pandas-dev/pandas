@@ -241,7 +241,7 @@ class TestSeriesArithmetic:
         result = datetime_series + empty
         assert np.isnan(result).all()
 
-        result = empty + empty.copy()
+        result = empty + empty
         assert len(result) == 0
 
     def test_add_float_plus_int(self, datetime_series):
@@ -753,6 +753,9 @@ class TestTimeSeriesArithmetic:
         uts1 = ser1.tz_convert("utc")
         uts2 = ser2.tz_convert("utc")
         expected = uts1 + uts2
+
+        # sort since input indexes are not equal
+        expected = expected.sort_index()
 
         assert result.index.tz is timezone.utc
         tm.assert_series_equal(result, expected)

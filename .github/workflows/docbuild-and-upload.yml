@@ -4,13 +4,13 @@ on:
   push:
     branches:
       - main
-      - 2.1.x
+      - 2.2.x
     tags:
       - '*'
   pull_request:
     branches:
       - main
-      - 2.1.x
+      - 2.2.x
 
 env:
   ENV_FILE: environment.yml
@@ -45,6 +45,9 @@ jobs:
 
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
+
+    - name: Test website
+      run: python -m pytest web/
 
     - name: Build website
       run: python web/pandas_web.py web/pandas --target-path=web/build
@@ -82,7 +85,7 @@ jobs:
       run: mv doc/build/html web/build/docs
 
     - name: Save website as an artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: website
         path: web/build

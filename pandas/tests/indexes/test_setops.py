@@ -56,6 +56,11 @@ def any_dtype_for_small_pos_integer_indexes(request):
     return request.param
 
 
+@pytest.fixture
+def index_flat2(index_flat):
+    return index_flat
+
+
 def test_union_same_types(index):
     # Union with a non-unique, non-monotonic index raises error
     # Only needed for bool index factory
@@ -802,10 +807,10 @@ class TestSetOpsUnsorted:
 
         # This should no longer be the same object, since [] is not consistent,
         # both objects will be recast to dtype('O')
-        union = first.union([], sort=sort)
+        union = first.union(Index([], dtype=first.dtype), sort=sort)
         assert (union is first) is (not sort)
 
-        union = Index([]).union(first, sort=sort)
+        union = Index([], dtype=first.dtype).union(first, sort=sort)
         assert (union is first) is (not sort)
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)

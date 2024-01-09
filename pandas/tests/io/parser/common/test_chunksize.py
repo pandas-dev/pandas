@@ -223,7 +223,7 @@ def test_chunks_have_consistent_numerical_type(all_parsers, monkeypatch):
     warn = None
     if parser.engine == "pyarrow":
         warn = DeprecationWarning
-    depr_msg = "Passing a BlockManager to DataFrame"
+    depr_msg = "Passing a BlockManager to DataFrame|make_block is deprecated"
     with tm.assert_produces_warning(warn, match=depr_msg, check_stacklevel=False):
         with monkeypatch.context() as m:
             m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
@@ -233,6 +233,7 @@ def test_chunks_have_consistent_numerical_type(all_parsers, monkeypatch):
     assert result.a.dtype == float
 
 
+@pytest.mark.filterwarnings("ignore:make_block is deprecated:FutureWarning")
 def test_warn_if_chunks_have_mismatched_type(all_parsers):
     warning_type = None
     parser = all_parsers
@@ -253,7 +254,8 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers):
     if parser.engine == "pyarrow":
         df = parser.read_csv_check_warnings(
             DeprecationWarning,
-            "Passing a BlockManager to DataFrame is deprecated",
+            "Passing a BlockManager to DataFrame is deprecated|"
+            "make_block is deprecated",
             buf,
             check_stacklevel=False,
         )

@@ -529,7 +529,6 @@ def test_nth_multi_index_as_expected():
     ],
 )
 @pytest.mark.parametrize("columns", [None, [], ["A"], ["B"], ["A", "B"]])
-@pytest.mark.parametrize("as_index", [True, False])
 def test_groupby_head_tail(op, n, expected_rows, columns, as_index):
     df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
     g = df.groupby("A", as_index=as_index)
@@ -898,3 +897,24 @@ def test_nth_after_selection(selection, dropna):
         locs = [0, 2]
     expected = df.loc[locs, selection]
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        (
+            Timestamp("2011-01-15 12:50:28.502376"),
+            Timestamp("2011-01-20 12:50:28.593448"),
+        ),
+        (24650000000000001, 24650000000000002),
+    ],
+)
+def test_groupby_nth_int_like_precision(data):
+    # GH#6620, GH#9311
+    df = DataFrame({"a": [1, 1], "b": data})
+
+    grouped = df.groupby("a")
+    result = grouped.nth(0)
+    expected = DataFrame({"a": 1, "b": [data[0]]})
+
+    tm.assert_frame_equal(result, expected)

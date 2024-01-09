@@ -2,6 +2,7 @@ from typing import (
     Any,
     Hashable,
     Literal,
+    overload,
 )
 
 import numpy as np
@@ -180,18 +181,33 @@ class HashTable:
         na_value: object = ...,
         mask=...,
     ) -> npt.NDArray[np.intp]: ...
+    @overload
     def unique(
         self,
         values: np.ndarray,  # np.ndarray[subclass-specific]
-        return_inverse: bool = ...,
-        mask=...,
-    ) -> (
-        tuple[
-            np.ndarray,  # np.ndarray[subclass-specific]
-            npt.NDArray[np.intp],
-        ]
-        | np.ndarray
-    ): ...  # np.ndarray[subclass-specific]
+        *,
+        return_inverse: Literal[False] = ...,
+        mask: None = ...,
+    ) -> np.ndarray: ...  # np.ndarray[subclass-specific]
+    @overload
+    def unique(
+        self,
+        values: np.ndarray,  # np.ndarray[subclass-specific]
+        *,
+        return_inverse: Literal[True],
+        mask: None = ...,
+    ) -> tuple[np.ndarray, npt.NDArray[np.intp]]: ...  # np.ndarray[subclass-specific]
+    @overload
+    def unique(
+        self,
+        values: np.ndarray,  # np.ndarray[subclass-specific]
+        *,
+        return_inverse: Literal[False] = ...,
+        mask: npt.NDArray[np.bool_],
+    ) -> tuple[
+        np.ndarray,
+        npt.NDArray[np.bool_],
+    ]: ...  # np.ndarray[subclass-specific]
     def factorize(
         self,
         values: np.ndarray,  # np.ndarray[subclass-specific]

@@ -598,15 +598,14 @@ class TestDataFrameSortValues:
         result = expected.sort_values(["A", "date"])
         tm.assert_frame_equal(result, expected)
 
-    def test_sort_values_item_cache(self, using_array_manager, using_copy_on_write):
+    def test_sort_values_item_cache(self, using_copy_on_write):
         # previous behavior incorrect retained an invalid _item_cache entry
         df = DataFrame(
             np.random.default_rng(2).standard_normal((4, 3)), columns=["A", "B", "C"]
         )
         df["D"] = df["A"] * 2
         ser = df["A"]
-        if not using_array_manager:
-            assert len(df._mgr.blocks) == 2
+        assert len(df._mgr.blocks) == 2
 
         df.sort_values(by="A")
 
@@ -849,11 +848,6 @@ def sort_names(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def ascending(request):
-    return request.param
-
-
 class TestSortValuesLevelAsStr:
     def test_sort_index_level_and_column_label(
         self, df_none, df_idx, sort_names, ascending, request
@@ -927,7 +921,6 @@ class TestSortValuesLevelAsStr:
         with pytest.raises(ValueError, match=msg):
             df.sort_values(by="D", ascending="False")
 
-    @pytest.mark.parametrize("ascending", [False, 0, 1, True])
     def test_sort_values_validate_ascending_functional(self, ascending):
         df = DataFrame({"D": [23, 7, 21]})
         indexer = df["D"].argsort().values

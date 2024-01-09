@@ -360,8 +360,11 @@ class TestDataFrameQueryWithMultiIndex:
         tm.assert_frame_equal(res, exp)
 
     def test_query_multiindex_get_index_resolvers(self):
-        df = tm.makeCustomDataframe(
-            10, 3, r_idx_nlevels=2, r_idx_names=["spam", "eggs"]
+        df = DataFrame(
+            np.ones((10, 3)),
+            index=MultiIndex.from_arrays(
+                [range(10) for _ in range(2)], names=["spam", "eggs"]
+            ),
         )
         resolvers = df._get_index_resolvers()
 
@@ -377,7 +380,7 @@ class TestDataFrameQueryWithMultiIndex:
             "columns": col_series,
             "spam": to_series(df.index, "spam"),
             "eggs": to_series(df.index, "eggs"),
-            "C0": col_series,
+            "clevel_0": col_series,
         }
         for k, v in resolvers.items():
             if isinstance(v, Index):
@@ -1032,7 +1035,7 @@ class TestDataFrameQueryStrings:
             with pytest.raises(NotImplementedError, match=msg):
                 df.query("a in b and c < d", parser=parser, engine=engine)
 
-    def test_object_array_eq_ne(self, parser, engine):
+    def test_object_array_eq_ne(self, parser, engine, using_infer_string):
         df = DataFrame(
             {
                 "a": list("aaaabbbbcccc"),
@@ -1041,11 +1044,14 @@ class TestDataFrameQueryStrings:
                 "d": np.random.default_rng(2).integers(9, size=12),
             }
         )
-        res = df.query("a == b", parser=parser, engine=engine)
+        warning = RuntimeWarning if using_infer_string and engine == "numexpr" else None
+        with tm.assert_produces_warning(warning):
+            res = df.query("a == b", parser=parser, engine=engine)
         exp = df[df.a == df.b]
         tm.assert_frame_equal(res, exp)
 
-        res = df.query("a != b", parser=parser, engine=engine)
+        with tm.assert_produces_warning(warning):
+            res = df.query("a != b", parser=parser, engine=engine)
         exp = df[df.a != df.b]
         tm.assert_frame_equal(res, exp)
 
@@ -1084,12 +1090,16 @@ class TestDataFrameQueryStrings:
             [">=", operator.ge],
         ],
     )
-    def test_query_lex_compare_strings(self, parser, engine, op, func):
+    def test_query_lex_compare_strings(
+        self, parser, engine, op, func, using_infer_string
+    ):
         a = Series(np.random.default_rng(2).choice(list("abcde"), 20))
         b = Series(np.arange(a.size))
         df = DataFrame({"X": a, "Y": b})
 
-        res = df.query(f'X {op} "d"', engine=engine, parser=parser)
+        warning = RuntimeWarning if using_infer_string and engine == "numexpr" else None
+        with tm.assert_produces_warning(warning):
+            res = df.query(f'X {op} "d"', engine=engine, parser=parser)
         expected = df[func(df.X, "d")]
         tm.assert_frame_equal(res, expected)
 
@@ -1163,7 +1173,7 @@ class TestDataFrameEvalWithFrame:
     @pytest.mark.parametrize("op", ["+", "-", "*", "/"])
     def test_invalid_type_for_operator_raises(self, parser, engine, op):
         df = DataFrame({"a": [1, 2], "b": ["c", "d"]})
-        msg = r"unsupported operand type\(s\) for .+: '.+' and '.+'"
+        msg = r"unsupported operand type\(s\) for .+: '.+' and '.+'|Cannot"
 
         with pytest.raises(TypeError, match=msg):
             df.eval(f"a {op} b", engine=engine, parser=parser)
@@ -1177,7 +1187,7 @@ class TestDataFrameQueryBacktickQuoting:
         by backticks. The last two columns cannot be escaped by backticks
         and should raise a ValueError.
         """
-        yield DataFrame(
+        return DataFrame(
             {
                 "A": [1, 2, 3],
                 "B B": [3, 2, 1],

@@ -72,13 +72,12 @@ class TestDataFrameReshape:
         expected = expected[["a", "b"]]
         tm.assert_frame_equal(result, expected)
 
-    def test_unstack_not_consolidated(self, using_array_manager):
+    def test_unstack_not_consolidated(self):
         # Gh#34708
         df = DataFrame({"x": [1, 2, np.nan], "y": [3.0, 4, np.nan]})
         df2 = df[["x"]]
         df2["y"] = df["y"]
-        if not using_array_manager:
-            assert len(df2._mgr.blocks) == 2
+        assert len(df2._mgr.blocks) == 2
 
         res = df2.unstack()
         expected = df.unstack()
@@ -619,7 +618,7 @@ class TestDataFrameReshape:
             data = data.unstack()
         tm.assert_frame_equal(old_data, data)
 
-    def test_unstack_dtypes(self):
+    def test_unstack_dtypes(self, using_infer_string):
         # GH 2929
         rows = [[1, 1, 3, 4], [1, 2, 3, 4], [2, 1, 3, 4], [2, 2, 3, 4]]
 
@@ -655,8 +654,9 @@ class TestDataFrameReshape:
         df2["D"] = "foo"
         df3 = df2.unstack("B")
         result = df3.dtypes
+        dtype = "string" if using_infer_string else np.dtype("object")
         expected = Series(
-            [np.dtype("float64")] * 2 + [np.dtype("object")] * 2,
+            [np.dtype("float64")] * 2 + [dtype] * 2,
             index=MultiIndex.from_arrays(
                 [["C", "C", "D", "D"], [1, 2, 1, 2]], names=(None, "B")
             ),
@@ -968,7 +968,7 @@ class TestDataFrameReshape:
         right = DataFrame(vals, columns=cols, index=idx)
         tm.assert_frame_equal(left, right)
 
-    def test_unstack_nan_index3(self, using_array_manager):
+    def test_unstack_nan_index3(self):
         # GH7401
         df = DataFrame(
             {
@@ -990,10 +990,6 @@ class TestDataFrameReshape:
         )
 
         right = DataFrame(vals, columns=cols, index=idx)
-        if using_array_manager:
-            # INFO(ArrayManager) with ArrayManager preserve dtype where possible
-            cols = right.columns[[1, 2, 3, 5]]
-            right[cols] = right[cols].astype(df["C"].dtype)
         tm.assert_frame_equal(left, right)
 
     def test_unstack_nan_index4(self):
@@ -1221,16 +1217,16 @@ class TestDataFrameReshape:
     )
     @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     @pytest.mark.parametrize(
-        "index, columns",
+        "index",
         [
-            ([0, 0, 1, 1], MultiIndex.from_product([[1, 2], ["a", "b"]])),
-            ([0, 0, 2, 3], MultiIndex.from_product([[1, 2], ["a", "b"]])),
-            ([0, 1, 2, 3], MultiIndex.from_product([[1, 2], ["a", "b"]])),
+            [0, 0, 1, 1],
+            [0, 0, 2, 3],
+            [0, 1, 2, 3],
         ],
     )
-    def test_stack_multi_columns_non_unique_index(self, index, columns, future_stack):
+    def test_stack_multi_columns_non_unique_index(self, index, future_stack):
         # GH-28301
-
+        columns = MultiIndex.from_product([[1, 2], ["a", "b"]])
         df = DataFrame(index=index, columns=columns).fillna(1)
         stacked = df.stack(future_stack=future_stack)
         new_index = MultiIndex.from_tuples(stacked.index.to_numpy())
@@ -1359,14 +1355,16 @@ def test_unstack_fill_frame_object():
     # By default missing values will be NaN
     result = data.unstack()
     expected = DataFrame(
-        {"a": ["a", np.nan, "a"], "b": ["b", "c", np.nan]}, index=list("xyz")
+        {"a": ["a", np.nan, "a"], "b": ["b", "c", np.nan]},
+        index=list("xyz"),
+        dtype=object,
     )
     tm.assert_frame_equal(result, expected)
 
     # Fill with any value replaces missing values as expected
     result = data.unstack(fill_value="d")
     expected = DataFrame(
-        {"a": ["a", "d", "a"], "b": ["b", "c", "d"]}, index=list("xyz")
+        {"a": ["a", "d", "a"], "b": ["b", "c", "d"]}, index=list("xyz"), dtype=object
     )
     tm.assert_frame_equal(result, expected)
 
@@ -1495,7 +1493,7 @@ def test_stack_positional_level_duplicate_column_names(future_stack):
     tm.assert_frame_equal(result, expected)
 
 
-def test_unstack_non_slice_like_blocks(using_array_manager):
+def test_unstack_non_slice_like_blocks():
     # Case where the mgr_locs of a DataFrame's underlying blocks are not slice-like
 
     mi = MultiIndex.from_product([range(5), ["A", "B", "C"]])
@@ -1508,8 +1506,7 @@ def test_unstack_non_slice_like_blocks(using_array_manager):
         },
         index=mi,
     )
-    if not using_array_manager:
-        assert any(not x.mgr_locs.is_slice_like for x in df._mgr.blocks)
+    assert any(not x.mgr_locs.is_slice_like for x in df._mgr.blocks)
 
     res = df.unstack()
 
@@ -1723,11 +1720,10 @@ class TestStackUnstackMultiLevel:
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "idx, columns, exp_idx",
+        "idx, exp_idx",
         [
             [
                 list("abab"),
-                ["1st", "2nd", "1st"],
                 MultiIndex(
                     levels=[["a", "b"], ["1st", "2nd"]],
                     codes=[np.tile(np.arange(2).repeat(3), 2), np.tile([0, 1, 0], 4)],
@@ -1735,7 +1731,6 @@ class TestStackUnstackMultiLevel:
             ],
             [
                 MultiIndex.from_tuples((("a", 2), ("b", 1), ("a", 1), ("b", 2))),
-                ["1st", "2nd", "1st"],
                 MultiIndex(
                     levels=[["a", "b"], [1, 2], ["1st", "2nd"]],
                     codes=[
@@ -1747,12 +1742,12 @@ class TestStackUnstackMultiLevel:
             ],
         ],
     )
-    def test_stack_duplicate_index(self, idx, columns, exp_idx, future_stack):
+    def test_stack_duplicate_index(self, idx, exp_idx, future_stack):
         # GH10417
         df = DataFrame(
             np.arange(12).reshape(4, 3),
             index=idx,
-            columns=columns,
+            columns=["1st", "2nd", "1st"],
         )
         if future_stack:
             msg = "Columns with duplicate values are not supported in stack"
@@ -2083,7 +2078,7 @@ class TestStackUnstackMultiLevel:
         multi = df.set_index(["DATE", "ID"])
         multi.columns.name = "Params"
         unst = multi.unstack("ID")
-        msg = re.escape("agg function failed [how->mean,dtype->object]")
+        msg = re.escape("agg function failed [how->mean,dtype->")
         with pytest.raises(TypeError, match=msg):
             unst.resample("W-THU").mean()
         down = unst.resample("W-THU").mean(numeric_only=True)
@@ -2204,7 +2199,6 @@ class TestStackUnstackMultiLevel:
         ),
     )
     @pytest.mark.parametrize("stack_lev", range(2))
-    @pytest.mark.parametrize("sort", [True, False])
     def test_stack_order_with_unsorted_levels(
         self, levels, stack_lev, sort, future_stack
     ):
@@ -2298,7 +2292,7 @@ class TestStackUnstackMultiLevel:
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_preserve_types(
-        self, multiindex_year_month_day_dataframe_random_data
+        self, multiindex_year_month_day_dataframe_random_data, using_infer_string
     ):
         # GH#403
         ymd = multiindex_year_month_day_dataframe_random_data
@@ -2307,7 +2301,11 @@ class TestStackUnstackMultiLevel:
 
         unstacked = ymd.unstack("month")
         assert unstacked["A", 1].dtype == np.float64
-        assert unstacked["E", 1].dtype == np.object_
+        assert (
+            unstacked["E", 1].dtype == np.object_
+            if not using_infer_string
+            else "string"
+        )
         assert unstacked["F", 1].dtype == np.float64
 
     def test_unstack_group_index_overflow(self, future_stack):
@@ -2347,7 +2345,7 @@ class TestStackUnstackMultiLevel:
         result = s.unstack(4)
         assert result.shape == (500, 2)
 
-    def test_unstack_with_missing_int_cast_to_float(self, using_array_manager):
+    def test_unstack_with_missing_int_cast_to_float(self):
         # https://github.com/pandas-dev/pandas/issues/37115
         df = DataFrame(
             {
@@ -2359,24 +2357,19 @@ class TestStackUnstackMultiLevel:
 
         # add another int column to get 2 blocks
         df["is_"] = 1
-        if not using_array_manager:
-            assert len(df._mgr.blocks) == 2
+        assert len(df._mgr.blocks) == 2
 
         result = df.unstack("b")
         result[("is_", "ca")] = result[("is_", "ca")].fillna(0)
 
         expected = DataFrame(
             [[10.0, 10.0, 1.0, 1.0], [np.nan, 10.0, 0.0, 1.0]],
-            index=Index(["A", "B"], dtype="object", name="a"),
+            index=Index(["A", "B"], name="a"),
             columns=MultiIndex.from_tuples(
                 [("v", "ca"), ("v", "cb"), ("is_", "ca"), ("is_", "cb")],
                 names=[None, "b"],
             ),
         )
-        if using_array_manager:
-            # INFO(ArrayManager) with ArrayManager preserve dtype where possible
-            expected[("v", "cb")] = expected[("v", "cb")].astype("int64")
-            expected[("is_", "cb")] = expected[("is_", "cb")].astype("int64")
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_with_level_has_nan(self):
@@ -2630,4 +2623,42 @@ def test_stack_tuple_columns(future_stack):
             codes=[[0, 0, 0, 1, 1, 1, 2, 2, 2], [0, 1, 2, 0, 1, 2, 0, 1, 2]],
         ),
     )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype, na_value",
+    [
+        ("float64", np.nan),
+        ("Float64", np.nan),
+        ("Float64", pd.NA),
+        ("Int64", pd.NA),
+    ],
+)
+@pytest.mark.parametrize("test_multiindex", [True, False])
+def test_stack_preserves_na(dtype, na_value, test_multiindex):
+    # GH#56573
+    if test_multiindex:
+        index = MultiIndex.from_arrays(2 * [Index([na_value], dtype=dtype)])
+    else:
+        index = Index([na_value], dtype=dtype)
+    df = DataFrame({"a": [1]}, index=index)
+    result = df.stack(future_stack=True)
+
+    if test_multiindex:
+        expected_index = MultiIndex.from_arrays(
+            [
+                Index([na_value], dtype=dtype),
+                Index([na_value], dtype=dtype),
+                Index(["a"]),
+            ]
+        )
+    else:
+        expected_index = MultiIndex.from_arrays(
+            [
+                Index([na_value], dtype=dtype),
+                Index(["a"]),
+            ]
+        )
+    expected = Series(1, index=expected_index)
     tm.assert_series_equal(result, expected)

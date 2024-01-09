@@ -16,7 +16,7 @@ Copy-on-Write was first introduced in version 1.5.0. Starting from version 2.0 m
 optimizations that become possible through CoW are implemented and supported. All possible
 optimizations are supported starting from pandas 2.1.
 
-We expect that CoW will be enabled by default in version 3.0.
+CoW will be enabled by default in version 3.0.
 
 CoW will lead to more predictable behavior since it is not possible to update more than
 one object with one statement, e.g. indexing operations or methods won't have side-effects. Additionally, through
@@ -51,6 +51,105 @@ it explicitly disallows this. With CoW enabled, ``df`` is unchanged:
 
 The following sections will explain what this means and how it impacts existing
 applications.
+
+.. _copy_on_write.migration_guide:
+
+Migrating to Copy-on-Write
+--------------------------
+
+Copy-on-Write will be the default and only mode in pandas 3.0. This means that users
+need to migrate their code to be compliant with CoW rules.
+
+The default mode in pandas will raise warnings for certain cases that will actively
+change behavior and thus change user intended behavior.
+
+We added another mode, e.g.
+
+.. code-block:: python
+
+    pd.options.mode.copy_on_write = "warn"
+
+that will warn for every operation that will change behavior with CoW. We expect this mode
+to be very noisy, since many cases that we don't expect that they will influence users will
+also emit a warning. We recommend checking this mode and analyzing the warnings, but it is
+not necessary to address all of these warning. The first two items of the following lists
+are the only cases that need to be addressed to make existing code work with CoW.
+
+The following few items describe the user visible changes:
+
+**Chained assignment will never work**
+
+``loc`` should be used as an alternative. Check the
+:ref:`chained assignment section <copy_on_write_chained_assignment>` for more details.
+
+**Accessing the underlying array of a pandas object will return a read-only view**
+
+
+.. ipython:: python
+
+    ser = pd.Series([1, 2, 3])
+    ser.to_numpy()
+
+This example returns a NumPy array that is a view of the Series object. This view can
+be modified and thus also modify the pandas object. This is not compliant with CoW
+rules. The returned array is set to non-writeable to protect against this behavior.
+Creating a copy of this array allows modification. You can also make the array
+writeable again if you don't care about the pandas object anymore.
+
+See the section about :ref:`read-only NumPy arrays <copy_on_write_read_only_na>`
+for more details.
+
+**Only one pandas object is updated at once**
+
+The following code snippet updates both ``df`` and ``subset`` without CoW:
+
+.. ipython:: python
+
+    df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
+    subset = df["foo"]
+    subset.iloc[0] = 100
+    df
+
+This won't be possible anymore with CoW, since the CoW rules explicitly forbid this.
+This includes updating a single column as a :class:`Series` and relying on the change
+propagating back to the parent :class:`DataFrame`.
+This statement can be rewritten into a single statement with ``loc`` or ``iloc`` if
+this behavior is necessary. :meth:`DataFrame.where` is another suitable alternative
+for this case.
+
+Updating a column selected from a :class:`DataFrame` with an inplace method will
+also not work anymore.
+
+.. ipython:: python
+    :okwarning:
+
+    df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
+    df["foo"].replace(1, 5, inplace=True)
+    df
+
+This is another form of chained assignment. This can generally be rewritten in 2
+different forms:
+
+.. ipython:: python
+
+    df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
+    df.replace({"foo": {1: 5}}, inplace=True)
+    df
+
+A different alternative would be to not use ``inplace``:
+
+.. ipython:: python
+
+    df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
+    df["foo"] = df["foo"].replace(1, 5)
+    df
+
+**Constructors now copy NumPy arrays by default**
+
+The Series and DataFrame constructors will now copy NumPy array by default when not
+otherwise specified. This was changed to avoid mutating a pandas object when the
+NumPy array is changed inplace outside of pandas. You can set ``copy=False`` to
+avoid this copy.
 
 Description
 -----------
@@ -163,6 +262,8 @@ With copy on write this can be done by using ``loc``.
 
     df.loc[df["bar"] > 5, "foo"] = 100
 
+.. _copy_on_write_read_only_na:
+
 Read-only NumPy arrays
 ----------------------
 
@@ -216,7 +317,7 @@ you are modifying one object inplace.
 .. ipython:: python
 
     df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    df2 = df.reset_index()
+    df2 = df.reset_index(drop=True)
     df2.iloc[0, 0] = 100
 
 This creates two objects that share data and thus the setitem operation will trigger a
@@ -227,7 +328,7 @@ held by the object.
 .. ipython:: python
 
     df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    df = df.reset_index()
+    df = df.reset_index(drop=True)
     df.iloc[0, 0] = 100
 
 No copy is necessary in this example.

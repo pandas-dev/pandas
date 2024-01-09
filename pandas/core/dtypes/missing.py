@@ -557,11 +557,13 @@ def _array_equivalent_float(left: np.ndarray, right: np.ndarray) -> bool:
     return bool(((left == right) | (np.isnan(left) & np.isnan(right))).all())
 
 
-def _array_equivalent_datetimelike(left: np.ndarray, right: np.ndarray):
+def _array_equivalent_datetimelike(left: np.ndarray, right: np.ndarray) -> bool:
     return np.array_equal(left.view("i8"), right.view("i8"))
 
 
-def _array_equivalent_object(left: np.ndarray, right: np.ndarray, strict_nan: bool):
+def _array_equivalent_object(
+    left: np.ndarray, right: np.ndarray, strict_nan: bool
+) -> bool:
     left = ensure_object(left)
     right = ensure_object(right)
 
@@ -686,7 +688,8 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     if isinstance(dtype, ExtensionDtype):
         return dtype.na_value
     elif dtype.kind in "mM":
-        return dtype.type("NaT", "ns")
+        unit = np.datetime_data(dtype)[0]
+        return dtype.type("NaT", unit)
     elif dtype.kind == "f":
         return np.nan
     elif dtype.kind in "iu":

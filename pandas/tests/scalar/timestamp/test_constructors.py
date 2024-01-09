@@ -28,6 +28,7 @@ from pandas import (
     Timedelta,
     Timestamp,
 )
+import pandas._testing as tm
 
 
 class TestTimestampConstructorUnitKeyword:
@@ -329,6 +330,18 @@ class TestTimestampConstructorPositionalAndKeywordSupport:
 class TestTimestampClassMethodConstructors:
     # Timestamp constructors other than __new__
 
+    def test_utcnow_deprecated(self):
+        # GH#56680
+        msg = "Timestamp.utcnow is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            Timestamp.utcnow()
+
+    def test_utcfromtimestamp_deprecated(self):
+        # GH#56680
+        msg = "Timestamp.utcfromtimestamp is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            Timestamp.utcfromtimestamp(43)
+
     def test_constructor_strptime(self):
         # GH#25016
         # Test support for Timestamp.strptime
@@ -463,6 +476,13 @@ class TestTimestampResolutionInference:
 
         ts = Timestamp("2020-01-01 00+00:00")
         assert ts.unit == "s"
+
+    @pytest.mark.parametrize("method", ["now", "today"])
+    def test_now_today_unit(self, method):
+        # GH#55879
+        ts_from_method = getattr(Timestamp, method)()
+        ts_from_string = Timestamp(method)
+        assert ts_from_method.unit == ts_from_string.unit == "us"
 
 
 class TestTimestampConstructors:
@@ -815,6 +835,7 @@ class TestTimestampConstructors:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp("2262-04-11 23:47:16.854775808")
 
+    @pytest.mark.skip_ubsan
     def test_bounds_with_different_units(self):
         out_of_bounds_dates = ("1677-09-21", "2262-04-12")
 
