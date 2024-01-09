@@ -6301,7 +6301,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         if name in self.__dict__:
             # prioritize attr over column
-            return object.__setattr__(self, name, value)
+            object.__setattr__(self, name, value)
+            return
 
         # if this fails, go on to more involved attribute setting
         # (note that this matches __getattr__, above).
@@ -6311,10 +6312,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             object.__setattr__(self, name, value)
         else:
             try:
-                if (
-                    name in self.__dict__
-                    and isinstance(self.__dict__[name], Index)
-                ):
+                if name in self.__dict__ and isinstance(self.__dict__[name], Index):
                     object.__setattr__(self, name, value)
                 elif name in self._info_axis:
                     self[name] = value
