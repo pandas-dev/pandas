@@ -907,6 +907,7 @@ Sparse
 
 Other
 ^^^^^
+- :meth:`DataFrame.__dataframe__` did not support pyarrow large strings (:issue:`56702`)
 - Bug in :func:`DataFrame.describe` when formatting percentiles in the resulting percentile 99.999% is rounded to 100% (:issue:`55765`)
 - Bug in :func:`cut` and :func:`qcut` with ``datetime64`` dtype values with non-nanosecond units incorrectly returning nanosecond-unit bins (:issue:`56101`)
 - Bug in :func:`cut` incorrectly allowing cutting of timezone-aware datetimes with timezone-naive bins (:issue:`54964`)
