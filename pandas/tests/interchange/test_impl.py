@@ -362,7 +362,7 @@ def test_empty_string_column():
     result = pd.api.interchange.from_dataframe(df2)
     tm.assert_frame_equal(df, result)
 
-    
+
 def test_large_string():
     # GH#56702
     pytest.importorskip("pyarrow")

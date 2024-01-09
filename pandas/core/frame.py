@@ -6703,7 +6703,8 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         subset : column label or sequence of labels, optional
             Only consider certain columns for identifying duplicates, by
-            default use all of the columns.
+            default use all of the columns. Columns with mutable/unhashable dtype
+            like lists are not supported.
         keep : {'first', 'last', ``False``}, default 'first'
             Determines which duplicates (if any) to keep.
 
@@ -6796,7 +6797,8 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         subset : column label or sequence of labels, optional
             Only consider certain columns for identifying duplicates, by
-            default use all of the columns.
+            default use all of the columns. Columns with mutable/unhashable dtype
+            like lists are not supported.
         keep : {'first', 'last', False}, default 'first'
             Determines which duplicates (if any) to mark.
 
