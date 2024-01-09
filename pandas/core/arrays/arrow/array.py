@@ -2331,20 +2331,32 @@ class ArrowExtensionArray(
         if (start == 0 or start is None) and end is None:
             result = pc.find_substring(self._pa_array, sub)
         else:
+            length = pc.utf8_length(self._pa_array)
             if start is None:
                 start_offset = 0
                 start = 0
             elif start < 0:
-                start_offset = pc.add(start, pc.utf8_length(self._pa_array))
+                start_offset = pc.add(start, length)
                 start_offset = pc.if_else(pc.less(start_offset, 0), 0, start_offset)
             else:
                 start_offset = start
             slices = pc.utf8_slice_codeunits(self._pa_array, start, stop=end)
             result = pc.find_substring(slices, sub)
-            not_found = pc.equal(result, pa.scalar(-1, type=result.type))
-
+            found = pc.not_equal(result, pa.scalar(-1, type=result.type))
+            if end is None:
+                end = length
+            elif end < 0:
+                end = pc.add(end, length)
+                end = pc.if_else(pc.less(end, 0), 0, end)
+            found = pc.and_(
+                found,
+                pc.and_(
+                    pc.less_equal(start_offset, end),
+                    pc.less_equal(start_offset, length),
+                ),
+            )
             offset_result = pc.add(result, start_offset)
-            result = pc.if_else(not_found, result, offset_result)
+            result = pc.if_else(found, offset_result, -1)
         return type(self)(result)
 
     def _str_join(self, sep: str) -> Self:

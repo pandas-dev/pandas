@@ -23,6 +23,7 @@ from io import (
     BytesIO,
     StringIO,
 )
+from itertools import combinations
 import operator
 import pickle
 import re
@@ -1973,6 +1974,27 @@ def test_str_find_large_start():
         result = ser.str.find(sub="d", start=16)
         expected = pd.Series([-1, None], dtype=ArrowDtype(pa.int64()))
         tm.assert_series_equal(result, expected)
+
+
+def _get_all_substrings(string):
+    length = len(string) + 1
+    return [string[x:y] for x, y in combinations(range(length), r=2)]
+
+
+@pytest.mark.xfail(
+    pa_version_under13p0, reason="https://github.com/apache/arrow/issues/36311"
+)
+def test_str_find_e2e():
+    string = "abcdefgh"
+    s = pd.Series([string], dtype=ArrowDtype(pa.string()))
+    substrings = _get_all_substrings(string) + ["", "az", "abce"]
+    offsets = list(range(-15, 15)) + [None]
+    for start in offsets:
+        for end in offsets:
+            for sub in substrings:
+                result = s.str.find(sub, start, end)
+                expected = pd.Series([string.find(sub, start, end)], dtype=result.dtype)
+                tm.assert_series_equal(result, expected)
 
 
 def test_str_find_negative_start_negative_end_no_match():
