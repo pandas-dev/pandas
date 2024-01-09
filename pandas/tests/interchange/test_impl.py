@@ -356,7 +356,7 @@ def test_interchange_from_corrected_buffer_dtypes(monkeypatch) -> None:
 
 
 def test_empty_string_column():
-    df = pd.Series([], name="a", dtype=str).to_frame()
+    df = pd.DataFrame({"a": []}, dtype=str)
     df2 = df.__dataframe__()
     result = pd.api.interchange.from_dataframe(df2)
     tm.assert_frame_equal(df, result)
