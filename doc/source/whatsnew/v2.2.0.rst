@@ -790,6 +790,7 @@ Numeric
 - Bug in :meth:`Series.__floordiv__` for :class:`ArrowDtype` with integral dtypes raising for large values (:issue:`56645`)
 - Bug in :meth:`Series.pow` not filling missing values correctly (:issue:`55512`)
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` matching float ``0.0`` with ``False`` and vice versa (:issue:`55398`)
+- Bug in :meth:`Series.round` raising for nullable boolean dtype (:issue:`55936`)
 
 Conversion
 ^^^^^^^^^^
@@ -816,6 +817,7 @@ Interval
 - Bug in :class:`Interval` ``__repr__`` not displaying UTC offsets for :class:`Timestamp` bounds. Additionally the hour, minute and second components will now be shown (:issue:`55015`)
 - Bug in :meth:`IntervalIndex.factorize` and :meth:`Series.factorize` with :class:`IntervalDtype` with datetime64 or timedelta64 intervals not preserving non-nanosecond units (:issue:`56099`)
 - Bug in :meth:`IntervalIndex.from_arrays` when passed ``datetime64`` or ``timedelta64`` arrays with mismatched resolutions constructing an invalid ``IntervalArray`` object (:issue:`55714`)
+- Bug in :meth:`IntervalIndex.from_tuples` raising if subtype is a nullable extension dtype (:issue:`56765`)
 - Bug in :meth:`IntervalIndex.get_indexer` with datetime or timedelta intervals incorrectly matching on integer targets (:issue:`47772`)
 - Bug in :meth:`IntervalIndex.get_indexer` with timezone-aware datetime intervals incorrectly matching on a sequence of timezone-naive targets (:issue:`47772`)
 - Bug in setting values on a :class:`Series` with an :class:`IntervalIndex` using a slice incorrectly raising (:issue:`54722`)
@@ -847,6 +849,7 @@ I/O
 - Bug in :func:`read_json` not handling dtype conversion properly if ``infer_string`` is set (:issue:`56195`)
 - Bug in :meth:`DataFrame.to_excel`, with ``OdsWriter`` (``ods`` files) writing Boolean/string value (:issue:`54994`)
 - Bug in :meth:`DataFrame.to_hdf` and :func:`read_hdf` with ``datetime64`` dtypes with non-nanosecond resolution failing to round-trip correctly (:issue:`55622`)
+- Bug in :meth:`DataFrame.to_stata` raising for extension dtypes (:issue:`54671`)
 - Bug in :meth:`~pandas.read_excel` with ``engine="odf"`` (``ods`` files) when a string cell contains an annotation (:issue:`55200`)
 - Bug in :meth:`~pandas.read_excel` with an ODS file without cached formatted cell for float values (:issue:`55219`)
 - Bug where :meth:`DataFrame.to_json` would raise an ``OverflowError`` instead of a ``TypeError`` with unsupported NumPy types (:issue:`55403`)
@@ -890,6 +893,7 @@ Reshaping
 - Bug in :func:`merge_asof` when using a :class:`Timedelta` tolerance on a :class:`ArrowDtype` column (:issue:`56486`)
 - Bug in :func:`merge` not raising when merging datetime columns with timedelta columns (:issue:`56455`)
 - Bug in :func:`merge` not raising when merging string columns with numeric columns (:issue:`56441`)
+- Bug in :func:`merge` not sorting for new string dtype (:issue:`56442`)
 - Bug in :func:`merge` returning columns in incorrect order when left and/or right is empty (:issue:`51929`)
 - Bug in :meth:`DataFrame.melt` where an exception was raised if ``var_name`` was not a string (:issue:`55948`)
 - Bug in :meth:`DataFrame.melt` where it would not preserve the datetime (:issue:`55254`)

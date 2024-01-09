@@ -92,7 +92,8 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
--
+- Deprecated :meth:`Timestamp.utcfromtimestamp`, use ``Timestamp.fromtimestamp(ts, "UTC")`` instead (:issue:`56680`)
+- Deprecated :meth:`Timestamp.utcnow`, use ``Timestamp.now("UTC")`` instead (:issue:`56680`)
 -
 
 .. ---------------------------------------------------------------------------

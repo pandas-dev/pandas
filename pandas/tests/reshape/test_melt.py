@@ -349,13 +349,12 @@ class TestMelt:
             df.melt(["a", "b", "not_here", "or_there"], ["c", "d"])
 
         # Multiindex melt fails if column is missing from multilevel melt
-        multi = df.copy()
-        multi.columns = [list("ABCD"), list("abcd")]
+        df.columns = [list("ABCD"), list("abcd")]
         with pytest.raises(KeyError, match=msg):
-            multi.melt([("E", "a")], [("B", "b")])
+            df.melt([("E", "a")], [("B", "b")])
         # Multiindex fails if column is missing from single level melt
         with pytest.raises(KeyError, match=msg):
-            multi.melt(["A"], ["F"], col_level=0)
+            df.melt(["A"], ["F"], col_level=0)
 
     def test_melt_mixed_int_str_id_vars(self):
         # GH 29718

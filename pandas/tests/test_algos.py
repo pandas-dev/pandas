@@ -1788,7 +1788,6 @@ class TestRank:
         arr = np.array(arr)
 
         mask = ~np.isfinite(arr)
-        arr = arr.copy()
         result = libalgos.rank_1d(arr)
         arr[mask] = np.inf
         exp = sp_stats.rankdata(arr)
