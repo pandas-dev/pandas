@@ -829,6 +829,7 @@ Indexing
 - Bug in :meth:`Index.difference` not returning a unique set of values when ``other`` is empty or ``other`` is considered non-comparable (:issue:`55113`)
 - Bug in setting :class:`Categorical` values into a :class:`DataFrame` with numpy dtypes raising ``RecursionError`` (:issue:`52927`)
 - Fixed bug when creating new column with missing values when setting a single string value (:issue:`56204`)
+- Bug in :meth:`NDFrame.__setattr__` getting from a property before setting to it if extending `DataFrame` with a property (:issue:`56773`)
 
 Missing
 ^^^^^^^

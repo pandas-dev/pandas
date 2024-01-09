@@ -149,6 +149,22 @@ class TestDataFrame:
         assert df.y == 5
         tm.assert_series_equal(df["y"], Series([2, 4, 6], name="y"))
 
+    def test_setattr_doesnt_call_getattr(self):
+        from functools import cached_property
+        class Foo(DataFrame):
+            @cached_property
+            def bar(self):
+                raise ValueError
+        try:
+            Foo().bar = ...
+        except ValueError:
+            pytest.fail(
+                f'DataFrame.__setattr__ prematurely called '
+                f'getattr on the same name.'
+            )
+
+
+
     def test_deepcopy_empty(self):
         # This test covers empty frame copying with non-empty column sets
         # as reported in issue GH15370
