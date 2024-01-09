@@ -30,9 +30,8 @@ from pandas.core.resample import _asfreq_compat
         date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D"),
     ],
 )
-@pytest.mark.parametrize("klass", [DataFrame, Series])
-def test_asfreq(klass, index, freq):
-    obj = klass(range(len(index)), index=index)
+def test_asfreq(frame_or_series, index, freq):
+    obj = frame_or_series(range(len(index)), index=index)
     idx_range = date_range if isinstance(index, DatetimeIndex) else timedelta_range
 
     result = obj.resample(freq).asfreq()
@@ -135,7 +134,7 @@ def test_resample_empty_series(freq, index, resample_method):
 
     if resample_method == "ohlc":
         expected = DataFrame(
-            [], index=ser.index[:0].copy(), columns=["open", "high", "low", "close"]
+            [], index=ser.index[:0], columns=["open", "high", "low", "close"]
         )
         expected.index = _asfreq_compat(ser.index, freq)
         tm.assert_frame_equal(result, expected, check_dtype=False)
@@ -168,7 +167,7 @@ def test_resample_nat_index_series(freq, resample_method):
 
     if resample_method == "ohlc":
         expected = DataFrame(
-            [], index=ser.index[:0].copy(), columns=["open", "high", "low", "close"]
+            [], index=ser.index[:0], columns=["open", "high", "low", "close"]
         )
         tm.assert_frame_equal(result, expected, check_dtype=False)
     else:
@@ -249,9 +248,7 @@ def test_resample_empty_dataframe(index, freq, resample_method):
     if resample_method == "ohlc":
         # TODO: no tests with len(df.columns) > 0
         mi = MultiIndex.from_product([df.columns, ["open", "high", "low", "close"]])
-        expected = DataFrame(
-            [], index=df.index[:0].copy(), columns=mi, dtype=np.float64
-        )
+        expected = DataFrame([], index=df.index[:0], columns=mi, dtype=np.float64)
         expected.index = _asfreq_compat(df.index, freq)
 
     elif resample_method != "size":

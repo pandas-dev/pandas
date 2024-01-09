@@ -386,18 +386,11 @@ def idfn(x):
         return str(x)
 
 
-@pytest.fixture(params=_all_methods, ids=lambda x: idfn(x[-1]))
-def ndframe_method(request):
-    """
-    An NDFrame method returning an NDFrame.
-    """
-    return request.param
-
-
 @pytest.mark.filterwarnings(
     "ignore:DataFrame.fillna with 'method' is deprecated:FutureWarning",
     "ignore:last is deprecated:FutureWarning",
 )
+@pytest.mark.parametrize("ndframe_method", _all_methods, ids=lambda x: idfn(x[-1]))
 def test_finalize_called(ndframe_method):
     cls, init_args, method = ndframe_method
     ndframe = cls(*init_args)

@@ -548,7 +548,6 @@ def test_extractall_single_group_with_quantifier(any_string_dtype):
         (["a3", "b3", "d4c2"], (None,)),
         (["a3", "b3", "d4c2"], ("i1", "i2")),
         (["a3", "b3", "d4c2"], (None, "i2")),
-        (["a3", "b3", "d4c2"], ("i1", "i2")),
     ],
 )
 def test_extractall_no_matches(data, names, any_string_dtype):

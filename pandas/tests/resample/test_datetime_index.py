@@ -36,11 +36,6 @@ from pandas.tseries import offsets
 from pandas.tseries.offsets import Minute
 
 
-@pytest.fixture(params=["s", "ms", "us", "ns"])
-def unit(request):
-    return request.param
-
-
 @pytest.fixture
 def simple_date_range_series():
     """
