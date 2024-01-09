@@ -46,7 +46,6 @@ class TestCopy:
         copy = float_string_frame.copy()
         assert copy._mgr is not float_string_frame._mgr
 
-    @td.skip_array_manager_invalid_test
     def test_copy_consolidates(self):
         # GH#42477
         df = DataFrame(

@@ -33,12 +33,10 @@ def left_right():
         np.random.default_rng(2).integers(low, high, (n, 7)), columns=list("ABCDEFG")
     )
     left["left"] = left.sum(axis=1)
-
-    # one-2-one match
-    i = np.random.default_rng(2).permutation(len(left))
-    right = left.iloc[i].copy()
+    right = left.sample(
+        frac=1, random_state=np.random.default_rng(2), ignore_index=True
+    )
     right.columns = right.columns[:-1].tolist() + ["right"]
-    right.index = np.arange(len(right))
     right["right"] *= -1
     return left, right
 
@@ -218,14 +216,13 @@ class TestMerge:
         assert result.name is None
 
     @pytest.mark.slow
-    @pytest.mark.parametrize("how", ["left", "right", "outer", "inner"])
-    def test_int64_overflow_how_merge(self, left_right, how):
+    def test_int64_overflow_how_merge(self, left_right, join_type):
         left, right = left_right
 
         out = merge(left, right, how="outer")
         out.sort_values(out.columns.tolist(), inplace=True)
         out.index = np.arange(len(out))
-        tm.assert_frame_equal(out, merge(left, right, how=how, sort=True))
+        tm.assert_frame_equal(out, merge(left, right, how=join_type, sort=True))
 
     @pytest.mark.slow
     def test_int64_overflow_sort_false_order(self, left_right):
@@ -239,10 +236,9 @@ class TestMerge:
         tm.assert_frame_equal(right, out[right.columns.tolist()])
 
     @pytest.mark.slow
-    @pytest.mark.parametrize("how", ["left", "right", "outer", "inner"])
-    @pytest.mark.parametrize("sort", [True, False])
-    def test_int64_overflow_one_to_many_none_match(self, how, sort):
+    def test_int64_overflow_one_to_many_none_match(self, join_type, sort):
         # one-2-many/none match
+        how = join_type
         low, high, n = -1 << 10, 1 << 10, 1 << 11
         left = DataFrame(
             np.random.default_rng(2).integers(low, high, (n, 7)).astype("int64"),
@@ -269,13 +265,12 @@ class TestMerge:
         right["right"] = np.random.default_rng(2).standard_normal(len(right))
 
         # shuffle left & right frames
-        i = np.random.default_rng(5).permutation(len(left))
-        left = left.iloc[i].copy()
-        left.index = np.arange(len(left))
-
-        i = np.random.default_rng(6).permutation(len(right))
-        right = right.iloc[i].copy()
-        right.index = np.arange(len(right))
+        left = left.sample(
+            frac=1, ignore_index=True, random_state=np.random.default_rng(5)
+        )
+        right = right.sample(
+            frac=1, ignore_index=True, random_state=np.random.default_rng(6)
+        )
 
         # manually compute outer merge
         ldict, rdict = defaultdict(list), defaultdict(list)
@@ -309,13 +304,8 @@ class TestMerge:
                     for rv in rval
                 )
 
-        def align(df):
-            df = df.sort_values(df.columns.tolist())
-            df.index = np.arange(len(df))
-            return df
-
         out = DataFrame(vals, columns=list("ABCDEFG") + ["left", "right"])
-        out = align(out)
+        out = out.sort_values(out.columns.to_list(), ignore_index=True)
 
         jmask = {
             "left": out["left"].notna(),
@@ -325,19 +315,21 @@ class TestMerge:
         }
 
         mask = jmask[how]
-        frame = align(out[mask].copy())
+        frame = out[mask].sort_values(out.columns.to_list(), ignore_index=True)
         assert mask.all() ^ mask.any() or how == "outer"
 
         res = merge(left, right, how=how, sort=sort)
         if sort:
             kcols = list("ABCDEFG")
             tm.assert_frame_equal(
-                res[kcols].copy(), res[kcols].sort_values(kcols, kind="mergesort")
+                res[kcols], res[kcols].sort_values(kcols, kind="mergesort")
             )
 
         # as in GH9092 dtypes break with outer/right join
         # 2021-12-18: dtype does not break anymore
-        tm.assert_frame_equal(frame, align(res))
+        tm.assert_frame_equal(
+            frame, res.sort_values(res.columns.to_list(), ignore_index=True)
+        )
 
 
 @pytest.mark.parametrize(

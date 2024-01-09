@@ -13,7 +13,6 @@ from pandas.compat import (
     is_platform_windows,
 )
 from pandas.compat.numpy import np_version_gt2
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -136,7 +135,6 @@ class TestDataFrameSelectReindex:
         reason="Passes int32 values to DatetimeArray in make_na_array on "
         "windows, 32bit linux builds",
     )
-    @td.skip_array_manager_not_yet_implemented
     def test_reindex_tzaware_fill_value(self):
         # GH#52586
         df = DataFrame([[1]])
@@ -198,7 +196,6 @@ class TestDataFrameSelectReindex:
         else:
             assert not np.shares_memory(result2[0].array._data, df[0].array._data)
 
-    @td.skip_array_manager_not_yet_implemented
     def test_reindex_date_fill_value(self):
         # passing date to dt64 is deprecated; enforced in 2.0 to cast to object
         arr = date_range("2016-01-01", periods=6).values.reshape(3, 2)
@@ -455,19 +452,16 @@ class TestDataFrameSelectReindex:
             ("mid",),
             ("mid", "btm"),
             ("mid", "btm", "top"),
-            ("mid",),
             ("mid", "top"),
             ("mid", "top", "btm"),
             ("btm",),
             ("btm", "mid"),
             ("btm", "mid", "top"),
-            ("btm",),
             ("btm", "top"),
             ("btm", "top", "mid"),
             ("top",),
             ("top", "mid"),
             ("top", "mid", "btm"),
-            ("top",),
             ("top", "btm"),
             ("top", "btm", "mid"),
         ],
@@ -1225,13 +1219,7 @@ class TestDataFrameSelectReindex:
         expected = DataFrame({"a": [np.nan] * 3}, index=idx, dtype=object)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "src_idx",
-        [
-            Index([]),
-            CategoricalIndex([]),
-        ],
-    )
+    @pytest.mark.parametrize("src_idx", [Index, CategoricalIndex])
     @pytest.mark.parametrize(
         "cat_idx",
         [
@@ -1246,7 +1234,7 @@ class TestDataFrameSelectReindex:
         ],
     )
     def test_reindex_empty(self, src_idx, cat_idx):
-        df = DataFrame(columns=src_idx, index=["K"], dtype="f8")
+        df = DataFrame(columns=src_idx([]), index=["K"], dtype="f8")
 
         result = df.reindex(columns=cat_idx)
         expected = DataFrame(index=["K"], columns=cat_idx, dtype="f8")
@@ -1287,36 +1275,14 @@ class TestDataFrameSelectReindex:
         assert res.iloc[-1, 1] is fv
         tm.assert_frame_equal(res, expected)
 
-    @pytest.mark.parametrize(
-        "index_df,index_res,index_exp",
-        [
-            (
-                CategoricalIndex([], categories=["A"]),
-                Index(["A"]),
-                Index(["A"]),
-            ),
-            (
-                CategoricalIndex([], categories=["A"]),
-                Index(["B"]),
-                Index(["B"]),
-            ),
-            (
-                CategoricalIndex([], categories=["A"]),
-                CategoricalIndex(["A"]),
-                CategoricalIndex(["A"]),
-            ),
-            (
-                CategoricalIndex([], categories=["A"]),
-                CategoricalIndex(["B"]),
-                CategoricalIndex(["B"]),
-            ),
-        ],
-    )
-    def test_reindex_not_category(self, index_df, index_res, index_exp):
+    @pytest.mark.parametrize("klass", [Index, CategoricalIndex])
+    @pytest.mark.parametrize("data", ["A", "B"])
+    def test_reindex_not_category(self, klass, data):
         # GH#28690
-        df = DataFrame(index=index_df)
-        result = df.reindex(index=index_res)
-        expected = DataFrame(index=index_exp)
+        df = DataFrame(index=CategoricalIndex([], categories=["A"]))
+        idx = klass([data])
+        result = df.reindex(index=idx)
+        expected = DataFrame(index=idx)
         tm.assert_frame_equal(result, expected)
 
     def test_invalid_method(self):

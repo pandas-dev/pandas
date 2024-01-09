@@ -1008,7 +1008,8 @@ def get_grouper(
                 return False
             if isinstance(gpr, Series) and isinstance(obj_gpr_column, Series):
                 return gpr._mgr.references_same_values(  # type: ignore[union-attr]
-                    obj_gpr_column._mgr, 0  # type: ignore[arg-type]
+                    obj_gpr_column._mgr,  # type: ignore[arg-type]
+                    0,
                 )
             return False
         try:

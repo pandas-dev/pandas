@@ -105,10 +105,9 @@ class BaseSetitemTests:
         assert data[0] == data[2]
         assert data[1] == data[2]
 
-    @pytest.mark.parametrize("setter", ["loc", "iloc"])
-    def test_setitem_scalar(self, data, setter):
+    def test_setitem_scalar(self, data, indexer_li):
         arr = pd.Series(data)
-        setter = getattr(arr, setter)
+        setter = indexer_li(arr)
         setter[0] = data[1]
         assert arr[0] == data[1]
 
@@ -210,7 +209,8 @@ class BaseSetitemTests:
                 [0, 1, 2, pd.NA], True, marks=pytest.mark.xfail(reason="GH-31948")
             ),
             (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),
-            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),
+            # TODO: change False to True?
+            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),  # noqa: PT014
         ],
         ids=["list-False", "list-True", "integer-array-False", "integer-array-True"],
     )
@@ -333,7 +333,7 @@ class BaseSetitemTests:
 
     def test_setitem_slice_mismatch_length_raises(self, data):
         arr = data[:5]
-        with pytest.raises(ValueError):
+        with tm.external_error_raised(ValueError):
             arr[:1] = arr[:2]
 
     def test_setitem_slice_array(self, data):
@@ -343,7 +343,7 @@ class BaseSetitemTests:
 
     def test_setitem_scalar_key_sequence_raise(self, data):
         arr = data[:5].copy()
-        with pytest.raises(ValueError):
+        with tm.external_error_raised(ValueError):
             arr[0] = arr[[0, 1]]
 
     def test_setitem_preserves_views(self, data):
@@ -397,10 +397,6 @@ class BaseSetitemTests:
     def test_setitem_frame_2d_values(self, data):
         # GH#44514
         df = pd.DataFrame({"A": data})
-
-        # Avoiding using_array_manager fixture
-        #  https://github.com/pandas-dev/pandas/pull/44514#discussion_r754002410
-        using_array_manager = isinstance(df._mgr, pd.core.internals.ArrayManager)
         using_copy_on_write = pd.options.mode.copy_on_write
 
         blk_data = df._mgr.arrays[0]
@@ -415,7 +411,7 @@ class BaseSetitemTests:
 
         df.iloc[:] = df.values
         tm.assert_frame_equal(df, orig)
-        if not using_array_manager and not using_copy_on_write:
+        if not using_copy_on_write:
             # GH#33457 Check that this setting occurred in-place
             # FIXME(ArrayManager): this should work there too
             assert df._mgr.arrays[0] is blk_data

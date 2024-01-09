@@ -19,10 +19,6 @@ from pandas.tseries import offsets
 
 
 class TestAsFreq:
-    @pytest.fixture(params=["s", "ms", "us", "ns"])
-    def unit(self, request):
-        return request.param
-
     def test_asfreq2(self, frame_or_series):
         ts = frame_or_series(
             [0.0, 1.0, 2.0],

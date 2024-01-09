@@ -313,7 +313,6 @@ class TestNumpyExtensionArray(base.ExtensionTests):
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.skip("TODO: tests not written yet")
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_frame(self, data, all_numeric_reductions, skipna):
         pass
 
@@ -374,19 +373,6 @@ class TestNumpyExtensionArray(base.ExtensionTests):
     def test_setitem_integer_array(self, data, idx, box_in_series):
         super().test_setitem_integer_array(data, idx, box_in_series)
 
-    @pytest.mark.parametrize(
-        "idx, box_in_series",
-        [
-            ([0, 1, 2, pd.NA], False),
-            pytest.param([0, 1, 2, pd.NA], True, marks=pytest.mark.xfail),
-            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),
-            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),
-        ],
-        ids=["list-False", "list-True", "integer-array-False", "integer-array-True"],
-    )
-    def test_setitem_integer_with_missing_raises(self, data, idx, box_in_series):
-        super().test_setitem_integer_with_missing_raises(data, idx, box_in_series)
-
     @skip_nested
     def test_setitem_slice(self, data, box_in_series):
         super().test_setitem_slice(data, box_in_series)
@@ -420,16 +406,6 @@ class TestNumpyExtensionArray(base.ExtensionTests):
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_EA_types(self, engine, data, request):
         super().test_EA_types(engine, data, request)
-
-    @pytest.mark.xfail(reason="Expect NumpyEA, get np.ndarray")
-    def test_compare_array(self, data, comparison_op):
-        super().test_compare_array(data, comparison_op)
-
-    def test_compare_scalar(self, data, comparison_op, request):
-        if data.dtype.kind == "f" or comparison_op.__name__ in ["eq", "ne"]:
-            mark = pytest.mark.xfail(reason="Expect NumpyEA, get np.ndarray")
-            request.applymarker(mark)
-        super().test_compare_scalar(data, comparison_op)
 
 
 class Test2DCompat(base.NDArrayBacked2DTests):
