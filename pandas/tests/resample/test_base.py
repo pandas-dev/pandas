@@ -337,12 +337,17 @@ def test_resample_size_empty_dataframe(freq, index):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "index", [DatetimeIndex([]), TimedeltaIndex([]), PeriodIndex([], freq="D")]
+)
 @pytest.mark.parametrize("freq", ["ME", "D", "h"])
 @pytest.mark.parametrize(
     "method", ["ffill", "bfill", "nearest", "asfreq", "interpolate"]
 )
-def test_resample_upsample_empty_dataframe(freq, method, empty_frame_dti):
+def test_resample_upsample_empty_dataframe(index, freq, method):
     # GH#55572
+    empty_frame_dti = DataFrame(index=index)
+
     if freq == "ME" and isinstance(empty_frame_dti.index, TimedeltaIndex):
         msg = (
             "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
@@ -354,11 +359,18 @@ def test_resample_upsample_empty_dataframe(freq, method, empty_frame_dti):
     elif freq == "ME" and isinstance(empty_frame_dti.index, PeriodIndex):
         # index is PeriodIndex, so convert to corresponding Period freq
         freq = "M"
-    rs = empty_frame_dti.resample(freq)
+
+    msg = "Resampling with a PeriodIndex"
+    warn = None
+    if isinstance(empty_frame_dti.index, PeriodIndex):
+        warn = FutureWarning
+
+    with tm.assert_produces_warning(warn, match=msg):
+        rs = empty_frame_dti.resample(freq)
     result = getattr(rs, method)()
 
-    index = _asfreq_compat(empty_frame_dti.index, freq)
-    expected = DataFrame([], index=index)
+    expected_index = _asfreq_compat(empty_frame_dti.index, freq)
+    expected = DataFrame([], index=expected_index)
 
     tm.assert_frame_equal(result, expected)
 
