@@ -2488,18 +2488,30 @@ def _factorize_keys(
                 .combine_chunks()
                 .dictionary_encode()
             )
-            length = len(dc.dictionary)
 
             llab, rlab, count = (
-                pc.fill_null(dc.indices[slice(len_lk)], length)
+                pc.fill_null(dc.indices[slice(len_lk)], -1)
                 .to_numpy()
                 .astype(np.intp, copy=False),
-                pc.fill_null(dc.indices[slice(len_lk, None)], length)
+                pc.fill_null(dc.indices[slice(len_lk, None)], -1)
                 .to_numpy()
                 .astype(np.intp, copy=False),
                 len(dc.dictionary),
             )
+
+            if sort:
+                uniques = dc.dictionary.to_numpy(zero_copy_only=False)
+                llab, rlab = _sort_labels(uniques, llab, rlab)
+
             if dc.null_count > 0:
+                lmask = llab == -1
+                lany = lmask.any()
+                rmask = rlab == -1
+                rany = rmask.any()
+                if lany:
+                    np.putmask(llab, lmask, count)
+                if rany:
+                    np.putmask(rlab, rmask, count)
                 count += 1
             return llab, rlab, count
 
