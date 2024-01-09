@@ -188,6 +188,26 @@ For a full list of ADBC drivers and their development status, see the `ADBC Driv
 Implementation Status <https://arrow.apache.org/adbc/current/driver/status.html>`_
 documentation.
 
+.. _whatsnew_220.enhancements.case_when:
+
+Create a pandas Series based on one or more conditions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :meth:`Series.case_when` function has been added to create a Series object based on one or more conditions. (:issue:`39154`)
+
+.. ipython:: python
+
+   import pandas as pd
+
+   df = pd.DataFrame(dict(a=[1, 2, 3], b=[4, 5, 6]))
+   default=pd.Series('default', index=df.index)
+   default.case_when(
+        caselist=[
+            (df.a == 1, 'first'),                              # condition, replacement
+            (df.a.gt(1) & df.b.eq(5), 'second'),  # condition, replacement
+        ],
+   )
+
 .. _whatsnew_220.enhancements.to_numpy_ea:
 
 ``to_numpy`` for NumPy nullable and Arrow types converts to suitable NumPy dtype
