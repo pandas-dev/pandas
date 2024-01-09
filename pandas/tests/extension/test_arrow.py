@@ -1925,6 +1925,7 @@ def test_str_fullmatch(pat, case, na, exp):
         ["bc", 1, 3, [1, None], pa.int64()],
         ["ab", 1, None, [-1, None], pa.int64()],
         ["ab", -3, -3, [-1, None], pa.int64()],
+        ["ab", None, None, [0, None], pa.int32()],
     ],
 )
 def test_str_find(sub, start, end, exp, exp_type):
