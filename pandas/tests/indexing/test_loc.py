@@ -578,7 +578,8 @@ class TestLocBaseIndependent:
             }
         )
         df = frame_for_consistency.copy()
-        df.loc[:, "date"] = val
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            df.loc[:, "date"] = val
         tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_consistency_dt64_to_str(self, frame_for_consistency):
@@ -592,7 +593,8 @@ class TestLocBaseIndependent:
             }
         )
         df = frame_for_consistency.copy()
-        df.loc[:, "date"] = "foo"
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            df.loc[:, "date"] = "foo"
         tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_consistency_dt64_to_float(self, frame_for_consistency):
@@ -605,14 +607,16 @@ class TestLocBaseIndependent:
             }
         )
         df = frame_for_consistency.copy()
-        df.loc[:, "date"] = 1.0
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            df.loc[:, "date"] = 1.0
         tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_consistency_single_row(self):
         # GH 15494
         # setting on frame with single row
         df = DataFrame({"date": Series([Timestamp("20180101")])})
-        df.loc[:, "date"] = "string"
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            df.loc[:, "date"] = "string"
         expected = DataFrame({"date": Series(["string"])})
         tm.assert_frame_equal(df, expected)
 
@@ -672,9 +676,10 @@ class TestLocBaseIndependent:
 
         # timedelta64[m] -> float, so this cannot be done inplace, so
         #  no warning
-        df.loc[:, ("Respondent", "Duration")] = df.loc[
-            :, ("Respondent", "Duration")
-        ] / Timedelta(60_000_000_000)
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            df.loc[:, ("Respondent", "Duration")] = df.loc[
+                :, ("Respondent", "Duration")
+            ] / Timedelta(60_000_000_000)
 
         expected = Series(
             [23.0, 12.0, 14.0, 36.0], index=df.index, name=("Respondent", "Duration")
@@ -1481,7 +1486,11 @@ class TestLocBaseIndependent:
         # if result started off with object dtype, then the .loc.__setitem__
         #  below would retain object dtype
         result = DataFrame(index=idx, columns=["var"], dtype=np.float64)
-        result.loc[:, idxer] = expected
+        with tm.assert_produces_warning(
+            FutureWarning if idxer == "var" else None, match="incompatible dtype"
+        ):
+            # See https://github.com/pandas-dev/pandas/issues/56223
+            result.loc[:, idxer] = expected
         tm.assert_frame_equal(result, expected)
 
     def test_loc_setitem_time_key(self):
