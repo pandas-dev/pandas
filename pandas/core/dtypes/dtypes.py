@@ -2190,7 +2190,9 @@ class ArrowDtype(StorageExtensionDtype):
             # This can be removed if/when pyarrow addresses it:
             # https://github.com/apache/arrow/issues/34462
             return np.dtype(f"timedelta64[{self.pyarrow_dtype.unit}]")
-        if pa.types.is_string(self.pyarrow_dtype):
+        if pa.types.is_string(self.pyarrow_dtype) or pa.types.is_large_string(
+            self.pyarrow_dtype
+        ):
             # pa.string().to_pandas_dtype() = object which we don't want
             return np.dtype(str)
         try:
