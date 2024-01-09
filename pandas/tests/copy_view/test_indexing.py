@@ -1103,9 +1103,14 @@ def test_set_value_copy_only_necessary_column(
     df_orig = df.copy()
     view = df[:]
 
-    if val == "a" and indexer[0] != slice(None):
+    if val == "a" and not warn_copy_on_write:
         with tm.assert_produces_warning(
             FutureWarning, match="Setting an item of incompatible dtype is deprecated"
+        ):
+            indexer_func(df)[indexer] = val
+    if val == "a" and warn_copy_on_write:
+        with tm.assert_produces_warning(
+            FutureWarning, match="incompatible dtype|Setting a value on a view"
         ):
             indexer_func(df)[indexer] = val
     else:

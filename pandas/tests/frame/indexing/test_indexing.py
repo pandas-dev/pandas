@@ -945,7 +945,8 @@ class TestDataFrameIndexing:
         # needs upcasting
         df = DataFrame([[1, 2, "foo"], [3, 4, "bar"]], columns=["A", "B", "C"])
         df2 = df.copy()
-        df2.loc[:, ["A", "B"]] = df.loc[:, ["A", "B"]] + 0.5
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            df2.loc[:, ["A", "B"]] = df.loc[:, ["A", "B"]] + 0.5
         expected = df.reindex(columns=["A", "B"])
         expected += 0.5
         expected["C"] = df["C"]
@@ -1381,20 +1382,20 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(
-        "val, idxr, warn",
+        "val, idxr",
         [
-            ("x", "a", None),  # TODO: this should warn as well
-            ("x", ["a"], None),  # TODO: this should warn as well
-            (1, "a", None),  # TODO: this should warn as well
-            (1, ["a"], FutureWarning),
+            ("x", "a"),
+            ("x", ["a"]),
+            (1, "a"),
+            (1, ["a"]),
         ],
     )
-    def test_loc_setitem_rhs_frame(self, idxr, val, warn):
+    def test_loc_setitem_rhs_frame(self, idxr, val):
         # GH#47578
         df = DataFrame({"a": [1, 2]})
 
         with tm.assert_produces_warning(
-            warn, match="Setting an item of incompatible dtype"
+            FutureWarning, match="Setting an item of incompatible dtype"
         ):
             df.loc[:, idxr] = DataFrame({"a": [val, 11]}, index=[1, 2])
         expected = DataFrame({"a": [np.nan, val]})
@@ -1968,7 +1969,7 @@ class TestSetitemValidation:
         np.datetime64("NaT"),
         np.timedelta64("NaT"),
     ]
-    _indexers = [0, [0], slice(0, 1), [True, False, False]]
+    _indexers = [0, [0], slice(0, 1), [True, False, False], slice(None, None, None)]
 
     @pytest.mark.parametrize(
         "invalid", _invalid_scalars + [1, 1.0, np.int64(1), np.float64(1)]
@@ -1982,7 +1983,7 @@ class TestSetitemValidation:
     @pytest.mark.parametrize("indexer", _indexers)
     def test_setitem_validation_scalar_int(self, invalid, any_int_numpy_dtype, indexer):
         df = DataFrame({"a": [1, 2, 3]}, dtype=any_int_numpy_dtype)
-        if isna(invalid) and invalid is not pd.NaT:
+        if isna(invalid) and invalid is not pd.NaT and not np.isnat(invalid):
             warn = None
         else:
             warn = FutureWarning
