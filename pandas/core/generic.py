@@ -6296,11 +6296,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     def __setattr__(self, name: str, value) -> None:
         """
-        After regular attribute access, try setting the name
+        If it's already in the dict, it must be an attribute; continue otherwise.
         This allows simpler access to columns for interactive use.
         """
         if name in self.__dict__:
-            # if it's already in the dict, user must be using name for an attr;
             # prioritize attr over column
             return object.__setattr__(self, name, value)
 
