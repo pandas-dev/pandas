@@ -2328,19 +2328,25 @@ class ArrowExtensionArray(
         return self._str_match(pat, case, flags, na)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None) -> Self:
-        if start != 0 and end is not None:
-            slices = pc.utf8_slice_codeunits(self._pa_array, start, stop=end)
-            result = pc.find_substring(slices, sub)
-            not_found = pc.equal(result, -1)
-            start_offset = max(0, start)
-            offset_result = pc.add(result, start_offset)
-            result = pc.if_else(not_found, result, offset_result)
-        elif start == 0 and end is None:
-            slices = self._pa_array
-            result = pc.find_substring(slices, sub)
+        if (start == 0 or start is None) and end is None:
+            result = pc.find_substring(self._pa_array, sub)
         else:
-            raise NotImplementedError(
-                f"find not implemented with {sub=}, {start=}, {end=}"
+            result = pc.find_substring(self._pa_array, sub)
+            length = pc.utf8_length(self._pa_array)
+            if start is None:
+                start = pa.scalar(0, result.type)
+            elif start < 0:
+                start = pc.add(start, length)
+            if end is None:
+                end = length
+            elif end < 0:
+                end = pc.add(end, length)
+            found = pc.not_equal(pa.scalar(-1, type=result.type), result)
+            found_in_bounds = pc.and_(
+                pc.greater_equal(result, start), pc.less(result, end)
+            )
+            result = pc.if_else(
+                pc.and_(found, found_in_bounds), result, pa.scalar(-1, type=result.type)
             )
         return type(self)(result)
 

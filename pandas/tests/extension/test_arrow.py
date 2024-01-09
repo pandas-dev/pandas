@@ -1919,13 +1919,13 @@ def test_str_fullmatch(pat, case, na, exp):
 
 
 @pytest.mark.parametrize(
-    "sub, start, end, exp, exp_typ",
-    [["ab", 0, None, [0, None], pa.int32()], ["bc", 1, 3, [1, None], pa.int64()]],
+    "sub, start, end, exp",
+    [["ab", 0, None, [0, None]], ["bc", 1, 3, [1, None]], ["ab", 1, None, [-1, None]]],
 )
-def test_str_find(sub, start, end, exp, exp_typ):
+def test_str_find(sub, start, end, exp):
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.find(sub, start=start, end=end)
-    expected = pd.Series(exp, dtype=ArrowDtype(exp_typ))
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.int32()))
     tm.assert_series_equal(result, expected)
 
 
@@ -1933,14 +1933,16 @@ def test_str_find_negative_start():
     # GH 56411
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.find(sub="b", start=-1000, end=3)
-    expected = pd.Series([1, None], dtype=ArrowDtype(pa.int64()))
+    expected = pd.Series([1, None], dtype=ArrowDtype(pa.int32()))
     tm.assert_series_equal(result, expected)
 
 
-def test_str_find_notimplemented():
-    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
-    with pytest.raises(NotImplementedError, match="find not implemented"):
-        ser.str.find("ab", start=1)
+def test_str_find_negative_start_negative_end():
+    # GH 56411
+    ser = pd.Series(["abcdefg", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.find(sub="d", start=-6, end=-3)
+    expected = pd.Series([3, None], dtype=ArrowDtype(pa.int32()))
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
