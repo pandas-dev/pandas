@@ -1919,13 +1919,18 @@ def test_str_fullmatch(pat, case, na, exp):
 
 
 @pytest.mark.parametrize(
-    "sub, start, end, exp",
-    [["ab", 0, None, [0, None]], ["bc", 1, 3, [1, None]], ["ab", 1, None, [-1, None]]],
+    "sub, start, end, exp, exp_type",
+    [
+        ["ab", 0, None, [0, None], pa.int32()],
+        ["bc", 1, 3, [1, None], pa.int64()],
+        ["ab", 1, None, [-1, None], pa.int64()],
+        ["ab", -3, -3, [-1, None], pa.int64()],
+    ],
 )
-def test_str_find(sub, start, end, exp):
+def test_str_find(sub, start, end, exp, exp_type):
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.find(sub, start=start, end=end)
-    expected = pd.Series(exp, dtype=ArrowDtype(pa.int32()))
+    expected = pd.Series(exp, dtype=ArrowDtype(exp_type))
     tm.assert_series_equal(result, expected)
 
 
@@ -1933,15 +1938,15 @@ def test_str_find_negative_start():
     # GH 56411
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.find(sub="b", start=-1000, end=3)
-    expected = pd.Series([1, None], dtype=ArrowDtype(pa.int32()))
+    expected = pd.Series([1, None], dtype=ArrowDtype(pa.int64()))
     tm.assert_series_equal(result, expected)
 
 
 def test_str_find_negative_start_negative_end():
-    # GH 56411
+    # GH 56791
     ser = pd.Series(["abcdefg", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.find(sub="d", start=-6, end=-3)
-    expected = pd.Series([3, None], dtype=ArrowDtype(pa.int32()))
+    expected = pd.Series([3, None], dtype=ArrowDtype(pa.int64()))
     tm.assert_series_equal(result, expected)
 
 
