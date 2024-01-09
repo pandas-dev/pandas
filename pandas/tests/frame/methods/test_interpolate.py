@@ -498,13 +498,9 @@ class TestDataFrameInterpolate:
         assert result is None
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize(
-        "dtype",
-        ["Int64", "UInt64", "Int32", "Int16", "Int8", "UInt32", "UInt16", "UInt8"],
-    )
-    def test_interpolate_ea(self, dtype):
+    def test_interpolate_ea(self, any_int_ea_dtype):
         # GH#55347
-        df = DataFrame({"a": [1, None, None, None, 3]}, dtype=dtype)
+        df = DataFrame({"a": [1, None, None, None, 3]}, dtype=any_int_ea_dtype)
         orig = df.copy()
         result = df.interpolate(limit=2)
         expected = DataFrame({"a": [1, 1.5, 2.0, None, 3]}, dtype="Float64")
