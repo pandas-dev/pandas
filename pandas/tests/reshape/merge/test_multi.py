@@ -94,6 +94,7 @@ class TestMergeMulti:
     @pytest.mark.parametrize(
         "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
     )
+    @pytest.mark.parametrize("sort", [True, False])
     def test_left_join_multi_index(self, sort, infer_string):
         with option_context("future.infer_string", infer_string):
             icols = ["1st", "2nd", "3rd"]
