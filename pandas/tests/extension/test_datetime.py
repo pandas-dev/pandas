@@ -24,20 +24,22 @@ from pandas.core.arrays import DatetimeArray
 from pandas.tests.extension import base
 
 
-@pytest.fixture(params=["US/Central"])
-def dtype(request):
-    return DatetimeTZDtype(unit="ns", tz=request.param)
+@pytest.fixture
+def dtype():
+    return DatetimeTZDtype(unit="ns", tz="US/Central")
 
 
 @pytest.fixture
 def data(dtype):
-    data = DatetimeArray(pd.date_range("2000", periods=100, tz=dtype.tz), dtype=dtype)
+    data = DatetimeArray._from_sequence(
+        pd.date_range("2000", periods=100, tz=dtype.tz), dtype=dtype
+    )
     return data
 
 
 @pytest.fixture
 def data_missing(dtype):
-    return DatetimeArray(
+    return DatetimeArray._from_sequence(
         np.array(["NaT", "2000-01-01"], dtype="datetime64[ns]"), dtype=dtype
     )
 
@@ -47,14 +49,18 @@ def data_for_sorting(dtype):
     a = pd.Timestamp("2000-01-01")
     b = pd.Timestamp("2000-01-02")
     c = pd.Timestamp("2000-01-03")
-    return DatetimeArray(np.array([b, c, a], dtype="datetime64[ns]"), dtype=dtype)
+    return DatetimeArray._from_sequence(
+        np.array([b, c, a], dtype="datetime64[ns]"), dtype=dtype
+    )
 
 
 @pytest.fixture
 def data_missing_for_sorting(dtype):
     a = pd.Timestamp("2000-01-01")
     b = pd.Timestamp("2000-01-02")
-    return DatetimeArray(np.array([b, "NaT", a], dtype="datetime64[ns]"), dtype=dtype)
+    return DatetimeArray._from_sequence(
+        np.array([b, "NaT", a], dtype="datetime64[ns]"), dtype=dtype
+    )
 
 
 @pytest.fixture
@@ -68,7 +74,7 @@ def data_for_grouping(dtype):
     b = pd.Timestamp("2000-01-02")
     c = pd.Timestamp("2000-01-03")
     na = "NaT"
-    return DatetimeArray(
+    return DatetimeArray._from_sequence(
         np.array([b, b, na, na, a, a, b, c], dtype="datetime64[ns]"), dtype=dtype
     )
 
@@ -94,7 +100,6 @@ class TestDatetimeArray(base.ExtensionTests):
     def _supports_reduction(self, obj, op_name: str) -> bool:
         return op_name in ["min", "max", "median", "mean", "std", "any", "all"]
 
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_boolean(self, data, all_boolean_reductions, skipna):
         meth = all_boolean_reductions
         msg = f"'{meth}' with datetime64 dtypes is deprecated and will raise in"
@@ -108,7 +113,6 @@ class TestDatetimeArray(base.ExtensionTests):
         data = data._with_freq(None)
         super().test_series_constructor(data)
 
-    @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data, na_action):
         result = data.map(lambda x: x, na_action=na_action)
         tm.assert_extension_array_equal(result, data)

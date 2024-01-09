@@ -415,7 +415,6 @@ def test_astype_float(dtype, any_float_dtype):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce(skipna, dtype):
     arr = pd.Series(["a", "b", "c"], dtype=dtype)
@@ -423,7 +422,6 @@ def test_reduce(skipna, dtype):
     assert result == "abc"
 
 
-@pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce_missing(skipna, dtype):
     arr = pd.Series([None, "a", None, "b", "c", None], dtype=dtype)
@@ -435,7 +433,6 @@ def test_reduce_missing(skipna, dtype):
 
 
 @pytest.mark.parametrize("method", ["min", "max"])
-@pytest.mark.parametrize("skipna", [True, False])
 def test_min_max(method, skipna, dtype):
     arr = pd.Series(["a", "b", "c", None], dtype=dtype)
     result = getattr(arr, method)(skipna=skipna)
@@ -487,13 +484,15 @@ def test_fillna_args(dtype, arrow_string_storage):
 def test_arrow_array(dtype):
     # protocol added in 0.15.0
     pa = pytest.importorskip("pyarrow")
+    import pyarrow.compute as pc
 
     data = pd.array(["a", "b", "c"], dtype=dtype)
     arr = pa.array(data)
-    expected = pa.array(list(data), type=pa.string(), from_pandas=True)
+    expected = pa.array(list(data), type=pa.large_string(), from_pandas=True)
     if dtype.storage in ("pyarrow", "pyarrow_numpy") and pa_version_under12p0:
         expected = pa.chunked_array(expected)
-
+    if dtype.storage == "python":
+        expected = pc.cast(expected, pa.string())
     assert arr.equals(expected)
 
 
@@ -512,7 +511,10 @@ def test_arrow_roundtrip(dtype, string_storage2, request, using_infer_string):
     data = pd.array(["a", "b", None], dtype=dtype)
     df = pd.DataFrame({"a": data})
     table = pa.table(df)
-    assert table.field("a").type == "string"
+    if dtype.storage == "python":
+        assert table.field("a").type == "string"
+    else:
+        assert table.field("a").type == "large_string"
     with pd.option_context("string_storage", string_storage2):
         result = table.to_pandas()
     assert isinstance(result["a"].dtype, pd.StringDtype)
@@ -539,7 +541,10 @@ def test_arrow_load_from_zero_chunks(
     data = pd.array([], dtype=dtype)
     df = pd.DataFrame({"a": data})
     table = pa.table(df)
-    assert table.field("a").type == "string"
+    if dtype.storage == "python":
+        assert table.field("a").type == "string"
+    else:
+        assert table.field("a").type == "large_string"
     # Instantiate the same table with no chunks at all
     table = pa.table([pa.chunked_array([], type=pa.string())], schema=table.schema)
     with pd.option_context("string_storage", string_storage2):

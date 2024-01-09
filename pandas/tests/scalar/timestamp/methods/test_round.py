@@ -147,7 +147,6 @@ class TestTimestampRound:
         result = func(freq)
         assert result == expected
 
-    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_ceil(self, unit):
         dt = Timestamp("20130101 09:10:11").as_unit(unit)
         result = dt.ceil("D")
@@ -155,7 +154,6 @@ class TestTimestampRound:
         assert result == expected
         assert result._creso == dt._creso
 
-    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_floor(self, unit):
         dt = Timestamp("20130101 09:10:11").as_unit(unit)
         result = dt.floor("D")

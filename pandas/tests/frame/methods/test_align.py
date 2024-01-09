@@ -395,7 +395,6 @@ class TestDataFrameAlign:
     @pytest.mark.parametrize("method", ["pad", "bfill"])
     @pytest.mark.parametrize("axis", [0, 1, None])
     @pytest.mark.parametrize("fill_axis", [0, 1])
-    @pytest.mark.parametrize("how", ["inner", "outer", "left", "right"])
     @pytest.mark.parametrize(
         "left_slice",
         [
@@ -412,8 +411,17 @@ class TestDataFrameAlign:
     )
     @pytest.mark.parametrize("limit", [1, None])
     def test_align_fill_method(
-        self, how, method, axis, fill_axis, float_frame, left_slice, right_slice, limit
+        self,
+        join_type,
+        method,
+        axis,
+        fill_axis,
+        float_frame,
+        left_slice,
+        right_slice,
+        limit,
     ):
+        how = join_type
         frame = float_frame
         left = frame.iloc[left_slice[0], left_slice[1]]
         right = frame.iloc[right_slice[0], right_slice[1]]

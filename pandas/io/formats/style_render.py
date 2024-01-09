@@ -2288,12 +2288,12 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
     Ignore conversion if tagged with `--latex` option, skipped if no conversion found.
     """
 
-    def font_weight(value, arg):
+    def font_weight(value, arg) -> tuple[str, str] | None:
         if value in ("bold", "bolder"):
             return "bfseries", f"{arg}"
         return None
 
-    def font_style(value, arg):
+    def font_style(value, arg) -> tuple[str, str] | None:
         if value == "italic":
             return "itshape", f"{arg}"
         if value == "oblique":

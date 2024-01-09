@@ -17,13 +17,6 @@ from pandas.core.arrays import (
 )
 
 
-@pytest.fixture
-def index_large():
-    # large values used in Index[uint64] tests where no compat needed with Int64/Float64
-    large = [2**63, 2**63 + 10, 2**63 + 15, 2**63 + 20, 2**63 + 25]
-    return Index(large, dtype=np.uint64)
-
-
 class TestGetLoc:
     def test_get_loc(self):
         index = Index([0, 1, 2])
@@ -303,7 +296,11 @@ class TestGetIndexer:
         expected = np.array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
-    def test_get_indexer_uint64(self, index_large):
+    def test_get_indexer_uint64(self):
+        index_large = Index(
+            [2**63, 2**63 + 10, 2**63 + 15, 2**63 + 20, 2**63 + 25],
+            dtype=np.uint64,
+        )
         target = Index(np.arange(10).astype("uint64") * 5 + 2**63)
         indexer = index_large.get_indexer(target)
         expected = np.array([0, -1, 1, 2, 3, 4, -1, -1, -1, -1], dtype=np.intp)
@@ -406,8 +403,9 @@ class TestGetIndexer:
         tm.assert_numpy_array_equal(result, expected)
 
         result_1, result_2 = idx.get_indexer_non_unique(target)
-        expected_1, expected_2 = np.array([0, -1], dtype=np.int64), np.array(
-            [1], dtype=np.int64
+        expected_1, expected_2 = (
+            np.array([0, -1], dtype=np.int64),
+            np.array([1], dtype=np.int64),
         )
         tm.assert_numpy_array_equal(result_1, expected_1)
         tm.assert_numpy_array_equal(result_2, expected_2)
