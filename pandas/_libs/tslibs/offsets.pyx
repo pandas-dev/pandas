@@ -756,10 +756,13 @@ cdef class BaseOffset:
         raise ValueError(f"{self} is a non-fixed frequency")
 
     def is_anchored(self) -> bool:
-        # TODO: Does this make sense for the general case?  It would help
-        # if there were a canonical docstring for what is_anchored means.
+        # GH#55388
         """
         Return boolean whether the frequency is a unit frequency (n=1).
+
+        .. deprecated:: 2.2.0
+            is_anchored is deprecated and will be removed in a future version.
+            Use ``obj.n == 1`` instead.
 
         Examples
         --------
@@ -768,6 +771,12 @@ cdef class BaseOffset:
         >>> pd.DateOffset(2).is_anchored()
         False
         """
+        warnings.warn(
+            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
+            f"in a future version, please use \'obj.n == 1\' instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.n == 1
 
     # ------------------------------------------------------------------
@@ -954,6 +963,27 @@ cdef class Tick(SingleConstructorOffset):
         return True
 
     def is_anchored(self) -> bool:
+        # GH#55388
+        """
+        Return False.
+
+        .. deprecated:: 2.2.0
+            is_anchored is deprecated and will be removed in a future version.
+            Use ``False`` instead.
+
+        Examples
+        --------
+        >>> pd.offsets.Hour().is_anchored()
+        False
+        >>> pd.offsets.Hour(2).is_anchored()
+        False
+        """
+        warnings.warn(
+            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
+            f"in a future version, please use False instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return False
 
     # This is identical to BaseOffset.__hash__, but has to be redefined here
@@ -2663,6 +2693,13 @@ cdef class QuarterOffset(SingleConstructorOffset):
         return f"{self._prefix}-{month}"
 
     def is_anchored(self) -> bool:
+        warnings.warn(
+            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
+            f"in a future version, please use \'obj.n == 1 "
+            f"and obj.startingMonth is not None\' instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.n == 1 and self.startingMonth is not None
 
     def is_on_offset(self, dt: datetime) -> bool:
@@ -3308,6 +3345,13 @@ cdef class Week(SingleConstructorOffset):
         self._cache = state.pop("_cache", {})
 
     def is_anchored(self) -> bool:
+        warnings.warn(
+            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
+            f"in a future version, please use \'obj.n == 1 "
+            f"and obj.weekday is not None\' instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.n == 1 and self.weekday is not None
 
     @apply_wraps
@@ -3597,6 +3641,12 @@ cdef class FY5253Mixin(SingleConstructorOffset):
         self.variation = state.pop("variation")
 
     def is_anchored(self) -> bool:
+        warnings.warn(
+            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
+            f"in a future version, please use \'obj.n == 1\' instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return (
             self.n == 1 and self.startingMonth is not None and self.weekday is not None
         )
