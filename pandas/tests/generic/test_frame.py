@@ -170,7 +170,7 @@ class TestDataFrame:
             def __set_name__(self, owner, name):
                 self.__name__ = name
 
-        class Foo(DataFrame):
+        class Frame(DataFrame):
             @cached_property
             def scalar(self):
                 raise AttributeError
@@ -198,15 +198,15 @@ class TestDataFrame:
             fancy = FancyDescriptor()
 
         with tm.assert_produces_warning(False):
-            foo = Foo()
+            frame = Frame()
             try:
-                foo.scalar = ...
-                foo.vector = [1, 2, 3]
-                foo.scalar_ = ...
-                foo.vector_ = [1, 2, 3]
-                foo.fancy = ...
-                del foo.fancy
-                foo.fancy = [1, 2, 3]
+                frame.scalar = ...
+                frame.vector = [1, 2, 3]
+                frame.scalar_ = ...
+                frame.vector_ = [1, 2, 3]
+                frame.fancy = ...
+                del frame.fancy
+                frame.fancy = [1, 2, 3]
             except (AttributeError, KeyError):
                 pytest.fail(
                     "DataFrame.__setattr__ prematurely called "
