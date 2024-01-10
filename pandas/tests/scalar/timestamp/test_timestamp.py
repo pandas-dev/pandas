@@ -118,18 +118,16 @@ class TestTimestampProperties:
         assert getattr(ts, end)
 
     # GH 12806
-    @pytest.mark.parametrize(
-        "data",
-        [Timestamp("2017-08-28 23:00:00"), Timestamp("2017-08-28 23:00:00", tz="EST")],
-    )
+    @pytest.mark.parametrize("tz", [None, "EST"])
     # error: Unsupported operand types for + ("List[None]" and "List[str]")
     @pytest.mark.parametrize(
         "time_locale",
         [None] + tm.get_locales(),  # type: ignore[operator]
     )
-    def test_names(self, data, time_locale):
+    def test_names(self, tz, time_locale):
         # GH 17354
         # Test .day_name(), .month_name
+        data = Timestamp("2017-08-28 23:00:00", tz=tz)
         if time_locale is None:
             expected_day = "Monday"
             expected_month = "August"

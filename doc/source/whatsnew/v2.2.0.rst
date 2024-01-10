@@ -662,14 +662,15 @@ Other Deprecations
 - Changed :meth:`Timedelta.resolution_string` to return ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns`` instead of ``H``, ``T``, ``S``, ``L``, ``U``, and ``N``, for compatibility with respective deprecations in frequency aliases (:issue:`52536`)
 - Deprecated :attr:`offsets.Day.delta`, :attr:`offsets.Hour.delta`, :attr:`offsets.Minute.delta`, :attr:`offsets.Second.delta`, :attr:`offsets.Milli.delta`, :attr:`offsets.Micro.delta`, :attr:`offsets.Nano.delta`, use ``pd.Timedelta(obj)`` instead (:issue:`55498`)
 - Deprecated :func:`pandas.api.types.is_interval` and :func:`pandas.api.types.is_period`, use ``isinstance(obj, pd.Interval)`` and ``isinstance(obj, pd.Period)`` instead (:issue:`55264`)
-- Deprecated :func:`pd.core.internals.api.make_block`, use public APIs instead (:issue:`40226`)
 - Deprecated :func:`read_gbq` and :meth:`DataFrame.to_gbq`. Use ``pandas_gbq.read_gbq`` and ``pandas_gbq.to_gbq`` instead https://pandas-gbq.readthedocs.io/en/latest/api.html (:issue:`55525`)
 - Deprecated :meth:`.DataFrameGroupBy.fillna` and :meth:`.SeriesGroupBy.fillna`; use :meth:`.DataFrameGroupBy.ffill`, :meth:`.DataFrameGroupBy.bfill` for forward and backward filling or :meth:`.DataFrame.fillna` to fill with a single value (or the Series equivalents) (:issue:`55718`)
+- Deprecated :meth:`DateOffset.is_anchored`, use ``obj.n == 1`` for non-Tick subclasses (for Tick this was always False) (:issue:`55388`)
 - Deprecated :meth:`DatetimeArray.__init__` and :meth:`TimedeltaArray.__init__`, use :func:`array` instead (:issue:`55623`)
 - Deprecated :meth:`Index.format`, use ``index.astype(str)`` or ``index.map(formatter)`` instead (:issue:`55413`)
 - Deprecated :meth:`Series.ravel`, the underlying array is already 1D, so ravel is not necessary (:issue:`52511`)
 - Deprecated :meth:`Series.resample` and :meth:`DataFrame.resample` with a :class:`PeriodIndex` (and the 'convention' keyword), convert to :class:`DatetimeIndex` (with ``.to_timestamp()``) before resampling instead (:issue:`53481`)
 - Deprecated :meth:`Series.view`, use :meth:`Series.astype` instead to change the dtype (:issue:`20251`)
+- Deprecated :meth:`offsets.Tick.is_anchored`, use ``False`` instead (:issue:`55388`)
 - Deprecated ``core.internals`` members ``Block``, ``ExtensionBlock``, and ``DatetimeTZBlock``, use public APIs instead (:issue:`55139`)
 - Deprecated ``year``, ``month``, ``quarter``, ``day``, ``hour``, ``minute``, and ``second`` keywords in the :class:`PeriodIndex` constructor, use :meth:`PeriodIndex.from_fields` instead (:issue:`55960`)
 - Deprecated accepting a type as an argument in :meth:`Index.view`, call without any arguments instead (:issue:`55709`)
@@ -720,6 +721,7 @@ Other Deprecations
 - Deprecated the extension test classes ``BaseNoReduceTests``, ``BaseBooleanReduceTests``, and ``BaseNumericReduceTests``, use ``BaseReduceTests`` instead (:issue:`54663`)
 - Deprecated the option ``mode.data_manager`` and the ``ArrayManager``; only the ``BlockManager`` will be available in future versions (:issue:`55043`)
 - Deprecated the previous implementation of :class:`DataFrame.stack`; specify ``future_stack=True`` to adopt the future version (:issue:`53515`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_220.performance:
@@ -934,6 +936,7 @@ Other
 - Bug in :func:`cut` and :func:`qcut` with ``datetime64`` dtype values with non-nanosecond units incorrectly returning nanosecond-unit bins (:issue:`56101`)
 - Bug in :func:`cut` incorrectly allowing cutting of timezone-aware datetimes with timezone-naive bins (:issue:`54964`)
 - Bug in :func:`infer_freq` and :meth:`DatetimeIndex.inferred_freq` with weekly frequencies and non-nanosecond resolutions (:issue:`55609`)
+- Bug in :func:`pd.api.interchange.from_dataframe` where it raised  ``NotImplementedError`` when handling empty string columns (:issue:`56703`)
 - Bug in :meth:`DataFrame.apply` where passing ``raw=True`` ignored ``args`` passed to the applied function (:issue:`55009`)
 - Bug in :meth:`DataFrame.from_dict` which would always sort the rows of the created :class:`DataFrame`.  (:issue:`55683`)
 - Bug in :meth:`DataFrame.sort_index` when passing ``axis="columns"`` and ``ignore_index=True`` raising a ``ValueError`` (:issue:`56478`)
@@ -941,7 +944,6 @@ Other
 - Bug in rendering a :class:`Series` with a :class:`MultiIndex` when one of the index level's names is 0 not having that name displayed (:issue:`55415`)
 - Bug in the error message when assigning an empty :class:`DataFrame` to a column (:issue:`55956`)
 - Bug when time-like strings were being cast to :class:`ArrowDtype` with ``pyarrow.time64`` type (:issue:`56463`)
-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_220.contributors:

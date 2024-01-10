@@ -526,8 +526,8 @@ class TestJSONNormalize:
         test_input = {"state": "Texas", "info": parsed_value}
         test_path = "info"
         msg = (
-            f"{test_input} has non list value {parsed_value} for path {test_path}. "
-            "Must be list or null."
+            f"Path must contain list or null, "
+            f"but got {type(parsed_value).__name__} at 'info'"
         )
         with pytest.raises(TypeError, match=msg):
             json_normalize([test_input], record_path=[test_path])
