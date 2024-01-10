@@ -1895,17 +1895,12 @@ class TestPandasContainer:
         result = read_json(StringIO(encoded_json))
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "dataframe,expected",
-        [
-            (
-                DataFrame({"x": [1, 2, 3], "y": ["a", "b", "c"]}),
-                '{"(0, \'x\')":1,"(0, \'y\')":"a","(1, \'x\')":2,'
-                '"(1, \'y\')":"b","(2, \'x\')":3,"(2, \'y\')":"c"}',
-            )
-        ],
-    )
-    def test_json_multiindex(self, dataframe, expected):
+    def test_json_multiindex(self):
+        dataframe = DataFrame({"x": [1, 2, 3], "y": ["a", "b", "c"]})
+        expected = (
+            '{"(0, \'x\')":1,"(0, \'y\')":"a","(1, \'x\')":2,'
+            '"(1, \'y\')":"b","(2, \'x\')":3,"(2, \'y\')":"c"}'
+        )
         series = dataframe.stack(future_stack=True)
         result = series.to_json(orient="index")
         assert result == expected
