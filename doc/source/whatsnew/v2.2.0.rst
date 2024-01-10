@@ -727,11 +727,6 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
-- Bug in :class:`AbstractHolidayCalendar` where timezone data was not propagated when computing holiday observances (:issue:`54580`)
-- Bug in :class:`pandas.core.window.Rolling` where duplicate datetimelike indexes are treated as consecutive rather than equal with ``closed='left'`` and ``closed='neither'`` (:issue:`20712`)
-- Bug in :meth:`DataFrame.apply` where passing ``raw=True`` ignored ``args`` passed to the applied function (:issue:`55009`)
-- Bug in :meth:`pandas.read_excel` with a ODS file without cached formatted cell for float values (:issue:`55219`)
-- Fixed a spurious deprecation warning from ``numba`` >= 0.58.0 when passing a numpy ufunc in :class:`pandas.core.window.Rolling.apply` with ``engine="numba"`` (:issue:`55247`)
 
 Categorical
 ^^^^^^^^^^^
@@ -905,6 +900,7 @@ Other
 - Bug in rendering a :class:`Series` with a :class:`MultiIndex` when one of the index level's names is 0 not having that name displayed (:issue:`55415`)
 - Bug in the error message when assigning an empty :class:`DataFrame` to a column (:issue:`55956`)
 - Bug when time-like strings were being cast to :class:`ArrowDtype` with ``pyarrow.time64`` type (:issue:`56463`)
+- Fixed a spurious deprecation warning from ``numba`` >= 0.58.0 when passing a numpy ufunc in :class:`pandas.core.window.Rolling.apply` with ``engine="numba"`` (:issue:`55247`)
 
 
 .. ---------------------------------------------------------------------------
