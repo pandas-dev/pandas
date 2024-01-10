@@ -130,14 +130,9 @@ def test_catch_too_many_names(all_parsers):
         else "Number of passed names did not match "
         "number of header fields in the file"
     )
-    depr_msg = "Passing a BlockManager to DataFrame is deprecated"
-    warn = None
-    if parser.engine == "pyarrow":
-        warn = DeprecationWarning
 
-    with tm.assert_produces_warning(warn, match=depr_msg, check_stacklevel=False):
-        with pytest.raises(ValueError, match=msg):
-            parser.read_csv(StringIO(data), header=0, names=["a", "b", "c", "d"])
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO(data), header=0, names=["a", "b", "c", "d"])
 
 
 @skip_pyarrow  # CSV parse error: Empty CSV file or block
