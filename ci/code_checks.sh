@@ -151,10 +151,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.io.formats.style.Styler.background_gradient \
         pandas.io.formats.style.Styler.text_gradient \
         pandas.DataFrame.values \
-        pandas.DataFrame.loc \
-        pandas.DataFrame.iloc \
         pandas.DataFrame.groupby \
-        pandas.DataFrame.describe \
         pandas.DataFrame.skew \
         pandas.DataFrame.var \
         pandas.DataFrame.idxmax \
