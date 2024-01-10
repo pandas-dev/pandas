@@ -1979,21 +1979,26 @@ def test_str_find_large_start():
 @pytest.mark.xfail(
     pa_version_under13p0, reason="https://github.com/apache/arrow/issues/36311"
 )
-def test_str_find_e2e():
-    string = "abcaadef"
-    s = pd.Series([string], dtype=ArrowDtype(pa.string()))
-    offsets = list(range(-15, 15)) + [None]
-    substrings = [string[x:y] for x, y in combinations(range(len(string) + 1), r=2)] + [
+@pytest.mark.parametrize("start", list(range(-15, 15)) + [None])
+@pytest.mark.parametrize("end", list(range(-15, 15)) + [None])
+@pytest.mark.parametrize(
+    "sub",
+    ["abcaadef"[x:y] for x, y in combinations(range(len("abcaadef") + 1), r=2)]
+    + [
         "",
         "az",
         "abce",
-    ]
-    for start in offsets:
-        for end in offsets:
-            for sub in substrings:
-                result = s.str.find(sub, start, end)
-                expected = pd.Series([string.find(sub, start, end)], dtype=result.dtype)
-                tm.assert_series_equal(result, expected)
+    ],
+)
+def test_str_find_e2e(start, end, sub):
+    s = pd.Series(
+        ["abcaadef", "abc", "abcdeddefgj8292", "ab", "a", ""],
+        dtype=ArrowDtype(pa.string()),
+    )
+    object_series = s.astype(pd.StringDtype())
+    result = s.str.find(sub, start, end)
+    expected = object_series.str.find(sub, start, end).astype(result.dtype)
+    tm.assert_series_equal(result, expected)
 
 
 def test_str_find_negative_start_negative_end_no_match():
