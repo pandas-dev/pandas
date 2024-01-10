@@ -184,6 +184,7 @@ if TYPE_CHECKING:
         AxisInt,
         Dtype,
         FillnaOptions,
+        InterpolateOptions,
         Iterator,
         NpDtype,
         NumpySorter,
@@ -2067,6 +2068,45 @@ class ArrowExtensionArray(
             msg = f"Invalid value '{str(value)}' for dtype {self.dtype}"
             raise TypeError(msg) from err
         return value
+
+    def interpolate(
+        self,
+        *,
+        method: InterpolateOptions,
+        axis: int,
+        index,
+        limit,
+        limit_direction,
+        limit_area,
+        copy: bool,
+        **kwargs,
+    ) -> Self:
+        """
+        See NDFrame.interpolate.__doc__.
+        """
+        # NB: we return type(self) even if copy=False
+        mask = self.isna()
+        if self.dtype.kind == "f":
+            data = self._pa_array.to_numpy()
+        elif self.dtype.kind in "iu":
+            data = self.to_numpy(dtype="f8", na_value=0.0)
+        else:
+            raise NotImplementedError(
+                f"interpolate is not implemented for dtype={self.dtype}"
+            )
+
+        missing.interpolate_2d_inplace(
+            data,
+            method=method,
+            axis=0,
+            index=index,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            mask=mask,
+            **kwargs,
+        )
+        return type(self)(self._box_pa_array(pa.array(data, mask=mask)))
 
     @classmethod
     def _if_else(

@@ -349,6 +349,7 @@ def interpolate_2d_inplace(
     limit_direction: str = "forward",
     limit_area: str | None = None,
     fill_value: Any | None = None,
+    mask=None,
     **kwargs,
 ) -> None:
     """
@@ -396,6 +397,7 @@ def interpolate_2d_inplace(
             limit_area=limit_area_validated,
             fill_value=fill_value,
             bounds_error=False,
+            mask=mask,
             **kwargs,
         )
 
@@ -440,6 +442,7 @@ def _interpolate_1d(
     fill_value: Any | None = None,
     bounds_error: bool = False,
     order: int | None = None,
+    mask=None,
     **kwargs,
 ) -> None:
     """
@@ -453,8 +456,10 @@ def _interpolate_1d(
     -----
     Fills 'yvalues' in-place.
     """
-
-    invalid = isna(yvalues)
+    if mask is not None:
+        invalid = mask
+    else:
+        invalid = isna(yvalues)
     valid = ~invalid
 
     if not valid.any():
@@ -531,7 +536,10 @@ def _interpolate_1d(
             **kwargs,
         )
 
-    if is_datetimelike:
+    if mask is not None:
+        mask[:] = False
+        mask[preserve_nans] = True
+    elif is_datetimelike:
         yvalues[preserve_nans] = NaT.value
     else:
         yvalues[preserve_nans] = np.nan

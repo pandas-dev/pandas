@@ -22,6 +22,7 @@ from pandas._typing import (
     AxisInt,
     DtypeObj,
     FillnaOptions,
+    InterpolateOptions,
     NpDtype,
     PositionalIndexer,
     Scalar,
@@ -99,6 +100,7 @@ if TYPE_CHECKING:
         NumpyValueArrayLike,
     )
     from pandas._libs.missing import NAType
+    from pandas.core.arrays import FloatingArray
 
 from pandas.compat.numpy import function as nv
 
@@ -1520,6 +1522,58 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return result
             else:
                 return self.dtype.na_value
+
+    def interpolate(
+        self,
+        *,
+        method: InterpolateOptions,
+        axis: int,
+        index,
+        limit,
+        limit_direction,
+        limit_area,
+        copy: bool,
+        **kwargs,
+    ) -> FloatingArray:
+        """
+        See NDFrame.interpolate.__doc__.
+        """
+        # NB: we return type(self) even if copy=False
+        if self.dtype.kind == "f":
+            if copy:
+                data = self._data.copy()
+                mask = self._mask.copy()
+            else:
+                data = self._data
+                mask = self._mask
+        elif self.dtype.kind in "iu":
+            copy = True
+            data = self._data.astype("f8")
+            mask = self._mask.copy()
+        else:
+            raise NotImplementedError(
+                f"interpolate is not implemented for dtype={self.dtype}"
+            )
+
+        missing.interpolate_2d_inplace(
+            data,
+            method=method,
+            axis=0,
+            index=index,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            mask=mask,
+            **kwargs,
+        )
+        if not copy:
+            return self  # type: ignore[return-value]
+        if self.dtype.kind == "f":
+            return type(self)._simple_new(data, mask)  # type: ignore[return-value]
+        else:
+            from pandas.core.arrays import FloatingArray
+
+            return FloatingArray._simple_new(data, mask)
 
     def _accumulate(
         self, name: str, *, skipna: bool = True, **kwargs
