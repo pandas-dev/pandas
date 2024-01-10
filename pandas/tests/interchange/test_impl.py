@@ -358,10 +358,8 @@ def test_interchange_from_non_pandas_tz_aware(request):
 def test_buffer_buffer_protocol(data, dtype, expected):
     df = pd.DataFrame({"col": data}, dtype=dtype)
     col = df.__dataframe__().get_column_by_name("col")
-    result = bytearray(memoryview(col.get_buffers()["data"][0]))
+    result = bytearray(memoryview(col.get_buffers()["data"][0])).copy()
     assert result == expected
-    # hack to keep df lifecycle around
-    len(df)
 
 
 def test_interchange_from_corrected_buffer_dtypes(monkeypatch) -> None:
