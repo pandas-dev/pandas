@@ -526,17 +526,13 @@ class TestDateRanges:
     @pytest.mark.parametrize(
         "start, end",
         [
-            [
-                Timestamp(datetime(2014, 3, 6), tz="US/Eastern"),
-                Timestamp(datetime(2014, 3, 12), tz="US/Eastern"),
-            ],
-            [
-                Timestamp(datetime(2013, 11, 1), tz="US/Eastern"),
-                Timestamp(datetime(2013, 11, 6), tz="US/Eastern"),
-            ],
+            [datetime(2014, 3, 6), datetime(2014, 3, 12)],
+            [datetime(2013, 11, 1), datetime(2013, 11, 6)],
         ],
     )
     def test_range_tz_dst_straddle_pytz(self, start, end):
+        start = Timestamp(start, tz="US/Eastern")
+        end = Timestamp(end, tz="US/Eastern")
         dr = date_range(start, end, freq="D")
         assert dr[0] == start
         assert dr[-1] == end

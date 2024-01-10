@@ -283,14 +283,15 @@ class TestToLatexLongtable:
         assert result == expected
 
     @pytest.mark.parametrize(
-        "df, expected_number",
+        "df_data, expected_number",
         [
-            (DataFrame({"a": [1, 2]}), 1),
-            (DataFrame({"a": [1, 2], "b": [3, 4]}), 2),
-            (DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}), 3),
+            ({"a": [1, 2]}, 1),
+            ({"a": [1, 2], "b": [3, 4]}, 2),
+            ({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, 3),
         ],
     )
-    def test_to_latex_longtable_continued_on_next_page(self, df, expected_number):
+    def test_to_latex_longtable_continued_on_next_page(self, df_data, expected_number):
+        df = DataFrame(df_data)
         result = df.to_latex(index=False, longtable=True)
         assert rf"\multicolumn{{{expected_number}}}" in result
 

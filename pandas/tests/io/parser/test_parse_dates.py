@@ -1752,11 +1752,11 @@ def test_parse_date_column_with_empty_string(all_parsers):
     [
         (
             "a\n135217135789158401\n1352171357E+5",
-            DataFrame({"a": [135217135789158401, 135217135700000]}, dtype="float64"),
+            [135217135789158401, 135217135700000],
         ),
         (
             "a\n99999999999\n123456789012345\n1234E+0",
-            DataFrame({"a": [99999999999, 123456789012345, 1234]}, dtype="float64"),
+            [99999999999, 123456789012345, 1234],
         ),
     ],
 )
@@ -1769,6 +1769,7 @@ def test_parse_date_float(all_parsers, data, expected, parse_dates):
     parser = all_parsers
 
     result = parser.read_csv(StringIO(data), parse_dates=parse_dates)
+    expected = DataFrame({"a": expected}, dtype="float64")
     tm.assert_frame_equal(result, expected)
 
 

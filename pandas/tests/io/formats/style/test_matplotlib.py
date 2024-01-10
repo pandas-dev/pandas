@@ -260,15 +260,10 @@ def test_background_gradient_gmap_series_align(styler_blank, gmap, axis, exp_gma
     assert expected.ctx == result.ctx
 
 
-@pytest.mark.parametrize(
-    "gmap, axis",
-    [
-        (DataFrame([[1, 2], [2, 1]], columns=["A", "B"], index=["X", "Y"]), 1),
-        (DataFrame([[1, 2], [2, 1]], columns=["A", "B"], index=["X", "Y"]), 0),
-    ],
-)
-def test_background_gradient_gmap_wrong_dataframe(styler_blank, gmap, axis):
+@pytest.mark.parametrize("axis", [1, 0])
+def test_background_gradient_gmap_wrong_dataframe(styler_blank, axis):
     # test giving a gmap in DataFrame but with wrong axis
+    gmap = DataFrame([[1, 2], [2, 1]], columns=["A", "B"], index=["X", "Y"])
     msg = "'gmap' is a DataFrame but underlying data for operations is a Series"
     with pytest.raises(ValueError, match=msg):
         styler_blank.background_gradient(gmap=gmap, axis=axis)._compute()
@@ -321,10 +316,7 @@ def test_bar_color_raises(df):
         df.style.bar(color="something", cmap="something else").to_html()
 
 
-@pytest.mark.parametrize(
-    "plot_method",
-    ["scatter", "hexbin"],
-)
+@pytest.mark.parametrize("plot_method", ["scatter", "hexbin"])
 def test_pass_colormap_instance(df, plot_method):
     # https://github.com/pandas-dev/pandas/issues/49374
     cmap = mpl.colors.ListedColormap([[1, 1, 1], [0, 0, 0]])

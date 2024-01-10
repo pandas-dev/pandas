@@ -844,12 +844,14 @@ class TestIndex:
     @pytest.mark.parametrize(
         "index,expected",
         [
-            (Index(["qux", "baz", "foo", "bar"]), np.array([False, False, True, True])),
-            (Index([]), np.array([], dtype=bool)),  # empty
+            (["qux", "baz", "foo", "bar"], [False, False, True, True]),
+            ([], []),  # empty
         ],
     )
     def test_isin(self, values, index, expected):
+        index = Index(index)
         result = index.isin(values)
+        expected = np.array(expected, dtype=bool)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_isin_nan_common_object(
@@ -918,11 +920,12 @@ class TestIndex:
     @pytest.mark.parametrize(
         "index",
         [
-            Index(["qux", "baz", "foo", "bar"]),
-            Index([1.0, 2.0, 3.0, 4.0], dtype=np.float64),
+            ["qux", "baz", "foo", "bar"],
+            np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float64),
         ],
     )
     def test_isin_level_kwarg(self, level, index):
+        index = Index(index)
         values = index.tolist()[-2:] + ["nonexisting"]
 
         expected = np.array([False, False, True, True])
@@ -1078,10 +1081,11 @@ class TestIndex:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "index,expected", [(Index(list("abcd")), True), (Index(range(4)), False)]
+        "index,expected", [(list("abcd"), True), (range(4), False)]
     )
     def test_tab_completion(self, index, expected):
         # GH 9910
+        index = Index(index)
         result = "str" in dir(index)
         assert result == expected
 
@@ -1164,15 +1168,11 @@ class TestIndex:
         index = Index(list("abc"))
         assert index.reindex(labels)[0].dtype.type == index.dtype.type
 
-    @pytest.mark.parametrize(
-        "labels,dtype",
-        [
-            (DatetimeIndex([]), np.datetime64),
-        ],
-    )
-    def test_reindex_doesnt_preserve_type_if_target_is_empty_index(self, labels, dtype):
+    def test_reindex_doesnt_preserve_type_if_target_is_empty_index(self):
         # GH7774
         index = Index(list("abc"))
+        labels = DatetimeIndex([])
+        dtype = np.datetime64
         assert index.reindex(labels)[0].dtype.type == dtype
 
     def test_reindex_doesnt_preserve_type_if_target_is_empty_index_numeric(
