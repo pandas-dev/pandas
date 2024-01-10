@@ -1976,19 +1976,18 @@ def test_str_find_large_start():
         tm.assert_series_equal(result, expected)
 
 
-def _get_all_substrings(string):
-    length = len(string) + 1
-    return [string[x:y] for x, y in combinations(range(length), r=2)]
-
-
 @pytest.mark.xfail(
     pa_version_under13p0, reason="https://github.com/apache/arrow/issues/36311"
 )
 def test_str_find_e2e():
-    string = "abcdefgh"
+    string = "abcaadef"
     s = pd.Series([string], dtype=ArrowDtype(pa.string()))
-    substrings = _get_all_substrings(string) + ["", "az", "abce"]
     offsets = list(range(-15, 15)) + [None]
+    substrings = [string[x:y] for x, y in combinations(range(len(string) + 1), r=2)] + [
+        "",
+        "az",
+        "abce",
+    ]
     for start in offsets:
         for end in offsets:
             for sub in substrings:
