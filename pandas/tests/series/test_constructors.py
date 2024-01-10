@@ -335,11 +335,11 @@ class TestSeriesConstructors:
     @pytest.mark.parametrize(
         "input_vals",
         [
-            ([1, 2]),
-            (["1", "2"]),
-            (list(date_range("1/1/2011", periods=2, freq="h"))),
-            (list(date_range("1/1/2011", periods=2, freq="h", tz="US/Eastern"))),
-            ([Interval(left=0, right=5)]),
+            [1, 2],
+            ["1", "2"],
+            list(date_range("1/1/2011", periods=2, freq="h")),
+            list(date_range("1/1/2011", periods=2, freq="h", tz="US/Eastern")),
+            [Interval(left=0, right=5)],
         ],
     )
     def test_constructor_list_str(self, input_vals, string_dtype):
@@ -1806,15 +1806,10 @@ class TestSeriesConstructors:
         expected = Series(["M", "M", "M"], index=[1, 2, 3], dtype=nullable_string_dtype)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "values",
-        [
-            [np.datetime64("2012-01-01"), np.datetime64("2013-01-01")],
-            ["2012-01-01", "2013-01-01"],
-        ],
-    )
-    def test_constructor_sparse_datetime64(self, values):
+    @pytest.mark.parametrize("box", [lambda x: x, np.datetime64])
+    def test_constructor_sparse_datetime64(self, box):
         # https://github.com/pandas-dev/pandas/issues/35762
+        values = [box("2012-01-01"), box("2013-01-01")]
         dtype = pd.SparseDtype("datetime64[ns]")
         result = Series(values, dtype=dtype)
         arr = pd.arrays.SparseArray(values, dtype=dtype)

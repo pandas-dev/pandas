@@ -154,14 +154,15 @@ def test_qcut_wrong_length_labels(labels):
 @pytest.mark.parametrize(
     "labels, expected",
     [
-        (["a", "b", "c"], Categorical(["a", "b", "c"], ordered=True)),
-        (list(range(3)), Categorical([0, 1, 2], ordered=True)),
+        (["a", "b", "c"], ["a", "b", "c"]),
+        (list(range(3)), [0, 1, 2]),
     ],
 )
 def test_qcut_list_like_labels(labels, expected):
     # GH 13318
     values = range(3)
     result = qcut(values, 3, labels=labels)
+    expected = Categorical(expected, ordered=True)
     tm.assert_categorical_equal(result, expected)
 
 
@@ -209,13 +210,14 @@ def test_single_quantile(data, start, end, length, labels):
 @pytest.mark.parametrize(
     "ser",
     [
-        Series(DatetimeIndex(["20180101", NaT, "20180103"])),
-        Series(TimedeltaIndex(["0 days", NaT, "2 days"])),
+        DatetimeIndex(["20180101", NaT, "20180103"]),
+        TimedeltaIndex(["0 days", NaT, "2 days"]),
     ],
     ids=lambda x: str(x.dtype),
 )
 def test_qcut_nat(ser, unit):
     # see gh-19768
+    ser = Series(ser)
     ser = ser.dt.as_unit(unit)
     td = Timedelta(1, unit=unit).as_unit(unit)
 

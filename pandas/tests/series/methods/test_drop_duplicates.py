@@ -34,14 +34,14 @@ def test_drop_duplicates(any_numpy_dtype, keep, expected):
 @pytest.mark.parametrize(
     "keep, expected",
     [
-        ("first", Series([False, False, True, True])),
-        ("last", Series([True, True, False, False])),
-        (False, Series([True, True, True, True])),
+        ("first", [False, False, True, True]),
+        ("last", [True, True, False, False]),
+        (False, [True, True, True, True]),
     ],
 )
 def test_drop_duplicates_bool(keep, expected):
     tc = Series([True, False, True, False])
-
+    expected = Series(expected)
     tm.assert_series_equal(tc.duplicated(keep=keep), expected)
     tm.assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])
     sc = tc.copy()

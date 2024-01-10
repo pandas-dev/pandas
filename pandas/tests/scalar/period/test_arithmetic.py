@@ -476,10 +476,11 @@ class TestPeriodComparisons:
             assert not left >= right
 
     @pytest.mark.parametrize(
-        "zerodim_arr, expected",
-        ((np.array(0), False), (np.array(Period("2000-01", "M")), True)),
+        "scalar, expected",
+        ((0, False), (Period("2000-01", "M"), True)),
     )
-    def test_period_comparison_numpy_zerodim_arr(self, zerodim_arr, expected):
+    def test_period_comparison_numpy_zerodim_arr(self, scalar, expected):
+        zerodim_arr = np.array(scalar)
         per = Period("2000-01", "M")
 
         assert (per == zerodim_arr) is expected

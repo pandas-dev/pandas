@@ -135,54 +135,50 @@ class TestMergeOrdered:
         "left, right, on, left_by, right_by, expected",
         [
             (
-                DataFrame({"G": ["g", "g"], "H": ["h", "h"], "T": [1, 3]}),
-                DataFrame({"T": [2], "E": [1]}),
+                {"G": ["g", "g"], "H": ["h", "h"], "T": [1, 3]},
+                {"T": [2], "E": [1]},
                 ["T"],
                 ["G", "H"],
                 None,
-                DataFrame(
-                    {
-                        "G": ["g"] * 3,
-                        "H": ["h"] * 3,
-                        "T": [1, 2, 3],
-                        "E": [np.nan, 1.0, np.nan],
-                    }
-                ),
+                {
+                    "G": ["g"] * 3,
+                    "H": ["h"] * 3,
+                    "T": [1, 2, 3],
+                    "E": [np.nan, 1.0, np.nan],
+                },
             ),
             (
-                DataFrame({"G": ["g", "g"], "H": ["h", "h"], "T": [1, 3]}),
-                DataFrame({"T": [2], "E": [1]}),
+                {"G": ["g", "g"], "H": ["h", "h"], "T": [1, 3]},
+                {"T": [2], "E": [1]},
                 "T",
                 ["G", "H"],
                 None,
-                DataFrame(
-                    {
-                        "G": ["g"] * 3,
-                        "H": ["h"] * 3,
-                        "T": [1, 2, 3],
-                        "E": [np.nan, 1.0, np.nan],
-                    }
-                ),
+                {
+                    "G": ["g"] * 3,
+                    "H": ["h"] * 3,
+                    "T": [1, 2, 3],
+                    "E": [np.nan, 1.0, np.nan],
+                },
             ),
             (
-                DataFrame({"T": [2], "E": [1]}),
-                DataFrame({"G": ["g", "g"], "H": ["h", "h"], "T": [1, 3]}),
+                {"T": [2], "E": [1]},
+                {"G": ["g", "g"], "H": ["h", "h"], "T": [1, 3]},
                 ["T"],
                 None,
                 ["G", "H"],
-                DataFrame(
-                    {
-                        "T": [1, 2, 3],
-                        "E": [np.nan, 1.0, np.nan],
-                        "G": ["g"] * 3,
-                        "H": ["h"] * 3,
-                    }
-                ),
+                {
+                    "T": [1, 2, 3],
+                    "E": [np.nan, 1.0, np.nan],
+                    "G": ["g"] * 3,
+                    "H": ["h"] * 3,
+                },
             ),
         ],
     )
     def test_list_type_by(self, left, right, on, left_by, right_by, expected):
         # GH 35269
+        left = DataFrame(left)
+        right = DataFrame(right)
         result = merge_ordered(
             left=left,
             right=right,
@@ -190,6 +186,7 @@ class TestMergeOrdered:
             left_by=left_by,
             right_by=right_by,
         )
+        expected = DataFrame(expected)
 
         tm.assert_frame_equal(result, expected)
 

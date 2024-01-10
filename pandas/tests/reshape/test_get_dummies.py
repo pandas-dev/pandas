@@ -453,19 +453,19 @@ class TestGetDummies:
         [
             (
                 {"data": DataFrame({"ä": ["a"]})},
-                DataFrame({"ä_a": [True]}),
+                "ä_a",
             ),
             (
                 {"data": DataFrame({"x": ["ä"]})},
-                DataFrame({"x_ä": [True]}),
+                "x_ä",
             ),
             (
                 {"data": DataFrame({"x": ["a"]}), "prefix": "ä"},
-                DataFrame({"ä_a": [True]}),
+                "ä_a",
             ),
             (
                 {"data": DataFrame({"x": ["a"]}), "prefix_sep": "ä"},
-                DataFrame({"xäa": [True]}),
+                "xäa",
             ),
         ],
     )
@@ -473,6 +473,7 @@ class TestGetDummies:
         # GH22084 get_dummies incorrectly encodes unicode characters
         # in dataframe column names
         result = get_dummies(**get_dummies_kwargs)
+        expected = DataFrame({expected: [True]})
         tm.assert_frame_equal(result, expected)
 
     def test_get_dummies_basic_drop_first(self, sparse):

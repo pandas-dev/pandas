@@ -31,17 +31,17 @@ def test_drop_unique_and_non_unique_index(
 
 
 @pytest.mark.parametrize(
-    "data, index, drop_labels, axis, error_type, error_desc",
+    "drop_labels, axis, error_type, error_desc",
     [
         # single string/tuple-like
-        (range(3), list("abc"), "bc", 0, KeyError, "not found in axis"),
+        ("bc", 0, KeyError, "not found in axis"),
         # bad axis
-        (range(3), list("abc"), ("a",), 0, KeyError, "not found in axis"),
-        (range(3), list("abc"), "one", "columns", ValueError, "No axis named columns"),
+        (("a",), 0, KeyError, "not found in axis"),
+        ("one", "columns", ValueError, "No axis named columns"),
     ],
 )
-def test_drop_exception_raised(data, index, drop_labels, axis, error_type, error_desc):
-    ser = Series(data, index=index)
+def test_drop_exception_raised(drop_labels, axis, error_type, error_desc):
+    ser = Series(range(3), index=list("abc"))
     with pytest.raises(error_type, match=error_desc):
         ser.drop(drop_labels, axis=axis)
 

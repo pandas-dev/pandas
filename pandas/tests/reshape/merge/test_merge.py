@@ -1466,10 +1466,8 @@ def _check_merge(x, y):
 
 
 class TestMergeDtypes:
-    @pytest.mark.parametrize(
-        "right_vals", [["foo", "bar"], Series(["foo", "bar"]).astype("category")]
-    )
-    def test_different(self, right_vals):
+    @pytest.mark.parametrize("dtype", [object, "category"])
+    def test_different(self, dtype):
         left = DataFrame(
             {
                 "A": ["foo", "bar"],
@@ -1480,6 +1478,7 @@ class TestMergeDtypes:
                 "F": Series([1, 2], dtype="int32"),
             }
         )
+        right_vals = Series(["foo", "bar"], dtype=dtype)
         right = DataFrame({"A": right_vals})
 
         # GH 9780
@@ -2311,19 +2310,15 @@ def test_merge_suffix(col1, col2, kwargs, expected_cols):
     [
         (
             "right",
-            DataFrame(
-                {"A": [100, 200, 300], "B1": [60, 70, np.nan], "B2": [600, 700, 800]}
-            ),
+            {"A": [100, 200, 300], "B1": [60, 70, np.nan], "B2": [600, 700, 800]},
         ),
         (
             "outer",
-            DataFrame(
-                {
-                    "A": [1, 100, 200, 300],
-                    "B1": [80, 60, 70, np.nan],
-                    "B2": [np.nan, 600, 700, 800],
-                }
-            ),
+            {
+                "A": [1, 100, 200, 300],
+                "B1": [80, 60, 70, np.nan],
+                "B2": [np.nan, 600, 700, 800],
+            },
         ),
     ],
 )
@@ -2331,6 +2326,7 @@ def test_merge_duplicate_suffix(how, expected):
     left_df = DataFrame({"A": [100, 200, 1], "B": [60, 70, 80]})
     right_df = DataFrame({"A": [100, 200, 300], "B": [600, 700, 800]})
     result = merge(left_df, right_df, on="A", how=how, suffixes=("_x", "_x"))
+    expected = DataFrame(expected)
     expected.columns = ["A", "B_x", "B_x"]
 
     tm.assert_frame_equal(result, expected)

@@ -298,32 +298,32 @@ def test_no_prefix_string_cats_contains_get_dummies_NaN_column():
     [
         pytest.param(
             "c",
-            DataFrame({"": ["a", "b", "c"]}),
+            {"": ["a", "b", "c"]},
             id="default_category is a str",
         ),
         pytest.param(
             1,
-            DataFrame({"": ["a", "b", 1]}),
+            {"": ["a", "b", 1]},
             id="default_category is a int",
         ),
         pytest.param(
             1.25,
-            DataFrame({"": ["a", "b", 1.25]}),
+            {"": ["a", "b", 1.25]},
             id="default_category is a float",
         ),
         pytest.param(
             0,
-            DataFrame({"": ["a", "b", 0]}),
+            {"": ["a", "b", 0]},
             id="default_category is a 0",
         ),
         pytest.param(
             False,
-            DataFrame({"": ["a", "b", False]}),
+            {"": ["a", "b", False]},
             id="default_category is a bool",
         ),
         pytest.param(
             (1, 2),
-            DataFrame({"": ["a", "b", (1, 2)]}),
+            {"": ["a", "b", (1, 2)]},
             id="default_category is a tuple",
         ),
     ],
@@ -333,6 +333,7 @@ def test_no_prefix_string_cats_default_category(
 ):
     dummies = DataFrame({"a": [1, 0, 0], "b": [0, 1, 0]})
     result = from_dummies(dummies, default_category=default_category)
+    expected = DataFrame(expected)
     if using_infer_string:
         expected[""] = expected[""].astype("string[pyarrow_numpy]")
     tm.assert_frame_equal(result, expected)
@@ -366,32 +367,32 @@ def test_with_prefix_contains_get_dummies_NaN_column():
     [
         pytest.param(
             "x",
-            DataFrame({"col1": ["a", "b", "x"], "col2": ["x", "a", "c"]}),
+            {"col1": ["a", "b", "x"], "col2": ["x", "a", "c"]},
             id="default_category is a str",
         ),
         pytest.param(
             0,
-            DataFrame({"col1": ["a", "b", 0], "col2": [0, "a", "c"]}),
+            {"col1": ["a", "b", 0], "col2": [0, "a", "c"]},
             id="default_category is a 0",
         ),
         pytest.param(
             False,
-            DataFrame({"col1": ["a", "b", False], "col2": [False, "a", "c"]}),
+            {"col1": ["a", "b", False], "col2": [False, "a", "c"]},
             id="default_category is a False",
         ),
         pytest.param(
             {"col2": 1, "col1": 2.5},
-            DataFrame({"col1": ["a", "b", 2.5], "col2": [1, "a", "c"]}),
+            {"col1": ["a", "b", 2.5], "col2": [1, "a", "c"]},
             id="default_category is a dict with int and float values",
         ),
         pytest.param(
             {"col2": None, "col1": False},
-            DataFrame({"col1": ["a", "b", False], "col2": [None, "a", "c"]}),
+            {"col1": ["a", "b", False], "col2": [None, "a", "c"]},
             id="default_category is a dict with bool and None values",
         ),
         pytest.param(
             {"col2": (1, 2), "col1": [1.25, False]},
-            DataFrame({"col1": ["a", "b", [1.25, False]], "col2": [(1, 2), "a", "c"]}),
+            {"col1": ["a", "b", [1.25, False]], "col2": [(1, 2), "a", "c"]},
             id="default_category is a dict with list and tuple values",
         ),
     ],
@@ -402,6 +403,7 @@ def test_with_prefix_default_category(
     result = from_dummies(
         dummies_with_unassigned, sep="_", default_category=default_category
     )
+    expected = DataFrame(expected)
     tm.assert_frame_equal(result, expected)
 
 

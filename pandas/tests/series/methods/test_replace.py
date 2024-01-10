@@ -395,13 +395,13 @@ class TestSeriesReplace:
     @pytest.mark.parametrize(
         "categorical, numeric",
         [
-            (pd.Categorical(["A"], categories=["A", "B"]), [1]),
-            (pd.Categorical(["A", "B"], categories=["A", "B"]), [1, 2]),
+            (["A"], [1]),
+            (["A", "B"], [1, 2]),
         ],
     )
     def test_replace_categorical(self, categorical, numeric):
         # GH 24971, GH#23305
-        ser = pd.Series(categorical)
+        ser = pd.Series(pd.Categorical(categorical, categories=["A", "B"]))
         msg = "Downcasting behavior in `replace`"
         msg = "with CategoricalDtype is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
