@@ -116,7 +116,7 @@ class PandasColumn(Column):
                 Endianness.NATIVE,
             )
         elif is_string_dtype(dtype):
-            if infer_dtype(self._col) == "string":
+            if infer_dtype(self._col) in ("string", "empty"):
                 return (
                     DtypeKind.STRING,
                     8,
