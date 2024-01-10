@@ -1157,7 +1157,7 @@ class Index(IndexOpsMixin, PandasObject):
         indices = ensure_platform_int(indices)
         allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
 
-        if lib.is_range_indexer(indices, len(self)):
+        if indices.ndim == 1 and lib.is_range_indexer(indices, len(self)):
             return self.copy()
 
         # Note: we discard fill_value and use self._na_value, only relevant
