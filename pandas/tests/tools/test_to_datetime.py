@@ -988,14 +988,13 @@ class TestToDatetime:
 
     # Doesn't work on Windows since tzpath not set correctly
     @td.skip_if_windows
-    @pytest.mark.parametrize("arg_class", [Series, Index])
     @pytest.mark.parametrize("utc", [True, False])
     @pytest.mark.parametrize("tz", [None, "US/Central"])
-    def test_to_datetime_arrow(self, tz, utc, arg_class):
+    def test_to_datetime_arrow(self, tz, utc, index_or_series):
         pa = pytest.importorskip("pyarrow")
 
         dti = date_range("1965-04-03", periods=19, freq="2W", tz=tz)
-        dti = arg_class(dti)
+        dti = index_or_series(dti)
 
         dti_arrow = dti.astype(pd.ArrowDtype(pa.timestamp(unit="ns", tz=tz)))
 
@@ -1003,11 +1002,11 @@ class TestToDatetime:
         expected = to_datetime(dti, utc=utc).astype(
             pd.ArrowDtype(pa.timestamp(unit="ns", tz=tz if not utc else "UTC"))
         )
-        if not utc and arg_class is not Series:
+        if not utc and index_or_series is not Series:
             # Doesn't hold for utc=True, since that will astype
             # to_datetime also returns a new object for series
             assert result is dti_arrow
-        if arg_class is Series:
+        if index_or_series is Series:
             tm.assert_series_equal(result, expected)
         else:
             tm.assert_index_equal(result, expected)
@@ -1073,6 +1072,7 @@ class TestToDatetime:
     def test_to_datetime_today_now_unicode_bytes(self, arg):
         to_datetime([arg])
 
+    @pytest.mark.filterwarnings("ignore:Timestamp.utcnow is deprecated:FutureWarning")
     @pytest.mark.parametrize(
         "format, expected_ds",
         [
@@ -2255,12 +2255,12 @@ class TestToDatetimeDataFrame:
         expected = Series([Timestamp("20150204 00:00:00"), NaT])
         tm.assert_series_equal(result, expected)
 
-    def test_dataframe_extra_keys_raisesm(self, df, cache):
+    def test_dataframe_extra_keys_raises(self, df, cache):
         # extra columns
         msg = r"extra keys have been passed to the datetime assemblage: \[foo\]"
+        df2 = df.copy()
+        df2["foo"] = 1
         with pytest.raises(ValueError, match=msg):
-            df2 = df.copy()
-            df2["foo"] = 1
             to_datetime(df2, cache=cache)
 
     @pytest.mark.parametrize(
@@ -3043,7 +3043,6 @@ class TestDaysInMonth:
         "expected, format",
         [
             ["2015-02-29", None],
-            ["2015-02-29", "%Y-%m-%d"],
             ["2015-02-29", "%Y-%m-%d"],
             ["2015-04-31", "%Y-%m-%d"],
         ],

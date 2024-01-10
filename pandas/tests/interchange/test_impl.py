@@ -353,3 +353,12 @@ def test_interchange_from_corrected_buffer_dtypes(monkeypatch) -> None:
     interchange.get_column_by_name = lambda _: column
     monkeypatch.setattr(df, "__dataframe__", lambda allow_copy: interchange)
     pd.api.interchange.from_dataframe(df)
+
+
+def test_large_string():
+    # GH#56702
+    pytest.importorskip("pyarrow")
+    df = pd.DataFrame({"a": ["x"]}, dtype="large_string[pyarrow]")
+    result = pd.api.interchange.from_dataframe(df.__dataframe__())
+    expected = pd.DataFrame({"a": ["x"]}, dtype="object")
+    tm.assert_frame_equal(result, expected)

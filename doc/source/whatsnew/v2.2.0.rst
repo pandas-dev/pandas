@@ -188,6 +188,26 @@ For a full list of ADBC drivers and their development status, see the `ADBC Driv
 Implementation Status <https://arrow.apache.org/adbc/current/driver/status.html>`_
 documentation.
 
+.. _whatsnew_220.enhancements.case_when:
+
+Create a pandas Series based on one or more conditions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :meth:`Series.case_when` function has been added to create a Series object based on one or more conditions. (:issue:`39154`)
+
+.. ipython:: python
+
+   import pandas as pd
+
+   df = pd.DataFrame(dict(a=[1, 2, 3], b=[4, 5, 6]))
+   default=pd.Series('default', index=df.index)
+   default.case_when(
+        caselist=[
+            (df.a == 1, 'first'),                              # condition, replacement
+            (df.a.gt(1) & df.b.eq(5), 'second'),  # condition, replacement
+        ],
+   )
+
 .. _whatsnew_220.enhancements.to_numpy_ea:
 
 ``to_numpy`` for NumPy nullable and Arrow types converts to suitable NumPy dtype
@@ -321,7 +341,7 @@ Other enhancements
 - :meth:`DataFrame.apply` now allows the usage of numba (via ``engine="numba"``) to JIT compile the passed function, allowing for potential speedups (:issue:`54666`)
 - :meth:`ExtensionArray._explode` interface method added to allow extension type implementations of the ``explode`` method (:issue:`54833`)
 - :meth:`ExtensionArray.duplicated` added to allow extension type implementations of the ``duplicated`` method (:issue:`55255`)
-- :meth:`Series.ffill`, :meth:`Series.bfill`, :meth:`DataFrame.ffill`, and :meth:`DataFrame.bfill` have gained the argument ``limit_area`` (:issue:`56492`)
+- :meth:`Series.ffill`, :meth:`Series.bfill`, :meth:`DataFrame.ffill`, and :meth:`DataFrame.bfill` have gained the argument ``limit_area``; 3rd party :class:`.ExtensionArray` authors need to add this argument to the method ``_pad_or_backfill`` (:issue:`56492`)
 - Allow passing ``read_only``, ``data_only`` and ``keep_links`` arguments to openpyxl using ``engine_kwargs`` of :func:`read_excel` (:issue:`55027`)
 - Implement masked algorithms for :meth:`Series.value_counts` (:issue:`54984`)
 - Implemented :meth:`Series.dt` methods and attributes for :class:`ArrowDtype` with ``pyarrow.duration`` type (:issue:`52284`)
@@ -741,6 +761,7 @@ Categorical
 ^^^^^^^^^^^
 - :meth:`Categorical.isin` raising ``InvalidIndexError`` for categorical containing overlapping :class:`Interval` values (:issue:`34974`)
 - Bug in :meth:`CategoricalDtype.__eq__` returning ``False`` for unordered categorical data with mixed types (:issue:`55468`)
+- Bug when casting ``pa.dictionary`` to :class:`CategoricalDtype` using a ``pa.DictionaryArray`` as categories (:issue:`56672`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -786,8 +807,11 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in :func:`read_csv` with ``engine="pyarrow"`` causing rounding errors for large integers (:issue:`52505`)
+- Bug in :meth:`Series.__floordiv__` and :meth:`Series.__truediv__` for :class:`ArrowDtype` with integral dtypes raising for large divisors (:issue:`56706`)
 - Bug in :meth:`Series.__floordiv__` for :class:`ArrowDtype` with integral dtypes raising for large values (:issue:`56645`)
 - Bug in :meth:`Series.pow` not filling missing values correctly (:issue:`55512`)
+- Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` matching float ``0.0`` with ``False`` and vice versa (:issue:`55398`)
+- Bug in :meth:`Series.round` raising for nullable boolean dtype (:issue:`55936`)
 
 Conversion
 ^^^^^^^^^^
@@ -814,6 +838,7 @@ Interval
 - Bug in :class:`Interval` ``__repr__`` not displaying UTC offsets for :class:`Timestamp` bounds. Additionally the hour, minute and second components will now be shown (:issue:`55015`)
 - Bug in :meth:`IntervalIndex.factorize` and :meth:`Series.factorize` with :class:`IntervalDtype` with datetime64 or timedelta64 intervals not preserving non-nanosecond units (:issue:`56099`)
 - Bug in :meth:`IntervalIndex.from_arrays` when passed ``datetime64`` or ``timedelta64`` arrays with mismatched resolutions constructing an invalid ``IntervalArray`` object (:issue:`55714`)
+- Bug in :meth:`IntervalIndex.from_tuples` raising if subtype is a nullable extension dtype (:issue:`56765`)
 - Bug in :meth:`IntervalIndex.get_indexer` with datetime or timedelta intervals incorrectly matching on integer targets (:issue:`47772`)
 - Bug in :meth:`IntervalIndex.get_indexer` with timezone-aware datetime intervals incorrectly matching on a sequence of timezone-naive targets (:issue:`47772`)
 - Bug in setting values on a :class:`Series` with an :class:`IntervalIndex` using a slice incorrectly raising (:issue:`54722`)
@@ -845,6 +870,7 @@ I/O
 - Bug in :func:`read_json` not handling dtype conversion properly if ``infer_string`` is set (:issue:`56195`)
 - Bug in :meth:`DataFrame.to_excel`, with ``OdsWriter`` (``ods`` files) writing Boolean/string value (:issue:`54994`)
 - Bug in :meth:`DataFrame.to_hdf` and :func:`read_hdf` with ``datetime64`` dtypes with non-nanosecond resolution failing to round-trip correctly (:issue:`55622`)
+- Bug in :meth:`DataFrame.to_stata` raising for extension dtypes (:issue:`54671`)
 - Bug in :meth:`~pandas.read_excel` with ``engine="odf"`` (``ods`` files) when a string cell contains an annotation (:issue:`55200`)
 - Bug in :meth:`~pandas.read_excel` with an ODS file without cached formatted cell for float values (:issue:`55219`)
 - Bug where :meth:`DataFrame.to_json` would raise an ``OverflowError`` instead of a ``TypeError`` with unsupported NumPy types (:issue:`55403`)
@@ -872,6 +898,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.asfreq` and :meth:`Series.asfreq` with a :class:`DatetimeIndex` with non-nanosecond resolution incorrectly converting to nanosecond resolution (:issue:`55958`)
 - Bug in :meth:`DataFrame.ewm` when passed ``times`` with non-nanosecond ``datetime64`` or :class:`DatetimeTZDtype` dtype (:issue:`56262`)
 - Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` where grouping by a combination of ``Decimal`` and NA values would fail when ``sort=True`` (:issue:`54847`)
+- Bug in :meth:`DataFrame.groupby` for DataFrame subclasses when selecting a subset of columns to apply the function to (:issue:`56761`)
 - Bug in :meth:`DataFrame.resample` not respecting ``closed`` and ``label`` arguments for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55282`)
 - Bug in :meth:`DataFrame.resample` when resampling on a :class:`ArrowDtype` of ``pyarrow.timestamp`` or ``pyarrow.duration`` type (:issue:`55989`)
 - Bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55281`)
@@ -887,6 +914,7 @@ Reshaping
 - Bug in :func:`merge_asof` when using a :class:`Timedelta` tolerance on a :class:`ArrowDtype` column (:issue:`56486`)
 - Bug in :func:`merge` not raising when merging datetime columns with timedelta columns (:issue:`56455`)
 - Bug in :func:`merge` not raising when merging string columns with numeric columns (:issue:`56441`)
+- Bug in :func:`merge` not sorting for new string dtype (:issue:`56442`)
 - Bug in :func:`merge` returning columns in incorrect order when left and/or right is empty (:issue:`51929`)
 - Bug in :meth:`DataFrame.melt` where an exception was raised if ``var_name`` was not a string (:issue:`55948`)
 - Bug in :meth:`DataFrame.melt` where it would not preserve the datetime (:issue:`55254`)
@@ -900,6 +928,7 @@ Sparse
 
 Other
 ^^^^^
+- :meth:`DataFrame.__dataframe__` did not support pyarrow large strings (:issue:`56702`)
 - Bug in :func:`DataFrame.describe` when formatting percentiles in the resulting percentile 99.999% is rounded to 100% (:issue:`55765`)
 - Bug in :func:`cut` and :func:`qcut` with ``datetime64`` dtype values with non-nanosecond units incorrectly returning nanosecond-unit bins (:issue:`56101`)
 - Bug in :func:`cut` incorrectly allowing cutting of timezone-aware datetimes with timezone-naive bins (:issue:`54964`)

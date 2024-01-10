@@ -110,30 +110,50 @@ if not pa_version_under10p1:
 
     def cast_for_truediv(
         arrow_array: pa.ChunkedArray, pa_object: pa.Array | pa.Scalar
-    ) -> pa.ChunkedArray:
+    ) -> tuple[pa.ChunkedArray, pa.Array | pa.Scalar]:
         # Ensure int / int -> float mirroring Python/Numpy behavior
         # as pc.divide_checked(int, int) -> int
         if pa.types.is_integer(arrow_array.type) and pa.types.is_integer(
             pa_object.type
         ):
+            # GH: 56645.
             # https://github.com/apache/arrow/issues/35563
-            # Arrow does not allow safe casting large integral values to float64.
-            # Intentionally not using arrow_array.cast because it could be a scalar
-            # value in reflected case, and safe=False only added to
-            # scalar cast in pyarrow 13.
-            return pc.cast(arrow_array, pa.float64(), safe=False)
-        return arrow_array
+            return pc.cast(arrow_array, pa.float64(), safe=False), pc.cast(
+                pa_object, pa.float64(), safe=False
+            )
+
+        return arrow_array, pa_object
 
     def floordiv_compat(
         left: pa.ChunkedArray | pa.Array | pa.Scalar,
         right: pa.ChunkedArray | pa.Array | pa.Scalar,
     ) -> pa.ChunkedArray:
-        # Ensure int // int -> int mirroring Python/Numpy behavior
-        # as pc.floor(pc.divide_checked(int, int)) -> float
-        converted_left = cast_for_truediv(left, right)
-        result = pc.floor(pc.divide(converted_left, right))
+        # TODO: Replace with pyarrow floordiv kernel.
+        # https://github.com/apache/arrow/issues/39386
         if pa.types.is_integer(left.type) and pa.types.is_integer(right.type):
+            divided = pc.divide_checked(left, right)
+            if pa.types.is_signed_integer(divided.type):
+                # GH 56676
+                has_remainder = pc.not_equal(pc.multiply(divided, right), left)
+                has_one_negative_operand = pc.less(
+                    pc.bit_wise_xor(left, right),
+                    pa.scalar(0, type=divided.type),
+                )
+                result = pc.if_else(
+                    pc.and_(
+                        has_remainder,
+                        has_one_negative_operand,
+                    ),
+                    # GH: 55561
+                    pc.subtract(divided, pa.scalar(1, type=divided.type)),
+                    divided,
+                )
+            else:
+                result = divided
             result = result.cast(left.type)
+        else:
+            divided = pc.divide(left, right)
+            result = pc.floor(divided)
         return result
 
     ARROW_ARITHMETIC_FUNCS = {
@@ -143,8 +163,8 @@ if not pa_version_under10p1:
         "rsub": lambda x, y: pc.subtract_checked(y, x),
         "mul": pc.multiply_checked,
         "rmul": lambda x, y: pc.multiply_checked(y, x),
-        "truediv": lambda x, y: pc.divide(cast_for_truediv(x, y), y),
-        "rtruediv": lambda x, y: pc.divide(y, cast_for_truediv(x, y)),
+        "truediv": lambda x, y: pc.divide(*cast_for_truediv(x, y)),
+        "rtruediv": lambda x, y: pc.divide(*cast_for_truediv(y, x)),
         "floordiv": lambda x, y: floordiv_compat(x, y),
         "rfloordiv": lambda x, y: floordiv_compat(y, x),
         "mod": NotImplemented,
@@ -1028,13 +1048,18 @@ class ArrowExtensionArray(
         return type(self)(pc.drop_null(self._pa_array))
 
     def _pad_or_backfill(
-        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
     ) -> Self:
         if not self._hasna:
             # TODO(CoW): Not necessary anymore when CoW is the default
             return self.copy()
 
-        if limit is None:
+        if limit is None and limit_area is None:
             method = missing.clean_fill_method(method)
             try:
                 if method == "pad":
@@ -1050,7 +1075,9 @@ class ArrowExtensionArray(
 
         # TODO(3.0): after EA.fillna 'method' deprecation is enforced, we can remove
         #  this method entirely.
-        return super()._pad_or_backfill(method=method, limit=limit, copy=copy)
+        return super()._pad_or_backfill(
+            method=method, limit=limit, limit_area=limit_area, copy=copy
+        )
 
     @doc(ExtensionArray.fillna)
     def fillna(
@@ -2851,7 +2878,8 @@ class ArrowExtensionArray(
             "shift_backward": "earliest",
             "shift_forward": "latest",
         }.get(
-            nonexistent, None  # type: ignore[arg-type]
+            nonexistent,  # type: ignore[arg-type]
+            None,
         )
         if nonexistent_pa is None:
             raise NotImplementedError(f"{nonexistent=} is not supported")

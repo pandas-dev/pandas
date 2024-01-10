@@ -193,7 +193,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._simple_new(self._data[item], newmask)
 
     def _pad_or_backfill(
-        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
     ) -> Self:
         mask = self._mask
 
@@ -205,7 +210,21 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if copy:
                 npvalues = npvalues.copy()
                 new_mask = new_mask.copy()
+            elif limit_area is not None:
+                mask = mask.copy()
             func(npvalues, limit=limit, mask=new_mask)
+
+            if limit_area is not None and not mask.all():
+                mask = mask.T
+                neg_mask = ~mask
+                first = neg_mask.argmax()
+                last = len(neg_mask) - neg_mask[::-1].argmax() - 1
+                if limit_area == "inside":
+                    new_mask[:first] |= mask[:first]
+                    new_mask[last + 1 :] |= mask[last + 1 :]
+                elif limit_area == "outside":
+                    new_mask[first + 1 : last] |= mask[first + 1 : last]
+
             if copy:
                 return self._simple_new(npvalues.T, new_mask.T)
             else:
@@ -385,6 +404,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         DataFrame.round : Round values of a DataFrame.
         Series.round : Round values of a Series.
         """
+        if self.dtype.kind == "b":
+            return self
         nv.validate_round(args, kwargs)
         values = np.round(self._data, decimals=decimals, **kwargs)
 
@@ -1070,7 +1091,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         arr = IntegerArray(value_counts, mask)
         index = Index(
             self.dtype.construct_array_type()(
-                keys, mask_index  # type: ignore[arg-type]
+                keys,  # type: ignore[arg-type]
+                mask_index,
             )
         )
         return Series(arr, index=index, name="count", copy=False)
