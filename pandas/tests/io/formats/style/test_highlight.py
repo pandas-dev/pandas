@@ -198,16 +198,17 @@ def test_highlight_quantile(styler, kwargs):
     ],
 )
 @pytest.mark.parametrize(
-    "df",
+    "dtype",
     [
-        DataFrame([[0, 10], [20, 30]], dtype=int),
-        DataFrame([[0, 10], [20, 30]], dtype=float),
-        DataFrame([[0, 10], [20, 30]], dtype="datetime64[ns]"),
-        DataFrame([[0, 10], [20, 30]], dtype=str),
-        DataFrame([[0, 10], [20, 30]], dtype="timedelta64[ns]"),
+        int,
+        float,
+        "datetime64[ns]",
+        str,
+        "timedelta64[ns]",
     ],
 )
-def test_all_highlight_dtypes(f, kwargs, df):
+def test_all_highlight_dtypes(f, kwargs, dtype):
+    df = DataFrame([[0, 10], [20, 30]], dtype=dtype)
     if f == "highlight_quantile" and isinstance(df.iloc[0, 0], (str)):
         return None  # quantile incompatible with str
     if f == "highlight_between":

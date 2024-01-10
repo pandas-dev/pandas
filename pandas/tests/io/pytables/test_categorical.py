@@ -190,25 +190,19 @@ def test_categorical_nan_only_columns(tmp_path, setup_path):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "where, df, expected",
-    [
-        ('col=="q"', DataFrame({"col": ["a", "b", "s"]}), DataFrame({"col": []})),
-        ('col=="a"', DataFrame({"col": ["a", "b", "s"]}), DataFrame({"col": ["a"]})),
-    ],
-)
-def test_convert_value(
-    tmp_path, setup_path, where: str, df: DataFrame, expected: DataFrame
-):
+@pytest.mark.parametrize("where, expected", [["q", []], ["a", ["a"]]])
+def test_convert_value(tmp_path, setup_path, where: str, expected):
     # GH39420
     # Check that read_hdf with categorical columns can filter by where condition.
+    df = DataFrame({"col": ["a", "b", "s"]})
     df.col = df.col.astype("category")
     max_widths = {"col": 1}
     categorical_values = sorted(df.col.unique())
+    expected = DataFrame({"col": expected})
     expected.col = expected.col.astype("category")
     expected.col = expected.col.cat.set_categories(categorical_values)
 
     path = tmp_path / setup_path
     df.to_hdf(path, key="df", format="table", min_itemsize=max_widths)
-    result = read_hdf(path, where=where)
+    result = read_hdf(path, where=f'col=="{where}"')
     tm.assert_frame_equal(result, expected)

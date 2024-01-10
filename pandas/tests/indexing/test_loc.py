@@ -1388,14 +1388,12 @@ class TestLocBaseIndependent:
         result = df.loc["0s":, :]
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "val,expected", [(2**63 - 1, Series([1])), (2**63, Series([2]))]
-    )
+    @pytest.mark.parametrize("val,expected", [(2**63 - 1, 1), (2**63, 2)])
     def test_loc_getitem_uint64_scalar(self, val, expected):
         # see GH#19399
         df = DataFrame([1, 2], index=[2**63 - 1, 2**63])
         result = df.loc[val]
-
+        expected = Series([expected])
         expected.name = val
         tm.assert_series_equal(result, expected)
 
@@ -2177,12 +2175,11 @@ class TestLocSetitemWithExpansion:
         )
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize(
-        "dtype", ["Int32", "Int64", "UInt32", "UInt64", "Float32", "Float64"]
-    )
-    def test_loc_setitem_with_expansion_preserves_nullable_int(self, dtype):
+    def test_loc_setitem_with_expansion_preserves_nullable_int(
+        self, any_numeric_ea_dtype
+    ):
         # GH#42099
-        ser = Series([0, 1, 2, 3], dtype=dtype)
+        ser = Series([0, 1, 2, 3], dtype=any_numeric_ea_dtype)
         df = DataFrame({"data": ser})
 
         result = DataFrame(index=df.index)

@@ -560,27 +560,26 @@ def test_getitem_group_select(idx):
     assert sorted_idx.get_loc("foo") == slice(0, 2)
 
 
-@pytest.mark.parametrize("ind1", [[True] * 5, Index([True] * 5)])
-@pytest.mark.parametrize(
-    "ind2",
-    [[True, False, True, False, False], Index([True, False, True, False, False])],
-)
-def test_getitem_bool_index_all(ind1, ind2):
+@pytest.mark.parametrize("box", [list, Index])
+def test_getitem_bool_index_all(box):
     # GH#22533
+    ind1 = box([True] * 5)
     idx = MultiIndex.from_tuples([(10, 1), (20, 2), (30, 3), (40, 4), (50, 5)])
     tm.assert_index_equal(idx[ind1], idx)
 
+    ind2 = box([True, False, True, False, False])
     expected = MultiIndex.from_tuples([(10, 1), (30, 3)])
     tm.assert_index_equal(idx[ind2], expected)
 
 
-@pytest.mark.parametrize("ind1", [[True], Index([True])])
-@pytest.mark.parametrize("ind2", [[False], Index([False])])
-def test_getitem_bool_index_single(ind1, ind2):
+@pytest.mark.parametrize("box", [list, Index])
+def test_getitem_bool_index_single(box):
     # GH#22533
+    ind1 = box([True])
     idx = MultiIndex.from_tuples([(10, 1)])
     tm.assert_index_equal(idx[ind1], idx)
 
+    ind2 = box([False])
     expected = MultiIndex(
         levels=[np.array([], dtype=np.int64), np.array([], dtype=np.int64)],
         codes=[[], []],
