@@ -35,7 +35,6 @@ from pandas._config import (
 
 from pandas._libs import lib
 from pandas._libs.lib import is_range_indexer
-from pandas._libs.properties import AxisProperty
 from pandas._libs.tslibs import (
     Period,
     Tick,
@@ -6301,10 +6300,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         This allows simpler access to columns for interactive use.
         """
         if (
-                name not in self.__dict__
-                and name not in self._internal_names_set
-                and name not in self._metadata
-                and name in self._info_axis
+            name not in self.__dict__
+            and name not in self._internal_names_set
+            and name not in self._metadata
+            and name in self._info_axis
         ):
             try:
                 self[name] = value
@@ -6313,14 +6312,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             else:
                 return
 
-        obj = getattr(type(self), name, None)
         if (
-                isinstance(self, ABCDataFrame)
-                and name not in self.__dict__
-                and not isinstance(obj, (AxisProperty, property))
-                and name not in self._internal_names
-                and name not in self._metadata
-                and is_list_like(value)
+            # only relevant with dataframes
+            isinstance(self, ABCDataFrame)
+            # ignore if attr already exists
+            and name not in self.__dict__
+            # ignore if it's a class attribute;
+            # might be a prop, axis, cached_property,
+            # or other sort of descriptor
+            and not hasattr(type(self), name)
+            # ignore if internal or metadata
+            and name not in self._internal_names
+            and name not in self._metadata
+            and is_list_like(value)
         ):
             warnings.warn(
                 "Pandas doesn't allow columns to be "

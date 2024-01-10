@@ -150,20 +150,68 @@ class TestDataFrame:
         tm.assert_series_equal(df["y"], Series([2, 4, 6], name="y"))
 
     def test_setattr_doesnt_call_getattr(self):
+        # Test to assert setattr doesn't call getattr, resulting in potentially
+        # odd behavior for descriptors; this is a step towards pandas extensibility
+
         from functools import cached_property
+
+        class FancyDescriptor:
+            def __get__(self, instance, owner):
+                if instance is None:
+                    return self
+                return instance.__dict__[self.__name__]
+
+            def __set__(self, instance, value):
+                instance.__dict__[self.__name__] = value
+
+            def __delete__(self, instance):
+                del instance.__dict__[self.__name__]
+
+            def __set_name__(self, owner, name):
+                self.__name__ = name
+
         class Foo(DataFrame):
             @cached_property
-            def bar(self):
-                raise ValueError
-        try:
-            Foo().bar = ...
-        except ValueError:
-            pytest.fail(
-                f'DataFrame.__setattr__ prematurely called '
-                f'getattr on the same name.'
-            )
+            def scalar(self):
+                raise AttributeError
 
+            @cached_property
+            def vector(self):
+                raise AttributeError
 
+            @property
+            def scalar_(self):
+                return self.__dict__["scalar_"]
+
+            @scalar_.setter
+            def scalar_(self, value):
+                self.__dict__["scalar_"] = value
+
+            @property
+            def vector_(self):
+                return self.__dict__["vector_"]
+
+            @vector_.setter
+            def vector_(self, value):
+                self.__dict__["vector_"] = value
+
+            fancy = FancyDescriptor()
+
+        with tm.assert_produces_warning(False):
+            foo = Foo()
+            try:
+                foo.scalar = ...
+                foo.vector = [1, 2, 3]
+                foo.scalar_ = ...
+                foo.vector_ = [1, 2, 3]
+                foo.fancy = ...
+                del foo.fancy
+                foo.fancy = [1, 2, 3]
+            except (AttributeError, KeyError):
+                pytest.fail(
+                    "DataFrame.__setattr__ prematurely called "
+                    "getattr on the same name."
+                )
 
     def test_deepcopy_empty(self):
         # This test covers empty frame copying with non-empty column sets
