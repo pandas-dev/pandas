@@ -355,6 +355,14 @@ def test_interchange_from_corrected_buffer_dtypes(monkeypatch) -> None:
     pd.api.interchange.from_dataframe(df)
 
 
+def test_empty_string_column():
+    # https://github.com/pandas-dev/pandas/issues/56703
+    df = pd.DataFrame({"a": []}, dtype=str)
+    df2 = df.__dataframe__()
+    result = pd.api.interchange.from_dataframe(df2)
+    tm.assert_frame_equal(df, result)
+
+
 def test_large_string():
     # GH#56702
     pytest.importorskip("pyarrow")
