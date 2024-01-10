@@ -499,6 +499,9 @@ class Block(PandasObject, libinternals.Block):
             and is_integer_dtype(self.values.dtype)
             and isna(other)
             and other is not NaT
+            and not (
+                isinstance(other, (np.datetime64, np.timedelta64)) and np.isnat(other)
+            )
         ):
             warn_on_upcast = False
         elif (
