@@ -164,14 +164,15 @@ class TestAstype:
 
     @pytest.mark.parametrize("dtype", [str, np.str_])
     @pytest.mark.parametrize(
-        "series",
+        "data",
         [
-            Series([string.digits * 10, rand_str(63), rand_str(64), rand_str(1000)]),
-            Series([string.digits * 10, rand_str(63), rand_str(64), np.nan, 1.0]),
+            [string.digits * 10, rand_str(63), rand_str(64), rand_str(1000)],
+            [string.digits * 10, rand_str(63), rand_str(64), np.nan, 1.0],
         ],
     )
-    def test_astype_str_map(self, dtype, series, using_infer_string):
+    def test_astype_str_map(self, dtype, data, using_infer_string):
         # see GH#4405
+        series = Series(data)
         result = series.astype(dtype)
         expected = series.map(str)
         if using_infer_string:
@@ -459,13 +460,9 @@ class TestAstype:
         expected = Series(True, dtype="bool")
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "dtype",
-        tm.ALL_INT_EA_DTYPES + tm.FLOAT_EA_DTYPES,
-    )
-    def test_astype_ea_to_datetimetzdtype(self, dtype):
+    def test_astype_ea_to_datetimetzdtype(self, any_numeric_ea_dtype):
         # GH37553
-        ser = Series([4, 0, 9], dtype=dtype)
+        ser = Series([4, 0, 9], dtype=any_numeric_ea_dtype)
         result = ser.astype(DatetimeTZDtype(tz="US/Pacific"))
 
         expected = Series(

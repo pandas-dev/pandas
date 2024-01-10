@@ -631,17 +631,16 @@ def test_timedelta_pass_td_and_kwargs_raises():
 
 
 @pytest.mark.parametrize(
-    "constructor, value, unit, expectation",
+    "constructor, value, unit",
     [
-        (Timedelta, "10s", "ms", (ValueError, "unit must not be specified")),
-        (to_timedelta, "10s", "ms", (ValueError, "unit must not be specified")),
-        (to_timedelta, ["1", 2, 3], "s", (ValueError, "unit must not be specified")),
+        (Timedelta, "10s", "ms"),
+        (to_timedelta, "10s", "ms"),
+        (to_timedelta, ["1", 2, 3], "s"),
     ],
 )
-def test_string_with_unit(constructor, value, unit, expectation):
-    exp, match = expectation
-    with pytest.raises(exp, match=match):
-        _ = constructor(value, unit=unit)
+def test_string_with_unit(constructor, value, unit):
+    with pytest.raises(ValueError, match="unit must not be specified"):
+        constructor(value, unit=unit)
 
 
 @pytest.mark.parametrize(
