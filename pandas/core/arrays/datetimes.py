@@ -2778,7 +2778,7 @@ def _generate_range(
         if offset.n >= 0:
             start = offset.rollforward(start)  # type: ignore[assignment]
         else:
-            start = offset.rollback(start)
+            start = offset.rollback(start)  # type: ignore[assignment]
 
     elif end and not offset.is_on_offset(end):
         # Incompatible types in assignment (expression has type "datetime",
