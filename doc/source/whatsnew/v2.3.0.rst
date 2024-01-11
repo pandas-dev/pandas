@@ -209,6 +209,7 @@ Styler
 
 Other
 ^^^^^
+- Bug in :func:`date_range` where a timestamp out of the valid range would be produced with a negative ``freq`` parameter (:issue:`56147`)
 
 .. ***DO NOT USE THIS SECTION***
 
