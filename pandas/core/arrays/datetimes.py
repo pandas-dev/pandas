@@ -2775,11 +2775,6 @@ def _generate_range(
         # variable has type "Optional[Timestamp]")
         start = offset.rollforward(start)  # type: ignore[assignment]
 
-    elif end and not offset.is_on_offset(end):
-        # Incompatible types in assignment (expression has type "datetime",
-        # variable has type "Optional[Timestamp]")
-        end = offset.rollback(end)  # type: ignore[assignment]
-
     # Unsupported operand types for < ("Timestamp" and "None")
     if periods is None and end < start and offset.n >= 0:  # type: ignore[operator]
         end = None
