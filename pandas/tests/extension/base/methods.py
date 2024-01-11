@@ -37,7 +37,6 @@ class BaseMethodsTests:
         kwarg = sig.parameters["dropna"]
         assert kwarg.default is True
 
-    @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna):
         all_data = all_data[:10]
         if dropna:
@@ -97,7 +96,6 @@ class BaseMethodsTests:
         result = pd.Series(data).apply(id)
         assert isinstance(result, pd.Series)
 
-    @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data_missing, na_action):
         result = data_missing.map(lambda x: x, na_action=na_action)
         expected = data_missing.to_numpy()
@@ -213,7 +211,6 @@ class BaseMethodsTests:
         result = nargsort(data_missing_for_sorting, na_position=na_position)
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values(self, data_for_sorting, ascending, sort_by_key):
         ser = pd.Series(data_for_sorting)
         result = ser.sort_values(ascending=ascending, key=sort_by_key)
@@ -227,7 +224,6 @@ class BaseMethodsTests:
 
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values_missing(
         self, data_missing_for_sorting, ascending, sort_by_key
     ):
@@ -239,7 +235,6 @@ class BaseMethodsTests:
             expected = ser.iloc[[0, 2, 1]]
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values_frame(self, data_for_sorting, ascending):
         df = pd.DataFrame({"A": [1, 2, 1], "B": data_for_sorting})
         result = df.sort_values(["A", "B"])
@@ -248,7 +243,6 @@ class BaseMethodsTests:
         )
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("keep", ["first", "last", False])
     def test_duplicated(self, data, keep):
         arr = data.take([0, 1, 0, 1])
         result = arr.duplicated(keep=keep)

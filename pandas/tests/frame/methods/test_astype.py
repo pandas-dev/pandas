@@ -134,9 +134,8 @@ class TestAstype:
         tf.astype(np.int64)
         tf.astype(np.float32)
 
-    @pytest.mark.parametrize("dtype", [np.int32, np.int64])
     @pytest.mark.parametrize("val", [np.nan, np.inf])
-    def test_astype_cast_nan_inf_int(self, val, dtype):
+    def test_astype_cast_nan_inf_int(self, val, any_int_numpy_dtype):
         # see GH#14265
         #
         # Check NaN and inf --> raise error when converting to int.
@@ -144,7 +143,7 @@ class TestAstype:
         df = DataFrame([val])
 
         with pytest.raises(ValueError, match=msg):
-            df.astype(dtype)
+            df.astype(any_int_numpy_dtype)
 
     def test_astype_str(self):
         # see GH#9757
@@ -323,9 +322,9 @@ class TestAstype:
         with pytest.raises(TypeError, match=xpr):
             df["A"].astype(cls)
 
-    @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16"])
-    def test_astype_extension_dtypes(self, dtype):
+    def test_astype_extension_dtypes(self, any_int_ea_dtype):
         # GH#22578
+        dtype = any_int_ea_dtype
         df = DataFrame([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]], columns=["a", "b"])
 
         expected1 = DataFrame(
@@ -348,9 +347,9 @@ class TestAstype:
         tm.assert_frame_equal(df.astype(dtype), expected1)
         tm.assert_frame_equal(df.astype("int64").astype(dtype), expected1)
 
-    @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16"])
-    def test_astype_extension_dtypes_1d(self, dtype):
+    def test_astype_extension_dtypes_1d(self, any_int_ea_dtype):
         # GH#22578
+        dtype = any_int_ea_dtype
         df = DataFrame({"a": [1.0, 2.0, 3.0]})
 
         expected1 = DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
@@ -433,14 +432,13 @@ class TestAstype:
         else:
             assert result.iloc[0, 0] == Timedelta(1, unit=unit)
 
-    @pytest.mark.parametrize("arr_dtype", [np.int64, np.float64])
     @pytest.mark.parametrize("dtype", ["M8", "m8"])
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
-    def test_astype_to_datetimelike_unit(self, arr_dtype, dtype, unit):
+    def test_astype_to_datetimelike_unit(self, any_real_numpy_dtype, dtype, unit):
         # tests all units from numeric origination
         # GH#19223 / GH#12425
         dtype = f"{dtype}[{unit}]"
-        arr = np.array([[1, 2, 3]], dtype=arr_dtype)
+        arr = np.array([[1, 2, 3]], dtype=any_real_numpy_dtype)
         df = DataFrame(arr)
         result = df.astype(dtype)
         expected = DataFrame(arr.astype(dtype))
@@ -498,11 +496,10 @@ class TestAstype:
         assert exp_dta.dtype == dtype
         tm.assert_extension_array_equal(res_dta, exp_dta)
 
-    @pytest.mark.parametrize("unit", ["ns"])
-    def test_astype_to_timedelta_unit_ns(self, unit):
+    def test_astype_to_timedelta_unit_ns(self):
         # preserver the timedelta conversion
         # GH#19223
-        dtype = f"m8[{unit}]"
+        dtype = "m8[ns]"
         arr = np.array([[1, 2, 3]], dtype=dtype)
         df = DataFrame(arr)
         result = df.astype(dtype)
@@ -870,7 +867,7 @@ class IntegerArrayNoCopy(pd.core.arrays.IntegerArray):
     # GH 42501
 
     def copy(self):
-        assert False
+        raise NotImplementedError
 
 
 class Int16DtypeNoCopy(pd.Int16Dtype):

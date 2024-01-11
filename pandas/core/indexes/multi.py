@@ -2247,6 +2247,9 @@ class MultiIndex(Index):
         # only fill if we are passing a non-None fill_value
         allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
 
+        if indices.ndim == 1 and lib.is_range_indexer(indices, len(self)):
+            return self.copy()
+
         na_value = -1
 
         taken = [lab.take(indices) for lab in self.codes]
@@ -2673,7 +2676,8 @@ class MultiIndex(Index):
         # error: Item "Hashable" of "Union[Hashable, Sequence[Hashable]]" has
         # no attribute "__iter__" (not iterable)
         level = [
-            self._get_level_number(lev) for lev in level  # type: ignore[union-attr]
+            self._get_level_number(lev)
+            for lev in level  # type: ignore[union-attr]
         ]
         sortorder = None
 
@@ -3488,6 +3492,8 @@ class MultiIndex(Index):
                         "is not the same length as the index"
                     )
                 lvl_indexer = np.asarray(k)
+                if indexer is None:
+                    lvl_indexer = lvl_indexer.copy()
 
             elif is_list_like(k):
                 # a collection of labels to include from this level (these are or'd)
@@ -4054,8 +4060,6 @@ def sparsify_labels(label_list, start: int = 0, sentinel: object = ""):
         for i, (p, t) in enumerate(zip(prev, cur)):
             if i == k - 1:
                 sparse_cur.append(t)
-                # error: Argument 1 to "append" of "list" has incompatible
-                # type "list[Any]"; expected "tuple[Any, ...]"
                 result.append(sparse_cur)  # type: ignore[arg-type]
                 break
 
@@ -4063,8 +4067,6 @@ def sparsify_labels(label_list, start: int = 0, sentinel: object = ""):
                 sparse_cur.append(sentinel)
             else:
                 sparse_cur.extend(cur[i:])
-                # error: Argument 1 to "append" of "list" has incompatible
-                # type "list[Any]"; expected "tuple[Any, ...]"
                 result.append(sparse_cur)  # type: ignore[arg-type]
                 break
 
