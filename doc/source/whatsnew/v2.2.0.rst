@@ -944,6 +944,7 @@ Other
 - Bug in rendering a :class:`Series` with a :class:`MultiIndex` when one of the index level's names is 0 not having that name displayed (:issue:`55415`)
 - Bug in the error message when assigning an empty :class:`DataFrame` to a column (:issue:`55956`)
 - Bug when time-like strings were being cast to :class:`ArrowDtype` with ``pyarrow.time64`` type (:issue:`56463`)
+- Fixed a spurious deprecation warning from ``numba`` >= 0.58.0 when passing a numpy ufunc in :class:`pandas.core.window.Rolling.apply` with ``engine="numba"`` (:issue:`55247`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_220.contributors:
