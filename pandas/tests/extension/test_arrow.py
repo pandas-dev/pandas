@@ -1976,7 +1976,7 @@ def test_str_find_large_start():
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(
+@pytest.mark.skipif(
     pa_version_under13p0, reason="https://github.com/apache/arrow/issues/36311"
 )
 @pytest.mark.parametrize("start", list(range(-15, 15)) + [None])
