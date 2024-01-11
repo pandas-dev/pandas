@@ -220,7 +220,7 @@ def read_gbq(
     )
     pandas_gbq = _try_import()
 
-    kwargs: dict[str, str | bool | int | None] = {}
+    kwargs: dict[str, str | bool | int | dict[str, Any] | list[str] | None] = {}
 
     # START: new kwargs.  Don't populate unless explicitly set.
     if use_bqstorage_api is not None:
