@@ -2986,7 +2986,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> df = pd.DataFrame({'name' : ['User 1', 'User 2', 'User 3']})
         >>> df
-             name
+            name
         0  User 1
         1  User 2
         2  User 3
@@ -3063,7 +3063,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> df = pd.DataFrame({"A": [1, None, 2]})
         >>> df
-             A
+            A
         0  1.0
         1  NaN
         2  2.0
@@ -8345,13 +8345,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...                    (np.nan, 4.0, -4.0, 16.0)],
         ...                   columns=list('abcd'))
         >>> df
-             a    b    c     d
+            a    b    c     d
         0  0.0  NaN -1.0   1.0
         1  NaN  2.0  NaN   NaN
         2  2.0  3.0  NaN   9.0
         3  NaN  4.0 -4.0  16.0
         >>> df.interpolate(method='linear', limit_direction='forward', axis=0)
-             a    b    c     d
+            a    b    c     d
         0  0.0  NaN -1.0   1.0
         1  1.0  2.0 -2.0   5.0
         2  2.0  3.0 -3.0   9.0
