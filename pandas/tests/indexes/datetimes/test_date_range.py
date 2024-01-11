@@ -1703,3 +1703,18 @@ class TestDateRangeNonTickFreq:
         idx2 = date_range(start=sdate, end=edate, freq=offset)
         assert len(idx1) == len(idx2)
         assert idx1.freq == idx2.freq
+
+    def test_date_range_negative_freq_year_end_inbounds(self, unit):
+        # GH#56147
+        rng = date_range(
+            start="2023-10-31 00:00:00",
+            end="2021-10-31 00:00:00",
+            freq="-1YE",
+            unit=unit,
+        )
+        exp = DatetimeIndex(
+            ["2022-12-31 00:00:00", "2021-12-31 00:00:00"],
+            dtype=f"M8[{unit}]",
+            freq="-1YE",
+        )
+        tm.assert_index_equal(rng, exp)
