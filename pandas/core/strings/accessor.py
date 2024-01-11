@@ -3055,11 +3055,11 @@ class StringMethods(NoNewAttributesMixin):
         number of entries for dictionaries, lists or tuples.
 
         >>> s = pd.Series(['dog',
-        ...                 '',
-        ...                 5,
-        ...                 {'foo' : 'bar'},
-        ...                 [2, 3, 5, 7],
-        ...                 ('one', 'two', 'three')])
+        ...                '',
+        ...                5,
+        ...                {'foo' : 'bar'},
+        ...                [2, 3, 5, 7],
+        ...                ('one', 'two', 'three')])
         >>> s
         0                  dog
         1
