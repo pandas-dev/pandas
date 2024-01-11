@@ -1365,7 +1365,7 @@ default 'raise'
         >>> idx
         DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03'],
                       dtype='datetime64[ns]', freq='D')
-        >>> idx.day_name(locale='pt_BR.utf8') # doctest: +SKIP
+        >>> idx.day_name(locale='pt_BR.utf8')  # doctest: +SKIP
         Index(['Segunda', 'Terça', 'Quarta'], dtype='object')
         """
         values = self._local_timestamps()
