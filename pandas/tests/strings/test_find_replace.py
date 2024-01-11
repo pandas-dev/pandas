@@ -730,6 +730,15 @@ def test_fullmatch(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+def test_fullmatch_dollar_literal(any_string_dtype):
+    # GH 56652
+    ser = Series(["foo", "foo$foo", np.nan, "foo$"], dtype=any_string_dtype)
+    result = ser.str.fullmatch("foo\\$")
+    expected_dtype = "object" if any_string_dtype in object_pyarrow_numpy else "boolean"
+    expected = Series([False, False, np.nan, True], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_fullmatch_na_kwarg(any_string_dtype):
     ser = Series(
         ["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"], dtype=any_string_dtype

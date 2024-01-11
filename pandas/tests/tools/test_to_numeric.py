@@ -204,11 +204,9 @@ def test_numeric_df_columns(columns):
     )
 
     expected = DataFrame({"a": [1.2, 3.14, np.inf, 0.1], "b": [1.0, 2.0, 3.0, 4.0]})
+    df[columns] = df[columns].apply(to_numeric)
 
-    df_copy = df.copy()
-    df_copy[columns] = df_copy[columns].apply(to_numeric)
-
-    tm.assert_frame_equal(df_copy, expected)
+    tm.assert_frame_equal(df, expected)
 
 
 @pytest.mark.parametrize(

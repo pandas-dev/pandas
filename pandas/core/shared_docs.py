@@ -2,9 +2,7 @@ from __future__ import annotations
 
 _shared_docs: dict[str, str] = {}
 
-_shared_docs[
-    "aggregate"
-] = """
+_shared_docs["aggregate"] = """
 Aggregate using one or more operations over the specified axis.
 
 Parameters
@@ -53,9 +51,7 @@ for more details.
 A passed user-defined-function will be passed a Series for evaluation.
 {examples}"""
 
-_shared_docs[
-    "compare"
-] = """
+_shared_docs["compare"] = """
 Compare to another {klass} and show the differences.
 
 Parameters
@@ -85,9 +81,7 @@ result_names : tuple, default ('self', 'other')
     .. versionadded:: 1.5.0
 """
 
-_shared_docs[
-    "groupby"
-] = """
+_shared_docs["groupby"] = """
 Group %(klass)s using a mapper or by a Series of columns.
 
 A groupby operation involves some combination of splitting the
@@ -195,9 +189,7 @@ detailed usage and examples, including splitting an object into groups,
 iterating through groups, selecting a group, aggregation, and more.
 """
 
-_shared_docs[
-    "melt"
-] = """
+_shared_docs["melt"] = """
 Unpivot a DataFrame from wide to long format, optionally leaving identifiers set.
 
 This function is useful to massage a DataFrame into a format where one
@@ -311,9 +303,7 @@ If you have multi-index columns:
 2      c          B          E      5
 """
 
-_shared_docs[
-    "transform"
-] = """
+_shared_docs["transform"] = """
 Call ``func`` on self producing a {klass} with the same axis shape as self.
 
 Parameters
@@ -438,9 +428,7 @@ Name: Data, dtype: int64
 6  2    n    4
 """
 
-_shared_docs[
-    "storage_options"
-] = """storage_options : dict, optional
+_shared_docs["storage_options"] = """storage_options : dict, optional
     Extra options that make sense for a particular storage connection, e.g.
     host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
     are forwarded to ``urllib.request.Request`` as header options. For other
@@ -450,9 +438,7 @@ _shared_docs[
     <https://pandas.pydata.org/docs/user_guide/io.html?
     highlight=storage_options#reading-writing-remote-files>`_."""
 
-_shared_docs[
-    "compression_options"
-] = """compression : str or dict, default 'infer'
+_shared_docs["compression_options"] = """compression : str or dict, default 'infer'
     For on-the-fly compression of the output data. If 'infer' and '%s' is
     path-like, then detect compression from the following extensions: '.gz',
     '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
@@ -471,9 +457,7 @@ _shared_docs[
     .. versionadded:: 1.5.0
         Added support for `.tar` files."""
 
-_shared_docs[
-    "decompression_options"
-] = """compression : str or dict, default 'infer'
+_shared_docs["decompression_options"] = """compression : str or dict, default 'infer'
     For on-the-fly decompression of on-disk data. If 'infer' and '%s' is
     path-like, then detect compression from the following extensions: '.gz',
     '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
@@ -493,9 +477,7 @@ _shared_docs[
     .. versionadded:: 1.5.0
         Added support for `.tar` files."""
 
-_shared_docs[
-    "replace"
-] = """
+_shared_docs["replace"] = """
     Replace values given in `to_replace` with `value`.
 
     Values of the {klass} are replaced with other values dynamically.
@@ -817,9 +799,7 @@ _shared_docs[
     4  4  e  e
 """
 
-_shared_docs[
-    "idxmin"
-] = """
+_shared_docs["idxmin"] = """
     Return index of first occurrence of minimum over requested axis.
 
     NA/null values are excluded.
@@ -884,9 +864,7 @@ _shared_docs[
     dtype: object
 """
 
-_shared_docs[
-    "idxmax"
-] = """
+_shared_docs["idxmax"] = """
     Return index of first occurrence of maximum over requested axis.
 
     NA/null values are excluded.

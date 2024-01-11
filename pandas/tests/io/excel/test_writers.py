@@ -90,7 +90,7 @@ def set_engine(engine, ext):
 class TestRoundTrip:
     @pytest.mark.parametrize(
         "header,expected",
-        [(None, DataFrame([np.nan] * 4)), (0, DataFrame({"Unnamed: 0": [np.nan] * 3}))],
+        [(None, [np.nan] * 4), (0, {"Unnamed: 0": [np.nan] * 3})],
     )
     def test_read_one_empty_col_no_header(self, ext, header, expected):
         # xref gh-12292
@@ -102,14 +102,14 @@ class TestRoundTrip:
             result = pd.read_excel(
                 path, sheet_name=filename, usecols=[0], header=header
             )
-
+        expected = DataFrame(expected)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "header,expected",
-        [(None, DataFrame([0] + [np.nan] * 4)), (0, DataFrame([np.nan] * 4))],
+        "header,expected_extra",
+        [(None, [0]), (0, [])],
     )
-    def test_read_one_empty_col_with_header(self, ext, header, expected):
+    def test_read_one_empty_col_with_header(self, ext, header, expected_extra):
         filename = "with_header"
         df = DataFrame([["", 1, 100], ["", 2, 200], ["", 3, 300], ["", 4, 400]])
 
@@ -118,7 +118,7 @@ class TestRoundTrip:
             result = pd.read_excel(
                 path, sheet_name=filename, usecols=[0], header=header
             )
-
+        expected = DataFrame(expected_extra + [np.nan] * 4)
         tm.assert_frame_equal(result, expected)
 
     def test_set_column_names_in_parameter(self, ext):

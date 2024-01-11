@@ -157,7 +157,8 @@ class TestReadHtml:
                 columns=pd.Index(list("abc"), dtype=object),
             )
             # pylint: disable-next=consider-using-f-string
-            .map("{:.3f}".format).astype(float)
+            .map("{:.3f}".format)
+            .astype(float)
         )
         out = df.to_html()
         res = flavor_read_html(
@@ -1333,8 +1334,8 @@ class TestReadHtml:
     @pytest.mark.parametrize(
         "displayed_only,exp0,exp1",
         [
-            (True, DataFrame(["foo"]), None),
-            (False, DataFrame(["foo  bar  baz  qux"]), DataFrame(["foo"])),
+            (True, ["foo"], None),
+            (False, ["foo  bar  baz  qux"], DataFrame(["foo"])),
         ],
     )
     def test_displayed_only(self, displayed_only, exp0, exp1, flavor_read_html):
@@ -1359,6 +1360,7 @@ class TestReadHtml:
           </body>
         </html>"""
 
+        exp0 = DataFrame(exp0)
         dfs = flavor_read_html(StringIO(data), displayed_only=displayed_only)
         tm.assert_frame_equal(dfs[0], exp0)
 

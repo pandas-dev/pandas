@@ -7,7 +7,10 @@ import contextlib
 import copy
 import io
 import pickle as pkl
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import numpy as np
 
@@ -209,7 +212,7 @@ except (AttributeError, KeyError):
     pass
 
 
-def load(fh, encoding: str | None = None, is_verbose: bool = False):
+def load(fh, encoding: str | None = None, is_verbose: bool = False) -> Any:
     """
     Load a pickle, with a provided encoding,
 
@@ -239,7 +242,7 @@ def loads(
     fix_imports: bool = True,
     encoding: str = "ASCII",
     errors: str = "strict",
-):
+) -> Any:
     """
     Analogous to pickle._loads.
     """
