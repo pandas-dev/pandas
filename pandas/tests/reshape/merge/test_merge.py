@@ -1466,10 +1466,8 @@ def _check_merge(x, y):
 
 
 class TestMergeDtypes:
-    @pytest.mark.parametrize(
-        "right_vals", [["foo", "bar"], Series(["foo", "bar"]).astype("category")]
-    )
-    def test_different(self, right_vals):
+    @pytest.mark.parametrize("dtype", [object, "category"])
+    def test_different(self, dtype):
         left = DataFrame(
             {
                 "A": ["foo", "bar"],
@@ -1480,6 +1478,7 @@ class TestMergeDtypes:
                 "F": Series([1, 2], dtype="int32"),
             }
         )
+        right_vals = Series(["foo", "bar"], dtype=dtype)
         right = DataFrame({"A": right_vals})
 
         # GH 9780
@@ -1488,12 +1487,9 @@ class TestMergeDtypes:
         result = merge(left, right, on="A")
         assert is_object_dtype(result.A.dtype)
 
-    @pytest.mark.parametrize(
-        "d1", [np.int64, np.int32, np.intc, np.int16, np.int8, np.uint8]
-    )
     @pytest.mark.parametrize("d2", [np.int64, np.float64, np.float32, np.float16])
-    def test_join_multi_dtypes(self, d1, d2):
-        dtype1 = np.dtype(d1)
+    def test_join_multi_dtypes(self, any_int_numpy_dtype, d2):
+        dtype1 = np.dtype(any_int_numpy_dtype)
         dtype2 = np.dtype(d2)
 
         left = DataFrame(
@@ -1635,7 +1631,6 @@ class TestMergeDtypes:
             (Series([1, 2], dtype="int32"), ["a", "b", "c"]),
             ([0, 1, 2], ["0", "1", "2"]),
             ([0.0, 1.0, 2.0], ["0", "1", "2"]),
-            ([0, 1, 2], ["0", "1", "2"]),
             (
                 pd.date_range("1/1/2011", periods=2, freq="D"),
                 ["2011-01-01", "2011-01-02"],
@@ -2315,19 +2310,15 @@ def test_merge_suffix(col1, col2, kwargs, expected_cols):
     [
         (
             "right",
-            DataFrame(
-                {"A": [100, 200, 300], "B1": [60, 70, np.nan], "B2": [600, 700, 800]}
-            ),
+            {"A": [100, 200, 300], "B1": [60, 70, np.nan], "B2": [600, 700, 800]},
         ),
         (
             "outer",
-            DataFrame(
-                {
-                    "A": [1, 100, 200, 300],
-                    "B1": [80, 60, 70, np.nan],
-                    "B2": [np.nan, 600, 700, 800],
-                }
-            ),
+            {
+                "A": [1, 100, 200, 300],
+                "B1": [80, 60, 70, np.nan],
+                "B2": [np.nan, 600, 700, 800],
+            },
         ),
     ],
 )
@@ -2335,6 +2326,7 @@ def test_merge_duplicate_suffix(how, expected):
     left_df = DataFrame({"A": [100, 200, 1], "B": [60, 70, 80]})
     right_df = DataFrame({"A": [100, 200, 300], "B": [600, 700, 800]})
     result = merge(left_df, right_df, on="A", how=how, suffixes=("_x", "_x"))
+    expected = DataFrame(expected)
     expected.columns = ["A", "B_x", "B_x"]
 
     tm.assert_frame_equal(result, expected)
@@ -2968,9 +2960,9 @@ def test_merge_empty_frames_column_order(left_empty, right_empty):
     if left_empty and right_empty:
         expected = expected.iloc[:0]
     elif left_empty:
-        expected.loc[:, "B"] = np.nan
+        expected["B"] = np.nan
     elif right_empty:
-        expected.loc[:, ["C", "D"]] = np.nan
+        expected[["C", "D"]] = np.nan
     tm.assert_frame_equal(result, expected)
 
 

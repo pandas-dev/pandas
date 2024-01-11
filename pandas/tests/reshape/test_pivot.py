@@ -744,18 +744,11 @@ class TestPivotTable:
         result = df.pivot_table(index="a", columns="b", values="x", margins=True)
         tm.assert_frame_equal(expected, result)
 
-    @pytest.mark.parametrize(
-        "values",
-        [
-            ["baz", "zoo"],
-            np.array(["baz", "zoo"]),
-            Series(["baz", "zoo"]),
-            Index(["baz", "zoo"]),
-        ],
-    )
+    @pytest.mark.parametrize("box", [list, np.array, Series, Index])
     @pytest.mark.parametrize("method", [True, False])
-    def test_pivot_with_list_like_values(self, values, method):
+    def test_pivot_with_list_like_values(self, box, method):
         # issue #17160
+        values = box(["baz", "zoo"])
         df = DataFrame(
             {
                 "foo": ["one", "one", "one", "two", "two", "two"],

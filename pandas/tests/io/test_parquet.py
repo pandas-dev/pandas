@@ -827,13 +827,7 @@ class TestParquetPyArrow(Base):
         )
 
     @pytest.mark.single_cpu
-    @pytest.mark.parametrize(
-        "partition_col",
-        [
-            ["A"],
-            [],
-        ],
-    )
+    @pytest.mark.parametrize("partition_col", [["A"], []])
     def test_s3_roundtrip_for_dir(
         self, df_compat, s3_public_bucket, pa, partition_col, s3so
     ):
@@ -1327,7 +1321,7 @@ class TestParquetFastParquet(Base):
     def test_close_file_handle_on_read_error(self):
         with tm.ensure_clean("test.parquet") as path:
             pathlib.Path(path).write_bytes(b"breakit")
-            with pytest.raises(Exception, match=""):  # Not important which exception
+            with tm.external_error_raised(Exception):  # Not important which exception
                 read_parquet(path, engine="fastparquet")
             # The next line raises an error on Windows if the file is still open
             pathlib.Path(path).unlink(missing_ok=False)
