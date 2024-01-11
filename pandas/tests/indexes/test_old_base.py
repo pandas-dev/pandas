@@ -337,7 +337,7 @@ class TestBase:
             pytest.skip(f"{type(self).__name__} separately tested")
 
         # This check is written for the mixed-int-string entry
-        if tm.assert_mixed_int_string_entry(index.values):
+        if tm.is_mixed_int_string_entry(index.values):
             with pytest.raises(
                 TypeError,
                 match="'<' not supported between instances of 'str' and 'int'",
@@ -350,7 +350,7 @@ class TestBase:
 
     def test_numpy_argsort(self, index):
         # This check is written for the mixed-int-string entry
-        if tm.assert_mixed_int_string_entry(index.values):
+        if tm.is_mixed_int_string_entry(index.values):
             with pytest.raises(
                 TypeError,
                 match="'<' not supported between instances of 'str' and 'int'",

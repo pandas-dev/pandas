@@ -158,7 +158,7 @@ def test_searchsorted(request, index_or_series_obj):
         request.applymarker(mark)
 
     # This check is written for the mixed-int-string entry
-    if tm.assert_mixed_int_string_entry(obj.values):
+    if tm.is_mixed_int_string_entry(obj.values):
         with pytest.raises(
             TypeError, match="'>' not supported between instances of 'str' and 'int'"
         ):

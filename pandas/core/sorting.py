@@ -436,13 +436,7 @@ def nargsort(
     if not ascending:
         non_nans = non_nans[::-1]
         non_nan_idx = non_nan_idx[::-1]
-    # GH#54072
-    # argsort does not support mixed int/string Index
-    try:
-        indexer = non_nan_idx[non_nans.argsort(kind=kind)]
-    except TypeError as err:
-        msg = "'<' not supported between instances of 'int' and 'str'"
-        raise TypeError(msg) from err
+    indexer = non_nan_idx[non_nans.argsort(kind=kind)]
     if not ascending:
         indexer = indexer[::-1]
     # Finally, place the NaNs at the end or the beginning according to

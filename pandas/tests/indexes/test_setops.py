@@ -60,9 +60,9 @@ def test_union_same_types(index):
     # Union with a non-unique, non-monotonic index raises error
     # Only needed for bool index factory
     # This check is written for the mixed-int-string entry
-    if tm.assert_mixed_int_string_entry(index.values):
+    if tm.is_mixed_int_string_entry(index.values):
         with pytest.raises(
-            TypeError, match="'<' not supported between instances of 'int' and 'str'"
+            TypeError, match="'<' not supported between instances of 'str' and 'int'"
         ):
             index.sort_values()
     else:
@@ -131,11 +131,11 @@ def test_union_different_types(index_flat, index_flat2, request):
     # Union with a non-unique, non-monotonic index raises error
     # This applies to the boolean index
     # This check is written for the mixed-int-string entry
-    if tm.assert_mixed_int_string_entry(
+    if tm.is_mixed_int_string_entry(
         idx1.values
-    ) or tm.assert_mixed_int_string_entry(idx2.values):
+    ) or tm.is_mixed_int_string_entry(idx2.values):
         with pytest.raises(
-            TypeError, match="'<' not supported between instances of 'int' and 'str'"
+            TypeError, match="'<' not supported between instances of 'str' and 'int'"
         ):
             idx1.sort_values()
             idx2.sort_values()
@@ -268,10 +268,10 @@ class TestSetOps:
 
         union = first.union(second)
         # This check is written for the mixed-int-string entry
-        if tm.assert_mixed_int_string_entry(index.values):
+        if tm.is_mixed_int_string_entry(index.values):
             with pytest.raises(
                 TypeError,
-                match="'<' not supported between instances of 'int' and 'str'",
+                match="'<' not supported between instances of 'str' and 'int'",
             ):
                 tm.assert_index_equal(union.sort_values(), everything.sort_values())
         else:
@@ -341,10 +341,10 @@ class TestSetOps:
         answer = index[[0, -1]]
         result = first.symmetric_difference(second)
         # This check is written for the mixed-int-string entry
-        if tm.assert_mixed_int_string_entry(index.values):
+        if tm.is_mixed_int_string_entry(index.values):
             with pytest.raises(
                 TypeError,
-                match="'<' not supported between instances of 'int' and 'str'",
+                match="'<' not supported between instances of 'str' and 'int'",
             ):
                 tm.assert_index_equal(result.sort_values(), answer.sort_values())
         else:
@@ -428,10 +428,10 @@ class TestSetOps:
         first = index.copy().set_names(fname)
         second = index[1:].set_names(sname)
         # This check is written for the mixed-int-string entry
-        if tm.assert_mixed_int_string_entry(second.values):
+        if tm.is_mixed_int_string_entry(second.values):
             with pytest.raises(
                 TypeError,
-                match="'<' not supported between instances of 'int' and 'str'",
+                match="'<' not supported between instances of 'str' and 'int'",
             ):
                 first.union(second).sort_values()
         else:
@@ -504,7 +504,7 @@ class TestSetOps:
         # test copy.intersection(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
         second = index[1:].set_names(sname)
-        if tm.assert_mixed_int_string_entry(index.values):
+        if tm.is_mixed_int_string_entry(index.values):
             with pytest.raises(
                 TypeError,
                 match="'<' not supported between instances of 'int' and 'str'",

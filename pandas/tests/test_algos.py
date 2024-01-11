@@ -84,7 +84,7 @@ class TestFactorize:
 
         if sort:
             # This check is written for the mixed-int-string entry
-            if tm.assert_mixed_int_string_entry(expected_uniques.values):
+            if tm.is_mixed_int_string_entry(expected_uniques.values):
                 pytest.skip("'<' not supported between instances of 'str' and 'int'")
             expected_uniques = expected_uniques.sort_values()
 

@@ -449,7 +449,7 @@ class TestCommon:
 @pytest.mark.parametrize("na_position", [None, "middle"])
 def test_sort_values_invalid_na_position(index_with_missing, na_position):
     # This check is written for the mixed-int-string entry
-    if tm.assert_mixed_int_string_entry(index_with_missing.values):
+    if tm.is_mixed_int_string_entry(index_with_missing.values):
         with pytest.raises(
             TypeError, match="'<' not supported between instances of 'int' and 'str'"
         ):
@@ -475,7 +475,7 @@ def test_sort_values_with_missing(index_with_missing, na_position, request):
     missing_count = np.sum(index_with_missing.isna())
     not_na_vals = index_with_missing[index_with_missing.notna()].values
     # This check is written for the mixed-int-string entry
-    if tm.assert_mixed_int_string_entry(index_with_missing.values):
+    if tm.is_mixed_int_string_entry(index_with_missing.values):
         with pytest.raises(
             TypeError, match="'<' not supported between instances of 'int' and 'str'"
         ):

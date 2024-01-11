@@ -1382,9 +1382,10 @@ def assert_metadata_equivalent(
             assert val == getattr(right, attr, None)
 
 
-def assert_mixed_int_string_entry(arr) -> bool:
+def is_mixed_int_string_entry(arr) -> bool:
     """
-    Check that arr is mixed-int-string entry.
+    Check that fixtures `index`, `index_flat` and `index_with_missing`
+    contain arr mixed int-string array.
     """
     # we might have an entry [0, "a", 1, "b", 2, "c"] with duplicates
     # or with None or without the first element
