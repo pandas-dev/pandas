@@ -721,7 +721,7 @@ def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
     "df,expected,window,min_periods",
     [
         (
-            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+            {"A": [1, 2, 3], "B": [4, 5, 6]},
             [
                 ({"A": [1], "B": [4]}, [0]),
                 ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
@@ -731,7 +731,7 @@ def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
             None,
         ),
         (
-            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+            {"A": [1, 2, 3], "B": [4, 5, 6]},
             [
                 ({"A": [1], "B": [4]}, [0]),
                 ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
@@ -741,7 +741,7 @@ def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
             1,
         ),
         (
-            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+            {"A": [1, 2, 3], "B": [4, 5, 6]},
             [
                 ({"A": [1], "B": [4]}, [0]),
                 ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
@@ -751,7 +751,7 @@ def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
             2,
         ),
         (
-            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+            {"A": [1, 2, 3], "B": [4, 5, 6]},
             [
                 ({"A": [1], "B": [4]}, [0]),
                 ({"A": [2], "B": [5]}, [1]),
@@ -761,7 +761,7 @@ def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
             1,
         ),
         (
-            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+            {"A": [1, 2, 3], "B": [4, 5, 6]},
             [
                 ({"A": [1], "B": [4]}, [0]),
                 ({"A": [2], "B": [5]}, [1]),
@@ -770,11 +770,11 @@ def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
             1,
             0,
         ),
-        (DataFrame({"A": [1], "B": [4]}), [], 2, None),
-        (DataFrame({"A": [1], "B": [4]}), [], 2, 1),
-        (DataFrame(), [({}, [])], 2, None),
+        ({"A": [1], "B": [4]}, [], 2, None),
+        ({"A": [1], "B": [4]}, [], 2, 1),
+        (None, [({}, [])], 2, None),
         (
-            DataFrame({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}),
+            {"A": [1, np.nan, 3], "B": [np.nan, 5, 6]},
             [
                 ({"A": [1.0], "B": [np.nan]}, [0]),
                 ({"A": [1, np.nan], "B": [np.nan, 5]}, [0, 1]),
@@ -787,6 +787,7 @@ def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
 )
 def test_iter_rolling_dataframe(df, expected, window, min_periods):
     # GH 11704
+    df = DataFrame(df)
     expected = [DataFrame(values, index=index) for (values, index) in expected]
 
     for expected, actual in zip(expected, df.rolling(window, min_periods=min_periods)):

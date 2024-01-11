@@ -98,13 +98,12 @@ class TestTimedeltas:
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             TimedeltaArray._from_sequence(arr, dtype="m8[s]")
 
-    @pytest.mark.parametrize(
-        "arg", [np.arange(10).reshape(2, 5), pd.DataFrame(np.arange(10).reshape(2, 5))]
-    )
+    @pytest.mark.parametrize("box", [lambda x: x, pd.DataFrame])
     @pytest.mark.parametrize("errors", ["ignore", "raise", "coerce"])
     @pytest.mark.filterwarnings("ignore:errors='ignore' is deprecated:FutureWarning")
-    def test_to_timedelta_dataframe(self, arg, errors):
+    def test_to_timedelta_dataframe(self, box, errors):
         # GH 11776
+        arg = box(np.arange(10).reshape(2, 5))
         with pytest.raises(TypeError, match="1-d array"):
             to_timedelta(arg, errors=errors)
 
