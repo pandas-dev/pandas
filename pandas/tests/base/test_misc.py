@@ -17,6 +17,7 @@ from pandas import (
     Index,
     Series,
 )
+import pandas._testing as tm
 
 
 def test_isnull_notnull_docstrings():
