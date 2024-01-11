@@ -1587,6 +1587,7 @@ def test_output_buffer(mi_styler, format):
     with tm.ensure_clean(f"delete_me.{format}") as f:
         getattr(mi_styler, f"to_{format}")(f)
 
+
 def test_deprecation_warning_for_usage_of_aaply_map_index_method_of_styler_object():
     #56717 https://github.com/pandas-dev/pandas/issues/56717
     """ This test checks if the future warning in the applymap_index method of the style class passes """
