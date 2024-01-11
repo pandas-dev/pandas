@@ -222,12 +222,12 @@ def test_hash_pandas_series_diff_index(series):
     assert not (a == b).all()
 
 
-@pytest.mark.parametrize(
-    "obj", [Series([], dtype="float64"), Series([], dtype="object"), Index([])]
-)
-def test_hash_pandas_empty_object(obj, index):
+@pytest.mark.parametrize("klass", [Index, Series])
+@pytest.mark.parametrize("dtype", ["float64", "object"])
+def test_hash_pandas_empty_object(klass, dtype, index):
     # These are by-definition the same with
     # or without the index as the data is empty.
+    obj = klass([], dtype=dtype)
     a = hash_pandas_object(obj, index=index)
     b = hash_pandas_object(obj, index=index)
     tm.assert_series_equal(a, b)
@@ -236,9 +236,9 @@ def test_hash_pandas_empty_object(obj, index):
 @pytest.mark.parametrize(
     "s1",
     [
-        Series(["a", "b", "c", "d"]),
-        Series([1000, 2000, 3000, 4000]),
-        Series(pd.date_range(0, periods=4)),
+        ["a", "b", "c", "d"],
+        [1000, 2000, 3000, 4000],
+        pd.date_range(0, periods=4),
     ],
 )
 @pytest.mark.parametrize("categorize", [True, False])
@@ -247,6 +247,7 @@ def test_categorical_consistency(s1, categorize):
     #
     # Check that categoricals hash consistent with their values,
     # not codes. This should work for categoricals of any dtype.
+    s1 = Series(s1)
     s2 = s1.astype("category").cat.set_categories(s1)
     s3 = s2.cat.set_categories(list(reversed(s1)))
 

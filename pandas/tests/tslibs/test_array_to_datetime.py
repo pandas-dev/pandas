@@ -300,21 +300,14 @@ class SubDatetime(datetime):
     pass
 
 
-@pytest.mark.parametrize(
-    "data,expected",
-    [
-        ([SubDatetime(2000, 1, 1)], ["2000-01-01T00:00:00.000000000"]),
-        ([datetime(2000, 1, 1)], ["2000-01-01T00:00:00.000000000"]),
-        ([Timestamp(2000, 1, 1)], ["2000-01-01T00:00:00.000000000"]),
-    ],
-)
-def test_datetime_subclass(data, expected):
+@pytest.mark.parametrize("klass", [SubDatetime, datetime, Timestamp])
+def test_datetime_subclass(klass):
     # GH 25851
     # ensure that subclassed datetime works with
     # array_to_datetime
 
-    arr = np.array(data, dtype=object)
+    arr = np.array([klass(2000, 1, 1)], dtype=object)
     result, _ = tslib.array_to_datetime(arr)
 
-    expected = np.array(expected, dtype="M8[ns]")
+    expected = np.array(["2000-01-01T00:00:00.000000000"], dtype="M8[ns]")
     tm.assert_numpy_array_equal(result, expected)
