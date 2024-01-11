@@ -169,8 +169,8 @@ MultiIndex
 
 I/O
 ^^^
--
--
+- Bug in :func:`read_gbq` that was missing parameters ``progress_bar_type``, ``dtypes``, ``auth_redirect_uri``, ``client_id``, ``columns``, which ``col_order`` is now an alias of (:issue:``)
+-  
 
 Period
 ^^^^^^

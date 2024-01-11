@@ -30,10 +30,10 @@ def _try_import() -> ModuleType:
 
 
 def read_gbq(
-    query: str,
+    query_or_table: str,
     project_id: str | None = None,
     index_col: str | None = None,
-    col_order: list[str] | None = None,
+    columns: list[str] | None = None,
     reauth: bool = False,
     auth_local_webserver: bool = True,
     dialect: str | None = None,
@@ -43,6 +43,12 @@ def read_gbq(
     use_bqstorage_api: bool | None = None,
     max_results: int | None = None,
     progress_bar_type: str | None = None,
+    dtypes: dict[str, Any] | None = None,
+    auth_redirect_uri: str | None = None,
+    client_id: str | None = None,
+    client_secret: str | None = None,
+    col_order: list[str] | None = None,
+
 ) -> DataFrame:
     """
     Load data from Google BigQuery.
@@ -60,14 +66,14 @@ def read_gbq(
 
     Parameters
     ----------
-    query : str
+    query_or_table : str
         SQL-Like Query to return data values.
     project_id : str, optional
         Google BigQuery Account project ID. Optional when available from
         the environment.
     index_col : str, optional
         Name of result column to use for index in results DataFrame.
-    col_order : list(str), optional
+    columns : list(str), optional
         List of BigQuery column names in the desired order for results
         DataFrame.
     reauth : bool, default False
@@ -162,6 +168,26 @@ def read_gbq(
         ``'tqdm_gui'``
             Use the :func:`tqdm.tqdm_gui` function to display a
             progress bar as a graphical dialog box.
+    
+    dtypes : dict, optional
+        A dictionary of column names to pandas ``dtype``. The provided
+        ``dtype`` is used when constructing the series for the column
+        specified. Otherwise, a default ``dtype`` is used.
+
+    auth_redirect_uri : str
+        Path to the authentication page for organization-specific authentication
+        workflows. Used when ``auth_local_webserver=False``.
+
+    client_id : str
+        The Client ID for the Google Cloud Project the user is attempting to
+        connect to.
+
+    client_secret : str
+        The Client Secret associated with the Client ID for the Google Cloud Project
+        the user is attempting to connect to.
+
+    col_order : list(str), optional
+        Alias for columns, retained for backwards compatibility.
 
     Returns
     -------
@@ -202,15 +228,26 @@ def read_gbq(
         kwargs["use_bqstorage_api"] = use_bqstorage_api
     if max_results is not None:
         kwargs["max_results"] = max_results
-
-    kwargs["progress_bar_type"] = progress_bar_type
+    if progress_bar_type is not None:
+        kwargs["progress_bar_type"] = progress_bar_type
+    if dtypes is not None:
+        kwargs["dtypes"] = dtypes
+    if auth_redirect_uri is not None:
+        kwargs["auth_redirect_uri"] = auth_redirect_uri
+    if client_id is not None:
+        kwargs["client_id"] = client_id
+    if client_secret is not None:
+        kwargs["client_secret"] = client_secret
+    if columns is not None:
+        kwargs["columns"] = columns
+    if col_order is not None:
+        kwargs["col_order"] = col_order
     # END: new kwargs
 
     return pandas_gbq.read_gbq(
-        query,
+        query_or_table=query_or_table,
         project_id=project_id,
         index_col=index_col,
-        col_order=col_order,
         reauth=reauth,
         auth_local_webserver=auth_local_webserver,
         dialect=dialect,
