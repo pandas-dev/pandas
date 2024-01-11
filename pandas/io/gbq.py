@@ -48,7 +48,6 @@ def read_gbq(
     client_id: str | None = None,
     client_secret: str | None = None,
     col_order: list[str] | None = None,
-
 ) -> DataFrame:
     """
     Load data from Google BigQuery.
@@ -168,7 +167,7 @@ def read_gbq(
         ``'tqdm_gui'``
             Use the :func:`tqdm.tqdm_gui` function to display a
             progress bar as a graphical dialog box.
-    
+
     dtypes : dict, optional
         A dictionary of column names to pandas ``dtype``. The provided
         ``dtype`` is used when constructing the series for the column
