@@ -2770,7 +2770,6 @@ def _generate_range(
     else:
         end = None
 
-    # GH #56134 fix bug in end of interval
     if start and not offset.is_on_offset(start):
         # Incompatible types in assignment (expression has type "datetime",
         # variable has type "Optional[Timestamp]")
