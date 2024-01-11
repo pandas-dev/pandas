@@ -136,9 +136,9 @@ def test_union_different_types(index_flat, index_flat2, request):
     # Union with a non-unique, non-monotonic index raises error
     # This applies to the boolean index
     # This check is written for the mixed-int-string entry
-    if tm.is_mixed_int_string_entry(
-        idx1.values
-    ) or tm.is_mixed_int_string_entry(idx2.values):
+    if tm.is_mixed_int_string_entry(idx1.values) or tm.is_mixed_int_string_entry(
+        idx2.values
+    ):
         with pytest.raises(
             TypeError, match="'<' not supported between instances of 'str' and 'int'"
         ):

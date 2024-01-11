@@ -61,12 +61,12 @@ from pandas._testing.asserters import (
     assert_is_sorted,
     assert_is_valid_plot_return_object,
     assert_metadata_equivalent,
-    is_mixed_int_string_entry,
     assert_numpy_array_equal,
     assert_period_array_equal,
     assert_series_equal,
     assert_sp_array_equal,
     assert_timedelta_array_equal,
+    is_mixed_int_string_entry,
     raise_assert_detail,
 )
 from pandas._testing.compat import (
