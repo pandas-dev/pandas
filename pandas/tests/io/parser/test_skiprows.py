@@ -246,8 +246,8 @@ def test_skiprows_infield_quote(all_parsers):
 @pytest.mark.parametrize(
     "kwargs,expected",
     [
-        ({}, DataFrame({"1": [3, 5]})),
-        ({"header": 0, "names": ["foo"]}, DataFrame({"foo": [3, 5]})),
+        ({}, "1"),
+        ({"header": 0, "names": ["foo"]}, "foo"),
     ],
 )
 def test_skip_rows_callable(all_parsers, kwargs, expected):
@@ -255,6 +255,7 @@ def test_skip_rows_callable(all_parsers, kwargs, expected):
     data = "a\n1\n2\n3\n4\n5"
 
     result = parser.read_csv(StringIO(data), skiprows=lambda x: x % 2 == 0, **kwargs)
+    expected = DataFrame({expected: [3, 5]})
     tm.assert_frame_equal(result, expected)
 
 

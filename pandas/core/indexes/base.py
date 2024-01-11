@@ -1157,6 +1157,9 @@ class Index(IndexOpsMixin, PandasObject):
         indices = ensure_platform_int(indices)
         allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
 
+        if indices.ndim == 1 and lib.is_range_indexer(indices, len(self)):
+            return self.copy()
+
         # Note: we discard fill_value and use self._na_value, only relevant
         #  in the case where allow_fill is True and fill_value is not None
         values = self._values
@@ -4806,11 +4809,18 @@ class Index(IndexOpsMixin, PandasObject):
         left_idx, right_idx = get_join_indexers_non_unique(
             self._values, other._values, how=how, sort=sort
         )
-        mask = left_idx == -1
 
-        join_idx = self.take(left_idx)
-        right = other.take(right_idx)
-        join_index = join_idx.putmask(mask, right)
+        if how == "right":
+            join_index = other.take(right_idx)
+        else:
+            join_index = self.take(left_idx)
+
+        if how == "outer":
+            mask = left_idx == -1
+            if mask.any():
+                right = other.take(right_idx)
+                join_index = join_index.putmask(mask, right)
+
         if isinstance(join_index, ABCMultiIndex) and how == "outer":
             # test_join_index_levels
             join_index = join_index._sort_levels_monotonic()
