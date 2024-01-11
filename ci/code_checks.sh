@@ -128,10 +128,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.SeriesGroupBy.transform \
         pandas.core.groupby.SeriesGroupBy.pipe \
         pandas.core.groupby.DataFrameGroupBy.pipe \
-        pandas.core.groupby.DataFrameGroupBy.describe \
-        pandas.core.groupby.DataFrameGroupBy.idxmax \
-        pandas.core.groupby.DataFrameGroupBy.idxmin \
-        pandas.core.groupby.DataFrameGroupBy.value_counts \
         pandas.core.groupby.SeriesGroupBy.describe \
         pandas.core.groupby.DataFrameGroupBy.boxplot \
         pandas.core.groupby.DataFrameGroupBy.hist \
