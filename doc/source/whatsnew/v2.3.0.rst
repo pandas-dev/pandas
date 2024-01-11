@@ -209,6 +209,7 @@ Styler
 
 Other
 ^^^^^
+- Bug in :func:`date_range` where the last valid timestamp would sometimes not be produced (:issue:`56134`)
 
 .. ***DO NOT USE THIS SECTION***
 
