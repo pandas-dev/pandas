@@ -1591,7 +1591,7 @@ def test_deprecation_warning_for_usage_of_aaply_map_index_method_of_styler_objec
     #56717 https://github.com/pandas-dev/pandas/issues/56717
     """ This test checks if the future warning in the applymap_index method of the style class passes """
     df = DataFrame([[1,2], [3,4]], index=["A", "B"])
-    msg = (r"Styler.applymap_index has been deprecated. Use Styler.map_index instead.")
+    msg = ("Styler.applymap_index has been deprecated. Use Styler.map_index instead.")
     def color_b(s):
         return np.where(s == "B", "background-color: yellow;", "")
     with tm.assert_produces_warning(FutureWarning, match=msg):
