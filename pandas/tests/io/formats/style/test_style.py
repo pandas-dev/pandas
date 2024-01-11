@@ -1590,7 +1590,6 @@ def test_output_buffer(mi_styler, format):
 
 def test_deprecation_warning_for_usage_of_aaply_map_index_method_of_styler_object():
     #56717 https://github.com/pandas-dev/pandas/issues/56717
-    """ This test checks if the future warning in the applymap_index method of the style class passes """
     df = DataFrame([[1,2], [3,4]], index=["A", "B"])
     msg = ("Styler.applymap_index has been deprecated. Use Styler.map_index instead.")
 
