@@ -73,9 +73,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX03 --ignore_functions \
         pandas.Series.dt.day_name \
         pandas.Series.str.len \
-        pandas.Series.cat.set_categories \
-        pandas.Series.plot.bar \
-        pandas.Series.plot.hist \
         pandas.Series.plot.line \
         pandas.Series.to_sql \
         pandas.Series.to_latex \
