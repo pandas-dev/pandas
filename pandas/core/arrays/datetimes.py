@@ -2773,7 +2773,12 @@ def _generate_range(
     if start and not offset.is_on_offset(start):
         # Incompatible types in assignment (expression has type "datetime",
         # variable has type "Optional[Timestamp]")
-        start = offset.rollforward(start)  # type: ignore[assignment]
+
+        # GH #56147 account for negative direction and range bounds
+        if offset.n >= 0:
+            start = offset.rollforward(start)  # type: ignore[assignment]
+        else:
+            start = offset.rollback(start)
 
     elif end and not offset.is_on_offset(end):
         # Incompatible types in assignment (expression has type "datetime",
