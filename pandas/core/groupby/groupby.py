@@ -451,8 +451,8 @@ func : callable or tuple of (callable, str)
 
 Returns
 -------
-object
-    The return type of `func`.
+%(klass)s
+    The original object with the function `func` applied.
 
 See Also
 --------
