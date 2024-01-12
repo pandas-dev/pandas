@@ -96,12 +96,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.ExcelWriter \
         pandas.read_json \
         pandas.io.json.build_table_schema \
-        pandas.DataFrame.to_latex \
         pandas.io.formats.style.Styler.to_latex \
         pandas.read_parquet \
         pandas.DataFrame.to_sql \
         pandas.read_stata \
-        pandas.core.resample.Resampler.pipe \
         pandas.core.resample.Resampler.interpolate \
         pandas.plotting.scatter_matrix \
         pandas.pivot \
