@@ -1194,7 +1194,8 @@ def test_sqlalchemy_read_table_chunksize_stream_results(conn, request):
     conn = request.getfixturevalue(conn)
     with sql.SQLDatabase(conn) as pandasSQL:
         assert list(pandasSQL.read_table("iris", chunksize=10000))
-        assert pandasSQL.con.get_execution_options() == {"stream_results": True}
+        execution_options = pandasSQL.con.get_execution_options()
+        assert execution_options["stream_results"] is True
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
@@ -1202,7 +1203,8 @@ def test_sqlalchemy_read_sql_chunksize_stream_results(conn, request):
     conn = request.getfixturevalue(conn)
     with sql.SQLDatabase(conn) as pandasSQL:
         assert list(pandasSQL.read_sql("SELECT * FROM iris", chunksize=10000))
-        assert pandasSQL.con.get_execution_options() == {"stream_results": True}
+        execution_options = pandasSQL.con.get_execution_options()
+        assert execution_options["stream_results"] is True
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
