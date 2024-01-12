@@ -71,8 +71,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (EX03)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX03 --ignore_functions \
-        pandas.Series.dt.day_name \
-        pandas.Series.str.len \
         pandas.Series.plot.line \
         pandas.Series.to_sql \
         pandas.Series.to_latex \
@@ -103,7 +101,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.to_sql \
         pandas.read_stata \
         pandas.core.resample.Resampler.pipe \
-        pandas.core.resample.Resampler.fillna \
         pandas.core.resample.Resampler.interpolate \
         pandas.plotting.scatter_matrix \
         pandas.pivot \
@@ -125,11 +122,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.SeriesGroupBy.transform \
         pandas.core.groupby.SeriesGroupBy.pipe \
         pandas.core.groupby.DataFrameGroupBy.pipe \
-        pandas.core.groupby.DataFrameGroupBy.describe \
-        pandas.core.groupby.DataFrameGroupBy.idxmax \
-        pandas.core.groupby.DataFrameGroupBy.idxmin \
-        pandas.core.groupby.DataFrameGroupBy.value_counts \
-        pandas.core.groupby.SeriesGroupBy.describe \
         pandas.core.groupby.DataFrameGroupBy.boxplot \
         pandas.core.groupby.DataFrameGroupBy.hist \
         pandas.io.formats.style.Styler.map \
@@ -153,14 +145,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.var \
         pandas.DataFrame.idxmax \
         pandas.DataFrame.idxmin \
-        pandas.DataFrame.last \
         pandas.DataFrame.pivot \
         pandas.DataFrame.sort_values \
         pandas.DataFrame.tz_convert \
         pandas.DataFrame.tz_localize \
         pandas.DataFrame.plot.bar \
         pandas.DataFrame.plot.hexbin \
-        pandas.DataFrame.plot.hist \
         pandas.DataFrame.plot.line \
         pandas.DataFrame.hist \
     RET=$(($RET + $?)) ; echo $MSG "DONE"
