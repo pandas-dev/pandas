@@ -143,7 +143,8 @@ def read_pickle(
 
     Returns
     -------
-    same type as object stored in file
+    object
+        Same type as object stored in file.
 
     See Also
     --------
@@ -162,7 +163,7 @@ def read_pickle(
     --------
     >>> original_df = pd.DataFrame(
     ...     {{"foo": range(5), "bar": range(5, 10)}}
-    ...    )  # doctest: +SKIP
+    ... )  # doctest: +SKIP
     >>> original_df  # doctest: +SKIP
        foo  bar
     0    0    5

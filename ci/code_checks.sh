@@ -93,7 +93,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timestamp.ceil \
         pandas.Timestamp.floor \
         pandas.Timestamp.round \
-        pandas.read_pickle \
         pandas.ExcelWriter \
         pandas.read_json \
         pandas.io.json.build_table_schema \
