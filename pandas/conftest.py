@@ -1973,4 +1973,7 @@ def warsaw(request) -> str:
 
 @pytest.fixture
 def arrow_string_storage():
+    """
+    Fixture that lists possible PyArrow values for StringDtype storage field.
+    """
     return ("pyarrow", "pyarrow_numpy")
