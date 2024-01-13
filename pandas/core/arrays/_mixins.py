@@ -98,7 +98,6 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         This class is part of the public API, but may be adjusted in non-user-facing
         ways more aggressively than the regular API.
 
-
     Examples
     --------
     Please see the following:
@@ -485,11 +484,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         Returns
         -------
-        counts : Series
-
-        See Also
-        --------
-        Series.value_counts
+        Series
         """
         if self.ndim != 1:
             raise NotImplementedError
