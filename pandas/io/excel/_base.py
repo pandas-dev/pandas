@@ -1019,7 +1019,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     date_format="YYYY-MM-DD",
-    ...     datetime_format="YYYY-MM-DD HH:MM:SS"
+    ...     datetime_format="YYYY-MM-DD HH:MM:SS",
     ... ) as writer:
     ...     df.to_excel(writer)  # doctest: +SKIP
 
@@ -1042,7 +1042,8 @@ class ExcelWriter(Generic[_WorkbookT]):
     You can also write multiple DataFrames to a single sheet. Note that the
     ``if_sheet_exists`` parameter needs to be set to ``overlay``:
 
-    >>> with ExcelWriter("path_to_file.xlsx",
+    >>> with ExcelWriter(
+    ...     "path_to_file.xlsx",
     ...     mode="a",
     ...     engine="openpyxl",
     ...     if_sheet_exists="overlay",
@@ -1072,7 +1073,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     engine="xlsxwriter",
-    ...     engine_kwargs={{"options": {{"nan_inf_to_errors": True}}}}
+    ...     engine_kwargs={{"options": {{"nan_inf_to_errors": True}}}},
     ... ) as writer:
     ...     df.to_excel(writer)  # doctest: +SKIP
 
@@ -1083,7 +1084,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     ...     "path_to_file.xlsx",
     ...     engine="openpyxl",
     ...     mode="a",
-    ...     engine_kwargs={{"keep_vba": True}}
+    ...     engine_kwargs={{"keep_vba": True}},
     ... ) as writer:
     ...     df.to_excel(writer, sheet_name="Sheet2")  # doctest: +SKIP
     """
@@ -1485,7 +1486,7 @@ class ExcelFile:
 
     Examples
     --------
-    >>> file = pd.ExcelFile('myfile.xlsx')  # doctest: +SKIP
+    >>> file = pd.ExcelFile("myfile.xlsx")  # doctest: +SKIP
     >>> with pd.ExcelFile("myfile.xls") as xls:  # doctest: +SKIP
     ...     df1 = pd.read_excel(xls, "Sheet1")  # doctest: +SKIP
     """
@@ -1608,9 +1609,9 @@ class ExcelFile:
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
-        >>> df.to_excel('myfile.xlsx')  # doctest: +SKIP
-        >>> file = pd.ExcelFile('myfile.xlsx')  # doctest: +SKIP
+        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"])
+        >>> df.to_excel("myfile.xlsx")  # doctest: +SKIP
+        >>> file = pd.ExcelFile("myfile.xlsx")  # doctest: +SKIP
         >>> file.parse()  # doctest: +SKIP
         """
         return self._reader.parse(

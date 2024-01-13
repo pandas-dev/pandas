@@ -34,8 +34,7 @@ class BadDocstrings:
         --------
         >>> import numpy as np
         >>> import pandas as pd
-        >>> df = pd.DataFrame(np.ones((3, 3)),
-        ...                   columns=('a', 'b', 'c'))
+        >>> df = pd.DataFrame(np.ones((3, 3)), columns=("a", "b", "c"))
         >>> df.all(1)
         0    True
         1    True
@@ -50,14 +49,14 @@ class BadDocstrings:
         Examples
         --------
         >>> import pandas as pdf
-        >>> df = pd.DataFrame(np.ones((3, 3)), columns=('a', 'b', 'c'))
+        >>> df = pd.DataFrame(np.ones((3, 3)), columns=("a", "b", "c"))
         """
 
     def missing_whitespace_around_arithmetic_operator(self) -> None:
         """
         Examples
         --------
-        >>> 2+5
+        >>> 2 + 5
         7
         """
 
@@ -66,14 +65,14 @@ class BadDocstrings:
         Examples
         --------
         >>> if 2 + 5:
-        ...   pass
+        ...     pass
         """
 
     def missing_whitespace_after_comma(self) -> None:
         """
         Examples
         --------
-        >>> df = pd.DataFrame(np.ones((3,3)),columns=('a','b', 'c'))
+        >>> df = pd.DataFrame(np.ones((3, 3)), columns=("a", "b", "c"))
         """
 
     def write_array_like_with_hyphen_not_underscore(self) -> None:

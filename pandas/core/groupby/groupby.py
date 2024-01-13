@@ -813,7 +813,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         For SeriesGroupBy:
 
-        >>> lst = ['a', 'a', 'b']
+        >>> lst = ["a", "a", "b"]
         >>> ser = pd.Series([1, 2, 3], index=lst)
         >>> ser
         a    1
@@ -837,15 +837,19 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         For Resampler:
 
-        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
-        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser = pd.Series(
+        ...     [1, 2, 3, 4],
+        ...     index=pd.DatetimeIndex(
+        ...         ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
+        ...     ),
+        ... )
         >>> ser
         2023-01-01    1
         2023-01-15    2
         2023-02-01    3
         2023-02-15    4
         dtype: int64
-        >>> ser.resample('MS').groups
+        >>> ser.resample("MS").groups
         {Timestamp('2023-01-01 00:00:00'): 2, Timestamp('2023-02-01 00:00:00'): 4}
         """
         return self._grouper.groups
@@ -866,7 +870,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         For SeriesGroupBy:
 
-        >>> lst = ['a', 'a', 'b']
+        >>> lst = ["a", "a", "b"]
         >>> ser = pd.Series([1, 2, 3], index=lst)
         >>> ser
         a    1
@@ -879,8 +883,9 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         For DataFrameGroupBy:
 
         >>> data = [[1, 2, 3], [1, 5, 6], [7, 8, 9]]
-        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
-        ...                   index=["owl", "toucan", "eagle"])
+        >>> df = pd.DataFrame(
+        ...     data, columns=["a", "b", "c"], index=["owl", "toucan", "eagle"]
+        ... )
         >>> df
                 a  b  c
         owl     1  2  3
@@ -891,15 +896,19 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         For Resampler:
 
-        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
-        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser = pd.Series(
+        ...     [1, 2, 3, 4],
+        ...     index=pd.DatetimeIndex(
+        ...         ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
+        ...     ),
+        ... )
         >>> ser
         2023-01-01    1
         2023-01-15    2
         2023-02-01    3
         2023-02-15    4
         dtype: int64
-        >>> ser.resample('MS').indices
+        >>> ser.resample("MS").indices
         defaultdict(<class 'list'>, {Timestamp('2023-01-01 00:00:00'): [0, 1],
         Timestamp('2023-02-01 00:00:00'): [2, 3]})
         """
@@ -1047,7 +1056,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         For SeriesGroupBy:
 
-        >>> lst = ['a', 'a', 'b']
+        >>> lst = ["a", "a", "b"]
         >>> ser = pd.Series([1, 2, 3], index=lst)
         >>> ser
         a    1
@@ -1062,8 +1071,9 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         For DataFrameGroupBy:
 
         >>> data = [[1, 2, 3], [1, 5, 6], [7, 8, 9]]
-        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
-        ...                   index=["owl", "toucan", "eagle"])
+        >>> df = pd.DataFrame(
+        ...     data, columns=["a", "b", "c"], index=["owl", "toucan", "eagle"]
+        ... )
         >>> df
                 a  b  c
         owl     1  2  3
@@ -1076,15 +1086,19 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         For Resampler:
 
-        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
-        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser = pd.Series(
+        ...     [1, 2, 3, 4],
+        ...     index=pd.DatetimeIndex(
+        ...         ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
+        ...     ),
+        ... )
         >>> ser
         2023-01-01    1
         2023-01-15    2
         2023-02-01    3
         2023-02-15    4
         dtype: int64
-        >>> ser.resample('MS').get_group('2023-01-01')
+        >>> ser.resample("MS").get_group("2023-01-01")
         2023-01-01    1
         2023-01-15    2
         dtype: int64
@@ -1141,7 +1155,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         For SeriesGroupBy:
 
-        >>> lst = ['a', 'a', 'b']
+        >>> lst = ["a", "a", "b"]
         >>> ser = pd.Series([1, 2, 3], index=lst)
         >>> ser
         a    1
@@ -1149,7 +1163,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         b    3
         dtype: int64
         >>> for x, y in ser.groupby(level=0):
-        ...     print(f'{x}\\n{y}\\n')
+        ...     print(f"{x}\\n{y}\\n")
         a
         a    1
         a    2
@@ -1168,7 +1182,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         1  1  5  6
         2  7  8  9
         >>> for x, y in df.groupby(by=["a"]):
-        ...     print(f'{x}\\n{y}\\n')
+        ...     print(f"{x}\\n{y}\\n")
         (1,)
            a  b  c
         0  1  2  3
@@ -1179,16 +1193,20 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         For Resampler:
 
-        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
-        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser = pd.Series(
+        ...     [1, 2, 3, 4],
+        ...     index=pd.DatetimeIndex(
+        ...         ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
+        ...     ),
+        ... )
         >>> ser
         2023-01-01    1
         2023-01-15    2
         2023-02-01    3
         2023-02-15    4
         dtype: int64
-        >>> for x, y in ser.resample('MS'):
-        ...     print(f'{x}\\n{y}\\n')
+        >>> for x, y in ser.resample("MS"):
+        ...     print(f"{x}\\n{y}\\n")
         2023-01-01 00:00:00
         2023-01-01    1
         2023-01-15    2
@@ -2170,7 +2188,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         For SeriesGroupBy:
 
-        >>> lst = ['a', 'a', 'b']
+        >>> lst = ["a", "a", "b"]
         >>> ser = pd.Series([1, 2, 0], index=lst)
         >>> ser
         a    1
@@ -2185,8 +2203,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         For DataFrameGroupBy:
 
         >>> data = [[1, 0, 3], [1, 0, 6], [7, 1, 9]]
-        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
-        ...                   index=["ostrich", "penguin", "parrot"])
+        >>> df = pd.DataFrame(
+        ...     data, columns=["a", "b", "c"], index=["ostrich", "penguin", "parrot"]
+        ... )
         >>> df
                  a  b  c
         ostrich  1  0  3
@@ -2227,7 +2246,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         For SeriesGroupBy:
 
-        >>> lst = ['a', 'a', 'b']
+        >>> lst = ["a", "a", "b"]
         >>> ser = pd.Series([1, 2, 0], index=lst)
         >>> ser
         a    1
@@ -2242,8 +2261,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         For DataFrameGroupBy:
 
         >>> data = [[1, 0, 3], [1, 5, 6], [7, 8, 9]]
-        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
-        ...                   index=["ostrich", "penguin", "parrot"])
+        >>> df = pd.DataFrame(
+        ...     data, columns=["a", "b", "c"], index=["ostrich", "penguin", "parrot"]
+        ... )
         >>> df
                  a  b  c
         ostrich  1  0  3
@@ -2277,7 +2297,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         For SeriesGroupBy:
 
-        >>> lst = ['a', 'a', 'b']
+        >>> lst = ["a", "a", "b"]
         >>> ser = pd.Series([1, 2, np.nan], index=lst)
         >>> ser
         a    1.0
@@ -2292,8 +2312,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         For DataFrameGroupBy:
 
         >>> data = [[1, np.nan, 3], [1, np.nan, 6], [7, 8, 9]]
-        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
-        ...                   index=["cow", "horse", "bull"])
+        >>> df = pd.DataFrame(
+        ...     data, columns=["a", "b", "c"], index=["cow", "horse", "bull"]
+        ... )
         >>> df
                 a	  b	c
         cow     1	NaN	3
@@ -2307,15 +2328,19 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         For Resampler:
 
-        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
-        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser = pd.Series(
+        ...     [1, 2, 3, 4],
+        ...     index=pd.DatetimeIndex(
+        ...         ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
+        ...     ),
+        ... )
         >>> ser
         2023-01-01    1
         2023-01-15    2
         2023-02-01    3
         2023-02-15    4
         dtype: int64
-        >>> ser.resample('MS').count()
+        >>> ser.resample("MS").count()
         2023-01-01    2
         2023-02-01    2
         Freq: MS, dtype: int64
@@ -2406,14 +2431,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         %(see_also)s
         Examples
         --------
-        >>> df = pd.DataFrame({'A': [1, 1, 2, 1, 2],
-        ...                    'B': [np.nan, 2, 3, 4, 5],
-        ...                    'C': [1, 2, 1, 1, 2]}, columns=['A', 'B', 'C'])
+        >>> df = pd.DataFrame(
+        ...     {"A": [1, 1, 2, 1, 2], "B": [np.nan, 2, 3, 4, 5], "C": [1, 2, 1, 1, 2]},
+        ...     columns=["A", "B", "C"],
+        ... )
 
         Groupby one column and return the mean of the remaining columns in
         each group.
 
-        >>> df.groupby('A').mean()
+        >>> df.groupby("A").mean()
              B         C
         A
         1  3.0  1.333333
@@ -2421,7 +2447,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Groupby two columns and return the mean of the remaining column.
 
-        >>> df.groupby(['A', 'B']).mean()
+        >>> df.groupby(["A", "B"]).mean()
                  C
         A B
         1 2.0  2.0
@@ -2432,7 +2458,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Groupby one column and return the mean of only particular column in
         the group.
 
-        >>> df.groupby('A')['B'].mean()
+        >>> df.groupby("A")["B"].mean()
         A
         1    3.0
         2    4.0
@@ -2481,7 +2507,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         For SeriesGroupBy:
 
-        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> lst = ["a", "a", "a", "b", "b", "b"]
         >>> ser = pd.Series([7, 2, 8, 4, 3, 3], index=lst)
         >>> ser
         a     7
@@ -2498,9 +2524,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         For DataFrameGroupBy:
 
-        >>> data = {'a': [1, 3, 5, 7, 7, 8, 3], 'b': [1, 4, 8, 4, 4, 2, 1]}
-        >>> df = pd.DataFrame(data, index=['dog', 'dog', 'dog',
-        ...                   'mouse', 'mouse', 'mouse', 'mouse'])
+        >>> data = {"a": [1, 3, 5, 7, 7, 8, 3], "b": [1, 4, 8, 4, 4, 2, 1]}
+        >>> df = pd.DataFrame(
+        ...     data, index=["dog", "dog", "dog", "mouse", "mouse", "mouse", "mouse"]
+        ... )
         >>> df
                  a  b
           dog    1  1
@@ -2517,14 +2544,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         For Resampler:
 
-        >>> ser = pd.Series([1, 2, 3, 3, 4, 5],
-        ...                 index=pd.DatetimeIndex(['2023-01-01',
-        ...                                         '2023-01-10',
-        ...                                         '2023-01-15',
-        ...                                         '2023-02-01',
-        ...                                         '2023-02-10',
-        ...                                         '2023-02-15']))
-        >>> ser.resample('MS').median()
+        >>> ser = pd.Series(
+        ...     [1, 2, 3, 3, 4, 5],
+        ...     index=pd.DatetimeIndex(
+        ...         [
+        ...             "2023-01-01",
+        ...             "2023-01-10",
+        ...             "2023-01-15",
+        ...             "2023-02-01",
+        ...             "2023-02-10",
+        ...             "2023-02-15",
+        ...         ]
+        ...     ),
+        ... )
+        >>> ser.resample("MS").median()
         2023-01-01    2.0
         2023-02-01    4.0
         Freq: MS, dtype: float64
@@ -2591,7 +2624,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         For SeriesGroupBy:
 
-        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> lst = ["a", "a", "a", "b", "b", "b"]
         >>> ser = pd.Series([7, 2, 8, 4, 3, 3], index=lst)
         >>> ser
         a     7
@@ -2608,9 +2641,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         For DataFrameGroupBy:
 
-        >>> data = {'a': [1, 3, 5, 7, 7, 8, 3], 'b': [1, 4, 8, 4, 4, 2, 1]}
-        >>> df = pd.DataFrame(data, index=['dog', 'dog', 'dog',
-        ...                   'mouse', 'mouse', 'mouse', 'mouse'])
+        >>> data = {"a": [1, 3, 5, 7, 7, 8, 3], "b": [1, 4, 8, 4, 4, 2, 1]}
+        >>> df = pd.DataFrame(
+        ...     data, index=["dog", "dog", "dog", "mouse", "mouse", "mouse", "mouse"]
+        ... )
         >>> df
                  a  b
           dog    1  1
@@ -2700,7 +2734,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         For SeriesGroupBy:
 
-        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> lst = ["a", "a", "a", "b", "b", "b"]
         >>> ser = pd.Series([7, 2, 8, 4, 3, 3], index=lst)
         >>> ser
         a     7
@@ -2717,9 +2751,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         For DataFrameGroupBy:
 
-        >>> data = {'a': [1, 3, 5, 7, 7, 8, 3], 'b': [1, 4, 8, 4, 4, 2, 1]}
-        >>> df = pd.DataFrame(data, index=['dog', 'dog', 'dog',
-        ...                   'mouse', 'mouse', 'mouse', 'mouse'])
+        >>> data = {"a": [1, 3, 5, 7, 7, 8, 3], "b": [1, 4, 8, 4, 4, 2, 1]}
+        >>> df = pd.DataFrame(
+        ...     data, index=["dog", "dog", "dog", "mouse", "mouse", "mouse", "mouse"]
+        ... )
         >>> df
                  a  b
           dog    1  1
@@ -2926,7 +2961,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         For SeriesGroupBy:
 
-        >>> lst = ['a', 'a', 'b', 'b']
+        >>> lst = ["a", "a", "b", "b"]
         >>> ser = pd.Series([5, 10, 8, 14], index=lst)
         >>> ser
         a     5
@@ -2942,8 +2977,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         For DataFrameGroupBy:
 
         >>> data = [[1, 12, 11], [1, 15, 2], [2, 5, 8], [2, 6, 12]]
-        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
-        ...                   index=["tuna", "salmon", "catfish", "goldfish"])
+        >>> df = pd.DataFrame(
+        ...     data,
+        ...     columns=["a", "b", "c"],
+        ...     index=["tuna", "salmon", "catfish", "goldfish"],
+        ... )
         >>> df
                    a   b   c
             tuna   1  12  11
@@ -2958,14 +2996,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         For Resampler:
 
-        >>> ser = pd.Series([1, 3, 2, 4, 3, 8],
-        ...                 index=pd.DatetimeIndex(['2023-01-01',
-        ...                                         '2023-01-10',
-        ...                                         '2023-01-15',
-        ...                                         '2023-02-01',
-        ...                                         '2023-02-10',
-        ...                                         '2023-02-15']))
-        >>> ser.resample('MS').sem()
+        >>> ser = pd.Series(
+        ...     [1, 3, 2, 4, 3, 8],
+        ...     index=pd.DatetimeIndex(
+        ...         [
+        ...             "2023-01-01",
+        ...             "2023-01-10",
+        ...             "2023-01-15",
+        ...             "2023-02-01",
+        ...             "2023-02-10",
+        ...             "2023-02-15",
+        ...         ]
+        ...     ),
+        ... )
+        >>> ser.resample("MS").sem()
         2023-01-01    0.577350
         2023-02-01    1.527525
         Freq: MS, dtype: float64
@@ -3000,7 +3044,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         For SeriesGroupBy:
 
-        >>> lst = ['a', 'a', 'b']
+        >>> lst = ["a", "a", "b"]
         >>> ser = pd.Series([1, 2, 3], index=lst)
         >>> ser
         a     1
@@ -3013,8 +3057,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         dtype: int64
 
         >>> data = [[1, 2, 3], [1, 5, 6], [7, 8, 9]]
-        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
-        ...                   index=["owl", "toucan", "eagle"])
+        >>> df = pd.DataFrame(
+        ...     data, columns=["a", "b", "c"], index=["owl", "toucan", "eagle"]
+        ... )
         >>> df
                 a  b  c
         owl     1  2  3
@@ -3028,14 +3073,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         For Resampler:
 
-        >>> ser = pd.Series([1, 2, 3], index=pd.DatetimeIndex(
-        ...                 ['2023-01-01', '2023-01-15', '2023-02-01']))
+        >>> ser = pd.Series(
+        ...     [1, 2, 3],
+        ...     index=pd.DatetimeIndex(["2023-01-01", "2023-01-15", "2023-02-01"]),
+        ... )
         >>> ser
         2023-01-01    1
         2023-01-15    2
         2023-02-01    3
         dtype: int64
-        >>> ser.resample('MS').size()
+        >>> ser.resample("MS").size()
         2023-01-01    2
         2023-02-01    1
         Freq: MS, dtype: int64
@@ -3362,9 +3409,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Examples
         --------
-        >>> df = pd.DataFrame(dict(A=[1, 1, 3], B=[None, 5, 6], C=[1, 2, 3],
-        ...                        D=['3/11/2000', '3/12/2000', '3/13/2000']))
-        >>> df['D'] = pd.to_datetime(df['D'])
+        >>> df = pd.DataFrame(
+        ...     dict(
+        ...         A=[1, 1, 3],
+        ...         B=[None, 5, 6],
+        ...         C=[1, 2, 3],
+        ...         D=["3/11/2000", "3/12/2000", "3/13/2000"],
+        ...     )
+        ... )
+        >>> df["D"] = pd.to_datetime(df["D"])
         >>> df.groupby("A").first()
              B  C          D
         A
@@ -3480,7 +3533,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         For SeriesGroupBy:
 
-        >>> lst = ['SPX', 'CAC', 'SPX', 'CAC', 'SPX', 'CAC', 'SPX', 'CAC',]
+        >>> lst = [
+        ...     "SPX",
+        ...     "CAC",
+        ...     "SPX",
+        ...     "CAC",
+        ...     "SPX",
+        ...     "CAC",
+        ...     "SPX",
+        ...     "CAC",
+        ... ]
         >>> ser = pd.Series([3.4, 9.0, 7.2, 5.2, 8.8, 9.4, 0.1, 0.5], index=lst)
         >>> ser
         SPX     3.4
@@ -3499,10 +3561,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         For DataFrameGroupBy:
 
-        >>> data = {2022: [1.2, 2.3, 8.9, 4.5, 4.4, 3, 2 , 1],
-        ...         2023: [3.4, 9.0, 7.2, 5.2, 8.8, 9.4, 8.2, 1.0]}
-        >>> df = pd.DataFrame(data, index=['SPX', 'CAC', 'SPX', 'CAC',
-        ...                   'SPX', 'CAC', 'SPX', 'CAC'])
+        >>> data = {
+        ...     2022: [1.2, 2.3, 8.9, 4.5, 4.4, 3, 2, 1],
+        ...     2023: [3.4, 9.0, 7.2, 5.2, 8.8, 9.4, 8.2, 1.0],
+        ... }
+        >>> df = pd.DataFrame(
+        ...     data, index=["SPX", "CAC", "SPX", "CAC", "SPX", "CAC", "SPX", "CAC"]
+        ... )
         >>> df
              2022  2023
         SPX   1.2   3.4
@@ -3521,14 +3586,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         For Resampler:
 
-        >>> ser = pd.Series([1, 3, 2, 4, 3, 5],
-        ...                 index=pd.DatetimeIndex(['2023-01-01',
-        ...                                         '2023-01-10',
-        ...                                         '2023-01-15',
-        ...                                         '2023-02-01',
-        ...                                         '2023-02-10',
-        ...                                         '2023-02-15']))
-        >>> ser.resample('MS').ohlc()
+        >>> ser = pd.Series(
+        ...     [1, 3, 2, 4, 3, 5],
+        ...     index=pd.DatetimeIndex(
+        ...         [
+        ...             "2023-01-01",
+        ...             "2023-01-10",
+        ...             "2023-01-15",
+        ...             "2023-02-01",
+        ...             "2023-02-10",
+        ...             "2023-02-15",
+        ...         ]
+        ...     ),
+        ... )
+        >>> ser.resample("MS").ohlc()
                     open  high  low  close
         2023-01-01     1     3    1      2
         2023-02-01     4     5    3      5
@@ -3643,10 +3714,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Examples
         --------
-        >>> idx = pd.date_range('1/1/2000', periods=4, freq='min')
-        >>> df = pd.DataFrame(data=4 * [range(2)],
-        ...                   index=idx,
-        ...                   columns=['a', 'b'])
+        >>> idx = pd.date_range("1/1/2000", periods=4, freq="min")
+        >>> df = pd.DataFrame(data=4 * [range(2)], index=idx, columns=["a", "b"])
         >>> df.iloc[2, 0] = 5
         >>> df
                             a  b
@@ -3658,7 +3727,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Downsample the DataFrame into 3 minute bins and sum the values of
         the timestamps falling into a bin.
 
-        >>> df.groupby('a').resample('3min', include_groups=False).sum()
+        >>> df.groupby("a").resample("3min", include_groups=False).sum()
                                  b
         a
         0   2000-01-01 00:00:00  2
@@ -3667,7 +3736,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Upsample the series into 30 second bins.
 
-        >>> df.groupby('a').resample('30s', include_groups=False).sum()
+        >>> df.groupby("a").resample("30s", include_groups=False).sum()
                             b
         a
         0   2000-01-01 00:00:00  1
@@ -3681,7 +3750,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Resample by month. Values are assigned to the month of the period.
 
-        >>> df.groupby('a').resample('ME', include_groups=False).sum()
+        >>> df.groupby("a").resample("ME", include_groups=False).sum()
                     b
         a
         0   2000-01-31  3
@@ -3691,8 +3760,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         side of the bin interval.
 
         >>> (
-        ...     df.groupby('a')
-        ...     .resample('3min', closed='right', include_groups=False)
+        ...     df.groupby("a")
+        ...     .resample("3min", closed="right", include_groups=False)
         ...     .sum()
         ... )
                                  b
@@ -3706,8 +3775,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         the left.
 
         >>> (
-        ...     df.groupby('a')
-        ...     .resample('3min', closed='right', label='right', include_groups=False)
+        ...     df.groupby("a")
+        ...     .resample("3min", closed="right", label="right", include_groups=False)
         ...     .sum()
         ... )
                                  b
@@ -3820,9 +3889,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': [1, 1, 2, 2],
-        ...                    'B': [1, 2, 3, 4],
-        ...                    'C': [0.362, 0.227, 1.267, -0.562]})
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "A": [1, 1, 2, 2],
+        ...         "B": [1, 2, 3, 4],
+        ...         "C": [0.362, 0.227, 1.267, -0.562],
+        ...     }
+        ... )
         >>> df
               A  B      C
         0     1  1  0.362
@@ -3830,7 +3903,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2     2  3  1.267
         3     2  4 -0.562
 
-        >>> df.groupby('A').rolling(2).sum()
+        >>> df.groupby("A").rolling(2).sum()
             B      C
         A
         1 0  NaN    NaN
@@ -3838,7 +3911,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2 2  NaN    NaN
           3  7.0  0.705
 
-        >>> df.groupby('A').rolling(2, min_periods=1).sum()
+        >>> df.groupby("A").rolling(2, min_periods=1).sum()
             B      C
         A
         1 0  1.0  0.362
@@ -3846,7 +3919,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2 2  3.0  1.267
           3  7.0  0.705
 
-        >>> df.groupby('A').rolling(2, on='B').sum()
+        >>> df.groupby("A").rolling(2, on="B").sum()
             B      C
         A
         1 0  1    NaN
@@ -4110,7 +4183,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         With Series:
 
-        >>> index = ['Falcon', 'Falcon', 'Parrot', 'Parrot', 'Parrot']
+        >>> index = ["Falcon", "Falcon", "Parrot", "Parrot", "Parrot"]
         >>> s = pd.Series([None, 1, None, None, 3], index=index)
         >>> s
         Falcon    NaN
@@ -4136,8 +4209,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         With DataFrame:
 
-        >>> df = pd.DataFrame({'A': [1, None, None, None, 4],
-        ...                    'B': [None, None, 5, None, 7]}, index=index)
+        >>> df = pd.DataFrame(
+        ...     {"A": [1, None, None, None, 4], "B": [None, None, 5, None, 7]},
+        ...     index=index,
+        ... )
         >>> df
                   A	    B
         Falcon	1.0	  NaN
@@ -4198,9 +4273,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Examples
         --------
 
-        >>> df = pd.DataFrame({'A': [1, 1, 2, 1, 2],
-        ...                    'B': [np.nan, 2, 3, 4, 5]}, columns=['A', 'B'])
-        >>> g = df.groupby('A')
+        >>> df = pd.DataFrame(
+        ...     {"A": [1, 1, 2, 1, 2], "B": [np.nan, 2, 3, 4, 5]}, columns=["A", "B"]
+        ... )
+        >>> g = df.groupby("A")
         >>> g.nth(0)
            A   B
         0  1 NaN
@@ -4241,7 +4317,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Specifying `dropna` allows ignoring ``NaN`` values
 
-        >>> g.nth(0, dropna='any')
+        >>> g.nth(0, dropna="any")
            A   B
         1  1 2.0
         2  2 3.0
@@ -4249,7 +4325,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         When the specified ``n`` is larger than any of the groups, an
         empty DataFrame is returned
 
-        >>> g.nth(3, dropna='any')
+        >>> g.nth(3, dropna="any")
         Empty DataFrame
         Columns: [A, B]
         Index: []
@@ -4352,11 +4428,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Examples
         --------
-        >>> df = pd.DataFrame([
-        ...     ['a', 1], ['a', 2], ['a', 3],
-        ...     ['b', 1], ['b', 3], ['b', 5]
-        ... ], columns=['key', 'val'])
-        >>> df.groupby('key').quantile()
+        >>> df = pd.DataFrame(
+        ...     [["a", 1], ["a", 2], ["a", 3], ["b", 1], ["b", 3], ["b", 5]],
+        ...     columns=["key", "val"],
+        ... )
+        >>> df.groupby("key").quantile()
             val
         key
         a    2.0
@@ -4654,8 +4730,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Examples
         --------
-        >>> df = pd.DataFrame([['a'], ['a'], ['a'], ['b'], ['b'], ['a']],
-        ...                   columns=['A'])
+        >>> df = pd.DataFrame([["a"], ["a"], ["a"], ["b"], ["b"], ["a"]], columns=["A"])
         >>> df
            A
         0  a
@@ -4664,7 +4739,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         3  b
         4  b
         5  a
-        >>> df.groupby('A').cumcount()
+        >>> df.groupby("A").cumcount()
         0    0
         1    1
         2    2
@@ -4672,7 +4747,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         4    1
         5    3
         dtype: int64
-        >>> df.groupby('A').cumcount(ascending=False)
+        >>> df.groupby("A").cumcount(ascending=False)
         0    3
         1    2
         2    1
@@ -4746,8 +4821,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         7     b      4
         8     b      1
         9     b      5
-        >>> for method in ['average', 'min', 'max', 'dense', 'first']:
-        ...     df[f'{method}_rank'] = df.groupby('group')['value'].rank(method)
+        >>> for method in ["average", "min", "max", "dense", "first"]:
+        ...     df[f"{method}_rank"] = df.groupby("group")["value"].rank(method)
         >>> df
           group  value  average_rank  min_rank  max_rank  dense_rank  first_rank
         0     a      2           1.5       1.0       2.0         1.0         1.0
@@ -4810,7 +4885,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         For SeriesGroupBy:
 
-        >>> lst = ['a', 'a', 'b']
+        >>> lst = ["a", "a", "b"]
         >>> ser = pd.Series([6, 2, 0], index=lst)
         >>> ser
         a    6
@@ -4826,8 +4901,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         For DataFrameGroupBy:
 
         >>> data = [[1, 8, 2], [1, 2, 5], [2, 6, 9]]
-        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
-        ...                   index=["cow", "horse", "bull"])
+        >>> df = pd.DataFrame(
+        ...     data, columns=["a", "b", "c"], index=["cow", "horse", "bull"]
+        ... )
         >>> df
                 a   b   c
         cow     1   8   2
@@ -4871,7 +4947,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         For SeriesGroupBy:
 
-        >>> lst = ['a', 'a', 'b']
+        >>> lst = ["a", "a", "b"]
         >>> ser = pd.Series([6, 2, 0], index=lst)
         >>> ser
         a    6
@@ -4887,8 +4963,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         For DataFrameGroupBy:
 
         >>> data = [[1, 8, 2], [1, 2, 5], [2, 6, 9]]
-        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
-        ...                   index=["fox", "gorilla", "lion"])
+        >>> df = pd.DataFrame(
+        ...     data, columns=["a", "b", "c"], index=["fox", "gorilla", "lion"]
+        ... )
         >>> df
                   a   b   c
         fox       1   8   2
@@ -4935,7 +5012,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         For SeriesGroupBy:
 
-        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> lst = ["a", "a", "a", "b", "b", "b"]
         >>> ser = pd.Series([1, 6, 2, 3, 0, 4], index=lst)
         >>> ser
         a    1
@@ -4957,8 +5034,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         For DataFrameGroupBy:
 
         >>> data = [[1, 0, 2], [1, 1, 5], [6, 6, 9]]
-        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
-        ...                   index=["snake", "rabbit", "turtle"])
+        >>> df = pd.DataFrame(
+        ...     data, columns=["a", "b", "c"], index=["snake", "rabbit", "turtle"]
+        ... )
         >>> df
                 a   b   c
         snake   1   0   2
@@ -5010,7 +5088,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         For SeriesGroupBy:
 
-        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> lst = ["a", "a", "a", "b", "b", "b"]
         >>> ser = pd.Series([1, 6, 2, 3, 1, 4], index=lst)
         >>> ser
         a    1
@@ -5032,8 +5110,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         For DataFrameGroupBy:
 
         >>> data = [[1, 8, 2], [1, 1, 0], [2, 6, 9]]
-        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
-        ...                   index=["cow", "horse", "bull"])
+        >>> df = pd.DataFrame(
+        ...     data, columns=["a", "b", "c"], index=["cow", "horse", "bull"]
+        ... )
         >>> df
                 a   b   c
         cow     1   8   2
@@ -5118,7 +5197,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         For SeriesGroupBy:
 
-        >>> lst = ['a', 'a', 'b', 'b']
+        >>> lst = ["a", "a", "b", "b"]
         >>> ser = pd.Series([1, 2, 3, 4], index=lst)
         >>> ser
         a    1
@@ -5136,8 +5215,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         For DataFrameGroupBy:
 
         >>> data = [[1, 2, 3], [1, 5, 6], [2, 5, 8], [2, 6, 9]]
-        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
-        ...                   index=["tuna", "salmon", "catfish", "goldfish"])
+        >>> df = pd.DataFrame(
+        ...     data,
+        ...     columns=["a", "b", "c"],
+        ...     index=["tuna", "salmon", "catfish", "goldfish"],
+        ... )
         >>> df
                    a  b  c
             tuna   1  2  3
@@ -5257,7 +5339,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         For SeriesGroupBy:
 
-        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> lst = ["a", "a", "a", "b", "b", "b"]
         >>> ser = pd.Series([7, 2, 8, 4, 3, 3], index=lst)
         >>> ser
         a     7
@@ -5278,9 +5360,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         For DataFrameGroupBy:
 
-        >>> data = {'a': [1, 3, 5, 7, 7, 8, 3], 'b': [1, 4, 8, 4, 4, 2, 1]}
-        >>> df = pd.DataFrame(data, index=['dog', 'dog', 'dog',
-        ...                   'mouse', 'mouse', 'mouse', 'mouse'])
+        >>> data = {"a": [1, 3, 5, 7, 7, 8, 3], "b": [1, 4, 8, 4, 4, 2, 1]}
+        >>> df = pd.DataFrame(
+        ...     data, index=["dog", "dog", "dog", "mouse", "mouse", "mouse", "mouse"]
+        ... )
         >>> df
                  a  b
           dog    1  1
@@ -5349,7 +5432,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         For SeriesGroupBy:
 
-        >>> lst = ['a', 'a', 'b', 'b']
+        >>> lst = ["a", "a", "b", "b"]
         >>> ser = pd.Series([1, 2, 3, 4], index=lst)
         >>> ser
         a    1
@@ -5367,8 +5450,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         For DataFrameGroupBy:
 
         >>> data = [[1, 2, 3], [1, 5, 6], [2, 5, 8], [2, 6, 9]]
-        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
-        ...                   index=["tuna", "salmon", "catfish", "goldfish"])
+        >>> df = pd.DataFrame(
+        ...     data,
+        ...     columns=["a", "b", "c"],
+        ...     index=["tuna", "salmon", "catfish", "goldfish"],
+        ... )
         >>> df
                    a  b  c
             tuna   1  2  3
@@ -5466,13 +5552,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Examples
         --------
 
-        >>> df = pd.DataFrame([[1, 2], [1, 4], [5, 6]],
-        ...                   columns=['A', 'B'])
-        >>> df.groupby('A').head(1)
+        >>> df = pd.DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
+        >>> df.groupby("A").head(1)
            A  B
         0  1  2
         2  5  6
-        >>> df.groupby('A').head(-1)
+        >>> df.groupby("A").head(-1)
            A  B
         0  1  2
         """
@@ -5504,13 +5589,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Examples
         --------
 
-        >>> df = pd.DataFrame([['a', 1], ['a', 2], ['b', 1], ['b', 2]],
-        ...                   columns=['A', 'B'])
-        >>> df.groupby('A').tail(1)
+        >>> df = pd.DataFrame(
+        ...     [["a", 1], ["a", 2], ["b", 1], ["b", 2]], columns=["A", "B"]
+        ... )
+        >>> df.groupby("A").tail(1)
            A  B
         1  a  2
         3  b  2
-        >>> df.groupby('A').tail(-1)
+        >>> df.groupby("A").tail(-1)
            A  B
         1  a  2
         3  b  2

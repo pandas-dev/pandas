@@ -598,9 +598,7 @@ def read_parquet(
 
     Examples
     --------
-    >>> original_df = pd.DataFrame(
-    ...     {{"foo": range(5), "bar": range(5, 10)}}
-    ...    )
+    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})
     >>> original_df
        foo  bar
     0    0    5
@@ -628,7 +626,7 @@ def read_parquet(
     2    7
     3    8
     4    9
-    >>> restored_bar.equals(original_df[['bar']])
+    >>> restored_bar.equals(original_df[["bar"]])
     True
 
     The function uses `kwargs` that are passed directly to the engine.

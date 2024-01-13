@@ -76,10 +76,8 @@ def assert_produces_warning(
     >>> import warnings
     >>> with assert_produces_warning():
     ...     warnings.warn(UserWarning())
-    ...
     >>> with assert_produces_warning(False):
     ...     warnings.warn(RuntimeWarning())
-    ...
     Traceback (most recent call last):
         ...
     AssertionError: Caused unexpected warning(s): ['RuntimeWarning'].

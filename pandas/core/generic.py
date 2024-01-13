@@ -391,7 +391,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         For DataFrame:
 
-        >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
         >>> df.attrs = {"A": [10, 20, 30]}
         >>> df.attrs
         {'A': [10, 20, 30]}
@@ -707,11 +707,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> s = pd.Series({'a': 1, 'b': 2, 'c': 3})
+        >>> s = pd.Series({"a": 1, "b": 2, "c": 3})
         >>> s.ndim
         1
 
-        >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [3, 4]})
+        >>> df = pd.DataFrame({"col1": [1, 2], "col2": [3, 4]})
         >>> df.ndim
         2
         """
@@ -732,11 +732,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> s = pd.Series({'a': 1, 'b': 2, 'c': 3})
+        >>> s = pd.Series({"a": 1, "b": 2, "c": 3})
         >>> s.size
         3
 
-        >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [3, 4]})
+        >>> df = pd.DataFrame({"col1": [1, 2], "col2": [3, 4]})
         >>> df.size
         4
         """
@@ -906,15 +906,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame([
-        ...     [1, 2, 3, 4],
-        ...     [5, 6, 7, 8],
-        ...     [9, 10, 11, 12]
-        ... ]).set_index([0, 1]).rename_axis(['a', 'b'])
+        >>> df = (
+        ...     pd.DataFrame([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]])
+        ...     .set_index([0, 1])
+        ...     .rename_axis(["a", "b"])
+        ... )
 
-        >>> df.columns = pd.MultiIndex.from_tuples([
-        ...     ('c', 'e'), ('d', 'f')
-        ... ], names=['level_1', 'level_2'])
+        >>> df.columns = pd.MultiIndex.from_tuples(
+        ...     [("c", "e"), ("d", "f")], names=["level_1", "level_2"]
+        ... )
 
         >>> df
         level_1   c   d
@@ -924,7 +924,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         5 6      7   8
         9 10    11  12
 
-        >>> df.droplevel('a')
+        >>> df.droplevel("a")
         level_1   c   d
         level_2   e   f
         b
@@ -932,7 +932,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         6        7   8
         10      11  12
 
-        >>> df.droplevel('level_2', axis=1)
+        >>> df.droplevel("level_2", axis=1)
         level_1   c   d
         a b
         1 2      3   4
@@ -1012,7 +1012,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Squeezing is even more effective when used with DataFrames.
 
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['a', 'b'])
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
         >>> df
            a  b
         0  1  2
@@ -1021,7 +1021,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Slicing a single column will produce a DataFrame with the columns
         having only one value:
 
-        >>> df_a = df[['a']]
+        >>> df_a = df[["a"]]
         >>> df_a
            a
         0  1
@@ -1029,7 +1029,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         So the columns can be squeezed down, resulting in a Series:
 
-        >>> df_a.squeeze('columns')
+        >>> df_a.squeeze("columns")
         0    1
         1    3
         Name: a, dtype: int64
@@ -1037,14 +1037,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Slicing a single row from a single column will produce a single
         scalar DataFrame:
 
-        >>> df_0a = df.loc[df.index < 1, ['a']]
+        >>> df_0a = df.loc[df.index < 1, ["a"]]
         >>> df_0a
            a
         0  1
 
         Squeezing the rows produces a single scalar Series:
 
-        >>> df_0a.squeeze('rows')
+        >>> df_0a.squeeze("rows")
         a    1
         Name: 0, dtype: int64
 
@@ -1274,9 +1274,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         **DataFrame**
 
-        >>> df = pd.DataFrame({"num_legs": [4, 4, 2],
-        ...                    "num_arms": [0, 0, 2]},
-        ...                   ["dog", "cat", "monkey"])
+        >>> df = pd.DataFrame(
+        ...     {"num_legs": [4, 4, 2], "num_arms": [0, 0, 2]}, ["dog", "cat", "monkey"]
+        ... )
         >>> df
                 num_legs  num_arms
         dog            4         0
@@ -1299,9 +1299,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         **MultiIndex**
 
-        >>> df.index = pd.MultiIndex.from_product([['mammal'],
-        ...                                        ['dog', 'cat', 'monkey']],
-        ...                                       names=['type', 'name'])
+        >>> df.index = pd.MultiIndex.from_product(
+        ...     [["mammal"], ["dog", "cat", "monkey"]], names=["type", "name"]
+        ... )
         >>> df
         limbs          num_legs  num_arms
         type   name
@@ -1309,7 +1309,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                cat            4         0
                monkey         2         2
 
-        >>> df.rename_axis(index={'type': 'class'})
+        >>> df.rename_axis(index={"type": "class"})
         limbs          num_legs  num_arms
         class  name
         mammal dog            4         0
@@ -1398,8 +1398,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({"num_legs": [4, 4, 2]},
-        ...                   ["dog", "cat", "monkey"])
+        >>> df = pd.DataFrame({"num_legs": [4, 4, 2]}, ["dog", "cat", "monkey"])
         >>> df
                 num_legs
         dog            4
@@ -1412,7 +1411,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cat            4
         monkey         2
         >>> df.index = pd.MultiIndex.from_product(
-        ...                [["mammal"], ['dog', 'cat', 'monkey']])
+        ...     [["mammal"], ["dog", "cat", "monkey"]]
+        ... )
         >>> df._set_axis_name(["type", "name"])
                        num_legs
         type   name
@@ -1615,9 +1615,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> pd.Series([False]).bool()  # doctest: +SKIP
         False
 
-        >>> pd.DataFrame({'col': [True]}).bool()  # doctest: +SKIP
+        >>> pd.DataFrame({"col": [True]}).bool()  # doctest: +SKIP
         True
-        >>> pd.DataFrame({'col': [False]}).bool()  # doctest: +SKIP
+        >>> pd.DataFrame({"col": [False]}).bool()  # doctest: +SKIP
         False
 
         This is an alternative method and will only work
@@ -1690,7 +1690,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Absolute numeric values in a Series with a Timedelta element.
 
-        >>> s = pd.Series([pd.Timedelta('1 days')])
+        >>> s = pd.Series([pd.Timedelta("1 days")])
         >>> s.abs()
         0   1 days
         dtype: timedelta64[ns]
@@ -1698,11 +1698,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Select rows with data closest to certain value using argsort (from
         `StackOverflow <https://stackoverflow.com/a/17758115>`__).
 
-        >>> df = pd.DataFrame({
-        ...     'a': [4, 5, 6, 7],
-        ...     'b': [10, 20, 30, 40],
-        ...     'c': [100, 50, -30, -50]
-        ... })
+        >>> df = pd.DataFrame(
+        ...     {"a": [4, 5, 6, 7], "b": [10, 20, 30, 40], "c": [100, 50, -30, -50]}
+        ... )
         >>> df
              a    b    c
         0    4   10  100
@@ -2023,7 +2021,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         >>> for x in df:
         ...     print(x)
         A
@@ -2045,8 +2043,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> d = pd.DataFrame(data={'A': [1, 2, 3], 'B': [0, 4, 8]},
-        ...                  index=['a', 'b', 'c'])
+        >>> d = pd.DataFrame(
+        ...     data={"A": [1, 2, 3], "B": [0, 4, 8]}, index=["a", "b", "c"]
+        ... )
         >>> d
            A  B
         a  1  0
@@ -2107,7 +2106,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         An example of an actual empty DataFrame. Notice the index is empty:
 
-        >>> df_empty = pd.DataFrame({'A' : []})
+        >>> df_empty = pd.DataFrame({"A": []})
         >>> df_empty
         Empty DataFrame
         Columns: [A]
@@ -2118,7 +2117,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         If we only have NaNs in our DataFrame, it is not considered empty! We
         will need to drop the NaNs to make the DataFrame empty:
 
-        >>> df = pd.DataFrame({'A' : [np.nan]})
+        >>> df = pd.DataFrame({"A": [np.nan]})
         >>> df
             A
         0 NaN
@@ -2127,7 +2126,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.dropna().empty
         True
 
-        >>> ser_empty = pd.Series({'A' : []})
+        >>> ser_empty = pd.Series({"A": []})
         >>> ser_empty
         A    []
         dtype: object
@@ -2364,35 +2363,35 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Create, write to and save a workbook:
 
-        >>> df1 = pd.DataFrame([['a', 'b'], ['c', 'd']],
-        ...                    index=['row 1', 'row 2'],
-        ...                    columns=['col 1', 'col 2'])
+        >>> df1 = pd.DataFrame(
+        ...     [["a", "b"], ["c", "d"]],
+        ...     index=["row 1", "row 2"],
+        ...     columns=["col 1", "col 2"],
+        ... )
         >>> df1.to_excel("output.xlsx")  # doctest: +SKIP
 
         To specify the sheet name:
 
-        >>> df1.to_excel("output.xlsx",
-        ...              sheet_name='Sheet_name_1')  # doctest: +SKIP
+        >>> df1.to_excel("output.xlsx", sheet_name="Sheet_name_1")  # doctest: +SKIP
 
         If you wish to write to more than one sheet in the workbook, it is
         necessary to specify an ExcelWriter object:
 
         >>> df2 = df1.copy()
-        >>> with pd.ExcelWriter('output.xlsx') as writer:  # doctest: +SKIP
-        ...     df1.to_excel(writer, sheet_name='Sheet_name_1')
-        ...     df2.to_excel(writer, sheet_name='Sheet_name_2')
+        >>> with pd.ExcelWriter("output.xlsx") as writer:  # doctest: +SKIP
+        ...     df1.to_excel(writer, sheet_name="Sheet_name_1")
+        ...     df2.to_excel(writer, sheet_name="Sheet_name_2")
 
         ExcelWriter can also be used to append to an existing Excel file:
 
-        >>> with pd.ExcelWriter('output.xlsx',
-        ...                     mode='a') as writer:  # doctest: +SKIP
-        ...     df1.to_excel(writer, sheet_name='Sheet_name_3')
+        >>> with pd.ExcelWriter("output.xlsx", mode="a") as writer:  # doctest: +SKIP
+        ...     df1.to_excel(writer, sheet_name="Sheet_name_3")
 
         To set the library that is used to write the Excel file,
         you can pass the `engine` keyword (the default engine is
         automatically chosen depending on the file extension):
 
-        >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')  # doctest: +SKIP
+        >>> df1.to_excel("output1.xlsx", engine="xlsxwriter")  # doctest: +SKIP
         """
         if engine_kwargs is None:
             engine_kwargs = {}
@@ -2823,23 +2822,24 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]},
-        ...                   index=['a', 'b', 'c'])  # doctest: +SKIP
-        >>> df.to_hdf('data.h5', key='df', mode='w')  # doctest: +SKIP
+        >>> df = pd.DataFrame(
+        ...     {"A": [1, 2, 3], "B": [4, 5, 6]}, index=["a", "b", "c"]
+        ... )  # doctest: +SKIP
+        >>> df.to_hdf("data.h5", key="df", mode="w")  # doctest: +SKIP
 
         We can add another object to the same file:
 
         >>> s = pd.Series([1, 2, 3, 4])  # doctest: +SKIP
-        >>> s.to_hdf('data.h5', key='s')  # doctest: +SKIP
+        >>> s.to_hdf("data.h5", key="s")  # doctest: +SKIP
 
         Reading from HDF file:
 
-        >>> pd.read_hdf('data.h5', 'df')  # doctest: +SKIP
+        >>> pd.read_hdf("data.h5", "df")  # doctest: +SKIP
         A  B
         a  1  4
         b  2  5
         c  3  6
-        >>> pd.read_hdf('data.h5', 's')  # doctest: +SKIP
+        >>> pd.read_hdf("data.h5", "s")  # doctest: +SKIP
         0    1
         1    2
         2    3
@@ -3136,7 +3136,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})  # doctest: +SKIP
+        >>> original_df = pd.DataFrame(
+        ...     {{"foo": range(5), "bar": range(5, 10)}}
+        ... )  # doctest: +SKIP
         >>> original_df  # doctest: +SKIP
            foo  bar
         0    0    5
@@ -3154,7 +3156,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2    2    7
         3    3    8
         4    4    9
-        """  # noqa: E501
+        """
         from pandas.io.pickle import to_pickle
 
         to_pickle(
@@ -3212,9 +3214,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         Copy the contents of a DataFrame to the clipboard.
 
-        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
+        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"])
 
-        >>> df.to_clipboard(sep=',')  # doctest: +SKIP
+        >>> df.to_clipboard(sep=",")  # doctest: +SKIP
         ... # Wrote the following to the system clipboard:
         ... # ,A,B,C
         ... # 0,1,2,3
@@ -3223,7 +3225,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         We can omit the index by passing the keyword `index` and setting
         it to false.
 
-        >>> df.to_clipboard(sep=',', index=False)  # doctest: +SKIP
+        >>> df.to_clipboard(sep=",", index=False)  # doctest: +SKIP
         ... # Wrote the following to the system clipboard:
         ... # A,B,C
         ... # 1,2,3
@@ -3234,6 +3236,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         .. code-block:: python
 
            import pyperclip
+
            html = df.style.to_html()
            pyperclip.copy(html)
         """
@@ -3263,12 +3266,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame([('falcon', 'bird', 389.0, 2),
-        ...                    ('parrot', 'bird', 24.0, 2),
-        ...                    ('lion', 'mammal', 80.5, 4),
-        ...                    ('monkey', 'mammal', np.nan, 4)],
-        ...                   columns=['name', 'class', 'max_speed',
-        ...                            'num_legs'])
+        >>> df = pd.DataFrame(
+        ...     [
+        ...         ("falcon", "bird", 389.0, 2),
+        ...         ("parrot", "bird", 24.0, 2),
+        ...         ("lion", "mammal", 80.5, 4),
+        ...         ("monkey", "mammal", np.nan, 4),
+        ...     ],
+        ...     columns=["name", "class", "max_speed", "num_legs"],
+        ... )
         >>> df
              name   class  max_speed  num_legs
         0  falcon    bird      389.0         2
@@ -3287,19 +3293,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             max_speed  (index) float64 389.0 24.0 80.5 nan
             num_legs   (index) int64 2 2 4 4
 
-        >>> df['max_speed'].to_xarray()
+        >>> df["max_speed"].to_xarray()
         <xarray.DataArray 'max_speed' (index: 4)>
         array([389. ,  24. ,  80.5,   nan])
         Coordinates:
           * index    (index) int64 0 1 2 3
 
-        >>> dates = pd.to_datetime(['2018-01-01', '2018-01-01',
-        ...                         '2018-01-02', '2018-01-02'])
-        >>> df_multiindex = pd.DataFrame({'date': dates,
-        ...                               'animal': ['falcon', 'parrot',
-        ...                                          'falcon', 'parrot'],
-        ...                               'speed': [350, 18, 361, 15]})
-        >>> df_multiindex = df_multiindex.set_index(['date', 'animal'])
+        >>> dates = pd.to_datetime(
+        ...     ["2018-01-01", "2018-01-01", "2018-01-02", "2018-01-02"]
+        ... )
+        >>> df_multiindex = pd.DataFrame(
+        ...     {
+        ...         "date": dates,
+        ...         "animal": ["falcon", "parrot", "falcon", "parrot"],
+        ...         "speed": [350, 18, 361, 15],
+        ...     }
+        ... )
+        >>> df_multiindex = df_multiindex.set_index(["date", "animal"])
 
         >>> df_multiindex
                            speed
@@ -3922,31 +3932,39 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         Create 'out.csv' containing 'df' without indices
 
-        >>> df = pd.DataFrame({{'name': ['Raphael', 'Donatello'],
-        ...                    'mask': ['red', 'purple'],
-        ...                    'weapon': ['sai', 'bo staff']}})
-        >>> df.to_csv('out.csv', index=False)  # doctest: +SKIP
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         {
+        ...             "name": ["Raphael", "Donatello"],
+        ...             "mask": ["red", "purple"],
+        ...             "weapon": ["sai", "bo staff"],
+        ...         }
+        ...     }
+        ... )
+        >>> df.to_csv("out.csv", index=False)  # doctest: +SKIP
 
         Create 'out.zip' containing 'out.csv'
 
         >>> df.to_csv(index=False)
         'name,mask,weapon\nRaphael,red,sai\nDonatello,purple,bo staff\n'
-        >>> compression_opts = dict(method='zip',
-        ...                         archive_name='out.csv')  # doctest: +SKIP
-        >>> df.to_csv('out.zip', index=False,
-        ...           compression=compression_opts)  # doctest: +SKIP
+        >>> compression_opts = dict(
+        ...     method="zip", archive_name="out.csv"
+        ... )  # doctest: +SKIP
+        >>> df.to_csv(
+        ...     "out.zip", index=False, compression=compression_opts
+        ... )  # doctest: +SKIP
 
         To write a csv file to a new folder or nested folder you will first
         need to create it using either Pathlib or os:
 
         >>> from pathlib import Path  # doctest: +SKIP
-        >>> filepath = Path('folder/subfolder/out.csv')  # doctest: +SKIP
+        >>> filepath = Path("folder/subfolder/out.csv")  # doctest: +SKIP
         >>> filepath.parent.mkdir(parents=True, exist_ok=True)  # doctest: +SKIP
         >>> df.to_csv(filepath)  # doctest: +SKIP
 
         >>> import os  # doctest: +SKIP
-        >>> os.makedirs('folder/subfolder', exist_ok=True)  # doctest: +SKIP
-        >>> df.to_csv('folder/subfolder/out.csv')  # doctest: +SKIP
+        >>> os.makedirs("folder/subfolder", exist_ok=True)  # doctest: +SKIP
+        >>> df.to_csv("folder/subfolder/out.csv")  # doctest: +SKIP
         """
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
@@ -4053,12 +4071,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
-        ...                    ('parrot', 'bird', 24.0),
-        ...                    ('lion', 'mammal', 80.5),
-        ...                    ('monkey', 'mammal', np.nan)],
-        ...                   columns=['name', 'class', 'max_speed'],
-        ...                   index=[0, 2, 3, 1])
+        >>> df = pd.DataFrame(
+        ...     [
+        ...         ("falcon", "bird", 389.0),
+        ...         ("parrot", "bird", 24.0),
+        ...         ("lion", "mammal", 80.5),
+        ...         ("monkey", "mammal", np.nan),
+        ...     ],
+        ...     columns=["name", "class", "max_speed"],
+        ...     index=[0, 2, 3, 1],
+        ... )
         >>> df
              name   class  max_speed
         0  falcon    bird      389.0
@@ -4201,13 +4223,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> d = {'num_legs': [4, 4, 2, 2],
-        ...      'num_wings': [0, 0, 2, 2],
-        ...      'class': ['mammal', 'mammal', 'mammal', 'bird'],
-        ...      'animal': ['cat', 'dog', 'bat', 'penguin'],
-        ...      'locomotion': ['walks', 'walks', 'flies', 'walks']}
+        >>> d = {
+        ...     "num_legs": [4, 4, 2, 2],
+        ...     "num_wings": [0, 0, 2, 2],
+        ...     "class": ["mammal", "mammal", "mammal", "bird"],
+        ...     "animal": ["cat", "dog", "bat", "penguin"],
+        ...     "locomotion": ["walks", "walks", "flies", "walks"],
+        ... }
         >>> df = pd.DataFrame(data=d)
-        >>> df = df.set_index(['class', 'animal', 'locomotion'])
+        >>> df = df.set_index(["class", "animal", "locomotion"])
         >>> df
                                    num_legs  num_wings
         class  animal  locomotion
@@ -4218,7 +4242,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Get values at specified index
 
-        >>> df.xs('mammal')
+        >>> df.xs("mammal")
                            num_legs  num_wings
         animal locomotion
         cat    walks              4          0
@@ -4227,29 +4251,28 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Get values at several indexes
 
-        >>> df.xs(('mammal', 'dog', 'walks'))
+        >>> df.xs(("mammal", "dog", "walks"))
         num_legs     4
         num_wings    0
         Name: (mammal, dog, walks), dtype: int64
 
         Get values at specified index and level
 
-        >>> df.xs('cat', level=1)
+        >>> df.xs("cat", level=1)
                            num_legs  num_wings
         class  locomotion
         mammal walks              4          0
 
         Get values at several indexes and levels
 
-        >>> df.xs(('bird', 'walks'),
-        ...       level=[0, 'locomotion'])
+        >>> df.xs(("bird", "walks"), level=[0, "locomotion"])
                  num_legs  num_wings
         animal
         penguin         2          2
 
         Get values at specified column and axis
 
-        >>> df.xs('num_wings', axis=1)
+        >>> df.xs("num_wings", axis=1)
         class   animal   locomotion
         mammal  cat      walks         0
                 dog      walks         0
@@ -4560,8 +4583,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2014-02-14          22.0    medium
         2014-02-15          35.0    medium
 
-        >>> ser = df['windspeed']
-        >>> ser.get('2014-02-13')
+        >>> ser = df["windspeed"]
+        >>> ser.get("2014-02-13")
         'high'
 
         If the key isn't found, the default value will be used.
@@ -4569,7 +4592,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.get(["temp_celsius", "temp_kelvin"], default="default_value")
         'default_value'
 
-        >>> ser.get('2014-02-10', '[unknown]')
+        >>> ser.get("2014-02-10", "[unknown]")
         '[unknown]'
         """
         try:
@@ -4661,14 +4684,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df1 = pd.DataFrame([[24.3, 75.7, 'high'],
-        ...                     [31, 87.8, 'high'],
-        ...                     [22, 71.6, 'medium'],
-        ...                     [35, 95, 'medium']],
-        ...                    columns=['temp_celsius', 'temp_fahrenheit',
-        ...                             'windspeed'],
-        ...                    index=pd.date_range(start='2014-02-12',
-        ...                                        end='2014-02-15', freq='D'))
+        >>> df1 = pd.DataFrame(
+        ...     [
+        ...         [24.3, 75.7, "high"],
+        ...         [31, 87.8, "high"],
+        ...         [22, 71.6, "medium"],
+        ...         [35, 95, "medium"],
+        ...     ],
+        ...     columns=["temp_celsius", "temp_fahrenheit", "windspeed"],
+        ...     index=pd.date_range(start="2014-02-12", end="2014-02-15", freq="D"),
+        ... )
 
         >>> df1
                     temp_celsius  temp_fahrenheit windspeed
@@ -4677,12 +4702,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2014-02-14          22.0             71.6    medium
         2014-02-15          35.0             95.0    medium
 
-        >>> df2 = pd.DataFrame([[28, 'low'],
-        ...                     [30, 'low'],
-        ...                     [35.1, 'medium']],
-        ...                    columns=['temp_celsius', 'windspeed'],
-        ...                    index=pd.DatetimeIndex(['2014-02-12', '2014-02-13',
-        ...                                            '2014-02-15']))
+        >>> df2 = pd.DataFrame(
+        ...     [[28, "low"], [30, "low"], [35.1, "medium"]],
+        ...     columns=["temp_celsius", "windspeed"],
+        ...     index=pd.DatetimeIndex(["2014-02-12", "2014-02-13", "2014-02-15"]),
+        ... )
 
         >>> df2
                     temp_celsius windspeed
@@ -4930,14 +4954,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3    4
         dtype: int64
 
-        >>> s.add_prefix('item_')
+        >>> s.add_prefix("item_")
         item_0    1
         item_1    2
         item_2    3
         item_3    4
         dtype: int64
 
-        >>> df = pd.DataFrame({'A': [1, 2, 3, 4], 'B': [3, 4, 5, 6]})
+        >>> df = pd.DataFrame({"A": [1, 2, 3, 4], "B": [3, 4, 5, 6]})
         >>> df
            A  B
         0  1  3
@@ -4945,7 +4969,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2  3  5
         3  4  6
 
-        >>> df.add_prefix('col_')
+        >>> df.add_prefix("col_")
              col_A  col_B
         0       1       3
         1       2       4
@@ -5004,14 +5028,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3    4
         dtype: int64
 
-        >>> s.add_suffix('_item')
+        >>> s.add_suffix("_item")
         0_item    1
         1_item    2
         2_item    3
         3_item    4
         dtype: int64
 
-        >>> df = pd.DataFrame({'A': [1, 2, 3, 4], 'B': [3, 4, 5, 6]})
+        >>> df = pd.DataFrame({"A": [1, 2, 3, 4], "B": [3, 4, 5, 6]})
         >>> df
            A  B
         0  1  3
@@ -5019,7 +5043,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2  3  5
         3  4  6
 
-        >>> df.add_suffix('_col')
+        >>> df.add_suffix("_col")
              A_col  B_col
         0       1       3
         1       2       4
@@ -5136,12 +5160,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({
-        ...     'col1': ['A', 'A', 'B', np.nan, 'D', 'C'],
-        ...     'col2': [2, 1, 9, 8, 7, 4],
-        ...     'col3': [0, 1, 9, 4, 2, 3],
-        ...     'col4': ['a', 'B', 'c', 'D', 'e', 'F']
-        ... })
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "col1": ["A", "A", "B", np.nan, "D", "C"],
+        ...         "col2": [2, 1, 9, 8, 7, 4],
+        ...         "col3": [0, 1, 9, 4, 2, 3],
+        ...         "col4": ["a", "B", "c", "D", "e", "F"],
+        ...     }
+        ... )
         >>> df
           col1  col2  col3 col4
         0    A     2     0    a
@@ -5153,7 +5179,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Sort by col1
 
-        >>> df.sort_values(by=['col1'])
+        >>> df.sort_values(by=["col1"])
           col1  col2  col3 col4
         0    A     2     0    a
         1    A     1     1    B
@@ -5164,7 +5190,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Sort by multiple columns
 
-        >>> df.sort_values(by=['col1', 'col2'])
+        >>> df.sort_values(by=["col1", "col2"])
           col1  col2  col3 col4
         1    A     1     1    B
         0    A     2     0    a
@@ -5175,7 +5201,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Sort Descending
 
-        >>> df.sort_values(by='col1', ascending=False)
+        >>> df.sort_values(by="col1", ascending=False)
           col1  col2  col3 col4
         4    D     7     2    e
         5    C     4     3    F
@@ -5186,7 +5212,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Putting NAs first
 
-        >>> df.sort_values(by='col1', ascending=False, na_position='first')
+        >>> df.sort_values(by="col1", ascending=False, na_position="first")
           col1  col2  col3 col4
         3  NaN     8     4    D
         4    D     7     2    e
@@ -5197,7 +5223,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Sorting with a key function
 
-        >>> df.sort_values(by='col4', key=lambda col: col.str.lower())
+        >>> df.sort_values(by="col4", key=lambda col: col.str.lower())
            col1  col2  col3 col4
         0    A     2     0    a
         1    A     1     1    B
@@ -5209,10 +5235,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Natural sort with the key argument,
         using the `natsort <https://github.com/SethMMorton/natsort>` package.
 
-        >>> df = pd.DataFrame({
-        ...    "time": ['0hr', '128hr', '72hr', '48hr', '96hr'],
-        ...    "value": [10, 20, 30, 40, 50]
-        ... })
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "time": ["0hr", "128hr", "72hr", "48hr", "96hr"],
+        ...         "value": [10, 20, 30, 40, 50],
+        ...     }
+        ... )
         >>> df
             time  value
         0    0hr     10
@@ -5222,8 +5250,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         4   96hr     50
         >>> from natsort import index_natsorted
         >>> df.sort_values(
-        ...     by="time",
-        ...     key=lambda x: np.argsort(index_natsorted(df["time"]))
+        ...     by="time", key=lambda x: np.argsort(index_natsorted(df["time"]))
         ... )
             time  value
         0    0hr     10
@@ -5429,10 +5456,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Create a dataframe with some fictional data.
 
-        >>> index = ['Firefox', 'Chrome', 'Safari', 'IE10', 'Konqueror']
-        >>> df = pd.DataFrame({{'http_status': [200, 200, 404, 404, 301],
-        ...                   'response_time': [0.04, 0.02, 0.07, 0.08, 1.0]}},
-        ...                   index=index)
+        >>> index = ["Firefox", "Chrome", "Safari", "IE10", "Konqueror"]
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         {
+        ...             "http_status": [200, 200, 404, 404, 301],
+        ...             "response_time": [0.04, 0.02, 0.07, 0.08, 1.0],
+        ...         }
+        ...     },
+        ...     index=index,
+        ... )
         >>> df
                    http_status  response_time
         Firefox            200           0.04
@@ -5445,8 +5478,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         values in the new index that do not have corresponding
         records in the dataframe are assigned ``NaN``.
 
-        >>> new_index = ['Safari', 'Iceweasel', 'Comodo Dragon', 'IE10',
-        ...              'Chrome']
+        >>> new_index = ["Safari", "Iceweasel", "Comodo Dragon", "IE10", "Chrome"]
         >>> df.reindex(new_index)
                        http_status  response_time
         Safari               404.0           0.07
@@ -5468,7 +5500,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         IE10                   404           0.08
         Chrome                 200           0.02
 
-        >>> df.reindex(new_index, fill_value='missing')
+        >>> df.reindex(new_index, fill_value="missing")
                       http_status response_time
         Safari                404          0.07
         Iceweasel         missing       missing
@@ -5478,7 +5510,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         We can also reindex the columns.
 
-        >>> df.reindex(columns=['http_status', 'user_agent'])
+        >>> df.reindex(columns=["http_status", "user_agent"])
                    http_status  user_agent
         Firefox            200         NaN
         Chrome             200         NaN
@@ -5488,7 +5520,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Or we can use "axis-style" keyword arguments
 
-        >>> df.reindex(['http_status', 'user_agent'], axis="columns")
+        >>> df.reindex(["http_status", "user_agent"], axis="columns")
                    http_status  user_agent
         Firefox            200         NaN
         Chrome             200         NaN
@@ -5501,9 +5533,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         monotonically increasing index (for example, a sequence
         of dates).
 
-        >>> date_index = pd.date_range('1/1/2010', periods=6, freq='D')
-        >>> df2 = pd.DataFrame({{"prices": [100, 101, np.nan, 100, 89, 88]}},
-        ...                    index=date_index)
+        >>> date_index = pd.date_range("1/1/2010", periods=6, freq="D")
+        >>> df2 = pd.DataFrame(
+        ...     {{"prices": [100, 101, np.nan, 100, 89, 88]}}, index=date_index
+        ... )
         >>> df2
                     prices
         2010-01-01   100.0
@@ -5516,7 +5549,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Suppose we decide to expand the dataframe to cover a wider
         date range.
 
-        >>> date_index2 = pd.date_range('12/29/2009', periods=10, freq='D')
+        >>> date_index2 = pd.date_range("12/29/2009", periods=10, freq="D")
         >>> df2.reindex(date_index2)
                     prices
         2009-12-29     NaN
@@ -5538,7 +5571,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         For example, to back-propagate the last valid value to fill the ``NaN``
         values, pass ``bfill`` as an argument to the ``method`` keyword.
 
-        >>> df2.reindex(date_index2, method='bfill')
+        >>> df2.reindex(date_index2, method="bfill")
                     prices
         2009-12-29   100.0
         2009-12-30   100.0
@@ -5747,28 +5780,30 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame(np.array(([1, 2, 3], [4, 5, 6])),
-        ...                   index=['mouse', 'rabbit'],
-        ...                   columns=['one', 'two', 'three'])
+        >>> df = pd.DataFrame(
+        ...     np.array(([1, 2, 3], [4, 5, 6])),
+        ...     index=["mouse", "rabbit"],
+        ...     columns=["one", "two", "three"],
+        ... )
         >>> df
                 one  two  three
         mouse     1    2      3
         rabbit    4    5      6
 
         >>> # select columns by name
-        >>> df.filter(items=['one', 'three'])
+        >>> df.filter(items=["one", "three"])
                  one  three
         mouse     1      3
         rabbit    4      6
 
         >>> # select columns by regular expression
-        >>> df.filter(regex='e$', axis=1)
+        >>> df.filter(regex="e$", axis=1)
                  one  three
         mouse     1      3
         rabbit    4      6
 
         >>> # select rows containing 'bbi'
-        >>> df.filter(like='bbi', axis=0)
+        >>> df.filter(like="bbi", axis=0)
                  one  two  three
         rabbit    4    5      6
         """
@@ -5840,8 +5875,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'animal': ['alligator', 'bee', 'falcon', 'lion',
-        ...                    'monkey', 'parrot', 'shark', 'whale', 'zebra']})
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "animal": [
+        ...             "alligator",
+        ...             "bee",
+        ...             "falcon",
+        ...             "lion",
+        ...             "monkey",
+        ...             "parrot",
+        ...             "shark",
+        ...             "whale",
+        ...             "zebra",
+        ...         ]
+        ...     }
+        ... )
         >>> df
               animal
         0  alligator
@@ -5917,8 +5965,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'animal': ['alligator', 'bee', 'falcon', 'lion',
-        ...                    'monkey', 'parrot', 'shark', 'whale', 'zebra']})
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "animal": [
+        ...             "alligator",
+        ...             "bee",
+        ...             "falcon",
+        ...             "lion",
+        ...             "monkey",
+        ...             "parrot",
+        ...             "shark",
+        ...             "whale",
+        ...             "zebra",
+        ...         ]
+        ...     }
+        ... )
         >>> df
               animal
         0  alligator
@@ -6043,10 +6104,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'num_legs': [2, 4, 8, 0],
-        ...                    'num_wings': [2, 0, 0, 0],
-        ...                    'num_specimen_seen': [10, 2, 1, 8]},
-        ...                   index=['falcon', 'dog', 'spider', 'fish'])
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "num_legs": [2, 4, 8, 0],
+        ...         "num_wings": [2, 0, 0, 0],
+        ...         "num_specimen_seen": [10, 2, 1, 8],
+        ...     },
+        ...     index=["falcon", "dog", "spider", "fish"],
+        ... )
         >>> df
                 num_legs  num_wings  num_specimen_seen
         falcon         2          2                 10
@@ -6058,7 +6123,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Note that we use `random_state` to ensure the reproducibility of
         the examples.
 
-        >>> df['num_legs'].sample(n=3, random_state=1)
+        >>> df["num_legs"].sample(n=3, random_state=1)
         fish      0
         spider    8
         falcon    2
@@ -6088,7 +6153,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Using a DataFrame column as weights. Rows with larger value in the
         `num_specimen_seen` column are more likely to be sampled.
 
-        >>> df.sample(n=2, weights='num_specimen_seen', random_state=1)
+        >>> df.sample(n=2, weights="num_specimen_seen", random_state=1)
                 num_legs  num_wings  num_specimen_seen
         falcon         2          2                 10
         fish           0          0                  8
@@ -6163,7 +6228,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Constructing a income DataFrame from a dictionary.
 
         >>> data = [[8000, 1000], [9500, np.nan], [5000, 2000]]
-        >>> df = pd.DataFrame(data, columns=['Salary', 'Others'])
+        >>> df = pd.DataFrame(data, columns=["Salary", "Others"])
         >>> df
            Salary  Others
         0    8000  1000.0
@@ -6185,7 +6250,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> subtract_national_insurance(
         ...     subtract_state_tax(subtract_federal_tax(df), rate=0.12),
         ...     rate=0.05,
-        ...     rate_increase=0.02)  # doctest: +SKIP
+        ...     rate_increase=0.02,
+        ... )  # doctest: +SKIP
 
         You can write
 
@@ -6211,9 +6277,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...     df.pipe(subtract_federal_tax)
         ...     .pipe(subtract_state_tax, rate=0.12)
         ...     .pipe(
-        ...         (subtract_national_insurance, 'df'),
-        ...         rate=0.05,
-        ...         rate_increase=0.02
+        ...         (subtract_national_insurance, "df"), rate=0.05, rate_increase=0.02
         ...     )
         ... )
             Salary   Others
@@ -6441,10 +6505,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'float': [1.0],
-        ...                    'int': [1],
-        ...                    'datetime': [pd.Timestamp('20180310')],
-        ...                    'string': ['foo']})
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "float": [1.0],
+        ...         "int": [1],
+        ...         "datetime": [pd.Timestamp("20180310")],
+        ...         "string": ["foo"],
+        ...     }
+        ... )
         >>> df.dtypes
         float              float64
         int                  int64
@@ -6515,7 +6583,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         Create a DataFrame:
 
-        >>> d = {'col1': [1, 2], 'col2': [3, 4]}
+        >>> d = {"col1": [1, 2], "col2": [3, 4]}
         >>> df = pd.DataFrame(data=d)
         >>> df.dtypes
         col1    int64
@@ -6524,33 +6592,33 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Cast all columns to int32:
 
-        >>> df.astype('int32').dtypes
+        >>> df.astype("int32").dtypes
         col1    int32
         col2    int32
         dtype: object
 
         Cast col1 to int32 using a dictionary:
 
-        >>> df.astype({'col1': 'int32'}).dtypes
+        >>> df.astype({"col1": "int32"}).dtypes
         col1    int32
         col2    int64
         dtype: object
 
         Create a series:
 
-        >>> ser = pd.Series([1, 2], dtype='int32')
+        >>> ser = pd.Series([1, 2], dtype="int32")
         >>> ser
         0    1
         1    2
         dtype: int32
-        >>> ser.astype('int64')
+        >>> ser.astype("int64")
         0    1
         1    2
         dtype: int64
 
         Convert to categorical type:
 
-        >>> ser.astype('category')
+        >>> ser.astype("category")
         0    1
         1    2
         dtype: category
@@ -6559,8 +6627,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Convert to ordered categorical type with custom ordering:
 
         >>> from pandas.api.types import CategoricalDtype
-        >>> cat_dtype = CategoricalDtype(
-        ...     categories=[2, 1], ordered=True)
+        >>> cat_dtype = CategoricalDtype(categories=[2, 1], ordered=True)
         >>> ser.astype(cat_dtype)
         0    1
         1    2
@@ -6569,7 +6636,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Create a series of dates:
 
-        >>> ser_date = pd.Series(pd.date_range('20200101', periods=3))
+        >>> ser_date = pd.Series(pd.date_range("20200101", periods=3))
         >>> ser_date
         0   2020-01-01
         1   2020-01-02
@@ -7203,11 +7270,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame([[np.nan, 2, np.nan, 0],
-        ...                    [3, 4, np.nan, 1],
-        ...                    [np.nan, np.nan, np.nan, np.nan],
-        ...                    [np.nan, 3, np.nan, 4]],
-        ...                   columns=list("ABCD"))
+        >>> df = pd.DataFrame(
+        ...     [
+        ...         [np.nan, 2, np.nan, 0],
+        ...         [3, 4, np.nan, 1],
+        ...         [np.nan, np.nan, np.nan, np.nan],
+        ...         [np.nan, 3, np.nan, 4],
+        ...     ],
+        ...     columns=list("ABCD"),
+        ... )
         >>> df
              A    B   C    D
         0  NaN  2.0 NaN  0.0
@@ -7530,11 +7601,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame([[np.nan, 2, np.nan, 0],
-        ...                    [3, 4, np.nan, 1],
-        ...                    [np.nan, np.nan, np.nan, np.nan],
-        ...                    [np.nan, 3, np.nan, 4]],
-        ...                   columns=list("ABCD"))
+        >>> df = pd.DataFrame(
+        ...     [
+        ...         [np.nan, 2, np.nan, 0],
+        ...         [3, 4, np.nan, 1],
+        ...         [np.nan, np.nan, np.nan, np.nan],
+        ...         [np.nan, 3, np.nan, 4],
+        ...     ],
+        ...     columns=list("ABCD"),
+        ... )
         >>> df
              A    B   C    D
         0  NaN  2.0 NaN  0.0
@@ -7739,7 +7814,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         With DataFrame:
 
-        >>> df = pd.DataFrame({{'A': [1, None, None, 4], 'B': [None, 5, None, 7]}})
+        >>> df = pd.DataFrame({{"A": [1, None, None, 4], "B": [None, 5, None, 7]}})
         >>> df
               A     B
         0   1.0	  NaN
@@ -8324,7 +8399,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         an ``order`` (int).
 
         >>> s = pd.Series([0, 2, np.nan, 8])
-        >>> s.interpolate(method='polynomial', order=2)
+        >>> s.interpolate(method="polynomial", order=2)
         0    0.000000
         1    2.000000
         2    4.666667
@@ -8339,18 +8414,22 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Note how the first entry in column 'b' remains ``NaN``, because there
         is no entry before it to use for interpolation.
 
-        >>> df = pd.DataFrame([(0.0, np.nan, -1.0, 1.0),
-        ...                    (np.nan, 2.0, np.nan, np.nan),
-        ...                    (2.0, 3.0, np.nan, 9.0),
-        ...                    (np.nan, 4.0, -4.0, 16.0)],
-        ...                   columns=list('abcd'))
+        >>> df = pd.DataFrame(
+        ...     [
+        ...         (0.0, np.nan, -1.0, 1.0),
+        ...         (np.nan, 2.0, np.nan, np.nan),
+        ...         (2.0, 3.0, np.nan, 9.0),
+        ...         (np.nan, 4.0, -4.0, 16.0),
+        ...     ],
+        ...     columns=list("abcd"),
+        ... )
         >>> df
              a    b    c     d
         0  0.0  NaN -1.0   1.0
         1  NaN  2.0  NaN   NaN
         2  2.0  3.0  NaN   9.0
         3  NaN  4.0 -4.0  16.0
-        >>> df.interpolate(method='linear', limit_direction='forward', axis=0)
+        >>> df.interpolate(method="linear", limit_direction="forward", axis=0)
              a    b    c     d
         0  0.0  NaN -1.0   1.0
         1  1.0  2.0 -2.0   5.0
@@ -8359,7 +8438,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Using polynomial interpolation.
 
-        >>> df['d'].interpolate(method='polynomial', order=2)
+        >>> df["d"].interpolate(method="polynomial", order=2)
         0     1.0
         1     4.0
         2     9.0
@@ -8578,24 +8657,32 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Take all columns into consideration
 
-        >>> df = pd.DataFrame({'a': [10., 20., 30., 40., 50.],
-        ...                    'b': [None, None, None, None, 500]},
-        ...                   index=pd.DatetimeIndex(['2018-02-27 09:01:00',
-        ...                                           '2018-02-27 09:02:00',
-        ...                                           '2018-02-27 09:03:00',
-        ...                                           '2018-02-27 09:04:00',
-        ...                                           '2018-02-27 09:05:00']))
-        >>> df.asof(pd.DatetimeIndex(['2018-02-27 09:03:30',
-        ...                           '2018-02-27 09:04:30']))
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "a": [10.0, 20.0, 30.0, 40.0, 50.0],
+        ...         "b": [None, None, None, None, 500],
+        ...     },
+        ...     index=pd.DatetimeIndex(
+        ...         [
+        ...             "2018-02-27 09:01:00",
+        ...             "2018-02-27 09:02:00",
+        ...             "2018-02-27 09:03:00",
+        ...             "2018-02-27 09:04:00",
+        ...             "2018-02-27 09:05:00",
+        ...         ]
+        ...     ),
+        ... )
+        >>> df.asof(pd.DatetimeIndex(["2018-02-27 09:03:30", "2018-02-27 09:04:30"]))
                               a   b
         2018-02-27 09:03:30 NaN NaN
         2018-02-27 09:04:30 NaN NaN
 
         Take a single column into consideration
 
-        >>> df.asof(pd.DatetimeIndex(['2018-02-27 09:03:30',
-        ...                           '2018-02-27 09:04:30']),
-        ...         subset=['a'])
+        >>> df.asof(
+        ...     pd.DatetimeIndex(["2018-02-27 09:03:30", "2018-02-27 09:04:30"]),
+        ...     subset=["a"],
+        ... )
                                 a   b
         2018-02-27 09:03:30  30.0 NaN
         2018-02-27 09:04:30  40.0 NaN
@@ -8706,11 +8793,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         Show which entries in a DataFrame are NA.
 
-        >>> df = pd.DataFrame(dict(age=[5, 6, np.nan],
-        ...                        born=[pd.NaT, pd.Timestamp('1939-05-27'),
-        ...                              pd.Timestamp('1940-04-25')],
-        ...                        name=['Alfred', 'Batman', ''],
-        ...                        toy=[None, 'Batmobile', 'Joker']))
+        >>> df = pd.DataFrame(
+        ...     dict(
+        ...         age=[5, 6, np.nan],
+        ...         born=[
+        ...             pd.NaT,
+        ...             pd.Timestamp("1939-05-27"),
+        ...             pd.Timestamp("1940-04-25"),
+        ...         ],
+        ...         name=["Alfred", "Batman", ""],
+        ...         toy=[None, "Batmobile", "Joker"],
+        ...     )
+        ... )
         >>> df
            age       born    name        toy
         0  5.0        NaT  Alfred       None
@@ -8773,11 +8867,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         Show which entries in a DataFrame are not NA.
 
-        >>> df = pd.DataFrame(dict(age=[5, 6, np.nan],
-        ...                        born=[pd.NaT, pd.Timestamp('1939-05-27'),
-        ...                              pd.Timestamp('1940-04-25')],
-        ...                        name=['Alfred', 'Batman', ''],
-        ...                        toy=[None, 'Batmobile', 'Joker']))
+        >>> df = pd.DataFrame(
+        ...     dict(
+        ...         age=[5, 6, np.nan],
+        ...         born=[
+        ...             pd.NaT,
+        ...             pd.Timestamp("1939-05-27"),
+        ...             pd.Timestamp("1940-04-25"),
+        ...         ],
+        ...         name=["Alfred", "Batman", ""],
+        ...         toy=[None, "Batmobile", "Joker"],
+        ...     )
+        ... )
         >>> df
            age       born    name        toy
         0  5.0        NaT  Alfred       None
@@ -8950,7 +9051,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> data = {'col_0': [9, -3, 0, -1, 5], 'col_1': [-2, -7, 6, 8, -5]}
+        >>> data = {"col_0": [9, -3, 0, -1, 5], "col_1": [-2, -7, 6, 8, -5]}
         >>> df = pd.DataFrame(data)
         >>> df
            col_0  col_1
@@ -9163,9 +9264,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         Start by creating a series with 4 one minute timestamps.
 
-        >>> index = pd.date_range('1/1/2000', periods=4, freq='min')
+        >>> index = pd.date_range("1/1/2000", periods=4, freq="min")
         >>> series = pd.Series([0.0, None, 2.0, 3.0], index=index)
-        >>> df = pd.DataFrame({{'s': series}})
+        >>> df = pd.DataFrame({{"s": series}})
         >>> df
                                s
         2000-01-01 00:00:00    0.0
@@ -9175,7 +9276,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Upsample the series into 30 second bins.
 
-        >>> df.asfreq(freq='30s')
+        >>> df.asfreq(freq="30s")
                                s
         2000-01-01 00:00:00    0.0
         2000-01-01 00:00:30    NaN
@@ -9187,7 +9288,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Upsample again, providing a ``fill value``.
 
-        >>> df.asfreq(freq='30s', fill_value=9.0)
+        >>> df.asfreq(freq="30s", fill_value=9.0)
                                s
         2000-01-01 00:00:00    0.0
         2000-01-01 00:00:30    9.0
@@ -9199,7 +9300,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Upsample again, providing a ``method``.
 
-        >>> df.asfreq(freq='30s', method='bfill')
+        >>> df.asfreq(freq="30s", method="bfill")
                                s
         2000-01-01 00:00:00    0.0
         2000-01-01 00:00:30    NaN
@@ -9251,8 +9352,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> i = pd.date_range('2018-04-09', periods=4, freq='12h')
-        >>> ts = pd.DataFrame({'A': [1, 2, 3, 4]}, index=i)
+        >>> i = pd.date_range("2018-04-09", periods=4, freq="12h")
+        >>> ts = pd.DataFrame({"A": [1, 2, 3, 4]}, index=i)
         >>> ts
                              A
         2018-04-09 00:00:00  1
@@ -9260,7 +9361,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2018-04-10 00:00:00  3
         2018-04-10 12:00:00  4
 
-        >>> ts.at_time('12:00')
+        >>> ts.at_time("12:00")
                              A
         2018-04-09 12:00:00  2
         2018-04-10 12:00:00  4
@@ -9323,8 +9424,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> i = pd.date_range('2018-04-09', periods=4, freq='1D20min')
-        >>> ts = pd.DataFrame({'A': [1, 2, 3, 4]}, index=i)
+        >>> i = pd.date_range("2018-04-09", periods=4, freq="1D20min")
+        >>> ts = pd.DataFrame({"A": [1, 2, 3, 4]}, index=i)
         >>> ts
                              A
         2018-04-09 00:00:00  1
@@ -9332,7 +9433,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2018-04-11 00:40:00  3
         2018-04-12 01:00:00  4
 
-        >>> ts.between_time('0:15', '0:45')
+        >>> ts.between_time("0:15", "0:45")
                              A
         2018-04-10 00:20:00  2
         2018-04-11 00:40:00  3
@@ -9340,7 +9441,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         You get the times that are *not* between two times by setting
         ``start_time`` later than ``end_time``:
 
-        >>> ts.between_time('0:45', '0:15')
+        >>> ts.between_time("0:45", "0:15")
                              A
         2018-04-09 00:00:00  1
         2018-04-12 01:00:00  4
@@ -9485,7 +9586,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         Start by creating a series with 9 one minute timestamps.
 
-        >>> index = pd.date_range('1/1/2000', periods=9, freq='min')
+        >>> index = pd.date_range("1/1/2000", periods=9, freq="min")
         >>> series = pd.Series(range(9), index=index)
         >>> series
         2000-01-01 00:00:00    0
@@ -9502,7 +9603,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Downsample the series into 3 minute bins and sum the values
         of the timestamps falling into a bin.
 
-        >>> series.resample('3min').sum()
+        >>> series.resample("3min").sum()
         2000-01-01 00:00:00     3
         2000-01-01 00:03:00    12
         2000-01-01 00:06:00    21
@@ -9516,7 +9617,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         value in the resampled bucket with the label ``2000-01-01 00:03:00``
         does not include 3 (if it did, the summed value would be 6, not 3).
 
-        >>> series.resample('3min', label='right').sum()
+        >>> series.resample("3min", label="right").sum()
         2000-01-01 00:03:00     3
         2000-01-01 00:06:00    12
         2000-01-01 00:09:00    21
@@ -9525,7 +9626,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         To include this value close the right side of the bin interval,
         as shown below.
 
-        >>> series.resample('3min', label='right', closed='right').sum()
+        >>> series.resample("3min", label="right", closed="right").sum()
         2000-01-01 00:00:00     0
         2000-01-01 00:03:00     6
         2000-01-01 00:06:00    15
@@ -9534,7 +9635,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Upsample the series into 30 second bins.
 
-        >>> series.resample('30s').asfreq()[0:5]   # Select first 5 rows
+        >>> series.resample("30s").asfreq()[0:5]  # Select first 5 rows
         2000-01-01 00:00:00   0.0
         2000-01-01 00:00:30   NaN
         2000-01-01 00:01:00   1.0
@@ -9545,7 +9646,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Upsample the series into 30 second bins and fill the ``NaN``
         values using the ``ffill`` method.
 
-        >>> series.resample('30s').ffill()[0:5]
+        >>> series.resample("30s").ffill()[0:5]
         2000-01-01 00:00:00    0
         2000-01-01 00:00:30    0
         2000-01-01 00:01:00    1
@@ -9556,7 +9657,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Upsample the series into 30 second bins and fill the
         ``NaN`` values using the ``bfill`` method.
 
-        >>> series.resample('30s').bfill()[0:5]
+        >>> series.resample("30s").bfill()[0:5]
         2000-01-01 00:00:00    0
         2000-01-01 00:00:30    1
         2000-01-01 00:01:00    1
@@ -9568,8 +9669,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> def custom_resampler(arraylike):
         ...     return np.sum(arraylike) + 5
-        ...
-        >>> series.resample('3min').apply(custom_resampler)
+        >>> series.resample("3min").apply(custom_resampler)
         2000-01-01 00:00:00     8
         2000-01-01 00:03:00    17
         2000-01-01 00:06:00    26
@@ -9578,12 +9678,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         For DataFrame objects, the keyword `on` can be used to specify the
         column instead of the index for resampling.
 
-        >>> d = {{'price': [10, 11, 9, 13, 14, 18, 17, 19],
-        ...      'volume': [50, 60, 40, 100, 50, 100, 40, 50]}}
+        >>> d = {
+        ...     {
+        ...         "price": [10, 11, 9, 13, 14, 18, 17, 19],
+        ...         "volume": [50, 60, 40, 100, 50, 100, 40, 50],
+        ...     }
+        ... }
         >>> df = pd.DataFrame(d)
-        >>> df['week_starting'] = pd.date_range('01/01/2018',
-        ...                                     periods=8,
-        ...                                     freq='W')
+        >>> df["week_starting"] = pd.date_range("01/01/2018", periods=8, freq="W")
         >>> df
            price  volume week_starting
         0     10      50    2018-01-07
@@ -9594,7 +9696,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         5     18     100    2018-02-11
         6     17      40    2018-02-18
         7     19      50    2018-02-25
-        >>> df.resample('ME', on='week_starting').mean()
+        >>> df.resample("ME", on="week_starting").mean()
                        price  volume
         week_starting
         2018-01-31     10.75    62.5
@@ -9603,14 +9705,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         For a DataFrame with MultiIndex, the keyword `level` can be used to
         specify on which level the resampling needs to take place.
 
-        >>> days = pd.date_range('1/1/2000', periods=4, freq='D')
-        >>> d2 = {{'price': [10, 11, 9, 13, 14, 18, 17, 19],
-        ...       'volume': [50, 60, 40, 100, 50, 100, 40, 50]}}
+        >>> days = pd.date_range("1/1/2000", periods=4, freq="D")
+        >>> d2 = {
+        ...     {
+        ...         "price": [10, 11, 9, 13, 14, 18, 17, 19],
+        ...         "volume": [50, 60, 40, 100, 50, 100, 40, 50],
+        ...     }
+        ... }
         >>> df2 = pd.DataFrame(
-        ...     d2,
-        ...     index=pd.MultiIndex.from_product(
-        ...         [days, ['morning', 'afternoon']]
-        ...     )
+        ...     d2, index=pd.MultiIndex.from_product([days, ["morning", "afternoon"]])
         ... )
         >>> df2
                               price  volume
@@ -9622,7 +9725,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                    afternoon     18     100
         2000-01-04 morning       17      40
                    afternoon     19      50
-        >>> df2.resample('D', level=0).sum()
+        >>> df2.resample("D", level=0).sum()
                     price  volume
         2000-01-01     21     110
         2000-01-02     22     140
@@ -9631,8 +9734,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         If you want to adjust the start of the bins based on a fixed timestamp:
 
-        >>> start, end = '2000-10-01 23:30:00', '2000-10-02 00:30:00'
-        >>> rng = pd.date_range(start, end, freq='7min')
+        >>> start, end = "2000-10-01 23:30:00", "2000-10-02 00:30:00"
+        >>> rng = pd.date_range(start, end, freq="7min")
         >>> ts = pd.Series(np.arange(len(rng)) * 3, index=rng)
         >>> ts
         2000-10-01 23:30:00     0
@@ -9646,7 +9749,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-02 00:26:00    24
         Freq: 7min, dtype: int64
 
-        >>> ts.resample('17min').sum()
+        >>> ts.resample("17min").sum()
         2000-10-01 23:14:00     0
         2000-10-01 23:31:00     9
         2000-10-01 23:48:00    21
@@ -9654,7 +9757,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-02 00:22:00    24
         Freq: 17min, dtype: int64
 
-        >>> ts.resample('17min', origin='epoch').sum()
+        >>> ts.resample("17min", origin="epoch").sum()
         2000-10-01 23:18:00     0
         2000-10-01 23:35:00    18
         2000-10-01 23:52:00    27
@@ -9662,7 +9765,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-02 00:26:00    24
         Freq: 17min, dtype: int64
 
-        >>> ts.resample('17min', origin='2000-01-01').sum()
+        >>> ts.resample("17min", origin="2000-01-01").sum()
         2000-10-01 23:24:00     3
         2000-10-01 23:41:00    15
         2000-10-01 23:58:00    45
@@ -9672,14 +9775,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         If you want to adjust the start of the bins with an `offset` Timedelta, the two
         following lines are equivalent:
 
-        >>> ts.resample('17min', origin='start').sum()
+        >>> ts.resample("17min", origin="start").sum()
         2000-10-01 23:30:00     9
         2000-10-01 23:47:00    21
         2000-10-02 00:04:00    54
         2000-10-02 00:21:00    24
         Freq: 17min, dtype: int64
 
-        >>> ts.resample('17min', offset='23h30min').sum()
+        >>> ts.resample("17min", offset="23h30min").sum()
         2000-10-01 23:30:00     9
         2000-10-01 23:47:00    21
         2000-10-02 00:04:00    54
@@ -9688,7 +9791,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         If you want to take the largest Timestamp as the end of the bins:
 
-        >>> ts.resample('17min', origin='end').sum()
+        >>> ts.resample("17min", origin="end").sum()
         2000-10-01 23:35:00     0
         2000-10-01 23:52:00    18
         2000-10-02 00:09:00    27
@@ -9699,7 +9802,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         midnight of the largest Timestamp as the end of the bins and drop the bins
         not containing data:
 
-        >>> ts.resample('17min', origin='end_day').sum()
+        >>> ts.resample("17min", origin="end_day").sum()
         2000-10-01 23:38:00     3
         2000-10-01 23:55:00    15
         2000-10-02 00:12:00    45
@@ -9802,8 +9905,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> i = pd.date_range('2018-04-09', periods=4, freq='2D')
-        >>> ts = pd.DataFrame({'A': [1, 2, 3, 4]}, index=i)
+        >>> i = pd.date_range("2018-04-09", periods=4, freq="2D")
+        >>> ts = pd.DataFrame({"A": [1, 2, 3, 4]}, index=i)
         >>> ts
                     A
         2018-04-09  1
@@ -9813,7 +9916,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Get the rows for the first 3 days:
 
-        >>> ts.first('3D')
+        >>> ts.first("3D")
                     A
         2018-04-09  1
         2018-04-11  2
@@ -9890,8 +9993,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> i = pd.date_range('2018-04-09', periods=4, freq='2D')
-        >>> ts = pd.DataFrame({'A': [1, 2, 3, 4]}, index=i)
+        >>> i = pd.date_range("2018-04-09", periods=4, freq="2D")
+        >>> ts = pd.DataFrame({"A": [1, 2, 3, 4]}, index=i)
         >>> ts
                     A
         2018-04-09  1
@@ -9901,7 +10004,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Get the rows for the last 3 days:
 
-        >>> ts.last('3D')  # doctest: +SKIP
+        >>> ts.last("3D")  # doctest: +SKIP
                     A
         2018-04-13  3
         2018-04-15  4
@@ -9990,9 +10093,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame(data={'Animal': ['cat', 'penguin', 'dog',
-        ...                                    'spider', 'snake'],
-        ...                         'Number_legs': [4, 2, 4, 8, np.nan]})
+        >>> df = pd.DataFrame(
+        ...     data={
+        ...         "Animal": ["cat", "penguin", "dog", "spider", "snake"],
+        ...         "Number_legs": [4, 2, 4, 8, np.nan],
+        ...     }
+        ... )
         >>> df
             Animal  Number_legs
         0      cat          4.0
@@ -10026,10 +10132,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         * pct_rank: when setting ``pct = True``, the ranking is expressed as
           percentile rank.
 
-        >>> df['default_rank'] = df['Number_legs'].rank()
-        >>> df['max_rank'] = df['Number_legs'].rank(method='max')
-        >>> df['NA_bottom'] = df['Number_legs'].rank(na_option='bottom')
-        >>> df['pct_rank'] = df['Number_legs'].rank(pct=True)
+        >>> df["default_rank"] = df["Number_legs"].rank()
+        >>> df["max_rank"] = df["Number_legs"].rank(method="max")
+        >>> df["NA_bottom"] = df["Number_legs"].rank(na_option="bottom")
+        >>> df["pct_rank"] = df["Number_legs"].rank(pct=True)
         >>> df
             Animal  Number_legs  default_rank  max_rank  NA_bottom  pct_rank
         0      cat          4.0           2.5       3.0        2.5     0.625
@@ -10906,7 +11012,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         4    10
         dtype: int64
 
-        >>> df = pd.DataFrame(np.arange(10).reshape(-1, 2), columns=['A', 'B'])
+        >>> df = pd.DataFrame(np.arange(10).reshape(-1, 2), columns=["A", "B"])
         >>> df
            A  B
         0  0  1
@@ -11122,10 +11228,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({{"Col1": [10, 20, 15, 30, 45],
-        ...                    "Col2": [13, 23, 18, 33, 48],
-        ...                    "Col3": [17, 27, 22, 37, 52]}},
-        ...                   index=pd.date_range("2020-01-01", "2020-01-05"))
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         {
+        ...             "Col1": [10, 20, 15, 30, 45],
+        ...             "Col2": [13, 23, 18, 33, 48],
+        ...             "Col3": [17, 27, 22, 37, 52],
+        ...         }
+        ...     },
+        ...     index=pd.date_range("2020-01-01", "2020-01-05"),
+        ... )
         >>> df
                     Col1  Col2  Col3
         2020-01-01    10    13    17
@@ -11174,7 +11286,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2020-01-07    30    33    37
         2020-01-08    45    48    52
 
-        >>> df['Col1'].shift(periods=[0, 1, 2])
+        >>> df["Col1"].shift(periods=[0, 1, 2])
                     Col1_0  Col1_1  Col1_2
         2020-01-01      10     NaN     NaN
         2020-01-02      20    10.0     NaN
@@ -11307,10 +11419,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': ['a', 'b', 'c', 'd', 'e'],
-        ...                    'B': ['f', 'g', 'h', 'i', 'j'],
-        ...                    'C': ['k', 'l', 'm', 'n', 'o']},
-        ...                   index=[1, 2, 3, 4, 5])
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "A": ["a", "b", "c", "d", "e"],
+        ...         "B": ["f", "g", "h", "i", "j"],
+        ...         "C": ["k", "l", "m", "n", "o"],
+        ...     },
+        ...     index=[1, 2, 3, 4, 5],
+        ... )
         >>> df
            A  B  C
         1  a  f  k
@@ -11337,7 +11453,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         For Series, only rows can be truncated.
 
-        >>> df['A'].truncate(before=2, after=4)
+        >>> df["A"].truncate(before=2, after=4)
         2    b
         3    c
         4    d
@@ -11346,8 +11462,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         The index values in ``truncate`` can be datetimes or string
         dates.
 
-        >>> dates = pd.date_range('2016-01-01', '2016-02-01', freq='s')
-        >>> df = pd.DataFrame(index=dates, data={'A': 1})
+        >>> dates = pd.date_range("2016-01-01", "2016-02-01", freq="s")
+        >>> df = pd.DataFrame(index=dates, data={"A": 1})
         >>> df.tail()
                              A
         2016-01-31 23:59:56  1
@@ -11356,8 +11472,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2016-01-31 23:59:59  1
         2016-02-01 00:00:00  1
 
-        >>> df.truncate(before=pd.Timestamp('2016-01-05'),
-        ...             after=pd.Timestamp('2016-01-10')).tail()
+        >>> df.truncate(
+        ...     before=pd.Timestamp("2016-01-05"), after=pd.Timestamp("2016-01-10")
+        ... ).tail()
                              A
         2016-01-09 23:59:56  1
         2016-01-09 23:59:57  1
@@ -11369,7 +11486,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         specify `before` and `after` as strings. They will be coerced to
         Timestamps before truncation.
 
-        >>> df.truncate('2016-01-05', '2016-01-10').tail()
+        >>> df.truncate("2016-01-05", "2016-01-10").tail()
                              A
         2016-01-09 23:59:56  1
         2016-01-09 23:59:57  1
@@ -11381,7 +11498,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         component (midnight). This differs from partial string slicing, which
         returns any partially matching dates.
 
-        >>> df.loc['2016-01-05':'2016-01-10', :].tail()
+        >>> df.loc["2016-01-05":"2016-01-10", :].tail()
                              A
         2016-01-10 23:59:55  1
         2016-01-10 23:59:56  1
@@ -11473,16 +11590,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> s = pd.Series(
         ...     [1],
-        ...     index=pd.DatetimeIndex(['2018-09-15 01:30:00+02:00']),
+        ...     index=pd.DatetimeIndex(["2018-09-15 01:30:00+02:00"]),
         ... )
-        >>> s.tz_convert('Asia/Shanghai')
+        >>> s.tz_convert("Asia/Shanghai")
         2018-09-15 07:30:00+08:00    1
         dtype: int64
 
         Pass None to convert to UTC and get a tz-naive index:
 
-        >>> s = pd.Series([1],
-        ...               index=pd.DatetimeIndex(['2018-09-15 01:30:00+02:00']))
+        >>> s = pd.Series([1], index=pd.DatetimeIndex(["2018-09-15 01:30:00+02:00"]))
         >>> s.tz_convert(None)
         2018-09-14 23:30:00    1
         dtype: int64
@@ -11603,16 +11719,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> s = pd.Series(
         ...     [1],
-        ...     index=pd.DatetimeIndex(['2018-09-15 01:30:00']),
+        ...     index=pd.DatetimeIndex(["2018-09-15 01:30:00"]),
         ... )
-        >>> s.tz_localize('CET')
+        >>> s.tz_localize("CET")
         2018-09-15 01:30:00+02:00    1
         dtype: int64
 
         Pass None to convert to tz-naive index and preserve local time:
 
-        >>> s = pd.Series([1],
-        ...               index=pd.DatetimeIndex(['2018-09-15 01:30:00+02:00']))
+        >>> s = pd.Series([1], index=pd.DatetimeIndex(["2018-09-15 01:30:00+02:00"]))
         >>> s.tz_localize(None)
         2018-09-15 01:30:00    1
         dtype: int64
@@ -11620,15 +11735,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Be careful with DST changes. When there is sequential data, pandas
         can infer the DST time:
 
-        >>> s = pd.Series(range(7),
-        ...               index=pd.DatetimeIndex(['2018-10-28 01:30:00',
-        ...                                       '2018-10-28 02:00:00',
-        ...                                       '2018-10-28 02:30:00',
-        ...                                       '2018-10-28 02:00:00',
-        ...                                       '2018-10-28 02:30:00',
-        ...                                       '2018-10-28 03:00:00',
-        ...                                       '2018-10-28 03:30:00']))
-        >>> s.tz_localize('CET', ambiguous='infer')
+        >>> s = pd.Series(
+        ...     range(7),
+        ...     index=pd.DatetimeIndex(
+        ...         [
+        ...             "2018-10-28 01:30:00",
+        ...             "2018-10-28 02:00:00",
+        ...             "2018-10-28 02:30:00",
+        ...             "2018-10-28 02:00:00",
+        ...             "2018-10-28 02:30:00",
+        ...             "2018-10-28 03:00:00",
+        ...             "2018-10-28 03:30:00",
+        ...         ]
+        ...     ),
+        ... )
+        >>> s.tz_localize("CET", ambiguous="infer")
         2018-10-28 01:30:00+02:00    0
         2018-10-28 02:00:00+02:00    1
         2018-10-28 02:30:00+02:00    2
@@ -11641,11 +11762,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         In some cases, inferring the DST is impossible. In such cases, you can
         pass an ndarray to the ambiguous parameter to set the DST explicitly
 
-        >>> s = pd.Series(range(3),
-        ...               index=pd.DatetimeIndex(['2018-10-28 01:20:00',
-        ...                                       '2018-10-28 02:36:00',
-        ...                                       '2018-10-28 03:46:00']))
-        >>> s.tz_localize('CET', ambiguous=np.array([True, True, False]))
+        >>> s = pd.Series(
+        ...     range(3),
+        ...     index=pd.DatetimeIndex(
+        ...         [
+        ...             "2018-10-28 01:20:00",
+        ...             "2018-10-28 02:36:00",
+        ...             "2018-10-28 03:46:00",
+        ...         ]
+        ...     ),
+        ... )
+        >>> s.tz_localize("CET", ambiguous=np.array([True, True, False]))
         2018-10-28 01:20:00+02:00    0
         2018-10-28 02:36:00+02:00    1
         2018-10-28 03:46:00+01:00    2
@@ -11655,18 +11782,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dates forward or backward with a timedelta object or `'shift_forward'`
         or `'shift_backward'`.
 
-        >>> s = pd.Series(range(2),
-        ...               index=pd.DatetimeIndex(['2015-03-29 02:30:00',
-        ...                                       '2015-03-29 03:30:00']))
-        >>> s.tz_localize('Europe/Warsaw', nonexistent='shift_forward')
+        >>> s = pd.Series(
+        ...     range(2),
+        ...     index=pd.DatetimeIndex(["2015-03-29 02:30:00", "2015-03-29 03:30:00"]),
+        ... )
+        >>> s.tz_localize("Europe/Warsaw", nonexistent="shift_forward")
         2015-03-29 03:00:00+02:00    0
         2015-03-29 03:30:00+02:00    1
         dtype: int64
-        >>> s.tz_localize('Europe/Warsaw', nonexistent='shift_backward')
+        >>> s.tz_localize("Europe/Warsaw", nonexistent="shift_backward")
         2015-03-29 01:59:59.999999999+01:00    0
         2015-03-29 03:30:00+02:00              1
         dtype: int64
-        >>> s.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1h'))
+        >>> s.tz_localize("Europe/Warsaw", nonexistent=pd.Timedelta("1h"))
         2015-03-29 03:30:00+02:00    0
         2015-03-29 03:30:00+02:00    1
         dtype: int64
@@ -11827,7 +11955,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Describing a categorical ``Series``.
 
-        >>> s = pd.Series(['a', 'a', 'b', 'c'])
+        >>> s = pd.Series(["a", "a", "b", "c"])
         >>> s.describe()
         count     4
         unique    3
@@ -11837,11 +11965,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Describing a timestamp ``Series``.
 
-        >>> s = pd.Series([
-        ...     np.datetime64("2000-01-01"),
-        ...     np.datetime64("2010-01-01"),
-        ...     np.datetime64("2010-01-01")
-        ... ])
+        >>> s = pd.Series(
+        ...     [
+        ...         np.datetime64("2000-01-01"),
+        ...         np.datetime64("2010-01-01"),
+        ...         np.datetime64("2010-01-01"),
+        ...     ]
+        ... )
         >>> s.describe()
         count                      3
         mean     2006-09-01 08:00:00
@@ -11855,10 +11985,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Describing a ``DataFrame``. By default only numeric fields
         are returned.
 
-        >>> df = pd.DataFrame({'categorical': pd.Categorical(['d', 'e', 'f']),
-        ...                    'numeric': [1, 2, 3],
-        ...                    'object': ['a', 'b', 'c']
-        ...                    })
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "categorical": pd.Categorical(["d", "e", "f"]),
+        ...         "numeric": [1, 2, 3],
+        ...         "object": ["a", "b", "c"],
+        ...     }
+        ... )
         >>> df.describe()
                numeric
         count      3.0
@@ -11872,7 +12005,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Describing all columns of a ``DataFrame`` regardless of data type.
 
-        >>> df.describe(include='all')  # doctest: +SKIP
+        >>> df.describe(include="all")  # doctest: +SKIP
                categorical  numeric object
         count            3      3.0      3
         unique           3      NaN      3
@@ -11924,7 +12057,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Including only categorical columns from a ``DataFrame`` description.
 
-        >>> df.describe(include=['category'])
+        >>> df.describe(include=["category"])
                categorical
         count            3
         unique           3
@@ -12065,11 +12198,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Percentage change in French franc, Deutsche Mark, and Italian lira from
         1980-01-01 to 1980-03-01.
 
-        >>> df = pd.DataFrame({
-        ...     'FR': [4.0405, 4.0963, 4.3149],
-        ...     'GR': [1.7246, 1.7482, 1.8519],
-        ...     'IT': [804.74, 810.01, 860.13]},
-        ...     index=['1980-01-01', '1980-02-01', '1980-03-01'])
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "FR": [4.0405, 4.0963, 4.3149],
+        ...         "GR": [1.7246, 1.7482, 1.8519],
+        ...         "IT": [804.74, 810.01, 860.13],
+        ...     },
+        ...     index=["1980-01-01", "1980-02-01", "1980-03-01"],
+        ... )
         >>> df
                         FR      GR      IT
         1980-01-01  4.0405  1.7246  804.74
@@ -12085,17 +12221,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Percentage of change in GOOG and APPL stock volume. Shows computing
         the percentage change between columns.
 
-        >>> df = pd.DataFrame({
-        ...     '2016': [1769950, 30586265],
-        ...     '2015': [1500923, 40912316],
-        ...     '2014': [1371819, 41403351]},
-        ...     index=['GOOG', 'APPL'])
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "2016": [1769950, 30586265],
+        ...         "2015": [1500923, 40912316],
+        ...         "2014": [1371819, 41403351],
+        ...     },
+        ...     index=["GOOG", "APPL"],
+        ... )
         >>> df
                   2016      2015      2014
         GOOG   1769950   1500923   1371819
         APPL  30586265  40912316  41403351
 
-        >>> df.pct_change(axis='columns', periods=-1)
+        >>> df.pct_change(axis="columns", periods=-1)
                   2016      2015  2014
         GOOG  0.179241  0.094112   NaN
         APPL -0.252395 -0.011860   NaN
@@ -12816,7 +12955,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         For DataFrame:
 
-        >>> df = pd.DataFrame({{'A': [None, None, 2], 'B': [None, 3, 4]}})
+        >>> df = pd.DataFrame({{"A": [None, None, 2], "B": [None, 3, 4]}})
         >>> df
              A      B
         0  NaN    NaN
@@ -12827,7 +12966,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.last_valid_index()
         2
 
-        >>> df = pd.DataFrame({{'A': [None, None, None], 'B': [None, None, None]}})
+        >>> df = pd.DataFrame({{"A": [None, None, None], "B": [None, None, None]}})
         >>> df
              A      B
         0  None   None
