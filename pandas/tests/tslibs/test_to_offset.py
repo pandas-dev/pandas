@@ -45,6 +45,7 @@ def test_to_offset_negative(freqstr, expected):
     assert result.n == expected
 
 
+@pytest.mark.filterwarnings("ignore:.*'m' is deprecated.*:FutureWarning")
 @pytest.mark.parametrize(
     "freqstr",
     [
