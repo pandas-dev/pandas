@@ -818,6 +818,17 @@ class TestDateRanges:
             result = date_range("1/1/2000", periods=2, freq=freq_depr)
         tm.assert_index_equal(result, expected)
 
+    def test_to_offset_with_lowercase_deprecated_freq(self) -> None:
+        # https://github.com/pandas-dev/pandas/issues/56847
+        msg = (
+            "'m' is deprecated and will be removed in a future version, please use "
+            "'ME' instead."
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = date_range("2010-01-01", periods=2, freq="m")
+        expected = DatetimeIndex(["2010-01-31", "2010-02-28"], freq="ME")
+        tm.assert_index_equal(result, expected)
+
     def test_date_range_bday(self):
         sdate = datetime(1999, 12, 25)
         idx = date_range(start=sdate, freq="1B", periods=20)
