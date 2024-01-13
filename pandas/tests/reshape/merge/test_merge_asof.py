@@ -3099,7 +3099,7 @@ class TestAsOfMerge:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "func", [lambda x: x, lambda x: to_datetime(x)], ids=["numeric", "datetime"]
+        "func", [lambda x: x, to_datetime], ids=["numeric", "datetime"]
     )
     @pytest.mark.parametrize("side", ["left", "right"])
     def test_merge_on_nans(self, func, side):

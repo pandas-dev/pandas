@@ -1082,7 +1082,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         For :class:`pandas.Series`:
 
         >>> raw_cat = pd.Categorical(['a', 'b', 'c', 'A'],
-        ...                           categories=['a', 'b', 'c'], ordered=True)
+        ...                          categories=['a', 'b', 'c'], ordered=True)
         >>> ser = pd.Series(raw_cat)
         >>> ser
         0   a
