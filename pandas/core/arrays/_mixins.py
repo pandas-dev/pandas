@@ -485,6 +485,14 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         Returns
         -------
         Series
+
+        Examples
+        --------
+        >>> arr = pd.array([4, 5])
+        >>> arr.value_counts()
+        4    1
+        5    1
+        Name: count, dtype: Int64
         """
         if self.ndim != 1:
             raise NotImplementedError
