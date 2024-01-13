@@ -95,8 +95,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
     Notes
     -----
-        This class is part of the public API, but may be adjusted in non-user-facing ways
-        more aggressively than the regular API.
+        This class is part of the public API, but may be adjusted in non-user-facing
+        ways more aggressively than the regular API.
 
 
     Examples
