@@ -468,8 +468,23 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     #  These are not part of the EA API, but we implement them because
     #  pandas assumes they're there.
 
-    @doc(ExtensionArray.value_counts)
     def value_counts(self, dropna: bool = True) -> Series:
+        """
+        Return a Series containing counts of each unique value.
+
+        Parameters
+        ----------
+        dropna : bool, default True
+            Don't include counts of missing values.
+
+        Returns
+        -------
+        counts : Series
+
+        See Also
+        --------
+        Series.value_counts
+        """
         if self.ndim != 1:
             raise NotImplementedError
 
