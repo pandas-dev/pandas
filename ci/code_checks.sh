@@ -74,13 +74,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.plot.line \
         pandas.Series.to_sql \
         pandas.Series.to_latex \
-        pandas.errors.CategoricalConversionWarning \
-        pandas.errors.ChainedAssignmentError \
-        pandas.errors.ClosedFileError \
         pandas.errors.DatabaseError \
         pandas.errors.IndexingError \
         pandas.errors.InvalidColumnName \
-        pandas.errors.NumExprClobberingError \
         pandas.errors.PossibleDataLossError \
         pandas.errors.PossiblePrecisionLoss \
         pandas.errors.SettingWithCopyError \

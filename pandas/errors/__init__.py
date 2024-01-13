@@ -469,7 +469,7 @@ class ChainedAssignmentError(Warning):
     --------
     >>> pd.options.mode.copy_on_write = True
     >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2]}, columns=['A'])
-    >>> df["A"][0:3] = 10 # doctest: +SKIP
+    >>> df["A"][0:3] = 10  # doctest: +SKIP
     ... # ChainedAssignmentError: ...
     >>> pd.options.mode.copy_on_write = False
     """
@@ -561,10 +561,10 @@ class NumExprClobberingError(NameError):
     Examples
     --------
     >>> df = pd.DataFrame({'abs': [1, 1, 1]})
-    >>> df.query("abs > 2") # doctest: +SKIP
+    >>> df.query("abs > 2")  # doctest: +SKIP
     ... # NumExprClobberingError: Variables in expression "(abs) > (2)" overlap...
     >>> sin, a = 1, 2
-    >>> pd.eval("sin + a", engine='numexpr') # doctest: +SKIP
+    >>> pd.eval("sin + a", engine='numexpr')  # doctest: +SKIP
     ... # NumExprClobberingError: Variables in expression "(sin) + (a)" overlap...
     """
 
@@ -677,9 +677,9 @@ class ClosedFileError(Exception):
 
     Examples
     --------
-    >>> store = pd.HDFStore('my-store', 'a') # doctest: +SKIP
-    >>> store.close() # doctest: +SKIP
-    >>> store.keys() # doctest: +SKIP
+    >>> store = pd.HDFStore('my-store', 'a')  # doctest: +SKIP
+    >>> store.close()  # doctest: +SKIP
+    >>> store.keys()  # doctest: +SKIP
     ... # ClosedFileError: my-store file is not open!
     """
 
@@ -773,9 +773,9 @@ class CategoricalConversionWarning(Warning):
     Examples
     --------
     >>> from pandas.io.stata import StataReader
-    >>> with StataReader('dta_file', chunksize=2) as reader: # doctest: +SKIP
-    ...   for i, block in enumerate(reader):
-    ...      print(i, block)
+    >>> with StataReader('dta_file', chunksize=2) as reader:  # doctest: +SKIP
+    ...     for i, block in enumerate(reader):
+    ...         print(i, block)
     ... # CategoricalConversionWarning: One or more series with value labels...
     """
 
