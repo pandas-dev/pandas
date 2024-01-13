@@ -4627,18 +4627,18 @@ class DataFrame(NDFrame, OpsMixin):
     # Unsorted
 
     @overload
-    def query(self, expr: str, *, inplace: Literal[False] = ..., **kwargs) -> DataFrame:
+    def query(self, expr: str, *, inplace: Literal[False] = ..., ignore_index: bool = ..., **kwargs) -> DataFrame:
         ...
 
     @overload
-    def query(self, expr: str, *, inplace: Literal[True], **kwargs) -> None:
+    def query(self, expr: str, *, inplace: Literal[True], ignore_index: bool = ..., **kwargs) -> None:
         ...
 
     @overload
-    def query(self, expr: str, *, inplace: bool = ..., **kwargs) -> DataFrame | None:
+    def query(self, expr: str, *, inplace: bool = ..., ignore_index: bool = ..., **kwargs) -> DataFrame | None:
         ...
 
-    def query(self, expr: str, *, inplace: bool = False, **kwargs) -> DataFrame | None:
+    def query(self, expr: str, *, inplace: bool = False, ignore_index: bool = False, **kwargs) -> DataFrame | None:
         """
         Query the columns of a DataFrame with a boolean expression.
 
@@ -4663,6 +4663,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         inplace : bool
             Whether to modify the DataFrame rather than creating a new one.
+        ignore_index : bool, default False
+             If True, the resulting axis will be labeled 0, 1, …, n - 1.
         **kwargs
             See the documentation for :func:`eval` for complete details
             on the keyword arguments accepted by :meth:`DataFrame.query`.
@@ -4790,6 +4792,9 @@ class DataFrame(NDFrame, OpsMixin):
             # valid query
             result = self[res]
 
+        if ignore_index:
+            result.index = default_index(len(result))
+            
         if inplace:
             self._update_inplace(result)
             return None
