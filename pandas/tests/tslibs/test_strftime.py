@@ -12,8 +12,9 @@ from pandas._libs.tslibs.strftime import (
     get_current_locale_specific_string,
 )
 
-from pandas.tseries.api import convert_strftime_format
 import pandas._testing as tm
+
+from pandas.tseries.api import convert_strftime_format
 
 
 def get_local_am_pm():
