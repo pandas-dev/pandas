@@ -37,14 +37,6 @@ def switch_numexpr_min_elements(request, monkeypatch):
         yield request.param
 
 
-@pytest.fixture(params=[Index, Series, tm.to_array])
-def box_pandas_1d_array(request):
-    """
-    Fixture to test behavior for Index, Series and tm.to_array classes
-    """
-    return request.param
-
-
 @pytest.fixture(
     params=[
         # TODO: add more  dtypes here
@@ -58,17 +50,6 @@ def box_pandas_1d_array(request):
 def numeric_idx(request):
     """
     Several types of numeric-dtypes Index objects
-    """
-    return request.param
-
-
-@pytest.fixture(
-    params=[Index, Series, tm.to_array, np.array, list], ids=lambda x: x.__name__
-)
-def box_1d_array(request):
-    """
-    Fixture to test behavior for Index, Series, tm.to_array, numpy Array and list
-    classes
     """
     return request.param
 
@@ -1135,11 +1116,10 @@ class TestUFuncCompat:
         tm.assert_equal(result, expected)
 
     # TODO: add more dtypes
-    @pytest.mark.parametrize("holder", [Index, Series])
     @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64])
-    def test_ufunc_coercions(self, holder, dtype):
-        idx = holder([1, 2, 3, 4, 5], dtype=dtype, name="x")
-        box = Series if holder is Series else Index
+    def test_ufunc_coercions(self, index_or_series, dtype):
+        idx = index_or_series([1, 2, 3, 4, 5], dtype=dtype, name="x")
+        box = index_or_series
 
         result = np.sqrt(idx)
         assert result.dtype == "f8" and isinstance(result, box)
@@ -1499,6 +1479,8 @@ def test_dataframe_div_silenced():
     "data, expected_data",
     [([0, 1, 2], [0, 2, 4])],
 )
+@pytest.mark.parametrize("box_pandas_1d_array", [Index, Series, tm.to_array])
+@pytest.mark.parametrize("box_1d_array", [Index, Series, tm.to_array, np.array, list])
 def test_integer_array_add_list_like(
     box_pandas_1d_array, box_1d_array, data, expected_data
 ):

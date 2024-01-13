@@ -29,7 +29,7 @@ from pandas.tests.extension.decimal import (
 )
 
 
-@pytest.mark.parametrize("dtype_unit", ["M8[h]", "M8[m]", "m8[h]", "M8[m]"])
+@pytest.mark.parametrize("dtype_unit", ["M8[h]", "M8[m]", "m8[h]"])
 def test_dt64_array(dtype_unit):
     # PR 53817
     dtype_var = np.dtype(dtype_unit)

@@ -26,7 +26,6 @@ class BaseAccumulateTests:
         expected = getattr(alt, op_name)(skipna=skipna)
         tm.assert_series_equal(result, expected, check_dtype=False)
 
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_accumulate_series(self, data, all_numeric_accumulations, skipna):
         op_name = all_numeric_accumulations
         ser = pd.Series(data)

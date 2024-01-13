@@ -230,7 +230,8 @@ def test_isnumeric_unicode(method, expected, any_string_dtype):
     # 0x1378: ፸ ETHIOPIC NUMBER SEVENTY
     # 0xFF13: ３ Em 3  # noqa: RUF003
     ser = Series(
-        ["A", "3", "¼", "★", "፸", "３", "four"], dtype=any_string_dtype  # noqa: RUF001
+        ["A", "3", "¼", "★", "፸", "３", "four"],  # noqa: RUF001
+        dtype=any_string_dtype,
     )
     expected_dtype = "bool" if any_string_dtype in object_pyarrow_numpy else "boolean"
     expected = Series(expected, dtype=expected_dtype)

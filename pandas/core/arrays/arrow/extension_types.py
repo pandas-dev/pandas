@@ -145,7 +145,7 @@ def patch_pyarrow() -> None:
         return
 
     class ForbiddenExtensionType(pyarrow.ExtensionType):
-        def __arrow_ext_serialize__(self):
+        def __arrow_ext_serialize__(self) -> bytes:
             return b""
 
         @classmethod

@@ -484,9 +484,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
             else:
                 # error: Incompatible types in assignment (expression has type
                 # "Series", variable has type "DataFrame")
-                holidays = Series(
-                    index=DatetimeIndex([]), dtype=object
-                )  # type: ignore[assignment]
+                holidays = Series(index=DatetimeIndex([]), dtype=object)  # type: ignore[assignment]
 
             self._cache = (start, end, holidays.sort_index())
 

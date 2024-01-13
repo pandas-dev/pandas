@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import wraps
+import inspect
 import re
 from typing import (
     TYPE_CHECKING,
@@ -512,7 +513,7 @@ class Block(PandasObject, libinternals.Block):
         if warn_on_upcast:
             warnings.warn(
                 f"Setting an item of incompatible dtype is deprecated "
-                "and will raise in a future error of pandas. "
+                "and will raise an error in a future version of pandas. "
                 f"Value '{other}' has dtype incompatible with {self.values.dtype}, "
                 "please explicitly cast to a compatible dtype first.",
                 FutureWarning,
@@ -1842,7 +1843,8 @@ class Block(PandasObject, libinternals.Block):
             # error: Argument 1 to "np_can_hold_element" has incompatible type
             # "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
             casted = np_can_hold_element(
-                self.dtype, fill_value  # type: ignore[arg-type]
+                self.dtype,  # type: ignore[arg-type]
+                fill_value,
             )
         except LossySetitemError:
             nb = self.coerce_to_target_dtype(fill_value)
@@ -2256,11 +2258,21 @@ class EABackedBlock(Block):
     ) -> list[Block]:
         values = self.values
 
+        kwargs: dict[str, Any] = {"method": method, "limit": limit}
+        if "limit_area" in inspect.signature(values._pad_or_backfill).parameters:
+            kwargs["limit_area"] = limit_area
+        elif limit_area is not None:
+            raise NotImplementedError(
+                f"{type(values).__name__} does not implement limit_area "
+                "(added in pandas 2.2). 3rd-party ExtnsionArray authors "
+                "need to add this argument to _pad_or_backfill."
+            )
+
         if values.ndim == 2 and axis == 1:
             # NDArrayBackedExtensionArray.fillna assumes axis=0
-            new_values = values.T._pad_or_backfill(method=method, limit=limit).T
+            new_values = values.T._pad_or_backfill(**kwargs).T
         else:
-            new_values = values._pad_or_backfill(method=method, limit=limit)
+            new_values = values._pad_or_backfill(**kwargs)
         return [self.make_block_same_class(new_values)]
 
 
