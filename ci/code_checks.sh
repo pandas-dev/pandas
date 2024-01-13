@@ -109,21 +109,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Index.rename \
         pandas.Index.droplevel \
         pandas.Index.isin \
-        pandas.CategoricalIndex.set_categories \
         pandas.MultiIndex.names \
         pandas.MultiIndex.droplevel \
         pandas.IndexSlice \
-        pandas.DatetimeIndex.month_name \
-        pandas.DatetimeIndex.day_name \
-        pandas.core.window.rolling.Rolling.corr \
         pandas.Grouper \
-        pandas.core.groupby.SeriesGroupBy.apply \
-        pandas.core.groupby.DataFrameGroupBy.apply \
-        pandas.core.groupby.SeriesGroupBy.transform \
-        pandas.core.groupby.SeriesGroupBy.pipe \
-        pandas.core.groupby.DataFrameGroupBy.pipe \
-        pandas.core.groupby.DataFrameGroupBy.boxplot \
-        pandas.core.groupby.DataFrameGroupBy.hist \
         pandas.io.formats.style.Styler.map \
         pandas.io.formats.style.Styler.apply_index \
         pandas.io.formats.style.Styler.map_index \
@@ -141,18 +130,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.io.formats.style.Styler.text_gradient \
         pandas.DataFrame.values \
         pandas.DataFrame.groupby \
-        pandas.DataFrame.skew \
-        pandas.DataFrame.var \
         pandas.DataFrame.idxmax \
         pandas.DataFrame.idxmin \
         pandas.DataFrame.pivot \
         pandas.DataFrame.sort_values \
-        pandas.DataFrame.tz_convert \
-        pandas.DataFrame.tz_localize \
-        pandas.DataFrame.plot.bar \
         pandas.DataFrame.plot.hexbin \
         pandas.DataFrame.plot.line \
-        pandas.DataFrame.hist \
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
