@@ -12,3 +12,4 @@ RUN python -m pip install --upgrade pip
 RUN python -m pip install \
     -r https://raw.githubusercontent.com/pandas-dev/pandas/main/requirements-dev.txt
 CMD ["/bin/bash"]
+CMD 
