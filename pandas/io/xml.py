@@ -916,9 +916,7 @@ def read_xml(
         Note: if XML document uses default namespace denoted as
         `xmlns='<URI>'` without a prefix, you must assign any temporary
         namespace prefix such as 'doc' to the URI in order to parse
-        underlying nodes and/or attributes. For example, ::
-
-            namespaces = {{"doc": "https://example.com"}}
+        underlying nodes and/or attributes.
 
     elems_only : bool, optional, default False
         Parse only the child elements at the specified ``xpath``. By default,
@@ -987,9 +985,7 @@ def read_xml(
         and unlike ``xpath``, descendants do not need to relate to each other but can
         exist any where in document under the repeating element. This memory-
         efficient method should be used for very large XML files (500MB, 1GB, or 5GB+).
-        For example, ::
-
-            iterparse = {{"row_element": ["child_elem", "attr", "grandchild_elem"]}}
+        For example, ``{{"row_element": ["child_elem", "attr", "grandchild_elem"]}}``.
 
         .. versionadded:: 1.5.0
 
