@@ -10,10 +10,8 @@ import dateutil.tz
 import pytest
 import pytz  # a test below uses pytz but only inside a `eval` call
 
-from pandas import (
-    Timestamp,
-    convert_strftime_format,
-)
+from pandas import Timestamp
+from pandas.tseries.api import convert_strftime_format
 import pandas._testing as tm
 
 ts_no_ns = Timestamp(

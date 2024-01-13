@@ -3,7 +3,6 @@ from pandas._libs import (
     Period,
     Timedelta,
     Timestamp,
-    convert_strftime_format,
 )
 from pandas._libs.missing import NA
 
@@ -117,7 +116,6 @@ __all__ = [
     "NaT",
     "notna",
     "notnull",
-    "convert_strftime_format",
     "Period",
     "PeriodDtype",
     "PeriodIndex",

@@ -107,7 +107,6 @@ class TestPDApi(Base):
         "array",
         "bdate_range",
         "concat",
-        "convert_strftime_format",
         "crosstab",
         "cut",
         "date_range",

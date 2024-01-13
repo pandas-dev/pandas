@@ -10,7 +10,7 @@ import locale
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import iNaT
+from pandas._libs.tslibs import convert_strftime_format, iNaT
 from pandas._libs.tslibs.ccalendar import (
     DAYS,
     MONTHS,
@@ -24,7 +24,6 @@ from pandas import (
     Period,
     Timedelta,
     Timestamp,
-    convert_strftime_format,
     offsets,
 )
 import pandas._testing as tm

@@ -93,7 +93,6 @@ from pandas.core.api import (
     Interval,
     interval_range,
     DateOffset,
-    convert_strftime_format,
     # conversion
     to_numeric,
     to_datetime,
@@ -299,7 +298,6 @@ __all__ = [
     "arrays",
     "bdate_range",
     "concat",
-    "convert_strftime_format",
     "crosstab",
     "cut",
     "date_range",
