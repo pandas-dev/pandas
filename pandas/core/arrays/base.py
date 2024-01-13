@@ -572,7 +572,7 @@ class ExtensionArray:
         -------
         >>> arr = pd.array([4, 5])
         >>> arr.to_numpy()
-        array([4, 5], dtype=object)
+        array([4, 5])
         """
         result = np.asarray(self, dtype=dtype)
         if copy or na_value is not lib.no_default:
