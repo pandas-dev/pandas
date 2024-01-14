@@ -381,7 +381,7 @@ class TestMultiIndexLoc:
         with tm.assert_produces_warning(
             warn,
             match=(
-                "list-like-column-wise enlargement with partial-row-wise enlargement "
+                "list-like-column-wise enlargement with partial-row-wise indexer "
                 "is deprecated"
             ),
         ):

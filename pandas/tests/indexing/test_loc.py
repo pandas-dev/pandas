@@ -943,9 +943,7 @@ class TestLocBaseIndependent:
         warn = FutureWarning if index[0] != slice(None, None, None) else None
         with tm.assert_produces_warning(
             warn,
-            match=(
-                "list-like-column-wise enlargement with partial-row-wise enlargement"
-            ),
+            match=("list-like-column-wise enlargement with partial-row-wise indexer"),
         ):
             df.loc[index] = box
         tm.assert_frame_equal(df, expected)
@@ -3336,7 +3334,7 @@ class TestLocSeries:
         with tm.assert_produces_warning(
             FutureWarning,
             match=(
-                "list-like-column-wise enlargement with partial-row-wise enlargement "
+                "list-like-column-wise enlargement with partial-row-wise indexer "
                 "is deprecated"
             ),
         ):

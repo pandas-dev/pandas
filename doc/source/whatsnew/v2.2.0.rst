@@ -657,8 +657,8 @@ Set the following option to opt into the future behavior:
 
     In [9]: pd.set_option("future.no_silent_downcasting", True)
 
-Deprecated list-like-column-wise enlargement with partial-row-wise enlargement
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Deprecated list-like-column-wise enlargement with partial row indexer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Enlarging a dataframe with a partial row indexer and a list-like column indexer is deprecated.
 

@@ -881,7 +881,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 warnings.warn(
                     (
                         "list-like-column-wise enlargement with partial-row-wise "
-                        "enlargement is deprecated.\n"
+                        "indexer is deprecated.\n"
                         "Instead of\n"
                         "    df.loc[idx, ['A', 'B']] = (val_1, val_2)\n"
                         "please do\n"
