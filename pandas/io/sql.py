@@ -646,27 +646,11 @@ def read_sql(
 
     Notes
     -----
-    Using string interpolation (e.g. ``f-strings``, ``%-formatting``,
-    ``str.format()``, etc.) in a SQL query may allow SQL injection
-    if query inputs aren't sanitized.
-    For example, the code below will insert unexpected data into ``test_data`` table.
-
-    >>> from sqlalchemy import create_engine
-    >>> engine = create_engine('postgresql:///test_db')  # doctest:+SKIP
-    >>> conn = engine.connect()  # doctest:+SKIP
-
-    >>> df = pd.DataFrame(data=[[0, '10/11/12'], [1, '12/11/10']],
-    ...                   columns=['int_column', 'date_column'])
-    >>> df.to_sql(name='test_data', con=conn)  # doctest:+SKIP
-    2
-
-    >>> # DON'T DO THIS
-    >>> query_int = "1; INSERT INTO test_data VALUES (2, 2, '09/11/12') RETURNING *;"
-    >>> sql = f'SELECT * FROM test_data WHERE int_column={query_int}'
-    >>> pd.read_sql(sql, conn)  # doctest:+SKIP
-       index  int_column date_column
-    0      2           2    09/11/12
-    >>> conn.commit()
+    ``pandas`` does not attempt to sanitize SQL statements;
+    instead it simply forwards the statement you are executing
+    to the underlying driver, which may or may not sanitize from there.
+    Please refer to the underlying driver documentation for any details.
+    Generally, be wary when accepting statements from arbitrary sources.
 
     Examples
     --------
