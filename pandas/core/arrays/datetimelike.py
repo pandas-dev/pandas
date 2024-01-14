@@ -585,7 +585,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         elif isinstance(value, str):
             # NB: Careful about tzawareness
             try:
-                value = self._scalar_from_string(value) if value != '' else value
+                value = self._scalar_from_string(value)
             except ValueError as err:
                 msg = self._validation_error_message(value, allow_listlike)
                 raise TypeError(msg) from err
