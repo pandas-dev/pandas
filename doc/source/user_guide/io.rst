@@ -1717,11 +1717,18 @@ data by specifying an anonymous connection, such as
 
 .. code-block:: python
 
-   pd.read_csv(
-       "s3://ncei-wcsd-archive/data/processed/SH1305/18kHz/SaKe2013"
-       "-D20130523-T080854_to_SaKe2013-D20130523-T085643.csv",
-       storage_options={"anon": True},
-   )
+   >>> df = pd.read_csv(
+   ...    "s3://ncei-wcsd-archive/data/processed/SH1305/18kHz/SaKe2013"
+   ...    "-D20130523-T080854_to_SaKe2013-D20130523-T085643.csv",
+   ...    storage_options={"anon": True},
+   ...)
+   >>> df.columns
+   Index(['Ping_index', ' Distance_gps', ' Distance_vl', ' Ping_date',
+         ' Ping_time', ' Ping_milliseconds', ' Latitude', ' Longitude',
+         ' Depth_start', ' Depth_stop', ' Range_start', ' Range_stop',
+         ' Sample_count'],
+         dtype='object')
+
 
 ``fsspec`` also allows complex URLs, for accessing data in compressed
 archives, local caching of files, and more. To locally cache the above
@@ -3017,10 +3024,13 @@ Biomedical and Life Science Jorurnals:
 
 .. code-block:: python
 
-   pd.read_xml(
-       "s3://pmc-oa-opendata/oa_comm/xml/all/PMC1236943.xml",
-       xpath=".//journal-meta",
-   )
+   >>> df = pd.read_xml(
+   ...    "s3://pmc-oa-opendata/oa_comm/xml/all/PMC1236943.xml",
+   ...    xpath=".//journal-meta",
+   ...)
+   >>> df.head(1)
+         journal-id  journal-title  issn  publisher
+   0 Cardiovasc Ultrasound Cardiovascular Ultrasound 1476-7120 NaN
 
 With `lxml`_ as default ``parser``, you access the full-featured XML library
 that extends Python's ElementTree API. One powerful tool is ability to query

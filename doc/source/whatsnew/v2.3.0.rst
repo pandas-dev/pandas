@@ -211,8 +211,6 @@ Styler
 
 Other
 ^^^^^
-- Bug when building html documentation from ``doc\source\user_guide\io.rst`` no longer calls S3 bucket URL (:issue:`56592`)
-
 .. ***DO NOT USE THIS SECTION***
 
 -
