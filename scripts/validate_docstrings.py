@@ -22,9 +22,7 @@ import io
 import json
 import os
 import pathlib
-import subprocess
 import sys
-import tempfile
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -64,8 +62,6 @@ ERROR_MSGS = {
     "SA05": "{reference_name} in `See Also` section does not need `pandas` "
     "prefix, use {right_reference} instead.",
     "EX02": "Examples do not pass tests:\n{doctest_log}",
-    "EX03": "flake8 error: line {line_number}, col {col_number}: {error_code} "
-    "{error_message}",
     "EX04": "Do not import {imported_library}, as it is imported "
     "automatically for the examples (numpy as np, pandas as pd)",
 }
@@ -198,55 +194,6 @@ class PandasDocstring(Validator):
         lines = doctest.DocTestParser().get_examples(self.raw_doc)
         return [line.source for line in lines]
 
-    def validate_pep8(self):
-        if not self.examples:
-            return
-
-        # F401 is needed to not generate flake8 errors in examples
-        # that do not user numpy or pandas
-        content = "".join(
-            (
-                "import numpy as np  # noqa: F401\n",
-                "import pandas as pd  # noqa: F401\n",
-                *self.examples_source_code,
-            )
-        )
-
-        error_messages = []
-
-        file = tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", delete=False)
-        try:
-            file.write(content)
-            file.flush()
-            cmd = [
-                "python",
-                "-m",
-                "flake8",
-                "--format=%(row)d\t%(col)d\t%(code)s\t%(text)s",
-                "--max-line-length=88",
-                "--ignore=E203,E3,W503,W504,E402,E731",
-                file.name,
-            ]
-            response = subprocess.run(cmd, capture_output=True, check=False, text=True)
-            for output in ("stdout", "stderr"):
-                out = getattr(response, output)
-                out = out.replace(file.name, "")
-                messages = out.strip("\n").splitlines()
-                if messages:
-                    error_messages.extend(messages)
-        finally:
-            file.close()
-            os.unlink(file.name)
-
-        for error_message in error_messages:
-            line_number, col_number, error_code, message = error_message.split(
-                "\t", maxsplit=3
-            )
-            # Note: we subtract 2 from the line number because
-            # 'import numpy as np\nimport pandas as pd\n'
-            # is prepended to the docstrings.
-            yield error_code, message, int(line_number) - 2, int(col_number)
-
     def non_hyphenated_array_like(self):
         return "array_like" in self.raw_doc
 
@@ -296,16 +243,6 @@ def pandas_validate(func_name: str):
                 pandas_error("EX02", doctest_log=result["examples_errs"])
             )
 
-        for error_code, error_message, line_number, col_number in doc.validate_pep8():
-            result["errors"].append(
-                pandas_error(
-                    "EX03",
-                    error_code=error_code,
-                    error_message=error_message,
-                    line_number=line_number,
-                    col_number=col_number,
-                )
-            )
         examples_source_code = "".join(doc.examples_source_code)
         result["errors"].extend(
             pandas_error("EX04", imported_library=wrong_import)
