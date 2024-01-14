@@ -228,6 +228,8 @@ def hist_frame(
     Returns
     -------
     matplotlib.AxesSubplot or numpy.ndarray of them
+        An ndarray is returned with one :class:`matplotlib.AxesSubplot`
+        per column.
 
     See Also
     --------
