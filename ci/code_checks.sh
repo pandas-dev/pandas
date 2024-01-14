@@ -73,7 +73,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX03 --ignore_functions \
         pandas.Series.plot.line \
         pandas.Series.to_sql \
-        pandas.Series.to_latex \
         pandas.errors.DatabaseError \
         pandas.errors.IndexingError \
         pandas.errors.InvalidColumnName \
@@ -87,16 +86,13 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timestamp.ceil \
         pandas.Timestamp.floor \
         pandas.Timestamp.round \
-        pandas.read_pickle \
         pandas.ExcelWriter \
         pandas.read_json \
         pandas.io.json.build_table_schema \
-        pandas.DataFrame.to_latex \
         pandas.io.formats.style.Styler.to_latex \
         pandas.read_parquet \
         pandas.DataFrame.to_sql \
         pandas.read_stata \
-        pandas.core.resample.Resampler.pipe \
         pandas.core.resample.Resampler.interpolate \
         pandas.plotting.scatter_matrix \
         pandas.pivot \
