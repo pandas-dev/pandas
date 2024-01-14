@@ -44,9 +44,10 @@ def test_get_indexer_non_unique_wrong_dtype(ldtype, rdtype):
         tm.assert_numpy_array_equal(result[0], no_matches)
         tm.assert_numpy_array_equal(result[1], missing)
 
+
 def test_multiindex_datetime_creation_null_value():
-    df = pd.DataFrame({('A', pd.Timestamp('2024-01-01')): [0]})
-    df.insert(1, 'B', [1])
-    df['B']
-    df['B', '']
-    del df['B']
+    df = pd.DataFrame({("A", pd.Timestamp("2024-01-01")): [0]})
+    df.insert(1, "B", [1])
+    df["B"]
+    df["B", ""]
+    del df["B"]
