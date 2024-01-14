@@ -879,8 +879,15 @@ class _LocationIndexer(NDFrameIndexerBase):
                 return
             if len(diff):
                 warnings.warn(
-                    "Multi-column-wise row-wise expansion is deprecated and will be "
-                    "removed in a future version. ",
+                    (
+                        "list-like-column-wise enlargement with partial-row-wise "
+                        "enlargement is deprecated.\n"
+                        "Instead of\n"
+                        "    df.loc[idx, ['A', 'B']] = (val_1, val_2)\n"
+                        "please do\n"
+                        "    df.loc[idx, 'A'] = val_1\n"
+                        "    df.loc[idx, 'B'] = val_2\n"
+                    ),
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )

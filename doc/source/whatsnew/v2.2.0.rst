@@ -657,6 +657,24 @@ Set the following option to opt into the future behavior:
 
     In [9]: pd.set_option("future.no_silent_downcasting", True)
 
+Deprecated list-like-column-wise enlargement with partial-row-wise enlargement
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Enlarging a dataframe with a partial row indexer and a list-like column indexer is deprecated.
+
+Instead of
+
+.. code-block:: python
+
+    df.loc[idx, ['A', 'B']] = (val_1, val_2)
+
+please do
+
+.. code-block:: python
+
+    df.loc[idx, 'A'] = val_1
+    df.loc[idx, 'B'] = val_2
+
 Other Deprecations
 ^^^^^^^^^^^^^^^^^^
 - Changed :meth:`Timedelta.resolution_string` to return ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns`` instead of ``H``, ``T``, ``S``, ``L``, ``U``, and ``N``, for compatibility with respective deprecations in frequency aliases (:issue:`52536`)

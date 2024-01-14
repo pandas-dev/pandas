@@ -377,7 +377,15 @@ class TestMultiIndexLoc:
         # GH#39147
         mi = MultiIndex.from_tuples([(1, 2), (3, 4)])
         df = DataFrame([[1, 2], [3, 4]], index=mi, columns=["a", "b"])
-        df.loc[indexer, ["c", "d"]] = 1.0
+        warn = FutureWarning if indexer != slice(None) else None
+        with tm.assert_produces_warning(
+            warn,
+            match=(
+                "list-like-column-wise enlargement with partial-row-wise enlargement "
+                "is deprecated"
+            ),
+        ):
+            df.loc[indexer, ["c", "d"]] = 1.0
         expected = DataFrame(
             [[1, 2, 1.0, 1.0], [3, 4, exp_value, exp_value]],
             index=mi,

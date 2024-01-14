@@ -940,8 +940,14 @@ class TestLocBaseIndependent:
     def test_loc_setitem_missing_columns(self, index, box, expected):
         # GH 29334
         df = DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "B"])
-
-        df.loc[index] = box
+        warn = FutureWarning if index[0] != slice(None, None, None) else None
+        with tm.assert_produces_warning(
+            warn,
+            match=(
+                "list-like-column-wise enlargement with partial-row-wise enlargement"
+            ),
+        ):
+            df.loc[index] = box
         tm.assert_frame_equal(df, expected)
 
     def test_loc_coercion(self):
@@ -3327,7 +3333,14 @@ class TestLocSeries:
     def test_loc_set_multiple_items_in_multiple_new_columns(self):
         # GH 25594
         df = DataFrame(index=[1, 2], columns=["a"])
-        df.loc[1, ["b", "c"]] = [6, 7]
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match=(
+                "list-like-column-wise enlargement with partial-row-wise enlargement "
+                "is deprecated"
+            ),
+        ):
+            df.loc[1, ["b", "c"]] = [6, 7]
 
         expected = DataFrame(
             {
