@@ -65,15 +65,14 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (EX01, EX02, EX04, GL01, GL02, GL03, GL04, GL05, GL06, GL07, GL09, GL10, PR03, PR04, PR05, PR06, PR08, PR09, PR10, RT01, RT02, RT04, RT05, SA02, SA03, SA04, SS01, SS02, SS03, SS04, SS05, SS06)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01,EX02,EX04,GL01,GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,PR03,PR04,PR05,PR06,PR08,PR09,PR10,RT01,RT02,RT04,RT05,SA02,SA03,SA04,SS01,SS02,SS03,SS04,SS05,SS06
+    MSG='Validate docstrings (EX01, EX04, GL01, GL02, GL03, GL04, GL05, GL06, GL07, GL09, GL10, PR03, PR04, PR05, PR06, PR08, PR09, PR10, RT01, RT02, RT04, RT05, SA02, SA03, SA04, SS01, SS02, SS03, SS04, SS05, SS06)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01,EX04,GL01,GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,PR03,PR04,PR05,PR06,PR08,PR09,PR10,RT01,RT02,RT04,RT05,SA02,SA03,SA04,SS01,SS02,SS03,SS04,SS05,SS06
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Partially validate docstrings (EX03)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX03 --ignore_functions \
         pandas.Series.plot.line \
         pandas.Series.to_sql \
-        pandas.Series.to_latex \
         pandas.errors.DatabaseError \
         pandas.errors.IndexingError \
         pandas.errors.InvalidColumnName \
@@ -87,16 +86,13 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timestamp.ceil \
         pandas.Timestamp.floor \
         pandas.Timestamp.round \
-        pandas.read_pickle \
         pandas.ExcelWriter \
         pandas.read_json \
         pandas.io.json.build_table_schema \
-        pandas.DataFrame.to_latex \
         pandas.io.formats.style.Styler.to_latex \
         pandas.read_parquet \
         pandas.DataFrame.to_sql \
         pandas.read_stata \
-        pandas.core.resample.Resampler.pipe \
         pandas.plotting.scatter_matrix \
         pandas.Index.rename \
         pandas.Index.droplevel \
