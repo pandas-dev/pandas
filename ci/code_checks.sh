@@ -97,11 +97,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.to_sql \
         pandas.read_stata \
         pandas.core.resample.Resampler.pipe \
-        pandas.core.resample.Resampler.interpolate \
         pandas.plotting.scatter_matrix \
-        pandas.pivot \
-        pandas.merge_asof \
-        pandas.wide_to_long \
         pandas.Index.rename \
         pandas.Index.droplevel \
         pandas.Index.isin \
