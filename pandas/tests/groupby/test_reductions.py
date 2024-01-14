@@ -20,6 +20,72 @@ import pandas._testing as tm
 from pandas.util import _test_decorators as td
 
 
+@pytest.mark.parametrize("dtype", ["int64", "int32", "float64", "float32"])
+def test_basic_aggregations(dtype):
+    data = Series(np.arange(9) // 3, index=np.arange(9), dtype=dtype)
+
+    index = np.arange(9)
+    np.random.default_rng(2).shuffle(index)
+    data = data.reindex(index)
+
+    grouped = data.groupby(lambda x: x // 3, group_keys=False)
+
+    for k, v in grouped:
+        assert len(v) == 3
+
+    msg = "using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        agged = grouped.aggregate(np.mean)
+    assert agged[1] == 1
+
+    msg = "using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = grouped.agg(np.mean)
+    tm.assert_series_equal(agged, expected)  # shorthand
+    tm.assert_series_equal(agged, grouped.mean())
+    result = grouped.sum()
+    msg = "using SeriesGroupBy.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = grouped.agg(np.sum)
+    tm.assert_series_equal(result, expected)
+
+    expected = grouped.apply(lambda x: x * x.sum())
+    transformed = grouped.transform(lambda x: x * x.sum())
+    assert transformed[7] == 12
+    tm.assert_series_equal(transformed, expected)
+
+    value_grouped = data.groupby(data)
+    msg = "using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = value_grouped.aggregate(np.mean)
+    tm.assert_series_equal(result, agged, check_index_type=False)
+
+    # complex agg
+    msg = "using SeriesGroupBy.[mean|std]"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        agged = grouped.aggregate([np.mean, np.std])
+
+    msg = r"nested renamer is not supported"
+    with pytest.raises(pd.errors.SpecificationError, match=msg):
+        grouped.aggregate({"one": np.mean, "two": np.std})
+
+    group_constants = {0: 10, 1: 20, 2: 30}
+    msg = (
+        "Pinning the groupby key to each group in SeriesGroupBy.agg is deprecated, "
+        "and cases that relied on it will raise in a future version"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#41090
+        agged = grouped.agg(lambda x: group_constants[x.name] + x.mean())
+    assert agged[1] == 21
+
+    # corner cases
+    msg = "Must produce aggregated value"
+    # exception raised is type Exception
+    with pytest.raises(Exception, match=msg):
+        grouped.aggregate(lambda x: x * 2)
+
+
 @pytest.mark.parametrize(
     "vals",
     [
@@ -1070,4 +1136,31 @@ def test_groupby_prod_with_int64_dtype():
     df = DataFrame(data, columns=["A", "B"], dtype="int64")
     result = df.groupby(["A"]).prod().reset_index()
     expected = DataFrame({"A": [1], "B": [180970905912331920]}, dtype="int64")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_std_datetimelike(warn_copy_on_write):
+    # GH#48481
+    tdi = pd.timedelta_range("1 Day", periods=10000)
+    ser = Series(tdi)
+    ser[::5] *= 2  # get different std for different groups
+
+    df = ser.to_frame("A").copy()
+
+    df["B"] = ser + Timestamp(0)
+    df["C"] = ser + Timestamp(0, tz="UTC")
+    df.iloc[-1] = pd.NaT  # last group includes NaTs
+
+    gb = df.groupby(list(range(5)) * 2000)
+
+    result = gb.std()
+
+    # Note: this does not _exactly_ match what we would get if we did
+    # [gb.get_group(i).std() for i in gb.groups]
+    #  but it _does_ match the floating point error we get doing the
+    #  same operation on int64 data xref GH#51332
+    td1 = pd.Timedelta("2887 days 11:21:02.326710176")
+    td4 = pd.Timedelta("2886 days 00:42:34.664668096")
+    exp_ser = Series([td1 * 2, td1, td1, td1, td4], index=np.arange(5))
+    expected = DataFrame({"A": exp_ser, "B": exp_ser, "C": exp_ser})
     tm.assert_frame_equal(result, expected)

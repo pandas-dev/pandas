@@ -1114,7 +1114,7 @@ class PlotAccessor(PandasObject):
         .. plot::
             :context: close-figs
 
-            >>> df = pd.DataFrame({'lab':['A', 'B', 'C'], 'val':[10, 30, 20]})
+            >>> df = pd.DataFrame({'lab': ['A', 'B', 'C'], 'val': [10, 30, 20]})
             >>> ax = df.plot.bar(x='lab', y='val', rot=0)
 
         Plot a whole dataframe to a bar plot. Each column is assigned a
@@ -1195,7 +1195,7 @@ class PlotAccessor(PandasObject):
         """
         See Also
         --------
-        DataFrame.plot.bar: Vertical bar plot.
+        DataFrame.plot.bar : Vertical bar plot.
         DataFrame.plot : Make plots of DataFrame using matplotlib.
         matplotlib.axes.Axes.bar : Plot a vertical bar plot using matplotlib.
 
