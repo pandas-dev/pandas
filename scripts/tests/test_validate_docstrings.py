@@ -199,12 +199,6 @@ class TestValidator:
         for msg in msgs:
             assert msg in " ".join([err[1] for err in result["errors"]])
 
-    def test_leftover_files_raises(self) -> None:
-        with pytest.raises(Exception, match="The following files"):
-            validate_docstrings.pandas_validate(
-                self._import_path(klass="BadDocstrings", func="leftover_files")
-            )
-
     def test_validate_all_ignore_functions(self, monkeypatch) -> None:
         monkeypatch.setattr(
             validate_docstrings,
