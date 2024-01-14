@@ -1039,7 +1039,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-03-01 07:00:04    3
         Freq: s, dtype: int64
 
-        Upsample the dataframe to 0.5Hz by providing the period time of 2s.
+        Downsample the dataframe to 0.5Hz by providing the period time of 2s.
 
         >>> series.resample("2s").interpolate("linear")
         2023-03-01 07:00:00    1
@@ -1047,7 +1047,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-03-01 07:00:04    3
         Freq: 2s, dtype: int64
 
-        Downsample the dataframe to 2Hz by providing the period time of 500ms.
+        Upsample the dataframe to 2Hz by providing the period time of 500ms.
 
         >>> series.resample("500ms").interpolate("linear")
         2023-03-01 07:00:00.000    1.0

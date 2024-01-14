@@ -16,12 +16,18 @@
 
 set -uo pipefail
 
-[[ -z "$1" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "single-docs" || "$1" == "notebooks" ]] || \
+if [[ -v 1 ]]; then
+    CHECK=$1
+else
+    # script will fail if it uses an unset variable (i.e. $1 is not provided)
+    CHECK=""
+fi
+
+[[ -z "$CHECK" || "$CHECK" == "code" || "$CHECK" == "doctests" || "$CHECK" == "docstrings" || "$CHECK" == "single-docs" || "$CHECK" == "notebooks" ]] || \
     { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings|single-docs|notebooks]"; exit 9999; }
 
 BASE_DIR="$(dirname $0)/.."
 RET=0
-CHECK=$1
 
 ### CODE ###
 if [[ -z "$CHECK" || "$CHECK" == "code" ]]; then
@@ -65,21 +71,11 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (EX03)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX03 --ignore_functions \
-        pandas.Series.dt.day_name \
-        pandas.Series.str.len \
-        pandas.Series.cat.set_categories \
-        pandas.Series.plot.bar \
-        pandas.Series.plot.hist \
         pandas.Series.plot.line \
         pandas.Series.to_sql \
-        pandas.Series.to_latex \
-        pandas.errors.CategoricalConversionWarning \
-        pandas.errors.ChainedAssignmentError \
-        pandas.errors.ClosedFileError \
         pandas.errors.DatabaseError \
         pandas.errors.IndexingError \
         pandas.errors.InvalidColumnName \
-        pandas.errors.NumExprClobberingError \
         pandas.errors.PossibleDataLossError \
         pandas.errors.PossiblePrecisionLoss \
         pandas.errors.SettingWithCopyError \
@@ -90,17 +86,13 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timestamp.ceil \
         pandas.Timestamp.floor \
         pandas.Timestamp.round \
-        pandas.read_pickle \
         pandas.ExcelWriter \
         pandas.read_json \
         pandas.io.json.build_table_schema \
-        pandas.DataFrame.to_latex \
         pandas.io.formats.style.Styler.to_latex \
         pandas.read_parquet \
         pandas.DataFrame.to_sql \
         pandas.read_stata \
-        pandas.core.resample.Resampler.pipe \
-        pandas.core.resample.Resampler.fillna \
         pandas.core.resample.Resampler.interpolate \
         pandas.plotting.scatter_matrix \
         pandas.pivot \
@@ -109,26 +101,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Index.rename \
         pandas.Index.droplevel \
         pandas.Index.isin \
-        pandas.CategoricalIndex.set_categories \
         pandas.MultiIndex.names \
         pandas.MultiIndex.droplevel \
         pandas.IndexSlice \
-        pandas.DatetimeIndex.month_name \
-        pandas.DatetimeIndex.day_name \
-        pandas.core.window.rolling.Rolling.corr \
         pandas.Grouper \
-        pandas.core.groupby.SeriesGroupBy.apply \
-        pandas.core.groupby.DataFrameGroupBy.apply \
-        pandas.core.groupby.SeriesGroupBy.transform \
-        pandas.core.groupby.SeriesGroupBy.pipe \
-        pandas.core.groupby.DataFrameGroupBy.pipe \
-        pandas.core.groupby.DataFrameGroupBy.describe \
-        pandas.core.groupby.DataFrameGroupBy.idxmax \
-        pandas.core.groupby.DataFrameGroupBy.idxmin \
-        pandas.core.groupby.DataFrameGroupBy.value_counts \
-        pandas.core.groupby.SeriesGroupBy.describe \
-        pandas.core.groupby.DataFrameGroupBy.boxplot \
-        pandas.core.groupby.DataFrameGroupBy.hist \
         pandas.io.formats.style.Styler.map \
         pandas.io.formats.style.Styler.apply_index \
         pandas.io.formats.style.Styler.map_index \
@@ -145,24 +121,13 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.io.formats.style.Styler.background_gradient \
         pandas.io.formats.style.Styler.text_gradient \
         pandas.DataFrame.values \
-        pandas.DataFrame.loc \
-        pandas.DataFrame.iloc \
         pandas.DataFrame.groupby \
-        pandas.DataFrame.describe \
-        pandas.DataFrame.skew \
-        pandas.DataFrame.var \
         pandas.DataFrame.idxmax \
         pandas.DataFrame.idxmin \
-        pandas.DataFrame.last \
         pandas.DataFrame.pivot \
         pandas.DataFrame.sort_values \
-        pandas.DataFrame.tz_convert \
-        pandas.DataFrame.tz_localize \
-        pandas.DataFrame.plot.bar \
         pandas.DataFrame.plot.hexbin \
-        pandas.DataFrame.plot.hist \
         pandas.DataFrame.plot.line \
-        pandas.DataFrame.hist \
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
