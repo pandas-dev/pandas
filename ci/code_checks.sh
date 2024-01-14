@@ -82,9 +82,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.CategoricalConversionWarning \
         pandas.errors.ChainedAssignmentError \
         pandas.errors.ClosedFileError \
-        pandas.errors.DatabaseError \
-        pandas.errors.IndexingError \
-        pandas.errors.InvalidColumnName \
         pandas.errors.NumExprClobberingError \
         pandas.errors.PossibleDataLossError \
         pandas.errors.PossiblePrecisionLoss \
