@@ -83,9 +83,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.SpecificationError \
         pandas.errors.UndefinedVariableError \
         pandas.errors.ValueLabelTypeMismatch \
-        pandas.Timestamp.ceil \
-        pandas.Timestamp.floor \
-        pandas.Timestamp.round \
         pandas.ExcelWriter \
         pandas.read_json \
         pandas.io.json.build_table_schema \
