@@ -89,7 +89,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timestamp.round \
         pandas.read_pickle \
         pandas.ExcelWriter \
-        pandas.read_json \
         pandas.io.json.build_table_schema \
         pandas.DataFrame.to_latex \
         pandas.io.formats.style.Styler.to_latex \
