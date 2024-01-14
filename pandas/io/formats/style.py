@@ -770,7 +770,7 @@ class Styler(StylerRenderer):
 
         For example the following code will highlight and bold a cell in HTML-CSS:
 
-        >>> df = pd.DataFrame([[1,2], [3,4]])
+        >>> df = pd.DataFrame([[1, 2], [3, 4]])
         >>> s = df.style.highlight_max(axis=None,
         ...                            props='background-color:red; font-weight:bold;')
         >>> s.to_html()  # doctest: +SKIP
@@ -893,9 +893,9 @@ class Styler(StylerRenderer):
         >>> s.table_styles = []
         >>> s.caption = None
         >>> s.format({
-        ...    ("Numeric", "Integers"): '\${}',
-        ...    ("Numeric", "Floats"): '{:.3f}',
-        ...    ("Non-Numeric", "Strings"): str.upper
+        ...     ("Numeric", "Integers"): '\\${}',
+        ...     ("Numeric", "Floats"): '{:.3f}',
+        ...     ("Non-Numeric", "Strings"): str.upper
         ... })  # doctest: +SKIP
                         Numeric      Non-Numeric
                   Integers   Floats    Strings
