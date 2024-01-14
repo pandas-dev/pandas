@@ -2995,7 +2995,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3
         >>> from sqlalchemy import text
         >>> with engine.connect() as conn:
-        ...    conn.execute(text("SELECT * FROM users")).fetchall()
+        ...     conn.execute(text("SELECT * FROM users")).fetchall()
         [(0, 'User 1'), (1, 'User 2'), (2, 'User 3')]
 
         An `sqlalchemy.engine.Connection` can also be passed to `con`:
@@ -3012,7 +3012,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df2.to_sql(name='users', con=engine, if_exists='append')
         2
         >>> with engine.connect() as conn:
-        ...    conn.execute(text("SELECT * FROM users")).fetchall()
+        ...     conn.execute(text("SELECT * FROM users")).fetchall()
         [(0, 'User 1'), (1, 'User 2'), (2, 'User 3'),
          (0, 'User 4'), (1, 'User 5'), (0, 'User 6'),
          (1, 'User 7')]
@@ -3023,7 +3023,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...            index_label='id')
         2
         >>> with engine.connect() as conn:
-        ...    conn.execute(text("SELECT * FROM users")).fetchall()
+        ...     conn.execute(text("SELECT * FROM users")).fetchall()
         [(0, 'User 6'), (1, 'User 7')]
 
         Use ``method`` to define a callable insertion method to do nothing
@@ -3042,7 +3042,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         For MySQL, a callable to update columns ``b`` and ``c`` if there's a conflict
         on a primary key.
 
-        >>> from sqlalchemy.dialects.mysql import insert
+        >>> from sqlalchemy.dialects.mysql import insert  # doctest: +SKIP
         >>> def insert_on_conflict_update(table, conn, keys, data_iter):
         ...     # update columns "b" and "c" on primary key conflict
         ...     data = [dict(zip(keys, row)) for row in data_iter]
@@ -3074,7 +3074,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3
 
         >>> with engine.connect() as conn:
-        ...   conn.execute(text("SELECT * FROM integers")).fetchall()
+        ...     conn.execute(text("SELECT * FROM integers")).fetchall()
         [(1,), (None,), (2,)]
         """  # noqa: E501
         from pandas.io import sql

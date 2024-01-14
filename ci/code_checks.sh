@@ -94,7 +94,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.to_latex \
         pandas.io.formats.style.Styler.to_latex \
         pandas.read_parquet \
-        pandas.DataFrame.to_sql \
         pandas.read_stata \
         pandas.core.resample.Resampler.pipe \
         pandas.core.resample.Resampler.interpolate \
