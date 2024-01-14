@@ -123,7 +123,7 @@ def read_pickle(
     storage_options: StorageOptions | None = None,
 ) -> DataFrame | Series:
     """
-    Load pickled pandas object (or any object) from file.
+    Load pickled pandas object (or any object) from file and return unpickled object.
 
     .. warning::
 
@@ -145,7 +145,8 @@ def read_pickle(
 
     Returns
     -------
-    same type as object stored in file
+    object
+        The unpickled pandas object (or any object) that was stored in file.
 
     See Also
     --------

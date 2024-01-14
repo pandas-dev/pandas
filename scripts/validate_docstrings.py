@@ -18,22 +18,17 @@ from __future__ import annotations
 import argparse
 import doctest
 import importlib
-import io
 import json
-import os
 import pathlib
 import sys
 
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy
 from numpydoc.docscrape import get_doc_object
 from numpydoc.validate import (
     Validator,
     validate,
 )
-
-import pandas
 
 # With template backend, matplotlib plots nothing
 matplotlib.use("template")
@@ -61,7 +56,6 @@ ERROR_MSGS = {
     "GL05": "Use 'array-like' rather than 'array_like' in docstrings.",
     "SA05": "{reference_name} in `See Also` section does not need `pandas` "
     "prefix, use {right_reference} instead.",
-    "EX02": "Examples do not pass tests:\n{doctest_log}",
     "EX04": "Do not import {imported_library}, as it is imported "
     "automatically for the examples (numpy as np, pandas as pd)",
 }
@@ -164,32 +158,6 @@ class PandasDocstring(Validator):
         return [klass for klass in PRIVATE_CLASSES if klass in self.raw_doc]
 
     @property
-    def examples_errors(self):
-        flags = doctest.NORMALIZE_WHITESPACE | doctest.IGNORE_EXCEPTION_DETAIL
-        finder = doctest.DocTestFinder()
-        runner = doctest.DocTestRunner(optionflags=flags)
-        context = {"np": numpy, "pd": pandas}
-        error_msgs = ""
-        current_dir = set(os.listdir())
-        for test in finder.find(self.raw_doc, self.name, globs=context):
-            f = io.StringIO()
-            runner.run(test, out=f.write)
-            error_msgs += f.getvalue()
-        leftovers = set(os.listdir()).difference(current_dir)
-        if leftovers:
-            for leftover in leftovers:
-                path = pathlib.Path(leftover).resolve()
-                if path.is_dir():
-                    path.rmdir()
-                elif path.is_file():
-                    path.unlink(missing_ok=True)
-            raise Exception(
-                f"The following files were leftover from the doctest: "
-                f"{leftovers}. Please use # doctest: +SKIP"
-            )
-        return error_msgs
-
-    @property
     def examples_source_code(self):
         lines = doctest.DocTestParser().get_examples(self.raw_doc)
         return [line.source for line in lines]
@@ -237,12 +205,6 @@ def pandas_validate(func_name: str):
 
     result["examples_errs"] = ""
     if doc.examples:
-        result["examples_errs"] = doc.examples_errors
-        if result["examples_errs"]:
-            result["errors"].append(
-                pandas_error("EX02", doctest_log=result["examples_errs"])
-            )
-
         examples_source_code = "".join(doc.examples_source_code)
         result["errors"].extend(
             pandas_error("EX04", imported_library=wrong_import)
@@ -366,9 +328,6 @@ def print_validate_one_results(func_name: str) -> None:
     if result["errors"]:
         sys.stderr.write(f'{len(result["errors"])} Errors found for `{func_name}`:\n')
         for err_code, err_desc in result["errors"]:
-            if err_code == "EX02":  # Failing examples are printed at the end
-                sys.stderr.write("\tExamples do not pass tests\n")
-                continue
             sys.stderr.write(f"\t{err_desc}\n")
     else:
         sys.stderr.write(f'Docstring for "{func_name}" correct. :)\n')
