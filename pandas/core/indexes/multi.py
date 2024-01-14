@@ -3965,11 +3965,14 @@ class MultiIndex(Index):
                 lev_loc = level.get_loc(k)
             
             if any(isna(item) for item in level):
-                # check to make sure no null values are in the level,
-                # replace with empty strings. if this is removed,
-                # it's possible a null value will end up in indexes with
-                # datetime values.
-                level = Index(['' if isna(item) else item for item in level], dtype=object)
+                # check to make sure no null values are in
+                # the level, if they are replace with
+                # empty strings. if this is removed,
+                # it's possible a null value will end up in
+                # indexes with datetime values.
+                level = Index(
+                              ['' if isna(item) else item for item in level],
+                              dtype=object)
 
             new_levels.append(level)
             new_codes.append(np.insert(ensure_int64(level_codes), loc, lev_loc))
