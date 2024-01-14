@@ -1722,7 +1722,7 @@ data by specifying an anonymous connection, such as
        "-D20130523-T080854_to_SaKe2013-D20130523-T085643.csv",
        storage_options={"anon": True},
    )
-   
+
 ``fsspec`` also allows complex URLs, for accessing data in compressed
 archives, local caching of files, and more. To locally cache the above
 example, you would modify the call to
