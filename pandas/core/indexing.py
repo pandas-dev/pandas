@@ -877,7 +877,13 @@ class _LocationIndexer(NDFrameIndexerBase):
                 )
                 self.obj._mgr = new_mgr
                 return
-
+            if len(diff):
+                warnings.warn(
+                    "Multi-column-wise row-wise expansion is deprecated and will be "
+                    "removed in a future version. ",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
             self.obj._mgr = self.obj._mgr.reindex_axis(keys, axis=0, only_slice=True)
 
     @final
