@@ -102,12 +102,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.pivot \
         pandas.merge_asof \
         pandas.wide_to_long \
-        pandas.Index.rename \
         pandas.Index.droplevel \
-        pandas.Index.isin \
         pandas.MultiIndex.names \
         pandas.MultiIndex.droplevel \
-        pandas.IndexSlice \
         pandas.Grouper \
         pandas.io.formats.style.Styler.map \
         pandas.io.formats.style.Styler.apply_index \
