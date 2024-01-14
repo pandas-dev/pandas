@@ -1704,7 +1704,7 @@ option parameter:
 
 .. code-block:: python
 
-   storage_options = {"client_kwargs": {"endpoint_url": "http://127.0.0.1:5555"}}}
+   storage_options = {"client_kwargs": {"endpoint_url": "http://127.0.0.1:5555"}}
    df = pd.read_json("s3://pandas-test/test-1", storage_options=storage_options)
 
 More sample configurations and documentation can be found at `S3Fs documentation
