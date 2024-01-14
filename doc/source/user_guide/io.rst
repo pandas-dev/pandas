@@ -1717,19 +1717,12 @@ data by specifying an anonymous connection, such as
 
 .. code-block:: python
 
-   >>> df = pd.read_csv(
-   ...    "s3://ncei-wcsd-archive/data/processed/SH1305/18kHz/SaKe2013"
-   ...    "-D20130523-T080854_to_SaKe2013-D20130523-T085643.csv",
-   ...    storage_options={"anon": True},
-   ...)
-   >>> df.columns
-   Index(['Ping_index', ' Distance_gps', ' Distance_vl', ' Ping_date',
-         ' Ping_time', ' Ping_milliseconds', ' Latitude', ' Longitude',
-         ' Depth_start', ' Depth_stop', ' Range_start', ' Range_stop',
-         ' Sample_count'],
-         dtype='object')
-
-
+   pd.read_csv(
+       "s3://ncei-wcsd-archive/data/processed/SH1305/18kHz/SaKe2013"
+       "-D20130523-T080854_to_SaKe2013-D20130523-T085643.csv",
+       storage_options={"anon": True},
+   )
+   
 ``fsspec`` also allows complex URLs, for accessing data in compressed
 archives, local caching of files, and more. To locally cache the above
 example, you would modify the call to
