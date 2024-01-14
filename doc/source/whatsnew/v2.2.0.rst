@@ -662,7 +662,7 @@ Deprecated list-like-column-wise enlargement with partial row indexer
 
 Enlarging a dataframe with a partial row indexer and a list-like column indexer is deprecated.
 
-Instead of
+Instead of (suppose ``'A'`` and ``'B'`` are not already columns in ``df``)
 
 .. code-block:: python
 
