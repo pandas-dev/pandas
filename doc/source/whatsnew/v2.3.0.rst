@@ -111,8 +111,8 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
-- Fixed bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
 - Fixed bug causing null values when using datetimes in multi-index. (:issue:`56853`)
+- Fixed bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
 
 
 Categorical
