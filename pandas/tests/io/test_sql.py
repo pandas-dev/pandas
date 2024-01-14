@@ -2229,12 +2229,14 @@ def test_api_chunksize_read(conn, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_categorical(conn, request):
     if conn == "postgresql_adbc_conn":
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="categorical dtype not implemented for ADBC postgres driver",
-                strict=True,
+        adbc = import_optional_dependency("adbc_driver_postgresql", errors="ignore")
+        if adbc is not None and Version(adbc.__version__) < Version("0.9.0"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="categorical dtype not implemented for ADBC postgres driver",
+                    strict=True,
+                )
             )
-        )
     # GH8624
     # test that categorical gets written correctly as dense column
     conn = request.getfixturevalue(conn)
