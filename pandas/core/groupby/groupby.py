@@ -29,6 +29,7 @@ from typing import (
     Union,
     cast,
     final,
+    overload,
 )
 import warnings
 
@@ -55,7 +56,6 @@ from pandas._typing import (
     PositionalIndexer,
     RandomState,
     Scalar,
-    T,
     npt,
 )
 from pandas.compat.numpy import function as nv
@@ -147,7 +147,13 @@ from pandas.core.util.numba_ import (
 )
 
 if TYPE_CHECKING:
-    from typing import Any
+    from pandas._typing import (
+        Any,
+        Concatenate,
+        P,
+        Self,
+        T,
+    )
 
     from pandas.core.resample import Resampler
     from pandas.core.window import (
@@ -989,6 +995,24 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     def _dir_additions(self) -> set[str]:
         return self.obj._dir_additions()
 
+    @overload
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T:
+        ...
+
+    @overload
+    def pipe(
+        self,
+        func: tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
+        ...
+
     @Substitution(
         klass="GroupBy",
         examples=dedent(
@@ -1014,9 +1038,9 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     @Appender(_pipe_template)
     def pipe(
         self,
-        func: Callable[..., T] | tuple[Callable[..., T], str],
-        *args,
-        **kwargs,
+        func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
     ) -> T:
         return com.pipe(self, func, *args, **kwargs)
 
