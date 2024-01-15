@@ -121,7 +121,7 @@ class _IndexSlice:
 
     Examples
     --------
-    >>> midx = pd.MultiIndex.from_product([['A0','A1'], ['B0','B1','B2','B3']])
+    >>> midx = pd.MultiIndex.from_product([['A0', 'A1'], ['B0', 'B1', 'B2', 'B3']])
     >>> columns = ['foo', 'bar']
     >>> dfmi = pd.DataFrame(np.arange(16).reshape((len(midx), len(columns))),
     ...                     index=midx, columns=columns)
@@ -2143,6 +2143,26 @@ class _iLocIndexer(_LocationIndexer):
                 # If we're setting an entire column and we can't do it inplace,
                 #  then we can use value's dtype (or inferred dtype)
                 #  instead of object
+                dtype = self.obj.dtypes.iloc[loc]
+                if dtype not in (np.void, object) and not self.obj.empty:
+                    # - Exclude np.void, as that is a special case for expansion.
+                    #   We want to warn for
+                    #       df = pd.DataFrame({'a': [1, 2]})
+                    #       df.loc[:, 'a'] = .3
+                    #   but not for
+                    #       df = pd.DataFrame({'a': [1, 2]})
+                    #       df.loc[:, 'b'] = .3
+                    # - Exclude `object`, as then no upcasting happens.
+                    # - Exclude empty initial object with enlargement,
+                    #   as then there's nothing to be inconsistent with.
+                    warnings.warn(
+                        f"Setting an item of incompatible dtype is deprecated "
+                        "and will raise in a future error of pandas. "
+                        f"Value '{value}' has dtype incompatible with {dtype}, "
+                        "please explicitly cast to a compatible dtype first.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
                 self.obj.isetitem(loc, value)
         else:
             # set value into the column (first attempting to operate inplace, then

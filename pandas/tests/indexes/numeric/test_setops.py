@@ -113,13 +113,14 @@ class TestSetOps:
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "index2,keeps_name",
+        "index2_name,keeps_name",
         [
-            (Index([4, 7, 6, 5, 3], name="index"), True),
-            (Index([4, 7, 6, 5, 3], name="other"), False),
+            ("index", True),
+            ("other", False),
         ],
     )
-    def test_intersection_monotonic(self, index2, keeps_name, sort):
+    def test_intersection_monotonic(self, index2_name, keeps_name, sort):
+        index2 = Index([4, 7, 6, 5, 3], name=index2_name)
         index1 = Index([5, 3, 2, 4, 1], name="index")
         expected = Index([5, 3, 4])
 

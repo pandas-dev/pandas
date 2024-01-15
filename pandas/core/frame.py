@@ -4016,7 +4016,9 @@ class DataFrame(NDFrame, OpsMixin):
             copy=False,
             only_slice=True,
         )
-        return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
+        result = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
+        result = result.__finalize__(self)
+        return result
 
     def __getitem__(self, key):
         check_dict_or_set_indexers(key)
@@ -9221,11 +9223,11 @@ class DataFrame(NDFrame, OpsMixin):
         You could also assign a list of column names or a list of index names.
 
         >>> df = pd.DataFrame({
-        ...        "lev1": [1, 1, 1, 2, 2, 2],
-        ...        "lev2": [1, 1, 2, 1, 1, 2],
-        ...        "lev3": [1, 2, 1, 2, 1, 2],
-        ...        "lev4": [1, 2, 3, 4, 5, 6],
-        ...        "values": [0, 1, 2, 3, 4, 5]})
+        ...                   "lev1": [1, 1, 1, 2, 2, 2],
+        ...                   "lev2": [1, 1, 2, 1, 1, 2],
+        ...                   "lev3": [1, 2, 1, 2, 1, 2],
+        ...                   "lev4": [1, 2, 3, 4, 5, 6],
+        ...                   "values": [0, 1, 2, 3, 4, 5]})
         >>> df
             lev1 lev2 lev3 lev4 values
         0   1    1    1    1    0

@@ -1157,6 +1157,9 @@ class Index(IndexOpsMixin, PandasObject):
         indices = ensure_platform_int(indices)
         allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
 
+        if indices.ndim == 1 and lib.is_range_indexer(indices, len(self)):
+            return self.copy()
+
         # Note: we discard fill_value and use self._na_value, only relevant
         #  in the case where allow_fill is True and fill_value is not None
         values = self._values
@@ -1950,7 +1953,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx = pd.MultiIndex.from_product([['python', 'cobra'],
         ...                                   [2018, 2019]],
-        ...                                   names=['kind', 'year'])
+        ...                                  names=['kind', 'year'])
         >>> idx
         MultiIndex([('python', 2018),
                     ('python', 2019),
@@ -2121,7 +2124,7 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         >>> mi = pd.MultiIndex.from_arrays(
-        ... [[1, 2], [3, 4], [5, 6]], names=['x', 'y', 'z'])
+        ...     [[1, 2], [3, 4], [5, 6]], names=['x', 'y', 'z'])
         >>> mi
         MultiIndex([(1, 3, 5),
                     (2, 4, 6)],
@@ -4806,11 +4809,18 @@ class Index(IndexOpsMixin, PandasObject):
         left_idx, right_idx = get_join_indexers_non_unique(
             self._values, other._values, how=how, sort=sort
         )
-        mask = left_idx == -1
 
-        join_idx = self.take(left_idx)
-        right = other.take(right_idx)
-        join_index = join_idx.putmask(mask, right)
+        if how == "right":
+            join_index = other.take(right_idx)
+        else:
+            join_index = self.take(left_idx)
+
+        if how == "outer":
+            mask = left_idx == -1
+            if mask.any():
+                right = other.take(right_idx)
+                join_index = join_index.putmask(mask, right)
+
         if isinstance(join_index, ABCMultiIndex) and how == "outer":
             # test_join_index_levels
             join_index = join_index._sort_levels_monotonic()
@@ -4986,35 +4996,29 @@ class Index(IndexOpsMixin, PandasObject):
         ridx: npt.NDArray[np.intp] | None
         lidx: npt.NDArray[np.intp] | None
 
-        if self.is_unique and other.is_unique:
-            # We can perform much better than the general case
-            if how == "left":
+        if how == "left":
+            if other.is_unique:
+                # We can perform much better than the general case
                 join_index = self
                 lidx = None
                 ridx = self._left_indexer_unique(other)
-            elif how == "right":
+            else:
+                join_array, lidx, ridx = self._left_indexer(other)
+                join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
+        elif how == "right":
+            if self.is_unique:
+                # We can perform much better than the general case
                 join_index = other
                 lidx = other._left_indexer_unique(self)
                 ridx = None
-            elif how == "inner":
-                join_array, lidx, ridx = self._inner_indexer(other)
-                join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
-            elif how == "outer":
-                join_array, lidx, ridx = self._outer_indexer(other)
-                join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
-        else:
-            if how == "left":
-                join_array, lidx, ridx = self._left_indexer(other)
-            elif how == "right":
+            else:
                 join_array, ridx, lidx = other._left_indexer(self)
-            elif how == "inner":
-                join_array, lidx, ridx = self._inner_indexer(other)
-            elif how == "outer":
-                join_array, lidx, ridx = self._outer_indexer(other)
-
-            assert lidx is not None
-            assert ridx is not None
-
+                join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
+        elif how == "inner":
+            join_array, lidx, ridx = self._inner_indexer(other)
+            join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
+        elif how == "outer":
+            join_array, lidx, ridx = self._outer_indexer(other)
             join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
 
         lidx = None if lidx is None else ensure_platform_int(lidx)
@@ -6571,7 +6575,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index([1,2,3])
+        >>> idx = pd.Index([1, 2, 3])
         >>> idx
         Index([1, 2, 3], dtype='int64')
 
@@ -6580,7 +6584,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.isin([1, 4])
         array([ True, False, False])
 
-        >>> midx = pd.MultiIndex.from_arrays([[1,2,3],
+        >>> midx = pd.MultiIndex.from_arrays([[1, 2, 3],
         ...                                  ['red', 'blue', 'green']],
         ...                                  names=('number', 'color'))
         >>> midx
