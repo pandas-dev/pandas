@@ -79,9 +79,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.SettingWithCopyWarning \
         pandas.errors.SpecificationError \
         pandas.errors.UndefinedVariableError \
-        pandas.Timestamp.ceil \
-        pandas.Timestamp.floor \
-        pandas.Timestamp.round \
         pandas.read_json \
         pandas.io.json.build_table_schema \
         pandas.io.formats.style.Styler.to_latex \
