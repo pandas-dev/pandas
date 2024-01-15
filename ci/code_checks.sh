@@ -88,23 +88,18 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timestamp.round \
         pandas.ExcelWriter \
         pandas.read_json \
-        pandas.io.json.build_table_schema \
         pandas.io.formats.style.Styler.to_latex \
         pandas.read_parquet \
         pandas.DataFrame.to_sql \
-        pandas.read_stata \
         pandas.core.resample.Resampler.interpolate \
-        pandas.plotting.scatter_matrix \
         pandas.pivot \
         pandas.merge_asof \
         pandas.wide_to_long \
         pandas.Index.rename \
-        pandas.Index.droplevel \
         pandas.Index.isin \
         pandas.MultiIndex.names \
         pandas.MultiIndex.droplevel \
         pandas.IndexSlice \
-        pandas.Grouper \
         pandas.io.formats.style.Styler.map \
         pandas.io.formats.style.Styler.apply_index \
         pandas.io.formats.style.Styler.map_index \
