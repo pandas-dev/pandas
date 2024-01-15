@@ -283,14 +283,15 @@ class TestToLatexLongtable:
         assert result == expected
 
     @pytest.mark.parametrize(
-        "df, expected_number",
+        "df_data, expected_number",
         [
-            (DataFrame({"a": [1, 2]}), 1),
-            (DataFrame({"a": [1, 2], "b": [3, 4]}), 2),
-            (DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}), 3),
+            ({"a": [1, 2]}, 1),
+            ({"a": [1, 2], "b": [3, 4]}, 2),
+            ({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, 3),
         ],
     )
-    def test_to_latex_longtable_continued_on_next_page(self, df, expected_number):
+    def test_to_latex_longtable_continued_on_next_page(self, df_data, expected_number):
+        df = DataFrame(df_data)
         result = df.to_latex(index=False, longtable=True)
         assert rf"\multicolumn{{{expected_number}}}" in result
 
@@ -771,7 +772,7 @@ class TestToLatexEscape:
         """Dataframe with special characters for testing chars escaping."""
         a = "a"
         b = "b"
-        yield DataFrame({"co$e^x$": {a: "a", b: "b"}, "co^l1": {a: "a", b: "b"}})
+        return DataFrame({"co$e^x$": {a: "a", b: "b"}, "co^l1": {a: "a", b: "b"}})
 
     def test_to_latex_escape_false(self, df_with_symbols):
         result = df_with_symbols.to_latex(escape=False)
@@ -1010,7 +1011,7 @@ class TestToLatexMultiindex:
     @pytest.fixture
     def multiindex_frame(self):
         """Multiindex dataframe for testing multirow LaTeX macros."""
-        yield DataFrame.from_dict(
+        return DataFrame.from_dict(
             {
                 ("c1", 0): Series({x: x for x in range(4)}),
                 ("c1", 1): Series({x: x + 4 for x in range(4)}),
@@ -1023,7 +1024,7 @@ class TestToLatexMultiindex:
     @pytest.fixture
     def multicolumn_frame(self):
         """Multicolumn dataframe for testing multicolumn LaTeX macros."""
-        yield DataFrame(
+        return DataFrame(
             {
                 ("c1", 0): {x: x for x in range(5)},
                 ("c1", 1): {x: x + 5 for x in range(5)},
@@ -1338,9 +1339,7 @@ class TestToLatexMultiindex:
  & 4 & -1 & -1 & -1 & -1 \\
 \bottomrule
 \end{tabular}
-""" % tuple(
-            list(col_names) + [idx_names_row]
-        )
+""" % tuple(list(col_names) + [idx_names_row])
         assert observed == expected
 
     @pytest.mark.parametrize("one_row", [True, False])

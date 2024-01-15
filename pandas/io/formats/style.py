@@ -161,9 +161,6 @@ class Styler(StylerRenderer):
     uuid_len : int, default 5
         If ``uuid`` is not specified, the length of the ``uuid`` to randomly generate
         expressed in hex characters, in range [0, 32].
-
-        .. versionadded:: 1.2.0
-
     decimal : str, optional
         Character used as decimal separator for floats, complex and integers. If not
         given uses ``pandas.options.styler.format.decimal``.
@@ -773,7 +770,7 @@ class Styler(StylerRenderer):
 
         For example the following code will highlight and bold a cell in HTML-CSS:
 
-        >>> df = pd.DataFrame([[1,2], [3,4]])
+        >>> df = pd.DataFrame([[1, 2], [3, 4]])
         >>> s = df.style.highlight_max(axis=None,
         ...                            props='background-color:red; font-weight:bold;')
         >>> s.to_html()  # doctest: +SKIP
@@ -896,9 +893,9 @@ class Styler(StylerRenderer):
         >>> s.table_styles = []
         >>> s.caption = None
         >>> s.format({
-        ...    ("Numeric", "Integers"): '\${}',
-        ...    ("Numeric", "Floats"): '{:.3f}',
-        ...    ("Non-Numeric", "Strings"): str.upper
+        ...     ("Numeric", "Integers"): '\\${}',
+        ...     ("Numeric", "Floats"): '{:.3f}',
+        ...     ("Non-Numeric", "Strings"): str.upper
         ... })  # doctest: +SKIP
                         Numeric      Non-Numeric
                   Integers   Floats    Strings
@@ -1499,10 +1496,10 @@ class Styler(StylerRenderer):
         Using `MultiIndex` columns and a `classes` `DataFrame` as a subset of the
         underlying,
 
-        >>> df = pd.DataFrame([[1,2],[3,4]], index=["a", "b"],
-        ...     columns=[["level0", "level0"], ["level1a", "level1b"]])
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], index=["a", "b"],
+        ...                   columns=[["level0", "level0"], ["level1a", "level1b"]])
         >>> classes = pd.DataFrame(["min-val"], index=["a"],
-        ...     columns=[["level0"],["level1a"]])
+        ...                        columns=[["level0"], ["level1a"]])
         >>> df.style.set_td_classes(classes)  # doctest: +SKIP
 
         Form of the output with new additional css classes,
@@ -2517,23 +2514,14 @@ class Styler(StylerRenderer):
             in their respective tuple form. The dict values should be
             a list as specified in the form with CSS selectors and
             props that will be applied to the specified row or column.
-
-            .. versionchanged:: 1.2.0
-
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``). Only used if `table_styles` is
             dict.
-
-            .. versionadded:: 1.2.0
-
         overwrite : bool, default True
             Styles are replaced if `True`, or extended if `False`. CSS
             rules are preserved so most recent styles set will dominate
             if selectors intersect.
-
-            .. versionadded:: 1.2.0
-
         css_class_names : dict, optional
             A dict of strings used to replace the default CSS classes described below.
 
@@ -2729,7 +2717,7 @@ class Styler(StylerRenderer):
         --------
         Simple application hiding specific rows:
 
-        >>> df = pd.DataFrame([[1,2], [3,4], [5,6]], index=["a", "b", "c"])
+        >>> df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], index=["a", "b", "c"])
         >>> df.style.hide(["a", "b"])  # doctest: +SKIP
              0    1
         c    5    6
@@ -2737,7 +2725,7 @@ class Styler(StylerRenderer):
         Hide the index and retain the data values:
 
         >>> midx = pd.MultiIndex.from_product([["x", "y"], ["a", "b", "c"]])
-        >>> df = pd.DataFrame(np.random.randn(6,6), index=midx, columns=midx)
+        >>> df = pd.DataFrame(np.random.randn(6, 6), index=midx, columns=midx)
         >>> df.style.format("{:.1f}").hide()  # doctest: +SKIP
                          x                    y
            a      b      c      a      b      c
@@ -2751,7 +2739,7 @@ class Styler(StylerRenderer):
         Hide specific rows in a MultiIndex but retain the index:
 
         >>> df.style.format("{:.1f}").hide(subset=(slice(None), ["a", "c"]))
-        ...   # doctest: +SKIP
+        ... # doctest: +SKIP
                                  x                    y
                    a      b      c      a      b      c
         x   b    0.7    1.0    1.3    1.5   -0.0   -0.2
@@ -2760,7 +2748,7 @@ class Styler(StylerRenderer):
         Hide specific rows and the index through chaining:
 
         >>> df.style.format("{:.1f}").hide(subset=(slice(None), ["a", "c"])).hide()
-        ...   # doctest: +SKIP
+        ... # doctest: +SKIP
                          x                    y
            a      b      c      a      b      c
          0.7    1.0    1.3    1.5   -0.0   -0.2
@@ -4082,8 +4070,9 @@ def _bar(
             return ret
 
     values = data.to_numpy()
-    left = np.nanmin(values) if vmin is None else vmin
-    right = np.nanmax(values) if vmax is None else vmax
+    # A tricky way to address the issue where np.nanmin/np.nanmax fail to handle pd.NA.
+    left = np.nanmin(data.min(skipna=True)) if vmin is None else vmin
+    right = np.nanmax(data.max(skipna=True)) if vmax is None else vmax
     z: float = 0  # adjustment to translate data
 
     if align == "mid":

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import wraps
+import inspect
 import re
 from typing import (
     TYPE_CHECKING,
@@ -498,6 +499,9 @@ class Block(PandasObject, libinternals.Block):
             and is_integer_dtype(self.values.dtype)
             and isna(other)
             and other is not NaT
+            and not (
+                isinstance(other, (np.datetime64, np.timedelta64)) and np.isnat(other)
+            )
         ):
             warn_on_upcast = False
         elif (
@@ -512,7 +516,7 @@ class Block(PandasObject, libinternals.Block):
         if warn_on_upcast:
             warnings.warn(
                 f"Setting an item of incompatible dtype is deprecated "
-                "and will raise in a future error of pandas. "
+                "and will raise an error in a future version of pandas. "
                 f"Value '{other}' has dtype incompatible with {self.values.dtype}, "
                 "please explicitly cast to a compatible dtype first.",
                 FutureWarning,
@@ -746,7 +750,7 @@ class Block(PandasObject, libinternals.Block):
         Block
         """
         values = self.values
-        if squeeze and values.ndim == 2:
+        if squeeze and values.ndim == 2 and is_1d_only_ea_dtype(dtype):
             if values.shape[0] != 1:
                 raise ValueError("Can not squeeze with more than one column.")
             values = values[0, :]  # type: ignore[call-overload]
@@ -830,6 +834,7 @@ class Block(PandasObject, libinternals.Block):
         # mask may be pre-computed if we're called from replace_list
         mask: npt.NDArray[np.bool_] | None = None,
         using_cow: bool = False,
+        already_warned=None,
     ) -> list[Block]:
         """
         replace the to_replace value with value, possible to create new
@@ -874,6 +879,20 @@ class Block(PandasObject, libinternals.Block):
             # and rest?
             blk = self._maybe_copy(using_cow, inplace)
             putmask_inplace(blk.values, mask, value)
+            if (
+                inplace
+                and warn_copy_on_write()
+                and already_warned is not None
+                and not already_warned.warned_already
+            ):
+                if self.refs.has_reference():
+                    warnings.warn(
+                        COW_WARNING_GENERAL_MSG,
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                    already_warned.warned_already = True
+
             if not (self.is_object and value is None):
                 # if the user *explicitly* gave None, we keep None, otherwise
                 #  may downcast to NaN
@@ -934,6 +953,7 @@ class Block(PandasObject, libinternals.Block):
         inplace: bool = False,
         mask=None,
         using_cow: bool = False,
+        already_warned=None,
     ) -> list[Block]:
         """
         Replace elements by the given value.
@@ -968,6 +988,20 @@ class Block(PandasObject, libinternals.Block):
 
         replace_regex(block.values, rx, value, mask)
 
+        if (
+            inplace
+            and warn_copy_on_write()
+            and already_warned is not None
+            and not already_warned.warned_already
+        ):
+            if self.refs.has_reference():
+                warnings.warn(
+                    COW_WARNING_GENERAL_MSG,
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+                already_warned.warned_already = True
+
         nbs = block.convert(copy=False, using_cow=using_cow)
         opt = get_option("future.no_silent_downcasting")
         if (len(nbs) > 1 or nbs[0].dtype != block.dtype) and not opt:
@@ -992,6 +1026,7 @@ class Block(PandasObject, libinternals.Block):
         inplace: bool = False,
         regex: bool = False,
         using_cow: bool = False,
+        already_warned=None,
     ) -> list[Block]:
         """
         See BlockManager.replace_list docstring.
@@ -1047,6 +1082,20 @@ class Block(PandasObject, libinternals.Block):
             rb = [self]
         else:
             rb = [self if inplace else self.copy()]
+
+        if (
+            inplace
+            and warn_copy_on_write()
+            and already_warned is not None
+            and not already_warned.warned_already
+        ):
+            if self.refs.has_reference():
+                warnings.warn(
+                    COW_WARNING_GENERAL_MSG,
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+                already_warned.warned_already = True
 
         opt = get_option("future.no_silent_downcasting")
         for i, ((src, dest), mask) in enumerate(zip(pairs, masks)):
@@ -1657,6 +1706,7 @@ class Block(PandasObject, libinternals.Block):
         limit_area: Literal["inside", "outside"] | None = None,
         downcast: Literal["infer"] | None = None,
         using_cow: bool = False,
+        already_warned=None,
     ) -> list[Block]:
         if not self._can_hold_na:
             # If there are no NAs, then interpolate is a no-op
@@ -1677,6 +1727,19 @@ class Block(PandasObject, libinternals.Block):
             limit_area=limit_area,
             copy=copy,
         )
+        if (
+            not copy
+            and warn_copy_on_write()
+            and already_warned is not None
+            and not already_warned.warned_already
+        ):
+            if self.refs.has_reference():
+                warnings.warn(
+                    COW_WARNING_GENERAL_MSG,
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+                already_warned.warned_already = True
         if axis == 1:
             new_values = new_values.T
 
@@ -1697,6 +1760,7 @@ class Block(PandasObject, libinternals.Block):
         limit_area: Literal["inside", "outside"] | None = None,
         downcast: Literal["infer"] | None = None,
         using_cow: bool = False,
+        already_warned=None,
         **kwargs,
     ) -> list[Block]:
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -1735,6 +1799,20 @@ class Block(PandasObject, libinternals.Block):
         )
         data = extract_array(new_values, extract_numpy=True)
 
+        if (
+            not copy
+            and warn_copy_on_write()
+            and already_warned is not None
+            and not already_warned.warned_already
+        ):
+            if self.refs.has_reference():
+                warnings.warn(
+                    COW_WARNING_GENERAL_MSG,
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+                already_warned.warned_already = True
+
         nb = self.make_block_same_class(data, refs=refs)
         return nb._maybe_downcast([nb], downcast, using_cow, caller="interpolate")
 
@@ -1768,7 +1846,8 @@ class Block(PandasObject, libinternals.Block):
             # error: Argument 1 to "np_can_hold_element" has incompatible type
             # "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
             casted = np_can_hold_element(
-                self.dtype, fill_value  # type: ignore[arg-type]
+                self.dtype,  # type: ignore[arg-type]
+                fill_value,
             )
         except LossySetitemError:
             nb = self.coerce_to_target_dtype(fill_value)
@@ -2178,15 +2257,25 @@ class EABackedBlock(Block):
         limit_area: Literal["inside", "outside"] | None = None,
         downcast: Literal["infer"] | None = None,
         using_cow: bool = False,
+        already_warned=None,
     ) -> list[Block]:
         values = self.values
-        copy, refs = self._get_refs_and_copy(using_cow, inplace)
+
+        kwargs: dict[str, Any] = {"method": method, "limit": limit}
+        if "limit_area" in inspect.signature(values._pad_or_backfill).parameters:
+            kwargs["limit_area"] = limit_area
+        elif limit_area is not None:
+            raise NotImplementedError(
+                f"{type(values).__name__} does not implement limit_area "
+                "(added in pandas 2.2). 3rd-party ExtnsionArray authors "
+                "need to add this argument to _pad_or_backfill."
+            )
 
         if values.ndim == 2 and axis == 1:
             # NDArrayBackedExtensionArray.fillna assumes axis=0
-            new_values = values.T._pad_or_backfill(method=method, limit=limit).T
+            new_values = values.T._pad_or_backfill(**kwargs).T
         else:
-            new_values = values._pad_or_backfill(method=method, limit=limit)
+            new_values = values._pad_or_backfill(**kwargs)
         return [self.make_block_same_class(new_values)]
 
 

@@ -445,12 +445,12 @@ def test_cmov_window_regular_linear_range(win_types, step):
     # GH 8238
     pytest.importorskip("scipy")
     vals = np.array(range(10), dtype=float)
-    xp = vals.copy()
+    rs = Series(vals).rolling(5, win_type=win_types, center=True, step=step).mean()
+    xp = vals
     xp[:2] = np.nan
     xp[-2:] = np.nan
     xp = Series(xp)[::step]
 
-    rs = Series(vals).rolling(5, win_type=win_types, center=True, step=step).mean()
     tm.assert_series_equal(xp, rs)
 
 
@@ -648,16 +648,15 @@ def test_cmov_window_special_linear_range(win_types_special, step):
     }
 
     vals = np.array(range(10), dtype=float)
-    xp = vals.copy()
-    xp[:2] = np.nan
-    xp[-2:] = np.nan
-    xp = Series(xp)[::step]
-
     rs = (
         Series(vals)
         .rolling(5, win_type=win_types_special, center=True, step=step)
         .mean(**kwds[win_types_special])
     )
+    xp = vals
+    xp[:2] = np.nan
+    xp[-2:] = np.nan
+    xp = Series(xp)[::step]
     tm.assert_series_equal(xp, rs)
 
 

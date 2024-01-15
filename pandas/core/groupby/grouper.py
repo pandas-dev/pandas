@@ -119,8 +119,6 @@ class Grouper:
         row/column will be dropped. If False, NA values will also be treated as
         the key in groups.
 
-        .. versionadded:: 1.2.0
-
     Returns
     -------
     Grouper or pandas.api.typing.TimeGrouper
@@ -330,7 +328,6 @@ class Grouper:
 
         return grouper, obj
 
-    @final
     def _set_grouper(
         self, obj: NDFrameT, sort: bool = False, *, gpr_index: Index | None = None
     ) -> tuple[NDFrameT, Index, npt.NDArray[np.intp] | None]:
@@ -1011,7 +1008,8 @@ def get_grouper(
                 return False
             if isinstance(gpr, Series) and isinstance(obj_gpr_column, Series):
                 return gpr._mgr.references_same_values(  # type: ignore[union-attr]
-                    obj_gpr_column._mgr, 0  # type: ignore[arg-type]
+                    obj_gpr_column._mgr,  # type: ignore[arg-type]
+                    0,
                 )
             return False
         try:

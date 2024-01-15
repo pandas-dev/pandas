@@ -5,7 +5,7 @@ from scripts.use_io_common_urlopen import use_io_common_urlopen
 PATH = "t.py"
 
 
-def test_inconsistent_usage(capsys):
+def test_inconsistent_usage(capsys) -> None:
     content = "from urllib.request import urlopen"
     result_msg = (
         "t.py:1:0: Don't use urllib.request.urlopen, "
@@ -17,7 +17,7 @@ def test_inconsistent_usage(capsys):
     assert result_msg == expected_msg
 
 
-def test_consistent_usage():
+def test_consistent_usage() -> None:
     # should not raise
     content = "from pandas.io.common import urlopen"
     use_io_common_urlopen(content, PATH)

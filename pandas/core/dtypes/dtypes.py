@@ -919,7 +919,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         else:
             np_arr = array.to_numpy()
 
-        return DatetimeArray(np_arr, dtype=self, copy=False)
+        return DatetimeArray._from_sequence(np_arr, dtype=self, copy=False)
 
     def __setstate__(self, state) -> None:
         # for pickle compat. __get_state__ is defined in the
@@ -1453,7 +1453,7 @@ class NumpyEADtype(ExtensionDtype):
 
     def __init__(self, dtype: npt.DTypeLike | NumpyEADtype | None) -> None:
         if isinstance(dtype, NumpyEADtype):
-            # make constructor univalent
+            # make constructor idempotent
             dtype = dtype.numpy_dtype
         self._dtype = np.dtype(dtype)
 
@@ -2190,7 +2190,9 @@ class ArrowDtype(StorageExtensionDtype):
             # This can be removed if/when pyarrow addresses it:
             # https://github.com/apache/arrow/issues/34462
             return np.dtype(f"timedelta64[{self.pyarrow_dtype.unit}]")
-        if pa.types.is_string(self.pyarrow_dtype):
+        if pa.types.is_string(self.pyarrow_dtype) or pa.types.is_large_string(
+            self.pyarrow_dtype
+        ):
             # pa.string().to_pandas_dtype() = object which we don't want
             return np.dtype(str)
         try:

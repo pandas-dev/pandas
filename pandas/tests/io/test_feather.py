@@ -15,7 +15,7 @@ pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
 
-pyarrow = pytest.importorskip("pyarrow")
+pa = pytest.importorskip("pyarrow")
 
 
 @pytest.mark.single_cpu
@@ -169,7 +169,6 @@ class TestFeather:
 
     def test_read_feather_dtype_backend(self, string_storage, dtype_backend):
         # GH#50765
-        pa = pytest.importorskip("pyarrow")
         df = pd.DataFrame(
             {
                 "a": pd.Series([1, np.nan, 3], dtype="Int64"),
@@ -186,6 +185,12 @@ class TestFeather:
         if string_storage == "python":
             string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
             string_array_na = StringArray(np.array(["a", "b", pd.NA], dtype=np.object_))
+
+        elif dtype_backend == "pyarrow":
+            from pandas.arrays import ArrowExtensionArray
+
+            string_array = ArrowExtensionArray(pa.array(["a", "b", "c"]))
+            string_array_na = ArrowExtensionArray(pa.array(["a", "b", None]))
 
         else:
             string_array = ArrowStringArray(pa.array(["a", "b", "c"]))

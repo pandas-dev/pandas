@@ -11,7 +11,7 @@ import re
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
+from pandas._config import using_pyarrow_string_dtype
 
 import pandas as pd
 from pandas import (
@@ -251,6 +251,9 @@ class TestFrameComparisons:
             with pytest.raises(TypeError, match=msg):
                 right_f(pd.Timestamp("nat"), df)
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="can't compare string and int"
+    )
     def test_mixed_comparison(self):
         # GH#13128, GH#22163 != datetime64 vs non-dt64 should be False,
         # not raise TypeError
@@ -301,8 +304,7 @@ class TestFrameComparisons:
 
 class TestFrameFlexComparisons:
     # TODO: test_bool_flex_frame needs a better name
-    @pytest.mark.parametrize("op", ["eq", "ne", "gt", "lt", "ge", "le"])
-    def test_bool_flex_frame(self, op):
+    def test_bool_flex_frame(self, comparison_op):
         data = np.random.default_rng(2).standard_normal((5, 3))
         other_data = np.random.default_rng(2).standard_normal((5, 3))
         df = DataFrame(data)
@@ -312,8 +314,8 @@ class TestFrameFlexComparisons:
         # DataFrame
         assert df.eq(df).values.all()
         assert not df.ne(df).values.any()
-        f = getattr(df, op)
-        o = getattr(operator, op)
+        f = getattr(df, comparison_op.__name__)
+        o = comparison_op
         # No NAs
         tm.assert_frame_equal(f(other), o(df, other))
         # Unaligned
@@ -432,8 +434,8 @@ class TestFrameFlexComparisons:
 
     def test_bool_flex_frame_object_dtype(self):
         # corner, dtype=object
-        df1 = DataFrame({"col": ["foo", np.nan, "bar"]})
-        df2 = DataFrame({"col": ["foo", datetime.now(), "bar"]})
+        df1 = DataFrame({"col": ["foo", np.nan, "bar"]}, dtype=object)
+        df2 = DataFrame({"col": ["foo", datetime.now(), "bar"]}, dtype=object)
         result = df1.ne(df2)
         exp = DataFrame({"col": [False, True, False]})
         tm.assert_frame_equal(result, exp)
@@ -456,25 +458,23 @@ class TestFrameFlexComparisons:
         result = df.ne(pd.NaT)
         assert result.iloc[0, 0].item() is True
 
-    @pytest.mark.parametrize("opname", ["eq", "ne", "gt", "lt", "ge", "le"])
-    def test_df_flex_cmp_constant_return_types(self, opname):
+    def test_df_flex_cmp_constant_return_types(self, comparison_op):
         # GH 15077, non-empty DataFrame
         df = DataFrame({"x": [1, 2, 3], "y": [1.0, 2.0, 3.0]})
         const = 2
 
-        result = getattr(df, opname)(const).dtypes.value_counts()
+        result = getattr(df, comparison_op.__name__)(const).dtypes.value_counts()
         tm.assert_series_equal(
             result, Series([2], index=[np.dtype(bool)], name="count")
         )
 
-    @pytest.mark.parametrize("opname", ["eq", "ne", "gt", "lt", "ge", "le"])
-    def test_df_flex_cmp_constant_return_types_empty(self, opname):
+    def test_df_flex_cmp_constant_return_types_empty(self, comparison_op):
         # GH 15077 empty DataFrame
         df = DataFrame({"x": [1, 2, 3], "y": [1.0, 2.0, 3.0]})
         const = 2
 
         empty = df.iloc[:0]
-        result = getattr(empty, opname)(const).dtypes.value_counts()
+        result = getattr(empty, comparison_op.__name__)(const).dtypes.value_counts()
         tm.assert_series_equal(
             result, Series([2], index=[np.dtype(bool)], name="count")
         )
@@ -624,10 +624,12 @@ class TestFrameFlexArithmetic:
 
         # corner cases
         result = float_frame.add(float_frame[:0])
-        tm.assert_frame_equal(result, float_frame * np.nan)
+        expected = float_frame.sort_index() * np.nan
+        tm.assert_frame_equal(result, expected)
 
         result = float_frame[:0].add(float_frame)
-        tm.assert_frame_equal(result, float_frame * np.nan)
+        expected = float_frame.sort_index() * np.nan
+        tm.assert_frame_equal(result, expected)
 
         with pytest.raises(NotImplementedError, match="fill_value"):
             float_frame.add(float_frame.iloc[0], fill_value=3)
@@ -659,11 +661,12 @@ class TestFrameFlexArithmetic:
         tm.assert_frame_equal(df.div(row), df / row)
         tm.assert_frame_equal(df.div(col, axis=0), (df.T / col).T)
 
-    @pytest.mark.parametrize("dtype", ["int64", "float64"])
-    def test_arith_flex_series_broadcasting(self, dtype):
+    def test_arith_flex_series_broadcasting(self, any_real_numpy_dtype):
         # broadcasting issue in GH 7325
-        df = DataFrame(np.arange(3 * 2).reshape((3, 2)), dtype=dtype)
+        df = DataFrame(np.arange(3 * 2).reshape((3, 2)), dtype=any_real_numpy_dtype)
         expected = DataFrame([[np.nan, np.inf], [1.0, 1.5], [1.0, 1.25]])
+        if any_real_numpy_dtype == "float32":
+            expected = expected.astype(any_real_numpy_dtype)
         result = df.div(df[0], axis="index")
         tm.assert_frame_equal(result, expected)
 
@@ -887,15 +890,10 @@ class TestFrameArithmetic:
         tm.assert_frame_equal(result, expected)
 
     def test_df_arith_2d_array_rowlike_broadcasts(
-        self, request, all_arithmetic_operators, using_array_manager
+        self, request, all_arithmetic_operators
     ):
         # GH#23000
         opname = all_arithmetic_operators
-
-        if using_array_manager and opname in ("__rmod__", "__rfloordiv__"):
-            # TODO(ArrayManager) decide on dtypes
-            td.mark_array_manager_not_yet_implemented(request)
-
         arr = np.arange(6).reshape(3, 2)
         df = DataFrame(arr, columns=[True, False], index=["A", "B", "C"])
 
@@ -914,15 +912,10 @@ class TestFrameArithmetic:
         tm.assert_frame_equal(result, expected)
 
     def test_df_arith_2d_array_collike_broadcasts(
-        self, request, all_arithmetic_operators, using_array_manager
+        self, request, all_arithmetic_operators
     ):
         # GH#23000
         opname = all_arithmetic_operators
-
-        if using_array_manager and opname in ("__rmod__", "__rfloordiv__"):
-            # TODO(ArrayManager) decide on dtypes
-            td.mark_array_manager_not_yet_implemented(request)
-
         arr = np.arange(6).reshape(3, 2)
         df = DataFrame(arr, columns=[True, False], index=["A", "B", "C"])
 
@@ -1976,7 +1969,12 @@ def test_dataframe_blockwise_slicelike():
     "df, col_dtype",
     [
         (DataFrame([[1.0, 2.0], [4.0, 5.0]], columns=list("ab")), "float64"),
-        (DataFrame([[1.0, "b"], [4.0, "b"]], columns=list("ab")), "object"),
+        (
+            DataFrame([[1.0, "b"], [4.0, "b"]], columns=list("ab")).astype(
+                {"b": object}
+            ),
+            "object",
+        ),
     ],
 )
 def test_dataframe_operation_with_non_numeric_types(df, col_dtype):

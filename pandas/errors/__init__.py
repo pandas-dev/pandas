@@ -329,8 +329,6 @@ class DuplicateLabelError(ValueError):
     """
     Error raised when an operation would introduce duplicate labels.
 
-    .. versionadded:: 1.2.0
-
     Examples
     --------
     >>> s = pd.Series([0, 1, 2], index=['a', 'b', 'c']).set_flags(
@@ -427,7 +425,7 @@ class SettingWithCopyError(ValueError):
     --------
     >>> pd.options.mode.chained_assignment = 'raise'
     >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2]}, columns=['A'])
-    >>> df.loc[0:3]['A'] = 'a' # doctest: +SKIP
+    >>> df.loc[0:3]['A'] = 'a'  # doctest: +SKIP
     ... # SettingWithCopyError: A value is trying to be set on a copy of a...
     """
 
@@ -471,7 +469,7 @@ class ChainedAssignmentError(Warning):
     --------
     >>> pd.options.mode.copy_on_write = True
     >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2]}, columns=['A'])
-    >>> df["A"][0:3] = 10 # doctest: +SKIP
+    >>> df["A"][0:3] = 10  # doctest: +SKIP
     ... # ChainedAssignmentError: ...
     >>> pd.options.mode.copy_on_write = False
     """
@@ -534,7 +532,7 @@ _chained_assignment_warning_method_msg = (
 )
 
 
-def _check_cacher(obj):
+def _check_cacher(obj) -> bool:
     # This is a mess, selection paths that return a view set the _cacher attribute
     # on the Series; most of them also set _item_cache which adds 1 to our relevant
     # reference count, but iloc does not, so we have to check if we are actually
@@ -563,10 +561,10 @@ class NumExprClobberingError(NameError):
     Examples
     --------
     >>> df = pd.DataFrame({'abs': [1, 1, 1]})
-    >>> df.query("abs > 2") # doctest: +SKIP
+    >>> df.query("abs > 2")  # doctest: +SKIP
     ... # NumExprClobberingError: Variables in expression "(abs) > (2)" overlap...
     >>> sin, a = 1, 2
-    >>> pd.eval("sin + a", engine='numexpr') # doctest: +SKIP
+    >>> pd.eval("sin + a", engine='numexpr')  # doctest: +SKIP
     ... # NumExprClobberingError: Variables in expression "(sin) + (a)" overlap...
     """
 
@@ -667,8 +665,8 @@ class PossibleDataLossError(Exception):
 
     Examples
     --------
-    >>> store = pd.HDFStore('my-store', 'a') # doctest: +SKIP
-    >>> store.open("w") # doctest: +SKIP
+    >>> store = pd.HDFStore('my-store', 'a')  # doctest: +SKIP
+    >>> store.open("w")  # doctest: +SKIP
     ... # PossibleDataLossError: Re-opening the file [my-store] with mode [a]...
     """
 
@@ -679,9 +677,9 @@ class ClosedFileError(Exception):
 
     Examples
     --------
-    >>> store = pd.HDFStore('my-store', 'a') # doctest: +SKIP
-    >>> store.close() # doctest: +SKIP
-    >>> store.keys() # doctest: +SKIP
+    >>> store = pd.HDFStore('my-store', 'a')  # doctest: +SKIP
+    >>> store.close()  # doctest: +SKIP
+    >>> store.keys()  # doctest: +SKIP
     ... # ClosedFileError: my-store file is not open!
     """
 
@@ -736,7 +734,7 @@ class PossiblePrecisionLoss(Warning):
     Examples
     --------
     >>> df = pd.DataFrame({"s": pd.Series([1, 2**53], dtype=np.int64)})
-    >>> df.to_stata('test') # doctest: +SKIP
+    >>> df.to_stata('test')  # doctest: +SKIP
     ... # PossiblePrecisionLoss: Column converted from int64 to float64...
     """
 
@@ -748,7 +746,7 @@ class ValueLabelTypeMismatch(Warning):
     Examples
     --------
     >>> df = pd.DataFrame({"categories": pd.Series(["a", 2], dtype="category")})
-    >>> df.to_stata('test') # doctest: +SKIP
+    >>> df.to_stata('test')  # doctest: +SKIP
     ... # ValueLabelTypeMismatch: Stata value labels (pandas categories) must be str...
     """
 
@@ -775,9 +773,9 @@ class CategoricalConversionWarning(Warning):
     Examples
     --------
     >>> from pandas.io.stata import StataReader
-    >>> with StataReader('dta_file', chunksize=2) as reader: # doctest: +SKIP
-    ...   for i, block in enumerate(reader):
-    ...      print(i, block)
+    >>> with StataReader('dta_file', chunksize=2) as reader:  # doctest: +SKIP
+    ...     for i, block in enumerate(reader):
+    ...         print(i, block)
     ... # CategoricalConversionWarning: One or more series with value labels...
     """
 
