@@ -73,9 +73,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX03 --ignore_functions \
         pandas.Series.plot.line \
         pandas.Series.to_sql \
-        pandas.errors.DatabaseError \
-        pandas.errors.IndexingError \
-        pandas.errors.InvalidColumnName \
         pandas.errors.SettingWithCopyWarning \
         pandas.errors.SpecificationError \
         pandas.errors.UndefinedVariableError \
