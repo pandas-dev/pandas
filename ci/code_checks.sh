@@ -89,12 +89,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.to_sql \
         pandas.read_stata \
         pandas.plotting.scatter_matrix \
-        pandas.Index.rename \
         pandas.Index.droplevel \
-        pandas.Index.isin \
         pandas.MultiIndex.names \
         pandas.MultiIndex.droplevel \
-        pandas.IndexSlice \
         pandas.Grouper \
         pandas.io.formats.style.Styler.map \
         pandas.io.formats.style.Styler.apply_index \
