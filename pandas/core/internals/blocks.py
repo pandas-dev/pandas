@@ -122,7 +122,10 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexers import check_setitem_lengths
+from pandas.core.indexers import (
+    check_array_indexer,
+    check_setitem_lengths,
+)
 from pandas.core.indexes.base import get_values_for_csv
 
 if TYPE_CHECKING:
@@ -2051,6 +2054,8 @@ class EABackedBlock(Block):
             # TODO(GH#45419): string[pyarrow] tests break if we transpose
             #  unconditionally
             values = values.T
+
+        check_array_indexer(self, indexer)
         check_setitem_lengths(indexer, value, values)
 
         try:
