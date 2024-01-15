@@ -7209,6 +7209,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             equal type (e.g. float64 to int64 if possible).
 
             .. deprecated:: 2.2.0
+
         Returns
         -------
         {klass} or None
@@ -7545,6 +7546,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             equal type (e.g. float64 to int64 if possible).
 
             .. deprecated:: 2.2.0
+
         Returns
         -------
         {klass} or None
@@ -7737,6 +7739,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             equal type (e.g. float64 to int64 if possible).
 
             .. deprecated:: 2.2.0
+
         Returns
         -------
         {klass} or None
