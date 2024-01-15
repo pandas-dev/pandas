@@ -3021,7 +3021,7 @@ Biomedical and Life Science Jorurnals:
    ...    "s3://pmc-oa-opendata/oa_comm/xml/all/PMC1236943.xml",
    ...    xpath=".//journal-meta",
    ...)
-   >>> df.head(1)
+   >>> df
          journal-id  journal-title  issn  publisher
    0 Cardiovasc Ultrasound Cardiovascular Ultrasound 1476-7120 NaN
 
