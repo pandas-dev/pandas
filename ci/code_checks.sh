@@ -79,7 +79,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.SettingWithCopyWarning \
         pandas.errors.SpecificationError \
         pandas.errors.UndefinedVariableError \
-        pandas.ExcelWriter \
         pandas.read_json \
         pandas.io.json.build_table_schema \
         pandas.io.formats.style.Styler.to_latex \
@@ -87,21 +86,14 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.to_sql \
         pandas.read_stata \
         pandas.plotting.scatter_matrix \
-        pandas.Index.rename \
         pandas.Index.droplevel \
-        pandas.Index.isin \
         pandas.MultiIndex.names \
         pandas.MultiIndex.droplevel \
-        pandas.IndexSlice \
         pandas.Grouper \
         pandas.io.formats.style.Styler.map \
         pandas.io.formats.style.Styler.apply_index \
         pandas.io.formats.style.Styler.map_index \
         pandas.io.formats.style.Styler.format \
-        pandas.io.formats.style.Styler.format_index \
-        pandas.io.formats.style.Styler.relabel_index \
-        pandas.io.formats.style.Styler.hide \
-        pandas.io.formats.style.Styler.set_td_classes \
         pandas.io.formats.style.Styler.set_tooltips \
         pandas.io.formats.style.Styler.set_uuid \
         pandas.io.formats.style.Styler.pipe \
@@ -111,9 +103,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.io.formats.style.Styler.text_gradient \
         pandas.DataFrame.values \
         pandas.DataFrame.groupby \
-        pandas.DataFrame.idxmax \
-        pandas.DataFrame.idxmin \
-        pandas.DataFrame.pivot \
         pandas.DataFrame.sort_values \
         pandas.DataFrame.plot.hexbin \
         pandas.DataFrame.plot.line \
