@@ -9,7 +9,6 @@ from functools import partial
 import operator
 from typing import (
     TYPE_CHECKING,
-    Any,
     Callable,
     overload,
 )
@@ -66,15 +65,20 @@ if TYPE_CHECKING:
     from matplotlib.colors import Colormap
 
     from pandas._typing import (
+        Any,
         Axis,
         AxisInt,
+        Concatenate,
         FilePath,
         IndexLabel,
         IntervalClosedType,
         Level,
+        P,
         QuantileInterpolation,
         Scalar,
+        Self,
         StorageOptions,
+        T,
         WriteBuffer,
         WriteExcelBuffer,
     )
@@ -3614,7 +3618,30 @@ class Styler(StylerRenderer):
 
         return MyStyler
 
-    def pipe(self, func: Callable, *args, **kwargs):
+    @overload
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T:
+        ...
+
+    @overload
+    def pipe(
+        self,
+        func: tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
+        ...
+
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
         """
         Apply ``func(self, *args, **kwargs)``, and return the result.
 
