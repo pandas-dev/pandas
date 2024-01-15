@@ -216,7 +216,7 @@ if pa_version_under10p1:
         f"""
 Pyarrow will become a future required dependency of pandas,
 but was not found to be installed on your system.
-(or was too old-pyarrow {VERSIONS['pyarrow']}
+(or was too old - pyarrow {VERSIONS['pyarrow']}
 is the current minimum supported version as of this release)
 If this would cause problems for you,
 please provide us feedback at https://github.com/pandas-dev/pandas/issues/54466
