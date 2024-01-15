@@ -6,8 +6,8 @@ import re
 from typing import (
     TYPE_CHECKING,
     Callable,
-    cast,
     Union,
+    cast,
 )
 import warnings
 

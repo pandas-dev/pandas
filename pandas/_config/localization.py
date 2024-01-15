@@ -10,7 +10,10 @@ import locale
 import platform
 import re
 import subprocess
-from typing import TYPE_CHECKING, cast
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 from pandas._config.config import options
 

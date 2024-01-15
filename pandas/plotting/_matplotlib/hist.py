@@ -42,8 +42,8 @@ from pandas.plotting._matplotlib.tools import (
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.container import BarContainer
-    from matplotlib.patches import Polygon
     from matplotlib.figure import Figure
+    from matplotlib.patches import Polygon
 
     from pandas._typing import PlottingOrientation
 
