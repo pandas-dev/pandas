@@ -77,6 +77,7 @@ class BaseReduceTests:
 
         tm.assert_extension_array_equal(result1, expected)
 
+    @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_boolean(self, data, all_boolean_reductions, skipna):
         op_name = all_boolean_reductions
         ser = pd.Series(data)
@@ -95,6 +96,7 @@ class BaseReduceTests:
             self.check_reduce(ser, op_name, skipna)
 
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
+    @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
         op_name = all_numeric_reductions
         ser = pd.Series(data)
@@ -113,6 +115,7 @@ class BaseReduceTests:
             # min/max with empty produce numpy warnings
             self.check_reduce(ser, op_name, skipna)
 
+    @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_frame(self, data, all_numeric_reductions, skipna):
         op_name = all_numeric_reductions
         ser = pd.Series(data)

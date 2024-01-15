@@ -134,6 +134,7 @@ class TestCategorical(base.ExtensionTests):
         expected = pd.Series([a + val for a in list(orig_data1)])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data, na_action):
         result = data.map(lambda x: x, na_action=na_action)
         tm.assert_extension_array_equal(result, data)
@@ -174,6 +175,7 @@ class TestCategorical(base.ExtensionTests):
         super().test_array_repr(data, size)
 
     @pytest.mark.xfail(reason="TBD")
+    @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         super().test_groupby_extension_agg(as_index, data_for_grouping)
 
