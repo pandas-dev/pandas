@@ -38,6 +38,7 @@ def scatter_matrix(
     ax=None,
     grid: bool = False,
     diagonal: str = "hist",
+    nondiagonal: str = "scatter",
     marker: str = ".",
     density_kwds=None,
     hist_kwds=None,
@@ -93,9 +94,14 @@ def scatter_matrix(
             else:
                 common = (mask[a] & mask[b]).values
 
-                ax.scatter(
-                    df[b][common], df[a][common], marker=marker, alpha=alpha, **kwds
-                )
+                if nondiagonal == "scatter":
+                    ax.scatter(
+                        df[b][common], df[a][common], marker=marker, alpha=alpha, **kwds
+                    )
+                elif nondiagonal == "hexbin":
+                    ax.hexbin(
+                        df[b][common], df[a][common], alpha=alpha, **kwds
+                    )
 
                 ax.set_xlim(boundaries_list[j])
                 ax.set_ylim(boundaries_list[i])

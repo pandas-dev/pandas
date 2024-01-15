@@ -159,6 +159,7 @@ def scatter_matrix(
     ax: Axes | None = None,
     grid: bool = False,
     diagonal: str = "hist",
+    nondiagonal: str = "scatter",
     marker: str = ".",
     density_kwds: Mapping[str, Any] | None = None,
     hist_kwds: Mapping[str, Any] | None = None,
@@ -181,6 +182,9 @@ def scatter_matrix(
     diagonal : {'hist', 'kde'}
         Pick between 'kde' and 'hist' for either Kernel Density Estimation or
         Histogram plot in the diagonal.
+    nondiagonal : {'scatter', 'hexbin'}
+        Pick between 'scatter' and 'hexbin' for either scatter or
+        2D hexagonal binning plot in the diagonal.
     marker : str, optional
         Matplotlib marker type, default '.'.
     density_kwds : keywords
@@ -224,6 +228,7 @@ def scatter_matrix(
         ax=ax,
         grid=grid,
         diagonal=diagonal,
+        nondiagonal=nondiagonal,
         marker=marker,
         density_kwds=density_kwds,
         hist_kwds=hist_kwds,

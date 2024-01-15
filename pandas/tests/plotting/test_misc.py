@@ -196,6 +196,17 @@ class TestDataFramePlots:
         _check_text_labels(axes0_labels, expected)
         _check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
+    @pytest.mark.parametrize("nondiagonal", ["scatter", "hexbin"])
+    def test_scatter_matrix_nondiagonal(self, nondiagonal):
+        pytest.importorskip("scipy")
+        scatter_matrix = plotting.scatter_matrix
+        df = DataFrame(np.random.default_rng(2).standard_normal((100, 3)))
+        _check_plot_works(
+            scatter_matrix,
+            frame=df,
+            nondiagonal=nondiagonal,
+        )
+
     @pytest.mark.slow
     def test_andrews_curves_no_warning(self, iris):
         from pandas.plotting import andrews_curves
