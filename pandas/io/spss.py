@@ -47,7 +47,7 @@ def read_spss(
           DataFrame.
 
         .. versionadded:: 2.0
-    kwargs
+    kwargs : dict, optional
         Additional keyword arguments passed to :func:`pyreadstat.read_sav`.
 
     Returns
