@@ -7187,6 +7187,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
 
+            .. deprecated:: 2.2.0
+
         Returns
         -------
         {klass} or None
@@ -7522,6 +7524,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
 
+            .. deprecated:: 2.2.0
+
         Returns
         -------
         {klass} or None
@@ -7712,6 +7716,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
+
+            .. deprecated:: 2.2.0
 
         Returns
         -------
