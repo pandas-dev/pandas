@@ -295,7 +295,7 @@ def wide_to_long(
     ...                    "B1970" : {0 : 2.5, 1 : 1.2, 2 : .7},
     ...                    "B1980" : {0 : 3.2, 1 : 1.3, 2 : .1},
     ...                    "X"     : dict(zip(range(3), np.random.randn(3)))
-    ...                   })
+    ...                    })
     >>> df["id"] = df.index
     >>> df
       A1970 A1980  B1970  B1980         X  id
@@ -332,8 +332,8 @@ def wide_to_long(
     6      3      1  2.2  3.3
     7      3      2  2.3  3.4
     8      3      3  2.1  2.9
-    >>> l = pd.wide_to_long(df, stubnames='ht', i=['famid', 'birth'], j='age')
-    >>> l
+    >>> long_format = pd.wide_to_long(df, stubnames='ht', i=['famid', 'birth'], j='age')
+    >>> long_format
     ... # doctest: +NORMALIZE_WHITESPACE
                       ht
     famid birth age
@@ -358,9 +358,9 @@ def wide_to_long(
 
     Going from long back to wide just takes some creative use of `unstack`
 
-    >>> w = l.unstack()
-    >>> w.columns = w.columns.map('{0[0]}{0[1]}'.format)
-    >>> w.reset_index()
+    >>> wide_format = long_format.unstack()
+    >>> wide_format.columns = wide_format.columns.map('{0[0]}{0[1]}'.format)
+    >>> wide_format.reset_index()
        famid  birth  ht1  ht2
     0      1      1  2.8  3.4
     1      1      2  2.9  3.8
@@ -381,7 +381,7 @@ def wide_to_long(
     ...                    'B(weekly)-2011': np.random.rand(3),
     ...                    'X' : np.random.randint(3, size=3)})
     >>> df['id'] = df.index
-    >>> df # doctest: +NORMALIZE_WHITESPACE, +ELLIPSIS
+    >>> df  # doctest: +NORMALIZE_WHITESPACE, +ELLIPSIS
        A(weekly)-2010  A(weekly)-2011  B(weekly)-2010  B(weekly)-2011  X  id
     0        0.548814        0.544883        0.437587        0.383442  0   0
     1        0.715189        0.423655        0.891773        0.791725  1   1
@@ -430,9 +430,9 @@ def wide_to_long(
     7      3      2     2.3     3.4
     8      3      3     2.1     2.9
 
-    >>> l = pd.wide_to_long(df, stubnames='ht', i=['famid', 'birth'], j='age',
-    ...                     sep='_', suffix=r'\w+')
-    >>> l
+    >>> long_format = pd.wide_to_long(df, stubnames='ht', i=['famid', 'birth'], j='age',
+    ...                               sep='_', suffix=r'\w+')
+    >>> long_format
     ... # doctest: +NORMALIZE_WHITESPACE
                       ht
     famid birth age
