@@ -12592,7 +12592,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df2 = pd.DataFrame([('parrot', 24.0, 'second'),
         ...                     ('lion', 80.5, 1),
         ...                     ('monkey', np.nan, None)],
-        ...                     columns=('name', 'max_speed', 'rank'))
+        ...                    columns=('name', 'max_speed', 'rank'))
         >>> df2.dtypes
         name          object
         max_speed    float64
