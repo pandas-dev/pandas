@@ -80,16 +80,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.SpecificationError \
         pandas.errors.UndefinedVariableError \
         pandas.read_json \
-        pandas.io.json.build_table_schema \
         pandas.io.formats.style.Styler.to_latex \
         pandas.read_parquet \
         pandas.DataFrame.to_sql \
-        pandas.read_stata \
-        pandas.plotting.scatter_matrix \
-        pandas.Index.droplevel \
-        pandas.MultiIndex.names \
-        pandas.MultiIndex.droplevel \
-        pandas.Grouper \
         pandas.io.formats.style.Styler.map \
         pandas.io.formats.style.Styler.apply_index \
         pandas.io.formats.style.Styler.map_index \
