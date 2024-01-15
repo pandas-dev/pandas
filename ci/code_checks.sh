@@ -82,24 +82,14 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timestamp.ceil \
         pandas.Timestamp.floor \
         pandas.Timestamp.round \
-        pandas.ExcelWriter \
         pandas.read_json \
         pandas.io.formats.style.Styler.to_latex \
         pandas.read_parquet \
         pandas.DataFrame.to_sql \
-        pandas.Index.rename \
-        pandas.Index.isin \
-        pandas.MultiIndex.names \
-        pandas.MultiIndex.droplevel \
-        pandas.IndexSlice \
         pandas.io.formats.style.Styler.map \
         pandas.io.formats.style.Styler.apply_index \
         pandas.io.formats.style.Styler.map_index \
         pandas.io.formats.style.Styler.format \
-        pandas.io.formats.style.Styler.format_index \
-        pandas.io.formats.style.Styler.relabel_index \
-        pandas.io.formats.style.Styler.hide \
-        pandas.io.formats.style.Styler.set_td_classes \
         pandas.io.formats.style.Styler.set_tooltips \
         pandas.io.formats.style.Styler.set_uuid \
         pandas.io.formats.style.Styler.pipe \
@@ -109,9 +99,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.io.formats.style.Styler.text_gradient \
         pandas.DataFrame.values \
         pandas.DataFrame.groupby \
-        pandas.DataFrame.idxmax \
-        pandas.DataFrame.idxmin \
-        pandas.DataFrame.pivot \
         pandas.DataFrame.sort_values \
         pandas.DataFrame.plot.hexbin \
         pandas.DataFrame.plot.line \
