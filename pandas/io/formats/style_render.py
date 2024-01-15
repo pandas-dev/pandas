@@ -1318,9 +1318,10 @@ class StylerRenderer:
         Using the default ``formatter`` for unspecified levels
 
         >>> df = pd.DataFrame([[1, 2, 3]],
-        ...     columns=pd.MultiIndex.from_arrays([["a", "a", "b"],[2, np.nan, 4]]))
+        ...                   columns=pd.MultiIndex.from_arrays(
+        ...                   [["a", "a", "b"], [2, np.nan, 4]]))
         >>> df.style.format_index({0: lambda v: v.upper()}, axis=1, precision=1)
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
                        A       B
               2.0    nan     4.0
         0       1      2       3
@@ -1329,7 +1330,7 @@ class StylerRenderer:
 
         >>> func = lambda s: 'STRING' if isinstance(s, str) else 'FLOAT'
         >>> df.style.format_index(func, axis=1, na_rep='MISS')
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
                   STRING  STRING
             FLOAT   MISS   FLOAT
         0       1      2       3
@@ -1338,7 +1339,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame([[1, 2, 3]], columns=['"A"', 'A&B', None])
         >>> s = df.style.format_index('$ {0}', axis=1, escape="html", na_rep="NA")
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
         <th .. >$ &#34;A&#34;</th>
         <th .. >$ A&amp;B</th>
         <th .. >NA</td>
@@ -1348,7 +1349,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame([[1, 2, 3]], columns=["123", "~", "$%#"])
         >>> df.style.format_index("\\textbf{{{}}}", escape="latex", axis=1).to_latex()
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
         \begin{tabular}{lrrr}
         {} & {\textbf{123}} & {\textbf{\textasciitilde }} & {\textbf{\$\%\#}} \\
         0 & 1 & 2 & 3 \\

@@ -935,7 +935,7 @@ class ExcelWriter(Generic[_WorkbookT]):
       is installed otherwise `openpyxl <https://pypi.org/project/openpyxl/>`__
     * `odswriter <https://pypi.org/project/odswriter/>`__ for ods files
 
-    See ``DataFrame.to_excel`` for typical usage.
+    See :meth:`DataFrame.to_excel` for typical usage.
 
     The writer should be used as a context manager. Otherwise, call `close()` to save
     and close any opened file handles.
@@ -1031,7 +1031,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     Here, the `if_sheet_exists` parameter can be set to replace a sheet if it
     already exists:
 
-    >>> with ExcelWriter(
+    >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     mode="a",
     ...     engine="openpyxl",

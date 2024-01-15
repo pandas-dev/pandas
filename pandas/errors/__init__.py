@@ -609,6 +609,17 @@ class IndexingError(Exception):
     """
     Exception is raised when trying to index and there is a mismatch in dimensions.
 
+    Raised by properties like :attr:`.pandas.DataFrame.iloc` when
+    an indexer is out of bounds or :attr:`.pandas.DataFrame.loc` when its index is
+    unalignable to the frame index.
+
+    See Also
+    --------
+    DataFrame.iloc : Purely integer-location based indexing for \
+    selection by position.
+    DataFrame.loc : Access a group of rows and columns by label(s) \
+    or a boolean array.
+
     Examples
     --------
     >>> df = pd.DataFrame({"A": [1, 1, 1]})
@@ -676,7 +687,6 @@ class PossibleDataLossError(Exception):
     --------
     >>> store = pd.HDFStore("my-store", "a")  # doctest: +SKIP
     >>> store.open("w")  # doctest: +SKIP
-    ... # PossibleDataLossError: Re-opening the file [my-store] with mode [a]...
     """
 
 
@@ -722,14 +732,19 @@ class AttributeConflictWarning(Warning):
 
 class DatabaseError(OSError):
     """
-    Error is raised when executing sql with bad syntax or sql that throws an error.
+    Error is raised when executing SQL with bad syntax or SQL that throws an error.
+
+    Raised by :func:`.pandas.read_sql` when a bad SQL statement is passed in.
+
+    See Also
+    --------
+    read_sql : Read SQL query or database table into a DataFrame.
 
     Examples
     --------
     >>> from sqlite3 import connect
     >>> conn = connect(":memory:")
     >>> pd.read_sql("select * test", conn)  # doctest: +SKIP
-    ... # DatabaseError: Execution failed on sql 'test': near "test": syntax error
     """
 
 
@@ -744,7 +759,6 @@ class PossiblePrecisionLoss(Warning):
     --------
     >>> df = pd.DataFrame({"s": pd.Series([1, 2**53], dtype=np.int64)})
     >>> df.to_stata("test")  # doctest: +SKIP
-    ... # PossiblePrecisionLoss: Column converted from int64 to float64...
     """
 
 
@@ -756,7 +770,6 @@ class ValueLabelTypeMismatch(Warning):
     --------
     >>> df = pd.DataFrame({"categories": pd.Series(["a", 2], dtype="category")})
     >>> df.to_stata("test")  # doctest: +SKIP
-    ... # ValueLabelTypeMismatch: Stata value labels (pandas categories) must be str...
     """
 
 
@@ -767,11 +780,14 @@ class InvalidColumnName(Warning):
     Because the column name is an invalid Stata variable, the name needs to be
     converted.
 
+    See Also
+    --------
+    DataFrame.to_stata : Export DataFrame object to Stata dta format.
+
     Examples
     --------
     >>> df = pd.DataFrame({"0categories": pd.Series([2, 2])})
     >>> df.to_stata("test")  # doctest: +SKIP
-    ... # InvalidColumnName: Not all pandas column names were valid Stata variable...
     """
 
 
