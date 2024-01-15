@@ -76,13 +76,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.DatabaseError \
         pandas.errors.IndexingError \
         pandas.errors.InvalidColumnName \
-        pandas.errors.PossibleDataLossError \
-        pandas.errors.PossiblePrecisionLoss \
-        pandas.errors.SettingWithCopyError \
         pandas.errors.SettingWithCopyWarning \
         pandas.errors.SpecificationError \
         pandas.errors.UndefinedVariableError \
-        pandas.errors.ValueLabelTypeMismatch \
         pandas.Timestamp.ceil \
         pandas.Timestamp.floor \
         pandas.Timestamp.round \
@@ -91,10 +87,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.io.formats.style.Styler.to_latex \
         pandas.read_parquet \
         pandas.DataFrame.to_sql \
-        pandas.core.resample.Resampler.interpolate \
-        pandas.pivot \
-        pandas.merge_asof \
-        pandas.wide_to_long \
         pandas.Index.rename \
         pandas.Index.isin \
         pandas.MultiIndex.names \
