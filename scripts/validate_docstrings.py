@@ -392,9 +392,6 @@ def print_validate_one_results(func_name: str) -> None:
     if result["errors"]:
         sys.stderr.write(f'{len(result["errors"])} Errors found for `{func_name}`:\n')
         for err_code, err_desc in result["errors"]:
-            if err_code == "EX02":  # Failing examples are printed at the end
-                sys.stderr.write("\tExamples do not pass tests\n")
-                continue
             sys.stderr.write(f"\t{err_code}\t{err_desc}\n")
     else:
         sys.stderr.write(f'Docstring for "{func_name}" correct. :)\n')
