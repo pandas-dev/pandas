@@ -605,9 +605,9 @@ class IndexingError(Exception):
 
     See Also
     --------
-    :attr:`.pandas.DataFrame.iloc` : Purely integer-location based indexing for \
+    DataFrame.iloc : Purely integer-location based indexing for \
     selection by position.
-    :attr:`.pandas.DataFrame.loc` : Access a group of rows and columns by label(s) \
+    DataFrame.loc : Access a group of rows and columns by label(s) \
     or a boolean array.
 
     Examples
@@ -730,7 +730,7 @@ class DatabaseError(OSError):
 
     See Also
     --------
-    :func:`.pandas.read_sql` : Read SQL query or database table into a DataFrame.
+    read_sql : Read SQL query or database table into a DataFrame.
 
     Examples
     --------
@@ -777,7 +777,7 @@ class InvalidColumnName(Warning):
 
     See Also
     --------
-    :meth:`.pandas.DataFrame.to_stata` : Export DataFrame object to Stata dta format.
+    DataFrame.to_stata : Export DataFrame object to Stata dta format.
 
     Examples
     --------
