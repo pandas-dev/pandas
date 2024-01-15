@@ -73,43 +73,27 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX03 --ignore_functions \
         pandas.Series.plot.line \
         pandas.Series.to_sql \
-        pandas.errors.PossibleDataLossError \
-        pandas.errors.PossiblePrecisionLoss \
-        pandas.errors.SettingWithCopyError \
         pandas.errors.SettingWithCopyWarning \
         pandas.errors.SpecificationError \
         pandas.errors.UndefinedVariableError \
-        pandas.errors.ValueLabelTypeMismatch \
         pandas.Timestamp.ceil \
         pandas.Timestamp.floor \
         pandas.Timestamp.round \
-        pandas.ExcelWriter \
         pandas.read_json \
         pandas.io.json.build_table_schema \
         pandas.io.formats.style.Styler.to_latex \
         pandas.read_parquet \
         pandas.DataFrame.to_sql \
         pandas.read_stata \
-        pandas.core.resample.Resampler.interpolate \
         pandas.plotting.scatter_matrix \
-        pandas.pivot \
-        pandas.merge_asof \
-        pandas.wide_to_long \
-        pandas.Index.rename \
         pandas.Index.droplevel \
-        pandas.Index.isin \
         pandas.MultiIndex.names \
         pandas.MultiIndex.droplevel \
-        pandas.IndexSlice \
         pandas.Grouper \
         pandas.io.formats.style.Styler.map \
         pandas.io.formats.style.Styler.apply_index \
         pandas.io.formats.style.Styler.map_index \
         pandas.io.formats.style.Styler.format \
-        pandas.io.formats.style.Styler.format_index \
-        pandas.io.formats.style.Styler.relabel_index \
-        pandas.io.formats.style.Styler.hide \
-        pandas.io.formats.style.Styler.set_td_classes \
         pandas.io.formats.style.Styler.set_tooltips \
         pandas.io.formats.style.Styler.set_uuid \
         pandas.io.formats.style.Styler.pipe \
@@ -119,9 +103,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.io.formats.style.Styler.text_gradient \
         pandas.DataFrame.values \
         pandas.DataFrame.groupby \
-        pandas.DataFrame.idxmax \
-        pandas.DataFrame.idxmin \
-        pandas.DataFrame.pivot \
         pandas.DataFrame.sort_values \
         pandas.DataFrame.plot.hexbin \
         pandas.DataFrame.plot.line \

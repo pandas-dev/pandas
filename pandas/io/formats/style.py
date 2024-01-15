@@ -9,7 +9,6 @@ from functools import partial
 import operator
 from typing import (
     TYPE_CHECKING,
-    Any,
     Callable,
     overload,
 )
@@ -66,15 +65,20 @@ if TYPE_CHECKING:
     from matplotlib.colors import Colormap
 
     from pandas._typing import (
+        Any,
         Axis,
         AxisInt,
+        Concatenate,
         FilePath,
         IndexLabel,
         IntervalClosedType,
         Level,
+        P,
         QuantileInterpolation,
         Scalar,
+        Self,
         StorageOptions,
+        T,
         WriteBuffer,
         WriteExcelBuffer,
     )
@@ -1496,10 +1500,10 @@ class Styler(StylerRenderer):
         Using `MultiIndex` columns and a `classes` `DataFrame` as a subset of the
         underlying,
 
-        >>> df = pd.DataFrame([[1,2],[3,4]], index=["a", "b"],
-        ...     columns=[["level0", "level0"], ["level1a", "level1b"]])
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], index=["a", "b"],
+        ...                   columns=[["level0", "level0"], ["level1a", "level1b"]])
         >>> classes = pd.DataFrame(["min-val"], index=["a"],
-        ...     columns=[["level0"],["level1a"]])
+        ...                        columns=[["level0"], ["level1a"]])
         >>> df.style.set_td_classes(classes)  # doctest: +SKIP
 
         Form of the output with new additional css classes,
@@ -2717,7 +2721,7 @@ class Styler(StylerRenderer):
         --------
         Simple application hiding specific rows:
 
-        >>> df = pd.DataFrame([[1,2], [3,4], [5,6]], index=["a", "b", "c"])
+        >>> df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], index=["a", "b", "c"])
         >>> df.style.hide(["a", "b"])  # doctest: +SKIP
              0    1
         c    5    6
@@ -2725,7 +2729,7 @@ class Styler(StylerRenderer):
         Hide the index and retain the data values:
 
         >>> midx = pd.MultiIndex.from_product([["x", "y"], ["a", "b", "c"]])
-        >>> df = pd.DataFrame(np.random.randn(6,6), index=midx, columns=midx)
+        >>> df = pd.DataFrame(np.random.randn(6, 6), index=midx, columns=midx)
         >>> df.style.format("{:.1f}").hide()  # doctest: +SKIP
                          x                    y
            a      b      c      a      b      c
@@ -2739,7 +2743,7 @@ class Styler(StylerRenderer):
         Hide specific rows in a MultiIndex but retain the index:
 
         >>> df.style.format("{:.1f}").hide(subset=(slice(None), ["a", "c"]))
-        ...   # doctest: +SKIP
+        ... # doctest: +SKIP
                                  x                    y
                    a      b      c      a      b      c
         x   b    0.7    1.0    1.3    1.5   -0.0   -0.2
@@ -2748,7 +2752,7 @@ class Styler(StylerRenderer):
         Hide specific rows and the index through chaining:
 
         >>> df.style.format("{:.1f}").hide(subset=(slice(None), ["a", "c"])).hide()
-        ...   # doctest: +SKIP
+        ... # doctest: +SKIP
                          x                    y
            a      b      c      a      b      c
          0.7    1.0    1.3    1.5   -0.0   -0.2
@@ -3614,7 +3618,30 @@ class Styler(StylerRenderer):
 
         return MyStyler
 
-    def pipe(self, func: Callable, *args, **kwargs):
+    @overload
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T:
+        ...
+
+    @overload
+    def pipe(
+        self,
+        func: tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
+        ...
+
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
         """
         Apply ``func(self, *args, **kwargs)``, and return the result.
 
