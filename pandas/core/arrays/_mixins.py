@@ -305,7 +305,12 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         func(self._ndarray.T, limit=limit, mask=mask.T)
 
     def _pad_or_backfill(
-        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
     ) -> Self:
         mask = self.isna()
         if mask.any():
@@ -315,7 +320,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             npvalues = self._ndarray.T
             if copy:
                 npvalues = npvalues.copy()
-            func(npvalues, limit=limit, mask=mask.T)
+            func(npvalues, limit=limit, limit_area=limit_area, mask=mask.T)
             npvalues = npvalues.T
 
             if copy:
@@ -342,7 +347,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         # error: Argument 2 to "check_value_size" has incompatible type
         # "ExtensionArray"; expected "ndarray"
         value = missing.check_value_size(
-            value, mask, len(self)  # type: ignore[arg-type]
+            value,
+            mask,  # type: ignore[arg-type]
+            len(self),
         )
 
         if mask.any():

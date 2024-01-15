@@ -16,6 +16,11 @@ from pandas import (
 )
 
 
+@pytest.fixture
+def index_or_series2(index_or_series):
+    return index_or_series
+
+
 @pytest.mark.parametrize("other", [None, Series, Index])
 def test_str_cat_name(index_or_series, other):
     # GH 21053
@@ -270,14 +275,13 @@ def test_str_cat_mixed_inputs(index_or_series):
         s.str.cat(iter([t.values, list(s)]))
 
 
-@pytest.mark.parametrize("join", ["left", "outer", "inner", "right"])
-def test_str_cat_align_indexed(index_or_series, join):
+def test_str_cat_align_indexed(index_or_series, join_type):
     # https://github.com/pandas-dev/pandas/issues/18657
     box = index_or_series
 
     s = Series(["a", "b", "c", "d"], index=["a", "b", "c", "d"])
     t = Series(["D", "A", "E", "B"], index=["d", "a", "e", "b"])
-    sa, ta = s.align(t, join=join)
+    sa, ta = s.align(t, join=join_type)
     # result after manual alignment of inputs
     expected = sa.str.cat(ta, na_rep="-")
 
@@ -286,25 +290,24 @@ def test_str_cat_align_indexed(index_or_series, join):
         sa = Index(sa)
         expected = Index(expected)
 
-    result = s.str.cat(t, join=join, na_rep="-")
+    result = s.str.cat(t, join=join_type, na_rep="-")
     tm.assert_equal(result, expected)
 
 
-@pytest.mark.parametrize("join", ["left", "outer", "inner", "right"])
-def test_str_cat_align_mixed_inputs(join):
+def test_str_cat_align_mixed_inputs(join_type):
     s = Series(["a", "b", "c", "d"])
     t = Series(["d", "a", "e", "b"], index=[3, 0, 4, 1])
     d = concat([t, t], axis=1)
 
     expected_outer = Series(["aaa", "bbb", "c--", "ddd", "-ee"])
-    expected = expected_outer.loc[s.index.join(t.index, how=join)]
+    expected = expected_outer.loc[s.index.join(t.index, how=join_type)]
 
     # list of Series
-    result = s.str.cat([t, t], join=join, na_rep="-")
+    result = s.str.cat([t, t], join=join_type, na_rep="-")
     tm.assert_series_equal(result, expected)
 
     # DataFrame
-    result = s.str.cat(d, join=join, na_rep="-")
+    result = s.str.cat(d, join=join_type, na_rep="-")
     tm.assert_series_equal(result, expected)
 
     # mixed list of indexed/unindexed
@@ -313,19 +316,19 @@ def test_str_cat_align_mixed_inputs(join):
     # joint index of rhs [t, u]; u will be forced have index of s
     rhs_idx = (
         t.index.intersection(s.index)
-        if join == "inner"
+        if join_type == "inner"
         else t.index.union(s.index)
-        if join == "outer"
+        if join_type == "outer"
         else t.index.append(s.index.difference(t.index))
     )
 
-    expected = expected_outer.loc[s.index.join(rhs_idx, how=join)]
-    result = s.str.cat([t, u], join=join, na_rep="-")
+    expected = expected_outer.loc[s.index.join(rhs_idx, how=join_type)]
+    result = s.str.cat([t, u], join=join_type, na_rep="-")
     tm.assert_series_equal(result, expected)
 
     with pytest.raises(TypeError, match="others must be Series,.*"):
         # nested lists are forbidden
-        s.str.cat([t, list(u)], join=join)
+        s.str.cat([t, list(u)], join=join_type)
 
     # errors for incorrect lengths
     rgx = r"If `others` contains arrays or lists \(or other list-likes.*"
@@ -333,11 +336,11 @@ def test_str_cat_align_mixed_inputs(join):
 
     # unindexed object of wrong length
     with pytest.raises(ValueError, match=rgx):
-        s.str.cat(z, join=join)
+        s.str.cat(z, join=join_type)
 
     # unindexed object of wrong length in list
     with pytest.raises(ValueError, match=rgx):
-        s.str.cat([t, z], join=join)
+        s.str.cat([t, z], join=join_type)
 
 
 def test_str_cat_all_na(index_or_series, index_or_series2):

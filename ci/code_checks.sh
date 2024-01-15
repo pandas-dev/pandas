@@ -16,12 +16,18 @@
 
 set -uo pipefail
 
-[[ -z "$1" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "single-docs" || "$1" == "notebooks" ]] || \
+if [[ -v 1 ]]; then
+    CHECK=$1
+else
+    # script will fail if it uses an unset variable (i.e. $1 is not provided)
+    CHECK=""
+fi
+
+[[ -z "$CHECK" || "$CHECK" == "code" || "$CHECK" == "doctests" || "$CHECK" == "docstrings" || "$CHECK" == "single-docs" || "$CHECK" == "notebooks" ]] || \
     { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings|single-docs|notebooks]"; exit 9999; }
 
 BASE_DIR="$(dirname $0)/.."
 RET=0
-CHECK=$1
 
 ### CODE ###
 if [[ -z "$CHECK" || "$CHECK" == "code" ]]; then
@@ -145,10 +151,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.io.formats.style.Styler.background_gradient \
         pandas.io.formats.style.Styler.text_gradient \
         pandas.DataFrame.values \
-        pandas.DataFrame.loc \
-        pandas.DataFrame.iloc \
         pandas.DataFrame.groupby \
-        pandas.DataFrame.describe \
         pandas.DataFrame.skew \
         pandas.DataFrame.var \
         pandas.DataFrame.idxmax \

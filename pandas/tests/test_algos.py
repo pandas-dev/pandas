@@ -63,7 +63,6 @@ class TestFactorize:
         expected_uniques = np.array([(1 + 0j), (2 + 0j), (2 + 1j)], dtype=object)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
-    @pytest.mark.parametrize("sort", [True, False])
     def test_factorize(self, index_or_series_obj, sort):
         obj = index_or_series_obj
         result_codes, result_uniques = obj.factorize(sort=sort)
@@ -354,7 +353,6 @@ class TestFactorize:
         tm.assert_numpy_array_equal(codes, expected_codes)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
-    @pytest.mark.parametrize("sort", [True, False])
     def test_factorize_rangeindex(self, sort):
         # increasing -> sort doesn't matter
         ri = pd.RangeIndex.from_range(range(10))
@@ -368,7 +366,6 @@ class TestFactorize:
         tm.assert_numpy_array_equal(result[0], expected[0])
         tm.assert_index_equal(result[1], expected[1], exact=True)
 
-    @pytest.mark.parametrize("sort", [True, False])
     def test_factorize_rangeindex_decreasing(self, sort):
         # decreasing -> sort matters
         ri = pd.RangeIndex.from_range(range(10))
@@ -431,7 +428,6 @@ class TestFactorize:
         tm.assert_numpy_array_equal(codes, expected_codes)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
-    @pytest.mark.parametrize("sort", [True, False])
     @pytest.mark.parametrize(
         "data, uniques",
         [
@@ -1526,9 +1522,7 @@ class TestDuplicated:
                 ]
             ),
             np.array(["a", "b", "a", "e", "c", "b", "d", "a", "e", "f"], dtype=object),
-            np.array(
-                [1, 2**63, 1, 3**5, 10, 2**63, 39, 1, 3**5, 7], dtype=np.uint64
-            ),
+            np.array([1, 2**63, 1, 3**5, 10, 2**63, 39, 1, 3**5, 7], dtype=np.uint64),
         ],
     )
     def test_numeric_object_likes(self, case):
@@ -1794,18 +1788,16 @@ class TestRank:
         arr = np.array(arr)
 
         mask = ~np.isfinite(arr)
-        arr = arr.copy()
         result = libalgos.rank_1d(arr)
         arr[mask] = np.inf
         exp = sp_stats.rankdata(arr)
         exp[mask] = np.nan
         tm.assert_almost_equal(result, exp)
 
-    @pytest.mark.parametrize("dtype", np.typecodes["AllInteger"])
-    def test_basic(self, writable, dtype):
+    def test_basic(self, writable, any_int_numpy_dtype):
         exp = np.array([1, 2], dtype=np.float64)
 
-        data = np.array([1, 100], dtype=dtype)
+        data = np.array([1, 100], dtype=any_int_numpy_dtype)
         data.setflags(write=writable)
         ser = Series(data)
         result = algos.rank(ser)
@@ -1842,8 +1834,7 @@ class TestMode:
         exp = Series([], dtype=np.float64, index=Index([], dtype=int))
         tm.assert_numpy_array_equal(algos.mode(np.array([])), exp.values)
 
-    @pytest.mark.parametrize("dt", np.typecodes["AllInteger"] + np.typecodes["Float"])
-    def test_mode_single(self, dt):
+    def test_mode_single(self, any_real_numpy_dtype):
         # GH 15714
         exp_single = [1]
         data_single = [1]
@@ -1851,13 +1842,13 @@ class TestMode:
         exp_multi = [1]
         data_multi = [1, 1]
 
-        ser = Series(data_single, dtype=dt)
-        exp = Series(exp_single, dtype=dt)
+        ser = Series(data_single, dtype=any_real_numpy_dtype)
+        exp = Series(exp_single, dtype=any_real_numpy_dtype)
         tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
         tm.assert_series_equal(ser.mode(), exp)
 
-        ser = Series(data_multi, dtype=dt)
-        exp = Series(exp_multi, dtype=dt)
+        ser = Series(data_multi, dtype=any_real_numpy_dtype)
+        exp = Series(exp_multi, dtype=any_real_numpy_dtype)
         tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
         tm.assert_series_equal(ser.mode(), exp)
 
@@ -1868,21 +1859,20 @@ class TestMode:
         exp = Series(["a", "b", "c"], dtype=object)
         tm.assert_numpy_array_equal(algos.mode(exp.values), exp.values)
 
-    @pytest.mark.parametrize("dt", np.typecodes["AllInteger"] + np.typecodes["Float"])
-    def test_number_mode(self, dt):
+    def test_number_mode(self, any_real_numpy_dtype):
         exp_single = [1]
         data_single = [1] * 5 + [2] * 3
 
         exp_multi = [1, 3]
         data_multi = [1] * 5 + [2] * 3 + [3] * 5
 
-        ser = Series(data_single, dtype=dt)
-        exp = Series(exp_single, dtype=dt)
+        ser = Series(data_single, dtype=any_real_numpy_dtype)
+        exp = Series(exp_single, dtype=any_real_numpy_dtype)
         tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
         tm.assert_series_equal(ser.mode(), exp)
 
-        ser = Series(data_multi, dtype=dt)
-        exp = Series(exp_multi, dtype=dt)
+        ser = Series(data_multi, dtype=any_real_numpy_dtype)
+        exp = Series(exp_multi, dtype=any_real_numpy_dtype)
         tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
         tm.assert_series_equal(ser.mode(), exp)
 
