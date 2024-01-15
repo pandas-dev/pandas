@@ -208,17 +208,19 @@ del os, warnings
 # DeprecationWarning for missing pyarrow
 from pandas.compat.pyarrow import pa_version_under10p1
 
-if not pa_version_under10p1:
+if pa_version_under10p1:
     import warnings
     from pandas.compat._optional import VERSIONS
 
     warnings.warn(
-        "Pyarrow will become a future required dependency of pandas,"
-        "but was not found to be installed on your system."
-        f"(or was too old - pyarrow {VERSIONS['pyarrow']} is the current"
-        f"minimum supported version as of this release)"
-        "If this would cause problems for you, "
-        "please provide us feedback at https://github.com/pandas-dev/pandas/issues/54466",
+        f"""
+Pyarrow will become a future required dependency of pandas,
+but was not found to be installed on your system.
+(or was too old-pyarrow {VERSIONS['pyarrow']}
+is the current minimum supported version as of this release)
+If this would cause problems for you,
+please provide us feedback at https://github.com/pandas-dev/pandas/issues/54466
+        """,
         DeprecationWarning,
         stacklevel=2,
     )
