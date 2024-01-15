@@ -9802,7 +9802,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         return result.__finalize__(self, method="explode")
 
-    def unstack(self, level: IndexLabel = -1, fill_value=None, sort: bool = True):
+    def unstack(
+        self, level: IndexLabel = -1, fill_value=None, sort: bool = True
+    ) -> DataFrame | Series:
         """
         Pivot a level of the (necessarily hierarchical) index labels.
 

@@ -2864,10 +2864,11 @@ def map_infer_mask(
         ndarray[object] arr,
         object f,
         const uint8_t[:] mask,
+        *,
         bint convert=True,
         object na_value=no_default,
         cnp.dtype dtype=np.dtype(object)
-) -> np.ndarray:
+) -> "ArrayLike":
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2887,7 +2888,7 @@ def map_infer_mask(
 
     Returns
     -------
-    np.ndarray
+    np.ndarray or an ExtensionArray
     """
     cdef Py_ssize_t n = len(arr)
     result = np.empty(n, dtype=dtype)
@@ -2941,8 +2942,8 @@ def _map_infer_mask(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def map_infer(
-    ndarray arr, object f, bint convert=True, bint ignore_na=False
-) -> np.ndarray:
+    ndarray arr, object f, *, bint convert=True, bint ignore_na=False
+) -> "ArrayLike":
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2956,7 +2957,7 @@ def map_infer(
 
     Returns
     -------
-    np.ndarray
+    np.ndarray or an ExtensionArray
     """
     cdef:
         Py_ssize_t i, n
@@ -3091,7 +3092,7 @@ def to_object_array_tuples(rows: object) -> np.ndarray:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_multiget(dict mapping, object[:] keys, default=np.nan) -> np.ndarray:
+def fast_multiget(dict mapping, object[:] keys, default=np.nan) -> "ArrayLike":
     cdef:
         Py_ssize_t i, n = len(keys)
         object val

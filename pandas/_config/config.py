@@ -88,7 +88,7 @@ class DeprecatedOption(NamedTuple):
 
 class RegisteredOption(NamedTuple):
     key: str
-    defval: object
+    defval: Any
     doc: str
     validator: Callable[[object], Any] | None
     cb: Callable[[str], Any] | None
