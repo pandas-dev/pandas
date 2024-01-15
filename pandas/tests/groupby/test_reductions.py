@@ -20,7 +20,72 @@ import pandas._testing as tm
 from pandas.util import _test_decorators as td
 
 
-@pytest.mark.parametrize("agg_func", ["any", "all"])
+@pytest.mark.parametrize("dtype", ["int64", "int32", "float64", "float32"])
+def test_basic_aggregations(dtype):
+    data = Series(np.arange(9) // 3, index=np.arange(9), dtype=dtype)
+
+    index = np.arange(9)
+    np.random.default_rng(2).shuffle(index)
+    data = data.reindex(index)
+
+    grouped = data.groupby(lambda x: x // 3, group_keys=False)
+
+    for k, v in grouped:
+        assert len(v) == 3
+
+    msg = "using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        agged = grouped.aggregate(np.mean)
+    assert agged[1] == 1
+
+    msg = "using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = grouped.agg(np.mean)
+    tm.assert_series_equal(agged, expected)  # shorthand
+    tm.assert_series_equal(agged, grouped.mean())
+    result = grouped.sum()
+    msg = "using SeriesGroupBy.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = grouped.agg(np.sum)
+    tm.assert_series_equal(result, expected)
+
+    expected = grouped.apply(lambda x: x * x.sum())
+    transformed = grouped.transform(lambda x: x * x.sum())
+    assert transformed[7] == 12
+    tm.assert_series_equal(transformed, expected)
+
+    value_grouped = data.groupby(data)
+    msg = "using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = value_grouped.aggregate(np.mean)
+    tm.assert_series_equal(result, agged, check_index_type=False)
+
+    # complex agg
+    msg = "using SeriesGroupBy.[mean|std]"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        agged = grouped.aggregate([np.mean, np.std])
+
+    msg = r"nested renamer is not supported"
+    with pytest.raises(pd.errors.SpecificationError, match=msg):
+        grouped.aggregate({"one": np.mean, "two": np.std})
+
+    group_constants = {0: 10, 1: 20, 2: 30}
+    msg = (
+        "Pinning the groupby key to each group in SeriesGroupBy.agg is deprecated, "
+        "and cases that relied on it will raise in a future version"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#41090
+        agged = grouped.agg(lambda x: group_constants[x.name] + x.mean())
+    assert agged[1] == 21
+
+    # corner cases
+    msg = "Must produce aggregated value"
+    # exception raised is type Exception
+    with pytest.raises(Exception, match=msg):
+        grouped.aggregate(lambda x: x * 2)
+
+
 @pytest.mark.parametrize(
     "vals",
     [
@@ -39,20 +104,20 @@ from pandas.util import _test_decorators as td
         [np.nan, np.nan, np.nan],
     ],
 )
-def test_groupby_bool_aggs(skipna, agg_func, vals):
+def test_groupby_bool_aggs(skipna, all_boolean_reductions, vals):
     df = DataFrame({"key": ["a"] * 3 + ["b"] * 3, "val": vals * 2})
 
     # Figure out expectation using Python builtin
-    exp = getattr(builtins, agg_func)(vals)
+    exp = getattr(builtins, all_boolean_reductions)(vals)
 
     # edge case for missing data with skipna and 'any'
-    if skipna and all(isna(vals)) and agg_func == "any":
+    if skipna and all(isna(vals)) and all_boolean_reductions == "any":
         exp = False
 
     expected = DataFrame(
         [exp] * 2, columns=["val"], index=pd.Index(["a", "b"], name="key")
     )
-    result = getattr(df.groupby("key"), agg_func)(skipna=skipna)
+    result = getattr(df.groupby("key"), all_boolean_reductions)(skipna=skipna)
     tm.assert_frame_equal(result, expected)
 
 
@@ -69,18 +134,16 @@ def test_any():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("bool_agg_func", ["any", "all"])
-def test_bool_aggs_dup_column_labels(bool_agg_func):
+def test_bool_aggs_dup_column_labels(all_boolean_reductions):
     # GH#21668
     df = DataFrame([[True, True]], columns=["a", "a"])
     grp_by = df.groupby([0])
-    result = getattr(grp_by, bool_agg_func)()
+    result = getattr(grp_by, all_boolean_reductions)()
 
     expected = df.set_axis(np.array([0]))
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("bool_agg_func", ["any", "all"])
 @pytest.mark.parametrize(
     "data",
     [
@@ -92,16 +155,16 @@ def test_bool_aggs_dup_column_labels(bool_agg_func):
         [True, pd.NA, False],
     ],
 )
-def test_masked_kleene_logic(bool_agg_func, skipna, data):
+def test_masked_kleene_logic(all_boolean_reductions, skipna, data):
     # GH#37506
     ser = Series(data, dtype="boolean")
 
     # The result should match aggregating on the whole series. Correctness
     # there is verified in test_reductions.py::test_any_all_boolean_kleene_logic
-    expected_data = getattr(ser, bool_agg_func)(skipna=skipna)
+    expected_data = getattr(ser, all_boolean_reductions)(skipna=skipna)
     expected = Series(expected_data, index=np.array([0]), dtype="boolean")
 
-    result = ser.groupby([0, 0, 0]).agg(bool_agg_func, skipna=skipna)
+    result = ser.groupby([0, 0, 0]).agg(all_boolean_reductions, skipna=skipna)
     tm.assert_series_equal(result, expected)
 
 
@@ -146,17 +209,18 @@ def test_masked_mixed_types(dtype1, dtype2, exp_col1, exp_col2):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("bool_agg_func", ["any", "all"])
 @pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean"])
-def test_masked_bool_aggs_skipna(bool_agg_func, dtype, skipna, frame_or_series):
+def test_masked_bool_aggs_skipna(
+    all_boolean_reductions, dtype, skipna, frame_or_series
+):
     # GH#40585
     obj = frame_or_series([pd.NA, 1], dtype=dtype)
     expected_res = True
-    if not skipna and bool_agg_func == "all":
+    if not skipna and all_boolean_reductions == "all":
         expected_res = pd.NA
     expected = frame_or_series([expected_res], index=np.array([1]), dtype="boolean")
 
-    result = obj.groupby([1, 1]).agg(bool_agg_func, skipna=skipna)
+    result = obj.groupby([1, 1]).agg(all_boolean_reductions, skipna=skipna)
     tm.assert_equal(result, expected)
 
 
@@ -177,20 +241,18 @@ def test_object_type_missing_vals(bool_agg_func, data, expected_res, frame_or_se
     tm.assert_equal(result, expected)
 
 
-@pytest.mark.parametrize("bool_agg_func", ["any", "all"])
-def test_object_NA_raises_with_skipna_false(bool_agg_func):
+def test_object_NA_raises_with_skipna_false(all_boolean_reductions):
     # GH#37501
     ser = Series([pd.NA], dtype=object)
     with pytest.raises(TypeError, match="boolean value of NA is ambiguous"):
-        ser.groupby([1]).agg(bool_agg_func, skipna=False)
+        ser.groupby([1]).agg(all_boolean_reductions, skipna=False)
 
 
-@pytest.mark.parametrize("bool_agg_func", ["any", "all"])
-def test_empty(frame_or_series, bool_agg_func):
+def test_empty(frame_or_series, all_boolean_reductions):
     # GH 45231
     kwargs = {"columns": ["a"]} if frame_or_series is DataFrame else {"name": "a"}
     obj = frame_or_series(**kwargs, dtype=object)
-    result = getattr(obj.groupby(obj.index), bool_agg_func)()
+    result = getattr(obj.groupby(obj.index), all_boolean_reductions)()
     expected = frame_or_series(**kwargs, dtype=bool)
     tm.assert_equal(result, expected)
 
@@ -638,9 +700,6 @@ def test_max_nan_bug():
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("sort", [False, True])
-@pytest.mark.parametrize("dropna", [False, True])
-@pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize("with_nan", [True, False])
 @pytest.mark.parametrize("keys", [["joe"], ["joe", "jim"]])
 def test_series_groupby_nunique(sort, dropna, as_index, with_nan, keys):
@@ -1024,8 +1083,6 @@ def test_apply_to_nullable_integer_returns_float(values, function):
     ],
 )
 @pytest.mark.parametrize("axis", [0, 1])
-@pytest.mark.parametrize("skipna", [True, False])
-@pytest.mark.parametrize("sort", [True, False])
 def test_regression_allowlist_methods(op, axis, skipna, sort):
     # GH6944
     # GH 17537
@@ -1079,4 +1136,31 @@ def test_groupby_prod_with_int64_dtype():
     df = DataFrame(data, columns=["A", "B"], dtype="int64")
     result = df.groupby(["A"]).prod().reset_index()
     expected = DataFrame({"A": [1], "B": [180970905912331920]}, dtype="int64")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_std_datetimelike(warn_copy_on_write):
+    # GH#48481
+    tdi = pd.timedelta_range("1 Day", periods=10000)
+    ser = Series(tdi)
+    ser[::5] *= 2  # get different std for different groups
+
+    df = ser.to_frame("A").copy()
+
+    df["B"] = ser + Timestamp(0)
+    df["C"] = ser + Timestamp(0, tz="UTC")
+    df.iloc[-1] = pd.NaT  # last group includes NaTs
+
+    gb = df.groupby(list(range(5)) * 2000)
+
+    result = gb.std()
+
+    # Note: this does not _exactly_ match what we would get if we did
+    # [gb.get_group(i).std() for i in gb.groups]
+    #  but it _does_ match the floating point error we get doing the
+    #  same operation on int64 data xref GH#51332
+    td1 = pd.Timedelta("2887 days 11:21:02.326710176")
+    td4 = pd.Timedelta("2886 days 00:42:34.664668096")
+    exp_ser = Series([td1 * 2, td1, td1, td1, td4], index=np.arange(5))
+    expected = DataFrame({"A": exp_ser, "B": exp_ser, "C": exp_ser})
     tm.assert_frame_equal(result, expected)

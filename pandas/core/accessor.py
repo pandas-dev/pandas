@@ -54,7 +54,7 @@ class PandasDelegate:
     def _delegate_property_get(self, name: str, *args, **kwargs):
         raise TypeError(f"You cannot access the property {name}")
 
-    def _delegate_property_set(self, name: str, value, *args, **kwargs):
+    def _delegate_property_set(self, name: str, value, *args, **kwargs) -> None:
         raise TypeError(f"The property {name} cannot be set")
 
     def _delegate_method(self, name: str, *args, **kwargs):

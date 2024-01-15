@@ -50,6 +50,7 @@ from pandas._typing import (
     Axis,
     AxisInt,
     CompressionOptions,
+    Concatenate,
     DtypeArg,
     DtypeBackend,
     DtypeObj,
@@ -213,6 +214,7 @@ if TYPE_CHECKING:
     )
 
     from pandas._libs.tslibs import BaseOffset
+    from pandas._typing import P
 
     from pandas import (
         DataFrame,
@@ -3544,7 +3546,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> print(df.to_latex(index=False,
         ...                   formatters={"name": str.upper},
         ...                   float_format="{:.1f}".format,
-        ... ))  # doctest: +SKIP
+        ...                   ))  # doctest: +SKIP
         \begin{tabular}{lrr}
         \toprule
         name & age & height \\
@@ -6118,13 +6120,31 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         return result
 
+    @overload
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T:
+        ...
+
+    @overload
+    def pipe(
+        self,
+        func: tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
+        ...
+
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
     def pipe(
         self,
-        func: Callable[..., T] | tuple[Callable[..., T], str],
-        *args,
-        **kwargs,
+        func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
     ) -> T:
         r"""
         Apply chainable functions that expect Series or DataFrames.
@@ -7188,6 +7208,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
 
+            .. deprecated:: 2.2.0
+
         Returns
         -------
         {klass} or None
@@ -7523,6 +7545,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
 
+            .. deprecated:: 2.2.0
+
         Returns
         -------
         {klass} or None
@@ -7713,6 +7737,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
+
+            .. deprecated:: 2.2.0
 
         Returns
         -------
@@ -8006,8 +8032,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if items:
                 keys, values = zip(*items)
             else:
-                # error: Incompatible types in assignment (expression has type
-                # "list[Never]", variable has type "tuple[Any, ...]")
                 keys, values = ([], [])  # type: ignore[assignment]
 
             are_mappings = [is_dict_like(v) for v in values]
@@ -8825,15 +8849,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if lower is not None:
             cond = mask | (self >= lower)
-            result = result.where(
-                cond, lower, inplace=inplace
-            )  # type: ignore[assignment]
+            result = result.where(cond, lower, inplace=inplace)  # type: ignore[assignment]
         if upper is not None:
             cond = mask | (self <= upper)
             result = self if inplace else result
-            result = result.where(
-                cond, upper, inplace=inplace
-            )  # type: ignore[assignment]
+            result = result.where(cond, upper, inplace=inplace)  # type: ignore[assignment]
 
         return result
 
@@ -10849,8 +10869,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         element in the calling DataFrame, if ``cond`` is ``{cond}`` the
         element is used; otherwise the corresponding element from the DataFrame
         ``other`` is used. If the axis of ``other`` does not align with axis of
-        ``cond`` {klass}, the misaligned index positions will be filled with
-        {cond_rev}.
+        ``cond`` {klass}, the values of ``cond`` on misaligned index positions
+        will be filled with {cond_rev}.
 
         The signature for :func:`DataFrame.where` differs from
         :func:`numpy.where`. Roughly ``df1.where(m, df2)`` is equivalent to
@@ -12242,7 +12262,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if axis == 1:
             return self.T._accum_func(
-                name, func, axis=0, skipna=skipna, *args, **kwargs  # noqa: B026
+                name,
+                func,
+                axis=0,
+                skipna=skipna,
+                *args,  # noqa: B026
+                **kwargs,
             ).T
 
         def block_accum_func(blk_values):
@@ -12720,14 +12745,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def __itruediv__(self, other) -> Self:
         # error: Unsupported left operand type for / ("Type[NDFrame]")
         return self._inplace_method(
-            other, type(self).__truediv__  # type: ignore[operator]
+            other,
+            type(self).__truediv__,  # type: ignore[operator]
         )
 
     @final
     def __ifloordiv__(self, other) -> Self:
         # error: Unsupported left operand type for // ("Type[NDFrame]")
         return self._inplace_method(
-            other, type(self).__floordiv__  # type: ignore[operator]
+            other,
+            type(self).__floordiv__,  # type: ignore[operator]
         )
 
     @final
@@ -13495,9 +13522,7 @@ True
 Series([], dtype: bool)
 """
 
-_shared_docs[
-    "stat_func_example"
-] = """
+_shared_docs["stat_func_example"] = """
 
 Examples
 --------

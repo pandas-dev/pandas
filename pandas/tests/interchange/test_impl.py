@@ -21,29 +21,12 @@ from pandas.core.interchange.from_dataframe import from_dataframe
 from pandas.core.interchange.utils import ArrowCTypes
 
 
-@pytest.fixture
-def data_categorical():
-    return {
+@pytest.mark.parametrize("data", [("ordered", True), ("unordered", False)])
+def test_categorical_dtype(data):
+    data_categorical = {
         "ordered": pd.Categorical(list("testdata") * 30, ordered=True),
         "unordered": pd.Categorical(list("testdata") * 30, ordered=False),
     }
-
-
-@pytest.fixture
-def string_data():
-    return {
-        "separator data": [
-            "abC|DeF,Hik",
-            "234,3245.67",
-            "gSaf,qWer|Gre",
-            "asd3,4sad|",
-            np.nan,
-        ]
-    }
-
-
-@pytest.mark.parametrize("data", [("ordered", True), ("unordered", False)])
-def test_categorical_dtype(data, data_categorical):
     df = pd.DataFrame({"A": (data_categorical[data[0]])})
 
     col = df.__dataframe__().get_column_by_name("A")
@@ -231,7 +214,16 @@ def test_mixed_missing():
         assert df2.get_column_by_name(col_name).null_count == 2
 
 
-def test_string(string_data):
+def test_string():
+    string_data = {
+        "separator data": [
+            "abC|DeF,Hik",
+            "234,3245.67",
+            "gSaf,qWer|Gre",
+            "asd3,4sad|",
+            np.nan,
+        ]
+    }
     test_str_data = string_data["separator data"] + [""]
     df = pd.DataFrame({"A": test_str_data})
     col = df.__dataframe__().get_column_by_name("A")
@@ -304,7 +296,6 @@ def test_multi_chunk_pyarrow() -> None:
 
 
 @pytest.mark.parametrize("tz", ["UTC", "US/Pacific"])
-@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
 def test_datetimetzdtype(tz, unit):
     # GH 54239
     tz_data = (
@@ -362,3 +353,20 @@ def test_interchange_from_corrected_buffer_dtypes(monkeypatch) -> None:
     interchange.get_column_by_name = lambda _: column
     monkeypatch.setattr(df, "__dataframe__", lambda allow_copy: interchange)
     pd.api.interchange.from_dataframe(df)
+
+
+def test_empty_string_column():
+    # https://github.com/pandas-dev/pandas/issues/56703
+    df = pd.DataFrame({"a": []}, dtype=str)
+    df2 = df.__dataframe__()
+    result = pd.api.interchange.from_dataframe(df2)
+    tm.assert_frame_equal(df, result)
+
+
+def test_large_string():
+    # GH#56702
+    pytest.importorskip("pyarrow")
+    df = pd.DataFrame({"a": ["x"]}, dtype="large_string[pyarrow]")
+    result = pd.api.interchange.from_dataframe(df.__dataframe__())
+    expected = pd.DataFrame({"a": ["x"]}, dtype="object")
+    tm.assert_frame_equal(result, expected)
