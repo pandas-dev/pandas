@@ -211,6 +211,8 @@ Styler
 
 Other
 ^^^^^
+- Bug in :meth:`DataFrame.where` where using a non-bool type array in the function would return a ``ValueError`` instead of a ``TypeError`` (:issue:`56330`)
+
 
 .. ***DO NOT USE THIS SECTION***
 

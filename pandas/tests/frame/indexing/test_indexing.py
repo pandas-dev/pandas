@@ -136,7 +136,7 @@ class TestDataFrameIndexing:
         subframe_obj = datetime_frame[indexer_obj]
         tm.assert_frame_equal(subframe_obj, subframe)
 
-        with pytest.raises(ValueError, match="Boolean array expected"):
+        with pytest.raises(TypeError, match="Boolean array expected"):
             datetime_frame[datetime_frame]
 
         # test that Series work
