@@ -202,8 +202,8 @@ if "PANDAS_DATA_MANAGER" in os.environ:
         FutureWarning,
         stacklevel=2,
     )
-# Don't allow users to use pandas.os or pandas.warnings
-del os, warnings
+# Don't allow users to use pandas.os
+del os
 
 # DeprecationWarning for missing pyarrow
 from pandas.compat.pyarrow import pa_version_under10p1
@@ -224,7 +224,7 @@ please provide us feedback at https://github.com/pandas-dev/pandas/issues/54466
         DeprecationWarning,
         stacklevel=2,
     )
-del pa_version_under10p1
+del pa_version_under10p1, warnings
 
 # module level doc-string
 __doc__ = """
