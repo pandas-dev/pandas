@@ -941,15 +941,14 @@ def test_column_as_series(backend, using_copy_on_write, warn_copy_on_write):
 
     if using_copy_on_write:
         s[0] = 0
+    elif warn_copy_on_write:
+        with tm.assert_cow_warning():
+            s[0] = 0
     else:
-        if warn_copy_on_write:
-            with tm.assert_cow_warning():
+        warn = SettingWithCopyWarning if dtype_backend == "numpy" else None
+        with pd.option_context("chained_assignment", "warn"):
+            with tm.assert_produces_warning(warn):
                 s[0] = 0
-        else:
-            warn = SettingWithCopyWarning if dtype_backend == "numpy" else None
-            with pd.option_context("chained_assignment", "warn"):
-                with tm.assert_produces_warning(warn):
-                    s[0] = 0
 
     expected = Series([0, 2, 3], name="a")
     tm.assert_series_equal(s, expected)
@@ -1103,9 +1102,14 @@ def test_set_value_copy_only_necessary_column(
     df_orig = df.copy()
     view = df[:]
 
-    if val == "a" and indexer[0] != slice(None):
+    if val == "a" and not warn_copy_on_write:
         with tm.assert_produces_warning(
             FutureWarning, match="Setting an item of incompatible dtype is deprecated"
+        ):
+            indexer_func(df)[indexer] = val
+    if val == "a" and warn_copy_on_write:
+        with tm.assert_produces_warning(
+            FutureWarning, match="incompatible dtype|Setting a value on a view"
         ):
             indexer_func(df)[indexer] = val
     else:

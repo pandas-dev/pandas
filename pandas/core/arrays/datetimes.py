@@ -213,7 +213,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     Examples
     --------
     >>> pd.arrays.DatetimeArray._from_sequence(
-    ...    pd.DatetimeIndex(['2023-01-01', '2023-01-02'], freq='D'))
+    ...     pd.DatetimeIndex(
+    ...         ["2023-01-01", "2023-01-02"], freq="D"
+    ...     )
+    ... )
     <DatetimeArray>
     ['2023-01-01 00:00:00', '2023-01-02 00:00:00']
     Length: 2, dtype: datetime64[ns]
@@ -1365,7 +1368,7 @@ default 'raise'
         >>> idx
         DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03'],
                       dtype='datetime64[ns]', freq='D')
-        >>> idx.day_name(locale='pt_BR.utf8') # doctest: +SKIP
+        >>> idx.day_name(locale='pt_BR.utf8')  # doctest: +SKIP
         Index(['Segunda', 'Terça', 'Quarta'], dtype='object')
         """
         values = self._local_timestamps()
@@ -2774,11 +2777,6 @@ def _generate_range(
         # Incompatible types in assignment (expression has type "datetime",
         # variable has type "Optional[Timestamp]")
         start = offset.rollforward(start)  # type: ignore[assignment]
-
-    elif end and not offset.is_on_offset(end):
-        # Incompatible types in assignment (expression has type "datetime",
-        # variable has type "Optional[Timestamp]")
-        end = offset.rollback(end)  # type: ignore[assignment]
 
     # Unsupported operand types for < ("Timestamp" and "None")
     if periods is None and end < start and offset.n >= 0:  # type: ignore[operator]
