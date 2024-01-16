@@ -151,8 +151,8 @@ class Grouper:
     Specify a resample operation on the column 'Publish date'
 
     >>> df = pd.DataFrame(
-    ...    {
-    ...        "Publish date": [
+    ...     {
+    ...         "Publish date": [
     ...             pd.Timestamp("2000-01-02"),
     ...             pd.Timestamp("2000-01-02"),
     ...             pd.Timestamp("2000-01-09"),
