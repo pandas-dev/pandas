@@ -676,7 +676,7 @@ def read_csv(
     delim_whitespace: bool | lib.NoDefault = ...,
     low_memory: bool = ...,
     memory_map: bool = ...,
-    float_precision: Literal["high", "legacy"] | None = ...,
+    float_precision: Literal["high", "legacy", "round_trip"] | None = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> TextFileReader:
@@ -736,7 +736,7 @@ def read_csv(
     delim_whitespace: bool | lib.NoDefault = ...,
     low_memory: bool = ...,
     memory_map: bool = ...,
-    float_precision: Literal["high", "legacy"] | None = ...,
+    float_precision: Literal["high", "legacy", "round_trip"] | None = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> TextFileReader:
@@ -796,7 +796,7 @@ def read_csv(
     delim_whitespace: bool | lib.NoDefault = ...,
     low_memory: bool = ...,
     memory_map: bool = ...,
-    float_precision: Literal["high", "legacy"] | None = ...,
+    float_precision: Literal["high", "legacy", "round_trip"] | None = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> DataFrame:
@@ -856,7 +856,7 @@ def read_csv(
     delim_whitespace: bool | lib.NoDefault = ...,
     low_memory: bool = ...,
     memory_map: bool = ...,
-    float_precision: Literal["high", "legacy"] | None = ...,
+    float_precision: Literal["high", "legacy", "round_trip"] | None = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> DataFrame | TextFileReader:
@@ -934,7 +934,7 @@ def read_csv(
     delim_whitespace: bool | lib.NoDefault = lib.no_default,
     low_memory: bool = _c_parser_defaults["low_memory"],
     memory_map: bool = False,
-    float_precision: Literal["high", "legacy"] | None = None,
+    float_precision: Literal["high", "legacy", "round_trip"] | None = None,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
