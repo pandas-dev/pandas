@@ -246,8 +246,6 @@ select = [
 
 ignore = [
   ### Intentionally disabled
-  # space before : (needed for how black formats slicing)
-  "E203",
   # module level import not at top of file
   "E402",
   # do not assign a lambda expression, use a def
