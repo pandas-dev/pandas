@@ -2952,17 +2952,17 @@ class Styler(StylerRenderer):
         Setting a ``gmap`` and applying to all columns with another ``cmap``
 
         >>> df.style.{name}_gradient(axis=0, gmap=df['Temp (c)'], cmap='YlOrRd')
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
 
         .. figure:: ../../_static/style/{image_prefix}_gmap.png
 
         Setting the gradient map for a dataframe (i.e. ``axis=None``), we need to
         explicitly state ``subset`` to match the ``gmap`` shape
 
-        >>> gmap = np.array([[1,2,3], [2,3,4], [3,4,5]])
-        >>> df.style.{name}_gradient(axis=None, gmap=gmap,
-        ...     cmap='YlOrRd', subset=['Temp (c)', 'Rain (mm)', 'Wind (m/s)']
-        ... )  # doctest: +SKIP
+        >>> gmap = np.array([[1, 2, 3], [2, 3, 4], [3, 4, 5]])
+        >>> df.style.{name}_gradient(
+        ...     axis=None, gmap=gmap, cmap='YlOrRd',
+        ...     subset=['Temp (c)', 'Rain (mm)', 'Wind (m/s)'])  # doctest: +SKIP
 
         .. figure:: ../../_static/style/{image_prefix}_axNone_gmap.png
         """
@@ -3510,22 +3510,23 @@ class Styler(StylerRenderer):
         --------
         Using ``axis=None`` and apply a quantile to all collective data
 
-        >>> df = pd.DataFrame(np.arange(10).reshape(2,5) + 1)
+        >>> df = pd.DataFrame(np.arange(10).reshape(2, 5) + 1)
         >>> df.style.highlight_quantile(axis=None, q_left=0.8, color="#fffd75")
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
 
         .. figure:: ../../_static/style/hq_axNone.png
 
         Or highlight quantiles row-wise or column-wise, in this case by row-wise
 
         >>> df.style.highlight_quantile(axis=1, q_left=0.8, color="#fffd75")
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
 
         .. figure:: ../../_static/style/hq_ax1.png
 
         Use ``props`` instead of default background coloring
 
-        >>> df.style.highlight_quantile(axis=None, q_left=0.2, q_right=0.8,
+        >>> df.style.highlight_quantile(
+        ...     axis=None, q_left=0.2, q_right=0.8,
         ...     props='font-weight:bold;color:#e83e8c')  # doctest: +SKIP
 
         .. figure:: ../../_static/style/hq_props.png
