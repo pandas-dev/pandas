@@ -7087,8 +7087,8 @@ class DataFrame(NDFrame, OpsMixin):
         using the `natsort <https://github.com/SethMMorton/natsort>` package.
 
         >>> df = pd.DataFrame({
-        ...    "time": ['0hr', '128hr', '72hr', '48hr', '96hr'],
-        ...    "value": [10, 20, 30, 40, 50]
+        ...     "time": ['0hr', '128hr', '72hr', '48hr', '96hr'],
+        ...     "value": [10, 20, 30, 40, 50]
         ... })
         >>> df
             time  value
@@ -9035,8 +9035,8 @@ class DataFrame(NDFrame, OpsMixin):
         We can also choose to include NA in group keys or not by setting
         `dropna` parameter, the default setting is `True`.
 
-        >>> l = [[1, 2, 3], [1, None, 4], [2, 1, 3], [1, 2, 2]]
-        >>> df = pd.DataFrame(l, columns=["a", "b", "c"])
+        >>> arr = [[1, 2, 3], [1, None, 4], [2, 1, 3], [1, 2, 2]]
+        >>> df = pd.DataFrame(arr, columns=["a", "b", "c"])
 
         >>> df.groupby(by=["b"]).sum()
             a   c
@@ -9051,8 +9051,8 @@ class DataFrame(NDFrame, OpsMixin):
         2.0 2   5
         NaN 1   4
 
-        >>> l = [["a", 12, 12], [None, 12.3, 33.], ["b", 12.3, 123], ["a", 1, 1]]
-        >>> df = pd.DataFrame(l, columns=["a", "b", "c"])
+        >>> arr = [["a", 12, 12], [None, 12.3, 33.], ["b", 12.3, 123], ["a", 1, 1]]
+        >>> df = pd.DataFrame(arr, columns=["a", "b", "c"])
 
         >>> df.groupby(by="a").sum()
             b     c
@@ -12569,7 +12569,7 @@ class DataFrame(NDFrame, OpsMixin):
         A DataFrame where all columns are the same type (e.g., int64) results
         in an array of the same type.
 
-        >>> df = pd.DataFrame({'age':    [ 3,  29],
+        >>> df = pd.DataFrame({'age': [3, 29],
         ...                    'height': [94, 170],
         ...                    'weight': [31, 115]})
         >>> df
@@ -12589,10 +12589,10 @@ class DataFrame(NDFrame, OpsMixin):
         results in an ndarray of the broadest type that accommodates these
         mixed types (e.g., object).
 
-        >>> df2 = pd.DataFrame([('parrot',   24.0, 'second'),
-        ...                     ('lion',     80.5, 1),
+        >>> df2 = pd.DataFrame([('parrot', 24.0, 'second'),
+        ...                     ('lion', 80.5, 1),
         ...                     ('monkey', np.nan, None)],
-        ...                   columns=('name', 'max_speed', 'rank'))
+        ...                    columns=('name', 'max_speed', 'rank'))
         >>> df2.dtypes
         name          object
         max_speed    float64
