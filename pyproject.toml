@@ -339,8 +339,6 @@ ignore = [
   "RUF005",
   # pairwise-over-zipped (>=PY310 only)
   "RUF007",
-  # explicit-f-string-type-conversion
-  "RUF010",
   # mutable-class-default
   "RUF012"
 ]

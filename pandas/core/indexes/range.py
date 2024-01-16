@@ -190,7 +190,7 @@ class RangeIndex(Index):
         if not isinstance(data, range):
             raise TypeError(
                 f"{cls.__name__}(...) must be called with object coercible to a "
-                f"range, {repr(data)} was passed"
+                f"range, {data!r} was passed"
             )
         cls._validate_dtype(dtype)
         return cls._simple_new(data, name=name)

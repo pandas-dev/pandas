@@ -1639,7 +1639,7 @@ class TextFileReader(abc.Iterator):
                 and value != getattr(value, "value", default)
             ):
                 raise ValueError(
-                    f"The {repr(argname)} option is not supported with the "
+                    f"The {argname!r} option is not supported with the "
                     f"'pyarrow' engine"
                 )
             options[argname] = value
@@ -1656,8 +1656,8 @@ class TextFileReader(abc.Iterator):
                         pass
                     else:
                         raise ValueError(
-                            f"The {repr(argname)} option is not supported with the "
-                            f"{repr(engine)} engine"
+                            f"The {argname!r} option is not supported with the "
+                            f"{engine!r} engine"
                         )
             else:
                 value = default
@@ -1760,7 +1760,7 @@ class TextFileReader(abc.Iterator):
                 if fallback_reason and result[arg] != _c_parser_defaults.get(arg):
                     raise ValueError(
                         "Falling back to the 'python' engine because "
-                        f"{fallback_reason}, but this causes {repr(arg)} to be "
+                        f"{fallback_reason}, but this causes {arg!r} to be "
                         "ignored as it is not supported by the 'python' engine."
                     )
                 del result[arg]
