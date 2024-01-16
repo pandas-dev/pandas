@@ -10675,11 +10675,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not isinstance(cond, ABCDataFrame):
                 # This is a single-dimensional object.
                 if not is_bool_dtype(cond):
-                    raise ValueError(msg.format(dtype=cond.dtype))
+                    raise TypeError(msg.format(dtype=cond.dtype))
             else:
                 for _dt in cond.dtypes:
                     if not is_bool_dtype(_dt):
-                        raise ValueError(msg.format(dtype=_dt))
+                        raise TypeError(msg.format(dtype=_dt))
                 if cond._mgr.any_extension_types:
                     # GH51574: avoid object ndarray conversion later on
                     cond = cond._constructor(
