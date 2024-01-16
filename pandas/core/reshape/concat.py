@@ -178,7 +178,7 @@ def concat(
 
     Parameters
     ----------
-    objs : a sequence or mapping of Series or DataFrame objects
+    objs : an iterable or mapping of Series or DataFrame objects
         If a mapping is passed, the sorted keys will be used as the `keys`
         argument, unless it is passed, in which case the values will be
         selected (see below). Any None objects will be dropped silently unless
