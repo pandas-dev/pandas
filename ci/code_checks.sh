@@ -84,10 +84,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.io.formats.style.Styler.apply_index \
         pandas.io.formats.style.Styler.map_index \
         pandas.io.formats.style.Styler.format \
-        pandas.io.formats.style.Styler.set_tooltips \
-        pandas.io.formats.style.Styler.set_uuid \
-        pandas.io.formats.style.Styler.pipe \
-        pandas.io.formats.style.Styler.highlight_between \
         pandas.io.formats.style.Styler.highlight_quantile \
         pandas.io.formats.style.Styler.background_gradient \
         pandas.io.formats.style.Styler.text_gradient \
