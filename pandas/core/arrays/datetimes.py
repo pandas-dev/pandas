@@ -213,7 +213,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     Examples
     --------
     >>> pd.arrays.DatetimeArray._from_sequence(
-    ...    pd.DatetimeIndex(['2023-01-01', '2023-01-02'], freq='D'))
+    ...     pd.DatetimeIndex(
+    ...         ["2023-01-01", "2023-01-02"], freq="D"
+    ...     )
+    ... )
     <DatetimeArray>
     ['2023-01-01 00:00:00', '2023-01-02 00:00:00']
     Length: 2, dtype: datetime64[ns]
