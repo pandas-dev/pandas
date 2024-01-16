@@ -1969,7 +1969,7 @@ class Styler(StylerRenderer):
         input_note="an index value, if an Index, or a level value of a MultiIndex",
         output_note="CSS styles as a string",
         var="v",
-        ret='"background-color: yellow;" if s == "B" else None',
+        ret='"background-color: yellow;" if v == "B" else None',
         ret2='"background-color: yellow;" if "x" in v else None',
     )
     def map_index(
