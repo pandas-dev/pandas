@@ -587,7 +587,7 @@ class UndefinedVariableError(NameError):
     """
 
     def __init__(self, name: str, is_local: bool | None = None) -> None:
-        base_msg = f"{repr(name)} is not defined"
+        base_msg = f"{name!r} is not defined"
         if is_local:
             msg = f"local variable {base_msg}"
         else:

@@ -9802,7 +9802,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         return result.__finalize__(self, method="explode")
 
-    def unstack(self, level: IndexLabel = -1, fill_value=None, sort: bool = True):
+    def unstack(
+        self, level: IndexLabel = -1, fill_value=None, sort: bool = True
+    ) -> DataFrame | Series:
         """
         Pivot a level of the (necessarily hierarchical) index labels.
 
@@ -10395,9 +10397,7 @@ class DataFrame(NDFrame, OpsMixin):
         1  11.262736  20.857489
         """
         if na_action not in {"ignore", None}:
-            raise ValueError(
-                f"na_action must be 'ignore' or None. Got {repr(na_action)}"
-            )
+            raise ValueError(f"na_action must be 'ignore' or None. Got {na_action!r}")
 
         if self.empty:
             return self.copy()
@@ -11860,7 +11860,7 @@ class DataFrame(NDFrame, OpsMixin):
         elif axis_num == 1:
             return self.index
         else:
-            raise ValueError(f"Axis must be 0 or 1 (got {repr(axis_num)})")
+            raise ValueError(f"Axis must be 0 or 1 (got {axis_num!r})")
 
     def mode(
         self, axis: Axis = 0, numeric_only: bool = False, dropna: bool = True
