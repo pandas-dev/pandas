@@ -44,7 +44,6 @@ def group_fillna_indexer(
     labels: np.ndarray,  # ndarray[int64_t]
     mask: npt.NDArray[np.uint8],
     limit: int,  # int64_t
-    dropna: bool,
     compute_ffill: bool,
     ngroups: int,
 ) -> None: ...
