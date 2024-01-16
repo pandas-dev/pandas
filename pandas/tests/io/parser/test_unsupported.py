@@ -143,9 +143,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         1,2,3,4,"""
 
         for default in pa_unsupported:
-            msg = (
-                f"The {default!r} option is not " f"supported with the 'pyarrow' engine"
-            )
+            msg = f"The {default!r} option is not supported with the 'pyarrow' engine"
             kwargs = {default: object()}
             default_needs_bool = {"warn_bad_lines", "error_bad_lines"}
             if default == "dialect":

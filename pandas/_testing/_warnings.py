@@ -152,7 +152,7 @@ def _assert_caught_expected_warning(
 
     if not saw_warning:
         raise AssertionError(
-            f"Did not see expected warning of class " f"{expected_warning.__name__!r}"
+            f"Did not see expected warning of class {expected_warning.__name__!r}"
         )
 
     if match and not matched_message:
