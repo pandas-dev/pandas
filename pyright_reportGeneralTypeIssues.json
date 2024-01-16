@@ -41,7 +41,6 @@
         "pandas/core/arrays/string_arrow.py",
         "pandas/core/arrays/timedeltas.py",
         "pandas/core/computation/align.py",
-        "pandas/core/computation/ops.py",
         "pandas/core/construction.py",
         "pandas/core/dtypes/cast.py",
         "pandas/core/dtypes/common.py",

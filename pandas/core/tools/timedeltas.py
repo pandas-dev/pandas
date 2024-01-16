@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
     overload,
 )
 import warnings
@@ -89,7 +90,8 @@ def to_timedelta(
     | Series,
     unit: UnitChoices | None = None,
     errors: DateTimeErrorChoices = "raise",
-) -> Timedelta | TimedeltaIndex | Series | NaTType:
+    # returning Any for errors="ignore"
+) -> Timedelta | TimedeltaIndex | Series | NaTType | Any:
     """
     Convert argument to timedelta.
 

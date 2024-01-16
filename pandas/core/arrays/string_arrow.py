@@ -7,6 +7,7 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Union,
+    cast,
 )
 import warnings
 
@@ -327,7 +328,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 # error: Argument 1 to "dtype" has incompatible type
                 # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
                 # "Type[object]"
-                dtype=np.dtype(dtype),  # type: ignore[arg-type]
+                dtype=np.dtype(cast(type, dtype)),
             )
 
             if not na_value_is_na:
@@ -640,7 +641,7 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
                     mask.view("uint8"),
                     convert=False,
                     na_value=na_value,
-                    dtype=np.dtype(dtype),  # type: ignore[arg-type]
+                    dtype=np.dtype(cast(type, dtype)),
                 )
                 return result
 
