@@ -109,10 +109,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.MultiIndex.droplevel \
         pandas.IndexSlice \
         pandas.Grouper \
-        pandas.io.formats.style.Styler.map \
-        pandas.io.formats.style.Styler.apply_index \
-        pandas.io.formats.style.Styler.map_index \
-        pandas.io.formats.style.Styler.format \
         pandas.io.formats.style.Styler.format_index \
         pandas.io.formats.style.Styler.relabel_index \
         pandas.io.formats.style.Styler.hide \

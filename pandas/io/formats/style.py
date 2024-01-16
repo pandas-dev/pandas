@@ -1927,7 +1927,7 @@ class Styler(StylerRenderer):
         --------
         Basic usage to conditionally highlight values in the index.
 
-        >>> df = pd.DataFrame([[1,2], [3,4]], index=["A", "B"])
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], index=["A", "B"])
         >>> def color_b(s):
         ...     return {ret}
         >>> df.style.{this}_index(color_b)  # doctest: +SKIP
@@ -1940,8 +1940,8 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([np.arange(8)], columns=midx)
         >>> def highlight_x({var}):
         ...     return {ret2}
-        >>> df.style.{this}_index(highlight_x, axis="columns", level=[0, 2])
-        ...  # doctest: +SKIP
+        >>> df.style.{this}_index(
+        ...     highlight_x, axis="columns", level=[0, 2])  # doctest: +SKIP
 
         .. figure:: ../../_static/style/appmaphead2.png
         """
@@ -1964,7 +1964,7 @@ class Styler(StylerRenderer):
         input_note="an index value, if an Index, or a level value of a MultiIndex",
         output_note="CSS styles as a string",
         var="v",
-        ret='"background-color: yellow;" if v == "B" else None',
+        ret='"background-color: yellow;" if s == "B" else None',
         ret2='"background-color: yellow;" if "x" in v else None',
     )
     def map_index(
@@ -2068,17 +2068,16 @@ class Styler(StylerRenderer):
 
         Using ``subset`` to restrict application to a single column or multiple columns
 
-        >>> df.style.map(color_negative, color='red', subset="A")
-        ...  # doctest: +SKIP
-        >>> df.style.map(color_negative, color='red', subset=["A", "B"])
-        ...  # doctest: +SKIP
+        >>> df.style.map(color_negative, color='red', subset="A")  # doctest: +SKIP
+        >>> df.style.map(color_negative,
+        ...              color='red', subset=["A", "B"])  # doctest: +SKIP
 
         Using a 2d input to ``subset`` to select rows in addition to columns
 
         >>> df.style.map(color_negative, color='red',
-        ...  subset=([0,1,2], slice(None)))  # doctest: +SKIP
-        >>> df.style.map(color_negative, color='red', subset=(slice(0,5,2), "A"))
-        ...  # doctest: +SKIP
+        ...              subset=([0, 1, 2], slice(None)))  # doctest: +SKIP
+        >>> df.style.map(color_negative,
+        ...              color='red', subset=(slice(0, 5, 2), "A"))  # doctest: +SKIP
 
         See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
         more details.
