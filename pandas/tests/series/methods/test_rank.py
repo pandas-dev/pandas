@@ -248,6 +248,23 @@ class TestSeriesRank:
         result = ser.rank(method=method)
         tm.assert_series_equal(result, Series(exp))
 
+    @pytest.mark.parametrize('dtype', ['Int64', 'UInt64'])   #Full set of dtypes not necessary
+    def test_rank_with_nullable_int(self, dtype, ser, results):
+        if dtype == 'int64': pytest.skip("Irrelevant dtype for this test.")
+        method, exp = results
+        ser = ser.astype(dtype)
+        result = ser.rank(method=method)
+        # cast dtype, because pyarrow input leads to different output type
+        if 'pyarrow' in dtype:
+            if method == 'average':
+                exp = Series(exp, dtype='double[pyarrow]')
+            else:
+                exp = Series(exp, dtype='uint64[pyarrow]')
+
+        else:
+            exp = Series(exp)
+        tm.assert_series_equal(result, exp)
+
     @pytest.mark.parametrize("na_option", ["top", "bottom", "keep"])
     @pytest.mark.parametrize(
         "dtype, na_value, pos_inf, neg_inf",
