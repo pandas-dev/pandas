@@ -799,8 +799,7 @@ def test_get_offset():
     for name, expected in pairs:
         offset = _get_offset(name)
         assert offset == expected, (
-            f"Expected {name!r} to yield {expected!r} "
-            f"(actual: {offset!r})"
+            f"Expected {name!r} to yield {expected!r} " f"(actual: {offset!r})"
         )
 
 

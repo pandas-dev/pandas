@@ -467,9 +467,7 @@ class PyTablesExprVisitor(BaseExprVisitor):
         try:
             return self.const_type(value[slobj], self.env)
         except TypeError as err:
-            raise ValueError(
-                f"cannot subscript {value!r} with {slobj!r}"
-            ) from err
+            raise ValueError(f"cannot subscript {value!r} with {slobj!r}") from err
 
     def visit_Attribute(self, node, **kwargs):
         attr = node.attr
