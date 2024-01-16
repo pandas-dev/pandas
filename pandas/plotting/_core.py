@@ -1053,9 +1053,9 @@ class PlotAccessor(PandasObject):
             over the years.
 
             >>> df = pd.DataFrame({
-            ...    'pig': [20, 18, 489, 675, 1776],
-            ...    'horse': [4, 25, 281, 600, 1900]
-            ...    }, index=[1990, 1997, 2003, 2009, 2014])
+            ...     'pig': [20, 18, 489, 675, 1776],
+            ...     'horse': [4, 25, 281, 600, 1900]
+            ... }, index=[1990, 1997, 2003, 2009, 2014])
             >>> lines = df.plot.line()
 
         .. plot::
@@ -1828,8 +1828,8 @@ class PlotAccessor(PandasObject):
             >>> df = pd.DataFrame({
             ...     'coord_x': np.random.uniform(-3, 3, size=n),
             ...     'coord_y': np.random.uniform(30, 50, size=n),
-            ...     'observations': np.random.randint(1,5, size=n)
-            ...     })
+            ...     'observations': np.random.randint(1, 5, size=n)
+            ... })
             >>> ax = df.plot.hexbin(x='coord_x',
             ...                     y='coord_y',
             ...                     C='observations',
