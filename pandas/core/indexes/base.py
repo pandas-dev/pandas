@@ -4043,7 +4043,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             raise ValueError(
                 f"tolerance argument for {type(self).__name__} with dtype {self.dtype} "
-                f"must be numeric if it is a scalar: {repr(tolerance)}"
+                f"must be numeric if it is a scalar: {tolerance!r}"
             )
         return tolerance
 
@@ -4090,7 +4090,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if limit is not None:
             raise ValueError(
-                f"limit argument for {repr(method)} method only well-defined "
+                f"limit argument for {method!r} method only well-defined "
                 "if index and target are monotonic"
             )
 
@@ -6810,7 +6810,7 @@ class Index(IndexOpsMixin, PandasObject):
             if isinstance(slc, np.ndarray):
                 raise KeyError(
                     f"Cannot get {side} slice bound for non-unique "
-                    f"label: {repr(original_label)}"
+                    f"label: {original_label!r}"
                 )
 
         if isinstance(slc, slice):

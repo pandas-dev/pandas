@@ -190,9 +190,6 @@ repos:
             # Check for deprecated messages without sphinx directive
             |(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)
 
-            # {foo!r} instead of {repr(foo)}
-            |!r}
-
             # builtin filter function
             |(?<!def)[\(\s]filter\(
         types_or: [python, cython, rst]

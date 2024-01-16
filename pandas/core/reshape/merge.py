@@ -1580,7 +1580,7 @@ class _MergeOperation:
                     not left_cols.join(common_cols, how="inner").is_unique
                     or not right_cols.join(common_cols, how="inner").is_unique
                 ):
-                    raise MergeError(f"Data columns not unique: {repr(common_cols)}")
+                    raise MergeError(f"Data columns not unique: {common_cols!r}")
                 left_on = right_on = common_cols
         elif self.on is not None:
             if left_on is not None or right_on is not None:
@@ -2071,8 +2071,8 @@ class _AsOfMerge(_OrderedMerge):
             or is_string_dtype(ro_dtype)
         ):
             raise MergeError(
-                f"Incompatible merge dtype, {repr(ro_dtype)} and "
-                f"{repr(lo_dtype)}, both sides must have numeric dtype"
+                f"Incompatible merge dtype, {ro_dtype!r} and "
+                f"{lo_dtype!r}, both sides must have numeric dtype"
             )
 
         # add 'by' to our key-list so we can have it in the
@@ -2110,13 +2110,13 @@ class _AsOfMerge(_OrderedMerge):
                     # later with a ValueError, so we don't *need* to check
                     # for them here.
                     msg = (
-                        f"incompatible merge keys [{i}] {repr(left.dtype)} and "
-                        f"{repr(right.dtype)}, both sides category, but not equal ones"
+                        f"incompatible merge keys [{i}] {left.dtype!r} and "
+                        f"{right.dtype!r}, both sides category, but not equal ones"
                     )
                 else:
                     msg = (
-                        f"incompatible merge keys [{i}] {repr(left.dtype)} and "
-                        f"{repr(right.dtype)}, must be the same type"
+                        f"incompatible merge keys [{i}] {left.dtype!r} and "
+                        f"{right.dtype!r}, must be the same type"
                     )
                 raise MergeError(msg)
 
@@ -2146,7 +2146,7 @@ class _AsOfMerge(_OrderedMerge):
 
             msg = (
                 f"incompatible tolerance {self.tolerance}, must be compat "
-                f"with type {repr(lt.dtype)}"
+                f"with type {lt.dtype!r}"
             )
 
             if needs_i8_conversion(lt.dtype) or (

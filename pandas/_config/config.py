@@ -130,7 +130,7 @@ def _get_single_key(pat: str, silent: bool) -> str:
     if len(keys) == 0:
         if not silent:
             _warn_if_deprecated(pat)
-        raise OptionError(f"No such keys(s): {repr(pat)}")
+        raise OptionError(f"No such keys(s): {pat!r}")
     if len(keys) > 1:
         raise OptionError("Pattern matched multiple keys")
     key = keys[0]
