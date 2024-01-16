@@ -265,7 +265,7 @@ def validate_bool_kwarg(
             f'For argument "{arg_name}" expected type bool, received '
             f"type {type(value).__name__}."
         )
-    return value  # pyright: ignore[reportGeneralTypeIssues]
+    return value
 
 
 def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):
