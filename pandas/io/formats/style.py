@@ -476,7 +476,7 @@ class Styler(StylerRenderer):
 
         >>> df = pd.DataFrame(data=[[0, 1], [2, 3]])
         >>> ttips = pd.DataFrame(
-        ...    data=[["Min", ""], [np.nan, "Max"]], columns=df.columns, index=df.index
+        ...     data=[["Min", ""], [np.nan, "Max"]], columns=df.columns, index=df.index
         ... )
         >>> s = df.style.set_tooltips(ttips).to_html()
 
@@ -486,7 +486,8 @@ class Styler(StylerRenderer):
         ...     ('visibility', 'hidden'),
         ...     ('position', 'absolute'),
         ...     ('z-index', 1)])  # doctest: +SKIP
-        >>> df.style.set_tooltips(ttips, css_class='tt-add',
+        >>> df.style.set_tooltips(
+        ...     ttips, css_class='tt-add',
         ...     props='visibility:hidden; position:absolute; z-index:1;')
         ... # doctest: +SKIP
         """
@@ -2305,8 +2306,8 @@ class Styler(StylerRenderer):
 
         To add a title to column `c1`, its `id` is T_20a7d_level0_col0:
 
-        >>> df.style.set_uuid("T_20a7d_level0_col0")
-        ... .set_caption("Test")  # doctest: +SKIP
+        >>> df.style.set_uuid("T_20a7d_level0_col0").set_caption("Test")
+        ... # doctest: +SKIP
 
         Please see:
         `Table visualization <../../user_guide/style.ipynb>`_ for more examples.
@@ -3418,21 +3419,23 @@ class Styler(StylerRenderer):
         and ``right`` for each column individually
 
         >>> df.style.highlight_between(left=[1.4, 2.4, 3.4], right=[1.6, 2.6, 3.6],
-        ...     axis=1, color="#fffd75")  # doctest: +SKIP
+        ...                            axis=1, color="#fffd75")  # doctest: +SKIP
 
         .. figure:: ../../_static/style/hbetw_seq.png
 
         Using ``axis=None`` and providing the ``left`` argument as an array that
         matches the input DataFrame, with a constant ``right``
 
-        >>> df.style.highlight_between(left=[[2,2,3],[2,2,3],[3,3,3]], right=3.5,
+        >>> df.style.highlight_between(
+        ...     left=[[2, 2, 3], [2, 2, 3], [3, 3, 3]], right=3.5,
         ...     axis=None, color="#fffd75")  # doctest: +SKIP
 
         .. figure:: ../../_static/style/hbetw_axNone.png
 
         Using ``props`` instead of default background coloring
 
-        >>> df.style.highlight_between(left=1.5, right=3.5,
+        >>> df.style.highlight_between(
+        ...     left=1.5, right=3.5,
         ...     props='font-weight:bold;color:#e83e8c')  # doctest: +SKIP
 
         .. figure:: ../../_static/style/hbetw_props.png
@@ -3699,10 +3702,10 @@ class Styler(StylerRenderer):
         can be easily applied to a generic styler in a single ``pipe`` call.
 
         >>> def some_highlights(styler, min_color="red", max_color="blue"):
-        ...      styler.highlight_min(color=min_color, axis=None)
-        ...      styler.highlight_max(color=max_color, axis=None)
-        ...      styler.highlight_null()
-        ...      return styler
+        ...     styler.highlight_min(color=min_color, axis=None)
+        ...     styler.highlight_max(color=max_color, axis=None)
+        ...     styler.highlight_null()
+        ...     return styler
         >>> df = pd.DataFrame([[1, 2, 3, pd.NA], [pd.NA, 4, 5, 6]], dtype="Int64")
         >>> df.style.pipe(some_highlights, min_color="green")  # doctest: +SKIP
 
@@ -3712,8 +3715,8 @@ class Styler(StylerRenderer):
         methods as if applying the underlying highlighters directly.
 
         >>> (df.style.format("{:.1f}")
-        ...         .pipe(some_highlights, min_color="green")
-        ...         .highlight_between(left=2, right=5))  # doctest: +SKIP
+        ...     .pipe(some_highlights, min_color="green")
+        ...     .highlight_between(left=2, right=5))  # doctest: +SKIP
 
         .. figure:: ../../_static/style/df_pipe_hl2.png
 
@@ -3733,7 +3736,7 @@ class Styler(StylerRenderer):
         >>> def highlight_last_level(styler):
         ...     return styler.apply_index(
         ...         lambda v: "background-color: pink; color: yellow", axis="columns",
-        ...         level=styler.columns.nlevels-1
+        ...         level=styler.columns.nlevels - 1
         ...     )  # doctest: +SKIP
         >>> df.columns = pd.MultiIndex.from_product([["A", "B"], ["X", "Y"]])
         >>> df.style.pipe(highlight_last_level)  # doctest: +SKIP
