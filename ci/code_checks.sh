@@ -84,8 +84,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.io.formats.style.Styler.apply_index \
         pandas.io.formats.style.Styler.map_index \
         pandas.io.formats.style.Styler.format \
-        pandas.DataFrame.plot.hexbin \
-        pandas.DataFrame.plot.line
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
