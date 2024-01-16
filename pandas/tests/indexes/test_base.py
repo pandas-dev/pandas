@@ -899,7 +899,7 @@ class TestIndex:
             #  and 2) that with an NaN we do not have .isin(nulls_fixture)
             msg = (
                 r"float\(\) argument must be a string or a (real )?number, "
-                f"not {repr(type(nulls_fixture).__name__)}"
+                f"not {type(nulls_fixture).__name__!r}"
             )
             with pytest.raises(TypeError, match=msg):
                 Index([1.0, nulls_fixture], dtype=dtype)

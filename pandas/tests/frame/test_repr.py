@@ -518,4 +518,4 @@ def test_repr_with_complex_nans(data, output, as_frame):
     else:
         reprs = [f"{i}   {val}" for i, val in enumerate(output)]
         expected = "\n".join(reprs) + "\ndtype: complex128"
-    assert str(obj) == expected, f"\n{str(obj)}\n\n{expected}"
+    assert str(obj) == expected, f"\n{obj!s}\n\n{expected}"

@@ -798,10 +798,9 @@ def test_get_offset():
 
     for name, expected in pairs:
         offset = _get_offset(name)
-        assert offset == expected, (
-            f"Expected {repr(name)} to yield {repr(expected)} "
-            f"(actual: {repr(offset)})"
-        )
+        assert (
+            offset == expected
+        ), f"Expected {name!r} to yield {expected!r} (actual: {offset!r})"
 
 
 def test_get_offset_legacy():

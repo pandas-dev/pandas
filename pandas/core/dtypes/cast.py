@@ -243,7 +243,7 @@ def _disallow_mismatched_datetimelike(value, dtype: DtypeObj) -> None:
     elif (vdtype.kind == "m" and dtype.kind == "M") or (
         vdtype.kind == "M" and dtype.kind == "m"
     ):
-        raise TypeError(f"Cannot cast {repr(value)} to {dtype}")
+        raise TypeError(f"Cannot cast {value!r} to {dtype}")
 
 
 @overload

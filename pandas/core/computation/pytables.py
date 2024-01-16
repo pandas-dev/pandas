@@ -81,7 +81,7 @@ class Term(ops.Term):
         if self.side == "left":
             # Note: The behavior of __new__ ensures that self.name is a str here
             if self.name not in self.env.queryables:
-                raise NameError(f"name {repr(self.name)} is not defined")
+                raise NameError(f"name {self.name!r} is not defined")
             return self.name
 
         # resolve the rhs (and allow it to be None)
@@ -467,9 +467,7 @@ class PyTablesExprVisitor(BaseExprVisitor):
         try:
             return self.const_type(value[slobj], self.env)
         except TypeError as err:
-            raise ValueError(
-                f"cannot subscript {repr(value)} with {repr(slobj)}"
-            ) from err
+            raise ValueError(f"cannot subscript {value!r} with {slobj!r}") from err
 
     def visit_Attribute(self, node, **kwargs):
         attr = node.attr

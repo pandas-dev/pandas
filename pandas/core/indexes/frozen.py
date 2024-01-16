@@ -112,7 +112,7 @@ class FrozenList(PandasObject, list):
         return pprint_thing(self, quote_strings=True, escape_chars=("\t", "\r", "\n"))
 
     def __repr__(self) -> str:
-        return f"{type(self).__name__}({str(self)})"
+        return f"{type(self).__name__}({self!s})"
 
     __setitem__ = __setslice__ = _disabled  # type: ignore[assignment]
     __delitem__ = __delslice__ = _disabled

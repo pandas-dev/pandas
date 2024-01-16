@@ -428,7 +428,7 @@ def json_normalize(
             else:
                 raise TypeError(
                     f"Path must contain list or null, "
-                    f"but got {type(result).__name__} at {repr(spec)}"
+                    f"but got {type(result).__name__} at {spec!r}"
                 )
         return result
 

@@ -128,7 +128,7 @@ def _get_next_label(label):
     elif is_float_dtype(dtype):
         return np.nextafter(label, np.inf)
     else:
-        raise TypeError(f"cannot determine next label for type {repr(type(label))}")
+        raise TypeError(f"cannot determine next label for type {type(label)!r}")
 
 
 def _get_prev_label(label):
@@ -145,7 +145,7 @@ def _get_prev_label(label):
     elif is_float_dtype(dtype):
         return np.nextafter(label, -np.inf)
     else:
-        raise TypeError(f"cannot determine next label for type {repr(type(label))}")
+        raise TypeError(f"cannot determine next label for type {type(label)!r}")
 
 
 def _new_IntervalIndex(cls, d):

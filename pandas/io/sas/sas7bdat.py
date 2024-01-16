@@ -741,7 +741,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                 js += 1
             else:
                 self.close()
-                raise ValueError(f"unknown column type {repr(self._column_types[j])}")
+                raise ValueError(f"unknown column type {self._column_types[j]!r}")
 
         df = DataFrame(rslt, columns=self.column_names, index=ix, copy=False)
         return df
