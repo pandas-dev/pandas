@@ -3,8 +3,6 @@ import pytest
 
 from pandas._config import using_pyarrow_string_dtype
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     Categorical,
     DataFrame,
@@ -49,7 +47,6 @@ class TestFillNA:
         if not using_copy_on_write:
             assert tm.shares_memory(df.iloc[:, 2], orig.iloc[:, 2])
 
-    @td.skip_array_manager_not_yet_implemented
     def test_fillna_on_column_view(self, using_copy_on_write):
         # GH#46149 avoid unnecessary copies
         arr = np.full((40, 50), np.nan)
@@ -752,7 +749,6 @@ class TestFillNA:
         df.fillna(axis=1, value=100, limit=1, inplace=True)
         tm.assert_frame_equal(df, expected)
 
-    @td.skip_array_manager_invalid_test
     @pytest.mark.parametrize("val", [-1, {"x": -1, "y": -1}])
     def test_inplace_dict_update_view(
         self, val, using_copy_on_write, warn_copy_on_write
@@ -857,3 +853,76 @@ def test_pad_backfill_deprecated(func):
     df = DataFrame({"a": [1, 2, 3]})
     with tm.assert_produces_warning(FutureWarning):
         getattr(df, func)()
+
+
+@pytest.mark.parametrize(
+    "data, expected_data, method, kwargs",
+    (
+        (
+            [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+            [np.nan, np.nan, 3.0, 3.0, 3.0, 3.0, 7.0, np.nan, np.nan],
+            "ffill",
+            {"limit_area": "inside"},
+        ),
+        (
+            [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+            [np.nan, np.nan, 3.0, 3.0, np.nan, np.nan, 7.0, np.nan, np.nan],
+            "ffill",
+            {"limit_area": "inside", "limit": 1},
+        ),
+        (
+            [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+            [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, 7.0],
+            "ffill",
+            {"limit_area": "outside"},
+        ),
+        (
+            [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+            [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, np.nan],
+            "ffill",
+            {"limit_area": "outside", "limit": 1},
+        ),
+        (
+            [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+            "ffill",
+            {"limit_area": "outside", "limit": 1},
+        ),
+        (
+            range(5),
+            range(5),
+            "ffill",
+            {"limit_area": "outside", "limit": 1},
+        ),
+        (
+            [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+            [np.nan, np.nan, 3.0, 7.0, 7.0, 7.0, 7.0, np.nan, np.nan],
+            "bfill",
+            {"limit_area": "inside"},
+        ),
+        (
+            [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+            [np.nan, np.nan, 3.0, np.nan, np.nan, 7.0, 7.0, np.nan, np.nan],
+            "bfill",
+            {"limit_area": "inside", "limit": 1},
+        ),
+        (
+            [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+            [3.0, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan],
+            "bfill",
+            {"limit_area": "outside"},
+        ),
+        (
+            [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+            [np.nan, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan],
+            "bfill",
+            {"limit_area": "outside", "limit": 1},
+        ),
+    ),
+)
+def test_ffill_bfill_limit_area(data, expected_data, method, kwargs):
+    # GH#56492
+    df = DataFrame(data)
+    expected = DataFrame(expected_data)
+    result = getattr(df, method)(**kwargs)
+    tm.assert_frame_equal(result, expected)

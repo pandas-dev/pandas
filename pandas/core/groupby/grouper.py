@@ -119,8 +119,6 @@ class Grouper:
         row/column will be dropped. If False, NA values will also be treated as
         the key in groups.
 
-        .. versionadded:: 1.2.0
-
     Returns
     -------
     Grouper or pandas.api.typing.TimeGrouper
@@ -153,8 +151,8 @@ class Grouper:
     Specify a resample operation on the column 'Publish date'
 
     >>> df = pd.DataFrame(
-    ...    {
-    ...        "Publish date": [
+    ...     {
+    ...         "Publish date": [
     ...             pd.Timestamp("2000-01-02"),
     ...             pd.Timestamp("2000-01-02"),
     ...             pd.Timestamp("2000-01-09"),
@@ -1010,7 +1008,8 @@ def get_grouper(
                 return False
             if isinstance(gpr, Series) and isinstance(obj_gpr_column, Series):
                 return gpr._mgr.references_same_values(  # type: ignore[union-attr]
-                    obj_gpr_column._mgr, 0  # type: ignore[arg-type]
+                    obj_gpr_column._mgr,  # type: ignore[arg-type]
+                    0,
                 )
             return False
         try:

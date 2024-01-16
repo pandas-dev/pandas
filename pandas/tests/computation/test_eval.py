@@ -141,8 +141,8 @@ class TestEval:
     def test_complex_cmp_ops(self, cmp1, cmp2, binop, lhs, rhs, engine, parser):
         if parser == "python" and binop in ["and", "or"]:
             msg = "'BoolOp' nodes are not implemented"
+            ex = f"(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)"
             with pytest.raises(NotImplementedError, match=msg):
-                ex = f"(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)"
                 pd.eval(ex, engine=engine, parser=parser)
             return
 
@@ -161,9 +161,8 @@ class TestEval:
 
         if parser == "python" and cmp_op in ["in", "not in"]:
             msg = "'(In|NotIn)' nodes are not implemented"
-
+            ex = f"lhs {cmp_op} rhs"
             with pytest.raises(NotImplementedError, match=msg):
-                ex = f"lhs {cmp_op} rhs"
                 pd.eval(ex, engine=engine, parser=parser)
             return
 
@@ -193,8 +192,8 @@ class TestEval:
     def test_compound_invert_op(self, op, lhs, rhs, request, engine, parser):
         if parser == "python" and op in ["in", "not in"]:
             msg = "'(In|NotIn)' nodes are not implemented"
+            ex = f"~(lhs {op} rhs)"
             with pytest.raises(NotImplementedError, match=msg):
-                ex = f"~(lhs {op} rhs)"
                 pd.eval(ex, engine=engine, parser=parser)
             return
 
@@ -523,14 +522,15 @@ class TestEval:
         "lhs",
         [
             # Float
-            DataFrame(np.random.default_rng(2).standard_normal((5, 2))),
+            np.random.default_rng(2).standard_normal((5, 2)),
             # Int
-            DataFrame(np.random.default_rng(2).integers(5, size=(5, 2))),
+            np.random.default_rng(2).integers(5, size=(5, 2)),
             # bool doesn't work with numexpr but works elsewhere
-            DataFrame(np.random.default_rng(2).standard_normal((5, 2)) > 0.5),
+            np.array([True, False, True, False, True], dtype=np.bool_),
         ],
     )
     def test_frame_pos(self, lhs, engine, parser):
+        lhs = DataFrame(lhs)
         expr = "+lhs"
         expect = lhs
 
@@ -541,14 +541,15 @@ class TestEval:
         "lhs",
         [
             # Float
-            Series(np.random.default_rng(2).standard_normal(5)),
+            np.random.default_rng(2).standard_normal(5),
             # Int
-            Series(np.random.default_rng(2).integers(5, size=5)),
+            np.random.default_rng(2).integers(5, size=5),
             # bool doesn't work with numexpr but works elsewhere
-            Series(np.random.default_rng(2).standard_normal(5) > 0.5),
+            np.array([True, False, True, False, True], dtype=np.bool_),
         ],
     )
     def test_series_pos(self, lhs, engine, parser):
+        lhs = Series(lhs)
         expr = "+lhs"
         expect = lhs
 
@@ -606,11 +607,10 @@ class TestEval:
         )
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize("expr", ["x < -0.1", "-5 > x"])
-    def test_float_comparison_bin_op(self, dtype, expr):
+    def test_float_comparison_bin_op(self, float_numpy_dtype, expr):
         # GH 16363
-        df = DataFrame({"x": np.array([0], dtype=dtype)})
+        df = DataFrame({"x": np.array([0], dtype=float_numpy_dtype)})
         res = df.eval(expr)
         assert res.values == np.array([False])
 
@@ -747,15 +747,16 @@ class TestTypeCasting:
     @pytest.mark.parametrize("op", ["+", "-", "*", "**", "/"])
     # maybe someday... numexpr has too many upcasting rules now
     # chain(*(np.core.sctypes[x] for x in ['uint', 'int', 'float']))
-    @pytest.mark.parametrize("dt", [np.float32, np.float64])
     @pytest.mark.parametrize("left_right", [("df", "3"), ("3", "df")])
-    def test_binop_typecasting(self, engine, parser, op, dt, left_right):
-        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)), dtype=dt)
+    def test_binop_typecasting(self, engine, parser, op, float_numpy_dtype, left_right):
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 3)), dtype=float_numpy_dtype
+        )
         left, right = left_right
         s = f"{left} {op} {right}"
         res = pd.eval(s, engine=engine, parser=parser)
-        assert df.values.dtype == dt
-        assert res.values.dtype == dt
+        assert df.values.dtype == float_numpy_dtype
+        assert res.values.dtype == float_numpy_dtype
         tm.assert_frame_equal(res, eval(s))
 
 

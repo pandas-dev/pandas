@@ -171,7 +171,7 @@ def __internal_pivot_table(
     observed_bool = False if observed is lib.no_default else observed
     grouped = data.groupby(keys, observed=observed_bool, sort=sort, dropna=dropna)
     if observed is lib.no_default and any(
-        ping._passed_categorical for ping in grouped.grouper.groupings
+        ping._passed_categorical for ping in grouped._grouper.groupings
     ):
         warnings.warn(
             "The default value of observed=False is deprecated and will change "
@@ -535,7 +535,8 @@ def pivot(
         # error: Unsupported operand types for + ("List[Any]" and "ExtensionArray")
         # error: Unsupported left operand type for + ("ExtensionArray")
         indexed = data.set_index(
-            cols + columns_listlike, append=append  # type: ignore[operator]
+            cols + columns_listlike,  # type: ignore[operator]
+            append=append,
         )
     else:
         index_list: list[Index] | list[Series]

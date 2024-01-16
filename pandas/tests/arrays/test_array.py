@@ -29,7 +29,7 @@ from pandas.tests.extension.decimal import (
 )
 
 
-@pytest.mark.parametrize("dtype_unit", ["M8[h]", "M8[m]", "m8[h]", "M8[m]"])
+@pytest.mark.parametrize("dtype_unit", ["M8[h]", "M8[m]", "m8[h]"])
 def test_dt64_array(dtype_unit):
     # PR 53817
     dtype_var = np.dtype(dtype_unit)
@@ -296,7 +296,7 @@ cet = pytz.timezone("CET")
         ),
         (
             np.array([1, 2], dtype="M8[ns]"),
-            DatetimeArray(np.array([1, 2], dtype="M8[ns]")),
+            DatetimeArray._from_sequence(np.array([1, 2], dtype="M8[ns]")),
         ),
         (
             np.array([1, 2], dtype="M8[us]"),
@@ -327,11 +327,11 @@ cet = pytz.timezone("CET")
         ),
         (
             np.array([1, 2], dtype="m8[ns]"),
-            TimedeltaArray(np.array([1, 2], dtype="m8[ns]")),
+            TimedeltaArray._from_sequence(np.array([1, 2], dtype="m8[ns]")),
         ),
         (
             np.array([1, 2], dtype="m8[us]"),
-            TimedeltaArray(np.array([1, 2], dtype="m8[us]")),
+            TimedeltaArray._from_sequence(np.array([1, 2], dtype="m8[us]")),
         ),
         # integer
         ([1, 2], IntegerArray._from_sequence([1, 2], dtype="Int64")),

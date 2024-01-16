@@ -264,7 +264,7 @@ def _groupby_and_merge(
     if all(item in right.columns for item in by):
         rby = right.groupby(by, sort=False)
 
-    for key, lhs in lby.grouper.get_iterator(lby._selected_obj, axis=lby.axis):
+    for key, lhs in lby._grouper.get_iterator(lby._selected_obj, axis=lby.axis):
         if rby is None:
             rhs = right
         else:
@@ -601,17 +601,17 @@ def merge_asof(
     ...             pd.Timestamp("2016-05-25 13:30:00.075")
     ...         ],
     ...         "ticker": [
-    ...                "GOOG",
-    ...                "MSFT",
-    ...                "MSFT",
-    ...                "MSFT",
-    ...                "GOOG",
-    ...                "AAPL",
-    ...                "GOOG",
-    ...                "MSFT"
-    ...            ],
-    ...            "bid": [720.50, 51.95, 51.97, 51.99, 720.50, 97.99, 720.50, 52.01],
-    ...            "ask": [720.93, 51.96, 51.98, 52.00, 720.93, 98.01, 720.88, 52.03]
+    ...             "GOOG",
+    ...             "MSFT",
+    ...             "MSFT",
+    ...             "MSFT",
+    ...             "GOOG",
+    ...             "AAPL",
+    ...             "GOOG",
+    ...             "MSFT"
+    ...         ],
+    ...         "bid": [720.50, 51.95, 51.97, 51.99, 720.50, 97.99, 720.50, 52.01],
+    ...         "ask": [720.93, 51.96, 51.98, 52.00, 720.93, 98.01, 720.88, 52.03]
     ...     }
     ... )
     >>> quotes
@@ -626,19 +626,19 @@ def merge_asof(
     7 2016-05-25 13:30:00.075   MSFT   52.01   52.03
 
     >>> trades = pd.DataFrame(
-    ...        {
-    ...            "time": [
-    ...                pd.Timestamp("2016-05-25 13:30:00.023"),
-    ...                pd.Timestamp("2016-05-25 13:30:00.038"),
-    ...                pd.Timestamp("2016-05-25 13:30:00.048"),
-    ...                pd.Timestamp("2016-05-25 13:30:00.048"),
-    ...                pd.Timestamp("2016-05-25 13:30:00.048")
-    ...            ],
-    ...            "ticker": ["MSFT", "MSFT", "GOOG", "GOOG", "AAPL"],
-    ...            "price": [51.95, 51.95, 720.77, 720.92, 98.0],
-    ...            "quantity": [75, 155, 100, 100, 100]
-    ...        }
-    ...    )
+    ...     {
+    ...         "time": [
+    ...             pd.Timestamp("2016-05-25 13:30:00.023"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.038"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.048"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.048"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.048")
+    ...         ],
+    ...         "ticker": ["MSFT", "MSFT", "GOOG", "GOOG", "AAPL"],
+    ...         "price": [51.95, 51.95, 720.77, 720.92, 98.0],
+    ...         "quantity": [75, 155, 100, 100, 100]
+    ...     }
+    ... )
     >>> trades
                          time ticker   price  quantity
     0 2016-05-25 13:30:00.023   MSFT   51.95        75
@@ -1379,8 +1379,12 @@ class _MergeOperation:
 
             lk_is_cat = isinstance(lk.dtype, CategoricalDtype)
             rk_is_cat = isinstance(rk.dtype, CategoricalDtype)
-            lk_is_object = is_object_dtype(lk.dtype)
-            rk_is_object = is_object_dtype(rk.dtype)
+            lk_is_object_or_string = is_object_dtype(lk.dtype) or is_string_dtype(
+                lk.dtype
+            )
+            rk_is_object_or_string = is_object_dtype(rk.dtype) or is_string_dtype(
+                rk.dtype
+            )
 
             # if either left or right is a categorical
             # then the must match exactly in categories & ordered
@@ -1477,14 +1481,14 @@ class _MergeOperation:
             # incompatible dtypes GH 9780, GH 15800
 
             # bool values are coerced to object
-            elif (lk_is_object and is_bool_dtype(rk.dtype)) or (
-                is_bool_dtype(lk.dtype) and rk_is_object
+            elif (lk_is_object_or_string and is_bool_dtype(rk.dtype)) or (
+                is_bool_dtype(lk.dtype) and rk_is_object_or_string
             ):
                 pass
 
             # object values are allowed to be merged
-            elif (lk_is_object and is_numeric_dtype(rk.dtype)) or (
-                is_numeric_dtype(lk.dtype) and rk_is_object
+            elif (lk_is_object_or_string and is_numeric_dtype(rk.dtype)) or (
+                is_numeric_dtype(lk.dtype) and rk_is_object_or_string
             ):
                 inferred_left = lib.infer_dtype(lk, skipna=False)
                 inferred_right = lib.infer_dtype(rk, skipna=False)
@@ -1522,8 +1526,13 @@ class _MergeOperation:
             ) or (lk.dtype.kind == "M" and rk.dtype.kind == "M"):
                 # allows datetime with different resolutions
                 continue
+            # datetime and timedelta not allowed
+            elif lk.dtype.kind == "M" and rk.dtype.kind == "m":
+                raise ValueError(msg)
+            elif lk.dtype.kind == "m" and rk.dtype.kind == "M":
+                raise ValueError(msg)
 
-            elif lk_is_object and rk_is_object:
+            elif is_object_dtype(lk.dtype) and is_object_dtype(rk.dtype):
                 continue
 
             # Houston, we have a problem!
@@ -2087,7 +2096,7 @@ class _AsOfMerge(_OrderedMerge):
     ) -> None:
         # TODO: why do we do this for AsOfMerge but not the others?
 
-        def _check_dtype_match(left: ArrayLike, right: ArrayLike, i: int):
+        def _check_dtype_match(left: ArrayLike, right: ArrayLike, i: int) -> None:
             if left.dtype != right.dtype:
                 if isinstance(left.dtype, CategoricalDtype) and isinstance(
                     right.dtype, CategoricalDtype
@@ -2479,18 +2488,30 @@ def _factorize_keys(
                 .combine_chunks()
                 .dictionary_encode()
             )
-            length = len(dc.dictionary)
 
             llab, rlab, count = (
-                pc.fill_null(dc.indices[slice(len_lk)], length)
+                pc.fill_null(dc.indices[slice(len_lk)], -1)
                 .to_numpy()
                 .astype(np.intp, copy=False),
-                pc.fill_null(dc.indices[slice(len_lk, None)], length)
+                pc.fill_null(dc.indices[slice(len_lk, None)], -1)
                 .to_numpy()
                 .astype(np.intp, copy=False),
                 len(dc.dictionary),
             )
+
+            if sort:
+                uniques = dc.dictionary.to_numpy(zero_copy_only=False)
+                llab, rlab = _sort_labels(uniques, llab, rlab)
+
             if dc.null_count > 0:
+                lmask = llab == -1
+                lany = lmask.any()
+                rmask = rlab == -1
+                rany = rmask.any()
+                if lany:
+                    np.putmask(llab, lmask, count)
+                if rany:
+                    np.putmask(rlab, rmask, count)
                 count += 1
             return llab, rlab, count
 

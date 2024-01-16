@@ -177,6 +177,7 @@ Reindexing / selection / label manipulation
    :toctree: api/
 
    Series.align
+   Series.case_when
    Series.drop
    Series.droplevel
    Series.drop_duplicates

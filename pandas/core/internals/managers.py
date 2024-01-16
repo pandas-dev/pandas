@@ -971,7 +971,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         if len(self.blocks) == 1:
             # TODO: this could be wrong if blk.mgr_locs is not slice(None)-like;
             #  is this ruled out in the general case?
-            result = self.blocks[0].iget((slice(None), loc))
+            result: np.ndarray | ExtensionArray = self.blocks[0].iget(
+                (slice(None), loc)
+            )
             # in the case of a single block, the new block is a view
             bp = BlockPlacement(slice(0, len(result)))
             block = new_block(
@@ -1178,8 +1180,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             unfit_count = len(unfit_idxr)
 
             new_blocks: list[Block] = []
-            # TODO(CoW) is this always correct to assume that the new_blocks
-            # are not referencing anything else?
             if value_is_extension_type:
                 # This code (ab-)uses the fact that EA blocks contain only
                 # one item.
@@ -1377,7 +1377,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             value = ensure_block_shape(value, ndim=self.ndim)
 
         bp = BlockPlacement(slice(loc, loc + 1))
-        # TODO(CoW) do we always "own" the passed `value`?
         block = new_block_2d(values=value, placement=bp, refs=refs)
 
         if not len(self.blocks):
@@ -1660,7 +1659,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         """
         passed_nan = lib.is_float(na_value) and isna(na_value)
 
-        # TODO(CoW) handle case where resulting array is a view
         if len(self.blocks) == 0:
             arr = np.empty(self.shape, dtype=float)
             return arr.transpose()
@@ -1944,13 +1942,15 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
     def _block(self) -> Block:
         return self.blocks[0]
 
+    # error: Cannot override writeable attribute with read-only property
     @property
-    def _blknos(self):
+    def _blknos(self) -> None:  # type: ignore[override]
         """compat with BlockManager"""
         return None
 
+    # error: Cannot override writeable attribute with read-only property
     @property
-    def _blklocs(self):
+    def _blklocs(self) -> None:  # type: ignore[override]
         """compat with BlockManager"""
         return None
 
@@ -2198,7 +2198,6 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list
 
     # when consolidating, we can ignore refs (either stacking always copies,
     # or the EA is already copied in the calling dict_to_mgr)
-    # TODO(CoW) check if this is also valid for rec_array_to_mgr
 
     # group by dtype
     grouper = itertools.groupby(tuples, _grouping_func)
@@ -2350,7 +2349,7 @@ def make_na_array(dtype: DtypeObj, shape: Shape, fill_value) -> ArrayLike:
         ts = Timestamp(fill_value).as_unit(dtype.unit)
         i8values = np.full(shape, ts._value)
         dt64values = i8values.view(f"M8[{dtype.unit}]")
-        return DatetimeArray(dt64values, dtype=dtype)
+        return DatetimeArray._simple_new(dt64values, dtype=dtype)
 
     elif is_1d_only_ea_dtype(dtype):
         dtype = cast(ExtensionDtype, dtype)
@@ -2371,9 +2370,9 @@ def make_na_array(dtype: DtypeObj, shape: Shape, fill_value) -> ArrayLike:
     else:
         # NB: we should never get here with dtype integer or bool;
         #  if we did, the missing_arr.fill would cast to gibberish
-        missing_arr = np.empty(shape, dtype=dtype)
-        missing_arr.fill(fill_value)
+        missing_arr_np = np.empty(shape, dtype=dtype)
+        missing_arr_np.fill(fill_value)
 
         if dtype.kind in "mM":
-            missing_arr = ensure_wrapped_if_datetimelike(missing_arr)
-        return missing_arr
+            missing_arr_np = ensure_wrapped_if_datetimelike(missing_arr_np)
+        return missing_arr_np

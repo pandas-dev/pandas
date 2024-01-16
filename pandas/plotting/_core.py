@@ -725,10 +725,6 @@ class PlotAccessor(PandasObject):
         Name to use for the xlabel on x-axis. Default uses index name as xlabel, or the
         x-column name for planar plots.
 
-        .. versionchanged:: 1.2.0
-
-           Now applicable to planar plots (`scatter`, `hexbin`).
-
         .. versionchanged:: 2.0.0
 
             Now applicable to histograms.
@@ -736,10 +732,6 @@ class PlotAccessor(PandasObject):
     ylabel : label, optional
         Name to use for the ylabel on y-axis. Default will show no ylabel, or the
         y-column name for planar plots.
-
-        .. versionchanged:: 1.2.0
-
-           Now applicable to planar plots (`scatter`, `hexbin`).
 
         .. versionchanged:: 2.0.0
 
@@ -1122,7 +1114,7 @@ class PlotAccessor(PandasObject):
         .. plot::
             :context: close-figs
 
-            >>> df = pd.DataFrame({'lab':['A', 'B', 'C'], 'val':[10, 30, 20]})
+            >>> df = pd.DataFrame({'lab': ['A', 'B', 'C'], 'val': [10, 30, 20]})
             >>> ax = df.plot.bar(x='lab', y='val', rot=0)
 
         Plot a whole dataframe to a bar plot. Each column is assigned a
@@ -1203,7 +1195,7 @@ class PlotAccessor(PandasObject):
         """
         See Also
         --------
-        DataFrame.plot.bar: Vertical bar plot.
+        DataFrame.plot.bar : Vertical bar plot.
         DataFrame.plot : Make plots of DataFrame using matplotlib.
         matplotlib.axes.Axes.bar : Plot a vertical bar plot using matplotlib.
 
@@ -1892,7 +1884,7 @@ def _load_backend(backend: str) -> types.ModuleType:
     # entry_points lost dict API ~ PY 3.10
     # https://github.com/python/importlib_metadata/issues/298
     if hasattr(eps, "select"):
-        entry = eps.select(group=key)  # pyright: ignore[reportGeneralTypeIssues]
+        entry = eps.select(group=key)
     else:
         # Argument 2 to "get" of "dict" has incompatible type "Tuple[]";
         # expected "EntryPoints"  [arg-type]

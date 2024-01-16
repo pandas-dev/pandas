@@ -471,20 +471,22 @@ def test_empty_string_lxml(val):
             r"None \(line 0\)",
         ]
     )
+    if isinstance(val, str):
+        data = StringIO(val)
+    else:
+        data = BytesIO(val)
     with pytest.raises(lxml_etree.XMLSyntaxError, match=msg):
-        if isinstance(val, str):
-            read_xml(StringIO(val), parser="lxml")
-        else:
-            read_xml(BytesIO(val), parser="lxml")
+        read_xml(data, parser="lxml")
 
 
 @pytest.mark.parametrize("val", ["", b""])
 def test_empty_string_etree(val):
+    if isinstance(val, str):
+        data = StringIO(val)
+    else:
+        data = BytesIO(val)
     with pytest.raises(ParseError, match="no element found"):
-        if isinstance(val, str):
-            read_xml(StringIO(val), parser="etree")
-        else:
-            read_xml(BytesIO(val), parser="etree")
+        read_xml(data, parser="etree")
 
 
 def test_wrong_file_path(parser):
@@ -2043,6 +2045,13 @@ def test_read_xml_nullable_dtypes(
     elif string_storage == "python":
         string_array = StringArray(np.array(["x", "y"], dtype=np.object_))
         string_array_na = StringArray(np.array(["x", NA], dtype=np.object_))
+
+    elif dtype_backend == "pyarrow":
+        pa = pytest.importorskip("pyarrow")
+        from pandas.arrays import ArrowExtensionArray
+
+        string_array = ArrowExtensionArray(pa.array(["x", "y"]))
+        string_array_na = ArrowExtensionArray(pa.array(["x", None]))
 
     else:
         pa = pytest.importorskip("pyarrow")
