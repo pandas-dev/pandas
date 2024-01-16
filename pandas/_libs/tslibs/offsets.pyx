@@ -4711,7 +4711,7 @@ _lite_rule_alias = {
     "ns": "ns",
 }
 
-_dont_uppercase =  _dont_uppercase = {"h", "bh", "cbh", "MS", "ms", "s"}
+_dont_uppercase = _dont_uppercase = {"h", "bh", "cbh", "MS", "ms", "s"}
 
 
 INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
@@ -4734,7 +4734,7 @@ def _get_offset(name: str) -> BaseOffset:
         name not in _lite_rule_alias
         and (name.upper() in _lite_rule_alias)
         and name != "ms"
-        ):
+    ):
         warnings.warn(
             f"\'{name}\' is deprecated and will be removed "
             f"in a future version, please use \'{name.upper()}\' instead.",
