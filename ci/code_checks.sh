@@ -88,7 +88,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.io.formats.style.Styler.background_gradient \
         pandas.io.formats.style.Styler.text_gradient \
         pandas.DataFrame.plot.hexbin \
-        pandas.DataFrame.plot.line \
+        pandas.DataFrame.plot.line
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
