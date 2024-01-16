@@ -568,7 +568,8 @@ def pivot(
     # error: Argument 1 to "unstack" of "DataFrame" has incompatible type "Union
     # [List[Any], ExtensionArray, ndarray[Any, Any], Index, Series]"; expected
     # "Hashable"
-    result = indexed.unstack(columns_listlike)  # type: ignore[arg-type]
+    # unstack with a MultiIndex returns a DataFrame
+    result = cast("DataFrame", indexed.unstack(columns_listlike))  # type: ignore[arg-type]
     result.index.names = [
         name if name is not lib.no_default else None for name in result.index.names
     ]

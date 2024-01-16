@@ -4,7 +4,10 @@ Top level ``eval`` module.
 from __future__ import annotations
 
 import tokenize
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import warnings
 
 from pandas.util._exceptions import find_stack_level
@@ -177,7 +180,7 @@ def eval(
     level: int = 0,
     target=None,
     inplace: bool = False,
-):
+) -> Any:
     """
     Evaluate a Python expression as a string using various backends.
 

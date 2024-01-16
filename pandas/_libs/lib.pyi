@@ -69,15 +69,25 @@ def fast_multiget(
     mapping: dict,
     keys: np.ndarray,  # object[:]
     default=...,
-) -> np.ndarray: ...
+) -> ArrayLike: ...
 def fast_unique_multiple_list_gen(gen: Generator, sort: bool = ...) -> list: ...
 def fast_unique_multiple_list(lists: list, sort: bool | None = ...) -> list: ...
+@overload
 def map_infer(
     arr: np.ndarray,
     f: Callable[[Any], Any],
-    convert: bool = ...,
+    *,
+    convert: Literal[False],
     ignore_na: bool = ...,
 ) -> np.ndarray: ...
+@overload
+def map_infer(
+    arr: np.ndarray,
+    f: Callable[[Any], Any],
+    *,
+    convert: bool = ...,
+    ignore_na: bool = ...,
+) -> ArrayLike: ...
 @overload
 def maybe_convert_objects(
     objects: npt.NDArray[np.object_],
@@ -164,14 +174,26 @@ def is_all_arraylike(obj: list) -> bool: ...
 # Functions which in reality take memoryviews
 
 def memory_usage_of_objects(arr: np.ndarray) -> int: ...  # object[:]  # np.int64
+@overload
 def map_infer_mask(
     arr: np.ndarray,
     f: Callable[[Any], Any],
     mask: np.ndarray,  # const uint8_t[:]
-    convert: bool = ...,
+    *,
+    convert: Literal[False],
     na_value: Any = ...,
     dtype: np.dtype = ...,
 ) -> np.ndarray: ...
+@overload
+def map_infer_mask(
+    arr: np.ndarray,
+    f: Callable[[Any], Any],
+    mask: np.ndarray,  # const uint8_t[:]
+    *,
+    convert: bool = ...,
+    na_value: Any = ...,
+    dtype: np.dtype = ...,
+) -> ArrayLike: ...
 def indices_fast(
     index: npt.NDArray[np.intp],
     labels: np.ndarray,  # const int64_t[:]
