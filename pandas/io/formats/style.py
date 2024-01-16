@@ -1715,12 +1715,12 @@ class Styler(StylerRenderer):
             if not isinstance(result, DataFrame):
                 if not isinstance(result, np.ndarray):
                     raise TypeError(
-                        f"Function {repr(func)} must return a DataFrame or ndarray "
+                        f"Function {func!r} must return a DataFrame or ndarray "
                         f"when passed to `Styler.apply` with axis=None"
                     )
                 if data.shape != result.shape:
                     raise ValueError(
-                        f"Function {repr(func)} returned ndarray with wrong shape.\n"
+                        f"Function {func!r} returned ndarray with wrong shape.\n"
                         f"Result has shape: {result.shape}\n"
                         f"Expected shape: {data.shape}"
                     )
@@ -1734,12 +1734,12 @@ class Styler(StylerRenderer):
 
         if isinstance(result, Series):
             raise ValueError(
-                f"Function {repr(func)} resulted in the apply method collapsing to a "
+                f"Function {func!r} resulted in the apply method collapsing to a "
                 f"Series.\nUsually, this is the result of the function returning a "
                 f"single value, instead of list-like."
             )
         msg = (
-            f"Function {repr(func)} created invalid {{0}} labels.\nUsually, this is "
+            f"Function {func!r} created invalid {{0}} labels.\nUsually, this is "
             f"the result of the function returning a "
             f"{'Series' if axis is not None else 'DataFrame'} which contains invalid "
             f"labels, or returning an incorrectly shaped, list-like object which "
