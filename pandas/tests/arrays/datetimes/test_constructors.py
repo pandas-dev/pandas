@@ -233,7 +233,7 @@ def test_from_arrowtest_from_arrow_with_different_units_and_timezones_with_(
     dtype = DatetimeTZDtype(unit=pd_unit, tz=pd_tz)
 
     result = dtype.__from_arrow__(arr)
-    expected = DatetimeArray._from_sequence(
+    expected = DatetimeArray._simple_new(
         np.array(data, dtype=f"datetime64[{pa_unit}]").astype(f"datetime64[{pd_unit}]"),
         dtype=dtype,
     )
