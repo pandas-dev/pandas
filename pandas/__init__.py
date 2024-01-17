@@ -202,8 +202,6 @@ if "PANDAS_DATA_MANAGER" in os.environ:
         FutureWarning,
         stacklevel=2,
     )
-# Don't allow users to use pandas.os
-del os
 
 # DeprecationWarning for missing pyarrow
 from pandas.compat.pyarrow import pa_version_under10p1
@@ -213,12 +211,13 @@ if pa_version_under10p1:
     from pandas.compat._optional import VERSIONS
 
     try:
-        import pyarrow  # noqa: F401
+        import pyarrow
 
         pa_msg = (
             f"was too old on your system - pyarrow {VERSIONS['pyarrow']} "
             "is the current minimum supported version as of this release."
         )
+        del pyarrow
     except ImportError:
         pa_msg = "was not found to be installed on your system."
 
@@ -234,7 +233,9 @@ please provide us feedback at https://github.com/pandas-dev/pandas/issues/54466
         stacklevel=2,
     )
     del VERSIONS
-del pa_version_under10p1, warnings
+
+# Delete all unnecessary imported modules
+del pa_version_under10p1, warnings, os
 
 # module level doc-string
 __doc__ = """
