@@ -12,7 +12,7 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-import pandas.util._test_decorators as td
+from pandas.compat.numpy import np_version_gt2
 
 import pandas as pd
 from pandas import (
@@ -36,7 +36,7 @@ class TestReindexSetIndex:
         # GH#6631
         df = DataFrame(np.random.default_rng(2).random(6))
         idx1 = date_range("2011/01/01", periods=6, freq="ME", tz="US/Eastern")
-        idx2 = date_range("2013", periods=6, freq="A", tz="Asia/Tokyo")
+        idx2 = date_range("2013", periods=6, freq="YE", tz="Asia/Tokyo")
 
         df = df.set_index(idx1)
         tm.assert_index_equal(df.index, idx1)
@@ -46,7 +46,7 @@ class TestReindexSetIndex:
     def test_dti_set_index_reindex_freq_with_tz(self):
         # GH#11314 with tz
         index = date_range(
-            datetime(2015, 10, 1), datetime(2015, 10, 1, 23), freq="H", tz="US/Eastern"
+            datetime(2015, 10, 1), datetime(2015, 10, 1, 23), freq="h", tz="US/Eastern"
         )
         df = DataFrame(
             np.random.default_rng(2).standard_normal((24, 1)),
@@ -54,7 +54,7 @@ class TestReindexSetIndex:
             index=index,
         )
         new_index = date_range(
-            datetime(2015, 10, 2), datetime(2015, 10, 2, 23), freq="H", tz="US/Eastern"
+            datetime(2015, 10, 2), datetime(2015, 10, 2, 23), freq="h", tz="US/Eastern"
         )
 
         result = df.set_index(new_index)
@@ -119,7 +119,7 @@ class TestReindexSetIndex:
         exp = DataFrame({"index": ["1", "2"], "vals": [np.nan, np.nan]}).set_index(
             "index"
         )
-        exp = exp.astype(object)
+        exp = exp.astype(df.vals.dtype)
         tm.assert_frame_equal(
             df,
             exp,
@@ -131,11 +131,10 @@ class TestDataFrameSelectReindex:
     # test_indexing
 
     @pytest.mark.xfail(
-        not IS64 or is_platform_windows(),
+        not IS64 or (is_platform_windows() and not np_version_gt2),
         reason="Passes int32 values to DatetimeArray in make_na_array on "
         "windows, 32bit linux builds",
     )
-    @td.skip_array_manager_not_yet_implemented
     def test_reindex_tzaware_fill_value(self):
         # GH#52586
         df = DataFrame([[1]])
@@ -197,7 +196,6 @@ class TestDataFrameSelectReindex:
         else:
             assert not np.shares_memory(result2[0].array._data, df[0].array._data)
 
-    @td.skip_array_manager_not_yet_implemented
     def test_reindex_date_fill_value(self):
         # passing date to dt64 is deprecated; enforced in 2.0 to cast to object
         arr = date_range("2016-01-01", periods=6).values.reshape(3, 2)
@@ -389,9 +387,9 @@ class TestDataFrameSelectReindex:
         # GH#38566
         obj = frame_or_series(
             [0, 1, 2, 3],
-            index=date_range("2020-01-01 00:00:00", periods=4, freq="H", tz="UTC"),
+            index=date_range("2020-01-01 00:00:00", periods=4, freq="h", tz="UTC"),
         )
-        new_index = date_range("2020-01-01 00:01:00", periods=4, freq="H", tz="UTC")
+        new_index = date_range("2020-01-01 00:01:00", periods=4, freq="h", tz="UTC")
         result = obj.reindex(new_index, method=method, tolerance=pd.Timedelta("1 hour"))
         expected = frame_or_series(exp_values, index=new_index)
         tm.assert_equal(result, expected)
@@ -454,19 +452,16 @@ class TestDataFrameSelectReindex:
             ("mid",),
             ("mid", "btm"),
             ("mid", "btm", "top"),
-            ("mid",),
             ("mid", "top"),
             ("mid", "top", "btm"),
             ("btm",),
             ("btm", "mid"),
             ("btm", "mid", "top"),
-            ("btm",),
             ("btm", "top"),
             ("btm", "top", "mid"),
             ("top",),
             ("top", "mid"),
             ("top", "mid", "btm"),
-            ("top",),
             ("top", "btm"),
             ("top", "btm", "mid"),
         ],
@@ -608,7 +603,9 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(result, expected)
 
     def test_reindex(self, float_frame, using_copy_on_write):
-        datetime_series = tm.makeTimeSeries(nper=30)
+        datetime_series = Series(
+            np.arange(30, dtype=np.float64), index=date_range("2020-01-01", periods=30)
+        )
 
         newFrame = float_frame.reindex(datetime_series.index)
 
@@ -623,7 +620,7 @@ class TestDataFrameSelectReindex:
                     assert np.isnan(val)
 
         for col, series in newFrame.items():
-            assert tm.equalContents(series.index, newFrame.index)
+            tm.assert_index_equal(series.index, newFrame.index)
         emptyFrame = float_frame.reindex(Index([]))
         assert len(emptyFrame.index) == 0
 
@@ -641,7 +638,7 @@ class TestDataFrameSelectReindex:
                     assert np.isnan(val)
 
         for col, series in nonContigFrame.items():
-            assert tm.equalContents(series.index, nonContigFrame.index)
+            tm.assert_index_equal(series.index, nonContigFrame.index)
 
         # corner cases
 
@@ -837,8 +834,8 @@ class TestDataFrameSelectReindex:
 
         # other dtypes
         df["foo"] = "foo"
-        result = df.reindex(range(15), fill_value=0)
-        expected = df.reindex(range(15)).fillna(0)
+        result = df.reindex(range(15), fill_value="0")
+        expected = df.reindex(range(15)).fillna("0")
         tm.assert_frame_equal(result, expected)
 
     def test_reindex_uint_dtypes_fill_value(self, any_unsigned_int_numpy_dtype):
@@ -1067,7 +1064,7 @@ class TestDataFrameSelectReindex:
         midx = MultiIndex.from_product(
             [
                 Categorical(["a", "b", "c"]),
-                Categorical(date_range("2012-01-01", periods=3, freq="H")),
+                Categorical(date_range("2012-01-01", periods=3, freq="h")),
             ]
         )
         df = DataFrame({"a": range(len(midx))}, index=midx)
@@ -1222,13 +1219,7 @@ class TestDataFrameSelectReindex:
         expected = DataFrame({"a": [np.nan] * 3}, index=idx, dtype=object)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "src_idx",
-        [
-            Index([]),
-            CategoricalIndex([]),
-        ],
-    )
+    @pytest.mark.parametrize("src_idx", [Index, CategoricalIndex])
     @pytest.mark.parametrize(
         "cat_idx",
         [
@@ -1243,7 +1234,7 @@ class TestDataFrameSelectReindex:
         ],
     )
     def test_reindex_empty(self, src_idx, cat_idx):
-        df = DataFrame(columns=src_idx, index=["K"], dtype="f8")
+        df = DataFrame(columns=src_idx([]), index=["K"], dtype="f8")
 
         result = df.reindex(columns=cat_idx)
         expected = DataFrame(index=["K"], columns=cat_idx, dtype="f8")
@@ -1284,36 +1275,14 @@ class TestDataFrameSelectReindex:
         assert res.iloc[-1, 1] is fv
         tm.assert_frame_equal(res, expected)
 
-    @pytest.mark.parametrize(
-        "index_df,index_res,index_exp",
-        [
-            (
-                CategoricalIndex([], categories=["A"]),
-                Index(["A"]),
-                Index(["A"]),
-            ),
-            (
-                CategoricalIndex([], categories=["A"]),
-                Index(["B"]),
-                Index(["B"]),
-            ),
-            (
-                CategoricalIndex([], categories=["A"]),
-                CategoricalIndex(["A"]),
-                CategoricalIndex(["A"]),
-            ),
-            (
-                CategoricalIndex([], categories=["A"]),
-                CategoricalIndex(["B"]),
-                CategoricalIndex(["B"]),
-            ),
-        ],
-    )
-    def test_reindex_not_category(self, index_df, index_res, index_exp):
+    @pytest.mark.parametrize("klass", [Index, CategoricalIndex])
+    @pytest.mark.parametrize("data", ["A", "B"])
+    def test_reindex_not_category(self, klass, data):
         # GH#28690
-        df = DataFrame(index=index_df)
-        result = df.reindex(index=index_res)
-        expected = DataFrame(index=index_exp)
+        df = DataFrame(index=CategoricalIndex([], categories=["A"]))
+        idx = klass([data])
+        result = df.reindex(index=idx)
+        expected = DataFrame(index=idx)
         tm.assert_frame_equal(result, expected)
 
     def test_invalid_method(self):

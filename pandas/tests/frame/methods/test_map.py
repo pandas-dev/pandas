@@ -12,6 +12,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
+from pandas.tseries.offsets import BDay
+
 
 def test_map(float_frame):
     result = float_frame.map(lambda x: x * 2)
@@ -31,7 +33,6 @@ def test_map_float_object_conversion(val):
     assert result == object
 
 
-@pytest.mark.parametrize("na_action", [None, "ignore"])
 def test_map_keeps_dtype(na_action):
     # GH52219
     arr = Series(["a", np.nan, "b"])
@@ -158,8 +159,6 @@ def test_map_box():
 
 
 def test_frame_map_dont_convert_datetime64():
-    from pandas.tseries.offsets import BDay
-
     df = DataFrame({"x1": [datetime(1996, 1, 1)]})
 
     df = df.map(lambda x: x + BDay())

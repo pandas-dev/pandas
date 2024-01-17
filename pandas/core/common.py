@@ -24,6 +24,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    TypeVar,
     cast,
     overload,
 )
@@ -42,6 +43,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
+    ABCMultiIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.inference import iterable_not_string
@@ -50,7 +52,9 @@ if TYPE_CHECKING:
     from pandas._typing import (
         AnyArrayLike,
         ArrayLike,
+        Concatenate,
         NpDtype,
+        P,
         RandomState,
         T,
     )
@@ -121,7 +125,9 @@ def is_bool_indexer(key: Any) -> bool:
     check_array_indexer : Check that `key` is a valid array to index,
         and convert to an ndarray.
     """
-    if isinstance(key, (ABCSeries, np.ndarray, ABCIndex, ABCExtensionArray)):
+    if isinstance(
+        key, (ABCSeries, np.ndarray, ABCIndex, ABCExtensionArray)
+    ) and not isinstance(key, ABCMultiIndex):
         if key.dtype == np.object_:
             key_array = np.asarray(key)
 
@@ -460,8 +466,34 @@ def random_state(state: RandomState | None = None):
         )
 
 
+_T = TypeVar("_T")  # Secondary TypeVar for use in pipe's type hints
+
+
+@overload
 def pipe(
-    obj, func: Callable[..., T] | tuple[Callable[..., T], str], *args, **kwargs
+    obj: _T,
+    func: Callable[Concatenate[_T, P], T],
+    *args: P.args,
+    **kwargs: P.kwargs,
+) -> T:
+    ...
+
+
+@overload
+def pipe(
+    obj: Any,
+    func: tuple[Callable[..., T], str],
+    *args: Any,
+    **kwargs: Any,
+) -> T:
+    ...
+
+
+def pipe(
+    obj: _T,
+    func: Callable[Concatenate[_T, P], T] | tuple[Callable[..., T], str],
+    *args: Any,
+    **kwargs: Any,
 ) -> T:
     """
     Apply a function ``func`` to object ``obj`` either by passing obj as the
@@ -487,12 +519,13 @@ def pipe(
     object : the return type of ``func``.
     """
     if isinstance(func, tuple):
-        func, target = func
+        # Assigning to func_ so pyright understands that it's a callable
+        func_, target = func
         if target in kwargs:
             msg = f"{target} is both the pipe target and a keyword argument"
             raise ValueError(msg)
         kwargs[target] = obj
-        return func(*args, **kwargs)
+        return func_(*args, **kwargs)
     else:
         return func(obj, *args, **kwargs)
 

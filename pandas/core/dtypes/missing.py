@@ -258,7 +258,9 @@ def _use_inf_as_na(key) -> None:
         globals()["INF_AS_NA"] = False
 
 
-def _isna_array(values: ArrayLike, inf_as_na: bool = False):
+def _isna_array(
+    values: ArrayLike, inf_as_na: bool = False
+) -> npt.NDArray[np.bool_] | NDFrame:
     """
     Return an array indicating which values of the input array are NaN / NA.
 
@@ -275,6 +277,7 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
         Array of boolean values denoting the NA status of each element.
     """
     dtype = values.dtype
+    result: npt.NDArray[np.bool_] | NDFrame
 
     if not isinstance(values, np.ndarray):
         # i.e. ExtensionArray
@@ -557,17 +560,36 @@ def _array_equivalent_float(left: np.ndarray, right: np.ndarray) -> bool:
     return bool(((left == right) | (np.isnan(left) & np.isnan(right))).all())
 
 
-def _array_equivalent_datetimelike(left: np.ndarray, right: np.ndarray):
+def _array_equivalent_datetimelike(left: np.ndarray, right: np.ndarray) -> bool:
     return np.array_equal(left.view("i8"), right.view("i8"))
 
 
-def _array_equivalent_object(left: np.ndarray, right: np.ndarray, strict_nan: bool):
-    if not strict_nan:
-        # isna considers NaN and None to be equivalent.
+def _array_equivalent_object(
+    left: np.ndarray, right: np.ndarray, strict_nan: bool
+) -> bool:
+    left = ensure_object(left)
+    right = ensure_object(right)
 
-        return lib.array_equivalent_object(ensure_object(left), ensure_object(right))
+    mask: npt.NDArray[np.bool_] | None = None
+    if strict_nan:
+        mask = isna(left) & isna(right)
+        if not mask.any():
+            mask = None
 
-    for left_value, right_value in zip(left, right):
+    try:
+        if mask is None:
+            return lib.array_equivalent_object(left, right)
+        if not lib.array_equivalent_object(left[~mask], right[~mask]):
+            return False
+        left_remaining = left[mask]
+        right_remaining = right[mask]
+    except ValueError:
+        # can raise a ValueError if left and right cannot be
+        # compared (e.g. nested arrays)
+        left_remaining = left
+        right_remaining = right
+
+    for left_value, right_value in zip(left_remaining, right_remaining):
         if left_value is NaT and right_value is not NaT:
             return False
 
@@ -669,7 +691,8 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     if isinstance(dtype, ExtensionDtype):
         return dtype.na_value
     elif dtype.kind in "mM":
-        return dtype.type("NaT", "ns")
+        unit = np.datetime_data(dtype)[0]
+        return dtype.type("NaT", unit)
     elif dtype.kind == "f":
         return np.nan
     elif dtype.kind in "iu":

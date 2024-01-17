@@ -7,7 +7,10 @@ import contextlib
 import copy
 import io
 import pickle as pkl
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import numpy as np
 
@@ -65,6 +68,12 @@ _class_locations_map = {
     ("pandas.core.sparse.array", "SparseArray"): ("pandas.core.arrays", "SparseArray"),
     # 15477
     ("pandas.core.base", "FrozenNDArray"): ("numpy", "ndarray"),
+    # Re-routing unpickle block logic to go through _unpickle_block instead
+    # for pandas <= 1.3.5
+    ("pandas.core.internals.blocks", "new_block"): (
+        "pandas._libs.internals",
+        "_unpickle_block",
+    ),
     ("pandas.core.indexes.frozen", "FrozenNDArray"): ("numpy", "ndarray"),
     ("pandas.core.base", "FrozenList"): ("pandas.core.indexes.frozen", "FrozenList"),
     # 10890
@@ -203,7 +212,7 @@ except (AttributeError, KeyError):
     pass
 
 
-def load(fh, encoding: str | None = None, is_verbose: bool = False):
+def load(fh, encoding: str | None = None, is_verbose: bool = False) -> Any:
     """
     Load a pickle, with a provided encoding,
 
@@ -233,7 +242,7 @@ def loads(
     fix_imports: bool = True,
     encoding: str = "ASCII",
     errors: str = "strict",
-):
+) -> Any:
     """
     Analogous to pickle._loads.
     """

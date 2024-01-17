@@ -1318,9 +1318,10 @@ class StylerRenderer:
         Using the default ``formatter`` for unspecified levels
 
         >>> df = pd.DataFrame([[1, 2, 3]],
-        ...     columns=pd.MultiIndex.from_arrays([["a", "a", "b"],[2, np.nan, 4]]))
+        ...                   columns=pd.MultiIndex.from_arrays(
+        ...                   [["a", "a", "b"], [2, np.nan, 4]]))
         >>> df.style.format_index({0: lambda v: v.upper()}, axis=1, precision=1)
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
                        A       B
               2.0    nan     4.0
         0       1      2       3
@@ -1329,7 +1330,7 @@ class StylerRenderer:
 
         >>> func = lambda s: 'STRING' if isinstance(s, str) else 'FLOAT'
         >>> df.style.format_index(func, axis=1, na_rep='MISS')
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
                   STRING  STRING
             FLOAT   MISS   FLOAT
         0       1      2       3
@@ -1338,7 +1339,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame([[1, 2, 3]], columns=['"A"', 'A&B', None])
         >>> s = df.style.format_index('$ {0}', axis=1, escape="html", na_rep="NA")
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
         <th .. >$ &#34;A&#34;</th>
         <th .. >$ A&amp;B</th>
         <th .. >NA</td>
@@ -1348,7 +1349,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame([[1, 2, 3]], columns=["123", "~", "$%#"])
         >>> df.style.format_index("\\textbf{{{}}}", escape="latex", axis=1).to_latex()
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
         \begin{tabular}{lrrr}
         {} & {\textbf{123}} & {\textbf{\textasciitilde }} & {\textbf{\$\%\#}} \\
         0 & 1 & 2 & 3 \\
@@ -1475,7 +1476,7 @@ class StylerRenderer:
 
         Chaining with pre-hidden elements
 
-        >>> df.style.hide([0,1]).relabel_index(["C"])  # doctest: +SKIP
+        >>> df.style.hide([0, 1]).relabel_index(["C"])  # doctest: +SKIP
              col
         C      c
 
@@ -1493,9 +1494,10 @@ class StylerRenderer:
               1     5
            1  0     6
               1     7
-        >>> styler.hide((midx.get_level_values(0)==0)|(midx.get_level_values(1)==0))
-        ...  # doctest: +SKIP
-        >>> styler.hide(level=[0,1])  # doctest: +SKIP
+        >>> styler.hide((midx.get_level_values(0) == 0) |
+        ...             (midx.get_level_values(1) == 0))
+        ... # doctest: +SKIP
+        >>> styler.hide(level=[0, 1])  # doctest: +SKIP
         >>> styler.relabel_index(["binary6", "binary7"])  # doctest: +SKIP
                   col
         binary6     6
@@ -1503,9 +1505,9 @@ class StylerRenderer:
 
         We can also achieve the above by indexing first and then re-labeling
 
-        >>> styler = df.loc[[(1,1,0), (1,1,1)]].style
-        >>> styler.hide(level=[0,1]).relabel_index(["binary6", "binary7"])
-        ...  # doctest: +SKIP
+        >>> styler = df.loc[[(1, 1, 0), (1, 1, 1)]].style
+        >>> styler.hide(level=[0, 1]).relabel_index(["binary6", "binary7"])
+        ... # doctest: +SKIP
                   col
         binary6     6
         binary7     7
@@ -1516,9 +1518,9 @@ class StylerRenderer:
         brackets if the string if pre-formatted),
 
         >>> df = pd.DataFrame({"samples": np.random.rand(10)})
-        >>> styler = df.loc[np.random.randint(0,10,3)].style
+        >>> styler = df.loc[np.random.randint(0, 10, 3)].style
         >>> styler.relabel_index([f"sample{i+1} ({{}})" for i in range(3)])
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
                          samples
         sample1 (5)     0.315811
         sample2 (0)     0.495941
@@ -1652,9 +1654,9 @@ def _get_level_lengths(
         Result is a dictionary of (level, initial_position): span
     """
     if isinstance(index, MultiIndex):
-        levels = index.format(sparsify=lib.no_default, adjoin=False)
+        levels = index._format_multi(sparsify=lib.no_default, include_names=False)
     else:
-        levels = index.format()
+        levels = index._format_flat(include_name=False)
 
     if hidden_elements is None:
         hidden_elements = []
@@ -2288,12 +2290,12 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
     Ignore conversion if tagged with `--latex` option, skipped if no conversion found.
     """
 
-    def font_weight(value, arg):
+    def font_weight(value, arg) -> tuple[str, str] | None:
         if value in ("bold", "bolder"):
             return "bfseries", f"{arg}"
         return None
 
-    def font_style(value, arg):
+    def font_style(value, arg) -> tuple[str, str] | None:
         if value == "italic":
             return "itshape", f"{arg}"
         if value == "oblique":
@@ -2357,7 +2359,7 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
     return latex_styles
 
 
-def _escape_latex(s):
+def _escape_latex(s: str) -> str:
     r"""
     Replace the characters ``&``, ``%``, ``$``, ``#``, ``_``, ``{``, ``}``,
     ``~``, ``^``, and ``\`` in the string with LaTeX-safe sequences.
@@ -2392,7 +2394,7 @@ def _escape_latex(s):
     )
 
 
-def _math_mode_with_dollar(s):
+def _math_mode_with_dollar(s: str) -> str:
     r"""
     All characters in LaTeX math mode are preserved.
 
@@ -2425,7 +2427,7 @@ def _math_mode_with_dollar(s):
     return "".join(res).replace(r"rt8§=§7wz", r"\$")
 
 
-def _math_mode_with_parentheses(s):
+def _math_mode_with_parentheses(s: str) -> str:
     r"""
     All characters in LaTeX math mode are preserved.
 
@@ -2461,7 +2463,7 @@ def _math_mode_with_parentheses(s):
     return "".join(res)
 
 
-def _escape_latex_math(s):
+def _escape_latex_math(s: str) -> str:
     r"""
     All characters in LaTeX math mode are preserved.
 

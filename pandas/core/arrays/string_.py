@@ -4,6 +4,7 @@ from typing import (
     TYPE_CHECKING,
     ClassVar,
     Literal,
+    cast,
 )
 
 import numpy as np
@@ -16,7 +17,7 @@ from pandas._libs import (
 )
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.lib import ensure_string_array
-from pandas.compat import pa_version_under7p0
+from pandas.compat import pa_version_under10p1
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
@@ -56,6 +57,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         AxisInt,
         Dtype,
+        DtypeObj,
         NumpySorter,
         NumpyValueArrayLike,
         Scalar,
@@ -126,9 +128,9 @@ class StringDtype(StorageExtensionDtype):
                 f"Storage must be 'python', 'pyarrow' or 'pyarrow_numpy'. "
                 f"Got {storage} instead."
             )
-        if storage in ("pyarrow", "pyarrow_numpy") and pa_version_under7p0:
+        if storage in ("pyarrow", "pyarrow_numpy") and pa_version_under10p1:
             raise ImportError(
-                "pyarrow>=7.0.0 is required for PyArrow backed StringArray."
+                "pyarrow>=10.0.1 is required for PyArrow backed StringArray."
             )
         self.storage = storage
 
@@ -227,11 +229,19 @@ class StringDtype(StorageExtensionDtype):
                 # pyarrow.ChunkedArray
                 chunks = array.chunks
 
+            results = []
+            for arr in chunks:
+                # convert chunk by chunk to numpy and concatenate then, to avoid
+                # overflow for large string data when concatenating the pyarrow arrays
+                arr = arr.to_numpy(zero_copy_only=False)
+                arr = ensure_string_array(arr, na_value=libmissing.NA)
+                results.append(arr)
+
         if len(chunks) == 0:
             arr = np.array([], dtype=object)
         else:
-            arr = pyarrow.concat_arrays(chunks).to_numpy(zero_copy_only=False)
-            arr = ensure_string_array(arr, na_value=libmissing.NA)
+            arr = np.concatenate(results)
+
         # Bypass validation inside StringArray constructor, see GH#47781
         new_string_array = StringArray.__new__(StringArray)
         NDArrayBacked.__init__(
@@ -248,10 +258,17 @@ class BaseStringArray(ExtensionArray):
     """
 
     @doc(ExtensionArray.tolist)
-    def tolist(self):
+    def tolist(self) -> list:
         if self.ndim > 1:
             return [x.tolist() for x in self]
         return list(self.to_numpy())
+
+    @classmethod
+    def _from_scalars(cls, scalars, dtype: DtypeObj) -> Self:
+        if lib.infer_dtype(scalars, skipna=True) not in ["string", "empty"]:
+            # TODO: require any NAs be valid-for-string
+            raise ValueError
+        return cls._from_sequence(scalars, dtype=dtype)
 
 
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
@@ -348,7 +365,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             self._validate()
         NDArrayBacked.__init__(self, self._ndarray, StringDtype(storage="python"))
 
-    def _validate(self):
+    def _validate(self) -> None:
         """Validate that we only store NA or strings."""
         if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
             raise ValueError("StringArray requires a sequence of strings or pandas.NA")
@@ -365,7 +382,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             lib.convert_nans_to_NA(self._ndarray)
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
+    def _from_sequence(
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
+    ) -> Self:
         if dtype and not (isinstance(dtype, str) and dtype == "string"):
             dtype = pandas_dtype(dtype)
             assert isinstance(dtype, StringDtype) and dtype.storage == "python"
@@ -398,7 +417,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     @classmethod
     def _from_sequence_of_strings(
         cls, strings, *, dtype: Dtype | None = None, copy: bool = False
-    ):
+    ) -> Self:
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     @classmethod
@@ -420,7 +439,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         values[self.isna()] = None
         return pa.array(values, type=type, from_pandas=True)
 
-    def _values_for_factorize(self):
+    def _values_for_factorize(self) -> tuple[np.ndarray, None]:
         arr = self._ndarray.copy()
         mask = self.isna()
         arr[mask] = None
@@ -608,6 +627,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             na_value_is_na = isna(na_value)
             if na_value_is_na:
                 na_value = 1
+            elif dtype == np.dtype("bool"):
+                na_value = bool(na_value)
             result = lib.map_infer_mask(
                 arr,
                 f,
@@ -617,7 +638,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 # error: Argument 1 to "dtype" has incompatible type
                 # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
                 # "Type[object]"
-                dtype=np.dtype(dtype),  # type: ignore[arg-type]
+                dtype=np.dtype(cast(type, dtype)),
             )
 
             if not na_value_is_na:

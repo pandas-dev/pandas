@@ -4,6 +4,8 @@ from contextlib import suppress
 import sys
 from typing import (
     TYPE_CHECKING,
+    Any,
+    TypeVar,
     cast,
     final,
 )
@@ -11,7 +13,10 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
+from pandas._config import (
+    using_copy_on_write,
+    warn_copy_on_write,
+)
 
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
@@ -23,8 +28,11 @@ from pandas.errors import (
     InvalidIndexError,
     LossySetitemError,
     _chained_assignment_msg,
+    _chained_assignment_warning_msg,
+    _check_cacher,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -60,6 +68,7 @@ import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
     extract_array,
+    sanitize_array,
 )
 from pandas.core.indexers import (
     check_array_indexer,
@@ -90,6 +99,7 @@ if TYPE_CHECKING:
         Series,
     )
 
+T = TypeVar("T")
 # "null slice"
 _NS = slice(None, None)
 _one_ellipsis_message = "indexer may only contain one '...' entry"
@@ -111,7 +121,7 @@ class _IndexSlice:
 
     Examples
     --------
-    >>> midx = pd.MultiIndex.from_product([['A0','A1'], ['B0','B1','B2','B3']])
+    >>> midx = pd.MultiIndex.from_product([['A0', 'A1'], ['B0', 'B1', 'B2', 'B3']])
     >>> columns = ['foo', 'bar']
     >>> dfmi = pd.DataFrame(np.arange(16).reshape((len(midx), len(columns))),
     ...                     index=midx, columns=columns)
@@ -153,6 +163,10 @@ class IndexingMixin:
         """
         Purely integer-location based indexing for selection by position.
 
+        .. deprecated:: 2.2.0
+
+           Returning a tuple from a callable is deprecated.
+
         ``.iloc[]`` is primarily integer position based (from ``0`` to
         ``length-1`` of the axis), but may also be used with a boolean
         array.
@@ -166,7 +180,8 @@ class IndexingMixin:
         - A ``callable`` function with one argument (the calling Series or
           DataFrame) and that returns valid output for indexing (one of the above).
           This is useful in method chains, when you don't have a reference to the
-          calling object, but would like to base your selection on some value.
+          calling object, but would like to base your selection on
+          some value.
         - A tuple of row and column indexes. The tuple elements consist of one of the
           above inputs, e.g. ``(0, 1)``.
 
@@ -187,7 +202,7 @@ class IndexingMixin:
         --------
         >>> mydict = [{'a': 1, 'b': 2, 'c': 3, 'd': 4},
         ...           {'a': 100, 'b': 200, 'c': 300, 'd': 400},
-        ...           {'a': 1000, 'b': 2000, 'c': 3000, 'd': 4000 }]
+        ...           {'a': 1000, 'b': 2000, 'c': 3000, 'd': 4000}]
         >>> df = pd.DataFrame(mydict)
         >>> df
               a     b     c     d
@@ -328,7 +343,7 @@ class IndexingMixin:
         DataFrame.at : Access a single value for a row/column label pair.
         DataFrame.iloc : Access group of rows and columns by integer position(s).
         DataFrame.xs : Returns a cross-section (row(s) or column(s)) from the
-            Series/DataFrame.
+                       Series/DataFrame.
         Series.loc : Access group of values using labels.
 
         Examples
@@ -336,8 +351,8 @@ class IndexingMixin:
         **Getting values**
 
         >>> df = pd.DataFrame([[1, 2], [4, 5], [7, 8]],
-        ...      index=['cobra', 'viper', 'sidewinder'],
-        ...      columns=['max_speed', 'shield'])
+        ...                   index=['cobra', 'viper', 'sidewinder'],
+        ...                   columns=['max_speed', 'shield'])
         >>> df
                     max_speed  shield
         cobra               1       2
@@ -380,8 +395,8 @@ class IndexingMixin:
         Alignable boolean Series:
 
         >>> df.loc[pd.Series([False, True, False],
-        ...        index=['viper', 'sidewinder', 'cobra'])]
-                    max_speed  shield
+        ...                  index=['viper', 'sidewinder', 'cobra'])]
+                             max_speed  shield
         sidewinder          7       8
 
         Index (same behavior as ``df.reindex``)
@@ -407,7 +422,7 @@ class IndexingMixin:
         Multiple conditional using ``&`` that returns a boolean Series
 
         >>> df.loc[(df['max_speed'] > 1) & (df['shield'] < 8)]
-               max_speed  shield
+                    max_speed  shield
         viper          4       5
 
         Multiple conditional using ``|`` that returns a boolean Series
@@ -496,7 +511,7 @@ class IndexingMixin:
         Another example using integers for the index
 
         >>> df = pd.DataFrame([[1, 2], [4, 5], [7, 8]],
-        ...      index=[7, 8, 9], columns=['max_speed', 'shield'])
+        ...                   index=[7, 8, 9], columns=['max_speed', 'shield'])
         >>> df
            max_speed  shield
         7          1       2
@@ -517,13 +532,13 @@ class IndexingMixin:
         A number of examples using a DataFrame with a MultiIndex
 
         >>> tuples = [
-        ...    ('cobra', 'mark i'), ('cobra', 'mark ii'),
-        ...    ('sidewinder', 'mark i'), ('sidewinder', 'mark ii'),
-        ...    ('viper', 'mark ii'), ('viper', 'mark iii')
+        ...     ('cobra', 'mark i'), ('cobra', 'mark ii'),
+        ...     ('sidewinder', 'mark i'), ('sidewinder', 'mark ii'),
+        ...     ('viper', 'mark ii'), ('viper', 'mark iii')
         ... ]
         >>> index = pd.MultiIndex.from_tuples(tuples)
         >>> values = [[12, 2], [0, 4], [10, 20],
-        ...         [1, 4], [7, 1], [16, 36]]
+        ...           [1, 4], [7, 1], [16, 36]]
         >>> df = pd.DataFrame(values, columns=['max_speed', 'shield'], index=index)
         >>> df
                              max_speed  shield
@@ -872,20 +887,31 @@ class _LocationIndexer(NDFrameIndexerBase):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
+        elif not PYPY and not using_copy_on_write():
+            ctr = sys.getrefcount(self.obj)
+            ref_count = 2
+            if not warn_copy_on_write() and _check_cacher(self.obj):
+                # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                ref_count += 1
+            if ctr <= ref_count:
+                warnings.warn(
+                    _chained_assignment_warning_msg, FutureWarning, stacklevel=2
+                )
 
         check_dict_or_set_indexers(key)
         if isinstance(key, tuple):
             key = tuple(list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
         else:
-            key = com.apply_if_callable(key, self.obj)
+            maybe_callable = com.apply_if_callable(key, self.obj)
+            key = self._check_deprecated_callable_usage(key, maybe_callable)
         indexer = self._get_setitem_indexer(key)
         self._has_valid_setitem_indexer(key)
 
         iloc = self if self.name == "iloc" else self.obj.iloc
         iloc._setitem_with_indexer(indexer, value, self.name)
 
-    def _validate_key(self, key, axis: AxisInt):
+    def _validate_key(self, key, axis: AxisInt) -> None:
         """
         Ensure that key is valid for current indexer.
 
@@ -985,7 +1011,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         This is only called after a failed call to _getitem_lowerdim.
         """
         retval = self.obj
-        # Selecting columns before rows is signficiantly faster
+        # Selecting columns before rows is significantly faster
         start_val = (self.ndim - len(tup)) + 1
         for i, key in enumerate(reversed(tup)):
             i = self.ndim - i - start_val
@@ -1137,6 +1163,17 @@ class _LocationIndexer(NDFrameIndexerBase):
     def _convert_to_indexer(self, key, axis: AxisInt):
         raise AbstractMethodError(self)
 
+    def _check_deprecated_callable_usage(self, key: Any, maybe_callable: T) -> T:
+        # GH53533
+        if self.name == "iloc" and callable(key) and isinstance(maybe_callable, tuple):
+            warnings.warn(
+                "Returning a tuple from a callable with iloc "
+                "is deprecated and will be removed in a future version",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        return maybe_callable
+
     @final
     def __getitem__(self, key):
         check_dict_or_set_indexers(key)
@@ -1151,6 +1188,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             axis = self.axis or 0
 
             maybe_callable = com.apply_if_callable(key, self.obj)
+            maybe_callable = self._check_deprecated_callable_usage(key, maybe_callable)
             return self._getitem_axis(maybe_callable, axis=axis)
 
     def _is_scalar_access(self, key: tuple):
@@ -1187,7 +1225,7 @@ class _LocIndexer(_LocationIndexer):
     # Key Checks
 
     @doc(_LocationIndexer._validate_key)
-    def _validate_key(self, key, axis: Axis):
+    def _validate_key(self, key, axis: Axis) -> None:
         # valid for a collection of labels (we check their presence later)
         # slice of labels (where start-end in labels)
         # slice of integers (only if in the labels)
@@ -1534,7 +1572,7 @@ class _iLocIndexer(_LocationIndexer):
     # -------------------------------------------------------------------
     # Key Checks
 
-    def _validate_key(self, key, axis: AxisInt):
+    def _validate_key(self, key, axis: AxisInt) -> None:
         if com.is_bool_indexer(key):
             if hasattr(key, "index") and isinstance(key.index, Index):
                 if key.index.inferred_type == "integer":
@@ -1745,7 +1783,7 @@ class _iLocIndexer(_LocationIndexer):
 
     # -------------------------------------------------------------------
 
-    def _setitem_with_indexer(self, indexer, value, name: str = "iloc"):
+    def _setitem_with_indexer(self, indexer, value, name: str = "iloc") -> None:
         """
         _setitem_with_indexer is for setting values on a Series/DataFrame
         using positional indexers.
@@ -1839,7 +1877,13 @@ class _iLocIndexer(_LocationIndexer):
                                 return
 
                             self.obj[key] = empty_value
-
+                        elif not is_list_like(value):
+                            # Find our empty_value dtype by constructing an array
+                            #  from our value and doing a .take on it
+                            arr = sanitize_array(value, Index(range(1)), copy=False)
+                            taker = -1 * np.ones(len(self.obj), dtype=np.intp)
+                            empty_value = algos.take_nd(arr, taker)
+                            self.obj[key] = empty_value
                         else:
                             # FIXME: GH#42099#issuecomment-864326014
                             self.obj[key] = infer_fill_value(value)
@@ -1856,7 +1900,15 @@ class _iLocIndexer(_LocationIndexer):
                     # just replacing the block manager here
                     # so the object is the same
                     index = self.obj._get_axis(i)
-                    labels = index.insert(len(index), key)
+                    with warnings.catch_warnings():
+                        # TODO: re-issue this with setitem-specific message?
+                        warnings.filterwarnings(
+                            "ignore",
+                            "The behavior of Index.insert with object-dtype "
+                            "is deprecated",
+                            category=FutureWarning,
+                        )
+                        labels = index.insert(len(index), key)
 
                     # We are expanding the Series/DataFrame values to match
                     #  the length of thenew index `labels`.  GH#40096 ensure
@@ -1986,7 +2038,7 @@ class _iLocIndexer(_LocationIndexer):
             for loc in ilocs:
                 self._setitem_single_column(loc, value, pi)
 
-    def _setitem_with_indexer_2d_value(self, indexer, value):
+    def _setitem_with_indexer_2d_value(self, indexer, value) -> None:
         # We get here with np.ndim(value) == 2, excluding DataFrame,
         #  which goes through _setitem_with_indexer_frame_value
         pi = indexer[0]
@@ -2008,7 +2060,9 @@ class _iLocIndexer(_LocationIndexer):
                 value_col = value_col.tolist()
             self._setitem_single_column(loc, value_col, pi)
 
-    def _setitem_with_indexer_frame_value(self, indexer, value: DataFrame, name: str):
+    def _setitem_with_indexer_frame_value(
+        self, indexer, value: DataFrame, name: str
+    ) -> None:
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
         sub_indexer = list(indexer)
@@ -2089,6 +2143,26 @@ class _iLocIndexer(_LocationIndexer):
                 # If we're setting an entire column and we can't do it inplace,
                 #  then we can use value's dtype (or inferred dtype)
                 #  instead of object
+                dtype = self.obj.dtypes.iloc[loc]
+                if dtype not in (np.void, object) and not self.obj.empty:
+                    # - Exclude np.void, as that is a special case for expansion.
+                    #   We want to warn for
+                    #       df = pd.DataFrame({'a': [1, 2]})
+                    #       df.loc[:, 'a'] = .3
+                    #   but not for
+                    #       df = pd.DataFrame({'a': [1, 2]})
+                    #       df.loc[:, 'b'] = .3
+                    # - Exclude `object`, as then no upcasting happens.
+                    # - Exclude empty initial object with enlargement,
+                    #   as then there's nothing to be inconsistent with.
+                    warnings.warn(
+                        f"Setting an item of incompatible dtype is deprecated "
+                        "and will raise in a future error of pandas. "
+                        f"Value '{value}' has dtype incompatible with {dtype}, "
+                        "please explicitly cast to a compatible dtype first.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
                 self.obj.isetitem(loc, value)
         else:
             # set value into the column (first attempting to operate inplace, then
@@ -2102,6 +2176,12 @@ class _iLocIndexer(_LocationIndexer):
         _setitem_with_indexer for the case when we have a single Block.
         """
         from pandas import Series
+
+        if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
+            # TODO(EA): ExtensionBlock.setitem this causes issues with
+            # setting for extensionarrays that store dicts. Need to decide
+            # if it's worth supporting that.
+            value = self._align_series(indexer, Series(value))
 
         info_axis = self.obj._info_axis_number
         item_labels = self.obj._get_axis(info_axis)
@@ -2123,13 +2203,7 @@ class _iLocIndexer(_LocationIndexer):
 
             indexer = maybe_convert_ix(*indexer)  # e.g. test_setitem_frame_align
 
-        if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
-            # TODO(EA): ExtensionBlock.setitem this causes issues with
-            # setting for extensionarrays that store dicts. Need to decide
-            # if it's worth supporting that.
-            value = self._align_series(indexer, Series(value))
-
-        elif isinstance(value, ABCDataFrame) and name != "iloc":
+        if isinstance(value, ABCDataFrame) and name != "iloc":
             value = self._align_frame(indexer, value)._values
 
         # check for chained assignment
@@ -2149,7 +2223,14 @@ class _iLocIndexer(_LocationIndexer):
         # and set inplace
         if self.ndim == 1:
             index = self.obj.index
-            new_index = index.insert(len(index), indexer)
+            with warnings.catch_warnings():
+                # TODO: re-issue this with setitem-specific message?
+                warnings.filterwarnings(
+                    "ignore",
+                    "The behavior of Index.insert with object-dtype is deprecated",
+                    category=FutureWarning,
+                )
+                new_index = index.insert(len(index), indexer)
 
             # we have a coerced indexer, e.g. a float
             # that matches in an int64 Index, so

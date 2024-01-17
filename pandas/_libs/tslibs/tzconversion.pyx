@@ -332,13 +332,16 @@ timedelta-like}
     # Shift the delta_idx by if the UTC offset of
     # the target tz is greater than 0 and we're moving forward
     # or vice versa
-    first_delta = info.deltas[0]
-    if (shift_forward or shift_delta > 0) and first_delta > 0:
-        delta_idx_offset = 1
-    elif (shift_backward or shift_delta < 0) and first_delta < 0:
-        delta_idx_offset = 1
-    else:
-        delta_idx_offset = 0
+    # TODO: delta_idx_offset and info.deltas are needed for zoneinfo timezones,
+    # but are not applicable for all timezones. Setting the former to 0 and
+    # length checking the latter avoids UB, but this could use a larger refactor
+    delta_idx_offset = 0
+    if len(info.deltas):
+        first_delta = info.deltas[0]
+        if (shift_forward or shift_delta > 0) and first_delta > 0:
+            delta_idx_offset = 1
+        elif (shift_backward or shift_delta < 0) and first_delta < 0:
+            delta_idx_offset = 1
 
     for i in range(n):
         val = vals[i]
@@ -413,8 +416,13 @@ timedelta-like}
 
                 else:
                     delta_idx = bisect_right_i8(info.tdata, new_local, info.ntrans)
-
-                    delta_idx = delta_idx - delta_idx_offset
+                    # Logic similar to the precompute section. But check the current
+                    # delta in case we are moving between UTC+0 and non-zero timezone
+                    if (shift_forward or shift_delta > 0) and \
+                       info.deltas[delta_idx - 1] >= 0:
+                        delta_idx = delta_idx - 1
+                    else:
+                        delta_idx = delta_idx - delta_idx_offset
                     result[i] = new_local - info.deltas[delta_idx]
             elif fill_nonexist:
                 result[i] = NPY_NAT
@@ -425,7 +433,11 @@ timedelta-like}
     return result.base  # .base to get underlying ndarray
 
 
-cdef Py_ssize_t bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n):
+cdef Py_ssize_t bisect_right_i8(
+    const int64_t *data,
+    int64_t val,
+    Py_ssize_t n
+) noexcept:
     # Caller is responsible for checking n > 0
     # This looks very similar to local_search_right in the ndarray.searchsorted
     #  implementation.
@@ -463,7 +475,7 @@ cdef str _render_tstamp(int64_t val, NPY_DATETIMEUNIT creso):
 
 cdef _get_utc_bounds(
     ndarray[int64_t] vals,
-    int64_t* tdata,
+    const int64_t* tdata,
     Py_ssize_t ntrans,
     const int64_t[::1] deltas,
     NPY_DATETIMEUNIT creso,

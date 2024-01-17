@@ -29,7 +29,7 @@ class Dim2CompatTests:
             test_func = node._obj
             if test_func.__qualname__.startswith("Dim2CompatTests"):
                 # TODO: is there a less hacky way of checking this?
-                pytest.skip("Test is only for EAs that support 2D.")
+                pytest.skip(f"{dtype} does not support 2D.")
 
     def test_transpose(self, data):
         arr2d = data.repeat(2).reshape(-1, 2)
@@ -90,9 +90,9 @@ class Dim2CompatTests:
         assert arr2d.shape == (data.size, 1)
         assert len(arr2d) == len(data)
 
-        with pytest.raises(ValueError):
+        with tm.external_error_raised(ValueError):
             data.reshape((data.size, 2))
-        with pytest.raises(ValueError):
+        with tm.external_error_raised(ValueError):
             data.reshape(data.size, 2)
 
     def test_getitem_2d(self, data):
@@ -248,7 +248,7 @@ class Dim2CompatTests:
                 return NUMPY_INT_TO_DTYPE[np.dtype(int)]
             else:
                 # i.e. dtype.kind == "u"
-                return NUMPY_INT_TO_DTYPE[np.dtype(np.uint)]
+                return NUMPY_INT_TO_DTYPE[np.dtype("uint")]
 
         if method in ["sum", "prod"]:
             # std and var are not dtype-preserving

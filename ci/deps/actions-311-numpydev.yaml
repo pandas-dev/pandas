@@ -18,7 +18,6 @@ dependencies:
   # causes an InternalError within pytest
   - pytest-xdist>=2.2.0, <3
   - hypothesis>=6.46.1
-  - pytest-asyncio>=0.17.0
 
   # pandas dependencies
   - python-dateutil
@@ -29,5 +28,4 @@ dependencies:
     - "--extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
     - "--pre"
     - "numpy"
-    - "scipy"
-    - "tzdata>=2022.1"
+    - "tzdata>=2022.7"

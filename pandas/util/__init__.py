@@ -25,5 +25,5 @@ def __getattr__(key: str):
     raise AttributeError(f"module 'pandas.util' has no attribute '{key}'")
 
 
-def capitalize_first_letter(s):
+def capitalize_first_letter(s: str) -> str:
     return s[:1].upper() + s[1:]

@@ -151,7 +151,7 @@ def test_unsortedindex_doc_examples():
 
     msg = r"Key length \(2\) was greater than MultiIndex lexsort depth \(1\)"
     with pytest.raises(UnsortedIndexError, match=msg):
-        dfm.loc[(0, "y"):(1, "z")]
+        dfm.loc[(0, "y") : (1, "z")]
 
     assert not dfm.index._is_lexsorted()
     assert dfm.index._lexsort_depth == 1
@@ -159,7 +159,7 @@ def test_unsortedindex_doc_examples():
     # sort it
     dfm = dfm.sort_index()
     dfm.loc[(1, "z")]
-    dfm.loc[(0, "y"):(1, "z")]
+    dfm.loc[(0, "y") : (1, "z")]
 
     assert dfm.index._is_lexsorted()
     assert dfm.index._lexsort_depth == 2
@@ -337,4 +337,13 @@ def test_sort_values_with_na_na_position(dtype, na_position):
             Series([1, None, 3], dtype=dtype),
         ]
     expected = MultiIndex.from_arrays(arrays)
+    tm.assert_index_equal(result, expected)
+
+
+def test_sort_unnecessary_warning():
+    # GH#55386
+    midx = MultiIndex.from_tuples([(1.5, 2), (3.5, 3), (0, 1)])
+    midx = midx.set_levels([2.5, np.nan, 1], level=0)
+    result = midx.sort_values()
+    expected = MultiIndex.from_tuples([(1, 3), (2.5, 1), (np.nan, 2)])
     tm.assert_index_equal(result, expected)

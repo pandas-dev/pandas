@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
@@ -199,7 +201,7 @@ def test_where_invalid_input(cond):
     s = Series([1, 2, 3])
     msg = "Boolean array expected for the condition"
 
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(TypeError, match=msg):
         s.where(cond)
 
     msg = "Array conditional must be same shape as self"
@@ -230,6 +232,7 @@ def test_where_ndframe_align():
     tm.assert_series_equal(out, expected)
 
 
+@pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't set ints into string")
 def test_where_setitem_invalid():
     # GH 2702
     # make sure correct exceptions are raised on invalid list assignment
@@ -294,11 +297,7 @@ def test_where_setitem_invalid():
 @pytest.mark.parametrize(
     "item", [2.0, np.nan, np.finfo(float).max, np.finfo(float).min]
 )
-# Test numpy arrays, lists and tuples as the input to be
-# broadcast
-@pytest.mark.parametrize(
-    "box", [lambda x: np.array([x]), lambda x: [x], lambda x: (x,)]
-)
+@pytest.mark.parametrize("box", [np.array, list, tuple])
 def test_broadcast(size, mask, item, box):
     # GH#8801, GH#4195
     selection = np.resize(mask, size)
@@ -317,11 +316,11 @@ def test_broadcast(size, mask, item, box):
     tm.assert_series_equal(s, expected)
 
     s = Series(data)
-    result = s.where(~selection, box(item))
+    result = s.where(~selection, box([item]))
     tm.assert_series_equal(result, expected)
 
     s = Series(data)
-    result = s.mask(selection, box(item))
+    result = s.mask(selection, box([item]))
     tm.assert_series_equal(result, expected)
 
 

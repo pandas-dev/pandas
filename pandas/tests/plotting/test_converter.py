@@ -260,7 +260,7 @@ class TestDateTimeConverter:
     @pytest.mark.parametrize("freq", ("B", "ms", "s"))
     def test_dateindex_conversion(self, freq, dtc):
         rtol = 10**-9
-        dateindex = tm.makeDateIndex(k=10, freq=freq)
+        dateindex = date_range("2020-01-01", periods=10, freq=freq)
         rs = dtc.convert(dateindex, None, None)
         xp = converter.mdates.date2num(dateindex._mpl_repr())
         tm.assert_almost_equal(rs, xp, rtol=rtol)
@@ -392,7 +392,7 @@ def test_quarterly_finder(year_span):
         pytest.skip("the quarterly finder is only invoked if the span is >= 45")
     nyears = span / 4
     (min_anndef, maj_anndef) = converter._get_default_annual_spacing(nyears)
-    result = converter._quarterly_finder(vmin, vmax, to_offset("Q"))
+    result = converter._quarterly_finder(vmin, vmax, to_offset("QE"))
     quarters = PeriodIndex(
         arrays.PeriodArray(np.array([x[0] for x in result]), dtype="period[Q]")
     )

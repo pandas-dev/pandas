@@ -755,7 +755,7 @@ cdef class {{name}}HashTable(HashTable):
             return uniques.to_array(), result_mask.to_array()
         return uniques.to_array()
 
-    def unique(self, const {{dtype}}_t[:] values, bint return_inverse=False, object mask=None):
+    def unique(self, const {{dtype}}_t[:] values, *, bint return_inverse=False, object mask=None):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -1180,7 +1180,7 @@ cdef class StringHashTable(HashTable):
             return uniques.to_array(), labels.base  # .base -> underlying ndarray
         return uniques.to_array()
 
-    def unique(self, ndarray[object] values, bint return_inverse=False, object mask=None):
+    def unique(self, ndarray[object] values, *, bint return_inverse=False, object mask=None):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -1239,9 +1239,10 @@ cdef class StringHashTable(HashTable):
                             na_value=na_value, ignore_na=ignore_na,
                             return_inverse=True)
 
+    # Add unused mask parameter for compat with other signatures
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
-                   object na_value=None):
+                   object na_value=None, object mask=None):
         # -> np.ndarray[np.intp]
         _, labels = self._unique(values, uniques, count_prior=count_prior,
                                  na_sentinel=na_sentinel, na_value=na_value,
@@ -1437,7 +1438,7 @@ cdef class PyObjectHashTable(HashTable):
             return uniques.to_array(), labels.base  # .base -> underlying ndarray
         return uniques.to_array()
 
-    def unique(self, ndarray[object] values, bint return_inverse=False, object mask=None):
+    def unique(self, ndarray[object] values, *, bint return_inverse=False, object mask=None):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -1496,9 +1497,10 @@ cdef class PyObjectHashTable(HashTable):
                             na_value=na_value, ignore_na=ignore_na,
                             return_inverse=True)
 
+    # Add unused mask parameter for compat with other signatures
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
-                   object na_value=None):
+                   object na_value=None, object mask=None):
         # -> np.ndarray[np.intp]
         _, labels = self._unique(values, uniques, count_prior=count_prior,
                                  na_sentinel=na_sentinel, na_value=na_value,

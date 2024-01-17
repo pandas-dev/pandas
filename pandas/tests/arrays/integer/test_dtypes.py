@@ -23,7 +23,6 @@ def test_dtypes(dtype):
 
 @pytest.mark.parametrize("op", ["sum", "min", "max", "prod"])
 def test_preserve_dtypes(op):
-    # TODO(#22346): preserve Int64 dtype
     # for ops that enable (mean would actually work here
     # but generally it is a float return value)
     df = pd.DataFrame(
@@ -60,7 +59,6 @@ def test_astype_nansafe():
         arr.astype("uint32")
 
 
-@pytest.mark.parametrize("dropna", [True, False])
 def test_construct_index(all_data, dropna):
     # ensure that we do not coerce to different Index dtype or non-index
 
@@ -77,7 +75,6 @@ def test_construct_index(all_data, dropna):
     tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.parametrize("dropna", [True, False])
 def test_astype_index(all_data, dropna):
     # as an int/uint index to Index
 
@@ -142,7 +139,7 @@ def test_astype(all_data):
     # coerce to object
     s = pd.Series(mixed)
     result = s.astype("object")
-    expected = pd.Series(np.asarray(mixed))
+    expected = pd.Series(np.asarray(mixed, dtype=object))
     tm.assert_series_equal(result, expected)
 
 

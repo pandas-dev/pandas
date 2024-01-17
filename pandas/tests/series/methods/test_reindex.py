@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
+from pandas._config import using_pyarrow_string_dtype
 
 from pandas import (
     NA,
@@ -22,6 +22,9 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.mark.xfail(
+    using_pyarrow_string_dtype(), reason="share memory doesn't work for arrow"
+)
 def test_reindex(datetime_series, string_series):
     identity = string_series.reindex(string_series.index)
 
@@ -197,7 +200,7 @@ def test_reindex_int(datetime_series):
 
     # NO NaNs introduced
     reindexed_int = int_ts.reindex(int_ts.index[::2])
-    assert reindexed_int.dtype == np.int_
+    assert reindexed_int.dtype == np.dtype(int)
 
 
 def test_reindex_bool(datetime_series):
@@ -310,10 +313,9 @@ def test_reindex_fill_value():
     tm.assert_series_equal(result, expected)
 
 
-@td.skip_array_manager_not_yet_implemented
 @pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
 @pytest.mark.parametrize("fill_value", ["string", 0, Timedelta(0)])
-def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value, using_array_manager):
+def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value):
     # https://github.com/pandas-dev/pandas/issues/42921
     if dtype == "timedelta64[ns]" and fill_value == Timedelta(0):
         # use the scalar that is not compatible with the dtype for this test
@@ -329,7 +331,7 @@ def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value, using_array_m
 def test_reindex_datetimeindexes_tz_naive_and_aware():
     # GH 8306
     idx = date_range("20131101", tz="America/Chicago", periods=7)
-    newidx = date_range("20131103", periods=10, freq="H")
+    newidx = date_range("20131103", periods=10, freq="h")
     s = Series(range(7), index=idx)
     msg = (
         r"Cannot compare dtypes datetime64\[ns, America/Chicago\] "

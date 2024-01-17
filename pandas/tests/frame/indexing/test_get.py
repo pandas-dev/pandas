@@ -15,13 +15,13 @@ class TestGet:
         )
 
     @pytest.mark.parametrize(
-        "df",
+        "columns, index",
         [
-            DataFrame(),
-            DataFrame(columns=list("AB")),
-            DataFrame(columns=list("AB"), index=range(3)),
+            [None, None],
+            [list("AB"), None],
+            [list("AB"), range(3)],
         ],
     )
-    def test_get_none(self, df):
+    def test_get_none(self, columns, index):
         # see gh-5652
-        assert df.get(None) is None
+        assert DataFrame(columns=columns, index=index).get(None) is None

@@ -52,8 +52,8 @@ class TestTimedeltaIndex:
         assert result.freq == ordered.freq
 
     def test_union_bug_1730(self):
-        rng_a = timedelta_range("1 day", periods=4, freq="3H")
-        rng_b = timedelta_range("1 day", periods=4, freq="4H")
+        rng_a = timedelta_range("1 day", periods=4, freq="3h")
+        rng_b = timedelta_range("1 day", periods=4, freq="4h")
 
         result = rng_a.union(rng_b)
         exp = TimedeltaIndex(sorted(set(rng_a) | set(rng_b)))
@@ -115,7 +115,7 @@ class TestTimedeltaIndex:
         intersect = first.intersection(second, sort=sort)
         if sort is None:
             tm.assert_index_equal(intersect, second.sort_values())
-        assert tm.equalContents(intersect, second)
+        tm.assert_index_equal(intersect, second)
 
         # Corner cases
         inter = first.intersection(first, sort=sort)

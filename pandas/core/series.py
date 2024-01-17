@@ -26,7 +26,10 @@ import weakref
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
+from pandas._config import (
+    using_copy_on_write,
+    warn_copy_on_write,
+)
 from pandas._config.config import _get_option
 
 from pandas._libs import (
@@ -44,10 +47,14 @@ from pandas.errors import (
     InvalidIndexError,
     _chained_assignment_method_msg,
     _chained_assignment_msg,
+    _chained_assignment_warning_method_msg,
+    _chained_assignment_warning_msg,
+    _check_cacher,
 )
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import find_stack_level
@@ -60,12 +67,15 @@ from pandas.util._validators import (
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import (
     LossySetitemError,
-    convert_dtypes,
+    construct_1d_arraylike_from_scalar,
+    find_common_type,
+    infer_dtype_from,
     maybe_box_native,
     maybe_cast_pointwise_result,
 )
 from pandas.core.dtypes.common import (
     is_dict_like,
+    is_float,
     is_integer,
     is_iterator,
     is_list_like,
@@ -74,8 +84,14 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
     validate_all_hashable,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    ExtensionDtype,
+)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
     isna,
@@ -96,10 +112,15 @@ from pandas.core import (
 from pandas.core.accessor import CachedAccessor
 from pandas.core.apply import SeriesApply
 from pandas.core.arrays import ExtensionArray
-from pandas.core.arrays.arrow import StructAccessor
+from pandas.core.arrays.arrow import (
+    ListAccessor,
+    StructAccessor,
+)
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import (
+    array as pd_array,
     extract_array,
     sanitize_array,
 )
@@ -159,7 +180,6 @@ if TYPE_CHECKING:
         CorrelationMethod,
         DropKeep,
         Dtype,
-        DtypeBackend,
         DtypeObj,
         FilePath,
         Frequency,
@@ -167,6 +187,8 @@ if TYPE_CHECKING:
         IndexKeyFunc,
         IndexLabel,
         Level,
+        ListLike,
+        MutableMappingT,
         NaPosition,
         NumpySorter,
         NumpyValueArrayLike,
@@ -372,14 +394,34 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: Dtype | None = None,
         name=None,
         copy: bool | None = None,
-        fastpath: bool = False,
+        fastpath: bool | lib.NoDefault = lib.no_default,
     ) -> None:
+        if fastpath is not lib.no_default:
+            warnings.warn(
+                "The 'fastpath' keyword in pd.Series is deprecated and will "
+                "be removed in a future version.",
+                DeprecationWarning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            fastpath = False
+
+        allow_mgr = False
         if (
             isinstance(data, (SingleBlockManager, SingleArrayManager))
             and index is None
             and dtype is None
             and (copy is False or copy is None)
         ):
+            if not allow_mgr:
+                # GH#52419
+                warnings.warn(
+                    f"Passing a {type(data).__name__} to {type(self).__name__} "
+                    "is deprecated and will raise in a future version. "
+                    "Use public APIs instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
             if using_copy_on_write():
                 data = data.copy(deep=False)
             # GH#33357 called with just the SingleBlockManager
@@ -390,6 +432,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             else:
                 self.name = name
             return
+
+        is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
+        data_dtype = getattr(data, "dtype", None)
+        original_dtype = dtype
 
         if isinstance(data, (ExtensionArray, np.ndarray)):
             if copy is not False and using_copy_on_write():
@@ -407,8 +453,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     data = SingleBlockManager.from_array(data, index)
                 elif manager == "array":
                     data = SingleArrayManager.from_array(data, index)
+                allow_mgr = True
             elif using_copy_on_write() and not copy:
                 data = data.copy(deep=False)
+
+            if not allow_mgr:
+                warnings.warn(
+                    f"Passing a {type(data).__name__} to {type(self).__name__} "
+                    "is deprecated and will raise in a future version. "
+                    "Use public APIs instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+
             if copy:
                 data = data.copy()
             # skips validation of the name
@@ -418,6 +475,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if isinstance(data, SingleBlockManager) and using_copy_on_write() and not copy:
             data = data.copy(deep=False)
+
+            if not allow_mgr:
+                warnings.warn(
+                    f"Passing a {type(data).__name__} to {type(self).__name__} "
+                    "is deprecated and will raise in a future version. "
+                    "Use public APIs instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
 
         name = ibase.maybe_extract_name(name, data, type(self))
 
@@ -484,6 +550,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "`index` argument. `copy` must be False."
                 )
 
+            if not allow_mgr:
+                warnings.warn(
+                    f"Passing a {type(data).__name__} to {type(self).__name__} "
+                    "is deprecated and will raise in a future version. "
+                    "Use public APIs instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                allow_mgr = True
+
         elif isinstance(data, ExtensionArray):
             pass
         else:
@@ -517,6 +593,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         NDFrame.__init__(self, data)
         self.name = name
         self._set_axis(0, index)
+
+        if original_dtype is None and is_pandas_object and data_dtype == np.object_:
+            if self.dtype != data_dtype:
+                warnings.warn(
+                    "Dtype inference on a pandas object "
+                    "(Series, Index, ExtensionArray) is deprecated. The Series "
+                    "constructor will keep the original dtype in the future. "
+                    "Call `infer_objects` on the result to get the old behavior.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
 
     def _init_dict(
         self, data, index: Index | None = None, dtype: DtypeObj | None = None
@@ -576,14 +663,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return Series
 
     def _constructor_from_mgr(self, mgr, axes):
-        ser = self._from_mgr(mgr, axes=axes)
-        ser._name = None  # caller is responsible for setting real name
-        if type(self) is Series:
-            # fastpath avoiding constructor call
+        if self._constructor is Series:
+            # we are pandas.Series (or a subclass that doesn't override _constructor)
+            ser = Series._from_mgr(mgr, axes=axes)
+            ser._name = None  # caller is responsible for setting real name
             return ser
         else:
             assert axes is mgr.axes
-            return self._constructor(ser, copy=False)
+            return self._constructor(mgr)
 
     @property
     def _constructor_expanddim(self) -> Callable[..., DataFrame]:
@@ -596,23 +683,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return DataFrame
 
     def _expanddim_from_mgr(self, mgr, axes) -> DataFrame:
-        # https://github.com/pandas-dev/pandas/pull/52132#issuecomment-1481491828
-        #  This is a short-term implementation that will be replaced
-        #  with self._constructor_expanddim._constructor_from_mgr(...)
-        #  once downstream packages (geopandas) have had a chance to implement
-        #  their own overrides.
-        # error: "Callable[..., DataFrame]" has no attribute "_from_mgr"  [attr-defined]
-        from pandas import DataFrame
+        from pandas.core.frame import DataFrame
 
         return DataFrame._from_mgr(mgr, axes=mgr.axes)
 
     def _constructor_expanddim_from_mgr(self, mgr, axes):
-        df = self._expanddim_from_mgr(mgr, axes)
-        if type(self) is Series:
-            # fastpath avoiding constructor
-            return df
+        from pandas.core.frame import DataFrame
+
+        if self._constructor_expanddim is DataFrame:
+            return self._expanddim_from_mgr(mgr, axes)
         assert axes is mgr.axes
-        return self._constructor_expanddim(df, copy=False)
+        return self._constructor_expanddim(mgr)
 
     # types
     @property
@@ -795,6 +876,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return the flattened underlying data as an ndarray or ExtensionArray.
 
+        .. deprecated:: 2.2.0
+            Series.ravel is deprecated. The underlying array is already 1D, so
+            ravel is not necessary.  Use :meth:`to_numpy` for conversion to a numpy
+            array instead.
+
         Returns
         -------
         numpy.ndarray or ExtensionArray
@@ -807,9 +893,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Examples
         --------
         >>> s = pd.Series([1, 2, 3])
-        >>> s.ravel()
+        >>> s.ravel()  # doctest: +SKIP
         array([1, 2, 3])
         """
+        warnings.warn(
+            "Series.ravel is deprecated. The underlying array is already 1D, so "
+            "ravel is not necessary.  Use `to_numpy()` for conversion to a numpy "
+            "array instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         arr = self._values.ravel(order=order)
         if isinstance(arr, np.ndarray) and using_copy_on_write():
             arr.flags.writeable = False
@@ -824,6 +917,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def view(self, dtype: Dtype | None = None) -> Series:
         """
         Create a new view of the Series.
+
+        .. deprecated:: 2.2.0
+            ``Series.view`` is deprecated and will be removed in a future version.
+            Use :meth:`Series.astype` as an alternative to change the dtype.
 
         This function will return a new Series with a view of the same
         underlying values in memory, optionally reinterpreted with a new data
@@ -855,38 +952,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> s = pd.Series([-2, -1, 0, 1, 2], dtype='int8')
-        >>> s
-        0   -2
-        1   -1
-        2    0
-        3    1
-        4    2
-        dtype: int8
-
-        The 8 bit signed integer representation of `-1` is `0b11111111`, but
-        the same bytes represent 255 if read as an 8 bit unsigned integer:
-
-        >>> us = s.view('uint8')
-        >>> us
-        0    254
-        1    255
-        2      0
-        3      1
-        4      2
-        dtype: uint8
-
-        The views share the same underlying values:
-
-        >>> us[0] = 128
-        >>> s
-        0   -128
-        1     -1
-        2      0
-        3      1
-        4      2
-        dtype: int8
+        Use ``astype`` to change the dtype instead.
         """
+        warnings.warn(
+            "Series.view is deprecated and will be removed in a future version. "
+            "Use ``astype`` as an alternative to change the dtype.",
+            FutureWarning,
+            stacklevel=2,
+        )
         # self.array instead of self._values so we piggyback on NumpyExtensionArray
         #  implementation
         res_values = self.array.view(dtype)
@@ -999,7 +1072,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        scalar (int) or Series (slice, sequence)
+        scalar
         """
         return self._values[i]
 
@@ -1007,7 +1080,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # axis kwarg is retained for compat with NDFrame method
         #  _slice is *always* positional
         mgr = self._mgr.get_slice(slobj, axis=axis)
-        out = self._constructor(mgr, fastpath=True)
+        out = self._constructor_from_mgr(mgr, axes=mgr.axes)
+        out._name = self._name
         return out.__finalize__(self)
 
     def __getitem__(self, key):
@@ -1015,6 +1089,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         key = com.apply_if_callable(key, self)
 
         if key is Ellipsis:
+            if using_copy_on_write() or warn_copy_on_write():
+                return self.copy(deep=False)
             return self
 
         key_is_scalar = is_scalar(key)
@@ -1125,7 +1201,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
         new_ser = self._constructor(self._values[indexer], index=new_index, copy=False)
-        if using_copy_on_write() and isinstance(indexer, slice):
+        if isinstance(indexer, slice):
             new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
         return new_ser.__finalize__(self)
 
@@ -1167,7 +1243,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             new_ser = self._constructor(
                 new_values, index=new_index, name=self.name, copy=False
             )
-            if using_copy_on_write() and isinstance(loc, slice):
+            if isinstance(loc, slice):
                 new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
             return new_ser.__finalize__(self)
 
@@ -1175,10 +1251,28 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self.iloc[loc]
 
     def __setitem__(self, key, value) -> None:
+        warn = True
         if not PYPY and using_copy_on_write():
             if sys.getrefcount(self) <= 3:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+                )
+        elif not PYPY and not using_copy_on_write():
+            ctr = sys.getrefcount(self)
+            ref_count = 3
+            if not warn_copy_on_write() and _check_cacher(self):
+                # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                ref_count += 1
+            if ctr <= ref_count and (
+                warn_copy_on_write()
+                or (
+                    not warn_copy_on_write()
+                    and self._mgr.blocks[0].refs.has_reference()  # type: ignore[union-attr]
+                )
+            ):
+                warn = False
+                warnings.warn(
+                    _chained_assignment_warning_msg, FutureWarning, stacklevel=2
                 )
 
         check_dict_or_set_indexers(key)
@@ -1190,10 +1284,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if isinstance(key, slice):
             indexer = self.index._convert_slice_indexer(key, kind="getitem")
-            return self._set_values(indexer, value)
+            return self._set_values(indexer, value, warn=warn)
 
         try:
-            self._set_with_engine(key, value)
+            self._set_with_engine(key, value, warn=warn)
         except KeyError:
             # We have a scalar (or for MultiIndex or object-dtype, scalar-like)
             #  key that is not present in self.index.
@@ -1252,25 +1346,25 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 # otherwise with listlike other we interpret series[mask] = other
                 #  as series[mask] = other[mask]
                 try:
-                    self._where(~key, value, inplace=True)
+                    self._where(~key, value, inplace=True, warn=warn)
                 except InvalidIndexError:
                     # test_where_dups
                     self.iloc[key] = value
                 return
 
             else:
-                self._set_with(key, value)
+                self._set_with(key, value, warn=warn)
 
         if cacher_needs_updating:
             self._maybe_update_cacher(inplace=True)
 
-    def _set_with_engine(self, key, value) -> None:
+    def _set_with_engine(self, key, value, warn: bool = True) -> None:
         loc = self.index.get_loc(key)
 
         # this is equivalent to self._values[key] = value
-        self._mgr.setitem_inplace(loc, value)
+        self._mgr.setitem_inplace(loc, value, warn=warn)
 
-    def _set_with(self, key, value) -> None:
+    def _set_with(self, key, value, warn: bool = True) -> None:
         # We got here via exception-handling off of InvalidIndexError, so
         #  key should always be listlike at this point.
         assert not isinstance(key, tuple)
@@ -1281,7 +1375,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if not self.index._should_fallback_to_positional:
             # Regardless of the key type, we're treating it as labels
-            self._set_labels(key, value)
+            self._set_labels(key, value, warn=warn)
 
         else:
             # Note: key_type == "boolean" should not occur because that
@@ -1298,23 +1392,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
-                self._set_values(key, value)
+                self._set_values(key, value, warn=warn)
             else:
-                self._set_labels(key, value)
+                self._set_labels(key, value, warn=warn)
 
-    def _set_labels(self, key, value) -> None:
+    def _set_labels(self, key, value, warn: bool = True) -> None:
         key = com.asarray_tuplesafe(key)
         indexer: np.ndarray = self.index.get_indexer(key)
         mask = indexer == -1
         if mask.any():
             raise KeyError(f"{key[mask]} not in index")
-        self._set_values(indexer, value)
+        self._set_values(indexer, value, warn=warn)
 
-    def _set_values(self, key, value) -> None:
+    def _set_values(self, key, value, warn: bool = True) -> None:
         if isinstance(key, (Index, Series)):
             key = key._values
 
-        self._mgr = self._mgr.setitem(indexer=key, value=value)
+        self._mgr = self._mgr.setitem(indexer=key, value=value, warn=warn)
         self._maybe_update_cacher()
 
     def _set_value(self, label, value, takeable: bool = False) -> None:
@@ -1649,7 +1743,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 return new_ser.__finalize__(self, method="reset_index")
             else:
                 return self._constructor(
-                    self._values.copy(), index=new_index, copy=False
+                    self._values.copy(), index=new_index, copy=False, dtype=self.dtype
                 ).__finalize__(self, method="reset_index")
         elif inplace:
             raise TypeError(
@@ -1784,7 +1878,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if not isinstance(result, str):
             raise AssertionError(
                 "result must be of type str, type "
-                f"of result is {repr(type(result).__name__)}"
+                f"of result is {type(result).__name__!r}"
             )
 
         if buf is None:
@@ -1849,8 +1943,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Add index (row) labels.
 
         {storage_options}
-
-            .. versionadded:: 1.2.0
 
         **kwargs
             These parameters will be passed to `tabulate \
@@ -1922,21 +2014,39 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self.index
 
-    def to_dict(self, into: type[dict] = dict) -> dict:
+    @overload
+    def to_dict(
+        self, *, into: type[MutableMappingT] | MutableMappingT
+    ) -> MutableMappingT:
+        ...
+
+    @overload
+    def to_dict(self, *, into: type[dict] = ...) -> dict:
+        ...
+
+    # error: Incompatible default for argument "into" (default has type "type[
+    # dict[Any, Any]]", argument has type "type[MutableMappingT] | MutableMappingT")
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self"], name="to_dict"
+    )
+    def to_dict(
+        self,
+        into: type[MutableMappingT] | MutableMappingT = dict,  # type: ignore[assignment]
+    ) -> MutableMappingT:
         """
         Convert Series to {label -> value} dict or dict-like object.
 
         Parameters
         ----------
         into : class, default dict
-            The collections.abc.Mapping subclass to use as the return
-            object. Can be the actual class or an empty
-            instance of the mapping type you want.  If you want a
-            collections.defaultdict, you must pass it initialized.
+            The collections.abc.MutableMapping subclass to use as the return
+            object. Can be the actual class or an empty instance of the mapping
+            type you want.  If you want a collections.defaultdict, you must
+            pass it initialized.
 
         Returns
         -------
-        collections.abc.Mapping
+        collections.abc.MutableMapping
             Key-value representation of Series.
 
         Examples
@@ -1945,10 +2055,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.to_dict()
         {0: 1, 1: 2, 2: 3, 3: 4}
         >>> from collections import OrderedDict, defaultdict
-        >>> s.to_dict(OrderedDict)
+        >>> s.to_dict(into=OrderedDict)
         OrderedDict([(0, 1), (1, 2), (2, 3), (3, 4)])
         >>> dd = defaultdict(list)
-        >>> s.to_dict(dd)
+        >>> s.to_dict(into=dd)
         defaultdict(<class 'list'>, {0: 1, 1: 2, 2: 3, 3: 4})
         """
         # GH16122
@@ -2215,7 +2325,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # Ensure index is type stable (should always use int index)
         return self._constructor(
-            res_values, index=range(len(res_values)), name=self.name, copy=False
+            res_values,
+            index=range(len(res_values)),
+            name=self.name,
+            copy=False,
+            dtype=self.dtype,
         ).__finalize__(self, method="mode")
 
     def unique(self) -> ArrayLike:  # pylint: disable=useless-parent-delegation
@@ -2682,12 +2796,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: float64
         """
         nv.validate_round(args, kwargs)
-        result = self._values.round(decimals)
-        result = self._constructor(result, index=self.index, copy=False).__finalize__(
+        new_mgr = self._mgr.round(decimals=decimals, using_cow=using_copy_on_write())
+        return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(
             self, method="round"
         )
-
-        return result
 
     @overload
     def quantile(
@@ -2727,8 +2839,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
 
-                * linear: `i + (j - i) * fraction`, where `fraction` is the
-                  fractional part of the index surrounded by `i` and `j`.
+                * linear: `i + (j - i) * (x-i)/(j-i)`, where `(x-i)/(j-i)` is
+                  the fractional part of the index surrounded by `i > j`.
                 * lower: `i`.
                 * higher: `j`.
                 * nearest: `i` or `j` whichever is nearest.
@@ -2996,6 +3108,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         {examples}
         """
+        if not lib.is_integer(periods):
+            if not (is_float(periods) and periods.is_integer()):
+                raise ValueError("periods must be an integer")
         result = algorithms.diff(self._values, periods)
         return self._constructor(result, index=self.index, copy=False).__finalize__(
             self, method="diff"
@@ -3345,7 +3460,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # try_float=False is to match agg_series
         npvalues = lib.maybe_convert_objects(new_values, try_float=False)
-        res_values = maybe_cast_pointwise_result(npvalues, self.dtype, same_dtype=False)
+        # same_dtype here is a kludge to avoid casting e.g. [True, False] to
+        #  ["True", "False"]
+        same_dtype = isinstance(self.dtype, (StringDtype, CategoricalDtype))
+        res_values = maybe_cast_pointwise_result(
+            npvalues, self.dtype, same_dtype=same_dtype
+        )
         return self._constructor(res_values, index=new_index, name=new_name, copy=False)
 
     def combine_first(self, other) -> Series:
@@ -3482,6 +3602,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 warnings.warn(
                     _chained_assignment_method_msg,
                     ChainedAssignmentError,
+                    stacklevel=2,
+                )
+        elif not PYPY and not using_copy_on_write() and self._is_view_after_cow_rules():
+            ctr = sys.getrefcount(self)
+            ref_count = REF_COUNT
+            if _check_cacher(self):
+                # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                ref_count += 1
+            if ctr <= ref_count:
+                warnings.warn(
+                    _chained_assignment_warning_method_msg,
+                    FutureWarning,
                     stacklevel=2,
                 )
 
@@ -3983,7 +4115,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if mask.any():
             # TODO(3.0): once this deprecation is enforced we can call
-            #  self.array.argsort directly, which will close GH#43840
+            #  self.array.argsort directly, which will close GH#43840 and
+            #  GH#12694
             warnings.warn(
                 "The behavior of Series.argsort in the presence of NA values is "
                 "deprecated. In a future version, NA values will be ordered "
@@ -4205,7 +4338,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         klass=_shared_doc_kwargs["klass"],
         extra_params=dedent(
             """copy : bool, default True
-            Whether to copy underlying data."""
+            Whether to copy underlying data.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``"""
         ),
         examples=dedent(
             """\
@@ -4617,7 +4762,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame | Series:
         # Validate axis argument
         self._get_axis_number(axis)
-        ser = self.copy(deep=False) if using_copy_on_write() else self
+        ser = (
+            self.copy(deep=False)
+            if using_copy_on_write() or warn_copy_on_write()
+            else self
+        )
         result = SeriesApply(ser, func=func, args=args, kwargs=kwargs).transform()
         return result
 
@@ -4858,6 +5007,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Unused. Parameter needed for compatibility with DataFrame.
         copy : bool, default True
             Also copy underlying data.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
         inplace : bool, default False
             Whether to return a new Series. If True the value of copy is ignored.
         level : int or level name, default None
@@ -4983,8 +5144,44 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             tolerance=tolerance,
         )
 
+    @overload  # type: ignore[override]
+    def rename_axis(
+        self,
+        mapper: IndexLabel | lib.NoDefault = ...,
+        *,
+        index=...,
+        axis: Axis = ...,
+        copy: bool = ...,
+        inplace: Literal[True],
+    ) -> None:
+        ...
+
+    @overload
+    def rename_axis(
+        self,
+        mapper: IndexLabel | lib.NoDefault = ...,
+        *,
+        index=...,
+        axis: Axis = ...,
+        copy: bool = ...,
+        inplace: Literal[False] = ...,
+    ) -> Self:
+        ...
+
+    @overload
+    def rename_axis(
+        self,
+        mapper: IndexLabel | lib.NoDefault = ...,
+        *,
+        index=...,
+        axis: Axis = ...,
+        copy: bool = ...,
+        inplace: bool = ...,
+    ) -> Self | None:
+        ...
+
     @doc(NDFrame.rename_axis)
-    def rename_axis(  # type: ignore[override]
+    def rename_axis(
         self,
         mapper: IndexLabel | lib.NoDefault = lib.no_default,
         *,
@@ -5004,11 +5201,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @overload
     def drop(
         self,
-        labels: IndexLabel = ...,
+        labels: IndexLabel | ListLike = ...,
         *,
         axis: Axis = ...,
-        index: IndexLabel = ...,
-        columns: IndexLabel = ...,
+        index: IndexLabel | ListLike = ...,
+        columns: IndexLabel | ListLike = ...,
         level: Level | None = ...,
         inplace: Literal[True],
         errors: IgnoreRaise = ...,
@@ -5018,11 +5215,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @overload
     def drop(
         self,
-        labels: IndexLabel = ...,
+        labels: IndexLabel | ListLike = ...,
         *,
         axis: Axis = ...,
-        index: IndexLabel = ...,
-        columns: IndexLabel = ...,
+        index: IndexLabel | ListLike = ...,
+        columns: IndexLabel | ListLike = ...,
         level: Level | None = ...,
         inplace: Literal[False] = ...,
         errors: IgnoreRaise = ...,
@@ -5032,11 +5229,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @overload
     def drop(
         self,
-        labels: IndexLabel = ...,
+        labels: IndexLabel | ListLike = ...,
         *,
         axis: Axis = ...,
-        index: IndexLabel = ...,
-        columns: IndexLabel = ...,
+        index: IndexLabel | ListLike = ...,
+        columns: IndexLabel | ListLike = ...,
         level: Level | None = ...,
         inplace: bool = ...,
         errors: IgnoreRaise = ...,
@@ -5045,11 +5242,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def drop(
         self,
-        labels: IndexLabel | None = None,
+        labels: IndexLabel | ListLike = None,
         *,
         axis: Axis = 0,
-        index: IndexLabel | None = None,
-        columns: IndexLabel | None = None,
+        index: IndexLabel | ListLike = None,
+        columns: IndexLabel | ListLike = None,
         level: Level | None = None,
         inplace: bool = False,
         errors: IgnoreRaise = "raise",
@@ -5165,7 +5362,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> ser = pd.Series([1,2,3])
+        >>> ser = pd.Series([1, 2, 3])
 
         >>> ser.pop(0)
         1
@@ -5441,38 +5638,120 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         return lmask & rmask
 
-    # ----------------------------------------------------------------------
-    # Convert to types that support pd.NA
-
-    def _convert_dtypes(
+    def case_when(
         self,
-        infer_objects: bool = True,
-        convert_string: bool = True,
-        convert_integer: bool = True,
-        convert_boolean: bool = True,
-        convert_floating: bool = True,
-        dtype_backend: DtypeBackend = "numpy_nullable",
+        caselist: list[
+            tuple[
+                ArrayLike | Callable[[Series], Series | np.ndarray | Sequence[bool]],
+                ArrayLike | Scalar | Callable[[Series], Series | np.ndarray],
+            ],
+        ],
     ) -> Series:
-        input_series = self
-        if infer_objects:
-            input_series = input_series.infer_objects()
-            if is_object_dtype(input_series.dtype):
-                input_series = input_series.copy(deep=None)
+        """
+        Replace values where the conditions are True.
 
-        if convert_string or convert_integer or convert_boolean or convert_floating:
-            inferred_dtype = convert_dtypes(
-                input_series._values,
-                convert_string,
-                convert_integer,
-                convert_boolean,
-                convert_floating,
-                infer_objects,
-                dtype_backend,
+        Parameters
+        ----------
+        caselist : A list of tuples of conditions and expected replacements
+            Takes the form:  ``(condition0, replacement0)``,
+            ``(condition1, replacement1)``, ... .
+            ``condition`` should be a 1-D boolean array-like object
+            or a callable. If ``condition`` is a callable,
+            it is computed on the Series
+            and should return a boolean Series or array.
+            The callable must not change the input Series
+            (though pandas doesn`t check it). ``replacement`` should be a
+            1-D array-like object, a scalar or a callable.
+            If ``replacement`` is a callable, it is computed on the Series
+            and should return a scalar or Series. The callable
+            must not change the input Series
+            (though pandas doesn`t check it).
+
+            .. versionadded:: 2.2.0
+
+        Returns
+        -------
+        Series
+
+        See Also
+        --------
+        Series.mask : Replace values where the condition is True.
+
+        Examples
+        --------
+        >>> c = pd.Series([6, 7, 8, 9], name='c')
+        >>> a = pd.Series([0, 0, 1, 2])
+        >>> b = pd.Series([0, 3, 4, 5])
+
+        >>> c.case_when(caselist=[(a.gt(0), a),  # condition, replacement
+        ...                       (b.gt(0), b)])
+        0    6
+        1    3
+        2    1
+        3    2
+        Name: c, dtype: int64
+        """
+        if not isinstance(caselist, list):
+            raise TypeError(
+                f"The caselist argument should be a list; instead got {type(caselist)}"
             )
-            result = input_series.astype(inferred_dtype)
-        else:
-            result = input_series.copy(deep=None)
-        return result
+
+        if not caselist:
+            raise ValueError(
+                "provide at least one boolean condition, "
+                "with a corresponding replacement."
+            )
+
+        for num, entry in enumerate(caselist):
+            if not isinstance(entry, tuple):
+                raise TypeError(
+                    f"Argument {num} must be a tuple; instead got {type(entry)}."
+                )
+            if len(entry) != 2:
+                raise ValueError(
+                    f"Argument {num} must have length 2; "
+                    "a condition and replacement; "
+                    f"instead got length {len(entry)}."
+                )
+        caselist = [
+            (
+                com.apply_if_callable(condition, self),
+                com.apply_if_callable(replacement, self),
+            )
+            for condition, replacement in caselist
+        ]
+        default = self.copy()
+        conditions, replacements = zip(*caselist)
+        common_dtypes = [infer_dtype_from(arg)[0] for arg in [*replacements, default]]
+        if len(set(common_dtypes)) > 1:
+            common_dtype = find_common_type(common_dtypes)
+            updated_replacements = []
+            for condition, replacement in zip(conditions, replacements):
+                if is_scalar(replacement):
+                    replacement = construct_1d_arraylike_from_scalar(
+                        value=replacement, length=len(condition), dtype=common_dtype
+                    )
+                elif isinstance(replacement, ABCSeries):
+                    replacement = replacement.astype(common_dtype)
+                else:
+                    replacement = pd_array(replacement, dtype=common_dtype)
+                updated_replacements.append(replacement)
+            replacements = updated_replacements
+            default = default.astype(common_dtype)
+
+        counter = reversed(range(len(conditions)))
+        for position, condition, replacement in zip(
+            counter, conditions[::-1], replacements[::-1]
+        ):
+            try:
+                default = default.mask(
+                    condition, other=replacement, axis=0, inplace=False, level=None
+                )
+            except Exception as error:
+                raise ValueError(
+                    f"Failed to apply condition{position} and replacement{position}."
+                ) from error
+        return default
 
     # error: Cannot determine type of 'isna'
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
@@ -5639,6 +5918,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         copy : bool, default True
             Whether or not to return a copy.
 
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
+
         Returns
         -------
         Series with DatetimeIndex
@@ -5651,7 +5942,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2023    1
         2024    2
         2025    3
-        Freq: A-DEC, dtype: int64
+        Freq: Y-DEC, dtype: int64
 
         The resulting frequency of the Timestamps is `YearBegin`
 
@@ -5660,7 +5951,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2023-01-01    1
         2024-01-01    2
         2025-01-01    3
-        Freq: AS-JAN, dtype: int64
+        Freq: YS-JAN, dtype: int64
 
         Using `freq` which is the offset that the Timestamps will have
 
@@ -5670,7 +5961,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2023-01-31    1
         2024-01-31    2
         2025-01-31    3
-        Freq: A-JAN, dtype: int64
+        Freq: YE-JAN, dtype: int64
         """
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
@@ -5691,6 +5982,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         copy : bool, default True
             Whether or not to return a copy.
 
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
+
         Returns
         -------
         Series
@@ -5705,12 +6008,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2023    1
         2024    2
         2025    3
-        Freq: A-DEC, dtype: int64
+        Freq: Y-DEC, dtype: int64
 
         Viewing the index
 
         >>> s.index
-        PeriodIndex(['2023', '2024', '2025'], dtype='period[A-DEC]')
+        PeriodIndex(['2023', '2024', '2025'], dtype='period[Y-DEC]')
         """
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
@@ -5779,6 +6082,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     plot = CachedAccessor("plot", pandas.plotting.PlotAccessor)
     sparse = CachedAccessor("sparse", SparseAccessor)
     struct = CachedAccessor("struct", StructAccessor)
+    list = CachedAccessor("list", ListAccessor)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
@@ -5933,6 +6237,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return result
         else:
             if fill_value is not None:
+                if isna(other):
+                    return op(self, fill_value)
                 self = self.fillna(fill_value)
 
             return op(self, other)

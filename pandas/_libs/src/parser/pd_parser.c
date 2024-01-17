@@ -10,8 +10,10 @@ Distributed under the terms of the BSD Simplified License.
 
 #include "pandas/parser/pd_parser.h"
 #include "pandas/parser/io.h"
+#include "pandas/portable.h"
 
-static int to_double(char *item, double *p_value, char sci, char dec, char tsep, int *maybe_int) {
+static int to_double(char *item, double *p_value, char sci, char decimal, char tsep
+                     int *maybe_int) {
   char *p_end = NULL;
   int error = 0;
 
@@ -22,8 +24,8 @@ static int to_double(char *item, double *p_value, char sci, char dec, char tsep,
   return (error == 0) && (!*p_end);
 }
 
-static int floatify(PyObject *str, double *result, int *maybe_int, char dec, char tsep) {
-  int status;
+
+static int floatify(PyObject *str, double *result, int *maybe_int, char tsep) {
   char *data;
   PyObject *tmp = NULL;
   const char sci = 'E';
@@ -41,7 +43,7 @@ static int floatify(PyObject *str, double *result, int *maybe_int, char dec, cha
     return -1;
   }
 
-  status = to_double(data, result, sci, dec, tsep, maybe_int);
+  const int status = to_double(data, result, sci, dec, tsep, maybe_int);
 
   if (!status) {
     /* handle inf/-inf infinity/-infinity */
@@ -93,13 +95,12 @@ parsingerror:
   return -1;
 }
 
-
 static void pandas_parser_destructor(PyObject *op) {
   void *ptr = PyCapsule_GetPointer(op, PandasParser_CAPSULE_NAME);
   PyMem_Free(ptr);
 }
 
-static int pandas_parser_exec(PyObject *module) {
+static int pandas_parser_exec(PyObject *Py_UNUSED(module)) {
   PandasParser_CAPI *capi = PyMem_Malloc(sizeof(PandasParser_CAPI));
   if (capi == NULL) {
     PyErr_NoMemory();

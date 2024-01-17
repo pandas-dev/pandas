@@ -8,18 +8,16 @@ from pandas import (
 )
 import pandas._testing as tm
 
-
-@pytest.mark.parametrize(
-    "cons",
-    [
-        lambda x: PeriodIndex(x),
-        lambda x: PeriodIndex(PeriodIndex(x)),
-    ],
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Setting a value on a view:FutureWarning"
 )
-def test_periodindex(using_copy_on_write, cons):
+
+
+@pytest.mark.parametrize("box", [lambda x: x, PeriodIndex])
+def test_periodindex(using_copy_on_write, box):
     dt = period_range("2019-12-31", periods=3, freq="D")
     ser = Series(dt)
-    idx = cons(ser)
+    idx = box(PeriodIndex(ser))
     expected = idx.copy(deep=True)
     ser.iloc[0] = Period("2020-12-31")
     if using_copy_on_write:
