@@ -80,6 +80,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.io.formats.style.Styler.to_latex \
         pandas.read_parquet \
         pandas.DataFrame.to_sql \
+        pandas.io.formats.style.Styler.map \
+        pandas.io.formats.style.Styler.apply_index \
+        pandas.io.formats.style.Styler.map_index \
+        pandas.io.formats.style.Styler.format \
         pandas.io.formats.style.Styler.highlight_quantile \
         pandas.io.formats.style.Styler.background_gradient \
         pandas.io.formats.style.Styler.text_gradient \

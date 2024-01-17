@@ -1715,12 +1715,12 @@ class Styler(StylerRenderer):
             if not isinstance(result, DataFrame):
                 if not isinstance(result, np.ndarray):
                     raise TypeError(
-                        f"Function {repr(func)} must return a DataFrame or ndarray "
+                        f"Function {func!r} must return a DataFrame or ndarray "
                         f"when passed to `Styler.apply` with axis=None"
                     )
                 if data.shape != result.shape:
                     raise ValueError(
-                        f"Function {repr(func)} returned ndarray with wrong shape.\n"
+                        f"Function {func!r} returned ndarray with wrong shape.\n"
                         f"Result has shape: {result.shape}\n"
                         f"Expected shape: {data.shape}"
                     )
@@ -1734,12 +1734,12 @@ class Styler(StylerRenderer):
 
         if isinstance(result, Series):
             raise ValueError(
-                f"Function {repr(func)} resulted in the apply method collapsing to a "
+                f"Function {func!r} resulted in the apply method collapsing to a "
                 f"Series.\nUsually, this is the result of the function returning a "
                 f"single value, instead of list-like."
             )
         msg = (
-            f"Function {repr(func)} created invalid {{0}} labels.\nUsually, this is "
+            f"Function {func!r} created invalid {{0}} labels.\nUsually, this is "
             f"the result of the function returning a "
             f"{'Series' if axis is not None else 'DataFrame'} which contains invalid "
             f"labels, or returning an incorrectly shaped, list-like object which "
@@ -2951,17 +2951,17 @@ class Styler(StylerRenderer):
         Setting a ``gmap`` and applying to all columns with another ``cmap``
 
         >>> df.style.{name}_gradient(axis=0, gmap=df['Temp (c)'], cmap='YlOrRd')
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
 
         .. figure:: ../../_static/style/{image_prefix}_gmap.png
 
         Setting the gradient map for a dataframe (i.e. ``axis=None``), we need to
         explicitly state ``subset`` to match the ``gmap`` shape
 
-        >>> gmap = np.array([[1,2,3], [2,3,4], [3,4,5]])
-        >>> df.style.{name}_gradient(axis=None, gmap=gmap,
-        ...     cmap='YlOrRd', subset=['Temp (c)', 'Rain (mm)', 'Wind (m/s)']
-        ... )  # doctest: +SKIP
+        >>> gmap = np.array([[1, 2, 3], [2, 3, 4], [3, 4, 5]])
+        >>> df.style.{name}_gradient(
+        ...     axis=None, gmap=gmap, cmap='YlOrRd',
+        ...     subset=['Temp (c)', 'Rain (mm)', 'Wind (m/s)'])  # doctest: +SKIP
 
         .. figure:: ../../_static/style/{image_prefix}_axNone_gmap.png
         """
@@ -3509,22 +3509,23 @@ class Styler(StylerRenderer):
         --------
         Using ``axis=None`` and apply a quantile to all collective data
 
-        >>> df = pd.DataFrame(np.arange(10).reshape(2,5) + 1)
+        >>> df = pd.DataFrame(np.arange(10).reshape(2, 5) + 1)
         >>> df.style.highlight_quantile(axis=None, q_left=0.8, color="#fffd75")
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
 
         .. figure:: ../../_static/style/hq_axNone.png
 
         Or highlight quantiles row-wise or column-wise, in this case by row-wise
 
         >>> df.style.highlight_quantile(axis=1, q_left=0.8, color="#fffd75")
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
 
         .. figure:: ../../_static/style/hq_ax1.png
 
         Use ``props`` instead of default background coloring
 
-        >>> df.style.highlight_quantile(axis=None, q_left=0.2, q_right=0.8,
+        >>> df.style.highlight_quantile(
+        ...     axis=None, q_left=0.2, q_right=0.8,
         ...     props='font-weight:bold;color:#e83e8c')  # doctest: +SKIP
 
         .. figure:: ../../_static/style/hq_props.png
