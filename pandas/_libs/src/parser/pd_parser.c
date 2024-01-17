@@ -12,8 +12,8 @@ Distributed under the terms of the BSD Simplified License.
 #include "pandas/parser/io.h"
 #include "pandas/portable.h"
 
-static int to_double(char *item, double *p_value, char sci, char decimal, char tsep
-                     int *maybe_int) {
+static int to_double(char *item, double *p_value, char sci, char decimal,
+                     char tsep, int *maybe_int) {
   char *p_end = NULL;
   int error = 0;
 
@@ -24,8 +24,8 @@ static int to_double(char *item, double *p_value, char sci, char decimal, char t
   return (error == 0) && (!*p_end);
 }
 
-
-static int floatify(PyObject *str, double *result, int *maybe_int, char tsep) {
+static int floatify(PyObject *str, double *result, int *maybe_int, char dec,
+                    char tsep) {
   char *data;
   PyObject *tmp = NULL;
   const char sci = 'E';
