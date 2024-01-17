@@ -204,38 +204,35 @@ if "PANDAS_DATA_MANAGER" in os.environ:
     )
 
 # DeprecationWarning for missing pyarrow
-from pandas.compat.pyarrow import pa_version_under10p1
+from pandas.compat.pyarrow import pa_version_under10p1, pa_not_found
 
 if pa_version_under10p1:
-    # Check if old pyarrow is installed
+    # pyarrow is either too old or nonexistent, warn
     from pandas.compat._optional import VERSIONS
 
-    try:
-        import pyarrow
-
+    if pa_not_found:
+        pa_msg = "was not found to be installed on your system."
+    else:
         pa_msg = (
             f"was too old on your system - pyarrow {VERSIONS['pyarrow']} "
             "is the current minimum supported version as of this release."
         )
-        del pyarrow
-    except ImportError:
-        pa_msg = "was not found to be installed on your system."
 
     warnings.warn(
         f"""
-Pyarrow will become a required dependency of pandas in the next major release of pandas,
-(to allow more performant data types and better interoperability with other libraries)
+Pyarrow will become a required dependency of pandas in the next major release of pandas (pandas 3.0),
+(to allow more performant data types, such as the Arrow string type, and better interoperability with other libraries)
 but {pa_msg}
 If this would cause problems for you,
 please provide us feedback at https://github.com/pandas-dev/pandas/issues/54466
-        """,
+        """,  # noqa: E501
         DeprecationWarning,
         stacklevel=2,
     )
     del VERSIONS
 
 # Delete all unnecessary imported modules
-del pa_version_under10p1, warnings, os
+del pa_version_under10p1, pa_not_found, warnings, os
 
 # module level doc-string
 __doc__ = """

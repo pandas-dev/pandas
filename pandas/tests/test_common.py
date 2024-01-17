@@ -265,3 +265,26 @@ def test_bz2_missing_import():
     code = textwrap.dedent(code)
     call = [sys.executable, "-c", code]
     subprocess.check_output(call)
+
+
+import pandas.util._test_decorators as td
+
+
+@td.skip_if_installed("pyarrow")
+@pytest.mark.parametrize("module", ["pandas", "pandas.arrays"])
+def test_pyarrow_missing_warn(module):
+    # GH56896
+    response = subprocess.run(
+        [sys.executable, "-c", f"import {module}"],
+        capture_output=True,
+        check=True,
+    )
+    msg = """
+Pyarrow will become a required dependency of pandas in the next major release of pandas (pandas 3.0),
+(to allow more performant data types, such as the Arrow string type, and better interoperability with other libraries)
+but was not found to be installed on your system.
+If this would cause problems for you,
+please provide us feedback at https://github.com/pandas-dev/pandas/issues/54466
+"""  # noqa: E501
+    stderr_msg = response.stderr.decode("utf-8")
+    assert msg in stderr_msg, stderr_msg
