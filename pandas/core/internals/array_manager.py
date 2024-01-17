@@ -309,7 +309,7 @@ class BaseArrayManager(DataManager):
 
         return type(self)(result_arrays, self._axes)
 
-    def setitem(self, indexer, value) -> Self:
+    def setitem(self, indexer, value, warn: bool = True) -> Self:
         return self.apply_with_block("setitem", indexer=indexer, value=value)
 
     def diff(self, n: int) -> Self:
@@ -661,7 +661,9 @@ class ArrayManager(BaseArrayManager):
 
         values = [arr[loc] for arr in self.arrays]
         if isinstance(dtype, ExtensionDtype):
-            result = dtype.construct_array_type()._from_sequence(values, dtype=dtype)
+            result: np.ndarray | ExtensionArray = (
+                dtype.construct_array_type()._from_sequence(values, dtype=dtype)
+            )
         # for datetime64/timedelta64, the np.ndarray constructor cannot handle pd.NaT
         elif is_datetime64_ns_dtype(dtype):
             result = DatetimeArray._from_sequence(values, dtype=dtype)._ndarray
@@ -1187,7 +1189,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
             new_array = getattr(self.array, func)(**kwargs)
         return type(self)([new_array], self._axes)
 
-    def setitem(self, indexer, value) -> SingleArrayManager:
+    def setitem(self, indexer, value, warn: bool = True) -> SingleArrayManager:
         """
         Set values with indexer.
 

@@ -1,0 +1,227 @@
+.. _whatsnew_230:
+
+What's new in 2.3.0 (Month XX, 2024)
+------------------------------------
+
+These are the changes in pandas 2.2.0. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_230.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_230.enhancements.enhancement1:
+
+enhancement1
+^^^^^^^^^^^^
+
+.. _whatsnew_230.enhancements.enhancement2:
+
+enhancement2
+^^^^^^^^^^^^
+
+.. _whatsnew_230.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+-
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_230.notable_bug_fixes:
+
+Notable bug fixes
+~~~~~~~~~~~~~~~~~
+
+These are bug fixes that might have notable behavior changes.
+
+.. _whatsnew_230.notable_bug_fixes.notable_bug_fix1:
+
+notable_bug_fix1
+^^^^^^^^^^^^^^^^
+
+.. _whatsnew_230.notable_bug_fixes.notable_bug_fix2:
+
+notable_bug_fix2
+^^^^^^^^^^^^^^^^
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_230.api_breaking:
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_230.api_breaking.deps:
+
+Increased minimum versions for dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Some minimum supported versions of dependencies were updated.
+If installed, we now require:
+
++-----------------+-----------------+----------+---------+
+| Package         | Minimum Version | Required | Changed |
++=================+=================+==========+=========+
+|                 |                 |    X     |    X    |
++-----------------+-----------------+----------+---------+
+
+For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
+The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
+Optional libraries below the lowest tested version may still work, but are not considered supported.
+
++-----------------+---------------------+
+| Package         | New Minimum Version |
++=================+=====================+
+|                 |                     |
++-----------------+---------------------+
+
+See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
+
+.. _whatsnew_230.api_breaking.other:
+
+Other API changes
+^^^^^^^^^^^^^^^^^
+-
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_230.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+- Deprecated :meth:`Timestamp.utcfromtimestamp`, use ``Timestamp.fromtimestamp(ts, "UTC")`` instead (:issue:`56680`)
+- Deprecated :meth:`Timestamp.utcnow`, use ``Timestamp.now("UTC")`` instead (:issue:`56680`)
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_230.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+- Performance improvement in :meth:`DataFrame.join` for sorted but non-unique indexes (:issue:`56941`)
+- Performance improvement in :meth:`DataFrame.join` when left and/or right are non-unique and ``how`` is ``"left"``, ``"right"``, or ``"inner"`` (:issue:`56817`)
+- Performance improvement in :meth:`DataFrameGroupBy.ffill`, :meth:`DataFrameGroupBy.bfill`, :meth:`SeriesGroupBy.ffill`, and :meth:`SeriesGroupBy.bfill` (:issue:`56902`)
+- Performance improvement in :meth:`Index.take` when ``indices`` is a full range indexer from zero to length of index (:issue:`56806`)
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_230.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Fixed bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
+
+
+Categorical
+^^^^^^^^^^^
+-
+-
+
+Datetimelike
+^^^^^^^^^^^^
+- Bug in :func:`date_range` where the last valid timestamp would sometimes not be produced (:issue:`56134`)
+-
+
+Timedelta
+^^^^^^^^^
+-
+-
+
+Timezones
+^^^^^^^^^
+-
+-
+
+Numeric
+^^^^^^^
+-
+-
+
+Conversion
+^^^^^^^^^^
+-
+-
+
+Strings
+^^^^^^^
+-
+-
+
+Interval
+^^^^^^^^
+-
+-
+
+Indexing
+^^^^^^^^
+-
+-
+
+Missing
+^^^^^^^
+-
+-
+
+MultiIndex
+^^^^^^^^^^
+-
+-
+
+I/O
+^^^
+-
+-
+
+Period
+^^^^^^
+-
+-
+
+Plotting
+^^^^^^^^
+-
+-
+
+Groupby/resample/rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+-
+-
+
+Reshaping
+^^^^^^^^^
+-
+-
+
+Sparse
+^^^^^^
+-
+-
+
+ExtensionArray
+^^^^^^^^^^^^^^
+-
+-
+
+Styler
+^^^^^^
+-
+-
+
+Other
+^^^^^
+- Bug in :meth:`DataFrame.where` where using a non-bool type array in the function would return a ``ValueError`` instead of a ``TypeError`` (:issue:`56330`)
+
+
+.. ***DO NOT USE THIS SECTION***
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_230.contributors:
+
+Contributors
+~~~~~~~~~~~~

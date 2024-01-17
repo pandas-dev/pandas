@@ -81,6 +81,9 @@ delim_whitespace : boolean, default False
   If this option is set to ``True``, nothing should be passed in for the
   ``delimiter`` parameter.
 
+  .. deprecated: 2.2.0
+    Use ``sep="\\s+" instead.
+
 Column and index locations and names
 ++++++++++++++++++++++++++++++++++++
 
@@ -836,6 +839,7 @@ order) and the new column names will be the concatenation of the component
 column names:
 
 .. ipython:: python
+   :okwarning:
 
    data = (
        "KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
@@ -856,6 +860,7 @@ By default the parser removes the component date columns, but you can choose
 to retain them via the ``keep_date_col`` keyword:
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.read_csv(
        "tmp.csv", header=None, parse_dates=[[1, 2], [1, 3]], keep_date_col=True
@@ -871,6 +876,7 @@ single column.
 You can also use a dict to specify custom name columns:
 
 .. ipython:: python
+   :okwarning:
 
    date_spec = {"nominal": [1, 2], "actual": [1, 3]}
    df = pd.read_csv("tmp.csv", header=None, parse_dates=date_spec)
@@ -883,6 +889,7 @@ data columns:
 
 
 .. ipython:: python
+   :okwarning:
 
    date_spec = {"nominal": [1, 2], "actual": [1, 3]}
    df = pd.read_csv(
@@ -901,6 +908,10 @@ data columns:
    e.g "2000-01-01T00:01:02+00:00" and similar variations. If you can arrange
    for your data to store datetimes in this format, load times will be
    significantly faster, ~20x has been observed.
+
+.. deprecated:: 2.2.0
+   Combining date columns inside read_csv is deprecated. Use ``pd.to_datetime``
+   on the relevant result columns instead.
 
 
 Date parsing functions
@@ -1490,9 +1501,9 @@ rows will skip the intervening rows.
 
 .. ipython:: python
 
-   from pandas._testing import makeCustomDataframe as mkdf
-
-   df = mkdf(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
+   mi_idx = pd.MultiIndex.from_arrays([[1, 2, 3, 4], list("abcd")], names=list("ab"))
+   mi_col = pd.MultiIndex.from_arrays([[1, 2], list("ab")], names=list("cd"))
+   df = pd.DataFrame(np.ones((4, 2)), index=mi_idx, columns=mi_col)
    df.to_csv("mi.csv")
    print(open("mi.csv").read())
    pd.read_csv("mi.csv", header=[0, 1, 2, 3], index_col=[0, 1])
@@ -1693,7 +1704,7 @@ option parameter:
 
 .. code-block:: python
 
-   storage_options = {"client_kwargs": {"endpoint_url": "http://127.0.0.1:5555"}}}
+   storage_options = {"client_kwargs": {"endpoint_url": "http://127.0.0.1:5555"}}
    df = pd.read_json("s3://pandas-test/test-1", storage_options=storage_options)
 
 More sample configurations and documentation can be found at `S3Fs documentation
@@ -2247,7 +2258,6 @@ For line-delimited json files, pandas can also return an iterator which reads in
 Line-limited json can also be read using the pyarrow reader by specifying ``engine="pyarrow"``.
 
 .. ipython:: python
-   :okwarning:
 
    from io import BytesIO
    df = pd.read_json(BytesIO(jsonl.encode()), lines=True, engine="pyarrow")
@@ -3005,14 +3015,15 @@ Read in the content of the "books.xml" as instance of ``StringIO`` or
 Even read XML from AWS S3 buckets such as NIH NCBI PMC Article Datasets providing
 Biomedical and Life Science Jorurnals:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: python
 
-   df = pd.read_xml(
-       "s3://pmc-oa-opendata/oa_comm/xml/all/PMC1236943.xml",
-       xpath=".//journal-meta",
-   )
-   df
+   >>> df = pd.read_xml(
+   ...    "s3://pmc-oa-opendata/oa_comm/xml/all/PMC1236943.xml",
+   ...    xpath=".//journal-meta",
+   ...)
+   >>> df
+         journal-id  journal-title  issn  publisher
+   0 Cardiovasc Ultrasound Cardiovascular Ultrasound 1476-7120 NaN
 
 With `lxml`_ as default ``parser``, you access the full-featured XML library
 that extends Python's ElementTree API. One powerful tool is ability to query
@@ -3461,20 +3472,15 @@ saving a ``DataFrame`` to Excel.  Generally the semantics are
 similar to working with :ref:`csv<io.read_csv_table>` data.
 See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
 
-.. warning::
+.. note::
 
-   The `xlrd <https://xlrd.readthedocs.io/en/latest/>`__ package is now only for reading
-   old-style ``.xls`` files.
+   When ``engine=None``, the following logic will be used to determine the engine:
 
-   Before pandas 1.3.0, the default argument ``engine=None`` to :func:`~pandas.read_excel`
-   would result in using the ``xlrd`` engine in many cases, including new
-   Excel 2007+ (``.xlsx``) files. pandas will now default to using the
-   `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`__ engine.
-
-   It is strongly encouraged to install ``openpyxl`` to read Excel 2007+
-   (``.xlsx``) files.
-   **Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.**
-   This is no longer supported, switch to using ``openpyxl`` instead.
+   - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+     then `odf <https://pypi.org/project/odfpy/>`_ will be used.
+   - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used.
+   - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used.
+   - Otherwise ``openpyxl`` will be used.
 
 .. _io.excel_reader:
 
@@ -5372,7 +5378,6 @@ See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ an
 Write to a parquet file.
 
 .. ipython:: python
-   :okwarning:
 
    df.to_parquet("example_pa.parquet", engine="pyarrow")
    df.to_parquet("example_fp.parquet", engine="fastparquet")
@@ -5380,7 +5385,6 @@ Write to a parquet file.
 Read from a parquet file.
 
 .. ipython:: python
-   :okwarning:
 
    result = pd.read_parquet("example_fp.parquet", engine="fastparquet")
    result = pd.read_parquet("example_pa.parquet", engine="pyarrow")
@@ -5390,7 +5394,6 @@ Read from a parquet file.
 By setting the ``dtype_backend`` argument you can control the default dtypes used for the resulting DataFrame.
 
 .. ipython:: python
-   :okwarning:
 
    result = pd.read_parquet("example_pa.parquet", engine="pyarrow", dtype_backend="pyarrow")
 
@@ -5404,7 +5407,6 @@ By setting the ``dtype_backend`` argument you can control the default dtypes use
 Read only certain columns of a parquet file.
 
 .. ipython:: python
-   :okwarning:
 
    result = pd.read_parquet(
        "example_fp.parquet",
@@ -5433,7 +5435,6 @@ Serializing a ``DataFrame`` to parquet may include the implicit index as one or
 more columns in the output file. Thus, this code:
 
 .. ipython:: python
-   :okwarning:
 
     df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
     df.to_parquet("test.parquet", engine="pyarrow")
@@ -5450,7 +5451,6 @@ If you want to omit a dataframe's indexes when writing, pass ``index=False`` to
 :func:`~pandas.DataFrame.to_parquet`:
 
 .. ipython:: python
-   :okwarning:
 
     df.to_parquet("test.parquet", index=False)
 
@@ -5473,7 +5473,6 @@ Partitioning Parquet files
 Parquet supports partitioning of data based on the values of one or more columns.
 
 .. ipython:: python
-   :okwarning:
 
     df = pd.DataFrame({"a": [0, 0, 1, 1], "b": [0, 1, 0, 1]})
     df.to_parquet(path="test", engine="pyarrow", partition_cols=["a"], compression=None)
@@ -5539,14 +5538,12 @@ ORC format, :func:`~pandas.read_orc` and :func:`~pandas.DataFrame.to_orc`. This 
 Write to an orc file.
 
 .. ipython:: python
-   :okwarning:
 
    df.to_orc("example_pa.orc", engine="pyarrow")
 
 Read from an orc file.
 
 .. ipython:: python
-   :okwarning:
 
    result = pd.read_orc("example_pa.orc")
 
@@ -5555,7 +5552,6 @@ Read from an orc file.
 Read only certain columns of an orc file.
 
 .. ipython:: python
-   :okwarning:
 
    result = pd.read_orc(
        "example_pa.orc",
@@ -5576,9 +5572,23 @@ SQL queries
 -----------
 
 The :mod:`pandas.io.sql` module provides a collection of query wrappers to both
-facilitate data retrieval and to reduce dependency on DB-specific API. Database abstraction
-is provided by SQLAlchemy if installed. In addition you will need a driver library for
-your database. Examples of such drivers are `psycopg2 <https://www.psycopg.org/>`__
+facilitate data retrieval and to reduce dependency on DB-specific API.
+
+Where available, users may first want to opt for `Apache Arrow ADBC
+<https://arrow.apache.org/adbc/current/index.html>`_ drivers. These drivers
+should provide the best performance, null handling, and type detection.
+
+  .. versionadded:: 2.2.0
+
+     Added native support for ADBC drivers
+
+For a full list of ADBC drivers and their development status, see the `ADBC Driver
+Implementation Status <https://arrow.apache.org/adbc/current/driver/status.html>`_
+documentation.
+
+Where an ADBC driver is not available or may be missing functionality,
+users should opt for installing SQLAlchemy alongside their database driver library.
+Examples of such drivers are `psycopg2 <https://www.psycopg.org/>`__
 for PostgreSQL or `pymysql <https://github.com/PyMySQL/PyMySQL>`__ for MySQL.
 For `SQLite <https://docs.python.org/3/library/sqlite3.html>`__ this is
 included in Python's standard library by default.
@@ -5610,6 +5620,18 @@ The key functions are:
 In the following example, we use the `SQlite <https://www.sqlite.org/index.html>`__ SQL database
 engine. You can use a temporary SQLite database where data are stored in
 "memory".
+
+To connect using an ADBC driver you will want to install the ``adbc_driver_sqlite`` using your
+package manager. Once installed, you can use the DBAPI interface provided by the ADBC driver
+to connect to your database.
+
+.. code-block:: python
+
+   import adbc_driver_sqlite.dbapi as sqlite_dbapi
+
+   # Create the connection
+   with sqlite_dbapi.connect("sqlite:///:memory:") as conn:
+        df = pd.read_sql_table("data", conn)
 
 To connect with SQLAlchemy you use the :func:`create_engine` function to create an engine
 object from database URI. You only need to create the engine once per database you are
@@ -5686,9 +5708,74 @@ writes ``data`` to the database in batches of 1000 rows at a time:
 SQL data types
 ++++++++++++++
 
-:func:`~pandas.DataFrame.to_sql` will try to map your data to an appropriate
-SQL data type based on the dtype of the data. When you have columns of dtype
-``object``, pandas will try to infer the data type.
+Ensuring consistent data type management across SQL databases is challenging.
+Not every SQL database offers the same types, and even when they do the implementation
+of a given type can vary in ways that have subtle effects on how types can be
+preserved.
+
+For the best odds at preserving database types users are advised to use
+ADBC drivers when available. The Arrow type system offers a wider array of
+types that more closely match database types than the historical pandas/NumPy
+type system. To illustrate, note this (non-exhaustive) listing of types
+available in different databases and pandas backends:
+
++-----------------+-----------------------+----------------+---------+
+|numpy/pandas     |arrow                  |postgres        |sqlite   |
++=================+=======================+================+=========+
+|int16/Int16      |int16                  |SMALLINT        |INTEGER  |
++-----------------+-----------------------+----------------+---------+
+|int32/Int32      |int32                  |INTEGER         |INTEGER  |
++-----------------+-----------------------+----------------+---------+
+|int64/Int64      |int64                  |BIGINT          |INTEGER  |
++-----------------+-----------------------+----------------+---------+
+|float32          |float32                |REAL            |REAL     |
++-----------------+-----------------------+----------------+---------+
+|float64          |float64                |DOUBLE PRECISION|REAL     |
++-----------------+-----------------------+----------------+---------+
+|object           |string                 |TEXT            |TEXT     |
++-----------------+-----------------------+----------------+---------+
+|bool             |``bool_``              |BOOLEAN         |         |
++-----------------+-----------------------+----------------+---------+
+|datetime64[ns]   |timestamp(us)          |TIMESTAMP       |         |
++-----------------+-----------------------+----------------+---------+
+|datetime64[ns,tz]|timestamp(us,tz)       |TIMESTAMPTZ     |         |
++-----------------+-----------------------+----------------+---------+
+|                 |date32                 |DATE            |         |
++-----------------+-----------------------+----------------+---------+
+|                 |month_day_nano_interval|INTERVAL        |         |
++-----------------+-----------------------+----------------+---------+
+|                 |binary                 |BINARY          |BLOB     |
++-----------------+-----------------------+----------------+---------+
+|                 |decimal128             |DECIMAL [#f1]_  |         |
++-----------------+-----------------------+----------------+---------+
+|                 |list                   |ARRAY [#f1]_    |         |
++-----------------+-----------------------+----------------+---------+
+|                 |struct                 |COMPOSITE TYPE  |         |
+|                 |                       | [#f1]_         |         |
++-----------------+-----------------------+----------------+---------+
+
+.. rubric:: Footnotes
+
+.. [#f1] Not implemented as of writing, but theoretically possible
+
+If you are interested in preserving database types as best as possible
+throughout the lifecycle of your DataFrame, users are encouraged to
+leverage the ``dtype_backend="pyarrow"`` argument of :func:`~pandas.read_sql`
+
+.. code-block:: ipython
+
+   # for roundtripping
+   with pg_dbapi.connect(uri) as conn:
+       df2 = pd.read_sql("pandas_table", conn, dtype_backend="pyarrow")
+
+This will prevent your data from being converted to the traditional pandas/NumPy
+type system, which often converts SQL types in ways that make them impossible to
+round-trip.
+
+In case an ADBC driver is not available, :func:`~pandas.DataFrame.to_sql`
+will try to map your data to an appropriate SQL data type based on the dtype of
+the data. When you have columns of dtype ``object``, pandas will try to infer
+the data type.
 
 You can always override the default type by specifying the desired SQL type of
 any of the columns by using the ``dtype`` argument. This argument needs a
@@ -5707,7 +5794,9 @@ default ``Text`` type for string columns:
 
     Due to the limited support for timedelta's in the different database
     flavors, columns with type ``timedelta64`` will be written as integer
-    values as nanoseconds to the database and a warning will be raised.
+    values as nanoseconds to the database and a warning will be raised. The only
+    exception to this is when using the ADBC PostgreSQL driver in which case a
+    timedelta will be written to the database as an ``INTERVAL``
 
 .. note::
 
@@ -5722,7 +5811,7 @@ default ``Text`` type for string columns:
 Datetime data types
 '''''''''''''''''''
 
-Using SQLAlchemy, :func:`~pandas.DataFrame.to_sql` is capable of writing
+Using ADBC or SQLAlchemy, :func:`~pandas.DataFrame.to_sql` is capable of writing
 datetime data that is timezone naive or timezone aware. However, the resulting
 data stored in the database ultimately depends on the supported data type
 for datetime data of the database system being used.
@@ -5813,7 +5902,7 @@ table name and optionally a subset of columns to read.
 .. note::
 
     In order to use :func:`~pandas.read_sql_table`, you **must** have the
-    SQLAlchemy optional dependency installed.
+    ADBC driver or SQLAlchemy optional dependency installed.
 
 .. ipython:: python
 
@@ -5821,7 +5910,8 @@ table name and optionally a subset of columns to read.
 
 .. note::
 
-  Note that pandas infers column dtypes from query outputs, and not by looking
+  ADBC drivers will map database types directly back to arrow types. For other drivers
+  note that pandas infers column dtypes from query outputs, and not by looking
   up data types in the physical database schema. For example, assume ``userid``
   is an integer column in a table. Then, intuitively, ``select userid ...`` will
   return integer-valued series, while ``select cast(userid as text) ...`` will

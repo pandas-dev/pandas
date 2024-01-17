@@ -90,18 +90,29 @@ if TYPE_CHECKING:
     from typing import SupportsIndex
 
     if sys.version_info >= (3, 10):
+        from typing import Concatenate  # pyright: ignore[reportUnusedImport]
+        from typing import ParamSpec
         from typing import TypeGuard  # pyright: ignore[reportUnusedImport]
     else:
-        from typing_extensions import TypeGuard  # pyright: ignore[reportUnusedImport]
+        from typing_extensions import (  # pyright: ignore[reportUnusedImport]
+            Concatenate,
+            ParamSpec,
+            TypeGuard,
+        )
+
+    P = ParamSpec("P")
 
     if sys.version_info >= (3, 11):
         from typing import Self  # pyright: ignore[reportUnusedImport]
     else:
         from typing_extensions import Self  # pyright: ignore[reportUnusedImport]
+
 else:
     npt: Any = None
+    ParamSpec: Any = None
     Self: Any = None
     TypeGuard: Any = None
+    Concatenate: Any = None
 
 HashableT = TypeVar("HashableT", bound=Hashable)
 MutableMappingT = TypeVar("MutableMappingT", bound=MutableMapping)
@@ -109,6 +120,7 @@ MutableMappingT = TypeVar("MutableMappingT", bound=MutableMapping)
 # array-like
 
 ArrayLike = Union["ExtensionArray", np.ndarray]
+ArrayLikeT = TypeVar("ArrayLikeT", "ExtensionArray", np.ndarray)
 AnyArrayLike = Union[ArrayLike, "Index", "Series"]
 TimeArrayLike = Union["DatetimeArray", "TimedeltaArray"]
 
@@ -137,7 +149,7 @@ class SequenceNotStr(Protocol[_T_co]):
     def __iter__(self) -> Iterator[_T_co]:
         ...
 
-    def index(self, value: Any, /, start: int = 0, stop: int = ...) -> int:
+    def index(self, value: Any, start: int = ..., stop: int = ..., /) -> int:
         ...
 
     def count(self, value: Any, /) -> int:
@@ -234,7 +246,9 @@ IndexKeyFunc = Optional[Callable[["Index"], Union["Index", AnyArrayLike]]]
 
 # types of `func` kwarg for DataFrame.aggregate and Series.aggregate
 AggFuncTypeBase = Union[Callable, str]
-AggFuncTypeDict = dict[Hashable, Union[AggFuncTypeBase, list[AggFuncTypeBase]]]
+AggFuncTypeDict = MutableMapping[
+    Hashable, Union[AggFuncTypeBase, list[AggFuncTypeBase]]
+]
 AggFuncType = Union[
     AggFuncTypeBase,
     list[AggFuncTypeBase],

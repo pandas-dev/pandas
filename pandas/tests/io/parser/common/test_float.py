@@ -16,9 +16,10 @@ pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
-@xfail_pyarrow  # ParserError: CSV parse error: Empty CSV file or block
+@skip_pyarrow  # ParserError: CSV parse error: Empty CSV file or block
 def test_float_parser(all_parsers):
     # see gh-9565
     parser = all_parsers
@@ -39,7 +40,14 @@ def test_scientific_no_exponent(all_parsers_all_precisions):
     tm.assert_frame_equal(df_roundtrip, df)
 
 
-@pytest.mark.parametrize("neg_exp", [-617, -100000, -99999999999999999])
+@pytest.mark.parametrize(
+    "neg_exp",
+    [
+        -617,
+        -100000,
+        pytest.param(-99999999999999999, marks=pytest.mark.skip_ubsan),
+    ],
+)
 def test_very_negative_exponent(all_parsers_all_precisions, neg_exp):
     # GH#38753
     parser, precision = all_parsers_all_precisions
@@ -50,7 +58,8 @@ def test_very_negative_exponent(all_parsers_all_precisions, neg_exp):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@pytest.mark.skip_ubsan
+@xfail_pyarrow  # AssertionError: Attributes of DataFrame.iloc[:, 0] are different
 @pytest.mark.parametrize("exp", [999999999999999999, -999999999999999999])
 def test_too_many_exponent_digits(all_parsers_all_precisions, exp, request):
     # GH#38753

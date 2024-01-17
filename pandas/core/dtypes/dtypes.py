@@ -318,7 +318,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
                     dtype = CategoricalDtype(categories, ordered)
                 else:
-                    raise ValueError(f"Unknown dtype {repr(dtype)}")
+                    raise ValueError(f"Unknown dtype {dtype!r}")
             elif categories is not None or ordered is not None:
                 raise ValueError(
                     "Cannot specify `categories` or `ordered` together with `dtype`."
@@ -566,7 +566,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         if not fastpath and not is_list_like(categories):
             raise TypeError(
-                f"Parameter 'categories' must be list-like, was {repr(categories)}"
+                f"Parameter 'categories' must be list-like, was {categories!r}"
             )
         if not isinstance(categories, ABCIndex):
             categories = Index._with_infer(categories, tupleize_cols=False)
@@ -602,7 +602,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         elif not self.is_dtype(dtype):
             raise ValueError(
                 f"a CategoricalDtype must be passed to perform an update, "
-                f"got {repr(dtype)}"
+                f"got {dtype!r}"
             )
         else:
             # from here on, dtype is a CategoricalDtype
@@ -919,7 +919,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         else:
             np_arr = array.to_numpy()
 
-        return DatetimeArray(np_arr, dtype=self, copy=False)
+        return DatetimeArray._from_sequence(np_arr, dtype=self, copy=False)
 
     def __setstate__(self, state) -> None:
         # for pickle compat. __get_state__ is defined in the
@@ -1453,12 +1453,12 @@ class NumpyEADtype(ExtensionDtype):
 
     def __init__(self, dtype: npt.DTypeLike | NumpyEADtype | None) -> None:
         if isinstance(dtype, NumpyEADtype):
-            # make constructor univalent
+            # make constructor idempotent
             dtype = dtype.numpy_dtype
         self._dtype = np.dtype(dtype)
 
     def __repr__(self) -> str:
-        return f"NumpyEADtype({repr(self.name)})"
+        return f"NumpyEADtype({self.name!r})"
 
     @property
     def numpy_dtype(self) -> np.dtype:
@@ -1814,7 +1814,7 @@ class SparseDtype(ExtensionDtype):
 
     @property
     def name(self) -> str:
-        return f"Sparse[{self.subtype.name}, {repr(self.fill_value)}]"
+        return f"Sparse[{self.subtype.name}, {self.fill_value!r}]"
 
     def __repr__(self) -> str:
         return self.name
@@ -2173,7 +2173,7 @@ class ArrowDtype(StorageExtensionDtype):
         """
         A string identifying the data type.
         """
-        return f"{str(self.pyarrow_dtype)}[{self.storage}]"
+        return f"{self.pyarrow_dtype!s}[{self.storage}]"
 
     @cache_readonly
     def numpy_dtype(self) -> np.dtype:
@@ -2190,7 +2190,9 @@ class ArrowDtype(StorageExtensionDtype):
             # This can be removed if/when pyarrow addresses it:
             # https://github.com/apache/arrow/issues/34462
             return np.dtype(f"timedelta64[{self.pyarrow_dtype.unit}]")
-        if pa.types.is_string(self.pyarrow_dtype):
+        if pa.types.is_string(self.pyarrow_dtype) or pa.types.is_large_string(
+            self.pyarrow_dtype
+        ):
             # pa.string().to_pandas_dtype() = object which we don't want
             return np.dtype(str)
         try:

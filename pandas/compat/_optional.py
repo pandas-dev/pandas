@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import importlib
 import sys
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+    overload,
+)
 import warnings
 
 from pandas.util._exceptions import find_stack_level
@@ -15,6 +19,8 @@ if TYPE_CHECKING:
 # Update install.rst & setup.cfg when updating versions!
 
 VERSIONS = {
+    "adbc-driver-postgresql": "0.8.0",
+    "adbc-driver-sqlite": "0.8.0",
     "bs4": "4.11.2",
     "blosc": "1.21.3",
     "bottleneck": "1.3.6",
@@ -37,7 +43,7 @@ VERSIONS = {
     "pyarrow": "10.0.1",
     "pyreadstat": "1.2.0",
     "pytest": "7.3.2",
-    "python-calamine": "0.1.6",
+    "python-calamine": "0.1.7",
     "pyxlsb": "1.0.10",
     "s3fs": "2022.11.0",
     "scipy": "1.10.0",
@@ -50,7 +56,7 @@ VERSIONS = {
     "zstandard": "0.19.0",
     "tzdata": "2022.7",
     "qtpy": "2.3.0",
-    "pyqt5": "5.15.8",
+    "pyqt5": "5.15.9",
 }
 
 # A mapping from import name to package name (on PyPI) for packages where
@@ -80,12 +86,35 @@ def get_version(module: types.ModuleType) -> str:
     return version
 
 
+@overload
+def import_optional_dependency(
+    name: str,
+    extra: str = ...,
+    min_version: str | None = ...,
+    *,
+    errors: Literal["raise"] = ...,
+) -> types.ModuleType:
+    ...
+
+
+@overload
+def import_optional_dependency(
+    name: str,
+    extra: str = ...,
+    min_version: str | None = ...,
+    *,
+    errors: Literal["warn", "ignore"],
+) -> types.ModuleType | None:
+    ...
+
+
 def import_optional_dependency(
     name: str,
     extra: str = "",
-    errors: str = "raise",
     min_version: str | None = None,
-):
+    *,
+    errors: Literal["raise", "warn", "ignore"] = "raise",
+) -> types.ModuleType | None:
     """
     Import an optional dependency.
 

@@ -28,6 +28,7 @@ from pandas import (
     Timedelta,
     Timestamp,
 )
+import pandas._testing as tm
 
 
 class TestTimestampConstructorUnitKeyword:
@@ -190,18 +191,17 @@ class TestTimestampConstructorFoldKeyword:
 
     @pytest.mark.parametrize("tz", ["dateutil/Europe/London"])
     @pytest.mark.parametrize(
-        "ts_input,fold,value_out",
+        "fold,value_out",
         [
-            (datetime(2019, 10, 27, 1, 30, 0, 0), 0, 1572136200000000),
-            (datetime(2019, 10, 27, 1, 30, 0, 0), 1, 1572139800000000),
+            (0, 1572136200000000),
+            (1, 1572139800000000),
         ],
     )
-    def test_timestamp_constructor_adjust_value_for_fold(
-        self, tz, ts_input, fold, value_out
-    ):
+    def test_timestamp_constructor_adjust_value_for_fold(self, tz, fold, value_out):
         # Test for GH#25057
         # Check that we adjust value for fold correctly
         # based on timestamps since utc
+        ts_input = datetime(2019, 10, 27, 1, 30)
         ts = Timestamp(ts_input, tz=tz, fold=fold)
         result = ts._value
         expected = value_out
@@ -329,6 +329,18 @@ class TestTimestampConstructorPositionalAndKeywordSupport:
 class TestTimestampClassMethodConstructors:
     # Timestamp constructors other than __new__
 
+    def test_utcnow_deprecated(self):
+        # GH#56680
+        msg = "Timestamp.utcnow is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            Timestamp.utcnow()
+
+    def test_utcfromtimestamp_deprecated(self):
+        # GH#56680
+        msg = "Timestamp.utcfromtimestamp is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            Timestamp.utcfromtimestamp(43)
+
     def test_constructor_strptime(self):
         # GH#25016
         # Test support for Timestamp.strptime
@@ -444,6 +456,32 @@ class TestTimestampResolutionInference:
 
         ts = Timestamp("300 June 1:30:01.300")
         assert ts.unit == "ms"
+
+        # dateutil path -> don't drop trailing zeros
+        ts = Timestamp("01-01-2013T00:00:00.000000000+0000")
+        assert ts.unit == "ns"
+
+        ts = Timestamp("2016/01/02 03:04:05.001000 UTC")
+        assert ts.unit == "us"
+
+        # higher-than-nanosecond -> we drop the trailing bits
+        ts = Timestamp("01-01-2013T00:00:00.000000002100+0000")
+        assert ts == Timestamp("01-01-2013T00:00:00.000000002+0000")
+        assert ts.unit == "ns"
+
+        # GH#56208 minute reso through the ISO8601 path with tz offset
+        ts = Timestamp("2020-01-01 00:00+00:00")
+        assert ts.unit == "s"
+
+        ts = Timestamp("2020-01-01 00+00:00")
+        assert ts.unit == "s"
+
+    @pytest.mark.parametrize("method", ["now", "today"])
+    def test_now_today_unit(self, method):
+        # GH#55879
+        ts_from_method = getattr(Timestamp, method)()
+        ts_from_string = Timestamp(method)
+        assert ts_from_method.unit == ts_from_string.unit == "us"
 
 
 class TestTimestampConstructors:
@@ -796,6 +834,7 @@ class TestTimestampConstructors:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp("2262-04-11 23:47:16.854775808")
 
+    @pytest.mark.skip_ubsan
     def test_bounds_with_different_units(self):
         out_of_bounds_dates = ("1677-09-21", "2262-04-12")
 
@@ -814,7 +853,7 @@ class TestTimestampConstructors:
 
         # With more extreme cases, we can't even fit inside second resolution
         info = np.iinfo(np.int64)
-        msg = "Out of bounds nanosecond timestamp:"
+        msg = "Out of bounds second timestamp:"
         for value in [info.min + 1, info.max]:
             for unit in ["D", "h", "m"]:
                 dt64 = np.datetime64(value, unit)

@@ -44,6 +44,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.arrays import ExtensionArray
 from pandas.core.base import NoNewAttributesMixin
 from pandas.core.construction import extract_array
 
@@ -259,6 +260,7 @@ class StringMethods(NoNewAttributesMixin):
         fill_value=np.nan,
         returns_string: bool = True,
         returns_bool: bool = False,
+        dtype=None,
     ):
         from pandas import (
             Index,
@@ -379,29 +381,29 @@ class StringMethods(NoNewAttributesMixin):
                     out = out.get_level_values(0)
                 return out
             else:
-                return Index(result, name=name)
+                return Index(result, name=name, dtype=dtype)
         else:
             index = self._orig.index
             # This is a mess.
-            dtype: DtypeObj | str | None
+            _dtype: DtypeObj | str | None = dtype
             vdtype = getattr(result, "dtype", None)
             if self._is_string:
                 if is_bool_dtype(vdtype):
-                    dtype = result.dtype
+                    _dtype = result.dtype
                 elif returns_string:
-                    dtype = self._orig.dtype
+                    _dtype = self._orig.dtype
                 else:
-                    dtype = vdtype
-            else:
-                dtype = vdtype
+                    _dtype = vdtype
+            elif vdtype is not None:
+                _dtype = vdtype
 
             if expand:
                 cons = self._orig._constructor_expanddim
-                result = cons(result, columns=name, index=index, dtype=dtype)
+                result = cons(result, columns=name, index=index, dtype=_dtype)
             else:
                 # Must be a Series
                 cons = self._orig._constructor
-                result = cons(result, name=name, index=index, dtype=dtype)
+                result = cons(result, name=name, index=index, dtype=_dtype)
             result = result.__finalize__(self._orig, method="str")
             if name is not None and result.ndim == 1:
                 # __finalize__ might copy over the original name, but we may
@@ -455,7 +457,7 @@ class StringMethods(NoNewAttributesMixin):
                 # in case of list-like `others`, all elements must be
                 # either Series/Index/np.ndarray (1-dim)...
                 if all(
-                    isinstance(x, (ABCSeries, ABCIndex))
+                    isinstance(x, (ABCSeries, ABCIndex, ExtensionArray))
                     or (isinstance(x, np.ndarray) and x.ndim == 1)
                     for x in others
                 ):
@@ -687,25 +689,25 @@ class StringMethods(NoNewAttributesMixin):
             result = cat_safe(all_cols, sep)
 
         out: Index | Series
+        if isinstance(self._orig.dtype, CategoricalDtype):
+            # We need to infer the new categories.
+            dtype = self._orig.dtype.categories.dtype
+        else:
+            dtype = self._orig.dtype
         if isinstance(self._orig, ABCIndex):
             # add dtype for case that result is all-NA
+            if isna(result).all():
+                dtype = object  # type: ignore[assignment]
 
-            out = Index(result, dtype=object, name=self._orig.name)
+            out = Index(result, dtype=dtype, name=self._orig.name)
         else:  # Series
-            if isinstance(self._orig.dtype, CategoricalDtype):
-                # We need to infer the new categories.
-                dtype = None
-            else:
-                dtype = self._orig.dtype
             res_ser = Series(
                 result, dtype=dtype, index=data.index, name=self._orig.name, copy=False
             )
             out = res_ser.__finalize__(self._orig, method="str_cat")
         return out
 
-    _shared_docs[
-        "str_split"
-    ] = r"""
+    _shared_docs["str_split"] = r"""
     Split strings around given separator/delimiter.
 
     Splits the string in the Series/Index from the %(side)s,
@@ -913,7 +915,13 @@ class StringMethods(NoNewAttributesMixin):
         if is_re(pat):
             regex = True
         result = self._data.array._str_split(pat, n, expand, regex)
-        return self._wrap_result(result, returns_string=expand, expand=expand)
+        if self._data.dtype == "category":
+            dtype = self._data.dtype.categories.dtype
+        else:
+            dtype = object if self._data.dtype == object else None
+        return self._wrap_result(
+            result, expand=expand, returns_string=expand, dtype=dtype
+        )
 
     @Appender(
         _shared_docs["str_split"]
@@ -931,11 +939,12 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def rsplit(self, pat=None, *, n=-1, expand: bool = False):
         result = self._data.array._str_rsplit(pat, n=n)
-        return self._wrap_result(result, expand=expand, returns_string=expand)
+        dtype = object if self._data.dtype == object else None
+        return self._wrap_result(
+            result, expand=expand, returns_string=expand, dtype=dtype
+        )
 
-    _shared_docs[
-        "str_partition"
-    ] = """
+    _shared_docs["str_partition"] = """
     Split the string at the %(side)s occurrence of `sep`.
 
     This method splits the string at the %(side)s occurrence of `sep`,
@@ -1027,7 +1036,13 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def partition(self, sep: str = " ", expand: bool = True):
         result = self._data.array._str_partition(sep, expand)
-        return self._wrap_result(result, expand=expand, returns_string=expand)
+        if self._data.dtype == "category":
+            dtype = self._data.dtype.categories.dtype
+        else:
+            dtype = object if self._data.dtype == object else None
+        return self._wrap_result(
+            result, expand=expand, returns_string=expand, dtype=dtype
+        )
 
     @Appender(
         _shared_docs["str_partition"]
@@ -1041,7 +1056,13 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def rpartition(self, sep: str = " ", expand: bool = True):
         result = self._data.array._str_rpartition(sep, expand)
-        return self._wrap_result(result, expand=expand, returns_string=expand)
+        if self._data.dtype == "category":
+            dtype = self._data.dtype.categories.dtype
+        else:
+            dtype = object if self._data.dtype == object else None
+        return self._wrap_result(
+            result, expand=expand, returns_string=expand, dtype=dtype
+        )
 
     def get(self, i):
         """
@@ -1661,9 +1682,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_pad(width, side=side, fillchar=fillchar)
         return self._wrap_result(result)
 
-    _shared_docs[
-        "str_pad"
-    ] = """
+    _shared_docs["str_pad"] = """
     Pad %(side)s side of strings in the Series/Index.
 
     Equivalent to :meth:`str.%(method)s`.
@@ -2011,9 +2030,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_encode(encoding, errors)
         return self._wrap_result(result, returns_string=False)
 
-    _shared_docs[
-        "str_strip"
-    ] = r"""
+    _shared_docs["str_strip"] = r"""
     Remove %(position)s characters.
 
     Strip whitespaces (including newlines) or a set of specified characters
@@ -2118,9 +2135,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_rstrip(to_strip)
         return self._wrap_result(result)
 
-    _shared_docs[
-        "str_removefix"
-    ] = r"""
+    _shared_docs["str_removefix"] = r"""
     Remove a %(side)s from an object series.
 
     If the %(side)s is not present, the original string will be returned.
@@ -2317,7 +2332,8 @@ class StringMethods(NoNewAttributesMixin):
         dtype: object
         """
         result = self._data.array._str_translate(table)
-        return self._wrap_result(result)
+        dtype = object if self._data.dtype == "object" else None
+        return self._wrap_result(result, dtype=dtype)
 
     @forbid_nonstring_types(["bytes"])
     def count(self, pat, flags: int = 0):
@@ -2746,7 +2762,7 @@ class StringMethods(NoNewAttributesMixin):
         else:
             name = _get_single_group_name(regex)
             result = self._data.array._str_extract(pat, flags=flags, expand=returns_df)
-        return self._wrap_result(result, name=name)
+        return self._wrap_result(result, name=name, dtype=result_dtype)
 
     @forbid_nonstring_types(["bytes"])
     def extractall(self, pat, flags: int = 0) -> DataFrame:
@@ -2826,9 +2842,7 @@ class StringMethods(NoNewAttributesMixin):
         # TODO: dispatch
         return str_extractall(self._orig, pat, flags)
 
-    _shared_docs[
-        "find"
-    ] = """
+    _shared_docs["find"] = """
     Return %(side)s indexes in each strings in the Series/Index.
 
     Each of returned indexes corresponds to the position where the
@@ -2934,9 +2948,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_normalize(form)
         return self._wrap_result(result)
 
-    _shared_docs[
-        "index"
-    ] = """
+    _shared_docs["index"] = """
     Return %(side)s indexes in each string in Series/Index.
 
     Each of the returned indexes corresponds to the position where the
@@ -3043,11 +3055,11 @@ class StringMethods(NoNewAttributesMixin):
         number of entries for dictionaries, lists or tuples.
 
         >>> s = pd.Series(['dog',
-        ...                 '',
-        ...                 5,
-        ...                 {'foo' : 'bar'},
-        ...                 [2, 3, 5, 7],
-        ...                 ('one', 'two', 'three')])
+        ...                '',
+        ...                5,
+        ...                {'foo' : 'bar'},
+        ...                [2, 3, 5, 7],
+        ...                ('one', 'two', 'three')])
         >>> s
         0                  dog
         1
@@ -3068,9 +3080,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_len()
         return self._wrap_result(result, returns_string=False)
 
-    _shared_docs[
-        "casemethods"
-    ] = """
+    _shared_docs["casemethods"] = """
     Convert strings in the Series/Index to %(type)s.
     %(version)s
     Equivalent to :meth:`str.%(method)s`.
@@ -3198,9 +3208,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_casefold()
         return self._wrap_result(result)
 
-    _shared_docs[
-        "ismethods"
-    ] = """
+    _shared_docs["ismethods"] = """
     Check whether all characters in each string are %(type)s.
 
     This is equivalent to running the Python string method
@@ -3486,7 +3494,7 @@ def str_extractall(arr, pat, flags: int = 0) -> DataFrame:
         raise ValueError("pattern contains no capture groups")
 
     if isinstance(arr, ABCIndex):
-        arr = arr.to_series().reset_index(drop=True)
+        arr = arr.to_series().reset_index(drop=True).astype(arr.dtype)
 
     columns = _get_group_names(regex)
     match_list = []

@@ -31,11 +31,6 @@ frame_mi_data = ({"A": [1, 2, 3, 4]}, mi)
 # - Callable: pass the constructed value with attrs set to this.
 
 _all_methods = [
-    (
-        pd.Series,
-        (np.array([0], dtype="float64")),
-        operator.methodcaller("view", "int64"),
-    ),
     (pd.Series, ([0],), operator.methodcaller("take", [])),
     (pd.Series, ([0],), operator.methodcaller("__getitem__", [True])),
     (pd.Series, ([0],), operator.methodcaller("repeat", 2)),
@@ -391,18 +386,11 @@ def idfn(x):
         return str(x)
 
 
-@pytest.fixture(params=_all_methods, ids=lambda x: idfn(x[-1]))
-def ndframe_method(request):
-    """
-    An NDFrame method returning an NDFrame.
-    """
-    return request.param
-
-
 @pytest.mark.filterwarnings(
     "ignore:DataFrame.fillna with 'method' is deprecated:FutureWarning",
     "ignore:last is deprecated:FutureWarning",
 )
+@pytest.mark.parametrize("ndframe_method", _all_methods, ids=lambda x: idfn(x[-1]))
 def test_finalize_called(ndframe_method):
     cls, init_args, method = ndframe_method
     ndframe = cls(*init_args)

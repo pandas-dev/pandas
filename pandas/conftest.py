@@ -30,7 +30,6 @@ from datetime import (
 from decimal import Decimal
 import operator
 import os
-from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -60,12 +59,18 @@ from pandas.core.dtypes.dtypes import (
 
 import pandas as pd
 from pandas import (
+    CategoricalIndex,
     DataFrame,
     Interval,
+    IntervalIndex,
     Period,
+    RangeIndex,
     Series,
     Timedelta,
     Timestamp,
+    date_range,
+    period_range,
+    timedelta_range,
 )
 import pandas._testing as tm
 from pandas.core import ops
@@ -143,11 +148,13 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("is_datetime64tz_dtype", "is_datetime64tz_dtype is deprecated"),
         ("is_categorical_dtype", "is_categorical_dtype is deprecated"),
         ("is_sparse", "is_sparse is deprecated"),
+        ("DataFrameGroupBy.fillna", "DataFrameGroupBy.fillna is deprecated"),
         ("NDFrame.replace", "The 'method' keyword"),
         ("NDFrame.replace", "Series.replace without 'value'"),
         ("NDFrame.clip", "Downcasting behavior in Series and DataFrame methods"),
         ("Series.idxmin", "The behavior of Series.idxmin"),
         ("Series.idxmax", "The behavior of Series.idxmax"),
+        ("SeriesGroupBy.fillna", "SeriesGroupBy.fillna is deprecated"),
         ("SeriesGroupBy.idxmin", "The behavior of Series.idxmin"),
         ("SeriesGroupBy.idxmax", "The behavior of Series.idxmax"),
         # Docstring divides by zero to show behavior difference
@@ -181,18 +188,14 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
     ]
 
-    for item in items:
-        if is_doctest:
+    if is_doctest:
+        for item in items:
             # autouse=True for the add_doctest_imports can lead to expensive teardowns
             # since doctest_namespace is a session fixture
             item.add_marker(pytest.mark.usefixtures("add_doctest_imports"))
 
             for path, message in ignored_doctest_warnings:
                 ignore_doctest_warning(item, path, message)
-
-        # mark all tests in the pandas/tests/frame directory with "arraymanager"
-        if "/frame/" in item.nodeid:
-            item.add_marker(pytest.mark.arraymanager)
 
 
 hypothesis_health_checks = [hypothesis.HealthCheck.too_slow]
@@ -270,21 +273,10 @@ def configure_tests() -> None:
 # ----------------------------------------------------------------
 # Common arguments
 # ----------------------------------------------------------------
-@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis={repr(x)}")
+@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis={x!r}")
 def axis(request):
     """
     Fixture for returning the axis numbers of a DataFrame.
-    """
-    return request.param
-
-
-axis_frame = axis
-
-
-@pytest.fixture(params=[1, "columns"], ids=lambda x: f"axis={repr(x)}")
-def axis_1(request):
-    """
-    Fixture for returning aliases of axis 1 of a DataFrame.
     """
     return request.param
 
@@ -306,6 +298,22 @@ def observed(request):
 def ordered(request):
     """
     Boolean 'ordered' parameter for Categorical.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def dropna(request):
+    """
+    Boolean 'dropna' parameter.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def sort(request):
+    """
+    Boolean 'sort' parameter.
     """
     return request.param
 
@@ -411,6 +419,74 @@ def nselect_method(request):
     return request.param
 
 
+@pytest.fixture(params=[None, "ignore"])
+def na_action(request):
+    """
+    Fixture for 'na_action' argument in map.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def ascending(request):
+    """
+    Fixture for 'na_action' argument in sort_values/sort_index/rank.
+    """
+    return request.param
+
+
+@pytest.fixture(params=["average", "min", "max", "first", "dense"])
+def rank_method(request):
+    """
+    Fixture for 'rank' argument in rank.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def as_index(request):
+    """
+    Fixture for 'as_index' argument in groupby.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def cache(request):
+    """
+    Fixture for 'cache' argument in to_datetime.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def parallel(request):
+    """
+    Fixture for parallel keyword argument for numba.jit.
+    """
+    return request.param
+
+
+# Can parameterize nogil & nopython over True | False, but limiting per
+# https://github.com/pandas-dev/pandas/pull/41971#issuecomment-860607472
+
+
+@pytest.fixture(params=[False])
+def nogil(request):
+    """
+    Fixture for nogil keyword argument for numba.jit.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True])
+def nopython(request):
+    """
+    Fixture for nopython keyword argument for numba.jit.
+    """
+    return request.param
+
+
 # ----------------------------------------------------------------
 # Missing values & co.
 # ----------------------------------------------------------------
@@ -473,10 +549,6 @@ def index_or_series(request):
     See GH#29725
     """
     return request.param
-
-
-# Generate cartesian product of index_or_series fixture:
-index_or_series2 = index_or_series
 
 
 @pytest.fixture(params=[Index, Series, pd.array], ids=["index", "series", "array"])
@@ -543,7 +615,11 @@ def multiindex_year_month_day_dataframe_random_data():
     DataFrame with 3 level MultiIndex (year, month, day) covering
     first 100 business days from 2000-01-01 with random data
     """
-    tdf = tm.makeTimeDataFrame(100)
+    tdf = DataFrame(
+        np.random.default_rng(2).standard_normal((100, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=100, freq="B"),
+    )
     ymd = tdf.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day]).sum()
     # use int64 Index, to make sure things work
     ymd.index = ymd.index.set_levels([lev.astype("i8") for lev in ymd.index.levels])
@@ -602,34 +678,38 @@ def _create_mi_with_dt64tz_level():
     """
     # GH#8367 round trip with pickle
     return MultiIndex.from_product(
-        [[1, 2], ["a", "b"], pd.date_range("20130101", periods=3, tz="US/Eastern")],
+        [[1, 2], ["a", "b"], date_range("20130101", periods=3, tz="US/Eastern")],
         names=["one", "two", "three"],
     )
 
 
 indices_dict = {
-    "string": tm.makeStringIndex(100),
-    "datetime": tm.makeDateIndex(100),
-    "datetime-tz": tm.makeDateIndex(100, tz="US/Pacific"),
-    "period": tm.makePeriodIndex(100),
-    "timedelta": tm.makeTimedeltaIndex(100),
-    "range": tm.makeRangeIndex(100),
-    "int8": tm.makeIntIndex(100, dtype="int8"),
-    "int16": tm.makeIntIndex(100, dtype="int16"),
-    "int32": tm.makeIntIndex(100, dtype="int32"),
-    "int64": tm.makeIntIndex(100, dtype="int64"),
-    "uint8": tm.makeUIntIndex(100, dtype="uint8"),
-    "uint16": tm.makeUIntIndex(100, dtype="uint16"),
-    "uint32": tm.makeUIntIndex(100, dtype="uint32"),
-    "uint64": tm.makeUIntIndex(100, dtype="uint64"),
-    "float32": tm.makeFloatIndex(100, dtype="float32"),
-    "float64": tm.makeFloatIndex(100, dtype="float64"),
-    "bool-object": tm.makeBoolIndex(10).astype(object),
-    "bool-dtype": Index(np.random.default_rng(2).standard_normal(10) < 0),
-    "complex64": tm.makeNumericIndex(100, dtype="float64").astype("complex64"),
-    "complex128": tm.makeNumericIndex(100, dtype="float64").astype("complex128"),
-    "categorical": tm.makeCategoricalIndex(100),
-    "interval": tm.makeIntervalIndex(100),
+    "string": Index([f"pandas_{i}" for i in range(100)]),
+    "datetime": date_range("2020-01-01", periods=100),
+    "datetime-tz": date_range("2020-01-01", periods=100, tz="US/Pacific"),
+    "period": period_range("2020-01-01", periods=100, freq="D"),
+    "timedelta": timedelta_range(start="1 day", periods=100, freq="D"),
+    "range": RangeIndex(100),
+    "int8": Index(np.arange(100), dtype="int8"),
+    "int16": Index(np.arange(100), dtype="int16"),
+    "int32": Index(np.arange(100), dtype="int32"),
+    "int64": Index(np.arange(100), dtype="int64"),
+    "uint8": Index(np.arange(100), dtype="uint8"),
+    "uint16": Index(np.arange(100), dtype="uint16"),
+    "uint32": Index(np.arange(100), dtype="uint32"),
+    "uint64": Index(np.arange(100), dtype="uint64"),
+    "float32": Index(np.arange(100), dtype="float32"),
+    "float64": Index(np.arange(100), dtype="float64"),
+    "bool-object": Index([True, False] * 5, dtype=object),
+    "bool-dtype": Index([True, False] * 5, dtype=bool),
+    "complex64": Index(
+        np.arange(100, dtype="complex64") + 1.0j * np.arange(100, dtype="complex64")
+    ),
+    "complex128": Index(
+        np.arange(100, dtype="complex128") + 1.0j * np.arange(100, dtype="complex128")
+    ),
+    "categorical": CategoricalIndex(list("abcd") * 25),
+    "interval": IntervalIndex.from_breaks(np.linspace(0, 100, num=101)),
     "empty": Index([]),
     "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
     "mi-with-dt64tz-level": _create_mi_with_dt64tz_level(),
@@ -639,10 +719,12 @@ indices_dict = {
     "nullable_uint": Index(np.arange(100), dtype="UInt16"),
     "nullable_float": Index(np.arange(100), dtype="Float32"),
     "nullable_bool": Index(np.arange(100).astype(bool), dtype="boolean"),
-    "string-python": Index(pd.array(tm.makeStringIndex(100), dtype="string[python]")),
+    "string-python": Index(
+        pd.array([f"pandas_{i}" for i in range(100)], dtype="string[python]")
+    ),
 }
 if has_pyarrow:
-    idx = Index(pd.array(tm.makeStringIndex(100), dtype="string[pyarrow]"))
+    idx = Index(pd.array([f"pandas_{i}" for i in range(100)], dtype="string[pyarrow]"))
     indices_dict["string-pyarrow"] = idx
 
 
@@ -661,10 +743,6 @@ def index(request):
     return indices_dict[request.param].copy()
 
 
-# Needed to generate cartesian product of indices
-index_fixture2 = index
-
-
 @pytest.fixture(
     params=[
         key for key, value in indices_dict.items() if not isinstance(value, MultiIndex)
@@ -676,10 +754,6 @@ def index_flat(request):
     """
     key = request.param
     return indices_dict[key].copy()
-
-
-# Alias so we can test with cartesian product of index_flat
-index_flat2 = index_flat
 
 
 @pytest.fixture(
@@ -727,9 +801,11 @@ def string_series() -> Series:
     """
     Fixture for Series of floats with Index of unique strings
     """
-    s = tm.makeStringSeries()
-    s.name = "series"
-    return s
+    return Series(
+        np.arange(30, dtype=np.float64) * 1.1,
+        index=Index([f"i_{i}" for i in range(30)], dtype=object),
+        name="series",
+    )
 
 
 @pytest.fixture
@@ -737,9 +813,9 @@ def object_series() -> Series:
     """
     Fixture for Series of dtype object with Index of unique strings
     """
-    s = tm.makeObjectSeries()
-    s.name = "objects"
-    return s
+    data = [f"foo_{i}" for i in range(30)]
+    index = Index([f"bar_{i}" for i in range(30)], dtype=object)
+    return Series(data, index=index, name="objects", dtype=object)
 
 
 @pytest.fixture
@@ -747,9 +823,11 @@ def datetime_series() -> Series:
     """
     Fixture for Series of floats with DatetimeIndex
     """
-    s = tm.makeTimeSeries()
-    s.name = "ts"
-    return s
+    return Series(
+        np.random.default_rng(2).standard_normal(30),
+        index=date_range("2000-01-01", periods=30, freq="B"),
+        name="ts",
+    )
 
 
 def _create_series(index):
@@ -773,25 +851,10 @@ def series_with_simple_index(index) -> Series:
     return _create_series(index)
 
 
-@pytest.fixture
-def series_with_multilevel_index() -> Series:
-    """
-    Fixture with a Series with a 2-level MultiIndex.
-    """
-    arrays = [
-        ["bar", "bar", "baz", "baz", "qux", "qux", "foo", "foo"],
-        ["one", "two", "one", "two", "one", "two", "one", "two"],
-    ]
-    tuples = zip(*arrays)
-    index = MultiIndex.from_tuples(tuples)
-    data = np.random.default_rng(2).standard_normal(8)
-    ser = Series(data, index=index)
-    ser.iloc[3] = np.nan
-    return ser
-
-
 _narrow_series = {
-    f"{dtype.__name__}-series": tm.make_rand_series(name="a", dtype=dtype)
+    f"{dtype.__name__}-series": Series(
+        range(30), index=[f"i-{i}" for i in range(30)], name="a", dtype=dtype
+    )
     for dtype in tm.NARROW_NP_DTYPES
 }
 
@@ -840,56 +903,12 @@ def int_frame() -> DataFrame:
     Fixture for DataFrame of ints with index of unique strings
 
     Columns are ['A', 'B', 'C', 'D']
-
-                A  B  C  D
-    vpBeWjM651  1  0  1  0
-    5JyxmrP1En -1  0  0  0
-    qEDaoD49U2 -1  1  0  0
-    m66TkTfsFe  0  0  0  0
-    EHPaNzEUFm -1  0 -1  0
-    fpRJCevQhi  2  0  0  0
-    OlQvnmfi3Q  0  0 -2  0
-    ...        .. .. .. ..
-    uB1FPlz4uP  0  0  0  1
-    EcSe6yNzCU  0  0 -1  0
-    L50VudaiI8 -1  1 -2  0
-    y3bpw4nwIp  0 -1  0  0
-    H0RdLLwrCT  1  1  0  0
-    rY82K0vMwm  0  0  0  0
-    1OPIUjnkjk  2  0  0  0
-
-    [30 rows x 4 columns]
     """
-    return DataFrame(tm.getSeriesData()).astype("int64")
-
-
-@pytest.fixture
-def datetime_frame() -> DataFrame:
-    """
-    Fixture for DataFrame of floats with DatetimeIndex
-
-    Columns are ['A', 'B', 'C', 'D']
-
-                       A         B         C         D
-    2000-01-03 -1.122153  0.468535  0.122226  1.693711
-    2000-01-04  0.189378  0.486100  0.007864 -1.216052
-    2000-01-05  0.041401 -0.835752 -0.035279 -0.414357
-    2000-01-06  0.430050  0.894352  0.090719  0.036939
-    2000-01-07 -0.620982 -0.668211 -0.706153  1.466335
-    2000-01-10 -0.752633  0.328434 -0.815325  0.699674
-    2000-01-11 -2.236969  0.615737 -0.829076 -1.196106
-    ...              ...       ...       ...       ...
-    2000-02-03  1.642618 -0.579288  0.046005  1.385249
-    2000-02-04 -0.544873 -1.160962 -0.284071 -1.418351
-    2000-02-07 -2.656149 -0.601387  1.410148  0.444150
-    2000-02-08 -1.201881 -1.289040  0.772992 -1.445300
-    2000-02-09  1.377373  0.398619  1.008453 -0.928207
-    2000-02-10  0.473194 -0.636677  0.984058  0.511519
-    2000-02-11 -0.965556  0.408313 -1.312844 -0.381948
-
-    [30 rows x 4 columns]
-    """
-    return DataFrame(tm.getTimeSeriesData())
+    return DataFrame(
+        np.ones((30, 4), dtype=np.int64),
+        index=Index([f"foo_{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD"), dtype=object),
+    )
 
 
 @pytest.fixture
@@ -898,44 +917,11 @@ def float_frame() -> DataFrame:
     Fixture for DataFrame of floats with index of unique strings
 
     Columns are ['A', 'B', 'C', 'D'].
-
-                       A         B         C         D
-    P7GACiRnxd -0.465578 -0.361863  0.886172 -0.053465
-    qZKh6afn8n -0.466693 -0.373773  0.266873  1.673901
-    tkp0r6Qble  0.148691 -0.059051  0.174817  1.598433
-    wP70WOCtv8  0.133045 -0.581994 -0.992240  0.261651
-    M2AeYQMnCz -1.207959 -0.185775  0.588206  0.563938
-    QEPzyGDYDo -0.381843 -0.758281  0.502575 -0.565053
-    r78Jwns6dn -0.653707  0.883127  0.682199  0.206159
-    ...              ...       ...       ...       ...
-    IHEGx9NO0T -0.277360  0.113021 -1.018314  0.196316
-    lPMj8K27FA -1.313667 -0.604776 -1.305618 -0.863999
-    qa66YMWQa5  1.110525  0.475310 -0.747865  0.032121
-    yOa0ATsmcE -0.431457  0.067094  0.096567 -0.264962
-    65znX3uRNG  1.528446  0.160416 -0.109635 -0.032987
-    eCOBvKqf3e  0.235281  1.622222  0.781255  0.392871
-    xSucinXxuV -1.263557  0.252799 -0.552247  0.400426
-
-    [30 rows x 4 columns]
-    """
-    return DataFrame(tm.getSeriesData())
-
-
-@pytest.fixture
-def mixed_type_frame() -> DataFrame:
-    """
-    Fixture for DataFrame of float/int/string columns with RangeIndex
-    Columns are ['a', 'b', 'c', 'float32', 'int32'].
     """
     return DataFrame(
-        {
-            "a": 1.0,
-            "b": 2,
-            "c": "foo",
-            "float32": np.array([1.0] * 10, dtype="float32"),
-            "int32": np.array([1] * 10, dtype="int32"),
-        },
-        index=np.arange(10),
+        np.random.default_rng(2).standard_normal((30, 4)),
+        index=Index([f"foo_{i}" for i in range(30)]),
+        columns=Index(list("ABCD")),
     )
 
 
@@ -1173,16 +1159,6 @@ def strict_data_files(pytestconfig):
 
 
 @pytest.fixture
-def tests_path() -> Path:
-    return Path(__file__).parent / "tests"
-
-
-@pytest.fixture
-def tests_io_data_path(tests_path) -> Path:
-    return tests_path / "io" / "data"
-
-
-@pytest.fixture
 def datapath(strict_data_files: str) -> Callable[..., str]:
     """
     Get the path to a data file.
@@ -1214,14 +1190,6 @@ def datapath(strict_data_files: str) -> Callable[..., str]:
         return path
 
     return deco
-
-
-@pytest.fixture
-def iris(datapath) -> DataFrame:
-    """
-    The iris dataset as a DataFrame.
-    """
-    return pd.read_csv(datapath("io", "data", "csv", "iris.csv"))
 
 
 # ----------------------------------------------------------------
@@ -1442,7 +1410,7 @@ def fixed_now_ts() -> Timestamp:
     """
     Fixture emits fixed Timestamp.now()
     """
-    return Timestamp(
+    return Timestamp(  # pyright: ignore[reportGeneralTypeIssues]
         year=2021, month=1, day=1, hour=12, minute=4, second=13, microsecond=22
     )
 
@@ -1870,16 +1838,6 @@ def ip():
     return InteractiveShell(config=c)
 
 
-@pytest.fixture(params=["bsr", "coo", "csc", "csr", "dia", "dok", "lil"])
-def spmatrix(request):
-    """
-    Yields scipy sparse matrix classes.
-    """
-    sparse = pytest.importorskip("scipy.sparse")
-
-    return getattr(sparse, request.param + "_matrix")
-
-
 @pytest.fixture(
     params=[
         getattr(pd.offsets, o)
@@ -1901,28 +1859,6 @@ def sort_by_key(request):
     Tests None (no key) and the identity key.
     """
     return request.param
-
-
-@pytest.fixture()
-def fsspectest():
-    pytest.importorskip("fsspec")
-    from fsspec import register_implementation
-    from fsspec.implementations.memory import MemoryFileSystem
-    from fsspec.registry import _registry as registry
-
-    class TestMemoryFS(MemoryFileSystem):
-        protocol = "testmem"
-        test = [None]
-
-        def __init__(self, **kwargs) -> None:
-            self.test[0] = kwargs.pop("test", None)
-            super().__init__(**kwargs)
-
-    register_implementation("testmem", TestMemoryFS, clobber=True)
-    yield TestMemoryFS()
-    registry.pop("testmem", None)
-    TestMemoryFS.test[0] = None
-    TestMemoryFS.store.clear()
 
 
 @pytest.fixture(
@@ -1993,14 +1929,6 @@ def indexer_ial(request):
 
 
 @pytest.fixture
-def using_array_manager() -> bool:
-    """
-    Fixture to check if the array manager is being used.
-    """
-    return _get_option("mode.data_manager", silent=True) == "array"
-
-
-@pytest.fixture
 def using_copy_on_write() -> bool:
     """
     Fixture to check if Copy-on-Write is enabled.
@@ -2014,12 +1942,20 @@ def using_copy_on_write() -> bool:
 @pytest.fixture
 def warn_copy_on_write() -> bool:
     """
-    Fixture to check if Copy-on-Write is enabled.
+    Fixture to check if Copy-on-Write is in warning mode.
     """
     return (
         pd.options.mode.copy_on_write == "warn"
         and _get_option("mode.data_manager", silent=True) == "block"
     )
+
+
+@pytest.fixture
+def using_infer_string() -> bool:
+    """
+    Fixture to check if infer string option is enabled.
+    """
+    return pd.options.future.infer_string is True
 
 
 warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
@@ -2035,6 +1971,9 @@ def warsaw(request) -> str:
     return request.param
 
 
-@pytest.fixture()
+@pytest.fixture
 def arrow_string_storage():
+    """
+    Fixture that lists possible PyArrow values for StringDtype storage field.
+    """
     return ("pyarrow", "pyarrow_numpy")

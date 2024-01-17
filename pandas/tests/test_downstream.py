@@ -2,6 +2,7 @@
 Testing that we work in the downstream packages
 """
 import array
+from functools import partial
 import subprocess
 import sys
 
@@ -9,7 +10,6 @@ import numpy as np
 import pytest
 
 from pandas.errors import IntCastingNaNError
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -100,7 +100,7 @@ def test_xarray(df):
 def test_xarray_cftimeindex_nearest():
     # https://github.com/pydata/xarray/issues/3751
     cftime = pytest.importorskip("cftime")
-    xarray = pytest.importorskip("xarray", minversion="0.21.0")
+    xarray = pytest.importorskip("xarray")
 
     times = xarray.cftime_range("0001", periods=2)
     key = cftime.DatetimeGregorian(2000, 1, 1)
@@ -161,21 +161,15 @@ def test_seaborn():
     seaborn.stripplot(x="day", y="total_bill", data=tips)
 
 
-def test_pandas_gbq():
-    # Older versions import from non-public, non-existent pandas funcs
-    pytest.importorskip("pandas_gbq", minversion="0.10.0")
-
-
 def test_pandas_datareader():
     pytest.importorskip("pandas_datareader")
 
 
+@pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_pyarrow(df):
     pyarrow = pytest.importorskip("pyarrow")
     table = pyarrow.Table.from_pandas(df)
-    msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = table.to_pandas()
+    result = table.to_pandas()
     tm.assert_frame_equal(result, df)
 
 
@@ -267,51 +261,32 @@ def test_pandas_priority():
     assert right + left is left
 
 
-@pytest.fixture(
-    params=[
-        "memoryview",
-        "array",
-        pytest.param("dask", marks=td.skip_if_no("dask.array")),
-        pytest.param("xarray", marks=td.skip_if_no("xarray")),
-    ]
-)
-def array_likes(request):
-    """
-    Fixture giving a numpy array and a parametrized 'data' object, which can
-    be a memoryview, array, dask or xarray object created from the numpy array.
-    """
-    # GH#24539 recognize e.g xarray, dask, ...
-    arr = np.array([1, 2, 3], dtype=np.int64)
-
-    name = request.param
-    if name == "memoryview":
-        data = memoryview(arr)
-    elif name == "array":
-        data = array.array("i", arr)
-    elif name == "dask":
-        import dask.array
-
-        data = dask.array.array(arr)
-    elif name == "xarray":
-        import xarray as xr
-
-        data = xr.DataArray(arr)
-
-    return arr, data
-
-
 @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
-def test_from_obscure_array(dtype, array_likes):
+@pytest.mark.parametrize(
+    "box", [memoryview, partial(array.array, "i"), "dask", "xarray"]
+)
+def test_from_obscure_array(dtype, box):
     # GH#24539 recognize e.g xarray, dask, ...
     # Note: we dont do this for PeriodArray bc _from_sequence won't accept
     #  an array of integers
     # TODO: could check with arraylike of Period objects
-    arr, data = array_likes
+    # GH#24539 recognize e.g xarray, dask, ...
+    arr = np.array([1, 2, 3], dtype=np.int64)
+    if box == "dask":
+        da = pytest.importorskip("dask.array")
+        data = da.array(arr)
+    elif box == "xarray":
+        xr = pytest.importorskip("xarray")
+        data = xr.DataArray(arr)
+    else:
+        data = box(arr)
 
     cls = {"M8[ns]": DatetimeArray, "m8[ns]": TimedeltaArray}[dtype]
 
-    expected = cls(arr)
-    result = cls._from_sequence(data)
+    depr_msg = f"{cls.__name__}.__init__ is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        expected = cls(arr)
+    result = cls._from_sequence(data, dtype=dtype)
     tm.assert_extension_array_equal(result, expected)
 
     if not isinstance(data, memoryview):
@@ -343,11 +318,9 @@ def test_dataframe_consortium() -> None:
     expected_1 = ["a", "b"]
     assert result_1 == expected_1
 
-    ser = Series([1, 2, 3])
+    ser = Series([1, 2, 3], name="a")
     col = ser.__column_consortium_standard__()
-    result_2 = col.get_value(1)
-    expected_2 = 2
-    assert result_2 == expected_2
+    assert col.name == "a"
 
 
 def test_xarray_coerce_unit():

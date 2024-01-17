@@ -68,19 +68,6 @@ def df_with_datetime_col():
 
 
 @pytest.fixture
-def df_with_timedelta_col():
-    df = DataFrame(
-        {
-            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
-            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
-            "c": range(9),
-            "d": datetime.timedelta(days=1),
-        }
-    )
-    return df
-
-
-@pytest.fixture
 def df_with_cat_col():
     df = DataFrame(
         {
@@ -189,11 +176,16 @@ def test_groupby_raises_string(
         "sum": (None, ""),
         "var": (
             TypeError,
-            re.escape("agg function failed [how->var,dtype->object]"),
+            re.escape("agg function failed [how->var,dtype->"),
         ),
     }[groupby_func]
 
-    _call_and_check(klass, msg, how, gb, groupby_func, args)
+    if groupby_func == "fillna":
+        kind = "Series" if groupby_series else "DataFrame"
+        warn_msg = f"{kind}GroupBy.fillna is deprecated"
+    else:
+        warn_msg = ""
+    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg)
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
@@ -300,6 +292,9 @@ def test_groupby_raises_datetime(
 
     if groupby_func in ["any", "all"]:
         warn_msg = f"'{groupby_func}' with datetime64 dtypes is deprecated"
+    elif groupby_func == "fillna":
+        kind = "Series" if groupby_series else "DataFrame"
+        warn_msg = f"{kind}GroupBy.fillna is deprecated"
     else:
         warn_msg = ""
     _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=warn_msg)
@@ -345,8 +340,15 @@ def test_groupby_raises_datetime_np(
 
 
 @pytest.mark.parametrize("func", ["prod", "cumprod", "skew", "var"])
-def test_groupby_raises_timedelta(func, df_with_timedelta_col):
-    df = df_with_timedelta_col
+def test_groupby_raises_timedelta(func):
+    df = DataFrame(
+        {
+            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
+            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
+            "c": range(9),
+            "d": datetime.timedelta(days=1),
+        }
+    )
     gb = df.groupby(by="a")
 
     _call_and_check(
@@ -495,7 +497,12 @@ def test_groupby_raises_category(
         ),
     }[groupby_func]
 
-    _call_and_check(klass, msg, how, gb, groupby_func, args)
+    if groupby_func == "fillna":
+        kind = "Series" if groupby_series else "DataFrame"
+        warn_msg = f"{kind}GroupBy.fillna is deprecated"
+    else:
+        warn_msg = ""
+    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg)
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
@@ -685,7 +692,12 @@ def test_groupby_raises_category_on_category(
         ),
     }[groupby_func]
 
-    _call_and_check(klass, msg, how, gb, groupby_func, args)
+    if groupby_func == "fillna":
+        kind = "Series" if groupby_series else "DataFrame"
+        warn_msg = f"{kind}GroupBy.fillna is deprecated"
+    else:
+        warn_msg = ""
+    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg)
 
 
 def test_subsetting_columns_axis_1_raises():

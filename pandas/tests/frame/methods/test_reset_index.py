@@ -27,7 +27,7 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture()
+@pytest.fixture
 def multiindex_df():
     levels = [["A", ""], ["B", "b"]]
     return DataFrame([[0, 2], [1, 3]], columns=MultiIndex.from_tuples(levels))
@@ -232,9 +232,7 @@ class TestResetIndex:
 
     def test_reset_index_right_dtype(self):
         time = np.arange(0.0, 10, np.sqrt(2) / 2)
-        s1 = Series(
-            (9.81 * time**2) / 2, index=Index(time, name="time"), name="speed"
-        )
+        s1 = Series((9.81 * time**2) / 2, index=Index(time, name="time"), name="speed")
         df = DataFrame(s1)
 
         reset = s1.reset_index()
@@ -654,21 +652,22 @@ class TestResetIndex:
         ),
     ],
 )
-def test_reset_index_dtypes_on_empty_frame_with_multiindex(array, dtype):
+def test_reset_index_dtypes_on_empty_frame_with_multiindex(
+    array, dtype, using_infer_string
+):
     # GH 19602 - Preserve dtype on empty DataFrame with MultiIndex
     idx = MultiIndex.from_product([[0, 1], [0.5, 1.0], array])
     result = DataFrame(index=idx)[:0].reset_index().dtypes
+    if using_infer_string and dtype == object:
+        dtype = "string"
     expected = Series({"level_0": np.int64, "level_1": np.float64, "level_2": dtype})
     tm.assert_series_equal(result, expected)
 
 
 def test_reset_index_empty_frame_with_datetime64_multiindex():
     # https://github.com/pandas-dev/pandas/issues/35606
-    idx = MultiIndex(
-        levels=[[Timestamp("2020-07-20 00:00:00")], [3, 4]],
-        codes=[[], []],
-        names=["a", "b"],
-    )
+    dti = pd.DatetimeIndex(["2020-07-20 00:00:00"], dtype="M8[ns]")
+    idx = MultiIndex.from_product([dti, [3, 4]], names=["a", "b"])[:0]
     df = DataFrame(index=idx, columns=["c", "d"])
     result = df.reset_index()
     expected = DataFrame(
@@ -679,9 +678,12 @@ def test_reset_index_empty_frame_with_datetime64_multiindex():
     tm.assert_frame_equal(result, expected)
 
 
-def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby():
+def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby(
+    using_infer_string,
+):
     # https://github.com/pandas-dev/pandas/issues/35657
-    df = DataFrame({"c1": [10.0], "c2": ["a"], "c3": pd.to_datetime("2020-01-01")})
+    dti = pd.DatetimeIndex(["2020-01-01"], dtype="M8[ns]")
+    df = DataFrame({"c1": [10.0], "c2": ["a"], "c3": dti})
     df = df.head(0).groupby(["c2", "c3"])[["c1"]].sum()
     result = df.reset_index()
     expected = DataFrame(
@@ -689,6 +691,8 @@ def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby():
     )
     expected["c3"] = expected["c3"].astype("datetime64[ns]")
     expected["c1"] = expected["c1"].astype("float64")
+    if using_infer_string:
+        expected["c2"] = expected["c2"].astype("string[pyarrow_numpy]")
     tm.assert_frame_equal(result, expected)
 
 
@@ -699,9 +703,12 @@ def test_reset_index_multiindex_nat():
     df = DataFrame({"id": idx, "tstamp": tstamp, "a": list("abc")})
     df.loc[2, "tstamp"] = pd.NaT
     result = df.set_index(["id", "tstamp"]).reset_index("id")
+    exp_dti = pd.DatetimeIndex(
+        ["2015-07-01", "2015-07-02", "NaT"], dtype="M8[ns]", name="tstamp"
+    )
     expected = DataFrame(
         {"id": range(3), "a": list("abc")},
-        index=pd.DatetimeIndex(["2015-07-01", "2015-07-02", "NaT"], name="tstamp"),
+        index=exp_dti,
     )
     tm.assert_frame_equal(result, expected)
 

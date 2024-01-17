@@ -61,8 +61,8 @@ timezone = ['tzdata>=2022.1']
 computation = ['scipy>=1.7.1', 'xarray>=0.21.0']
 fss = ['fsspec>=2021.07.0']
 aws = ['s3fs>=2021.08.0']
-gcp = ['gcsfs>=2021.07.0', 'pandas-gbq>=0.15.0']
-excel = ['odfpy>=1.4.1', 'openpyxl>=3.0.7', 'python-calamine>=0.1.6', 'pyxlsb>=1.0.8', 'xlrd>=2.0.1', 'xlsxwriter>=1.4.3']
+gcp = ['gcsfs>=2021.07.0']
+excel = ['odfpy>=1.4.1', 'openpyxl>=3.0.7', 'python-calamine>=0.1.7', 'pyxlsb>=1.0.8', 'xlrd>=2.0.1', 'xlsxwriter>=1.4.3']
 parquet = ['pyarrow>=7.0.0']
 feather = ['pyarrow>=7.0.0']
 hdf5 = [# blosc only available on conda (https://github.com/Blosc/python-blosc/issues/297)
@@ -94,7 +94,6 @@ all = ['beautifulsoup4>=5.9.3',
        'numexpr>=2.7.3',
        'odfpy>=1.4.1',
        'openpyxl>=3.0.7',
-       'pandas-gbq>=0.15.0',
        'psycopg2>=2.8.6',
        'pyarrow>=7.0.0',
        'pymysql>=1.0.2',
@@ -102,7 +101,7 @@ all = ['beautifulsoup4>=5.9.3',
        'pyreadstat>=1.1.2',
        'pytest>=7.3.2',
        'pytest-xdist>=2.2.0',
-       'python-calamine>=0.1.6',
+       'python-calamine>=0.1.7',
        'pyxlsb>=1.0.8',
        'qtpy>=2.2.0',
        'scipy>=1.7.1',
@@ -161,26 +160,6 @@ test-command = ""
 [[tool.cibuildwheel.overrides]]
 select = "*-win32"
 environment = { IS_32_BIT="true" }
-
-[tool.black]
-target-version = ['py38', 'py39']
-exclude = '''
-(
-    asv_bench/env
-  | \.egg
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.nox
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-  | setup.py
-)
-'''
 
 [tool.ruff]
 line-length = 88
@@ -383,7 +362,7 @@ markers = [
   "db: tests requiring a database (mysql or postgres)",
   "clipboard: mark a pd.read_clipboard test",
   "arm_slow: mark a test as slow for arm64 architecture",
-  "arraymanager: mark a test to run with ArrayManager enabled",
+  "skip_ubsan: tests known to invoke undefined behavior",
 ]
 
 [tool.mypy]

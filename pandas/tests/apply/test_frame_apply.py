@@ -18,6 +18,27 @@ import pandas._testing as tm
 from pandas.tests.frame.common import zip_frames
 
 
+@pytest.fixture
+def int_frame_const_col():
+    """
+    Fixture for DataFrame of ints which are constant per column
+
+    Columns are ['A', 'B', 'C'], with values (per column): [1, 2, 3]
+    """
+    df = DataFrame(
+        np.tile(np.arange(3, dtype="int64"), 6).reshape(6, -1) + 1,
+        columns=["A", "B", "C"],
+    )
+    return df
+
+
+@pytest.fixture(params=["python", pytest.param("numba", marks=pytest.mark.single_cpu)])
+def engine(request):
+    if request.param == "numba":
+        pytest.importorskip("numba")
+    return request.param
+
+
 def test_apply(float_frame, engine, request):
     if engine == "numba":
         mark = pytest.mark.xfail(reason="numba engine not supporting numpy ufunc yet")
@@ -269,7 +290,7 @@ def test_apply_raw_float_frame_no_reduction(float_frame, engine):
 
 
 @pytest.mark.parametrize("axis", [0, 1])
-def test_apply_raw_mixed_type_frame(mixed_type_frame, axis, engine):
+def test_apply_raw_mixed_type_frame(axis, engine):
     if engine == "numba":
         pytest.skip("isinstance check doesn't work with numba")
 
@@ -278,7 +299,17 @@ def test_apply_raw_mixed_type_frame(mixed_type_frame, axis, engine):
         assert x.ndim == 1
 
     # Mixed dtype (GH-32423)
-    mixed_type_frame.apply(_assert_raw, axis=axis, engine=engine, raw=True)
+    df = DataFrame(
+        {
+            "a": 1.0,
+            "b": 2,
+            "c": "foo",
+            "float32": np.array([1.0] * 10, dtype="float32"),
+            "int32": np.array([1] * 10, dtype="int32"),
+        },
+        index=np.arange(10),
+    )
+    df.apply(_assert_raw, axis=axis, engine=engine, raw=True)
 
 
 def test_apply_axis1(float_frame):
@@ -1272,7 +1303,7 @@ def test_nuiscance_columns():
 
     result = df.agg(["min"])
     expected = DataFrame(
-        [[1, 1.0, "bar", Timestamp("20130101")]],
+        [[1, 1.0, "bar", Timestamp("20130101").as_unit("ns")]],
         index=["min"],
         columns=df.columns,
     )
@@ -1433,13 +1464,16 @@ def test_apply_datetime_tz_issue(engine, request):
 
 @pytest.mark.parametrize("df", [DataFrame({"A": ["a", None], "B": ["c", "d"]})])
 @pytest.mark.parametrize("method", ["min", "max", "sum"])
-def test_mixed_column_raises(df, method):
+def test_mixed_column_raises(df, method, using_infer_string):
     # GH 16832
     if method == "sum":
-        msg = r'can only concatenate str \(not "int"\) to str'
+        msg = r'can only concatenate str \(not "int"\) to str|does not support'
     else:
         msg = "not supported between instances of 'str' and 'float'"
-    with pytest.raises(TypeError, match=msg):
+    if not using_infer_string:
+        with pytest.raises(TypeError, match=msg):
+            getattr(df, method)()
+    else:
         getattr(df, method)()
 
 
@@ -1453,7 +1487,7 @@ def test_apply_dtype(col):
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_mutating(using_array_manager, using_copy_on_write):
+def test_apply_mutating(using_copy_on_write, warn_copy_on_write):
     # GH#35462 case where applied func pins a new BlockManager to a row
     df = DataFrame({"a": range(100), "b": range(100, 200)})
     df_orig = df.copy()
@@ -1467,10 +1501,11 @@ def test_apply_mutating(using_array_manager, using_copy_on_write):
     expected = df.copy()
     expected["a"] += 1
 
-    result = df.apply(func, axis=1)
+    with tm.assert_cow_warning(warn_copy_on_write):
+        result = df.apply(func, axis=1)
 
     tm.assert_frame_equal(result, expected)
-    if using_copy_on_write or using_array_manager:
+    if using_copy_on_write:
         # INFO(CoW) With copy on write, mutating a viewing row doesn't mutate the parent
         # INFO(ArrayManager) With BlockManager, the row is a view and mutated in place,
         # with ArrayManager the row is not a view, and thus not mutated in place

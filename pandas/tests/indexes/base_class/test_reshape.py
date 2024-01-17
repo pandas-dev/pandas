@@ -33,13 +33,15 @@ class TestReshape:
 
         # test empty
         null_index = Index([])
-        tm.assert_index_equal(Index(["a"]), null_index.insert(0, "a"))
+        tm.assert_index_equal(Index(["a"], dtype=object), null_index.insert(0, "a"))
 
-    def test_insert_missing(self, nulls_fixture):
+    def test_insert_missing(self, nulls_fixture, using_infer_string):
         # GH#22295
         # test there is no mangling of NA values
-        expected = Index(["a", nulls_fixture, "b", "c"])
-        result = Index(list("abc")).insert(1, nulls_fixture)
+        expected = Index(["a", nulls_fixture, "b", "c"], dtype=object)
+        result = Index(list("abc"), dtype=object).insert(
+            1, Index([nulls_fixture], dtype=object)
+        )
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(

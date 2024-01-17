@@ -24,10 +24,9 @@ from pandas._libs.tslibs import (
         ("15ms500us", offsets.Micro(15500)),
         ("10s75ms", offsets.Milli(10075)),
         ("1s0.25ms", offsets.Micro(1000250)),
-        ("1s0.25ms", offsets.Micro(1000250)),
         ("2800ns", offsets.Nano(2800)),
-        ("2SM", offsets.SemiMonthEnd(2)),
-        ("2SM-16", offsets.SemiMonthEnd(2, day_of_month=16)),
+        ("2SME", offsets.SemiMonthEnd(2)),
+        ("2SME-16", offsets.SemiMonthEnd(2, day_of_month=16)),
         ("2SMS-14", offsets.SemiMonthBegin(2, day_of_month=14)),
         ("2SMS-15", offsets.SemiMonthBegin(2)),
     ],
@@ -38,13 +37,14 @@ def test_to_offset(freq_input, expected):
 
 
 @pytest.mark.parametrize(
-    "freqstr,expected", [("-1s", -1), ("-2SM", -2), ("-1SMS", -1), ("-5min10s", -310)]
+    "freqstr,expected", [("-1s", -1), ("-2SME", -2), ("-1SMS", -1), ("-5min10s", -310)]
 )
 def test_to_offset_negative(freqstr, expected):
     result = to_offset(freqstr)
     assert result.n == expected
 
 
+@pytest.mark.filterwarnings("ignore:.*'m' is deprecated.*:FutureWarning")
 @pytest.mark.parametrize(
     "freqstr",
     [
@@ -66,12 +66,12 @@ def test_to_offset_negative(freqstr, expected):
         "+d",
         "-m",
         # Invalid shortcut anchors.
-        "SM-0",
-        "SM-28",
-        "SM-29",
-        "SM-FOO",
+        "SME-0",
+        "SME-28",
+        "SME-29",
+        "SME-FOO",
         "BSM",
-        "SM--1",
+        "SME--1",
         "SMS-1",
         "SMS-28",
         "SMS-30",
@@ -161,10 +161,10 @@ def test_to_offset_pd_timedelta(kwargs, expected):
         ("QE", offsets.QuarterEnd(startingMonth=12)),
         ("QE-DEC", offsets.QuarterEnd(startingMonth=12)),
         ("QE-MAY", offsets.QuarterEnd(startingMonth=5)),
-        ("SM", offsets.SemiMonthEnd(day_of_month=15)),
-        ("SM-15", offsets.SemiMonthEnd(day_of_month=15)),
-        ("SM-1", offsets.SemiMonthEnd(day_of_month=1)),
-        ("SM-27", offsets.SemiMonthEnd(day_of_month=27)),
+        ("SME", offsets.SemiMonthEnd(day_of_month=15)),
+        ("SME-15", offsets.SemiMonthEnd(day_of_month=15)),
+        ("SME-1", offsets.SemiMonthEnd(day_of_month=1)),
+        ("SME-27", offsets.SemiMonthEnd(day_of_month=27)),
         ("SMS-2", offsets.SemiMonthBegin(day_of_month=2)),
         ("SMS-27", offsets.SemiMonthBegin(day_of_month=27)),
     ],
@@ -172,3 +172,47 @@ def test_to_offset_pd_timedelta(kwargs, expected):
 def test_anchored_shortcuts(shortcut, expected):
     result = to_offset(shortcut)
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "freq_depr",
+    [
+        "2ye-mar",
+        "2ys",
+        "2qe",
+        "2qs-feb",
+        "2bqs",
+        "2sms",
+        "2bms",
+        "2cbme",
+        "2me",
+        "2w",
+    ],
+)
+def test_to_offset_lowercase_frequency_deprecated(freq_depr):
+    # GH#54939
+    depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
+    f"future version, please use '{freq_depr.upper()[1:]}' instead."
+
+    with pytest.raises(FutureWarning, match=depr_msg):
+        to_offset(freq_depr)
+
+
+@pytest.mark.parametrize(
+    "freq_depr",
+    [
+        "2H",
+        "2BH",
+        "2MIN",
+        "2S",
+        "2Us",
+        "2NS",
+    ],
+)
+def test_to_offset_uppercase_frequency_deprecated(freq_depr):
+    # GH#54939
+    depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
+    f"future version, please use '{freq_depr.lower()[1:]}' instead."
+
+    with pytest.raises(FutureWarning, match=depr_msg):
+        to_offset(freq_depr)

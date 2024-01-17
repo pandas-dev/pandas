@@ -36,8 +36,12 @@ def test_groupby_preserves_subclass(obj, groupby_func):
 
     args = get_groupby_method_args(groupby_func, obj)
 
-    result1 = getattr(grouped, groupby_func)(*args)
-    result2 = grouped.agg(groupby_func, *args)
+    warn = FutureWarning if groupby_func == "fillna" else None
+    msg = f"{type(grouped).__name__}.fillna is deprecated"
+    with tm.assert_produces_warning(warn, match=msg, raise_on_extra_warnings=False):
+        result1 = getattr(grouped, groupby_func)(*args)
+    with tm.assert_produces_warning(warn, match=msg, raise_on_extra_warnings=False):
+        result2 = grouped.agg(groupby_func, *args)
 
     # Reduction or transformation kernels should preserve type
     slices = {"ngroup", "cumcount", "size"}
@@ -65,6 +69,7 @@ def test_groupby_preserves_metadata():
     def func(group):
         assert isinstance(group, tm.SubclassedDataFrame)
         assert hasattr(group, "testattr")
+        assert group.testattr == "hello"
         return group.testattr
 
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
@@ -73,6 +78,13 @@ def test_groupby_preserves_metadata():
     ):
         result = custom_df.groupby("c").apply(func)
     expected = tm.SubclassedSeries(["hello"] * 3, index=Index([7, 8, 9], name="c"))
+    tm.assert_series_equal(result, expected)
+
+    result = custom_df.groupby("c").apply(func, include_groups=False)
+    tm.assert_series_equal(result, expected)
+
+    # https://github.com/pandas-dev/pandas/pull/56761
+    result = custom_df.groupby("c")[["a", "b"]].apply(func)
     tm.assert_series_equal(result, expected)
 
     def func2(group):

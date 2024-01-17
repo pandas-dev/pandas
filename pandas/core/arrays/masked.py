@@ -15,16 +15,14 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
-from pandas._libs.tslibs import (
-    get_unit_from_dtype,
-    is_supported_unit,
-)
+from pandas._libs.tslibs import is_supported_dtype
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
     AxisInt,
     DtypeObj,
     FillnaOptions,
+    InterpolateOptions,
     NpDtype,
     PositionalIndexer,
     Scalar,
@@ -69,6 +67,8 @@ from pandas.core import (
 from pandas.core.algorithms import (
     factorize_array,
     isin,
+    map_array,
+    mode,
     take,
 )
 from pandas.core.array_algos import (
@@ -77,6 +77,7 @@ from pandas.core.array_algos import (
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
+from pandas.core.arrays._utils import to_numpy_dtype_inference
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import (
     array as pd_array,
@@ -85,6 +86,7 @@ from pandas.core.construction import (
 )
 from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
+from pandas.core.util.hashing import hash_array
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -97,6 +99,8 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
     )
+    from pandas._libs.missing import NAType
+    from pandas.core.arrays import FloatingArray
 
 from pandas.compat.numpy import function as nv
 
@@ -151,7 +155,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     @classmethod
     @doc(ExtensionArray._empty)
-    def _empty(cls, shape: Shape, dtype: ExtensionDtype):
+    def _empty(cls, shape: Shape, dtype: ExtensionDtype) -> Self:
         values = np.empty(shape, dtype=dtype.type)
         values.fill(cls._internal_fill_value)
         mask = np.ones(shape, dtype=bool)
@@ -191,7 +195,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._simple_new(self._data[item], newmask)
 
     def _pad_or_backfill(
-        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
     ) -> Self:
         mask = self._mask
 
@@ -203,7 +212,21 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if copy:
                 npvalues = npvalues.copy()
                 new_mask = new_mask.copy()
+            elif limit_area is not None:
+                mask = mask.copy()
             func(npvalues, limit=limit, mask=new_mask)
+
+            if limit_area is not None and not mask.all():
+                mask = mask.T
+                neg_mask = ~mask
+                first = neg_mask.argmax()
+                last = len(neg_mask) - neg_mask[::-1].argmax() - 1
+                if limit_area == "inside":
+                    new_mask[:first] |= mask[:first]
+                    new_mask[last + 1 :] |= mask[last + 1 :]
+                elif limit_area == "outside":
+                    new_mask[first + 1 : last] |= mask[first + 1 : last]
+
             if copy:
                 return self._simple_new(npvalues.T, new_mask.T)
             else:
@@ -280,7 +303,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         # Note: without the "str" here, the f-string rendering raises in
         #  py38 builds.
-        raise TypeError(f"Invalid value '{str(value)}' for dtype {self.dtype}")
+        raise TypeError(f"Invalid value '{value!s}' for dtype {self.dtype}")
 
     def __setitem__(self, key, value) -> None:
         key = check_array_indexer(self, key)
@@ -383,6 +406,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         DataFrame.round : Round values of a DataFrame.
         Series.round : Round values of a Series.
         """
+        if self.dtype.kind == "b":
+            return self
         nv.validate_round(args, kwargs)
         values = np.round(self._data, decimals=decimals, **kwargs)
 
@@ -472,13 +497,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         >>> a.to_numpy(dtype="bool", na_value=False)
         array([ True, False, False])
         """
-        if na_value is lib.no_default:
-            na_value = libmissing.NA
-        if dtype is None:
-            dtype = object
-        else:
-            dtype = np.dtype(dtype)
-        if self._hasna:
+        hasna = self._hasna
+        dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, hasna)
+
+        if hasna:
             if (
                 dtype != object
                 and not is_string_dtype(dtype)
@@ -501,11 +523,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return data
 
     @doc(ExtensionArray.tolist)
-    def tolist(self):
+    def tolist(self) -> list:
         if self.ndim > 1:
             return [x.tolist() for x in self]
         dtype = None if self._hasna else self._data.dtype
-        return self.to_numpy(dtype=dtype).tolist()
+        return self.to_numpy(dtype=dtype, na_value=libmissing.NA).tolist()
 
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
@@ -848,9 +870,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
             return BooleanArray(result, mask, copy=False)
 
-        elif lib.is_np_dtype(result.dtype, "m") and is_supported_unit(
-            get_unit_from_dtype(result.dtype)
-        ):
+        elif lib.is_np_dtype(result.dtype, "m") and is_supported_dtype(result.dtype):
             # e.g. test_numeric_arr_mul_tdscalar_numexpr_path
             from pandas.core.arrays import TimedeltaArray
 
@@ -891,6 +911,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = np.concatenate([x._mask for x in to_concat], axis=axis)
         return cls(data, mask)
 
+    def _hash_pandas_object(
+        self, *, encoding: str, hash_key: str, categorize: bool
+    ) -> npt.NDArray[np.uint64]:
+        hashed_array = hash_array(
+            self._data, encoding=encoding, hash_key=hash_key, categorize=categorize
+        )
+        hashed_array[self.isna()] = hash(self.dtype.na_value)
+        return hashed_array
+
     def take(
         self,
         indexer,
@@ -927,7 +956,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     # error: Return type "BooleanArray" of "isin" incompatible with return type
     # "ndarray" in supertype "ExtensionArray"
-    def isin(self, values) -> BooleanArray:  # type: ignore[override]
+    def isin(self, values: ArrayLike) -> BooleanArray:  # type: ignore[override]
         from pandas.core.arrays import BooleanArray
 
         # algorithms.isin will eventually convert values to an ndarray, so no extra
@@ -1064,10 +1093,20 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         arr = IntegerArray(value_counts, mask)
         index = Index(
             self.dtype.construct_array_type()(
-                keys, mask_index  # type: ignore[arg-type]
+                keys,  # type: ignore[arg-type]
+                mask_index,
             )
         )
         return Series(arr, index=index, name="count", copy=False)
+
+    def _mode(self, dropna: bool = True) -> Self:
+        if dropna:
+            result = mode(self._data, dropna=dropna, mask=self._mask)
+            res_mask = np.zeros(result.shape, dtype=np.bool_)
+        else:
+            result, res_mask = mode(self._data, dropna=dropna, mask=self._mask)
+        result = type(self)(result, res_mask)  # type: ignore[arg-type]
+        return result[result.argsort()]
 
     @doc(ExtensionArray.equals)
     def equals(self, other) -> bool:
@@ -1290,7 +1329,24 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         return self._wrap_reduction_result("max", result, skipna=skipna, axis=axis)
 
-    def any(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+    def map(self, mapper, na_action=None):
+        return map_array(self.to_numpy(), mapper, na_action=None)
+
+    @overload
+    def any(
+        self, *, skipna: Literal[True] = ..., axis: AxisInt | None = ..., **kwargs
+    ) -> np.bool_:
+        ...
+
+    @overload
+    def any(
+        self, *, skipna: bool, axis: AxisInt | None = ..., **kwargs
+    ) -> np.bool_ | NAType:
+        ...
+
+    def any(
+        self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs
+    ) -> np.bool_ | NAType:
         """
         Return whether any element is truthy.
 
@@ -1371,7 +1427,21 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             else:
                 return self.dtype.na_value
 
-    def all(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+    @overload
+    def all(
+        self, *, skipna: Literal[True] = ..., axis: AxisInt | None = ..., **kwargs
+    ) -> np.bool_:
+        ...
+
+    @overload
+    def all(
+        self, *, skipna: bool, axis: AxisInt | None = ..., **kwargs
+    ) -> np.bool_ | NAType:
+        ...
+
+    def all(
+        self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs
+    ) -> np.bool_ | NAType:
         """
         Return whether all elements are truthy.
 
@@ -1452,6 +1522,58 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return result
             else:
                 return self.dtype.na_value
+
+    def interpolate(
+        self,
+        *,
+        method: InterpolateOptions,
+        axis: int,
+        index,
+        limit,
+        limit_direction,
+        limit_area,
+        copy: bool,
+        **kwargs,
+    ) -> FloatingArray:
+        """
+        See NDFrame.interpolate.__doc__.
+        """
+        # NB: we return type(self) even if copy=False
+        if self.dtype.kind == "f":
+            if copy:
+                data = self._data.copy()
+                mask = self._mask.copy()
+            else:
+                data = self._data
+                mask = self._mask
+        elif self.dtype.kind in "iu":
+            copy = True
+            data = self._data.astype("f8")
+            mask = self._mask.copy()
+        else:
+            raise NotImplementedError(
+                f"interpolate is not implemented for dtype={self.dtype}"
+            )
+
+        missing.interpolate_2d_inplace(
+            data,
+            method=method,
+            axis=0,
+            index=index,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            mask=mask,
+            **kwargs,
+        )
+        if not copy:
+            return self  # type: ignore[return-value]
+        if self.dtype.kind == "f":
+            return type(self)._simple_new(data, mask)  # type: ignore[return-value]
+        else:
+            from pandas.core.arrays import FloatingArray
+
+            return FloatingArray._simple_new(data, mask)
 
     def _accumulate(
         self, name: str, *, skipna: bool = True, **kwargs

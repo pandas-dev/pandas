@@ -23,22 +23,26 @@ from pandas import (
     Timestamp,
     date_range,
     isna,
+    period_range,
     timedelta_range,
     to_timedelta,
 )
 import pandas._testing as tm
 from pandas.core import nanops
+from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
 
 
 def get_objs():
     indexes = [
-        tm.makeBoolIndex(10, name="a"),
-        tm.makeIntIndex(10, name="a"),
-        tm.makeFloatIndex(10, name="a"),
-        tm.makeDateIndex(10, name="a"),
-        tm.makeDateIndex(10, name="a").tz_localize(tz="US/Eastern"),
-        tm.makePeriodIndex(10, name="a"),
-        tm.makeStringIndex(10, name="a"),
+        Index([True, False] * 5, name="a"),
+        Index(np.arange(10), dtype=np.int64, name="a"),
+        Index(np.arange(10), dtype=np.float64, name="a"),
+        DatetimeIndex(date_range("2020-01-01", periods=10), name="a"),
+        DatetimeIndex(date_range("2020-01-01", periods=10), name="a").tz_localize(
+            tz="US/Eastern"
+        ),
+        PeriodIndex(period_range("2020-01-01", periods=10, freq="D"), name="a"),
+        Index([str(i) for i in range(10)], name="a"),
     ]
 
     arr = np.random.default_rng(2).standard_normal(10)
@@ -57,7 +61,11 @@ class TestReductions:
     def test_ops(self, opname, obj):
         result = getattr(obj, opname)()
         if not isinstance(obj, PeriodIndex):
-            expected = getattr(obj.values, opname)()
+            if isinstance(obj.values, ArrowStringArrayNumpySemantics):
+                # max not on the interface
+                expected = getattr(np.array(obj.values), opname)()
+            else:
+                expected = getattr(obj.values, opname)()
         else:
             expected = Period(ordinal=getattr(obj.asi8, opname)(), freq=obj.freq)
 
@@ -529,7 +537,7 @@ class TestIndexReductions:
         assert result is NaT
 
     def test_numpy_minmax_period(self):
-        pr = pd.period_range(start="2016-01-15", end="2016-01-20")
+        pr = period_range(start="2016-01-15", end="2016-01-20")
 
         assert np.min(pr) == Period("2016-01-15", freq="D")
         assert np.max(pr) == Period("2016-01-20", freq="D")
@@ -793,8 +801,7 @@ class TestSeriesReductions:
         assert result == result_numpy_dtype
         assert result == exp
 
-    @pytest.mark.parametrize("dtype", ("m8[ns]", "m8[ns]", "M8[ns]", "M8[ns, UTC]"))
-    @pytest.mark.parametrize("skipna", [True, False])
+    @pytest.mark.parametrize("dtype", ("m8[ns]", "M8[ns]", "M8[ns, UTC]"))
     def test_empty_timeseries_reductions_return_nat(self, dtype, skipna):
         # covers GH#11245
         assert Series([], dtype=dtype).min(skipna=skipna) is NaT
@@ -822,24 +829,23 @@ class TestSeriesReductions:
         # See GH#16830
         data = np.arange(1, 11)
 
-        s = Series(data, index=data)
-        result = np.argmax(s)
+        ser = Series(data, index=data)
+        result = np.argmax(ser)
         expected = np.argmax(data)
         assert result == expected
 
-        result = s.argmax()
+        result = ser.argmax()
 
         assert result == expected
 
         msg = "the 'out' parameter is not supported"
         with pytest.raises(ValueError, match=msg):
-            np.argmax(s, out=data)
+            np.argmax(ser, out=data)
 
-    def test_idxmin_dt64index(self):
+    def test_idxmin_dt64index(self, unit):
         # GH#43587 should have NaT instead of NaN
-        ser = Series(
-            [1.0, 2.0, np.nan], index=DatetimeIndex(["NaT", "2015-02-08", "NaT"])
-        )
+        dti = DatetimeIndex(["NaT", "2015-02-08", "NaT"]).as_unit(unit)
+        ser = Series([1.0, 2.0, np.nan], index=dti)
         msg = "The behavior of Series.idxmin with all-NA values"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             res = ser.idxmin(skipna=False)
@@ -853,18 +859,18 @@ class TestSeriesReductions:
         msg = "The behavior of DataFrame.idxmin with all-NA values"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             res = df.idxmin(skipna=False)
-        assert res.dtype == "M8[ns]"
+        assert res.dtype == f"M8[{unit}]"
         assert res.isna().all()
         msg = "The behavior of DataFrame.idxmax with all-NA values"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             res = df.idxmax(skipna=False)
-        assert res.dtype == "M8[ns]"
+        assert res.dtype == f"M8[{unit}]"
         assert res.isna().all()
 
     def test_idxmin(self):
         # test idxmin
         # _check_stat_op approach can not be used here because of isna check.
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
 
         # add some NaNs
         string_series[5:15] = np.nan
@@ -897,7 +903,7 @@ class TestSeriesReductions:
     def test_idxmax(self):
         # test idxmax
         # _check_stat_op approach can not be used here because of isna check.
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
 
         # add some NaNs
         string_series[5:15] = np.nan
@@ -942,7 +948,11 @@ class TestSeriesReductions:
         assert result == 1.1
 
     def test_all_any(self):
-        ts = tm.makeTimeSeries()
+        ts = Series(
+            np.arange(10, dtype=np.float64),
+            index=date_range("2020-01-01", periods=10),
+            name="ts",
+        )
         bool_series = ts > 0
         assert not bool_series.all()
         assert bool_series.any()
@@ -975,32 +985,27 @@ class TestSeriesReductions:
         assert s.any(bool_only=True)
         assert not s.all(bool_only=True)
 
-    @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_any_all_object_dtype(self, bool_agg_func, skipna):
+    def test_any_all_object_dtype(self, all_boolean_reductions, skipna):
         # GH#12863
         ser = Series(["a", "b", "c", "d", "e"], dtype=object)
-        result = getattr(ser, bool_agg_func)(skipna=skipna)
+        result = getattr(ser, all_boolean_reductions)(skipna=skipna)
         expected = True
 
         assert result == expected
 
-    @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
     @pytest.mark.parametrize(
         "data", [[False, None], [None, False], [False, np.nan], [np.nan, False]]
     )
-    def test_any_all_object_dtype_missing(self, data, bool_agg_func):
+    def test_any_all_object_dtype_missing(self, data, all_boolean_reductions):
         # GH#27709
         ser = Series(data)
-        result = getattr(ser, bool_agg_func)(skipna=False)
+        result = getattr(ser, all_boolean_reductions)(skipna=False)
 
         # None is treated is False, but np.nan is treated as True
-        expected = bool_agg_func == "any" and None not in data
+        expected = all_boolean_reductions == "any" and None not in data
         assert result == expected
 
     @pytest.mark.parametrize("dtype", ["boolean", "Int64", "UInt64", "Float64"])
-    @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
-    @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize(
         # expected_data indexed as [[skipna=False/any, skipna=False/all],
         #                           [skipna=True/any, skipna=True/all]]
@@ -1015,13 +1020,13 @@ class TestSeriesReductions:
         ],
     )
     def test_any_all_nullable_kleene_logic(
-        self, bool_agg_func, skipna, data, dtype, expected_data
+        self, all_boolean_reductions, skipna, data, dtype, expected_data
     ):
         # GH-37506, GH-41967
         ser = Series(data, dtype=dtype)
-        expected = expected_data[skipna][bool_agg_func == "all"]
+        expected = expected_data[skipna][all_boolean_reductions == "all"]
 
-        result = getattr(ser, bool_agg_func)(skipna=skipna)
+        result = getattr(ser, all_boolean_reductions)(skipna=skipna)
         assert (result is pd.NA and expected is pd.NA) or result == expected
 
     def test_any_axis1_bool_only(self):
@@ -1139,18 +1144,7 @@ class TestSeriesReductions:
         expected = Timedelta("1 days")
         assert result == expected
 
-    @pytest.mark.parametrize(
-        "test_input,error_type",
-        [
-            (Series([], dtype="float64"), ValueError),
-            # For strings, or any Series with dtype 'O'
-            (Series(["foo", "bar", "baz"]), TypeError),
-            (Series([(1,), (2,)]), TypeError),
-            # For mixed data types
-            (Series(["foo", "foo", "bar", "bar", None, np.nan, "baz"]), TypeError),
-        ],
-    )
-    def test_assert_idxminmax_empty_raises(self, test_input, error_type):
+    def test_assert_idxminmax_empty_raises(self):
         """
         Cases where ``Series.argmax`` and related should raise an exception
         """
@@ -1166,7 +1160,7 @@ class TestSeriesReductions:
         with pytest.raises(ValueError, match=msg):
             test_input.idxmax(skipna=False)
 
-    def test_idxminmax_object_dtype(self):
+    def test_idxminmax_object_dtype(self, using_infer_string):
         # pre-2.1 object-dtype was disallowed for argmin/max
         ser = Series(["foo", "bar", "baz"])
         assert ser.idxmax() == 0
@@ -1180,18 +1174,19 @@ class TestSeriesReductions:
         assert ser2.idxmin() == 0
         assert ser2.idxmin(skipna=False) == 0
 
-        # attempting to compare np.nan with string raises
-        ser3 = Series(["foo", "foo", "bar", "bar", None, np.nan, "baz"])
-        msg = "'>' not supported between instances of 'float' and 'str'"
-        with pytest.raises(TypeError, match=msg):
-            ser3.idxmax()
-        with pytest.raises(TypeError, match=msg):
-            ser3.idxmax(skipna=False)
-        msg = "'<' not supported between instances of 'float' and 'str'"
-        with pytest.raises(TypeError, match=msg):
-            ser3.idxmin()
-        with pytest.raises(TypeError, match=msg):
-            ser3.idxmin(skipna=False)
+        if not using_infer_string:
+            # attempting to compare np.nan with string raises
+            ser3 = Series(["foo", "foo", "bar", "bar", None, np.nan, "baz"])
+            msg = "'>' not supported between instances of 'float' and 'str'"
+            with pytest.raises(TypeError, match=msg):
+                ser3.idxmax()
+            with pytest.raises(TypeError, match=msg):
+                ser3.idxmax(skipna=False)
+            msg = "'<' not supported between instances of 'float' and 'str'"
+            with pytest.raises(TypeError, match=msg):
+                ser3.idxmin()
+            with pytest.raises(TypeError, match=msg):
+                ser3.idxmin(skipna=False)
 
     def test_idxminmax_object_frame(self):
         # GH#4279
@@ -1288,13 +1283,14 @@ class TestDatetime64SeriesReductions:
     @pytest.mark.parametrize(
         "nat_df",
         [
-            DataFrame([NaT, NaT]),
-            DataFrame([NaT, Timedelta("nat")]),
-            DataFrame([Timedelta("nat"), Timedelta("nat")]),
+            [NaT, NaT],
+            [NaT, Timedelta("nat")],
+            [Timedelta("nat"), Timedelta("nat")],
         ],
     )
     def test_minmax_nat_dataframe(self, nat_df):
         # GH#23282
+        nat_df = DataFrame(nat_df)
         assert nat_df.min()[0] is NaT
         assert nat_df.max()[0] is NaT
         assert nat_df.min(skipna=False)[0] is NaT
@@ -1368,7 +1364,6 @@ class TestCategoricalSeriesReductions:
         assert result == expected
 
     @pytest.mark.parametrize("function", ["min", "max"])
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_min_max_ordered_with_nan_only(self, function, skipna):
         # https://github.com/pandas-dev/pandas/issues/33450
         cat = Series(Categorical([np.nan], categories=[1, 2], ordered=True))
@@ -1376,7 +1371,6 @@ class TestCategoricalSeriesReductions:
         assert result is np.nan
 
     @pytest.mark.parametrize("function", ["min", "max"])
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_min_max_skipna(self, function, skipna):
         cat = Series(
             Categorical(["a", "b", np.nan, "a"], categories=["b", "a"], ordered=True)
@@ -1395,14 +1389,10 @@ class TestSeriesMode:
     #  were moved from a series-specific test file, _not_ that these tests are
     #  intended long-term to be series-specific
 
-    @pytest.mark.parametrize(
-        "dropna, expected",
-        [(True, Series([], dtype=np.float64)), (False, Series([], dtype=np.float64))],
-    )
-    def test_mode_empty(self, dropna, expected):
+    def test_mode_empty(self, dropna):
         s = Series([], dtype=np.float64)
         result = s.mode(dropna)
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, s)
 
     @pytest.mark.parametrize(
         "dropna, data, expected",
@@ -1413,13 +1403,10 @@ class TestSeriesMode:
             (False, [1, 1, 1, 2, 3, 3, 3], [1, 3]),
         ],
     )
-    @pytest.mark.parametrize(
-        "dt", list(np.typecodes["AllInteger"] + np.typecodes["Float"])
-    )
-    def test_mode_numerical(self, dropna, data, expected, dt):
-        s = Series(data, dtype=dt)
+    def test_mode_numerical(self, dropna, data, expected, any_real_numpy_dtype):
+        s = Series(data, dtype=any_real_numpy_dtype)
         result = s.mode(dropna)
-        expected = Series(expected, dtype=dt)
+        expected = Series(expected, dtype=any_real_numpy_dtype)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dropna, expected", [(True, [1.0]), (False, [1, np.nan])])
@@ -1446,14 +1433,14 @@ class TestSeriesMode:
 
         s = Series(data, dtype=object)
         result = s.mode(dropna)
-        expected2 = Series(expected2, dtype=object)
+        expected2 = Series(expected2, dtype=None if expected2 == ["bar"] else object)
         tm.assert_series_equal(result, expected2)
 
         data = ["foo", "bar", "bar", np.nan, np.nan, np.nan]
 
         s = Series(data, dtype=object).astype(str)
         result = s.mode(dropna)
-        expected3 = Series(expected3, dtype=str)
+        expected3 = Series(expected3)
         tm.assert_series_equal(result, expected3)
 
     @pytest.mark.parametrize(
@@ -1468,7 +1455,7 @@ class TestSeriesMode:
 
         s = Series([1, "foo", "foo", np.nan, np.nan, np.nan])
         result = s.mode(dropna)
-        expected = Series(expected2, dtype=object)
+        expected = Series(expected2, dtype=None if expected2 == ["foo"] else object)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1618,23 +1605,24 @@ class TestSeriesMode:
         [
             (
                 [0, 1j, 1, 1, 1 + 1j, 1 + 2j],
-                Series([1], dtype=np.complex128),
+                [1],
                 np.complex128,
             ),
             (
                 [0, 1j, 1, 1, 1 + 1j, 1 + 2j],
-                Series([1], dtype=np.complex64),
+                [1],
                 np.complex64,
             ),
             (
                 [1 + 1j, 2j, 1 + 1j],
-                Series([1 + 1j], dtype=np.complex128),
+                [1 + 1j],
                 np.complex128,
             ),
         ],
     )
     def test_single_mode_value_complex(self, array, expected, dtype):
         result = Series(array, dtype=dtype).mode()
+        expected = Series(expected, dtype=dtype)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1643,12 +1631,12 @@ class TestSeriesMode:
             (
                 # no modes
                 [0, 1j, 1, 1 + 1j, 1 + 2j],
-                Series([0j, 1j, 1 + 0j, 1 + 1j, 1 + 2j], dtype=np.complex128),
+                [0j, 1j, 1 + 0j, 1 + 1j, 1 + 2j],
                 np.complex128,
             ),
             (
                 [1 + 1j, 2j, 1 + 1j, 2j, 3],
-                Series([2j, 1 + 1j], dtype=np.complex64),
+                [2j, 1 + 1j],
                 np.complex64,
             ),
         ],
@@ -1658,4 +1646,5 @@ class TestSeriesMode:
         # mode tries to sort multimodal series.
         # Complex numbers are sorted by their magnitude
         result = Series(array, dtype=dtype).mode()
+        expected = Series(expected, dtype=dtype)
         tm.assert_series_equal(result, expected)

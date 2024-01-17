@@ -3,12 +3,14 @@
 
 pip
 versioneer[toml]
-cython==0.29.33
+cython==3.0.5
 meson[ninja]==1.2.1
 meson-python==0.13.1
 pytest>=7.3.2
 pytest-cov
 pytest-xdist>=2.2.0
+pytest-qt>=4.2.0
+PyQt5>=5.15.9
 coverage
 python-dateutil
 numpy<2
@@ -24,7 +26,7 @@ gcsfs>=2022.11.0
 ipython
 jinja2>=3.1.2
 lxml>=4.9.2
-matplotlib>=3.6.3, <3.8
+matplotlib>=3.6.3
 numba>=0.56.4
 numexpr>=2.8.4
 openpyxl>=3.1.0
@@ -35,7 +37,7 @@ pyarrow>=10.0.1
 pymysql>=1.0.2
 pyreadstat>=1.2.0
 tables>=3.8.0
-python-calamine>=0.1.6
+python-calamine>=0.1.7
 pyxlsb>=1.0.10
 s3fs>=2022.11.0
 scipy>=1.10.0
@@ -49,17 +51,17 @@ dask
 seaborn
 moto
 flask
-asv>=0.5.1
-flake8==6.0.0
-mypy==1.4.1
+asv>=0.6.1
+flake8==6.1.0
+mypy==1.8.0
 tokenize-rt
-pre-commit>=2.15.0
+pre-commit>=3.6.0
 gitpython
 gitdb
 google-auth
 natsort
 numpydoc
-pydata-sphinx-theme==0.13
+pydata-sphinx-theme==0.14
 pytest-cython
 sphinx
 sphinx-design
@@ -69,19 +71,20 @@ types-PyMySQL
 types-pytz
 types-PyYAML
 types-setuptools
-nbconvert>=6.4.5
+nbconvert>=7.11.0
 nbsphinx
 pandoc
 ipywidgets
 nbformat
-notebook>=6.0.3
+notebook>=7.0.6
 ipykernel
 markdown
 feedparser
 pyyaml
 requests
 pygments
+adbc-driver-postgresql>=0.8.0
+adbc-driver-sqlite>=0.8.0
 dataframe-api-compat>=0.1.7
-sphinx-toggleprompt
 typing_extensions; python_version<"3.11"
 tzdata>=2022.7

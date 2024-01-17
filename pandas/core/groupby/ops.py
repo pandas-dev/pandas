@@ -33,7 +33,6 @@ from pandas._typing import (
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     maybe_cast_pointwise_result,
     maybe_downcast_to_dtype,
@@ -654,7 +653,7 @@ class BaseGrouper:
             # This shows unused categories in indices GH#38642
             return self.groupings[0].indices
         codes_list = [ping.codes for ping in self.groupings]
-        keys = [ping.group_index for ping in self.groupings]
+        keys = [ping._group_index for ping in self.groupings]
         return get_indexer_dict(codes_list, keys)
 
     @final
@@ -691,7 +690,7 @@ class BaseGrouper:
 
     @property
     def levels(self) -> list[Index]:
-        return [ping.group_index for ping in self.groupings]
+        return [ping._group_index for ping in self.groupings]
 
     @property
     def names(self) -> list[Hashable]:
@@ -708,7 +707,7 @@ class BaseGrouper:
             out = np.bincount(ids[ids != -1], minlength=ngroups)
         else:
             out = []
-        return Series(out, index=self.result_index, dtype="int64")
+        return Series(out, index=self.result_index, dtype="int64", copy=False)
 
     @cache_readonly
     def groups(self) -> dict[Hashable, np.ndarray]:
@@ -766,7 +765,7 @@ class BaseGrouper:
             # FIXME: compress_group_index's second return value is int64, not intp
 
         ping = self.groupings[0]
-        return ping.codes, np.arange(len(ping.group_index), dtype=np.intp)
+        return ping.codes, np.arange(len(ping._group_index), dtype=np.intp)
 
     @final
     @cache_readonly
@@ -782,10 +781,10 @@ class BaseGrouper:
     @cache_readonly
     def result_index(self) -> Index:
         if len(self.groupings) == 1:
-            return self.groupings[0].result_index.rename(self.names[0])
+            return self.groupings[0]._result_index.rename(self.names[0])
 
         codes = self.reconstructed_codes
-        levels = [ping.result_index for ping in self.groupings]
+        levels = [ping._result_index for ping in self.groupings]
         return MultiIndex(
             levels=levels, codes=codes, verify_integrity=False, names=self.names
         )
@@ -795,12 +794,12 @@ class BaseGrouper:
         # Note: only called from _insert_inaxis_grouper, which
         #  is only called for BaseGrouper, never for BinGrouper
         if len(self.groupings) == 1:
-            return [self.groupings[0].group_arraylike]
+            return [self.groupings[0]._group_arraylike]
 
         name_list = []
         for ping, codes in zip(self.groupings, self.reconstructed_codes):
             codes = ensure_platform_int(codes)
-            levels = ping.group_arraylike.take(codes)
+            levels = ping._group_arraylike.take(codes)
 
             name_list.append(levels)
 
@@ -863,18 +862,11 @@ class BaseGrouper:
 
         result = self._aggregate_series_pure_python(obj, func)
 
-        if len(obj) == 0 and len(result) == 0 and isinstance(obj.dtype, ExtensionDtype):
-            cls = obj.dtype.construct_array_type()
-            out = cls._from_sequence(result)
-
+        npvalues = lib.maybe_convert_objects(result, try_float=False)
+        if preserve_dtype:
+            out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
         else:
-            npvalues = lib.maybe_convert_objects(result, try_float=False)
-            if preserve_dtype:
-                out = maybe_cast_pointwise_result(
-                    npvalues, obj.dtype, numeric_only=True
-                )
-            else:
-                out = npvalues
+            out = npvalues
         return out
 
     @final

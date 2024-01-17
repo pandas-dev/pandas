@@ -4,12 +4,15 @@ import numpy as np
 from numpy import iinfo
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     ArrowDtype,
     DataFrame,
     Index,
     Series,
+    option_context,
     to_numeric,
 )
 import pandas._testing as tm
@@ -67,10 +70,14 @@ def test_empty(input_kwargs, result_kwargs):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
+)
 @pytest.mark.parametrize("last_val", ["7", 7])
-def test_series(last_val):
-    ser = Series(["1", "-3.14", last_val])
-    result = to_numeric(ser)
+def test_series(last_val, infer_string):
+    with option_context("future.infer_string", infer_string):
+        ser = Series(["1", "-3.14", last_val])
+        result = to_numeric(ser)
 
     expected = Series([1, -3.14, 7])
     tm.assert_series_equal(result, expected)
@@ -197,11 +204,9 @@ def test_numeric_df_columns(columns):
     )
 
     expected = DataFrame({"a": [1.2, 3.14, np.inf, 0.1], "b": [1.0, 2.0, 3.0, 4.0]})
+    df[columns] = df[columns].apply(to_numeric)
 
-    df_copy = df.copy()
-    df_copy[columns] = df_copy[columns].apply(to_numeric)
-
-    tm.assert_frame_equal(df_copy, expected)
+    tm.assert_frame_equal(df, expected)
 
 
 @pytest.mark.parametrize(
@@ -591,21 +596,12 @@ def test_downcast_float64_to_float32():
     assert series.dtype == result.dtype
 
 
-@pytest.mark.parametrize(
-    "ser,expected",
-    [
-        (
-            Series([0, 9223372036854775808]),
-            Series([0, 9223372036854775808], dtype=np.uint64),
-        )
-    ],
-)
-def test_downcast_uint64(ser, expected):
+def test_downcast_uint64():
     # see gh-14422:
     # BUG: to_numeric doesn't work uint64 numbers
-
+    ser = Series([0, 9223372036854775808])
     result = to_numeric(ser, downcast="unsigned")
-
+    expected = Series([0, 9223372036854775808], dtype=np.uint64)
     tm.assert_series_equal(result, expected)
 
 

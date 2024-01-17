@@ -31,6 +31,45 @@ from pandas.tests.arithmetic.common import (
     get_upcast_box,
 )
 
+_common_mismatch = [
+    pd.offsets.YearBegin(2),
+    pd.offsets.MonthBegin(1),
+    pd.offsets.Minute(),
+]
+
+
+@pytest.fixture(
+    params=[
+        Timedelta(minutes=30).to_pytimedelta(),
+        np.timedelta64(30, "s"),
+        Timedelta(seconds=30),
+    ]
+    + _common_mismatch
+)
+def not_hourly(request):
+    """
+    Several timedelta-like and DateOffset instances that are _not_
+    compatible with Hourly frequencies.
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        np.timedelta64(365, "D"),
+        Timedelta(days=365).to_pytimedelta(),
+        Timedelta(days=365),
+    ]
+    + _common_mismatch
+)
+def mismatched_freq(request):
+    """
+    Several timedelta-like and DateOffset instances that are _not_
+    compatible with Monthly or Annual frequencies.
+    """
+    return request.param
+
+
 # ------------------------------------------------------------------
 # Comparisons
 
@@ -1243,7 +1282,7 @@ class TestPeriodIndexArithmetic:
         "other",
         [
             np.array(["NaT"] * 9, dtype="m8[ns]"),
-            TimedeltaArray._from_sequence(["NaT"] * 9),
+            TimedeltaArray._from_sequence(["NaT"] * 9, dtype="m8[ns]"),
         ],
     )
     def test_parr_add_sub_tdt64_nat_array(self, box_with_array, other):
@@ -1309,6 +1348,42 @@ class TestPeriodIndexArithmetic:
 
         expected = PeriodIndex(["2000-12-30"] * 3, freq="D")._data.astype(object)
         tm.assert_equal(result, expected)
+
+    def test_period_add_timestamp_raises(self, box_with_array):
+        # GH#17983
+        ts = Timestamp("2017")
+        per = Period("2017", freq="M")
+
+        arr = pd.Index([per], dtype="Period[M]")
+        arr = tm.box_expected(arr, box_with_array)
+
+        msg = "cannot add PeriodArray and Timestamp"
+        with pytest.raises(TypeError, match=msg):
+            arr + ts
+        with pytest.raises(TypeError, match=msg):
+            ts + arr
+        msg = "cannot add PeriodArray and DatetimeArray"
+        with pytest.raises(TypeError, match=msg):
+            arr + Series([ts])
+        with pytest.raises(TypeError, match=msg):
+            Series([ts]) + arr
+        with pytest.raises(TypeError, match=msg):
+            arr + pd.Index([ts])
+        with pytest.raises(TypeError, match=msg):
+            pd.Index([ts]) + arr
+
+        if box_with_array is pd.DataFrame:
+            msg = "cannot add PeriodArray and DatetimeArray"
+        else:
+            msg = r"unsupported operand type\(s\) for \+: 'Period' and 'DatetimeArray"
+        with pytest.raises(TypeError, match=msg):
+            arr + pd.DataFrame([ts])
+        if box_with_array is pd.DataFrame:
+            msg = "cannot add PeriodArray and DatetimeArray"
+        else:
+            msg = r"unsupported operand type\(s\) for \+: 'DatetimeArray' and 'Period'"
+        with pytest.raises(TypeError, match=msg):
+            pd.DataFrame([ts]) + arr
 
 
 class TestPeriodSeriesArithmetic:

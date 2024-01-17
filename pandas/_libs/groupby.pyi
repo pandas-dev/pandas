@@ -42,11 +42,10 @@ def group_shift_indexer(
 def group_fillna_indexer(
     out: np.ndarray,  # ndarray[intp_t]
     labels: np.ndarray,  # ndarray[int64_t]
-    sorted_labels: npt.NDArray[np.intp],
     mask: npt.NDArray[np.uint8],
-    direction: Literal["ffill", "bfill"],
     limit: int,  # int64_t
-    dropna: bool,
+    compute_ffill: bool,
+    ngroups: int,
 ) -> None: ...
 def group_any_all(
     out: np.ndarray,  # uint8_t[::1]
@@ -55,7 +54,7 @@ def group_any_all(
     mask: np.ndarray,  # const uint8_t[::1]
     val_test: Literal["any", "all"],
     skipna: bool,
-    nullable: bool,
+    result_mask: np.ndarray | None,
 ) -> None: ...
 def group_sum(
     out: np.ndarray,  # complexfloatingintuint_t[:, ::1]

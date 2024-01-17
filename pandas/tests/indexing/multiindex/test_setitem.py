@@ -2,14 +2,12 @@ import numpy as np
 import pytest
 
 from pandas.errors import SettingWithCopyError
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
     DataFrame,
     MultiIndex,
     Series,
-    Timestamp,
     date_range,
     isna,
     notna,
@@ -91,11 +89,11 @@ class TestMultiIndexSetItem:
             np.random.default_rng(2).random((12, 4)), index=idx, columns=cols
         )
 
-        subidx = MultiIndex.from_tuples(
-            [("A", Timestamp("2015-01-01")), ("A", Timestamp("2015-02-01"))]
+        subidx = MultiIndex.from_arrays(
+            [["A", "A"], date_range("2015-01-01", "2015-02-01", freq="MS")]
         )
-        subcols = MultiIndex.from_tuples(
-            [("foo", Timestamp("2016-01-01")), ("foo", Timestamp("2016-02-01"))]
+        subcols = MultiIndex.from_arrays(
+            [["foo", "foo"], date_range("2016-01-01", "2016-02-01", freq="MS")]
         )
 
         vals = DataFrame(
@@ -127,9 +125,6 @@ class TestMultiIndexSetItem:
             expected=copy,
         )
 
-    # TODO(ArrayManager) df.loc["bar"] *= 2 doesn't raise an error but results in
-    # all NaNs -> doesn't work in the "split" path (also for BlockManager actually)
-    @td.skip_array_manager_not_yet_implemented
     def test_multiindex_setitem(self):
         # GH 3738
         # setting with a multi-index right hand side
@@ -201,7 +196,9 @@ class TestMultiIndexSetItem:
         df.loc[4, "d"] = arr
         tm.assert_series_equal(df.loc[4, "d"], Series(arr, index=[8, 10], name="d"))
 
-    def test_multiindex_assignment_single_dtype(self, using_copy_on_write):
+    def test_multiindex_assignment_single_dtype(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
         # GH3777 part 2b
         # single dtype
         arr = np.array([0.0, 1.0])
@@ -215,6 +212,8 @@ class TestMultiIndexSetItem:
         view = df["c"].iloc[:2].values
 
         # arr can be losslessly cast to int, so this setitem is inplace
+        # INFO(CoW-warn) this does not warn because we directly took .values
+        # above, so no reference to a pandas object is alive for `view`
         df.loc[4, "c"] = arr
         exp = Series(arr, index=[8, 10], name="c", dtype="int64")
         result = df.loc[4, "c"]
@@ -234,7 +233,8 @@ class TestMultiIndexSetItem:
         tm.assert_series_equal(result, exp)
 
         # scalar ok
-        df.loc[4, "c"] = 10
+        with tm.assert_cow_warning(warn_copy_on_write):
+            df.loc[4, "c"] = 10
         exp = Series(10, index=[8, 10], name="c", dtype="float64")
         tm.assert_series_equal(df.loc[4, "c"], exp)
 
@@ -248,7 +248,8 @@ class TestMultiIndexSetItem:
 
         # But with a length-1 listlike column indexer this behaves like
         #  `df.loc[4, "c"] = 0
-        df.loc[4, ["c"]] = [0]
+        with tm.assert_cow_warning(warn_copy_on_write):
+            df.loc[4, ["c"]] = [0]
         assert (df.loc[4, "c"] == 0).all()
 
     def test_groupby_example(self):
@@ -390,6 +391,7 @@ class TestMultiIndexSetItem:
         expected = df.loc[2000, 1, 6][["A", "B", "C"]]
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_loc_getitem_setitem_slice_integers(self, frame_or_series):
         index = MultiIndex(
             levels=[[0, 1, 2], [0, 2]], codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]]
@@ -421,7 +423,7 @@ class TestMultiIndexSetItem:
         tm.assert_series_equal(reindexed["foo", "two"], s > s.median())
 
     def test_set_column_scalar_with_loc(
-        self, multiindex_dataframe_random_data, using_copy_on_write
+        self, multiindex_dataframe_random_data, using_copy_on_write, warn_copy_on_write
     ):
         frame = multiindex_dataframe_random_data
         subset = frame.index[[1, 4, 5]]
@@ -431,7 +433,8 @@ class TestMultiIndexSetItem:
 
         frame_original = frame.copy()
         col = frame["B"]
-        col[subset] = 97
+        with tm.assert_cow_warning(warn_copy_on_write):
+            col[subset] = 97
         if using_copy_on_write:
             # chained setitem doesn't work with CoW
             tm.assert_frame_equal(frame, frame_original)
@@ -513,8 +516,6 @@ class TestSetitemWithExpansionMultiIndex:
         tm.assert_frame_equal(df, expected)
 
 
-@td.skip_array_manager_invalid_test  # df["foo"] select multiple columns -> .values
-# is not a view
 def test_frame_setitem_view_direct(
     multiindex_dataframe_random_data, using_copy_on_write
 ):
@@ -535,17 +536,14 @@ def test_frame_setitem_copy_raises(
 ):
     # will raise/warn as its chained assignment
     df = multiindex_dataframe_random_data.T
-    if using_copy_on_write:
+    if using_copy_on_write or warn_copy_on_write:
         with tm.raises_chained_assignment_error():
-            df["foo"]["one"] = 2
-    elif warn_copy_on_write:
-        # TODO(CoW-warn) should warn
-        with tm.assert_cow_warning(False):
             df["foo"]["one"] = 2
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(SettingWithCopyError, match=msg):
-            df["foo"]["one"] = 2
+            with tm.raises_chained_assignment_error():
+                df["foo"]["one"] = 2
 
 
 def test_frame_setitem_copy_no_write(
@@ -554,17 +552,14 @@ def test_frame_setitem_copy_no_write(
     frame = multiindex_dataframe_random_data.T
     expected = frame
     df = frame.copy()
-    if using_copy_on_write:
+    if using_copy_on_write or warn_copy_on_write:
         with tm.raises_chained_assignment_error():
-            df["foo"]["one"] = 2
-    elif warn_copy_on_write:
-        # TODO(CoW-warn) should warn
-        with tm.assert_cow_warning(False):
             df["foo"]["one"] = 2
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(SettingWithCopyError, match=msg):
-            df["foo"]["one"] = 2
+            with tm.raises_chained_assignment_error():
+                df["foo"]["one"] = 2
 
     result = df
     tm.assert_frame_equal(result, expected)

@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - 2.1.x
+      - 2.2.x
   pull_request:
     branches:
       - main
-      - 2.1.x
+      - 2.2.x
     paths-ignore:
       - "doc/**"
       - "web/**"
@@ -23,10 +23,10 @@ defaults:
 jobs:
   ubuntu:
     runs-on: ubuntu-22.04
-    timeout-minutes: 180
+    timeout-minutes: 90
     strategy:
       matrix:
-        env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml]
+        env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml, actions-312.yaml]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
         include:
@@ -69,8 +69,20 @@ jobs:
             env_file: actions-311.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_copy_on_write: "1"
+          - name: "Copy-on-Write 3.12"
+            env_file: actions-312.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_copy_on_write: "1"
           - name: "Copy-on-Write 3.11 (warnings)"
             env_file: actions-311.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_copy_on_write: "warn"
+          - name: "Copy-on-Write 3.10 (warnings)"
+            env_file: actions-310.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_copy_on_write: "warn"
+          - name: "Copy-on-Write 3.9 (warnings)"
+            env_file: actions-39.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_copy_on_write: "warn"
           - name: "Pypy"
@@ -84,18 +96,28 @@ jobs:
           - name: "Pyarrow Nightly"
             env_file: actions-311-pyarrownightly.yaml
             pattern: "not slow and not network and not single_cpu"
+          - name: "ASAN / UBSAN"
+            env_file: actions-311-sanitizers.yaml
+            pattern: "not slow and not network and not single_cpu and not skip_ubsan"
+            asan_options: "ASAN_OPTIONS=detect_leaks=0"
+            preload: LD_PRELOAD=$(gcc -print-file-name=libasan.so)
+            meson_args: --config-settings=setup-args="-Db_sanitize=address,undefined"
+            cflags_adds: -fno-sanitize-recover=all
+            pytest_workers: -1  # disable pytest-xdist as it swallows stderr from ASAN
       fail-fast: false
     name: ${{ matrix.name || format('ubuntu-latest {0}', matrix.env_file) }}
     env:
       PATTERN: ${{ matrix.pattern }}
-      EXTRA_APT: ${{ matrix.extra_apt || '' }}
       LANG: ${{ matrix.lang || 'C.UTF-8' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
       PANDAS_COPY_ON_WRITE: ${{ matrix.pandas_copy_on_write || '0' }}
       PANDAS_CI: ${{ matrix.pandas_ci || '1' }}
       TEST_ARGS: ${{ matrix.test_args || '' }}
-      PYTEST_WORKERS: 'auto'
+      PYTEST_WORKERS: ${{ matrix.pytest_workers || 'auto' }}
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
+      NPY_PROMOTION_STATE: ${{ matrix.env_file == 'actions-311-numpydev.yaml' && 'weak' || 'legacy' }}
+      # Clipboard tests
+      QT_QPA_PLATFORM: offscreen
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_copy_on_write || '' }}
@@ -145,8 +167,8 @@ jobs:
         fetch-depth: 0
 
     - name: Extra installs
-      # xsel for clipboard tests
-      run: sudo apt-get update && sudo apt-get install -y xsel ${{ env.EXTRA_APT }}
+      run: sudo apt-get update && sudo apt-get install -y ${{ matrix.extra_apt }}
+      if: ${{ matrix.extra_apt }}
 
     - name: Generate extra locales
       # These extra locales will be available for locale.setlocale() calls in tests
@@ -161,27 +183,36 @@ jobs:
     - name: Build Pandas
       id: build
       uses: ./.github/actions/build_pandas
+      with:
+        meson_args: ${{ matrix.meson_args }}
+        cflags_adds: ${{ matrix.cflags_adds }}
 
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
       if: ${{ matrix.name != 'Pypy' }}
+      with:
+        preload: ${{ matrix.preload }}
+        asan_options: ${{ matrix.asan_options }}
       env:
         # Set pattern to not single_cpu if not already set
         PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
 
     - name: Test (single_cpu)
       uses: ./.github/actions/run-tests
+      with:
+        preload: ${{ matrix.preload }}
+        asan_options: ${{ matrix.asan_options }}
       env:
         PATTERN: 'single_cpu'
         PYTEST_WORKERS: 0
       if: ${{ matrix.pattern == '' && (always() && steps.build.outcome == 'success')}}
 
   macos-windows:
-    timeout-minutes: 180
+    timeout-minutes: 90
     strategy:
       matrix:
         os: [macos-latest, windows-latest]
-        env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml]
+        env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml, actions-312.yaml]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     name: ${{ format('{0} {1}', matrix.os, matrix.env_file) }}
@@ -241,7 +272,7 @@ jobs:
           python -m pip install --no-cache-dir -U pip wheel setuptools meson[ninja]==1.2.1 meson-python==0.13.1
           python -m pip install numpy --config-settings=setup-args="-Dallow-noblas=true"
           python -m pip install --no-cache-dir versioneer[toml] cython python-dateutil pytz pytest>=7.3.2 pytest-xdist>=2.2.0 hypothesis>=6.46.1
-          python -m pip install --no-cache-dir --no-build-isolation -e .
+          python -m pip install --no-cache-dir --no-build-isolation -e . --config-settings=setup-args="--werror"
           python -m pip list --no-cache-dir
           export PANDAS_CI=1
           python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
@@ -279,7 +310,7 @@ jobs:
           . ~/virtualenvs/pandas-dev/bin/activate
           python -m pip install --no-cache-dir -U pip wheel setuptools meson-python==0.13.1 meson[ninja]==1.2.1
           python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytz pytest>=7.3.2 pytest-xdist>=2.2.0 hypothesis>=6.46.1
-          python -m pip install --no-cache-dir --no-build-isolation -e .
+          python -m pip install --no-cache-dir --no-build-isolation -e . --config-settings=setup-args="--werror"
           python -m pip list --no-cache-dir
 
       - name: Run Tests
@@ -312,7 +343,7 @@ jobs:
     #    To freeze this file, uncomment out the ``if: false`` condition, and migrate the jobs
     #    to the corresponding posix/windows-macos/sdist etc. workflows.
     # Feel free to modify this comment as necessary.
-    #if: false # Uncomment this to freeze the workflow, comment it to unfreeze
+    if: false # Uncomment this to freeze the workflow, comment it to unfreeze
     defaults:
       run:
         shell: bash -eou pipefail {0}
@@ -322,7 +353,7 @@ jobs:
       matrix:
         os: [ubuntu-22.04, macOS-latest, windows-latest]
 
-    timeout-minutes: 180
+    timeout-minutes: 90
 
     concurrency:
       #https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -341,7 +372,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python Dev Version
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12-dev'
 
@@ -352,7 +383,7 @@ jobs:
           python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy
           python -m pip install versioneer[toml]
           python -m pip install python-dateutil pytz tzdata cython hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-cov
-          python -m pip install -ve . --no-build-isolation --no-index --no-deps
+          python -m pip install -ve . --no-build-isolation --no-index --no-deps --config-settings=setup-args="--werror"
           python -m pip list
 
       - name: Run Tests

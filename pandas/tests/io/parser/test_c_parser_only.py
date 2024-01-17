@@ -17,7 +17,6 @@ import tarfile
 import numpy as np
 import pytest
 
-from pandas.compat import is_ci_environment
 from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import (
     ParserError,
@@ -52,7 +51,11 @@ def test_delim_whitespace_custom_terminator(c_parser_only):
     data = "a b c~1 2 3~4 5 6~7 8 9"
     parser = c_parser_only
 
-    df = parser.read_csv(StringIO(data), lineterminator="~", delim_whitespace=True)
+    depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
+    with tm.assert_produces_warning(
+        FutureWarning, match=depr_msg, check_stacklevel=False
+    ):
+        df = parser.read_csv(StringIO(data), lineterminator="~", delim_whitespace=True)
     expected = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=["a", "b", "c"])
     tm.assert_frame_equal(df, expected)
 
@@ -529,24 +532,6 @@ def test_read_tarfile(c_parser_only, csv_dir_path, tar_suffix):
         out = parser.read_csv(data_file)
         expected = DataFrame({"a": [1]})
         tm.assert_frame_equal(out, expected)
-
-
-@pytest.mark.single_cpu
-@pytest.mark.skipif(is_ci_environment(), reason="Too memory intensive for CI.")
-def test_bytes_exceed_2gb(c_parser_only):
-    # see gh-16798
-    #
-    # Read from a "CSV" that has a column larger than 2GB.
-    parser = c_parser_only
-
-    if parser.low_memory:
-        pytest.skip("not a low_memory test")
-
-    # csv takes 10 seconds to construct, spikes memory to 8GB+, the whole test
-    #  spikes up to 10.4GB on the c_high case
-    csv = StringIO("strings\n" + "\n".join(["x" * (1 << 20) for _ in range(2100)]))
-    df = parser.read_csv(csv)
-    assert not df.empty
 
 
 def test_chunk_whitespace_on_boundary(c_parser_only):

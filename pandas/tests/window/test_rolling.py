@@ -594,10 +594,10 @@ def test_multi_index_names():
     assert result.index.names == [None, "1", "2"]
 
 
-def test_rolling_axis_sum(axis_frame):
+def test_rolling_axis_sum(axis):
     # see gh-23372.
     df = DataFrame(np.ones((10, 20)))
-    axis = df._get_axis_number(axis_frame)
+    axis = df._get_axis_number(axis)
 
     if axis == 0:
         msg = "The 'axis' keyword in DataFrame.rolling"
@@ -608,15 +608,15 @@ def test_rolling_axis_sum(axis_frame):
         expected = DataFrame([[np.nan] * 2 + [3.0] * 18] * 10)
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.rolling(3, axis=axis_frame).sum()
+        result = df.rolling(3, axis=axis).sum()
     tm.assert_frame_equal(result, expected)
 
 
-def test_rolling_axis_count(axis_frame):
+def test_rolling_axis_count(axis):
     # see gh-26055
     df = DataFrame({"x": range(3), "y": range(3)})
 
-    axis = df._get_axis_number(axis_frame)
+    axis = df._get_axis_number(axis)
 
     if axis in [0, "index"]:
         msg = "The 'axis' keyword in DataFrame.rolling"
@@ -626,7 +626,7 @@ def test_rolling_axis_count(axis_frame):
         expected = DataFrame({"x": [1.0, 1.0, 1.0], "y": [2.0, 2.0, 2.0]})
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.rolling(2, axis=axis_frame, min_periods=0).count()
+        result = df.rolling(2, axis=axis, min_periods=0).count()
     tm.assert_frame_equal(result, expected)
 
 
@@ -639,21 +639,21 @@ def test_readonly_array():
     tm.assert_series_equal(result, expected)
 
 
-def test_rolling_datetime(axis_frame, tz_naive_fixture):
+def test_rolling_datetime(axis, tz_naive_fixture):
     # GH-28192
     tz = tz_naive_fixture
     df = DataFrame(
         {i: [1] * 2 for i in date_range("2019-8-01", "2019-08-03", freq="D", tz=tz)}
     )
 
-    if axis_frame in [0, "index"]:
+    if axis in [0, "index"]:
         msg = "The 'axis' keyword in DataFrame.rolling"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.T.rolling("2D", axis=axis_frame).sum().T
+            result = df.T.rolling("2D", axis=axis).sum().T
     else:
         msg = "Support for axis=1 in DataFrame.rolling"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.rolling("2D", axis=axis_frame).sum()
+            result = df.rolling("2D", axis=axis).sum()
     expected = DataFrame(
         {
             **{
@@ -669,7 +669,6 @@ def test_rolling_datetime(axis_frame, tz_naive_fixture):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("center", [True, False])
 def test_rolling_window_as_string(center):
     # see gh-22590
     date_today = datetime.now()
@@ -722,7 +721,7 @@ def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
     "df,expected,window,min_periods",
     [
         (
-            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+            {"A": [1, 2, 3], "B": [4, 5, 6]},
             [
                 ({"A": [1], "B": [4]}, [0]),
                 ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
@@ -732,7 +731,7 @@ def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
             None,
         ),
         (
-            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+            {"A": [1, 2, 3], "B": [4, 5, 6]},
             [
                 ({"A": [1], "B": [4]}, [0]),
                 ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
@@ -742,7 +741,7 @@ def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
             1,
         ),
         (
-            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+            {"A": [1, 2, 3], "B": [4, 5, 6]},
             [
                 ({"A": [1], "B": [4]}, [0]),
                 ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
@@ -752,7 +751,7 @@ def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
             2,
         ),
         (
-            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+            {"A": [1, 2, 3], "B": [4, 5, 6]},
             [
                 ({"A": [1], "B": [4]}, [0]),
                 ({"A": [2], "B": [5]}, [1]),
@@ -762,7 +761,7 @@ def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
             1,
         ),
         (
-            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+            {"A": [1, 2, 3], "B": [4, 5, 6]},
             [
                 ({"A": [1], "B": [4]}, [0]),
                 ({"A": [2], "B": [5]}, [1]),
@@ -771,11 +770,11 @@ def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
             1,
             0,
         ),
-        (DataFrame({"A": [1], "B": [4]}), [], 2, None),
-        (DataFrame({"A": [1], "B": [4]}), [], 2, 1),
-        (DataFrame(), [({}, [])], 2, None),
+        ({"A": [1], "B": [4]}, [], 2, None),
+        ({"A": [1], "B": [4]}, [], 2, 1),
+        (None, [({}, [])], 2, None),
         (
-            DataFrame({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}),
+            {"A": [1, np.nan, 3], "B": [np.nan, 5, 6]},
             [
                 ({"A": [1.0], "B": [np.nan]}, [0]),
                 ({"A": [1, np.nan], "B": [np.nan, 5]}, [0, 1]),
@@ -788,6 +787,7 @@ def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
 )
 def test_iter_rolling_dataframe(df, expected, window, min_periods):
     # GH 11704
+    df = DataFrame(df)
     expected = [DataFrame(values, index=index) for (values, index) in expected]
 
     for expected, actual in zip(expected, df.rolling(window, min_periods=min_periods)):
@@ -977,20 +977,23 @@ def test_rolling_positional_argument(grouping, _index, raw):
 
 
 @pytest.mark.parametrize("add", [0.0, 2.0])
-def test_rolling_numerical_accuracy_kahan_mean(add):
+def test_rolling_numerical_accuracy_kahan_mean(add, unit):
     # GH: 36031 implementing kahan summation
-    df = DataFrame(
-        {"A": [3002399751580331.0 + add, -0.0, -0.0]},
-        index=[
+    dti = DatetimeIndex(
+        [
             Timestamp("19700101 09:00:00"),
             Timestamp("19700101 09:00:03"),
             Timestamp("19700101 09:00:06"),
-        ],
+        ]
+    ).as_unit(unit)
+    df = DataFrame(
+        {"A": [3002399751580331.0 + add, -0.0, -0.0]},
+        index=dti,
     )
     result = (
         df.resample("1s").ffill().rolling("3s", closed="left", min_periods=3).mean()
     )
-    dates = date_range("19700101 09:00:00", periods=7, freq="s")
+    dates = date_range("19700101 09:00:00", periods=7, freq="s", unit=unit)
     expected = DataFrame(
         {
             "A": [
@@ -1196,8 +1199,19 @@ def test_rolling_var_numerical_issues(func, third_value, values):
     tm.assert_series_equal(result == 0, expected == 0)
 
 
-def test_timeoffset_as_window_parameter_for_corr():
+def test_timeoffset_as_window_parameter_for_corr(unit):
     # GH: 28266
+    dti = DatetimeIndex(
+        [
+            Timestamp("20130101 09:00:00"),
+            Timestamp("20130102 09:00:02"),
+            Timestamp("20130103 09:00:03"),
+            Timestamp("20130105 09:00:05"),
+            Timestamp("20130106 09:00:06"),
+        ]
+    ).as_unit(unit)
+    mi = MultiIndex.from_product([dti, ["B", "A"]])
+
     exp = DataFrame(
         {
             "B": [
@@ -1225,31 +1239,12 @@ def test_timeoffset_as_window_parameter_for_corr():
                 1.0000000000000002,
             ],
         },
-        index=MultiIndex.from_tuples(
-            [
-                (Timestamp("20130101 09:00:00"), "B"),
-                (Timestamp("20130101 09:00:00"), "A"),
-                (Timestamp("20130102 09:00:02"), "B"),
-                (Timestamp("20130102 09:00:02"), "A"),
-                (Timestamp("20130103 09:00:03"), "B"),
-                (Timestamp("20130103 09:00:03"), "A"),
-                (Timestamp("20130105 09:00:05"), "B"),
-                (Timestamp("20130105 09:00:05"), "A"),
-                (Timestamp("20130106 09:00:06"), "B"),
-                (Timestamp("20130106 09:00:06"), "A"),
-            ]
-        ),
+        index=mi,
     )
 
     df = DataFrame(
         {"B": [0, 1, 2, 4, 3], "A": [7, 4, 6, 9, 3]},
-        index=[
-            Timestamp("20130101 09:00:00"),
-            Timestamp("20130102 09:00:02"),
-            Timestamp("20130103 09:00:03"),
-            Timestamp("20130105 09:00:05"),
-            Timestamp("20130106 09:00:06"),
-        ],
+        index=dti,
     )
 
     res = df.rolling(window="3d").corr()
@@ -1634,7 +1629,6 @@ def test_rolling_numeric_dtypes():
 @pytest.mark.parametrize("window", [1, 3, 10, 20])
 @pytest.mark.parametrize("method", ["min", "max", "average"])
 @pytest.mark.parametrize("pct", [True, False])
-@pytest.mark.parametrize("ascending", [True, False])
 @pytest.mark.parametrize("test_data", ["default", "duplicates", "nans"])
 def test_rank(window, method, pct, ascending, test_data):
     length = 20
@@ -1699,12 +1693,11 @@ def test_rolling_quantile_interpolation_options(quantile, interpolation, data):
 
     if np.isnan(q1):
         assert np.isnan(q2)
+    elif not IS64:
+        # Less precision on 32-bit
+        assert np.allclose([q1], [q2], rtol=1e-07, atol=0)
     else:
-        if not IS64:
-            # Less precision on 32-bit
-            assert np.allclose([q1], [q2], rtol=1e-07, atol=0)
-        else:
-            assert q1 == q2
+        assert q1 == q2
 
 
 def test_invalid_quantile_value():
@@ -1952,7 +1945,6 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
 @pytest.mark.parametrize("tz", [None, "UTC", "Europe/Prague"])
 def test_rolling_timedelta_window_non_nanoseconds(unit, tz):
     # Test Sum, GH#55106

@@ -329,8 +329,6 @@ class DuplicateLabelError(ValueError):
     """
     Error raised when an operation would introduce duplicate labels.
 
-    .. versionadded:: 1.2.0
-
     Examples
     --------
     >>> s = pd.Series([0, 1, 2], index=['a', 'b', 'c']).set_flags(
@@ -427,7 +425,7 @@ class SettingWithCopyError(ValueError):
     --------
     >>> pd.options.mode.chained_assignment = 'raise'
     >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2]}, columns=['A'])
-    >>> df.loc[0:3]['A'] = 'a' # doctest: +SKIP
+    >>> df.loc[0:3]['A'] = 'a'  # doctest: +SKIP
     ... # SettingWithCopyError: A value is trying to be set on a copy of a...
     """
 
@@ -471,7 +469,7 @@ class ChainedAssignmentError(Warning):
     --------
     >>> pd.options.mode.copy_on_write = True
     >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2]}, columns=['A'])
-    >>> df["A"][0:3] = 10 # doctest: +SKIP
+    >>> df["A"][0:3] = 10  # doctest: +SKIP
     ... # ChainedAssignmentError: ...
     >>> pd.options.mode.copy_on_write = False
     """
@@ -503,6 +501,55 @@ _chained_assignment_method_msg = (
 )
 
 
+_chained_assignment_warning_msg = (
+    "ChainedAssignmentError: behaviour will change in pandas 3.0!\n"
+    "You are setting values through chained assignment. Currently this works "
+    "in certain cases, but when using Copy-on-Write (which will become the "
+    "default behaviour in pandas 3.0) this will never work to update the "
+    "original DataFrame or Series, because the intermediate object on which "
+    "we are setting values will behave as a copy.\n"
+    "A typical example is when you are setting values in a column of a "
+    "DataFrame, like:\n\n"
+    'df["col"][row_indexer] = value\n\n'
+    'Use `df.loc[row_indexer, "col"] = values` instead, to perform the '
+    "assignment in a single step and ensure this keeps updating the original `df`.\n\n"
+    "See the caveats in the documentation: "
+    "https://pandas.pydata.org/pandas-docs/stable/user_guide/"
+    "indexing.html#returning-a-view-versus-a-copy\n"
+)
+
+
+_chained_assignment_warning_method_msg = (
+    "A value is trying to be set on a copy of a DataFrame or Series "
+    "through chained assignment using an inplace method.\n"
+    "The behavior will change in pandas 3.0. This inplace method will "
+    "never work because the intermediate object on which we are setting "
+    "values always behaves as a copy.\n\n"
+    "For example, when doing 'df[col].method(value, inplace=True)', try "
+    "using 'df.method({col: value}, inplace=True)' or "
+    "df[col] = df[col].method(value) instead, to perform "
+    "the operation inplace on the original object.\n\n"
+)
+
+
+def _check_cacher(obj) -> bool:
+    # This is a mess, selection paths that return a view set the _cacher attribute
+    # on the Series; most of them also set _item_cache which adds 1 to our relevant
+    # reference count, but iloc does not, so we have to check if we are actually
+    # in the item cache
+    if hasattr(obj, "_cacher"):
+        parent = obj._cacher[1]()
+        # parent could be dead
+        if parent is None:
+            return False
+        if hasattr(parent, "_item_cache"):
+            if obj._cacher[0] in parent._item_cache:
+                # Check if we are actually the item from item_cache, iloc creates a
+                # new object
+                return obj is parent._item_cache[obj._cacher[0]]
+    return False
+
+
 class NumExprClobberingError(NameError):
     """
     Exception raised when trying to use a built-in numexpr name as a variable name.
@@ -514,10 +561,10 @@ class NumExprClobberingError(NameError):
     Examples
     --------
     >>> df = pd.DataFrame({'abs': [1, 1, 1]})
-    >>> df.query("abs > 2") # doctest: +SKIP
+    >>> df.query("abs > 2")  # doctest: +SKIP
     ... # NumExprClobberingError: Variables in expression "(abs) > (2)" overlap...
     >>> sin, a = 1, 2
-    >>> pd.eval("sin + a", engine='numexpr') # doctest: +SKIP
+    >>> pd.eval("sin + a", engine='numexpr')  # doctest: +SKIP
     ... # NumExprClobberingError: Variables in expression "(sin) + (a)" overlap...
     """
 
@@ -540,7 +587,7 @@ class UndefinedVariableError(NameError):
     """
 
     def __init__(self, name: str, is_local: bool | None = None) -> None:
-        base_msg = f"{repr(name)} is not defined"
+        base_msg = f"{name!r} is not defined"
         if is_local:
             msg = f"local variable {base_msg}"
         else:
@@ -552,19 +599,30 @@ class IndexingError(Exception):
     """
     Exception is raised when trying to index and there is a mismatch in dimensions.
 
+    Raised by properties like :attr:`.pandas.DataFrame.iloc` when
+    an indexer is out of bounds or :attr:`.pandas.DataFrame.loc` when its index is
+    unalignable to the frame index.
+
+    See Also
+    --------
+    DataFrame.iloc : Purely integer-location based indexing for \
+    selection by position.
+    DataFrame.loc : Access a group of rows and columns by label(s) \
+    or a boolean array.
+
     Examples
     --------
     >>> df = pd.DataFrame({'A': [1, 1, 1]})
-    >>> df.loc[..., ..., 'A'] # doctest: +SKIP
+    >>> df.loc[..., ..., 'A']   # doctest: +SKIP
     ... # IndexingError: indexer may only contain one '...' entry
     >>> df = pd.DataFrame({'A': [1, 1, 1]})
-    >>> df.loc[1, ..., ...] # doctest: +SKIP
+    >>> df.loc[1, ..., ...]   # doctest: +SKIP
     ... # IndexingError: Too many indexers
-    >>> df[pd.Series([True], dtype=bool)] # doctest: +SKIP
+    >>> df[pd.Series([True], dtype=bool)]   # doctest: +SKIP
     ... # IndexingError: Unalignable boolean Series provided as indexer...
     >>> s = pd.Series(range(2),
-    ...               index = pd.MultiIndex.from_product([["a", "b"], ["c"]]))
-    >>> s.loc["a", "c", "d"] # doctest: +SKIP
+    ...               index=pd.MultiIndex.from_product([["a", "b"], ["c"]]))
+    >>> s.loc["a", "c", "d"]   # doctest: +SKIP
     ... # IndexingError: Too many indexers
     """
 
@@ -618,8 +676,8 @@ class PossibleDataLossError(Exception):
 
     Examples
     --------
-    >>> store = pd.HDFStore('my-store', 'a') # doctest: +SKIP
-    >>> store.open("w") # doctest: +SKIP
+    >>> store = pd.HDFStore('my-store', 'a')  # doctest: +SKIP
+    >>> store.open("w")  # doctest: +SKIP
     ... # PossibleDataLossError: Re-opening the file [my-store] with mode [a]...
     """
 
@@ -630,9 +688,9 @@ class ClosedFileError(Exception):
 
     Examples
     --------
-    >>> store = pd.HDFStore('my-store', 'a') # doctest: +SKIP
-    >>> store.close() # doctest: +SKIP
-    >>> store.keys() # doctest: +SKIP
+    >>> store = pd.HDFStore('my-store', 'a')  # doctest: +SKIP
+    >>> store.close()  # doctest: +SKIP
+    >>> store.keys()  # doctest: +SKIP
     ... # ClosedFileError: my-store file is not open!
     """
 
@@ -666,13 +724,19 @@ class AttributeConflictWarning(Warning):
 
 class DatabaseError(OSError):
     """
-    Error is raised when executing sql with bad syntax or sql that throws an error.
+    Error is raised when executing SQL with bad syntax or SQL that throws an error.
+
+    Raised by :func:`.pandas.read_sql` when a bad SQL statement is passed in.
+
+    See Also
+    --------
+    read_sql : Read SQL query or database table into a DataFrame.
 
     Examples
     --------
     >>> from sqlite3 import connect
     >>> conn = connect(':memory:')
-    >>> pd.read_sql('select * test', conn) # doctest: +SKIP
+    >>> pd.read_sql('select * test', conn)   # doctest: +SKIP
     ... # DatabaseError: Execution failed on sql 'test': near "test": syntax error
     """
 
@@ -687,7 +751,7 @@ class PossiblePrecisionLoss(Warning):
     Examples
     --------
     >>> df = pd.DataFrame({"s": pd.Series([1, 2**53], dtype=np.int64)})
-    >>> df.to_stata('test') # doctest: +SKIP
+    >>> df.to_stata('test')  # doctest: +SKIP
     ... # PossiblePrecisionLoss: Column converted from int64 to float64...
     """
 
@@ -699,7 +763,7 @@ class ValueLabelTypeMismatch(Warning):
     Examples
     --------
     >>> df = pd.DataFrame({"categories": pd.Series(["a", 2], dtype="category")})
-    >>> df.to_stata('test') # doctest: +SKIP
+    >>> df.to_stata('test')  # doctest: +SKIP
     ... # ValueLabelTypeMismatch: Stata value labels (pandas categories) must be str...
     """
 
@@ -711,10 +775,14 @@ class InvalidColumnName(Warning):
     Because the column name is an invalid Stata variable, the name needs to be
     converted.
 
+    See Also
+    --------
+    DataFrame.to_stata : Export DataFrame object to Stata dta format.
+
     Examples
     --------
     >>> df = pd.DataFrame({"0categories": pd.Series([2, 2])})
-    >>> df.to_stata('test') # doctest: +SKIP
+    >>> df.to_stata('test')   # doctest: +SKIP
     ... # InvalidColumnName: Not all pandas column names were valid Stata variable...
     """
 
@@ -726,9 +794,9 @@ class CategoricalConversionWarning(Warning):
     Examples
     --------
     >>> from pandas.io.stata import StataReader
-    >>> with StataReader('dta_file', chunksize=2) as reader: # doctest: +SKIP
-    ...   for i, block in enumerate(reader):
-    ...      print(i, block)
+    >>> with StataReader('dta_file', chunksize=2) as reader:  # doctest: +SKIP
+    ...     for i, block in enumerate(reader):
+    ...         print(i, block)
     ... # CategoricalConversionWarning: One or more series with value labels...
     """
 

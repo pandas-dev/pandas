@@ -15,16 +15,6 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 
-@pytest.fixture()
-def gpd_style_subclass_df():
-    class SubclassedDataFrame(DataFrame):
-        @property
-        def _constructor(self):
-            return SubclassedDataFrame
-
-    return SubclassedDataFrame({"a": [1, 2, 3]})
-
-
 class TestDataFrameSubclassing:
     def test_frame_subclassing_and_slicing(self):
         # Subclass frame and ensure it returns the right class on slicing it
@@ -524,8 +514,6 @@ class TestDataFrameSubclassing:
 
         tm.assert_frame_equal(long_frame, expected)
 
-    # TODO(CoW-warn) should not need to warn
-    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_subclassed_apply(self):
         # GH 19822
 
@@ -712,14 +700,21 @@ class TestDataFrameSubclassing:
         result = df.idxmax()
         assert isinstance(result, tm.SubclassedSeries)
 
-    def test_convert_dtypes_preserves_subclass(self, gpd_style_subclass_df):
+    def test_convert_dtypes_preserves_subclass(self):
         # GH 43668
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
         result = df.convert_dtypes()
         assert isinstance(result, tm.SubclassedDataFrame)
 
-        result = gpd_style_subclass_df.convert_dtypes()
-        assert isinstance(result, type(gpd_style_subclass_df))
+    def test_convert_dtypes_preserves_subclass_with_constructor(self):
+        class SubclassedDataFrame(DataFrame):
+            @property
+            def _constructor(self):
+                return SubclassedDataFrame
+
+        df = SubclassedDataFrame({"a": [1, 2, 3]})
+        result = df.convert_dtypes()
+        assert isinstance(result, SubclassedDataFrame)
 
     def test_astype_preserves_subclass(self):
         # GH#40810
@@ -773,3 +768,44 @@ def test_constructor_with_metadata():
     )
     subset = df[["A", "B"]]
     assert isinstance(subset, MySubclassWithMetadata)
+
+
+class SimpleDataFrameSubClass(DataFrame):
+    """A subclass of DataFrame that does not define a constructor."""
+
+
+class SimpleSeriesSubClass(Series):
+    """A subclass of Series that does not define a constructor."""
+
+
+class TestSubclassWithoutConstructor:
+    def test_copy_df(self):
+        expected = DataFrame({"a": [1, 2, 3]})
+        result = SimpleDataFrameSubClass(expected).copy()
+
+        assert (
+            type(result) is DataFrame
+        )  # assert_frame_equal only checks isinstance(lhs, type(rhs))
+        tm.assert_frame_equal(result, expected)
+
+    def test_copy_series(self):
+        expected = Series([1, 2, 3])
+        result = SimpleSeriesSubClass(expected).copy()
+
+        tm.assert_series_equal(result, expected)
+
+    def test_series_to_frame(self):
+        orig = Series([1, 2, 3])
+        expected = orig.to_frame()
+        result = SimpleSeriesSubClass(orig).to_frame()
+
+        assert (
+            type(result) is DataFrame
+        )  # assert_frame_equal only checks isinstance(lhs, type(rhs))
+        tm.assert_frame_equal(result, expected)
+
+    def test_groupby(self):
+        df = SimpleDataFrameSubClass(DataFrame({"a": [1, 2, 3]}))
+
+        for _, v in df.groupby("a"):
+            assert type(v) is DataFrame

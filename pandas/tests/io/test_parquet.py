@@ -15,6 +15,7 @@ from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under11p0,
     pa_version_under13p0,
+    pa_version_under15p0,
 )
 
 import pandas as pd
@@ -363,7 +364,10 @@ def test_parquet_pos_args_deprecation(engine):
     )
     with tm.ensure_clean() as path:
         with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
+            FutureWarning,
+            match=msg,
+            check_stacklevel=False,
+            raise_on_extra_warnings=False,
         ):
             df.to_parquet(path, engine)
 
@@ -721,21 +725,15 @@ class TestParquetPyArrow(Base):
 
     def test_to_bytes_without_path_or_buf_provided(self, pa, df_full):
         # GH 37105
-        msg = "Mismatched null-like values nan and None found"
-        warn = None
-        if using_copy_on_write():
-            warn = FutureWarning
-
         buf_bytes = df_full.to_parquet(engine=pa)
         assert isinstance(buf_bytes, bytes)
 
         buf_stream = BytesIO(buf_bytes)
         res = read_parquet(buf_stream)
 
-        expected = df_full.copy(deep=False)
+        expected = df_full.copy()
         expected.loc[1, "string_with_nan"] = None
-        with tm.assert_produces_warning(warn, match=msg):
-            tm.assert_frame_equal(df_full, res)
+        tm.assert_frame_equal(res, expected)
 
     def test_duplicate_columns(self, pa):
         # not currently able to handle duplicate columns
@@ -758,7 +756,10 @@ class TestParquetPyArrow(Base):
         # Not able to write float 16 column using pyarrow.
         data = np.arange(2, 10, dtype=np.float16)
         df = pd.DataFrame(data=data, columns=["fp16"])
-        self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
+        if pa_version_under15p0:
+            self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
+        else:
+            check_round_trip(df, pa)
 
     @pytest.mark.xfail(
         is_platform_windows(),
@@ -767,6 +768,7 @@ class TestParquetPyArrow(Base):
             "dtypes are passed to_parquet function in windows"
         ),
     )
+    @pytest.mark.skipif(not pa_version_under15p0, reason="float16 works on 15")
     @pytest.mark.parametrize("path_type", [str, pathlib.Path])
     def test_unsupported_float16_cleanup(self, pa, path_type):
         # #44847, #44914
@@ -825,13 +827,7 @@ class TestParquetPyArrow(Base):
         )
 
     @pytest.mark.single_cpu
-    @pytest.mark.parametrize(
-        "partition_col",
-        [
-            ["A"],
-            [],
-        ],
-    )
+    @pytest.mark.parametrize("partition_col", [["A"], []])
     def test_s3_roundtrip_for_dir(
         self, df_compat, s3_public_bucket, pa, partition_col, s3so
     ):
@@ -998,12 +994,10 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({"a": list(range(3))})
         with tm.ensure_clean() as path:
             df.to_parquet(path, engine=pa)
-            result = read_parquet(
-                path, pa, filters=[("a", "==", 0)], use_legacy_dataset=False
-            )
+            result = read_parquet(path, pa, filters=[("a", "==", 0)])
         assert len(result) == 1
 
-    def test_read_parquet_manager(self, pa, using_array_manager):
+    def test_read_parquet_manager(self, pa):
         # ensure that read_parquet honors the pandas.options.mode.data_manager option
         df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 3)), columns=["A", "B", "C"]
@@ -1012,10 +1006,7 @@ class TestParquetPyArrow(Base):
         with tm.ensure_clean() as path:
             df.to_parquet(path, engine=pa)
             result = read_parquet(path, pa)
-        if using_array_manager:
-            assert isinstance(result._mgr, pd.core.internals.ArrayManager)
-        else:
-            assert isinstance(result._mgr, pd.core.internals.BlockManager)
+        assert isinstance(result._mgr, pd.core.internals.BlockManager)
 
     def test_read_dtype_backend_pyarrow_config(self, pa, df_full):
         import pyarrow
@@ -1330,7 +1321,7 @@ class TestParquetFastParquet(Base):
     def test_close_file_handle_on_read_error(self):
         with tm.ensure_clean("test.parquet") as path:
             pathlib.Path(path).write_bytes(b"breakit")
-            with pytest.raises(Exception, match=""):  # Not important which exception
+            with tm.external_error_raised(Exception):  # Not important which exception
                 read_parquet(path, engine="fastparquet")
             # The next line raises an error on Windows if the file is still open
             pathlib.Path(path).unlink(missing_ok=False)

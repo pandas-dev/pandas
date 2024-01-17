@@ -13,6 +13,7 @@ from pandas.errors import (
 import pandas as pd
 from pandas import (
     Categorical,
+    DataFrame,
     Index,
     MultiIndex,
     date_range,
@@ -37,7 +38,11 @@ class TestSliceLocs:
         assert result == (2, 4)
 
     def test_slice_locs(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((50, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=50, freq="B"),
+        )
         stacked = df.stack(future_stack=True)
         idx = stacked.index
 
@@ -57,14 +62,22 @@ class TestSliceLocs:
         tm.assert_almost_equal(sliced.values, expected.values)
 
     def test_slice_locs_with_type_mismatch(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         stacked = df.stack(future_stack=True)
         idx = stacked.index
         with pytest.raises(TypeError, match="^Level type mismatch"):
             idx.slice_locs((1, 3))
         with pytest.raises(TypeError, match="^Level type mismatch"):
             idx.slice_locs(df.index[5] + timedelta(seconds=30), (5, 2))
-        df = tm.makeCustomDataframe(5, 5)
+        df = DataFrame(
+            np.ones((5, 5)),
+            index=Index([f"i-{i}" for i in range(5)], name="a"),
+            columns=Index([f"i-{i}" for i in range(5)], name="a"),
+        )
         stacked = df.stack(future_stack=True)
         idx = stacked.index
         with pytest.raises(TypeError, match="^Level type mismatch"):
@@ -547,27 +560,26 @@ def test_getitem_group_select(idx):
     assert sorted_idx.get_loc("foo") == slice(0, 2)
 
 
-@pytest.mark.parametrize("ind1", [[True] * 5, Index([True] * 5)])
-@pytest.mark.parametrize(
-    "ind2",
-    [[True, False, True, False, False], Index([True, False, True, False, False])],
-)
-def test_getitem_bool_index_all(ind1, ind2):
+@pytest.mark.parametrize("box", [list, Index])
+def test_getitem_bool_index_all(box):
     # GH#22533
+    ind1 = box([True] * 5)
     idx = MultiIndex.from_tuples([(10, 1), (20, 2), (30, 3), (40, 4), (50, 5)])
     tm.assert_index_equal(idx[ind1], idx)
 
+    ind2 = box([True, False, True, False, False])
     expected = MultiIndex.from_tuples([(10, 1), (30, 3)])
     tm.assert_index_equal(idx[ind2], expected)
 
 
-@pytest.mark.parametrize("ind1", [[True], Index([True])])
-@pytest.mark.parametrize("ind2", [[False], Index([False])])
-def test_getitem_bool_index_single(ind1, ind2):
+@pytest.mark.parametrize("box", [list, Index])
+def test_getitem_bool_index_single(box):
     # GH#22533
+    ind1 = box([True])
     idx = MultiIndex.from_tuples([(10, 1)])
     tm.assert_index_equal(idx[ind1], idx)
 
+    ind2 = box([False])
     expected = MultiIndex(
         levels=[np.array([], dtype=np.int64), np.array([], dtype=np.int64)],
         codes=[[], []],
@@ -861,7 +873,7 @@ def test_timestamp_multiindex_indexer():
             [3],
         ]
     )
-    df = pd.DataFrame({"foo": np.arange(len(idx))}, idx)
+    df = DataFrame({"foo": np.arange(len(idx))}, idx)
     result = df.loc[pd.IndexSlice["2019-1-2":, "x", :], "foo"]
     qidx = MultiIndex.from_product(
         [

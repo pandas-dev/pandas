@@ -3,6 +3,9 @@ from functools import partial
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
+from pandas.core.dtypes.common import is_unsigned_integer_dtype
 from pandas.core.dtypes.dtypes import IntervalDtype
 
 from pandas import (
@@ -22,11 +25,6 @@ from pandas.core.arrays import IntervalArray
 import pandas.core.common as com
 
 
-@pytest.fixture(params=[None, "foo"])
-def name(request):
-    return request.param
-
-
 class ConstructorTests:
     """
     Common tests for all variations of IntervalIndex construction. Input data
@@ -34,8 +32,9 @@ class ConstructorTests:
     get_kwargs_from_breaks to the expected format.
     """
 
-    @pytest.fixture(
-        params=[
+    @pytest.mark.parametrize(
+        "breaks_and_expected_subtype",
+        [
             ([3, 14, 15, 92, 653], np.int64),
             (np.arange(10, dtype="int64"), np.int64),
             (Index(np.arange(-10, 11, dtype=np.int64)), np.int64),
@@ -47,11 +46,9 @@ class ConstructorTests:
                 "datetime64[ns, US/Eastern]",
             ),
             (timedelta_range("1 day", periods=10), "<m8[ns]"),
-        ]
+        ],
     )
-    def breaks_and_expected_subtype(self, request):
-        return request.param
-
+    @pytest.mark.parametrize("name", [None, "foo"])
     def test_constructor(self, constructor, breaks_and_expected_subtype, closed, name):
         breaks, expected_subtype = breaks_and_expected_subtype
 
@@ -330,7 +327,7 @@ class TestFromTuples(ConstructorTests):
         converts intervals in breaks format to a dictionary of kwargs to
         specific to the format expected by IntervalIndex.from_tuples
         """
-        if tm.is_unsigned_integer_dtype(breaks):
+        if is_unsigned_integer_dtype(breaks):
             pytest.skip(f"{breaks.dtype} not relevant IntervalIndex.from_tuples tests")
 
         if len(breaks) == 0:
@@ -371,14 +368,6 @@ class TestFromTuples(ConstructorTests):
 class TestClassConstructors(ConstructorTests):
     """Tests specific to the IntervalIndex/Index constructors"""
 
-    @pytest.fixture(
-        params=[IntervalIndex, partial(Index, dtype="interval")],
-        ids=["IntervalIndex", "Index"],
-    )
-    def klass(self, request):
-        # We use a separate fixture here to include Index.__new__ with dtype kwarg
-        return request.param
-
     @pytest.fixture
     def constructor(self):
         return IntervalIndex
@@ -388,7 +377,7 @@ class TestClassConstructors(ConstructorTests):
         converts intervals in breaks format to a dictionary of kwargs to
         specific to the format expected by the IntervalIndex/Index constructors
         """
-        if tm.is_unsigned_integer_dtype(breaks):
+        if is_unsigned_integer_dtype(breaks):
             pytest.skip(f"{breaks.dtype} not relevant for class constructor tests")
 
         if len(breaks) == 0:
@@ -417,6 +406,11 @@ class TestClassConstructors(ConstructorTests):
         # the interval of strings is already forbidden.
         pass
 
+    @pytest.mark.parametrize(
+        "klass",
+        [IntervalIndex, partial(Index, dtype="interval")],
+        ids=["IntervalIndex", "Index"],
+    )
     def test_constructor_errors(self, klass):
         # mismatched closed within intervals with no constructor override
         ivs = [Interval(0, 1, closed="right"), Interval(2, 3, closed="left")]
@@ -488,6 +482,23 @@ class TestClassConstructors(ConstructorTests):
         tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.parametrize("timezone", ["UTC", "US/Pacific", "GMT"])
+def test_interval_index_subtype(timezone, inclusive_endpoints_fixture):
+    # GH#46999
+    dates = date_range("2022", periods=3, tz=timezone)
+    dtype = f"interval[datetime64[ns, {timezone}], {inclusive_endpoints_fixture}]"
+    result = IntervalIndex.from_arrays(
+        ["2022-01-01", "2022-01-02"],
+        ["2022-01-02", "2022-01-03"],
+        closed=inclusive_endpoints_fixture,
+        dtype=dtype,
+    )
+    expected = IntervalIndex.from_arrays(
+        dates[:-1], dates[1:], closed=inclusive_endpoints_fixture
+    )
+    tm.assert_index_equal(result, expected)
+
+
 def test_dtype_closed_mismatch():
     # GH#38394 closed specified in both dtype and IntervalIndex constructor
 
@@ -499,3 +510,17 @@ def test_dtype_closed_mismatch():
 
     with pytest.raises(ValueError, match=msg):
         IntervalArray([], dtype=dtype, closed="neither")
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    ["Float64", pytest.param("float64[pyarrow]", marks=td.skip_if_no("pyarrow"))],
+)
+def test_ea_dtype(dtype):
+    # GH#56765
+    bins = [(0.0, 0.4), (0.4, 0.6)]
+    interval_dtype = IntervalDtype(subtype=dtype, closed="left")
+    result = IntervalIndex.from_tuples(bins, closed="left", dtype=interval_dtype)
+    assert result.dtype == interval_dtype
+    expected = IntervalIndex.from_tuples(bins, closed="left").astype(interval_dtype)
+    tm.assert_index_equal(result, expected)

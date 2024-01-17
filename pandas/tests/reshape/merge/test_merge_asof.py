@@ -11,18 +11,11 @@ from pandas import (
     Index,
     Timedelta,
     merge_asof,
+    option_context,
     to_datetime,
 )
 import pandas._testing as tm
 from pandas.core.reshape.merge import MergeError
-
-
-@pytest.fixture(params=["s", "ms", "us", "ns"])
-def unit(request):
-    """
-    Resolution for datetimelike dtypes.
-    """
-    return request.param
 
 
 class TestAsOfMerge:
@@ -600,486 +593,6 @@ class TestAsOfMerge:
                     "100",
                     "NASDAQ",
                     "51.92",
-                    "51.95",
-                ],
-            ],
-            columns="time,ticker,price,quantity,marketCenter,bid,ask".split(","),
-        )
-        df["price"] = df["price"].astype("float64")
-        df["quantity"] = df["quantity"].astype("int64")
-        df["bid"] = df["bid"].astype("float64")
-        df["ask"] = df["ask"].astype("float64")
-        return self.prep_data(df)
-
-    @pytest.fixture
-    def allow_exact_matches(self, datapath):
-        df = pd.DataFrame(
-            [
-                [
-                    "20160525 13:30:00.023",
-                    "MSFT",
-                    "51.95",
-                    "75",
-                    "NASDAQ",
-                    np.nan,
-                    np.nan,
-                ],
-                [
-                    "20160525 13:30:00.038",
-                    "MSFT",
-                    "51.95",
-                    "155",
-                    "NASDAQ",
-                    "51.95",
-                    "51.95",
-                ],
-                [
-                    "20160525 13:30:00.048",
-                    "GOOG",
-                    "720.77",
-                    "100",
-                    "NASDAQ",
-                    "720.5",
-                    "720.93",
-                ],
-                [
-                    "20160525 13:30:00.048",
-                    "GOOG",
-                    "720.92",
-                    "100",
-                    "NASDAQ",
-                    "720.5",
-                    "720.93",
-                ],
-                [
-                    "20160525 13:30:00.048",
-                    "GOOG",
-                    "720.93",
-                    "200",
-                    "NASDAQ",
-                    "720.5",
-                    "720.93",
-                ],
-                [
-                    "20160525 13:30:00.048",
-                    "GOOG",
-                    "720.93",
-                    "300",
-                    "NASDAQ",
-                    "720.5",
-                    "720.93",
-                ],
-                [
-                    "20160525 13:30:00.048",
-                    "GOOG",
-                    "720.93",
-                    "600",
-                    "NASDAQ",
-                    "720.5",
-                    "720.93",
-                ],
-                [
-                    "20160525 13:30:00.048",
-                    "GOOG",
-                    "720.93",
-                    "44",
-                    "NASDAQ",
-                    "720.5",
-                    "720.93",
-                ],
-                [
-                    "20160525 13:30:00.074",
-                    "AAPL",
-                    "98.67",
-                    "478343",
-                    "NASDAQ",
-                    np.nan,
-                    np.nan,
-                ],
-                [
-                    "20160525 13:30:00.075",
-                    "AAPL",
-                    "98.67",
-                    "478343",
-                    "NASDAQ",
-                    np.nan,
-                    np.nan,
-                ],
-                [
-                    "20160525 13:30:00.075",
-                    "AAPL",
-                    "98.66",
-                    "6",
-                    "NASDAQ",
-                    np.nan,
-                    np.nan,
-                ],
-                [
-                    "20160525 13:30:00.075",
-                    "AAPL",
-                    "98.65",
-                    "30",
-                    "NASDAQ",
-                    np.nan,
-                    np.nan,
-                ],
-                [
-                    "20160525 13:30:00.075",
-                    "AAPL",
-                    "98.65",
-                    "75",
-                    "NASDAQ",
-                    np.nan,
-                    np.nan,
-                ],
-                [
-                    "20160525 13:30:00.075",
-                    "AAPL",
-                    "98.65",
-                    "20",
-                    "NASDAQ",
-                    np.nan,
-                    np.nan,
-                ],
-                [
-                    "20160525 13:30:00.075",
-                    "AAPL",
-                    "98.65",
-                    "35",
-                    "NASDAQ",
-                    np.nan,
-                    np.nan,
-                ],
-                [
-                    "20160525 13:30:00.075",
-                    "AAPL",
-                    "98.65",
-                    "10",
-                    "NASDAQ",
-                    np.nan,
-                    np.nan,
-                ],
-                ["20160525 13:30:00.075", "AAPL", "98.55", "6", "ARCA", np.nan, np.nan],
-                ["20160525 13:30:00.075", "AAPL", "98.55", "6", "ARCA", np.nan, np.nan],
-                [
-                    "20160525 13:30:00.076",
-                    "AAPL",
-                    "98.56",
-                    "1000",
-                    "ARCA",
-                    "98.55",
-                    "98.56",
-                ],
-                [
-                    "20160525 13:30:00.076",
-                    "AAPL",
-                    "98.56",
-                    "200",
-                    "ARCA",
-                    "98.55",
-                    "98.56",
-                ],
-                [
-                    "20160525 13:30:00.076",
-                    "AAPL",
-                    "98.56",
-                    "300",
-                    "ARCA",
-                    "98.55",
-                    "98.56",
-                ],
-                [
-                    "20160525 13:30:00.076",
-                    "AAPL",
-                    "98.56",
-                    "400",
-                    "ARCA",
-                    "98.55",
-                    "98.56",
-                ],
-                [
-                    "20160525 13:30:00.076",
-                    "AAPL",
-                    "98.56",
-                    "600",
-                    "ARCA",
-                    "98.55",
-                    "98.56",
-                ],
-                [
-                    "20160525 13:30:00.076",
-                    "AAPL",
-                    "98.56",
-                    "200",
-                    "ARCA",
-                    "98.55",
-                    "98.56",
-                ],
-                [
-                    "20160525 13:30:00.078",
-                    "MSFT",
-                    "51.95",
-                    "783",
-                    "NASDAQ",
-                    "51.95",
-                    "51.95",
-                ],
-                [
-                    "20160525 13:30:00.078",
-                    "MSFT",
-                    "51.95",
-                    "100",
-                    "NASDAQ",
-                    "51.95",
-                    "51.95",
-                ],
-                [
-                    "20160525 13:30:00.078",
-                    "MSFT",
-                    "51.95",
-                    "100",
-                    "NASDAQ",
-                    "51.95",
-                    "51.95",
-                ],
-            ],
-            columns="time,ticker,price,quantity,marketCenter,bid,ask".split(","),
-        )
-        df["price"] = df["price"].astype("float64")
-        df["quantity"] = df["quantity"].astype("int64")
-        df["bid"] = df["bid"].astype("float64")
-        df["ask"] = df["ask"].astype("float64")
-        return self.prep_data(df)
-
-    @pytest.fixture
-    def allow_exact_matches_and_tolerance(self):
-        df = pd.DataFrame(
-            [
-                [
-                    "20160525 13:30:00.023",
-                    "MSFT",
-                    "51.95",
-                    "75",
-                    "NASDAQ",
-                    np.nan,
-                    np.nan,
-                ],
-                [
-                    "20160525 13:30:00.038",
-                    "MSFT",
-                    "51.95",
-                    "155",
-                    "NASDAQ",
-                    "51.95",
-                    "51.95",
-                ],
-                [
-                    "20160525 13:30:00.048",
-                    "GOOG",
-                    "720.77",
-                    "100",
-                    "NASDAQ",
-                    "720.5",
-                    "720.93",
-                ],
-                [
-                    "20160525 13:30:00.048",
-                    "GOOG",
-                    "720.92",
-                    "100",
-                    "NASDAQ",
-                    "720.5",
-                    "720.93",
-                ],
-                [
-                    "20160525 13:30:00.048",
-                    "GOOG",
-                    "720.93",
-                    "200",
-                    "NASDAQ",
-                    "720.5",
-                    "720.93",
-                ],
-                [
-                    "20160525 13:30:00.048",
-                    "GOOG",
-                    "720.93",
-                    "300",
-                    "NASDAQ",
-                    "720.5",
-                    "720.93",
-                ],
-                [
-                    "20160525 13:30:00.048",
-                    "GOOG",
-                    "720.93",
-                    "600",
-                    "NASDAQ",
-                    "720.5",
-                    "720.93",
-                ],
-                [
-                    "20160525 13:30:00.048",
-                    "GOOG",
-                    "720.93",
-                    "44",
-                    "NASDAQ",
-                    "720.5",
-                    "720.93",
-                ],
-                [
-                    "20160525 13:30:00.074",
-                    "AAPL",
-                    "98.67",
-                    "478343",
-                    "NASDAQ",
-                    np.nan,
-                    np.nan,
-                ],
-                [
-                    "20160525 13:30:00.075",
-                    "AAPL",
-                    "98.67",
-                    "478343",
-                    "NASDAQ",
-                    np.nan,
-                    np.nan,
-                ],
-                [
-                    "20160525 13:30:00.075",
-                    "AAPL",
-                    "98.66",
-                    "6",
-                    "NASDAQ",
-                    np.nan,
-                    np.nan,
-                ],
-                [
-                    "20160525 13:30:00.075",
-                    "AAPL",
-                    "98.65",
-                    "30",
-                    "NASDAQ",
-                    np.nan,
-                    np.nan,
-                ],
-                [
-                    "20160525 13:30:00.075",
-                    "AAPL",
-                    "98.65",
-                    "75",
-                    "NASDAQ",
-                    np.nan,
-                    np.nan,
-                ],
-                [
-                    "20160525 13:30:00.075",
-                    "AAPL",
-                    "98.65",
-                    "20",
-                    "NASDAQ",
-                    np.nan,
-                    np.nan,
-                ],
-                [
-                    "20160525 13:30:00.075",
-                    "AAPL",
-                    "98.65",
-                    "35",
-                    "NASDAQ",
-                    np.nan,
-                    np.nan,
-                ],
-                [
-                    "20160525 13:30:00.075",
-                    "AAPL",
-                    "98.65",
-                    "10",
-                    "NASDAQ",
-                    np.nan,
-                    np.nan,
-                ],
-                ["20160525 13:30:00.075", "AAPL", "98.55", "6", "ARCA", np.nan, np.nan],
-                ["20160525 13:30:00.075", "AAPL", "98.55", "6", "ARCA", np.nan, np.nan],
-                [
-                    "20160525 13:30:00.076",
-                    "AAPL",
-                    "98.56",
-                    "1000",
-                    "ARCA",
-                    "98.55",
-                    "98.56",
-                ],
-                [
-                    "20160525 13:30:00.076",
-                    "AAPL",
-                    "98.56",
-                    "200",
-                    "ARCA",
-                    "98.55",
-                    "98.56",
-                ],
-                [
-                    "20160525 13:30:00.076",
-                    "AAPL",
-                    "98.56",
-                    "300",
-                    "ARCA",
-                    "98.55",
-                    "98.56",
-                ],
-                [
-                    "20160525 13:30:00.076",
-                    "AAPL",
-                    "98.56",
-                    "400",
-                    "ARCA",
-                    "98.55",
-                    "98.56",
-                ],
-                [
-                    "20160525 13:30:00.076",
-                    "AAPL",
-                    "98.56",
-                    "600",
-                    "ARCA",
-                    "98.55",
-                    "98.56",
-                ],
-                [
-                    "20160525 13:30:00.076",
-                    "AAPL",
-                    "98.56",
-                    "200",
-                    "ARCA",
-                    "98.55",
-                    "98.56",
-                ],
-                [
-                    "20160525 13:30:00.078",
-                    "MSFT",
-                    "51.95",
-                    "783",
-                    "NASDAQ",
-                    "51.95",
-                    "51.95",
-                ],
-                [
-                    "20160525 13:30:00.078",
-                    "MSFT",
-                    "51.95",
-                    "100",
-                    "NASDAQ",
-                    "51.95",
-                    "51.95",
-                ],
-                [
-                    "20160525 13:30:00.078",
-                    "MSFT",
-                    "51.95",
-                    "100",
-                    "NASDAQ",
-                    "51.95",
                     "51.95",
                 ],
             ],
@@ -2627,11 +2140,247 @@ class TestAsOfMerge:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_allow_exact_matches(self, trades, quotes, allow_exact_matches):
+    def test_allow_exact_matches(self, trades, quotes):
         result = merge_asof(
             trades, quotes, on="time", by="ticker", allow_exact_matches=False
         )
-        expected = allow_exact_matches
+        df = pd.DataFrame(
+            [
+                [
+                    "20160525 13:30:00.023",
+                    "MSFT",
+                    "51.95",
+                    "75",
+                    "NASDAQ",
+                    np.nan,
+                    np.nan,
+                ],
+                [
+                    "20160525 13:30:00.038",
+                    "MSFT",
+                    "51.95",
+                    "155",
+                    "NASDAQ",
+                    "51.95",
+                    "51.95",
+                ],
+                [
+                    "20160525 13:30:00.048",
+                    "GOOG",
+                    "720.77",
+                    "100",
+                    "NASDAQ",
+                    "720.5",
+                    "720.93",
+                ],
+                [
+                    "20160525 13:30:00.048",
+                    "GOOG",
+                    "720.92",
+                    "100",
+                    "NASDAQ",
+                    "720.5",
+                    "720.93",
+                ],
+                [
+                    "20160525 13:30:00.048",
+                    "GOOG",
+                    "720.93",
+                    "200",
+                    "NASDAQ",
+                    "720.5",
+                    "720.93",
+                ],
+                [
+                    "20160525 13:30:00.048",
+                    "GOOG",
+                    "720.93",
+                    "300",
+                    "NASDAQ",
+                    "720.5",
+                    "720.93",
+                ],
+                [
+                    "20160525 13:30:00.048",
+                    "GOOG",
+                    "720.93",
+                    "600",
+                    "NASDAQ",
+                    "720.5",
+                    "720.93",
+                ],
+                [
+                    "20160525 13:30:00.048",
+                    "GOOG",
+                    "720.93",
+                    "44",
+                    "NASDAQ",
+                    "720.5",
+                    "720.93",
+                ],
+                [
+                    "20160525 13:30:00.074",
+                    "AAPL",
+                    "98.67",
+                    "478343",
+                    "NASDAQ",
+                    np.nan,
+                    np.nan,
+                ],
+                [
+                    "20160525 13:30:00.075",
+                    "AAPL",
+                    "98.67",
+                    "478343",
+                    "NASDAQ",
+                    np.nan,
+                    np.nan,
+                ],
+                [
+                    "20160525 13:30:00.075",
+                    "AAPL",
+                    "98.66",
+                    "6",
+                    "NASDAQ",
+                    np.nan,
+                    np.nan,
+                ],
+                [
+                    "20160525 13:30:00.075",
+                    "AAPL",
+                    "98.65",
+                    "30",
+                    "NASDAQ",
+                    np.nan,
+                    np.nan,
+                ],
+                [
+                    "20160525 13:30:00.075",
+                    "AAPL",
+                    "98.65",
+                    "75",
+                    "NASDAQ",
+                    np.nan,
+                    np.nan,
+                ],
+                [
+                    "20160525 13:30:00.075",
+                    "AAPL",
+                    "98.65",
+                    "20",
+                    "NASDAQ",
+                    np.nan,
+                    np.nan,
+                ],
+                [
+                    "20160525 13:30:00.075",
+                    "AAPL",
+                    "98.65",
+                    "35",
+                    "NASDAQ",
+                    np.nan,
+                    np.nan,
+                ],
+                [
+                    "20160525 13:30:00.075",
+                    "AAPL",
+                    "98.65",
+                    "10",
+                    "NASDAQ",
+                    np.nan,
+                    np.nan,
+                ],
+                ["20160525 13:30:00.075", "AAPL", "98.55", "6", "ARCA", np.nan, np.nan],
+                ["20160525 13:30:00.075", "AAPL", "98.55", "6", "ARCA", np.nan, np.nan],
+                [
+                    "20160525 13:30:00.076",
+                    "AAPL",
+                    "98.56",
+                    "1000",
+                    "ARCA",
+                    "98.55",
+                    "98.56",
+                ],
+                [
+                    "20160525 13:30:00.076",
+                    "AAPL",
+                    "98.56",
+                    "200",
+                    "ARCA",
+                    "98.55",
+                    "98.56",
+                ],
+                [
+                    "20160525 13:30:00.076",
+                    "AAPL",
+                    "98.56",
+                    "300",
+                    "ARCA",
+                    "98.55",
+                    "98.56",
+                ],
+                [
+                    "20160525 13:30:00.076",
+                    "AAPL",
+                    "98.56",
+                    "400",
+                    "ARCA",
+                    "98.55",
+                    "98.56",
+                ],
+                [
+                    "20160525 13:30:00.076",
+                    "AAPL",
+                    "98.56",
+                    "600",
+                    "ARCA",
+                    "98.55",
+                    "98.56",
+                ],
+                [
+                    "20160525 13:30:00.076",
+                    "AAPL",
+                    "98.56",
+                    "200",
+                    "ARCA",
+                    "98.55",
+                    "98.56",
+                ],
+                [
+                    "20160525 13:30:00.078",
+                    "MSFT",
+                    "51.95",
+                    "783",
+                    "NASDAQ",
+                    "51.95",
+                    "51.95",
+                ],
+                [
+                    "20160525 13:30:00.078",
+                    "MSFT",
+                    "51.95",
+                    "100",
+                    "NASDAQ",
+                    "51.95",
+                    "51.95",
+                ],
+                [
+                    "20160525 13:30:00.078",
+                    "MSFT",
+                    "51.95",
+                    "100",
+                    "NASDAQ",
+                    "51.95",
+                    "51.95",
+                ],
+            ],
+            columns="time,ticker,price,quantity,marketCenter,bid,ask".split(","),
+        )
+        df["price"] = df["price"].astype("float64")
+        df["quantity"] = df["quantity"].astype("int64")
+        df["bid"] = df["bid"].astype("float64")
+        df["ask"] = df["ask"].astype("float64")
+        expected = self.prep_data(df)
         tm.assert_frame_equal(result, expected)
 
     def test_allow_exact_matches_forward(self):
@@ -2664,9 +2413,7 @@ class TestAsOfMerge:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_allow_exact_matches_and_tolerance(
-        self, trades, quotes, allow_exact_matches_and_tolerance
-    ):
+    def test_allow_exact_matches_and_tolerance(self, trades, quotes):
         result = merge_asof(
             trades,
             quotes,
@@ -2675,7 +2422,243 @@ class TestAsOfMerge:
             tolerance=Timedelta("100ms"),
             allow_exact_matches=False,
         )
-        expected = allow_exact_matches_and_tolerance
+        df = pd.DataFrame(
+            [
+                [
+                    "20160525 13:30:00.023",
+                    "MSFT",
+                    "51.95",
+                    "75",
+                    "NASDAQ",
+                    np.nan,
+                    np.nan,
+                ],
+                [
+                    "20160525 13:30:00.038",
+                    "MSFT",
+                    "51.95",
+                    "155",
+                    "NASDAQ",
+                    "51.95",
+                    "51.95",
+                ],
+                [
+                    "20160525 13:30:00.048",
+                    "GOOG",
+                    "720.77",
+                    "100",
+                    "NASDAQ",
+                    "720.5",
+                    "720.93",
+                ],
+                [
+                    "20160525 13:30:00.048",
+                    "GOOG",
+                    "720.92",
+                    "100",
+                    "NASDAQ",
+                    "720.5",
+                    "720.93",
+                ],
+                [
+                    "20160525 13:30:00.048",
+                    "GOOG",
+                    "720.93",
+                    "200",
+                    "NASDAQ",
+                    "720.5",
+                    "720.93",
+                ],
+                [
+                    "20160525 13:30:00.048",
+                    "GOOG",
+                    "720.93",
+                    "300",
+                    "NASDAQ",
+                    "720.5",
+                    "720.93",
+                ],
+                [
+                    "20160525 13:30:00.048",
+                    "GOOG",
+                    "720.93",
+                    "600",
+                    "NASDAQ",
+                    "720.5",
+                    "720.93",
+                ],
+                [
+                    "20160525 13:30:00.048",
+                    "GOOG",
+                    "720.93",
+                    "44",
+                    "NASDAQ",
+                    "720.5",
+                    "720.93",
+                ],
+                [
+                    "20160525 13:30:00.074",
+                    "AAPL",
+                    "98.67",
+                    "478343",
+                    "NASDAQ",
+                    np.nan,
+                    np.nan,
+                ],
+                [
+                    "20160525 13:30:00.075",
+                    "AAPL",
+                    "98.67",
+                    "478343",
+                    "NASDAQ",
+                    np.nan,
+                    np.nan,
+                ],
+                [
+                    "20160525 13:30:00.075",
+                    "AAPL",
+                    "98.66",
+                    "6",
+                    "NASDAQ",
+                    np.nan,
+                    np.nan,
+                ],
+                [
+                    "20160525 13:30:00.075",
+                    "AAPL",
+                    "98.65",
+                    "30",
+                    "NASDAQ",
+                    np.nan,
+                    np.nan,
+                ],
+                [
+                    "20160525 13:30:00.075",
+                    "AAPL",
+                    "98.65",
+                    "75",
+                    "NASDAQ",
+                    np.nan,
+                    np.nan,
+                ],
+                [
+                    "20160525 13:30:00.075",
+                    "AAPL",
+                    "98.65",
+                    "20",
+                    "NASDAQ",
+                    np.nan,
+                    np.nan,
+                ],
+                [
+                    "20160525 13:30:00.075",
+                    "AAPL",
+                    "98.65",
+                    "35",
+                    "NASDAQ",
+                    np.nan,
+                    np.nan,
+                ],
+                [
+                    "20160525 13:30:00.075",
+                    "AAPL",
+                    "98.65",
+                    "10",
+                    "NASDAQ",
+                    np.nan,
+                    np.nan,
+                ],
+                ["20160525 13:30:00.075", "AAPL", "98.55", "6", "ARCA", np.nan, np.nan],
+                ["20160525 13:30:00.075", "AAPL", "98.55", "6", "ARCA", np.nan, np.nan],
+                [
+                    "20160525 13:30:00.076",
+                    "AAPL",
+                    "98.56",
+                    "1000",
+                    "ARCA",
+                    "98.55",
+                    "98.56",
+                ],
+                [
+                    "20160525 13:30:00.076",
+                    "AAPL",
+                    "98.56",
+                    "200",
+                    "ARCA",
+                    "98.55",
+                    "98.56",
+                ],
+                [
+                    "20160525 13:30:00.076",
+                    "AAPL",
+                    "98.56",
+                    "300",
+                    "ARCA",
+                    "98.55",
+                    "98.56",
+                ],
+                [
+                    "20160525 13:30:00.076",
+                    "AAPL",
+                    "98.56",
+                    "400",
+                    "ARCA",
+                    "98.55",
+                    "98.56",
+                ],
+                [
+                    "20160525 13:30:00.076",
+                    "AAPL",
+                    "98.56",
+                    "600",
+                    "ARCA",
+                    "98.55",
+                    "98.56",
+                ],
+                [
+                    "20160525 13:30:00.076",
+                    "AAPL",
+                    "98.56",
+                    "200",
+                    "ARCA",
+                    "98.55",
+                    "98.56",
+                ],
+                [
+                    "20160525 13:30:00.078",
+                    "MSFT",
+                    "51.95",
+                    "783",
+                    "NASDAQ",
+                    "51.95",
+                    "51.95",
+                ],
+                [
+                    "20160525 13:30:00.078",
+                    "MSFT",
+                    "51.95",
+                    "100",
+                    "NASDAQ",
+                    "51.95",
+                    "51.95",
+                ],
+                [
+                    "20160525 13:30:00.078",
+                    "MSFT",
+                    "51.95",
+                    "100",
+                    "NASDAQ",
+                    "51.95",
+                    "51.95",
+                ],
+            ],
+            columns="time,ticker,price,quantity,marketCenter,bid,ask".split(","),
+        )
+        df["price"] = df["price"].astype("float64")
+        df["quantity"] = df["quantity"].astype("int64")
+        df["bid"] = df["bid"].astype("float64")
+        df["ask"] = df["ask"].astype("float64")
+        expected = self.prep_data(df)
         tm.assert_frame_equal(result, expected)
 
     def test_allow_exact_matches_and_tolerance2(self):
@@ -3116,7 +3099,7 @@ class TestAsOfMerge:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "func", [lambda x: x, lambda x: to_datetime(x)], ids=["numeric", "datetime"]
+        "func", [lambda x: x, to_datetime], ids=["numeric", "datetime"]
     )
     @pytest.mark.parametrize("side", ["left", "right"])
     def test_merge_on_nans(self, func, side):
@@ -3373,21 +3356,25 @@ class TestAsOfMerge:
 
 
 @pytest.mark.parametrize(
+    "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
+)
+@pytest.mark.parametrize(
     "kwargs", [{"on": "x"}, {"left_index": True, "right_index": True}]
 )
 @pytest.mark.parametrize(
     "data",
     [["2019-06-01 00:09:12", "2019-06-01 00:10:29"], [1.0, "2019-06-01 00:10:29"]],
 )
-def test_merge_asof_non_numerical_dtype(kwargs, data):
+def test_merge_asof_non_numerical_dtype(kwargs, data, infer_string):
     # GH#29130
-    left = pd.DataFrame({"x": data}, index=data)
-    right = pd.DataFrame({"x": data}, index=data)
-    with pytest.raises(
-        MergeError,
-        match=r"Incompatible merge dtype, .*, both sides must have numeric dtype",
-    ):
-        merge_asof(left, right, **kwargs)
+    with option_context("future.infer_string", infer_string):
+        left = pd.DataFrame({"x": data}, index=data)
+        right = pd.DataFrame({"x": data}, index=data)
+        with pytest.raises(
+            MergeError,
+            match=r"Incompatible merge dtype, .*, both sides must have numeric dtype",
+        ):
+            merge_asof(left, right, **kwargs)
 
 
 def test_merge_asof_non_numerical_dtype_object():
@@ -3477,16 +3464,19 @@ def test_merge_asof_numeri_column_in_index_object_dtype():
         merge_asof(left, right, left_on="a", right_on="a")
 
 
-def test_merge_asof_array_as_on():
+def test_merge_asof_array_as_on(unit):
     # GH#42844
+    dti = pd.DatetimeIndex(
+        ["2021/01/01 00:37", "2021/01/01 01:40"], dtype=f"M8[{unit}]"
+    )
     right = pd.DataFrame(
         {
             "a": [2, 6],
-            "ts": [pd.Timestamp("2021/01/01 00:37"), pd.Timestamp("2021/01/01 01:40")],
+            "ts": dti,
         }
     )
     ts_merge = pd.date_range(
-        start=pd.Timestamp("2021/01/01 00:00"), periods=3, freq="1h"
+        start=pd.Timestamp("2021/01/01 00:00"), periods=3, freq="1h", unit=unit
     )
     left = pd.DataFrame({"b": [4, 8, 7]})
     result = merge_asof(
@@ -3511,7 +3501,7 @@ def test_merge_asof_array_as_on():
     expected = pd.DataFrame(
         {
             "a": [2, 6],
-            "ts": [pd.Timestamp("2021/01/01 00:37"), pd.Timestamp("2021/01/01 01:40")],
+            "ts": dti,
             "b": [4, 8],
         }
     )
@@ -3566,6 +3556,29 @@ def test_merge_asof_extension_dtype(dtype):
         }
     )
     expected = expected.astype({"join_col": dtype})
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_merge_asof_pyarrow_td_tolerance():
+    # GH 56486
+    ser = pd.Series(
+        [datetime.datetime(2023, 1, 1)], dtype="timestamp[us, UTC][pyarrow]"
+    )
+    df = pd.DataFrame(
+        {
+            "timestamp": ser,
+            "value": [1],
+        }
+    )
+    result = merge_asof(df, df, on="timestamp", tolerance=Timedelta("1s"))
+    expected = pd.DataFrame(
+        {
+            "timestamp": ser,
+            "value_x": [1],
+            "value_y": [1],
+        }
+    )
     tm.assert_frame_equal(result, expected)
 
 

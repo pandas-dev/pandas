@@ -37,7 +37,7 @@ def test_apply_func_that_appends_group_to_list_without_copy():
     tm.assert_frame_equal(groups[0], expected_value)
 
 
-def test_apply_index_date():
+def test_apply_index_date(using_infer_string):
     # GH 5788
     ts = [
         "2011-05-16 00:00",
@@ -77,7 +77,7 @@ def test_apply_index_date():
     tm.assert_frame_equal(result, expected)
 
 
-def test_apply_index_date_object():
+def test_apply_index_date_object(using_infer_string):
     # GH 5789
     # don't auto coerce dates
     ts = [
@@ -109,8 +109,9 @@ def test_apply_index_date_object():
         1.40750,
         1.40649,
     ]
+    dtype = "string[pyarrow_numpy]" if using_infer_string else object
     exp_idx = Index(
-        ["2011-05-16", "2011-05-17", "2011-05-18"], dtype=object, name="date"
+        ["2011-05-16", "2011-05-17", "2011-05-18"], dtype=dtype, name="date"
     )
     expected = Series(["00:00", "02:00", "02:00"], index=exp_idx)
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
@@ -121,14 +122,15 @@ def test_apply_index_date_object():
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_trivial():
+def test_apply_trivial(using_infer_string):
     # GH 20066
     # trivial apply: ignore input and return a constant dataframe.
     df = DataFrame(
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
         columns=["key", "data"],
     )
-    expected = pd.concat([df.iloc[1:], df.iloc[1:]], axis=1, keys=["float64", "object"])
+    dtype = "string" if using_infer_string else "object"
+    expected = pd.concat([df.iloc[1:], df.iloc[1:]], axis=1, keys=["float64", dtype])
 
     msg = "DataFrame.groupby with axis=1 is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -138,13 +140,14 @@ def test_apply_trivial():
     tm.assert_frame_equal(result, expected)
 
 
-def test_apply_trivial_fail():
+def test_apply_trivial_fail(using_infer_string):
     # GH 20066
     df = DataFrame(
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
         columns=["key", "data"],
     )
-    expected = pd.concat([df, df], axis=1, keys=["float64", "object"])
+    dtype = "string" if using_infer_string else "object"
+    expected = pd.concat([df, df], axis=1, keys=["float64", dtype])
     msg = "DataFrame.groupby with axis=1 is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         gb = df.groupby([str(x) for x in df.dtypes], axis=1, group_keys=True)
@@ -941,7 +944,7 @@ def test_func_returns_object():
     "group_column_dtlike",
     [datetime.today(), datetime.today().date(), datetime.today().time()],
 )
-def test_apply_datetime_issue(group_column_dtlike):
+def test_apply_datetime_issue(group_column_dtlike, using_infer_string):
     # GH-28247
     # groupby-apply throws an error if one of the columns in the DataFrame
     #   is a datetime object and the column labels are different from
@@ -952,9 +955,8 @@ def test_apply_datetime_issue(group_column_dtlike):
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.groupby("a").apply(lambda x: Series(["spam"], index=[42]))
 
-    expected = DataFrame(
-        ["spam"], Index(["foo"], dtype="object", name="a"), columns=[42]
-    )
+    dtype = "string" if using_infer_string else "object"
+    expected = DataFrame(["spam"], Index(["foo"], dtype=dtype, name="a"), columns=[42])
     tm.assert_frame_equal(result, expected)
 
 
@@ -1021,7 +1023,7 @@ def test_apply_multi_level_name(category):
     assert df.index.names == ["A", "B"]
 
 
-def test_groupby_apply_datetime_result_dtypes():
+def test_groupby_apply_datetime_result_dtypes(using_infer_string):
     # GH 14849
     data = DataFrame.from_records(
         [
@@ -1035,8 +1037,9 @@ def test_groupby_apply_datetime_result_dtypes():
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = data.groupby("color").apply(lambda g: g.iloc[0]).dtypes
+    dtype = "string" if using_infer_string else object
     expected = Series(
-        [np.dtype("datetime64[ns]"), object, object, np.int64, object],
+        [np.dtype("datetime64[ns]"), dtype, dtype, np.int64, dtype],
         index=["observation", "color", "mood", "intensity", "score"],
     )
     tm.assert_series_equal(result, expected)
@@ -1279,7 +1282,6 @@ def test_apply_by_cols_equals_apply_by_rows_transposed():
     tm.assert_frame_equal(by_cols, df)
 
 
-@pytest.mark.parametrize("dropna", [True, False])
 def test_apply_dropna_with_indexed_same(dropna):
     # GH 38227
     # GH#43205
@@ -1391,7 +1393,6 @@ def test_groupby_apply_to_series_name():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("dropna", [True, False])
 def test_apply_na(dropna):
     # GH#28984
     df = DataFrame(
@@ -1559,3 +1560,117 @@ def test_include_groups(include_groups):
     if not include_groups:
         expected = expected[["b"]]
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("f", [max, min, sum])
+@pytest.mark.parametrize("keys", ["jim", ["jim", "joe"]])  # Single key  # Multi-key
+def test_builtins_apply(keys, f):
+    # see gh-8155
+    rs = np.random.default_rng(2)
+    df = DataFrame(rs.integers(1, 7, (10, 2)), columns=["jim", "joe"])
+    df["jolie"] = rs.standard_normal(10)
+
+    gb = df.groupby(keys)
+
+    fname = f.__name__
+
+    warn = None if f is not sum else FutureWarning
+    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
+    with tm.assert_produces_warning(
+        warn, match=msg, check_stacklevel=False, raise_on_extra_warnings=False
+    ):
+        # Also warns on deprecation GH#53425
+        result = gb.apply(f)
+    ngroups = len(df.drop_duplicates(subset=keys))
+
+    assert_msg = f"invalid frame shape: {result.shape} (expected ({ngroups}, 3))"
+    assert result.shape == (ngroups, 3), assert_msg
+
+    npfunc = lambda x: getattr(np, fname)(x, axis=0)  # numpy's equivalent function
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = gb.apply(npfunc)
+    tm.assert_frame_equal(result, expected)
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected2 = gb.apply(lambda x: npfunc(x))
+    tm.assert_frame_equal(result, expected2)
+
+    if f != sum:
+        expected = gb.agg(fname).reset_index()
+        expected.set_index(keys, inplace=True, drop=False)
+        tm.assert_frame_equal(result, expected, check_dtype=False)
+
+    tm.assert_series_equal(getattr(result, fname)(axis=0), getattr(df, fname)(axis=0))
+
+
+def test_inconsistent_return_type():
+    # GH5592
+    # inconsistent return type
+    df = DataFrame(
+        {
+            "A": ["Tiger", "Tiger", "Tiger", "Lamb", "Lamb", "Pony", "Pony"],
+            "B": Series(np.arange(7), dtype="int64"),
+            "C": pd.date_range("20130101", periods=7),
+        }
+    )
+
+    def f_0(grp):
+        return grp.iloc[0]
+
+    expected = df.groupby("A").first()[["B"]]
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("A").apply(f_0)[["B"]]
+    tm.assert_frame_equal(result, expected)
+
+    def f_1(grp):
+        if grp.name == "Tiger":
+            return None
+        return grp.iloc[0]
+
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("A").apply(f_1)[["B"]]
+    e = expected.copy()
+    e.loc["Tiger"] = np.nan
+    tm.assert_frame_equal(result, e)
+
+    def f_2(grp):
+        if grp.name == "Pony":
+            return None
+        return grp.iloc[0]
+
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("A").apply(f_2)[["B"]]
+    e = expected.copy()
+    e.loc["Pony"] = np.nan
+    tm.assert_frame_equal(result, e)
+
+    # 5592 revisited, with datetimes
+    def f_3(grp):
+        if grp.name == "Pony":
+            return None
+        return grp.iloc[0]
+
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("A").apply(f_3)[["C"]]
+    e = df.groupby("A").first()[["C"]]
+    e.loc["Pony"] = pd.NaT
+    tm.assert_frame_equal(result, e)
+
+    # scalar outputs
+    def f_4(grp):
+        if grp.name == "Pony":
+            return None
+        return grp.iloc[0].loc["C"]
+
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("A").apply(f_4)
+    e = df.groupby("A").first()["C"].copy()
+    e.loc["Pony"] = np.nan
+    e.name = None
+    tm.assert_series_equal(result, e)

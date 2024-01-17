@@ -40,11 +40,11 @@ class TestSeriesLogicalOps:
         s_empty = Series([], dtype=object)
 
         res = s_tft & s_empty
-        expected = s_fff
+        expected = s_fff.sort_index()
         tm.assert_series_equal(res, expected)
 
         res = s_tft | s_empty
-        expected = s_tft
+        expected = s_tft.sort_index()
         tm.assert_series_equal(res, expected)
 
     def test_logical_operators_int_dtype_with_int_dtype(self):
@@ -146,7 +146,7 @@ class TestSeriesLogicalOps:
         expected = Series([False, True, True, True])
         tm.assert_series_equal(result, expected)
 
-    def test_logical_operators_int_dtype_with_object(self):
+    def test_logical_operators_int_dtype_with_object(self, using_infer_string):
         # GH#9016: support bitwise op for integer types
         s_0123 = Series(range(4), dtype="int64")
 
@@ -155,8 +155,14 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(result, expected)
 
         s_abNd = Series(["a", "b", np.nan, "d"])
-        with pytest.raises(TypeError, match="unsupported.* 'int' and 'str'"):
-            s_0123 & s_abNd
+        if using_infer_string:
+            import pyarrow as pa
+
+            with pytest.raises(pa.lib.ArrowNotImplementedError, match="has no kernel"):
+                s_0123 & s_abNd
+        else:
+            with pytest.raises(TypeError, match="unsupported.* 'int' and 'str'"):
+                s_0123 & s_abNd
 
     def test_logical_operators_bool_dtype_with_int(self):
         index = list("bca")
@@ -339,9 +345,9 @@ class TestSeriesLogicalOps:
     @pytest.mark.parametrize(
         "op, expected",
         [
-            (ops.rand_, Series([False, False])),
-            (ops.ror_, Series([True, True])),
-            (ops.rxor, Series([True, True])),
+            (ops.rand_, [False, False]),
+            (ops.ror_, [True, True]),
+            (ops.rxor, [True, True]),
         ],
     )
     def test_reverse_ops_with_index(self, op, expected):
@@ -352,9 +358,10 @@ class TestSeriesLogicalOps:
         idx = Index([False, True])
 
         result = op(ser, idx)
+        expected = Series(expected)
         tm.assert_series_equal(result, expected)
 
-    def test_logical_ops_label_based(self):
+    def test_logical_ops_label_based(self, using_infer_string):
         # GH#4947
         # logical ops should be label based
 
@@ -390,12 +397,12 @@ class TestSeriesLogicalOps:
         # vs empty
         empty = Series([], dtype=object)
 
-        result = a & empty.copy()
-        expected = Series([False, False, False], list("bca"))
+        result = a & empty
+        expected = Series([False, False, False], list("abc"))
         tm.assert_series_equal(result, expected)
 
-        result = a | empty.copy()
-        expected = Series([True, False, True], list("bca"))
+        result = a | empty
+        expected = Series([True, True, False], list("abc"))
         tm.assert_series_equal(result, expected)
 
         # vs non-matching
@@ -422,7 +429,17 @@ class TestSeriesLogicalOps:
                 tm.assert_series_equal(result, a[a])
 
         for e in [Series(["z"])]:
-            result = a[a | e]
+            warn = FutureWarning if using_infer_string else None
+            if using_infer_string:
+                import pyarrow as pa
+
+                with tm.assert_produces_warning(warn, match="Operation between non"):
+                    with pytest.raises(
+                        pa.lib.ArrowNotImplementedError, match="has no kernel"
+                    ):
+                        result = a[a | e]
+            else:
+                result = a[a | e]
             tm.assert_series_equal(result, a[a])
 
         # vs scalars
@@ -514,3 +531,19 @@ class TestSeriesLogicalOps:
 
         result = ser1 ^ ser2
         tm.assert_series_equal(result, expected)
+
+    def test_pyarrow_numpy_string_invalid(self):
+        # GH#56008
+        pytest.importorskip("pyarrow")
+        ser = Series([False, True])
+        ser2 = Series(["a", "b"], dtype="string[pyarrow_numpy]")
+        result = ser == ser2
+        expected = Series(False, index=ser.index)
+        tm.assert_series_equal(result, expected)
+
+        result = ser != ser2
+        expected = Series(True, index=ser.index)
+        tm.assert_series_equal(result, expected)
+
+        with pytest.raises(TypeError, match="Invalid comparison"):
+            ser > ser2

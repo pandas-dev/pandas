@@ -36,7 +36,9 @@ def four_level_index_dataframe():
 
 
 class TestXS:
-    def test_xs(self, float_frame, datetime_frame, using_copy_on_write):
+    def test_xs(
+        self, float_frame, datetime_frame, using_copy_on_write, warn_copy_on_write
+    ):
         float_frame_orig = float_frame.copy()
         idx = float_frame.index[5]
         xs = float_frame.xs(idx)
@@ -66,7 +68,8 @@ class TestXS:
 
         # view is returned if possible
         series = float_frame.xs("A", axis=1)
-        series[:] = 5
+        with tm.assert_cow_warning(warn_copy_on_write):
+            series[:] = 5
         if using_copy_on_write:
             # but with CoW the view shouldn't propagate mutations
             tm.assert_series_equal(float_frame["A"], float_frame_orig["A"])
@@ -119,7 +122,7 @@ class TestXS:
         result = df.xs((2008, "sat"), level=["year", "day"], drop_level=False)
         tm.assert_frame_equal(result, expected)
 
-    def test_xs_view(self, using_array_manager, using_copy_on_write):
+    def test_xs_view(self, using_copy_on_write, warn_copy_on_write):
         # in 0.14 this will return a view if possible a copy otherwise, but
         # this is numpy dependent
 
@@ -130,15 +133,9 @@ class TestXS:
             with tm.raises_chained_assignment_error():
                 dm.xs(2)[:] = 20
             tm.assert_frame_equal(dm, df_orig)
-        elif using_array_manager:
-            # INFO(ArrayManager) with ArrayManager getting a row as a view is
-            # not possible
-            msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-            with pytest.raises(SettingWithCopyError, match=msg):
-                dm.xs(2)[:] = 20
-            assert not (dm.xs(2) == 20).any()
         else:
-            dm.xs(2)[:] = 20
+            with tm.raises_chained_assignment_error():
+                dm.xs(2)[:] = 20
             assert (dm.xs(2) == 20).all()
 
 
@@ -394,14 +391,15 @@ class TestXSWithMultiIndex:
         expected = DataFrame({"a": [1]})
         tm.assert_frame_equal(result, expected)
 
-    def test_xs_droplevel_false_view(self, using_array_manager, using_copy_on_write):
+    def test_xs_droplevel_false_view(self, using_copy_on_write, warn_copy_on_write):
         # GH#37832
         df = DataFrame([[1, 2, 3]], columns=Index(["a", "b", "c"]))
         result = df.xs("a", axis=1, drop_level=False)
         # check that result still views the same data as df
         assert np.shares_memory(result.iloc[:, 0]._values, df.iloc[:, 0]._values)
 
-        df.iloc[0, 0] = 2
+        with tm.assert_cow_warning(warn_copy_on_write):
+            df.iloc[0, 0] = 2
         if using_copy_on_write:
             # with copy on write the subset is never modified
             expected = DataFrame({"a": [1]})
@@ -418,9 +416,6 @@ class TestXSWithMultiIndex:
         if using_copy_on_write:
             # with copy on write the subset is never modified
             expected = DataFrame({"a": [1]})
-        elif using_array_manager:
-            # Here the behavior is consistent
-            expected = DataFrame({"a": [2]})
         else:
             # FIXME: iloc does not update the array inplace using
             # "split" path

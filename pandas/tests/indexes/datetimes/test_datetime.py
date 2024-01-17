@@ -58,12 +58,6 @@ class TestDatetimeIndex:
         expected = DatetimeIndex([d1, d3, d2])
         tm.assert_index_equal(result_union, expected)
 
-        # GH 5115
-        result = date_range("2013-1-1", periods=4, freq="WOM-1SAT")
-        dates = ["2013-01-05", "2013-02-02", "2013-03-02", "2013-04-06"]
-        expected = DatetimeIndex(dates, freq="WOM-1SAT")
-        tm.assert_index_equal(result, expected)
-
     def test_append_nondatetimeindex(self):
         rng = date_range("1/1/2000", periods=10)
         idx = Index(["a", "b", "c", "d"])
@@ -168,11 +162,6 @@ class TestDatetimeIndex:
         "freq_depr, expected_values, expected_freq",
         [
             (
-                "2BA",
-                ["2020-12-31", "2022-12-30"],
-                "2BY-DEC",
-            ),
-            (
                 "AS-AUG",
                 ["2021-08-01", "2022-08-01", "2023-08-01"],
                 "YS-AUG",
@@ -184,7 +173,7 @@ class TestDatetimeIndex:
             ),
         ],
     )
-    def test_AS_BA_BAS_deprecated(self, freq_depr, expected_values, expected_freq):
+    def test_AS_BAS_deprecated(self, freq_depr, expected_values, expected_freq):
         # GH#55479
         freq_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
         msg = f"'{freq_msg}' is deprecated and will be removed in a future version."
@@ -201,16 +190,27 @@ class TestDatetimeIndex:
 
         tm.assert_index_equal(result, expected)
 
-    def test_BM_deprecated(self):
+    @pytest.mark.parametrize(
+        "freq, expected_values, freq_depr",
+        [
+            ("2BYE-MAR", ["2016-03-31"], "2BA-MAR"),
+            ("2BYE-JUN", ["2016-06-30"], "2BY-JUN"),
+            ("2BME", ["2016-02-29", "2016-04-29", "2016-06-30"], "2BM"),
+            ("2BQE", ["2016-03-31"], "2BQ"),
+            ("1BQE-MAR", ["2016-03-31", "2016-06-30"], "1BQ-MAR"),
+        ],
+    )
+    def test_BM_BQ_BY_deprecated(self, freq, expected_values, freq_depr):
         # GH#52064
-        msg = "'BM' is deprecated and will be removed in a future version."
+        msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
+        f"in a future version, please use '{freq[1:]}' instead."
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = date_range(start="2016-02-21", end="2016-08-21", freq="2BM")
+            expected = date_range(start="2016-02-21", end="2016-08-21", freq=freq_depr)
         result = DatetimeIndex(
-            ["2016-02-29", "2016-04-29", "2016-06-30"],
+            data=expected_values,
             dtype="datetime64[ns]",
-            freq="2BME",
+            freq=freq,
         )
 
         tm.assert_index_equal(result, expected)

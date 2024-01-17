@@ -259,9 +259,9 @@ class TestSeriesDatetimeValues:
         tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
 
         # Period
-        ser = Series(
-            period_range("20130101", periods=5, freq="D", name="xxx").astype(object)
-        )
+        idx = period_range("20130101", periods=5, freq="D", name="xxx").astype(object)
+        with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
+            ser = Series(idx)
         results = get_dir(ser)
         tm.assert_almost_equal(
             results, sorted(set(ok_for_period + ok_for_period_methods))
@@ -294,8 +294,9 @@ class TestSeriesDatetimeValues:
                 with tm.raises_chained_assignment_error():
                     ser.dt.hour[0] = 5
             elif warn_copy_on_write:
-                # TODO(CoW-warn) should warn
-                with tm.assert_cow_warning(False):
+                with tm.assert_produces_warning(
+                    FutureWarning, match="ChainedAssignmentError"
+                ):
                     ser.dt.hour[0] = 5
             else:
                 with pytest.raises(SettingWithCopyError, match=msg):
@@ -451,7 +452,8 @@ class TestSeriesDatetimeValues:
 
     # error: Unsupported operand types for + ("List[None]" and "List[str]")
     @pytest.mark.parametrize(
-        "time_locale", [None] + tm.get_locales()  # type: ignore[operator]
+        "time_locale",
+        [None] + tm.get_locales(),  # type: ignore[operator]
     )
     def test_dt_accessor_datetime_name_accessors(self, time_locale):
         # Test Monday -> Sunday and January -> December, in that sequence
@@ -586,13 +588,15 @@ class TestSeriesDatetimeValues:
         # dtype may be S10 or U10 depending on python version
         tm.assert_index_equal(result, expected)
 
-    def test_strftime_period_days(self):
+    def test_strftime_period_days(self, using_infer_string):
         period_index = period_range("20150301", periods=5)
         result = period_index.strftime("%Y/%m/%d")
         expected = Index(
             ["2015/03/01", "2015/03/02", "2015/03/03", "2015/03/04", "2015/03/05"],
             dtype="=U10",
         )
+        if using_infer_string:
+            expected = expected.astype("string[pyarrow_numpy]")
         tm.assert_index_equal(result, expected)
 
     def test_strftime_dt64_microsecond_resolution(self):
@@ -693,15 +697,16 @@ class TestSeriesDatetimeValues:
         assert isinstance(ser.dt, DatetimeProperties)
 
     @pytest.mark.parametrize(
-        "ser",
+        "data",
         [
-            Series(np.arange(5)),
-            Series(list("abcde")),
-            Series(np.random.default_rng(2).standard_normal(5)),
+            np.arange(5),
+            list("abcde"),
+            np.random.default_rng(2).standard_normal(5),
         ],
     )
-    def test_dt_accessor_invalid(self, ser):
+    def test_dt_accessor_invalid(self, data):
         # GH#9322 check that series with incorrect dtypes don't have attr
+        ser = Series(data)
         with pytest.raises(AttributeError, match="only use .dt accessor"):
             ser.dt
         assert not hasattr(ser, "dt")

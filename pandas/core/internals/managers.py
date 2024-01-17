@@ -54,7 +54,11 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import (
+    ArrowExtensionArray,
+    ArrowStringArray,
+    DatetimeArray,
+)
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -72,6 +76,8 @@ from pandas.core.internals.base import (
     interleaved_dtype,
 )
 from pandas.core.internals.blocks import (
+    COW_WARNING_GENERAL_MSG,
+    COW_WARNING_SETITEM_MSG,
     Block,
     NumpyBlock,
     ensure_block_shape,
@@ -98,20 +104,6 @@ if TYPE_CHECKING:
     )
 
     from pandas.api.extensions import ExtensionArray
-
-
-COW_WARNING_SETITEM_MSG = """\
-Setting a value on a view: behaviour will change in pandas 3.0.
-Currently, the mutation will also have effect on the object that shares data
-with this object. For example, when setting a value in a Series that was
-extracted from a column of a DataFrame, that DataFrame will also be updated:
-
-    ser = df["col"]
-    ser[0] = 0     <--- in pandas 2, this also updates `df`
-
-In pandas 3.0 (with Copy-on-Write), updating one Series/DataFrame will never
-modify another, and thus in the example above, `df` will not be changed.
-"""
 
 
 class BaseBlockManager(DataManager):
@@ -378,7 +370,7 @@ class BaseBlockManager(DataManager):
     # Alias so we can share code with ArrayManager
     apply_with_block = apply
 
-    def setitem(self, indexer, value) -> Self:
+    def setitem(self, indexer, value, warn: bool = True) -> Self:
         """
         Set values with indexer.
 
@@ -387,7 +379,14 @@ class BaseBlockManager(DataManager):
         if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
             raise ValueError(f"Cannot set values with ndim > {self.ndim}")
 
-        if using_copy_on_write() and not self._has_no_reference(0):
+        if warn and warn_copy_on_write() and not self._has_no_reference(0):
+            warnings.warn(
+                COW_WARNING_GENERAL_MSG,
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
+        elif using_copy_on_write() and not self._has_no_reference(0):
             # this method is only called if there is a single block -> hardcoded 0
             # Split blocks to only copy the columns we want to modify
             if self.ndim == 2 and isinstance(indexer, tuple):
@@ -448,6 +447,16 @@ class BaseBlockManager(DataManager):
 
         return self.apply("convert", copy=copy, using_cow=using_copy_on_write())
 
+    def convert_dtypes(self, **kwargs):
+        if using_copy_on_write():
+            copy = False
+        else:
+            copy = True
+
+        return self.apply(
+            "convert_dtypes", copy=copy, using_cow=using_copy_on_write(), **kwargs
+        )
+
     def get_values_for_csv(
         self, *, float_format, date_format, decimal, na_rep: str = "nan", quoting=None
     ) -> Self:
@@ -486,17 +495,12 @@ class BaseBlockManager(DataManager):
 
     def _get_data_subset(self, predicate: Callable) -> Self:
         blocks = [blk for blk in self.blocks if predicate(blk.values)]
-        return self._combine(blocks, copy=False)
+        return self._combine(blocks)
 
-    def get_bool_data(self, copy: bool = False) -> Self:
+    def get_bool_data(self) -> Self:
         """
         Select blocks that are bool-dtype and columns from object-dtype blocks
         that are all-bool.
-
-        Parameters
-        ----------
-        copy : bool, default False
-            Whether to copy the blocks
         """
 
         new_blocks = []
@@ -509,26 +513,16 @@ class BaseBlockManager(DataManager):
                 nbs = blk._split()
                 new_blocks.extend(nb for nb in nbs if nb.is_bool)
 
-        return self._combine(new_blocks, copy)
+        return self._combine(new_blocks)
 
-    def get_numeric_data(self, copy: bool = False) -> Self:
-        """
-        Parameters
-        ----------
-        copy : bool, default False
-            Whether to copy the blocks
-        """
+    def get_numeric_data(self) -> Self:
         numeric_blocks = [blk for blk in self.blocks if blk.is_numeric]
         if len(numeric_blocks) == len(self.blocks):
             # Avoid somewhat expensive _combine
-            if copy:
-                return self.copy(deep=True)
             return self
-        return self._combine(numeric_blocks, copy)
+        return self._combine(numeric_blocks)
 
-    def _combine(
-        self, blocks: list[Block], copy: bool = True, index: Index | None = None
-    ) -> Self:
+    def _combine(self, blocks: list[Block], index: Index | None = None) -> Self:
         """return a new manager with the blocks"""
         if len(blocks) == 0:
             if self.ndim == 2:
@@ -545,11 +539,8 @@ class BaseBlockManager(DataManager):
         inv_indexer = lib.get_reverse_indexer(indexer, self.shape[0])
 
         new_blocks: list[Block] = []
-        # TODO(CoW) we could optimize here if we know that the passed blocks
-        # are fully "owned" (eg created from an operation, not coming from
-        # an existing manager)
         for b in blocks:
-            nb = b.copy(deep=copy)
+            nb = b.copy(deep=False)
             nb.mgr_locs = BlockPlacement(inv_indexer[nb.mgr_locs.indexer])
             new_blocks.append(nb)
 
@@ -980,7 +971,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         if len(self.blocks) == 1:
             # TODO: this could be wrong if blk.mgr_locs is not slice(None)-like;
             #  is this ruled out in the general case?
-            result = self.blocks[0].iget((slice(None), loc))
+            result: np.ndarray | ExtensionArray = self.blocks[0].iget(
+                (slice(None), loc)
+            )
             # in the case of a single block, the new block is a view
             bp = BlockPlacement(slice(0, len(result)))
             block = new_block(
@@ -1187,8 +1180,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             unfit_count = len(unfit_idxr)
 
             new_blocks: list[Block] = []
-            # TODO(CoW) is this always correct to assume that the new_blocks
-            # are not referencing anything else?
             if value_is_extension_type:
                 # This code (ab-)uses the fact that EA blocks contain only
                 # one item.
@@ -1316,7 +1307,17 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         This is a method on the BlockManager level, to avoid creating an
         intermediate Series at the DataFrame level (`s = df[loc]; s[idx] = value`)
         """
-        if using_copy_on_write() and not self._has_no_reference(loc):
+        needs_to_warn = False
+        if warn_copy_on_write() and not self._has_no_reference(loc):
+            if not isinstance(
+                self.blocks[self.blknos[loc]].values,
+                (ArrowExtensionArray, ArrowStringArray),
+            ):
+                # We might raise if we are in an expansion case, so defer
+                # warning till we actually updated
+                needs_to_warn = True
+
+        elif using_copy_on_write() and not self._has_no_reference(loc):
             blkno = self.blknos[loc]
             # Split blocks to only copy the column we want to modify
             blk_loc = self.blklocs[loc]
@@ -1339,6 +1340,13 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             new_mgr = col_mgr.setitem((idx,), value)
             self.iset(loc, new_mgr._block.values, inplace=True)
 
+        if needs_to_warn:
+            warnings.warn(
+                COW_WARNING_GENERAL_MSG,
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
     def insert(self, loc: int, item: Hashable, value: ArrayLike, refs=None) -> None:
         """
         Insert item at selected position.
@@ -1350,8 +1358,14 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         value : np.ndarray or ExtensionArray
         refs : The reference tracking object of the value to set.
         """
-        # insert to the axis; this could possibly raise a TypeError
-        new_axis = self.items.insert(loc, item)
+        with warnings.catch_warnings():
+            # TODO: re-issue this with setitem-specific message?
+            warnings.filterwarnings(
+                "ignore",
+                "The behavior of Index.insert with object-dtype is deprecated",
+                category=FutureWarning,
+            )
+            new_axis = self.items.insert(loc, item)
 
         if value.ndim == 2:
             value = value.T
@@ -1363,7 +1377,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             value = ensure_block_shape(value, ndim=self.ndim)
 
         bp = BlockPlacement(slice(loc, loc + 1))
-        # TODO(CoW) do we always "own" the passed `value`?
         block = new_block_2d(values=value, placement=bp, refs=refs)
 
         if not len(self.blocks):
@@ -1604,13 +1617,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         bm = BlockManager(new_blocks, [new_columns, new_index], verify_integrity=False)
         return bm
 
-    def to_dict(self, copy: bool = True) -> dict[str, Self]:
+    def to_dict(self) -> dict[str, Self]:
         """
         Return a dict of str(dtype) -> BlockManager
-
-        Parameters
-        ----------
-        copy : bool, default True
 
         Returns
         -------
@@ -1622,7 +1631,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             bd.setdefault(str(b.dtype), []).append(b)
 
         # TODO(EA2D): the combine will be unnecessary with 2D EAs
-        return {dtype: self._combine(blocks, copy=copy) for dtype, blocks in bd.items()}
+        return {dtype: self._combine(blocks) for dtype, blocks in bd.items()}
 
     def as_array(
         self,
@@ -1650,7 +1659,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         """
         passed_nan = lib.is_float(na_value) and isna(na_value)
 
-        # TODO(CoW) handle case where resulting array is a view
         if len(self.blocks) == 0:
             arr = np.empty(self.shape, dtype=float)
             return arr.transpose()
@@ -1934,13 +1942,15 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
     def _block(self) -> Block:
         return self.blocks[0]
 
+    # error: Cannot override writeable attribute with read-only property
     @property
-    def _blknos(self):
+    def _blknos(self) -> None:  # type: ignore[override]
         """compat with BlockManager"""
         return None
 
+    # error: Cannot override writeable attribute with read-only property
     @property
-    def _blklocs(self):
+    def _blklocs(self) -> None:  # type: ignore[override]
         """compat with BlockManager"""
         return None
 
@@ -1951,9 +1961,15 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
             return type(self)(blk.copy(deep=False), self.index)
         array = blk.values[indexer]
 
+        if isinstance(indexer, np.ndarray) and indexer.dtype.kind == "b":
+            # boolean indexing always gives a copy with numpy
+            refs = None
+        else:
+            # TODO(CoW) in theory only need to track reference if new_array is a view
+            refs = blk.refs
+
         bp = BlockPlacement(slice(0, len(array)))
-        # TODO(CoW) in theory only need to track reference if new_array is a view
-        block = type(blk)(array, placement=bp, ndim=1, refs=blk.refs)
+        block = type(blk)(array, placement=bp, ndim=1, refs=refs)
 
         new_idx = self.index[indexer]
         return type(self)(block, new_idx)
@@ -1996,9 +2012,9 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """The array that Series.array returns"""
         return self._block.array_values
 
-    def get_numeric_data(self, copy: bool = False) -> Self:
+    def get_numeric_data(self) -> Self:
         if self._block.is_numeric:
-            return self.copy(deep=copy)
+            return self.copy(deep=False)
         return self.make_empty()
 
     @property
@@ -2021,7 +2037,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
             if using_cow:
                 self.blocks = (self._block.copy(),)
                 self._cache.clear()
-            elif warn and warn_cow:
+            elif warn_cow and warn:
                 warnings.warn(
                     COW_WARNING_SETITEM_MSG,
                     FutureWarning,
@@ -2054,11 +2070,11 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         Set the values of the single block in place.
 
         Use at your own risk! This does not check if the passed values are
-        valid for the current Block/SingleBlockManager (length, dtype, etc).
+        valid for the current Block/SingleBlockManager (length, dtype, etc),
+        and this does not properly keep track of references.
         """
-        # TODO(CoW) do we need to handle copy on write here? Currently this is
-        # only used for FrameColumnApply.series_generator (what if apply is
-        # mutating inplace?)
+        # NOTE(CoW) Currently this is only used for FrameColumnApply.series_generator
+        # which handles CoW by setting the refs manually if necessary
         self.blocks[0].values = values
         self.blocks[0]._mgr_locs = BlockPlacement(slice(len(values)))
 
@@ -2182,7 +2198,6 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list
 
     # when consolidating, we can ignore refs (either stacking always copies,
     # or the EA is already copied in the calling dict_to_mgr)
-    # TODO(CoW) check if this is also valid for rec_array_to_mgr
 
     # group by dtype
     grouper = itertools.groupby(tuples, _grouping_func)
@@ -2334,7 +2349,7 @@ def make_na_array(dtype: DtypeObj, shape: Shape, fill_value) -> ArrayLike:
         ts = Timestamp(fill_value).as_unit(dtype.unit)
         i8values = np.full(shape, ts._value)
         dt64values = i8values.view(f"M8[{dtype.unit}]")
-        return DatetimeArray(dt64values, dtype=dtype)
+        return DatetimeArray._simple_new(dt64values, dtype=dtype)
 
     elif is_1d_only_ea_dtype(dtype):
         dtype = cast(ExtensionDtype, dtype)
@@ -2355,9 +2370,9 @@ def make_na_array(dtype: DtypeObj, shape: Shape, fill_value) -> ArrayLike:
     else:
         # NB: we should never get here with dtype integer or bool;
         #  if we did, the missing_arr.fill would cast to gibberish
-        missing_arr = np.empty(shape, dtype=dtype)
-        missing_arr.fill(fill_value)
+        missing_arr_np = np.empty(shape, dtype=dtype)
+        missing_arr_np.fill(fill_value)
 
         if dtype.kind in "mM":
-            missing_arr = ensure_wrapped_if_datetimelike(missing_arr)
-        return missing_arr
+            missing_arr_np = ensure_wrapped_if_datetimelike(missing_arr_np)
+        return missing_arr_np

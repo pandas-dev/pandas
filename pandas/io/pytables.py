@@ -57,7 +57,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_complex_dtype,
     is_list_like,
-    is_object_dtype,
     is_string_dtype,
     needs_i8_conversion,
 )
@@ -1708,7 +1707,7 @@ class HDFStore:
     # ------------------------------------------------------------------------
     # private methods
 
-    def _check_if_open(self):
+    def _check_if_open(self) -> None:
         if not self.is_open:
             raise ClosedFileError(f"{self._path} file is not open!")
 
@@ -2169,9 +2168,9 @@ class IndexCol:
             # error: Incompatible types in assignment (expression has type
             # "Callable[[Any, KwArg(Any)], PeriodIndex]", variable has type
             # "Union[Type[Index], Type[DatetimeIndex]]")
-            factory = lambda x, **kwds: PeriodIndex(  # type: ignore[assignment]
-                ordinal=x, **kwds
-            )
+            factory = lambda x, **kwds: PeriodIndex.from_ordinals(  # type: ignore[assignment]
+                x, freq=kwds.get("freq", None)
+            )._rename(kwds["name"])
 
         # making an Index instance could throw a number of different errors
         try:
@@ -2645,7 +2644,7 @@ class DataIndexableCol(DataCol):
     is_data_indexable = True
 
     def validate_names(self) -> None:
-        if not is_object_dtype(Index(self.values).dtype):
+        if not is_string_dtype(Index(self.values).dtype):
             # TODO: should the message here be more specifically non-str?
             raise ValueError("cannot have non-object label DataIndexableCol")
 
@@ -3180,7 +3179,9 @@ class GenericFixed(Fixed):
             # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
             # attribute "asi8"
             self._handle.create_array(
-                self.group, key, value.asi8  # type: ignore[union-attr]
+                self.group,
+                key,
+                value.asi8,  # type: ignore[union-attr]
             )
 
             node = getattr(self.group, key)
@@ -3206,7 +3207,7 @@ class SeriesFixed(GenericFixed):
     name: Hashable
 
     @property
-    def shape(self):
+    def shape(self) -> tuple[int] | None:
         try:
             return (len(self.group.values),)
         except (TypeError, AttributeError):

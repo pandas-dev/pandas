@@ -17,14 +17,6 @@ import pandas._testing as tm
 
 
 @pytest.fixture
-def single_level_multiindex():
-    """single level MultiIndex"""
-    return MultiIndex(
-        levels=[["foo", "bar", "baz", "qux"]], codes=[[0, 1, 2, 3]], names=["first"]
-    )
-
-
-@pytest.fixture
 def frame_random_data_integer_multi_index():
     levels = [[0, 1], [0, 1, 2]]
     codes = [[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]]
@@ -277,8 +269,10 @@ class TestMultiIndexLoc:
         result = s.loc[2:4:2, "a":"c"]
         tm.assert_series_equal(result, expected)
 
-    def test_get_loc_single_level(self, single_level_multiindex):
-        single_level = single_level_multiindex
+    def test_get_loc_single_level(self):
+        single_level = MultiIndex(
+            levels=[["foo", "bar", "baz", "qux"]], codes=[[0, 1, 2, 3]], names=["first"]
+        )
         s = Series(
             np.random.default_rng(2).standard_normal(len(single_level)),
             index=single_level,
@@ -566,7 +560,7 @@ def test_loc_setitem_single_column_slice():
     tm.assert_frame_equal(df, expected)
 
 
-def test_loc_nan_multiindex():
+def test_loc_nan_multiindex(using_infer_string):
     # GH 5286
     tups = [
         ("Good Things", "C", np.nan),
@@ -586,8 +580,12 @@ def test_loc_nan_multiindex():
     result = df.loc["Good Things"].loc["C"]
     expected = DataFrame(
         np.ones((1, 4)),
-        index=Index([np.nan], dtype="object", name="u3"),
-        columns=Index(["d1", "d2", "d3", "d4"], dtype="object"),
+        index=Index(
+            [np.nan],
+            dtype="object" if not using_infer_string else "string[pyarrow_numpy]",
+            name="u3",
+        ),
+        columns=Index(["d1", "d2", "d3", "d4"]),
     )
     tm.assert_frame_equal(result, expected)
 

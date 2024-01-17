@@ -9,6 +9,7 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     Index,
+    MultiIndex,
     Series,
     Timedelta,
     Timestamp,
@@ -235,7 +236,7 @@ class TestSlicing:
         rng = date_range(
             start=datetime(2005, 1, 1, 0, 0, 59, microsecond=999990),
             periods=20,
-            freq="US",
+            freq="us",
         )
         s = Series(np.arange(20), rng)
 
@@ -360,10 +361,12 @@ class TestSlicing:
     def test_partial_slicing_with_multiindex_series(self):
         # GH 4294
         # partial slice on a series mi
-        ser = DataFrame(
-            np.random.default_rng(2).random((1000, 1000)),
-            index=date_range("2000-1-1", periods=1000),
-        ).stack(future_stack=True)
+        ser = Series(
+            range(250),
+            index=MultiIndex.from_product(
+                [date_range("2000-1-1", periods=50), range(5)]
+            ),
+        )
 
         s2 = ser[:-1].copy()
         expected = s2["2000-1-4"]
@@ -447,8 +450,8 @@ class TestSlicing:
         with pytest.raises(ValueError, match="Both dates must"):
             df[start : end[:-4] + "1:00"]
 
+        df = df.tz_localize(None)
         with pytest.raises(ValueError, match="The index must be timezone"):
-            df = df.tz_localize(None)
             df[start:end]
 
     def test_slice_reduce_to_series(self):

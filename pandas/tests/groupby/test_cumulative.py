@@ -60,6 +60,7 @@ def test_groupby_cumprod():
     tm.assert_series_equal(actual, expected)
 
 
+@pytest.mark.skip_ubsan
 def test_groupby_cumprod_overflow():
     # GH#37493 if we overflow we return garbage consistent with numpy
     df = DataFrame({"key": ["b"] * 4, "value": 100_000})
@@ -216,7 +217,7 @@ def test_cummax_i8_at_implementation_bound():
     # the minimum value used to be treated as NPY_NAT+1 instead of NPY_NAT
     #  for int64 dtype GH#46382
     ser = Series([pd.NaT._value + n for n in range(5)])
-    df = DataFrame({"A": 1, "B": ser, "C": ser.view("M8[ns]")})
+    df = DataFrame({"A": 1, "B": ser, "C": ser._values.view("M8[ns]")})
     gb = df.groupby("A")
 
     res = gb.cummax()
@@ -288,4 +289,31 @@ def test_nullable_int_not_cast_as_float(method, dtype, val):
     result = grouped.transform(method)
     expected = DataFrame({"b": data}, dtype=dtype)
 
+    tm.assert_frame_equal(result, expected)
+
+
+def test_cython_api2():
+    # this takes the fast apply path
+
+    # cumsum (GH5614)
+    df = DataFrame([[1, 2, np.nan], [1, np.nan, 9], [3, 4, 9]], columns=["A", "B", "C"])
+    expected = DataFrame([[2, np.nan], [np.nan, 9], [4, 9]], columns=["B", "C"])
+    result = df.groupby("A").cumsum()
+    tm.assert_frame_equal(result, expected)
+
+    # GH 5755 - cumsum is a transformer and should ignore as_index
+    result = df.groupby("A", as_index=False).cumsum()
+    tm.assert_frame_equal(result, expected)
+
+    # GH 13994
+    msg = "DataFrameGroupBy.cumsum with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("A").cumsum(axis=1)
+    expected = df.cumsum(axis=1)
+    tm.assert_frame_equal(result, expected)
+
+    msg = "DataFrameGroupBy.cumprod with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("A").cumprod(axis=1)
+    expected = df.cumprod(axis=1)
     tm.assert_frame_equal(result, expected)

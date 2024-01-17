@@ -2,9 +2,7 @@ from __future__ import annotations
 
 _shared_docs: dict[str, str] = {}
 
-_shared_docs[
-    "aggregate"
-] = """
+_shared_docs["aggregate"] = """
 Aggregate using one or more operations over the specified axis.
 
 Parameters
@@ -53,9 +51,7 @@ for more details.
 A passed user-defined-function will be passed a Series for evaluation.
 {examples}"""
 
-_shared_docs[
-    "compare"
-] = """
+_shared_docs["compare"] = """
 Compare to another {klass} and show the differences.
 
 Parameters
@@ -85,9 +81,7 @@ result_names : tuple, default ('self', 'other')
     .. versionadded:: 1.5.0
 """
 
-_shared_docs[
-    "groupby"
-] = """
+_shared_docs["groupby"] = """
 Group %(klass)s using a mapper or by a Series of columns.
 
 A groupby operation involves some combination of splitting the
@@ -195,9 +189,7 @@ detailed usage and examples, including splitting an object into groups,
 iterating through groups, selecting a group, aggregation, and more.
 """
 
-_shared_docs[
-    "melt"
-] = """
+_shared_docs["melt"] = """
 Unpivot a DataFrame from wide to long format, optionally leaving identifiers set.
 
 This function is useful to massage a DataFrame into a format where one
@@ -208,17 +200,17 @@ the row axis, leaving just two non-identifier columns, 'variable' and
 
 Parameters
 ----------
-id_vars : tuple, list, or ndarray, optional
+id_vars : scalar, tuple, list, or ndarray, optional
     Column(s) to use as identifier variables.
-value_vars : tuple, list, or ndarray, optional
+value_vars : scalar, tuple, list, or ndarray, optional
     Column(s) to unpivot. If not specified, uses all columns that
     are not set as `id_vars`.
-var_name : scalar
+var_name : scalar, default None
     Name to use for the 'variable' column. If None it uses
     ``frame.columns.name`` or 'variable'.
 value_name : scalar, default 'value'
     Name to use for the 'value' column, can't be an existing column label.
-col_level : int or str, optional
+col_level : scalar, optional
     If columns are a MultiIndex then use this level to melt.
 ignore_index : bool, default True
     If True, original index is ignored. If False, the original index is retained.
@@ -311,9 +303,7 @@ If you have multi-index columns:
 2      c          B          E      5
 """
 
-_shared_docs[
-    "transform"
-] = """
+_shared_docs["transform"] = """
 Call ``func`` on self producing a {klass} with the same axis shape as self.
 
 Parameters
@@ -438,9 +428,7 @@ Name: Data, dtype: int64
 6  2    n    4
 """
 
-_shared_docs[
-    "storage_options"
-] = """storage_options : dict, optional
+_shared_docs["storage_options"] = """storage_options : dict, optional
     Extra options that make sense for a particular storage connection, e.g.
     host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
     are forwarded to ``urllib.request.Request`` as header options. For other
@@ -450,9 +438,7 @@ _shared_docs[
     <https://pandas.pydata.org/docs/user_guide/io.html?
     highlight=storage_options#reading-writing-remote-files>`_."""
 
-_shared_docs[
-    "compression_options"
-] = """compression : str or dict, default 'infer'
+_shared_docs["compression_options"] = """compression : str or dict, default 'infer'
     For on-the-fly compression of the output data. If 'infer' and '%s' is
     path-like, then detect compression from the following extensions: '.gz',
     '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
@@ -471,9 +457,7 @@ _shared_docs[
     .. versionadded:: 1.5.0
         Added support for `.tar` files."""
 
-_shared_docs[
-    "decompression_options"
-] = """compression : str or dict, default 'infer'
+_shared_docs["decompression_options"] = """compression : str or dict, default 'infer'
     For on-the-fly decompression of on-disk data. If 'infer' and '%s' is
     path-like, then detect compression from the following extensions: '.gz',
     '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
@@ -493,9 +477,7 @@ _shared_docs[
     .. versionadded:: 1.5.0
         Added support for `.tar` files."""
 
-_shared_docs[
-    "replace"
-] = """
+_shared_docs["replace"] = """
     Replace values given in `to_replace` with `value`.
 
     Values of the {klass} are replaced with other values dynamically.
@@ -797,7 +779,7 @@ _shared_docs[
     ...                    'B': ['a', 'b', 'c', 'd', 'e'],
     ...                    'C': ['f', 'g', 'h', 'i', 'j']}})
 
-    >>> df.replace(to_replace='^[a-g]', value = 'e', regex=True)
+    >>> df.replace(to_replace='^[a-g]', value='e', regex=True)
         A  B  C
     0  0  e  e
     1  1  e  e
@@ -808,7 +790,7 @@ _shared_docs[
     If ``value`` is not ``None`` and `to_replace` is a dictionary, the dictionary
     keys will be the DataFrame columns that the replacement will be applied.
 
-    >>> df.replace(to_replace={{'B': '^[a-c]', 'C': '^[h-j]'}}, value = 'e', regex=True)
+    >>> df.replace(to_replace={{'B': '^[a-c]', 'C': '^[h-j]'}}, value='e', regex=True)
         A  B  C
     0  0  e  f
     1  1  e  g
@@ -817,9 +799,7 @@ _shared_docs[
     4  4  e  e
 """
 
-_shared_docs[
-    "idxmin"
-] = """
+_shared_docs["idxmin"] = """
     Return index of first occurrence of minimum over requested axis.
 
     NA/null values are excluded.
@@ -859,7 +839,7 @@ _shared_docs[
     Consider a dataset containing food consumption in Argentina.
 
     >>> df = pd.DataFrame({{'consumption': [10.51, 103.11, 55.48],
-    ...                     'co2_emissions': [37.2, 19.66, 1712]}},
+    ...                   'co2_emissions': [37.2, 19.66, 1712]}},
     ...                   index=['Pork', 'Wheat Products', 'Beef'])
 
     >>> df
@@ -884,9 +864,7 @@ _shared_docs[
     dtype: object
 """
 
-_shared_docs[
-    "idxmax"
-] = """
+_shared_docs["idxmax"] = """
     Return index of first occurrence of maximum over requested axis.
 
     NA/null values are excluded.
@@ -926,7 +904,7 @@ _shared_docs[
     Consider a dataset containing food consumption in Argentina.
 
     >>> df = pd.DataFrame({{'consumption': [10.51, 103.11, 55.48],
-    ...                     'co2_emissions': [37.2, 19.66, 1712]}},
+    ...                   'co2_emissions': [37.2, 19.66, 1712]}},
     ...                   index=['Pork', 'Wheat Products', 'Beef'])
 
     >>> df

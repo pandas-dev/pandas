@@ -16,11 +16,12 @@ dependencies:
   - pytest-cov
   - pytest-xdist>=2.2.0
   - pytest-localserver>=0.7.1
+  - pytest-qt>=4.2.0
   - boto3
 
   # required dependencies
   - python-dateutil
-  - numpy<2
+  - numpy
   - pytz
 
   # optional dependencies
@@ -34,21 +35,19 @@ dependencies:
   - gcsfs>=2022.11.0
   - jinja2>=3.1.2
   - lxml>=4.9.2
-  - matplotlib>=3.6.3, <3.8
+  - matplotlib>=3.6.3
   - numba>=0.56.4
   - numexpr>=2.8.4
   - odfpy>=1.4.1
   - qtpy>=2.3.0
   - openpyxl>=3.1.0
-  # Doesn't install well with pyarrow
-  # https://github.com/pandas-dev/pandas/issues/55525
-  # - pandas-gbq>=0.19.0
   - psycopg2>=2.9.6
   - pyarrow>=10.0.1
   - pymysql>=1.0.2
+  - pyqt>=5.15.9
   - pyreadstat>=1.2.0
   - pytables>=3.8.0
-  - python-calamine>=0.1.6
+  - python-calamine>=0.1.7
   - pyxlsb>=1.0.10
   - s3fs>=2022.11.0
   - scipy>=1.10.0
@@ -73,6 +72,7 @@ dependencies:
   - pyyaml
   - py
   - pip:
+    - adbc-driver-postgresql>=0.8.0
+    - adbc-driver-sqlite>=0.8.0
     - dataframe-api-compat>=0.1.7
-    - pyqt5>=5.15.8
     - tzdata>=2022.7

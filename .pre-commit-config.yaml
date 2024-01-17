@@ -18,13 +18,8 @@ ci:
     # manual stage hooks
     skip: [pylint, pyright, mypy]
 repos:
--   repo: https://github.com/hauntsaninja/black-pre-commit-mirror
-    # black compiled with mypyc
-    rev: 23.10.1
-    hooks:
-      - id: black
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.4
+    rev: v0.1.6
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -32,7 +27,12 @@ repos:
         # TODO: remove autofixe-only rules when they are checked by ruff
         name: ruff-selected-autofixes
         alias: ruff-selected-autofixes
-        args: [--select, "ANN001,ANN204", --fix-only, --exit-non-zero-on-fix]
+        files: ^pandas
+        exclude: ^pandas/tests
+        args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix]
+    -   id: ruff-format
+        # TODO: "." not needed in ruff 0.1.8
+        args: ["."]
 -   repo: https://github.com/jendrikseipp/vulture
     rev: 'v2.10'
     hooks:
@@ -47,7 +47,7 @@ repos:
         types_or: [python, rst, markdown, cython, c]
         additional_dependencies: [tomli]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.15.0
+    rev: v0.16.0
     hooks:
     -   id: cython-lint
     -   id: double-quote-cython-strings
@@ -111,11 +111,11 @@ repos:
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
 -   repo: https://github.com/sphinx-contrib/sphinx-lint
-    rev: v0.8.1
+    rev: v0.9.1
     hooks:
     - id: sphinx-lint
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v17.0.4
+    rev: v17.0.6
     hooks:
     - id: clang-format
       files: ^pandas/_libs/src|^pandas/_libs/include
@@ -132,11 +132,11 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.318
+        - pyright@1.1.347
     -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
-        entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json --level warning
+        entry: pyright -p pyright_reportGeneralTypeIssues.json --level warning
         language: node
         pass_filenames: false
         types: [python]
@@ -190,9 +190,6 @@ repos:
             # Check for deprecated messages without sphinx directive
             |(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)
 
-            # {foo!r} instead of {repr(foo)}
-            |!r}
-
             # builtin filter function
             |(?<!def)[\(\s]filter\(
         types_or: [python, cython, rst]
@@ -240,8 +237,9 @@ repos:
             # pytest raises without context
             |\s\ pytest.raises
 
+            # TODO
             # pytest.warns (use tm.assert_produces_warning instead)
-            |pytest\.warns
+            # |pytest\.warns
 
             # os.remove
             |os\.remove
@@ -271,13 +269,6 @@ repos:
         language: python
         types: [rst]
         files: ^doc/source/(development|reference)/
-    -   id: unwanted-patterns-bare-pytest-raises
-        name: Check for use of bare pytest raises
-        language: python
-        entry: python scripts/validate_unwanted_patterns.py --validation-type="bare_pytest_raises"
-        types: [python]
-        files: ^pandas/tests/
-        exclude: ^pandas/tests/extension/
     -   id: unwanted-patterns-private-function-across-module
         name: Check for use of private functions across modules
         language: python
@@ -355,18 +346,6 @@ repos:
         files: ^pandas/
         exclude: ^(pandas/_libs/|pandas/tests/|pandas/errors/__init__.py$|pandas/_version.py)
         types: [python]
-    -   id: future-annotations
-        name: import annotations from __future__
-        entry: 'from __future__ import annotations'
-        language: pygrep
-        args: [--negate]
-        files: ^pandas/
-        types: [python]
-        exclude: |
-            (?x)
-            /(__init__\.py)|(api\.py)|(_version\.py)|(testing\.py)|(conftest\.py)$
-            |/tests/
-            |/_testing/
     -   id: check-test-naming
         name: check that test names start with 'test'
         entry: python -m scripts.check_test_naming

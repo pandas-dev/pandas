@@ -43,6 +43,8 @@ from pandas._libs.tslibs.dtypes cimport (
     freq_to_period_freqstr,
 )
 
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+
 # import datetime C API
 import_datetime()
 
@@ -52,7 +54,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_D,
     astype_overflowsafe,
-    check_dts_bounds,
+    dts_to_iso_string,
     import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
@@ -1156,14 +1158,20 @@ cpdef int64_t period_ordinal(int y, int m, int d, int h, int min,
 cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
     cdef:
         npy_datetimestruct dts
+        int64_t result
 
     if ordinal == NPY_NAT:
         return NPY_NAT
 
     get_date_info(ordinal, freq, &dts)
 
-    check_dts_bounds(&dts)
-    return npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_ns, &dts)
+    try:
+        result = npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_ns, &dts)
+    except OverflowError as err:
+        fmt = dts_to_iso_string(&dts)
+        raise OutOfBoundsDatetime(f"Out of bounds nanosecond timestamp: {fmt}") from err
+
+    return result
 
 
 cdef str period_format(int64_t value, int freq, object fmt=None):
@@ -1706,21 +1714,16 @@ cdef class PeriodMixin:
         """
         return self.to_timestamp(how="end")
 
-    def _require_matching_freq(self, other, base=False):
+    def _require_matching_freq(self, other: BaseOffset, bint base=False):
         # See also arrays.period.raise_on_incompatible
-        if is_offset_object(other):
-            other_freq = other
-        else:
-            other_freq = other.freq
-
         if base:
-            condition = self.freq.base != other_freq.base
+            condition = self.freq.base != other.base
         else:
-            condition = self.freq != other_freq
+            condition = self.freq != other
 
         if condition:
             freqstr = freq_to_period_freqstr(self.freq.n, self.freq.name)
-            other_freqstr = freq_to_period_freqstr(other_freq.n, other_freq.name)
+            other_freqstr = freq_to_period_freqstr(other.n, other.name)
             msg = DIFFERENT_FREQ.format(
                 cls=type(self).__name__,
                 own_freq=freqstr,
@@ -1753,21 +1756,12 @@ cdef class _Period(PeriodMixin):
     @classmethod
     def _maybe_convert_freq(cls, object freq) -> BaseOffset:
         """
-        Internally we allow integer and tuple representations (for now) that
-        are not recognized by to_offset, so we convert them here.  Also, a
-        Period's freq attribute must have `freq.n > 0`, which we check for here.
+        A Period's freq attribute must have `freq.n > 0`, which we check for here.
 
         Returns
         -------
         DateOffset
         """
-        if isinstance(freq, int):
-            # We already have a dtype code
-            dtype = PeriodDtypeBase(freq, 1)
-            freq = dtype._freqstr
-        elif isinstance(freq, PeriodDtypeBase):
-            freq = freq._freqstr
-
         freq = to_offset(freq, is_period=True)
 
         if freq.n <= 0:
@@ -1777,7 +1771,7 @@ cdef class _Period(PeriodMixin):
         return freq
 
     @classmethod
-    def _from_ordinal(cls, ordinal: int64_t, freq) -> "Period":
+    def _from_ordinal(cls, ordinal: int64_t, freq: BaseOffset) -> "Period":
         """
         Fast creation from an ordinal and freq that are already validated!
         """
@@ -1795,7 +1789,7 @@ cdef class _Period(PeriodMixin):
                     return False
                 elif op == Py_NE:
                     return True
-                self._require_matching_freq(other)
+                self._require_matching_freq(other.freq)
             return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
         elif other is NaT:
             return op == Py_NE
@@ -1847,13 +1841,6 @@ cdef class _Period(PeriodMixin):
 
     @cython.overflowcheck(True)
     def __add__(self, other):
-        if not is_period_object(self):
-            # cython semantics; this is analogous to a call to __radd__
-            # TODO(cython3): remove this
-            if self is NaT:
-                return NaT
-            return other.__add__(self)
-
         if is_any_td_scalar(other):
             return self._add_timedeltalike_scalar(other)
         elif is_offset_object(other):
@@ -1885,21 +1872,14 @@ cdef class _Period(PeriodMixin):
         return self.__add__(other)
 
     def __sub__(self, other):
-        if not is_period_object(self):
-            # cython semantics; this is like a call to __rsub__
-            # TODO(cython3): remove this
-            if self is NaT:
-                return NaT
-            return NotImplemented
-
-        elif (
+        if (
             is_any_td_scalar(other)
             or is_offset_object(other)
             or util.is_integer_object(other)
         ):
             return self + (-other)
         elif is_period_object(other):
-            self._require_matching_freq(other)
+            self._require_matching_freq(other.freq)
             # GH 23915 - mul by base freq since __add__ is agnostic of n
             return (self.ordinal - other.ordinal) * self.freq.base
         elif other is NaT:
@@ -1999,8 +1979,10 @@ cdef class _Period(PeriodMixin):
             return endpoint - np.timedelta64(1, "ns")
 
         if freq is None:
-            freq = self._dtype._get_to_timestamp_base()
-            base = freq
+            freq_code = self._dtype._get_to_timestamp_base()
+            dtype = PeriodDtypeBase(freq_code, 1)
+            freq = dtype._freqstr
+            base = freq_code
         else:
             freq = self._maybe_convert_freq(freq)
             base = freq._period_dtype_code
@@ -2719,8 +2701,8 @@ class Period(_Period):
                 year=None, month=None, quarter=None, day=None,
                 hour=None, minute=None, second=None):
         # freq points to a tuple (base, mult);  base is one of the defined
-        # periods such as A, Q, etc. Every five minutes would be, e.g.,
-        # ('T', 5) but may be passed in as a string like '5T'
+        # periods such as Y, Q, etc. Every five minutes would be, e.g.,
+        # ('min', 5) but may be passed in as a string like '5min'
 
         # ordinal is the period offset from the gregorian proleptic epoch
 
@@ -2847,7 +2829,8 @@ class Period(_Period):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-
+        if ordinal == NPY_NAT:
+            return NaT
         return cls._from_ordinal(ordinal, freq)
 
 

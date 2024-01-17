@@ -10,6 +10,8 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas import (
     CategoricalIndex,
     DataFrame,
@@ -412,7 +414,6 @@ class TestToStringNumericFormatting:
 
     def test_to_string_format_inf(self):
         # GH#24861
-        tm.reset_display_options()
         df = DataFrame(
             {
                 "A": [-np.inf, np.inf, -1, -2.1234, 3, 4],
@@ -460,7 +461,6 @@ class TestToStringNumericFormatting:
         assert output == expected
 
     def test_to_string_float_formatting(self):
-        tm.reset_display_options()
         with option_context(
             "display.precision",
             5,
@@ -495,7 +495,6 @@ class TestToStringNumericFormatting:
             expected = "          x\n0  3234.000\n1     0.253"
             assert df_s == expected
 
-        tm.reset_display_options()
         assert get_option("display.precision") == 6
 
         df = DataFrame({"x": [1e9, 0.2512]})
@@ -516,14 +515,12 @@ class TestDataFrameToString:
         assert df.to_string(decimal=",") == expected
 
     def test_to_string_left_justify_cols(self):
-        tm.reset_display_options()
         df = DataFrame({"x": [3234, 0.253]})
         df_s = df.to_string(justify="left")
         expected = "   x       \n0  3234.000\n1     0.253"
         assert df_s == expected
 
     def test_to_string_format_na(self):
-        tm.reset_display_options()
         df = DataFrame(
             {
                 "A": [np.nan, -1, -2.1234, 3, 4],
@@ -809,7 +806,7 @@ class TestDataFrameToString:
         biggie = DataFrame(
             {
                 "A": np.random.default_rng(2).standard_normal(200),
-                "B": tm.makeStringIndex(200),
+                "B": Index([f"{i}?!" for i in range(200)]),
             },
         )
 
@@ -854,6 +851,7 @@ class TestDataFrameToString:
         frame.to_string()
 
     # TODO: split or simplify this test?
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="fix when arrow is default")
     def test_to_string_index_with_nan(self):
         # GH#2850
         df = DataFrame(
@@ -1080,7 +1078,10 @@ class TestSeriesToString:
         assert result == "0   1 days\n1   2 days\n2   3 days"
 
     def test_to_string(self):
-        ts = tm.makeTimeSeries()
+        ts = Series(
+            np.arange(10, dtype=np.float64),
+            index=date_range("2020-01-01", periods=10, freq="B"),
+        )
         buf = StringIO()
 
         s = ts.to_string()

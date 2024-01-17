@@ -7,6 +7,8 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
+    period_range,
+    timedelta_range,
 )
 import pandas._testing as tm
 from pandas.core.util.hashing import hash_tuples
@@ -25,7 +27,7 @@ from pandas.util import (
         Series([True, False, True] * 3),
         Series(pd.date_range("20130101", periods=9)),
         Series(pd.date_range("20130101", periods=9, tz="US/Eastern")),
-        Series(pd.timedelta_range("2000", periods=9)),
+        Series(timedelta_range("2000", periods=9)),
     ]
 )
 def series(request):
@@ -136,10 +138,17 @@ def test_multiindex_objects():
         DataFrame({"x": ["a", "b", "c"], "y": [1, 2, 3]}),
         DataFrame(),
         DataFrame(np.full((10, 4), np.nan)),
-        tm.makeMixedDataFrame(),
-        tm.makeTimeDataFrame(),
-        tm.makeTimeSeries(),
-        Series(tm.makePeriodIndex()),
+        DataFrame(
+            {
+                "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+                "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+                "C": Index(["foo1", "foo2", "foo3", "foo4", "foo5"], dtype=object),
+                "D": pd.date_range("20130101", periods=5),
+            }
+        ),
+        DataFrame(range(5), index=pd.date_range("2020-01-01", periods=5)),
+        Series(range(5), index=pd.date_range("2020-01-01", periods=5)),
+        Series(period_range("2020-01-01", periods=10, freq="D")),
         Series(pd.date_range("20130101", periods=3, tz="US/Eastern")),
     ],
 )
@@ -162,10 +171,17 @@ def test_hash_pandas_object(obj, index):
         Series([True, False, True]),
         DataFrame({"x": ["a", "b", "c"], "y": [1, 2, 3]}),
         DataFrame(np.full((10, 4), np.nan)),
-        tm.makeMixedDataFrame(),
-        tm.makeTimeDataFrame(),
-        tm.makeTimeSeries(),
-        Series(tm.makePeriodIndex()),
+        DataFrame(
+            {
+                "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+                "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+                "C": Index(["foo1", "foo2", "foo3", "foo4", "foo5"], dtype=object),
+                "D": pd.date_range("20130101", periods=5),
+            }
+        ),
+        DataFrame(range(5), index=pd.date_range("2020-01-01", periods=5)),
+        Series(range(5), index=pd.date_range("2020-01-01", periods=5)),
+        Series(period_range("2020-01-01", periods=10, freq="D")),
         Series(pd.date_range("20130101", periods=3, tz="US/Eastern")),
     ],
 )
@@ -180,8 +196,8 @@ def test_hash_pandas_object_diff_index_non_empty(obj):
     [
         Index([1, 2, 3]),
         Index([True, False, True]),
-        tm.makeTimedeltaIndex(),
-        tm.makePeriodIndex(),
+        timedelta_range("1 day", periods=2),
+        period_range("2020-01-01", freq="D", periods=2),
         MultiIndex.from_product(
             [range(5), ["foo", "bar", "baz"], pd.date_range("20130101", periods=2)]
         ),
@@ -206,12 +222,12 @@ def test_hash_pandas_series_diff_index(series):
     assert not (a == b).all()
 
 
-@pytest.mark.parametrize(
-    "obj", [Series([], dtype="float64"), Series([], dtype="object"), Index([])]
-)
-def test_hash_pandas_empty_object(obj, index):
+@pytest.mark.parametrize("klass", [Index, Series])
+@pytest.mark.parametrize("dtype", ["float64", "object"])
+def test_hash_pandas_empty_object(klass, dtype, index):
     # These are by-definition the same with
     # or without the index as the data is empty.
+    obj = klass([], dtype=dtype)
     a = hash_pandas_object(obj, index=index)
     b = hash_pandas_object(obj, index=index)
     tm.assert_series_equal(a, b)
@@ -220,9 +236,9 @@ def test_hash_pandas_empty_object(obj, index):
 @pytest.mark.parametrize(
     "s1",
     [
-        Series(["a", "b", "c", "d"]),
-        Series([1000, 2000, 3000, 4000]),
-        Series(pd.date_range(0, periods=4)),
+        ["a", "b", "c", "d"],
+        [1000, 2000, 3000, 4000],
+        pd.date_range(0, periods=4),
     ],
 )
 @pytest.mark.parametrize("categorize", [True, False])
@@ -231,6 +247,7 @@ def test_categorical_consistency(s1, categorize):
     #
     # Check that categoricals hash consistent with their values,
     # not codes. This should work for categoricals of any dtype.
+    s1 = Series(s1)
     s2 = s1.astype("category").cat.set_categories(s1)
     s3 = s2.cat.set_categories(list(reversed(s1)))
 
@@ -328,9 +345,9 @@ def test_alternate_encoding(index):
 @pytest.mark.parametrize("l_add", [0, 1])
 def test_same_len_hash_collisions(l_exp, l_add):
     length = 2 ** (l_exp + 8) + l_add
-    s = tm.makeStringIndex(length).to_numpy()
+    idx = np.array([str(i) for i in range(length)], dtype=object)
 
-    result = hash_array(s, "utf8")
+    result = hash_array(idx, "utf8")
     assert not result[0] == result[1]
 
 

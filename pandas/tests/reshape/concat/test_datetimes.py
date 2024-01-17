@@ -52,19 +52,15 @@ class TestDatetimeConcat:
         df2 = DataFrame({"b": [1, 2, 3]}, index=idx2)
         result = concat([df1, df2], axis=1)
 
-        exp_idx = (
-            DatetimeIndex(
-                [
-                    "2011-01-01 00:00:00+01:00",
-                    "2011-01-01 01:00:00+01:00",
-                    "2011-01-01 02:00:00+01:00",
-                ],
-                freq="h",
-            )
-            .tz_convert("UTC")
-            .tz_convert("Europe/Paris")
+        exp_idx = DatetimeIndex(
+            [
+                "2011-01-01 00:00:00+01:00",
+                "2011-01-01 01:00:00+01:00",
+                "2011-01-01 02:00:00+01:00",
+            ],
+            dtype="M8[ns, Europe/Paris]",
+            freq="h",
         )
-
         expected = DataFrame(
             [[1, 1], [2, 2], [3, 3]], index=exp_idx, columns=["a", "b"]
         )
@@ -84,7 +80,7 @@ class TestDatetimeConcat:
                 "2010-12-31 16:00:00+00:00",
                 "2010-12-31 17:00:00+00:00",
             ]
-        )
+        ).as_unit("ns")
 
         expected = DataFrame(
             [
@@ -197,8 +193,8 @@ class TestDatetimeConcat:
     def test_concat_NaT_dataframes(self, tz):
         # GH 12396
 
-        first = DataFrame([[pd.NaT], [pd.NaT]])
-        first = first.apply(lambda x: x.dt.tz_localize(tz))
+        dti = DatetimeIndex([pd.NaT, pd.NaT], tz=tz)
+        first = DataFrame({0: dti})
         second = DataFrame(
             [[Timestamp("2015/01/01", tz=tz)], [Timestamp("2016/01/01", tz=tz)]],
             index=[2, 3],
@@ -218,9 +214,7 @@ class TestDatetimeConcat:
     @pytest.mark.parametrize("tz1", [None, "UTC"])
     @pytest.mark.parametrize("tz2", [None, "UTC"])
     @pytest.mark.parametrize("item", [pd.NaT, Timestamp("20150101")])
-    def test_concat_NaT_dataframes_all_NaT_axis_0(
-        self, tz1, tz2, item, using_array_manager
-    ):
+    def test_concat_NaT_dataframes_all_NaT_axis_0(self, tz1, tz2, item):
         # GH 12396
 
         # tz-naive
@@ -232,7 +226,7 @@ class TestDatetimeConcat:
         expected = expected.apply(lambda x: x.dt.tz_localize(tz2))
         if tz1 != tz2:
             expected = expected.astype(object)
-            if item is pd.NaT and not using_array_manager:
+            if item is pd.NaT:
                 # GH#18463
                 # TODO: setting nan here is to keep the test passing as we
                 #  make assert_frame_equal stricter, but is nan really the
@@ -430,21 +424,25 @@ class TestTimezoneConcat:
         # GH 6606
         df = DataFrame(
             {
-                "dt": [
-                    datetime(2014, 1, 1),
-                    datetime(2014, 1, 2),
-                    datetime(2014, 1, 3),
-                ],
+                "dt": DatetimeIndex(
+                    [
+                        datetime(2014, 1, 1),
+                        datetime(2014, 1, 2),
+                        datetime(2014, 1, 3),
+                    ],
+                    dtype="M8[ns, US/Pacific]",
+                ),
                 "b": ["A", "B", "C"],
                 "c": [1, 2, 3],
                 "d": [4, 5, 6],
             }
         )
-        df["dt"] = df["dt"].apply(lambda d: Timestamp(d, tz="US/Pacific"))
         df = df.set_index(["dt", "b"])
 
         exp_idx1 = DatetimeIndex(
-            ["2014-01-01", "2014-01-02", "2014-01-03"] * 2, tz="US/Pacific", name="dt"
+            ["2014-01-01", "2014-01-02", "2014-01-03"] * 2,
+            dtype="M8[ns, US/Pacific]",
+            name="dt",
         )
         exp_idx2 = Index(["A", "B", "C"] * 2, name="b")
         exp_idx = MultiIndex.from_arrays([exp_idx1, exp_idx2])
@@ -567,7 +565,7 @@ def test_concat_multiindex_datetime_nat():
     tm.assert_frame_equal(result, expected)
 
 
-def test_concat_float_datetime64(using_array_manager):
+def test_concat_float_datetime64():
     # GH#32934
     df_time = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")})
     df_float = DataFrame({"A": pd.array([1.0], dtype="float64")})
@@ -592,15 +590,8 @@ def test_concat_float_datetime64(using_array_manager):
     result = concat([df_time.iloc[:0], df_float])
     tm.assert_frame_equal(result, expected)
 
-    if not using_array_manager:
-        expected = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")})
-        msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = concat([df_time, df_float.iloc[:0]])
-        tm.assert_frame_equal(result, expected)
-    else:
-        expected = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")}).astype(
-            {"A": "object"}
-        )
+    expected = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")})
+    msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = concat([df_time, df_float.iloc[:0]])
-        tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
