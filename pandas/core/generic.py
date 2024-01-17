@@ -1035,18 +1035,36 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             # GH 13473
             if not callable(replacements):
-                if ax._is_multi and level is not None:
-                    indexer = ax.get_level_values(level).get_indexer_for(replacements)
-                else:
-                    indexer = ax.get_indexer_for(replacements)
+                if errors == "raise":
+                    missing_labels = []
+                    for replacement in replacements:
+                        if ax._is_multi:
+                            indexers = [
+                                ax.get_level_values(i).get_indexer_for([replacement])
+                                for i in range(ax.nlevels)
+                                if i == level or level is None
+                            ]
+                        else:
+                            indexers = [ax.get_indexer_for([replacement])]
 
-                if errors == "raise" and len(indexer[indexer == -1]):
-                    missing_labels = [
-                        label
-                        for index, label in enumerate(replacements)
-                        if indexer[index] == -1
-                    ]
-                    raise KeyError(f"{missing_labels} not found in axis")
+                        found_anywhere = any(any(indexer != -1) for indexer in indexers)
+                        if not found_anywhere:
+                            missing_labels.append(replacement)
+
+                    if len(missing_labels) > 0:
+                        error = f"{missing_labels} not found in axis"
+                        if ax._is_multi:
+                            tuple_rename_tried = any(
+                                type(label) is tuple and label in ax
+                                for label in missing_labels
+                            )
+                            if tuple_rename_tried:
+                                error += (
+                                    ". Please provide individual labels for "
+                                    "replacement, and not tuples across "
+                                    "MultiIndex levels"
+                                )
+                        raise KeyError(error)
 
             new_index = ax._transform_index(f, level=level)
             result._set_axis_nocheck(new_index, axis=axis_no, inplace=True)

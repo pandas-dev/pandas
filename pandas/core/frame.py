@@ -5400,6 +5400,11 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or level name, default None
             In case of a MultiIndex, only rename labels in the specified
             level.
+
+            .. note::
+               Labels are renamed individually, and not via tuples across
+               MultiIndex levels
+
         errors : {'ignore', 'raise'}, default 'ignore'
             If 'raise', raise a `KeyError` when a dict-like `mapper`, `index`,
             or `columns` contains labels that are not present in the Index
