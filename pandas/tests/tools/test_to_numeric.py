@@ -966,23 +966,26 @@ def test_coerce_pyarrow_backend():
     expected = Series([1, 2, None], dtype=ArrowDtype(pa.int64()))
     tm.assert_series_equal(result, expected)
 
+
 def test_custom_decimals():
     # GH 4674
-    ser = pd.Series(['1,5', '20,005', -3])
-    result = to_numeric(ser, decimal=',')
-    expected = pd.Series([1.5, 20.005, -3])
+    ser = Series(["1,5", "20,005", -3])
+    result = to_numeric(ser, decimal=",")
+    expected = Series([1.5, 20.005, -3])
     tm.assert_series_equal(result, expected)
+
 
 def test_custom_thousands():
     # GH 4674
-    ser = pd.Series(['1,001', '2,000,000', -3])
-    result = to_numeric(ser, thousands=',')
-    expected = pd.Series([1001, 2000000, -3])
+    ser = Series(["1,001", "2,000,000", -3])
+    result = to_numeric(ser, thousands=",")
+    expected = Series([1001, 2000000, -3])
     tm.assert_series_equal(result, expected)
+
 
 def test_custom_thousands_and_decimals():
     # GH 4674
-    ser = pd.Series(['1.000', '2.000.000,5', '2,5'])
-    result = to_numeric(ser, decimal=',', thousands='.')
-    expected = pd.Series([1000, 2000000.5, 2.5])
+    ser = Series(["1.000", "2.000.000,5", "2,5"])
+    result = to_numeric(ser, decimal=",", thousands=".")
+    expected = Series([1000, 2000000.5, 2.5])
     tm.assert_series_equal(result, expected)

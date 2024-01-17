@@ -47,7 +47,7 @@ def to_numeric(
     downcast: Literal["integer", "signed", "unsigned", "float"] | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     thousands: str = "\0",
-    decimal: str = "."
+    decimal: str = ".",
 ):
     """
     Convert argument to a numeric type.
@@ -108,10 +108,10 @@ def to_numeric(
 
         .. versionadded:: 2.0
     thousands: str, default '\0'
-        character used to seperate thousands, eg '.' for european data
+        character used to separate thousands, eg '.' for european data
         must only be 1 character long
     decimal: str, default '.'
-        character used to seperate decimals, eg ',' for european data
+        character used to separate decimals, eg ',' for european data
         must only be 1 character long
 
     Returns
@@ -171,7 +171,7 @@ def to_numeric(
     2    3.0
     dtype: Float32
 
-    Handling of data with non standard decimal or thousand seperators
+    Handling of data with non standard decimal or thousand separators
     >>> s = pd.Series(['1,5', '2.000.000', -3])
     >>> pd.to_numeric(s, thousands='.', decimal=',')
     0   1.5
@@ -184,11 +184,11 @@ def to_numeric(
 
     if errors not in ("ignore", "raise", "coerce"):
         raise ValueError("invalid error value specified")
-    
+
     if len(decimal) > 1:
-        raise ValueError("decimal seperator must have length one")
+        raise ValueError("decimal separator must have length one")
     if len(thousands) > 1:
-        raise ValueError("thousands seperator must have length one")
+        raise ValueError("thousands separator must have length one")
     if errors == "ignore":
         # GH#54467
         warnings.warn(
@@ -250,7 +250,7 @@ def to_numeric(
     else:
         values = ensure_object(values)
         coerce_numeric = errors not in ("ignore", "raise")
-            
+
         try:
             values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]
                 values,
@@ -259,8 +259,8 @@ def to_numeric(
                 convert_to_masked_nullable=dtype_backend is not lib.no_default
                 or isinstance(values_dtype, StringDtype)
                 and not values_dtype.storage == "pyarrow_numpy",
-                thousands=thousands.encode('utf-8'),
-                decimal=decimal.encode('utf-8')
+                thousands=thousands.encode("utf-8"),
+                decimal=decimal.encode("utf-8"),
             )
         except (ValueError, TypeError):
             if errors == "raise":
