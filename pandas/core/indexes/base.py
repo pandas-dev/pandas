@@ -4684,9 +4684,19 @@ class Index(IndexOpsMixin, PandasObject):
         # Note: at this point we have checked matching dtypes
 
         if how == "left":
-            join_index = self.sort_values() if sort else self
+            if sort:
+                join_index, lindexer = self.sort_values(return_indexer=True)
+                rindexer = other.get_indexer_for(join_index)
+                return join_index, lindexer, rindexer
+            else:
+                join_index = self
         elif how == "right":
-            join_index = other.sort_values() if sort else other
+            if sort:
+                join_index, rindexer = other.sort_values(return_indexer=True)
+                lindexer = self.get_indexer_for(join_index)
+                return join_index, lindexer, rindexer
+            else:
+                join_index = other
         elif how == "inner":
             join_index = self.intersection(other, sort=sort)
         elif how == "outer":
