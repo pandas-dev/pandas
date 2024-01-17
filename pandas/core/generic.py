@@ -9454,7 +9454,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         origin : Timestamp or str, default 'start_day'
             The timestamp on which to adjust the grouping. The timezone of origin
             must match the timezone of the index.
-            If string, must be one of the following:
+            If string, must be Timestamp convertible or one of the following:
 
             - 'epoch': `origin` is 1970-01-01
             - 'start': `origin` is the first value of the timeseries
