@@ -80,11 +80,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.io.formats.style.Styler.to_latex \
         pandas.read_parquet \
         pandas.DataFrame.to_sql \
-        pandas.io.formats.style.Styler.highlight_quantile \
-        pandas.io.formats.style.Styler.background_gradient \
-        pandas.io.formats.style.Styler.text_gradient \
-        pandas.DataFrame.plot.hexbin \
-        pandas.DataFrame.plot.line
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
