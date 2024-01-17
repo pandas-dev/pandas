@@ -204,7 +204,7 @@ def scatter_matrix(
     .. plot::
         :context: close-figs
 
-        >>> df = pd.DataFrame(np.random.randn(1000, 4), columns=['A','B','C','D'])
+        >>> df = pd.DataFrame(np.random.randn(1000, 4), columns=['A', 'B', 'C', 'D'])
         >>> pd.plotting.scatter_matrix(df, alpha=0.2)
         array([[<Axes: xlabel='A', ylabel='A'>, <Axes: xlabel='B', ylabel='A'>,
                 <Axes: xlabel='C', ylabel='A'>, <Axes: xlabel='D', ylabel='A'>],
