@@ -209,21 +209,31 @@ del os
 from pandas.compat.pyarrow import pa_version_under10p1
 
 if pa_version_under10p1:
-    import warnings
+    # Check if old pyarrow is installed
     from pandas.compat._optional import VERSIONS
+
+    try:
+        import pyarrow  # noqa: F401
+
+        pa_msg = (
+            f"was too old on your system - pyarrow {VERSIONS['pyarrow']} "
+            "is the current minimum supported version as of this release."
+        )
+    except ImportError:
+        pa_msg = "was not found to be installed on your system."
 
     warnings.warn(
         f"""
 Pyarrow will become a future required dependency of pandas,
-but was not found to be installed on your system.
-(or was too old - pyarrow {VERSIONS['pyarrow']}
-is the current minimum supported version as of this release)
+(to allow more performant data types and better interoperability with other libraries)
+but {pa_msg}
 If this would cause problems for you,
 please provide us feedback at https://github.com/pandas-dev/pandas/issues/54466
         """,
         DeprecationWarning,
         stacklevel=2,
     )
+    del VERSIONS
 del pa_version_under10p1, warnings
 
 # module level doc-string
