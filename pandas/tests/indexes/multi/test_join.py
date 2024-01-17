@@ -12,10 +12,9 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.mark.parametrize(
-    "other", [Index(["three", "one", "two"]), Index(["one"]), Index(["one", "three"])]
-)
+@pytest.mark.parametrize("other", [["three", "one", "two"], ["one"], ["one", "three"]])
 def test_join_level(idx, other, join_type):
+    other = Index(other)
     join_index, lidx, ridx = other.join(
         idx, how=join_type, level="second", return_indexers=True
     )
@@ -51,8 +50,11 @@ def test_join_level_corner_case(idx):
 
 
 def test_join_self(idx, join_type):
-    joined = idx.join(idx, how=join_type)
-    tm.assert_index_equal(joined, idx)
+    result = idx.join(idx, how=join_type)
+    expected = idx
+    if join_type == "outer":
+        expected = expected.sort_values()
+    tm.assert_index_equal(result, expected)
 
 
 def test_join_multi():
@@ -87,12 +89,6 @@ def test_join_multi():
     tm.assert_index_equal(jidx, midx)
     assert lidx is None
     tm.assert_numpy_array_equal(ridx, exp_ridx)
-
-
-def test_join_self_unique(idx, join_type):
-    if idx.is_unique:
-        joined = idx.join(idx, how=join_type)
-        assert (idx == joined).all()
 
 
 def test_join_multi_wrong_order():

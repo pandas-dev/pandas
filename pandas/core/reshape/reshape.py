@@ -4,6 +4,7 @@ import itertools
 from typing import (
     TYPE_CHECKING,
     cast,
+    overload,
 )
 import warnings
 
@@ -188,7 +189,7 @@ class _Unstacker:
             return sorted_values
         return values
 
-    def _make_selectors(self):
+    def _make_selectors(self) -> None:
         new_levels = self.new_index_levels
 
         # make the mask
@@ -451,7 +452,11 @@ def _unstack_multiple(
             result = data
             while clocs:
                 val = clocs.pop(0)
-                result = result.unstack(val, fill_value=fill_value, sort=sort)
+                # error: Incompatible types in assignment (expression has type
+                # "DataFrame | Series", variable has type "DataFrame")
+                result = result.unstack(  # type: ignore[assignment]
+                    val, fill_value=fill_value, sort=sort
+                )
                 clocs = [v if v < val else v - 1 for v in clocs]
 
             return result
@@ -460,7 +465,9 @@ def _unstack_multiple(
         dummy_df = data.copy(deep=False)
         dummy_df.index = dummy_index
 
-        unstacked = dummy_df.unstack(
+        # error: Incompatible types in assignment (expression has type "DataFrame |
+        # Series", variable has type "DataFrame")
+        unstacked = dummy_df.unstack(  # type: ignore[assignment]
             "__placeholder__", fill_value=fill_value, sort=sort
         )
         if isinstance(unstacked, Series):
@@ -486,7 +493,21 @@ def _unstack_multiple(
     return unstacked
 
 
-def unstack(obj: Series | DataFrame, level, fill_value=None, sort: bool = True):
+@overload
+def unstack(obj: Series, level, fill_value=..., sort: bool = ...) -> DataFrame:
+    ...
+
+
+@overload
+def unstack(
+    obj: Series | DataFrame, level, fill_value=..., sort: bool = ...
+) -> Series | DataFrame:
+    ...
+
+
+def unstack(
+    obj: Series | DataFrame, level, fill_value=None, sort: bool = True
+) -> Series | DataFrame:
     if isinstance(level, (tuple, list)):
         if len(level) != 1:
             # _unstack_multiple only handles MultiIndexes,
@@ -572,11 +593,15 @@ def _unstack_extension_series(
 
     # equiv: result.droplevel(level=0, axis=1)
     #  but this avoids an extra copy
-    result.columns = result.columns.droplevel(0)
-    return result
+    result.columns = result.columns._drop_level_numbers([0])
+    # error: Incompatible return value type (got "DataFrame | Series", expected
+    # "DataFrame")
+    return result  # type: ignore[return-value]
 
 
-def stack(frame: DataFrame, level=-1, dropna: bool = True, sort: bool = True):
+def stack(
+    frame: DataFrame, level=-1, dropna: bool = True, sort: bool = True
+) -> Series | DataFrame:
     """
     Convert DataFrame to Series with multi-level Index. Columns become the
     second level of the resulting hierarchical index
@@ -659,7 +684,9 @@ def stack_multiple(frame: DataFrame, level, dropna: bool = True, sort: bool = Tr
     if all(lev in frame.columns.names for lev in level):
         result = frame
         for lev in level:
-            result = stack(result, lev, dropna=dropna, sort=sort)
+            # error: Incompatible types in assignment (expression has type
+            # "Series | DataFrame", variable has type "DataFrame")
+            result = stack(result, lev, dropna=dropna, sort=sort)  # type: ignore[assignment]
 
     # Otherwise, level numbers may change as each successive level is stacked
     elif all(isinstance(lev, int) for lev in level):
@@ -672,7 +699,9 @@ def stack_multiple(frame: DataFrame, level, dropna: bool = True, sort: bool = Tr
 
         while level:
             lev = level.pop(0)
-            result = stack(result, lev, dropna=dropna, sort=sort)
+            # error: Incompatible types in assignment (expression has type
+            # "Series | DataFrame", variable has type "DataFrame")
+            result = stack(result, lev, dropna=dropna, sort=sort)  # type: ignore[assignment]
             # Decrement all level numbers greater than current, as these
             # have now shifted down by one
             level = [v if v <= lev else v - 1 for v in level]
@@ -894,6 +923,7 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
     if len(level) > 1:
         # Arrange columns in the order we want to take them, e.g. level=[2, 0, 1]
         sorter = np.argsort(level)
+        assert isinstance(stack_cols, MultiIndex)
         ordered_stack_cols = stack_cols._reorder_ilevels(sorter)
     else:
         ordered_stack_cols = stack_cols
@@ -953,16 +983,18 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
         index_levels = frame.index.levels
         index_codes = list(np.tile(frame.index.codes, (1, ratio)))
     else:
-        index_levels = [frame.index.unique()]
-        codes = factorize(frame.index)[0]
+        codes, uniques = factorize(frame.index, use_na_sentinel=False)
+        index_levels = [uniques]
         index_codes = list(np.tile(codes, (1, ratio)))
-    if isinstance(stack_cols, MultiIndex):
+    if isinstance(ordered_stack_cols, MultiIndex):
         column_levels = ordered_stack_cols.levels
         column_codes = ordered_stack_cols.drop_duplicates().codes
     else:
         column_levels = [ordered_stack_cols.unique()]
         column_codes = [factorize(ordered_stack_cols_unique, use_na_sentinel=False)[0]]
-    column_codes = [np.repeat(codes, len(frame)) for codes in column_codes]
+    # error: Incompatible types in assignment (expression has type "list[ndarray[Any,
+    # dtype[Any]]]", variable has type "FrozenList")
+    column_codes = [np.repeat(codes, len(frame)) for codes in column_codes]  # type: ignore[assignment]
     result.index = MultiIndex(
         levels=index_levels + column_levels,
         codes=index_codes + column_codes,

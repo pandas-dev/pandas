@@ -10,10 +10,13 @@ import pytest
 
 from pandas._config import using_pyarrow_string_dtype
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     Series,
     Timestamp,
+    option_context,
 )
 import pandas._testing as tm
 from pandas.core import ops
@@ -33,20 +36,24 @@ class TestObjectComparisons:
         expected = func(ser.astype(float), shifted.astype(float))
         tm.assert_series_equal(result, expected)
 
-    def test_object_comparisons(self):
-        ser = Series(["a", "b", np.nan, "c", "a"])
+    @pytest.mark.parametrize(
+        "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
+    )
+    def test_object_comparisons(self, infer_string):
+        with option_context("future.infer_string", infer_string):
+            ser = Series(["a", "b", np.nan, "c", "a"])
 
-        result = ser == "a"
-        expected = Series([True, False, False, False, True])
-        tm.assert_series_equal(result, expected)
+            result = ser == "a"
+            expected = Series([True, False, False, False, True])
+            tm.assert_series_equal(result, expected)
 
-        result = ser < "a"
-        expected = Series([False, False, False, False, False])
-        tm.assert_series_equal(result, expected)
+            result = ser < "a"
+            expected = Series([False, False, False, False, False])
+            tm.assert_series_equal(result, expected)
 
-        result = ser != "a"
-        expected = -(ser == "a")
-        tm.assert_series_equal(result, expected)
+            result = ser != "a"
+            expected = -(ser == "a")
+            tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [None, object])
     def test_more_na_comparisons(self, dtype):

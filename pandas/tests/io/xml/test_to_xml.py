@@ -298,10 +298,8 @@ def test_index_false_rename_row_root(xml_books, parser):
         assert output == expected
 
 
-@pytest.mark.parametrize(
-    "offset_index", [list(range(10, 13)), [str(i) for i in range(10, 13)]]
-)
-def test_index_false_with_offset_input_index(parser, offset_index, geom_df):
+@pytest.mark.parametrize("typ", [int, str])
+def test_index_false_with_offset_input_index(parser, typ, geom_df):
     """
     Tests that the output does not contain the `<index>` field when the index of the
     input Dataframe has an offset.
@@ -328,7 +326,7 @@ def test_index_false_with_offset_input_index(parser, offset_index, geom_df):
     <sides>3.0</sides>
   </row>
 </data>"""
-
+    offset_index = [typ(i) for i in range(10, 13)]
     offset_geom_df = geom_df.copy()
     offset_geom_df.index = Index(offset_index)
     output = offset_geom_df.to_xml(index=False, parser=parser)

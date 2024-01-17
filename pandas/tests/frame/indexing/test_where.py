@@ -250,7 +250,7 @@ class TestDataFrameIndexingWhere:
         df = DataFrame({"a": [1, 2, 3]})
         msg = "Boolean array expected for the condition"
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             df.where(cond)
 
     @pytest.mark.parametrize(
@@ -272,7 +272,7 @@ class TestDataFrameIndexingWhere:
         df = DataFrame({"a": [1, 2, 3], "b": [2, 2, 2]})
         msg = "Boolean array expected for the condition"
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             df.where(cond)
 
     def test_where_dataframe_col_match(self):
@@ -1077,9 +1077,13 @@ def test_where_producing_ea_cond_for_np_dtype():
 @pytest.mark.parametrize(
     "replacement", [0.001, True, "snake", None, datetime(2022, 5, 4)]
 )
-def test_where_int_overflow(replacement):
+def test_where_int_overflow(replacement, using_infer_string, request):
     # GH 31687
     df = DataFrame([[1.0, 2e25, "nine"], [np.nan, 0.1, None]])
+    if using_infer_string and replacement not in (None, "snake"):
+        request.node.add_marker(
+            pytest.mark.xfail(reason="Can't set non-string into string column")
+        )
     result = df.where(pd.notnull(df), replacement)
     expected = DataFrame([[1.0, 2e25, "nine"], [replacement, 0.1, replacement]])
 

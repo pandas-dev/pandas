@@ -269,7 +269,7 @@ class _HtmlFrameParser:
         # Both lxml and BeautifulSoup have the same implementation:
         return obj.get(attr)
 
-    def _href_getter(self, obj):
+    def _href_getter(self, obj) -> str | None:
         """
         Return a href if the DOM node contains a child <a> or None.
 
@@ -392,7 +392,7 @@ class _HtmlFrameParser:
         """
         raise AbstractMethodError(self)
 
-    def _equals_tag(self, obj, tag):
+    def _equals_tag(self, obj, tag) -> bool:
         """
         Return whether an individual DOM node matches a tag
 
@@ -619,7 +619,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
                 result.append(table)
             unique_tables.add(table)
         if not result:
-            raise ValueError(f"No tables found matching pattern {repr(match.pattern)}")
+            raise ValueError(f"No tables found matching pattern {match.pattern!r}")
         return result
 
     def _href_getter(self, obj) -> str | None:
@@ -629,7 +629,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
     def _text_getter(self, obj):
         return obj.text
 
-    def _equals_tag(self, obj, tag):
+    def _equals_tag(self, obj, tag) -> bool:
         return obj.name == tag
 
     def _parse_td(self, row):
@@ -691,7 +691,7 @@ def _build_xpath_expr(attrs) -> str:
     if "class_" in attrs:
         attrs["class"] = attrs.pop("class_")
 
-    s = " and ".join([f"@{k}={repr(v)}" for k, v in attrs.items()])
+    s = " and ".join([f"@{k}={v!r}" for k, v in attrs.items()])
     return f"[{s}]"
 
 
@@ -734,7 +734,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
 
         # 1. check all descendants for the given pattern and only search tables
         # GH 49929
-        xpath_expr = f"//table[.//text()[re:test(., {repr(pattern)})]]"
+        xpath_expr = f"//table[.//text()[re:test(., {pattern!r})]]"
 
         # if any table attributes were given build an xpath expression to
         # search for them
@@ -755,10 +755,10 @@ class _LxmlFrameParser(_HtmlFrameParser):
                     if "display:none" in elem.attrib.get("style", "").replace(" ", ""):
                         elem.drop_tree()
         if not tables:
-            raise ValueError(f"No tables found matching regex {repr(pattern)}")
+            raise ValueError(f"No tables found matching regex {pattern!r}")
         return tables
 
-    def _equals_tag(self, obj, tag):
+    def _equals_tag(self, obj, tag) -> bool:
         return obj.tag == tag
 
     def _build_doc(self):
@@ -914,7 +914,7 @@ def _parser_dispatch(flavor: HTMLFlavors | None) -> type[_HtmlFrameParser]:
     valid_parsers = list(_valid_parsers.keys())
     if flavor not in valid_parsers:
         raise ValueError(
-            f"{repr(flavor)} is not a valid flavor, valid flavors are {valid_parsers}"
+            f"{flavor!r} is not a valid flavor, valid flavors are {valid_parsers}"
         )
 
     if flavor in ("bs4", "html5lib"):
@@ -938,7 +938,7 @@ def _validate_flavor(flavor):
     elif isinstance(flavor, abc.Iterable):
         if not all(isinstance(flav, str) for flav in flavor):
             raise TypeError(
-                f"Object of type {repr(type(flavor).__name__)} "
+                f"Object of type {type(flavor).__name__!r} "
                 f"is not an iterable of strings"
             )
     else:

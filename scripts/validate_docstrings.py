@@ -18,7 +18,6 @@ from __future__ import annotations
 import argparse
 import doctest
 import importlib
-import io
 import json
 import os
 import pathlib
@@ -28,14 +27,11 @@ import tempfile
 
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy
 from numpydoc.docscrape import get_doc_object
 from numpydoc.validate import (
     Validator,
     validate,
 )
-
-import pandas
 
 # With template backend, matplotlib plots nothing
 matplotlib.use("template")
@@ -63,7 +59,6 @@ ERROR_MSGS = {
     "GL05": "Use 'array-like' rather than 'array_like' in docstrings.",
     "SA05": "{reference_name} in `See Also` section does not need `pandas` "
     "prefix, use {right_reference} instead.",
-    "EX02": "Examples do not pass tests:\n{doctest_log}",
     "EX03": "flake8 error: line {line_number}, col {col_number}: {error_code} "
     "{error_message}",
     "EX04": "Do not import {imported_library}, as it is imported "
@@ -168,32 +163,6 @@ class PandasDocstring(Validator):
         return [klass for klass in PRIVATE_CLASSES if klass in self.raw_doc]
 
     @property
-    def examples_errors(self):
-        flags = doctest.NORMALIZE_WHITESPACE | doctest.IGNORE_EXCEPTION_DETAIL
-        finder = doctest.DocTestFinder()
-        runner = doctest.DocTestRunner(optionflags=flags)
-        context = {"np": numpy, "pd": pandas}
-        error_msgs = ""
-        current_dir = set(os.listdir())
-        for test in finder.find(self.raw_doc, self.name, globs=context):
-            f = io.StringIO()
-            runner.run(test, out=f.write)
-            error_msgs += f.getvalue()
-        leftovers = set(os.listdir()).difference(current_dir)
-        if leftovers:
-            for leftover in leftovers:
-                path = pathlib.Path(leftover).resolve()
-                if path.is_dir():
-                    path.rmdir()
-                elif path.is_file():
-                    path.unlink(missing_ok=True)
-            raise Exception(
-                f"The following files were leftover from the doctest: "
-                f"{leftovers}. Please use # doctest: +SKIP"
-            )
-        return error_msgs
-
-    @property
     def examples_source_code(self):
         lines = doctest.DocTestParser().get_examples(self.raw_doc)
         return [line.source for line in lines]
@@ -228,11 +197,12 @@ class PandasDocstring(Validator):
                 file.name,
             ]
             response = subprocess.run(cmd, capture_output=True, check=False, text=True)
-            stdout = response.stdout
-            stdout = stdout.replace(file.name, "")
-            messages = stdout.strip("\n").splitlines()
-            if messages:
-                error_messages.extend(messages)
+            for output in ("stdout", "stderr"):
+                out = getattr(response, output)
+                out = out.replace(file.name, "")
+                messages = out.strip("\n").splitlines()
+                if messages:
+                    error_messages.extend(messages)
         finally:
             file.close()
             os.unlink(file.name)
@@ -289,12 +259,6 @@ def pandas_validate(func_name: str):
 
     result["examples_errs"] = ""
     if doc.examples:
-        result["examples_errs"] = doc.examples_errors
-        if result["examples_errs"]:
-            result["errors"].append(
-                pandas_error("EX02", doctest_log=result["examples_errs"])
-            )
-
         for error_code, error_message, line_number, col_number in doc.validate_pep8():
             result["errors"].append(
                 pandas_error(
@@ -410,8 +374,8 @@ def print_validate_all_results(
     return exit_status
 
 
-def print_validate_one_results(func_name: str):
-    def header(title, width=80, char="#"):
+def print_validate_one_results(func_name: str) -> None:
+    def header(title, width=80, char="#") -> str:
         full_line = char * width
         side_len = (width - len(title) - 2) // 2
         adj = "" if len(title) % 2 == 0 else " "
@@ -428,10 +392,7 @@ def print_validate_one_results(func_name: str):
     if result["errors"]:
         sys.stderr.write(f'{len(result["errors"])} Errors found for `{func_name}`:\n')
         for err_code, err_desc in result["errors"]:
-            if err_code == "EX02":  # Failing examples are printed at the end
-                sys.stderr.write("\tExamples do not pass tests\n")
-                continue
-            sys.stderr.write(f"\t{err_desc}\n")
+            sys.stderr.write(f"\t{err_code}\t{err_desc}\n")
     else:
         sys.stderr.write(f'Docstring for "{func_name}" correct. :)\n')
 

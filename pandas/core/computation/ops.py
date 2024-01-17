@@ -160,7 +160,7 @@ class Term:
 
     @property
     def raw(self) -> str:
-        return f"{type(self).__name__}(name={repr(self.name)}, type={self.type})"
+        return f"{type(self).__name__}(name={self.name!r}, type={self.type})"
 
     @property
     def is_datetime(self) -> bool:
@@ -387,7 +387,7 @@ class BinOp(Op):
             # has to be made a list for python3
             keys = list(_binary_ops_dict.keys())
             raise ValueError(
-                f"Invalid binary operator {repr(op)}, valid operators are {keys}"
+                f"Invalid binary operator {op!r}, valid operators are {keys}"
             ) from err
 
     def __call__(self, env):
@@ -491,7 +491,7 @@ class BinOp(Op):
                 v = v.tz_convert("UTC")
             self.lhs.update(v)
 
-    def _disallow_scalar_only_bool_ops(self):
+    def _disallow_scalar_only_bool_ops(self) -> None:
         rhs = self.rhs
         lhs = self.lhs
 
@@ -571,7 +571,7 @@ class UnaryOp(Op):
             self.func = _unary_ops_dict[op]
         except KeyError as err:
             raise ValueError(
-                f"Invalid unary operator {repr(op)}, "
+                f"Invalid unary operator {op!r}, "
                 f"valid operators are {UNARY_OPS_SYMS}"
             ) from err
 

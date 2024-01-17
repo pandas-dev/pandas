@@ -53,7 +53,7 @@ if TYPE_CHECKING:
 
 
 class _AlreadyWarned:
-    def __init__(self):
+    def __init__(self) -> None:
         # This class is used on the manager level to the block level to
         # ensure that we warn only once. The block method can update the
         # warned_already option without returning a value to keep the
@@ -146,7 +146,7 @@ class DataManager(PandasObject):
         """
         Implementation for DataFrame.equals
         """
-        if not isinstance(other, DataManager):
+        if not isinstance(other, type(self)):
             return False
 
         self_axes, other_axes = self.axes, other.axes
@@ -252,12 +252,16 @@ class DataManager(PandasObject):
             value=value,
             inplace=inplace,
             using_cow=using_copy_on_write(),
+            already_warned=_AlreadyWarned(),
         )
 
     @final
     def replace_regex(self, **kwargs) -> Self:
         return self.apply_with_block(
-            "_replace_regex", **kwargs, using_cow=using_copy_on_write()
+            "_replace_regex",
+            **kwargs,
+            using_cow=using_copy_on_write(),
+            already_warned=_AlreadyWarned(),
         )
 
     @final
@@ -278,13 +282,18 @@ class DataManager(PandasObject):
             inplace=inplace,
             regex=regex,
             using_cow=using_copy_on_write(),
+            already_warned=_AlreadyWarned(),
         )
         bm._consolidate_inplace()
         return bm
 
     def interpolate(self, inplace: bool, **kwargs) -> Self:
         return self.apply_with_block(
-            "interpolate", inplace=inplace, **kwargs, using_cow=using_copy_on_write()
+            "interpolate",
+            inplace=inplace,
+            **kwargs,
+            using_cow=using_copy_on_write(),
+            already_warned=_AlreadyWarned(),
         )
 
     def pad_or_backfill(self, inplace: bool, **kwargs) -> Self:
@@ -293,6 +302,7 @@ class DataManager(PandasObject):
             inplace=inplace,
             **kwargs,
             using_cow=using_copy_on_write(),
+            already_warned=_AlreadyWarned(),
         )
 
     def shift(self, periods: int, fill_value) -> Self:

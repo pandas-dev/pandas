@@ -21,7 +21,7 @@ Instructions for installing :ref:`from source <install.source>`,
 Python version support
 ----------------------
 
-Officially Python 3.9, 3.10 and 3.11.
+Officially Python 3.9, 3.10, 3.11 and 3.12.
 
 Installing pandas
 -----------------

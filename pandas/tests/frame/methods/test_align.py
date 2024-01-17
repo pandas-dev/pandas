@@ -107,7 +107,7 @@ class TestDataFrameAlign:
             af, bf = float_frame.align(
                 other.iloc[:, 0], join="inner", axis=1, method=None, fill_value=None
             )
-        tm.assert_index_equal(bf.index, Index([]))
+        tm.assert_index_equal(bf.index, Index([]).astype(bf.index.dtype))
 
         msg = (
             "The 'method', 'limit', and 'fill_axis' keywords in DataFrame.align "
@@ -117,7 +117,7 @@ class TestDataFrameAlign:
             af, bf = float_frame.align(
                 other.iloc[:, 0], join="inner", axis=1, method=None, fill_value=0
             )
-        tm.assert_index_equal(bf.index, Index([]))
+        tm.assert_index_equal(bf.index, Index([]).astype(bf.index.dtype))
 
         # Try to align DataFrame to Series along bad axis
         msg = "No axis named 2 for object type DataFrame"
@@ -395,7 +395,6 @@ class TestDataFrameAlign:
     @pytest.mark.parametrize("method", ["pad", "bfill"])
     @pytest.mark.parametrize("axis", [0, 1, None])
     @pytest.mark.parametrize("fill_axis", [0, 1])
-    @pytest.mark.parametrize("how", ["inner", "outer", "left", "right"])
     @pytest.mark.parametrize(
         "left_slice",
         [
@@ -412,8 +411,17 @@ class TestDataFrameAlign:
     )
     @pytest.mark.parametrize("limit", [1, None])
     def test_align_fill_method(
-        self, how, method, axis, fill_axis, float_frame, left_slice, right_slice, limit
+        self,
+        join_type,
+        method,
+        axis,
+        fill_axis,
+        float_frame,
+        left_slice,
+        right_slice,
+        limit,
     ):
+        how = join_type
         frame = float_frame
         left = frame.iloc[left_slice[0], left_slice[1]]
         right = frame.iloc[right_slice[0], right_slice[1]]
