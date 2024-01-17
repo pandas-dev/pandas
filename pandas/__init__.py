@@ -224,7 +224,7 @@ if pa_version_under10p1:
 
     warnings.warn(
         f"""
-Pyarrow will become a future required dependency of pandas,
+Pyarrow will become a required dependency of pandas in the next major release of pandas,
 (to allow more performant data types and better interoperability with other libraries)
 but {pa_msg}
 If this would cause problems for you,
