@@ -4682,6 +4682,8 @@ class Index(IndexOpsMixin, PandasObject):
         #  uniqueness/monotonicity
 
         # Note: at this point we have checked matching dtypes
+        lindexer: npt.NDArray[np.intp] | None
+        rindexer: npt.NDArray[np.intp] | None
 
         if how == "left":
             if sort:
