@@ -236,7 +236,7 @@ class TestSlicing:
         rng = date_range(
             start=datetime(2005, 1, 1, 0, 0, 59, microsecond=999990),
             periods=20,
-            freq="US",
+            freq="us",
         )
         s = Series(np.arange(20), rng)
 
