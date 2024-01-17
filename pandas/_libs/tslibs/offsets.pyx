@@ -4711,29 +4711,7 @@ _lite_rule_alias = {
     "ns": "ns",
 }
 
-_dont_uppercase = {
-    "h",
-    "bh",
-    "cbh",
-    "MS",
-    "ms",
-    "s",
-    "me",
-    "qe",
-    "qe-dec",
-    "qe-jan",
-    "qe-feb",
-    "qe-mar",
-    "qe-apr",
-    "qe-may",
-    "qe-jun",
-    "qe-jul",
-    "qe-aug",
-    "qe-sep",
-    "qe-oct",
-    "qe-nov",
-    "ye",
-}
+_dont_uppercase = _dont_uppercase = {"h", "bh", "cbh", "MS", "ms", "s"}
 
 
 INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
@@ -4752,7 +4730,29 @@ def _get_offset(name: str) -> BaseOffset:
     --------
     _get_offset('EOM') --> BMonthEnd(1)
     """
-    if name.lower() not in _dont_uppercase:
+    if (
+        name not in _lite_rule_alias
+        and (name.upper() in _lite_rule_alias)
+        and name != "ms"
+    ):
+        warnings.warn(
+            f"\'{name}\' is deprecated and will be removed "
+            f"in a future version, please use \'{name.upper()}\' instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    elif (
+        name not in _lite_rule_alias
+        and (name.lower() in _lite_rule_alias)
+        and name != "MS"
+    ):
+        warnings.warn(
+            f"\'{name}\' is deprecated and will be removed "
+            f"in a future version, please use \'{name.lower()}\' instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    if name not in _dont_uppercase:
         name = name.upper()
         name = _lite_rule_alias.get(name, name)
         name = _lite_rule_alias.get(name.lower(), name)
@@ -4860,7 +4860,7 @@ cpdef to_offset(freq, bint is_period=False):
 
             tups = zip(split[0::4], split[1::4], split[2::4])
             for n, (sep, stride, name) in enumerate(tups):
-                if is_period is False and name.upper() in c_OFFSET_DEPR_FREQSTR:
+                if not is_period and name.upper() in c_OFFSET_DEPR_FREQSTR:
                     warnings.warn(
                         f"\'{name}\' is deprecated and will be removed "
                         f"in a future version, please use "
@@ -4869,31 +4869,52 @@ cpdef to_offset(freq, bint is_period=False):
                         stacklevel=find_stack_level(),
                     )
                     name = c_OFFSET_DEPR_FREQSTR[name.upper()]
-                if is_period is True and name in c_REVERSE_OFFSET_DEPR_FREQSTR:
-                    if name.startswith("Y"):
+                if (not is_period and
+                        name != name.upper() and
+                        name.lower() not in {"s", "ms", "us", "ns"} and
+                        name.upper().split("-")[0].endswith(("S", "E"))):
+                    warnings.warn(
+                        f"\'{name}\' is deprecated and will be removed "
+                        f"in a future version, please use "
+                        f"\'{name.upper()}\' instead.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                    name = name.upper()
+                if is_period and name.upper() in c_REVERSE_OFFSET_DEPR_FREQSTR:
+                    if name.upper().startswith("Y"):
                         raise ValueError(
-                            f"for Period, please use \'Y{name[2:]}\' "
+                            f"for Period, please use \'Y{name.upper()[2:]}\' "
                             f"instead of \'{name}\'"
                         )
-                    if (name.startswith("B") or
-                            name.startswith("S") or name.startswith("C")):
+                    if (name.upper().startswith("B") or
+                            name.upper().startswith("S") or
+                            name.upper().startswith("C")):
                         raise ValueError(INVALID_FREQ_ERR_MSG.format(name))
                     else:
                         raise ValueError(
                             f"for Period, please use "
-                            f"\'{c_REVERSE_OFFSET_DEPR_FREQSTR.get(name)}\' "
+                            f"\'{c_REVERSE_OFFSET_DEPR_FREQSTR.get(name.upper())}\' "
                             f"instead of \'{name}\'"
                         )
-                elif is_period is True and name in c_OFFSET_DEPR_FREQSTR:
-                    if name.startswith("A"):
+                elif is_period and name.upper() in c_OFFSET_DEPR_FREQSTR:
+                    if name.upper().startswith("A"):
                         warnings.warn(
                             f"\'{name}\' is deprecated and will be removed in a future "
-                            f"version, please use \'{c_DEPR_ABBREVS.get(name)}\' "
+                            f"version, please use "
+                            f"\'{c_DEPR_ABBREVS.get(name.upper())}\' instead.",
+                            FutureWarning,
+                            stacklevel=find_stack_level(),
+                        )
+                    if name.upper() != name:
+                        warnings.warn(
+                            f"\'{name}\' is deprecated and will be removed in "
+                            f"a future version, please use \'{name.upper()}\' "
                             f"instead.",
                             FutureWarning,
                             stacklevel=find_stack_level(),
                         )
-                    name = c_OFFSET_DEPR_FREQSTR.get(name)
+                    name = c_OFFSET_DEPR_FREQSTR.get(name.upper())
 
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")

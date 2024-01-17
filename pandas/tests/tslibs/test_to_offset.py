@@ -172,3 +172,47 @@ def test_to_offset_pd_timedelta(kwargs, expected):
 def test_anchored_shortcuts(shortcut, expected):
     result = to_offset(shortcut)
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "freq_depr",
+    [
+        "2ye-mar",
+        "2ys",
+        "2qe",
+        "2qs-feb",
+        "2bqs",
+        "2sms",
+        "2bms",
+        "2cbme",
+        "2me",
+        "2w",
+    ],
+)
+def test_to_offset_lowercase_frequency_deprecated(freq_depr):
+    # GH#54939
+    depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
+    f"future version, please use '{freq_depr.upper()[1:]}' instead."
+
+    with pytest.raises(FutureWarning, match=depr_msg):
+        to_offset(freq_depr)
+
+
+@pytest.mark.parametrize(
+    "freq_depr",
+    [
+        "2H",
+        "2BH",
+        "2MIN",
+        "2S",
+        "2Us",
+        "2NS",
+    ],
+)
+def test_to_offset_uppercase_frequency_deprecated(freq_depr):
+    # GH#54939
+    depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
+    f"future version, please use '{freq_depr.lower()[1:]}' instead."
+
+    with pytest.raises(FutureWarning, match=depr_msg):
+        to_offset(freq_depr)
