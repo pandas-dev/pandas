@@ -919,7 +919,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         else:
             np_arr = array.to_numpy()
 
-        return DatetimeArray._from_sequence(np_arr, dtype=self, copy=False)
+        return DatetimeArray._simple_new(np_arr, dtype=self)
 
     def __setstate__(self, state) -> None:
         # for pickle compat. __get_state__ is defined in the
