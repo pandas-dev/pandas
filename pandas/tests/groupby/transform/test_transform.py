@@ -650,6 +650,16 @@ def test_groupby_transform_with_nan_group():
     expected = Series([1.0, 1.0, 2.0, 3.0, np.nan, 6.0, 6.0, 9.0, 9.0, 9.0], name="a")
     tm.assert_series_equal(result, expected)
 
+def test_groupby_transform_with_no_column():
+    # GH 49864
+    df = pd.DataFrame({0: [1.0]})
+    gb = df.groupby(pd.Series(["a"]), as_index=False)
+    msg = "A grouping was used that is not in the columns of the DataFrame"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = gb.sum()
+    tm.assert_frame_equal(result, df)
+
+
 
 def test_transform_mixed_type():
     index = MultiIndex.from_arrays([[0, 0, 0, 1, 1, 1], [1, 2, 3, 1, 2, 3]])
