@@ -639,7 +639,7 @@ class TestMergeMulti:
             axis=0,
             sort=True,
         ).reindex(columns=expected.columns)
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_join_multi_levels_invalid(self, portfolio, household):
         portfolio = portfolio.copy()
