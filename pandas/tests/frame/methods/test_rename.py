@@ -164,6 +164,16 @@ class TestRename:
         renamed = df.rename(index={"foo1": "foo3", "bar2": "bar3"}, level=0)
         tm.assert_index_equal(renamed.index, new_index)
 
+    def test_rename_multiindex_with_checks(self):
+        df = DataFrame({("a", "count"): [1, 2], ("a", "sum"): [3, 4]})
+        renamed = df.rename(
+            columns={"a": "b", "count": "number_of", "sum": "total"}, errors="raise"
+        )
+
+        new_columns = MultiIndex.from_tuples([("b", "number_of"), ("b", "total")])
+
+        tm.assert_index_equal(renamed.columns, new_columns)
+
     def test_rename_nocopy(self, float_frame):
         renamed = float_frame.rename(columns={"C": "foo"})
 
@@ -220,6 +230,20 @@ class TestRename:
         df = DataFrame(columns=["A", "B", "C", "D"])
         with pytest.raises(KeyError, match="'E'] not found in axis"):
             df.rename(columns={"A": "a", "E": "e"}, errors="raise")
+
+    def test_rename_error_raised_for_label_across_multiindex_levels(self):
+        df = DataFrame([{"a": 1, "b": 2}, {"a": 3, "b": 4}])
+        df = df.groupby("a").agg({"b": ("count", "sum")})
+        with pytest.raises(
+            KeyError,
+            match=(
+                "\\[\\('b', 'count'\\)\\] not found "
+                "in axis\\. Please provide individual "
+                "labels for replacement, and not "
+                "tuples across MultiIndex levels"
+            ),
+        ):
+            df.rename(columns={("b", "count"): "new"}, errors="raise")
 
     @pytest.mark.parametrize(
         "mapper, errors, expected_columns",

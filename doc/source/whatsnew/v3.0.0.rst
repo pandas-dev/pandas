@@ -446,6 +446,7 @@ Other
 - Bug in :meth:`DataFrame.sort_index` when passing ``axis="columns"`` and ``ignore_index=True`` and ``ascending=False`` not returning a :class:`RangeIndex` columns (:issue:`57293`)
 - Bug in :meth:`DataFrame.where` where using a non-bool type array in the function would return a ``ValueError`` instead of a ``TypeError`` (:issue:`56330`)
 - Bug in Dataframe Interchange Protocol implementation was returning incorrect results for data buffers' associated dtype, for string and datetime columns (:issue:`54781`)
+- Fixed bug in :meth:`DataFrame.rename` where checks on argument errors="raise" are not consistent with the actual transformation applied (:issue:`55169`). Logic change is accompanied with improvement to docs, a new test and a more descriptive ``KeyError`` message when a tuple label rename is attempted across :class:`MultiIndex` levels
 
 .. ***DO NOT USE THIS SECTION***
 
