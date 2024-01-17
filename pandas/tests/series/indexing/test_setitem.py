@@ -7,6 +7,7 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import IndexingError
 
 from pandas.core.dtypes.common import is_list_like
@@ -1440,6 +1441,10 @@ class TestCoercionFloat64(CoercionTest):
             np.float32,
             None,
             marks=pytest.mark.xfail(
+                (
+                    not np_version_gte1p24
+                    or (np_version_gte1p24 and np._get_promotion_state() != "weak")
+                ),
                 reason="np.float32(1.1) ends up as 1.100000023841858, so "
                 "np_can_hold_element raises and we cast to float64",
             ),
@@ -1794,11 +1799,7 @@ def test_setitem_with_bool_indexer():
 @pytest.mark.parametrize(
     "item", [2.0, np.nan, np.finfo(float).max, np.finfo(float).min]
 )
-# Test numpy arrays, lists and tuples as the input to be
-# broadcast
-@pytest.mark.parametrize(
-    "box", [lambda x: np.array([x]), lambda x: [x], lambda x: (x,)]
-)
+@pytest.mark.parametrize("box", [np.array, list, tuple])
 def test_setitem_bool_indexer_dont_broadcast_length1_values(size, mask, item, box):
     # GH#44265
     # see also tests.series.indexing.test_where.test_broadcast
@@ -1816,11 +1817,11 @@ def test_setitem_bool_indexer_dont_broadcast_length1_values(size, mask, item, bo
         )
         with pytest.raises(ValueError, match=msg):
             # GH#44265
-            ser[selection] = box(item)
+            ser[selection] = box([item])
     else:
         # In this corner case setting is equivalent to setting with the unboxed
         #  item
-        ser[selection] = box(item)
+        ser[selection] = box([item])
 
         expected = Series(np.arange(size, dtype=float))
         expected[selection] = item

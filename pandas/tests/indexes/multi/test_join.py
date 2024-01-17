@@ -12,10 +12,9 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.mark.parametrize(
-    "other", [Index(["three", "one", "two"]), Index(["one"]), Index(["one", "three"])]
-)
+@pytest.mark.parametrize("other", [["three", "one", "two"], ["one"], ["one", "three"]])
 def test_join_level(idx, other, join_type):
+    other = Index(other)
     join_index, lidx, ridx = other.join(
         idx, how=join_type, level="second", return_indexers=True
     )

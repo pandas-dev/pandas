@@ -756,10 +756,13 @@ cdef class BaseOffset:
         raise ValueError(f"{self} is a non-fixed frequency")
 
     def is_anchored(self) -> bool:
-        # TODO: Does this make sense for the general case?  It would help
-        # if there were a canonical docstring for what is_anchored means.
+        # GH#55388
         """
         Return boolean whether the frequency is a unit frequency (n=1).
+
+        .. deprecated:: 2.2.0
+            is_anchored is deprecated and will be removed in a future version.
+            Use ``obj.n == 1`` instead.
 
         Examples
         --------
@@ -768,6 +771,12 @@ cdef class BaseOffset:
         >>> pd.DateOffset(2).is_anchored()
         False
         """
+        warnings.warn(
+            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
+            f"in a future version, please use \'obj.n == 1\' instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.n == 1
 
     # ------------------------------------------------------------------
@@ -913,8 +922,19 @@ cdef class Tick(SingleConstructorOffset):
         # Since cdef classes have no __dict__, we need to override
         return ""
 
+    @cache_readonly
+    def _as_pd_timedelta(self):
+        return Timedelta(self)
+
     @property
     def delta(self):
+        warnings.warn(
+            # GH#55498
+            f"{type(self).__name__}.delta is deprecated and will be removed in "
+            "a future version. Use pd.Timedelta(obj) instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         try:
             return self.n * Timedelta(self._nanos_inc)
         except OverflowError as err:
@@ -943,6 +963,27 @@ cdef class Tick(SingleConstructorOffset):
         return True
 
     def is_anchored(self) -> bool:
+        # GH#55388
+        """
+        Return False.
+
+        .. deprecated:: 2.2.0
+            is_anchored is deprecated and will be removed in a future version.
+            Use ``False`` instead.
+
+        Examples
+        --------
+        >>> pd.offsets.Hour().is_anchored()
+        False
+        >>> pd.offsets.Hour(2).is_anchored()
+        False
+        """
+        warnings.warn(
+            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
+            f"in a future version, please use False instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return False
 
     # This is identical to BaseOffset.__hash__, but has to be redefined here
@@ -962,22 +1003,22 @@ cdef class Tick(SingleConstructorOffset):
             except ValueError:
                 # e.g. "infer"
                 return False
-        return self.delta == other
+        return self._as_pd_timedelta == other
 
     def __ne__(self, other):
         return not (self == other)
 
     def __le__(self, other):
-        return self.delta.__le__(other)
+        return self._as_pd_timedelta.__le__(other)
 
     def __lt__(self, other):
-        return self.delta.__lt__(other)
+        return self._as_pd_timedelta.__lt__(other)
 
     def __ge__(self, other):
-        return self.delta.__ge__(other)
+        return self._as_pd_timedelta.__ge__(other)
 
     def __gt__(self, other):
-        return self.delta.__gt__(other)
+        return self._as_pd_timedelta.__gt__(other)
 
     def __mul__(self, other):
         if is_float_object(other):
@@ -997,13 +1038,13 @@ cdef class Tick(SingleConstructorOffset):
     def __truediv__(self, other):
         if not isinstance(self, Tick):
             # cython semantics mean the args are sometimes swapped
-            result = other.delta.__rtruediv__(self)
+            result = other._as_pd_timedelta.__rtruediv__(self)
         else:
-            result = self.delta.__truediv__(other)
+            result = self._as_pd_timedelta.__truediv__(other)
         return _wrap_timedelta_result(result)
 
     def __rtruediv__(self, other):
-        result = self.delta.__rtruediv__(other)
+        result = self._as_pd_timedelta.__rtruediv__(other)
         return _wrap_timedelta_result(result)
 
     def __add__(self, other):
@@ -1011,7 +1052,7 @@ cdef class Tick(SingleConstructorOffset):
             if type(self) is type(other):
                 return type(self)(self.n + other.n)
             else:
-                return delta_to_tick(self.delta + other.delta)
+                return delta_to_tick(self._as_pd_timedelta + other._as_pd_timedelta)
         try:
             return self._apply(other)
         except ApplyTypeError:
@@ -1029,7 +1070,7 @@ cdef class Tick(SingleConstructorOffset):
         # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
         if isinstance(other, _Timestamp):
             # GH#15126
-            return other + self.delta
+            return other + self._as_pd_timedelta
         elif other is NaT:
             return NaT
         elif cnp.is_datetime64_object(other) or PyDate_Check(other):
@@ -1037,7 +1078,7 @@ cdef class Tick(SingleConstructorOffset):
             return Timestamp(other) + self
 
         if cnp.is_timedelta64_object(other) or PyDelta_Check(other):
-            return other + self.delta
+            return other + self._as_pd_timedelta
 
         raise ApplyTypeError(f"Unhandled type: {type(other).__name__}")
 
@@ -2652,6 +2693,13 @@ cdef class QuarterOffset(SingleConstructorOffset):
         return f"{self._prefix}-{month}"
 
     def is_anchored(self) -> bool:
+        warnings.warn(
+            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
+            f"in a future version, please use \'obj.n == 1 "
+            f"and obj.startingMonth is not None\' instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.n == 1 and self.startingMonth is not None
 
     def is_on_offset(self, dt: datetime) -> bool:
@@ -3297,6 +3345,13 @@ cdef class Week(SingleConstructorOffset):
         self._cache = state.pop("_cache", {})
 
     def is_anchored(self) -> bool:
+        warnings.warn(
+            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
+            f"in a future version, please use \'obj.n == 1 "
+            f"and obj.weekday is not None\' instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.n == 1 and self.weekday is not None
 
     @apply_wraps
@@ -3586,6 +3641,12 @@ cdef class FY5253Mixin(SingleConstructorOffset):
         self.variation = state.pop("variation")
 
     def is_anchored(self) -> bool:
+        warnings.warn(
+            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
+            f"in a future version, please use \'obj.n == 1\' instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return (
             self.n == 1 and self.startingMonth is not None and self.weekday is not None
         )
@@ -4723,6 +4784,10 @@ cpdef to_offset(freq, bint is_period=False):
     Parameters
     ----------
     freq : str, datetime.timedelta, BaseOffset or None
+        The frequency represented.
+    is_period : bool, default False
+        Convert string denoting period frequency to corresponding offsets
+        frequency if is_period=True.
 
     Returns
     -------
@@ -4757,6 +4822,17 @@ cpdef to_offset(freq, bint is_period=False):
 
     >>> to_offset(pd.offsets.Hour())
     <Hour>
+
+    Passing the parameter ``is_period`` equal to True, you can use a string
+    denoting period frequency:
+
+    >>> freq = to_offset(freq="ME", is_period=False)
+    >>> freq.rule_code
+    'ME'
+
+    >>> freq = to_offset(freq="M", is_period=True)
+    >>> freq.rule_code
+    'ME'
     """
     if freq is None:
         return None
@@ -4784,14 +4860,15 @@ cpdef to_offset(freq, bint is_period=False):
 
             tups = zip(split[0::4], split[1::4], split[2::4])
             for n, (sep, stride, name) in enumerate(tups):
-                if is_period is False and name in c_OFFSET_DEPR_FREQSTR:
+                if is_period is False and name.upper() in c_OFFSET_DEPR_FREQSTR:
                     warnings.warn(
-                        f"\'{name}\' is deprecated, please use "
-                        f"\'{c_OFFSET_DEPR_FREQSTR.get(name)}\' instead.",
+                        f"\'{name}\' is deprecated and will be removed "
+                        f"in a future version, please use "
+                        f"\'{c_OFFSET_DEPR_FREQSTR.get(name.upper())}\' instead.",
                         FutureWarning,
                         stacklevel=find_stack_level(),
                     )
-                    name = c_OFFSET_DEPR_FREQSTR[name]
+                    name = c_OFFSET_DEPR_FREQSTR[name.upper()]
                 if is_period is True and name in c_REVERSE_OFFSET_DEPR_FREQSTR:
                     if name.startswith("Y"):
                         raise ValueError(
@@ -4829,9 +4906,8 @@ cpdef to_offset(freq, bint is_period=False):
                 if prefix in c_DEPR_ABBREVS:
                     warnings.warn(
                         f"\'{prefix}\' is deprecated and will be removed "
-                        f"in a future version. Please use "
-                        f"\'{c_DEPR_ABBREVS.get(prefix)}\' "
-                        f"instead of \'{prefix}\'.",
+                        f"in a future version, please use "
+                        f"\'{c_DEPR_ABBREVS.get(prefix)}\' instead.",
                         FutureWarning,
                         stacklevel=find_stack_level(),
                     )

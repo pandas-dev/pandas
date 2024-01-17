@@ -281,7 +281,7 @@ class TestDatetimeArrayComparisons:
         op = comparison_op
 
         dti = pd.date_range("2016-01-1", freq="MS", periods=9, tz=None)
-        arr = DatetimeArray(dti)
+        arr = dti._data
         assert arr.freq == dti.freq
         assert arr.tz == dti.tz
 
@@ -390,7 +390,9 @@ class TestDatetimeArray:
 
     @pytest.mark.parametrize("dtype", [int, np.int32, np.int64, "uint32", "uint64"])
     def test_astype_int(self, dtype):
-        arr = DatetimeArray._from_sequence([pd.Timestamp("2000"), pd.Timestamp("2001")])
+        arr = DatetimeArray._from_sequence(
+            [pd.Timestamp("2000"), pd.Timestamp("2001")], dtype="M8[ns]"
+        )
 
         if np.dtype(dtype) != np.int64:
             with pytest.raises(TypeError, match=r"Do obj.astype\('int64'\)"):
@@ -424,7 +426,7 @@ class TestDatetimeArray:
 
         data = np.array([1, 2, 3], dtype="M8[ns]")
         dtype = data.dtype if tz is None else DatetimeTZDtype(tz=tz)
-        arr = DatetimeArray(data, dtype=dtype)
+        arr = DatetimeArray._from_sequence(data, dtype=dtype)
         expected = arr.copy()
 
         ts = pd.Timestamp("2020-09-08 16:50").tz_localize(tz)
@@ -444,7 +446,9 @@ class TestDatetimeArray:
         # pre-2.0 we required exact tz match, in 2.0 we require only
         #  tzawareness-match
         data = np.array([1, 2, 3], dtype="M8[ns]")
-        arr = DatetimeArray(data, copy=False, dtype=DatetimeTZDtype(tz="US/Central"))
+        arr = DatetimeArray._from_sequence(
+            data, copy=False, dtype=DatetimeTZDtype(tz="US/Central")
+        )
         with pytest.raises(TypeError, match="Cannot compare tz-naive and tz-aware"):
             arr[0] = pd.Timestamp("2000")
 
@@ -453,7 +457,7 @@ class TestDatetimeArray:
         assert arr[0] == ts.tz_convert("US/Central")
 
     def test_setitem_clears_freq(self):
-        a = DatetimeArray(pd.date_range("2000", periods=2, freq="D", tz="US/Central"))
+        a = pd.date_range("2000", periods=2, freq="D", tz="US/Central")._data
         a[0] = pd.Timestamp("2000", tz="US/Central")
         assert a.freq is None
 
@@ -475,7 +479,7 @@ class TestDatetimeArray:
 
     def test_repeat_preserves_tz(self):
         dti = pd.date_range("2000", periods=2, freq="D", tz="US/Central")
-        arr = DatetimeArray(dti)
+        arr = dti._data
 
         repeated = arr.repeat([1, 1])
 
@@ -485,7 +489,7 @@ class TestDatetimeArray:
 
     def test_value_counts_preserves_tz(self):
         dti = pd.date_range("2000", periods=2, freq="D", tz="US/Central")
-        arr = DatetimeArray(dti).repeat([4, 3])
+        arr = dti._data.repeat([4, 3])
 
         result = arr.value_counts()
 
@@ -500,7 +504,7 @@ class TestDatetimeArray:
     @pytest.mark.parametrize("method", ["pad", "backfill"])
     def test_fillna_preserves_tz(self, method):
         dti = pd.date_range("2000-01-01", periods=5, freq="D", tz="US/Central")
-        arr = DatetimeArray(dti, copy=True)
+        arr = DatetimeArray._from_sequence(dti, copy=True)
         arr[2] = pd.NaT
 
         fill_val = dti[1] if method == "pad" else dti[3]
@@ -559,7 +563,7 @@ class TestDatetimeArray:
 
     def test_array_interface_tz(self):
         tz = "US/Central"
-        data = DatetimeArray(pd.date_range("2017", periods=2, tz=tz))
+        data = pd.date_range("2017", periods=2, tz=tz)._data
         result = np.asarray(data)
 
         expected = np.array(
@@ -582,7 +586,7 @@ class TestDatetimeArray:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_array_interface(self):
-        data = DatetimeArray(pd.date_range("2017", periods=2))
+        data = pd.date_range("2017", periods=2)._data
         expected = np.array(
             ["2017-01-01T00:00:00", "2017-01-02T00:00:00"], dtype="datetime64[ns]"
         )
@@ -600,7 +604,7 @@ class TestDatetimeArray:
     @pytest.mark.parametrize("index", [True, False])
     def test_searchsorted_different_tz(self, index):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
-        arr = DatetimeArray(data, freq="D").tz_localize("Asia/Tokyo")
+        arr = pd.DatetimeIndex(data, freq="D")._data.tz_localize("Asia/Tokyo")
         if index:
             arr = pd.Index(arr)
 
@@ -615,7 +619,7 @@ class TestDatetimeArray:
     @pytest.mark.parametrize("index", [True, False])
     def test_searchsorted_tzawareness_compat(self, index):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
-        arr = DatetimeArray(data, freq="D")
+        arr = pd.DatetimeIndex(data, freq="D")._data
         if index:
             arr = pd.Index(arr)
 
@@ -649,7 +653,7 @@ class TestDatetimeArray:
     @pytest.mark.parametrize("index", [True, False])
     def test_searchsorted_invalid_types(self, other, index):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
-        arr = DatetimeArray(data, freq="D")
+        arr = pd.DatetimeIndex(data, freq="D")._data
         if index:
             arr = pd.Index(arr)
 
@@ -666,7 +670,7 @@ class TestDatetimeArray:
         dti = pd.date_range("2016-01-01", periods=3)
 
         dta = dti._data
-        expected = DatetimeArray(np.roll(dta._ndarray, 1))
+        expected = DatetimeArray._from_sequence(np.roll(dta._ndarray, 1))
 
         fv = dta[-1]
         for fill_value in [fv, fv.to_pydatetime(), fv.to_datetime64()]:
@@ -739,7 +743,7 @@ class TestDatetimeArray:
         )
         utc_vals *= 1_000_000_000
 
-        dta = DatetimeArray(utc_vals).tz_localize("UTC").tz_convert(tz)
+        dta = DatetimeArray._from_sequence(utc_vals).tz_localize("UTC").tz_convert(tz)
 
         left = dta[2]
         right = list(dta)[2]
@@ -772,7 +776,8 @@ class TestDatetimeArray:
     )
     def test_date_range_frequency_M_Q_Y_A_deprecated(self, freq, freq_depr):
         # GH#9586, GH#54275
-        depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
+        depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
+        f"in a future version, please use '{freq[1:]}' instead."
 
         expected = pd.date_range("1/1/2000", periods=4, freq=freq)
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):
@@ -781,7 +786,7 @@ class TestDatetimeArray:
 
 
 def test_factorize_sort_without_freq():
-    dta = DatetimeArray._from_sequence([0, 2, 1])
+    dta = DatetimeArray._from_sequence([0, 2, 1], dtype="M8[ns]")
 
     msg = r"call pd.factorize\(obj, sort=True\) instead"
     with pytest.raises(NotImplementedError, match=msg):

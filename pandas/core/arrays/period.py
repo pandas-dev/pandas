@@ -623,7 +623,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         ----------
         freq : str or DateOffset, optional
             Target frequency. The default is 'D' for week or longer,
-            'S' otherwise.
+            's' otherwise.
         how : {'s', 'e', 'start', 'end'}
             Whether to use the start or end of the time period being converted.
 
@@ -664,7 +664,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         new_parr = self.asfreq(freq, how=how)
 
         new_data = libperiod.periodarr_to_dt64arr(new_parr.asi8, base)
-        dta = DatetimeArray(new_data)
+        dta = DatetimeArray._from_sequence(new_data)
 
         if self.freq.name == "B":
             # See if we can retain BDay instead of Day in cases where
@@ -759,7 +759,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     # ------------------------------------------------------------------
     # Rendering Methods
 
-    def _formatter(self, boxed: bool = False):
+    def _formatter(self, boxed: bool = False) -> Callable[[object], str]:
         if boxed:
             return str
         return "'{}'".format
@@ -810,12 +810,19 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         return m8arr.searchsorted(npvalue, side=side, sorter=sorter)
 
     def _pad_or_backfill(
-        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
     ) -> Self:
         # view as dt64 so we get treated as timelike in core.missing,
         #  similar to dtl._period_dispatch
         dta = self.view("M8[ns]")
-        result = dta._pad_or_backfill(method=method, limit=limit, copy=copy)
+        result = dta._pad_or_backfill(
+            method=method, limit=limit, limit_area=limit_area, copy=copy
+        )
         if copy:
             return cast("Self", result.view(self.dtype))
         else:
@@ -1090,7 +1097,9 @@ def period_array(
         return PeriodArray(ordinals, dtype=dtype)
 
     data = ensure_object(arrdata)
-
+    if freq is None:
+        freq = libperiod.extract_freq(data)
+    dtype = PeriodDtype(freq)
     return PeriodArray._from_sequence(data, dtype=dtype)
 
 

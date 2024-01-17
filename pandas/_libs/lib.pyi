@@ -69,15 +69,25 @@ def fast_multiget(
     mapping: dict,
     keys: np.ndarray,  # object[:]
     default=...,
-) -> np.ndarray: ...
+) -> ArrayLike: ...
 def fast_unique_multiple_list_gen(gen: Generator, sort: bool = ...) -> list: ...
 def fast_unique_multiple_list(lists: list, sort: bool | None = ...) -> list: ...
+@overload
 def map_infer(
     arr: np.ndarray,
     f: Callable[[Any], Any],
-    convert: bool = ...,
+    *,
+    convert: Literal[False],
     ignore_na: bool = ...,
 ) -> np.ndarray: ...
+@overload
+def map_infer(
+    arr: np.ndarray,
+    f: Callable[[Any], Any],
+    *,
+    convert: bool = ...,
+    ignore_na: bool = ...,
+) -> ArrayLike: ...
 @overload
 def maybe_convert_objects(
     objects: npt.NDArray[np.object_],
@@ -164,14 +174,26 @@ def is_all_arraylike(obj: list) -> bool: ...
 # Functions which in reality take memoryviews
 
 def memory_usage_of_objects(arr: np.ndarray) -> int: ...  # object[:]  # np.int64
+@overload
 def map_infer_mask(
     arr: np.ndarray,
     f: Callable[[Any], Any],
     mask: np.ndarray,  # const uint8_t[:]
-    convert: bool = ...,
+    *,
+    convert: Literal[False],
     na_value: Any = ...,
     dtype: np.dtype = ...,
 ) -> np.ndarray: ...
+@overload
+def map_infer_mask(
+    arr: np.ndarray,
+    f: Callable[[Any], Any],
+    mask: np.ndarray,  # const uint8_t[:]
+    *,
+    convert: bool = ...,
+    na_value: Any = ...,
+    dtype: np.dtype = ...,
+) -> ArrayLike: ...
 def indices_fast(
     index: npt.NDArray[np.intp],
     labels: np.ndarray,  # const int64_t[:]
@@ -179,7 +201,8 @@ def indices_fast(
     sorted_labels: list[npt.NDArray[np.int64]],
 ) -> dict[Hashable, npt.NDArray[np.intp]]: ...
 def generate_slices(
-    labels: np.ndarray, ngroups: int  # const intp_t[:]
+    labels: np.ndarray,
+    ngroups: int,  # const intp_t[:]
 ) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]: ...
 def count_level_2d(
     mask: np.ndarray,  # ndarray[uint8_t, ndim=2, cast=True],
@@ -209,5 +232,6 @@ def get_reverse_indexer(
 def is_bool_list(obj: list) -> bool: ...
 def dtypes_all_equal(types: list[DtypeObj]) -> bool: ...
 def is_range_indexer(
-    left: np.ndarray, n: int  # np.ndarray[np.int64, ndim=1]
+    left: np.ndarray,
+    n: int,  # np.ndarray[np.int64, ndim=1]
 ) -> bool: ...

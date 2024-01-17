@@ -170,7 +170,7 @@ def test_api_per_method(
         # GH 23011, GH 23163
         msg = (
             f"Cannot use .str.{method_name} with values of "
-            f"inferred dtype {repr(inferred_dtype)}."
+            f"inferred dtype {inferred_dtype!r}."
         )
         with pytest.raises(TypeError, match=msg):
             method(*args, **kwargs)

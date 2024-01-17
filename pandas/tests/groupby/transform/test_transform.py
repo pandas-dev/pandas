@@ -706,7 +706,6 @@ def test_cython_transform_series(op, args, targop):
 
 
 @pytest.mark.parametrize("op", ["cumprod", "cumsum"])
-@pytest.mark.parametrize("skipna", [False, True])
 @pytest.mark.parametrize(
     "input, exp",
     [
@@ -1239,15 +1238,14 @@ def test_groupby_transform_dtype():
     tm.assert_series_equal(result, expected1)
 
 
-@pytest.mark.parametrize("func", ["cumsum", "cumprod", "cummin", "cummax"])
-def test_transform_absent_categories(func):
+def test_transform_absent_categories(all_numeric_accumulations):
     # GH 16771
     # cython transforms with more groups than rows
     x_vals = [1]
     x_cats = range(2)
     y = [1]
     df = DataFrame({"x": Categorical(x_vals, x_cats), "y": y})
-    result = getattr(df.y.groupby(df.x, observed=False), func)()
+    result = getattr(df.y.groupby(df.x, observed=False), all_numeric_accumulations)()
     expected = df.y
     tm.assert_series_equal(result, expected)
 
@@ -1353,7 +1351,7 @@ def test_transform_fastpath_raises():
 
     # Check that the fastpath raises, see _transform_general
     obj = gb._obj_with_exclusions
-    gen = gb.grouper.get_iterator(obj, axis=gb.axis)
+    gen = gb._grouper.get_iterator(obj, axis=gb.axis)
     fast_path, slow_path = gb._define_paths(func)
     _, group = next(gen)
 

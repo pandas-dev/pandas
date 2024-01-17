@@ -79,10 +79,10 @@ def test_missing_minp_zero():
     tm.assert_series_equal(result, expected)
 
 
-def test_expanding_axis(axis_frame):
+def test_expanding_axis(axis):
     # see gh-23372.
     df = DataFrame(np.ones((10, 20)))
-    axis = df._get_axis_number(axis_frame)
+    axis = df._get_axis_number(axis)
 
     if axis == 0:
         msg = "The 'axis' keyword in DataFrame.expanding is deprecated"
@@ -95,7 +95,7 @@ def test_expanding_axis(axis_frame):
         expected = DataFrame([[np.nan] * 2 + [float(i) for i in range(3, 21)]] * 10)
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.expanding(3, axis=axis_frame).sum()
+        result = df.expanding(3, axis=axis).sum()
     tm.assert_frame_equal(result, expected)
 
 
@@ -127,7 +127,7 @@ def test_expanding_count_with_min_periods_exceeding_series_length(frame_or_serie
     "df,expected,min_periods",
     [
         (
-            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+            {"A": [1, 2, 3], "B": [4, 5, 6]},
             [
                 ({"A": [1], "B": [4]}, [0]),
                 ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
@@ -136,7 +136,7 @@ def test_expanding_count_with_min_periods_exceeding_series_length(frame_or_serie
             3,
         ),
         (
-            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+            {"A": [1, 2, 3], "B": [4, 5, 6]},
             [
                 ({"A": [1], "B": [4]}, [0]),
                 ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
@@ -145,7 +145,7 @@ def test_expanding_count_with_min_periods_exceeding_series_length(frame_or_serie
             2,
         ),
         (
-            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+            {"A": [1, 2, 3], "B": [4, 5, 6]},
             [
                 ({"A": [1], "B": [4]}, [0]),
                 ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
@@ -153,10 +153,10 @@ def test_expanding_count_with_min_periods_exceeding_series_length(frame_or_serie
             ],
             1,
         ),
-        (DataFrame({"A": [1], "B": [4]}), [], 2),
-        (DataFrame(), [({}, [])], 1),
+        ({"A": [1], "B": [4]}, [], 2),
+        (None, [({}, [])], 1),
         (
-            DataFrame({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}),
+            {"A": [1, np.nan, 3], "B": [np.nan, 5, 6]},
             [
                 ({"A": [1.0], "B": [np.nan]}, [0]),
                 ({"A": [1, np.nan], "B": [np.nan, 5]}, [0, 1]),
@@ -165,7 +165,7 @@ def test_expanding_count_with_min_periods_exceeding_series_length(frame_or_serie
             3,
         ),
         (
-            DataFrame({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}),
+            {"A": [1, np.nan, 3], "B": [np.nan, 5, 6]},
             [
                 ({"A": [1.0], "B": [np.nan]}, [0]),
                 ({"A": [1, np.nan], "B": [np.nan, 5]}, [0, 1]),
@@ -174,7 +174,7 @@ def test_expanding_count_with_min_periods_exceeding_series_length(frame_or_serie
             2,
         ),
         (
-            DataFrame({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}),
+            {"A": [1, np.nan, 3], "B": [np.nan, 5, 6]},
             [
                 ({"A": [1.0], "B": [np.nan]}, [0]),
                 ({"A": [1, np.nan], "B": [np.nan, 5]}, [0, 1]),
@@ -186,6 +186,7 @@ def test_expanding_count_with_min_periods_exceeding_series_length(frame_or_serie
 )
 def test_iter_expanding_dataframe(df, expected, min_periods):
     # GH 11704
+    df = DataFrame(df)
     expected = [DataFrame(values, index=index) for (values, index) in expected]
 
     for expected, actual in zip(expected, df.expanding(min_periods)):
@@ -241,7 +242,6 @@ def test_expanding_skew_kurt_numerical_stability(method):
 @pytest.mark.parametrize("window", [1, 3, 10, 20])
 @pytest.mark.parametrize("method", ["min", "max", "average"])
 @pytest.mark.parametrize("pct", [True, False])
-@pytest.mark.parametrize("ascending", [True, False])
 @pytest.mark.parametrize("test_data", ["default", "duplicates", "nans"])
 def test_rank(window, method, pct, ascending, test_data):
     length = 20

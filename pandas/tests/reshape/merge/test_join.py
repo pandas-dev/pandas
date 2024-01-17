@@ -154,13 +154,12 @@ class TestJoin:
             target.join(source, on="E")
 
         # overlap
-        source_copy = source.copy()
         msg = (
             "You are trying to merge on float64 and object|string columns for key "
             "'A'. If you wish to proceed you should use pd.concat"
         )
         with pytest.raises(ValueError, match=msg):
-            target.join(source_copy, on="A")
+            target.join(source, on="A")
 
     def test_join_on_fails_with_different_right_index(self):
         df = DataFrame(
@@ -236,7 +235,8 @@ class TestJoin:
     def test_join_on_pass_vector(self, target_source):
         target, source = target_source
         expected = target.join(source, on="C")
-        del expected["C"]
+        expected = expected.rename(columns={"C": "key_0"})
+        expected = expected[["key_0", "A", "B", "D", "MergedA", "MergedD"]]
 
         join_col = target.pop("C")
         result = target.join(source, on=join_col)
@@ -1035,6 +1035,8 @@ def test_join_empty(left_empty, how, exp):
         expected = DataFrame(columns=["B", "C"], dtype="int64")
         if how != "cross":
             expected = expected.rename_axis("A")
+    if how == "outer":
+        expected = expected.sort_index()
 
     tm.assert_frame_equal(result, expected)
 

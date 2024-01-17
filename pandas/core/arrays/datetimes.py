@@ -7,6 +7,7 @@ from datetime import (
 )
 from typing import (
     TYPE_CHECKING,
+    TypeVar,
     cast,
     overload,
 )
@@ -27,23 +28,19 @@ from pandas._libs.tslibs import (
     astype_overflowsafe,
     fields,
     get_resolution,
-    get_supported_reso,
+    get_supported_dtype,
     get_unit_from_dtype,
     ints_to_pydatetime,
     is_date_array_normalized,
-    is_supported_unit,
+    is_supported_dtype,
     is_unitless,
     normalize_i8_timestamps,
-    npy_unit_to_abbrev,
     timezones,
     to_offset,
     tz_convert_from_utc,
     tzconversion,
 )
-from pandas._libs.tslibs.dtypes import (
-    abbrev_to_npy_unit,
-    freq_to_period_freqstr,
-)
+from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
@@ -74,7 +71,10 @@ from pandas.tseries.offsets import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import (
+        Generator,
+        Iterator,
+    )
 
     from pandas._typing import (
         ArrayLike,
@@ -87,8 +87,14 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas import DataFrame
+    from pandas import (
+        DataFrame,
+        Timedelta,
+    )
     from pandas.core.arrays import PeriodArray
+
+    _TimestampNoneT1 = TypeVar("_TimestampNoneT1", Timestamp, None)
+    _TimestampNoneT2 = TypeVar("_TimestampNoneT2", Timestamp, None)
 
 
 _ITER_CHUNKSIZE = 10_000
@@ -203,8 +209,11 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
     Examples
     --------
-    >>> pd.arrays.DatetimeArray(pd.DatetimeIndex(['2023-01-01', '2023-01-02']),
-    ...                         freq='D')
+    >>> pd.arrays.DatetimeArray._from_sequence(
+    ...     pd.DatetimeIndex(
+    ...         ["2023-01-01", "2023-01-02"], freq="D"
+    ...     )
+    ... )
     <DatetimeArray>
     ['2023-01-01 00:00:00', '2023-01-02 00:00:00']
     Length: 2, dtype: datetime64[ns]
@@ -327,7 +336,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         return result
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype=None, copy: bool = False):
+    def _from_sequence(cls, scalars, *, dtype=None, copy: bool = False) -> Self:
         return cls._from_sequence_not_strict(scalars, dtype=dtype, copy=copy)
 
     @classmethod
@@ -398,10 +407,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         result._maybe_pin_freq(freq, validate_kwds)
         return result
 
-    # error: Signature of "_generate_range" incompatible with supertype
-    # "DatetimeLikeArrayMixin"
     @classmethod
-    def _generate_range(  # type: ignore[override]
+    def _generate_range(
         cls,
         start,
         end,
@@ -712,7 +719,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             self.tz is None
             and lib.is_np_dtype(dtype, "M")
             and not is_unitless(dtype)
-            and is_supported_unit(get_unit_from_dtype(dtype))
+            and is_supported_dtype(dtype)
         ):
             # unit conversion e.g. datetime64[s]
             res_values = astype_overflowsafe(self._ndarray, dtype, copy=True)
@@ -1235,8 +1242,10 @@ default 'raise'
 
         if freq is None:
             freq = self.freqstr or self.inferred_freq
-            if isinstance(self.freq, BaseOffset):
-                freq = freq_to_period_freqstr(self.freq.n, self.freq.name)
+            if isinstance(self.freq, BaseOffset) and hasattr(
+                self.freq, "_period_dtype_code"
+            ):
+                freq = PeriodDtype(self.freq)._freqstr
 
             if freq is None:
                 raise ValueError(
@@ -1358,7 +1367,7 @@ default 'raise'
         >>> idx
         DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03'],
                       dtype='datetime64[ns]', freq='D')
-        >>> idx.day_name(locale='pt_BR.utf8') # doctest: +SKIP
+        >>> idx.day_name(locale='pt_BR.utf8')  # doctest: +SKIP
         Index(['Segunda', 'Terça', 'Quarta'], dtype='object')
         """
         values = self._local_timestamps()
@@ -2128,7 +2137,7 @@ default 'raise'
         ddof: int = 1,
         keepdims: bool = False,
         skipna: bool = True,
-    ):
+    ) -> Timedelta:
         """
         Return sample standard deviation over requested axis.
 
@@ -2194,7 +2203,7 @@ def _sequence_to_dt64(
     yearfirst: bool = False,
     ambiguous: TimeAmbiguous = "raise",
     out_unit: str | None = None,
-):
+) -> tuple[np.ndarray, tzinfo | None]:
     """
     Parameters
     ----------
@@ -2307,7 +2316,7 @@ def _sequence_to_dt64(
     assert isinstance(result, np.ndarray), type(result)
     assert result.dtype.kind == "M"
     assert result.dtype != "M8"
-    assert is_supported_unit(get_unit_from_dtype(result.dtype))
+    assert is_supported_dtype(result.dtype)
     return result, tz
 
 
@@ -2321,14 +2330,10 @@ def _construct_from_dt64_naive(
     #  lib.is_np_dtype(data.dtype)
 
     new_dtype = data.dtype
-    data_unit = get_unit_from_dtype(new_dtype)
-    if not is_supported_unit(data_unit):
+    if not is_supported_dtype(new_dtype):
         # Cast to the nearest supported unit, generally "s"
-        new_reso = get_supported_reso(data_unit)
-        new_unit = npy_unit_to_abbrev(new_reso)
-        new_dtype = np.dtype(f"M8[{new_unit}]")
+        new_dtype = get_supported_dtype(new_dtype)
         data = astype_overflowsafe(data, dtype=new_dtype, copy=False)
-        data_unit = get_unit_from_dtype(new_dtype)
         copy = False
 
     if data.dtype.byteorder == ">":
@@ -2346,6 +2351,7 @@ def _construct_from_dt64_naive(
         if data.ndim > 1:
             data = data.ravel()
 
+        data_unit = get_unit_from_dtype(new_dtype)
         data = tzconversion.tz_localize_to_utc(
             data.view("i8"), tz, ambiguous=ambiguous, creso=data_unit
         )
@@ -2366,7 +2372,7 @@ def objects_to_datetime64(
     errors: DateTimeErrorChoices = "raise",
     allow_object: bool = False,
     out_unit: str = "ns",
-):
+) -> tuple[np.ndarray, tzinfo | None]:
     """
     Convert data to array of timestamps.
 
@@ -2552,7 +2558,7 @@ def _validate_dt64_dtype(dtype):
 
         if (
             isinstance(dtype, np.dtype)
-            and (dtype.kind != "M" or not is_supported_unit(get_unit_from_dtype(dtype)))
+            and (dtype.kind != "M" or not is_supported_dtype(dtype))
         ) or not isinstance(dtype, (np.dtype, DatetimeTZDtype)):
             raise ValueError(
                 f"Unexpected value for 'dtype': '{dtype}'. "
@@ -2671,8 +2677,8 @@ def _infer_tz_from_endpoints(
 
 
 def _maybe_normalize_endpoints(
-    start: Timestamp | None, end: Timestamp | None, normalize: bool
-):
+    start: _TimestampNoneT1, end: _TimestampNoneT2, normalize: bool
+) -> tuple[_TimestampNoneT1, _TimestampNoneT2]:
     if normalize:
         if start is not None:
             start = start.normalize()
@@ -2723,7 +2729,7 @@ def _generate_range(
     offset: BaseOffset,
     *,
     unit: str,
-):
+) -> Generator[Timestamp, None, None]:
     """
     Generates a sequence of dates corresponding to the specified time
     offset. Similar to dateutil.rrule except uses pandas DateOffset
@@ -2770,11 +2776,6 @@ def _generate_range(
         # Incompatible types in assignment (expression has type "datetime",
         # variable has type "Optional[Timestamp]")
         start = offset.rollforward(start)  # type: ignore[assignment]
-
-    elif end and not offset.is_on_offset(end):
-        # Incompatible types in assignment (expression has type "datetime",
-        # variable has type "Optional[Timestamp]")
-        end = offset.rollback(end)  # type: ignore[assignment]
 
     # Unsupported operand types for < ("Timestamp" and "None")
     if periods is None and end < start and offset.n >= 0:  # type: ignore[operator]
