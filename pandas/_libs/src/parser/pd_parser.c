@@ -19,7 +19,7 @@ static int to_double(char *item, double *p_value, char sci, char decimal,
 
   /* Switch to precise xstrtod GH 31364 */
   *p_value =
-      precise_xstrtod(item, &p_end, dec, sci, tsep, 1, &error, maybe_int);
+      precise_xstrtod(item, &p_end, decimal, sci, tsep, 1, &error, maybe_int);
 
   return (error == 0) && (!*p_end);
 }
