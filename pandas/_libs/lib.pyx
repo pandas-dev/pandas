@@ -2239,8 +2239,8 @@ def maybe_convert_numeric(
     bint convert_empty=True,
     bint coerce_numeric=False,
     bint convert_to_masked_nullable=False,
-    char* thousands="",
-    char* decimal=".",
+    str thousands="",
+    str decimal=".",
 ) -> tuple[np.ndarray, np.ndarray | None]:
     """
     Convert object array to a numeric array if possible.
