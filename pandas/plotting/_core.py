@@ -98,7 +98,7 @@ def hist_series(
 
     Returns
     -------
-    matplotlib.AxesSubplot
+    matplotlib.Axes
         A histogram plot.
 
     See Also
@@ -227,7 +227,7 @@ def hist_frame(
 
     Returns
     -------
-    matplotlib.AxesSubplot or numpy.ndarray of them
+    matplotlib.Axes or numpy.ndarray of them
 
     See Also
     --------
@@ -1374,7 +1374,7 @@ class PlotAccessor(PandasObject):
 
         Returns
         -------
-        class:`matplotlib.AxesSubplot`
+        class:`matplotlib.Axes`
             Return a histogram plot.
 
         See Also
@@ -1794,7 +1794,7 @@ class PlotAccessor(PandasObject):
 
         Returns
         -------
-        matplotlib.AxesSubplot
+        matplotlib.Axes
             The matplotlib ``Axes`` on which the hexbin is plotted.
 
         See Also
