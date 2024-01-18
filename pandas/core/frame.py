@@ -993,7 +993,10 @@ class DataFrame(NDFrame, OpsMixin):
         Export the pandas DataFrame as an Arrow C stream PyCapsule.
 
         This relies on pyarrow to convert the pandas DataFrame to the Arrow
-        format. This conversion is not necessarily zero-copy.
+        format (and follows the default behaviour of ``pyarrow.Table.from_pandas``
+        in its handling of the index, i.e. store the index as a column except
+        for RangeIndex).
+        This conversion is not necessarily zero-copy.
 
         Parameters
         ----------
