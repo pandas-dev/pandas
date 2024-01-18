@@ -107,12 +107,12 @@ def to_numeric(
           DataFrame.
 
         .. versionadded:: 2.0
-    thousands: str, default '\0'
-        character used to separate thousands, eg '.' for european data
-        must only be 1 character long
-    decimal: str, default '.'
-        character used to separate decimals, eg ',' for european data
-        must only be 1 character long
+    thousands : str, default \0
+        Character used to separate thousands, eg '.' for european data
+        must only be 1 character long.
+    decimal : str, default .
+        Character used to separate decimals, eg ',' for european data
+        must only be 1 character long.
 
     Returns
     -------
@@ -172,11 +172,12 @@ def to_numeric(
     dtype: Float32
 
     Handling of data with non standard decimal or thousand separators
+
     >>> s = pd.Series(['1,5', '2.000.000', -3])
     >>> pd.to_numeric(s, thousands='.', decimal=',')
     0   1.5
-    1   2000000
-    2   -3
+    1   2000000.0
+    2   -3.0
     dtype: float64
     """
     if downcast not in (None, "integer", "signed", "unsigned", "float"):
