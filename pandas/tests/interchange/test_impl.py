@@ -8,7 +8,6 @@ from pandas.compat import (
     is_ci_environment,
     is_platform_windows,
 )
-from pandas.compat.numpy import np_version_lt1p23
 
 import pandas as pd
 import pandas._testing as tm
@@ -260,7 +259,6 @@ def test_datetime():
     tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
 
 
-@pytest.mark.skipif(np_version_lt1p23, reason="Numpy > 1.23 required")
 def test_categorical_to_numpy_dlpack():
     # https://github.com/pandas-dev/pandas/issues/48393
     df = pd.DataFrame({"A": pd.Categorical(["a", "b", "a"])})
