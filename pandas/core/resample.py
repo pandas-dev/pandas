@@ -2827,6 +2827,16 @@ def asfreq(
         if how is None:
             how = "E"
 
+        if isinstance(freq, str):
+            freq = to_offset(freq, is_period=True)
+            if hasattr(freq, "_period_dtype_code"):
+                freq = freq_to_period_freqstr(freq.n, freq.name)
+            else:
+                raise ValueError(
+                    f"Invalid offset: '{freq.name}' for converting time series "
+                    f"with PeriodIndex."
+                )
+
         if isinstance(freq, BaseOffset):
             if hasattr(freq, "_period_dtype_code"):
                 freq = freq_to_period_freqstr(freq.n, freq.name)
