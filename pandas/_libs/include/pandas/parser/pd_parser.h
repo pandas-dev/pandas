@@ -17,7 +17,7 @@ extern "C" {
 #include <Python.h>
 
 typedef struct {
-  int (*to_double)(char *, double *, char, char, int *);
+  int (*to_double)(char *, double *, char, char, char, int *);
   int (*floatify)(PyObject *, double *, int *, char, char);
   void *(*new_rd_source)(PyObject *);
   void (*del_rd_source)(void *);
