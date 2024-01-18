@@ -232,10 +232,8 @@ def test_from_arrow_with_different_units_and_timezones_with(
     dtype = DatetimeTZDtype(unit=pd_unit, tz=pd_tz)
 
     result = dtype.__from_arrow__(arr)
-    expected = (
-        DatetimeArray._from_sequence(data, dtype=f"datetime64[{pa_unit}]")
-        .tz_localize("UTC")
-        .astype(dtype, copy=False)
+    expected = DatetimeArray._from_sequence(data, dtype=f"M8[{pa_unit}, UTC]").astype(
+        dtype, copy=False
     )
     tm.assert_extension_array_equal(result, expected)
 
