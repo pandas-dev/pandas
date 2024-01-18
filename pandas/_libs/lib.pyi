@@ -139,8 +139,8 @@ def maybe_convert_numeric(
     coerce_numeric: bool = ...,
     *,
     convert_to_masked_nullable: Literal[True],
-    thousands: str = ...,
-    decimal: str = ...,
+    thousands: bytearray = ...,
+    decimal: bytearray = ...,
 ) -> tuple[np.ndarray, np.ndarray]: ...
 
 # TODO: restrict `arr`?
