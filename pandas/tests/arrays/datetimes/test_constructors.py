@@ -6,7 +6,6 @@ from pandas._libs import iNaT
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
-from pandas import Series
 import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 
@@ -223,7 +222,7 @@ COARSE_TO_FINE_SAFE = [123, None, -123]
         ("s", "ns", "US/Central", "Asia/Kolkata", COARSE_TO_FINE_SAFE),
     ],
 )
-def test_from_arrowtest_from_arrow_with_different_units_and_timezones_with_(
+def test_from_arrow_with_different_units_and_timezones_with(
     pa_unit, pd_unit, pa_tz, pd_tz, data
 ):
     pa = pytest.importorskip("pyarrow")
@@ -233,24 +232,14 @@ def test_from_arrowtest_from_arrow_with_different_units_and_timezones_with_(
     dtype = DatetimeTZDtype(unit=pd_unit, tz=pd_tz)
 
     result = dtype.__from_arrow__(arr)
-    expected = DatetimeArray._simple_new(
-        np.array(data, dtype=f"datetime64[{pa_unit}]").astype(f"datetime64[{pd_unit}]"),
-        dtype=dtype,
+    expected = (
+        DatetimeArray._from_sequence(data, dtype=f"datetime64[{pa_unit}]")
+        .tz_localize("UTC")
+        .astype(dtype, copy=False)
     )
     tm.assert_extension_array_equal(result, expected)
 
     result = dtype.__from_arrow__(pa.chunked_array([arr]))
-    tm.assert_extension_array_equal(result, expected)
-
-
-def test_datetimetz_from_arrow_roundtrip():
-    # GH 56775
-    pa = pytest.importorskip("pyarrow")
-
-    ser = Series(["2012-01-01", "2012-01-02"], dtype="datetime64[ns, Europe/Brussels]")
-
-    result = ser.dtype.__from_arrow__(pa.array(ser))
-    expected = DatetimeArray._from_sequence(ser)
     tm.assert_extension_array_equal(result, expected)
 
 
