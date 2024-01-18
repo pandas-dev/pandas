@@ -216,7 +216,7 @@ class ArrowParserWrapper(ParserBase):
                 frame = frame.astype(self.dtype)
             except TypeError as err:
                 # GH#44901 reraise to keep api consistent
-                raise ValueError from err
+                raise ValueError(str(err)) from err
         return frame
 
     def _validate_usecols(self, usecols) -> None:
