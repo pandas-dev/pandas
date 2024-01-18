@@ -26,7 +26,7 @@ BoolishT = TypeVar("BoolishT", bool, int)
 BoolishNoneT = TypeVar("BoolishNoneT", bool, int, None)
 
 
-def _check_arg_length(fname, args, max_fname_arg_count, compat_args):
+def _check_arg_length(fname, args, max_fname_arg_count, compat_args) -> None:
     """
     Checks whether 'args' has length of at most 'compat_args'. Raises
     a TypeError if that is not the case, similar to in Python when a
@@ -46,7 +46,7 @@ def _check_arg_length(fname, args, max_fname_arg_count, compat_args):
         )
 
 
-def _check_for_default_values(fname, arg_val_dict, compat_args):
+def _check_for_default_values(fname, arg_val_dict, compat_args) -> None:
     """
     Check that the keys in `arg_val_dict` are mapped to their
     default values as specified in `compat_args`.
@@ -125,7 +125,7 @@ def validate_args(fname, args, max_fname_arg_count, compat_args) -> None:
     _check_for_default_values(fname, kwargs, compat_args)
 
 
-def _check_for_invalid_keys(fname, kwargs, compat_args):
+def _check_for_invalid_keys(fname, kwargs, compat_args) -> None:
     """
     Checks whether 'kwargs' contains any keys that are not
     in 'compat_args' and raises a TypeError if there is one.
@@ -265,7 +265,7 @@ def validate_bool_kwarg(
             f'For argument "{arg_name}" expected type bool, received '
             f"type {type(value).__name__}."
         )
-    return value  # pyright: ignore[reportGeneralTypeIssues]
+    return value
 
 
 def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):
@@ -335,9 +335,8 @@ def validate_percentile(q: float | Iterable[float]) -> np.ndarray:
     if q_arr.ndim == 0:
         if not 0 <= q_arr <= 1:
             raise ValueError(msg)
-    else:
-        if not all(0 <= qs <= 1 for qs in q_arr):
-            raise ValueError(msg)
+    elif not all(0 <= qs <= 1 for qs in q_arr):
+        raise ValueError(msg)
     return q_arr
 
 

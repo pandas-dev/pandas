@@ -57,9 +57,7 @@ def test_utf16_bom_skiprows(all_parsers, sep, encoding):
 skip this too
 A,B,C
 1,2,3
-4,5,6""".replace(
-        ",", sep
-    )
+4,5,6""".replace(",", sep)
     path = f"__{uuid.uuid4()}__.csv"
     kwargs = {"sep": sep, "skiprows": 2}
     utf8 = "utf-8"
@@ -99,22 +97,22 @@ def test_unicode_encoding(all_parsers, csv_dir_path):
     "data,kwargs,expected",
     [
         # Basic test
-        ("a\n1", {}, DataFrame({"a": [1]})),
+        ("a\n1", {}, [1]),
         # "Regular" quoting
-        ('"a"\n1', {"quotechar": '"'}, DataFrame({"a": [1]})),
+        ('"a"\n1', {"quotechar": '"'}, [1]),
         # Test in a data row instead of header
-        ("b\n1", {"names": ["a"]}, DataFrame({"a": ["b", "1"]})),
+        ("b\n1", {"names": ["a"]}, ["b", "1"]),
         # Test in empty data row with skipping
-        ("\n1", {"names": ["a"], "skip_blank_lines": True}, DataFrame({"a": [1]})),
+        ("\n1", {"names": ["a"], "skip_blank_lines": True}, [1]),
         # Test in empty data row without skipping
         (
             "\n1",
             {"names": ["a"], "skip_blank_lines": False},
-            DataFrame({"a": [np.nan, 1]}),
+            [np.nan, 1],
         ),
     ],
 )
-def test_utf8_bom(all_parsers, data, kwargs, expected, request):
+def test_utf8_bom(all_parsers, data, kwargs, expected):
     # see gh-4793
     parser = all_parsers
     bom = "\ufeff"
@@ -133,6 +131,7 @@ def test_utf8_bom(all_parsers, data, kwargs, expected, request):
         pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     result = parser.read_csv(_encode_data_with_bom(data), encoding=utf8, **kwargs)
+    expected = DataFrame({"a": expected})
     tm.assert_frame_equal(result, expected)
 
 

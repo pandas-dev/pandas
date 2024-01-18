@@ -258,7 +258,9 @@ def _use_inf_as_na(key) -> None:
         globals()["INF_AS_NA"] = False
 
 
-def _isna_array(values: ArrayLike, inf_as_na: bool = False):
+def _isna_array(
+    values: ArrayLike, inf_as_na: bool = False
+) -> npt.NDArray[np.bool_] | NDFrame:
     """
     Return an array indicating which values of the input array are NaN / NA.
 
@@ -275,6 +277,7 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
         Array of boolean values denoting the NA status of each element.
     """
     dtype = values.dtype
+    result: npt.NDArray[np.bool_] | NDFrame
 
     if not isinstance(values, np.ndarray):
         # i.e. ExtensionArray
@@ -557,11 +560,13 @@ def _array_equivalent_float(left: np.ndarray, right: np.ndarray) -> bool:
     return bool(((left == right) | (np.isnan(left) & np.isnan(right))).all())
 
 
-def _array_equivalent_datetimelike(left: np.ndarray, right: np.ndarray):
+def _array_equivalent_datetimelike(left: np.ndarray, right: np.ndarray) -> bool:
     return np.array_equal(left.view("i8"), right.view("i8"))
 
 
-def _array_equivalent_object(left: np.ndarray, right: np.ndarray, strict_nan: bool):
+def _array_equivalent_object(
+    left: np.ndarray, right: np.ndarray, strict_nan: bool
+) -> bool:
     left = ensure_object(left)
     right = ensure_object(right)
 

@@ -136,13 +136,14 @@ def test_to_html_with_empty_string_label():
 
 
 @pytest.mark.parametrize(
-    "df,expected",
+    "df_data,expected",
     [
-        (DataFrame({"\u03c3": np.arange(10.0)}), "unicode_1"),
-        (DataFrame({"A": ["\u03c3"]}), "unicode_2"),
+        ({"\u03c3": np.arange(10.0)}, "unicode_1"),
+        ({"A": ["\u03c3"]}, "unicode_2"),
     ],
 )
-def test_to_html_unicode(df, expected, datapath):
+def test_to_html_unicode(df_data, expected, datapath):
+    df = DataFrame(df_data)
     expected = expected_html(datapath, expected)
     result = df.to_html()
     assert result == expected
@@ -419,15 +420,15 @@ def test_to_html_columns_arg(float_frame):
     "columns,justify,expected",
     [
         (
-            MultiIndex.from_tuples(
-                list(zip(np.arange(2).repeat(2), np.mod(range(4), 2))),
+            MultiIndex.from_arrays(
+                [np.arange(2).repeat(2), np.mod(range(4), 2)],
                 names=["CL0", "CL1"],
             ),
             "left",
             "multiindex_1",
         ),
         (
-            MultiIndex.from_tuples(list(zip(range(4), np.mod(range(4), 2)))),
+            MultiIndex.from_arrays([np.arange(4), np.mod(range(4), 2)]),
             "right",
             "multiindex_2",
         ),

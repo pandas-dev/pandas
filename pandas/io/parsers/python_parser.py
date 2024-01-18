@@ -4,12 +4,6 @@ from collections import (
     abc,
     defaultdict,
 )
-from collections.abc import (
-    Hashable,
-    Iterator,
-    Mapping,
-    Sequence,
-)
 import csv
 from io import StringIO
 import re
@@ -50,15 +44,24 @@ from pandas.io.parsers.base_parser import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+        Mapping,
+        Sequence,
+    )
+
     from pandas._typing import (
         ArrayLike,
         ReadCsvBuffer,
         Scalar,
+        T,
     )
 
     from pandas import (
         Index,
         MultiIndex,
+        Series,
     )
 
 # BOM character (byte order mark)
@@ -77,7 +80,7 @@ class PythonParser(ParserBase):
         """
         super().__init__(kwds)
 
-        self.data: Iterator[str] | None = None
+        self.data: Iterator[list[str]] | list[list[Scalar]] = []
         self.buf: list = []
         self.pos = 0
         self.line_pos = 0
@@ -116,10 +119,11 @@ class PythonParser(ParserBase):
 
         # Set self.data to something that can read lines.
         if isinstance(f, list):
-            # read_excel: f is a list
-            self.data = cast(Iterator[str], f)
+            # read_excel: f is a nested list, can contain non-str
+            self.data = f
         else:
             assert hasattr(f, "readline")
+            # yields list of str
             self.data = self._make_reader(f)
 
         # Get columns in two steps: infer from data, then
@@ -179,7 +183,7 @@ class PythonParser(ParserBase):
             )
         return re.compile(regex)
 
-    def _make_reader(self, f: IO[str] | ReadCsvBuffer[str]):
+    def _make_reader(self, f: IO[str] | ReadCsvBuffer[str]) -> Iterator[list[str]]:
         sep = self.delimiter
 
         if sep is None or len(sep) == 1:
@@ -246,7 +250,9 @@ class PythonParser(ParserBase):
     def read(
         self, rows: int | None = None
     ) -> tuple[
-        Index | None, Sequence[Hashable] | MultiIndex, Mapping[Hashable, ArrayLike]
+        Index | None,
+        Sequence[Hashable] | MultiIndex,
+        Mapping[Hashable, ArrayLike | Series],
     ]:
         try:
             content = self._get_lines(rows)
@@ -326,7 +332,9 @@ class PythonParser(ParserBase):
     def get_chunk(
         self, size: int | None = None
     ) -> tuple[
-        Index | None, Sequence[Hashable] | MultiIndex, Mapping[Hashable, ArrayLike]
+        Index | None,
+        Sequence[Hashable] | MultiIndex,
+        Mapping[Hashable, ArrayLike | Series],
     ]:
         if size is None:
             # error: "PythonParser" has no attribute "chunksize"
@@ -689,7 +697,7 @@ class PythonParser(ParserBase):
         new_row_list: list[Scalar] = [new_row]
         return new_row_list + first_row[1:]
 
-    def _is_line_empty(self, line: list[Scalar]) -> bool:
+    def _is_line_empty(self, line: Sequence[Scalar]) -> bool:
         """
         Check if a line is empty or not.
 
@@ -730,8 +738,6 @@ class PythonParser(ParserBase):
         else:
             while self.skipfunc(self.pos):
                 self.pos += 1
-                # assert for mypy, data is Iterator[str] or None, would error in next
-                assert self.data is not None
                 next(self.data)
 
             while True:
@@ -800,12 +806,10 @@ class PythonParser(ParserBase):
             The row number of the line being parsed.
         """
         try:
-            # assert for mypy, data is Iterator[str] or None, would error in next
-            assert self.data is not None
+            assert not isinstance(self.data, list)
             line = next(self.data)
-            # for mypy
-            assert isinstance(line, list)
-            return line
+            # lie about list[str] vs list[Scalar] to minimize ignores
+            return line  # type: ignore[return-value]
         except csv.Error as e:
             if self.on_bad_lines in (
                 self.BadLineHandleMethod.ERROR,
@@ -855,7 +859,7 @@ class PythonParser(ParserBase):
             ret.append(rl)
         return ret
 
-    def _remove_empty_lines(self, lines: list[list[Scalar]]) -> list[list[Scalar]]:
+    def _remove_empty_lines(self, lines: list[list[T]]) -> list[list[T]]:
         """
         Iterate through the lines and remove any that are
         either empty or contain only one whitespace value
@@ -1121,9 +1125,6 @@ class PythonParser(ParserBase):
                         row_ct = 0
                         offset = self.pos if self.pos is not None else 0
                         while row_ct < rows:
-                            # assert for mypy, data is Iterator[str] or None, would
-                            # error in next
-                            assert self.data is not None
                             new_row = next(self.data)
                             if not self.skipfunc(offset + row_index):
                                 row_ct += 1
@@ -1338,7 +1339,7 @@ class FixedWidthFieldParser(PythonParser):
             self.infer_nrows,
         )
 
-    def _remove_empty_lines(self, lines: list[list[Scalar]]) -> list[list[Scalar]]:
+    def _remove_empty_lines(self, lines: list[list[T]]) -> list[list[T]]:
         """
         Returns the list of lines without the empty ones. With fixed-width
         fields, empty lines become arrays of empty strings.

@@ -10,7 +10,6 @@ import pytest
 
 from pandas._libs.internals import BlockPlacement
 from pandas.compat import IS64
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -43,10 +42,6 @@ from pandas.core.internals.blocks import (
     maybe_coerce_values,
     new_block,
 )
-
-# this file contains BlockManager specific tests
-# TODO(ArrayManager) factor out interleave_dtype tests
-pytestmark = td.skip_array_manager_invalid_test
 
 
 @pytest.fixture(params=[new_block, make_block])
@@ -386,8 +381,8 @@ class TestBlockManager:
 
         msg = "Gaps in blk ref_locs"
 
+        mgr = BlockManager(blocks, axes)
         with pytest.raises(AssertionError, match=msg):
-            mgr = BlockManager(blocks, axes)
             mgr._rebuild_blknos_and_blklocs()
 
         blocks[0].mgr_locs = BlockPlacement(np.array([0]))
@@ -1163,7 +1158,6 @@ class TestBlockPlacement:
             [-1],
             [-1, -2, -3],
             [-10],
-            [-1],
             [-1, 0, 1, 2],
             [-2, 0, 2, 4],
             [1, 0, -1],
@@ -1383,11 +1377,9 @@ def test_validate_ndim():
     values = np.array([1.0, 2.0])
     placement = BlockPlacement(slice(2))
     msg = r"Wrong number of dimensions. values.ndim != ndim \[1 != 2\]"
-    depr_msg = "make_block is deprecated"
 
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(DeprecationWarning, match=depr_msg):
-            make_block(values, placement, ndim=2)
+        make_block(values, placement, ndim=2)
 
 
 def test_block_shape():
@@ -1402,12 +1394,8 @@ def test_make_block_no_pandas_array(block_maker):
     # https://github.com/pandas-dev/pandas/pull/24866
     arr = pd.arrays.NumpyExtensionArray(np.array([1, 2]))
 
-    warn = None if block_maker is not make_block else DeprecationWarning
-    msg = "make_block is deprecated and will be removed in a future version"
-
     # NumpyExtensionArray, no dtype
-    with tm.assert_produces_warning(warn, match=msg):
-        result = block_maker(arr, BlockPlacement(slice(len(arr))), ndim=arr.ndim)
+    result = block_maker(arr, BlockPlacement(slice(len(arr))), ndim=arr.ndim)
     assert result.dtype.kind in ["i", "u"]
 
     if block_maker is make_block:
@@ -1415,16 +1403,14 @@ def test_make_block_no_pandas_array(block_maker):
         assert result.is_extension is False
 
         # NumpyExtensionArray, NumpyEADtype
-        with tm.assert_produces_warning(warn, match=msg):
-            result = block_maker(arr, slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
+        result = block_maker(arr, slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
         assert result.dtype.kind in ["i", "u"]
         assert result.is_extension is False
 
         # new_block no longer taked dtype keyword
         # ndarray, NumpyEADtype
-        with tm.assert_produces_warning(warn, match=msg):
-            result = block_maker(
-                arr.to_numpy(), slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim
-            )
+        result = block_maker(
+            arr.to_numpy(), slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim
+        )
         assert result.dtype.kind in ["i", "u"]
         assert result.is_extension is False

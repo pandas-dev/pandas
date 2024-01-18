@@ -955,17 +955,19 @@ class TestTimedeltaMultiplicationDivision:
     @pytest.mark.parametrize(
         "arr",
         [
-            np.array([Timestamp("20130101 9:01"), Timestamp("20121230 9:02")]),
-            np.array([Timestamp("2021-11-09 09:54:00"), Timedelta("1D")]),
+            [Timestamp("20130101 9:01"), Timestamp("20121230 9:02")],
+            [Timestamp("2021-11-09 09:54:00"), Timedelta("1D")],
         ],
     )
     def test_td_op_timedelta_timedeltalike_array(self, op, arr):
+        arr = np.array(arr)
         msg = "unsupported operand type|cannot use operands with types"
         with pytest.raises(TypeError, match=msg):
             op(arr, Timedelta("1D"))
 
 
 class TestTimedeltaComparison:
+    @pytest.mark.skip_ubsan
     def test_compare_pytimedelta_bounds(self):
         # GH#49021 don't overflow on comparison with very large pytimedeltas
 
