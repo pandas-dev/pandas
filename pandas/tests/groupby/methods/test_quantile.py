@@ -38,19 +38,7 @@ import pandas._testing as tm
     ],
 )
 @pytest.mark.parametrize("q", [0, 0.25, 0.5, 0.75, 1])
-def test_quantile(interpolation, a_vals, b_vals, q, request):
-    if (
-        interpolation == "nearest"
-        and q == 0.5
-        and isinstance(b_vals, list)
-        and b_vals == [4, 3, 2, 1]
-    ):
-        request.applymarker(
-            pytest.mark.xfail(
-                reason="Unclear numpy expectation for nearest "
-                "result with equidistant data"
-            )
-        )
+def test_quantile(interpolation, a_vals, b_vals, q):
     all_vals = pd.concat([pd.Series(a_vals), pd.Series(b_vals)])
 
     a_expected = pd.Series(a_vals).quantile(q, interpolation=interpolation)

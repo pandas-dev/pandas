@@ -1286,7 +1286,9 @@ def group_quantile(
                     elif interp == INTERPOLATION_MIDPOINT:
                         out[i, k] = (val + next_val) / 2.0
                     elif interp == INTERPOLATION_NEAREST:
-                        if frac > .5 or (frac == .5 and q_val > .5):  # Always OK?
+                        if frac > .5 or (frac == .5 and idx % 2 == 1):
+                            # If quantile lies in the middle of two indexes,
+                            # take the even index, as np.quantile.
                             out[i, k] = next_val
                         else:
                             out[i, k] = val
