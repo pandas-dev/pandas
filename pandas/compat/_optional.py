@@ -120,9 +120,8 @@ def import_optional_dependency(
         The imported module, when found and the version is correct.
         None is returned when the package is not found and `errors`
         is False, or when the package's version is too old and `errors`
-        is ``'warn'``.
+        is ``'warn'`` or ``'ignore'``.
     """
-
     assert errors in {"warn", "raise", "ignore"}
 
     package_name = INSTALL_MAPPING.get(name)
@@ -163,5 +162,7 @@ def import_optional_dependency(
                 return None
             elif errors == "raise":
                 raise ImportError(msg)
+            else:
+                return None
 
     return module
