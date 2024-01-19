@@ -987,11 +987,11 @@ class Styler(StylerRenderer):
         hide the repeated level-0 of the index:
 
         >>> (styler.format(subset="Equity", precision=2)
-        ...       .format(subset="Stats", precision=1, thousands=",")
-        ...       .format(subset="Rating", formatter=str.upper)
-        ...       .format_index(escape="latex", axis=1)
-        ...       .format_index(escape="latex", axis=0)
-        ...       .hide(level=0, axis=0))  # doctest: +SKIP
+        ...     .format(subset="Stats", precision=1, thousands=",")
+        ...     .format(subset="Rating", formatter=str.upper)
+        ...     .format_index(escape="latex", axis=1)
+        ...     .format_index(escape="latex", axis=0)
+        ...     .hide(level=0, axis=0))  # doctest: +SKIP
 
         Note that one of the string entries of the index and column headers is "H&M".
         Without applying the `escape="latex"` option to the `format_index` method the
@@ -1003,12 +1003,15 @@ class Styler(StylerRenderer):
         recommendation:
 
         >>> def rating_color(v):
-        ...     if v == "Buy": color = "#33ff85"
-        ...     elif v == "Sell": color = "#ff5933"
-        ...     else: color = "#ffdd33"
+        ...     if v == "Buy":
+        ...         color = "#33ff85"
+        ...     elif v == "Sell":
+        ...         color = "#ff5933"
+        ...     else:
+        ...         color = "#ffdd33"
         ...     return f"color: {color}; font-weight: bold;"
         >>> (styler.background_gradient(cmap="inferno", subset="Equity", vmin=0, vmax=1)
-        ...       .map(rating_color, subset="Rating"))  # doctest: +SKIP
+        ...     .map(rating_color, subset="Rating"))  # doctest: +SKIP
 
         All the above styles will work with HTML (see below) and LaTeX upon conversion:
 
