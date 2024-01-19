@@ -41,7 +41,7 @@ class TestDataFrameToXArray:
         df.index.name = "foo"
         df.columns.name = "bar"
         result = df.to_xarray()
-        assert result.dims["foo"] == 4
+        assert result.sizes["foo"] == 4
         assert len(result.coords) == 1
         assert len(result.data_vars) == 8
         tm.assert_almost_equal(list(result.coords.keys()), ["foo"])
@@ -62,7 +62,7 @@ class TestDataFrameToXArray:
 
         df.index.name = "foo"
         result = df[0:0].to_xarray()
-        assert result.dims["foo"] == 0
+        assert result.sizes["foo"] == 0
         assert isinstance(result, Dataset)
 
     def test_to_xarray_with_multiindex(self, df, using_infer_string):
@@ -71,8 +71,8 @@ class TestDataFrameToXArray:
         # MultiIndex
         df.index = MultiIndex.from_product([["a"], range(4)], names=["one", "two"])
         result = df.to_xarray()
-        assert result.dims["one"] == 1
-        assert result.dims["two"] == 4
+        assert result.sizes["one"] == 1
+        assert result.sizes["two"] == 4
         assert len(result.coords) == 2
         assert len(result.data_vars) == 8
         tm.assert_almost_equal(list(result.coords.keys()), ["one", "two"])
