@@ -20,7 +20,6 @@ dependencies:
   - hypothesis>=6.46.1
 
   # pandas dependencies
-  - pyarrow>=10.0.1
   - python-dateutil
   - pytz
   - pip
