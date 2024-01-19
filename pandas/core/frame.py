@@ -6748,6 +6748,22 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame or None
             DataFrame with duplicates removed or None if ``inplace=True``.
 
+        Notes
+        -------
+        To handle mutable objects such as list, convert the list column
+        to a tuple before using it in the subset.
+        
+        >>> df = pd.DataFrame([ 
+        ...     {'number': 1, 'item_ids': [1, 2, 3]},
+        ...     {'number': 1, 'item_ids': [1, 2, 3]},
+        ... ])
+        
+        >>> df['item_ids'] = df['item_ids'].apply(tuple)
+        >>> df.drop_duplicates(inplace=True)
+        >>> df['item_ids'] = df['item_ids'].apply(list)
+           number   item_ids
+        0       1   [1, 2, 3]
+        
         See Also
         --------
         DataFrame.value_counts: Count unique combinations of columns.
