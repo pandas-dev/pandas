@@ -107,10 +107,10 @@ def to_numeric(
           DataFrame.
 
         .. versionadded:: 2.0
-    thousands : str, default \0
+    thousands : str, default '\0'
         Character used to separate thousands, eg '.' for european data
         must only be 1 character long.
-    decimal : str, default .
+    decimal : str, default '.'
         Character used to separate decimals, eg ',' for european data
         must only be 1 character long.
 
