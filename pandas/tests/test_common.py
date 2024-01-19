@@ -286,4 +286,7 @@ If this would cause problems for you,
 please provide us feedback at https://github.com/pandas-dev/pandas/issues/54466
 """  # noqa: E501
     stderr_msg = response.stderr.decode("utf-8")
-    assert msg in stderr_msg, stderr_msg
+    # Split by \n to avoid \r\n vs \n differences on Windows/Unix
+    # https://stackoverflow.com/questions/11989501/replacing-r-n-with-n
+    stderr_msg = "\n".join(stderr_msg.splitlines())
+    assert msg in stderr_msg
