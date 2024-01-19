@@ -6720,19 +6720,19 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         DataFrame or None
             DataFrame with duplicates removed or None if ``inplace=True``.
-            
+
         Notes
         --------
-        The methods :meth:`pandas.DataFrame.drop_duplicates` and :meth:`pandas.DataFrame.duplicated` rely on hashing. 
+        The methods :meth:`pandas.DataFrame.drop_duplicates` and :meth:`pandas.DataFrame.duplicated` rely on hashing.
         Therefore, using a column with mutable objects, such as lists (are not hashable), in the subset parameter may result in unexpected behavior.
-        
+
         To handle mutable objects, convert the list column to a tuple before using it in the subset.
-        
-        >>> df = pd.DataFrame([ 
+
+        >>> df = pd.DataFrame([
         ...     {'number': 1, 'item_ids': [1, 2, 3]},
         ...     {'number': 1, 'item_ids': [1, 2, 3]},
         ... ])
-        
+
         >>> df['item_ids'] = df['item_ids'].apply(tuple)
         >>> df.drop_duplicates(inplace=True)
         >>> df['item_ids'] = df['item_ids'].apply(list)
