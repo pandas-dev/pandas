@@ -28,12 +28,6 @@ class TestJoinInt64Index:
         # not monotonic
         res, lidx, ridx = index.join(other, how="inner", return_indexers=True)
 
-        # no guarantee of sortedness, so sort for comparison purposes
-        ind = res.argsort()
-        res = res.take(ind)
-        lidx = lidx.take(ind)
-        ridx = ridx.take(ind)
-
         eres = Index([2, 12], dtype=np.int64, name="lhs")
         elidx = np.array([1, 6], dtype=np.intp)
         eridx = np.array([4, 1], dtype=np.intp)
