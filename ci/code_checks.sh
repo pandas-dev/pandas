@@ -77,8 +77,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.SpecificationError \
         pandas.errors.UndefinedVariableError \
         pandas.read_json \
-        pandas.io.formats.style.Styler.to_latex \
-        pandas.read_parquet \
         pandas.DataFrame.to_sql \
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
