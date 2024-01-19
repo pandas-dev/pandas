@@ -8,6 +8,8 @@ import textwrap
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import Series
 import pandas._testing as tm
@@ -265,9 +267,6 @@ def test_bz2_missing_import():
     code = textwrap.dedent(code)
     call = [sys.executable, "-c", code]
     subprocess.check_output(call)
-
-
-import pandas.util._test_decorators as td
 
 
 @td.skip_if_installed("pyarrow")
