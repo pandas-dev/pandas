@@ -74,7 +74,10 @@ def test_groupby_preserves_metadata():
 
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
     with tm.assert_produces_warning(
-        FutureWarning, match=msg, raise_on_extra_warnings=False
+        DeprecationWarning,
+        match=msg,
+        raise_on_extra_warnings=False,
+        check_stacklevel=False,
     ):
         result = custom_df.groupby("c").apply(func)
     expected = tm.SubclassedSeries(["hello"] * 3, index=Index([7, 8, 9], name="c"))
@@ -123,7 +126,10 @@ def test_groupby_resample_preserves_subclass(obj):
     # Confirm groupby.resample() preserves dataframe type
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
     with tm.assert_produces_warning(
-        FutureWarning, match=msg, raise_on_extra_warnings=False
+        DeprecationWarning,
+        match=msg,
+        raise_on_extra_warnings=False,
+        check_stacklevel=False,
     ):
         result = df.groupby("Buyer").resample("5D").sum()
     assert isinstance(result, obj)

@@ -1856,7 +1856,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                         message=_apply_groupings_depr.format(
                             type(self).__name__, "apply"
                         ),
-                        category=FutureWarning,
+                        category=DeprecationWarning,
                         stacklevel=find_stack_level(),
                     )
             except TypeError:
