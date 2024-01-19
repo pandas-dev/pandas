@@ -92,7 +92,10 @@ jobs:
           - name: "Numpy Dev"
             env_file: actions-311-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
-            test_args: "-W error::DeprecationWarning -W error::FutureWarning"
+            # Currently restricted the warnings that error to Deprecation Warnings from numpy
+            # done since pyarrow isn't compatible with numpydev always
+            # TODO: work with pyarrow to revert this?
+            test_args: "-W error::DeprecationWarning:numpy -W error::FutureWarning:numpy"
           - name: "Pyarrow Nightly"
             env_file: actions-311-pyarrownightly.yaml
             pattern: "not slow and not network and not single_cpu"
