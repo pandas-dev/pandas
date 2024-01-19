@@ -229,7 +229,7 @@ please provide us feedback at https://github.com/pandas-dev/pandas/issues/54466
         DeprecationWarning,
         stacklevel=2,
     )
-    del VERSIONS
+    del VERSIONS, pa_msg
 
 # Delete all unnecessary imported modules
 del pa_version_under10p1, pa_not_found, warnings, os
