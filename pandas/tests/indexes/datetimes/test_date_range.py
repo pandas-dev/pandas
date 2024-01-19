@@ -526,17 +526,13 @@ class TestDateRanges:
     @pytest.mark.parametrize(
         "start, end",
         [
-            [
-                Timestamp(datetime(2014, 3, 6), tz="US/Eastern"),
-                Timestamp(datetime(2014, 3, 12), tz="US/Eastern"),
-            ],
-            [
-                Timestamp(datetime(2013, 11, 1), tz="US/Eastern"),
-                Timestamp(datetime(2013, 11, 6), tz="US/Eastern"),
-            ],
+            [datetime(2014, 3, 6), datetime(2014, 3, 12)],
+            [datetime(2013, 11, 1), datetime(2013, 11, 6)],
         ],
     )
     def test_range_tz_dst_straddle_pytz(self, start, end):
+        start = Timestamp(start, tz="US/Eastern")
+        end = Timestamp(end, tz="US/Eastern")
         dr = date_range(start, end, freq="D")
         assert dr[0] == start
         assert dr[-1] == end
@@ -820,6 +816,17 @@ class TestDateRanges:
         expected = date_range("1/1/2000", periods=2, freq=freq)
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = date_range("1/1/2000", periods=2, freq=freq_depr)
+        tm.assert_index_equal(result, expected)
+
+    def test_to_offset_with_lowercase_deprecated_freq(self) -> None:
+        # https://github.com/pandas-dev/pandas/issues/56847
+        msg = (
+            "'m' is deprecated and will be removed in a future version, please use "
+            "'ME' instead."
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = date_range("2010-01-01", periods=2, freq="m")
+        expected = DatetimeIndex(["2010-01-31", "2010-02-28"], freq="ME")
         tm.assert_index_equal(result, expected)
 
     def test_date_range_bday(self):
@@ -1707,3 +1714,18 @@ class TestDateRangeNonTickFreq:
         idx2 = date_range(start=sdate, end=edate, freq=offset)
         assert len(idx1) == len(idx2)
         assert idx1.freq == idx2.freq
+
+    def test_date_range_partial_day_year_end(self, unit):
+        # GH#56134
+        rng = date_range(
+            start="2021-12-31 00:00:01",
+            end="2023-10-31 00:00:00",
+            freq="YE",
+            unit=unit,
+        )
+        exp = DatetimeIndex(
+            ["2021-12-31 00:00:01", "2022-12-31 00:00:01"],
+            dtype=f"M8[{unit}]",
+            freq="YE",
+        )
+        tm.assert_index_equal(rng, exp)

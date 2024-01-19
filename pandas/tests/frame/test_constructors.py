@@ -2815,7 +2815,7 @@ class TestDataFrameConstructorIndexInference:
         )
         result = DataFrame({key_val: [1, 2]}, columns=cols)
         expected = DataFrame([[1, np.nan], [2, np.nan]], columns=cols)
-        expected.iloc[:, 1] = expected.iloc[:, 1].astype(object)
+        expected.isetitem(1, expected.iloc[:, 1].astype(object))
         tm.assert_frame_equal(result, expected)
 
 

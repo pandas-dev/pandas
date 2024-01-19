@@ -50,6 +50,7 @@ from pandas._typing import (
     Axis,
     AxisInt,
     CompressionOptions,
+    Concatenate,
     DtypeArg,
     DtypeBackend,
     DtypeObj,
@@ -213,6 +214,7 @@ if TYPE_CHECKING:
     )
 
     from pandas._libs.tslibs import BaseOffset
+    from pandas._typing import P
 
     from pandas import (
         DataFrame,
@@ -3544,7 +3546,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> print(df.to_latex(index=False,
         ...                   formatters={"name": str.upper},
         ...                   float_format="{:.1f}".format,
-        ... ))  # doctest: +SKIP
+        ...                   ))  # doctest: +SKIP
         \begin{tabular}{lrr}
         \toprule
         name & age & height \\
@@ -6118,13 +6120,31 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         return result
 
+    @overload
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T:
+        ...
+
+    @overload
+    def pipe(
+        self,
+        func: tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
+        ...
+
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
     def pipe(
         self,
-        func: Callable[..., T] | tuple[Callable[..., T], str],
-        *args,
-        **kwargs,
+        func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
     ) -> T:
         r"""
         Apply chainable functions that expect Series or DataFrames.
@@ -7188,6 +7208,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
 
+            .. deprecated:: 2.2.0
+
         Returns
         -------
         {klass} or None
@@ -7523,6 +7545,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
 
+            .. deprecated:: 2.2.0
+
         Returns
         -------
         {klass} or None
@@ -7713,6 +7737,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
+
+            .. deprecated:: 2.2.0
 
         Returns
         -------
@@ -7928,7 +7954,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise TypeError(
                 "Expecting 'to_replace' to be either a scalar, array-like, "
                 "dict or None, got invalid type "
-                f"{repr(type(to_replace).__name__)}"
+                f"{type(to_replace).__name__!r}"
             )
 
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -8099,7 +8125,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     raise TypeError(
                         f"'regex' must be a string or a compiled regular expression "
                         f"or a list or dict of strings or regular expressions, "
-                        f"you passed a {repr(type(regex).__name__)}"
+                        f"you passed a {type(regex).__name__!r}"
                     )
                 return self.replace(
                     regex, value, inplace=inplace, limit=limit, regex=True
@@ -8130,7 +8156,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         )
                 else:
                     raise TypeError(
-                        f'Invalid "to_replace" type: {repr(type(to_replace).__name__)}'
+                        f'Invalid "to_replace" type: {type(to_replace).__name__!r}'
                     )
 
         result = self._constructor_from_mgr(new_data, axes=new_data.axes)
@@ -9428,7 +9454,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         origin : Timestamp or str, default 'start_day'
             The timestamp on which to adjust the grouping. The timezone of origin
             must match the timezone of the index.
-            If string, must be one of the following:
+            If string, must be Timestamp convertible or one of the following:
 
             - 'epoch': `origin` is 1970-01-01
             - 'start': `origin` is the first value of the timeseries
@@ -10649,11 +10675,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not isinstance(cond, ABCDataFrame):
                 # This is a single-dimensional object.
                 if not is_bool_dtype(cond):
-                    raise ValueError(msg.format(dtype=cond.dtype))
+                    raise TypeError(msg.format(dtype=cond.dtype))
             else:
                 for _dt in cond.dtypes:
                     if not is_bool_dtype(_dt):
-                        raise ValueError(msg.format(dtype=_dt))
+                        raise TypeError(msg.format(dtype=_dt))
                 if cond._mgr.any_extension_types:
                     # GH51574: avoid object ndarray conversion later on
                     cond = cond._constructor(
@@ -11789,10 +11815,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         upper percentile is ``75``. The ``50`` percentile is the
         same as the median.
 
-        For object data (e.g. strings or timestamps), the result's index
+        For object data (e.g. strings), the result's index
         will include ``count``, ``unique``, ``top``, and ``freq``. The ``top``
         is the most common value. The ``freq`` is the most common value's
-        frequency. Timestamps also include the ``first`` and ``last`` items.
+        frequency.
 
         If multiple object values have the highest count, then the
         ``count`` and ``top`` results will be arbitrarily chosen from
