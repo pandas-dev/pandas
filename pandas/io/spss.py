@@ -51,7 +51,7 @@ def read_spss(
 
         .. versionadded:: 2.0
     **kwargs
-        Additional keyword arguments passed to :func:`pyreadstat.read_sav`.
+        Additional keyword arguments that can be passed to :func:`pyreadstat.read_sav`.
 
         .. versionadded:: 3.0
 
