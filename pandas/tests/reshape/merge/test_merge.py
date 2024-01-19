@@ -8,7 +8,10 @@ import re
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.common import (
+    is_object_dtype,
+    is_string_dtype,
+)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -265,14 +268,15 @@ class TestMerge:
         merged["d"] = "peekaboo"
         assert (right["d"] == "bar").all()
 
-    def test_merge_nocopy(self):
+    def test_merge_nocopy(self, using_infer_string):
         left = DataFrame({"a": 0, "b": 1}, index=range(10))
         right = DataFrame({"c": "foo", "d": "bar"}, index=range(10))
 
         merged = merge(left, right, left_index=True, right_index=True, copy=False)
 
         assert np.shares_memory(merged["a"]._values, left["a"]._values)
-        assert np.shares_memory(merged["d"]._values, right["d"]._values)
+        if not using_infer_string:
+            assert np.shares_memory(merged["d"]._values, right["d"]._values)
 
     def test_intelligently_handle_join_key(self):
         # #733, be a bit more 1337 about not returning unconsolidated DataFrame
@@ -660,11 +664,13 @@ class TestMerge:
                     "i1_": {0: 0, 1: np.nan},
                     "i3": {0: 0.0, 1: np.nan},
                     None: {0: 0, 1: 0},
-                }
+                },
+                columns=Index(["i1", "i2", "i1_", "i3", None], dtype=object),
             )
             .set_index(None)
             .reset_index()[["i1", "i2", "i1_", "i3"]]
         )
+        result.columns = result.columns.astype("object")
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
     def test_merge_nan_right2(self):
@@ -808,7 +814,7 @@ class TestMerge:
 
         # #2649, #10639
         df2.columns = ["key1", "foo", "foo"]
-        msg = r"Data columns not unique: Index\(\['foo'\], dtype='object'\)"
+        msg = r"Data columns not unique: Index\(\['foo'\], dtype='object|string'\)"
         with pytest.raises(MergeError, match=msg):
             merge(df, df2)
 
@@ -1485,7 +1491,7 @@ class TestMergeDtypes:
         # We allow merging on object and categorical cols and cast
         # categorical cols to object
         result = merge(left, right, on="A")
-        assert is_object_dtype(result.A.dtype)
+        assert is_object_dtype(result.A.dtype) or is_string_dtype(result.A.dtype)
 
     @pytest.mark.parametrize("d2", [np.int64, np.float64, np.float32, np.float16])
     def test_join_multi_dtypes(self, any_int_numpy_dtype, d2):
@@ -1621,7 +1627,7 @@ class TestMergeDtypes:
         result = merge(df1, df2, on=["A"])
         assert is_object_dtype(result.A.dtype)
         result = merge(df2, df1, on=["A"])
-        assert is_object_dtype(result.A.dtype)
+        assert is_object_dtype(result.A.dtype) or is_string_dtype(result.A.dtype)
 
     @pytest.mark.parametrize(
         "df1_vals, df2_vals",
@@ -1850,25 +1856,27 @@ def right():
 
 
 class TestMergeCategorical:
-    def test_identical(self, left):
+    def test_identical(self, left, using_infer_string):
         # merging on the same, should preserve dtypes
         merged = merge(left, left, on="X")
         result = merged.dtypes.sort_index()
+        dtype = np.dtype("O") if not using_infer_string else "string"
         expected = Series(
-            [CategoricalDtype(categories=["foo", "bar"]), np.dtype("O"), np.dtype("O")],
+            [CategoricalDtype(categories=["foo", "bar"]), dtype, dtype],
             index=["X", "Y_x", "Y_y"],
         )
         tm.assert_series_equal(result, expected)
 
-    def test_basic(self, left, right):
+    def test_basic(self, left, right, using_infer_string):
         # we have matching Categorical dtypes in X
         # so should preserve the merged column
         merged = merge(left, right, on="X")
         result = merged.dtypes.sort_index()
+        dtype = np.dtype("O") if not using_infer_string else "string"
         expected = Series(
             [
                 CategoricalDtype(categories=["foo", "bar"]),
-                np.dtype("O"),
+                dtype,
                 np.dtype("int64"),
             ],
             index=["X", "Y", "Z"],
@@ -1972,16 +1980,17 @@ class TestMergeCategorical:
         ).set_index(["id", "p"])
         tm.assert_frame_equal(result, expected)
 
-    def test_other_columns(self, left, right):
+    def test_other_columns(self, left, right, using_infer_string):
         # non-merge columns should preserve if possible
         right = right.assign(Z=right.Z.astype("category"))
 
         merged = merge(left, right, on="X")
         result = merged.dtypes.sort_index()
+        dtype = np.dtype("O") if not using_infer_string else "string"
         expected = Series(
             [
                 CategoricalDtype(categories=["foo", "bar"]),
-                np.dtype("O"),
+                dtype,
                 CategoricalDtype(categories=[1, 2]),
             ],
             index=["X", "Y", "Z"],
@@ -2000,7 +2009,9 @@ class TestMergeCategorical:
             lambda x: x.astype(CategoricalDtype(ordered=True)),
         ],
     )
-    def test_dtype_on_merged_different(self, change, join_type, left, right):
+    def test_dtype_on_merged_different(
+        self, change, join_type, left, right, using_infer_string
+    ):
         # our merging columns, X now has 2 different dtypes
         # so we must be object as a result
 
@@ -2012,9 +2023,8 @@ class TestMergeCategorical:
         merged = merge(left, right, on="X", how=join_type)
 
         result = merged.dtypes.sort_index()
-        expected = Series(
-            [np.dtype("O"), np.dtype("O"), np.dtype("int64")], index=["X", "Y", "Z"]
-        )
+        dtype = np.dtype("O") if not using_infer_string else "string"
+        expected = Series([dtype, dtype, np.dtype("int64")], index=["X", "Y", "Z"])
         tm.assert_series_equal(result, expected)
 
     def test_self_join_multiple_categories(self):
@@ -2471,7 +2481,7 @@ def test_merge_multiindex_columns():
     expected_index = MultiIndex.from_tuples(tuples, names=["outer", "inner"])
     expected = DataFrame(columns=expected_index)
 
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_dtype=False)
 
 
 def test_merge_datetime_upcast_dtype():
