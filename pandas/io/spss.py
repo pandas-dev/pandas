@@ -50,8 +50,9 @@ def read_spss(
           DataFrame.
 
         .. versionadded:: 2.0
-    **kwargs : dict, optional
+    **kwargs
         Additional keyword arguments passed to :func:`pyreadstat.read_sav`.
+
         .. versionadded:: 3.0
 
     Returns
