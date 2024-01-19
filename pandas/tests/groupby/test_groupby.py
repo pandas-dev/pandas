@@ -186,7 +186,7 @@ def test_inconsistent_return_type():
 
     expected = df.groupby("A").first()[["B"]]
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = df.groupby("A").apply(f_0)[["B"]]
     tm.assert_frame_equal(result, expected)
 
