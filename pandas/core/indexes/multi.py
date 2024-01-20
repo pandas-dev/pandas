@@ -73,8 +73,8 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCSeries,
     ABCMultiIndex,
+    ABCSeries,
 )
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import (
@@ -1838,7 +1838,6 @@ class MultiIndex(Index):
         return self._get_level_values_by_numbers(levnums)
 
     def _get_level_values_by_numbers(self, levnums: list[int]):
-
         if not levnums and not isinstance(self, ABCMultiIndex):
             return self
         if len(levnums) == 0:
@@ -1887,7 +1886,6 @@ class MultiIndex(Index):
                 names=new_names,
                 verify_integrity=False,
             )
-
 
     @doc(Index.unique)
     def unique(self, level=None):
