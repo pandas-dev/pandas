@@ -2371,6 +2371,10 @@ class ArrowExtensionArray(
         if (start == 0 or start is None) and end is None:
             result = pc.find_substring(self._pa_array, sub)
         else:
+            if sub == "":
+                # GH 56792
+                result = self._apply_elementwise(lambda val: val.find(sub, start, end))
+                return type(self)(pa.chunked_array(result))
             length = pc.utf8_length(self._pa_array)
             if start is None:
                 start_offset = 0
@@ -2383,18 +2387,6 @@ class ArrowExtensionArray(
             slices = pc.utf8_slice_codeunits(self._pa_array, start, stop=end)
             result = pc.find_substring(slices, sub)
             found = pc.not_equal(result, pa.scalar(-1, type=result.type))
-            if end is None:
-                end = length
-            elif end < 0:
-                end = pc.add(end, length)
-                end = pc.if_else(pc.less(end, 0), 0, end)
-            found = pc.and_(
-                found,
-                pc.and_(
-                    pc.less_equal(start_offset, end),
-                    pc.less_equal(start_offset, length),
-                ),
-            )
             offset_result = pc.add(result, start_offset)
             result = pc.if_else(found, offset_result, -1)
         return type(self)(result)
