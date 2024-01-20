@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 
 import pandas as pd
@@ -42,6 +43,43 @@ def test_get_level_values(idx):
     tm.assert_index_equal(index.get_level_values(0), exp)
     exp = CategoricalIndex([1, 2, 3, 1, 2, 3])
     tm.assert_index_equal(index.get_level_values(1), exp)
+
+
+def test_get_level_values_list():
+    index = MultiIndex(
+        levels=[Index(range(4)), Index(range(4)), Index(range(4))],
+        codes=[
+            np.array([0, 0, 1, 2, 2, 2, 3, 3]),
+            np.array([0, 1, 0, 0, 0, 1, 0, 1]),
+            np.array([1, 0, 1, 1, 0, 0, 1, 0]),
+        ],
+        names=["one", "two", "three"],
+    )
+    # get one index is equivalent to a string
+    extracted = index[:2].get_level_values(["two"])
+    expected = index[:2].get_level_values("two")
+    assert extracted.equals(expected)
+
+    # get two indexes in a list, return in the correct order
+    extracted = index[:2].get_level_values(["three", "one"])
+    expected = MultiIndex(
+        levels=[Index(range(4)), Index(range(4))],
+        codes=[
+            np.array([1, 0]),
+            np.array([0, 0]),
+        ],
+        names=["three", "one"],
+    )
+    assert extracted.equals(expected)
+
+    # return the same multiindex obj when list is empty
+    extracted = index[:2].get_level_values([])
+    expected = index[:2]
+    assert extracted.equals(expected)
+
+    # raise keyError when level not found
+    with pytest.raises(KeyError, match="'Level four not found'"):
+        index[:2].get_level_values(["one", "four"])
 
 
 def test_get_level_values_all_na():

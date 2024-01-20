@@ -74,6 +74,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
+    ABCMultiIndex,
 )
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import (
@@ -1789,9 +1790,10 @@ class MultiIndex(Index):
 
         Parameters
         ----------
-        level : int or str
+        level : int or str or list-like
             ``level`` is either the integer position of the level in the
-            MultiIndex, or the name of the level.
+            MultiIndex, or the name of the level. if list-like, elements must
+            be names or positional indexes of levels
 
         Returns
         -------
@@ -1801,7 +1803,7 @@ class MultiIndex(Index):
 
         Notes
         -----
-        If the level contains missing values, the result may be casted to
+        If the level contains missing values, the result may be cast to
         ``float`` with missing values specified as ``NaN``. This is because
         the level is converted to a regular ``Index``.
 
@@ -1829,9 +1831,63 @@ class MultiIndex(Index):
         >>> pd.MultiIndex.from_arrays([[1, None, 2], [3, 4, 5]]).get_level_values(0)
         Index([1.0, nan, 2.0], dtype='float64')
         """
-        level = self._get_level_number(level)
-        values = self._get_level_values(level)
-        return values
+        # translate names to positional indexes of levels
+        if not isinstance(level, (tuple, list)):
+            level = [level]
+        levnums = sorted(self._get_level_number(lev) for lev in level)[::-1]
+        return self._get_level_values_by_numbers(levnums)
+
+    def _get_level_values_by_numbers(self, levnums: list[int]):
+
+        if not levnums and not isinstance(self, ABCMultiIndex):
+            return self
+        if len(levnums) == 0:
+            return self
+        # The two checks above guarantee that here self is a MultiIndex
+        self = cast("MultiIndex", self)
+
+        new_levels = []
+        new_codes = []
+        new_names = []
+
+        for i in levnums:
+            new_levels.append(self.levels[i])
+            new_codes.append(self.codes[i])
+            new_names.append(self.names[i])
+
+        if len(new_levels) == 1:
+            lev = new_levels[0]
+
+            if len(lev) == 0:
+                # If lev is empty, lev.take will fail GH#42055
+                if len(new_codes[0]) == 0:
+                    # GH#45230 preserve RangeIndex here
+                    #  see test_reset_index_empty_rangeindex
+                    result = lev[:0]
+                else:
+                    res_values = algos.take(lev._values, new_codes[0], allow_fill=True)
+                    # _constructor instead of type(lev) for RangeIndex compat GH#35230
+                    result = lev._constructor._simple_new(res_values, name=new_names[0])
+            else:
+                # set nan if needed
+                mask = new_codes[0] == -1
+                result = new_levels[0].take(new_codes[0])
+                if mask.any():
+                    result = result.putmask(mask, np.nan)
+
+                result._name = new_names[0]
+
+            return result
+        else:
+            from pandas.core.indexes.multi import MultiIndex
+
+            return MultiIndex(
+                levels=new_levels,
+                codes=new_codes,
+                names=new_names,
+                verify_integrity=False,
+            )
+
 
     @doc(Index.unique)
     def unique(self, level=None):
