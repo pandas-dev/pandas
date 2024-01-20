@@ -2142,13 +2142,17 @@ class Tooltips:
                 for item in row:
                     if item["type"] == "td":
                         td_id = item["id"]
-                        i, j = (int(x) for x in id_regex.match(td_id).groups())
-                        if (
-                            not mask.iloc[i, j]
-                            or i in styler.hidden_rows
-                            or j in styler.hidden_columns
-                        ):
-                            item["attributes"] += f'title="{self.tt_data.iloc[i, j]}"'
+                        match = id_regex.match(td_id)
+                        if match is not None:
+                            i, j = (int(x) for x in match.groups())
+                            if (
+                                not mask.iloc[i, j]
+                                or i in styler.hidden_rows
+                                or j in styler.hidden_columns
+                            ):
+                                item[
+                                    "attributes"
+                                ] += f'title="{self.tt_data.iloc[i, j]}"'
         return d
 
 

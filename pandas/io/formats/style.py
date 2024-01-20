@@ -443,7 +443,7 @@ class Styler(StylerRenderer):
             Name of the tooltip class used in CSS, should conform to HTML standards.
             Only useful if integrating tooltips with external CSS. If ``None`` uses the
             internal default value 'pd-t'.
-        as_title_attribute: bool, default False
+        as_title_attribute : bool, default False
             Add the tooltip text as title attribute to resultant <td> element. If True
             then props and css_class arguments are ignored.
 
@@ -503,7 +503,7 @@ class Styler(StylerRenderer):
 
         Multiline tooltips with smaller size footprint
 
-        >>> df.style.set_tooltips(ttips, as_title_attribute=True) # doctest: +SKIP
+        >>> df.style.set_tooltips(ttips, as_title_attribute=True)  # doctest: +SKIP
         """
         if not self.cell_ids:
             # tooltips not optimised for individual cell check. requires reasonable
