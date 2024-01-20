@@ -1877,7 +1877,6 @@ class MultiIndex(Index):
 
             return result
         else:
-            from pandas.core.indexes.multi import MultiIndex
 
             return MultiIndex(
                 levels=new_levels,
