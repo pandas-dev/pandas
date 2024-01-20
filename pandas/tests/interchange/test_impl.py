@@ -8,7 +8,6 @@ from pandas.compat import (
     is_ci_environment,
     is_platform_windows,
 )
-from pandas.compat.numpy import np_version_lt1p23
 
 import pandas as pd
 import pandas._testing as tm
@@ -260,7 +259,6 @@ def test_datetime():
     tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
 
 
-@pytest.mark.skipif(np_version_lt1p23, reason="Numpy > 1.23 required")
 def test_categorical_to_numpy_dlpack():
     # https://github.com/pandas-dev/pandas/issues/48393
     df = pd.DataFrame({"A": pd.Categorical(["a", "b", "a"])})
@@ -353,3 +351,20 @@ def test_interchange_from_corrected_buffer_dtypes(monkeypatch) -> None:
     interchange.get_column_by_name = lambda _: column
     monkeypatch.setattr(df, "__dataframe__", lambda allow_copy: interchange)
     pd.api.interchange.from_dataframe(df)
+
+
+def test_empty_string_column():
+    # https://github.com/pandas-dev/pandas/issues/56703
+    df = pd.DataFrame({"a": []}, dtype=str)
+    df2 = df.__dataframe__()
+    result = pd.api.interchange.from_dataframe(df2)
+    tm.assert_frame_equal(df, result)
+
+
+def test_large_string():
+    # GH#56702
+    pytest.importorskip("pyarrow")
+    df = pd.DataFrame({"a": ["x"]}, dtype="large_string[pyarrow]")
+    result = pd.api.interchange.from_dataframe(df.__dataframe__())
+    expected = pd.DataFrame({"a": ["x"]}, dtype="object")
+    tm.assert_frame_equal(result, expected)

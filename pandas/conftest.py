@@ -273,7 +273,7 @@ def configure_tests() -> None:
 # ----------------------------------------------------------------
 # Common arguments
 # ----------------------------------------------------------------
-@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis={repr(x)}")
+@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis={x!r}")
 def axis(request):
     """
     Fixture for returning the axis numbers of a DataFrame.
@@ -1971,6 +1971,9 @@ def warsaw(request) -> str:
     return request.param
 
 
-@pytest.fixture()
+@pytest.fixture
 def arrow_string_storage():
+    """
+    Fixture that lists possible PyArrow values for StringDtype storage field.
+    """
     return ("pyarrow", "pyarrow_numpy")

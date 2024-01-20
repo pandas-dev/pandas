@@ -1082,7 +1082,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         For :class:`pandas.Series`:
 
         >>> raw_cat = pd.Categorical(['a', 'b', 'c', 'A'],
-        ...                           categories=['a', 'b', 'c'], ordered=True)
+        ...                          categories=['a', 'b', 'c'], ordered=True)
         >>> ser = pd.Series(raw_cat)
         >>> ser
         0   a
@@ -2024,7 +2024,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if na_position not in ["last", "first"]:
-            raise ValueError(f"invalid na_position: {repr(na_position)}")
+            raise ValueError(f"invalid na_position: {na_position!r}")
 
         sorted_idx = nargsort(self, ascending=ascending, na_position=na_position)
 

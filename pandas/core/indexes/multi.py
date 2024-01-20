@@ -1638,7 +1638,8 @@ class MultiIndex(Index):
         Examples
         --------
         >>> mi = pd.MultiIndex.from_arrays(
-        ... [[1, 2], [3, 4], [5, 6]], names=['x', 'y', 'z'])
+        ...     [[1, 2], [3, 4], [5, 6]], names=['x', 'y', 'z']
+        ... )
         >>> mi
         MultiIndex([(1, 3, 5),
                     (2, 4, 6)],
@@ -2246,6 +2247,9 @@ class MultiIndex(Index):
 
         # only fill if we are passing a non-None fill_value
         allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
+
+        if indices.ndim == 1 and lib.is_range_indexer(indices, len(self)):
+            return self.copy()
 
         na_value = -1
 

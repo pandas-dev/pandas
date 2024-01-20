@@ -98,7 +98,7 @@ def hist_series(
 
     Returns
     -------
-    matplotlib.AxesSubplot
+    matplotlib.Axes
         A histogram plot.
 
     See Also
@@ -227,7 +227,7 @@ def hist_frame(
 
     Returns
     -------
-    matplotlib.AxesSubplot or numpy.ndarray of them
+    matplotlib.Axes or numpy.ndarray of them
 
     See Also
     --------
@@ -921,7 +921,7 @@ class PlotAccessor(PandasObject):
         if args and isinstance(data, ABCSeries):
             positional_args = str(args)[1:-1]
             keyword_args = ", ".join(
-                [f"{name}={repr(value)}" for (name, _), value in zip(arg_def, args)]
+                [f"{name}={value!r}" for (name, _), value in zip(arg_def, args)]
             )
             msg = (
                 "`Series.plot()` should not be called with positional "
@@ -1053,9 +1053,9 @@ class PlotAccessor(PandasObject):
             over the years.
 
             >>> df = pd.DataFrame({
-            ...    'pig': [20, 18, 489, 675, 1776],
-            ...    'horse': [4, 25, 281, 600, 1900]
-            ...    }, index=[1990, 1997, 2003, 2009, 2014])
+            ...     'pig': [20, 18, 489, 675, 1776],
+            ...     'horse': [4, 25, 281, 600, 1900]
+            ... }, index=[1990, 1997, 2003, 2009, 2014])
             >>> lines = df.plot.line()
 
         .. plot::
@@ -1114,7 +1114,7 @@ class PlotAccessor(PandasObject):
         .. plot::
             :context: close-figs
 
-            >>> df = pd.DataFrame({'lab':['A', 'B', 'C'], 'val':[10, 30, 20]})
+            >>> df = pd.DataFrame({'lab': ['A', 'B', 'C'], 'val': [10, 30, 20]})
             >>> ax = df.plot.bar(x='lab', y='val', rot=0)
 
         Plot a whole dataframe to a bar plot. Each column is assigned a
@@ -1195,7 +1195,7 @@ class PlotAccessor(PandasObject):
         """
         See Also
         --------
-        DataFrame.plot.bar: Vertical bar plot.
+        DataFrame.plot.bar : Vertical bar plot.
         DataFrame.plot : Make plots of DataFrame using matplotlib.
         matplotlib.axes.Axes.bar : Plot a vertical bar plot using matplotlib.
 
@@ -1374,7 +1374,7 @@ class PlotAccessor(PandasObject):
 
         Returns
         -------
-        class:`matplotlib.AxesSubplot`
+        class:`matplotlib.Axes`
             Return a histogram plot.
 
         See Also
@@ -1794,7 +1794,7 @@ class PlotAccessor(PandasObject):
 
         Returns
         -------
-        matplotlib.AxesSubplot
+        matplotlib.Axes
             The matplotlib ``Axes`` on which the hexbin is plotted.
 
         See Also
@@ -1828,8 +1828,8 @@ class PlotAccessor(PandasObject):
             >>> df = pd.DataFrame({
             ...     'coord_x': np.random.uniform(-3, 3, size=n),
             ...     'coord_y': np.random.uniform(30, 50, size=n),
-            ...     'observations': np.random.randint(1,5, size=n)
-            ...     })
+            ...     'observations': np.random.randint(1, 5, size=n)
+            ... })
             >>> ax = df.plot.hexbin(x='coord_x',
             ...                     y='coord_y',
             ...                     C='observations',

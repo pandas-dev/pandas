@@ -1063,15 +1063,15 @@ class StylerRenderer:
 
         Using a ``formatter`` specification on consistent column dtypes
 
-        >>> df.style.format('{:.2f}', na_rep='MISS', subset=[0,1])  # doctest: +SKIP
+        >>> df.style.format('{:.2f}', na_rep='MISS', subset=[0, 1])  # doctest: +SKIP
                 0      1          2
         0    MISS   1.00          A
         1    2.00   MISS   3.000000
 
         Using the default ``formatter`` for unspecified columns
 
-        >>> df.style.format({0: '{:.2f}', 1: '£ {:.1f}'}, na_rep='MISS', precision=1)
-        ...  # doctest: +SKIP
+        >>> df.style.format({0: '{:.2f}', 1: '£ {:.1f}'},
+        ...                 na_rep='MISS', precision=1)  # doctest: +SKIP
                  0      1     2
         0    MISS   £ 1.0     A
         1    2.00    MISS   3.0
@@ -1079,8 +1079,8 @@ class StylerRenderer:
         Multiple ``na_rep`` or ``precision`` specifications under the default
         ``formatter``.
 
-        >>> (df.style.format(na_rep='MISS', precision=1, subset=[0])
-        ...     .format(na_rep='PASS', precision=2, subset=[1, 2]))  # doctest: +SKIP
+        >>> (df.style.format(na_rep='MISS', precision=1, subset=[0]).format(
+        ...     na_rep='PASS', precision=2, subset=[1, 2]))  # doctest: +SKIP
                 0      1      2
         0    MISS   1.00      A
         1     2.0   PASS   3.00
@@ -1088,8 +1088,8 @@ class StylerRenderer:
         Using a callable ``formatter`` function.
 
         >>> func = lambda s: 'STRING' if isinstance(s, str) else 'FLOAT'
-        >>> df.style.format({0: '{:.1f}', 2: func}, precision=4, na_rep='MISS')
-        ...  # doctest: +SKIP
+        >>> df.style.format({0: '{:.1f}', 2: func},
+        ...                 precision=4, na_rep='MISS')  # doctest: +SKIP
                 0        1        2
         0    MISS   1.0000   STRING
         1     2.0     MISS    FLOAT
@@ -1098,8 +1098,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame([['<div></div>', '"A&B"', None]])
         >>> s = df.style.format(
-        ...     '<a href="a.com/{0}">{0}</a>', escape="html", na_rep="NA"
-        ...     )
+        ...     '<a href="a.com/{0}">{0}</a>', escape="html", na_rep="NA")
         >>> s.to_html()  # doctest: +SKIP
         ...
         <td .. ><a href="a.com/&lt;div&gt;&lt;/div&gt;">&lt;div&gt;&lt;/div&gt;</a></td>
@@ -1110,8 +1109,8 @@ class StylerRenderer:
         Using a ``formatter`` with ``escape`` in 'latex' mode.
 
         >>> df = pd.DataFrame([["123"], ["~ ^"], ["$%#"]])
-        >>> df.style.format("\\textbf{{{}}}", escape="latex").to_latex()
-        ...  # doctest: +SKIP
+        >>> df.style.format("\\textbf{{{}}}",
+        ...                 escape="latex").to_latex()  # doctest: +SKIP
         \begin{tabular}{ll}
          & 0 \\
         0 & \textbf{123} \\
@@ -1122,10 +1121,10 @@ class StylerRenderer:
         Applying ``escape`` in 'latex-math' mode. In the example below
         we enter math mode using the character ``$``.
 
-        >>> df = pd.DataFrame([[r"$\sum_{i=1}^{10} a_i$ a~b $\alpha \
-        ...     = \frac{\beta}{\zeta^2}$"], ["%#^ $ \$x^2 $"]])
-        >>> df.style.format(escape="latex-math").to_latex()
-        ...  # doctest: +SKIP
+        >>> df = pd.DataFrame([
+        ...     [r"$\sum_{i=1}^{10} a_i$ a~b $\alpha = \frac{\beta}{\zeta^2}$"],
+        ...     [r"%#^ $ \$x^2 $"]])
+        >>> df.style.format(escape="latex-math").to_latex()  # doctest: +SKIP
         \begin{tabular}{ll}
          & 0 \\
         0 & $\sum_{i=1}^{10} a_i$ a\textasciitilde b $\alpha = \frac{\beta}{\zeta^2}$ \\
@@ -1135,10 +1134,10 @@ class StylerRenderer:
         We can use the character ``\(`` to enter math mode and the character ``\)``
         to close math mode.
 
-        >>> df = pd.DataFrame([[r"\(\sum_{i=1}^{10} a_i\) a~b \(\alpha \
-        ...     = \frac{\beta}{\zeta^2}\)"], ["%#^ \( \$x^2 \)"]])
-        >>> df.style.format(escape="latex-math").to_latex()
-        ...  # doctest: +SKIP
+        >>> df = pd.DataFrame([
+        ...     [r"\(\sum_{i=1}^{10} a_i\) a~b \(\alpha = \frac{\beta}{\zeta^2}\)"],
+        ...     [r"%#^ \( \$x^2 \)"]])
+        >>> df.style.format(escape="latex-math").to_latex()  # doctest: +SKIP
         \begin{tabular}{ll}
          & 0 \\
         0 & \(\sum_{i=1}^{10} a_i\) a\textasciitilde b \(\alpha
@@ -1149,10 +1148,10 @@ class StylerRenderer:
         If we have in one DataFrame cell a combination of both shorthands
         for math formulas, the shorthand with the sign ``$`` will be applied.
 
-        >>> df = pd.DataFrame([[r"\( x^2 \)  $x^2$"], \
+        >>> df = pd.DataFrame([
+        ...     [r"\( x^2 \)  $x^2$"],
         ...     [r"$\frac{\beta}{\zeta}$ \(\frac{\beta}{\zeta}\)"]])
-        >>> df.style.format(escape="latex-math").to_latex()
-        ...  # doctest: +SKIP
+        >>> df.style.format(escape="latex-math").to_latex()  # doctest: +SKIP
         \begin{tabular}{ll}
          & 0 \\
         0 & \textbackslash ( x\textasciicircum 2 \textbackslash )  $x^2$ \\
@@ -1169,7 +1168,7 @@ class StylerRenderer:
         >>> df = pd.DataFrame({"A": [1, 0, -1]})
         >>> pseudo_css = "number-format: 0§[Red](0)§-§@;"
         >>> filename = "formatted_file.xlsx"
-        >>> df.style.map(lambda v: pseudo_css).to_excel(filename) # doctest: +SKIP
+        >>> df.style.map(lambda v: pseudo_css).to_excel(filename)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/format_excel_css.png
         """
@@ -1318,9 +1317,10 @@ class StylerRenderer:
         Using the default ``formatter`` for unspecified levels
 
         >>> df = pd.DataFrame([[1, 2, 3]],
-        ...     columns=pd.MultiIndex.from_arrays([["a", "a", "b"],[2, np.nan, 4]]))
+        ...                   columns=pd.MultiIndex.from_arrays(
+        ...                   [["a", "a", "b"], [2, np.nan, 4]]))
         >>> df.style.format_index({0: lambda v: v.upper()}, axis=1, precision=1)
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
                        A       B
               2.0    nan     4.0
         0       1      2       3
@@ -1329,7 +1329,7 @@ class StylerRenderer:
 
         >>> func = lambda s: 'STRING' if isinstance(s, str) else 'FLOAT'
         >>> df.style.format_index(func, axis=1, na_rep='MISS')
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
                   STRING  STRING
             FLOAT   MISS   FLOAT
         0       1      2       3
@@ -1338,7 +1338,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame([[1, 2, 3]], columns=['"A"', 'A&B', None])
         >>> s = df.style.format_index('$ {0}', axis=1, escape="html", na_rep="NA")
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
         <th .. >$ &#34;A&#34;</th>
         <th .. >$ A&amp;B</th>
         <th .. >NA</td>
@@ -1348,7 +1348,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame([[1, 2, 3]], columns=["123", "~", "$%#"])
         >>> df.style.format_index("\\textbf{{{}}}", escape="latex", axis=1).to_latex()
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
         \begin{tabular}{lrrr}
         {} & {\textbf{123}} & {\textbf{\textasciitilde }} & {\textbf{\$\%\#}} \\
         0 & 1 & 2 & 3 \\
@@ -1475,7 +1475,7 @@ class StylerRenderer:
 
         Chaining with pre-hidden elements
 
-        >>> df.style.hide([0,1]).relabel_index(["C"])  # doctest: +SKIP
+        >>> df.style.hide([0, 1]).relabel_index(["C"])  # doctest: +SKIP
              col
         C      c
 
@@ -1493,9 +1493,10 @@ class StylerRenderer:
               1     5
            1  0     6
               1     7
-        >>> styler.hide((midx.get_level_values(0)==0)|(midx.get_level_values(1)==0))
-        ...  # doctest: +SKIP
-        >>> styler.hide(level=[0,1])  # doctest: +SKIP
+        >>> styler.hide((midx.get_level_values(0) == 0) |
+        ...             (midx.get_level_values(1) == 0))
+        ... # doctest: +SKIP
+        >>> styler.hide(level=[0, 1])  # doctest: +SKIP
         >>> styler.relabel_index(["binary6", "binary7"])  # doctest: +SKIP
                   col
         binary6     6
@@ -1503,9 +1504,9 @@ class StylerRenderer:
 
         We can also achieve the above by indexing first and then re-labeling
 
-        >>> styler = df.loc[[(1,1,0), (1,1,1)]].style
-        >>> styler.hide(level=[0,1]).relabel_index(["binary6", "binary7"])
-        ...  # doctest: +SKIP
+        >>> styler = df.loc[[(1, 1, 0), (1, 1, 1)]].style
+        >>> styler.hide(level=[0, 1]).relabel_index(["binary6", "binary7"])
+        ... # doctest: +SKIP
                   col
         binary6     6
         binary7     7
@@ -1516,9 +1517,9 @@ class StylerRenderer:
         brackets if the string if pre-formatted),
 
         >>> df = pd.DataFrame({"samples": np.random.rand(10)})
-        >>> styler = df.loc[np.random.randint(0,10,3)].style
+        >>> styler = df.loc[np.random.randint(0, 10, 3)].style
         >>> styler.relabel_index([f"sample{i+1} ({{}})" for i in range(3)])
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
                          samples
         sample1 (5)     0.315811
         sample2 (0)     0.495941

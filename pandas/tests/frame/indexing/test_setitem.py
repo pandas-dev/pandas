@@ -1369,3 +1369,23 @@ class TestDataFrameSetitemCopyViewSemantics:
             index=dti[:0],
         )
         tm.assert_frame_equal(df, expected)
+
+
+def test_full_setter_loc_incompatible_dtype():
+    # https://github.com/pandas-dev/pandas/issues/55791
+    df = DataFrame({"a": [1, 2]})
+    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        df.loc[:, "a"] = True
+    expected = DataFrame({"a": [True, True]})
+    tm.assert_frame_equal(df, expected)
+
+    df = DataFrame({"a": [1, 2]})
+    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        df.loc[:, "a"] = {0: 3.5, 1: 4.5}
+    expected = DataFrame({"a": [3.5, 4.5]})
+    tm.assert_frame_equal(df, expected)
+
+    df = DataFrame({"a": [1, 2]})
+    df.loc[:, "a"] = {0: 3, 1: 4}
+    expected = DataFrame({"a": [3, 4]})
+    tm.assert_frame_equal(df, expected)

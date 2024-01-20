@@ -132,7 +132,7 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.339
+        - pyright@1.1.347
     -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
@@ -189,9 +189,6 @@ repos:
 
             # Check for deprecated messages without sphinx directive
             |(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)
-
-            # {foo!r} instead of {repr(foo)}
-            |!r}
 
             # builtin filter function
             |(?<!def)[\(\s]filter\(
@@ -272,13 +269,6 @@ repos:
         language: python
         types: [rst]
         files: ^doc/source/(development|reference)/
-    -   id: unwanted-patterns-bare-pytest-raises
-        name: Check for use of bare pytest raises
-        language: python
-        entry: python scripts/validate_unwanted_patterns.py --validation-type="bare_pytest_raises"
-        types: [python]
-        files: ^pandas/tests/
-        exclude: ^pandas/tests/extension/
     -   id: unwanted-patterns-private-function-across-module
         name: Check for use of private functions across modules
         language: python

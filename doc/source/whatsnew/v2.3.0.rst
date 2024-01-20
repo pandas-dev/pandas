@@ -65,7 +65,7 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | Package         | Minimum Version | Required | Changed |
 +=================+=================+==========+=========+
-|                 |                 |    X     |    X    |
+| numpy           | 1.23.5          |    X     |    X    |
 +-----------------+-----------------+----------+---------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
@@ -92,7 +92,8 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
--
+- Deprecated :meth:`Timestamp.utcfromtimestamp`, use ``Timestamp.fromtimestamp(ts, "UTC")`` instead (:issue:`56680`)
+- Deprecated :meth:`Timestamp.utcnow`, use ``Timestamp.now("UTC")`` instead (:issue:`56680`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -100,7 +101,11 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
--
+- Performance improvement in :meth:`DataFrame.join` for sorted but non-unique indexes (:issue:`56941`)
+- Performance improvement in :meth:`DataFrame.join` when left and/or right are non-unique and ``how`` is ``"left"``, ``"right"``, or ``"inner"`` (:issue:`56817`)
+- Performance improvement in :meth:`DataFrame.join` with ``how="left"`` or ``how="right"`` and ``sort=True`` (:issue:`56919`)
+- Performance improvement in :meth:`DataFrameGroupBy.ffill`, :meth:`DataFrameGroupBy.bfill`, :meth:`SeriesGroupBy.ffill`, and :meth:`SeriesGroupBy.bfill` (:issue:`56902`)
+- Performance improvement in :meth:`Index.take` when ``indices`` is a full range indexer from zero to length of index (:issue:`56806`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -108,6 +113,8 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
+- Fixed bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
+
 
 Categorical
 ^^^^^^^^^^^
@@ -116,7 +123,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
+- Bug in :func:`date_range` where the last valid timestamp would sometimes not be produced (:issue:`56134`)
 -
 
 Timedelta
@@ -181,7 +188,7 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
--
+- Bug in :meth:`.DataFrameGroupBy.quantile` when ``interpolation="nearest"`` is inconsistent with :meth:`DataFrame.quantile` (:issue:`47942`)
 -
 
 Reshaping
@@ -206,6 +213,8 @@ Styler
 
 Other
 ^^^^^
+- Bug in :meth:`DataFrame.where` where using a non-bool type array in the function would return a ``ValueError`` instead of a ``TypeError`` (:issue:`56330`)
+
 
 .. ***DO NOT USE THIS SECTION***
 

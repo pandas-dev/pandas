@@ -620,13 +620,13 @@ def mysql_pymysql_engine():
 def mysql_pymysql_engine_iris(mysql_pymysql_engine, iris_path):
     create_and_load_iris(mysql_pymysql_engine, iris_path)
     create_and_load_iris_view(mysql_pymysql_engine)
-    yield mysql_pymysql_engine
+    return mysql_pymysql_engine
 
 
 @pytest.fixture
 def mysql_pymysql_engine_types(mysql_pymysql_engine, types_data):
     create_and_load_types(mysql_pymysql_engine, types_data, "mysql")
-    yield mysql_pymysql_engine
+    return mysql_pymysql_engine
 
 
 @pytest.fixture
@@ -667,13 +667,13 @@ def postgresql_psycopg2_engine():
 def postgresql_psycopg2_engine_iris(postgresql_psycopg2_engine, iris_path):
     create_and_load_iris(postgresql_psycopg2_engine, iris_path)
     create_and_load_iris_view(postgresql_psycopg2_engine)
-    yield postgresql_psycopg2_engine
+    return postgresql_psycopg2_engine
 
 
 @pytest.fixture
 def postgresql_psycopg2_engine_types(postgresql_psycopg2_engine, types_data):
     create_and_load_types(postgresql_psycopg2_engine, types_data, "postgres")
-    yield postgresql_psycopg2_engine
+    return postgresql_psycopg2_engine
 
 
 @pytest.fixture
@@ -713,7 +713,7 @@ def postgresql_adbc_iris(postgresql_adbc_conn, iris_path):
     except mgr.ProgrammingError:  # note arrow-adbc issue 1022
         conn.rollback()
         create_and_load_iris_view(conn)
-    yield conn
+    return conn
 
 
 @pytest.fixture
@@ -730,7 +730,7 @@ def postgresql_adbc_types(postgresql_adbc_conn, types_data):
 
         create_and_load_types_postgresql(conn, new_data)
 
-    yield conn
+    return conn
 
 
 @pytest.fixture
@@ -784,7 +784,7 @@ def sqlite_str_iris(sqlite_str, iris_path):
 def sqlite_engine_iris(sqlite_engine, iris_path):
     create_and_load_iris(sqlite_engine, iris_path)
     create_and_load_iris_view(sqlite_engine)
-    yield sqlite_engine
+    return sqlite_engine
 
 
 @pytest.fixture
@@ -805,7 +805,7 @@ def sqlite_str_types(sqlite_str, types_data):
 @pytest.fixture
 def sqlite_engine_types(sqlite_engine, types_data):
     create_and_load_types(sqlite_engine, types_data, "sqlite")
-    yield sqlite_engine
+    return sqlite_engine
 
 
 @pytest.fixture
@@ -845,7 +845,7 @@ def sqlite_adbc_iris(sqlite_adbc_conn, iris_path):
     except mgr.ProgrammingError:
         conn.rollback()
         create_and_load_iris_view(conn)
-    yield conn
+    return conn
 
 
 @pytest.fixture
@@ -867,7 +867,7 @@ def sqlite_adbc_types(sqlite_adbc_conn, types_data):
         create_and_load_types_sqlite3(conn, new_data)
         conn.commit()
 
-    yield conn
+    return conn
 
 
 @pytest.fixture
@@ -881,14 +881,14 @@ def sqlite_buildin():
 def sqlite_buildin_iris(sqlite_buildin, iris_path):
     create_and_load_iris_sqlite3(sqlite_buildin, iris_path)
     create_and_load_iris_view(sqlite_buildin)
-    yield sqlite_buildin
+    return sqlite_buildin
 
 
 @pytest.fixture
 def sqlite_buildin_types(sqlite_buildin, types_data):
     types_data = [tuple(entry.values()) for entry in types_data]
     create_and_load_types_sqlite3(sqlite_buildin, types_data)
-    yield sqlite_buildin
+    return sqlite_buildin
 
 
 mysql_connectable = [
@@ -2229,12 +2229,14 @@ def test_api_chunksize_read(conn, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_categorical(conn, request):
     if conn == "postgresql_adbc_conn":
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="categorical dtype not implemented for ADBC postgres driver",
-                strict=True,
+        adbc = import_optional_dependency("adbc_driver_postgresql", errors="ignore")
+        if adbc is not None and Version(adbc.__version__) < Version("0.9.0"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="categorical dtype not implemented for ADBC postgres driver",
+                    strict=True,
+                )
             )
-        )
     # GH8624
     # test that categorical gets written correctly as dense column
     conn = request.getfixturevalue(conn)

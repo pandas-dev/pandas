@@ -105,9 +105,10 @@ class BaseSetitemTests:
         assert data[0] == data[2]
         assert data[1] == data[2]
 
-    def test_setitem_scalar(self, data, indexer_li):
+    @pytest.mark.parametrize("setter", ["loc", "iloc"])
+    def test_setitem_scalar(self, data, setter):
         arr = pd.Series(data)
-        setter = indexer_li(arr)
+        setter = getattr(arr, setter)
         setter[0] = data[1]
         assert arr[0] == data[1]
 
@@ -209,7 +210,8 @@ class BaseSetitemTests:
                 [0, 1, 2, pd.NA], True, marks=pytest.mark.xfail(reason="GH-31948")
             ),
             (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),
-            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),
+            # TODO: change False to True?
+            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),  # noqa: PT014
         ],
         ids=["list-False", "list-True", "integer-array-False", "integer-array-True"],
     )
@@ -332,7 +334,7 @@ class BaseSetitemTests:
 
     def test_setitem_slice_mismatch_length_raises(self, data):
         arr = data[:5]
-        with pytest.raises(ValueError):
+        with tm.external_error_raised(ValueError):
             arr[:1] = arr[:2]
 
     def test_setitem_slice_array(self, data):
@@ -342,7 +344,7 @@ class BaseSetitemTests:
 
     def test_setitem_scalar_key_sequence_raise(self, data):
         arr = data[:5].copy()
-        with pytest.raises(ValueError):
+        with tm.external_error_raised(ValueError):
             arr[0] = arr[[0, 1]]
 
     def test_setitem_preserves_views(self, data):
