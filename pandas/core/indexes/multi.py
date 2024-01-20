@@ -1843,8 +1843,6 @@ class MultiIndex(Index):
             return self
         if len(levnums) == 0:
             return self
-        # The two checks above guarantee that here self is a MultiIndex
-        self = cast("MultiIndex", self)
 
         new_levels = []
         new_codes = []
