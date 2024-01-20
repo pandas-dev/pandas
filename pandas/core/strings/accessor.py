@@ -1576,6 +1576,16 @@ class StringMethods(NoNewAttributesMixin):
         if case is None:
             case = True
 
+        res_output = self._data
+        if not isinstance(pat, dict):
+            pat = {pat: repl}
+
+        for key, value in pat.items():
+            result = res_output.array._str_replace(
+                key, value, n=n, case=case, flags=flags, regex=regex
+            )
+            res_output = self._wrap_result(result)
+        """
         if isinstance(pat, dict):
             res_output = self._data
             for key, value in pat.items():
@@ -1589,7 +1599,7 @@ class StringMethods(NoNewAttributesMixin):
                 pat, repl, n=n, case=case, flags=flags, regex=regex
             )
             res_output = self._wrap_result(result)
-
+        """
         return res_output
 
     @forbid_nonstring_types(["bytes"])
