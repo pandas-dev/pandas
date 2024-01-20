@@ -1877,7 +1877,6 @@ class MultiIndex(Index):
 
             return result
         else:
-
             return MultiIndex(
                 levels=new_levels,
                 codes=new_codes,
