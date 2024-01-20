@@ -1799,6 +1799,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             res.index = default_index(len(res))
         return res
 
+    @final
+    @property
+    def agg_index(self) -> Index:
+        """Index of an aggregation result.
+
+        Produces the index that will be on the result of an aggregation. Always
+        returns the index as if ``as_index=True``.
+        """
+        return self._grouper.result_index
+
     # -----------------------------------------------------------------
     # apply/agg/transform
 

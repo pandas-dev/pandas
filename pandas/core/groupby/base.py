@@ -83,6 +83,7 @@ transformation_kernels = frozenset(
 groupby_other_methods = frozenset(
     [
         "agg",
+        "agg_index",
         "aggregate",
         "apply",
         "boxplot",

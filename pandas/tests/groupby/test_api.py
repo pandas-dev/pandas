@@ -32,6 +32,7 @@ def test_tab_completion(multiindex_dataframe_random_data):
         "B",
         "C",
         "agg",
+        "agg_index",
         "aggregate",
         "apply",
         "boxplot",

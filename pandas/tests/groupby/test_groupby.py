@@ -3055,3 +3055,61 @@ def test_decimal_na_sort(test_series):
     result = gb._grouper.result_index
     expected = Index([Decimal(1), None], name="key")
     tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["float32", "Int64", "int16[pyarrow]"])
+@pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
+def test_agg_index(observed, sort, dropna, dtype, keys):
+    # GH#???
+    na_value = np.nan if dtype == "float32" else pd.NA
+    df = DataFrame(
+        {
+            "a": Series([2, na_value, 2, 1, na_value], dtype=dtype),
+            "b": Series([3, na_value, 3, na_value, 5], dtype=dtype),
+        }
+    )
+    gb = df.groupby(keys, observed=observed, sort=sort, dropna=dropna)
+    result = gb.agg_index
+    data = df[keys].drop_duplicates()
+    if sort:
+        data = data.sort_values(keys)
+    if dropna:
+        data = data[~data.isna().any(axis=1)]
+    expected = data.set_index(keys).index
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "keys",
+    [
+        ["a"],
+        pytest.param(
+            ["a", "b"], marks=pytest.mark.xfail(reason="Does not include unobserved")
+        ),
+    ],
+)
+def test_agg_index_categorical(sort, dropna, keys):
+    # GH#???
+    df = DataFrame(
+        {
+            "a": Categorical([2, 0, 2, 1, 0], categories=[1, 2, 3]),
+            "b": Categorical([3, 0, 3, 0, 2], categories=[1, 2, 3]),
+        }
+    )
+    gb = df.groupby(keys, observed=False, sort=sort, dropna=dropna)
+    result = gb.agg_index
+    if keys == ["a"]:
+        data = DataFrame({"a": Categorical([2, 0, 1, 3], categories=[1, 2, 3])})
+    else:
+        data = DataFrame(
+            {
+                "a": Categorical(np.repeat([2, 0, 1, 3], 4), categories=[1, 2, 3]),
+                "b": Categorical(4 * [3, 0, 2, 1], categories=[1, 2, 3]),
+            }
+        )
+    if sort:
+        data = data.sort_values(keys)
+    if dropna:
+        data = data[~data.isna().any(axis=1)]
+    expected = data.set_index(keys).index
+    tm.assert_index_equal(result, expected)
