@@ -62,6 +62,7 @@ def test_get_level_values_list():
 
     # get two indexes in a list, return in the correct order
     extracted = index[:2].get_level_values(["three", "one"])
+    extracted_by_number = index[:2].get_level_values([2, 0])
     expected = MultiIndex(
         levels=[Index(range(4)), Index(range(4))],
         codes=[
@@ -69,6 +70,19 @@ def test_get_level_values_list():
             np.array([0, 0]),
         ],
         names=["three", "one"],
+    )
+    assert extracted.equals(expected)
+    assert extracted_by_number.equals(expected)
+
+    # repeated element in a list will also be returned
+    extracted = index[:2].get_level_values(["three", "three"])
+    expected = MultiIndex(
+        levels=[Index(range(4)), Index(range(4))],
+        codes=[
+            np.array([1, 0]),
+            np.array([1, 0]),
+        ],
+        names=["three", "three"],
     )
     assert extracted.equals(expected)
 
