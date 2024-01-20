@@ -3203,6 +3203,15 @@ def test_pow_missing_operand():
     tm.assert_series_equal(result, expected)
 
 
+def test_decimal_parse_raises():
+    # GH 56984
+    ser = pd.Series(["1.2345"], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(
+        pa.lib.ArrowInvalid, match="Rescaling Decimal128 value would cause data loss"
+    ):
+        ser.astype(ArrowDtype(pa.decimal128(1, 0)))
+
+
 @pytest.mark.parametrize("pa_type", tm.TIMEDELTA_PYARROW_DTYPES)
 def test_duration_fillna_numpy(pa_type):
     # GH 54707
