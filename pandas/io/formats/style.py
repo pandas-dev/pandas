@@ -419,6 +419,7 @@ class Styler(StylerRenderer):
         ttips: DataFrame,
         props: CSSProperties | None = None,
         css_class: str | None = None,
+        as_title_attribute: bool = False,
     ) -> Styler:
         """
         Set the DataFrame of strings on ``Styler`` generating ``:hover`` tooltips.
@@ -442,6 +443,9 @@ class Styler(StylerRenderer):
             Name of the tooltip class used in CSS, should conform to HTML standards.
             Only useful if integrating tooltips with external CSS. If ``None`` uses the
             internal default value 'pd-t'.
+        as_title_attribute: bool, default False
+            Add the tooltip text as title attribute to resultant <td> element. If True
+            then props and css_class arguments are ignored.
 
         Returns
         -------
@@ -470,6 +474,12 @@ class Styler(StylerRenderer):
         additional HTML for larger tables, since they also require that ``cell_ids``
         is forced to `True`.
 
+        If multiline tooltips are required, or if styling is not required and/or
+        space is of concern, then utilizing as_title_attribute as True will store
+        the tooltip on the <td> title attribute. This will cause no CSS
+        to be generated nor will the the <span> elements. Storing tooltips through
+        the title attribute will mean that styling effects do not apply.
+
         Examples
         --------
         Basic application
@@ -490,6 +500,10 @@ class Styler(StylerRenderer):
         ...     ttips, css_class='tt-add',
         ...     props='visibility:hidden; position:absolute; z-index:1;')
         ... # doctest: +SKIP
+
+        Multiline tooltips with smaller size footprint
+
+        >>> df.style.set_tooltips(ttips, as_title_attribute=True) # doctest: +SKIP
         """
         if not self.cell_ids:
             # tooltips not optimised for individual cell check. requires reasonable
@@ -504,10 +518,13 @@ class Styler(StylerRenderer):
         if self.tooltips is None:  # create a default instance if necessary
             self.tooltips = Tooltips()
         self.tooltips.tt_data = ttips
-        if props:
-            self.tooltips.class_properties = props
-        if css_class:
-            self.tooltips.class_name = css_class
+        if not as_title_attribute:
+            if props:
+                self.tooltips.class_properties = props
+            if css_class:
+                self.tooltips.class_name = css_class
+        else:
+            self.tooltips.as_title_attribute = as_title_attribute
 
         return self
 
