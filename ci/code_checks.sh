@@ -77,25 +77,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.SpecificationError \
         pandas.errors.UndefinedVariableError \
         pandas.read_json \
-        pandas.io.formats.style.Styler.to_latex \
-        pandas.read_parquet \
         pandas.DataFrame.to_sql \
-        pandas.io.formats.style.Styler.map \
-        pandas.io.formats.style.Styler.apply_index \
-        pandas.io.formats.style.Styler.map_index \
-        pandas.io.formats.style.Styler.format \
-        pandas.io.formats.style.Styler.set_tooltips \
-        pandas.io.formats.style.Styler.set_uuid \
-        pandas.io.formats.style.Styler.pipe \
-        pandas.io.formats.style.Styler.highlight_between \
-        pandas.io.formats.style.Styler.highlight_quantile \
-        pandas.io.formats.style.Styler.background_gradient \
-        pandas.io.formats.style.Styler.text_gradient \
-        pandas.DataFrame.values \
-        pandas.DataFrame.groupby \
-        pandas.DataFrame.sort_values \
-        pandas.DataFrame.plot.hexbin \
-        pandas.DataFrame.plot.line \
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

@@ -1856,7 +1856,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                         message=_apply_groupings_depr.format(
                             type(self).__name__, "apply"
                         ),
-                        category=FutureWarning,
+                        category=DeprecationWarning,
                         stacklevel=find_stack_level(),
                     )
             except TypeError:
@@ -3958,17 +3958,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if limit is None:
             limit = -1
 
-        ids, _, _ = self._grouper.group_info
-        sorted_labels = np.argsort(ids, kind="mergesort").astype(np.intp, copy=False)
-        if direction == "bfill":
-            sorted_labels = sorted_labels[::-1]
+        ids, _, ngroups = self._grouper.group_info
 
         col_func = partial(
             libgroupby.group_fillna_indexer,
             labels=ids,
-            sorted_labels=sorted_labels,
             limit=limit,
-            dropna=self.dropna,
+            compute_ffill=(direction == "ffill"),
+            ngroups=ngroups,
         )
 
         def blk_func(values: ArrayLike) -> ArrayLike:
