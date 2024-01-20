@@ -2137,7 +2137,7 @@ class Tooltips:
                 d["table_styles"].extend(self._class_styles)
                 d["table_styles"].extend(self.table_styles)
         else:
-            id_regex = re.compile("row(\d+)_col(\d+)")
+            id_regex = re.compile(r"row(\d+)_col(\d+)")
             for row in d["body"]:
                 for item in row:
                     if item["type"] == "td":
