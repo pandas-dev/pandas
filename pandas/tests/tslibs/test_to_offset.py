@@ -7,6 +7,7 @@ from pandas._libs.tslibs import (
     offsets,
     to_offset,
 )
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
@@ -194,7 +195,7 @@ def test_to_offset_lowercase_frequency_deprecated(freq_depr):
     depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
     f"future version, please use '{freq_depr.upper()[1:]}' instead."
 
-    with pytest.raises(FutureWarning, match=depr_msg):
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
         to_offset(freq_depr)
 
 
@@ -214,5 +215,5 @@ def test_to_offset_uppercase_frequency_deprecated(freq_depr):
     depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
     f"future version, please use '{freq_depr.lower()[1:]}' instead."
 
-    with pytest.raises(FutureWarning, match=depr_msg):
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
         to_offset(freq_depr)
