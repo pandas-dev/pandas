@@ -1585,21 +1585,7 @@ class StringMethods(NoNewAttributesMixin):
                 key, value, n=n, case=case, flags=flags, regex=regex
             )
             res_output = self._wrap_result(result)
-        """
-        if isinstance(pat, dict):
-            res_output = self._data
-            for key, value in pat.items():
-                result = res_output.array._str_replace(
-                    key, value, n=n, case=case, flags=flags, regex=regex
-                )
-                res_output = self._wrap_result(result)
 
-        else:
-            result = self._data.array._str_replace(
-                pat, repl, n=n, case=case, flags=flags, regex=regex
-            )
-            res_output = self._wrap_result(result)
-        """
         return res_output
 
     @forbid_nonstring_types(["bytes"])
