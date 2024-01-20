@@ -100,7 +100,7 @@ def test_tooltip_css_class(styler):
     ],
 )
 def test_tooltip_render_as_title(ttips, styler):
-    # GH 21266
+    # GH 56605
     result = styler.set_tooltips(ttips, as_title_attribute=True).to_html()
 
     # test css not added
