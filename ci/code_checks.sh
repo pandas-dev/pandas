@@ -77,7 +77,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.SpecificationError \
         pandas.errors.UndefinedVariableError \
         pandas.read_json \
-        pandas.DataFrame.to_sql \
+        pandas.DataFrame.to_sql # There should be no backslash in the final line, please keep this comment in the last ignored function
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
