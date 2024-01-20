@@ -905,8 +905,9 @@ class TestArrowArray(base.ExtensionTests):
             else:
                 assert pa.types.is_decimal(alt_dtype.pyarrow_dtype)
             return expected.astype(alt_dtype)
-
-        else:
+        elif op_name not in ["__floordiv__", "__rfloordiv__"] or isinstance(
+            other, pd.Series
+        ):
             pa_expected = pa_expected.cast(orig_pa_type)
 
         pd_expected = type(expected_data._values)(pa_expected)
@@ -3267,11 +3268,11 @@ def test_arrow_floordiv_large_values():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("dtype", ["int64[pyarrow]", "uint64[pyarrow]"])
-def test_arrow_floordiv_large_integral_result(dtype):
+@pytest.mark.parametrize("pa_type", [pa.int64(), pa.uint64()])
+def test_arrow_floordiv_large_integral_result(pa_type):
     # GH 56676
-    a = pd.Series([18014398509481983], dtype=dtype)
-    result = a // 1
+    a = pd.Series([18014398509481983], dtype=ArrowDtype(pa_type))
+    result = a // pa.scalar(1, type=pa_type)
     tm.assert_series_equal(result, a)
 
 
@@ -3280,7 +3281,7 @@ def test_arrow_floordiv_larger_divisor(pa_type):
     # GH 56676
     dtype = ArrowDtype(pa_type)
     a = pd.Series([-23], dtype=dtype)
-    result = a // 24
+    result = a // pa.scalar(24, type=pa_type)
     expected = pd.Series([-1], dtype=dtype)
     tm.assert_series_equal(result, expected)
 
@@ -3290,8 +3291,13 @@ def test_arrow_floordiv_integral_invalid(pa_type):
     # GH 56676
     min_value = np.iinfo(pa_type.to_pandas_dtype()).min
     a = pd.Series([min_value], dtype=ArrowDtype(pa_type))
-    with pytest.raises(pa.lib.ArrowInvalid, match="overflow|not in range"):
-        a // -1
+    if pa_type.bit_width == 64:
+        with pytest.raises(pa.lib.ArrowInvalid, match="overflow"):
+            a // -1
+    else:
+        result = a // -1
+        expected = pd.Series([-min_value], dtype="int64[pyarrow]")
+        tm.assert_series_equal(result, expected)
     with pytest.raises(pa.lib.ArrowInvalid, match="divide by zero"):
         a // 0
 
@@ -3302,6 +3308,14 @@ def test_arrow_floordiv_floating_0_divisor(dtype):
     a = pd.Series([2], dtype=dtype)
     result = a // 0
     expected = pd.Series([float("inf")], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_unsigned_signed_floordiv():
+    a = pd.Series([7], dtype="uint8[pyarrow]")
+    b = pd.Series([-4], dtype="int8[pyarrow]")
+    result = a // b
+    expected = pd.Series([-2], dtype="int16[pyarrow]")
     tm.assert_series_equal(result, expected)
 
 

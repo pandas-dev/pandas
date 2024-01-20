@@ -150,7 +150,6 @@ if not pa_version_under10p1:
                 )
             else:
                 result = divided
-            result = result.cast(left.type)
         else:
             divided = pc.divide(left, right)
             result = pc.floor(divided)
