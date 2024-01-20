@@ -1794,7 +1794,7 @@ class MultiIndex(Index):
         level : int or str or list-like
             ``level`` is either the integer position of the level in the
             MultiIndex, or the name of the level. if list-like, elements must
-            be names or positional indexes of levels
+            be names or positional indexes of levels.
 
         Returns
         -------
