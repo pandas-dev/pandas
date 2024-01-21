@@ -533,6 +533,12 @@ cdef class ObjectEngine(IndexEngine):
         return loc
 
 
+cdef class StringEngine(ObjectEngine):
+
+    cdef _make_hash_table(self, Py_ssize_t n):
+        return _hash.StringHashTable(n)
+
+
 cdef class DatetimeEngine(Int64Engine):
 
     cdef:

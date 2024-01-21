@@ -846,6 +846,9 @@ class Index(IndexOpsMixin, PandasObject):
         # For base class (object dtype) we get ObjectEngine
         target_values = self._get_engine_target()
 
+        if is_string_dtype(self.dtype) and not is_object_dtype(self.dtype):
+            return libindex.StringEngine(target_values)
+
         if isinstance(self._values, ArrowExtensionArray) and self.dtype.kind in "Mm":
             import pyarrow as pa
 
