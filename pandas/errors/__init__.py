@@ -397,13 +397,13 @@ class SpecificationError(Exception):
     >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2],
     ...                    'B': range(5),
     ...                    'C': range(5)})
-    >>> df.groupby('A').B.agg({'foo': 'count'}) # doctest: +SKIP
+    >>> df.groupby('A').B.agg({'foo': 'count'})  # doctest: +SKIP
     ... # SpecificationError: nested renamer is not supported
 
-    >>> df.groupby('A').agg({'B': {'foo': ['sum', 'max']}}) # doctest: +SKIP
+    >>> df.groupby('A').agg({'B': {'foo': ['sum', 'max']}})  # doctest: +SKIP
     ... # SpecificationError: nested renamer is not supported
 
-    >>> df.groupby('A').agg(['min', 'min']) # doctest: +SKIP
+    >>> df.groupby('A').agg(['min', 'min'])  # doctest: +SKIP
     ... # SpecificationError: nested renamer is not supported
     """
 
@@ -447,7 +447,7 @@ class SettingWithCopyWarning(Warning):
     Examples
     --------
     >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2]}, columns=['A'])
-    >>> df.loc[0:3]['A'] = 'a' # doctest: +SKIP
+    >>> df.loc[0:3]['A'] = 'a'  # doctest: +SKIP
     ... # SettingWithCopyWarning: A value is trying to be set on a copy of a...
     """
 
@@ -578,11 +578,11 @@ class UndefinedVariableError(NameError):
     Examples
     --------
     >>> df = pd.DataFrame({'A': [1, 1, 1]})
-    >>> df.query("A > x") # doctest: +SKIP
+    >>> df.query("A > x")  # doctest: +SKIP
     ... # UndefinedVariableError: name 'x' is not defined
-    >>> df.query("A > @y") # doctest: +SKIP
+    >>> df.query("A > @y")  # doctest: +SKIP
     ... # UndefinedVariableError: local variable 'y' is not defined
-    >>> pd.eval('x + 1') # doctest: +SKIP
+    >>> pd.eval('x + 1')  # doctest: +SKIP
     ... # UndefinedVariableError: name 'x' is not defined
     """
 
