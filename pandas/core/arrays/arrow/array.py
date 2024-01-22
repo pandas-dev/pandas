@@ -2375,12 +2375,11 @@ class ArrowExtensionArray(
                 # GH 56792
                 result = self._apply_elementwise(lambda val: val.find(sub, start, end))
                 return type(self)(pa.chunked_array(result))
-            length = pc.utf8_length(self._pa_array)
             if start is None:
                 start_offset = 0
                 start = 0
             elif start < 0:
-                start_offset = pc.add(start, length)
+                start_offset = pc.add(start, pc.utf8_length(self._pa_array))
                 start_offset = pc.if_else(pc.less(start_offset, 0), 0, start_offset)
             else:
                 start_offset = start
