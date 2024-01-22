@@ -2055,7 +2055,7 @@ class EABackedBlock(Block):
             #  unconditionally
             values = values.T
 
-        check_array_indexer(self, indexer)
+        check_array_indexer(values, indexer)
         check_setitem_lengths(indexer, value, values)
 
         try:
