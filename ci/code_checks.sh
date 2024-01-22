@@ -113,7 +113,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.dt.ceil\
         pandas.Series.dt.month_name\
         pandas.Series.dt.day_name\
-        pandas.Series.str.count\
         pandas.Series.str.wrap\
         pandas.Series.cat.rename_categories\
         pandas.Series.cat.reorder_categories\
