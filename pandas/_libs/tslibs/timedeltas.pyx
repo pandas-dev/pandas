@@ -977,12 +977,12 @@ cdef _timedelta_from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso):
         if INT_MAX // 1000 > value or INT_MIN // 1000 < value:
             td_base = _Timedelta.__new__(cls, milliseconds=0)
         else:
-            td_base = _Timedelta.__new__(cls, milliseconds=value)
+            td_base = _Timedelta.__new__(cls, milliseconds=value * 1000)
     elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
         if INT_MAX // 1_000_000 > value or INT_MIN // 1_000_000 < value:
             td_base = _Timedelta.__new__(cls, seconds=0)
         else:
-            td_base = _Timedelta.__new__(cls, seconds=value)
+            td_base = _Timedelta.__new__(cls, seconds=value * 1_000_000)
     # Other resolutions are disabled but could potentially be implemented here:
     # elif reso == NPY_DATETIMEUNIT.NPY_FR_m:
     #    td_base = _Timedelta.__new__(Timedelta, minutes=int(value))
