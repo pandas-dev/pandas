@@ -1930,10 +1930,9 @@ class _OrderedMerge(_MergeOperation):
 
         if self.fill_method == "ffill":
             if left_indexer is None:
-                raise TypeError("left_indexer cannot be None")
-            left_indexer = cast("npt.NDArray[np.intp]", left_indexer)
-            right_indexer = cast("npt.NDArray[np.intp]", right_indexer)
-            left_join_indexer = libjoin.ffill_indexer(left_indexer)
+                left_join_indexer = None
+            else:
+                left_join_indexer = libjoin.ffill_indexer(left_indexer)
             if right_indexer is None:
                 right_join_indexer = None
             else:
