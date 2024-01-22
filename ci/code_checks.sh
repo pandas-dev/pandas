@@ -73,13 +73,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX03 --ignore_functions \
         pandas.Series.plot.line \
         pandas.Series.to_sql \
-        pandas.errors.SettingWithCopyWarning \
-        pandas.errors.SpecificationError \
-        pandas.errors.UndefinedVariableError \
         pandas.read_json \
-        pandas.io.formats.style.Styler.to_latex \
-        pandas.read_parquet \
-        pandas.DataFrame.to_sql \
+        pandas.DataFrame.to_sql # There should be no backslash in the final line, please keep this comment in the last ignored function
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
