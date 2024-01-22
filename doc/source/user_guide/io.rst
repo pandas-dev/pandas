@@ -1704,7 +1704,7 @@ option parameter:
 
 .. code-block:: python
 
-   storage_options = {"client_kwargs": {"endpoint_url": "http://127.0.0.1:5555"}}}
+   storage_options = {"client_kwargs": {"endpoint_url": "http://127.0.0.1:5555"}}
    df = pd.read_json("s3://pandas-test/test-1", storage_options=storage_options)
 
 More sample configurations and documentation can be found at `S3Fs documentation
@@ -3015,14 +3015,15 @@ Read in the content of the "books.xml" as instance of ``StringIO`` or
 Even read XML from AWS S3 buckets such as NIH NCBI PMC Article Datasets providing
 Biomedical and Life Science Jorurnals:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: python
 
-   df = pd.read_xml(
-       "s3://pmc-oa-opendata/oa_comm/xml/all/PMC1236943.xml",
-       xpath=".//journal-meta",
-   )
-   df
+   >>> df = pd.read_xml(
+   ...    "s3://pmc-oa-opendata/oa_comm/xml/all/PMC1236943.xml",
+   ...    xpath=".//journal-meta",
+   ...)
+   >>> df
+         journal-id  journal-title  issn  publisher
+   0 Cardiovasc Ultrasound Cardiovascular Ultrasound 1476-7120 NaN
 
 With `lxml`_ as default ``parser``, you access the full-featured XML library
 that extends Python's ElementTree API. One powerful tool is ability to query
@@ -3471,20 +3472,15 @@ saving a ``DataFrame`` to Excel.  Generally the semantics are
 similar to working with :ref:`csv<io.read_csv_table>` data.
 See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
 
-.. warning::
+.. note::
 
-   The `xlrd <https://xlrd.readthedocs.io/en/latest/>`__ package is now only for reading
-   old-style ``.xls`` files.
+   When ``engine=None``, the following logic will be used to determine the engine:
 
-   Before pandas 1.3.0, the default argument ``engine=None`` to :func:`~pandas.read_excel`
-   would result in using the ``xlrd`` engine in many cases, including new
-   Excel 2007+ (``.xlsx``) files. pandas will now default to using the
-   `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`__ engine.
-
-   It is strongly encouraged to install ``openpyxl`` to read Excel 2007+
-   (``.xlsx``) files.
-   **Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.**
-   This is no longer supported, switch to using ``openpyxl`` instead.
+   - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+     then `odf <https://pypi.org/project/odfpy/>`_ will be used.
+   - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used.
+   - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used.
+   - Otherwise ``openpyxl`` will be used.
 
 .. _io.excel_reader:
 

@@ -344,7 +344,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         """
         raise AbstractMethodError(self)
 
-    def _formatter(self, boxed: bool = False):
+    def _formatter(self, boxed: bool = False) -> Callable[[object], str]:
         # TODO: Remove Datetime & DatetimeTZ formatters.
         return "'{}'".format
 
@@ -808,9 +808,8 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         if self.dtype.kind in "mM":
             self = cast("DatetimeArray | TimedeltaArray", self)
-            # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
-            # has no attribute "as_unit"
-            values = values.as_unit(self.unit)  # type: ignore[union-attr]
+            # error: "DatetimeLikeArrayMixin" has no attribute "as_unit"
+            values = values.as_unit(self.unit)  # type: ignore[attr-defined]
 
         try:
             # error: Argument 1 to "_check_compatible_with" of "DatetimeLikeArrayMixin"
@@ -1209,7 +1208,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         self, other = self._ensure_matching_resos(other)
         return self._add_timedeltalike(other)
 
-    def _add_timedelta_arraylike(self, other: TimedeltaArray):
+    def _add_timedelta_arraylike(self, other: TimedeltaArray) -> Self:
         """
         Add a delta of a TimedeltaIndex
 
@@ -1222,30 +1221,28 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         if len(self) != len(other):
             raise ValueError("cannot add indices of unequal length")
 
-        self = cast("DatetimeArray | TimedeltaArray", self)
-
-        self, other = self._ensure_matching_resos(other)
+        self, other = cast(
+            "DatetimeArray | TimedeltaArray", self
+        )._ensure_matching_resos(other)
         return self._add_timedeltalike(other)
 
     @final
-    def _add_timedeltalike(self, other: Timedelta | TimedeltaArray):
-        self = cast("DatetimeArray | TimedeltaArray", self)
-
+    def _add_timedeltalike(self, other: Timedelta | TimedeltaArray) -> Self:
         other_i8, o_mask = self._get_i8_values_and_mask(other)
         new_values = add_overflowsafe(self.asi8, np.asarray(other_i8, dtype="i8"))
         res_values = new_values.view(self._ndarray.dtype)
 
         new_freq = self._get_arithmetic_result_freq(other)
 
-        # error: Argument "dtype" to "_simple_new" of "DatetimeArray" has
-        # incompatible type "Union[dtype[datetime64], DatetimeTZDtype,
-        # dtype[timedelta64]]"; expected "Union[dtype[datetime64], DatetimeTZDtype]"
+        # error: Unexpected keyword argument "freq" for "_simple_new" of "NDArrayBacked"
         return type(self)._simple_new(
-            res_values, dtype=self.dtype, freq=new_freq  # type: ignore[arg-type]
+            res_values,
+            dtype=self.dtype,
+            freq=new_freq,  # type: ignore[call-arg]
         )
 
     @final
-    def _add_nat(self):
+    def _add_nat(self) -> Self:
         """
         Add pd.NaT to self
         """
@@ -1253,22 +1250,21 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             raise TypeError(
                 f"Cannot add {type(self).__name__} and {type(NaT).__name__}"
             )
-        self = cast("TimedeltaArray | DatetimeArray", self)
 
         # GH#19124 pd.NaT is treated like a timedelta for both timedelta
         # and datetime dtypes
         result = np.empty(self.shape, dtype=np.int64)
         result.fill(iNaT)
         result = result.view(self._ndarray.dtype)  # preserve reso
-        # error: Argument "dtype" to "_simple_new" of "DatetimeArray" has
-        # incompatible type "Union[dtype[timedelta64], dtype[datetime64],
-        # DatetimeTZDtype]"; expected "Union[dtype[datetime64], DatetimeTZDtype]"
+        # error: Unexpected keyword argument "freq" for "_simple_new" of "NDArrayBacked"
         return type(self)._simple_new(
-            result, dtype=self.dtype, freq=None  # type: ignore[arg-type]
+            result,
+            dtype=self.dtype,
+            freq=None,  # type: ignore[call-arg]
         )
 
     @final
-    def _sub_nat(self):
+    def _sub_nat(self) -> np.ndarray:
         """
         Subtract pd.NaT from self
         """
@@ -1313,7 +1309,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         return new_data
 
     @final
-    def _addsub_object_array(self, other: npt.NDArray[np.object_], op):
+    def _addsub_object_array(self, other: npt.NDArray[np.object_], op) -> np.ndarray:
         """
         Add or subtract array-like of DateOffset objects
 
@@ -1364,7 +1360,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         # scalar others
         if other is NaT:
-            result = self._add_nat()
+            result: np.ndarray | DatetimeLikeArrayMixin = self._add_nat()
         elif isinstance(other, (Tick, timedelta, np.timedelta64)):
             result = self._add_timedeltalike_scalar(other)
         elif isinstance(other, BaseOffset):
@@ -1424,7 +1420,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         # scalar others
         if other is NaT:
-            result = self._sub_nat()
+            result: np.ndarray | DatetimeLikeArrayMixin = self._sub_nat()
         elif isinstance(other, (Tick, timedelta, np.timedelta64)):
             result = self._add_timedeltalike_scalar(-other)
         elif isinstance(other, BaseOffset):
@@ -2170,7 +2166,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         # error: Unexpected keyword argument "freq" for "_simple_new" of
         # "NDArrayBacked"  [call-arg]
         return type(self)._simple_new(
-            new_values, dtype=new_dtype, freq=self.freq  # type: ignore[call-arg]
+            new_values,
+            dtype=new_dtype,
+            freq=self.freq,  # type: ignore[call-arg]
         )
 
     # TODO: annotate other as DatetimeArray | TimedeltaArray | Timestamp | Timedelta

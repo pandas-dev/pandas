@@ -29,6 +29,7 @@ from typing import (
     Union,
     cast,
     final,
+    overload,
 )
 import warnings
 
@@ -55,7 +56,6 @@ from pandas._typing import (
     PositionalIndexer,
     RandomState,
     Scalar,
-    T,
     npt,
 )
 from pandas.compat.numpy import function as nv
@@ -147,7 +147,13 @@ from pandas.core.util.numba_ import (
 )
 
 if TYPE_CHECKING:
-    from typing import Any
+    from pandas._typing import (
+        Any,
+        Concatenate,
+        P,
+        Self,
+        T,
+    )
 
     from pandas.core.resample import Resampler
     from pandas.core.window import (
@@ -444,14 +450,15 @@ func : callable or tuple of (callable, str)
     a `(callable, data_keyword)` tuple where `data_keyword` is a
     string indicating the keyword of `callable` that expects the
     %(klass)s object.
-args : iterable, optional
+*args : iterable, optional
        Positional arguments passed into `func`.
-kwargs : dict, optional
+**kwargs : dict, optional
          A dictionary of keyword arguments passed into `func`.
 
 Returns
 -------
-the return type of `func`.
+%(klass)s
+    The original object with the function `func` applied.
 
 See Also
 --------
@@ -988,6 +995,24 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     def _dir_additions(self) -> set[str]:
         return self.obj._dir_additions()
 
+    @overload
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T:
+        ...
+
+    @overload
+    def pipe(
+        self,
+        func: tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
+        ...
+
     @Substitution(
         klass="GroupBy",
         examples=dedent(
@@ -1013,9 +1038,9 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     @Appender(_pipe_template)
     def pipe(
         self,
-        func: Callable[..., T] | tuple[Callable[..., T], str],
-        *args,
-        **kwargs,
+        func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
     ) -> T:
         return com.pipe(self, func, *args, **kwargs)
 
@@ -1831,7 +1856,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                         message=_apply_groupings_depr.format(
                             type(self).__name__, "apply"
                         ),
-                        category=FutureWarning,
+                        category=DeprecationWarning,
                         stacklevel=find_stack_level(),
                     )
             except TypeError:
@@ -3933,17 +3958,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if limit is None:
             limit = -1
 
-        ids, _, _ = self._grouper.group_info
-        sorted_labels = np.argsort(ids, kind="mergesort").astype(np.intp, copy=False)
-        if direction == "bfill":
-            sorted_labels = sorted_labels[::-1]
+        ids, _, ngroups = self._grouper.group_info
 
         col_func = partial(
             libgroupby.group_fillna_indexer,
             labels=ids,
-            sorted_labels=sorted_labels,
             limit=limit,
-            dropna=self.dropna,
+            compute_ffill=(direction == "ffill"),
+            ngroups=ngroups,
         )
 
         def blk_func(values: ArrayLike) -> ArrayLike:
@@ -5187,7 +5209,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             period = cast(int, period)
             if freq is not None or axis != 0:
                 f = lambda x: x.shift(
-                    period, freq, axis, fill_value  # pylint: disable=cell-var-from-loop
+                    period,  # pylint: disable=cell-var-from-loop
+                    freq,
+                    axis,
+                    fill_value,
                 )
                 shifted = self._python_apply_general(
                     f, self._selected_obj, is_transform=True

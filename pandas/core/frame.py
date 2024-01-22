@@ -988,6 +988,33 @@ class DataFrame(NDFrame, OpsMixin):
         )
         return convert_to_standard_compliant_dataframe(self, api_version=api_version)
 
+    def __arrow_c_stream__(self, requested_schema=None):
+        """
+        Export the pandas DataFrame as an Arrow C stream PyCapsule.
+
+        This relies on pyarrow to convert the pandas DataFrame to the Arrow
+        format (and follows the default behaviour of ``pyarrow.Table.from_pandas``
+        in its handling of the index, i.e. store the index as a column except
+        for RangeIndex).
+        This conversion is not necessarily zero-copy.
+
+        Parameters
+        ----------
+        requested_schema : PyCapsule, default None
+            The schema to which the dataframe should be casted, passed as a
+            PyCapsule containing a C ArrowSchema representation of the
+            requested schema.
+
+        Returns
+        -------
+        PyCapsule
+        """
+        pa = import_optional_dependency("pyarrow", min_version="14.0.0")
+        if requested_schema is not None:
+            requested_schema = pa.Schema._import_from_c_capsule(requested_schema)
+        table = pa.Table.from_pandas(self, schema=requested_schema)
+        return table.__arrow_c_stream__()
+
     # ----------------------------------------------------------------------
 
     @property
@@ -1405,9 +1432,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return Styler(self)
 
-    _shared_docs[
-        "items"
-    ] = r"""
+    _shared_docs["items"] = r"""
         Iterate over (column name, Series) pairs.
 
         Iterates over the DataFrame columns, returning a tuple with
@@ -2030,8 +2055,7 @@ class DataFrame(NDFrame, OpsMixin):
         orient: Literal[
             "dict", "list", "series", "split", "tight", "records", "index"
         ] = "dict",
-        into: type[MutableMappingT]
-        | MutableMappingT = dict,  # type: ignore[assignment]
+        into: type[MutableMappingT] | MutableMappingT = dict,  # type: ignore[assignment]
         index: bool = True,
     ) -> MutableMappingT | list[MutableMappingT]:
         """
@@ -2069,7 +2093,9 @@ class DataFrame(NDFrame, OpsMixin):
         index : bool, default True
             Whether to include the index item (and index_names item if `orient`
             is 'tight') in the returned dictionary. Can only be ``False``
-            when `orient` is 'split' or 'tight'.
+            when `orient` is 'split' or 'tight'. Note that when `orient` is
+            'records', this parameter does not take effect (index item always
+            not included).
 
             .. versionadded:: 2.0.0
 
@@ -4017,7 +4043,9 @@ class DataFrame(NDFrame, OpsMixin):
             copy=False,
             only_slice=True,
         )
-        return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
+        result = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
+        result = result.__finalize__(self)
+        return result
 
     def __getitem__(self, key):
         check_dict_or_set_indexers(key)
@@ -7086,8 +7114,8 @@ class DataFrame(NDFrame, OpsMixin):
         using the `natsort <https://github.com/SethMMorton/natsort>` package.
 
         >>> df = pd.DataFrame({
-        ...    "time": ['0hr', '128hr', '72hr', '48hr', '96hr'],
-        ...    "value": [10, 20, 30, 40, 50]
+        ...     "time": ['0hr', '128hr', '72hr', '48hr', '96hr'],
+        ...     "value": [10, 20, 30, 40, 50]
         ... })
         >>> df
             time  value
@@ -9034,8 +9062,8 @@ class DataFrame(NDFrame, OpsMixin):
         We can also choose to include NA in group keys or not by setting
         `dropna` parameter, the default setting is `True`.
 
-        >>> l = [[1, 2, 3], [1, None, 4], [2, 1, 3], [1, 2, 2]]
-        >>> df = pd.DataFrame(l, columns=["a", "b", "c"])
+        >>> arr = [[1, 2, 3], [1, None, 4], [2, 1, 3], [1, 2, 2]]
+        >>> df = pd.DataFrame(arr, columns=["a", "b", "c"])
 
         >>> df.groupby(by=["b"]).sum()
             a   c
@@ -9050,8 +9078,8 @@ class DataFrame(NDFrame, OpsMixin):
         2.0 2   5
         NaN 1   4
 
-        >>> l = [["a", 12, 12], [None, 12.3, 33.], ["b", 12.3, 123], ["a", 1, 1]]
-        >>> df = pd.DataFrame(l, columns=["a", "b", "c"])
+        >>> arr = [["a", 12, 12], [None, 12.3, 33.], ["b", 12.3, 123], ["a", 1, 1]]
+        >>> df = pd.DataFrame(arr, columns=["a", "b", "c"])
 
         >>> df.groupby(by="a").sum()
             b     c
@@ -9137,9 +9165,7 @@ class DataFrame(NDFrame, OpsMixin):
             dropna=dropna,
         )
 
-    _shared_docs[
-        "pivot"
-    ] = """
+    _shared_docs["pivot"] = """
         Return reshaped DataFrame organized by given index / column values.
 
         Reshape data (produce a "pivot" table) based on column values. Uses
@@ -9224,11 +9250,11 @@ class DataFrame(NDFrame, OpsMixin):
         You could also assign a list of column names or a list of index names.
 
         >>> df = pd.DataFrame({
-        ...        "lev1": [1, 1, 1, 2, 2, 2],
-        ...        "lev2": [1, 1, 2, 1, 1, 2],
-        ...        "lev3": [1, 2, 1, 2, 1, 2],
-        ...        "lev4": [1, 2, 3, 4, 5, 6],
-        ...        "values": [0, 1, 2, 3, 4, 5]})
+        ...                   "lev1": [1, 1, 1, 2, 2, 2],
+        ...                   "lev2": [1, 1, 2, 1, 1, 2],
+        ...                   "lev3": [1, 2, 1, 2, 1, 2],
+        ...                   "lev4": [1, 2, 3, 4, 5, 6],
+        ...                   "values": [0, 1, 2, 3, 4, 5]})
         >>> df
             lev1 lev2 lev3 lev4 values
         0   1    1    1    1    0
@@ -9283,9 +9309,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return pivot(self, index=index, columns=columns, values=values)
 
-    _shared_docs[
-        "pivot_table"
-    ] = """
+    _shared_docs["pivot_table"] = """
         Create a spreadsheet-style pivot table as a DataFrame.
 
         The levels in the pivot table will be stored in MultiIndex objects
@@ -9805,7 +9829,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         return result.__finalize__(self, method="explode")
 
-    def unstack(self, level: IndexLabel = -1, fill_value=None, sort: bool = True):
+    def unstack(
+        self, level: IndexLabel = -1, fill_value=None, sort: bool = True
+    ) -> DataFrame | Series:
         """
         Pivot a level of the (necessarily hierarchical) index labels.
 
@@ -10398,9 +10424,7 @@ class DataFrame(NDFrame, OpsMixin):
         1  11.262736  20.857489
         """
         if na_action not in {"ignore", None}:
-            raise ValueError(
-                f"na_action must be 'ignore' or None. Got {repr(na_action)}"
-            )
+            raise ValueError(f"na_action must be 'ignore' or None. Got {na_action!r}")
 
         if self.empty:
             return self.copy()
@@ -11863,7 +11887,7 @@ class DataFrame(NDFrame, OpsMixin):
         elif axis_num == 1:
             return self.index
         else:
-            raise ValueError(f"Axis must be 0 or 1 (got {repr(axis_num)})")
+            raise ValueError(f"Axis must be 0 or 1 (got {axis_num!r})")
 
     def mode(
         self, axis: Axis = 0, numeric_only: bool = False, dropna: bool = True
@@ -12529,7 +12553,7 @@ class DataFrame(NDFrame, OpsMixin):
         mgr = cast(BlockManager, mgr_to_mgr(mgr, "block"))
         return {
             k: self._constructor_from_mgr(v, axes=v.axes).__finalize__(self)
-            for k, v, in mgr.to_dict().items()
+            for k, v in mgr.to_dict().items()
         }
 
     @property
@@ -12572,7 +12596,7 @@ class DataFrame(NDFrame, OpsMixin):
         A DataFrame where all columns are the same type (e.g., int64) results
         in an array of the same type.
 
-        >>> df = pd.DataFrame({'age':    [ 3,  29],
+        >>> df = pd.DataFrame({'age': [3, 29],
         ...                    'height': [94, 170],
         ...                    'weight': [31, 115]})
         >>> df
@@ -12592,10 +12616,10 @@ class DataFrame(NDFrame, OpsMixin):
         results in an ndarray of the broadest type that accommodates these
         mixed types (e.g., object).
 
-        >>> df2 = pd.DataFrame([('parrot',   24.0, 'second'),
-        ...                     ('lion',     80.5, 1),
+        >>> df2 = pd.DataFrame([('parrot', 24.0, 'second'),
+        ...                     ('lion', 80.5, 1),
         ...                     ('monkey', np.nan, None)],
-        ...                   columns=('name', 'max_speed', 'rank'))
+        ...                    columns=('name', 'max_speed', 'rank'))
         >>> df2.dtypes
         name          object
         max_speed    float64

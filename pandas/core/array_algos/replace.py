@@ -78,7 +78,7 @@ def compare_or_regex_search(
             type_names[0] = f"ndarray(dtype={a.dtype})"
 
             raise TypeError(
-                f"Cannot compare types {repr(type_names[0])} and {repr(type_names[1])}"
+                f"Cannot compare types {type_names[0]!r} and {type_names[1]!r}"
             )
 
     if not regex or not should_use_regex(regex, b):

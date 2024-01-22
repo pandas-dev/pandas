@@ -273,21 +273,10 @@ def configure_tests() -> None:
 # ----------------------------------------------------------------
 # Common arguments
 # ----------------------------------------------------------------
-@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis={repr(x)}")
+@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis={x!r}")
 def axis(request):
     """
     Fixture for returning the axis numbers of a DataFrame.
-    """
-    return request.param
-
-
-axis_frame = axis
-
-
-@pytest.fixture(params=[1, "columns"], ids=lambda x: f"axis={repr(x)}")
-def axis_1(request):
-    """
-    Fixture for returning aliases of axis 1 of a DataFrame.
     """
     return request.param
 
@@ -309,6 +298,22 @@ def observed(request):
 def ordered(request):
     """
     Boolean 'ordered' parameter for Categorical.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def dropna(request):
+    """
+    Boolean 'dropna' parameter.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def sort(request):
+    """
+    Boolean 'sort' parameter.
     """
     return request.param
 
@@ -414,6 +419,74 @@ def nselect_method(request):
     return request.param
 
 
+@pytest.fixture(params=[None, "ignore"])
+def na_action(request):
+    """
+    Fixture for 'na_action' argument in map.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def ascending(request):
+    """
+    Fixture for 'na_action' argument in sort_values/sort_index/rank.
+    """
+    return request.param
+
+
+@pytest.fixture(params=["average", "min", "max", "first", "dense"])
+def rank_method(request):
+    """
+    Fixture for 'rank' argument in rank.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def as_index(request):
+    """
+    Fixture for 'as_index' argument in groupby.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def cache(request):
+    """
+    Fixture for 'cache' argument in to_datetime.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def parallel(request):
+    """
+    Fixture for parallel keyword argument for numba.jit.
+    """
+    return request.param
+
+
+# Can parameterize nogil & nopython over True | False, but limiting per
+# https://github.com/pandas-dev/pandas/pull/41971#issuecomment-860607472
+
+
+@pytest.fixture(params=[False])
+def nogil(request):
+    """
+    Fixture for nogil keyword argument for numba.jit.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True])
+def nopython(request):
+    """
+    Fixture for nopython keyword argument for numba.jit.
+    """
+    return request.param
+
+
 # ----------------------------------------------------------------
 # Missing values & co.
 # ----------------------------------------------------------------
@@ -476,10 +549,6 @@ def index_or_series(request):
     See GH#29725
     """
     return request.param
-
-
-# Generate cartesian product of index_or_series fixture:
-index_or_series2 = index_or_series
 
 
 @pytest.fixture(params=[Index, Series, pd.array], ids=["index", "series", "array"])
@@ -674,10 +743,6 @@ def index(request):
     return indices_dict[request.param].copy()
 
 
-# Needed to generate cartesian product of indices
-index_fixture2 = index
-
-
 @pytest.fixture(
     params=[
         key for key, value in indices_dict.items() if not isinstance(value, MultiIndex)
@@ -689,10 +754,6 @@ def index_flat(request):
     """
     key = request.param
     return indices_dict[key].copy()
-
-
-# Alias so we can test with cartesian product of index_flat
-index_flat2 = index_flat
 
 
 @pytest.fixture(
@@ -1777,16 +1838,6 @@ def ip():
     return InteractiveShell(config=c)
 
 
-@pytest.fixture(params=["bsr", "coo", "csc", "csr", "dia", "dok", "lil"])
-def spmatrix(request):
-    """
-    Yields scipy sparse matrix classes.
-    """
-    sparse = pytest.importorskip("scipy.sparse")
-
-    return getattr(sparse, request.param + "_matrix")
-
-
 @pytest.fixture(
     params=[
         getattr(pd.offsets, o)
@@ -1920,6 +1971,9 @@ def warsaw(request) -> str:
     return request.param
 
 
-@pytest.fixture()
+@pytest.fixture
 def arrow_string_storage():
+    """
+    Fixture that lists possible PyArrow values for StringDtype storage field.
+    """
     return ("pyarrow", "pyarrow_numpy")

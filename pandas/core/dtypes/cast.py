@@ -243,7 +243,7 @@ def _disallow_mismatched_datetimelike(value, dtype: DtypeObj) -> None:
     elif (vdtype.kind == "m" and dtype.kind == "M") or (
         vdtype.kind == "M" and dtype.kind == "m"
     ):
-        raise TypeError(f"Cannot cast {repr(value)} to {dtype}")
+        raise TypeError(f"Cannot cast {value!r} to {dtype}")
 
 
 @overload
@@ -589,7 +589,9 @@ def maybe_promote(dtype: np.dtype, fill_value=np.nan):
         # error: Argument 3 to "__call__" of "_lru_cache_wrapper" has incompatible type
         # "Type[Any]"; expected "Hashable"  [arg-type]
         dtype, fill_value = _maybe_promote_cached(
-            dtype, fill_value, type(fill_value)  # type: ignore[arg-type]
+            dtype,
+            fill_value,
+            type(fill_value),  # type: ignore[arg-type]
         )
     except TypeError:
         # if fill_value is not hashable (required for caching)
@@ -1541,25 +1543,24 @@ def construct_1d_arraylike_from_scalar(
     if isinstance(dtype, ExtensionDtype):
         cls = dtype.construct_array_type()
         seq = [] if length == 0 else [value]
-        subarr = cls._from_sequence(seq, dtype=dtype).repeat(length)
+        return cls._from_sequence(seq, dtype=dtype).repeat(length)
 
-    else:
-        if length and dtype.kind in "iu" and isna(value):
-            # coerce if we have nan for an integer dtype
-            dtype = np.dtype("float64")
-        elif lib.is_np_dtype(dtype, "US"):
-            # we need to coerce to object dtype to avoid
-            # to allow numpy to take our string as a scalar value
-            dtype = np.dtype("object")
-            if not isna(value):
-                value = ensure_str(value)
-        elif dtype.kind in "mM":
-            value = _maybe_box_and_unbox_datetimelike(value, dtype)
+    if length and dtype.kind in "iu" and isna(value):
+        # coerce if we have nan for an integer dtype
+        dtype = np.dtype("float64")
+    elif lib.is_np_dtype(dtype, "US"):
+        # we need to coerce to object dtype to avoid
+        # to allow numpy to take our string as a scalar value
+        dtype = np.dtype("object")
+        if not isna(value):
+            value = ensure_str(value)
+    elif dtype.kind in "mM":
+        value = _maybe_box_and_unbox_datetimelike(value, dtype)
 
-        subarr = np.empty(length, dtype=dtype)
-        if length:
-            # GH 47391: numpy > 1.24 will raise filling np.nan into int dtypes
-            subarr.fill(value)
+    subarr = np.empty(length, dtype=dtype)
+    if length:
+        # GH 47391: numpy > 1.24 will raise filling np.nan into int dtypes
+        subarr.fill(value)
 
     return subarr
 

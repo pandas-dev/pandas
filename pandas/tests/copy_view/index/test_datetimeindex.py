@@ -13,17 +13,11 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 
-@pytest.mark.parametrize(
-    "cons",
-    [
-        lambda x: DatetimeIndex(x),
-        lambda x: DatetimeIndex(DatetimeIndex(x)),
-    ],
-)
-def test_datetimeindex(using_copy_on_write, cons):
+@pytest.mark.parametrize("box", [lambda x: x, DatetimeIndex])
+def test_datetimeindex(using_copy_on_write, box):
     dt = date_range("2019-12-31", periods=3, freq="D")
     ser = Series(dt)
-    idx = cons(ser)
+    idx = box(DatetimeIndex(ser))
     expected = idx.copy(deep=True)
     ser.iloc[0] = Timestamp("2020-12-31")
     if using_copy_on_write:

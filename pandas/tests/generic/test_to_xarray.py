@@ -41,7 +41,7 @@ class TestDataFrameToXArray:
         df.index.name = "foo"
         df.columns.name = "bar"
         result = df.to_xarray()
-        assert result.dims["foo"] == 4
+        assert result.sizes["foo"] == 4
         assert len(result.coords) == 1
         assert len(result.data_vars) == 8
         tm.assert_almost_equal(list(result.coords.keys()), ["foo"])
