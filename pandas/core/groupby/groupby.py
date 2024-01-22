@@ -192,10 +192,10 @@ _apply_docs = {
         A callable that takes a {input} as its first argument, and
         returns a dataframe, a series or a scalar. In addition the
         callable may take positional and keyword arguments.
-    
+
     *args : tuple
         Optional positional arguments to pass to ``func``.
-    
+
     include_groups : bool, default True
         When True, will attempt to apply ``func`` to the groupings in
         the case that they are columns of the DataFrame. If this raises a
