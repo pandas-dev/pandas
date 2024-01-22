@@ -113,7 +113,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.dt.ceil\
         pandas.Series.dt.month_name\
         pandas.Series.dt.day_name\
-        pandas.Series.str.count\
         pandas.Series.str.wrap\
         pandas.Series.cat.rename_categories\
         pandas.Series.cat.reorder_categories\
@@ -126,7 +125,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.plot.line\
         pandas.Series.plot.pie\
         pandas.DataFrame.clip\
-        pandas.DataFrame.interpolate\
         pandas.DataFrame.plot\
         pandas.DataFrame.plot.bar\
         pandas.DataFrame.plot.barh\
@@ -185,7 +183,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Interval\
         pandas.Grouper\
         pandas.core.groupby.SeriesGroupBy.apply\
-        pandas.core.groupby.DataFrameGroupBy.apply\
         pandas.core.groupby.SeriesGroupBy.transform\
         pandas.core.groupby.DataFrameGroupBy.transform\
         pandas.core.groupby.DataFrameGroupBy.nth\
@@ -201,7 +198,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.HDFStore.append\
         pandas.core.window.rolling.Rolling.quantile\
         pandas.core.window.expanding.Expanding.quantile\
-        pandas.core.resample.Resampler.interpolate\
         pandas.api.extensions.ExtensionArray.argsort # There should be no backslash in the final line, please keep this comment in the last ignored function
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 

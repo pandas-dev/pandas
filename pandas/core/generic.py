@@ -8296,7 +8296,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. deprecated:: 2.1.0
 
-        ``**kwargs`` : optional
+        **kwargs : optional
             Keyword arguments to pass on to the interpolating function.
 
         Returns
