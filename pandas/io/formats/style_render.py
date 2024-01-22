@@ -1922,11 +1922,11 @@ def maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
                 for x in s
                 if x.strip() != ""
             ]
-        except IndexError:
+        except IndexError as err:
             raise ValueError(
                 "Styles supplied as string must follow CSS rule formats, "
                 f"for example 'attr: val;'. '{style}' was given."
-            )
+            ) from err
     return style
 
 

@@ -493,8 +493,8 @@ def from_dummies(
     # index data with a list of all columns that are dummies
     try:
         data_to_decode = data.astype("boolean", copy=False)
-    except TypeError:
-        raise TypeError("Passed DataFrame contains non-dummy data")
+    except TypeError as err:
+        raise TypeError("Passed DataFrame contains non-dummy data") from err
 
     # collect prefixes and get lists to slice data for each prefix
     variables_slice = defaultdict(list)

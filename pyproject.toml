@@ -328,8 +328,6 @@ ignore = [
   ### TODO: Enable gradually
   # Useless statement
   "B018",
-  # Within an except clause, raise exceptions with ...
-  "B904",
   # Magic number
   "PLR2004",
   # comparison-with-itself

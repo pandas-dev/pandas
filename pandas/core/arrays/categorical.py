@@ -597,9 +597,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             except (
                 TypeError,  # downstream error msg for CategoricalIndex is misleading
                 ValueError,
-            ):
+            ) as err:
                 msg = f"Cannot cast {self.categories.dtype} dtype to {dtype}"
-                raise ValueError(msg)
+                raise ValueError(msg) from err
 
             result = take_nd(
                 new_cats, ensure_platform_int(self._codes), fill_value=fill_value

@@ -3798,7 +3798,7 @@ class Index(IndexOpsMixin, PandasObject):
                 isinstance(casted_key, abc.Iterable)
                 and any(isinstance(x, slice) for x in casted_key)
             ):
-                raise InvalidIndexError(key)
+                raise InvalidIndexError(key) from err
             raise KeyError(key) from err
         except TypeError:
             # If we have a listlike key, _check_indexing_error will raise
@@ -5750,13 +5750,13 @@ class Index(IndexOpsMixin, PandasObject):
         self._searchsorted_monotonic(label)  # validate sortedness
         try:
             loc = self.get_loc(label)
-        except (KeyError, TypeError):
+        except (KeyError, TypeError) as err:
             # KeyError -> No exact match, try for padded
             # TypeError -> passed e.g. non-hashable, fall through to get
             #  the tested exception message
             indexer = self.get_indexer([label], method="pad")
             if indexer.ndim > 1 or indexer.size > 1:
-                raise TypeError("asof requires scalar valued input")
+                raise TypeError("asof requires scalar valued input") from err
             loc = indexer.item()
             if loc == -1:
                 return self._na_value
@@ -6812,7 +6812,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._searchsorted_monotonic(label, side)
             except ValueError:
                 # raise the original KeyError
-                raise err
+                raise err from None
 
         if isinstance(slc, np.ndarray):
             # get_loc may return a boolean array, which
