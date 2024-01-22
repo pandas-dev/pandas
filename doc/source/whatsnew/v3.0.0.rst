@@ -1,30 +1,30 @@
 .. _whatsnew_230:
 
-What's new in 2.3.0 (Month XX, 2024)
+What's new in 3.0.0 (Month XX, 2024)
 ------------------------------------
 
-These are the changes in pandas 2.2.0. See :ref:`release` for a full changelog
+These are the changes in pandas 3.0.0. See :ref:`release` for a full changelog
 including other versions of pandas.
 
 {{ header }}
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_230.enhancements:
+.. _whatsnew_300.enhancements:
 
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_230.enhancements.enhancement1:
+.. _whatsnew_300.enhancements.enhancement1:
 
 enhancement1
 ^^^^^^^^^^^^
 
-.. _whatsnew_230.enhancements.enhancement2:
+.. _whatsnew_300.enhancements.enhancement2:
 
 enhancement2
 ^^^^^^^^^^^^
 
-.. _whatsnew_230.enhancements.other:
+.. _whatsnew_300.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
@@ -32,30 +32,30 @@ Other enhancements
 -
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_230.notable_bug_fixes:
+.. _whatsnew_300.notable_bug_fixes:
 
 Notable bug fixes
 ~~~~~~~~~~~~~~~~~
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_230.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_300.notable_bug_fixes.notable_bug_fix1:
 
 notable_bug_fix1
 ^^^^^^^^^^^^^^^^
 
-.. _whatsnew_230.notable_bug_fixes.notable_bug_fix2:
+.. _whatsnew_300.notable_bug_fixes.notable_bug_fix2:
 
 notable_bug_fix2
 ^^^^^^^^^^^^^^^^
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_230.api_breaking:
+.. _whatsnew_300.api_breaking:
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _whatsnew_230.api_breaking.deps:
+.. _whatsnew_300.api_breaking.deps:
 
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -80,7 +80,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
-.. _whatsnew_230.api_breaking.other:
+.. _whatsnew_300.api_breaking.other:
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
@@ -88,7 +88,7 @@ Other API changes
 -
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_230.deprecations:
+.. _whatsnew_300.deprecations:
 
 Deprecations
 ~~~~~~~~~~~~
@@ -97,7 +97,7 @@ Deprecations
 -
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_230.performance:
+.. _whatsnew_300.performance:
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -109,7 +109,7 @@ Performance improvements
 -
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_230.bug_fixes:
+.. _whatsnew_300.bug_fixes:
 
 Bug fixes
 ~~~~~~~~~
@@ -222,7 +222,7 @@ Other
 -
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_230.contributors:
+.. _whatsnew_300.contributors:
 
 Contributors
 ~~~~~~~~~~~~
