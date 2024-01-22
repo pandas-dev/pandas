@@ -126,7 +126,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.plot.line\
         pandas.Series.plot.pie\
         pandas.DataFrame.clip\
-        pandas.DataFrame.interpolate\
         pandas.DataFrame.plot\
         pandas.DataFrame.plot.bar\
         pandas.DataFrame.plot.barh\
