@@ -846,9 +846,6 @@ class Index(IndexOpsMixin, PandasObject):
         # For base class (object dtype) we get ObjectEngine
         target_values = self._get_engine_target()
 
-        if is_string_dtype(self.dtype) and not is_object_dtype(self.dtype):
-            return libindex.StringEngine(target_values)
-
         if isinstance(self._values, ArrowExtensionArray) and self.dtype.kind in "Mm":
             import pyarrow as pa
 
@@ -886,6 +883,8 @@ class Index(IndexOpsMixin, PandasObject):
             # error: Item "ExtensionArray" of "Union[ExtensionArray,
             # ndarray[Any, Any]]" has no attribute "_ndarray"  [union-attr]
             target_values = self._data._ndarray  # type: ignore[union-attr]
+        elif is_string_dtype(self.dtype) and not is_object_dtype(self.dtype):
+            return libindex.StringEngine(target_values)
 
         # error: Argument 1 to "ExtensionEngine" has incompatible type
         # "ndarray[Any, Any]"; expected "ExtensionArray"
