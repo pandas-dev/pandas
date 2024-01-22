@@ -306,8 +306,8 @@ def _register_accessor(name: str, cls):
     def decorator(accessor):
         if hasattr(cls, name):
             warnings.warn(
-                f"registration of accessor {repr(accessor)} under name "
-                f"{repr(name)} for type {repr(cls)} is overriding a preexisting "
+                f"registration of accessor {accessor!r} under name "
+                f"{name!r} for type {cls!r} is overriding a preexisting "
                 f"attribute with the same name.",
                 UserWarning,
                 stacklevel=find_stack_level(),

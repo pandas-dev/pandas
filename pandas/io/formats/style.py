@@ -987,11 +987,11 @@ class Styler(StylerRenderer):
         hide the repeated level-0 of the index:
 
         >>> (styler.format(subset="Equity", precision=2)
-        ...       .format(subset="Stats", precision=1, thousands=",")
-        ...       .format(subset="Rating", formatter=str.upper)
-        ...       .format_index(escape="latex", axis=1)
-        ...       .format_index(escape="latex", axis=0)
-        ...       .hide(level=0, axis=0))  # doctest: +SKIP
+        ...     .format(subset="Stats", precision=1, thousands=",")
+        ...     .format(subset="Rating", formatter=str.upper)
+        ...     .format_index(escape="latex", axis=1)
+        ...     .format_index(escape="latex", axis=0)
+        ...     .hide(level=0, axis=0))  # doctest: +SKIP
 
         Note that one of the string entries of the index and column headers is "H&M".
         Without applying the `escape="latex"` option to the `format_index` method the
@@ -1003,12 +1003,15 @@ class Styler(StylerRenderer):
         recommendation:
 
         >>> def rating_color(v):
-        ...     if v == "Buy": color = "#33ff85"
-        ...     elif v == "Sell": color = "#ff5933"
-        ...     else: color = "#ffdd33"
+        ...     if v == "Buy":
+        ...         color = "#33ff85"
+        ...     elif v == "Sell":
+        ...         color = "#ff5933"
+        ...     else:
+        ...         color = "#ffdd33"
         ...     return f"color: {color}; font-weight: bold;"
         >>> (styler.background_gradient(cmap="inferno", subset="Equity", vmin=0, vmax=1)
-        ...       .map(rating_color, subset="Rating"))  # doctest: +SKIP
+        ...     .map(rating_color, subset="Rating"))  # doctest: +SKIP
 
         All the above styles will work with HTML (see below) and LaTeX upon conversion:
 
@@ -1715,12 +1718,12 @@ class Styler(StylerRenderer):
             if not isinstance(result, DataFrame):
                 if not isinstance(result, np.ndarray):
                     raise TypeError(
-                        f"Function {repr(func)} must return a DataFrame or ndarray "
+                        f"Function {func!r} must return a DataFrame or ndarray "
                         f"when passed to `Styler.apply` with axis=None"
                     )
                 if data.shape != result.shape:
                     raise ValueError(
-                        f"Function {repr(func)} returned ndarray with wrong shape.\n"
+                        f"Function {func!r} returned ndarray with wrong shape.\n"
                         f"Result has shape: {result.shape}\n"
                         f"Expected shape: {data.shape}"
                     )
@@ -1734,12 +1737,12 @@ class Styler(StylerRenderer):
 
         if isinstance(result, Series):
             raise ValueError(
-                f"Function {repr(func)} resulted in the apply method collapsing to a "
+                f"Function {func!r} resulted in the apply method collapsing to a "
                 f"Series.\nUsually, this is the result of the function returning a "
                 f"single value, instead of list-like."
             )
         msg = (
-            f"Function {repr(func)} created invalid {{0}} labels.\nUsually, this is "
+            f"Function {func!r} created invalid {{0}} labels.\nUsually, this is "
             f"the result of the function returning a "
             f"{'Series' if axis is not None else 'DataFrame'} which contains invalid "
             f"labels, or returning an incorrectly shaped, list-like object which "
@@ -1880,9 +1883,9 @@ class Styler(StylerRenderer):
         func="take a Series and return a string array of the same length",
         input_note="the index as a Series, if an Index, or a level of a MultiIndex",
         output_note="an identically sized array of CSS styles as strings",
-        var="s",
-        ret='np.where(s == "B", "background-color: yellow;", "")',
-        ret2='["background-color: yellow;" if "x" in v else "" for v in s]',
+        var="label",
+        ret='np.where(label == "B", "background-color: yellow;", "")',
+        ret2='["background-color: yellow;" if "x" in v else "" for v in label]',
     )
     def apply_index(
         self,
@@ -1932,8 +1935,8 @@ class Styler(StylerRenderer):
         --------
         Basic usage to conditionally highlight values in the index.
 
-        >>> df = pd.DataFrame([[1,2], [3,4]], index=["A", "B"])
-        >>> def color_b(s):
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], index=["A", "B"])
+        >>> def color_b({var}):
         ...     return {ret}
         >>> df.style.{this}_index(color_b)  # doctest: +SKIP
 
@@ -1945,8 +1948,8 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([np.arange(8)], columns=midx)
         >>> def highlight_x({var}):
         ...     return {ret2}
-        >>> df.style.{this}_index(highlight_x, axis="columns", level=[0, 2])
-        ...  # doctest: +SKIP
+        >>> df.style.{this}_index(
+        ...     highlight_x, axis="columns", level=[0, 2])  # doctest: +SKIP
 
         .. figure:: ../../_static/style/appmaphead2.png
         """
@@ -1968,9 +1971,9 @@ class Styler(StylerRenderer):
         func="take a scalar and return a string",
         input_note="an index value, if an Index, or a level value of a MultiIndex",
         output_note="CSS styles as a string",
-        var="v",
-        ret='"background-color: yellow;" if v == "B" else None',
-        ret2='"background-color: yellow;" if "x" in v else None',
+        var="label",
+        ret='"background-color: yellow;" if label == "B" else None',
+        ret2='"background-color: yellow;" if "x" in label else None',
     )
     def map_index(
         self,
@@ -2073,17 +2076,16 @@ class Styler(StylerRenderer):
 
         Using ``subset`` to restrict application to a single column or multiple columns
 
-        >>> df.style.map(color_negative, color='red', subset="A")
-        ...  # doctest: +SKIP
-        >>> df.style.map(color_negative, color='red', subset=["A", "B"])
-        ...  # doctest: +SKIP
+        >>> df.style.map(color_negative, color='red', subset="A")  # doctest: +SKIP
+        >>> df.style.map(color_negative,
+        ...              color='red', subset=["A", "B"])  # doctest: +SKIP
 
         Using a 2d input to ``subset`` to select rows in addition to columns
 
         >>> df.style.map(color_negative, color='red',
-        ...  subset=([0,1,2], slice(None)))  # doctest: +SKIP
-        >>> df.style.map(color_negative, color='red', subset=(slice(0,5,2), "A"))
-        ...  # doctest: +SKIP
+        ...              subset=([0, 1, 2], slice(None)))  # doctest: +SKIP
+        >>> df.style.map(color_negative,
+        ...              color='red', subset=(slice(0, 5, 2), "A"))  # doctest: +SKIP
 
         See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
         more details.
@@ -2952,17 +2954,17 @@ class Styler(StylerRenderer):
         Setting a ``gmap`` and applying to all columns with another ``cmap``
 
         >>> df.style.{name}_gradient(axis=0, gmap=df['Temp (c)'], cmap='YlOrRd')
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
 
         .. figure:: ../../_static/style/{image_prefix}_gmap.png
 
         Setting the gradient map for a dataframe (i.e. ``axis=None``), we need to
         explicitly state ``subset`` to match the ``gmap`` shape
 
-        >>> gmap = np.array([[1,2,3], [2,3,4], [3,4,5]])
-        >>> df.style.{name}_gradient(axis=None, gmap=gmap,
-        ...     cmap='YlOrRd', subset=['Temp (c)', 'Rain (mm)', 'Wind (m/s)']
-        ... )  # doctest: +SKIP
+        >>> gmap = np.array([[1, 2, 3], [2, 3, 4], [3, 4, 5]])
+        >>> df.style.{name}_gradient(
+        ...     axis=None, gmap=gmap, cmap='YlOrRd',
+        ...     subset=['Temp (c)', 'Rain (mm)', 'Wind (m/s)'])  # doctest: +SKIP
 
         .. figure:: ../../_static/style/{image_prefix}_axNone_gmap.png
         """
@@ -3510,22 +3512,23 @@ class Styler(StylerRenderer):
         --------
         Using ``axis=None`` and apply a quantile to all collective data
 
-        >>> df = pd.DataFrame(np.arange(10).reshape(2,5) + 1)
+        >>> df = pd.DataFrame(np.arange(10).reshape(2, 5) + 1)
         >>> df.style.highlight_quantile(axis=None, q_left=0.8, color="#fffd75")
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
 
         .. figure:: ../../_static/style/hq_axNone.png
 
         Or highlight quantiles row-wise or column-wise, in this case by row-wise
 
         >>> df.style.highlight_quantile(axis=1, q_left=0.8, color="#fffd75")
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
 
         .. figure:: ../../_static/style/hq_ax1.png
 
         Use ``props`` instead of default background coloring
 
-        >>> df.style.highlight_quantile(axis=None, q_left=0.2, q_right=0.8,
+        >>> df.style.highlight_quantile(
+        ...     axis=None, q_left=0.2, q_right=0.8,
         ...     props='font-weight:bold;color:#e83e8c')  # doctest: +SKIP
 
         .. figure:: ../../_static/style/hq_props.png
