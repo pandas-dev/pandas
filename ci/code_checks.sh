@@ -201,7 +201,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.HDFStore.append\
         pandas.core.window.rolling.Rolling.quantile\
         pandas.core.window.expanding.Expanding.quantile\
-        pandas.core.resample.Resampler.interpolate\
         pandas.api.extensions.ExtensionArray.argsort # There should be no backslash in the final line, please keep this comment in the last ignored function
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
