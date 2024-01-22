@@ -160,9 +160,9 @@ def import_optional_dependency(
     )
     try:
         module = importlib.import_module(name)
-    except ImportError:
+    except ImportError as err:
         if errors == "raise":
-            raise ImportError(msg)
+            raise ImportError(msg) from err
         return None
 
     # Handle submodules: if we have submodule, grab parent module from sys.modules

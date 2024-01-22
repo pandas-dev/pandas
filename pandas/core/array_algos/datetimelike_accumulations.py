@@ -37,8 +37,10 @@ def _cum_func(
             np.cumsum: 0,
             np.minimum.accumulate: np.iinfo(np.int64).max,
         }[func]
-    except KeyError:
-        raise ValueError(f"No accumulation for {func} implemented on BaseMaskedArray")
+    except KeyError as err:
+        raise ValueError(
+            f"No accumulation for {func} implemented on BaseMaskedArray"
+        ) from err
 
     mask = isna(values)
     y = values.view("i8")

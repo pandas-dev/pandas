@@ -76,8 +76,8 @@ class ArrowStringArray:
     def setup(self, multiple_chunks):
         try:
             import pyarrow as pa
-        except ImportError:
-            raise NotImplementedError
+        except ImportError as err:
+            raise NotImplementedError from err
         strings = np.array([str(i) for i in range(10_000)], dtype=object)
         if multiple_chunks:
             chunks = [strings[i : i + 100] for i in range(0, len(strings), 100)]

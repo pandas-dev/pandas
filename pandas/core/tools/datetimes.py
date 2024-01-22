@@ -510,14 +510,14 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
             with np.errstate(over="raise"):
                 try:
                     arr = cast_from_unit_vectorized(arg, unit=unit)
-                except OutOfBoundsDatetime:
+                except OutOfBoundsDatetime as err:
                     if errors != "raise":
                         return _to_datetime_with_unit(
                             arg.astype(object), unit, name, utc, errors
                         )
                     raise OutOfBoundsDatetime(
                         f"cannot convert input with unit '{unit}'"
-                    )
+                    ) from err
 
             arr = arr.view("M8[ns]")
             tz_parsed = None

@@ -1045,12 +1045,12 @@ class TestDatetimeIndex:
         tolerance = pd.Timedelta(microseconds=1)
 
         diff0 = result[0] - now.as_unit("s")
-        assert diff0 >= pd.Timedelta(0)
-        assert diff0 < tolerance
+        assert diff0 >= pd.Timedelta(0), f"The difference is {diff0}"
+        assert diff0 < tolerance, f"The difference is {diff0}"
 
         diff1 = result[1] - today.as_unit("s")
-        assert diff1 >= pd.Timedelta(0)
-        assert diff1 < tolerance
+        assert diff1 >= pd.Timedelta(0), f"The difference is {diff0}"
+        assert diff1 < tolerance, f"The difference is {diff0}"
 
     def test_dti_constructor_object_float_matches_float_dtype(self):
         # GH#55780

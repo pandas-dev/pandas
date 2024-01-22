@@ -214,9 +214,9 @@ class ArrowParserWrapper(ParserBase):
                 self.dtype = pandas_dtype(self.dtype)
             try:
                 frame = frame.astype(self.dtype)
-            except TypeError as e:
+            except TypeError as err:
                 # GH#44901 reraise to keep api consistent
-                raise ValueError(e)
+                raise ValueError(str(err)) from err
         return frame
 
     def _validate_usecols(self, usecols) -> None:
@@ -247,7 +247,7 @@ class ArrowParserWrapper(ParserBase):
 
         try:
             convert_options = pyarrow_csv.ConvertOptions(**self.convert_options)
-        except TypeError:
+        except TypeError as err:
             include = self.convert_options.get("include_columns", None)
             if include is not None:
                 self._validate_usecols(include)
@@ -258,7 +258,7 @@ class ArrowParserWrapper(ParserBase):
             ):
                 raise TypeError(
                     "The 'pyarrow' engine requires all na_values to be strings"
-                )
+                ) from err
 
             raise
 

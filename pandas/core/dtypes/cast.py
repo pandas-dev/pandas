@@ -1817,8 +1817,8 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     # TODO: general-case for EAs?
                     try:
                         casted = element.astype(dtype)
-                    except (ValueError, TypeError):
-                        raise LossySetitemError
+                    except (ValueError, TypeError) as err:
+                        raise LossySetitemError from err
                     # Check for cases of either
                     #  a) lossy overflow/rounding or
                     #  b) semantic changes like dt64->int64
