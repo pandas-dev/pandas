@@ -4,6 +4,7 @@ import warnings
 from pandas.util._exceptions import find_stack_level
 
 cimport cython
+from cpython.limits cimport INT_MIN, INT_MAX
 from cpython.object cimport (
     Py_EQ,
     Py_GE,
@@ -961,18 +962,24 @@ cdef _timedelta_from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso):
         _Timedelta td_base
 
     assert value != NPY_NAT
-    # For millisecond and second resos, we cannot actually pass int(value) because
-    #  many cases would fall outside of the pytimedelta implementation bounds.
+    # For millisecond and second resos, if conversion to int would overflow
+    # we end up not routing through the CPython timedelta implementation.
     #  We pass 0 instead, and override seconds, microseconds, days.
-    #  In principle we could pass 0 for ns and us too.
+    # See GH54682 for background
     if reso == NPY_FR_ns:
         td_base = _Timedelta.__new__(cls, microseconds=int(value) // 1000)
     elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
         td_base = _Timedelta.__new__(cls, microseconds=int(value))
     elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
-        td_base = _Timedelta.__new__(cls, milliseconds=0)
+        if INT_MAX // 1000 > value or INT_MIN // 1000 < value:
+            td_base = _Timedelta.__new__(cls, milliseconds=0)
+        else:
+            td_base = _Timedelta.__new__(cls, milliseconds=value)
     elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
-        td_base = _Timedelta.__new__(cls, seconds=0)
+        if INT_MAX // 1_000_000 > value or INT_MIN // 1_000_000 < value:
+            td_base = _Timedelta.__new__(cls, seconds=0)
+        else:
+            td_base = _Timedelta.__new__(cls, seconds=value)
     # Other resolutions are disabled but could potentially be implemented here:
     # elif reso == NPY_DATETIMEUNIT.NPY_FR_m:
     #    td_base = _Timedelta.__new__(Timedelta, minutes=int(value))
@@ -1073,8 +1080,6 @@ cdef class _Timedelta(timedelta):
         >>> td.days
         0
         """
-        # NB: using the python C-API PyDateTime_DELTA_GET_DAYS will fail
-        #  (or be incorrect)
         self._ensure_components()
         return self._d
 
@@ -1111,15 +1116,11 @@ cdef class _Timedelta(timedelta):
         >>> td.seconds
         42
         """
-        # NB: using the python C-API PyDateTime_DELTA_GET_SECONDS will fail
-        #  (or be incorrect)
         self._ensure_components()
         return self._h * 3600 + self._m * 60 + self._s
 
     @property
     def microseconds(self) -> int:  # TODO(cython3): make cdef property
-        # NB: using the python C-API PyDateTime_DELTA_GET_MICROSECONDS will fail
-        #  (or be incorrect)
         self._ensure_components()
         return self._ms * 1000 + self._us
 
