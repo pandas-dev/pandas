@@ -538,6 +538,11 @@ cdef class StringEngine(ObjectEngine):
     cdef _make_hash_table(self, Py_ssize_t n):
         return _hash.StringHashTable(n)
 
+    cdef _check_type(self, object val):
+        if not isinstance(val, str):
+            raise KeyError(val)
+        return str(val)
+
 
 cdef class DatetimeEngine(Int64Engine):
 
