@@ -900,8 +900,8 @@ Other
 - Bug in rendering ``inf`` values inside a :class:`DataFrame` with the ``use_inf_as_na`` option enabled (:issue:`55483`)
 - Bug in rendering a :class:`Series` with a :class:`MultiIndex` when one of the index level's names is 0 not having that name displayed (:issue:`55415`)
 - Bug in the error message when assigning an empty :class:`DataFrame` to a column (:issue:`55956`)
+- Bug when Circle CI tests fail on :class:`TestDataFrameToXArray` due to deprecated attributes. (:issue:`57000`)
 - Bug when time-like strings were being cast to :class:`ArrowDtype` with ``pyarrow.time64`` type (:issue:`56463`)
-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_220.contributors:
