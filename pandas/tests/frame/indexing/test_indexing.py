@@ -1473,6 +1473,17 @@ class TestDataFrameIndexing:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_iloc_tuple_subclass(self, float_frame):
+        # GH#48188
+        indexer_tuple = namedtuple("Indexer", ["row", "col"])
+        idx = indexer_tuple(row=1, col=2)
+        assert float_frame.iloc[idx] == float_frame.iloc[1, 2]
+
+        idx = indexer_tuple(row=[1, 2], col=[1, 2])
+        result = float_frame.iloc[idx]
+        expected = float_frame.iloc[[1, 2], [1, 2]]
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("indexer", [["a"], "a"])
     @pytest.mark.parametrize("col", [{}, {"b": 1}])
     def test_set_2d_casting_date_to_int(self, col, indexer):

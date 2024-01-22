@@ -153,7 +153,7 @@ Strings
 
 Interval
 ^^^^^^^^
--
+- Bug in :meth:`DataFrame.iloc` raising error when indexing with a ``NamedTuple`` (:issue:`48188`)
 -
 
 Indexing
