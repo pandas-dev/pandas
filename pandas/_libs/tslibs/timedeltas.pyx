@@ -14,8 +14,10 @@ from cpython.object cimport (
     PyObject,
     PyObject_RichCompare,
 )
-
-from libc.limits cimport INT_MIN, INT_MAX
+from libc.limits cimport (
+    INT_MAX,
+    INT_MIN,
+)
 
 import numpy as np
 
