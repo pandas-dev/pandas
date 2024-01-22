@@ -278,8 +278,7 @@ def test_pyarrow_missing_warn(module):
         capture_output=True,
         check=True,
     )
-    msg = """
-Pyarrow will become a required dependency of pandas in the next major release of pandas (pandas 3.0),
+    msg = """Pyarrow will become a required dependency of pandas in the next major release of pandas (pandas 3.0),
 (to allow more performant data types, such as the Arrow string type, and better interoperability with other libraries)
 but was not found to be installed on your system.
 If this would cause problems for you,
