@@ -4,7 +4,6 @@ import warnings
 from pandas.util._exceptions import find_stack_level
 
 cimport cython
-from cpython.limits cimport INT_MIN, INT_MAX
 from cpython.object cimport (
     Py_EQ,
     Py_GE,
@@ -15,6 +14,8 @@ from cpython.object cimport (
     PyObject,
     PyObject_RichCompare,
 )
+
+from libc.limits cimport INT_MIN, INT_MAX
 
 import numpy as np
 
