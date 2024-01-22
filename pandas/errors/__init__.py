@@ -397,13 +397,13 @@ class SpecificationError(Exception):
     >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2],
     ...                    'B': range(5),
     ...                    'C': range(5)})
-    >>> df.groupby('A').B.agg({'foo': 'count'}) # doctest: +SKIP
+    >>> df.groupby('A').B.agg({'foo': 'count'})  # doctest: +SKIP
     ... # SpecificationError: nested renamer is not supported
 
-    >>> df.groupby('A').agg({'B': {'foo': ['sum', 'max']}}) # doctest: +SKIP
+    >>> df.groupby('A').agg({'B': {'foo': ['sum', 'max']}})  # doctest: +SKIP
     ... # SpecificationError: nested renamer is not supported
 
-    >>> df.groupby('A').agg(['min', 'min']) # doctest: +SKIP
+    >>> df.groupby('A').agg(['min', 'min'])  # doctest: +SKIP
     ... # SpecificationError: nested renamer is not supported
     """
 
@@ -447,7 +447,7 @@ class SettingWithCopyWarning(Warning):
     Examples
     --------
     >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2]}, columns=['A'])
-    >>> df.loc[0:3]['A'] = 'a' # doctest: +SKIP
+    >>> df.loc[0:3]['A'] = 'a'  # doctest: +SKIP
     ... # SettingWithCopyWarning: A value is trying to be set on a copy of a...
     """
 
@@ -578,16 +578,16 @@ class UndefinedVariableError(NameError):
     Examples
     --------
     >>> df = pd.DataFrame({'A': [1, 1, 1]})
-    >>> df.query("A > x") # doctest: +SKIP
+    >>> df.query("A > x")  # doctest: +SKIP
     ... # UndefinedVariableError: name 'x' is not defined
-    >>> df.query("A > @y") # doctest: +SKIP
+    >>> df.query("A > @y")  # doctest: +SKIP
     ... # UndefinedVariableError: local variable 'y' is not defined
-    >>> pd.eval('x + 1') # doctest: +SKIP
+    >>> pd.eval('x + 1')  # doctest: +SKIP
     ... # UndefinedVariableError: name 'x' is not defined
     """
 
     def __init__(self, name: str, is_local: bool | None = None) -> None:
-        base_msg = f"{repr(name)} is not defined"
+        base_msg = f"{name!r} is not defined"
         if is_local:
             msg = f"local variable {base_msg}"
         else:
@@ -599,19 +599,30 @@ class IndexingError(Exception):
     """
     Exception is raised when trying to index and there is a mismatch in dimensions.
 
+    Raised by properties like :attr:`.pandas.DataFrame.iloc` when
+    an indexer is out of bounds or :attr:`.pandas.DataFrame.loc` when its index is
+    unalignable to the frame index.
+
+    See Also
+    --------
+    DataFrame.iloc : Purely integer-location based indexing for \
+    selection by position.
+    DataFrame.loc : Access a group of rows and columns by label(s) \
+    or a boolean array.
+
     Examples
     --------
     >>> df = pd.DataFrame({'A': [1, 1, 1]})
-    >>> df.loc[..., ..., 'A'] # doctest: +SKIP
+    >>> df.loc[..., ..., 'A']   # doctest: +SKIP
     ... # IndexingError: indexer may only contain one '...' entry
     >>> df = pd.DataFrame({'A': [1, 1, 1]})
-    >>> df.loc[1, ..., ...] # doctest: +SKIP
+    >>> df.loc[1, ..., ...]   # doctest: +SKIP
     ... # IndexingError: Too many indexers
-    >>> df[pd.Series([True], dtype=bool)] # doctest: +SKIP
+    >>> df[pd.Series([True], dtype=bool)]   # doctest: +SKIP
     ... # IndexingError: Unalignable boolean Series provided as indexer...
     >>> s = pd.Series(range(2),
-    ...               index = pd.MultiIndex.from_product([["a", "b"], ["c"]]))
-    >>> s.loc["a", "c", "d"] # doctest: +SKIP
+    ...               index=pd.MultiIndex.from_product([["a", "b"], ["c"]]))
+    >>> s.loc["a", "c", "d"]   # doctest: +SKIP
     ... # IndexingError: Too many indexers
     """
 
@@ -713,13 +724,19 @@ class AttributeConflictWarning(Warning):
 
 class DatabaseError(OSError):
     """
-    Error is raised when executing sql with bad syntax or sql that throws an error.
+    Error is raised when executing SQL with bad syntax or SQL that throws an error.
+
+    Raised by :func:`.pandas.read_sql` when a bad SQL statement is passed in.
+
+    See Also
+    --------
+    read_sql : Read SQL query or database table into a DataFrame.
 
     Examples
     --------
     >>> from sqlite3 import connect
     >>> conn = connect(':memory:')
-    >>> pd.read_sql('select * test', conn) # doctest: +SKIP
+    >>> pd.read_sql('select * test', conn)   # doctest: +SKIP
     ... # DatabaseError: Execution failed on sql 'test': near "test": syntax error
     """
 
@@ -758,10 +775,14 @@ class InvalidColumnName(Warning):
     Because the column name is an invalid Stata variable, the name needs to be
     converted.
 
+    See Also
+    --------
+    DataFrame.to_stata : Export DataFrame object to Stata dta format.
+
     Examples
     --------
     >>> df = pd.DataFrame({"0categories": pd.Series([2, 2])})
-    >>> df.to_stata('test') # doctest: +SKIP
+    >>> df.to_stata('test')   # doctest: +SKIP
     ... # InvalidColumnName: Not all pandas column names were valid Stata variable...
     """
 

@@ -30,8 +30,7 @@ authors = [
 license = {file = 'LICENSE'}
 requires-python = '>=3.9'
 dependencies = [
-  "numpy>=1.22.4; python_version<'3.11'",
-  "numpy>=1.23.2; python_version=='3.11'",
+  "numpy>=1.23.5; python_version<'3.12'",
   "numpy>=1.26.0; python_version>='3.12'",
   "python-dateutil>=2.8.2",
   "pytz>=2020.1",
@@ -246,8 +245,6 @@ select = [
 
 ignore = [
   ### Intentionally disabled
-  # space before : (needed for how black formats slicing)
-  "E203",
   # module level import not at top of file
   "E402",
   # do not assign a lambda expression, use a def
@@ -337,14 +334,10 @@ ignore = [
   "PLR2004",
   # comparison-with-itself
   "PLR0124",
-  # Consider `elif` instead of `else` then `if` to remove indentation level
-  "PLR5501",
   # collection-literal-concatenation
   "RUF005",
   # pairwise-over-zipped (>=PY310 only)
   "RUF007",
-  # explicit-f-string-type-conversion
-  "RUF010",
   # mutable-class-default
   "RUF012"
 ]
