@@ -10858,25 +10858,28 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        Same type as caller or None if ``inplace=True``.
+        Series or DataFrame unless ``inplace=True`` in which case
+        returns None.
 
         See Also
         --------
         :func:`DataFrame.{name_other}` : Return an object of same shape as
-            self.
+            caller.
+        :func:`Series.{name_other}` : Return an object of same shape as
+            caller.
 
         Notes
         -----
         The {name} method is an application of the if-then idiom. For each
-        element in the calling DataFrame, if ``cond`` is ``{cond}`` the
-        element is used; otherwise the corresponding element from the DataFrame
+        element in the caller, if ``cond`` is ``{cond}`` the
+        element is used; otherwise the corresponding element from
         ``other`` is used. If the axis of ``other`` does not align with axis of
         ``cond`` {klass}, the values of ``cond`` on misaligned index positions
         will be filled with {cond_rev}.
 
-        The signature for :func:`DataFrame.where` differs from
-        :func:`numpy.where`. Roughly ``df1.where(m, df2)`` is equivalent to
-        ``np.where(m, df1, df2)``.
+        The signature for :func:`Series.where` or
+        :func:`DataFrame.where` differs from :func:`numpy.where`.
+        Roughly ``df1.where(m, df2)`` is equivalent to ``np.where(m, df1, df2)``.
 
         For further details and examples see the ``{name}`` documentation in
         :ref:`indexing <indexing.where_mask>`.
