@@ -35,11 +35,11 @@ def test_dataframe_arrow_interface():
 def test_dataframe_to_arrow():
     df = pd.DataFrame({"a": [1, 2, 3], "b": ["a", "b", "c"]})
 
-    table = pa.RecordBatchReader.from_stream(df)
+    table = pa.RecordBatchReader.from_stream(df).read_all()
     expected = pa.table({"a": [1, 2, 3], "b": ["a", "b", "c"]})
     assert table.equals(expected)
 
     schema = pa.schema([("a", pa.int8()), ("b", pa.string())])
-    table = pa.RecordBatchReader.from_stream(df, schema=schema)
+    table = pa.RecordBatchReader.from_stream(df, schema=schema).read_all()
     expected = expected.cast(schema)
     assert table.equals(expected)
