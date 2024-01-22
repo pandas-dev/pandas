@@ -576,8 +576,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def _get_axis_number(cls, axis: Axis) -> AxisInt:
         try:
             return cls._AXIS_TO_AXIS_NUMBER[axis]
-        except KeyError:
-            raise ValueError(f"No axis named {axis} for object type {cls.__name__}")
+        except KeyError as err:
+            raise ValueError(
+                f"No axis named {axis} for object type {cls.__name__}"
+            ) from err
 
     @final
     @classmethod
