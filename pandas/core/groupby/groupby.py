@@ -192,6 +192,10 @@ _apply_docs = {
         A callable that takes a {input} as its first argument, and
         returns a dataframe, a series or a scalar. In addition the
         callable may take positional and keyword arguments.
+
+    *args : tuple
+        Optional positional arguments to pass to ``func``.
+
     include_groups : bool, default True
         When True, will attempt to apply ``func`` to the groupings in
         the case that they are columns of the DataFrame. If this raises a
@@ -205,8 +209,8 @@ _apply_docs = {
            Setting include_groups to True is deprecated. Only the value
            False will be allowed in a future version of pandas.
 
-    args, kwargs : tuple and dict
-        Optional positional and keyword arguments to pass to ``func``.
+    **kwargs : dict
+        Optional keyword arguments to pass to ``func``.
 
     Returns
     -------
