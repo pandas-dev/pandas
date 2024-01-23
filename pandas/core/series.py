@@ -87,6 +87,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     ExtensionDtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -3516,10 +3517,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if self.dtype == other.dtype:
             if self.index.equals(other.index):
-                return self.fillna(other)
-            elif self._can_hold_na:
+                return self.mask(self.isna(), other)
+            elif self._can_hold_na and not isinstance(self.dtype, SparseDtype):
                 this, other = self.align(other, join="outer")
-                return this.fillna(other)
+                return this.mask(this.isna(), other)
 
         new_index = self.index.union(other.index)
 
