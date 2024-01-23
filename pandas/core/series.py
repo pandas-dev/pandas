@@ -3514,6 +3514,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         from pandas.core.reshape.concat import concat
 
+        if self.dtype == other.dtype:
+            if self.index.equals(other.index):
+                return self.fillna(other)
+            elif self._can_hold_na:
+                this, other = self.align(other, join="outer")
+                return this.fillna(other)
+
         new_index = self.index.union(other.index)
 
         this = self
