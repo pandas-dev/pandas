@@ -160,15 +160,13 @@ class TestTimestampConstructorFoldKeyword:
         expected = fold
         assert result == expected
 
-    try:
-        _tzs = [
+    @pytest.mark.parametrize(
+        "tz",
+        [
             "dateutil/Europe/London",
             zoneinfo.ZoneInfo("Europe/London"),
-        ]
-    except zoneinfo.ZoneInfoNotFoundError:
-        _tzs = ["dateutil/Europe/London"]
-
-    @pytest.mark.parametrize("tz", _tzs)
+        ],
+    )
     @pytest.mark.parametrize(
         "ts_input,fold_out",
         [

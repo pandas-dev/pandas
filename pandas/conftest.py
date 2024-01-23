@@ -96,12 +96,6 @@ else:
 
 import zoneinfo
 
-try:
-    zoneinfo.ZoneInfo("UTC")
-except zoneinfo.ZoneInfoNotFoundError:
-    zoneinfo = None  # type: ignore[assignment]
-
-
 # ----------------------------------------------------------------
 # Configuration / Settings
 # ----------------------------------------------------------------
@@ -1214,14 +1208,9 @@ TIMEZONES = [
     timezone.utc,
     timezone(timedelta(hours=1)),
     timezone(timedelta(hours=-1), name="foo"),
+    zoneinfo.ZoneInfo("US/Pacific"),
+    zoneinfo.ZoneInfo("UTC"),
 ]
-if zoneinfo is not None:
-    TIMEZONES.extend(
-        [
-            zoneinfo.ZoneInfo("US/Pacific"),  # type: ignore[list-item]
-            zoneinfo.ZoneInfo("UTC"),  # type: ignore[list-item]
-        ]
-    )
 TIMEZONE_IDS = [repr(i) for i in TIMEZONES]
 
 
@@ -1247,12 +1236,9 @@ def tz_aware_fixture(request):
 tz_aware_fixture2 = tz_aware_fixture
 
 
-_UTCS = ["utc", "dateutil/UTC", utc, tzutc(), timezone.utc]
-if zoneinfo is not None:
-    _UTCS.append(zoneinfo.ZoneInfo("UTC"))
-
-
-@pytest.fixture(params=_UTCS)
+@pytest.fixture(
+    params=["utc", "dateutil/UTC", utc, tzutc(), timezone.utc, zoneinfo.ZoneInfo("UTC")]
+)
 def utc_fixture(request):
     """
     Fixture to provide variants of UTC timezone strings and tzinfo objects.
@@ -1958,12 +1944,13 @@ def using_infer_string() -> bool:
     return pd.options.future.infer_string is True
 
 
-warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
-if zoneinfo is not None:
-    warsaws.append(zoneinfo.ZoneInfo("Europe/Warsaw"))  # type: ignore[arg-type]
-
-
-@pytest.fixture(params=warsaws)
+@pytest.fixture(
+    params=[
+        "Europe/Warsaw",
+        "dateutil/Europe/Warsaw",
+        zoneinfo.ZoneInfo("Europe/Warsaw"),
+    ]
+)
 def warsaw(request) -> str:
     """
     tzinfo for Europe/Warsaw using pytz, dateutil, or zoneinfo.

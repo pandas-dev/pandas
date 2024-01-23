@@ -1,5 +1,6 @@
 from datetime import timedelta
 import re
+from zoneinfo import ZoneInfo
 
 from dateutil.tz import gettz
 import pytest
@@ -16,12 +17,6 @@ from pandas import (
     NaT,
     Timestamp,
 )
-
-try:
-    from zoneinfo import ZoneInfo
-except ImportError:
-    # Cannot assign to a type
-    ZoneInfo = None  # type: ignore[misc, assignment]
 
 
 class TestTimestampTZLocalize:
@@ -64,15 +59,8 @@ class TestTimestampTZLocalize:
         with pytest.raises(pytz.AmbiguousTimeError, match=msg):
             ts.tz_localize("dateutil/US/Central")
 
-        if ZoneInfo is not None:
-            try:
-                tz = ZoneInfo("US/Central")
-            except KeyError:
-                # no tzdata
-                pass
-            else:
-                with pytest.raises(pytz.AmbiguousTimeError, match=msg):
-                    ts.tz_localize(tz)
+        with pytest.raises(pytz.AmbiguousTimeError, match=msg):
+            ts.tz_localize(ZoneInfo("US/Central"))
 
         result = ts.tz_localize("US/Central", ambiguous=True)
         assert result == expected0

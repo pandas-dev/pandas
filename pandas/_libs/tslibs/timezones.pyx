@@ -2,16 +2,10 @@ from datetime import (
     timedelta,
     timezone,
 )
+import zoneinfo
+from zoneinfo import ZoneInfo
 
 from pandas.compat._optional import import_optional_dependency
-
-try:
-    # py39+
-    import zoneinfo
-    from zoneinfo import ZoneInfo
-except ImportError:
-    zoneinfo = None
-    ZoneInfo = None
 
 from cpython.datetime cimport (
     datetime,
@@ -167,7 +161,7 @@ cpdef inline tzinfo maybe_get_tz(object tz):
         elif tz == "UTC" or tz == "utc":
             tz = utc_stdlib
         else:
-            tz = pytz.timezone(tz)
+            tz = zoneinfo.ZoneInfo(tz)
     elif is_integer_object(tz):
         tz = timezone(timedelta(seconds=tz))
     elif isinstance(tz, tzinfo):

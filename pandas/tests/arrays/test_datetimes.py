@@ -5,12 +5,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 import operator
-
-try:
-    from zoneinfo import ZoneInfo
-except ImportError:
-    # Cannot assign to a type
-    ZoneInfo = None  # type: ignore[misc, assignment]
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pytest
@@ -723,19 +718,9 @@ class TestDatetimeArray:
         roundtrip = expected.tz_localize("US/Pacific")
         tm.assert_datetime_array_equal(roundtrip, dta)
 
-    easts = ["US/Eastern", "dateutil/US/Eastern"]
-    if ZoneInfo is not None:
-        try:
-            tz = ZoneInfo("US/Eastern")
-        except KeyError:
-            # no tzdata
-            pass
-        else:
-            # Argument 1 to "append" of "list" has incompatible type "ZoneInfo";
-            # expected "str"
-            easts.append(tz)  # type: ignore[arg-type]
-
-    @pytest.mark.parametrize("tz", easts)
+    @pytest.mark.parametrize(
+        "tz", ["US/Eastern", "dateutil/US/Eastern", ZoneInfo("US/Eastern")]
+    )
     def test_iter_zoneinfo_fold(self, tz):
         # GH#49684
         utc_vals = np.array(
