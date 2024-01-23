@@ -199,10 +199,7 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas import (
-        Index,
-        Series,
-    )
+    from pandas import Series
     from pandas.core.arrays.datetimes import DatetimeArray
     from pandas.core.arrays.timedeltas import TimedeltaArray
 
@@ -1956,40 +1953,6 @@ class ArrowExtensionArray(
 
         return result
 
-    def interpolate(
-        self,
-        *,
-        method: InterpolateOptions,
-        axis: int,
-        index: Index,
-        limit,
-        limit_direction,
-        limit_area,
-        copy: bool,
-        **kwargs,
-    ) -> Self:
-        if pa_version_under13p0:
-            raise NotImplementedError("interpolate requires pyarrow version > 12")
-
-        if method != "linear":
-            raise NotImplementedError("Only method='linear' is implemented.")
-        if limit_area is not None:
-            raise NotImplementedError("Only limit_area=None is implemented.")
-        if limit is not None:
-            raise NotImplementedError("Only limit=0 is implemented.")
-        if limit_direction != "forward":
-            raise NotImplementedError("Only limit_direction='forward' is implemented.")
-
-        if not self.dtype._is_numeric:
-            raise ValueError("Values must be numeric.")
-
-        values = self._pa_array.combine_chunks()
-        na_value = pa.array([None], type=values.type)
-        y_diff_2 = pc.fill_null_backward(pc.pairwise_diff_checked(values, period=2))
-        prev_values = pa.concat_arrays([na_value, values[:-2], na_value])
-        interps = pc.add_checked(prev_values, pc.divide_checked(y_diff_2, 2))
-        return type(self)(pc.coalesce(self._pa_array, interps))
-
     def _rank(
         self,
         *,
@@ -2118,6 +2081,23 @@ class ArrowExtensionArray(
         See NDFrame.interpolate.__doc__.
         """
         # NB: we return type(self) even if copy=False
+        if not self.dtype._is_numeric:
+            raise ValueError("Values must be numeric.")
+
+        if (
+            not pa_version_under13p0
+            and method == "linear"
+            and limit_area is None
+            and limit is None
+            and limit_direction == "forward"
+        ):
+            values = self._pa_array.combine_chunks()
+            na_value = pa.array([None], type=values.type)
+            y_diff_2 = pc.fill_null_backward(pc.pairwise_diff_checked(values, period=2))
+            prev_values = pa.concat_arrays([na_value, values[:-2], na_value])
+            interps = pc.add_checked(prev_values, pc.divide_checked(y_diff_2, 2))
+            return type(self)(pc.coalesce(self._pa_array, interps))
+
         mask = self.isna()
         if self.dtype.kind == "f":
             data = self._pa_array.to_numpy()
