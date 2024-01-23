@@ -36,11 +36,6 @@ from pandas.tseries import offsets
 from pandas.tseries.offsets import Minute
 
 
-@pytest.fixture(params=["s", "ms", "us", "ns"])
-def unit(request):
-    return request.param
-
-
 @pytest.fixture
 def simple_date_range_series():
     """
@@ -1063,10 +1058,10 @@ def test_resample_segfault(unit):
     ).set_index("timestamp")
     df.index = df.index.as_unit(unit)
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = df.groupby("ID").resample("5min").sum()
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         expected = df.groupby("ID").apply(lambda x: x.resample("5min").sum())
     tm.assert_frame_equal(result, expected)
 
@@ -1087,7 +1082,7 @@ def test_resample_dtype_preservation(unit):
     assert result.val.dtype == np.int32
 
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = df.groupby("group").resample("1D").ffill()
     assert result.val.dtype == np.int32
 
@@ -1868,10 +1863,10 @@ def test_resample_apply_with_additional_args2():
 
     df = DataFrame({"A": 1, "B": 2}, index=date_range("2017", periods=10))
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = df.groupby("A").resample("D").agg(f, multiplier).astype(float)
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         expected = df.groupby("A").resample("D").mean().multiply(multiplier)
     tm.assert_frame_equal(result, expected)
 

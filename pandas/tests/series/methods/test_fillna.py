@@ -786,13 +786,11 @@ class TestSeriesFillNA:
     @pytest.mark.parametrize(
         "fill_value, expected_output",
         [
-            (Series(["a", "b", "c", "d", "e"]), ["a", "b", "b", "d", "e"]),
-            (Series(["b", "d", "a", "d", "a"]), ["a", "d", "b", "d", "a"]),
+            (["a", "b", "c", "d", "e"], ["a", "b", "b", "d", "e"]),
+            (["b", "d", "a", "d", "a"], ["a", "d", "b", "d", "a"]),
             (
-                Series(
-                    Categorical(
-                        ["b", "d", "a", "d", "a"], categories=["b", "c", "d", "e", "a"]
-                    )
+                Categorical(
+                    ["b", "d", "a", "d", "a"], categories=["b", "c", "d", "e", "a"]
                 ),
                 ["a", "d", "b", "d", "a"],
             ),
@@ -803,6 +801,7 @@ class TestSeriesFillNA:
         data = ["a", np.nan, "b", np.nan, np.nan]
         ser = Series(Categorical(data, categories=["a", "b", "c", "d", "e"]))
         exp = Series(Categorical(expected_output, categories=["a", "b", "c", "d", "e"]))
+        fill_value = Series(fill_value)
         result = ser.fillna(fill_value)
         tm.assert_series_equal(result, exp)
 
@@ -838,12 +837,11 @@ class TestSeriesFillNA:
             ser.fillna(DataFrame({1: ["a"], 3: ["b"]}))
 
     @pytest.mark.parametrize("dtype", [float, "float32", "float64"])
-    @pytest.mark.parametrize("fill_type", tm.ALL_REAL_NUMPY_DTYPES)
     @pytest.mark.parametrize("scalar", [True, False])
-    def test_fillna_float_casting(self, dtype, fill_type, scalar):
+    def test_fillna_float_casting(self, dtype, any_real_numpy_dtype, scalar):
         # GH-43424
         ser = Series([np.nan, 1.2], dtype=dtype)
-        fill_values = Series([2, 2], dtype=fill_type)
+        fill_values = Series([2, 2], dtype=any_real_numpy_dtype)
         if scalar:
             fill_values = fill_values.dtype.type(2)
 

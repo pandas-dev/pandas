@@ -561,14 +561,15 @@ def test_getitem_generator(string_series):
 
 
 @pytest.mark.parametrize(
-    "series",
+    "data",
     [
-        Series([0, 1]),
-        Series(date_range("2012-01-01", periods=2)),
-        Series(date_range("2012-01-01", periods=2, tz="CET")),
+        [0, 1],
+        date_range("2012-01-01", periods=2),
+        date_range("2012-01-01", periods=2, tz="CET"),
     ],
 )
-def test_getitem_ndim_deprecated(series):
+def test_getitem_ndim_deprecated(data):
+    series = Series(data)
     with pytest.raises(ValueError, match="Multi-dimensional indexing"):
         series[:, None]
 

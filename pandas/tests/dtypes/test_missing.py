@@ -531,7 +531,6 @@ def test_array_equivalent_different_dtype_but_equal():
         (fix_now, fix_utcnow),
         (fix_now.to_datetime64(), fix_utcnow),
         (fix_now.to_pydatetime(), fix_utcnow),
-        (fix_now, fix_utcnow),
         (fix_now.to_datetime64(), fix_utcnow.to_pydatetime()),
         (fix_now.to_pydatetime(), fix_utcnow.to_pydatetime()),
     ],
@@ -843,7 +842,8 @@ never_na_vals = [
 class TestLibMissing:
     @pytest.mark.parametrize("func", [libmissing.checknull, isna])
     @pytest.mark.parametrize(
-        "value", na_vals + sometimes_na_vals  # type: ignore[operator]
+        "value",
+        na_vals + sometimes_na_vals,  # type: ignore[operator]
     )
     def test_checknull_na_vals(self, func, value):
         assert func(value)
@@ -864,7 +864,8 @@ class TestLibMissing:
         assert not func(value)
 
     @pytest.mark.parametrize(
-        "value", na_vals + sometimes_na_vals  # type: ignore[operator]
+        "value",
+        na_vals + sometimes_na_vals,  # type: ignore[operator]
     )
     def test_checknull_old_na_vals(self, value):
         assert libmissing.checknull(value, inf_as_na=True)

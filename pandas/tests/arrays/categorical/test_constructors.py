@@ -437,7 +437,6 @@ class TestCategoricalConstructors:
             Categorical(["a", "b"], ordered=False, dtype=dtype)
 
     @pytest.mark.parametrize("categories", [None, ["a", "b"], ["a", "c"]])
-    @pytest.mark.parametrize("ordered", [True, False])
     def test_constructor_str_category(self, categories, ordered):
         result = Categorical(
             ["a", "b"], categories=categories, ordered=ordered, dtype="category"
@@ -683,7 +682,6 @@ class TestCategoricalConstructors:
         expected = Categorical([1, 1, 2, np.nan])
         tm.assert_categorical_equal(result, expected)
 
-    @pytest.mark.parametrize("ordered", [None, True, False])
     def test_construction_with_ordered(self, ordered):
         # GH 9347, 9190
         cat = Categorical([0, 1, 2], ordered=ordered)

@@ -117,19 +117,21 @@ def test_getitem_setitem_ellipsis(using_copy_on_write, warn_copy_on_write):
     "result_1, duplicate_item, expected_1",
     [
         [
-            Series({1: 12, 2: [1, 2, 2, 3]}),
-            Series({1: 313}),
+            {1: 12, 2: [1, 2, 2, 3]},
+            {1: 313},
             Series({1: 12}, dtype=object),
         ],
         [
-            Series({1: [1, 2, 3], 2: [1, 2, 2, 3]}),
-            Series({1: [1, 2, 3]}),
+            {1: [1, 2, 3], 2: [1, 2, 2, 3]},
+            {1: [1, 2, 3]},
             Series({1: [1, 2, 3]}),
         ],
     ],
 )
 def test_getitem_with_duplicates_indices(result_1, duplicate_item, expected_1):
     # GH 17610
+    result_1 = Series(result_1)
+    duplicate_item = Series(duplicate_item)
     result = result_1._append(duplicate_item)
     expected = expected_1._append(duplicate_item)
     tm.assert_series_equal(result[1], expected)
@@ -491,7 +493,7 @@ class TestSetitemValidation:
         np.datetime64("NaT"),
         np.timedelta64("NaT"),
     ]
-    _indexers = [0, [0], slice(0, 1), [True, False, False]]
+    _indexers = [0, [0], slice(0, 1), [True, False, False], slice(None, None, None)]
 
     @pytest.mark.parametrize(
         "invalid", _invalid_scalars + [1, 1.0, np.int64(1), np.float64(1)]
@@ -505,7 +507,7 @@ class TestSetitemValidation:
     @pytest.mark.parametrize("indexer", _indexers)
     def test_setitem_validation_scalar_int(self, invalid, any_int_numpy_dtype, indexer):
         ser = Series([1, 2, 3], dtype=any_int_numpy_dtype)
-        if isna(invalid) and invalid is not NaT:
+        if isna(invalid) and invalid is not NaT and not np.isnat(invalid):
             warn = None
         else:
             warn = FutureWarning

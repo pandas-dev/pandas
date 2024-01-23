@@ -759,7 +759,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     # ------------------------------------------------------------------
     # Rendering Methods
 
-    def _formatter(self, boxed: bool = False):
+    def _formatter(self, boxed: bool = False) -> Callable[[object], str]:
         if boxed:
             return str
         return "'{}'".format
@@ -810,12 +810,19 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         return m8arr.searchsorted(npvalue, side=side, sorter=sorter)
 
     def _pad_or_backfill(
-        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
     ) -> Self:
         # view as dt64 so we get treated as timelike in core.missing,
         #  similar to dtl._period_dispatch
         dta = self.view("M8[ns]")
-        result = dta._pad_or_backfill(method=method, limit=limit, copy=copy)
+        result = dta._pad_or_backfill(
+            method=method, limit=limit, limit_area=limit_area, copy=copy
+        )
         if copy:
             return cast("Self", result.view(self.dtype))
         else:
@@ -1181,10 +1188,10 @@ def dt64arr_to_periodarr(
     freq = Period._maybe_convert_freq(freq)
     try:
         base = freq._period_dtype_code
-    except (AttributeError, TypeError):
+    except (AttributeError, TypeError) as err:
         # AttributeError: _period_dtype_code might not exist
         # TypeError: _period_dtype_code might intentionally raise
-        raise TypeError(f"{freq.name} is not supported as period frequency")
+        raise TypeError(f"{freq.name} is not supported as period frequency") from err
     return c_dt64arr_to_periodarr(data.view("i8"), base, tz, reso=reso), freq
 
 

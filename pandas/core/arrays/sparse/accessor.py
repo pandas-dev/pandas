@@ -17,6 +17,11 @@ from pandas.core.accessor import (
 from pandas.core.arrays.sparse.array import SparseArray
 
 if TYPE_CHECKING:
+    from scipy.sparse import (
+        coo_matrix,
+        spmatrix,
+    )
+
     from pandas import (
         DataFrame,
         Series,
@@ -115,7 +120,9 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
 
         return result
 
-    def to_coo(self, row_levels=(0,), column_levels=(1,), sort_labels: bool = False):
+    def to_coo(
+        self, row_levels=(0,), column_levels=(1,), sort_labels: bool = False
+    ) -> tuple[coo_matrix, list, list]:
         """
         Create a scipy.sparse.coo_matrix from a Series with MultiIndex.
 
@@ -326,7 +333,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         data = {k: v.array.to_dense() for k, v in self._parent.items()}
         return DataFrame(data, index=self._parent.index, columns=self._parent.columns)
 
-    def to_coo(self):
+    def to_coo(self) -> spmatrix:
         """
         Return the contents of the frame as a sparse SciPy COO matrix.
 

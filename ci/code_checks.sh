@@ -16,12 +16,18 @@
 
 set -uo pipefail
 
-[[ -z "$1" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "single-docs" || "$1" == "notebooks" ]] || \
+if [[ -v 1 ]]; then
+    CHECK=$1
+else
+    # script will fail if it uses an unset variable (i.e. $1 is not provided)
+    CHECK=""
+fi
+
+[[ -z "$CHECK" || "$CHECK" == "code" || "$CHECK" == "doctests" || "$CHECK" == "docstrings" || "$CHECK" == "single-docs" || "$CHECK" == "notebooks" ]] || \
     { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings|single-docs|notebooks]"; exit 9999; }
 
 BASE_DIR="$(dirname $0)/.."
 RET=0
-CHECK=$1
 
 ### CODE ###
 if [[ -z "$CHECK" || "$CHECK" == "code" ]]; then
@@ -59,110 +65,132 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (EX01, EX02, EX04, GL01, GL02, GL03, GL04, GL05, GL06, GL07, GL09, GL10, PR03, PR04, PR05, PR06, PR08, PR09, PR10, RT01, RT02, RT04, RT05, SA02, SA03, SA04, SS01, SS02, SS03, SS04, SS05, SS06)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01,EX02,EX04,GL01,GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,PR03,PR04,PR05,PR06,PR08,PR09,PR10,RT01,RT02,RT04,RT05,SA02,SA03,SA04,SS01,SS02,SS03,SS04,SS05,SS06
+    MSG='Validate docstrings (EX01, EX03, EX04, GL01, GL02, GL03, GL04, GL05, GL06, GL07, GL09, GL10, PR03, PR04, PR05, PR06, PR08, PR09, PR10, RT01, RT02, RT04, RT05, SA02, SA03, SA04, SS01, SS02, SS03, SS04, SS05, SS06)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01,EX03,EX04,GL01,GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,PR03,PR04,PR05,PR06,PR08,PR09,PR10,RT01,RT02,RT04,RT05,SA02,SA03,SA04,SS01,SS02,SS03,SS04,SS05,SS06
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Partially validate docstrings (EX03)' ;  echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX03 --ignore_functions \
-        pandas.Series.dt.day_name \
-        pandas.Series.str.len \
-        pandas.Series.cat.set_categories \
-        pandas.Series.plot.bar \
-        pandas.Series.plot.hist \
-        pandas.Series.plot.line \
-        pandas.Series.to_sql \
-        pandas.Series.to_latex \
-        pandas.errors.CategoricalConversionWarning \
-        pandas.errors.ChainedAssignmentError \
-        pandas.errors.ClosedFileError \
-        pandas.errors.DatabaseError \
-        pandas.errors.IndexingError \
-        pandas.errors.InvalidColumnName \
-        pandas.errors.NumExprClobberingError \
-        pandas.errors.PossibleDataLossError \
-        pandas.errors.PossiblePrecisionLoss \
-        pandas.errors.SettingWithCopyError \
-        pandas.errors.SettingWithCopyWarning \
-        pandas.errors.SpecificationError \
-        pandas.errors.UndefinedVariableError \
-        pandas.errors.ValueLabelTypeMismatch \
-        pandas.Timestamp.ceil \
-        pandas.Timestamp.floor \
-        pandas.Timestamp.round \
-        pandas.read_pickle \
-        pandas.ExcelWriter \
-        pandas.read_json \
-        pandas.io.json.build_table_schema \
-        pandas.DataFrame.to_latex \
-        pandas.io.formats.style.Styler.to_latex \
-        pandas.read_parquet \
-        pandas.DataFrame.to_sql \
-        pandas.read_stata \
-        pandas.core.resample.Resampler.pipe \
-        pandas.core.resample.Resampler.fillna \
-        pandas.core.resample.Resampler.interpolate \
-        pandas.plotting.scatter_matrix \
-        pandas.pivot \
-        pandas.merge_asof \
-        pandas.wide_to_long \
-        pandas.Index.rename \
-        pandas.Index.droplevel \
-        pandas.Index.isin \
-        pandas.CategoricalIndex.set_categories \
-        pandas.MultiIndex.names \
-        pandas.MultiIndex.droplevel \
-        pandas.IndexSlice \
-        pandas.DatetimeIndex.month_name \
-        pandas.DatetimeIndex.day_name \
-        pandas.core.window.rolling.Rolling.corr \
-        pandas.Grouper \
-        pandas.core.groupby.SeriesGroupBy.apply \
-        pandas.core.groupby.DataFrameGroupBy.apply \
-        pandas.core.groupby.SeriesGroupBy.transform \
-        pandas.core.groupby.SeriesGroupBy.pipe \
-        pandas.core.groupby.DataFrameGroupBy.pipe \
-        pandas.core.groupby.DataFrameGroupBy.describe \
-        pandas.core.groupby.DataFrameGroupBy.idxmax \
-        pandas.core.groupby.DataFrameGroupBy.idxmin \
-        pandas.core.groupby.DataFrameGroupBy.value_counts \
-        pandas.core.groupby.SeriesGroupBy.describe \
-        pandas.core.groupby.DataFrameGroupBy.boxplot \
-        pandas.core.groupby.DataFrameGroupBy.hist \
-        pandas.io.formats.style.Styler.map \
-        pandas.io.formats.style.Styler.apply_index \
-        pandas.io.formats.style.Styler.map_index \
-        pandas.io.formats.style.Styler.format \
-        pandas.io.formats.style.Styler.format_index \
-        pandas.io.formats.style.Styler.relabel_index \
-        pandas.io.formats.style.Styler.hide \
-        pandas.io.formats.style.Styler.set_td_classes \
-        pandas.io.formats.style.Styler.set_tooltips \
-        pandas.io.formats.style.Styler.set_uuid \
-        pandas.io.formats.style.Styler.pipe \
-        pandas.io.formats.style.Styler.highlight_between \
-        pandas.io.formats.style.Styler.highlight_quantile \
-        pandas.io.formats.style.Styler.background_gradient \
-        pandas.io.formats.style.Styler.text_gradient \
-        pandas.DataFrame.values \
-        pandas.DataFrame.loc \
-        pandas.DataFrame.iloc \
-        pandas.DataFrame.groupby \
-        pandas.DataFrame.describe \
-        pandas.DataFrame.skew \
-        pandas.DataFrame.var \
-        pandas.DataFrame.idxmax \
-        pandas.DataFrame.idxmin \
-        pandas.DataFrame.last \
-        pandas.DataFrame.pivot \
-        pandas.DataFrame.sort_values \
-        pandas.DataFrame.tz_convert \
-        pandas.DataFrame.tz_localize \
-        pandas.DataFrame.plot.bar \
-        pandas.DataFrame.plot.hexbin \
-        pandas.DataFrame.plot.hist \
-        pandas.DataFrame.plot.line \
-        pandas.DataFrame.hist \
+    MSG='Partially validate docstrings (PR02)' ;  echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=PR02 --ignore_functions \
+        pandas.io.formats.style.Styler.to_excel\
+        pandas.CategoricalIndex.rename_categories\
+        pandas.CategoricalIndex.reorder_categories\
+        pandas.CategoricalIndex.add_categories\
+        pandas.CategoricalIndex.remove_categories\
+        pandas.CategoricalIndex.set_categories\
+        pandas.IntervalIndex.set_closed\
+        pandas.IntervalIndex.contains\
+        pandas.IntervalIndex.overlaps\
+        pandas.IntervalIndex.to_tuples\
+        pandas.DatetimeIndex.round\
+        pandas.DatetimeIndex.floor\
+        pandas.DatetimeIndex.ceil\
+        pandas.DatetimeIndex.month_name\
+        pandas.DatetimeIndex.day_name\
+        pandas.DatetimeIndex.to_period\
+        pandas.DatetimeIndex.std\
+        pandas.TimedeltaIndex.round\
+        pandas.TimedeltaIndex.floor\
+        pandas.TimedeltaIndex.ceil\
+        pandas.PeriodIndex\
+        pandas.PeriodIndex.strftime\
+        pandas.Series.clip\
+        pandas.Series.rename_axis\
+        pandas.Series.interpolate\
+        pandas.Series.dt.to_period\
+        pandas.Series.dt.tz_localize\
+        pandas.Series.dt.tz_convert\
+        pandas.Series.dt.strftime\
+        pandas.Series.dt.round\
+        pandas.Series.dt.floor\
+        pandas.Series.dt.ceil\
+        pandas.Series.dt.month_name\
+        pandas.Series.dt.day_name\
+        pandas.Series.str.wrap\
+        pandas.Series.cat.rename_categories\
+        pandas.Series.cat.reorder_categories\
+        pandas.Series.cat.add_categories\
+        pandas.Series.cat.remove_categories\
+        pandas.Series.cat.set_categories\
+        pandas.Series.plot\
+        pandas.Series.plot.bar\
+        pandas.Series.plot.barh\
+        pandas.Series.plot.line\
+        pandas.Series.plot.pie\
+        pandas.DataFrame.clip\
+        pandas.DataFrame.plot\
+        pandas.DataFrame.plot.bar\
+        pandas.DataFrame.plot.barh\
+        pandas.DataFrame.plot.line\
+        pandas.DataFrame.plot.pie\
+        pandas.tseries.offsets.DateOffset\
+        pandas.tseries.offsets.BusinessDay\
+        pandas.tseries.offsets.BDay\
+        pandas.tseries.offsets.BusinessHour\
+        pandas.tseries.offsets.CustomBusinessDay\
+        pandas.tseries.offsets.CDay\
+        pandas.tseries.offsets.CustomBusinessHour\
+        pandas.tseries.offsets.MonthEnd\
+        pandas.tseries.offsets.MonthBegin\
+        pandas.tseries.offsets.BusinessMonthEnd\
+        pandas.tseries.offsets.BMonthEnd\
+        pandas.tseries.offsets.BusinessMonthBegin\
+        pandas.tseries.offsets.BMonthBegin\
+        pandas.tseries.offsets.CustomBusinessMonthEnd\
+        pandas.tseries.offsets.CBMonthEnd\
+        pandas.tseries.offsets.CustomBusinessMonthBegin\
+        pandas.tseries.offsets.CBMonthBegin\
+        pandas.tseries.offsets.SemiMonthEnd\
+        pandas.tseries.offsets.SemiMonthBegin\
+        pandas.tseries.offsets.Week\
+        pandas.tseries.offsets.WeekOfMonth\
+        pandas.tseries.offsets.LastWeekOfMonth\
+        pandas.tseries.offsets.BQuarterEnd\
+        pandas.tseries.offsets.BQuarterBegin\
+        pandas.tseries.offsets.QuarterEnd\
+        pandas.tseries.offsets.QuarterBegin\
+        pandas.tseries.offsets.BYearEnd\
+        pandas.tseries.offsets.BYearBegin\
+        pandas.tseries.offsets.YearEnd\
+        pandas.tseries.offsets.YearBegin\
+        pandas.tseries.offsets.FY5253\
+        pandas.tseries.offsets.FY5253Quarter\
+        pandas.tseries.offsets.Easter\
+        pandas.tseries.offsets.Day\
+        pandas.tseries.offsets.Hour\
+        pandas.tseries.offsets.Minute\
+        pandas.tseries.offsets.Second\
+        pandas.tseries.offsets.Milli\
+        pandas.tseries.offsets.Micro\
+        pandas.tseries.offsets.Nano\
+        pandas.describe_option\
+        pandas.reset_option\
+        pandas.get_option\
+        pandas.set_option\
+        pandas.Timestamp.max\
+        pandas.Timestamp.min\
+        pandas.Timestamp.resolution\
+        pandas.Timedelta.max\
+        pandas.Timedelta.min\
+        pandas.Timedelta.resolution\
+        pandas.Interval\
+        pandas.Grouper\
+        pandas.core.groupby.SeriesGroupBy.apply\
+        pandas.core.groupby.SeriesGroupBy.transform\
+        pandas.core.groupby.DataFrameGroupBy.transform\
+        pandas.core.groupby.DataFrameGroupBy.nth\
+        pandas.core.groupby.DataFrameGroupBy.rolling\
+        pandas.core.groupby.SeriesGroupBy.idxmax\
+        pandas.core.groupby.SeriesGroupBy.idxmin\
+        pandas.core.groupby.SeriesGroupBy.nth\
+        pandas.core.groupby.SeriesGroupBy.rolling\
+        pandas.core.groupby.DataFrameGroupBy.hist\
+        pandas.core.groupby.DataFrameGroupBy.plot\
+        pandas.core.groupby.SeriesGroupBy.plot\
+        pandas.read_hdf\
+        pandas.HDFStore.append\
+        pandas.core.window.rolling.Rolling.quantile\
+        pandas.core.window.expanding.Expanding.quantile\
+        pandas.api.extensions.ExtensionArray.argsort # There should be no backslash in the final line, please keep this comment in the last ignored function
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

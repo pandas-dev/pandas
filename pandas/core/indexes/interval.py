@@ -128,7 +128,7 @@ def _get_next_label(label):
     elif is_float_dtype(dtype):
         return np.nextafter(label, np.inf)
     else:
-        raise TypeError(f"cannot determine next label for type {repr(type(label))}")
+        raise TypeError(f"cannot determine next label for type {type(label)!r}")
 
 
 def _get_prev_label(label):
@@ -145,7 +145,7 @@ def _get_prev_label(label):
     elif is_float_dtype(dtype):
         return np.nextafter(label, -np.inf)
     else:
-        raise TypeError(f"cannot determine next label for type {repr(type(label))}")
+        raise TypeError(f"cannot determine next label for type {type(label)!r}")
 
 
 def _new_IntervalIndex(cls, d):
@@ -555,9 +555,7 @@ class IntervalIndex(ExtensionIndex):
             right = self._maybe_convert_i8(key.right)
             constructor = Interval if scalar else IntervalIndex.from_arrays
             # error: "object" not callable
-            return constructor(
-                left, right, closed=self.closed
-            )  # type: ignore[operator]
+            return constructor(left, right, closed=self.closed)  # type: ignore[operator]
 
         if scalar:
             # Timestamp/Timedelta
