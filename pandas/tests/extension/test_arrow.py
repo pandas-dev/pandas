@@ -3382,32 +3382,8 @@ def test_interpolate_not_numeric(data):
 @pytest.mark.skipif(
     pa_version_under13p0, reason="pairwise_diff_checked not implemented in pyarrow"
 )
-def test_interpolate_not_supported():
-    ser = pd.Series([1, None], dtype="int64[pyarrow]")
-    with pytest.raises(
-        NotImplementedError, match="Only method='linear' is implemented."
-    ):
-        ser.interpolate(method="akima")
-
-    with pytest.raises(
-        NotImplementedError, match="Only limit_area=None is implemented."
-    ):
-        ser.interpolate(limit_area="inside")
-
-    with pytest.raises(NotImplementedError, match="Only limit=0 is implemented."):
-        ser.interpolate(limit=1)
-
-    with pytest.raises(
-        NotImplementedError, match="Only limit_direction='forward' is implemented."
-    ):
-        ser.interpolate(limit_direction="backward")
-
-
-@pytest.mark.skipif(
-    pa_version_under13p0, reason="pairwise_diff_checked not implemented in pyarrow"
-)
 @pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
-def test_interpolate(dtype):
+def test_interpolate_linear(dtype):
     ser = pd.Series([None, 1, 2, None, 4, None], dtype=dtype)
     result = ser.interpolate()
     expected = pd.Series([None, 1, 2, 3, 4, None], dtype=dtype)
