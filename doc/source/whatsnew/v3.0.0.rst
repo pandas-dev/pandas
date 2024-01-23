@@ -113,8 +113,9 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
+- Fixed bug in :meth:`DataFrame.join` inconsistently setting result index name (:issue:`55815`)
 - Fixed bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
-
+-
 
 Categorical
 ^^^^^^^^^^^
