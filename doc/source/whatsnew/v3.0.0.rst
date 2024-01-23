@@ -125,7 +125,6 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
-- Bug in :func:`date_range` where a timestamp out of the valid range would be produced with a negative ``freq`` parameter (:issue:`56147`)
 - Bug in :func:`date_range` where the last valid timestamp would sometimes not be produced (:issue:`56134`)
 -
 
