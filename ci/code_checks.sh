@@ -70,11 +70,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Partially validate docstrings (EX03)' ;  echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX03 --ignore_functions \
-        pandas.Series.plot.line \
-        pandas.Series.to_sql \
-        pandas.read_json \
-        pandas.DataFrame.to_sql # There should be no backslash in the final line, please keep this comment in the last ignored function
+    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX03
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Partially validate docstrings (PR02)' ;  echo $MSG
