@@ -264,7 +264,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         except TypeError as exc:
             # Don't let Python's handling of `complex` make extra complexity for Pandas
             if self._ndarray.dtype.kind == "c":
-                raise ValueError(*(x.replace("real", "complex") for x in exc.args))
+                raise ValueError(
+                    *(x.replace("real", "complex") for x in exc.args)
+                ) from exc
             raise exc
 
     def _validate_setitem_value(self, value):
