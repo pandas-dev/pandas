@@ -354,7 +354,7 @@ class JoinUnit:
         self.block = block
 
     def __repr__(self) -> str:
-        return f"{type(self).__name__}({repr(self.block)})"
+        return f"{type(self).__name__}({self.block!r})"
 
     def _is_valid_na_for(self, dtype: DtypeObj) -> bool:
         """

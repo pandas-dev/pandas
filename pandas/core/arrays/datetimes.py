@@ -40,10 +40,7 @@ from pandas._libs.tslibs import (
     tz_convert_from_utc,
     tzconversion,
 )
-from pandas._libs.tslibs.dtypes import (
-    abbrev_to_npy_unit,
-    freq_to_period_freqstr,
-)
+from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
@@ -213,7 +210,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     Examples
     --------
     >>> pd.arrays.DatetimeArray._from_sequence(
-    ...    pd.DatetimeIndex(['2023-01-01', '2023-01-02'], freq='D'))
+    ...     pd.DatetimeIndex(
+    ...         ["2023-01-01", "2023-01-02"], freq="D"
+    ...     )
+    ... )
     <DatetimeArray>
     ['2023-01-01 00:00:00', '2023-01-02 00:00:00']
     Length: 2, dtype: datetime64[ns]
@@ -1242,8 +1242,10 @@ default 'raise'
 
         if freq is None:
             freq = self.freqstr or self.inferred_freq
-            if isinstance(self.freq, BaseOffset):
-                freq = freq_to_period_freqstr(self.freq.n, self.freq.name)
+            if isinstance(self.freq, BaseOffset) and hasattr(
+                self.freq, "_period_dtype_code"
+            ):
+                freq = PeriodDtype(self.freq)._freqstr
 
             if freq is None:
                 raise ValueError(
@@ -1365,7 +1367,7 @@ default 'raise'
         >>> idx
         DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03'],
                       dtype='datetime64[ns]', freq='D')
-        >>> idx.day_name(locale='pt_BR.utf8') # doctest: +SKIP
+        >>> idx.day_name(locale='pt_BR.utf8')  # doctest: +SKIP
         Index(['Segunda', 'Terça', 'Quarta'], dtype='object')
         """
         values = self._local_timestamps()
@@ -2779,11 +2781,6 @@ def _generate_range(
             start = offset.rollforward(start)  # type: ignore[assignment]
         else:
             start = offset.rollback(start)  # type: ignore[assignment]
-
-    elif end and not offset.is_on_offset(end):
-        # Incompatible types in assignment (expression has type "datetime",
-        # variable has type "Optional[Timestamp]")
-        end = offset.rollback(end)  # type: ignore[assignment]
 
     # Unsupported operand types for < ("Timestamp" and "None")
     if periods is None and end < start and offset.n >= 0:  # type: ignore[operator]

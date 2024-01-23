@@ -597,9 +597,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             except (
                 TypeError,  # downstream error msg for CategoricalIndex is misleading
                 ValueError,
-            ):
+            ) as err:
                 msg = f"Cannot cast {self.categories.dtype} dtype to {dtype}"
-                raise ValueError(msg)
+                raise ValueError(msg) from err
 
             result = take_nd(
                 new_cats, ensure_platform_int(self._codes), fill_value=fill_value
@@ -1082,7 +1082,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         For :class:`pandas.Series`:
 
         >>> raw_cat = pd.Categorical(['a', 'b', 'c', 'A'],
-        ...                           categories=['a', 'b', 'c'], ordered=True)
+        ...                          categories=['a', 'b', 'c'], ordered=True)
         >>> ser = pd.Series(raw_cat)
         >>> ser
         0   a
@@ -2024,7 +2024,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if na_position not in ["last", "first"]:
-            raise ValueError(f"invalid na_position: {repr(na_position)}")
+            raise ValueError(f"invalid na_position: {na_position!r}")
 
         sorted_idx = nargsort(self, ascending=ascending, na_position=na_position)
 
