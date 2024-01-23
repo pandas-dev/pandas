@@ -8016,8 +8016,8 @@ class DataFrame(NDFrame, OpsMixin):
             right.columns, how="inner", level=None, return_indexers=True
         )
 
-        new_left = left.iloc[:, lcols]
-        new_right = right.iloc[:, rcols]
+        new_left = left if lcols is None else left.iloc[:, lcols]
+        new_right = right if rcols is None else right.iloc[:, rcols]
         result = op(new_left, new_right)
 
         # Do the join on the columns instead of using left._align_for_op
