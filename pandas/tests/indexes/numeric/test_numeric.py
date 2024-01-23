@@ -12,14 +12,23 @@ import pandas._testing as tm
 class TestFloatNumericIndex:
     @pytest.fixture(params=[np.float64, np.float32])
     def dtype(self, request):
+        """
+        Returns floating point dtypes (64 or 32 bit)
+        """
         return request.param
 
     @pytest.fixture
     def mixed_index(self, dtype):
+        """
+        Takes a list of mixed data types and turns it into list of floating point indicies 
+        """
         return Index([1.5, 2, 3, 4, 5], dtype=dtype)
 
     @pytest.fixture
     def float_index(self, dtype):
+        """
+        Takes a list of floating data types and turns it into a list of indicies 
+        """
         return Index([0.0, 2.5, 5.0, 7.5, 10.0], dtype=dtype)
 
     @pytest.mark.parametrize(
@@ -233,10 +242,16 @@ class TestFloatNumericIndex:
 class TestNumericInt:
     @pytest.fixture
     def dtype(self, any_int_numpy_dtype):
+        """
+        Returns any numpy integer dtype signed or unsigned
+        """
         return np.dtype(any_int_numpy_dtype)
 
     @pytest.fixture
     def simple_index(self, dtype):
+        """
+        Fixture returns an range of indicies from 0 to 20 incrementing by 2 as integers
+        """
         return Index(range(0, 20, 2), dtype=dtype)
 
     def test_is_monotonic(self):
@@ -325,6 +340,9 @@ class TestNumericInt:
 class TestIntNumericIndex:
     @pytest.fixture(params=[np.int64, np.int32, np.int16, np.int8])
     def dtype(self, request):
+        """
+        Returns singned integer dtype (64, 32, 16, or 8 bit)
+        """
         return request.param
 
     def test_constructor_from_list_no_dtype(self):
