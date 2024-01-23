@@ -3203,6 +3203,30 @@ def test_pow_missing_operand():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.skipif(
+    pa_version_under11p0, reason="Decimal128 to string cast implemented in pyarrow 11"
+)
+def test_decimal_parse_raises():
+    # GH 56984
+    ser = pd.Series(["1.2345"], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(
+        pa.lib.ArrowInvalid, match="Rescaling Decimal128 value would cause data loss"
+    ):
+        ser.astype(ArrowDtype(pa.decimal128(1, 0)))
+
+
+@pytest.mark.skipif(
+    pa_version_under11p0, reason="Decimal128 to string cast implemented in pyarrow 11"
+)
+def test_decimal_parse_succeeds():
+    # GH 56984
+    ser = pd.Series(["1.2345"], dtype=ArrowDtype(pa.string()))
+    dtype = ArrowDtype(pa.decimal128(5, 4))
+    result = ser.astype(dtype)
+    expected = pd.Series([Decimal("1.2345")], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("pa_type", tm.TIMEDELTA_PYARROW_DTYPES)
 def test_duration_fillna_numpy(pa_type):
     # GH 54707
