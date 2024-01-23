@@ -346,7 +346,6 @@ Other enhancements
 - Implement :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` for :class:`ArrowDtype` and masked dtypes (:issue:`56267`)
 - Implement masked algorithms for :meth:`Series.value_counts` (:issue:`54984`)
 - Implemented :meth:`Series.dt` methods and attributes for :class:`ArrowDtype` with ``pyarrow.duration`` type (:issue:`52284`)
-- Implemented :meth:`Series.interpolate` for :class:`ArrowDtype` (:issue:`56267`)
 - Implemented :meth:`Series.str.extract` for :class:`ArrowDtype` (:issue:`56268`)
 - Improved error message that appears in :meth:`DatetimeIndex.to_period` with frequencies which are not supported as period frequencies, such as ``"BMS"`` (:issue:`56243`)
 - Improved error message when constructing :class:`Period` with invalid offsets such as ``"QS"`` (:issue:`55785`)
