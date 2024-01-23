@@ -192,6 +192,10 @@ _apply_docs = {
         A callable that takes a {input} as its first argument, and
         returns a dataframe, a series or a scalar. In addition the
         callable may take positional and keyword arguments.
+
+    *args : tuple
+        Optional positional arguments to pass to ``func``.
+
     include_groups : bool, default True
         When True, will attempt to apply ``func`` to the groupings in
         the case that they are columns of the DataFrame. If this raises a
@@ -205,8 +209,8 @@ _apply_docs = {
            Setting include_groups to True is deprecated. Only the value
            False will be allowed in a future version of pandas.
 
-    args, kwargs : tuple and dict
-        Optional positional and keyword arguments to pass to ``func``.
+    **kwargs : dict
+        Optional keyword arguments to pass to ``func``.
 
     Returns
     -------
@@ -1856,7 +1860,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                         message=_apply_groupings_depr.format(
                             type(self).__name__, "apply"
                         ),
-                        category=FutureWarning,
+                        category=DeprecationWarning,
                         stacklevel=find_stack_level(),
                     )
             except TypeError:
@@ -3958,17 +3962,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if limit is None:
             limit = -1
 
-        ids, _, _ = self._grouper.group_info
-        sorted_labels = np.argsort(ids, kind="mergesort").astype(np.intp, copy=False)
-        if direction == "bfill":
-            sorted_labels = sorted_labels[::-1]
+        ids, _, ngroups = self._grouper.group_info
 
         col_func = partial(
             libgroupby.group_fillna_indexer,
             labels=ids,
-            sorted_labels=sorted_labels,
             limit=limit,
-            dropna=self.dropna,
+            compute_ffill=(direction == "ffill"),
+            ngroups=ngroups,
         )
 
         def blk_func(values: ArrayLike) -> ArrayLike:
