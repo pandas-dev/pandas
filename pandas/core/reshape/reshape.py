@@ -334,7 +334,7 @@ class _Unstacker:
         width = len(value_columns)
         propagator = np.repeat(np.arange(width), stride)
 
-        new_levels: tuple[Index]
+        new_levels: tuple[Index, ...]
 
         if isinstance(value_columns, MultiIndex):
             new_levels = value_columns.levels + (self.removed_level_full,)
@@ -370,7 +370,7 @@ class _Unstacker:
         return repeater
 
     @cache_readonly
-    def new_index(self) -> MultiIndex:
+    def new_index(self) -> MultiIndex | Index:
         # Does not depend on values or value_columns
         result_codes = [lab.take(self.compressor) for lab in self.sorted_labels[:-1]]
 
@@ -708,7 +708,7 @@ def stack_multiple(frame: DataFrame, level, dropna: bool = True, sort: bool = Tr
     return result
 
 
-def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex:
+def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex | Index:
     """Creates a MultiIndex from the first N-1 levels of this MultiIndex."""
     if len(columns.levels) <= 2:
         return columns.levels[0]._rename(name=columns.names[0])
@@ -971,21 +971,22 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
 
     # Construct the correct MultiIndex by combining the frame's index and
     # stacked columns.
-    index_levels: list
     if isinstance(frame.index, MultiIndex):
-        index_levels = list(frame.index.levels)
-        index_codes = list(np.tile(frame.index.codes, (1, ratio)))
+        index_levels = frame.index.levels
+        index_codes = (np.tile(frame.index.codes, (1, ratio)),)
     else:
         codes, uniques = factorize(frame.index, use_na_sentinel=False)
-        index_levels = [uniques]
-        index_codes = list(np.tile(codes, (1, ratio)))
+        # Incompatible types in assignment (expression has type
+        # "tuple[ndarray[Any, Any] | Index]", variable has type "tuple[Index, ...]")
+        index_levels = (uniques,)  # type: ignore[assignment]
+        index_codes = (np.tile(codes, (1, ratio)),)
     if isinstance(ordered_stack_cols, MultiIndex):
-        column_levels = list(ordered_stack_cols.levels)
+        column_levels = ordered_stack_cols.levels
         column_codes = ordered_stack_cols.drop_duplicates().codes
     else:
-        column_levels = [ordered_stack_cols.unique()]
-        column_codes = [factorize(ordered_stack_cols_unique, use_na_sentinel=False)[0]]
-    column_codes = [np.repeat(codes, len(frame)) for codes in column_codes]
+        column_levels = (ordered_stack_cols.unique(),)
+        column_codes = (factorize(ordered_stack_cols_unique, use_na_sentinel=False)[0],)
+    column_codes = tuple(np.repeat(codes, len(frame)) for codes in column_codes)
     result.index = MultiIndex(
         levels=index_levels + column_levels,
         codes=index_codes + column_codes,

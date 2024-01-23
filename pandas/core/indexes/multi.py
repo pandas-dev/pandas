@@ -368,15 +368,15 @@ class MultiIndex(Index):
 
         return result
 
-    def _validate_codes(self, level: list, code: list) -> np.ndarray:
+    def _validate_codes(self, level: Index, code: np.ndarray) -> np.ndarray:
         """
         Reassign code values as -1 if their corresponding levels are NaN.
 
         Parameters
         ----------
-        code : list
+        code : Index
             Code to reassign.
-        level : list
+        level : np.ndarray
             Level to check for missing values (NaN, NaT, None).
 
         Returns
@@ -386,10 +386,7 @@ class MultiIndex(Index):
         """
         null_mask = isna(level)
         if np.any(null_mask):
-            # error: Incompatible types in assignment
-            # (expression has type "ndarray[Any, dtype[Any]]",
-            # variable has type "List[Any]")
-            code = np.where(null_mask[code], -1, code)  # type: ignore[assignment]
+            code = np.where(null_mask[code], -1, code)
         return code
 
     def _verify_integrity(
@@ -766,7 +763,9 @@ class MultiIndex(Index):
             vals = index
             if isinstance(vals.dtype, CategoricalDtype):
                 vals = cast("CategoricalIndex", vals)
-                vals = vals._data._internal_get_values()
+                # Incompatible types in assignment (expression has type
+                # "ExtensionArray | ndarray[Any, Any]", variable has type "Index")
+                vals = vals._data._internal_get_values()  # type: ignore[assignment]
 
             if isinstance(vals.dtype, ExtensionDtype) or lib.is_np_dtype(
                 vals.dtype, "mM"
@@ -1445,6 +1444,7 @@ class MultiIndex(Index):
         if len(self) == 0:
             return []
 
+        formatted: Iterable
         stringified_levels = []
         for lev, level_codes in zip(self.levels, self.codes):
             na = na_rep if na_rep is not None else _get_na_rep(lev.dtype)
@@ -1468,7 +1468,9 @@ class MultiIndex(Index):
             stringified_levels.append(formatted)
 
         result_levels = []
-        for lev, lev_name in zip(stringified_levels, self.names):
+        # Incompatible types in assignment (expression has type "Iterable[Any]",
+        # variable has type "Index")
+        for lev, lev_name in zip(stringified_levels, self.names):  # type: ignore[assignment]
             level = []
 
             if names:
@@ -1511,6 +1513,7 @@ class MultiIndex(Index):
         if len(self) == 0:
             return []
 
+        formatted: Iterable
         stringified_levels = []
         for lev, level_codes in zip(self.levels, self.codes):
             na = _get_na_rep(lev.dtype)
@@ -1535,7 +1538,9 @@ class MultiIndex(Index):
             stringified_levels.append(formatted)
 
         result_levels = []
-        for lev, lev_name in zip(stringified_levels, self.names):
+        # Incompatible types in assignment (expression has type "Iterable[Any]",
+        # variable has type "Index")
+        for lev, lev_name in zip(stringified_levels, self.names):  # type: ignore[assignment]
             level = []
 
             if include_names:
@@ -2926,7 +2931,9 @@ class MultiIndex(Index):
             if lab not in lev and not isna(lab):
                 # short circuit
                 try:
-                    loc = algos.searchsorted(lev, lab, side=side)
+                    # Argument 1 to "searchsorted" has incompatible type "Index";
+                    # expected "ExtensionArray | ndarray[Any, Any]"
+                    loc = algos.searchsorted(lev, lab, side=side)  # type: ignore[arg-type]
                 except TypeError as err:
                     # non-comparable e.g. test_slice_locs_with_type_mismatch
                     raise TypeError(f"Level type mismatch: {lab}") from err
@@ -3592,7 +3599,7 @@ class MultiIndex(Index):
                     k_codes = self.levels[i].get_indexer(k)
                     k_codes = k_codes[k_codes >= 0]  # Filter absent keys
                     # True if the given codes are not ordered
-                    need_sort = (k_codes[:-1] > k_codes[1:]).any()
+                    need_sort = bool((k_codes[:-1] > k_codes[1:]).any())
                 else:
                     need_sort = True
             elif isinstance(k, slice):
@@ -4025,7 +4032,7 @@ class MultiIndex(Index):
     __invert__ = make_invalid_op("__invert__")
 
 
-def _lexsort_depth(codes: list[np.ndarray], nlevels: int) -> int:
+def _lexsort_depth(codes: tuple[np.ndarray], nlevels: int) -> int:
     """Count depth (up to a maximum of `nlevels`) with which codes are lexsorted."""
     int64_codes = [ensure_int64(level_codes) for level_codes in codes]
     for k in range(nlevels, 0, -1):

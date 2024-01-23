@@ -2,7 +2,10 @@ import numpy as np
 
 from pandas._typing import npt
 
-from pandas import MultiIndex
+from pandas import (
+    Index,
+    MultiIndex,
+)
 from pandas.core.arrays import ExtensionArray
 
 multiindex_nulls_shift: int
@@ -75,8 +78,8 @@ class BaseMultiIndexCodesEngine:
 
     def __init__(
         self,
-        levels: tuple[np.ndarray],  # all entries hashable
-        labels: list[np.ndarray],  # all entries integer-dtyped
+        levels: tuple[Index, ...],  # all entries hashable
+        labels: tuple[np.ndarray],  # all entries integer-dtyped
         offsets: np.ndarray,  # np.ndarray[np.uint64, ndim=1]
     ) -> None: ...
     def get_indexer(self, target: npt.NDArray[np.object_]) -> npt.NDArray[np.intp]: ...

@@ -4859,7 +4859,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         from pandas.core.indexes.multi import MultiIndex
 
-        def _get_leaf_sorter(labels: list[np.ndarray]) -> npt.NDArray[np.intp]:
+        def _get_leaf_sorter(
+            labels: tuple[np.ndarray, ...] | list[np.ndarray]
+        ) -> npt.NDArray[np.intp]:
             """
             Returns sorter for the inner most level while preserving the
             order of higher levels.
