@@ -345,7 +345,7 @@ class CSSResolver:
     def size_to_pt(self, in_val, em_pt=None, conversions=UNIT_RATIOS) -> str:
         def _error() -> str:
             warnings.warn(
-                f"Unhandled size: {repr(in_val)}",
+                f"Unhandled size: {in_val!r}",
                 CSSWarning,
                 stacklevel=find_stack_level(),
             )
@@ -418,7 +418,7 @@ class CSSResolver:
                 yield prop, val
             else:
                 warnings.warn(
-                    f"Ill-formatted attribute: expected a colon in {repr(decl)}",
+                    f"Ill-formatted attribute: expected a colon in {decl!r}",
                     CSSWarning,
                     stacklevel=find_stack_level(),
                 )

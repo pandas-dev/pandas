@@ -257,7 +257,9 @@ def _use_inf_as_na(key) -> None:
         globals()["INF_AS_NA"] = False
 
 
-def _isna_array(values: ArrayLike, inf_as_na: bool = False):
+def _isna_array(
+    values: ArrayLike, inf_as_na: bool = False
+) -> npt.NDArray[np.bool_] | NDFrame:
     """
     Return an array indicating which values of the input array are NaN / NA.
 
@@ -274,6 +276,7 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
         Array of boolean values denoting the NA status of each element.
     """
     dtype = values.dtype
+    result: npt.NDArray[np.bool_] | NDFrame
 
     if not isinstance(values, np.ndarray):
         # i.e. ExtensionArray

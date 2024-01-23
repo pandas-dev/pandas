@@ -98,7 +98,7 @@ def hist_series(
 
     Returns
     -------
-    matplotlib.AxesSubplot
+    matplotlib.Axes
         A histogram plot.
 
     See Also
@@ -227,7 +227,7 @@ def hist_frame(
 
     Returns
     -------
-    matplotlib.AxesSubplot or numpy.ndarray of them
+    matplotlib.Axes or numpy.ndarray of them
 
     See Also
     --------
@@ -920,7 +920,7 @@ class PlotAccessor(PandasObject):
         if args and isinstance(data, ABCSeries):
             positional_args = str(args)[1:-1]
             keyword_args = ", ".join(
-                [f"{name}={repr(value)}" for (name, _), value in zip(arg_def, args)]
+                [f"{name}={value!r}" for (name, _), value in zip(arg_def, args)]
             )
             msg = (
                 "`Series.plot()` should not be called with positional "
@@ -1052,9 +1052,9 @@ class PlotAccessor(PandasObject):
             over the years.
 
             >>> df = pd.DataFrame({
-            ...    'pig': [20, 18, 489, 675, 1776],
-            ...    'horse': [4, 25, 281, 600, 1900]
-            ...    }, index=[1990, 1997, 2003, 2009, 2014])
+            ...     'pig': [20, 18, 489, 675, 1776],
+            ...     'horse': [4, 25, 281, 600, 1900]
+            ... }, index=[1990, 1997, 2003, 2009, 2014])
             >>> lines = df.plot.line()
 
         .. plot::
@@ -1373,7 +1373,7 @@ class PlotAccessor(PandasObject):
 
         Returns
         -------
-        class:`matplotlib.AxesSubplot`
+        class:`matplotlib.Axes`
             Return a histogram plot.
 
         See Also
@@ -1804,7 +1804,7 @@ class PlotAccessor(PandasObject):
 
         Returns
         -------
-        matplotlib.AxesSubplot
+        matplotlib.Axes
             The matplotlib ``Axes`` on which the hexbin is plotted.
 
         See Also

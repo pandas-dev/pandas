@@ -524,9 +524,9 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             try:
                 # GH#18435 strings get a pass from tzawareness compat
                 other = self._scalar_from_string(other)
-            except (ValueError, IncompatibleFrequency):
+            except (ValueError, IncompatibleFrequency) as err:
                 # failed to parse as Timestamp/Timedelta/Period
-                raise InvalidComparison(other)
+                raise InvalidComparison(other) from err
 
         if isinstance(other, self._recognized_scalars) or other is NaT:
             other = self._scalar_type(other)
@@ -664,11 +664,11 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             if lib.infer_dtype(value) in self._infer_matches:
                 try:
                     value = type(self)._from_sequence(value)
-                except (ValueError, TypeError):
+                except (ValueError, TypeError) as err:
                     if allow_object:
                         return value
                     msg = self._validation_error_message(value, True)
-                    raise TypeError(msg)
+                    raise TypeError(msg) from err
 
         # Do type inference if necessary up front (after unpacking
         # NumpyExtensionArray)

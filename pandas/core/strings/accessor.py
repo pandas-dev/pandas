@@ -2363,8 +2363,6 @@ class StringMethods(NoNewAttributesMixin):
         flags : int, default 0, meaning no flags
             Flags for the `re` module. For a complete list, `see here
             <https://docs.python.org/3/howto/regex.html#compilation-flags>`_.
-        **kwargs
-            For compatibility with other string methods. Not used.
 
         Returns
         -------

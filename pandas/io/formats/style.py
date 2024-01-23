@@ -1001,11 +1001,11 @@ class Styler(StylerRenderer):
         hide the repeated level-0 of the index:
 
         >>> (styler.format(subset="Equity", precision=2)
-        ...       .format(subset="Stats", precision=1, thousands=",")
-        ...       .format(subset="Rating", formatter=str.upper)
-        ...       .format_index(escape="latex", axis=1)
-        ...       .format_index(escape="latex", axis=0)
-        ...       .hide(level=0, axis=0))  # doctest: +SKIP
+        ...     .format(subset="Stats", precision=1, thousands=",")
+        ...     .format(subset="Rating", formatter=str.upper)
+        ...     .format_index(escape="latex", axis=1)
+        ...     .format_index(escape="latex", axis=0)
+        ...     .hide(level=0, axis=0))  # doctest: +SKIP
 
         Note that one of the string entries of the index and column headers is "H&M".
         Without applying the `escape="latex"` option to the `format_index` method the
@@ -1017,12 +1017,15 @@ class Styler(StylerRenderer):
         recommendation:
 
         >>> def rating_color(v):
-        ...     if v == "Buy": color = "#33ff85"
-        ...     elif v == "Sell": color = "#ff5933"
-        ...     else: color = "#ffdd33"
+        ...     if v == "Buy":
+        ...         color = "#33ff85"
+        ...     elif v == "Sell":
+        ...         color = "#ff5933"
+        ...     else:
+        ...         color = "#ffdd33"
         ...     return f"color: {color}; font-weight: bold;"
         >>> (styler.background_gradient(cmap="inferno", subset="Equity", vmin=0, vmax=1)
-        ...       .map(rating_color, subset="Rating"))  # doctest: +SKIP
+        ...     .map(rating_color, subset="Rating"))  # doctest: +SKIP
 
         All the above styles will work with HTML (see below) and LaTeX upon conversion:
 
@@ -1734,12 +1737,12 @@ class Styler(StylerRenderer):
             if not isinstance(result, DataFrame):
                 if not isinstance(result, np.ndarray):
                     raise TypeError(
-                        f"Function {repr(func)} must return a DataFrame or ndarray "
+                        f"Function {func!r} must return a DataFrame or ndarray "
                         f"when passed to `Styler.apply` with axis=None"
                     )
                 if data.shape != result.shape:
                     raise ValueError(
-                        f"Function {repr(func)} returned ndarray with wrong shape.\n"
+                        f"Function {func!r} returned ndarray with wrong shape.\n"
                         f"Result has shape: {result.shape}\n"
                         f"Expected shape: {data.shape}"
                     )
@@ -1753,12 +1756,12 @@ class Styler(StylerRenderer):
 
         if isinstance(result, Series):
             raise ValueError(
-                f"Function {repr(func)} resulted in the apply method collapsing to a "
+                f"Function {func!r} resulted in the apply method collapsing to a "
                 f"Series.\nUsually, this is the result of the function returning a "
                 f"single value, instead of list-like."
             )
         msg = (
-            f"Function {repr(func)} created invalid {{0}} labels.\nUsually, this is "
+            f"Function {func!r} created invalid {{0}} labels.\nUsually, this is "
             f"the result of the function returning a "
             f"{'Series' if axis is not None else 'DataFrame'} which contains invalid "
             f"labels, or returning an incorrectly shaped, list-like object which "
@@ -1899,9 +1902,9 @@ class Styler(StylerRenderer):
         func="take a Series and return a string array of the same length",
         input_note="the index as a Series, if an Index, or a level of a MultiIndex",
         output_note="an identically sized array of CSS styles as strings",
-        var="s",
-        ret='np.where(s == "B", "background-color: yellow;", "")',
-        ret2='["background-color: yellow;" if "x" in v else "" for v in s]',
+        var="label",
+        ret='np.where(label == "B", "background-color: yellow;", "")',
+        ret2='["background-color: yellow;" if "x" in v else "" for v in label]',
     )
     def apply_index(
         self,
@@ -1964,8 +1967,8 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([np.arange(8)], columns=midx)
         >>> def highlight_x({var}):
         ...     return {ret2}
-        >>> df.style.{this}_index(highlight_x, axis="columns", level=[0, 2])
-        ...  # doctest: +SKIP
+        >>> df.style.{this}_index(
+        ...     highlight_x, axis="columns", level=[0, 2])  # doctest: +SKIP
 
         .. figure:: ../../_static/style/appmaphead2.png
         """
@@ -1987,9 +1990,9 @@ class Styler(StylerRenderer):
         func="take a scalar and return a string",
         input_note="an index value, if an Index, or a level value of a MultiIndex",
         output_note="CSS styles as a string",
-        var="v",
-        ret='"background-color: yellow;" if v == "B" else None',
-        ret2='"background-color: yellow;" if "x" in v else None',
+        var="label",
+        ret='"background-color: yellow;" if label == "B" else None',
+        ret2='"background-color: yellow;" if "x" in label else None',
     )
     def map_index(
         self,
@@ -2326,8 +2329,8 @@ class Styler(StylerRenderer):
 
         To add a title to column `c1`, its `id` is T_20a7d_level0_col0:
 
-        >>> df.style.set_uuid("T_20a7d_level0_col0")
-        ... .set_caption("Test")  # doctest: +SKIP
+        >>> df.style.set_uuid("T_20a7d_level0_col0").set_caption("Test")
+        ... # doctest: +SKIP
 
         Please see:
         `Table visualization <../../user_guide/style.ipynb>`_ for more examples.
@@ -2982,7 +2985,7 @@ class Styler(StylerRenderer):
         Setting a ``gmap`` and applying to all columns with another ``cmap``
 
         >>> df.style.{name}_gradient(axis=0, gmap=df['Temp (c)'], cmap='YlOrRd')
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
 
         .. figure:: ../../_static/style/{image_prefix}_gmap.png
 

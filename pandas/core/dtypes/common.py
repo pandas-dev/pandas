@@ -1548,8 +1548,8 @@ def _validate_date_like_dtype(dtype) -> None:
         raise TypeError(e) from e
     if typ not in ["generic", "ns"]:
         raise ValueError(
-            f"{repr(dtype.name)} is too specific of a frequency, "
-            f"try passing {repr(dtype.type.__name__)}"
+            f"{dtype.name!r} is too specific of a frequency, "
+            f"try passing {dtype.type.__name__!r}"
         )
 
 

@@ -510,6 +510,9 @@ def read_parquet(
     """
     Load a parquet object from the file path, returning a DataFrame.
 
+    The function automatically handles reading the data from a parquet file
+    and creates a DataFrame with the appropriate structure.
+
     Parameters
     ----------
     path : str, path object or file-like object
@@ -591,6 +594,7 @@ def read_parquet(
     Returns
     -------
     DataFrame
+        DataFrame based on parquet file.
 
     See Also
     --------
