@@ -3798,7 +3798,7 @@ class Index(IndexOpsMixin, PandasObject):
                 isinstance(casted_key, abc.Iterable)
                 and any(isinstance(x, slice) for x in casted_key)
             ):
-                raise InvalidIndexError(key)
+                raise InvalidIndexError(key) from err
             raise KeyError(key) from err
         except TypeError:
             # If we have a listlike key, _check_indexing_error will raise
@@ -4711,6 +4711,10 @@ class Index(IndexOpsMixin, PandasObject):
                 except TypeError:
                     pass
 
+        names = other.names if how == "right" else self.names
+        if join_index.names != names:
+            join_index = join_index.set_names(names)
+
         if join_index is self:
             lindexer = None
         else:
@@ -5017,7 +5021,7 @@ class Index(IndexOpsMixin, PandasObject):
                 ridx = self._left_indexer_unique(other)
             else:
                 join_array, lidx, ridx = self._left_indexer(other)
-                join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
+                join_index = self._wrap_joined_index(join_array, other, lidx, ridx, how)
         elif how == "right":
             if self.is_unique:
                 # We can perform much better than the general case
@@ -5026,13 +5030,13 @@ class Index(IndexOpsMixin, PandasObject):
                 ridx = None
             else:
                 join_array, ridx, lidx = other._left_indexer(self)
-                join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
+                join_index = self._wrap_joined_index(join_array, other, lidx, ridx, how)
         elif how == "inner":
             join_array, lidx, ridx = self._inner_indexer(other)
-            join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
+            join_index = self._wrap_joined_index(join_array, other, lidx, ridx, how)
         elif how == "outer":
             join_array, lidx, ridx = self._outer_indexer(other)
-            join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
+            join_index = self._wrap_joined_index(join_array, other, lidx, ridx, how)
 
         lidx = None if lidx is None else ensure_platform_int(lidx)
         ridx = None if ridx is None else ensure_platform_int(ridx)
@@ -5044,21 +5048,22 @@ class Index(IndexOpsMixin, PandasObject):
         other: Self,
         lidx: npt.NDArray[np.intp],
         ridx: npt.NDArray[np.intp],
+        how: JoinHow,
     ) -> Self:
         assert other.dtype == self.dtype
-
+        names = other.names if how == "right" else self.names
         if isinstance(self, ABCMultiIndex):
-            name = self.names if self.names == other.names else None
             # error: Incompatible return value type (got "MultiIndex",
             # expected "Self")
             mask = lidx == -1
             join_idx = self.take(lidx)
             right = cast("MultiIndex", other.take(ridx))
             join_index = join_idx.putmask(mask, right)._sort_levels_monotonic()
-            return join_index.set_names(name)  # type: ignore[return-value]
+            return join_index.set_names(names)  # type: ignore[return-value]
         else:
-            name = get_op_result_name(self, other)
-            return self._constructor._with_infer(joined, name=name, dtype=self.dtype)
+            return self._constructor._with_infer(
+                joined, name=names[0], dtype=self.dtype
+            )
 
     @final
     @cache_readonly
@@ -5750,13 +5755,13 @@ class Index(IndexOpsMixin, PandasObject):
         self._searchsorted_monotonic(label)  # validate sortedness
         try:
             loc = self.get_loc(label)
-        except (KeyError, TypeError):
+        except (KeyError, TypeError) as err:
             # KeyError -> No exact match, try for padded
             # TypeError -> passed e.g. non-hashable, fall through to get
             #  the tested exception message
             indexer = self.get_indexer([label], method="pad")
             if indexer.ndim > 1 or indexer.size > 1:
-                raise TypeError("asof requires scalar valued input")
+                raise TypeError("asof requires scalar valued input") from err
             loc = indexer.item()
             if loc == -1:
                 return self._na_value
@@ -6812,7 +6817,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._searchsorted_monotonic(label, side)
             except ValueError:
                 # raise the original KeyError
-                raise err
+                raise err from None
 
         if isinstance(slc, np.ndarray):
             # get_loc may return a boolean array, which
