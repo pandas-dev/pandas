@@ -973,13 +973,13 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
     # stacked columns.
     if isinstance(frame.index, MultiIndex):
         index_levels = frame.index.levels
-        index_codes = (np.tile(frame.index.codes, (1, ratio)),)
+        index_codes = tuple(np.tile(frame.index.codes, (1, ratio)))
     else:
         codes, uniques = factorize(frame.index, use_na_sentinel=False)
         # Incompatible types in assignment (expression has type
         # "tuple[ndarray[Any, Any] | Index]", variable has type "tuple[Index, ...]")
         index_levels = (uniques,)  # type: ignore[assignment]
-        index_codes = (np.tile(codes, (1, ratio)),)
+        index_codes = tuple(np.tile(codes, (1, ratio)))
     if isinstance(ordered_stack_cols, MultiIndex):
         column_levels = ordered_stack_cols.levels
         column_codes = ordered_stack_cols.drop_duplicates().codes
