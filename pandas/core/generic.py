@@ -576,8 +576,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def _get_axis_number(cls, axis: Axis) -> AxisInt:
         try:
             return cls._AXIS_TO_AXIS_NUMBER[axis]
-        except KeyError:
-            raise ValueError(f"No axis named {axis} for object type {cls.__name__}")
+        except KeyError as err:
+            raise ValueError(
+                f"No axis named {axis} for object type {cls.__name__}"
+            ) from err
 
     @final
     @classmethod
@@ -2997,7 +2999,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3
         >>> from sqlalchemy import text
         >>> with engine.connect() as conn:
-        ...    conn.execute(text("SELECT * FROM users")).fetchall()
+        ...     conn.execute(text("SELECT * FROM users")).fetchall()
         [(0, 'User 1'), (1, 'User 2'), (2, 'User 3')]
 
         An `sqlalchemy.engine.Connection` can also be passed to `con`:
@@ -3014,7 +3016,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df2.to_sql(name='users', con=engine, if_exists='append')
         2
         >>> with engine.connect() as conn:
-        ...    conn.execute(text("SELECT * FROM users")).fetchall()
+        ...     conn.execute(text("SELECT * FROM users")).fetchall()
         [(0, 'User 1'), (1, 'User 2'), (2, 'User 3'),
          (0, 'User 4'), (1, 'User 5'), (0, 'User 6'),
          (1, 'User 7')]
@@ -3025,7 +3027,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...            index_label='id')
         2
         >>> with engine.connect() as conn:
-        ...    conn.execute(text("SELECT * FROM users")).fetchall()
+        ...     conn.execute(text("SELECT * FROM users")).fetchall()
         [(0, 'User 6'), (1, 'User 7')]
 
         Use ``method`` to define a callable insertion method to do nothing
@@ -3038,13 +3040,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...     stmt = insert(table.table).values(data).on_conflict_do_nothing(index_elements=["a"])
         ...     result = conn.execute(stmt)
         ...     return result.rowcount
-        >>> df_conflict.to_sql(name="conflict_table", con=conn, if_exists="append", method=insert_on_conflict_nothing)  # doctest: +SKIP
+        >>> df_conflict.to_sql(name="conflict_table", con=conn, if_exists="append",  # noqa: F821
+        ...                    method=insert_on_conflict_nothing)  # doctest: +SKIP
         0
 
         For MySQL, a callable to update columns ``b`` and ``c`` if there's a conflict
         on a primary key.
 
-        >>> from sqlalchemy.dialects.mysql import insert
+        >>> from sqlalchemy.dialects.mysql import insert   # noqa: F811
         >>> def insert_on_conflict_update(table, conn, keys, data_iter):
         ...     # update columns "b" and "c" on primary key conflict
         ...     data = [dict(zip(keys, row)) for row in data_iter]
@@ -3055,7 +3058,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...     stmt = stmt.on_duplicate_key_update(b=stmt.inserted.b, c=stmt.inserted.c)
         ...     result = conn.execute(stmt)
         ...     return result.rowcount
-        >>> df_conflict.to_sql(name="conflict_table", con=conn, if_exists="append", method=insert_on_conflict_update)  # doctest: +SKIP
+        >>> df_conflict.to_sql(name="conflict_table", con=conn, if_exists="append",  # noqa: F821
+        ...                    method=insert_on_conflict_update)  # doctest: +SKIP
         2
 
         Specify the dtype (especially useful for integers with missing values).
@@ -3076,7 +3080,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3
 
         >>> with engine.connect() as conn:
-        ...   conn.execute(text("SELECT * FROM integers")).fetchall()
+        ...     conn.execute(text("SELECT * FROM integers")).fetchall()
         [(1,), (None,), (2,)]
         """  # noqa: E501
         from pandas.io import sql
@@ -8294,7 +8298,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. deprecated:: 2.1.0
 
-        ``**kwargs`` : optional
+        **kwargs : optional
             Keyword arguments to pass on to the interpolating function.
 
         Returns
@@ -10856,25 +10860,28 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        Same type as caller or None if ``inplace=True``.
+        Series or DataFrame unless ``inplace=True`` in which case
+        returns None.
 
         See Also
         --------
         :func:`DataFrame.{name_other}` : Return an object of same shape as
-            self.
+            caller.
+        :func:`Series.{name_other}` : Return an object of same shape as
+            caller.
 
         Notes
         -----
         The {name} method is an application of the if-then idiom. For each
-        element in the calling DataFrame, if ``cond`` is ``{cond}`` the
-        element is used; otherwise the corresponding element from the DataFrame
+        element in the caller, if ``cond`` is ``{cond}`` the
+        element is used; otherwise the corresponding element from
         ``other`` is used. If the axis of ``other`` does not align with axis of
         ``cond`` {klass}, the values of ``cond`` on misaligned index positions
         will be filled with {cond_rev}.
 
-        The signature for :func:`DataFrame.where` differs from
-        :func:`numpy.where`. Roughly ``df1.where(m, df2)`` is equivalent to
-        ``np.where(m, df1, df2)``.
+        The signature for :func:`Series.where` or
+        :func:`DataFrame.where` differs from :func:`numpy.where`.
+        Roughly ``df1.where(m, df2)`` is equivalent to ``np.where(m, df1, df2)``.
 
         For further details and examples see the ``{name}`` documentation in
         :ref:`indexing <indexing.where_mask>`.
