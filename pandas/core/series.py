@@ -1878,7 +1878,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if not isinstance(result, str):
             raise AssertionError(
                 "result must be of type str, type "
-                f"of result is {repr(type(result).__name__)}"
+                f"of result is {type(result).__name__!r}"
             )
 
         if buf is None:
