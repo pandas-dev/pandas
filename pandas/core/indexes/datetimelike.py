@@ -735,18 +735,20 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             freq = self.freq
         return freq
 
-    def _wrap_joined_index(
+    def _wrap_join_result(
         self,
         joined,
         other,
-        lidx: npt.NDArray[np.intp],
-        ridx: npt.NDArray[np.intp],
+        lidx: npt.NDArray[np.intp] | None,
+        ridx: npt.NDArray[np.intp] | None,
         how: JoinHow,
-    ):
+    ) -> tuple[Self, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         assert other.dtype == self.dtype, (other.dtype, self.dtype)
-        result = super()._wrap_joined_index(joined, other, lidx, ridx, how)
-        result._data._freq = self._get_join_freq(other)
-        return result
+        join_index, lidx, ridx = super()._wrap_join_result(
+            joined, other, lidx, ridx, how
+        )
+        join_index._data._freq = self._get_join_freq(other)
+        return join_index, lidx, ridx
 
     def _get_engine_target(self) -> np.ndarray:
         # engine methods and libjoin methods need dt64/td64 values cast to i8
