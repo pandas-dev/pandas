@@ -279,11 +279,10 @@ def test_idxmin_idxmax_extremes(how, any_real_numpy_dtype):
 
 
 @pytest.mark.parametrize("how", ["idxmin", "idxmax"])
-@pytest.mark.parametrize("dtype", ["float32", "float64"])
-def test_idxmin_idxmax_extremes_skipna(skipna, how, dtype):
+def test_idxmin_idxmax_extremes_skipna(skipna, how, float_numpy_dtype):
     # GH#57040
-    min_value = np.finfo(dtype).min
-    max_value = np.finfo(dtype).max
+    min_value = np.finfo(float_numpy_dtype).min
+    max_value = np.finfo(float_numpy_dtype).max
     df = DataFrame(
         {
             "a": np.repeat(range(1, 6), repeats=2),
@@ -300,7 +299,7 @@ def test_idxmin_idxmax_extremes_skipna(skipna, how, dtype):
                     np.nan,
                     np.nan,
                 ],
-                dtype=dtype,
+                dtype=float_numpy_dtype,
             ),
         },
     )
@@ -314,8 +313,6 @@ def test_idxmin_idxmax_extremes_skipna(skipna, how, dtype):
         values = [1, 3, 4, 6, np.nan]
     else:
         values = np.nan
-    print(df)
-    print(result)
     expected = DataFrame({"b": values}, index=pd.Index(range(1, 6), name="a"))
     tm.assert_frame_equal(result, expected)
 
