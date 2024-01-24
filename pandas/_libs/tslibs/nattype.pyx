@@ -793,7 +793,7 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        tz : str, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding UTC time.
 
@@ -839,7 +839,7 @@ class NaTType(_NaT):
         ----------
         ordinal : int
             Date corresponding to a proleptic Gregorian ordinal.
-        tz : str, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for the Timestamp.
 
         Notes
@@ -1198,7 +1198,7 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        tz : str, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding UTC time.
 
@@ -1245,7 +1245,7 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        tz : str, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, zoneinfo.ZoneInfo, , dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding local time.
 

@@ -1281,7 +1281,7 @@ class Timestamp(_Timestamp):
     hour, minute, second, microsecond : int, optional, default 0
     tzinfo : datetime.tzinfo, optional, default None
     nanosecond : int, optional, default 0
-    tz : str, pytz.timezone, dateutil.tz.tzfile or None
+    tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
         Time zone for time which Timestamp will have.
     unit : str
         Unit used for conversion if ts_input is of type int or float. The
@@ -1343,7 +1343,7 @@ class Timestamp(_Timestamp):
         ----------
         ordinal : int
             Date corresponding to a proleptic Gregorian ordinal.
-        tz : str, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for the Timestamp.
 
         Notes
@@ -2223,7 +2223,7 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        tz : str, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding local time.
 
@@ -2325,7 +2325,7 @@ default 'raise'
 
         Parameters
         ----------
-        tz : str, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding UTC time.
 
