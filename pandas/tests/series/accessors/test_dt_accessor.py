@@ -9,10 +9,13 @@ import unicodedata
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs.timezones import maybe_get_tz
-from pandas.errors import SettingWithCopyError
+from pandas.errors import (
+    AmbiguousTimeError,
+    NonExistentTimeError,
+    SettingWithCopyError,
+)
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -365,7 +368,7 @@ class TestSeriesDatetimeValues:
         tm.assert_series_equal(result, expected)
 
         # raise
-        with tm.external_error_raised(pytz.AmbiguousTimeError):
+        with tm.external_error_raised(AmbiguousTimeError):
             getattr(df1.date.dt, method)("h", ambiguous="raise")
 
     @pytest.mark.parametrize(
@@ -387,7 +390,7 @@ class TestSeriesDatetimeValues:
         expected = Series([pd.NaT]).dt.tz_localize(result.dt.tz)
         tm.assert_series_equal(result, expected)
 
-        with pytest.raises(pytz.NonExistentTimeError, match="2018-03-11 02:00:00"):
+        with pytest.raises(NonExistentTimeError, match="2018-03-11 02:00:00"):
             getattr(ser.dt, method)(freq, nonexistent="raise")
 
     @pytest.mark.parametrize("freq", ["ns", "us", "1000us"])

@@ -1,17 +1,15 @@
 from datetime import timedelta
 import re
-from zoneinfo import ZoneInfo
 
 from dateutil.tz import gettz
 import pytest
-import pytz
-from pytz.exceptions import (
-    AmbiguousTimeError,
-    NonExistentTimeError,
-)
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
-from pandas.errors import OutOfBoundsDatetime
+from pandas.errors import (
+    AmbiguousTimeError,
+    NonExistentTimeError,
+    OutOfBoundsDatetime,
+)
 
 from pandas import (
     NaT,
@@ -45,28 +43,28 @@ class TestTimestampTZLocalize:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp.max.tz_localize("US/Pacific")
 
-    def test_tz_localize_ambiguous_bool(self, unit):
+    @pytest.mark.parameterize(
+        "tz", ["US/Central", "dateutil/US/Central", "pytz/US/Central"]
+    )
+    def test_tz_localize_ambiguous_bool(self, unit, tz):
         # make sure that we are correctly accepting bool values as ambiguous
         # GH#14402
+        if isinstance(tz, str) and tz.startswith("pytz/"):
+            pytz = pytest.importorskip("pytz")
+            tz = pytz.timezone(tz.removeprefix("pytz/"))
         ts = Timestamp("2015-11-01 01:00:03").as_unit(unit)
-        expected0 = Timestamp("2015-11-01 01:00:03-0500", tz="US/Central")
-        expected1 = Timestamp("2015-11-01 01:00:03-0600", tz="US/Central")
+        expected0 = Timestamp("2015-11-01 01:00:03-0500", tz=tz)
+        expected1 = Timestamp("2015-11-01 01:00:03-0600", tz=tz)
 
         msg = "Cannot infer dst time from 2015-11-01 01:00:03"
-        with pytest.raises(pytz.AmbiguousTimeError, match=msg):
-            ts.tz_localize("US/Central")
+        with pytest.raises(AmbiguousTimeError, match=msg):
+            ts.tz_localize(tz)
 
-        with pytest.raises(pytz.AmbiguousTimeError, match=msg):
-            ts.tz_localize("dateutil/US/Central")
-
-        with pytest.raises(pytz.AmbiguousTimeError, match=msg):
-            ts.tz_localize(ZoneInfo("US/Central"))
-
-        result = ts.tz_localize("US/Central", ambiguous=True)
+        result = ts.tz_localize(tz, ambiguous=True)
         assert result == expected0
         assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
-        result = ts.tz_localize("US/Central", ambiguous=False)
+        result = ts.tz_localize(tz, ambiguous=False)
         assert result == expected1
         assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
@@ -193,9 +191,10 @@ class TestTimestampTZLocalize:
     def test_tz_localize_ambiguous_compat(self):
         # validate that pytz and dateutil are compat for dst
         # when the transition happens
+        pytz = pytest.importorskip("pytz")
         naive = Timestamp("2013-10-27 01:00:00")
 
-        pytz_zone = "Europe/London"
+        pytz_zone = pytz.timezone("Europe/London")
         dateutil_zone = "dateutil/Europe/London"
         result_pytz = naive.tz_localize(pytz_zone, ambiguous=False)
         result_dateutil = naive.tz_localize(dateutil_zone, ambiguous=False)
@@ -224,13 +223,16 @@ class TestTimestampTZLocalize:
     @pytest.mark.parametrize(
         "tz",
         [
-            pytz.timezone("US/Eastern"),
+            "pytz/US/Eastern",
             gettz("US/Eastern"),
             "US/Eastern",
             "dateutil/US/Eastern",
         ],
     )
     def test_timestamp_tz_localize(self, tz):
+        if isinstance(tz, str) and tz.startswith("pytz/"):
+            pytz = pytest.importorskip("pytz")
+            tz = pytz.timezone(tz.removeprefix("pytz/"))
         stamp = Timestamp("3/11/2012 04:00")
 
         result = stamp.tz_localize(tz)
@@ -325,7 +327,7 @@ class TestTimestampTZLocalize:
         tz = warsaw
         ts = Timestamp("2015-03-29 02:20:00").as_unit(unit)
         msg = "2015-03-29 02:20:00"
-        with pytest.raises(pytz.NonExistentTimeError, match=msg):
+        with pytest.raises(NonExistentTimeError, match=msg):
             ts.tz_localize(tz, nonexistent="raise")
         msg = (
             "The nonexistent argument must be one of 'raise', 'NaT', "

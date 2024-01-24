@@ -8,6 +8,8 @@ import ctypes
 from pandas._config.config import OptionError
 
 from pandas._libs.tslibs import (
+    AmbiguousTimeError,
+    NonExistentTimeError,
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
 )
@@ -829,6 +831,7 @@ class InvalidComparison(Exception):
 
 __all__ = [
     "AbstractMethodError",
+    "AmbiguousTimeError",
     "AttributeConflictWarning",
     "CategoricalConversionWarning",
     "ClosedFileError",
@@ -848,6 +851,7 @@ __all__ = [
     "LossySetitemError",
     "MergeError",
     "NoBufferPresent",
+    "NonExistentTimeError",
     "NullFrequencyError",
     "NumbaUtilError",
     "NumExprClobberingError",

@@ -24,6 +24,7 @@ Exceptions and warnings
 .. autosummary::
    :toctree: api/
 
+   errors.AmbiguousTimeError
    errors.AbstractMethodError
    errors.AttributeConflictWarning
    errors.CategoricalConversionWarning
@@ -45,6 +46,7 @@ Exceptions and warnings
    errors.LossySetitemError
    errors.MergeError
    errors.NoBufferPresent
+   errors.NonExistentTimeError
    errors.NullFrequencyError
    errors.NumbaUtilError
    errors.NumExprClobberingError

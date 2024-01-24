@@ -1,6 +1,7 @@
+import datetime
+
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs import (
     Resolution,
@@ -23,7 +24,7 @@ def test_get_resolution_non_nano_data():
     res = get_resolution(arr, None, NpyDatetimeUnit.NPY_FR_us.value)
     assert res == Resolution.RESO_US
 
-    res = get_resolution(arr, pytz.UTC, NpyDatetimeUnit.NPY_FR_us.value)
+    res = get_resolution(arr, datetime.timezone.utc, NpyDatetimeUnit.NPY_FR_us.value)
     assert res == Resolution.RESO_US
 
 

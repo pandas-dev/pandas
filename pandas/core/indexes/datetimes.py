@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
-import pytz
 
 from pandas._libs import (
     NaT,
@@ -24,6 +23,7 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.offsets import prefix_mapping
+from pandas.errors import NonExistentTimeError
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -148,7 +148,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         One of pandas date offset strings or corresponding objects. The string
         'infer' can be passed in order to set the frequency of the index as the
         inferred frequency upon creation.
-    tz : pytz.timezone or dateutil.tz.tzfile or datetime.tzinfo or str
+    tz : zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or str
         Set the Timezone of the data.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
@@ -601,7 +601,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         elif isinstance(key, str):
             try:
                 parsed, reso = self._parse_with_reso(key)
-            except (ValueError, pytz.NonExistentTimeError) as err:
+            except (ValueError, NonExistentTimeError) as err:
                 raise KeyError(key) from err
             self._disallow_mismatched_indexing(parsed)
 

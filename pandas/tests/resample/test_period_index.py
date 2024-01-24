@@ -1,10 +1,12 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+    timezone,
+)
 import warnings
 
 import dateutil
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs.ccalendar import (
     DAYS,
@@ -311,7 +313,7 @@ class TestPeriodIndex:
     @pytest.mark.parametrize(
         "tz",
         [
-            pytz.timezone("America/Los_Angeles"),
+            "America/Los_Angeles",
             dateutil.tz.gettz("America/Los_Angeles"),
         ],
     )
@@ -319,9 +321,13 @@ class TestPeriodIndex:
         # see gh-5430
         local_timezone = tz
 
-        start = datetime(year=2013, month=11, day=1, hour=0, minute=0, tzinfo=pytz.utc)
+        start = datetime(
+            year=2013, month=11, day=1, hour=0, minute=0, tzinfo=timezone.utc
+        )
         # 1 day later
-        end = datetime(year=2013, month=11, day=2, hour=0, minute=0, tzinfo=pytz.utc)
+        end = datetime(
+            year=2013, month=11, day=2, hour=0, minute=0, tzinfo=timezone.utc
+        )
 
         index = date_range(start, end, freq="h", name="idx")
 
@@ -343,7 +349,7 @@ class TestPeriodIndex:
     @pytest.mark.parametrize(
         "tz",
         [
-            pytz.timezone("America/Los_Angeles"),
+            "America/Los_Angeles",
             dateutil.tz.gettz("America/Los_Angeles"),
         ],
     )
@@ -360,7 +366,7 @@ class TestPeriodIndex:
             index=exp_dti,
         )
         tm.assert_series_equal(result, expected)
-        # Especially assert that the timezone is LMT for pytz
+        # Especially assert that the timezone is LMT
         assert result.index.tz == tz
 
     def test_resample_nonexistent_time_bin_edge(self):

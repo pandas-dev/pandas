@@ -4,7 +4,6 @@ Tests for DateOffset additions over Daylight Savings Time
 from datetime import timedelta
 
 import pytest
-import pytz
 
 from pandas._libs.tslibs import Timestamp
 from pandas._libs.tslibs.offsets import (
@@ -29,14 +28,13 @@ from pandas._libs.tslibs.offsets import (
     YearBegin,
     YearEnd,
 )
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    AmbiguousTimeError,
+    PerformanceWarning,
+)
 
 from pandas import DatetimeIndex
 import pandas._testing as tm
-from pandas.util.version import Version
-
-# error: Module has no attribute "__version__"
-pytz_version = Version(pytz.__version__)  # type: ignore[attr-defined]
 
 
 def get_utc_offset_hours(ts):
@@ -98,13 +96,13 @@ class TestDST:
                 "second": "2013-11-03 01:59:01.999999",
                 "microsecond": "2013-11-03 01:59:59.000001",
             }[offset_name]
-            with pytest.raises(pytz.AmbiguousTimeError, match=err_msg):
+            with pytest.raises(AmbiguousTimeError, match=err_msg):
                 tstart + offset
             # While we're here, let's check that we get the same behavior in a
             #  vectorized path
             dti = DatetimeIndex([tstart])
             warn_msg = "Non-vectorized DateOffset"
-            with pytest.raises(pytz.AmbiguousTimeError, match=err_msg):
+            with pytest.raises(AmbiguousTimeError, match=err_msg):
                 with tm.assert_produces_warning(PerformanceWarning, match=warn_msg):
                     dti + offset
             return
@@ -219,10 +217,6 @@ class TestDST:
             Timestamp("1905-07-01"),
             MonthBegin(66),
             "Africa/Lagos",
-            marks=pytest.mark.xfail(
-                pytz_version < Version("2020.5") or pytz_version == Version("2022.2"),
-                reason="GH#41906: pytz utc transition dates changed",
-            ),
         ),
         (
             Timestamp("2021-10-01 01:15"),
@@ -256,5 +250,5 @@ def test_nontick_offset_with_ambiguous_time_error(original_dt, target_dt, offset
     localized_dt = original_dt.tz_localize(tz)
 
     msg = f"Cannot infer dst time from {target_dt}, try using the 'ambiguous' argument"
-    with pytest.raises(pytz.AmbiguousTimeError, match=msg):
+    with pytest.raises(AmbiguousTimeError, match=msg):
         localized_dt + offset

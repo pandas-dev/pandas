@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from datetime import timedelta
 import operator
-from zoneinfo import ZoneInfo
 
 import numpy as np
 import pytest
@@ -719,10 +718,13 @@ class TestDatetimeArray:
         tm.assert_datetime_array_equal(roundtrip, dta)
 
     @pytest.mark.parametrize(
-        "tz", ["US/Eastern", "dateutil/US/Eastern", ZoneInfo("US/Eastern")]
+        "tz", ["US/Eastern", "dateutil/US/Eastern", "pytz/US/Eastern"]
     )
     def test_iter_zoneinfo_fold(self, tz):
         # GH#49684
+        if tz.startswith("pytz/"):
+            pytz = pytest.importorskip("pytz")
+            tz = pytz.timezone(tz.removeprefix("pytz/"))
         utc_vals = np.array(
             [1320552000, 1320555600, 1320559200, 1320562800], dtype=np.int64
         )

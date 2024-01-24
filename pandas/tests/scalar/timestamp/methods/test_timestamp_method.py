@@ -1,7 +1,7 @@
 # NB: This is for the Timestamp.timestamp *method* specifically, not
 # the Timestamp class in general.
 
-from pytz import utc
+from datetime.timezone import utc
 
 from pandas._libs.tslibs import Timestamp
 import pandas.util._test_decorators as td

@@ -43,10 +43,6 @@ import hypothesis
 from hypothesis import strategies as st
 import numpy as np
 import pytest
-from pytz import (
-    FixedOffset,
-    utc,
-)
 
 from pandas._config.config import _get_option
 
@@ -94,7 +90,10 @@ else:
     del pa
     has_pyarrow = True
 
-import zoneinfo
+try:
+    import pytz
+except ImportError:
+    pytz = None
 
 # ----------------------------------------------------------------
 # Configuration / Settings
@@ -1202,15 +1201,21 @@ TIMEZONES = [
     "UTC-02:15",
     tzutc(),
     tzlocal(),
-    FixedOffset(300),
-    FixedOffset(0),
-    FixedOffset(-300),
     timezone.utc,
     timezone(timedelta(hours=1)),
     timezone(timedelta(hours=-1), name="foo"),
-    zoneinfo.ZoneInfo("US/Pacific"),
-    zoneinfo.ZoneInfo("UTC"),
 ]
+
+if pytz is not None:
+    TIMEZONES.extend(
+        (
+            pytz.FixedOffset(300),
+            pytz.FixedOffset(0),
+            pytz.FixedOffset(-300),
+            pytz.timezone("US/Pacific"),
+            pytz.timezone("UTC"),
+        )
+    )
 TIMEZONE_IDS = [repr(i) for i in TIMEZONES]
 
 
@@ -1236,9 +1241,13 @@ def tz_aware_fixture(request):
 tz_aware_fixture2 = tz_aware_fixture
 
 
-@pytest.fixture(
-    params=["utc", "dateutil/UTC", utc, tzutc(), timezone.utc, zoneinfo.ZoneInfo("UTC")]
-)
+_UTC = ["UTC", "utc", "dateutil/UTC", tzutc(), timezone.utc]
+
+if pytz is not None:
+    _UTC.append(pytz.utc)
+
+
+@pytest.fixture(params=_UTC)
 def utc_fixture(request):
     """
     Fixture to provide variants of UTC timezone strings and tzinfo objects.
@@ -1944,13 +1953,13 @@ def using_infer_string() -> bool:
     return pd.options.future.infer_string is True
 
 
-@pytest.fixture(
-    params=[
-        "Europe/Warsaw",
-        "dateutil/Europe/Warsaw",
-        zoneinfo.ZoneInfo("Europe/Warsaw"),
-    ]
-)
+_warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
+
+if pytz is not None:
+    _warsaws.append(pytz.timezone("Europe/Warsaw"))
+
+
+@pytest.fixture(params=_warsaws)
 def warsaw(request) -> str:
     """
     tzinfo for Europe/Warsaw using pytz, dateutil, or zoneinfo.

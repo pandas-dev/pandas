@@ -3,7 +3,6 @@ from datetime import datetime
 import dateutil
 import numpy as np
 import pytest
-import pytz
 
 import pandas as pd
 from pandas import (
@@ -251,6 +250,8 @@ class TestDatetimeIndex:
         _check_rng(rng_utc)
 
     def test_index_convert_to_datetime_array_explicit_pytz(self):
+        pytz = pytest.importorskip("pytz")
+
         def _check_rng(rng):
             converted = rng.to_pydatetime()
             assert isinstance(converted, np.ndarray)

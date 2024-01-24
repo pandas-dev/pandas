@@ -2326,7 +2326,7 @@ Time zone handling
 ------------------
 
 pandas provides rich support for working with timestamps in different time
-zones using the ``pytz`` and ``dateutil`` libraries or :class:`datetime.timezone`
+zones using the ``zoneinfo``, ``pytz``, ``dateutil`` libraries or :class:`datetime.timezone`
 objects from the standard library.
 
 
@@ -2343,10 +2343,12 @@ By default, pandas objects are time zone unaware:
 To localize these dates to a time zone (assign a particular time zone to a naive date),
 you can use the ``tz_localize`` method or the ``tz`` keyword argument in
 :func:`date_range`, :class:`Timestamp`, or :class:`DatetimeIndex`.
-You can either pass ``pytz`` or ``dateutil`` time zone objects or Olson time zone database strings.
-Olson time zone strings will return ``pytz`` time zone objects by default.
+You can either pass ``zoneinfo``, ``pytz`` or ``dateutil`` time zone objects or Olson time zone database strings.
+Olson time zone strings will return ``zoneinfo.ZoneInfo`` time zone objects by default.
 To return ``dateutil`` time zone objects, append ``dateutil/`` before the string.
 
+* For ``zoneinfo``, a list of available timezones are available from
+``zoneinfo.available_timezones()``.
 * In ``pytz`` you can find a list of common (and less common) time zones using
   ``from pytz import common_timezones, all_timezones``.
 * ``dateutil`` uses the OS time zones so there isn't a fixed list available. For
@@ -2556,7 +2558,7 @@ Ambiguous times when localizing
 because daylight savings time (DST) in a local time zone causes some times to occur
 twice within one day ("clocks fall back"). The following options are available:
 
-* ``'raise'``: Raises a ``pytz.AmbiguousTimeError`` (the default behavior)
+* ``'raise'``: Raises an :class:`errors.AmbiguousTimeError` (the default behavior)
 * ``'infer'``: Attempt to determine the correct offset base on the monotonicity of the timestamps
 * ``'NaT'``: Replaces ambiguous times with ``NaT``
 * ``bool``: ``True`` represents a DST time, ``False`` represents non-DST time. An array-like of ``bool`` values is supported for a sequence of times.
@@ -2591,7 +2593,7 @@ A DST transition may also shift the local time ahead by 1 hour creating nonexist
 local times ("clocks spring forward"). The behavior of localizing a timeseries with nonexistent times
 can be controlled by the ``nonexistent`` argument. The following options are available:
 
-* ``'raise'``: Raises a ``pytz.NonExistentTimeError`` (the default behavior)
+* ``'raise'``: Raises a :class:`errors.NonExistentTimeError` (the default behavior)
 * ``'NaT'``: Replaces nonexistent times with ``NaT``
 * ``'shift_forward'``: Shifts nonexistent times forward to the closest real time
 * ``'shift_backward'``: Shifts nonexistent times backward to the closest real time

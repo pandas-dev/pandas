@@ -1,7 +1,7 @@
 from datetime import datetime
+import zoneinfo
 
 import pytest
-import pytz
 
 from pandas.errors import NullFrequencyError
 
@@ -12,8 +12,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-
-START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
 class TestDatetimeIndexShift:
@@ -122,8 +120,7 @@ class TestDatetimeIndexShift:
     )
     def test_dti_shift_near_midnight(self, shift, result_time, unit):
         # GH 8616
-        dt = datetime(2014, 11, 14, 0)
-        dt_est = pytz.timezone("EST").localize(dt)
+        dt_est = datetime(2014, 11, 14, 0).astimezone(zoneinfo.ZoneInfo("US/Eastern"))
         idx = DatetimeIndex([dt_est]).as_unit(unit)
         ser = Series(data=[1], index=idx)
         result = ser.shift(shift, freq="h")
@@ -133,13 +130,17 @@ class TestDatetimeIndexShift:
 
     def test_shift_periods(self, unit):
         # GH#22458 : argument 'n' was deprecated in favor of 'periods'
-        idx = date_range(start=START, end=END, periods=3, unit=unit)
+        idx = date_range(
+            start=datetime(2009, 1, 1), end=datetime(2010, 1, 1), periods=3, unit=unit
+        )
         tm.assert_index_equal(idx.shift(periods=0), idx)
         tm.assert_index_equal(idx.shift(0), idx)
 
     @pytest.mark.parametrize("freq", ["B", "C"])
     def test_shift_bday(self, freq, unit):
-        rng = date_range(START, END, freq=freq, unit=unit)
+        rng = date_range(
+            datetime(2009, 1, 1), datetime(2010, 1, 1), freq=freq, unit=unit
+        )
         shifted = rng.shift(5)
         assert shifted[0] == rng[5]
         assert shifted.freq == rng.freq
@@ -153,11 +154,21 @@ class TestDatetimeIndexShift:
         assert shifted.freq == rng.freq
 
     def test_shift_bmonth(self, unit):
-        rng = date_range(START, END, freq=pd.offsets.BMonthEnd(), unit=unit)
+        rng = date_range(
+            datetime(2009, 1, 1),
+            datetime(2010, 1, 1),
+            freq=pd.offsets.BMonthEnd(),
+            unit=unit,
+        )
         shifted = rng.shift(1, freq=pd.offsets.BDay())
         assert shifted[0] == rng[0] + pd.offsets.BDay()
 
-        rng = date_range(START, END, freq=pd.offsets.BMonthEnd(), unit=unit)
+        rng = date_range(
+            datetime(2009, 1, 1),
+            datetime(2010, 1, 1),
+            freq=pd.offsets.BMonthEnd(),
+            unit=unit,
+        )
         with tm.assert_produces_warning(pd.errors.PerformanceWarning):
             shifted = rng.shift(1, freq=pd.offsets.CDay())
             assert shifted[0] == rng[0] + pd.offsets.CDay()

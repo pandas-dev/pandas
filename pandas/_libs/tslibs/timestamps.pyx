@@ -2422,13 +2422,13 @@ default 'raise'
 
         Replace timezone (not a conversion):
 
-        >>> import pytz
-        >>> ts.replace(tzinfo=pytz.timezone('US/Pacific'))
+        >>> import zoneinfo
+        >>> ts.replace(tzinfo=zoneinfo.Zoneinfo('US/Pacific'))
         Timestamp('2020-03-14 15:32:52.192548651-0700', tz='US/Pacific')
 
         Analogous for ``pd.NaT``:
 
-        >>> pd.NaT.replace(tzinfo=pytz.timezone('US/Pacific'))
+        >>> pd.NaT.replace(tzinfo=zoneinfo.Zoneinfo('US/Pacific'))
         NaT
         """
 

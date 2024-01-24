@@ -1,4 +1,6 @@
 __all__ = [
+    "AmbiguousTimeError",
+    "NonExistentTimeError",
     "dtypes",
     "localize_pydatetime",
     "NaT",
@@ -76,7 +78,11 @@ from pandas._libs.tslibs.timedeltas import (
 )
 from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._libs.tslibs.tzconversion import tz_convert_from_utc_single
+from pandas._libs.tslibs.tzconversion import (
+    AmbiguousTimeError,
+    NonExistentTimeError,
+    tz_convert_from_utc_single,
+)
 from pandas._libs.tslibs.vectorized import (
     dt64arr_to_periodarr,
     get_resolution,

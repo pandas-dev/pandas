@@ -11,8 +11,6 @@ import re
 
 import numpy as np
 import pytest
-import pytz
-from pytz import timezone
 
 from pandas._libs.tslibs import timezones
 from pandas._libs.tslibs.offsets import (
@@ -34,6 +32,7 @@ from pandas import (
     Timestamp,
     bdate_range,
     date_range,
+    errors,
     offsets,
 )
 import pandas._testing as tm
@@ -97,6 +96,7 @@ class TestTimestampEquivDateRange:
         assert ts == stamp
 
     def test_date_range_timestamp_equiv_explicit_pytz(self):
+        pytz = pytest.importorskip("pytz")
         rng = date_range("20090415", "20090519", tz=pytz.timezone("US/Eastern"))
         stamp = rng[0]
 
@@ -504,7 +504,8 @@ class TestDateRanges:
 
     def test_range_tz_pytz(self):
         # see gh-2906
-        tz = timezone("US/Eastern")
+        pytz = pytest.importorskip("pytz")
+        tz = pytz.timezone("US/Eastern")
         start = tz.localize(datetime(2011, 1, 1))
         end = tz.localize(datetime(2011, 1, 3))
 
@@ -531,14 +532,16 @@ class TestDateRanges:
         ],
     )
     def test_range_tz_dst_straddle_pytz(self, start, end):
-        start = Timestamp(start, tz="US/Eastern")
-        end = Timestamp(end, tz="US/Eastern")
+        pytz = pytest.importorskip("pytz")
+        tz = pytz.timezone("US/Eastern")
+        start = Timestamp(start, tz=tz)
+        end = Timestamp(end, tz=tz)
         dr = date_range(start, end, freq="D")
         assert dr[0] == start
         assert dr[-1] == end
         assert np.all(dr.hour == 0)
 
-        dr = date_range(start, end, freq="D", tz="US/Eastern")
+        dr = date_range(start, end, freq="D", tz=tz)
         assert dr[0] == start
         assert dr[-1] == end
         assert np.all(dr.hour == 0)
@@ -547,7 +550,7 @@ class TestDateRanges:
             start.replace(tzinfo=None),
             end.replace(tzinfo=None),
             freq="D",
-            tz="US/Eastern",
+            tz=tz,
         )
         assert dr[0] == start
         assert dr[-1] == end
@@ -906,7 +909,7 @@ class TestDateRangeTZ:
         # construction with an ambiguous end-point
         # GH#11626
 
-        with pytest.raises(pytz.AmbiguousTimeError, match="Cannot infer dst time"):
+        with pytest.raises(errors.AmbiguousTimeError, match="Cannot infer dst time"):
             date_range(
                 "2013-10-26 23:00", "2013-10-27 01:00", tz="Europe/London", freq="h"
             )
@@ -930,7 +933,7 @@ class TestDateRangeTZ:
     def test_date_range_nonexistent_endpoint(self, tz, option, expected):
         # construction with an nonexistent end-point
 
-        with pytest.raises(pytz.NonExistentTimeError, match="2019-03-10 02:00:00"):
+        with pytest.raises(errors.NonExistentTimeError, match="2019-03-10 02:00:00"):
             date_range(
                 "2019-03-10 00:00", "2019-03-10 02:00", tz="US/Pacific", freq="h"
             )
