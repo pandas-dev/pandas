@@ -37,6 +37,16 @@ If you would prefer to keep the ``NA`` values you can manually fill them with ``
 
    s[mask.fillna(True)]
 
+Note that when creating a new column with only :attr:`pandas.NA` values,
+its dtype will be ``"object"``, since the value is also used for
+:ref:`nullable integers <integer_na>`.
+
+.. ipython:: python
+
+   df = pd.DataFrame()
+   df['objects'] = pd.NA
+   df.dtypes
+
 .. _boolean.kleene:
 
 Kleene logical operations

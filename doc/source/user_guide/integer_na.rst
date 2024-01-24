@@ -84,6 +84,16 @@ with the dtype.
    In the future, we may provide an option for :class:`Series` to infer a
    nullable-integer dtype.
 
+Note that when creating a new column with only :attr:`pandas.NA` values,
+its dtype will be ``"object"``, since the value is also used for
+:ref:`booleans <booleans>`.
+
+.. ipython:: python
+
+   df = pd.DataFrame()
+   df['objects'] = pd.NA
+   df.dtypes
+
 Operations
 ----------
 
