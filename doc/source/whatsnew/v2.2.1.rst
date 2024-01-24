@@ -14,6 +14,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in :func:`merge_ordered` raising ``TypeError`` for ``fill_method="ffill"`` and ``how="left"`` (:issue:`57010`)
+- Fixed regression in :meth:`Series.pct_change` raising a ``ValueError`` for an empty :class:`Series` (:issue:`57056`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_221.bug_fixes:
