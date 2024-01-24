@@ -133,13 +133,7 @@ cloning the git repo), execute:
 pip install .
 ```
 
-or for installing in [development mode](https://pip.pypa.io/en/latest/cli/pip_install/#install-editable):
-
-
-```sh
-python -m pip install -r requirements-dev.txt
-python -m pip install -ve . --no-build-isolation --config-settings=editable-verbose=true
-```
+or for installing in [development mode](https://pip.pypa.io/en/latest/cli/pip_install/#install-editable).
 
 See the full instructions for [installing from source](https://pandas.pydata.org/docs/dev/development/contributing_environment.html).
 
