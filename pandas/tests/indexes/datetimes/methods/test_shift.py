@@ -120,11 +120,12 @@ class TestDatetimeIndexShift:
     )
     def test_dti_shift_near_midnight(self, shift, result_time, unit):
         # GH 8616
-        dt_est = datetime(2014, 11, 14, 0).astimezone(zoneinfo.ZoneInfo("US/Eastern"))
+        tz = zoneinfo.ZoneInfo("US/Eastern")
+        dt_est = datetime(2014, 11, 14, 0, tzinfo=tz)
         idx = DatetimeIndex([dt_est]).as_unit(unit)
         ser = Series(data=[1], index=idx)
         result = ser.shift(shift, freq="h")
-        exp_index = DatetimeIndex([result_time], tz="EST").as_unit(unit)
+        exp_index = DatetimeIndex([result_time], tz=tz).as_unit(unit)
         expected = Series(1, index=exp_index)
         tm.assert_series_equal(result, expected)
 

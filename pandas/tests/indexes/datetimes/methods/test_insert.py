@@ -134,7 +134,12 @@ class TestInsert:
         assert result.freq is None
 
     @pytest.mark.parametrize("tz", ["US/Pacific", "Asia/Singapore"])
-    def test_insert4(self, unit, tz):
+    @pytest.mark.parametrize(
+        "to_ts",
+        [lambda x: x, lambda x: x.to_pydatetime()],
+        ids=["Timestamp", "datetime"],
+    )
+    def test_insert4(self, unit, tz, to_ts):
         idx = date_range(
             "1/1/2000 09:00", periods=6, freq="h", tz=tz, name="idx", unit=unit
         )
@@ -142,16 +147,24 @@ class TestInsert:
         expected = date_range(
             "1/1/2000 09:00", periods=7, freq="h", tz=tz, name="idx", unit=unit
         )
-        for d in [
-            Timestamp("2000-01-01 15:00", tz=tz),
-            datetime(2000, 1, 1, 15).astimezone(zoneinfo.ZoneInfo(tz)),
-        ]:
-            result = idx.insert(6, d)
-            tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
-            assert result.freq == expected.freq
-            assert result.tz == expected.tz
+        tz = zoneinfo.ZoneInfo(tz)
+        d = to_ts(Timestamp("2000-01-01 15:00", tz=tz))
+        result = idx.insert(6, d)
+        tm.assert_index_equal(result, expected)
+        assert result.name == expected.name
+        assert result.freq == expected.freq
+        assert result.tz == expected.tz
 
+    @pytest.mark.parametrize("tz", ["US/Pacific", "Asia/Singapore"])
+    @pytest.mark.parametrize(
+        "to_ts",
+        [lambda x: x, lambda x: x.to_pydatetime()],
+        ids=["Timestamp", "datetime"],
+    )
+    def test_insert4_no_freq(self, unit, tz, to_ts):
+        idx = date_range(
+            "1/1/2000 09:00", periods=6, freq="h", tz=tz, name="idx", unit=unit
+        )
         expected = DatetimeIndex(
             [
                 "2000-01-01 09:00",
@@ -167,15 +180,12 @@ class TestInsert:
             freq=None,
         ).as_unit(unit)
         # reset freq to None
-        for d in [
-            Timestamp("2000-01-01 10:00", tz=tz),
-            datetime(2000, 1, 1, 10).astimezone(zoneinfo.ZoneInfo(tz)),
-        ]:
-            result = idx.insert(6, d)
-            tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
-            assert result.tz == expected.tz
-            assert result.freq is None
+        d = to_ts(Timestamp("2000-01-01 10:00", tz=tz))
+        result = idx.insert(6, d)
+        tm.assert_index_equal(result, expected)
+        assert result.name == expected.name
+        assert result.tz == expected.tz
+        assert result.freq is None
 
     # TODO: also changes DataFrame.__setitem__ with expansion
     def test_insert_mismatched_tzawareness(self):

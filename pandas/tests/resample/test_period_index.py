@@ -366,8 +366,6 @@ class TestPeriodIndex:
             index=exp_dti,
         )
         tm.assert_series_equal(result, expected)
-        # Especially assert that the timezone is LMT
-        assert result.index.tz == tz
 
     def test_resample_nonexistent_time_bin_edge(self):
         # GH 19375

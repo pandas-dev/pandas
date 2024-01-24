@@ -59,6 +59,10 @@ from pandas._libs.tslibs.np_datetime cimport (
 import_pandas_datetime()
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs.tzconversion import (
+    AmbiguousTimeError,
+    NonExistentTimeError,
+)
 
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
@@ -69,6 +73,7 @@ from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timezones cimport (
     get_utcoffset,
     is_utc,
+    treat_tz_as_pytz,
 )
 from pandas._libs.tslibs.tzconversion cimport (
     Localizer,
@@ -742,11 +747,18 @@ cdef datetime _localize_pydatetime(datetime dt, tzinfo tz):
         identically, i.e. discards nanos from Timestamps.
         It also assumes that the `tz` input is not None.
     """
-    try:
-        # datetime.replace with pytz may be incorrect result
-        # TODO: try to respect `fold` attribute
-        return tz.localize(dt, is_dst=None)
-    except AttributeError:
+    if treat_tz_as_pytz(tz):
+        import pytz
+        try:
+            # datetime.replace with pytz may be incorrect result
+            # TODO: try to respect `fold` attribute
+            return tz.localize(dt, is_dst=None)
+        except (pytz.AmbiguousTimeError, pytz.NonExistentTimeError) as err:
+            if isinstance(err, pytz.AmbiguousTimeError):
+                raise AmbiguousTimeError(str(err)) from err
+            else:
+                raise NonExistentTimeError(str(err)) from err
+    else:
         return dt.replace(tzinfo=tz)
 
 

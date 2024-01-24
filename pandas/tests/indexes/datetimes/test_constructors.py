@@ -175,7 +175,7 @@ class TestDatetimeIndex:
                 "dtns": date_range("20130101", periods=3, freq="ns"),
             }
         )
-        assert df.dttz.dtype.tz.zone == "US/Eastern"
+        assert df.dttz.dtype.tz.key == "US/Eastern"
 
     @pytest.mark.parametrize(
         "kwargs",
@@ -212,7 +212,7 @@ class TestDatetimeIndex:
         # incompat tz/dtype
         msg = "cannot supply both a tz and a dtype with a tz"
         with pytest.raises(ValueError, match=msg):
-            DatetimeIndex(i.tz_localize(None).asi8, dtype=i.dtype, tz="US/Pacific")
+            DatetimeIndex(i.tz_localize(None).asi8, dtype=i.dtype, tz="US/Hawaii")
 
     def test_construction_index_with_mixed_timezones(self):
         # gh-11488: no tz results in DatetimeIndex

@@ -133,7 +133,7 @@ def test_holiday_dates(holiday, start_date, end_date, expected):
         holiday.dates(
             Timestamp(start_date, tz=timezone.utc), Timestamp(end_date, tz=timezone.utc)
         )
-    ) == [dt.astimezone(timezone.utc) for dt in expected]
+    ) == [dt.replace(tzinfo=timezone.utc) for dt in expected]
 
 
 @pytest.mark.parametrize(

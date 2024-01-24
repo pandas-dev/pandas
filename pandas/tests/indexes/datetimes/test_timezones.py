@@ -201,7 +201,7 @@ class TestDatetimeIndexTimezones:
         rng_eastern = rng.tz_convert(tzstr)
         # test not valid for dateutil timezones.
         # assert 'EDT' in repr(rng_eastern[0].tzinfo)
-        assert "EDT" in repr(rng_eastern[0].tzinfo) or "tzfile" in repr(
+        assert "US/Eastern" in repr(rng_eastern[0].tzinfo) or "tzfile" in repr(
             rng_eastern[0].tzinfo
         )
 

@@ -392,7 +392,7 @@ class TestDatetimeTZDtype(Base):
         # GH 24713
         pytz = pytest.importorskip("pytz")
         tz = pytz.timezone("US/Eastern")
-        dr = date_range("2013-01-01", periods=3, tz="US/Eastern")
+        dr = date_range("2013-01-01", periods=3, tz=tz)
         dtype = DatetimeTZDtype("ns", dr.tz)
         assert dtype.tz == tz
         dtype = DatetimeTZDtype("ns", dr[0].tz)

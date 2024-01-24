@@ -353,14 +353,14 @@ class TestConcatAppendCommon:
         tm.assert_series_equal(res, Series(exp, index=[0, 1, 0, 1]))
 
         # different tz
-        dti3 = pd.DatetimeIndex(["2012-01-01", "2012-01-02"], tz="US/Pacific")
+        dti3 = pd.DatetimeIndex(["2012-01-01", "2012-01-02"], tz="US/Hawaii")
 
         exp = Index(
             [
                 pd.Timestamp("2011-01-01", tz=tz),
                 pd.Timestamp("2011-01-02", tz=tz),
-                pd.Timestamp("2012-01-01", tz="US/Pacific"),
-                pd.Timestamp("2012-01-02", tz="US/Pacific"),
+                pd.Timestamp("2012-01-01", tz="US/Hawaii"),
+                pd.Timestamp("2012-01-02", tz="US/Hawaii"),
             ],
             dtype=object,
         )

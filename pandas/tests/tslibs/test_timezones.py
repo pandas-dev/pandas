@@ -116,8 +116,8 @@ def test_infer_tz_utc_localize(infer_setup):
     _, _, start, end, start_naive, end_naive = infer_setup
     utc = timezone.utc
 
-    start = utc.localize(start_naive)
-    end = utc.localize(end_naive)
+    start = start_naive.astimezone(utc)
+    end = end_naive.astimezone(utc)
 
     assert timezones.infer_tzinfo(start, end) is utc
 
@@ -128,7 +128,7 @@ def test_infer_tz_mismatch(infer_setup, ordered):
     msg = "Inputs must both have the same timezone"
 
     utc = timezone.utc
-    start = utc.localize(start_naive)
+    start = start_naive.astimezone(utc)
     end = conversion.localize_pydatetime(end_naive, eastern)
 
     args = (start, end) if ordered else (end, start)

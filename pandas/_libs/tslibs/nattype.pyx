@@ -1245,7 +1245,7 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        tz : str, zoneinfo.ZoneInfo, , dateutil.tz.tzfile or None
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding local time.
 

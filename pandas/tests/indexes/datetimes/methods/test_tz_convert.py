@@ -264,7 +264,7 @@ class TestTZConvert:
         ],
     )
     def test_dti_tz_convert_utc_to_local_no_modify(self, tz):
-        if tz.startswith("pytz/"):
+        if isinstance(tz, str) and tz.startswith("pytz/"):
             pytz = pytest.importorskip("pytz")
             tz = pytz.timezone(tz.removeprefix("pytz/"))
         rng = date_range("3/11/2012", "3/12/2012", freq="h", tz="utc")

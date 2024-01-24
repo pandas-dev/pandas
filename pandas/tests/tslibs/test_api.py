@@ -24,6 +24,8 @@ def test_namespace():
     ]
 
     api = [
+        "AmbiguousTimeError",
+        "NonExistentTimeError",
         "BaseOffset",
         "NaT",
         "NaTType",
