@@ -17,12 +17,12 @@ class TestFloatNumericIndex:
 
     @pytest.fixture
     def mixed_index(self, dtype):
-        """Takes a list of mixed data types and turns it into list of floating point indicies"""
+        """Takes a list of mixed data types and turns it into list of floating point indices"""
         return Index([1.5, 2, 3, 4, 5], dtype=dtype)
 
     @pytest.fixture
     def float_index(self, dtype):
-        """Takes a list of floating data types and turns it into a list of indicies"""
+        """Takes a list of floating data types and turns it into a list of indices"""
         return Index([0.0, 2.5, 5.0, 7.5, 10.0], dtype=dtype)
 
     @pytest.mark.parametrize(
@@ -241,7 +241,7 @@ class TestNumericInt:
 
     @pytest.fixture
     def simple_index(self, dtype):
-        """Fixture returns an range of indicies from 0 to 20 incrementing by 2 as integers"""
+        """Fixture returns an range of indices from 0 to 20 incrementing by 2 as integers"""
         return Index(range(0, 20, 2), dtype=dtype)
 
     def test_is_monotonic(self):
