@@ -30,6 +30,11 @@ static int floatify(PyObject *str, double *result, int *maybe_int, char dec,
   PyObject *tmp = NULL;
   const char sci = 'E';
 
+  if (tsep == '\x00') {
+    tsep = '\0'; // Need to assign here, python '\0' is not represented properly
+                 // when passed to C
+  }
+
   if (PyBytes_Check(str)) {
     data = PyBytes_AS_STRING(str);
   } else if (PyUnicode_Check(str)) {

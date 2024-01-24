@@ -2239,7 +2239,7 @@ def maybe_convert_numeric(
     bint convert_empty=True,
     bint coerce_numeric=False,
     bint convert_to_masked_nullable=False,
-    char* thousands="",
+    char* thousands="\0",
     char* decimal=".",
 ) -> tuple[np.ndarray, np.ndarray | None]:
     """
@@ -2268,6 +2268,12 @@ def maybe_convert_numeric(
     convert_to_masked_nullable : bool, default False
         Whether to return a mask for the converted values. This also disables
         upcasting for ints with nulls to float64.
+    thousands : char*, default '\0'
+        Character used to separate thousands, eg '.' for european data
+        must only be 1 character long.
+    decimal : char*, default '.'
+        Character used to separate decimals, eg ',' for european data
+        must only be 1 character long.
     Returns
     -------
     np.ndarray
@@ -2283,6 +2289,8 @@ def maybe_convert_numeric(
     # fastpath for ints - try to convert all based on first value
     cdef:
         object val = values[0]
+
+    cdef char* tsep = thousands
 
     if util.is_integer_object(val):
         try:
@@ -2399,7 +2407,7 @@ def maybe_convert_numeric(
             seen.float_ = True
         else:
             try:
-                floatify(val, &fval, &maybe_int, decimal[0], thousands[0])
+                floatify(val, &fval, &maybe_int, decimal[0], tsep[0])
                 if fval in na_values:
                     seen.saw_null()
                     floats[i] = complexes[i] = NaN

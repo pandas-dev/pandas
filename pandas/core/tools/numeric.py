@@ -186,9 +186,9 @@ def to_numeric(
     if errors not in ("ignore", "raise", "coerce"):
         raise ValueError("invalid error value specified")
 
-    if len(decimal) > 1:
+    if decimal and len(decimal) > 1:
         raise ValueError("decimal separator must have length one")
-    if len(thousands) > 1:
+    if thousands and len(thousands) > 1:
         raise ValueError("thousands separator must have length one")
     if errors == "ignore":
         # GH#54467
@@ -260,8 +260,8 @@ def to_numeric(
                 convert_to_masked_nullable=dtype_backend is not lib.no_default
                 or isinstance(values_dtype, StringDtype)
                 and not values_dtype.storage == "pyarrow_numpy",
-                thousands=thousands.encode("utf-8"),
-                decimal=decimal.encode("utf-8"),
+                thousands=thousands.encode("ascii"),
+                decimal=decimal.encode("ascii"),
             )
         except (ValueError, TypeError):
             if errors == "raise":
