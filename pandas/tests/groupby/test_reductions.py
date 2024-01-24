@@ -313,7 +313,9 @@ def test_idxmin_idxmax_extremes_skipna(skipna, how, float_numpy_dtype):
         values = [1, 3, 4, 6, np.nan]
     else:
         values = np.nan
-    expected = DataFrame({"b": values}, index=pd.Index(range(1, 6), name="a"))
+    expected = DataFrame(
+        {"b": values}, index=pd.Index(range(1, 6), name="a", dtype="intp")
+    )
     tm.assert_frame_equal(result, expected)
 
 
