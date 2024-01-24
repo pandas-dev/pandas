@@ -1923,8 +1923,7 @@ class TestDataFrameConstructors:
     def test_constructor_with_datetimes3(self):
         # GH 7594
         # don't coerce tz-aware
-        tz = zoneinfo.ZoneInfo("US/Eastern")
-        dt = tz.localize(datetime(2012, 1, 1))
+        dt = datetime(2012, 1, 1, tzinfo=zoneinfo.ZoneInfo("US/Eastern"))
 
         df = DataFrame({"End Date": dt}, index=[0])
         assert df.iat[0, 0] == dt
