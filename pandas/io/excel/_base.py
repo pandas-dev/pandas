@@ -1042,7 +1042,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     You can also write multiple DataFrames to a single sheet. Note that the
     ``if_sheet_exists`` parameter needs to be set to ``overlay``:
 
-    >>> with ExcelWriter(
+    >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     mode="a",
     ...     engine="openpyxl",

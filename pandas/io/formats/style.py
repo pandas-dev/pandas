@@ -1955,7 +1955,7 @@ class Styler(StylerRenderer):
         Basic usage to conditionally highlight values in the index.
 
         >>> df = pd.DataFrame([[1, 2], [3, 4]], index=["A", "B"])
-        >>> def color_b(s):
+        >>> def color_b({var}):
         ...     return {ret}
         >>> df.style.{this}_index(color_b)  # doctest: +SKIP
 

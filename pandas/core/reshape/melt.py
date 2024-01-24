@@ -343,8 +343,8 @@ def wide_to_long(
     6      3      1  2.2  3.3
     7      3      2  2.3  3.4
     8      3      3  2.1  2.9
-    >>> l = pd.wide_to_long(df, stubnames="ht", i=["famid", "birth"], j="age")
-    >>> l
+    >>> long_format = pd.wide_to_long(df, stubnames="ht", i=["famid", "birth"], j="age")
+    >>> long_format
     ... # doctest: +NORMALIZE_WHITESPACE
                       ht
     famid birth age
@@ -369,9 +369,9 @@ def wide_to_long(
 
     Going from long back to wide just takes some creative use of `unstack`
 
-    >>> w = l.unstack()
-    >>> w.columns = w.columns.map("{0[0]}{0[1]}".format)
-    >>> w.reset_index()
+    >>> wide_format = long_format.unstack()
+    >>> wide_format.columns = wide_format.columns.map("{0[0]}{0[1]}".format)
+    >>> wide_format.reset_index()
        famid  birth  ht1  ht2
     0      1      1  2.8  3.4
     1      1      2  2.9  3.8
@@ -451,10 +451,10 @@ def wide_to_long(
     7      3      2     2.3     3.4
     8      3      3     2.1     2.9
 
-    >>> l = pd.wide_to_long(
+    >>> long_format = pd.wide_to_long(
     ...     df, stubnames="ht", i=["famid", "birth"], j="age", sep="_", suffix=r"\w+"
     ... )
-    >>> l
+    >>> long_format
     ... # doctest: +NORMALIZE_WHITESPACE
                       ht
     famid birth age
