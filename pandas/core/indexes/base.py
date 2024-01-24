@@ -958,7 +958,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self.__array_wrap__(result)
 
     @final
-    def __array_wrap__(self, result, context=None):
+    def __array_wrap__(self, result, context=None, return_scalar=False):
         """
         Gets called after a ufunc and other functions e.g. np.split.
         """
