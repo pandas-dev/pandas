@@ -105,7 +105,7 @@ def get_operator_from(dependency: str) -> str | None:
 
 
 def get_yaml_map_from(
-    yaml_dic: list[str | dict[str, list[str]]],
+    yaml_dic: list[str | dict[str, list[str]]]
 ) -> dict[str, list[str] | None]:
     yaml_map: dict[str, list[str] | None] = {}
     for dependency in yaml_dic:

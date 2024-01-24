@@ -185,11 +185,17 @@ def strings_with_wrong_placed_whitespace(
 
     For example:
 
-    >>> rule = "We want the space at the end of the line, " "not at the beginning"
+    >>> rule = (
+    ...    "We want the space at the end of the line, "
+    ...    "not at the beginning"
+    ... )
 
     Instead of:
 
-    >>> rule = "We want the space at the end of the line," " not at the beginning"
+    >>> rule = (
+    ...    "We want the space at the end of the line,"
+    ...    " not at the beginning"
+    ... )
 
     Parameters
     ----------
@@ -229,11 +235,17 @@ def strings_with_wrong_placed_whitespace(
 
         For example, this is bad:
 
-        >>> rule = "We want the space at the end of the line," " not at the beginning"
+        >>> rule = (
+        ...    "We want the space at the end of the line,"
+        ...    " not at the beginning"
+        ... )
 
         And what we want is:
 
-        >>> rule = "We want the space at the end of the line, " "not at the beginning"
+        >>> rule = (
+        ...    "We want the space at the end of the line, "
+        ...    "not at the beginning"
+        ... )
 
         And if the string is ending with a new line character (\n) we
         do not want any trailing whitespaces after it.
@@ -241,17 +253,17 @@ def strings_with_wrong_placed_whitespace(
         For example, this is bad:
 
         >>> rule = (
-        ...     "We want the space at the begging of "
-        ...     "the line if the previous line is ending with a \n "
-        ...     "not at the end, like always"
+        ...    "We want the space at the begging of "
+        ...    "the line if the previous line is ending with a \n "
+        ...    "not at the end, like always"
         ... )
 
         And what we do want is:
 
         >>> rule = (
-        ...     "We want the space at the begging of "
-        ...     "the line if the previous line is ending with a \n"
-        ...     " not at the end, like always"
+        ...    "We want the space at the begging of "
+        ...    "the line if the previous line is ending with a \n"
+        ...    " not at the end, like always"
         ... )
         """
         if first_line.endswith(r"\n"):

@@ -31,6 +31,7 @@ repos:
         exclude: ^pandas/tests
         args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix]
     -   id: ruff-format
+        exclude: ^scripts
 -   repo: https://github.com/jendrikseipp/vulture
     rev: 'v2.10'
     hooks:
