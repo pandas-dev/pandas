@@ -1813,7 +1813,7 @@ def group_idxmin_idxmax(
                     isna_entry = _treat_as_na(val, is_datetimelike)
 
                 if isna_entry:
-                    if not skipna:
+                    if not skipna or not seen[lab, j]:
                         out[lab, j] = -1
                 else:
                     if not seen[lab, j]:
