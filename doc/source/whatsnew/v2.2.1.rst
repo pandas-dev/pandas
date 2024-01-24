@@ -20,7 +20,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug in :meth:`api.types.is_datetime64_any_dtype` where a custom :class:`ExtensionDtype` would not return ``True`` for array-likes (:issue:`57055`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_221.other:
