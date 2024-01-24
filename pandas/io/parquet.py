@@ -245,24 +245,25 @@ class PyArrowImpl(BaseImpl):
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
         storage_options: StorageOptions | None = None,
         filesystem=None,
+        to_pandas_kwargs: dict[str, Any] | None = None,
         **kwargs,
     ) -> DataFrame:
         kwargs["use_pandas_metadata"] = True
 
-        to_pandas_kwargs = {}
+        to_pandas_kwargs = to_pandas_kwargs or {}
         if dtype_backend == "numpy_nullable":
             from pandas.io._util import _arrow_dtype_mapping
 
             mapping = _arrow_dtype_mapping()
             to_pandas_kwargs["types_mapper"] = mapping.get
         elif dtype_backend == "pyarrow":
-            to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]
+            to_pandas_kwargs["types_mapper"] = pd.ArrowDtype
         elif using_pyarrow_string_dtype():
             to_pandas_kwargs["types_mapper"] = arrow_string_types_mapper()
 
         manager = _get_option("mode.data_manager", silent=True)
         if manager == "array":
-            to_pandas_kwargs["split_blocks"] = True  # type: ignore[assignment]
+            to_pandas_kwargs["split_blocks"] = True
 
         path_or_handle, handles, filesystem = _get_path_or_handle(
             path,
@@ -362,9 +363,11 @@ class FastParquetImpl(BaseImpl):
         filters=None,
         storage_options: StorageOptions | None = None,
         filesystem=None,
+        to_pandas_kwargs: dict[str, Any] | None = None,
         **kwargs,
     ) -> DataFrame:
         parquet_kwargs: dict[str, Any] = {}
+        to_pandas_kwargs = to_pandas_kwargs or {}
         use_nullable_dtypes = kwargs.pop("use_nullable_dtypes", False)
         dtype_backend = kwargs.pop("dtype_backend", lib.no_default)
         # We are disabling nullable dtypes for fastparquet pending discussion
@@ -400,7 +403,7 @@ class FastParquetImpl(BaseImpl):
 
         try:
             parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
-            return parquet_file.to_pandas(columns=columns, filters=filters, **kwargs)
+            return parquet_file.to_pandas(columns=columns, filters=filters, **to_pandas_kwargs, **kwargs)
         finally:
             if handles is not None:
                 handles.close()
@@ -465,7 +468,7 @@ def to_parquet(
         .. versionadded:: 2.1.0
 
     kwargs
-        Additional keyword arguments passed to the engine
+        Additional keyword arguments passed to the engine.
 
     Returns
     -------
@@ -505,6 +508,7 @@ def read_parquet(
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     filesystem: Any = None,
     filters: list[tuple] | list[list[tuple]] | None = None,
+    to_pandas_kwargs: dict[str, Any] | None = None,
     **kwargs,
 ) -> DataFrame:
     """
@@ -587,6 +591,9 @@ def read_parquet(
         to prevent the loading of some row-groups and/or files.
 
         .. versionadded:: 2.1.0
+
+    to_pandas_kwargs : dict[str, Any], default None
+        Dictionary of arguments passed to the underlying engine's ``to_pandas`` function.
 
     **kwargs
         Any additional kwargs are passed to the engine.
@@ -676,5 +683,6 @@ def read_parquet(
         use_nullable_dtypes=use_nullable_dtypes,
         dtype_backend=dtype_backend,
         filesystem=filesystem,
+        to_pandas_kwargs=to_pandas_kwargs,
         **kwargs,
     )

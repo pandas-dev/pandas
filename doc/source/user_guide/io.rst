@@ -5420,6 +5420,13 @@ Read only certain columns of a parquet file.
    )
    result.dtypes
 
+Pass additional keyword arguments to the underlying engine's ``to_pandas`` function.
+
+.. ipython:: python
+
+   result = pd.read_parquet("example_pa.parquet", engine="pyarrow", to_pandas_kwargs={ "timestamp_as_object": True })
+
+   result.dtypes
 
 .. ipython:: python
    :suppress:
