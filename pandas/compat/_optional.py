@@ -43,6 +43,7 @@ VERSIONS = {
     "pyarrow": "10.0.1",
     "pyreadstat": "1.2.0",
     "pytest": "7.3.2",
+    "pytz": "2020.1",
     "python-calamine": "0.1.7",
     "pyxlsb": "1.0.10",
     "s3fs": "2022.11.0",

@@ -205,7 +205,6 @@ Package                                                          Minimum support
 ================================================================ ==========================
 `NumPy <https://numpy.org>`__                                    1.23.5
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.2
-`pytz <https://pypi.org/project/pytz/>`__                        2020.1
 `tzdata <https://pypi.org/project/tzdata/>`__                    2022.7
 ================================================================ ==========================
 
@@ -427,4 +426,15 @@ Installable with ``pip install "pandas[consortium-standard]"``
 Dependency                Minimum Version    pip extra           Notes
 ========================= ================== =================== =============================================================
 dataframe-api-compat      0.1.7              consortium-standard Consortium Standard-compatible implementation based on pandas
+========================= ================== =================== =============================================================
+
+Timezone
+^^^^^^^^
+
+Installable with ``pip install "pandas[timezone]"``
+
+========================= ================== =================== =============================================================
+Dependency                Minimum Version    pip extra           Notes
+========================= ================== =================== =============================================================
+pytz                      2020.1             timezone            Alternative timezone library to ``zoneinfo``.
 ========================= ================== =================== =============================================================

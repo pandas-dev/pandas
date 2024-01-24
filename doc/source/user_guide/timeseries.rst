@@ -2358,9 +2358,9 @@ To return ``dateutil`` time zone objects, append ``dateutil/`` before the string
 
    import dateutil
 
-   # pytz
-   rng_pytz = pd.date_range("3/6/2012 00:00", periods=3, freq="D", tz="Europe/London")
-   rng_pytz.tz
+   # zoneinfo
+   rng_zinfo = pd.date_range("3/6/2012 00:00", periods=3, freq="D", tz="Europe/London")
+   rng_zinfo.tz
 
    # dateutil
    rng_dateutil = pd.date_range("3/6/2012 00:00", periods=3, freq="D")
