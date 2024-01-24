@@ -19,6 +19,7 @@ from pandas.io.parsers import read_csv
 
 @pytest.fixture
 def compression_to_extension():
+    """Fixture for compression to extension"""
     return {value: key for key, value in icom.extension_to_compression.items()}
 
 
@@ -42,11 +43,13 @@ def salaries_table(datapath):
 
 @pytest.fixture
 def feather_file(datapath):
+    """Path to a Feather dataset"""
     return datapath("io", "data", "feather", "feather-0_3_1.feather")
 
 
 @pytest.fixture
 def xml_file(datapath):
+    """Path to a XML dataset"""
     return datapath("io", "data", "xml", "books.xml")
 
 
@@ -115,11 +118,13 @@ def s3_base(worker_id, monkeypatch):
 
 @pytest.fixture
 def s3so(s3_base):
+    """Fixture for the S3 endpoint"""
     return {"client_kwargs": {"endpoint_url": s3_base}}
 
 
 @pytest.fixture
 def s3_resource(s3_base):
+    """Fixture for the S3 resource"""
     import boto3
 
     s3 = boto3.resource("s3", endpoint_url=s3_base)
@@ -128,6 +133,7 @@ def s3_resource(s3_base):
 
 @pytest.fixture
 def s3_public_bucket(s3_resource):
+    """Fixture for an empty public S3 bucket"""
     bucket = s3_resource.Bucket(f"pandas-test-{uuid.uuid4()}")
     bucket.create()
     yield bucket
@@ -165,6 +171,7 @@ def s3_public_bucket_with_data(
 
 @pytest.fixture
 def s3_private_bucket(s3_resource):
+    """Fixture for an empty private S3 bucket"""
     bucket = s3_resource.Bucket(f"cant_get_it-{uuid.uuid4()}")
     bucket.create(ACL="private")
     yield bucket
@@ -218,11 +225,13 @@ _compression_formats_params = [
 
 @pytest.fixture(params=_compression_formats_params[1:])
 def compression_format(request):
+    """Fixture for the compression format"""
     return request.param
 
 
 @pytest.fixture(params=_compression_formats_params)
 def compression_ext(request):
+    """Fixture for the compression extension"""
     return request.param[0]
 
 
