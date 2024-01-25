@@ -4834,6 +4834,8 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             join_index = self.take(left_idx)
 
+        join_index.name = ops.get_op_result_name(self, other)
+
         if how == "outer":
             mask = left_idx == -1
             if mask.any():

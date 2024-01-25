@@ -116,9 +116,6 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
-- Fixed bug in :meth:`DataFrame.join` inconsistently setting result index name (:issue:`55815`)
-- Fixed bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
--
 
 Categorical
 ^^^^^^^^^^^
@@ -197,8 +194,8 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
--
--
+- Bug in :meth:`DataFrame.join` inconsistently setting result index name (:issue:`55815`)
+- Bug in :meth:`Index.join` where different :class:`Index` with different ``name`` s would not return an :class:`Index` with ``name=None`` (:issue:`57065`)
 
 Sparse
 ^^^^^^
@@ -218,6 +215,8 @@ Styler
 Other
 ^^^^^
 - Bug in :meth:`DataFrame.where` where using a non-bool type array in the function would return a ``ValueError`` instead of a ``TypeError`` (:issue:`56330`)
+- Bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
+
 
 
 .. ***DO NOT USE THIS SECTION***

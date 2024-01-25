@@ -366,3 +366,12 @@ class TestJoinUInt64Index:
         tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
+
+
+def test_join_differing_names_none():
+    # GH 57065
+    idx1 = Index([1, 1, 2, 3, 4, 4], name="a")
+    idx2 = Index([2, 5, 3, 4], name="b")
+    result = idx1.join(idx2)
+    expected = Index([1, 1, 2, 3, 4, 4])
+    tm.assert_index_equal(result, expected)
