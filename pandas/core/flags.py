@@ -11,8 +11,6 @@ class Flags:
     """
     Flags that apply to pandas objects.
 
-    .. versionadded:: 1.2.0
-
     Parameters
     ----------
     obj : Series or DataFrame
@@ -113,7 +111,7 @@ class Flags:
     def __repr__(self) -> str:
         return f"<Flags(allows_duplicate_labels={self.allows_duplicate_labels})>"
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, type(self)):
             return self.allows_duplicate_labels == other.allows_duplicate_labels
         return False

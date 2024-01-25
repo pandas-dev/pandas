@@ -445,7 +445,7 @@ def _convert_listlike_datetimes(
         # We can take a shortcut since the datetime64 numpy array
         # is in UTC
         out_unit = np.datetime_data(result.dtype)[0]
-        dtype = cast(DatetimeTZDtype, tz_to_dtype(tz_parsed, out_unit))
+        dtype = tz_to_dtype(tz_parsed, out_unit)
         dt64_values = result.view(f"M8[{dtype.unit}]")
         dta = DatetimeArray._simple_new(dt64_values, dtype=dtype)
         return DatetimeIndex._simple_new(dta, name=name)
@@ -510,14 +510,14 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
             with np.errstate(over="raise"):
                 try:
                     arr = cast_from_unit_vectorized(arg, unit=unit)
-                except OutOfBoundsDatetime:
+                except OutOfBoundsDatetime as err:
                     if errors != "raise":
                         return _to_datetime_with_unit(
                             arg.astype(object), unit, name, utc, errors
                         )
                     raise OutOfBoundsDatetime(
                         f"cannot convert input with unit '{unit}'"
-                    )
+                    ) from err
 
             arr = arr.view("M8[ns]")
             tz_parsed = None

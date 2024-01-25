@@ -86,11 +86,12 @@ def test_tz_convert_single_matches_tz_convert(tz_aware_fixture, freq):
 @pytest.mark.parametrize(
     "arr",
     [
-        pytest.param(np.array([], dtype=np.int64), id="empty"),
-        pytest.param(np.array([iNaT], dtype=np.int64), id="all_nat"),
+        pytest.param([], id="empty"),
+        pytest.param([iNaT], id="all_nat"),
     ],
 )
 def test_tz_convert_corner(arr):
+    arr = np.array([iNaT], dtype=np.int64)
     result = tz_convert_from_utc(arr, timezones.maybe_get_tz("Asia/Tokyo"))
     tm.assert_numpy_array_equal(result, arr)
 

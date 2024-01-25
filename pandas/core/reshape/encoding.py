@@ -169,7 +169,7 @@ def get_dummies(
             data_to_encode = data[columns]
 
         # validate prefixes and separator to avoid silently dropping cols
-        def check_len(item, name: str):
+        def check_len(item, name: str) -> None:
             if is_list_like(item):
                 if not len(item) == data_to_encode.shape[1]:
                     len_msg = (
@@ -493,8 +493,8 @@ def from_dummies(
     # index data with a list of all columns that are dummies
     try:
         data_to_decode = data.astype("boolean", copy=False)
-    except TypeError:
-        raise TypeError("Passed DataFrame contains non-dummy data")
+    except TypeError as err:
+        raise TypeError("Passed DataFrame contains non-dummy data") from err
 
     # collect prefixes and get lists to slice data for each prefix
     variables_slice = defaultdict(list)

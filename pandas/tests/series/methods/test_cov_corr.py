@@ -56,11 +56,10 @@ class TestSeriesCov:
 
 
 class TestSeriesCorr:
-    @pytest.mark.parametrize("dtype", ["float64", "Float64"])
-    def test_corr(self, datetime_series, dtype):
+    def test_corr(self, datetime_series, any_float_dtype):
         stats = pytest.importorskip("scipy.stats")
 
-        datetime_series = datetime_series.astype(dtype)
+        datetime_series = datetime_series.astype(any_float_dtype)
 
         # full overlap
         tm.assert_almost_equal(datetime_series.corr(datetime_series), 1)
@@ -87,22 +86,24 @@ class TestSeriesCorr:
             index=date_range("2020-01-01", periods=10),
             name="ts",
         )
-        B = A.copy()
-        result = A.corr(B)
-        expected, _ = stats.pearsonr(A, B)
+        result = A.corr(A)
+        expected, _ = stats.pearsonr(A, A)
         tm.assert_almost_equal(result, expected)
 
     def test_corr_rank(self):
         stats = pytest.importorskip("scipy.stats")
 
         # kendall and spearman
-        A = Series(
+        B = Series(
             np.arange(10, dtype=np.float64),
             index=date_range("2020-01-01", periods=10),
             name="ts",
         )
-        B = A.copy()
-        A[-5:] = A[:5].copy()
+        A = Series(
+            np.concatenate([np.arange(5, dtype=np.float64)] * 2),
+            index=date_range("2020-01-01", periods=10),
+            name="ts",
+        )
         result = A.corr(B, method="kendall")
         expected = stats.kendalltau(A, B)[0]
         tm.assert_almost_equal(result, expected)

@@ -8,7 +8,6 @@ import numpy as np
 import pytest
 
 from pandas.errors import PerformanceWarning
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -24,11 +23,6 @@ from pandas.core.internals.blocks import NumpyBlock
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure
-
-
-# TODO(ArrayManager) check which of those tests need to be rewritten to test the
-# equivalent for ArrayManager
-pytestmark = td.skip_array_manager_invalid_test
 
 
 class TestDataFrameBlockInternals:
