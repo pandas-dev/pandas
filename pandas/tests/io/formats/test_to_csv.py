@@ -332,6 +332,22 @@ $1$,$2$
         )
         assert result == expected
 
+    def test_to_csv_multi_index_nan(self):
+        # Create a MultiIndex DataFrame
+        columns = pd.MultiIndex.from_tuples([('Level 1', 'Level 2')], names=['level1', 'level2'])
+        data = [[np.nan], [0.1], [0.4]]
+        df_complex = pd.DataFrame(data, columns=columns)
+
+        # Expected DataFrame
+        expected_df = pd.DataFrame(data, columns=columns, index=range(3))
+
+        # Save and load the DataFrame as a CSV
+        with tm.ensure_clean("complex_data.csv") as path:
+            df_complex.to_csv(path)
+            loaded_df_complex = pd.read_csv(path, header=[0, 1], index_col=0)
+
+        tm.assert_frame_equal(loaded_df_complex, expected_df)
+
     def test_to_csv_multi_index(self):
         # see gh-6618
         df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1], [2]]))
