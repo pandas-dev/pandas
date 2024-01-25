@@ -4078,6 +4078,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = 0,
         kind: SortKind = "quicksort",
         order: None = None,
+        stable: None = None,
     ) -> Series:
         """
         Return the integer indices that would sort the Series values.
@@ -4093,6 +4094,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Choice of sorting algorithm. See :func:`numpy.sort` for more
             information. 'mergesort' and 'stable' are the only stable algorithms.
         order : None
+            Has no effect but is accepted for compatibility with numpy.
+        stable : None
             Has no effect but is accepted for compatibility with numpy.
 
         Returns
