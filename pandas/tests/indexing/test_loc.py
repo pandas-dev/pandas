@@ -3352,7 +3352,7 @@ class TestLocSeries:
         # GH 57027
         ids = list(range(11))
         index = Index(ids * 1000, dtype="Int64")
-        df = DataFrame({"val": range(len(index))}, index=index)
+        df = DataFrame({"val": np.arange(len(index))}, index=index)
         result = df.loc[ids]
         expected = DataFrame(
             {"val": index.argsort(kind="stable")},
