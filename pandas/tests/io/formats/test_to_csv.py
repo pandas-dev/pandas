@@ -334,12 +334,14 @@ $1$,$2$
 
     def test_to_csv_multi_index_nan(self):
         # Create a MultiIndex DataFrame
-        columns = pd.MultiIndex.from_tuples([('Level 1', 'Level 2')], names=['level1', 'level2'])
+        columns = pd.MultiIndex.from_tuples(
+            [("Level 1", "Level 2")], names=["level1", "level2"]
+        )
         data = [[np.nan], [0.1], [0.4]]
-        df_complex = pd.DataFrame(data, columns=columns)
+        df_complex = DataFrame(data, columns=columns)
 
         # Expected DataFrame
-        expected_df = pd.DataFrame(data, columns=columns, index=range(3))
+        expected_df = DataFrame(data, columns=columns, index=range(3))
 
         # Save and load the DataFrame as a CSV
         with tm.ensure_clean("complex_data.csv") as path:
