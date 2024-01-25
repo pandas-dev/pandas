@@ -169,7 +169,6 @@ class TestTimestampConstructorFoldKeyword:
         [
             "dateutil/Europe/London",
             "Europe/London",
-            "pytz/Europe/London",
         ],
     )
     @pytest.mark.parametrize(
@@ -187,9 +186,6 @@ class TestTimestampConstructorFoldKeyword:
         # Test for GH#25057
         # Check that we infer fold correctly based on timestamps since utc
         # or strings
-        if isinstance(tz, str) and tz.startswith("pytz/"):
-            pytz = pytest.importorskip("pytz")
-            tz = pytz.timezone(tz.removeprefix("pytz/"))
         ts = Timestamp(ts_input, tz=tz)
         result = ts.fold
         expected = fold_out

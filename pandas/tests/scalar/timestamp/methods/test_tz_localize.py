@@ -22,28 +22,29 @@ class TestTimestampTZLocalize:
     def test_tz_localize_pushes_out_of_bounds(self):
         # GH#12677
         # tz_localize that pushes away from the boundary is OK
+        pytz = pytest.importorskip("pytz")
         msg = (
             f"Converting {Timestamp.min.strftime('%Y-%m-%d %H:%M:%S')} "
             f"underflows past {Timestamp.min}"
         )
-        pac = Timestamp.min.tz_localize("US/Pacific")
+        pac = Timestamp.min.tz_localize(pytz.timezone("US/Pacific"))
         assert pac._value > Timestamp.min._value
         pac.tz_convert("Asia/Tokyo")  # tz_convert doesn't change value
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            Timestamp.min.tz_localize("Asia/Tokyo")
+            Timestamp.min.tz_localize(pytz.timezone("Asia/Tokyo"))
 
         # tz_localize that pushes away from the boundary is OK
         msg = (
             f"Converting {Timestamp.max.strftime('%Y-%m-%d %H:%M:%S')} "
             f"overflows past {Timestamp.max}"
         )
-        tokyo = Timestamp.max.tz_localize("Asia/Tokyo")
+        tokyo = Timestamp.max.tz_localize(pytz.timezone("Asia/Tokyo"))
         assert tokyo._value < Timestamp.max._value
         tokyo.tz_convert("US/Pacific")  # tz_convert doesn't change value
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            Timestamp.max.tz_localize("US/Pacific")
+            Timestamp.max.tz_localize(pytz.timezone("US/Pacific"))
 
-    @pytest.mark.parameterize(
+    @pytest.mark.parametrize(
         "tz", ["US/Central", "dateutil/US/Central", "pytz/US/Central"]
     )
     def test_tz_localize_ambiguous_bool(self, unit, tz):
