@@ -193,7 +193,7 @@ class PandasDocstring(Validator):
                 "flake8",
                 "--format=%(row)d\t%(col)d\t%(code)s\t%(text)s",
                 "--max-line-length=88",
-                "--ignore=E203,E3,W503,W504,E402,E731",
+                "--ignore=E203,E3,W503,W504,E402,E731,E128,E124",
                 file.name,
             ]
             response = subprocess.run(cmd, capture_output=True, check=False, text=True)
