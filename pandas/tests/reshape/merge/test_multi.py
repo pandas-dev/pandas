@@ -814,12 +814,10 @@ class TestMergeMulti:
 
 class TestJoinMultiMulti:
     def test_join_multi_multi(self, left_multi, right_multi, join_type, on_cols_multi):
-        left_names = left_multi.index.names
-        right_names = right_multi.index.names
         if join_type == "right":
-            level_order = right_names + left_names.difference(right_names)
+            level_order = ["Origin", "Destination", "Period", "LinkType", "TripPurp"]
         else:
-            level_order = left_names + right_names.difference(left_names)
+            level_order = ["Origin", "Destination", "Period", "TripPurp", "LinkType"]
         # Multi-index join tests
         expected = (
             merge(

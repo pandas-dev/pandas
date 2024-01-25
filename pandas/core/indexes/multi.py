@@ -1649,7 +1649,7 @@ class MultiIndex(Index):
         >>> mi
         MultiIndex([(1, 3, 5),
                     (2, 4, 6)],
-                   names=['x', 'y', 'z'])
+                   names=('x', 'y', 'z'))
         >>> mi.names
         ('x', 'y', 'z')
         """,
