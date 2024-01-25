@@ -884,9 +884,7 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
         # GH#33400 fastpath for dtype object
         if isinstance(arr_or_dtype, np.dtype):
             return arr_or_dtype.kind == "M"
-        return arr_or_dtype.kind == "M" and not isinstance(
-            arr_or_dtype.type, datetime.date
-        )
+        return arr_or_dtype.kind == "M" and arr_or_dtype.type != datetime.date
 
     if arr_or_dtype is None:
         return False
@@ -901,7 +899,7 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
         or (
             isinstance(tipo, ExtensionDtype)
             and tipo.kind == "M"
-            and not isinstance(tipo.type, datetime.date)
+            and tipo.type != datetime.date
         )
     )
 
