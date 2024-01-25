@@ -70,7 +70,7 @@ class TestPeriodIndex:
 
         msg = "How must be one of S or E"
         with pytest.raises(ValueError, match=msg):
-            pi7.asfreq("T", "foo")
+            pi7.asfreq("min", "foo")
         result1 = pi1.asfreq("3M")
         result2 = pi1.asfreq("M")
         expected = period_range(freq="M", start="2001-12", end="2001-12")
@@ -136,3 +136,36 @@ class TestPeriodIndex:
 
         excepted = Series([1, 2], index=PeriodIndex(["2020-02", "2020-04"], freq="M"))
         tm.assert_series_equal(result, excepted)
+
+    @pytest.mark.parametrize(
+        "freq",
+        [
+            "2BMS",
+            "2YS-MAR",
+            "2bh",
+        ],
+    )
+    def test_pi_asfreq_invalid_offset(self, freq):
+        # GH#55785
+        msg = f"Invalid offset: '{freq[1:]}' for converting time series "
+
+        pi = PeriodIndex(["2020-01-01", "2021-01-01"], freq="M")
+        with pytest.raises(ValueError, match=msg):
+            pi.asfreq(freq=freq)
+
+    @pytest.mark.parametrize(
+        "freq",
+        [
+            "2BME",
+            "2YE-MAR",
+            "2BM",
+            "2QE",
+        ],
+    )
+    def test_pi_asfreq_invalid_frequency(self, freq):
+        # GH#55785
+        msg = f"Invalid frequency: {freq}"
+
+        pi = PeriodIndex(["2020-01-01", "2021-01-01"], freq="M")
+        with pytest.raises(ValueError, match=msg):
+            pi.asfreq(freq=freq)

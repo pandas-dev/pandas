@@ -16,8 +16,13 @@ from pandas._libs.tslibs import (
     Period,
     Resolution,
     Tick,
+    to_offset,
 )
-from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
+from pandas._libs.tslibs.dtypes import (
+    OFFSET_TO_PERIOD_FREQSTR,
+    freq_to_period_freqstr,
+)
+from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -205,6 +210,18 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         **_shared_doc_kwargs,
     )
     def asfreq(self, freq=None, how: str = "E") -> Self:
+        if isinstance(freq, str):
+            offset = to_offset(freq, is_period=True)
+            if hasattr(offset, "_period_dtype_code"):
+                freq = freq_to_period_freqstr(offset.n, offset.name)
+            elif offset.name == freq.replace(f"{offset.n}", ""):
+                raise ValueError(
+                    f"Invalid offset: '{offset.name}' for converting time series "
+                    f"with PeriodIndex."
+                )
+            else:
+                raise ValueError(INVALID_FREQ_ERR_MSG.format(f"{freq}"))
+
         arr = self._data.asfreq(freq, how)
         return type(self)._simple_new(arr, name=self.name)
 
