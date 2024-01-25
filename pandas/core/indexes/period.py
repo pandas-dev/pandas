@@ -17,7 +17,10 @@ from pandas._libs.tslibs import (
     Resolution,
     Tick,
 )
-from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
+from pandas._libs.tslibs.dtypes import (
+    OFFSET_TO_PERIOD_FREQSTR,
+    freq_to_period_freqstr,
+)
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -205,6 +208,15 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         **_shared_doc_kwargs,
     )
     def asfreq(self, freq=None, how: str = "E") -> Self:
+        if isinstance(freq, BaseOffset):
+            if hasattr(freq, "_period_dtype_code"):
+                freq = freq_to_period_freqstr(freq.n, freq.name)
+            else:
+                raise ValueError(
+                    f"Invalid offset: '{freq.base}' for converting time series "
+                    f"with PeriodIndex."
+                )
+
         arr = self._data.asfreq(freq, how)
         return type(self)._simple_new(arr, name=self.name)
 

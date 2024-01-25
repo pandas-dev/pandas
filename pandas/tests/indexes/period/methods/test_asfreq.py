@@ -7,6 +7,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
+from pandas.tseries import offsets
+
 
 class TestPeriodIndex:
     def test_asfreq(self):
@@ -136,3 +138,18 @@ class TestPeriodIndex:
 
         excepted = Series([1, 2], index=PeriodIndex(["2020-02", "2020-04"], freq="M"))
         tm.assert_series_equal(result, excepted)
+
+    @pytest.mark.parametrize(
+        "freq",
+        [
+            offsets.MonthBegin(2),
+            offsets.BusinessMonthEnd(2),
+        ],
+    )
+    def test_pi_asfreq_invalid_baseoffset(self, freq):
+        # GH#55785
+        msg = f"Invalid offset: '{freq.base}' for converting time series "
+
+        pi = PeriodIndex(["2020-01-01", "2021-01-01"], freq="M")
+        with pytest.raises(ValueError, match=msg):
+            pi.asfreq(freq=freq)
