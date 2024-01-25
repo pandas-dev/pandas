@@ -2352,7 +2352,6 @@ def test_parse_dates_arrow_engine(all_parsers):
             "b": 1,
         }
     )
-    expected["a"] = expected["a"].astype("M8[s]")
     tm.assert_frame_equal(result, expected)
 
 
