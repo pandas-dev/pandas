@@ -285,7 +285,7 @@ def test_idxmin_idxmax_extremes_skipna(skipna, how, float_numpy_dtype):
     max_value = np.finfo(float_numpy_dtype).max
     df = DataFrame(
         {
-            "a": np.repeat(range(1, 6), repeats=2),
+            "a": np.repeat(range(1, 6), repeats=2, dtype="intp"),
             "b": Series(
                 [
                     np.nan,
