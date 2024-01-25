@@ -746,7 +746,8 @@ cdef class TextReader:
                               is not None else 0)
 
                         # if wrong number of blanks or no index, not our format
-                        if (lc != unnamed_count and lc - ic >= unnamed_count) or ic == 0:
+                        if ((lc != unnamed_count and lc - ic >= unnamed_count) or
+                                ic == 0):
                             hr -= 1
                             self.parser_start -= 1
                             this_header = [None] * lc
