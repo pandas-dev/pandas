@@ -138,6 +138,7 @@ ARGSORT_DEFAULTS["axis"] = -1
 ARGSORT_DEFAULTS["kind"] = "quicksort"
 ARGSORT_DEFAULTS["order"] = None
 ARGSORT_DEFAULTS["kind"] = None
+ARGSORT_DEFAULTS["stable"] = None
 
 
 validate_argsort = CompatValidator(
@@ -149,6 +150,7 @@ validate_argsort = CompatValidator(
 ARGSORT_DEFAULTS_KIND: dict[str, int | None] = {}
 ARGSORT_DEFAULTS_KIND["axis"] = -1
 ARGSORT_DEFAULTS_KIND["order"] = None
+ARGSORT_DEFAULTS_KIND["stable"] = None
 validate_argsort_kind = CompatValidator(
     ARGSORT_DEFAULTS_KIND, fname="argsort", max_fname_arg_count=0, method="both"
 )
