@@ -14,6 +14,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in :func:`merge_ordered` raising ``TypeError`` for ``fill_method="ffill"`` and ``how="left"`` (:issue:`57010`)
+- Fixed regression in :meth:`DataFrame.loc` raising ``IndexError`` for non-unique, masked dtype indexes where result has more than 10,000 rows (:issue:`57027`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_221.bug_fixes:

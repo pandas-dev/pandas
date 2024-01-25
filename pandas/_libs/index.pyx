@@ -1220,6 +1220,7 @@ cdef class MaskedIndexEngine(IndexEngine):
                             n_alloc *= 2
                             if n_alloc > max_alloc:
                                 n_alloc = max_alloc
+                            result = np.resize(result, n_alloc)
 
                         result[count] = na_idx
                         count += 1
@@ -1236,6 +1237,7 @@ cdef class MaskedIndexEngine(IndexEngine):
                         n_alloc *= 2
                         if n_alloc > max_alloc:
                             n_alloc = max_alloc
+                        result = np.resize(result, n_alloc)
 
                     result[count] = j
                     count += 1
@@ -1243,7 +1245,9 @@ cdef class MaskedIndexEngine(IndexEngine):
 
             # value not found
             if count >= n_alloc:
-                n_alloc += 10_000
+                n_alloc *= 2
+                if n_alloc > max_alloc:
+                    n_alloc = max_alloc
                 result = np.resize(result, n_alloc)
             result[count] = -1
             count += 1
