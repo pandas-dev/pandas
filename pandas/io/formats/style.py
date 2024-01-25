@@ -987,11 +987,11 @@ class Styler(StylerRenderer):
         hide the repeated level-0 of the index:
 
         >>> (styler.format(subset="Equity", precision=2)
-        ...       .format(subset="Stats", precision=1, thousands=",")
-        ...       .format(subset="Rating", formatter=str.upper)
-        ...       .format_index(escape="latex", axis=1)
-        ...       .format_index(escape="latex", axis=0)
-        ...       .hide(level=0, axis=0))  # doctest: +SKIP
+        ...     .format(subset="Stats", precision=1, thousands=",")
+        ...     .format(subset="Rating", formatter=str.upper)
+        ...     .format_index(escape="latex", axis=1)
+        ...     .format_index(escape="latex", axis=0)
+        ...     .hide(level=0, axis=0))  # doctest: +SKIP
 
         Note that one of the string entries of the index and column headers is "H&M".
         Without applying the `escape="latex"` option to the `format_index` method the
@@ -1003,12 +1003,15 @@ class Styler(StylerRenderer):
         recommendation:
 
         >>> def rating_color(v):
-        ...     if v == "Buy": color = "#33ff85"
-        ...     elif v == "Sell": color = "#ff5933"
-        ...     else: color = "#ffdd33"
+        ...     if v == "Buy":
+        ...         color = "#33ff85"
+        ...     elif v == "Sell":
+        ...         color = "#ff5933"
+        ...     else:
+        ...         color = "#ffdd33"
         ...     return f"color: {color}; font-weight: bold;"
         >>> (styler.background_gradient(cmap="inferno", subset="Equity", vmin=0, vmax=1)
-        ...       .map(rating_color, subset="Rating"))  # doctest: +SKIP
+        ...     .map(rating_color, subset="Rating"))  # doctest: +SKIP
 
         All the above styles will work with HTML (see below) and LaTeX upon conversion:
 
@@ -1880,9 +1883,9 @@ class Styler(StylerRenderer):
         func="take a Series and return a string array of the same length",
         input_note="the index as a Series, if an Index, or a level of a MultiIndex",
         output_note="an identically sized array of CSS styles as strings",
-        var="s",
-        ret='np.where(s == "B", "background-color: yellow;", "")',
-        ret2='["background-color: yellow;" if "x" in v else "" for v in s]',
+        var="label",
+        ret='np.where(label == "B", "background-color: yellow;", "")',
+        ret2='["background-color: yellow;" if "x" in v else "" for v in label]',
     )
     def apply_index(
         self,
@@ -1932,8 +1935,8 @@ class Styler(StylerRenderer):
         --------
         Basic usage to conditionally highlight values in the index.
 
-        >>> df = pd.DataFrame([[1,2], [3,4]], index=["A", "B"])
-        >>> def color_b(s):
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], index=["A", "B"])
+        >>> def color_b({var}):
         ...     return {ret}
         >>> df.style.{this}_index(color_b)  # doctest: +SKIP
 
@@ -1945,8 +1948,8 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([np.arange(8)], columns=midx)
         >>> def highlight_x({var}):
         ...     return {ret2}
-        >>> df.style.{this}_index(highlight_x, axis="columns", level=[0, 2])
-        ...  # doctest: +SKIP
+        >>> df.style.{this}_index(
+        ...     highlight_x, axis="columns", level=[0, 2])  # doctest: +SKIP
 
         .. figure:: ../../_static/style/appmaphead2.png
         """
@@ -1968,9 +1971,9 @@ class Styler(StylerRenderer):
         func="take a scalar and return a string",
         input_note="an index value, if an Index, or a level value of a MultiIndex",
         output_note="CSS styles as a string",
-        var="v",
-        ret='"background-color: yellow;" if v == "B" else None',
-        ret2='"background-color: yellow;" if "x" in v else None',
+        var="label",
+        ret='"background-color: yellow;" if label == "B" else None',
+        ret2='"background-color: yellow;" if "x" in label else None',
     )
     def map_index(
         self,
@@ -2073,17 +2076,16 @@ class Styler(StylerRenderer):
 
         Using ``subset`` to restrict application to a single column or multiple columns
 
-        >>> df.style.map(color_negative, color='red', subset="A")
-        ...  # doctest: +SKIP
-        >>> df.style.map(color_negative, color='red', subset=["A", "B"])
-        ...  # doctest: +SKIP
+        >>> df.style.map(color_negative, color='red', subset="A")  # doctest: +SKIP
+        >>> df.style.map(color_negative,
+        ...              color='red', subset=["A", "B"])  # doctest: +SKIP
 
         Using a 2d input to ``subset`` to select rows in addition to columns
 
         >>> df.style.map(color_negative, color='red',
-        ...  subset=([0,1,2], slice(None)))  # doctest: +SKIP
-        >>> df.style.map(color_negative, color='red', subset=(slice(0,5,2), "A"))
-        ...  # doctest: +SKIP
+        ...              subset=([0, 1, 2], slice(None)))  # doctest: +SKIP
+        >>> df.style.map(color_negative,
+        ...              color='red', subset=(slice(0, 5, 2), "A"))  # doctest: +SKIP
 
         See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
         more details.

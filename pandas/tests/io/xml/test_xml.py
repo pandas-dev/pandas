@@ -1361,7 +1361,8 @@ def test_stylesheet_with_etree(kml_cta_rail_lines, xsl_flatten_doc):
 
 @pytest.mark.parametrize("val", ["", b""])
 def test_empty_stylesheet(val):
-    pytest.importorskip("lxml")
+    lxml_etree = pytest.importorskip("lxml.etree")
+
     msg = (
         "Passing literal xml to 'read_xml' is deprecated and "
         "will be removed in a future version. To read from a "
@@ -1369,8 +1370,9 @@ def test_empty_stylesheet(val):
     )
     kml = os.path.join("data", "xml", "cta_rail_lines.kml")
 
-    with pytest.raises(FutureWarning, match=msg):
-        read_xml(kml, stylesheet=val)
+    with pytest.raises(lxml_etree.XMLSyntaxError):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            read_xml(kml, stylesheet=val)
 
 
 # ITERPARSE
