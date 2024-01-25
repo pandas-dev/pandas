@@ -839,12 +839,10 @@ class TestJoinMultiMulti:
         left_multi = left_multi.drop(columns=left_multi.columns)
         right_multi = right_multi.drop(columns=right_multi.columns)
 
-        left_names = left_multi.index.names
-        right_names = right_multi.index.names
         if join_type == "right":
-            level_order = right_names + left_names.difference(right_names)
+            level_order = ["Origin", "Destination", "Period", "LinkType", "TripPurp"]
         else:
-            level_order = left_names + right_names.difference(left_names)
+            level_order = ["Origin", "Destination", "Period", "TripPurp", "LinkType"]
 
         expected = (
             merge(
