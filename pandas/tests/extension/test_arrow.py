@@ -1534,7 +1534,7 @@ def test_is_unsigned_integer_dtype(data):
 
 def test_is_datetime64_any_dtype(data):
     pa_type = data.dtype.pyarrow_dtype
-    if pa.types.is_timestamp(pa_type) and not pa.types.is_date(pa_type):
+    if pa.types.is_timestamp(pa_type) or pa.types.is_date(pa_type):
         assert is_datetime64_any_dtype(data)
     else:
         assert not is_datetime64_any_dtype(data)
