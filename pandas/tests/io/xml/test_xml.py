@@ -32,6 +32,7 @@ from pandas.core.arrays import (
     ArrowStringArray,
     StringArray,
 )
+from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
 
 from pandas.io.common import get_handle
 from pandas.io.xml import read_xml
@@ -470,20 +471,22 @@ def test_empty_string_lxml(val):
             r"None \(line 0\)",
         ]
     )
+    if isinstance(val, str):
+        data = StringIO(val)
+    else:
+        data = BytesIO(val)
     with pytest.raises(lxml_etree.XMLSyntaxError, match=msg):
-        if isinstance(val, str):
-            read_xml(StringIO(val), parser="lxml")
-        else:
-            read_xml(BytesIO(val), parser="lxml")
+        read_xml(data, parser="lxml")
 
 
 @pytest.mark.parametrize("val", ["", b""])
 def test_empty_string_etree(val):
+    if isinstance(val, str):
+        data = StringIO(val)
+    else:
+        data = BytesIO(val)
     with pytest.raises(ParseError, match="no element found"):
-        if isinstance(val, str):
-            read_xml(StringIO(val), parser="etree")
-        else:
-            read_xml(BytesIO(val), parser="etree")
+        read_xml(data, parser="etree")
 
 
 def test_wrong_file_path(parser):
@@ -1358,7 +1361,8 @@ def test_stylesheet_with_etree(kml_cta_rail_lines, xsl_flatten_doc):
 
 @pytest.mark.parametrize("val", ["", b""])
 def test_empty_stylesheet(val):
-    pytest.importorskip("lxml")
+    lxml_etree = pytest.importorskip("lxml.etree")
+
     msg = (
         "Passing literal xml to 'read_xml' is deprecated and "
         "will be removed in a future version. To read from a "
@@ -1366,8 +1370,9 @@ def test_empty_stylesheet(val):
     )
     kml = os.path.join("data", "xml", "cta_rail_lines.kml")
 
-    with pytest.raises(FutureWarning, match=msg):
-        read_xml(kml, stylesheet=val)
+    with pytest.raises(lxml_etree.XMLSyntaxError):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            read_xml(kml, stylesheet=val)
 
 
 # ITERPARSE
@@ -2004,7 +2009,9 @@ def test_s3_parser_consistency(s3_public_bucket_with_data, s3so):
     tm.assert_frame_equal(df_lxml, df_etree)
 
 
-def test_read_xml_nullable_dtypes(parser, string_storage, dtype_backend):
+def test_read_xml_nullable_dtypes(
+    parser, string_storage, dtype_backend, using_infer_string
+):
     # GH#50500
     data = """<?xml version='1.0' encoding='utf-8'?>
 <data xmlns="http://example.com">
@@ -2032,9 +2039,21 @@ def test_read_xml_nullable_dtypes(parser, string_storage, dtype_backend):
 </row>
 </data>"""
 
-    if string_storage == "python":
+    if using_infer_string:
+        pa = pytest.importorskip("pyarrow")
+        string_array = ArrowStringArrayNumpySemantics(pa.array(["x", "y"]))
+        string_array_na = ArrowStringArrayNumpySemantics(pa.array(["x", None]))
+
+    elif string_storage == "python":
         string_array = StringArray(np.array(["x", "y"], dtype=np.object_))
         string_array_na = StringArray(np.array(["x", NA], dtype=np.object_))
+
+    elif dtype_backend == "pyarrow":
+        pa = pytest.importorskip("pyarrow")
+        from pandas.arrays import ArrowExtensionArray
+
+        string_array = ArrowExtensionArray(pa.array(["x", "y"]))
+        string_array_na = ArrowExtensionArray(pa.array(["x", None]))
 
     else:
         pa = pytest.importorskip("pyarrow")

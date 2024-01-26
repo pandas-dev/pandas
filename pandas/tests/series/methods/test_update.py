@@ -34,10 +34,12 @@ class TestUpdate:
                 df["c"].update(Series(["foo"], index=[0]))
             expected = df_orig
         else:
-            df["c"].update(Series(["foo"], index=[0]))
+            with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+                df["c"].update(Series(["foo"], index=[0]))
             expected = DataFrame(
                 [[1, np.nan, "foo"], [3, 2.0, np.nan]], columns=["a", "b", "c"]
             )
+            expected["c"] = expected["c"].astype(object)
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(
@@ -74,21 +76,23 @@ class TestUpdate:
         tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize(
-        "series, other, expected",
+        "values, other, expected",
         [
             # update by key
             (
-                Series({"a": 1, "b": 2, "c": 3, "d": 4}),
+                {"a": 1, "b": 2, "c": 3, "d": 4},
                 {"b": 5, "c": np.nan},
-                Series({"a": 1, "b": 5, "c": 3, "d": 4}),
+                {"a": 1, "b": 5, "c": 3, "d": 4},
             ),
             # update by position
-            (Series([1, 2, 3, 4]), [np.nan, 5, 1], Series([1, 5, 1, 4])),
+            ([1, 2, 3, 4], [np.nan, 5, 1], [1, 5, 1, 4]),
         ],
     )
-    def test_update_from_non_series(self, series, other, expected):
+    def test_update_from_non_series(self, values, other, expected):
         # GH 33215
+        series = Series(values)
         series.update(other)
+        expected = Series(expected)
         tm.assert_series_equal(series, expected)
 
     @pytest.mark.parametrize(

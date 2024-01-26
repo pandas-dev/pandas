@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import (
     Categorical,
     Series,
@@ -33,14 +34,14 @@ def test_drop_duplicates(any_numpy_dtype, keep, expected):
 @pytest.mark.parametrize(
     "keep, expected",
     [
-        ("first", Series([False, False, True, True])),
-        ("last", Series([True, True, False, False])),
-        (False, Series([True, True, True, True])),
+        ("first", [False, False, True, True]),
+        ("last", [True, True, False, False]),
+        (False, [True, True, True, True]),
     ],
 )
 def test_drop_duplicates_bool(keep, expected):
     tc = Series([True, False, True, False])
-
+    expected = Series(expected)
     tm.assert_series_equal(tc.duplicated(keep=keep), expected)
     tm.assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])
     sc = tc.copy()
@@ -249,3 +250,18 @@ class TestSeriesDropDuplicates:
         result = ser.drop_duplicates(ignore_index=True)
         expected = Series([1, 2, 3])
         tm.assert_series_equal(result, expected)
+
+    def test_duplicated_arrow_dtype(self):
+        pytest.importorskip("pyarrow")
+        ser = Series([True, False, None, False], dtype="bool[pyarrow]")
+        result = ser.drop_duplicates()
+        expected = Series([True, False, None], dtype="bool[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+    def test_drop_duplicates_arrow_strings(self):
+        # GH#54904
+        pa = pytest.importorskip("pyarrow")
+        ser = Series(["a", "a"], dtype=pd.ArrowDtype(pa.string()))
+        result = ser.drop_duplicates()
+        expecetd = Series(["a"], dtype=pd.ArrowDtype(pa.string()))
+        tm.assert_series_equal(result, expecetd)

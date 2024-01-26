@@ -283,11 +283,11 @@ class Holiday:
         holiday_dates = self._apply_rule(dates)
         if self.days_of_week is not None:
             holiday_dates = holiday_dates[
-                np.in1d(
+                np.isin(
                     # error: "DatetimeIndex" has no attribute "dayofweek"
                     holiday_dates.dayofweek,  # type: ignore[attr-defined]
                     self.days_of_week,
-                )
+                ).ravel()
             ]
 
         if self.start_date is not None:
@@ -354,7 +354,7 @@ class Holiday:
         Dates with rules applied
         """
         if dates.empty:
-            return DatetimeIndex([])
+            return dates.copy()
 
         if self.observance is not None:
             return dates.map(lambda d: self.observance(d))
@@ -484,9 +484,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
             else:
                 # error: Incompatible types in assignment (expression has type
                 # "Series", variable has type "DataFrame")
-                holidays = Series(
-                    index=DatetimeIndex([]), dtype=object
-                )  # type: ignore[assignment]
+                holidays = Series(index=DatetimeIndex([]), dtype=object)  # type: ignore[assignment]
 
             self._cache = (start, end, holidays.sort_index())
 

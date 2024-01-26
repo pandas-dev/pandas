@@ -8,6 +8,7 @@ from pandas import (
     DataFrame,
     Index,
     Series,
+    date_range,
     to_datetime,
 )
 import pandas._testing as tm
@@ -29,7 +30,11 @@ mpl = pytest.importorskip("matplotlib")
 
 @pytest.fixture
 def ts():
-    return tm.makeTimeSeries(name="ts")
+    return Series(
+        np.arange(30, dtype=np.float64),
+        index=date_range("2020-01-01", periods=30, freq="B"),
+        name="ts",
+    )
 
 
 class TestSeriesPlots:
@@ -650,8 +655,8 @@ class TestDataFramePlots:
         idxerror_weights = np.array([[0.3, 0.25], [0.45, 0.45]])
 
         msg = "weights must have the same shape as data, or be a single column"
+        _, ax2 = mpl.pyplot.subplots()
         with pytest.raises(ValueError, match=msg):
-            _, ax2 = mpl.pyplot.subplots()
             no_nan_df.plot.hist(ax=ax2, weights=idxerror_weights)
 
 

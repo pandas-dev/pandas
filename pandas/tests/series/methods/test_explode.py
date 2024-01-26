@@ -74,11 +74,12 @@ def test_invert_array():
 
 
 @pytest.mark.parametrize(
-    "s", [pd.Series([1, 2, 3]), pd.Series(pd.date_range("2019", periods=3, tz="UTC"))]
+    "data", [[1, 2, 3], pd.date_range("2019", periods=3, tz="UTC")]
 )
-def test_non_object_dtype(s):
-    result = s.explode()
-    tm.assert_series_equal(result, s)
+def test_non_object_dtype(data):
+    ser = pd.Series(data)
+    result = ser.explode()
+    tm.assert_series_equal(result, ser)
 
 
 def test_typical_usecase():
@@ -162,4 +163,14 @@ def test_explode_pyarrow_list_type(ignore_index):
         index=None if ignore_index else [0, 0, 1, 2, 3, 3, 4],
         dtype=pd.ArrowDtype(pa.int64()),
     )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("ignore_index", [True, False])
+def test_explode_pyarrow_non_list_type(ignore_index):
+    pa = pytest.importorskip("pyarrow")
+    data = [1, 2, 3]
+    ser = pd.Series(data, dtype=pd.ArrowDtype(pa.int64()))
+    result = ser.explode(ignore_index=ignore_index)
+    expected = pd.Series([1, 2, 3], dtype="int64[pyarrow]", index=[0, 1, 2])
     tm.assert_series_equal(result, expected)

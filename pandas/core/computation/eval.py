@@ -4,7 +4,10 @@ Top level ``eval`` module.
 from __future__ import annotations
 
 import tokenize
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import warnings
 
 from pandas.util._exceptions import find_stack_level
@@ -72,7 +75,7 @@ def _check_engine(engine: str | None) -> str:
     return engine
 
 
-def _check_parser(parser: str):
+def _check_parser(parser: str) -> None:
     """
     Make sure a valid parser is passed.
 
@@ -91,7 +94,7 @@ def _check_parser(parser: str):
         )
 
 
-def _check_resolvers(resolvers):
+def _check_resolvers(resolvers) -> None:
     if resolvers is not None:
         for resolver in resolvers:
             if not hasattr(resolver, "__getitem__"):
@@ -102,7 +105,7 @@ def _check_resolvers(resolvers):
                 )
 
 
-def _check_expression(expr):
+def _check_expression(expr) -> None:
     """
     Make sure an expression is not an empty string
 
@@ -149,7 +152,7 @@ def _convert_expression(expr) -> str:
     return s
 
 
-def _check_for_locals(expr: str, stack_level: int, parser: str):
+def _check_for_locals(expr: str, stack_level: int, parser: str) -> None:
     at_top_of_stack = stack_level == 0
     not_pandas_parser = parser != "pandas"
 
@@ -177,7 +180,7 @@ def eval(
     level: int = 0,
     target=None,
     inplace: bool = False,
-):
+) -> Any:
     """
     Evaluate a Python expression as a string using various backends.
 
@@ -388,14 +391,10 @@ def eval(
             # we will ignore numpy warnings here; e.g. if trying
             # to use a non-numeric indexer
             try:
-                with warnings.catch_warnings(record=True):
-                    # TODO: Filter the warnings we actually care about here.
-                    if inplace and isinstance(target, NDFrame):
-                        target.loc[:, assigner] = ret
-                    else:
-                        target[  # pyright: ignore[reportGeneralTypeIssues]
-                            assigner
-                        ] = ret
+                if inplace and isinstance(target, NDFrame):
+                    target.loc[:, assigner] = ret
+                else:
+                    target[assigner] = ret  # pyright: ignore[reportGeneralTypeIssues]
             except (TypeError, IndexError) as err:
                 raise ValueError("Cannot assign expression output to target") from err
 

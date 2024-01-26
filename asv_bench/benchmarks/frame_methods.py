@@ -5,6 +5,7 @@ import numpy as np
 
 from pandas import (
     DataFrame,
+    Index,
     MultiIndex,
     NaT,
     Series,
@@ -13,8 +14,6 @@ from pandas import (
     period_range,
     timedelta_range,
 )
-
-from .pandas_vb_common import tm
 
 
 class AsType:
@@ -439,9 +438,9 @@ class Fillna:
         N, M = 10000, 100
         if dtype in ("datetime64[ns]", "datetime64[ns, tz]", "timedelta64[ns]"):
             data = {
-                "datetime64[ns]": date_range("2011-01-01", freq="H", periods=N),
+                "datetime64[ns]": date_range("2011-01-01", freq="h", periods=N),
                 "datetime64[ns, tz]": date_range(
-                    "2011-01-01", freq="H", periods=N, tz="Asia/Tokyo"
+                    "2011-01-01", freq="h", periods=N, tz="Asia/Tokyo"
                 ),
                 "timedelta64[ns]": timedelta_range(start="1 day", periods=N, freq="1D"),
             }
@@ -640,7 +639,8 @@ class Nunique:
 
 class SeriesNuniqueWithNan:
     def setup(self):
-        self.ser = Series(100000 * (100 * [np.nan] + list(range(100)))).astype(float)
+        values = 100 * [np.nan] + list(range(100))
+        self.ser = Series(np.tile(values, 10000), dtype=float)
 
     def time_series_nunique_nan(self):
         self.ser.nunique()
@@ -649,7 +649,7 @@ class SeriesNuniqueWithNan:
 class Duplicated:
     def setup(self):
         n = 1 << 20
-        t = date_range("2015-01-01", freq="S", periods=(n // 64))
+        t = date_range("2015-01-01", freq="s", periods=(n // 64))
         xs = np.random.randn(n // 64).round(2)
         self.df = DataFrame(
             {
@@ -693,20 +693,34 @@ class SortValues:
         self.df.sort_values(by="A", ascending=ascending)
 
 
-class SortIndexByColumns:
-    def setup(self):
+class SortMultiKey:
+    params = [True, False]
+    param_names = ["monotonic"]
+
+    def setup(self, monotonic):
         N = 10000
         K = 10
-        self.df = DataFrame(
+        df = DataFrame(
             {
-                "key1": tm.makeStringIndex(N).values.repeat(K),
-                "key2": tm.makeStringIndex(N).values.repeat(K),
+                "key1": Index([f"i-{i}" for i in range(N)], dtype=object).values.repeat(
+                    K
+                ),
+                "key2": Index([f"i-{i}" for i in range(N)], dtype=object).values.repeat(
+                    K
+                ),
                 "value": np.random.randn(N * K),
             }
         )
+        if monotonic:
+            df = df.sort_values(["key1", "key2"])
+        self.df_by_columns = df
+        self.df_by_index = df.set_index(["key1", "key2"])
 
-    def time_frame_sort_values_by_columns(self):
-        self.df.sort_values(by=["key1", "key2"])
+    def time_sort_values(self, monotonic):
+        self.df_by_columns.sort_values(by=["key1", "key2"])
+
+    def time_sort_index(self, monotonic):
+        self.df_by_index.sort_index()
 
 
 class Quantile:

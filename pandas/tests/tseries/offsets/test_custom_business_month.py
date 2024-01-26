@@ -21,17 +21,13 @@ from pandas._libs.tslibs.offsets import (
     CDay,
 )
 
-from pandas import (
-    _testing as tm,
-    date_range,
-)
+import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import (
     assert_is_on_offset,
     assert_offset_equal,
 )
 
 from pandas.tseries import offsets
-from pandas.tseries.holiday import USFederalHolidayCalendar
 
 
 @pytest.fixture
@@ -66,30 +62,18 @@ class TestCommonCBM:
 
 
 class TestCustomBusinessMonthBegin:
-    @pytest.fixture
-    def _offset(self):
-        return CBMonthBegin
-
-    @pytest.fixture
-    def offset(self):
-        return CBMonthBegin()
-
-    @pytest.fixture
-    def offset2(self):
-        return CBMonthBegin(2)
-
-    def test_different_normalize_equals(self, _offset):
+    def test_different_normalize_equals(self):
         # GH#21404 changed __eq__ to return False when `normalize` does not match
-        offset = _offset()
-        offset2 = _offset(normalize=True)
+        offset = CBMonthBegin()
+        offset2 = CBMonthBegin(normalize=True)
         assert offset != offset2
 
-    def test_repr(self, offset, offset2):
-        assert repr(offset) == "<CustomBusinessMonthBegin>"
-        assert repr(offset2) == "<2 * CustomBusinessMonthBegins>"
+    def test_repr(self):
+        assert repr(CBMonthBegin()) == "<CustomBusinessMonthBegin>"
+        assert repr(CBMonthBegin(2)) == "<2 * CustomBusinessMonthBegins>"
 
-    def test_add_datetime(self, dt, offset2):
-        assert offset2 + dt == datetime(2008, 3, 3)
+    def test_add_datetime(self, dt):
+        assert CBMonthBegin(2) + dt == datetime(2008, 3, 3)
 
     def testRollback1(self):
         assert CDay(10).rollback(datetime(2007, 12, 31)) == datetime(2007, 12, 31)
@@ -201,14 +185,6 @@ class TestCustomBusinessMonthBegin:
         assert dt + bm_offset == datetime(2012, 1, 2)
         assert dt + 2 * bm_offset == datetime(2012, 2, 3)
 
-    @pytest.mark.filterwarnings("ignore:Non:pandas.errors.PerformanceWarning")
-    def test_datetimeindex(self):
-        hcal = USFederalHolidayCalendar()
-        cbmb = CBMonthBegin(calendar=hcal)
-        assert date_range(start="20120101", end="20130101", freq=cbmb).tolist()[
-            0
-        ] == datetime(2012, 1, 3)
-
     @pytest.mark.parametrize(
         "case",
         [
@@ -264,30 +240,18 @@ class TestCustomBusinessMonthBegin:
 
 
 class TestCustomBusinessMonthEnd:
-    @pytest.fixture
-    def _offset(self):
-        return CBMonthEnd
-
-    @pytest.fixture
-    def offset(self):
-        return CBMonthEnd()
-
-    @pytest.fixture
-    def offset2(self):
-        return CBMonthEnd(2)
-
-    def test_different_normalize_equals(self, _offset):
+    def test_different_normalize_equals(self):
         # GH#21404 changed __eq__ to return False when `normalize` does not match
-        offset = _offset()
-        offset2 = _offset(normalize=True)
+        offset = CBMonthEnd()
+        offset2 = CBMonthEnd(normalize=True)
         assert offset != offset2
 
-    def test_repr(self, offset, offset2):
-        assert repr(offset) == "<CustomBusinessMonthEnd>"
-        assert repr(offset2) == "<2 * CustomBusinessMonthEnds>"
+    def test_repr(self):
+        assert repr(CBMonthEnd()) == "<CustomBusinessMonthEnd>"
+        assert repr(CBMonthEnd(2)) == "<2 * CustomBusinessMonthEnds>"
 
-    def test_add_datetime(self, dt, offset2):
-        assert offset2 + dt == datetime(2008, 2, 29)
+    def test_add_datetime(self, dt):
+        assert CBMonthEnd(2) + dt == datetime(2008, 2, 29)
 
     def testRollback1(self):
         assert CDay(10).rollback(datetime(2007, 12, 31)) == datetime(2007, 12, 31)
@@ -396,15 +360,6 @@ class TestCustomBusinessMonthEnd:
         dt = datetime(2012, 1, 1)
         assert dt + bm_offset == datetime(2012, 1, 30)
         assert dt + 2 * bm_offset == datetime(2012, 2, 27)
-
-    @pytest.mark.filterwarnings("ignore:Non:pandas.errors.PerformanceWarning")
-    def test_datetimeindex(self):
-        hcal = USFederalHolidayCalendar()
-        freq = CBMonthEnd(calendar=hcal)
-
-        assert date_range(start="20120101", end="20130101", freq=freq).tolist()[
-            0
-        ] == datetime(2012, 1, 31)
 
     @pytest.mark.parametrize(
         "case",

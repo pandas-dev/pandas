@@ -265,7 +265,7 @@ pc_max_seq_items = """
 """
 
 pc_max_info_rows_doc = """
-: int or None
+: int
     df.info() will usually show null-counts for each column.
     For large frames this can be quite slow. max_info_rows and max_info_cols
     limit this null check only to frames with smaller dimensions than
@@ -322,14 +322,14 @@ with cf.config_prefix("display"):
         "max_info_rows",
         1690785,
         pc_max_info_rows_doc,
-        validator=is_instance_factory((int, type(None))),
+        validator=is_int,
     )
     cf.register_option("max_rows", 60, pc_max_rows_doc, validator=is_nonnegative_int)
     cf.register_option(
         "min_rows",
         10,
         pc_min_rows_doc,
-        validator=is_instance_factory([type(None), int]),
+        validator=is_instance_factory((type(None), int)),
     )
     cf.register_option("max_categories", 8, pc_max_categories_doc, validator=is_int)
 
@@ -369,7 +369,7 @@ with cf.config_prefix("display"):
     cf.register_option("chop_threshold", None, pc_chop_threshold_doc)
     cf.register_option("max_seq_items", 100, pc_max_seq_items)
     cf.register_option(
-        "width", 80, pc_width_doc, validator=is_instance_factory([type(None), int])
+        "width", 80, pc_width_doc, validator=is_instance_factory((type(None), int))
     )
     cf.register_option(
         "memory_usage",
@@ -420,6 +420,7 @@ use_inf_as_na_doc = """
 
 
 def use_inf_as_na_cb(key) -> None:
+    # TODO(3.0): enforcing this deprecation will close GH#52501
     from pandas.core.dtypes.missing import _use_inf_as_na
 
     _use_inf_as_na(key)
@@ -453,6 +454,13 @@ with cf.config_prefix("mode"):
         validator=is_one_of_factory(["block", "array"]),
     )
 
+cf.deprecate_option(
+    # GH#55043
+    "mode.data_manager",
+    "data_manager option is deprecated and will be removed in a future "
+    "version. Only the BlockManager will be available.",
+)
+
 
 # TODO better name?
 copy_on_write_doc = """
@@ -468,9 +476,11 @@ with cf.config_prefix("mode"):
         "copy_on_write",
         # Get the default from an environment variable, if set, otherwise defaults
         # to False. This environment variable can be set for testing.
-        os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "1",
+        "warn"
+        if os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "warn"
+        else os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "1",
         copy_on_write_doc,
-        validator=is_bool,
+        validator=is_one_of_factory([True, False, "warn"]),
     )
 
 
@@ -492,7 +502,8 @@ with cf.config_prefix("mode"):
 
 string_storage_doc = """
 : string
-    The default storage for StringDtype.
+    The default storage for StringDtype. This option is ignored if
+    ``future.infer_string`` is set to True.
 """
 
 with cf.config_prefix("mode"):
@@ -500,7 +511,7 @@ with cf.config_prefix("mode"):
         "string_storage",
         "python",
         string_storage_doc,
-        validator=is_one_of_factory(["python", "pyarrow"]),
+        validator=is_one_of_factory(["python", "pyarrow", "pyarrow_numpy"]),
     )
 
 
@@ -511,11 +522,11 @@ reader_engine_doc = """
     auto, {others}.
 """
 
-_xls_options = ["xlrd"]
-_xlsm_options = ["xlrd", "openpyxl"]
-_xlsx_options = ["xlrd", "openpyxl"]
-_ods_options = ["odf"]
-_xlsb_options = ["pyxlsb"]
+_xls_options = ["xlrd", "calamine"]
+_xlsm_options = ["xlrd", "openpyxl", "calamine"]
+_xlsx_options = ["xlrd", "openpyxl", "calamine"]
+_ods_options = ["odf", "calamine"]
+_xlsb_options = ["pyxlsb", "calamine"]
 
 
 with cf.config_prefix("io.excel.xls"):
@@ -839,14 +850,14 @@ with cf.config_prefix("styler"):
         "format.thousands",
         None,
         styler_thousands,
-        validator=is_instance_factory([type(None), str]),
+        validator=is_instance_factory((type(None), str)),
     )
 
     cf.register_option(
         "format.na_rep",
         None,
         styler_na_rep,
-        validator=is_instance_factory([type(None), str]),
+        validator=is_instance_factory((type(None), str)),
     )
 
     cf.register_option(
@@ -856,11 +867,15 @@ with cf.config_prefix("styler"):
         validator=is_one_of_factory([None, "html", "latex", "latex-math"]),
     )
 
+    # error: Argument 1 to "is_instance_factory" has incompatible type "tuple[
+    # ..., <typing special form>, ...]"; expected "type | tuple[type, ...]"
     cf.register_option(
         "format.formatter",
         None,
         styler_formatter,
-        validator=is_instance_factory([type(None), dict, Callable, str]),
+        validator=is_instance_factory(
+            (type(None), dict, Callable, str)  # type: ignore[arg-type]
+        ),
     )
 
     cf.register_option("html.mathjax", True, styler_mathjax, validator=is_bool)
@@ -887,7 +902,7 @@ with cf.config_prefix("styler"):
         "latex.environment",
         None,
         styler_environment,
-        validator=is_instance_factory([type(None), str]),
+        validator=is_instance_factory((type(None), str)),
     )
 
 
@@ -897,6 +912,17 @@ with cf.config_prefix("future"):
         False,
         "Whether to infer sequence of str objects as pyarrow string "
         "dtype, which will be the default in pandas 3.0 "
+        "(at which point this option will be deprecated).",
+        validator=is_one_of_factory([True, False]),
+    )
+
+    cf.register_option(
+        "no_silent_downcasting",
+        False,
+        "Whether to opt-in to the future behavior which will *not* silently "
+        "downcast results from Series and DataFrame `where`, `mask`, and `clip` "
+        "methods. "
+        "Silent downcasting will be removed in pandas 3.0 "
         "(at which point this option will be deprecated).",
         validator=is_one_of_factory([True, False]),
     )

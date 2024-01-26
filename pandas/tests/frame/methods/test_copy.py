@@ -46,7 +46,6 @@ class TestCopy:
         copy = float_string_frame.copy()
         assert copy._mgr is not float_string_frame._mgr
 
-    @td.skip_array_manager_invalid_test
     def test_copy_consolidates(self):
         # GH#42477
         df = DataFrame(
@@ -56,7 +55,7 @@ class TestCopy:
             }
         )
 
-        for i in range(0, 10):
+        for i in range(10):
             df.loc[:, f"n_{i}"] = np.random.default_rng(2).integers(0, 100, size=55)
 
         assert len(df._mgr.blocks) == 11

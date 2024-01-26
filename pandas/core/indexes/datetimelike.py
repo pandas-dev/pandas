@@ -14,6 +14,7 @@ from typing import (
     cast,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -31,6 +32,7 @@ from pandas._libs.tslibs import (
     parsing,
     to_offset,
 )
+from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
@@ -41,6 +43,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_integer,
@@ -72,6 +75,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         Axis,
+        JoinHow,
         Self,
         npt,
     )
@@ -108,8 +112,16 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     @property
     @doc(DatetimeLikeArrayMixin.freqstr)
-    def freqstr(self) -> str | None:
-        return self._data.freqstr
+    def freqstr(self) -> str:
+        from pandas import PeriodIndex
+
+        if self._data.freqstr is not None and isinstance(
+            self._data, (PeriodArray, PeriodIndex)
+        ):
+            freq = freq_to_period_freqstr(self._data.freq.n, self._data.freq.name)
+            return freq
+        else:
+            return self._data.freqstr  # type: ignore[return-value]
 
     @cache_readonly
     @abstractmethod
@@ -178,6 +190,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     # --------------------------------------------------------------------
     # Rendering Methods
+    _default_na_rep = "NaT"
 
     def format(
         self,
@@ -189,6 +202,14 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         """
         Render a string representation of the Index.
         """
+        warnings.warn(
+            # GH#55413
+            f"{type(self).__name__}.format is deprecated and will be removed "
+            "in a future version. Convert using index.astype(str) or "
+            "index.map(formatter) instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         header = []
         if name:
             header.append(
@@ -200,14 +221,17 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         if formatter is not None:
             return header + list(self.map(formatter))
 
-        return self._format_with_header(header, na_rep=na_rep, date_format=date_format)
+        return self._format_with_header(
+            header=header, na_rep=na_rep, date_format=date_format
+        )
 
     def _format_with_header(
-        self, header: list[str], na_rep: str = "NaT", date_format: str | None = None
+        self, *, header: list[str], na_rep: str, date_format: str | None = None
     ) -> list[str]:
+        # TODO: not reached in tests 2023-10-11
         # matches base class except for whitespace padding and date_format
         return header + list(
-            self._format_native_types(na_rep=na_rep, date_format=date_format)
+            self._get_values_for_csv(na_rep=na_rep, date_format=date_format)
         )
 
     @property
@@ -419,8 +443,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
 
-    _join_precedence = 10
-
     @property
     def unit(self) -> str:
         return self._data.unit
@@ -495,7 +517,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         #  appropriate timezone from `start` and `end`, so tz does not need
         #  to be passed explicitly.
         result = self._data._generate_range(
-            start=start, end=end, periods=None, freq=self.freq
+            start=start, end=end, periods=None, freq=self.freq, unit=self.unit
         )
         return type(self)._simple_new(result, name=self.name)
 
@@ -512,7 +534,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         # Convert our i8 representations to RangeIndex
         # Caller is responsible for checking isinstance(self.freq, Tick)
         freq = cast(Tick, self.freq)
-        tick = freq.delta._value
+        tick = Timedelta(freq).as_unit("ns")._value
         rng = range(self[0]._value, self[-1]._value + tick, tick)
         return RangeIndex(rng)
 
@@ -676,7 +698,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             dates = concat_compat([left._values, right_chunk])
             # The can_fast_union check ensures that the result.freq
             #  should match self.freq
-            dates = type(self._data)(dates, freq=self.freq)
+            assert isinstance(dates, type(self._data))
+            # error: Item "ExtensionArray" of "ExtensionArray |
+            # ndarray[Any, Any]" has no attribute "_freq"
+            assert dates._freq == self.freq  # type: ignore[union-attr]
             result = type(self)._simple_new(dates)
             return result
         else:
@@ -710,13 +735,20 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             freq = self.freq
         return freq
 
-    def _wrap_joined_index(
-        self, joined, other, lidx: npt.NDArray[np.intp], ridx: npt.NDArray[np.intp]
-    ):
+    def _wrap_join_result(
+        self,
+        joined,
+        other,
+        lidx: npt.NDArray[np.intp] | None,
+        ridx: npt.NDArray[np.intp] | None,
+        how: JoinHow,
+    ) -> tuple[Self, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         assert other.dtype == self.dtype, (other.dtype, self.dtype)
-        result = super()._wrap_joined_index(joined, other, lidx, ridx)
-        result._data._freq = self._get_join_freq(other)
-        return result
+        join_index, lidx, ridx = super()._wrap_join_result(
+            joined, other, lidx, ridx, how
+        )
+        join_index._data._freq = self._get_join_freq(other)
+        return join_index, lidx, ridx
 
     def _get_engine_target(self) -> np.ndarray:
         # engine methods and libjoin methods need dt64/td64 values cast to i8

@@ -44,6 +44,9 @@ reading.
 Issue triage
 ------------
 
+Triage is an important first step in addressing issues reported by the community, and even
+partial contributions are a great way to help maintain pandas. Only remove the "Needs Triage"
+tag once all of the steps below have been completed.
 
 Here's a typical workflow for triaging a newly opened issue.
 
@@ -67,9 +70,9 @@ Here's a typical workflow for triaging a newly opened issue.
 3. **Is this a duplicate issue?**
 
    We have many open issues. If a new issue is clearly a duplicate, label the
-   new issue as "Duplicate" assign the milestone "No Action", and close the issue
-   with a link to the original issue. Make sure to still thank the reporter, and
-   encourage them to chime in on the original issue, and perhaps try to fix it.
+   new issue as "Duplicate" and close the issue with a link to the original issue.
+   Make sure to still thank the reporter, and encourage them to chime in on the
+   original issue, and perhaps try to fix it.
 
    If the new issue provides relevant information, such as a better or slightly
    different example, add it to the original issue as a comment or an edit to
@@ -90,6 +93,10 @@ Here's a typical workflow for triaging a newly opened issue.
    If a reproducible example is provided, but you see a simplification,
    edit the original post with your simpler reproducible example.
 
+   Ensure the issue exists on the main branch and that it has the "Needs Triage" tag
+   until all steps have been completed. Add a comment to the issue once you have
+   verified it exists on the main branch, so others know it has been confirmed.
+
 5. **Is this a clearly defined feature request?**
 
    Generally, pandas prefers to discuss and design new features in issues, before
@@ -97,8 +104,9 @@ Here's a typical workflow for triaging a newly opened issue.
    for the new feature. Having them write a full docstring is a good way to
    pin down specifics.
 
-   We'll need a discussion from several pandas maintainers before deciding whether
-   the proposal is in scope for pandas.
+   Tag new feature requests with "Needs Discussion", as we'll need a discussion
+   from several pandas maintainers before deciding whether the proposal is in
+   scope for pandas.
 
 6. **Is this a usage question?**
 
@@ -116,10 +124,6 @@ Here's a typical workflow for triaging a newly opened issue.
 
    If the issue is clearly defined and the fix seems relatively straightforward,
    label the issue as "Good first issue".
-
-   Typically, new issues will be assigned the "Contributions welcome" milestone,
-   unless it's know that this issue should be addressed in a specific release (say
-   because it's a large regression).
 
    Once you have completed the above, make sure to remove the "needs triage" label.
 
@@ -445,9 +449,13 @@ which will be triggered when the tag is pushed.
     git tag -a v1.5.0.dev0 -m "DEV: Start 1.5.0"
     git push upstream main --follow-tags
 
-3. Build the source distribution (git must be in the tag commit)::
+3. Download the source distribution and wheels from the `wheel staging area <https://anaconda.org/scientific-python-nightly-wheels/pandas>`_.
+   Be careful to make sure that no wheels are missing (e.g. due to failed builds).
 
-    ./setup.py sdist --formats=gztar --quiet
+   Running scripts/download_wheels.sh with the version that you want to download wheels/the sdist for should do the trick.
+   This script will make a ``dist`` folder inside your clone of pandas and put the downloaded wheels and sdist there::
+
+    scripts/download_wheels.sh <VERSION>
 
 4. Create a `new GitHub release <https://github.com/pandas-dev/pandas/releases/new>`_:
 
@@ -459,22 +467,18 @@ which will be triggered when the tag is pushed.
    - Set as the latest release: Leave checked, unless releasing a patch release for an older version
      (e.g. releasing 1.4.5 after 1.5 has been released)
 
-5. The GitHub release will after some hours trigger an
+5. Upload wheels to PyPI::
+
+    twine upload pandas/dist/pandas-<version>*.{whl,tar.gz} --skip-existing
+
+6. The GitHub release will after some hours trigger an
    `automated conda-forge PR <https://github.com/conda-forge/pandas-feedstock/pulls>`_.
+   (If you don't want to wait, you can open an issue titled ``@conda-forge-admin, please update version`` to trigger the bot.)
    Merge it once the CI is green, and it will generate the conda-forge packages.
+
    In case a manual PR needs to be done, the version, sha256 and build fields are the
    ones that usually need to be changed. If anything else in the recipe has changed since
    the last release, those changes should be available in ``ci/meta.yaml``.
-
-6. Packages for supported versions in PyPI are built automatically from our CI.
-   Once all packages are build download all wheels from the
-   `Anaconda repository <https://anaconda.org/multibuild-wheels-staging/pandas/files?version=\<version\>>`_
-   where our CI published them to the ``dist/`` directory in your local pandas copy.
-   You can use the script ``scripts/download_wheels.sh`` to download all wheels at once.
-
-7. Upload wheels to PyPI::
-
-    twine upload pandas/dist/pandas-<version>*.{whl,tar.gz} --skip-existing
 
 Post-Release
 ````````````

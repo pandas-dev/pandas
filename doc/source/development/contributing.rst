@@ -19,7 +19,7 @@ Bug reports and enhancement requests
 ====================================
 
 Bug reports and enhancement requests are an important part of making pandas more stable and
-are curated though Github issues. When reporting and issue or request, please select the `appropriate
+are curated though Github issues. When reporting an issue or request, please select the `appropriate
 category and fill out the issue form fully <https://github.com/pandas-dev/pandas/issues/new/choose>`_
 to ensure others and the core development team can fully understand the scope of the issue.
 
@@ -311,6 +311,7 @@ If using :ref:`mamba <contributing.mamba>`, run:
 .. code-block:: shell
 
     git checkout main
+    git fetch upstream
     git merge upstream/main
     mamba activate pandas-dev
     mamba env update -f environment.yml --prune
@@ -320,6 +321,7 @@ If using :ref:`pip <contributing.pip>` , do:
 .. code-block:: shell
 
     git checkout main
+    git fetch upstream
     git merge upstream/main
     # activate the virtual environment based on your platform
     python -m pip install --upgrade -r requirements-dev.txt

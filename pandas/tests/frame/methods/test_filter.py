@@ -98,23 +98,23 @@ class TestDataFrameFilter:
         tm.assert_frame_equal(result, exp)
 
     @pytest.mark.parametrize(
-        "name,expected",
+        "name,expected_data",
         [
-            ("a", DataFrame({"a": [1, 2]})),
-            ("a", DataFrame({"a": [1, 2]})),
-            ("あ", DataFrame({"あ": [3, 4]})),
+            ("a", {"a": [1, 2]}),
+            ("あ", {"あ": [3, 4]}),
         ],
     )
-    def test_filter_unicode(self, name, expected):
+    def test_filter_unicode(self, name, expected_data):
         # GH13101
         df = DataFrame({"a": [1, 2], "あ": [3, 4]})
+        expected = DataFrame(expected_data)
 
         tm.assert_frame_equal(df.filter(like=name), expected)
         tm.assert_frame_equal(df.filter(regex=name), expected)
 
-    @pytest.mark.parametrize("name", ["a", "a"])
-    def test_filter_bytestring(self, name):
+    def test_filter_bytestring(self):
         # GH13101
+        name = "a"
         df = DataFrame({b"a": [1, 2], b"b": [3, 4]})
         expected = DataFrame({b"a": [1, 2]})
 
@@ -136,4 +136,18 @@ class TestDataFrameFilter:
         df = DataFrame(np.random.default_rng(2).random((3, 2)), columns=["STRING", 123])
         result = df.filter(regex="STRING")
         expected = df[["STRING"]]
+        tm.assert_frame_equal(result, expected)
+
+    def test_filter_keep_order(self):
+        # GH#54980
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        result = df.filter(items=["B", "A"])
+        expected = df[["B", "A"]]
+        tm.assert_frame_equal(result, expected)
+
+    def test_filter_different_dtype(self):
+        # GH#54980
+        df = DataFrame({1: [1, 2, 3], 2: [4, 5, 6]})
+        result = df.filter(items=["B", "A"])
+        expected = df[[]]
         tm.assert_frame_equal(result, expected)

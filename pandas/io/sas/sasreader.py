@@ -116,16 +116,8 @@ def read_sas(
         Encoding for text data.  If None, text data are stored as raw bytes.
     chunksize : int
         Read file `chunksize` lines at a time, returns iterator.
-
-        .. versionchanged:: 1.2
-
-            ``TextFileReader`` is a context manager.
     iterator : bool, defaults to False
         If True, returns an iterator for reading the file incrementally.
-
-        .. versionchanged:: 1.2
-
-            ``TextFileReader`` is a context manager.
     {decompression_options}
 
     Returns
@@ -152,7 +144,7 @@ def read_sas(
             format = "sas7bdat"
         else:
             raise ValueError(
-                f"unable to infer format of SAS file from filename: {repr(fname)}"
+                f"unable to infer format of SAS file from filename: {fname!r}"
             )
 
     reader: ReaderBase

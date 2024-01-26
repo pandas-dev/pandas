@@ -73,9 +73,7 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCDatetimeIndex,
     ABCSeries,
-    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import (
@@ -109,7 +107,10 @@ from pandas.core.sorting import (
     lexsort_indexer,
 )
 
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    get_adjustment,
+    pprint_thing,
+)
 
 if TYPE_CHECKING:
     from pandas import (
@@ -768,8 +769,8 @@ class MultiIndex(Index):
                 vals = cast("CategoricalIndex", vals)
                 vals = vals._data._internal_get_values()
 
-            if isinstance(vals.dtype, ExtensionDtype) or isinstance(
-                vals, (ABCDatetimeIndex, ABCTimedeltaIndex)
+            if isinstance(vals.dtype, ExtensionDtype) or lib.is_np_dtype(
+                vals.dtype, "mM"
             ):
                 vals = vals.astype(object)
 
@@ -842,6 +843,54 @@ class MultiIndex(Index):
 
     @cache_readonly
     def levels(self) -> FrozenList:
+        """
+        Levels of the MultiIndex.
+
+        Levels refer to the different hierarchical levels or layers in a MultiIndex.
+        In a MultiIndex, each level represents a distinct dimension or category of
+        the index.
+
+        To access the levels, you can use the levels attribute of the MultiIndex,
+        which returns a tuple of Index objects. Each Index object represents a
+        level in the MultiIndex and contains the unique values found in that
+        specific level.
+
+        If a MultiIndex is created with levels A, B, C, and the DataFrame using
+        it filters out all rows of the level C, MultiIndex.levels will still
+        return A, B, C.
+
+        Examples
+        --------
+        >>> index = pd.MultiIndex.from_product([['mammal'],
+        ...                                     ('goat', 'human', 'cat', 'dog')],
+        ...                                    names=['Category', 'Animals'])
+        >>> leg_num = pd.DataFrame(data=(4, 2, 4, 4), index=index, columns=['Legs'])
+        >>> leg_num
+                          Legs
+        Category Animals
+        mammal   goat        4
+                 human       2
+                 cat         4
+                 dog         4
+
+        >>> leg_num.index.levels
+        FrozenList([['mammal'], ['cat', 'dog', 'goat', 'human']])
+
+        MultiIndex levels will not change even if the DataFrame using the MultiIndex
+        does not contain all them anymore.
+        See how "human" is not in the DataFrame, but it is still in levels:
+
+        >>> large_leg_num = leg_num[leg_num.Legs > 2]
+        >>> large_leg_num
+                          Legs
+        Category Animals
+        mammal   goat        4
+                 cat         4
+                 dog         4
+
+        >>> large_leg_num.index.levels
+        FrozenList([['mammal'], ['cat', 'dog', 'goat', 'human']])
+        """
         # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
         # create new IndexEngine
         # https://github.com/pandas-dev/pandas/issues/31648
@@ -1030,7 +1079,7 @@ class MultiIndex(Index):
     # Codes Methods
 
     @property
-    def codes(self):
+    def codes(self) -> FrozenList:
         return self._codes
 
     def _set_codes(
@@ -1074,7 +1123,9 @@ class MultiIndex(Index):
 
         self._reset_cache()
 
-    def set_codes(self, codes, *, level=None, verify_integrity: bool = True):
+    def set_codes(
+        self, codes, *, level=None, verify_integrity: bool = True
+    ) -> MultiIndex:
         """
         Set new codes on MultiIndex. Defaults to returning new index.
 
@@ -1199,7 +1250,7 @@ class MultiIndex(Index):
         names=None,
         deep: bool = False,
         name=None,
-    ):
+    ) -> Self:
         """
         Make a copy of this object.
 
@@ -1262,7 +1313,7 @@ class MultiIndex(Index):
         """the array interface, return my values"""
         return self.values
 
-    def view(self, cls=None):
+    def view(self, cls=None) -> Self:
         """this is defined as a copy with the same identity"""
         result = self.copy()
         result._id = self._id
@@ -1334,7 +1385,7 @@ class MultiIndex(Index):
         formatter_funcs = [level._formatter_func for level in self.levels]
         return tuple(func(val) for func, val in zip(formatter_funcs, tup))
 
-    def _format_native_types(
+    def _get_values_for_csv(
         self, *, na_rep: str = "nan", **kwargs
     ) -> npt.NDArray[np.object_]:
         new_levels = []
@@ -1342,7 +1393,7 @@ class MultiIndex(Index):
 
         # go through the levels and format them
         for level, level_codes in zip(self.levels, self.codes):
-            level_strs = level._format_native_types(na_rep=na_rep, **kwargs)
+            level_strs = level._get_values_for_csv(na_rep=na_rep, **kwargs)
             # add nan values, if there are any
             mask = level_codes == -1
             if mask.any():
@@ -1358,7 +1409,7 @@ class MultiIndex(Index):
 
         if len(new_levels) == 1:
             # a single-level multi-index
-            return Index(new_levels[0].take(new_codes[0]))._format_native_types()
+            return Index(new_levels[0].take(new_codes[0]))._get_values_for_csv()
         else:
             # reconstruct the multi-index
             mi = MultiIndex(
@@ -1380,6 +1431,15 @@ class MultiIndex(Index):
         sparsify=None,
         adjoin: bool = True,
     ) -> list:
+        warnings.warn(
+            # GH#55413
+            f"{type(self).__name__}.format is deprecated and will be removed "
+            "in a future version. Convert using index.astype(str) or "
+            "index.map(formatter) instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
         if name is not None:
             names = name
 
@@ -1437,12 +1497,73 @@ class MultiIndex(Index):
             )
 
         if adjoin:
-            from pandas.io.formats.format import get_adjustment
-
             adj = get_adjustment()
             return adj.adjoin(space, *result_levels).split("\n")
         else:
             return result_levels
+
+    def _format_multi(
+        self,
+        *,
+        include_names: bool,
+        sparsify: bool | None | lib.NoDefault,
+        formatter: Callable | None = None,
+    ) -> list:
+        if len(self) == 0:
+            return []
+
+        stringified_levels = []
+        for lev, level_codes in zip(self.levels, self.codes):
+            na = _get_na_rep(lev.dtype)
+
+            if len(lev) > 0:
+                taken = formatted = lev.take(level_codes)
+                formatted = taken._format_flat(include_name=False, formatter=formatter)
+
+                # we have some NA
+                mask = level_codes == -1
+                if mask.any():
+                    formatted = np.array(formatted, dtype=object)
+                    formatted[mask] = na
+                    formatted = formatted.tolist()
+
+            else:
+                # weird all NA case
+                formatted = [
+                    pprint_thing(na if isna(x) else x, escape_chars=("\t", "\r", "\n"))
+                    for x in algos.take_nd(lev._values, level_codes)
+                ]
+            stringified_levels.append(formatted)
+
+        result_levels = []
+        for lev, lev_name in zip(stringified_levels, self.names):
+            level = []
+
+            if include_names:
+                level.append(
+                    pprint_thing(lev_name, escape_chars=("\t", "\r", "\n"))
+                    if lev_name is not None
+                    else ""
+                )
+
+            level.extend(np.array(lev, dtype=object))
+            result_levels.append(level)
+
+        if sparsify is None:
+            sparsify = get_option("display.multi_sparse")
+
+        if sparsify:
+            sentinel: Literal[""] | bool | lib.NoDefault = ""
+            # GH3547 use value of sparsify as sentinel if it's "Falsey"
+            assert isinstance(sparsify, bool) or sparsify is lib.no_default
+            if sparsify is lib.no_default:
+                sentinel = sparsify
+            # little bit of a kludge job for #1217
+            result_levels = sparsify_labels(
+                result_levels, start=int(include_names), sentinel=sentinel
+            )
+
+        return result_levels
 
     # --------------------------------------------------------------------
     # Names Methods
@@ -1450,7 +1571,7 @@ class MultiIndex(Index):
     def _get_names(self) -> FrozenList:
         return FrozenList(self._names)
 
-    def _set_names(self, names, *, level=None, validate: bool = True):
+    def _set_names(self, names, *, level=None, validate: bool = True) -> None:
         """
         Set new names on index. Each name has to be a hashable type.
 
@@ -1517,7 +1638,8 @@ class MultiIndex(Index):
         Examples
         --------
         >>> mi = pd.MultiIndex.from_arrays(
-        ... [[1, 2], [3, 4], [5, 6]], names=['x', 'y', 'z'])
+        ...     [[1, 2], [3, 4], [5, 6]], names=['x', 'y', 'z']
+        ... )
         >>> mi
         MultiIndex([(1, 3, 5),
                     (2, 4, 6)],
@@ -1659,7 +1781,8 @@ class MultiIndex(Index):
         filled = algos.take_nd(lev._values, level_codes, fill_value=lev._na_value)
         return lev._shallow_copy(filled, name=name)
 
-    def get_level_values(self, level):
+    # error: Signature of "get_level_values" incompatible with supertype "Index"
+    def get_level_values(self, level) -> Index:  # type: ignore[override]
         """
         Return vector of label values for requested level.
 
@@ -1945,7 +2068,7 @@ class MultiIndex(Index):
                     # indexer to reorder the level codes
                     indexer = ensure_platform_int(indexer)
                     ri = lib.get_reverse_indexer(indexer, len(indexer))
-                    level_codes = algos.take_nd(ri, level_codes)
+                    level_codes = algos.take_nd(ri, level_codes, fill_value=-1)
 
             new_levels.append(lev)
             new_codes.append(level_codes)
@@ -2125,6 +2248,9 @@ class MultiIndex(Index):
         # only fill if we are passing a non-None fill_value
         allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
 
+        if indices.ndim == 1 and lib.is_range_indexer(indices, len(self)):
+            return self.copy()
+
         na_value = -1
 
         taken = [lab.take(indices) for lab in self.codes]
@@ -2208,17 +2334,9 @@ class MultiIndex(Index):
     def argsort(
         self, *args, na_position: str = "last", **kwargs
     ) -> npt.NDArray[np.intp]:
-        if len(args) == 0 and len(kwargs) == 0:
-            # lexsort is significantly faster than self._values.argsort()
-            target = self._sort_levels_monotonic(raise_if_incomparable=True)
-            return lexsort_indexer(
-                # error: Argument 1 to "lexsort_indexer" has incompatible type
-                # "List[Categorical]"; expected "Union[List[Union[ExtensionArray,
-                # ndarray[Any, Any]]], List[Series]]"
-                target._get_codes_for_sorting(),  # type: ignore[arg-type]
-                na_position=na_position,
-            )
-        return self._values.argsort(*args, **kwargs)
+        target = self._sort_levels_monotonic(raise_if_incomparable=True)
+        keys = [lev.codes for lev in target._get_codes_for_sorting()]
+        return lexsort_indexer(keys, na_position=na_position, codes_given=True)
 
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
     def repeat(self, repeats: int, axis=None) -> MultiIndex:
@@ -2461,12 +2579,12 @@ class MultiIndex(Index):
     def _recode_for_new_levels(
         self, new_levels, copy: bool = True
     ) -> Generator[np.ndarray, None, None]:
-        if len(new_levels) != self.nlevels:
+        if len(new_levels) > self.nlevels:
             raise AssertionError(
                 f"Length of new_levels ({len(new_levels)}) "
-                f"must be same as self.nlevels ({self.nlevels})"
+                f"must be <= self.nlevels ({self.nlevels})"
             )
-        for i in range(self.nlevels):
+        for i in range(len(new_levels)):
             yield recode_for_categories(
                 self.codes[i], self.levels[i], new_levels[i], copy=copy
             )
@@ -2559,7 +2677,8 @@ class MultiIndex(Index):
         # error: Item "Hashable" of "Union[Hashable, Sequence[Hashable]]" has
         # no attribute "__iter__" (not iterable)
         level = [
-            self._get_level_number(lev) for lev in level  # type: ignore[union-attr]
+            self._get_level_number(lev)
+            for lev in level  # type: ignore[union-attr]
         ]
         sortorder = None
 
@@ -3304,7 +3423,7 @@ class MultiIndex(Index):
                 raise KeyError(key)
             return slice(start, end)
 
-    def get_locs(self, seq):
+    def get_locs(self, seq) -> npt.NDArray[np.intp]:
         """
         Get location for a sequence of labels.
 
@@ -3374,6 +3493,8 @@ class MultiIndex(Index):
                         "is not the same length as the index"
                     )
                 lvl_indexer = np.asarray(k)
+                if indexer is None:
+                    lvl_indexer = lvl_indexer.copy()
 
             elif is_list_like(k):
                 # a collection of labels to include from this level (these are or'd)
@@ -3605,31 +3726,16 @@ class MultiIndex(Index):
             other_mask = other_codes == -1
             if not np.array_equal(self_mask, other_mask):
                 return False
-            self_codes = self_codes[~self_mask]
-            self_values = self.levels[i]._values.take(self_codes)
-
-            other_codes = other_codes[~other_mask]
-            other_values = other.levels[i]._values.take(other_codes)
-
-            # since we use NaT both datetime64 and timedelta64 we can have a
-            # situation where a level is typed say timedelta64 in self (IOW it
-            # has other values than NaT) but types datetime64 in other (where
-            # its all NaT) but these are equivalent
-            if len(self_values) == 0 and len(other_values) == 0:
-                continue
-
-            if not isinstance(self_values, np.ndarray):
-                # i.e. ExtensionArray
-                if not self_values.equals(other_values):
-                    return False
-            elif not isinstance(other_values, np.ndarray):
-                # i.e. other is ExtensionArray
-                if not other_values.equals(self_values):
-                    return False
-            else:
-                if not array_equivalent(self_values, other_values):
-                    return False
-
+            self_level = self.levels[i]
+            other_level = other.levels[i]
+            new_codes = recode_for_categories(
+                other_codes, other_level, self_level, copy=False
+            )
+            if not np.array_equal(self_codes, new_codes):
+                return False
+            if not self_level[:0].equals(other_level[:0]):
+                # e.g. Int64 != int64
+                return False
         return True
 
     def equal_levels(self, other: MultiIndex) -> bool:
@@ -3940,14 +4046,14 @@ def sparsify_labels(label_list, start: int = 0, sentinel: object = ""):
         for i, (p, t) in enumerate(zip(prev, cur)):
             if i == k - 1:
                 sparse_cur.append(t)
-                result.append(sparse_cur)
+                result.append(sparse_cur)  # type: ignore[arg-type]
                 break
 
             if p == t:
                 sparse_cur.append(sentinel)
             else:
                 sparse_cur.extend(cur[i:])
-                result.append(sparse_cur)
+                result.append(sparse_cur)  # type: ignore[arg-type]
                 break
 
         prev = cur

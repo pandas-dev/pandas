@@ -118,7 +118,9 @@ def concatenate_managers(
         # type "List[BlockManager]"; expected "List[Union[ArrayManager,
         # SingleArrayManager, BlockManager, SingleBlockManager]]"
         return _concatenate_array_managers(
-            mgrs, axes, concat_axis  # type: ignore[arg-type]
+            mgrs,  # type: ignore[arg-type]
+            axes,
+            concat_axis,
         )
 
     # Assertions disabled for performance
@@ -177,7 +179,7 @@ def concatenate_managers(
                 values = np.concatenate(vals, axis=1)  # type: ignore[arg-type]
             elif is_1d_only_ea_dtype(blk.dtype):
                 # TODO(EA2D): special-casing not needed with 2D EAs
-                values = concat_compat(vals, axis=1, ea_compat_axis=True)
+                values = concat_compat(vals, axis=0, ea_compat_axis=True)
                 values = ensure_block_shape(values, ndim=2)
             else:
                 values = concat_compat(vals, axis=1)
@@ -352,7 +354,7 @@ class JoinUnit:
         self.block = block
 
     def __repr__(self) -> str:
-        return f"{type(self).__name__}({repr(self.block)})"
+        return f"{type(self).__name__}({self.block!r})"
 
     def _is_valid_na_for(self, dtype: DtypeObj) -> bool:
         """
@@ -474,9 +476,7 @@ def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike
         # error: No overload variant of "__getitem__" of "ExtensionArray" matches
         # argument type "Tuple[int, slice]"
         to_concat = [
-            t
-            if is_1d_only_ea_dtype(t.dtype)
-            else t[0, :]  # type: ignore[call-overload]
+            t if is_1d_only_ea_dtype(t.dtype) else t[0, :]  # type: ignore[call-overload]
             for t in to_concat
         ]
         concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)
