@@ -5,10 +5,15 @@
         "url": "https://pandas.pydata.org/docs/dev/"
     },
     {
-        "name": "2.1 (stable)",
-        "version": "2.1",
+        "name": "2.2 (stable)",
+        "version": "2.2",
         "url": "https://pandas.pydata.org/docs/",
         "preferred": true
+    },
+    {
+        "name": "2.1",
+        "version": "2.1",
+        "url": "https://pandas.pydata.org/pandas-docs/version/2.1/"
     },
     {
         "name": "2.0",

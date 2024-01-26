@@ -733,8 +733,8 @@ class PythonParser(ParserBase):
                         if ret:
                             line = ret[0]
                             break
-                except IndexError:
-                    raise StopIteration
+                except IndexError as err:
+                    raise StopIteration from err
         else:
             while self.skipfunc(self.pos):
                 self.pos += 1
