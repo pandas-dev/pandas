@@ -178,7 +178,7 @@ def concat(
 
     Parameters
     ----------
-    objs : a sequence or mapping of Series or DataFrame objects
+    objs : an iterable or mapping of Series or DataFrame objects
         If a mapping is passed, the sorted keys will be used as the `keys`
         argument, unless it is passed, in which case the values will be
         selected (see below). Any None objects will be dropped silently unless
@@ -464,7 +464,7 @@ class _Concatenator:
         # if we have mixed ndims, then convert to highest ndim
         # creating column numbers as needed
         if len(ndims) > 1:
-            objs, sample = self._sanitize_mixed_ndim(objs, sample, ignore_index, axis)
+            objs = self._sanitize_mixed_ndim(objs, sample, ignore_index, axis)
 
         self.objs = objs
 
@@ -580,7 +580,7 @@ class _Concatenator:
         sample: Series | DataFrame,
         ignore_index: bool,
         axis: AxisInt,
-    ) -> tuple[list[Series | DataFrame], Series | DataFrame]:
+    ) -> list[Series | DataFrame]:
         # if we have mixed ndims, then convert to highest ndim
         # creating column numbers as needed
 
@@ -601,19 +601,21 @@ class _Concatenator:
             else:
                 name = getattr(obj, "name", None)
                 if ignore_index or name is None:
-                    name = current_column
-                    current_column += 1
-
-                # doing a row-wise concatenation so need everything
-                # to line up
-                if self._is_frame and axis == 1:
-                    name = 0
+                    if axis == 1:
+                        # doing a row-wise concatenation so need everything
+                        # to line up
+                        name = 0
+                    else:
+                        # doing a column-wise concatenation so need series
+                        # to have unique names
+                        name = current_column
+                        current_column += 1
 
                 obj = sample._constructor({name: obj}, copy=False)
 
             new_objs.append(obj)
 
-        return new_objs, sample
+        return new_objs
 
     def get_result(self):
         cons: Callable[..., DataFrame | Series]
@@ -763,7 +765,7 @@ class _Concatenator:
 
         return concat_axis
 
-    def _maybe_check_integrity(self, concat_index: Index):
+    def _maybe_check_integrity(self, concat_index: Index) -> None:
         if self.verify_integrity:
             if not concat_index.is_unique:
                 overlap = concat_index[concat_index.duplicated()].unique()
@@ -863,12 +865,14 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
     # do something a bit more speedy
 
     for hlevel, level in zip(zipped, levels):
-        hlevel = ensure_index(hlevel)
-        mapped = level.get_indexer(hlevel)
+        hlevel_index = ensure_index(hlevel)
+        mapped = level.get_indexer(hlevel_index)
 
         mask = mapped == -1
         if mask.any():
-            raise ValueError(f"Values not found in passed level: {hlevel[mask]!s}")
+            raise ValueError(
+                f"Values not found in passed level: {hlevel_index[mask]!s}"
+            )
 
         new_codes.append(np.repeat(mapped, n))
 

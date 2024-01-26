@@ -202,7 +202,8 @@ class TestDatetimeIndex:
     )
     def test_BM_BQ_BY_deprecated(self, freq, expected_values, freq_depr):
         # GH#52064
-        msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
+        msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
+        f"in a future version, please use '{freq[1:]}' instead."
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
             expected = date_range(start="2016-02-21", end="2016-08-21", freq=freq_depr)

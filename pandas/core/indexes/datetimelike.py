@@ -75,6 +75,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         Axis,
+        JoinHow,
         Self,
         npt,
     )
@@ -442,8 +443,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
 
-    _join_precedence = 10
-
     @property
     def unit(self) -> str:
         return self._data.unit
@@ -535,7 +534,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         # Convert our i8 representations to RangeIndex
         # Caller is responsible for checking isinstance(self.freq, Tick)
         freq = cast(Tick, self.freq)
-        tick = freq.delta._value
+        tick = Timedelta(freq).as_unit("ns")._value
         rng = range(self[0]._value, self[-1]._value + tick, tick)
         return RangeIndex(rng)
 
@@ -699,7 +698,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             dates = concat_compat([left._values, right_chunk])
             # The can_fast_union check ensures that the result.freq
             #  should match self.freq
-            dates = type(self._data)(dates, freq=self.freq)
+            assert isinstance(dates, type(self._data))
+            # error: Item "ExtensionArray" of "ExtensionArray |
+            # ndarray[Any, Any]" has no attribute "_freq"
+            assert dates._freq == self.freq  # type: ignore[union-attr]
             result = type(self)._simple_new(dates)
             return result
         else:
@@ -733,13 +735,20 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             freq = self.freq
         return freq
 
-    def _wrap_joined_index(
-        self, joined, other, lidx: npt.NDArray[np.intp], ridx: npt.NDArray[np.intp]
-    ):
+    def _wrap_join_result(
+        self,
+        joined,
+        other,
+        lidx: npt.NDArray[np.intp] | None,
+        ridx: npt.NDArray[np.intp] | None,
+        how: JoinHow,
+    ) -> tuple[Self, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         assert other.dtype == self.dtype, (other.dtype, self.dtype)
-        result = super()._wrap_joined_index(joined, other, lidx, ridx)
-        result._data._freq = self._get_join_freq(other)
-        return result
+        join_index, lidx, ridx = super()._wrap_join_result(
+            joined, other, lidx, ridx, how
+        )
+        join_index._data._freq = self._get_join_freq(other)
+        return join_index, lidx, ridx
 
     def _get_engine_target(self) -> np.ndarray:
         # engine methods and libjoin methods need dt64/td64 values cast to i8

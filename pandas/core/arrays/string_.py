@@ -4,6 +4,7 @@ from typing import (
     TYPE_CHECKING,
     ClassVar,
     Literal,
+    cast,
 )
 
 import numpy as np
@@ -257,14 +258,14 @@ class BaseStringArray(ExtensionArray):
     """
 
     @doc(ExtensionArray.tolist)
-    def tolist(self):
+    def tolist(self) -> list:
         if self.ndim > 1:
             return [x.tolist() for x in self]
         return list(self.to_numpy())
 
     @classmethod
     def _from_scalars(cls, scalars, dtype: DtypeObj) -> Self:
-        if lib.infer_dtype(scalars, skipna=True) != "string":
+        if lib.infer_dtype(scalars, skipna=True) not in ["string", "empty"]:
             # TODO: require any NAs be valid-for-string
             raise ValueError
         return cls._from_sequence(scalars, dtype=dtype)
@@ -364,7 +365,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             self._validate()
         NDArrayBacked.__init__(self, self._ndarray, StringDtype(storage="python"))
 
-    def _validate(self):
+    def _validate(self) -> None:
         """Validate that we only store NA or strings."""
         if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
             raise ValueError("StringArray requires a sequence of strings or pandas.NA")
@@ -381,7 +382,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             lib.convert_nans_to_NA(self._ndarray)
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
+    def _from_sequence(
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
+    ) -> Self:
         if dtype and not (isinstance(dtype, str) and dtype == "string"):
             dtype = pandas_dtype(dtype)
             assert isinstance(dtype, StringDtype) and dtype.storage == "python"
@@ -414,7 +417,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     @classmethod
     def _from_sequence_of_strings(
         cls, strings, *, dtype: Dtype | None = None, copy: bool = False
-    ):
+    ) -> Self:
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     @classmethod
@@ -436,7 +439,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         values[self.isna()] = None
         return pa.array(values, type=type, from_pandas=True)
 
-    def _values_for_factorize(self):
+    def _values_for_factorize(self) -> tuple[np.ndarray, None]:
         arr = self._ndarray.copy()
         mask = self.isna()
         arr[mask] = None
@@ -635,7 +638,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 # error: Argument 1 to "dtype" has incompatible type
                 # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
                 # "Type[object]"
-                dtype=np.dtype(dtype),  # type: ignore[arg-type]
+                dtype=np.dtype(cast(type, dtype)),
             )
 
             if not na_value_is_na:

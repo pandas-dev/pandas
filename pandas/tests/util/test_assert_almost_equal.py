@@ -257,18 +257,14 @@ def test_assert_almost_equal_strings():
     _assert_almost_equal_both("abc", "abc")
 
 
-@pytest.mark.parametrize(
-    "a,b", [("abc", "abcd"), ("abc", "abd"), ("abc", 1), ("abc", [1])]
-)
-def test_assert_not_almost_equal_strings(a, b):
-    _assert_not_almost_equal_both(a, b)
+@pytest.mark.parametrize("b", ["abcd", "abd", 1, [1]])
+def test_assert_not_almost_equal_strings(b):
+    _assert_not_almost_equal_both("abc", b)
 
 
-@pytest.mark.parametrize(
-    "a,b", [([1, 2, 3], [1, 2, 3]), (np.array([1, 2, 3]), np.array([1, 2, 3]))]
-)
-def test_assert_almost_equal_iterables(a, b):
-    _assert_almost_equal_both(a, b)
+@pytest.mark.parametrize("box", [list, np.array])
+def test_assert_almost_equal_iterables(box):
+    _assert_almost_equal_both(box([1, 2, 3]), box([1, 2, 3]))
 
 
 @pytest.mark.parametrize(

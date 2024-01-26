@@ -56,9 +56,11 @@ PyObject *JSONToObj(PyObject *self, PyObject *args, PyObject *kwargs);
   "encode_html_chars=True to encode < > & as unicode escape sequences."
 
 static PyMethodDef ujsonMethods[] = {
-    {"ujson_dumps", (PyCFunction)objToJSON, METH_VARARGS | METH_KEYWORDS,
+    {"ujson_dumps", (PyCFunction)(void (*)(void))objToJSON,
+     METH_VARARGS | METH_KEYWORDS,
      "Converts arbitrary object recursively into JSON. " ENCODER_HELP_TEXT},
-    {"ujson_loads", (PyCFunction)JSONToObj, METH_VARARGS | METH_KEYWORDS,
+    {"ujson_loads", (PyCFunction)(void (*)(void))JSONToObj,
+     METH_VARARGS | METH_KEYWORDS,
      "Converts JSON as string to dict object structure. Use precise_float=True "
      "to use high precision float decoder."},
     {NULL, NULL, 0, NULL} /* Sentinel */
