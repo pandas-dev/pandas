@@ -284,14 +284,14 @@ def _stata_elapsed_date_to_datetime_vec(dates: Series, fmt: str) -> Series:
     if fmt.startswith(("%tc", "tc")):
         # Delta ms relative to base
         td = np.timedelta64(stata_epoch - unix_epoch, "ms")
-        conv_dates = np.array(dates._values, dtype="M8[ms]") + td
-        return Series(conv_dates, index=dates.index)
+        res = np.array(dates._values, dtype="M8[ms]") + td
+        return Series(res, index=dates.index)
 
     elif fmt.startswith(("%td", "td", "%d", "d")):
         # Delta days relative to base
         td = np.timedelta64(stata_epoch - unix_epoch, "D")
-        conv_dates = np.array(dates._values, dtype="M8[D]") + td
-        return Series(conv_dates, index=dates.index)
+        res = np.array(dates._values, dtype="M8[D]") + td
+        return Series(res, index=dates.index)
 
     elif fmt.startswith(("%tm", "tm")):
         # Delta months relative to base
@@ -342,8 +342,8 @@ def _stata_elapsed_date_to_datetime_vec(dates: Series, fmt: str) -> Series:
         per_d = per_y.asfreq("D", how="S")
         per_d_shifted = per_d + days._values
         per_s = per_d_shifted.asfreq("s", how="S")
-        conv_dates = per_s.view("M8[s]")
-        conv_dates = Series(conv_dates, index=dates.index)
+        conv_dates_arr = per_s.view("M8[s]")
+        conv_dates = Series(conv_dates_arr, index=dates.index)
 
     else:
         raise ValueError(f"Date fmt {fmt} not understood")
