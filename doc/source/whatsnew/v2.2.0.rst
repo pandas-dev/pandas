@@ -865,7 +865,6 @@ I/O
 - Bug in :func:`read_csv` with ``engine="pyarrow"`` where ``usecols`` wasn't working with a CSV with no headers (:issue:`54459`)
 - Bug in :func:`read_excel`, with ``engine="xlrd"`` (``xls`` files) erroring when the file contains ``NaN`` or ``Inf`` (:issue:`54564`)
 - Bug in :func:`read_json` not handling dtype conversion properly if ``infer_string`` is set (:issue:`56195`)
-- Bug in :func:`read_spss` where kwargs were not passed to pyreadstat (:issue:`56356`)
 - Bug in :meth:`DataFrame.to_excel`, with ``OdsWriter`` (``ods`` files) writing boolean/string value (:issue:`54994`)
 - Bug in :meth:`DataFrame.to_hdf` and :func:`read_hdf` with ``datetime64`` dtypes with non-nanosecond resolution failing to round-trip correctly (:issue:`55622`)
 - Bug in :meth:`DataFrame.to_stata` raising for extension dtypes (:issue:`54671`)
