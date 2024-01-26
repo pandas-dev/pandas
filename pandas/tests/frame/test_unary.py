@@ -13,17 +13,16 @@ class TestDataFrameUnaryOperators:
     # __pos__, __neg__, __invert__
 
     @pytest.mark.parametrize(
-        "df,expected",
+        "df_data,expected_data",
         [
-            (pd.DataFrame({"a": [-1, 1]}), pd.DataFrame({"a": [1, -1]})),
-            (pd.DataFrame({"a": [False, True]}), pd.DataFrame({"a": [True, False]})),
-            (
-                pd.DataFrame({"a": pd.Series(pd.to_timedelta([-1, 1]))}),
-                pd.DataFrame({"a": pd.Series(pd.to_timedelta([1, -1]))}),
-            ),
+            ([-1, 1], [1, -1]),
+            ([False, True], [True, False]),
+            (pd.to_timedelta([-1, 1]), pd.to_timedelta([1, -1])),
         ],
     )
-    def test_neg_numeric(self, df, expected):
+    def test_neg_numeric(self, df_data, expected_data):
+        df = pd.DataFrame({"a": df_data})
+        expected = pd.DataFrame({"a": expected_data})
         tm.assert_frame_equal(-df, expected)
         tm.assert_series_equal(-df["a"], expected["a"])
 
@@ -42,13 +41,14 @@ class TestDataFrameUnaryOperators:
         tm.assert_series_equal(-df["a"], expected["a"])
 
     @pytest.mark.parametrize(
-        "df",
+        "df_data",
         [
-            pd.DataFrame({"a": ["a", "b"]}),
-            pd.DataFrame({"a": pd.to_datetime(["2017-01-22", "1970-01-01"])}),
+            ["a", "b"],
+            pd.to_datetime(["2017-01-22", "1970-01-01"]),
         ],
     )
-    def test_neg_raises(self, df, using_infer_string):
+    def test_neg_raises(self, df_data, using_infer_string):
+        df = pd.DataFrame({"a": df_data})
         msg = (
             "bad operand type for unary -: 'str'|"
             r"bad operand type for unary -: 'DatetimeArray'"
@@ -102,44 +102,36 @@ class TestDataFrameUnaryOperators:
         assert df is not result
 
     @pytest.mark.parametrize(
-        "df",
+        "df_data",
         [
-            pd.DataFrame({"a": [-1, 1]}),
-            pd.DataFrame({"a": [False, True]}),
-            pd.DataFrame({"a": pd.Series(pd.to_timedelta([-1, 1]))}),
+            [-1, 1],
+            [False, True],
+            pd.to_timedelta([-1, 1]),
         ],
     )
-    def test_pos_numeric(self, df):
+    def test_pos_numeric(self, df_data):
         # GH#16073
+        df = pd.DataFrame({"a": df_data})
         tm.assert_frame_equal(+df, df)
         tm.assert_series_equal(+df["a"], df["a"])
 
     @pytest.mark.parametrize(
-        "df",
+        "df_data",
         [
-            pd.DataFrame({"a": np.array([-1, 2], dtype=object)}),
-            pd.DataFrame({"a": [Decimal("-1.0"), Decimal("2.0")]}),
+            np.array([-1, 2], dtype=object),
+            [Decimal("-1.0"), Decimal("2.0")],
         ],
     )
-    def test_pos_object(self, df):
+    def test_pos_object(self, df_data):
         # GH#21380
+        df = pd.DataFrame({"a": df_data})
         tm.assert_frame_equal(+df, df)
         tm.assert_series_equal(+df["a"], df["a"])
 
-    @pytest.mark.parametrize(
-        "df",
-        [
-            pytest.param(
-                pd.DataFrame({"a": ["a", "b"]}),
-                # filterwarnings removable once min numpy version is 1.25
-                marks=[
-                    pytest.mark.filterwarnings("ignore:Applying:DeprecationWarning")
-                ],
-            ),
-        ],
-    )
-    def test_pos_object_raises(self, df):
+    @pytest.mark.filterwarnings("ignore:Applying:DeprecationWarning")
+    def test_pos_object_raises(self):
         # GH#21380
+        df = pd.DataFrame({"a": ["a", "b"]})
         if np_version_gte1p25:
             with pytest.raises(
                 TypeError, match=r"^bad operand type for unary \+: \'str\'$"
@@ -148,10 +140,8 @@ class TestDataFrameUnaryOperators:
         else:
             tm.assert_series_equal(+df["a"], df["a"])
 
-    @pytest.mark.parametrize(
-        "df", [pd.DataFrame({"a": pd.to_datetime(["2017-01-22", "1970-01-01"])})]
-    )
-    def test_pos_raises(self, df):
+    def test_pos_raises(self):
+        df = pd.DataFrame({"a": pd.to_datetime(["2017-01-22", "1970-01-01"])})
         msg = r"bad operand type for unary \+: 'DatetimeArray'"
         with pytest.raises(TypeError, match=msg):
             (+df)

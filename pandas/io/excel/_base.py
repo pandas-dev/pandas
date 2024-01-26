@@ -160,36 +160,24 @@ dtype : Type name or dict of column -> type, default None
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
     If you use ``None``, it will infer the dtype of each column based on the data.
-engine : str, default None
+engine : {{'openpyxl', 'calamine', 'odf', 'pyxlsb', 'xlrd'}}, default None
     If io is not a buffer or path, this must be set to identify io.
-    Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb", "calamine".
     Engine compatibility :
 
-    - ``xlr`` supports old-style Excel files (.xls).
     - ``openpyxl`` supports newer Excel file formats.
-    - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
-    - ``pyxlsb`` supports Binary Excel files.
     - ``calamine`` supports Excel (.xls, .xlsx, .xlsm, .xlsb)
       and OpenDocument (.ods) file formats.
+    - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
+    - ``pyxlsb`` supports Binary Excel files.
+    - ``xlrd`` supports old-style Excel files (.xls).
 
-    .. versionchanged:: 1.2.0
-        The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
-        now only supports old-style ``.xls`` files.
-        When ``engine=None``, the following logic will be
-        used to determine the engine:
+    When ``engine=None``, the following logic will be used to determine the engine:
 
-       - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
-         then `odf <https://pypi.org/project/odfpy/>`_ will be used.
-       - Otherwise if ``path_or_buffer`` is an xls format,
-         ``xlrd`` will be used.
-       - Otherwise if ``path_or_buffer`` is in xlsb format,
-         ``pyxlsb`` will be used.
-
-         .. versionadded:: 1.3.0
-       - Otherwise ``openpyxl`` will be used.
-
-         .. versionchanged:: 1.3.0
-
+    - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+      then `odf <https://pypi.org/project/odfpy/>`_ will be used.
+    - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used.
+    - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used.
+    - Otherwise ``openpyxl`` will be used.
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
     either be integers or column labels, values are functions that take one
@@ -947,7 +935,7 @@ class ExcelWriter(Generic[_WorkbookT]):
       is installed otherwise `openpyxl <https://pypi.org/project/openpyxl/>`__
     * `odswriter <https://pypi.org/project/odswriter/>`__ for ods files
 
-    See ``DataFrame.to_excel`` for typical usage.
+    See :meth:`DataFrame.to_excel` for typical usage.
 
     The writer should be used as a context manager. Otherwise, call `close()` to save
     and close any opened file handles.
@@ -1043,7 +1031,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     Here, the `if_sheet_exists` parameter can be set to replace a sheet if it
     already exists:
 
-    >>> with ExcelWriter(
+    >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     mode="a",
     ...     engine="openpyxl",
@@ -1054,7 +1042,8 @@ class ExcelWriter(Generic[_WorkbookT]):
     You can also write multiple DataFrames to a single sheet. Note that the
     ``if_sheet_exists`` parameter needs to be set to ``overlay``:
 
-    >>> with ExcelWriter("path_to_file.xlsx",
+    >>> with pd.ExcelWriter(
+    ...     "path_to_file.xlsx",
     ...     mode="a",
     ...     engine="openpyxl",
     ...     if_sheet_exists="overlay",

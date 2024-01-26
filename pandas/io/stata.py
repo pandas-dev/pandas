@@ -47,9 +47,11 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     ensure_object,
     is_numeric_dtype,
+    is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -62,8 +64,6 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
-from pandas.core.arrays.boolean import BooleanDtype
-from pandas.core.arrays.integer import IntegerDtype
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.range import RangeIndex
@@ -176,7 +176,7 @@ Examples
 Creating a dummy stata for this example
 
 >>> df = pd.DataFrame({{'animal': ['falcon', 'parrot', 'falcon', 'parrot'],
-...                     'speed': [350, 18, 361, 15]}})  # doctest: +SKIP
+...                   'speed': [350, 18, 361, 15]}})  # doctest: +SKIP
 >>> df.to_stata('animals.dta')  # doctest: +SKIP
 
 Read a Stata dta file:
@@ -189,7 +189,7 @@ Read a Stata dta file in 10,000 line chunks:
 >>> df = pd.DataFrame(values, columns=["i"])  # doctest: +SKIP
 >>> df.to_stata('filename.dta')  # doctest: +SKIP
 
->>> with pd.read_stata('filename.dta', chunksize=10000) as itr: # doctest: +SKIP
+>>> with pd.read_stata('filename.dta', chunksize=10000) as itr:  # doctest: +SKIP
 >>>     for chunk in itr:
 ...         # Operate on a single chunk, e.g., chunk.mean()
 ...         pass  # doctest: +SKIP
@@ -591,17 +591,22 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
 
     for col in data:
         # Cast from unsupported types to supported types
-        is_nullable_int = isinstance(data[col].dtype, (IntegerDtype, BooleanDtype))
+        is_nullable_int = (
+            isinstance(data[col].dtype, ExtensionDtype)
+            and data[col].dtype.kind in "iub"
+        )
         # We need to find orig_missing before altering data below
         orig_missing = data[col].isna()
         if is_nullable_int:
-            missing_loc = data[col].isna()
-            if missing_loc.any():
-                # Replace with always safe value
-                fv = 0 if isinstance(data[col].dtype, IntegerDtype) else False
-                data.loc[missing_loc, col] = fv
+            fv = 0 if data[col].dtype.kind in "iu" else False
             # Replace with NumPy-compatible column
-            data[col] = data[col].astype(data[col].dtype.numpy_dtype)
+            data[col] = data[col].fillna(fv).astype(data[col].dtype.numpy_dtype)
+        elif isinstance(data[col].dtype, ExtensionDtype):
+            if getattr(data[col].dtype, "numpy_dtype", None) is not None:
+                data[col] = data[col].astype(data[col].dtype.numpy_dtype)
+            elif is_string_dtype(data[col].dtype):
+                data[col] = data[col].astype("object")
+
         dtype = data[col].dtype
         empty_df = data.shape[0] == 0
         for c_data in conversion_data:

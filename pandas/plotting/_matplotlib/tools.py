@@ -19,10 +19,7 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import (
-        Iterable,
-        Sequence,
-    )
+    from collections.abc import Iterable
 
     from matplotlib.axes import Axes
     from matplotlib.axis import Axis
@@ -442,7 +439,7 @@ def handle_shared_axes(
                     _remove_labels_from_axis(ax.yaxis)
 
 
-def flatten_axes(axes: Axes | Sequence[Axes]) -> np.ndarray:
+def flatten_axes(axes: Axes | Iterable[Axes]) -> np.ndarray:
     if not is_list_like(axes):
         return np.array([axes])
     elif isinstance(axes, (np.ndarray, ABCIndex)):
@@ -451,7 +448,7 @@ def flatten_axes(axes: Axes | Sequence[Axes]) -> np.ndarray:
 
 
 def set_ticks_props(
-    axes: Axes | Sequence[Axes],
+    axes: Axes | Iterable[Axes],
     xlabelsize: int | None = None,
     xrot=None,
     ylabelsize: int | None = None,

@@ -30,11 +30,11 @@ class TestSeriesConcat:
 
         result = concat(pieces, keys=[0, 1, 2])
         expected = ts.copy()
-
-        ts.index = DatetimeIndex(np.array(ts.index.values, dtype="M8[ns]"))
-
         exp_codes = [np.repeat([0, 1, 2], [len(x) for x in pieces]), np.arange(len(ts))]
-        exp_index = MultiIndex(levels=[[0, 1, 2], ts.index], codes=exp_codes)
+        exp_index = MultiIndex(
+            levels=[[0, 1, 2], DatetimeIndex(ts.index.to_numpy(dtype="M8[ns]"))],
+            codes=exp_codes,
+        )
         expected.index = exp_index
         tm.assert_series_equal(result, expected)
 
@@ -128,11 +128,10 @@ class TestSeriesConcat:
 
         tm.assert_index_equal(result.columns, expected, exact=True)
 
-    @pytest.mark.parametrize(
-        "s1name,s2name", [(np.int64(190), (43, 0)), (190, (43, 0))]
-    )
-    def test_concat_series_name_npscalar_tuple(self, s1name, s2name):
+    @pytest.mark.parametrize("s1name", [np.int64(190), 190])
+    def test_concat_series_name_npscalar_tuple(self, s1name):
         # GH21015
+        s2name = (43, 0)
         s1 = Series({"a": 1, "b": 2}, name=s1name)
         s2 = Series({"c": 5, "d": 6}, name=s2name)
         result = concat([s1, s2])
