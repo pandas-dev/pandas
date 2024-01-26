@@ -28,7 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
--
+- :func:`read_spss` now supports kwargs to be passed to pyreadstat (:issue:`56356`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -177,7 +177,7 @@ MultiIndex
 
 I/O
 ^^^
-- Bug in :func:`read_spss` where kwargs were not passed to pyreadstat (:issue:`56356`)
+-
 -
 
 Period
