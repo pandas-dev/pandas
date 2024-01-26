@@ -98,7 +98,7 @@ cdef ndarray _get_bool_indexer(ndarray values, object val, ndarray mask = None):
     return indexer.view(bool)
 
 
-cdef _maybe_resize_array(ndarray values, loc, max_length):
+cdef _maybe_resize_array(ndarray values, Py_ssize_t loc, Py_ssize_t max_length):
     """
     Resize array if loc is out of bounds.
     """
