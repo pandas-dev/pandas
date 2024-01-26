@@ -34,7 +34,6 @@ from pandas import (
     Series,
 )
 from pandas._testing._io import (
-    round_trip_localpath,
     round_trip_pathlib,
     round_trip_pickle,
     write_to_compressed,
@@ -609,7 +608,6 @@ __all__ = [
     "OBJECT_DTYPES",
     "raise_assert_detail",
     "raises_chained_assignment_error",
-    "round_trip_localpath",
     "round_trip_pathlib",
     "round_trip_pickle",
     "setitem",

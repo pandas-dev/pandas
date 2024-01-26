@@ -140,15 +140,6 @@ class TestFeather:
         result = tm.round_trip_pathlib(df.to_feather, read_feather)
         tm.assert_frame_equal(df, result)
 
-    def test_path_localpath(self):
-        df = pd.DataFrame(
-            1.1 * np.arange(120).reshape((30, 4)),
-            columns=pd.Index(list("ABCD"), dtype=object),
-            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
-        ).reset_index()
-        result = tm.round_trip_localpath(df.to_feather, read_feather)
-        tm.assert_frame_equal(df, result)
-
     def test_passthrough_keywords(self):
         df = pd.DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
