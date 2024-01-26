@@ -54,7 +54,9 @@ def find_stack_level() -> int:
             else:
                 break
     finally:
-        del frame  # Prevent potential memory leak
+        # See note in
+        # https://docs.python.org/3/library/inspect.html#inspect.Traceback
+        del frame
     return n
 
 

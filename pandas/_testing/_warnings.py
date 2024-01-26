@@ -226,4 +226,9 @@ def _assert_raised_with_correct_stacklevel(
         f"File where warning is raised: {actual_warning.filename} != "
         f"{caller_filename}. Warning message: {actual_warning.message}"
     )
-    assert actual_warning.filename == caller_filename, msg
+    try:
+        assert actual_warning.filename == caller_filename, msg
+    finally:
+        # See note in
+        # https://docs.python.org/3/library/inspect.html#inspect.Traceback
+        del frame
