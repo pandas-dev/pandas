@@ -40,7 +40,7 @@ def test_groupby_agg_no_extra_calls():
 
 def test_agg_regression1(tsframe):
     grouped = tsframe.groupby([lambda x: x.year, lambda x: x.month])
-    result = grouped.agg(np.mean)
+    result = grouped.agg("mean")
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
@@ -56,7 +56,6 @@ def test_agg_must_agg(df):
 
 
 def test_agg_ser_multi_key(df):
-
     f = lambda x: x.sum()
     results = df.C.groupby([df.A, df.B]).aggregate(f)
     expected = df.groupby(["A", "B"]).sum()["C"]
@@ -125,7 +124,9 @@ def test_groupby_aggregation_multi_level_column():
         columns=MultiIndex.from_tuples([("A", 0), ("A", 1), ("B", 0), ("B", 1)]),
     )
 
-    gb = df.groupby(level=1, axis=1)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby(level=1, axis=1)
     result = gb.sum(numeric_only=False)
     expected = DataFrame({0: [2.0, True, True, True], 1: [1, 0, 1, 1]})
 
@@ -137,11 +138,11 @@ def test_agg_apply_corner(ts, tsframe):
     grouped = ts.groupby(ts * np.nan, group_keys=False)
     assert ts.dtype == np.float64
 
-    # groupby float64 values results in Float64Index
+    # groupby float64 values results in a float64 Index
     exp = Series([], dtype=np.float64, index=Index([], dtype=np.float64))
     tm.assert_series_equal(grouped.sum(), exp)
-    tm.assert_series_equal(grouped.agg(np.sum), exp)
-    tm.assert_series_equal(grouped.apply(np.sum), exp, check_index_type=False)
+    tm.assert_series_equal(grouped.agg("sum"), exp)
+    tm.assert_series_equal(grouped.apply("sum"), exp, check_index_type=False)
 
     # DataFrame
     grouped = tsframe.groupby(tsframe["A"] * np.nan, group_keys=False)
@@ -151,32 +152,40 @@ def test_agg_apply_corner(ts, tsframe):
         index=Index([], name="A", dtype=np.float64),
     )
     tm.assert_frame_equal(grouped.sum(), exp_df)
-    tm.assert_frame_equal(grouped.agg(np.sum), exp_df)
-    tm.assert_frame_equal(grouped.apply(np.sum), exp_df)
+    tm.assert_frame_equal(grouped.agg("sum"), exp_df)
+
+    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+        res = grouped.apply(np.sum)
+    tm.assert_frame_equal(res, exp_df)
 
 
 def test_agg_grouping_is_list_tuple(ts):
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=pd.date_range("2000-01-01", periods=30, freq="B"),
+    )
 
     grouped = df.groupby(lambda x: x.year)
-    grouper = grouped.grouper.groupings[0].grouping_vector
-    grouped.grouper.groupings[0] = Grouping(ts.index, list(grouper))
+    grouper = grouped._grouper.groupings[0].grouping_vector
+    grouped._grouper.groupings[0] = Grouping(ts.index, list(grouper))
 
-    result = grouped.agg(np.mean)
+    result = grouped.agg("mean")
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
-    grouped.grouper.groupings[0] = Grouping(ts.index, tuple(grouper))
+    grouped._grouper.groupings[0] = Grouping(ts.index, tuple(grouper))
 
-    result = grouped.agg(np.mean)
+    result = grouped.agg("mean")
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
 
-def test_agg_python_multiindex(mframe):
-    grouped = mframe.groupby(["A", "B"])
+def test_agg_python_multiindex(multiindex_dataframe_random_data):
+    grouped = multiindex_dataframe_random_data.groupby(["A", "B"])
 
-    result = grouped.agg(np.mean)
+    result = grouped.agg("mean")
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
@@ -210,16 +219,35 @@ def test_aggregate_str_func(tsframe, groupbyfunc):
     tm.assert_frame_equal(result, expected)
 
 
+def test_std_masked_dtype(any_numeric_ea_dtype):
+    # GH#35516
+    df = DataFrame(
+        {
+            "a": [2, 1, 1, 1, 2, 2, 1],
+            "b": Series([pd.NA, 1, 2, 1, 1, 1, 2], dtype="Float64"),
+        }
+    )
+    result = df.groupby("a").std()
+    expected = DataFrame(
+        {"b": [0.57735, 0]}, index=Index([1, 2], name="a"), dtype="Float64"
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_agg_str_with_kwarg_axis_1_raises(df, reduction_func):
     gb = df.groupby(level=0)
+    warn_msg = f"DataFrameGroupBy.{reduction_func} with axis=1 is deprecated"
     if reduction_func in ("idxmax", "idxmin"):
         error = TypeError
-        msg = "reduction operation '.*' not allowed for this dtype"
+        msg = "'[<>]' not supported between instances of 'float' and 'str'"
+        warn = FutureWarning
     else:
         error = ValueError
         msg = f"Operation {reduction_func} does not support axis=1"
+        warn = None
     with pytest.raises(error, match=msg):
-        gb.agg(reduction_func, axis=1)
+        with tm.assert_produces_warning(warn, match=warn_msg):
+            gb.agg(reduction_func, axis=1)
 
 
 @pytest.mark.parametrize(
@@ -239,13 +267,15 @@ def test_multiindex_groupby_mixed_cols_axis1(func, expected, dtype, result_dtype
         [[1, 2, 3, 4, 5, 6]] * 3,
         columns=MultiIndex.from_product([["a", "b"], ["i", "j", "k"]]),
     ).astype({("a", "j"): dtype, ("b", "j"): dtype})
-    warn = FutureWarning if func == "std" else None
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = df.groupby(level=1, axis=1).agg(func)
+
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby(level=1, axis=1)
+    result = gb.agg(func)
     expected = DataFrame([expected] * 3, columns=["i", "j", "k"]).astype(
         result_dtype_dict
     )
+
     tm.assert_frame_equal(result, expected)
 
 
@@ -266,10 +296,11 @@ def test_groupby_mixed_cols_axis1(func, expected_data, result_dtype_dict):
         columns=Index([10, 20, 10, 20], name="x"),
         dtype="int64",
     ).astype({10: "Int64"})
-    warn = FutureWarning if func == "std" else None
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = df.groupby("x", axis=1).agg(func)
+
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby("x", axis=1)
+    result = gb.agg(func)
     expected = DataFrame(
         data=expected_data,
         index=Index([0, 1, 0], name="y"),
@@ -281,23 +312,23 @@ def test_groupby_mixed_cols_axis1(func, expected_data, result_dtype_dict):
 def test_aggregate_item_by_item(df):
     grouped = df.groupby("A")
 
-    aggfun = lambda ser: ser.size
-    result = grouped.agg(aggfun)
-    foo = (df.A == "foo").sum()
-    bar = (df.A == "bar").sum()
+    aggfun_0 = lambda ser: ser.size
+    result = grouped.agg(aggfun_0)
+    foosum = (df.A == "foo").sum()
+    barsum = (df.A == "bar").sum()
     K = len(result.columns)
 
     # GH5782
-    exp = Series(np.array([foo] * K), index=list("BCD"), name="foo")
+    exp = Series(np.array([foosum] * K), index=list("BCD"), name="foo")
     tm.assert_series_equal(result.xs("foo"), exp)
 
-    exp = Series(np.array([bar] * K), index=list("BCD"), name="bar")
+    exp = Series(np.array([barsum] * K), index=list("BCD"), name="bar")
     tm.assert_almost_equal(result.xs("bar"), exp)
 
-    def aggfun(ser):
+    def aggfun_1(ser):
         return ser.size
 
-    result = DataFrame().groupby(df.A).agg(aggfun)
+    result = DataFrame().groupby(df.A).agg(aggfun_1)
     assert isinstance(result, DataFrame)
     assert len(result) == 0
 
@@ -307,13 +338,13 @@ def test_wrap_agg_out(three_group):
 
     def func(ser):
         if ser.dtype == object:
-            raise TypeError
-        else:
-            return ser.sum()
+            raise TypeError("Test error message")
+        return ser.sum()
 
-    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
-        result = grouped.aggregate(func)
-    exp_grouped = three_group.loc[:, three_group.columns != "C"]
+    with pytest.raises(TypeError, match="Test error message"):
+        grouped.aggregate(func)
+    result = grouped[["D", "E", "F"]].aggregate(func)
+    exp_grouped = three_group.loc[:, ["A", "B", "D", "E", "F"]]
     expected = exp_grouped.groupby(["A", "B"]).aggregate(func)
     tm.assert_frame_equal(result, expected)
 
@@ -321,26 +352,34 @@ def test_wrap_agg_out(three_group):
 def test_agg_multiple_functions_maintain_order(df):
     # GH #610
     funcs = [("mean", np.mean), ("max", np.max), ("min", np.min)]
-    result = df.groupby("A")["C"].agg(funcs)
+    msg = "is currently using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("A")["C"].agg(funcs)
     exp_cols = Index(["mean", "max", "min"])
 
     tm.assert_index_equal(result.columns, exp_cols)
 
 
+def test_series_index_name(df):
+    grouped = df.loc[:, ["C"]].groupby(df["A"])
+    result = grouped.agg(lambda x: x.mean())
+    assert result.index.name == "A"
+
+
 def test_agg_multiple_functions_same_name():
     # GH 30880
     df = DataFrame(
-        np.random.randn(1000, 3),
-        index=pd.date_range("1/1/2012", freq="S", periods=1000),
+        np.random.default_rng(2).standard_normal((1000, 3)),
+        index=pd.date_range("1/1/2012", freq="s", periods=1000),
         columns=["A", "B", "C"],
     )
-    result = df.resample("3T").agg(
+    result = df.resample("3min").agg(
         {"A": [partial(np.quantile, q=0.9999), partial(np.quantile, q=0.1111)]}
     )
-    expected_index = pd.date_range("1/1/2012", freq="3T", periods=6)
+    expected_index = pd.date_range("1/1/2012", freq="3min", periods=6)
     expected_columns = MultiIndex.from_tuples([("A", "quantile"), ("A", "quantile")])
     expected_values = np.array(
-        [df.resample("3T").A.quantile(q=q).values for q in [0.9999, 0.1111]]
+        [df.resample("3min").A.quantile(q=q).values for q in [0.9999, 0.1111]]
     ).T
     expected = DataFrame(
         expected_values, columns=expected_columns, index=expected_index
@@ -352,14 +391,14 @@ def test_agg_multiple_functions_same_name_with_ohlc_present():
     # GH 30880
     # ohlc expands dimensions, so different test to the above is required.
     df = DataFrame(
-        np.random.randn(1000, 3),
-        index=pd.date_range("1/1/2012", freq="S", periods=1000, name="dti"),
+        np.random.default_rng(2).standard_normal((1000, 3)),
+        index=pd.date_range("1/1/2012", freq="s", periods=1000, name="dti"),
         columns=Index(["A", "B", "C"], name="alpha"),
     )
-    result = df.resample("3T").agg(
+    result = df.resample("3min").agg(
         {"A": ["ohlc", partial(np.quantile, q=0.9999), partial(np.quantile, q=0.1111)]}
     )
-    expected_index = pd.date_range("1/1/2012", freq="3T", periods=6, name="dti")
+    expected_index = pd.date_range("1/1/2012", freq="3min", periods=6, name="dti")
     expected_columns = MultiIndex.from_tuples(
         [
             ("A", "ohlc", "open"),
@@ -372,9 +411,11 @@ def test_agg_multiple_functions_same_name_with_ohlc_present():
         names=["alpha", None, None],
     )
     non_ohlc_expected_values = np.array(
-        [df.resample("3T").A.quantile(q=q).values for q in [0.9999, 0.1111]]
+        [df.resample("3min").A.quantile(q=q).values for q in [0.9999, 0.1111]]
     ).T
-    expected_values = np.hstack([df.resample("3T").A.ohlc(), non_ohlc_expected_values])
+    expected_values = np.hstack(
+        [df.resample("3min").A.ohlc(), non_ohlc_expected_values]
+    )
     expected = DataFrame(
         expected_values, columns=expected_columns, index=expected_index
     )
@@ -383,57 +424,54 @@ def test_agg_multiple_functions_same_name_with_ohlc_present():
 
 def test_multiple_functions_tuples_and_non_tuples(df):
     # #1359
+    # Columns B and C would cause partial failure
+    df = df.drop(columns=["B", "C"])
+
     funcs = [("foo", "mean"), "std"]
     ex_funcs = [("foo", "mean"), ("std", "std")]
 
-    result = df.groupby("A")["C"].agg(funcs)
-    expected = df.groupby("A")["C"].agg(ex_funcs)
+    result = df.groupby("A")["D"].agg(funcs)
+    expected = df.groupby("A")["D"].agg(ex_funcs)
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(
-        FutureWarning, match=r"\['B'\] did not aggregate successfully"
-    ):
-        result = df.groupby("A").agg(funcs)
-    with tm.assert_produces_warning(
-        FutureWarning, match=r"\['B'\] did not aggregate successfully"
-    ):
-        expected = df.groupby("A").agg(ex_funcs)
+    result = df.groupby("A").agg(funcs)
+    expected = df.groupby("A").agg(ex_funcs)
     tm.assert_frame_equal(result, expected)
 
 
 def test_more_flexible_frame_multi_function(df):
     grouped = df.groupby("A")
 
-    exmean = grouped.agg({"C": np.mean, "D": np.mean})
-    exstd = grouped.agg({"C": np.std, "D": np.std})
+    exmean = grouped.agg({"C": "mean", "D": "mean"})
+    exstd = grouped.agg({"C": "std", "D": "std"})
 
     expected = concat([exmean, exstd], keys=["mean", "std"], axis=1)
     expected = expected.swaplevel(0, 1, axis=1).sort_index(level=0, axis=1)
 
-    d = {"C": [np.mean, np.std], "D": [np.mean, np.std]}
+    d = {"C": ["mean", "std"], "D": ["mean", "std"]}
     result = grouped.aggregate(d)
 
     tm.assert_frame_equal(result, expected)
 
     # be careful
-    result = grouped.aggregate({"C": np.mean, "D": [np.mean, np.std]})
-    expected = grouped.aggregate({"C": np.mean, "D": [np.mean, np.std]})
+    result = grouped.aggregate({"C": "mean", "D": ["mean", "std"]})
+    expected = grouped.aggregate({"C": "mean", "D": ["mean", "std"]})
     tm.assert_frame_equal(result, expected)
 
-    def foo(x):
+    def numpymean(x):
         return np.mean(x)
 
-    def bar(x):
+    def numpystd(x):
         return np.std(x, ddof=1)
 
     # this uses column selection & renaming
     msg = r"nested renamer is not supported"
     with pytest.raises(SpecificationError, match=msg):
-        d = {"C": np.mean, "D": {"foo": np.mean, "bar": np.std}}
+        d = {"C": "mean", "D": {"foo": "mean", "bar": "std"}}
         grouped.aggregate(d)
 
     # But without renaming, these functions are OK
-    d = {"C": [np.mean], "D": [foo, bar]}
+    d = {"C": ["mean"], "D": [numpymean, numpystd]}
     grouped.aggregate(d)
 
 
@@ -475,6 +513,28 @@ def test_groupby_agg_coercing_bools():
     result = gp["c"].aggregate(lambda x: x.isnull().all())
     expected = Series([True, False], index=index, name="c")
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_agg_dict_with_getitem():
+    # issue 25471
+    dat = DataFrame({"A": ["A", "A", "B", "B", "B"], "B": [1, 2, 1, 1, 2]})
+    result = dat.groupby("A")[["B"]].agg({"B": "sum"})
+
+    expected = DataFrame({"B": [3, 4]}, index=["A", "B"]).rename_axis("A", axis=0)
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_agg_dict_dup_columns():
+    # GH#55006
+    df = DataFrame(
+        [[1, 2, 3, 4], [1, 3, 4, 5], [2, 4, 5, 6]],
+        columns=["a", "b", "c", "c"],
+    )
+    gb = df.groupby("a")
+    result = gb.agg({"b": "sum"})
+    expected = DataFrame({"b": [5, 4]}, index=Index([1, 2], name="a"))
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -564,6 +624,28 @@ def test_order_aggregate_multiple_funcs():
     tm.assert_index_equal(result, expected)
 
 
+def test_ohlc_ea_dtypes(any_numeric_ea_dtype):
+    # GH#37493
+    df = DataFrame(
+        {"a": [1, 1, 2, 3, 4, 4], "b": [22, 11, pd.NA, 10, 20, pd.NA]},
+        dtype=any_numeric_ea_dtype,
+    )
+    gb = df.groupby("a")
+    result = gb.ohlc()
+    expected = DataFrame(
+        [[22, 22, 11, 11], [pd.NA] * 4, [10] * 4, [20] * 4],
+        columns=MultiIndex.from_product([["b"], ["open", "high", "low", "close"]]),
+        index=Index([1, 2, 3, 4], dtype=any_numeric_ea_dtype, name="a"),
+        dtype=any_numeric_ea_dtype,
+    )
+    tm.assert_frame_equal(result, expected)
+
+    gb2 = df.groupby("a", as_index=False)
+    result2 = gb2.ohlc()
+    expected2 = expected.reset_index()
+    tm.assert_frame_equal(result2, expected2)
+
+
 @pytest.mark.parametrize("dtype", [np.int64, np.uint64])
 @pytest.mark.parametrize("how", ["first", "last", "min", "max", "mean", "median"])
 def test_uint64_type_handling(dtype, how):
@@ -641,7 +723,9 @@ def test_agg_split_object_part_datetime():
             "D": ["b"],
             "E": [pd.Timestamp("2000")],
             "F": [1],
-        }
+        },
+        index=np.array([0]),
+        dtype=object,
     )
     tm.assert_frame_equal(result, expected)
 
@@ -652,7 +736,7 @@ class TestNamedAggregationSeries:
         gr = df.groupby([0, 0, 1, 1])
         result = gr.agg(a="sum", b="min")
         expected = DataFrame(
-            {"a": [3, 7], "b": [1, 3]}, columns=["a", "b"], index=[0, 1]
+            {"a": [3, 7], "b": [1, 3]}, columns=["a", "b"], index=np.array([0, 1])
         )
         tm.assert_frame_equal(result, expected)
 
@@ -667,20 +751,20 @@ class TestNamedAggregationSeries:
 
         # but we do allow this
         result = gr.agg([])
-        expected = DataFrame()
+        expected = DataFrame(columns=[])
         tm.assert_frame_equal(result, expected)
 
     def test_series_named_agg_duplicates_no_raises(self):
         # GH28426
         gr = Series([1, 2, 3]).groupby([0, 0, 1])
         grouped = gr.agg(a="sum", b="sum")
-        expected = DataFrame({"a": [3, 3], "b": [3, 3]})
+        expected = DataFrame({"a": [3, 3], "b": [3, 3]}, index=np.array([0, 1]))
         tm.assert_frame_equal(expected, grouped)
 
     def test_mangled(self):
         gr = Series([1, 2, 3]).groupby([0, 0, 1])
         result = gr.agg(a=lambda x: 0, b=lambda x: 1)
-        expected = DataFrame({"a": [0, 0], "b": [1, 1]})
+        expected = DataFrame({"a": [0, 0], "b": [1, 1]}, index=np.array([0, 1]))
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -716,8 +800,8 @@ class TestNamedAggregationDataFrame:
         p98 = functools.partial(np.percentile, q=98)
         result = df.groupby("group").agg(
             b_min=("B", "min"),
-            a_min=("A", min),
-            a_mean=("A", np.mean),
+            a_min=("A", "min"),
+            a_mean=("A", "mean"),
             a_max=("A", "max"),
             b_max=("B", "max"),
             a_98=("A", p98),
@@ -822,16 +906,16 @@ class TestNamedAggregationDataFrame:
     [
         (
             (("y", "A"), "max"),
-            (("y", "A"), np.min),
+            (("y", "A"), np.mean),
             (("y", "B"), "mean"),
             [1, 3],
-            [0, 2],
+            [0.5, 2.5],
             [5.5, 7.5],
         ),
         (
             (("y", "A"), lambda x: max(x)),
             (("y", "A"), lambda x: 1),
-            (("y", "B"), "mean"),
+            (("y", "B"), np.mean),
             [1, 3],
             [1, 1],
             [5.5, 7.5],
@@ -860,9 +944,11 @@ def test_agg_relabel_multiindex_column(
     expected = DataFrame({"a_max": [1, 3]}, index=idx)
     tm.assert_frame_equal(result, expected)
 
-    result = df.groupby(("x", "group")).agg(
-        col_1=agg_col1, col_2=agg_col2, col_3=agg_col3
-    )
+    msg = "is currently using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby(("x", "group")).agg(
+            col_1=agg_col1, col_2=agg_col2, col_3=agg_col3
+        )
     expected = DataFrame(
         {"col_1": agg_result1, "col_2": agg_result2, "col_3": agg_result3}, index=idx
     )
@@ -981,8 +1067,7 @@ def test_multiindex_custom_func(func):
         (1, 4): {0: 4.0, 1: 7.0},
         (2, 3): {0: 2.0, 1: 1.0},
     }
-    expected = DataFrame(expected_dict)
-    expected.columns = df.columns
+    expected = DataFrame(expected_dict, index=np.array([0, 1]), columns=df.columns)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1064,11 +1149,11 @@ class TestLambdaMangling:
     def test_mangle_series_groupby(self):
         gr = Series([1, 2, 3, 4]).groupby([0, 0, 1, 1])
         result = gr.agg([lambda x: 0, lambda x: 1])
-        expected = DataFrame({"<lambda_0>": [0, 0], "<lambda_1>": [1, 1]})
+        exp_data = {"<lambda_0>": [0, 0], "<lambda_1>": [1, 1]}
+        expected = DataFrame(exp_data, index=np.array([0, 1]))
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.xfail(reason="GH-26611. kwargs for multi-agg.")
-    @pytest.mark.filterwarnings("ignore:Dropping invalid columns:FutureWarning")
     def test_with_kwargs(self):
         f1 = lambda x, y, b=1: x.sum() + y + b
         f2 = lambda x, y, b=2: x.sum() + y * b
@@ -1201,7 +1286,7 @@ def test_groupby_single_agg_cat_cols(grp_col_dict, exp_data):
 
     input_df = input_df.astype({"cat": "category", "cat_ord": "category"})
     input_df["cat_ord"] = input_df["cat_ord"].cat.as_ordered()
-    result_df = input_df.groupby("cat").agg(grp_col_dict)
+    result_df = input_df.groupby("cat", observed=False).agg(grp_col_dict)
 
     # create expected dataframe
     cat_index = pd.CategoricalIndex(
@@ -1240,7 +1325,7 @@ def test_groupby_combined_aggs_cat_cols(grp_col_dict, exp_data):
 
     input_df = input_df.astype({"cat": "category", "cat_ord": "category"})
     input_df["cat_ord"] = input_df["cat_ord"].cat.as_ordered()
-    result_df = input_df.groupby("cat").agg(grp_col_dict)
+    result_df = input_df.groupby("cat", observed=False).agg(grp_col_dict)
 
     # create expected dataframe
     cat_index = pd.CategoricalIndex(
@@ -1252,8 +1337,7 @@ def test_groupby_combined_aggs_cat_cols(grp_col_dict, exp_data):
     multi_index_list = []
     for k, v in grp_col_dict.items():
         if isinstance(v, list):
-            for value in v:
-                multi_index_list.append([k, value])
+            multi_index_list.extend([k, value] for value in v)
         else:
             multi_index_list.append([k, v])
     multi_index = MultiIndex.from_tuples(tuple(multi_index_list))
@@ -1328,17 +1412,42 @@ def test_timeseries_groupby_agg():
     tm.assert_frame_equal(res, expected)
 
 
+def test_groupby_agg_precision(any_real_numeric_dtype):
+    if any_real_numeric_dtype in tm.ALL_INT_NUMPY_DTYPES:
+        max_value = np.iinfo(any_real_numeric_dtype).max
+    if any_real_numeric_dtype in tm.FLOAT_NUMPY_DTYPES:
+        max_value = np.finfo(any_real_numeric_dtype).max
+    if any_real_numeric_dtype in tm.FLOAT_EA_DTYPES:
+        max_value = np.finfo(any_real_numeric_dtype.lower()).max
+    if any_real_numeric_dtype in tm.ALL_INT_EA_DTYPES:
+        max_value = np.iinfo(any_real_numeric_dtype.lower()).max
+
+    df = DataFrame(
+        {
+            "key1": ["a"],
+            "key2": ["b"],
+            "key3": pd.array([max_value], dtype=any_real_numeric_dtype),
+        }
+    )
+    arrays = [["a"], ["b"]]
+    index = MultiIndex.from_arrays(arrays, names=("key1", "key2"))
+
+    expected = DataFrame(
+        {"key3": pd.array([max_value], dtype=any_real_numeric_dtype)}, index=index
+    )
+    result = df.groupby(["key1", "key2"]).agg(lambda x: x)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_groupby_aggregate_directory(reduction_func):
     # GH#32793
     if reduction_func in ["corrwith", "nth"]:
         return None
-    warn = FutureWarning if reduction_func == "mad" else None
 
     obj = DataFrame([[0, 1], [0, np.nan]])
 
-    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
-        result_reduced_series = obj.groupby(0).agg(reduction_func)
-        result_reduced_frame = obj.groupby(0).agg({1: reduction_func})
+    result_reduced_series = obj.groupby(0).agg(reduction_func)
+    result_reduced_frame = obj.groupby(0).agg({1: reduction_func})
 
     if reduction_func in ["size", "ngroup"]:
         # names are different: None / 1
@@ -1355,7 +1464,7 @@ def test_groupby_aggregate_directory(reduction_func):
 def test_group_mean_timedelta_nat():
     # GH43132
     data = Series(["1 day", "3 days", "NaT"], dtype="timedelta64[ns]")
-    expected = Series(["2 days"], dtype="timedelta64[ns]")
+    expected = Series(["2 days"], dtype="timedelta64[ns]", index=np.array([0]))
 
     result = data.groupby([0, 0, 0]).mean()
 
@@ -1378,7 +1487,7 @@ def test_group_mean_timedelta_nat():
 def test_group_mean_datetime64_nat(input_data, expected_output):
     # GH43132
     data = to_datetime(Series(input_data))
-    expected = to_datetime(Series(expected_output))
+    expected = to_datetime(Series(expected_output, index=np.array([0])))
 
     result = data.groupby([0, 0, 0]).mean()
     tm.assert_series_equal(result, expected)
@@ -1410,7 +1519,9 @@ def test_groupby_complex_raises(func):
 def test_multi_axis_1_raises(func):
     # GH#46995
     df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5], "c": [6, 7, 8]})
-    gb = df.groupby("a", axis=1)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby("a", axis=1)
     with pytest.raises(NotImplementedError, match="axis other than 0 is not supported"):
         gb.agg(func)
 
@@ -1438,3 +1549,124 @@ def test_agg_of_mode_list(test, constant):
     expected = expected.set_index(0)
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_dataframe_groupy_agg_list_like_func_with_args():
+    # GH#50624
+    df = DataFrame({"x": [1, 2, 3], "y": ["a", "b", "c"]})
+    gb = df.groupby("y")
+
+    def foo1(x, a=1, c=0):
+        return x.sum() + a + c
+
+    def foo2(x, b=2, c=0):
+        return x.sum() + b + c
+
+    msg = r"foo1\(\) got an unexpected keyword argument 'b'"
+    with pytest.raises(TypeError, match=msg):
+        gb.agg([foo1, foo2], 3, b=3, c=4)
+
+    result = gb.agg([foo1, foo2], 3, c=4)
+    expected = DataFrame(
+        [[8, 8], [9, 9], [10, 10]],
+        index=Index(["a", "b", "c"], name="y"),
+        columns=MultiIndex.from_tuples([("x", "foo1"), ("x", "foo2")]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_series_groupy_agg_list_like_func_with_args():
+    # GH#50624
+    s = Series([1, 2, 3])
+    sgb = s.groupby(s)
+
+    def foo1(x, a=1, c=0):
+        return x.sum() + a + c
+
+    def foo2(x, b=2, c=0):
+        return x.sum() + b + c
+
+    msg = r"foo1\(\) got an unexpected keyword argument 'b'"
+    with pytest.raises(TypeError, match=msg):
+        sgb.agg([foo1, foo2], 3, b=3, c=4)
+
+    result = sgb.agg([foo1, foo2], 3, c=4)
+    expected = DataFrame(
+        [[8, 8], [9, 9], [10, 10]], index=Index([1, 2, 3]), columns=["foo1", "foo2"]
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_groupings_selection():
+    # GH#51186 - a selected grouping should be in the output of agg
+    df = DataFrame({"a": [1, 1, 2], "b": [3, 3, 4], "c": [5, 6, 7]})
+    gb = df.groupby(["a", "b"])
+    selected_gb = gb[["b", "c"]]
+    result = selected_gb.agg(lambda x: x.sum())
+    index = MultiIndex(
+        levels=[[1, 2], [3, 4]], codes=[[0, 1], [0, 1]], names=["a", "b"]
+    )
+    expected = DataFrame({"b": [6, 4], "c": [11, 7]}, index=index)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_multiple_with_as_index_false_subset_to_a_single_column():
+    # GH#50724
+    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    gb = df.groupby("a", as_index=False)["b"]
+    result = gb.agg(["sum", "mean"])
+    expected = DataFrame({"a": [1, 2], "sum": [7, 5], "mean": [3.5, 5.0]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_with_as_index_false_with_list():
+    # GH#52849
+    df = DataFrame({"a1": [0, 0, 1], "a2": [2, 3, 3], "b": [4, 5, 6]})
+    gb = df.groupby(by=["a1", "a2"], as_index=False)
+    result = gb.agg(["sum"])
+
+    expected = DataFrame(
+        data=[[0, 2, 4], [0, 3, 5], [1, 3, 6]],
+        columns=MultiIndex.from_tuples([("a1", ""), ("a2", ""), ("b", "sum")]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_agg_extension_timedelta_cumsum_with_named_aggregation():
+    # GH#41720
+    expected = DataFrame(
+        {
+            "td": {
+                0: pd.Timedelta("0 days 01:00:00"),
+                1: pd.Timedelta("0 days 01:15:00"),
+                2: pd.Timedelta("0 days 01:15:00"),
+            }
+        }
+    )
+    df = DataFrame(
+        {
+            "td": Series(
+                ["0 days 01:00:00", "0 days 00:15:00", "0 days 01:15:00"],
+                dtype="timedelta64[ns]",
+            ),
+            "grps": ["a", "a", "b"],
+        }
+    )
+    gb = df.groupby("grps")
+    result = gb.agg(td=("td", "cumsum"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregation_empty_group():
+    # https://github.com/pandas-dev/pandas/issues/18869
+    def func(x):
+        if len(x) == 0:
+            raise ValueError("length must not be 0")
+        return len(x)
+
+    df = DataFrame(
+        {"A": pd.Categorical(["a", "a"], categories=["a", "b", "c"]), "B": [1, 1]}
+    )
+    msg = "length must not be 0"
+    with pytest.raises(ValueError, match=msg):
+        df.groupby("A", observed=False).agg(func)

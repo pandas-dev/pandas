@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Sequence
 from functools import partial
 import re
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     DefaultDict,
-    Dict,
-    List,
     Optional,
-    Sequence,
-    Tuple,
     TypedDict,
     Union,
 )
@@ -22,10 +20,6 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
-from pandas._typing import (
-    Axis,
-    Level,
-)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import (
@@ -46,13 +40,18 @@ from pandas import (
 from pandas.api.types import is_list_like
 import pandas.core.common as com
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Axis,
+        Level,
+    )
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
 BaseFormatter = Union[str, Callable]
-ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]
-CSSPair = Tuple[str, Union[str, float]]
-CSSList = List[CSSPair]
+ExtFormatter = Union[BaseFormatter, dict[Any, Optional[BaseFormatter]]]
+CSSPair = tuple[str, Union[str, float]]
+CSSList = list[CSSPair]
 CSSProperties = Union[str, CSSList]
 
 
@@ -61,7 +60,7 @@ class CSSDict(TypedDict):
     props: CSSProperties
 
 
-CSSStyles = List[CSSDict]
+CSSStyles = list[CSSDict]
 Subset = Union[slice, Sequence, Index]
 
 
@@ -85,11 +84,10 @@ class StylerRenderer:
         uuid_len: int = 5,
         table_styles: CSSStyles | None = None,
         table_attributes: str | None = None,
-        caption: str | tuple | None = None,
+        caption: str | tuple | list | None = None,
         cell_ids: bool = True,
         precision: int | None = None,
     ) -> None:
-
         # validate ordered args
         if isinstance(data, Series):
             data = data.to_frame()
@@ -98,7 +96,7 @@ class StylerRenderer:
         self.data: DataFrame = data
         self.index: Index = data.index
         self.columns: Index = data.columns
-        if not isinstance(uuid_len, int) or not uuid_len >= 0:
+        if not isinstance(uuid_len, int) or uuid_len < 0:
             raise TypeError("``uuid_len`` must be an integer in range [0, 32].")
         self.uuid = uuid or uuid4().hex[: min(32, uuid_len)]
         self.uuid_len = len(self.uuid)
@@ -119,7 +117,7 @@ class StylerRenderer:
             "blank": "blank",
             "foot": "foot",
         }
-        self.concatenated: StylerRenderer | None = None
+        self.concatenated: list[StylerRenderer] = []
         # add rendering variables
         self.hide_index_names: bool = False
         self.hide_column_names: bool = False
@@ -161,27 +159,34 @@ class StylerRenderer:
         stylers for use within `_translate_latex`
         """
         self._compute()
-        dx = None
-        if self.concatenated is not None:
-            self.concatenated.hide_index_ = self.hide_index_
-            self.concatenated.hidden_columns = self.hidden_columns
-            self.concatenated.css = {
+        dxs = []
+        ctx_len = len(self.index)
+        for i, concatenated in enumerate(self.concatenated):
+            concatenated.hide_index_ = self.hide_index_
+            concatenated.hidden_columns = self.hidden_columns
+            foot = f"{self.css['foot']}{i}"
+            concatenated.css = {
                 **self.css,
-                "data": f"{self.css['foot']}_{self.css['data']}",
-                "row_heading": f"{self.css['foot']}_{self.css['row_heading']}",
-                "row": f"{self.css['foot']}_{self.css['row']}",
-                "foot": self.css["foot"],
+                "data": f"{foot}_data",
+                "row_heading": f"{foot}_row_heading",
+                "row": f"{foot}_row",
+                "foot": f"{foot}_foot",
             }
-            dx = self.concatenated._render(
+            dx = concatenated._render(
                 sparse_index, sparse_columns, max_rows, max_cols, blank
             )
+            dxs.append(dx)
 
-            for (r, c), v in self.concatenated.ctx.items():
-                self.ctx[(r + len(self.index), c)] = v
-            for (r, c), v in self.concatenated.ctx_index.items():
-                self.ctx_index[(r + len(self.index), c)] = v
+            for (r, c), v in concatenated.ctx.items():
+                self.ctx[(r + ctx_len, c)] = v
+            for (r, c), v in concatenated.ctx_index.items():
+                self.ctx_index[(r + ctx_len, c)] = v
 
-        d = self._translate(sparse_index, sparse_columns, max_rows, max_cols, blank, dx)
+            ctx_len += len(concatenated.index)
+
+        d = self._translate(
+            sparse_index, sparse_columns, max_rows, max_cols, blank, dxs
+        )
         return d
 
     def _render_html(
@@ -239,7 +244,7 @@ class StylerRenderer:
         Execute the style functions built up in `self._todo`.
 
         Relies on the conventions that all style functions go through
-        .apply or .applymap. The append styles to apply as tuples of
+        .apply or .map. The append styles to apply as tuples of
 
         (application method, *args, **kwargs)
         """
@@ -258,7 +263,7 @@ class StylerRenderer:
         max_rows: int | None = None,
         max_cols: int | None = None,
         blank: str = "&nbsp;",
-        dx: dict | None = None,
+        dxs: list[dict] | None = None,
     ):
         """
         Process Styler data and settings into a dict for template rendering.
@@ -278,8 +283,8 @@ class StylerRenderer:
             Specific max rows and cols. max_elements always take precedence in render.
         blank : str
             Entry to top-left blank cells.
-        dx : dict
-            The render dict of the concatenated Styler.
+        dxs : list[dict]
+            The render dicts of the concatenated Stylers.
 
         Returns
         -------
@@ -287,6 +292,8 @@ class StylerRenderer:
             The following structure: {uuid, table_styles, caption, head, body,
             cellstyle, table_attributes}
         """
+        if dxs is None:
+            dxs = []
         self.css["blank_value"] = blank
 
         # construct render dict
@@ -340,10 +347,12 @@ class StylerRenderer:
             ]
             d.update({k: map})
 
-        if dx is not None:  # self.concatenated is not None
+        for dx in dxs:  # self.concatenated is not empty
             d["body"].extend(dx["body"])  # type: ignore[union-attr]
             d["cellstyle"].extend(dx["cellstyle"])  # type: ignore[union-attr]
-            d["cellstyle_index"].extend(dx["cellstyle"])  # type: ignore[union-attr]
+            d["cellstyle_index"].extend(  # type: ignore[union-attr]
+                dx["cellstyle_index"]
+            )
 
         table_attr = self.table_attributes
         if not get_option("styler.html.mathjax"):
@@ -399,11 +408,11 @@ class StylerRenderer:
         for r, hide in enumerate(self.hide_columns_):
             if hide or not clabels:
                 continue
-            else:
-                header_row = self._generate_col_header_row(
-                    (r, clabels), max_cols, col_lengths
-                )
-                head.append(header_row)
+
+            header_row = self._generate_col_header_row(
+                (r, clabels), max_cols, col_lengths
+            )
+            head.append(header_row)
 
         # 2) index names
         if (
@@ -419,7 +428,9 @@ class StylerRenderer:
 
         return head
 
-    def _generate_col_header_row(self, iter: tuple, max_cols: int, col_lengths: dict):
+    def _generate_col_header_row(
+        self, iter: Sequence, max_cols: int, col_lengths: dict
+    ):
         """
         Generate the row containing column headers:
 
@@ -512,7 +523,9 @@ class StylerRenderer:
 
         return index_blanks + column_name + column_headers
 
-    def _generate_index_names_row(self, iter: tuple, max_cols: int, col_lengths: dict):
+    def _generate_index_names_row(
+        self, iter: Sequence, max_cols: int, col_lengths: dict
+    ):
         """
         Generate the row containing index names
 
@@ -621,13 +634,13 @@ class StylerRenderer:
 
     def _check_trim(
         self,
-        count,
-        max,
-        obj,
-        element,
-        css=None,
-        value="...",
-    ):
+        count: int,
+        max: int,
+        obj: list,
+        element: str,
+        css: str | None = None,
+        value: str = "...",
+    ) -> bool:
         """
         Indicates whether to break render loops and append a trimming indicator
 
@@ -847,23 +860,27 @@ class StylerRenderer:
             for r, row in enumerate(d["head"])
         ]
 
-        def concatenated_visible_rows(obj, n, row_indices):
+        def _concatenated_visible_rows(obj, n, row_indices):
             """
             Extract all visible row indices recursively from concatenated stylers.
             """
             row_indices.extend(
                 [r + n for r in range(len(obj.index)) if r not in obj.hidden_rows]
             )
-            return (
-                row_indices
-                if obj.concatenated is None
-                else concatenated_visible_rows(
-                    obj.concatenated, n + len(obj.index), row_indices
-                )
-            )
+            n += len(obj.index)
+            for concatenated in obj.concatenated:
+                n = _concatenated_visible_rows(concatenated, n, row_indices)
+            return n
+
+        def concatenated_visible_rows(obj):
+            row_indices: list[int] = []
+            _concatenated_visible_rows(obj, 0, row_indices)
+            # TODO try to consolidate the concat visible rows
+            # methods to a single function / recursion for simplicity
+            return row_indices
 
         body = []
-        for r, row in zip(concatenated_visible_rows(self, 0, []), d["body"]):
+        for r, row in zip(concatenated_visible_rows(self), d["body"]):
             # note: cannot enumerate d["body"] because rows were dropped if hidden
             # during _translate_body so must zip to acquire the true r-index associated
             # with the ctx obj which contains the cell styles.
@@ -904,7 +921,7 @@ class StylerRenderer:
                 f"`clines` value of {clines} is invalid. Should either be None or one "
                 f"of 'all;data', 'all;index', 'skip-last;data', 'skip-last;index'."
             )
-        elif clines is not None:
+        if clines is not None:
             data_len = len(row_body_cells) if "data" in clines and d["body"] else 0
 
             d["clines"] = defaultdict(list)
@@ -949,9 +966,6 @@ class StylerRenderer:
         na_rep : str, optional
             Representation for missing values.
             If ``na_rep`` is None, no special formatting is applied.
-
-            .. versionadded:: 1.0.0
-
         precision : int, optional
             Floating point precision to use for display purposes, if not determined by
             the specified ``formatter``.
@@ -974,7 +988,10 @@ class StylerRenderer:
             Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
             ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
             LaTeX-safe sequences.
-            Escaping is done before ``formatter``.
+            Use 'latex-math' to replace the characters the same way as in 'latex' mode,
+            except for math substrings, which either are surrounded
+            by two characters ``$`` or start with the character ``\(`` and
+            end with ``\)``. Escaping is done before ``formatter``.
 
             .. versionadded:: 1.3.0
 
@@ -987,7 +1004,7 @@ class StylerRenderer:
 
         Returns
         -------
-        self : Styler
+        Styler
 
         See Also
         --------
@@ -1062,8 +1079,8 @@ class StylerRenderer:
         Multiple ``na_rep`` or ``precision`` specifications under the default
         ``formatter``.
 
-        >>> df.style.format(na_rep='MISS', precision=1, subset=[0])
-        ...     .format(na_rep='PASS', precision=2, subset=[1, 2])  # doctest: +SKIP
+        >>> (df.style.format(na_rep='MISS', precision=1, subset=[0])
+        ...     .format(na_rep='PASS', precision=2, subset=[1, 2]))  # doctest: +SKIP
                 0      1      2
         0    MISS   1.00      A
         1     2.0   PASS   3.00
@@ -1090,16 +1107,57 @@ class StylerRenderer:
         <td .. >NA</td>
         ...
 
-        Using a ``formatter`` with LaTeX ``escape``.
+        Using a ``formatter`` with ``escape`` in 'latex' mode.
 
         >>> df = pd.DataFrame([["123"], ["~ ^"], ["$%#"]])
         >>> df.style.format("\\textbf{{{}}}", escape="latex").to_latex()
         ...  # doctest: +SKIP
         \begin{tabular}{ll}
-        {} & {0} \\
+         & 0 \\
         0 & \textbf{123} \\
         1 & \textbf{\textasciitilde \space \textasciicircum } \\
         2 & \textbf{\$\%\#} \\
+        \end{tabular}
+
+        Applying ``escape`` in 'latex-math' mode. In the example below
+        we enter math mode using the character ``$``.
+
+        >>> df = pd.DataFrame([[r"$\sum_{i=1}^{10} a_i$ a~b $\alpha \
+        ...     = \frac{\beta}{\zeta^2}$"], ["%#^ $ \$x^2 $"]])
+        >>> df.style.format(escape="latex-math").to_latex()
+        ...  # doctest: +SKIP
+        \begin{tabular}{ll}
+         & 0 \\
+        0 & $\sum_{i=1}^{10} a_i$ a\textasciitilde b $\alpha = \frac{\beta}{\zeta^2}$ \\
+        1 & \%\#\textasciicircum \space $ \$x^2 $ \\
+        \end{tabular}
+
+        We can use the character ``\(`` to enter math mode and the character ``\)``
+        to close math mode.
+
+        >>> df = pd.DataFrame([[r"\(\sum_{i=1}^{10} a_i\) a~b \(\alpha \
+        ...     = \frac{\beta}{\zeta^2}\)"], ["%#^ \( \$x^2 \)"]])
+        >>> df.style.format(escape="latex-math").to_latex()
+        ...  # doctest: +SKIP
+        \begin{tabular}{ll}
+         & 0 \\
+        0 & \(\sum_{i=1}^{10} a_i\) a\textasciitilde b \(\alpha
+        = \frac{\beta}{\zeta^2}\) \\
+        1 & \%\#\textasciicircum \space \( \$x^2 \) \\
+        \end{tabular}
+
+        If we have in one DataFrame cell a combination of both shorthands
+        for math formulas, the shorthand with the sign ``$`` will be applied.
+
+        >>> df = pd.DataFrame([[r"\( x^2 \)  $x^2$"], \
+        ...     [r"$\frac{\beta}{\zeta}$ \(\frac{\beta}{\zeta}\)"]])
+        >>> df.style.format(escape="latex-math").to_latex()
+        ...  # doctest: +SKIP
+        \begin{tabular}{ll}
+         & 0 \\
+        0 & \textbackslash ( x\textasciicircum 2 \textbackslash )  $x^2$ \\
+        1 & $\frac{\beta}{\zeta}$ \textbackslash (\textbackslash
+        frac\{\textbackslash beta\}\{\textbackslash zeta\}\textbackslash ) \\
         \end{tabular}
 
         Pandas defines a `number-format` pseudo CSS attribute instead of the `.format`
@@ -1110,8 +1168,8 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame({"A": [1, 0, -1]})
         >>> pseudo_css = "number-format: 0§[Red](0)§-§@;"
-        >>> df.style.applymap(lambda v: css).to_excel("formatted_file.xlsx")
-        ...  # doctest: +SKIP
+        >>> filename = "formatted_file.xlsx"
+        >>> df.style.map(lambda v: pseudo_css).to_excel(filename) # doctest: +SKIP
 
         .. figure:: ../../_static/style/format_excel_css.png
         """
@@ -1157,7 +1215,7 @@ class StylerRenderer:
     def format_index(
         self,
         formatter: ExtFormatter | None = None,
-        axis: int | str = 0,
+        axis: Axis = 0,
         level: Level | list[Level] | None = None,
         na_rep: str | None = None,
         precision: int | None = None,
@@ -1203,7 +1261,7 @@ class StylerRenderer:
 
         Returns
         -------
-        self : Styler
+        Styler
 
         See Also
         --------
@@ -1261,7 +1319,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame([[1, 2, 3]],
         ...     columns=pd.MultiIndex.from_arrays([["a", "a", "b"],[2, np.nan, 4]]))
-        >>> df.style.format_index({0: lambda v: upper(v)}, axis=1, precision=1)
+        >>> df.style.format_index({0: lambda v: v.upper()}, axis=1, precision=1)
         ...  # doctest: +SKIP
                        A       B
               2.0    nan     4.0
@@ -1366,7 +1424,7 @@ class StylerRenderer:
 
         Returns
         -------
-        self : Styler
+        Styler
 
         See Also
         --------
@@ -1503,7 +1561,7 @@ class StylerRenderer:
 
 def _element(
     html_element: str,
-    html_class: str,
+    html_class: str | None,
     value: Any,
     is_visible: bool,
     **kwargs,
@@ -1528,7 +1586,7 @@ def _get_trimming_maximums(
     max_elements,
     max_rows=None,
     max_cols=None,
-    scaling_factor=0.8,
+    scaling_factor: float = 0.8,
 ) -> tuple[int, int]:
     """
     Recursively reduce the number of rows and columns to satisfy max elements.
@@ -1594,9 +1652,9 @@ def _get_level_lengths(
         Result is a dictionary of (level, initial_position): span
     """
     if isinstance(index, MultiIndex):
-        levels = index.format(sparsify=lib.no_default, adjoin=False)
+        levels = index._format_multi(sparsify=lib.no_default, include_names=False)
     else:
-        levels = index.format()
+        levels = index._format_flat(include_name=False)
 
     if hidden_elements is None:
         hidden_elements = []
@@ -1690,7 +1748,7 @@ def _default_formatter(x: Any, precision: int, thousands: bool = False) -> Any:
     if is_float(x) or is_complex(x):
         return f"{x:,.{precision}f}" if thousands else f"{x:.{precision}f}"
     elif is_integer(x):
-        return f"{x:,.0f}" if thousands else f"{x:.0f}"
+        return f"{x:,}" if thousands else str(x)
     return x
 
 
@@ -1728,9 +1786,12 @@ def _str_escape(x, escape):
             return escape_html(x)
         elif escape == "latex":
             return _escape_latex(x)
+        elif escape == "latex-math":
+            return _escape_latex_math(x)
         else:
             raise ValueError(
-                f"`escape` only permitted in {{'html', 'latex'}}, got {escape}"
+                f"`escape` only permitted in {{'html', 'latex', 'latex-math'}}, \
+got {escape}"
             )
     return x
 
@@ -1800,7 +1861,7 @@ def _maybe_wrap_formatter(
     if na_rep is None:
         return func_3
     else:
-        return lambda x: na_rep if isna(x) else func_3(x)
+        return lambda x: na_rep if (isna(x) is True) else func_3(x)
 
 
 def non_reducing_slice(slice_: Subset):
@@ -2137,7 +2198,7 @@ def _parse_latex_cell_styles(
     """
     if convert_css:
         latex_styles = _parse_latex_css_conversion(latex_styles)
-    for (command, options) in latex_styles[::-1]:  # in reverse for most recent style
+    for command, options in latex_styles[::-1]:  # in reverse for most recent style
         formatter = {
             "--wrap": f"{{\\{command}--to_parse {display_value}}}",
             "--nowrap": f"\\{command}--to_parse {display_value}",
@@ -2228,14 +2289,14 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
     """
 
     def font_weight(value, arg):
-        if value == "bold" or value == "bolder":
+        if value in ("bold", "bolder"):
             return "bfseries", f"{arg}"
         return None
 
     def font_style(value, arg):
         if value == "italic":
             return "itshape", f"{arg}"
-        elif value == "oblique":
+        if value == "oblique":
             return "slshape", f"{arg}"
         return None
 
@@ -2280,11 +2341,11 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
     }
 
     latex_styles: CSSList = []
-    for (attribute, value) in styles:
+    for attribute, value in styles:
         if isinstance(value, str) and "--latex" in value:
             # return the style without conversion but drop '--latex'
             latex_styles.append((attribute, value.replace("--latex", "")))
-        if attribute in CONVERTED_ATTRIBUTES.keys():
+        if attribute in CONVERTED_ATTRIBUTES:
             arg = ""
             for x in ["--wrap", "--nowrap", "--lwrap", "--dwrap", "--rwrap"]:
                 if x in str(value):
@@ -2296,7 +2357,7 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
     return latex_styles
 
 
-def _escape_latex(s):
+def _escape_latex(s: str) -> str:
     r"""
     Replace the characters ``&``, ``%``, ``$``, ``#``, ``_``, ``{``, ``}``,
     ``~``, ``^``, and ``\`` in the string with LaTeX-safe sequences.
@@ -2329,3 +2390,108 @@ def _escape_latex(s):
         .replace("^", "\\textasciicircum ")
         .replace("ab2§=§8yz", "\\textbackslash ")
     )
+
+
+def _math_mode_with_dollar(s: str) -> str:
+    r"""
+    All characters in LaTeX math mode are preserved.
+
+    The substrings in LaTeX math mode, which start with
+    the character ``$`` and end with ``$``, are preserved
+    without escaping. Otherwise regular LaTeX escaping applies.
+
+    Parameters
+    ----------
+    s : str
+        Input to be escaped
+
+    Return
+    ------
+    str :
+        Escaped string
+    """
+    s = s.replace(r"\$", r"rt8§=§7wz")
+    pattern = re.compile(r"\$.*?\$")
+    pos = 0
+    ps = pattern.search(s, pos)
+    res = []
+    while ps:
+        res.append(_escape_latex(s[pos : ps.span()[0]]))
+        res.append(ps.group())
+        pos = ps.span()[1]
+        ps = pattern.search(s, pos)
+
+    res.append(_escape_latex(s[pos : len(s)]))
+    return "".join(res).replace(r"rt8§=§7wz", r"\$")
+
+
+def _math_mode_with_parentheses(s: str) -> str:
+    r"""
+    All characters in LaTeX math mode are preserved.
+
+    The substrings in LaTeX math mode, which start with
+    the character ``\(`` and end with ``\)``, are preserved
+    without escaping. Otherwise regular LaTeX escaping applies.
+
+    Parameters
+    ----------
+    s : str
+        Input to be escaped
+
+    Return
+    ------
+    str :
+        Escaped string
+    """
+    s = s.replace(r"\(", r"LEFT§=§6yzLEFT").replace(r"\)", r"RIGHTab5§=§RIGHT")
+    res = []
+    for item in re.split(r"LEFT§=§6yz|ab5§=§RIGHT", s):
+        if item.startswith("LEFT") and item.endswith("RIGHT"):
+            res.append(item.replace("LEFT", r"\(").replace("RIGHT", r"\)"))
+        elif "LEFT" in item and "RIGHT" in item:
+            res.append(
+                _escape_latex(item).replace("LEFT", r"\(").replace("RIGHT", r"\)")
+            )
+        else:
+            res.append(
+                _escape_latex(item)
+                .replace("LEFT", r"\textbackslash (")
+                .replace("RIGHT", r"\textbackslash )")
+            )
+    return "".join(res)
+
+
+def _escape_latex_math(s: str) -> str:
+    r"""
+    All characters in LaTeX math mode are preserved.
+
+    The substrings in LaTeX math mode, which either are surrounded
+    by two characters ``$`` or start with the character ``\(`` and end with ``\)``,
+    are preserved without escaping. Otherwise regular LaTeX escaping applies.
+
+    Parameters
+    ----------
+    s : str
+        Input to be escaped
+
+    Return
+    ------
+    str :
+        Escaped string
+    """
+    s = s.replace(r"\$", r"rt8§=§7wz")
+    ps_d = re.compile(r"\$.*?\$").search(s, 0)
+    ps_p = re.compile(r"\(.*?\)").search(s, 0)
+    mode = []
+    if ps_d:
+        mode.append(ps_d.span()[0])
+    if ps_p:
+        mode.append(ps_p.span()[0])
+    if len(mode) == 0:
+        return _escape_latex(s.replace(r"rt8§=§7wz", r"\$"))
+    if s[mode[0]] == r"$":
+        return _math_mode_with_dollar(s.replace(r"rt8§=§7wz", r"\$"))
+    if s[mode[0] - 1 : mode[0] + 1] == r"\(":
+        return _math_mode_with_parentheses(s.replace(r"rt8§=§7wz", r"\$"))
+    else:
+        return _escape_latex(s.replace(r"rt8§=§7wz", r"\$"))

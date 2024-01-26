@@ -6,88 +6,58 @@
 Debugging C extensions
 ======================
 
-Pandas uses select C extensions for high performance IO operations. In case you need to debug segfaults or general issues with those extensions, the following steps may be helpful.
+Pandas uses Cython and C/C++ `extension modules <https://docs.python.org/3/extending/extending.html>`_ to optimize performance. Unfortunately, the standard Python debugger does not allow you to step into these extensions. Cython extensions can be debugged with the `Cython debugger <https://docs.cython.org/en/latest/src/userguide/debugging.html>`_ and C/C++ extensions can be debugged using the tools shipped with your platform's compiler.
 
-First, be sure to compile the extensions with the appropriate flags to generate debug symbols and remove optimizations. This can be achieved as follows:
+For Python developers with limited or no C/C++ experience this can seem a daunting task. Core developer Will Ayd has written a 3 part blog series to help guide you from the standard Python debugger into these other tools:
 
-.. code-block:: sh
+  1. `Fundamental Python Debugging Part 1 - Python <https://willayd.com/fundamental-python-debugging-part-1-python.html>`_
+  2. `Fundamental Python Debugging Part 2 - Python Extensions <https://willayd.com/fundamental-python-debugging-part-2-python-extensions.html>`_
+  3. `Fundamental Python Debugging Part 3 - Cython Extensions <https://willayd.com/fundamental-python-debugging-part-3-cython-extensions.html>`_
 
-   python setup.py build_ext --inplace -j4 --with-debugging-symbols
+Debugging locally
+-----------------
 
-Using a debugger
-================
+By default building pandas from source will generate a release build. To generate a development build you can type::
 
-Assuming you are on a Unix-like operating system, you can use either lldb or gdb to debug. The choice between either is largely dependent on your compilation toolchain - typically you would use lldb if using clang and gdb if using gcc. For macOS users, please note that ``gcc`` is on modern systems an alias for ``clang``, so if using Xcode you usually opt for lldb. Regardless of which debugger you choose, please refer to your operating systems instructions on how to install.
-
-After installing a debugger you can create a script that hits the extension module you are looking to debug. For demonstration purposes, let's assume you have a script called ``debug_testing.py`` with the following contents:
-
-.. code-block:: python
-
-   import pandas as pd
-
-   pd.DataFrame([[1, 2]]).to_json()
-
-Place the ``debug_testing.py`` script in the project root and launch a Python process under your debugger. If using lldb:
-
-.. code-block:: sh
-
-   lldb python
-
-If using gdb:
-
-.. code-block:: sh
-
-   gdb python
-
-Before executing our script, let's set a breakpoint in our JSON serializer in its entry function called ``objToJSON``. The lldb syntax would look as follows:
-
-.. code-block:: sh
-
-   breakpoint set --name objToJSON
-
-Similarly for gdb:
-
-.. code-block:: sh
-
-   break objToJSON
+    pip install -ve . --no-build-isolation --config-settings=builddir="debug" --config-settings=setup-args="-Dbuildtype=debug"
 
 .. note::
 
-   You may get a warning that this breakpoint cannot be resolved in lldb. gdb may give a similar warning and prompt you to make the breakpoint on a future library load, which you should say yes to. This should only happen on the very first invocation as the module you wish to debug has not yet been loaded into memory.
+   conda environments update CFLAGS/CPPFLAGS with flags that are geared towards generating releases. If using conda, you may need to set ``CFLAGS="$CFLAGS -O0"`` and ``CPPFLAGS="$CPPFLAGS -O0"`` to ensure optimizations are turned off for debugging
 
-Now go ahead and execute your script:
+By specifying ``builddir="debug"`` all of the targets will be built and placed in the debug directory relative to the project root. This helps to keep your debug and release artifacts separate; you are of course able to choose a different directory name or omit altogether if you do not care to separate build types.
 
-.. code-block:: sh
+Using Docker
+------------
 
-   run <the_script>.py
+To simplify the debugging process, pandas has created a Docker image with a debug build of Python and the gdb/Cython debuggers pre-installed. You may either ``docker pull pandas/pandas-debug`` to get access to this image or build it from the ``tooling/debug`` folder locallly.
 
-Code execution will halt at the breakpoint defined or at the occurrence of any segfault. LLDB's `GDB to LLDB command map <https://lldb.llvm.org/use/map.html>`_ provides a listing of debugger command that you can execute using either debugger.
-
-Another option to execute the entire test suite under lldb would be to run the following:
-
-.. code-block:: sh
-
-   lldb -- python -m pytest
-
-Or for gdb
+You can then mount your pandas repository into this image via:
 
 .. code-block:: sh
 
-   gdb --args python -m pytest
+   docker run --rm -it -w /data -v ${PWD}:/data pandas/pandas-debug
 
-Once the process launches, simply type ``run`` and the test suite will begin, stopping at any segmentation fault that may occur.
-
-Checking memory leaks with valgrind
-===================================
-
-You can use `Valgrind <https://valgrind.org/>`_ to check for and log memory leaks in extensions. For instance, to check for a memory leak in a test from the suite you can run:
+Inside the image, you can use meson to build/install pandas and place the build artifacts into a ``debug`` folder using a command as follows:
 
 .. code-block:: sh
 
-   PYTHONMALLOC=malloc valgrind --leak-check=yes --track-origins=yes --log-file=valgrind-log.txt python -m pytest <path_to_a_test>
+    python -m pip install -ve . --no-build-isolation --config-settings=builddir="debug" --config-settings=setup-args="-Dbuildtype=debug"
 
-Note that code execution under valgrind will take much longer than usual. While you can run valgrind against extensions compiled with any optimization level, it is suggested to have optimizations turned off from compiled extensions to reduce the amount of false positives. The ``--with-debugging-symbols`` flag passed during package setup will do this for you automatically.
+If planning to use cygdb, the files required by that application are placed within the build folder. So you have to first ``cd`` to the build folder, then start that application.
 
-.. note::
+.. code-block:: sh
 
-   For best results, you should run use a Python installation configured with Valgrind support (--with-valgrind)
+   cd debug
+   cygdb
+
+Within the debugger you can use `cygdb commands <https://docs.cython.org/en/latest/src/userguide/debugging.html#using-the-debugger>`_ to navigate cython extensions.
+
+Editor support
+--------------
+
+The meson build system generates a `compilation database <https://clang.llvm.org/docs/JSONCompilationDatabase.html>`_ automatically and places it in the build directory. Many language servers and IDEs can use this information to provide code-completion, go-to-definition and error checking support as you type.
+
+How each language server / IDE chooses to look for the compilation database may vary. When in doubt you may want to create a symlink at the root of the project that points to the compilation database in your build directory. Assuming you used *debug* as your directory name, you can run::
+
+    ln -s debug/compile_commands.json .

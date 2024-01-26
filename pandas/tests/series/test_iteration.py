@@ -4,11 +4,13 @@ class TestIteration:
 
     def test_iter_datetimes(self, datetime_series):
         for i, val in enumerate(datetime_series):
-            assert val == datetime_series[i]
+            # pylint: disable-next=unnecessary-list-index-lookup
+            assert val == datetime_series.iloc[i]
 
     def test_iter_strings(self, string_series):
         for i, val in enumerate(string_series):
-            assert val == string_series[i]
+            # pylint: disable-next=unnecessary-list-index-lookup
+            assert val == string_series.iloc[i]
 
     def test_iteritems_datetimes(self, datetime_series):
         for idx, val in datetime_series.items():

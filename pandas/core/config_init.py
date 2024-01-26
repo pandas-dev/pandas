@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import os
 from typing import Callable
-import warnings
 
 import yaml
 
@@ -28,8 +27,6 @@ from pandas._config.config import (
     is_str,
     is_text,
 )
-
-from pandas.util._exceptions import find_stack_level
 
 # compute
 
@@ -132,11 +129,11 @@ pc_max_cols_doc = """
     a summary view. 'None' value means unlimited.
 
     In case python/IPython is running in a terminal and `large_repr`
-    equals 'truncate' this can be set to 0 and pandas will auto-detect
+    equals 'truncate' this can be set to 0 or None and pandas will auto-detect
     the width of the terminal and print a truncated object which fits
     the screen width. The IPython notebook, IPython qtconsole, or IDLE
     do not run in a terminal and hence it is not possible to do
-    correct auto-detection.
+    correct auto-detection and defaults to 20.
 """
 
 pc_max_categories_doc = """
@@ -215,13 +212,6 @@ pc_ambiguous_as_wide_doc = """
     (default: False)
 """
 
-pc_latex_repr_doc = """
-: boolean
-    Whether to produce a latex DataFrame representation for jupyter
-    environments that support it.
-    (default: False)
-"""
-
 pc_table_schema_doc = """
 : boolean
     Whether to publish a Table Schema representation for frontends
@@ -263,7 +253,7 @@ pc_width_doc = """
 
 pc_chop_threshold_doc = """
 : float or None
-    if set to a float value, all float values smaller then the given threshold
+    if set to a float value, all float values smaller than the given threshold
     will be displayed as exactly 0 by repr and friends.
 """
 
@@ -277,7 +267,7 @@ pc_max_seq_items = """
 """
 
 pc_max_info_rows_doc = """
-: int or None
+: int
     df.info() will usually show null-counts for each column.
     For large frames this can be quite slow. max_info_rows and max_info_cols
     limit this null check only to frames with smaller dimensions than
@@ -287,7 +277,7 @@ pc_max_info_rows_doc = """
 pc_large_repr_doc = """
 : 'truncate'/'info'
     For DataFrames exceeding max_rows/max_cols, the repr (and HTML repr) can
-    show a truncated table (the default from 0.13), or switch to the view from
+    show a truncated table, or switch to the view from
     df.info() (the behaviour in earlier versions of pandas).
 """
 
@@ -295,41 +285,6 @@ pc_memory_usage_doc = """
 : bool, string or None
     This specifies if the memory usage of a DataFrame should be displayed when
     df.info() is called. Valid values True,False,'deep'
-"""
-
-pc_latex_escape = """
-: bool
-    This specifies if the to_latex method of a Dataframe uses escapes special
-    characters.
-    Valid values: False,True
-"""
-
-pc_latex_longtable = """
-:bool
-    This specifies if the to_latex method of a Dataframe uses the longtable
-    format.
-    Valid values: False,True
-"""
-
-pc_latex_multicolumn = """
-: bool
-    This specifies if the to_latex method of a Dataframe uses multicolumns
-    to pretty-print MultiIndex columns.
-    Valid values: False,True
-"""
-
-pc_latex_multicolumn_format = """
-: string
-    This specifies the format for multicolumn headers.
-    Can be surrounded with '|'.
-    Valid values: 'l', 'c', 'r', 'p{<width>}'
-"""
-
-pc_latex_multirow = """
-: bool
-    This specifies if the to_latex method of a Dataframe uses multirows
-    to pretty-print MultiIndex rows.
-    Valid values: False,True
 """
 
 
@@ -365,22 +320,11 @@ with cf.config_prefix("display"):
         float_format_doc,
         validator=is_one_of_factory([None, is_callable]),
     )
-
-    def _deprecate_column_space(key):
-        warnings.warn(
-            "column_space is deprecated and will be removed "
-            "in a future version. Use df.to_string(col_space=...) "
-            "instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-    cf.register_option("column_space", 12, validator=is_int, cb=_deprecate_column_space)
     cf.register_option(
         "max_info_rows",
         1690785,
         pc_max_info_rows_doc,
-        validator=is_instance_factory((int, type(None))),
+        validator=is_int,
     )
     cf.register_option("max_rows", 60, pc_max_rows_doc, validator=is_nonnegative_int)
     cf.register_option(
@@ -391,24 +335,11 @@ with cf.config_prefix("display"):
     )
     cf.register_option("max_categories", 8, pc_max_categories_doc, validator=is_int)
 
-    def _deprecate_negative_int_max_colwidth(key):
-        value = cf.get_option(key)
-        if value is not None and value < 0:
-            warnings.warn(
-                "Passing a negative integer is deprecated in version 1.0 and "
-                "will not be supported in future version. Instead, use None "
-                "to not limit the column width.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
     cf.register_option(
-        # TODO(2.0): change `validator=is_nonnegative_int` see GH#31569
         "max_colwidth",
         50,
         max_colwidth_doc,
-        validator=is_instance_factory([type(None), int]),
-        cb=_deprecate_negative_int_max_colwidth,
+        validator=is_nonnegative_int,
     )
     if is_terminal():
         max_cols = 0  # automatically determine optimal number of columns
@@ -454,16 +385,6 @@ with cf.config_prefix("display"):
     cf.register_option(
         "unicode.ambiguous_as_wide", False, pc_east_asian_width_doc, validator=is_bool
     )
-    cf.register_option("latex.repr", False, pc_latex_repr_doc, validator=is_bool)
-    cf.register_option("latex.escape", True, pc_latex_escape, validator=is_bool)
-    cf.register_option("latex.longtable", False, pc_latex_longtable, validator=is_bool)
-    cf.register_option(
-        "latex.multicolumn", True, pc_latex_multicolumn, validator=is_bool
-    )
-    cf.register_option(
-        "latex.multicolumn_format", "l", pc_latex_multicolumn, validator=is_text
-    )
-    cf.register_option("latex.multirow", False, pc_latex_multirow, validator=is_bool)
     cf.register_option(
         "html.table_schema",
         False,
@@ -487,17 +408,13 @@ tc_sim_interactive_doc = """
 with cf.config_prefix("mode"):
     cf.register_option("sim_interactive", False, tc_sim_interactive_doc)
 
-use_inf_as_null_doc = """
-: boolean
-    use_inf_as_null had been deprecated and will be removed in a future
-    version. Use `use_inf_as_na` instead.
-"""
-
 use_inf_as_na_doc = """
 : boolean
     True means treat None, NaN, INF, -INF as NA (old way),
     False means None and NaN are null, but INF, -INF are not NA
     (new way).
+
+    This option is deprecated in pandas 2.1.0 and will be removed in 3.0.
 """
 
 # We don't want to start importing everything at the global context level
@@ -505,6 +422,7 @@ use_inf_as_na_doc = """
 
 
 def use_inf_as_na_cb(key) -> None:
+    # TODO(3.0): enforcing this deprecation will close GH#52501
     from pandas.core.dtypes.missing import _use_inf_as_na
 
     _use_inf_as_na(key)
@@ -512,15 +430,13 @@ def use_inf_as_na_cb(key) -> None:
 
 with cf.config_prefix("mode"):
     cf.register_option("use_inf_as_na", False, use_inf_as_na_doc, cb=use_inf_as_na_cb)
-    cf.register_option(
-        "use_inf_as_null", False, use_inf_as_null_doc, cb=use_inf_as_na_cb
-    )
-
 
 cf.deprecate_option(
-    "mode.use_inf_as_null", msg=use_inf_as_null_doc, rkey="mode.use_inf_as_na"
+    # GH#51684
+    "mode.use_inf_as_na",
+    "use_inf_as_na option is deprecated and will be removed in a future "
+    "version. Convert inf values to NaN before operating instead.",
 )
-
 
 data_manager_doc = """
 : string
@@ -538,6 +454,35 @@ with cf.config_prefix("mode"):
         os.environ.get("PANDAS_DATA_MANAGER", "block"),
         data_manager_doc,
         validator=is_one_of_factory(["block", "array"]),
+    )
+
+cf.deprecate_option(
+    # GH#55043
+    "mode.data_manager",
+    "data_manager option is deprecated and will be removed in a future "
+    "version. Only the BlockManager will be available.",
+)
+
+
+# TODO better name?
+copy_on_write_doc = """
+: bool
+    Use new copy-view behaviour using Copy-on-Write. Defaults to False,
+    unless overridden by the 'PANDAS_COPY_ON_WRITE' environment variable
+    (if set to "1" for True, needs to be set before pandas is imported).
+"""
+
+
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "copy_on_write",
+        # Get the default from an environment variable, if set, otherwise defaults
+        # to False. This environment variable can be set for testing.
+        "warn"
+        if os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "warn"
+        else os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "1",
+        copy_on_write_doc,
+        validator=is_one_of_factory([True, False, "warn"]),
     )
 
 
@@ -559,7 +504,8 @@ with cf.config_prefix("mode"):
 
 string_storage_doc = """
 : string
-    The default storage for StringDtype.
+    The default storage for StringDtype. This option is ignored if
+    ``future.infer_string`` is set to True.
 """
 
 with cf.config_prefix("mode"):
@@ -567,8 +513,9 @@ with cf.config_prefix("mode"):
         "string_storage",
         "python",
         string_storage_doc,
-        validator=is_one_of_factory(["python", "pyarrow"]),
+        validator=is_one_of_factory(["python", "pyarrow", "pyarrow_numpy"]),
     )
+
 
 # Set up the io.excel specific reader configuration.
 reader_engine_doc = """
@@ -577,11 +524,11 @@ reader_engine_doc = """
     auto, {others}.
 """
 
-_xls_options = ["xlrd"]
-_xlsm_options = ["xlrd", "openpyxl"]
-_xlsx_options = ["xlrd", "openpyxl"]
-_ods_options = ["odf"]
-_xlsb_options = ["pyxlsb"]
+_xls_options = ["xlrd", "calamine"]
+_xlsm_options = ["xlrd", "openpyxl", "calamine"]
+_xlsx_options = ["xlrd", "openpyxl", "calamine"]
+_ods_options = ["odf", "calamine"]
+_xlsb_options = ["pyxlsb", "calamine"]
 
 
 with cf.config_prefix("io.excel.xls"):
@@ -633,26 +580,10 @@ writer_engine_doc = """
     auto, {others}.
 """
 
-_xls_options = ["xlwt"]
 _xlsm_options = ["openpyxl"]
 _xlsx_options = ["openpyxl", "xlsxwriter"]
 _ods_options = ["odf"]
 
-
-with cf.config_prefix("io.excel.xls"):
-    cf.register_option(
-        "writer",
-        "auto",
-        writer_engine_doc.format(ext="xls", others=", ".join(_xls_options)),
-        validator=str,
-    )
-cf.deprecate_option(
-    "io.excel.xls.writer",
-    msg="As the xlwt package is no longer maintained, the xlwt engine will be "
-    "removed in a future version of pandas. This is the only engine in pandas that "
-    "supports writing in the xls format. Install openpyxl and write to an "
-    "xlsx file instead.",
-)
 
 with cf.config_prefix("io.excel.xlsm"):
     cf.register_option(
@@ -801,13 +732,13 @@ styler_max_elements = """
 styler_max_rows = """
 : int, optional
     The maximum number of rows that will be rendered. May still be reduced to
-    satsify ``max_elements``, which takes precedence.
+    satisfy ``max_elements``, which takes precedence.
 """
 
 styler_max_columns = """
 : int, optional
     The maximum number of columns that will be rendered. May still be reduced to
-    satsify ``max_elements``, which takes precedence.
+    satisfy ``max_elements``, which takes precedence.
 """
 
 styler_precision = """
@@ -935,7 +866,7 @@ with cf.config_prefix("styler"):
         "format.escape",
         None,
         styler_escape,
-        validator=is_one_of_factory([None, "html", "latex"]),
+        validator=is_one_of_factory([None, "html", "latex", "latex-math"]),
     )
 
     cf.register_option(
@@ -970,6 +901,27 @@ with cf.config_prefix("styler"):
         None,
         styler_environment,
         validator=is_instance_factory([type(None), str]),
+    )
+
+with cf.config_prefix("future"):
+    cf.register_option(
+        "infer_string",
+        False,
+        "Whether to infer sequence of str objects as pyarrow string "
+        "dtype, which will be the default in pandas 3.0 "
+        "(at which point this option will be deprecated).",
+        validator=is_one_of_factory([True, False]),
+    )
+
+    cf.register_option(
+        "no_silent_downcasting",
+        False,
+        "Whether to opt-in to the future behavior which will *not* silently "
+        "downcast results from Series and DataFrame `where`, `mask`, and `clip` "
+        "methods. "
+        "Silent downcasting will be removed in pandas 3.0 "
+        "(at which point this option will be deprecated).",
+        validator=is_one_of_factory([True, False]),
     )
 
 # ------

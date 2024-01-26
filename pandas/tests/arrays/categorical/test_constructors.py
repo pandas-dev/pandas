@@ -6,10 +6,7 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    is_platform_windows,
-)
+from pandas._config import using_pyarrow_string_dtype
 
 from pandas.core.dtypes.common import (
     is_float_dtype,
@@ -34,13 +31,26 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 
 
 class TestCategoricalConstructors:
-    def test_categorical_scalar_deprecated(self):
+    def test_fastpath_deprecated(self):
+        codes = np.array([1, 2, 3])
+        dtype = CategoricalDtype(categories=["a", "b", "c", "d"], ordered=False)
+        msg = "The 'fastpath' keyword in Categorical is deprecated"
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+            Categorical(codes, dtype=dtype, fastpath=True)
+
+    def test_categorical_from_cat_and_dtype_str_preserve_ordered(self):
+        # GH#49309 we should preserve orderedness in `res`
+        cat = Categorical([3, 1], categories=[3, 2, 1], ordered=True)
+
+        res = Categorical(cat, dtype="category")
+        assert res.dtype.ordered
+
+    def test_categorical_disallows_scalar(self):
         # GH#38433
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="Categorical input must be list-like"):
             Categorical("A", categories=["A", "B"])
 
     def test_categorical_1d_only(self):
@@ -72,7 +82,7 @@ class TestCategoricalConstructors:
         tm.assert_index_equal(c.categories, expected)
 
         c = Categorical([], categories=[1, 2, 3])
-        expected = Int64Index([1, 2, 3])
+        expected = Index([1, 2, 3], dtype=np.int64)
         tm.assert_index_equal(c.categories, expected)
 
     def test_constructor_empty_boolean(self):
@@ -109,7 +119,6 @@ class TestCategoricalConstructors:
         tm.assert_index_equal(result.categories, expected)
 
     def test_constructor_unsortable(self):
-
         # it works!
         arr = np.array([1, 2, 3, datetime.now()], dtype="O")
         factor = Categorical(arr, ordered=False)
@@ -133,7 +142,6 @@ class TestCategoricalConstructors:
         tm.assert_index_equal(result.categories, ii)
 
     def test_constructor(self):
-
         exp_arr = np.array(["a", "b", "c", "a", "b", "c"], dtype=np.object_)
         c1 = Categorical(exp_arr)
         tm.assert_numpy_array_equal(c1.__array__(), exp_arr)
@@ -225,13 +233,6 @@ class TestCategoricalConstructors:
         assert len(cat.codes) == 1
         assert cat.codes[0] == 0
 
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#38433
-            cat = Categorical(1)
-        assert len(cat.categories) == 1
-        assert cat.categories[0] == 1
-        assert len(cat.codes) == 1
-        assert cat.codes[0] == 0
         # two arrays
         #  - when the first is an integer dtype and the second is not
         #  - when the resulting codes are all -1/NaN
@@ -269,7 +270,6 @@ class TestCategoricalConstructors:
             Categorical(["a", "b"], categories="a")
 
     def test_constructor_with_null(self):
-
         # Cannot have NaN in categories
         msg = "Categorical categories cannot be null"
         with pytest.raises(ValueError, match=msg):
@@ -449,8 +449,9 @@ class TestCategoricalConstructors:
         with pytest.raises(ValueError, match="Unknown dtype"):
             Categorical([1, 2], dtype="foo")
 
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="Can't be NumPy strings")
     def test_constructor_np_strs(self):
-        # GH#31499 Hastable.map_locations needs to work on np.str_ objects
+        # GH#31499 Hashtable.map_locations needs to work on np.str_ objects
         cat = Categorical(["1", "0", "1"], [np.str_("0"), np.str_("1")])
         assert all(isinstance(x, np.str_) for x in cat.categories)
 
@@ -511,12 +512,13 @@ class TestCategoricalConstructors:
 
         tm.assert_categorical_equal(result, expected)
 
-    def test_from_codes_nullable_int_categories(self, any_numeric_ea_dtype):
+    @pytest.mark.parametrize("validate", [True, False])
+    def test_from_codes_nullable_int_categories(self, any_numeric_ea_dtype, validate):
         # GH#39649
         cats = pd.array(range(5), dtype=any_numeric_ea_dtype)
-        codes = np.random.randint(5, size=3)
+        codes = np.random.default_rng(2).integers(5, size=3)
         dtype = CategoricalDtype(cats)
-        arr = Categorical.from_codes(codes, dtype=dtype)
+        arr = Categorical.from_codes(codes, dtype=dtype, validate=validate)
         assert arr.categories.dtype == cats.dtype
         tm.assert_index_equal(arr.categories, Index(cats))
 
@@ -526,6 +528,17 @@ class TestCategoricalConstructors:
         expected = Categorical([], categories=cat)
 
         tm.assert_categorical_equal(result, expected)
+
+    @pytest.mark.parametrize("validate", [True, False])
+    def test_from_codes_validate(self, validate):
+        # GH53122
+        dtype = CategoricalDtype(["a", "b"])
+        if validate:
+            with pytest.raises(ValueError, match="codes need to be between "):
+                Categorical.from_codes([4, 5], dtype=dtype, validate=validate)
+        else:
+            # passes, though has incorrect codes, but that's the user responsibility
+            Categorical.from_codes([4, 5], dtype=dtype, validate=validate)
 
     def test_from_codes_too_few_categories(self):
         dtype = CategoricalDtype(categories=[1, 2])
@@ -732,7 +745,9 @@ class TestCategoricalConstructors:
 
     def test_categorical_extension_array_nullable(self, nulls_fixture):
         # GH:
-        arr = pd.arrays.StringArray._from_sequence([nulls_fixture] * 2)
+        arr = pd.arrays.StringArray._from_sequence(
+            [nulls_fixture] * 2, dtype=pd.StringDtype()
+        )
         result = Categorical(arr)
         assert arr.dtype == result.categories.dtype
         expected = Categorical(Series([pd.NA, pd.NA], dtype=arr.dtype))
@@ -740,19 +755,15 @@ class TestCategoricalConstructors:
 
     def test_from_sequence_copy(self):
         cat = Categorical(np.arange(5).repeat(2))
-        result = Categorical._from_sequence(cat, dtype=None, copy=False)
+        result = Categorical._from_sequence(cat, dtype=cat.dtype, copy=False)
 
         # more generally, we'd be OK with a view
         assert result._codes is cat._codes
 
-        result = Categorical._from_sequence(cat, dtype=None, copy=True)
+        result = Categorical._from_sequence(cat, dtype=cat.dtype, copy=True)
 
         assert not tm.shares_memory(result, cat)
 
-    @pytest.mark.xfail(
-        not IS64 or is_platform_windows(),
-        reason="Incorrectly raising in astype_overflowsafe",
-    )
     def test_constructor_datetime64_non_nano(self):
         categories = np.arange(10).view("M8[D]")
         values = categories[::2].copy()

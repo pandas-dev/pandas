@@ -1,3 +1,7 @@
+import re
+
+import pytest
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -12,22 +16,19 @@ import pandas._testing as tm
 class TestDatetimeIndex:
     def test_get_loc_naive_dti_aware_str_deprecated(self):
         # GH#46903
-        ts = Timestamp("20130101").value
+        ts = Timestamp("20130101")._value
         dti = pd.DatetimeIndex([ts + 50 + i for i in range(100)])
         ser = Series(range(100), index=dti)
 
         key = "2013-01-01 00:00:00.000000050+0000"
-        msg = "Indexing a timezone-naive DatetimeIndex with a timezone-aware datetime"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = ser[key]
-        assert res == 0
+        msg = re.escape(repr(key))
+        with pytest.raises(KeyError, match=msg):
+            ser[key]
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            loc = dti.get_loc(key)
-        assert loc == 0
+        with pytest.raises(KeyError, match=msg):
+            dti.get_loc(key)
 
     def test_indexing_with_datetime_tz(self):
-
         # GH#8260
         # support datetime64 with tz
 
@@ -56,7 +57,10 @@ class TestDatetimeIndex:
         df = DataFrame({"a": date_range("2014-01-01", periods=10, tz="UTC")})
         result = df.iloc[5]
         expected = Series(
-            [Timestamp("2014-01-06 00:00:00+0000", tz="UTC")], index=["a"], name=5
+            [Timestamp("2014-01-06 00:00:00+0000", tz="UTC")],
+            index=["a"],
+            name=5,
+            dtype="M8[ns, UTC]",
         )
         tm.assert_series_equal(result, expected)
 
@@ -98,7 +102,6 @@ class TestDatetimeIndex:
         assert result == expected
 
     def test_indexing_with_datetimeindex_tz(self, indexer_sl):
-
         # GH 12050
         # indexing on a series with a datetimeindex with tz
         index = date_range("2015-01-01", periods=2, tz="utc")
@@ -166,5 +169,23 @@ class TestDatetimeIndex:
                 Timestamp(keys[1]),
                 Timestamp(keys[2]),
             ],
+        )
+        tm.assert_equal(result, expected)
+
+    def test_getitem_pyarrow_index(self, frame_or_series):
+        # GH 53644
+        pytest.importorskip("pyarrow")
+        obj = frame_or_series(
+            range(5),
+            index=date_range("2020", freq="D", periods=5).astype(
+                "timestamp[us][pyarrow]"
+            ),
+        )
+        result = obj.loc[obj.index[:-3]]
+        expected = frame_or_series(
+            range(2),
+            index=date_range("2020", freq="D", periods=2).astype(
+                "timestamp[us][pyarrow]"
+            ),
         )
         tm.assert_equal(result, expected)

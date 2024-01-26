@@ -3,18 +3,28 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import PY311
+
 from pandas import (
     Categorical,
     CategoricalIndex,
     DataFrame,
     Index,
     Series,
+    StringDtype,
 )
 import pandas._testing as tm
 from pandas.core.arrays.categorical import recode_for_categories
 
 
 class TestCategoricalAPI:
+    def test_to_list_deprecated(self):
+        # GH#51254
+        cat1 = Categorical(list("acb"), ordered=False)
+        msg = "Categorical.to_list is deprecated and will be removed"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            cat1.to_list()
+
     def test_ordered_api(self):
         # GH 9347
         cat1 = Categorical(list("acb"), ordered=False)
@@ -34,34 +44,21 @@ class TestCategoricalAPI:
         assert cat4.ordered
 
     def test_set_ordered(self):
-        msg = (
-            "The `inplace` parameter in pandas.Categorical.set_ordered is "
-            "deprecated and will be removed in a future version. setting "
-            "ordered-ness on categories will always return a new Categorical object"
-        )
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
         cat2 = cat.as_unordered()
         assert not cat2.ordered
         cat2 = cat.as_ordered()
         assert cat2.ordered
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            cat2.as_unordered(inplace=True)
-        assert not cat2.ordered
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            cat2.as_ordered(inplace=True)
-        assert cat2.ordered
 
         assert cat2.set_ordered(True).ordered
         assert not cat2.set_ordered(False).ordered
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            cat2.set_ordered(True, inplace=True)
-        assert cat2.ordered
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            cat2.set_ordered(False, inplace=True)
-        assert not cat2.ordered
 
         # removed in 0.19.0
-        msg = "can't set attribute"
+        msg = (
+            "property 'ordered' of 'Categorical' object has no setter"
+            if PY311
+            else "can't set attribute"
+        )
         with pytest.raises(AttributeError, match=msg):
             cat.ordered = True
         with pytest.raises(AttributeError, match=msg):
@@ -88,17 +85,6 @@ class TestCategoricalAPI:
         expected = Categorical(["A", "B", "C", "A"])
         tm.assert_categorical_equal(result, expected)
 
-        # and now inplace
-        with tm.assert_produces_warning(FutureWarning):
-            # issue #37643 inplace kwarg deprecated
-            res = cat.rename_categories([1, 2, 3], inplace=True)
-
-        assert res is None
-        tm.assert_numpy_array_equal(
-            cat.__array__(), np.array([1, 2, 3, 1], dtype=np.int64)
-        )
-        tm.assert_index_equal(cat.categories, Index([1, 2, 3]))
-
     @pytest.mark.parametrize("new_categories", [[1, 2, 3, 4], [1, 2]])
     def test_rename_categories_wrong_length_raises(self, new_categories):
         cat = Categorical(["a", "b", "c", "a"])
@@ -122,14 +108,6 @@ class TestCategoricalAPI:
         res = cat.rename_categories({"a": 4, "b": 3, "c": 2, "d": 1})
         expected = Index([4, 3, 2, 1])
         tm.assert_index_equal(res.categories, expected)
-
-        # Test for inplace
-        with tm.assert_produces_warning(FutureWarning):
-            # issue #37643 inplace kwarg deprecated
-            res = cat.rename_categories({"a": 4, "b": 3, "c": 2, "d": 1}, inplace=True)
-
-        assert res is None
-        tm.assert_index_equal(cat.categories, expected)
 
         # Test for dicts of smaller length
         cat = Categorical(["a", "b", "c", "d"])
@@ -158,20 +136,11 @@ class TestCategoricalAPI:
             ["a", "b", "c", "a"], categories=["c", "b", "a"], ordered=True
         )
 
-        # first inplace == False
         res = cat.reorder_categories(["c", "b", "a"])
         # cat must be the same as before
         tm.assert_categorical_equal(cat, old)
         # only res is changed
         tm.assert_categorical_equal(res, new)
-
-        # inplace == True
-        with tm.assert_produces_warning(FutureWarning):
-            # issue #37643 inplace kwarg deprecated
-            res = cat.reorder_categories(["c", "b", "a"], inplace=True)
-
-        assert res is None
-        tm.assert_categorical_equal(cat, new)
 
     @pytest.mark.parametrize(
         "new_categories",
@@ -194,7 +163,6 @@ class TestCategoricalAPI:
             ["a", "b", "c", "a"], categories=["a", "b", "c", "d"], ordered=True
         )
 
-        # first inplace == False
         res = cat.add_categories("d")
         tm.assert_categorical_equal(cat, old)
         tm.assert_categorical_equal(res, new)
@@ -202,14 +170,6 @@ class TestCategoricalAPI:
         res = cat.add_categories(["d"])
         tm.assert_categorical_equal(cat, old)
         tm.assert_categorical_equal(res, new)
-
-        # inplace == True
-        with tm.assert_produces_warning(FutureWarning):
-            # issue #37643 inplace kwarg deprecated
-            res = cat.add_categories("d", inplace=True)
-
-        tm.assert_categorical_equal(cat, new)
-        assert res is None
 
         # GH 9927
         cat = Categorical(list("abc"), ordered=True)
@@ -231,19 +191,31 @@ class TestCategoricalAPI:
         with pytest.raises(ValueError, match=msg):
             cat.add_categories(["d"])
 
+    def test_add_categories_losing_dtype_information(self):
+        # GH#48812
+        cat = Categorical(Series([1, 2], dtype="Int64"))
+        ser = Series([4], dtype="Int64")
+        result = cat.add_categories(ser)
+        expected = Categorical(
+            Series([1, 2], dtype="Int64"), categories=Series([1, 2, 4], dtype="Int64")
+        )
+        tm.assert_categorical_equal(result, expected)
+
+        cat = Categorical(Series(["a", "b", "a"], dtype=StringDtype()))
+        ser = Series(["d"], dtype=StringDtype())
+        result = cat.add_categories(ser)
+        expected = Categorical(
+            Series(["a", "b", "a"], dtype=StringDtype()),
+            categories=Series(["a", "b", "d"], dtype=StringDtype()),
+        )
+        tm.assert_categorical_equal(result, expected)
+
     def test_set_categories(self):
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
         exp_categories = Index(["c", "b", "a"])
         exp_values = np.array(["a", "b", "c", "a"], dtype=np.object_)
 
-        with tm.assert_produces_warning(FutureWarning):
-            # issue #37643 inplace kwarg deprecated
-            res = cat.set_categories(["c", "b", "a"], inplace=True)
-
-        tm.assert_index_equal(cat.categories, exp_categories)
-        tm.assert_numpy_array_equal(cat.__array__(), exp_values)
-        assert res is None
-
+        cat = cat.set_categories(["c", "b", "a"])
         res = cat.set_categories(["a", "b", "c"])
         # cat must be the same as before
         tm.assert_index_equal(cat.categories, exp_categories)
@@ -304,12 +276,6 @@ class TestCategoricalAPI:
 
         tm.assert_numpy_array_equal(np.asarray(c), np.asarray(c2))
 
-    def test_to_dense_deprecated(self):
-        cat = Categorical(["a", "b", "c", "a"], ordered=True)
-
-        with tm.assert_produces_warning(FutureWarning):
-            cat.to_dense()
-
     @pytest.mark.parametrize(
         "values, categories, new_categories",
         [
@@ -366,7 +332,6 @@ class TestCategoricalAPI:
         old = cat.copy()
         new = Categorical(["a", "b", np.nan, "a"], categories=["a", "b"], ordered=True)
 
-        # first inplace == False
         res = cat.remove_categories("c")
         tm.assert_categorical_equal(cat, old)
         tm.assert_categorical_equal(res, new)
@@ -374,14 +339,6 @@ class TestCategoricalAPI:
         res = cat.remove_categories(["c"])
         tm.assert_categorical_equal(cat, old)
         tm.assert_categorical_equal(res, new)
-
-        # inplace == True
-        with tm.assert_produces_warning(FutureWarning):
-            # issue #37643 inplace kwarg deprecated
-            res = cat.remove_categories("c", inplace=True)
-
-        tm.assert_categorical_equal(cat, new)
-        assert res is None
 
     @pytest.mark.parametrize("removals", [["c"], ["c", np.nan], "c", ["c", "c"]])
     def test_remove_categories_raises(self, removals):
@@ -402,13 +359,6 @@ class TestCategoricalAPI:
         tm.assert_index_equal(res.categories, exp_categories_dropped)
         tm.assert_index_equal(c.categories, exp_categories_all)
 
-        with tm.assert_produces_warning(FutureWarning):
-            # issue #37643 inplace kwarg deprecated
-            res = c.remove_unused_categories(inplace=True)
-
-        tm.assert_index_equal(c.categories, exp_categories_dropped)
-        assert res is None
-
         # with NaN values (GH11599)
         c = Categorical(["a", "b", "c", np.nan], categories=["a", "b", "c", "d", "e"])
         res = c.remove_unused_categories()
@@ -426,8 +376,8 @@ class TestCategoricalAPI:
         assert out.tolist() == val
 
         alpha = list("abcdefghijklmnopqrstuvwxyz")
-        val = np.random.choice(alpha[::2], 10000).astype("object")
-        val[np.random.choice(len(val), 100)] = np.nan
+        val = np.random.default_rng(2).choice(alpha[::2], 10000).astype("object")
+        val[np.random.default_rng(2).choice(len(val), 100)] = np.nan
 
         cat = Categorical(values=val, categories=alpha)
         out = cat.remove_unused_categories()
@@ -435,7 +385,8 @@ class TestCategoricalAPI:
 
 
 class TestCategoricalAPIWithFactor:
-    def test_describe(self, factor):
+    def test_describe(self):
+        factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"], ordered=True)
         # string type
         desc = factor.describe()
         assert factor.ordered
@@ -449,11 +400,7 @@ class TestCategoricalAPIWithFactor:
 
         # check unused categories
         cat = factor.copy()
-
-        with tm.assert_produces_warning(FutureWarning):
-            # issue #37643 inplace kwarg deprecated
-            cat.set_categories(["a", "b", "c", "d"], inplace=True)
-
+        cat = cat.set_categories(["a", "b", "c", "d"])
         desc = cat.describe()
 
         exp_index = CategoricalIndex(
@@ -487,35 +434,21 @@ class TestCategoricalAPIWithFactor:
         )
         tm.assert_frame_equal(desc, expected)
 
-    def test_set_categories_inplace(self, factor):
-        cat = factor.copy()
-
-        with tm.assert_produces_warning(FutureWarning):
-            # issue #37643 inplace kwarg deprecated
-            cat.set_categories(["a", "b", "c", "d"], inplace=True)
-
-        tm.assert_index_equal(cat.categories, Index(["a", "b", "c", "d"]))
-
-    def test_codes_setter_deprecated(self):
-        cat = Categorical([1, 2, 3, 1, 2, 3, 3, 2, 1, 1, 1])
-        new_codes = cat._codes + 1
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#40606
-            cat._codes = new_codes
-
-        assert cat._codes is new_codes
-
 
 class TestPrivateCategoricalAPI:
     def test_codes_immutable(self):
-
         # Codes should be read only
         c = Categorical(["a", "b", "c", "a", np.nan])
         exp = np.array([0, 1, 2, 0, -1], dtype="int8")
         tm.assert_numpy_array_equal(c.codes, exp)
 
         # Assignments to codes should raise
-        with pytest.raises(AttributeError, match="can't set attribute"):
+        msg = (
+            "property 'codes' of 'Categorical' object has no setter"
+            if PY311
+            else "can't set attribute"
+        )
+        with pytest.raises(AttributeError, match=msg):
             c.codes = np.array([0, 1, 2, 0, 1], dtype="int8")
 
         # changes in the codes array should raise

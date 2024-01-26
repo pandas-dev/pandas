@@ -9,17 +9,21 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 
 The function `visit` is adapted from a function by the same name in pyupgrade:
 https://github.com/asottile/pyupgrade/blob/5495a248f2165941c5d3b82ac3226ba7ad1fa59d/pyupgrade/_data.py#L70-L113
+Licence at LICENSES/PYUPGRADE_LICENSE
 """
 from __future__ import annotations
 
 import argparse
 import ast
 import collections
-from typing import Sequence
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 def visit(tree: ast.Module) -> dict[int, list[int]]:
-    "Step through tree, recording when nodes are in annotations."
+    """Step through tree, recording when nodes are in annotations."""
     in_annotation = False
     nodes: list[tuple[bool, ast.AST]] = [(in_annotation, tree)]
     to_replace = collections.defaultdict(list)
@@ -39,9 +43,11 @@ def visit(tree: ast.Module) -> dict[int, list[int]]:
             if isinstance(value, ast.AST):
                 nodes.append((next_in_annotation, value))
             elif isinstance(value, list):
-                for value in reversed(value):
-                    if isinstance(value, ast.AST):
-                        nodes.append((next_in_annotation, value))
+                nodes.extend(
+                    (next_in_annotation, value)
+                    for value in reversed(value)
+                    if isinstance(value, ast.AST)
+                )
 
     return to_replace
 
@@ -50,11 +56,16 @@ def replace_bool_with_bool_t(to_replace, content: str) -> str:
     new_lines = []
 
     for n, line in enumerate(content.splitlines(), start=1):
+        replaced_line = line
         if n in to_replace:
             for col_offset in reversed(to_replace[n]):
-                line = line[:col_offset] + "bool_t" + line[col_offset + 4 :]
-        new_lines.append(line)
-    return "\n".join(new_lines)
+                replaced_line = (
+                    replaced_line[:col_offset]
+                    + "bool_t"
+                    + replaced_line[col_offset + 4 :]
+                )
+        new_lines.append(replaced_line)
+    return "\n".join(new_lines) + "\n"
 
 
 def check_for_bool_in_generic(content: str) -> tuple[bool, str]:

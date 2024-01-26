@@ -55,9 +55,9 @@ def test_drop_with_non_unique_datetime_index_and_invalid_keys():
 
     # define dataframe with unique datetime index
     df = DataFrame(
-        np.random.randn(5, 3),
+        np.random.default_rng(2).standard_normal((5, 3)),
         columns=["a", "b", "c"],
-        index=pd.date_range("2012", freq="H", periods=5),
+        index=pd.date_range("2012", freq="h", periods=5),
     )
     # create dataframe with non-unique datetime index
     df = df.iloc[[0, 2, 2, 3]].copy()
@@ -159,7 +159,9 @@ class TestDataFrameDrop:
 
         # inplace cache issue
         # GH#5628
-        df = DataFrame(np.random.randn(10, 3), columns=list("abc"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 3)), columns=list("abc")
+        )
         expected = df[~(df.b > 0)]
         return_value = df.drop(labels=df[df.b > 0].index, inplace=True)
         assert return_value is None
@@ -185,10 +187,7 @@ class TestDataFrameDrop:
         not_lexsorted_df = not_lexsorted_df.reset_index()
         assert not not_lexsorted_df.columns._is_lexsorted()
 
-        # compare the results
-        tm.assert_frame_equal(lexsorted_df, not_lexsorted_df)
-
-        expected = lexsorted_df.drop("a", axis=1)
+        expected = lexsorted_df.drop("a", axis=1).astype(float)
         with tm.assert_produces_warning(PerformanceWarning):
             result = not_lexsorted_df.drop("a", axis=1)
 
@@ -245,7 +244,6 @@ class TestDataFrameDrop:
         ],
     )
     def test_raise_on_drop_duplicate_index(self, actual):
-
         # GH#19186
         level = 0 if isinstance(actual.index, MultiIndex) else None
         msg = re.escape("\"['c'] not found in axis\"")
@@ -304,7 +302,7 @@ class TestDataFrameDrop:
 
         tuples = sorted(zip(*arrays))
         index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(np.random.randn(4, 6), columns=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((4, 6)), columns=index)
 
         result = df.drop("a", axis=1)
         expected = df.drop([("a", "", "")], axis=1)
@@ -405,11 +403,11 @@ class TestDataFrameDrop:
         idx = Index([2, 3, 4, 4, 5], name="id")
         idxdt = pd.to_datetime(
             [
-                "201603231400",
-                "201603231500",
-                "201603231600",
-                "201603231600",
-                "201603231700",
+                "2016-03-23 14:00",
+                "2016-03-23 15:00",
+                "2016-03-23 16:00",
+                "2016-03-23 16:00",
+                "2016-03-23 17:00",
             ]
         )
         df = DataFrame(np.arange(10).reshape(5, 2), columns=list("ab"), index=idx)
@@ -422,17 +420,16 @@ class TestDataFrameDrop:
         expected = df.loc[idx != 4]
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("box", [Series, DataFrame])
-    def test_drop_tz_aware_timestamp_across_dst(self, box):
+    def test_drop_tz_aware_timestamp_across_dst(self, frame_or_series):
         # GH#21761
         start = Timestamp("2017-10-29", tz="Europe/Berlin")
         end = Timestamp("2017-10-29 04:00:00", tz="Europe/Berlin")
         index = pd.date_range(start, end, freq="15min")
-        data = box(data=[1] * len(index), index=index)
+        data = frame_or_series(data=[1] * len(index), index=index)
         result = data.drop(start)
         expected_start = Timestamp("2017-10-29 00:15:00", tz="Europe/Berlin")
         expected_idx = pd.date_range(expected_start, end, freq="15min")
-        expected = box(data=[1] * len(expected_idx), index=expected_idx)
+        expected = frame_or_series(data=[1] * len(expected_idx), index=expected_idx)
         tm.assert_equal(result, expected)
 
     def test_drop_preserve_names(self):
@@ -440,7 +437,7 @@ class TestDataFrameDrop:
             [[0, 0, 0, 1, 1, 1], [1, 2, 3, 1, 2, 3]], names=["one", "two"]
         )
 
-        df = DataFrame(np.random.randn(6, 3), index=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((6, 3)), index=index)
 
         result = df.drop([(0, 2)])
         assert result.index.names == ("one", "two")
@@ -499,9 +496,9 @@ class TestDataFrameDrop:
         # drop buggy GH#6240
         df = DataFrame(
             {
-                "A": np.random.randn(5),
-                "B": np.random.randn(5),
-                "C": np.random.randn(5),
+                "A": np.random.default_rng(2).standard_normal(5),
+                "B": np.random.default_rng(2).standard_normal(5),
+                "C": np.random.default_rng(2).standard_normal(5),
                 "D": ["a", "b", "c", "d", "e"],
             }
         )
@@ -511,21 +508,9 @@ class TestDataFrameDrop:
         result = df2.drop("C", axis=1)
         tm.assert_frame_equal(result, expected)
 
-    def test_drop_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"In a future version of pandas all arguments of DataFrame\.drop "
-            r"except for the argument 'labels' will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.drop("a", 1)
-        expected = DataFrame(index=[0, 1, 2])
-        tm.assert_frame_equal(result, expected)
-
     def test_drop_inplace_no_leftover_column_reference(self):
         # GH 13934
-        df = DataFrame({"a": [1, 2, 3]})
+        df = DataFrame({"a": [1, 2, 3]}, columns=Index(["a"], dtype="object"))
         a = df.a
         df.drop(["a"], axis=1, inplace=True)
         tm.assert_index_equal(df.columns, Index([], dtype="object"))
@@ -548,4 +533,14 @@ class TestDataFrameDrop:
         expected = DataFrame(
             {"a": [1], "b": 100}, dtype=any_numeric_ea_dtype
         ).set_index(idx)
+        tm.assert_frame_equal(result, expected)
+
+    def test_drop_parse_strings_datetime_index(self):
+        # GH #5355
+        df = DataFrame(
+            {"a": [1, 2], "b": [1, 2]},
+            index=[Timestamp("2000-01-03"), Timestamp("2000-01-04")],
+        )
+        result = df.drop("2000-01-03", axis=0)
+        expected = DataFrame({"a": [2], "b": [2]}, index=[Timestamp("2000-01-04")])
         tm.assert_frame_equal(result, expected)

@@ -11,8 +11,6 @@ Working with text data
 Text data types
 ---------------
 
-.. versionadded:: 1.0.0
-
 There are two ways to store text data in pandas:
 
 1. ``object`` -dtype NumPy array.
@@ -63,8 +61,6 @@ Or ``astype`` after the ``Series`` or ``DataFrame`` is created
    s
    s.astype("string")
 
-
-.. versionchanged:: 1.1.0
 
 You can also use :class:`StringDtype`/``"string"`` as the dtype on non-string data and
 it will be converted to ``string`` dtype:
@@ -208,8 +204,7 @@ and replacing any remaining whitespaces with underscores:
 
 .. warning::
 
-    Before v.0.25.0, the ``.str``-accessor did only the most rudimentary type checks. Starting with
-    v.0.25.0, the type of the Series is inferred and the allowed types (i.e. strings) are enforced more rigorously.
+    The type of the Series is inferred and the allowed types (i.e. strings).
 
     Generally speaking, the ``.str`` accessor is intended to work only on strings. With very few
     exceptions, other uses are not supported, and may be disabled at a later point.
@@ -267,14 +262,16 @@ i.e., from the end of the string to the beginning of the string:
    s3
    s3.str.replace("^.a|dog", "XX-XX ", case=False, regex=True)
 
-.. warning::
 
-    Some caution must be taken when dealing with regular expressions! The current behavior
-    is to treat single character patterns as literal strings, even when ``regex`` is set
-    to ``True``. This behavior is deprecated and will be removed in a future version so
-    that the ``regex`` keyword is always respected.
+.. versionchanged:: 2.0
 
-.. versionchanged:: 1.2.0
+Single character pattern with ``regex=True`` will also be treated as regular expressions:
+
+.. ipython:: python
+
+   s4 = pd.Series(["a.b", ".", "b", np.nan, ""], dtype="string")
+   s4
+   s4.str.replace(".", "a", regex=True)
 
 If you want literal replacement of a string (equivalent to :meth:`str.replace`), you
 can set the optional ``regex`` parameter to ``False``, rather than escaping each
@@ -423,11 +420,6 @@ the ``join``-keyword.
    s.str.cat(u)
    s.str.cat(u, join="left")
 
-.. warning::
-
-    If the ``join`` keyword is not passed, the method :meth:`~Series.str.cat` will currently fall back to the behavior before version 0.23.0 (i.e. no alignment),
-    but a ``FutureWarning`` will be raised if any of the involved indexes differ, since this default will change to ``join='left'`` in a future version.
-
 The usual options are available for ``join`` (one of ``'left', 'outer', 'inner', 'right'``).
 In particular, alignment also means that the different lengths do not need to coincide anymore.
 
@@ -502,15 +494,6 @@ Extracting substrings
 
 Extract first match in each subject (extract)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. warning::
-
-   Before version 0.23, argument ``expand`` of the ``extract`` method defaulted to
-   ``False``. When ``expand=False``, ``expand`` returns a ``Series``, ``Index``, or
-   ``DataFrame``, depending on the subject and regular expression
-   pattern. When ``expand=True``, it always returns a ``DataFrame``,
-   which is more consistent and less confusing from the perspective of a user.
-   ``expand=True`` has been the default since version 0.23.0.
 
 The ``extract`` method accepts a `regular expression
 <https://docs.python.org/3/library/re.html>`__ with at least one
@@ -591,10 +574,10 @@ returns a ``DataFrame`` if ``expand=True``.
 
 It raises ``ValueError`` if ``expand=False``.
 
-.. code-block:: python
+.. ipython:: python
+   :okexcept:
 
-    >>> s.index.str.extract("(?P<letter>[a-zA-Z])([0-9]+)", expand=False)
-    ValueError: only one regex group is supported with Index
+    s.index.str.extract("(?P<letter>[a-zA-Z])([0-9]+)", expand=False)
 
 The table below summarizes the behavior of ``extract(expand=False)``
 (input subject in first column, number of groups in regex in
@@ -680,8 +663,6 @@ Or whether elements match a pattern:
        ["1", "2", "3a", "3b", "03c", "4dx"],
        dtype="string",
    ).str.match(pattern)
-
-.. versionadded:: 1.1.0
 
 .. ipython:: python
 

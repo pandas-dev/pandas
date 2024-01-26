@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 import weakref
+
+if TYPE_CHECKING:
+    from pandas.core.generic import NDFrame
 
 
 class Flags:
     """
     Flags that apply to pandas objects.
-
-    .. versionadded:: 1.2.0
 
     Parameters
     ----------
@@ -28,9 +30,9 @@ class Flags:
            it is expected that every method taking or returning one or more
            DataFrame or Series objects will propagate ``allows_duplicate_labels``.
 
-    Notes
-    -----
-    Attributes can be set in two ways
+    Examples
+    --------
+    Attributes can be set in two ways:
 
     >>> df = pd.DataFrame()
     >>> df.flags
@@ -44,9 +46,9 @@ class Flags:
     <Flags(allows_duplicate_labels=True)>
     """
 
-    _keys = {"allows_duplicate_labels"}
+    _keys: set[str] = {"allows_duplicate_labels"}
 
-    def __init__(self, obj, *, allows_duplicate_labels) -> None:
+    def __init__(self, obj: NDFrame, *, allows_duplicate_labels: bool) -> None:
         self._allows_duplicate_labels = allows_duplicate_labels
         self._obj = weakref.ref(obj)
 
@@ -95,13 +97,13 @@ class Flags:
 
         self._allows_duplicate_labels = value
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str):
         if key not in self._keys:
             raise KeyError(key)
 
         return getattr(self, key)
 
-    def __setitem__(self, key, value) -> None:
+    def __setitem__(self, key: str, value) -> None:
         if key not in self._keys:
             raise ValueError(f"Unknown flag {key}. Must be one of {self._keys}")
         setattr(self, key, value)
@@ -109,7 +111,7 @@ class Flags:
     def __repr__(self) -> str:
         return f"<Flags(allows_duplicate_labels={self.allows_duplicate_labels})>"
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if isinstance(other, type(self)):
             return self.allows_duplicate_labels == other.allows_duplicate_labels
         return False

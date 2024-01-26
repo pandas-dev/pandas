@@ -20,7 +20,7 @@ class TestBetween:
         tm.assert_series_equal(result, expected)
 
     def test_between_datetime_object_dtype(self):
-        ser = Series(bdate_range("1/1/2000", periods=20).astype(object))
+        ser = Series(bdate_range("1/1/2000", periods=20), dtype=object)
         ser[::2] = np.nan
 
         result = ser[ser.between(ser[3], ser[17])]
@@ -38,7 +38,8 @@ class TestBetween:
         expected = (ser >= left) & (ser <= right)
         tm.assert_series_equal(result, expected)
 
-    def test_between_inclusive_string(self):  # :issue:`40628`
+    def test_between_inclusive_string(self):
+        # GH 40628
         series = Series(date_range("1/1/2000", periods=10))
         left, right = series[[2, 7]]
 
@@ -58,7 +59,9 @@ class TestBetween:
         expected = (series > left) & (series < right)
         tm.assert_series_equal(result, expected)
 
-    def test_between_error_args(self):  # :issue:`40628`
+    @pytest.mark.parametrize("inclusive", ["yes", True, False])
+    def test_between_error_args(self, inclusive):
+        # GH 40628
         series = Series(date_range("1/1/2000", periods=10))
         left, right = series[[2, 7]]
 
@@ -69,16 +72,4 @@ class TestBetween:
 
         with pytest.raises(ValueError, match=value_error_msg):
             series = Series(date_range("1/1/2000", periods=10))
-            series.between(left, right, inclusive="yes")
-
-    def test_between_inclusive_warning(self):
-        series = Series(date_range("1/1/2000", periods=10))
-        left, right = series[[2, 7]]
-        with tm.assert_produces_warning(FutureWarning):
-            result = series.between(left, right, inclusive=False)
-            expected = (series > left) & (series < right)
-            tm.assert_series_equal(result, expected)
-        with tm.assert_produces_warning(FutureWarning):
-            result = series.between(left, right, inclusive=True)
-            expected = (series >= left) & (series <= right)
-            tm.assert_series_equal(result, expected)
+            series.between(left, right, inclusive=inclusive)

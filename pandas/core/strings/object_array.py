@@ -1,27 +1,34 @@
 from __future__ import annotations
 
-from collections.abc import Callable  # noqa: PDF001
+import functools
 import re
 import textwrap
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Literal,
+    cast,
+)
 import unicodedata
 
 import numpy as np
 
-import pandas._libs.lib as lib
+from pandas._libs import lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
-from pandas._typing import (
-    NpDtype,
-    Scalar,
-)
 
-from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.strings.base import BaseStringArrayMethods
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from pandas._typing import (
+        NpDtype,
+        Scalar,
+    )
+
     from pandas import Series
 
 
@@ -32,7 +39,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
     _str_na_value = np.nan
 
-    def __len__(self):
+    def __len__(self) -> int:
         # For typing, _str_map relies on the object being sized.
         raise NotImplementedError
 
@@ -98,12 +105,17 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                 result = lib.maybe_convert_objects(result)
         return result
 
-    def _str_count(self, pat, flags=0):
+    def _str_count(self, pat, flags: int = 0):
         regex = re.compile(pat, flags=flags)
         f = lambda x: len(regex.findall(x))
         return self._str_map(f, dtype="int64")
 
-    def _str_pad(self, width, side="left", fillchar=" "):
+    def _str_pad(
+        self,
+        width: int,
+        side: Literal["left", "right", "both"] = "left",
+        fillchar: str = " ",
+    ):
         if side == "left":
             f = lambda x: x.rjust(width, fillchar)
         elif side == "right":
@@ -114,7 +126,9 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             raise ValueError("Invalid side")
         return self._str_map(f)
 
-    def _str_contains(self, pat, case=True, flags=0, na=np.nan, regex: bool = True):
+    def _str_contains(
+        self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
+    ):
         if regex:
             if not case:
                 flags |= re.IGNORECASE
@@ -164,14 +178,15 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
         return self._str_map(f, dtype=str)
 
-    def _str_repeat(self, repeats):
-        if is_scalar(repeats):
+    def _str_repeat(self, repeats: int | Sequence[int]):
+        if lib.is_integer(repeats):
+            rint = cast(int, repeats)
 
             def scalar_rep(x):
                 try:
-                    return bytes.__mul__(x, repeats)
+                    return bytes.__mul__(x, rint)
                 except TypeError:
-                    return str.__mul__(x, repeats)
+                    return str.__mul__(x, rint)
 
             return self._str_map(scalar_rep, dtype=str)
         else:
@@ -185,11 +200,14 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                 except TypeError:
                     return str.__mul__(x, r)
 
-            repeats = np.asarray(repeats, dtype=object)
-            result = libops.vec_binop(np.asarray(self), repeats, rep)
+            result = libops.vec_binop(
+                np.asarray(self),
+                np.asarray(repeats, dtype=object),
+                rep,
+            )
             if isinstance(self, BaseStringArray):
                 # Not going through map, so we have to do this here.
-                result = type(self)._from_sequence(result)
+                result = type(self)._from_sequence(result, dtype=self.dtype)
             return result
 
     def _str_match(
@@ -218,14 +236,14 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         f = lambda x: regex.fullmatch(x) is not None
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 
-    def _str_encode(self, encoding, errors="strict"):
+    def _str_encode(self, encoding, errors: str = "strict"):
         f = lambda x: x.encode(encoding, errors=errors)
         return self._str_map(f, dtype=object)
 
-    def _str_find(self, sub, start=0, end=None):
+    def _str_find(self, sub, start: int = 0, end=None):
         return self._str_find_(sub, start, end, side="left")
 
-    def _str_rfind(self, sub, start=0, end=None):
+    def _str_rfind(self, sub, start: int = 0, end=None):
         return self._str_find_(sub, start, end, side="right")
 
     def _str_find_(self, sub, start, end, side):
@@ -242,7 +260,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             f = lambda x: getattr(x, method)(sub, start, end)
         return self._str_map(f, dtype="int64")
 
-    def _str_findall(self, pat, flags=0):
+    def _str_findall(self, pat, flags: int = 0):
         regex = re.compile(pat, flags=flags)
         return self._str_map(regex.findall, dtype="object")
 
@@ -256,28 +274,28 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
         return self._str_map(f)
 
-    def _str_index(self, sub, start=0, end=None):
+    def _str_index(self, sub, start: int = 0, end=None):
         if end:
             f = lambda x: x.index(sub, start, end)
         else:
             f = lambda x: x.index(sub, start, end)
         return self._str_map(f, dtype="int64")
 
-    def _str_rindex(self, sub, start=0, end=None):
+    def _str_rindex(self, sub, start: int = 0, end=None):
         if end:
             f = lambda x: x.rindex(sub, start, end)
         else:
             f = lambda x: x.rindex(sub, start, end)
         return self._str_map(f, dtype="int64")
 
-    def _str_join(self, sep):
+    def _str_join(self, sep: str):
         return self._str_map(sep.join)
 
-    def _str_partition(self, sep, expand):
+    def _str_partition(self, sep: str, expand):
         result = self._str_map(lambda x: x.partition(sep), dtype="object")
         return result
 
-    def _str_rpartition(self, sep, expand):
+    def _str_rpartition(self, sep: str, expand):
         return self._str_map(lambda x: x.rpartition(sep), dtype="object")
 
     def _str_len(self):
@@ -310,7 +328,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         self,
         pat: str | re.Pattern | None = None,
         n=-1,
-        expand=False,
+        expand: bool = False,
         regex: bool | None = None,
     ):
         if pat is None:
@@ -349,12 +367,12 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
     def _str_translate(self, table):
         return self._str_map(lambda x: x.translate(table))
 
-    def _str_wrap(self, width, **kwargs):
+    def _str_wrap(self, width: int, **kwargs):
         kwargs["width"] = width
         tw = textwrap.TextWrapper(**kwargs)
         return self._str_map(lambda s: "\n".join(tw.wrap(s)))
 
-    def _str_get_dummies(self, sep="|"):
+    def _str_get_dummies(self, sep: str = "|"):
         from pandas import Series
 
         arr = Series(self).fillna("")
@@ -364,15 +382,20 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             arr = sep + arr.astype(str) + sep
 
         tags: set[str] = set()
-        for ts in Series(arr).str.split(sep):
+        for ts in Series(arr, copy=False).str.split(sep):
             tags.update(ts)
         tags2 = sorted(tags - {""})
 
         dummies = np.empty((len(arr), len(tags2)), dtype=np.int64)
 
+        def _isin(test_elements: str, element: str) -> bool:
+            return element in test_elements
+
         for i, t in enumerate(tags2):
             pat = sep + t + sep
-            dummies[:, i] = lib.map_infer(arr.to_numpy(), lambda x: pat in x)
+            dummies[:, i] = lib.map_infer(
+                arr.to_numpy(), functools.partial(_isin, element=pat)
+            )
         return dummies, tags2
 
     def _str_upper(self):
@@ -446,16 +469,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         return self._str_map(removeprefix)
 
     def _str_removesuffix(self, suffix: str) -> Series:
-        # this could be used on Python 3.9+
-        # f = lambda x: x.removesuffix(suffix)
-        # return self._str_map(str.removesuffix)
-
-        def removesuffix(text: str) -> str:
-            if text.endswith(suffix):
-                return text[: -len(suffix)]
-            return text
-
-        return self._str_map(removesuffix)
+        return self._str_map(lambda x: x.removesuffix(suffix))
 
     def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
         regex = re.compile(pat, flags=flags)

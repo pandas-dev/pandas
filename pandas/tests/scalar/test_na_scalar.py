@@ -1,3 +1,8 @@
+from datetime import (
+    date,
+    time,
+    timedelta,
+)
 import pickle
 
 import numpy as np
@@ -49,36 +54,43 @@ def test_hashable():
     assert d[NA] == "test"
 
 
-def test_arithmetic_ops(all_arithmetic_functions):
+@pytest.mark.parametrize(
+    "other", [NA, 1, 1.0, "a", b"a", np.int64(1), np.nan], ids=repr
+)
+def test_arithmetic_ops(all_arithmetic_functions, other):
     op = all_arithmetic_functions
 
-    for other in [NA, 1, 1.0, "a", np.int64(1), np.nan]:
-        if op.__name__ in ("pow", "rpow", "rmod") and isinstance(other, str):
-            continue
-        if op.__name__ in ("divmod", "rdivmod"):
-            assert op(NA, other) is (NA, NA)
-        else:
-            if op.__name__ == "rpow":
-                # avoid special case
-                other += 1
-            assert op(NA, other) is NA
+    if op.__name__ in ("pow", "rpow", "rmod") and isinstance(other, (str, bytes)):
+        pytest.skip(reason=f"{op.__name__} with NA and {other} not defined.")
+    if op.__name__ in ("divmod", "rdivmod"):
+        assert op(NA, other) is (NA, NA)
+    else:
+        if op.__name__ == "rpow":
+            # avoid special case
+            other += 1
+        assert op(NA, other) is NA
 
 
-def test_comparison_ops():
-
-    for other in [NA, 1, 1.0, "a", np.int64(1), np.nan, np.bool_(True)]:
-        assert (NA == other) is NA
-        assert (NA != other) is NA
-        assert (NA > other) is NA
-        assert (NA >= other) is NA
-        assert (NA < other) is NA
-        assert (NA <= other) is NA
-        assert (other == NA) is NA
-        assert (other != NA) is NA
-        assert (other > NA) is NA
-        assert (other >= NA) is NA
-        assert (other < NA) is NA
-        assert (other <= NA) is NA
+@pytest.mark.parametrize(
+    "other",
+    [
+        NA,
+        1,
+        1.0,
+        "a",
+        b"a",
+        np.int64(1),
+        np.nan,
+        np.bool_(True),
+        time(0),
+        date(1, 2, 3),
+        timedelta(1),
+        pd.NaT,
+    ],
+)
+def test_comparison_ops(comparison_op, other):
+    assert comparison_op(NA, other) is NA
+    assert comparison_op(other, NA) is NA
 
 
 @pytest.mark.parametrize(
@@ -91,9 +103,9 @@ def test_comparison_ops():
         False,
         np.bool_(False),
         np.int_(0),
-        np.float_(0),
+        np.float64(0),
         np.int_(-0),
-        np.float_(-0),
+        np.float64(-0),
     ],
 )
 @pytest.mark.parametrize("asarray", [True, False])
@@ -111,7 +123,7 @@ def test_pow_special(value, asarray):
 
 
 @pytest.mark.parametrize(
-    "value", [1, 1.0, True, np.bool_(True), np.int_(1), np.float_(1)]
+    "value", [1, 1.0, True, np.bool_(True), np.int_(1), np.float64(1)]
 )
 @pytest.mark.parametrize("asarray", [True, False])
 def test_rpow_special(value, asarray):
@@ -121,14 +133,14 @@ def test_rpow_special(value, asarray):
 
     if asarray:
         result = result[0]
-    elif not isinstance(value, (np.float_, np.bool_, np.int_)):
+    elif not isinstance(value, (np.float64, np.bool_, np.int_)):
         # this assertion isn't possible with asarray=True
         assert isinstance(result, type(value))
 
     assert result == value
 
 
-@pytest.mark.parametrize("value", [-1, -1.0, np.int_(-1), np.float_(-1)])
+@pytest.mark.parametrize("value", [-1, -1.0, np.int_(-1), np.float64(-1)])
 @pytest.mark.parametrize("asarray", [True, False])
 def test_rpow_minus_one(value, asarray):
     if asarray:
@@ -149,7 +161,6 @@ def test_unary_ops():
 
 
 def test_logical_and():
-
     assert NA & True is NA
     assert True & NA is NA
     assert NA & False is False
@@ -162,7 +173,6 @@ def test_logical_and():
 
 
 def test_logical_or():
-
     assert NA | True is True
     assert True | NA is True
     assert NA | False is NA
@@ -175,7 +185,6 @@ def test_logical_or():
 
 
 def test_logical_xor():
-
     assert NA ^ True is NA
     assert True ^ NA is NA
     assert NA ^ False is NA

@@ -8,6 +8,11 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
+from pandas.compat.numpy import np_version_gt2
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -22,8 +27,7 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.api.types import CategoricalDtype as CDT
-import pandas.core.common as com
+from pandas.api.types import CategoricalDtype
 
 
 class TestReindexSetIndex:
@@ -31,9 +35,9 @@ class TestReindexSetIndex:
 
     def test_dti_set_index_reindex_datetimeindex(self):
         # GH#6631
-        df = DataFrame(np.random.random(6))
-        idx1 = date_range("2011/01/01", periods=6, freq="M", tz="US/Eastern")
-        idx2 = date_range("2013", periods=6, freq="A", tz="Asia/Tokyo")
+        df = DataFrame(np.random.default_rng(2).random(6))
+        idx1 = date_range("2011/01/01", periods=6, freq="ME", tz="US/Eastern")
+        idx2 = date_range("2013", periods=6, freq="YE", tz="Asia/Tokyo")
 
         df = df.set_index(idx1)
         tm.assert_index_equal(df.index, idx1)
@@ -43,18 +47,21 @@ class TestReindexSetIndex:
     def test_dti_set_index_reindex_freq_with_tz(self):
         # GH#11314 with tz
         index = date_range(
-            datetime(2015, 10, 1), datetime(2015, 10, 1, 23), freq="H", tz="US/Eastern"
+            datetime(2015, 10, 1), datetime(2015, 10, 1, 23), freq="h", tz="US/Eastern"
         )
-        df = DataFrame(np.random.randn(24, 1), columns=["a"], index=index)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((24, 1)),
+            columns=["a"],
+            index=index,
+        )
         new_index = date_range(
-            datetime(2015, 10, 2), datetime(2015, 10, 2, 23), freq="H", tz="US/Eastern"
+            datetime(2015, 10, 2), datetime(2015, 10, 2, 23), freq="h", tz="US/Eastern"
         )
 
         result = df.set_index(new_index)
         assert result.index.freq == index.freq
 
     def test_set_reset_index_intervalindex(self):
-
         df = DataFrame({"A": range(10)})
         ser = pd.cut(df.A, 5)
         df["B"] = ser
@@ -110,9 +117,13 @@ class TestReindexSetIndex:
             .set_index("index")
             .reindex(["1", "2"])
         )
+        exp = DataFrame({"index": ["1", "2"], "vals": [np.nan, np.nan]}).set_index(
+            "index"
+        )
+        exp = exp.astype(df.vals.dtype)
         tm.assert_frame_equal(
             df,
-            DataFrame({"index": ["1", "2"], "vals": [None, None]}).set_index("index"),
+            exp,
         )
 
 
@@ -120,12 +131,42 @@ class TestDataFrameSelectReindex:
     # These are specific reindex-based tests; other indexing tests should go in
     # test_indexing
 
+    @pytest.mark.xfail(
+        not IS64 or (is_platform_windows() and not np_version_gt2),
+        reason="Passes int32 values to DatetimeArray in make_na_array on "
+        "windows, 32bit linux builds",
+    )
+    @td.skip_array_manager_not_yet_implemented
+    def test_reindex_tzaware_fill_value(self):
+        # GH#52586
+        df = DataFrame([[1]])
+
+        ts = pd.Timestamp("2023-04-10 17:32", tz="US/Pacific")
+        res = df.reindex([0, 1], axis=1, fill_value=ts)
+        assert res.dtypes[1] == pd.DatetimeTZDtype(unit="s", tz="US/Pacific")
+        expected = DataFrame({0: [1], 1: [ts]})
+        expected[1] = expected[1].astype(res.dtypes[1])
+        tm.assert_frame_equal(res, expected)
+
+        per = ts.tz_localize(None).to_period("s")
+        res = df.reindex([0, 1], axis=1, fill_value=per)
+        assert res.dtypes[1] == pd.PeriodDtype("s")
+        expected = DataFrame({0: [1], 1: [per]})
+        tm.assert_frame_equal(res, expected)
+
+        interval = pd.Interval(ts, ts + pd.Timedelta(seconds=1))
+        res = df.reindex([0, 1], axis=1, fill_value=interval)
+        assert res.dtypes[1] == pd.IntervalDtype("datetime64[s, US/Pacific]", "right")
+        expected = DataFrame({0: [1], 1: [interval]})
+        expected[1] = expected[1].astype(res.dtypes[1])
+        tm.assert_frame_equal(res, expected)
+
     def test_reindex_copies(self):
         # based on asv time_reindex_axis1
         N = 10
-        df = DataFrame(np.random.randn(N * 10, N))
+        df = DataFrame(np.random.default_rng(2).standard_normal((N * 10, N)))
         cols = np.arange(N)
-        np.random.shuffle(cols)
+        np.random.default_rng(2).shuffle(cols)
 
         result = df.reindex(columns=cols, copy=True)
         assert not np.shares_memory(result[0]._values, df[0]._values)
@@ -134,31 +175,56 @@ class TestDataFrameSelectReindex:
         result2 = df.reindex(columns=cols, index=df.index, copy=True)
         assert not np.shares_memory(result2[0]._values, df[0]._values)
 
+    def test_reindex_copies_ea(self, using_copy_on_write):
+        # https://github.com/pandas-dev/pandas/pull/51197
+        # also ensure to honor copy keyword for ExtensionDtypes
+        N = 10
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((N * 10, N)), dtype="Float64"
+        )
+        cols = np.arange(N)
+        np.random.default_rng(2).shuffle(cols)
+
+        result = df.reindex(columns=cols, copy=True)
+        if using_copy_on_write:
+            assert np.shares_memory(result[0].array._data, df[0].array._data)
+        else:
+            assert not np.shares_memory(result[0].array._data, df[0].array._data)
+
+        # pass both columns and index
+        result2 = df.reindex(columns=cols, index=df.index, copy=True)
+        if using_copy_on_write:
+            assert np.shares_memory(result2[0].array._data, df[0].array._data)
+        else:
+            assert not np.shares_memory(result2[0].array._data, df[0].array._data)
+
     @td.skip_array_manager_not_yet_implemented
     def test_reindex_date_fill_value(self):
-        # passing date to dt64 is deprecated
+        # passing date to dt64 is deprecated; enforced in 2.0 to cast to object
         arr = date_range("2016-01-01", periods=6).values.reshape(3, 2)
         df = DataFrame(arr, columns=["A", "B"], index=range(3))
 
         ts = df.iloc[0, 0]
         fv = ts.date()
 
-        with tm.assert_produces_warning(FutureWarning):
-            res = df.reindex(index=range(4), columns=["A", "B", "C"], fill_value=fv)
+        res = df.reindex(index=range(4), columns=["A", "B", "C"], fill_value=fv)
 
         expected = DataFrame(
-            {"A": df["A"].tolist() + [ts], "B": df["B"].tolist() + [ts], "C": [ts] * 4}
+            {"A": df["A"].tolist() + [fv], "B": df["B"].tolist() + [fv], "C": [fv] * 4},
+            dtype=object,
         )
         tm.assert_frame_equal(res, expected)
 
         # only reindexing rows
-        with tm.assert_produces_warning(FutureWarning):
-            res = df.reindex(index=range(4), fill_value=fv)
+        res = df.reindex(index=range(4), fill_value=fv)
         tm.assert_frame_equal(res, expected[["A", "B"]])
 
         # same with a datetime-castable str
         res = df.reindex(
             index=range(4), columns=["A", "B", "C"], fill_value="2016-01-01"
+        )
+        expected = DataFrame(
+            {"A": df["A"].tolist() + [ts], "B": df["B"].tolist() + [ts], "C": [ts] * 4},
         )
         tm.assert_frame_equal(res, expected)
 
@@ -305,12 +371,14 @@ class TestDataFrameSelectReindex:
 
     def test_reindex_frame_add_nat(self):
         rng = date_range("1/1/2000 00:00:00", periods=10, freq="10s")
-        df = DataFrame({"A": np.random.randn(len(rng)), "B": rng})
+        df = DataFrame(
+            {"A": np.random.default_rng(2).standard_normal(len(rng)), "B": rng}
+        )
 
         result = df.reindex(range(15))
         assert np.issubdtype(result["B"].dtype, np.dtype("M8[ns]"))
 
-        mask = com.isna(result)["B"]
+        mask = isna(result)["B"]
         assert mask[-5:].all()
         assert not mask[:-5].any()
 
@@ -322,9 +390,9 @@ class TestDataFrameSelectReindex:
         # GH#38566
         obj = frame_or_series(
             [0, 1, 2, 3],
-            index=date_range("2020-01-01 00:00:00", periods=4, freq="H", tz="UTC"),
+            index=date_range("2020-01-01 00:00:00", periods=4, freq="h", tz="UTC"),
         )
-        new_index = date_range("2020-01-01 00:01:00", periods=4, freq="H", tz="UTC")
+        new_index = date_range("2020-01-01 00:01:00", periods=4, freq="h", tz="UTC")
         result = obj.reindex(new_index, method=method, tolerance=pd.Timedelta("1 hour"))
         expected = frame_or_series(exp_values, index=new_index)
         tm.assert_equal(result, expected)
@@ -368,7 +436,7 @@ class TestDataFrameSelectReindex:
                 "jim": list("B" * 4 + "A" * 2 + "C" * 3),
                 "joe": list("abcdeabcd")[::-1],
                 "jolie": [10, 20, 30] * 3,
-                "joline": np.random.randint(0, 1000, 9),
+                "joline": np.random.default_rng(2).integers(0, 1000, 9),
             }
         )
         icol = ["jim", "joe", "jolie"]
@@ -421,11 +489,11 @@ class TestDataFrameSelectReindex:
                 # out to needing unique groups of same size as joe
                 "jolie": np.concatenate(
                     [
-                        np.random.choice(1000, x, replace=False)
+                        np.random.default_rng(2).choice(1000, x, replace=False)
                         for x in [2, 3, 3, 2, 3, 2, 3, 2]
                     ]
                 ),
-                "joline": np.random.randn(20).round(3) * 10,
+                "joline": np.random.default_rng(2).standard_normal(20).round(3) * 10,
             }
         )
         icol = ["jim", "joe", "jolie"]
@@ -470,11 +538,11 @@ class TestDataFrameSelectReindex:
                 # out to needing unique groups of same size as joe
                 "jolie": np.concatenate(
                     [
-                        np.random.choice(1000, x, replace=False)
+                        np.random.default_rng(2).choice(1000, x, replace=False)
                         for x in [2, 3, 3, 2, 3, 2, 3, 2]
                     ]
                 ),
-                "joline": np.random.randn(20).round(3) * 10,
+                "joline": np.random.default_rng(2).standard_normal(20).round(3) * 10,
             }
         )
         icol = ["jim", "joe", "jolie"]
@@ -501,7 +569,7 @@ class TestDataFrameSelectReindex:
                 "jim": list("B" * 4 + "A" * 2 + "C" * 3),
                 "joe": list("abcdeabcd")[::-1],
                 "jolie": [10, 20, 30] * 3,
-                "joline": np.random.randint(0, 1000, 9),
+                "joline": np.random.default_rng(2).integers(0, 1000, 9),
             }
         )
         icol = ["jim", "joe", "jolie"]
@@ -511,7 +579,7 @@ class TestDataFrameSelectReindex:
 
     def test_non_monotonic_reindex_methods(self):
         dr = date_range("2013-08-01", periods=6, freq="B")
-        data = np.random.randn(6, 1)
+        data = np.random.default_rng(2).standard_normal((6, 1))
         df = DataFrame(data, index=dr, columns=list("A"))
         df_rev = DataFrame(data, index=dr[[3, 4, 5] + [0, 1, 2]], columns=list("A"))
         # index is not monotonic increasing or decreasing
@@ -540,8 +608,10 @@ class TestDataFrameSelectReindex:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_reindex(self, float_frame):
-        datetime_series = tm.makeTimeSeries(nper=30)
+    def test_reindex(self, float_frame, using_copy_on_write):
+        datetime_series = Series(
+            np.arange(30, dtype=np.float64), index=date_range("2020-01-01", periods=30)
+        )
 
         newFrame = float_frame.reindex(datetime_series.index)
 
@@ -556,7 +626,7 @@ class TestDataFrameSelectReindex:
                     assert np.isnan(val)
 
         for col, series in newFrame.items():
-            assert tm.equalContents(series.index, newFrame.index)
+            tm.assert_index_equal(series.index, newFrame.index)
         emptyFrame = float_frame.reindex(Index([]))
         assert len(emptyFrame.index) == 0
 
@@ -574,13 +644,16 @@ class TestDataFrameSelectReindex:
                     assert np.isnan(val)
 
         for col, series in nonContigFrame.items():
-            assert tm.equalContents(series.index, nonContigFrame.index)
+            tm.assert_index_equal(series.index, nonContigFrame.index)
 
         # corner cases
 
         # Same index, copies values but not index if copy=False
         newFrame = float_frame.reindex(float_frame.index, copy=False)
-        assert newFrame.index is float_frame.index
+        if using_copy_on_write:
+            assert newFrame.index.is_(float_frame.index)
+        else:
+            assert newFrame.index is float_frame.index
 
         # length zero
         newFrame = float_frame.reindex([])
@@ -633,7 +706,7 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(left, right)
 
     def test_reindex_name_remains(self):
-        s = Series(np.random.rand(10))
+        s = Series(np.random.default_rng(2).random(10))
         df = DataFrame(s, index=np.arange(len(s)))
         i = Series(np.arange(10), name="iname")
 
@@ -643,7 +716,7 @@ class TestDataFrameSelectReindex:
         df = df.reindex(Index(np.arange(10), name="tmpname"))
         assert df.index.name == "tmpname"
 
-        s = Series(np.random.rand(10))
+        s = Series(np.random.default_rng(2).random(10))
         df = DataFrame(s.T, index=np.arange(len(s)))
         i = Series(np.arange(10), name="iname")
         df = df.reindex(columns=i)
@@ -672,7 +745,6 @@ class TestDataFrameSelectReindex:
         assert new_frame.empty
 
     def test_reindex_columns_method(self):
-
         # GH 14992, reindexing over columns ignored method
         df = DataFrame(
             data=[[11, 12, 13], [21, 22, 23], [31, 32, 33]],
@@ -740,7 +812,7 @@ class TestDataFrameSelectReindex:
         assert index_freq == seq_freq
 
     def test_reindex_fill_value(self):
-        df = DataFrame(np.random.randn(10, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
 
         # axis=0
         result = df.reindex(list(range(15)))
@@ -768,14 +840,32 @@ class TestDataFrameSelectReindex:
 
         # other dtypes
         df["foo"] = "foo"
-        result = df.reindex(range(15), fill_value=0)
-        expected = df.reindex(range(15)).fillna(0)
+        result = df.reindex(range(15), fill_value="0")
+        expected = df.reindex(range(15)).fillna("0")
+        tm.assert_frame_equal(result, expected)
+
+    def test_reindex_uint_dtypes_fill_value(self, any_unsigned_int_numpy_dtype):
+        # GH#48184
+        df = DataFrame({"a": [1, 2], "b": [1, 2]}, dtype=any_unsigned_int_numpy_dtype)
+        result = df.reindex(columns=list("abcd"), index=[0, 1, 2, 3], fill_value=10)
+        expected = DataFrame(
+            {"a": [1, 2, 10, 10], "b": [1, 2, 10, 10], "c": 10, "d": 10},
+            dtype=any_unsigned_int_numpy_dtype,
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_reindex_single_column_ea_index_and_columns(self, any_numeric_ea_dtype):
+        # GH#48190
+        df = DataFrame({"a": [1, 2]}, dtype=any_numeric_ea_dtype)
+        result = df.reindex(columns=list("ab"), index=[0, 1, 2], fill_value=10)
+        expected = DataFrame(
+            {"a": Series([1, 2, 10], dtype=any_numeric_ea_dtype), "b": 10}
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_reindex_dups(self):
-
         # GH4746, reindex on duplicate index error messages
-        arr = np.random.randn(10)
+        arr = np.random.default_rng(2).standard_normal(10)
         df = DataFrame(arr, index=[1, 2, 3, 4, 5, 1, 2, 3, 4, 5])
 
         # set index is ok
@@ -787,22 +877,18 @@ class TestDataFrameSelectReindex:
         # reindex fails
         msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-                df.reindex(index=list(range(len(df))))
+            df.reindex(index=list(range(len(df))))
 
     def test_reindex_with_duplicate_columns(self):
-
         # reindex is invalid!
         df = DataFrame(
             [[1, 5, 7.0], [1, 5, 7.0], [1, 5, 7.0]], columns=["bar", "a", "a"]
         )
         msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-                df.reindex(columns=["bar"])
+            df.reindex(columns=["bar"])
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-                df.reindex(columns=["bar", "foo"])
+            df.reindex(columns=["bar", "foo"])
 
     def test_reindex_axis_style(self):
         # https://github.com/pandas-dev/pandas/issues/12392
@@ -819,23 +905,22 @@ class TestDataFrameSelectReindex:
         result = df.reindex([0, 1, 3], axis="index")
         tm.assert_frame_equal(result, expected)
 
-    def test_reindex_positional_warns(self):
+    def test_reindex_positional_raises(self):
         # https://github.com/pandas-dev/pandas/issues/12392
+        # Enforced in 2.0
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        expected = DataFrame({"A": [1.0, 2], "B": [4.0, 5], "C": [np.nan, np.nan]})
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.reindex([0, 1], ["A", "B", "C"])
-
-        tm.assert_frame_equal(result, expected)
+        msg = r"reindex\(\) takes from 1 to 2 positional arguments but 3 were given"
+        with pytest.raises(TypeError, match=msg):
+            df.reindex([0, 1], ["A", "B", "C"])
 
     def test_reindex_axis_style_raises(self):
         # https://github.com/pandas-dev/pandas/issues/12392
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
-            df.reindex([0, 1], ["A"], axis=1)
+            df.reindex([0, 1], columns=["A"], axis=1)
 
         with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
-            df.reindex([0, 1], ["A"], axis="index")
+            df.reindex([0, 1], columns=["A"], axis="index")
 
         with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
             df.reindex(index=[0, 1], axis="index")
@@ -850,7 +935,7 @@ class TestDataFrameSelectReindex:
             df.reindex(index=[0, 1], columns=[0, 1], axis="columns")
 
         with pytest.raises(TypeError, match="Cannot specify all"):
-            df.reindex([0, 1], [0], ["A"])
+            df.reindex(labels=[0, 1], index=[0], columns=["A"])
 
         # Mixing styles
         with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
@@ -893,9 +978,7 @@ class TestDataFrameSelectReindex:
         for res in [res2, res3]:
             tm.assert_frame_equal(res1, res)
 
-        with tm.assert_produces_warning(FutureWarning) as m:
-            res1 = df.reindex(["b", "a"], ["e", "d"])
-        assert "reindex" in str(m[0].message)
+        res1 = df.reindex(index=["b", "a"], columns=["e", "d"])
         res2 = df.reindex(columns=["e", "d"], index=["b", "a"])
         res3 = df.reindex(labels=["b", "a"], axis=0).reindex(labels=["e", "d"], axis=1)
         for res in [res2, res3]:
@@ -951,28 +1034,31 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(result, expected)
 
     def test_reindex_multi(self):
-        df = DataFrame(np.random.randn(3, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((3, 3)))
 
         result = df.reindex(index=range(4), columns=range(4))
         expected = df.reindex(list(range(4))).reindex(columns=range(4))
 
         tm.assert_frame_equal(result, expected)
 
-        df = DataFrame(np.random.randint(0, 10, (3, 3)))
+        df = DataFrame(np.random.default_rng(2).integers(0, 10, (3, 3)))
 
         result = df.reindex(index=range(4), columns=range(4))
         expected = df.reindex(list(range(4))).reindex(columns=range(4))
 
         tm.assert_frame_equal(result, expected)
 
-        df = DataFrame(np.random.randint(0, 10, (3, 3)))
+        df = DataFrame(np.random.default_rng(2).integers(0, 10, (3, 3)))
 
         result = df.reindex(index=range(2), columns=range(2))
         expected = df.reindex(range(2)).reindex(columns=range(2))
 
         tm.assert_frame_equal(result, expected)
 
-        df = DataFrame(np.random.randn(5, 3) + 1j, columns=["a", "b", "c"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 3)) + 1j,
+            columns=["a", "b", "c"],
+        )
 
         result = df.reindex(index=[0, 1], columns=["a", "b"])
         expected = df.reindex([0, 1]).reindex(columns=["a", "b"])
@@ -984,7 +1070,7 @@ class TestDataFrameSelectReindex:
         midx = MultiIndex.from_product(
             [
                 Categorical(["a", "b", "c"]),
-                Categorical(date_range("2012-01-01", periods=3, freq="H")),
+                Categorical(date_range("2012-01-01", periods=3, freq="h")),
             ]
         )
         df = DataFrame({"a": range(len(midx))}, index=midx)
@@ -999,7 +1085,9 @@ class TestDataFrameSelectReindex:
             {
                 "A": np.arange(3, dtype="int64"),
             },
-            index=CategoricalIndex(list("abc"), dtype=CDT(list("cabe")), name="B"),
+            index=CategoricalIndex(
+                list("abc"), dtype=CategoricalDtype(list("cabe")), name="B"
+            ),
         )
 
         # reindexing
@@ -1028,13 +1116,13 @@ class TestDataFrameSelectReindex:
 
         result = df.reindex(Categorical(["a", "e"], categories=cats))
         expected = DataFrame(
-            {"A": [0, np.nan], "B": Series(list("ae")).astype(CDT(cats))}
+            {"A": [0, np.nan], "B": Series(list("ae")).astype(CategoricalDtype(cats))}
         ).set_index("B")
         tm.assert_frame_equal(result, expected, check_index_type=True)
 
         result = df.reindex(Categorical(["a"], categories=cats))
         expected = DataFrame(
-            {"A": [0], "B": Series(list("a")).astype(CDT(cats))}
+            {"A": [0], "B": Series(list("a")).astype(CategoricalDtype(cats))}
         ).set_index("B")
         tm.assert_frame_equal(result, expected, check_index_type=True)
 
@@ -1055,13 +1143,19 @@ class TestDataFrameSelectReindex:
         # give back the type of categorical that we received
         result = df.reindex(Categorical(["a", "e"], categories=cats, ordered=True))
         expected = DataFrame(
-            {"A": [0, np.nan], "B": Series(list("ae")).astype(CDT(cats, ordered=True))}
+            {
+                "A": [0, np.nan],
+                "B": Series(list("ae")).astype(CategoricalDtype(cats, ordered=True)),
+            }
         ).set_index("B")
         tm.assert_frame_equal(result, expected, check_index_type=True)
 
         result = df.reindex(Categorical(["a", "d"], categories=["a", "d"]))
         expected = DataFrame(
-            {"A": [0, np.nan], "B": Series(list("ad")).astype(CDT(["a", "d"]))}
+            {
+                "A": [0, np.nan],
+                "B": Series(list("ad")).astype(CategoricalDtype(["a", "d"])),
+            }
         ).set_index("B")
         tm.assert_frame_equal(result, expected, check_index_type=True)
 
@@ -1069,13 +1163,14 @@ class TestDataFrameSelectReindex:
             {
                 "A": np.arange(6, dtype="int64"),
             },
-            index=CategoricalIndex(list("aabbca"), dtype=CDT(list("cabe")), name="B"),
+            index=CategoricalIndex(
+                list("aabbca"), dtype=CategoricalDtype(list("cabe")), name="B"
+            ),
         )
         # passed duplicate indexers are not allowed
         msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-                df2.reindex(["a", "b"])
+            df2.reindex(["a", "b"])
 
         # args NotImplemented ATM
         msg = r"argument {} is not implemented for CategoricalIndex\.reindex"
@@ -1127,7 +1222,7 @@ class TestDataFrameSelectReindex:
         idx = date_range(start="2020", freq="30s", periods=3)
         df = DataFrame([], index=Index([], name="time"), columns=["a"])
         result = df.reindex(idx, **kwargs)
-        expected = DataFrame({"a": [pd.NA] * 3}, index=idx)
+        expected = DataFrame({"a": [np.nan] * 3}, index=idx, dtype=object)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1223,3 +1318,10 @@ class TestDataFrameSelectReindex:
         result = df.reindex(index=index_res)
         expected = DataFrame(index=index_exp)
         tm.assert_frame_equal(result, expected)
+
+    def test_invalid_method(self):
+        df = DataFrame({"A": [1, np.nan, 2]})
+
+        msg = "Invalid fill method"
+        with pytest.raises(ValueError, match=msg):
+            df.reindex([1, 0, 2], method="asfreq")

@@ -11,6 +11,7 @@ from pandas import (
     CategoricalDtype,
     DataFrame,
     DatetimeTZDtype,
+    Index,
     Interval,
     IntervalDtype,
     NaT,
@@ -22,7 +23,6 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
-from pandas.core.api import UInt64Index
 
 
 def _check_cast(df, v):
@@ -67,9 +67,19 @@ class TestAstype:
         casted = mixed_float_frame.reindex(columns=["A", "B"]).astype("float16")
         _check_cast(casted, "float16")
 
-    def test_astype_mixed_type(self, mixed_type_frame):
+    def test_astype_mixed_type(self):
         # mixed casting
-        mn = mixed_type_frame._get_numeric_data().copy()
+        df = DataFrame(
+            {
+                "a": 1.0,
+                "b": 2,
+                "c": "foo",
+                "float32": np.array([1.0] * 10, dtype="float32"),
+                "int32": np.array([1] * 10, dtype="int32"),
+            },
+            index=np.arange(10),
+        )
+        mn = df._get_numeric_data().copy()
         mn["little_float"] = np.array(12345.0, dtype="float16")
         mn["big_float"] = np.array(123456789101112.0, dtype="float64")
 
@@ -110,21 +120,19 @@ class TestAstype:
         tm.assert_frame_equal(casted, expected)
 
     def test_astype_with_view_float(self, float_frame):
-
         # this is the only real reason to do it this way
         tf = np.round(float_frame).astype(np.int32)
-        casted = tf.astype(np.float32, copy=False)
+        tf.astype(np.float32, copy=False)
 
         # TODO(wesm): verification?
         tf = float_frame.astype(np.float64)
-        casted = tf.astype(np.int64, copy=False)  # noqa
+        tf.astype(np.int64, copy=False)
 
     def test_astype_with_view_mixed_float(self, mixed_float_frame):
-
         tf = mixed_float_frame.reindex(columns=["A", "B", "C"])
 
-        casted = tf.astype(np.int64)
-        casted = tf.astype(np.float32)  # noqa
+        tf.astype(np.int64)
+        tf.astype(np.float32)
 
     @pytest.mark.parametrize("dtype", [np.int32, np.int64])
     @pytest.mark.parametrize("val", [np.nan, np.inf])
@@ -153,26 +161,27 @@ class TestAstype:
 
         expected = DataFrame(
             {
-                "a": list(map(str, map(lambda x: Timestamp(x)._date_repr, a._values))),
+                "a": list(map(str, (Timestamp(x)._date_repr for x in a._values))),
                 "b": list(map(str, map(Timestamp, b._values))),
-                "c": list(map(lambda x: Timedelta(x)._repr_base(), c._values)),
+                "c": [Timedelta(x)._repr_base() for x in c._values],
                 "d": list(map(str, d._values)),
                 "e": list(map(str, e._values)),
-            }
+            },
+            dtype="object",
         )
 
         tm.assert_frame_equal(result, expected)
 
     def test_astype_str_float(self):
         # see GH#11302
-        result = DataFrame([np.NaN]).astype(str)
-        expected = DataFrame(["nan"])
+        result = DataFrame([np.nan]).astype(str)
+        expected = DataFrame(["nan"], dtype="object")
 
         tm.assert_frame_equal(result, expected)
         result = DataFrame([1.12345678901234567890]).astype(str)
 
         val = "1.1234567890123457"
-        expected = DataFrame([val])
+        expected = DataFrame([val], dtype="object")
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype_class", [dict, Series])
@@ -191,7 +200,7 @@ class TestAstype:
         expected = DataFrame(
             {
                 "a": a,
-                "b": Series(["0", "1", "2", "3", "4"]),
+                "b": Series(["0", "1", "2", "3", "4"], dtype="object"),
                 "c": c,
                 "d": Series([1.0, 2.0, 3.14, 4.0, 5.4], dtype="float32"),
             }
@@ -265,7 +274,7 @@ class TestAstype:
 
     def test_astype_duplicate_col_series_arg(self):
         # GH#44417
-        vals = np.random.randn(3, 4)
+        vals = np.random.default_rng(2).standard_normal((3, 4))
         df = DataFrame(vals, columns=["A", "B", "C", "A"])
         dtypes = df.dtypes
         dtypes.iloc[0] = str
@@ -274,7 +283,7 @@ class TestAstype:
         result = df.astype(dtypes)
         expected = DataFrame(
             {
-                0: vals[:, 0].astype(str),
+                0: Series(vals[:, 0].astype(str), dtype=object),
                 1: vals[:, 1],
                 2: pd.array(vals[:, 2], dtype="Float64"),
                 3: vals[:, 3],
@@ -301,7 +310,7 @@ class TestAstype:
         d = {"A": list("abbc"), "B": list("bccd"), "C": list("cdde")}
         df = DataFrame(d)
         result = df.astype(dtype)
-        expected = DataFrame({k: Categorical(d[k], dtype=dtype) for k in d})
+        expected = DataFrame({k: Categorical(v, dtype=dtype) for k, v in d.items()})
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("cls", [CategoricalDtype, DatetimeTZDtype, IntervalDtype])
@@ -372,10 +381,41 @@ class TestAstype:
     )
     def test_astype_column_metadata(self, dtype):
         # GH#19920
-        columns = UInt64Index([100, 200, 300], name="foo")
+        columns = Index([100, 200, 300], dtype=np.uint64, name="foo")
         df = DataFrame(np.arange(15).reshape(5, 3), columns=columns)
         df = df.astype(dtype)
         tm.assert_index_equal(df.columns, columns)
+
+    @pytest.mark.parametrize("unit", ["Y", "M", "W", "D", "h", "m"])
+    def test_astype_from_object_to_datetime_unit(self, unit):
+        vals = [
+            ["2015-01-01", "2015-01-02", "2015-01-03"],
+            ["2017-01-01", "2017-01-02", "2017-02-03"],
+        ]
+        df = DataFrame(vals, dtype=object)
+        msg = (
+            rf"Unexpected value for 'dtype': 'datetime64\[{unit}\]'. "
+            r"Must be 'datetime64\[s\]', 'datetime64\[ms\]', 'datetime64\[us\]', "
+            r"'datetime64\[ns\]' or DatetimeTZDtype"
+        )
+        with pytest.raises(ValueError, match=msg):
+            df.astype(f"M8[{unit}]")
+
+    @pytest.mark.parametrize("unit", ["Y", "M", "W", "D", "h", "m"])
+    def test_astype_from_object_to_timedelta_unit(self, unit):
+        vals = [
+            ["1 Day", "2 Days", "3 Days"],
+            ["4 Days", "5 Days", "6 Days"],
+        ]
+        df = DataFrame(vals, dtype=object)
+        msg = (
+            r"Cannot convert from timedelta64\[ns\] to timedelta64\[.*\]. "
+            "Supported resolutions are 's', 'ms', 'us', 'ns'"
+        )
+        with pytest.raises(ValueError, match=msg):
+            # TODO: this is ValueError while for DatetimeArray it is TypeError;
+            #  get these consistent
+            df.astype(f"m8[{unit}]")
 
     @pytest.mark.parametrize("dtype", ["M8", "m8"])
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
@@ -414,10 +454,49 @@ class TestAstype:
         dtype = f"M8[{unit}]"
         arr = np.array([[1, 2, 3]], dtype=dtype)
         df = DataFrame(arr)
-        result = df.astype(dtype)
-        expected = DataFrame(arr.astype(dtype))
+        ser = df.iloc[:, 0]
+        idx = Index(ser)
+        dta = ser._values
 
-        tm.assert_frame_equal(result, expected)
+        if unit in ["ns", "us", "ms", "s"]:
+            # GH#48928
+            result = df.astype(dtype)
+        else:
+            # we use the nearest supported dtype (i.e. M8[s])
+            msg = rf"Cannot cast DatetimeArray to dtype datetime64\[{unit}\]"
+            with pytest.raises(TypeError, match=msg):
+                df.astype(dtype)
+
+            with pytest.raises(TypeError, match=msg):
+                ser.astype(dtype)
+
+            with pytest.raises(TypeError, match=msg.replace("Array", "Index")):
+                idx.astype(dtype)
+
+            with pytest.raises(TypeError, match=msg):
+                dta.astype(dtype)
+
+            return
+
+        exp_df = DataFrame(arr.astype(dtype))
+        assert (exp_df.dtypes == dtype).all()
+        tm.assert_frame_equal(result, exp_df)
+
+        res_ser = ser.astype(dtype)
+        exp_ser = exp_df.iloc[:, 0]
+        assert exp_ser.dtype == dtype
+        tm.assert_series_equal(res_ser, exp_ser)
+
+        exp_dta = exp_ser._values
+
+        res_index = idx.astype(dtype)
+        exp_index = Index(exp_ser)
+        assert exp_index.dtype == dtype
+        tm.assert_index_equal(res_index, exp_index)
+
+        res_dta = dta.astype(dtype)
+        assert exp_dta.dtype == dtype
+        tm.assert_extension_array_equal(res_dta, exp_dta)
 
     @pytest.mark.parametrize("unit", ["ns"])
     def test_astype_to_timedelta_unit_ns(self, unit):
@@ -434,13 +513,39 @@ class TestAstype:
     @pytest.mark.parametrize("unit", ["us", "ms", "s", "h", "m", "D"])
     def test_astype_to_timedelta_unit(self, unit):
         # coerce to float
-        # GH#19223
+        # GH#19223 until 2.0 used to coerce to float
         dtype = f"m8[{unit}]"
         arr = np.array([[1, 2, 3]], dtype=dtype)
         df = DataFrame(arr)
-        result = df.astype(dtype)
-        expected = DataFrame(df.values.astype(dtype).astype(float))
+        ser = df.iloc[:, 0]
+        tdi = Index(ser)
+        tda = tdi._values
 
+        if unit in ["us", "ms", "s"]:
+            assert (df.dtypes == dtype).all()
+            result = df.astype(dtype)
+        else:
+            # We get the nearest supported unit, i.e. "s"
+            assert (df.dtypes == "m8[s]").all()
+
+            msg = (
+                rf"Cannot convert from timedelta64\[s\] to timedelta64\[{unit}\]. "
+                "Supported resolutions are 's', 'ms', 'us', 'ns'"
+            )
+            with pytest.raises(ValueError, match=msg):
+                df.astype(dtype)
+            with pytest.raises(ValueError, match=msg):
+                ser.astype(dtype)
+            with pytest.raises(ValueError, match=msg):
+                tdi.astype(dtype)
+            with pytest.raises(ValueError, match=msg):
+                tda.astype(dtype)
+
+            return
+
+        result = df.astype(dtype)
+        # The conversion is a no-op, so we just get a copy
+        expected = df
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
@@ -490,6 +595,18 @@ class TestAstype:
 
         df.astype(np.int8, errors="ignore")
 
+    def test_astype_invalid_conversion(self):
+        # GH#47571
+        df = DataFrame({"a": [1, 2, "text"], "b": [1, 2, 3]})
+
+        msg = (
+            "invalid literal for int() with base 10: 'text': "
+            "Error while type casting for column 'a'"
+        )
+
+        with pytest.raises(ValueError, match=re.escape(msg)):
+            df.astype({"a": int})
+
     def test_astype_arg_for_errors_dictlist(self):
         # GH#25905
         df = DataFrame(
@@ -504,6 +621,7 @@ class TestAstype:
                 {"a": 2.2, "b": "15.3", "c": "another_test"},
             ]
         )
+        expected["c"] = expected["c"].astype("object")
         type_dict = {"a": "float64", "b": "float64", "c": "object"}
 
         result = df.astype(dtype=type_dict, errors="ignore")
@@ -541,27 +659,10 @@ class TestAstype:
         result = timezone_frame.astype(object)
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning):
+        msg = "Cannot use .astype to convert from timezone-aware dtype to timezone-"
+        with pytest.raises(TypeError, match=msg):
             # dt64tz->dt64 deprecated
-            result = timezone_frame.astype("datetime64[ns]")
-        expected = DataFrame(
-            {
-                "A": date_range("20130101", periods=3),
-                "B": (
-                    date_range("20130101", periods=3, tz="US/Eastern")
-                    .tz_convert("UTC")
-                    .tz_localize(None)
-                ),
-                "C": (
-                    date_range("20130101", periods=3, tz="CET")
-                    .tz_convert("UTC")
-                    .tz_localize(None)
-                ),
-            }
-        )
-        expected.iloc[1, 1] = NaT
-        expected.iloc[1, 2] = NaT
-        tm.assert_frame_equal(result, expected)
+            timezone_frame.astype("datetime64[ns]")
 
     def test_astype_dt64tz_to_str(self, timezone_frame):
         # str formatting
@@ -581,6 +682,7 @@ class TestAstype:
                 ],
             ],
             columns=timezone_frame.columns,
+            dtype="object",
         )
         tm.assert_frame_equal(result, expected)
 
@@ -611,7 +713,7 @@ class TestAstype:
             pytest.param(
                 ["x", "y", "z"],
                 "string[pyarrow]",
-                marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
+                marks=td.skip_if_no("pyarrow"),
             ),
             (["x", "y", "z"], "category"),
             (3 * [Timestamp("2020-01-01", tz="UTC")], None),
@@ -655,7 +757,9 @@ class TestAstype:
         result = result.astype({"tz": "datetime64[ns, Europe/London]"})
         tm.assert_frame_equal(result, expected)
 
-    def test_astype_dt64_to_string(self, frame_or_series, tz_naive_fixture):
+    def test_astype_dt64_to_string(
+        self, frame_or_series, tz_naive_fixture, using_infer_string
+    ):
         # GH#41409
         tz = tz_naive_fixture
 
@@ -673,7 +777,10 @@ class TestAstype:
         item = result.iloc[0]
         if frame_or_series is DataFrame:
             item = item.iloc[0]
-        assert item is pd.NA
+        if using_infer_string:
+            assert item is np.nan
+        else:
+            assert item is pd.NA
 
         # For non-NA values, we should match what we get for non-EA str
         alt = obj.astype(str)
@@ -781,3 +888,24 @@ def test_frame_astype_no_copy():
 
     assert result.a.dtype == pd.Int16Dtype()
     assert np.shares_memory(df.b.values, result.b.values)
+
+
+@pytest.mark.parametrize("dtype", ["int64", "Int64"])
+def test_astype_copies(dtype):
+    # GH#50984
+    pytest.importorskip("pyarrow")
+    df = DataFrame({"a": [1, 2, 3]}, dtype=dtype)
+    result = df.astype("int64[pyarrow]", copy=True)
+    df.iloc[0, 0] = 100
+    expected = DataFrame({"a": [1, 2, 3]}, dtype="int64[pyarrow]")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("val", [None, 1, 1.5, np.nan, NaT])
+def test_astype_to_string_not_modifying_input(string_storage, val):
+    # GH#51073
+    df = DataFrame({"a": ["a", "b", val]})
+    expected = df.copy()
+    with option_context("mode.string_storage", string_storage):
+        df.astype("string", copy=False)
+    tm.assert_frame_equal(df, expected)

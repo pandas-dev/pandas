@@ -3,14 +3,37 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas._libs import hashtable
+from pandas._libs import (
+    hashtable,
+    index as libindex,
+)
 
 from pandas import (
+    NA,
     DatetimeIndex,
+    Index,
     MultiIndex,
     Series,
 )
 import pandas._testing as tm
+
+
+@pytest.fixture
+def idx_dup():
+    # compare tests/indexes/multi/conftest.py
+    major_axis = Index(["foo", "bar", "baz", "qux"])
+    minor_axis = Index(["one", "two"])
+
+    major_codes = np.array([0, 0, 1, 0, 1, 1])
+    minor_codes = np.array([0, 1, 0, 1, 0, 1])
+    index_names = ["first", "second"]
+    mi = MultiIndex(
+        levels=[major_axis, minor_axis],
+        codes=[major_codes, minor_codes],
+        names=index_names,
+        verify_integrity=False,
+    )
+    return mi
 
 
 @pytest.mark.parametrize("names", [None, ["first", "second"]])
@@ -86,8 +109,7 @@ def test_duplicate_multiindex_codes():
     mi = MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
     msg = r"Level values must be unique: \[[AB', ]+\] on level 0"
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(FutureWarning):
-            mi.set_levels([["A", "B", "A", "A", "B"], [2, 1, 3, -2, 5]], inplace=True)
+        mi.set_levels([["A", "B", "A", "A", "B"], [2, 1, 3, -2, 5]])
 
 
 @pytest.mark.parametrize("names", [["a", "b", "a"], [1, 1, 2], [1, "a", 1]])
@@ -232,41 +254,43 @@ def test_duplicated(idx_dup, keep, expected):
 
 
 @pytest.mark.arm_slow
-def test_duplicated_large(keep):
+def test_duplicated_hashtable_impl(keep, monkeypatch):
     # GH 9125
-    n, k = 200, 5000
-    levels = [np.arange(n), tm.makeStringIndex(n), 1000 + np.arange(n)]
-    codes = [np.random.choice(n, k * n) for lev in levels]
-    mi = MultiIndex(levels=levels, codes=codes)
+    n, k = 6, 10
+    levels = [np.arange(n), [str(i) for i in range(n)], 1000 + np.arange(n)]
+    codes = [np.random.default_rng(2).choice(n, k * n) for _ in levels]
+    with monkeypatch.context() as m:
+        m.setattr(libindex, "_SIZE_CUTOFF", 50)
+        mi = MultiIndex(levels=levels, codes=codes)
 
-    result = mi.duplicated(keep=keep)
-    expected = hashtable.duplicated(mi.values, keep=keep)
+        result = mi.duplicated(keep=keep)
+        expected = hashtable.duplicated(mi.values, keep=keep)
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_duplicated2():
-    # TODO: more informative test name
+@pytest.mark.parametrize("val", [101, 102])
+def test_duplicated_with_nan(val):
     # GH5873
-    for a in [101, 102]:
-        mi = MultiIndex.from_arrays([[101, a], [3.5, np.nan]])
-        assert not mi.has_duplicates
+    mi = MultiIndex.from_arrays([[101, val], [3.5, np.nan]])
+    assert not mi.has_duplicates
 
-        tm.assert_numpy_array_equal(mi.duplicated(), np.zeros(2, dtype="bool"))
+    tm.assert_numpy_array_equal(mi.duplicated(), np.zeros(2, dtype="bool"))
 
-    for n in range(1, 6):  # 1st level shape
-        for m in range(1, 5):  # 2nd level shape
-            # all possible unique combinations, including nan
-            codes = product(range(-1, n), range(-1, m))
-            mi = MultiIndex(
-                levels=[list("abcde")[:n], list("WXYZ")[:m]],
-                codes=np.random.permutation(list(codes)).T,
-            )
-            assert len(mi) == (n + 1) * (m + 1)
-            assert not mi.has_duplicates
 
-            tm.assert_numpy_array_equal(
-                mi.duplicated(), np.zeros(len(mi), dtype="bool")
-            )
+@pytest.mark.parametrize("n", range(1, 6))
+@pytest.mark.parametrize("m", range(1, 5))
+def test_duplicated_with_nan_multi_shape(n, m):
+    # GH5873
+    # all possible unique combinations, including nan
+    codes = product(range(-1, n), range(-1, m))
+    mi = MultiIndex(
+        levels=[list("abcde")[:n], list("WXYZ")[:m]],
+        codes=np.random.default_rng(2).permutation(list(codes)).T,
+    )
+    assert len(mi) == (n + 1) * (m + 1)
+    assert not mi.has_duplicates
+
+    tm.assert_numpy_array_equal(mi.duplicated(), np.zeros(len(mi), dtype="bool"))
 
 
 def test_duplicated_drop_duplicates():
@@ -326,14 +350,14 @@ def test_duplicated_series_complex_numbers(dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_multi_drop_duplicates_pos_args_deprecation():
-    # GH#41485
-    idx = MultiIndex.from_arrays([[1, 2, 3, 1], [1, 2, 3, 1]])
-    msg = (
-        "In a future version of pandas all arguments of "
-        "MultiIndex.drop_duplicates will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = idx.drop_duplicates("last")
-    expected = MultiIndex.from_arrays([[2, 3, 1], [2, 3, 1]])
-    tm.assert_index_equal(expected, result)
+def test_midx_unique_ea_dtype():
+    # GH#48335
+    vals_a = Series([1, 2, NA, NA], dtype="Int64")
+    vals_b = np.array([1, 2, 3, 3])
+    midx = MultiIndex.from_arrays([vals_a, vals_b], names=["a", "b"])
+    result = midx.unique()
+
+    exp_vals_a = Series([1, 2, NA], dtype="Int64")
+    exp_vals_b = np.array([1, 2, 3])
+    expected = MultiIndex.from_arrays([exp_vals_a, exp_vals_b], names=["a", "b"])
+    tm.assert_index_equal(result, expected)

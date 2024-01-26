@@ -41,7 +41,6 @@ class TestDropna:
             Series([1, 2, 3], name="x"),
             Series([False, True, False], name="x"),
         ]:
-
             result = ser.dropna()
             tm.assert_series_equal(result, ser)
             assert result is not ser
@@ -69,7 +68,7 @@ class TestDropna:
 
         tm.assert_series_equal(result, expected)
 
-    def test_datetime64_tz_dropna(self):
+    def test_datetime64_tz_dropna(self, unit):
         # DatetimeLikeBlock
         ser = Series(
             [
@@ -77,20 +76,23 @@ class TestDropna:
                 NaT,
                 Timestamp("2011-01-03 10:00"),
                 NaT,
-            ]
+            ],
+            dtype=f"M8[{unit}]",
         )
         result = ser.dropna()
         expected = Series(
-            [Timestamp("2011-01-01 10:00"), Timestamp("2011-01-03 10:00")], index=[0, 2]
+            [Timestamp("2011-01-01 10:00"), Timestamp("2011-01-03 10:00")],
+            index=[0, 2],
+            dtype=f"M8[{unit}]",
         )
         tm.assert_series_equal(result, expected)
 
         # DatetimeTZBlock
         idx = DatetimeIndex(
             ["2011-01-01 10:00", NaT, "2011-01-03 10:00", NaT], tz="Asia/Tokyo"
-        )
+        ).as_unit(unit)
         ser = Series(idx)
-        assert ser.dtype == "datetime64[ns, Asia/Tokyo]"
+        assert ser.dtype == f"datetime64[{unit}, Asia/Tokyo]"
         result = ser.dropna()
         expected = Series(
             [
@@ -98,18 +100,18 @@ class TestDropna:
                 Timestamp("2011-01-03 10:00", tz="Asia/Tokyo"),
             ],
             index=[0, 2],
+            dtype=f"datetime64[{unit}, Asia/Tokyo]",
         )
-        assert result.dtype == "datetime64[ns, Asia/Tokyo]"
+        assert result.dtype == f"datetime64[{unit}, Asia/Tokyo]"
         tm.assert_series_equal(result, expected)
 
-    def test_dropna_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        ser = Series([1, 2, 3])
-        msg = (
-            r"In a future version of pandas all arguments of Series\.dropna "
-            r"will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser.dropna(0)
-        expected = Series([1, 2, 3])
+    @pytest.mark.parametrize("val", [1, 1.5])
+    def test_dropna_ignore_index(self, val):
+        # GH#31725
+        ser = Series([1, 2, val], index=[3, 2, 1])
+        result = ser.dropna(ignore_index=True)
+        expected = Series([1, 2, val])
         tm.assert_series_equal(result, expected)
+
+        ser.dropna(ignore_index=True, inplace=True)
+        tm.assert_series_equal(ser, expected)

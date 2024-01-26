@@ -1,5 +1,3 @@
-from warnings import catch_warnings
-
 import numpy as np
 import pytest
 
@@ -21,7 +19,6 @@ from pandas import (
 )
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
-    ensure_clean_path,
     ensure_clean_store,
 )
 
@@ -31,7 +28,6 @@ pytestmark = pytest.mark.single_cpu
 
 
 def test_select_columns_in_where(setup_path):
-
     # GH 6169
     # recreate multi-indexes when columns is passed
     # in the `where` argument
@@ -42,7 +38,11 @@ def test_select_columns_in_where(setup_path):
     )
 
     # With a DataFrame
-    df = DataFrame(np.random.randn(10, 3), index=index, columns=["A", "B", "C"])
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 3)),
+        index=index,
+        columns=["A", "B", "C"],
+    )
 
     with ensure_clean_store(setup_path) as store:
         store.put("df", df, format="table")
@@ -53,17 +53,18 @@ def test_select_columns_in_where(setup_path):
         tm.assert_frame_equal(store.select("df", where="columns=['A']"), expected)
 
     # With a Series
-    s = Series(np.random.randn(10), index=index, name="A")
+    s = Series(np.random.default_rng(2).standard_normal(10), index=index, name="A")
     with ensure_clean_store(setup_path) as store:
         store.put("s", s, format="table")
         tm.assert_series_equal(store.select("s", where="columns=['A']"), s)
 
 
 def test_select_with_dups(setup_path):
-
     # single dtypes
-    df = DataFrame(np.random.randn(10, 4), columns=["A", "A", "B", "B"])
-    df.index = date_range("20130101 9:30", periods=10, freq="T")
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)), columns=["A", "A", "B", "B"]
+    )
+    df.index = date_range("20130101 9:30", periods=10, freq="min")
 
     with ensure_clean_store(setup_path) as store:
         store.append("df", df)
@@ -83,14 +84,18 @@ def test_select_with_dups(setup_path):
     # dups across dtypes
     df = concat(
         [
-            DataFrame(np.random.randn(10, 4), columns=["A", "A", "B", "B"]),
             DataFrame(
-                np.random.randint(0, 10, size=20).reshape(10, 2), columns=["A", "C"]
+                np.random.default_rng(2).standard_normal((10, 4)),
+                columns=["A", "A", "B", "B"],
+            ),
+            DataFrame(
+                np.random.default_rng(2).integers(0, 10, size=20).reshape(10, 2),
+                columns=["A", "C"],
             ),
         ],
         axis=1,
     )
-    df.index = date_range("20130101 9:30", periods=10, freq="T")
+    df.index = date_range("20130101 9:30", periods=10, freq="min")
 
     with ensure_clean_store(setup_path) as store:
         store.append("df", df)
@@ -123,54 +128,53 @@ def test_select_with_dups(setup_path):
 
 
 def test_select(setup_path):
-
     with ensure_clean_store(setup_path) as store:
+        # select with columns=
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
+        _maybe_remove(store, "df")
+        store.append("df", df)
+        result = store.select("df", columns=["A", "B"])
+        expected = df.reindex(columns=["A", "B"])
+        tm.assert_frame_equal(expected, result)
 
-        with catch_warnings(record=True):
+        # equivalently
+        result = store.select("df", [("columns=['A', 'B']")])
+        expected = df.reindex(columns=["A", "B"])
+        tm.assert_frame_equal(expected, result)
 
-            # select with columns=
-            df = tm.makeTimeDataFrame()
-            _maybe_remove(store, "df")
-            store.append("df", df)
-            result = store.select("df", columns=["A", "B"])
-            expected = df.reindex(columns=["A", "B"])
-            tm.assert_frame_equal(expected, result)
+        # with a data column
+        _maybe_remove(store, "df")
+        store.append("df", df, data_columns=["A"])
+        result = store.select("df", ["A > 0"], columns=["A", "B"])
+        expected = df[df.A > 0].reindex(columns=["A", "B"])
+        tm.assert_frame_equal(expected, result)
 
-            # equivalently
-            result = store.select("df", [("columns=['A', 'B']")])
-            expected = df.reindex(columns=["A", "B"])
-            tm.assert_frame_equal(expected, result)
+        # all a data columns
+        _maybe_remove(store, "df")
+        store.append("df", df, data_columns=True)
+        result = store.select("df", ["A > 0"], columns=["A", "B"])
+        expected = df[df.A > 0].reindex(columns=["A", "B"])
+        tm.assert_frame_equal(expected, result)
 
-            # with a data column
-            _maybe_remove(store, "df")
-            store.append("df", df, data_columns=["A"])
-            result = store.select("df", ["A > 0"], columns=["A", "B"])
-            expected = df[df.A > 0].reindex(columns=["A", "B"])
-            tm.assert_frame_equal(expected, result)
-
-            # all a data columns
-            _maybe_remove(store, "df")
-            store.append("df", df, data_columns=True)
-            result = store.select("df", ["A > 0"], columns=["A", "B"])
-            expected = df[df.A > 0].reindex(columns=["A", "B"])
-            tm.assert_frame_equal(expected, result)
-
-            # with a data column, but different columns
-            _maybe_remove(store, "df")
-            store.append("df", df, data_columns=["A"])
-            result = store.select("df", ["A > 0"], columns=["C", "D"])
-            expected = df[df.A > 0].reindex(columns=["C", "D"])
-            tm.assert_frame_equal(expected, result)
+        # with a data column, but different columns
+        _maybe_remove(store, "df")
+        store.append("df", df, data_columns=["A"])
+        result = store.select("df", ["A > 0"], columns=["C", "D"])
+        expected = df[df.A > 0].reindex(columns=["C", "D"])
+        tm.assert_frame_equal(expected, result)
 
 
 def test_select_dtypes(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         # with a Timestamp data column (GH #2637)
         df = DataFrame(
             {
                 "ts": bdate_range("2012-01-01", periods=300),
-                "A": np.random.randn(300),
+                "A": np.random.default_rng(2).standard_normal(300),
             }
         )
         _maybe_remove(store, "df")
@@ -181,25 +185,32 @@ def test_select_dtypes(setup_path):
         tm.assert_frame_equal(expected, result)
 
         # bool columns (GH #2849)
-        df = DataFrame(np.random.randn(5, 2), columns=["A", "B"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 2)), columns=["A", "B"]
+        )
         df["object"] = "foo"
         df.loc[4:5, "object"] = "bar"
         df["boolv"] = df["A"] > 0
         _maybe_remove(store, "df")
         store.append("df", df, data_columns=True)
 
-        expected = df[df.boolv == True].reindex(columns=["A", "boolv"])  # noqa:E712
+        expected = df[df.boolv == True].reindex(columns=["A", "boolv"])  # noqa: E712
         for v in [True, "true", 1]:
             result = store.select("df", f"boolv == {v}", columns=["A", "boolv"])
             tm.assert_frame_equal(expected, result)
 
-        expected = df[df.boolv == False].reindex(columns=["A", "boolv"])  # noqa:E712
+        expected = df[df.boolv == False].reindex(columns=["A", "boolv"])  # noqa: E712
         for v in [False, "false", 0]:
             result = store.select("df", f"boolv == {v}", columns=["A", "boolv"])
             tm.assert_frame_equal(expected, result)
 
         # integer index
-        df = DataFrame({"A": np.random.rand(20), "B": np.random.rand(20)})
+        df = DataFrame(
+            {
+                "A": np.random.default_rng(2).random(20),
+                "B": np.random.default_rng(2).random(20),
+            }
+        )
         _maybe_remove(store, "df_int")
         store.append("df_int", df)
         result = store.select("df_int", "index<10 and columns=['A']")
@@ -209,8 +220,8 @@ def test_select_dtypes(setup_path):
         # float index
         df = DataFrame(
             {
-                "A": np.random.rand(20),
-                "B": np.random.rand(20),
+                "A": np.random.default_rng(2).random(20),
+                "B": np.random.default_rng(2).random(20),
                 "index": np.arange(20, dtype="f8"),
             }
         )
@@ -221,7 +232,6 @@ def test_select_dtypes(setup_path):
         tm.assert_frame_equal(expected, result)
 
     with ensure_clean_store(setup_path) as store:
-
         # floats w/o NaN
         df = DataFrame({"cols": range(11), "values": range(11)}, dtype="float64")
         df["cols"] = (df["cols"] + 10).apply(str)
@@ -260,24 +270,26 @@ def test_select_dtypes(setup_path):
     # test selection with comparison against numpy scalar
     # GH 11283
     with ensure_clean_store(setup_path) as store:
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
 
         expected = df[df["A"] > 0]
 
         store.append("df", df, data_columns=True)
-        np_zero = np.float64(0)  # noqa:F841
+        np_zero = np.float64(0)  # noqa: F841
         result = store.select("df", where=["A>np_zero"])
         tm.assert_frame_equal(expected, result)
 
 
 def test_select_with_many_inputs(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         df = DataFrame(
             {
                 "ts": bdate_range("2012-01-01", periods=300),
-                "A": np.random.randn(300),
+                "A": np.random.default_rng(2).standard_normal(300),
                 "B": range(300),
                 "users": ["a"] * 50
                 + ["b"] * 50
@@ -320,12 +332,14 @@ def test_select_with_many_inputs(setup_path):
         assert len(result) == 100
 
 
-def test_select_iterator(setup_path):
-
+def test_select_iterator(tmp_path, setup_path):
     # single table
     with ensure_clean_store(setup_path) as store:
-
-        df = tm.makeTimeDataFrame(500)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         _maybe_remove(store, "df")
         store.append("df", df)
 
@@ -335,46 +349,57 @@ def test_select_iterator(setup_path):
         result = concat(results)
         tm.assert_frame_equal(expected, result)
 
-        results = list(store.select("df", chunksize=100))
+        results = list(store.select("df", chunksize=2))
         assert len(results) == 5
         result = concat(results)
         tm.assert_frame_equal(expected, result)
 
-        results = list(store.select("df", chunksize=150))
+        results = list(store.select("df", chunksize=2))
         result = concat(results)
         tm.assert_frame_equal(result, expected)
 
-    with ensure_clean_path(setup_path) as path:
+    path = tmp_path / setup_path
 
-        df = tm.makeTimeDataFrame(500)
-        df.to_hdf(path, "df_non_table")
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
+    df.to_hdf(path, key="df_non_table")
 
-        msg = "can only use an iterator or chunksize on a table"
-        with pytest.raises(TypeError, match=msg):
-            read_hdf(path, "df_non_table", chunksize=100)
+    msg = "can only use an iterator or chunksize on a table"
+    with pytest.raises(TypeError, match=msg):
+        read_hdf(path, "df_non_table", chunksize=2)
 
-        with pytest.raises(TypeError, match=msg):
-            read_hdf(path, "df_non_table", iterator=True)
+    with pytest.raises(TypeError, match=msg):
+        read_hdf(path, "df_non_table", iterator=True)
 
-    with ensure_clean_path(setup_path) as path:
+    path = tmp_path / setup_path
 
-        df = tm.makeTimeDataFrame(500)
-        df.to_hdf(path, "df", format="table")
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
+    df.to_hdf(path, key="df", format="table")
 
-        results = list(read_hdf(path, "df", chunksize=100))
-        result = concat(results)
+    results = list(read_hdf(path, "df", chunksize=2))
+    result = concat(results)
 
-        assert len(results) == 5
-        tm.assert_frame_equal(result, df)
-        tm.assert_frame_equal(result, read_hdf(path, "df"))
+    assert len(results) == 5
+    tm.assert_frame_equal(result, df)
+    tm.assert_frame_equal(result, read_hdf(path, "df"))
 
     # multiple
 
     with ensure_clean_store(setup_path) as store:
-
-        df1 = tm.makeTimeDataFrame(500)
+        df1 = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         store.append("df1", df1, data_columns=True)
-        df2 = tm.makeTimeDataFrame(500).rename(columns="{}_2".format)
+        df2 = df1.copy().rename(columns="{}_2".format)
         df2["foo"] = "bar"
         store.append("df2", df2)
 
@@ -383,22 +408,24 @@ def test_select_iterator(setup_path):
         # full selection
         expected = store.select_as_multiple(["df1", "df2"], selector="df1")
         results = list(
-            store.select_as_multiple(["df1", "df2"], selector="df1", chunksize=150)
+            store.select_as_multiple(["df1", "df2"], selector="df1", chunksize=2)
         )
         result = concat(results)
         tm.assert_frame_equal(expected, result)
 
 
 def test_select_iterator_complete_8014(setup_path):
-
     # GH 8014
     # using iterator and where clause
     chunksize = 1e4
 
     # no iterator
     with ensure_clean_store(setup_path) as store:
-
-        expected = tm.makeTimeDataFrame(100064, "S")
+        expected = DataFrame(
+            np.random.default_rng(2).standard_normal((100064, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=100064, freq="s"),
+        )
         _maybe_remove(store, "df")
         store.append("df", expected)
 
@@ -429,8 +456,11 @@ def test_select_iterator_complete_8014(setup_path):
 
     # with iterator, full range
     with ensure_clean_store(setup_path) as store:
-
-        expected = tm.makeTimeDataFrame(100064, "S")
+        expected = DataFrame(
+            np.random.default_rng(2).standard_normal((100064, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=100064, freq="s"),
+        )
         _maybe_remove(store, "df")
         store.append("df", expected)
 
@@ -462,15 +492,17 @@ def test_select_iterator_complete_8014(setup_path):
 
 
 def test_select_iterator_non_complete_8014(setup_path):
-
     # GH 8014
     # using iterator and where clause
     chunksize = 1e4
 
     # with iterator, non complete range
     with ensure_clean_store(setup_path) as store:
-
-        expected = tm.makeTimeDataFrame(100064, "S")
+        expected = DataFrame(
+            np.random.default_rng(2).standard_normal((100064, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=100064, freq="s"),
+        )
         _maybe_remove(store, "df")
         store.append("df", expected)
 
@@ -500,8 +532,11 @@ def test_select_iterator_non_complete_8014(setup_path):
 
     # with iterator, empty where
     with ensure_clean_store(setup_path) as store:
-
-        expected = tm.makeTimeDataFrame(100064, "S")
+        expected = DataFrame(
+            np.random.default_rng(2).standard_normal((100064, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=100064, freq="s"),
+        )
         _maybe_remove(store, "df")
         store.append("df", expected)
 
@@ -514,7 +549,6 @@ def test_select_iterator_non_complete_8014(setup_path):
 
 
 def test_select_iterator_many_empty_frames(setup_path):
-
     # GH 8014
     # using iterator and where clause can return many empty
     # frames.
@@ -522,8 +556,11 @@ def test_select_iterator_many_empty_frames(setup_path):
 
     # with iterator, range limited to the first chunk
     with ensure_clean_store(setup_path) as store:
-
-        expected = tm.makeTimeDataFrame(100000, "S")
+        expected = DataFrame(
+            np.random.default_rng(2).standard_normal((100064, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=100064, freq="s"),
+        )
         _maybe_remove(store, "df")
         store.append("df", expected)
 
@@ -571,8 +608,11 @@ def test_select_iterator_many_empty_frames(setup_path):
 
 
 def test_frame_select(setup_path):
-
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
 
     with ensure_clean_store(setup_path) as store:
         store.put("frame", df, format="table")
@@ -593,9 +633,13 @@ def test_frame_select(setup_path):
         tm.assert_frame_equal(result, expected)
 
         # invalid terms
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         store.append("df_time", df)
-        msg = "could not convert string to Timestamp"
+        msg = "day is out of range for month: 0"
         with pytest.raises(ValueError, match=msg):
             store.select("df_time", "index>0")
 
@@ -608,7 +652,11 @@ def test_frame_select(setup_path):
 def test_frame_select_complex(setup_path):
     # select via complex criteria
 
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     df["string"] = "foo"
     df.loc[df.index[0:4], "string"] = "bar"
 
@@ -659,56 +707,52 @@ def test_frame_select_complex(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-def test_frame_select_complex2():
+def test_frame_select_complex2(tmp_path):
+    pp = tmp_path / "params.hdf"
+    hh = tmp_path / "hist.hdf"
 
-    with ensure_clean_path(["params.hdf", "hist.hdf"]) as paths:
+    # use non-trivial selection criteria
+    params = DataFrame({"A": [1, 1, 2, 2, 3]})
+    params.to_hdf(pp, key="df", mode="w", format="table", data_columns=["A"])
 
-        pp, hh = paths
+    selection = read_hdf(pp, "df", where="A=[2,3]")
+    hist = DataFrame(
+        np.random.default_rng(2).standard_normal((25, 1)),
+        columns=["data"],
+        index=MultiIndex.from_tuples(
+            [(i, j) for i in range(5) for j in range(5)], names=["l1", "l2"]
+        ),
+    )
 
-        # use non-trivial selection criteria
-        params = DataFrame({"A": [1, 1, 2, 2, 3]})
-        params.to_hdf(pp, "df", mode="w", format="table", data_columns=["A"])
+    hist.to_hdf(hh, key="df", mode="w", format="table")
 
-        selection = read_hdf(pp, "df", where="A=[2,3]")
-        hist = DataFrame(
-            np.random.randn(25, 1),
-            columns=["data"],
-            index=MultiIndex.from_tuples(
-                [(i, j) for i in range(5) for j in range(5)], names=["l1", "l2"]
-            ),
-        )
+    expected = read_hdf(hh, "df", where="l1=[2, 3, 4]")
 
-        hist.to_hdf(hh, "df", mode="w", format="table")
-
-        expected = read_hdf(hh, "df", where="l1=[2, 3, 4]")
-
-        # scope with list like
-        l0 = selection.index.tolist()  # noqa:F841
-        store = HDFStore(hh)
+    # scope with list like
+    l0 = selection.index.tolist()  # noqa: F841
+    with HDFStore(hh) as store:
         result = store.select("df", where="l1=l0")
         tm.assert_frame_equal(result, expected)
-        store.close()
 
-        result = read_hdf(hh, "df", where="l1=l0")
-        tm.assert_frame_equal(result, expected)
+    result = read_hdf(hh, "df", where="l1=l0")
+    tm.assert_frame_equal(result, expected)
 
-        # index
-        index = selection.index  # noqa:F841
-        result = read_hdf(hh, "df", where="l1=index")
-        tm.assert_frame_equal(result, expected)
+    # index
+    index = selection.index  # noqa: F841
+    result = read_hdf(hh, "df", where="l1=index")
+    tm.assert_frame_equal(result, expected)
 
-        result = read_hdf(hh, "df", where="l1=selection.index")
-        tm.assert_frame_equal(result, expected)
+    result = read_hdf(hh, "df", where="l1=selection.index")
+    tm.assert_frame_equal(result, expected)
 
-        result = read_hdf(hh, "df", where="l1=selection.index.tolist()")
-        tm.assert_frame_equal(result, expected)
+    result = read_hdf(hh, "df", where="l1=selection.index.tolist()")
+    tm.assert_frame_equal(result, expected)
 
-        result = read_hdf(hh, "df", where="l1=list(selection.index)")
-        tm.assert_frame_equal(result, expected)
+    result = read_hdf(hh, "df", where="l1=list(selection.index)")
+    tm.assert_frame_equal(result, expected)
 
-        # scope with index
-        store = HDFStore(hh)
-
+    # scope with index
+    with HDFStore(hh) as store:
         result = store.select("df", where="l1=index")
         tm.assert_frame_equal(result, expected)
 
@@ -721,14 +765,15 @@ def test_frame_select_complex2():
         result = store.select("df", where="l1=list(selection.index)")
         tm.assert_frame_equal(result, expected)
 
-        store.close()
-
 
 def test_invalid_filtering(setup_path):
-
     # can't use more than one filter (atm)
 
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
 
     with ensure_clean_store(setup_path) as store:
         store.put("df", df, format="table")
@@ -746,8 +791,11 @@ def test_invalid_filtering(setup_path):
 def test_string_select(setup_path):
     # GH 2973
     with ensure_clean_store(setup_path) as store:
-
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
 
         # test string ==/!=
         df["x"] = "none"
@@ -787,13 +835,15 @@ def test_string_select(setup_path):
 
 
 def test_select_as_multiple(setup_path):
-
-    df1 = tm.makeTimeDataFrame()
-    df2 = tm.makeTimeDataFrame().rename(columns="{}_2".format)
+    df1 = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
+    df2 = df1.copy().rename(columns="{}_2".format)
     df2["foo"] = "bar"
 
     with ensure_clean_store(setup_path) as store:
-
         msg = "keys must be a list/tuple"
         # no tables stored
         with pytest.raises(TypeError, match=msg):
@@ -850,7 +900,8 @@ def test_select_as_multiple(setup_path):
         tm.assert_frame_equal(result, expected)
 
         # test exception for diff rows
-        store.append("df3", tm.makeTimeDataFrame(nper=50))
+        df3 = df1.copy().head(2)
+        store.append("df3", df3)
         msg = "all tables must have exactly the same nrows!"
         with pytest.raises(ValueError, match=msg):
             store.select_as_multiple(
@@ -859,9 +910,7 @@ def test_select_as_multiple(setup_path):
 
 
 def test_nan_selection_bug_4858(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         df = DataFrame({"cols": range(6), "values": range(6)}, dtype="float64")
         df["cols"] = (df["cols"] + 10).apply(str)
         df.iloc[0] = np.nan
@@ -928,7 +977,7 @@ def test_query_compare_column_type(setup_path):
     with ensure_clean_store(setup_path) as store:
         store.append("test", df, format="table", data_columns=True)
 
-        ts = Timestamp("2014-01-01")  # noqa:F841
+        ts = Timestamp("2014-01-01")  # noqa: F841
         result = store.select("test", where="real_date > ts")
         expected = df.loc[[1], :]
         tm.assert_frame_equal(expected, result)
@@ -945,7 +994,10 @@ def test_query_compare_column_type(setup_path):
             v = "a"
             for col in ["int", "float", "real_date"]:
                 query = f"{col} {op} v"
-                msg = "could not convert string to "
+                if col == "real_date":
+                    msg = 'Given date string "a" not likely a datetime'
+                else:
+                    msg = "could not convert string to"
                 with pytest.raises(ValueError, match=msg):
                     store.select("test", where=query)
 
@@ -965,12 +1017,31 @@ def test_query_compare_column_type(setup_path):
 
 
 @pytest.mark.parametrize("where", ["", (), (None,), [], [None]])
-def test_select_empty_where(where):
+def test_select_empty_where(tmp_path, where):
     # GH26610
 
     df = DataFrame([1, 2, 3])
-    with ensure_clean_path("empty_where.h5") as path:
-        with HDFStore(path) as store:
-            store.put("df", df, "t")
-            result = read_hdf(store, "df", where=where)
-            tm.assert_frame_equal(result, df)
+    path = tmp_path / "empty_where.h5"
+    with HDFStore(path) as store:
+        store.put("df", df, "t")
+        result = read_hdf(store, "df", where=where)
+        tm.assert_frame_equal(result, df)
+
+
+def test_select_large_integer(tmp_path):
+    path = tmp_path / "large_int.h5"
+
+    df = DataFrame(
+        zip(
+            ["a", "b", "c", "d"],
+            [-9223372036854775801, -9223372036854775802, -9223372036854775803, 123],
+        ),
+        columns=["x", "y"],
+    )
+    result = None
+    with HDFStore(path) as s:
+        s.append("data", df, data_columns=True, index=False)
+        result = s.select("data", where="y==-9223372036854775801").get("y").get(0)
+    expected = df["y"][0]
+
+    assert expected == result

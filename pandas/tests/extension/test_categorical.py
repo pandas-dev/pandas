@@ -18,12 +18,10 @@ import string
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 import pandas as pd
-from pandas import (
-    Categorical,
-    CategoricalIndex,
-    Timestamp,
-)
+from pandas import Categorical
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype
 from pandas.tests.extension import base
@@ -31,7 +29,7 @@ from pandas.tests.extension import base
 
 def make_data():
     while True:
-        values = np.random.choice(list(string.ascii_letters), size=100)
+        values = np.random.default_rng(2).choice(list(string.ascii_letters), size=100)
         # ensure we meet the requirements
         # 1. first two not null
         # 2. first and second are different
@@ -72,23 +70,14 @@ def data_missing_for_sorting():
 
 
 @pytest.fixture
-def na_value():
-    return np.nan
-
-
-@pytest.fixture
 def data_for_grouping():
     return Categorical(["a", "a", None, None, "b", "b", "a", "c"])
 
 
-class TestDtype(base.BaseDtypeTests):
-    pass
-
-
-class TestInterface(base.BaseInterfaceTests):
+class TestCategorical(base.ExtensionTests):
     @pytest.mark.xfail(reason="Memory usage doesn't match")
     def test_memory_usage(self, data):
-        # Is this deliberate?
+        # TODO: Is this deliberate?
         super().test_memory_usage(data)
 
     def test_contains(self, data, data_missing):
@@ -113,10 +102,10 @@ class TestInterface(base.BaseInterfaceTests):
             if na_value_obj is na_value:
                 continue
             assert na_value_obj not in data
-            assert na_value_obj in data_missing  # this line differs from super method
+            # this section suffers from super method
+            if not using_pyarrow_string_dtype():
+                assert na_value_obj in data_missing
 
-
-class TestConstructors(base.BaseConstructorsTests):
     def test_empty(self, dtype):
         cls = dtype.construct_array_type()
         result = cls._empty((4,), dtype=dtype)
@@ -126,12 +115,6 @@ class TestConstructors(base.BaseConstructorsTests):
         #  dtype on our result.
         assert result.dtype == CategoricalDtype([])
 
-
-class TestReshaping(base.BaseReshapingTests):
-    pass
-
-
-class TestGetitem(base.BaseGetitemTests):
     @pytest.mark.skip(reason="Backwards compatibility")
     def test_getitem_scalar(self, data):
         # CategoricalDtype.type isn't "correct" since it should
@@ -139,24 +122,6 @@ class TestGetitem(base.BaseGetitemTests):
         # to break things by changing.
         super().test_getitem_scalar(data)
 
-
-class TestSetitem(base.BaseSetitemTests):
-    pass
-
-
-class TestIndex(base.BaseIndexTests):
-    pass
-
-
-class TestMissing(base.BaseMissingTests):
-    pass
-
-
-class TestReduce(base.BaseNoReduceTests):
-    pass
-
-
-class TestMethods(base.BaseMethodsTests):
     @pytest.mark.xfail(reason="Unobserved categories included")
     def test_value_counts(self, all_data, dropna):
         return super().test_value_counts(all_data, dropna)
@@ -171,68 +136,23 @@ class TestMethods(base.BaseMethodsTests):
         expected = pd.Series(
             [a + b for (a, b) in zip(list(orig_data1), list(orig_data2))]
         )
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         val = s1.iloc[0]
         result = s1.combine(val, lambda x1, x2: x1 + x2)
         expected = pd.Series([a + val for a in list(orig_data1)])
-        self.assert_series_equal(result, expected)
-
-
-class TestCasting(base.BaseCastingTests):
-    @pytest.mark.parametrize("cls", [Categorical, CategoricalIndex])
-    @pytest.mark.parametrize("values", [[1, np.nan], [Timestamp("2000"), pd.NaT]])
-    def test_cast_nan_to_int(self, cls, values):
-        # GH 28406
-        s = cls(values)
-
-        msg = "Cannot (cast|convert)"
-        with pytest.raises((ValueError, TypeError), match=msg):
-            s.astype(int)
-
-    @pytest.mark.parametrize(
-        "expected",
-        [
-            pd.Series(["2019", "2020"], dtype="datetime64[ns, UTC]"),
-            pd.Series([0, 0], dtype="timedelta64[ns]"),
-            pd.Series([pd.Period("2019"), pd.Period("2020")], dtype="period[A-DEC]"),
-            pd.Series([pd.Interval(0, 1), pd.Interval(1, 2)], dtype="interval"),
-            pd.Series([1, np.nan], dtype="Int64"),
-        ],
-    )
-    def test_cast_category_to_extension_dtype(self, expected):
-        # GH 28668
-        result = expected.astype("category").astype(expected.dtype)
-
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "dtype, expected",
-        [
-            (
-                "datetime64[ns]",
-                np.array(["2015-01-01T00:00:00.000000000"], dtype="datetime64[ns]"),
-            ),
-            (
-                "datetime64[ns, MET]",
-                pd.DatetimeIndex(
-                    [Timestamp("2015-01-01 00:00:00+0100", tz="MET")]
-                ).array,
-            ),
-        ],
-    )
-    def test_consistent_casting(self, dtype, expected):
-        # GH 28448
-        result = Categorical(["2015-01-01"]).astype(dtype)
-        assert result == expected
+    @pytest.mark.parametrize("na_action", [None, "ignore"])
+    def test_map(self, data, na_action):
+        result = data.map(lambda x: x, na_action=na_action)
+        tm.assert_extension_array_equal(result, data)
 
-
-class TestArithmeticOps(base.BaseArithmeticOpsTests):
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
         # frame & scalar
         op_name = all_arithmetic_operators
         if op_name == "__rmod__":
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason="rmod never called when string is first argument"
                 )
@@ -242,61 +162,31 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
         op_name = all_arithmetic_operators
         if op_name == "__rmod__":
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason="rmod never called when string is first argument"
                 )
             )
         super().test_arith_series_with_scalar(data, op_name)
 
-    def test_add_series_with_extension_array(self, data):
-        ser = pd.Series(data)
-        with pytest.raises(TypeError, match="cannot perform|unsupported operand"):
-            ser + data
-
-    def test_divmod_series_array(self):
-        # GH 23287
-        # skipping because it is not implemented
-        pass
-
-    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
-        return super()._check_divmod_op(s, op, other, exc=TypeError)
-
-
-class TestComparisonOps(base.BaseComparisonOpsTests):
-    def _compare_other(self, s, data, op, other):
+    def _compare_other(self, ser: pd.Series, data, op, other):
         op_name = f"__{op.__name__}__"
-        if op_name == "__eq__":
-            result = op(s, other)
-            expected = s.combine(other, lambda x, y: x == y)
-            assert (result == expected).all()
-
-        elif op_name == "__ne__":
-            result = op(s, other)
-            expected = s.combine(other, lambda x, y: x != y)
-            assert (result == expected).all()
-
-        else:
+        if op_name not in ["__eq__", "__ne__"]:
             msg = "Unordered Categoricals can only compare equality or not"
             with pytest.raises(TypeError, match=msg):
                 op(data, other)
+        else:
+            return super()._compare_other(ser, data, op, other)
 
-    @pytest.mark.parametrize(
-        "categories",
-        [["a", "b"], [0, 1], [Timestamp("2019"), Timestamp("2020")]],
-    )
-    def test_not_equal_with_na(self, categories):
-        # https://github.com/pandas-dev/pandas/issues/32276
-        c1 = Categorical.from_codes([-1, 0], categories=categories)
-        c2 = Categorical.from_codes([0, 1], categories=categories)
+    @pytest.mark.xfail(reason="Categorical overrides __repr__")
+    @pytest.mark.parametrize("size", ["big", "small"])
+    def test_array_repr(self, data, size):
+        super().test_array_repr(data, size)
 
-        result = c1 != c2
-
-        assert result.all()
-
-
-class TestParsing(base.BaseParsingTests):
-    pass
+    @pytest.mark.xfail(reason="TBD")
+    @pytest.mark.parametrize("as_index", [True, False])
+    def test_groupby_extension_agg(self, as_index, data_for_grouping):
+        super().test_groupby_extension_agg(as_index, data_for_grouping)
 
 
 class Test2DCompat(base.NDArrayBacked2DTests):

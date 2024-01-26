@@ -9,8 +9,8 @@ from datetime import datetime
 
 import pytest
 
+import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import (
-    Base,
     assert_is_on_offset,
     assert_offset_equal,
 )
@@ -21,31 +21,30 @@ from pandas.tseries.offsets import (
 )
 
 
-def test_quarterly_dont_normalize():
+@pytest.mark.parametrize("klass", (QuarterBegin, QuarterEnd))
+def test_quarterly_dont_normalize(klass):
     date = datetime(2012, 3, 31, 5, 30)
-
-    offsets = (QuarterBegin, QuarterEnd)
-
-    for klass in offsets:
-        result = date + klass()
-        assert result.time() == date.time()
+    result = date + klass()
+    assert result.time() == date.time()
 
 
 @pytest.mark.parametrize("offset", [QuarterBegin(), QuarterEnd()])
-def test_on_offset(offset):
-    dates = [
+@pytest.mark.parametrize(
+    "date",
+    [
         datetime(2016, m, d)
         for m in [10, 11, 12]
         for d in [1, 2, 3, 28, 29, 30, 31]
         if not (m == 11 and d == 31)
-    ]
-    for date in dates:
-        res = offset.is_on_offset(date)
-        slow_version = date == (date + offset) - offset
-        assert res == slow_version
+    ],
+)
+def test_on_offset(offset, date):
+    res = offset.is_on_offset(date)
+    slow_version = date == (date + offset) - offset
+    assert res == slow_version
 
 
-class TestQuarterBegin(Base):
+class TestQuarterBegin:
     def test_repr(self):
         expected = "<QuarterBegin: startingMonth=3>"
         assert repr(QuarterBegin()) == expected
@@ -55,9 +54,12 @@ class TestQuarterBegin(Base):
         assert repr(QuarterBegin(startingMonth=1)) == expected
 
     def test_is_anchored(self):
-        assert QuarterBegin(startingMonth=1).is_anchored()
-        assert QuarterBegin().is_anchored()
-        assert not QuarterBegin(2, startingMonth=1).is_anchored()
+        msg = "QuarterBegin.is_anchored is deprecated "
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert QuarterBegin(startingMonth=1).is_anchored()
+            assert QuarterBegin().is_anchored()
+            assert not QuarterBegin(2, startingMonth=1).is_anchored()
 
     def test_offset_corner_case(self):
         # corner
@@ -153,9 +155,7 @@ class TestQuarterBegin(Base):
             assert_offset_equal(offset, base, expected)
 
 
-class TestQuarterEnd(Base):
-    _offset: type[QuarterEnd] = QuarterEnd
-
+class TestQuarterEnd:
     def test_repr(self):
         expected = "<QuarterEnd: startingMonth=3>"
         assert repr(QuarterEnd()) == expected
@@ -165,9 +165,12 @@ class TestQuarterEnd(Base):
         assert repr(QuarterEnd(startingMonth=1)) == expected
 
     def test_is_anchored(self):
-        assert QuarterEnd(startingMonth=1).is_anchored()
-        assert QuarterEnd().is_anchored()
-        assert not QuarterEnd(2, startingMonth=1).is_anchored()
+        msg = "QuarterEnd.is_anchored is deprecated "
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert QuarterEnd(startingMonth=1).is_anchored()
+            assert QuarterEnd().is_anchored()
+            assert not QuarterEnd(2, startingMonth=1).is_anchored()
 
     def test_offset_corner_case(self):
         # corner

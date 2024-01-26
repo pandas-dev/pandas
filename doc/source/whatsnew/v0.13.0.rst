@@ -153,12 +153,16 @@ API changes
 
   Added the ``.bool()`` method to ``NDFrame`` objects to facilitate evaluating of single-element boolean Series:
 
-  .. ipython:: python
+  .. code-block:: python
 
-     pd.Series([True]).bool()
-     pd.Series([False]).bool()
-     pd.DataFrame([[True]]).bool()
-     pd.DataFrame([[False]]).bool()
+     >>> pd.Series([True]).bool()
+      True
+     >>> pd.Series([False]).bool()
+      False
+     >>> pd.DataFrame([[True]]).bool()
+      True
+     >>> pd.DataFrame([[False]]).bool()
+      False
 
 - All non-Index NDFrames (``Series``, ``DataFrame``, ``Panel``, ``Panel4D``,
   ``SparsePanel``, etc.), now support the entire set of arithmetic operators
@@ -310,7 +314,7 @@ Float64Index API change
 
 - Added a new index type, ``Float64Index``. This will be automatically created when passing floating values in index creation.
   This enables a pure label-based slicing paradigm that makes ``[],ix,loc`` for scalar indexing and slicing work exactly the
-  same. See :ref:`the docs<advanced.float64index>`, (:issue:`263`)
+  same. (:issue:`263`)
 
   Construction is by default for floating type values.
 
@@ -339,6 +343,7 @@ Float64Index API change
   Slicing is ALWAYS on the values of the index, for ``[],ix,loc`` and ALWAYS positional with ``iloc``
 
   .. ipython:: python
+     :okwarning:
 
      s[2:4]
      s.loc[2:4]
@@ -380,7 +385,7 @@ HDFStore API changes
      dfq = pd.DataFrame(np.random.randn(10, 4),
                         columns=list('ABCD'),
                         index=pd.date_range('20130101', periods=10))
-     dfq.to_hdf(path, 'dfq', format='table', data_columns=True)
+     dfq.to_hdf(path, key='dfq', format='table', data_columns=True)
 
   Use boolean expressions, with in-line function evaluation.
 
@@ -410,9 +415,9 @@ HDFStore API changes
 
      path = 'test.h5'
      df = pd.DataFrame(np.random.randn(10, 2))
-     df.to_hdf(path, 'df_table', format='table')
-     df.to_hdf(path, 'df_table2', append=True)
-     df.to_hdf(path, 'df_fixed')
+     df.to_hdf(path, key='df_table', format='table')
+     df.to_hdf(path, key='df_table2', append=True)
+     df.to_hdf(path, key='df_fixed')
      with pd.HDFStore(path) as store:
          print(store)
 
@@ -540,13 +545,41 @@ Enhancements
      td[3] = np.nan
      td
 
+  .. code-block:: ipython
+
      # to days
-     td / np.timedelta64(1, 'D')
-     td.astype('timedelta64[D]')
+     In [63]: td / np.timedelta64(1, 'D')
+     Out[63]:
+     0    31.000000
+     1    31.000000
+     2    31.003507
+     3          NaN
+     dtype: float64
+
+     In [64]: td.astype('timedelta64[D]')
+     Out[64]:
+     0    31.0
+     1    31.0
+     2    31.0
+     3     NaN
+     dtype: float64
 
      # to seconds
-     td / np.timedelta64(1, 's')
-     td.astype('timedelta64[s]')
+     In [65]: td / np.timedelta64(1, 's')
+     Out[65]:
+     0    2678400.0
+     1    2678400.0
+     2    2678703.0
+     3          NaN
+     dtype: float64
+
+     In [66]: td.astype('timedelta64[s]')
+     Out[66]:
+     0    2678400.0
+     1    2678400.0
+     2    2678703.0
+     3          NaN
+     dtype: float64
 
   Dividing or multiplying a ``timedelta64[ns]`` Series by an integer or integer Series
 
@@ -636,9 +669,16 @@ Enhancements
   Period conversions in the range of seconds and below were reworked and extended
   up to nanoseconds. Periods in the nanosecond range are now available.
 
-  .. ipython:: python
+  .. code-block:: python
 
-     pd.date_range('2013-01-01', periods=5, freq='5N')
+     In [79]: pd.date_range('2013-01-01', periods=5, freq='5N')
+     Out[79]:
+     DatetimeIndex([          '2013-01-01 00:00:00',
+                    '2013-01-01 00:00:00.000000005',
+                    '2013-01-01 00:00:00.000000010',
+                    '2013-01-01 00:00:00.000000015',
+                    '2013-01-01 00:00:00.000000020'],
+                   dtype='datetime64[ns]', freq='5N')
 
   or with frequency as offset
 
@@ -733,7 +773,7 @@ Enhancements
 
 .. _scipy: http://www.scipy.org
 .. _documentation: http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
-.. _guide: http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
+.. _guide: https://docs.scipy.org/doc/scipy/tutorial/interpolate.html
 
 - ``to_csv`` now takes a ``date_format`` keyword argument that specifies how
   output datetime objects should be formatted. Datetimes encountered in the

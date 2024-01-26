@@ -4,36 +4,69 @@ Tests for Timestamp parsing, aimed at pandas/_libs/tslibs/parsing.pyx
 from datetime import datetime
 import re
 
-from dateutil.parser import parse
+from dateutil.parser import parse as du_parse
+from dateutil.tz import tzlocal
+from hypothesis import given
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import parsing
-from pandas._libs.tslibs.parsing import parse_time_string
+from pandas._libs.tslibs import (
+    parsing,
+    strptime,
+)
+from pandas._libs.tslibs.parsing import parse_datetime_string_with_reso
+from pandas.compat import (
+    ISMUSL,
+    is_platform_windows,
+)
 import pandas.util._test_decorators as td
 
 import pandas._testing as tm
+from pandas._testing._hypothesis import DATETIME_NO_TZ
 
 
-def test_parse_time_string():
-    (parsed, reso) = parse_time_string("4Q1984")
-    (parsed_lower, reso_lower) = parse_time_string("4q1984")
+@pytest.mark.skipif(
+    is_platform_windows() or ISMUSL,
+    reason="TZ setting incorrect on Windows and MUSL Linux",
+)
+def test_parsing_tzlocal_deprecated():
+    # GH#50791
+    msg = (
+        "Parsing 'EST' as tzlocal.*"
+        "Pass the 'tz' keyword or call tz_localize after construction instead"
+    )
+    dtstr = "Jan 15 2004 03:00 EST"
+
+    with tm.set_timezone("US/Eastern"):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res, _ = parse_datetime_string_with_reso(dtstr)
+
+        assert isinstance(res.tzinfo, tzlocal)
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = parsing.py_parse_datetime_string(dtstr)
+        assert isinstance(res.tzinfo, tzlocal)
+
+
+def test_parse_datetime_string_with_reso():
+    (parsed, reso) = parse_datetime_string_with_reso("4Q1984")
+    (parsed_lower, reso_lower) = parse_datetime_string_with_reso("4q1984")
 
     assert reso == reso_lower
     assert parsed == parsed_lower
 
 
-def test_parse_time_string_nanosecond_reso():
+def test_parse_datetime_string_with_reso_nanosecond_reso():
     # GH#46811
-    parsed, reso = parse_time_string("2022-04-20 09:19:19.123456789")
+    parsed, reso = parse_datetime_string_with_reso("2022-04-20 09:19:19.123456789")
     assert reso == "nanosecond"
 
 
-def test_parse_time_string_invalid_type():
+def test_parse_datetime_string_with_reso_invalid_type():
     # Raise on invalid input, don't just return it
-    msg = "Argument 'arg' has incorrect type (expected str, got tuple)"
+    msg = "Argument 'date_string' has incorrect type (expected str, got tuple)"
     with pytest.raises(TypeError, match=re.escape(msg)):
-        parse_time_string((4, 5))
+        parse_datetime_string_with_reso((4, 5))
 
 
 @pytest.mark.parametrize(
@@ -41,8 +74,8 @@ def test_parse_time_string_invalid_type():
 )
 def test_parse_time_quarter_with_dash(dashed, normal):
     # see gh-9688
-    (parsed_dash, reso_dash) = parse_time_string(dashed)
-    (parsed, reso) = parse_time_string(normal)
+    (parsed_dash, reso_dash) = parse_datetime_string_with_reso(dashed)
+    (parsed, reso) = parse_datetime_string_with_reso(normal)
 
     assert parsed_dash == parsed
     assert reso_dash == reso
@@ -53,7 +86,7 @@ def test_parse_time_quarter_with_dash_error(dashed):
     msg = f"Unknown datetime string format, unable to parse: {dashed}"
 
     with pytest.raises(parsing.DateParseError, match=msg):
-        parse_time_string(dashed)
+        parse_datetime_string_with_reso(dashed)
 
 
 @pytest.mark.parametrize(
@@ -100,24 +133,24 @@ def test_does_not_convert_mixed_integer(date_string, expected):
 )
 def test_parsers_quarterly_with_freq_error(date_str, kwargs, msg):
     with pytest.raises(parsing.DateParseError, match=msg):
-        parsing.parse_time_string(date_str, **kwargs)
+        parsing.parse_datetime_string_with_reso(date_str, **kwargs)
 
 
 @pytest.mark.parametrize(
     "date_str,freq,expected",
     [
         ("2013Q2", None, datetime(2013, 4, 1)),
-        ("2013Q2", "A-APR", datetime(2012, 8, 1)),
-        ("2013-Q2", "A-DEC", datetime(2013, 4, 1)),
+        ("2013Q2", "Y-APR", datetime(2012, 8, 1)),
+        ("2013-Q2", "Y-DEC", datetime(2013, 4, 1)),
     ],
 )
 def test_parsers_quarterly_with_freq(date_str, freq, expected):
-    result, _ = parsing.parse_time_string(date_str, freq=freq)
+    result, _ = parsing.parse_datetime_string_with_reso(date_str, freq=freq)
     assert result == expected
 
 
 @pytest.mark.parametrize(
-    "date_str", ["2Q 2005", "2Q-200A", "2Q-200", "22Q2005", "2Q200.", "6Q-20"]
+    "date_str", ["2Q 2005", "2Q-200Y", "2Q-200", "22Q2005", "2Q200.", "6Q-20"]
 )
 def test_parsers_quarter_invalid(date_str):
     if date_str == "6Q-20":
@@ -129,7 +162,7 @@ def test_parsers_quarter_invalid(date_str):
         msg = f"Unknown datetime string format, unable to parse: {date_str}"
 
     with pytest.raises(ValueError, match=msg):
-        parsing.parse_time_string(date_str)
+        parsing.parse_datetime_string_with_reso(date_str)
 
 
 @pytest.mark.parametrize(
@@ -137,7 +170,7 @@ def test_parsers_quarter_invalid(date_str):
     [("201101", datetime(2011, 1, 1, 0, 0)), ("200005", datetime(2000, 5, 1, 0, 0))],
 )
 def test_parsers_month_freq(date_str, expected):
-    result, _ = parsing.parse_time_string(date_str, freq="M")
+    result, _ = parsing.parse_datetime_string_with_reso(date_str, freq="ME")
     assert result == expected
 
 
@@ -146,7 +179,14 @@ def test_parsers_month_freq(date_str, expected):
     "string,fmt",
     [
         ("20111230", "%Y%m%d"),
+        ("201112300000", "%Y%m%d%H%M"),
+        ("20111230000000", "%Y%m%d%H%M%S"),
+        ("20111230T00", "%Y%m%dT%H"),
+        ("20111230T0000", "%Y%m%dT%H%M"),
+        ("20111230T000000", "%Y%m%dT%H%M%S"),
         ("2011-12-30", "%Y-%m-%d"),
+        ("2011", "%Y"),
+        ("2011-01", "%Y-%m"),
         ("30-12-2011", "%d-%m-%Y"),
         ("2011-12-30 00:00:00", "%Y-%m-%d %H:%M:%S"),
         ("2011-12-30T00:00:00", "%Y-%m-%dT%H:%M:%S"),
@@ -158,7 +198,7 @@ def test_parsers_month_freq(date_str, expected):
         ("2011-12-30T00:00:00+0900", "%Y-%m-%dT%H:%M:%S%z"),
         ("2011-12-30T00:00:00-0900", "%Y-%m-%dT%H:%M:%S%z"),
         ("2011-12-30T00:00:00+09:00", "%Y-%m-%dT%H:%M:%S%z"),
-        ("2011-12-30T00:00:00+09:000", "%Y-%m-%dT%H:%M:%S%z"),
+        ("2011-12-30T00:00:00+09:000", None),
         ("2011-12-30T00:00:00+9:0", "%Y-%m-%dT%H:%M:%S%z"),
         ("2011-12-30T00:00:00+09:", None),
         ("2011-12-30T00:00:00.000000UTC", "%Y-%m-%dT%H:%M:%S.%f%Z"),
@@ -169,16 +209,22 @@ def test_parsers_month_freq(date_str, expected):
         ("2011-12-30T00:00:00.000000+0900", "%Y-%m-%dT%H:%M:%S.%f%z"),
         ("2011-12-30T00:00:00.000000-0900", "%Y-%m-%dT%H:%M:%S.%f%z"),
         ("2011-12-30T00:00:00.000000+09:00", "%Y-%m-%dT%H:%M:%S.%f%z"),
-        ("2011-12-30T00:00:00.000000+09:000", "%Y-%m-%dT%H:%M:%S.%f%z"),
+        ("2011-12-30T00:00:00.000000+09:000", None),
         ("2011-12-30T00:00:00.000000+9:0", "%Y-%m-%dT%H:%M:%S.%f%z"),
         ("2011-12-30T00:00:00.000000+09:", None),
         ("2011-12-30 00:00:00.000000", "%Y-%m-%d %H:%M:%S.%f"),
-        ("Tue 24 Aug 2021 01:30:48 AM", "%a %d %b %Y %H:%M:%S %p"),
-        ("Tuesday 24 Aug 2021 01:30:48 AM", "%A %d %b %Y %H:%M:%S %p"),
+        ("Tue 24 Aug 2021 01:30:48", "%a %d %b %Y %H:%M:%S"),
+        ("Tuesday 24 Aug 2021 01:30:48", "%A %d %b %Y %H:%M:%S"),
+        ("Tue 24 Aug 2021 01:30:48 AM", "%a %d %b %Y %I:%M:%S %p"),
+        ("Tuesday 24 Aug 2021 01:30:48 AM", "%A %d %b %Y %I:%M:%S %p"),
+        ("27.03.2003 14:55:00.000", "%d.%m.%Y %H:%M:%S.%f"),  # GH50317
     ],
 )
 def test_guess_datetime_format_with_parseable_formats(string, fmt):
-    result = parsing.guess_datetime_format(string)
+    with tm.maybe_produces_warning(
+        UserWarning, fmt is not None and re.search(r"%d.*%m", fmt)
+    ):
+        result = parsing.guess_datetime_format(string)
     assert result == fmt
 
 
@@ -206,14 +252,15 @@ def test_guess_datetime_format_with_locale_specific_formats(string, fmt):
 @pytest.mark.parametrize(
     "invalid_dt",
     [
-        "2013",
         "01/2013",
         "12:00:00",
         "1/1/1/1",
         "this_is_not_a_datetime",
         "51a",
-        9,
-        datetime(2011, 1, 1),
+        "13/2019",
+        "202001",  # YYYYMM isn't ISO8601
+        "2020/01",  # YYYY/MM isn't ISO8601 either
+        "87156549591102612381000001219H5",
     ],
 )
 def test_guess_datetime_format_invalid_inputs(invalid_dt):
@@ -222,38 +269,61 @@ def test_guess_datetime_format_invalid_inputs(invalid_dt):
     assert parsing.guess_datetime_format(invalid_dt) is None
 
 
+@pytest.mark.parametrize("invalid_type_dt", [9, datetime(2011, 1, 1)])
+def test_guess_datetime_format_wrong_type_inputs(invalid_type_dt):
+    # A datetime string must include a year, month and a day for it to be
+    # guessable, in addition to being a string that looks like a datetime.
+    with pytest.raises(
+        TypeError,
+        match=r"^Argument 'dt_str' has incorrect type \(expected str, got .*\)$",
+    ):
+        parsing.guess_datetime_format(invalid_type_dt)
+
+
 @pytest.mark.parametrize(
-    "string,fmt",
+    "string,fmt,dayfirst,warning",
     [
-        ("2011-1-1", "%Y-%m-%d"),
-        ("1/1/2011", "%m/%d/%Y"),
-        ("30-1-2011", "%d-%m-%Y"),
-        ("2011-1-1 0:0:0", "%Y-%m-%d %H:%M:%S"),
-        ("2011-1-3T00:00:0", "%Y-%m-%dT%H:%M:%S"),
-        ("2011-1-1 00:00:00", "%Y-%m-%d %H:%M:%S"),
+        ("2011-1-1", "%Y-%m-%d", False, None),
+        ("2011-1-1", "%Y-%d-%m", True, None),
+        ("1/1/2011", "%m/%d/%Y", False, None),
+        ("1/1/2011", "%d/%m/%Y", True, None),
+        ("30-1-2011", "%d-%m-%Y", False, UserWarning),
+        ("30-1-2011", "%d-%m-%Y", True, None),
+        ("2011-1-1 0:0:0", "%Y-%m-%d %H:%M:%S", False, None),
+        ("2011-1-1 0:0:0", "%Y-%d-%m %H:%M:%S", True, None),
+        ("2011-1-3T00:00:0", "%Y-%m-%dT%H:%M:%S", False, None),
+        ("2011-1-3T00:00:0", "%Y-%d-%mT%H:%M:%S", True, None),
+        ("2011-1-1 00:00:00", "%Y-%m-%d %H:%M:%S", False, None),
+        ("2011-1-1 00:00:00", "%Y-%d-%m %H:%M:%S", True, None),
     ],
 )
-def test_guess_datetime_format_no_padding(string, fmt):
+def test_guess_datetime_format_no_padding(string, fmt, dayfirst, warning):
     # see gh-11142
-    result = parsing.guess_datetime_format(string)
+    msg = (
+        rf"Parsing dates in {fmt} format when dayfirst=False \(the default\) "
+        "was specified. "
+        "Pass `dayfirst=True` or specify a format to silence this warning."
+    )
+    with tm.assert_produces_warning(warning, match=msg):
+        result = parsing.guess_datetime_format(string, dayfirst=dayfirst)
     assert result == fmt
 
 
 def test_try_parse_dates():
     arr = np.array(["5/1/2000", "6/1/2000", "7/1/2000"], dtype=object)
-    result = parsing.try_parse_dates(arr, dayfirst=True)
+    result = parsing.try_parse_dates(arr, parser=lambda x: du_parse(x, dayfirst=True))
 
-    expected = np.array([parse(d, dayfirst=True) for d in arr])
+    expected = np.array([du_parse(d, dayfirst=True) for d in arr])
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_parse_time_string_check_instance_type_raise_exception():
+def test_parse_datetime_string_with_reso_check_instance_type_raise_exception():
     # issue 20684
-    msg = "Argument 'arg' has incorrect type (expected str, got tuple)"
+    msg = "Argument 'date_string' has incorrect type (expected str, got tuple)"
     with pytest.raises(TypeError, match=re.escape(msg)):
-        parse_time_string((1, 2, 3))
+        parse_datetime_string_with_reso((1, 2, 3))
 
-    result = parse_time_string("2019")
+    result = parse_datetime_string_with_reso("2019")
     expected = (datetime(2019, 1, 1), "year")
     assert result == expected
 
@@ -269,18 +339,76 @@ def test_parse_time_string_check_instance_type_raise_exception():
         ("%Y%m%d %H:%M:%S", True),
         ("%Y-%m-%dT%H:%M:%S", True),
         ("%Y-%m-%dT%H:%M:%S%z", True),
-        ("%Y-%m-%dT%H:%M:%S%Z", True),
+        ("%Y-%m-%dT%H:%M:%S%Z", False),
         ("%Y-%m-%dT%H:%M:%S.%f", True),
         ("%Y-%m-%dT%H:%M:%S.%f%z", True),
-        ("%Y-%m-%dT%H:%M:%S.%f%Z", True),
-        ("%Y%m%d", False),
+        ("%Y-%m-%dT%H:%M:%S.%f%Z", False),
+        ("%Y%m%d", True),
         ("%Y%m", False),
-        ("%Y", False),
+        ("%Y", True),
         ("%Y-%m-%d", True),
         ("%Y-%m", True),
     ],
 )
 def test_is_iso_format(fmt, expected):
     # see gh-41047
-    result = parsing.format_is_iso(fmt)
+    result = strptime._test_format_is_iso(fmt)
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "input",
+    [
+        "2018-01-01T00:00:00.123456789",
+        "2018-01-01T00:00:00.123456",
+        "2018-01-01T00:00:00.123",
+    ],
+)
+def test_guess_datetime_format_f(input):
+    # https://github.com/pandas-dev/pandas/issues/49043
+    result = parsing.guess_datetime_format(input)
+    expected = "%Y-%m-%dT%H:%M:%S.%f"
+    assert result == expected
+
+
+def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
+    msg, result = None, None
+    try:
+        result = call(date_string, **kwargs)
+    except ValueError as err:
+        msg = str(err)
+    return msg, result
+
+
+@given(DATETIME_NO_TZ)
+@pytest.mark.parametrize("delimiter", list(" -./"))
+@pytest.mark.parametrize("dayfirst", [True, False])
+@pytest.mark.parametrize(
+    "date_format",
+    ["%d %m %Y", "%m %d %Y", "%m %Y", "%Y %m %d", "%y %m %d", "%Y%m%d", "%y%m%d"],
+)
+def test_hypothesis_delimited_date(
+    request, date_format, dayfirst, delimiter, test_datetime
+):
+    if date_format == "%m %Y" and delimiter == ".":
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="parse_datetime_string cannot reliably tell whether "
+                "e.g. %m.%Y is a float or a date"
+            )
+        )
+    date_string = test_datetime.strftime(date_format.replace(" ", delimiter))
+
+    except_out_dateutil, result = _helper_hypothesis_delimited_date(
+        parsing.py_parse_datetime_string, date_string, dayfirst=dayfirst
+    )
+    except_in_dateutil, expected = _helper_hypothesis_delimited_date(
+        du_parse,
+        date_string,
+        default=datetime(1, 1, 1),
+        dayfirst=dayfirst,
+        yearfirst=False,
+    )
+
+    assert except_out_dateutil == except_in_dateutil
     assert result == expected

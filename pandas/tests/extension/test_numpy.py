@@ -12,45 +12,34 @@ Additional tests should either be added to one of the BaseExtensionTests
 classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
-Note: we do not bother with base.BaseIndexTests because PandasArray
+Note: we do not bother with base.BaseIndexTests because NumpyExtensionArray
 will never be held in an Index.
 """
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.cast import can_hold_element
-from pandas.core.dtypes.dtypes import (
-    ExtensionDtype,
-    PandasDtype,
-)
+from pandas.core.dtypes.dtypes import NumpyEADtype
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays.numpy_ import PandasArray
-from pandas.core.internals import blocks
+from pandas.api.types import is_object_dtype
+from pandas.core.arrays.numpy_ import NumpyExtensionArray
 from pandas.tests.extension import base
-
-
-def _can_hold_element_patched(obj, element) -> bool:
-    if isinstance(element, PandasArray):
-        element = element.to_numpy()
-    return can_hold_element(obj, element)
-
 
 orig_assert_attr_equal = tm.assert_attr_equal
 
 
 def _assert_attr_equal(attr: str, left, right, obj: str = "Attributes"):
     """
-    patch tm.assert_attr_equal so PandasDtype("object") is closed enough to
+    patch tm.assert_attr_equal so NumpyEADtype("object") is closed enough to
     np.dtype("object")
     """
     if attr == "dtype":
         lattr = getattr(left, "dtype", None)
         rattr = getattr(right, "dtype", None)
-        if isinstance(lattr, PandasDtype) and not isinstance(rattr, PandasDtype):
+        if isinstance(lattr, NumpyEADtype) and not isinstance(rattr, NumpyEADtype):
             left = left.astype(lattr.numpy_dtype)
-        elif isinstance(rattr, PandasDtype) and not isinstance(lattr, PandasDtype):
+        elif isinstance(rattr, NumpyEADtype) and not isinstance(lattr, NumpyEADtype):
             right = right.astype(rattr.numpy_dtype)
 
     orig_assert_attr_equal(attr, left, right, obj)
@@ -58,7 +47,7 @@ def _assert_attr_equal(attr: str, left, right, obj: str = "Attributes"):
 
 @pytest.fixture(params=["float", "object"])
 def dtype(request):
-    return PandasDtype(np.dtype(request.param))
+    return NumpyEADtype(np.dtype(request.param))
 
 
 @pytest.fixture
@@ -66,21 +55,20 @@ def allow_in_pandas(monkeypatch):
     """
     A monkeypatch to tells pandas to let us in.
 
-    By default, passing a PandasArray to an index / series / frame
-    constructor will unbox that PandasArray to an ndarray, and treat
+    By default, passing a NumpyExtensionArray to an index / series / frame
+    constructor will unbox that NumpyExtensionArray to an ndarray, and treat
     it as a non-EA column. We don't want people using EAs without
     reason.
 
-    The mechanism for this is a check against ABCPandasArray
+    The mechanism for this is a check against ABCNumpyExtensionArray
     in each constructor.
 
     But, for testing, we need to allow them in pandas. So we patch
-    the _typ of PandasArray, so that we evade the ABCPandasArray
+    the _typ of NumpyExtensionArray, so that we evade the ABCNumpyExtensionArray
     check.
     """
     with monkeypatch.context() as m:
-        m.setattr(PandasArray, "_typ", "extension")
-        m.setattr(blocks, "can_hold_element", _can_hold_element_patched)
+        m.setattr(NumpyExtensionArray, "_typ", "extension")
         m.setattr(tm.asserters, "assert_attr_equal", _assert_attr_equal)
         yield
 
@@ -89,19 +77,14 @@ def allow_in_pandas(monkeypatch):
 def data(allow_in_pandas, dtype):
     if dtype.numpy_dtype == "object":
         return pd.Series([(i,) for i in range(100)]).array
-    return PandasArray(np.arange(1, 101, dtype=dtype._dtype))
+    return NumpyExtensionArray(np.arange(1, 101, dtype=dtype._dtype))
 
 
 @pytest.fixture
 def data_missing(allow_in_pandas, dtype):
     if dtype.numpy_dtype == "object":
-        return PandasArray(np.array([np.nan, (1,)], dtype=object))
-    return PandasArray(np.array([np.nan, 1.0]))
-
-
-@pytest.fixture
-def na_value():
-    return np.nan
+        return NumpyExtensionArray(np.array([np.nan, (1,)], dtype=object))
+    return NumpyExtensionArray(np.array([np.nan, 1.0]))
 
 
 @pytest.fixture
@@ -122,8 +105,8 @@ def data_for_sorting(allow_in_pandas, dtype):
     if dtype.numpy_dtype == "object":
         # Use an empty tuple for first element, then remove,
         # to disable np.array's shape inference.
-        return PandasArray(np.array([(), (2,), (3,), (1,)], dtype=object)[1:])
-    return PandasArray(np.array([1, 2, 0]))
+        return NumpyExtensionArray(np.array([(), (2,), (3,), (1,)], dtype=object)[1:])
+    return NumpyExtensionArray(np.array([1, 2, 0]))
 
 
 @pytest.fixture
@@ -134,8 +117,8 @@ def data_missing_for_sorting(allow_in_pandas, dtype):
     A < B and NA missing.
     """
     if dtype.numpy_dtype == "object":
-        return PandasArray(np.array([(1,), np.nan, (0,)], dtype=object))
-    return PandasArray(np.array([1, np.nan, 0]))
+        return NumpyExtensionArray(np.array([(1,), np.nan, (0,)], dtype=object))
+    return NumpyExtensionArray(np.array([1, np.nan, 0]))
 
 
 @pytest.fixture
@@ -150,15 +133,23 @@ def data_for_grouping(allow_in_pandas, dtype):
         a, b, c = (1,), (2,), (3,)
     else:
         a, b, c = np.arange(3)
-    return PandasArray(
+    return NumpyExtensionArray(
         np.array([b, b, np.nan, np.nan, a, a, b, c], dtype=dtype.numpy_dtype)
     )
 
 
 @pytest.fixture
+def data_for_twos(dtype):
+    if dtype.kind == "O":
+        pytest.skip(f"{dtype} is not a numeric dtype")
+    arr = np.ones(100) * 2
+    return NumpyExtensionArray._from_sequence(arr, dtype=dtype)
+
+
+@pytest.fixture
 def skip_numpy_object(dtype, request):
     """
-    Tests for PandasArray with nested data. Users typically won't create
+    Tests for NumpyExtensionArray with nested data. Users typically won't create
     these objects via `pd.array`, but they can show up through `.array`
     on a Series with nested data. Many of the base tests fail, as they aren't
     appropriate for nested data.
@@ -168,34 +159,13 @@ def skip_numpy_object(dtype, request):
     """
     if dtype == "object":
         mark = pytest.mark.xfail(reason="Fails for object dtype")
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
 
 skip_nested = pytest.mark.usefixtures("skip_numpy_object")
 
 
-class BaseNumPyTests:
-    @classmethod
-    def assert_series_equal(cls, left, right, *args, **kwargs):
-        # base class tests hard-code expected values with numpy dtypes,
-        #  whereas we generally want the corresponding PandasDtype
-        if (
-            isinstance(right, pd.Series)
-            and not isinstance(right.dtype, ExtensionDtype)
-            and isinstance(left.dtype, PandasDtype)
-        ):
-            right = right.astype(PandasDtype(right.dtype))
-        return tm.assert_series_equal(left, right, *args, **kwargs)
-
-
-class TestCasting(BaseNumPyTests, base.BaseCastingTests):
-    @skip_nested
-    def test_astype_str(self, data):
-        # ValueError: setting an array element with a sequence
-        super().test_astype_str(data)
-
-
-class TestConstructors(BaseNumPyTests, base.BaseConstructorsTests):
+class TestNumpyExtensionArray(base.ExtensionTests):
     @pytest.mark.skip(reason="We don't register our dtype")
     # We don't want to register. This test should probably be split in two.
     def test_from_dtype(self, data):
@@ -206,39 +176,29 @@ class TestConstructors(BaseNumPyTests, base.BaseConstructorsTests):
         # ValueError: Length of passed values is 1, index implies 3.
         super().test_series_constructor_scalar_with_index(data, dtype)
 
-
-class TestDtype(BaseNumPyTests, base.BaseDtypeTests):
-    def test_check_dtype(self, data, request):
+    def test_check_dtype(self, data, request, using_infer_string):
         if data.dtype.numpy_dtype == "object":
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
-                    reason=f"PandasArray expectedly clashes with a "
+                    reason=f"NumpyExtensionArray expectedly clashes with a "
                     f"NumPy name: {data.dtype.numpy_dtype}"
                 )
             )
         super().test_check_dtype(data)
 
+    def test_is_not_object_type(self, dtype, request):
+        if dtype.numpy_dtype == "object":
+            # Different from BaseDtypeTests.test_is_not_object_type
+            # because NumpyEADtype(object) is an object type
+            assert is_object_dtype(dtype)
+        else:
+            super().test_is_not_object_type(dtype)
 
-class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
     @skip_nested
     def test_getitem_scalar(self, data):
         # AssertionError
         super().test_getitem_scalar(data)
 
-
-class TestGroupby(BaseNumPyTests, base.BaseGroupbyTests):
-    def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
-        super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
-
-
-class TestInterface(BaseNumPyTests, base.BaseInterfaceTests):
-    @skip_nested
-    def test_array_interface(self, data):
-        # NumPy array shape inference
-        super().test_array_interface(data)
-
-
-class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
     @skip_nested
     def test_shift_fill_value(self, data):
         # np.array shape inference. Shift implementation fails.
@@ -256,79 +216,107 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
 
     @skip_nested
     def test_searchsorted(self, data_for_sorting, as_series):
-        # Test setup fails.
+        # TODO: NumpyExtensionArray.searchsorted calls ndarray.searchsorted which
+        #  isn't quite what we want in nested data cases. Instead we need to
+        #  adapt something like libindex._bin_search.
         super().test_searchsorted(data_for_sorting, as_series)
 
-    @pytest.mark.xfail(reason="PandasArray.diff may fail on dtype")
+    @pytest.mark.xfail(reason="NumpyExtensionArray.diff may fail on dtype")
     def test_diff(self, data, periods):
         return super().test_diff(data, periods)
 
     def test_insert(self, data, request):
         if data.dtype.numpy_dtype == object:
             mark = pytest.mark.xfail(reason="Dimension mismatch in np.concatenate")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         super().test_insert(data)
 
     @skip_nested
     def test_insert_invalid(self, data, invalid_scalar):
-        # PandasArray[object] can hold anything, so skip
+        # NumpyExtensionArray[object] can hold anything, so skip
         super().test_insert_invalid(data, invalid_scalar)
 
-
-class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
     divmod_exc = None
     series_scalar_exc = None
     frame_scalar_exc = None
     series_array_exc = None
 
-    @skip_nested
     def test_divmod(self, data):
+        divmod_exc = None
+        if data.dtype.kind == "O":
+            divmod_exc = TypeError
+        self.divmod_exc = divmod_exc
         super().test_divmod(data)
 
-    @skip_nested
     def test_divmod_series_array(self, data):
         ser = pd.Series(data)
-        self._check_divmod_op(ser, divmod, data, exc=None)
+        exc = None
+        if data.dtype.kind == "O":
+            exc = TypeError
+            self.divmod_exc = exc
+        self._check_divmod_op(ser, divmod, data)
 
-    @skip_nested
-    def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
+    def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
+        opname = all_arithmetic_operators
+        series_scalar_exc = None
+        if data.dtype.numpy_dtype == object:
+            if opname in ["__mul__", "__rmul__"]:
+                mark = pytest.mark.xfail(
+                    reason="the Series.combine step raises but not the Series method."
+                )
+                request.node.add_marker(mark)
+            series_scalar_exc = TypeError
+        self.series_scalar_exc = series_scalar_exc
         super().test_arith_series_with_scalar(data, all_arithmetic_operators)
 
-    def test_arith_series_with_array(self, data, all_arithmetic_operators, request):
+    def test_arith_series_with_array(self, data, all_arithmetic_operators):
         opname = all_arithmetic_operators
+        series_array_exc = None
         if data.dtype.numpy_dtype == object and opname not in ["__add__", "__radd__"]:
-            mark = pytest.mark.xfail(reason="Fails for object dtype")
-            request.node.add_marker(mark)
+            series_array_exc = TypeError
+        self.series_array_exc = series_array_exc
         super().test_arith_series_with_array(data, all_arithmetic_operators)
 
-    @skip_nested
-    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
+        opname = all_arithmetic_operators
+        frame_scalar_exc = None
+        if data.dtype.numpy_dtype == object:
+            if opname in ["__mul__", "__rmul__"]:
+                mark = pytest.mark.xfail(
+                    reason="the Series.combine step raises but not the Series method."
+                )
+                request.node.add_marker(mark)
+            frame_scalar_exc = TypeError
+        self.frame_scalar_exc = frame_scalar_exc
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
+    def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
+        if ser.dtype.kind == "O":
+            return op_name in ["sum", "min", "max", "any", "all"]
+        return True
 
-class TestPrinting(BaseNumPyTests, base.BasePrintingTests):
-    pass
-
-
-class TestNumericReduce(BaseNumPyTests, base.BaseNumericReduceTests):
-    def check_reduce(self, s, op_name, skipna):
-        result = getattr(s, op_name)(skipna=skipna)
+    def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
+        res_op = getattr(ser, op_name)
         # avoid coercing int -> float. Just cast to the actual numpy type.
-        expected = getattr(s.astype(s.dtype._dtype), op_name)(skipna=skipna)
+        # error: Item "ExtensionDtype" of "dtype[Any] | ExtensionDtype" has
+        # no attribute "numpy_dtype"
+        cmp_dtype = ser.dtype.numpy_dtype  # type: ignore[union-attr]
+        alt = ser.astype(cmp_dtype)
+        exp_op = getattr(alt, op_name)
+        if op_name == "count":
+            result = res_op()
+            expected = exp_op()
+        else:
+            result = res_op(skipna=skipna)
+            expected = exp_op(skipna=skipna)
         tm.assert_almost_equal(result, expected)
 
+    @pytest.mark.skip("TODO: tests not written yet")
     @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series(self, data, all_boolean_reductions, skipna):
-        super().test_reduce_series(data, all_boolean_reductions, skipna)
+    def test_reduce_frame(self, data, all_numeric_reductions, skipna):
+        pass
 
-
-@skip_nested
-class TestBooleanReduce(BaseNumPyTests, base.BaseBooleanReduceTests):
-    pass
-
-
-class TestMissing(BaseNumPyTests, base.BaseMissingTests):
     @skip_nested
     def test_fillna_series(self, data_missing):
         # Non-scalar "scalar" values.
@@ -339,23 +327,6 @@ class TestMissing(BaseNumPyTests, base.BaseMissingTests):
         # Non-scalar "scalar" values.
         super().test_fillna_frame(data_missing)
 
-
-class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
-    @pytest.mark.parametrize(
-        "in_frame",
-        [
-            True,
-            pytest.param(
-                False,
-                marks=pytest.mark.xfail(reason="PandasArray inconsistently extracted"),
-            ),
-        ],
-    )
-    def test_concat(self, data, in_frame):
-        super().test_concat(data, in_frame)
-
-
-class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
     @skip_nested
     def test_setitem_invalid(self, data, invalid_scalar):
         # object dtype can hold anything, so doesn't raise
@@ -379,7 +350,7 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
         # Failed: DID NOT RAISE <class 'ValueError'>
         super().test_setitem_scalar_key_sequence_raise(data)
 
-    # TODO: there is some issue with PandasArray, therefore,
+    # TODO: there is some issue with NumpyExtensionArray, therefore,
     #   skip the setitem test for now, and fix it later (GH 31446)
 
     @skip_nested
@@ -393,9 +364,6 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
     )
     def test_setitem_mask(self, data, mask, box_in_series):
         super().test_setitem_mask(data, mask, box_in_series)
-
-    def test_setitem_mask_raises(self, data, box_in_series):
-        super().test_setitem_mask_raises(data, box_in_series)
 
     @skip_nested
     @pytest.mark.parametrize(
@@ -437,18 +405,22 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
         key = full_indexer(df)
         result.loc[key, "data"] = df["data"]
 
-        # base class method has expected = df; PandasArray behaves oddly because
+        # base class method has expected = df; NumpyExtensionArray behaves oddly because
         #  we patch _typ for these tests.
         if data.dtype.numpy_dtype != object:
             if not isinstance(key, slice) or key != slice(None):
                 expected = pd.DataFrame({"data": data.to_numpy()})
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_column_type=False)
+
+    @pytest.mark.xfail(reason="NumpyEADtype is unpacked")
+    def test_index_from_listlike_with_dtype(self, data):
+        super().test_index_from_listlike_with_dtype(data)
+
+    @skip_nested
+    @pytest.mark.parametrize("engine", ["c", "python"])
+    def test_EA_types(self, engine, data, request):
+        super().test_EA_types(engine, data, request)
 
 
-@skip_nested
-class TestParsing(BaseNumPyTests, base.BaseParsingTests):
-    pass
-
-
-class Test2DCompat(BaseNumPyTests, base.NDArrayBacked2DTests):
+class Test2DCompat(base.NDArrayBacked2DTests):
     pass

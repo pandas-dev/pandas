@@ -24,7 +24,7 @@ objects.
    :template: autosummary/class_without_autosummary.rst
 
    api.extensions.ExtensionArray
-   arrays.PandasArray
+   arrays.NumpyExtensionArray
 
 .. We need this autosummary so that methods and attributes are generated.
 .. Separate block, since they aren't classes.
@@ -32,11 +32,15 @@ objects.
    .. autosummary::
       :toctree: api/
 
+      api.extensions.ExtensionArray._accumulate
       api.extensions.ExtensionArray._concat_same_type
+      api.extensions.ExtensionArray._explode
       api.extensions.ExtensionArray._formatter
       api.extensions.ExtensionArray._from_factorized
       api.extensions.ExtensionArray._from_sequence
       api.extensions.ExtensionArray._from_sequence_of_strings
+      api.extensions.ExtensionArray._hash_pandas_object
+      api.extensions.ExtensionArray._pad_or_backfill
       api.extensions.ExtensionArray._reduce
       api.extensions.ExtensionArray._values_for_argsort
       api.extensions.ExtensionArray._values_for_factorize
@@ -45,10 +49,12 @@ objects.
       api.extensions.ExtensionArray.copy
       api.extensions.ExtensionArray.view
       api.extensions.ExtensionArray.dropna
+      api.extensions.ExtensionArray.duplicated
       api.extensions.ExtensionArray.equals
       api.extensions.ExtensionArray.factorize
       api.extensions.ExtensionArray.fillna
       api.extensions.ExtensionArray.insert
+      api.extensions.ExtensionArray.interpolate
       api.extensions.ExtensionArray.isin
       api.extensions.ExtensionArray.isna
       api.extensions.ExtensionArray.ravel

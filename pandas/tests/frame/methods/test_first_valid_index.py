@@ -6,10 +6,10 @@ import pytest
 
 from pandas import (
     DataFrame,
+    Index,
     Series,
     date_range,
 )
-import pandas._testing as tm
 
 
 class TestFirstValidIndex:
@@ -45,11 +45,12 @@ class TestFirstValidIndex:
         assert expected_first == df.first_valid_index()
         assert expected_last == df.last_valid_index()
 
-    @pytest.mark.parametrize("index_func", [tm.makeStringIndex, tm.makeDateIndex])
-    def test_first_last_valid(self, index_func):
-        N = 30
-        index = index_func(N)
-        mat = np.random.randn(N)
+    @pytest.mark.parametrize(
+        "index",
+        [Index([str(i) for i in range(20)]), date_range("2020-01-01", periods=20)],
+    )
+    def test_first_last_valid(self, index):
+        mat = np.random.default_rng(2).standard_normal(len(index))
         mat[:5] = np.nan
         mat[-5:] = np.nan
 
@@ -61,10 +62,12 @@ class TestFirstValidIndex:
         assert ser.first_valid_index() == frame.index[5]
         assert ser.last_valid_index() == frame.index[-6]
 
-    @pytest.mark.parametrize("index_func", [tm.makeStringIndex, tm.makeDateIndex])
-    def test_first_last_valid_all_nan(self, index_func):
+    @pytest.mark.parametrize(
+        "index",
+        [Index([str(i) for i in range(10)]), date_range("2020-01-01", periods=10)],
+    )
+    def test_first_last_valid_all_nan(self, index):
         # GH#17400: no valid entries
-        index = index_func(30)
         frame = DataFrame(np.nan, columns=["foo"], index=index)
 
         assert frame.last_valid_index() is None
@@ -73,22 +76,3 @@ class TestFirstValidIndex:
         ser = frame["foo"]
         assert ser.first_valid_index() is None
         assert ser.last_valid_index() is None
-
-    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
-    def test_first_last_valid_preserves_freq(self):
-        # GH#20499: its preserves freq with holes
-        index = date_range("20110101", periods=30, freq="B")
-        frame = DataFrame(np.nan, columns=["foo"], index=index)
-
-        frame.iloc[1] = 1
-        frame.iloc[-2] = 1
-        assert frame.first_valid_index() == frame.index[1]
-        assert frame.last_valid_index() == frame.index[-2]
-        assert frame.first_valid_index().freq == frame.index.freq
-        assert frame.last_valid_index().freq == frame.index.freq
-
-        ts = frame["foo"]
-        assert ts.first_valid_index() == ts.index[1]
-        assert ts.last_valid_index() == ts.index[-2]
-        assert ts.first_valid_index().freq == ts.index.freq
-        assert ts.last_valid_index().freq == ts.index.freq

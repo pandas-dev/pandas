@@ -170,6 +170,20 @@ class TestJSONNormalize:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_fields_list_type_normalize(self):
+        parse_metadata_fields_list_type = [
+            {"values": [1, 2, 3], "metadata": {"listdata": [1, 2]}}
+        ]
+        result = json_normalize(
+            parse_metadata_fields_list_type,
+            record_path=["values"],
+            meta=[["metadata", "listdata"]],
+        )
+        expected = DataFrame(
+            {0: [1, 2, 3], "metadata.listdata": [[1, 2], [1, 2], [1, 2]]}
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_empty_array(self):
         result = json_normalize([])
         expected = DataFrame()
@@ -186,7 +200,7 @@ class TestJSONNormalize:
     )
     def test_accepted_input(self, data, record_path, exception_type):
         if exception_type is not None:
-            with pytest.raises(exception_type, match=tm.EMPTY_STRING_PATTERN):
+            with pytest.raises(exception_type, match=""):
                 json_normalize(data, record_path=record_path)
         else:
             result = json_normalize(data, record_path=record_path)
@@ -250,7 +264,6 @@ class TestJSONNormalize:
         tm.assert_frame_equal(result, expected)
 
     def test_more_deeply_nested(self, deep_nested):
-
         result = json_normalize(
             deep_nested, ["states", "cities"], meta=["country", ["states", "name"]]
         )
@@ -398,7 +411,7 @@ class TestJSONNormalize:
     def test_non_ascii_key(self):
         testjson = (
             b'[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},'
-            + b'{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]'
+            b'{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]'
         ).decode("utf8")
 
         testdata = {
@@ -558,6 +571,14 @@ class TestJSONNormalize:
 
         result = json_normalize(generator_data())
         expected = DataFrame(state_data[0]["counties"])
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_top_column_with_leading_underscore(self):
+        # 49861
+        data = {"_id": {"a1": 10, "l2": {"l3": 0}}, "gg": 4}
+        result = json_normalize(data, sep="_")
+        expected = DataFrame([[4, 10, 0]], columns=["gg", "_id_a1", "_id_l2_l3"])
 
         tm.assert_frame_equal(result, expected)
 
@@ -863,13 +884,6 @@ class TestNestedToRecord:
         ]
         output = nested_to_record(input_data, max_level=max_level)
         assert output == expected
-
-    def test_deprecated_import(self):
-        with tm.assert_produces_warning(FutureWarning):
-            from pandas.io.json import json_normalize
-
-            recs = [{"a": 1, "b": 2, "c": 3}, {"a": 4, "b": 5, "c": 6}]
-            json_normalize(recs)
 
     def test_series_non_zero_index(self):
         # GH 19020

@@ -39,8 +39,10 @@ def test_groupby_fill_duplicate_column_names(func):
 def test_ffill_missing_arguments():
     # GH 14955
     df = DataFrame({"a": [1, 2], "b": [1, 1]})
-    with pytest.raises(ValueError, match="Must specify a fill"):
-        df.groupby("b").fillna()
+    msg = "DataFrameGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(ValueError, match="Must specify a fill"):
+            df.groupby("b").fillna()
 
 
 @pytest.mark.parametrize(
@@ -50,13 +52,14 @@ def test_fillna_with_string_dtype(method, expected):
     # GH 40250
     df = DataFrame({"a": pd.array([None, "a", None], dtype="string"), "b": [0, 0, 0]})
     grp = df.groupby("b")
-    result = grp.fillna(method=method)
+    msg = "DataFrameGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = grp.fillna(method=method)
     expected = DataFrame({"a": pd.array(expected, dtype="string")})
     tm.assert_frame_equal(result, expected)
 
 
 def test_fill_consistency():
-
     # GH9221
     # pass thru keyword arguments to the generated wrapper
     # are set if the passed kw is None (only)
@@ -95,8 +98,13 @@ def test_fill_consistency():
         np.nan,
     ]
 
-    expected = df.groupby(level=0, axis=0).fillna(method="ffill")
-    result = df.T.groupby(level=0, axis=1).fillna(method="ffill").T
+    msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.groupby(level=0, axis=0).fillna(method="ffill")
+
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.T.groupby(level=0, axis=1).fillna(method="ffill").T
     tm.assert_frame_equal(result, expected)
 
 

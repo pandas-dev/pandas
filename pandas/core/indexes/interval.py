@@ -7,11 +7,10 @@ from operator import (
 )
 import textwrap
 from typing import (
+    TYPE_CHECKING,
     Any,
-    Hashable,
     Literal,
 )
-import warnings
 
 import numpy as np
 
@@ -23,52 +22,44 @@ from pandas._libs.interval import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
+    Period,
     Timedelta,
     Timestamp,
     to_offset,
-)
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    IntervalInclusiveType,
-    npt,
 )
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
-    deprecate_kwarg,
 )
-from pandas.util._exceptions import (
-    find_stack_level,
-    rewrite_exception,
-)
+from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
     maybe_box_datetimelike,
     maybe_downcast_numeric,
+    maybe_upcast_numeric_to_64bit,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
-    is_datetime64tz_dtype,
-    is_datetime_or_timedelta_dtype,
-    is_dtype_equal,
-    is_float,
     is_float_dtype,
     is_integer,
     is_integer_dtype,
-    is_interval_dtype,
     is_list_like,
     is_number,
     is_object_dtype,
     is_scalar,
+    pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import IntervalDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    IntervalDtype,
+)
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.algorithms import unique
+from pandas.core.arrays.datetimelike import validate_periods
 from pandas.core.arrays.interval import (
     IntervalArray,
     _interval_shared_docs,
@@ -96,6 +87,16 @@ from pandas.core.indexes.timedeltas import (
     timedelta_range,
 )
 
+if TYPE_CHECKING:
+    from collections.abc import Hashable
+
+    from pandas._typing import (
+        Dtype,
+        DtypeObj,
+        IntervalClosedType,
+        Self,
+        npt,
+    )
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 _index_doc_kwargs.update(
@@ -114,29 +115,35 @@ _index_doc_kwargs.update(
 
 
 def _get_next_label(label):
+    # see test_slice_locs_with_ints_and_floats_succeeds
     dtype = getattr(label, "dtype", type(label))
     if isinstance(label, (Timestamp, Timedelta)):
-        dtype = "datetime64"
-    if is_datetime_or_timedelta_dtype(dtype) or is_datetime64tz_dtype(dtype):
+        dtype = "datetime64[ns]"
+    dtype = pandas_dtype(dtype)
+
+    if lib.is_np_dtype(dtype, "mM") or isinstance(dtype, DatetimeTZDtype):
         return label + np.timedelta64(1, "ns")
     elif is_integer_dtype(dtype):
         return label + 1
     elif is_float_dtype(dtype):
-        return np.nextafter(label, np.infty)
+        return np.nextafter(label, np.inf)
     else:
         raise TypeError(f"cannot determine next label for type {repr(type(label))}")
 
 
 def _get_prev_label(label):
+    # see test_slice_locs_with_ints_and_floats_succeeds
     dtype = getattr(label, "dtype", type(label))
     if isinstance(label, (Timestamp, Timedelta)):
-        dtype = "datetime64"
-    if is_datetime_or_timedelta_dtype(dtype) or is_datetime64tz_dtype(dtype):
+        dtype = "datetime64[ns]"
+    dtype = pandas_dtype(dtype)
+
+    if lib.is_np_dtype(dtype, "mM") or isinstance(dtype, DatetimeTZDtype):
         return label - np.timedelta64(1, "ns")
     elif is_integer_dtype(dtype):
         return label - 1
     elif is_float_dtype(dtype):
-        return np.nextafter(label, -np.infty)
+        return np.nextafter(label, -np.inf)
     else:
         raise TypeError(f"cannot determine next label for type {repr(type(label))}")
 
@@ -153,9 +160,8 @@ def _new_IntervalIndex(cls, d):
     _interval_shared_docs["class"]
     % {
         "klass": "IntervalIndex",
-        "summary": "Immutable index of intervals that are inclusive on the same side.",
+        "summary": "Immutable index of intervals that are closed on the same side.",
         "name": _index_doc_kwargs["name"],
-        "versionadded": "0.20.0",
         "extra_attributes": "is_overlapping\nvalues\n",
         "extra_methods": "",
         "examples": textwrap.dedent(
@@ -165,7 +171,7 @@ def _new_IntervalIndex(cls, d):
     A new ``IntervalIndex`` is typically constructed using
     :func:`interval_range`:
 
-    >>> pd.interval_range(start=0, end=5, inclusive="right")
+    >>> pd.interval_range(start=0, end=5)
     IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]],
                   dtype='interval[int64, right]')
 
@@ -179,7 +185,7 @@ def _new_IntervalIndex(cls, d):
         ),
     }
 )
-@inherit_names(["set_closed", "set_inclusive", "to_tuples"], IntervalArray, wrap=True)
+@inherit_names(["set_closed", "to_tuples"], IntervalArray, wrap=True)
 @inherit_names(
     [
         "__array__",
@@ -193,12 +199,12 @@ def _new_IntervalIndex(cls, d):
     ],
     IntervalArray,
 )
-@inherit_names(["is_non_overlapping_monotonic", "inclusive"], IntervalArray, cache=True)
+@inherit_names(["is_non_overlapping_monotonic", "closed"], IntervalArray, cache=True)
 class IntervalIndex(ExtensionIndex):
     _typ = "intervalindex"
 
     # annotate properties pinned via inherit_names
-    inclusive: IntervalInclusiveType
+    closed: IntervalClosedType
     is_non_overlapping_monotonic: bool
     closed_left: bool
     closed_right: bool
@@ -213,23 +219,21 @@ class IntervalIndex(ExtensionIndex):
     # --------------------------------------------------------------------
     # Constructors
 
-    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def __new__(
         cls,
         data,
-        inclusive: IntervalInclusiveType | None = None,
+        closed: IntervalClosedType | None = None,
         dtype: Dtype | None = None,
         copy: bool = False,
-        name: Hashable = None,
+        name: Hashable | None = None,
         verify_integrity: bool = True,
-    ) -> IntervalIndex:
-
+    ) -> Self:
         name = maybe_extract_name(name, data, cls)
 
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray(
                 data,
-                inclusive=inclusive,
+                closed=closed,
                 copy=copy,
                 dtype=dtype,
                 verify_integrity=verify_integrity,
@@ -237,47 +241,38 @@ class IntervalIndex(ExtensionIndex):
 
         return cls._simple_new(array, name)
 
-    @property
-    def closed(self):
-        warnings.warn(
-            "Attribute `closed` is deprecated in favor of `inclusive`.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.inclusive
-
     @classmethod
     @Appender(
         _interval_shared_docs["from_breaks"]
         % {
             "klass": "IntervalIndex",
+            "name": textwrap.dedent(
+                """
+             name : str, optional
+                  Name of the resulting IntervalIndex."""
+            ),
             "examples": textwrap.dedent(
                 """\
         Examples
         --------
-        >>> pd.IntervalIndex.from_breaks([0, 1, 2, 3], "right")
+        >>> pd.IntervalIndex.from_breaks([0, 1, 2, 3])
         IntervalIndex([(0, 1], (1, 2], (2, 3]],
                       dtype='interval[int64, right]')
         """
             ),
         }
     )
-    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def from_breaks(
         cls,
         breaks,
-        inclusive: IntervalInclusiveType | None = None,
-        name: Hashable = None,
+        closed: IntervalClosedType | None = "right",
+        name: Hashable | None = None,
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalIndex:
-
-        if inclusive is None:
-            inclusive = "right"
-
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray.from_breaks(
-                breaks, inclusive=inclusive, copy=copy, dtype=dtype
+                breaks, closed=closed, copy=copy, dtype=dtype
             )
         return cls._simple_new(array, name=name)
 
@@ -286,34 +281,34 @@ class IntervalIndex(ExtensionIndex):
         _interval_shared_docs["from_arrays"]
         % {
             "klass": "IntervalIndex",
+            "name": textwrap.dedent(
+                """
+             name : str, optional
+                  Name of the resulting IntervalIndex."""
+            ),
             "examples": textwrap.dedent(
                 """\
         Examples
         --------
-        >>> pd.IntervalIndex.from_arrays([0, 1, 2], [1, 2, 3], "right")
+        >>> pd.IntervalIndex.from_arrays([0, 1, 2], [1, 2, 3])
         IntervalIndex([(0, 1], (1, 2], (2, 3]],
                       dtype='interval[int64, right]')
         """
             ),
         }
     )
-    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def from_arrays(
         cls,
         left,
         right,
-        inclusive: IntervalInclusiveType | None = None,
-        name: Hashable = None,
+        closed: IntervalClosedType = "right",
+        name: Hashable | None = None,
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalIndex:
-
-        if inclusive is None:
-            inclusive = "right"
-
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray.from_arrays(
-                left, right, inclusive, copy=copy, dtype=dtype
+                left, right, closed, copy=copy, dtype=dtype
             )
         return cls._simple_new(array, name=name)
 
@@ -322,34 +317,32 @@ class IntervalIndex(ExtensionIndex):
         _interval_shared_docs["from_tuples"]
         % {
             "klass": "IntervalIndex",
+            "name": textwrap.dedent(
+                """
+             name : str, optional
+                  Name of the resulting IntervalIndex."""
+            ),
             "examples": textwrap.dedent(
                 """\
         Examples
         --------
-        >>> pd.IntervalIndex.from_tuples([(0, 1), (1, 2)], "right")
+        >>> pd.IntervalIndex.from_tuples([(0, 1), (1, 2)])
         IntervalIndex([(0, 1], (1, 2]],
                        dtype='interval[int64, right]')
         """
             ),
         }
     )
-    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def from_tuples(
         cls,
         data,
-        inclusive: IntervalInclusiveType | None = None,
-        name: Hashable = None,
+        closed: IntervalClosedType = "right",
+        name: Hashable | None = None,
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalIndex:
-
-        if inclusive is None:
-            inclusive = "right"
-
         with rewrite_exception("IntervalArray", cls.__name__):
-            arr = IntervalArray.from_tuples(
-                data, inclusive=inclusive, copy=copy, dtype=dtype
-            )
+            arr = IntervalArray.from_tuples(data, closed=closed, copy=copy, dtype=dtype)
         return cls._simple_new(arr, name=name)
 
     # --------------------------------------------------------------------
@@ -357,9 +350,12 @@ class IntervalIndex(ExtensionIndex):
     # "Union[IndexEngine, ExtensionEngine]" in supertype "Index"
     @cache_readonly
     def _engine(self) -> IntervalTree:  # type: ignore[override]
+        # IntervalTree does not supports numpy array unless they are 64 bit
         left = self._maybe_convert_i8(self.left)
+        left = maybe_upcast_numeric_to_64bit(left)
         right = self._maybe_convert_i8(self.right)
-        return IntervalTree(left, right, inclusive=self.inclusive)
+        right = maybe_upcast_numeric_to_64bit(right)
+        return IntervalTree(left, right, closed=self.closed)
 
     def __contains__(self, key: Any) -> bool:
         """
@@ -386,6 +382,13 @@ class IntervalIndex(ExtensionIndex):
         except KeyError:
             return False
 
+    def _getitem_slice(self, slobj: slice) -> IntervalIndex:
+        """
+        Fastpath for __getitem__ when we know we have a slice.
+        """
+        res = self._data[slobj]
+        return type(self)._simple_new(res, name=self._name)
+
     @cache_readonly
     def _multiindex(self) -> MultiIndex:
         return MultiIndex.from_arrays([self.left, self.right], names=["left", "right"])
@@ -394,7 +397,7 @@ class IntervalIndex(ExtensionIndex):
         d = {
             "left": self.left,
             "right": self.right,
-            "inclusive": self.inclusive,
+            "closed": self.closed,
             "name": self.name,
         }
         return _new_IntervalIndex, (type(self), d), None
@@ -404,7 +407,8 @@ class IntervalIndex(ExtensionIndex):
         """Return a string of the type inferred from the values"""
         return "interval"
 
-    @Appender(Index.memory_usage.__doc__)
+    # Cannot determine type of "memory_usage"
+    @Appender(Index.memory_usage.__doc__)  # type: ignore[has-type]
     def memory_usage(self, deep: bool = False) -> int:
         # we don't use an explicit engine
         # so return the bytes here
@@ -449,7 +453,7 @@ class IntervalIndex(ExtensionIndex):
         """
         Return True if the IntervalIndex has overlapping intervals, else False.
 
-        Two intervals overlap if they share a common point, including inclusive
+        Two intervals overlap if they share a common point, including closed
         endpoints. Intervals that only have an open endpoint in common do not
         overlap.
 
@@ -466,16 +470,16 @@ class IntervalIndex(ExtensionIndex):
 
         Examples
         --------
-        >>> index = pd.IntervalIndex.from_tuples([(0, 2), (1, 3), (4, 5)], "right")
+        >>> index = pd.IntervalIndex.from_tuples([(0, 2), (1, 3), (4, 5)])
         >>> index
         IntervalIndex([(0, 2], (1, 3], (4, 5]],
               dtype='interval[int64, right]')
         >>> index.is_overlapping
         True
 
-        Intervals that share inclusive endpoints overlap:
+        Intervals that share closed endpoints overlap:
 
-        >>> index = pd.interval_range(0, 3, inclusive='both')
+        >>> index = pd.interval_range(0, 3, closed='both')
         >>> index
         IntervalIndex([[0, 1], [1, 2], [2, 3]],
               dtype='interval[int64, both]')
@@ -484,7 +488,7 @@ class IntervalIndex(ExtensionIndex):
 
         Intervals that only have an open endpoint in common do not overlap:
 
-        >>> index = pd.interval_range(0, 3, inclusive='left')
+        >>> index = pd.interval_range(0, 3, closed='left')
         >>> index
         IntervalIndex([[0, 1), [1, 2), [2, 3)],
               dtype='interval[int64, left]')
@@ -512,7 +516,8 @@ class IntervalIndex(ExtensionIndex):
         -------
         bool
         """
-        if is_interval_dtype(key) or isinstance(key, Interval):
+        key_dtype = getattr(key, "dtype", None)
+        if isinstance(key_dtype, IntervalDtype) or isinstance(key, Interval):
             return self._needs_i8_conversion(key.left)
 
         i8_types = (Timestamp, Timedelta, DatetimeIndex, TimedeltaIndex)
@@ -533,33 +538,34 @@ class IntervalIndex(ExtensionIndex):
         -------
         scalar or list-like
             The original key if no conversion occurred, int if converted scalar,
-            Int64Index if converted list-like.
+            Index with an int64 dtype if converted list-like.
         """
-        original = key
         if is_list_like(key):
             key = ensure_index(key)
+            key = maybe_upcast_numeric_to_64bit(key)
 
         if not self._needs_i8_conversion(key):
-            return original
+            return key
 
         scalar = is_scalar(key)
-        if is_interval_dtype(key) or isinstance(key, Interval):
+        key_dtype = getattr(key, "dtype", None)
+        if isinstance(key_dtype, IntervalDtype) or isinstance(key, Interval):
             # convert left/right and reconstruct
             left = self._maybe_convert_i8(key.left)
             right = self._maybe_convert_i8(key.right)
             constructor = Interval if scalar else IntervalIndex.from_arrays
             # error: "object" not callable
             return constructor(
-                left, right, inclusive=self.inclusive
+                left, right, closed=self.closed
             )  # type: ignore[operator]
 
         if scalar:
             # Timestamp/Timedelta
-            key_dtype, key_i8 = infer_dtype_from_scalar(key, pandas_dtype=True)
-            if lib.is_period(key):
+            key_dtype, key_i8 = infer_dtype_from_scalar(key)
+            if isinstance(key, Period):
                 key_i8 = key.ordinal
             elif isinstance(key_i8, Timestamp):
-                key_i8 = key_i8.value
+                key_i8 = key_i8._value
             elif isinstance(key_i8, (np.datetime64, np.timedelta64)):
                 key_i8 = key_i8.view("i8")
         else:
@@ -575,7 +581,7 @@ class IntervalIndex(ExtensionIndex):
         # ExtensionDtype]" has no attribute "subtype"
         subtype = self.dtype.subtype  # type: ignore[union-attr]
 
-        if not is_dtype_equal(subtype, key_dtype):
+        if subtype != key_dtype:
             raise ValueError(
                 f"Cannot index an IntervalIndex of subtype {subtype} with "
                 f"values of dtype {key_dtype}"
@@ -612,17 +618,13 @@ class IntervalIndex(ExtensionIndex):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def get_loc(
-        self, key, method: str | None = None, tolerance=None
-    ) -> int | slice | np.ndarray:
+    def get_loc(self, key) -> int | slice | np.ndarray:
         """
         Get integer location, slice or boolean mask for requested label.
 
         Parameters
         ----------
         key : label
-        method : {None}, optional
-            * default: matches where the label is within an interval only.
 
         Returns
         -------
@@ -631,7 +633,7 @@ class IntervalIndex(ExtensionIndex):
         Examples
         --------
         >>> i1, i2 = pd.Interval(0, 1), pd.Interval(1, 2)
-        >>> index = pd.IntervalIndex([i1, i2], "right")
+        >>> index = pd.IntervalIndex([i1, i2])
         >>> index.get_loc(1)
         0
 
@@ -644,20 +646,19 @@ class IntervalIndex(ExtensionIndex):
         relevant intervals.
 
         >>> i3 = pd.Interval(0, 2)
-        >>> overlapping_index = pd.IntervalIndex([i1, i2, i3], "right")
+        >>> overlapping_index = pd.IntervalIndex([i1, i2, i3])
         >>> overlapping_index.get_loc(0.5)
         array([ True, False,  True])
 
         Only exact matches will be returned if an interval is provided.
 
-        >>> index.get_loc(pd.Interval(0, 1, "right"))
+        >>> index.get_loc(pd.Interval(0, 1))
         0
         """
-        self._check_indexing_method(method)
         self._check_indexing_error(key)
 
         if isinstance(key, Interval):
-            if self.inclusive != key.inclusive:
+            if self.closed != key.closed:
                 raise KeyError(key)
             mask = (self.left == key.left) & (self.right == key.right)
         elif is_valid_na_for_dtype(key, self.dtype):
@@ -675,7 +676,7 @@ class IntervalIndex(ExtensionIndex):
         matches = mask.sum()
         if matches == 0:
             raise KeyError(key)
-        elif matches == 1:
+        if matches == 1:
             return mask.argmax()
 
         res = lib.maybe_booleans_to_slice(mask.view("u1"))
@@ -691,7 +692,6 @@ class IntervalIndex(ExtensionIndex):
         limit: int | None = None,
         tolerance: Any | None = None,
     ) -> npt.NDArray[np.intp]:
-
         if isinstance(target, IntervalIndex):
             # We only get here with not self.is_overlapping
             # -> at most one match per interval in target
@@ -718,7 +718,7 @@ class IntervalIndex(ExtensionIndex):
         target = ensure_index(target)
 
         if not self._should_compare(target) and not self._should_partial_index(target):
-            # e.g. IntervalIndex with different inclusive or incompatible subtype
+            # e.g. IntervalIndex with different closed or incompatible subtype
             #  -> no matches
             return self._get_indexer_non_comparable(target, None, unique=False)
 
@@ -794,19 +794,19 @@ class IntervalIndex(ExtensionIndex):
         "cannot handle overlapping indices; use IntervalIndex.get_indexer_non_unique"
     )
 
-    def _convert_slice_indexer(self, key: slice, kind: str, is_frame: bool = False):
+    def _convert_slice_indexer(self, key: slice, kind: Literal["loc", "getitem"]):
         if not (key.step is None or key.step == 1):
             # GH#31658 if label-based, we require step == 1,
             #  if positional, we disallow float start/stop
             msg = "label-based slicing with step!=1 is not supported for IntervalIndex"
             if kind == "loc":
                 raise ValueError(msg)
-            elif kind == "getitem":
+            if kind == "getitem":
                 if not is_valid_positional_slice(key):
                     # i.e. this cannot be interpreted as a positional slice
                     raise ValueError(msg)
 
-        return super()._convert_slice_indexer(key, kind, is_frame=is_frame)
+        return super()._convert_slice_indexer(key, kind)
 
     @cache_readonly
     def _should_fallback_to_positional(self) -> bool:
@@ -814,10 +814,9 @@ class IntervalIndex(ExtensionIndex):
         #  positional in this case
         # error: Item "ExtensionDtype"/"dtype[Any]" of "Union[dtype[Any],
         # ExtensionDtype]" has no attribute "subtype"
-        return self.dtype.subtype.kind in ["m", "M"]  # type: ignore[union-attr]
+        return self.dtype.subtype.kind in "mM"  # type: ignore[union-attr]
 
-    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
-        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
+    def _maybe_cast_slice_bound(self, label, side: str):
         return getattr(self, side)._maybe_cast_slice_bound(label, side)
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
@@ -845,32 +844,13 @@ class IntervalIndex(ExtensionIndex):
         return Index(self._data.length, copy=False)
 
     # --------------------------------------------------------------------
-    # Rendering Methods
-    # __repr__ associated methods are based on MultiIndex
-
-    def _format_with_header(self, header: list[str], na_rep: str) -> list[str]:
-        # matches base class except for whitespace padding
-        return header + list(self._format_native_types(na_rep=na_rep))
-
-    def _format_native_types(
-        self, *, na_rep="NaN", quoting=None, **kwargs
-    ) -> npt.NDArray[np.object_]:
-        # GH 28210: use base method but with different default na_rep
-        return super()._format_native_types(na_rep=na_rep, quoting=quoting, **kwargs)
-
-    def _format_data(self, name=None) -> str:
-        # TODO: integrate with categorical and make generic
-        # name argument is unused here; just for compat with base / categorical
-        return self._data._format_data() + "," + self._format_space()
-
-    # --------------------------------------------------------------------
     # Set Operations
 
     def _intersection(self, other, sort):
         """
         intersection specialized to the case with matching dtypes.
         """
-        # For IntervalIndex we also know other.inclusive == self.inclusive
+        # For IntervalIndex we also know other.closed == self.closed
         if self.left.is_unique and self.right.is_unique:
             taken = self._intersection_unique(other)
         elif other.left.is_unique and other.right.is_unique and self.isna().sum() <= 1:
@@ -982,14 +962,13 @@ def _is_type_compatible(a, b) -> bool:
     )
 
 
-@deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
 def interval_range(
     start=None,
     end=None,
     periods=None,
     freq=None,
-    name: Hashable = None,
-    inclusive: IntervalInclusiveType | None = None,
+    name: Hashable | None = None,
+    closed: IntervalClosedType = "right",
 ) -> IntervalIndex:
     """
     Return a fixed frequency IntervalIndex.
@@ -1002,23 +981,15 @@ def interval_range(
         Right bound for generating intervals.
     periods : int, default None
         Number of periods to generate.
-    freq : numeric, str, or DateOffset, default None
+    freq : numeric, str, Timedelta, datetime.timedelta, or DateOffset, default None
         The length of each interval. Must be consistent with the type of start
         and end, e.g. 2 for numeric, or '5H' for datetime-like.  Default is 1
         for numeric and 'D' for datetime-like.
     name : str, default None
         Name of the resulting IntervalIndex.
-    inclusive : {"both", "neither", "left", "right"}, default "both"
-        Include boundaries; Whether to set each bound as inclusive or not.
-
-        .. versionadded:: 1.5.0
     closed : {'left', 'right', 'both', 'neither'}, default 'right'
         Whether the intervals are closed on the left-side, right-side, both
         or neither.
-
-        .. deprecated:: 1.5.0
-           Argument `closed` has been deprecated to standardize boundary inputs.
-           Use `inclusive` instead, to set each bound as closed or open.
 
     Returns
     -------
@@ -1026,7 +997,7 @@ def interval_range(
 
     See Also
     --------
-    IntervalIndex : An Index of intervals that are all inclusive on the same side.
+    IntervalIndex : An Index of intervals that are all closed on the same side.
 
     Notes
     -----
@@ -1042,23 +1013,24 @@ def interval_range(
     --------
     Numeric ``start`` and  ``end`` is supported.
 
-    >>> pd.interval_range(start=0, end=5, inclusive="right")
+    >>> pd.interval_range(start=0, end=5)
     IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]],
                   dtype='interval[int64, right]')
 
     Additionally, datetime-like input is also supported.
 
     >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
-    ...                   end=pd.Timestamp('2017-01-04'), inclusive="right")
-    IntervalIndex([(2017-01-01, 2017-01-02], (2017-01-02, 2017-01-03],
-                   (2017-01-03, 2017-01-04]],
+    ...                   end=pd.Timestamp('2017-01-04'))
+    IntervalIndex([(2017-01-01 00:00:00, 2017-01-02 00:00:00],
+                   (2017-01-02 00:00:00, 2017-01-03 00:00:00],
+                   (2017-01-03 00:00:00, 2017-01-04 00:00:00]],
                   dtype='interval[datetime64[ns], right]')
 
     The ``freq`` parameter specifies the frequency between the left and right.
     endpoints of the individual intervals within the ``IntervalIndex``.  For
     numeric ``start`` and ``end``, the frequency must also be numeric.
 
-    >>> pd.interval_range(start=0, periods=4, freq=1.5, inclusive="right")
+    >>> pd.interval_range(start=0, periods=4, freq=1.5)
     IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]],
                   dtype='interval[float64, right]')
 
@@ -1066,28 +1038,26 @@ def interval_range(
     convertible to a DateOffset.
 
     >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
-    ...                   periods=3, freq='MS', inclusive="right")
-    IntervalIndex([(2017-01-01, 2017-02-01], (2017-02-01, 2017-03-01],
-                   (2017-03-01, 2017-04-01]],
+    ...                   periods=3, freq='MS')
+    IntervalIndex([(2017-01-01 00:00:00, 2017-02-01 00:00:00],
+                   (2017-02-01 00:00:00, 2017-03-01 00:00:00],
+                   (2017-03-01 00:00:00, 2017-04-01 00:00:00]],
                   dtype='interval[datetime64[ns], right]')
 
     Specify ``start``, ``end``, and ``periods``; the frequency is generated
     automatically (linearly spaced).
 
-    >>> pd.interval_range(start=0, end=6, periods=4, inclusive="right")
+    >>> pd.interval_range(start=0, end=6, periods=4)
     IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]],
               dtype='interval[float64, right]')
 
-    The ``inclusive`` parameter specifies which endpoints of the individual
-    intervals within the ``IntervalIndex`` are inclusive.
+    The ``closed`` parameter specifies which endpoints of the individual
+    intervals within the ``IntervalIndex`` are closed.
 
-    >>> pd.interval_range(end=5, periods=4, inclusive='both')
+    >>> pd.interval_range(end=5, periods=4, closed='both')
     IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]],
                   dtype='interval[int64, both]')
     """
-    if inclusive is None:
-        inclusive = "right"
-
     start = maybe_box_datetimelike(start)
     end = maybe_box_datetimelike(end)
     endpoint = start if start is not None else end
@@ -1103,13 +1073,10 @@ def interval_range(
 
     if not _is_valid_endpoint(start):
         raise ValueError(f"start must be numeric or datetime-like, got {start}")
-    elif not _is_valid_endpoint(end):
+    if not _is_valid_endpoint(end):
         raise ValueError(f"end must be numeric or datetime-like, got {end}")
 
-    if is_float(periods):
-        periods = int(periods)
-    elif not is_integer(periods) and periods is not None:
-        raise TypeError(f"periods must be a number, got {periods}")
+    periods = validate_periods(periods)
 
     if freq is not None and not is_number(freq):
         try:
@@ -1136,23 +1103,29 @@ def interval_range(
     breaks: np.ndarray | TimedeltaIndex | DatetimeIndex
 
     if is_number(endpoint):
-        # force consistency between start/end/freq (lower end if freq skips it)
         if com.all_not_none(start, end, freq):
-            end -= (end - start) % freq
+            # 0.1 ensures we capture end
+            breaks = np.arange(start, end + (freq * 0.1), freq)
+        else:
+            # compute the period/start/end if unspecified (at most one)
+            if periods is None:
+                periods = int((end - start) // freq) + 1
+            elif start is None:
+                start = end - (periods - 1) * freq
+            elif end is None:
+                end = start + (periods - 1) * freq
 
-        # compute the period/start/end if unspecified (at most one)
-        if periods is None:
-            periods = int((end - start) // freq) + 1
-        elif start is None:
-            start = end - (periods - 1) * freq
-        elif end is None:
-            end = start + (periods - 1) * freq
-
-        breaks = np.linspace(start, end, periods)
+            breaks = np.linspace(start, end, periods)
         if all(is_integer(x) for x in com.not_none(start, end, freq)):
             # np.linspace always produces float output
 
-            breaks = maybe_downcast_numeric(breaks, np.dtype("int64"))
+            # error: Argument 1 to "maybe_downcast_numeric" has incompatible type
+            # "Union[ndarray[Any, Any], TimedeltaIndex, DatetimeIndex]";
+            # expected "ndarray[Any, Any]"  [
+            breaks = maybe_downcast_numeric(
+                breaks,  # type: ignore[arg-type]
+                np.dtype("int64"),
+            )
     else:
         # delegate to the appropriate range function
         if isinstance(endpoint, Timestamp):
@@ -1160,4 +1133,4 @@ def interval_range(
         else:
             breaks = timedelta_range(start=start, end=end, periods=periods, freq=freq)
 
-    return IntervalIndex.from_breaks(breaks, name=name, inclusive=inclusive)
+    return IntervalIndex.from_breaks(breaks, name=name, closed=closed)

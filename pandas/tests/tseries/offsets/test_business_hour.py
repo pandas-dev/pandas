@@ -25,37 +25,70 @@ from pandas import (
     _testing as tm,
     date_range,
 )
-from pandas.tests.tseries.offsets.common import (
-    Base,
-    assert_offset_equal,
-)
+from pandas.tests.tseries.offsets.common import assert_offset_equal
 
 
-class TestBusinessHour(Base):
-    _offset: type[BusinessHour] = BusinessHour
+@pytest.fixture
+def dt():
+    return datetime(2014, 7, 1, 10, 00)
 
-    def setup_method(self):
-        self.d = datetime(2014, 7, 1, 10, 00)
 
-        self.offset1 = BusinessHour()
-        self.offset2 = BusinessHour(n=3)
+@pytest.fixture
+def _offset():
+    return BusinessHour
 
-        self.offset3 = BusinessHour(n=-1)
-        self.offset4 = BusinessHour(n=-4)
 
-        from datetime import time as dt_time
+@pytest.fixture
+def offset1():
+    return BusinessHour()
 
-        self.offset5 = BusinessHour(start=dt_time(11, 0), end=dt_time(14, 30))
-        self.offset6 = BusinessHour(start="20:00", end="05:00")
-        self.offset7 = BusinessHour(n=-2, start=dt_time(21, 30), end=dt_time(6, 30))
-        self.offset8 = BusinessHour(start=["09:00", "13:00"], end=["12:00", "17:00"])
-        self.offset9 = BusinessHour(
-            n=3, start=["09:00", "22:00"], end=["13:00", "03:00"]
-        )
-        self.offset10 = BusinessHour(
-            n=-1, start=["23:00", "13:00"], end=["02:00", "17:00"]
-        )
 
+@pytest.fixture
+def offset2():
+    return BusinessHour(n=3)
+
+
+@pytest.fixture
+def offset3():
+    return BusinessHour(n=-1)
+
+
+@pytest.fixture
+def offset4():
+    return BusinessHour(n=-4)
+
+
+@pytest.fixture
+def offset5():
+    return BusinessHour(start=dt_time(11, 0), end=dt_time(14, 30))
+
+
+@pytest.fixture
+def offset6():
+    return BusinessHour(start="20:00", end="05:00")
+
+
+@pytest.fixture
+def offset7():
+    return BusinessHour(n=-2, start=dt_time(21, 30), end=dt_time(6, 30))
+
+
+@pytest.fixture
+def offset8():
+    return BusinessHour(start=["09:00", "13:00"], end=["12:00", "17:00"])
+
+
+@pytest.fixture
+def offset9():
+    return BusinessHour(n=3, start=["09:00", "22:00"], end=["13:00", "03:00"])
+
+
+@pytest.fixture
+def offset10():
+    return BusinessHour(n=-1, start=["23:00", "13:00"], end=["02:00", "17:00"])
+
+
+class TestBusinessHour:
     @pytest.mark.parametrize(
         "start,end,match",
         [
@@ -96,37 +129,49 @@ class TestBusinessHour(Base):
         with pytest.raises(ValueError, match=match):
             BusinessHour(start=start, end=end)
 
-    def test_different_normalize_equals(self):
+    def test_different_normalize_equals(self, _offset):
         # GH#21404 changed __eq__ to return False when `normalize` does not match
-        offset = self._offset()
-        offset2 = self._offset(normalize=True)
+        offset = _offset()
+        offset2 = _offset(normalize=True)
         assert offset != offset2
 
-    def test_repr(self):
-        assert repr(self.offset1) == "<BusinessHour: BH=09:00-17:00>"
-        assert repr(self.offset2) == "<3 * BusinessHours: BH=09:00-17:00>"
-        assert repr(self.offset3) == "<-1 * BusinessHour: BH=09:00-17:00>"
-        assert repr(self.offset4) == "<-4 * BusinessHours: BH=09:00-17:00>"
+    def test_repr(
+        self,
+        offset1,
+        offset2,
+        offset3,
+        offset4,
+        offset5,
+        offset6,
+        offset7,
+        offset8,
+        offset9,
+        offset10,
+    ):
+        assert repr(offset1) == "<BusinessHour: bh=09:00-17:00>"
+        assert repr(offset2) == "<3 * BusinessHours: bh=09:00-17:00>"
+        assert repr(offset3) == "<-1 * BusinessHour: bh=09:00-17:00>"
+        assert repr(offset4) == "<-4 * BusinessHours: bh=09:00-17:00>"
 
-        assert repr(self.offset5) == "<BusinessHour: BH=11:00-14:30>"
-        assert repr(self.offset6) == "<BusinessHour: BH=20:00-05:00>"
-        assert repr(self.offset7) == "<-2 * BusinessHours: BH=21:30-06:30>"
-        assert repr(self.offset8) == "<BusinessHour: BH=09:00-12:00,13:00-17:00>"
-        assert repr(self.offset9) == "<3 * BusinessHours: BH=09:00-13:00,22:00-03:00>"
-        assert repr(self.offset10) == "<-1 * BusinessHour: BH=13:00-17:00,23:00-02:00>"
+        assert repr(offset5) == "<BusinessHour: bh=11:00-14:30>"
+        assert repr(offset6) == "<BusinessHour: bh=20:00-05:00>"
+        assert repr(offset7) == "<-2 * BusinessHours: bh=21:30-06:30>"
+        assert repr(offset8) == "<BusinessHour: bh=09:00-12:00,13:00-17:00>"
+        assert repr(offset9) == "<3 * BusinessHours: bh=09:00-13:00,22:00-03:00>"
+        assert repr(offset10) == "<-1 * BusinessHour: bh=13:00-17:00,23:00-02:00>"
 
-    def test_with_offset(self):
+    def test_with_offset(self, dt):
         expected = Timestamp("2014-07-01 13:00")
 
-        assert self.d + BusinessHour() * 3 == expected
-        assert self.d + BusinessHour(n=3) == expected
+        assert dt + BusinessHour() * 3 == expected
+        assert dt + BusinessHour(n=3) == expected
 
     @pytest.mark.parametrize(
         "offset_name",
         ["offset1", "offset2", "offset3", "offset4", "offset8", "offset9", "offset10"],
     )
-    def test_eq_attribute(self, offset_name):
-        offset = getattr(self, offset_name)
+    def test_eq_attribute(self, offset_name, request):
+        offset = request.getfixturevalue(offset_name)
         assert offset == offset
 
     @pytest.mark.parametrize(
@@ -164,91 +209,131 @@ class TestBusinessHour(Base):
         "offset_name",
         ["offset1", "offset2", "offset3", "offset4", "offset8", "offset9", "offset10"],
     )
-    def test_hash(self, offset_name):
-        offset = getattr(self, offset_name)
+    def test_hash(self, offset_name, request):
+        offset = request.getfixturevalue(offset_name)
         assert offset == offset
 
-    def test_call(self):
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#34171 DateOffset.__call__ is deprecated
-            assert self.offset1(self.d) == datetime(2014, 7, 1, 11)
-            assert self.offset2(self.d) == datetime(2014, 7, 1, 13)
-            assert self.offset3(self.d) == datetime(2014, 6, 30, 17)
-            assert self.offset4(self.d) == datetime(2014, 6, 30, 14)
-            assert self.offset8(self.d) == datetime(2014, 7, 1, 11)
-            assert self.offset9(self.d) == datetime(2014, 7, 1, 22)
-            assert self.offset10(self.d) == datetime(2014, 7, 1, 1)
+    def test_add_datetime(
+        self,
+        dt,
+        offset1,
+        offset2,
+        offset3,
+        offset4,
+        offset8,
+        offset9,
+        offset10,
+    ):
+        assert offset1 + dt == datetime(2014, 7, 1, 11)
+        assert offset2 + dt == datetime(2014, 7, 1, 13)
+        assert offset3 + dt == datetime(2014, 6, 30, 17)
+        assert offset4 + dt == datetime(2014, 6, 30, 14)
+        assert offset8 + dt == datetime(2014, 7, 1, 11)
+        assert offset9 + dt == datetime(2014, 7, 1, 22)
+        assert offset10 + dt == datetime(2014, 7, 1, 1)
 
-    def test_sub(self):
-        # we have to override test_sub here because self.offset2 is not
-        # defined as self._offset(2)
-        off = self.offset2
+    def test_sub(self, dt, offset2, _offset):
+        off = offset2
         msg = "Cannot subtract datetime from offset"
         with pytest.raises(TypeError, match=msg):
-            off - self.d
+            off - dt
         assert 2 * off - off == off
 
-        assert self.d - self.offset2 == self.d + self._offset(-3)
+        assert dt - offset2 == dt + _offset(-3)
 
-    def testRollback1(self):
-        assert self.offset1.rollback(self.d) == self.d
-        assert self.offset2.rollback(self.d) == self.d
-        assert self.offset3.rollback(self.d) == self.d
-        assert self.offset4.rollback(self.d) == self.d
-        assert self.offset5.rollback(self.d) == datetime(2014, 6, 30, 14, 30)
-        assert self.offset6.rollback(self.d) == datetime(2014, 7, 1, 5, 0)
-        assert self.offset7.rollback(self.d) == datetime(2014, 7, 1, 6, 30)
-        assert self.offset8.rollback(self.d) == self.d
-        assert self.offset9.rollback(self.d) == self.d
-        assert self.offset10.rollback(self.d) == datetime(2014, 7, 1, 2)
+    def test_multiply_by_zero(self, dt, offset1, offset2):
+        assert dt - 0 * offset1 == dt
+        assert dt + 0 * offset1 == dt
+        assert dt - 0 * offset2 == dt
+        assert dt + 0 * offset2 == dt
 
-        d = datetime(2014, 7, 1, 0)
-        assert self.offset1.rollback(d) == datetime(2014, 6, 30, 17)
-        assert self.offset2.rollback(d) == datetime(2014, 6, 30, 17)
-        assert self.offset3.rollback(d) == datetime(2014, 6, 30, 17)
-        assert self.offset4.rollback(d) == datetime(2014, 6, 30, 17)
-        assert self.offset5.rollback(d) == datetime(2014, 6, 30, 14, 30)
-        assert self.offset6.rollback(d) == d
-        assert self.offset7.rollback(d) == d
-        assert self.offset8.rollback(d) == datetime(2014, 6, 30, 17)
-        assert self.offset9.rollback(d) == d
-        assert self.offset10.rollback(d) == d
+    def testRollback1(
+        self,
+        dt,
+        _offset,
+        offset1,
+        offset2,
+        offset3,
+        offset4,
+        offset5,
+        offset6,
+        offset7,
+        offset8,
+        offset9,
+        offset10,
+    ):
+        assert offset1.rollback(dt) == dt
+        assert offset2.rollback(dt) == dt
+        assert offset3.rollback(dt) == dt
+        assert offset4.rollback(dt) == dt
+        assert offset5.rollback(dt) == datetime(2014, 6, 30, 14, 30)
+        assert offset6.rollback(dt) == datetime(2014, 7, 1, 5, 0)
+        assert offset7.rollback(dt) == datetime(2014, 7, 1, 6, 30)
+        assert offset8.rollback(dt) == dt
+        assert offset9.rollback(dt) == dt
+        assert offset10.rollback(dt) == datetime(2014, 7, 1, 2)
 
-        assert self._offset(5).rollback(self.d) == self.d
+        datet = datetime(2014, 7, 1, 0)
+        assert offset1.rollback(datet) == datetime(2014, 6, 30, 17)
+        assert offset2.rollback(datet) == datetime(2014, 6, 30, 17)
+        assert offset3.rollback(datet) == datetime(2014, 6, 30, 17)
+        assert offset4.rollback(datet) == datetime(2014, 6, 30, 17)
+        assert offset5.rollback(datet) == datetime(2014, 6, 30, 14, 30)
+        assert offset6.rollback(datet) == datet
+        assert offset7.rollback(datet) == datet
+        assert offset8.rollback(datet) == datetime(2014, 6, 30, 17)
+        assert offset9.rollback(datet) == datet
+        assert offset10.rollback(datet) == datet
 
-    def testRollback2(self):
-        assert self._offset(-3).rollback(datetime(2014, 7, 5, 15, 0)) == datetime(
+        assert _offset(5).rollback(dt) == dt
+
+    def testRollback2(self, _offset):
+        assert _offset(-3).rollback(datetime(2014, 7, 5, 15, 0)) == datetime(
             2014, 7, 4, 17, 0
         )
 
-    def testRollforward1(self):
-        assert self.offset1.rollforward(self.d) == self.d
-        assert self.offset2.rollforward(self.d) == self.d
-        assert self.offset3.rollforward(self.d) == self.d
-        assert self.offset4.rollforward(self.d) == self.d
-        assert self.offset5.rollforward(self.d) == datetime(2014, 7, 1, 11, 0)
-        assert self.offset6.rollforward(self.d) == datetime(2014, 7, 1, 20, 0)
-        assert self.offset7.rollforward(self.d) == datetime(2014, 7, 1, 21, 30)
-        assert self.offset8.rollforward(self.d) == self.d
-        assert self.offset9.rollforward(self.d) == self.d
-        assert self.offset10.rollforward(self.d) == datetime(2014, 7, 1, 13)
+    def testRollforward1(
+        self,
+        dt,
+        _offset,
+        offset1,
+        offset2,
+        offset3,
+        offset4,
+        offset5,
+        offset6,
+        offset7,
+        offset8,
+        offset9,
+        offset10,
+    ):
+        assert offset1.rollforward(dt) == dt
+        assert offset2.rollforward(dt) == dt
+        assert offset3.rollforward(dt) == dt
+        assert offset4.rollforward(dt) == dt
+        assert offset5.rollforward(dt) == datetime(2014, 7, 1, 11, 0)
+        assert offset6.rollforward(dt) == datetime(2014, 7, 1, 20, 0)
+        assert offset7.rollforward(dt) == datetime(2014, 7, 1, 21, 30)
+        assert offset8.rollforward(dt) == dt
+        assert offset9.rollforward(dt) == dt
+        assert offset10.rollforward(dt) == datetime(2014, 7, 1, 13)
 
-        d = datetime(2014, 7, 1, 0)
-        assert self.offset1.rollforward(d) == datetime(2014, 7, 1, 9)
-        assert self.offset2.rollforward(d) == datetime(2014, 7, 1, 9)
-        assert self.offset3.rollforward(d) == datetime(2014, 7, 1, 9)
-        assert self.offset4.rollforward(d) == datetime(2014, 7, 1, 9)
-        assert self.offset5.rollforward(d) == datetime(2014, 7, 1, 11)
-        assert self.offset6.rollforward(d) == d
-        assert self.offset7.rollforward(d) == d
-        assert self.offset8.rollforward(d) == datetime(2014, 7, 1, 9)
-        assert self.offset9.rollforward(d) == d
-        assert self.offset10.rollforward(d) == d
+        datet = datetime(2014, 7, 1, 0)
+        assert offset1.rollforward(datet) == datetime(2014, 7, 1, 9)
+        assert offset2.rollforward(datet) == datetime(2014, 7, 1, 9)
+        assert offset3.rollforward(datet) == datetime(2014, 7, 1, 9)
+        assert offset4.rollforward(datet) == datetime(2014, 7, 1, 9)
+        assert offset5.rollforward(datet) == datetime(2014, 7, 1, 11)
+        assert offset6.rollforward(datet) == datet
+        assert offset7.rollforward(datet) == datet
+        assert offset8.rollforward(datet) == datetime(2014, 7, 1, 9)
+        assert offset9.rollforward(datet) == datet
+        assert offset10.rollforward(datet) == datet
 
-        assert self._offset(5).rollforward(self.d) == self.d
+        assert _offset(5).rollforward(dt) == dt
 
-    def testRollforward2(self):
-        assert self._offset(-3).rollforward(datetime(2014, 7, 5, 16, 0)) == datetime(
+    def testRollforward2(self, _offset):
+        assert _offset(-3).rollforward(datetime(2014, 7, 5, 16, 0)) == datetime(
             2014, 7, 7, 9
         )
 
@@ -861,41 +946,16 @@ class TestBusinessHour(Base):
             for base, expected in cases.items():
                 assert_offset_equal(offset, base, expected)
 
-    def test_datetimeindex(self):
-        idx1 = date_range(start="2014-07-04 15:00", end="2014-07-08 10:00", freq="BH")
-        idx2 = date_range(start="2014-07-04 15:00", periods=12, freq="BH")
-        idx3 = date_range(end="2014-07-08 10:00", periods=12, freq="BH")
-        expected = DatetimeIndex(
-            [
-                "2014-07-04 15:00",
-                "2014-07-04 16:00",
-                "2014-07-07 09:00",
-                "2014-07-07 10:00",
-                "2014-07-07 11:00",
-                "2014-07-07 12:00",
-                "2014-07-07 13:00",
-                "2014-07-07 14:00",
-                "2014-07-07 15:00",
-                "2014-07-07 16:00",
-                "2014-07-08 09:00",
-                "2014-07-08 10:00",
-            ],
-            freq="BH",
-        )
-        for idx in [idx1, idx2, idx3]:
-            tm.assert_index_equal(idx, expected)
+    @pytest.mark.parametrize("td_unit", ["s", "ms", "us", "ns"])
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    def test_bday_ignores_timedeltas(self, unit, td_unit):
+        # GH#55608
+        idx = date_range("2010/02/01", "2010/02/10", freq="12h", unit=unit)
+        td = Timedelta(3, unit="h").as_unit(td_unit)
+        off = BDay(offset=td)
+        t1 = idx + off
 
-        idx1 = date_range(start="2014-07-04 15:45", end="2014-07-08 10:45", freq="BH")
-        idx2 = date_range(start="2014-07-04 15:45", periods=12, freq="BH")
-        idx3 = date_range(end="2014-07-08 10:45", periods=12, freq="BH")
-
-        expected = idx1
-        for idx in [idx1, idx2, idx3]:
-            tm.assert_index_equal(idx, expected)
-
-    def test_bday_ignores_timedeltas(self):
-        idx = date_range("2010/02/01", "2010/02/10", freq="12H")
-        t1 = idx + BDay(offset=Timedelta(3, unit="H"))
+        exp_unit = tm.get_finest_unit(td.unit, idx.unit)
 
         expected = DatetimeIndex(
             [
@@ -920,8 +980,21 @@ class TestBusinessHour(Base):
                 "2010-02-11 03:00:00",
             ],
             freq=None,
-        )
+        ).as_unit(exp_unit)
         tm.assert_index_equal(t1, expected)
+
+        # TODO(GH#55564): as_unit will be unnecessary
+        pointwise = DatetimeIndex([x + off for x in idx]).as_unit(exp_unit)
+        tm.assert_index_equal(pointwise, expected)
+
+    def test_add_bday_offset_nanos(self):
+        # GH#55608
+        idx = date_range("2010/02/01", "2010/02/10", freq="12h", unit="ns")
+        off = BDay(offset=Timedelta(3, unit="ns"))
+
+        result = idx + off
+        expected = DatetimeIndex([x + off for x in idx])
+        tm.assert_index_equal(result, expected)
 
 
 class TestOpeningTimes:

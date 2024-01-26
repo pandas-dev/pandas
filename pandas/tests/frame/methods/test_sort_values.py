@@ -1,5 +1,3 @@
-import random
-
 import numpy as np
 import pytest
 
@@ -12,14 +10,15 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
 
 class TestDataFrameSortValues:
-    def test_sort_values_sparse_no_warning(self):
+    @pytest.mark.parametrize("dtype", [np.uint8, bool])
+    def test_sort_values_sparse_no_warning(self, dtype):
         # GH#45618
-        # TODO(2.0): test will be unnecessary
         ser = pd.Series(Categorical(["a", "b", "a"], categories=["a", "b", "c"]))
-        df = pd.get_dummies(ser, sparse=True)
+        df = pd.get_dummies(ser, dtype=dtype, sparse=True)
 
         with tm.assert_produces_warning(None):
             # No warnings about constructing Index from SparseArray
@@ -96,7 +95,9 @@ class TestDataFrameSortValues:
 
     def test_sort_values_inplace(self):
         frame = DataFrame(
-            np.random.randn(4, 4), index=[1, 2, 3, 4], columns=["A", "B", "C", "D"]
+            np.random.default_rng(2).standard_normal((4, 4)),
+            index=[1, 2, 3, 4],
+            columns=["A", "B", "C", "D"],
         )
 
         sorted_df = frame.copy()
@@ -128,9 +129,11 @@ class TestDataFrameSortValues:
     def test_sort_values_multicolumn(self):
         A = np.arange(5).repeat(20)
         B = np.tile(np.arange(5), 20)
-        random.shuffle(A)
-        random.shuffle(B)
-        frame = DataFrame({"A": A, "B": B, "C": np.random.randn(100)})
+        np.random.default_rng(2).shuffle(A)
+        np.random.default_rng(2).shuffle(B)
+        frame = DataFrame(
+            {"A": A, "B": B, "C": np.random.default_rng(2).standard_normal(100)}
+        )
 
         result = frame.sort_values(by=["A", "B"])
         indexer = np.lexsort((frame["B"], frame["A"]))
@@ -291,7 +294,6 @@ class TestDataFrameSortValues:
         tm.assert_frame_equal(sorted_df, expected)
 
     def test_sort_values_datetimes(self):
-
         # GH#3461, argsort / lexsort differences for a datetime column
         df = DataFrame(
             ["a", "a", "a", "b", "c", "d", "e", "f", "g"],
@@ -329,22 +331,32 @@ class TestDataFrameSortValues:
         df2 = df.sort_values(by=["C", "B"])
         tm.assert_frame_equal(df1, df2)
 
-    def test_sort_values_frame_column_inplace_sort_exception(self, float_frame):
+    def test_sort_values_frame_column_inplace_sort_exception(
+        self, float_frame, using_copy_on_write
+    ):
         s = float_frame["A"]
-        with pytest.raises(ValueError, match="This Series is a view"):
+        float_frame_orig = float_frame.copy()
+        if using_copy_on_write:
+            # INFO(CoW) Series is a new object, so can be changed inplace
+            # without modifying original datafame
             s.sort_values(inplace=True)
+            tm.assert_series_equal(s, float_frame_orig["A"].sort_values())
+            # column in dataframe is not changed
+            tm.assert_frame_equal(float_frame, float_frame_orig)
+        else:
+            with pytest.raises(ValueError, match="This Series is a view"):
+                s.sort_values(inplace=True)
 
         cp = s.copy()
         cp.sort_values()  # it works!
 
     def test_sort_values_nat_values_in_int_column(self):
-
         # GH#14922: "sorting with large float and multiple columns incorrect"
 
         # cause was that the int64 value NaT was considered as "na". Which is
         # only correct for datetime64 columns.
 
-        int_values = (2, int(NaT.value))
+        int_values = (2, int(NaT._value))
         float_values = (2.0, -1.797693e308)
 
         df = DataFrame(
@@ -498,7 +510,6 @@ class TestDataFrameSortValues:
         tm.assert_frame_equal(result, expected)
 
     def test_sort_values_nat(self):
-
         # GH#16836
 
         d1 = [Timestamp(x) for x in ["2016-01-01", "2015-01-01", np.nan, "2016-01-01"]]
@@ -587,18 +598,26 @@ class TestDataFrameSortValues:
         result = expected.sort_values(["A", "date"])
         tm.assert_frame_equal(result, expected)
 
-    def test_sort_values_item_cache(self, using_array_manager):
+    def test_sort_values_item_cache(self, using_array_manager, using_copy_on_write):
         # previous behavior incorrect retained an invalid _item_cache entry
-        df = DataFrame(np.random.randn(4, 3), columns=["A", "B", "C"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 3)), columns=["A", "B", "C"]
+        )
         df["D"] = df["A"] * 2
         ser = df["A"]
         if not using_array_manager:
             assert len(df._mgr.blocks) == 2
 
         df.sort_values(by="A")
-        ser.values[0] = 99
 
-        assert df.iloc[0, 0] == df["A"][0]
+        if using_copy_on_write:
+            ser.iloc[0] = 99
+            assert df.iloc[0, 0] == df["A"][0]
+            assert df.iloc[0, 0] != 99
+        else:
+            ser.values[0] = 99
+            assert df.iloc[0, 0] == df["A"][0]
+            assert df.iloc[0, 0] == 99
 
     def test_sort_values_reshaping(self):
         # GH 39426
@@ -608,11 +627,28 @@ class TestDataFrameSortValues:
 
         tm.assert_frame_equal(df, expected)
 
+    def test_sort_values_no_by_inplace(self):
+        # GH#50643
+        df = DataFrame({"a": [1, 2, 3]})
+        expected = df.copy()
+        result = df.sort_values(by=[], inplace=True)
+        tm.assert_frame_equal(df, expected)
+        assert result is None
+
+    def test_sort_values_no_op_reset_index(self):
+        # GH#52553
+        df = DataFrame({"A": [10, 20], "B": [1, 5]}, index=[2, 3])
+        result = df.sort_values(by="A", ignore_index=True)
+        expected = DataFrame({"A": [10, 20], "B": [1, 5]})
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameSortKey:  # test key sorting (issue 27237)
     def test_sort_values_inplace_key(self, sort_by_key):
         frame = DataFrame(
-            np.random.randn(4, 4), index=[1, 2, 3, 4], columns=["A", "B", "C", "D"]
+            np.random.default_rng(2).standard_normal((4, 4)),
+            index=[1, 2, 3, 4],
+            columns=["A", "B", "C", "D"],
         )
 
         sorted_df = frame.copy()
@@ -820,9 +856,22 @@ def ascending(request):
 
 class TestSortValuesLevelAsStr:
     def test_sort_index_level_and_column_label(
-        self, df_none, df_idx, sort_names, ascending
+        self, df_none, df_idx, sort_names, ascending, request
     ):
         # GH#14353
+        if (
+            Version(np.__version__) >= Version("1.25")
+            and request.node.callspec.id == "df_idx0-inner-True"
+        ):
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason=(
+                        "pandas default unstable sorting of duplicates"
+                        "issue with numpy>=1.25 with AVX instructions"
+                    ),
+                    strict=False,
+                )
+            )
 
         # Get index levels from df_idx
         levels = df_idx.index.names
@@ -838,7 +887,7 @@ class TestSortValuesLevelAsStr:
         tm.assert_frame_equal(result, expected)
 
     def test_sort_column_level_and_index_label(
-        self, df_none, df_idx, sort_names, ascending
+        self, df_none, df_idx, sort_names, ascending, request
     ):
         # GH#14353
 
@@ -857,18 +906,17 @@ class TestSortValuesLevelAsStr:
         # Compute result by transposing and sorting on axis=1.
         result = df_idx.T.sort_values(by=sort_names, ascending=ascending, axis=1)
 
-        tm.assert_frame_equal(result, expected)
+        if Version(np.__version__) >= Version("1.25"):
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason=(
+                        "pandas default unstable sorting of duplicates"
+                        "issue with numpy>=1.25 with AVX instructions"
+                    ),
+                    strict=False,
+                )
+            )
 
-    def test_sort_values_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"In a future version of pandas all arguments of DataFrame\.sort_values "
-            r"except for the argument 'by' will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.sort_values("a", 0)
-        expected = DataFrame({"a": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)
 
     def test_sort_values_validate_ascending_for_value_error(self):

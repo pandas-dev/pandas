@@ -15,7 +15,7 @@ import pandas._testing as tm
 class TestDataFrameMissingData:
     def test_dropEmptyRows(self, float_frame):
         N = len(float_frame.index)
-        mat = np.random.randn(N)
+        mat = np.random.default_rng(2).standard_normal(N)
         mat[:5] = np.nan
 
         frame = DataFrame({"foo": mat}, index=float_frame.index)
@@ -39,7 +39,7 @@ class TestDataFrameMissingData:
 
     def test_dropIncompleteRows(self, float_frame):
         N = len(float_frame.index)
-        mat = np.random.randn(N)
+        mat = np.random.default_rng(2).standard_normal(N)
         mat[:5] = np.nan
 
         frame = DataFrame({"foo": mat}, index=float_frame.index)
@@ -65,7 +65,7 @@ class TestDataFrameMissingData:
         assert return_value is None
 
     def test_dropna(self):
-        df = DataFrame(np.random.randn(6, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((6, 4)))
         df.iloc[:2, 2] = np.nan
 
         dropped = df.dropna(axis=1)
@@ -211,18 +211,16 @@ class TestDataFrameMissingData:
     def test_dropna_with_duplicate_columns(self):
         df = DataFrame(
             {
-                "A": np.random.randn(5),
-                "B": np.random.randn(5),
-                "C": np.random.randn(5),
+                "A": np.random.default_rng(2).standard_normal(5),
+                "B": np.random.default_rng(2).standard_normal(5),
+                "C": np.random.default_rng(2).standard_normal(5),
                 "D": ["a", "b", "c", "d", "e"],
             }
         )
         df.iloc[2, [0, 1, 2]] = np.nan
         df.iloc[0, 0] = np.nan
         df.iloc[1, 1] = np.nan
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.iloc[:, 3] = np.nan
+        df.iloc[:, 3] = np.nan
         expected = df.dropna(subset=["A", "B", "C"], how="all")
         expected.columns = ["A", "A", "B", "C"]
 
@@ -231,21 +229,9 @@ class TestDataFrameMissingData:
         result = df.dropna(subset=["A", "C"], how="all")
         tm.assert_frame_equal(result, expected)
 
-    def test_dropna_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"In a future version of pandas all arguments of DataFrame\.dropna "
-            r"will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.dropna(1)
-        expected = DataFrame({"a": [1, 2, 3]})
-        tm.assert_frame_equal(result, expected)
-
     def test_set_single_column_subset(self):
         # GH 41021
-        df = DataFrame({"A": [1, 2, 3], "B": list("abc"), "C": [4, np.NaN, 5]})
+        df = DataFrame({"A": [1, 2, 3], "B": list("abc"), "C": [4, np.nan, 5]})
         expected = DataFrame(
             {"A": [1, 3], "B": list("ac"), "C": [4.0, 5.0]}, index=[0, 2]
         )
@@ -262,7 +248,7 @@ class TestDataFrameMissingData:
 
     def test_subset_is_nparray(self):
         # GH 41021
-        df = DataFrame({"A": [1, 2, np.NaN], "B": list("abc"), "C": [4, np.NaN, 5]})
+        df = DataFrame({"A": [1, 2, np.nan], "B": list("abc"), "C": [4, np.nan, 5]})
         expected = DataFrame({"A": [1.0], "B": ["a"], "C": [4.0]})
         result = df.dropna(subset=np.array(["A", "C"]))
         tm.assert_frame_equal(result, expected)
@@ -286,3 +272,14 @@ class TestDataFrameMissingData:
 
         with pytest.raises(TypeError, match=msg):
             df.dropna(how=None, thresh=None)
+
+    @pytest.mark.parametrize("val", [1, 1.5])
+    def test_dropna_ignore_index(self, val):
+        # GH#31725
+        df = DataFrame({"a": [1, 2, val]}, index=[3, 2, 1])
+        result = df.dropna(ignore_index=True)
+        expected = DataFrame({"a": [1, 2, val]})
+        tm.assert_frame_equal(result, expected)
+
+        df.dropna(ignore_index=True, inplace=True)
+        tm.assert_frame_equal(df, expected)

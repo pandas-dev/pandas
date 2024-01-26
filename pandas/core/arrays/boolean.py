@@ -3,6 +3,7 @@ from __future__ import annotations
 import numbers
 from typing import (
     TYPE_CHECKING,
+    ClassVar,
     cast,
 )
 
@@ -12,20 +13,13 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    type_t,
-)
 
-from pandas.core.dtypes.common import (
-    is_list_like,
-    is_numeric_dtype,
-)
+from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
+from pandas.core.array_algos import masked_accumulations
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
@@ -34,15 +28,19 @@ from pandas.core.arrays.masked import (
 if TYPE_CHECKING:
     import pyarrow
 
-    from pandas._typing import npt
+    from pandas._typing import (
+        Dtype,
+        DtypeObj,
+        Self,
+        npt,
+        type_t,
+    )
 
 
 @register_extension_dtype
 class BooleanDtype(BaseMaskedDtype):
     """
     Extension dtype for boolean data.
-
-    .. versionadded:: 1.0.0
 
     .. warning::
 
@@ -63,7 +61,7 @@ class BooleanDtype(BaseMaskedDtype):
     BooleanDtype
     """
 
-    name = "boolean"
+    name: ClassVar[str] = "boolean"
 
     # https://github.com/python/mypy/issues/4125
     # error: Signature of "type" incompatible with supertype "BaseMaskedDtype"
@@ -109,14 +107,22 @@ class BooleanDtype(BaseMaskedDtype):
         """
         import pyarrow
 
-        if array.type != pyarrow.bool_():
+        if array.type != pyarrow.bool_() and not pyarrow.types.is_null(array.type):
             raise TypeError(f"Expected array of boolean type, got {array.type} instead")
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
+            length = len(array)
         else:
             # pyarrow.ChunkedArray
             chunks = array.chunks
+            length = array.length()
+
+        if pyarrow.types.is_null(array.type):
+            mask = np.ones(length, dtype=bool)
+            # No need to init data, since all null
+            data = np.empty(length, dtype=bool)
+            return BooleanArray(data, mask)
 
         results = []
         for arr in chunks:
@@ -173,7 +179,7 @@ def coerce_to_array(
     if isinstance(values, np.ndarray) and values.dtype == np.bool_:
         if copy:
             values = values.copy()
-    elif isinstance(values, np.ndarray) and is_numeric_dtype(values.dtype):
+    elif isinstance(values, np.ndarray) and values.dtype.kind in "iufcb":
         mask_values = isna(values)
 
         values_bool = np.zeros(len(values), dtype=bool)
@@ -245,8 +251,6 @@ class BooleanArray(BaseMaskedArray):
     :func:`pandas.array` specifying ``dtype="boolean"`` (see examples
     below).
 
-    .. versionadded:: 1.0.0
-
     .. warning::
 
        BooleanArray is considered experimental. The implementation and
@@ -287,10 +291,18 @@ class BooleanArray(BaseMaskedArray):
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = False
     # Fill values used for any/all
-    _truthy_value = True
-    _falsey_value = False
+    # Incompatible types in assignment (expression has type "bool", base class
+    # "BaseMaskedArray" defined the type as "<typing special form>")
+    _truthy_value = True  # type: ignore[assignment]
+    _falsey_value = False  # type: ignore[assignment]
     _TRUE_VALUES = {"True", "TRUE", "true", "1", "1.0"}
     _FALSE_VALUES = {"False", "FALSE", "false", "0", "0.0"}
+
+    @classmethod
+    def _simple_new(cls, values: np.ndarray, mask: npt.NDArray[np.bool_]) -> Self:
+        result = super()._simple_new(values, mask)
+        result._dtype = BooleanDtype()
+        return result
 
     def __init__(
         self, values: np.ndarray, mask: np.ndarray, copy: bool = False
@@ -320,17 +332,17 @@ class BooleanArray(BaseMaskedArray):
         true_values_union = cls._TRUE_VALUES.union(true_values or [])
         false_values_union = cls._FALSE_VALUES.union(false_values or [])
 
-        def map_string(s):
-            if isna(s):
-                return s
-            elif s in true_values_union:
+        def map_string(s) -> bool:
+            if s in true_values_union:
                 return True
             elif s in false_values_union:
                 return False
             else:
                 raise ValueError(f"{s} cannot be cast to bool")
 
-        scalars = [map_string(x) for x in strings]
+        scalars = np.array(strings, dtype=object)
+        mask = isna(scalars)
+        scalars[~mask] = list(map(map_string, scalars[~mask]))
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
@@ -344,7 +356,6 @@ class BooleanArray(BaseMaskedArray):
         return coerce_to_array(value, copy=copy)
 
     def _logical_method(self, other, op):
-
         assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
         other_is_scalar = lib.is_scalar(other)
         mask = None
@@ -378,3 +389,19 @@ class BooleanArray(BaseMaskedArray):
 
         # i.e. BooleanArray
         return self._maybe_mask_result(result, mask)
+
+    def _accumulate(
+        self, name: str, *, skipna: bool = True, **kwargs
+    ) -> BaseMaskedArray:
+        data = self._data
+        mask = self._mask
+        if name in ("cummin", "cummax"):
+            op = getattr(masked_accumulations, name)
+            data, mask = op(data, mask, skipna=skipna, **kwargs)
+            return self._simple_new(data, mask)
+        else:
+            from pandas.core.arrays import IntegerArray
+
+            return IntegerArray(data.astype(int), mask)._accumulate(
+                name, skipna=skipna, **kwargs
+            )

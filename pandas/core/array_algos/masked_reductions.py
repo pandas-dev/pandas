@@ -4,27 +4,37 @@ for missing values.
 """
 from __future__ import annotations
 
-from typing import Callable
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+)
+import warnings
 
 import numpy as np
 
 from pandas._libs import missing as libmissing
-from pandas._typing import npt
 
 from pandas.core.nanops import check_below_min_count
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        AxisInt,
+        npt,
+    )
 
-def _sumprod(
+
+def _reductions(
     func: Callable,
     values: np.ndarray,
     mask: npt.NDArray[np.bool_],
     *,
     skipna: bool = True,
     min_count: int = 0,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
+    **kwargs,
 ):
     """
-    Sum or product for 1D masked array.
+    Sum, mean or product for 1D masked array.
 
     Parameters
     ----------
@@ -42,17 +52,17 @@ def _sumprod(
     axis : int, optional, default None
     """
     if not skipna:
-        if mask.any(axis=axis) or check_below_min_count(values.shape, None, min_count):
+        if mask.any() or check_below_min_count(values.shape, None, min_count):
             return libmissing.NA
         else:
-            return func(values, axis=axis)
+            return func(values, axis=axis, **kwargs)
     else:
         if check_below_min_count(values.shape, mask, min_count) and (
             axis is None or values.ndim == 1
         ):
             return libmissing.NA
 
-        return func(values, where=~mask, axis=axis)
+        return func(values, where=~mask, axis=axis, **kwargs)
 
 
 def sum(
@@ -61,9 +71,9 @@ def sum(
     *,
     skipna: bool = True,
     min_count: int = 0,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
 ):
-    return _sumprod(
+    return _reductions(
         np.sum, values=values, mask=mask, skipna=skipna, min_count=min_count, axis=axis
     )
 
@@ -74,9 +84,9 @@ def prod(
     *,
     skipna: bool = True,
     min_count: int = 0,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
 ):
-    return _sumprod(
+    return _reductions(
         np.prod, values=values, mask=mask, skipna=skipna, min_count=min_count, axis=axis
     )
 
@@ -87,7 +97,7 @@ def _minmax(
     mask: npt.NDArray[np.bool_],
     *,
     skipna: bool = True,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
 ):
     """
     Reduction for 1D masked array.
@@ -109,11 +119,11 @@ def _minmax(
             # min/max with empty array raise in numpy, pandas returns NA
             return libmissing.NA
         else:
-            return func(values)
+            return func(values, axis=axis)
     else:
         subset = values[~mask]
         if subset.size:
-            return func(subset)
+            return func(subset, axis=axis)
         else:
             # min/max with empty array raise in numpy, pandas returns NA
             return libmissing.NA
@@ -124,7 +134,7 @@ def min(
     mask: npt.NDArray[np.bool_],
     *,
     skipna: bool = True,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
 ):
     return _minmax(np.min, values=values, mask=mask, skipna=skipna, axis=axis)
 
@@ -134,16 +144,54 @@ def max(
     mask: npt.NDArray[np.bool_],
     *,
     skipna: bool = True,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
 ):
     return _minmax(np.max, values=values, mask=mask, skipna=skipna, axis=axis)
 
 
-# TODO: axis kwarg
-def mean(values: np.ndarray, mask: npt.NDArray[np.bool_], skipna: bool = True):
+def mean(
+    values: np.ndarray,
+    mask: npt.NDArray[np.bool_],
+    *,
+    skipna: bool = True,
+    axis: AxisInt | None = None,
+):
     if not values.size or mask.all():
         return libmissing.NA
-    _sum = _sumprod(np.sum, values=values, mask=mask, skipna=skipna)
-    count = np.count_nonzero(~mask)
-    mean_value = _sum / count
-    return mean_value
+    return _reductions(np.mean, values=values, mask=mask, skipna=skipna, axis=axis)
+
+
+def var(
+    values: np.ndarray,
+    mask: npt.NDArray[np.bool_],
+    *,
+    skipna: bool = True,
+    axis: AxisInt | None = None,
+    ddof: int = 1,
+):
+    if not values.size or mask.all():
+        return libmissing.NA
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        return _reductions(
+            np.var, values=values, mask=mask, skipna=skipna, axis=axis, ddof=ddof
+        )
+
+
+def std(
+    values: np.ndarray,
+    mask: npt.NDArray[np.bool_],
+    *,
+    skipna: bool = True,
+    axis: AxisInt | None = None,
+    ddof: int = 1,
+):
+    if not values.size or mask.all():
+        return libmissing.NA
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        return _reductions(
+            np.std, values=values, mask=mask, skipna=skipna, axis=axis, ddof=ddof
+        )

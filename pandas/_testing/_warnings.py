@@ -4,15 +4,23 @@ from contextlib import (
     contextmanager,
     nullcontext,
 )
+import inspect
 import re
 import sys
 from typing import (
+    TYPE_CHECKING,
     Literal,
-    Sequence,
-    Type,
     cast,
 )
 import warnings
+
+from pandas.compat import PY311
+
+if TYPE_CHECKING:
+    from collections.abc import (
+        Generator,
+        Sequence,
+    )
 
 
 @contextmanager
@@ -24,7 +32,7 @@ def assert_produces_warning(
     check_stacklevel: bool = True,
     raise_on_extra_warnings: bool = True,
     match: str | None = None,
-):
+) -> Generator[list[warnings.WarningMessage], None, None]:
     """
     Context manager for running code expected to either raise a specific warning,
     multiple specific warnings, or not raise any warnings. Verifies that the code
@@ -86,22 +94,22 @@ def assert_produces_warning(
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter(filter_level)
-        yield w
-
-        if expected_warning:
-            expected_warning = cast(Type[Warning], expected_warning)
-            _assert_caught_expected_warning(
-                caught_warnings=w,
-                expected_warning=expected_warning,
-                match=match,
-                check_stacklevel=check_stacklevel,
-            )
-
-        if raise_on_extra_warnings:
-            _assert_caught_no_extra_warnings(
-                caught_warnings=w,
-                expected_warning=expected_warning,
-            )
+        try:
+            yield w
+        finally:
+            if expected_warning:
+                expected_warning = cast(type[Warning], expected_warning)
+                _assert_caught_expected_warning(
+                    caught_warnings=w,
+                    expected_warning=expected_warning,
+                    match=match,
+                    check_stacklevel=check_stacklevel,
+                )
+            if raise_on_extra_warnings:
+                _assert_caught_no_extra_warnings(
+                    caught_warnings=w,
+                    expected_warning=expected_warning,
+                )
 
 
 def maybe_produces_warning(warning: type[Warning], condition: bool, **kwargs):
@@ -130,9 +138,7 @@ def _assert_caught_expected_warning(
         if issubclass(actual_warning.category, expected_warning):
             saw_warning = True
 
-            if check_stacklevel and issubclass(
-                actual_warning.category, (FutureWarning, DeprecationWarning)
-            ):
+            if check_stacklevel:
                 _assert_raised_with_correct_stacklevel(actual_warning)
 
             if match is not None:
@@ -169,18 +175,18 @@ def _assert_caught_no_extra_warnings(
             if actual_warning.category == ResourceWarning:
                 # GH 44732: Don't make the CI flaky by filtering SSL-related
                 # ResourceWarning from dependencies
-                unclosed_ssl = (
-                    "unclosed transport <asyncio.sslproto._SSLProtocolTransport",
-                    "unclosed <ssl.SSLSocket",
-                )
-                if any(msg in str(actual_warning.message) for msg in unclosed_ssl):
+                if "unclosed <ssl.SSLSocket" in str(actual_warning.message):
                     continue
                 # GH 44844: Matplotlib leaves font files open during the entire process
                 # upon import. Don't make CI flaky if ResourceWarning raised
                 # due to these open files.
                 if any("matplotlib" in mod for mod in sys.modules):
                     continue
-
+            if PY311 and actual_warning.category == EncodingWarning:
+                # EncodingWarnings are checked in the CI
+                # pyproject.toml errors on EncodingWarnings in pandas
+                # Ignore EncodingWarnings from other libraries
+                continue
             extra_warnings.append(
                 (
                     actual_warning.category.__name__,
@@ -201,22 +207,21 @@ def _is_unexpected_warning(
     """Check if the actual warning issued is unexpected."""
     if actual_warning and not expected_warning:
         return True
-    expected_warning = cast(Type[Warning], expected_warning)
+    expected_warning = cast(type[Warning], expected_warning)
     return bool(not issubclass(actual_warning.category, expected_warning))
 
 
 def _assert_raised_with_correct_stacklevel(
     actual_warning: warnings.WarningMessage,
 ) -> None:
-    from inspect import (
-        getframeinfo,
-        stack,
-    )
-
-    caller = getframeinfo(stack()[4][0])
+    # https://stackoverflow.com/questions/17407119/python-inspect-stack-is-slow
+    frame = inspect.currentframe()
+    for _ in range(4):
+        frame = frame.f_back  # type: ignore[union-attr]
+    caller_filename = inspect.getfile(frame)  # type: ignore[arg-type]
     msg = (
         "Warning not set with correct stacklevel. "
         f"File where warning is raised: {actual_warning.filename} != "
-        f"{caller.filename}. Warning message: {actual_warning.message}"
+        f"{caller_filename}. Warning message: {actual_warning.message}"
     )
-    assert actual_warning.filename == caller.filename, msg
+    assert actual_warning.filename == caller_filename, msg

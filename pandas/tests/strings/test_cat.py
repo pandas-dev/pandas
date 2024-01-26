@@ -1,5 +1,9 @@
+import re
+
 import numpy as np
 import pytest
+
+import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
@@ -8,8 +12,8 @@ from pandas import (
     Series,
     _testing as tm,
     concat,
+    option_context,
 )
-from pandas.tests.strings.test_strings import assert_series_or_index_equal
 
 
 @pytest.mark.parametrize("other", [None, Series, Index])
@@ -25,45 +29,49 @@ def test_str_cat_name(index_or_series, other):
     assert result.name == "name"
 
 
-def test_str_cat(index_or_series):
-    box = index_or_series
-    # test_cat above tests "str_cat" from ndarray;
-    # here testing "str.cat" from Series/Index to ndarray/list
-    s = box(["a", "a", "b", "b", "c", np.nan])
+@pytest.mark.parametrize(
+    "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
+)
+def test_str_cat(index_or_series, infer_string):
+    with option_context("future.infer_string", infer_string):
+        box = index_or_series
+        # test_cat above tests "str_cat" from ndarray;
+        # here testing "str.cat" from Series/Index to ndarray/list
+        s = box(["a", "a", "b", "b", "c", np.nan])
 
-    # single array
-    result = s.str.cat()
-    expected = "aabbc"
-    assert result == expected
+        # single array
+        result = s.str.cat()
+        expected = "aabbc"
+        assert result == expected
 
-    result = s.str.cat(na_rep="-")
-    expected = "aabbc-"
-    assert result == expected
+        result = s.str.cat(na_rep="-")
+        expected = "aabbc-"
+        assert result == expected
 
-    result = s.str.cat(sep="_", na_rep="NA")
-    expected = "a_a_b_b_c_NA"
-    assert result == expected
+        result = s.str.cat(sep="_", na_rep="NA")
+        expected = "a_a_b_b_c_NA"
+        assert result == expected
 
-    t = np.array(["a", np.nan, "b", "d", "foo", np.nan], dtype=object)
-    expected = box(["aa", "a-", "bb", "bd", "cfoo", "--"])
+        t = np.array(["a", np.nan, "b", "d", "foo", np.nan], dtype=object)
+        expected = box(["aa", "a-", "bb", "bd", "cfoo", "--"])
 
-    # Series/Index with array
-    result = s.str.cat(t, na_rep="-")
-    assert_series_or_index_equal(result, expected)
+        # Series/Index with array
+        result = s.str.cat(t, na_rep="-")
+        tm.assert_equal(result, expected)
 
-    # Series/Index with list
-    result = s.str.cat(list(t), na_rep="-")
-    assert_series_or_index_equal(result, expected)
+        # Series/Index with list
+        result = s.str.cat(list(t), na_rep="-")
+        tm.assert_equal(result, expected)
 
-    # errors for incorrect lengths
-    rgx = r"If `others` contains arrays or lists \(or other list-likes.*"
-    z = Series(["1", "2", "3"])
+        # errors for incorrect lengths
+        rgx = r"If `others` contains arrays or lists \(or other list-likes.*"
+        z = Series(["1", "2", "3"])
 
-    with pytest.raises(ValueError, match=rgx):
-        s.str.cat(z.values)
+        with pytest.raises(ValueError, match=rgx):
+            s.str.cat(z.values)
 
-    with pytest.raises(ValueError, match=rgx):
-        s.str.cat(list(z))
+        with pytest.raises(ValueError, match=rgx):
+            s.str.cat(list(z))
 
 
 def test_str_cat_raises_intuitive_error(index_or_series):
@@ -77,39 +85,65 @@ def test_str_cat_raises_intuitive_error(index_or_series):
         s.str.cat("    ")
 
 
+@pytest.mark.parametrize(
+    "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
+)
 @pytest.mark.parametrize("sep", ["", None])
 @pytest.mark.parametrize("dtype_target", ["object", "category"])
 @pytest.mark.parametrize("dtype_caller", ["object", "category"])
-def test_str_cat_categorical(index_or_series, dtype_caller, dtype_target, sep):
+def test_str_cat_categorical(
+    index_or_series, dtype_caller, dtype_target, sep, infer_string
+):
     box = index_or_series
 
-    s = Index(["a", "a", "b", "a"], dtype=dtype_caller)
-    s = s if box == Index else Series(s, index=s)
-    t = Index(["b", "a", "b", "c"], dtype=dtype_target)
+    with option_context("future.infer_string", infer_string):
+        s = Index(["a", "a", "b", "a"], dtype=dtype_caller)
+        s = s if box == Index else Series(s, index=s, dtype=s.dtype)
+        t = Index(["b", "a", "b", "c"], dtype=dtype_target)
 
-    expected = Index(["ab", "aa", "bb", "ac"])
-    expected = expected if box == Index else Series(expected, index=s)
+        expected = Index(
+            ["ab", "aa", "bb", "ac"], dtype=object if dtype_caller == "object" else None
+        )
+        expected = (
+            expected
+            if box == Index
+            else Series(
+                expected, index=Index(s, dtype=dtype_caller), dtype=expected.dtype
+            )
+        )
 
-    # Series/Index with unaligned Index -> t.values
-    result = s.str.cat(t.values, sep=sep)
-    assert_series_or_index_equal(result, expected)
+        # Series/Index with unaligned Index -> t.values
+        result = s.str.cat(t.values, sep=sep)
+        tm.assert_equal(result, expected)
 
-    # Series/Index with Series having matching Index
-    t = Series(t.values, index=s)
-    result = s.str.cat(t, sep=sep)
-    assert_series_or_index_equal(result, expected)
+        # Series/Index with Series having matching Index
+        t = Series(t.values, index=Index(s, dtype=dtype_caller))
+        result = s.str.cat(t, sep=sep)
+        tm.assert_equal(result, expected)
 
-    # Series/Index with Series.values
-    result = s.str.cat(t.values, sep=sep)
-    assert_series_or_index_equal(result, expected)
+        # Series/Index with Series.values
+        result = s.str.cat(t.values, sep=sep)
+        tm.assert_equal(result, expected)
 
-    # Series/Index with Series having different Index
-    t = Series(t.values, index=t.values)
-    expected = Index(["aa", "aa", "aa", "bb", "bb"])
-    expected = expected if box == Index else Series(expected, index=expected.str[:1])
+        # Series/Index with Series having different Index
+        t = Series(t.values, index=t.values)
+        expected = Index(
+            ["aa", "aa", "bb", "bb", "aa"],
+            dtype=object if dtype_caller == "object" else None,
+        )
+        dtype = object if dtype_caller == "object" else s.dtype.categories.dtype
+        expected = (
+            expected
+            if box == Index
+            else Series(
+                expected,
+                index=Index(expected.str[:1], dtype=dtype),
+                dtype=expected.dtype,
+            )
+        )
 
-    result = s.str.cat(t, sep=sep)
-    assert_series_or_index_equal(result, expected)
+        result = s.str.cat(t, sep=sep)
+        tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -147,37 +181,37 @@ def test_str_cat_mixed_inputs(index_or_series):
 
     # Series/Index with DataFrame
     result = s.str.cat(d)
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
     # Series/Index with two-dimensional ndarray
     result = s.str.cat(d.values)
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
     # Series/Index with list of Series
     result = s.str.cat([t, s])
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
     # Series/Index with mixed list of Series/array
     result = s.str.cat([t, s.values])
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
     # Series/Index with list of Series; different indexes
     t.index = ["b", "c", "d", "a"]
     expected = box(["aDa", "bAb", "cBc", "dCd"])
     expected = expected if box == Index else Series(expected.values, index=s.values)
     result = s.str.cat([t, s])
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
     # Series/Index with mixed list; different index
     result = s.str.cat([t, s.values])
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
     # Series/Index with DataFrame; different indexes
     d.index = ["b", "c", "d", "a"]
     expected = box(["aDd", "bAa", "cBb", "dCc"])
     expected = expected if box == Index else Series(expected.values, index=s.values)
     result = s.str.cat(d)
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
     # errors for incorrect lengths
     rgx = r"If `others` contains arrays or lists \(or other list-likes.*"
@@ -253,7 +287,7 @@ def test_str_cat_align_indexed(index_or_series, join):
         expected = Index(expected)
 
     result = s.str.cat(t, join=join, na_rep="-")
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize("join", ["left", "outer", "inner", "right"])
@@ -320,11 +354,12 @@ def test_str_cat_all_na(index_or_series, index_or_series2):
 
     # all-NA target
     if box == Series:
-        expected = Series([np.nan] * 4, index=s.index, dtype=object)
+        expected = Series([np.nan] * 4, index=s.index, dtype=s.dtype)
     else:  # box == Index
+        # TODO: Strimg option, this should return string dtype
         expected = Index([np.nan] * 4, dtype=object)
     result = s.str.cat(t, join="left")
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
     # all-NA caller (only for Series)
     if other == Series:
@@ -380,18 +415,13 @@ def test_cat_different_classes(klass):
 
 def test_cat_on_series_dot_str():
     # GH 28277
-    # Test future warning of `Series.str.__iter__`
     ps = Series(["AbC", "de", "FGHI", "j", "kLLLm"])
-    with tm.assert_produces_warning(FutureWarning):
-        ps.str.cat(others=ps.str)
-    # TODO(2.0): The following code can be uncommented
-    # when `Series.str.__iter__` is removed.
 
-    # message = re.escape(
-    #     "others must be Series, Index, DataFrame, np.ndarray "
-    #     "or list-like (either containing only strings or "
-    #     "containing only objects of type Series/Index/"
-    #     "np.ndarray[1-dim])"
-    # )
-    # with pytest.raises(TypeError, match=message):
-    #     ps.str.cat(others=ps.str)
+    message = re.escape(
+        "others must be Series, Index, DataFrame, np.ndarray "
+        "or list-like (either containing only strings or "
+        "containing only objects of type Series/Index/"
+        "np.ndarray[1-dim])"
+    )
+    with pytest.raises(TypeError, match=message):
+        ps.str.cat(others=ps.str)

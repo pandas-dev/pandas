@@ -1,4 +1,7 @@
-from textwrap import dedent
+from textwrap import (
+    dedent,
+    indent,
+)
 
 import numpy as np
 import pytest
@@ -12,8 +15,12 @@ from pandas import (
 jinja2 = pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler
 
-loader = jinja2.PackageLoader("pandas", "io/formats/templates")
-env = jinja2.Environment(loader=loader, trim_blocks=True)
+
+@pytest.fixture
+def env():
+    loader = jinja2.PackageLoader("pandas", "io/formats/templates")
+    env = jinja2.Environment(loader=loader, trim_blocks=True)
+    return env
 
 
 @pytest.fixture
@@ -28,19 +35,19 @@ def styler_mi():
 
 
 @pytest.fixture
-def tpl_style():
+def tpl_style(env):
     return env.get_template("html_style.tpl")
 
 
 @pytest.fixture
-def tpl_table():
+def tpl_table(env):
     return env.get_template("html_table.tpl")
 
 
 def test_html_template_extends_options():
     # make sure if templates are edited tests are updated as are setup fixtures
     # to understand the dependency
-    with open("pandas/io/formats/templates/html.tpl") as file:
+    with open("pandas/io/formats/templates/html.tpl", encoding="utf-8") as file:
         result = file.read()
     assert "{% include html_style_tpl %}" in result
     assert "{% include html_table_tpl %}" in result
@@ -82,11 +89,9 @@ def test_exclude_styles(styler):
 
 
 def test_w3_html_format(styler):
-    styler.set_uuid("").set_table_styles(
-        [{"selector": "th", "props": "att2:v2;"}]
-    ).applymap(lambda x: "att1:v1;").set_table_attributes(
-        'class="my-cls1" style="attr3:v3;"'
-    ).set_td_classes(
+    styler.set_uuid("").set_table_styles([{"selector": "th", "props": "att2:v2;"}]).map(
+        lambda x: "att1:v1;"
+    ).set_table_attributes('class="my-cls1" style="attr3:v3;"').set_td_classes(
         DataFrame(["my-cls2"], index=["a"], columns=["A"])
     ).format(
         "{:.1f}"
@@ -425,14 +430,14 @@ def test_sparse_options(sparse_index, sparse_columns):
 
 @pytest.mark.parametrize("index", [True, False])
 @pytest.mark.parametrize("columns", [True, False])
-def test_applymap_header_cell_ids(styler, index, columns):
+def test_map_header_cell_ids(styler, index, columns):
     # GH 41893
     func = lambda v: "attr: val;"
     styler.uuid, styler.cell_ids = "", False
     if index:
-        styler.applymap_index(func, axis="index")
+        styler.map_index(func, axis="index")
     if columns:
-        styler.applymap_index(func, axis="columns")
+        styler.map_index(func, axis="columns")
 
     result = styler.to_html()
 
@@ -490,9 +495,9 @@ def test_replaced_css_class_names():
     styler_mi.index.names = ["n1", "n2"]
     styler_mi.hide(styler_mi.index[1:], axis=0)
     styler_mi.hide(styler_mi.columns[1:], axis=1)
-    styler_mi.applymap_index(lambda v: "color: red;", axis=0)
-    styler_mi.applymap_index(lambda v: "color: green;", axis=1)
-    styler_mi.applymap(lambda v: "color: blue;")
+    styler_mi.map_index(lambda v: "color: red;", axis=0)
+    styler_mi.map_index(lambda v: "color: green;", axis=1)
+    styler_mi.map(lambda v: "color: blue;")
     expected = dedent(
         """\
     <style type="text/css">
@@ -542,7 +547,7 @@ def test_include_css_style_rules_only_for_visible_cells(styler_mi):
     # GH 43619
     result = (
         styler_mi.set_uuid("")
-        .applymap(lambda v: "color: blue;")
+        .map(lambda v: "color: blue;")
         .hide(styler_mi.data.columns[1:], axis="columns")
         .hide(styler_mi.data.index[1:], axis="index")
         .to_html()
@@ -563,7 +568,7 @@ def test_include_css_style_rules_only_for_visible_index_labels(styler_mi):
     # GH 43619
     result = (
         styler_mi.set_uuid("")
-        .applymap_index(lambda v: "color: blue;", axis="index")
+        .map_index(lambda v: "color: blue;", axis="index")
         .hide(styler_mi.data.columns, axis="columns")
         .hide(styler_mi.data.index[1:], axis="index")
         .to_html()
@@ -584,7 +589,7 @@ def test_include_css_style_rules_only_for_visible_column_labels(styler_mi):
     # GH 43619
     result = (
         styler_mi.set_uuid("")
-        .applymap_index(lambda v: "color: blue;", axis="columns")
+        .map_index(lambda v: "color: blue;", axis="columns")
         .hide(styler_mi.data.columns[1:], axis="columns")
         .hide(styler_mi.data.index, axis="index")
         .to_html()
@@ -802,7 +807,7 @@ def test_rendered_links(type, text, exp, found):
         df = DataFrame([0], index=[text])
         styler = df.style.format_index(hyperlinks="html")
 
-    rendered = '<a href="{0}" target="_blank">{0}</a>'.format(found)
+    rendered = f'<a href="{found}" target="_blank">{found}</a>'
     result = styler.to_html()
     assert (rendered in result) is exp
     assert (text in result) is not exp  # test conversion done when expected and not
@@ -810,6 +815,7 @@ def test_rendered_links(type, text, exp, found):
 
 def test_multiple_rendered_links():
     links = ("www.a.b", "http://a.c", "https://a.d", "ftp://a.e")
+    # pylint: disable-next=consider-using-f-string
     df = DataFrame(["text {} {} text {} {}".format(*links)])
     result = df.style.format(hyperlinks="html").to_html()
     href = '<a href="{0}" target="_blank">{0}</a>'
@@ -822,18 +828,182 @@ def test_concat(styler):
     other = styler.data.agg(["mean"]).style
     styler.concat(other).set_uuid("X")
     result = styler.to_html()
+    fp = "foot0_"
     expected = dedent(
-        """\
+        f"""\
     <tr>
       <th id="T_X_level0_row1" class="row_heading level0 row1" >b</th>
       <td id="T_X_row1_col0" class="data row1 col0" >2.690000</td>
     </tr>
     <tr>
-      <th id="T_X_level0_foot_row0" class="foot_row_heading level0 foot_row0" >mean</th>
-      <td id="T_X_foot_row0_col0" class="foot_data foot_row0 col0" >2.650000</td>
+      <th id="T_X_level0_{fp}row0" class="{fp}row_heading level0 {fp}row0" >mean</th>
+      <td id="T_X_{fp}row0_col0" class="{fp}data {fp}row0 col0" >2.650000</td>
     </tr>
   </tbody>
 </table>
     """
     )
     assert expected in result
+
+
+def test_concat_recursion(styler):
+    df = styler.data
+    styler1 = styler
+    styler2 = Styler(df.agg(["mean"]), precision=3)
+    styler3 = Styler(df.agg(["mean"]), precision=4)
+    styler1.concat(styler2.concat(styler3)).set_uuid("X")
+    result = styler.to_html()
+    # notice that the second concat (last <tr> of the output html),
+    # there are two `foot_` in the id and class
+    fp1 = "foot0_"
+    fp2 = "foot0_foot0_"
+    expected = dedent(
+        f"""\
+    <tr>
+      <th id="T_X_level0_row1" class="row_heading level0 row1" >b</th>
+      <td id="T_X_row1_col0" class="data row1 col0" >2.690000</td>
+    </tr>
+    <tr>
+      <th id="T_X_level0_{fp1}row0" class="{fp1}row_heading level0 {fp1}row0" >mean</th>
+      <td id="T_X_{fp1}row0_col0" class="{fp1}data {fp1}row0 col0" >2.650</td>
+    </tr>
+    <tr>
+      <th id="T_X_level0_{fp2}row0" class="{fp2}row_heading level0 {fp2}row0" >mean</th>
+      <td id="T_X_{fp2}row0_col0" class="{fp2}data {fp2}row0 col0" >2.6500</td>
+    </tr>
+  </tbody>
+</table>
+    """
+    )
+    assert expected in result
+
+
+def test_concat_chain(styler):
+    df = styler.data
+    styler1 = styler
+    styler2 = Styler(df.agg(["mean"]), precision=3)
+    styler3 = Styler(df.agg(["mean"]), precision=4)
+    styler1.concat(styler2).concat(styler3).set_uuid("X")
+    result = styler.to_html()
+    fp1 = "foot0_"
+    fp2 = "foot1_"
+    expected = dedent(
+        f"""\
+    <tr>
+      <th id="T_X_level0_row1" class="row_heading level0 row1" >b</th>
+      <td id="T_X_row1_col0" class="data row1 col0" >2.690000</td>
+    </tr>
+    <tr>
+      <th id="T_X_level0_{fp1}row0" class="{fp1}row_heading level0 {fp1}row0" >mean</th>
+      <td id="T_X_{fp1}row0_col0" class="{fp1}data {fp1}row0 col0" >2.650</td>
+    </tr>
+    <tr>
+      <th id="T_X_level0_{fp2}row0" class="{fp2}row_heading level0 {fp2}row0" >mean</th>
+      <td id="T_X_{fp2}row0_col0" class="{fp2}data {fp2}row0 col0" >2.6500</td>
+    </tr>
+  </tbody>
+</table>
+    """
+    )
+    assert expected in result
+
+
+def test_concat_combined():
+    def html_lines(foot_prefix: str):
+        assert foot_prefix.endswith("_") or foot_prefix == ""
+        fp = foot_prefix
+        return indent(
+            dedent(
+                f"""\
+        <tr>
+          <th id="T_X_level0_{fp}row0" class="{fp}row_heading level0 {fp}row0" >a</th>
+          <td id="T_X_{fp}row0_col0" class="{fp}data {fp}row0 col0" >2.610000</td>
+        </tr>
+        <tr>
+          <th id="T_X_level0_{fp}row1" class="{fp}row_heading level0 {fp}row1" >b</th>
+          <td id="T_X_{fp}row1_col0" class="{fp}data {fp}row1 col0" >2.690000</td>
+        </tr>
+        """
+            ),
+            prefix=" " * 4,
+        )
+
+    df = DataFrame([[2.61], [2.69]], index=["a", "b"], columns=["A"])
+    s1 = df.style.highlight_max(color="red")
+    s2 = df.style.highlight_max(color="green")
+    s3 = df.style.highlight_max(color="blue")
+    s4 = df.style.highlight_max(color="yellow")
+
+    result = s1.concat(s2).concat(s3.concat(s4)).set_uuid("X").to_html()
+    expected_css = dedent(
+        """\
+        <style type="text/css">
+        #T_X_row1_col0 {
+          background-color: red;
+        }
+        #T_X_foot0_row1_col0 {
+          background-color: green;
+        }
+        #T_X_foot1_row1_col0 {
+          background-color: blue;
+        }
+        #T_X_foot1_foot0_row1_col0 {
+          background-color: yellow;
+        }
+        </style>
+        """
+    )
+    expected_table = (
+        dedent(
+            """\
+            <table id="T_X">
+              <thead>
+                <tr>
+                  <th class="blank level0" >&nbsp;</th>
+                  <th id="T_X_level0_col0" class="col_heading level0 col0" >A</th>
+                </tr>
+              </thead>
+              <tbody>
+            """
+        )
+        + html_lines("")
+        + html_lines("foot0_")
+        + html_lines("foot1_")
+        + html_lines("foot1_foot0_")
+        + dedent(
+            """\
+              </tbody>
+            </table>
+            """
+        )
+    )
+    assert expected_css + expected_table == result
+
+
+def test_to_html_na_rep_non_scalar_data(datapath):
+    # GH47103
+    df = DataFrame([{"a": 1, "b": [1, 2, 3], "c": np.nan}])
+    result = df.style.format(na_rep="-").to_html(table_uuid="test")
+    expected = """\
+<style type="text/css">
+</style>
+<table id="T_test">
+  <thead>
+    <tr>
+      <th class="blank level0" >&nbsp;</th>
+      <th id="T_test_level0_col0" class="col_heading level0 col0" >a</th>
+      <th id="T_test_level0_col1" class="col_heading level0 col1" >b</th>
+      <th id="T_test_level0_col2" class="col_heading level0 col2" >c</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_test_level0_row0" class="row_heading level0 row0" >0</th>
+      <td id="T_test_row0_col0" class="data row0 col0" >1</td>
+      <td id="T_test_row0_col1" class="data row0 col1" >[1, 2, 3]</td>
+      <td id="T_test_row0_col2" class="data row0 col2" >-</td>
+    </tr>
+  </tbody>
+</table>
+"""
+    assert result == expected

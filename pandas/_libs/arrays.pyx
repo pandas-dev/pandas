@@ -130,7 +130,7 @@ cdef class NDArrayBacked:
 
     @property
     def nbytes(self) -> int:
-        return self._ndarray.nbytes
+        return cnp.PyArray_NBYTES(self._ndarray)
 
     def copy(self, order="C"):
         cdef:
@@ -181,3 +181,10 @@ cdef class NDArrayBacked:
     def transpose(self, *axes):
         res_values = self._ndarray.transpose(*axes)
         return self._from_backing_data(res_values)
+
+    @classmethod
+    def _concat_same_type(cls, to_concat, axis=0):
+        # NB: We are assuming at this point that dtypes all match
+        new_values = [obj._ndarray for obj in to_concat]
+        new_arr = cnp.PyArray_Concatenate(new_values, axis)
+        return to_concat[0]._from_backing_data(new_arr)

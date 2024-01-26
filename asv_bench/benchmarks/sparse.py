@@ -22,7 +22,7 @@ class SparseSeriesToFrame:
     def setup(self):
         K = 50
         N = 50001
-        rng = date_range("1/1/2000", periods=N, freq="T")
+        rng = date_range("1/1/2000", periods=N, freq="min")
         self.series = {}
         for i in range(1, K):
             data = np.random.randn(N)[:-i]
@@ -35,7 +35,6 @@ class SparseSeriesToFrame:
 
 
 class SparseArrayConstructor:
-
     params = ([0.1, 0.01], [0, np.nan], [np.int64, np.float64, object])
     param_names = ["dense_proportion", "fill_value", "dtype"]
 
@@ -106,7 +105,6 @@ class ToCooFrame:
 
 
 class Arithmetic:
-
     params = ([0.1, 0.01], [0, np.nan])
     param_names = ["dense_proportion", "fill_value"]
 
@@ -131,7 +129,6 @@ class Arithmetic:
 
 
 class ArithmeticBlock:
-
     params = [np.nan, 0]
     param_names = ["fill_value"]
 
@@ -167,7 +164,6 @@ class ArithmeticBlock:
 
 
 class MinMax:
-
     params = (["min", "max"], [0.0, np.nan])
     param_names = ["func", "fill_value"]
 
@@ -181,7 +177,6 @@ class MinMax:
 
 
 class Take:
-
     params = ([np.array([0]), np.arange(100_000), np.full(100_000, -1)], [True, False])
     param_names = ["indices", "allow_fill"]
 
@@ -210,7 +205,6 @@ class GetItem:
 
 
 class GetItemMask:
-
     params = [True, False, np.nan]
     param_names = ["fill_value"]
 
@@ -219,12 +213,12 @@ class GetItemMask:
         d = 1e-5
         arr = make_array(N, d, np.nan, np.float64)
         self.sp_arr = SparseArray(arr)
-        b_arr = np.full(shape=N, fill_value=fill_value, dtype=np.bool8)
+        b_arr = np.full(shape=N, fill_value=fill_value, dtype=np.bool_)
         fv_inds = np.unique(
             np.random.randint(low=0, high=N - 1, size=int(N * d), dtype=np.int32)
         )
         b_arr[fv_inds] = True if pd.isna(fill_value) else not fill_value
-        self.sp_b_arr = SparseArray(b_arr, dtype=np.bool8, fill_value=fill_value)
+        self.sp_b_arr = SparseArray(b_arr, dtype=np.bool_, fill_value=fill_value)
 
     def time_mask(self, fill_value):
         self.sp_arr[self.sp_b_arr]

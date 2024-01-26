@@ -4,7 +4,11 @@ import pytest
 from pandas import (
     Categorical,
     CategoricalDtype,
+    CategoricalIndex,
+    DatetimeIndex,
+    Interval,
     NaT,
+    Period,
     Timestamp,
     array,
     to_datetime,
@@ -13,10 +17,54 @@ import pandas._testing as tm
 
 
 class TestAstype:
+    @pytest.mark.parametrize("cls", [Categorical, CategoricalIndex])
+    @pytest.mark.parametrize("values", [[1, np.nan], [Timestamp("2000"), NaT]])
+    def test_astype_nan_to_int(self, cls, values):
+        # GH#28406
+        obj = cls(values)
+
+        msg = "Cannot (cast|convert)"
+        with pytest.raises((ValueError, TypeError), match=msg):
+            obj.astype(int)
+
+    @pytest.mark.parametrize(
+        "expected",
+        [
+            array(["2019", "2020"], dtype="datetime64[ns, UTC]"),
+            array([0, 0], dtype="timedelta64[ns]"),
+            array([Period("2019"), Period("2020")], dtype="period[Y-DEC]"),
+            array([Interval(0, 1), Interval(1, 2)], dtype="interval"),
+            array([1, np.nan], dtype="Int64"),
+        ],
+    )
+    def test_astype_category_to_extension_dtype(self, expected):
+        # GH#28668
+        result = expected.astype("category").astype(expected.dtype)
+
+        tm.assert_extension_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype, expected",
+        [
+            (
+                "datetime64[ns]",
+                np.array(["2015-01-01T00:00:00.000000000"], dtype="datetime64[ns]"),
+            ),
+            (
+                "datetime64[ns, MET]",
+                DatetimeIndex([Timestamp("2015-01-01 00:00:00+0100", tz="MET")]).array,
+            ),
+        ],
+    )
+    def test_astype_to_datetime64(self, dtype, expected):
+        # GH#28448
+        result = Categorical(["2015-01-01"]).astype(dtype)
+        assert result == expected
+
     def test_astype_str_int_categories_to_nullable_int(self):
         # GH#39616
         dtype = CategoricalDtype([str(i) for i in range(5)])
-        codes = np.random.randint(5, size=20)
+        codes = np.random.default_rng(2).integers(5, size=20)
         arr = Categorical.from_codes(codes, dtype=dtype)
 
         res = arr.astype("Int64")
@@ -26,7 +74,7 @@ class TestAstype:
     def test_astype_str_int_categories_to_nullable_float(self):
         # GH#39616
         dtype = CategoricalDtype([str(i / 2) for i in range(5)])
-        codes = np.random.randint(5, size=20)
+        codes = np.random.default_rng(2).integers(5, size=20)
         arr = Categorical.from_codes(codes, dtype=dtype)
 
         res = arr.astype("Float64")
@@ -41,7 +89,7 @@ class TestAstype:
         expected = np.array(cat)
         tm.assert_numpy_array_equal(result, expected)
 
-        msg = r"Cannot cast object dtype to float64"
+        msg = r"Cannot cast object|string dtype to float64"
         with pytest.raises(ValueError, match=msg):
             cat.astype(float)
 
@@ -97,3 +145,11 @@ class TestAstype:
         result = cat.astype(object)
         expected = np.array([Timestamp("2014-01-01 00:00:00")], dtype="object")
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_astype_category_readonly_mask_values(self):
+        # GH#53658
+        arr = array([0, 1, 2], dtype="Int64")
+        arr._mask.flags["WRITEABLE"] = False
+        result = arr.astype("category")
+        expected = array([0, 1, 2], dtype="Int64").astype("category")
+        tm.assert_extension_array_equal(result, expected)

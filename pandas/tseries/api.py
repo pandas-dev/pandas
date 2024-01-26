@@ -2,7 +2,9 @@
 Timeseries API
 """
 
-from pandas.tseries.frequencies import infer_freq
-import pandas.tseries.offsets as offsets
+from pandas._libs.tslibs.parsing import guess_datetime_format
 
-__all__ = ["infer_freq", "offsets"]
+from pandas.tseries import offsets
+from pandas.tseries.frequencies import infer_freq
+
+__all__ = ["infer_freq", "offsets", "guess_datetime_format"]

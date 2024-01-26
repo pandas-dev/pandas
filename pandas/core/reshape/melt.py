@@ -2,37 +2,42 @@ from __future__ import annotations
 
 import re
 from typing import TYPE_CHECKING
-import warnings
 
 import numpy as np
 
-from pandas.util._decorators import (
-    Appender,
-    deprecate_kwarg,
-)
-from pandas.util._exceptions import find_stack_level
+from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.common import (
-    is_extension_array_dtype,
-    is_list_like,
-)
+from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import notna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import Categorical
-import pandas.core.common as com
-from pandas.core.indexes.api import (
-    Index,
-    MultiIndex,
-)
+from pandas.core.indexes.api import MultiIndex
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.util import tile_compat
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.tools.numeric import to_numeric
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
+    from pandas._typing import AnyArrayLike
+
     from pandas import DataFrame
+
+
+def ensure_list_vars(arg_vars, variable: str, columns) -> list:
+    if arg_vars is not None:
+        if not is_list_like(arg_vars):
+            return [arg_vars]
+        elif isinstance(columns, MultiIndex) and not isinstance(arg_vars, list):
+            raise ValueError(
+                f"{variable} must be a list of tuples when columns are a MultiIndex"
+            )
+        else:
+            return list(arg_vars)
+    else:
+        return []
 
 
 @Appender(_shared_docs["melt"] % {"caller": "pd.melt(df, ", "other": "DataFrame.melt"})
@@ -41,69 +46,39 @@ def melt(
     id_vars=None,
     value_vars=None,
     var_name=None,
-    value_name="value",
+    value_name: Hashable = "value",
     col_level=None,
     ignore_index: bool = True,
 ) -> DataFrame:
-    # If multiindex, gather names of columns on all level for checking presence
-    # of `id_vars` and `value_vars`
-    if isinstance(frame.columns, MultiIndex):
-        cols = [x for c in frame.columns for x in c]
-    else:
-        cols = list(frame.columns)
-
     if value_name in frame.columns:
-        warnings.warn(
-            "This dataframe has a column name that matches the 'value_name' column "
-            "name of the resulting Dataframe. "
-            "In the future this will raise an error, please set the 'value_name' "
-            "parameter of DataFrame.melt to a unique name.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
+        raise ValueError(
+            f"value_name ({value_name}) cannot match an element in "
+            "the DataFrame columns."
         )
+    id_vars = ensure_list_vars(id_vars, "id_vars", frame.columns)
+    value_vars_was_not_none = value_vars is not None
+    value_vars = ensure_list_vars(value_vars, "value_vars", frame.columns)
 
-    if id_vars is not None:
-        if not is_list_like(id_vars):
-            id_vars = [id_vars]
-        elif isinstance(frame.columns, MultiIndex) and not isinstance(id_vars, list):
-            raise ValueError(
-                "id_vars must be a list of tuples when columns are a MultiIndex"
-            )
-        else:
-            # Check that `id_vars` are in frame
-            id_vars = list(id_vars)
-            missing = Index(com.flatten(id_vars)).difference(cols)
-            if not missing.empty:
-                raise KeyError(
-                    "The following 'id_vars' are not present "
-                    f"in the DataFrame: {list(missing)}"
-                )
-    else:
-        id_vars = []
-
-    if value_vars is not None:
-        if not is_list_like(value_vars):
-            value_vars = [value_vars]
-        elif isinstance(frame.columns, MultiIndex) and not isinstance(value_vars, list):
-            raise ValueError(
-                "value_vars must be a list of tuples when columns are a MultiIndex"
-            )
-        else:
-            value_vars = list(value_vars)
-            # Check that `value_vars` are in frame
-            missing = Index(com.flatten(value_vars)).difference(cols)
-            if not missing.empty:
-                raise KeyError(
-                    "The following 'value_vars' are not present in "
-                    f"the DataFrame: {list(missing)}"
-                )
+    if id_vars or value_vars:
         if col_level is not None:
-            idx = frame.columns.get_level_values(col_level).get_indexer(
-                id_vars + value_vars
-            )
+            level = frame.columns.get_level_values(col_level)
         else:
-            idx = algos.unique(frame.columns.get_indexer_for(id_vars + value_vars))
-        frame = frame.iloc[:, idx]
+            level = frame.columns
+        labels = id_vars + value_vars
+        idx = level.get_indexer_for(labels)
+        missing = idx == -1
+        if missing.any():
+            missing_labels = [
+                lab for lab, not_found in zip(labels, missing) if not_found
+            ]
+            raise KeyError(
+                "The following id_vars or value_vars are not present in "
+                f"the DataFrame: {missing_labels}"
+            )
+        if value_vars_was_not_none:
+            frame = frame.iloc[:, algos.unique(idx)]
+        else:
+            frame = frame.copy()
     else:
         frame = frame.copy()
 
@@ -121,51 +96,49 @@ def melt(
             var_name = [
                 frame.columns.name if frame.columns.name is not None else "variable"
             ]
-    if isinstance(var_name, str):
+    elif is_list_like(var_name):
+        raise ValueError(f"{var_name=} must be a scalar.")
+    else:
         var_name = [var_name]
 
-    N, K = frame.shape
-    K -= len(id_vars)
+    num_rows, K = frame.shape
+    num_cols_adjusted = K - len(id_vars)
 
-    mdata = {}
+    mdata: dict[Hashable, AnyArrayLike] = {}
     for col in id_vars:
         id_data = frame.pop(col)
-        if is_extension_array_dtype(id_data):
-            if K > 0:
-                id_data = concat([id_data] * K, ignore_index=True)
+        if not isinstance(id_data.dtype, np.dtype):
+            # i.e. ExtensionDtype
+            if num_cols_adjusted > 0:
+                mdata[col] = concat([id_data] * num_cols_adjusted, ignore_index=True)
             else:
                 # We can't concat empty list. (GH 46044)
-                id_data = type(id_data)([], name=id_data.name, dtype=id_data.dtype)
+                mdata[col] = type(id_data)([], name=id_data.name, dtype=id_data.dtype)
         else:
-            # error: Incompatible types in assignment (expression has type
-            # "ndarray[Any, dtype[Any]]", variable has type "Series")
-            id_data = np.tile(id_data._values, K)  # type: ignore[assignment]
-        mdata[col] = id_data
+            mdata[col] = np.tile(id_data._values, num_cols_adjusted)
 
     mcolumns = id_vars + var_name + [value_name]
 
-    # error: Incompatible types in assignment (expression has type "ndarray",
-    # target has type "Series")
-    mdata[value_name] = frame._values.ravel("F")  # type: ignore[assignment]
+    if frame.shape[1] > 0 and not any(
+        not isinstance(dt, np.dtype) and dt._supports_2d for dt in frame.dtypes
+    ):
+        mdata[value_name] = concat(
+            [frame.iloc[:, i] for i in range(frame.shape[1])]
+        ).values
+    else:
+        mdata[value_name] = frame._values.ravel("F")
     for i, col in enumerate(var_name):
-        # asanyarray will keep the columns as an Index
-
-        # error: Incompatible types in assignment (expression has type "ndarray", target
-        # has type "Series")
-        mdata[col] = np.asanyarray(  # type: ignore[assignment]
-            frame.columns._get_level_values(i)
-        ).repeat(N)
+        mdata[col] = frame.columns._get_level_values(i).repeat(num_rows)
 
     result = frame._constructor(mdata, columns=mcolumns)
 
     if not ignore_index:
-        result.index = tile_compat(frame.index, K)
+        result.index = tile_compat(frame.index, num_cols_adjusted)
 
     return result
 
 
-@deprecate_kwarg(old_arg_name="label", new_arg_name=None)
-def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFrame:
+def lreshape(data: DataFrame, groups: dict, dropna: bool = True) -> DataFrame:
     """
     Reshape wide-format data to long. Generalized inverse of DataFrame.pivot.
 
@@ -181,10 +154,6 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFr
         {new_name : list_of_columns}.
     dropna : bool, default True
         Do not include columns whose entries are all NaN.
-    label : None
-        Not used.
-
-        .. deprecated:: 1.0.0
 
     Returns
     -------
@@ -222,30 +191,20 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFr
     2  Red Sox  2008  545
     3  Yankees  2008  526
     """
-    if isinstance(groups, dict):
-        keys = list(groups.keys())
-        values = list(groups.values())
-    else:
-        keys, values = zip(*groups)
-
-    all_cols = list(set.union(*(set(x) for x in values)))
-    id_cols = list(data.columns.difference(all_cols))
-
-    K = len(values[0])
-
-    for seq in values:
-        if len(seq) != K:
-            raise ValueError("All column lists must be same length")
-
     mdata = {}
     pivot_cols = []
-
-    for target, names in zip(keys, values):
+    all_cols: set[Hashable] = set()
+    K = len(next(iter(groups.values())))
+    for target, names in groups.items():
+        if len(names) != K:
+            raise ValueError("All column lists must be same length")
         to_concat = [data[col]._values for col in names]
 
         mdata[target] = concat_compat(to_concat)
         pivot_cols.append(target)
+        all_cols = all_cols.union(names)
 
+    id_cols = list(data.columns.difference(all_cols))
     for col in id_cols:
         mdata[col] = np.tile(data[col]._values, K)
 
@@ -497,10 +456,10 @@ def wide_to_long(
                 two  2.9
     """
 
-    def get_var_names(df, stub: str, sep: str, suffix: str) -> list[str]:
+    def get_var_names(df, stub: str, sep: str, suffix: str):
         regex = rf"^{re.escape(stub)}{re.escape(sep)}{suffix}$"
         pattern = re.compile(regex)
-        return [col for col in df.columns if pattern.match(col)]
+        return df.columns[df.columns.str.match(pattern)]
 
     def melt_stub(df, stub: str, i, j, value_vars, sep: str):
         newdf = melt(
@@ -510,11 +469,14 @@ def wide_to_long(
             value_name=stub.rstrip(sep),
             var_name=j,
         )
-        newdf[j] = Categorical(newdf[j])
         newdf[j] = newdf[j].str.replace(re.escape(stub + sep), "", regex=True)
 
         # GH17627 Cast numerics suffixes to int/float
-        newdf[j] = to_numeric(newdf[j], errors="ignore")
+        try:
+            newdf[j] = to_numeric(newdf[j])
+        except (TypeError, ValueError, OverflowError):
+            # TODO: anything else to catch?
+            pass
 
         return newdf.set_index(i + [j])
 
@@ -523,7 +485,7 @@ def wide_to_long(
     else:
         stubnames = list(stubnames)
 
-    if any(col in stubnames for col in df.columns):
+    if df.columns.isin(stubnames).any():
         raise ValueError("stubname can't be identical to a column name")
 
     if not is_list_like(i):
@@ -534,18 +496,18 @@ def wide_to_long(
     if df[i].duplicated().any():
         raise ValueError("the id variables need to uniquely identify each row")
 
-    value_vars = [get_var_names(df, stub, sep, suffix) for stub in stubnames]
+    _melted = []
+    value_vars_flattened = []
+    for stub in stubnames:
+        value_var = get_var_names(df, stub, sep, suffix)
+        value_vars_flattened.extend(value_var)
+        _melted.append(melt_stub(df, stub, i, j, value_var, sep))
 
-    value_vars_flattened = [e for sublist in value_vars for e in sublist]
-    id_vars = list(set(df.columns.tolist()).difference(value_vars_flattened))
-
-    _melted = [melt_stub(df, s, i, j, v, sep) for s, v in zip(stubnames, value_vars)]
-    melted = _melted[0].join(_melted[1:], how="outer")
+    melted = concat(_melted, axis=1)
+    id_vars = df.columns.difference(value_vars_flattened)
+    new = df[id_vars]
 
     if len(i) == 1:
-        new = df[id_vars].set_index(i).join(melted)
-        return new
-
-    new = df[id_vars].merge(melted.reset_index(), on=i).set_index(i + [j])
-
-    return new
+        return new.set_index(i).join(melted)
+    else:
+        return new.merge(melted.reset_index(), on=i).set_index(i + [j])

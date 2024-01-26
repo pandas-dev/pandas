@@ -3,13 +3,11 @@ import pytest
 
 from pandas import (
     NaT,
+    SparseDtype,
     Timestamp,
     isna,
 )
-from pandas.core.arrays.sparse import (
-    SparseArray,
-    SparseDtype,
-)
+from pandas.core.arrays.sparse import SparseArray
 
 
 class TestReductions:
@@ -142,7 +140,7 @@ class TestReductions:
             assert result == expected
 
     def test_bool_sum_min_count(self):
-        spar_bool = SparseArray([False, True] * 5, dtype=np.bool8, fill_value=True)
+        spar_bool = SparseArray([False, True] * 5, dtype=np.bool_, fill_value=True)
         res = spar_bool.sum(min_count=1)
         assert res == 5
         res = spar_bool.sum(min_count=11)

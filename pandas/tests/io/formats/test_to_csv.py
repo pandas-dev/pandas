@@ -1,19 +1,19 @@
 import io
 import os
-from pathlib import Path
 import sys
 from zipfile import ZipFile
 
+from _csv import Error
 import numpy as np
 import pytest
 
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     compat,
 )
 import pandas._testing as tm
-from pandas.tests.io.test_compression import _compression_to_extension
 
 
 class TestToCSV:
@@ -32,7 +32,7 @@ class TestToCSV:
 """
         with tm.ensure_clean("test.csv") as path:
             df1.to_csv(path, header=None, index=None)
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert f.read() == expected1
 
         df2 = DataFrame([1, None])
@@ -42,7 +42,7 @@ class TestToCSV:
 """
         with tm.ensure_clean("test.csv") as path:
             df2.to_csv(path, header=None, index=None)
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert f.read() == expected2
 
     def test_to_csv_default_encoding(self):
@@ -64,7 +64,7 @@ class TestToCSV:
 
         with tm.ensure_clean("test.csv") as path:
             df.to_csv(path, quoting=1)  # 1=QUOTE_ALL
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert f.read() == expected
 
         expected = """\
@@ -75,7 +75,7 @@ $1$,$2$
 
         with tm.ensure_clean("test.csv") as path:
             df.to_csv(path, quoting=1, quotechar="$")
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert f.read() == expected
 
         with tm.ensure_clean("test.csv") as path:
@@ -92,10 +92,8 @@ $1$,$2$
 
         with tm.ensure_clean("test.csv") as path:
             df.to_csv(path, quoting=1, doublequote=True)  # QUOTE_ALL
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert f.read() == expected
-
-        from _csv import Error
 
         with tm.ensure_clean("test.csv") as path:
             with pytest.raises(Error, match="escapechar"):
@@ -111,7 +109,7 @@ $1$,$2$
 
         with tm.ensure_clean("test.csv") as path:  # QUOTE_ALL
             df.to_csv(path, quoting=1, doublequote=False, escapechar="\\")
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert f.read() == expected
 
         df = DataFrame({"col": ["a,a", ",bb,"]})
@@ -123,7 +121,7 @@ $1$,$2$
 
         with tm.ensure_clean("test.csv") as path:
             df.to_csv(path, quoting=3, escapechar="\\")  # QUOTE_NONE
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert f.read() == expected
 
     def test_csv_to_string(self):
@@ -184,7 +182,7 @@ $1$,$2$
         # see gh-11553
         #
         # Testing if NaN values are correctly represented in the index.
-        df = DataFrame({"a": [0, np.NaN], "b": [0, 1], "c": [2, 3]})
+        df = DataFrame({"a": [0, np.nan], "b": [0, 1], "c": [2, 3]})
         expected_rows = ["a,b,c", "0.0,0,2", "_,1,3"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
 
@@ -192,7 +190,7 @@ $1$,$2$
         assert df.set_index(["a", "b"]).to_csv(na_rep="_") == expected
 
         # now with an index containing only NaNs
-        df = DataFrame({"a": np.NaN, "b": [0, 1], "c": [2, 3]})
+        df = DataFrame({"a": np.nan, "b": [0, 1], "c": [2, 3]})
         expected_rows = ["a,b,c", "_,0,2", "_,1,3"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
 
@@ -288,7 +286,7 @@ $1$,$2$
         df = DataFrame(
             {
                 "date": pd.to_datetime("1970-01-01"),
-                "datetime": pd.date_range("1970-01-01", periods=2, freq="H"),
+                "datetime": pd.date_range("1970-01-01", periods=2, freq="h"),
             }
         )
         expected_rows = [
@@ -385,14 +383,11 @@ $1$,$2$
             ),
         ],
     )
-    @pytest.mark.parametrize("klass", [DataFrame, pd.Series])
-    def test_to_csv_single_level_multi_index(self, ind, expected, klass):
+    def test_to_csv_single_level_multi_index(self, ind, expected, frame_or_series):
         # see gh-19589
-        obj = klass(pd.Series([1], ind, name="data"))
+        obj = frame_or_series(pd.Series([1], ind, name="data"))
 
-        with tm.assert_produces_warning(FutureWarning, match="lineterminator"):
-            # GH#9568 standardize on lineterminator matching stdlib
-            result = obj.to_csv(line_terminator="\n", header=True)
+        result = obj.to_csv(lineterminator="\n", header=True)
         assert result == expected
 
     def test_to_csv_string_array_ascii(self):
@@ -406,7 +401,7 @@ $1$,$2$
 """
         with tm.ensure_clean("str_test.csv") as path:
             df.to_csv(path, encoding="ascii")
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert f.read() == expected_ascii
 
     def test_to_csv_string_array_utf8(self):
@@ -420,7 +415,7 @@ $1$,$2$
 """
         with tm.ensure_clean("unicode_test.csv") as path:
             df.to_csv(path, encoding="utf-8")
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert f.read() == expected_utf8
 
     def test_to_csv_string_with_lf(self):
@@ -513,7 +508,7 @@ $1$,$2$
         reason=(
             "Especially in Windows, file stream should not be passed"
             "to csv writer without newline='' option."
-            "(https://docs.python.org/3.6/library/csv.html#csv.writer)"
+            "(https://docs.python.org/3/library/csv.html#csv.writer)"
         ),
     )
     def test_to_csv_write_to_open_file(self):
@@ -526,10 +521,10 @@ y
 z
 """
         with tm.ensure_clean("test.txt") as path:
-            with open(path, "w") as f:
+            with open(path, "w", encoding="utf-8") as f:
                 f.write("manual header\n")
                 df.to_csv(f, header=None, index=None)
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert f.read() == expected
 
     def test_to_csv_write_to_open_file_with_newline_py3(self):
@@ -539,7 +534,7 @@ z
         expected_rows = ["x", "y", "z"]
         expected = "manual header\n" + tm.convert_rows_list_to_csv_str(expected_rows)
         with tm.ensure_clean("test.txt") as path:
-            with open(path, "w", newline="") as f:
+            with open(path, "w", newline="", encoding="utf-8") as f:
                 f.write("manual header\n")
                 df.to_csv(f, header=None, index=None)
 
@@ -548,13 +543,15 @@ z
 
     @pytest.mark.parametrize("to_infer", [True, False])
     @pytest.mark.parametrize("read_infer", [True, False])
-    def test_to_csv_compression(self, compression_only, read_infer, to_infer):
+    def test_to_csv_compression(
+        self, compression_only, read_infer, to_infer, compression_to_extension
+    ):
         # see gh-15008
         compression = compression_only
 
         # We'll complete file extension subsequently.
         filename = "test."
-        filename += _compression_to_extension[compression]
+        filename += compression_to_extension[compression]
 
         df = DataFrame({"A": [1]})
 
@@ -615,16 +612,15 @@ z
             ("archive.zip", "archive"),
         ],
     )
-    def test_to_csv_zip_infer_name(self, filename, expected_arcname):
+    def test_to_csv_zip_infer_name(self, tmp_path, filename, expected_arcname):
         # GH 39465
         df = DataFrame({"ABC": [1]})
-        with tm.ensure_clean_dir() as dir:
-            path = Path(dir, filename)
-            df.to_csv(path, compression="zip")
-            with ZipFile(path) as zp:
-                assert len(zp.filelist) == 1
-                archived_file = zp.filelist[0].filename
-                assert archived_file == expected_arcname
+        path = tmp_path / filename
+        df.to_csv(path, compression="zip")
+        with ZipFile(path) as zp:
+            assert len(zp.filelist) == 1
+            archived_file = zp.filelist[0].filename
+            assert archived_file == expected_arcname
 
     @pytest.mark.parametrize("df_new_type", ["Int64"])
     def test_to_csv_na_rep_long_string(self, df_new_type):
@@ -670,7 +666,7 @@ z
     def test_to_csv_errors(self, errors):
         # GH 22610
         data = ["\ud800foo"]
-        ser = pd.Series(data, index=pd.Index(data))
+        ser = pd.Series(data, index=Index(data, dtype=object), dtype=object)
         with tm.ensure_clean("test.csv") as path:
             ser.to_csv(path, errors=errors)
         # No use in reading back the data as it is not the same anymore
@@ -684,7 +680,11 @@ z
 
         GH 35058 and GH 19827
         """
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(30)]),
+        )
         with tm.ensure_clean() as path:
             with open(path, mode="w+b") as handle:
                 df.to_csv(handle, mode=mode)
@@ -718,7 +718,11 @@ z
 
 def test_to_csv_iterative_compression_name(compression):
     # GH 38714
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
+    )
     with tm.ensure_clean() as path:
         df.to_csv(path, compression=compression, chunksize=1)
         tm.assert_frame_equal(
@@ -728,7 +732,11 @@ def test_to_csv_iterative_compression_name(compression):
 
 def test_to_csv_iterative_compression_buffer(compression):
     # GH 38714
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
+    )
     with io.BytesIO() as buffer:
         df.to_csv(buffer, compression=compression, chunksize=1)
         buffer.seek(0)
@@ -736,3 +744,15 @@ def test_to_csv_iterative_compression_buffer(compression):
             pd.read_csv(buffer, compression=compression, index_col=0), df
         )
         assert not buffer.closed
+
+
+def test_to_csv_pos_args_deprecation():
+    # GH-54229
+    df = DataFrame({"a": [1, 2, 3]})
+    msg = (
+        r"Starting with pandas version 3.0 all arguments of to_csv except for the "
+        r"argument 'path_or_buf' will be keyword-only."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        buffer = io.BytesIO()
+        df.to_csv(buffer, ";")

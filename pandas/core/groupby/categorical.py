@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import numpy as np
 
 from pandas.core.algorithms import unique1d
@@ -10,9 +8,6 @@ from pandas.core.arrays.categorical import (
     CategoricalDtype,
     recode_for_categories,
 )
-
-if TYPE_CHECKING:
-    from pandas.core.indexes.api import CategoricalIndex
 
 
 def recode_for_groupby(
@@ -58,7 +53,7 @@ def recode_for_groupby(
         unique_codes = unique1d(c.codes)
 
         take_codes = unique_codes[unique_codes != -1]
-        if c.ordered:
+        if sort:
             take_codes = np.sort(take_codes)
 
         # we recode according to the uniques
@@ -68,54 +63,25 @@ def recode_for_groupby(
         # return a new categorical that maps our new codes
         # and categories
         dtype = CategoricalDtype(categories, ordered=c.ordered)
-        return Categorical(codes, dtype=dtype, fastpath=True), c
+        return Categorical._simple_new(codes, dtype=dtype), c
 
     # Already sorted according to c.categories; all is fine
     if sort:
         return c, None
 
     # sort=False should order groups in as-encountered order (GH-8868)
-    cat = c.unique()
 
-    # See GH-38140 for block below
-    # exclude nan from indexer for categories
-    take_codes = cat.codes[cat.codes != -1]
-    if cat.ordered:
-        take_codes = np.sort(take_codes)
-    cat = cat.set_categories(cat.categories.take(take_codes))
-
-    # But for groupby to work, all categories should be present,
-    # including those missing from the data (GH-13179), which .unique()
-    # above dropped
-    cat = cat.add_categories(c.categories[~c.categories.isin(cat.categories)])
-
-    return c.reorder_categories(cat.categories), None
-
-
-def recode_from_groupby(
-    c: Categorical, sort: bool, ci: CategoricalIndex
-) -> CategoricalIndex:
-    """
-    Reverse the codes_to_groupby to account for sort / observed.
-
-    Parameters
-    ----------
-    c : Categorical
-    sort : bool
-        The value of the sort parameter groupby was called with.
-    ci : CategoricalIndex
-        The codes / categories to recode
-
-    Returns
-    -------
-    CategoricalIndex
-    """
-    # we re-order to the original category orderings
+    # xref GH:46909: Re-ordering codes faster than using (set|add|reorder)_categories
+    all_codes = np.arange(c.categories.nunique())
+    # GH 38140: exclude nan from indexer for categories
+    unique_notnan_codes = unique1d(c.codes[c.codes != -1])
     if sort:
-        # error: "CategoricalIndex" has no attribute "set_categories"
-        return ci.set_categories(c.categories)  # type: ignore[attr-defined]
+        unique_notnan_codes = np.sort(unique_notnan_codes)
+    if len(all_codes) > len(unique_notnan_codes):
+        # GH 13179: All categories need to be present, even if missing from the data
+        missing_codes = np.setdiff1d(all_codes, unique_notnan_codes, assume_unique=True)
+        take_codes = np.concatenate((unique_notnan_codes, missing_codes))
+    else:
+        take_codes = unique_notnan_codes
 
-    # we are not sorting, so add unobserved to the end
-    new_cats = c.categories[~c.categories.isin(ci.categories)]
-    # error: "CategoricalIndex" has no attribute "add_categories"
-    return ci.add_categories(new_cats)  # type: ignore[attr-defined]
+    return Categorical(c, c.unique().categories.take(take_codes)), None

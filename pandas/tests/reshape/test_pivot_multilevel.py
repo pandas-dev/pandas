@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._libs import lib
+
 import pandas as pd
 from pandas import (
     Index,
@@ -33,7 +35,7 @@ import pandas._testing as tm
         (
             ["lev4"],
             "lev3",
-            None,
+            lib.no_default,
             [
                 [1.0, np.nan, 1.0, np.nan, 0.0, np.nan],
                 [np.nan, 1.0, np.nan, 1.0, np.nan, 1.0],
@@ -70,7 +72,7 @@ import pandas._testing as tm
         (
             ["lev1", "lev2"],
             "lev3",
-            None,
+            lib.no_default,
             [[1, 2, 0, 1], [3, 4, 2, 3], [5, 6, 4, 5], [7, 8, 6, 7]],
             MultiIndex.from_tuples(
                 [("lev4", 1), ("lev4", 2), ("values", 1), ("values", 2)],
@@ -243,7 +245,7 @@ def test_pivot_df_multiindex_index_none():
     )
     df = df.set_index(["index_1", "index_2"])
 
-    result = df.pivot(index=None, columns="label", values="value")
+    result = df.pivot(columns="label", values="value")
     expected = pd.DataFrame(
         [[1.0, np.nan], [np.nan, 2.0], [3.0, np.nan], [np.nan, 4.0]],
         index=df.index,

@@ -10,24 +10,26 @@ import pytest
 from pandas import DataFrame
 import pandas._testing as tm
 
-skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
-@skip_pyarrow
-@pytest.mark.parametrize("kwargs", [{}, {"mangle_dupe_cols": True}])
-def test_basic(all_parsers, kwargs):
-    # TODO: add test for condition "mangle_dupe_cols=False"
-    # once it is actually supported (gh-12935)
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
+
+@xfail_pyarrow  # ValueError: Found non-unique column index
+def test_basic(all_parsers):
     parser = all_parsers
 
     data = "a,a,b,b,b\n1,2,3,4,5"
-    result = parser.read_csv(StringIO(data), sep=",", **kwargs)
+    result = parser.read_csv(StringIO(data), sep=",")
 
     expected = DataFrame([[1, 2, 3, 4, 5]], columns=["a", "a.1", "b", "b.1", "b.2"])
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # ValueError: Found non-unique column index
 def test_basic_names(all_parsers):
     # See gh-7160
     parser = all_parsers
@@ -48,7 +50,7 @@ def test_basic_names_raise(all_parsers):
         parser.read_csv(StringIO(data), names=["a", "b", "a"])
 
 
-@skip_pyarrow
+@xfail_pyarrow  # ValueError: Found non-unique column index
 @pytest.mark.parametrize(
     "data,expected",
     [
@@ -77,7 +79,6 @@ def test_thorough_mangle_columns(all_parsers, data, expected):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
 @pytest.mark.parametrize(
     "data,names,expected",
     [
@@ -117,7 +118,7 @@ def test_thorough_mangle_names(all_parsers, data, names, expected):
         parser.read_csv(StringIO(data), names=names)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # AssertionError: DataFrame.columns are different
 def test_mangled_unnamed_placeholders(all_parsers):
     # xref gh-13017
     orig_key = "0"
@@ -140,7 +141,7 @@ def test_mangled_unnamed_placeholders(all_parsers):
         tm.assert_frame_equal(df, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # ValueError: Found non-unique column index
 def test_mangle_dupe_cols_already_exists(all_parsers):
     # GH#14704
     parser = all_parsers
@@ -154,7 +155,7 @@ def test_mangle_dupe_cols_already_exists(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # ValueError: Found non-unique column index
 def test_mangle_dupe_cols_already_exists_unnamed_col(all_parsers):
     # GH#14704
     parser = all_parsers
@@ -166,3 +167,13 @@ def test_mangle_dupe_cols_already_exists_unnamed_col(all_parsers):
         columns=["Unnamed: 0.1", "Unnamed: 0", "Unnamed: 2.1", "Unnamed: 2"],
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("usecol, engine", [([0, 1, 1], "python"), ([0, 1, 1], "c")])
+def test_mangle_cols_names(all_parsers, usecol, engine):
+    # GH 11823
+    parser = all_parsers
+    data = "1,2,3"
+    names = ["A", "A", "B"]
+    with pytest.raises(ValueError, match="Duplicate names"):
+        parser.read_csv(StringIO(data), names=names, usecols=usecol, engine=engine)

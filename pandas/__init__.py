@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import os
+import warnings
+
 __docformat__ = "restructuredtext"
 
 # Let users know if they're missing any of our hard dependencies
@@ -9,29 +12,27 @@ _missing_dependencies = []
 for _dependency in _hard_dependencies:
     try:
         __import__(_dependency)
-    except ImportError as _e:
+    except ImportError as _e:  # pragma: no cover
         _missing_dependencies.append(f"{_dependency}: {_e}")
 
-if _missing_dependencies:
+if _missing_dependencies:  # pragma: no cover
     raise ImportError(
         "Unable to import required dependencies:\n" + "\n".join(_missing_dependencies)
     )
 del _hard_dependencies, _dependency, _missing_dependencies
 
-# numpy compat
-from pandas.compat import is_numpy_dev as _is_numpy_dev  # pyright: ignore # noqa:F401
-
 try:
-    from pandas._libs import hashtable as _hashtable, lib as _lib, tslib as _tslib
+    # numpy compat
+    from pandas.compat import (
+        is_numpy_dev as _is_numpy_dev,  # pyright: ignore[reportUnusedImport] # noqa: F401
+    )
 except ImportError as _err:  # pragma: no cover
     _module = _err.name
     raise ImportError(
         f"C extension: {_module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
-        "'python setup.py build_ext --force' to build the C extensions first."
+        "'python setup.py build_ext' to build the C extensions first."
     ) from _err
-else:
-    del _tslib, _lib, _hashtable
 
 from pandas._config import (
     get_option,
@@ -43,10 +44,11 @@ from pandas._config import (
 )
 
 # let init-time option registration happen
-import pandas.core.config_init  # pyright: ignore # noqa:F401
+import pandas.core.config_init  # pyright: ignore[reportUnusedImport] # noqa: F401
 
 from pandas.core.api import (
     # dtype
+    ArrowDtype,
     Int8Dtype,
     Int16Dtype,
     Int32Dtype,
@@ -109,7 +111,7 @@ from pandas.core.api import (
     DataFrame,
 )
 
-from pandas.core.arrays.sparse import SparseDtype
+from pandas.core.dtypes.dtypes import SparseDtype
 
 from pandas.tseries.api import infer_freq
 from pandas.tseries import offsets
@@ -134,7 +136,7 @@ from pandas.core.reshape.api import (
 )
 
 from pandas import api, arrays, errors, io, plotting, tseries
-from pandas import testing  # noqa:PDF015
+from pandas import testing
 from pandas.util._print_versions import show_versions
 
 from pandas.io.api import (
@@ -170,98 +172,67 @@ from pandas.io.api import (
     read_spss,
 )
 
-from pandas.io.json import _json_normalize as json_normalize
+from pandas.io.json._normalize import json_normalize
 
 from pandas.util._tester import test
 
 # use the closest tagged version if possible
-from pandas._version import get_versions
+_built_with_meson = False
+try:
+    from pandas._version_meson import (  # pyright: ignore [reportMissingImports]
+        __version__,
+        __git_version__,
+    )
 
-v = get_versions()
-__version__ = v.get("closest-tag", v["version"])
-__git_version__ = v.get("full-revisionid")
-del get_versions, v
+    _built_with_meson = True
+except ImportError:
+    from pandas._version import get_versions
 
-# GH 27101
-__deprecated_num_index_names = ["Float64Index", "Int64Index", "UInt64Index"]
+    v = get_versions()
+    __version__ = v.get("closest-tag", v["version"])
+    __git_version__ = v.get("full-revisionid")
+    del get_versions, v
 
+# GH#55043 - deprecation of the data_manager option
+if "PANDAS_DATA_MANAGER" in os.environ:
+    warnings.warn(
+        "The env variable PANDAS_DATA_MANAGER is set. The data_manager option is "
+        "deprecated and will be removed in a future version. Only the BlockManager "
+        "will be available. Unset this environment variable to silence this warning.",
+        FutureWarning,
+        stacklevel=2,
+    )
 
-def __dir__() -> list[str]:
-    # GH43028
-    # Int64Index etc. are deprecated, but we still want them to be available in the dir.
-    # Remove in Pandas 2.0, when we remove Int64Index etc. from the code base.
-    return list(globals().keys()) + __deprecated_num_index_names
+# DeprecationWarning for missing pyarrow
+from pandas.compat.pyarrow import pa_version_under10p1, pa_not_found
 
+if pa_version_under10p1:
+    # pyarrow is either too old or nonexistent, warn
+    from pandas.compat._optional import VERSIONS
 
-def __getattr__(name):
-    import warnings
-
-    if name in __deprecated_num_index_names:
-        warnings.warn(
-            f"pandas.{name} is deprecated "
-            "and will be removed from pandas in a future version. "
-            "Use pandas.Index with the appropriate dtype instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        from pandas.core.api import Float64Index, Int64Index, UInt64Index
-
-        return {
-            "Float64Index": Float64Index,
-            "Int64Index": Int64Index,
-            "UInt64Index": UInt64Index,
-        }[name]
-    elif name == "datetime":
-        warnings.warn(
-            "The pandas.datetime class is deprecated "
-            "and will be removed from pandas in a future version. "
-            "Import from datetime module instead.",
-            FutureWarning,
-            stacklevel=2,
+    if pa_not_found:
+        pa_msg = "was not found to be installed on your system."
+    else:
+        pa_msg = (
+            f"was too old on your system - pyarrow {VERSIONS['pyarrow']} "
+            "is the current minimum supported version as of this release."
         )
 
-        from datetime import datetime as dt
+    warnings.warn(
+        f"""
+Pyarrow will become a required dependency of pandas in the next major release of pandas (pandas 3.0),
+(to allow more performant data types, such as the Arrow string type, and better interoperability with other libraries)
+but {pa_msg}
+If this would cause problems for you,
+please provide us feedback at https://github.com/pandas-dev/pandas/issues/54466
+        """,  # noqa: E501
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    del VERSIONS, pa_msg
 
-        return dt
-
-    elif name == "np":
-
-        warnings.warn(
-            "The pandas.np module is deprecated "
-            "and will be removed from pandas in a future version. "
-            "Import numpy directly instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        import numpy as np
-
-        return np
-
-    elif name in {"SparseSeries", "SparseDataFrame"}:
-        warnings.warn(
-            f"The {name} class is removed from pandas. Accessing it from "
-            "the top-level namespace will also be removed in the next version.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        return type(name, (), {})
-
-    elif name == "SparseArray":
-
-        warnings.warn(
-            "The pandas.SparseArray class is deprecated "
-            "and will be removed from pandas in a future version. "
-            "Use pandas.arrays.SparseArray instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        from pandas.core.arrays.sparse import SparseArray as _SparseArray
-
-        return _SparseArray
-
-    raise AttributeError(f"module 'pandas' has no attribute '{name}'")
-
+# Delete all unnecessary imported modules
+del pa_version_under10p1, pa_not_found, warnings, os
 
 # module level doc-string
 __doc__ = """
@@ -308,6 +279,7 @@ Here are just a few of the things that pandas does well:
 # Pandas is not (yet) a py.typed library: the public API is determined
 # based on the documentation.
 __all__ = [
+    "ArrowDtype",
     "BooleanDtype",
     "Categorical",
     "CategoricalDtype",

@@ -3,6 +3,8 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_gte1p25
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -46,15 +48,25 @@ class TestDataFrameUnaryOperators:
             pd.DataFrame({"a": pd.to_datetime(["2017-01-22", "1970-01-01"])}),
         ],
     )
-    def test_neg_raises(self, df):
+    def test_neg_raises(self, df, using_infer_string):
         msg = (
             "bad operand type for unary -: 'str'|"
             r"bad operand type for unary -: 'DatetimeArray'"
         )
-        with pytest.raises(TypeError, match=msg):
-            (-df)
-        with pytest.raises(TypeError, match=msg):
-            (-df["a"])
+        if using_infer_string and df.dtypes.iloc[0] == "string":
+            import pyarrow as pa
+
+            msg = "has no kernel"
+            with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
+                (-df)
+            with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
+                (-df["a"])
+
+        else:
+            with pytest.raises(TypeError, match=msg):
+                (-df)
+            with pytest.raises(TypeError, match=msg):
+                (-df["a"])
 
     def test_invert(self, float_frame):
         df = float_frame
@@ -82,6 +94,13 @@ class TestDataFrameUnaryOperators:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_invert_empty_not_input(self):
+        # GH#51032
+        df = pd.DataFrame()
+        result = ~df
+        tm.assert_frame_equal(df, result)
+        assert df is not result
+
     @pytest.mark.parametrize(
         "df",
         [
@@ -98,11 +117,6 @@ class TestDataFrameUnaryOperators:
     @pytest.mark.parametrize(
         "df",
         [
-            # numpy changing behavior in the future
-            pytest.param(
-                pd.DataFrame({"a": ["a", "b"]}),
-                marks=[pytest.mark.filterwarnings("ignore")],
-            ),
             pd.DataFrame({"a": np.array([-1, 2], dtype=object)}),
             pd.DataFrame({"a": [Decimal("-1.0"), Decimal("2.0")]}),
         ],
@@ -111,6 +125,28 @@ class TestDataFrameUnaryOperators:
         # GH#21380
         tm.assert_frame_equal(+df, df)
         tm.assert_series_equal(+df["a"], df["a"])
+
+    @pytest.mark.parametrize(
+        "df",
+        [
+            pytest.param(
+                pd.DataFrame({"a": ["a", "b"]}),
+                # filterwarnings removable once min numpy version is 1.25
+                marks=[
+                    pytest.mark.filterwarnings("ignore:Applying:DeprecationWarning")
+                ],
+            ),
+        ],
+    )
+    def test_pos_object_raises(self, df):
+        # GH#21380
+        if np_version_gte1p25:
+            with pytest.raises(
+                TypeError, match=r"^bad operand type for unary \+: \'str\'$"
+            ):
+                tm.assert_frame_equal(+df, df)
+        else:
+            tm.assert_series_equal(+df["a"], df["a"])
 
     @pytest.mark.parametrize(
         "df", [pd.DataFrame({"a": pd.to_datetime(["2017-01-22", "1970-01-01"])})]

@@ -5,10 +5,14 @@ from typing import (
     TYPE_CHECKING,
     Any,
 )
+import warnings
 
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._exceptions import find_stack_level
 
 if TYPE_CHECKING:
+    import google.auth
+
     from pandas import DataFrame
 
 
@@ -33,13 +37,17 @@ def read_gbq(
     dialect: str | None = None,
     location: str | None = None,
     configuration: dict[str, Any] | None = None,
-    credentials=None,
+    credentials: google.auth.credentials.Credentials | None = None,
     use_bqstorage_api: bool | None = None,
     max_results: int | None = None,
     progress_bar_type: str | None = None,
 ) -> DataFrame:
     """
     Load data from Google BigQuery.
+
+    .. deprecated:: 2.2.0
+
+       Please use ``pandas_gbq.read_gbq`` instead.
 
     This function requires the `pandas-gbq package
     <https://pandas-gbq.readthedocs.io>`__.
@@ -130,14 +138,10 @@ def read_gbq(
         package. It also requires the ``google-cloud-bigquery-storage`` and
         ``fastavro`` packages.
 
-        .. versionadded:: 0.25.0
     max_results : int, optional
         If set, limit the maximum number of rows to fetch from the query
         results.
 
-        *New in version 0.12.0 of pandas-gbq*.
-
-        .. versionadded:: 1.1.0
     progress_bar_type : Optional, str
         If set, use the `tqdm <https://tqdm.github.io/>`__ library to
         display a progress bar while the data downloads. Install the
@@ -157,12 +161,6 @@ def read_gbq(
             Use the :func:`tqdm.tqdm_gui` function to display a
             progress bar as a graphical dialog box.
 
-        Note that this feature requires version 0.12.0 or later of the
-        ``pandas-gbq`` package. And it requires the ``tqdm`` package. Slightly
-        different than ``pandas-gbq``, here the default is ``None``.
-
-        .. versionadded:: 1.0.0
-
     Returns
     -------
     df: DataFrame
@@ -172,7 +170,27 @@ def read_gbq(
     --------
     pandas_gbq.read_gbq : This function in the pandas-gbq library.
     DataFrame.to_gbq : Write a DataFrame to Google BigQuery.
+
+    Examples
+    --------
+    Example taken from `Google BigQuery documentation
+    <https://cloud.google.com/bigquery/docs/pandas-gbq-migration>`_
+
+    >>> sql = "SELECT name FROM table_name WHERE state = 'TX' LIMIT 100;"
+    >>> df = pd.read_gbq(sql, dialect="standard")  # doctest: +SKIP
+    >>> project_id = "your-project-id"  # doctest: +SKIP
+    >>> df = pd.read_gbq(sql,
+    ...                  project_id=project_id,
+    ...                  dialect="standard"
+    ...                  )  # doctest: +SKIP
     """
+    warnings.warn(
+        "read_gbq is deprecated and will be removed in a future version. "
+        "Please use pandas_gbq.read_gbq instead: "
+        "https://pandas-gbq.readthedocs.io/en/latest/api.html#pandas_gbq.read_gbq",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
     pandas_gbq = _try_import()
 
     kwargs: dict[str, str | bool | int | None] = {}
@@ -212,8 +230,15 @@ def to_gbq(
     table_schema: list[dict[str, str]] | None = None,
     location: str | None = None,
     progress_bar: bool = True,
-    credentials=None,
+    credentials: google.auth.credentials.Credentials | None = None,
 ) -> None:
+    warnings.warn(
+        "to_gbq is deprecated and will be removed in a future version. "
+        "Please use pandas_gbq.to_gbq instead: "
+        "https://pandas-gbq.readthedocs.io/en/latest/api.html#pandas_gbq.to_gbq",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
     pandas_gbq = _try_import()
     pandas_gbq.to_gbq(
         dataframe,

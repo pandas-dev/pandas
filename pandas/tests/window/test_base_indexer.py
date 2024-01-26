@@ -94,7 +94,6 @@ def test_indexer_accepts_rolling_args():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("constructor", [Series, DataFrame])
 @pytest.mark.parametrize(
     "func,np_func,expected,np_kwargs",
     [
@@ -148,8 +147,9 @@ def test_indexer_accepts_rolling_args():
         ),
     ],
 )
-@pytest.mark.filterwarnings("ignore:min_periods:FutureWarning")
-def test_rolling_forward_window(constructor, func, np_func, expected, np_kwargs, step):
+def test_rolling_forward_window(
+    frame_or_series, func, np_func, expected, np_kwargs, step
+):
     # GH 32865
     values = np.arange(10.0)
     values[5] = 100.0
@@ -158,24 +158,24 @@ def test_rolling_forward_window(constructor, func, np_func, expected, np_kwargs,
 
     match = "Forward-looking windows can't have center=True"
     with pytest.raises(ValueError, match=match):
-        rolling = constructor(values).rolling(window=indexer, center=True)
+        rolling = frame_or_series(values).rolling(window=indexer, center=True)
         getattr(rolling, func)()
 
     match = "Forward-looking windows don't support setting the closed argument"
     with pytest.raises(ValueError, match=match):
-        rolling = constructor(values).rolling(window=indexer, closed="right")
+        rolling = frame_or_series(values).rolling(window=indexer, closed="right")
         getattr(rolling, func)()
 
-    rolling = constructor(values).rolling(window=indexer, min_periods=2, step=step)
+    rolling = frame_or_series(values).rolling(window=indexer, min_periods=2, step=step)
     result = getattr(rolling, func)()
 
     # Check that the function output matches the explicitly provided array
-    expected = constructor(expected)[::step]
+    expected = frame_or_series(expected)[::step]
     tm.assert_equal(result, expected)
 
     # Check that the rolling function output matches applying an alternative
     # function to the rolling window object
-    expected2 = constructor(rolling.apply(lambda x: np_func(x, **np_kwargs)))
+    expected2 = frame_or_series(rolling.apply(lambda x: np_func(x, **np_kwargs)))
     tm.assert_equal(result, expected2)
 
     # Check that the function output matches applying an alternative function
@@ -183,22 +183,21 @@ def test_rolling_forward_window(constructor, func, np_func, expected, np_kwargs,
     # GH 39604: After count-min_periods deprecation, apply(lambda x: len(x))
     # is equivalent to count after setting min_periods=0
     min_periods = 0 if func == "count" else None
-    rolling3 = constructor(values).rolling(window=indexer, min_periods=min_periods)
+    rolling3 = frame_or_series(values).rolling(window=indexer, min_periods=min_periods)
     result3 = getattr(rolling3, func)()
-    expected3 = constructor(rolling3.apply(lambda x: np_func(x, **np_kwargs)))
+    expected3 = frame_or_series(rolling3.apply(lambda x: np_func(x, **np_kwargs)))
     tm.assert_equal(result3, expected3)
 
 
-@pytest.mark.parametrize("constructor", [Series, DataFrame])
-def test_rolling_forward_skewness(constructor, step):
+def test_rolling_forward_skewness(frame_or_series, step):
     values = np.arange(10.0)
     values[5] = 100.0
 
     indexer = FixedForwardWindowIndexer(window_size=5)
-    rolling = constructor(values).rolling(window=indexer, min_periods=3, step=step)
+    rolling = frame_or_series(values).rolling(window=indexer, min_periods=3, step=step)
     result = rolling.skew()
 
-    expected = constructor(
+    expected = frame_or_series(
         [
             0.0,
             2.232396,
@@ -267,6 +266,19 @@ def test_non_fixed_variable_window_indexer(closed, expected_data):
     result = df.rolling(indexer, closed=closed).sum()
     expected = DataFrame(expected_data, index=index)
     tm.assert_frame_equal(result, expected)
+
+
+def test_variableoffsetwindowindexer_not_dti():
+    # GH 54379
+    with pytest.raises(ValueError, match="index must be a DatetimeIndex."):
+        VariableOffsetWindowIndexer(index="foo", offset=BusinessDay(1))
+
+
+def test_variableoffsetwindowindexer_not_offset():
+    # GH 54379
+    idx = date_range("2020", periods=10)
+    with pytest.raises(ValueError, match="offset must be a DateOffset-like object."):
+        VariableOffsetWindowIndexer(index=idx, offset="foo")
 
 
 def test_fixed_forward_indexer_count(step):

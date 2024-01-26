@@ -19,23 +19,22 @@ import pytest
 
 from pandas.errors import InvalidIndexError
 
+from pandas.core.dtypes.common import (
+    is_float_dtype,
+    is_scalar,
+)
+
 from pandas import (
+    NA,
     DatetimeIndex,
     Index,
     IntervalIndex,
     MultiIndex,
     NaT,
     PeriodIndex,
-    RangeIndex,
-    Series,
     TimedeltaIndex,
 )
 import pandas._testing as tm
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-    UInt64Index,
-)
 
 
 class TestTake:
@@ -57,8 +56,7 @@ class TestTake:
     def test_take(self, index):
         indexer = [4, 3, 0, 2]
         if len(index) < 5:
-            # not enough elements; ignore
-            return
+            pytest.skip("Test doesn't make sense since not enough elements")
 
         result = index.take(indexer)
         expected = index[indexer]
@@ -82,7 +80,7 @@ class TestTake:
         # -1 does not get treated as NA unless allow_fill=True is passed
         if len(index) == 0:
             # Test is not applicable
-            return
+            pytest.skip("Test doesn't make sense for empty index")
 
         result = index.take([0, 0, -1])
 
@@ -114,12 +112,12 @@ class TestContains:
             (Index([0, 1, 2, np.nan]), 4),
             (Index([0, 1, 2, np.inf]), np.nan),
             (Index([0, 1, 2, np.nan]), np.inf),
-            # Checking if np.inf in Int64Index should not cause an OverflowError
+            # Checking if np.inf in int64 Index should not cause an OverflowError
             # Related to GH 16957
-            (Int64Index([0, 1, 2]), np.inf),
-            (Int64Index([0, 1, 2]), np.nan),
-            (UInt64Index([0, 1, 2]), np.inf),
-            (UInt64Index([0, 1, 2]), np.nan),
+            (Index([0, 1, 2], dtype=np.int64), np.inf),
+            (Index([0, 1, 2], dtype=np.int64), np.nan),
+            (Index([0, 1, 2], dtype=np.uint64), np.inf),
+            (Index([0, 1, 2], dtype=np.uint64), np.nan),
         ],
     )
     def test_index_not_contains(self, index, val):
@@ -139,20 +137,20 @@ class TestContains:
         # GH#19860
         assert val not in index
 
-    def test_contains_with_float_index(self):
+    def test_contains_with_float_index(self, any_real_numpy_dtype):
         # GH#22085
-        integer_index = Int64Index([0, 1, 2, 3])
-        uinteger_index = UInt64Index([0, 1, 2, 3])
-        float_index = Float64Index([0.1, 1.1, 2.2, 3.3])
+        dtype = any_real_numpy_dtype
+        data = [0, 1, 2, 3] if not is_float_dtype(dtype) else [0.1, 1.1, 2.2, 3.3]
+        index = Index(data, dtype=dtype)
 
-        for index in (integer_index, uinteger_index):
+        if not is_float_dtype(index.dtype):
             assert 1.1 not in index
             assert 1.0 in index
             assert 1 in index
-
-        assert 1.1 in float_index
-        assert 1.0 not in float_index
-        assert 1 not in float_index
+        else:
+            assert 1.1 in index
+            assert 1.0 not in index
+            assert 1 not in index
 
     def test_contains_requires_hashable_raises(self, index):
         if isinstance(index, MultiIndex):
@@ -175,34 +173,38 @@ class TestContains:
             {} in index._engine
 
 
-class TestGetValue:
-    @pytest.mark.parametrize(
-        "index", ["string", "int", "datetime", "timedelta"], indirect=True
-    )
-    def test_get_value(self, index):
-        # TODO(2.0): can remove once get_value deprecation is enforced GH#19728
-        values = np.random.randn(100)
-        value = index[67]
-
-        with pytest.raises(AttributeError, match="has no attribute '_values'"):
-            # Index.get_value requires a Series, not an ndarray
-            with tm.assert_produces_warning(FutureWarning):
-                index.get_value(values, value)
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = index.get_value(Series(values, index=values), value)
-        tm.assert_almost_equal(result, values[67])
-
-
 class TestGetLoc:
     def test_get_loc_non_hashable(self, index):
-        # MultiIndex and Index raise TypeError, others InvalidIndexError
+        with pytest.raises(InvalidIndexError, match="[0, 1]"):
+            index.get_loc([0, 1])
 
-        with pytest.raises((TypeError, InvalidIndexError), match="slice"):
-            index.get_loc(slice(0, 1))
+    def test_get_loc_non_scalar_hashable(self, index):
+        # GH52877
+        from enum import Enum
+
+        class E(Enum):
+            X1 = "x1"
+
+        assert not is_scalar(E.X1)
+
+        exc = KeyError
+        msg = "<E.X1: 'x1'>"
+        if isinstance(
+            index,
+            (
+                DatetimeIndex,
+                TimedeltaIndex,
+                PeriodIndex,
+                IntervalIndex,
+            ),
+        ):
+            # TODO: make these more consistent?
+            exc = InvalidIndexError
+            msg = "E.X1"
+        with pytest.raises(exc, match=msg):
+            index.get_loc(E.X1)
 
     def test_get_loc_generator(self, index):
-
         exc = KeyError
         if isinstance(
             index,
@@ -210,7 +212,6 @@ class TestGetLoc:
                 DatetimeIndex,
                 TimedeltaIndex,
                 PeriodIndex,
-                RangeIndex,
                 IntervalIndex,
                 MultiIndex,
             ),
@@ -221,10 +222,16 @@ class TestGetLoc:
             # MultiIndex specifically checks for generator; others for scalar
             index.get_loc(x for x in range(5))
 
+    def test_get_loc_masked_duplicated_na(self):
+        # GH#48411
+        idx = Index([1, 2, NA, NA], dtype="Int64")
+        result = idx.get_loc(NA)
+        expected = np.array([False, False, True, True])
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestGetIndexer:
     def test_get_indexer_base(self, index):
-
         if index._index_as_unique:
             expected = np.arange(index.size, dtype=np.intp)
             actual = index.get_indexer(index)
@@ -253,6 +260,13 @@ class TestGetIndexer:
         assert isinstance(indexer, np.ndarray)
         assert indexer.dtype == np.intp
 
+    def test_get_indexer_masked_duplicated_na(self):
+        # GH#48411
+        idx = Index([1, 2, NA, NA], dtype="Int64")
+        result = idx.get_indexer_for(Index([1, NA], dtype="Int64"))
+        expected = np.array([0, 2, 3], dtype=result.dtype)
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestConvertSliceIndexer:
     def test_convert_almost_null_slice(self, index):
@@ -274,7 +288,7 @@ class TestPutmask:
     def test_putmask_with_wrong_mask(self, index):
         # GH#18368
         if not len(index):
-            return
+            pytest.skip("Test doesn't make sense for empty index")
 
         fill = index[0]
 
@@ -295,24 +309,9 @@ class TestPutmask:
 def test_getitem_deprecated_float(idx):
     # https://github.com/pandas-dev/pandas/issues/34191
 
-    with tm.assert_produces_warning(FutureWarning):
-        result = idx[1.0]
-
-    expected = idx[1]
-    assert result == expected
-
-
-def test_maybe_cast_slice_bound_kind_deprecated(index):
-    if not len(index):
-        return
-
-    with tm.assert_produces_warning(FutureWarning):
-        # passed as keyword
-        index._maybe_cast_slice_bound(index[0], "left", kind="loc")
-
-    with tm.assert_produces_warning(FutureWarning):
-        # pass as positional
-        index._maybe_cast_slice_bound(index[0], "left", "loc")
+    msg = "Indexing with a float is no longer supported"
+    with pytest.raises(IndexError, match=msg):
+        idx[1.0]
 
 
 @pytest.mark.parametrize(

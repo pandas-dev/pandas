@@ -150,6 +150,47 @@ def test_append_index():
     tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.parametrize("name, exp", [("b", "b"), ("c", None)])
+def test_append_names_match(name, exp):
+    # GH#48288
+    midx = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["a", "b"])
+    midx2 = MultiIndex.from_arrays([[3], [5]], names=["a", name])
+    result = midx.append(midx2)
+    expected = MultiIndex.from_arrays([[1, 2, 3], [3, 4, 5]], names=["a", exp])
+    tm.assert_index_equal(result, expected)
+
+
+def test_append_names_dont_match():
+    # GH#48288
+    midx = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["a", "b"])
+    midx2 = MultiIndex.from_arrays([[3], [5]], names=["x", "y"])
+    result = midx.append(midx2)
+    expected = MultiIndex.from_arrays([[1, 2, 3], [3, 4, 5]], names=None)
+    tm.assert_index_equal(result, expected)
+
+
+def test_append_overlapping_interval_levels():
+    # GH 54934
+    ivl1 = pd.IntervalIndex.from_breaks([0.0, 1.0, 2.0])
+    ivl2 = pd.IntervalIndex.from_breaks([0.5, 1.5, 2.5])
+    mi1 = MultiIndex.from_product([ivl1, ivl1])
+    mi2 = MultiIndex.from_product([ivl2, ivl2])
+    result = mi1.append(mi2)
+    expected = MultiIndex.from_tuples(
+        [
+            (pd.Interval(0.0, 1.0), pd.Interval(0.0, 1.0)),
+            (pd.Interval(0.0, 1.0), pd.Interval(1.0, 2.0)),
+            (pd.Interval(1.0, 2.0), pd.Interval(0.0, 1.0)),
+            (pd.Interval(1.0, 2.0), pd.Interval(1.0, 2.0)),
+            (pd.Interval(0.5, 1.5), pd.Interval(0.5, 1.5)),
+            (pd.Interval(0.5, 1.5), pd.Interval(1.5, 2.5)),
+            (pd.Interval(1.5, 2.5), pd.Interval(0.5, 1.5)),
+            (pd.Interval(1.5, 2.5), pd.Interval(1.5, 2.5)),
+        ]
+    )
+    tm.assert_index_equal(result, expected)
+
+
 def test_repeat():
     reps = 2
     numbers = [1, 2, 3]
@@ -161,7 +202,6 @@ def test_repeat():
 
 
 def test_insert_base(idx):
-
     result = idx[1:4]
 
     # test 0th element
@@ -169,7 +209,6 @@ def test_insert_base(idx):
 
 
 def test_delete_base(idx):
-
     expected = idx[1:]
     result = idx.delete(0)
     assert result.equals(expected)

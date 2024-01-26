@@ -1,14 +1,17 @@
 from __future__ import annotations
 
-import numpy as np
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 from pandas.core.interchange.dataframe_protocol import (
     Buffer,
     DlpackDeviceType,
 )
-from pandas.util.version import Version
 
-_NUMPY_HAS_DLPACK = Version(np.__version__) >= Version("1.22.0")
+if TYPE_CHECKING:
+    import numpy as np
 
 
 class PandasBuffer(Buffer):
@@ -49,13 +52,11 @@ class PandasBuffer(Buffer):
         """
         return self._x.__array_interface__["data"][0]
 
-    def __dlpack__(self):
+    def __dlpack__(self) -> Any:
         """
         Represent this structure as DLPack interface.
         """
-        if _NUMPY_HAS_DLPACK:
-            return self._x.__dlpack__()
-        raise NotImplementedError("__dlpack__")
+        return self._x.__dlpack__()
 
     def __dlpack_device__(self) -> tuple[DlpackDeviceType, int | None]:
         """

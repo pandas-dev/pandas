@@ -1,6 +1,7 @@
+from datetime import timezone
+
 import numpy as np
 import pytest
-import pytz
 
 import pandas as pd
 from pandas import (
@@ -68,20 +69,27 @@ def test_align_fill_method(
     a = datetime_series[slice(*first_slice)]
     b = datetime_series[slice(*second_slice)]
 
-    aa, ab = a.align(b, join=join_type, method=method, limit=limit)
+    msg = (
+        "The 'method', 'limit', and 'fill_axis' keywords in Series.align "
+        "are deprecated"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        aa, ab = a.align(b, join=join_type, method=method, limit=limit)
 
     join_index = a.index.join(b.index, how=join_type)
     ea = a.reindex(join_index)
     eb = b.reindex(join_index)
 
-    ea = ea.fillna(method=method, limit=limit)
-    eb = eb.fillna(method=method, limit=limit)
+    msg2 = "Series.fillna with 'method' is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg2):
+        ea = ea.fillna(method=method, limit=limit)
+        eb = eb.fillna(method=method, limit=limit)
 
     tm.assert_series_equal(aa, ea)
     tm.assert_series_equal(ab, eb)
 
 
-def test_align_nocopy(datetime_series):
+def test_align_nocopy(datetime_series, using_copy_on_write):
     b = datetime_series[:5].copy()
 
     # do copy
@@ -94,7 +102,10 @@ def test_align_nocopy(datetime_series):
     a = datetime_series.copy()
     ra, _ = a.align(b, join="left", copy=False)
     ra[:5] = 5
-    assert (a[:5] == 5).all()
+    if using_copy_on_write:
+        assert not (a[:5] == 5).any()
+    else:
+        assert (a[:5] == 5).all()
 
     # do copy
     a = datetime_series.copy()
@@ -108,17 +119,26 @@ def test_align_nocopy(datetime_series):
     b = datetime_series[:5].copy()
     _, rb = a.align(b, join="right", copy=False)
     rb[:2] = 5
-    assert (b[:2] == 5).all()
+    if using_copy_on_write:
+        assert not (b[:2] == 5).any()
+    else:
+        assert (b[:2] == 5).all()
 
 
-def test_align_same_index(datetime_series):
+def test_align_same_index(datetime_series, using_copy_on_write):
     a, b = datetime_series.align(datetime_series, copy=False)
-    assert a.index is datetime_series.index
-    assert b.index is datetime_series.index
+    if not using_copy_on_write:
+        assert a.index is datetime_series.index
+        assert b.index is datetime_series.index
+    else:
+        assert a.index.is_(datetime_series.index)
+        assert b.index.is_(datetime_series.index)
 
     a, b = datetime_series.align(datetime_series, copy=True)
     assert a.index is not datetime_series.index
     assert b.index is not datetime_series.index
+    assert a.index.is_(datetime_series.index)
+    assert b.index.is_(datetime_series.index)
 
 
 def test_align_multiindex():
@@ -162,25 +182,30 @@ def test_align_with_dataframe_method(method):
     ser = Series(range(3), index=range(3))
     df = pd.DataFrame(0.0, index=range(3), columns=range(3))
 
-    result_ser, result_df = ser.align(df, method=method)
+    msg = (
+        "The 'method', 'limit', and 'fill_axis' keywords in Series.align "
+        "are deprecated"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result_ser, result_df = ser.align(df, method=method)
     tm.assert_series_equal(result_ser, ser)
     tm.assert_frame_equal(result_df, df)
 
 
 def test_align_dt64tzindex_mismatched_tzs():
-    idx1 = date_range("2001", periods=5, freq="H", tz="US/Eastern")
-    ser = Series(np.random.randn(len(idx1)), index=idx1)
+    idx1 = date_range("2001", periods=5, freq="h", tz="US/Eastern")
+    ser = Series(np.random.default_rng(2).standard_normal(len(idx1)), index=idx1)
     ser_central = ser.tz_convert("US/Central")
     # different timezones convert to UTC
 
     new1, new2 = ser.align(ser_central)
-    assert new1.index.tz == pytz.UTC
-    assert new2.index.tz == pytz.UTC
+    assert new1.index.tz is timezone.utc
+    assert new2.index.tz is timezone.utc
 
 
 def test_align_periodindex(join_type):
-    rng = period_range("1/1/2000", "1/1/2010", freq="A")
-    ts = Series(np.random.randn(len(rng)), index=rng)
+    rng = period_range("1/1/2000", "1/1/2010", freq="Y")
+    ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
     # TODO: assert something?
     ts.align(ts[::2], join=join_type)
@@ -215,10 +240,10 @@ def test_align_left_different_named_levels():
     result_left, result_right = left.align(right)
 
     expected_left = Series(
-        [2], index=pd.MultiIndex.from_tuples([(1, 3, 4, 2)], names=["a", "c", "d", "b"])
+        [2], index=pd.MultiIndex.from_tuples([(1, 4, 3, 2)], names=["a", "d", "c", "b"])
     )
     expected_right = Series(
-        [1], index=pd.MultiIndex.from_tuples([(1, 3, 4, 2)], names=["a", "c", "d", "b"])
+        [1], index=pd.MultiIndex.from_tuples([(1, 4, 3, 2)], names=["a", "d", "c", "b"])
     )
     tm.assert_series_equal(result_left, expected_left)
     tm.assert_series_equal(result_right, expected_right)

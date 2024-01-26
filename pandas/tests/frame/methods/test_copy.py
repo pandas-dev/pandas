@@ -18,6 +18,7 @@ class TestCopy:
         getattr(cp, attr).name = "foo"
         assert getattr(float_frame, attr).name is None
 
+    @td.skip_copy_on_write_invalid_test
     def test_copy_cache(self):
         # GH#31784 _item_cache not cleared on copy causes incorrect reads after updates
         df = DataFrame({"a": [1]})
@@ -50,13 +51,13 @@ class TestCopy:
         # GH#42477
         df = DataFrame(
             {
-                "a": np.random.randint(0, 100, size=55),
-                "b": np.random.randint(0, 100, size=55),
+                "a": np.random.default_rng(2).integers(0, 100, size=55),
+                "b": np.random.default_rng(2).integers(0, 100, size=55),
             }
         )
 
-        for i in range(0, 10):
-            df.loc[:, f"n_{i}"] = np.random.randint(0, 100, size=55)
+        for i in range(10):
+            df.loc[:, f"n_{i}"] = np.random.default_rng(2).integers(0, 100, size=55)
 
         assert len(df._mgr.blocks) == 11
         result = df.copy()

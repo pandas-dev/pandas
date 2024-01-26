@@ -30,7 +30,7 @@ class TestDataFrameClip:
 
     def test_dataframe_clip(self):
         # GH#2747
-        df = DataFrame(np.random.randn(1000, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((1000, 2)))
 
         for lb, ub in [(-1, 1), (1, -1)]:
             clipped_df = df.clip(lb, ub)
@@ -60,8 +60,8 @@ class TestDataFrameClip:
     def test_clip_against_series(self, inplace):
         # GH#6966
 
-        df = DataFrame(np.random.randn(1000, 2))
-        lb = Series(np.random.randn(1000))
+        df = DataFrame(np.random.default_rng(2).standard_normal((1000, 2)))
+        lb = Series(np.random.default_rng(2).standard_normal(1000))
         ub = lb + 1
 
         original = df.copy()
@@ -94,9 +94,13 @@ class TestDataFrameClip:
             (1, [[2.0, 3.0, 4.0], [4.0, 5.0, 6.0], [5.0, 6.0, 7.0]]),
         ],
     )
-    def test_clip_against_list_like(self, simple_frame, inplace, lower, axis, res):
+    def test_clip_against_list_like(self, inplace, lower, axis, res):
         # GH#15390
-        original = simple_frame.copy(deep=True)
+        arr = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]])
+
+        original = DataFrame(
+            arr, columns=["one", "two", "three"], index=["a", "b", "c"]
+        )
 
         result = original.clip(lower=lower, upper=[5, 6, 7], axis=axis, inplace=inplace)
 
@@ -107,8 +111,8 @@ class TestDataFrameClip:
 
     @pytest.mark.parametrize("axis", [0, 1, None])
     def test_clip_against_frame(self, axis):
-        df = DataFrame(np.random.randn(1000, 2))
-        lb = DataFrame(np.random.randn(1000, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((1000, 2)))
+        lb = DataFrame(np.random.default_rng(2).standard_normal((1000, 2)))
         ub = lb + 1
 
         clipped_df = df.clip(lb, ub, axis=axis)
@@ -123,8 +127,14 @@ class TestDataFrameClip:
 
     def test_clip_against_unordered_columns(self):
         # GH#20911
-        df1 = DataFrame(np.random.randn(1000, 4), columns=["A", "B", "C", "D"])
-        df2 = DataFrame(np.random.randn(1000, 4), columns=["D", "A", "B", "C"])
+        df1 = DataFrame(
+            np.random.default_rng(2).standard_normal((1000, 4)),
+            columns=["A", "B", "C", "D"],
+        )
+        df2 = DataFrame(
+            np.random.default_rng(2).standard_normal((1000, 4)),
+            columns=["D", "A", "B", "C"],
+        )
         df3 = DataFrame(df2.values - 1, columns=["B", "D", "C", "A"])
         result_upper = df1.clip(lower=0, upper=df2)
         expected_upper = df1.clip(lower=0, upper=df2[df1.columns])
@@ -145,7 +155,11 @@ class TestDataFrameClip:
         # GH#19992 and adjusted in GH#40420
         df = DataFrame({"col_0": [1, 2, 3], "col_1": [4, 5, 6], "col_2": [7, 8, 9]})
 
-        result = df.clip(lower=[4, 5, np.nan], axis=0)
+        msg = "Downcasting behavior in Series and DataFrame methods 'where'"
+        # TODO: avoid this warning here?  seems like we should never be upcasting
+        #  in the first place?
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.clip(lower=[4, 5, np.nan], axis=0)
         expected = DataFrame(
             {"col_0": [4, 5, 3], "col_1": [4, 5, 6], "col_2": [7, 8, 9]}
         )
@@ -160,19 +174,26 @@ class TestDataFrameClip:
         # GH#40420
         data = {"col_0": [9, -3, 0, -1, 5], "col_1": [-2, -7, 6, 8, -5]}
         df = DataFrame(data)
-        t = Series([2, -4, np.NaN, 6, 3])
-        result = df.clip(lower=t, axis=0)
+        t = Series([2, -4, np.nan, 6, 3])
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.clip(lower=t, axis=0)
         expected = DataFrame({"col_0": [9, -3, 0, 6, 5], "col_1": [2, -4, 6, 8, 3]})
         tm.assert_frame_equal(result, expected)
 
-    def test_clip_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
+    def test_clip_int_data_with_float_bound(self):
+        # GH51472
         df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"In a future version of pandas all arguments of DataFrame.clip except "
-            r"for the arguments 'lower' and 'upper' will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.clip(0, 1, 0)
-        expected = DataFrame({"a": [1, 1, 1]})
+        result = df.clip(lower=1.5)
+        expected = DataFrame({"a": [1.5, 2.0, 3.0]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_clip_with_list_bound(self):
+        # GH#54817
+        df = DataFrame([1, 5])
+        expected = DataFrame([3, 5])
+        result = df.clip([3])
+        tm.assert_frame_equal(result, expected)
+
+        expected = DataFrame([1, 3])
+        result = df.clip(upper=[3])
         tm.assert_frame_equal(result, expected)

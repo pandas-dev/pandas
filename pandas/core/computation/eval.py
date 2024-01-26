@@ -7,9 +7,10 @@ import tokenize
 from typing import TYPE_CHECKING
 import warnings
 
-from pandas._libs.lib import no_default
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
+
+from pandas.core.dtypes.common import is_extension_array_dtype
 
 from pandas.core.computation.engines import ENGINES
 from pandas.core.computation.expr import (
@@ -18,6 +19,7 @@ from pandas.core.computation.expr import (
 )
 from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
+from pandas.core.generic import NDFrame
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -148,7 +150,6 @@ def _convert_expression(expr) -> str:
 
 
 def _check_for_locals(expr: str, stack_level: int, parser: str):
-
     at_top_of_stack = stack_level == 0
     not_pandas_parser = parser != "pandas"
 
@@ -170,13 +171,12 @@ def eval(
     expr: str | BinOp,  # we leave BinOp out of the docstr bc it isn't for users
     parser: str = "pandas",
     engine: str | None = None,
-    truediv=no_default,
     local_dict=None,
     global_dict=None,
     resolvers=(),
-    level=0,
+    level: int = 0,
     target=None,
-    inplace=False,
+    inplace: bool = False,
 ):
     """
     Evaluate a Python expression as a string using various backends.
@@ -216,12 +216,6 @@ def eval(
           level python. This engine is generally not that useful.
 
         More backends may be available in the future.
-
-    truediv : bool, optional
-        Whether to use true division, like in Python >= 3.
-
-        .. deprecated:: 1.0.0
-
     local_dict : dict or None, optional
         A dictionary of local variables, taken from locals() by default.
     global_dict : dict or None, optional
@@ -304,16 +298,6 @@ def eval(
     """
     inplace = validate_bool_kwarg(inplace, "inplace")
 
-    if truediv is not no_default:
-        warnings.warn(
-            (
-                "The `truediv` parameter in pd.eval is deprecated and "
-                "will be removed in a future version."
-            ),
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
     exprs: list[str | BinOp]
     if isinstance(expr, str):
         _check_expression(expr)
@@ -351,6 +335,22 @@ def eval(
 
         parsed_expr = Expr(expr, engine=engine, parser=parser, env=env)
 
+        if engine == "numexpr" and (
+            is_extension_array_dtype(parsed_expr.terms.return_type)
+            or getattr(parsed_expr.terms, "operand_types", None) is not None
+            and any(
+                is_extension_array_dtype(elem)
+                for elem in parsed_expr.terms.operand_types
+            )
+        ):
+            warnings.warn(
+                "Engine has switched to 'python' because numexpr does not support "
+                "extension array dtypes. Please set your engine to python manually.",
+                RuntimeWarning,
+                stacklevel=find_stack_level(),
+            )
+            engine = "python"
+
         # construct the engine and evaluate the parsed expression
         eng = ENGINES[engine]
         eng_inst = eng(parsed_expr)
@@ -362,7 +362,7 @@ def eval(
                     "Multi-line expressions are only valid "
                     "if all expressions contain an assignment"
                 )
-            elif inplace:
+            if inplace:
                 raise ValueError("Cannot operate inplace if there is no assignment")
 
         # assign if needed
@@ -373,7 +373,11 @@ def eval(
             # if returning a copy, copy only on the first assignment
             if not inplace and first_expr:
                 try:
-                    target = env.target.copy()
+                    target = env.target
+                    if isinstance(target, NDFrame):
+                        target = target.copy(deep=None)
+                    else:
+                        target = target.copy()
                 except AttributeError as err:
                     raise ValueError("Cannot return a copy of the target") from err
             else:
@@ -384,9 +388,10 @@ def eval(
             # we will ignore numpy warnings here; e.g. if trying
             # to use a non-numeric indexer
             try:
-                with warnings.catch_warnings(record=True):
-                    # TODO: Filter the warnings we actually care about here.
-                    target[assigner] = ret
+                if inplace and isinstance(target, NDFrame):
+                    target.loc[:, assigner] = ret
+                else:
+                    target[assigner] = ret  # pyright: ignore[reportGeneralTypeIssues]
             except (TypeError, IndexError) as err:
                 raise ValueError("Cannot assign expression output to target") from err
 

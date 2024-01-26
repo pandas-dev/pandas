@@ -1,11 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    is_ci_environment,
-    is_platform_mac,
-    is_platform_windows,
-)
 from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
@@ -17,13 +12,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
-# TODO(GH#44584): Mark these as pytest.mark.single_cpu
-pytestmark = pytest.mark.skipif(
-    is_ci_environment() and (is_platform_windows() or is_platform_mac()),
-    reason="On GHA CI, Windows can fail with "
-    "'Windows fatal exception: stack overflow' "
-    "and MacOS can timeout",
-)
+pytestmark = pytest.mark.single_cpu
 
 
 @pytest.fixture(params=["single", "table"])
@@ -103,7 +92,6 @@ class TestEngine:
         arithmetic_numba_supported_operators,
         step,
     ):
-
         method, kwargs = arithmetic_numba_supported_operators
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
@@ -121,7 +109,6 @@ class TestEngine:
     def test_numba_vs_cython_expanding_methods(
         self, data, nogil, parallel, nopython, arithmetic_numba_supported_operators
     ):
-
         method, kwargs = arithmetic_numba_supported_operators
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
@@ -253,22 +240,19 @@ class TestEWM:
     def test_cython_vs_numba(
         self, grouper, method, nogil, parallel, nopython, ignore_na, adjust
     ):
+        df = DataFrame({"B": range(4)})
         if grouper == "None":
             grouper = lambda x: x
-            warn = FutureWarning
         else:
+            df["A"] = ["a", "b", "a", "b"]
             grouper = lambda x: x.groupby("A")
-            warn = None
         if method == "sum":
             adjust = True
-        df = DataFrame({"A": ["a", "b", "a", "b"], "B": range(4)})
         ewm = grouper(df).ewm(com=1.0, adjust=adjust, ignore_na=ignore_na)
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
-        with tm.assert_produces_warning(warn, match="nuisance"):
-            # GH#42738
-            result = getattr(ewm, method)(engine="numba", engine_kwargs=engine_kwargs)
-            expected = getattr(ewm, method)(engine="cython")
+        result = getattr(ewm, method)(engine="numba", engine_kwargs=engine_kwargs)
+        expected = getattr(ewm, method)(engine="cython")
 
         tm.assert_frame_equal(result, expected)
 
@@ -276,12 +260,12 @@ class TestEWM:
     def test_cython_vs_numba_times(self, grouper, nogil, parallel, nopython, ignore_na):
         # GH 40951
 
+        df = DataFrame({"B": [0, 0, 1, 1, 2, 2]})
         if grouper == "None":
             grouper = lambda x: x
-            warn = FutureWarning
         else:
             grouper = lambda x: x.groupby("A")
-            warn = None
+            df["A"] = ["a", "b", "a", "b", "b", "a"]
 
         halflife = "23 days"
         times = to_datetime(
@@ -294,17 +278,14 @@ class TestEWM:
                 "2020-01-03",
             ]
         )
-        df = DataFrame({"A": ["a", "b", "a", "b", "b", "a"], "B": [0, 0, 1, 1, 2, 2]})
         ewm = grouper(df).ewm(
             halflife=halflife, adjust=True, ignore_na=ignore_na, times=times
         )
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
-        with tm.assert_produces_warning(warn, match="nuisance"):
-            # GH#42738
-            result = ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
-            expected = ewm.mean(engine="cython")
+        result = ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
+        expected = ewm.mean(engine="cython")
 
         tm.assert_frame_equal(result, expected)
 
@@ -465,3 +446,10 @@ class TestTableMethod:
             engine_kwargs=engine_kwargs, engine="numba"
         )
         tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("numba")
+def test_npfunc_no_warnings():
+    df = DataFrame({"col1": [1, 2, 3, 4, 5]})
+    with tm.assert_produces_warning(False):
+        df.col1.rolling(2).apply(np.prod, raw=True, engine="numba")

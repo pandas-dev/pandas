@@ -59,7 +59,6 @@ class TestTZConvert:
             l1 = l1.tz_localize("UTC")
 
         for idx in [l0, l1]:
-
             l0_expected = getattr(idx, fn)("US/Pacific")
             l1_expected = getattr(idx, fn)("US/Pacific")
 
@@ -92,7 +91,7 @@ class TestTZConvert:
             df4 = DataFrame(np.ones(5), MultiIndex.from_arrays([int_idx, l0]))
 
             # TODO: untested
-            df5 = getattr(df4, fn)("US/Pacific", level=1)  # noqa
+            getattr(df4, fn)("US/Pacific", level=1)
 
             tm.assert_index_equal(df3.index.levels[0], l0)
             assert not df3.index.levels[0].equals(l0_expected)
@@ -121,7 +120,7 @@ class TestTZConvert:
         # GH#6326
         obj = frame_or_series(
             np.arange(0, 5),
-            index=date_range("20131027", periods=5, freq="1H", tz="Europe/Berlin"),
+            index=date_range("20131027", periods=5, freq="h", tz="Europe/Berlin"),
         )
         orig = obj.copy()
         result = obj.tz_convert("UTC", copy=copy)

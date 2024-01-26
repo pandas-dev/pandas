@@ -17,11 +17,22 @@ import pathlib
 import re
 import sys
 
-import toml
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 import yaml
 
 EXCLUDE = {"python", "c-compiler", "cxx-compiler"}
-RENAME = {"pytables": "tables", "geopandas-base": "geopandas", "pytorch": "torch"}
+REMAP_VERSION = {"tzdata": "2022.7"}
+CONDA_TO_PIP = {
+    "pytables": "tables",
+    "psycopg2": "psycopg2-binary",
+    "dask-core": "dask",
+    "seaborn-base": "seaborn",
+    "sqlalchemy": "SQLAlchemy",
+    "pyqt": "PyQt5",
+}
 
 
 def conda_package_to_pip(package: str):
@@ -30,7 +41,7 @@ def conda_package_to_pip(package: str):
 
     In most cases they are the same, those are the exceptions:
     - Packages that should be excluded (in `EXCLUDE`)
-    - Packages that should be renamed (in `RENAME`)
+    - Packages that should be renamed (in `CONDA_TO_PIP`)
     - A package requiring a specific version, in conda is defined with a single
       equal (e.g. ``pandas=1.0``) and in pip with two (e.g. ``pandas==1.0``)
     """
@@ -41,15 +52,16 @@ def conda_package_to_pip(package: str):
             pkg, version = package.split(compare)
             if pkg in EXCLUDE:
                 return
-
-            if pkg in RENAME:
-                return "".join((RENAME[pkg], compare, version))
+            if pkg in REMAP_VERSION:
+                return "".join((pkg, compare, REMAP_VERSION[pkg]))
+            if pkg in CONDA_TO_PIP:
+                return "".join((CONDA_TO_PIP[pkg], compare, version))
 
     if package in EXCLUDE:
         return
 
-    if package in RENAME:
-        return RENAME[package]
+    if package in CONDA_TO_PIP:
+        return CONDA_TO_PIP[package]
 
     return package
 
@@ -98,7 +110,8 @@ def generate_pip_from_conda(
     pip_content = header + "\n".join(pip_deps) + "\n"
 
     # add setuptools to requirements-dev.txt
-    meta = toml.load(pathlib.Path(conda_path.parent, "pyproject.toml"))
+    with open(pathlib.Path(conda_path.parent, "pyproject.toml"), "rb") as fd:
+        meta = tomllib.load(fd)
     for requirement in meta["build-system"]["requires"]:
         if "setuptools" in requirement:
             pip_content += requirement

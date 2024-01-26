@@ -1,8 +1,8 @@
 from pandas.core.dtypes.common import (
+    is_any_real_numeric_dtype,
     is_array_like,
     is_bool,
     is_bool_dtype,
-    is_categorical,
     is_categorical_dtype,
     is_complex,
     is_complex_dtype,
@@ -13,7 +13,6 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
-    is_extension_type,
     is_file_like,
     is_float,
     is_float_dtype,
@@ -43,10 +42,10 @@ from pandas.core.dtypes.common import (
 )
 
 __all__ = [
+    "is_any_real_numeric_dtype",
     "is_array_like",
     "is_bool",
     "is_bool_dtype",
-    "is_categorical",
     "is_categorical_dtype",
     "is_complex",
     "is_complex_dtype",
@@ -57,7 +56,6 @@ __all__ = [
     "is_dict_like",
     "is_dtype_equal",
     "is_extension_array_dtype",
-    "is_extension_type",
     "is_file_like",
     "is_float",
     "is_float_dtype",

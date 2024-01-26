@@ -6,6 +6,10 @@ that can be mixed into or pinned onto other pandas classes.
 """
 from __future__ import annotations
 
+from typing import (
+    Callable,
+    final,
+)
 import warnings
 
 from pandas.util._decorators import doc
@@ -16,6 +20,7 @@ class DirNamesMixin:
     _accessors: set[str] = set()
     _hidden_attrs: frozenset[str] = frozenset()
 
+    @final
     def _dir_deletions(self) -> set[str]:
         """
         Delete unwanted __dir__ for this object.
@@ -46,19 +51,25 @@ class PandasDelegate:
     Abstract base class for delegating methods/properties.
     """
 
-    def _delegate_property_get(self, name, *args, **kwargs):
+    def _delegate_property_get(self, name: str, *args, **kwargs):
         raise TypeError(f"You cannot access the property {name}")
 
-    def _delegate_property_set(self, name, value, *args, **kwargs):
+    def _delegate_property_set(self, name: str, value, *args, **kwargs):
         raise TypeError(f"The property {name} cannot be set")
 
-    def _delegate_method(self, name, *args, **kwargs):
+    def _delegate_method(self, name: str, *args, **kwargs):
         raise TypeError(f"You cannot call method {name}")
 
     @classmethod
     def _add_delegate_accessors(
-        cls, delegate, accessors, typ: str, overwrite: bool = False
-    ):
+        cls,
+        delegate,
+        accessors: list[str],
+        typ: str,
+        overwrite: bool = False,
+        accessor_mapping: Callable[[str], str] = lambda x: x,
+        raise_on_missing: bool = True,
+    ) -> None:
         """
         Add accessors to cls from the delegate class.
 
@@ -73,9 +84,14 @@ class PandasDelegate:
         typ : {'property', 'method'}
         overwrite : bool, default False
             Overwrite the method/property in the target class if it exists.
+        accessor_mapping: Callable, default lambda x: x
+            Callable to map the delegate's function to the cls' function.
+        raise_on_missing: bool, default True
+            Raise if an accessor does not exist on delegate.
+            False skips the missing accessor.
         """
 
-        def _create_delegator_property(name):
+        def _create_delegator_property(name: str):
             def _getter(self):
                 return self._delegate_property_get(name)
 
@@ -86,19 +102,26 @@ class PandasDelegate:
             _setter.__name__ = name
 
             return property(
-                fget=_getter, fset=_setter, doc=getattr(delegate, name).__doc__
+                fget=_getter,
+                fset=_setter,
+                doc=getattr(delegate, accessor_mapping(name)).__doc__,
             )
 
-        def _create_delegator_method(name):
+        def _create_delegator_method(name: str):
             def f(self, *args, **kwargs):
                 return self._delegate_method(name, *args, **kwargs)
 
             f.__name__ = name
-            f.__doc__ = getattr(delegate, name).__doc__
+            f.__doc__ = getattr(delegate, accessor_mapping(name)).__doc__
 
             return f
 
         for name in accessors:
+            if (
+                not raise_on_missing
+                and getattr(delegate, accessor_mapping(name), None) is None
+            ):
+                continue
 
             if typ == "property":
                 f = _create_delegator_property(name)
@@ -110,7 +133,14 @@ class PandasDelegate:
                 setattr(cls, name, f)
 
 
-def delegate_names(delegate, accessors, typ: str, overwrite: bool = False):
+def delegate_names(
+    delegate,
+    accessors: list[str],
+    typ: str,
+    overwrite: bool = False,
+    accessor_mapping: Callable[[str], str] = lambda x: x,
+    raise_on_missing: bool = True,
+):
     """
     Add delegated names to a class using a class decorator.  This provides
     an alternative usage to directly calling `_add_delegate_accessors`
@@ -125,6 +155,11 @@ def delegate_names(delegate, accessors, typ: str, overwrite: bool = False):
     typ : {'property', 'method'}
     overwrite : bool, default False
        Overwrite the method/property in the target class if it exists.
+    accessor_mapping: Callable, default lambda x: x
+        Callable to map the delegate's function to the cls' function.
+    raise_on_missing: bool, default True
+        Raise if an accessor does not exist on delegate.
+        False skips the missing accessor.
 
     Returns
     -------
@@ -139,13 +174,20 @@ def delegate_names(delegate, accessors, typ: str, overwrite: bool = False):
     """
 
     def add_delegate_accessors(cls):
-        cls._add_delegate_accessors(delegate, accessors, typ, overwrite=overwrite)
+        cls._add_delegate_accessors(
+            delegate,
+            accessors,
+            typ,
+            overwrite=overwrite,
+            accessor_mapping=accessor_mapping,
+            raise_on_missing=raise_on_missing,
+        )
         return cls
 
     return add_delegate_accessors
 
 
-# Ported with modifications from xarray
+# Ported with modifications from xarray; licence at LICENSES/XARRAY_LICENSE
 # https://github.com/pydata/xarray/blob/master/xarray/core/extensions.py
 # 1. We don't need to catch and re-raise AttributeErrors as RuntimeErrors
 # 2. We use a UserWarning instead of a custom Warning
@@ -189,7 +231,7 @@ class CachedAccessor:
 
 
 @doc(klass="", others="")
-def _register_accessor(name, cls):
+def _register_accessor(name: str, cls):
     """
     Register a custom accessor on {klass} objects.
 
@@ -278,21 +320,21 @@ def _register_accessor(name, cls):
 
 
 @doc(_register_accessor, klass="DataFrame")
-def register_dataframe_accessor(name):
+def register_dataframe_accessor(name: str):
     from pandas import DataFrame
 
     return _register_accessor(name, DataFrame)
 
 
 @doc(_register_accessor, klass="Series")
-def register_series_accessor(name):
+def register_series_accessor(name: str):
     from pandas import Series
 
     return _register_accessor(name, Series)
 
 
 @doc(_register_accessor, klass="Index")
-def register_index_accessor(name):
+def register_index_accessor(name: str):
     from pandas import Index
 
     return _register_accessor(name, Index)

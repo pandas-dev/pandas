@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 import pytest
 
@@ -32,16 +30,16 @@ def test_drop(idx):
     tm.assert_index_equal(dropped, expected)
 
     index = MultiIndex.from_tuples([("bar", "two")])
-    with pytest.raises(KeyError, match=r"^10$"):
+    with pytest.raises(KeyError, match=r"^\('bar', 'two'\)$"):
         idx.drop([("bar", "two")])
-    with pytest.raises(KeyError, match=r"^10$"):
+    with pytest.raises(KeyError, match=r"^\('bar', 'two'\)$"):
         idx.drop(index)
     with pytest.raises(KeyError, match=r"^'two'$"):
         idx.drop(["foo", "two"])
 
     # partially correct argument
     mixed_index = MultiIndex.from_tuples([("qux", "one"), ("bar", "two")])
-    with pytest.raises(KeyError, match=r"^10$"):
+    with pytest.raises(KeyError, match=r"^\('bar', 'two'\)$"):
         idx.drop(mixed_index)
 
     # error='ignore'
@@ -154,12 +152,11 @@ def test_drop_with_nan_in_index(nulls_fixture):
         mi.drop(pd.Timestamp("2001"), level="date")
 
 
+@pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
 def test_drop_with_non_monotonic_duplicates():
     # GH#33494
     mi = MultiIndex.from_tuples([(1, 2), (2, 3), (1, 2)])
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", PerformanceWarning)
-        result = mi.drop((1, 2))
+    result = mi.drop((1, 2))
     expected = MultiIndex.from_tuples([(2, 3)])
     tm.assert_index_equal(result, expected)
 

@@ -7,12 +7,11 @@ from __future__ import annotations
 
 from datetime import datetime
 
+import numpy as np
 import pytest
 
-from pandas._libs.tslibs.offsets import YearOffset
-
+from pandas import Timestamp
 from pandas.tests.tseries.offsets.common import (
-    Base,
     assert_is_on_offset,
     assert_offset_equal,
 )
@@ -23,9 +22,7 @@ from pandas.tseries.offsets import (
 )
 
 
-class TestYearBegin(Base):
-    _offset: type[YearOffset] = YearBegin
-
+class TestYearBegin:
     def test_misspecified(self):
         with pytest.raises(ValueError, match="Month must go from 1 to 12"):
             YearBegin(month=13)
@@ -177,9 +174,7 @@ class TestYearBegin(Base):
         assert_is_on_offset(offset, dt, expected)
 
 
-class TestYearEnd(Base):
-    _offset: type[YearOffset] = YearEnd
-
+class TestYearEnd:
     def test_misspecified(self):
         with pytest.raises(ValueError, match="Month must go from 1 to 12"):
             YearEnd(month=13)
@@ -254,7 +249,7 @@ class TestYearEnd(Base):
         assert_is_on_offset(offset, dt, expected)
 
 
-class TestYearEndDiffMonth(Base):
+class TestYearEndDiffMonth:
     offset_cases = []
     offset_cases.append(
         (
@@ -324,3 +319,21 @@ class TestYearEndDiffMonth(Base):
     def test_is_on_offset(self, case):
         offset, dt, expected = case
         assert_is_on_offset(offset, dt, expected)
+
+
+def test_add_out_of_pydatetime_range():
+    # GH#50348 don't raise in Timestamp.replace
+    ts = Timestamp(np.datetime64("-20000-12-31"))
+    off = YearEnd()
+
+    result = ts + off
+    # TODO(cython3): "arg: datetime" annotation will impose
+    # datetime limitations on Timestamp. The fused type below works in cy3
+    # ctypedef fused datetimelike:
+    #     _Timestamp
+    #     datetime
+    # expected = Timestamp(np.datetime64("-19999-12-31"))
+    # assert result == expected
+    assert result.year in (-19999, 1973)
+    assert result.month == 12
+    assert result.day == 31

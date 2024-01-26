@@ -13,6 +13,15 @@ def test_isin_nan():
     )
 
 
+def test_isin_missing(nulls_fixture):
+    # GH48905
+    mi1 = MultiIndex.from_tuples([(1, nulls_fixture)])
+    mi2 = MultiIndex.from_tuples([(1, 1), (1, 2)])
+    result = mi2.isin(mi1)
+    expected = np.array([False, False])
+    tm.assert_numpy_array_equal(result, expected)
+
+
 def test_isin():
     values = [("foo", 2), ("bar", 3), ("quux", 4)]
 
@@ -75,4 +84,20 @@ def test_isin_multi_index_with_missing_value(labels, expected, level):
     # GH 19132
     midx = MultiIndex.from_arrays([[np.nan, "a", "b"], ["c", "d", np.nan]])
     result = midx.isin(labels, level=level)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_isin_empty():
+    # GH#51599
+    midx = MultiIndex.from_arrays([[1, 2], [3, 4]])
+    result = midx.isin([])
+    expected = np.array([False, False])
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_isin_generator():
+    # GH#52568
+    midx = MultiIndex.from_tuples([(1, 2)])
+    result = midx.isin(x for x in [(1, 2)])
+    expected = np.array([True])
     tm.assert_numpy_array_equal(result, expected)

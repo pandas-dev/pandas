@@ -26,6 +26,7 @@ Data manipulations
    from_dummies
    factorize
    unique
+   lreshape
    wide_to_long
 
 Top-level missing data
@@ -71,6 +72,13 @@ Top-level evaluation
    :toctree: api/
 
    eval
+
+Datetime formats
+~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+   tseries.api.guess_datetime_format
 
 Hashing
 ~~~~~~~

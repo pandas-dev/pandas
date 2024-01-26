@@ -1,6 +1,10 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
+import pandas.util._test_decorators as td
+
 from pandas import (
     NA,
     Categorical,
@@ -10,6 +14,7 @@ from pandas import (
     NaT,
     Period,
     PeriodIndex,
+    RangeIndex,
     Series,
     Timedelta,
     Timestamp,
@@ -19,15 +24,13 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.mark.xfail(
+    using_pyarrow_string_dtype(), reason="share memory doesn't work for arrow"
+)
 def test_reindex(datetime_series, string_series):
     identity = string_series.reindex(string_series.index)
 
-    # __array_interface__ is not defined for older numpies
-    # and on some pythons
-    try:
-        assert np.may_share_memory(string_series.index, identity.index)
-    except AttributeError:
-        pass
+    assert np.may_share_memory(string_series.index, identity.index)
 
     assert identity.index.is_(string_series.index)
     assert identity.index.identical(string_series.index)
@@ -55,7 +58,7 @@ def test_reindex(datetime_series, string_series):
 
     # return a copy the same index here
     result = datetime_series.reindex()
-    assert not (result is datetime_series)
+    assert result is not datetime_series
 
 
 def test_reindex_nan():
@@ -84,7 +87,7 @@ def test_reindex_series_add_nat():
 
 def test_reindex_with_datetimes():
     rng = date_range("1/1/2000", periods=20)
-    ts = Series(np.random.randn(20), index=rng)
+    ts = Series(np.random.default_rng(2).standard_normal(20), index=rng)
 
     result = ts.reindex(list(ts.index[5:10]))
     expected = ts[5:10]
@@ -97,7 +100,7 @@ def test_reindex_with_datetimes():
 
 def test_reindex_corner(datetime_series):
     # (don't forget to fix this) I think it's fixed
-    empty = Series(dtype=object)
+    empty = Series(index=[])
     empty.reindex(datetime_series.index, method="pad")  # it works
 
     # corner case: pad empty series
@@ -126,9 +129,11 @@ def test_reindex_pad():
     reindexed2 = s2.reindex(s.index, method="ffill")
     tm.assert_series_equal(reindexed, reindexed2)
 
-    expected = Series([0, 0, 2, 2, 4, 4, 6, 6, 8, 8], index=np.arange(10))
+    expected = Series([0, 0, 2, 2, 4, 4, 6, 6, 8, 8])
     tm.assert_series_equal(reindexed, expected)
 
+
+def test_reindex_pad2():
     # GH4604
     s = Series([1, 2, 3, 4, 5], index=["a", "b", "c", "d", "e"])
     new_index = ["a", "g", "c", "f"]
@@ -138,24 +143,34 @@ def test_reindex_pad():
     result = s.reindex(new_index).ffill()
     tm.assert_series_equal(result, expected.astype("float64"))
 
-    result = s.reindex(new_index).ffill(downcast="infer")
+    msg = "The 'downcast' keyword in ffill is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.reindex(new_index).ffill(downcast="infer")
     tm.assert_series_equal(result, expected)
 
     expected = Series([1, 5, 3, 5], index=new_index)
     result = s.reindex(new_index, method="ffill")
     tm.assert_series_equal(result, expected)
 
+
+def test_reindex_inference():
     # inference of new dtype
     s = Series([True, False, False, True], index=list("abcd"))
     new_index = "agc"
-    result = s.reindex(list(new_index)).ffill()
+    msg = "Downcasting object dtype arrays on"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.reindex(list(new_index)).ffill()
     expected = Series([True, True, False], index=list(new_index))
     tm.assert_series_equal(result, expected)
 
+
+def test_reindex_downcasting():
     # GH4618 shifted series downcasting
-    s = Series(False, index=range(0, 5))
-    result = s.shift(1).fillna(method="bfill")
-    expected = Series(False, index=range(0, 5))
+    s = Series(False, index=range(5))
+    msg = "Downcasting object dtype arrays on"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.shift(1).bfill()
+    expected = Series(False, index=range(5))
     tm.assert_series_equal(result, expected)
 
 
@@ -183,11 +198,11 @@ def test_reindex_int(datetime_series):
     reindexed_int = int_ts.reindex(datetime_series.index)
 
     # if NaNs introduced
-    assert reindexed_int.dtype == np.float_
+    assert reindexed_int.dtype == np.float64
 
     # NO NaNs introduced
     reindexed_int = int_ts.reindex(int_ts.index[::2])
-    assert reindexed_int.dtype == np.int_
+    assert reindexed_int.dtype == np.dtype(int)
 
 
 def test_reindex_bool(datetime_series):
@@ -300,13 +315,11 @@ def test_reindex_fill_value():
     tm.assert_series_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented
 @pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
 @pytest.mark.parametrize("fill_value", ["string", 0, Timedelta(0)])
 def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value, using_array_manager):
     # https://github.com/pandas-dev/pandas/issues/42921
-    if using_array_manager:
-        pytest.skip("Array manager does not promote dtype, hence we fail")
-
     if dtype == "timedelta64[ns]" and fill_value == Timedelta(0):
         # use the scalar that is not compatible with the dtype for this test
         fill_value = Timestamp(0)
@@ -314,14 +327,14 @@ def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value, using_array_m
     ser = Series([NaT], dtype=dtype)
 
     result = ser.reindex([0, 1], fill_value=fill_value)
-    expected = Series([None, fill_value], index=[0, 1], dtype=object)
+    expected = Series([NaT, fill_value], index=[0, 1], dtype=object)
     tm.assert_series_equal(result, expected)
 
 
 def test_reindex_datetimeindexes_tz_naive_and_aware():
     # GH 8306
     idx = date_range("20131101", tz="America/Chicago", periods=7)
-    newidx = date_range("20131103", periods=10, freq="H")
+    newidx = date_range("20131103", periods=10, freq="h")
     s = Series(range(7), index=idx)
     msg = (
         r"Cannot compare dtypes datetime64\[ns, America/Chicago\] "
@@ -369,16 +382,15 @@ def test_reindex_periodindex_with_object(p_values, o_values, values, expected_va
 def test_reindex_too_many_args():
     # GH 40980
     ser = Series([1, 2])
-    with pytest.raises(
-        TypeError, match=r"Only one positional argument \('index'\) is allowed"
-    ):
+    msg = r"reindex\(\) takes from 1 to 2 positional arguments but 3 were given"
+    with pytest.raises(TypeError, match=msg):
         ser.reindex([2, 3], False)
 
 
 def test_reindex_double_index():
     # GH 40980
     ser = Series([1, 2])
-    msg = r"'index' passed as both positional and keyword argument"
+    msg = r"reindex\(\) got multiple values for argument 'index'"
     with pytest.raises(TypeError, match=msg):
         ser.reindex([2, 3], index=[3, 4])
 
@@ -417,9 +429,20 @@ def test_reindexing_with_float64_NA_log():
     s = Series([1.0, NA], dtype=Float64Dtype())
     s_reindex = s.reindex(range(3))
     result = s_reindex.values._data
-    expected = np.array([1, np.NaN, np.NaN])
+    expected = np.array([1, np.nan, np.nan])
     tm.assert_numpy_array_equal(result, expected)
     with tm.assert_produces_warning(None):
         result_log = np.log(s_reindex)
-        expected_log = Series([0, np.NaN, np.NaN], dtype=Float64Dtype())
+        expected_log = Series([0, np.nan, np.nan], dtype=Float64Dtype())
         tm.assert_series_equal(result_log, expected_log)
+
+
+@pytest.mark.parametrize("dtype", ["timedelta64", "datetime64"])
+def test_reindex_expand_nonnano_nat(dtype):
+    # GH 53497
+    ser = Series(np.array([1], dtype=f"{dtype}[s]"))
+    result = ser.reindex(RangeIndex(2))
+    expected = Series(
+        np.array([1, getattr(np, dtype)("nat", "s")], dtype=f"{dtype}[s]")
+    )
+    tm.assert_series_equal(result, expected)

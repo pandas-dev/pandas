@@ -7,8 +7,11 @@ import os
 import platform
 import struct
 import sys
+from typing import TYPE_CHECKING
 
-from pandas._typing import JSONSerializable
+if TYPE_CHECKING:
+    from pandas._typing import JSONSerializable
+
 from pandas.compat._optional import (
     VERSIONS,
     get_version,
@@ -21,10 +24,17 @@ def _get_commit_hash() -> str | None:
     Use vendored versioneer code to get git hash, which handles
     git worktree correctly.
     """
-    from pandas._version import get_versions
+    try:
+        from pandas._version_meson import (  # pyright: ignore [reportMissingImports]
+            __git_version__,
+        )
 
-    versions = get_versions()
-    return versions["full-revisionid"]
+        return __git_version__
+    except ImportError:
+        from pandas._version import get_versions
+
+        versions = get_versions()
+        return versions["full-revisionid"]
 
 
 def _get_sys_info() -> dict[str, JSONSerializable]:
@@ -104,6 +114,28 @@ def show_versions(as_json: str | bool = False) -> None:
         * If str, it will be considered as a path to a file.
           Info will be written to that file in JSON format.
         * If True, outputs info in JSON format to the console.
+
+    Examples
+    --------
+    >>> pd.show_versions()  # doctest: +SKIP
+    Your output may look something like this:
+    INSTALLED VERSIONS
+    ------------------
+    commit           : 37ea63d540fd27274cad6585082c91b1283f963d
+    python           : 3.10.6.final.0
+    python-bits      : 64
+    OS               : Linux
+    OS-release       : 5.10.102.1-microsoft-standard-WSL2
+    Version          : #1 SMP Wed Mar 2 00:30:59 UTC 2022
+    machine          : x86_64
+    processor        : x86_64
+    byteorder        : little
+    LC_ALL           : None
+    LANG             : en_GB.UTF-8
+    LOCALE           : en_GB.UTF-8
+    pandas           : 2.0.1
+    numpy            : 1.24.3
+    ...
     """
     sys_info = _get_sys_info()
     deps = _get_dependency_info()
@@ -132,29 +164,3 @@ def show_versions(as_json: str | bool = False) -> None:
         print("")
         for k, v in deps.items():
             print(f"{k:<{maxlen}}: {v}")
-
-
-def main() -> int:
-    from optparse import OptionParser
-
-    parser = OptionParser()
-    parser.add_option(
-        "-j",
-        "--json",
-        metavar="FILE",
-        nargs=1,
-        help="Save output as JSON into file, pass in '-' to output to stdout",
-    )
-
-    (options, args) = parser.parse_args()
-
-    if options.json == "-":
-        options.json = True
-
-    show_versions(as_json=options.json)
-
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

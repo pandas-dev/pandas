@@ -1,3 +1,5 @@
+import datetime
+
 import numpy as np
 import pytest
 
@@ -15,47 +17,26 @@ class TestMultiLevel:
         # axis=0
         ymd = multiindex_year_month_day_dataframe_random_data
 
-        with tm.assert_produces_warning(FutureWarning):
-            month_sums = ymd.sum(level="month")
+        month_sums = ymd.groupby("month").sum()
         result = month_sums.reindex(ymd.index, level=1)
-        expected = ymd.groupby(level="month").transform(np.sum)
+        expected = ymd.groupby(level="month").transform("sum")
 
         tm.assert_frame_equal(result, expected)
 
         # Series
         result = month_sums["A"].reindex(ymd.index, level=1)
-        expected = ymd["A"].groupby(level="month").transform(np.sum)
+        expected = ymd["A"].groupby(level="month").transform("sum")
         tm.assert_series_equal(result, expected, check_names=False)
 
         # axis=1
-        with tm.assert_produces_warning(FutureWarning):
-            month_sums = ymd.T.sum(axis=1, level="month")
+        msg = "DataFrame.groupby with axis=1 is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            gb = ymd.T.groupby("month", axis=1)
+
+        month_sums = gb.sum()
         result = month_sums.reindex(columns=ymd.index, level=1)
-        expected = ymd.groupby(level="month").transform(np.sum).T
+        expected = ymd.groupby(level="month").transform("sum").T
         tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize("opname", ["sub", "add", "mul", "div"])
-    def test_binops_level(
-        self, opname, multiindex_year_month_day_dataframe_random_data
-    ):
-        ymd = multiindex_year_month_day_dataframe_random_data
-
-        op = getattr(DataFrame, opname)
-        with tm.assert_produces_warning(FutureWarning):
-            month_sums = ymd.sum(level="month")
-        result = op(ymd, month_sums, level="month")
-
-        broadcasted = ymd.groupby(level="month").transform(np.sum)
-        expected = op(ymd, broadcasted)
-        tm.assert_frame_equal(result, expected)
-
-        # Series
-        op = getattr(Series, opname)
-        result = op(ymd["A"], month_sums["A"], level="month")
-        broadcasted = ymd["A"].groupby(level="month").transform(np.sum)
-        expected = op(ymd["A"], broadcasted)
-        expected.name = "A"
-        tm.assert_series_equal(result, expected)
 
     def test_reindex(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
@@ -65,20 +46,26 @@ class TestMultiLevel:
         tm.assert_frame_equal(reindexed, expected)
 
     def test_reindex_preserve_levels(
-        self, multiindex_year_month_day_dataframe_random_data
+        self, multiindex_year_month_day_dataframe_random_data, using_copy_on_write
     ):
         ymd = multiindex_year_month_day_dataframe_random_data
 
         new_index = ymd.index[::10]
         chunk = ymd.reindex(new_index)
-        assert chunk.index is new_index
+        if using_copy_on_write:
+            assert chunk.index.is_(new_index)
+        else:
+            assert chunk.index is new_index
 
         chunk = ymd.loc[new_index]
         assert chunk.index.equals(new_index)
 
         ymdT = ymd.T
         chunk = ymdT.reindex(columns=new_index)
-        assert chunk.columns is new_index
+        if using_copy_on_write:
+            assert chunk.columns.is_(new_index)
+        else:
+            assert chunk.columns is new_index
 
         chunk = ymdT.loc[:, new_index]
         assert chunk.columns.equals(new_index)
@@ -102,7 +89,11 @@ class TestMultiLevel:
             codes=[[0], [0], [0]],
             names=["one", "two", "three"],
         )
-        df = DataFrame([np.random.rand(4)], columns=["a", "b", "c", "d"], index=midx)
+        df = DataFrame(
+            [np.random.default_rng(2).random(4)],
+            columns=["a", "b", "c", "d"],
+            index=midx,
+        )
         # should work
         df.groupby(level="three")
 
@@ -121,7 +112,9 @@ class TestMultiLevel:
         df = DataFrame([[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]], columns=midx)
         df1 = df.loc(axis=1)[df.columns.map(lambda u: u[0] in ["f2", "f3"])]
 
-        grouped = df1.groupby(axis=1, level=0)
+        msg = "DataFrame.groupby with axis=1 is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            grouped = df1.groupby(axis=1, level=0)
         result = grouped.sum()
         assert (result.columns == ["f2", "f3"]).all()
 
@@ -155,106 +148,6 @@ class TestMultiLevel:
         exp = x.reindex(exp_index) - y.reindex(exp_index)
         tm.assert_series_equal(res, exp)
 
-    @pytest.mark.parametrize("level", [0, 1])
-    @pytest.mark.parametrize("skipna", [True, False])
-    @pytest.mark.parametrize("sort", [True, False])
-    def test_series_group_min_max(
-        self, all_numeric_reductions, level, skipna, sort, series_with_multilevel_index
-    ):
-        # GH 17537
-        ser = series_with_multilevel_index
-        op = all_numeric_reductions
-
-        grouped = ser.groupby(level=level, sort=sort)
-        # skipna=True
-        leftside = grouped.agg(lambda x: getattr(x, op)(skipna=skipna))
-        with tm.assert_produces_warning(FutureWarning):
-            rightside = getattr(ser, op)(level=level, skipna=skipna)
-        if sort:
-            rightside = rightside.sort_index(level=level)
-        tm.assert_series_equal(leftside, rightside)
-
-    @pytest.mark.parametrize("level", [0, 1])
-    @pytest.mark.parametrize("axis", [0, 1])
-    @pytest.mark.parametrize("skipna", [True, False])
-    @pytest.mark.parametrize("sort", [True, False])
-    def test_frame_group_ops(
-        self,
-        all_numeric_reductions,
-        level,
-        axis,
-        skipna,
-        sort,
-        multiindex_dataframe_random_data,
-    ):
-        # GH 17537
-        frame = multiindex_dataframe_random_data
-
-        frame.iloc[1, [1, 2]] = np.nan
-        frame.iloc[7, [0, 1]] = np.nan
-
-        level_name = frame.index.names[level]
-
-        if axis == 0:
-            frame = frame
-        else:
-            frame = frame.T
-
-        grouped = frame.groupby(level=level, axis=axis, sort=sort)
-
-        pieces = []
-        op = all_numeric_reductions
-
-        def aggf(x):
-            pieces.append(x)
-            return getattr(x, op)(skipna=skipna, axis=axis)
-
-        leftside = grouped.agg(aggf)
-        with tm.assert_produces_warning(FutureWarning):
-            rightside = getattr(frame, op)(level=level, axis=axis, skipna=skipna)
-        if sort:
-            rightside = rightside.sort_index(level=level, axis=axis)
-            frame = frame.sort_index(level=level, axis=axis)
-
-        # for good measure, groupby detail
-        level_index = frame._get_axis(axis).levels[level].rename(level_name)
-
-        tm.assert_index_equal(leftside._get_axis(axis), level_index)
-        tm.assert_index_equal(rightside._get_axis(axis), level_index)
-
-        tm.assert_frame_equal(leftside, rightside)
-
-    @pytest.mark.parametrize("meth", ["var", "std"])
-    def test_std_var_pass_ddof(self, meth):
-        index = MultiIndex.from_arrays(
-            [np.arange(5).repeat(10), np.tile(np.arange(10), 5)]
-        )
-        df = DataFrame(np.random.randn(len(index), 5), index=index)
-
-        ddof = 4
-        alt = lambda x: getattr(x, meth)(ddof=ddof)
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = getattr(df[0], meth)(level=0, ddof=ddof)
-        expected = df[0].groupby(level=0).agg(alt)
-        tm.assert_series_equal(result, expected)
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = getattr(df, meth)(level=0, ddof=ddof)
-        expected = df.groupby(level=0).agg(alt)
-        tm.assert_frame_equal(result, expected)
-
-    def test_agg_multiple_levels(
-        self, multiindex_year_month_day_dataframe_random_data, frame_or_series
-    ):
-        ymd = multiindex_year_month_day_dataframe_random_data
-        ymd = tm.get_obj(ymd, frame_or_series)
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = ymd.sum(level=["year", "month"])
-        expected = ymd.groupby(level=["year", "month"]).sum()
-        tm.assert_equal(result, expected)
-
     def test_groupby_multilevel(self, multiindex_year_month_day_dataframe_random_data):
         ymd = multiindex_year_month_day_dataframe_random_data
 
@@ -276,7 +169,9 @@ class TestMultiLevel:
         index = MultiIndex.from_tuples(
             [("foo", "one"), ("foo", "two"), ("bar", "one"), ("bar", "two")]
         )
-        df = DataFrame(np.random.randn(4, 4), index=index, columns=index)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 4)), index=index, columns=index
+        )
         df["Totals", ""] = df.sum(1)
         df = df._consolidate()
 
@@ -286,8 +181,8 @@ class TestMultiLevel:
             codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
         )
 
-        series = Series(np.random.randn(6), index=index)
-        frame = DataFrame(np.random.randn(6, 4), index=index)
+        series = Series(np.random.default_rng(2).standard_normal(6), index=index)
+        frame = DataFrame(np.random.default_rng(2).standard_normal((6, 4)), index=index)
 
         result = series[("foo", "bar", 0)]
         result2 = series.loc[("foo", "bar", 0)]
@@ -311,8 +206,8 @@ class TestMultiLevel:
             codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
         )
 
-        series = Series(np.random.randn(6), index=index)
-        frame = DataFrame(np.random.randn(6, 4), index=index)
+        series = Series(np.random.default_rng(2).standard_normal(6), index=index)
+        frame = DataFrame(np.random.default_rng(2).standard_normal((6, 4)), index=index)
 
         result = series[("foo", "bar")]
         result2 = series.loc[("foo", "bar")]
@@ -384,6 +279,52 @@ class TestMultiLevel:
         expected = df.dtypes.a.b
         result = df.a.b.dtypes
         tm.assert_series_equal(result, expected)
+
+    def test_datetime_object_multiindex(self):
+        data_dic = {
+            (0, datetime.date(2018, 3, 3)): {"A": 1, "B": 10},
+            (0, datetime.date(2018, 3, 4)): {"A": 2, "B": 11},
+            (1, datetime.date(2018, 3, 3)): {"A": 3, "B": 12},
+            (1, datetime.date(2018, 3, 4)): {"A": 4, "B": 13},
+        }
+        result = DataFrame.from_dict(data_dic, orient="index")
+        data = {"A": [1, 2, 3, 4], "B": [10, 11, 12, 13]}
+        index = [
+            [0, 0, 1, 1],
+            [
+                datetime.date(2018, 3, 3),
+                datetime.date(2018, 3, 4),
+                datetime.date(2018, 3, 3),
+                datetime.date(2018, 3, 4),
+            ],
+        ]
+        expected = DataFrame(data=data, index=index)
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_multiindex_with_na(self):
+        df = DataFrame(
+            [
+                ["A", np.nan, 1.23, 4.56],
+                ["A", "G", 1.23, 4.56],
+                ["A", "D", 9.87, 10.54],
+            ],
+            columns=["pivot_0", "pivot_1", "col_1", "col_2"],
+        ).set_index(["pivot_0", "pivot_1"])
+
+        df.at[("A", "F"), "col_2"] = 0.0
+
+        expected = DataFrame(
+            [
+                ["A", np.nan, 1.23, 4.56],
+                ["A", "G", 1.23, 4.56],
+                ["A", "D", 9.87, 10.54],
+                ["A", "F", np.nan, 0.0],
+            ],
+            columns=["pivot_0", "pivot_1", "col_1", "col_2"],
+        ).set_index(["pivot_0", "pivot_1"])
+
+        tm.assert_frame_equal(df, expected)
 
 
 class TestSorted:

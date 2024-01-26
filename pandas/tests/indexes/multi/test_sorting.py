@@ -1,5 +1,3 @@
-import random
-
 import numpy as np
 import pytest
 
@@ -14,6 +12,8 @@ from pandas import (
     Index,
     MultiIndex,
     RangeIndex,
+    Series,
+    Timestamp,
 )
 import pandas._testing as tm
 from pandas.core.indexes.frozen import FrozenList
@@ -21,7 +21,7 @@ from pandas.core.indexes.frozen import FrozenList
 
 def test_sortlevel(idx):
     tuples = list(idx)
-    random.shuffle(tuples)
+    np.random.default_rng(2).shuffle(tuples)
 
     index = MultiIndex.from_tuples(tuples)
 
@@ -73,6 +73,14 @@ def test_sortlevel_deterministic():
 
     sorted_idx, _ = index.sortlevel(1, ascending=False)
     assert sorted_idx.equals(expected[::-1])
+
+
+def test_sortlevel_na_position():
+    # GH#51612
+    midx = MultiIndex.from_tuples([(1, np.nan), (1, 1)])
+    result = midx.sortlevel(level=[0, 1], na_position="last")[0]
+    expected = MultiIndex.from_tuples([(1, 1), (1, np.nan)])
+    tm.assert_index_equal(result, expected)
 
 
 def test_numpy_argsort(idx):
@@ -130,7 +138,11 @@ def test_unsortedindex():
 def test_unsortedindex_doc_examples():
     # https://pandas.pydata.org/pandas-docs/stable/advanced.html#sorting-a-multiindex
     dfm = DataFrame(
-        {"jim": [0, 0, 1, 1], "joe": ["x", "x", "z", "y"], "jolie": np.random.rand(4)}
+        {
+            "jim": [0, 0, 1, 1],
+            "joe": ["x", "x", "z", "y"],
+            "jolie": np.random.default_rng(2).random(4),
+        }
     )
 
     dfm = dfm.set_index(["jim", "joe"])
@@ -154,7 +166,6 @@ def test_unsortedindex_doc_examples():
 
 
 def test_reconstruct_sort():
-
     # starts off lexsorted & monotonic
     mi = MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
     assert mi.is_monotonic_increasing
@@ -230,14 +241,14 @@ def test_remove_unused_levels_large(first_type, second_type):
     # because tests should be deterministic (and this test in particular
     # checks that levels are removed, which is not the case for every
     # random input):
-    rng = np.random.RandomState(4)  # seed is arbitrary value that works
+    rng = np.random.default_rng(10)  # seed is arbitrary value that works
 
     size = 1 << 16
     df = DataFrame(
         {
-            "first": rng.randint(0, 1 << 13, size).astype(first_type),
-            "second": rng.randint(0, 1 << 10, size).astype(second_type),
-            "third": rng.rand(size),
+            "first": rng.integers(0, 1 << 13, size).astype(first_type),
+            "second": rng.integers(0, 1 << 10, size).astype(second_type),
+            "third": rng.random(size),
         }
     )
     df = df.groupby(["first", "second"]).sum()
@@ -280,3 +291,59 @@ def test_remove_unused_levels_with_nan():
     result = idx.levels
     expected = FrozenList([["a", np.nan], [4]])
     assert str(result) == str(expected)
+
+
+def test_sort_values_nan():
+    # GH48495, GH48626
+    midx = MultiIndex(levels=[["A", "B", "C"], ["D"]], codes=[[1, 0, 2], [-1, -1, 0]])
+    result = midx.sort_values()
+    expected = MultiIndex(
+        levels=[["A", "B", "C"], ["D"]], codes=[[0, 1, 2], [-1, -1, 0]]
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_sort_values_incomparable():
+    # GH48495
+    mi = MultiIndex.from_arrays(
+        [
+            [1, Timestamp("2000-01-01")],
+            [3, 4],
+        ]
+    )
+    match = "'<' not supported between instances of 'Timestamp' and 'int'"
+    with pytest.raises(TypeError, match=match):
+        mi.sort_values()
+
+
+@pytest.mark.parametrize("na_position", ["first", "last"])
+@pytest.mark.parametrize("dtype", ["float64", "Int64", "Float64"])
+def test_sort_values_with_na_na_position(dtype, na_position):
+    # 51612
+    arrays = [
+        Series([1, 1, 2], dtype=dtype),
+        Series([1, None, 3], dtype=dtype),
+    ]
+    index = MultiIndex.from_arrays(arrays)
+    result = index.sort_values(na_position=na_position)
+    if na_position == "first":
+        arrays = [
+            Series([1, 1, 2], dtype=dtype),
+            Series([None, 1, 3], dtype=dtype),
+        ]
+    else:
+        arrays = [
+            Series([1, 1, 2], dtype=dtype),
+            Series([1, None, 3], dtype=dtype),
+        ]
+    expected = MultiIndex.from_arrays(arrays)
+    tm.assert_index_equal(result, expected)
+
+
+def test_sort_unnecessary_warning():
+    # GH#55386
+    midx = MultiIndex.from_tuples([(1.5, 2), (3.5, 3), (0, 1)])
+    midx = midx.set_levels([2.5, np.nan, 1], level=0)
+    result = midx.sort_values()
+    expected = MultiIndex.from_tuples([(1, 3), (2.5, 1), (np.nan, 2)])
+    tm.assert_index_equal(result, expected)

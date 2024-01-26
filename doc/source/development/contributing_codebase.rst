@@ -18,24 +18,19 @@ tools will be run to check your code for stylistic errors.
 Generating any warnings will cause the test to fail.
 Thus, good style is a requirement for submitting code to pandas.
 
-There is a tool in pandas to help contributors verify their changes before
-contributing them to the project::
+There are a couple of tools in pandas to help contributors verify their changes
+before contributing to the project
 
-   ./ci/code_checks.sh
-
-The script validates the doctests, formatting in docstrings, and
-imported modules. It is possible to run the checks independently by using the
-parameters ``docstring``, ``code``, and ``doctests``
-(e.g. ``./ci/code_checks.sh doctests``).
+- ``./ci/code_checks.sh``: a script validates the doctests, formatting in docstrings,
+  and imported modules. It is possible to run the checks independently by using the
+  parameters ``docstrings``, ``code``, and ``doctests``
+  (e.g. ``./ci/code_checks.sh doctests``);
+- ``pre-commit``, which we go into detail on in the next section.
 
 In addition, because a lot of people use our library, it is important that we
 do not make sudden changes to the code that could have the potential to break
 a lot of user code as a result, that is, we need it to be as *backwards compatible*
 as possible to avoid mass breakages.
-
-In addition to ``./ci/code_checks.sh``, some extra checks (including static type
-checking) are run by ``pre-commit`` - see :ref:`here <contributing.pre-commit>`
-for how to run them.
 
 .. _contributing.pre-commit:
 
@@ -43,15 +38,12 @@ Pre-commit
 ----------
 
 Additionally, :ref:`Continuous Integration <contributing.ci>` will run code formatting checks
-like ``black``, ``flake8`` (including a `pandas-dev-flaker <https://github.com/pandas-dev/pandas-dev-flaker>`_ plugin),
-``isort``, and ``cpplint`` and more using `pre-commit hooks <https://pre-commit.com/>`_
+like ``black``, ``ruff``,
+``isort``, and ``clang-format`` and more using `pre-commit hooks <https://pre-commit.com/>`_.
 Any warnings from these checks will cause the :ref:`Continuous Integration <contributing.ci>` to fail; therefore,
 it is helpful to run the check yourself before submitting code. This
-can be done by installing ``pre-commit``::
-
-    pip install pre-commit
-
-and then running::
+can be done by installing ``pre-commit`` (which should already have happened if you followed the instructions
+in :ref:`Setting up your development environment <contributing_environment>`) and then running::
 
     pre-commit install
 
@@ -63,17 +55,22 @@ remain up-to-date with our code checks as they change.
 Note that if needed, you can skip these checks with ``git commit --no-verify``.
 
 If you don't want to use ``pre-commit`` as part of your workflow, you can still use it
-to run its checks with::
+to run its checks with one of the following::
 
     pre-commit run --files <files you have modified>
-
-without needing to have done ``pre-commit install`` beforehand.
-
-If you want to run checks on all recently committed files on upstream/main you can use::
-
     pre-commit run --from-ref=upstream/main --to-ref=HEAD --all-files
 
 without needing to have done ``pre-commit install`` beforehand.
+
+Finally, we also have some slow pre-commit checks, which don't run on each commit
+but which do run during continuous integration. You can trigger them manually with::
+
+    pre-commit run --hook-stage manual --all-files
+
+.. note::
+
+    You may want to periodically run ``pre-commit gc``, to clean up repos
+    which are no longer used.
 
 .. note::
 
@@ -83,6 +80,12 @@ without needing to have done ``pre-commit install`` beforehand.
     Also, due to a `bug in virtualenv <https://github.com/pypa/virtualenv/issues/1986>`_,
     you may run into issues if you're using conda. To solve this, you can downgrade
     ``virtualenv`` to version ``20.0.33``.
+
+.. note::
+
+    If you have recently merged in main from the upstream branch, some of the
+    dependencies used by ``pre-commit`` may have changed.  Make sure to
+    :ref:`update your development environment <contributing.update-dev>`.
 
 Optional dependencies
 ---------------------
@@ -122,6 +125,7 @@ Otherwise, you need to do it manually:
 .. code-block:: python
 
     import warnings
+    from pandas.util._exceptions import find_stack_level
 
 
     def old_func():
@@ -130,7 +134,11 @@ Otherwise, you need to do it manually:
         .. deprecated:: 1.1.0
            Use new_func instead.
         """
-        warnings.warn('Use new_func instead.', FutureWarning, stacklevel=2)
+        warnings.warn(
+            'Use new_func instead.',
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         new_func()
 
 
@@ -154,43 +162,9 @@ pandas strongly encourages the use of :pep:`484` style type hints. New developme
 Style guidelines
 ~~~~~~~~~~~~~~~~
 
-Type imports should follow the ``from typing import ...`` convention. Some types do not need to be imported since :pep:`585` some builtin constructs, such as ``list`` and ``tuple``, can directly be used for type annotations. So rather than
-
-.. code-block:: python
-
-   import typing
-
-   primes: typing.List[int] = []
-
-You should write
-
-.. code-block:: python
-
-   primes: list[int] = []
-
-``Optional`` should be  avoided in favor of the shorter ``| None``, so instead of
-
-.. code-block:: python
-
-   from typing import Union
-
-   maybe_primes: list[Union[int, None]] = []
-
-or
-
-.. code-block:: python
-
-   from typing import Optional
-
-   maybe_primes: list[Optional[int]] = []
-
-You should write
-
-.. code-block:: python
-
-   from __future__ import annotations  # noqa: F404
-
-   maybe_primes: list[int | None] = []
+Type imports should follow the ``from typing import ...`` convention.
+Your code may be automatically re-written to use some modern constructs (e.g. using the built-in ``list`` instead of ``typing.List``)
+by the :ref:`pre-commit checks <contributing.pre-commit>`.
 
 In some cases in the code base classes may define class variables that shadow builtins. This causes an issue as described in `Mypy 1775 <https://github.com/python/mypy/issues/1775#issuecomment-310969854>`_. The defensive solution here is to create an unambiguous alias of the builtin and use that without your annotation. For example, if you come across a definition like
 
@@ -256,13 +230,21 @@ This module will ultimately house types for repeatedly used concepts like "path-
 Validating type hints
 ~~~~~~~~~~~~~~~~~~~~~
 
-pandas uses `mypy <http://mypy-lang.org>`_ and `pyright <https://github.com/microsoft/pyright>`_ to statically analyze the code base and type hints. After making any change you can ensure your type hints are correct by running
+pandas uses `mypy <http://mypy-lang.org>`_ and `pyright <https://github.com/microsoft/pyright>`_ to statically analyze the code base and type hints. After making any change you can ensure your type hints are consistent by running
 
 .. code-block:: shell
 
-   pre-commit run --hook-stage manual --all-files
+    pre-commit run --hook-stage manual --all-files mypy
+    pre-commit run --hook-stage manual --all-files pyright
+    pre-commit run --hook-stage manual --all-files pyright_reportGeneralTypeIssues
+    # the following might fail if the installed pandas version does not correspond to your local git version
+    pre-commit run --hook-stage manual --all-files stubtest
 
-in your activated python environment. A recent version of ``numpy`` (>=1.22.0) is required for type validation.
+in your python environment.
+
+.. warning::
+
+    * Please be aware that the above commands will use the current python environment. If your python packages are older/newer than those installed by the pandas CI, the above commands might fail. This is often the case when the ``mypy`` or ``numpy`` versions do not match. Please see :ref:`how to setup the python environment <contributing.mamba>` or select a `recently succeeded workflow <https://github.com/pandas-dev/pandas/actions/workflows/code-checks.yml?query=branch%3Amain+is%3Asuccess>`_, select the "Docstring validation, typing, and other manual pre-commit hooks" job, then click on "Set up Conda" and "Environment info" to see which versions the pandas CI installs.
 
 .. _contributing.ci:
 
@@ -324,7 +306,22 @@ Writing tests
 
 All tests should go into the ``tests`` subdirectory of the specific package.
 This folder contains many current examples of tests, and we suggest looking to these for
-inspiration. Ideally, there should be one, and only one, obvious place for a test to reside.
+inspiration.
+
+As a general tip, you can use the search functionality in your integrated development
+environment (IDE) or the git grep command in a terminal to find test files in which the method
+is called. If you are unsure of the best location to put your test, take your best guess,
+but note that reviewers may request that you move the test to a different location.
+
+To use git grep, you can run the following command in a terminal:
+
+``git grep "function_name("``
+
+This will search through all files in your repository for the text ``function_name(``.
+This can be a useful way to quickly locate the function in the
+codebase and determine the best location to add a test for it.
+
+Ideally, there should be one, and only one, obvious place for a test to reside.
 Until we reach that ideal, these are some rules of thumb for where a test should
 be located.
 
@@ -459,6 +456,12 @@ be located.
 
       - tests.io
 
+        .. note::
+
+            This includes ``to_string`` but excludes ``__repr__``, which is
+            tested in ``tests.frame.test_repr`` and ``tests.series.test_repr``.
+            Other classes often have a ``test_formats`` file.
+
    C) Otherwise
       This test likely belongs in one of:
 
@@ -478,7 +481,7 @@ be located.
 
 8) Is your test for one of the pandas-provided ExtensionArrays (``Categorical``,
    ``DatetimeArray``, ``TimedeltaArray``, ``PeriodArray``, ``IntervalArray``,
-   ``PandasArray``, ``FloatArray``, ``BoolArray``, ``StringArray``)?
+   ``NumpyExtensionArray``, ``FloatArray``, ``BoolArray``, ``StringArray``)?
    This test likely belongs in one of:
 
    - tests.arrays
@@ -531,7 +534,7 @@ If a test is known to fail but the manner in which it fails
 is not meant to be captured, use ``pytest.mark.xfail`` It is common to use this method for a test that
 exhibits buggy behavior or a non-implemented feature. If
 the failing test has flaky behavior, use the argument ``strict=False``. This
-will make it so pytest does not fail if the test happens to pass.
+will make it so pytest does not fail if the test happens to pass. Using ``strict=False`` is highly undesirable, please use it only as a last resort.
 
 Prefer the decorator ``@pytest.mark.xfail`` and the argument ``pytest.param``
 over usage within a test so that the test is appropriately marked during the
@@ -543,7 +546,7 @@ xfail during the testing phase. To do so, use the ``request`` fixture:
 
     def test_xfail(request):
         mark = pytest.mark.xfail(raises=TypeError, reason="Indicate why here")
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
 xfail is not to be used for tests involving failure due to invalid user arguments.
 For these tests, we need to verify the correct exception type and error message
@@ -579,16 +582,6 @@ ignore the error.
     def test_thing(self):
         pass
 
-If you need finer-grained control, you can use Python's
-`warnings module <https://docs.python.org/3/library/warnings.html>`__
-to control whether a warning is ignored or raised at different places within
-a single test.
-
-.. code-block:: python
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", FutureWarning)
-
 Testing an exception
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -615,29 +608,23 @@ deleted when the context block is exited.
 Testing involving network connectivity
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-It is highly discouraged to add a test that connects to the internet due to flakiness of network connections and
-lack of ownership of the server that is being connected to. If network connectivity is absolutely required, use the
-``tm.network`` decorator.
+A unit test should not access a public data set over the internet due to flakiness of network connections and
+lack of ownership of the server that is being connected to. To mock this interaction, use the ``httpserver`` fixture from the
+`pytest-localserver plugin. <https://github.com/pytest-dev/pytest-localserver>`_ with synthetic data.
 
 .. code-block:: python
 
-    @tm.network   # noqa
-    def test_network():
-        result = package.call_to_internet()
-
-If the test requires data from a specific website, specify ``check_before_test=True`` and the site in the decorator.
-
-.. code-block:: python
-
-    @tm.network("https://www.somespecificsite.com", check_before_test=True)
-    def test_network():
-        result = pd.read_html("https://www.somespecificsite.com")
+    @pytest.mark.network
+    @pytest.mark.single_cpu
+    def test_network(httpserver):
+        httpserver.serve_content(content="content")
+        result = pd.read_html(httpserver.url)
 
 Example
 ^^^^^^^
 
 Here is an example of a self-contained set of tests in a file ``pandas/tests/test_cool_feature.py``
-that illustrate multiple features that we like to use. Please remember to add the Github Issue Number
+that illustrate multiple features that we like to use. Please remember to add the GitHub Issue Number
 as a comment to a new test.
 
 .. code-block:: python
@@ -754,6 +741,7 @@ preferred if the inputs or logic are simple, with Hypothesis tests reserved
 for cases with complex logic or where there are too many combinations of
 options or subtle interactions to test (or think of!) all of them.
 
+.. _contributing.running_tests:
 
 Running the test suite
 ----------------------
@@ -763,8 +751,17 @@ install pandas) by typing::
 
     pytest pandas
 
+.. note::
+
+    If a handful of tests don't pass, it may not be an issue with your pandas installation.
+    Some tests (e.g. some SQLAlchemy ones) require additional setup, others might start
+    failing because a non-pinned library released a new version, and others might be flaky
+    if run in parallel. As long as you can import pandas from your locally built version,
+    your installation is probably fine and you can start contributing!
+
 Often it is worth running only a subset of tests first around your changes before running the
-entire suite.
+entire suite (tip: you can use the `pandas-coverage app <https://pandas-coverage-12d2130077bc.herokuapp.com/>`_)
+to find out which tests hit the lines of code you've modified, and then run only those).
 
 The easiest way to do this is with::
 
@@ -776,25 +773,71 @@ Or with one of the following constructs::
     pytest pandas/tests/[test-module].py::[TestClass]
     pytest pandas/tests/[test-module].py::[TestClass]::[test_method]
 
-Using `pytest-xdist <https://pypi.org/project/pytest-xdist>`_, one can
-speed up local testing on multicore machines. To use this feature, you will
-need to install ``pytest-xdist`` via::
+Using `pytest-xdist <https://pypi.org/project/pytest-xdist>`_, which is
+included in our 'pandas-dev' environment, one can speed up local testing on
+multicore machines. The ``-n`` number flag then can be specified when running
+pytest to parallelize a test run across the number of specified cores or auto to
+utilize all the available cores on your machine.
 
-    pip install pytest-xdist
+.. code-block:: bash
 
-Two scripts are provided to assist with this.  These scripts distribute
-testing across 4 threads.
+   # Utilize 4 cores
+   pytest -n 4 pandas
 
-On Unix variants, one can type::
+   # Utilizes all available cores
+   pytest -n auto pandas
 
-    test_fast.sh
+If you'd like to speed things along further a more advanced use of this
+command would look like this
 
-On Windows, one can type::
+.. code-block:: bash
 
-    test_fast.bat
+    pytest pandas -n 4 -m "not slow and not network and not db and not single_cpu" -r sxX
 
-This can significantly reduce the time it takes to locally run tests before
-submitting a pull request.
+In addition to the multithreaded performance increase this improves test
+speed by skipping some tests using the ``-m`` mark flag:
+
+- slow: any test taking long (think seconds rather than milliseconds)
+- network: tests requiring network connectivity
+- db: tests requiring a database (mysql or postgres)
+- single_cpu: tests that should run on a single cpu only
+
+You might want to enable the following option if it's relevant for you:
+
+- arm_slow: any test taking long on arm64 architecture
+
+These markers are defined `in this toml file <https://github.com/pandas-dev/pandas/blob/main/pyproject.toml>`_
+, under ``[tool.pytest.ini_options]`` in a list called ``markers``, in case
+you want to check if new ones have been created which are of interest to you.
+
+The ``-r`` report flag will display a short summary info (see `pytest
+documentation <https://docs.pytest.org/en/4.6.x/usage.html#detailed-summary-report>`_)
+. Here we are displaying the number of:
+
+- s: skipped tests
+- x: xfailed tests
+- X: xpassed tests
+
+The summary is optional and can be removed if you don't need the added
+information. Using the parallelization option can significantly reduce the
+time it takes to locally run tests before submitting a pull request.
+
+If you require assistance with the results,
+which has happened in the past, please set a seed before running the command
+and opening a bug report, that way we can reproduce it. Here's an example
+for setting a seed on windows
+
+.. code-block:: bash
+
+    set PYTHONHASHSEED=314159265
+    pytest pandas -n 4 -m "not slow and not network and not db and not single_cpu" -r sxX
+
+On Unix use
+
+.. code-block:: bash
+
+    export PYTHONHASHSEED=314159265
+    pytest pandas -n 4 -m "not slow and not network and not db and not single_cpu" -r sxX
 
 For more, see the `pytest <https://docs.pytest.org/en/latest/>`_ documentation.
 
@@ -814,7 +857,7 @@ performance regressions. pandas is in the process of migrating to
 `asv benchmarks <https://github.com/airspeed-velocity/asv>`__
 to enable easy monitoring of the performance of critical pandas operations.
 These benchmarks are all found in the ``pandas/asv_bench`` directory, and the
-test results can be found `here <https://pandas.pydata.org/speed/pandas/>`__.
+test results can be found `here <https://asv-runner.github.io/asv-collection/pandas>`__.
 
 To use all features of asv, you will need either ``conda`` or
 ``virtualenv``. For more details please check the `asv installation
@@ -906,9 +949,9 @@ directive is used. The sphinx syntax for that is:
 
 .. code-block:: rst
 
-  .. versionadded:: 1.1.0
+    .. versionadded:: 2.1.0
 
-This will put the text *New in version 1.1.0* wherever you put the sphinx
+This will put the text *New in version 2.1.0* wherever you put the sphinx
 directive. This should also be put in the docstring when adding a new function
 or method (`example <https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/frame.py#L1495>`__)
 or a new keyword argument (`example <https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/generic.py#L568>`__).

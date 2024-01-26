@@ -41,12 +41,12 @@ dtypes = [('float64', 'FLOAT64', 'float64'),
           ('int16', 'INT16', 'int16'),
           ('int32', 'INT32', 'int32'),
           ('int64', 'INT64', 'int64'),
+          ('uint64', 'UINT64', 'uint64'),
           # Disabling uint and complex dtypes because we do not use them
-          #  (and compiling them increases wheel size)
+          #  (and compiling them increases wheel size) (except uint64)
           # ('uint8', 'UINT8', 'uint8'),
           # ('uint16', 'UINT16', 'uint16'),
           # ('uint32', 'UINT32', 'uint32'),
-          # ('uint64', 'UINT64', 'uint64'),
           # ('complex64', 'COMPLEX64', 'complex64'),
           # ('complex128', 'COMPLEX128', 'complex128')
 ]
@@ -60,14 +60,14 @@ def get_dispatch(dtypes):
 {{for name, c_type, dtype in get_dispatch(dtypes)}}
 
 
-def ensure_{{name}}(object arr, copy=True):
+def ensure_{{name}}(object arr):
     if util.is_array(arr):
         if (<ndarray>arr).descr.type_num == NPY_{{c_type}}:
             return arr
         else:
-            # equiv: arr.astype(np.{{dtype}}, copy=copy)
+            # equiv: arr.astype(np.{{dtype}})
             return cnp.PyArray_Cast(<ndarray>arr, cnp.NPY_{{c_type}})
     else:
-        return np.array(arr, dtype=np.{{dtype}})
+        return np.asarray(arr, dtype=np.{{dtype}})
 
 {{endfor}}

@@ -68,5 +68,5 @@ body:
     attributes:
       label: Additional Context
       description: >
-        Please provide any relevant Github issues, code examples or references that help describe and support
+        Please provide any relevant GitHub issues, code examples or references that help describe and support
         the feature request.

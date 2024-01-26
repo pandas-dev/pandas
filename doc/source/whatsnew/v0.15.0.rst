@@ -70,7 +70,6 @@ For full docs, see the :ref:`categorical introduction <categorical>` and the
 :ref:`API documentation <api.arrays.categorical>`.
 
 .. ipython:: python
-    :okwarning:
 
     df = pd.DataFrame({"id": [1, 2, 3, 4, 5, 6],
                        "raw_grade": ['a', 'b', 'b', 'a', 'a', 'e']})
@@ -79,14 +78,14 @@ For full docs, see the :ref:`categorical introduction <categorical>` and the
     df["grade"]
 
     # Rename the categories
-    df["grade"].cat.categories = ["very good", "good", "very bad"]
+    df["grade"] = df["grade"].cat.rename_categories(["very good", "good", "very bad"])
 
     # Reorder the categories and simultaneously add the missing categories
     df["grade"] = df["grade"].cat.set_categories(["very bad", "bad",
                                                   "medium", "good", "very good"])
     df["grade"]
     df.sort_values("grade")
-    df.groupby("grade").size()
+    df.groupby("grade", observed=False).size()
 
 - ``pandas.core.group_agg`` and ``pandas.core.factor_agg`` were removed. As an alternative, construct
   a dataframe and use ``df.groupby(<group>).agg(<func>)``.
@@ -186,7 +185,29 @@ Constructing a ``TimedeltaIndex`` with a regular range
 .. ipython:: python
 
    pd.timedelta_range('1 days', periods=5, freq='D')
-   pd.timedelta_range(start='1 days', end='2 days', freq='30T')
+
+.. code-block:: python
+
+   In [20]: pd.timedelta_range(start='1 days', end='2 days', freq='30T')
+   Out[20]:
+   TimedeltaIndex(['1 days 00:00:00', '1 days 00:30:00', '1 days 01:00:00',
+                   '1 days 01:30:00', '1 days 02:00:00', '1 days 02:30:00',
+                   '1 days 03:00:00', '1 days 03:30:00', '1 days 04:00:00',
+                   '1 days 04:30:00', '1 days 05:00:00', '1 days 05:30:00',
+                   '1 days 06:00:00', '1 days 06:30:00', '1 days 07:00:00',
+                   '1 days 07:30:00', '1 days 08:00:00', '1 days 08:30:00',
+                   '1 days 09:00:00', '1 days 09:30:00', '1 days 10:00:00',
+                   '1 days 10:30:00', '1 days 11:00:00', '1 days 11:30:00',
+                   '1 days 12:00:00', '1 days 12:30:00', '1 days 13:00:00',
+                   '1 days 13:30:00', '1 days 14:00:00', '1 days 14:30:00',
+                   '1 days 15:00:00', '1 days 15:30:00', '1 days 16:00:00',
+                   '1 days 16:30:00', '1 days 17:00:00', '1 days 17:30:00',
+                   '1 days 18:00:00', '1 days 18:30:00', '1 days 19:00:00',
+                   '1 days 19:30:00', '1 days 20:00:00', '1 days 20:30:00',
+                   '1 days 21:00:00', '1 days 21:30:00', '1 days 22:00:00',
+                   '1 days 22:30:00', '1 days 23:00:00', '1 days 23:30:00',
+                   '2 days 00:00:00'],
+                  dtype='timedelta64[ns]', freq='30T')
 
 You can now use a ``TimedeltaIndex`` as the index of a pandas object
 
@@ -311,16 +332,37 @@ Timezone handling improvements
 - ``tz_localize(None)`` for tz-aware ``Timestamp`` and ``DatetimeIndex`` now removes timezone holding local time,
   previously this resulted in ``Exception`` or ``TypeError`` (:issue:`7812`)
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     ts = pd.Timestamp('2014-08-01 09:00', tz='US/Eastern')
-     ts
-     ts.tz_localize(None)
+     In [58]: ts = pd.Timestamp('2014-08-01 09:00', tz='US/Eastern')
 
-     didx = pd.date_range(start='2014-08-01 09:00', freq='H',
-                          periods=10, tz='US/Eastern')
-     didx
-     didx.tz_localize(None)
+     In[59]: ts
+     Out[59]: Timestamp('2014-08-01 09:00:00-0400', tz='US/Eastern')
+
+     In [60]: ts.tz_localize(None)
+     Out[60]: Timestamp('2014-08-01 09:00:00')
+
+     In [61]: didx = pd.date_range(start='2014-08-01 09:00', freq='H',
+        ....:                      periods=10, tz='US/Eastern')
+        ....:
+
+     In [62]: didx
+     Out[62]:
+     DatetimeIndex(['2014-08-01 09:00:00-04:00', '2014-08-01 10:00:00-04:00',
+                    '2014-08-01 11:00:00-04:00', '2014-08-01 12:00:00-04:00',
+                    '2014-08-01 13:00:00-04:00', '2014-08-01 14:00:00-04:00',
+                    '2014-08-01 15:00:00-04:00', '2014-08-01 16:00:00-04:00',
+                    '2014-08-01 17:00:00-04:00', '2014-08-01 18:00:00-04:00'],
+                   dtype='datetime64[ns, US/Eastern]', freq='H')
+
+     In [63]: didx.tz_localize(None)
+     Out[63]:
+     DatetimeIndex(['2014-08-01 09:00:00', '2014-08-01 10:00:00',
+                    '2014-08-01 11:00:00', '2014-08-01 12:00:00',
+                    '2014-08-01 13:00:00', '2014-08-01 14:00:00',
+                    '2014-08-01 15:00:00', '2014-08-01 16:00:00',
+                    '2014-08-01 17:00:00', '2014-08-01 18:00:00'],
+                   dtype='datetime64[ns]', freq=None)
 
 - ``tz_localize`` now accepts the ``ambiguous`` keyword which allows for passing an array of bools
   indicating whether the date belongs in DST or not, 'NaT' for setting transition times to NaT,
@@ -749,7 +791,7 @@ Other notable API changes:
 
   .. ipython:: python
 
-     s = pd.Series([1, 2, 3])
+     s = pd.Series([1., 2., 3.])
      s.loc[0] = None
      s
 
@@ -1029,16 +1071,35 @@ Other:
 
   If ``Period`` freq is ``D``, ``H``, ``T``, ``S``, ``L``, ``U``, ``N``, ``Timedelta``-like can be added if the result can have same freq. Otherwise, only the same ``offsets`` can be added.
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     idx = pd.period_range('2014-07-01 09:00', periods=5, freq='H')
-     idx
-     idx + pd.offsets.Hour(2)
-     idx + pd.Timedelta('120m')
+     In [104]: idx = pd.period_range('2014-07-01 09:00', periods=5, freq='H')
 
-     idx = pd.period_range('2014-07', periods=5, freq='M')
-     idx
-     idx + pd.offsets.MonthEnd(3)
+     In [105]: idx
+     Out[105]:
+     PeriodIndex(['2014-07-01 09:00', '2014-07-01 10:00', '2014-07-01 11:00',
+                  '2014-07-01 12:00', '2014-07-01 13:00'],
+                 dtype='period[H]')
+
+     In [106]: idx + pd.offsets.Hour(2)
+     Out[106]:
+     PeriodIndex(['2014-07-01 11:00', '2014-07-01 12:00', '2014-07-01 13:00',
+                  '2014-07-01 14:00', '2014-07-01 15:00'],
+                 dtype='period[H]')
+
+     In [107]: idx + pd.Timedelta('120m')
+     Out[107]:
+     PeriodIndex(['2014-07-01 11:00', '2014-07-01 12:00', '2014-07-01 13:00',
+                  '2014-07-01 14:00', '2014-07-01 15:00'],
+                 dtype='period[H]')
+
+     In [108]: idx = pd.period_range('2014-07', periods=5, freq='M')
+
+     In [109]: idx
+     Out[109]: PeriodIndex(['2014-07', '2014-08', '2014-09', '2014-10', '2014-11'], dtype='period[M]')
+
+     In [110]: idx + pd.offsets.MonthEnd(3)
+     Out[110]: PeriodIndex(['2014-10', '2014-11', '2014-12', '2015-01', '2015-02'], dtype='period[M]')
 
 - Added experimental compatibility with ``openpyxl`` for versions >= 2.0. The ``DataFrame.to_excel``
   method ``engine`` keyword now recognizes ``openpyxl1`` and ``openpyxl2``

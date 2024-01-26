@@ -5,13 +5,17 @@ from typing import Any
 import numpy as np
 
 from pandas._libs.lib import infer_dtype
+from pandas._libs.tslibs import iNaT
+from pandas.errors import NoBufferPresent
 from pandas.util._decorators import cache_readonly
 
-import pandas as pd
-from pandas.api.types import (
-    is_categorical_dtype,
-    is_string_dtype,
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    DatetimeTZDtype,
 )
+
+import pandas as pd
+from pandas.api.types import is_string_dtype
 from pandas.core.interchange.buffer import PandasBuffer
 from pandas.core.interchange.dataframe_protocol import (
     Column,
@@ -22,7 +26,6 @@ from pandas.core.interchange.dataframe_protocol import (
 from pandas.core.interchange.utils import (
     ArrowCTypes,
     Endianness,
-    NoBufferPresent,
     dtype_to_arrow_c_fmt,
 )
 
@@ -38,7 +41,7 @@ _NP_KINDS = {
 
 _NULL_DESCRIPTION = {
     DtypeKind.FLOAT: (ColumnNullType.USE_NAN, None),
-    DtypeKind.DATETIME: (ColumnNullType.USE_NAN, None),
+    DtypeKind.DATETIME: (ColumnNullType.USE_SENTINEL, iNaT),
     DtypeKind.INT: (ColumnNullType.NON_NULLABLE, None),
     DtypeKind.UINT: (ColumnNullType.NON_NULLABLE, None),
     DtypeKind.BOOL: (ColumnNullType.NON_NULLABLE, None),
@@ -80,7 +83,6 @@ class PandasColumn(Column):
         self._col = column
         self._allow_copy = allow_copy
 
-    @property
     def size(self) -> int:
         """
         Size of the column, in elements.
@@ -99,7 +101,7 @@ class PandasColumn(Column):
     def dtype(self) -> tuple[DtypeKind, int, str, str]:
         dtype = self._col.dtype
 
-        if is_categorical_dtype(dtype):
+        if isinstance(dtype, pd.CategoricalDtype):
             codes = self._col.values.codes
             (
                 _,
@@ -114,7 +116,7 @@ class PandasColumn(Column):
                 Endianness.NATIVE,
             )
         elif is_string_dtype(dtype):
-            if infer_dtype(self._col) == "string":
+            if infer_dtype(self._col) in ("string", "empty"):
                 return (
                     DtypeKind.STRING,
                     8,
@@ -137,23 +139,32 @@ class PandasColumn(Column):
         if kind is None:
             # Not a NumPy dtype. Check if it's a categorical maybe
             raise ValueError(f"Data type {dtype} not supported by interchange protocol")
+        if isinstance(dtype, ArrowDtype):
+            byteorder = dtype.numpy_dtype.byteorder
+        elif isinstance(dtype, DatetimeTZDtype):
+            byteorder = dtype.base.byteorder  # type: ignore[union-attr]
+        else:
+            byteorder = dtype.byteorder
 
-        return kind, dtype.itemsize * 8, dtype_to_arrow_c_fmt(dtype), dtype.byteorder
+        return kind, dtype.itemsize * 8, dtype_to_arrow_c_fmt(dtype), byteorder
 
     @property
     def describe_categorical(self):
         """
         If the dtype is categorical, there are two options:
         - There are only values in the data buffer.
-        - There is a separate dictionary-style encoding for categorical values.
-        Raises RuntimeError if the dtype is not categorical
+        - There is a separate non-categorical Column encoding for categorical values.
+
+        Raises TypeError if the dtype is not categorical
+
         Content of returned dict:
             - "is_ordered" : bool, whether the ordering of dictionary indices is
                              semantically meaningful.
             - "is_dictionary" : bool, whether a dictionary-style mapping of
                                 categorical values to other objects exists
-            - "mapping" : dict, Python-level only (e.g. ``{int: str}``).
-                          None if not a dictionary-style categorical.
+            - "categories" : Column representing the (implicit) mapping of indices to
+                             category values (e.g. an array of cat1, cat2, ...).
+                             None if not a dictionary-style categorical.
         """
         if not self.dtype[0] == DtypeKind.CATEGORICAL:
             raise TypeError(
@@ -163,7 +174,7 @@ class PandasColumn(Column):
         return {
             "is_ordered": self._col.cat.ordered,
             "is_dictionary": True,
-            "mapping": dict(enumerate(self._col.cat.categories)),
+            "categories": PandasColumn(pd.Series(self._col.cat.categories)),
         }
 
     @property
@@ -263,10 +274,16 @@ class PandasColumn(Column):
             DtypeKind.BOOL,
             DtypeKind.DATETIME,
         ):
-            buffer = PandasBuffer(self._col.to_numpy(), allow_copy=self._allow_copy)
+            # self.dtype[2] is an ArrowCTypes.TIMESTAMP where the tz will make
+            # it longer than 4 characters
+            if self.dtype[0] == DtypeKind.DATETIME and len(self.dtype[2]) > 4:
+                np_arr = self._col.dt.tz_convert(None).to_numpy()
+            else:
+                np_arr = self._col.to_numpy()
+            buffer = PandasBuffer(np_arr, allow_copy=self._allow_copy)
             dtype = self.dtype
         elif self.dtype[0] == DtypeKind.CATEGORICAL:
-            codes = self._col.values.codes
+            codes = self._col.values._codes
             buffer = PandasBuffer(codes, allow_copy=self._allow_copy)
             dtype = self._dtype_from_pandasdtype(codes.dtype)
         elif self.dtype[0] == DtypeKind.STRING:
@@ -284,12 +301,9 @@ class PandasColumn(Column):
             buffer = PandasBuffer(np.frombuffer(b, dtype="uint8"))
 
             # Define the dtype for the returned buffer
-            dtype = (
-                DtypeKind.STRING,
-                8,
-                ArrowCTypes.STRING,
-                Endianness.NATIVE,
-            )  # note: currently only support native endianness
+            # TODO: this will need correcting
+            # https://github.com/pandas-dev/pandas/issues/54781
+            dtype = self.dtype
         else:
             raise NotImplementedError(f"Data type {self._col.dtype} not handled yet")
 
@@ -312,7 +326,7 @@ class PandasColumn(Column):
             valid = invalid == 0
             invalid = not valid
 
-            mask = np.zeros(shape=(len(buf),), dtype=np.bool8)
+            mask = np.zeros(shape=(len(buf),), dtype=np.bool_)
             for i, obj in enumerate(buf):
                 mask[i] = valid if isinstance(obj, str) else invalid
 
@@ -326,7 +340,7 @@ class PandasColumn(Column):
             return buffer, dtype
 
         try:
-            msg = _NO_VALIDITY_BUFFER[null] + " so does not have a separate mask"
+            msg = f"{_NO_VALIDITY_BUFFER[null]} so does not have a separate mask"
         except KeyError:
             # TODO: implement for other bit/byte masks?
             raise NotImplementedError("See self.describe_null")

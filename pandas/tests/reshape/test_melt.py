@@ -1,9 +1,13 @@
+import re
+
 import numpy as np
 import pytest
 
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
+    date_range,
     lreshape,
     melt,
     wide_to_long,
@@ -13,7 +17,11 @@ import pandas._testing as tm
 
 @pytest.fixture
 def df():
-    res = tm.makeTimeDataFrame()[:10]
+    res = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     res["id1"] = (res["A"] > 0).astype(np.int64)
     res["id2"] = (res["B"] > 0).astype(np.int64)
     return res
@@ -226,7 +234,6 @@ class TestMelt:
         tm.assert_frame_equal(result14, expected14)
 
     def test_custom_var_and_value_name(self, df, value_name, var_name):
-
         result15 = df.melt(var_name=var_name, value_name=value_name)
         assert result15.columns.tolist() == ["var", "val"]
 
@@ -280,7 +287,7 @@ class TestMelt:
     @pytest.mark.parametrize(
         "col",
         [
-            pd.Series(pd.date_range("2010", periods=5, tz="US/Pacific")),
+            pd.Series(date_range("2010", periods=5, tz="US/Pacific")),
             pd.Series(["a", "b", "c", "a", "d"], dtype="category"),
             pd.Series([0, 1, 0, 0, 0]),
         ],
@@ -321,35 +328,33 @@ class TestMelt:
         # attempted with column names absent from the dataframe
 
         # Generate data
-        df = DataFrame(np.random.randn(5, 4), columns=list("abcd"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 4)), columns=list("abcd")
+        )
 
         # Try to melt with missing `value_vars` column name
-        msg = "The following '{Var}' are not present in the DataFrame: {Col}"
-        with pytest.raises(
-            KeyError, match=msg.format(Var="value_vars", Col="\\['C'\\]")
-        ):
+        msg = "The following id_vars or value_vars are not present in the DataFrame:"
+        with pytest.raises(KeyError, match=msg):
             df.melt(["a", "b"], ["C", "d"])
 
         # Try to melt with missing `id_vars` column name
-        with pytest.raises(KeyError, match=msg.format(Var="id_vars", Col="\\['A'\\]")):
+        with pytest.raises(KeyError, match=msg):
             df.melt(["A", "b"], ["c", "d"])
 
         # Multiple missing
         with pytest.raises(
             KeyError,
-            match=msg.format(Var="id_vars", Col="\\['not_here', 'or_there'\\]"),
+            match=msg,
         ):
             df.melt(["a", "b", "not_here", "or_there"], ["c", "d"])
 
         # Multiindex melt fails if column is missing from multilevel melt
         multi = df.copy()
         multi.columns = [list("ABCD"), list("abcd")]
-        with pytest.raises(KeyError, match=msg.format(Var="id_vars", Col="\\['E'\\]")):
+        with pytest.raises(KeyError, match=msg):
             multi.melt([("E", "a")], [("B", "b")])
         # Multiindex fails if column is missing from single level melt
-        with pytest.raises(
-            KeyError, match=msg.format(Var="value_vars", Col="\\['F'\\]")
-        ):
+        with pytest.raises(KeyError, match=msg):
             multi.melt(["A"], ["F"], col_level=0)
 
     def test_melt_mixed_int_str_id_vars(self):
@@ -397,11 +402,11 @@ class TestMelt:
 
     def test_ignore_index_name_and_type(self):
         # GH 17440
-        index = pd.Index(["foo", "bar"], dtype="category", name="baz")
+        index = Index(["foo", "bar"], dtype="category", name="baz")
         df = DataFrame({"x": [0, 1], "y": [2, 3]}, index=index)
         result = melt(df, ignore_index=False)
 
-        expected_index = pd.Index(["foo", "bar"] * 2, dtype="category", name="baz")
+        expected_index = Index(["foo", "bar"] * 2, dtype="category", name="baz")
         expected = DataFrame(
             {"variable": ["x", "x", "y", "y"], "value": [0, 1, 2, 3]},
             index=expected_index,
@@ -417,6 +422,119 @@ class TestMelt:
             [["id", "b", 2], ["id", "b", 3]], columns=["a", "variable", "value"]
         )
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["Int8", "Int64"])
+    def test_melt_ea_dtype(self, dtype):
+        # GH#41570
+        df = DataFrame(
+            {
+                "a": pd.Series([1, 2], dtype="Int8"),
+                "b": pd.Series([3, 4], dtype=dtype),
+            }
+        )
+        result = df.melt()
+        expected = DataFrame(
+            {
+                "variable": ["a", "a", "b", "b"],
+                "value": pd.Series([1, 2, 3, 4], dtype=dtype),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_melt_ea_columns(self):
+        # GH 54297
+        df = DataFrame(
+            {
+                "A": {0: "a", 1: "b", 2: "c"},
+                "B": {0: 1, 1: 3, 2: 5},
+                "C": {0: 2, 1: 4, 2: 6},
+            }
+        )
+        df.columns = df.columns.astype("string[python]")
+        result = df.melt(id_vars=["A"], value_vars=["B"])
+        expected = DataFrame(
+            {
+                "A": list("abc"),
+                "variable": pd.Series(["B"] * 3, dtype="string[python]"),
+                "value": [1, 3, 5],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_melt_preserves_datetime(self):
+        df = DataFrame(
+            data=[
+                {
+                    "type": "A0",
+                    "start_date": pd.Timestamp("2023/03/01", tz="Asia/Tokyo"),
+                    "end_date": pd.Timestamp("2023/03/10", tz="Asia/Tokyo"),
+                },
+                {
+                    "type": "A1",
+                    "start_date": pd.Timestamp("2023/03/01", tz="Asia/Tokyo"),
+                    "end_date": pd.Timestamp("2023/03/11", tz="Asia/Tokyo"),
+                },
+            ],
+            index=["aaaa", "bbbb"],
+        )
+        result = df.melt(
+            id_vars=["type"],
+            value_vars=["start_date", "end_date"],
+            var_name="start/end",
+            value_name="date",
+        )
+        expected = DataFrame(
+            {
+                "type": {0: "A0", 1: "A1", 2: "A0", 3: "A1"},
+                "start/end": {
+                    0: "start_date",
+                    1: "start_date",
+                    2: "end_date",
+                    3: "end_date",
+                },
+                "date": {
+                    0: pd.Timestamp("2023-03-01 00:00:00+0900", tz="Asia/Tokyo"),
+                    1: pd.Timestamp("2023-03-01 00:00:00+0900", tz="Asia/Tokyo"),
+                    2: pd.Timestamp("2023-03-10 00:00:00+0900", tz="Asia/Tokyo"),
+                    3: pd.Timestamp("2023-03-11 00:00:00+0900", tz="Asia/Tokyo"),
+                },
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_melt_allows_non_scalar_id_vars(self):
+        df = DataFrame(
+            data={"a": [1, 2, 3], "b": [4, 5, 6]},
+            index=["11", "22", "33"],
+        )
+        result = df.melt(
+            id_vars="a",
+            var_name=0,
+            value_name=1,
+        )
+        expected = DataFrame({"a": [1, 2, 3], 0: ["b"] * 3, 1: [4, 5, 6]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_melt_allows_non_string_var_name(self):
+        df = DataFrame(
+            data={"a": [1, 2, 3], "b": [4, 5, 6]},
+            index=["11", "22", "33"],
+        )
+        result = df.melt(
+            id_vars=["a"],
+            var_name=0,
+            value_name=1,
+        )
+        expected = DataFrame({"a": [1, 2, 3], 0: ["b"] * 3, 1: [4, 5, 6]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_melt_non_scalar_var_name_raises(self):
+        df = DataFrame(
+            data={"a": [1, 2, 3], "b": [4, 5, 6]},
+            index=["11", "22", "33"],
+        )
+        with pytest.raises(ValueError, match=r".* must be a scalar."):
+            df.melt(id_vars=["a"], var_name=[1, 2])
 
 
 class TestLreshape:
@@ -638,9 +756,6 @@ class TestLreshape:
         exp = DataFrame(exp_data, columns=result.columns)
         tm.assert_frame_equal(result, exp)
 
-        with tm.assert_produces_warning(FutureWarning):
-            lreshape(df, spec, dropna=False, label="foo")
-
         spec = {
             "visitdt": [f"visitdt{i:d}" for i in range(1, 3)],
             "wt": [f"wt{i:d}" for i in range(1, 4)],
@@ -652,8 +767,7 @@ class TestLreshape:
 
 class TestWideToLong:
     def test_simple(self):
-        np.random.seed(123)
-        x = np.random.randn(3)
+        x = np.random.default_rng(2).standard_normal(3)
         df = DataFrame(
             {
                 "A1970": {0: "a", 1: "b", 2: "c"},
@@ -688,8 +802,8 @@ class TestWideToLong:
 
     def test_separating_character(self):
         # GH14779
-        np.random.seed(123)
-        x = np.random.randn(3)
+
+        x = np.random.default_rng(2).standard_normal(3)
         df = DataFrame(
             {
                 "A.1970": {0: "a", 1: "b", 2: "c"},
@@ -713,8 +827,7 @@ class TestWideToLong:
         tm.assert_frame_equal(result, expected)
 
     def test_escapable_characters(self):
-        np.random.seed(123)
-        x = np.random.randn(3)
+        x = np.random.default_rng(2).standard_normal(3)
         df = DataFrame(
             {
                 "A(quarterly)1970": {0: "a", 1: "b", 2: "c"},
@@ -814,7 +927,7 @@ class TestWideToLong:
             "A": [],
             "B": [],
         }
-        expected = DataFrame(exp_data).astype({"year": "int"})
+        expected = DataFrame(exp_data).astype({"year": np.int64})
         expected = expected.set_index(["id", "year"])[
             ["X", "A2010", "A2011", "B2010", "A", "B"]
         ]
@@ -877,7 +990,7 @@ class TestWideToLong:
             "A": [],
             "B": [],
         }
-        expected = DataFrame(exp_data).astype({"year": "int"})
+        expected = DataFrame(exp_data).astype({"year": np.int64})
 
         expected = expected.set_index(["id", "year"])
         expected.index = expected.index.set_levels([0, 1], level=0)
@@ -1073,19 +1186,16 @@ class TestWideToLong:
         result = wide_to_long(wide_df, stubnames="PA", i=["node_id", "A"], j="time")
         tm.assert_frame_equal(result, expected)
 
-    def test_warn_of_column_name_value(self):
-        # GH34731
-        # raise a warning if the resultant value column name matches
+    def test_raise_of_column_name_value(self):
+        # GH34731, enforced in 2.0
+        # raise a ValueError if the resultant value column name matches
         # a name in the dataframe already (default name is "value")
         df = DataFrame({"col": list("ABC"), "value": range(10, 16, 2)})
-        expected = DataFrame(
-            [["A", "col", "A"], ["B", "col", "B"], ["C", "col", "C"]],
-            columns=["value", "variable", "value"],
-        )
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.melt(id_vars="value")
-            tm.assert_frame_equal(result, expected)
+        with pytest.raises(
+            ValueError, match=re.escape("value_name (value) cannot match")
+        ):
+            df.melt(id_vars="value", value_name="value")
 
     @pytest.mark.parametrize("dtype", ["O", "string"])
     def test_missing_stubname(self, dtype):
@@ -1099,7 +1209,7 @@ class TestWideToLong:
             j="num",
             sep="-",
         )
-        index = pd.Index(
+        index = Index(
             [("1", 1), ("2", 1), ("1", 2), ("2", 2)],
             name=("id", "num"),
         )

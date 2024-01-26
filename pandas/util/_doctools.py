@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-from typing import Iterable
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 import pandas as pd
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 
 class TablePlotter:
@@ -55,7 +58,7 @@ class TablePlotter:
         vertical : bool, default True
             If True, use vertical layout. If False, use horizontal layout.
         """
-        import matplotlib.gridspec as gridspec
+        from matplotlib import gridspec
         import matplotlib.pyplot as plt
 
         if not isinstance(left, list):
@@ -77,9 +80,9 @@ class TablePlotter:
             # left
             max_left_cols = max(self._shape(df)[1] for df in left)
             max_left_rows = max(self._shape(df)[0] for df in left)
-            for i, (l, label) in enumerate(zip(left, labels)):
+            for i, (_left, _label) in enumerate(zip(left, labels)):
                 ax = fig.add_subplot(gs[i, 0:max_left_cols])
-                self._make_table(ax, l, title=label, height=1.0 / max_left_rows)
+                self._make_table(ax, _left, title=_label, height=1.0 / max_left_rows)
             # right
             ax = plt.subplot(gs[:, max_left_cols:])
             self._make_table(ax, right, title="Result", height=1.05 / vcells)
@@ -90,10 +93,10 @@ class TablePlotter:
             gs = gridspec.GridSpec(1, hcells)
             # left
             i = 0
-            for df, label in zip(left, labels):
+            for df, _label in zip(left, labels):
                 sp = self._shape(df)
                 ax = fig.add_subplot(gs[0, i : i + sp[1]])
-                self._make_table(ax, df, title=label, height=height)
+                self._make_table(ax, df, title=_label, height=height)
                 i += sp[1]
             # right
             ax = plt.subplot(gs[0, i:])
@@ -136,12 +139,12 @@ class TablePlotter:
             data.columns = col
         return data
 
-    def _make_table(self, ax, df, title: str, height: float | None = None):
+    def _make_table(self, ax, df, title: str, height: float | None = None) -> None:
         if df is None:
             ax.set_visible(False)
             return
 
-        import pandas.plotting as plotting
+        from pandas import plotting
 
         idx_nlevels = df.index.nlevels
         col_nlevels = df.columns.nlevels
@@ -167,7 +170,7 @@ class TablePlotter:
         ax.axis("off")
 
 
-if __name__ == "__main__":
+def main() -> None:
     import matplotlib.pyplot as plt
 
     p = TablePlotter()
@@ -188,8 +191,12 @@ if __name__ == "__main__":
     idx = pd.MultiIndex.from_tuples(
         [(1, "A"), (1, "B"), (1, "C"), (2, "A"), (2, "B"), (2, "C")]
     )
-    col = pd.MultiIndex.from_tuples([(1, "A"), (1, "B")])
+    column = pd.MultiIndex.from_tuples([(1, "A"), (1, "B")])
     df3 = pd.DataFrame({"v1": [1, 2, 3, 4, 5, 6], "v2": [5, 6, 7, 8, 9, 10]}, index=idx)
-    df3.columns = col
+    df3.columns = column
     p.plot(df3, df3, labels=["df3"])
     plt.show()
+
+
+if __name__ == "__main__":
+    main()

@@ -1,17 +1,19 @@
 import numpy as np
 import pytest
 
-import pandas._libs.index as _index
+import pandas._libs.index as libindex
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
+    CategoricalDtype,
     DataFrame,
     Index,
     MultiIndex,
     Series,
 )
 import pandas._testing as tm
+from pandas.core.arrays.boolean import BooleanDtype
 
 
 class TestMultiIndexBasic:
@@ -20,7 +22,7 @@ class TestMultiIndexBasic:
             {
                 "jim": [0, 0, 1, 1],
                 "joe": ["x", "x", "z", "y"],
-                "jolie": np.random.rand(4),
+                "jolie": np.random.default_rng(2).random(4),
             }
         ).set_index(["jim", "joe"])
 
@@ -31,20 +33,19 @@ class TestMultiIndexBasic:
         with tm.assert_produces_warning(PerformanceWarning):
             df.loc[(0,)]
 
-    def test_indexing_over_hashtable_size_cutoff(self):
-        n = 10000
+    @pytest.mark.parametrize("offset", [-5, 5])
+    def test_indexing_over_hashtable_size_cutoff(self, monkeypatch, offset):
+        size_cutoff = 20
+        n = size_cutoff + offset
 
-        old_cutoff = _index._SIZE_CUTOFF
-        _index._SIZE_CUTOFF = 20000
+        with monkeypatch.context():
+            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
+            s = Series(np.arange(n), MultiIndex.from_arrays((["a"] * n, np.arange(n))))
 
-        s = Series(np.arange(n), MultiIndex.from_arrays((["a"] * n, np.arange(n))))
-
-        # hai it works!
-        assert s[("a", 5)] == 5
-        assert s[("a", 6)] == 6
-        assert s[("a", 7)] == 7
-
-        _index._SIZE_CUTOFF = old_cutoff
+            # hai it works!
+            assert s[("a", 5)] == 5
+            assert s[("a", 6)] == 6
+            assert s[("a", 7)] == 7
 
     def test_multi_nan_indexing(self):
         # GH 3588
@@ -115,7 +116,7 @@ class TestMultiIndexBasic:
         idx = Index(range(2), name="A")
         dti = pd.date_range("2020-01-01", periods=7, freq="D", name="B")
         mi = MultiIndex.from_product([idx, dti])
-        df = DataFrame(np.random.randn(14, 2), index=mi)
+        df = DataFrame(np.random.default_rng(2).standard_normal((14, 2)), index=mi)
         result = df.loc[0].index
         tm.assert_index_equal(result, dti)
         assert result.freq == dti.freq
@@ -151,68 +152,35 @@ class TestMultiIndexBasic:
         expected = DataFrame(index=mi2)
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize(
-        "data_result, data_expected",
-        [
-            (
-                [
-                    [(81.0, np.nan), (np.nan, np.nan)],
-                    [(np.nan, np.nan), (82.0, np.nan)],
-                    [1, 2],
-                    [1, 2],
-                ],
-                [
-                    [(81.0, np.nan), (np.nan, np.nan)],
-                    [(81.0, np.nan), (np.nan, np.nan)],
-                    [1, 2],
-                    [1, 1],
-                ],
-            ),
-            (
-                [
-                    [(81.0, np.nan), (np.nan, np.nan)],
-                    [(np.nan, np.nan), (81.0, np.nan)],
-                    [1, 2],
-                    [1, 2],
-                ],
-                [
-                    [(81.0, np.nan), (np.nan, np.nan)],
-                    [(81.0, np.nan), (np.nan, np.nan)],
-                    [1, 2],
-                    [2, 1],
-                ],
-            ),
-        ],
-    )
-    def test_subtracting_two_series_with_unordered_index_and_all_nan_index(
-        self, data_result, data_expected
-    ):
+    def test_series_align_multiindex_with_nan_overlap_only(self):
         # GH 38439
-        a_index_result = MultiIndex.from_tuples(data_result[0])
-        b_index_result = MultiIndex.from_tuples(data_result[1])
-        a_series_result = Series(data_result[2], index=a_index_result)
-        b_series_result = Series(data_result[3], index=b_index_result)
-        result = a_series_result.align(b_series_result)
+        mi1 = MultiIndex.from_arrays([[81.0, np.nan], [np.nan, np.nan]])
+        mi2 = MultiIndex.from_arrays([[np.nan, 82.0], [np.nan, np.nan]])
+        ser1 = Series([1, 2], index=mi1)
+        ser2 = Series([1, 2], index=mi2)
+        result1, result2 = ser1.align(ser2)
 
-        a_index_expected = MultiIndex.from_tuples(data_expected[0])
-        b_index_expected = MultiIndex.from_tuples(data_expected[1])
-        a_series_expected = Series(data_expected[2], index=a_index_expected)
-        b_series_expected = Series(data_expected[3], index=b_index_expected)
-        a_series_expected.index = a_series_expected.index.set_levels(
-            [
-                a_series_expected.index.levels[0].astype("float"),
-                a_series_expected.index.levels[1].astype("float"),
-            ]
-        )
-        b_series_expected.index = b_series_expected.index.set_levels(
-            [
-                b_series_expected.index.levels[0].astype("float"),
-                b_series_expected.index.levels[1].astype("float"),
-            ]
-        )
+        mi = MultiIndex.from_arrays([[81.0, 82.0, np.nan], [np.nan, np.nan, np.nan]])
+        expected1 = Series([1.0, np.nan, 2.0], index=mi)
+        expected2 = Series([np.nan, 2.0, 1.0], index=mi)
 
-        tm.assert_series_equal(result[0], a_series_expected)
-        tm.assert_series_equal(result[1], b_series_expected)
+        tm.assert_series_equal(result1, expected1)
+        tm.assert_series_equal(result2, expected2)
+
+    def test_series_align_multiindex_with_nan(self):
+        # GH 38439
+        mi1 = MultiIndex.from_arrays([[81.0, np.nan], [np.nan, np.nan]])
+        mi2 = MultiIndex.from_arrays([[np.nan, 81.0], [np.nan, np.nan]])
+        ser1 = Series([1, 2], index=mi1)
+        ser2 = Series([1, 2], index=mi2)
+        result1, result2 = ser1.align(ser2)
+
+        mi = MultiIndex.from_arrays([[81.0, np.nan], [np.nan, np.nan]])
+        expected1 = Series([1, 2], index=mi)
+        expected2 = Series([2, 1], index=mi)
+
+        tm.assert_series_equal(result1, expected1)
+        tm.assert_series_equal(result2, expected2)
 
     def test_nunique_smoke(self):
         # GH 34019
@@ -227,3 +195,41 @@ class TestMultiIndexBasic:
             ],
             Series([1, 1, 2, 2], MultiIndex.from_arrays([["a", "a", "b", "b"]])),
         )
+
+    def test_multiindex_with_na_missing_key(self):
+        # GH46173
+        df = DataFrame.from_dict(
+            {
+                ("foo",): [1, 2, 3],
+                ("bar",): [5, 6, 7],
+                (None,): [8, 9, 0],
+            }
+        )
+        with pytest.raises(KeyError, match="missing_key"):
+            df[[("missing_key",)]]
+
+    def test_multiindex_dtype_preservation(self):
+        # GH51261
+        columns = MultiIndex.from_tuples([("A", "B")], names=["lvl1", "lvl2"])
+        df = DataFrame(["value"], columns=columns).astype("category")
+        df_no_multiindex = df["A"]
+        assert isinstance(df_no_multiindex["B"].dtype, CategoricalDtype)
+
+        # geopandas 1763 analogue
+        df = DataFrame(
+            [[1, 0], [0, 1]],
+            columns=[
+                ["foo", "foo"],
+                ["location", "location"],
+                ["x", "y"],
+            ],
+        ).assign(bools=Series([True, False], dtype="boolean"))
+        assert isinstance(df["bools"].dtype, BooleanDtype)
+
+    def test_multiindex_from_tuples_with_nan(self):
+        # GH#23578
+        result = MultiIndex.from_tuples([("a", "b", "c"), np.nan, ("d", "", "")])
+        expected = MultiIndex.from_tuples(
+            [("a", "b", "c"), (np.nan, np.nan, np.nan), ("d", "", "")]
+        )
+        tm.assert_index_equal(result, expected)

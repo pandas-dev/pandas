@@ -11,15 +11,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.io.formats.format import DataFrameFormatter
-from pandas.io.formats.latex import (
-    RegularTableBuilder,
-    RowBodyIterator,
-    RowHeaderIterator,
-    RowStringConverter,
-)
-
-pytestmark = pytest.mark.filterwarnings("ignore::FutureWarning")
+pytest.importorskip("jinja2")
 
 
 def _dedent(string):
@@ -42,7 +34,7 @@ class TestToLatex:
     def test_to_latex_to_file(self, float_frame):
         with tm.ensure_clean("test.tex") as path:
             float_frame.to_latex(path)
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert float_frame.to_latex() == f.read()
 
     def test_to_latex_to_file_utf8_with_encoding(self):
@@ -68,10 +60,10 @@ class TestToLatex:
             r"""
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -85,10 +77,10 @@ class TestToLatex:
             r"""
             \begin{tabular}{rl}
             \toprule
-             a &  b \\
+            a & b \\
             \midrule
-             1 & b1 \\
-             2 & b2 \\
+            1 & b1 \\
+            2 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -101,7 +93,7 @@ class TestToLatex:
     )
     def test_to_latex_bad_column_format(self, bad_column_format):
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        msg = r"column_format must be str or unicode"
+        msg = r"`column_format` must be str or unicode"
         with pytest.raises(ValueError, match=msg):
             df.to_latex(column_format=bad_column_format)
 
@@ -116,10 +108,10 @@ class TestToLatex:
             r"""
             \begin{tabular}{lcr}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -134,10 +126,10 @@ class TestToLatex:
             r"""
             \begin{tabular}{ll}
             \toprule
-            {} &     0 \\
+             & 0 \\
             \midrule
             0 & 1,000 \\
-            1 &  test \\
+            1 & test \\
             \bottomrule
             \end{tabular}
             """
@@ -151,9 +143,7 @@ class TestToLatex:
             r"""
             \begin{tabular}{l}
             \toprule
-            Empty DataFrame
-            Columns: Index([], dtype='object')
-            Index: Index([], dtype='object') \\
+            \midrule
             \bottomrule
             \end{tabular}
             """
@@ -167,11 +157,11 @@ class TestToLatex:
             r"""
             \begin{tabular}{ll}
             \toprule
-            {} &  0 \\
+             & 0 \\
             \midrule
-            0 &  a \\
-            1 &  b \\
-            2 &  c \\
+            0 & a \\
+            1 & b \\
+            2 & c \\
             \bottomrule
             \end{tabular}
             """
@@ -187,15 +177,31 @@ class TestToLatex:
             r"""
             \begin{tabular}{lr}
             \toprule
-            {} &  a \\
+             & a \\
             \midrule
-            0 &  1 \\
-            1 &  2 \\
+            0 & 1 \\
+            1 & 2 \\
             \bottomrule
             \end{tabular}
             """
         )
         assert result == expected
+
+    def test_to_latex_pos_args_deprecation(self):
+        # GH-54229
+        df = DataFrame(
+            {
+                "name": ["Raphael", "Donatello"],
+                "age": [26, 45],
+                "height": [181.23, 177.65],
+            }
+        )
+        msg = (
+            r"Starting with pandas version 3.0 all arguments of to_latex except for "
+            r"the argument 'buf' will be keyword-only."
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.to_latex(None, None)
 
 
 class TestToLatexLongtable:
@@ -206,9 +212,17 @@ class TestToLatexLongtable:
             r"""
             \begin{longtable}{l}
             \toprule
-            Empty DataFrame
-            Columns: Index([], dtype='object')
-            Index: Index([], dtype='object') \\
+            \midrule
+            \endfirsthead
+            \toprule
+            \midrule
+            \endhead
+            \midrule
+            \multicolumn{0}{r}{Continued on next page} \\
+            \midrule
+            \endfoot
+            \bottomrule
+            \endlastfoot
             \end{longtable}
             """
         )
@@ -221,23 +235,21 @@ class TestToLatexLongtable:
             r"""
             \begin{longtable}{lrl}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
             \endfirsthead
-
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
             \endhead
             \midrule
-            \multicolumn{3}{r}{{Continued on next page}} \\
+            \multicolumn{3}{r}{Continued on next page} \\
             \midrule
             \endfoot
-
             \bottomrule
             \endlastfoot
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \end{longtable}
             """
         )
@@ -250,23 +262,21 @@ class TestToLatexLongtable:
             r"""
             \begin{longtable}{rl}
             \toprule
-             a &  b \\
+            a & b \\
             \midrule
             \endfirsthead
-
             \toprule
-             a &  b \\
+            a & b \\
             \midrule
             \endhead
             \midrule
-            \multicolumn{2}{r}{{Continued on next page}} \\
+            \multicolumn{2}{r}{Continued on next page} \\
             \midrule
             \endfoot
-
             \bottomrule
             \endlastfoot
-             1 & b1 \\
-             2 & b2 \\
+            1 & b1 \\
+            2 & b2 \\
             \end{longtable}
             """
         )
@@ -294,8 +304,9 @@ class TestToLatexHeader:
             r"""
             \begin{tabular}{lrl}
             \toprule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            \midrule
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -310,6 +321,7 @@ class TestToLatexHeader:
             r"""
             \begin{tabular}{rl}
             \toprule
+            \midrule
             1 & b1 \\
             2 & b2 \\
             \bottomrule
@@ -326,10 +338,10 @@ class TestToLatexHeader:
             r"""
             \begin{tabular}{lrl}
             \toprule
-            {} & AA &  BB \\
+             & AA & BB \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -346,8 +358,8 @@ class TestToLatexHeader:
             \toprule
             AA & BB \\
             \midrule
-             1 & b1 \\
-             2 & b2 \\
+            1 & b1 \\
+            2 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -382,10 +394,10 @@ class TestToLatexHeader:
             r"""
             \begin{tabular}{lrl}
             \toprule
-            {} &    a &   b \\
+             & a & b \\
             \midrule
-            0 &  1,0 &  b1 \\
-            1 &  2,1 &  b2 \\
+            0 & 1,000000 & b1 \\
+            1 & 2,100000 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -402,10 +414,10 @@ class TestToLatexBold:
             r"""
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
-            \textbf{0} &  1 &  b1 \\
-            \textbf{1} &  2 &  b2 \\
+            \textbf{0} & 1 & b1 \\
+            \textbf{1} & 2 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -420,10 +432,10 @@ class TestToLatexBold:
             r"""
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -463,14 +475,13 @@ class TestToLatexCaptionLabel:
         expected = _dedent(
             r"""
             \begin{table}
-            \centering
             \caption{a table in a \texttt{table/tabular} environment}
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             \end{table}
@@ -484,14 +495,13 @@ class TestToLatexCaptionLabel:
         expected = _dedent(
             r"""
             \begin{table}
-            \centering
             \label{tab:table_tabular}
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             \end{table}
@@ -505,15 +515,14 @@ class TestToLatexCaptionLabel:
         expected = _dedent(
             r"""
             \begin{table}
-            \centering
             \caption{a table in a \texttt{table/tabular} environment}
             \label{tab:table_tabular}
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             \end{table}
@@ -531,14 +540,13 @@ class TestToLatexCaptionLabel:
         expected = _dedent(
             r"""
             \begin{table}
-            \centering
             \caption[a table]{a table in a \texttt{table/tabular} environment}
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             \end{table}
@@ -567,15 +575,14 @@ class TestToLatexCaptionLabel:
         expected = _dedent(
             r"""
             \begin{table}
-            \centering
             \caption[a table]{a table in a \texttt{table/tabular} environment}
             \label{tab:table_tabular}
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             \end{table}
@@ -596,7 +603,7 @@ class TestToLatexCaptionLabel:
     def test_to_latex_bad_caption_raises(self, bad_caption):
         # test that wrong number of params is raised
         df = DataFrame({"a": [1]})
-        msg = "caption must be either a string or a tuple of two strings"
+        msg = "`caption` must be either a string or 2-tuple of strings"
         with pytest.raises(ValueError, match=msg):
             df.to_latex(caption=bad_caption)
 
@@ -607,14 +614,13 @@ class TestToLatexCaptionLabel:
         expected = _dedent(
             r"""
             \begin{table}
-            \centering
             \caption{xy}
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             \end{table}
@@ -630,25 +636,24 @@ class TestToLatexCaptionLabel:
         expected = _dedent(
             r"""
             \begin{longtable}{lrl}
-            \caption{a table in a \texttt{longtable} environment}\\
+            \caption{a table in a \texttt{longtable} environment} \\
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
             \endfirsthead
             \caption[]{a table in a \texttt{longtable} environment} \\
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
             \endhead
             \midrule
-            \multicolumn{3}{r}{{Continued on next page}} \\
+            \multicolumn{3}{r}{Continued on next page} \\
             \midrule
             \endfoot
-
             \bottomrule
             \endlastfoot
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \end{longtable}
             """
         )
@@ -660,25 +665,23 @@ class TestToLatexCaptionLabel:
         expected = _dedent(
             r"""
             \begin{longtable}{lrl}
-            \label{tab:longtable}\\
+            \label{tab:longtable} \\
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
             \endfirsthead
-
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
             \endhead
             \midrule
-            \multicolumn{3}{r}{{Continued on next page}} \\
+            \multicolumn{3}{r}{Continued on next page} \\
             \midrule
             \endfoot
-
             \bottomrule
             \endlastfoot
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \end{longtable}
             """
         )
@@ -698,29 +701,27 @@ class TestToLatexCaptionLabel:
         )
         expected = _dedent(
             r"""
-            \begin{longtable}{lrl}
-            \caption{a table in a \texttt{longtable} environment}
-            \label{tab:longtable}\\
-            \toprule
-            {} &  a &   b \\
-            \midrule
-            \endfirsthead
-            \caption[]{a table in a \texttt{longtable} environment} \\
-            \toprule
-            {} &  a &   b \\
-            \midrule
-            \endhead
-            \midrule
-            \multicolumn{3}{r}{{Continued on next page}} \\
-            \midrule
-            \endfoot
-
-            \bottomrule
-            \endlastfoot
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
-            \end{longtable}
-            """
+        \begin{longtable}{lrl}
+        \caption{a table in a \texttt{longtable} environment} \label{tab:longtable} \\
+        \toprule
+         & a & b \\
+        \midrule
+        \endfirsthead
+        \caption[]{a table in a \texttt{longtable} environment} \\
+        \toprule
+         & a & b \\
+        \midrule
+        \endhead
+        \midrule
+        \multicolumn{3}{r}{Continued on next page} \\
+        \midrule
+        \endfoot
+        \bottomrule
+        \endlastfoot
+        0 & 1 & b1 \\
+        1 & 2 & b2 \\
+        \end{longtable}
+        """
         )
         assert result == expected
 
@@ -739,29 +740,27 @@ class TestToLatexCaptionLabel:
         )
         expected = _dedent(
             r"""
-            \begin{longtable}{lrl}
-            \caption[a table]{a table in a \texttt{longtable} environment}
-            \label{tab:longtable}\\
-            \toprule
-            {} &  a &   b \\
-            \midrule
-            \endfirsthead
-            \caption[]{a table in a \texttt{longtable} environment} \\
-            \toprule
-            {} &  a &   b \\
-            \midrule
-            \endhead
-            \midrule
-            \multicolumn{3}{r}{{Continued on next page}} \\
-            \midrule
-            \endfoot
-
-            \bottomrule
-            \endlastfoot
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
-            \end{longtable}
-            """
+\begin{longtable}{lrl}
+\caption[a table]{a table in a \texttt{longtable} environment} \label{tab:longtable} \\
+\toprule
+ & a & b \\
+\midrule
+\endfirsthead
+\caption[]{a table in a \texttt{longtable} environment} \\
+\toprule
+ & a & b \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{Continued on next page} \\
+\midrule
+\endfoot
+\bottomrule
+\endlastfoot
+0 & 1 & b1 \\
+1 & 2 & b2 \\
+\end{longtable}
+"""
         )
         assert result == expected
 
@@ -780,10 +779,10 @@ class TestToLatexEscape:
             r"""
             \begin{tabular}{lll}
             \toprule
-            {} & co$e^x$ & co^l1 \\
+             & co$e^x$ & co^l1 \\
             \midrule
-            a &       a &     a \\
-            b &       b &     b \\
+            a & a & a \\
+            b & b & b \\
             \bottomrule
             \end{tabular}
             """
@@ -791,33 +790,23 @@ class TestToLatexEscape:
         assert result == expected
 
     def test_to_latex_escape_default(self, df_with_symbols):
-        result = df_with_symbols.to_latex()  # default: escape=True
-        expected = _dedent(
-            r"""
-            \begin{tabular}{lll}
-            \toprule
-            {} & co\$e\textasciicircum x\$ & co\textasciicircum l1 \\
-            \midrule
-            a &       a &     a \\
-            b &       b &     b \\
-            \bottomrule
-            \end{tabular}
-            """
-        )
-        assert result == expected
+        # gh50871: in v2.0 escape is False by default (styler.format.escape=None)
+        default = df_with_symbols.to_latex()
+        specified_true = df_with_symbols.to_latex(escape=True)
+        assert default != specified_true
 
     def test_to_latex_special_escape(self):
         df = DataFrame([r"a\b\c", r"^a^b^c", r"~a~b~c"])
-        result = df.to_latex()
+        result = df.to_latex(escape=True)
         expected = _dedent(
             r"""
             \begin{tabular}{ll}
             \toprule
-            {} &       0 \\
+             & 0 \\
             \midrule
-            0 &   a\textbackslash b\textbackslash c \\
-            1 &  \textasciicircum a\textasciicircum b\textasciicircum c \\
-            2 &  \textasciitilde a\textasciitilde b\textasciitilde c \\
+            0 & a\textbackslash b\textbackslash c \\
+            1 & \textasciicircum a\textasciicircum b\textasciicircum c \\
+            2 & \textasciitilde a\textasciitilde b\textasciitilde c \\
             \bottomrule
             \end{tabular}
             """
@@ -827,23 +816,23 @@ class TestToLatexEscape:
     def test_to_latex_escape_special_chars(self):
         special_characters = ["&", "%", "$", "#", "_", "{", "}", "~", "^", "\\"]
         df = DataFrame(data=special_characters)
-        result = df.to_latex()
+        result = df.to_latex(escape=True)
         expected = _dedent(
             r"""
             \begin{tabular}{ll}
             \toprule
-            {} &  0 \\
+             & 0 \\
             \midrule
-            0 &  \& \\
-            1 &  \% \\
-            2 &  \$ \\
-            3 &  \# \\
-            4 &  \_ \\
-            5 &  \{ \\
-            6 &  \} \\
-            7 &  \textasciitilde  \\
-            8 &  \textasciicircum  \\
-            9 &  \textbackslash  \\
+            0 & \& \\
+            1 & \% \\
+            2 & \$ \\
+            3 & \# \\
+            4 & \_ \\
+            5 & \{ \\
+            6 & \} \\
+            7 & \textasciitilde  \\
+            8 & \textasciicircum  \\
+            9 & \textbackslash  \\
             \bottomrule
             \end{tabular}
             """
@@ -858,10 +847,10 @@ class TestToLatexEscape:
             r"""
             \begin{tabular}{lrl}
             \toprule
-            {} & $A$ & $B$ \\
+             & $A$ & $B$ \\
             \midrule
-            0 &   1 &  b1 \\
-            1 &   2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -877,13 +866,12 @@ class TestToLatexPosition:
         expected = _dedent(
             r"""
             \begin{table}[h]
-            \centering
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             \end{table}
@@ -899,23 +887,21 @@ class TestToLatexPosition:
             r"""
             \begin{longtable}[t]{lrl}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
             \endfirsthead
-
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
             \endhead
             \midrule
-            \multicolumn{3}{r}{{Continued on next page}} \\
+            \multicolumn{3}{r}{Continued on next page} \\
             \midrule
             \endfoot
-
             \bottomrule
             \endlastfoot
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \end{longtable}
             """
         )
@@ -950,11 +936,11 @@ class TestToLatexFormatters:
             r"""
             \begin{tabular}{llrrl}
             \toprule
-            {} & datetime64 &  float & int &    object \\
+             & datetime64 & float & int & object \\
             \midrule
-            index: 0 &    2016-01 & [ 1.0] & 0x1 &  -(1, 2)- \\
-            index: 1 &    2016-02 & [ 2.0] & 0x2 &    -True- \\
-            index: 2 &    2016-03 & [ 3.0] & 0x3 &   -False- \\
+            index: 0 & 2016-01 & [ 1.0] & 0x1 & -(1, 2)- \\
+            index: 1 & 2016-02 & [ 2.0] & 0x2 & -True- \\
+            index: 2 & 2016-03 & [ 3.0] & 0x3 & -False- \\
             \bottomrule
             \end{tabular}
             """
@@ -969,7 +955,7 @@ class TestToLatexFormatters:
             r"""
             \begin{tabular}{lr}
             \toprule
-            {} &     x \\
+             & x \\
             \midrule
             0 & 0.200 \\
             \bottomrule
@@ -986,7 +972,7 @@ class TestToLatexFormatters:
             r"""
             \begin{tabular}{lr}
             \toprule
-            {} &   x \\
+             & x \\
             \midrule
             0 & 100 \\
             \bottomrule
@@ -1009,10 +995,10 @@ class TestToLatexFormatters:
             rf"""
             \begin{{tabular}}{{llr}}
             \toprule
-            {{}} & Group &  Data \\
+             & Group & Data \\
             \midrule
-            0 &     A &  1.22 \\
-            1 &     A &   {na_rep} \\
+            0 & A & 1.22 \\
+            1 & A & {na_rep} \\
             \bottomrule
             \end{{tabular}}
             """
@@ -1051,15 +1037,15 @@ class TestToLatexMultiindex:
         # GH 16718
         df = DataFrame({"a": [0], "b": [1], "c": [2], "d": [3]})
         df = df.set_index(["a", "b"])
-        observed = df.to_latex(header=["r1", "r2"])
+        observed = df.to_latex(header=["r1", "r2"], multirow=False)
         expected = _dedent(
             r"""
             \begin{tabular}{llrr}
             \toprule
-              &   & r1 & r2 \\
-            a & b &    &    \\
+             &  & r1 & r2 \\
+            a & b &  &  \\
             \midrule
-            0 & 1 &  2 &  3 \\
+            0 & 1 & 2 & 3 \\
             \bottomrule
             \end{tabular}
             """
@@ -1075,8 +1061,8 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{lrrrr}
             \toprule
-              &  0 &  1 &  2 &  3 \\
-            {} &    &    &    &    \\
+             & 0 & 1 & 2 & 3 \\
+             &  &  &  &  \\
             \midrule
             1 & -1 & -1 & -1 & -1 \\
             2 & -1 & -1 & -1 & -1 \\
@@ -1093,10 +1079,10 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{ll}
             \toprule
-            {} &  x \\
-            {} &  y \\
+             & x \\
+             & y \\
             \midrule
-            0 &  a \\
+            0 & a \\
             \bottomrule
             \end{tabular}
             """
@@ -1105,14 +1091,14 @@ class TestToLatexMultiindex:
 
     def test_to_latex_multiindex_small_tabular(self):
         df = DataFrame({("x", "y"): ["a"]}).T
-        result = df.to_latex()
+        result = df.to_latex(multirow=False)
         expected = _dedent(
             r"""
             \begin{tabular}{lll}
             \toprule
-              &   &  0 \\
+             &  & 0 \\
             \midrule
-            x & y &  a \\
+            x & y & a \\
             \bottomrule
             \end{tabular}
             """
@@ -1120,18 +1106,18 @@ class TestToLatexMultiindex:
         assert result == expected
 
     def test_to_latex_multiindex_tabular(self, multiindex_frame):
-        result = multiindex_frame.to_latex()
+        result = multiindex_frame.to_latex(multirow=False)
         expected = _dedent(
             r"""
             \begin{tabular}{llrrrr}
             \toprule
-               &   &  0 &  1 &  2 &  3 \\
+             &  & 0 & 1 & 2 & 3 \\
             \midrule
-            c1 & 0 &  0 &  1 &  2 &  3 \\
-               & 1 &  4 &  5 &  6 &  7 \\
-            c2 & 0 &  0 &  1 &  2 &  3 \\
-               & 1 &  4 &  5 &  6 &  7 \\
-            c3 & 0 &  0 &  1 &  2 &  3 \\
+            c1 & 0 & 0 & 1 & 2 & 3 \\
+             & 1 & 4 & 5 & 6 & 7 \\
+            c2 & 0 & 0 & 1 & 2 & 3 \\
+             & 1 & 4 & 5 & 6 & 7 \\
+            c3 & 0 & 0 & 1 & 2 & 3 \\
             \bottomrule
             \end{tabular}
             """
@@ -1142,18 +1128,18 @@ class TestToLatexMultiindex:
         # GH 14184
         df = multiindex_frame.T
         df.columns.names = ["a", "b"]
-        result = df.to_latex()
+        result = df.to_latex(multirow=False)
         expected = _dedent(
             r"""
             \begin{tabular}{lrrrrr}
             \toprule
-            a & \multicolumn{2}{l}{c1} & \multicolumn{2}{l}{c2} & c3 \\
-            b &  0 &  1 &  0 &  1 &  0 \\
+            a & \multicolumn{2}{r}{c1} & \multicolumn{2}{r}{c2} & c3 \\
+            b & 0 & 1 & 0 & 1 & 0 \\
             \midrule
-            0 &  0 &  4 &  0 &  4 &  0 \\
-            1 &  1 &  5 &  1 &  5 &  1 \\
-            2 &  2 &  6 &  2 &  6 &  2 \\
-            3 &  3 &  7 &  3 &  7 &  3 \\
+            0 & 0 & 4 & 0 & 4 & 0 \\
+            1 & 1 & 5 & 1 & 5 & 1 \\
+            2 & 2 & 6 & 2 & 6 & 2 \\
+            3 & 3 & 7 & 3 & 7 & 3 \\
             \bottomrule
             \end{tabular}
             """
@@ -1163,18 +1149,18 @@ class TestToLatexMultiindex:
     def test_to_latex_index_has_name_tabular(self):
         # GH 10660
         df = DataFrame({"a": [0, 0, 1, 1], "b": list("abab"), "c": [1, 2, 3, 4]})
-        result = df.set_index(["a", "b"]).to_latex()
+        result = df.set_index(["a", "b"]).to_latex(multirow=False)
         expected = _dedent(
             r"""
             \begin{tabular}{llr}
             \toprule
-              &   &  c \\
-            a & b &    \\
+             &  & c \\
+            a & b &  \\
             \midrule
-            0 & a &  1 \\
-              & b &  2 \\
-            1 & a &  3 \\
-              & b &  4 \\
+            0 & a & 1 \\
+             & b & 2 \\
+            1 & a & 3 \\
+             & b & 4 \\
             \bottomrule
             \end{tabular}
             """
@@ -1184,17 +1170,21 @@ class TestToLatexMultiindex:
     def test_to_latex_groupby_tabular(self):
         # GH 10660
         df = DataFrame({"a": [0, 0, 1, 1], "b": list("abab"), "c": [1, 2, 3, 4]})
-        result = df.groupby("a").describe().to_latex()
+        result = (
+            df.groupby("a")
+            .describe()
+            .to_latex(float_format="{:.1f}".format, escape=True)
+        )
         expected = _dedent(
             r"""
             \begin{tabular}{lrrrrrrrr}
             \toprule
-            {} & \multicolumn{8}{l}{c} \\
-            {} & count & mean &       std &  min &   25\% &  50\% &   75\% &  max \\
-            a &       &      &           &      &       &      &       &      \\
+             & \multicolumn{8}{r}{c} \\
+             & count & mean & std & min & 25\% & 50\% & 75\% & max \\
+            a &  &  &  &  &  &  &  &  \\
             \midrule
-            0 &   2.0 &  1.5 &  0.707107 &  1.0 &  1.25 &  1.5 &  1.75 &  2.0 \\
-            1 &   2.0 &  3.5 &  0.707107 &  3.0 &  3.25 &  3.5 &  3.75 &  4.0 \\
+            0 & 2.0 & 1.5 & 0.7 & 1.0 & 1.2 & 1.5 & 1.8 & 2.0 \\
+            1 & 2.0 & 3.5 & 0.7 & 3.0 & 3.2 & 3.5 & 3.8 & 4.0 \\
             \bottomrule
             \end{tabular}
             """
@@ -1212,15 +1202,15 @@ class TestToLatexMultiindex:
         df = DataFrame(
             index=pd.MultiIndex.from_tuples([("A", "c"), ("B", "c")]), columns=["col"]
         )
-        result = df.to_latex()
+        result = df.to_latex(multirow=False)
         expected = _dedent(
             r"""
             \begin{tabular}{lll}
             \toprule
-              &   &  col \\
+             &  & col \\
             \midrule
-            A & c &  NaN \\
-            B & c &  NaN \\
+            A & c & NaN \\
+            B & c & NaN \\
             \bottomrule
             \end{tabular}
             """
@@ -1233,14 +1223,14 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{lrrrrr}
             \toprule
-            {} & \multicolumn{2}{l}{c1} & \multicolumn{2}{l}{c2} & c3 \\
-            {} &  0 &  1 &  0 &  1 &  0 \\
+             & \multicolumn{2}{r}{c1} & \multicolumn{2}{r}{c2} & c3 \\
+             & 0 & 1 & 0 & 1 & 0 \\
             \midrule
-            0 &  0 &  5 &  0 &  5 &  0 \\
-            1 &  1 &  6 &  1 &  6 &  1 \\
-            2 &  2 &  7 &  2 &  7 &  2 \\
-            3 &  3 &  8 &  3 &  8 &  3 \\
-            4 &  4 &  9 &  4 &  9 &  4 \\
+            0 & 0 & 5 & 0 & 5 & 0 \\
+            1 & 1 & 6 & 1 & 6 & 1 \\
+            2 & 2 & 7 & 2 & 7 & 2 \\
+            3 & 3 & 8 & 3 & 8 & 3 \\
+            4 & 4 & 9 & 4 & 9 & 4 \\
             \bottomrule
             \end{tabular}
             """
@@ -1248,19 +1238,19 @@ class TestToLatexMultiindex:
         assert result == expected
 
     def test_to_latex_multicolumn_false(self, multicolumn_frame):
-        result = multicolumn_frame.to_latex(multicolumn=False)
+        result = multicolumn_frame.to_latex(multicolumn=False, multicolumn_format="l")
         expected = _dedent(
             r"""
             \begin{tabular}{lrrrrr}
             \toprule
-            {} & c1 &    & c2 &    & c3 \\
-            {} &  0 &  1 &  0 &  1 &  0 \\
+             & c1 & & c2 & & c3 \\
+             & 0 & 1 & 0 & 1 & 0 \\
             \midrule
-            0 &  0 &  5 &  0 &  5 &  0 \\
-            1 &  1 &  6 &  1 &  6 &  1 \\
-            2 &  2 &  7 &  2 &  7 &  2 \\
-            3 &  3 &  8 &  3 &  8 &  3 \\
-            4 &  4 &  9 &  4 &  9 &  4 \\
+            0 & 0 & 5 & 0 & 5 & 0 \\
+            1 & 1 & 6 & 1 & 6 & 1 \\
+            2 & 2 & 7 & 2 & 7 & 2 \\
+            3 & 3 & 8 & 3 & 8 & 3 \\
+            4 & 4 & 9 & 4 & 9 & 4 \\
             \bottomrule
             \end{tabular}
             """
@@ -1273,15 +1263,16 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{llrrrrr}
             \toprule
-               &   &  0 &  1 &  2 &  3 &  4 \\
+             &  & 0 & 1 & 2 & 3 & 4 \\
             \midrule
-            \multirow{2}{*}{c1} & 0 &  0 &  1 &  2 &  3 &  4 \\
-               & 1 &  5 &  6 &  7 &  8 &  9 \\
+            \multirow[t]{2}{*}{c1} & 0 & 0 & 1 & 2 & 3 & 4 \\
+             & 1 & 5 & 6 & 7 & 8 & 9 \\
             \cline{1-7}
-            \multirow{2}{*}{c2} & 0 &  0 &  1 &  2 &  3 &  4 \\
-               & 1 &  5 &  6 &  7 &  8 &  9 \\
+            \multirow[t]{2}{*}{c2} & 0 & 0 & 1 & 2 & 3 & 4 \\
+             & 1 & 5 & 6 & 7 & 8 & 9 \\
             \cline{1-7}
-            c3 & 0 &  0 &  1 &  2 &  3 &  4 \\
+            c3 & 0 & 0 & 1 & 2 & 3 & 4 \\
+            \cline{1-7}
             \bottomrule
             \end{tabular}
             """
@@ -1299,16 +1290,17 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{llrrrrr}
             \toprule
-               &   & \multicolumn{2}{c}{c1} & \multicolumn{2}{c}{c2} & c3 \\
-               &   &  0 &  1 &  0 &  1 &  0 \\
+             &  & \multicolumn{2}{c}{c1} & \multicolumn{2}{c}{c2} & c3 \\
+             &  & 0 & 1 & 0 & 1 & 0 \\
             \midrule
-            \multirow{2}{*}{c1} & 0 &  0 &  1 &  2 &  3 &  4 \\
-               & 1 &  5 &  6 &  7 &  8 &  9 \\
+            \multirow[t]{2}{*}{c1} & 0 & 0 & 1 & 2 & 3 & 4 \\
+             & 1 & 5 & 6 & 7 & 8 & 9 \\
             \cline{1-7}
-            \multirow{2}{*}{c2} & 0 &  0 &  1 &  2 &  3 &  4 \\
-               & 1 &  5 &  6 &  7 &  8 &  9 \\
+            \multirow[t]{2}{*}{c2} & 0 & 0 & 1 & 2 & 3 & 4 \\
+             & 1 & 5 & 6 & 7 & 8 & 9 \\
             \cline{1-7}
-            c3 & 0 &  0 &  1 &  2 &  3 &  4 \\
+            c3 & 0 & 0 & 1 & 2 & 3 & 4 \\
+            \cline{1-7}
             \bottomrule
             \end{tabular}
             """
@@ -1326,24 +1318,24 @@ class TestToLatexMultiindex:
         for idx in axes:
             df.axes[idx].names = names
 
-        idx_names = tuple(n or "{}" for n in names)
+        idx_names = tuple(n or "" for n in names)
         idx_names_row = (
-            f"{idx_names[0]} & {idx_names[1]} &    &    &    &    \\\\\n"
+            f"{idx_names[0]} & {idx_names[1]} &  &  &  &  \\\\\n"
             if (0 in axes and any(names))
             else ""
         )
-        placeholder = "{}" if any(names) and 1 in axes else " "
-        col_names = [n if (bool(n) and 1 in axes) else placeholder for n in names]
-        observed = df.to_latex()
+        col_names = [n if (bool(n) and 1 in axes) else "" for n in names]
+        observed = df.to_latex(multirow=False)
+        # pylint: disable-next=consider-using-f-string
         expected = r"""\begin{tabular}{llrrrr}
 \toprule
-  & %s & \multicolumn{2}{l}{1} & \multicolumn{2}{l}{2} \\
-  & %s &  3 &  4 &  3 &  4 \\
+ & %s & \multicolumn{2}{r}{1} & \multicolumn{2}{r}{2} \\
+ & %s & 3 & 4 & 3 & 4 \\
 %s\midrule
 1 & 3 & -1 & -1 & -1 & -1 \\
-  & 4 & -1 & -1 & -1 & -1 \\
+ & 4 & -1 & -1 & -1 & -1 \\
 2 & 3 & -1 & -1 & -1 & -1 \\
-  & 4 & -1 & -1 & -1 & -1 \\
+ & 4 & -1 & -1 & -1 & -1 \\
 \bottomrule
 \end{tabular}
 """ % tuple(
@@ -1357,19 +1349,19 @@ class TestToLatexMultiindex:
         df = DataFrame({"a": [None, 1], "b": [2, 3], "c": [4, 5]})
         if one_row:
             df = df.iloc[[0]]
-        observed = df.set_index(["a", "b"]).to_latex()
+        observed = df.set_index(["a", "b"]).to_latex(multirow=False)
         expected = _dedent(
             r"""
             \begin{tabular}{llr}
             \toprule
-                &   &  c \\
-            a & b &    \\
+             &  & c \\
+            a & b &  \\
             \midrule
-            NaN & 2 &  4 \\
+            NaN & 2 & 4 \\
             """
         )
         if not one_row:
-            expected += r"""1.0 & 3 &  5 \\
+            expected += r"""1.000000 & 3 & 5 \\
 """
         expected += r"""\bottomrule
 \end{tabular}
@@ -1379,16 +1371,16 @@ class TestToLatexMultiindex:
     def test_to_latex_non_string_index(self):
         # GH 19981
         df = DataFrame([[1, 2, 3]] * 2).set_index([0, 1])
-        result = df.to_latex()
+        result = df.to_latex(multirow=False)
         expected = _dedent(
             r"""
             \begin{tabular}{llr}
             \toprule
-              &   &  2 \\
-            0 & 1 &    \\
+             &  & 2 \\
+            0 & 1 &  \\
             \midrule
-            1 & 2 &  3 \\
-              & 2 &  3 \\
+            1 & 2 & 3 \\
+             & 2 & 3 \\
             \bottomrule
             \end{tabular}
             """
@@ -1406,125 +1398,28 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{lll}
             \toprule
-                &     &   \\
             i & val0 & val1 \\
             \midrule
-            \multirow{6}{*}{0.0} & \multirow{2}{*}{3.0} & 0 \\
-                &     & 1 \\
+            \multirow[t]{6}{*}{0.000000} & \multirow[t]{2}{*}{3.000000} & 0 \\
+             &  & 1 \\
             \cline{2-3}
-                & \multirow{2}{*}{2.0} & 0 \\
-                &     & 1 \\
+             & \multirow[t]{2}{*}{2.000000} & 0 \\
+             &  & 1 \\
             \cline{2-3}
-                & \multirow{2}{*}{1.0} & 0 \\
-                &     & 1 \\
-            \cline{1-3}
+             & \multirow[t]{2}{*}{1.000000} & 0 \\
+             &  & 1 \\
+            \cline{1-3} \cline{2-3}
+            \multirow[t]{6}{*}{1.000000} & \multirow[t]{2}{*}{3.000000} & 0 \\
+             &  & 1 \\
             \cline{2-3}
-            \multirow{6}{*}{1.0} & \multirow{2}{*}{3.0} & 0 \\
-                &     & 1 \\
+             & \multirow[t]{2}{*}{2.000000} & 0 \\
+             &  & 1 \\
             \cline{2-3}
-                & \multirow{2}{*}{2.0} & 0 \\
-                &     & 1 \\
-            \cline{2-3}
-                & \multirow{2}{*}{1.0} & 0 \\
-                &     & 1 \\
+             & \multirow[t]{2}{*}{1.000000} & 0 \\
+             &  & 1 \\
+            \cline{1-3} \cline{2-3}
             \bottomrule
             \end{tabular}
             """
         )
         assert result == expected
-
-
-class TestTableBuilder:
-    @pytest.fixture
-    def dataframe(self):
-        return DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-
-    @pytest.fixture
-    def table_builder(self, dataframe):
-        return RegularTableBuilder(formatter=DataFrameFormatter(dataframe))
-
-    def test_create_row_iterator(self, table_builder):
-        iterator = table_builder._create_row_iterator(over="header")
-        assert isinstance(iterator, RowHeaderIterator)
-
-    def test_create_body_iterator(self, table_builder):
-        iterator = table_builder._create_row_iterator(over="body")
-        assert isinstance(iterator, RowBodyIterator)
-
-    def test_create_body_wrong_kwarg_raises(self, table_builder):
-        with pytest.raises(ValueError, match="must be either 'header' or 'body'"):
-            table_builder._create_row_iterator(over="SOMETHING BAD")
-
-
-class TestRowStringConverter:
-    @pytest.mark.parametrize(
-        "row_num, expected",
-        [
-            (0, r"{} &  Design &  ratio &  xy \\"),
-            (1, r"0 &       1 &      4 &  10 \\"),
-            (2, r"1 &       2 &      5 &  11 \\"),
-        ],
-    )
-    def test_get_strrow_normal_without_escape(self, row_num, expected):
-        df = DataFrame({r"Design": [1, 2, 3], r"ratio": [4, 5, 6], r"xy": [10, 11, 12]})
-        row_string_converter = RowStringConverter(
-            formatter=DataFrameFormatter(df, escape=True),
-        )
-        assert row_string_converter.get_strrow(row_num=row_num) == expected
-
-    @pytest.mark.parametrize(
-        "row_num, expected",
-        [
-            (0, r"{} &  Design \# &  ratio, \% &  x\&y \\"),
-            (1, r"0 &         1 &         4 &   10 \\"),
-            (2, r"1 &         2 &         5 &   11 \\"),
-        ],
-    )
-    def test_get_strrow_normal_with_escape(self, row_num, expected):
-        df = DataFrame(
-            {r"Design #": [1, 2, 3], r"ratio, %": [4, 5, 6], r"x&y": [10, 11, 12]}
-        )
-        row_string_converter = RowStringConverter(
-            formatter=DataFrameFormatter(df, escape=True),
-        )
-        assert row_string_converter.get_strrow(row_num=row_num) == expected
-
-    @pytest.mark.parametrize(
-        "row_num, expected",
-        [
-            (0, r"{} & \multicolumn{2}{r}{c1} & \multicolumn{2}{r}{c2} & c3 \\"),
-            (1, r"{} &  0 &  1 &  0 &  1 &  0 \\"),
-            (2, r"0 &  0 &  5 &  0 &  5 &  0 \\"),
-        ],
-    )
-    def test_get_strrow_multindex_multicolumn(self, row_num, expected):
-        df = DataFrame(
-            {
-                ("c1", 0): {x: x for x in range(5)},
-                ("c1", 1): {x: x + 5 for x in range(5)},
-                ("c2", 0): {x: x for x in range(5)},
-                ("c2", 1): {x: x + 5 for x in range(5)},
-                ("c3", 0): {x: x for x in range(5)},
-            }
-        )
-
-        row_string_converter = RowStringConverter(
-            formatter=DataFrameFormatter(df),
-            multicolumn=True,
-            multicolumn_format="r",
-            multirow=True,
-        )
-
-        assert row_string_converter.get_strrow(row_num=row_num) == expected
-
-    def test_future_warning(self):
-        df = DataFrame([[1]])
-        msg = (
-            "In future versions `DataFrame.to_latex` is expected to utilise the base "
-            "implementation of `Styler.to_latex` for formatting and rendering. "
-            "The arguments signature may therefore change. It is recommended instead "
-            "to use `DataFrame.style.to_latex` which also contains additional "
-            "functionality."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.to_latex()

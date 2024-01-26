@@ -27,16 +27,10 @@ import operator
 
 import numpy as np
 
-from pandas.core.dtypes.common import (
-    is_float_dtype,
-    is_integer_dtype,
-    is_scalar,
-)
-
-from pandas.core.ops import roperator
+from pandas.core import roperator
 
 
-def _fill_zeros(result, x, y):
+def _fill_zeros(result: np.ndarray, x, y):
     """
     If this is a reversed op, then flip x,y
 
@@ -46,23 +40,22 @@ def _fill_zeros(result, x, y):
 
     Mask the nan's from x.
     """
-    if is_float_dtype(result.dtype):
+    if result.dtype.kind == "f":
         return result
 
     is_variable_type = hasattr(y, "dtype")
-    is_scalar_type = is_scalar(y)
+    is_scalar_type = not isinstance(y, np.ndarray)
 
     if not is_variable_type and not is_scalar_type:
+        # e.g. test_series_ops_name_retention with mod we get here with list/tuple
         return result
 
     if is_scalar_type:
         y = np.array(y)
 
-    if is_integer_dtype(y.dtype):
-
+    if y.dtype.kind in "iu":
         ymask = y == 0
         if ymask.any():
-
             # GH#7325, mask and nans must be broadcastable
             mask = ymask & ~np.isnan(result)
 
@@ -114,7 +107,6 @@ def mask_zero_div_zero(x, y, result: np.ndarray) -> np.ndarray:
     zmask = y == 0
 
     if zmask.any():
-
         # Flip sign if necessary for -0.0
         zneg_mask = zmask & np.signbit(y)
         zpos_mask = zmask & ~zneg_mask
@@ -122,9 +114,8 @@ def mask_zero_div_zero(x, y, result: np.ndarray) -> np.ndarray:
         x_lt0 = x < 0
         x_gt0 = x > 0
         nan_mask = zmask & (x == 0)
-        with np.errstate(invalid="ignore"):
-            neginf_mask = (zpos_mask & x_lt0) | (zneg_mask & x_gt0)
-            posinf_mask = (zpos_mask & x_gt0) | (zneg_mask & x_lt0)
+        neginf_mask = (zpos_mask & x_lt0) | (zneg_mask & x_gt0)
+        posinf_mask = (zpos_mask & x_gt0) | (zneg_mask & x_lt0)
 
         if nan_mask.any() or neginf_mask.any() or posinf_mask.any():
             # Fill negative/0 with -inf, positive/0 with +inf, 0/0 with NaN
@@ -146,7 +137,9 @@ def dispatch_fill_zeros(op, left, right, result):
     ----------
     op : function (operator.add, operator.div, ...)
     left : object (np.ndarray for non-reversed ops)
+        We have excluded ExtensionArrays here
     right : object (np.ndarray for reversed ops)
+        We have excluded ExtensionArrays here
     result : ndarray
 
     Returns

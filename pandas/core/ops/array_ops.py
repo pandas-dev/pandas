@@ -7,7 +7,11 @@ from __future__ import annotations
 import datetime
 from functools import partial
 import operator
-from typing import Any
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
+import warnings
 
 import numpy as np
 
@@ -18,11 +22,13 @@ from pandas._libs import (
     lib,
     ops as libops,
 )
-from pandas._libs.tslibs import BaseOffset
-from pandas._typing import (
-    ArrayLike,
-    Shape,
+from pandas._libs.tslibs import (
+    BaseOffset,
+    get_supported_dtype,
+    is_supported_dtype,
+    is_unitless,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -31,7 +37,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
-    is_integer_dtype,
     is_list_like,
     is_numeric_v_string_like,
     is_object_dtype,
@@ -47,18 +52,67 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-import pandas.core.computation.expressions as expressions
+from pandas.core import roperator
+from pandas.core.computation import expressions
 from pandas.core.construction import ensure_wrapped_if_datetimelike
-from pandas.core.ops import (
-    missing,
-    roperator,
-)
+from pandas.core.ops import missing
 from pandas.core.ops.dispatch import should_extension_dispatch
 from pandas.core.ops.invalid import invalid_comparison
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Shape,
+    )
+
+# -----------------------------------------------------------------------------
+# Masking NA values and fallbacks for operations numpy does not support
+
+
+def fill_binop(left, right, fill_value):
+    """
+    If a non-None fill_value is given, replace null entries in left and right
+    with this value, but only in positions where _one_ of left/right is null,
+    not both.
+
+    Parameters
+    ----------
+    left : array-like
+    right : array-like
+    fill_value : object
+
+    Returns
+    -------
+    left : array-like
+    right : array-like
+
+    Notes
+    -----
+    Makes copies if fill_value is not None and NAs are present.
+    """
+    if fill_value is not None:
+        left_mask = isna(left)
+        right_mask = isna(right)
+
+        # one but not both
+        mask = left_mask ^ right_mask
+
+        if left_mask.any():
+            # Avoid making a copy if we can
+            left = left.copy()
+            left[left_mask & mask] = fill_value
+
+        if right_mask.any():
+            # Avoid making a copy if we can
+            right = right.copy()
+            right[right_mask & mask] = fill_value
+
+    return left, right
 
 
 def comp_method_OBJECT_ARRAY(op, x, y):
     if isinstance(y, list):
+        # e.g. test_tuple_categories
         y = construct_1d_object_array_from_listlike(y)
 
     if isinstance(y, (np.ndarray, ABCSeries, ABCIndex)):
@@ -90,15 +144,14 @@ def _masked_arith_op(x: np.ndarray, y, op):
     # For Series `x` is 1D so ravel() is a no-op; calling it anyway makes
     # the logic valid for both Series and DataFrame ops.
     xrav = x.ravel()
-    assert isinstance(x, np.ndarray), type(x)
+
     if isinstance(y, np.ndarray):
         dtype = find_common_type([x.dtype, y.dtype])
         result = np.empty(x.size, dtype=dtype)
 
         if len(x) != len(y):
             raise ValueError(x.shape, y.shape)
-        else:
-            ymask = notna(y)
+        ymask = notna(y)
 
         # NB: ravel() is only safe since y is ndarray; for e.g. PeriodIndex
         #  we would get int64 dtype, see GH#19956
@@ -164,7 +217,9 @@ def _na_arithmetic_op(left: np.ndarray, right, op, is_cmp: bool = False):
     try:
         result = func(left, right)
     except TypeError:
-        if not is_cmp and (is_object_dtype(left.dtype) or is_object_dtype(right)):
+        if not is_cmp and (
+            left.dtype == object or getattr(right, "dtype", None) == object
+        ):
             # For object dtype, fallback to a masked operation (only operating
             #  on the non-missing values)
             # Don't do this for comparisons, as that will handle complex numbers
@@ -219,7 +274,9 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
     else:
         # TODO we should handle EAs consistently and move this check before the if/else
         # (https://github.com/pandas-dev/pandas/issues/41165)
-        _bool_arith_check(op, left, right)
+        # error: Argument 2 to "_bool_arith_check" has incompatible type
+        # "Union[ExtensionArray, ndarray[Any, Any]]"; expected "ndarray[Any, Any]"
+        _bool_arith_check(op, left, right)  # type: ignore[arg-type]
 
         # error: Argument 1 to "_na_arithmetic_op" has incompatible type
         # "Union[ExtensionArray, ndarray[Any, Any]]"; expected "ndarray[Any, Any]"
@@ -267,7 +324,7 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
 
     if should_extension_dispatch(lvalues, rvalues) or (
         (isinstance(rvalues, (Timedelta, BaseOffset, Timestamp)) or right is NaT)
-        and not is_object_dtype(lvalues.dtype)
+        and lvalues.dtype != object
     ):
         # Call the method on lvalues
         res_values = op(lvalues, rvalues)
@@ -283,7 +340,7 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         # GH#36377 going through the numexpr path would incorrectly raise
         return invalid_comparison(lvalues, rvalues, op)
 
-    elif is_object_dtype(lvalues.dtype) or isinstance(rvalues, str):
+    elif lvalues.dtype == object or isinstance(rvalues, str):
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
@@ -306,7 +363,7 @@ def na_logical_op(x: np.ndarray, y, op):
     except TypeError:
         if isinstance(y, np.ndarray):
             # bool-bool dtype operations should be OK, should not get here
-            assert not (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype))
+            assert not (x.dtype.kind == "b" and y.dtype.kind == "b")
             x = ensure_object(x)
             y = ensure_object(y)
             result = libops.vec_binop(x.ravel(), y.ravel(), op)
@@ -349,26 +406,31 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     -------
     ndarray or ExtensionArray
     """
-    fill_int = lambda x: x
 
     def fill_bool(x, left=None):
         # if `left` is specifically not-boolean, we do not cast to bool
-        if x.dtype.kind in ["c", "f", "O"]:
+        if x.dtype.kind in "cfO":
             # dtypes that can hold NA
             mask = isna(x)
             if mask.any():
                 x = x.astype(object)
                 x[mask] = False
 
-        if left is None or is_bool_dtype(left.dtype):
+        if left is None or left.dtype.kind == "b":
             x = x.astype(bool)
         return x
-
-    is_self_int_dtype = is_integer_dtype(left.dtype)
 
     right = lib.item_from_zerodim(right)
     if is_list_like(right) and not hasattr(right, "dtype"):
         # e.g. list, tuple
+        warnings.warn(
+            "Logical ops (and, or, xor) between Pandas objects and dtype-less "
+            "sequences (e.g. list, tuple) are deprecated and will raise in a "
+            "future version. Wrap the object in a Series, Index, or np.array "
+            "before operating instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         right = construct_1d_object_array_from_listlike(right)
 
     # NB: We assume extract_array has already been called on left and right
@@ -381,20 +443,20 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
 
     else:
         if isinstance(rvalues, np.ndarray):
-            is_other_int_dtype = is_integer_dtype(rvalues.dtype)
-            rvalues = rvalues if is_other_int_dtype else fill_bool(rvalues, lvalues)
+            is_other_int_dtype = rvalues.dtype.kind in "iu"
+            if not is_other_int_dtype:
+                rvalues = fill_bool(rvalues, lvalues)
 
         else:
             # i.e. scalar
             is_other_int_dtype = lib.is_integer(rvalues)
 
+        res_values = na_logical_op(lvalues, rvalues, op)
+
         # For int vs int `^`, `|`, `&` are bitwise operators and return
         #   integer dtypes.  Otherwise these are boolean ops
-        filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
-
-        res_values = na_logical_op(lvalues, rvalues, op)
-        # error: Cannot call function of unknown type
-        res_values = filler(res_values)  # type: ignore[operator]
+        if not (left.dtype.kind in "iu" and is_other_int_dtype):
+            res_values = fill_bool(res_values)
 
     return res_values
 
@@ -476,9 +538,14 @@ def maybe_prepare_scalar_for_op(obj, shape: Shape):
             from pandas.core.arrays import DatetimeArray
 
             # Avoid possible ambiguities with pd.NaT
-            obj = obj.astype("datetime64[ns]")
+            # GH 52295
+            if is_unitless(obj.dtype):
+                obj = obj.astype("datetime64[ns]")
+            elif not is_supported_dtype(obj.dtype):
+                new_dtype = get_supported_dtype(obj.dtype)
+                obj = obj.astype(new_dtype)
             right = np.broadcast_to(obj, shape)
-            return DatetimeArray(right)
+            return DatetimeArray._simple_new(right, dtype=right.dtype)
 
         return Timestamp(obj)
 
@@ -489,14 +556,27 @@ def maybe_prepare_scalar_for_op(obj, shape: Shape):
             # wrapping timedelta64("NaT") in Timedelta returns NaT,
             #  which would incorrectly be treated as a datetime-NaT, so
             #  we broadcast and wrap in a TimedeltaArray
-            obj = obj.astype("timedelta64[ns]")
+            # GH 52295
+            if is_unitless(obj.dtype):
+                obj = obj.astype("timedelta64[ns]")
+            elif not is_supported_dtype(obj.dtype):
+                new_dtype = get_supported_dtype(obj.dtype)
+                obj = obj.astype(new_dtype)
             right = np.broadcast_to(obj, shape)
-            return TimedeltaArray(right)
+            return TimedeltaArray._simple_new(right, dtype=right.dtype)
 
         # In particular non-nanosecond timedelta64 needs to be cast to
         #  nanoseconds, or else we get undesired behavior like
         #  np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
         return Timedelta(obj)
+
+    # We want NumPy numeric scalars to behave like Python scalars
+    # post NEP 50
+    elif isinstance(obj, np.integer):
+        return int(obj)
+
+    elif isinstance(obj, np.floating):
+        return float(obj)
 
     return obj
 
@@ -511,15 +591,13 @@ _BOOL_OP_NOT_ALLOWED = {
 }
 
 
-def _bool_arith_check(op, a, b):
+def _bool_arith_check(op, a: np.ndarray, b):
     """
     In contrast to numpy, pandas raises an error for certain operations
     with booleans.
     """
     if op in _BOOL_OP_NOT_ALLOWED:
-        if is_bool_dtype(a.dtype) and (
-            is_bool_dtype(b) or isinstance(b, (bool, np.bool_))
-        ):
+        if a.dtype.kind == "b" and (is_bool_dtype(b) or lib.is_bool(b)):
             op_name = op.__name__.strip("_").lstrip("r")
             raise NotImplementedError(
                 f"operator '{op_name}' not implemented for bool dtypes"

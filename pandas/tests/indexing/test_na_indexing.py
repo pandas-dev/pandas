@@ -34,7 +34,7 @@ def test_series_mask_boolean(values, dtype, mask, indexer_class, frame):
     if frame:
         if len(values) == 0:
             # Otherwise obj is an empty DataFrame with shape (0, 1)
-            obj = pd.DataFrame(dtype=dtype)
+            obj = pd.DataFrame(dtype=dtype, index=index)
         else:
             obj = obj.to_frame()
 

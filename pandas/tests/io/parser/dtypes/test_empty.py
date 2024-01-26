@@ -17,19 +17,20 @@ from pandas import (
 )
 import pandas._testing as tm
 
-# TODO(1.4): Change me into individual xfails at release time
-pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_dtype_all_columns_empty(all_parsers):
     # see gh-12048
     parser = all_parsers
     result = parser.read_csv(StringIO("A,B"), dtype=str)
 
-    expected = DataFrame({"A": [], "B": []}, index=[], dtype=str)
+    expected = DataFrame({"A": [], "B": []}, dtype=str)
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_empty_pass_dtype(all_parsers):
     parser = all_parsers
 
@@ -38,11 +39,11 @@ def test_empty_pass_dtype(all_parsers):
 
     expected = DataFrame(
         {"one": np.empty(0, dtype="u1"), "two": np.empty(0, dtype=object)},
-        index=Index([], dtype=object),
     )
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_empty_with_index_pass_dtype(all_parsers):
     parser = all_parsers
 
@@ -57,6 +58,7 @@ def test_empty_with_index_pass_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_empty_with_multi_index_pass_dtype(all_parsers):
     parser = all_parsers
 
@@ -73,6 +75,7 @@ def test_empty_with_multi_index_pass_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_empty_with_mangled_column_pass_dtype_by_names(all_parsers):
     parser = all_parsers
 
@@ -81,11 +84,11 @@ def test_empty_with_mangled_column_pass_dtype_by_names(all_parsers):
 
     expected = DataFrame(
         {"one": np.empty(0, dtype="u1"), "one.1": np.empty(0, dtype="f")},
-        index=Index([], dtype=object),
     )
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_empty_with_mangled_column_pass_dtype_by_indexes(all_parsers):
     parser = all_parsers
 
@@ -94,11 +97,11 @@ def test_empty_with_mangled_column_pass_dtype_by_indexes(all_parsers):
 
     expected = DataFrame(
         {"one": np.empty(0, dtype="u1"), "one.1": np.empty(0, dtype="f")},
-        index=Index([], dtype=object),
     )
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_empty_with_dup_column_pass_dtype_by_indexes(all_parsers):
     # see gh-9424
     parser = all_parsers
@@ -106,7 +109,6 @@ def test_empty_with_dup_column_pass_dtype_by_indexes(all_parsers):
         [Series([], name="one", dtype="u1"), Series([], name="one.1", dtype="f")],
         axis=1,
     )
-    expected.index = expected.index.astype(object)
 
     data = "one,one"
     result = parser.read_csv(StringIO(data), dtype={0: "u1", 1: "f"})
@@ -133,11 +135,11 @@ def test_empty_with_dup_column_pass_dtype_by_indexes_raises(all_parsers):
         (np.float64, DataFrame(columns=["a", "b"], dtype=np.float64)),
         (
             "category",
-            DataFrame({"a": Categorical([]), "b": Categorical([])}, index=[]),
+            DataFrame({"a": Categorical([]), "b": Categorical([])}),
         ),
         (
             {"a": "category", "b": "category"},
-            DataFrame({"a": Categorical([]), "b": Categorical([])}, index=[]),
+            DataFrame({"a": Categorical([]), "b": Categorical([])}),
         ),
         ("datetime64[ns]", DataFrame(columns=["a", "b"], dtype="datetime64[ns]")),
         (
@@ -147,32 +149,29 @@ def test_empty_with_dup_column_pass_dtype_by_indexes_raises(all_parsers):
                     "a": Series([], dtype="timedelta64[ns]"),
                     "b": Series([], dtype="timedelta64[ns]"),
                 },
-                index=[],
             ),
         ),
         (
             {"a": np.int64, "b": np.int32},
             DataFrame(
                 {"a": Series([], dtype=np.int64), "b": Series([], dtype=np.int32)},
-                index=[],
             ),
         ),
         (
             {0: np.int64, 1: np.int32},
             DataFrame(
                 {"a": Series([], dtype=np.int64), "b": Series([], dtype=np.int32)},
-                index=[],
             ),
         ),
         (
             {"a": np.int64, 1: np.int32},
             DataFrame(
                 {"a": Series([], dtype=np.int64), "b": Series([], dtype=np.int32)},
-                index=[],
             ),
         ),
     ],
 )
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_empty_dtype(all_parsers, dtype, expected):
     # see gh-14712
     parser = all_parsers

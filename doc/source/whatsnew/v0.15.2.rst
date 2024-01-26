@@ -24,24 +24,61 @@ API changes
 - Indexing in ``MultiIndex`` beyond lex-sort depth is now supported, though
   a lexically sorted index will have a better performance. (:issue:`2646`)
 
-  .. ipython:: python
-    :okwarning:
+  .. code-block:: ipython
 
-    df = pd.DataFrame({'jim':[0, 0, 1, 1],
-                       'joe':['x', 'x', 'z', 'y'],
-                       'jolie':np.random.rand(4)}).set_index(['jim', 'joe'])
-    df
-    df.index.lexsort_depth
+    In [1]: df = pd.DataFrame({'jim':[0, 0, 1, 1],
+       ...:                    'joe':['x', 'x', 'z', 'y'],
+       ...:                    'jolie':np.random.rand(4)}).set_index(['jim', 'joe'])
+       ...:
+
+    In [2]: df
+    Out[2]:
+                jolie
+    jim joe
+    0   x    0.126970
+        x    0.966718
+    1   z    0.260476
+        y    0.897237
+
+    [4 rows x 1 columns]
+
+    In [3]: df.index.lexsort_depth
+    Out[3]: 1
 
     # in prior versions this would raise a KeyError
     # will now show a PerformanceWarning
-    df.loc[(1, 'z')]
+    In [4]: df.loc[(1, 'z')]
+    Out[4]:
+                jolie
+    jim joe
+    1   z    0.260476
+
+    [1 rows x 1 columns]
 
     # lexically sorting
-    df2 = df.sort_index()
-    df2
-    df2.index.lexsort_depth
-    df2.loc[(1,'z')]
+    In [5]: df2 = df.sort_index()
+
+    In [6]: df2
+    Out[6]:
+                jolie
+    jim joe
+    0   x    0.126970
+        x    0.966718
+    1   y    0.897237
+        z    0.260476
+
+    [4 rows x 1 columns]
+
+    In [7]: df2.index.lexsort_depth
+    Out[7]: 2
+
+    In [8]: df2.loc[(1,'z')]
+    Out[8]:
+                jolie
+    jim joe
+    1   z    0.260476
+
+    [1 rows x 1 columns]
 
 - Bug in unique of Series with ``category`` dtype, which returned all categories regardless
   whether they were "used" or not (see :issue:`8559` for the discussion).
@@ -153,11 +190,13 @@ Other enhancements:
 
 - ``Series.all`` and ``Series.any`` now support the ``level`` and ``skipna`` parameters (:issue:`8302`):
 
-  .. ipython:: python
-     :okwarning:
+  .. code-block:: python
 
-     s = pd.Series([False, True, False], index=[0, 0, 1])
-     s.any(level=0)
+     >>> s = pd.Series([False, True, False], index=[0, 0, 1])
+     >>> s.any(level=0)
+     0     True
+     1    False
+     dtype: bool
 
 - ``Panel`` now supports the ``all`` and ``any`` aggregation functions. (:issue:`8302`):
 

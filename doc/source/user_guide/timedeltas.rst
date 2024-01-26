@@ -236,9 +236,7 @@ Numeric reduction operation for ``timedelta64[ns]`` will return ``Timedelta`` ob
 Frequency conversion
 --------------------
 
-Timedelta Series, ``TimedeltaIndex``, and ``Timedelta`` scalars can be converted to other 'frequencies' by dividing by another timedelta,
-or by astyping to a specific timedelta type. These operations yield Series and propagate ``NaT`` -> ``nan``.
-Note that division by the NumPy scalar is true division, while astyping is equivalent of floor division.
+Timedelta Series and ``TimedeltaIndex``, and ``Timedelta`` can be converted to other frequencies by astyping to a specific timedelta dtype.
 
 .. ipython:: python
 
@@ -250,16 +248,16 @@ Note that division by the NumPy scalar is true division, while astyping is equiv
    td[3] = np.nan
    td
 
-   # to days
-   td / np.timedelta64(1, "D")
-   td.astype("timedelta64[D]")
-
    # to seconds
-   td / np.timedelta64(1, "s")
    td.astype("timedelta64[s]")
 
-   # to months (these are constant months)
-   td / np.timedelta64(1, "M")
+For timedelta64 resolutions other than the supported "s", "ms", "us", "ns",
+an alternative is to divide by another timedelta object. Note that division by the NumPy scalar is true division, while astyping is equivalent of floor division.
+
+.. ipython:: python
+
+   # to days
+   td / np.timedelta64(1, "D")
 
 Dividing or multiplying a ``timedelta64[ns]`` Series by an integer or integer Series
 yields another ``timedelta64[ns]`` dtypes Series.
@@ -392,9 +390,9 @@ The ``freq`` parameter can passed a variety of :ref:`frequency aliases <timeseri
 
 .. ipython:: python
 
-   pd.timedelta_range(start="1 days", end="2 days", freq="30T")
+   pd.timedelta_range(start="1 days", end="2 days", freq="30min")
 
-   pd.timedelta_range(start="1 days", periods=5, freq="2D5H")
+   pd.timedelta_range(start="1 days", periods=5, freq="2D5h")
 
 
 Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
@@ -476,7 +474,7 @@ Scalars type ops work as well. These can potentially return a *different* type o
    # division can result in a Timedelta if the divisor is an integer
    tdi / 2
 
-   # or a Float64Index if the divisor is a Timedelta
+   # or a float64 Index if the divisor is a Timedelta
    tdi / tdi[0]
 
 .. _timedeltas.resampling:

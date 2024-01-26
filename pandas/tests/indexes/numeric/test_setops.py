@@ -8,19 +8,16 @@ import pytest
 
 import pandas._testing as tm
 from pandas.core.indexes.api import (
-    Float64Index,
     Index,
-    Int64Index,
     RangeIndex,
-    UInt64Index,
 )
 
 
 @pytest.fixture
 def index_large():
-    # large values used in TestUInt64Index where no compat needed with Int64/Float64
+    # large values used in TestUInt64Index where no compat needed with int64/float64
     large = [2**63, 2**63 + 10, 2**63 + 15, 2**63 + 20, 2**63 + 25]
-    return UInt64Index(large)
+    return Index(large, dtype=np.uint64)
 
 
 class TestSetOps:
@@ -40,7 +37,7 @@ class TestSetOps:
         tm.assert_index_equal(result, expected)
 
     def test_intersection(self):
-        index = Int64Index(range(5))
+        index = Index(range(5), dtype=np.int64)
 
         other = Index([1, 2, 3, 4, 5])
         result = index.intersection(other)
@@ -58,8 +55,8 @@ class TestSetOps:
         # https://github.com/pandas-dev/pandas/issues/26778
         # [u]int | float -> float
         index = Index([0, 2, 3], dtype=dtype)
-        other = Float64Index([0.5, 1.5])
-        expected = Float64Index([0.0, 0.5, 1.5, 2.0, 3.0])
+        other = Index([0.5, 1.5], dtype=np.float64)
+        expected = Index([0.0, 0.5, 1.5, 2.0, 3.0], dtype=np.float64)
         result = index.union(other)
         tm.assert_index_equal(result, expected)
 
@@ -69,9 +66,20 @@ class TestSetOps:
     def test_range_float_union_dtype(self):
         # https://github.com/pandas-dev/pandas/issues/26778
         index = RangeIndex(start=0, stop=3)
-        other = Float64Index([0.5, 1.5])
+        other = Index([0.5, 1.5], dtype=np.float64)
         result = index.union(other)
-        expected = Float64Index([0.0, 0.5, 1, 1.5, 2.0])
+        expected = Index([0.0, 0.5, 1, 1.5, 2.0], dtype=np.float64)
+        tm.assert_index_equal(result, expected)
+
+        result = other.union(index)
+        tm.assert_index_equal(result, expected)
+
+    def test_range_uint64_union_dtype(self):
+        # https://github.com/pandas-dev/pandas/issues/26778
+        index = RangeIndex(start=0, stop=3)
+        other = Index([0, 10], dtype=np.uint64)
+        result = index.union(other)
+        expected = Index([0, 1, 2, 10], dtype=object)
         tm.assert_index_equal(result, expected)
 
         result = other.union(index)
@@ -125,17 +133,14 @@ class TestSetOps:
         index2 = Index([2, 3, 4, 1])
         result = index1.symmetric_difference(index2, sort=sort)
         expected = Index([5, 1])
-        assert tm.equalContents(result, expected)
+        if sort is not None:
+            tm.assert_index_equal(result, expected)
+        else:
+            tm.assert_index_equal(result, expected.sort_values())
         assert result.name is None
         if sort is None:
             expected = expected.sort_values()
         tm.assert_index_equal(result, expected)
-
-        # __xor__ syntax
-        with tm.assert_produces_warning(FutureWarning):
-            expected = index1 ^ index2
-        assert tm.equalContents(result, expected)
-        assert result.name is None
 
 
 class TestSetOpsSort:
@@ -152,11 +157,8 @@ class TestSetOpsSort:
         # sort=False
         tm.assert_index_equal(idx.union(other, sort=False), idx)
 
-    @pytest.mark.xfail(reason="Not implemented")
     @pytest.mark.parametrize("slice_", [slice(None), slice(0)])
     def test_union_sort_special_true(self, slice_):
-        # TODO(GH#25151): decide on True behaviour
-        # sort=True
         idx = Index([1, 0, 2])
         # default, sort=None
         other = idx[slice_]

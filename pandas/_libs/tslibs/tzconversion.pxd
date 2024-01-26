@@ -9,21 +9,21 @@ from pandas._libs.tslibs.np_datetime cimport NPY_DATETIMEUNIT
 
 
 cpdef int64_t tz_convert_from_utc_single(
-    int64_t utc_val, tzinfo tz, NPY_DATETIMEUNIT reso=*
+    int64_t utc_val, tzinfo tz, NPY_DATETIMEUNIT creso=*
 ) except? -1
 cdef int64_t tz_localize_to_utc_single(
     int64_t val,
     tzinfo tz,
     object ambiguous=*,
     object nonexistent=*,
-    NPY_DATETIMEUNIT reso=*,
+    NPY_DATETIMEUNIT creso=*,
 ) except? -1
 
 
 cdef class Localizer:
     cdef:
         tzinfo tz
-        NPY_DATETIMEUNIT _reso
+        NPY_DATETIMEUNIT _creso
         bint use_utc, use_fixed, use_tzlocal, use_dst, use_pytz
         ndarray trans
         Py_ssize_t ntrans
@@ -31,7 +31,7 @@ cdef class Localizer:
         int64_t delta
         int64_t* tdata
 
-    cdef inline int64_t utc_val_to_local_val(
+    cdef int64_t utc_val_to_local_val(
         self,
         int64_t utc_val,
         Py_ssize_t* pos,

@@ -25,11 +25,11 @@ def make_flex_doc(op_name: str, typ: str) -> str:
     op_desc_op = op_desc["op"]
     assert op_desc_op is not None  # for mypy
     if op_name.startswith("r"):
-        equiv = "other " + op_desc_op + " " + typ
+        equiv = f"other {op_desc_op} {typ}"
     elif op_name == "divmod":
         equiv = f"{op_name}({typ}, other)"
     else:
-        equiv = typ + " " + op_desc_op + " other"
+        equiv = f"{typ} {op_desc_op} other"
 
     if typ == "series":
         base_doc = _flex_doc_SERIES
@@ -49,13 +49,20 @@ def make_flex_doc(op_name: str, typ: str) -> str:
         else:
             doc = doc_no_examples
     elif typ == "dataframe":
-        base_doc = _flex_doc_FRAME
-        doc = base_doc.format(
-            desc=op_desc["desc"],
-            op_name=op_name,
-            equiv=equiv,
-            reverse=op_desc["reverse"],
-        )
+        if op_name in ["eq", "ne", "le", "lt", "ge", "gt"]:
+            base_doc = _flex_comp_doc_FRAME
+            doc = _flex_comp_doc_FRAME.format(
+                op_name=op_name,
+                desc=op_desc["desc"],
+            )
+        else:
+            base_doc = _flex_doc_FRAME
+            doc = base_doc.format(
+                desc=op_desc["desc"],
+                op_name=op_name,
+                equiv=equiv,
+                reverse=op_desc["reverse"],
+            )
     else:
         raise AssertionError("Invalid typ argument.")
     return doc
@@ -156,8 +163,8 @@ _floordiv_example_SERIES = (
     + """
 >>> a.floordiv(b, fill_value=0)
 a    1.0
-b    NaN
-c    NaN
+b    inf
+c    inf
 d    0.0
 e    NaN
 dtype: float64
@@ -169,8 +176,8 @@ _divmod_example_SERIES = (
     + """
 >>> a.divmod(b, fill_value=0)
 (a    1.0
- b    NaN
- c    NaN
+ b    inf
+ c    inf
  d    0.0
  e    NaN
  dtype: float64,
@@ -456,7 +463,7 @@ Get {desc} of dataframe and other, element-wise (binary operator `{op_name}`).
 Equivalent to ``{equiv}``, but with support to substitute a fill_value
 for missing data in one of the inputs. With reverse version, `{reverse}`.
 
-Among flexible wrappers (`add`, `sub`, `mul`, `div`, `mod`, `pow`) to
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`) to
 arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
 
 Parameters
@@ -559,16 +566,16 @@ rectangle       3      359
 Multiply a dictionary by axis.
 
 >>> df.mul({{'angles': 0, 'degrees': 2}})
-            angles	degrees
-circle	         0	    720
-triangle	     0	    360
-rectangle	     0	    720
+            angles  degrees
+circle           0      720
+triangle         0      360
+rectangle        0      720
 
 >>> df.mul({{'circle': 0, 'triangle': 2, 'rectangle': 3}}, axis='index')
-            angles	degrees
-circle		     0	      0
-triangle	     6	    360
-rectangle	    12	   1080
+            angles  degrees
+circle           0        0
+triangle         6      360
+rectangle       12     1080
 
 Multiply a DataFrame of different shape with operator version.
 

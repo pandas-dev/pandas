@@ -1,20 +1,21 @@
-from datetime import timedelta
+from datetime import (
+    date,
+    timedelta,
+    timezone,
+)
+from decimal import Decimal
 import operator
 
 import numpy as np
 import pytest
-import pytz
 
+from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency
-
-from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-)
 
 import pandas as pd
 from pandas import (
     Categorical,
+    DatetimeTZDtype,
     Index,
     Series,
     Timedelta,
@@ -23,25 +24,20 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.core import (
-    nanops,
-    ops,
-)
+from pandas.core import ops
 from pandas.core.computation import expressions as expr
+from pandas.core.computation.check import NUMEXPR_INSTALLED
 
 
-@pytest.fixture(
-    autouse=True, scope="module", params=[0, 1000000], ids=["numexpr", "python"]
-)
-def switch_numexpr_min_elements(request):
-    _MIN_ELEMENTS = expr._MIN_ELEMENTS
-    expr._MIN_ELEMENTS = request.param
-    yield request.param
-    expr._MIN_ELEMENTS = _MIN_ELEMENTS
+@pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
+def switch_numexpr_min_elements(request, monkeypatch):
+    with monkeypatch.context() as m:
+        m.setattr(expr, "_MIN_ELEMENTS", request.param)
+        yield
 
 
 def _permute(obj):
-    return obj.take(np.random.permutation(len(obj)))
+    return obj.take(np.random.default_rng(2).permutation(len(obj)))
 
 
 class TestSeriesFlexArithmetic:
@@ -51,7 +47,11 @@ class TestSeriesFlexArithmetic:
             (lambda x: x, lambda x: x * 2, False),
             (lambda x: x, lambda x: x[::2], False),
             (lambda x: x, lambda x: 5, True),
-            (lambda x: tm.makeFloatSeries(), lambda x: tm.makeFloatSeries(), True),
+            (
+                lambda x: Series(range(10), dtype=np.float64),
+                lambda x: Series(range(10), dtype=np.float64),
+                True,
+            ),
         ],
     )
     @pytest.mark.parametrize(
@@ -59,7 +59,11 @@ class TestSeriesFlexArithmetic:
     )
     def test_flex_method_equivalence(self, opname, ts):
         # check that Series.{opname} behaves like Series.__{opname}__,
-        tser = tm.makeTimeSeries().rename("ts")
+        tser = Series(
+            np.arange(20, dtype=np.float64),
+            index=date_range("2020-01-01", periods=20),
+            name="ts",
+        )
 
         series = ts[0](tser)
         other = ts[1](tser)
@@ -157,8 +161,8 @@ class TestSeriesArithmetic:
     # Some of these may end up in tests/arithmetic, but are not yet sorted
 
     def test_add_series_with_period_index(self):
-        rng = pd.period_range("1/1/2000", "1/1/2010", freq="A")
-        ts = Series(np.random.randn(len(rng)), index=rng)
+        rng = pd.period_range("1/1/2000", "1/1/2010", freq="Y")
+        ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
         result = ts + ts[::2]
         expected = ts + ts
@@ -168,7 +172,7 @@ class TestSeriesArithmetic:
         result = ts + _permute(ts[::2])
         tm.assert_series_equal(result, expected)
 
-        msg = "Input has different freq=D from Period\\(freq=A-DEC\\)"
+        msg = "Input has different freq=D from Period\\(freq=Y-DEC\\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             ts + ts.asfreq("D", how="end")
 
@@ -208,9 +212,9 @@ class TestSeriesArithmetic:
         s1 = Series(range(1, 10))
         s2 = Series("foo", index=index)
 
-        msg = "not all arguments converted during string formatting"
+        msg = "not all arguments converted during string formatting|mod not"
 
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises((TypeError, NotImplementedError), match=msg):
             s2 % s1
 
     def test_add_with_duplicate_index(self):
@@ -222,17 +226,14 @@ class TestSeriesArithmetic:
         tm.assert_series_equal(result, expected)
 
     def test_add_na_handling(self):
-        from datetime import date
-        from decimal import Decimal
-
         ser = Series(
             [Decimal("1.3"), Decimal("2.3")], index=[date(2012, 1, 1), date(2012, 1, 2)]
         )
 
         result = ser + ser.shift(1)
         result2 = ser.shift(1) + ser
-        assert isna(result[0])
-        assert isna(result2[0])
+        assert isna(result.iloc[0])
+        assert isna(result2.iloc[0])
 
     def test_add_corner_cases(self, datetime_series):
         empty = Series([], index=Index([]), dtype=np.float64)
@@ -288,8 +289,21 @@ class TestSeriesArithmetic:
         assert ser.index is dti
         assert ser_utc.index is dti_utc
 
-    def test_arithmetic_with_duplicate_index(self):
+    def test_alignment_categorical(self):
+        # GH13365
+        cat = Categorical(["3z53", "3z53", "LoJG", "LoJG", "LoJG", "N503"])
+        ser1 = Series(2, index=cat)
+        ser2 = Series(2, index=cat[:-1])
+        result = ser1 * ser2
 
+        exp_index = ["3z53"] * 4 + ["LoJG"] * 9 + ["N503"]
+        exp_index = pd.CategoricalIndex(exp_index, categories=cat.categories)
+        exp_values = [4.0] * 13 + [np.nan]
+        expected = Series(exp_values, exp_index)
+
+        tm.assert_series_equal(result, expected)
+
+    def test_arithmetic_with_duplicate_index(self):
         # GH#8363
         # integer ops with a non-unique index
         index = [2, 2, 3, 3, 4]
@@ -307,6 +321,53 @@ class TestSeriesArithmetic:
         expected = Series(Timedelta("9 hours"), index=[2, 2, 3, 3, 4])
         tm.assert_series_equal(result, expected)
 
+    def test_masked_and_non_masked_propagate_na(self):
+        # GH#45810
+        ser1 = Series([0, np.nan], dtype="float")
+        ser2 = Series([0, 1], dtype="Int64")
+        result = ser1 * ser2
+        expected = Series([0, pd.NA], dtype="Float64")
+        tm.assert_series_equal(result, expected)
+
+    def test_mask_div_propagate_na_for_non_na_dtype(self):
+        # GH#42630
+        ser1 = Series([15, pd.NA, 5, 4], dtype="Int64")
+        ser2 = Series([15, 5, np.nan, 4])
+        result = ser1 / ser2
+        expected = Series([1.0, pd.NA, pd.NA, 1.0], dtype="Float64")
+        tm.assert_series_equal(result, expected)
+
+        result = ser2 / ser1
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("val, dtype", [(3, "Int64"), (3.5, "Float64")])
+    def test_add_list_to_masked_array(self, val, dtype):
+        # GH#22962
+        ser = Series([1, None, 3], dtype="Int64")
+        result = ser + [1, None, val]
+        expected = Series([2, None, 3 + val], dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+        result = [1, None, val] + ser
+        tm.assert_series_equal(result, expected)
+
+    def test_add_list_to_masked_array_boolean(self, request):
+        # GH#22962
+        warning = (
+            UserWarning
+            if request.node.callspec.id == "numexpr" and NUMEXPR_INSTALLED
+            else None
+        )
+        ser = Series([True, None, False], dtype="boolean")
+        with tm.assert_produces_warning(warning):
+            result = ser + [True, None, True]
+        expected = Series([True, None, True], dtype="boolean")
+        tm.assert_series_equal(result, expected)
+
+        with tm.assert_produces_warning(warning):
+            result = [True, None, True] + ser
+        tm.assert_series_equal(result, expected)
+
 
 # ------------------------------------------------------------------
 # Comparisons
@@ -315,15 +376,15 @@ class TestSeriesArithmetic:
 class TestSeriesFlexComparison:
     @pytest.mark.parametrize("axis", [0, None, "index"])
     def test_comparison_flex_basic(self, axis, comparison_op):
-        left = Series(np.random.randn(10))
-        right = Series(np.random.randn(10))
+        left = Series(np.random.default_rng(2).standard_normal(10))
+        right = Series(np.random.default_rng(2).standard_normal(10))
         result = getattr(left, comparison_op.__name__)(right, axis=axis)
         expected = comparison_op(left, right)
         tm.assert_series_equal(result, expected)
 
     def test_comparison_bad_axis(self, comparison_op):
-        left = Series(np.random.randn(10))
-        right = Series(np.random.randn(10))
+        left = Series(np.random.default_rng(2).standard_normal(10))
+        right = Series(np.random.default_rng(2).standard_normal(10))
 
         msg = "No axis named 1 for object type"
         with pytest.raises(ValueError, match=msg):
@@ -404,7 +465,7 @@ class TestSeriesComparison:
     def test_ser_cmp_result_names(self, names, comparison_op):
         # datetime64 dtype
         op = comparison_op
-        dti = date_range("1949-06-07 03:00:00", freq="H", periods=5, name=names[0])
+        dti = date_range("1949-06-07 03:00:00", freq="h", periods=5, name=names[0])
         ser = Series(dti).rename(names[1])
         result = op(ser, dti)
         assert result.name == names[2]
@@ -438,25 +499,27 @@ class TestSeriesComparison:
             result = op(ser, cidx)
             assert result.name == names[2]
 
-    def test_comparisons(self):
-        left = np.random.randn(10)
-        right = np.random.randn(10)
-        left[:3] = np.nan
-
-        result = nanops.nangt(left, right)
-        with np.errstate(invalid="ignore"):
-            expected = (left > right).astype("O")
-        expected[:3] = np.nan
-
-        tm.assert_almost_equal(result, expected)
-
+    def test_comparisons(self, using_infer_string):
         s = Series(["a", "b", "c"])
         s2 = Series([False, True, False])
 
         # it works!
         exp = Series([False, False, False])
-        tm.assert_series_equal(s == s2, exp)
-        tm.assert_series_equal(s2 == s, exp)
+        if using_infer_string:
+            import pyarrow as pa
+
+            msg = "has no kernel"
+            # TODO(3.0) GH56008
+            with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
+                s == s2
+            with tm.assert_produces_warning(
+                DeprecationWarning, match="comparison", check_stacklevel=False
+            ):
+                with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
+                    s2 == s
+        else:
+            tm.assert_series_equal(s == s2, exp)
+            tm.assert_series_equal(s2 == s, exp)
 
     # -----------------------------------------------------------------
     # Categorical Dtype Comparisons
@@ -596,18 +659,20 @@ class TestSeriesComparison:
         result = comparison_op(ser, val)
         expected = comparison_op(ser.dropna(), val).reindex(ser.index)
 
-        if comparison_op is operator.ne:
-            expected = expected.fillna(True).astype(bool)
-        else:
-            expected = expected.fillna(False).astype(bool)
+        msg = "Downcasting object dtype arrays"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            if comparison_op is operator.ne:
+                expected = expected.fillna(True).astype(bool)
+            else:
+                expected = expected.fillna(False).astype(bool)
 
         tm.assert_series_equal(result, expected)
 
     def test_ne(self):
         ts = Series([3, 4, 5, 6, 7], [3, 4, 5, 6, 7], dtype=float)
-        expected = [True, True, False, True, True]
-        assert tm.equalContents(ts.index != 5, expected)
-        assert tm.equalContents(~(ts.index == 5), expected)
+        expected = np.array([True, True, False, True, True])
+        tm.assert_numpy_array_equal(ts.index != 5, expected)
+        tm.assert_numpy_array_equal(~(ts.index == 5), expected)
 
     @pytest.mark.parametrize(
         "left, right",
@@ -624,10 +689,19 @@ class TestSeriesComparison:
     )
     def test_comp_ops_df_compat(self, left, right, frame_or_series):
         # GH 1134
-        msg = f"Can only compare identically-labeled {frame_or_series.__name__} objects"
+        # GH 50083 to clarify that index and columns must be identically labeled
         if frame_or_series is not Series:
+            msg = (
+                rf"Can only compare identically-labeled \(both index and columns\) "
+                f"{frame_or_series.__name__} objects"
+            )
             left = left.to_frame()
             right = right.to_frame()
+        else:
+            msg = (
+                f"Can only compare identically-labeled {frame_or_series.__name__} "
+                f"objects"
+            )
 
         with pytest.raises(ValueError, match=msg):
             left == right
@@ -660,16 +734,18 @@ class TestSeriesComparison:
 
 class TestTimeSeriesArithmetic:
     def test_series_add_tz_mismatch_converts_to_utc(self):
-        rng = date_range("1/1/2011", periods=100, freq="H", tz="utc")
+        rng = date_range("1/1/2011", periods=100, freq="h", tz="utc")
 
-        perm = np.random.permutation(100)[:90]
+        perm = np.random.default_rng(2).permutation(100)[:90]
         ser1 = Series(
-            np.random.randn(90), index=rng.take(perm).tz_convert("US/Eastern")
+            np.random.default_rng(2).standard_normal(90),
+            index=rng.take(perm).tz_convert("US/Eastern"),
         )
 
-        perm = np.random.permutation(100)[:90]
+        perm = np.random.default_rng(2).permutation(100)[:90]
         ser2 = Series(
-            np.random.randn(90), index=rng.take(perm).tz_convert("Europe/Berlin")
+            np.random.default_rng(2).standard_normal(90),
+            index=rng.take(perm).tz_convert("Europe/Berlin"),
         )
 
         result = ser1 + ser2
@@ -678,12 +754,15 @@ class TestTimeSeriesArithmetic:
         uts2 = ser2.tz_convert("utc")
         expected = uts1 + uts2
 
-        assert result.index.tz == pytz.UTC
+        # sort since input indexes are not equal
+        expected = expected.sort_index()
+
+        assert result.index.tz is timezone.utc
         tm.assert_series_equal(result, expected)
 
     def test_series_add_aware_naive_raises(self):
-        rng = date_range("1/1/2011", periods=10, freq="H")
-        ser = Series(np.random.randn(len(rng)), index=rng)
+        rng = date_range("1/1/2011", periods=10, freq="h")
+        ser = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
         ser_utc = ser.tz_localize("utc")
 
@@ -694,18 +773,22 @@ class TestTimeSeriesArithmetic:
         with pytest.raises(Exception, match=msg):
             ser_utc + ser
 
-    def test_datetime_understood(self):
+    # TODO: belongs in tests/arithmetic?
+    def test_datetime_understood(self, unit):
         # Ensures it doesn't fail to create the right series
         # reported in issue#16726
-        series = Series(date_range("2012-01-01", periods=3))
+        series = Series(date_range("2012-01-01", periods=3, unit=unit))
         offset = pd.offsets.DateOffset(days=6)
         result = series - offset
-        expected = Series(pd.to_datetime(["2011-12-26", "2011-12-27", "2011-12-28"]))
+        exp_dti = pd.to_datetime(["2011-12-26", "2011-12-27", "2011-12-28"]).as_unit(
+            unit
+        )
+        expected = Series(exp_dti)
         tm.assert_series_equal(result, expected)
 
     def test_align_date_objects_with_datetimeindex(self):
         rng = date_range("1/1/2000", periods=20)
-        ts = Series(np.random.randn(20), index=rng)
+        ts = Series(np.random.default_rng(2).standard_normal(20), index=rng)
 
         ts_slice = ts[5:]
         ts2 = ts_slice.copy()
@@ -723,7 +806,7 @@ class TestNamePreservation:
     @pytest.mark.parametrize("box", [list, tuple, np.array, Index, Series, pd.array])
     @pytest.mark.parametrize("flex", [True, False])
     def test_series_ops_name_retention(self, flex, box, names, all_binary_operators):
-        # GH#33930 consistent name renteiton
+        # GH#33930 consistent name-retention
         op = all_binary_operators
 
         left = Series(range(10), name=names[0])
@@ -731,7 +814,14 @@ class TestNamePreservation:
 
         name = op.__name__.strip("_")
         is_logical = name in ["and", "rand", "xor", "rxor", "or", "ror"]
-        is_rlogical = is_logical and name.startswith("r")
+
+        msg = (
+            r"Logical ops \(and, or, xor\) between Pandas objects and "
+            "dtype-less sequences"
+        )
+        warn = None
+        if box in [list, tuple] and is_logical:
+            warn = FutureWarning
 
         right = box(right)
         if flex:
@@ -741,16 +831,8 @@ class TestNamePreservation:
             result = getattr(left, name)(right)
         else:
             # GH#37374 logical ops behaving as set ops deprecated
-            warn = FutureWarning if is_rlogical and box is Index else None
-            msg = "operating as a set operation is deprecated"
             with tm.assert_produces_warning(warn, match=msg):
-                # stacklevel is correct for Index op, not reversed op
                 result = op(left, right)
-
-        if box is Index and is_rlogical:
-            # Index treats these as set operators, so does not defer
-            assert isinstance(result, Index)
-            return
 
         assert isinstance(result, Series)
         if box in [Index, Series]:
@@ -827,7 +909,7 @@ def test_none_comparison(request, series_with_simple_index):
     series = series_with_simple_index
 
     if len(series) < 1:
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason="Test doesn't make sense on empty data")
         )
 
@@ -836,24 +918,24 @@ def test_none_comparison(request, series_with_simple_index):
     series.iloc[0] = np.nan
 
     # noinspection PyComparisonWithNone
-    result = series == None  # noqa:E711
+    result = series == None  # noqa: E711
     assert not result.iat[0]
     assert not result.iat[1]
 
     # noinspection PyComparisonWithNone
-    result = series != None  # noqa:E711
+    result = series != None  # noqa: E711
     assert result.iat[0]
     assert result.iat[1]
 
-    result = None == series  # noqa:E711
+    result = None == series  # noqa: E711
     assert not result.iat[0]
     assert not result.iat[1]
 
-    result = None != series  # noqa:E711
+    result = None != series  # noqa: E711
     assert result.iat[0]
     assert result.iat[1]
 
-    if is_datetime64_dtype(series.dtype) or is_datetime64tz_dtype(series.dtype):
+    if lib.is_np_dtype(series.dtype, "M") or isinstance(series.dtype, DatetimeTZDtype):
         # Following DatetimeIndex (and Timestamp) convention,
         # inequality comparisons with Series[datetime64] raise
         msg = "Invalid comparison"
@@ -887,8 +969,16 @@ def test_series_varied_multiindex_alignment():
     expected = Series(
         [1000, 2001, 3002, 4003],
         index=pd.MultiIndex.from_tuples(
-            [("x", 1, "a"), ("x", 2, "a"), ("y", 1, "a"), ("y", 2, "a")],
-            names=["xy", "num", "ab"],
+            [("a", "x", 1), ("a", "x", 2), ("a", "y", 1), ("a", "y", 2)],
+            names=["ab", "xy", "num"],
         ),
     )
+    tm.assert_series_equal(result, expected)
+
+
+def test_rmod_consistent_large_series():
+    # GH 29602
+    result = Series([2] * 10001).rmod(-1)
+    expected = Series([1] * 10001)
+
     tm.assert_series_equal(result, expected)

@@ -5,11 +5,11 @@ import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
+    Index,
     Series,
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 
 
 class TestDataFrameTruncate:
@@ -60,17 +60,11 @@ class TestDataFrameTruncate:
         truncated = ts.truncate(before=ts.index[-1] + ts.index.freq)
         assert len(truncated) == 0
 
-        msg = "Truncate: 2000-01-06 00:00:00 must be after 2000-02-04 00:00:00"
+        msg = "Truncate: 2000-01-06 00:00:00 must be after 2000-05-16 00:00:00"
         with pytest.raises(ValueError, match=msg):
             ts.truncate(
                 before=ts.index[-1] - ts.index.freq, after=ts.index[0] + ts.index.freq
             )
-
-    def test_truncate_copy(self, datetime_frame):
-        index = datetime_frame.index
-        truncated = datetime_frame.truncate(index[5], index[10])
-        truncated.values[:] = 5.0
-        assert not (datetime_frame.values[5:11] == 5).any()
 
     def test_truncate_nonsortedindex(self, frame_or_series):
         # GH#17935
@@ -85,7 +79,11 @@ class TestDataFrameTruncate:
     def test_sort_values_nonsortedindex(self):
         rng = date_range("2011-01-01", "2012-01-01", freq="W")
         ts = DataFrame(
-            {"A": np.random.randn(len(rng)), "B": np.random.randn(len(rng))}, index=rng
+            {
+                "A": np.random.default_rng(2).standard_normal(len(rng)),
+                "B": np.random.default_rng(2).standard_normal(len(rng)),
+            },
+            index=rng,
         )
 
         decreasing = ts.sort_values("A", ascending=False)
@@ -99,10 +97,10 @@ class TestDataFrameTruncate:
 
         df = DataFrame(
             {
-                3: np.random.randn(5),
-                20: np.random.randn(5),
-                2: np.random.randn(5),
-                0: np.random.randn(5),
+                3: np.random.default_rng(2).standard_normal(5),
+                20: np.random.default_rng(2).standard_normal(5),
+                2: np.random.default_rng(2).standard_normal(5),
+                0: np.random.default_rng(2).standard_normal(5),
             },
             columns=[3, 20, 2, 0],
         )
@@ -114,13 +112,13 @@ class TestDataFrameTruncate:
         "before, after, indices",
         [(1, 2, [2, 1]), (None, 2, [2, 1, 0]), (1, None, [3, 2, 1])],
     )
-    @pytest.mark.parametrize("klass", [Int64Index, DatetimeIndex])
+    @pytest.mark.parametrize("dtyp", [*tm.ALL_REAL_NUMPY_DTYPES, "datetime64[ns]"])
     def test_truncate_decreasing_index(
-        self, before, after, indices, klass, frame_or_series
+        self, before, after, indices, dtyp, frame_or_series
     ):
         # https://github.com/pandas-dev/pandas/issues/33756
-        idx = klass([3, 2, 1, 0])
-        if klass is DatetimeIndex:
+        idx = Index([3, 2, 1, 0], dtype=dtyp)
+        if isinstance(idx, DatetimeIndex):
             before = pd.Timestamp(before) if before is not None else None
             after = pd.Timestamp(after) if after is not None else None
             indices = [pd.Timestamp(i) for i in indices]

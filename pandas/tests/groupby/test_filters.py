@@ -1,3 +1,5 @@
+from string import ascii_lowercase
+
 import numpy as np
 import pytest
 
@@ -109,8 +111,7 @@ def test_filter_condition_raises():
     def raise_if_sum_is_zero(x):
         if x.sum() == 0:
             raise ValueError
-        else:
-            return x.sum() > 0
+        return x.sum() > 0
 
     s = Series([-1, 0, 1, 2])
     grouper = s.apply(lambda x: x % 2)
@@ -124,7 +125,11 @@ def test_filter_with_axis_in_groupby():
     # issue 11041
     index = pd.MultiIndex.from_product([range(10), [0, 1]])
     data = DataFrame(np.arange(100).reshape(-1, 20), columns=index, dtype="int64")
-    result = data.groupby(level=0, axis=1).filter(lambda x: x.iloc[0, 0] > 10)
+
+    msg = "DataFrame.groupby with axis=1"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = data.groupby(level=0, axis=1)
+    result = gb.filter(lambda x: x.iloc[0, 0] > 10)
     expected = data.iloc[:, 12:20]
     tm.assert_frame_equal(result, expected)
 
@@ -171,10 +176,23 @@ def test_filter_nan_is_false():
     tm.assert_series_equal(g_s.filter(f), s[[]])
 
 
-def test_filter_against_workaround():
-    np.random.seed(0)
+def test_filter_pdna_is_false():
+    # in particular, dont raise in filter trying to call bool(pd.NA)
+    df = DataFrame({"A": np.arange(8), "B": list("aabbbbcc"), "C": np.arange(8)})
+    ser = df["B"]
+    g_df = df.groupby(df["B"])
+    g_s = ser.groupby(ser)
+
+    func = lambda x: pd.NA
+    res = g_df.filter(func)
+    tm.assert_frame_equal(res, df.loc[[]])
+    res = g_s.filter(func)
+    tm.assert_series_equal(res, ser[[]])
+
+
+def test_filter_against_workaround_ints():
     # Series of ints
-    s = Series(np.random.randint(0, 100, 1000))
+    s = Series(np.random.default_rng(2).integers(0, 100, 100))
     grouper = s.apply(lambda x: np.round(x, -1))
     grouped = s.groupby(grouper)
     f = lambda x: x.mean() > 10
@@ -183,8 +201,10 @@ def test_filter_against_workaround():
     new_way = grouped.filter(f)
     tm.assert_series_equal(new_way.sort_values(), old_way.sort_values())
 
+
+def test_filter_against_workaround_floats():
     # Series of floats
-    s = 100 * Series(np.random.random(1000))
+    s = 100 * Series(np.random.default_rng(2).random(100))
     grouper = s.apply(lambda x: np.round(x, -1))
     grouped = s.groupby(grouper)
     f = lambda x: x.mean() > 10
@@ -192,16 +212,18 @@ def test_filter_against_workaround():
     new_way = grouped.filter(f)
     tm.assert_series_equal(new_way.sort_values(), old_way.sort_values())
 
-    # Set up DataFrame of ints, floats, strings.
-    from string import ascii_lowercase
 
+def test_filter_against_workaround_dataframe():
+    # Set up DataFrame of ints, floats, strings.
     letters = np.array(list(ascii_lowercase))
-    N = 1000
-    random_letters = letters.take(np.random.randint(0, 26, N))
+    N = 100
+    random_letters = letters.take(
+        np.random.default_rng(2).integers(0, 26, N, dtype=int)
+    )
     df = DataFrame(
         {
-            "ints": Series(np.random.randint(0, 100, N)),
-            "floats": N / 10 * Series(np.random.random(N)),
+            "ints": Series(np.random.default_rng(2).integers(0, 100, N)),
+            "floats": N / 10 * Series(np.random.default_rng(2).random(N)),
             "letters": Series(random_letters),
         }
     )
@@ -233,7 +255,7 @@ def test_filter_using_len():
     actual = grouped.filter(lambda x: len(x) > 2)
     expected = DataFrame(
         {"A": np.arange(2, 6), "B": list("bbbb"), "C": np.arange(2, 6)},
-        index=np.arange(2, 6),
+        index=np.arange(2, 6, dtype=np.int64),
     )
     tm.assert_frame_equal(actual, expected)
 
@@ -245,7 +267,7 @@ def test_filter_using_len():
     s = df["B"]
     grouped = s.groupby(s)
     actual = grouped.filter(lambda x: len(x) > 2)
-    expected = Series(4 * ["b"], index=np.arange(2, 6), name="B")
+    expected = Series(4 * ["b"], index=np.arange(2, 6, dtype=np.int64), name="B")
     tm.assert_series_equal(actual, expected)
 
     actual = grouped.filter(lambda x: len(x) > 4)
@@ -346,7 +368,8 @@ def test_filter_and_transform_with_non_unique_int_index():
     tm.assert_frame_equal(actual, expected)
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
-    expected = df.copy()
+    # Cast to avoid upcast when setting nan below
+    expected = df.copy().astype("float64")
     expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
@@ -356,8 +379,7 @@ def test_filter_and_transform_with_non_unique_int_index():
     tm.assert_series_equal(actual, expected)
 
     actual = grouped_ser.filter(lambda x: len(x) > 1, dropna=False)
-    NA = np.nan
-    expected = Series([NA, 1, 1, NA, 2, NA, NA, 3], index, name="pid")
+    expected = Series([np.nan, 1, 1, np.nan, 2, np.nan, np.nan, 3], index, name="pid")
     # ^ made manually because this can get confusing!
     tm.assert_series_equal(actual, expected)
 
@@ -389,7 +411,8 @@ def test_filter_and_transform_with_multiple_non_unique_int_index():
     tm.assert_frame_equal(actual, expected)
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
-    expected = df.copy()
+    # Cast to avoid upcast when setting nan below
+    expected = df.copy().astype("float64")
     expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
@@ -399,8 +422,7 @@ def test_filter_and_transform_with_multiple_non_unique_int_index():
     tm.assert_series_equal(actual, expected)
 
     actual = grouped_ser.filter(lambda x: len(x) > 1, dropna=False)
-    NA = np.nan
-    expected = Series([NA, 1, 1, NA, 2, NA, NA, 3], index, name="pid")
+    expected = Series([np.nan, 1, 1, np.nan, 2, np.nan, np.nan, 3], index, name="pid")
     # ^ made manually because this can get confusing!
     tm.assert_series_equal(actual, expected)
 
@@ -432,7 +454,8 @@ def test_filter_and_transform_with_non_unique_float_index():
     tm.assert_frame_equal(actual, expected)
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
-    expected = df.copy()
+    # Cast to avoid upcast when setting nan below
+    expected = df.copy().astype("float64")
     expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
@@ -442,8 +465,7 @@ def test_filter_and_transform_with_non_unique_float_index():
     tm.assert_series_equal(actual, expected)
 
     actual = grouped_ser.filter(lambda x: len(x) > 1, dropna=False)
-    NA = np.nan
-    expected = Series([NA, 1, 1, NA, 2, NA, NA, 3], index, name="pid")
+    expected = Series([np.nan, 1, 1, np.nan, 2, np.nan, np.nan, 3], index, name="pid")
     # ^ made manually because this can get confusing!
     tm.assert_series_equal(actual, expected)
 
@@ -478,7 +500,8 @@ def test_filter_and_transform_with_non_unique_timestamp_index():
     tm.assert_frame_equal(actual, expected)
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
-    expected = df.copy()
+    # Cast to avoid upcast when setting nan below
+    expected = df.copy().astype("float64")
     expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
@@ -488,8 +511,7 @@ def test_filter_and_transform_with_non_unique_timestamp_index():
     tm.assert_series_equal(actual, expected)
 
     actual = grouped_ser.filter(lambda x: len(x) > 1, dropna=False)
-    NA = np.nan
-    expected = Series([NA, 1, 1, NA, 2, NA, NA, 3], index, name="pid")
+    expected = Series([np.nan, 1, 1, np.nan, 2, np.nan, np.nan, 3], index, name="pid")
     # ^ made manually because this can get confusing!
     tm.assert_series_equal(actual, expected)
 
@@ -521,7 +543,8 @@ def test_filter_and_transform_with_non_unique_string_index():
     tm.assert_frame_equal(actual, expected)
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
-    expected = df.copy()
+    # Cast to avoid upcast when setting nan below
+    expected = df.copy().astype("float64")
     expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
@@ -531,8 +554,7 @@ def test_filter_and_transform_with_non_unique_string_index():
     tm.assert_series_equal(actual, expected)
 
     actual = grouped_ser.filter(lambda x: len(x) > 1, dropna=False)
-    NA = np.nan
-    expected = Series([NA, 1, 1, NA, 2, NA, NA, 3], index, name="pid")
+    expected = Series([np.nan, 1, 1, np.nan, 2, np.nan, np.nan, 3], index, name="pid")
     # ^ made manually because this can get confusing!
     tm.assert_series_equal(actual, expected)
 
@@ -590,13 +612,13 @@ def test_filter_non_bool_raises():
 
 def test_filter_dropna_with_empty_groups():
     # GH 10780
-    data = Series(np.random.rand(9), index=np.repeat([1, 2, 3], 3))
-    groupped = data.groupby(level=0)
-    result_false = groupped.filter(lambda x: x.mean() > 1, dropna=False)
+    data = Series(np.random.default_rng(2).random(9), index=np.repeat([1, 2, 3], 3))
+    grouped = data.groupby(level=0)
+    result_false = grouped.filter(lambda x: x.mean() > 1, dropna=False)
     expected_false = Series([np.nan] * 9, index=np.repeat([1, 2, 3], 3))
     tm.assert_series_equal(result_false, expected_false)
 
-    result_true = groupped.filter(lambda x: x.mean() > 1, dropna=True)
+    result_true = grouped.filter(lambda x: x.mean() > 1, dropna=True)
     expected_true = Series(index=pd.Index([], dtype=int), dtype=np.float64)
     tm.assert_series_equal(result_true, expected_true)
 

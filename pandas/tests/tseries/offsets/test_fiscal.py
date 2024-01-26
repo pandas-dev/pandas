@@ -6,18 +6,14 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import pytest
 
-from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
-
 from pandas import Timestamp
 import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import (
-    Base,
     WeekDay,
     assert_is_on_offset,
     assert_offset_equal,
 )
 
-from pandas.tseries.frequencies import get_offset
 from pandas.tseries.offsets import (
     FY5253,
     FY5253Quarter,
@@ -55,47 +51,7 @@ def test_get_offset_name():
     )
 
 
-def test_get_offset():
-    with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
-        with tm.assert_produces_warning(FutureWarning):
-            get_offset("gibberish")
-    with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
-        with tm.assert_produces_warning(FutureWarning):
-            get_offset("QS-JAN-B")
-
-    pairs = [
-        ("RE-N-DEC-MON", makeFY5253NearestEndMonth(weekday=0, startingMonth=12)),
-        ("RE-L-DEC-TUE", makeFY5253LastOfMonth(weekday=1, startingMonth=12)),
-        (
-            "REQ-L-MAR-TUE-4",
-            makeFY5253LastOfMonthQuarter(
-                weekday=1, startingMonth=3, qtr_with_extra_week=4
-            ),
-        ),
-        (
-            "REQ-L-DEC-MON-3",
-            makeFY5253LastOfMonthQuarter(
-                weekday=0, startingMonth=12, qtr_with_extra_week=3
-            ),
-        ),
-        (
-            "REQ-N-DEC-MON-3",
-            makeFY5253NearestEndMonthQuarter(
-                weekday=0, startingMonth=12, qtr_with_extra_week=3
-            ),
-        ),
-    ]
-
-    for name, expected in pairs:
-        with tm.assert_produces_warning(FutureWarning):
-            offset = get_offset(name)
-        assert offset == expected, (
-            f"Expected {repr(name)} to yield {repr(expected)} "
-            f"(actual: {repr(offset)})"
-        )
-
-
-class TestFY5253LastOfMonth(Base):
+class TestFY5253LastOfMonth:
     offset_lom_sat_aug = makeFY5253LastOfMonth(1, startingMonth=8, weekday=WeekDay.SAT)
     offset_lom_sat_sep = makeFY5253LastOfMonth(1, startingMonth=9, weekday=WeekDay.SAT)
 
@@ -180,7 +136,7 @@ class TestFY5253LastOfMonth(Base):
                 assert current == datum
 
 
-class TestFY5253NearestEndMonth(Base):
+class TestFY5253NearestEndMonth:
     def test_get_year_end(self):
         assert makeFY5253NearestEndMonth(
             startingMonth=8, weekday=WeekDay.SAT
@@ -338,17 +294,20 @@ class TestFY5253NearestEndMonth(Base):
                 assert current == datum
 
 
-class TestFY5253LastOfMonthQuarter(Base):
+class TestFY5253LastOfMonthQuarter:
     def test_is_anchored(self):
-        assert makeFY5253LastOfMonthQuarter(
-            startingMonth=1, weekday=WeekDay.SAT, qtr_with_extra_week=4
-        ).is_anchored()
-        assert makeFY5253LastOfMonthQuarter(
-            weekday=WeekDay.SAT, startingMonth=3, qtr_with_extra_week=4
-        ).is_anchored()
-        assert not makeFY5253LastOfMonthQuarter(
-            2, startingMonth=1, weekday=WeekDay.SAT, qtr_with_extra_week=4
-        ).is_anchored()
+        msg = "FY5253Quarter.is_anchored is deprecated "
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert makeFY5253LastOfMonthQuarter(
+                startingMonth=1, weekday=WeekDay.SAT, qtr_with_extra_week=4
+            ).is_anchored()
+            assert makeFY5253LastOfMonthQuarter(
+                weekday=WeekDay.SAT, startingMonth=3, qtr_with_extra_week=4
+            ).is_anchored()
+            assert not makeFY5253LastOfMonthQuarter(
+                2, startingMonth=1, weekday=WeekDay.SAT, qtr_with_extra_week=4
+            ).is_anchored()
 
     def test_equality(self):
         assert makeFY5253LastOfMonthQuarter(
@@ -554,8 +513,7 @@ class TestFY5253LastOfMonthQuarter(Base):
         assert sat_dec_1.get_weeks(datetime(2010, 12, 25)) == [13, 13, 13, 13]
 
 
-class TestFY5253NearestEndMonthQuarter(Base):
-
+class TestFY5253NearestEndMonthQuarter:
     offset_nem_sat_aug_4 = makeFY5253NearestEndMonthQuarter(
         1, startingMonth=8, weekday=WeekDay.SAT, qtr_with_extra_week=4
     )

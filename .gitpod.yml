@@ -1,0 +1,60 @@
+# Building pandas on init
+# Might delegate this later to prebuild with Q2 improvements on gitpod
+# https://www.gitpod.io/docs/config-start-tasks/#configuring-the-terminal
+# -------------------------------------------------------------------------
+
+# images for gitpod pandas are in https://hub.docker.com/r/pandas/pandas-gitpod/tags
+# we're using the Dockerfile in the base of the repo
+image:
+  file: Dockerfile
+tasks:
+  - name: Prepare development environment
+    init: |
+      mkdir -p .vscode
+      cp gitpod/settings.json .vscode/settings.json
+      git fetch --tags
+      python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true
+      pre-commit install
+    command: |
+      python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true
+      echo "✨ Pre-build complete! You can close this terminal ✨ "
+
+# --------------------------------------------------------
+# exposing ports for liveserve
+ports:
+  - port: 5500
+    onOpen: notify
+
+# --------------------------------------------------------
+# some useful extensions to have
+vscode:
+  extensions:
+    - ms-python.python
+    - yzhang.markdown-all-in-one
+    - eamodio.gitlens
+    - lextudio.restructuredtext
+    - ritwickdey.liveserver
+    # add or remove what you think is generally useful to most contributors
+    # avoid adding too many. they each open a pop-up window
+
+# --------------------------------------------------------
+# Using prebuilds for the container
+# With this configuration the prebuild will happen on push to main
+github:
+  prebuilds:
+    # enable for main/default branch
+    main: true
+    # enable for other branches (defaults to false)
+    branches: false
+    # enable for pull requests coming from this repo (defaults to true)
+    pullRequests: false
+    # enable for pull requests coming from forks (defaults to false)
+    pullRequestsFromForks: false
+    # add a check to pull requests (defaults to true)
+    addCheck: false
+    # add a "Review in Gitpod" button as a comment to pull requests (defaults to false)
+    addComment: false
+    # add a "Review in Gitpod" button to the pull request's description (defaults to false)
+    addBadge: false
+    # add a label once the prebuild is ready to pull requests (defaults to false)
+    addLabel: false

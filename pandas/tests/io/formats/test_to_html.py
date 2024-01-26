@@ -1,6 +1,8 @@
 from datetime import datetime
 from io import StringIO
+import itertools
 import re
+import textwrap
 
 import numpy as np
 import pytest
@@ -10,6 +12,7 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    get_option,
     option_context,
 )
 import pandas._testing as tm
@@ -54,7 +57,10 @@ def biggie_df_fixture(request):
     """Fixture for a big mixed Dataframe and an empty Dataframe"""
     if request.param == "mixed":
         df = DataFrame(
-            {"A": np.random.randn(200), "B": tm.makeStringIndex(200)},
+            {
+                "A": np.random.default_rng(2).standard_normal(200),
+                "B": Index([f"{i}?!" for i in range(200)]),
+            },
             index=np.arange(200),
         )
         df.loc[:20, "A"] = np.nan
@@ -65,14 +71,14 @@ def biggie_df_fixture(request):
         return df
 
 
-@pytest.fixture(params=fmt._VALID_JUSTIFY_PARAMETERS)
+@pytest.fixture(params=fmt.VALID_JUSTIFY_PARAMETERS)
 def justify(request):
     return request.param
 
 
 @pytest.mark.parametrize("col_space", [30, 50])
 def test_to_html_with_col_space(col_space):
-    df = DataFrame(np.random.random(size=(1, 3)))
+    df = DataFrame(np.random.default_rng(2).random(size=(1, 3)))
     # check that col_space affects HTML generation
     # and be very brittle about it.
     result = df.to_html(col_space=col_space)
@@ -84,7 +90,9 @@ def test_to_html_with_col_space(col_space):
 
 
 def test_to_html_with_column_specific_col_space_raises():
-    df = DataFrame(np.random.random(size=(3, 3)), columns=["a", "b", "c"])
+    df = DataFrame(
+        np.random.default_rng(2).random(size=(3, 3)), columns=["a", "b", "c"]
+    )
 
     msg = (
         "Col_space length\\(\\d+\\) should match "
@@ -102,7 +110,9 @@ def test_to_html_with_column_specific_col_space_raises():
 
 
 def test_to_html_with_column_specific_col_space():
-    df = DataFrame(np.random.random(size=(3, 3)), columns=["a", "b", "c"])
+    df = DataFrame(
+        np.random.default_rng(2).random(size=(3, 3)), columns=["a", "b", "c"]
+    )
 
     result = df.to_html(col_space={"a": "2em", "b": 23})
     hdrs = [x for x in result.split("\n") if re.search(r"<th[>\s]", x)]
@@ -230,7 +240,7 @@ def test_to_html_multiindex_odd_even_truncate(max_rows, expected, datapath):
         (
             DataFrame(
                 [[0, 1], [2, 3], [4, 5], [6, 7]],
-                columns=["foo", None],
+                columns=Index(["foo", None], dtype=object),
                 index=np.arange(4),
             ),
             {"__index__": lambda x: "abcd"[x]},
@@ -280,8 +290,8 @@ def test_to_html_regression_GH6098():
         {
             "clé1": ["a", "a", "b", "b", "a"],
             "clé2": ["1er", "2ème", "1er", "2ème", "1er"],
-            "données1": np.random.randn(5),
-            "données2": np.random.randn(5),
+            "données1": np.random.default_rng(2).standard_normal(5),
+            "données2": np.random.default_rng(2).standard_normal(5),
         }
     )
 
@@ -394,7 +404,7 @@ def test_to_html_filename(biggie_df_fixture, tmpdir):
 
 
 def test_to_html_with_no_bold():
-    df = DataFrame({"x": np.random.randn(5)})
+    df = DataFrame({"x": np.random.default_rng(2).standard_normal(5)})
     html = df.to_html(bold_rows=False)
     result = html[html.find("</thead>")]
     assert "<strong" not in result
@@ -409,15 +419,15 @@ def test_to_html_columns_arg(float_frame):
     "columns,justify,expected",
     [
         (
-            MultiIndex.from_tuples(
-                list(zip(np.arange(2).repeat(2), np.mod(range(4), 2))),
+            MultiIndex.from_arrays(
+                [np.arange(2).repeat(2), np.mod(range(4), 2)],
                 names=["CL0", "CL1"],
             ),
             "left",
             "multiindex_1",
         ),
         (
-            MultiIndex.from_tuples(list(zip(range(4), np.mod(range(4), 2)))),
+            MultiIndex.from_arrays([np.arange(4), np.mod(range(4), 2)]),
             "right",
             "multiindex_2",
         ),
@@ -761,7 +771,7 @@ def test_to_html_render_links(render_links, expected, datapath):
         [0, "https://pandas.pydata.org/?q1=a&q2=b", "pydata.org"],
         [0, "www.pydata.org", "pydata.org"],
     ]
-    df = DataFrame(data, columns=["foo", "bar", None])
+    df = DataFrame(data, columns=Index(["foo", "bar", None], dtype=object))
 
     result = df.to_html(render_links=render_links)
     expected = expected_html(datapath, expected)
@@ -808,7 +818,7 @@ def test_to_html_round_column_headers():
 @pytest.mark.parametrize("unit", ["100px", "10%", "5em", 150])
 def test_to_html_with_col_space_units(unit):
     # GH 25941
-    df = DataFrame(np.random.random(size=(1, 3)))
+    df = DataFrame(np.random.default_rng(2).random(size=(1, 3)))
     result = df.to_html(col_space=unit)
     result = result.split("tbody")[0]
     hdrs = [x for x in result.split("\n") if re.search(r"<th[>\s]", x)]
@@ -819,43 +829,226 @@ def test_to_html_with_col_space_units(unit):
         assert expected in h
 
 
-def test_html_repr_min_rows_default(datapath):
-    # gh-27991
+class TestReprHTML:
+    def test_html_repr_min_rows_default(self, datapath):
+        # gh-27991
 
-    # default setting no truncation even if above min_rows
-    df = DataFrame({"a": range(20)})
-    result = df._repr_html_()
-    expected = expected_html(datapath, "html_repr_min_rows_default_no_truncation")
-    assert result == expected
-
-    # default of max_rows 60 triggers truncation if above
-    df = DataFrame({"a": range(61)})
-    result = df._repr_html_()
-    expected = expected_html(datapath, "html_repr_min_rows_default_truncated")
-    assert result == expected
-
-
-@pytest.mark.parametrize(
-    "max_rows,min_rows,expected",
-    [
-        # truncated after first two rows
-        (10, 4, "html_repr_max_rows_10_min_rows_4"),
-        # when set to None, follow value of max_rows
-        (12, None, "html_repr_max_rows_12_min_rows_None"),
-        # when set value higher as max_rows, use the minimum
-        (10, 12, "html_repr_max_rows_10_min_rows_12"),
-        # max_rows of None -> never truncate
-        (None, 12, "html_repr_max_rows_None_min_rows_12"),
-    ],
-)
-def test_html_repr_min_rows(datapath, max_rows, min_rows, expected):
-    # gh-27991
-
-    df = DataFrame({"a": range(61)})
-    expected = expected_html(datapath, expected)
-    with option_context("display.max_rows", max_rows, "display.min_rows", min_rows):
+        # default setting no truncation even if above min_rows
+        df = DataFrame({"a": range(20)})
         result = df._repr_html_()
-    assert result == expected
+        expected = expected_html(datapath, "html_repr_min_rows_default_no_truncation")
+        assert result == expected
+
+        # default of max_rows 60 triggers truncation if above
+        df = DataFrame({"a": range(61)})
+        result = df._repr_html_()
+        expected = expected_html(datapath, "html_repr_min_rows_default_truncated")
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "max_rows,min_rows,expected",
+        [
+            # truncated after first two rows
+            (10, 4, "html_repr_max_rows_10_min_rows_4"),
+            # when set to None, follow value of max_rows
+            (12, None, "html_repr_max_rows_12_min_rows_None"),
+            # when set value higher as max_rows, use the minimum
+            (10, 12, "html_repr_max_rows_10_min_rows_12"),
+            # max_rows of None -> never truncate
+            (None, 12, "html_repr_max_rows_None_min_rows_12"),
+        ],
+    )
+    def test_html_repr_min_rows(self, datapath, max_rows, min_rows, expected):
+        # gh-27991
+
+        df = DataFrame({"a": range(61)})
+        expected = expected_html(datapath, expected)
+        with option_context("display.max_rows", max_rows, "display.min_rows", min_rows):
+            result = df._repr_html_()
+        assert result == expected
+
+    def test_repr_html_ipython_config(self, ip):
+        code = textwrap.dedent(
+            """\
+        from pandas import DataFrame
+        df = DataFrame({"A": [1, 2]})
+        df._repr_html_()
+
+        cfg = get_ipython().config
+        cfg['IPKernelApp']['parent_appname']
+        df._repr_html_()
+        """
+        )
+        result = ip.run_cell(code, silent=True)
+        assert not result.error_in_exec
+
+    def test_info_repr_html(self):
+        max_rows = 60
+        max_cols = 20
+        # Long
+        h, w = max_rows + 1, max_cols - 1
+        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
+        assert r"&lt;class" not in df._repr_html_()
+        with option_context("display.large_repr", "info"):
+            assert r"&lt;class" in df._repr_html_()
+
+        # Wide
+        h, w = max_rows - 1, max_cols + 1
+        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
+        assert "<class" not in df._repr_html_()
+        with option_context(
+            "display.large_repr", "info", "display.max_columns", max_cols
+        ):
+            assert "&lt;class" in df._repr_html_()
+
+    def test_fake_qtconsole_repr_html(self, float_frame):
+        df = float_frame
+
+        def get_ipython():
+            return {"config": {"KernelApp": {"parent_appname": "ipython-qtconsole"}}}
+
+        repstr = df._repr_html_()
+        assert repstr is not None
+
+        with option_context("display.max_rows", 5, "display.max_columns", 2):
+            repstr = df._repr_html_()
+
+        assert "class" in repstr  # info fallback
+
+    def test_repr_html(self, float_frame):
+        df = float_frame
+        df._repr_html_()
+
+        with option_context("display.max_rows", 1, "display.max_columns", 1):
+            df._repr_html_()
+
+        with option_context("display.notebook_repr_html", False):
+            df._repr_html_()
+
+        df = DataFrame([[1, 2], [3, 4]])
+        with option_context("display.show_dimensions", True):
+            assert "2 rows" in df._repr_html_()
+        with option_context("display.show_dimensions", False):
+            assert "2 rows" not in df._repr_html_()
+
+    def test_repr_html_mathjax(self):
+        df = DataFrame([[1, 2], [3, 4]])
+        assert "tex2jax_ignore" not in df._repr_html_()
+
+        with option_context("display.html.use_mathjax", False):
+            assert "tex2jax_ignore" in df._repr_html_()
+
+    def test_repr_html_wide(self):
+        max_cols = 20
+        df = DataFrame([["a" * 25] * (max_cols - 1)] * 10)
+        with option_context("display.max_rows", 60, "display.max_columns", 20):
+            assert "..." not in df._repr_html_()
+
+        wide_df = DataFrame([["a" * 25] * (max_cols + 1)] * 10)
+        with option_context("display.max_rows", 60, "display.max_columns", 20):
+            assert "..." in wide_df._repr_html_()
+
+    def test_repr_html_wide_multiindex_cols(self):
+        max_cols = 20
+
+        mcols = MultiIndex.from_product(
+            [np.arange(max_cols // 2), ["foo", "bar"]], names=["first", "second"]
+        )
+        df = DataFrame([["a" * 25] * len(mcols)] * 10, columns=mcols)
+        reg_repr = df._repr_html_()
+        assert "..." not in reg_repr
+
+        mcols = MultiIndex.from_product(
+            (np.arange(1 + (max_cols // 2)), ["foo", "bar"]), names=["first", "second"]
+        )
+        df = DataFrame([["a" * 25] * len(mcols)] * 10, columns=mcols)
+        with option_context("display.max_rows", 60, "display.max_columns", 20):
+            assert "..." in df._repr_html_()
+
+    def test_repr_html_long(self):
+        with option_context("display.max_rows", 60):
+            max_rows = get_option("display.max_rows")
+            h = max_rows - 1
+            df = DataFrame({"A": np.arange(1, 1 + h), "B": np.arange(41, 41 + h)})
+            reg_repr = df._repr_html_()
+            assert ".." not in reg_repr
+            assert str(41 + max_rows // 2) in reg_repr
+
+            h = max_rows + 1
+            df = DataFrame({"A": np.arange(1, 1 + h), "B": np.arange(41, 41 + h)})
+            long_repr = df._repr_html_()
+            assert ".." in long_repr
+            assert str(41 + max_rows // 2) not in long_repr
+            assert f"{h} rows " in long_repr
+            assert "2 columns" in long_repr
+
+    def test_repr_html_float(self):
+        with option_context("display.max_rows", 60):
+            max_rows = get_option("display.max_rows")
+            h = max_rows - 1
+            df = DataFrame(
+                {
+                    "idx": np.linspace(-10, 10, h),
+                    "A": np.arange(1, 1 + h),
+                    "B": np.arange(41, 41 + h),
+                }
+            ).set_index("idx")
+            reg_repr = df._repr_html_()
+            assert ".." not in reg_repr
+            assert f"<td>{40 + h}</td>" in reg_repr
+
+            h = max_rows + 1
+            df = DataFrame(
+                {
+                    "idx": np.linspace(-10, 10, h),
+                    "A": np.arange(1, 1 + h),
+                    "B": np.arange(41, 41 + h),
+                }
+            ).set_index("idx")
+            long_repr = df._repr_html_()
+            assert ".." in long_repr
+            assert "<td>31</td>" not in long_repr
+            assert f"{h} rows " in long_repr
+            assert "2 columns" in long_repr
+
+    def test_repr_html_long_multiindex(self):
+        max_rows = 60
+        max_L1 = max_rows // 2
+
+        tuples = list(itertools.product(np.arange(max_L1), ["foo", "bar"]))
+        idx = MultiIndex.from_tuples(tuples, names=["first", "second"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((max_L1 * 2, 2)),
+            index=idx,
+            columns=["A", "B"],
+        )
+        with option_context("display.max_rows", 60, "display.max_columns", 20):
+            reg_repr = df._repr_html_()
+        assert "..." not in reg_repr
+
+        tuples = list(itertools.product(np.arange(max_L1 + 1), ["foo", "bar"]))
+        idx = MultiIndex.from_tuples(tuples, names=["first", "second"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(((max_L1 + 1) * 2, 2)),
+            index=idx,
+            columns=["A", "B"],
+        )
+        long_repr = df._repr_html_()
+        assert "..." in long_repr
+
+    def test_repr_html_long_and_wide(self):
+        max_cols = 20
+        max_rows = 60
+
+        h, w = max_rows - 1, max_cols - 1
+        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
+        with option_context("display.max_rows", 60, "display.max_columns", 20):
+            assert "..." not in df._repr_html_()
+
+        h, w = max_rows + 1, max_cols + 1
+        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
+        with option_context("display.max_rows", 60, "display.max_columns", 20):
+            assert "..." in df._repr_html_()
 
 
 def test_to_html_multilevel(multiindex_year_month_day_dataframe_random_data):
@@ -882,9 +1075,103 @@ def test_to_html_na_rep_and_float_format(na_rep, datapath):
     assert result == expected
 
 
+def test_to_html_na_rep_non_scalar_data(datapath):
+    # GH47103
+    df = DataFrame([{"a": 1, "b": [1, 2, 3]}])
+    result = df.to_html(na_rep="-")
+    expected = expected_html(datapath, "gh47103_expected_output")
+    assert result == expected
+
+
 def test_to_html_float_format_object_col(datapath):
     # GH#40024
     df = DataFrame(data={"x": [1000.0, "test"]})
     result = df.to_html(float_format=lambda x: f"{x:,.0f}")
     expected = expected_html(datapath, "gh40024_expected_output")
     assert result == expected
+
+
+def test_to_html_multiindex_col_with_colspace():
+    # GH#53885
+    df = DataFrame([[1, 2]])
+    df.columns = MultiIndex.from_tuples([(1, 1), (2, 1)])
+    result = df.to_html(col_space=100)
+    expected = (
+        '<table border="1" class="dataframe">\n'
+        "  <thead>\n"
+        "    <tr>\n"
+        '      <th style="min-width: 100px;"></th>\n'
+        '      <th style="min-width: 100px;">1</th>\n'
+        '      <th style="min-width: 100px;">2</th>\n'
+        "    </tr>\n"
+        "    <tr>\n"
+        '      <th style="min-width: 100px;"></th>\n'
+        '      <th style="min-width: 100px;">1</th>\n'
+        '      <th style="min-width: 100px;">1</th>\n'
+        "    </tr>\n"
+        "  </thead>\n"
+        "  <tbody>\n"
+        "    <tr>\n"
+        "      <th>0</th>\n"
+        "      <td>1</td>\n"
+        "      <td>2</td>\n"
+        "    </tr>\n"
+        "  </tbody>\n"
+        "</table>"
+    )
+    assert result == expected
+
+
+def test_to_html_tuple_col_with_colspace():
+    # GH#53885
+    df = DataFrame({("a", "b"): [1], "b": [2]})
+    result = df.to_html(col_space=100)
+    expected = (
+        '<table border="1" class="dataframe">\n'
+        "  <thead>\n"
+        '    <tr style="text-align: right;">\n'
+        '      <th style="min-width: 100px;"></th>\n'
+        '      <th style="min-width: 100px;">(a, b)</th>\n'
+        '      <th style="min-width: 100px;">b</th>\n'
+        "    </tr>\n"
+        "  </thead>\n"
+        "  <tbody>\n"
+        "    <tr>\n"
+        "      <th>0</th>\n"
+        "      <td>1</td>\n"
+        "      <td>2</td>\n"
+        "    </tr>\n"
+        "  </tbody>\n"
+        "</table>"
+    )
+    assert result == expected
+
+
+def test_to_html_empty_complex_array():
+    # GH#54167
+    df = DataFrame({"x": np.array([], dtype="complex")})
+    result = df.to_html(col_space=100)
+    expected = (
+        '<table border="1" class="dataframe">\n'
+        "  <thead>\n"
+        '    <tr style="text-align: right;">\n'
+        '      <th style="min-width: 100px;"></th>\n'
+        '      <th style="min-width: 100px;">x</th>\n'
+        "    </tr>\n"
+        "  </thead>\n"
+        "  <tbody>\n"
+        "  </tbody>\n"
+        "</table>"
+    )
+    assert result == expected
+
+
+def test_to_html_pos_args_deprecation():
+    # GH-54229
+    df = DataFrame({"a": [1, 2, 3]})
+    msg = (
+        r"Starting with pandas version 3.0 all arguments of to_html except for the "
+        r"argument 'buf' will be keyword-only."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.to_html(None, None)

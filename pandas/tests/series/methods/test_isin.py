@@ -7,6 +7,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.core import algorithms
 from pandas.core.arrays import PeriodArray
 
 
@@ -34,7 +35,7 @@ class TestSeriesIsIn:
         s = Series(["A", "B", "C", "a", "B", "B", "A", "C"])
         msg = (
             r"only list-like objects are allowed to be passed to isin\(\), "
-            r"you passed a \[str\]"
+            r"you passed a `str`"
         )
         with pytest.raises(TypeError, match=msg):
             s.isin("a")
@@ -42,6 +43,29 @@ class TestSeriesIsIn:
         s = Series(["aaa", "b", "c"])
         with pytest.raises(TypeError, match=msg):
             s.isin("aaa")
+
+    def test_isin_datetimelike_mismatched_reso(self):
+        expected = Series([True, True, False, False, False])
+
+        ser = Series(date_range("jan-01-2013", "jan-05-2013"))
+
+        # fails on dtype conversion in the first place
+        day_values = np.asarray(ser[0:2].values).astype("datetime64[D]")
+        result = ser.isin(day_values)
+        tm.assert_series_equal(result, expected)
+
+        dta = ser[:2]._values.astype("M8[s]")
+        result = ser.isin(dta)
+        tm.assert_series_equal(result, expected)
+
+    def test_isin_datetimelike_mismatched_reso_list(self):
+        expected = Series([True, True, False, False, False])
+
+        ser = Series(date_range("jan-01-2013", "jan-05-2013"))
+
+        dta = ser[:2]._values.astype("M8[s]")
+        result = ser.isin(list(dta))
+        tm.assert_series_equal(result, expected)
 
     def test_isin_with_i8(self):
         # GH#5021
@@ -56,10 +80,6 @@ class TestSeriesIsIn:
         tm.assert_series_equal(result, expected)
 
         result = s.isin(s[0:2].values)
-        tm.assert_series_equal(result, expected)
-
-        # fails on dtype conversion in the first place
-        result = s.isin(np.asarray(s[0:2].values).astype("datetime64[D]"))
         tm.assert_series_equal(result, expected)
 
         result = s.isin([s[1]])
@@ -178,13 +198,16 @@ class TestSeriesIsIn:
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.slow
-def test_isin_large_series_mixed_dtypes_and_nan():
+def test_isin_large_series_mixed_dtypes_and_nan(monkeypatch):
     # https://github.com/pandas-dev/pandas/issues/37094
-    # combination of object dtype for the values and > 1_000_000 elements
-    ser = Series([1, 2, np.nan] * 1_000_000)
-    result = ser.isin({"foo", "bar"})
-    expected = Series([False] * 3 * 1_000_000)
+    # combination of object dtype for the values
+    # and > _MINIMUM_COMP_ARR_LEN elements
+    min_isin_comp = 5
+    ser = Series([1, 2, np.nan] * min_isin_comp)
+    with monkeypatch.context() as m:
+        m.setattr(algorithms, "_MINIMUM_COMP_ARR_LEN", min_isin_comp)
+        result = ser.isin({"foo", "bar"})
+    expected = Series([False] * 3 * min_isin_comp)
     tm.assert_series_equal(result, expected)
 
 
@@ -201,3 +224,29 @@ def test_isin_complex_numbers(array, expected):
     # GH 17927
     result = Series(array).isin([1j, 1 + 1j, 1 + 2j])
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data,is_in",
+    [([1, [2]], [1]), (["simple str", [{"values": 3}]], ["simple str"])],
+)
+def test_isin_filtering_with_mixed_object_types(data, is_in):
+    # GH 20883
+
+    ser = Series(data)
+    result = ser.isin(is_in)
+    expected = Series([True, False])
+
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("data", [[1, 2, 3], [1.0, 2.0, 3.0]])
+@pytest.mark.parametrize("isin", [[1, 2], [1.0, 2.0]])
+def test_isin_filtering_on_iterable(data, isin):
+    # GH 50234
+
+    ser = Series(data)
+    result = ser.isin(i for i in isin)
+    expected_result = Series([True, True, False])
+
+    tm.assert_series_equal(result, expected_result)

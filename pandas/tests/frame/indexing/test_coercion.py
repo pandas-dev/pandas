@@ -20,7 +20,6 @@ import pandas._testing as tm
 
 
 class TestDataFrameSetitemCoercion:
-    @pytest.mark.xfail(reason="Unnecessary cast.")
     @pytest.mark.parametrize("consolidate", [True, False])
     def test_loc_setitem_multiindex_columns(self, consolidate):
         # GH#18415 Setting values in a single column preserves dtype,
@@ -36,9 +35,7 @@ class TestDataFrameSetitemCoercion:
         A.loc[2:3, (1, slice(2, 3))] = np.ones((2, 2), dtype=np.float32)
         assert (A.dtypes == np.float32).all()
 
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            A.loc[0:5, (1, slice(2, 3))] = np.ones((6, 2), dtype=np.float32)
+        A.loc[0:5, (1, slice(2, 3))] = np.ones((6, 2), dtype=np.float32)
 
         assert (A.dtypes == np.float32).all()
 
@@ -54,19 +51,31 @@ def test_37477():
     expected = DataFrame({"A": [1, 2, 3], "B": [3, 1.2, 5]})
 
     df = orig.copy()
-    df.at[1, "B"] = 1.2
+    with tm.assert_produces_warning(
+        FutureWarning, match="Setting an item of incompatible dtype"
+    ):
+        df.at[1, "B"] = 1.2
     tm.assert_frame_equal(df, expected)
 
     df = orig.copy()
-    df.loc[1, "B"] = 1.2
+    with tm.assert_produces_warning(
+        FutureWarning, match="Setting an item of incompatible dtype"
+    ):
+        df.loc[1, "B"] = 1.2
     tm.assert_frame_equal(df, expected)
 
     df = orig.copy()
-    df.iat[1, 1] = 1.2
+    with tm.assert_produces_warning(
+        FutureWarning, match="Setting an item of incompatible dtype"
+    ):
+        df.iat[1, 1] = 1.2
     tm.assert_frame_equal(df, expected)
 
     df = orig.copy()
-    df.iloc[1, 1] = 1.2
+    with tm.assert_produces_warning(
+        FutureWarning, match="Setting an item of incompatible dtype"
+    ):
+        df.iloc[1, 1] = 1.2
     tm.assert_frame_equal(df, expected)
 
 
@@ -97,11 +106,17 @@ def test_26395(indexer_al):
     expected = DataFrame({"D": [0, 0, 2]}, index=["A", "B", "C"], dtype=np.int64)
     tm.assert_frame_equal(df, expected)
 
-    indexer_al(df)["C", "D"] = 44.5
+    with tm.assert_produces_warning(
+        FutureWarning, match="Setting an item of incompatible dtype"
+    ):
+        indexer_al(df)["C", "D"] = 44.5
     expected = DataFrame({"D": [0, 0, 44.5]}, index=["A", "B", "C"], dtype=np.float64)
     tm.assert_frame_equal(df, expected)
 
-    indexer_al(df)["C", "D"] = "hello"
+    with tm.assert_produces_warning(
+        FutureWarning, match="Setting an item of incompatible dtype"
+    ):
+        indexer_al(df)["C", "D"] = "hello"
     expected = DataFrame({"D": [0, 0, "hello"]}, index=["A", "B", "C"], dtype=object)
     tm.assert_frame_equal(df, expected)
 
@@ -119,7 +134,6 @@ def test_15231():
     tm.assert_series_equal(df.dtypes, exp_dtypes)
 
 
-@pytest.mark.xfail(reason="Unnecessarily upcasts to float64")
 def test_iloc_setitem_unnecesssary_float_upcasting():
     # GH#12255
     df = DataFrame(
@@ -132,10 +146,7 @@ def test_iloc_setitem_unnecesssary_float_upcasting():
     orig = df.copy()
 
     values = df[0].values.reshape(2, 1)
-
-    msg = "will attempt to set the values inplace instead"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.iloc[:, 0:1] = values
+    df.iloc[:, 0:1] = values
 
     tm.assert_frame_equal(df, orig)
 
@@ -164,7 +175,6 @@ def test_12499():
     tm.assert_frame_equal(df, expected)
 
 
-@pytest.mark.xfail(reason="Too many columns cast to float64")
 def test_20476():
     mi = MultiIndex.from_product([["A", "B"], ["a", "b", "c"]])
     df = DataFrame(-1, index=range(3), columns=mi)

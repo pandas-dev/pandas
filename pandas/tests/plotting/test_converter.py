@@ -10,7 +10,7 @@ import pytest
 
 import pandas._config.config as cf
 
-import pandas.util._test_decorators as td
+from pandas._libs.tslibs import to_offset
 
 from pandas import (
     Index,
@@ -45,6 +45,7 @@ pytest.importorskip("matplotlib.pyplot")
 dates = pytest.importorskip("matplotlib.dates")
 
 
+@pytest.mark.single_cpu
 def test_registry_mpl_resets():
     # Check that Matplotlib converters are properly reset (see issue #27481)
     code = (
@@ -65,6 +66,7 @@ def test_timtetonum_accepts_unicode():
 
 
 class TestRegistration:
+    @pytest.mark.single_cpu
     def test_dont_register_by_default(self):
         # Run in subprocess to ensure a clean state
         code = (
@@ -76,7 +78,6 @@ class TestRegistration:
         call = [sys.executable, "-c", code]
         assert subprocess.check_call(call) == 0
 
-    @td.skip_if_no("matplotlib", min_version="3.1.3")
     def test_registering_no_warning(self):
         plt = pytest.importorskip("matplotlib.pyplot")
         s = Series(range(12), index=date_range("2017", periods=12))
@@ -111,7 +112,6 @@ class TestRegistration:
                 assert Timestamp not in units.registry
             assert Timestamp in units.registry
 
-    @td.skip_if_no("matplotlib", min_version="3.1.3")
     def test_option_no_warning(self):
         pytest.importorskip("matplotlib.pyplot")
         ctx = cf.option_context("plotting.matplotlib.register_converters", False)
@@ -161,8 +161,8 @@ class TestDateTimeConverter:
         return converter.DatetimeConverter()
 
     def test_convert_accepts_unicode(self, dtc):
-        r1 = dtc.convert("12:22", None, None)
-        r2 = dtc.convert("12:22", None, None)
+        r1 = dtc.convert("2000-01-01 12:22", None, None)
+        r2 = dtc.convert("2000-01-01 12:22", None, None)
         assert r1 == r2, "DatetimeConverter.convert should accept unicode"
 
     def test_conversion(self, dtc):
@@ -215,7 +215,7 @@ class TestDateTimeConverter:
         rtol = 0.5 * 10**-9
 
         rs = dtc.convert(Timestamp("2012-1-1 01:02:03", tz="UTC"), None, None)
-        xp = converter.dates.date2num(Timestamp("2012-1-1 01:02:03", tz="UTC"))
+        xp = converter.mdates.date2num(Timestamp("2012-1-1 01:02:03", tz="UTC"))
         tm.assert_almost_equal(rs, xp, rtol=rtol)
 
         rs = dtc.convert(
@@ -226,22 +226,20 @@ class TestDateTimeConverter:
         rs = dtc.convert(datetime(2012, 1, 1, 1, 2, 3), None, None)
         tm.assert_almost_equal(rs, xp, rtol=rtol)
 
-    def test_conversion_outofbounds_datetime(self, dtc):
+    @pytest.mark.parametrize(
+        "values",
+        [
+            [date(1677, 1, 1), date(1677, 1, 2)],
+            [datetime(1677, 1, 1, 12), datetime(1677, 1, 2, 12)],
+        ],
+    )
+    def test_conversion_outofbounds_datetime(self, dtc, values):
         # 2579
-        values = [date(1677, 1, 1), date(1677, 1, 2)]
         rs = dtc.convert(values, None, None)
-        xp = converter.dates.date2num(values)
+        xp = converter.mdates.date2num(values)
         tm.assert_numpy_array_equal(rs, xp)
         rs = dtc.convert(values[0], None, None)
-        xp = converter.dates.date2num(values[0])
-        assert rs == xp
-
-        values = [datetime(1677, 1, 1, 12), datetime(1677, 1, 2, 12)]
-        rs = dtc.convert(values, None, None)
-        xp = converter.dates.date2num(values)
-        tm.assert_numpy_array_equal(rs, xp)
-        rs = dtc.convert(values[0], None, None)
-        xp = converter.dates.date2num(values[0])
+        xp = converter.mdates.date2num(values[0])
         assert rs == xp
 
     @pytest.mark.parametrize(
@@ -259,12 +257,12 @@ class TestDateTimeConverter:
         result = converter.TimeFormatter(None)(time)
         assert result == format_expected
 
-    @pytest.mark.parametrize("freq", ("B", "L", "S"))
+    @pytest.mark.parametrize("freq", ("B", "ms", "s"))
     def test_dateindex_conversion(self, freq, dtc):
         rtol = 10**-9
-        dateindex = tm.makeDateIndex(k=10, freq=freq)
+        dateindex = date_range("2020-01-01", periods=10, freq=freq)
         rs = dtc.convert(dateindex, None, None)
-        xp = converter.dates.date2num(dateindex._mpl_repr())
+        xp = converter.mdates.date2num(dateindex._mpl_repr())
         tm.assert_almost_equal(rs, xp, rtol=rtol)
 
     @pytest.mark.parametrize("offset", [Second(), Milli(), Micro(50)])
@@ -287,66 +285,70 @@ class TestDateTimeConverter:
 
 
 class TestPeriodConverter:
-    def setup_method(self):
-        self.pc = converter.PeriodConverter()
+    @pytest.fixture
+    def pc(self):
+        return converter.PeriodConverter()
 
+    @pytest.fixture
+    def axis(self):
         class Axis:
             pass
 
-        self.axis = Axis()
-        self.axis.freq = "D"
+        axis = Axis()
+        axis.freq = "D"
+        return axis
 
-    def test_convert_accepts_unicode(self):
-        r1 = self.pc.convert("2012-1-1", None, self.axis)
-        r2 = self.pc.convert("2012-1-1", None, self.axis)
+    def test_convert_accepts_unicode(self, pc, axis):
+        r1 = pc.convert("2012-1-1", None, axis)
+        r2 = pc.convert("2012-1-1", None, axis)
         assert r1 == r2
 
-    def test_conversion(self):
-        rs = self.pc.convert(["2012-1-1"], None, self.axis)[0]
+    def test_conversion(self, pc, axis):
+        rs = pc.convert(["2012-1-1"], None, axis)[0]
         xp = Period("2012-1-1").ordinal
         assert rs == xp
 
-        rs = self.pc.convert("2012-1-1", None, self.axis)
+        rs = pc.convert("2012-1-1", None, axis)
         assert rs == xp
 
-        rs = self.pc.convert([date(2012, 1, 1)], None, self.axis)[0]
+        rs = pc.convert([date(2012, 1, 1)], None, axis)[0]
         assert rs == xp
 
-        rs = self.pc.convert(date(2012, 1, 1), None, self.axis)
+        rs = pc.convert(date(2012, 1, 1), None, axis)
         assert rs == xp
 
-        rs = self.pc.convert([Timestamp("2012-1-1")], None, self.axis)[0]
+        rs = pc.convert([Timestamp("2012-1-1")], None, axis)[0]
         assert rs == xp
 
-        rs = self.pc.convert(Timestamp("2012-1-1"), None, self.axis)
+        rs = pc.convert(Timestamp("2012-1-1"), None, axis)
         assert rs == xp
 
-        rs = self.pc.convert("2012-01-01", None, self.axis)
+        rs = pc.convert("2012-01-01", None, axis)
         assert rs == xp
 
-        rs = self.pc.convert("2012-01-01 00:00:00+0000", None, self.axis)
+        rs = pc.convert("2012-01-01 00:00:00+0000", None, axis)
         assert rs == xp
 
-        rs = self.pc.convert(
+        rs = pc.convert(
             np.array(
                 ["2012-01-01 00:00:00", "2012-01-02 00:00:00"],
                 dtype="datetime64[ns]",
             ),
             None,
-            self.axis,
+            axis,
         )
         assert rs[0] == xp
 
-    def test_integer_passthrough(self):
+    def test_integer_passthrough(self, pc, axis):
         # GH9012
-        rs = self.pc.convert([0, 1], None, self.axis)
+        rs = pc.convert([0, 1], None, axis)
         xp = [0, 1]
         assert rs == xp
 
-    def test_convert_nested(self):
+    def test_convert_nested(self, pc, axis):
         data = ["2012-1-1", "2012-1-2"]
-        r1 = self.pc.convert([data, data], None, self.axis)
-        r2 = [self.pc.convert(data, None, self.axis) for _ in range(2)]
+        r1 = pc.convert([data, data], None, axis)
+        r2 = [pc.convert(data, None, axis) for _ in range(2)]
         assert r1 == r2
 
 
@@ -386,13 +388,13 @@ def test_quarterly_finder(year_span):
     vmin = -1000
     vmax = vmin + year_span * 4
     span = vmax - vmin + 1
-    if span < 45:  # the quarterly finder is only invoked if the span is >= 45
-        return
+    if span < 45:
+        pytest.skip("the quarterly finder is only invoked if the span is >= 45")
     nyears = span / 4
     (min_anndef, maj_anndef) = converter._get_default_annual_spacing(nyears)
-    result = converter._quarterly_finder(vmin, vmax, "Q")
+    result = converter._quarterly_finder(vmin, vmax, to_offset("QE"))
     quarters = PeriodIndex(
-        arrays.PeriodArray(np.array([x[0] for x in result]), freq="Q")
+        arrays.PeriodArray(np.array([x[0] for x in result]), dtype="period[Q]")
     )
     majors = np.array([x[1] for x in result])
     minors = np.array([x[2] for x in result])

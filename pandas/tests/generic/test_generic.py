@@ -10,7 +10,9 @@ from pandas.core.dtypes.common import is_scalar
 
 from pandas import (
     DataFrame,
+    Index,
     Series,
+    date_range,
 )
 import pandas._testing as tm
 
@@ -46,11 +48,11 @@ def construct(box, shape, value=None, dtype=None, **kwargs):
 
             arr = np.repeat(arr, new_shape).reshape(shape)
     else:
-        arr = np.random.randn(*shape)
+        arr = np.random.default_rng(2).standard_normal(shape)
     return box(arr, dtype=dtype, **kwargs)
 
 
-class Generic:
+class TestGeneric:
     @pytest.mark.parametrize(
         "func",
         [
@@ -60,13 +62,12 @@ class Generic:
         ],
     )
     def test_rename(self, frame_or_series, func):
-
         # single axis
         idx = list("ABCD")
 
         for axis in frame_or_series._AXIS_ORDERS:
             kwargs = {axis: idx}
-            obj = construct(4, **kwargs)
+            obj = construct(frame_or_series, 4, **kwargs)
 
             # rename a single axis
             result = obj.rename(**{axis: func})
@@ -75,7 +76,6 @@ class Generic:
             tm.assert_equal(result, expected)
 
     def test_get_numeric_data(self, frame_or_series):
-
         n = 4
         kwargs = {
             frame_or_series._get_axis_name(i): list(range(n))
@@ -83,26 +83,26 @@ class Generic:
         }
 
         # get the numeric data
-        o = construct(n, **kwargs)
+        o = construct(frame_or_series, n, **kwargs)
         result = o._get_numeric_data()
         tm.assert_equal(result, o)
 
         # non-inclusion
         result = o._get_bool_data()
-        expected = construct(n, value="empty", **kwargs)
+        expected = construct(frame_or_series, n, value="empty", **kwargs)
         if isinstance(o, DataFrame):
             # preserve columns dtype
             expected.columns = o.columns[:0]
-        tm.assert_equal(result, expected)
+        # https://github.com/pandas-dev/pandas/issues/50862
+        tm.assert_equal(result.reset_index(drop=True), expected)
 
         # get the bool data
         arr = np.array([True, True, False, True])
-        o = construct(n, value=arr, **kwargs)
+        o = construct(frame_or_series, n, value=arr, **kwargs)
         result = o._get_numeric_data()
         tm.assert_equal(result, o)
 
     def test_nonzero(self, frame_or_series):
-
         # GH 4633
         # look at the boolean/nonzero behavior for objects
         obj = construct(frame_or_series, shape=4)
@@ -160,7 +160,7 @@ class Generic:
 
         msg = (
             "compound dtypes are not implemented "
-            f"in the {frame_or_series.__name__} frame_or_series"
+            f"in the {frame_or_series.__name__} constructor"
         )
 
         with pytest.raises(NotImplementedError, match=msg):
@@ -214,7 +214,6 @@ class Generic:
 
         # simple boolean
         for op in ["__eq__", "__le__", "__ge__"]:
-
             # this is a name matching op
             v1 = getattr(o, op)(o)
             v2 = getattr(o, op)(o2)
@@ -233,8 +232,11 @@ class Generic:
     def test_split_compat(self, frame_or_series):
         # xref GH8846
         o = construct(frame_or_series, shape=10)
-        assert len(np.array_split(o, 5)) == 5
-        assert len(np.array_split(o, 2)) == 2
+        with tm.assert_produces_warning(
+            FutureWarning, match=".swapaxes' is deprecated", check_stacklevel=False
+        ):
+            assert len(np.array_split(o, 5)) == 5
+            assert len(np.array_split(o, 2)) == 2
 
     # See gh-12301
     def test_stat_unexpected_keyword(self, frame_or_series):
@@ -253,11 +255,10 @@ class Generic:
 
     @pytest.mark.parametrize("func", ["sum", "cumsum", "any", "var"])
     def test_api_compat(self, func, frame_or_series):
-
         # GH 12021
         # compat for __name__, __qualname__
 
-        obj = (frame_or_series, 5)
+        obj = construct(frame_or_series, 5)
         f = getattr(obj, func)
         assert f.__name__ == func
         assert f.__qualname__.endswith(func)
@@ -305,12 +306,23 @@ class Generic:
         assert obj_copy is not obj
         tm.assert_equal(obj_copy, obj)
 
+    def test_data_deprecated(self, frame_or_series):
+        obj = frame_or_series()
+        msg = "(Series|DataFrame)._data is deprecated"
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+            mgr = obj._data
+        assert mgr is obj._mgr
+
 
 class TestNDFrame:
     # tests that don't fit elsewhere
 
     @pytest.mark.parametrize(
-        "ser", [tm.makeFloatSeries(), tm.makeStringSeries(), tm.makeObjectSeries()]
+        "ser",
+        [
+            Series(range(10), dtype=np.float64),
+            Series([str(i) for i in range(10)], dtype=object),
+        ],
     )
     def test_squeeze_series_noop(self, ser):
         # noop
@@ -318,12 +330,16 @@ class TestNDFrame:
 
     def test_squeeze_frame_noop(self):
         # noop
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(np.eye(2))
         tm.assert_frame_equal(df.squeeze(), df)
 
     def test_squeeze_frame_reindex(self):
         # squeezing
-        df = tm.makeTimeDataFrame().reindex(columns=["A"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        ).reindex(columns=["A"])
         tm.assert_series_equal(df.squeeze(), df["A"])
 
     def test_squeeze_0_len_dim(self):
@@ -335,7 +351,11 @@ class TestNDFrame:
 
     def test_squeeze_axis(self):
         # axis argument
-        df = tm.makeTimeDataFrame(nper=1).iloc[:, :1]
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((1, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=1, freq="B"),
+        ).iloc[:, :1]
         assert df.shape == (1, 1)
         tm.assert_series_equal(df.squeeze(axis=0), df.iloc[0])
         tm.assert_series_equal(df.squeeze(axis="index"), df.iloc[0])
@@ -350,30 +370,49 @@ class TestNDFrame:
             df.squeeze(axis="x")
 
     def test_squeeze_axis_len_3(self):
-        df = tm.makeTimeDataFrame(3)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((3, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=3, freq="B"),
+        )
         tm.assert_frame_equal(df.squeeze(axis=0), df)
 
     def test_numpy_squeeze(self):
-        s = tm.makeFloatSeries()
+        s = Series(range(2), dtype=np.float64)
         tm.assert_series_equal(np.squeeze(s), s)
 
-        df = tm.makeTimeDataFrame().reindex(columns=["A"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        ).reindex(columns=["A"])
         tm.assert_series_equal(np.squeeze(df), df["A"])
 
     @pytest.mark.parametrize(
-        "ser", [tm.makeFloatSeries(), tm.makeStringSeries(), tm.makeObjectSeries()]
+        "ser",
+        [
+            Series(range(10), dtype=np.float64),
+            Series([str(i) for i in range(10)], dtype=object),
+        ],
     )
     def test_transpose_series(self, ser):
         # calls implementation in pandas/core/base.py
         tm.assert_series_equal(ser.transpose(), ser)
 
     def test_transpose_frame(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         tm.assert_frame_equal(df.transpose().transpose(), df)
 
     def test_numpy_transpose(self, frame_or_series):
-
-        obj = tm.makeTimeDataFrame()
+        obj = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         obj = tm.get_obj(obj, frame_or_series)
 
         if frame_or_series is Series:
@@ -388,7 +427,11 @@ class TestNDFrame:
             np.transpose(obj, axes=1)
 
     @pytest.mark.parametrize(
-        "ser", [tm.makeFloatSeries(), tm.makeStringSeries(), tm.makeObjectSeries()]
+        "ser",
+        [
+            Series(range(10), dtype=np.float64),
+            Series([str(i) for i in range(10)], dtype=object),
+        ],
     )
     def test_take_series(self, ser):
         indices = [1, 5, -2, 6, 3, -1]
@@ -402,7 +445,11 @@ class TestNDFrame:
 
     def test_take_frame(self):
         indices = [1, 5, -2, 6, 3, -1]
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         out = df.take(indices)
         expected = DataFrame(
             data=df.values.take(indices, axis=0),
@@ -414,7 +461,7 @@ class TestNDFrame:
     def test_take_invalid_kwargs(self, frame_or_series):
         indices = [-3, 2, 0, 1]
 
-        obj = tm.makeTimeDataFrame()
+        obj = DataFrame(range(5))
         obj = tm.get_obj(obj, frame_or_series)
 
         msg = r"take\(\) got an unexpected keyword argument 'foo'"
@@ -429,21 +476,6 @@ class TestNDFrame:
         with pytest.raises(ValueError, match=msg):
             obj.take(indices, mode="clip")
 
-    @pytest.mark.parametrize("is_copy", [True, False])
-    def test_depr_take_kwarg_is_copy(self, is_copy, frame_or_series):
-        # GH 27357
-        obj = DataFrame({"A": [1, 2, 3]})
-        obj = tm.get_obj(obj, frame_or_series)
-
-        msg = (
-            "is_copy is deprecated and will be removed in a future version. "
-            "'take' always returns a copy, so there is no need to specify this."
-        )
-        with tm.assert_produces_warning(FutureWarning) as w:
-            obj.take([0, 1], is_copy=is_copy)
-
-        assert w[0].message.args[0] == msg
-
     def test_axis_classmethods(self, frame_or_series):
         box = frame_or_series
         obj = box(dtype=object)
@@ -452,22 +484,6 @@ class TestNDFrame:
             assert obj._get_axis_number(v) == box._get_axis_number(v)
             assert obj._get_axis_name(v) == box._get_axis_name(v)
             assert obj._get_block_manager_axis(v) == box._get_block_manager_axis(v)
-
-    def test_axis_names_deprecated(self, frame_or_series):
-        # GH33637
-        box = frame_or_series
-        obj = box(dtype=object)
-        msg = "_AXIS_NAMES has been deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            obj._AXIS_NAMES
-
-    def test_axis_numbers_deprecated(self, frame_or_series):
-        # GH33637
-        box = frame_or_series
-        obj = box(dtype=object)
-        msg = "_AXIS_NUMBERS has been deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            obj._AXIS_NUMBERS
 
     def test_flags_identity(self, frame_or_series):
         obj = Series([1, 2])
@@ -478,10 +494,11 @@ class TestNDFrame:
         obj2 = obj.copy()
         assert obj2.flags is not obj.flags
 
-    def test_slice_shift_deprecated(self, frame_or_series):
-        # GH 37601
-        obj = DataFrame({"A": [1, 2, 3, 4]})
-        obj = tm.get_obj(obj, frame_or_series)
-
-        with tm.assert_produces_warning(FutureWarning):
-            obj.slice_shift()
+    def test_bool_dep(self) -> None:
+        # GH-51749
+        msg_warn = (
+            "DataFrame.bool is now deprecated and will be removed "
+            "in future version of pandas"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
+            DataFrame({"col": [False]}).bool()

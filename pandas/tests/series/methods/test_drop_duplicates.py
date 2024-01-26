@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import (
     Categorical,
     Series,
@@ -71,7 +72,7 @@ def test_drop_duplicates_no_duplicates(any_numpy_dtype, keep, values):
 
 class TestSeriesDropDuplicates:
     @pytest.fixture(
-        params=["int_", "uint", "float_", "unicode_", "timedelta64[h]", "datetime64[D]"]
+        params=["int_", "uint", "float64", "str_", "timedelta64[h]", "datetime64[D]"]
     )
     def dtype(self, request):
         return request.param
@@ -243,15 +244,24 @@ class TestSeriesDropDuplicates:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_drop_duplicates_ignore_index(self):
+        # GH#48304
+        ser = Series([1, 2, 2, 3])
+        result = ser.drop_duplicates(ignore_index=True)
+        expected = Series([1, 2, 3])
+        tm.assert_series_equal(result, expected)
 
-def test_drop_duplicates_pos_args_deprecation():
-    # GH#41485
-    s = Series(["a", "b", "c", "b"])
-    msg = (
-        "In a future version of pandas all arguments of "
-        "Series.drop_duplicates will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = s.drop_duplicates("last")
-    expected = Series(["a", "c", "b"], index=[0, 2, 3])
-    tm.assert_series_equal(expected, result)
+    def test_duplicated_arrow_dtype(self):
+        pytest.importorskip("pyarrow")
+        ser = Series([True, False, None, False], dtype="bool[pyarrow]")
+        result = ser.drop_duplicates()
+        expected = Series([True, False, None], dtype="bool[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+    def test_drop_duplicates_arrow_strings(self):
+        # GH#54904
+        pa = pytest.importorskip("pyarrow")
+        ser = Series(["a", "a"], dtype=pd.ArrowDtype(pa.string()))
+        result = ser.drop_duplicates()
+        expecetd = Series(["a"], dtype=pd.ArrowDtype(pa.string()))
+        tm.assert_series_equal(result, expecetd)

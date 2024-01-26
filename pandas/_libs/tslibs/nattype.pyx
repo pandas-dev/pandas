@@ -1,21 +1,14 @@
-import warnings
-
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
     PyDelta_Check,
     datetime,
     import_datetime,
-    timedelta,
 )
 
 import_datetime()
 from cpython.object cimport (
     Py_EQ,
-    Py_GE,
-    Py_GT,
-    Py_LE,
-    Py_LT,
     Py_NE,
     PyObject_RichCompare,
 )
@@ -28,10 +21,6 @@ from numpy cimport int64_t
 cnp.import_array()
 
 cimport pandas._libs.tslibs.util as util
-from pandas._libs.tslibs.np_datetime cimport (
-    get_datetime64_value,
-    get_timedelta64_value,
-)
 
 # ----------------------------------------------------------------------
 # Constants
@@ -74,7 +63,7 @@ def _make_error_func(func_name: str, cls):
 
 
 cdef _nat_divide_op(self, other):
-    if PyDelta_Check(other) or util.is_timedelta64_object(other) or other is c_NaT:
+    if PyDelta_Check(other) or cnp.is_timedelta64_object(other) or other is c_NaT:
         return np.nan
     if util.is_integer_object(other) or util.is_float_object(other):
         return c_NaT
@@ -102,11 +91,11 @@ cdef class _NaT(datetime):
     __array_priority__ = 100
 
     def __richcmp__(_NaT self, object other, int op):
-        if util.is_datetime64_object(other) or PyDateTime_Check(other):
+        if cnp.is_datetime64_object(other) or PyDateTime_Check(other):
             # We treat NaT as datetime-like for this comparison
             return op == Py_NE
 
-        elif util.is_timedelta64_object(other) or PyDelta_Check(other):
+        elif cnp.is_timedelta64_object(other) or PyDelta_Check(other):
             # We treat NaT as timedelta-like for this comparison
             return op == Py_NE
 
@@ -130,28 +119,16 @@ cdef class _NaT(datetime):
                 return False
             if op == Py_NE:
                 return True
-            warnings.warn(
-                "Comparison of NaT with datetime.date is deprecated in "
-                "order to match the standard library behavior. "
-                "In a future version these will be considered non-comparable.",
-                FutureWarning,
-                stacklevel=1,
-            )
-            return False
+            raise TypeError("Cannot compare NaT with datetime.date object")
 
         return NotImplemented
 
     def __add__(self, other):
-        if self is not c_NaT:
-            # TODO(cython3): remove this it moved to __radd__
-            # cython __radd__ semantics
-            self, other = other, self
-
         if PyDateTime_Check(other):
             return c_NaT
         elif PyDelta_Check(other):
             return c_NaT
-        elif util.is_datetime64_object(other) or util.is_timedelta64_object(other):
+        elif cnp.is_datetime64_object(other) or cnp.is_timedelta64_object(other):
             return c_NaT
 
         elif util.is_integer_object(other):
@@ -176,20 +153,12 @@ cdef class _NaT(datetime):
     def __sub__(self, other):
         # Duplicate some logic from _Timestamp.__sub__ to avoid needing
         # to subclass; allows us to @final(_Timestamp.__sub__)
-        cdef:
-            bint is_rsub = False
-
-        if self is not c_NaT:
-            # cython __rsub__ semantics
-            # TODO(cython3): remove __rsub__ logic from here
-            self, other = other, self
-            is_rsub = True
 
         if PyDateTime_Check(other):
             return c_NaT
         elif PyDelta_Check(other):
             return c_NaT
-        elif util.is_datetime64_object(other) or util.is_timedelta64_object(other):
+        elif cnp.is_datetime64_object(other) or cnp.is_timedelta64_object(other):
             return c_NaT
 
         elif util.is_integer_object(other):
@@ -198,18 +167,9 @@ cdef class _NaT(datetime):
 
         elif util.is_array(other):
             if other.dtype.kind == "m":
-                if not is_rsub:
-                    # NaT - timedelta64 we treat NaT as datetime64, so result
-                    #  is datetime64
-                    result = np.empty(other.shape, dtype="datetime64[ns]")
-                    result.fill("NaT")
-                    return result
-
-                # __rsub__ logic here
-                # TODO(cython3): remove this, move above code out of ``if not is_rsub`` block
-                # timedelta64 - NaT we have to treat NaT as timedelta64
-                #  for this to be meaningful, and the result is timedelta64
-                result = np.empty(other.shape, dtype="timedelta64[ns]")
+                # NaT - timedelta64 we treat NaT as datetime64, so result
+                #  is datetime64
+                result = np.empty(other.shape, dtype="datetime64[ns]")
                 result.fill("NaT")
                 return result
 
@@ -242,7 +202,8 @@ cdef class _NaT(datetime):
                 result = np.empty(other.shape, dtype="timedelta64[ns]")
                 result.fill("NaT")
                 return result
-        # other cases are same, swap operands is allowed even though we subtract because this is NaT
+        # other cases are same, swap operands is allowed even though we subtract
+        # because this is NaT
         return self.__sub__(other)
 
     def __pos__(self):
@@ -268,15 +229,22 @@ cdef class _NaT(datetime):
 
     def to_datetime64(self) -> np.datetime64:
         """
-        Return a numpy.datetime64 object with 'ns' precision.
+        Return a numpy.datetime64 object with same precision.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(year=2023, month=1, day=1,
+        ...                   hour=10, second=15)
+        >>> ts
+        Timestamp('2023-01-01 10:00:15')
+        >>> ts.to_datetime64()
+        numpy.datetime64('2023-01-01T10:00:15.000000')
         """
-        return np.datetime64('NaT', "ns")
+        return np.datetime64("NaT", "ns")
 
     def to_numpy(self, dtype=None, copy=False) -> np.datetime64 | np.timedelta64:
         """
         Convert the Timestamp to a NumPy datetime64 or timedelta64.
-
-        .. versionadded:: 0.25.0
 
         With the default 'dtype', this is an alias method for `NaT.to_datetime64()`.
 
@@ -364,24 +332,26 @@ cdef class _NaT(datetime):
 class NaTType(_NaT):
     """
     (N)ot-(A)-(T)ime, the time equivalent of NaN.
+
+    Examples
+    --------
+    >>> pd.DataFrame([pd.Timestamp("2023"), np.nan], columns=["col_1"])
+            col_1
+    0  2023-01-01
+    1         NaT
     """
 
     def __new__(cls):
         cdef _NaT base
 
         base = _NaT.__new__(cls, 1, 1, 1)
-        base.value = NPY_NAT
+        base._value= NPY_NAT
 
         return base
 
     @property
-    def freq(self):
-        warnings.warn(
-            "NaT.freq is deprecated and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=1,
-        )
-        return None
+    def value(self) -> int:
+        return self._value
 
     def __reduce_ex__(self, protocol):
         # python 3.6 compat
@@ -448,6 +418,14 @@ class NaTType(_NaT):
         Return the day of the week represented by the date.
 
         Monday == 0 ... Sunday == 6.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01')
+        >>> ts
+        Timestamp('2023-01-01  00:00:00')
+        >>> ts.weekday()
+        6
         """,
     )
     isoweekday = _make_nan_func(
@@ -456,9 +434,30 @@ class NaTType(_NaT):
         Return the day of the week represented by the date.
 
         Monday == 1 ... Sunday == 7.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.isoweekday()
+        7
         """,
     )
-    total_seconds = _make_nan_func("total_seconds", timedelta.total_seconds.__doc__)
+    total_seconds = _make_nan_func(
+        "total_seconds",
+        """
+        Total seconds in the duration.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('1min')
+        >>> td
+        Timedelta('0 days 00:01:00')
+        >>> td.total_seconds()
+        60.0
+        """,
+    )
     month_name = _make_nan_func(
         "month_name",
         """
@@ -512,18 +511,6 @@ class NaTType(_NaT):
         """,
     )
     # _nat_methods
-    date = _make_nat_func("date", datetime.date.__doc__)
-
-    utctimetuple = _make_error_func("utctimetuple", datetime)
-    timetz = _make_error_func("timetz", datetime)
-    timetuple = _make_error_func("timetuple", datetime)
-    isocalendar = _make_error_func("isocalendar", datetime)
-    dst = _make_error_func("dst", datetime)
-    ctime = _make_error_func("ctime", datetime)
-    time = _make_error_func("time", datetime)
-    toordinal = _make_error_func("toordinal", datetime)
-    tzname = _make_error_func("tzname", datetime)
-    utcoffset = _make_error_func("utcoffset", datetime)
 
     # "fromisocalendar" was introduced in 3.8
     fromisocalendar = _make_error_func("fromisocalendar", datetime)
@@ -531,6 +518,162 @@ class NaTType(_NaT):
     # ----------------------------------------------------------------------
     # The remaining methods have docstrings copy/pasted from the analogous
     # Timestamp methods.
+    isocalendar = _make_error_func(
+        "isocalendar",
+        """
+        Return a named tuple containing ISO year, week number, and weekday.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.isocalendar()
+        datetime.IsoCalendarDate(year=2022, week=52, weekday=7)
+        """
+        )
+    dst = _make_error_func(
+        "dst",
+        """
+        Return the daylight saving time (DST) adjustment.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2000-06-01 00:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2000-06-01 00:00:00+0200', tz='Europe/Brussels')
+        >>> ts.dst()
+        datetime.timedelta(seconds=3600)
+        """
+        )
+    date = _make_nat_func(
+        "date",
+        """
+        Return date object with same year, month and day.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00.00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.date()
+        datetime.date(2023, 1, 1)
+        """
+        )
+    utctimetuple = _make_error_func(
+        "utctimetuple",
+        """
+        Return UTC time tuple, compatible with time.localtime().
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
+        >>> ts.utctimetuple()
+        time.struct_time(tm_year=2023, tm_mon=1, tm_mday=1, tm_hour=9,
+        tm_min=0, tm_sec=0, tm_wday=6, tm_yday=1, tm_isdst=0)
+        """
+        )
+    utcoffset = _make_error_func(
+        "utcoffset",
+        """
+        Return utc offset.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
+        >>> ts.utcoffset()
+        datetime.timedelta(seconds=3600)
+        """
+        )
+    tzname = _make_error_func(
+        "tzname",
+        """
+        Return time zone name.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
+        >>> ts.tzname()
+        'CET'
+        """
+        )
+    time = _make_error_func(
+        "time",
+        """
+        Return time object with same time but with tzinfo=None.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.time()
+        datetime.time(10, 0)
+        """,
+        )
+    timetuple = _make_error_func(
+        "timetuple",
+        """
+        Return time tuple, compatible with time.localtime().
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.timetuple()
+        time.struct_time(tm_year=2023, tm_mon=1, tm_mday=1,
+        tm_hour=10, tm_min=0, tm_sec=0, tm_wday=6, tm_yday=1, tm_isdst=-1)
+        """
+        )
+    timetz = _make_error_func(
+        "timetz",
+        """
+        Return time object with same time and tzinfo.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
+        >>> ts.timetz()
+        datetime.time(10, 0, tzinfo=<DstTzInfo 'Europe/Brussels' CET+1:00:00 STD>)
+        """
+        )
+    toordinal = _make_error_func(
+        "toordinal",
+        """
+        Return proleptic Gregorian ordinal. January 1 of year 1 is day 1.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:50')
+        >>> ts
+        Timestamp('2023-01-01 10:00:50')
+        >>> ts.toordinal()
+        738521
+        """
+        )
+    ctime = _make_error_func(
+        "ctime",
+        """
+        Return ctime() style string.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00.00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.ctime()
+        'Sun Jan  1 10:00:00 2023'
+        """,
+    )
 
     strftime = _make_error_func(
         "strftime",
@@ -558,6 +701,12 @@ class NaTType(_NaT):
         Timestamp.strptime(string, format)
 
         Function is not implemented. Use pd.to_datetime().
+
+        Examples
+        --------
+        >>> pd.Timestamp.strptime("2023-01-01", "%d/%m/%y")
+        Traceback (most recent call last):
+        NotImplementedError
         """,
     )
 
@@ -566,12 +715,17 @@ class NaTType(_NaT):
         """
         Timestamp.utcfromtimestamp(ts)
 
-        Construct a naive UTC datetime from a POSIX timestamp.
+        Construct a timezone-aware UTC datetime from a POSIX timestamp.
+
+        Notes
+        -----
+        Timestamp.utcfromtimestamp behavior differs from datetime.utcfromtimestamp
+        in returning a timezone-aware object.
 
         Examples
         --------
         >>> pd.Timestamp.utcfromtimestamp(1584199972)
-        Timestamp('2020-03-14 15:32:52')
+        Timestamp('2020-03-14 15:32:52+0000', tz='UTC')
         """,
     )
     fromtimestamp = _make_error_func(
@@ -583,7 +737,7 @@ class NaTType(_NaT):
 
         Examples
         --------
-        >>> pd.Timestamp.fromtimestamp(1584199972)
+        >>> pd.Timestamp.fromtimestamp(1584199972)  # doctest: +SKIP
         Timestamp('2020-03-14 15:32:52')
 
         Note that the output may change depending on your local time.
@@ -685,8 +839,6 @@ class NaTType(_NaT):
         ----------
         ordinal : int
             Date corresponding to a proleptic Gregorian ordinal.
-        freq : str, DateOffset
-            Offset to apply to the Timestamp.
         tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for the Timestamp.
 
@@ -821,26 +973,26 @@ timedelta}, default 'raise'
 
         A timestamp can be rounded using multiple frequency units:
 
-        >>> ts.round(freq='H') # hour
+        >>> ts.round(freq='h') # hour
         Timestamp('2020-03-14 16:00:00')
 
-        >>> ts.round(freq='T') # minute
+        >>> ts.round(freq='min') # minute
         Timestamp('2020-03-14 15:33:00')
 
-        >>> ts.round(freq='S') # seconds
+        >>> ts.round(freq='s') # seconds
         Timestamp('2020-03-14 15:32:52')
 
-        >>> ts.round(freq='L') # milliseconds
+        >>> ts.round(freq='ms') # milliseconds
         Timestamp('2020-03-14 15:32:52.193000')
 
-        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+        ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
 
-        >>> ts.round(freq='5T')
+        >>> ts.round(freq='5min')
         Timestamp('2020-03-14 15:35:00')
 
-        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1h30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.round(freq='1H30T')
+        >>> ts.round(freq='1h30min')
         Timestamp('2020-03-14 15:00:00')
 
         Analogous for ``pd.NaT``:
@@ -853,10 +1005,10 @@ timedelta}, default 'raise'
 
         >>> ts_tz = pd.Timestamp("2021-10-31 01:30:00").tz_localize("Europe/Amsterdam")
 
-        >>> ts_tz.round("H", ambiguous=False)
+        >>> ts_tz.round("h", ambiguous=False)
         Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
 
-        >>> ts_tz.round("H", ambiguous=True)
+        >>> ts_tz.round("h", ambiguous=True)
         Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """,
     )
@@ -910,26 +1062,26 @@ timedelta}, default 'raise'
 
         A timestamp can be floored using multiple frequency units:
 
-        >>> ts.floor(freq='H') # hour
+        >>> ts.floor(freq='h') # hour
         Timestamp('2020-03-14 15:00:00')
 
-        >>> ts.floor(freq='T') # minute
+        >>> ts.floor(freq='min') # minute
         Timestamp('2020-03-14 15:32:00')
 
-        >>> ts.floor(freq='S') # seconds
+        >>> ts.floor(freq='s') # seconds
         Timestamp('2020-03-14 15:32:52')
 
-        >>> ts.floor(freq='N') # nanoseconds
+        >>> ts.floor(freq='ns') # nanoseconds
         Timestamp('2020-03-14 15:32:52.192548651')
 
-        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+        ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
 
-        >>> ts.floor(freq='5T')
+        >>> ts.floor(freq='5min')
         Timestamp('2020-03-14 15:30:00')
 
-        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1h30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.floor(freq='1H30T')
+        >>> ts.floor(freq='1h30min')
         Timestamp('2020-03-14 15:00:00')
 
         Analogous for ``pd.NaT``:
@@ -942,10 +1094,10 @@ timedelta}, default 'raise'
 
         >>> ts_tz = pd.Timestamp("2021-10-31 03:30:00").tz_localize("Europe/Amsterdam")
 
-        >>> ts_tz.floor("2H", ambiguous=False)
+        >>> ts_tz.floor("2h", ambiguous=False)
         Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
 
-        >>> ts_tz.floor("2H", ambiguous=True)
+        >>> ts_tz.floor("2h", ambiguous=True)
         Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """,
     )
@@ -999,26 +1151,26 @@ timedelta}, default 'raise'
 
         A timestamp can be ceiled using multiple frequency units:
 
-        >>> ts.ceil(freq='H') # hour
+        >>> ts.ceil(freq='h') # hour
         Timestamp('2020-03-14 16:00:00')
 
-        >>> ts.ceil(freq='T') # minute
+        >>> ts.ceil(freq='min') # minute
         Timestamp('2020-03-14 15:33:00')
 
-        >>> ts.ceil(freq='S') # seconds
+        >>> ts.ceil(freq='s') # seconds
         Timestamp('2020-03-14 15:32:53')
 
-        >>> ts.ceil(freq='U') # microseconds
+        >>> ts.ceil(freq='us') # microseconds
         Timestamp('2020-03-14 15:32:52.192549')
 
-        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+        ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
 
-        >>> ts.ceil(freq='5T')
+        >>> ts.ceil(freq='5min')
         Timestamp('2020-03-14 15:35:00')
 
-        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1h30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.ceil(freq='1H30T')
+        >>> ts.ceil(freq='1h30min')
         Timestamp('2020-03-14 16:30:00')
 
         Analogous for ``pd.NaT``:
@@ -1031,10 +1183,10 @@ timedelta}, default 'raise'
 
         >>> ts_tz = pd.Timestamp("2021-10-31 01:30:00").tz_localize("Europe/Amsterdam")
 
-        >>> ts_tz.ceil("H", ambiguous=False)
+        >>> ts_tz.ceil("h", ambiguous=False)
         Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
 
-        >>> ts_tz.ceil("H", ambiguous=True)
+        >>> ts_tz.ceil("h", ambiguous=True)
         Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """,
     )
@@ -1204,6 +1356,43 @@ default 'raise'
         """,
     )
 
+    @property
+    def tz(self) -> None:
+        return None
+
+    @property
+    def tzinfo(self) -> None:
+        return None
+
+    def as_unit(self, str unit, bint round_ok=True) -> "NaTType":
+        """
+        Convert the underlying int64 representaton to the given unit.
+
+        Parameters
+        ----------
+        unit : {"ns", "us", "ms", "s"}
+        round_ok : bool, default True
+            If False and the conversion requires rounding, raise.
+
+        Returns
+        -------
+        Timestamp
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 00:00:00.01')
+        >>> ts
+        Timestamp('2023-01-01 00:00:00.010000')
+        >>> ts.unit
+        'ms'
+        >>> ts = ts.as_unit('s')
+        >>> ts
+        Timestamp('2023-01-01 00:00:00')
+        >>> ts.unit
+        's'
+        """
+        return c_NaT
+
 
 c_NaT = NaTType()  # C-visible
 NaT = c_NaT        # Python-visible
@@ -1211,26 +1400,26 @@ NaT = c_NaT        # Python-visible
 
 # ----------------------------------------------------------------------
 
-cdef inline bint checknull_with_nat(object val):
+cdef bint checknull_with_nat(object val):
     """
     Utility to check if a value is a nat or not.
     """
     return val is None or util.is_nan(val) or val is c_NaT
 
 
-cdef inline bint is_dt64nat(object val):
+cdef bint is_dt64nat(object val):
     """
     Is this a np.datetime64 object np.datetime64("NaT").
     """
-    if util.is_datetime64_object(val):
-        return get_datetime64_value(val) == NPY_NAT
+    if cnp.is_datetime64_object(val):
+        return cnp.get_datetime64_value(val) == NPY_NAT
     return False
 
 
-cdef inline bint is_td64nat(object val):
+cdef bint is_td64nat(object val):
     """
     Is this a np.timedelta64 object np.timedelta64("NaT").
     """
-    if util.is_timedelta64_object(val):
-        return get_timedelta64_value(val) == NPY_NAT
+    if cnp.is_timedelta64_object(val):
+        return cnp.get_timedelta64_value(val) == NPY_NAT
     return False

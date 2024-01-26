@@ -11,23 +11,14 @@ from pandas import (
 )
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
-    ensure_clean_path,
     ensure_clean_store,
 )
 
-pytestmark = [
-    pytest.mark.single_cpu,
-    # pytables https://github.com/PyTables/PyTables/issues/822
-    pytest.mark.filterwarnings(
-        "ignore:a closed node found in the registry:UserWarning"
-    ),
-]
+pytestmark = pytest.mark.single_cpu
 
 
 def test_categorical(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         # Basic
         _maybe_remove(store, "s")
         s = Series(
@@ -147,8 +138,7 @@ def test_categorical(setup_path):
             store.select("df3/meta/s/meta")
 
 
-def test_categorical_conversion(setup_path):
-
+def test_categorical_conversion(tmp_path, setup_path):
     # GH13322
     # Check that read_hdf with categorical columns doesn't return rows if
     # where criteria isn't met.
@@ -161,10 +151,10 @@ def test_categorical_conversion(setup_path):
 
     # We are expecting an empty DataFrame matching types of df
     expected = df.iloc[[], :]
-    with ensure_clean_path(setup_path) as path:
-        df.to_hdf(path, "df", format="table", data_columns=True)
-        result = read_hdf(path, "df", where="obsids=B")
-        tm.assert_frame_equal(result, expected)
+    path = tmp_path / setup_path
+    df.to_hdf(path, key="df", format="table", data_columns=True)
+    result = read_hdf(path, "df", where="obsids=B")
+    tm.assert_frame_equal(result, expected)
 
     # Test with categories
     df.obsids = df.obsids.astype("category")
@@ -172,13 +162,13 @@ def test_categorical_conversion(setup_path):
 
     # We are expecting an empty DataFrame matching types of df
     expected = df.iloc[[], :]
-    with ensure_clean_path(setup_path) as path:
-        df.to_hdf(path, "df", format="table", data_columns=True)
-        result = read_hdf(path, "df", where="obsids=B")
-        tm.assert_frame_equal(result, expected)
+    path = tmp_path / setup_path
+    df.to_hdf(path, key="df", format="table", data_columns=True)
+    result = read_hdf(path, "df", where="obsids=B")
+    tm.assert_frame_equal(result, expected)
 
 
-def test_categorical_nan_only_columns(setup_path):
+def test_categorical_nan_only_columns(tmp_path, setup_path):
     # GH18413
     # Check that read_hdf with categorical columns with NaN-only values can
     # be read back.
@@ -194,10 +184,10 @@ def test_categorical_nan_only_columns(setup_path):
     df["b"] = df.b.astype("category")
     df["d"] = df.b.astype("category")
     expected = df
-    with ensure_clean_path(setup_path) as path:
-        df.to_hdf(path, "df", format="table", data_columns=True)
-        result = read_hdf(path, "df")
-        tm.assert_frame_equal(result, expected)
+    path = tmp_path / setup_path
+    df.to_hdf(path, key="df", format="table", data_columns=True)
+    result = read_hdf(path, "df")
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -207,7 +197,9 @@ def test_categorical_nan_only_columns(setup_path):
         ('col=="a"', DataFrame({"col": ["a", "b", "s"]}), DataFrame({"col": ["a"]})),
     ],
 )
-def test_convert_value(setup_path, where: str, df: DataFrame, expected: DataFrame):
+def test_convert_value(
+    tmp_path, setup_path, where: str, df: DataFrame, expected: DataFrame
+):
     # GH39420
     # Check that read_hdf with categorical columns can filter by where condition.
     df.col = df.col.astype("category")
@@ -216,7 +208,7 @@ def test_convert_value(setup_path, where: str, df: DataFrame, expected: DataFram
     expected.col = expected.col.astype("category")
     expected.col = expected.col.cat.set_categories(categorical_values)
 
-    with ensure_clean_path(setup_path) as path:
-        df.to_hdf(path, "df", format="table", min_itemsize=max_widths)
-        result = read_hdf(path, where=where)
-        tm.assert_frame_equal(result, expected)
+    path = tmp_path / setup_path
+    df.to_hdf(path, key="df", format="table", min_itemsize=max_widths)
+    result = read_hdf(path, where=where)
+    tm.assert_frame_equal(result, expected)

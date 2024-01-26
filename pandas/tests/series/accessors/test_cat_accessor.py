@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 import pytest
 
@@ -46,13 +44,6 @@ class TestCatAccessor:
 
         exp = Categorical(["a", "b", np.nan, "a"], categories=["b", "a"])
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # issue #37643 inplace kwarg deprecated
-            return_value = ser.cat.set_categories(["b", "a"], inplace=True)
-
-        assert return_value is None
-        tm.assert_categorical_equal(ser.values, exp)
-
         res = ser.cat.set_categories(["b", "a"])
         tm.assert_categorical_equal(res.values, exp)
 
@@ -78,19 +69,7 @@ class TestCatAccessor:
         with pytest.raises(AttributeError, match="You cannot add any new attribute"):
             cat.cat.xlabel = "a"
 
-    def test_cat_accessor_updates_on_inplace(self):
-        ser = Series(list("abc")).astype("category")
-        return_value = ser.drop(0, inplace=True)
-        assert return_value is None
-
-        with tm.assert_produces_warning(FutureWarning):
-            return_value = ser.cat.remove_unused_categories(inplace=True)
-
-        assert return_value is None
-        assert len(ser.cat.categories) == 2
-
     def test_categorical_delegations(self):
-
         # invalid accessor
         msg = r"Can only use \.cat accessor with a 'category' dtype"
         with pytest.raises(AttributeError, match=msg):
@@ -110,8 +89,7 @@ class TestCatAccessor:
         ser = Series(Categorical(["a", "b", "c", "a"], ordered=True))
         exp_categories = Index(["a", "b", "c"])
         tm.assert_index_equal(ser.cat.categories, exp_categories)
-        with tm.assert_produces_warning(FutureWarning, match="Use rename_categories"):
-            ser.cat.categories = [1, 2, 3]
+        ser = ser.cat.rename_categories([1, 2, 3])
         exp_categories = Index([1, 2, 3])
         tm.assert_index_equal(ser.cat.categories, exp_categories)
 
@@ -121,9 +99,8 @@ class TestCatAccessor:
         assert ser.cat.ordered
         ser = ser.cat.as_unordered()
         assert not ser.cat.ordered
-        with tm.assert_produces_warning(FutureWarning, match="The `inplace`"):
-            return_value = ser.cat.as_ordered(inplace=True)
-        assert return_value is None
+
+        ser = ser.cat.as_ordered()
         assert ser.cat.ordered
 
         # reorder
@@ -187,6 +164,7 @@ class TestCatAccessor:
             ("floor", ("D",), {}),
             ("ceil", ("D",), {}),
             ("asfreq", ("D",), {}),
+            ("as_unit", ("s"), {}),
         ]
         if idx.dtype == "M8[ns]":
             # exclude dt64tz since that is already localized and would raise
@@ -213,25 +191,29 @@ class TestCatAccessor:
         ]
 
         func_defs = [(fname, (), {}) for fname in func_names]
-
-        for f_def in special_func_defs:
-            if f_def[0] in dir(ser.dt):
-                func_defs.append(f_def)
+        func_defs.extend(
+            f_def for f_def in special_func_defs if f_def[0] in dir(ser.dt)
+        )
 
         for func, args, kwargs in func_defs:
-            with warnings.catch_warnings():
-                if func == "to_period":
-                    # dropping TZ
-                    warnings.simplefilter("ignore", UserWarning)
+            warn_cls = []
+            if func == "to_period" and getattr(idx, "tz", None) is not None:
+                # dropping TZ
+                warn_cls.append(UserWarning)
+            if func == "to_pydatetime":
+                # deprecated to return Index[object]
+                warn_cls.append(FutureWarning)
+            if warn_cls:
+                warn_cls = tuple(warn_cls)
+            else:
+                warn_cls = None
+            with tm.assert_produces_warning(warn_cls):
                 res = getattr(cat.dt, func)(*args, **kwargs)
                 exp = getattr(ser.dt, func)(*args, **kwargs)
 
             tm.assert_equal(res, exp)
 
         for attr in attr_names:
-            if attr in ["week", "weekofyear"]:
-                # GH#33595 Deprecate week and weekofyear
-                continue
             res = getattr(cat.dt, attr)
             exp = getattr(ser.dt, attr)
 
@@ -245,34 +227,13 @@ class TestCatAccessor:
             invalid.dt
         assert not hasattr(invalid, "str")
 
-    def test_reorder_categories_updates_dtype(self):
-        # GH#43232
-        ser = Series(["a", "b", "c"], dtype="category")
-        orig_dtype = ser.dtype
-
-        # Need to construct this before calling reorder_categories inplace
-        expected = ser.cat.reorder_categories(["c", "b", "a"])
-
-        with tm.assert_produces_warning(FutureWarning, match="`inplace` parameter"):
-            ser.cat.reorder_categories(["c", "b", "a"], inplace=True)
-
-        assert not orig_dtype.categories.equals(ser.dtype.categories)
-        assert not orig_dtype.categories.equals(expected.dtype.categories)
-        assert ser.dtype == expected.dtype
-        assert ser.dtype.categories.equals(expected.dtype.categories)
-
-        tm.assert_series_equal(ser, expected)
-
     def test_set_categories_setitem(self):
         # GH#43334
 
         df = DataFrame({"Survived": [1, 0, 1], "Sex": [0, 1, 1]}, dtype="category")
 
-        # change the dtype in-place
-        with tm.assert_produces_warning(FutureWarning, match="Use rename_categories"):
-            df["Survived"].cat.categories = ["No", "Yes"]
-        with tm.assert_produces_warning(FutureWarning, match="Use rename_categories"):
-            df["Sex"].cat.categories = ["female", "male"]
+        df["Survived"] = df["Survived"].cat.rename_categories(["No", "Yes"])
+        df["Sex"] = df["Sex"].cat.rename_categories(["female", "male"])
 
         # values should not be coerced to NaN
         assert list(df["Sex"]) == ["female", "male", "male"]

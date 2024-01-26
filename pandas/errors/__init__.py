@@ -12,10 +12,18 @@ from pandas._libs.tslibs import (
     OutOfBoundsTimedelta,
 )
 
+from pandas.util.version import InvalidVersion
+
 
 class IntCastingNaNError(ValueError):
     """
     Exception raised when converting (``astype``) an array with NaN to an integer type.
+
+    Examples
+    --------
+    >>> pd.DataFrame(np.array([[1, np.nan], [2, 3]]), dtype="i8")
+    Traceback (most recent call last):
+    IntCastingNaNError: Cannot convert non-finite values (NA or inf) to integer
     """
 
 
@@ -25,12 +33,39 @@ class NullFrequencyError(ValueError):
 
     Particularly ``DatetimeIndex.shift``, ``TimedeltaIndex.shift``,
     ``PeriodIndex.shift``.
+
+    Examples
+    --------
+    >>> df = pd.DatetimeIndex(["2011-01-01 10:00", "2011-01-01"], freq=None)
+    >>> df.shift(2)
+    Traceback (most recent call last):
+    NullFrequencyError: Cannot shift with no freq
     """
 
 
 class PerformanceWarning(Warning):
     """
     Warning raised when there is a possible performance impact.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"jim": [0, 0, 1, 1],
+    ...                    "joe": ["x", "x", "z", "y"],
+    ...                    "jolie": [1, 2, 3, 4]})
+    >>> df = df.set_index(["jim", "joe"])
+    >>> df
+              jolie
+    jim  joe
+    0    x    1
+         x    2
+    1    z    3
+         y    4
+    >>> df.loc[(1, 'z')]  # doctest: +SKIP
+    # PerformanceWarning: indexing past lexsort depth may impact performance.
+    df.loc[(1, 'z')]
+              jolie
+    jim  joe
+    1    z        3
     """
 
 
@@ -39,6 +74,17 @@ class UnsupportedFunctionCall(ValueError):
     Exception raised when attempting to call a unsupported numpy function.
 
     For example, ``np.cumsum(groupby_object)``.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"A": [0, 0, 1, 1],
+    ...                    "B": ["x", "x", "z", "y"],
+    ...                    "C": [1, 2, 3, 4]}
+    ...                   )
+    >>> np.cumsum(df.groupby(["A"]))
+    Traceback (most recent call last):
+    UnsupportedFunctionCall: numpy operations are not valid with groupby.
+    Use .groupby(...).cumsum() instead
     """
 
 
@@ -47,6 +93,25 @@ class UnsortedIndexError(KeyError):
     Error raised when slicing a MultiIndex which has not been lexsorted.
 
     Subclass of `KeyError`.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"cat": [0, 0, 1, 1],
+    ...                    "color": ["white", "white", "brown", "black"],
+    ...                    "lives": [4, 4, 3, 7]},
+    ...                   )
+    >>> df = df.set_index(["cat", "color"])
+    >>> df
+                lives
+    cat  color
+    0    white    4
+         white    4
+    1    brown    3
+         black    7
+    >>> df.loc[(0, "black"):(1, "white")]
+    Traceback (most recent call last):
+    UnsortedIndexError: 'Key length (2) was greater
+    than MultiIndex lexsort depth (1)'
     """
 
 
@@ -61,6 +126,17 @@ class ParserError(ValueError):
     --------
     read_csv : Read CSV (comma-separated) file into a DataFrame.
     read_html : Read HTML table into a DataFrame.
+
+    Examples
+    --------
+    >>> data = '''a,b,c
+    ... cat,foo,bar
+    ... dog,foo,"baz'''
+    >>> from io import StringIO
+    >>> pd.read_csv(StringIO(data), skipfooter=1, engine='python')
+    Traceback (most recent call last):
+    ParserError: ',' expected after '"'. Error could possibly be due
+    to parsing errors in the skipped footer rows
     """
 
 
@@ -122,6 +198,14 @@ class DtypeWarning(Warning):
 class EmptyDataError(ValueError):
     """
     Exception raised in ``pd.read_csv`` when empty data or header is encountered.
+
+    Examples
+    --------
+    >>> from io import StringIO
+    >>> empty = StringIO()
+    >>> pd.read_csv(empty)
+    Traceback (most recent call last):
+    EmptyDataError: No columns to parse from file
     """
 
 
@@ -171,18 +255,40 @@ class MergeError(ValueError):
     Exception raised when merging data.
 
     Subclass of ``ValueError``.
-    """
 
-
-class AccessorRegistrationWarning(Warning):
-    """
-    Warning for attribute conflicts in accessor registration.
+    Examples
+    --------
+    >>> left = pd.DataFrame({"a": ["a", "b", "b", "d"],
+    ...                     "b": ["cat", "dog", "weasel", "horse"]},
+    ...                     index=range(4))
+    >>> right = pd.DataFrame({"a": ["a", "b", "c", "d"],
+    ...                      "c": ["meow", "bark", "chirp", "nay"]},
+    ...                      index=range(4)).set_index("a")
+    >>> left.join(right, on="a", validate="one_to_one",)
+    Traceback (most recent call last):
+    MergeError: Merge keys are not unique in left dataset; not a one-to-one merge
     """
 
 
 class AbstractMethodError(NotImplementedError):
     """
     Raise this error instead of NotImplementedError for abstract methods.
+
+    Examples
+    --------
+    >>> class Foo:
+    ...     @classmethod
+    ...     def classmethod(cls):
+    ...         raise pd.errors.AbstractMethodError(cls, methodtype="classmethod")
+    ...     def method(self):
+    ...         raise pd.errors.AbstractMethodError(self)
+    >>> test = Foo.classmethod()
+    Traceback (most recent call last):
+    AbstractMethodError: This classmethod must be defined in the concrete class Foo
+
+    >>> test2 = Foo().method()
+    Traceback (most recent call last):
+    AbstractMethodError: This classmethod must be defined in the concrete class Foo
     """
 
     def __init__(self, class_instance, methodtype: str = "method") -> None:
@@ -205,14 +311,23 @@ class AbstractMethodError(NotImplementedError):
 class NumbaUtilError(Exception):
     """
     Error raised for unsupported Numba engine routines.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"key": ["a", "a", "b", "b"], "data": [1, 2, 3, 4]},
+    ...                   columns=["key", "data"])
+    >>> def incorrect_function(x):
+    ...     return sum(x) * 2.7
+    >>> df.groupby("key").agg(incorrect_function, engine="numba")
+    Traceback (most recent call last):
+    NumbaUtilError: The first 2 arguments to incorrect_function
+    must be ['values', 'index']
     """
 
 
 class DuplicateLabelError(ValueError):
     """
     Error raised when an operation would introduce duplicate labels.
-
-    .. versionadded:: 1.2.0
 
     Examples
     --------
@@ -233,7 +348,19 @@ class InvalidIndexError(Exception):
     """
     Exception raised when attempting to use an invalid index key.
 
-    .. versionadded:: 1.1.0
+    Examples
+    --------
+    >>> idx = pd.MultiIndex.from_product([["x", "y"], [0, 1]])
+    >>> df = pd.DataFrame([[1, 1, 2, 2],
+    ...                   [3, 3, 4, 4]], columns=idx)
+    >>> df
+        x       y
+        0   1   0   1
+    0   1   1   2   2
+    1   3   3   4   4
+    >>> df[:, 0]
+    Traceback (most recent call last):
+    InvalidIndexError: (slice(None, None, None), 0)
     """
 
 
@@ -243,6 +370,13 @@ class DataError(Exception):
 
     For example, calling ``ohlc`` on a non-numerical column or a function
     on a rolling window.
+
+    Examples
+    --------
+    >>> ser = pd.Series(['a', 'b', 'c'])
+    >>> ser.rolling(2).sum()
+    Traceback (most recent call last):
+    DataError: No numeric types to aggregate
     """
 
 
@@ -281,7 +415,7 @@ class SettingWithCopyError(ValueError):
     The ``mode.chained_assignment`` needs to be set to set to 'raise.' This can
     happen unintentionally when chained indexing.
 
-    For more information on eveluation order,
+    For more information on evaluation order,
     see :ref:`the user guide<indexing.evaluation_order>`.
 
     For more information on view vs. copy,
@@ -304,7 +438,7 @@ class SettingWithCopyWarning(Warning):
     'Warn' is the default option. This can happen unintentionally when
     chained indexing.
 
-    For more information on eveluation order,
+    For more information on evaluation order,
     see :ref:`the user guide<indexing.evaluation_order>`.
 
     For more information on view vs. copy,
@@ -316,6 +450,104 @@ class SettingWithCopyWarning(Warning):
     >>> df.loc[0:3]['A'] = 'a' # doctest: +SKIP
     ... # SettingWithCopyWarning: A value is trying to be set on a copy of a...
     """
+
+
+class ChainedAssignmentError(Warning):
+    """
+    Warning raised when trying to set using chained assignment.
+
+    When the ``mode.copy_on_write`` option is enabled, chained assignment can
+    never work. In such a situation, we are always setting into a temporary
+    object that is the result of an indexing operation (getitem), which under
+    Copy-on-Write always behaves as a copy. Thus, assigning through a chain
+    can never update the original Series or DataFrame.
+
+    For more information on view vs. copy,
+    see :ref:`the user guide<indexing.view_versus_copy>`.
+
+    Examples
+    --------
+    >>> pd.options.mode.copy_on_write = True
+    >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2]}, columns=['A'])
+    >>> df["A"][0:3] = 10 # doctest: +SKIP
+    ... # ChainedAssignmentError: ...
+    >>> pd.options.mode.copy_on_write = False
+    """
+
+
+_chained_assignment_msg = (
+    "A value is trying to be set on a copy of a DataFrame or Series "
+    "through chained assignment.\n"
+    "When using the Copy-on-Write mode, such chained assignment never works "
+    "to update the original DataFrame or Series, because the intermediate "
+    "object on which we are setting values always behaves as a copy.\n\n"
+    "Try using '.loc[row_indexer, col_indexer] = value' instead, to perform "
+    "the assignment in a single step.\n\n"
+    "See the caveats in the documentation: "
+    "https://pandas.pydata.org/pandas-docs/stable/user_guide/"
+    "indexing.html#returning-a-view-versus-a-copy"
+)
+
+
+_chained_assignment_method_msg = (
+    "A value is trying to be set on a copy of a DataFrame or Series "
+    "through chained assignment using an inplace method.\n"
+    "When using the Copy-on-Write mode, such inplace method never works "
+    "to update the original DataFrame or Series, because the intermediate "
+    "object on which we are setting values always behaves as a copy.\n\n"
+    "For example, when doing 'df[col].method(value, inplace=True)', try "
+    "using 'df.method({col: value}, inplace=True)' instead, to perform "
+    "the operation inplace on the original object.\n\n"
+)
+
+
+_chained_assignment_warning_msg = (
+    "ChainedAssignmentError: behaviour will change in pandas 3.0!\n"
+    "You are setting values through chained assignment. Currently this works "
+    "in certain cases, but when using Copy-on-Write (which will become the "
+    "default behaviour in pandas 3.0) this will never work to update the "
+    "original DataFrame or Series, because the intermediate object on which "
+    "we are setting values will behave as a copy.\n"
+    "A typical example is when you are setting values in a column of a "
+    "DataFrame, like:\n\n"
+    'df["col"][row_indexer] = value\n\n'
+    'Use `df.loc[row_indexer, "col"] = values` instead, to perform the '
+    "assignment in a single step and ensure this keeps updating the original `df`.\n\n"
+    "See the caveats in the documentation: "
+    "https://pandas.pydata.org/pandas-docs/stable/user_guide/"
+    "indexing.html#returning-a-view-versus-a-copy\n"
+)
+
+
+_chained_assignment_warning_method_msg = (
+    "A value is trying to be set on a copy of a DataFrame or Series "
+    "through chained assignment using an inplace method.\n"
+    "The behavior will change in pandas 3.0. This inplace method will "
+    "never work because the intermediate object on which we are setting "
+    "values always behaves as a copy.\n\n"
+    "For example, when doing 'df[col].method(value, inplace=True)', try "
+    "using 'df.method({col: value}, inplace=True)' or "
+    "df[col] = df[col].method(value) instead, to perform "
+    "the operation inplace on the original object.\n\n"
+)
+
+
+def _check_cacher(obj):
+    # This is a mess, selection paths that return a view set the _cacher attribute
+    # on the Series; most of them also set _item_cache which adds 1 to our relevant
+    # reference count, but iloc does not, so we have to check if we are actually
+    # in the item cache
+    if hasattr(obj, "_cacher"):
+        parent = obj._cacher[1]()
+        # parent could be dead
+        if parent is None:
+            return False
+        if hasattr(parent, "_item_cache"):
+            if obj._cacher[0] in parent._item_cache:
+                # Check if we are actually the item from item_cache, iloc creates a
+                # new object
+                return obj is parent._item_cache[obj._cacher[0]]
+    return False
 
 
 class NumExprClobberingError(NameError):
@@ -416,12 +648,14 @@ class CSSWarning(UserWarning):
     Examples
     --------
     >>> df = pd.DataFrame({'A': [1, 1, 1]})
-    >>> df.style.applymap(lambda x: 'background-color: blueGreenRed;')
-    ...         .to_excel('styled.xlsx') # doctest: +SKIP
-    ... # CSSWarning: Unhandled color format: 'blueGreenRed'
-    >>> df.style.applymap(lambda x: 'border: 1px solid red red;')
-    ...         .to_excel('styled.xlsx') # doctest: +SKIP
-    ... # CSSWarning: Too many tokens provided to "border" (expected 1-3)
+    >>> df.style.applymap(
+    ...     lambda x: 'background-color: blueGreenRed;'
+    ... ).to_excel('styled.xlsx')  # doctest: +SKIP
+    CSSWarning: Unhandled color format: 'blueGreenRed'
+    >>> df.style.applymap(
+    ...     lambda x: 'border: 1px solid red red;'
+    ... ).to_excel('styled.xlsx')  # doctest: +SKIP
+    CSSWarning: Unhandled color format: 'blueGreenRed'
     """
 
 
@@ -463,6 +697,17 @@ class AttributeConflictWarning(Warning):
     Occurs when attempting to append an index with a different
     name than the existing index on an HDFStore or attempting to append an index with a
     different frequency than the existing index on an HDFStore.
+
+    Examples
+    --------
+    >>> idx1 = pd.Index(['a', 'b'], name='name1')
+    >>> df1 = pd.DataFrame([[1, 2], [3, 4]], index=idx1)
+    >>> df1.to_hdf('file', 'data', 'w', append=True)  # doctest: +SKIP
+    >>> idx2 = pd.Index(['c', 'd'], name='name2')
+    >>> df2 = pd.DataFrame([[5, 6], [7, 8]], index=idx2)
+    >>> df2.to_hdf('file', 'data', 'a', append=True)  # doctest: +SKIP
+    AttributeConflictWarning: the [index_name] attribute of the existing index is
+    [name1] which conflicts with the new [name2]...
     """
 
 
@@ -530,14 +775,39 @@ class CategoricalConversionWarning(Warning):
     >>> from pandas.io.stata import StataReader
     >>> with StataReader('dta_file', chunksize=2) as reader: # doctest: +SKIP
     ...   for i, block in enumerate(reader):
-    ...      print(i, block))
+    ...      print(i, block)
     ... # CategoricalConversionWarning: One or more series with value labels...
+    """
+
+
+class LossySetitemError(Exception):
+    """
+    Raised when trying to do a __setitem__ on an np.ndarray that is not lossless.
+
+    Notes
+    -----
+    This is an internal error.
+    """
+
+
+class NoBufferPresent(Exception):
+    """
+    Exception is raised in _get_data_buffer to signal that there is no requested buffer.
+    """
+
+
+class InvalidComparison(Exception):
+    """
+    Exception is raised by _validate_comparison_value to indicate an invalid comparison.
+
+    Notes
+    -----
+    This is an internal error.
     """
 
 
 __all__ = [
     "AbstractMethodError",
-    "AccessorRegistrationWarning",
     "AttributeConflictWarning",
     "CategoricalConversionWarning",
     "ClosedFileError",
@@ -550,9 +820,13 @@ __all__ = [
     "IncompatibilityWarning",
     "IntCastingNaNError",
     "InvalidColumnName",
+    "InvalidComparison",
     "InvalidIndexError",
+    "InvalidVersion",
     "IndexingError",
+    "LossySetitemError",
     "MergeError",
+    "NoBufferPresent",
     "NullFrequencyError",
     "NumbaUtilError",
     "NumExprClobberingError",

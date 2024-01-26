@@ -13,16 +13,28 @@ classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import numpy as np
 import pytest
 
-from pandas._libs import iNaT
+from pandas._libs import (
+    Period,
+    iNaT,
+)
+from pandas.compat import is_platform_windows
+from pandas.compat.numpy import np_version_gte1p24
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
-import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays import PeriodArray
 from pandas.tests.extension import base
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 
 @pytest.fixture(params=["D", "2D"])
@@ -32,27 +44,22 @@ def dtype(request):
 
 @pytest.fixture
 def data(dtype):
-    return PeriodArray(np.arange(1970, 2070), freq=dtype.freq)
-
-
-@pytest.fixture
-def data_for_twos(dtype):
-    return PeriodArray(np.ones(100) * 2, freq=dtype.freq)
+    return PeriodArray(np.arange(1970, 2070), dtype=dtype)
 
 
 @pytest.fixture
 def data_for_sorting(dtype):
-    return PeriodArray([2018, 2019, 2017], freq=dtype.freq)
+    return PeriodArray([2018, 2019, 2017], dtype=dtype)
 
 
 @pytest.fixture
 def data_missing(dtype):
-    return PeriodArray([iNaT, 2017], freq=dtype.freq)
+    return PeriodArray([iNaT, 2017], dtype=dtype)
 
 
 @pytest.fixture
 def data_missing_for_sorting(dtype):
-    return PeriodArray([2018, iNaT, 2017], freq=dtype.freq)
+    return PeriodArray([2018, iNaT, 2017], dtype=dtype)
 
 
 @pytest.fixture
@@ -61,131 +68,52 @@ def data_for_grouping(dtype):
     NA = iNaT
     A = 2017
     C = 2019
-    return PeriodArray([B, B, NA, NA, A, A, B, C], freq=dtype.freq)
+    return PeriodArray([B, B, NA, NA, A, A, B, C], dtype=dtype)
 
 
-@pytest.fixture
-def na_value():
-    return pd.NaT
+class TestPeriodArray(base.ExtensionTests):
+    def _get_expected_exception(self, op_name, obj, other):
+        if op_name in ("__sub__", "__rsub__"):
+            return None
+        return super()._get_expected_exception(op_name, obj, other)
 
+    def _supports_accumulation(self, ser, op_name: str) -> bool:
+        return op_name in ["cummin", "cummax"]
 
-class BasePeriodTests:
-    pass
+    def _supports_reduction(self, obj, op_name: str) -> bool:
+        return op_name in ["min", "max", "median"]
 
+    def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
+        if op_name == "median":
+            res_op = getattr(ser, op_name)
 
-class TestPeriodDtype(BasePeriodTests, base.BaseDtypeTests):
-    pass
+            alt = ser.astype("int64")
 
+            exp_op = getattr(alt, op_name)
+            result = res_op(skipna=skipna)
+            expected = exp_op(skipna=skipna)
+            # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has no
+            # attribute "freq"
+            freq = ser.dtype.freq  # type: ignore[union-attr]
+            expected = Period._from_ordinal(int(expected), freq=freq)
+            tm.assert_almost_equal(result, expected)
 
-class TestConstructors(BasePeriodTests, base.BaseConstructorsTests):
-    pass
-
-
-class TestGetitem(BasePeriodTests, base.BaseGetitemTests):
-    pass
-
-
-class TestIndex(base.BaseIndexTests):
-    pass
-
-
-class TestMethods(BasePeriodTests, base.BaseMethodsTests):
-    def test_combine_add(self, data_repeated):
-        # Period + Period is not defined.
-        pass
-
-
-class TestInterface(BasePeriodTests, base.BaseInterfaceTests):
-
-    pass
-
-
-class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
-    implements = {"__sub__", "__rsub__"}
-
-    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
-        # frame & scalar
-        if all_arithmetic_operators in self.implements:
-            df = pd.DataFrame({"A": data})
-            self.check_opname(df, all_arithmetic_operators, data[0], exc=None)
         else:
-            # ... but not the rest.
-            super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
+            return super().check_reduce(ser, op_name, skipna)
 
-    def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
-        # we implement substitution...
-        if all_arithmetic_operators in self.implements:
-            s = pd.Series(data)
-            self.check_opname(s, all_arithmetic_operators, s.iloc[0], exc=None)
+    @pytest.mark.parametrize("periods", [1, -2])
+    def test_diff(self, data, periods):
+        if is_platform_windows() and np_version_gte1p24:
+            with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
+                super().test_diff(data, periods)
         else:
-            # ... but not the rest.
-            super().test_arith_series_with_scalar(data, all_arithmetic_operators)
+            super().test_diff(data, periods)
 
-    def test_arith_series_with_array(self, data, all_arithmetic_operators):
-        if all_arithmetic_operators in self.implements:
-            s = pd.Series(data)
-            self.check_opname(s, all_arithmetic_operators, s.iloc[0], exc=None)
-        else:
-            # ... but not the rest.
-            super().test_arith_series_with_scalar(data, all_arithmetic_operators)
-
-    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
-        super()._check_divmod_op(s, op, other, exc=TypeError)
-
-    def test_add_series_with_extension_array(self, data):
-        # we don't implement + for Period
-        s = pd.Series(data)
-        msg = (
-            r"unsupported operand type\(s\) for \+: "
-            r"\'PeriodArray\' and \'PeriodArray\'"
-        )
-        with pytest.raises(TypeError, match=msg):
-            s + data
-
-    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
-    def test_direct_arith_with_ndframe_returns_not_implemented(self, data, box):
-        # Override to use __sub__ instead of __add__
-        other = pd.Series(data)
-        if box is pd.DataFrame:
-            other = other.to_frame()
-
-        result = data.__sub__(other)
-        assert result is NotImplemented
+    @pytest.mark.parametrize("na_action", [None, "ignore"])
+    def test_map(self, data, na_action):
+        result = data.map(lambda x: x, na_action=na_action)
+        tm.assert_extension_array_equal(result, data)
 
 
-class TestCasting(BasePeriodTests, base.BaseCastingTests):
-    pass
-
-
-class TestComparisonOps(BasePeriodTests, base.BaseComparisonOpsTests):
-    pass
-
-
-class TestMissing(BasePeriodTests, base.BaseMissingTests):
-    pass
-
-
-class TestReshaping(BasePeriodTests, base.BaseReshapingTests):
-    pass
-
-
-class TestSetitem(BasePeriodTests, base.BaseSetitemTests):
-    pass
-
-
-class TestGroupby(BasePeriodTests, base.BaseGroupbyTests):
-    pass
-
-
-class TestPrinting(BasePeriodTests, base.BasePrintingTests):
-    pass
-
-
-class TestParsing(BasePeriodTests, base.BaseParsingTests):
-    @pytest.mark.parametrize("engine", ["c", "python"])
-    def test_EA_types(self, engine, data):
-        super().test_EA_types(engine, data)
-
-
-class Test2DCompat(BasePeriodTests, base.NDArrayBacked2DTests):
+class Test2DCompat(base.NDArrayBacked2DTests):
     pass

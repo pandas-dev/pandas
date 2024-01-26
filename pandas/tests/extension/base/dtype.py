@@ -1,18 +1,16 @@
-import warnings
-
 import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.api.types import (
     infer_dtype,
     is_object_dtype,
     is_string_dtype,
 )
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseDtypeTests(BaseExtensionTests):
+class BaseDtypeTests:
     """Base class for ExtensionDtype classes"""
 
     def test_name(self, dtype):
@@ -21,14 +19,6 @@ class BaseDtypeTests(BaseExtensionTests):
     def test_kind(self, dtype):
         valid = set("biufcmMOSUV")
         assert dtype.kind in valid
-
-    def test_construct_from_string_own_name(self, dtype):
-        result = dtype.construct_from_string(dtype.name)
-        assert type(result) is type(dtype)
-
-        # check OK as classmethod
-        result = type(dtype).construct_from_string(dtype.name)
-        assert type(result) is type(dtype)
 
     def test_is_dtype_from_name(self, dtype):
         result = type(dtype).is_dtype(dtype.name)
@@ -45,10 +35,10 @@ class BaseDtypeTests(BaseExtensionTests):
         assert dtype.is_dtype([1, 2, 3]) is False
 
     def test_is_not_string_type(self, dtype):
-        return not is_string_dtype(dtype)
+        assert not is_string_dtype(dtype)
 
     def test_is_not_object_type(self, dtype):
-        return not is_object_dtype(dtype)
+        assert not is_object_dtype(dtype)
 
     def test_eq_with_str(self, dtype):
         assert dtype == dtype.name
@@ -69,31 +59,23 @@ class BaseDtypeTests(BaseExtensionTests):
 
         # check equivalency for using .dtypes
         df = pd.DataFrame(
-            {"A": pd.Series(data, dtype=dtype), "B": data, "C": "foo", "D": 1}
+            {
+                "A": pd.Series(data, dtype=dtype),
+                "B": data,
+                "C": pd.Series(["foo"] * len(data), dtype=object),
+                "D": 1,
+            }
         )
+        result = df.dtypes == str(dtype)
+        assert np.dtype("int64") != "Int64"
 
-        # TODO(numpy-1.20): This warnings filter and if block can be removed
-        # once we require numpy>=1.20
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            result = df.dtypes == str(dtype)
-            # NumPy>=1.20.0, but not pandas.compat.numpy till there
-            # is a wheel available with this change.
-            try:
-                new_numpy_behavior = np.dtype("int64") != "Int64"
-            except TypeError:
-                new_numpy_behavior = True
+        expected = pd.Series([True, True, False, False], index=list("ABCD"))
 
-        if dtype.name == "Int64" and not new_numpy_behavior:
-            expected = pd.Series([True, True, False, True], index=list("ABCD"))
-        else:
-            expected = pd.Series([True, True, False, False], index=list("ABCD"))
-
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         expected = pd.Series([True, True, False, False], index=list("ABCD"))
         result = df.dtypes.apply(str) == str(dtype)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_hashable(self, dtype):
         hash(dtype)  # no error
@@ -105,9 +87,13 @@ class BaseDtypeTests(BaseExtensionTests):
         assert dtype == dtype.name
         assert dtype != "anonther_type"
 
-    def test_construct_from_string(self, dtype):
-        dtype_instance = type(dtype).construct_from_string(dtype.name)
-        assert isinstance(dtype_instance, type(dtype))
+    def test_construct_from_string_own_name(self, dtype):
+        result = dtype.construct_from_string(dtype.name)
+        assert type(result) is type(dtype)
+
+        # check OK as classmethod
+        result = type(dtype).construct_from_string(dtype.name)
+        assert type(result) is type(dtype)
 
     def test_construct_from_string_another_type_raises(self, dtype):
         msg = f"Cannot construct a '{type(dtype).__name__}' from 'another_type'"

@@ -34,11 +34,16 @@ scalar, Series or DataFrame
     * scalar : when Series.agg is called with single function
     * Series : when DataFrame.agg is called with a single function
     * DataFrame : when DataFrame.agg is called with several functions
-
-    Return scalar, Series or DataFrame.
 {see_also}
 Notes
 -----
+The aggregation operations are always performed over an axis, either the
+index (default) or the column axis. This behavior is different from
+`numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
+`var`), where the default is to compute the aggregation of the flattened
+array, e.g., ``numpy.mean(arr_2d)`` as opposed to
+``numpy.mean(arr_2d, axis=0)``.
+
 `agg` is an alias for `aggregate`. Use the alias.
 
 Functions that mutate the passed object can produce unexpected
@@ -52,8 +57,6 @@ _shared_docs[
     "compare"
 ] = """
 Compare to another {klass} and show the differences.
-
-.. versionadded:: 1.1.0
 
 Parameters
 ----------
@@ -94,7 +97,7 @@ groups.
 
 Parameters
 ----------
-by : mapping, function, label, or list of labels
+by : mapping, function, label, pd.Grouper or list of such
     Used to determine the groups for the groupby.
     If ``by`` is a function, it's called on each value of the object's
     index. If a dict or Series is passed, the Series or dict VALUES
@@ -108,51 +111,75 @@ by : mapping, function, label, or list of labels
 axis : {0 or 'index', 1 or 'columns'}, default 0
     Split along rows (0) or columns (1). For `Series` this parameter
     is unused and defaults to 0.
+
+    .. deprecated:: 2.1.0
+
+        Will be removed and behave like axis=0 in a future version.
+        For ``axis=1``, do ``frame.T.groupby(...)`` instead.
+
 level : int, level name, or sequence of such, default None
     If the axis is a MultiIndex (hierarchical), group by a particular
     level or levels. Do not specify both ``by`` and ``level``.
 as_index : bool, default True
-    For aggregated output, return object with group labels as the
+    Return object with group labels as the
     index. Only relevant for DataFrame input. as_index=False is
-    effectively "SQL-style" grouped output.
+    effectively "SQL-style" grouped output. This argument has no effect
+    on filtrations (see the `filtrations in the user guide
+    <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
+    such as ``head()``, ``tail()``, ``nth()`` and in transformations
+    (see the `transformations in the user guide
+    <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
 sort : bool, default True
     Sort group keys. Get better performance by turning this off.
     Note this does not influence the order of observations within each
-    group. Groupby preserves the order of rows within each group.
-group_keys : bool, optional
+    group. Groupby preserves the order of rows within each group. If False,
+    the groups will appear in the same order as they did in the original DataFrame.
+    This argument has no effect on filtrations (see the `filtrations in the user guide
+    <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
+    such as ``head()``, ``tail()``, ``nth()`` and in transformations
+    (see the `transformations in the user guide
+    <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
+
+    .. versionchanged:: 2.0.0
+
+        Specifying ``sort=False`` with an ordered categorical grouper will no
+        longer sort the values.
+
+group_keys : bool, default True
     When calling apply and the ``by`` argument produces a like-indexed
     (i.e. :ref:`a transform <groupby.transform>`) result, add group keys to
     index to identify pieces. By default group keys are not included
     when the result's index (and column) labels match the inputs, and
-    are included otherwise. This argument has no effect if the result produced
-    is not like-indexed with respect to the input.
+    are included otherwise.
 
     .. versionchanged:: 1.5.0
 
-       Warns that `group_keys` will no longer be ignored when the
+       Warns that ``group_keys`` will no longer be ignored when the
        result from ``apply`` is a like-indexed Series or DataFrame.
        Specify ``group_keys`` explicitly to include the group keys or
        not.
-squeeze : bool, default False
-    Reduce the dimensionality of the return type if possible,
-    otherwise return a consistent type.
 
-    .. deprecated:: 1.1.0
+    .. versionchanged:: 2.0.0
+
+       ``group_keys`` now defaults to ``True``.
 
 observed : bool, default False
     This only applies if any of the groupers are Categoricals.
     If True: only show observed values for categorical groupers.
     If False: show all values for categorical groupers.
+
+    .. deprecated:: 2.1.0
+
+        The default value will change to True in a future version of pandas.
+
 dropna : bool, default True
     If True, and if group keys contain NA values, NA values together
     with row/column will be dropped.
     If False, NA values will also be treated as the key in groups.
 
-    .. versionadded:: 1.1.0
-
 Returns
 -------
-%(klass)sGroupBy
+pandas.api.typing.%(klass)sGroupBy
     Returns a groupby object that contains information about the groups.
 
 See Also
@@ -181,23 +208,21 @@ the row axis, leaving just two non-identifier columns, 'variable' and
 
 Parameters
 ----------
-id_vars : tuple, list, or ndarray, optional
+id_vars : scalar, tuple, list, or ndarray, optional
     Column(s) to use as identifier variables.
-value_vars : tuple, list, or ndarray, optional
+value_vars : scalar, tuple, list, or ndarray, optional
     Column(s) to unpivot. If not specified, uses all columns that
     are not set as `id_vars`.
-var_name : scalar
+var_name : scalar, default None
     Name to use for the 'variable' column. If None it uses
     ``frame.columns.name`` or 'variable'.
 value_name : scalar, default 'value'
-    Name to use for the 'value' column.
-col_level : int or str, optional
+    Name to use for the 'value' column, can't be an existing column label.
+col_level : scalar, optional
     If columns are a MultiIndex then use this level to melt.
 ignore_index : bool, default True
     If True, original index is ignored. If False, the original index is retained.
     Index labels will be repeated as necessary.
-
-    .. versionadded:: 1.1.0
 
 Returns
 -------
@@ -434,17 +459,17 @@ _shared_docs[
     (otherwise no compression).
     Set to ``None`` for no compression.
     Can also be a dict with key ``'method'`` set
-    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'tar'``} and other
-    key-value pairs are forwarded to
+    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
+    other key-value pairs are forwarded to
     ``zipfile.ZipFile``, ``gzip.GzipFile``,
-    ``bz2.BZ2File``, ``zstandard.ZstdCompressor`` or
+    ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
     ``tarfile.TarFile``, respectively.
     As an example, the following could be passed for faster compression and to create
     a reproducible gzip archive:
     ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files."""
+    .. versionadded:: 1.5.0
+        Added support for `.tar` files."""
 
 _shared_docs[
     "decompression_options"
@@ -456,17 +481,17 @@ _shared_docs[
     If using 'zip' or 'tar', the ZIP file must contain only one data file to be read in.
     Set to ``None`` for no decompression.
     Can also be a dict with key ``'method'`` set
-    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'tar'``} and other
-    key-value pairs are forwarded to
+    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
+    other key-value pairs are forwarded to
     ``zipfile.ZipFile``, ``gzip.GzipFile``,
-    ``bz2.BZ2File``, ``zstandard.ZstdDecompressor`` or
+    ``bz2.BZ2File``, ``zstandard.ZstdDecompressor``, ``lzma.LZMAFile`` or
     ``tarfile.TarFile``, respectively.
     As an example, the following could be passed for Zstandard decompression using a
     custom compression dictionary:
     ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
 
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files."""
+    .. versionadded:: 1.5.0
+        Added support for `.tar` files."""
 
 _shared_docs[
     "replace"
@@ -474,7 +499,8 @@ _shared_docs[
     Replace values given in `to_replace` with `value`.
 
     Values of the {klass} are replaced with other values dynamically.
-    {replace_iloc}
+    This differs from updating with ``.loc`` or ``.iloc``, which require
+    you to specify a location to update with some value.
 
     Parameters
     ----------
@@ -540,18 +566,18 @@ _shared_docs[
     {inplace}
     limit : int, default None
         Maximum size gap to forward or backward fill.
+
+        .. deprecated:: 2.1.0
     regex : bool or same types as `to_replace`, default False
         Whether to interpret `to_replace` and/or `value` as regular
-        expressions. If this is ``True`` then `to_replace` *must* be a
-        string. Alternatively, this could be a regular expression or a
+        expressions. Alternatively, this could be a regular expression or a
         list, dict, or array of regular expressions in which case
         `to_replace` must be ``None``.
     method : {{'pad', 'ffill', 'bfill'}}
         The method to use when for replacement, when `to_replace` is a
         scalar, list or tuple and `value` is ``None``.
 
-        .. versionchanged:: 0.23.0
-            Added to DataFrame.
+        .. deprecated:: 2.1.0
 
     Returns
     -------
@@ -581,8 +607,12 @@ _shared_docs[
 
     See Also
     --------
-    {klass}.fillna : Fill NA values.
-    {klass}.where : Replace values based on boolean condition.
+    Series.fillna : Fill NA values.
+    DataFrame.fillna : Fill NA values.
+    Series.where : Replace values based on boolean condition.
+    DataFrame.where : Replace values based on boolean condition.
+    DataFrame.map: Apply a function to a Dataframe elementwise.
+    Series.map: Map values of Series according to an input mapping or function.
     Series.str.replace : Simple string replacement.
 
     Notes
@@ -743,6 +773,9 @@ _shared_docs[
     4     b
     dtype: object
 
+        .. deprecated:: 2.1.0
+            The 'method' parameter and padding behavior are deprecated.
+
     On the other hand, if ``None`` is explicitly passed for ``value``, it will
     be respected:
 
@@ -756,6 +789,32 @@ _shared_docs[
 
         .. versionchanged:: 1.4.0
             Previously the explicit ``None`` was silently ignored.
+
+    When ``regex=True``, ``value`` is not ``None`` and `to_replace` is a string,
+    the replacement will be applied in all columns of the DataFrame.
+
+    >>> df = pd.DataFrame({{'A': [0, 1, 2, 3, 4],
+    ...                    'B': ['a', 'b', 'c', 'd', 'e'],
+    ...                    'C': ['f', 'g', 'h', 'i', 'j']}})
+
+    >>> df.replace(to_replace='^[a-g]', value='e', regex=True)
+        A  B  C
+    0  0  e  e
+    1  1  e  e
+    2  2  e  h
+    3  3  e  i
+    4  4  e  j
+
+    If ``value`` is not ``None`` and `to_replace` is a dictionary, the dictionary
+    keys will be the DataFrame columns that the replacement will be applied.
+
+    >>> df.replace(to_replace={{'B': '^[a-c]', 'C': '^[h-j]'}}, value='e', regex=True)
+        A  B  C
+    0  0  e  f
+    1  1  e  g
+    2  2  e  e
+    3  3  d  e
+    4  4  e  e
 """
 
 _shared_docs[
@@ -800,8 +859,8 @@ _shared_docs[
     Consider a dataset containing food consumption in Argentina.
 
     >>> df = pd.DataFrame({{'consumption': [10.51, 103.11, 55.48],
-    ...                    'co2_emissions': [37.2, 19.66, 1712]}},
-    ...                    index=['Pork', 'Wheat Products', 'Beef'])
+    ...                     'co2_emissions': [37.2, 19.66, 1712]}},
+    ...                   index=['Pork', 'Wheat Products', 'Beef'])
 
     >>> df
                     consumption  co2_emissions
@@ -867,8 +926,8 @@ _shared_docs[
     Consider a dataset containing food consumption in Argentina.
 
     >>> df = pd.DataFrame({{'consumption': [10.51, 103.11, 55.48],
-    ...                    'co2_emissions': [37.2, 19.66, 1712]}},
-    ...                    index=['Pork', 'Wheat Products', 'Beef'])
+    ...                     'co2_emissions': [37.2, 19.66, 1712]}},
+    ...                   index=['Pork', 'Wheat Products', 'Beef'])
 
     >>> df
                     consumption  co2_emissions

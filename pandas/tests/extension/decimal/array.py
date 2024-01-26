@@ -2,17 +2,16 @@ from __future__ import annotations
 
 import decimal
 import numbers
-import random
 import sys
+from typing import TYPE_CHECKING
 
 import numpy as np
-
-from pandas._typing import type_t
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_float,
+    is_integer,
     pandas_dtype,
 )
 
@@ -26,12 +25,16 @@ from pandas.api.types import (
     is_scalar,
 )
 from pandas.core import arraylike
+from pandas.core.algorithms import value_counts_internal as value_counts
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
     ExtensionArray,
     ExtensionScalarOpsMixin,
 )
 from pandas.core.indexers import check_array_indexer
+
+if TYPE_CHECKING:
+    from pandas._typing import type_t
 
 
 @register_extension_dtype
@@ -68,11 +71,14 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
 
     def __init__(self, values, dtype=None, copy=False, context=None) -> None:
         for i, val in enumerate(values):
-            if is_float(val):
+            if is_float(val) or is_integer(val):
                 if np.isnan(val):
                     values[i] = DecimalDtype.na_value
                 else:
-                    values[i] = DecimalDtype.type(val)
+                    # error: Argument 1 has incompatible type "float | int |
+                    # integer[Any]"; expected "Decimal | float | str | tuple[int,
+                    # Sequence[int], int]"
+                    values[i] = DecimalDtype.type(val)  # type: ignore[arg-type]
             elif not isinstance(val, decimal.Decimal):
                 raise TypeError("All values must be of type " + str(decimal.Decimal))
         values = np.asarray(values, dtype=object)
@@ -91,12 +97,14 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         return self._dtype
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
         return cls(scalars)
 
     @classmethod
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
-        return cls._from_sequence([decimal.Decimal(x) for x in strings], dtype, copy)
+        return cls._from_sequence(
+            [decimal.Decimal(x) for x in strings], dtype=dtype, copy=copy
+        )
 
     @classmethod
     def _from_factorized(cls, values, original):
@@ -149,7 +157,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
             if isinstance(x, (decimal.Decimal, numbers.Number)):
                 return x
             else:
-                return DecimalArray._from_sequence(x)
+                return type(self)._from_sequence(x, dtype=self.dtype)
 
         if ufunc.nout > 1:
             return tuple(reconstruct(x) for x in result)
@@ -172,7 +180,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
             fill_value = self.dtype.na_value
 
         result = take(data, indexer, fill_value=fill_value, allow_fill=allow_fill)
-        return self._from_sequence(result)
+        return self._from_sequence(result, dtype=self.dtype)
 
     def copy(self):
         return type(self)(self._data.copy(), dtype=self.dtype)
@@ -187,7 +195,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
 
         return super().astype(dtype, copy=copy)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         if is_list_like(value):
             if is_scalar(key):
                 raise ValueError("setting an array element with a sequence.")
@@ -232,25 +240,29 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     def _concat_same_type(cls, to_concat):
         return cls(np.concatenate([x._data for x in to_concat]))
 
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
-
-        if skipna:
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
+        if skipna and self.isna().any():
             # If we don't have any NAs, we can ignore skipna
-            if self.isna().any():
-                other = self[~self.isna()]
-                return other._reduce(name, **kwargs)
-
-        if name == "sum" and len(self) == 0:
+            other = self[~self.isna()]
+            result = other._reduce(name, **kwargs)
+        elif name == "sum" and len(self) == 0:
             # GH#29630 avoid returning int 0 or np.bool_(False) on old numpy
-            return decimal.Decimal(0)
+            result = decimal.Decimal(0)
+        else:
+            try:
+                op = getattr(self.data, name)
+            except AttributeError as err:
+                raise NotImplementedError(
+                    f"decimal does not support the {name} operation"
+                ) from err
+            result = op(axis=0)
 
-        try:
-            op = getattr(self.data, name)
-        except AttributeError as err:
-            raise NotImplementedError(
-                f"decimal does not support the {name} operation"
-            ) from err
-        return op(axis=0)
+        if keepdims:
+            return type(self)([result])
+        else:
+            return result
 
     def _cmp_method(self, other, op):
         # For use with OpsMixin
@@ -272,9 +284,20 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         return np.asarray(res, dtype=bool)
 
     def value_counts(self, dropna: bool = True):
-        from pandas.core.algorithms import value_counts
-
         return value_counts(self.to_numpy(), dropna=dropna)
+
+    # We override fillna here to simulate a 3rd party EA that has done so. This
+    #  lets us test the deprecation telling authors to implement _pad_or_backfill
+    # Simulate a 3rd-party EA that has not yet updated to include a "copy"
+    #  keyword in its fillna method.
+    # error: Signature of "fillna" incompatible with supertype "ExtensionArray"
+    def fillna(  # type: ignore[override]
+        self,
+        value=None,
+        method=None,
+        limit: int | None = None,
+    ):
+        return super().fillna(value=value, method=method, limit=limit, copy=True)
 
 
 def to_decimal(values, context=None):
@@ -282,7 +305,7 @@ def to_decimal(values, context=None):
 
 
 def make_data():
-    return [decimal.Decimal(random.random()) for _ in range(100)]
+    return [decimal.Decimal(val) for val in np.random.default_rng(2).random(100)]
 
 
 DecimalArray._add_arithmetic_ops()

@@ -1,9 +1,12 @@
+from collections.abc import Iterator
 from datetime import datetime
 from decimal import Decimal
 
 import numpy as np
 import pytest
 import pytz
+
+from pandas._config import using_pyarrow_string_dtype
 
 from pandas.compat import is_platform_little_endian
 
@@ -14,13 +17,21 @@ from pandas import (
     Interval,
     RangeIndex,
     Series,
+    date_range,
 )
 import pandas._testing as tm
 
 
 class TestFromRecords:
-    def test_from_records_with_datetimes(self):
+    def test_from_records_dt64tz_frame(self):
+        # GH#51162 don't lose tz when calling from_records with DataFrame input
+        dti = date_range("2016-01-01", periods=10, tz="US/Pacific")
+        df = DataFrame({i: dti for i in range(4)})
+        with tm.assert_produces_warning(FutureWarning):
+            res = DataFrame.from_records(df)
+        tm.assert_frame_equal(res, df)
 
+    def test_from_records_with_datetimes(self):
         # this may fail on certain platforms because of a numpy issue
         # related GH#6140
         if not is_platform_little_endian():
@@ -33,7 +44,7 @@ class TestFromRecords:
         arrdata = [np.array([datetime(2005, 3, 1, 0, 0), None])]
         dtypes = [("EXPIRY", "<M8[ns]")]
 
-        recarray = np.core.records.fromarrays(arrdata, dtype=dtypes)
+        recarray = np.rec.fromarrays(arrdata, dtype=dtypes)
 
         result = DataFrame.from_records(recarray)
         tm.assert_frame_equal(result, expected)
@@ -41,20 +52,33 @@ class TestFromRecords:
         # coercion should work too
         arrdata = [np.array([datetime(2005, 3, 1, 0, 0), None])]
         dtypes = [("EXPIRY", "<M8[m]")]
-        recarray = np.core.records.fromarrays(arrdata, dtype=dtypes)
+        recarray = np.rec.fromarrays(arrdata, dtype=dtypes)
         result = DataFrame.from_records(recarray)
+        # we get the closest supported unit, "s"
+        expected["EXPIRY"] = expected["EXPIRY"].astype("M8[s]")
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.skipif(
+        using_pyarrow_string_dtype(), reason="dtype checking logic doesn't work"
+    )
     def test_from_records_sequencelike(self):
         df = DataFrame(
             {
-                "A": np.array(np.random.randn(6), dtype=np.float64),
-                "A1": np.array(np.random.randn(6), dtype=np.float64),
+                "A": np.array(
+                    np.random.default_rng(2).standard_normal(6), dtype=np.float64
+                ),
+                "A1": np.array(
+                    np.random.default_rng(2).standard_normal(6), dtype=np.float64
+                ),
                 "B": np.array(np.arange(6), dtype=np.int64),
                 "C": ["foo"] * 6,
                 "D": np.array([True, False] * 3, dtype=bool),
-                "E": np.array(np.random.randn(6), dtype=np.float32),
-                "E1": np.array(np.random.randn(6), dtype=np.float32),
+                "E": np.array(
+                    np.random.default_rng(2).standard_normal(6), dtype=np.float32
+                ),
+                "E1": np.array(
+                    np.random.default_rng(2).standard_normal(6), dtype=np.float32
+                ),
                 "F": np.array(np.arange(6), dtype=np.int32),
             }
         )
@@ -74,7 +98,7 @@ class TestFromRecords:
                 tup.extend(b.iloc[i].values)
             tuples.append(tuple(tup))
 
-        recarray = np.array(tuples, dtype=dtypes).view(np.recarray)
+        recarray = np.array(tuples, dtype=dtypes).view(np.rec.recarray)
         recarray2 = df.to_records()
         lists = [list(x) for x in tuples]
 
@@ -91,7 +115,7 @@ class TestFromRecords:
             columns=df.columns
         )
 
-        # list of tupels (no dtype info)
+        # list of tuples (no dtype info)
         result4 = DataFrame.from_records(lists, columns=columns).reindex(
             columns=df.columns
         )
@@ -126,17 +150,24 @@ class TestFromRecords:
         assert len(result.columns) == 0
 
     def test_from_records_dictlike(self):
-
         # test the dict methods
         df = DataFrame(
             {
-                "A": np.array(np.random.randn(6), dtype=np.float64),
-                "A1": np.array(np.random.randn(6), dtype=np.float64),
+                "A": np.array(
+                    np.random.default_rng(2).standard_normal(6), dtype=np.float64
+                ),
+                "A1": np.array(
+                    np.random.default_rng(2).standard_normal(6), dtype=np.float64
+                ),
                 "B": np.array(np.arange(6), dtype=np.int64),
                 "C": ["foo"] * 6,
                 "D": np.array([True, False] * 3, dtype=bool),
-                "E": np.array(np.random.randn(6), dtype=np.float32),
-                "E1": np.array(np.random.randn(6), dtype=np.float32),
+                "E": np.array(
+                    np.random.default_rng(2).standard_normal(6), dtype=np.float32
+                ),
+                "E1": np.array(
+                    np.random.default_rng(2).standard_normal(6), dtype=np.float32
+                ),
                 "F": np.array(np.arange(6), dtype=np.int32),
             }
         )
@@ -148,7 +179,7 @@ class TestFromRecords:
         for b in blocks.values():
             columns.extend(b.columns)
 
-        asdict = {x: y for x, y in df.items()}
+        asdict = dict(df.items())
         asdict2 = {x: y.values for x, y in df.items()}
 
         # dict of series & dict of ndarrays (have dtype info)
@@ -165,32 +196,41 @@ class TestFromRecords:
             tm.assert_frame_equal(r, df)
 
     def test_from_records_with_index_data(self):
-        df = DataFrame(np.random.randn(10, 3), columns=["A", "B", "C"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 3)), columns=["A", "B", "C"]
+        )
 
-        data = np.random.randn(10)
-        df1 = DataFrame.from_records(df, index=data)
+        data = np.random.default_rng(2).standard_normal(10)
+        with tm.assert_produces_warning(FutureWarning):
+            df1 = DataFrame.from_records(df, index=data)
         tm.assert_index_equal(df1.index, Index(data))
 
     def test_from_records_bad_index_column(self):
-        df = DataFrame(np.random.randn(10, 3), columns=["A", "B", "C"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 3)), columns=["A", "B", "C"]
+        )
 
         # should pass
-        df1 = DataFrame.from_records(df, index=["C"])
+        with tm.assert_produces_warning(FutureWarning):
+            df1 = DataFrame.from_records(df, index=["C"])
         tm.assert_index_equal(df1.index, Index(df.C))
 
-        df1 = DataFrame.from_records(df, index="C")
+        with tm.assert_produces_warning(FutureWarning):
+            df1 = DataFrame.from_records(df, index="C")
         tm.assert_index_equal(df1.index, Index(df.C))
 
         # should fail
         msg = "|".join(
             [
-                r"Length of values \(10\) does not match length of index \(1\)",
+                r"'None of \[2\] are in the columns'",
             ]
         )
-        with pytest.raises(ValueError, match=msg):
-            DataFrame.from_records(df, index=[2])
-        with pytest.raises(KeyError, match=r"^2$"):
-            DataFrame.from_records(df, index=2)
+        with pytest.raises(KeyError, match=msg):
+            with tm.assert_produces_warning(FutureWarning):
+                DataFrame.from_records(df, index=[2])
+        with pytest.raises(KeyError, match=msg):
+            with tm.assert_produces_warning(FutureWarning):
+                DataFrame.from_records(df, index=2)
 
     def test_from_records_non_tuple(self):
         class Record:
@@ -200,7 +240,7 @@ class TestFromRecords:
             def __getitem__(self, i):
                 return self.args[i]
 
-            def __iter__(self):
+            def __iter__(self) -> Iterator:
                 return iter(self.args)
 
         recs = [Record(1, 2, 3), Record(4, 5, 6), Record(7, 8, 9)]
@@ -229,16 +269,12 @@ class TestFromRecords:
     def test_from_records_series_categorical_index(self):
         # GH#32805
         index = CategoricalIndex(
-            [
-                Interval(-20, -10, "right"),
-                Interval(-10, 0, "right"),
-                Interval(0, 10, "right"),
-            ]
+            [Interval(-20, -10), Interval(-10, 0), Interval(0, 10)]
         )
         series_of_dicts = Series([{"a": 1}, {"a": 2}, {"b": 3}], index=index)
         frame = DataFrame.from_records(series_of_dicts, index=index)
         expected = DataFrame(
-            {"a": [1, 2, np.NaN], "b": [np.NaN, np.NaN, 3]}, index=index
+            {"a": [1, 2, np.nan], "b": [np.nan, np.nan, 3]}, index=index
         )
         tm.assert_frame_equal(frame, expected)
 
@@ -250,11 +286,10 @@ class TestFromRecords:
 
     def test_from_records_to_records(self):
         # from numpy documentation
-        arr = np.zeros((2,), dtype=("i4,f4,a10"))
+        arr = np.zeros((2,), dtype=("i4,f4,S10"))
         arr[:] = [(1, 2.0, "Hello"), (2, 3.0, "World")]
 
-        # TODO(wesm): unused
-        frame = DataFrame.from_records(arr)  # noqa
+        DataFrame.from_records(arr)
 
         index = Index(np.arange(len(arr))[::-1])
         indexed_frame = DataFrame.from_records(arr, index=index)
@@ -355,12 +390,11 @@ class TestFromRecords:
         columns = ["a", "b", "c"]
         original_columns = list(columns)
 
-        df = DataFrame.from_records(tuples, columns=columns, index="a")  # noqa
+        DataFrame.from_records(tuples, columns=columns, index="a")
 
         assert columns == original_columns
 
     def test_from_records_decimal(self):
-
         tuples = [(Decimal("1.5"),), (Decimal("2.5"),), (None,)]
 
         df = DataFrame.from_records(tuples, columns=["a"])
@@ -381,8 +415,8 @@ class TestFromRecords:
         def create_dict(order_id):
             return {
                 "order_id": order_id,
-                "quantity": np.random.randint(1, 10),
-                "price": np.random.randint(1, 10),
+                "quantity": np.random.default_rng(2).integers(1, 10),
+                "price": np.random.default_rng(2).integers(1, 10),
             }
 
         documents = [create_dict(i) for i in range(10)]
@@ -413,26 +447,27 @@ class TestFromRecords:
         exp = DataFrame(data, index=["a", "b", "c"])
         tm.assert_frame_equal(result, exp)
 
+    def test_from_records_misc_brokenness2(self):
         # GH#2623
         rows = []
         rows.append([datetime(2010, 1, 1), 1])
         rows.append([datetime(2010, 1, 2), "hi"])  # test col upconverts to obj
-        df2_obj = DataFrame.from_records(rows, columns=["date", "test"])
-        result = df2_obj.dtypes
-        expected = Series(
-            [np.dtype("datetime64[ns]"), np.dtype("object")], index=["date", "test"]
+        result = DataFrame.from_records(rows, columns=["date", "test"])
+        expected = DataFrame(
+            {"date": [row[0] for row in rows], "test": [row[1] for row in rows]}
         )
-        tm.assert_series_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
+        assert result.dtypes["test"] == np.dtype(object)
 
+    def test_from_records_misc_brokenness3(self):
         rows = []
         rows.append([datetime(2010, 1, 1), 1])
         rows.append([datetime(2010, 1, 2), 1])
-        df2_obj = DataFrame.from_records(rows, columns=["date", "test"])
-        result = df2_obj.dtypes
-        expected = Series(
-            [np.dtype("datetime64[ns]"), np.dtype("int64")], index=["date", "test"]
+        result = DataFrame.from_records(rows, columns=["date", "test"])
+        expected = DataFrame(
+            {"date": [row[0] for row in rows], "test": [row[1] for row in rows]}
         )
-        tm.assert_series_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_from_records_empty(self):
         # GH#3562
