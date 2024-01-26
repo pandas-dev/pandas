@@ -277,11 +277,11 @@ Installable with ``pip install "pandas[excel]"``.
 ========================= ================== =============== =============================================================
 Dependency                Minimum Version    pip extra       Notes
 ========================= ================== =============== =============================================================
-openpyxl                  3.1.0              excel           Reading / writing for Excel 2010 xlsx/xlsm/xltx/xltm files
 xlrd                      2.0.1              excel           Reading / writing for xls files
 xlsxwriter                3.0.5              excel           Writing for xlsx files
-python-calamine           0.1.7              excel           Reading for xls/xlsx/xlsm/xlsb/xla/xlam/ods files
+openpyxl                  3.1.0              excel           Reading / writing for Excel 2010 xlsx/xlsm/xltx/xltm files
 pyxlsb                    1.0.10             excel           Reading for xlsb files
+python-calamine           0.1.7              excel           Reading for xls/xlsx/xlsm/xlsb/xla/xlam/ods files
 odfpy                     1.4.1              excel           Reading / writing for OpenDocument v. 1.2 files
 ========================= ================== =============== =============================================================
 
