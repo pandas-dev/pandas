@@ -222,17 +222,17 @@ Since pandas minor releases are based on GitHub branches (e.g. point release of 
 "backporting" means merging a pull request fix to the ``main`` branch and correct minor branch associated with the next point release.
 
 By default, if a pull request is assigned to the next point release milestone within the GitHub interface,
-the backporting process should happen automatically by the ``@meeseeksdev`` bot once the pull request is merged.
+the backporting process should happen automatically by the ``@meeseeksmachine`` bot once the pull request is merged.
 A new pull request will be made backporting the pull request to the correct version branch.
 Sometimes due to merge conflicts, a manual pull request will need to be made addressing the code conflict.
 
 If the bot does not automatically start the backporting process, you can also write a GitHub comment in the merged pull request
 to trigger the backport::
 
-    @meeseeksdev backport version-branch
+    @meeseeksmachine backport version-branch
 
 This will trigger a workflow which will backport a given change to a branch
-(e.g. @meeseeksdev backport 1.4.x)
+(e.g. @meeseeksmachine backport 2.2.x)
 
 Cleaning up old issues
 ----------------------
