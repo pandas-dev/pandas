@@ -393,6 +393,7 @@ def test_groupby_non_arithmetic_agg_int_like_precision(method, data):
 
 @pytest.mark.parametrize("how", ["first", "last"])
 def test_first_last_skipna(any_real_nullable_dtype, sort, skipna, how):
+    # GH#57019
     if is_extension_array_dtype(any_real_nullable_dtype):
         na_value = Series(dtype=any_real_nullable_dtype).dtype.na_value
     else:
