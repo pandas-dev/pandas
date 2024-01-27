@@ -1771,6 +1771,7 @@ def group_idxmin_idxmax(
         Py_ssize_t i, j, N, K, lab
         numeric_object_t val
         numeric_object_t[:, ::1] group_min_or_max
+        uint8_t[:, ::1] seen
         bint uses_mask = mask is not None
         bint isna_entry
         bint compute_max = name == "idxmax"
@@ -1784,13 +1785,10 @@ def group_idxmin_idxmax(
 
     if numeric_object_t is object:
         group_min_or_max = np.empty((<object>out).shape, dtype=object)
+        seen = np.zeros((<object>out).shape, dtype=np.uint8)
     else:
         group_min_or_max = np.empty_like(out, dtype=values.dtype)
-    if N > 0 and K > 0:
-        # When N or K is zero, we never use group_min_or_max
-        group_min_or_max[:] = _get_min_or_max(
-            values[0, 0], compute_max, is_datetimelike
-        )
+        seen = np.zeros_like(out, dtype=np.uint8)
 
     # When using transform, we need a valid value for take in the case
     # a category is not observed; these values will be dropped
@@ -1806,6 +1804,7 @@ def group_idxmin_idxmax(
                 if not skipna and out[lab, j] == -1:
                     # Once we've hit NA there is no going back
                     continue
+
                 val = values[i, j]
 
                 if uses_mask:
@@ -1814,10 +1813,14 @@ def group_idxmin_idxmax(
                     isna_entry = _treat_as_na(val, is_datetimelike)
 
                 if isna_entry:
-                    if not skipna:
+                    if not skipna or not seen[lab, j]:
                         out[lab, j] = -1
                 else:
-                    if compute_max:
+                    if not seen[lab, j]:
+                        seen[lab, j] = True
+                        group_min_or_max[lab, j] = val
+                        out[lab, j] = i
+                    elif compute_max:
                         if val > group_min_or_max[lab, j]:
                             group_min_or_max[lab, j] = val
                             out[lab, j] = i
