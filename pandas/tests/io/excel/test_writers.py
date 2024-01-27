@@ -1385,12 +1385,14 @@ class TestExcelWriter:
             expected = DataFrame()
             tm.assert_frame_equal(result, expected)
 
-    def test_to_excel_raising_warning_when_cell_character_exceed_limit(self, path):
+    def test_to_excel_raising_warning_when_cell_character_exceed_limit(
+        self, path, engine
+    ):
         # GH#56954
         df = DataFrame({"A": ["a" * 32768]})
         msg = "String value too long, truncated to 32767 characters"
         with tm.assert_produces_warning(UserWarning, match=msg):
-            df.to_excel(path)
+            df.to_excel(path, engine=engine)
 
 
 class TestExcelWriterEngineTests:
