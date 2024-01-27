@@ -3383,6 +3383,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.
 
+            .. versionadded:: 2.2.1
+
         Returns
         -------
         Series or DataFrame
@@ -3461,6 +3463,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         skipna : bool, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.
+
+            .. versionadded:: 2.2.1
 
         Returns
         -------

@@ -1706,7 +1706,7 @@ def any_numpy_dtype(request):
 @pytest.fixture(params=tm.ALL_REAL_NULLABLE_DTYPES)
 def any_real_nullable_dtype(request):
     """
-    Parameterized fixture for all numpy dtypes.
+    Parameterized fixture for all real dtypes that can hold NA.
 
     * float
     * 'float32'
