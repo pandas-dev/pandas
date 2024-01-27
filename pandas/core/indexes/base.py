@@ -4610,6 +4610,13 @@ class Index(IndexOpsMixin, PandasObject):
         if level is not None and (self._is_multi or other._is_multi):
             return self._join_level(other, level, how=how)
 
+        if len(self) == 0 or len(other) == 0:
+            try:
+                return self._join_empty(other, how, sort)
+            except TypeError:
+                # object dtype; non-comparable objects
+                pass
+
         if self.dtype != other.dtype:
             dtype = self._find_common_type_compat(other)
             this = self.astype(dtype, copy=False)
@@ -4625,13 +4632,6 @@ class Index(IndexOpsMixin, PandasObject):
             other = Index(other._values.reorder_categories(self.categories))
 
         _validate_join_method(how)
-
-        if len(self) == 0 or len(other) == 0:
-            try:
-                return self._join_empty(other, how, sort)
-            except TypeError:
-                # object dtype; non-comparable objects
-                pass
 
         if (
             self.is_monotonic_increasing
@@ -4655,6 +4655,7 @@ class Index(IndexOpsMixin, PandasObject):
         self, other: Index, how: JoinHow, sort: bool
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         assert len(self) == 0 or len(other) == 0
+        _validate_join_method(how)
 
         lidx: np.ndarray | None
         ridx: np.ndarray | None
