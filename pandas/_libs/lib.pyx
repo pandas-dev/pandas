@@ -2239,7 +2239,7 @@ def maybe_convert_numeric(
     bint convert_empty=True,
     bint coerce_numeric=False,
     bint convert_to_masked_nullable=False,
-    char* thousands="\0",
+    char* thousands=NULL,
     char* decimal=".",
 ) -> tuple[np.ndarray, np.ndarray | None]:
     """
@@ -2290,15 +2290,9 @@ def maybe_convert_numeric(
     cdef:
         object val = values[0]
 
-    cdef char* tsep = thousands
-
-    if util.is_integer_object(val):
-        try:
-            maybe_ints = values.astype("i8")
-            if (maybe_ints == values).all():
-                return (maybe_ints, None)
-        except (ValueError, OverflowError, TypeError):
-            pass
+    # Use null char to represent lack of thousand separator
+    if thousands == NULL or thousands is None:
+        thousands = "\0"
 
     # Validate separators
     if len(thousands) > 1:
@@ -2307,6 +2301,14 @@ def maybe_convert_numeric(
         raise ValueError("Decimal separator must have length 1")
     if thousands == decimal:
         raise ValueError("Decimal and thousand separators must not be the same")
+
+    if util.is_integer_object(val):
+        try:
+            maybe_ints = values.astype("i8")
+            if (maybe_ints == values).all():
+                return (maybe_ints, None)
+        except (ValueError, OverflowError, TypeError):
+            pass
 
     # Otherwise, iterate and do full inference.
     cdef:
@@ -2407,7 +2409,9 @@ def maybe_convert_numeric(
             seen.float_ = True
         else:
             try:
-                floatify(val, &fval, &maybe_int, decimal[0], tsep[0])
+                floatify(val, &fval, &maybe_int, decimal[0], thousands[0])
+                print(val)
+                print(fval)
                 if fval in na_values:
                     seen.saw_null()
                     floats[i] = complexes[i] = NaN
@@ -2420,7 +2424,7 @@ def maybe_convert_numeric(
                     floats[i] = fval
 
                 if maybe_int:
-                    as_int = int(fval)
+                    as_int = int(val.replace(thousands.decode("UTF-8"), ""))
 
                     if as_int in na_values:
                         mask[i] = 1

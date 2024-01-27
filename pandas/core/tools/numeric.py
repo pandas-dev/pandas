@@ -46,7 +46,7 @@ def to_numeric(
     errors: DateTimeErrorChoices = "raise",
     downcast: Literal["integer", "signed", "unsigned", "float"] | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-    thousands: str = "\0",
+    thousands: str | None = None,
     decimal: str = ".",
 ):
     """
@@ -186,10 +186,6 @@ def to_numeric(
     if errors not in ("ignore", "raise", "coerce"):
         raise ValueError("invalid error value specified")
 
-    if decimal and len(decimal) > 1:
-        raise ValueError("decimal separator must have length one")
-    if thousands and len(thousands) > 1:
-        raise ValueError("thousands separator must have length one")
     if errors == "ignore":
         # GH#54467
         warnings.warn(
