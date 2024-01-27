@@ -8012,19 +8012,17 @@ class DataFrame(NDFrame, OpsMixin):
         left = self
 
         # GH#31623, only operate on shared columns
-        cols, lcols, rcols = left.columns.join(
-            right.columns, how="inner", level=None, return_indexers=True
+        cols, lcol_indexer, rcol_indexer = left.columns.join(
+            right.columns, how="inner", return_indexers=True
         )
 
-        new_left = left.iloc[:, lcols]
-        new_right = right.iloc[:, rcols]
+        new_left = left if lcol_indexer is None else left.iloc[:, lcol_indexer]
+        new_right = right if rcol_indexer is None else right.iloc[:, rcol_indexer]
         result = op(new_left, new_right)
 
         # Do the join on the columns instead of using left._align_for_op
         #  to avoid constructing two potentially large/sparse DataFrames
-        join_columns, _, _ = left.columns.join(
-            right.columns, how="outer", level=None, return_indexers=True
-        )
+        join_columns = left.columns.join(right.columns, how="outer")
 
         if result.columns.has_duplicates:
             # Avoid reindexing with a duplicate axis.
