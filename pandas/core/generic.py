@@ -101,6 +101,8 @@ from pandas.errors import (
     InvalidIndexError,
     SettingWithCopyError,
     SettingWithCopyWarning,
+)
+from pandas.errors.cow import (
     _chained_assignment_method_msg,
     _chained_assignment_warning_method_msg,
     _check_cacher,
