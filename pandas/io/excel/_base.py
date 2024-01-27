@@ -1331,7 +1331,8 @@ class ExcelWriter(Generic[_WorkbookT]):
                 warnings.warn(
                     "String value too long, truncated to 32767 characters",
                     UserWarning,
-                    stacklevel=find_stack_level())
+                    stacklevel=find_stack_level(),
+                )
 
         return val, fmt
 
