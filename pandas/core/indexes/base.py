@@ -4660,11 +4660,8 @@ class Index(IndexOpsMixin, PandasObject):
         ridx: np.ndarray | None
 
         if len(other):
-            join_index, ridx, lidx = other._join_empty(
-                other=self,
-                how={"left": "right", "right": "left"}.get(how, how),
-                sort=sort,
-            )
+            how = cast(JoinHow, {"left": "right", "right": "left"}.get(how, how))
+            join_index, ridx, lidx = other._join_empty(self, how, sort)
         elif how in ["left", "outer"]:
             if sort and not self.is_monotonic_increasing:
                 lidx = self.argsort()
