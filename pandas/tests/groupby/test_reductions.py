@@ -400,9 +400,9 @@ def test_first_last_skipna(any_real_nullable_dtype, sort, skipna, how):
         na_value = np.nan
     df = DataFrame(
         {
-            "a": [2, 1, 1, 2],
-            "b": [na_value, 3.0, na_value, 4.0],
-            "c": [na_value, 3.0, na_value, 4.0],
+            "a": [2, 1, 1, 2, 3, 3],
+            "b": [na_value, 3.0, na_value, 4.0, np.nan, np.nan],
+            "c": [na_value, 3.0, na_value, 4.0, np.nan, np.nan],
         },
         dtype=any_real_nullable_dtype,
     )
@@ -411,10 +411,10 @@ def test_first_last_skipna(any_real_nullable_dtype, sort, skipna, how):
     result = method(skipna=skipna)
 
     ilocs = {
-        ("first", True): [3, 1],
-        ("first", False): [0, 1],
-        ("last", True): [3, 1],
-        ("last", False): [3, 2],
+        ("first", True): [3, 1, 4],
+        ("first", False): [0, 1, 4],
+        ("last", True): [3, 1, 5],
+        ("last", False): [3, 2, 5],
     }[how, skipna]
     expected = df.iloc[ilocs].set_index("a")
     if sort:
