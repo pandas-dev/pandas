@@ -1505,3 +1505,12 @@ def test_subclass_attr(klass):
     attrs_base = {name for name in dir(ExcelWriter) if not name.startswith("_")}
     attrs_klass = {name for name in dir(klass) if not name.startswith("_")}
     assert not attrs_base.symmetric_difference(attrs_klass)
+
+
+def test_to_excel_raising_warning_when_cell_character_exceed_limit():
+    # GH#56954
+    df = DataFrame({"A": ["a" * 32768]})
+    msg = "String value too long, truncated to 32767 characters"
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        buf = BytesIO()
+        df.to_excel(buf)

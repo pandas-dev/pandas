@@ -1326,6 +1326,12 @@ class ExcelWriter(Generic[_WorkbookT]):
             fmt = "0"
         else:
             val = str(val)
+            # GH#56954
+            if len(val) > 32767:
+                warnings.warn(
+                    "String value too long, truncated to 32767 characters",
+                    UserWarning,
+                    stacklevel=find_stack_level())
 
         return val, fmt
 
