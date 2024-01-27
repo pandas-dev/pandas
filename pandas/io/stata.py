@@ -216,7 +216,7 @@ Class for reading Stata dta files.
 Parameters
 ----------
 path_or_buf : path (string), buffer or path object
-    string, path object (pathlib.Path or py._path.local.LocalPath) or object
+    string, pathlib.Path or object
     implementing a binary read() functions.
 {_statafile_processing_params1}
 {_statafile_processing_params2}
@@ -2258,7 +2258,7 @@ class StataWriter(StataParser):
     Parameters
     ----------
     fname : path (string), buffer or path object
-        string, path object (pathlib.Path or py._path.local.LocalPath) or
+        string, pathlib.Path or
         object implementing a binary write() functions. If using a buffer
         then the buffer will not be automatically closed after the file
         is written.
@@ -3208,7 +3208,7 @@ class StataWriter117(StataWriter):
     Parameters
     ----------
     fname : path (string), buffer or path object
-        string, path object (pathlib.Path or py._path.local.LocalPath) or
+        string, pathlib.Path or
         object implementing a binary write() functions. If using a buffer
         then the buffer will not be automatically closed after the file
         is written.
@@ -3594,7 +3594,7 @@ class StataWriterUTF8(StataWriter117):
     Parameters
     ----------
     fname : path (string), buffer or path object
-        string, path object (pathlib.Path or py._path.local.LocalPath) or
+        string, pathlib.Path or
         object implementing a binary write() functions. If using a buffer
         then the buffer will not be automatically closed after the file
         is written.
