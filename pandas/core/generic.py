@@ -13081,8 +13081,8 @@ skipna : bool, default True
 Returns
 -------
 {name1} or {name2}
-    If level is specified, then, {name2} is returned; otherwise, {name1}
-    is returned.
+    If axis=None, then a {name2} boolean is returned. Otherwise a Series is 
+    returned with index matching the index argument.
 
 {see_also}
 {examples}"""
@@ -13643,12 +13643,16 @@ def make_doc(name: str, ndim: int) -> str:
         axis_descr = "{index (0), columns (1)}"
 
     if name == "any":
+        name1 = "DataFrame"
+        name2 = "scalar"
         base_doc = _bool_doc
         desc = _any_desc
         see_also = _any_see_also
         examples = _any_examples
         kwargs = {"empty_value": "False"}
     elif name == "all":
+        name1 = "DataFrame"
+        name2 = "scalar"
         base_doc = _bool_doc
         desc = _all_desc
         see_also = _all_see_also
