@@ -2412,8 +2412,7 @@ def maybe_convert_numeric(
         else:
             try:
                 floatify(val, &fval, &maybe_int, decimal[0], thousands[0])
-                print(val)
-                print(fval)
+
                 if fval in na_values:
                     seen.saw_null()
                     floats[i] = complexes[i] = NaN
