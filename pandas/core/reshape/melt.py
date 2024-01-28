@@ -458,8 +458,7 @@ def wide_to_long(
 
     def get_var_names(df, stub: str, sep: str, suffix: str):
         regex = rf"^{re.escape(stub)}{re.escape(sep)}{suffix}$"
-        pattern = re.compile(regex)
-        return df.columns[df.columns.str.match(pattern)]
+        return df.columns[df.columns.str.match(regex)]
 
     def melt_stub(df, stub: str, i, j, value_vars, sep: str):
         newdf = melt(
