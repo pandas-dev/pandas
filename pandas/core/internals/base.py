@@ -1,6 +1,5 @@
 """
-Base class for the internal managers. Both BlockManager and ArrayManager
-inherit from this class.
+Base class for the internal managers. BlockManager inherits from this class.
 """
 from __future__ import annotations
 
@@ -333,7 +332,7 @@ class SingleDataManager(DataManager):
     @property
     def array(self) -> ArrayLike:
         """
-        Quick access to the backing array of the Block or SingleArrayManager.
+        Quick access to the backing array of the Block.
         """
         # error: "SingleDataManager" has no attribute "arrays"; maybe "array"
         return self.arrays[0]  # type: ignore[attr-defined]
@@ -342,7 +341,7 @@ class SingleDataManager(DataManager):
         """
         Set values with indexer.
 
-        For Single[Block/Array]Manager, this backs s[indexer] = value
+        For SingleBlockManager, this backs s[indexer] = value
 
         This is an inplace version of `setitem()`, mutating the manager/values
         in place, not returning a new Manager (and Block), and thus never changing

@@ -92,10 +92,6 @@ from pandas.core.computation.pytables import (
 )
 from pandas.core.construction import extract_array
 from pandas.core.indexes.api import ensure_index
-from pandas.core.internals import (
-    ArrayManager,
-    BlockManager,
-)
 
 from pandas.io.common import stringify_path
 from pandas.io.formats.printing import (
@@ -3311,10 +3307,6 @@ class BlockManagerFixed(GenericFixed):
     def write(self, obj, **kwargs) -> None:
         super().write(obj, **kwargs)
 
-        # TODO(ArrayManager) HDFStore relies on accessing the blocks
-        if isinstance(obj._mgr, ArrayManager):
-            obj = obj._as_manager("block")
-
         data = obj._mgr
         if not data.is_consolidated():
             data = data.consolidate()
@@ -4123,16 +4115,10 @@ class Table(Fixed):
         data_columns,
     ):
         # Helper to clarify non-state-altering parts of _create_axes
-
-        # TODO(ArrayManager) HDFStore relies on accessing the blocks
-        if isinstance(frame._mgr, ArrayManager):
-            frame = frame._as_manager("block")
-
         def get_blk_items(mgr):
             return [mgr.items.take(blk.mgr_locs) for blk in mgr.blocks]
 
         mgr = frame._mgr
-        mgr = cast(BlockManager, mgr)
         blocks: list[Block] = list(mgr.blocks)
         blk_items: list[Index] = get_blk_items(mgr)
 
@@ -4144,7 +4130,6 @@ class Table(Fixed):
             axis, axis_labels = new_non_index_axes[0]
             new_labels = Index(axis_labels).difference(Index(data_columns))
             mgr = frame.reindex(new_labels, axis=axis)._mgr
-            mgr = cast(BlockManager, mgr)
 
             blocks = list(mgr.blocks)
             blk_items = get_blk_items(mgr)
@@ -4153,7 +4138,6 @@ class Table(Fixed):
                 #  index, so we can infer that (as long as axis==1) we
                 #  get a single column back, so a single block.
                 mgr = frame.reindex([c], axis=axis)._mgr
-                mgr = cast(BlockManager, mgr)
                 blocks.extend(mgr.blocks)
                 blk_items.extend(get_blk_items(mgr))
 

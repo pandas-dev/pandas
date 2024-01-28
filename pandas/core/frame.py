@@ -44,7 +44,6 @@ from pandas._config import (
     using_copy_on_write,
     warn_copy_on_write,
 )
-from pandas._config.config import _get_option
 
 from pandas._libs import (
     algos as libalgos,
@@ -167,15 +166,11 @@ from pandas.core.indexing import (
     check_bool_indexer,
     check_dict_or_set_indexers,
 )
-from pandas.core.internals import (
-    ArrayManager,
-    BlockManager,
-)
+from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
     arrays_to_mgr,
     dataclasses_to_dicts,
     dict_to_mgr,
-    mgr_to_mgr,
     ndarray_to_mgr,
     nested_data_to_arrays,
     rec_array_to_mgr,
@@ -647,7 +642,7 @@ class DataFrame(NDFrame, OpsMixin):
     _HANDLED_TYPES = (Series, Index, ExtensionArray, np.ndarray)
     _accessors: set[str] = {"sparse"}
     _hidden_attrs: frozenset[str] = NDFrame._hidden_attrs | frozenset([])
-    _mgr: BlockManager | ArrayManager
+    _mgr: BlockManager
 
     # similar to __array_priority__, positions DataFrame before Series, Index,
     #  and ExtensionArray.  Should NOT be overridden by subclasses.
@@ -701,7 +696,7 @@ class DataFrame(NDFrame, OpsMixin):
                 # to avoid the result sharing the same Manager
                 data = data.copy(deep=False)
 
-        if isinstance(data, (BlockManager, ArrayManager)):
+        if isinstance(data, (BlockManager)):
             if not allow_mgr:
                 # GH#52419
                 warnings.warn(
@@ -721,8 +716,6 @@ class DataFrame(NDFrame, OpsMixin):
                 NDFrame.__init__(self, data)
                 return
 
-        manager = _get_option("mode.data_manager", silent=True)
-
         is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
         data_dtype = getattr(data, "dtype", None)
         original_dtype = dtype
@@ -737,14 +730,6 @@ class DataFrame(NDFrame, OpsMixin):
             if isinstance(data, dict):
                 # retain pre-GH#38939 default behavior
                 copy = True
-            elif (
-                manager == "array"
-                and isinstance(data, (np.ndarray, ExtensionArray))
-                and data.ndim == 2
-            ):
-                # INFO(ArrayManager) by default copy the 2D input array to get
-                # contiguous 1D arrays
-                copy = True
             elif using_copy_on_write() and not isinstance(
                 data, (Index, DataFrame, Series)
             ):
@@ -758,14 +743,14 @@ class DataFrame(NDFrame, OpsMixin):
             dtype = dtype if dtype is not None else pandas_dtype(object)
             data = []
 
-        if isinstance(data, (BlockManager, ArrayManager)):
+        if isinstance(data, (BlockManager)):
             mgr = self._init_mgr(
                 data, axes={"index": index, "columns": columns}, dtype=dtype, copy=copy
             )
 
         elif isinstance(data, dict):
             # GH#38939 de facto copy defaults to False only in non-dict cases
-            mgr = dict_to_mgr(data, index, columns, dtype=dtype, copy=copy, typ=manager)
+            mgr = dict_to_mgr(data, index, columns, dtype=dtype, copy=copy)
         elif isinstance(data, ma.MaskedArray):
             from numpy.ma import mrecords
 
@@ -785,7 +770,6 @@ class DataFrame(NDFrame, OpsMixin):
                 columns,
                 dtype=dtype,
                 copy=copy,
-                typ=manager,
             )
 
         elif isinstance(data, (np.ndarray, Series, Index, ExtensionArray)):
@@ -798,7 +782,6 @@ class DataFrame(NDFrame, OpsMixin):
                     columns,
                     dtype,
                     copy,
-                    typ=manager,
                 )
             elif getattr(data, "name", None) is not None:
                 # i.e. Series/Index with non-None name
@@ -810,7 +793,6 @@ class DataFrame(NDFrame, OpsMixin):
                     index,
                     columns,
                     dtype=dtype,
-                    typ=manager,
                     copy=_copy,
                 )
             else:
@@ -820,7 +802,6 @@ class DataFrame(NDFrame, OpsMixin):
                     columns,
                     dtype=dtype,
                     copy=copy,
-                    typ=manager,
                 )
 
         # For data is list-like, or Iterable (will consume into list)
@@ -851,7 +832,6 @@ class DataFrame(NDFrame, OpsMixin):
                         columns,
                         index,
                         dtype=dtype,
-                        typ=manager,
                     )
                 else:
                     mgr = ndarray_to_mgr(
@@ -860,7 +840,6 @@ class DataFrame(NDFrame, OpsMixin):
                         columns,
                         dtype=dtype,
                         copy=copy,
-                        typ=manager,
                     )
             else:
                 mgr = dict_to_mgr(
@@ -868,7 +847,6 @@ class DataFrame(NDFrame, OpsMixin):
                     index,
                     columns if columns is not None else default_index(0),
                     dtype=dtype,
-                    typ=manager,
                 )
         # For data is scalar
         else:
@@ -889,7 +867,7 @@ class DataFrame(NDFrame, OpsMixin):
                     construct_1d_arraylike_from_scalar(data, len(index), dtype)
                     for _ in range(len(columns))
                 ]
-                mgr = arrays_to_mgr(values, columns, index, dtype=None, typ=manager)
+                mgr = arrays_to_mgr(values, columns, index, dtype=None)
             else:
                 arr2d = construct_2d_arraylike_from_scalar(
                     data,
@@ -905,11 +883,7 @@ class DataFrame(NDFrame, OpsMixin):
                     columns,
                     dtype=arr2d.dtype,
                     copy=False,
-                    typ=manager,
                 )
-
-        # ensure correct Manager type according to settings
-        mgr = mgr_to_mgr(mgr, typ=manager)
 
         NDFrame.__init__(self, mgr)
 
@@ -1088,8 +1062,6 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Can we transpose this DataFrame without creating any new array objects.
         """
-        if isinstance(self._mgr, ArrayManager):
-            return False
         blocks = self._mgr.blocks
         if len(blocks) != 1:
             return False
@@ -1104,13 +1076,6 @@ class DataFrame(NDFrame, OpsMixin):
         Analogue to ._values that may return a 2D ExtensionArray.
         """
         mgr = self._mgr
-
-        if isinstance(mgr, ArrayManager):
-            if len(mgr.arrays) == 1 and not is_1d_only_ea_dtype(mgr.arrays[0].dtype):
-                # error: Item "ExtensionArray" of "Union[ndarray, ExtensionArray]"
-                # has no attribute "reshape"
-                return mgr.arrays[0].reshape(-1, 1)  # type: ignore[union-attr]
-            return ensure_wrapped_if_datetimelike(self.values)
 
         blocks = mgr.blocks
         if len(blocks) != 1:
@@ -1540,7 +1505,7 @@ class DataFrame(NDFrame, OpsMixin):
         for k, v in zip(self.index, self.values):
             s = klass(v, index=columns, name=k).__finalize__(self)
             if using_cow and self._mgr.is_single_block:
-                s._mgr.add_references(self._mgr)  # type: ignore[arg-type]
+                s._mgr.add_references(self._mgr)
             yield k, s
 
     def itertuples(
@@ -2526,9 +2491,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             columns = columns.drop(exclude)
 
-        manager = _get_option("mode.data_manager", silent=True)
-        mgr = arrays_to_mgr(arrays, columns, result_index, typ=manager)
-
+        mgr = arrays_to_mgr(arrays, columns, result_index)
         return cls._from_mgr(mgr, axes=mgr.axes)
 
     def to_records(
@@ -2727,7 +2690,6 @@ class DataFrame(NDFrame, OpsMixin):
         if dtype is not None:
             dtype = pandas_dtype(dtype)
 
-        manager = _get_option("mode.data_manager", silent=True)
         columns = ensure_index(columns)
         if len(columns) != len(arrays):
             raise ValueError("len(columns) must match len(arrays)")
@@ -2737,7 +2699,6 @@ class DataFrame(NDFrame, OpsMixin):
             index,
             dtype=dtype,
             verify_integrity=verify_integrity,
-            typ=manager,
         )
         return cls._from_mgr(mgr, axes=mgr.axes)
 
@@ -3880,7 +3841,7 @@ class DataFrame(NDFrame, OpsMixin):
                 dtype=new_vals.dtype,
             )
             if using_copy_on_write() and len(self) > 0:
-                result._mgr.add_references(self._mgr)  # type: ignore[arg-type]
+                result._mgr.add_references(self._mgr)
 
         elif (
             self._is_homogeneous_type
@@ -4020,11 +3981,8 @@ class DataFrame(NDFrame, OpsMixin):
         Warning! The returned array is a view but doesn't handle Copy-on-Write,
         so this should be used with caution (for read-only purposes).
         """
-        if isinstance(self._mgr, ArrayManager):
-            yield from self._mgr.arrays
-        else:
-            for i in range(len(self.columns)):
-                yield self._get_column_array(i)
+        for i in range(len(self.columns)):
+            yield self._get_column_array(i)
 
     def _getitem_nocopy(self, key: list):
         """
@@ -4267,7 +4225,7 @@ class DataFrame(NDFrame, OpsMixin):
                 warn_copy_on_write()
                 or (
                     not warn_copy_on_write()
-                    and any(b.refs.has_reference() for b in self._mgr.blocks)  # type: ignore[union-attr]
+                    and any(b.refs.has_reference() for b in self._mgr.blocks)
                 )
             ):
                 warnings.warn(
@@ -7938,13 +7896,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             # TODO operate_blockwise expects a manager of the same type
             bm = self._mgr.operate_blockwise(
-                # error: Argument 1 to "operate_blockwise" of "ArrayManager" has
-                # incompatible type "Union[ArrayManager, BlockManager]"; expected
-                # "ArrayManager"
-                # error: Argument 1 to "operate_blockwise" of "BlockManager" has
-                # incompatible type "Union[ArrayManager, BlockManager]"; expected
-                # "BlockManager"
-                right._mgr,  # type: ignore[arg-type]
+                right._mgr,
                 array_op,
             )
             return self._constructor_from_mgr(bm, axes=bm.axes)
@@ -11424,9 +11376,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         def blk_func(values, axis: Axis = 1):
             if isinstance(values, ExtensionArray):
-                if not is_1d_only_ea_dtype(values.dtype) and not isinstance(
-                    self._mgr, ArrayManager
-                ):
+                if not is_1d_only_ea_dtype(values.dtype):
                     return values._reduce(name, axis=1, skipna=skipna, **kwds)
                 has_keepdims = dtype_has_keepdims.get(values.dtype)
                 if has_keepdims is None:
@@ -12547,8 +12497,6 @@ class DataFrame(NDFrame, OpsMixin):
         Internal ONLY - only works for BlockManager
         """
         mgr = self._mgr
-        # convert to BlockManager if needed -> this way support ArrayManager as well
-        mgr = cast(BlockManager, mgr_to_mgr(mgr, "block"))
         return {
             k: self._constructor_from_mgr(v, axes=v.axes).__finalize__(self)
             for k, v in mgr.to_dict().items()

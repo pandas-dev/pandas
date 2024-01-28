@@ -289,6 +289,7 @@ class BaseBlockManager(DataManager):
         dtypes = np.array([blk.dtype for blk in self.blocks], dtype=object)
         return dtypes.take(self.blknos)
 
+    # TODO: This is being used in a few places
     @property
     def arrays(self) -> list[ArrayLike]:
         """
@@ -367,6 +368,7 @@ class BaseBlockManager(DataManager):
         out = type(self).from_blocks(result_blocks, self.axes)
         return out
 
+    # TODO: Cleanup?
     # Alias so we can share code with ArrayManager
     apply_with_block = apply
 
@@ -2025,7 +2027,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """
         Set values with indexer.
 
-        For Single[Block/Array]Manager, this backs s[indexer] = value
+        For SingleBlockManager, this backs s[indexer] = value
 
         This is an inplace version of `setitem()`, mutating the manager/values
         in place, not returning a new Manager (and Block), and thus never changing

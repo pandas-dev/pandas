@@ -1700,8 +1700,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 "transform", bvalues, how, 1, **kwargs
             )
 
-        # We could use `mgr.apply` here and not have to set_axis, but
-        #  we would have to do shape gymnastics for ArrayManager compat
+        # TODO: With ArrayManager removed, we can now use mgr.apply
         res_mgr = mgr.grouped_reduce(arr_func)
         res_mgr.set_axis(1, mgr.axes[1])
 
