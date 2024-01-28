@@ -908,13 +908,8 @@ def value_counts_internal(
 
     else:
         if is_extension_array_dtype(values):
-            if values.dtype == "string[python]":
-                result = Series(values, copy=False)._values.value_counts(
-                    sort=sort, dropna=dropna
-                )
-            else:
-                # handle Categorical and sparse,
-                result = Series(values, copy=False)._values.value_counts(dropna=dropna)
+            # handle Categorical and sparse,
+            result = Series(values, copy=False)._values.value_counts(dropna=dropna)
             result.name = name
             result.index.name = index_name
             counts = result._values
