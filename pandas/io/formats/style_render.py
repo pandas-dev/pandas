@@ -2137,22 +2137,20 @@ class Tooltips:
                 d["table_styles"].extend(self._class_styles)
                 d["table_styles"].extend(self.table_styles)
         else:
-            id_regex = re.compile(r"row(\d+)_col(\d+)")
-            for row in d["body"]:
-                for item in row:
-                    if item["type"] == "td":
-                        td_id = item["id"]
-                        match = id_regex.match(td_id)
-                        if match is not None:
-                            i, j = (int(x) for x in match.groups())
-                            if (
-                                not mask.iloc[i, j]
-                                or i in styler.hidden_rows
-                                or j in styler.hidden_columns
-                            ):
-                                item[
-                                    "attributes"
-                                ] += f'title="{self.tt_data.iloc[i, j]}"'
+            index_offset = self.tt_data.index.nlevels
+            body = d['body']
+            for i in range(len(self.tt_data.index)):
+                for j in range(len(self.tt_data.columns)):
+                    if (
+                        not mask.iloc[i, j]
+                        or i in styler.hidden_rows
+                        or j in styler.hidden_columns
+                    ):
+                        row = body[i]
+                        item = row[j + index_offset]
+                        item[
+                            "attributes"
+                        ] += f'title="{self.tt_data.iloc[i, j]}"'
         return d
 
 

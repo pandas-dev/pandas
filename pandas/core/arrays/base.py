@@ -1492,7 +1492,9 @@ class ExtensionArray:
         uniques_ea = self._from_factorized(uniques, self)
         return codes, uniques_ea
 
-    _extension_array_shared_docs["repeat"] = """
+    _extension_array_shared_docs[
+        "repeat"
+    ] = """
         Repeat elements of a %(klass)s.
 
         Returns a new %(klass)s where each element of the current %(klass)s
