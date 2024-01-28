@@ -1391,7 +1391,9 @@ class TestExcelWriter:
         # GH#56954
         df = DataFrame({"A": ["a" * 32768]})
         msg = "String value too long, truncated to 32767 characters"
-        with tm.assert_produces_warning(UserWarning, match=msg):
+        with tm.assert_produces_warning(
+            UserWarning, match=msg, raise_on_extra_warnings=False
+        ):
             df.to_excel(path, engine=engine)
 
 
