@@ -405,7 +405,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         allow_mgr = False
         if (
-            isinstance(data, (SingleBlockManager))
+            isinstance(data, SingleBlockManager)
             and index is None
             and dtype is None
             and (copy is False or copy is None)
@@ -444,7 +444,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # we are called internally, so short-circuit
         if fastpath:
             # data is a ndarray, index is defined
-            if not isinstance(data, (SingleBlockManager)):
+            if not isinstance(data, SingleBlockManager):
                 data = SingleBlockManager.from_array(data, index)
                 allow_mgr = True
             elif using_copy_on_write() and not copy:
@@ -531,7 +531,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             data, index = self._init_dict(data, index, dtype)
             dtype = None
             copy = False
-        elif isinstance(data, (SingleBlockManager)):
+        elif isinstance(data, SingleBlockManager):
             if index is None:
                 index = data.index
             elif not data.index.equals(index) or copy:
@@ -569,7 +569,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             com.require_length_match(data, index)
 
         # create/copy the manager
-        if isinstance(data, (SingleBlockManager)):
+        if isinstance(data, SingleBlockManager):
             if dtype is not None:
                 data = data.astype(dtype=dtype, errors="ignore", copy=copy)
             elif copy:

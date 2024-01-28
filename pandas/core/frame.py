@@ -743,7 +743,7 @@ class DataFrame(NDFrame, OpsMixin):
             dtype = dtype if dtype is not None else pandas_dtype(object)
             data = []
 
-        if isinstance(data, (BlockManager)):
+        if isinstance(data, BlockManager):
             mgr = self._init_mgr(
                 data, axes={"index": index, "columns": columns}, dtype=dtype, copy=copy
             )

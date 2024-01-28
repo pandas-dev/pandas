@@ -347,7 +347,7 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
             if method == "outer":
                 raise NotImplementedError
             return result
-        if isinstance(result, (BlockManager)):
+        if isinstance(result, BlockManager):
             # we went through BlockManager.apply e.g. np.sqrt
             result = self._constructor_from_mgr(result, axes=result.axes)
         else:
