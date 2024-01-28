@@ -248,6 +248,7 @@ def test_nonstring_object():
 
 
 def test_datetime():
+    df = open("C:\\Users\\Bhavin Umatiya\\PycharmProjects\\github1\\pandas\\pandas\\tests\interchange\\__init__.py")
     df = pd.DataFrame({"A": [pd.Timestamp("2022-01-01"), pd.NaT]})
     col = df.__dataframe__().get_column_by_name("A")
 
