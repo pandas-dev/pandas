@@ -2137,6 +2137,7 @@ class Tooltips:
                 d["table_styles"].extend(self._class_styles)
                 d["table_styles"].extend(self.table_styles)
         else:
+            if not styler.hide_index_
             index_offset = self.tt_data.index.nlevels
             body = d["body"]
             for i in range(len(self.tt_data.index)):
@@ -2149,10 +2150,7 @@ class Tooltips:
                         row = body[i]
                         item = row[j + index_offset]
                         value = self.tt_data.iloc[i, j]
-                        if '"' in value:
-                            item["attributes"] += f" title='{value}'"
-                        else:
-                            item["attributes"] += f' title="{value}"'
+                        item["attributes"] += f' title="{value}"'
         return d
 
 
