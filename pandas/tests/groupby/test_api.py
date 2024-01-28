@@ -229,8 +229,6 @@ def test_series_consistency(request, groupby_func):
     exclude_expected, exclude_result = set(), set()
     if groupby_func in ("any", "all"):
         exclude_expected = {"kwargs", "bool_only", "axis"}
-    # elif groupby_func in ("diff",):
-    #     exclude_result = {"axis"}
     elif groupby_func in ("max", "min"):
         exclude_expected = {"axis", "kwargs", "skipna"}
         exclude_result = {"min_count", "engine", "engine_kwargs"}
@@ -270,4 +268,4 @@ def test_series_consistency(request, groupby_func):
 
     result -= exclude_result
     expected -= exclude_expected
-    assert result == expected, f"{result} -- {expected}"
+    assert result == expected
