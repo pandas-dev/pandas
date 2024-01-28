@@ -2148,9 +2148,11 @@ class Tooltips:
                     ):
                         row = body[i]
                         item = row[j + index_offset]
-                        item[
-                            "attributes"
-                        ] += f'title="{self.tt_data.iloc[i, j]}"'
+                        value = self.tt_data.iloc[i, j]
+                        if '"' in value:
+                            item["attributes"] += f" title='{value}'"
+                        else:
+                            item["attributes"] += f' title="{value}"'
         return d
 
 
