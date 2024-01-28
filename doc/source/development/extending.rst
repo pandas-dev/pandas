@@ -218,16 +218,7 @@ validate your implementation.
         return CustomArray(numpy.arange(-10, 10, 1)
 
 
-    class Test2DCompat(base.NDArrayBacked2DTests):
-        pass
-
-
-    class TestComparisonOps(base.BaseComparisonOpsTests):
-        pass
-
-    ...
-
-    class TestSetitem(base.BaseSetitemTests):
+    class TestCustomArray(base.ExtensionTests):
         pass
 
 
