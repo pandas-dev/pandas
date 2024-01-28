@@ -208,7 +208,7 @@ ExtensionArray
 
 Styler
 ^^^^^^
-- Enh in :meth:`Styler.set_tooltips` allows users to store tooltips as title attribute on <td> elements. Benefits include multiline tooltip support and reduced size footprint at the cost of losing the ability to style the tooltip text.
+- Enh in :meth:`Styler.set_tooltips` provides alternative method to storing tooltips by using title attribute of td elements.
 -
 
 Other

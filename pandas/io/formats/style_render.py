@@ -2138,7 +2138,7 @@ class Tooltips:
                 d["table_styles"].extend(self.table_styles)
         else:
             index_offset = self.tt_data.index.nlevels
-            body = d['body']
+            body = d["body"]
             for i in range(len(self.tt_data.index)):
                 for j in range(len(self.tt_data.columns)):
                     if (
