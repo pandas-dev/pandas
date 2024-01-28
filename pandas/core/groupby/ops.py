@@ -604,9 +604,7 @@ class BaseGrouper:
     def nkeys(self) -> int:
         return len(self.groupings)
 
-    def get_iterator(
-        self, data: NDFrameT, axis: AxisInt = 0
-    ) -> Iterator[tuple[Hashable, NDFrameT]]:
+    def get_iterator(self, data: NDFrameT) -> Iterator[tuple[Hashable, NDFrameT]]:
         """
         Groupby iterator
 
@@ -615,7 +613,7 @@ class BaseGrouper:
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        splitter = self._get_splitter(data, axis=axis)
+        splitter = self._get_splitter(data)
         keys = self.group_keys_seq
         yield from zip(keys, splitter)
 
@@ -626,6 +624,7 @@ class BaseGrouper:
         -------
         Generator yielding subsetted objects
         """
+        assert axis == 0
         ids, _, ngroups = self.group_info
         return _get_splitter(
             data,
@@ -898,6 +897,7 @@ class BaseGrouper:
     def apply_groupwise(
         self, f: Callable, data: DataFrame | Series, axis: AxisInt = 0
     ) -> tuple[list, bool]:
+        assert axis == 0
         mutated = False
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self.group_keys_seq
@@ -1033,6 +1033,7 @@ class BinGrouper(BaseGrouper):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
+        assert axis == 0
         if axis == 0:
             slicer = lambda start, edge: data.iloc[start:edge]
         else:
@@ -1111,6 +1112,7 @@ class BinGrouper(BaseGrouper):
 
 
 def _is_indexed_like(obj, axes, axis: AxisInt) -> bool:
+    assert axis == 0
     if isinstance(obj, Series):
         if len(axes) > 1:
             return False
@@ -1136,6 +1138,7 @@ class DataSplitter(Generic[NDFrameT]):
         sorted_ids: npt.NDArray[np.intp],
         axis: AxisInt = 0,
     ) -> None:
+        assert axis == 0
         self.data = data
         self.labels = ensure_platform_int(labels)  # _should_ already be np.intp
         self.ngroups = ngroups
@@ -1183,6 +1186,7 @@ class FrameSplitter(DataSplitter):
         #     return sdata.iloc[slice_obj]
         # else:
         #     return sdata.iloc[:, slice_obj]
+        assert self.axis == 0
         mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
         df = sdata._constructor_from_mgr(mgr, axes=mgr.axes)
         return df.__finalize__(sdata, method="groupby")
@@ -1197,6 +1201,7 @@ def _get_splitter(
     sorted_ids: npt.NDArray[np.intp],
     axis: AxisInt = 0,
 ) -> DataSplitter:
+    assert axis == 0
     if isinstance(data, Series):
         klass: type[DataSplitter] = SeriesSplitter
     else:
