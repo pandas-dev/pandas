@@ -258,8 +258,8 @@ def to_numeric(
                 convert_to_masked_nullable=dtype_backend is not lib.no_default
                 or isinstance(values_dtype, StringDtype)
                 and not values_dtype.storage == "pyarrow_numpy",
-                thousands=thousands.encode("ascii"),
-                decimal=decimal.encode("ascii"),
+                thousands=thousands.encode("ascii") if thousands else thousands,
+                decimal=decimal.encode("ascii") if decimal else decimal,
             )
         except (ValueError, TypeError):
             if errors == "raise":
