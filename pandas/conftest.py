@@ -249,6 +249,10 @@ for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
 # ----------------------------------------------------------------
 # Autouse fixtures
 # ----------------------------------------------------------------
+
+
+# https://github.com/pytest-dev/pytest/issues/11873
+# Would like to avoid autouse=True, but cannot as of pytest 8.0.0
 @pytest.fixture(autouse=True)
 def add_doctest_imports(doctest_namespace) -> None:
     """
