@@ -2240,7 +2240,7 @@ def maybe_convert_numeric(
     bint coerce_numeric=False,
     bint convert_to_masked_nullable=False,
     char* thousands=NULL,
-    char* decimal=".",
+    char* decimal="."
 ) -> tuple[np.ndarray, np.ndarray | None]:
     """
     Convert object array to a numeric array if possible.
@@ -2293,7 +2293,7 @@ def maybe_convert_numeric(
         object val = values[0]
 
     # Use null char to represent lack of thousand separator
-    if thousands == NULL or thousands is None:
+    if thousands == NULL:
         thousands = "\0"
 
     # Validate separators
