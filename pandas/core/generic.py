@@ -11596,7 +11596,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
-            - bool where True signifies a DST time, False designates
+            - bool (or bool-ndarray) where True signifies a DST time, False designates
               a non-DST time (note that this flag is only applicable for
               ambiguous times)
             - 'NaT' will return NaT where there are ambiguous times
