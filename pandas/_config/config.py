@@ -54,6 +54,7 @@ from contextlib import (
     ContextDecorator,
     contextmanager,
 )
+from inspect import signature
 import re
 from typing import (
     TYPE_CHECKING,
@@ -272,6 +273,7 @@ class CallableDynamicDoc(Generic[T]):
     def __init__(self, func: Callable[..., T], doc_tmpl: str) -> None:
         self.__doc_tmpl__ = doc_tmpl
         self.__func__ = func
+        self.__signature__ = signature(func)
 
     def __call__(self, *args, **kwds) -> T:
         return self.__func__(*args, **kwds)
