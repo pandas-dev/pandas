@@ -294,14 +294,26 @@ def test_multi_chunk_pyarrow() -> None:
 
 
 def test_timestamp_ns_pyarrow():
-    # gh 56712
+    # GH 56712
+    timestamp_args = {
+        "year": 2000,
+        "month": 1,
+        "day": 1,
+        "hour": 1,
+        "minute": 1,
+        "second": 1,
+    }
     df = pd.Series(
-        [datetime(2000, 1, 1, 1, 1, 1)], dtype="timestamp[ns][pyarrow]", name="col0"
+        [datetime(**timestamp_args)],
+        dtype="timestamp[ns][pyarrow]",
+        name="col0",
     ).to_frame()
+
     dfi = df.__dataframe__()
-    result = pd.api.interchange.from_dataframe(dfi)
-    result["col0"] = result["col0"].astype("timestamp[ns][pyarrow]")
-    tm.assert_frame_equal(df, result)
+    result = pd.api.interchange.from_dataframe(dfi)["col0"].item()
+
+    expected = pd.Timestamp(**timestamp_args)
+    assert result == expected
 
 
 @pytest.mark.parametrize("tz", ["UTC", "US/Pacific"])
