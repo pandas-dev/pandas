@@ -9,7 +9,7 @@ leak:gcmodule.c
 leak:PyThread
 leak:arrow
 leak:numpy
-leak:QtCore
+leak:Qt
 leak:libxml2
 leak:libxslt
 leak:HashTable
