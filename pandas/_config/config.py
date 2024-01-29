@@ -60,8 +60,10 @@ from typing import (
     Any,
     Callable,
     Generic,
+    Literal,
     NamedTuple,
     cast,
+    overload,
 )
 import warnings
 
@@ -740,7 +742,23 @@ def _build_option_description(k: str) -> str:
     return s
 
 
-def pp_options_list(keys: Iterable[str], width: int = 80, _print: bool = False):
+@overload
+def pp_options_list(
+    keys: Iterable[str], *, width: int = ..., _print: Literal[False] = ...
+) -> str:
+    ...
+
+
+@overload
+def pp_options_list(
+    keys: Iterable[str], *, width: int = ..., _print: Literal[True]
+) -> None:
+    ...
+
+
+def pp_options_list(
+    keys: Iterable[str], *, width: int = 80, _print: bool = False
+) -> str | None:
     """Builds a concise listing of available options, grouped by prefix"""
     from itertools import groupby
     from textwrap import wrap
@@ -770,8 +788,7 @@ def pp_options_list(keys: Iterable[str], width: int = 80, _print: bool = False):
     s = "\n".join(ls)
     if _print:
         print(s)
-    else:
-        return s
+    return s
 
 
 #

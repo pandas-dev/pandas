@@ -89,7 +89,9 @@ def ravel_compat(meth: F) -> F:
     return cast(F, method)
 
 
-class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
+# error: Definition of "delete/ravel/T/repeat/copy" in base class "NDArrayBacked"
+# is incompatible with definition in base class "ExtensionArray"
+class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignore[misc]
     """
     ExtensionArray that is backed by a single NumPy ndarray.
     """
@@ -386,7 +388,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     # ------------------------------------------------------------------------
     # Reductions
 
-    def _wrap_reduction_result(self, axis: AxisInt | None, result):
+    def _wrap_reduction_result(self, axis: AxisInt | None, result) -> Any:
         if axis is None or self.ndim == 1:
             return self._box_func(result)
         return self._from_backing_data(result)

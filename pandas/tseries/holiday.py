@@ -384,7 +384,7 @@ def register(cls) -> None:
     holiday_calendars[name] = cls
 
 
-def get_calendar(name: str):
+def get_calendar(name: str) -> AbstractHolidayCalendar:
     """
     Return an instance of a calendar based on its name.
 
@@ -433,7 +433,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         if rules is not None:
             self.rules = rules
 
-    def rule_from_name(self, name: str):
+    def rule_from_name(self, name: str) -> Holiday | None:
         for rule in self.rules:
             if rule.name == name:
                 return rule

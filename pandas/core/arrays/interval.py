@@ -1727,6 +1727,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._shallow_copy(new_left, new_right)
 
     def delete(self, loc) -> Self:
+        new_left: np.ndarray | DatetimeArray | TimedeltaArray
+        new_right: np.ndarray | DatetimeArray | TimedeltaArray
         if isinstance(self._left, np.ndarray):
             new_left = np.delete(self._left, loc)
             assert isinstance(self._right, np.ndarray)
