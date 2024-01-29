@@ -527,13 +527,11 @@ def test_as_index_select_column():
 
 
 def test_obj_arg_get_group_deprecated():
-    depr_msg = "obj is deprecated"
+    msg = "cannot pass parameter obj to get_group"
 
     df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
-    expected = df.iloc[df.groupby("b").indices.get(4)]
-    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-        result = df.groupby("b").get_group(4, obj=df)
-        tm.assert_frame_equal(result, expected)
+    with pytest.raises(ValueError, match=msg):
+        df.groupby("b").get_group(4, obj=df)
 
 
 def test_groupby_as_index_select_column_sum_empty_df():

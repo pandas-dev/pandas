@@ -1062,14 +1062,13 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
             it is None, the object groupby was called on will
             be used.
 
-            .. deprecated:: 2.1.0
-                The obj is deprecated and will be removed in a future version.
-                Do ``df.iloc[gb.indices.get(name)]``
-                instead of ``gb.get_group(name, obj=df)``.
-
         Returns
         -------
         same type as obj
+
+        Raises
+        ------
+        ValueError : The passed argument obj is not None.
 
         Examples
         --------
@@ -1146,14 +1145,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
             indexer = inds if self.axis == 0 else (slice(None), inds)
             return self._selected_obj.iloc[indexer]
         else:
-            warnings.warn(
-                "obj is deprecated and will be removed in a future version. "
-                "Do ``df.iloc[gb.indices.get(name)]`` "
-                "instead of ``gb.get_group(name, obj=df)``.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            return obj._take_with_is_copy(inds, axis=self.axis)
+            raise ValueError("cannot pass argument obj to get_group")
 
     @final
     def __iter__(self) -> Iterator[tuple[Hashable, NDFrameT]]:
