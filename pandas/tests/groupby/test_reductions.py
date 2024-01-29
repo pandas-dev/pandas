@@ -7,7 +7,8 @@ import pytest
 
 from pandas._libs.tslibs import iNaT
 
-from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.missing import na_value_for_dtype
 
 import pandas as pd
 from pandas import (
@@ -394,10 +395,7 @@ def test_groupby_non_arithmetic_agg_int_like_precision(method, data):
 @pytest.mark.parametrize("how", ["first", "last"])
 def test_first_last_skipna(any_real_nullable_dtype, sort, skipna, how):
     # GH#57019
-    if is_extension_array_dtype(any_real_nullable_dtype):
-        na_value = Series(dtype=any_real_nullable_dtype).dtype.na_value
-    else:
-        na_value = np.nan
+    na_value = na_value_for_dtype(pandas_dtype(any_real_nullable_dtype))
     df = DataFrame(
         {
             "a": [2, 1, 1, 2, 3, 3],
