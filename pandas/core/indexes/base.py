@@ -951,6 +951,9 @@ class Index(IndexOpsMixin, PandasObject):
         elif method == "reduce":
             result = lib.item_from_zerodim(result)
             return result
+        elif is_scalar(result):
+            # e.g. matmul
+            return result
 
         if result.dtype == np.float16:
             result = result.astype(np.float32)
