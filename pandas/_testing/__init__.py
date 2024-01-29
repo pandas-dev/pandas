@@ -482,7 +482,7 @@ def iat(x):
 _UNITS = ["s", "ms", "us", "ns"]
 
 
-def get_finest_unit(left: str, right: str):
+def get_finest_unit(left: str, right: str) -> str:
     """
     Find the higher of two datetime64 units.
     """

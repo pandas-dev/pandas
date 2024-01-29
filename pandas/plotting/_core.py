@@ -98,7 +98,7 @@ def hist_series(
 
     Returns
     -------
-    matplotlib.Axes
+    matplotlib.axes.Axes
         A histogram plot.
 
     See Also

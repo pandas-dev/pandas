@@ -499,10 +499,10 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             values = arr.astype(dtype.numpy_dtype)
             return IntegerArray(values, mask, copy=False)
         elif isinstance(dtype, FloatingDtype):
-            arr = self.copy()
+            arr_ea = self.copy()
             mask = self.isna()
-            arr[mask] = "0"
-            values = arr.astype(dtype.numpy_dtype)
+            arr_ea[mask] = "0"
+            values = arr_ea.astype(dtype.numpy_dtype)
             return FloatingArray(values, mask, copy=False)
         elif isinstance(dtype, ExtensionDtype):
             # Skip the NumpyExtensionArray.astype method
