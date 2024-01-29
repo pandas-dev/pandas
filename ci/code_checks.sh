@@ -161,9 +161,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.tseries.offsets.Milli\
         pandas.tseries.offsets.Micro\
         pandas.tseries.offsets.Nano\
-        pandas.describe_option\
-        pandas.reset_option\
-        pandas.get_option\
         pandas.set_option\
         pandas.Timestamp.max\
         pandas.Timestamp.min\
