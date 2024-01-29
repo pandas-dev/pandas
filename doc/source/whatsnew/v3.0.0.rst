@@ -142,7 +142,7 @@ Timezones
 
 Numeric
 ^^^^^^^
--
+- Bug in ``np.matmul`` with :class:`Index` inputs raising a ``TypeError`` (:issue:`57079`)
 -
 
 Conversion
@@ -152,7 +152,7 @@ Conversion
 
 Strings
 ^^^^^^^
--
+- Bug in :meth:`Series.value_counts` would not respect ``sort=False`` for series having ``string`` dtype (:issue:`55224`)
 -
 
 Interval
