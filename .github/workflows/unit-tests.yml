@@ -102,7 +102,7 @@ jobs:
           - name: "ASAN / UBSAN"
             env_file: actions-311-sanitizers.yaml
             pattern: "not slow and not network and not single_cpu and not skip_ubsan"
-            asan_options: "ASAN_OPTIONS=detect_leaks=0"
+            asan_options: LSAN_OPTIONS=suppressions=$(pwd)/lsan_suppress.txt
             preload: LD_PRELOAD=$(gcc -print-file-name=libasan.so)
             meson_args: --config-settings=setup-args="-Db_sanitize=address,undefined"
             cflags_adds: -fno-sanitize-recover=all

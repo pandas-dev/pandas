@@ -1,0 +1,15 @@
+leak:obmalloc.c
+leak:stringio.c
+leak:pyo3
+leak:crypto
+leak:unicodeobject.c
+leak:bytesobject.c
+leak:listobject.c
+leak:gcmodule.c
+leak:PyThread
+leak:arrow
+leak:numpy
+leak:QtCore
+leak:libxml2
+leak:libxslt
+leak:kh_init_pymap
