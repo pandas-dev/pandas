@@ -427,6 +427,13 @@ def test_np_matmul():
     tm.assert_frame_equal(expected, result)
 
 
+@pytest.mark.parametrize("box", [pd.Index, pd.Series])
+def test_np_matmul_1D(box):
+    result = np.matmul(box([1, 2]), box([2, 3]))
+    assert result == 8
+    assert isinstance(result, np.int64)
+
+
 def test_array_ufuncs_for_many_arguments():
     # GH39853
     def add3(x, y, z):

@@ -142,7 +142,7 @@ Timezones
 
 Numeric
 ^^^^^^^
--
+- Bug in ``np.matmul`` with :class:`Index` inputs raising a ``TypeError`` (:issue:`57079`)
 -
 
 Conversion
