@@ -30,7 +30,7 @@ use :class:`api.types.NaTType`.
    pd.Series(["2020", "2020"], dtype=pd.PeriodDtype("D")).reindex([0, 1, 2])
 
 :class:`NA` for :class:`StringDtype`, :class:`Int64Dtype` (and other bit widths),
-:class:`Float64Dtype`(and other bit widths), :class:`BooleanDtype` and :class:`ArrowDtype`.
+:class:`Float64Dtype` (and other bit widths), :class:`BooleanDtype` and :class:`ArrowDtype`.
 These types will maintain the original data type of the data.
 For typing applications, use :class:`api.types.NAType`.
 
