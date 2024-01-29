@@ -11591,7 +11591,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
-        ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+        ambiguous : 'infer', bool, bool-ndarray, 'NaT', default 'raise'
             When clocks moved backward due to DST, ambiguous times may arise.
             For example in Central European Time (UTC+01), when going from
             03:00 DST to 02:00 non-DST, 02:30:00 local time occurs both at
@@ -11601,7 +11601,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
-            - bool-ndarray where True signifies a DST time, False designates
+            - bool (or bool-ndarray) where True signifies a DST time, False designates
               a non-DST time (note that this flag is only applicable for
               ambiguous times)
             - 'NaT' will return NaT where there are ambiguous times
