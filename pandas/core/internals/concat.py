@@ -55,7 +55,6 @@ if TYPE_CHECKING:
         ArrayLike,
         AxisInt,
         DtypeObj,
-        Manager2D,
         Shape,
     )
 
@@ -68,7 +67,7 @@ if TYPE_CHECKING:
 
 def concatenate_managers(
     mgrs_indexers, axes: list[Index], concat_axis: AxisInt, copy: bool
-) -> Manager2D:
+) -> BlockManager:
     """
     Concatenate block managers into one.
 

@@ -23,7 +23,6 @@ from typing import (
     Optional,
     Protocol,
     Type as type_t,
-    TypeAlias,
     TypeVar,
     Union,
     overload,
@@ -382,8 +381,6 @@ InterpolateOptions = Literal[
 
 # internals
 Manager = Union["BlockManager", "SingleBlockManager"]
-SingleManager: TypeAlias = "SingleBlockManager"
-Manager2D: TypeAlias = "BlockManager"
 
 # indexing
 # PositionalIndexer -> valid 1D positional indexer, e.g. can pass

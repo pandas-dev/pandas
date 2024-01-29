@@ -289,7 +289,6 @@ class BaseBlockManager(DataManager):
         dtypes = np.array([blk.dtype for blk in self.blocks], dtype=object)
         return dtypes.take(self.blknos)
 
-    # TODO: This is being used in a few places
     @property
     def arrays(self) -> list[ArrayLike]:
         """
@@ -367,10 +366,6 @@ class BaseBlockManager(DataManager):
 
         out = type(self).from_blocks(result_blocks, self.axes)
         return out
-
-    # TODO: Cleanup?
-    # Alias so we can share code with ArrayManager
-    apply_with_block = apply
 
     def setitem(self, indexer, value, warn: bool = True) -> Self:
         """

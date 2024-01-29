@@ -194,7 +194,6 @@ if TYPE_CHECKING:
         Renamer,
         Scalar,
         Self,
-        SingleManager,
         SortKind,
         StorageOptions,
         Suffixes,
@@ -379,7 +378,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         base.IndexOpsMixin.hasnans.fget,  # type: ignore[attr-defined]
         doc=base.IndexOpsMixin.hasnans.__doc__,
     )
-    _mgr: SingleManager
+    _mgr: SingleBlockManager
 
     # ----------------------------------------------------------------------
     # Constructors

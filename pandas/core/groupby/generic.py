@@ -101,12 +101,12 @@ if TYPE_CHECKING:
         ArrayLike,
         Axis,
         AxisInt,
+        BlockManager,
         CorrelationMethod,
         FillnaOptions,
         IndexLabel,
         Manager,
-        Manager2D,
-        SingleManager,
+        SingleBlockManager,
         TakeIndexer,
     )
 
@@ -159,7 +159,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
     def _get_data_to_aggregate(
         self, *, numeric_only: bool = False, name: str | None = None
-    ) -> SingleManager:
+    ) -> SingleBlockManager:
         ser = self._obj_with_exclusions
         single = ser._mgr
         if numeric_only and not is_numeric_dtype(ser.dtype):
@@ -1691,7 +1691,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  test_transform_numeric_ret
         # With self.axis == 1, _get_data_to_aggregate does a transpose
         #  so we always have a single block.
-        mgr: Manager2D = self._get_data_to_aggregate(
+        mgr: BlockManager = self._get_data_to_aggregate(
             numeric_only=numeric_only, name=how
         )
 
@@ -1700,9 +1700,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 "transform", bvalues, how, 1, **kwargs
             )
 
-        # TODO: With ArrayManager removed, we can now use mgr.apply
-        res_mgr = mgr.grouped_reduce(arr_func)
-        res_mgr.set_axis(1, mgr.axes[1])
+        res_mgr = mgr.apply(arr_func)
 
         res_df = self.obj._constructor_from_mgr(res_mgr, axes=res_mgr.axes)
         res_df = self._maybe_transpose_result(res_df)
@@ -2003,7 +2001,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def _get_data_to_aggregate(
         self, *, numeric_only: bool = False, name: str | None = None
-    ) -> Manager2D:
+    ) -> BlockManager:
         obj = self._obj_with_exclusions
         if self.axis == 1:
             mgr = obj.T._mgr
@@ -2014,7 +2012,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             mgr = mgr.get_numeric_data()
         return mgr
 
-    def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
+    def _wrap_agged_manager(self, mgr: BlockManager) -> DataFrame:
         return self.obj._constructor_from_mgr(mgr, axes=mgr.axes)
 
     def _apply_to_column_groupbys(self, func) -> DataFrame:
