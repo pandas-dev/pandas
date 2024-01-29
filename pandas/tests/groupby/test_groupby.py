@@ -527,7 +527,7 @@ def test_as_index_select_column():
 
 
 def test_obj_arg_get_group_deprecated():
-    msg = "cannot pass parameter obj to get_group"
+    msg = "cannot pass argument obj to get_group"
 
     df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
     with pytest.raises(ValueError, match=msg):
