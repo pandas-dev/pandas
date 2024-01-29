@@ -295,6 +295,7 @@ def test_multi_chunk_pyarrow() -> None:
 
 def test_timestamp_ns_pyarrow():
     # GH 56712
+    pytest.importorskip("pyarrow", "11.0.0")
     timestamp_args = {
         "year": 2000,
         "month": 1,
