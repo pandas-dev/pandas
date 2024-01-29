@@ -12,4 +12,4 @@ leak:numpy
 leak:QtCore
 leak:libxml2
 leak:libxslt
-leak:kh_init_pymap
+leak:HashTable
