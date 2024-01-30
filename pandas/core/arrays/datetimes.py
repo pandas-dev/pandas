@@ -933,7 +933,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         dtype = tz_to_dtype(tz, unit=self.unit)
         return self._simple_new(self._ndarray, dtype=dtype, freq=self.freq)
 
-    @dtl.ravel_compat
     def tz_localize(
         self,
         tz,
@@ -1089,9 +1088,17 @@ default 'raise'
                 "a timedelta object"
             )
 
+        if self.ndim == 1:
+            maybe_reshape = lambda arr: arr
+            data = self.asi8
+        else:
+            order = "F" if self._ndarray.flags.f_contiguous else "C"
+            maybe_reshape = lambda arr: arr.reshape(self.shape, order=order)
+            data = self.ravel("K").asi8()
+
         if self.tz is not None:
             if tz is None:
-                new_dates = tz_convert_from_utc(self.asi8, self.tz, reso=self._creso)
+                new_dates = tz_convert_from_utc(data, self.tz, reso=self._creso)
             else:
                 raise TypeError("Already tz-aware, use tz_convert to convert.")
         else:
@@ -1099,12 +1106,13 @@ default 'raise'
             # Convert to UTC
 
             new_dates = tzconversion.tz_localize_to_utc(
-                self.asi8,
+                data,
                 tz,
                 ambiguous=ambiguous,
                 nonexistent=nonexistent,
                 creso=self._creso,
             )
+        new_dates = maybe_reshape(new_dates)
         new_dates_dt64 = new_dates.view(f"M8[{self.unit}]")
         dtype = tz_to_dtype(tz, unit=self.unit)
 
