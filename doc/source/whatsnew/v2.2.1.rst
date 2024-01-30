@@ -28,7 +28,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Fixed bug in :meth:`DataFrame.__getitem__` for empty :class:`DataFrame` with Copy-on-Write enabled (:issue:`57130`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_221.other:
