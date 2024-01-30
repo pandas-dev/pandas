@@ -237,11 +237,9 @@ def to_dict(
     elif orient == "records":
         columns = df.columns.tolist()
         if are_all_object_dtype_cols:
-            rows = (
-                dict(zip(columns, row)) for row in df.itertuples(index=False, name=None)
-            )
             return [
-                into_c((k, maybe_box_native(v)) for k, v in row.items()) for row in rows
+                into_c(zip(columns, map(maybe_box_native, row)))
+                for row in df.itertuples(index=False, name=None)
             ]
         else:
             data = [
@@ -270,24 +268,21 @@ def to_dict(
             )
         elif box_native_indices:
             object_dtype_indices_as_set = set(box_native_indices)
-            is_object_dtype_by_index = [
-                i in object_dtype_indices_as_set for i in range(len(df.columns))
-            ]
             return into_c(
                 (
                     t[0],
                     {
-                        columns[i]: maybe_box_native(v)
-                        if is_object_dtype_by_index[i]
+                        column: maybe_box_native(v)
+                        if i in object_dtype_indices_as_set
                         else v
-                        for i, v in enumerate(t[1:])
+                        for i, (column, v) in enumerate(zip(columns, t[1:]))
                     },
                 )
                 for t in df.itertuples(name=None)
             )
         else:
             return into_c(
-                (t[0], dict(zip(df.columns, t[1:]))) for t in df.itertuples(name=None)
+                (t[0], dict(zip(columns, t[1:]))) for t in df.itertuples(name=None)
             )
 
     else:
