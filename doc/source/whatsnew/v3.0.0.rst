@@ -85,7 +85,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 Other API changes
 ^^^^^^^^^^^^^^^^^
 - 3rd party ``py.path`` objects are no longer explicitly supported in IO methods. Use :py:class:`pathlib.Path` objects instead (:issue:`57091`)
-- pickled objects from pandas version less than ``1.0.0`` are no longer supported (:issue:`?`)
+- pickled objects from pandas version less than ``1.0.0`` are no longer supported (:issue:`57155`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.deprecations:
