@@ -28,7 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-- :func:`to_excel` now raises a ``ValueError`` when the character count in a cell exceeds Excel's limitation of 32767 characters (:issue:`56954`)
+- :func:`DataFrame.to_excel` now raises a ``ValueError`` when the character count in a cell exceeds Excel's limitation of 32767 characters (:issue:`56954`)
 -
 
 .. ---------------------------------------------------------------------------
