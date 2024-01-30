@@ -7,7 +7,10 @@ import contextlib
 import copyreg
 import io
 import pickle
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import numpy as np
 
@@ -109,7 +112,7 @@ class Unpickler(pickle.Unpickler):
         return super().find_class(module, name)
 
 
-def load(fh, encoding: str | None = None):
+def load(fh, encoding: str | None = None) -> Any:
     """
     Load a pickle, with a provided encoding,
 
@@ -132,7 +135,7 @@ def loads(
     fix_imports: bool = True,
     encoding: str = "ASCII",
     errors: str = "strict",
-):
+) -> Any:
     """
     Analogous to pickle._loads.
     """

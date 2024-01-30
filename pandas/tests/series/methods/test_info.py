@@ -141,19 +141,17 @@ def test_info_memory_usage_deep_pypy():
 
 
 @pytest.mark.parametrize(
-    "series, plus",
+    "index, plus",
     [
-        (Series(1, index=[1, 2, 3]), False),
-        (Series(1, index=list("ABC")), True),
-        (Series(1, index=MultiIndex.from_product([range(3), range(3)])), False),
-        (
-            Series(1, index=MultiIndex.from_product([range(3), ["foo", "bar"]])),
-            True,
-        ),
+        ([1, 2, 3], False),
+        (list("ABC"), True),
+        (MultiIndex.from_product([range(3), range(3)]), False),
+        (MultiIndex.from_product([range(3), ["foo", "bar"]]), True),
     ],
 )
-def test_info_memory_usage_qualified(series, plus):
+def test_info_memory_usage_qualified(index, plus):
     buf = StringIO()
+    series = Series(1, index=index)
     series.info(buf=buf)
     if plus:
         assert "+" in buf.getvalue()

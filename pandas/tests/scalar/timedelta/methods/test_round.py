@@ -19,29 +19,31 @@ class TestTimedeltaRound:
             # This first case has s1, s2 being the same as t1,t2 below
             (
                 "ns",
-                Timedelta("1 days 02:34:56.789123456"),
-                Timedelta("-1 days 02:34:56.789123456"),
+                "1 days 02:34:56.789123456",
+                "-1 days 02:34:56.789123456",
             ),
             (
                 "us",
-                Timedelta("1 days 02:34:56.789123000"),
-                Timedelta("-1 days 02:34:56.789123000"),
+                "1 days 02:34:56.789123000",
+                "-1 days 02:34:56.789123000",
             ),
             (
                 "ms",
-                Timedelta("1 days 02:34:56.789000000"),
-                Timedelta("-1 days 02:34:56.789000000"),
+                "1 days 02:34:56.789000000",
+                "-1 days 02:34:56.789000000",
             ),
-            ("s", Timedelta("1 days 02:34:57"), Timedelta("-1 days 02:34:57")),
-            ("2s", Timedelta("1 days 02:34:56"), Timedelta("-1 days 02:34:56")),
-            ("5s", Timedelta("1 days 02:34:55"), Timedelta("-1 days 02:34:55")),
-            ("min", Timedelta("1 days 02:35:00"), Timedelta("-1 days 02:35:00")),
-            ("12min", Timedelta("1 days 02:36:00"), Timedelta("-1 days 02:36:00")),
-            ("h", Timedelta("1 days 03:00:00"), Timedelta("-1 days 03:00:00")),
-            ("d", Timedelta("1 days"), Timedelta("-1 days")),
+            ("s", "1 days 02:34:57", "-1 days 02:34:57"),
+            ("2s", "1 days 02:34:56", "-1 days 02:34:56"),
+            ("5s", "1 days 02:34:55", "-1 days 02:34:55"),
+            ("min", "1 days 02:35:00", "-1 days 02:35:00"),
+            ("12min", "1 days 02:36:00", "-1 days 02:36:00"),
+            ("h", "1 days 03:00:00", "-1 days 03:00:00"),
+            ("d", "1 days", "-1 days"),
         ],
     )
     def test_round(self, freq, s1, s2):
+        s1 = Timedelta(s1)
+        s2 = Timedelta(s2)
         t1 = Timedelta("1 days 02:34:56.789123456")
         t2 = Timedelta("-1 days 02:34:56.789123456")
 
@@ -170,7 +172,6 @@ class TestTimedeltaRound:
         nanos = 24 * 60 * 60 * 1_000_000_000
         checker(td, nanos, "D")
 
-    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_round_non_nano(self, unit):
         td = Timedelta("1 days 02:34:57").as_unit(unit)
 

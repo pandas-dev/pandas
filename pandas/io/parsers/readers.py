@@ -396,7 +396,7 @@ on_bad_lines : {{'error', 'warn', 'skip'}} or Callable, default 'error'
         - Callable, function with signature
           as described in `pyarrow documentation
           <https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html
-          #pyarrow.csv.ParseOptions.invalid_row_handler>_` when ``engine='pyarrow'``
+          #pyarrow.csv.ParseOptions.invalid_row_handler>`_ when ``engine='pyarrow'``
 
 delim_whitespace : bool, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\\t'``) will be
@@ -676,7 +676,7 @@ def read_csv(
     delim_whitespace: bool | lib.NoDefault = ...,
     low_memory: bool = ...,
     memory_map: bool = ...,
-    float_precision: Literal["high", "legacy"] | None = ...,
+    float_precision: Literal["high", "legacy", "round_trip"] | None = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> TextFileReader:
@@ -736,7 +736,7 @@ def read_csv(
     delim_whitespace: bool | lib.NoDefault = ...,
     low_memory: bool = ...,
     memory_map: bool = ...,
-    float_precision: Literal["high", "legacy"] | None = ...,
+    float_precision: Literal["high", "legacy", "round_trip"] | None = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> TextFileReader:
@@ -796,7 +796,7 @@ def read_csv(
     delim_whitespace: bool | lib.NoDefault = ...,
     low_memory: bool = ...,
     memory_map: bool = ...,
-    float_precision: Literal["high", "legacy"] | None = ...,
+    float_precision: Literal["high", "legacy", "round_trip"] | None = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> DataFrame:
@@ -856,7 +856,7 @@ def read_csv(
     delim_whitespace: bool | lib.NoDefault = ...,
     low_memory: bool = ...,
     memory_map: bool = ...,
-    float_precision: Literal["high", "legacy"] | None = ...,
+    float_precision: Literal["high", "legacy", "round_trip"] | None = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> DataFrame | TextFileReader:
@@ -934,7 +934,7 @@ def read_csv(
     delim_whitespace: bool | lib.NoDefault = lib.no_default,
     low_memory: bool = _c_parser_defaults["low_memory"],
     memory_map: bool = False,
-    float_precision: Literal["high", "legacy"] | None = None,
+    float_precision: Literal["high", "legacy", "round_trip"] | None = None,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
@@ -1639,7 +1639,7 @@ class TextFileReader(abc.Iterator):
                 and value != getattr(value, "value", default)
             ):
                 raise ValueError(
-                    f"The {repr(argname)} option is not supported with the "
+                    f"The {argname!r} option is not supported with the "
                     f"'pyarrow' engine"
                 )
             options[argname] = value
@@ -1656,8 +1656,8 @@ class TextFileReader(abc.Iterator):
                         pass
                     else:
                         raise ValueError(
-                            f"The {repr(argname)} option is not supported with the "
-                            f"{repr(engine)} engine"
+                            f"The {argname!r} option is not supported with the "
+                            f"{engine!r} engine"
                         )
             else:
                 value = default
@@ -1760,7 +1760,7 @@ class TextFileReader(abc.Iterator):
                 if fallback_reason and result[arg] != _c_parser_defaults.get(arg):
                     raise ValueError(
                         "Falling back to the 'python' engine because "
-                        f"{fallback_reason}, but this causes {repr(arg)} to be "
+                        f"{fallback_reason}, but this causes {arg!r} to be "
                         "ignored as it is not supported by the 'python' engine."
                     )
                 del result[arg]

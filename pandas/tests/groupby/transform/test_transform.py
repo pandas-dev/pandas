@@ -668,7 +668,7 @@ def test_transform_mixed_type():
 
     grouped = df.groupby("c")
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = grouped.apply(f)
 
     assert result["d"].dtype == np.float64
@@ -706,7 +706,6 @@ def test_cython_transform_series(op, args, targop):
 
 
 @pytest.mark.parametrize("op", ["cumprod", "cumsum"])
-@pytest.mark.parametrize("skipna", [False, True])
 @pytest.mark.parametrize(
     "input, exp",
     [
@@ -826,7 +825,7 @@ def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
         if op != "shift" or not isinstance(gb_target.get("by"), (str, list)):
             warn = None
         else:
-            warn = FutureWarning
+            warn = DeprecationWarning
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
         with tm.assert_produces_warning(warn, match=msg):
             expected = gb.apply(targop)
@@ -1239,15 +1238,14 @@ def test_groupby_transform_dtype():
     tm.assert_series_equal(result, expected1)
 
 
-@pytest.mark.parametrize("func", ["cumsum", "cumprod", "cummin", "cummax"])
-def test_transform_absent_categories(func):
+def test_transform_absent_categories(all_numeric_accumulations):
     # GH 16771
     # cython transforms with more groups than rows
     x_vals = [1]
     x_cats = range(2)
     y = [1]
     df = DataFrame({"x": Categorical(x_vals, x_cats), "y": y})
-    result = getattr(df.y.groupby(df.x, observed=False), func)()
+    result = getattr(df.y.groupby(df.x, observed=False), all_numeric_accumulations)()
     expected = df.y
     tm.assert_series_equal(result, expected)
 

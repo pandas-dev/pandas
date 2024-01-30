@@ -415,7 +415,6 @@ def test_astype_float(dtype, any_float_dtype):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce(skipna, dtype):
     arr = pd.Series(["a", "b", "c"], dtype=dtype)
@@ -423,7 +422,6 @@ def test_reduce(skipna, dtype):
     assert result == "abc"
 
 
-@pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce_missing(skipna, dtype):
     arr = pd.Series([None, "a", None, "b", "c", None], dtype=dtype)
@@ -435,7 +433,6 @@ def test_reduce_missing(skipna, dtype):
 
 
 @pytest.mark.parametrize("method", ["min", "max"])
-@pytest.mark.parametrize("skipna", [True, False])
 def test_min_max(method, skipna, dtype):
     arr = pd.Series(["a", "b", "c", None], dtype=dtype)
     result = getattr(arr, method)(skipna=skipna)
@@ -584,6 +581,19 @@ def test_value_counts_with_normalize(dtype):
     ser = pd.Series(["a", "b", "a", pd.NA], dtype=dtype)
     result = ser.value_counts(normalize=True)
     expected = pd.Series([2, 1], index=ser[:2], dtype=exp_dtype, name="proportion") / 3
+    tm.assert_series_equal(result, expected)
+
+
+def test_value_counts_sort_false(dtype):
+    if getattr(dtype, "storage", "") == "pyarrow":
+        exp_dtype = "int64[pyarrow]"
+    elif getattr(dtype, "storage", "") == "pyarrow_numpy":
+        exp_dtype = "int64"
+    else:
+        exp_dtype = "Int64"
+    ser = pd.Series(["a", "b", "c", "b"], dtype=dtype)
+    result = ser.value_counts(sort=False)
+    expected = pd.Series([1, 2, 1], index=ser[:3], dtype=exp_dtype, name="count")
     tm.assert_series_equal(result, expected)
 
 
