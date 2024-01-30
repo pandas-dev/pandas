@@ -500,3 +500,12 @@ def test_ndarray_compat_properties(index):
     # test for validity
     idx.nbytes
     idx.values.nbytes
+
+
+def test_compare_read_only_array():
+    # GH#57130
+    arr = np.array([], dtype=object)
+    arr.flags.writeable = False
+    idx = pd.Index(arr)
+    result = idx > 69
+    assert result.dtype == bool

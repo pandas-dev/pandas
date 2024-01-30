@@ -3364,9 +3364,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
     @final
-    def first(self, numeric_only: bool = False, min_count: int = -1) -> NDFrameT:
+    def first(
+        self, numeric_only: bool = False, min_count: int = -1, skipna: bool = True
+    ) -> NDFrameT:
         """
-        Compute the first non-null entry of each column.
+        Compute the first entry of each column within each group.
+
+        Defaults to skipping NA elements.
 
         Parameters
         ----------
@@ -3374,12 +3378,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Include only float, int, boolean columns.
         min_count : int, default -1
             The required number of valid values to perform the operation. If fewer
-            than ``min_count`` non-NA values are present the result will be NA.
+            than ``min_count`` valid values are present the result will be NA.
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+
+            .. versionadded:: 2.2.1
 
         Returns
         -------
         Series or DataFrame
-            First non-null of values within each group.
+            First values within each group.
 
         See Also
         --------
@@ -3431,12 +3440,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             min_count=min_count,
             alias="first",
             npfunc=first_compat,
+            skipna=skipna,
         )
 
     @final
-    def last(self, numeric_only: bool = False, min_count: int = -1) -> NDFrameT:
+    def last(
+        self, numeric_only: bool = False, min_count: int = -1, skipna: bool = True
+    ) -> NDFrameT:
         """
-        Compute the last non-null entry of each column.
+        Compute the last entry of each column within each group.
+
+        Defaults to skipping NA elements.
 
         Parameters
         ----------
@@ -3445,12 +3459,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             everything, then use only numeric data.
         min_count : int, default -1
             The required number of valid values to perform the operation. If fewer
-            than ``min_count`` non-NA values are present the result will be NA.
+            than ``min_count`` valid values are present the result will be NA.
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+
+            .. versionadded:: 2.2.1
 
         Returns
         -------
         Series or DataFrame
-            Last non-null of values within each group.
+            Last of values within each group.
 
         See Also
         --------
@@ -3490,6 +3509,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             min_count=min_count,
             alias="last",
             npfunc=last_compat,
+            skipna=skipna,
         )
 
     @final
