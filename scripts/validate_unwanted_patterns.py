@@ -56,6 +56,8 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_version_meson",
     # The numba extensions need this to mock the iloc object
     "_iLocIndexer",
+    # TODO(4.0): GH#55043 - remove upon removal of CoW option
+    "_get_option",
     "_fill_limit_area_1d",
 }
 
