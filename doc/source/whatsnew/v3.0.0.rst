@@ -116,7 +116,7 @@ and are accessible from :mod:`errors`.
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
--
+- 3rd party ``py.path`` objects are no longer explicitly supported in IO methods. Use :py:class:`pathlib.Path` objects instead (:issue:`57091`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -174,7 +174,7 @@ Timezones
 
 Numeric
 ^^^^^^^
--
+- Bug in ``np.matmul`` with :class:`Index` inputs raising a ``TypeError`` (:issue:`57079`)
 -
 
 Conversion
@@ -184,7 +184,7 @@ Conversion
 
 Strings
 ^^^^^^^
--
+- Bug in :meth:`Series.value_counts` would not respect ``sort=False`` for series having ``string`` dtype (:issue:`55224`)
 -
 
 Interval
