@@ -112,7 +112,7 @@ people who are hesitant to bring up their questions or ideas on a large public
 mailing list or GitHub.
 
 If this sounds like the right place for you, you are welcome to join using
-`this link <https://join.slack.com/t/pandas-dev-community/shared_invite/zt-1e2qgy1r6-PLCN8UOLEUAYoLdAsaJilw>`_!
+`this link <https://join.slack.com/t/pandas-dev-community/shared_invite/zt-2blg6u9k3-K6_XvMRDZWeH7Id274UeIg>`_!
 Please remember to follow our `Code of Conduct <https://pandas.pydata.org/community/coc.html>`_,
 and be aware that our admins are monitoring for irrelevant messages and will remove folks who use
 our
