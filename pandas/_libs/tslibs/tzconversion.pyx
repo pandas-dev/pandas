@@ -189,7 +189,7 @@ cdef int64_t tz_localize_to_utc_single(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def tz_localize_to_utc(
-    ndarray vals,
+    ndarray[int64_t] vals,
     tzinfo tz,
     object ambiguous=None,
     object nonexistent=None,
