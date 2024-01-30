@@ -1178,13 +1178,21 @@ class SeriesGroupBy(GroupBy[Series]):
 
     @doc(Series.idxmin.__doc__)
     def idxmin(
-        self, axis: Axis | lib.NoDefault = lib.no_default, skipna: bool = True
+        self,
+        axis: Axis | lib.NoDefault = lib.no_default,
+        skipna: bool = True,
+        *args,
+        **kwargs,
     ) -> Series:
         return self._idxmax_idxmin("idxmin", axis=axis, skipna=skipna)
 
     @doc(Series.idxmax.__doc__)
     def idxmax(
-        self, axis: Axis | lib.NoDefault = lib.no_default, skipna: bool = True
+        self,
+        axis: Axis | lib.NoDefault = lib.no_default,
+        skipna: bool = True,
+        *args,
+        **kwargs,
     ) -> Series:
         return self._idxmax_idxmin("idxmax", axis=axis, skipna=skipna)
 
