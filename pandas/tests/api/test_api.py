@@ -3,10 +3,7 @@ from __future__ import annotations
 import pytest
 
 import pandas as pd
-from pandas import (
-    api,
-    errors,
-)
+from pandas import api
 import pandas._testing as tm
 from pandas.api import (
     extensions as api_extensions,
@@ -359,8 +356,28 @@ class TestApi(Base):
     def test_api_extensions(self):
         self.check(api_extensions, self.allowed_api_extensions)
 
-    def test_api_errors(self):
-        self.check(errors, errors.__all__, ignored=["ctypes", "cow"])
+
+class TestErrors(Base):
+    def test_errors(self):
+        self.check(pd.errors, pd.errors.__all__, ignored=["ctypes", "cow"])
+
+
+class TestUtil(Base):
+    def test_util(self):
+        self.check(
+            pd.util,
+            ["hash_array", "hash_pandas_object"],
+            ignored=[
+                "_decorators",
+                "_test_decorators",
+                "_exceptions",
+                "_validators",
+                "capitalize_first_letter",
+                "version",
+                "_print_versions",
+                "_tester",
+            ],
+        )
 
 
 class TestTesting(Base):

@@ -26,7 +26,7 @@ def __getattr__(key: str):
 
 
 def __dir__():
-    return list(globals.keys()) + ["hash_array", "hash_pandas_object"]
+    return list(globals().keys()) + ["hash_array", "hash_pandas_object"]
 
 
 def capitalize_first_letter(s: str) -> str:
