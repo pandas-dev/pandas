@@ -24,9 +24,32 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core import common as com
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from pandas._typing import MutableMappingT
 
     from pandas import DataFrame
+
+
+def create_data_for_split(
+    df: DataFrame, are_all_object_dtype_cols: bool, object_dtype_indices: list[int]
+) -> Generator[list, None, None]:
+    """
+    Simple helper method to create data for to ``to_dict(orient="split")``
+    to create the main output data
+    """
+    if are_all_object_dtype_cols:
+        for tup in df.itertuples(index=False, name=None):
+            yield list(map(maybe_box_native, tup))
+    else:
+        for tup in df.itertuples(index=False, name=None):
+            data = list(tup)
+            if object_dtype_indices:
+                # If we have object_dtype_cols, apply maybe_box_naive after
+                # for perf
+                for i in object_dtype_indices:
+                    data[i] = maybe_box_native(data[i])
+            yield data
 
 
 @overload
@@ -152,39 +175,38 @@ def to_dict(
         # GH46470 Return quickly if orient series to avoid creating dtype objects
         return into_c((k, v) for k, v in df.items())
 
+    if orient == "dict":
+        return into_c((k, v.to_dict(into=into)) for k, v in df.items())
+
     box_native_indices = [
         i
         for i, col_dtype in enumerate(df.dtypes.values)
         if col_dtype == np.dtype(object) or isinstance(col_dtype, ExtensionDtype)
     ]
-    box_na_values = [
-        lib.no_default if not isinstance(col_dtype, BaseMaskedDtype) else libmissing.NA
-        for i, col_dtype in enumerate(df.dtypes.values)
-    ]
+
     are_all_object_dtype_cols = len(box_native_indices) == len(df.dtypes)
 
-    if orient == "dict":
-        return into_c((k, v.to_dict(into=into)) for k, v in df.items())
-
-    elif orient == "list":
+    if orient == "list":
         object_dtype_indices_as_set: set[int] = set(box_native_indices)
+        box_na_values = (
+            lib.no_default
+            if not isinstance(col_dtype, BaseMaskedDtype)
+            else libmissing.NA
+            for col_dtype in df.dtypes.values
+        )
         return into_c(
             (
                 k,
-                list(
-                    map(
-                        maybe_box_native, v.to_numpy(na_value=box_na_values[i]).tolist()
-                    )
-                )
+                list(map(maybe_box_native, v.to_numpy(na_value=box_na_value).tolist()))
                 if i in object_dtype_indices_as_set
                 else v.to_numpy().tolist(),
             )
-            for i, (k, v) in enumerate(df.items())
+            for i, (box_na_value, (k, v)) in enumerate(zip(box_na_values, df.items()))
         )
 
     elif orient == "split":
-        data = df._create_data_for_split_and_tight_to_dict(
-            are_all_object_dtype_cols, box_native_indices
+        data = list(
+            create_data_for_split(df, are_all_object_dtype_cols, box_native_indices)
         )
 
         return into_c(
@@ -196,10 +218,6 @@ def to_dict(
         )
 
     elif orient == "tight":
-        data = df._create_data_for_split_and_tight_to_dict(
-            are_all_object_dtype_cols, box_native_indices
-        )
-
         return into_c(
             ((("index", df.index.tolist()),) if index else ())
             + (
