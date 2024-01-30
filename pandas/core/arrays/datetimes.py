@@ -1094,7 +1094,7 @@ default 'raise'
         else:
             order = "F" if self._ndarray.flags.f_contiguous else "C"
             maybe_reshape = lambda arr: arr.reshape(self.shape, order=order)
-            data = self.ravel("K").asi8()
+            data = self.ravel("K").asi8
 
         if self.tz is not None:
             if tz is None:
