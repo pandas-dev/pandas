@@ -6769,7 +6769,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> s.values is shallow.values
         False
         >>> s.index is shallow.index
-        True
+        False
 
         Deep copy has own copy of data and index.
 
@@ -6811,22 +6811,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         0    [10, 2]
         1     [3, 4]
         dtype: object
-
-        **Copy-on-Write is set to true**, the shallow copy is not modified
-        when the original data is changed:
-
-        >>> with pd.option_context("mode.copy_on_write", True):
-        ...     s = pd.Series([1, 2], index=["a", "b"])
-        ...     copy = s.copy(deep=False)
-        ...     s.iloc[0] = 100
-        ...     s
-        a    100
-        b      2
-        dtype: int64
-        >>> copy
-        a    1
-        b    2
-        dtype: int64
         """
         data = self._mgr.copy(deep=deep)
         self._clear_item_cache()
