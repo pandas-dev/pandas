@@ -1428,6 +1428,7 @@ def group_last(
     uint8_t[:, ::1] result_mask=None,
     Py_ssize_t min_count=-1,
     bint is_datetimelike=False,
+    bint skipna=True,
 ) -> None:
     """
     Only aggregates on axis=0
@@ -1462,14 +1463,19 @@ def group_last(
             for j in range(K):
                 val = values[i, j]
 
-                if uses_mask:
-                    isna_entry = mask[i, j]
-                else:
-                    isna_entry = _treat_as_na(val, is_datetimelike)
+                if skipna:
+                    if uses_mask:
+                        isna_entry = mask[i, j]
+                    else:
+                        isna_entry = _treat_as_na(val, is_datetimelike)
+                    if isna_entry:
+                        continue
 
-                if not isna_entry:
-                    nobs[lab, j] += 1
-                    resx[lab, j] = val
+                nobs[lab, j] += 1
+                resx[lab, j] = val
+
+                if uses_mask and not skipna:
+                    result_mask[lab, j] = mask[i, j]
 
     _check_below_mincount(
         out, uses_mask, result_mask, ncounts, K, nobs, min_count, resx
@@ -1490,6 +1496,7 @@ def group_nth(
     int64_t min_count=-1,
     int64_t rank=1,
     bint is_datetimelike=False,
+    bint skipna=True,
 ) -> None:
     """
     Only aggregates on axis=0
@@ -1524,15 +1531,19 @@ def group_nth(
             for j in range(K):
                 val = values[i, j]
 
-                if uses_mask:
-                    isna_entry = mask[i, j]
-                else:
-                    isna_entry = _treat_as_na(val, is_datetimelike)
+                if skipna:
+                    if uses_mask:
+                        isna_entry = mask[i, j]
+                    else:
+                        isna_entry = _treat_as_na(val, is_datetimelike)
+                    if isna_entry:
+                        continue
 
-                if not isna_entry:
-                    nobs[lab, j] += 1
-                    if nobs[lab, j] == rank:
-                        resx[lab, j] = val
+                nobs[lab, j] += 1
+                if nobs[lab, j] == rank:
+                    resx[lab, j] = val
+                    if uses_mask and not skipna:
+                        result_mask[lab, j] = mask[i, j]
 
     _check_below_mincount(
         out, uses_mask, result_mask, ncounts, K, nobs, min_count, resx
