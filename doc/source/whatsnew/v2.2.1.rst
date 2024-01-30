@@ -17,6 +17,7 @@ Fixed regressions
 - Fixed performance regression in :meth:`Series.combine_first` (:issue:`55845`)
 - Fixed regression in :func:`merge_ordered` raising ``TypeError`` for ``fill_method="ffill"`` and ``how="left"`` (:issue:`57010`)
 - Fixed regression in :func:`wide_to_long` raising an ``AttributeError`` for string columns (:issue:`57066`)
+- Fixed regression in :meth:`DataFrame.loc` raising ``IndexError`` for non-unique, masked dtype indexes where result has more than 10,000 rows (:issue:`57027`)
 - Fixed regression in :meth:`DataFrameGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmin`, :meth:`SeriesGroupBy.idxmax` ignoring the ``skipna`` argument (:issue:`57040`)
 - Fixed regression in :meth:`DataFrameGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmin`, :meth:`SeriesGroupBy.idxmax` where values containing the minimum or maximum value for the dtype could produce incorrect results (:issue:`57040`)
 - Fixed regression in :meth:`Index.join` raising ``TypeError`` when joining an empty index to a non-empty index containing mixed dtype values (:issue:`57048`)
@@ -27,14 +28,15 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Fixed bug in :meth:`DataFrame.__getitem__` for empty :class:`DataFrame` with Copy-on-Write enabled (:issue:`57130`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_221.other:
 
 Other
 ~~~~~
--
+- Added the argument ``skipna`` to :meth:`DataFrameGroupBy.first`, :meth:`DataFrameGroupBy.last`, :meth:`SeriesGroupBy.first`, and :meth:`SeriesGroupBy.last`; achieving ``skipna=False`` used to be available via :meth:`DataFrameGroupBy.nth`, but the behavior was changed in pandas 2.0.0 (:issue:`57019`)
+- Added the argument ``skipna`` to :meth:`Resampler.first`, :meth:`Resampler.last` (:issue:`57019`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_221.contributors:
