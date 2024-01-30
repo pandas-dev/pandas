@@ -3347,3 +3347,15 @@ class TestLocSeries:
             index = pd.period_range(start="2000", periods=20, freq="B")
             series = Series(range(20), index=index)
             assert series.loc["2000-01-14"] == 9
+
+    def test_loc_nonunique_masked_index(self):
+        # GH 57027
+        ids = list(range(11))
+        index = Index(ids * 1000, dtype="Int64")
+        df = DataFrame({"val": np.arange(len(index), dtype=np.intp)}, index=index)
+        result = df.loc[ids]
+        expected = DataFrame(
+            {"val": index.argsort(kind="stable").astype(np.intp)},
+            index=Index(np.array(ids).repeat(1000), dtype="Int64"),
+        )
+        tm.assert_frame_equal(result, expected)
