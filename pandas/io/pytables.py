@@ -365,7 +365,7 @@ def read_hdf(
         A list of Term (or convertible) objects.
     start : int, optional
         Row number to start selection.
-    stop  : int, optional
+    stop : int, optional
         Row number to stop selection.
     columns : list, optional
         A list of columns names to return.
@@ -1269,7 +1269,7 @@ class HDFStore:
                 subsets of the data.
         index : bool, default True
             Write DataFrame index as a column.
-        append       : bool, default True
+        append : bool, default True
             Append the input data to the existing.
         data_columns : list of columns, or True, default None
             List of columns to create as indexed data columns for on-disk
@@ -1277,10 +1277,10 @@ class HDFStore:
             of the object are indexed. See `here
             <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
         min_itemsize : dict of columns that specify minimum str sizes
-        nan_rep      : str to use as str nan representation
-        chunksize    : size to chunk the writing
+        nan_rep : str to use as str nan representation
+        chunksize : size to chunk the writing
         expectedrows : expected TOTAL row size of this table
-        encoding     : default None, provide an encoding for str
+        encoding : default None, provide an encoding for str
         dropna : bool, default False, optional
             Do not write an ALL nan row to the store settable
             by the option 'io.hdf.dropna_table'.
@@ -2170,9 +2170,7 @@ class IndexCol:
             # "Union[Type[Index], Type[DatetimeIndex]]")
             factory = lambda x, **kwds: PeriodIndex.from_ordinals(  # type: ignore[assignment]
                 x, freq=kwds.get("freq", None)
-            )._rename(
-                kwds["name"]
-            )
+            )._rename(kwds["name"])
 
         # making an Index instance could throw a number of different errors
         try:
@@ -3181,7 +3179,9 @@ class GenericFixed(Fixed):
             # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
             # attribute "asi8"
             self._handle.create_array(
-                self.group, key, value.asi8  # type: ignore[union-attr]
+                self.group,
+                key,
+                value.asi8,  # type: ignore[union-attr]
             )
 
             node = getattr(self.group, key)
@@ -3207,7 +3207,7 @@ class SeriesFixed(GenericFixed):
     name: Hashable
 
     @property
-    def shape(self):
+    def shape(self) -> tuple[int] | None:
         try:
             return (len(self.group.values),)
         except (TypeError, AttributeError):

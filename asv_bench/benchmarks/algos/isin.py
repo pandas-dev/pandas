@@ -62,8 +62,8 @@ class IsIn:
                     Index([f"i-{i}" for i in range(N)], dtype=object)._values,
                     dtype=dtype,
                 )
-            except ImportError:
-                raise NotImplementedError
+            except ImportError as err:
+                raise NotImplementedError from err
             self.values = list(self.series[:2])
 
         else:

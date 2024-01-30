@@ -151,8 +151,8 @@ class Grouper:
     Specify a resample operation on the column 'Publish date'
 
     >>> df = pd.DataFrame(
-    ...    {
-    ...        "Publish date": [
+    ...     {
+    ...         "Publish date": [
     ...             pd.Timestamp("2000-01-02"),
     ...             pd.Timestamp("2000-01-02"),
     ...             pd.Timestamp("2000-01-09"),
@@ -476,7 +476,7 @@ class Grouper:
     @final
     def __repr__(self) -> str:
         attrs_list = (
-            f"{attr_name}={repr(getattr(self, attr_name))}"
+            f"{attr_name}={getattr(self, attr_name)!r}"
             for attr_name in self._attributes
             if getattr(self, attr_name) is not None
         )
@@ -1008,7 +1008,8 @@ def get_grouper(
                 return False
             if isinstance(gpr, Series) and isinstance(obj_gpr_column, Series):
                 return gpr._mgr.references_same_values(  # type: ignore[union-attr]
-                    obj_gpr_column._mgr, 0  # type: ignore[arg-type]
+                    obj_gpr_column._mgr,  # type: ignore[arg-type]
+                    0,
                 )
             return False
         try:

@@ -827,7 +827,7 @@ class FrameApply(NDFrameApply):
     def apply_with_numba(self):
         pass
 
-    def validate_values_for_numba(self):
+    def validate_values_for_numba(self) -> None:
         # Validate column dtyps all OK
         for colname, dtype in self.obj.dtypes.items():
             if not is_numeric_dtype(dtype):
@@ -1010,7 +1010,8 @@ class FrameApply(NDFrameApply):
             # [..., Any] | str] | dict[Hashable,Callable[..., Any] | str |
             # list[Callable[..., Any] | str]]"; expected "Hashable"
             nb_looper = generate_apply_looper(
-                self.func, **engine_kwargs  # type: ignore[arg-type]
+                self.func,  # type: ignore[arg-type]
+                **engine_kwargs,
             )
             result = nb_looper(self.values, self.axis)
             # If we made the result 2-D, squeeze it back to 1-D

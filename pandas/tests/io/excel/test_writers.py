@@ -90,7 +90,7 @@ def set_engine(engine, ext):
 class TestRoundTrip:
     @pytest.mark.parametrize(
         "header,expected",
-        [(None, DataFrame([np.nan] * 4)), (0, DataFrame({"Unnamed: 0": [np.nan] * 3}))],
+        [(None, [np.nan] * 4), (0, {"Unnamed: 0": [np.nan] * 3})],
     )
     def test_read_one_empty_col_no_header(self, ext, header, expected):
         # xref gh-12292
@@ -102,14 +102,14 @@ class TestRoundTrip:
             result = pd.read_excel(
                 path, sheet_name=filename, usecols=[0], header=header
             )
-
+        expected = DataFrame(expected)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "header,expected",
-        [(None, DataFrame([0] + [np.nan] * 4)), (0, DataFrame([np.nan] * 4))],
+        "header,expected_extra",
+        [(None, [0]), (0, [])],
     )
-    def test_read_one_empty_col_with_header(self, ext, header, expected):
+    def test_read_one_empty_col_with_header(self, ext, header, expected_extra):
         filename = "with_header"
         df = DataFrame([["", 1, 100], ["", 2, 200], ["", 3, 300], ["", 4, 400]])
 
@@ -118,7 +118,7 @@ class TestRoundTrip:
             result = pd.read_excel(
                 path, sheet_name=filename, usecols=[0], header=header
             )
-
+        expected = DataFrame(expected_extra + [np.nan] * 4)
         tm.assert_frame_equal(result, expected)
 
     def test_set_column_names_in_parameter(self, ext):
@@ -1317,18 +1317,6 @@ class TestExcelWriter:
 
         reader = partial(pd.read_excel, index_col=0)
         result = tm.round_trip_pathlib(writer, reader, path=f"foo{ext}")
-        tm.assert_frame_equal(result, df)
-
-    def test_path_local_path(self, engine, ext):
-        df = DataFrame(
-            1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD")),
-            index=Index([f"i-{i}" for i in range(30)]),
-        )
-        writer = partial(df.to_excel, engine=engine)
-
-        reader = partial(pd.read_excel, index_col=0)
-        result = tm.round_trip_localpath(writer, reader, path=f"foo{ext}")
         tm.assert_frame_equal(result, df)
 
     def test_merged_cell_custom_objects(self, path):

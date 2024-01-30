@@ -601,17 +601,17 @@ def merge_asof(
     ...             pd.Timestamp("2016-05-25 13:30:00.075")
     ...         ],
     ...         "ticker": [
-    ...                "GOOG",
-    ...                "MSFT",
-    ...                "MSFT",
-    ...                "MSFT",
-    ...                "GOOG",
-    ...                "AAPL",
-    ...                "GOOG",
-    ...                "MSFT"
-    ...            ],
-    ...            "bid": [720.50, 51.95, 51.97, 51.99, 720.50, 97.99, 720.50, 52.01],
-    ...            "ask": [720.93, 51.96, 51.98, 52.00, 720.93, 98.01, 720.88, 52.03]
+    ...             "GOOG",
+    ...             "MSFT",
+    ...             "MSFT",
+    ...             "MSFT",
+    ...             "GOOG",
+    ...             "AAPL",
+    ...             "GOOG",
+    ...             "MSFT"
+    ...         ],
+    ...         "bid": [720.50, 51.95, 51.97, 51.99, 720.50, 97.99, 720.50, 52.01],
+    ...         "ask": [720.93, 51.96, 51.98, 52.00, 720.93, 98.01, 720.88, 52.03]
     ...     }
     ... )
     >>> quotes
@@ -626,19 +626,19 @@ def merge_asof(
     7 2016-05-25 13:30:00.075   MSFT   52.01   52.03
 
     >>> trades = pd.DataFrame(
-    ...        {
-    ...            "time": [
-    ...                pd.Timestamp("2016-05-25 13:30:00.023"),
-    ...                pd.Timestamp("2016-05-25 13:30:00.038"),
-    ...                pd.Timestamp("2016-05-25 13:30:00.048"),
-    ...                pd.Timestamp("2016-05-25 13:30:00.048"),
-    ...                pd.Timestamp("2016-05-25 13:30:00.048")
-    ...            ],
-    ...            "ticker": ["MSFT", "MSFT", "GOOG", "GOOG", "AAPL"],
-    ...            "price": [51.95, 51.95, 720.77, 720.92, 98.0],
-    ...            "quantity": [75, 155, 100, 100, 100]
-    ...        }
-    ...    )
+    ...     {
+    ...         "time": [
+    ...             pd.Timestamp("2016-05-25 13:30:00.023"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.038"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.048"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.048"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.048")
+    ...         ],
+    ...         "ticker": ["MSFT", "MSFT", "GOOG", "GOOG", "AAPL"],
+    ...         "price": [51.95, 51.95, 720.77, 720.92, 98.0],
+    ...         "quantity": [75, 155, 100, 100, 100]
+    ...     }
+    ... )
     >>> trades
                          time ticker   price  quantity
     0 2016-05-25 13:30:00.023   MSFT   51.95        75
@@ -1526,6 +1526,11 @@ class _MergeOperation:
             ) or (lk.dtype.kind == "M" and rk.dtype.kind == "M"):
                 # allows datetime with different resolutions
                 continue
+            # datetime and timedelta not allowed
+            elif lk.dtype.kind == "M" and rk.dtype.kind == "m":
+                raise ValueError(msg)
+            elif lk.dtype.kind == "m" and rk.dtype.kind == "M":
+                raise ValueError(msg)
 
             elif is_object_dtype(lk.dtype) and is_object_dtype(rk.dtype):
                 continue
@@ -1575,7 +1580,7 @@ class _MergeOperation:
                     not left_cols.join(common_cols, how="inner").is_unique
                     or not right_cols.join(common_cols, how="inner").is_unique
                 ):
-                    raise MergeError(f"Data columns not unique: {repr(common_cols)}")
+                    raise MergeError(f"Data columns not unique: {common_cols!r}")
                 left_on = right_on = common_cols
         elif self.on is not None:
             if left_on is not None or right_on is not None:
@@ -1925,10 +1930,9 @@ class _OrderedMerge(_MergeOperation):
 
         if self.fill_method == "ffill":
             if left_indexer is None:
-                raise TypeError("left_indexer cannot be None")
-            left_indexer = cast("npt.NDArray[np.intp]", left_indexer)
-            right_indexer = cast("npt.NDArray[np.intp]", right_indexer)
-            left_join_indexer = libjoin.ffill_indexer(left_indexer)
+                left_join_indexer = None
+            else:
+                left_join_indexer = libjoin.ffill_indexer(left_indexer)
             if right_indexer is None:
                 right_join_indexer = None
             else:
@@ -2066,8 +2070,8 @@ class _AsOfMerge(_OrderedMerge):
             or is_string_dtype(ro_dtype)
         ):
             raise MergeError(
-                f"Incompatible merge dtype, {repr(ro_dtype)} and "
-                f"{repr(lo_dtype)}, both sides must have numeric dtype"
+                f"Incompatible merge dtype, {ro_dtype!r} and "
+                f"{lo_dtype!r}, both sides must have numeric dtype"
             )
 
         # add 'by' to our key-list so we can have it in the
@@ -2091,7 +2095,7 @@ class _AsOfMerge(_OrderedMerge):
     ) -> None:
         # TODO: why do we do this for AsOfMerge but not the others?
 
-        def _check_dtype_match(left: ArrayLike, right: ArrayLike, i: int):
+        def _check_dtype_match(left: ArrayLike, right: ArrayLike, i: int) -> None:
             if left.dtype != right.dtype:
                 if isinstance(left.dtype, CategoricalDtype) and isinstance(
                     right.dtype, CategoricalDtype
@@ -2105,13 +2109,13 @@ class _AsOfMerge(_OrderedMerge):
                     # later with a ValueError, so we don't *need* to check
                     # for them here.
                     msg = (
-                        f"incompatible merge keys [{i}] {repr(left.dtype)} and "
-                        f"{repr(right.dtype)}, both sides category, but not equal ones"
+                        f"incompatible merge keys [{i}] {left.dtype!r} and "
+                        f"{right.dtype!r}, both sides category, but not equal ones"
                     )
                 else:
                     msg = (
-                        f"incompatible merge keys [{i}] {repr(left.dtype)} and "
-                        f"{repr(right.dtype)}, must be the same type"
+                        f"incompatible merge keys [{i}] {left.dtype!r} and "
+                        f"{right.dtype!r}, must be the same type"
                     )
                 raise MergeError(msg)
 
@@ -2141,7 +2145,7 @@ class _AsOfMerge(_OrderedMerge):
 
             msg = (
                 f"incompatible tolerance {self.tolerance}, must be compat "
-                f"with type {repr(lt.dtype)}"
+                f"with type {lt.dtype!r}"
             )
 
             if needs_i8_conversion(lt.dtype) or (
@@ -2483,18 +2487,30 @@ def _factorize_keys(
                 .combine_chunks()
                 .dictionary_encode()
             )
-            length = len(dc.dictionary)
 
             llab, rlab, count = (
-                pc.fill_null(dc.indices[slice(len_lk)], length)
+                pc.fill_null(dc.indices[slice(len_lk)], -1)
                 .to_numpy()
                 .astype(np.intp, copy=False),
-                pc.fill_null(dc.indices[slice(len_lk, None)], length)
+                pc.fill_null(dc.indices[slice(len_lk, None)], -1)
                 .to_numpy()
                 .astype(np.intp, copy=False),
                 len(dc.dictionary),
             )
+
+            if sort:
+                uniques = dc.dictionary.to_numpy(zero_copy_only=False)
+                llab, rlab = _sort_labels(uniques, llab, rlab)
+
             if dc.null_count > 0:
+                lmask = llab == -1
+                lany = lmask.any()
+                rmask = rlab == -1
+                rany = rmask.any()
+                if lany:
+                    np.putmask(llab, lmask, count)
+                if rany:
+                    np.putmask(rlab, rmask, count)
                 count += 1
             return llab, rlab, count
 

@@ -22,8 +22,8 @@ class Dtypes:
                 Index([f"i-{i}" for i in range(10000)], dtype=object)._values,
                 dtype=dtype,
             )
-        except ImportError:
-            raise NotImplementedError
+        except ImportError as err:
+            raise NotImplementedError from err
 
 
 class Construction:
