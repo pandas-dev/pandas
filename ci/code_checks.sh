@@ -181,6 +181,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.SeriesGroupBy.rolling\
         pandas.core.groupby.DataFrameGroupBy.hist\
         pandas.core.groupby.DataFrameGroupBy.plot\
+        pandas.core.groupby.DataFrameGroupBy.corrwith\
         pandas.core.groupby.SeriesGroupBy.plot\
         pandas.core.window.rolling.Rolling.quantile\
         pandas.core.window.expanding.Expanding.quantile\
