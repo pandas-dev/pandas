@@ -257,6 +257,68 @@ def test_empty(frame_or_series, all_boolean_reductions):
     tm.assert_equal(result, expected)
 
 
+@pytest.mark.parametrize("how", ["idxmin", "idxmax"])
+def test_idxmin_idxmax_extremes(how, any_real_numpy_dtype):
+    # GH#57040
+    if any_real_numpy_dtype is int or any_real_numpy_dtype is float:
+        # No need to test
+        return
+    info = np.iinfo if "int" in any_real_numpy_dtype else np.finfo
+    min_value = info(any_real_numpy_dtype).min
+    max_value = info(any_real_numpy_dtype).max
+    df = DataFrame(
+        {"a": [2, 1, 1, 2], "b": [min_value, max_value, max_value, min_value]},
+        dtype=any_real_numpy_dtype,
+    )
+    gb = df.groupby("a")
+    result = getattr(gb, how)()
+    expected = DataFrame(
+        {"b": [1, 0]}, index=pd.Index([1, 2], name="a", dtype=any_real_numpy_dtype)
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["idxmin", "idxmax"])
+def test_idxmin_idxmax_extremes_skipna(skipna, how, float_numpy_dtype):
+    # GH#57040
+    min_value = np.finfo(float_numpy_dtype).min
+    max_value = np.finfo(float_numpy_dtype).max
+    df = DataFrame(
+        {
+            "a": Series(np.repeat(range(1, 6), repeats=2), dtype="intp"),
+            "b": Series(
+                [
+                    np.nan,
+                    min_value,
+                    np.nan,
+                    max_value,
+                    min_value,
+                    np.nan,
+                    max_value,
+                    np.nan,
+                    np.nan,
+                    np.nan,
+                ],
+                dtype=float_numpy_dtype,
+            ),
+        },
+    )
+    gb = df.groupby("a")
+
+    warn = None if skipna else FutureWarning
+    msg = f"The behavior of DataFrameGroupBy.{how} with all-NA values"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = getattr(gb, how)(skipna=skipna)
+    if skipna:
+        values = [1, 3, 4, 6, np.nan]
+    else:
+        values = np.nan
+    expected = DataFrame(
+        {"b": values}, index=pd.Index(range(1, 6), name="a", dtype="intp")
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "func, values",
     [

@@ -87,6 +87,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     ExtensionDtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -3514,6 +3515,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         from pandas.core.reshape.concat import concat
 
+        if self.dtype == other.dtype:
+            if self.index.equals(other.index):
+                return self.mask(self.isna(), other)
+            elif self._can_hold_na and not isinstance(self.dtype, SparseDtype):
+                this, other = self.align(other, join="outer")
+                return this.mask(this.isna(), other)
+
         new_index = self.index.union(other.index)
 
         this = self
@@ -4070,6 +4078,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = 0,
         kind: SortKind = "quicksort",
         order: None = None,
+        stable: None = None,
     ) -> Series:
         """
         Return the integer indices that would sort the Series values.
@@ -4085,6 +4094,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Choice of sorting algorithm. See :func:`numpy.sort` for more
             information. 'mergesort' and 'stable' are the only stable algorithms.
         order : None
+            Has no effect but is accepted for compatibility with numpy.
+        stable : None
             Has no effect but is accepted for compatibility with numpy.
 
         Returns
