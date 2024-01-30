@@ -3,6 +3,9 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_extension_array_dtype
+
+import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -429,3 +432,29 @@ def test_resample_quantile(series):
         result = ser.resample(freq).quantile(q)
         expected = ser.resample(freq).agg(lambda x: x.quantile(q)).rename(ser.name)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["first", "last"])
+def test_first_last_skipna(any_real_nullable_dtype, skipna, how):
+    # GH#57019
+    if is_extension_array_dtype(any_real_nullable_dtype):
+        na_value = Series(dtype=any_real_nullable_dtype).dtype.na_value
+    else:
+        na_value = np.nan
+    df = DataFrame(
+        {
+            "a": [2, 1, 1, 2],
+            "b": [na_value, 3.0, na_value, 4.0],
+            "c": [na_value, 3.0, na_value, 4.0],
+        },
+        index=date_range("2020-01-01", periods=4, freq="D"),
+        dtype=any_real_nullable_dtype,
+    )
+    rs = df.resample("ME")
+    method = getattr(rs, how)
+    result = method(skipna=skipna)
+
+    gb = df.groupby(df.shape[0] * [pd.to_datetime("2020-01-31")])
+    expected = getattr(gb, how)(skipna=skipna)
+    expected.index.freq = "ME"
+    tm.assert_frame_equal(result, expected)
