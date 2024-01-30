@@ -6743,7 +6743,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         False
         >>> s.values is shallow.values
         False
-        >>>  s.index is shallow.index
+        >>> s.index is shallow.index
         True
 
         Deep copy has own copy of data and index.
