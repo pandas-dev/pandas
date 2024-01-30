@@ -190,10 +190,6 @@ def pytest_collection_modifyitems(items, config) -> None:
 
     if is_doctest:
         for item in items:
-            # autouse=True for the add_doctest_imports can lead to expensive teardowns
-            # since doctest_namespace is a session fixture
-            item.add_marker(pytest.mark.usefixtures("add_doctest_imports"))
-
             for path, message in ignored_doctest_warnings:
                 ignore_doctest_warning(item, path, message)
 
@@ -250,7 +246,14 @@ for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
     )
 
 
-@pytest.fixture
+# ----------------------------------------------------------------
+# Autouse fixtures
+# ----------------------------------------------------------------
+
+
+# https://github.com/pytest-dev/pytest/issues/11873
+# Would like to avoid autouse=True, but cannot as of pytest 8.0.0
+@pytest.fixture(autouse=True)
 def add_doctest_imports(doctest_namespace) -> None:
     """
     Make `np` and `pd` names available for doctests.
@@ -259,9 +262,6 @@ def add_doctest_imports(doctest_namespace) -> None:
     doctest_namespace["pd"] = pd
 
 
-# ----------------------------------------------------------------
-# Autouse fixtures
-# ----------------------------------------------------------------
 @pytest.fixture(autouse=True)
 def configure_tests() -> None:
     """
@@ -1699,6 +1699,38 @@ def any_numpy_dtype(request):
     * 'm8[ns]'
     * object
     * 'object'
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.ALL_REAL_NULLABLE_DTYPES)
+def any_real_nullable_dtype(request):
+    """
+    Parameterized fixture for all real dtypes that can hold NA.
+
+    * float
+    * 'float32'
+    * 'float64'
+    * 'Float32'
+    * 'Float64'
+    * 'UInt8'
+    * 'UInt16'
+    * 'UInt32'
+    * 'UInt64'
+    * 'Int8'
+    * 'Int16'
+    * 'Int32'
+    * 'Int64'
+    * 'uint8[pyarrow]'
+    * 'uint16[pyarrow]'
+    * 'uint32[pyarrow]'
+    * 'uint64[pyarrow]'
+    * 'int8[pyarrow]'
+    * 'int16[pyarrow]'
+    * 'int32[pyarrow]'
+    * 'int64[pyarrow]'
+    * 'float[pyarrow]'
+    * 'double[pyarrow]'
     """
     return request.param
 
