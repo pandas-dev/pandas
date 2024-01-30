@@ -1176,24 +1176,133 @@ class SeriesGroupBy(GroupBy[Series]):
         result = self._python_apply_general(f, data, not_indexed_same=True)
         return result
 
-    @doc(Series.idxmin.__doc__)
     def idxmin(
-        self,
-        axis: Axis | lib.NoDefault = lib.no_default,
-        skipna: bool = True,
-        *args,
-        **kwargs,
+        self, axis: Axis | lib.NoDefault = lib.no_default, skipna: bool = True
     ) -> Series:
+        """
+        Return the row label of the minimum value.
+
+        If multiple values equal the minimum, the first row label with that
+        value is returned.
+
+        Parameters
+        ----------
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
+        skipna : bool, default True
+            Exclude NA/null values. If the entire Series is NA, the result
+            will be NA.
+
+        Returns
+        -------
+        Index
+            Label of the minimum value.
+
+        Raises
+        ------
+        ValueError
+            If the Series is empty.
+
+        See Also
+        --------
+        numpy.argmin : Return indices of the minimum values
+            along the given axis.
+        DataFrame.idxmin : Return index of first occurrence of minimum
+            over requested axis.
+        Series.idxmax : Return index *label* of the first occurrence
+            of maximum of values.
+
+        Notes
+        -----
+        This method is the Series version of ``ndarray.argmin``. This method
+        returns the label of the minimum, while ``ndarray.argmin`` returns
+        the position. To get the position, use ``series.values.argmin()``.
+
+        Examples
+        --------
+        >>> s = pd.Series(data=[1, None, 4, 1],
+        ...               index=['A', 'B', 'C', 'D'])
+        >>> s
+        A    1.0
+        B    NaN
+        C    4.0
+        D    1.0
+        dtype: float64
+
+        >>> s.idxmin()
+        'A'
+
+        If `skipna` is False and there is an NA value in the data,
+        the function returns ``nan``.
+
+        >>> s.idxmin(skipna=False)
+        nan
+        """
         return self._idxmax_idxmin("idxmin", axis=axis, skipna=skipna)
 
-    @doc(Series.idxmax.__doc__)
     def idxmax(
-        self,
-        axis: Axis | lib.NoDefault = lib.no_default,
-        skipna: bool = True,
-        *args,
-        **kwargs,
+        self, axis: Axis | lib.NoDefault = lib.no_default, skipna: bool = True
     ) -> Series:
+        """
+        Return the row label of the maximum value.
+
+        If multiple values equal the maximum, the first row label with that
+        value is returned.
+
+        Parameters
+        ----------
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
+        skipna : bool, default True
+            Exclude NA/null values. If the entire Series is NA, the result
+            will be NA.
+
+        Returns
+        -------
+        Index
+            Label of the maximum value.
+
+        Raises
+        ------
+        ValueError
+            If the Series is empty.
+
+        See Also
+        --------
+        numpy.argmax : Return indices of the maximum values
+            along the given axis.
+        DataFrame.idxmax : Return index of first occurrence of maximum
+            over requested axis.
+        Series.idxmin : Return index *label* of the first occurrence
+            of minimum of values.
+
+        Notes
+        -----
+        This method is the Series version of ``ndarray.argmax``. This method
+        returns the label of the maximum, while ``ndarray.argmax`` returns
+        the position. To get the position, use ``series.values.argmax()``.
+
+        Examples
+        --------
+        >>> s = pd.Series(data=[1, None, 4, 3, 4],
+        ...               index=['A', 'B', 'C', 'D', 'E'])
+        >>> s
+        A    1.0
+        B    NaN
+        C    4.0
+        D    3.0
+        E    4.0
+        dtype: float64
+
+        >>> s.idxmax()
+        'C'
+
+        If `skipna` is False and there is an NA value in the data,
+        the function returns ``nan``.
+
+        >>> s.idxmax(skipna=False)
+        nan
+        """
         return self._idxmax_idxmin("idxmax", axis=axis, skipna=skipna)
 
     @doc(Series.corr.__doc__)
