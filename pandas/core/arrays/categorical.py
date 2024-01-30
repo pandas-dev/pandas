@@ -243,7 +243,9 @@ def contains(cat, key, container) -> bool:
         return any(loc_ in container for loc_ in loc)
 
 
-class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMixin):
+# error: Definition of "delete/ravel/T/repeat/copy" in base class "NDArrayBacked"
+# is incompatible with definition in base class "ExtensionArray"
+class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMixin):  # type: ignore[misc]
     """
     Represent a categorical variable in classic R / S-plus fashion.
 
@@ -561,6 +563,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             object is returned.
         """
         dtype = pandas_dtype(dtype)
+        result: Categorical | np.ndarray
         if self.dtype is dtype:
             result = self.copy() if copy else self
 
@@ -1818,10 +1821,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             ix = np.append(ix, -1)
 
         ix = coerce_indexer_dtype(ix, self.dtype.categories)
-        ix = self._from_backing_data(ix)
+        ix_categorical = self._from_backing_data(ix)
 
         return Series(
-            count, index=CategoricalIndex(ix), dtype="int64", name="count", copy=False
+            count,
+            index=CategoricalIndex(ix_categorical),
+            dtype="int64",
+            name="count",
+            copy=False,
         )
 
     # error: Argument 2 of "_empty" is incompatible with supertype
@@ -2526,7 +2533,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             result = res_flat.reshape(len(first), -1, order="F")
             return result
 
-        result = union_categoricals(to_concat)
+        # error: Incompatible types in assignment (expression has type "Categorical",
+        # variable has type "Self")
+        result = union_categoricals(to_concat)  # type: ignore[assignment]
         return result
 
     # ------------------------------------------------------------------
@@ -2666,11 +2675,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         new_categories = ser.take(locs)
         new_categories = new_categories.drop_duplicates(keep="first")
-        new_categories = Index(new_categories)
+        index_categories = Index(new_categories)
         new_codes = recode_for_categories(
-            cat._codes, all_values, new_categories, copy=False
+            cat._codes, all_values, index_categories, copy=False
         )
-        new_dtype = CategoricalDtype(new_categories, ordered=self.dtype.ordered)
+        new_dtype = CategoricalDtype(index_categories, ordered=self.dtype.ordered)
         NDArrayBacked.__init__(cat, new_codes, new_dtype)
 
         if new_dtype != orig_dtype:

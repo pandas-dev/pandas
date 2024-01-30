@@ -95,7 +95,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.PeriodIndex.strftime\
         pandas.Series.clip\
         pandas.Series.rename_axis\
-        pandas.Series.interpolate\
         pandas.Series.dt.to_period\
         pandas.Series.dt.tz_localize\
         pandas.Series.dt.tz_convert\
@@ -162,9 +161,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.tseries.offsets.Milli\
         pandas.tseries.offsets.Micro\
         pandas.tseries.offsets.Nano\
-        pandas.describe_option\
-        pandas.reset_option\
-        pandas.get_option\
         pandas.set_option\
         pandas.Timestamp.max\
         pandas.Timestamp.min\
@@ -186,8 +182,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.DataFrameGroupBy.hist\
         pandas.core.groupby.DataFrameGroupBy.plot\
         pandas.core.groupby.SeriesGroupBy.plot\
-        pandas.read_hdf\
-        pandas.HDFStore.append\
         pandas.core.window.rolling.Rolling.quantile\
         pandas.core.window.expanding.Expanding.quantile\
         pandas.api.extensions.ExtensionArray.argsort # There should be no backslash in the final line, please keep this comment in the last ignored function
