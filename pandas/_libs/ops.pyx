@@ -29,7 +29,7 @@ from pandas._libs.util cimport is_nan
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def scalar_compare(object[:] values, object val, object op) -> ndarray:
+def scalar_compare(ndarray[object] values, object val, object op) -> ndarray:
     """
     Compare each element of `values` array with the scalar `val`, with
     the comparison operation described by `op`.
