@@ -991,17 +991,6 @@ class TestParquetPyArrow(Base):
             result = read_parquet(path, pa, filters=[("a", "==", 0)])
         assert len(result) == 1
 
-    def test_read_parquet_manager(self, pa):
-        # ensure that read_parquet honors the pandas.options.mode.data_manager option
-        df = pd.DataFrame(
-            np.random.default_rng(2).standard_normal((10, 3)), columns=["A", "B", "C"]
-        )
-
-        with tm.ensure_clean() as path:
-            df.to_parquet(path, engine=pa)
-            result = read_parquet(path, pa)
-        assert isinstance(result._mgr, pd.core.internals.BlockManager)
-
     def test_read_dtype_backend_pyarrow_config(self, pa, df_full):
         import pyarrow
 
