@@ -526,14 +526,6 @@ def test_as_index_select_column():
     tm.assert_series_equal(result, expected)
 
 
-def test_obj_arg_get_group_deprecated():
-    msg = "cannot pass argument obj to get_group"
-
-    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
-    with pytest.raises(ValueError, match=msg):
-        df.groupby("b").get_group(4, obj=df)
-
-
 def test_groupby_as_index_select_column_sum_empty_df():
     # GH 35246
     df = DataFrame(columns=Index(["A", "B", "C"], name="alpha"))
