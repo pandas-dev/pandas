@@ -262,12 +262,10 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         try:
             self._ndarray[key] = value
         except TypeError as exc:
-            # Don't let Python's handling of `complex` make extra complexity for Pandas
-            if self._ndarray.dtype.kind == "c":
-                raise ValueError(
-                    *(x.replace("real", "complex") for x in exc.args)
-                ) from exc
-            raise exc
+            # Note: when `self._ndarray.dtype.kind == "c"`, Numpy incorrectly complains
+            # that `must be real number, not ...` when in reality
+            # a complex argument is more likely what's expected
+            raise ValueError(exc.args) from exc
 
     def _validate_setitem_value(self, value):
         return value

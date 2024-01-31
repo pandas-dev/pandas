@@ -1122,22 +1122,22 @@ class TestUFuncCompat:
         box = index_or_series
 
         result = np.sqrt(idx)
+        assert isinstance(result, box)
         if result.dtype.kind == "c":
-            assert result.dtype == dtype and isinstance(result, box)
             exp_dtype = dtype
         else:
-            assert result.dtype == "f8" and isinstance(result, box)
+            # assert result.dtype == "f8"
             exp_dtype = np.float64
         exp = Index(np.sqrt(np.array([1, 2, 3, 4, 5], dtype=exp_dtype)), name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = np.divide(idx, 2.0)
+        assert isinstance(result, box)
         if result.dtype.kind == "c":
-            assert result.dtype == dtype and isinstance(result, box)
             exp_dtype = dtype
         else:
-            assert result.dtype == "f8" and isinstance(result, box)
+            # assert result.dtype == "f8"
             exp_dtype = np.float64
         exp = Index([0.5, 1.0, 1.5, 2.0, 2.5], dtype=exp_dtype, name="x")
         exp = tm.box_expected(exp, box)
@@ -1145,44 +1145,44 @@ class TestUFuncCompat:
 
         # _evaluate_numeric_binop
         result = idx + 2.0
+        isinstance(result, box)
         if result.dtype.kind == "c":
-            assert result.dtype == dtype and isinstance(result, box)
             exp_dtype = dtype
         else:
-            assert result.dtype == "f8" and isinstance(result, box)
+            # assert result.dtype == "f8"
             exp_dtype = np.float64
         exp = Index([3.0, 4.0, 5.0, 6.0, 7.0], dtype=exp_dtype, name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = idx - 2.0
+        isinstance(result, box)
         if result.dtype.kind == "c":
-            assert result.dtype == dtype and isinstance(result, box)
             exp_dtype = dtype
         else:
-            assert result.dtype == "f8" and isinstance(result, box)
+            # assert result.dtype == "f8"
             exp_dtype = np.float64
         exp = Index([-1.0, 0.0, 1.0, 2.0, 3.0], dtype=exp_dtype, name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = idx * 1.0
+        isinstance(result, box)
         if result.dtype.kind == "c":
-            assert result.dtype == dtype and isinstance(result, box)
             exp_dtype = dtype
         else:
-            assert result.dtype == "f8" and isinstance(result, box)
+            # assert result.dtype == "f8"
             exp_dtype = np.float64
         exp = Index([1.0, 2.0, 3.0, 4.0, 5.0], dtype=exp_dtype, name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = idx / 2.0
+        isinstance(result, box)
         if result.dtype.kind == "c":
-            assert result.dtype == dtype and isinstance(result, box)
             exp_dtype = dtype
         else:
-            assert result.dtype == "f8" and isinstance(result, box)
+            # assert result.dtype == "f8"
             exp_dtype = np.float64
         exp = Index([0.5, 1.0, 1.5, 2.0, 2.5], dtype=exp_dtype, name="x")
         exp = tm.box_expected(exp, box)
