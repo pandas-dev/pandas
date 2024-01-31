@@ -8962,7 +8962,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             For `Series` this parameter is unused and defaults to `None`.
         inplace : bool, default False
             Whether to perform the operation in place on the data.
-        *args, **kwargs
+        **kwargs
             Additional keywords have no effect but might be accepted
             for compatibility with numpy.
 
