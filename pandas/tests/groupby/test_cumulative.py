@@ -304,16 +304,3 @@ def test_cython_api2():
     # GH 5755 - cumsum is a transformer and should ignore as_index
     result = df.groupby("A", as_index=False).cumsum()
     tm.assert_frame_equal(result, expected)
-
-    # GH 13994
-    msg = "DataFrameGroupBy.cumsum with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A").cumsum(axis=1)
-    expected = df.cumsum(axis=1)
-    tm.assert_frame_equal(result, expected)
-
-    msg = "DataFrameGroupBy.cumprod with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A").cumprod(axis=1)
-    expected = df.cumprod(axis=1)
-    tm.assert_frame_equal(result, expected)

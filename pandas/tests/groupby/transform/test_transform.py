@@ -398,31 +398,10 @@ def test_dispatch_transform(tsframe):
 
     grouped = df.groupby(lambda x: x.month)
 
-    msg = "DataFrameGroupBy.fillna is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        filled = grouped.fillna(method="pad")
-    msg = "Series.fillna with 'method' is deprecated"
-    fillit = lambda x: x.fillna(method="pad")
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        expected = df.groupby(lambda x: x.month).transform(fillit)
+    filled = grouped.ffill()
+    fillit = lambda x: x.ffill()
+    expected = df.groupby(lambda x: x.month).transform(fillit)
     tm.assert_frame_equal(filled, expected)
-
-
-def test_transform_fillna_null():
-    df = DataFrame(
-        {
-            "price": [10, 10, 20, 20, 30, 30],
-            "color": [10, 10, 20, 20, 30, 30],
-            "cost": (100, 200, 300, 400, 500, 600),
-        }
-    )
-    msg = "DataFrameGroupBy.fillna is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        with pytest.raises(ValueError, match="Must specify a fill 'value' or 'method'"):
-            df.groupby(["price"]).transform("fillna")
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        with pytest.raises(ValueError, match="Must specify a fill 'value' or 'method'"):
-            df.groupby(["price"]).fillna()
 
 
 def test_transform_transformation_func(transformation_func):
@@ -1690,11 +1669,10 @@ def test_idxmin_idxmax_transform_args(how, skipna, numeric_only):
     # GH#55268 - ensure *args are passed through when calling transform
     df = DataFrame({"a": [1, 1, 1, 2], "b": [3.0, 4.0, np.nan, 6.0], "c": list("abcd")})
     gb = df.groupby("a")
-    msg = f"'axis' keyword in DataFrameGroupBy.{how} is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = gb.transform(how, 0, skipna, numeric_only)
     warn = None if skipna else FutureWarning
     msg = f"The behavior of DataFrameGroupBy.{how} with .* any-NA and skipna=False"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = gb.transform(how, skipna, numeric_only)
     with tm.assert_produces_warning(warn, match=msg):
         expected = gb.transform(how, skipna=skipna, numeric_only=numeric_only)
     tm.assert_frame_equal(result, expected)

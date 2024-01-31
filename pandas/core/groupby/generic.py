@@ -24,10 +24,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    Interval,
-    lib,
-)
+from pandas._libs import Interval
 from pandas._libs.hashtable import duplicated
 from pandas.errors import SpecificationError
 from pandas.util._decorators import (
@@ -93,16 +90,13 @@ from pandas.plotting import boxplot_frame_groupby
 if TYPE_CHECKING:
     from collections.abc import (
         Hashable,
-        Mapping,
         Sequence,
     )
 
     from pandas._typing import (
         ArrayLike,
-        Axis,
         AxisInt,
         CorrelationMethod,
-        FillnaOptions,
         IndexLabel,
         Manager,
         Manager2D,
@@ -878,108 +872,9 @@ class SeriesGroupBy(GroupBy[Series]):
             result = result.reset_index()
         return result
 
-    def fillna(
-        self,
-        value: object | ArrayLike | None = None,
-        method: FillnaOptions | None = None,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
-        inplace: bool = False,
-        limit: int | None = None,
-        downcast: dict | None | lib.NoDefault = lib.no_default,
-    ) -> Series | None:
-        """
-        Fill NA/NaN values using the specified method within groups.
-
-        .. deprecated:: 2.2.0
-            This method is deprecated and will be removed in a future version.
-            Use the :meth:`.SeriesGroupBy.ffill` or :meth:`.SeriesGroupBy.bfill`
-            for forward or backward filling instead. If you want to fill with a
-            single value, use :meth:`Series.fillna` instead.
-
-        Parameters
-        ----------
-        value : scalar, dict, Series, or DataFrame
-            Value to use to fill holes (e.g. 0), alternately a
-            dict/Series/DataFrame of values specifying which value to use for
-            each index (for a Series) or column (for a DataFrame).  Values not
-            in the dict/Series/DataFrame will not be filled. This value cannot
-            be a list. Users wanting to use the ``value`` argument and not ``method``
-            should prefer :meth:`.Series.fillna` as this
-            will produce the same result and be more performant.
-        method : {{'bfill', 'ffill', None}}, default None
-            Method to use for filling holes. ``'ffill'`` will propagate
-            the last valid observation forward within a group.
-            ``'bfill'`` will use next valid observation to fill the gap.
-        axis : {0 or 'index', 1 or 'columns'}
-            Unused, only for compatibility with :meth:`DataFrameGroupBy.fillna`.
-        inplace : bool, default False
-            Broken. Do not set to True.
-        limit : int, default None
-            If method is specified, this is the maximum number of consecutive
-            NaN values to forward/backward fill within a group. In other words,
-            if there is a gap with more than this number of consecutive NaNs,
-            it will only be partially filled. If method is not specified, this is the
-            maximum number of entries along the entire axis where NaNs will be
-            filled. Must be greater than 0 if not None.
-        downcast : dict, default is None
-            A dict of item->dtype of what to downcast if possible,
-            or the string 'infer' which will try to downcast to an appropriate
-            equal type (e.g. float64 to int64 if possible).
-
-        Returns
-        -------
-        Series
-            Object with missing values filled within groups.
-
-        See Also
-        --------
-        ffill : Forward fill values within a group.
-        bfill : Backward fill values within a group.
-
-        Examples
-        --------
-        For SeriesGroupBy:
-
-        >>> lst = ['cat', 'cat', 'cat', 'mouse', 'mouse']
-        >>> ser = pd.Series([1, None, None, 2, None], index=lst)
-        >>> ser
-        cat    1.0
-        cat    NaN
-        cat    NaN
-        mouse  2.0
-        mouse  NaN
-        dtype: float64
-        >>> ser.groupby(level=0).fillna(0, limit=1)
-        cat    1.0
-        cat    0.0
-        cat    NaN
-        mouse  2.0
-        mouse  0.0
-        dtype: float64
-        """
-        warnings.warn(
-            f"{type(self).__name__}.fillna is deprecated and "
-            "will be removed in a future version. Use obj.ffill() or obj.bfill() "
-            "for forward or backward filling instead. If you want to fill with a "
-            f"single value, use {type(self.obj).__name__}.fillna instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        result = self._op_via_apply(
-            "fillna",
-            value=value,
-            method=method,
-            axis=axis,
-            inplace=inplace,
-            limit=limit,
-            downcast=downcast,
-        )
-        return result
-
     def take(
         self,
         indices: TakeIndexer,
-        axis: Axis | lib.NoDefault = lib.no_default,
         **kwargs,
     ) -> Series:
         """
@@ -997,14 +892,6 @@ class SeriesGroupBy(GroupBy[Series]):
         ----------
         indices : array-like
             An array of ints indicating which positions to take in each group.
-        axis : {0 or 'index', 1 or 'columns', None}, default 0
-            The axis on which to select elements. ``0`` means that we are
-            selecting rows, ``1`` means that we are selecting columns.
-            For `SeriesGroupBy` this parameter is unused and defaults to 0.
-
-            .. deprecated:: 2.1.0
-                For axis=1, operate on the underlying object instead. Otherwise
-                the axis keyword is not necessary.
 
         **kwargs
             For compatibility with :meth:`numpy.take`. Has no effect on the
@@ -1060,12 +947,11 @@ class SeriesGroupBy(GroupBy[Series]):
            1    monkey
         Name: name, dtype: object
         """
-        result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
+        result = self._op_via_apply("take", indices=indices, axis=0, **kwargs)
         return result
 
     def skew(
         self,
-        axis: Axis | lib.NoDefault = lib.no_default,
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
@@ -1077,14 +963,6 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Parameters
         ----------
-        axis : {0 or 'index', 1 or 'columns', None}, default 0
-            Axis for the function to be applied on.
-            This parameter is only for compatibility with DataFrame and is unused.
-
-            .. deprecated:: 2.1.0
-                For axis=1, operate on the underlying object instead. Otherwise
-                the axis keyword is not necessary.
-
         skipna : bool, default True
             Exclude NA/null values when computing the result.
 
@@ -1126,18 +1004,6 @@ class SeriesGroupBy(GroupBy[Series]):
         Parrot    1.457863
         Name: Max Speed, dtype: float64
         """
-        if axis is lib.no_default:
-            axis = 0
-
-        if axis != 0:
-            result = self._op_via_apply(
-                "skew",
-                axis=axis,
-                skipna=skipna,
-                numeric_only=numeric_only,
-                **kwargs,
-            )
-            return result
 
         def alt(obj):
             # This should not be reached since the cython path should raise
@@ -1177,16 +1043,12 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
     @doc(Series.idxmin.__doc__)
-    def idxmin(
-        self, axis: Axis | lib.NoDefault = lib.no_default, skipna: bool = True
-    ) -> Series:
-        return self._idxmax_idxmin("idxmin", axis=axis, skipna=skipna)
+    def idxmin(self, skipna: bool = True) -> Series:
+        return self._idxmax_idxmin("idxmin", skipna=skipna)
 
     @doc(Series.idxmax.__doc__)
-    def idxmax(
-        self, axis: Axis | lib.NoDefault = lib.no_default, skipna: bool = True
-    ) -> Series:
-        return self._idxmax_idxmin("idxmax", axis=axis, skipna=skipna)
+    def idxmax(self, skipna: bool = True) -> Series:
+        return self._idxmax_idxmin("idxmax", skipna=skipna)
 
     @doc(Series.corr.__doc__)
     def corr(
@@ -2101,27 +1963,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def idxmax(
         self,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool = True,
         numeric_only: bool = False,
     ) -> DataFrame:
         """
-        Return index of first occurrence of maximum over requested axis.
+        Return index of first occurrence of maximum in each group.
 
         NA/null values are excluded.
 
         Parameters
         ----------
-        axis : {{0 or 'index', 1 or 'columns'}}, default None
-            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
-            If axis is not provided, grouper's axis is used.
-
-            .. versionchanged:: 2.0.0
-
-            .. deprecated:: 2.1.0
-                For axis=1, operate on the underlying object instead. Otherwise
-                the axis keyword is not necessary.
-
         skipna : bool, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.
@@ -2133,7 +1984,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Returns
         -------
         Series
-            Indexes of maxima along the specified axis.
+            Indexes of maxima in each group.
 
         Raises
         ------
@@ -2168,42 +2019,21 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         consumption     Wheat Products
         co2_emissions             Beef
         dtype: object
-
-        To return the index for the maximum value in each row, use ``axis="columns"``.
-
-        >>> df.idxmax(axis="columns")
-        Pork              co2_emissions
-        Wheat Products     consumption
-        Beef              co2_emissions
-        dtype: object
         """
-        return self._idxmax_idxmin(
-            "idxmax", axis=axis, numeric_only=numeric_only, skipna=skipna
-        )
+        return self._idxmax_idxmin("idxmax", numeric_only=numeric_only, skipna=skipna)
 
     def idxmin(
         self,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool = True,
         numeric_only: bool = False,
     ) -> DataFrame:
         """
-        Return index of first occurrence of minimum over requested axis.
+        Return index of first occurrence of minimum in each group.
 
         NA/null values are excluded.
 
         Parameters
         ----------
-        axis : {{0 or 'index', 1 or 'columns'}}, default None
-            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
-            If axis is not provided, grouper's axis is used.
-
-            .. versionchanged:: 2.0.0
-
-            .. deprecated:: 2.1.0
-                For axis=1, operate on the underlying object instead. Otherwise
-                the axis keyword is not necessary.
-
         skipna : bool, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.
@@ -2215,7 +2045,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Returns
         -------
         Series
-            Indexes of minima along the specified axis.
+            Indexes of minima in each group.
 
         Raises
         ------
@@ -2250,18 +2080,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         consumption                Pork
         co2_emissions    Wheat Products
         dtype: object
-
-        To return the index for the minimum value in each row, use ``axis="columns"``.
-
-        >>> df.idxmin(axis="columns")
-        Pork                consumption
-        Wheat Products    co2_emissions
-        Beef                consumption
-        dtype: object
         """
-        return self._idxmax_idxmin(
-            "idxmin", axis=axis, numeric_only=numeric_only, skipna=skipna
-        )
+        return self._idxmax_idxmin("idxmin", numeric_only=numeric_only, skipna=skipna)
 
     boxplot = boxplot_frame_groupby
 
@@ -2378,156 +2198,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         return self._value_counts(subset, normalize, sort, ascending, dropna)
 
-    def fillna(
-        self,
-        value: Hashable | Mapping | Series | DataFrame | None = None,
-        method: FillnaOptions | None = None,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
-        inplace: bool = False,
-        limit: int | None = None,
-        downcast=lib.no_default,
-    ) -> DataFrame | None:
-        """
-        Fill NA/NaN values using the specified method within groups.
-
-        .. deprecated:: 2.2.0
-            This method is deprecated and will be removed in a future version.
-            Use the :meth:`.DataFrameGroupBy.ffill` or :meth:`.DataFrameGroupBy.bfill`
-            for forward or backward filling instead. If you want to fill with a
-            single value, use :meth:`DataFrame.fillna` instead.
-
-        Parameters
-        ----------
-        value : scalar, dict, Series, or DataFrame
-            Value to use to fill holes (e.g. 0), alternately a
-            dict/Series/DataFrame of values specifying which value to use for
-            each index (for a Series) or column (for a DataFrame).  Values not
-            in the dict/Series/DataFrame will not be filled. This value cannot
-            be a list. Users wanting to use the ``value`` argument and not ``method``
-            should prefer :meth:`.DataFrame.fillna` as this
-            will produce the same result and be more performant.
-        method : {{'bfill', 'ffill', None}}, default None
-            Method to use for filling holes. ``'ffill'`` will propagate
-            the last valid observation forward within a group.
-            ``'bfill'`` will use next valid observation to fill the gap.
-        axis : {0 or 'index', 1 or 'columns'}
-            Axis along which to fill missing values. When the :class:`DataFrameGroupBy`
-            ``axis`` argument is ``0``, using ``axis=1`` here will produce
-            the same results as :meth:`.DataFrame.fillna`. When the
-            :class:`DataFrameGroupBy` ``axis`` argument is ``1``, using ``axis=0``
-            or ``axis=1`` here will produce the same results.
-        inplace : bool, default False
-            Broken. Do not set to True.
-        limit : int, default None
-            If method is specified, this is the maximum number of consecutive
-            NaN values to forward/backward fill within a group. In other words,
-            if there is a gap with more than this number of consecutive NaNs,
-            it will only be partially filled. If method is not specified, this is the
-            maximum number of entries along the entire axis where NaNs will be
-            filled. Must be greater than 0 if not None.
-        downcast : dict, default is None
-            A dict of item->dtype of what to downcast if possible,
-            or the string 'infer' which will try to downcast to an appropriate
-            equal type (e.g. float64 to int64 if possible).
-
-        Returns
-        -------
-        DataFrame
-            Object with missing values filled.
-
-        See Also
-        --------
-        ffill : Forward fill values within a group.
-        bfill : Backward fill values within a group.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame(
-        ...     {
-        ...         "key": [0, 0, 1, 1, 1],
-        ...         "A": [np.nan, 2, np.nan, 3, np.nan],
-        ...         "B": [2, 3, np.nan, np.nan, np.nan],
-        ...         "C": [np.nan, np.nan, 2, np.nan, np.nan],
-        ...     }
-        ... )
-        >>> df
-           key    A    B   C
-        0    0  NaN  2.0 NaN
-        1    0  2.0  3.0 NaN
-        2    1  NaN  NaN 2.0
-        3    1  3.0  NaN NaN
-        4    1  NaN  NaN NaN
-
-        Propagate non-null values forward or backward within each group along columns.
-
-        >>> df.groupby("key").fillna(method="ffill")
-             A    B   C
-        0  NaN  2.0 NaN
-        1  2.0  3.0 NaN
-        2  NaN  NaN 2.0
-        3  3.0  NaN 2.0
-        4  3.0  NaN 2.0
-
-        >>> df.groupby("key").fillna(method="bfill")
-             A    B   C
-        0  2.0  2.0 NaN
-        1  2.0  3.0 NaN
-        2  3.0  NaN 2.0
-        3  3.0  NaN NaN
-        4  NaN  NaN NaN
-
-        Propagate non-null values forward or backward within each group along rows.
-
-        >>> df.T.groupby(np.array([0, 0, 1, 1])).fillna(method="ffill").T
-           key    A    B    C
-        0  0.0  0.0  2.0  2.0
-        1  0.0  2.0  3.0  3.0
-        2  1.0  1.0  NaN  2.0
-        3  1.0  3.0  NaN  NaN
-        4  1.0  1.0  NaN  NaN
-
-        >>> df.T.groupby(np.array([0, 0, 1, 1])).fillna(method="bfill").T
-           key    A    B    C
-        0  0.0  NaN  2.0  NaN
-        1  0.0  2.0  3.0  NaN
-        2  1.0  NaN  2.0  2.0
-        3  1.0  3.0  NaN  NaN
-        4  1.0  NaN  NaN  NaN
-
-        Only replace the first NaN element within a group along rows.
-
-        >>> df.groupby("key").fillna(method="ffill", limit=1)
-             A    B    C
-        0  NaN  2.0  NaN
-        1  2.0  3.0  NaN
-        2  NaN  NaN  2.0
-        3  3.0  NaN  2.0
-        4  3.0  NaN  NaN
-        """
-        warnings.warn(
-            f"{type(self).__name__}.fillna is deprecated and "
-            "will be removed in a future version. Use obj.ffill() or obj.bfill() "
-            "for forward or backward filling instead. If you want to fill with a "
-            f"single value, use {type(self.obj).__name__}.fillna instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-        result = self._op_via_apply(
-            "fillna",
-            value=value,
-            method=method,
-            axis=axis,
-            inplace=inplace,
-            limit=limit,
-            downcast=downcast,
-        )
-        return result
-
     def take(
         self,
         indices: TakeIndexer,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
         **kwargs,
     ) -> DataFrame:
         """
@@ -2545,13 +2218,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ----------
         indices : array-like
             An array of ints indicating which positions to take.
-        axis : {0 or 'index', 1 or 'columns', None}, default 0
-            The axis on which to select elements. ``0`` means that we are
-            selecting rows, ``1`` means that we are selecting columns.
-
-            .. deprecated:: 2.1.0
-                For axis=1, operate on the underlying object instead. Otherwise
-                the axis keyword is not necessary.
 
         **kwargs
             For compatibility with :meth:`numpy.take`. Has no effect on the
@@ -2610,8 +2276,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         2 1  monkey  mammal        NaN
           2    lion  mammal       80.5
 
-        Take elements at indices 1 and 2 along the axis 1 (column selection).
-
         We may take elements using negative integers for positive indices,
         starting from the end of the object, just like with Python lists.
 
@@ -2622,12 +2286,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         2 0  rabbit  mammal       15.0
           1  monkey  mammal        NaN
         """
-        result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
+        result = self._op_via_apply("take", indices=indices, axis=0, **kwargs)
         return result
 
     def skew(
         self,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
@@ -2639,17 +2302,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Parameters
         ----------
-        axis : {0 or 'index', 1 or 'columns', None}, default 0
-            Axis for the function to be applied on.
-
-            Specifying ``axis=None`` will apply the aggregation across both axes.
-
-            .. versionadded:: 2.0.0
-
-            .. deprecated:: 2.1.0
-                For axis=1, operate on the underlying object instead. Otherwise
-                the axis keyword is not necessary.
-
         skipna : bool, default True
             Exclude NA/null values when computing the result.
 
@@ -2699,18 +2351,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         bird          NaN
         mammal   1.669046
         """
-        if axis is lib.no_default:
-            axis = 0
-
-        if axis != 0:
-            result = self._op_via_apply(
-                "skew",
-                axis=axis,
-                skipna=skipna,
-                numeric_only=numeric_only,
-                **kwargs,
-            )
-            return result
 
         def alt(obj):
             # This should not be reached since the cython path should raise
@@ -2812,7 +2452,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def corrwith(
         self,
         other: DataFrame | Series,
-        axis: Axis | lib.NoDefault = lib.no_default,
         drop: bool = False,
         method: CorrelationMethod = "pearson",
         numeric_only: bool = False,
@@ -2820,7 +2459,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result = self._op_via_apply(
             "corrwith",
             other=other,
-            axis=axis,
             drop=drop,
             method=method,
             numeric_only=numeric_only,

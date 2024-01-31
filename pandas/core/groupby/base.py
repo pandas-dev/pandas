@@ -70,7 +70,6 @@ transformation_kernels = frozenset(
         "cumsum",
         "diff",
         "ffill",
-        "fillna",
         "ngroup",
         "pct_change",
         "rank",
