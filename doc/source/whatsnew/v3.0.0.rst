@@ -97,6 +97,13 @@ Deprecations
 -
 
 .. ---------------------------------------------------------------------------
+.. _whatsnew_300.prior_deprecations:
+
+Removal of prior version deprecations/changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Removed deprecated argument ``obj`` in :meth:`.DataFrameGroupBy.get_group` and :meth:`.SeriesGroupBy.get_group` (:issue:`53545`)
+
+.. ---------------------------------------------------------------------------
 .. _whatsnew_300.performance:
 
 Performance improvements
