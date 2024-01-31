@@ -27,6 +27,8 @@ from pandas.errors import (
     IndexingError,
     InvalidIndexError,
     LossySetitemError,
+)
+from pandas.errors.cow import (
     _chained_assignment_msg,
     _chained_assignment_warning_msg,
     _check_cacher,
