@@ -818,7 +818,7 @@ class ExtensionArray:
         na_position : {'first', 'last'}, default 'last'
             If ``'first'``, put ``NaN`` values at the beginning.
             If ``'last'``, put ``NaN`` values at the end.
-        *args, **kwargs:
+        **kwargs
             Passed through to :func:`numpy.argsort`.
 
         Returns
