@@ -171,13 +171,9 @@ def to_dict(
         return into_c(
             (
                 k,
-                list(
-                    map(
-                        maybe_box_native, v.to_numpy(na_value=box_na_values[i]).tolist()
-                    )
-                )
+                list(map(maybe_box_native, v.to_numpy(na_value=box_na_values[i])))
                 if i in object_dtype_indices_as_set
-                else v.to_numpy().tolist(),
+                else list(map(maybe_box_native, v.to_numpy())),
             )
             for i, (k, v) in enumerate(df.items())
         )
