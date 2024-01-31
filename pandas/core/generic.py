@@ -11591,7 +11591,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
-        ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+        ambiguous : 'infer', bool, bool-ndarray, 'NaT', default 'raise'
             When clocks moved backward due to DST, ambiguous times may arise.
             For example in Central European Time (UTC+01), when going from
             03:00 DST to 02:00 non-DST, 02:30:00 local time occurs both at
@@ -11601,7 +11601,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
-            - bool-ndarray where True signifies a DST time, False designates
+            - bool (or bool-ndarray) where True signifies a DST time, False designates
               a non-DST time (note that this flag is only applicable for
               ambiguous times)
             - 'NaT' will return NaT where there are ambiguous times
@@ -12148,19 +12148,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if limit is lib.no_default:
                 cols = self.items() if self.ndim == 2 else [(None, self)]
                 for _, col in cols:
-                    mask = col.isna().values
-                    mask = mask[np.argmax(~mask) :]
-                    if mask.any():
-                        warnings.warn(
-                            "The default fill_method='pad' in "
-                            f"{type(self).__name__}.pct_change is deprecated and will "
-                            "be removed in a future version. Either fill in any "
-                            "non-leading NA values prior to calling pct_change or "
-                            "specify 'fill_method=None' to not fill NA values.",
-                            FutureWarning,
-                            stacklevel=find_stack_level(),
-                        )
-                        break
+                    if len(col) > 0:
+                        mask = col.isna().values
+                        mask = mask[np.argmax(~mask) :]
+                        if mask.any():
+                            warnings.warn(
+                                "The default fill_method='pad' in "
+                                f"{type(self).__name__}.pct_change is deprecated and "
+                                "will be removed in a future version. Either fill in "
+                                "any non-leading NA values prior to calling pct_change "
+                                "or specify 'fill_method=None' to not fill NA values.",
+                                FutureWarning,
+                                stacklevel=find_stack_level(),
+                            )
+                            break
             fill_method = "pad"
         if limit is lib.no_default:
             limit = None
