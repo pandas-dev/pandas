@@ -1007,10 +1007,7 @@ def get_grouper(
             except (KeyError, IndexError, InvalidIndexError, OutOfBoundsDatetime):
                 return False
             if isinstance(gpr, Series) and isinstance(obj_gpr_column, Series):
-                return gpr._mgr.references_same_values(  # type: ignore[union-attr]
-                    obj_gpr_column._mgr,  # type: ignore[arg-type]
-                    0,
-                )
+                return gpr._mgr.references_same_values(obj_gpr_column._mgr, 0)
             return False
         try:
             return gpr is obj[gpr.name]

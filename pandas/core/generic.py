@@ -176,15 +176,8 @@ from pandas.core.indexes.api import (
     default_index,
     ensure_index,
 )
-from pandas.core.internals import (
-    ArrayManager,
-    BlockManager,
-    SingleArrayManager,
-)
-from pandas.core.internals.construction import (
-    mgr_to_mgr,
-    ndarray_to_mgr,
-)
+from pandas.core.internals import BlockManager
+from pandas.core.internals.construction import ndarray_to_mgr
 from pandas.core.methods.describe import describe_ndframe
 from pandas.core.missing import (
     clean_fill_method,
@@ -317,29 +310,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             else:
                 mgr = mgr.astype(dtype=dtype)
         return mgr
-
-    @final
-    def _as_manager(self, typ: str, copy: bool_t = True) -> Self:
-        """
-        Private helper function to create a DataFrame with specific manager.
-
-        Parameters
-        ----------
-        typ : {"block", "array"}
-        copy : bool, default True
-            Only controls whether the conversion from Block->ArrayManager
-            copies the 1D arrays (to ensure proper/contiguous memory layout).
-
-        Returns
-        -------
-        DataFrame
-            New DataFrame using specified manager type. Is not guaranteed
-            to be a copy or not.
-        """
-        new_mgr: Manager
-        new_mgr = mgr_to_mgr(self._mgr, typ=typ, copy=copy)
-        # fastpath of passing a manager doesn't check the option/manager class
-        return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(self)
 
     @classmethod
     def _from_mgr(cls, mgr: Manager, axes: list[Index]) -> Self:
@@ -679,9 +649,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # Only to be used in cases of chained assignment checks, this is a
         # simplified check that assumes that either the whole object is a view
         # or a copy
-        if len(self._mgr.blocks) == 0:  # type: ignore[union-attr]
+        if len(self._mgr.blocks) == 0:
             return False
-        return self._mgr.blocks[0].refs.has_reference()  # type: ignore[union-attr]
+        return self._mgr.blocks[0].refs.has_reference()
 
     @property
     def shape(self) -> tuple[int, ...]:
@@ -865,7 +835,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 new_axes[1],
                 dtype=None,
                 copy=False,
-                typ="block",
             )
             assert isinstance(new_mgr, BlockManager)
             assert isinstance(self._mgr, BlockManager)
@@ -6381,8 +6350,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Consolidate _mgr -- if the blocks have changed, then clear the
         cache
         """
-        if isinstance(self._mgr, (ArrayManager, SingleArrayManager)):
-            return f()
         blocks_before = len(self._mgr.blocks)
         result = f()
         if len(self._mgr.blocks) != blocks_before:
@@ -7049,7 +7016,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: string
         """
         check_dtype_backend(dtype_backend)
-        new_mgr = self._mgr.convert_dtypes(  # type: ignore[union-attr]
+        new_mgr = self._mgr.convert_dtypes(
             infer_objects=infer_objects,
             convert_string=convert_string,
             convert_integer=convert_integer,
@@ -12719,8 +12686,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and not (warn_copy_on_write() and not warn)
         ):
             # GH#36498 this inplace op can _actually_ be inplace.
-            # Item "ArrayManager" of "Union[ArrayManager, SingleArrayManager,
-            # BlockManager, SingleBlockManager]" has no attribute "setitem_inplace"
+            # Item "BlockManager" of "Union[BlockManager, SingleBlockManager]" has
+            # no attribute "setitem_inplace"
             self._mgr.setitem_inplace(  # type: ignore[union-attr]
                 slice(None), result._values, warn=warn
             )

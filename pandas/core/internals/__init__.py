@@ -1,8 +1,4 @@
 from pandas.core.internals.api import make_block  # 2023-09-18 pyarrow uses this
-from pandas.core.internals.array_manager import (
-    ArrayManager,
-    SingleArrayManager,
-)
 from pandas.core.internals.base import (
     DataManager,
     SingleDataManager,
@@ -19,11 +15,9 @@ __all__ = [
     "ExtensionBlock",  # pylint: disable=undefined-all-variable
     "make_block",
     "DataManager",
-    "ArrayManager",
     "BlockManager",
     "SingleDataManager",
     "SingleBlockManager",
-    "SingleArrayManager",
     "concatenate_managers",
 ]
 

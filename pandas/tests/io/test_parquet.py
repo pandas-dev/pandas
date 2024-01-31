@@ -9,7 +9,6 @@ import numpy as np
 import pytest
 
 from pandas._config import using_copy_on_write
-from pandas._config.config import _get_option
 
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
@@ -45,8 +44,6 @@ except ImportError:
     _HAVE_FASTPARQUET = False
 
 
-# TODO(ArrayManager) fastparquet relies on BlockManager internals
-
 pytestmark = [
     pytest.mark.filterwarnings("ignore:DataFrame._data is deprecated:FutureWarning"),
     pytest.mark.filterwarnings(
@@ -61,9 +58,8 @@ pytestmark = [
         pytest.param(
             "fastparquet",
             marks=pytest.mark.skipif(
-                not _HAVE_FASTPARQUET
-                or _get_option("mode.data_manager", silent=True) == "array",
-                reason="fastparquet is not installed or ArrayManager is used",
+                not _HAVE_FASTPARQUET,
+                reason="fastparquet is not installed",
             ),
         ),
         pytest.param(
@@ -89,8 +85,6 @@ def pa():
 def fp():
     if not _HAVE_FASTPARQUET:
         pytest.skip("fastparquet is not installed")
-    elif _get_option("mode.data_manager", silent=True) == "array":
-        pytest.skip("ArrayManager is not supported with fastparquet")
     return "fastparquet"
 
 
@@ -996,17 +990,6 @@ class TestParquetPyArrow(Base):
             df.to_parquet(path, engine=pa)
             result = read_parquet(path, pa, filters=[("a", "==", 0)])
         assert len(result) == 1
-
-    def test_read_parquet_manager(self, pa):
-        # ensure that read_parquet honors the pandas.options.mode.data_manager option
-        df = pd.DataFrame(
-            np.random.default_rng(2).standard_normal((10, 3)), columns=["A", "B", "C"]
-        )
-
-        with tm.ensure_clean() as path:
-            df.to_parquet(path, engine=pa)
-            result = read_parquet(path, pa)
-        assert isinstance(result._mgr, pd.core.internals.BlockManager)
 
     def test_read_dtype_backend_pyarrow_config(self, pa, df_full):
         import pyarrow

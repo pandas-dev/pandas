@@ -51,7 +51,6 @@ class TestCaching:
             if not using_copy_on_write:
                 tm.assert_almost_equal(df["bb"][0], 0.17)
             else:
-                # with ArrayManager, parent is not mutated with chained assignment
                 tm.assert_almost_equal(df["bb"][0], 2.2)
 
     @pytest.mark.parametrize("do_ref", [True, False])

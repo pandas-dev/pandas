@@ -436,32 +436,6 @@ cf.deprecate_option(
     "version. Convert inf values to NaN before operating instead.",
 )
 
-data_manager_doc = """
-: string
-    Internal data manager type; can be "block" or "array". Defaults to "block",
-    unless overridden by the 'PANDAS_DATA_MANAGER' environment variable (needs
-    to be set before pandas is imported).
-"""
-
-
-with cf.config_prefix("mode"):
-    cf.register_option(
-        "data_manager",
-        # Get the default from an environment variable, if set, otherwise defaults
-        # to "block". This environment variable can be set for testing.
-        os.environ.get("PANDAS_DATA_MANAGER", "block"),
-        data_manager_doc,
-        validator=is_one_of_factory(["block", "array"]),
-    )
-
-cf.deprecate_option(
-    # GH#55043
-    "mode.data_manager",
-    "data_manager option is deprecated and will be removed in a future "
-    "version. Only the BlockManager will be available.",
-)
-
-
 # TODO better name?
 copy_on_write_doc = """
 : bool

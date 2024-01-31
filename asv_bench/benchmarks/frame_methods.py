@@ -593,8 +593,6 @@ class Interpolate:
         N = 10000
         # this is the worst case, where every column has NaNs.
         arr = np.random.randn(N, 100)
-        # NB: we need to set values in array, not in df.values, otherwise
-        #  the benchmark will be misleading for ArrayManager
         arr[::2] = np.nan
 
         self.df = DataFrame(arr)
