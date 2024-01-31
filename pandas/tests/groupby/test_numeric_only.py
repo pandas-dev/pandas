@@ -1,6 +1,5 @@
 import re
 
-import numpy as np
 import pytest
 
 from pandas._libs import lib
@@ -207,94 +206,6 @@ class TestNumericOnly:
             tm.assert_index_equal(result.columns, expected_columns)
 
 
-@pytest.mark.parametrize("numeric_only", [True, False, None])
-def test_axis1_numeric_only(request, groupby_func, numeric_only, using_infer_string):
-    if groupby_func in ("idxmax", "idxmin"):
-        pytest.skip("idxmax and idx_min tested in test_idxmin_idxmax_axis1")
-    if groupby_func in ("corrwith", "skew"):
-        msg = "GH#47723 groupby.corrwith and skew do not correctly implement axis=1"
-        request.applymarker(pytest.mark.xfail(reason=msg))
-
-    df = DataFrame(
-        np.random.default_rng(2).standard_normal((10, 4)), columns=["A", "B", "C", "D"]
-    )
-    df["E"] = "x"
-    groups = [1, 2, 3, 1, 2, 3, 1, 2, 3, 4]
-    gb = df.groupby(groups)
-    method = getattr(gb, groupby_func)
-    args = get_groupby_method_args(groupby_func, df)
-    kwargs = {"axis": 1}
-    if numeric_only is not None:
-        # when numeric_only is None we don't pass any argument
-        kwargs["numeric_only"] = numeric_only
-
-    # Functions without numeric_only and axis args
-    no_args = ("cumprod", "cumsum", "diff", "fillna", "pct_change", "rank", "shift")
-    # Functions with axis args
-    has_axis = (
-        "cumprod",
-        "cumsum",
-        "diff",
-        "pct_change",
-        "rank",
-        "shift",
-        "cummax",
-        "cummin",
-        "idxmin",
-        "idxmax",
-        "fillna",
-    )
-    warn_msg = f"DataFrameGroupBy.{groupby_func} with axis=1 is deprecated"
-    if numeric_only is not None and groupby_func in no_args:
-        msg = "got an unexpected keyword argument 'numeric_only'"
-        if groupby_func in ["cumprod", "cumsum"]:
-            with pytest.raises(TypeError, match=msg):
-                with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                    method(*args, **kwargs)
-        else:
-            with pytest.raises(TypeError, match=msg):
-                method(*args, **kwargs)
-    elif groupby_func not in has_axis:
-        msg = "got an unexpected keyword argument 'axis'"
-        with pytest.raises(TypeError, match=msg):
-            method(*args, **kwargs)
-    # fillna and shift are successful even on object dtypes
-    elif (numeric_only is None or not numeric_only) and groupby_func not in (
-        "fillna",
-        "shift",
-    ):
-        msgs = (
-            # cummax, cummin, rank
-            "not supported between instances of",
-            # cumprod
-            "can't multiply sequence by non-int of type 'float'",
-            # cumsum, diff, pct_change
-            "unsupported operand type",
-            "has no kernel",
-        )
-        if using_infer_string:
-            import pyarrow as pa
-
-            errs = (TypeError, pa.lib.ArrowNotImplementedError)
-        else:
-            errs = TypeError
-        with pytest.raises(errs, match=f"({'|'.join(msgs)})"):
-            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                method(*args, **kwargs)
-    else:
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            result = method(*args, **kwargs)
-
-        df_expected = df.drop(columns="E").T if numeric_only else df.T
-        expected = getattr(df_expected, groupby_func)(*args).T
-        if groupby_func == "shift" and not numeric_only:
-            # shift with axis=1 leaves the leftmost column as numeric
-            # but transposing for expected gives us object dtype
-            expected = expected.astype(float)
-
-        tm.assert_equal(result, expected)
-
-
 @pytest.mark.parametrize(
     "kernel, has_arg",
     [
@@ -310,7 +221,6 @@ def test_axis1_numeric_only(request, groupby_func, numeric_only, using_infer_str
         ("cumsum", True),
         ("diff", False),
         ("ffill", False),
-        ("fillna", False),
         ("first", True),
         ("idxmax", True),
         ("idxmin", True),

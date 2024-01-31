@@ -2906,9 +2906,6 @@ def test_groupby_selection_other_methods(df):
     g_exp = df[["C"]].groupby(df["A"])
 
     # methods which aren't just .foo()
-    warn_msg = "DataFrameGroupBy.fillna is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        tm.assert_frame_equal(g.fillna(0), g_exp.fillna(0))
     msg = "DataFrameGroupBy.dtypes is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         tm.assert_frame_equal(g.dtypes, g_exp.dtypes)

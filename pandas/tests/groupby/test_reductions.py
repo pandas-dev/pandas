@@ -420,32 +420,6 @@ def test_first_last_skipna(any_real_nullable_dtype, sort, skipna, how):
     tm.assert_frame_equal(result, expected)
 
 
-def test_idxmin_idxmax_axis1():
-    df = DataFrame(
-        np.random.default_rng(2).standard_normal((10, 4)), columns=["A", "B", "C", "D"]
-    )
-    df["A"] = [1, 2, 3, 1, 2, 3, 1, 2, 3, 4]
-
-    gb = df.groupby("A")
-
-    warn_msg = "DataFrameGroupBy.idxmax with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        res = gb.idxmax(axis=1)
-
-    alt = df.iloc[:, 1:].idxmax(axis=1)
-    indexer = res.index.get_level_values(1)
-
-    tm.assert_series_equal(alt[indexer], res.droplevel("A"))
-
-    df["E"] = date_range("2016-01-01", periods=10)
-    gb2 = df.groupby("A")
-
-    msg = "'>' not supported between instances of 'Timestamp' and 'float'"
-    with pytest.raises(TypeError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            gb2.idxmax(axis=1)
-
-
 def test_groupby_mean_no_overflow():
     # Regression test for (#22487)
     df = DataFrame(
