@@ -93,7 +93,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.TimedeltaIndex.ceil\
         pandas.PeriodIndex\
         pandas.PeriodIndex.strftime\
-        pandas.Series.clip\
         pandas.Series.rename_axis\
         pandas.Series.dt.to_period\
         pandas.Series.dt.tz_localize\
@@ -115,7 +114,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.plot.barh\
         pandas.Series.plot.line\
         pandas.Series.plot.pie\
-        pandas.DataFrame.clip\
         pandas.DataFrame.plot\
         pandas.DataFrame.plot.bar\
         pandas.DataFrame.plot.barh\
