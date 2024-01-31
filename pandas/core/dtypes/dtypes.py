@@ -11,7 +11,6 @@ from datetime import (
 )
 from decimal import Decimal
 import re
-import string as string_stdlib
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -101,6 +100,11 @@ if TYPE_CHECKING:
     from pandas.core.arrays.arrow import ArrowExtensionArray
 
 str_type = str
+
+
+def capitalize_first_letter(s: str) -> str:
+    # For PeriodDtype.__eq__
+    return s[:1].upper() + s[1:]
 
 
 class PandasExtensionDtype(ExtensionDtype):
@@ -1086,7 +1090,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
-            return string_stdlib.capwords(other) == string_stdlib.capwords(self.name)
+            return other in {self.name, capitalize_first_letter(self.name)}
 
         return super().__eq__(other)
 
