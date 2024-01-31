@@ -17,7 +17,7 @@ def bench_with(n, times=10, repeat=3, engine="numexpr"):
     return (
         np.array(
             timeit(
-                f"df.eval(s, engine={repr(engine)})",
+                f"df.eval(s, engine={engine!r})",
                 setup=setup_common % (n, setup_with),
                 repeat=repeat,
                 number=times,
@@ -34,7 +34,7 @@ def bench_subset(n, times=20, repeat=3, engine="numexpr"):
     return (
         np.array(
             timeit(
-                f"df.query(s, engine={repr(engine)})",
+                f"df.query(s, engine={engine!r})",
                 setup=setup_common % (n, setup_subset),
                 repeat=repeat,
                 number=times,
@@ -55,7 +55,7 @@ def bench(mn=3, mx=7, num=100, engines=("python", "numexpr"), verbose=False):
     for engine in engines:
         for i, n in enumerate(r):
             if verbose & (i % 10 == 0):
-                print(f"engine: {repr(engine)}, i == {i:d}")
+                print(f"engine: {engine!r}, i == {i:d}")
             ev_times = bench_with(n, times=1, repeat=1, engine=engine)
             ev.loc[i, engine] = np.mean(ev_times)
             qu_times = bench_subset(n, times=1, repeat=1, engine=engine)

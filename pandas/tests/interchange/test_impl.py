@@ -8,7 +8,6 @@ from pandas.compat import (
     is_ci_environment,
     is_platform_windows,
 )
-from pandas.compat.numpy import np_version_lt1p23
 
 import pandas as pd
 import pandas._testing as tm
@@ -260,7 +259,6 @@ def test_datetime():
     tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
 
 
-@pytest.mark.skipif(np_version_lt1p23, reason="Numpy > 1.23 required")
 def test_categorical_to_numpy_dlpack():
     # https://github.com/pandas-dev/pandas/issues/48393
     df = pd.DataFrame({"A": pd.Categorical(["a", "b", "a"])})
@@ -293,6 +291,30 @@ def test_multi_chunk_pyarrow() -> None:
         "forbidden by allow_copy=False",
     ):
         pd.api.interchange.from_dataframe(table, allow_copy=False)
+
+
+def test_timestamp_ns_pyarrow():
+    # GH 56712
+    pytest.importorskip("pyarrow", "11.0.0")
+    timestamp_args = {
+        "year": 2000,
+        "month": 1,
+        "day": 1,
+        "hour": 1,
+        "minute": 1,
+        "second": 1,
+    }
+    df = pd.Series(
+        [datetime(**timestamp_args)],
+        dtype="timestamp[ns][pyarrow]",
+        name="col0",
+    ).to_frame()
+
+    dfi = df.__dataframe__()
+    result = pd.api.interchange.from_dataframe(dfi)["col0"].item()
+
+    expected = pd.Timestamp(**timestamp_args)
+    assert result == expected
 
 
 @pytest.mark.parametrize("tz", ["UTC", "US/Pacific"])

@@ -630,7 +630,7 @@ class TestJoin:
         df.insert(5, "dt", "foo")
 
         grouped = df.groupby("id")
-        msg = re.escape("agg function failed [how->mean,dtype->object]")
+        msg = re.escape("agg function failed [how->mean,dtype->")
         with pytest.raises(TypeError, match=msg):
             grouped.mean()
         mn = grouped.mean(numeric_only=True)
@@ -775,7 +775,7 @@ class TestJoin:
         )
         result = df1.join(df2.set_index("date"), on="date")
         expected = df1.copy()
-        expected["vals_2"] = Series([np.nan] * 2 + list("tuv"), dtype=object)
+        expected["vals_2"] = Series([np.nan] * 2 + list("tuv"))
         tm.assert_frame_equal(result, expected)
 
     def test_join_datetime_string(self):
@@ -1038,6 +1038,25 @@ def test_join_empty(left_empty, how, exp):
     if how == "outer":
         expected = expected.sort_index()
 
+    tm.assert_frame_equal(result, expected)
+
+
+def test_join_empty_uncomparable_columns():
+    # GH 57048
+    df1 = DataFrame()
+    df2 = DataFrame(columns=["test"])
+    df3 = DataFrame(columns=["foo", ("bar", "baz")])
+
+    result = df1 + df2
+    expected = DataFrame(columns=["test"])
+    tm.assert_frame_equal(result, expected)
+
+    result = df2 + df3
+    expected = DataFrame(columns=[("bar", "baz"), "foo", "test"])
+    tm.assert_frame_equal(result, expected)
+
+    result = df1 + df3
+    expected = DataFrame(columns=[("bar", "baz"), "foo"])
     tm.assert_frame_equal(result, expected)
 
 

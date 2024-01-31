@@ -78,7 +78,7 @@ def test_groupby_resample_api():
     index = pd.MultiIndex.from_arrays([[1] * 8 + [2] * 8, i], names=["group", "date"])
     expected = DataFrame({"val": [5] * 7 + [6] + [7] * 7 + [8]}, index=index)
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = df.groupby("group").apply(lambda x: x.resample("1D").ffill())[["val"]]
     tm.assert_frame_equal(result, expected)
 
@@ -1040,11 +1040,11 @@ def test_args_kwargs_depr(method, raises):
     if raises:
         with tm.assert_produces_warning(FutureWarning, match=warn_msg):
             with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-                func(*args, 1, 2, 3)
+                func(*args, 1, 2, 3, 4)
     else:
         with tm.assert_produces_warning(FutureWarning, match=warn_msg):
             with pytest.raises(TypeError, match=error_msg_type):
-                func(*args, 1, 2, 3)
+                func(*args, 1, 2, 3, 4)
 
 
 def test_df_axis_param_depr():
