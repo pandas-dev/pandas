@@ -23,7 +23,7 @@ class PandasBuffer(Buffer):
         """
         Handle only regular columns (= numpy arrays) for now.
         """
-        if not x.strides == (x.dtype.itemsize,):
+        if x.strides[0] and not x.strides == (x.dtype.itemsize,):
             # The protocol does not support strided buffers, so a copy is
             # necessary. If that's not allowed, we need to raise an exception.
             if allow_copy:
