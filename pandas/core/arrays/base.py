@@ -799,10 +799,10 @@ class ExtensionArray:
 
     def argsort(
         self,
-        *,
         ascending: bool = True,
         kind: SortKind = "quicksort",
         na_position: str = "last",
+        *args,
         **kwargs,
     ) -> np.ndarray:
         """
@@ -818,7 +818,7 @@ class ExtensionArray:
         na_position : {'first', 'last'}, default 'last'
             If ``'first'``, put ``NaN`` values at the beginning.
             If ``'last'``, put ``NaN`` values at the end.
-        *args, **kwargs:
+        *args, **kwargs
             Passed through to :func:`numpy.argsort`.
 
         Returns
