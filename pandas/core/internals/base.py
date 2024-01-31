@@ -1,6 +1,5 @@
 """
-Base class for the internal managers. Both BlockManager and ArrayManager
-inherit from this class.
+Base class for the internal managers. BlockManager inherits from this class.
 """
 from __future__ import annotations
 
@@ -183,7 +182,7 @@ class DataManager(PandasObject):
             # Do this validation even if we go through one of the no-op paths
             limit = libalgos.validate_limit(None, limit=limit)
 
-        return self.apply_with_block(
+        return self.apply(
             "fillna",
             value=value,
             limit=limit,
@@ -201,7 +200,7 @@ class DataManager(PandasObject):
             align_keys = ["cond"]
             other = extract_array(other, extract_numpy=True)
 
-        return self.apply_with_block(
+        return self.apply(
             "where",
             align_keys=align_keys,
             other=other,
@@ -223,7 +222,7 @@ class DataManager(PandasObject):
             if not warn:
                 already_warned.warned_already = True
 
-        return self.apply_with_block(
+        return self.apply(
             "putmask",
             align_keys=align_keys,
             mask=mask,
@@ -234,7 +233,7 @@ class DataManager(PandasObject):
 
     @final
     def round(self, decimals: int, using_cow: bool = False) -> Self:
-        return self.apply_with_block(
+        return self.apply(
             "round",
             decimals=decimals,
             using_cow=using_cow,
@@ -246,7 +245,7 @@ class DataManager(PandasObject):
         # NDFrame.replace ensures the not-is_list_likes here
         assert not lib.is_list_like(to_replace)
         assert not lib.is_list_like(value)
-        return self.apply_with_block(
+        return self.apply(
             "replace",
             to_replace=to_replace,
             value=value,
@@ -257,7 +256,7 @@ class DataManager(PandasObject):
 
     @final
     def replace_regex(self, **kwargs) -> Self:
-        return self.apply_with_block(
+        return self.apply(
             "_replace_regex",
             **kwargs,
             using_cow=using_copy_on_write(),
@@ -275,7 +274,7 @@ class DataManager(PandasObject):
         """do a list replace"""
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        bm = self.apply_with_block(
+        bm = self.apply(
             "replace_list",
             src_list=src_list,
             dest_list=dest_list,
@@ -288,7 +287,7 @@ class DataManager(PandasObject):
         return bm
 
     def interpolate(self, inplace: bool, **kwargs) -> Self:
-        return self.apply_with_block(
+        return self.apply(
             "interpolate",
             inplace=inplace,
             **kwargs,
@@ -297,7 +296,7 @@ class DataManager(PandasObject):
         )
 
     def pad_or_backfill(self, inplace: bool, **kwargs) -> Self:
-        return self.apply_with_block(
+        return self.apply(
             "pad_or_backfill",
             inplace=inplace,
             **kwargs,
@@ -309,7 +308,7 @@ class DataManager(PandasObject):
         if fill_value is lib.no_default:
             fill_value = None
 
-        return self.apply_with_block("shift", periods=periods, fill_value=fill_value)
+        return self.apply("shift", periods=periods, fill_value=fill_value)
 
     # --------------------------------------------------------------------
     # Consolidation: No-ops for all but BlockManager
@@ -333,7 +332,7 @@ class SingleDataManager(DataManager):
     @property
     def array(self) -> ArrayLike:
         """
-        Quick access to the backing array of the Block or SingleArrayManager.
+        Quick access to the backing array of the Block.
         """
         # error: "SingleDataManager" has no attribute "arrays"; maybe "array"
         return self.arrays[0]  # type: ignore[attr-defined]
@@ -342,7 +341,7 @@ class SingleDataManager(DataManager):
         """
         Set values with indexer.
 
-        For Single[Block/Array]Manager, this backs s[indexer] = value
+        For SingleBlockManager, this backs s[indexer] = value
 
         This is an inplace version of `setitem()`, mutating the manager/values
         in place, not returning a new Manager (and Block), and thus never changing

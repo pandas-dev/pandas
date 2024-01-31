@@ -39,7 +39,6 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core.construction import ensure_wrapped_if_datetimelike
-from pandas.core.internals.array_manager import ArrayManager
 from pandas.core.internals.blocks import (
     ensure_block_shape,
     new_block_2d,
@@ -56,7 +55,6 @@ if TYPE_CHECKING:
         ArrayLike,
         AxisInt,
         DtypeObj,
-        Manager2D,
         Shape,
     )
 
@@ -67,33 +65,9 @@ if TYPE_CHECKING:
     )
 
 
-def _concatenate_array_managers(
-    mgrs: list[ArrayManager], axes: list[Index], concat_axis: AxisInt
-) -> Manager2D:
-    """
-    Concatenate array managers into one.
-
-    Parameters
-    ----------
-    mgrs_indexers : list of (ArrayManager, {axis: indexer,...}) tuples
-    axes : list of Index
-    concat_axis : int
-
-    Returns
-    -------
-    ArrayManager
-    """
-    if concat_axis == 1:
-        return mgrs[0].concat_vertical(mgrs, axes)
-    else:
-        # concatting along the columns -> combine reindexed arrays in a single manager
-        assert concat_axis == 0
-        return mgrs[0].concat_horizontal(mgrs, axes)
-
-
 def concatenate_managers(
     mgrs_indexers, axes: list[Index], concat_axis: AxisInt, copy: bool
-) -> Manager2D:
+) -> BlockManager:
     """
     Concatenate block managers into one.
 
@@ -110,18 +84,6 @@ def concatenate_managers(
     """
 
     needs_copy = copy and concat_axis == 0
-
-    # TODO(ArrayManager) this assumes that all managers are of the same type
-    if isinstance(mgrs_indexers[0][0], ArrayManager):
-        mgrs = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers, needs_copy)
-        # error: Argument 1 to "_concatenate_array_managers" has incompatible
-        # type "List[BlockManager]"; expected "List[Union[ArrayManager,
-        # SingleArrayManager, BlockManager, SingleBlockManager]]"
-        return _concatenate_array_managers(
-            mgrs,  # type: ignore[arg-type]
-            axes,
-            concat_axis,
-        )
 
     # Assertions disabled for performance
     # for tup in mgrs_indexers:
