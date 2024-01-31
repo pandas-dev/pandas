@@ -229,7 +229,7 @@ jobs:
       PYTEST_TARGET: pandas
       PATTERN: "not slow and not db and not network and not single_cpu"
       # GH 47443: PYTEST_WORKERS > 0 crashes Windows builds with memory related errors
-      PYTEST_WORKERS: ${{ matrix.os == 'macos-latest' && 'auto' || '0' }}
+      PYTEST_WORKERS: ${{ startsWith(matrix.os, 'macos-latest') && 'auto' || '0' }}
 
     steps:
       - name: Checkout
