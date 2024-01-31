@@ -11,7 +11,7 @@ from datetime import (
 )
 from decimal import Decimal
 import re
-import string
+import string as string_stdlib
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -1086,7 +1086,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
-            return string.capwords(other) == string.capwords(self.name)
+            return string_stdlib.capwords(other) == string_stdlib.capwords(self.name)
 
         return super().__eq__(other)
 
