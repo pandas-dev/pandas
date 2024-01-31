@@ -397,3 +397,12 @@ def test_non_str_names():
     df = pd.Series([1, 2, 3], name=0).to_frame()
     names = df.__dataframe__().column_names()
     assert names == ["0"]
+
+
+def test_empty_dataframe():
+    # https://github.com/pandas-dev/pandas/issues/56700
+    df = pd.DataFrame({"a": []}, dtype="int8")
+    dfi = df.__dataframe__()
+    result = pd.api.interchange.from_dataframe(dfi, allow_copy=False)
+    expected = pd.DataFrame({"a": []}, dtype="int8")
+    tm.assert_frame_equal(result, expected)
