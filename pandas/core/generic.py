@@ -8933,9 +8933,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         lower=None,
         upper=None,
-        *,
         axis: Axis | None = None,
         inplace: bool_t = False,
+        *args,
         **kwargs,
     ) -> Self | None:
         """
