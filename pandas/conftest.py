@@ -33,7 +33,6 @@ import os
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Module,
 )
 
 from dateutil.tz import (
@@ -82,6 +81,7 @@ if TYPE_CHECKING:
         Hashable,
         Iterator,
     )
+    from types import ModuleType
 
 try:
     import pyarrow as pa
@@ -92,7 +92,7 @@ else:
     has_pyarrow = True
 
 
-pytz: Module | None
+pytz: ModuleType | None
 try:
     import pytz
 except ImportError:
