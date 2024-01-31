@@ -1049,7 +1049,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         return com.pipe(self, func, *args, **kwargs)
 
     @final
-    def get_group(self, name, obj=None) -> DataFrame | Series:
+    def get_group(self, name) -> DataFrame | Series:
         """
         Construct DataFrame from group with provided name.
 
@@ -1057,19 +1057,10 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         ----------
         name : object
             The name of the group to get as a DataFrame.
-        obj : DataFrame, default None
-            The DataFrame to take the DataFrame out of.  If
-            it is None, the object groupby was called on will
-            be used.
-
-            .. deprecated:: 2.1.0
-                The obj is deprecated and will be removed in a future version.
-                Do ``df.iloc[gb.indices.get(name)]``
-                instead of ``gb.get_group(name, obj=df)``.
 
         Returns
         -------
-        same type as obj
+        DataFrame or Series
 
         Examples
         --------
@@ -1142,18 +1133,8 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         if not len(inds):
             raise KeyError(name)
 
-        if obj is None:
-            indexer = inds if self.axis == 0 else (slice(None), inds)
-            return self._selected_obj.iloc[indexer]
-        else:
-            warnings.warn(
-                "obj is deprecated and will be removed in a future version. "
-                "Do ``df.iloc[gb.indices.get(name)]`` "
-                "instead of ``gb.get_group(name, obj=df)``.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            return obj._take_with_is_copy(inds, axis=self.axis)
+        indexer = inds if self.axis == 0 else (slice(None), inds)
+        return self._selected_obj.iloc[indexer]
 
     @final
     def __iter__(self) -> Iterator[tuple[Hashable, NDFrameT]]:
