@@ -392,3 +392,10 @@ def test_large_string():
     result = pd.api.interchange.from_dataframe(df.__dataframe__())
     expected = pd.DataFrame({"a": ["x"]}, dtype="object")
     tm.assert_frame_equal(result, expected)
+
+
+def test_non_str_names():
+    # https://github.com/pandas-dev/pandas/issues/56701
+    df = pd.Series([1, 2, 3], name=0).to_frame()
+    names = df.__dataframe__().column_names()
+    assert names == ["0"]
