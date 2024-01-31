@@ -1220,23 +1220,19 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Examples
         --------
-        >>> s = pd.Series(data=[1, None, 4, 1],
-        ...               index=['A', 'B', 'C', 'D'])
-        >>> s
-        A    1.0
-        B    NaN
-        C    4.0
-        D    1.0
-        dtype: float64
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
 
-        >>> s.idxmin()
-        'A'
-
-        If `skipna` is False and there is an NA value in the data,
-        the function returns ``nan``.
-
-        >>> s.idxmin(skipna=False)
-        nan
+        >>> ser.groupby(['a', 'a', 'b', 'b']).idxmin()
+        a   2023-01-01
+        b   2023-02-01
+        dtype: datetime64[ns]
         """
         return self._idxmax_idxmin("idxmin", axis=axis, skipna=skipna)
 
@@ -1284,24 +1280,19 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Examples
         --------
-        >>> s = pd.Series(data=[1, None, 4, 3, 4],
-        ...               index=['A', 'B', 'C', 'D', 'E'])
-        >>> s
-        A    1.0
-        B    NaN
-        C    4.0
-        D    3.0
-        E    4.0
-        dtype: float64
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
 
-        >>> s.idxmax()
-        'C'
-
-        If `skipna` is False and there is an NA value in the data,
-        the function returns ``nan``.
-
-        >>> s.idxmax(skipna=False)
-        nan
+        >>> ser.groupby(['a', 'a', 'b', 'b']).idxmax()
+        a   2023-01-15
+        b   2023-02-15
+        dtype: datetime64[ns]
         """
         return self._idxmax_idxmin("idxmax", axis=axis, skipna=skipna)
 
