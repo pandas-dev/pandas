@@ -396,6 +396,7 @@ def test_large_string():
 
 @pytest.mark.parametrize("dtype", ["Int8", "Int8[pyarrow]"])
 def test_nullable_integers(dtype: str) -> None:
+    # https://github.com/pandas-dev/pandas/issues/55069
     pytest.importorskip("pyarrow")
     df = pd.DataFrame({"a": [1]}, dtype=dtype)
     expected = pd.DataFrame({"a": [1]}, dtype="int8")
