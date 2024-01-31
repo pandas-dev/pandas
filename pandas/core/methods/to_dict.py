@@ -255,7 +255,7 @@ def to_dict(
                 for row in data:
                     for col in object_dtype_cols:
                         row[col] = maybe_box_native(row[col])
-            return data
+            return data  # type: ignore[return-value]
 
     elif orient == "index":
         if not df.index.is_unique:
