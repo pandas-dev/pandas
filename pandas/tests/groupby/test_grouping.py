@@ -384,7 +384,6 @@ class TestGrouping:
             categories, categories=categories, ordered=True
         )
 
-        # TODO: Why transpose?
         # test transposed version
         df = DataFrame(data.T, index=cat_columns)
         result = df.groupby(level=0, observed=observed).sum()

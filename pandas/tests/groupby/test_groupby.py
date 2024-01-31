@@ -2067,7 +2067,6 @@ def test_groupby_crash_on_nunique():
     df.columns.names = ("bar", "baz")
     df.index = dti
 
-    # TODO: Do we need a transpose?
     df = df.T
     gb = df.groupby(level=0)
     result = gb.nunique()

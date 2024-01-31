@@ -1124,9 +1124,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         inds = self._get_index(name)
         if not len(inds):
             raise KeyError(name)
-
-        indexer = inds if self.axis == 0 else (slice(None), inds)
-        return self._selected_obj.iloc[indexer]
+        return self._selected_obj.iloc[inds]
 
     @final
     def __iter__(self) -> Iterator[tuple[Hashable, NDFrameT]]:
@@ -1819,7 +1817,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             data after applying f
         """
-        values, mutated = self._grouper.apply_groupwise(f, data, axis=0)
+        values, mutated = self._grouper.apply_groupwise(f, data)
         if not_indexed_same is None:
             not_indexed_same = mutated
 
@@ -3725,13 +3723,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Provided integer column is ignored and excluded from result since
             an integer index is not used to calculate the rolling window.
 
-        axis : int or str, default 0
-            If ``0`` or ``'index'``, roll across the rows.
-
-            If ``1`` or ``'columns'``, roll across the columns.
-
-            For `Series` this parameter is unused and defaults to 0.
-
         closed : str, default None
             If ``'right'``, the first point in the window is excluded from calculations.
 
@@ -3800,8 +3791,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
           3  4  0.705
         """
         from pandas.core.window import RollingGroupby
-
-        assert kwargs.get("axis", 0) == 0
 
         return RollingGroupby(
             self._selected_obj,
@@ -4299,7 +4288,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         mgr = self._get_data_to_aggregate(numeric_only=numeric_only, name="quantile")
         obj = self._wrap_agged_manager(mgr)
-        splitter = self._grouper._get_splitter(obj, axis=0)
+        splitter = self._grouper._get_splitter(obj)
         sdata = splitter._sorted_data
 
         starts, ends = lib.generate_slices(splitter._slabels, splitter.ngroups)

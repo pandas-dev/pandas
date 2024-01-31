@@ -618,13 +618,12 @@ class BaseGrouper:
         yield from zip(keys, splitter)
 
     @final
-    def _get_splitter(self, data: NDFrame, axis: AxisInt = 0) -> DataSplitter:
+    def _get_splitter(self, data: NDFrame) -> DataSplitter:
         """
         Returns
         -------
         Generator yielding subsetted objects
         """
-        assert axis == 0
         ids, _, ngroups = self.group_info
         return _get_splitter(
             data,
@@ -632,7 +631,6 @@ class BaseGrouper:
             ngroups,
             sorted_ids=self._sorted_ids,
             sort_idx=self._sort_idx,
-            axis=axis,
         )
 
     @final
@@ -878,7 +876,7 @@ class BaseGrouper:
         result = np.empty(ngroups, dtype="O")
         initialized = False
 
-        splitter = self._get_splitter(obj, axis=0)
+        splitter = self._get_splitter(obj)
 
         for i, group in enumerate(splitter):
             res = func(group)
@@ -895,11 +893,10 @@ class BaseGrouper:
 
     @final
     def apply_groupwise(
-        self, f: Callable, data: DataFrame | Series, axis: AxisInt = 0
+        self, f: Callable, data: DataFrame | Series
     ) -> tuple[list, bool]:
-        assert axis == 0
         mutated = False
-        splitter = self._get_splitter(data, axis=axis)
+        splitter = self._get_splitter(data)
         group_keys = self.group_keys_seq
         result_values = []
 
@@ -917,7 +914,7 @@ class BaseGrouper:
             # group might be modified
             group_axes = group.axes
             res = f(group)
-            if not mutated and not _is_indexed_like(res, group_axes, axis):
+            if not mutated and not _is_indexed_like(res, group_axes):
                 mutated = True
             result_values.append(res)
         # getattr pattern for __name__ is needed for functools.partial objects
@@ -1024,7 +1021,7 @@ class BinGrouper(BaseGrouper):
             ids = ids[sorter]
         return ids
 
-    def get_iterator(self, data: NDFrame, axis: AxisInt = 0):
+    def get_iterator(self, data: NDFrame):
         """
         Groupby iterator
 
@@ -1033,13 +1030,7 @@ class BinGrouper(BaseGrouper):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        assert axis == 0
-        if axis == 0:
-            slicer = lambda start, edge: data.iloc[start:edge]
-        else:
-            slicer = lambda start, edge: data.iloc[:, start:edge]
-
-        length = len(data.axes[axis])
+        slicer = lambda start, edge: data.iloc[start:edge]
 
         start = 0
         for edge, label in zip(self.bins, self.binlabels):
@@ -1047,7 +1038,7 @@ class BinGrouper(BaseGrouper):
                 yield label, slicer(start, edge)
             start = edge
 
-        if start < length:
+        if start < len(data):
             yield self.binlabels[-1], slicer(start, None)
 
     @cache_readonly
@@ -1111,14 +1102,13 @@ class BinGrouper(BaseGrouper):
         return [ping]
 
 
-def _is_indexed_like(obj, axes, axis: AxisInt) -> bool:
-    assert axis == 0
+def _is_indexed_like(obj, axes) -> bool:
     if isinstance(obj, Series):
         if len(axes) > 1:
             return False
-        return obj.axes[axis].equals(axes[axis])
+        return obj.index.equals(axes[0])
     elif isinstance(obj, DataFrame):
-        return obj.axes[axis].equals(axes[axis])
+        return obj.index.equals(axes[0])
 
     return False
 
@@ -1136,18 +1126,13 @@ class DataSplitter(Generic[NDFrameT]):
         *,
         sort_idx: npt.NDArray[np.intp],
         sorted_ids: npt.NDArray[np.intp],
-        axis: AxisInt = 0,
     ) -> None:
-        assert axis == 0
         self.data = data
         self.labels = ensure_platform_int(labels)  # _should_ already be np.intp
         self.ngroups = ngroups
 
         self._slabels = sorted_ids
         self._sort_idx = sort_idx
-
-        self.axis = axis
-        assert isinstance(axis, int), axis
 
     def __iter__(self) -> Iterator:
         sdata = self._sorted_data
@@ -1164,7 +1149,7 @@ class DataSplitter(Generic[NDFrameT]):
 
     @cache_readonly
     def _sorted_data(self) -> NDFrameT:
-        return self.data.take(self._sort_idx, axis=self.axis)
+        return self.data.take(self._sort_idx, axis=0)
 
     def _chop(self, sdata, slice_obj: slice) -> NDFrame:
         raise AbstractMethodError(self)
@@ -1182,12 +1167,8 @@ class SeriesSplitter(DataSplitter):
 class FrameSplitter(DataSplitter):
     def _chop(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:
         # Fastpath equivalent to:
-        # if self.axis == 0:
-        #     return sdata.iloc[slice_obj]
-        # else:
-        #     return sdata.iloc[:, slice_obj]
-        assert self.axis == 0
-        mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
+        # return sdata.iloc[slice_obj]
+        mgr = sdata._mgr.get_slice(slice_obj, axis=1)
         df = sdata._constructor_from_mgr(mgr, axes=mgr.axes)
         return df.__finalize__(sdata, method="groupby")
 
@@ -1199,15 +1180,11 @@ def _get_splitter(
     *,
     sort_idx: npt.NDArray[np.intp],
     sorted_ids: npt.NDArray[np.intp],
-    axis: AxisInt = 0,
 ) -> DataSplitter:
-    assert axis == 0
     if isinstance(data, Series):
         klass: type[DataSplitter] = SeriesSplitter
     else:
         # i.e. DataFrame
         klass = FrameSplitter
 
-    return klass(
-        data, labels, ngroups, sort_idx=sort_idx, sorted_ids=sorted_ids, axis=axis
-    )
+    return klass(data, labels, ngroups, sort_idx=sort_idx, sorted_ids=sorted_ids)
