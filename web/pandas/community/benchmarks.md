@@ -35,7 +35,8 @@ available at the [pandas sponsors]({{ base_url }}about/sponsors.html) page.
 Results of the benchmarks are available at:
 
 - Original server: [asv](https://asv-runner.github.io/asv-collection/pandas/)
-- OVH server: [asv](https://pandas.pydata.org/benchmarks/asv/) [conbench](https://pandas.pydata.org/benchmarks/conbench/)
+- OVH server: [asv](https://pandas.pydata.org/benchmarks/asv/) (benchmarks results can
+  also be visualized in this [Conbench PoC](http://57.128.112.95:5000/)
 
 ### Original server configuration
 
@@ -54,7 +55,19 @@ ssh -L 8080:localhost:8080 pandas@panda.likescandy.com
 
 ### OVH server configuration
 
-TODO
+The server used to run the benchmarks has been configured to reduce system
+noise and maximize the stability of the benchmarks times.
+
+The details on how the server is configured can be found in the
+[pandas-benchmarks repository](https://github.com/pandas-dev/pandas-benchmarks).
+There is a quick summary here:
+
+- CPU isolation: Avoid user space tasks to execute in the same CPU as benchmarks, possibly interrupting them during the execution (include all virtual CPUs using a physical core)
+- NoHZ: Stop the kernel tick that enables context switching in the isolated CPU
+- IRQ affinity: Ban benchmarks CPU to avoid many (but not all) kernel interruption in the isolated CPU
+- TurboBoost: Disable CPU scaling based on high CPU demand
+- P-States: Use "performance" governor to disable P-States and CPU frequency changes based on them
+- C-States: Set C-State to 0 and disable changes to avoid slower CPU after system inactivity
 
 ## Community benchmarks
 
