@@ -44,7 +44,16 @@ def to_numpy_dtype_inference(
         dtype_given = True
 
     if na_value is lib.no_default:
-        na_value = arr.dtype.na_value
+        if dtype is None:
+            na_value = arr.dtype.na_value
+        elif dtype.kind == "f":
+            na_value = np.nan
+        elif dtype.kind == "M":
+            na_value = np.datetime64("nat")
+        elif dtype.kind == "m":
+            na_value = np.timedelta64("nat")
+        else:
+            na_value = arr.dtype.na_value
 
     if not dtype_given and hasna:
         try:

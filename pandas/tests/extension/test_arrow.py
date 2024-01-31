@@ -3394,3 +3394,12 @@ def test_to_numpy_timestamp_to_int():
     result = ser.to_numpy(dtype=np.int64)
     expected = np.array([1577853000000000000])
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["float64", "datetime64[ns]", "timedelta64[ns]"])
+def test_astype_int_with_null_to_numpy_dtype(dtype):
+    # GH 57093
+    ser = pd.Series([1, None], dtype="int64[pyarrow]")
+    result = ser.astype(dtype)
+    expected = pd.Series([1, None], dtype=dtype)
+    tm.assert_series_equal(result, expected)
