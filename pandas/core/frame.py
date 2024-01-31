@@ -89,7 +89,6 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
-    maybe_box_native,
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
@@ -1982,28 +1981,6 @@ class DataFrame(NDFrame, OpsMixin):
             result = np.array(result, dtype=dtype, copy=False)
 
         return result
-
-    def _create_data_for_split_and_tight_to_dict(
-        self, are_all_object_dtype_cols: bool, object_dtype_indices: list[int]
-    ) -> list:
-        """
-        Simple helper method to create data for to ``to_dict(orient="split")`` and
-        ``to_dict(orient="tight")`` to create the main output data
-        """
-        if are_all_object_dtype_cols:
-            data = [
-                list(map(maybe_box_native, t))
-                for t in self.itertuples(index=False, name=None)
-            ]
-        else:
-            data = [list(t) for t in self.itertuples(index=False, name=None)]
-            if object_dtype_indices:
-                # If we have object_dtype_cols, apply maybe_box_naive after list
-                # comprehension for perf
-                for row in data:
-                    for i in object_dtype_indices:
-                        row[i] = maybe_box_native(row[i])
-        return data
 
     @overload
     def to_dict(
@@ -8012,19 +7989,17 @@ class DataFrame(NDFrame, OpsMixin):
         left = self
 
         # GH#31623, only operate on shared columns
-        cols, lcols, rcols = left.columns.join(
-            right.columns, how="inner", level=None, return_indexers=True
+        cols, lcol_indexer, rcol_indexer = left.columns.join(
+            right.columns, how="inner", return_indexers=True
         )
 
-        new_left = left.iloc[:, lcols]
-        new_right = right.iloc[:, rcols]
+        new_left = left if lcol_indexer is None else left.iloc[:, lcol_indexer]
+        new_right = right if rcol_indexer is None else right.iloc[:, rcol_indexer]
         result = op(new_left, new_right)
 
         # Do the join on the columns instead of using left._align_for_op
         #  to avoid constructing two potentially large/sparse DataFrames
-        join_columns, _, _ = left.columns.join(
-            right.columns, how="outer", level=None, return_indexers=True
-        )
+        join_columns = left.columns.join(right.columns, how="outer")
 
         if result.columns.has_duplicates:
             # Avoid reindexing with a duplicate axis.

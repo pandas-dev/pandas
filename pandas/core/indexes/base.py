@@ -883,6 +883,8 @@ class Index(IndexOpsMixin, PandasObject):
             # error: Item "ExtensionArray" of "Union[ExtensionArray,
             # ndarray[Any, Any]]" has no attribute "_ndarray"  [union-attr]
             target_values = self._data._ndarray  # type: ignore[union-attr]
+        elif is_string_dtype(self.dtype) and not is_object_dtype(self.dtype):
+            return libindex.StringEngine(target_values)
 
         # error: Argument 1 to "ExtensionEngine" has incompatible type
         # "ndarray[Any, Any]"; expected "ExtensionArray"
@@ -949,6 +951,9 @@ class Index(IndexOpsMixin, PandasObject):
         elif method == "reduce":
             result = lib.item_from_zerodim(result)
             return result
+        elif is_scalar(result):
+            # e.g. matmul
+            return result
 
         if result.dtype == np.float16:
             result = result.astype(np.float32)
@@ -956,7 +961,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self.__array_wrap__(result)
 
     @final
-    def __array_wrap__(self, result, context=None):
+    def __array_wrap__(self, result, context=None, return_scalar=False):
         """
         Gets called after a ufunc and other functions e.g. np.split.
         """
@@ -4608,38 +4613,12 @@ class Index(IndexOpsMixin, PandasObject):
         if level is not None and (self._is_multi or other._is_multi):
             return self._join_level(other, level, how=how)
 
-        lidx: np.ndarray | None
-        ridx: np.ndarray | None
-
-        if len(other) == 0:
-            if how in ("left", "outer"):
-                if sort and not self.is_monotonic_increasing:
-                    lidx = self.argsort()
-                    join_index = self.take(lidx)
-                else:
-                    lidx = None
-                    join_index = self._view()
-                ridx = np.broadcast_to(np.intp(-1), len(join_index))
-                return join_index, lidx, ridx
-            elif how in ("right", "inner", "cross"):
-                join_index = other._view()
-                lidx = np.array([], dtype=np.intp)
-                return join_index, lidx, None
-
-        if len(self) == 0:
-            if how in ("right", "outer"):
-                if sort and not other.is_monotonic_increasing:
-                    ridx = other.argsort()
-                    join_index = other.take(ridx)
-                else:
-                    ridx = None
-                    join_index = other._view()
-                lidx = np.broadcast_to(np.intp(-1), len(join_index))
-                return join_index, lidx, ridx
-            elif how in ("left", "inner", "cross"):
-                join_index = self._view()
-                ridx = np.array([], dtype=np.intp)
-                return join_index, None, ridx
+        if len(self) == 0 or len(other) == 0:
+            try:
+                return self._join_empty(other, how, sort)
+            except TypeError:
+                # object dtype; non-comparable objects
+                pass
 
         if self.dtype != other.dtype:
             dtype = self._find_common_type_compat(other)
@@ -4673,6 +4652,33 @@ class Index(IndexOpsMixin, PandasObject):
             return self._join_non_unique(other, how=how, sort=sort)
 
         return self._join_via_get_indexer(other, how, sort)
+
+    @final
+    def _join_empty(
+        self, other: Index, how: JoinHow, sort: bool
+    ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
+        assert len(self) == 0 or len(other) == 0
+        _validate_join_method(how)
+
+        lidx: np.ndarray | None
+        ridx: np.ndarray | None
+
+        if len(other):
+            how = cast(JoinHow, {"left": "right", "right": "left"}.get(how, how))
+            join_index, ridx, lidx = other._join_empty(self, how, sort)
+        elif how in ["left", "outer"]:
+            if sort and not self.is_monotonic_increasing:
+                lidx = self.argsort()
+                join_index = self.take(lidx)
+            else:
+                lidx = None
+                join_index = self._view()
+            ridx = np.broadcast_to(np.intp(-1), len(join_index))
+        else:
+            join_index = other._view()
+            lidx = np.array([], dtype=np.intp)
+            ridx = None
+        return join_index, lidx, ridx
 
     @final
     def _join_via_get_indexer(
@@ -4710,6 +4716,10 @@ class Index(IndexOpsMixin, PandasObject):
                     join_index = _maybe_try_sort(join_index, sort)
                 except TypeError:
                     pass
+
+        names = other.names if how == "right" else self.names
+        if join_index.names != names:
+            join_index = join_index.set_names(names)
 
         if join_index is self:
             lindexer = None
@@ -5017,7 +5027,9 @@ class Index(IndexOpsMixin, PandasObject):
                 ridx = self._left_indexer_unique(other)
             else:
                 join_array, lidx, ridx = self._left_indexer(other)
-                join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
+                join_index, lidx, ridx = self._wrap_join_result(
+                    join_array, other, lidx, ridx, how
+                )
         elif how == "right":
             if self.is_unique:
                 # We can perform much better than the general case
@@ -5026,39 +5038,52 @@ class Index(IndexOpsMixin, PandasObject):
                 ridx = None
             else:
                 join_array, ridx, lidx = other._left_indexer(self)
-                join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
+                join_index, lidx, ridx = self._wrap_join_result(
+                    join_array, other, lidx, ridx, how
+                )
         elif how == "inner":
             join_array, lidx, ridx = self._inner_indexer(other)
-            join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
+            join_index, lidx, ridx = self._wrap_join_result(
+                join_array, other, lidx, ridx, how
+            )
         elif how == "outer":
             join_array, lidx, ridx = self._outer_indexer(other)
-            join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
+            join_index, lidx, ridx = self._wrap_join_result(
+                join_array, other, lidx, ridx, how
+            )
 
         lidx = None if lidx is None else ensure_platform_int(lidx)
         ridx = None if ridx is None else ensure_platform_int(ridx)
         return join_index, lidx, ridx
 
-    def _wrap_joined_index(
+    def _wrap_join_result(
         self,
         joined: ArrayLike,
         other: Self,
-        lidx: npt.NDArray[np.intp],
-        ridx: npt.NDArray[np.intp],
-    ) -> Self:
+        lidx: npt.NDArray[np.intp] | None,
+        ridx: npt.NDArray[np.intp] | None,
+        how: JoinHow,
+    ) -> tuple[Self, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         assert other.dtype == self.dtype
 
-        if isinstance(self, ABCMultiIndex):
-            name = self.names if self.names == other.names else None
-            # error: Incompatible return value type (got "MultiIndex",
-            # expected "Self")
-            mask = lidx == -1
-            join_idx = self.take(lidx)
-            right = cast("MultiIndex", other.take(ridx))
-            join_index = join_idx.putmask(mask, right)._sort_levels_monotonic()
-            return join_index.set_names(name)  # type: ignore[return-value]
+        if lidx is not None and lib.is_range_indexer(lidx, len(self)):
+            lidx = None
+        if ridx is not None and lib.is_range_indexer(ridx, len(other)):
+            ridx = None
+
+        # return self or other if possible to maintain cached attributes
+        if lidx is None:
+            join_index = self
+        elif ridx is None:
+            join_index = other
         else:
-            name = get_op_result_name(self, other)
-            return self._constructor._with_infer(joined, name=name, dtype=self.dtype)
+            join_index = self._constructor._with_infer(joined, dtype=self.dtype)
+
+        names = other.names if how == "right" else self.names
+        if join_index.names != names:
+            join_index = join_index.set_names(names)
+
+        return join_index, lidx, ridx
 
     @final
     @cache_readonly

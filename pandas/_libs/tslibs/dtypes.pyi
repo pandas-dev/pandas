@@ -1,5 +1,7 @@
 from enum import Enum
 
+from pandas._typing import Self
+
 OFFSET_TO_PERIOD_FREQSTR: dict[str, str]
 
 def periods_per_day(reso: int = ...) -> int: ...
@@ -12,7 +14,7 @@ class PeriodDtypeBase:
     _n: int
 
     # actually __cinit__
-    def __new__(cls, code: int, n: int): ...
+    def __new__(cls, code: int, n: int) -> Self: ...
     @property
     def _freq_group_code(self) -> int: ...
     @property
