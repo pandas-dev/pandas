@@ -181,8 +181,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.DataFrameGroupBy.plot\
         pandas.core.groupby.SeriesGroupBy.plot\
         pandas.core.window.rolling.Rolling.quantile\
-        pandas.core.window.expanding.Expanding.quantile\
-        pandas.api.extensions.ExtensionArray.argsort # There should be no backslash in the final line, please keep this comment in the last ignored function
+        pandas.core.window.expanding.Expanding.quantile # There should be no backslash in the final line, please keep this comment in the last ignored function
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
