@@ -7,6 +7,9 @@ import pytest
 
 from pandas._libs.tslibs import iNaT
 
+from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.missing import na_value_for_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -386,6 +389,34 @@ def test_groupby_non_arithmetic_agg_int_like_precision(method, data):
         expected_value = getattr(df["b"], method)()
     expected = DataFrame({"b": [expected_value]}, index=pd.Index([1], name="a"))
 
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["first", "last"])
+def test_first_last_skipna(any_real_nullable_dtype, sort, skipna, how):
+    # GH#57019
+    na_value = na_value_for_dtype(pandas_dtype(any_real_nullable_dtype))
+    df = DataFrame(
+        {
+            "a": [2, 1, 1, 2, 3, 3],
+            "b": [na_value, 3.0, na_value, 4.0, np.nan, np.nan],
+            "c": [na_value, 3.0, na_value, 4.0, np.nan, np.nan],
+        },
+        dtype=any_real_nullable_dtype,
+    )
+    gb = df.groupby("a", sort=sort)
+    method = getattr(gb, how)
+    result = method(skipna=skipna)
+
+    ilocs = {
+        ("first", True): [3, 1, 4],
+        ("first", False): [0, 1, 4],
+        ("last", True): [3, 1, 5],
+        ("last", False): [3, 2, 5],
+    }[how, skipna]
+    expected = df.iloc[ilocs].set_index("a")
+    if sort:
+        expected = expected.sort_index()
     tm.assert_frame_equal(result, expected)
 
 
