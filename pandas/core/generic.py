@@ -101,6 +101,8 @@ from pandas.errors import (
     InvalidIndexError,
     SettingWithCopyError,
     SettingWithCopyWarning,
+)
+from pandas.errors.cow import (
     _chained_assignment_method_msg,
     _chained_assignment_warning_method_msg,
     _check_cacher,
@@ -9055,7 +9057,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             For `Series` this parameter is unused and defaults to `None`.
         inplace : bool, default False
             Whether to perform the operation in place on the data.
-        *args, **kwargs
+        **kwargs
             Additional keywords have no effect but might be accepted
             for compatibility with numpy.
 

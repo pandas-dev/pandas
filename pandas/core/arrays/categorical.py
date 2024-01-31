@@ -293,6 +293,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     Methods
     -------
     from_codes
+    as_ordered
+    as_unordered
+    set_categories
+    rename_categories
+    reorder_categories
+    add_categories
+    remove_categories
+    remove_unused_categories
+    map
     __array__
 
     Raises
