@@ -1002,3 +1002,27 @@ def test_axis_columns_ignore_index():
     result = df.sort_index(axis="columns", ignore_index=True)
     expected = DataFrame([[2, 1]])
     tm.assert_frame_equal(result, expected)
+
+
+def test_sort_index_stable_sort():
+    # GH 57151
+    df = DataFrame(
+        data=[
+            (Timestamp("2024-01-30 13:00:00"), 13.0),
+            (Timestamp("2024-01-30 13:00:00"), 13.1),
+            (Timestamp("2024-01-30 12:00:00"), 12.0),
+            (Timestamp("2024-01-30 12:00:00"), 12.1),
+        ],
+        columns=["dt", "value"],
+    ).set_index(["dt"])
+    result = df.sort_index(level="dt", kind="stable")
+    expected = DataFrame(
+        data=[
+            (Timestamp("2024-01-30 12:00:00"), 12.0),
+            (Timestamp("2024-01-30 12:00:00"), 12.1),
+            (Timestamp("2024-01-30 13:00:00"), 13.0),
+            (Timestamp("2024-01-30 13:00:00"), 13.1),
+        ],
+        columns=["dt", "value"],
+    ).set_index(["dt"])
+    tm.assert_frame_equal(result, expected)
