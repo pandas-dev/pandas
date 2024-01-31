@@ -5358,6 +5358,8 @@ See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ an
 
 .. ipython:: python
 
+   import pytz
+
    df = pd.DataFrame(
        {
            "a": list("abc"),
@@ -5366,7 +5368,7 @@ See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ an
            "d": np.arange(4.0, 7.0, dtype="float64"),
            "e": [True, False, True],
            "f": pd.date_range("20130101", periods=3),
-           "g": pd.date_range("20130101", periods=3, tz="US/Eastern"),
+           "g": pd.date_range("20130101", periods=3, tz=pytz.timezone("US/Eastern")),
            "h": pd.Categorical(list("abc")),
            "i": pd.Categorical(list("abc"), ordered=True),
        }

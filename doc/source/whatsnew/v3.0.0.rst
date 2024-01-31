@@ -101,7 +101,7 @@ string to various methods. (:issue:`34916`)
 .. ipython:: python
 
     ts = pd.Timestamp(2024, 1, 1).tz_localize("US/Pacific")
-    tz.tz
+    ts.tz
 
 
 ``pytz`` timezone objects are still supported when passed directly, but they will no longer be returned by default

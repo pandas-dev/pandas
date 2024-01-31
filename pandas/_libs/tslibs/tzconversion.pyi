@@ -8,6 +8,9 @@ import numpy as np
 
 from pandas._typing import npt
 
+class AmbiguousTimeError(Exception): ...
+class NonExistentTimeError(Exception): ...
+
 # tz_convert_from_utc_single exposed for testing
 def tz_convert_from_utc_single(
     utc_val: np.int64, tz: tzinfo, creso: int = ...

@@ -33,6 +33,7 @@ import os
 from typing import (
     TYPE_CHECKING,
     Callable,
+    Module,
 )
 
 from dateutil.tz import (
@@ -90,6 +91,8 @@ else:
     del pa
     has_pyarrow = True
 
+
+pytz: Module | None
 try:
     import pytz
 except ImportError:
@@ -1207,7 +1210,7 @@ TIMEZONES = [
 ]
 
 if pytz is not None:
-    TIMEZONES.extend(
+    TIMEZONES.extend(  # type: ignore[arg-type]
         (
             pytz.FixedOffset(300),
             pytz.FixedOffset(0),
@@ -1988,7 +1991,7 @@ def using_infer_string() -> bool:
 _warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
 
 if pytz is not None:
-    _warsaws.append(pytz.timezone("Europe/Warsaw"))
+    _warsaws.append(pytz.timezone("Europe/Warsaw"))  # type: ignore[arg-type]
 
 
 @pytest.fixture(params=_warsaws)
