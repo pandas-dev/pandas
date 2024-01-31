@@ -15,7 +15,10 @@ from pandas.core.dtypes.dtypes import (
 )
 
 import pandas as pd
-from pandas.api.types import is_string_dtype
+from pandas.api.types import (
+    is_extension_array_dtype,
+    is_string_dtype,
+)
 from pandas.core.interchange.buffer import PandasBuffer
 from pandas.core.interchange.dataframe_protocol import (
     Column,
@@ -143,6 +146,8 @@ class PandasColumn(Column):
             byteorder = dtype.numpy_dtype.byteorder
         elif isinstance(dtype, DatetimeTZDtype):
             byteorder = dtype.base.byteorder  # type: ignore[union-attr]
+        elif is_extension_array_dtype(dtype):
+            byteorder = dtype.numpy_dtype.byteorder
         else:
             byteorder = dtype.byteorder
 

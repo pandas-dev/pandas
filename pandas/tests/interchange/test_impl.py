@@ -392,3 +392,12 @@ def test_large_string():
     result = pd.api.interchange.from_dataframe(df.__dataframe__())
     expected = pd.DataFrame({"a": ["x"]}, dtype="object")
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["Int8", "Int8[pyarrow]"])
+def test_nullable_integers(dtype: str) -> None:
+    pytest.importorskip("pyarrow")
+    df = pd.DataFrame({"a": [1]}, dtype=dtype)
+    expected = pd.DataFrame({"a": [1]}, dtype="int8")
+    result = pd.api.interchange.from_dataframe(df.__dataframe__())
+    tm.assert_frame_equal(result, expected)
