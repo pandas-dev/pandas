@@ -70,7 +70,7 @@ def test_groupby_nonobject_dtype_mixed():
         return group.loc[group["value"].idxmax()]
 
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         applied = df.groupby("A").apply(max_value)
     result = applied.dtypes
     expected = df.dtypes
@@ -203,9 +203,9 @@ def test_indices_concatenation_order():
 
     # correct result
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result1 = df.groupby("a").apply(f1)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result2 = df2.groupby("a").apply(f1)
     tm.assert_frame_equal(result1, result2)
 
@@ -524,16 +524,6 @@ def test_as_index_select_column():
         [2, 6, 6], name="B", index=MultiIndex.from_tuples([(0, 0), (0, 1), (1, 2)])
     )
     tm.assert_series_equal(result, expected)
-
-
-def test_obj_arg_get_group_deprecated():
-    depr_msg = "obj is deprecated"
-
-    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
-    expected = df.iloc[df.groupby("b").indices.get(4)]
-    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-        result = df.groupby("b").get_group(4, obj=df)
-        tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_as_index_select_column_sum_empty_df():
@@ -1092,13 +1082,13 @@ def test_groupby_name_propagation(df):
         return Series({"count": 1, "mean": 2, "omissions": 3}, name=df.iloc[0]["A"])
 
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         metrics = df.groupby("A").apply(summarize)
     assert metrics.columns.name is None
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         metrics = df.groupby("A").apply(summarize, "metrics")
     assert metrics.columns.name == "metrics"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         metrics = df.groupby("A").apply(summarize_random_name)
     assert metrics.columns.name is None
 
@@ -1393,7 +1383,7 @@ def test_dont_clobber_name_column():
     )
 
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = df.groupby("key", group_keys=False).apply(lambda x: x)
     tm.assert_frame_equal(result, df)
 
@@ -1477,7 +1467,7 @@ def test_set_group_name(df, grouper, using_infer_string):
 
     # make sure all these work
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         grouped.apply(f)
     grouped.aggregate(freduce)
     grouped.aggregate({"C": freduce, "D": freduce})
@@ -1500,7 +1490,7 @@ def test_group_name_available_in_inference_pass():
         return group.copy()
 
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         df.groupby("a", sort=False, group_keys=False).apply(f)
 
     expected_names = [0, 1, 2]
@@ -1708,7 +1698,7 @@ def test_groupby_preserves_sort(sort_column, group_column):
         tm.assert_frame_equal(x, x.sort_values(by=sort_column))
 
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         g.apply(test_sort)
 
 
@@ -1893,7 +1883,7 @@ def test_empty_groupby_apply_nonunique_columns():
     df.columns = [0, 1, 2, 0]
     gb = df.groupby(df[1], group_keys=False)
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         res = gb.apply(lambda x: x)
     assert (res.dtypes == df.dtypes).all()
 

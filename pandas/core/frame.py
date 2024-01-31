@@ -89,7 +89,6 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
-    maybe_box_native,
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
@@ -987,6 +986,33 @@ class DataFrame(NDFrame, OpsMixin):
             dataframe_api_compat.pandas_standard.convert_to_standard_compliant_dataframe
         )
         return convert_to_standard_compliant_dataframe(self, api_version=api_version)
+
+    def __arrow_c_stream__(self, requested_schema=None):
+        """
+        Export the pandas DataFrame as an Arrow C stream PyCapsule.
+
+        This relies on pyarrow to convert the pandas DataFrame to the Arrow
+        format (and follows the default behaviour of ``pyarrow.Table.from_pandas``
+        in its handling of the index, i.e. store the index as a column except
+        for RangeIndex).
+        This conversion is not necessarily zero-copy.
+
+        Parameters
+        ----------
+        requested_schema : PyCapsule, default None
+            The schema to which the dataframe should be casted, passed as a
+            PyCapsule containing a C ArrowSchema representation of the
+            requested schema.
+
+        Returns
+        -------
+        PyCapsule
+        """
+        pa = import_optional_dependency("pyarrow", min_version="14.0.0")
+        if requested_schema is not None:
+            requested_schema = pa.Schema._import_from_c_capsule(requested_schema)
+        table = pa.Table.from_pandas(self, schema=requested_schema)
+        return table.__arrow_c_stream__()
 
     # ----------------------------------------------------------------------
 
@@ -1955,28 +1981,6 @@ class DataFrame(NDFrame, OpsMixin):
             result = np.array(result, dtype=dtype, copy=False)
 
         return result
-
-    def _create_data_for_split_and_tight_to_dict(
-        self, are_all_object_dtype_cols: bool, object_dtype_indices: list[int]
-    ) -> list:
-        """
-        Simple helper method to create data for to ``to_dict(orient="split")`` and
-        ``to_dict(orient="tight")`` to create the main output data
-        """
-        if are_all_object_dtype_cols:
-            data = [
-                list(map(maybe_box_native, t))
-                for t in self.itertuples(index=False, name=None)
-            ]
-        else:
-            data = [list(t) for t in self.itertuples(index=False, name=None)]
-            if object_dtype_indices:
-                # If we have object_dtype_cols, apply maybe_box_naive after list
-                # comprehension for perf
-                for row in data:
-                    for i in object_dtype_indices:
-                        row[i] = maybe_box_native(row[i])
-        return data
 
     @overload
     def to_dict(
@@ -7985,19 +7989,17 @@ class DataFrame(NDFrame, OpsMixin):
         left = self
 
         # GH#31623, only operate on shared columns
-        cols, lcols, rcols = left.columns.join(
-            right.columns, how="inner", level=None, return_indexers=True
+        cols, lcol_indexer, rcol_indexer = left.columns.join(
+            right.columns, how="inner", return_indexers=True
         )
 
-        new_left = left.iloc[:, lcols]
-        new_right = right.iloc[:, rcols]
+        new_left = left if lcol_indexer is None else left.iloc[:, lcol_indexer]
+        new_right = right if rcol_indexer is None else right.iloc[:, rcol_indexer]
         result = op(new_left, new_right)
 
         # Do the join on the columns instead of using left._align_for_op
         #  to avoid constructing two potentially large/sparse DataFrames
-        join_columns, _, _ = left.columns.join(
-            right.columns, how="outer", level=None, return_indexers=True
-        )
+        join_columns = left.columns.join(right.columns, how="outer")
 
         if result.columns.has_duplicates:
             # Avoid reindexing with a duplicate axis.
@@ -9802,7 +9804,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         return result.__finalize__(self, method="explode")
 
-    def unstack(self, level: IndexLabel = -1, fill_value=None, sort: bool = True):
+    def unstack(
+        self, level: IndexLabel = -1, fill_value=None, sort: bool = True
+    ) -> DataFrame | Series:
         """
         Pivot a level of the (necessarily hierarchical) index labels.
 
@@ -10395,9 +10399,7 @@ class DataFrame(NDFrame, OpsMixin):
         1  11.262736  20.857489
         """
         if na_action not in {"ignore", None}:
-            raise ValueError(
-                f"na_action must be 'ignore' or None. Got {repr(na_action)}"
-            )
+            raise ValueError(f"na_action must be 'ignore' or None. Got {na_action!r}")
 
         if self.empty:
             return self.copy()
@@ -11860,7 +11862,7 @@ class DataFrame(NDFrame, OpsMixin):
         elif axis_num == 1:
             return self.index
         else:
-            raise ValueError(f"Axis must be 0 or 1 (got {repr(axis_num)})")
+            raise ValueError(f"Axis must be 0 or 1 (got {axis_num!r})")
 
     def mode(
         self, axis: Axis = 0, numeric_only: bool = False, dropna: bool = True
