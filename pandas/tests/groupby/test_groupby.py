@@ -526,16 +526,6 @@ def test_as_index_select_column():
     tm.assert_series_equal(result, expected)
 
 
-def test_obj_arg_get_group_deprecated():
-    depr_msg = "obj is deprecated"
-
-    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
-    expected = df.iloc[df.groupby("b").indices.get(4)]
-    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-        result = df.groupby("b").get_group(4, obj=df)
-        tm.assert_frame_equal(result, expected)
-
-
 def test_groupby_as_index_select_column_sum_empty_df():
     # GH 35246
     df = DataFrame(columns=Index(["A", "B", "C"], name="alpha"))
@@ -2916,9 +2906,6 @@ def test_groupby_selection_other_methods(df):
     g_exp = df[["C"]].groupby(df["A"])
 
     # methods which aren't just .foo()
-    warn_msg = "DataFrameGroupBy.fillna is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        tm.assert_frame_equal(g.fillna(0), g_exp.fillna(0))
     msg = "DataFrameGroupBy.dtypes is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         tm.assert_frame_equal(g.dtypes, g_exp.dtypes)

@@ -18,6 +18,7 @@ Fixed regressions
 - Fixed regression in :func:`merge_ordered` raising ``TypeError`` for ``fill_method="ffill"`` and ``how="left"`` (:issue:`57010`)
 - Fixed regression in :func:`wide_to_long` raising an ``AttributeError`` for string columns (:issue:`57066`)
 - Fixed regression in :meth:`DataFrame.loc` raising ``IndexError`` for non-unique, masked dtype indexes where result has more than 10,000 rows (:issue:`57027`)
+- Fixed regression in :meth:`DataFrame.sort_index` not producing a stable sort for a index with duplicates (:issue:`57151`)
 - Fixed regression in :meth:`DataFrame.to_dict` with ``orient='list'`` and datetime or timedelta types returning integers (:issue:`54824`)
 - Fixed regression in :meth:`DataFrameGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmin`, :meth:`SeriesGroupBy.idxmax` ignoring the ``skipna`` argument (:issue:`57040`)
 - Fixed regression in :meth:`DataFrameGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmin`, :meth:`SeriesGroupBy.idxmax` where values containing the minimum or maximum value for the dtype could produce incorrect results (:issue:`57040`)
@@ -29,6 +30,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+- Fixed bug in :func:`pandas.api.interchange.from_dataframe` which was raising for empty inputs (:issue:`56700`)
 - Fixed bug in :meth:`DataFrame.__getitem__` for empty :class:`DataFrame` with Copy-on-Write enabled (:issue:`57130`)
 
 .. ---------------------------------------------------------------------------
