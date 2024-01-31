@@ -696,7 +696,7 @@ class DataFrame(NDFrame, OpsMixin):
                 # to avoid the result sharing the same Manager
                 data = data.copy(deep=False)
 
-        if isinstance(data, (BlockManager)):
+        if isinstance(data, BlockManager):
             if not allow_mgr:
                 # GH#52419
                 warnings.warn(
