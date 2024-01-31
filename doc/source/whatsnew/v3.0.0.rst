@@ -206,7 +206,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
-- Fixed bug in :meth:`api.types.is_datetime64_any_dtype` where a custom :class:`ExtensionDtype` would return ``False`` for array-likes and ``True`` for date types (:issue:`57055`)
+- Fixed bug in :meth:`api.types.is_datetime64_any_dtype` where a custom :class:`ExtensionDtype` would return ``False`` for array-likes (:issue:`57055`)
 -
 
 Styler

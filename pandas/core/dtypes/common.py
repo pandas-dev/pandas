@@ -3,7 +3,6 @@ Common type operations.
 """
 from __future__ import annotations
 
-import datetime
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -882,9 +881,7 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
     """
     if isinstance(arr_or_dtype, (np.dtype, ExtensionDtype)):
         # GH#33400 fastpath for dtype object
-        if isinstance(arr_or_dtype, np.dtype):
-            return arr_or_dtype.kind == "M"
-        return arr_or_dtype.kind == "M" and arr_or_dtype.type != datetime.date
+        return arr_or_dtype.kind == "M"
 
     if arr_or_dtype is None:
         return False
@@ -896,11 +893,7 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
     return (
         lib.is_np_dtype(tipo, "M")
         or isinstance(tipo, DatetimeTZDtype)
-        or (
-            isinstance(tipo, ExtensionDtype)
-            and tipo.kind == "M"
-            and tipo.type != datetime.date
-        )
+        or (isinstance(tipo, ExtensionDtype) and tipo.kind == "M")
     )
 
 
