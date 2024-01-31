@@ -118,7 +118,6 @@ Bug fixes
 ~~~~~~~~~
 - Fixed bug in :meth:`DataFrame.join` inconsistently setting result index name (:issue:`55815`)
 - Fixed bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
-- Fixed bug in :meth:`api.types.is_datetime64_any_dtype` where a custom :class:`ExtensionDtype` would not return ``True`` for array-likes (:issue:`57055`)
 
 Categorical
 ^^^^^^^^^^^
@@ -207,7 +206,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
--
+- Fixed bug in :meth:`api.types.is_datetime64_any_dtype` where a custom :class:`ExtensionDtype` would return ``False`` for array-likes and ``True`` for date types (:issue:`57055`)
 -
 
 Styler
