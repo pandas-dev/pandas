@@ -8,12 +8,16 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    cast,
     final,
 )
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
+from pandas._config import (
+    using_copy_on_write,
+    warn_copy_on_write,
+)
 
 from pandas._libs import (
     algos as libalgos,
@@ -25,6 +29,10 @@ from pandas.util._validators import validate_bool_kwarg
 from pandas.core.dtypes.cast import (
     find_common_type,
     np_can_hold_element,
+)
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+    SparseDtype,
 )
 
 from pandas.core.base import PandasObject
@@ -42,6 +50,16 @@ if TYPE_CHECKING:
         Self,
         Shape,
     )
+
+
+class _AlreadyWarned:
+    def __init__(self) -> None:
+        # This class is used on the manager level to the block level to
+        # ensure that we warn only once. The block method can update the
+        # warned_already option without returning a value to keep the
+        # interface consistent. This is only a temporary solution for
+        # CoW warnings.
+        self.warned_already = False
 
 
 class DataManager(PandasObject):
@@ -128,7 +146,7 @@ class DataManager(PandasObject):
         """
         Implementation for DataFrame.equals
         """
-        if not isinstance(other, DataManager):
+        if not isinstance(other, type(self)):
             return False
 
         self_axes, other_axes = self.axes, other.axes
@@ -172,6 +190,7 @@ class DataManager(PandasObject):
             inplace=inplace,
             downcast=downcast,
             using_cow=using_copy_on_write(),
+            already_warned=_AlreadyWarned(),
         )
 
     @final
@@ -191,12 +210,18 @@ class DataManager(PandasObject):
         )
 
     @final
-    def putmask(self, mask, new, align: bool = True) -> Self:
+    def putmask(self, mask, new, align: bool = True, warn: bool = True) -> Self:
         if align:
             align_keys = ["new", "mask"]
         else:
             align_keys = ["mask"]
             new = extract_array(new, extract_numpy=True)
+
+        already_warned = None
+        if warn_copy_on_write():
+            already_warned = _AlreadyWarned()
+            if not warn:
+                already_warned.warned_already = True
 
         return self.apply_with_block(
             "putmask",
@@ -204,6 +229,7 @@ class DataManager(PandasObject):
             mask=mask,
             new=new,
             using_cow=using_copy_on_write(),
+            already_warned=already_warned,
         )
 
     @final
@@ -226,12 +252,16 @@ class DataManager(PandasObject):
             value=value,
             inplace=inplace,
             using_cow=using_copy_on_write(),
+            already_warned=_AlreadyWarned(),
         )
 
     @final
     def replace_regex(self, **kwargs) -> Self:
         return self.apply_with_block(
-            "_replace_regex", **kwargs, using_cow=using_copy_on_write()
+            "_replace_regex",
+            **kwargs,
+            using_cow=using_copy_on_write(),
+            already_warned=_AlreadyWarned(),
         )
 
     @final
@@ -252,13 +282,18 @@ class DataManager(PandasObject):
             inplace=inplace,
             regex=regex,
             using_cow=using_copy_on_write(),
+            already_warned=_AlreadyWarned(),
         )
         bm._consolidate_inplace()
         return bm
 
     def interpolate(self, inplace: bool, **kwargs) -> Self:
         return self.apply_with_block(
-            "interpolate", inplace=inplace, **kwargs, using_cow=using_copy_on_write()
+            "interpolate",
+            inplace=inplace,
+            **kwargs,
+            using_cow=using_copy_on_write(),
+            already_warned=_AlreadyWarned(),
         )
 
     def pad_or_backfill(self, inplace: bool, **kwargs) -> Self:
@@ -267,6 +302,7 @@ class DataManager(PandasObject):
             inplace=inplace,
             **kwargs,
             using_cow=using_copy_on_write(),
+            already_warned=_AlreadyWarned(),
         )
 
     def shift(self, periods: int, fill_value) -> Self:
@@ -302,7 +338,7 @@ class SingleDataManager(DataManager):
         # error: "SingleDataManager" has no attribute "arrays"; maybe "array"
         return self.arrays[0]  # type: ignore[attr-defined]
 
-    def setitem_inplace(self, indexer, value) -> None:
+    def setitem_inplace(self, indexer, value, warn: bool = True) -> None:
         """
         Set values with indexer.
 
@@ -356,3 +392,16 @@ def interleaved_dtype(dtypes: list[DtypeObj]) -> DtypeObj | None:
         return None
 
     return find_common_type(dtypes)
+
+
+def ensure_np_dtype(dtype: DtypeObj) -> np.dtype:
+    # TODO: https://github.com/pandas-dev/pandas/issues/22791
+    # Give EAs some input on what happens here. Sparse needs this.
+    if isinstance(dtype, SparseDtype):
+        dtype = dtype.subtype
+        dtype = cast(np.dtype, dtype)
+    elif isinstance(dtype, ExtensionDtype):
+        dtype = np.dtype("object")
+    elif dtype == np.dtype(str):
+        dtype = np.dtype("object")
+    return dtype

@@ -757,6 +757,10 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
     >>> nanops.nanmedian(s.values)
     2.0
     """
+    # for floats without mask, the data already uses NaN as missing value
+    # indicator, and `mask` will be calculated from that below -> in those
+    # cases we never need to set NaN to the masked values
+    using_nan_sentinel = values.dtype.kind == "f" and mask is None
 
     def get_median(x, _mask=None):
         if _mask is None:
@@ -774,7 +778,7 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
         return res
 
     dtype = values.dtype
-    values, mask = _get_values(values, skipna, mask=mask, fill_value=0)
+    values, mask = _get_values(values, skipna, mask=mask, fill_value=None)
     if values.dtype.kind != "f":
         if values.dtype == object:
             # GH#34671 avoid casting strings to numeric
@@ -786,7 +790,9 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
         except ValueError as err:
             # e.g. "could not convert string to float: 'a'"
             raise TypeError(str(err)) from err
-    if mask is not None:
+    if not using_nan_sentinel and mask is not None:
+        if not values.flags.writeable:
+            values = values.copy()
         values[mask] = np.nan
 
     notempty = values.size
@@ -805,7 +811,13 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
                     warnings.filterwarnings(
                         "ignore", "All-NaN slice encountered", RuntimeWarning
                     )
-                    res = np.nanmedian(values, axis)
+                    if (values.shape[1] == 1 and axis == 0) or (
+                        values.shape[0] == 1 and axis == 1
+                    ):
+                        # GH52788: fastpath when squeezable, nanmedian for 2D array slow
+                        res = np.nanmedian(np.squeeze(values), keepdims=True)
+                    else:
+                        res = np.nanmedian(values, axis=axis)
 
         else:
             # must return the correct shape, but median is not defined for the
@@ -1094,7 +1106,6 @@ nanmin = _nanminmax("min", fill_value_typ="+inf")
 nanmax = _nanminmax("max", fill_value_typ="-inf")
 
 
-@disallow("O")
 def nanargmax(
     values: np.ndarray,
     *,
@@ -1134,13 +1145,13 @@ def nanargmax(
     array([2, 2, 1, 1])
     """
     values, mask = _get_values(values, True, fill_value_typ="-inf", mask=mask)
-    # error: Need type annotation for 'result'
-    result = values.argmax(axis)  # type: ignore[var-annotated]
-    result = _maybe_arg_null_out(result, axis, mask, skipna)
+    result = values.argmax(axis)
+    # error: Argument 1 to "_maybe_arg_null_out" has incompatible type "Any |
+    # signedinteger[Any]"; expected "ndarray[Any, Any]"
+    result = _maybe_arg_null_out(result, axis, mask, skipna)  # type: ignore[arg-type]
     return result
 
 
-@disallow("O")
 def nanargmin(
     values: np.ndarray,
     *,
@@ -1180,9 +1191,10 @@ def nanargmin(
     array([0, 0, 1, 1])
     """
     values, mask = _get_values(values, True, fill_value_typ="+inf", mask=mask)
-    # error: Need type annotation for 'result'
-    result = values.argmin(axis)  # type: ignore[var-annotated]
-    result = _maybe_arg_null_out(result, axis, mask, skipna)
+    result = values.argmin(axis)
+    # error: Argument 1 to "_maybe_arg_null_out" has incompatible type "Any |
+    # signedinteger[Any]"; expected "ndarray[Any, Any]"
+    result = _maybe_arg_null_out(result, axis, mask, skipna)  # type: ignore[arg-type]
     return result
 
 

@@ -13,15 +13,17 @@ import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
 
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+
 # We'll probably always skip these for pyarrow
 # Maybe we'll add our own tests for pyarrow too
 pytestmark = [
     pytest.mark.single_cpu,
     pytest.mark.slow,
-    pytest.mark.usefixtures("pyarrow_skip"),
 ]
 
 
+@xfail_pyarrow  # ValueError: Found non-unique column index
 def test_multi_thread_string_io_read_csv(all_parsers):
     # see gh-11786
     parser = all_parsers
@@ -116,6 +118,7 @@ def _generate_multi_thread_dataframe(parser, path, num_rows, num_tasks):
     return final_dataframe
 
 
+@xfail_pyarrow  # ValueError: The 'nrows' option is not supported
 def test_multi_thread_path_multipart_read_csv(all_parsers):
     # see gh-11786
     num_tasks = 4
@@ -125,11 +128,11 @@ def test_multi_thread_path_multipart_read_csv(all_parsers):
     file_name = "__thread_pool_reader__.csv"
     df = DataFrame(
         {
-            "a": np.random.rand(num_rows),
-            "b": np.random.rand(num_rows),
-            "c": np.random.rand(num_rows),
-            "d": np.random.rand(num_rows),
-            "e": np.random.rand(num_rows),
+            "a": np.random.default_rng(2).random(num_rows),
+            "b": np.random.default_rng(2).random(num_rows),
+            "c": np.random.default_rng(2).random(num_rows),
+            "d": np.random.default_rng(2).random(num_rows),
+            "e": np.random.default_rng(2).random(num_rows),
             "foo": ["foo"] * num_rows,
             "bar": ["bar"] * num_rows,
             "baz": ["baz"] * num_rows,

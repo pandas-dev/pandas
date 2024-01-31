@@ -6,7 +6,7 @@ ops = ["mean", "sum", "median", "std", "skew", "kurt", "prod", "sem", "var"]
 
 
 class FrameOps:
-    params = [ops, ["float", "int", "Int64"], [0, 1]]
+    params = [ops, ["float", "int", "Int64"], [0, 1, None]]
     param_names = ["op", "dtype", "axis"]
 
     def setup(self, op, dtype, axis):
@@ -17,6 +17,39 @@ class FrameOps:
         self.df_func = getattr(df, op)
 
     def time_op(self, op, dtype, axis):
+        self.df_func(axis=axis)
+
+
+class FrameMixedDtypesOps:
+    params = [ops, [0, 1, None]]
+    param_names = ["op", "axis"]
+
+    def setup(self, op, axis):
+        if op in ("sum", "skew", "kurt", "prod", "sem", "var") or (
+            (op, axis)
+            in (
+                ("mean", 1),
+                ("mean", None),
+                ("median", 1),
+                ("median", None),
+                ("std", 1),
+            )
+        ):
+            # Skipping cases where datetime aggregations are not implemented
+            raise NotImplementedError
+
+        N = 1_000_000
+        df = pd.DataFrame(
+            {
+                "f": np.random.normal(0.0, 1.0, N),
+                "i": np.random.randint(0, N, N),
+                "ts": pd.date_range(start="1/1/2000", periods=N, freq="h"),
+            }
+        )
+
+        self.df_func = getattr(df, op)
+
+    def time_op(self, op, axis):
         self.df_func(axis=axis)
 
 

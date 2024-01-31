@@ -15,15 +15,19 @@ from pathlib import Path
 import pickle
 import tempfile
 
+import numpy as np
 import pytest
 
 from pandas.compat import is_platform_windows
-import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
 
 import pandas.io.common as icom
+
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
 
 
 class CustomFSPath:
@@ -35,16 +39,6 @@ class CustomFSPath:
     def __fspath__(self):
         return self.path
 
-
-# Functions that consume a string path and return a string or path-like object
-path_types = [str, CustomFSPath, Path]
-
-try:
-    from py.path import local as LocalPath
-
-    path_types.append(LocalPath)
-except ImportError:
-    pass
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
@@ -81,13 +75,6 @@ bar2,12,13,14,15
         redundant_path = icom.stringify_path(Path("foo//bar"))
         assert redundant_path == os.path.join("foo", "bar")
 
-    @td.skip_if_no("py.path")
-    def test_stringify_path_localpath(self):
-        path = os.path.join("foo", "bar")
-        abs_path = os.path.abspath(path)
-        lpath = LocalPath(path)
-        assert icom.stringify_path(lpath) == abs_path
-
     def test_stringify_path_fspath(self):
         p = CustomFSPath("foo/bar.csv")
         result = icom.stringify_path(p)
@@ -100,7 +87,7 @@ bar2,12,13,14,15
             with fsspec.open(f"file://{path}", mode="wb") as fsspec_obj:
                 assert fsspec_obj == icom.stringify_path(fsspec_obj)
 
-    @pytest.mark.parametrize("path_type", path_types)
+    @pytest.mark.parametrize("path_type", [str, CustomFSPath, Path])
     def test_infer_compression_from_path(self, compression_format, path_type):
         extension, expected = compression_format
         path = path_type("foo/bar.csv" + extension)
@@ -109,7 +96,6 @@ bar2,12,13,14,15
 
     @pytest.mark.parametrize("path_type", [str, CustomFSPath, Path])
     def test_get_handle_with_path(self, path_type):
-        # ignore LocalPath: it creates strange paths: /absolute/~/sometest
         with tempfile.TemporaryDirectory(dir=Path.home()) as tmp:
             filename = path_type("~/" + Path(tmp).name + "/sometest")
             with icom.get_handle(filename, "w") as handles:
@@ -147,9 +133,8 @@ Look,a snake,🐍"""
             assert result == data.encode("utf-8")
 
     # Test that pyarrow can handle a file opened with get_handle
-    @td.skip_if_no("pyarrow")
     def test_get_handle_pyarrow_compat(self):
-        from pyarrow import csv
+        pa_csv = pytest.importorskip("pyarrow.csv")
 
         # Test latin1, ucs-2, and ucs-4 chars
         data = """a,b,c
@@ -161,7 +146,7 @@ Look,a snake,🐍"""
         )
         s = StringIO(data)
         with icom.get_handle(s, "rb", is_text=False) as handles:
-            df = csv.read_csv(handles.handle).to_pandas()
+            df = pa_csv.read_csv(handles.handle).to_pandas()
             tm.assert_frame_equal(df, expected)
             assert not s.closed
 
@@ -437,7 +422,11 @@ class TestMMapWrapper:
 
     def test_unknown_engine(self):
         with tm.ensure_clean() as path:
-            df = tm.makeDataFrame()
+            df = pd.DataFrame(
+                1.1 * np.arange(120).reshape((30, 4)),
+                columns=pd.Index(list("ABCD"), dtype=object),
+                index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+            )
             df.to_csv(path)
             with pytest.raises(ValueError, match="Unknown engine"):
                 pd.read_csv(path, engine="pyt")
@@ -449,7 +438,11 @@ class TestMMapWrapper:
         GH 35058
         """
         with tm.ensure_clean() as path:
-            df = tm.makeDataFrame()
+            df = pd.DataFrame(
+                1.1 * np.arange(120).reshape((30, 4)),
+                columns=pd.Index(list("ABCD"), dtype=object),
+                index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+            )
             df.to_csv(path, mode="w+b")
             tm.assert_frame_equal(df, pd.read_csv(path, index_col=0))
 
@@ -463,7 +456,11 @@ class TestMMapWrapper:
 
         GH 35681
         """
-        df = tm.makeDataFrame()
+        df = pd.DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         with tm.ensure_clean() as path:
             with tm.assert_produces_warning(UnicodeWarning):
                 df.to_csv(path, compression=compression_, encoding=encoding)
@@ -493,7 +490,11 @@ def test_is_fsspec_url():
 @pytest.mark.parametrize("format", ["csv", "json"])
 def test_codecs_encoding(encoding, format):
     # GH39247
-    expected = tm.makeDataFrame()
+    expected = pd.DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=pd.Index(list("ABCD"), dtype=object),
+        index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     with tm.ensure_clean() as path:
         with codecs.open(path, mode="w", encoding=encoding) as handle:
             getattr(expected, f"to_{format}")(handle)
@@ -507,7 +508,11 @@ def test_codecs_encoding(encoding, format):
 
 def test_codecs_get_writer_reader():
     # GH39247
-    expected = tm.makeDataFrame()
+    expected = pd.DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=pd.Index(list("ABCD"), dtype=object),
+        index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     with tm.ensure_clean() as path:
         with open(path, "wb") as handle:
             with codecs.getwriter("utf-8")(handle) as encoded:
@@ -529,7 +534,11 @@ def test_explicit_encoding(io_class, mode, msg):
     # GH39247; this test makes sure that if a user provides mode="*t" or "*b",
     # it is used. In the case of this test it leads to an error as intentionally the
     # wrong mode is requested
-    expected = tm.makeDataFrame()
+    expected = pd.DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=pd.Index(list("ABCD"), dtype=object),
+        index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     with io_class() as buffer:
         with pytest.raises(TypeError, match=msg):
             expected.to_csv(buffer, mode=f"w{mode}")

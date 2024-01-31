@@ -194,10 +194,9 @@ class TestDataFrameConcat:
 
     @pytest.mark.parametrize("ignore_index", [True, False])
     @pytest.mark.parametrize("order", ["C", "F"])
-    @pytest.mark.parametrize("axis", [0, 1])
     def test_concat_copies(self, axis, order, ignore_index, using_copy_on_write):
         # based on asv ConcatDataFrames
-        df = DataFrame(np.zeros((10000, 200), dtype=np.float32, order=order))
+        df = DataFrame(np.zeros((10, 5), dtype=np.float32, order=order))
 
         res = concat([df] * 5, axis=axis, ignore_index=ignore_index, copy=True)
 

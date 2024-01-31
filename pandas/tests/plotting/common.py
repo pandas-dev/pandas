@@ -4,10 +4,7 @@ Module consolidating common testing functions for checking plotting.
 
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Sequence,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -18,6 +15,8 @@ from pandas import Series
 import pandas._testing as tm
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from matplotlib.axes import Axes
 
 
@@ -329,7 +328,7 @@ def _check_axes_shape(axes, axes_num=None, layout=None, figsize=None):
     )
 
 
-def _flatten_visible(axes):
+def _flatten_visible(axes: Axes | Sequence[Axes]) -> Sequence[Axes]:
     """
     Flatten axes, and filter only visible
 
@@ -340,8 +339,8 @@ def _flatten_visible(axes):
     """
     from pandas.plotting._matplotlib.tools import flatten_axes
 
-    axes = flatten_axes(axes)
-    axes = [ax for ax in axes if ax.get_visible()]
+    axes_ndarray = flatten_axes(axes)
+    axes = [ax for ax in axes_ndarray if ax.get_visible()]
     return axes
 
 
@@ -535,9 +534,6 @@ def _check_plot_works(f, default_axes=False, **kwargs):
 
         for ret in gen_plots(f, fig, **kwargs):
             tm.assert_is_valid_plot_return_object(ret)
-
-        with tm.ensure_clean(return_filelike=True) as path:
-            plt.savefig(path)
 
     finally:
         plt.close(fig)

@@ -22,8 +22,8 @@ class TestAsArray:
         with np.errstate(all="ignore"):
             result = np.sqrt(float_frame)
         assert isinstance(result, type(float_frame))
-        assert result.index is float_frame.index
-        assert result.columns is float_frame.columns
+        assert result.index.is_(float_frame.index)
+        assert result.columns.is_(float_frame.columns)
 
         tm.assert_frame_equal(result, float_frame.apply(np.sqrt))
 
@@ -31,7 +31,7 @@ class TestAsArray:
         # GH#52042 deprecated behavior of df.sum(axis=None), which gets
         #  called when we do np.sum(df)
 
-        arr = np.random.randn(4, 3)
+        arr = np.random.default_rng(2).standard_normal((4, 3))
         df = DataFrame(arr)
 
         msg = "The behavior of DataFrame.sum with axis=None is deprecated"

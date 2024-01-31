@@ -4,10 +4,16 @@ Patched ``BZ2File`` and ``LZMAFile`` to handle pickle protocol 5.
 
 from __future__ import annotations
 
-import bz2
 from pickle import PickleBuffer
 
 from pandas.compat._constants import PY310
+
+try:
+    import bz2
+
+    has_bz2 = True
+except ImportError:
+    has_bz2 = False
 
 try:
     import lzma
@@ -41,17 +47,19 @@ def flatten_buffer(
         return memoryview(b).tobytes("A")
 
 
-class BZ2File(bz2.BZ2File):
-    if not PY310:
+if has_bz2:
 
-        def write(self, b) -> int:
-            # Workaround issue where `bz2.BZ2File` expects `len`
-            # to return the number of bytes in `b` by converting
-            # `b` into something that meets that constraint with
-            # minimal copying.
-            #
-            # Note: This is fixed in Python 3.10.
-            return super().write(flatten_buffer(b))
+    class BZ2File(bz2.BZ2File):
+        if not PY310:
+
+            def write(self, b) -> int:
+                # Workaround issue where `bz2.BZ2File` expects `len`
+                # to return the number of bytes in `b` by converting
+                # `b` into something that meets that constraint with
+                # minimal copying.
+                #
+                # Note: This is fixed in Python 3.10.
+                return super().write(flatten_buffer(b))
 
 
 if has_lzma:

@@ -4,7 +4,6 @@ Boilerplate functions used in defining binary operations.
 from __future__ import annotations
 
 from functools import wraps
-import sys
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -41,7 +40,7 @@ def unpack_zerodim_and_defer(name: str) -> Callable[[F], F]:
     return wrapper
 
 
-def _unpack_zerodim_and_defer(method, name: str):
+def _unpack_zerodim_and_defer(method: F, name: str) -> F:
     """
     Boilerplate for pandas conventions in arithmetic and comparison methods.
 
@@ -57,15 +56,7 @@ def _unpack_zerodim_and_defer(method, name: str):
     -------
     method
     """
-    if sys.version_info < (3, 9):
-        from pandas.util._str_methods import (
-            removeprefix,
-            removesuffix,
-        )
-
-        stripped_name = removesuffix(removeprefix(name, "__"), "__")
-    else:
-        stripped_name = name.removeprefix("__").removesuffix("__")
+    stripped_name = name.removeprefix("__").removesuffix("__")
     is_cmp = stripped_name in {"eq", "ne", "lt", "le", "gt", "ge"}
 
     @wraps(method)
@@ -84,7 +75,9 @@ def _unpack_zerodim_and_defer(method, name: str):
 
         return method(self, other)
 
-    return new_method
+    # error: Incompatible return value type (got "Callable[[Any, Any], Any]",
+    # expected "F")
+    return new_method  # type: ignore[return-value]
 
 
 def get_op_result_name(left, right):

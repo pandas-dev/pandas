@@ -1,11 +1,13 @@
 from datetime import datetime
-import random
 
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
-import pandas.util._test_decorators as td
+from pandas.compat import (
+    is_ci_environment,
+    is_platform_windows,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -15,31 +17,15 @@ from pandas.core.interchange.dataframe_protocol import (
     DtypeKind,
 )
 from pandas.core.interchange.from_dataframe import from_dataframe
-
-
-@pytest.fixture
-def data_categorical():
-    return {
-        "ordered": pd.Categorical(list("testdata") * 30, ordered=True),
-        "unordered": pd.Categorical(list("testdata") * 30, ordered=False),
-    }
-
-
-@pytest.fixture
-def string_data():
-    return {
-        "separator data": [
-            "abC|DeF,Hik",
-            "234,3245.67",
-            "gSaf,qWer|Gre",
-            "asd3,4sad|",
-            np.NaN,
-        ]
-    }
+from pandas.core.interchange.utils import ArrowCTypes
 
 
 @pytest.mark.parametrize("data", [("ordered", True), ("unordered", False)])
-def test_categorical_dtype(data, data_categorical):
+def test_categorical_dtype(data):
+    data_categorical = {
+        "ordered": pd.Categorical(list("testdata") * 30, ordered=True),
+        "unordered": pd.Categorical(list("testdata") * 30, ordered=False),
+    }
     df = pd.DataFrame({"A": (data_categorical[data[0]])})
 
     col = df.__dataframe__().get_column_by_name("A")
@@ -129,14 +115,14 @@ def test_bitmasks_pyarrow(offset, length, expected_values):
 @pytest.mark.parametrize(
     "data",
     [
-        lambda: random.randint(-100, 100),
-        lambda: random.randint(1, 100),
-        lambda: random.random(),
-        lambda: random.choice([True, False]),
+        lambda: np.random.default_rng(2).integers(-100, 100),
+        lambda: np.random.default_rng(2).integers(1, 100),
+        lambda: np.random.default_rng(2).random(),
+        lambda: np.random.default_rng(2).choice([True, False]),
         lambda: datetime(
-            year=random.randint(1900, 2100),
-            month=random.randint(1, 12),
-            day=random.randint(1, 20),
+            year=np.random.default_rng(2).integers(1900, 2100),
+            month=np.random.default_rng(2).integers(1, 12),
+            day=np.random.default_rng(2).integers(1, 20),
         ),
     ],
 )
@@ -177,8 +163,8 @@ def test_missing_from_masked():
 
     df2 = df.__dataframe__()
 
-    rng = np.random.RandomState(42)
-    dict_null = {col: rng.randint(low=0, high=len(df)) for col in df.columns}
+    rng = np.random.default_rng(2)
+    dict_null = {col: rng.integers(low=0, high=len(df)) for col in df.columns}
     for col, num_nulls in dict_null.items():
         null_idx = df.index[
             rng.choice(np.arange(len(df)), size=num_nulls, replace=False)
@@ -227,7 +213,16 @@ def test_mixed_missing():
         assert df2.get_column_by_name(col_name).null_count == 2
 
 
-def test_string(string_data):
+def test_string():
+    string_data = {
+        "separator data": [
+            "abC|DeF,Hik",
+            "234,3245.67",
+            "gSaf,qWer|Gre",
+            "asd3,4sad|",
+            np.nan,
+        ]
+    }
     test_str_data = string_data["separator data"] + [""]
     df = pd.DataFrame({"A": test_str_data})
     col = df.__dataframe__().get_column_by_name("A")
@@ -264,7 +259,6 @@ def test_datetime():
     tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
 
 
-@td.skip_if_np_lt("1.23")
 def test_categorical_to_numpy_dlpack():
     # https://github.com/pandas-dev/pandas/issues/48393
     df = pd.DataFrame({"A": pd.Categorical(["a", "b", "a"])})
@@ -283,4 +277,118 @@ def test_empty_pyarrow(data):
     expected = pd.DataFrame(data)
     arrow_df = pa_from_dataframe(expected)
     result = from_dataframe(arrow_df)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_multi_chunk_pyarrow() -> None:
+    pa = pytest.importorskip("pyarrow", "11.0.0")
+    n_legs = pa.chunked_array([[2, 2, 4], [4, 5, 100]])
+    names = ["n_legs"]
+    table = pa.table([n_legs], names=names)
+    with pytest.raises(
+        RuntimeError,
+        match="To join chunks a copy is required which is "
+        "forbidden by allow_copy=False",
+    ):
+        pd.api.interchange.from_dataframe(table, allow_copy=False)
+
+
+def test_timestamp_ns_pyarrow():
+    # GH 56712
+    pytest.importorskip("pyarrow", "11.0.0")
+    timestamp_args = {
+        "year": 2000,
+        "month": 1,
+        "day": 1,
+        "hour": 1,
+        "minute": 1,
+        "second": 1,
+    }
+    df = pd.Series(
+        [datetime(**timestamp_args)],
+        dtype="timestamp[ns][pyarrow]",
+        name="col0",
+    ).to_frame()
+
+    dfi = df.__dataframe__()
+    result = pd.api.interchange.from_dataframe(dfi)["col0"].item()
+
+    expected = pd.Timestamp(**timestamp_args)
+    assert result == expected
+
+
+@pytest.mark.parametrize("tz", ["UTC", "US/Pacific"])
+def test_datetimetzdtype(tz, unit):
+    # GH 54239
+    tz_data = (
+        pd.date_range("2018-01-01", periods=5, freq="D").tz_localize(tz).as_unit(unit)
+    )
+    df = pd.DataFrame({"ts_tz": tz_data})
+    tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
+
+
+def test_interchange_from_non_pandas_tz_aware(request):
+    # GH 54239, 54287
+    pa = pytest.importorskip("pyarrow", "11.0.0")
+    import pyarrow.compute as pc
+
+    if is_platform_windows() and is_ci_environment():
+        mark = pytest.mark.xfail(
+            raises=pa.ArrowInvalid,
+            reason=(
+                "TODO: Set ARROW_TIMEZONE_DATABASE environment variable "
+                "on CI to path to the tzdata for pyarrow."
+            ),
+        )
+        request.applymarker(mark)
+
+    arr = pa.array([datetime(2020, 1, 1), None, datetime(2020, 1, 2)])
+    arr = pc.assume_timezone(arr, "Asia/Kathmandu")
+    table = pa.table({"arr": arr})
+    exchange_df = table.__dataframe__()
+    result = from_dataframe(exchange_df)
+
+    expected = pd.DataFrame(
+        ["2020-01-01 00:00:00+05:45", "NaT", "2020-01-02 00:00:00+05:45"],
+        columns=["arr"],
+        dtype="datetime64[us, Asia/Kathmandu]",
+    )
+    tm.assert_frame_equal(expected, result)
+
+
+def test_interchange_from_corrected_buffer_dtypes(monkeypatch) -> None:
+    # https://github.com/pandas-dev/pandas/issues/54781
+    df = pd.DataFrame({"a": ["foo", "bar"]}).__dataframe__()
+    interchange = df.__dataframe__()
+    column = interchange.get_column_by_name("a")
+    buffers = column.get_buffers()
+    buffers_data = buffers["data"]
+    buffer_dtype = buffers_data[1]
+    buffer_dtype = (
+        DtypeKind.UINT,
+        8,
+        ArrowCTypes.UINT8,
+        buffer_dtype[3],
+    )
+    buffers["data"] = (buffers_data[0], buffer_dtype)
+    column.get_buffers = lambda: buffers
+    interchange.get_column_by_name = lambda _: column
+    monkeypatch.setattr(df, "__dataframe__", lambda allow_copy: interchange)
+    pd.api.interchange.from_dataframe(df)
+
+
+def test_empty_string_column():
+    # https://github.com/pandas-dev/pandas/issues/56703
+    df = pd.DataFrame({"a": []}, dtype=str)
+    df2 = df.__dataframe__()
+    result = pd.api.interchange.from_dataframe(df2)
+    tm.assert_frame_equal(df, result)
+
+
+def test_large_string():
+    # GH#56702
+    pytest.importorskip("pyarrow")
+    df = pd.DataFrame({"a": ["x"]}, dtype="large_string[pyarrow]")
+    result = pd.api.interchange.from_dataframe(df.__dataframe__())
+    expected = pd.DataFrame({"a": ["x"]}, dtype="object")
     tm.assert_frame_equal(result, expected)

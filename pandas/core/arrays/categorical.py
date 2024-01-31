@@ -6,10 +6,7 @@ import operator
 from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
-    Hashable,
-    Iterator,
     Literal,
-    Sequence,
     cast,
     overload,
 )
@@ -47,7 +44,9 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     CategoricalDtype,
+    CategoricalDtypeType,
     ExtensionDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -93,11 +92,18 @@ from pandas.core.strings.object_array import ObjectStringArrayMixin
 from pandas.io.formats import console
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+        Sequence,
+    )
+
     from pandas._typing import (
         ArrayLike,
         AstypeArg,
         AxisInt,
         Dtype,
+        DtypeObj,
         NpDtype,
         Ordered,
         Self,
@@ -237,7 +243,9 @@ def contains(cat, key, container) -> bool:
         return any(loc_ in container for loc_ in loc)
 
 
-class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMixin):
+# error: Definition of "delete/ravel/T/repeat/copy" in base class "NDArrayBacked"
+# is incompatible with definition in base class "ExtensionArray"
+class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMixin):  # type: ignore[misc]
     """
     Represent a categorical variable in classic R / S-plus fashion.
 
@@ -439,24 +447,32 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 values = arr
 
         if dtype.categories is None:
-            if not isinstance(values, ABCIndex):
-                # in particular RangeIndex xref test_index_equal_range_categories
-                values = sanitize_array(values, None)
-            try:
-                codes, categories = factorize(values, sort=True)
-            except TypeError as err:
-                codes, categories = factorize(values, sort=False)
-                if dtype.ordered:
-                    # raise, as we don't have a sortable data structure and so
-                    # the user should give us one by specifying categories
-                    raise TypeError(
-                        "'values' is not ordered, please "
-                        "explicitly specify the categories order "
-                        "by passing in a categories argument."
-                    ) from err
+            if isinstance(values.dtype, ArrowDtype) and issubclass(
+                values.dtype.type, CategoricalDtypeType
+            ):
+                arr = values._pa_array.combine_chunks()
+                categories = arr.dictionary.to_pandas(types_mapper=ArrowDtype)
+                codes = arr.indices.to_numpy()
+                dtype = CategoricalDtype(categories, values.dtype.pyarrow_dtype.ordered)
+            else:
+                if not isinstance(values, ABCIndex):
+                    # in particular RangeIndex xref test_index_equal_range_categories
+                    values = sanitize_array(values, None)
+                try:
+                    codes, categories = factorize(values, sort=True)
+                except TypeError as err:
+                    codes, categories = factorize(values, sort=False)
+                    if dtype.ordered:
+                        # raise, as we don't have a sortable data structure and so
+                        # the user should give us one by specifying categories
+                        raise TypeError(
+                            "'values' is not ordered, please "
+                            "explicitly specify the categories order "
+                            "by passing in a categories argument."
+                        ) from err
 
-            # we're inferring from values
-            dtype = CategoricalDtype(categories, dtype.ordered)
+                # we're inferring from values
+                dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif isinstance(values.dtype, CategoricalDtype):
             old_codes = extract_array(values)._codes
@@ -506,6 +522,22 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     ) -> Self:
         return cls(scalars, dtype=dtype, copy=copy)
 
+    @classmethod
+    def _from_scalars(cls, scalars, *, dtype: DtypeObj) -> Self:
+        if dtype is None:
+            # The _from_scalars strictness doesn't make much sense in this case.
+            raise NotImplementedError
+
+        res = cls._from_sequence(scalars, dtype=dtype)
+
+        # if there are any non-category elements in scalars, these will be
+        #  converted to NAs in res.
+        mask = isna(scalars)
+        if not (mask == res.isna()).all():
+            # Some non-category element in scalars got converted to NA in res.
+            raise ValueError
+        return res
+
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
         ...
@@ -531,6 +563,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             object is returned.
         """
         dtype = pandas_dtype(dtype)
+        result: Categorical | np.ndarray
         if self.dtype is dtype:
             result = self.copy() if copy else self
 
@@ -567,9 +600,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             except (
                 TypeError,  # downstream error msg for CategoricalIndex is misleading
                 ValueError,
-            ):
+            ) as err:
                 msg = f"Cannot cast {self.categories.dtype} dtype to {dtype}"
-                raise ValueError(msg)
+                raise ValueError(msg) from err
 
             result = take_nd(
                 new_cats, ensure_platform_int(self._codes), fill_value=fill_value
@@ -577,7 +610,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         return result
 
-    def to_list(self):
+    def to_list(self) -> list:
         """
         Alias for tolist.
         """
@@ -997,7 +1030,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         return self.set_ordered(False)
 
-    def set_categories(self, new_categories, ordered=None, rename: bool = False):
+    def set_categories(
+        self, new_categories, ordered=None, rename: bool = False
+    ) -> Self:
         """
         Set the categories to the specified new categories.
 
@@ -1050,7 +1085,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         For :class:`pandas.Series`:
 
         >>> raw_cat = pd.Categorical(['a', 'b', 'c', 'A'],
-        ...                           categories=['a', 'b', 'c'], ordered=True)
+        ...                          categories=['a', 'b', 'c'], ordered=True)
         >>> ser = pd.Series(raw_cat)
         >>> ser
         0   a
@@ -1366,7 +1401,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             removals = [removals]
 
         removals = Index(removals).unique().dropna()
-        new_categories = self.dtype.categories.difference(removals)
+        new_categories = (
+            self.dtype.categories.difference(removals, sort=False)
+            if self.dtype.ordered is True
+            else self.dtype.categories.difference(removals)
+        )
         not_included = removals.difference(self.dtype.categories)
 
         if len(not_included) != 0:
@@ -1782,10 +1821,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             ix = np.append(ix, -1)
 
         ix = coerce_indexer_dtype(ix, self.dtype.categories)
-        ix = self._from_backing_data(ix)
+        ix_categorical = self._from_backing_data(ix)
 
         return Series(
-            count, index=CategoricalIndex(ix), dtype="int64", name="count", copy=False
+            count,
+            index=CategoricalIndex(ix_categorical),
+            dtype="int64",
+            name="count",
+            copy=False,
         )
 
     # error: Argument 2 of "_empty" is incompatible with supertype
@@ -1812,7 +1855,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         return arr._from_backing_data(backing)
 
-    def _internal_get_values(self):
+    def _internal_get_values(self) -> ArrayLike:
         """
         Return the values.
 
@@ -1820,15 +1863,19 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        np.ndarray or Index
-            A numpy array of the same dtype as categorical.categories.dtype or
-            Index if datetime / periods.
+        np.ndarray or ExtensionArray
+            A numpy array or ExtensionArray of the same dtype as
+            categorical.categories.dtype.
         """
         # if we are a datetime and period index, return Index to keep metadata
         if needs_i8_conversion(self.categories.dtype):
-            return self.categories.take(self._codes, fill_value=NaT)
+            return self.categories.take(self._codes, fill_value=NaT)._values
         elif is_integer_dtype(self.categories.dtype) and -1 in self._codes:
-            return self.categories.astype("object").take(self._codes, fill_value=np.nan)
+            return (
+                self.categories.astype("object")
+                .take(self._codes, fill_value=np.nan)
+                ._values
+            )
         return np.array(self)
 
     def check_for_ordered(self, op) -> None:
@@ -1842,7 +1889,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     def argsort(
         self, *, ascending: bool = True, kind: SortKind = "quicksort", **kwargs
-    ):
+    ) -> npt.NDArray[np.intp]:
         """
         Return the indices that would sort the Categorical.
 
@@ -1984,7 +2031,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if na_position not in ["last", "first"]:
-            raise ValueError(f"invalid na_position: {repr(na_position)}")
+            raise ValueError(f"invalid na_position: {na_position!r}")
 
         sorted_idx = nargsort(self, ascending=ascending, na_position=na_position)
 
@@ -2102,7 +2149,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     def _box_func(self, i: int):
         if i == -1:
-            return np.NaN
+            return np.nan
         return self.categories[i]
 
     def _unbox_scalar(self, key) -> int:
@@ -2136,24 +2183,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # ------------------------------------------------------------------
     # Rendering Methods
 
-    def _formatter(self, boxed: bool = False):
-        # Defer to CategoricalFormatter's formatter.
+    # error: Return type "None" of "_formatter" incompatible with return
+    # type "Callable[[Any], str | None]" in supertype "ExtensionArray"
+    def _formatter(self, boxed: bool = False) -> None:  # type: ignore[override]
+        # Returning None here will cause format_array to do inference.
         return None
-
-    def _tidy_repr(self, max_vals: int = 10, footer: bool = True) -> str:
-        """
-        a short repr displaying only max_vals and an optional (but default
-        footer)
-        """
-        num = max_vals // 2
-        head = self[:num]._get_repr(length=False, footer=False)
-        tail = self[-(max_vals - num) :]._get_repr(length=False, footer=False)
-
-        result = f"{head[:-1]}, ..., {tail[1:]}"
-        if footer:
-            result = f"{result}\n{self._repr_footer()}"
-
-        return str(result)
 
     def _repr_categories(self) -> list[str]:
         """
@@ -2171,17 +2205,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         )
         if len(self.categories) > max_categories:
             num = max_categories // 2
-            head = format_array(self.categories[:num])
-            tail = format_array(self.categories[-num:])
+            head = format_array(self.categories[:num]._values)
+            tail = format_array(self.categories[-num:]._values)
             category_strs = head + ["..."] + tail
         else:
-            category_strs = format_array(self.categories)
+            category_strs = format_array(self.categories._values)
 
         # Strip all leading spaces, which format_array adds for columns...
         category_strs = [x.strip() for x in category_strs]
         return category_strs
 
-    def _repr_categories_info(self) -> str:
+    def _get_repr_footer(self) -> str:
         """
         Returns a string representation of the footer.
         """
@@ -2210,33 +2244,49 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # replace to simple save space by
         return f"{levheader}[{levstring.replace(' < ... < ', ' ... ')}]"
 
-    def _repr_footer(self) -> str:
-        info = self._repr_categories_info()
-        return f"Length: {len(self)}\n{info}"
-
-    def _get_repr(
-        self, length: bool = True, na_rep: str = "NaN", footer: bool = True
-    ) -> str:
+    def _get_values_repr(self) -> str:
         from pandas.io.formats import format as fmt
 
-        formatter = fmt.CategoricalFormatter(
-            self, length=length, na_rep=na_rep, footer=footer
+        assert len(self) > 0
+
+        vals = self._internal_get_values()
+        fmt_values = fmt.format_array(
+            vals,
+            None,
+            float_format=None,
+            na_rep="NaN",
+            quoting=QUOTE_NONNUMERIC,
         )
-        result = formatter.to_string()
-        return str(result)
+
+        fmt_values = [i.strip() for i in fmt_values]
+        joined = ", ".join(fmt_values)
+        result = "[" + joined + "]"
+        return result
 
     def __repr__(self) -> str:
         """
         String representation.
         """
-        _maxlen = 10
-        if len(self._codes) > _maxlen:
-            result = self._tidy_repr(_maxlen)
-        elif len(self._codes) > 0:
-            result = self._get_repr(length=len(self) > _maxlen)
+        footer = self._get_repr_footer()
+        length = len(self)
+        max_len = 10
+        if length > max_len:
+            # In long cases we do not display all entries, so we add Length
+            #  information to the __repr__.
+            num = max_len // 2
+            head = self[:num]._get_values_repr()
+            tail = self[-(max_len - num) :]._get_values_repr()
+            body = f"{head[:-1]}, ..., {tail[1:]}"
+            length_info = f"Length: {len(self)}"
+            result = f"{body}\n{length_info}\n{footer}"
+        elif length > 0:
+            body = self._get_values_repr()
+            result = f"{body}\n{footer}"
         else:
-            msg = self._get_repr(length=False, footer=True).replace("\n", ", ")
-            result = f"[], {msg}"
+            # In the empty case we use a comma instead of newline to get
+            #  a more compact __repr__
+            body = "[]"
+            result = f"{body}, {footer}"
 
         return result
 
@@ -2311,6 +2361,18 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # ------------------------------------------------------------------
     # Reductions
+
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
+        result = super()._reduce(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        if name in ["argmax", "argmin"]:
+            # don't wrap in Categorical!
+            return result
+        if keepdims:
+            return type(self)(result, dtype=self.dtype)
+        else:
+            return result
 
     def min(self, *, skipna: bool = True, **kwargs):
         """
@@ -2391,7 +2453,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # ------------------------------------------------------------------
     # ExtensionArray Interface
 
-    def unique(self):
+    def unique(self) -> Self:
         """
         Return the ``Categorical`` which ``categories`` and ``codes`` are
         unique.
@@ -2471,7 +2533,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             result = res_flat.reshape(len(first), -1, order="F")
             return result
 
-        result = union_categoricals(to_concat)
+        # error: Incompatible types in assignment (expression has type "Categorical",
+        # variable has type "Self")
+        result = union_categoricals(to_concat)  # type: ignore[assignment]
         return result
 
     # ------------------------------------------------------------------
@@ -2529,7 +2593,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         return result
 
-    def isin(self, values) -> npt.NDArray[np.bool_]:
+    def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         """
         Check whether `values` are contained in Categorical.
 
@@ -2539,7 +2603,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Parameters
         ----------
-        values : set or list-like
+        values : np.ndarray or ExtensionArray
             The sequence of values to test. Passing in a single string will
             raise a ``TypeError``. Instead, turn a single string into a
             list of one element.
@@ -2570,20 +2634,23 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> s.isin(['lama'])
         array([ True, False,  True, False,  True, False])
         """
-        if not is_list_like(values):
-            values_type = type(values).__name__
-            raise TypeError(
-                "only list-like objects are allowed to be passed "
-                f"to isin(), you passed a [{values_type}]"
-            )
-        values = sanitize_array(values, None, None)
         null_mask = np.asarray(isna(values))
-        code_values = self.categories.get_indexer(values)
+        code_values = self.categories.get_indexer_for(values)
         code_values = code_values[null_mask | (code_values >= 0)]
         return algorithms.isin(self.codes, code_values)
 
-    def _replace(self, *, to_replace, value, inplace: bool = False):
+    @overload
+    def _replace(self, *, to_replace, value, inplace: Literal[False] = ...) -> Self:
+        ...
+
+    @overload
+    def _replace(self, *, to_replace, value, inplace: Literal[True]) -> None:
+        ...
+
+    def _replace(self, *, to_replace, value, inplace: bool = False) -> Self | None:
         from pandas import Index
+
+        orig_dtype = self.dtype
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         cat = self if inplace else self.copy()
@@ -2608,15 +2675,27 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         new_categories = ser.take(locs)
         new_categories = new_categories.drop_duplicates(keep="first")
-        new_categories = Index(new_categories)
+        index_categories = Index(new_categories)
         new_codes = recode_for_categories(
-            cat._codes, all_values, new_categories, copy=False
+            cat._codes, all_values, index_categories, copy=False
         )
-        new_dtype = CategoricalDtype(new_categories, ordered=self.dtype.ordered)
+        new_dtype = CategoricalDtype(index_categories, ordered=self.dtype.ordered)
         NDArrayBacked.__init__(cat, new_codes, new_dtype)
 
+        if new_dtype != orig_dtype:
+            warnings.warn(
+                # GH#55147
+                "The behavior of Series.replace (and DataFrame.replace) with "
+                "CategoricalDtype is deprecated. In a future version, replace "
+                "will only be used for cases that preserve the categories. "
+                "To change the categories, use ser.cat.rename_categories "
+                "instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         if not inplace:
             return cat
+        return None
 
     # ------------------------------------------------------------------------
     # String methods interface
@@ -2626,18 +2705,18 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # Optimization to apply the callable `f` to the categories once
         # and rebuild the result by `take`ing from the result with the codes.
         # Returns the same type as the object-dtype implementation though.
-        from pandas.core.arrays import PandasArray
+        from pandas.core.arrays import NumpyExtensionArray
 
         categories = self.categories
         codes = self.codes
-        result = PandasArray(categories.to_numpy())._str_map(f, na_value, dtype)
+        result = NumpyExtensionArray(categories.to_numpy())._str_map(f, na_value, dtype)
         return take_nd(result, codes, fill_value=na_value)
 
     def _str_get_dummies(self, sep: str = "|"):
         # sep may not be in categories. Just bail on this.
-        from pandas.core.arrays import PandasArray
+        from pandas.core.arrays import NumpyExtensionArray
 
-        return PandasArray(self.astype(str))._str_get_dummies(sep)
+        return NumpyExtensionArray(self.astype(str))._str_get_dummies(sep)
 
     # ------------------------------------------------------------------------
     # GroupBy Methods
@@ -2660,12 +2739,22 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         dtype = self.dtype
         if how in ["sum", "prod", "cumsum", "cumprod", "skew"]:
             raise TypeError(f"{dtype} type does not support {how} operations")
-        if how in ["min", "max", "rank"] and not dtype.ordered:
+        if how in ["min", "max", "rank", "idxmin", "idxmax"] and not dtype.ordered:
             # raise TypeError instead of NotImplementedError to ensure we
             #  don't go down a group-by-group path, since in the empty-groups
             #  case that would fail to raise
             raise TypeError(f"Cannot perform {how} with non-ordered Categorical")
-        if how not in ["rank", "any", "all", "first", "last", "min", "max"]:
+        if how not in [
+            "rank",
+            "any",
+            "all",
+            "first",
+            "last",
+            "min",
+            "max",
+            "idxmin",
+            "idxmax",
+        ]:
             if kind == "transform":
                 raise TypeError(f"{dtype} type does not support {how} operations")
             raise TypeError(f"{dtype} dtype does not support aggregation '{how}'")
@@ -2675,7 +2764,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if how == "rank":
             assert self.ordered  # checked earlier
             npvalues = self._ndarray
-        elif how in ["first", "last", "min", "max"]:
+        elif how in ["first", "last", "min", "max", "idxmin", "idxmax"]:
             npvalues = self._ndarray
             result_mask = np.zeros(ngroups, dtype=bool)
         else:
@@ -2833,19 +2922,17 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         self._freeze()
 
     @staticmethod
-    def _validate(data):
+    def _validate(data) -> None:
         if not isinstance(data.dtype, CategoricalDtype):
             raise AttributeError("Can only use .cat accessor with a 'category' dtype")
 
-    # error: Signature of "_delegate_property_get" incompatible with supertype
-    # "PandasDelegate"
-    def _delegate_property_get(self, name: str):  # type: ignore[override]
+    def _delegate_property_get(self, name: str):
         return getattr(self._parent, name)
 
     # error: Signature of "_delegate_property_set" incompatible with supertype
     # "PandasDelegate"
-    def _delegate_property_set(self, name: str, new_values):  # type: ignore[override]
-        return setattr(self._parent, name, new_values)
+    def _delegate_property_set(self, name: str, new_values) -> None:  # type: ignore[override]
+        setattr(self._parent, name, new_values)
 
     @property
     def codes(self) -> Series:
@@ -2879,17 +2966,15 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 # utility routines
 
 
-def _get_codes_for_values(values, categories: Index) -> np.ndarray:
+def _get_codes_for_values(
+    values: Index | Series | ExtensionArray | np.ndarray,
+    categories: Index,
+) -> np.ndarray:
     """
     utility routine to turn values into codes given the specified categories
 
     If `values` is known to be a Categorical, use recode_for_categories instead.
     """
-    if values.ndim > 1:
-        flat = values.ravel()
-        codes = _get_codes_for_values(flat, categories)
-        return codes.reshape(values.shape)
-
     codes = categories.get_indexer_for(values)
     return coerce_indexer_dtype(codes, categories)
 
@@ -2931,7 +3016,7 @@ def recode_for_categories(
         return codes
 
     indexer = coerce_indexer_dtype(
-        new_categories.get_indexer(old_categories), new_categories
+        new_categories.get_indexer_for(old_categories), new_categories
     )
     new_codes = take_nd(indexer, codes, fill_value=-1)
     return new_codes

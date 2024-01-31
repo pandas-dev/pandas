@@ -24,6 +24,11 @@ if TYPE_CHECKING:
         WriteBuffer,
     )
 
+    from pandas import (
+        DataFrame,
+        Series,
+    )
+
 
 @doc(
     storage_options=_shared_docs["storage_options"],
@@ -34,7 +39,7 @@ def to_pickle(
     filepath_or_buffer: FilePath | WriteBuffer[bytes],
     compression: CompressionOptions = "infer",
     protocol: int = pickle.HIGHEST_PROTOCOL,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
 ) -> None:
     """
     Pickle (serialize) object to file.
@@ -61,8 +66,6 @@ def to_pickle(
         HIGHEST_PROTOCOL.
 
     {storage_options}
-
-        .. versionadded:: 1.2.0
 
         .. [1] https://docs.python.org/3/library/pickle.html
 
@@ -115,10 +118,10 @@ def to_pickle(
 def read_pickle(
     filepath_or_buffer: FilePath | ReadPickleBuffer,
     compression: CompressionOptions = "infer",
-    storage_options: StorageOptions = None,
-):
+    storage_options: StorageOptions | None = None,
+) -> DataFrame | Series:
     """
-    Load pickled pandas object (or any object) from file.
+    Load pickled pandas object (or any object) from file and return unpickled object.
 
     .. warning::
 
@@ -138,11 +141,10 @@ def read_pickle(
 
     {storage_options}
 
-        .. versionadded:: 1.2.0
-
     Returns
     -------
-    same type as object stored in file
+    object
+        The unpickled pandas object (or any object) that was stored in file.
 
     See Also
     --------
@@ -161,7 +163,7 @@ def read_pickle(
     --------
     >>> original_df = pd.DataFrame(
     ...     {{"foo": range(5), "bar": range(5, 10)}}
-    ...    )  # doctest: +SKIP
+    ... )  # doctest: +SKIP
     >>> original_df  # doctest: +SKIP
        foo  bar
     0    0    5

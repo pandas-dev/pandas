@@ -11,9 +11,13 @@ class TestConvertDtypes:
     @pytest.mark.parametrize(
         "convert_integer, expected", [(False, np.dtype("int32")), (True, "Int32")]
     )
-    def test_convert_dtypes(self, convert_integer, expected, string_storage):
+    def test_convert_dtypes(
+        self, convert_integer, expected, string_storage, using_infer_string
+    ):
         # Specific types are tested in tests/series/test_dtypes.py
         # Just check that it works for DataFrame here
+        if using_infer_string:
+            string_storage = "pyarrow_numpy"
         df = pd.DataFrame(
             {
                 "a": pd.Series([1, 2, 3], dtype=np.dtype("int32")),
@@ -166,4 +170,33 @@ class TestConvertDtypes:
         ser = pd.DataFrame(range(2), dtype="int32[pyarrow]")
         result = ser.convert_dtypes(dtype_backend="numpy_nullable")
         expected = pd.DataFrame(range(2), dtype="Int32")
+        tm.assert_frame_equal(result, expected)
+
+    def test_convert_dtypes_pyarrow_timestamp(self):
+        # GH 54191
+        pytest.importorskip("pyarrow")
+        ser = pd.Series(pd.date_range("2020-01-01", "2020-01-02", freq="1min"))
+        expected = ser.astype("timestamp[ms][pyarrow]")
+        result = expected.convert_dtypes(dtype_backend="pyarrow")
+        tm.assert_series_equal(result, expected)
+
+    def test_convert_dtypes_avoid_block_splitting(self):
+        # GH#55341
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": "a"})
+        result = df.convert_dtypes(convert_integer=False)
+        expected = pd.DataFrame(
+            {
+                "a": [1, 2, 3],
+                "b": [4, 5, 6],
+                "c": pd.Series(["a"] * 3, dtype="string[python]"),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+        assert result._mgr.nblocks == 2
+
+    def test_convert_dtypes_from_arrow(self):
+        # GH#56581
+        df = pd.DataFrame([["a", datetime.time(18, 12)]], columns=["a", "b"])
+        result = df.convert_dtypes()
+        expected = df.astype({"a": "string[python]"})
         tm.assert_frame_equal(result, expected)

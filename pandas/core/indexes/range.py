@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Iterator,
+)
 from datetime import timedelta
 import operator
 from sys import getsizeof
@@ -7,10 +11,9 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterator,
-    List,
+    Literal,
     cast,
+    overload,
 )
 
 import numpy as np
@@ -24,6 +27,7 @@ from pandas._libs.lib import no_default
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     cache_readonly,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 
@@ -49,6 +53,7 @@ from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        Axis,
         Dtype,
         NaPosition,
         Self,
@@ -136,13 +141,13 @@ class RangeIndex(Index):
         step=None,
         dtype: Dtype | None = None,
         copy: bool = False,
-        name: Hashable = None,
-    ) -> RangeIndex:
+        name: Hashable | None = None,
+    ) -> Self:
         cls._validate_dtype(dtype)
         name = maybe_extract_name(name, start, cls)
 
         # RangeIndex
-        if isinstance(start, RangeIndex):
+        if isinstance(start, cls):
             return start.copy(name=name)
         elif isinstance(start, range):
             return cls._simple_new(start, name=name)
@@ -185,7 +190,7 @@ class RangeIndex(Index):
         if not isinstance(data, range):
             raise TypeError(
                 f"{cls.__name__}(...) must be called with object coercible to a "
-                f"range, {repr(data)} was passed"
+                f"range, {data!r} was passed"
             )
         cls._validate_dtype(dtype)
         return cls._simple_new(data, name=name)
@@ -195,7 +200,7 @@ class RangeIndex(Index):
     #  "Union[ExtensionArray, ndarray[Any, Any]]"  [override]
     @classmethod
     def _simple_new(  # type: ignore[override]
-        cls, values: range, name: Hashable = None
+        cls, values: range, name: Hashable | None = None
     ) -> Self:
         result = object.__new__(cls)
 
@@ -238,7 +243,7 @@ class RangeIndex(Index):
         """
         return np.arange(self.start, self.stop, self.step, dtype=np.int64)
 
-    def _get_data_as_items(self):
+    def _get_data_as_items(self) -> list[tuple[str, int]]:
         """return a list of tuples of start, stop, step"""
         rng = self._range
         return [("start", rng.start), ("stop", rng.stop), ("step", rng.step)]
@@ -255,16 +260,12 @@ class RangeIndex(Index):
         """
         Return a list of tuples of the (attr, formatted_value)
         """
-        attrs = self._get_data_as_items()
+        attrs = cast("list[tuple[str, str | int]]", self._get_data_as_items())
         if self._name is not None:
             attrs.append(("name", ibase.default_pprint(self._name)))
         return attrs
 
-    def _format_data(self, name=None):
-        # we are formatting thru the attributes
-        return None
-
-    def _format_with_header(self, header: list[str], na_rep: str) -> list[str]:
+    def _format_with_header(self, *, header: list[str], na_rep: str) -> list[str]:
         # Equivalent to Index implementation, but faster
         if not len(self._range):
             return header
@@ -405,7 +406,7 @@ class RangeIndex(Index):
     # Indexing Methods
 
     @doc(Index.get_loc)
-    def get_loc(self, key):
+    def get_loc(self, key) -> int:
         if is_integer(key) or (is_float(key) and key.is_integer()):
             new_key = int(key)
             try:
@@ -485,12 +486,12 @@ class RangeIndex(Index):
         return result
 
     @doc(Index.copy)
-    def copy(self, name: Hashable = None, deep: bool = False) -> Self:
+    def copy(self, name: Hashable | None = None, deep: bool = False) -> Self:
         name = self._validate_names(name=name, deep=deep)[0]
         new_index = self._rename(name=name)
         return new_index
 
-    def _minmax(self, meth: str):
+    def _minmax(self, meth: str) -> int | float:
         no_steps = len(self) - 1
         if no_steps == -1:
             return np.nan
@@ -499,13 +500,13 @@ class RangeIndex(Index):
 
         return self.start + self.step * no_steps
 
-    def min(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
+    def min(self, axis=None, skipna: bool = True, *args, **kwargs) -> int | float:
         """The minimum value of the RangeIndex"""
         nv.validate_minmax_axis(axis)
         nv.validate_min(args, kwargs)
         return self._minmax("min")
 
-    def max(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
+    def max(self, axis=None, skipna: bool = True, *args, **kwargs) -> int | float:
         """The maximum value of the RangeIndex"""
         nv.validate_minmax_axis(axis)
         nv.validate_max(args, kwargs)
@@ -557,13 +558,50 @@ class RangeIndex(Index):
             return self._range == other._range
         return super().equals(other)
 
+    # error: Signature of "sort_values" incompatible with supertype "Index"
+    @overload  # type: ignore[override]
+    def sort_values(
+        self,
+        *,
+        return_indexer: Literal[False] = ...,
+        ascending: bool = ...,
+        na_position: NaPosition = ...,
+        key: Callable | None = ...,
+    ) -> Self:
+        ...
+
+    @overload
+    def sort_values(
+        self,
+        *,
+        return_indexer: Literal[True],
+        ascending: bool = ...,
+        na_position: NaPosition = ...,
+        key: Callable | None = ...,
+    ) -> tuple[Self, np.ndarray | RangeIndex]:
+        ...
+
+    @overload
+    def sort_values(
+        self,
+        *,
+        return_indexer: bool = ...,
+        ascending: bool = ...,
+        na_position: NaPosition = ...,
+        key: Callable | None = ...,
+    ) -> Self | tuple[Self, np.ndarray | RangeIndex]:
+        ...
+
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self"], name="sort_values"
+    )
     def sort_values(
         self,
         return_indexer: bool = False,
         ascending: bool = True,
         na_position: NaPosition = "last",
         key: Callable | None = None,
-    ):
+    ) -> Self | tuple[Self, np.ndarray | RangeIndex]:
         if key is not None:
             return super().sort_values(
                 return_indexer=return_indexer,
@@ -836,7 +874,9 @@ class RangeIndex(Index):
 
         return new_index
 
-    def symmetric_difference(self, other, result_name: Hashable = None, sort=None):
+    def symmetric_difference(
+        self, other, result_name: Hashable | None = None, sort=None
+    ):
         if not isinstance(other, RangeIndex) or sort is not None:
             return super().symmetric_difference(other, result_name, sort)
 
@@ -910,7 +950,7 @@ class RangeIndex(Index):
         elif len(indexes) == 1:
             return indexes[0]
 
-        rng_indexes = cast(List[RangeIndex], indexes)
+        rng_indexes = cast(list[RangeIndex], indexes)
 
         start = step = next_ = None
 
@@ -1102,3 +1142,46 @@ class RangeIndex(Index):
         except (ValueError, TypeError, ZeroDivisionError):
             # test_arithmetic_explicit_conversions
             return super()._arith_method(other, op)
+
+    # error: Return type "Index" of "take" incompatible with return type
+    # "RangeIndex" in supertype "Index"
+    def take(  # type: ignore[override]
+        self,
+        indices,
+        axis: Axis = 0,
+        allow_fill: bool = True,
+        fill_value=None,
+        **kwargs,
+    ) -> Index:
+        if kwargs:
+            nv.validate_take((), kwargs)
+        if is_scalar(indices):
+            raise TypeError("Expected indices to be array-like")
+        indices = ensure_platform_int(indices)
+
+        # raise an exception if allow_fill is True and fill_value is not None
+        self._maybe_disallow_fill(allow_fill, fill_value, indices)
+
+        if len(indices) == 0:
+            taken = np.array([], dtype=self.dtype)
+        else:
+            ind_max = indices.max()
+            if ind_max >= len(self):
+                raise IndexError(
+                    f"index {ind_max} is out of bounds for axis 0 with size {len(self)}"
+                )
+            ind_min = indices.min()
+            if ind_min < -len(self):
+                raise IndexError(
+                    f"index {ind_min} is out of bounds for axis 0 with size {len(self)}"
+                )
+            taken = indices.astype(self.dtype, casting="safe")
+            if ind_min < 0:
+                taken %= len(self)
+            if self.step != 1:
+                taken *= self.step
+            if self.start != 0:
+                taken += self.start
+
+        # _constructor so RangeIndex-> Index with an int64 dtype
+        return self._constructor._simple_new(taken, name=self.name)

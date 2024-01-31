@@ -9,13 +9,12 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Generic,
-    Hashable,
-    Iterator,
     Literal,
     cast,
     final,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -38,6 +37,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
@@ -69,6 +69,11 @@ from pandas.core.construction import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+    )
+
     from pandas._typing import (
         DropKeep,
         NumpySorter,
@@ -103,7 +108,7 @@ class PandasObject(DirNamesMixin):
     @property
     def _constructor(self):
         """
-        Class constructor (for this class it's just `__class__`.
+        Class constructor (for this class it's just `__class__`).
         """
         return type(self)
 
@@ -480,8 +485,8 @@ class IndexOpsMixin(OpsMixin):
             types, this is the actual array. For NumPy native types, this
             is a thin (no copy) wrapper around :class:`numpy.ndarray`.
 
-            ``.array`` differs ``.values`` which may require converting the
-            data to a different form.
+            ``.array`` differs from ``.values``, which may require converting
+            the data to a different form.
 
         See Also
         --------
@@ -515,11 +520,11 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
-        For regular NumPy types like int, and float, a PandasArray
+        For regular NumPy types like int, and float, a NumpyExtensionArray
         is returned.
 
         >>> pd.Series([1, 2, 3]).array
-        <PandasArray>
+        <NumpyExtensionArray>
         [1, 2, 3]
         Length: 3, dtype: int64
 
@@ -631,7 +636,7 @@ class IndexOpsMixin(OpsMixin):
         if isinstance(self.dtype, ExtensionDtype):
             return self.array.to_numpy(dtype, copy=copy, na_value=na_value, **kwargs)
         elif kwargs:
-            bad_keys = list(kwargs.keys())[0]
+            bad_keys = next(iter(kwargs.keys()))
             raise TypeError(
                 f"to_numpy() got an unexpected keyword argument '{bad_keys}'"
             )
@@ -732,15 +737,29 @@ class IndexOpsMixin(OpsMixin):
 
         if isinstance(delegate, ExtensionArray):
             if not skipna and delegate.isna().any():
+                warnings.warn(
+                    f"The behavior of {type(self).__name__}.argmax/argmin "
+                    "with skipna=False and NAs, or with all-NAs is deprecated. "
+                    "In a future version this will raise ValueError.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 return -1
             else:
                 return delegate.argmax()
         else:
+            result = nanops.nanargmax(delegate, skipna=skipna)
+            if result == -1:
+                warnings.warn(
+                    f"The behavior of {type(self).__name__}.argmax/argmin "
+                    "with skipna=False and NAs, or with all-NAs is deprecated. "
+                    "In a future version this will raise ValueError.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
             # error: Incompatible return value type (got "Union[int, ndarray]", expected
             # "int")
-            return nanops.nanargmax(  # type: ignore[return-value]
-                delegate, skipna=skipna
-            )
+            return result  # type: ignore[return-value]
 
     @doc(argmax, op="min", oppose="max", value="smallest")
     def argmin(
@@ -752,15 +771,29 @@ class IndexOpsMixin(OpsMixin):
 
         if isinstance(delegate, ExtensionArray):
             if not skipna and delegate.isna().any():
+                warnings.warn(
+                    f"The behavior of {type(self).__name__}.argmax/argmin "
+                    "with skipna=False and NAs, or with all-NAs is deprecated. "
+                    "In a future version this will raise ValueError.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 return -1
             else:
                 return delegate.argmin()
         else:
+            result = nanops.nanargmin(delegate, skipna=skipna)
+            if result == -1:
+                warnings.warn(
+                    f"The behavior of {type(self).__name__}.argmax/argmin "
+                    "with skipna=False and NAs, or with all-NAs is deprecated. "
+                    "In a future version this will raise ValueError.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
             # error: Incompatible return value type (got "Union[int, ndarray]", expected
             # "int")
-            return nanops.nanargmin(  # type: ignore[return-value]
-                delegate, skipna=skipna
-            )
+            return result  # type: ignore[return-value]
 
     def tolist(self):
         """
@@ -1174,9 +1207,7 @@ class IndexOpsMixin(OpsMixin):
             uniques = Index(uniques)
         return codes, uniques
 
-    _shared_docs[
-        "searchsorted"
-    ] = """
+    _shared_docs["searchsorted"] = """
         Find indices where elements should be inserted to maintain order.
 
         Find the indices into a sorted {klass} `self` such that, if the
@@ -1277,12 +1308,10 @@ class IndexOpsMixin(OpsMixin):
     # This overload is needed so that the call to searchsorted in
     # pandas.core.resample.TimeGrouper._get_period_bins picks the correct result
 
-    @overload
-    # The following ignore is also present in numpy/__init__.pyi
-    # Possibly a mypy bug??
     # error: Overloaded function signatures 1 and 2 overlap with incompatible
-    # return types  [misc]
-    def searchsorted(  # type: ignore[misc]
+    # return types
+    @overload
+    def searchsorted(  # type: ignore[overload-overlap]
         self,
         value: ScalarLike_co,
         side: Literal["left", "right"] = ...,
@@ -1304,7 +1333,7 @@ class IndexOpsMixin(OpsMixin):
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         if isinstance(value, ABCDataFrame):
             msg = (
@@ -1332,7 +1361,10 @@ class IndexOpsMixin(OpsMixin):
 
     @final
     def _duplicated(self, keep: DropKeep = "first") -> npt.NDArray[np.bool_]:
-        return algorithms.duplicated(self._values, keep=keep)
+        arr = self._values
+        if isinstance(arr, ExtensionArray):
+            return arr.duplicated(keep=keep)
+        return algorithms.duplicated(arr, keep=keep)
 
     def _arith_method(self, other, op):
         res_name = ops.get_op_result_name(self, other)

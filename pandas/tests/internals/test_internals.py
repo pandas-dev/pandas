@@ -10,7 +10,6 @@ import pytest
 
 from pandas._libs.internals import BlockPlacement
 from pandas.compat import IS64
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -43,10 +42,6 @@ from pandas.core.internals.blocks import (
     maybe_coerce_values,
     new_block,
 )
-
-# this file contains BlockManager specific tests
-# TODO(ArrayManager) factor out interleave_dtype tests
-pytestmark = td.skip_array_manager_invalid_test
 
 
 @pytest.fixture(params=[new_block, make_block])
@@ -350,7 +345,7 @@ class TestBlock:
 
     def test_split(self):
         # GH#37799
-        values = np.random.randn(3, 4)
+        values = np.random.default_rng(2).standard_normal((3, 4))
         blk = new_block(values, placement=BlockPlacement([3, 1, 6]), ndim=2)
         result = blk._split()
 
@@ -386,8 +381,8 @@ class TestBlockManager:
 
         msg = "Gaps in blk ref_locs"
 
+        mgr = BlockManager(blocks, axes)
         with pytest.raises(AssertionError, match=msg):
-            mgr = BlockManager(blocks, axes)
             mgr._rebuild_blknos_and_blklocs()
 
         blocks[0].mgr_locs = BlockPlacement(np.array([0]))
@@ -397,7 +392,10 @@ class TestBlockManager:
 
     def test_pickle(self, mgr):
         mgr2 = tm.round_trip_pickle(mgr)
-        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+        tm.assert_frame_equal(
+            DataFrame._from_mgr(mgr, axes=mgr.axes),
+            DataFrame._from_mgr(mgr2, axes=mgr2.axes),
+        )
 
         # GH2431
         assert hasattr(mgr2, "_is_consolidated")
@@ -411,20 +409,29 @@ class TestBlockManager:
     def test_non_unique_pickle(self, mgr_string):
         mgr = create_mgr(mgr_string)
         mgr2 = tm.round_trip_pickle(mgr)
-        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+        tm.assert_frame_equal(
+            DataFrame._from_mgr(mgr, axes=mgr.axes),
+            DataFrame._from_mgr(mgr2, axes=mgr2.axes),
+        )
 
     def test_categorical_block_pickle(self):
         mgr = create_mgr("a: category")
         mgr2 = tm.round_trip_pickle(mgr)
-        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+        tm.assert_frame_equal(
+            DataFrame._from_mgr(mgr, axes=mgr.axes),
+            DataFrame._from_mgr(mgr2, axes=mgr2.axes),
+        )
 
         smgr = create_single_mgr("category")
         smgr2 = tm.round_trip_pickle(smgr)
-        tm.assert_series_equal(Series(smgr), Series(smgr2))
+        tm.assert_series_equal(
+            Series()._constructor_from_mgr(smgr, axes=smgr.axes),
+            Series()._constructor_from_mgr(smgr2, axes=smgr2.axes),
+        )
 
     def test_iget(self):
         cols = Index(list("abc"))
-        values = np.random.rand(3, 3)
+        values = np.random.default_rng(2).random((3, 3))
         block = new_block(
             values=values.copy(),
             placement=BlockPlacement(np.arange(3, dtype=np.intp)),
@@ -462,12 +469,18 @@ class TestBlockManager:
         idx = mgr2.items.get_loc("baz")
         assert mgr2.iget(idx).dtype == np.object_
 
-        mgr2.insert(len(mgr2.items), "quux", np.random.randn(N).astype(int))
+        mgr2.insert(
+            len(mgr2.items),
+            "quux",
+            np.random.default_rng(2).standard_normal(N).astype(int),
+        )
         idx = mgr2.items.get_loc("quux")
-        assert mgr2.iget(idx).dtype == np.int_
+        assert mgr2.iget(idx).dtype == np.dtype(int)
 
-        mgr2.iset(mgr2.items.get_loc("quux"), np.random.randn(N))
-        assert mgr2.iget(idx).dtype == np.float_
+        mgr2.iset(
+            mgr2.items.get_loc("quux"), np.random.default_rng(2).standard_normal(N)
+        )
+        assert mgr2.iget(idx).dtype == np.float64
 
     def test_copy(self, mgr):
         cp = mgr.copy(deep=False)
@@ -573,7 +586,7 @@ class TestBlockManager:
         else:
             assert tmgr.iget(3).dtype.type == t
 
-    def test_convert(self):
+    def test_convert(self, using_infer_string):
         def _compare(old_mgr, new_mgr):
             """compare the blocks, numeric compare ==, object don't"""
             old_blocks = set(old_mgr.blocks)
@@ -608,9 +621,10 @@ class TestBlockManager:
         mgr.iset(1, np.array(["2."] * N, dtype=np.object_))
         mgr.iset(2, np.array(["foo."] * N, dtype=np.object_))
         new_mgr = mgr.convert(copy=True)
-        assert new_mgr.iget(0).dtype == np.object_
-        assert new_mgr.iget(1).dtype == np.object_
-        assert new_mgr.iget(2).dtype == np.object_
+        dtype = "string[pyarrow_numpy]" if using_infer_string else np.object_
+        assert new_mgr.iget(0).dtype == dtype
+        assert new_mgr.iget(1).dtype == dtype
+        assert new_mgr.iget(2).dtype == dtype
         assert new_mgr.iget(3).dtype == np.int64
         assert new_mgr.iget(4).dtype == np.float64
 
@@ -621,9 +635,9 @@ class TestBlockManager:
         mgr.iset(1, np.array(["2."] * N, dtype=np.object_))
         mgr.iset(2, np.array(["foo."] * N, dtype=np.object_))
         new_mgr = mgr.convert(copy=True)
-        assert new_mgr.iget(0).dtype == np.object_
-        assert new_mgr.iget(1).dtype == np.object_
-        assert new_mgr.iget(2).dtype == np.object_
+        assert new_mgr.iget(0).dtype == dtype
+        assert new_mgr.iget(1).dtype == dtype
+        assert new_mgr.iget(2).dtype == dtype
         assert new_mgr.iget(3).dtype == np.int32
         assert new_mgr.iget(4).dtype == np.bool_
         assert new_mgr.iget(5).dtype.type, np.datetime64
@@ -700,11 +714,11 @@ class TestBlockManager:
         assert mgr.as_array().dtype == "object"
 
     def test_consolidate_ordering_issues(self, mgr):
-        mgr.iset(mgr.items.get_loc("f"), np.random.randn(N))
-        mgr.iset(mgr.items.get_loc("d"), np.random.randn(N))
-        mgr.iset(mgr.items.get_loc("b"), np.random.randn(N))
-        mgr.iset(mgr.items.get_loc("g"), np.random.randn(N))
-        mgr.iset(mgr.items.get_loc("h"), np.random.randn(N))
+        mgr.iset(mgr.items.get_loc("f"), np.random.default_rng(2).standard_normal(N))
+        mgr.iset(mgr.items.get_loc("d"), np.random.default_rng(2).standard_normal(N))
+        mgr.iset(mgr.items.get_loc("b"), np.random.default_rng(2).standard_normal(N))
+        mgr.iset(mgr.items.get_loc("g"), np.random.default_rng(2).standard_normal(N))
+        mgr.iset(mgr.items.get_loc("h"), np.random.default_rng(2).standard_normal(N))
 
         # we have datetime/tz blocks in mgr
         cons = mgr.consolidate()
@@ -771,24 +785,6 @@ class TestBlockManager:
                 np.array([100.0, 200.0, 300.0]),
             )
 
-        numeric2 = mgr.get_numeric_data(copy=True)
-        tm.assert_index_equal(numeric.items, Index(["int", "float", "complex", "bool"]))
-        numeric2.iset(
-            numeric2.items.get_loc("float"),
-            np.array([1000.0, 2000.0, 3000.0]),
-            inplace=True,
-        )
-        if using_copy_on_write:
-            tm.assert_almost_equal(
-                mgr.iget(mgr.items.get_loc("float")).internal_values(),
-                np.array([1.0, 1.0, 1.0]),
-            )
-        else:
-            tm.assert_almost_equal(
-                mgr.iget(mgr.items.get_loc("float")).internal_values(),
-                np.array([100.0, 200.0, 300.0]),
-            )
-
     def test_get_bool_data(self, using_copy_on_write):
         mgr = create_mgr(
             "int: int; float: float; complex: complex;"
@@ -805,20 +801,6 @@ class TestBlockManager:
         )
 
         bools.iset(0, np.array([True, False, True]), inplace=True)
-        if using_copy_on_write:
-            tm.assert_numpy_array_equal(
-                mgr.iget(mgr.items.get_loc("bool")).internal_values(),
-                np.array([True, True, True]),
-            )
-        else:
-            tm.assert_numpy_array_equal(
-                mgr.iget(mgr.items.get_loc("bool")).internal_values(),
-                np.array([True, False, True]),
-            )
-
-        # Check sharing
-        bools2 = mgr.get_bool_data(copy=True)
-        bools2.iset(0, np.array([False, True, False]))
         if using_copy_on_write:
             tm.assert_numpy_array_equal(
                 mgr.iget(mgr.items.get_loc("bool")).internal_values(),
@@ -973,7 +955,6 @@ class TestIndexing:
                 # 2D only support slice objects
 
                 # boolean mask
-                assert_slice_ok(mgr, ax, np.array([], dtype=np.bool_))
                 assert_slice_ok(mgr, ax, np.ones(mgr.shape[ax], dtype=np.bool_))
                 assert_slice_ok(mgr, ax, np.zeros(mgr.shape[ax], dtype=np.bool_))
 
@@ -1177,7 +1158,6 @@ class TestBlockPlacement:
             [-1],
             [-1, -2, -3],
             [-10],
-            [-1],
             [-1, 0, 1, 2],
             [-2, 0, 2, 4],
             [1, 0, -1],
@@ -1312,27 +1292,30 @@ class TestCanHoldElement:
         # `elem` to not have the same length as `arr`
         ii2 = IntervalIndex.from_breaks(arr[:-1], closed="neither")
         elem = element(ii2)
-        self.check_series_setitem(elem, ii, False)
+        with tm.assert_produces_warning(FutureWarning):
+            self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)
 
         ii3 = IntervalIndex.from_breaks([Timestamp(1), Timestamp(3), Timestamp(4)])
         elem = element(ii3)
-        self.check_series_setitem(elem, ii, False)
+        with tm.assert_produces_warning(FutureWarning):
+            self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)
 
         ii4 = IntervalIndex.from_breaks([Timedelta(1), Timedelta(3), Timedelta(4)])
         elem = element(ii4)
-        self.check_series_setitem(elem, ii, False)
+        with tm.assert_produces_warning(FutureWarning):
+            self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)
 
     def test_period_can_hold_element_emptylist(self):
-        pi = period_range("2016", periods=3, freq="A")
+        pi = period_range("2016", periods=3, freq="Y")
         blk = new_block(pi._data.reshape(1, 3), BlockPlacement([1]), ndim=2)
 
         assert blk._can_hold_element([])
 
     def test_period_can_hold_element(self, element):
-        pi = period_range("2016", periods=3, freq="A")
+        pi = period_range("2016", periods=3, freq="Y")
 
         elem = element(pi)
         self.check_series_setitem(elem, pi, True)
@@ -1341,11 +1324,13 @@ class TestCanHoldElement:
         # `elem` to not have the same length as `arr`
         pi2 = pi.asfreq("D")[:-1]
         elem = element(pi2)
-        self.check_series_setitem(elem, pi, False)
+        with tm.assert_produces_warning(FutureWarning):
+            self.check_series_setitem(elem, pi, False)
 
-        dti = pi.to_timestamp("S")[:-1]
+        dti = pi.to_timestamp("s")[:-1]
         elem = element(dti)
-        self.check_series_setitem(elem, pi, False)
+        with tm.assert_produces_warning(FutureWarning):
+            self.check_series_setitem(elem, pi, False)
 
     def check_can_hold_element(self, obj, elem, inplace: bool):
         blk = obj._mgr.blocks[0]
@@ -1407,23 +1392,23 @@ def test_block_shape():
 
 def test_make_block_no_pandas_array(block_maker):
     # https://github.com/pandas-dev/pandas/pull/24866
-    arr = pd.arrays.PandasArray(np.array([1, 2]))
+    arr = pd.arrays.NumpyExtensionArray(np.array([1, 2]))
 
-    # PandasArray, no dtype
+    # NumpyExtensionArray, no dtype
     result = block_maker(arr, BlockPlacement(slice(len(arr))), ndim=arr.ndim)
     assert result.dtype.kind in ["i", "u"]
 
     if block_maker is make_block:
-        # new_block requires caller to unwrap PandasArray
+        # new_block requires caller to unwrap NumpyExtensionArray
         assert result.is_extension is False
 
-        # PandasArray, PandasDtype
+        # NumpyExtensionArray, NumpyEADtype
         result = block_maker(arr, slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
         assert result.dtype.kind in ["i", "u"]
         assert result.is_extension is False
 
         # new_block no longer taked dtype keyword
-        # ndarray, PandasDtype
+        # ndarray, NumpyEADtype
         result = block_maker(
             arr.to_numpy(), slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim
         )

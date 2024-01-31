@@ -14,12 +14,20 @@
 #   $ ./ci/code_checks.sh single-docs   # check single-page docs build warning-free
 #   $ ./ci/code_checks.sh notebooks     # check execution of documentation notebooks
 
-[[ -z "$1" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "single-docs" || "$1" == "notebooks" ]] || \
+set -uo pipefail
+
+if [[ -v 1 ]]; then
+    CHECK=$1
+else
+    # script will fail if it uses an unset variable (i.e. $1 is not provided)
+    CHECK=""
+fi
+
+[[ -z "$CHECK" || "$CHECK" == "code" || "$CHECK" == "doctests" || "$CHECK" == "docstrings" || "$CHECK" == "single-docs" || "$CHECK" == "notebooks" ]] || \
     { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings|single-docs|notebooks]"; exit 9999; }
 
 BASE_DIR="$(dirname $0)/.."
 RET=0
-CHECK=$1
 
 ### CODE ###
 if [[ -z "$CHECK" || "$CHECK" == "code" ]]; then
@@ -57,116 +65,126 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (EX02, EX04, GL01, GL02, GL03, GL04, GL05, GL06, GL07, GL09, GL10, PR03, PR04, PR05, PR06, PR08, PR09, PR10, RT01, RT02, RT04, RT05, SA02, SA03, SA04, SS01, SS02, SS03, SS04, SS05, SS06)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX02,EX04,GL01,GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,PR03,PR04,PR05,PR06,PR08,PR09,PR10,RT01,RT02,RT04,RT05,SA02,SA03,SA04,SS01,SS02,SS03,SS04,SS05,SS06
+    MSG='Validate docstrings (EX01, EX03, EX04, GL01, GL02, GL03, GL04, GL05, GL06, GL07, GL09, GL10, PR03, PR04, PR05, PR06, PR08, PR09, PR10, RT01, RT02, RT04, RT05, SA02, SA03, SA04, SS01, SS02, SS03, SS04, SS05, SS06)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01,EX03,EX04,GL01,GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,PR03,PR04,PR05,PR06,PR08,PR09,PR10,RT01,RT02,RT04,RT05,SA02,SA03,SA04,SS01,SS02,SS03,SS04,SS05,SS06
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Partially validate docstrings (EX01)' ;  echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
-        pandas.Series.backfill \
-        pandas.Series.pad \
-        pandas.Series.hist \
-        pandas.errors.AccessorRegistrationWarning \
-        pandas.errors.AttributeConflictWarning \
-        pandas.errors.DataError \
-        pandas.errors.IncompatibilityWarning \
-        pandas.errors.InvalidComparison \
-        pandas.errors.IntCastingNaNError \
-        pandas.errors.LossySetitemError \
-        pandas.errors.MergeError \
-        pandas.errors.NoBufferPresent \
-        pandas.errors.NullFrequencyError \
-        pandas.errors.NumbaUtilError \
-        pandas.errors.OptionError \
-        pandas.errors.OutOfBoundsDatetime \
-        pandas.errors.OutOfBoundsTimedelta \
-        pandas.errors.ParserError \
-        pandas.errors.PerformanceWarning \
-        pandas.errors.PyperclipException \
-        pandas.errors.PyperclipWindowsException \
-        pandas.errors.UnsortedIndexError \
-        pandas.errors.UnsupportedFunctionCall \
-        pandas.test \
-        pandas.NaT \
-        pandas.io.formats.style.Styler.to_html \
-        pandas.read_feather \
-        pandas.DataFrame.to_feather \
-        pandas.read_parquet \
-        pandas.read_orc \
-        pandas.read_sas \
-        pandas.read_spss \
-        pandas.read_sql_query \
-        pandas.read_gbq \
-        pandas.io.stata.StataReader.data_label \
-        pandas.io.stata.StataReader.value_labels \
-        pandas.io.stata.StataReader.variable_labels \
-        pandas.io.stata.StataWriter.write_file \
-        pandas.plotting.deregister_matplotlib_converters \
-        pandas.plotting.plot_params \
-        pandas.plotting.register_matplotlib_converters \
-        pandas.plotting.table \
-        pandas.util.hash_array \
-        pandas.util.hash_pandas_object \
-        pandas_object \
-        pandas.api.interchange.from_dataframe \
-        pandas.DatetimeIndex.snap \
-        pandas.api.indexers.BaseIndexer \
-        pandas.api.indexers.VariableOffsetWindowIndexer \
-        pandas.io.formats.style.Styler \
-        pandas.io.formats.style.Styler.from_custom_template \
-        pandas.io.formats.style.Styler.set_caption \
-        pandas.io.formats.style.Styler.set_sticky \
-        pandas.io.formats.style.Styler.set_uuid \
-        pandas.io.formats.style.Styler.clear \
-        pandas.io.formats.style.Styler.highlight_null \
-        pandas.io.formats.style.Styler.highlight_max \
-        pandas.io.formats.style.Styler.highlight_min \
-        pandas.io.formats.style.Styler.bar \
-        pandas.io.formats.style.Styler.to_string \
-        pandas.api.extensions.ExtensionDtype \
-        pandas.api.extensions.ExtensionArray \
-        pandas.arrays.PandasArray \
-        pandas.api.extensions.ExtensionArray._accumulate \
-        pandas.api.extensions.ExtensionArray._concat_same_type \
-        pandas.api.extensions.ExtensionArray._formatter \
-        pandas.api.extensions.ExtensionArray._from_factorized \
-        pandas.api.extensions.ExtensionArray._from_sequence \
-        pandas.api.extensions.ExtensionArray._from_sequence_of_strings \
-        pandas.api.extensions.ExtensionArray._hash_pandas_object \
-        pandas.api.extensions.ExtensionArray._reduce \
-        pandas.api.extensions.ExtensionArray._values_for_argsort \
-        pandas.api.extensions.ExtensionArray._values_for_factorize \
-        pandas.api.extensions.ExtensionArray.argsort \
-        pandas.api.extensions.ExtensionArray.astype \
-        pandas.api.extensions.ExtensionArray.copy \
-        pandas.api.extensions.ExtensionArray.view \
-        pandas.api.extensions.ExtensionArray.dropna \
-        pandas.api.extensions.ExtensionArray.equals \
-        pandas.api.extensions.ExtensionArray.factorize \
-        pandas.api.extensions.ExtensionArray.fillna \
-        pandas.api.extensions.ExtensionArray.insert \
-        pandas.api.extensions.ExtensionArray.interpolate \
-        pandas.api.extensions.ExtensionArray.isin \
-        pandas.api.extensions.ExtensionArray.isna \
-        pandas.api.extensions.ExtensionArray.ravel \
-        pandas.api.extensions.ExtensionArray.searchsorted \
-        pandas.api.extensions.ExtensionArray.shift \
-        pandas.api.extensions.ExtensionArray.unique \
-        pandas.api.extensions.ExtensionArray.dtype \
-        pandas.api.extensions.ExtensionArray.nbytes \
-        pandas.api.extensions.ExtensionArray.ndim \
-        pandas.api.extensions.ExtensionArray.shape \
-        pandas.api.extensions.ExtensionArray.tolist \
-        pandas.DataFrame.columns \
-        pandas.DataFrame.backfill \
-        pandas.DataFrame.ffill \
-        pandas.DataFrame.pad \
-        pandas.DataFrame.swapaxes \
-        pandas.DataFrame.attrs \
-        pandas.DataFrame.plot \
-        pandas.DataFrame.to_gbq \
-        pandas.DataFrame.style \
-        pandas.DataFrame.__dataframe__
+    MSG='Partially validate docstrings (PR02)' ;  echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=PR02 --ignore_functions \
+        pandas.io.formats.style.Styler.to_excel\
+        pandas.CategoricalIndex.rename_categories\
+        pandas.CategoricalIndex.reorder_categories\
+        pandas.CategoricalIndex.add_categories\
+        pandas.CategoricalIndex.remove_categories\
+        pandas.CategoricalIndex.set_categories\
+        pandas.IntervalIndex.set_closed\
+        pandas.IntervalIndex.contains\
+        pandas.IntervalIndex.overlaps\
+        pandas.IntervalIndex.to_tuples\
+        pandas.DatetimeIndex.round\
+        pandas.DatetimeIndex.floor\
+        pandas.DatetimeIndex.ceil\
+        pandas.DatetimeIndex.month_name\
+        pandas.DatetimeIndex.day_name\
+        pandas.DatetimeIndex.to_period\
+        pandas.DatetimeIndex.std\
+        pandas.TimedeltaIndex.round\
+        pandas.TimedeltaIndex.floor\
+        pandas.TimedeltaIndex.ceil\
+        pandas.PeriodIndex\
+        pandas.PeriodIndex.strftime\
+        pandas.Series.clip\
+        pandas.Series.rename_axis\
+        pandas.Series.dt.to_period\
+        pandas.Series.dt.tz_localize\
+        pandas.Series.dt.tz_convert\
+        pandas.Series.dt.strftime\
+        pandas.Series.dt.round\
+        pandas.Series.dt.floor\
+        pandas.Series.dt.ceil\
+        pandas.Series.dt.month_name\
+        pandas.Series.dt.day_name\
+        pandas.Series.str.wrap\
+        pandas.Series.cat.rename_categories\
+        pandas.Series.cat.reorder_categories\
+        pandas.Series.cat.add_categories\
+        pandas.Series.cat.remove_categories\
+        pandas.Series.cat.set_categories\
+        pandas.Series.plot\
+        pandas.Series.plot.bar\
+        pandas.Series.plot.barh\
+        pandas.Series.plot.line\
+        pandas.Series.plot.pie\
+        pandas.DataFrame.clip\
+        pandas.DataFrame.plot\
+        pandas.DataFrame.plot.bar\
+        pandas.DataFrame.plot.barh\
+        pandas.DataFrame.plot.line\
+        pandas.DataFrame.plot.pie\
+        pandas.tseries.offsets.DateOffset\
+        pandas.tseries.offsets.BusinessDay\
+        pandas.tseries.offsets.BDay\
+        pandas.tseries.offsets.BusinessHour\
+        pandas.tseries.offsets.CustomBusinessDay\
+        pandas.tseries.offsets.CDay\
+        pandas.tseries.offsets.CustomBusinessHour\
+        pandas.tseries.offsets.MonthEnd\
+        pandas.tseries.offsets.MonthBegin\
+        pandas.tseries.offsets.BusinessMonthEnd\
+        pandas.tseries.offsets.BMonthEnd\
+        pandas.tseries.offsets.BusinessMonthBegin\
+        pandas.tseries.offsets.BMonthBegin\
+        pandas.tseries.offsets.CustomBusinessMonthEnd\
+        pandas.tseries.offsets.CBMonthEnd\
+        pandas.tseries.offsets.CustomBusinessMonthBegin\
+        pandas.tseries.offsets.CBMonthBegin\
+        pandas.tseries.offsets.SemiMonthEnd\
+        pandas.tseries.offsets.SemiMonthBegin\
+        pandas.tseries.offsets.Week\
+        pandas.tseries.offsets.WeekOfMonth\
+        pandas.tseries.offsets.LastWeekOfMonth\
+        pandas.tseries.offsets.BQuarterEnd\
+        pandas.tseries.offsets.BQuarterBegin\
+        pandas.tseries.offsets.QuarterEnd\
+        pandas.tseries.offsets.QuarterBegin\
+        pandas.tseries.offsets.BYearEnd\
+        pandas.tseries.offsets.BYearBegin\
+        pandas.tseries.offsets.YearEnd\
+        pandas.tseries.offsets.YearBegin\
+        pandas.tseries.offsets.FY5253\
+        pandas.tseries.offsets.FY5253Quarter\
+        pandas.tseries.offsets.Easter\
+        pandas.tseries.offsets.Day\
+        pandas.tseries.offsets.Hour\
+        pandas.tseries.offsets.Minute\
+        pandas.tseries.offsets.Second\
+        pandas.tseries.offsets.Milli\
+        pandas.tseries.offsets.Micro\
+        pandas.tseries.offsets.Nano\
+        pandas.set_option\
+        pandas.Timestamp.max\
+        pandas.Timestamp.min\
+        pandas.Timestamp.resolution\
+        pandas.Timedelta.max\
+        pandas.Timedelta.min\
+        pandas.Timedelta.resolution\
+        pandas.Interval\
+        pandas.Grouper\
+        pandas.core.groupby.SeriesGroupBy.apply\
+        pandas.core.groupby.SeriesGroupBy.transform\
+        pandas.core.groupby.DataFrameGroupBy.transform\
+        pandas.core.groupby.DataFrameGroupBy.nth\
+        pandas.core.groupby.DataFrameGroupBy.rolling\
+        pandas.core.groupby.SeriesGroupBy.idxmax\
+        pandas.core.groupby.SeriesGroupBy.idxmin\
+        pandas.core.groupby.SeriesGroupBy.nth\
+        pandas.core.groupby.SeriesGroupBy.rolling\
+        pandas.core.groupby.DataFrameGroupBy.hist\
+        pandas.core.groupby.DataFrameGroupBy.plot\
+        pandas.core.groupby.SeriesGroupBy.plot\
+        pandas.core.window.rolling.Rolling.quantile\
+        pandas.core.window.expanding.Expanding.quantile\
+        pandas.api.extensions.ExtensionArray.argsort # There should be no backslash in the final line, please keep this comment in the last ignored function
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
@@ -182,9 +200,8 @@ fi
 
 ### SINGLE-PAGE DOCS ###
 if [[ -z "$CHECK" || "$CHECK" == "single-docs" ]]; then
-    python doc/make.py --warnings-are-errors --single pandas.Series.value_counts
-    python doc/make.py --warnings-are-errors --single pandas.Series.str.split
-    python doc/make.py clean
+    python doc/make.py --warnings-are-errors --no-browser --single pandas.Series.value_counts
+    python doc/make.py --warnings-are-errors --no-browser --single pandas.Series.str.split
 fi
 
 exit $RET

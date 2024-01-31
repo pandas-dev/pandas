@@ -122,7 +122,10 @@ class TestSeriesToCSV:
             # GH 21241, 21118
             (Series(["abc", "def", "ghi"], name="X"), "ascii"),
             (Series(["123", "你好", "世界"], name="中文"), "gb2312"),
-            (Series(["123", "Γειά σου", "Κόσμε"], name="Ελληνικά"), "cp737"),
+            (
+                Series(["123", "Γειά σου", "Κόσμε"], name="Ελληνικά"),  # noqa: RUF001
+                "cp737",
+            ),
         ],
     )
     def test_to_csv_compression(self, s, encoding, compression):
@@ -162,7 +165,7 @@ class TestSeriesToCSV:
                     pd.read_csv(fh, index_col=0, encoding=encoding).squeeze("columns"),
                 )
 
-    def test_to_csv_interval_index(self):
+    def test_to_csv_interval_index(self, using_infer_string):
         # GH 28210
         s = Series(["foo", "bar", "baz"], index=pd.interval_range(0, 3))
 
@@ -170,8 +173,10 @@ class TestSeriesToCSV:
             s.to_csv(path, header=False)
             result = self.read_csv(path, index_col=0)
 
-            # can't roundtrip intervalindex via read_csv so check string repr (GH 23595)
-            expected = s.copy()
+        # can't roundtrip intervalindex via read_csv so check string repr (GH 23595)
+        expected = s
+        if using_infer_string:
+            expected.index = expected.index.astype("string[pyarrow_numpy]")
+        else:
             expected.index = expected.index.astype(str)
-
-            tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)

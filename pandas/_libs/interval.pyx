@@ -39,7 +39,6 @@ from pandas._libs.tslibs.timezones cimport tz_compare
 from pandas._libs.tslibs.util cimport (
     is_float_object,
     is_integer_object,
-    is_timedelta64_object,
 )
 
 VALID_CLOSED = frozenset(["left", "right", "both", "neither"])
@@ -478,56 +477,31 @@ cdef class Interval(IntervalMixin):
         args = (self.left, self.right, self.closed)
         return (type(self), args)
 
-    def _repr_base(self):
-        left = self.left
-        right = self.right
-
-        # TODO: need more general formatting methodology here
-        if isinstance(left, _Timestamp) and isinstance(right, _Timestamp):
-            left = left._short_repr
-            right = right._short_repr
-
-        return left, right
-
     def __repr__(self) -> str:
-
-        left, right = self._repr_base()
+        disp = str if isinstance(self.left, (np.generic, _Timestamp)) else repr
         name = type(self).__name__
-        repr_str = f"{name}({repr(left)}, {repr(right)}, closed={repr(self.closed)})"
+        repr_str = f"{name}({disp(self.left)}, {disp(self.right)}, closed={repr(self.closed)})"  # noqa: E501
         return repr_str
 
     def __str__(self) -> str:
-
-        left, right = self._repr_base()
         start_symbol = "[" if self.closed_left else "("
         end_symbol = "]" if self.closed_right else ")"
-        return f"{start_symbol}{left}, {right}{end_symbol}"
+        return f"{start_symbol}{self.left}, {self.right}{end_symbol}"
 
     def __add__(self, y):
         if (
             isinstance(y, numbers.Number)
             or PyDelta_Check(y)
-            or is_timedelta64_object(y)
+            or cnp.is_timedelta64_object(y)
         ):
             return Interval(self.left + y, self.right + y, closed=self.closed)
-        elif (
-            # __radd__ pattern
-            # TODO(cython3): remove this
-            isinstance(y, Interval)
-            and (
-                isinstance(self, numbers.Number)
-                or PyDelta_Check(self)
-                or is_timedelta64_object(self)
-            )
-        ):
-            return Interval(y.left + self, y.right + self, closed=y.closed)
         return NotImplemented
 
     def __radd__(self, other):
         if (
                 isinstance(other, numbers.Number)
                 or PyDelta_Check(other)
-                or is_timedelta64_object(other)
+                or cnp.is_timedelta64_object(other)
         ):
             return Interval(self.left + other, self.right + other, closed=self.closed)
         return NotImplemented
@@ -536,7 +510,7 @@ cdef class Interval(IntervalMixin):
         if (
             isinstance(y, numbers.Number)
             or PyDelta_Check(y)
-            or is_timedelta64_object(y)
+            or cnp.is_timedelta64_object(y)
         ):
             return Interval(self.left - y, self.right - y, closed=self.closed)
         return NotImplemented
@@ -544,10 +518,6 @@ cdef class Interval(IntervalMixin):
     def __mul__(self, y):
         if isinstance(y, numbers.Number):
             return Interval(self.left * y, self.right * y, closed=self.closed)
-        elif isinstance(y, Interval) and isinstance(self, numbers.Number):
-            # __radd__ semantics
-            # TODO(cython3): remove this
-            return Interval(y.left * self, y.right * self, closed=y.closed)
         return NotImplemented
 
     def __rmul__(self, other):

@@ -18,7 +18,7 @@ class TestSeriesSortValues:
         tm.assert_series_equal(expected, result)
 
         ts = datetime_series.copy()
-        ts[:5] = np.NaN
+        ts[:5] = np.nan
         vals = ts.values
 
         result = ts.sort_values()
@@ -77,7 +77,7 @@ class TestSeriesSortValues:
 
         # GH#5856/5853
         # Series.sort_values operating on a view
-        df = DataFrame(np.random.randn(10, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         s = df.iloc[:, 0]
 
         msg = (
@@ -92,8 +92,7 @@ class TestSeriesSortValues:
                 s.sort_values(inplace=True)
 
     def test_sort_values_categorical(self):
-        c = Categorical(["a", "b", "b", "a"], ordered=False)
-        cat = Series(c.copy())
+        cat = Series(Categorical(["a", "b", "b", "a"], ordered=False))
 
         # sort in the categories order
         expected = Series(
@@ -204,7 +203,6 @@ class TestSeriesSortValues:
         with pytest.raises(ValueError, match=msg):
             ser.sort_values(ascending="False")
 
-    @pytest.mark.parametrize("ascending", [False, 0, 1, True])
     def test_sort_values_validate_ascending_functional(self, ascending):
         # GH41634
         ser = Series([23, 7, 21])

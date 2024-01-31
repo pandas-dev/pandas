@@ -48,7 +48,7 @@ def test_series_values(using_copy_on_write, method):
     [lambda df: df.values, lambda df: np.asarray(df)],
     ids=["values", "asarray"],
 )
-def test_dataframe_values(using_copy_on_write, using_array_manager, method):
+def test_dataframe_values(using_copy_on_write, method):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     df_orig = df.copy()
 
@@ -70,10 +70,7 @@ def test_dataframe_values(using_copy_on_write, using_array_manager, method):
     else:
         assert arr.flags.writeable is True
         arr[0, 0] = 0
-        if not using_array_manager:
-            assert df.iloc[0, 0] == 0
-        else:
-            tm.assert_frame_equal(df, df_orig)
+        assert df.iloc[0, 0] == 0
 
 
 def test_series_to_numpy(using_copy_on_write):
@@ -116,7 +113,8 @@ def test_series_to_numpy(using_copy_on_write):
 @pytest.mark.parametrize("order", ["F", "C"])
 def test_ravel_read_only(using_copy_on_write, order):
     ser = Series([1, 2, 3])
-    arr = ser.ravel(order=order)
+    with tm.assert_produces_warning(FutureWarning, match="is deprecated"):
+        arr = ser.ravel(order=order)
     if using_copy_on_write:
         assert arr.flags.writeable is False
     assert np.shares_memory(get_array(ser), arr)
@@ -132,31 +130,34 @@ def test_series_array_ea_dtypes(using_copy_on_write):
         assert arr.flags.writeable is True
 
     arr = np.asarray(ser)
-    assert not np.shares_memory(arr, get_array(ser))
-    assert arr.flags.writeable is True
-
-
-def test_dataframe_array_ea_dtypes(using_copy_on_write):
-    df = DataFrame({"a": [1, 2, 3]}, dtype="Int64")
-    arr = np.asarray(df, dtype="int64")
-    # TODO: This should be able to share memory, but we are roundtripping
-    # through object
-    assert not np.shares_memory(arr, get_array(df, "a"))
-    assert arr.flags.writeable is True
-
-    arr = np.asarray(df)
+    assert np.shares_memory(arr, get_array(ser))
     if using_copy_on_write:
-        # TODO(CoW): This should be True
         assert arr.flags.writeable is False
     else:
         assert arr.flags.writeable is True
 
 
-def test_dataframe_array_string_dtype(using_copy_on_write, using_array_manager):
+def test_dataframe_array_ea_dtypes(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3]}, dtype="Int64")
+    arr = np.asarray(df, dtype="int64")
+    assert np.shares_memory(arr, get_array(df, "a"))
+    if using_copy_on_write:
+        assert arr.flags.writeable is False
+    else:
+        assert arr.flags.writeable is True
+
+    arr = np.asarray(df)
+    assert np.shares_memory(arr, get_array(df, "a"))
+    if using_copy_on_write:
+        assert arr.flags.writeable is False
+    else:
+        assert arr.flags.writeable is True
+
+
+def test_dataframe_array_string_dtype(using_copy_on_write):
     df = DataFrame({"a": ["a", "b"]}, dtype="string")
     arr = np.asarray(df)
-    if not using_array_manager:
-        assert np.shares_memory(arr, get_array(df, "a"))
+    assert np.shares_memory(arr, get_array(df, "a"))
     if using_copy_on_write:
         assert arr.flags.writeable is False
     else:

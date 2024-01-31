@@ -10,11 +10,16 @@ from abc import (
 )
 import enum
 from typing import (
+    TYPE_CHECKING,
     Any,
-    Iterable,
-    Sequence,
     TypedDict,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import (
+        Iterable,
+        Sequence,
+    )
 
 
 class DlpackDeviceType(enum.IntEnum):

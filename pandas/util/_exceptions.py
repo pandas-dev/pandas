@@ -4,8 +4,12 @@ import contextlib
 import inspect
 import os
 import re
-from typing import Generator
+from typing import TYPE_CHECKING
 import warnings
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+    from types import FrameType
 
 
 @contextlib.contextmanager
@@ -39,15 +43,20 @@ def find_stack_level() -> int:
     test_dir = os.path.join(pkg_dir, "tests")
 
     # https://stackoverflow.com/questions/17407119/python-inspect-stack-is-slow
-    frame = inspect.currentframe()
-    n = 0
-    while frame:
-        fname = inspect.getfile(frame)
-        if fname.startswith(pkg_dir) and not fname.startswith(test_dir):
-            frame = frame.f_back
-            n += 1
-        else:
-            break
+    frame: FrameType | None = inspect.currentframe()
+    try:
+        n = 0
+        while frame:
+            filename = inspect.getfile(frame)
+            if filename.startswith(pkg_dir) and not filename.startswith(test_dir):
+                frame = frame.f_back
+                n += 1
+            else:
+                break
+    finally:
+        # See note in
+        # https://docs.python.org/3/library/inspect.html#inspect.Traceback
+        del frame
     return n
 
 

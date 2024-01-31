@@ -23,7 +23,7 @@ This file implements string parsing and creation for NumPy datetime.
 
 #ifndef NPY_NO_DEPRECATED_API
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#endif  // NPY_NO_DEPRECATED_API
+#endif // NPY_NO_DEPRECATED_API
 
 /* 'format_requirement' can be one of three values:
  *      * PARTIAL_MATCH : Only require a partial match with 'format'.
@@ -34,11 +34,7 @@ This file implements string parsing and creation for NumPy datetime.
  *           be able to parse it without error is '%Y-%m-%d';
  *      * INFER_FORMAT: parse without comparing 'format' (i.e. infer it).
  */
-typedef enum  {
-    PARTIAL_MATCH,
-    EXACT_MATCH,
-    INFER_FORMAT
-} FormatRequirement;
+typedef enum { PARTIAL_MATCH, EXACT_MATCH, INFER_FORMAT } FormatRequirement;
 
 /*
  * Parses (almost) standard ISO 8601 date strings. The differences are:
@@ -58,31 +54,26 @@ typedef enum  {
  * 'str' must be a NULL-terminated string, and 'len' must be its length.
  *
  * 'out' gets filled with the parsed date-time.
- * 'out_local' gets whether returned value contains timezone. 0 for UTC, 1 for local time.
- * 'out_tzoffset' gets set to timezone offset by minutes
- *      if the parsed time was in local time,
- *      to 0 otherwise. The values 'now' and 'today' don't get counted
- *      as local, and neither do UTC +/-#### timezone offsets, because
- *      they aren't using the computer's local timezone offset.
+ * 'out_local' gets whether returned value contains timezone. 0 for UTC, 1 for
+ * local time. 'out_tzoffset' gets set to timezone offset by minutes if the
+ * parsed time was in local time, to 0 otherwise. The values 'now' and 'today'
+ * don't get counted as local, and neither do UTC +/-#### timezone offsets,
+ * because they aren't using the computer's local timezone offset.
  *
  * Returns 0 on success, -1 on failure.
  */
-int
-parse_iso_8601_datetime(const char *str, int len, int want_exc,
-                        npy_datetimestruct *out,
-                        NPY_DATETIMEUNIT *out_bestunit,
-                        int *out_local,
-                        int *out_tzoffset,
-                        const char* format,
-                        int format_len,
-                        FormatRequirement format_requirement);
+int parse_iso_8601_datetime(const char *str, int len, int want_exc,
+                            npy_datetimestruct *out,
+                            NPY_DATETIMEUNIT *out_bestunit, int *out_local,
+                            int *out_tzoffset, const char *format,
+                            int format_len,
+                            FormatRequirement format_requirement);
 
 /*
  * Provides a string length to use for converting datetime
  * objects with the given local and unit settings.
  */
-int
-get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base);
+int get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base);
 
 /*
  * Converts an npy_datetimestruct to an (almost) ISO 8601
@@ -94,9 +85,8 @@ get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base);
  *  Returns 0 on success, -1 on failure (for example if the output
  *  string was too short).
  */
-int
-make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
-                       int utc, NPY_DATETIMEUNIT base);
+int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, size_t outlen,
+                           int utc, NPY_DATETIMEUNIT base);
 
 /*
  * Converts an pandas_timedeltastruct to an ISO 8601 string.

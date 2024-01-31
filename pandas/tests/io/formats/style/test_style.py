@@ -87,15 +87,13 @@ def blank_value():
 
 @pytest.fixture
 def df():
-    np.random.seed(24)
-    df = DataFrame({"A": [0, 1], "B": np.random.randn(2)})
+    df = DataFrame({"A": [0, 1], "B": np.random.default_rng(2).standard_normal(2)})
     return df
 
 
 @pytest.fixture
 def styler(df):
-    np.random.seed(24)
-    df = DataFrame({"A": [0, 1], "B": np.random.randn(2)})
+    df = DataFrame({"A": [0, 1], "B": np.random.default_rng(2).standard_normal(2)})
     return Styler(df)
 
 
@@ -733,7 +731,7 @@ class TestStyler:
 
         idx = MultiIndex.from_product([["a", "b"], [1, 2]])
         col = MultiIndex.from_product([["x", "y"], ["A", "B"]])
-        df = DataFrame(np.random.rand(4, 4), columns=col, index=idx)
+        df = DataFrame(np.random.default_rng(2).random((4, 4)), columns=col, index=idx)
 
         with ctx:
             df.style.map(lambda x: "color: red;", subset=slice_).to_html()
@@ -1588,3 +1586,15 @@ def test_output_buffer(mi_styler, format):
     # gh 47053
     with tm.ensure_clean(f"delete_me.{format}") as f:
         getattr(mi_styler, f"to_{format}")(f)
+
+
+def test_deprecation_warning_for_usage_of_aaply_map_index_method_of_styler_object():
+    # 56717 https://github.com/pandas-dev/pandas/issues/56717
+    df = DataFrame([[1, 2], [3, 4]], index=["A", "B"])
+    msg = "Styler.applymap_index has been deprecated. Use Styler.map_index instead."
+
+    def color_b(s):
+        return "background-color:yellow;"
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.style.applymap_index(color_b, axis="columns")

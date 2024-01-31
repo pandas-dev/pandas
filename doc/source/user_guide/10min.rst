@@ -32,14 +32,14 @@ Object creation
 See the :ref:`Intro to data structures section <dsintro>`.
 
 Creating a :class:`Series` by passing a list of values, letting pandas create
-a default integer index:
+a default :class:`RangeIndex`.
 
 .. ipython:: python
 
    s = pd.Series([1, 3, 5, np.nan, 6, 8])
    s
 
-Creating a :class:`DataFrame` by passing a NumPy array, with a datetime index using :func:`date_range`
+Creating a :class:`DataFrame` by passing a NumPy array with a datetime index using :func:`date_range`
 and labeled columns:
 
 .. ipython:: python
@@ -49,8 +49,8 @@ and labeled columns:
    df = pd.DataFrame(np.random.randn(6, 4), index=dates, columns=list("ABCD"))
    df
 
-Creating a :class:`DataFrame` by passing a dictionary of objects that can be
-converted into a series-like structure:
+Creating a :class:`DataFrame` by passing a dictionary of objects where the keys are the column
+labels and the values are the column values.
 
 .. ipython:: python
 
@@ -101,7 +101,7 @@ truncated for brevity.
 Viewing data
 ------------
 
-See the :ref:`Basics section <basics>`.
+See the :ref:`Essentially basics functionality section <basics>`.
 
 Use :meth:`DataFrame.head` and :meth:`DataFrame.tail` to view the top and bottom rows of the frame
 respectively:
@@ -118,33 +118,25 @@ Display the :attr:`DataFrame.index` or :attr:`DataFrame.columns`:
    df.index
    df.columns
 
-:meth:`DataFrame.to_numpy` gives a NumPy representation of the underlying data.
-Note that this can be an expensive operation when your :class:`DataFrame` has
-columns with different data types, which comes down to a fundamental difference
-between pandas and NumPy: **NumPy arrays have one dtype for the entire array,
-while pandas DataFrames have one dtype per column**. When you call
-:meth:`DataFrame.to_numpy`, pandas will find the NumPy dtype that can hold *all*
-of the dtypes in the DataFrame. This may end up being ``object``, which requires
-casting every value to a Python object.
-
-For ``df``, our :class:`DataFrame` of all floating-point values, and
-:meth:`DataFrame.to_numpy` is fast and doesn't require copying data:
+Return a NumPy representation of the underlying data with :meth:`DataFrame.to_numpy`
+without the index or column labels:
 
 .. ipython:: python
 
    df.to_numpy()
 
-For ``df2``, the :class:`DataFrame` with multiple dtypes,
-:meth:`DataFrame.to_numpy` is relatively expensive:
-
-.. ipython:: python
-
-   df2.to_numpy()
-
 .. note::
 
-   :meth:`DataFrame.to_numpy` does *not* include the index or column
-   labels in the output.
+   **NumPy arrays have one dtype for the entire array while pandas DataFrames
+   have one dtype per column**. When you call :meth:`DataFrame.to_numpy`, pandas will
+   find the NumPy dtype that can hold *all* of the dtypes in the DataFrame.
+   If the common data type is ``object``, :meth:`DataFrame.to_numpy` will require
+   copying data.
+
+   .. ipython:: python
+
+      df2.dtypes
+      df2.to_numpy()
 
 :func:`~DataFrame.describe` shows a quick statistic summary of your data:
 
@@ -182,17 +174,17 @@ Selection
 
 See the indexing documentation :ref:`Indexing and Selecting Data <indexing>` and :ref:`MultiIndex / Advanced Indexing <advanced>`.
 
-Getting
-~~~~~~~
+Getitem (``[]``)
+~~~~~~~~~~~~~~~~
 
-Selecting a single column, which yields a :class:`Series`,
-equivalent to ``df.A``:
+For a :class:`DataFrame`, passing a single label selects a columns and
+yields a :class:`Series` equivalent to ``df.A``:
 
 .. ipython:: python
 
    df["A"]
 
-Selecting via ``[]`` (``__getitem__``), which slices the rows:
+For a :class:`DataFrame`, passing a slice ``:`` selects matching rows:
 
 .. ipython:: python
 
@@ -204,31 +196,25 @@ Selection by label
 
 See more in :ref:`Selection by Label <indexing.label>` using :meth:`DataFrame.loc` or :meth:`DataFrame.at`.
 
-For getting a cross section using a label:
+Selecting a row matching a label:
 
 .. ipython:: python
 
    df.loc[dates[0]]
 
-Selecting on a multi-axis by label:
+Selecting all rows (``:``) with a select column labels:
 
 .. ipython:: python
 
    df.loc[:, ["A", "B"]]
 
-Showing label slicing, both endpoints are *included*:
+For label slicing, both endpoints are *included*:
 
 .. ipython:: python
 
    df.loc["20130102":"20130104", ["A", "B"]]
 
-Reduction in the dimensions of the returned object:
-
-.. ipython:: python
-
-   df.loc["20130102", ["A", "B"]]
-
-For getting a scalar value:
+Selecting a single row and column label returns a scalar:
 
 .. ipython:: python
 
@@ -251,13 +237,13 @@ Select via the position of the passed integers:
 
    df.iloc[3]
 
-By integer slices, acting similar to NumPy/Python:
+Integer slices acts similar to NumPy/Python:
 
 .. ipython:: python
 
    df.iloc[3:5, 0:2]
 
-By lists of integer position locations, similar to the NumPy/Python style:
+Lists of integer position locations:
 
 .. ipython:: python
 
@@ -290,19 +276,19 @@ For getting fast access to a scalar (equivalent to the prior method):
 Boolean indexing
 ~~~~~~~~~~~~~~~~
 
-Using a single column's values to select data:
+Select rows where ``df.A`` is greater than ``0``.
 
 .. ipython:: python
 
    df[df["A"] > 0]
 
-Selecting values from a DataFrame where a boolean condition is met:
+Selecting values from a :class:`DataFrame` where a boolean condition is met:
 
 .. ipython:: python
 
    df[df > 0]
 
-Using the :func:`~Series.isin` method for filtering:
+Using :func:`~Series.isin` method for filtering:
 
 .. ipython:: python
 
@@ -314,8 +300,7 @@ Using the :func:`~Series.isin` method for filtering:
 Setting
 ~~~~~~~
 
-Setting a new column automatically aligns the data
-by the indexes:
+Setting a new column automatically aligns the data by the indexes:
 
 .. ipython:: python
 
@@ -360,7 +345,7 @@ A ``where`` operation with setting:
 Missing data
 ------------
 
-pandas primarily uses the value ``np.nan`` to represent missing data. It is by
+For NumPy data types, ``np.nan`` represents missing data. It is by
 default not included in computations. See the :ref:`Missing Data section
 <missing_data>`.
 
@@ -402,20 +387,21 @@ Stats
 
 Operations in general *exclude* missing data.
 
-Performing a descriptive statistic:
+Calculate the mean value for each column:
 
 .. ipython:: python
 
    df.mean()
 
-Same operation on the other axis:
+Calculate the mean value for each row:
 
 .. ipython:: python
 
-   df.mean(1)
+   df.mean(axis=1)
 
-Operating with objects that have different dimensionality and need alignment.
-In addition, pandas automatically broadcasts along the specified dimension:
+Operating with another :class:`Series` or :class:`DataFrame` with a different index or column
+will align the result with the union of the index or column labels. In addition, pandas
+automatically broadcasts along the specified dimension and will fill unaligned labels with ``np.nan``.
 
 .. ipython:: python
 
@@ -424,17 +410,18 @@ In addition, pandas automatically broadcasts along the specified dimension:
    df.sub(s, axis="index")
 
 
-Apply
-~~~~~
+User defined functions
+~~~~~~~~~~~~~~~~~~~~~~
 
-:meth:`DataFrame.apply` applies a user defined function to the data:
+:meth:`DataFrame.agg` and :meth:`DataFrame.transform` applies a user defined function
+that reduces or broadcasts its result respectively.
 
 .. ipython:: python
 
-   df.apply(np.cumsum)
-   df.apply(lambda x: x.max() - x.min())
+   df.agg(lambda x: np.mean(x) * 5.6)
+   df.transform(lambda x: x * 101.2)
 
-Histogramming
+Value Counts
 ~~~~~~~~~~~~~
 
 See more at :ref:`Histogramming and Discretization <basics.discretization>`.
@@ -448,11 +435,9 @@ See more at :ref:`Histogramming and Discretization <basics.discretization>`.
 String Methods
 ~~~~~~~~~~~~~~
 
-Series is equipped with a set of string processing methods in the ``str``
+:class:`Series` is equipped with a set of string processing methods in the ``str``
 attribute that make it easy to operate on each element of the array, as in the
-code snippet below. Note that pattern-matching in ``str`` generally uses `regular
-expressions <https://docs.python.org/3/library/re.html>`__ by default (and in
-some cases always uses them). See more at :ref:`Vectorized String Methods
+code snippet below. See more at :ref:`Vectorized String Methods
 <text.string_methods>`.
 
 .. ipython:: python
@@ -466,14 +451,14 @@ Merge
 Concat
 ~~~~~~
 
-pandas provides various facilities for easily combining together Series and
-DataFrame objects with various kinds of set logic for the indexes
+pandas provides various facilities for easily combining together :class:`Series` and
+:class:`DataFrame` objects with various kinds of set logic for the indexes
 and relational algebra functionality in the case of join / merge-type
 operations.
 
 See the :ref:`Merging section <merging>`.
 
-Concatenating pandas objects together along an axis with :func:`concat`:
+Concatenating pandas objects together row-wise with :func:`concat`:
 
 .. ipython:: python
 
@@ -486,6 +471,7 @@ Concatenating pandas objects together along an axis with :func:`concat`:
    pd.concat(pieces)
 
 .. note::
+
    Adding a column to a :class:`DataFrame` is relatively fast. However, adding
    a row requires a copy, and may be expensive. We recommend passing a
    pre-built list of records to the :class:`DataFrame` constructor instead
@@ -504,7 +490,7 @@ Join
    right
    pd.merge(left, right, on="key")
 
-Another example that can be given is:
+:func:`merge` on unique keys:
 
 .. ipython:: python
 
@@ -520,9 +506,9 @@ Grouping
 By "group by" we are referring to a process involving one or more of the
 following steps:
 
- - **Splitting** the data into groups based on some criteria
- - **Applying** a function to each group independently
- - **Combining** the results into a data structure
+* **Splitting** the data into groups based on some criteria
+* **Applying** a function to each group independently
+* **Combining** the results into a data structure
 
 See the :ref:`Grouping section <groupby>`.
 
@@ -538,15 +524,15 @@ See the :ref:`Grouping section <groupby>`.
    )
    df
 
-Grouping and then applying the :meth:`~pandas.core.groupby.DataFrameGroupBy.sum` function to the resulting
+Grouping by a column label, selecting column labels, and then applying the
+:meth:`.DataFrameGroupBy.sum` function to the resulting
 groups:
 
 .. ipython:: python
 
    df.groupby("A")[["C", "D"]].sum()
 
-Grouping by multiple columns forms a hierarchical index, and again we can
-apply the :meth:`~pandas.core.groupby.DataFrameGroupBy.sum` function:
+Grouping by multiple columns label forms :class:`MultiIndex`.
 
 .. ipython:: python
 
@@ -563,13 +549,11 @@ Stack
 
 .. ipython:: python
 
-   tuples = list(
-       zip(
-           ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
-           ["one", "two", "one", "two", "one", "two", "one", "two"],
-       )
-   )
-   index = pd.MultiIndex.from_tuples(tuples, names=["first", "second"])
+   arrays = [
+      ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
+      ["one", "two", "one", "two", "one", "two", "one", "two"],
+   ]
+   index = pd.MultiIndex.from_arrays(arrays, names=["first", "second"])
    df = pd.DataFrame(np.random.randn(8, 2), index=index, columns=["A", "B"])
    df2 = df[:4]
    df2
@@ -579,7 +563,7 @@ columns:
 
 .. ipython:: python
 
-   stacked = df2.stack()
+   stacked = df2.stack(future_stack=True)
    stacked
 
 With a "stacked" DataFrame or Series (having a :class:`MultiIndex` as the
@@ -626,7 +610,7 @@ financial applications. See the :ref:`Time Series section <timeseries>`.
 
 .. ipython:: python
 
-   rng = pd.date_range("1/1/2012", periods=100, freq="S")
+   rng = pd.date_range("1/1/2012", periods=100, freq="s")
    ts = pd.Series(np.random.randint(0, 500, len(rng)), index=rng)
    ts.resample("5Min").sum()
 
@@ -646,28 +630,12 @@ financial applications. See the :ref:`Time Series section <timeseries>`.
 
    ts_utc.tz_convert("US/Eastern")
 
-Converting between time span representations:
+Adding a non-fixed duration (:class:`~pandas.tseries.offsets.BusinessDay`) to a time series:
 
 .. ipython:: python
 
-   rng = pd.date_range("1/1/2012", periods=5, freq="M")
-   ts = pd.Series(np.random.randn(len(rng)), index=rng)
-   ts
-   ps = ts.to_period()
-   ps
-   ps.to_timestamp()
-
-Converting between period and timestamp enables some convenient arithmetic
-functions to be used. In the following example, we convert a quarterly
-frequency with year ending in November to 9am of the end of the month following
-the quarter end:
-
-.. ipython:: python
-
-   prng = pd.period_range("1990Q1", "2000Q4", freq="Q-NOV")
-   ts = pd.Series(np.random.randn(len(prng)), prng)
-   ts.index = (prng.asfreq("M", "e") + 1).asfreq("H", "s") + 9
-   ts.head()
+   rng
+   rng + pd.offsets.BusinessDay(5)
 
 Categoricals
 ------------
@@ -680,8 +648,6 @@ pandas can include categorical data in a :class:`DataFrame`. For full docs, see 
     df = pd.DataFrame(
         {"id": [1, 2, 3, 4, 5, 6], "raw_grade": ["a", "b", "b", "a", "a", "e"]}
     )
-
-
 
 Converting the raw grades to a categorical data type:
 
@@ -732,7 +698,7 @@ We use the standard convention for referencing the matplotlib API:
 
    plt.close("all")
 
-The ``plt.close`` method is used to `close <https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.close.html>`__ a figure window:
+The ``plt.close`` method is used to `close <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.close.html>`__ a figure window:
 
 .. ipython:: python
 
@@ -742,16 +708,13 @@ The ``plt.close`` method is used to `close <https://matplotlib.org/3.1.1/api/_as
    @savefig series_plot_basic.png
    ts.plot();
 
-If running under Jupyter Notebook, the plot will appear on :meth:`~Series.plot`.  Otherwise use
-`matplotlib.pyplot.show <https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.show.html>`__ to show it or
-`matplotlib.pyplot.savefig <https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.savefig.html>`__ to write it to a file.
+.. note::
 
-.. ipython:: python
+   When using Jupyter, the plot will appear using :meth:`~Series.plot`.  Otherwise use
+   `matplotlib.pyplot.show <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.show.html>`__ to show it or
+   `matplotlib.pyplot.savefig <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.savefig.html>`__ to write it to a file.
 
-   plt.show();
-
-On a DataFrame, the :meth:`~DataFrame.plot` method is a convenience to plot all
-of the columns with labels:
+:meth:`~DataFrame.plot` plots all columns:
 
 .. ipython:: python
 
@@ -769,6 +732,8 @@ of the columns with labels:
 Importing and exporting data
 ----------------------------
 
+See the :ref:`IO Tools <io>` section.
+
 CSV
 ~~~
 
@@ -776,6 +741,7 @@ CSV
 
 .. ipython:: python
 
+   df = pd.DataFrame(np.random.randint(0, 5, (10, 5)))
    df.to_csv("foo.csv")
 
 :ref:`Reading from a csv file: <io.read_csv_table>` using :func:`read_csv`
@@ -791,27 +757,25 @@ CSV
 
    os.remove("foo.csv")
 
-HDF5
-~~~~
+Parquet
+~~~~~~~
 
-Reading and writing to :ref:`HDFStores <io.hdf5>`.
-
-Writing to a HDF5 Store using :meth:`DataFrame.to_hdf`:
+Writing to a Parquet file:
 
 .. ipython:: python
 
-   df.to_hdf("foo.h5", "df")
+   df.to_parquet("foo.parquet")
 
-Reading from a HDF5 Store using :func:`read_hdf`:
+Reading from a Parquet file Store using :func:`read_parquet`:
 
 .. ipython:: python
 
-   pd.read_hdf("foo.h5", "df")
+   pd.read_parquet("foo.parquet")
 
 .. ipython:: python
    :suppress:
 
-   os.remove("foo.h5")
+   os.remove("foo.parquet")
 
 Excel
 ~~~~~

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Sequence,
     cast,
 )
 import warnings
@@ -51,6 +50,8 @@ from pandas.core.internals.managers import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pandas._typing import (
         ArrayLike,
         AxisInt,
@@ -117,7 +118,9 @@ def concatenate_managers(
         # type "List[BlockManager]"; expected "List[Union[ArrayManager,
         # SingleArrayManager, BlockManager, SingleBlockManager]]"
         return _concatenate_array_managers(
-            mgrs, axes, concat_axis  # type: ignore[arg-type]
+            mgrs,  # type: ignore[arg-type]
+            axes,
+            concat_axis,
         )
 
     # Assertions disabled for performance
@@ -176,7 +179,7 @@ def concatenate_managers(
                 values = np.concatenate(vals, axis=1)  # type: ignore[arg-type]
             elif is_1d_only_ea_dtype(blk.dtype):
                 # TODO(EA2D): special-casing not needed with 2D EAs
-                values = concat_compat(vals, axis=1, ea_compat_axis=True)
+                values = concat_compat(vals, axis=0, ea_compat_axis=True)
                 values = ensure_block_shape(values, ndim=2)
             else:
                 values = concat_compat(vals, axis=1)
@@ -351,7 +354,7 @@ class JoinUnit:
         self.block = block
 
     def __repr__(self) -> str:
-        return f"{type(self).__name__}({repr(self.block)})"
+        return f"{type(self).__name__}({self.block!r})"
 
     def _is_valid_na_for(self, dtype: DtypeObj) -> bool:
         """
@@ -396,7 +399,9 @@ class JoinUnit:
 
         values = blk.values
         if values.size == 0:
+            # GH#39122 this case will return False once deprecation is enforced
             return True
+
         if isinstance(values.dtype, SparseDtype):
             return False
 
@@ -415,15 +420,13 @@ class JoinUnit:
             return all(isna_all(row) for row in values)
 
     @cache_readonly
-    def is_na_without_isna_all(self) -> bool:
+    def is_na_after_size_and_isna_all_deprecation(self) -> bool:
+        """
+        Will self.is_na be True after values.size == 0 deprecation and isna_all
+        deprecation are enforced?
+        """
         blk = self.block
         if blk.dtype.kind == "V":
-            return True
-        if not blk._can_hold_na:
-            return False
-
-        values = blk.values
-        if values.size == 0:
             return True
         return False
 
@@ -473,9 +476,7 @@ def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike
         # error: No overload variant of "__getitem__" of "ExtensionArray" matches
         # argument type "Tuple[int, slice]"
         to_concat = [
-            t
-            if is_1d_only_ea_dtype(t.dtype)
-            else t[0, :]  # type: ignore[call-overload]
+            t if is_1d_only_ea_dtype(t.dtype) else t[0, :]  # type: ignore[call-overload]
             for t in to_concat
         ]
         concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)
@@ -486,17 +487,16 @@ def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike
 
     if empty_dtype != empty_dtype_future:
         if empty_dtype == concat_values.dtype:
-            # GH#40893
+            # GH#39122, GH#40893
             warnings.warn(
-                "The behavior of DataFrame concatenation with all-NA entries is "
-                "deprecated. In a future version, this will no longer exclude "
-                "all-NA columns when determining the result dtypes. "
-                "To retain the old behavior, cast the all-NA columns to the "
-                "desired dtype before the concat operation.",
+                "The behavior of DataFrame concatenation with empty or all-NA "
+                "entries is deprecated. In a future version, this will no longer "
+                "exclude empty or all-NA columns when determining the result dtypes. "
+                "To retain the old behavior, exclude the relevant entries before "
+                "the concat operation.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-
     return concat_values
 
 
@@ -552,7 +552,9 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> tuple[DtypeObj, DtypeObj
     dtype_future = dtype
     if len(dtypes) != len(join_units):
         dtypes_future = [
-            unit.block.dtype for unit in join_units if not unit.is_na_without_isna_all
+            unit.block.dtype
+            for unit in join_units
+            if not unit.is_na_after_size_and_isna_all_deprecation
         ]
         if not len(dtypes_future):
             dtypes_future = [

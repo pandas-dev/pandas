@@ -42,7 +42,7 @@ def test_infer_dtype_from_float_scalar(float_numpy_dtype):
 
 
 @pytest.mark.parametrize(
-    "data,exp_dtype", [(12, np.int64), (np.float_(12), np.float64)]
+    "data,exp_dtype", [(12, np.int64), (np.float64(12), np.float64)]
 )
 def test_infer_dtype_from_python_scalar(data, exp_dtype):
     dtype, val = infer_dtype_from_scalar(data)
@@ -58,7 +58,7 @@ def test_infer_dtype_from_boolean(bool_val):
 def test_infer_dtype_from_complex(complex_dtype):
     data = np.dtype(complex_dtype).type(1)
     dtype, val = infer_dtype_from_scalar(data)
-    assert dtype == np.complex_
+    assert dtype == np.complex128
 
 
 def test_infer_dtype_from_datetime():
@@ -153,14 +153,16 @@ def test_infer_dtype_from_scalar_errors():
         ("foo", np.object_),
         (b"foo", np.object_),
         (1, np.int64),
-        (1.5, np.float_),
+        (1.5, np.float64),
         (np.datetime64("2016-01-01"), np.dtype("M8[s]")),
         (Timestamp("20160101"), np.dtype("M8[s]")),
         (Timestamp("20160101", tz="UTC"), "datetime64[s, UTC]"),
     ],
 )
-def test_infer_dtype_from_scalar(value, expected):
+def test_infer_dtype_from_scalar(value, expected, using_infer_string):
     dtype, _ = infer_dtype_from_scalar(value)
+    if using_infer_string and value == "foo":
+        expected = "string"
     assert is_dtype_equal(dtype, expected)
 
     with pytest.raises(TypeError, match="must be list-like"):
@@ -170,10 +172,10 @@ def test_infer_dtype_from_scalar(value, expected):
 @pytest.mark.parametrize(
     "arr, expected",
     [
-        ([1], np.int_),
+        ([1], np.dtype(int)),
         (np.array([1], dtype=np.int64), np.int64),
         ([np.nan, 1, ""], np.object_),
-        (np.array([[1.0, 2.0]]), np.float_),
+        (np.array([[1.0, 2.0]]), np.float64),
         (Categorical(list("aabc")), "category"),
         (Categorical([1, 2, 3]), "category"),
         (date_range("20160101", periods=3), np.dtype("=M8[ns]")),
@@ -189,8 +191,14 @@ def test_infer_dtype_from_scalar(value, expected):
         ),
     ],
 )
-def test_infer_dtype_from_array(arr, expected):
+def test_infer_dtype_from_array(arr, expected, using_infer_string):
     dtype, _ = infer_dtype_from_array(arr)
+    if (
+        using_infer_string
+        and isinstance(arr, Series)
+        and arr.tolist() == ["a", "b", "c"]
+    ):
+        expected = "string"
     assert is_dtype_equal(dtype, expected)
 
 

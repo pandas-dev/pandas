@@ -3,10 +3,12 @@ Read SAS sas7bdat or xport files.
 """
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 from typing import (
     TYPE_CHECKING,
-    Hashable,
-    Protocol,
     overload,
 )
 
@@ -17,29 +19,33 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import stringify_path
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
     from types import TracebackType
 
     from pandas._typing import (
         CompressionOptions,
         FilePath,
         ReadBuffer,
+        Self,
     )
 
     from pandas import DataFrame
 
 
-class ReaderBase(Protocol):
+class ReaderBase(ABC):
     """
     Protocol for XportReader and SAS7BDATReader classes.
     """
 
+    @abstractmethod
     def read(self, nrows: int | None = None) -> DataFrame:
         ...
 
+    @abstractmethod
     def close(self) -> None:
         ...
 
-    def __enter__(self) -> ReaderBase:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
@@ -110,22 +116,18 @@ def read_sas(
         Encoding for text data.  If None, text data are stored as raw bytes.
     chunksize : int
         Read file `chunksize` lines at a time, returns iterator.
-
-        .. versionchanged:: 1.2
-
-            ``TextFileReader`` is a context manager.
     iterator : bool, defaults to False
         If True, returns an iterator for reading the file incrementally.
-
-        .. versionchanged:: 1.2
-
-            ``TextFileReader`` is a context manager.
     {decompression_options}
 
     Returns
     -------
     DataFrame if iterator=False and chunksize=None, else SAS7BDATReader
     or XportReader
+
+    Examples
+    --------
+    >>> df = pd.read_sas("sas_data.sas7bdat")  # doctest: +SKIP
     """
     if format is None:
         buffer_error_msg = (
@@ -142,7 +144,7 @@ def read_sas(
             format = "sas7bdat"
         else:
             raise ValueError(
-                f"unable to infer format of SAS file from filename: {repr(fname)}"
+                f"unable to infer format of SAS file from filename: {fname!r}"
             )
 
     reader: ReaderBase

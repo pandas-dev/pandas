@@ -5,10 +5,7 @@ Currently only includes to_coo helpers.
 """
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Iterable,
-)
+from typing import TYPE_CHECKING
 
 from pandas._libs import lib
 
@@ -19,6 +16,8 @@ from pandas.core.indexes.api import MultiIndex
 from pandas.core.series import Series
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     import numpy as np
     import scipy.sparse
 
@@ -28,7 +27,7 @@ if TYPE_CHECKING:
     )
 
 
-def _check_is_partition(parts: Iterable, whole: Iterable):
+def _check_is_partition(parts: Iterable, whole: Iterable) -> None:
     whole = set(whole)
     parts = [set(x) for x in parts]
     if set.intersection(*parts) != set():

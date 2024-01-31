@@ -257,18 +257,14 @@ def test_assert_almost_equal_strings():
     _assert_almost_equal_both("abc", "abc")
 
 
-@pytest.mark.parametrize(
-    "a,b", [("abc", "abcd"), ("abc", "abd"), ("abc", 1), ("abc", [1])]
-)
-def test_assert_not_almost_equal_strings(a, b):
-    _assert_not_almost_equal_both(a, b)
+@pytest.mark.parametrize("b", ["abcd", "abd", 1, [1]])
+def test_assert_not_almost_equal_strings(b):
+    _assert_not_almost_equal_both("abc", b)
 
 
-@pytest.mark.parametrize(
-    "a,b", [([1, 2, 3], [1, 2, 3]), (np.array([1, 2, 3]), np.array([1, 2, 3]))]
-)
-def test_assert_almost_equal_iterables(a, b):
-    _assert_almost_equal_both(a, b)
+@pytest.mark.parametrize("box", [list, np.array])
+def test_assert_almost_equal_iterables(box):
+    _assert_almost_equal_both(box([1, 2, 3]), box([1, 2, 3]))
 
 
 @pytest.mark.parametrize(
@@ -293,7 +289,7 @@ def test_assert_almost_equal_null():
     _assert_almost_equal_both(None, None)
 
 
-@pytest.mark.parametrize("a,b", [(None, np.NaN), (None, 0), (np.NaN, 0)])
+@pytest.mark.parametrize("a,b", [(None, np.nan), (None, 0), (np.nan, 0)])
 def test_assert_not_almost_equal_null(a, b):
     _assert_not_almost_equal(a, b)
 
@@ -340,7 +336,7 @@ def test_mismatched_na_assert_almost_equal_deprecation(left, right):
 
         # TODO: to get the same deprecation in assert_numpy_array_equal we need
         #  to change/deprecate the default for strict_nan to become True
-        # TODO: to get the same deprecateion in assert_index_equal we need to
+        # TODO: to get the same deprecation in assert_index_equal we need to
         #  change/deprecate array_equivalent_object to be stricter, as
         #  assert_index_equal uses Index.equal which uses array_equivalent.
         with tm.assert_produces_warning(FutureWarning, match=msg):

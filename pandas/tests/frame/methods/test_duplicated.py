@@ -16,7 +16,7 @@ import pandas._testing as tm
 def test_duplicated_with_misspelled_column_name(subset):
     # GH 19730
     df = DataFrame({"A": [0, 0, 1], "B": [0, 0, 1], "C": [0, 0, 1]})
-    msg = re.escape("Index(['a'], dtype='object')")
+    msg = re.escape("Index(['a'], dtype=")
 
     with pytest.raises(KeyError, match=msg):
         df.duplicated(subset)
@@ -26,7 +26,7 @@ def test_duplicated_implemented_no_recursion():
     # gh-21524
     # Ensure duplicated isn't implemented using recursion that
     # can fail on wide frames
-    df = DataFrame(np.random.randint(0, 1000, (10, 1000)))
+    df = DataFrame(np.random.default_rng(2).integers(0, 1000, (10, 1000)))
     rec_limit = sys.getrecursionlimit()
     try:
         sys.setrecursionlimit(100)

@@ -6,17 +6,19 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Hashable,
-    Iterator,
     final,
 )
 import warnings
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
+from pandas._config import (
+    using_copy_on_write,
+    warn_copy_on_write,
+)
 
 from pandas._libs import lib
+from pandas._libs.tslibs import OutOfBoundsDatetime
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -46,6 +48,11 @@ from pandas.core.series import Series
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+    )
+
     from pandas._typing import (
         ArrayLike,
         Axis,
@@ -112,8 +119,6 @@ class Grouper:
         row/column will be dropped. If False, NA values will also be treated as
         the key in groups.
 
-        .. versionadded:: 1.2.0
-
     Returns
     -------
     Grouper or pandas.api.typing.TimeGrouper
@@ -122,7 +127,7 @@ class Grouper:
 
     Examples
     --------
-    Syntactic sugar for ``df.groupby('A')``
+    ``df.groupby(pd.Grouper(key="Animal"))`` is equivalent to ``df.groupby('Animal')``
 
     >>> df = pd.DataFrame(
     ...     {
@@ -146,8 +151,8 @@ class Grouper:
     Specify a resample operation on the column 'Publish date'
 
     >>> df = pd.DataFrame(
-    ...    {
-    ...        "Publish date": [
+    ...     {
+    ...         "Publish date": [
     ...             pd.Timestamp("2000-01-02"),
     ...             pd.Timestamp("2000-01-02"),
     ...             pd.Timestamp("2000-01-09"),
@@ -185,7 +190,7 @@ class Grouper:
     2000-10-02 00:12:00    18
     2000-10-02 00:19:00    21
     2000-10-02 00:26:00    24
-    Freq: 7T, dtype: int64
+    Freq: 7min, dtype: int64
 
     >>> ts.groupby(pd.Grouper(freq='17min')).sum()
     2000-10-01 23:14:00     0
@@ -193,7 +198,7 @@ class Grouper:
     2000-10-01 23:48:00    21
     2000-10-02 00:05:00    54
     2000-10-02 00:22:00    24
-    Freq: 17T, dtype: int64
+    Freq: 17min, dtype: int64
 
     >>> ts.groupby(pd.Grouper(freq='17min', origin='epoch')).sum()
     2000-10-01 23:18:00     0
@@ -201,14 +206,14 @@ class Grouper:
     2000-10-01 23:52:00    27
     2000-10-02 00:09:00    39
     2000-10-02 00:26:00    24
-    Freq: 17T, dtype: int64
+    Freq: 17min, dtype: int64
 
     >>> ts.groupby(pd.Grouper(freq='17min', origin='2000-01-01')).sum()
     2000-10-01 23:24:00     3
     2000-10-01 23:41:00    15
     2000-10-01 23:58:00    45
     2000-10-02 00:15:00    45
-    Freq: 17T, dtype: int64
+    Freq: 17min, dtype: int64
 
     If you want to adjust the start of the bins with an `offset` Timedelta, the two
     following lines are equivalent:
@@ -218,14 +223,14 @@ class Grouper:
     2000-10-01 23:47:00    21
     2000-10-02 00:04:00    54
     2000-10-02 00:21:00    24
-    Freq: 17T, dtype: int64
+    Freq: 17min, dtype: int64
 
     >>> ts.groupby(pd.Grouper(freq='17min', offset='23h30min')).sum()
     2000-10-01 23:30:00     9
     2000-10-01 23:47:00    21
     2000-10-02 00:04:00    54
     2000-10-02 00:21:00    24
-    Freq: 17T, dtype: int64
+    Freq: 17min, dtype: int64
 
     To replace the use of the deprecated `base` argument, you can now use `offset`,
     in this example it is equivalent to have `base=2`:
@@ -236,7 +241,7 @@ class Grouper:
     2000-10-01 23:50:00    36
     2000-10-02 00:07:00    39
     2000-10-02 00:24:00    24
-    Freq: 17T, dtype: int64
+    Freq: 17min, dtype: int64
     """
 
     sort: bool
@@ -285,12 +290,12 @@ class Grouper:
         self.dropna = dropna
 
         self._grouper_deprecated = None
-        self._indexer_deprecated = None
+        self._indexer_deprecated: npt.NDArray[np.intp] | None = None
         self._obj_deprecated = None
         self._gpr_index = None
         self.binner = None
         self._grouper = None
-        self._indexer = None
+        self._indexer: npt.NDArray[np.intp] | None = None
 
     def _get_grouper(
         self, obj: NDFrameT, validate: bool = True
@@ -323,10 +328,9 @@ class Grouper:
 
         return grouper, obj
 
-    @final
     def _set_grouper(
-        self, obj: NDFrame, sort: bool = False, *, gpr_index: Index | None = None
-    ):
+        self, obj: NDFrameT, sort: bool = False, *, gpr_index: Index | None = None
+    ) -> tuple[NDFrameT, Index, npt.NDArray[np.intp] | None]:
         """
         given an object and the specifications, setup the internal grouper
         for this particular specification
@@ -345,8 +349,6 @@ class Grouper:
         np.ndarray[np.intp] | None
         """
         assert obj is not None
-
-        indexer = None
 
         if self.key is not None and self.level is not None:
             raise ValueError("The Grouper cannot specify both a key and a level!")
@@ -394,6 +396,7 @@ class Grouper:
                         raise ValueError(f"The level {level} is not valid")
 
         # possibly sort
+        indexer: npt.NDArray[np.intp] | None = None
         if (self.sort or sort) and not ax.is_monotonic_increasing:
             # use stable sort to support first, last, nth
             # TODO: why does putting na_position="first" fix datetimelike cases?
@@ -437,6 +440,8 @@ class Grouper:
     @final
     @property
     def obj(self):
+        # TODO(3.0): enforcing these deprecations on Grouper should close
+        #  GH#25564, GH#41930
         warnings.warn(
             f"{type(self).__name__}.obj is deprecated and will be removed "
             "in a future version. Use GroupBy.indexer instead.",
@@ -471,7 +476,7 @@ class Grouper:
     @final
     def __repr__(self) -> str:
         attrs_list = (
-            f"{attr_name}={repr(getattr(self, attr_name))}"
+            f"{attr_name}={getattr(self, attr_name)!r}"
             for attr_name in self._attributes
             if getattr(self, attr_name) is not None
         )
@@ -515,7 +520,6 @@ class Grouping:
     """
 
     _codes: npt.NDArray[np.signedinteger] | None = None
-    _group_index: Index | None = None
     _all_grouper: Categorical | None
     _orig_cats: Index | None
     _index: Index
@@ -671,7 +675,7 @@ class Grouping:
 
     @property
     def ngroups(self) -> int:
-        return len(self.group_index)
+        return len(self._group_index)
 
     @cache_readonly
     def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
@@ -687,34 +691,58 @@ class Grouping:
         return self._codes_and_uniques[0]
 
     @cache_readonly
-    def group_arraylike(self) -> ArrayLike:
+    def _group_arraylike(self) -> ArrayLike:
         """
         Analogous to result_index, but holding an ArrayLike to ensure
         we can retain ExtensionDtypes.
         """
         if self._all_grouper is not None:
             # retain dtype for categories, including unobserved ones
-            return self.result_index._values
+            return self._result_index._values
 
         elif self._passed_categorical:
-            return self.group_index._values
+            return self._group_index._values
 
         return self._codes_and_uniques[1]
 
+    @property
+    def group_arraylike(self) -> ArrayLike:
+        """
+        Analogous to result_index, but holding an ArrayLike to ensure
+        we can retain ExtensionDtypes.
+        """
+        warnings.warn(
+            "group_arraylike is deprecated and will be removed in a future "
+            "version of pandas",
+            category=FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._group_arraylike
+
     @cache_readonly
-    def result_index(self) -> Index:
+    def _result_index(self) -> Index:
         # result_index retains dtype for categories, including unobserved ones,
         #  which group_index does not
         if self._all_grouper is not None:
-            group_idx = self.group_index
+            group_idx = self._group_index
             assert isinstance(group_idx, CategoricalIndex)
             cats = self._orig_cats
             # set_categories is dynamically added
             return group_idx.set_categories(cats)  # type: ignore[attr-defined]
-        return self.group_index
+        return self._group_index
+
+    @property
+    def result_index(self) -> Index:
+        warnings.warn(
+            "result_index is deprecated and will be removed in a future "
+            "version of pandas",
+            category=FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._result_index
 
     @cache_readonly
-    def group_index(self) -> Index:
+    def _group_index(self) -> Index:
         codes, uniques = self._codes_and_uniques
         if not self._dropna and self._passed_categorical:
             assert isinstance(uniques, Categorical)
@@ -735,6 +763,16 @@ class Grouping:
                         new_codes, uniques.categories, validate=False
                     )
         return Index._with_infer(uniques, name=self.name)
+
+    @property
+    def group_index(self) -> Index:
+        warnings.warn(
+            "group_index is deprecated and will be removed in a future "
+            "version of pandas",
+            category=FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._group_index
 
     @cache_readonly
     def _codes_and_uniques(self) -> tuple[npt.NDArray[np.signedinteger], ArrayLike]:
@@ -801,7 +839,7 @@ class Grouping:
 
     @cache_readonly
     def groups(self) -> dict[Hashable, np.ndarray]:
-        cats = Categorical.from_codes(self.codes, self.group_index, validate=False)
+        cats = Categorical.from_codes(self.codes, self._group_index, validate=False)
         return self._index.groupby(cats)
 
 
@@ -961,25 +999,28 @@ def get_grouper(
     def is_in_obj(gpr) -> bool:
         if not hasattr(gpr, "name"):
             return False
-        if using_copy_on_write():
+        if using_copy_on_write() or warn_copy_on_write():
             # For the CoW case, we check the references to determine if the
             # series is part of the object
             try:
                 obj_gpr_column = obj[gpr.name]
-            except (KeyError, IndexError, InvalidIndexError):
+            except (KeyError, IndexError, InvalidIndexError, OutOfBoundsDatetime):
                 return False
             if isinstance(gpr, Series) and isinstance(obj_gpr_column, Series):
                 return gpr._mgr.references_same_values(  # type: ignore[union-attr]
-                    obj_gpr_column._mgr, 0  # type: ignore[arg-type]
+                    obj_gpr_column._mgr,  # type: ignore[arg-type]
+                    0,
                 )
             return False
         try:
             return gpr is obj[gpr.name]
-        except (KeyError, IndexError, InvalidIndexError):
+        except (KeyError, IndexError, InvalidIndexError, OutOfBoundsDatetime):
             # IndexError reached in e.g. test_skip_group_keys when we pass
             #  lambda here
             # InvalidIndexError raised on key-types inappropriate for index,
             #  e.g. DatetimeIndex.get_loc(tuple())
+            # OutOfBoundsDatetime raised when obj is a Series with DatetimeIndex
+            # and gpr.name is month str
             return False
 
     for gpr, level in zip(keys, levels):

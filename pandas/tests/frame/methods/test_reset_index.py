@@ -27,7 +27,7 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture()
+@pytest.fixture
 def multiindex_df():
     levels = [["A", ""], ["B", "b"]]
     return DataFrame([[0, 2], [1, 3]], columns=MultiIndex.from_tuples(levels))
@@ -76,25 +76,19 @@ class TestResetIndex:
 
         expected = DataFrame(
             {
-                "idx": [
-                    datetime(2011, 1, 1),
-                    datetime(2011, 1, 2),
-                    datetime(2011, 1, 3),
-                    datetime(2011, 1, 4),
-                    datetime(2011, 1, 5),
-                ],
+                "idx": idx,
                 "a": range(5),
                 "b": ["A", "B", "C", "D", "E"],
             },
             columns=["idx", "a", "b"],
         )
-        expected["idx"] = expected["idx"].apply(lambda d: Timestamp(d, tz=tz))
-        tm.assert_frame_equal(df.reset_index(), expected)
+        result = df.reset_index()
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
     def test_frame_reset_index_tzaware_index(self, tz):
         dr = date_range("2012-06-02", periods=10, tz=tz)
-        df = DataFrame(np.random.randn(len(dr)), dr)
+        df = DataFrame(np.random.default_rng(2).standard_normal(len(dr)), dr)
         roundtripped = df.reset_index().set_index("index")
         xp = df.index.tz
         rs = roundtripped.index.tz
@@ -112,7 +106,7 @@ class TestResetIndex:
         tm.assert_frame_equal(result2, original)
 
     def test_reset_index(self, float_frame):
-        stacked = float_frame.stack()[::2]
+        stacked = float_frame.stack(future_stack=True)[::2]
         stacked = DataFrame({"foo": stacked, "bar": stacked})
 
         names = ["first", "second"]
@@ -238,9 +232,7 @@ class TestResetIndex:
 
     def test_reset_index_right_dtype(self):
         time = np.arange(0.0, 10, np.sqrt(2) / 2)
-        s1 = Series(
-            (9.81 * time**2) / 2, index=Index(time, name="time"), name="speed"
-        )
+        s1 = Series((9.81 * time**2) / 2, index=Index(time, name="time"), name="speed")
         df = DataFrame(s1)
 
         reset = s1.reset_index()
@@ -250,7 +242,7 @@ class TestResetIndex:
         assert reset["time"].dtype == np.float64
 
     def test_reset_index_multiindex_col(self):
-        vals = np.random.randn(3, 3).astype(object)
+        vals = np.random.default_rng(2).standard_normal((3, 3)).astype(object)
         idx = ["x", "y", "z"]
         full = np.hstack(([[x] for x in idx], vals))
         df = DataFrame(
@@ -309,13 +301,21 @@ class TestResetIndex:
         # GH#6322, testing reset_index on MultiIndexes
         # when we have a nan or all nan
         df = DataFrame(
-            {"A": ["a", "b", "c"], "B": [0, 1, np.nan], "C": np.random.rand(3)}
+            {
+                "A": ["a", "b", "c"],
+                "B": [0, 1, np.nan],
+                "C": np.random.default_rng(2).random(3),
+            }
         )
         rs = df.set_index(["A", "B"]).reset_index()
         tm.assert_frame_equal(rs, df)
 
         df = DataFrame(
-            {"A": [np.nan, "b", "c"], "B": [0, 1, 2], "C": np.random.rand(3)}
+            {
+                "A": [np.nan, "b", "c"],
+                "B": [0, 1, 2],
+                "C": np.random.default_rng(2).random(3),
+            }
         )
         rs = df.set_index(["A", "B"]).reset_index()
         tm.assert_frame_equal(rs, df)
@@ -328,7 +328,7 @@ class TestResetIndex:
             {
                 "A": ["a", "b", "c"],
                 "B": [np.nan, np.nan, np.nan],
-                "C": np.random.rand(3),
+                "C": np.random.default_rng(2).random(3),
             }
         )
         rs = df.set_index(["A", "B"]).reset_index()
@@ -486,23 +486,20 @@ class TestResetIndex:
 
         expected = DataFrame(
             {
-                "idx1": [
-                    datetime(2011, 1, 1),
-                    datetime(2011, 1, 2),
-                    datetime(2011, 1, 3),
-                    datetime(2011, 1, 4),
-                    datetime(2011, 1, 5),
-                ],
+                "idx1": idx1,
                 "idx2": np.arange(5, dtype="int64"),
                 "a": np.arange(5, dtype="int64"),
                 "b": ["A", "B", "C", "D", "E"],
             },
             columns=["idx1", "idx2", "a", "b"],
         )
-        expected["idx1"] = expected["idx1"].apply(lambda d: Timestamp(d, tz=tz))
 
         tm.assert_frame_equal(df.reset_index(), expected)
 
+    def test_reset_index_datetime2(self, tz_naive_fixture):
+        tz = tz_naive_fixture
+        idx1 = date_range("1/1/2011", periods=5, freq="D", tz=tz, name="idx1")
+        idx2 = Index(range(5), name="idx2", dtype="int64")
         idx3 = date_range(
             "1/1/2012", periods=5, freq="MS", tz="Europe/Paris", name="idx3"
         )
@@ -514,36 +511,22 @@ class TestResetIndex:
 
         expected = DataFrame(
             {
-                "idx1": [
-                    datetime(2011, 1, 1),
-                    datetime(2011, 1, 2),
-                    datetime(2011, 1, 3),
-                    datetime(2011, 1, 4),
-                    datetime(2011, 1, 5),
-                ],
+                "idx1": idx1,
                 "idx2": np.arange(5, dtype="int64"),
-                "idx3": [
-                    datetime(2012, 1, 1),
-                    datetime(2012, 2, 1),
-                    datetime(2012, 3, 1),
-                    datetime(2012, 4, 1),
-                    datetime(2012, 5, 1),
-                ],
+                "idx3": idx3,
                 "a": np.arange(5, dtype="int64"),
                 "b": ["A", "B", "C", "D", "E"],
             },
             columns=["idx1", "idx2", "idx3", "a", "b"],
         )
-        expected["idx1"] = expected["idx1"].apply(lambda d: Timestamp(d, tz=tz))
-        expected["idx3"] = expected["idx3"].apply(
-            lambda d: Timestamp(d, tz="Europe/Paris")
-        )
-        tm.assert_frame_equal(df.reset_index(), expected)
+        result = df.reset_index()
+        tm.assert_frame_equal(result, expected)
 
+    def test_reset_index_datetime3(self, tz_naive_fixture):
         # GH#7793
-        idx = MultiIndex.from_product(
-            [["a", "b"], date_range("20130101", periods=3, tz=tz)]
-        )
+        tz = tz_naive_fixture
+        dti = date_range("20130101", periods=3, tz=tz)
+        idx = MultiIndex.from_product([["a", "b"], dti])
         df = DataFrame(
             np.arange(6, dtype="int64").reshape(6, 1), columns=["a"], index=idx
         )
@@ -551,17 +534,11 @@ class TestResetIndex:
         expected = DataFrame(
             {
                 "level_0": "a a a b b b".split(),
-                "level_1": [
-                    datetime(2013, 1, 1),
-                    datetime(2013, 1, 2),
-                    datetime(2013, 1, 3),
-                ]
-                * 2,
+                "level_1": dti.append(dti),
                 "a": np.arange(6, dtype="int64"),
             },
             columns=["level_0", "level_1", "a"],
         )
-        expected["level_1"] = expected["level_1"].apply(lambda d: Timestamp(d, tz=tz))
         result = df.reset_index()
         tm.assert_frame_equal(result, expected)
 
@@ -593,7 +570,11 @@ class TestResetIndex:
     def test_reset_index_delevel_infer_dtype(self):
         tuples = list(product(["foo", "bar"], [10, 20], [1.0, 1.1]))
         index = MultiIndex.from_tuples(tuples, names=["prm0", "prm1", "prm2"])
-        df = DataFrame(np.random.randn(8, 3), columns=["A", "B", "C"], index=index)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((8, 3)),
+            columns=["A", "B", "C"],
+            index=index,
+        )
         deleveled = df.reset_index()
         assert is_integer_dtype(deleveled["prm1"])
         assert is_float_dtype(deleveled["prm2"])
@@ -671,21 +652,22 @@ class TestResetIndex:
         ),
     ],
 )
-def test_reset_index_dtypes_on_empty_frame_with_multiindex(array, dtype):
+def test_reset_index_dtypes_on_empty_frame_with_multiindex(
+    array, dtype, using_infer_string
+):
     # GH 19602 - Preserve dtype on empty DataFrame with MultiIndex
     idx = MultiIndex.from_product([[0, 1], [0.5, 1.0], array])
     result = DataFrame(index=idx)[:0].reset_index().dtypes
+    if using_infer_string and dtype == object:
+        dtype = "string"
     expected = Series({"level_0": np.int64, "level_1": np.float64, "level_2": dtype})
     tm.assert_series_equal(result, expected)
 
 
 def test_reset_index_empty_frame_with_datetime64_multiindex():
     # https://github.com/pandas-dev/pandas/issues/35606
-    idx = MultiIndex(
-        levels=[[Timestamp("2020-07-20 00:00:00")], [3, 4]],
-        codes=[[], []],
-        names=["a", "b"],
-    )
+    dti = pd.DatetimeIndex(["2020-07-20 00:00:00"], dtype="M8[ns]")
+    idx = MultiIndex.from_product([dti, [3, 4]], names=["a", "b"])[:0]
     df = DataFrame(index=idx, columns=["c", "d"])
     result = df.reset_index()
     expected = DataFrame(
@@ -696,9 +678,12 @@ def test_reset_index_empty_frame_with_datetime64_multiindex():
     tm.assert_frame_equal(result, expected)
 
 
-def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby():
+def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby(
+    using_infer_string,
+):
     # https://github.com/pandas-dev/pandas/issues/35657
-    df = DataFrame({"c1": [10.0], "c2": ["a"], "c3": pd.to_datetime("2020-01-01")})
+    dti = pd.DatetimeIndex(["2020-01-01"], dtype="M8[ns]")
+    df = DataFrame({"c1": [10.0], "c2": ["a"], "c3": dti})
     df = df.head(0).groupby(["c2", "c3"])[["c1"]].sum()
     result = df.reset_index()
     expected = DataFrame(
@@ -706,6 +691,8 @@ def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby():
     )
     expected["c3"] = expected["c3"].astype("datetime64[ns]")
     expected["c1"] = expected["c1"].astype("float64")
+    if using_infer_string:
+        expected["c2"] = expected["c2"].astype("string[pyarrow_numpy]")
     tm.assert_frame_equal(result, expected)
 
 
@@ -716,9 +703,12 @@ def test_reset_index_multiindex_nat():
     df = DataFrame({"id": idx, "tstamp": tstamp, "a": list("abc")})
     df.loc[2, "tstamp"] = pd.NaT
     result = df.set_index(["id", "tstamp"]).reset_index("id")
+    exp_dti = pd.DatetimeIndex(
+        ["2015-07-01", "2015-07-02", "NaT"], dtype="M8[ns]", name="tstamp"
+    )
     expected = DataFrame(
         {"id": range(3), "a": list("abc")},
-        index=pd.DatetimeIndex(["2015-07-01", "2015-07-02", "NaT"], name="tstamp"),
+        index=exp_dti,
     )
     tm.assert_frame_equal(result, expected)
 
@@ -749,7 +739,7 @@ def test_reset_index_rename(float_frame):
 
 def test_reset_index_rename_multiindex(float_frame):
     # GH 6878
-    stacked_df = float_frame.stack()[::2]
+    stacked_df = float_frame.stack(future_stack=True)[::2]
     stacked_df = DataFrame({"foo": stacked_df, "bar": stacked_df})
 
     names = ["first", "second"]
@@ -763,7 +753,7 @@ def test_reset_index_rename_multiindex(float_frame):
 
 def test_errorreset_index_rename(float_frame):
     # GH 6878
-    stacked_df = float_frame.stack()[::2]
+    stacked_df = float_frame.stack(future_stack=True)[::2]
     stacked_df = DataFrame({"first": stacked_df, "second": stacked_df})
 
     with pytest.raises(
@@ -776,15 +766,15 @@ def test_errorreset_index_rename(float_frame):
 
 
 def test_reset_index_false_index_name():
-    result_series = Series(data=range(5, 10), index=range(0, 5))
+    result_series = Series(data=range(5, 10), index=range(5))
     result_series.index.name = False
     result_series.reset_index()
-    expected_series = Series(range(5, 10), RangeIndex(range(0, 5), name=False))
+    expected_series = Series(range(5, 10), RangeIndex(range(5), name=False))
     tm.assert_series_equal(result_series, expected_series)
 
     # GH 38147
-    result_frame = DataFrame(data=range(5, 10), index=range(0, 5))
+    result_frame = DataFrame(data=range(5, 10), index=range(5))
     result_frame.index.name = False
     result_frame.reset_index()
-    expected_frame = DataFrame(range(5, 10), RangeIndex(range(0, 5), name=False))
+    expected_frame = DataFrame(range(5, 10), RangeIndex(range(5), name=False))
     tm.assert_frame_equal(result_frame, expected_frame)

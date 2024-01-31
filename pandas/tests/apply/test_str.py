@@ -31,7 +31,7 @@ from pandas.tests.apply.common import (
 @pytest.mark.parametrize("how", ["agg", "apply"])
 def test_apply_with_string_funcs(request, float_frame, func, args, kwds, how):
     if len(args) > 1 and how == "agg":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 raises=TypeError,
                 reason="agg/apply signature mismatch - agg passes 2nd "
@@ -43,10 +43,9 @@ def test_apply_with_string_funcs(request, float_frame, func, args, kwds, how):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("arg", ["sum", "mean", "min", "max", "std"])
-def test_with_string_args(datetime_series, arg):
-    result = datetime_series.apply(arg)
-    expected = getattr(datetime_series, arg)()
+def test_with_string_args(datetime_series, all_numeric_reductions):
+    result = datetime_series.apply(all_numeric_reductions)
+    expected = getattr(datetime_series, all_numeric_reductions)()
     assert result == expected
 
 
@@ -135,7 +134,9 @@ def test_agg_cython_table_series(series, func, expected):
     # GH21224
     # test reducing functions in
     # pandas.core.base.SelectionMixin._cython_table
-    result = series.agg(func)
+    warn = None if isinstance(func, str) else FutureWarning
+    with tm.assert_produces_warning(warn, match="is currently using Series.*"):
+        result = series.agg(func)
     if is_number(expected):
         assert np.isclose(result, expected, equal_nan=True)
     else:
@@ -168,7 +169,9 @@ def test_agg_cython_table_transform_series(series, func, expected):
     # GH21224
     # test transforming functions in
     # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
-    result = series.agg(func)
+    warn = None if isinstance(func, str) else FutureWarning
+    with tm.assert_produces_warning(warn, match="is currently using Series.*"):
+        result = series.agg(func)
     tm.assert_series_equal(result, expected)
 
 
@@ -211,7 +214,10 @@ def test_agg_cython_table_frame(df, func, expected, axis):
     # GH 21224
     # test reducing functions in
     # pandas.core.base.SelectionMixin._cython_table
-    result = df.agg(func, axis=axis)
+    warn = None if isinstance(func, str) else FutureWarning
+    with tm.assert_produces_warning(warn, match="is currently using DataFrame.*"):
+        # GH#53425
+        result = df.agg(func, axis=axis)
     tm.assert_series_equal(result, expected)
 
 
@@ -238,7 +244,10 @@ def test_agg_cython_table_transform_frame(df, func, expected, axis):
         # operating blockwise doesn't let us preserve dtypes
         expected = expected.astype("float64")
 
-    result = df.agg(func, axis=axis)
+    warn = None if isinstance(func, str) else FutureWarning
+    with tm.assert_produces_warning(warn, match="is currently using DataFrame.*"):
+        # GH#53425
+        result = df.agg(func, axis=axis)
     tm.assert_frame_equal(result, expected)
 
 
@@ -246,12 +255,16 @@ def test_agg_cython_table_transform_frame(df, func, expected, axis):
 def test_transform_groupby_kernel_series(request, string_series, op):
     # GH 35964
     if op == "ngroup":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(raises=ValueError, reason="ngroup not valid for NDFrame")
         )
     args = [0.0] if op == "fillna" else []
     ones = np.ones(string_series.shape[0])
-    expected = string_series.groupby(ones).transform(op, *args)
+
+    warn = FutureWarning if op == "fillna" else None
+    msg = "SeriesGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(warn, match=msg):
+        expected = string_series.groupby(ones).transform(op, *args)
     result = string_series.transform(op, 0, *args)
     tm.assert_series_equal(result, expected)
 
@@ -259,7 +272,7 @@ def test_transform_groupby_kernel_series(request, string_series, op):
 @pytest.mark.parametrize("op", frame_transform_kernels)
 def test_transform_groupby_kernel_frame(request, axis, float_frame, op):
     if op == "ngroup":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(raises=ValueError, reason="ngroup not valid for NDFrame")
         )
 
@@ -275,7 +288,12 @@ def test_transform_groupby_kernel_frame(request, axis, float_frame, op):
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
         gb = float_frame.groupby(ones, axis=axis)
-    expected = gb.transform(op, *args)
+
+    warn = FutureWarning if op == "fillna" else None
+    op_msg = "DataFrameGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(warn, match=op_msg):
+        expected = gb.transform(op, *args)
+
     result = float_frame.transform(op, axis, *args)
     tm.assert_frame_equal(result, expected)
 
@@ -290,7 +308,10 @@ def test_transform_groupby_kernel_frame(request, axis, float_frame, op):
         ones = np.ones(float_frame.shape[1])
     with tm.assert_produces_warning(FutureWarning, match=msg):
         gb2 = float_frame.groupby(ones, axis=axis)
-    expected2 = gb2.transform(op, *args)
+    warn = FutureWarning if op == "fillna" else None
+    op_msg = "DataFrameGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(warn, match=op_msg):
+        expected2 = gb2.transform(op, *args)
     result2 = float_frame.transform(op, axis, *args)
     tm.assert_frame_equal(result2, expected2)
 

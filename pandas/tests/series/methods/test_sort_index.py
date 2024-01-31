@@ -1,5 +1,3 @@
-import random
-
 import numpy as np
 import pytest
 
@@ -26,7 +24,7 @@ class TestSeriesSortIndex:
         datetime_series.index = datetime_series.index._with_freq(None)
 
         rindex = list(datetime_series.index)
-        random.shuffle(rindex)
+        np.random.default_rng(2).shuffle(rindex)
 
         random_order = datetime_series.reindex(rindex)
         sorted_series = random_order.sort_index()
@@ -61,7 +59,7 @@ class TestSeriesSortIndex:
 
         # For GH#11402
         rindex = list(datetime_series.index)
-        random.shuffle(rindex)
+        np.random.default_rng(2).shuffle(rindex)
 
         # descending
         random_order = datetime_series.reindex(rindex)
@@ -318,4 +316,22 @@ class TestSeriesSortIndexKey:
 
         result = s.sort_index(key=lambda x: x.month_name())
         expected = s.iloc[[2, 1, 0]]
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "ascending",
+        [
+            [True, False],
+            [False, True],
+        ],
+    )
+    def test_sort_index_multi_already_monotonic(self, ascending):
+        # GH 56049
+        mi = MultiIndex.from_product([[1, 2], [3, 4]])
+        ser = Series(range(len(mi)), index=mi)
+        result = ser.sort_index(ascending=ascending)
+        if ascending == [True, False]:
+            expected = ser.take([1, 0, 3, 2])
+        elif ascending == [False, True]:
+            expected = ser.take([2, 3, 0, 1])
         tm.assert_series_equal(result, expected)

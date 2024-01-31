@@ -128,7 +128,7 @@ In particular, the Core Team may:
     and merging pull requests.
 -   Make decisions about the Services that are run by The Project and manage
     those Services for the benefit of the Project and Community.
--   Make decisions when regular community discussion doesn’t produce consensus
+-   Make decisions when regular community discussion doesn't produce consensus
     on an issue in a reasonable time frame.
 
 ### Core Team membership
@@ -157,7 +157,7 @@ they will be considered for removal from the Core Team. Before removal,
 inactive Member will be approached by the BDFL to see if they plan on returning
 to active participation. If not they will be removed immediately upon a Core
 Team vote. If they plan on returning to active participation soon, they will be
-given a grace period of one year. If they don’t return to active participation
+given a grace period of one year. If they don't return to active participation
 within that time period they will be removed by vote of the Core Team without
 further grace period. All former Core Team members can be considered for
 membership again at any time in the future, like any other Project Contributor.

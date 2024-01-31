@@ -37,13 +37,10 @@ class TestGetitem:
 
     def test_getitem_periodindex(self):
         rng = period_range("1/1/2000", periods=5)
-        df = DataFrame(np.random.randn(10, 5), columns=rng)
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 5)), columns=rng)
 
         ts = df[rng[0]]
         tm.assert_series_equal(ts, df.iloc[:, 0])
-
-        # GH#1211; smoketest unrelated to the rest of this test
-        repr(df)
 
         ts = df["1/1/2000"]
         tm.assert_series_equal(ts, df.iloc[:, 0])
@@ -93,7 +90,9 @@ class TestGetitemListLike:
 
     def test_getitem_list_duplicates(self):
         # GH#1943
-        df = DataFrame(np.random.randn(4, 4), columns=list("AABC"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 4)), columns=list("AABC")
+        )
         df.columns.name = "foo"
 
         result = df[["B", "C"]]
@@ -104,7 +103,7 @@ class TestGetitemListLike:
 
     def test_getitem_dupe_cols(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "a", "b"])
-        msg = "\"None of [Index(['baf'], dtype='object')] are in the [columns]\""
+        msg = "\"None of [Index(['baf'], dtype="
         with pytest.raises(KeyError, match=re.escape(msg)):
             df[["baf"]]
 
@@ -129,7 +128,7 @@ class TestGetitemListLike:
         else:
             # MultiIndex columns
             frame = DataFrame(
-                np.random.randn(8, 3),
+                np.random.default_rng(2).standard_normal((8, 3)),
                 columns=Index(
                     [("foo", "bar"), ("baz", "qux"), ("peek", "aboo")],
                     name=("sth", "sth2"),
@@ -370,8 +369,6 @@ class TestGetitemBooleanMask:
         result = df[df.C > 6]
 
         tm.assert_frame_equal(result, expected)
-        result.dtypes
-        str(result)
 
     def test_getitem_boolean_frame_with_duplicate_columns(self, df_dup_cols):
         # where
@@ -386,8 +383,6 @@ class TestGetitemBooleanMask:
         result = df[df > 6]
 
         tm.assert_frame_equal(result, expected)
-        result.dtypes
-        str(result)
 
     def test_getitem_empty_frame_with_boolean(self):
         # Test for issue GH#11859
@@ -397,13 +392,14 @@ class TestGetitemBooleanMask:
         tm.assert_frame_equal(df, df2)
 
     def test_getitem_returns_view_when_column_is_unique_in_df(
-        self, using_copy_on_write
+        self, using_copy_on_write, warn_copy_on_write
     ):
         # GH#45316
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "a", "b"])
         df_orig = df.copy()
         view = df["b"]
-        view.loc[:] = 100
+        with tm.assert_cow_warning(warn_copy_on_write):
+            view.loc[:] = 100
         if using_copy_on_write:
             expected = df_orig
         else:
@@ -425,7 +421,7 @@ class TestGetitemSlice:
 
         start, end = values[[5, 15]]
 
-        data = np.random.randn(20, 3)
+        data = np.random.default_rng(2).standard_normal((20, 3))
         if frame_or_series is not DataFrame:
             data = data[:, 0]
 
@@ -455,6 +451,14 @@ class TestGetitemSlice:
             KeyError, match="Value based partial slicing on non-monotonic"
         ):
             df["2011-01-01":"2011-11-01"]
+
+    def test_getitem_slice_same_dim_only_one_axis(self):
+        # GH#54622
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 8)))
+        result = df.iloc[(slice(None, None, 2),)]
+        assert result.shape == (5, 8)
+        expected = df.iloc[slice(None, None, 2), slice(None)]
+        tm.assert_frame_equal(result, expected)
 
 
 class TestGetitemDeprecatedIndexers:

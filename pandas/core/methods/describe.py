@@ -12,8 +12,6 @@ from abc import (
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
-    Sequence,
     cast,
 )
 
@@ -43,6 +41,11 @@ from pandas.core.reshape.concat import concat
 from pandas.io.formats.format import format_percentiles
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
+
     from pandas import (
         DataFrame,
         Series,
@@ -143,6 +146,8 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
         A black list of data types to omit from the result.
     """
 
+    obj: DataFrame
+
     def __init__(
         self,
         obj: DataFrame,
@@ -193,16 +198,18 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
                 include=self.include,
                 exclude=self.exclude,
             )
-        return data  # pyright: ignore[reportGeneralTypeIssues]
+        return data
 
 
 def reorder_columns(ldesc: Sequence[Series]) -> list[Hashable]:
     """Set a convenient order for rows for display."""
     names: list[Hashable] = []
+    seen_names: set[Hashable] = set()
     ldesc_indexes = sorted((x.index for x in ldesc), key=len)
     for idxnames in ldesc_indexes:
         for name in idxnames:
-            if name not in names:
+            if name not in seen_names:
+                seen_names.add(name)
                 names.append(name)
     return names
 
@@ -296,7 +303,7 @@ def describe_timestamp_as_categorical_1d(
     names = ["count", "unique"]
     objcounts = data.value_counts()
     count_unique = len(objcounts[objcounts != 0])
-    result = [data.count(), count_unique]
+    result: list[float | Timestamp] = [data.count(), count_unique]
     dtype = None
     if count_unique > 0:
         top, freq = objcounts.index[0], objcounts.iloc[0]

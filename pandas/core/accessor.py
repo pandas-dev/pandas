@@ -54,7 +54,7 @@ class PandasDelegate:
     def _delegate_property_get(self, name: str, *args, **kwargs):
         raise TypeError(f"You cannot access the property {name}")
 
-    def _delegate_property_set(self, name: str, value, *args, **kwargs):
+    def _delegate_property_set(self, name: str, value, *args, **kwargs) -> None:
         raise TypeError(f"The property {name} cannot be set")
 
     def _delegate_method(self, name: str, *args, **kwargs):
@@ -187,7 +187,7 @@ def delegate_names(
     return add_delegate_accessors
 
 
-# Ported with modifications from xarray
+# Ported with modifications from xarray; licence at LICENSES/XARRAY_LICENSE
 # https://github.com/pydata/xarray/blob/master/xarray/core/extensions.py
 # 1. We don't need to catch and re-raise AttributeErrors as RuntimeErrors
 # 2. We use a UserWarning instead of a custom Warning
@@ -306,8 +306,8 @@ def _register_accessor(name: str, cls):
     def decorator(accessor):
         if hasattr(cls, name):
             warnings.warn(
-                f"registration of accessor {repr(accessor)} under name "
-                f"{repr(name)} for type {repr(cls)} is overriding a preexisting "
+                f"registration of accessor {accessor!r} under name "
+                f"{name!r} for type {cls!r} is overriding a preexisting "
                 f"attribute with the same name.",
                 UserWarning,
                 stacklevel=find_stack_level(),

@@ -16,18 +16,19 @@ modification, are permitted provided that the following conditions are met:
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL ESN SOCIAL SOFTWARE AB OR JONAS TARNSTROM BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+DISCLAIMED. IN NO EVENT SHALL ESN SOCIAL SOFTWARE AB OR JONAS TARNSTROM BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 Portions of code from MODP_ASCII - Ascii transformations (upper/lower, etc)
 https://github.com/client9/stringencoders
-Copyright (c) 2007  Nick Galbreath -- nickg [at] modp [dot] com. All rights reserved.
+Copyright (c) 2007  Nick Galbreath -- nickg [at] modp [dot] com. All rights
+reserved.
 
 Numeric decoder derived from TCL library
 https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
@@ -51,9 +52,9 @@ tree doesn't have cyclic references.
 
 #pragma once
 
+#include "pandas/portable.h"
 #include <stdio.h>
 #include <wchar.h>
-#include "pandas/portable.h"
 
 // Don't output any extra whitespaces when encoding
 #define JSON_NO_EXTRA_WHITESPACE
@@ -74,7 +75,8 @@ tree doesn't have cyclic references.
 #endif
 
 /*
-Dictates and limits how much stack space for buffers UltraJSON will use before resorting to provided heap functions */
+Dictates and limits how much stack space for buffers UltraJSON will use before
+resorting to provided heap functions */
 #ifndef JSON_MAX_STACK_BUFFER_SIZE
 #define JSON_MAX_STACK_BUFFER_SIZE 131072
 #endif
@@ -138,23 +140,23 @@ typedef int64_t JSLONG;
 #endif
 
 enum JSTYPES {
-  JT_NULL,     // NULL
-  JT_TRUE,     // boolean true
-  JT_FALSE,    // boolean false
-  JT_INT,      // (JSINT32 (signed 32-bit))
-  JT_LONG,     // (JSINT64 (signed 64-bit))
-  JT_DOUBLE,   // (double)
-  JT_BIGNUM,   // integer larger than sys.maxsize
-  JT_UTF8,     // (char 8-bit)
-  JT_ARRAY,    // Array structure
-  JT_OBJECT,   // Key/Value structure
-  JT_INVALID,  // Internal, do not return nor expect
-  JT_POS_INF,  // Positive infinity
-  JT_NEG_INF,  // Negative infinity
+  JT_NULL,    // NULL
+  JT_TRUE,    // boolean true
+  JT_FALSE,   // boolean false
+  JT_INT,     // (JSINT32 (signed 32-bit))
+  JT_LONG,    // (JSINT64 (signed 64-bit))
+  JT_DOUBLE,  // (double)
+  JT_BIGNUM,  // integer larger than sys.maxsize
+  JT_UTF8,    // (char 8-bit)
+  JT_ARRAY,   // Array structure
+  JT_OBJECT,  // Key/Value structure
+  JT_INVALID, // Internal, do not return nor expect
+  JT_POS_INF, // Positive infinity
+  JT_NEG_INF, // Negative infinity
 };
 
-typedef void * JSOBJ;
-typedef void * JSITER;
+typedef void *JSOBJ;
+typedef void *JSITER;
 
 typedef struct __JSONTypeContext {
   int type;
@@ -183,17 +185,18 @@ typedef struct __JSONObjectEncoder {
   JSINT32 (*getIntValue)(JSOBJ obj, JSONTypeContext *tc);
   double (*getDoubleValue)(JSOBJ obj, JSONTypeContext *tc);
   const char *(*getBigNumStringValue)(JSOBJ obj, JSONTypeContext *tc,
-                                size_t *_outLen);
+                                      size_t *_outLen);
 
   /*
   Begin iteration of an iterable object (JS_ARRAY or JS_OBJECT)
-  Implementor should setup iteration state in ti->prv
+  Implementer should setup iteration state in ti->prv
   */
   JSPFN_ITERBEGIN iterBegin;
 
   /*
-  Retrieve next object in an iteration. Should return 0 to indicate iteration has reached end or 1 if there are more items.
-  Implementor is responsible for keeping state of the iteration. Use ti->prv fields for this
+  Retrieve next object in an iteration. Should return 0 to indicate iteration
+  has reached end or 1 if there are more items. Implementer is responsible for
+  keeping state of the iteration. Use ti->prv fields for this
   */
   JSPFN_ITERNEXT iterNext;
 
@@ -205,19 +208,22 @@ typedef struct __JSONObjectEncoder {
 
   /*
   Returns a reference to the value object of an iterator
-  The is responsible for the life-cycle of the returned string. Use iterNext/iterEnd and ti->prv to keep track of current object
+  The is responsible for the life-cycle of the returned string. Use
+  iterNext/iterEnd and ti->prv to keep track of current object
   */
   JSPFN_ITERGETVALUE iterGetValue;
 
   /*
   Return name of iterator.
-  The is responsible for the life-cycle of the returned string. Use iterNext/iterEnd and ti->prv to keep track of current object
+  The is responsible for the life-cycle of the returned string. Use
+  iterNext/iterEnd and ti->prv to keep track of current object
   */
   JSPFN_ITERGETNAME iterGetName;
 
   /*
-  Release a value as indicated by setting ti->release = 1 in the previous getValue call.
-  The ti->prv array should contain the necessary context to release the value
+  Release a value as indicated by setting ti->release = 1 in the previous
+  getValue call. The ti->prv array should contain the necessary context to
+  release the value
   */
   void (*releaseObject)(JSOBJ obj);
 
@@ -228,19 +234,23 @@ typedef struct __JSONObjectEncoder {
   JSPFN_FREE free;
 
   /*
-  Configuration for max recursion, set to 0 to use default (see JSON_MAX_RECURSION_DEPTH)*/
+  Configuration for max recursion, set to 0 to use default (see
+  JSON_MAX_RECURSION_DEPTH)*/
   int recursionMax;
 
   /*
-  Configuration for max decimals of double floating point numbers to encode (0-9) */
+  Configuration for max decimals of double floating point numbers to encode
+  (0-9) */
   int doublePrecision;
 
   /*
-  If true output will be ASCII with all characters above 127 encoded as \uXXXX. If false output will be UTF-8 or what ever charset strings are brought as */
+  If true output will be ASCII with all characters above 127 encoded as \uXXXX.
+  If false output will be UTF-8 or what ever charset strings are brought as */
   int forceASCII;
 
   /*
-  If true, '<', '>', and '&' characters will be encoded as \u003c, \u003e, and \u0026, respectively. If false, no special encoding will be used. */
+  If true, '<', '>', and '&' characters will be encoded as \u003c, \u003e, and
+  \u0026, respectively. If false, no special encoding will be used. */
   int encodeHTMLChars;
 
   /*
@@ -266,18 +276,20 @@ Encode an object structure into JSON.
 Arguments:
 obj - An anonymous type representing the object
 enc - Function definitions for querying JSOBJ type
-buffer - Preallocated buffer to store result in. If NULL function allocates own buffer
-cbBuffer - Length of buffer (ignored if buffer is NULL)
+buffer - Preallocated buffer to store result in. If NULL function allocates own
+buffer cbBuffer - Length of buffer (ignored if buffer is NULL)
 
 Returns:
 Encoded JSON object as a null terminated char string.
 
 NOTE:
-If the supplied buffer wasn't enough to hold the result the function will allocate a new buffer.
-Life cycle of the provided buffer must still be handled by caller.
+If the supplied buffer wasn't enough to hold the result the function will
+allocate a new buffer. Life cycle of the provided buffer must still be handled
+by caller.
 
-If the return value doesn't equal the specified buffer caller must release the memory using
-JSONObjectEncoder.free or free() as specified when calling this function.
+If the return value doesn't equal the specified buffer caller must release the
+memory using JSONObjectEncoder.free or free() as specified when calling this
+function.
 */
 EXPORTFUNCTION char *JSON_EncodeObject(JSOBJ obj, JSONObjectEncoder *enc,
                                        char *buffer, size_t cbBuffer);

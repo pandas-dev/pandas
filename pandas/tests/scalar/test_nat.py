@@ -33,6 +33,17 @@ from pandas.core.arrays import (
 )
 
 
+class TestNaTFormatting:
+    def test_repr(self):
+        assert repr(NaT) == "NaT"
+
+    def test_str(self):
+        assert str(NaT) == "NaT"
+
+    def test_isoformat(self):
+        assert NaT.isoformat() == "NaT"
+
+
 @pytest.mark.parametrize(
     "nat,idx",
     [
@@ -135,7 +146,6 @@ def test_round_nat(klass, method, freq):
         "utcnow",
         "utcoffset",
         "utctimetuple",
-        "timestamp",
     ],
 )
 def test_nat_methods_raise(method):
@@ -311,14 +321,15 @@ def test_nat_doc_strings(compare):
     klass, method = compare
     klass_doc = getattr(klass, method).__doc__
 
-    # Ignore differences with Timestamp.isoformat() as they're intentional
     if klass == Timestamp and method == "isoformat":
-        return
+        pytest.skip(
+            "Ignore differences with Timestamp.isoformat() as they're intentional"
+        )
 
     if method == "to_numpy":
         # GH#44460 can return either dt64 or td64 depending on dtype,
         #  different docstring is intentional
-        return
+        pytest.skip(f"different docstring for {method} is intentional")
 
     nat_doc = getattr(NaT, method).__doc__
     assert klass_doc == nat_doc
@@ -430,7 +441,7 @@ def test_nat_rfloordiv_timedelta(val, expected):
     [
         DatetimeIndex(["2011-01-01", "2011-01-02"], name="x"),
         DatetimeIndex(["2011-01-01", "2011-01-02"], tz="US/Eastern", name="x"),
-        DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"]),
+        DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"], dtype="M8[ns]"),
         DatetimeArray._from_sequence(
             ["2011-01-01", "2011-01-02"], dtype=DatetimeTZDtype(tz="US/Pacific")
         ),
@@ -446,6 +457,7 @@ def test_nat_arithmetic_index(op_name, value):
         expected = DatetimeIndex(exp_data, tz=value.tz, name=exp_name)
     else:
         expected = TimedeltaIndex(exp_data, name=exp_name)
+    expected = expected.as_unit(value.unit)
 
     if not isinstance(value, Index):
         expected = expected.array
@@ -528,6 +540,8 @@ def test_to_numpy_alias():
             marks=pytest.mark.xfail(
                 not np_version_gte1p24p3,
                 reason="td64 doesn't return NotImplemented, see numpy#17017",
+                # When this xfail is fixed, test_nat_comparisons_numpy
+                #  can be removed.
             ),
         ),
         Timestamp(0),

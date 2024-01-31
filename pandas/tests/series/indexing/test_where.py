@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
@@ -54,7 +56,13 @@ def test_where_unsafe_upcast(dtype, expected_dtype):
     values = [2.5, 3.5, 4.5, 5.5, 6.5]
     mask = s < 5
     expected = Series(values + list(range(5, 10)), dtype=expected_dtype)
-    s[mask] = values
+    warn = (
+        None
+        if np.dtype(dtype).kind == np.dtype(expected_dtype).kind == "f"
+        else FutureWarning
+    )
+    with tm.assert_produces_warning(warn, match="incompatible dtype"):
+        s[mask] = values
     tm.assert_series_equal(s, expected)
 
 
@@ -66,7 +74,8 @@ def test_where_unsafe():
     mask = s > 5
     expected = Series(list(range(6)) + values, dtype="float64")
 
-    s[mask] = values
+    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        s[mask] = values
     tm.assert_series_equal(s, expected)
 
     # see gh-3235
@@ -114,7 +123,7 @@ def test_where_unsafe():
 
 
 def test_where():
-    s = Series(np.random.randn(5))
+    s = Series(np.random.default_rng(2).standard_normal(5))
     cond = s > 0
 
     rs = s.where(cond).dropna()
@@ -143,7 +152,7 @@ def test_where():
 
 
 def test_where_error():
-    s = Series(np.random.randn(5))
+    s = Series(np.random.default_rng(2).standard_normal(5))
     cond = s > 0
 
     msg = "Array conditional must be same shape as self"
@@ -192,7 +201,7 @@ def test_where_invalid_input(cond):
     s = Series([1, 2, 3])
     msg = "Boolean array expected for the condition"
 
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(TypeError, match=msg):
         s.where(cond)
 
     msg = "Array conditional must be same shape as self"
@@ -223,6 +232,7 @@ def test_where_ndframe_align():
     tm.assert_series_equal(out, expected)
 
 
+@pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't set ints into string")
 def test_where_setitem_invalid():
     # GH 2702
     # make sure correct exceptions are raised on invalid list assignment
@@ -287,11 +297,7 @@ def test_where_setitem_invalid():
 @pytest.mark.parametrize(
     "item", [2.0, np.nan, np.finfo(float).max, np.finfo(float).min]
 )
-# Test numpy arrays, lists and tuples as the input to be
-# broadcast
-@pytest.mark.parametrize(
-    "box", [lambda x: np.array([x]), lambda x: [x], lambda x: (x,)]
-)
+@pytest.mark.parametrize("box", [np.array, list, tuple])
 def test_broadcast(size, mask, item, box):
     # GH#8801, GH#4195
     selection = np.resize(mask, size)
@@ -310,16 +316,16 @@ def test_broadcast(size, mask, item, box):
     tm.assert_series_equal(s, expected)
 
     s = Series(data)
-    result = s.where(~selection, box(item))
+    result = s.where(~selection, box([item]))
     tm.assert_series_equal(result, expected)
 
     s = Series(data)
-    result = s.mask(selection, box(item))
+    result = s.mask(selection, box([item]))
     tm.assert_series_equal(result, expected)
 
 
 def test_where_inplace():
-    s = Series(np.random.randn(5))
+    s = Series(np.random.default_rng(2).standard_normal(5))
     cond = s > 0
 
     rs = s.copy()
@@ -386,16 +392,21 @@ def test_where_datetimelike_coerce(dtype):
     expected = Series([10, 10])
     mask = np.array([False, False])
 
-    rs = ser.where(mask, [10, 10])
+    msg = "Downcasting behavior in Series and DataFrame methods 'where'"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        rs = ser.where(mask, [10, 10])
     tm.assert_series_equal(rs, expected)
 
-    rs = ser.where(mask, 10)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        rs = ser.where(mask, 10)
     tm.assert_series_equal(rs, expected)
 
-    rs = ser.where(mask, 10.0)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        rs = ser.where(mask, 10.0)
     tm.assert_series_equal(rs, expected)
 
-    rs = ser.where(mask, [10.0, 10.0])
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        rs = ser.where(mask, [10.0, 10.0])
     tm.assert_series_equal(rs, expected)
 
     rs = ser.where(mask, [10.0, np.nan])

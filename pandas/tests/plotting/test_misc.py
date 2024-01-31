@@ -1,4 +1,5 @@
 """ Test cases for misc plot functions """
+import os
 
 import numpy as np
 import pytest
@@ -10,8 +11,11 @@ from pandas import (
     Index,
     Series,
     Timestamp,
+    date_range,
     interval_range,
+    period_range,
     plotting,
+    read_csv,
 )
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
@@ -23,10 +27,19 @@ from pandas.tests.plotting.common import (
 )
 
 mpl = pytest.importorskip("matplotlib")
+plt = pytest.importorskip("matplotlib.pyplot")
 cm = pytest.importorskip("matplotlib.cm")
 
 
-@td.skip_if_mpl
+@pytest.fixture
+def iris(datapath) -> DataFrame:
+    """
+    The iris dataset as a DataFrame.
+    """
+    return read_csv(datapath("io", "data", "csv", "iris.csv"))
+
+
+@td.skip_if_installed("matplotlib")
 def test_import_error_message():
     # GH-19810
     df = DataFrame({"A": [1, 2]})
@@ -69,11 +82,39 @@ def test_get_accessor_args():
     assert len(kwargs) == 24
 
 
+@pytest.mark.parametrize("kind", plotting.PlotAccessor._all_kinds)
+@pytest.mark.parametrize(
+    "data", [DataFrame(np.arange(15).reshape(5, 3)), Series(range(5))]
+)
+@pytest.mark.parametrize(
+    "index",
+    [
+        Index(range(5)),
+        date_range("2020-01-01", periods=5),
+        period_range("2020-01-01", periods=5),
+    ],
+)
+def test_savefig(kind, data, index):
+    fig, ax = plt.subplots()
+    data.index = index
+    kwargs = {}
+    if kind in ["hexbin", "scatter", "pie"]:
+        if isinstance(data, Series):
+            pytest.skip(f"{kind} not supported with Series")
+        kwargs = {"x": 0, "y": 1}
+    data.plot(kind=kind, ax=ax, **kwargs)
+    fig.savefig(os.devnull)
+
+
 class TestSeriesPlots:
     def test_autocorrelation_plot(self):
         from pandas.plotting import autocorrelation_plot
 
-        ser = tm.makeTimeSeries(name="ts")
+        ser = Series(
+            np.arange(10, dtype=np.float64),
+            index=date_range("2020-01-01", periods=10),
+            name="ts",
+        )
         # Ensure no UserWarning when making plot
         with tm.assert_produces_warning(None):
             _check_plot_works(autocorrelation_plot, series=ser)
@@ -86,27 +127,35 @@ class TestSeriesPlots:
     def test_lag_plot(self, kwargs):
         from pandas.plotting import lag_plot
 
-        ser = tm.makeTimeSeries(name="ts")
+        ser = Series(
+            np.arange(10, dtype=np.float64),
+            index=date_range("2020-01-01", periods=10),
+            name="ts",
+        )
         _check_plot_works(lag_plot, series=ser, **kwargs)
 
     def test_bootstrap_plot(self):
         from pandas.plotting import bootstrap_plot
 
-        ser = tm.makeTimeSeries(name="ts")
+        ser = Series(
+            np.arange(10, dtype=np.float64),
+            index=date_range("2020-01-01", periods=10),
+            name="ts",
+        )
         _check_plot_works(bootstrap_plot, series=ser, size=10)
 
 
 class TestDataFramePlots:
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("pass_axis", [False, True])
     def test_scatter_matrix_axis(self, pass_axis):
+        pytest.importorskip("scipy")
         scatter_matrix = plotting.scatter_matrix
 
         ax = None
         if pass_axis:
             _, ax = mpl.pyplot.subplots(3, 3)
 
-        df = DataFrame(np.random.RandomState(42).randn(100, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((100, 3)))
 
         # we are plotting multiples on a sub-plot
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
@@ -122,16 +171,16 @@ class TestDataFramePlots:
         _check_text_labels(axes0_labels, expected)
         _check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("pass_axis", [False, True])
     def test_scatter_matrix_axis_smaller(self, pass_axis):
+        pytest.importorskip("scipy")
         scatter_matrix = plotting.scatter_matrix
 
         ax = None
         if pass_axis:
             _, ax = mpl.pyplot.subplots(3, 3)
 
-        df = DataFrame(np.random.RandomState(42).randn(100, 3))
+        df = DataFrame(np.random.default_rng(11).standard_normal((100, 3)))
         df[0] = (df[0] - 2) / 3
 
         # we are plotting multiples on a sub-plot
@@ -170,9 +219,9 @@ class TestDataFramePlots:
             "iris",
             DataFrame(
                 {
-                    "A": np.random.rand(10),
-                    "B": np.random.rand(10),
-                    "C": np.random.rand(10),
+                    "A": np.random.default_rng(2).standard_normal(10),
+                    "B": np.random.default_rng(2).standard_normal(10),
+                    "C": np.random.default_rng(2).standard_normal(10),
                     "Name": ["A"] * 10,
                 }
             ),
@@ -197,9 +246,9 @@ class TestDataFramePlots:
             "iris",
             DataFrame(
                 {
-                    "A": np.random.rand(10),
-                    "B": np.random.rand(10),
-                    "C": np.random.rand(10),
+                    "A": np.random.default_rng(2).standard_normal(10),
+                    "B": np.random.default_rng(2).standard_normal(10),
+                    "C": np.random.default_rng(2).standard_normal(10),
                     "Name": ["A"] * 10,
                 }
             ),
@@ -411,11 +460,11 @@ class TestDataFramePlots:
         # GH17525
         df = DataFrame(np.zeros((10, 10)))
 
-        # Make sure that the np.random.seed isn't reset by get_standard_colors
+        # Make sure that the random seed isn't reset by get_standard_colors
         plotting.parallel_coordinates(df, 0)
-        rand1 = np.random.random()
+        rand1 = np.random.default_rng(None).random()
         plotting.parallel_coordinates(df, 0)
-        rand2 = np.random.random()
+        rand2 = np.random.default_rng(None).random()
         assert rand1 != rand2
 
     def test_get_standard_colors_consistency(self):
@@ -467,7 +516,9 @@ class TestDataFramePlots:
         color_after = get_standard_colors(1, color=color_before)
         assert len(color_after) == len(color_before)
 
-        df = DataFrame(np.random.randn(48, 4), columns=list("ABCD"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((48, 4)), columns=list("ABCD")
+        )
 
         color_list = cm.gnuplot(np.linspace(0, 1, 16))
         p = df.A.plot.bar(figsize=(16, 7), color=color_list)
@@ -481,7 +532,7 @@ class TestDataFramePlots:
 
         expected = [(0.5, 0.24, 0.6), (0.3, 0.7, 0.7)]
 
-        df1 = DataFrame(np.random.rand(2, 2), columns=data_files)
+        df1 = DataFrame(np.random.default_rng(2).random((2, 2)), columns=data_files)
         dic_color = {"b": (0.3, 0.7, 0.7), "a": (0.5, 0.24, 0.6)}
 
         ax = df1.plot(kind=kind, color=dic_color)
@@ -515,9 +566,9 @@ class TestDataFramePlots:
         # Test barh plot with string and integer at the same column
         from matplotlib.text import Text
 
-        df = DataFrame([{"word": 1, "value": 0}, {"word": "knowledg", "value": 2}])
+        df = DataFrame([{"word": 1, "value": 0}, {"word": "knowledge", "value": 2}])
         plot_barh = df.plot.barh(x="word", legend=None)
-        expected_yticklabels = [Text(0, 0, "1"), Text(0, 1, "knowledg")]
+        expected_yticklabels = [Text(0, 0, "1"), Text(0, 1, "knowledge")]
         assert all(
             actual.get_text() == expected.get_text()
             for actual, expected in zip(
@@ -595,7 +646,12 @@ class TestDataFramePlots:
     def test_externally_shared_axes(self):
         # Example from GH33819
         # Create data
-        df = DataFrame({"a": np.random.randn(1000), "b": np.random.randn(1000)})
+        df = DataFrame(
+            {
+                "a": np.random.default_rng(2).standard_normal(1000),
+                "b": np.random.default_rng(2).standard_normal(1000),
+            }
+        )
 
         # Create figure
         fig = mpl.pyplot.figure()

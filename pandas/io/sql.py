@@ -24,15 +24,15 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Iterator,
     Literal,
-    Mapping,
     cast,
     overload,
 )
 import warnings
 
 import numpy as np
+
+from pandas._config import using_pyarrow_string_dtype
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -47,7 +47,10 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_list_like,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    DatetimeTZDtype,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas import get_option
@@ -58,10 +61,16 @@ from pandas.core.api import (
 from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
+from pandas.core.common import maybe_make_list
 from pandas.core.internals.construction import convert_object_array
 from pandas.core.tools.datetimes import to_datetime
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterator,
+        Mapping,
+    )
+
     from sqlalchemy import Table
     from sqlalchemy.sql.expression import (
         Select,
@@ -102,6 +111,12 @@ def _handle_date_column(
         # Format can take on custom to_datetime argument values such as
         # {"errors": "coerce"} or {"dayfirst": True}
         error: DateTimeErrorChoices = format.pop("errors", None) or "ignore"
+        if error == "ignore":
+            try:
+                return to_datetime(col, **format)
+            except (TypeError, ValueError):
+                # TODO: not reached 2023-10-27; needed?
+                return col
         return to_datetime(col, errors=error, **format)
     else:
         # Allow passing of formatting string for integers
@@ -135,7 +150,7 @@ def _parse_date_columns(data_frame, parse_dates):
         if isinstance(df_col.dtype, DatetimeTZDtype) or col_name in parse_dates:
             try:
                 fmt = parse_dates[col_name]
-            except TypeError:
+            except (KeyError, TypeError):
                 fmt = None
             data_frame.isetitem(i, _handle_date_column(df_col, format=fmt))
 
@@ -157,9 +172,17 @@ def _convert_arrays_to_dataframe(
     )
     if dtype_backend == "pyarrow":
         pa = import_optional_dependency("pyarrow")
-        arrays = [
-            ArrowExtensionArray(pa.array(arr, from_pandas=True)) for arr in arrays
-        ]
+
+        result_arrays = []
+        for arr in arrays:
+            pa_array = pa.array(arr, from_pandas=True)
+            if arr.dtype == "string":
+                # TODO: Arrow still infers strings arrays as regular strings instead
+                # of large_string, which is what we preserver everywhere else for
+                # dtype_backend="pyarrow". We may want to reconsider this
+                pa_array = pa_array.cast(pa.string())
+            result_arrays.append(ArrowExtensionArray(pa_array))
+        arrays = result_arrays  # type: ignore[assignment]
     if arrays:
         df = DataFrame(dict(zip(list(range(len(columns))), arrays)))
         df.columns = columns
@@ -177,7 +200,7 @@ def _wrap_result(
     dtype: DtypeArg | None = None,
     dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
 ):
-    """Wrap result set of query in a DataFrame."""
+    """Wrap result set of a SQLAlchemy query in a DataFrame."""
     frame = _convert_arrays_to_dataframe(data, columns, coerce_float, dtype_backend)
 
     if dtype:
@@ -189,6 +212,26 @@ def _wrap_result(
         frame = frame.set_index(index_col)
 
     return frame
+
+
+def _wrap_result_adbc(
+    df: DataFrame,
+    *,
+    index_col=None,
+    parse_dates=None,
+    dtype: DtypeArg | None = None,
+    dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+) -> DataFrame:
+    """Wrap result set of a SQLAlchemy query in a DataFrame."""
+    if dtype:
+        df = df.astype(dtype)
+
+    df = _parse_date_columns(df, parse_dates)
+
+    if index_col is not None:
+        df = df.set_index(index_col)
+
+    return df
 
 
 def execute(sql, con, params=None):
@@ -302,13 +345,14 @@ def read_sql_table(
     chunksize : int, default None
         If specified, returns an iterator where `chunksize` is the number of
         rows to include in each chunk.
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
 
@@ -437,16 +481,17 @@ def read_sql_query(
         rows to include in each chunk.
     dtype : Type name or dict of columns
         Data type for data or columns. E.g. np.float64 or
-        {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}.
+        {'a': np.float64, 'b': np.int32, 'c': 'Int64'}.
 
         .. versionadded:: 1.3.0
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
 
@@ -463,6 +508,13 @@ def read_sql_query(
     -----
     Any datetime values with time zone information parsed via the `parse_dates`
     parameter will be converted to UTC.
+
+    Examples
+    --------
+    >>> from sqlalchemy import create_engine  # doctest: +SKIP
+    >>> engine = create_engine("sqlite:///database.db")  # doctest: +SKIP
+    >>> with engine.connect() as conn, conn.begin():  # doctest: +SKIP
+    ...     data = pd.read_sql_table("data", conn)  # doctest: +SKIP
     """
 
     check_dtype_backend(dtype_backend)
@@ -541,12 +593,13 @@ def read_sql(
     ----------
     sql : str or SQLAlchemy Selectable (select or text object)
         SQL query to be executed or a table name.
-    con : SQLAlchemy connectable, str, or sqlite3 connection
+    con : ADBC Connection, SQLAlchemy connectable, str, or sqlite3 connection
+        ADBC provides high performance I/O with native type support, where available.
         Using SQLAlchemy makes it possible to use any DB supported by that
         library. If a DBAPI2 object, only sqlite3 is supported. The user is responsible
-        for engine disposal and connection closure for the SQLAlchemy connectable; str
-        connections are closed automatically. See
-        `here <https://docs.sqlalchemy.org/en/13/core/connections.html>`_.
+        for engine disposal and connection closure for the ADBC connection and
+        SQLAlchemy connectable; str connections are closed automatically. See
+        `here <https://docs.sqlalchemy.org/en/20/core/connections.html>`_.
     index_col : str or list of str, optional, default: None
         Column(s) to set as index(MultiIndex).
     coerce_float : bool, default True
@@ -573,18 +626,19 @@ def read_sql(
     chunksize : int, default None
         If specified, return an iterator where `chunksize` is the
         number of rows to include in each chunk.
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
     dtype : Type name or dict of columns
         Data type for data or columns. E.g. np.float64 or
-        {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}.
+        {'a': np.float64, 'b': np.int32, 'c': 'Int64'}.
         The argument is ignored if a table is passed instead of a query.
 
         .. versionadded:: 2.0.0
@@ -598,6 +652,14 @@ def read_sql(
     read_sql_table : Read SQL database table into a DataFrame.
     read_sql_query : Read SQL query into a DataFrame.
 
+    Notes
+    -----
+    ``pandas`` does not attempt to sanitize SQL statements;
+    instead it simply forwards the statement you are executing
+    to the underlying driver, which may or may not sanitize from there.
+    Please refer to the underlying driver documentation for any details.
+    Generally, be wary when accepting statements from arbitrary sources.
+
     Examples
     --------
     Read data from SQL via either a SQL query or a SQL tablename.
@@ -608,7 +670,7 @@ def read_sql(
     >>> conn = connect(':memory:')
     >>> df = pd.DataFrame(data=[[0, '10/11/12'], [1, '12/11/10']],
     ...                   columns=['int_column', 'date_column'])
-    >>> df.to_sql('test_data', conn)
+    >>> df.to_sql(name='test_data', con=conn)
     2
 
     >>> pd.read_sql('SELECT int_column, date_column FROM test_data', conn)
@@ -617,6 +679,14 @@ def read_sql(
     1           1    12/11/10
 
     >>> pd.read_sql('test_data', 'postgres:///db_name')  # doctest:+SKIP
+
+    For parameterized query, using ``params`` is recommended over string interpolation.
+
+    >>> from sqlalchemy import text
+    >>> sql = text('SELECT int_column, date_column FROM test_data WHERE int_column=:int_val')
+    >>> pd.read_sql(sql, conn, params={'int_val': 1})  # doctest:+SKIP
+       int_column date_column
+    0           1    12/11/10
 
     Apply date parsing to columns through the ``parse_dates`` argument
     The ``parse_dates`` argument calls ``pd.to_datetime`` on the provided columns.
@@ -629,7 +699,18 @@ def read_sql(
        int_column date_column
     0           0  2012-11-10
     1           1  2010-11-12
-    """
+
+    .. versionadded:: 2.2.0
+
+       pandas now supports reading via ADBC drivers
+
+    >>> from adbc_driver_postgresql import dbapi  # doctest:+SKIP
+    >>> with dbapi.connect('postgres:///db_name') as conn:  # doctest:+SKIP
+    ...     pd.read_sql('SELECT int_column FROM test_data', conn)
+       int_column
+    0           0
+    1           1
+    """  # noqa: E501
 
     check_dtype_backend(dtype_backend)
     if dtype_backend is lib.no_default:
@@ -685,7 +766,7 @@ def to_sql(
     schema: str | None = None,
     if_exists: Literal["fail", "replace", "append"] = "fail",
     index: bool = True,
-    index_label: IndexLabel = None,
+    index_label: IndexLabel | None = None,
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
     method: Literal["multi"] | Callable | None = None,
@@ -700,8 +781,9 @@ def to_sql(
     frame : DataFrame, Series
     name : str
         Name of SQL table.
-    con : SQLAlchemy connectable(engine/connection) or database string URI
+    con : ADBC Connection, SQLAlchemy connectable, str, or sqlite3 connection
         or sqlite3 DBAPI2 connection
+        ADBC provides high performance I/O with native type support, where available.
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
@@ -756,7 +838,8 @@ def to_sql(
     Notes
     -----
     The returned rows affected is the sum of the ``rowcount`` attribute of ``sqlite3.Cursor``
-    or SQLAlchemy connectable. The returned value may not reflect the exact number of written
+    or SQLAlchemy connectable. If using ADBC the returned rows are the result
+    of ``Cursor.adbc_ingest``. The returned value may not reflect the exact number of written
     rows as stipulated in the
     `sqlite3 <https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.rowcount>`__ or
     `SQLAlchemy <https://docs.sqlalchemy.org/en/14/core/connections.html#sqlalchemy.engine.BaseCursorResult.rowcount>`__
@@ -795,7 +878,8 @@ def has_table(table_name: str, con, schema: str | None = None) -> bool:
     ----------
     table_name: string
         Name of SQL table.
-    con: SQLAlchemy connectable(engine/connection) or sqlite3 DBAPI2 connection
+    con: ADBC Connection, SQLAlchemy connectable, str, or sqlite3 connection
+        ADBC provides high performance I/O with native type support, where available.
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
@@ -836,6 +920,10 @@ def pandasSQL_builder(
 
     if sqlalchemy is not None and isinstance(con, (str, sqlalchemy.engine.Connectable)):
         return SQLDatabase(con, schema, need_transaction)
+
+    adbc = import_optional_dependency("adbc_driver_manager.dbapi", errors="ignore")
+    if adbc and isinstance(con, adbc.Connection):
+        return ADBCDatabase(con)
 
     warnings.warn(
         "pandas only supports SQLAlchemy connectable (engine/connection) or "
@@ -950,8 +1038,12 @@ class SQLTable(PandasObject):
         from sqlalchemy import insert
 
         data = [dict(zip(keys, row)) for row in data_iter]
-        stmt = insert(self.table).values(data)
-        result = conn.execute(stmt)
+        stmt = insert(self.table)
+        # conn.execute is used here to ensure compatibility with Oracle.
+        # Using stmt.values(data) would produce a multi row insert that
+        # isn't supported by Oracle.
+        # see: https://docs.sqlalchemy.org/en/20/core/dml.html#sqlalchemy.sql.expression.Insert.values
+        result = conn.execute(stmt, data)
         return result.rowcount
 
     def insert_data(self) -> tuple[list[str], list[np.ndarray]]:
@@ -1438,7 +1530,7 @@ class PandasSQL(PandasObject, ABC):
         keys: list[str] | None = None,
         dtype: DtypeArg | None = None,
         schema: str | None = None,
-    ):
+    ) -> str:
         pass
 
 
@@ -1628,13 +1720,14 @@ class SQLDatabase(PandasSQL):
         chunksize : int, default None
             If specified, return an iterator where `chunksize` is the number
             of rows to include in each chunk.
-        dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy dtypes
-            Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-            arrays, nullable dtypes are used for all dtypes that have a nullable
-            implementation when "numpy_nullable" is set, pyarrow is used for all
-            dtypes if "pyarrow" is set.
+        dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+            Back-end data type applied to the resultant :class:`DataFrame`
+            (still experimental). Behaviour is as follows:
 
-            The dtype_backends are still experimential.
+            * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+              (default).
+            * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+              DataFrame.
 
             .. versionadded:: 2.0
 
@@ -1648,7 +1741,7 @@ class SQLDatabase(PandasSQL):
         SQLDatabase.read_query
 
         """
-        self.meta.reflect(bind=self.con, only=[table_name])
+        self.meta.reflect(bind=self.con, only=[table_name], views=True)
         table = SQLTable(table_name, self, index=index_col, schema=schema)
         if chunksize is not None:
             self.returns_generator = True
@@ -1745,7 +1838,7 @@ class SQLDatabase(PandasSQL):
             of rows to include in each chunk.
         dtype : Type name or dict of columns
             Data type for data or columns. E.g. np.float64 or
-            {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}
+            {'a': np.float64, 'b': np.int32, 'c': 'Int64'}
 
             .. versionadded:: 1.3.0
 
@@ -1982,7 +2075,9 @@ class SQLDatabase(PandasSQL):
     def drop_table(self, table_name: str, schema: str | None = None) -> None:
         schema = schema or self.meta.schema
         if self.has_table(table_name, schema):
-            self.meta.reflect(bind=self.con, only=[table_name], schema=schema)
+            self.meta.reflect(
+                bind=self.con, only=[table_name], schema=schema, views=True
+            )
             with self.run_transaction():
                 self.get_table(table_name, schema).drop(bind=self.con)
             self.meta.clear()
@@ -1994,7 +2089,7 @@ class SQLDatabase(PandasSQL):
         keys: list[str] | None = None,
         dtype: DtypeArg | None = None,
         schema: str | None = None,
-    ):
+    ) -> str:
         table = SQLTable(
             table_name,
             self,
@@ -2008,6 +2103,356 @@ class SQLDatabase(PandasSQL):
 
 
 # ---- SQL without SQLAlchemy ---
+
+
+class ADBCDatabase(PandasSQL):
+    """
+    This class enables conversion between DataFrame and SQL databases
+    using ADBC to handle DataBase abstraction.
+
+    Parameters
+    ----------
+    con : adbc_driver_manager.dbapi.Connection
+    """
+
+    def __init__(self, con) -> None:
+        self.con = con
+
+    @contextmanager
+    def run_transaction(self):
+        with self.con.cursor() as cur:
+            try:
+                yield cur
+            except Exception:
+                self.con.rollback()
+                raise
+            self.con.commit()
+
+    def execute(self, sql: str | Select | TextClause, params=None):
+        if not isinstance(sql, str):
+            raise TypeError("Query must be a string unless using sqlalchemy.")
+        args = [] if params is None else [params]
+        cur = self.con.cursor()
+        try:
+            cur.execute(sql, *args)
+            return cur
+        except Exception as exc:
+            try:
+                self.con.rollback()
+            except Exception as inner_exc:  # pragma: no cover
+                ex = DatabaseError(
+                    f"Execution failed on sql: {sql}\n{exc}\nunable to rollback"
+                )
+                raise ex from inner_exc
+
+            ex = DatabaseError(f"Execution failed on sql '{sql}': {exc}")
+            raise ex from exc
+
+    def read_table(
+        self,
+        table_name: str,
+        index_col: str | list[str] | None = None,
+        coerce_float: bool = True,
+        parse_dates=None,
+        columns=None,
+        schema: str | None = None,
+        chunksize: int | None = None,
+        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+    ) -> DataFrame | Iterator[DataFrame]:
+        """
+        Read SQL database table into a DataFrame.
+
+        Parameters
+        ----------
+        table_name : str
+            Name of SQL table in database.
+        coerce_float : bool, default True
+            Raises NotImplementedError
+        parse_dates : list or dict, default: None
+            - List of column names to parse as dates.
+            - Dict of ``{column_name: format string}`` where format string is
+              strftime compatible in case of parsing string times, or is one of
+              (D, s, ns, ms, us) in case of parsing integer timestamps.
+            - Dict of ``{column_name: arg}``, where the arg corresponds
+              to the keyword arguments of :func:`pandas.to_datetime`.
+              Especially useful with databases without native Datetime support,
+              such as SQLite.
+        columns : list, default: None
+            List of column names to select from SQL table.
+        schema : string, default None
+            Name of SQL schema in database to query (if database flavor
+            supports this).  If specified, this overwrites the default
+            schema of the SQL database object.
+        chunksize : int, default None
+            Raises NotImplementedError
+        dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+            Back-end data type applied to the resultant :class:`DataFrame`
+            (still experimental). Behaviour is as follows:
+
+            * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+              (default).
+            * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+              DataFrame.
+
+            .. versionadded:: 2.0
+
+        Returns
+        -------
+        DataFrame
+
+        See Also
+        --------
+        pandas.read_sql_table
+        SQLDatabase.read_query
+
+        """
+        if coerce_float is not True:
+            raise NotImplementedError(
+                "'coerce_float' is not implemented for ADBC drivers"
+            )
+        if chunksize:
+            raise NotImplementedError("'chunksize' is not implemented for ADBC drivers")
+
+        if columns:
+            if index_col:
+                index_select = maybe_make_list(index_col)
+            else:
+                index_select = []
+            to_select = index_select + columns
+            select_list = ", ".join(f'"{x}"' for x in to_select)
+        else:
+            select_list = "*"
+        if schema:
+            stmt = f"SELECT {select_list} FROM {schema}.{table_name}"
+        else:
+            stmt = f"SELECT {select_list} FROM {table_name}"
+
+        mapping: type[ArrowDtype] | None | Callable
+        if dtype_backend == "pyarrow":
+            mapping = ArrowDtype
+        elif dtype_backend == "numpy_nullable":
+            from pandas.io._util import _arrow_dtype_mapping
+
+            mapping = _arrow_dtype_mapping().get
+        elif using_pyarrow_string_dtype():
+            from pandas.io._util import arrow_string_types_mapper
+
+            arrow_string_types_mapper()
+        else:
+            mapping = None
+
+        with self.con.cursor() as cur:
+            cur.execute(stmt)
+            df = cur.fetch_arrow_table().to_pandas(types_mapper=mapping)
+
+        return _wrap_result_adbc(
+            df,
+            index_col=index_col,
+            parse_dates=parse_dates,
+        )
+
+    def read_query(
+        self,
+        sql: str,
+        index_col: str | list[str] | None = None,
+        coerce_float: bool = True,
+        parse_dates=None,
+        params=None,
+        chunksize: int | None = None,
+        dtype: DtypeArg | None = None,
+        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+    ) -> DataFrame | Iterator[DataFrame]:
+        """
+        Read SQL query into a DataFrame.
+
+        Parameters
+        ----------
+        sql : str
+            SQL query to be executed.
+        index_col : string, optional, default: None
+            Column name to use as index for the returned DataFrame object.
+        coerce_float : bool, default True
+            Raises NotImplementedError
+        params : list, tuple or dict, optional, default: None
+            Raises NotImplementedError
+        parse_dates : list or dict, default: None
+            - List of column names to parse as dates.
+            - Dict of ``{column_name: format string}`` where format string is
+              strftime compatible in case of parsing string times, or is one of
+              (D, s, ns, ms, us) in case of parsing integer timestamps.
+            - Dict of ``{column_name: arg dict}``, where the arg dict
+              corresponds to the keyword arguments of
+              :func:`pandas.to_datetime` Especially useful with databases
+              without native Datetime support, such as SQLite.
+        chunksize : int, default None
+            Raises NotImplementedError
+        dtype : Type name or dict of columns
+            Data type for data or columns. E.g. np.float64 or
+            {'a': np.float64, 'b': np.int32, 'c': 'Int64'}
+
+            .. versionadded:: 1.3.0
+
+        Returns
+        -------
+        DataFrame
+
+        See Also
+        --------
+        read_sql_table : Read SQL database table into a DataFrame.
+        read_sql
+
+        """
+        if coerce_float is not True:
+            raise NotImplementedError(
+                "'coerce_float' is not implemented for ADBC drivers"
+            )
+        if params:
+            raise NotImplementedError("'params' is not implemented for ADBC drivers")
+        if chunksize:
+            raise NotImplementedError("'chunksize' is not implemented for ADBC drivers")
+
+        mapping: type[ArrowDtype] | None | Callable
+        if dtype_backend == "pyarrow":
+            mapping = ArrowDtype
+        elif dtype_backend == "numpy_nullable":
+            from pandas.io._util import _arrow_dtype_mapping
+
+            mapping = _arrow_dtype_mapping().get
+        else:
+            mapping = None
+
+        with self.con.cursor() as cur:
+            cur.execute(sql)
+            df = cur.fetch_arrow_table().to_pandas(types_mapper=mapping)
+
+        return _wrap_result_adbc(
+            df,
+            index_col=index_col,
+            parse_dates=parse_dates,
+            dtype=dtype,
+        )
+
+    read_sql = read_query
+
+    def to_sql(
+        self,
+        frame,
+        name: str,
+        if_exists: Literal["fail", "replace", "append"] = "fail",
+        index: bool = True,
+        index_label=None,
+        schema: str | None = None,
+        chunksize: int | None = None,
+        dtype: DtypeArg | None = None,
+        method: Literal["multi"] | Callable | None = None,
+        engine: str = "auto",
+        **engine_kwargs,
+    ) -> int | None:
+        """
+        Write records stored in a DataFrame to a SQL database.
+
+        Parameters
+        ----------
+        frame : DataFrame
+        name : string
+            Name of SQL table.
+        if_exists : {'fail', 'replace', 'append'}, default 'fail'
+            - fail: If table exists, do nothing.
+            - replace: If table exists, drop it, recreate it, and insert data.
+            - append: If table exists, insert data. Create if does not exist.
+        index : boolean, default True
+            Write DataFrame index as a column.
+        index_label : string or sequence, default None
+            Raises NotImplementedError
+        schema : string, default None
+            Name of SQL schema in database to write to (if database flavor
+            supports this). If specified, this overwrites the default
+            schema of the SQLDatabase object.
+        chunksize : int, default None
+            Raises NotImplementedError
+        dtype : single type or dict of column name to SQL type, default None
+            Raises NotImplementedError
+        method : {None', 'multi', callable}, default None
+            Raises NotImplementedError
+        engine : {'auto', 'sqlalchemy'}, default 'auto'
+            Raises NotImplementedError if not set to 'auto'
+        """
+        if index_label:
+            raise NotImplementedError(
+                "'index_label' is not implemented for ADBC drivers"
+            )
+        if chunksize:
+            raise NotImplementedError("'chunksize' is not implemented for ADBC drivers")
+        if dtype:
+            raise NotImplementedError("'dtype' is not implemented for ADBC drivers")
+        if method:
+            raise NotImplementedError("'method' is not implemented for ADBC drivers")
+        if engine != "auto":
+            raise NotImplementedError(
+                "engine != 'auto' not implemented for ADBC drivers"
+            )
+
+        if schema:
+            table_name = f"{schema}.{name}"
+        else:
+            table_name = name
+
+        # pandas if_exists="append" will still create the
+        # table if it does not exist; ADBC is more explicit with append/create
+        # as applicable modes, so the semantics get blurred across
+        # the libraries
+        mode = "create"
+        if self.has_table(name, schema):
+            if if_exists == "fail":
+                raise ValueError(f"Table '{table_name}' already exists.")
+            elif if_exists == "replace":
+                with self.con.cursor() as cur:
+                    cur.execute(f"DROP TABLE {table_name}")
+            elif if_exists == "append":
+                mode = "append"
+
+        import pyarrow as pa
+
+        try:
+            tbl = pa.Table.from_pandas(frame, preserve_index=index)
+        except pa.ArrowNotImplementedError as exc:
+            raise ValueError("datatypes not supported") from exc
+
+        with self.con.cursor() as cur:
+            total_inserted = cur.adbc_ingest(table_name, tbl, mode=mode)
+
+        self.con.commit()
+        return total_inserted
+
+    def has_table(self, name: str, schema: str | None = None) -> bool:
+        meta = self.con.adbc_get_objects(
+            db_schema_filter=schema, table_name_filter=name
+        ).read_all()
+
+        for catalog_schema in meta["catalog_db_schemas"].to_pylist():
+            if not catalog_schema:
+                continue
+            for schema_record in catalog_schema:
+                if not schema_record:
+                    continue
+
+                for table_record in schema_record["db_schema_tables"]:
+                    if table_record["table_name"] == name:
+                        return True
+
+        return False
+
+    def _create_sql_schema(
+        self,
+        frame: DataFrame,
+        table_name: str,
+        keys: list[str] | None = None,
+        dtype: DtypeArg | None = None,
+        schema: str | None = None,
+    ) -> str:
+        raise NotImplementedError("not implemented for adbc")
+
+
 # sqlite-specific sql strings and handler class
 # dictionary used for readability purposes
 _SQL_TYPES = {
@@ -2054,6 +2499,11 @@ class SQLiteTable(SQLTable):
     """
 
     def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        self._register_date_adapters()
+
+    def _register_date_adapters(self) -> None:
         # GH 8341
         # register an adapter callable for datetime.time object
         import sqlite3
@@ -2064,8 +2514,23 @@ class SQLiteTable(SQLTable):
             # This is faster than strftime
             return f"{t.hour:02d}:{t.minute:02d}:{t.second:02d}.{t.microsecond:06d}"
 
+        # Also register adapters for date/datetime and co
+        # xref https://docs.python.org/3.12/library/sqlite3.html#adapter-and-converter-recipes
+        # Python 3.12+ doesn't auto-register adapters for us anymore
+
+        adapt_date_iso = lambda val: val.isoformat()
+        adapt_datetime_iso = lambda val: val.isoformat(" ")
+
         sqlite3.register_adapter(time, _adapt_time)
-        super().__init__(*args, **kwargs)
+
+        sqlite3.register_adapter(date, adapt_date_iso)
+        sqlite3.register_adapter(datetime, adapt_datetime_iso)
+
+        convert_date = lambda val: date.fromisoformat(val.decode())
+        convert_timestamp = lambda val: datetime.fromisoformat(val.decode())
+
+        sqlite3.register_converter("date", convert_date)
+        sqlite3.register_converter("timestamp", convert_timestamp)
 
     def sql_schema(self) -> str:
         return str(";\n".join(self.table))
@@ -2404,7 +2869,15 @@ class SQLiteDatabase(PandasSQL):
 
     def has_table(self, name: str, schema: str | None = None) -> bool:
         wld = "?"
-        query = f"SELECT name FROM sqlite_master WHERE type='table' AND name={wld};"
+        query = f"""
+        SELECT
+            name
+        FROM
+            sqlite_master
+        WHERE
+            type IN ('table', 'view')
+            AND name={wld};
+        """
 
         return len(self.execute(query, [name]).fetchall()) > 0
 
@@ -2422,7 +2895,7 @@ class SQLiteDatabase(PandasSQL):
         keys=None,
         dtype: DtypeArg | None = None,
         schema: str | None = None,
-    ):
+    ) -> str:
         table = SQLiteTable(
             table_name,
             self,
@@ -2453,17 +2926,16 @@ def get_schema(
         name of SQL table
     keys : string or sequence, default: None
         columns to use a primary key
-    con: an open SQL database connection object or a SQLAlchemy connectable
+    con: ADBC Connection, SQLAlchemy connectable, sqlite3 connection, default: None
+        ADBC provides high performance I/O with native type support, where available.
         Using SQLAlchemy makes it possible to use any DB supported by that
-        library, default: None
+        library
         If a DBAPI2 object, only sqlite3 is supported.
     dtype : dict of column name to SQL type, default None
         Optional specifying the datatype for columns. The SQL type should
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
     schema: str, default: None
         Optional specifying the schema to be used in creating the table.
-
-        .. versionadded:: 1.2.0
     """
     with pandasSQL_builder(con=con) as pandas_sql:
         return pandas_sql._create_sql_schema(

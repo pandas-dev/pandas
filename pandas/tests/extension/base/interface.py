@@ -1,14 +1,15 @@
 import numpy as np
+import pytest
 
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import is_extension_array_dtype
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseInterfaceTests(BaseExtensionTests):
+class BaseInterfaceTests:
     """Tests that the basic interface is satisfied."""
 
     # ------------------------------------------------------------------------
@@ -65,6 +66,9 @@ class BaseInterfaceTests(BaseExtensionTests):
 
         result = np.array(data, dtype=object)
         expected = np.array(list(data), dtype=object)
+        if expected.ndim > 1:
+            # nested data, explicitly construct as 1D
+            expected = construct_1d_object_array_from_listlike(list(data))
         tm.assert_numpy_array_equal(result, expected)
 
     def test_is_extension_array_dtype(self, data):
@@ -102,6 +106,9 @@ class BaseInterfaceTests(BaseExtensionTests):
         assert data[0] != data[1]
         result = data.copy()
 
+        if data.dtype._is_immutable:
+            pytest.skip(f"test_copy assumes mutability and {data.dtype} is immutable")
+
         data[1] = data[0]
         assert result[1] != result[0]
 
@@ -113,6 +120,9 @@ class BaseInterfaceTests(BaseExtensionTests):
         result = data.view()
         assert result is not data
         assert type(result) == type(data)
+
+        if data.dtype._is_immutable:
+            pytest.skip(f"test_view assumes mutability and {data.dtype} is immutable")
 
         result[1] = result[0]
         assert data[1] == data[0]
