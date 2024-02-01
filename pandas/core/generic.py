@@ -2334,6 +2334,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Once a workbook has been saved it is not possible to write further
         data without rewriting the whole workbook.
 
+        pandas will check the number of rows, columns,
+        and cell character count does not exceed Excel's limitations.
+        All other limitations must be checked by the user.
+
         Examples
         --------
 
