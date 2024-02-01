@@ -80,7 +80,6 @@ Function application
    DataFrameGroupBy.describe
    DataFrameGroupBy.diff
    DataFrameGroupBy.ffill
-   DataFrameGroupBy.fillna
    DataFrameGroupBy.first
    DataFrameGroupBy.head
    DataFrameGroupBy.idxmax
@@ -131,7 +130,6 @@ Function application
    SeriesGroupBy.describe
    SeriesGroupBy.diff
    SeriesGroupBy.ffill
-   SeriesGroupBy.fillna
    SeriesGroupBy.first
    SeriesGroupBy.head
    SeriesGroupBy.last

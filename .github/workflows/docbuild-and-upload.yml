@@ -90,10 +90,3 @@ jobs:
         name: website
         path: web/build
         retention-days: 14
-
-    - name: Trigger web/doc preview
-      run: curl -X POST https://pandas.pydata.org/preview/submit/$RUN_ID/$PR_ID/
-      env:
-        RUN_ID: ${{ github.run_id }}
-        PR_ID: ${{ github.event.pull_request.number }}
-      if: github.event_name == 'pull_request'
