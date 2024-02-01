@@ -139,6 +139,8 @@ jobs:
         shell: bash -el {0}
         run: echo "sdist_name=$(cd ./dist && ls -d */)" >> "$GITHUB_ENV"
 
+      # TODO: can remove if https://github.com/actions/runner-images/issues/9256
+      # is resolved
       - name: Install pipx
         if: ${{ matrix.buildplat[1] == 'macosx_arm64' }}
         run: brew install pipx && pipx ensurepath
