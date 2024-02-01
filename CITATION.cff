@@ -3,12 +3,50 @@ title: 'pandas-dev/pandas: Pandas'
 message: 'If you use this software, please cite it as below.'
 authors:
   - name: "The pandas development team"
+    website: "https://pandas.pydata.org/about/team.html"
 abstract: "Pandas is a powerful data structures for data analysis, time series, and statistics."
+doi: 10.5281/zenodo.3509134
 license: BSD-3-Clause
 license-url: "https://github.com/pandas-dev/pandas/blob/main/LICENSE"
 repository-code: "https://github.com/pandas-dev/pandas"
 keywords:
   - python
   - data science
+  - flexible
+  - pandas
+  - alignment
+  - data analysis
 type: software
-url: "https://github.com/pandas-dev/pandas"
+url: "https://pandas.pydata.org/"
+references:
+  - type: article
+    authors:
+      - given-names: Wes
+        family-names: McKinney
+        affiliation: AQR Capital Management, LLC
+        email: wesmckinn@gmail.com
+    title: Data Structures for Statistical Computing in Python
+    doi: 10.25080/Majora-92bf1922-00a
+    license: CC-BY-3.0
+    start: 56
+    end: 61
+    year: 2010
+    collection-title: Proceedings of the 9th Python in Science Conference
+    collection-doi: 10.25080/Majora-92bf1922-012
+    collection-type: proceedings
+    editors:
+      - given-names: Stéfan
+        name-particle: van der
+        family-names: Walt
+      - given-names: Jarrod
+        family-names: Millman
+    conference:
+      name: 9th Python in Science Conference (SciPy 2010)
+      city: Austin, TX
+      country: US
+      date-start: "2010-06-28"
+      date-end: "2010-07-03"
+    keywords:
+      - data structure
+      - statistics
+      - R

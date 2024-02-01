@@ -5,7 +5,7 @@ requires = [
     "meson-python==0.13.1",
     "meson==1.2.1",
     "wheel",
-    "Cython==3.0.5",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    "Cython~=3.0.5",  # Note: sync with setup.py, environment.yml and asv.conf.json
     # Any NumPy version should be fine for compiling.  Users are unlikely
     # to get a NumPy<1.25 so the result will be compatible with all relevant
     # NumPy versions (if not it is presumably compatible with their version).
@@ -30,9 +30,8 @@ authors = [
 license = {file = 'LICENSE'}
 requires-python = '>=3.9'
 dependencies = [
-  "numpy>=1.22.4,<2; python_version<'3.11'",
-  "numpy>=1.23.2,<2; python_version=='3.11'",
-  "numpy>=1.26.0,<2; python_version>='3.12'",
+  "numpy>=1.23.5; python_version<'3.12'",
+  "numpy>=1.26.0; python_version>='3.12'",
   "python-dateutil>=2.8.2",
   "pytz>=2020.1",
   "tzdata>=2022.7"
@@ -152,7 +151,7 @@ parentdir_prefix = "pandas-"
 setup = ['--vsenv'] # For Windows
 
 [tool.cibuildwheel]
-skip = "cp36-* cp37-* cp38-* pp* *_i686 *_ppc64le *_s390x *-musllinux_aarch64"
+skip = "cp36-* cp37-* cp38-* pp* *_i686 *_ppc64le *_s390x"
 build-verbosity = "3"
 environment = {LDFLAGS="-Wl,--strip-all"}
 test-requires = "hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0"
@@ -188,27 +187,6 @@ test-command = ""
 select = "*-macosx*"
 environment = {CFLAGS="-g0"}
 
-[tool.black]
-target-version = ['py39', 'py310']
-required-version = '23.11.0'
-exclude = '''
-(
-    asv_bench/env
-  | \.egg
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.nox
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-  | setup.py
-)
-'''
-
 [tool.ruff]
 line-length = 88
 target-version = "py310"
@@ -233,6 +211,8 @@ select = [
   "INT",
   # pylint
   "PL",
+  # flake8-pytest-style
+  "PT",
   # misc lints
   "PIE",
   # flake8-pyi
@@ -259,12 +239,12 @@ select = [
   "FLY",
   # flake8-logging-format
   "G",
+  # flake8-future-annotations
+  "FA",
 ]
 
 ignore = [
   ### Intentionally disabled
-  # space before : (needed for how black formats slicing)
-  "E203",
   # module level import not at top of file
   "E402",
   # do not assign a lambda expression, use a def
@@ -323,25 +303,39 @@ ignore = [
   "PERF102",
   # try-except-in-loop, becomes useless in Python 3.11
   "PERF203",
+  # pytest-missing-fixture-name-underscore
+  "PT004",
+  # pytest-incorrect-fixture-name-underscore
+  "PT005",
+  # pytest-parametrize-names-wrong-type
+  "PT006",
+  # pytest-parametrize-values-wrong-type
+  "PT007",
+  # pytest-patch-with-lambda
+  "PT008",
+  # pytest-raises-with-multiple-statements
+  "PT012",
+  # pytest-assert-in-except
+  "PT017",
+  # pytest-composite-assertion
+  "PT018",
+  # pytest-fixture-param-without-value
+  "PT019",
+  # The following rules may cause conflicts when used with the formatter:
+  "ISC001",
 
 
   ### TODO: Enable gradually
   # Useless statement
   "B018",
-  # Within an except clause, raise exceptions with ...
-  "B904",
   # Magic number
   "PLR2004",
   # comparison-with-itself
   "PLR0124",
-  # Consider `elif` instead of `else` then `if` to remove indentation level
-  "PLR5501",
   # collection-literal-concatenation
   "RUF005",
   # pairwise-over-zipped (>=PY310 only)
   "RUF007",
-  # explicit-f-string-type-conversion
-  "RUF010",
   # mutable-class-default
   "RUF012"
 ]
@@ -367,6 +361,10 @@ exclude = [
 "scripts/*" = ["B028"]
 # Keep this one enabled
 "pandas/_typing.py" = ["TCH"]
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+mark-parentheses = false
 
 [tool.pylint.messages_control]
 max-line-length = 88
@@ -523,7 +521,7 @@ markers = [
   "db: tests requiring a database (mysql or postgres)",
   "clipboard: mark a pd.read_clipboard test",
   "arm_slow: mark a test as slow for arm64 architecture",
-  "arraymanager: mark a test to run with ArrayManager enabled",
+  "skip_ubsan: Tests known to fail UBSAN check",
 ]
 
 [tool.mypy]
@@ -583,7 +581,6 @@ module = [
   "pandas._testing.*", # TODO
   "pandas.arrays", # TODO
   "pandas.compat.numpy.function", # TODO
-  "pandas.compat._optional", # TODO
   "pandas.compat.compressors", # TODO
   "pandas.compat.pickle_compat", # TODO
   "pandas.core._numba.executor", # TODO
@@ -602,7 +599,6 @@ module = [
   "pandas.core.dtypes.concat", # TODO
   "pandas.core.dtypes.dtypes", # TODO
   "pandas.core.dtypes.generic", # TODO
-  "pandas.core.dtypes.inference", # TODO
   "pandas.core.dtypes.missing", # TODO
   "pandas.core.groupby.categorical", # TODO
   "pandas.core.groupby.generic", # TODO
@@ -673,9 +669,7 @@ module = [
   "pandas.io.sas.sas7bdat", # TODO
   "pandas.io.clipboards", # TODO
   "pandas.io.common", # TODO
-  "pandas.io.gbq", # TODO
   "pandas.io.html", # TODO
-  "pandas.io.gbq", # TODO
   "pandas.io.parquet", # TODO
   "pandas.io.pytables", # TODO
   "pandas.io.sql", # TODO
@@ -754,6 +748,7 @@ reportUntypedClassDecorator = true
 reportUntypedFunctionDecorator = true
 reportUntypedNamedTuple = true
 reportUnusedImport = true
+disableBytesTypePromotions = true
 # disable subset of "basic"
 reportGeneralTypeIssues = false
 reportMissingModuleSource = false

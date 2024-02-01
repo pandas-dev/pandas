@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import importlib
 import sys
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+    overload,
+)
 import warnings
 
 from pandas.util._exceptions import find_stack_level
@@ -82,12 +86,35 @@ def get_version(module: types.ModuleType) -> str:
     return version
 
 
+@overload
+def import_optional_dependency(
+    name: str,
+    extra: str = ...,
+    min_version: str | None = ...,
+    *,
+    errors: Literal["raise"] = ...,
+) -> types.ModuleType:
+    ...
+
+
+@overload
+def import_optional_dependency(
+    name: str,
+    extra: str = ...,
+    min_version: str | None = ...,
+    *,
+    errors: Literal["warn", "ignore"],
+) -> types.ModuleType | None:
+    ...
+
+
 def import_optional_dependency(
     name: str,
     extra: str = "",
-    errors: str = "raise",
     min_version: str | None = None,
-):
+    *,
+    errors: Literal["raise", "warn", "ignore"] = "raise",
+) -> types.ModuleType | None:
     """
     Import an optional dependency.
 
@@ -120,9 +147,8 @@ def import_optional_dependency(
         The imported module, when found and the version is correct.
         None is returned when the package is not found and `errors`
         is False, or when the package's version is too old and `errors`
-        is ``'warn'``.
+        is ``'warn'`` or ``'ignore'``.
     """
-
     assert errors in {"warn", "raise", "ignore"}
 
     package_name = INSTALL_MAPPING.get(name)
@@ -134,9 +160,9 @@ def import_optional_dependency(
     )
     try:
         module = importlib.import_module(name)
-    except ImportError:
+    except ImportError as err:
         if errors == "raise":
-            raise ImportError(msg)
+            raise ImportError(msg) from err
         return None
 
     # Handle submodules: if we have submodule, grab parent module from sys.modules
@@ -163,5 +189,7 @@ def import_optional_dependency(
                 return None
             elif errors == "raise":
                 raise ImportError(msg)
+            else:
+                return None
 
     return module

@@ -13,7 +13,6 @@ import warnings
 from warnings import catch_warnings
 
 from pandas._config import using_pyarrow_string_dtype
-from pandas._config.config import _get_option
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -207,9 +206,10 @@ class PyArrowImpl(BaseImpl):
             and hasattr(path_or_handle, "name")
             and isinstance(path_or_handle.name, (str, bytes))
         ):
-            path_or_handle = path_or_handle.name
-            if isinstance(path_or_handle, bytes):
-                path_or_handle = path_or_handle.decode()
+            if isinstance(path_or_handle.name, bytes):
+                path_or_handle = path_or_handle.name.decode()
+            else:
+                path_or_handle = path_or_handle.name
 
         try:
             if partition_cols is not None:
@@ -259,10 +259,6 @@ class PyArrowImpl(BaseImpl):
         elif using_pyarrow_string_dtype():
             to_pandas_kwargs["types_mapper"] = arrow_string_types_mapper()
 
-        manager = _get_option("mode.data_manager", silent=True)
-        if manager == "array":
-            to_pandas_kwargs["split_blocks"] = True  # type: ignore[assignment]
-
         path_or_handle, handles, filesystem = _get_path_or_handle(
             path,
             filesystem,
@@ -278,9 +274,6 @@ class PyArrowImpl(BaseImpl):
                 **kwargs,
             )
             result = pa_table.to_pandas(**to_pandas_kwargs)
-
-            if manager == "array":
-                result = result._as_manager("array", copy=False)
 
             if pa_table.schema.metadata:
                 if b"PANDAS_ATTRS" in pa_table.schema.metadata:
@@ -429,9 +422,6 @@ def to_parquet(
         returned as bytes. If a string, it will be used as Root Directory path
         when writing a partitioned dataset. The engine fastparquet does not
         accept file-like objects.
-
-        .. versionchanged:: 1.2.0
-
     engine : {{'auto', 'pyarrow', 'fastparquet'}}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
@@ -459,8 +449,6 @@ def to_parquet(
         Columns are partitioned in the order they are given.
         Must be None if path is not a string.
     {storage_options}
-
-        .. versionadded:: 1.2.0
 
     filesystem : fsspec or pyarrow filesystem, default None
         Filesystem object to use when reading the parquet file. Only implemented
@@ -513,6 +501,9 @@ def read_parquet(
 ) -> DataFrame:
     """
     Load a parquet object from the file path, returning a DataFrame.
+
+    The function automatically handles reading the data from a parquet file
+    and creates a DataFrame with the appropriate structure.
 
     Parameters
     ----------
@@ -595,6 +586,7 @@ def read_parquet(
     Returns
     -------
     DataFrame
+        DataFrame based on parquet file.
 
     See Also
     --------
@@ -604,7 +596,7 @@ def read_parquet(
     --------
     >>> original_df = pd.DataFrame(
     ...     {{"foo": range(5), "bar": range(5, 10)}}
-    ...    )
+    ... )
     >>> original_df
        foo  bar
     0    0    5

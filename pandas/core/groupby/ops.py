@@ -15,7 +15,6 @@ from typing import (
     Generic,
     final,
 )
-import warnings
 
 import numpy as np
 
@@ -33,9 +32,7 @@ from pandas._typing import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     maybe_cast_pointwise_result,
     maybe_downcast_to_dtype,
@@ -427,6 +424,7 @@ class WrappedCythonOp:
                     mask=mask,
                     result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
+                    **kwargs,
                 )
             elif self.how in ["sem", "std", "var", "ohlc", "prod", "median"]:
                 if self.how in ["std", "sem"]:
@@ -606,9 +604,7 @@ class BaseGrouper:
     def nkeys(self) -> int:
         return len(self.groupings)
 
-    def get_iterator(
-        self, data: NDFrameT, axis: AxisInt = 0
-    ) -> Iterator[tuple[Hashable, NDFrameT]]:
+    def get_iterator(self, data: NDFrameT) -> Iterator[tuple[Hashable, NDFrameT]]:
         """
         Groupby iterator
 
@@ -617,13 +613,13 @@ class BaseGrouper:
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        splitter = self._get_splitter(data, axis=axis)
+        splitter = self._get_splitter(data)
         # TODO: Would be more efficient to skip unobserved for transforms
         keys = self.result_index
         yield from zip(keys, splitter)
 
     @final
-    def _get_splitter(self, data: NDFrame, axis: AxisInt = 0) -> DataSplitter:
+    def _get_splitter(self, data: NDFrame) -> DataSplitter:
         """
         Returns
         -------
@@ -636,7 +632,6 @@ class BaseGrouper:
             ngroups,
             sorted_ids=self._sorted_ids,
             sort_idx=self.result_ilocs,
-            axis=axis,
         )
 
     @cache_readonly
@@ -700,7 +695,7 @@ class BaseGrouper:
             out = np.bincount(ids[ids != -1], minlength=ngroups)
         else:
             out = []
-        return Series(out, index=self.result_index, dtype="int64")
+        return Series(out, index=self.result_index, dtype="int64", copy=False)
 
     @cache_readonly
     def groups(self) -> dict[Hashable, Index]:
@@ -760,16 +755,6 @@ class BaseGrouper:
     @property
     def ids(self) -> np.ndarray:
         return self.result_index_and_ids[1]
-
-    @property
-    def reconstructed_codes(self) -> list[npt.NDArray[np.intp]]:
-        warnings.warn(
-            "reconstructed_codes is deprecated and will be removed in a future "
-            "version of pandas",
-            category=FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._reconstructed_codes
 
     @cache_readonly
     def result_index_and_ids(self) -> tuple[Index, np.ndarray]:
@@ -929,18 +914,11 @@ class BaseGrouper:
 
         result = self._aggregate_series_pure_python(obj, func)
 
-        if len(obj) == 0 and len(result) == 0 and isinstance(obj.dtype, ExtensionDtype):
-            cls = obj.dtype.construct_array_type()
-            out = cls._from_sequence(result)
-
+        npvalues = lib.maybe_convert_objects(result, try_float=False)
+        if preserve_dtype:
+            out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
         else:
-            npvalues = lib.maybe_convert_objects(result, try_float=False)
-            if preserve_dtype:
-                out = maybe_cast_pointwise_result(
-                    npvalues, obj.dtype, numeric_only=True
-                )
-            else:
-                out = npvalues
+            out = npvalues
         return out
 
     @final
@@ -952,7 +930,7 @@ class BaseGrouper:
         result = np.empty(ngroups, dtype="O")
         initialized = False
 
-        splitter = self._get_splitter(obj, axis=0)
+        splitter = self._get_splitter(obj)
 
         for i, group in enumerate(splitter):
             res = func(group)
@@ -969,10 +947,10 @@ class BaseGrouper:
 
     @final
     def apply_groupwise(
-        self, f: Callable, data: DataFrame | Series, axis: AxisInt = 0
+        self, f: Callable, data: DataFrame | Series
     ) -> tuple[list, bool]:
         mutated = False
-        splitter = self._get_splitter(data, axis=axis)
+        splitter = self._get_splitter(data)
         group_keys = self.result_index
         result_values = []
 
@@ -990,7 +968,7 @@ class BaseGrouper:
             # group might be modified
             group_axes = group.axes
             res = f(group)
-            if not mutated and not _is_indexed_like(res, group_axes, axis):
+            if not mutated and not _is_indexed_like(res, group_axes):
                 mutated = True
             result_values.append(res)
         # getattr pattern for __name__ is needed for functools.partial objects
@@ -1093,7 +1071,7 @@ class BinGrouper(BaseGrouper):
             ids = ids[sorter]
         return ids
 
-    def get_iterator(self, data: NDFrame, axis: AxisInt = 0):
+    def get_iterator(self, data: NDFrame):
         """
         Groupby iterator
 
@@ -1102,12 +1080,7 @@ class BinGrouper(BaseGrouper):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        if axis == 0:
-            slicer = lambda start, edge: data.iloc[start:edge]
-        else:
-            slicer = lambda start, edge: data.iloc[:, start:edge]
-
-        length = len(data.axes[axis])
+        slicer = lambda start, edge: data.iloc[start:edge]
 
         start = 0
         for edge, label in zip(self.bins, self.binlabels):
@@ -1115,7 +1088,7 @@ class BinGrouper(BaseGrouper):
                 yield label, slicer(start, edge)
             start = edge
 
-        if start < length:
+        if start < len(data):
             yield self.binlabels[-1], slicer(start, None)
 
     @cache_readonly
@@ -1177,13 +1150,13 @@ class BinGrouper(BaseGrouper):
         return [ping]
 
 
-def _is_indexed_like(obj, axes, axis: AxisInt) -> bool:
+def _is_indexed_like(obj, axes) -> bool:
     if isinstance(obj, Series):
         if len(axes) > 1:
             return False
-        return obj.axes[axis].equals(axes[axis])
+        return obj.index.equals(axes[0])
     elif isinstance(obj, DataFrame):
-        return obj.axes[axis].equals(axes[axis])
+        return obj.index.equals(axes[0])
 
     return False
 
@@ -1201,7 +1174,6 @@ class DataSplitter(Generic[NDFrameT]):
         *,
         sort_idx: npt.NDArray[np.intp],
         sorted_ids: npt.NDArray[np.intp],
-        axis: AxisInt = 0,
     ) -> None:
         self.data = data
         self.labels = ensure_platform_int(labels)  # _should_ already be np.intp
@@ -1209,9 +1181,6 @@ class DataSplitter(Generic[NDFrameT]):
 
         self._slabels = sorted_ids
         self._sort_idx = sort_idx
-
-        self.axis = axis
-        assert isinstance(axis, int), axis
 
     def __iter__(self) -> Iterator:
         sdata = self._sorted_data
@@ -1228,7 +1197,7 @@ class DataSplitter(Generic[NDFrameT]):
 
     @cache_readonly
     def _sorted_data(self) -> NDFrameT:
-        return self.data.take(self._sort_idx, axis=self.axis)
+        return self.data.take(self._sort_idx, axis=0)
 
     def _chop(self, sdata, slice_obj: slice) -> NDFrame:
         raise AbstractMethodError(self)
@@ -1246,11 +1215,8 @@ class SeriesSplitter(DataSplitter):
 class FrameSplitter(DataSplitter):
     def _chop(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:
         # Fastpath equivalent to:
-        # if self.axis == 0:
-        #     return sdata.iloc[slice_obj]
-        # else:
-        #     return sdata.iloc[:, slice_obj]
-        mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
+        # return sdata.iloc[slice_obj]
+        mgr = sdata._mgr.get_slice(slice_obj, axis=1)
         df = sdata._constructor_from_mgr(mgr, axes=mgr.axes)
         return df.__finalize__(sdata, method="groupby")
 
@@ -1262,7 +1228,6 @@ def _get_splitter(
     *,
     sort_idx: npt.NDArray[np.intp],
     sorted_ids: npt.NDArray[np.intp],
-    axis: AxisInt = 0,
 ) -> DataSplitter:
     if isinstance(data, Series):
         klass: type[DataSplitter] = SeriesSplitter
@@ -1270,6 +1235,4 @@ def _get_splitter(
         # i.e. DataFrame
         klass = FrameSplitter
 
-    return klass(
-        data, labels, ngroups, sort_idx=sort_idx, sorted_ids=sorted_ids, axis=axis
-    )
+    return klass(data, labels, ngroups, sort_idx=sort_idx, sorted_ids=sorted_ids)

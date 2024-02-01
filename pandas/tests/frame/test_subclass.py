@@ -15,16 +15,6 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 
-@pytest.fixture()
-def gpd_style_subclass_df():
-    class SubclassedDataFrame(DataFrame):
-        @property
-        def _constructor(self):
-            return SubclassedDataFrame
-
-    return SubclassedDataFrame({"a": [1, 2, 3]})
-
-
 class TestDataFrameSubclassing:
     def test_frame_subclassing_and_slicing(self):
         # Subclass frame and ensure it returns the right class on slicing it
@@ -524,8 +514,6 @@ class TestDataFrameSubclassing:
 
         tm.assert_frame_equal(long_frame, expected)
 
-    # TODO(CoW-warn) should not need to warn
-    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_subclassed_apply(self):
         # GH 19822
 
@@ -712,14 +700,21 @@ class TestDataFrameSubclassing:
         result = df.idxmax()
         assert isinstance(result, tm.SubclassedSeries)
 
-    def test_convert_dtypes_preserves_subclass(self, gpd_style_subclass_df):
+    def test_convert_dtypes_preserves_subclass(self):
         # GH 43668
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
         result = df.convert_dtypes()
         assert isinstance(result, tm.SubclassedDataFrame)
 
-        result = gpd_style_subclass_df.convert_dtypes()
-        assert isinstance(result, type(gpd_style_subclass_df))
+    def test_convert_dtypes_preserves_subclass_with_constructor(self):
+        class SubclassedDataFrame(DataFrame):
+            @property
+            def _constructor(self):
+                return SubclassedDataFrame
+
+        df = SubclassedDataFrame({"a": [1, 2, 3]})
+        result = df.convert_dtypes()
+        assert isinstance(result, SubclassedDataFrame)
 
     def test_astype_preserves_subclass(self):
         # GH#40810

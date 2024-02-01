@@ -156,6 +156,36 @@ class TestDecimalArray(base.ExtensionTests):
         ):
             super().test_fillna_limit_pad(data_missing)
 
+    @pytest.mark.parametrize(
+        "limit_area, input_ilocs, expected_ilocs",
+        [
+            ("outside", [1, 0, 0, 0, 1], [1, 0, 0, 0, 1]),
+            ("outside", [1, 0, 1, 0, 1], [1, 0, 1, 0, 1]),
+            ("outside", [0, 1, 1, 1, 0], [0, 1, 1, 1, 1]),
+            ("outside", [0, 1, 0, 1, 0], [0, 1, 0, 1, 1]),
+            ("inside", [1, 0, 0, 0, 1], [1, 1, 1, 1, 1]),
+            ("inside", [1, 0, 1, 0, 1], [1, 1, 1, 1, 1]),
+            ("inside", [0, 1, 1, 1, 0], [0, 1, 1, 1, 0]),
+            ("inside", [0, 1, 0, 1, 0], [0, 1, 1, 1, 0]),
+        ],
+    )
+    def test_ffill_limit_area(
+        self, data_missing, limit_area, input_ilocs, expected_ilocs
+    ):
+        # GH#56616
+        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
+        with tm.assert_produces_warning(
+            DeprecationWarning,
+            match=msg,
+            check_stacklevel=False,
+            raise_on_extra_warnings=False,
+        ):
+            msg = "DecimalArray does not implement limit_area"
+            with pytest.raises(NotImplementedError, match=msg):
+                super().test_ffill_limit_area(
+                    data_missing, limit_area, input_ilocs, expected_ilocs
+                )
+
     def test_fillna_limit_backfill(self, data_missing):
         msg = "Series.fillna with 'method' is deprecated"
         with tm.assert_produces_warning(
@@ -228,7 +258,7 @@ class TestDecimalArray(base.ExtensionTests):
             super().test_fillna_copy_series(data_missing)
 
     @pytest.mark.parametrize("dropna", [True, False])
-    def test_value_counts(self, all_data, dropna, request):
+    def test_value_counts(self, all_data, dropna):
         all_data = all_data[:10]
         if dropna:
             other = np.array(all_data[~all_data.isna()])
@@ -303,8 +333,7 @@ def test_dataframe_constructor_with_dtype():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("frame", [True, False])
-def test_astype_dispatches(frame):
+def test_astype_dispatches(frame_or_series):
     # This is a dtype-specific test that ensures Series[decimal].astype
     # gets all the way through to ExtensionArray.astype
     # Designing a reliable smoke test that works for arbitrary data types
@@ -313,12 +342,11 @@ def test_astype_dispatches(frame):
     ctx = decimal.Context()
     ctx.prec = 5
 
-    if frame:
-        data = data.to_frame()
+    data = frame_or_series(data)
 
     result = data.astype(DecimalDtype(ctx))
 
-    if frame:
+    if frame_or_series is pd.DataFrame:
         result = result["a"]
 
     assert result.dtype.context.prec == ctx.prec
@@ -328,7 +356,7 @@ class DecimalArrayWithoutFromSequence(DecimalArray):
     """Helper class for testing error handling in _from_sequence."""
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
         raise KeyError("For the test")
 
 

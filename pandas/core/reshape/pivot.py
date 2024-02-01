@@ -171,7 +171,7 @@ def __internal_pivot_table(
     observed_bool = False if observed is lib.no_default else observed
     grouped = data.groupby(keys, observed=observed_bool, sort=sort, dropna=dropna)
     if observed is lib.no_default and any(
-        ping._passed_categorical for ping in grouped.grouper.groupings
+        ping._passed_categorical for ping in grouped._grouper.groupings
     ):
         warnings.warn(
             "The default value of observed=False is deprecated and will change "
@@ -472,7 +472,7 @@ def _generate_marginal_results_without_values(
             margin_keys.append(all_key)
 
         else:
-            margin = data.groupby(level=0, axis=0, observed=observed).apply(aggfunc)
+            margin = data.groupby(level=0, observed=observed).apply(aggfunc)
             all_key = _all_key()
             table[all_key] = margin
             result = table
@@ -535,7 +535,8 @@ def pivot(
         # error: Unsupported operand types for + ("List[Any]" and "ExtensionArray")
         # error: Unsupported left operand type for + ("ExtensionArray")
         indexed = data.set_index(
-            cols + columns_listlike, append=append  # type: ignore[operator]
+            cols + columns_listlike,  # type: ignore[operator]
+            append=append,
         )
     else:
         index_list: list[Index] | list[Series]
@@ -567,7 +568,8 @@ def pivot(
     # error: Argument 1 to "unstack" of "DataFrame" has incompatible type "Union
     # [List[Any], ExtensionArray, ndarray[Any, Any], Index, Series]"; expected
     # "Hashable"
-    result = indexed.unstack(columns_listlike)  # type: ignore[arg-type]
+    # unstack with a MultiIndex returns a DataFrame
+    result = cast("DataFrame", indexed.unstack(columns_listlike))  # type: ignore[arg-type]
     result.index.names = [
         name if name is not lib.no_default else None for name in result.index.names
     ]

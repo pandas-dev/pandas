@@ -61,8 +61,8 @@ Basic
 +++++
 
 filepath_or_buffer : various
-  Either a path to a file (a :class:`python:str`, :class:`python:pathlib.Path`,
-  or :class:`py:py._path.local.LocalPath`), URL (including http, ftp, and S3
+  Either a path to a file (a :class:`python:str`, :class:`python:pathlib.Path`)
+  URL (including http, ftp, and S3
   locations), or any object with a ``read()`` method (such as an open file or
   :class:`~python:io.StringIO`).
 sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_table`
@@ -80,6 +80,9 @@ delim_whitespace : boolean, default False
   will be used as the delimiter. Equivalent to setting ``sep='\s+'``.
   If this option is set to ``True``, nothing should be passed in for the
   ``delimiter`` parameter.
+
+  .. deprecated: 2.2.0
+    Use ``sep="\\s+" instead.
 
 Column and index locations and names
 ++++++++++++++++++++++++++++++++++++
@@ -836,6 +839,7 @@ order) and the new column names will be the concatenation of the component
 column names:
 
 .. ipython:: python
+   :okwarning:
 
    data = (
        "KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
@@ -856,6 +860,7 @@ By default the parser removes the component date columns, but you can choose
 to retain them via the ``keep_date_col`` keyword:
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.read_csv(
        "tmp.csv", header=None, parse_dates=[[1, 2], [1, 3]], keep_date_col=True
@@ -871,6 +876,7 @@ single column.
 You can also use a dict to specify custom name columns:
 
 .. ipython:: python
+   :okwarning:
 
    date_spec = {"nominal": [1, 2], "actual": [1, 3]}
    df = pd.read_csv("tmp.csv", header=None, parse_dates=date_spec)
@@ -883,6 +889,7 @@ data columns:
 
 
 .. ipython:: python
+   :okwarning:
 
    date_spec = {"nominal": [1, 2], "actual": [1, 3]}
    df = pd.read_csv(
@@ -901,6 +908,10 @@ data columns:
    e.g "2000-01-01T00:01:02+00:00" and similar variations. If you can arrange
    for your data to store datetimes in this format, load times will be
    significantly faster, ~20x has been observed.
+
+.. deprecated:: 2.2.0
+   Combining date columns inside read_csv is deprecated. Use ``pd.to_datetime``
+   on the relevant result columns instead.
 
 
 Date parsing functions
@@ -1693,7 +1704,7 @@ option parameter:
 
 .. code-block:: python
 
-   storage_options = {"client_kwargs": {"endpoint_url": "http://127.0.0.1:5555"}}}
+   storage_options = {"client_kwargs": {"endpoint_url": "http://127.0.0.1:5555"}}
    df = pd.read_json("s3://pandas-test/test-1", storage_options=storage_options)
 
 More sample configurations and documentation can be found at `S3Fs documentation
@@ -3004,14 +3015,15 @@ Read in the content of the "books.xml" as instance of ``StringIO`` or
 Even read XML from AWS S3 buckets such as NIH NCBI PMC Article Datasets providing
 Biomedical and Life Science Jorurnals:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: python
 
-   df = pd.read_xml(
-       "s3://pmc-oa-opendata/oa_comm/xml/all/PMC1236943.xml",
-       xpath=".//journal-meta",
-   )
-   df
+   >>> df = pd.read_xml(
+   ...    "s3://pmc-oa-opendata/oa_comm/xml/all/PMC1236943.xml",
+   ...    xpath=".//journal-meta",
+   ...)
+   >>> df
+         journal-id  journal-title  issn  publisher
+   0 Cardiovasc Ultrasound Cardiovascular Ultrasound 1476-7120 NaN
 
 With `lxml`_ as default ``parser``, you access the full-featured XML library
 that extends Python's ElementTree API. One powerful tool is ability to query
@@ -3460,20 +3472,15 @@ saving a ``DataFrame`` to Excel.  Generally the semantics are
 similar to working with :ref:`csv<io.read_csv_table>` data.
 See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
 
-.. warning::
+.. note::
 
-   The `xlrd <https://xlrd.readthedocs.io/en/latest/>`__ package is now only for reading
-   old-style ``.xls`` files.
+   When ``engine=None``, the following logic will be used to determine the engine:
 
-   Before pandas 1.3.0, the default argument ``engine=None`` to :func:`~pandas.read_excel`
-   would result in using the ``xlrd`` engine in many cases, including new
-   Excel 2007+ (``.xlsx``) files. pandas will now default to using the
-   `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`__ engine.
-
-   It is strongly encouraged to install ``openpyxl`` to read Excel 2007+
-   (``.xlsx``) files.
-   **Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.**
-   This is no longer supported, switch to using ``openpyxl`` instead.
+   - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+     then `odf <https://pypi.org/project/odfpy/>`_ will be used.
+   - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used.
+   - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used.
+   - Otherwise ``openpyxl`` will be used.
 
 .. _io.excel_reader:
 

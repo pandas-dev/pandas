@@ -232,15 +232,13 @@ class TestDataFrameDrop:
         with pytest.raises(ValueError, match=msg):
             df.drop(axis=1)
 
-    data = [[1, 2, 3], [1, 2, 3]]
-
     @pytest.mark.parametrize(
         "actual",
         [
-            DataFrame(data=data, index=["a", "a"]),
-            DataFrame(data=data, index=["a", "b"]),
-            DataFrame(data=data, index=["a", "b"]).set_index([0, 1]),
-            DataFrame(data=data, index=["a", "a"]).set_index([0, 1]),
+            DataFrame([[1, 2, 3], [1, 2, 3]], index=["a", "a"]),
+            DataFrame([[1, 2, 3], [1, 2, 3]], index=["a", "b"]),
+            DataFrame([[1, 2, 3], [1, 2, 3]], index=["a", "b"]).set_index([0, 1]),
+            DataFrame([[1, 2, 3], [1, 2, 3]], index=["a", "a"]).set_index([0, 1]),
         ],
     )
     def test_raise_on_drop_duplicate_index(self, actual):
@@ -510,7 +508,7 @@ class TestDataFrameDrop:
 
     def test_drop_inplace_no_leftover_column_reference(self):
         # GH 13934
-        df = DataFrame({"a": [1, 2, 3]})
+        df = DataFrame({"a": [1, 2, 3]}, columns=Index(["a"], dtype="object"))
         a = df.a
         df.drop(["a"], axis=1, inplace=True)
         tm.assert_index_equal(df.columns, Index([], dtype="object"))

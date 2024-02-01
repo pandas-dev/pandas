@@ -10,6 +10,7 @@ from typing import (
     ContextManager,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -33,7 +34,6 @@ from pandas import (
     Series,
 )
 from pandas._testing._io import (
-    round_trip_localpath,
     round_trip_pathlib,
     round_trip_pickle,
     write_to_compressed,
@@ -235,11 +235,18 @@ if not pa_version_under10p1:
         + TIMEDELTA_PYARROW_DTYPES
         + BOOL_PYARROW_DTYPES
     )
+    ALL_REAL_PYARROW_DTYPES_STR_REPR = (
+        ALL_INT_PYARROW_DTYPES_STR_REPR + FLOAT_PYARROW_DTYPES_STR_REPR
+    )
 else:
     FLOAT_PYARROW_DTYPES_STR_REPR = []
     ALL_INT_PYARROW_DTYPES_STR_REPR = []
     ALL_PYARROW_DTYPES = []
+    ALL_REAL_PYARROW_DTYPES_STR_REPR = []
 
+ALL_REAL_NULLABLE_DTYPES = (
+    FLOAT_NUMPY_DTYPES + ALL_REAL_EXTENSION_DTYPES + ALL_REAL_PYARROW_DTYPES_STR_REPR
+)
 
 arithmetic_dunder_methods = [
     "__add__",
@@ -285,11 +292,17 @@ def box_expected(expected, box_cls, transpose: bool = True):
         else:
             expected = pd.array(expected, copy=False)
     elif box_cls is Index:
-        expected = Index(expected)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "Dtype inference", category=FutureWarning)
+            expected = Index(expected)
     elif box_cls is Series:
-        expected = Series(expected)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "Dtype inference", category=FutureWarning)
+            expected = Series(expected)
     elif box_cls is DataFrame:
-        expected = Series(expected).to_frame()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "Dtype inference", category=FutureWarning)
+            expected = Series(expected).to_frame()
         if transpose:
             # for vector operations, we need a DataFrame to be a single-row,
             #  not a single-column, in order to operate against non-DataFrame
@@ -476,7 +489,7 @@ def iat(x):
 _UNITS = ["s", "ms", "us", "ns"]
 
 
-def get_finest_unit(left: str, right: str):
+def get_finest_unit(left: str, right: str) -> str:
     """
     Find the higher of two datetime64 units.
     """
@@ -602,7 +615,6 @@ __all__ = [
     "OBJECT_DTYPES",
     "raise_assert_detail",
     "raises_chained_assignment_error",
-    "round_trip_localpath",
     "round_trip_pathlib",
     "round_trip_pickle",
     "setitem",

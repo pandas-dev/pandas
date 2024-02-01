@@ -25,8 +25,7 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     astype_overflowsafe,
-    get_unit_from_dtype,
-    is_supported_unit,
+    is_supported_dtype,
     timezones as libtimezones,
 )
 from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
@@ -385,7 +384,7 @@ def _convert_listlike_datetimes(
         return arg
 
     elif lib.is_np_dtype(arg_dtype, "M"):
-        if not is_supported_unit(get_unit_from_dtype(arg_dtype)):
+        if not is_supported_dtype(arg_dtype):
             # We go to closest supported reso, i.e. "s"
             arg = astype_overflowsafe(
                 # TODO: looks like we incorrectly raise with errors=="ignore"
@@ -446,7 +445,7 @@ def _convert_listlike_datetimes(
         # We can take a shortcut since the datetime64 numpy array
         # is in UTC
         out_unit = np.datetime_data(result.dtype)[0]
-        dtype = cast(DatetimeTZDtype, tz_to_dtype(tz_parsed, out_unit))
+        dtype = tz_to_dtype(tz_parsed, out_unit)
         dt64_values = result.view(f"M8[{dtype.unit}]")
         dta = DatetimeArray._simple_new(dt64_values, dtype=dtype)
         return DatetimeIndex._simple_new(dta, name=name)
@@ -511,14 +510,14 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
             with np.errstate(over="raise"):
                 try:
                     arr = cast_from_unit_vectorized(arg, unit=unit)
-                except OutOfBoundsDatetime:
+                except OutOfBoundsDatetime as err:
                     if errors != "raise":
                         return _to_datetime_with_unit(
                             arg.astype(object), unit, name, utc, errors
                         )
                     raise OutOfBoundsDatetime(
                         f"cannot convert input with unit '{unit}'"
-                    )
+                    ) from err
 
             arr = arr.view("M8[ns]")
             tz_parsed = None
@@ -1202,7 +1201,7 @@ def _assemble_from_unit_mappings(arg, errors: DateTimeErrorChoices, utc: bool):
         values = to_numeric(values, errors=errors)
 
         # prevent overflow in case of int8 or int16
-        if is_integer_dtype(values):
+        if is_integer_dtype(values.dtype):
             values = values.astype("int64", copy=False)
         return values
 

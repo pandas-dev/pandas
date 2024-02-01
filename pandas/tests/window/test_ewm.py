@@ -158,56 +158,6 @@ def test_ewma_times_adjust_false_raises():
         )
 
 
-@pytest.mark.parametrize(
-    "func, expected",
-    [
-        [
-            "mean",
-            DataFrame(
-                {
-                    0: range(5),
-                    1: range(4, 9),
-                    2: [7.428571, 9, 10.571429, 12.142857, 13.714286],
-                },
-                dtype=float,
-            ),
-        ],
-        [
-            "std",
-            DataFrame(
-                {
-                    0: [np.nan] * 5,
-                    1: [4.242641] * 5,
-                    2: [4.6291, 5.196152, 5.781745, 6.380775, 6.989788],
-                }
-            ),
-        ],
-        [
-            "var",
-            DataFrame(
-                {
-                    0: [np.nan] * 5,
-                    1: [18.0] * 5,
-                    2: [21.428571, 27, 33.428571, 40.714286, 48.857143],
-                }
-            ),
-        ],
-    ],
-)
-def test_float_dtype_ewma(func, expected, float_numpy_dtype):
-    # GH#42452
-
-    df = DataFrame(
-        {0: range(5), 1: range(6, 11), 2: range(10, 20, 2)}, dtype=float_numpy_dtype
-    )
-    msg = "Support for axis=1 in DataFrame.ewm is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        e = df.ewm(alpha=0.5, axis=1)
-    result = getattr(e, func)()
-
-    tm.assert_frame_equal(result, expected)
-
-
 def test_times_string_col_raises():
     # GH 43265
     df = DataFrame(
@@ -271,67 +221,67 @@ def test_ewma_nan_handling():
     "s, adjust, ignore_na, w",
     [
         (
-            Series([np.nan, 1.0, 101.0]),
+            [np.nan, 1.0, 101.0],
             True,
             False,
             [np.nan, (1.0 - (1.0 / (1.0 + 2.0))), 1.0],
         ),
         (
-            Series([np.nan, 1.0, 101.0]),
+            [np.nan, 1.0, 101.0],
             True,
             True,
             [np.nan, (1.0 - (1.0 / (1.0 + 2.0))), 1.0],
         ),
         (
-            Series([np.nan, 1.0, 101.0]),
+            [np.nan, 1.0, 101.0],
             False,
             False,
             [np.nan, (1.0 - (1.0 / (1.0 + 2.0))), (1.0 / (1.0 + 2.0))],
         ),
         (
-            Series([np.nan, 1.0, 101.0]),
+            [np.nan, 1.0, 101.0],
             False,
             True,
             [np.nan, (1.0 - (1.0 / (1.0 + 2.0))), (1.0 / (1.0 + 2.0))],
         ),
         (
-            Series([1.0, np.nan, 101.0]),
+            [1.0, np.nan, 101.0],
             True,
             False,
             [(1.0 - (1.0 / (1.0 + 2.0))) ** 2, np.nan, 1.0],
         ),
         (
-            Series([1.0, np.nan, 101.0]),
+            [1.0, np.nan, 101.0],
             True,
             True,
             [(1.0 - (1.0 / (1.0 + 2.0))), np.nan, 1.0],
         ),
         (
-            Series([1.0, np.nan, 101.0]),
+            [1.0, np.nan, 101.0],
             False,
             False,
             [(1.0 - (1.0 / (1.0 + 2.0))) ** 2, np.nan, (1.0 / (1.0 + 2.0))],
         ),
         (
-            Series([1.0, np.nan, 101.0]),
+            [1.0, np.nan, 101.0],
             False,
             True,
             [(1.0 - (1.0 / (1.0 + 2.0))), np.nan, (1.0 / (1.0 + 2.0))],
         ),
         (
-            Series([np.nan, 1.0, np.nan, np.nan, 101.0, np.nan]),
+            [np.nan, 1.0, np.nan, np.nan, 101.0, np.nan],
             True,
             False,
             [np.nan, (1.0 - (1.0 / (1.0 + 2.0))) ** 3, np.nan, np.nan, 1.0, np.nan],
         ),
         (
-            Series([np.nan, 1.0, np.nan, np.nan, 101.0, np.nan]),
+            [np.nan, 1.0, np.nan, np.nan, 101.0, np.nan],
             True,
             True,
             [np.nan, (1.0 - (1.0 / (1.0 + 2.0))), np.nan, np.nan, 1.0, np.nan],
         ),
         (
-            Series([np.nan, 1.0, np.nan, np.nan, 101.0, np.nan]),
+            [np.nan, 1.0, np.nan, np.nan, 101.0, np.nan],
             False,
             False,
             [
@@ -344,7 +294,7 @@ def test_ewma_nan_handling():
             ],
         ),
         (
-            Series([np.nan, 1.0, np.nan, np.nan, 101.0, np.nan]),
+            [np.nan, 1.0, np.nan, np.nan, 101.0, np.nan],
             False,
             True,
             [
@@ -357,7 +307,7 @@ def test_ewma_nan_handling():
             ],
         ),
         (
-            Series([1.0, np.nan, 101.0, 50.0]),
+            [1.0, np.nan, 101.0, 50.0],
             True,
             False,
             [
@@ -368,7 +318,7 @@ def test_ewma_nan_handling():
             ],
         ),
         (
-            Series([1.0, np.nan, 101.0, 50.0]),
+            [1.0, np.nan, 101.0, 50.0],
             True,
             True,
             [
@@ -379,7 +329,7 @@ def test_ewma_nan_handling():
             ],
         ),
         (
-            Series([1.0, np.nan, 101.0, 50.0]),
+            [1.0, np.nan, 101.0, 50.0],
             False,
             False,
             [
@@ -391,7 +341,7 @@ def test_ewma_nan_handling():
             ],
         ),
         (
-            Series([1.0, np.nan, 101.0, 50.0]),
+            [1.0, np.nan, 101.0, 50.0],
             False,
             True,
             [
@@ -405,6 +355,7 @@ def test_ewma_nan_handling():
 )
 def test_ewma_nan_handling_cases(s, adjust, ignore_na, w):
     # GH 7603
+    s = Series(s)
     expected = (s.multiply(w).cumsum() / Series(w).cumsum()).ffill()
     result = s.ewm(com=2.0, adjust=adjust, ignore_na=ignore_na).mean()
 

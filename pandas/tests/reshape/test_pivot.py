@@ -9,6 +9,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -26,17 +28,6 @@ import pandas._testing as tm
 from pandas.api.types import CategoricalDtype
 from pandas.core.reshape import reshape as reshape_lib
 from pandas.core.reshape.pivot import pivot_table
-
-
-@pytest.fixture(params=[True, False])
-def dropna(request):
-    return request.param
-
-
-@pytest.fixture(params=[([0] * 4, [1] * 4), (range(3), range(1, 4))])
-def interval_values(request, closed):
-    left, right = request.param
-    return Categorical(pd.IntervalIndex.from_arrays(left, right, closed))
 
 
 class TestPivotTable:
@@ -304,8 +295,13 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_pivot_with_interval_index(self, interval_values, dropna):
+    @pytest.mark.parametrize(
+        "left_right", [([0] * 4, [1] * 4), (range(3), range(1, 4))]
+    )
+    def test_pivot_with_interval_index(self, left_right, dropna, closed):
         # GH 25814
+        left, right = left_right
+        interval_values = Categorical(pd.IntervalIndex.from_arrays(left, right, closed))
         df = DataFrame({"A": interval_values, "B": 1})
 
         msg = "The default value of observed=False is deprecated"
@@ -746,18 +742,11 @@ class TestPivotTable:
         result = df.pivot_table(index="a", columns="b", values="x", margins=True)
         tm.assert_frame_equal(expected, result)
 
-    @pytest.mark.parametrize(
-        "values",
-        [
-            ["baz", "zoo"],
-            np.array(["baz", "zoo"]),
-            Series(["baz", "zoo"]),
-            Index(["baz", "zoo"]),
-        ],
-    )
+    @pytest.mark.parametrize("box", [list, np.array, Series, Index])
     @pytest.mark.parametrize("method", [True, False])
-    def test_pivot_with_list_like_values(self, values, method):
+    def test_pivot_with_list_like_values(self, box, method):
         # issue #17160
+        values = box(["baz", "zoo"])
         df = DataFrame(
             {
                 "foo": ["one", "one", "one", "two", "two", "two"],
@@ -779,7 +768,8 @@ class TestPivotTable:
             codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]],
             names=[None, "bar"],
         )
-        expected = DataFrame(data=data, index=index, columns=columns, dtype="object")
+        expected = DataFrame(data=data, index=index, columns=columns)
+        expected["baz"] = expected["baz"].astype(object)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -822,7 +812,8 @@ class TestPivotTable:
             codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
             names=[None, "foo"],
         )
-        expected = DataFrame(data=data, index=index, columns=columns, dtype="object")
+        expected = DataFrame(data=data, index=index, columns=columns)
+        expected["baz"] = expected["baz"].astype(object)
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_columns_none_raise_error(self):
@@ -947,7 +938,7 @@ class TestPivotTable:
 
         # to help with a buglet
         data.columns = [k * 2 for k in data.columns]
-        msg = re.escape("agg function failed [how->mean,dtype->object]")
+        msg = re.escape("agg function failed [how->mean,dtype->")
         with pytest.raises(TypeError, match=msg):
             data.pivot_table(index=["AA", "BB"], margins=True, aggfunc="mean")
         table = data.drop(columns="CC").pivot_table(
@@ -1020,7 +1011,7 @@ class TestPivotTable:
             }
         )
         if aggfunc != "sum":
-            msg = re.escape("agg function failed [how->mean,dtype->object]")
+            msg = re.escape("agg function failed [how->mean,dtype->")
             with pytest.raises(TypeError, match=msg):
                 df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
         if "B" not in columns:
@@ -1084,7 +1075,7 @@ class TestPivotTable:
         expected = DataFrame(
             [[4.0, 5.0, 6.0]],
             columns=MultiIndex.from_tuples([(1, 1), (2, 2), (3, 3)], names=cols),
-            index=Index(["v"]),
+            index=Index(["v"], dtype=object),
         )
 
         tm.assert_frame_equal(result, expected)
@@ -1271,7 +1262,7 @@ class TestPivotTable:
                 margins_name=margin_name,
             )
 
-    def test_pivot_timegrouper(self, using_array_manager):
+    def test_pivot_timegrouper(self):
         df = DataFrame(
             {
                 "Branch": "A A A A A A A B".split(),
@@ -1325,9 +1316,6 @@ class TestPivotTable:
         )
         expected.index.name = "Date"
         expected.columns.name = "Buyer"
-        if using_array_manager:
-            # INFO(ArrayManager) column without NaNs can preserve int dtype
-            expected["Carl"] = expected["Carl"].astype("int64")
 
         result = pivot_table(
             df,
@@ -1801,7 +1789,7 @@ class TestPivotTable:
             margins_name=margins_name,
             aggfunc=["mean", "max"],
         )
-        ix = Index(["bacon", "cheese", margins_name], dtype="object", name="item")
+        ix = Index(["bacon", "cheese", margins_name], name="item")
         tups = [
             ("mean", "cost", "ME"),
             ("mean", "cost", "T"),
@@ -1993,7 +1981,7 @@ class TestPivotTable:
     def test_pivot_margins_name_unicode(self):
         # issue #13292
         greek = "\u0394\u03bf\u03ba\u03b9\u03bc\u03ae"
-        frame = DataFrame({"foo": [1, 2, 3]})
+        frame = DataFrame({"foo": [1, 2, 3]}, columns=Index(["foo"], dtype=object))
         table = pivot_table(
             frame, index=["foo"], aggfunc=len, margins=True, margins_name=greek
         )
@@ -2317,7 +2305,6 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("dropna", [True, False])
     def test_pivot_ea_dtype_dropna(self, dropna):
         # GH#47477
         df = DataFrame({"x": "a", "y": "b", "age": Series([20, 40], dtype="Int64")})
@@ -2364,7 +2351,7 @@ class TestPivotTable:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_pivot_table_with_mixed_nested_tuples(self, using_array_manager):
+    def test_pivot_table_with_mixed_nested_tuples(self):
         # GH 50342
         df = DataFrame(
             {
@@ -2428,9 +2415,6 @@ class TestPivotTable:
                 [["bar", "bar", "foo", "foo"], ["one", "two"] * 2], names=["A", "B"]
             ),
         )
-        if using_array_manager:
-            # INFO(ArrayManager) column without NaNs can preserve int dtype
-            expected["small"] = expected["small"].astype("int64")
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_table_aggfunc_nunique_with_different_values(self):
@@ -2518,11 +2502,12 @@ class TestPivot:
         expected = DataFrame(index=[], columns=[])
         tm.assert_frame_equal(result, expected, check_names=False)
 
-    def test_pivot_integer_bug(self):
-        df = DataFrame(data=[("A", "1", "A1"), ("B", "2", "B2")])
+    @pytest.mark.parametrize("dtype", [object, "string"])
+    def test_pivot_integer_bug(self, dtype):
+        df = DataFrame(data=[("A", "1", "A1"), ("B", "2", "B2")], dtype=dtype)
 
         result = df.pivot(index=1, columns=0, values=2)
-        tm.assert_index_equal(result.columns, Index(["A", "B"], name=0))
+        tm.assert_index_equal(result.columns, Index(["A", "B"], name=0, dtype=dtype))
 
     def test_pivot_index_none(self):
         # GH#3962
@@ -2604,6 +2589,7 @@ class TestPivot:
         with pytest.raises(TypeError, match="missing 1 required keyword-only argument"):
             df.pivot()  # pylint: disable=missing-kwoa
 
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="None is cast to NaN")
     def test_pivot_columns_is_none(self):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
@@ -2619,6 +2605,7 @@ class TestPivot:
         expected = DataFrame({1: 3}, index=Index([2], name="b"))
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="None is cast to NaN")
     def test_pivot_index_is_none(self):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
@@ -2632,6 +2619,7 @@ class TestPivot:
         expected = DataFrame(3, index=[1], columns=Index([2], name="b"))
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="None is cast to NaN")
     def test_pivot_values_is_none(self):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})

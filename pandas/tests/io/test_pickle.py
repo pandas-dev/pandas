@@ -37,7 +37,6 @@ from pandas.compat import (
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.compressors import flatten_buffer
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -230,16 +229,6 @@ def test_pickle_path_pathlib():
     tm.assert_frame_equal(df, result)
 
 
-def test_pickle_path_localpath():
-    df = DataFrame(
-        1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
-    )
-    result = tm.round_trip_localpath(df.to_pickle, pd.read_pickle)
-    tm.assert_frame_equal(df, result)
-
-
 # ---------------------
 # test pickle compression
 # ---------------------
@@ -310,13 +299,13 @@ class TestCompression:
 
     @pytest.mark.parametrize("compression", ["", "None", "bad", "7z"])
     def test_write_explicit_bad(self, compression, get_random_path):
-        with pytest.raises(ValueError, match="Unrecognized compression type"):
-            with tm.ensure_clean(get_random_path) as path:
-                df = DataFrame(
-                    1.1 * np.arange(120).reshape((30, 4)),
-                    columns=Index(list("ABCD"), dtype=object),
-                    index=Index([f"i-{i}" for i in range(30)], dtype=object),
-                )
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
+        with tm.ensure_clean(get_random_path) as path:
+            with pytest.raises(ValueError, match="Unrecognized compression type"):
                 df.to_pickle(path, compression=compression)
 
     def test_write_infer(self, compression_ext, get_random_path):
@@ -600,7 +589,6 @@ def test_pickle_strings(string_series):
     tm.assert_series_equal(unp_series, string_series)
 
 
-@td.skip_array_manager_invalid_test
 def test_pickle_preserves_block_ndim():
     # GH#37631
     ser = Series(list("abc")).astype("category").iloc[[0]]

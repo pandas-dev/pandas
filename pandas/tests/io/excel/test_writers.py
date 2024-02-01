@@ -90,7 +90,7 @@ def set_engine(engine, ext):
 class TestRoundTrip:
     @pytest.mark.parametrize(
         "header,expected",
-        [(None, DataFrame([np.nan] * 4)), (0, DataFrame({"Unnamed: 0": [np.nan] * 3}))],
+        [(None, [np.nan] * 4), (0, {"Unnamed: 0": [np.nan] * 3})],
     )
     def test_read_one_empty_col_no_header(self, ext, header, expected):
         # xref gh-12292
@@ -102,14 +102,14 @@ class TestRoundTrip:
             result = pd.read_excel(
                 path, sheet_name=filename, usecols=[0], header=header
             )
-
+        expected = DataFrame(expected)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "header,expected",
-        [(None, DataFrame([0] + [np.nan] * 4)), (0, DataFrame([np.nan] * 4))],
+        "header,expected_extra",
+        [(None, [0]), (0, [])],
     )
-    def test_read_one_empty_col_with_header(self, ext, header, expected):
+    def test_read_one_empty_col_with_header(self, ext, header, expected_extra):
         filename = "with_header"
         df = DataFrame([["", 1, 100], ["", 2, 200], ["", 3, 300], ["", 4, 400]])
 
@@ -118,7 +118,7 @@ class TestRoundTrip:
             result = pd.read_excel(
                 path, sheet_name=filename, usecols=[0], header=header
             )
-
+        expected = DataFrame(expected_extra + [np.nan] * 4)
         tm.assert_frame_equal(result, expected)
 
     def test_set_column_names_in_parameter(self, ext):
@@ -234,14 +234,14 @@ class TestRoundTrip:
             check_names = bool(r_idx_names) or r_idx_levels <= 1
 
             if c_idx_levels == 1:
-                columns = Index(list("abcde"), dtype=object)
+                columns = Index(list("abcde"))
             else:
                 columns = MultiIndex.from_arrays(
                     [range(5) for _ in range(c_idx_levels)],
                     names=[f"{c_idx_names}-{i}" for i in range(c_idx_levels)],
                 )
             if r_idx_levels == 1:
-                index = Index(list("ghijk"), dtype=object)
+                index = Index(list("ghijk"))
             else:
                 index = MultiIndex.from_arrays(
                     [range(5) for _ in range(r_idx_levels)],
@@ -475,7 +475,7 @@ class TestExcelWriter:
         unit = get_exp_unit(path)
         df = DataFrame(
             np.random.default_rng(2).standard_normal((5, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(list("ABCD")),
             index=date_range("2000-01-01", periods=5, freq="B"),
         )
 
@@ -556,7 +556,7 @@ class TestExcelWriter:
         unit = get_exp_unit(path)
         tsframe = DataFrame(
             np.random.default_rng(2).standard_normal((5, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(list("ABCD")),
             index=date_range("2000-01-01", periods=5, freq="B"),
         )
         index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
@@ -684,7 +684,7 @@ class TestExcelWriter:
         # freq does not round-trip
         tsframe = DataFrame(
             np.random.default_rng(2).standard_normal((5, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(list("ABCD")),
             index=date_range("2000-01-01", periods=5, freq="B"),
         )
         index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
@@ -812,7 +812,7 @@ class TestExcelWriter:
         # xp has a PeriodIndex
         df = DataFrame(
             np.random.default_rng(2).standard_normal((5, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(list("ABCD")),
             index=date_range("2000-01-01", periods=5, freq="B"),
         )
         xp = df.resample("ME").mean().to_period("M")
@@ -882,7 +882,7 @@ class TestExcelWriter:
         unit = get_exp_unit(path)
         tsframe = DataFrame(
             np.random.default_rng(2).standard_normal((5, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(list("ABCD")),
             index=date_range("2000-01-01", periods=5, freq="B"),
         )
         tsframe.index = MultiIndex.from_arrays(
@@ -1310,25 +1310,13 @@ class TestExcelWriter:
     def test_path_path_lib(self, engine, ext):
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(list("ABCD")),
             index=Index([f"i-{i}" for i in range(30)], dtype=object),
         )
         writer = partial(df.to_excel, engine=engine)
 
         reader = partial(pd.read_excel, index_col=0)
         result = tm.round_trip_pathlib(writer, reader, path=f"foo{ext}")
-        tm.assert_frame_equal(result, df)
-
-    def test_path_local_path(self, engine, ext):
-        df = DataFrame(
-            1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
-        )
-        writer = partial(df.to_excel, engine=engine)
-
-        reader = partial(pd.read_excel, index_col=0)
-        result = tm.round_trip_localpath(writer, reader, path=f"foo{ext}")
         tm.assert_frame_equal(result, df)
 
     def test_merged_cell_custom_objects(self, path):
@@ -1396,6 +1384,18 @@ class TestExcelWriter:
             result = pd.read_excel(path)
             expected = DataFrame()
             tm.assert_frame_equal(result, expected)
+
+    def test_to_excel_raising_warning_when_cell_character_exceed_limit(
+        self, path, engine
+    ):
+        # GH#56954
+        df = DataFrame({"A": ["a" * 32768]})
+        msg = "Cell contents too long, truncated to 32767 characters"
+        with tm.assert_produces_warning(
+            UserWarning, match=msg, raise_on_extra_warnings=False
+        ):
+            buf = BytesIO()
+            df.to_excel(buf)
 
 
 class TestExcelWriterEngineTests:
