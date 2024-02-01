@@ -261,8 +261,6 @@ ignore = [
   "B015",
   # Function definition does not bind loop variable
   "B023",
-  # Functions defined inside a loop must not use variables redefined in the loop
-  # "B301",  # not yet implemented
   # Only works with python >=3.10
   "B905",
   # Too many arguments to function call
@@ -277,8 +275,6 @@ ignore = [
   "PLW2901",
   # Global statements are discouraged
   "PLW0603",
-  # Docstrings should not be included in stubs
-  "PYI021",
   # Use `typing.NamedTuple` instead of `collections.namedtuple`
   "PYI024",
   # No builtin `eval()` allowed
