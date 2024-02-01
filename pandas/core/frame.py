@@ -9932,22 +9932,20 @@ class DataFrame(NDFrame, OpsMixin):
             periods = int(periods)
 
         axis = self._get_axis_number(axis)
-
         if axis == 1:
             if periods != 0:
                 # in the periods == 0 case, this is equivalent diff of 0 periods
                 #  along axis=0, and the Manager method may be somewhat more
                 #  performant, so we dispatch in that case.
+                shifted = self.shift(periods, axis=axis)
                 if (self.dtypes == np.bool_).all():
-                    # GH#43248
-                    result = self ^ self.shift(periods=periods, axis=axis)
-
+                    # GH#53248
+                    if abs(periods) >= len(self.columns):
+                        return shifted.astype(np.float64)
                     if periods > 0:
-                        result.iloc[:, :periods] = np.nan
-                    else:
-                        result.iloc[:, periods:] = np.nan
-                    return result
-                return self - self.shift(periods, axis=axis)
+                        return self.iloc[:, periods:] ^ shifted
+                    return self.iloc[:, :periods] ^ shifted
+                return self - shifted
             # With periods=0 this is equivalent to a diff with axis=0
             axis = 0
 

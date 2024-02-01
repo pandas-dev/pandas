@@ -308,8 +308,19 @@ class TestDataFrameDiff:
         tm.assert_frame_equal(result, expected)
 
     def test_diff_axis1_all_bool_dtype(self):
-        # https://github.com/pandas-dev/pandas/issues/52579
-        df = DataFrame({"col": [True, False]})
-        result = df.T.diff(axis=1)
-        expected = DataFrame({0: [np.nan], 1: [True]}, index=["col"])
-        tm.assert_frame_equal(result, expected, check_dtype=False)
+        # GH#52579
+        df = DataFrame({0: [True], 1: [False], 2: [False]})
+
+        result = df.diff(periods=1, axis=1)
+        expected = DataFrame({0: [np.nan], 1: [True], 2: [False]})
+        tm.assert_frame_equal(result, expected)
+
+        # negative period
+        result = df.diff(periods=-1, axis=1)
+        expected = DataFrame({0: [True], 1: [False], 2: [np.nan]})
+        tm.assert_frame_equal(result, expected)
+
+        # large period
+        result = df.diff(periods=3, axis=1)
+        expected = df * np.nan
+        tm.assert_frame_equal(result, expected)

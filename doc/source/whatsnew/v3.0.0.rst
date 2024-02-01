@@ -228,6 +228,7 @@ Styler
 
 Other
 ^^^^^
+- Bug in :meth:`DataFrame.diff` raising ``TypeError`` with ``axis=1`` when dataframe has ``bool`` dtype (:issue:`52579`)
 - Bug in :meth:`DataFrame.where` where using a non-bool type array in the function would return a ``ValueError`` instead of a ``TypeError`` (:issue:`56330`)
 
 
