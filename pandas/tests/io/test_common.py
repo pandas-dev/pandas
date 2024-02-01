@@ -297,7 +297,13 @@ Look,a snake,🐍"""
             (
                 pd.read_pickle,
                 "os",
-                ("io", "data", "pickle", "categorical.0.25.0.pickle"),
+                (
+                    "io",
+                    "data",
+                    "legacy_pickle",
+                    "1.4.2",
+                    "1.4.2_x86_64_linux_3.9.7.pickle",
+                ),
             ),
         ],
     )
@@ -310,10 +316,9 @@ Look,a snake,🐍"""
         expected = reader(path)
 
         if path.endswith(".pickle"):
-            # categorical
-            tm.assert_categorical_equal(result, expected)
-        else:
-            tm.assert_frame_equal(result, expected)
+            result = result["frame"]["float"]
+            expected = expected["frame"]["float"]
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "writer_name, writer_kwargs, module",

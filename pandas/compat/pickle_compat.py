@@ -36,6 +36,10 @@ _class_locations_map = {
         "pandas._libs.internals",
         "_unpickle_block",
     ),
+    ("pandas._libs.tslibs.nattype", "__nat_unpickle"): (
+        "pandas._libs.tslibs.nattype",
+        "_nat_unpickle",
+    ),
     # 50775, remove Int64Index, UInt64Index & Float64Index from codebase
     ("pandas.core.indexes.numeric", "Int64Index"): (
         "pandas.core.indexes.base",
@@ -106,7 +110,6 @@ class Unpickler(pickle.Unpickler):
     dispatch_table[pickle.NEWOBJ[0]] = load_newobj
 
     def find_class(self, module, name):
-        # override superclass
         key = (module, name)
         module, name = _class_locations_map.get(key, key)
         return super().find_class(module, name)
