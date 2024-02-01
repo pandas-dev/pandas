@@ -84,6 +84,8 @@ if TYPE_CHECKING:
         Manager,
         npt,
     )
+
+    from pandas.core.series import Series
 # ---------------------------------------------------------------------
 # BlockManager Interface
 
@@ -364,17 +366,20 @@ def dict_to_mgr(
         # arrays = Series(data, index=columns, dtype=object)
         # missing = arrays.isna()
         columns = ensure_index(columns)
+        arrays = [np.nan] * len(columns)
+        midxs = set(range(len(columns)))
         data_keys = ensure_index(data.keys())
-        arrays = []
-        midxs = set()
-        for i, (column, array) in enumerate(zip(columns, data.values())):
-            if column in data_keys:
-                if is_scalar(array) and isna(array):
-                    midxs.add(i)
-                arrays.append(array)
-            else:
-                arrays.append(np.nan)
-                midxs.add(i)
+        data_values = list(data.values())
+
+        for i, column in enumerate(columns):
+            try:
+                idx = data_keys.get_loc(column)
+            except KeyError:
+                continue
+            array = data_values[idx]
+            arrays[i] = array
+            if not (is_scalar(array) and isna(array)):
+                midxs.remove(i)
 
         if index is None:
             # GH10856
@@ -404,11 +409,12 @@ def dict_to_mgr(
                 nan_dtype = np.dtype("object")
                 val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
                 for i in midxs:
-                    if copy:
-                        arrays[i] = val
-                    else:
-                        # GH#45369
-                        arrays[i] = val.copy()
+                    arrays[i] = val
+                    # if copy:
+                    #     arrays[i] = val
+                    # else:
+                    #     # GH#45369
+                    #     arrays[i] = val
 
         # if index is None:
         #     # GH10856
