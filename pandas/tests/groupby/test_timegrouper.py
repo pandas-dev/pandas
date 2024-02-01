@@ -925,7 +925,7 @@ class TestGroupBy:
         # check that we will go through the singular_series path
         #  in _wrap_applied_output_series
         assert gb.ngroups == 1
-        assert gb._selected_obj._get_axis(gb.axis).nlevels == 1
+        assert gb._selected_obj.index.nlevels == 1
 
         # function that returns a Series
         msg = "DataFrameGroupBy.apply operated on the grouping columns"

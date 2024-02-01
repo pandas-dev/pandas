@@ -79,9 +79,9 @@ which will first group the data by the specified keys and then perform a windowi
 .. versionadded:: 1.3.0
 
 Some windowing operations also support the ``method='table'`` option in the constructor which
-performs the windowing operation over an entire :class:`DataFrame` instead of a single column or row at a time.
-This can provide a useful performance benefit for a :class:`DataFrame` with many columns or rows
-(with the corresponding ``axis`` argument) or the ability to utilize other columns during the windowing
+performs the windowing operation over an entire :class:`DataFrame` instead of a single column at a time.
+This can provide a useful performance benefit for a :class:`DataFrame` with many columns
+or the ability to utilize other columns during the windowing
 operation. The ``method='table'`` option can only be used if ``engine='numba'`` is specified
 in the corresponding method call.
 

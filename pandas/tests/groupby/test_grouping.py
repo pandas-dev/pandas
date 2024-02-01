@@ -230,13 +230,6 @@ class TestGrouping:
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
-        msg = "Grouper axis keyword is deprecated and will be removed"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            gpr = Grouper(key="A", axis=0)
-        g = df.groupby(gpr)
-        result = g.sum()
-        tm.assert_frame_equal(result, expected)
-
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
         with tm.assert_produces_warning(DeprecationWarning, match=msg):
             result = g.apply(lambda x: x.sum())
@@ -386,22 +379,14 @@ class TestGrouping:
             [[1, 2, 1, 2], [1, 2, 1, 2], [1, 2, 1, 2], [1, 2, 1, 2], [1, 2, 1, 2]], int
         )
         cat_columns = CategoricalIndex(columns, categories=categories, ordered=True)
-        df = DataFrame(data=data, columns=cat_columns)
-        depr_msg = "DataFrame.groupby with axis=1 is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            result = df.groupby(axis=1, level=0, observed=observed).sum()
         expected_data = np.array([[4, 2], [4, 2], [4, 2], [4, 2], [4, 2]], int)
         expected_columns = CategoricalIndex(
             categories, categories=categories, ordered=True
         )
-        expected = DataFrame(data=expected_data, columns=expected_columns)
-        tm.assert_frame_equal(result, expected)
 
         # test transposed version
         df = DataFrame(data.T, index=cat_columns)
-        msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.groupby(axis=0, level=0, observed=observed).sum()
+        result = df.groupby(level=0, observed=observed).sum()
         expected = DataFrame(data=expected_data.T, index=expected_columns)
         tm.assert_frame_equal(result, expected)
 
@@ -528,18 +513,6 @@ class TestGrouping:
         msg = "Grouper for '<class 'pandas.core.frame.DataFrame'>' not 1-dimensional"
         with pytest.raises(ValueError, match=msg):
             Grouping(df.index, df[["A", "A"]])
-
-    def test_multiindex_passthru(self):
-        # GH 7997
-        # regression from 0.14.1
-        df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-        df.columns = MultiIndex.from_tuples([(0, 1), (1, 1), (2, 1)])
-
-        depr_msg = "DataFrame.groupby with axis=1 is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            gb = df.groupby(axis=1, level=[0, 1])
-        result = gb.first()
-        tm.assert_frame_equal(result, df)
 
     def test_multiindex_negative_level(self, multiindex_dataframe_random_data):
         # GH 13901
@@ -677,35 +650,20 @@ class TestGrouping:
         tm.assert_frame_equal(result0, expected0)
         tm.assert_frame_equal(result1, expected1)
 
-        # axis=1
-        msg = "DataFrame.groupby with axis=1 is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result0 = frame.T.groupby(level=0, axis=1, sort=sort).sum()
-            result1 = frame.T.groupby(level=1, axis=1, sort=sort).sum()
-        tm.assert_frame_equal(result0, expected0.T)
-        tm.assert_frame_equal(result1, expected1.T)
-
         # raise exception for non-MultiIndex
         msg = "level > 0 or level < -1 only valid with MultiIndex"
         with pytest.raises(ValueError, match=msg):
             df.groupby(level=1)
 
-    def test_groupby_level_index_names(self, axis):
+    def test_groupby_level_index_names(self):
         # GH4014 this used to raise ValueError since 'exp'>1 (in py2)
         df = DataFrame({"exp": ["A"] * 3 + ["B"] * 3, "var1": range(6)}).set_index(
             "exp"
         )
-        if axis in (1, "columns"):
-            df = df.T
-            depr_msg = "DataFrame.groupby with axis=1 is deprecated"
-        else:
-            depr_msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            df.groupby(level="exp", axis=axis)
-        msg = f"level name foo is not the name of the {df._get_axis_name(axis)}"
+        df.groupby(level="exp")
+        msg = "level name foo is not the name of the index"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-                df.groupby(level="foo", axis=axis)
+            df.groupby(level="foo")
 
     def test_groupby_level_with_nas(self, sort):
         # GH 17537
@@ -1098,14 +1056,6 @@ class TestIteration:
         # pylint: disable-next=unnecessary-comprehension
         groups = {key: gp for key, gp in grouped}  # noqa: C416
         assert len(groups) == 2
-
-        # axis = 1
-        three_levels = three_group.groupby(["A", "B", "C"]).mean()
-        depr_msg = "DataFrame.groupby with axis=1 is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            grouped = three_levels.T.groupby(axis=1, level=(1, 2))
-        for key, group in grouped:
-            pass
 
     def test_dictify(self, df):
         dict(iter(df.groupby("A")))

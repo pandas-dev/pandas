@@ -17,7 +17,6 @@ from pandas._config import (
     warn_copy_on_write,
 )
 
-from pandas._libs import lib
 from pandas._libs.tslibs import OutOfBoundsDatetime
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
@@ -55,7 +54,6 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         ArrayLike,
-        Axis,
         NDFrameT,
         npt,
     )
@@ -68,10 +66,10 @@ class Grouper:
     A Grouper allows the user to specify a groupby instruction for an object.
 
     This specification will select a column via the key parameter, or if the
-    level and/or axis parameters are given, a level of the index of the target
+    level parameter is given, a level of the index of the target
     object.
 
-    If `axis` and/or `level` are passed as keywords to both `Grouper` and
+    If ``level`` is passed as a keyword to both `Grouper` and
     `groupby`, the values passed to `Grouper` take precedence.
 
     Parameters
@@ -85,8 +83,6 @@ class Grouper:
         (via key or level) is a datetime-like object. For full specification
         of available frequencies, please see `here
         <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_.
-    axis : str, int, defaults to 0
-        Number/name of the axis.
     sort : bool, default to False
         Whether to sort the resulting labels.
     closed : {'left' or 'right'}
@@ -249,7 +245,7 @@ class Grouper:
     _gpr_index: Index | None
     _grouper: Index | None
 
-    _attributes: tuple[str, ...] = ("key", "level", "freq", "axis", "sort", "dropna")
+    _attributes: tuple[str, ...] = ("key", "level", "freq", "sort", "dropna")
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get("freq") is not None:
@@ -263,29 +259,12 @@ class Grouper:
         key=None,
         level=None,
         freq=None,
-        axis: Axis | lib.NoDefault = lib.no_default,
         sort: bool = False,
         dropna: bool = True,
     ) -> None:
-        if type(self) is Grouper:
-            # i.e. not TimeGrouper
-            if axis is not lib.no_default:
-                warnings.warn(
-                    "Grouper axis keyword is deprecated and will be removed in a "
-                    "future version. To group on axis=1, use obj.T.groupby(...) "
-                    "instead",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            else:
-                axis = 0
-        if axis is lib.no_default:
-            axis = 0
-
         self.key = key
         self.level = level
         self.freq = freq
-        self.axis = axis
         self.sort = sort
         self.dropna = dropna
 
@@ -315,7 +294,6 @@ class Grouper:
         grouper, _, obj = get_grouper(
             obj,
             [self.key],
-            axis=self.axis,
             level=self.level,
             sort=self.sort,
             validate=validate,
@@ -381,7 +359,7 @@ class Grouper:
                 ax = Index(obj[key], name=key)
 
         else:
-            ax = obj._get_axis(self.axis)
+            ax = obj.index
             if self.level is not None:
                 level = self.level
 
@@ -404,7 +382,7 @@ class Grouper:
                 kind="mergesort", na_position="first"
             )
             ax = ax.take(indexer)
-            obj = obj.take(indexer, axis=self.axis)
+            obj = obj.take(indexer, axis=0)
 
         # error: Incompatible types in assignment (expression has type
         # "NDFrameT", variable has type "None")
@@ -846,7 +824,6 @@ class Grouping:
 def get_grouper(
     obj: NDFrameT,
     key=None,
-    axis: Axis = 0,
     level=None,
     sort: bool = True,
     observed: bool = False,
@@ -862,8 +839,8 @@ def get_grouper(
     Groupers are ultimately index mappings. They can originate as:
     index mappings, keys to columns, functions, or Groupers
 
-    Groupers enable local references to axis,level,sort, while
-    the passed in axis, level, and sort are 'global'.
+    Groupers enable local references to level,sort, while
+    the passed in level, and sort are 'global'.
 
     This routine tries to figure out what the passing in references
     are and then creates a Grouping for each one, combined into
@@ -875,10 +852,10 @@ def get_grouper(
     If validate, then check for key/level overlaps.
 
     """
-    group_axis = obj._get_axis(axis)
+    group_axis = obj.index
 
     # validate that the passed single level is compatible with the passed
-    # axis of the object
+    # index of the object
     if level is not None:
         # TODO: These if-block and else-block are almost same.
         # MultiIndex instance check is removable, but it seems that there are
@@ -911,11 +888,8 @@ def get_grouper(
                     raise ValueError("multiple levels only valid with MultiIndex")
 
             if isinstance(level, str):
-                if obj._get_axis(axis).name != level:
-                    raise ValueError(
-                        f"level name {level} is not the name "
-                        f"of the {obj._get_axis_name(axis)}"
-                    )
+                if obj.index.name != level:
+                    raise ValueError(f"level name {level} is not the name of the index")
             elif level > 0 or level < -1:
                 raise ValueError("level > 0 or level < -1 only valid with MultiIndex")
 
@@ -1028,14 +1002,14 @@ def get_grouper(
         elif is_in_axis(gpr):  # df.groupby('name')
             if obj.ndim != 1 and gpr in obj:
                 if validate:
-                    obj._check_label_or_level_ambiguity(gpr, axis=axis)
+                    obj._check_label_or_level_ambiguity(gpr, axis=0)
                 in_axis, name, gpr = True, gpr, obj[gpr]
                 if gpr.ndim != 1:
                     # non-unique columns; raise here to get the name in the
                     # exception message
                     raise ValueError(f"Grouper for '{name}' not 1-dimensional")
                 exclusions.add(name)
-            elif obj._is_level_reference(gpr, axis=axis):
+            elif obj._is_level_reference(gpr, axis=0):
                 in_axis, level, gpr = False, gpr, None
             else:
                 raise KeyError(gpr)

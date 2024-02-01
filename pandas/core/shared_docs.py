@@ -102,15 +102,6 @@ by : mapping, function, label, pd.Grouper or list of such
     the values are used as-is to determine the groups. A label or list
     of labels may be passed to group by the columns in ``self``.
     Notice that a tuple is interpreted as a (single) key.
-axis : {0 or 'index', 1 or 'columns'}, default 0
-    Split along rows (0) or columns (1). For `Series` this parameter
-    is unused and defaults to 0.
-
-    .. deprecated:: 2.1.0
-
-        Will be removed and behave like axis=0 in a future version.
-        For ``axis=1``, do ``frame.T.groupby(...)`` instead.
-
 level : int, level name, or sequence of such, default None
     If the axis is a MultiIndex (hierarchical), group by a particular
     level or levels. Do not specify both ``by`` and ``level``.

@@ -639,26 +639,6 @@ def test_resample_ohlc_dataframe(unit):
     # df.columns = ['PRICE', 'PRICE']
 
 
-def test_resample_dup_index():
-    # GH 4812
-    # dup columns with resample raising
-    df = DataFrame(
-        np.random.default_rng(2).standard_normal((4, 12)),
-        index=[2000, 2000, 2000, 2000],
-        columns=[Period(year=2000, month=i + 1, freq="M") for i in range(12)],
-    )
-    df.iloc[3, :] = np.nan
-    warning_msg = "DataFrame.resample with axis=1 is deprecated."
-    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
-        result = df.resample("QE", axis=1).mean()
-
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        expected = df.groupby(lambda x: int((x.month - 1) / 3), axis=1).mean()
-    expected.columns = [Period(year=2000, quarter=i + 1, freq="Q") for i in range(4)]
-    tm.assert_frame_equal(result, expected)
-
-
 def test_resample_reresample(unit):
     dti = date_range(
         start=datetime(2005, 1, 1), end=datetime(2005, 1, 10), freq="D"
@@ -735,21 +715,6 @@ def test_asfreq_non_unique(unit):
     msg = "cannot reindex on an axis with duplicate labels"
     with pytest.raises(ValueError, match=msg):
         ts.asfreq("B")
-
-
-def test_resample_axis1(unit):
-    rng = date_range("1/1/2000", "2/29/2000").as_unit(unit)
-    df = DataFrame(
-        np.random.default_rng(2).standard_normal((3, len(rng))),
-        columns=rng,
-        index=["a", "b", "c"],
-    )
-
-    warning_msg = "DataFrame.resample with axis=1 is deprecated."
-    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
-        result = df.resample("ME", axis=1).mean()
-    expected = df.T.resample("ME").mean().T
-    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("freq", ["min", "5min", "15min", "30min", "4h", "12h"])
