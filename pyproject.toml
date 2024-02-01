@@ -257,8 +257,6 @@ ignore = [
   "B009",
   # getattr is used to side-step mypy
   "B010",
-  # tests use assert False
-  "B011",
   # tests use comparisons but not their returned value
   "B015",
   # false positives
