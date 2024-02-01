@@ -139,12 +139,6 @@ jobs:
         shell: bash -el {0}
         run: echo "sdist_name=$(cd ./dist && ls -d */)" >> "$GITHUB_ENV"
 
-      # TODO: can remove if https://github.com/actions/runner-images/issues/9256
-      # is resolved
-      - name: Install pipx
-        if: ${{ matrix.buildplat[1] == 'macosx_arm64' }}
-        run: brew install pipx && pipx ensurepath
-
       - name: Build normal wheels
         if: ${{ (env.IS_SCHEDULE_DISPATCH != 'true' || env.IS_PUSH == 'true') }}
         uses: pypa/cibuildwheel@v2.16.4
@@ -156,7 +150,7 @@ jobs:
 
       - name: Build nightly wheels (with NumPy pre-release)
         if: ${{ (env.IS_SCHEDULE_DISPATCH == 'true' && env.IS_PUSH != 'true') }}
-        uses: pypa/cibuildwheel@v2.16.4
+        uses: pypa/cibuildwheel@v2.16.5
         with:
          package-dir: ./dist/${{ startsWith(matrix.buildplat[1], 'macosx') && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
         env:
