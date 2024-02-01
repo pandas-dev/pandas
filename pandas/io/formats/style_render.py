@@ -51,7 +51,7 @@ from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 BaseFormatter = Union[str, Callable]
 ExtFormatter = Union[BaseFormatter, dict[Any, Optional[BaseFormatter]]]
 CSSPair = tuple[str, Union[str, float]]
-CSSList = list[CSSPair] | tuple[CSSPair, ...]
+CSSList = Union[list[CSSPair], tuple[CSSPair, ...]]
 CSSProperties = Union[str, CSSList]
 
 
