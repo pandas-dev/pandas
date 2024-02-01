@@ -215,7 +215,7 @@ def test_subset_loc_rows_columns(
     subset = df.loc[row_indexer, column_indexer]
 
     # a few corner cases _do_ actually modify the parent (with both row and column
-    # slice, and in case of ArrayManager or BlockManager with single block)
+    # slice, and in case of BlockManager with single block)
     mutate_parent = (
         isinstance(row_indexer, slice)
         and isinstance(column_indexer, slice)
@@ -271,7 +271,7 @@ def test_subset_iloc_rows_columns(
     subset = df.iloc[row_indexer, column_indexer]
 
     # a few corner cases _do_ actually modify the parent (with both row and column
-    # slice, and in case of ArrayManager or BlockManager with single block)
+    # slice, and in case of BlockManager with single block)
     mutate_parent = (
         isinstance(row_indexer, slice)
         and isinstance(column_indexer, slice)
