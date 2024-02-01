@@ -259,8 +259,6 @@ ignore = [
   "B010",
   # tests use comparisons but not their returned value
   "B015",
-  # false positives
-  "B019",
   # Loop control variable overrides iterable it iterates
   "B020",
   # Function definition does not bind loop variable
