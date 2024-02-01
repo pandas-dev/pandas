@@ -4846,7 +4846,7 @@ cpdef to_offset(freq, bint is_period=False):
         )
 
     elif PyDelta_Check(freq):
-        return delta_to_tick(freq)
+        delta = delta_to_tick(freq)
 
     elif isinstance(freq, str):
         delta = None
@@ -4962,6 +4962,9 @@ cpdef to_offset(freq, bint is_period=False):
         delta = None
 
     if delta is None:
+        raise ValueError(INVALID_FREQ_ERR_MSG.format(freq))
+
+    if is_period and not hasattr(delta, "_period_dtype_code"):
         raise ValueError(INVALID_FREQ_ERR_MSG.format(freq))
 
     return delta

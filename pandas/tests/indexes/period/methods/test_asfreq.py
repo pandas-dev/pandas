@@ -143,19 +143,6 @@ class TestPeriodIndex:
             "2BMS",
             "2YS-MAR",
             "2bh",
-        ],
-    )
-    def test_pi_asfreq_invalid_offset(self, freq):
-        # GH#55785
-        msg = f"Invalid offset: '{freq[1:]}' for converting time series "
-
-        pi = PeriodIndex(["2020-01-01", "2021-01-01"], freq="M")
-        with pytest.raises(ValueError, match=msg):
-            pi.asfreq(freq=freq)
-
-    @pytest.mark.parametrize(
-        "freq",
-        [
             "2BME",
             "2YE-MAR",
             "2BM",
