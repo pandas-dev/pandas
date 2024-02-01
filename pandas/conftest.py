@@ -32,6 +32,7 @@ import operator
 import os
 from typing import (
     TYPE_CHECKING,
+    Any,
     Callable,
 )
 
@@ -1980,7 +1981,7 @@ def using_infer_string() -> bool:
     return pd.options.future.infer_string is True
 
 
-_warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
+_warsaws: list[Any] = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
 
 if pytz is not None:
     _warsaws.append(pytz.timezone("Europe/Warsaw"))
