@@ -527,11 +527,7 @@ class ArrowExtensionArray(
             else:
                 try:
                     pa_array = pa_array.cast(pa_type)
-                except (
-                    pa.ArrowInvalid,
-                    pa.ArrowTypeError,
-                    pa.ArrowNotImplementedError,
-                ):
+                except (pa.ArrowNotImplementedError, pa.ArrowTypeError):
                     if pa.types.is_string(pa_array.type) or pa.types.is_large_string(
                         pa_array.type
                     ):

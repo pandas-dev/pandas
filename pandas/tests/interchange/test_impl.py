@@ -293,6 +293,30 @@ def test_multi_chunk_pyarrow() -> None:
         pd.api.interchange.from_dataframe(table, allow_copy=False)
 
 
+def test_timestamp_ns_pyarrow():
+    # GH 56712
+    pytest.importorskip("pyarrow", "11.0.0")
+    timestamp_args = {
+        "year": 2000,
+        "month": 1,
+        "day": 1,
+        "hour": 1,
+        "minute": 1,
+        "second": 1,
+    }
+    df = pd.Series(
+        [datetime(**timestamp_args)],
+        dtype="timestamp[ns][pyarrow]",
+        name="col0",
+    ).to_frame()
+
+    dfi = df.__dataframe__()
+    result = pd.api.interchange.from_dataframe(dfi)["col0"].item()
+
+    expected = pd.Timestamp(**timestamp_args)
+    assert result == expected
+
+
 @pytest.mark.parametrize("tz", ["UTC", "US/Pacific"])
 def test_datetimetzdtype(tz, unit):
     # GH 54239
@@ -367,4 +391,13 @@ def test_large_string():
     df = pd.DataFrame({"a": ["x"]}, dtype="large_string[pyarrow]")
     result = pd.api.interchange.from_dataframe(df.__dataframe__())
     expected = pd.DataFrame({"a": ["x"]}, dtype="object")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_empty_dataframe():
+    # https://github.com/pandas-dev/pandas/issues/56700
+    df = pd.DataFrame({"a": []}, dtype="int8")
+    dfi = df.__dataframe__()
+    result = pd.api.interchange.from_dataframe(dfi, allow_copy=False)
+    expected = pd.DataFrame({"a": []}, dtype="int8")
     tm.assert_frame_equal(result, expected)
