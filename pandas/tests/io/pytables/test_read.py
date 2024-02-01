@@ -348,34 +348,6 @@ def test_read_hdf_series_mode_r(tmp_path, format, setup_path):
     tm.assert_series_equal(result, series)
 
 
-@pytest.mark.filterwarnings(r"ignore:Period with BDay freq is deprecated:FutureWarning")
-@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-def test_read_py2_hdf_file_in_py3(datapath):
-    # GH 16781
-
-    # tests reading a PeriodIndex DataFrame written in Python2 in Python3
-
-    # the file was generated in Python 2.7 like so:
-    #
-    # df = DataFrame([1.,2,3], index=pd.PeriodIndex(
-    #              ['2015-01-01', '2015-01-02', '2015-01-05'], freq='B'))
-    # df.to_hdf('periodindex_0.20.1_x86_64_darwin_2.7.13.h5', 'p')
-
-    expected = DataFrame(
-        [1.0, 2, 3],
-        index=pd.PeriodIndex(["2015-01-01", "2015-01-02", "2015-01-05"], freq="B"),
-    )
-
-    with ensure_clean_store(
-        datapath(
-            "io", "data", "legacy_hdf", "periodindex_0.20.1_x86_64_darwin_2.7.13.h5"
-        ),
-        mode="r",
-    ) as store:
-        result = store["p"]
-    tm.assert_frame_equal(result, expected)
-
-
 def test_read_infer_string(tmp_path, setup_path):
     # GH#54431
     pytest.importorskip("pyarrow")
