@@ -367,9 +367,6 @@ class BaseBlockManager(DataManager):
         out = type(self).from_blocks(result_blocks, self.axes)
         return out
 
-    # Alias so we can share code with ArrayManager
-    apply_with_block = apply
-
     def setitem(self, indexer, value, warn: bool = True) -> Self:
         """
         Set values with indexer.
@@ -971,7 +968,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         if len(self.blocks) == 1:
             # TODO: this could be wrong if blk.mgr_locs is not slice(None)-like;
             #  is this ruled out in the general case?
-            result = self.blocks[0].iget((slice(None), loc))
+            result: np.ndarray | ExtensionArray = self.blocks[0].iget(
+                (slice(None), loc)
+            )
             # in the case of a single block, the new block is a view
             bp = BlockPlacement(slice(0, len(result)))
             block = new_block(
@@ -1940,13 +1939,15 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
     def _block(self) -> Block:
         return self.blocks[0]
 
+    # error: Cannot override writeable attribute with read-only property
     @property
-    def _blknos(self):
+    def _blknos(self) -> None:  # type: ignore[override]
         """compat with BlockManager"""
         return None
 
+    # error: Cannot override writeable attribute with read-only property
     @property
-    def _blklocs(self):
+    def _blklocs(self) -> None:  # type: ignore[override]
         """compat with BlockManager"""
         return None
 
@@ -2021,7 +2022,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """
         Set values with indexer.
 
-        For Single[Block/Array]Manager, this backs s[indexer] = value
+        For SingleBlockManager, this backs s[indexer] = value
 
         This is an inplace version of `setitem()`, mutating the manager/values
         in place, not returning a new Manager (and Block), and thus never changing
@@ -2366,9 +2367,9 @@ def make_na_array(dtype: DtypeObj, shape: Shape, fill_value) -> ArrayLike:
     else:
         # NB: we should never get here with dtype integer or bool;
         #  if we did, the missing_arr.fill would cast to gibberish
-        missing_arr = np.empty(shape, dtype=dtype)
-        missing_arr.fill(fill_value)
+        missing_arr_np = np.empty(shape, dtype=dtype)
+        missing_arr_np.fill(fill_value)
 
         if dtype.kind in "mM":
-            missing_arr = ensure_wrapped_if_datetimelike(missing_arr)
-        return missing_arr
+            missing_arr_np = ensure_wrapped_if_datetimelike(missing_arr_np)
+        return missing_arr_np

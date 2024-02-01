@@ -9,6 +9,7 @@ from typing import (
     cast,
     final,
     no_type_check,
+    overload,
 )
 import warnings
 
@@ -97,12 +98,15 @@ if TYPE_CHECKING:
     from collections.abc import Hashable
 
     from pandas._typing import (
+        Any,
         AnyArrayLike,
         Axis,
-        AxisInt,
+        Concatenate,
         Frequency,
         IndexLabel,
         InterpolateOptions,
+        P,
+        Self,
         T,
         TimedeltaConvertibleTypes,
         TimeGrouperOrigin,
@@ -129,7 +133,6 @@ class Resampler(BaseGroupBy, PandasObject):
     ----------
     obj : Series or DataFrame
     groupby : TimeGrouper
-    axis : int, default 0
     kind : str or None
         'period', 'timestamp' to override default index treatment
 
@@ -151,7 +154,6 @@ class Resampler(BaseGroupBy, PandasObject):
     # to the groupby descriptor
     _attributes = [
         "freq",
-        "axis",
         "closed",
         "label",
         "convention",
@@ -164,7 +166,6 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         obj: NDFrame,
         timegrouper: TimeGrouper,
-        axis: Axis = 0,
         kind=None,
         *,
         gpr_index: Index,
@@ -175,7 +176,6 @@ class Resampler(BaseGroupBy, PandasObject):
         self._timegrouper = timegrouper
         self.keys = None
         self.sort = True
-        self.axis = obj._get_axis_number(axis)
         self.kind = kind
         self.group_keys = group_keys
         self.as_index = True
@@ -254,6 +254,24 @@ class Resampler(BaseGroupBy, PandasObject):
         bin_grouper = BinGrouper(bins, binlabels, indexer=self._indexer)
         return binner, bin_grouper
 
+    @overload
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T:
+        ...
+
+    @overload
+    def pipe(
+        self,
+        func: tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
+        ...
+
     @final
     @Substitution(
         klass="Resampler",
@@ -278,9 +296,9 @@ class Resampler(BaseGroupBy, PandasObject):
     @Appender(_pipe_template)
     def pipe(
         self,
-        func: Callable[..., T] | tuple[Callable[..., T], str],
-        *args,
-        **kwargs,
+        func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
     ) -> T:
         return super().pipe(func, *args, **kwargs)
 
@@ -426,7 +444,7 @@ class Resampler(BaseGroupBy, PandasObject):
             assert subset.ndim == 1
 
         grouped = get_groupby(
-            subset, by=None, grouper=grouper, axis=self.axis, group_keys=self.group_keys
+            subset, by=None, grouper=grouper, group_keys=self.group_keys
         )
         return grouped
 
@@ -439,9 +457,7 @@ class Resampler(BaseGroupBy, PandasObject):
         # Excludes `on` column when provided
         obj = self._obj_with_exclusions
 
-        grouped = get_groupby(
-            obj, by=None, grouper=grouper, axis=self.axis, group_keys=self.group_keys
-        )
+        grouped = get_groupby(obj, by=None, grouper=grouper, group_keys=self.group_keys)
 
         try:
             if callable(how):
@@ -1005,7 +1021,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
             .. deprecated:: 2.1.0
 
-        ``**kwargs`` : optional
+        **kwargs : optional
             Keyword arguments to pass on to the interpolating function.
 
         Returns
@@ -1039,7 +1055,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-03-01 07:00:04    3
         Freq: s, dtype: int64
 
-        Upsample the dataframe to 0.5Hz by providing the period time of 2s.
+        Downsample the dataframe to 0.5Hz by providing the period time of 2s.
 
         >>> series.resample("2s").interpolate("linear")
         2023-03-01 07:00:00    1
@@ -1047,7 +1063,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-03-01 07:00:04    3
         Freq: 2s, dtype: int64
 
-        Downsample the dataframe to 2Hz by providing the period time of 500ms.
+        Upsample the dataframe to 2Hz by providing the period time of 500ms.
 
         >>> series.resample("500ms").interpolate("linear")
         2023-03-01 07:00:00.000    1.0
@@ -1306,12 +1322,15 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         numeric_only: bool = False,
         min_count: int = 0,
+        skipna: bool = True,
         *args,
         **kwargs,
     ):
         maybe_warn_args_and_kwargs(type(self), "first", args, kwargs)
         nv.validate_resampler_func("first", args, kwargs)
-        return self._downsample("first", numeric_only=numeric_only, min_count=min_count)
+        return self._downsample(
+            "first", numeric_only=numeric_only, min_count=min_count, skipna=skipna
+        )
 
     @final
     @doc(GroupBy.last)
@@ -1319,12 +1338,15 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         numeric_only: bool = False,
         min_count: int = 0,
+        skipna: bool = True,
         *args,
         **kwargs,
     ):
         maybe_warn_args_and_kwargs(type(self), "last", args, kwargs)
         nv.validate_resampler_func("last", args, kwargs)
-        return self._downsample("last", numeric_only=numeric_only, min_count=min_count)
+        return self._downsample(
+            "last", numeric_only=numeric_only, min_count=min_count, skipna=skipna
+        )
 
     @final
     @doc(GroupBy.median)
@@ -1772,12 +1794,7 @@ class DatetimeIndexResampler(Resampler):
 
         # we are downsampling
         # we want to call the actual grouper method here
-        if self.axis == 0:
-            result = obj.groupby(self._grouper).aggregate(how, **kwargs)
-        else:
-            # test_resample_axis1
-            result = obj.T.groupby(self._grouper).aggregate(how, **kwargs).T
-
+        result = obj.groupby(self._grouper).aggregate(how, **kwargs)
         return self._wrap_result(result)
 
     def _adjust_binner_for_upsample(self, binner):
@@ -1808,8 +1825,6 @@ class DatetimeIndexResampler(Resampler):
         .fillna: Fill NA/NaN values using the specified method.
 
         """
-        if self.axis:
-            raise AssertionError("axis must be 0")
         if self._from_selection:
             raise ValueError(
                 "Upsampling from level= or on= selection "
@@ -1981,7 +1996,6 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             obj,
             indexer,
             new_index,
-            axis=self.axis,
         )
         return self._wrap_result(new_obj)
 
@@ -2102,7 +2116,6 @@ class TimeGrouper(Grouper):
         closed: Literal["left", "right"] | None = None,
         label: Literal["left", "right"] | None = None,
         how: str = "mean",
-        axis: Axis = 0,
         fill_method=None,
         limit: int | None = None,
         kind: str | None = None,
@@ -2199,7 +2212,7 @@ class TimeGrouper(Grouper):
         # always sort time groupers
         kwargs["sort"] = True
 
-        super().__init__(freq=freq, key=key, axis=axis, **kwargs)
+        super().__init__(freq=freq, key=key, **kwargs)
 
     def _get_resampler(self, obj: NDFrame, kind=None) -> Resampler:
         """
@@ -2226,7 +2239,6 @@ class TimeGrouper(Grouper):
                 obj,
                 timegrouper=self,
                 kind=kind,
-                axis=self.axis,
                 group_keys=self.group_keys,
                 gpr_index=ax,
             )
@@ -2250,7 +2262,6 @@ class TimeGrouper(Grouper):
                 obj,
                 timegrouper=self,
                 kind=kind,
-                axis=self.axis,
                 group_keys=self.group_keys,
                 gpr_index=ax,
             )
@@ -2258,7 +2269,6 @@ class TimeGrouper(Grouper):
             return TimedeltaIndexResampler(
                 obj,
                 timegrouper=self,
-                axis=self.axis,
                 group_keys=self.group_keys,
                 gpr_index=ax,
             )
@@ -2530,7 +2540,9 @@ class TimeGrouper(Grouper):
 
 
 def _take_new_index(
-    obj: NDFrameT, indexer: npt.NDArray[np.intp], new_index: Index, axis: AxisInt = 0
+    obj: NDFrameT,
+    indexer: npt.NDArray[np.intp],
+    new_index: Index,
 ) -> NDFrameT:
     if isinstance(obj, ABCSeries):
         new_values = algos.take_nd(obj._values, indexer)
@@ -2539,8 +2551,6 @@ def _take_new_index(
             new_values, index=new_index, name=obj.name
         )
     elif isinstance(obj, ABCDataFrame):
-        if axis == 1:
-            raise NotImplementedError("axis 1 is not supported")
         new_mgr = obj._mgr.reindex_indexer(new_axis=new_index, indexer=indexer, axis=1)
         return obj._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
     else:
@@ -2906,7 +2916,7 @@ def _apply(
     new_message = _apply_groupings_depr.format("DataFrameGroupBy", "resample")
     with rewrite_warning(
         target_message=target_message,
-        target_category=FutureWarning,
+        target_category=DeprecationWarning,
         new_message=new_message,
     ):
         result = grouped.apply(how, *args, include_groups=include_groups, **kwargs)

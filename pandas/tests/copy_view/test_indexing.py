@@ -178,7 +178,7 @@ def test_subset_loc_rows_columns(
     subset = df.loc[row_indexer, column_indexer]
 
     # a few corner cases _do_ actually modify the parent (with both row and column
-    # slice, and in case of ArrayManager or BlockManager with single block)
+    # slice, and in case of BlockManager with single block)
     mutate_parent = (
         isinstance(row_indexer, slice)
         and isinstance(column_indexer, slice)
@@ -234,7 +234,7 @@ def test_subset_iloc_rows_columns(
     subset = df.iloc[row_indexer, column_indexer]
 
     # a few corner cases _do_ actually modify the parent (with both row and column
-    # slice, and in case of ArrayManager or BlockManager with single block)
+    # slice, and in case of BlockManager with single block)
     mutate_parent = (
         isinstance(row_indexer, slice)
         and isinstance(column_indexer, slice)
@@ -957,9 +957,14 @@ def test_set_value_copy_only_necessary_column(
     df_orig = df.copy()
     view = df[:]
 
-    if val == "a" and indexer[0] != slice(None):
+    if val == "a" and not warn_copy_on_write:
         with tm.assert_produces_warning(
             FutureWarning, match="Setting an item of incompatible dtype is deprecated"
+        ):
+            indexer_func(df)[indexer] = val
+    if val == "a" and warn_copy_on_write:
+        with tm.assert_produces_warning(
+            FutureWarning, match="incompatible dtype|Setting a value on a view"
         ):
             indexer_func(df)[indexer] = val
     else:
@@ -1024,6 +1029,7 @@ def test_series_midx_tuples_slice(using_copy_on_write, warn_copy_on_write):
 
 
 def test_midx_read_only_bool_indexer():
+    # GH#56635
     def mklbl(prefix, n):
         return [f"{prefix}{i}" for i in range(n)]
 
@@ -1036,9 +1042,11 @@ def test_midx_read_only_bool_indexer():
     df = DataFrame(1, index=idx, columns=cols).sort_index().sort_index(axis=1)
 
     mask = df[("a", "foo")] == 1
+    expected_mask = mask.copy()
     result = df.loc[pd.IndexSlice[mask, :, ["C1", "C3"]], :]
     expected = df.loc[pd.IndexSlice[:, :, ["C1", "C3"]], :]
     tm.assert_frame_equal(result, expected)
+    tm.assert_series_equal(mask, expected_mask)
 
 
 def test_loc_enlarging_with_dataframe(using_copy_on_write):

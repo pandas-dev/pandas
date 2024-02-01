@@ -21,7 +21,7 @@ Instructions for installing :ref:`from source <install.source>`,
 Python version support
 ----------------------
 
-Officially Python 3.9, 3.10 and 3.11.
+Officially Python 3.9, 3.10, 3.11 and 3.12.
 
 Installing pandas
 -----------------
@@ -203,7 +203,7 @@ pandas requires the following dependencies.
 ================================================================ ==========================
 Package                                                          Minimum supported version
 ================================================================ ==========================
-`NumPy <https://numpy.org>`__                                    1.22.4
+`NumPy <https://numpy.org>`__                                    1.23.5
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.2
 `pytz <https://pypi.org/project/pytz/>`__                        2020.1
 `tzdata <https://pypi.org/project/tzdata/>`__                    2022.7
@@ -277,11 +277,12 @@ Installable with ``pip install "pandas[excel]"``.
 ========================= ================== =============== =============================================================
 Dependency                Minimum Version    pip extra       Notes
 ========================= ================== =============== =============================================================
-xlrd                      2.0.1              excel           Reading Excel
-xlsxwriter                3.0.5              excel           Writing Excel
-openpyxl                  3.1.0              excel           Reading / writing for xlsx files
+xlrd                      2.0.1              excel           Reading for xls files
+xlsxwriter                3.0.5              excel           Writing for xlsx files
+openpyxl                  3.1.0              excel           Reading / writing for Excel 2010 xlsx/xlsm/xltx/xltm files
 pyxlsb                    1.0.10             excel           Reading for xlsb files
-python-calamine           0.1.7              excel           Reading for xls/xlsx/xlsb/ods files
+python-calamine           0.1.7              excel           Reading for xls/xlsx/xlsm/xlsb/xla/xlam/ods files
+odfpy                     1.4.1              excel           Reading / writing for OpenDocument 1.2 files
 ========================= ================== =============== =============================================================
 
 HTML

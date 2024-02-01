@@ -7,6 +7,7 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Union,
+    cast,
 )
 import warnings
 
@@ -59,6 +60,7 @@ if TYPE_CHECKING:
         AxisInt,
         Dtype,
         Scalar,
+        Self,
         npt,
     )
 
@@ -172,7 +174,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return len(self._pa_array)
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
+    def _from_sequence(
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
+    ) -> Self:
         from pandas.core.arrays.masked import BaseMaskedArray
 
         _chk_pyarrow_available()
@@ -201,7 +205,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     @classmethod
     def _from_sequence_of_strings(
         cls, strings, dtype: Dtype | None = None, copy: bool = False
-    ):
+    ) -> Self:
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     @property
@@ -324,7 +328,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 # error: Argument 1 to "dtype" has incompatible type
                 # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
                 # "Type[object]"
-                dtype=np.dtype(dtype),  # type: ignore[arg-type]
+                dtype=np.dtype(cast(type, dtype)),
             )
 
             if not na_value_is_na:
@@ -433,13 +437,13 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     def _str_fullmatch(
         self, pat, case: bool = True, flags: int = 0, na: Scalar | None = None
     ):
-        if not pat.endswith("$") or pat.endswith("//$"):
+        if not pat.endswith("$") or pat.endswith("\\$"):
             pat = f"{pat}$"
         return self._str_match(pat, case, flags, na)
 
     def _str_slice(
         self, start: int | None = None, stop: int | None = None, step: int | None = None
-    ):
+    ) -> Self:
         if stop is None:
             return super()._str_slice(start, stop, step)
         if start is None:
@@ -490,27 +494,27 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         result = pc.utf8_length(self._pa_array)
         return self._convert_int_dtype(result)
 
-    def _str_lower(self):
+    def _str_lower(self) -> Self:
         return type(self)(pc.utf8_lower(self._pa_array))
 
-    def _str_upper(self):
+    def _str_upper(self) -> Self:
         return type(self)(pc.utf8_upper(self._pa_array))
 
-    def _str_strip(self, to_strip=None):
+    def _str_strip(self, to_strip=None) -> Self:
         if to_strip is None:
             result = pc.utf8_trim_whitespace(self._pa_array)
         else:
             result = pc.utf8_trim(self._pa_array, characters=to_strip)
         return type(self)(result)
 
-    def _str_lstrip(self, to_strip=None):
+    def _str_lstrip(self, to_strip=None) -> Self:
         if to_strip is None:
             result = pc.utf8_ltrim_whitespace(self._pa_array)
         else:
             result = pc.utf8_ltrim(self._pa_array, characters=to_strip)
         return type(self)(result)
 
-    def _str_rstrip(self, to_strip=None):
+    def _str_rstrip(self, to_strip=None) -> Self:
         if to_strip is None:
             result = pc.utf8_rtrim_whitespace(self._pa_array)
         else:
@@ -637,7 +641,7 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
                     mask.view("uint8"),
                     convert=False,
                     na_value=na_value,
-                    dtype=np.dtype(dtype),  # type: ignore[arg-type]
+                    dtype=np.dtype(cast(type, dtype)),
                 )
                 return result
 

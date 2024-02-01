@@ -1418,6 +1418,14 @@ class Timestamp(_Timestamp):
         >>> pd.Timestamp.utcnow()   # doctest: +SKIP
         Timestamp('2020-11-16 22:50:18.092888+0000', tz='UTC')
         """
+        warnings.warn(
+            # The stdlib datetime.utcnow is deprecated, so we deprecate to match.
+            #  GH#56680
+            "Timestamp.utcnow is deprecated and will be removed in a future "
+            "version. Use Timestamp.now('UTC') instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return cls.now(UTC)
 
     @classmethod
@@ -1438,6 +1446,14 @@ class Timestamp(_Timestamp):
         Timestamp('2020-03-14 15:32:52+0000', tz='UTC')
         """
         # GH#22451
+        warnings.warn(
+            # The stdlib datetime.utcfromtimestamp is deprecated, so we deprecate
+            #  to match. GH#56680
+            "Timestamp.utcfromtimestamp is deprecated and will be removed in a "
+            "future version. Use Timestamp.fromtimestamp(ts, 'UTC') instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return cls.fromtimestamp(ts, tz="UTC")
 
     @classmethod
@@ -1957,16 +1973,16 @@ timedelta}, default 'raise'
 
         A timestamp can be rounded using multiple frequency units:
 
-        >>> ts.round(freq='h') # hour
+        >>> ts.round(freq='h')  # hour
         Timestamp('2020-03-14 16:00:00')
 
-        >>> ts.round(freq='min') # minute
+        >>> ts.round(freq='min')  # minute
         Timestamp('2020-03-14 15:33:00')
 
-        >>> ts.round(freq='s') # seconds
+        >>> ts.round(freq='s')  # seconds
         Timestamp('2020-03-14 15:32:52')
 
-        >>> ts.round(freq='ms') # milliseconds
+        >>> ts.round(freq='ms')  # milliseconds
         Timestamp('2020-03-14 15:32:52.193000')
 
         ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
@@ -2048,16 +2064,16 @@ timedelta}, default 'raise'
 
         A timestamp can be floored using multiple frequency units:
 
-        >>> ts.floor(freq='h') # hour
+        >>> ts.floor(freq='h')  # hour
         Timestamp('2020-03-14 15:00:00')
 
-        >>> ts.floor(freq='min') # minute
+        >>> ts.floor(freq='min')  # minute
         Timestamp('2020-03-14 15:32:00')
 
-        >>> ts.floor(freq='s') # seconds
+        >>> ts.floor(freq='s')  # seconds
         Timestamp('2020-03-14 15:32:52')
 
-        >>> ts.floor(freq='ns') # nanoseconds
+        >>> ts.floor(freq='ns')  # nanoseconds
         Timestamp('2020-03-14 15:32:52.192548651')
 
         ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
@@ -2137,16 +2153,16 @@ timedelta}, default 'raise'
 
         A timestamp can be ceiled using multiple frequency units:
 
-        >>> ts.ceil(freq='h') # hour
+        >>> ts.ceil(freq='h')  # hour
         Timestamp('2020-03-14 16:00:00')
 
-        >>> ts.ceil(freq='min') # minute
+        >>> ts.ceil(freq='min')  # minute
         Timestamp('2020-03-14 15:33:00')
 
-        >>> ts.ceil(freq='s') # seconds
+        >>> ts.ceil(freq='s')  # seconds
         Timestamp('2020-03-14 15:32:53')
 
-        >>> ts.ceil(freq='us') # microseconds
+        >>> ts.ceil(freq='us')  # microseconds
         Timestamp('2020-03-14 15:32:52.192549')
 
         ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):

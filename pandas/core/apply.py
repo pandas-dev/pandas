@@ -825,7 +825,7 @@ class FrameApply(NDFrameApply):
     def apply_with_numba(self):
         pass
 
-    def validate_values_for_numba(self):
+    def validate_values_for_numba(self) -> None:
         # Validate column dtyps all OK
         for colname, dtype in self.obj.dtypes.items():
             if not is_numeric_dtype(dtype):
@@ -1008,7 +1008,8 @@ class FrameApply(NDFrameApply):
             # [..., Any] | str] | dict[Hashable,Callable[..., Any] | str |
             # list[Callable[..., Any] | str]]"; expected "Hashable"
             nb_looper = generate_apply_looper(
-                self.func, **engine_kwargs  # type: ignore[arg-type]
+                self.func,  # type: ignore[arg-type]
+                **engine_kwargs,
             )
             result = nb_looper(self.values, self.axis)
             # If we made the result 2-D, squeeze it back to 1-D
@@ -1251,7 +1252,7 @@ class FrameColumnApply(FrameApply):
         ser = self.obj._ixs(0, axis=0)
         mgr = ser._mgr
 
-        is_view = mgr.blocks[0].refs.has_reference()  # type: ignore[union-attr]
+        is_view = mgr.blocks[0].refs.has_reference()
 
         if isinstance(ser.dtype, ExtensionDtype):
             # values will be incorrect for this block
@@ -1273,7 +1274,7 @@ class FrameColumnApply(FrameApply):
                     # -> if that happened and `ser` is already a copy, then we reset
                     # the refs here to avoid triggering a unnecessary CoW inside the
                     # applied function (https://github.com/pandas-dev/pandas/pull/56212)
-                    mgr.blocks[0].refs = BlockValuesRefs(mgr.blocks[0])  # type: ignore[union-attr]
+                    mgr.blocks[0].refs = BlockValuesRefs(mgr.blocks[0])
                 yield ser
 
     @staticmethod

@@ -83,8 +83,7 @@ class TestSeriesSortValues:
         tm.assert_series_equal(s, df.iloc[:, 0].sort_values())
 
     def test_sort_values_categorical(self):
-        c = Categorical(["a", "b", "b", "a"], ordered=False)
-        cat = Series(c.copy())
+        cat = Series(Categorical(["a", "b", "b", "a"], ordered=False))
 
         # sort in the categories order
         expected = Series(
@@ -195,7 +194,6 @@ class TestSeriesSortValues:
         with pytest.raises(ValueError, match=msg):
             ser.sort_values(ascending="False")
 
-    @pytest.mark.parametrize("ascending", [False, 0, 1, True])
     def test_sort_values_validate_ascending_functional(self, ascending):
         # GH41634
         ser = Series([23, 7, 21])

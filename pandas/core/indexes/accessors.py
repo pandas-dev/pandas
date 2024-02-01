@@ -132,6 +132,20 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
 @delegate_names(
     delegate=ArrowExtensionArray,
+    accessors=TimedeltaArray._datetimelike_ops,
+    typ="property",
+    accessor_mapping=lambda x: f"_dt_{x}",
+    raise_on_missing=False,
+)
+@delegate_names(
+    delegate=ArrowExtensionArray,
+    accessors=TimedeltaArray._datetimelike_methods,
+    typ="method",
+    accessor_mapping=lambda x: f"_dt_{x}",
+    raise_on_missing=False,
+)
+@delegate_names(
+    delegate=ArrowExtensionArray,
     accessors=DatetimeArray._datetimelike_ops,
     typ="property",
     accessor_mapping=lambda x: f"_dt_{x}",
@@ -195,6 +209,9 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
 
         return result
 
+    def to_pytimedelta(self):
+        return cast(ArrowExtensionArray, self._parent.array)._dt_to_pytimedelta()
+
     def to_pydatetime(self):
         # GH#20306
         warnings.warn(
@@ -222,6 +239,26 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
             }
         )
         return iso_calendar_df
+
+    @property
+    def components(self) -> DataFrame:
+        from pandas import DataFrame
+
+        components_df = DataFrame(
+            {
+                col: getattr(self._parent.array, f"_dt_{col}")
+                for col in [
+                    "days",
+                    "hours",
+                    "minutes",
+                    "seconds",
+                    "milliseconds",
+                    "microseconds",
+                    "nanoseconds",
+                ]
+            }
+        )
+        return components_df
 
 
 @delegate_names(
@@ -574,7 +611,7 @@ class CombinedDatetimelikeProperties(
                 index=orig.index,
             )
 
-        if isinstance(data.dtype, ArrowDtype) and data.dtype.kind == "M":
+        if isinstance(data.dtype, ArrowDtype) and data.dtype.kind in "Mm":
             return ArrowTemporalProperties(data, orig)
         if lib.is_np_dtype(data.dtype, "M"):
             return DatetimeProperties(data, orig)

@@ -144,7 +144,7 @@ def read_sas(
             format = "sas7bdat"
         else:
             raise ValueError(
-                f"unable to infer format of SAS file from filename: {repr(fname)}"
+                f"unable to infer format of SAS file from filename: {fname!r}"
             )
 
     reader: ReaderBase

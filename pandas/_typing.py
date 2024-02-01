@@ -61,9 +61,7 @@ if TYPE_CHECKING:
     )
     from pandas.core.indexes.base import Index
     from pandas.core.internals import (
-        ArrayManager,
         BlockManager,
-        SingleArrayManager,
         SingleBlockManager,
     )
     from pandas.core.resample import Resampler
@@ -90,18 +88,29 @@ if TYPE_CHECKING:
     from typing import SupportsIndex
 
     if sys.version_info >= (3, 10):
+        from typing import Concatenate  # pyright: ignore[reportUnusedImport]
+        from typing import ParamSpec
         from typing import TypeGuard  # pyright: ignore[reportUnusedImport]
     else:
-        from typing_extensions import TypeGuard  # pyright: ignore[reportUnusedImport]
+        from typing_extensions import (  # pyright: ignore[reportUnusedImport]
+            Concatenate,
+            ParamSpec,
+            TypeGuard,
+        )
+
+    P = ParamSpec("P")
 
     if sys.version_info >= (3, 11):
         from typing import Self  # pyright: ignore[reportUnusedImport]
     else:
         from typing_extensions import Self  # pyright: ignore[reportUnusedImport]
+
 else:
     npt: Any = None
+    ParamSpec: Any = None
     Self: Any = None
     TypeGuard: Any = None
+    Concatenate: Any = None
 
 HashableT = TypeVar("HashableT", bound=Hashable)
 MutableMappingT = TypeVar("MutableMappingT", bound=MutableMapping)
@@ -109,6 +118,7 @@ MutableMappingT = TypeVar("MutableMappingT", bound=MutableMapping)
 # array-like
 
 ArrayLike = Union["ExtensionArray", np.ndarray]
+ArrayLikeT = TypeVar("ArrayLikeT", "ExtensionArray", np.ndarray)
 AnyArrayLike = Union[ArrayLike, "Index", "Series"]
 TimeArrayLike = Union["DatetimeArray", "TimedeltaArray"]
 
@@ -137,7 +147,7 @@ class SequenceNotStr(Protocol[_T_co]):
     def __iter__(self) -> Iterator[_T_co]:
         ...
 
-    def index(self, value: Any, /, start: int = 0, stop: int = ...) -> int:
+    def index(self, value: Any, start: int = ..., stop: int = ..., /) -> int:
         ...
 
     def count(self, value: Any, /) -> int:
@@ -320,7 +330,7 @@ class ReadCsvBuffer(ReadBuffer[AnyStr_co], Protocol):
 
     @property
     def closed(self) -> bool:
-        # for enine=pyarrow
+        # for engine=pyarrow
         ...
 
 
@@ -370,11 +380,7 @@ InterpolateOptions = Literal[
 ]
 
 # internals
-Manager = Union[
-    "ArrayManager", "SingleArrayManager", "BlockManager", "SingleBlockManager"
-]
-SingleManager = Union["SingleArrayManager", "SingleBlockManager"]
-Manager2D = Union["ArrayManager", "BlockManager"]
+Manager = Union["BlockManager", "SingleBlockManager"]
 
 # indexing
 # PositionalIndexer -> valid 1D positional indexer, e.g. can pass

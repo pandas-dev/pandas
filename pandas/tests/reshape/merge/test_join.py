@@ -16,6 +16,7 @@ from pandas import (
     bdate_range,
     concat,
     merge,
+    option_context,
 )
 import pandas._testing as tm
 
@@ -153,13 +154,12 @@ class TestJoin:
             target.join(source, on="E")
 
         # overlap
-        source_copy = source.copy()
         msg = (
             "You are trying to merge on float64 and object|string columns for key "
             "'A'. If you wish to proceed you should use pd.concat"
         )
         with pytest.raises(ValueError, match=msg):
-            target.join(source_copy, on="A")
+            target.join(source, on="A")
 
     def test_join_on_fails_with_different_right_index(self):
         df = DataFrame(
@@ -563,24 +563,30 @@ class TestJoin:
         tm.assert_frame_equal(inner, left)
         tm.assert_frame_equal(inner, right)
 
-    def test_join_sort(self):
-        left = DataFrame({"key": ["foo", "bar", "baz", "foo"], "value": [1, 2, 3, 4]})
-        right = DataFrame({"value2": ["a", "b", "c"]}, index=["bar", "baz", "foo"])
+    @pytest.mark.parametrize(
+        "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
+    )
+    def test_join_sort(self, infer_string):
+        with option_context("future.infer_string", infer_string):
+            left = DataFrame(
+                {"key": ["foo", "bar", "baz", "foo"], "value": [1, 2, 3, 4]}
+            )
+            right = DataFrame({"value2": ["a", "b", "c"]}, index=["bar", "baz", "foo"])
 
-        joined = left.join(right, on="key", sort=True)
-        expected = DataFrame(
-            {
-                "key": ["bar", "baz", "foo", "foo"],
-                "value": [2, 3, 1, 4],
-                "value2": ["a", "b", "c", "c"],
-            },
-            index=[1, 2, 0, 3],
-        )
-        tm.assert_frame_equal(joined, expected)
+            joined = left.join(right, on="key", sort=True)
+            expected = DataFrame(
+                {
+                    "key": ["bar", "baz", "foo", "foo"],
+                    "value": [2, 3, 1, 4],
+                    "value2": ["a", "b", "c", "c"],
+                },
+                index=[1, 2, 0, 3],
+            )
+            tm.assert_frame_equal(joined, expected)
 
-        # smoke test
-        joined = left.join(right, on="key", sort=False)
-        tm.assert_index_equal(joined.index, Index(range(4)), exact=True)
+            # smoke test
+            joined = left.join(right, on="key", sort=False)
+            tm.assert_index_equal(joined.index, Index(range(4)), exact=True)
 
     def test_join_mixed_non_unique_index(self):
         # GH 12814, unorderable types in py3 with a non-unique index
@@ -624,7 +630,7 @@ class TestJoin:
         df.insert(5, "dt", "foo")
 
         grouped = df.groupby("id")
-        msg = re.escape("agg function failed [how->mean,dtype->object]")
+        msg = re.escape("agg function failed [how->mean,dtype->")
         with pytest.raises(TypeError, match=msg):
             grouped.mean()
         mn = grouped.mean(numeric_only=True)
@@ -769,7 +775,7 @@ class TestJoin:
         )
         result = df1.join(df2.set_index("date"), on="date")
         expected = df1.copy()
-        expected["vals_2"] = Series([np.nan] * 2 + list("tuv"), dtype=object)
+        expected["vals_2"] = Series([np.nan] * 2 + list("tuv"))
         tm.assert_frame_equal(result, expected)
 
     def test_join_datetime_string(self):
@@ -1032,6 +1038,25 @@ def test_join_empty(left_empty, how, exp):
     if how == "outer":
         expected = expected.sort_index()
 
+    tm.assert_frame_equal(result, expected)
+
+
+def test_join_empty_uncomparable_columns():
+    # GH 57048
+    df1 = DataFrame()
+    df2 = DataFrame(columns=["test"])
+    df3 = DataFrame(columns=["foo", ("bar", "baz")])
+
+    result = df1 + df2
+    expected = DataFrame(columns=["test"])
+    tm.assert_frame_equal(result, expected)
+
+    result = df2 + df3
+    expected = DataFrame(columns=[("bar", "baz"), "foo", "test"])
+    tm.assert_frame_equal(result, expected)
+
+    result = df1 + df3
+    expected = DataFrame(columns=[("bar", "baz"), "foo"])
     tm.assert_frame_equal(result, expected)
 
 
