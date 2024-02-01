@@ -2205,7 +2205,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def groupby(
         self,
         by=None,
-        axis: Axis = 0,
         level: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
@@ -2219,12 +2218,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             raise TypeError("You have to supply one of 'by' and 'level'")
         if not as_index:
             raise TypeError("as_index=False only valid with DataFrame")
-        axis = self._get_axis_number(axis)
 
         return SeriesGroupBy(
             obj=self,
             keys=by,
-            axis=axis,
             level=level,
             as_index=as_index,
             sort=sort,

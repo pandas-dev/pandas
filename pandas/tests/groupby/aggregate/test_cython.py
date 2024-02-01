@@ -126,21 +126,6 @@ def test_cython_agg_nothing_to_agg_with_dates():
         frame.groupby("b").dates.mean(numeric_only=True)
 
 
-def test_cython_agg_frame_columns():
-    # #2113
-    df = DataFrame({"x": [1, 2, 3], "y": [3, 4, 5]})
-
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.groupby(level=0, axis="columns").mean()
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.groupby(level=0, axis="columns").mean()
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.groupby(level=0, axis="columns").mean()
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.groupby(level=0, axis="columns").mean()
-
-
 def test_cython_agg_return_dict():
     # GH 16741
     df = DataFrame(

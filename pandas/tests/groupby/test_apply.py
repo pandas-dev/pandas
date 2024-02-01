@@ -122,40 +122,6 @@ def test_apply_index_date_object(using_infer_string):
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_trivial(using_infer_string):
-    # GH 20066
-    # trivial apply: ignore input and return a constant dataframe.
-    df = DataFrame(
-        {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
-        columns=["key", "data"],
-    )
-    dtype = "string" if using_infer_string else "object"
-    expected = pd.concat([df.iloc[1:], df.iloc[1:]], axis=1, keys=["float64", dtype])
-
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby([str(x) for x in df.dtypes], axis=1)
-    result = gb.apply(lambda x: df.iloc[1:])
-
-    tm.assert_frame_equal(result, expected)
-
-
-def test_apply_trivial_fail(using_infer_string):
-    # GH 20066
-    df = DataFrame(
-        {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
-        columns=["key", "data"],
-    )
-    dtype = "string" if using_infer_string else "object"
-    expected = pd.concat([df, df], axis=1, keys=["float64", dtype])
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby([str(x) for x in df.dtypes], axis=1, group_keys=True)
-    result = gb.apply(lambda x: df)
-
-    tm.assert_frame_equal(result, expected)
-
-
 @pytest.mark.parametrize(
     "df, group_names",
     [
@@ -1255,31 +1221,6 @@ def test_apply_with_date_in_multiindex_does_not_convert_to_timestamp():
     tm.assert_frame_equal(result, expected)
     for val in result.index.levels[1]:
         assert type(val) is date
-
-
-def test_apply_by_cols_equals_apply_by_rows_transposed():
-    # GH 16646
-    # Operating on the columns, or transposing and operating on the rows
-    # should give the same result. There was previously a bug where the
-    # by_rows operation would work fine, but by_cols would throw a ValueError
-
-    df = DataFrame(
-        np.random.default_rng(2).random([6, 4]),
-        columns=MultiIndex.from_product([["A", "B"], [1, 2]]),
-    )
-
-    msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.T.groupby(axis=0, level=0)
-    by_rows = gb.apply(lambda x: x.droplevel(axis=0, level=0))
-
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb2 = df.groupby(axis=1, level=0)
-    by_cols = gb2.apply(lambda x: x.droplevel(axis=1, level=0))
-
-    tm.assert_frame_equal(by_cols, by_rows.T)
-    tm.assert_frame_equal(by_cols, df)
 
 
 def test_apply_dropna_with_indexed_same(dropna):

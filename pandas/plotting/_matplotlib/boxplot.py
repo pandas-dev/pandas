@@ -544,12 +544,7 @@ def boxplot_frame_groupby(
         maybe_adjust_figure(fig, bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
     else:
         keys, frames = zip(*grouped)
-        if grouped.axis == 0:
-            df = pd.concat(frames, keys=keys, axis=1)
-        elif len(frames) > 1:
-            df = frames[0].join(frames[1::])
-        else:
-            df = frames[0]
+        df = pd.concat(frames, keys=keys, axis=1)
 
         # GH 16748, DataFrameGroupby fails when subplots=False and `column` argument
         # is assigned, and in this case, since `df` here becomes MI after groupby,
