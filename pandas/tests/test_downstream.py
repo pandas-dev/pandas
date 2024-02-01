@@ -58,8 +58,8 @@ def test_dask_ufunc():
         s = Series([1.5, 2.3, 3.7, 4.0])
         ds = dd.from_pandas(s, npartitions=2)
 
-        result = da.fix(ds).compute()
-        expected = np.fix(s)
+        result = da.log(ds).compute()
+        expected = np.log(s)
         tm.assert_series_equal(result, expected)
     finally:
         pd.set_option("compute.use_numexpr", olduse)

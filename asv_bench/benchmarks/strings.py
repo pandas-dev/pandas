@@ -19,7 +19,8 @@ class Dtypes:
     def setup(self, dtype):
         try:
             self.s = Series(
-                Index([f"i-{i}" for i in range(10000)], dtype=object), dtype=dtype
+                Index([f"i-{i}" for i in range(10000)], dtype=object)._values,
+                dtype=dtype,
             )
         except ImportError as err:
             raise NotImplementedError from err

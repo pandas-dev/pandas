@@ -3492,6 +3492,8 @@ class MultiIndex(Index):
                         "cannot index with a boolean indexer that "
                         "is not the same length as the index"
                     )
+                if isinstance(k, (ABCSeries, Index)):
+                    k = k._values
                 lvl_indexer = np.asarray(k)
                 if indexer is None:
                     lvl_indexer = lvl_indexer.copy()
