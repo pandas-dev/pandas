@@ -61,9 +61,7 @@ if TYPE_CHECKING:
     )
     from pandas.core.indexes.base import Index
     from pandas.core.internals import (
-        ArrayManager,
         BlockManager,
-        SingleArrayManager,
         SingleBlockManager,
     )
     from pandas.core.resample import Resampler
@@ -382,11 +380,7 @@ InterpolateOptions = Literal[
 ]
 
 # internals
-Manager = Union[
-    "ArrayManager", "SingleArrayManager", "BlockManager", "SingleBlockManager"
-]
-SingleManager = Union["SingleArrayManager", "SingleBlockManager"]
-Manager2D = Union["ArrayManager", "BlockManager"]
+Manager = Union["BlockManager", "SingleBlockManager"]
 
 # indexing
 # PositionalIndexer -> valid 1D positional indexer, e.g. can pass
