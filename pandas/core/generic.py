@@ -101,6 +101,8 @@ from pandas.errors import (
     InvalidIndexError,
     SettingWithCopyError,
     SettingWithCopyWarning,
+)
+from pandas.errors.cow import (
     _chained_assignment_method_msg,
     _chained_assignment_warning_method_msg,
     _check_cacher,
@@ -174,15 +176,8 @@ from pandas.core.indexes.api import (
     default_index,
     ensure_index,
 )
-from pandas.core.internals import (
-    ArrayManager,
-    BlockManager,
-    SingleArrayManager,
-)
-from pandas.core.internals.construction import (
-    mgr_to_mgr,
-    ndarray_to_mgr,
-)
+from pandas.core.internals import BlockManager
+from pandas.core.internals.construction import ndarray_to_mgr
 from pandas.core.methods.describe import describe_ndframe
 from pandas.core.missing import (
     clean_fill_method,
@@ -315,29 +310,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             else:
                 mgr = mgr.astype(dtype=dtype)
         return mgr
-
-    @final
-    def _as_manager(self, typ: str, copy: bool_t = True) -> Self:
-        """
-        Private helper function to create a DataFrame with specific manager.
-
-        Parameters
-        ----------
-        typ : {"block", "array"}
-        copy : bool, default True
-            Only controls whether the conversion from Block->ArrayManager
-            copies the 1D arrays (to ensure proper/contiguous memory layout).
-
-        Returns
-        -------
-        DataFrame
-            New DataFrame using specified manager type. Is not guaranteed
-            to be a copy or not.
-        """
-        new_mgr: Manager
-        new_mgr = mgr_to_mgr(self._mgr, typ=typ, copy=copy)
-        # fastpath of passing a manager doesn't check the option/manager class
-        return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(self)
 
     @classmethod
     def _from_mgr(cls, mgr: Manager, axes: list[Index]) -> Self:
@@ -677,9 +649,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # Only to be used in cases of chained assignment checks, this is a
         # simplified check that assumes that either the whole object is a view
         # or a copy
-        if len(self._mgr.blocks) == 0:  # type: ignore[union-attr]
+        if len(self._mgr.blocks) == 0:
             return False
-        return self._mgr.blocks[0].refs.has_reference()  # type: ignore[union-attr]
+        return self._mgr.blocks[0].refs.has_reference()
 
     @property
     def shape(self) -> tuple[int, ...]:
@@ -863,7 +835,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 new_axes[1],
                 dtype=None,
                 copy=False,
-                typ="block",
             )
             assert isinstance(new_mgr, BlockManager)
             assert isinstance(self._mgr, BlockManager)
@@ -6379,8 +6350,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Consolidate _mgr -- if the blocks have changed, then clear the
         cache
         """
-        if isinstance(self._mgr, (ArrayManager, SingleArrayManager)):
-            return f()
         blocks_before = len(self._mgr.blocks)
         result = f()
         if len(self._mgr.blocks) != blocks_before:
@@ -6735,8 +6704,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         :ref:`gotchas <gotchas.thread-safety>` when copying in a threading
         environment.
 
-        When ``copy_on_write`` in pandas config is set to ``True``, the
-        ``copy_on_write`` config takes effect even when ``deep=False``.
+        Copy-on-Write protects shallow copies against accidental modifications.
         This means that any changes to the copied data would make a new copy
         of the data upon write (and vice versa). Changes made to either the
         original or copied variable would not be reflected in the counterpart.
@@ -6762,12 +6730,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> deep = s.copy()
         >>> shallow = s.copy(deep=False)
 
-        Shallow copy shares data and index with original.
+        Shallow copy shares index with original, the data is a
+        view of the original.
 
         >>> s is shallow
         False
-        >>> s.values is shallow.values and s.index is shallow.index
-        True
+        >>> s.values is shallow.values
+        False
+        >>> s.index is shallow.index
+        False
 
         Deep copy has own copy of data and index.
 
@@ -6776,18 +6747,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> s.values is deep.values or s.index is deep.index
         False
 
-        Updates to the data shared by shallow copy and original is reflected
-        in both (NOTE: this will no longer be true for pandas >= 3.0);
-        deep copy remains unchanged.
+        The shallow copy is protected against updating the original object
+        as well. Thus, updates will only reflect in one of both objects.
 
         >>> s.iloc[0] = 3
         >>> shallow.iloc[1] = 4
         >>> s
         a    3
-        b    4
+        b    2
         dtype: int64
         >>> shallow
-        a    3
+        a    1
         b    4
         dtype: int64
         >>> deep
@@ -6810,22 +6780,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         0    [10, 2]
         1     [3, 4]
         dtype: object
-
-        **Copy-on-Write is set to true**, the shallow copy is not modified
-        when the original data is changed:
-
-        >>> with pd.option_context("mode.copy_on_write", True):
-        ...     s = pd.Series([1, 2], index=["a", "b"])
-        ...     copy = s.copy(deep=False)
-        ...     s.iloc[0] = 100
-        ...     s
-        a    100
-        b      2
-        dtype: int64
-        >>> copy
-        a    1
-        b    2
-        dtype: int64
         """
         data = self._mgr.copy(deep=deep)
         self._clear_item_cache()
@@ -7047,7 +7001,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: string
         """
         check_dtype_backend(dtype_backend)
-        new_mgr = self._mgr.convert_dtypes(  # type: ignore[union-attr]
+        new_mgr = self._mgr.convert_dtypes(
             infer_objects=infer_objects,
             convert_string=convert_string,
             convert_integer=convert_integer,
@@ -8962,7 +8916,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             For `Series` this parameter is unused and defaults to `None`.
         inplace : bool, default False
             Whether to perform the operation in place on the data.
-        *args, **kwargs
+        **kwargs
             Additional keywords have no effect but might be accepted
             for compatibility with numpy.
 
@@ -12717,8 +12671,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and not (warn_copy_on_write() and not warn)
         ):
             # GH#36498 this inplace op can _actually_ be inplace.
-            # Item "ArrayManager" of "Union[ArrayManager, SingleArrayManager,
-            # BlockManager, SingleBlockManager]" has no attribute "setitem_inplace"
+            # Item "BlockManager" of "Union[BlockManager, SingleBlockManager]" has
+            # no attribute "setitem_inplace"
             self._mgr.setitem_inplace(  # type: ignore[union-attr]
                 slice(None), result._values, warn=warn
             )
