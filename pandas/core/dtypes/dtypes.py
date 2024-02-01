@@ -102,11 +102,6 @@ if TYPE_CHECKING:
 str_type = str
 
 
-def capitalize_first_letter(s: str) -> str:
-    # For PeriodDtype.__eq__
-    return s[:1].upper() + s[1:]
-
-
 class PandasExtensionDtype(ExtensionDtype):
     """
     A np.dtype duck-typed class, suitable for holding a custom dtype.
@@ -1090,7 +1085,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
-            return other in {self.name, capitalize_first_letter(self.name)}
+            return other[:1].lower() + other[1:] == self.name
 
         return super().__eq__(other)
 
