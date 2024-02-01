@@ -247,7 +247,7 @@ GroupBy object attributes
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``groups`` attribute is a dictionary whose keys are the computed unique groups
-and corresponding values are the axis labels belonging to each group. In the
+and corresponding values are the index labels belonging to each group. In the
 above example we have:
 
 .. ipython:: python

@@ -8,6 +8,7 @@ from pandas.compat import (
     is_ci_environment,
     is_platform_windows,
 )
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -414,6 +415,17 @@ def test_non_str_names_w_duplicates():
         ),
     ):
         pd.api.interchange.from_dataframe(dfi, allow_copy=False)
+
+
+@pytest.mark.parametrize(
+    "dtype", ["Int8", pytest.param("Int8[pyarrow]", marks=td.skip_if_no("pyarrow"))]
+)
+def test_nullable_integers(dtype: str) -> None:
+    # https://github.com/pandas-dev/pandas/issues/55069
+    df = pd.DataFrame({"a": [1]}, dtype=dtype)
+    expected = pd.DataFrame({"a": [1]}, dtype="int8")
+    result = pd.api.interchange.from_dataframe(df.__dataframe__())
+    tm.assert_frame_equal(result, expected)
 
 
 def test_empty_dataframe():
