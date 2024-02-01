@@ -59,7 +59,8 @@ class IsIn:
         elif dtype in ["str", "string[python]", "string[pyarrow]"]:
             try:
                 self.series = Series(
-                    Index([f"i-{i}" for i in range(N)], dtype=object), dtype=dtype
+                    Index([f"i-{i}" for i in range(N)], dtype=object)._values,
+                    dtype=dtype,
                 )
             except ImportError as err:
                 raise NotImplementedError from err

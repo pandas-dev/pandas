@@ -1963,7 +1963,7 @@ def using_copy_on_write() -> bool:
     """
     Fixture to check if Copy-on-Write is enabled.
     """
-    return pd.options.mode.copy_on_write is True
+    return True
 
 
 @pytest.fixture
@@ -1971,7 +1971,7 @@ def warn_copy_on_write() -> bool:
     """
     Fixture to check if Copy-on-Write is in warning mode.
     """
-    return pd.options.mode.copy_on_write == "warn"
+    return False
 
 
 @pytest.fixture
