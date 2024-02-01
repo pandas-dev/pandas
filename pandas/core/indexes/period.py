@@ -16,13 +16,8 @@ from pandas._libs.tslibs import (
     Period,
     Resolution,
     Tick,
-    to_offset,
 )
-from pandas._libs.tslibs.dtypes import (
-    OFFSET_TO_PERIOD_FREQSTR,
-    freq_to_period_freqstr,
-)
-from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
+from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 from pandas.util._decorators import (
     cache_readonly,
     doc,
