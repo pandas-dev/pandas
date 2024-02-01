@@ -1074,12 +1074,6 @@ class SeriesGroupBy(GroupBy[Series]):
         Series.idxmax : Return index *label* of the first occurrence
             of maximum of values.
 
-        Notes
-        -----
-        This method is the Series version of ``ndarray.argmin``. This method
-        returns the label of the minimum, while ``ndarray.argmin`` returns
-        the position. To get the position, use ``series.values.argmin()``.
-
         Examples
         --------
         >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
@@ -1129,12 +1123,6 @@ class SeriesGroupBy(GroupBy[Series]):
             over requested axis.
         Series.idxmin : Return index *label* of the first occurrence
             of minimum of values.
-
-        Notes
-        -----
-        This method is the Series version of ``ndarray.argmax``. This method
-        returns the label of the maximum, while ``ndarray.argmax`` returns
-        the position. To get the position, use ``series.values.argmax()``.
 
         Examples
         --------
