@@ -367,9 +367,6 @@ class BaseBlockManager(DataManager):
         out = type(self).from_blocks(result_blocks, self.axes)
         return out
 
-    # Alias so we can share code with ArrayManager
-    apply_with_block = apply
-
     def setitem(self, indexer, value, warn: bool = True) -> Self:
         """
         Set values with indexer.
@@ -2025,7 +2022,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """
         Set values with indexer.
 
-        For Single[Block/Array]Manager, this backs s[indexer] = value
+        For SingleBlockManager, this backs s[indexer] = value
 
         This is an inplace version of `setitem()`, mutating the manager/values
         in place, not returning a new Manager (and Block), and thus never changing

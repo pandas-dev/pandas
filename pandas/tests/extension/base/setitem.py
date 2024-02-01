@@ -105,9 +105,10 @@ class BaseSetitemTests:
         assert data[0] == data[2]
         assert data[1] == data[2]
 
-    def test_setitem_scalar(self, data, indexer_li):
+    @pytest.mark.parametrize("setter", ["loc", "iloc"])
+    def test_setitem_scalar(self, data, setter):
         arr = pd.Series(data)
-        setter = indexer_li(arr)
+        setter = getattr(arr, setter)
         setter[0] = data[1]
         assert arr[0] == data[1]
 
@@ -413,7 +414,6 @@ class BaseSetitemTests:
         tm.assert_frame_equal(df, orig)
         if not using_copy_on_write:
             # GH#33457 Check that this setting occurred in-place
-            # FIXME(ArrayManager): this should work there too
             assert df._mgr.arrays[0] is blk_data
 
         df.iloc[:-1] = df.values[:-1]

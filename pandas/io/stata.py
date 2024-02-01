@@ -176,7 +176,7 @@ Examples
 Creating a dummy stata for this example
 
 >>> df = pd.DataFrame({{'animal': ['falcon', 'parrot', 'falcon', 'parrot'],
-...                     'speed': [350, 18, 361, 15]}})  # doctest: +SKIP
+...                   'speed': [350, 18, 361, 15]}})  # doctest: +SKIP
 >>> df.to_stata('animals.dta')  # doctest: +SKIP
 
 Read a Stata dta file:
@@ -189,7 +189,7 @@ Read a Stata dta file in 10,000 line chunks:
 >>> df = pd.DataFrame(values, columns=["i"])  # doctest: +SKIP
 >>> df.to_stata('filename.dta')  # doctest: +SKIP
 
->>> with pd.read_stata('filename.dta', chunksize=10000) as itr: # doctest: +SKIP
+>>> with pd.read_stata('filename.dta', chunksize=10000) as itr:  # doctest: +SKIP
 >>>     for chunk in itr:
 ...         # Operate on a single chunk, e.g., chunk.mean()
 ...         pass  # doctest: +SKIP
@@ -216,7 +216,7 @@ Class for reading Stata dta files.
 Parameters
 ----------
 path_or_buf : path (string), buffer or path object
-    string, path object (pathlib.Path or py._path.local.LocalPath) or object
+    string, pathlib.Path or object
     implementing a binary read() functions.
 {_statafile_processing_params1}
 {_statafile_processing_params2}
@@ -1853,10 +1853,6 @@ the string values returned are correct."""
                 if dtype not in (np.float32, np.float64):
                     dtype = np.float64
                 replacement = Series(series, dtype=dtype)
-                if not replacement._values.flags["WRITEABLE"]:
-                    # only relevant for ArrayManager; construction
-                    #  path for BlockManager ensures writeability
-                    replacement = replacement.copy()
                 # Note: operating on ._values is much faster than directly
                 # TODO: can we fix that?
                 replacement._values[missing] = np.nan
@@ -2258,7 +2254,7 @@ class StataWriter(StataParser):
     Parameters
     ----------
     fname : path (string), buffer or path object
-        string, path object (pathlib.Path or py._path.local.LocalPath) or
+        string, pathlib.Path or
         object implementing a binary write() functions. If using a buffer
         then the buffer will not be automatically closed after the file
         is written.
@@ -3208,7 +3204,7 @@ class StataWriter117(StataWriter):
     Parameters
     ----------
     fname : path (string), buffer or path object
-        string, path object (pathlib.Path or py._path.local.LocalPath) or
+        string, pathlib.Path or
         object implementing a binary write() functions. If using a buffer
         then the buffer will not be automatically closed after the file
         is written.
@@ -3594,7 +3590,7 @@ class StataWriterUTF8(StataWriter117):
     Parameters
     ----------
     fname : path (string), buffer or path object
-        string, path object (pathlib.Path or py._path.local.LocalPath) or
+        string, pathlib.Path or
         object implementing a binary write() functions. If using a buffer
         then the buffer will not be automatically closed after the file
         is written.
