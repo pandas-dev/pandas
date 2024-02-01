@@ -537,8 +537,8 @@ def json_normalize(
         if values.ndim > 1:
             # GH 37782
             values = np.empty((len(v),), dtype=object)
-            for i, v in enumerate(v):
-                values[i] = v
+            for i, val in enumerate(v):
+                values[i] = val
 
         result[k] = values.repeat(lengths)
     return result

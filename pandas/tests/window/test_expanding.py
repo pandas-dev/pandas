@@ -178,9 +178,9 @@ def test_expanding_count_with_min_periods_exceeding_series_length(frame_or_serie
 def test_iter_expanding_dataframe(df, expected, min_periods):
     # GH 11704
     df = DataFrame(df)
-    expected = [DataFrame(values, index=index) for (values, index) in expected]
+    expecteds = [DataFrame(values, index=index) for (values, index) in expected]
 
-    for expected, actual in zip(expected, df.expanding(min_periods)):
+    for expected, actual in zip(expecteds, df.expanding(min_periods)):
         tm.assert_frame_equal(actual, expected)
 
 
@@ -197,9 +197,9 @@ def test_iter_expanding_dataframe(df, expected, min_periods):
 )
 def test_iter_expanding_series(ser, expected, min_periods):
     # GH 11704
-    expected = [Series(values, index=index) for (values, index) in expected]
+    expecteds = [Series(values, index=index) for (values, index) in expected]
 
-    for expected, actual in zip(expected, ser.expanding(min_periods)):
+    for expected, actual in zip(expecteds, ser.expanding(min_periods)):
         tm.assert_series_equal(actual, expected)
 
 
