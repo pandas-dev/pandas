@@ -1208,7 +1208,7 @@ TIMEZONES = [
 ]
 
 if pytz is not None:
-    TIMEZONES.extend(  # type: ignore[arg-type]
+    TIMEZONES.extend(
         (
             pytz.FixedOffset(300),
             pytz.FixedOffset(0),
@@ -1983,7 +1983,7 @@ def using_infer_string() -> bool:
 _warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
 
 if pytz is not None:
-    _warsaws.append(pytz.timezone("Europe/Warsaw"))  # type: ignore[arg-type]
+    _warsaws.append(pytz.timezone("Europe/Warsaw"))
 
 
 @pytest.fixture(params=_warsaws)
