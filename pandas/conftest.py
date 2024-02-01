@@ -48,8 +48,6 @@ from pytz import (
     utc,
 )
 
-from pandas._config.config import _get_option
-
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import (
@@ -1965,10 +1963,7 @@ def using_copy_on_write() -> bool:
     """
     Fixture to check if Copy-on-Write is enabled.
     """
-    return (
-        pd.options.mode.copy_on_write is True
-        and _get_option("mode.data_manager", silent=True) == "block"
-    )
+    return True
 
 
 @pytest.fixture
@@ -1976,10 +1971,7 @@ def warn_copy_on_write() -> bool:
     """
     Fixture to check if Copy-on-Write is in warning mode.
     """
-    return (
-        pd.options.mode.copy_on_write == "warn"
-        and _get_option("mode.data_manager", silent=True) == "block"
-    )
+    return False
 
 
 @pytest.fixture

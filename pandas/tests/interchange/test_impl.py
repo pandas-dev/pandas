@@ -404,3 +404,12 @@ def test_nullable_integers(dtype: str) -> None:
     expected = pd.DataFrame({"a": [1]}, dtype="int8")
     result = pd.api.interchange.from_dataframe(df.__dataframe__())
     tm.assert_frame_equal(result, expected)
+
+
+def test_empty_dataframe():
+    # https://github.com/pandas-dev/pandas/issues/56700
+    df = pd.DataFrame({"a": []}, dtype="int8")
+    dfi = df.__dataframe__()
+    result = pd.api.interchange.from_dataframe(dfi, allow_copy=False)
+    expected = pd.DataFrame({"a": []}, dtype="int8")
+    tm.assert_frame_equal(result, expected)
