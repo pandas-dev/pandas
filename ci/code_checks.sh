@@ -173,8 +173,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.DataFrameGroupBy.transform\
         pandas.core.groupby.DataFrameGroupBy.nth\
         pandas.core.groupby.DataFrameGroupBy.rolling\
-        pandas.core.groupby.SeriesGroupBy.idxmax\
-        pandas.core.groupby.SeriesGroupBy.idxmin\
         pandas.core.groupby.SeriesGroupBy.nth\
         pandas.core.groupby.SeriesGroupBy.rolling\
         pandas.core.groupby.DataFrameGroupBy.hist\
