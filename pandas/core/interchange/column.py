@@ -11,14 +11,12 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
+    BaseMaskedDtype,
     DatetimeTZDtype,
 )
 
 import pandas as pd
-from pandas.api.types import (
-    is_extension_array_dtype,
-    is_string_dtype,
-)
+from pandas.api.types import is_string_dtype
 from pandas.core.interchange.buffer import PandasBuffer
 from pandas.core.interchange.dataframe_protocol import (
     Column,
@@ -146,7 +144,7 @@ class PandasColumn(Column):
             byteorder = dtype.numpy_dtype.byteorder
         elif isinstance(dtype, DatetimeTZDtype):
             byteorder = dtype.base.byteorder  # type: ignore[union-attr]
-        elif is_extension_array_dtype(dtype):
+        elif isinstance(dtype, BaseMaskedDtype):
             byteorder = dtype.numpy_dtype.byteorder
         else:
             byteorder = dtype.byteorder
