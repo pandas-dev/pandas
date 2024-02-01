@@ -952,7 +952,7 @@ class Window(BaseWindow):
 
         If ``'left'``, the last point in the window is excluded from calculations.
 
-        If ``'both'``, the no points in the window are excluded from calculations.
+        If ``'both'``, no point in the window is excluded from calculations.
 
         If ``'neither'``, the first and last points in the window are excluded
         from calculations.
