@@ -9351,7 +9351,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def resample(
         self,
         rule,
-        axis: Axis | lib.NoDefault = lib.no_default,
         closed: Literal["right", "left"] | None = None,
         label: Literal["right", "left"] | None = None,
         convention: Literal["start", "end", "s", "e"] | lib.NoDefault = lib.no_default,
@@ -9374,13 +9373,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         rule : DateOffset, Timedelta or str
             The offset string or object representing target conversion.
-        axis : {{0 or 'index', 1 or 'columns'}}, default 0
-            Which axis to use for up- or down-sampling. For `Series` this parameter
-            is unused and defaults to 0. Must be
-            `DatetimeIndex`, `TimedeltaIndex` or `PeriodIndex`.
-
-            .. deprecated:: 2.0.0
-                Use frame.T.resample(...) instead.
         closed : {{'right', 'left'}}, default None
             Which side of bin interval is closed. The default is 'left'
             for all frequency offsets except for 'ME', 'YE', 'QE', 'BME',
@@ -9692,25 +9684,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         from pandas.core.resample import get_resampler
 
-        if axis is not lib.no_default:
-            axis = self._get_axis_number(axis)
-            if axis == 1:
-                warnings.warn(
-                    "DataFrame.resample with axis=1 is deprecated. Do "
-                    "`frame.T.resample(...)` without axis instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            else:
-                warnings.warn(
-                    f"The 'axis' keyword in {type(self).__name__}.resample is "
-                    "deprecated and will be removed in a future version.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-        else:
-            axis = 0
-
         if kind is not lib.no_default:
             # GH#55895
             warnings.warn(
@@ -9740,7 +9713,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             freq=rule,
             label=label,
             closed=closed,
-            axis=axis,
             kind=kind,
             convention=convention,
             key=on,
@@ -12511,33 +12483,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         center: bool_t = False,
         win_type: str | None = None,
         on: str | None = None,
-        axis: Axis | lib.NoDefault = lib.no_default,
         closed: IntervalClosedType | None = None,
         step: int | None = None,
         method: str = "single",
     ) -> Window | Rolling:
-        if axis is not lib.no_default:
-            axis = self._get_axis_number(axis)
-            name = "rolling"
-            if axis == 1:
-                warnings.warn(
-                    f"Support for axis=1 in {type(self).__name__}.{name} is "
-                    "deprecated and will be removed in a future version. "
-                    f"Use obj.T.{name}(...) instead",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            else:
-                warnings.warn(
-                    f"The 'axis' keyword in {type(self).__name__}.{name} is "
-                    "deprecated and will be removed in a future version. "
-                    "Call the method without the axis keyword instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-        else:
-            axis = 0
-
         if win_type is not None:
             return Window(
                 self,
@@ -12546,7 +12495,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 center=center,
                 win_type=win_type,
                 on=on,
-                axis=axis,
                 closed=closed,
                 step=step,
                 method=method,
@@ -12559,7 +12507,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             center=center,
             win_type=win_type,
             on=on,
-            axis=axis,
             closed=closed,
             step=step,
             method=method,
@@ -12570,31 +12517,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def expanding(
         self,
         min_periods: int = 1,
-        axis: Axis | lib.NoDefault = lib.no_default,
         method: Literal["single", "table"] = "single",
     ) -> Expanding:
-        if axis is not lib.no_default:
-            axis = self._get_axis_number(axis)
-            name = "expanding"
-            if axis == 1:
-                warnings.warn(
-                    f"Support for axis=1 in {type(self).__name__}.{name} is "
-                    "deprecated and will be removed in a future version. "
-                    f"Use obj.T.{name}(...) instead",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            else:
-                warnings.warn(
-                    f"The 'axis' keyword in {type(self).__name__}.{name} is "
-                    "deprecated and will be removed in a future version. "
-                    "Call the method without the axis keyword instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-        else:
-            axis = 0
-        return Expanding(self, min_periods=min_periods, axis=axis, method=method)
+        return Expanding(self, min_periods=min_periods, method=method)
 
     @final
     @doc(ExponentialMovingWindow)
@@ -12607,32 +12532,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         min_periods: int | None = 0,
         adjust: bool_t = True,
         ignore_na: bool_t = False,
-        axis: Axis | lib.NoDefault = lib.no_default,
         times: np.ndarray | DataFrame | Series | None = None,
         method: Literal["single", "table"] = "single",
     ) -> ExponentialMovingWindow:
-        if axis is not lib.no_default:
-            axis = self._get_axis_number(axis)
-            name = "ewm"
-            if axis == 1:
-                warnings.warn(
-                    f"Support for axis=1 in {type(self).__name__}.{name} is "
-                    "deprecated and will be removed in a future version. "
-                    f"Use obj.T.{name}(...) instead",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            else:
-                warnings.warn(
-                    f"The 'axis' keyword in {type(self).__name__}.{name} is "
-                    "deprecated and will be removed in a future version. "
-                    "Call the method without the axis keyword instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-        else:
-            axis = 0
-
         return ExponentialMovingWindow(
             self,
             com=com,
@@ -12642,7 +12544,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             min_periods=min_periods,
             adjust=adjust,
             ignore_na=ignore_na,
-            axis=axis,
             times=times,
             method=method,
         )
