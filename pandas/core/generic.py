@@ -6313,15 +6313,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 return
 
         if (
-            # only relevant with dataframes
             isinstance(self, ABCDataFrame)
-            # ignore if attr already exists
             and name not in self.__dict__
-            # ignore if it's a class attribute;
-            # might be a prop, axis, cached_property,
-            # or other sort of descriptor
             and not hasattr(type(self), name)
-            # ignore if internal or metadata
             and name not in self._internal_names
             and name not in self._metadata
             and is_list_like(value)
