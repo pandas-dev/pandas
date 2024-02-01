@@ -6704,8 +6704,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         :ref:`gotchas <gotchas.thread-safety>` when copying in a threading
         environment.
 
-        When ``copy_on_write`` in pandas config is set to ``True``, the
-        ``copy_on_write`` config takes effect even when ``deep=False``.
+        Copy-on-Write protects shallow copies against accidental modifications.
         This means that any changes to the copied data would make a new copy
         of the data upon write (and vice versa). Changes made to either the
         original or copied variable would not be reflected in the counterpart.
@@ -6731,12 +6730,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> deep = s.copy()
         >>> shallow = s.copy(deep=False)
 
-        Shallow copy shares data and index with original.
+        Shallow copy shares index with original, the data is a
+        view of the original.
 
         >>> s is shallow
         False
-        >>> s.values is shallow.values and s.index is shallow.index
-        True
+        >>> s.values is shallow.values
+        False
+        >>> s.index is shallow.index
+        False
 
         Deep copy has own copy of data and index.
 
@@ -6745,18 +6747,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> s.values is deep.values or s.index is deep.index
         False
 
-        Updates to the data shared by shallow copy and original is reflected
-        in both (NOTE: this will no longer be true for pandas >= 3.0);
-        deep copy remains unchanged.
+        The shallow copy is protected against updating the original object
+        as well. Thus, updates will only reflect in one of both objects.
 
         >>> s.iloc[0] = 3
         >>> shallow.iloc[1] = 4
         >>> s
         a    3
-        b    4
+        b    2
         dtype: int64
         >>> shallow
-        a    3
+        a    1
         b    4
         dtype: int64
         >>> deep
@@ -6779,22 +6780,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         0    [10, 2]
         1     [3, 4]
         dtype: object
-
-        **Copy-on-Write is set to true**, the shallow copy is not modified
-        when the original data is changed:
-
-        >>> with pd.option_context("mode.copy_on_write", True):
-        ...     s = pd.Series([1, 2], index=["a", "b"])
-        ...     copy = s.copy(deep=False)
-        ...     s.iloc[0] = 100
-        ...     s
-        a    100
-        b      2
-        dtype: int64
-        >>> copy
-        a    1
-        b    2
-        dtype: int64
         """
         data = self._mgr.copy(deep=deep)
         self._clear_item_cache()
@@ -9366,7 +9351,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def resample(
         self,
         rule,
-        axis: Axis | lib.NoDefault = lib.no_default,
         closed: Literal["right", "left"] | None = None,
         label: Literal["right", "left"] | None = None,
         convention: Literal["start", "end", "s", "e"] | lib.NoDefault = lib.no_default,
@@ -9389,13 +9373,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         rule : DateOffset, Timedelta or str
             The offset string or object representing target conversion.
-        axis : {{0 or 'index', 1 or 'columns'}}, default 0
-            Which axis to use for up- or down-sampling. For `Series` this parameter
-            is unused and defaults to 0. Must be
-            `DatetimeIndex`, `TimedeltaIndex` or `PeriodIndex`.
-
-            .. deprecated:: 2.0.0
-                Use frame.T.resample(...) instead.
         closed : {{'right', 'left'}}, default None
             Which side of bin interval is closed. The default is 'left'
             for all frequency offsets except for 'ME', 'YE', 'QE', 'BME',
@@ -9707,25 +9684,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         from pandas.core.resample import get_resampler
 
-        if axis is not lib.no_default:
-            axis = self._get_axis_number(axis)
-            if axis == 1:
-                warnings.warn(
-                    "DataFrame.resample with axis=1 is deprecated. Do "
-                    "`frame.T.resample(...)` without axis instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            else:
-                warnings.warn(
-                    f"The 'axis' keyword in {type(self).__name__}.resample is "
-                    "deprecated and will be removed in a future version.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-        else:
-            axis = 0
-
         if kind is not lib.no_default:
             # GH#55895
             warnings.warn(
@@ -9755,7 +9713,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             freq=rule,
             label=label,
             closed=closed,
-            axis=axis,
             kind=kind,
             convention=convention,
             key=on,
@@ -12526,33 +12483,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         center: bool_t = False,
         win_type: str | None = None,
         on: str | None = None,
-        axis: Axis | lib.NoDefault = lib.no_default,
         closed: IntervalClosedType | None = None,
         step: int | None = None,
         method: str = "single",
     ) -> Window | Rolling:
-        if axis is not lib.no_default:
-            axis = self._get_axis_number(axis)
-            name = "rolling"
-            if axis == 1:
-                warnings.warn(
-                    f"Support for axis=1 in {type(self).__name__}.{name} is "
-                    "deprecated and will be removed in a future version. "
-                    f"Use obj.T.{name}(...) instead",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            else:
-                warnings.warn(
-                    f"The 'axis' keyword in {type(self).__name__}.{name} is "
-                    "deprecated and will be removed in a future version. "
-                    "Call the method without the axis keyword instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-        else:
-            axis = 0
-
         if win_type is not None:
             return Window(
                 self,
@@ -12561,7 +12495,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 center=center,
                 win_type=win_type,
                 on=on,
-                axis=axis,
                 closed=closed,
                 step=step,
                 method=method,
@@ -12574,7 +12507,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             center=center,
             win_type=win_type,
             on=on,
-            axis=axis,
             closed=closed,
             step=step,
             method=method,
@@ -12585,31 +12517,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def expanding(
         self,
         min_periods: int = 1,
-        axis: Axis | lib.NoDefault = lib.no_default,
         method: Literal["single", "table"] = "single",
     ) -> Expanding:
-        if axis is not lib.no_default:
-            axis = self._get_axis_number(axis)
-            name = "expanding"
-            if axis == 1:
-                warnings.warn(
-                    f"Support for axis=1 in {type(self).__name__}.{name} is "
-                    "deprecated and will be removed in a future version. "
-                    f"Use obj.T.{name}(...) instead",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            else:
-                warnings.warn(
-                    f"The 'axis' keyword in {type(self).__name__}.{name} is "
-                    "deprecated and will be removed in a future version. "
-                    "Call the method without the axis keyword instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-        else:
-            axis = 0
-        return Expanding(self, min_periods=min_periods, axis=axis, method=method)
+        return Expanding(self, min_periods=min_periods, method=method)
 
     @final
     @doc(ExponentialMovingWindow)
@@ -12622,32 +12532,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         min_periods: int | None = 0,
         adjust: bool_t = True,
         ignore_na: bool_t = False,
-        axis: Axis | lib.NoDefault = lib.no_default,
         times: np.ndarray | DataFrame | Series | None = None,
         method: Literal["single", "table"] = "single",
     ) -> ExponentialMovingWindow:
-        if axis is not lib.no_default:
-            axis = self._get_axis_number(axis)
-            name = "ewm"
-            if axis == 1:
-                warnings.warn(
-                    f"Support for axis=1 in {type(self).__name__}.{name} is "
-                    "deprecated and will be removed in a future version. "
-                    f"Use obj.T.{name}(...) instead",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            else:
-                warnings.warn(
-                    f"The 'axis' keyword in {type(self).__name__}.{name} is "
-                    "deprecated and will be removed in a future version. "
-                    "Call the method without the axis keyword instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-        else:
-            axis = 0
-
         return ExponentialMovingWindow(
             self,
             com=com,
@@ -12657,7 +12544,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             min_periods=min_periods,
             adjust=adjust,
             ignore_na=ignore_na,
-            axis=axis,
             times=times,
             method=method,
         )
