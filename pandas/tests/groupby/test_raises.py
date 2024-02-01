@@ -698,13 +698,3 @@ def test_groupby_raises_category_on_category(
     else:
         warn_msg = ""
     _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg)
-
-
-def test_subsetting_columns_axis_1_raises():
-    # GH 35443
-    df = DataFrame({"a": [1], "b": [2], "c": [3]})
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby("a", axis=1)
-    with pytest.raises(ValueError, match="Cannot subset columns when using axis=1"):
-        gb["b"]

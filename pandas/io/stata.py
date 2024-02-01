@@ -1853,10 +1853,6 @@ the string values returned are correct."""
                 if dtype not in (np.float32, np.float64):
                     dtype = np.float64
                 replacement = Series(series, dtype=dtype)
-                if not replacement._values.flags["WRITEABLE"]:
-                    # only relevant for ArrayManager; construction
-                    #  path for BlockManager ensures writeability
-                    replacement = replacement.copy()
                 # Note: operating on ._values is much faster than directly
                 # TODO: can we fix that?
                 replacement._values[missing] = np.nan
