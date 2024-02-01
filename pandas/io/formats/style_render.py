@@ -51,7 +51,7 @@ from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 BaseFormatter = Union[str, Callable]
 ExtFormatter = Union[BaseFormatter, dict[Any, Optional[BaseFormatter]]]
 CSSPair = tuple[str, Union[str, float]]
-CSSList = Union[list[CSSPair], tuple[CSSPair, ...]]
+CSSList = list[CSSPair]
 CSSProperties = Union[str, CSSList]
 
 
@@ -1996,19 +1996,19 @@ class Tooltips:
 
     def __init__(
         self,
-        css_props: CSSProperties = (
+        css_props: CSSProperties = [  # noqa: B006
             ("visibility", "hidden"),
             ("position", "absolute"),
             ("z-index", 1),
             ("background-color", "black"),
             ("color", "white"),
             ("transform", "translate(-20px, -20px)"),
-        ),
+        ],
         css_name: str = "pd-t",
         tooltips: DataFrame = DataFrame(),
     ) -> None:
         self.class_name = css_name
-        self.class_properties = list(css_props)
+        self.class_properties = css_props
         self.tt_data = tooltips
         self.table_styles: CSSStyles = []
 
