@@ -311,8 +311,6 @@ class TestDataFrameConstructors:
             should_be_view.iloc[0, 0] = 97
             assert df.values[0, 0] == 97
         else:
-            # INFO(ArrayManager) DataFrame(ndarray) doesn't necessarily preserve
-            # a view on the array to ensure contiguous 1D arrays
             df2 = DataFrame(df.values, dtype=df[0].dtype)
             assert df2._mgr.arrays[0].flags.c_contiguous
 
@@ -2504,8 +2502,6 @@ class TestDataFrameConstructors:
                 raise TypeError
 
         def check_views(c_only: bool = False):
-            # written to work for either BlockManager or ArrayManager
-
             # Check that the underlying data behind df["c"] is still `c`
             #  after setting with iloc.  Since we don't know which entry in
             #  df._mgr.arrays corresponds to df["c"], we just check that exactly
@@ -2815,7 +2811,7 @@ class TestDataFrameConstructorIndexInference:
         )
         result = DataFrame({key_val: [1, 2]}, columns=cols)
         expected = DataFrame([[1, np.nan], [2, np.nan]], columns=cols)
-        expected.iloc[:, 1] = expected.iloc[:, 1].astype(object)
+        expected.isetitem(1, expected.iloc[:, 1].astype(object))
         tm.assert_frame_equal(result, expected)
 
 

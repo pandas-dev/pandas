@@ -484,12 +484,12 @@ class _EtreeFrameParser(_XMLFrameParser):
                 if children == [] and attrs == {}:
                     raise ValueError(msg)
 
-        except (KeyError, SyntaxError):
+        except (KeyError, SyntaxError) as err:
             raise SyntaxError(
                 "You have used an incorrect or unsupported XPath "
                 "expression for etree library or you used an "
                 "undeclared namespace prefix."
-            )
+            ) from err
 
         return elems
 
@@ -746,12 +746,12 @@ def _data_to_frame(data, **kwargs) -> DataFrame:
     try:
         with TextParser(nodes, names=tags, **kwargs) as tp:
             return tp.read()
-    except ParserError:
+    except ParserError as err:
         raise ParserError(
             "XML document may be too complex for import. "
             "Try to flatten document and use distinct "
             "element and attribute names."
-        )
+        ) from err
 
 
 def _parse(

@@ -427,8 +427,8 @@ def json_normalize(
                 result = []
             else:
                 raise TypeError(
-                    f"{js} has non list value {result} for path {spec}. "
-                    "Must be list or null."
+                    f"Path must contain list or null, "
+                    f"but got {type(result).__name__} at {spec!r}"
                 )
         return result
 

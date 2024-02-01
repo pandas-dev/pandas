@@ -883,6 +883,8 @@ class Index(IndexOpsMixin, PandasObject):
             # error: Item "ExtensionArray" of "Union[ExtensionArray,
             # ndarray[Any, Any]]" has no attribute "_ndarray"  [union-attr]
             target_values = self._data._ndarray  # type: ignore[union-attr]
+        elif is_string_dtype(self.dtype) and not is_object_dtype(self.dtype):
+            return libindex.StringEngine(target_values)
 
         # error: Argument 1 to "ExtensionEngine" has incompatible type
         # "ndarray[Any, Any]"; expected "ExtensionArray"
@@ -949,6 +951,9 @@ class Index(IndexOpsMixin, PandasObject):
         elif method == "reduce":
             result = lib.item_from_zerodim(result)
             return result
+        elif is_scalar(result):
+            # e.g. matmul
+            return result
 
         if result.dtype == np.float16:
             result = result.astype(np.float32)
@@ -956,7 +961,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self.__array_wrap__(result)
 
     @final
-    def __array_wrap__(self, result, context=None):
+    def __array_wrap__(self, result, context=None, return_scalar=False):
         """
         Gets called after a ufunc and other functions e.g. np.split.
         """
@@ -1156,6 +1161,9 @@ class Index(IndexOpsMixin, PandasObject):
             raise TypeError("Expected indices to be array-like")
         indices = ensure_platform_int(indices)
         allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
+
+        if indices.ndim == 1 and lib.is_range_indexer(indices, len(self)):
+            return self.copy()
 
         # Note: we discard fill_value and use self._na_value, only relevant
         #  in the case where allow_fill is True and fill_value is not None
@@ -1950,7 +1958,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx = pd.MultiIndex.from_product([['python', 'cobra'],
         ...                                   [2018, 2019]],
-        ...                                   names=['kind', 'year'])
+        ...                                  names=['kind', 'year'])
         >>> idx
         MultiIndex([('python', 2018),
                     ('python', 2019),
@@ -2121,7 +2129,8 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         >>> mi = pd.MultiIndex.from_arrays(
-        ... [[1, 2], [3, 4], [5, 6]], names=['x', 'y', 'z'])
+        ...     [[1, 2], [3, 4], [5, 6]], names=['x', 'y', 'z']
+        ... )
         >>> mi
         MultiIndex([(1, 3, 5),
                     (2, 4, 6)],
@@ -3794,7 +3803,7 @@ class Index(IndexOpsMixin, PandasObject):
                 isinstance(casted_key, abc.Iterable)
                 and any(isinstance(x, slice) for x in casted_key)
             ):
-                raise InvalidIndexError(key)
+                raise InvalidIndexError(key) from err
             raise KeyError(key) from err
         except TypeError:
             # If we have a listlike key, _check_indexing_error will raise
@@ -4039,7 +4048,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             raise ValueError(
                 f"tolerance argument for {type(self).__name__} with dtype {self.dtype} "
-                f"must be numeric if it is a scalar: {repr(tolerance)}"
+                f"must be numeric if it is a scalar: {tolerance!r}"
             )
         return tolerance
 
@@ -4086,7 +4095,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if limit is not None:
             raise ValueError(
-                f"limit argument for {repr(method)} method only well-defined "
+                f"limit argument for {method!r} method only well-defined "
                 "if index and target are monotonic"
             )
 
@@ -4604,38 +4613,12 @@ class Index(IndexOpsMixin, PandasObject):
         if level is not None and (self._is_multi or other._is_multi):
             return self._join_level(other, level, how=how)
 
-        lidx: np.ndarray | None
-        ridx: np.ndarray | None
-
-        if len(other) == 0:
-            if how in ("left", "outer"):
-                if sort and not self.is_monotonic_increasing:
-                    lidx = self.argsort()
-                    join_index = self.take(lidx)
-                else:
-                    lidx = None
-                    join_index = self._view()
-                ridx = np.broadcast_to(np.intp(-1), len(join_index))
-                return join_index, lidx, ridx
-            elif how in ("right", "inner", "cross"):
-                join_index = other._view()
-                lidx = np.array([], dtype=np.intp)
-                return join_index, lidx, None
-
-        if len(self) == 0:
-            if how in ("right", "outer"):
-                if sort and not other.is_monotonic_increasing:
-                    ridx = other.argsort()
-                    join_index = other.take(ridx)
-                else:
-                    ridx = None
-                    join_index = other._view()
-                lidx = np.broadcast_to(np.intp(-1), len(join_index))
-                return join_index, lidx, ridx
-            elif how in ("left", "inner", "cross"):
-                join_index = self._view()
-                ridx = np.array([], dtype=np.intp)
-                return join_index, None, ridx
+        if len(self) == 0 or len(other) == 0:
+            try:
+                return self._join_empty(other, how, sort)
+            except TypeError:
+                # object dtype; non-comparable objects
+                pass
 
         if self.dtype != other.dtype:
             dtype = self._find_common_type_compat(other)
@@ -4671,6 +4654,33 @@ class Index(IndexOpsMixin, PandasObject):
         return self._join_via_get_indexer(other, how, sort)
 
     @final
+    def _join_empty(
+        self, other: Index, how: JoinHow, sort: bool
+    ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
+        assert len(self) == 0 or len(other) == 0
+        _validate_join_method(how)
+
+        lidx: np.ndarray | None
+        ridx: np.ndarray | None
+
+        if len(other):
+            how = cast(JoinHow, {"left": "right", "right": "left"}.get(how, how))
+            join_index, ridx, lidx = other._join_empty(self, how, sort)
+        elif how in ["left", "outer"]:
+            if sort and not self.is_monotonic_increasing:
+                lidx = self.argsort()
+                join_index = self.take(lidx)
+            else:
+                lidx = None
+                join_index = self._view()
+            ridx = np.broadcast_to(np.intp(-1), len(join_index))
+        else:
+            join_index = other._view()
+            lidx = np.array([], dtype=np.intp)
+            ridx = None
+        return join_index, lidx, ridx
+
+    @final
     def _join_via_get_indexer(
         self, other: Index, how: JoinHow, sort: bool
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
@@ -4678,11 +4688,23 @@ class Index(IndexOpsMixin, PandasObject):
         #  uniqueness/monotonicity
 
         # Note: at this point we have checked matching dtypes
+        lindexer: npt.NDArray[np.intp] | None
+        rindexer: npt.NDArray[np.intp] | None
 
         if how == "left":
-            join_index = self.sort_values() if sort else self
+            if sort:
+                join_index, lindexer = self.sort_values(return_indexer=True)
+                rindexer = other.get_indexer_for(join_index)
+                return join_index, lindexer, rindexer
+            else:
+                join_index = self
         elif how == "right":
-            join_index = other.sort_values() if sort else other
+            if sort:
+                join_index, rindexer = other.sort_values(return_indexer=True)
+                lindexer = self.get_indexer_for(join_index)
+                return join_index, lindexer, rindexer
+            else:
+                join_index = other
         elif how == "inner":
             join_index = self.intersection(other, sort=sort)
         elif how == "outer":
@@ -4694,6 +4716,10 @@ class Index(IndexOpsMixin, PandasObject):
                     join_index = _maybe_try_sort(join_index, sort)
                 except TypeError:
                     pass
+
+        names = other.names if how == "right" else self.names
+        if join_index.names != names:
+            join_index = join_index.set_names(names)
 
         if join_index is self:
             lindexer = None
@@ -4806,11 +4832,18 @@ class Index(IndexOpsMixin, PandasObject):
         left_idx, right_idx = get_join_indexers_non_unique(
             self._values, other._values, how=how, sort=sort
         )
-        mask = left_idx == -1
 
-        join_idx = self.take(left_idx)
-        right = other.take(right_idx)
-        join_index = join_idx.putmask(mask, right)
+        if how == "right":
+            join_index = other.take(right_idx)
+        else:
+            join_index = self.take(left_idx)
+
+        if how == "outer":
+            mask = left_idx == -1
+            if mask.any():
+                right = other.take(right_idx)
+                join_index = join_index.putmask(mask, right)
+
         if isinstance(join_index, ABCMultiIndex) and how == "outer":
             # test_join_index_levels
             join_index = join_index._sort_levels_monotonic()
@@ -4986,62 +5019,71 @@ class Index(IndexOpsMixin, PandasObject):
         ridx: npt.NDArray[np.intp] | None
         lidx: npt.NDArray[np.intp] | None
 
-        if self.is_unique and other.is_unique:
-            # We can perform much better than the general case
-            if how == "left":
+        if how == "left":
+            if other.is_unique:
+                # We can perform much better than the general case
                 join_index = self
                 lidx = None
                 ridx = self._left_indexer_unique(other)
-            elif how == "right":
+            else:
+                join_array, lidx, ridx = self._left_indexer(other)
+                join_index, lidx, ridx = self._wrap_join_result(
+                    join_array, other, lidx, ridx, how
+                )
+        elif how == "right":
+            if self.is_unique:
+                # We can perform much better than the general case
                 join_index = other
                 lidx = other._left_indexer_unique(self)
                 ridx = None
-            elif how == "inner":
-                join_array, lidx, ridx = self._inner_indexer(other)
-                join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
-            elif how == "outer":
-                join_array, lidx, ridx = self._outer_indexer(other)
-                join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
-        else:
-            if how == "left":
-                join_array, lidx, ridx = self._left_indexer(other)
-            elif how == "right":
+            else:
                 join_array, ridx, lidx = other._left_indexer(self)
-            elif how == "inner":
-                join_array, lidx, ridx = self._inner_indexer(other)
-            elif how == "outer":
-                join_array, lidx, ridx = self._outer_indexer(other)
-
-            assert lidx is not None
-            assert ridx is not None
-
-            join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
+                join_index, lidx, ridx = self._wrap_join_result(
+                    join_array, other, lidx, ridx, how
+                )
+        elif how == "inner":
+            join_array, lidx, ridx = self._inner_indexer(other)
+            join_index, lidx, ridx = self._wrap_join_result(
+                join_array, other, lidx, ridx, how
+            )
+        elif how == "outer":
+            join_array, lidx, ridx = self._outer_indexer(other)
+            join_index, lidx, ridx = self._wrap_join_result(
+                join_array, other, lidx, ridx, how
+            )
 
         lidx = None if lidx is None else ensure_platform_int(lidx)
         ridx = None if ridx is None else ensure_platform_int(ridx)
         return join_index, lidx, ridx
 
-    def _wrap_joined_index(
+    def _wrap_join_result(
         self,
         joined: ArrayLike,
         other: Self,
-        lidx: npt.NDArray[np.intp],
-        ridx: npt.NDArray[np.intp],
-    ) -> Self:
+        lidx: npt.NDArray[np.intp] | None,
+        ridx: npt.NDArray[np.intp] | None,
+        how: JoinHow,
+    ) -> tuple[Self, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         assert other.dtype == self.dtype
 
-        if isinstance(self, ABCMultiIndex):
-            name = self.names if self.names == other.names else None
-            # error: Incompatible return value type (got "MultiIndex",
-            # expected "Self")
-            mask = lidx == -1
-            join_idx = self.take(lidx)
-            right = cast("MultiIndex", other.take(ridx))
-            join_index = join_idx.putmask(mask, right)._sort_levels_monotonic()
-            return join_index.set_names(name)  # type: ignore[return-value]
+        if lidx is not None and lib.is_range_indexer(lidx, len(self)):
+            lidx = None
+        if ridx is not None and lib.is_range_indexer(ridx, len(other)):
+            ridx = None
+
+        # return self or other if possible to maintain cached attributes
+        if lidx is None:
+            join_index = self
+        elif ridx is None:
+            join_index = other
         else:
-            name = get_op_result_name(self, other)
-            return self._constructor._with_infer(joined, name=name, dtype=self.dtype)
+            join_index = self._constructor._with_infer(joined, dtype=self.dtype)
+
+        names = other.names if how == "right" else self.names
+        if join_index.names != names:
+            join_index = join_index.set_names(names)
+
+        return join_index, lidx, ridx
 
     @final
     @cache_readonly
@@ -5733,13 +5775,13 @@ class Index(IndexOpsMixin, PandasObject):
         self._searchsorted_monotonic(label)  # validate sortedness
         try:
             loc = self.get_loc(label)
-        except (KeyError, TypeError):
+        except (KeyError, TypeError) as err:
             # KeyError -> No exact match, try for padded
             # TypeError -> passed e.g. non-hashable, fall through to get
             #  the tested exception message
             indexer = self.get_indexer([label], method="pad")
             if indexer.ndim > 1 or indexer.size > 1:
-                raise TypeError("asof requires scalar valued input")
+                raise TypeError("asof requires scalar valued input") from err
             loc = indexer.item()
             if loc == -1:
                 return self._na_value
@@ -5910,17 +5952,14 @@ class Index(IndexOpsMixin, PandasObject):
         (Index([1000, 100, 10, 1], dtype='int64'), array([3, 1, 0, 2]))
         """
         if key is None and (
-            self.is_monotonic_increasing or self.is_monotonic_decreasing
+            (ascending and self.is_monotonic_increasing)
+            or (not ascending and self.is_monotonic_decreasing)
         ):
-            reverse = ascending != self.is_monotonic_increasing
-            sorted_index = self[::-1] if reverse else self.copy()
             if return_indexer:
                 indexer = np.arange(len(self), dtype=np.intp)
-                if reverse:
-                    indexer = indexer[::-1]
-                return sorted_index, indexer
+                return self.copy(), indexer
             else:
-                return sorted_index
+                return self.copy()
 
         # GH 35584. Sort missing values according to na_position kwarg
         # ignore na_position for MultiIndex
@@ -6571,7 +6610,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index([1,2,3])
+        >>> idx = pd.Index([1, 2, 3])
         >>> idx
         Index([1, 2, 3], dtype='int64')
 
@@ -6580,7 +6619,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.isin([1, 4])
         array([ True, False, False])
 
-        >>> midx = pd.MultiIndex.from_arrays([[1,2,3],
+        >>> midx = pd.MultiIndex.from_arrays([[1, 2, 3],
         ...                                  ['red', 'blue', 'green']],
         ...                                  names=('number', 'color'))
         >>> midx
@@ -6795,7 +6834,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._searchsorted_monotonic(label, side)
             except ValueError:
                 # raise the original KeyError
-                raise err
+                raise err from None
 
         if isinstance(slc, np.ndarray):
             # get_loc may return a boolean array, which
@@ -6805,7 +6844,7 @@ class Index(IndexOpsMixin, PandasObject):
             if isinstance(slc, np.ndarray):
                 raise KeyError(
                     f"Cannot get {side} slice bound for non-unique "
-                    f"label: {repr(original_label)}"
+                    f"label: {original_label!r}"
                 )
 
         if isinstance(slc, slice):

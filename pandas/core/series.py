@@ -30,7 +30,6 @@ from pandas._config import (
     using_copy_on_write,
     warn_copy_on_write,
 )
-from pandas._config.config import _get_option
 
 from pandas._libs import (
     lib,
@@ -45,6 +44,8 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     ChainedAssignmentError,
     InvalidIndexError,
+)
+from pandas.errors.cow import (
     _chained_assignment_method_msg,
     _chained_assignment_msg,
     _chained_assignment_warning_method_msg,
@@ -67,6 +68,9 @@ from pandas.util._validators import (
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import (
     LossySetitemError,
+    construct_1d_arraylike_from_scalar,
+    find_common_type,
+    infer_dtype_from,
     maybe_box_native,
     maybe_cast_pointwise_result,
 )
@@ -84,8 +88,12 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     ExtensionDtype,
+    SparseDtype,
 )
-from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
     isna,
@@ -114,6 +122,7 @@ from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import (
+    array as pd_array,
     extract_array,
     sanitize_array,
 )
@@ -140,10 +149,7 @@ from pandas.core.indexing import (
     check_bool_indexer,
     check_dict_or_set_indexers,
 )
-from pandas.core.internals import (
-    SingleArrayManager,
-    SingleBlockManager,
-)
+from pandas.core.internals import SingleBlockManager
 from pandas.core.methods import selectn
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import (
@@ -190,7 +196,6 @@ if TYPE_CHECKING:
         Renamer,
         Scalar,
         Self,
-        SingleManager,
         SortKind,
         StorageOptions,
         Suffixes,
@@ -375,7 +380,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         base.IndexOpsMixin.hasnans.fget,  # type: ignore[attr-defined]
         doc=base.IndexOpsMixin.hasnans.__doc__,
     )
-    _mgr: SingleManager
+    _mgr: SingleBlockManager
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -401,7 +406,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         allow_mgr = False
         if (
-            isinstance(data, (SingleBlockManager, SingleArrayManager))
+            isinstance(data, SingleBlockManager)
             and index is None
             and dtype is None
             and (copy is False or copy is None)
@@ -440,12 +445,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # we are called internally, so short-circuit
         if fastpath:
             # data is a ndarray, index is defined
-            if not isinstance(data, (SingleBlockManager, SingleArrayManager)):
-                manager = _get_option("mode.data_manager", silent=True)
-                if manager == "block":
-                    data = SingleBlockManager.from_array(data, index)
-                elif manager == "array":
-                    data = SingleArrayManager.from_array(data, index)
+            if not isinstance(data, SingleBlockManager):
+                data = SingleBlockManager.from_array(data, index)
                 allow_mgr = True
             elif using_copy_on_write() and not copy:
                 data = data.copy(deep=False)
@@ -531,7 +532,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             data, index = self._init_dict(data, index, dtype)
             dtype = None
             copy = False
-        elif isinstance(data, (SingleBlockManager, SingleArrayManager)):
+        elif isinstance(data, SingleBlockManager):
             if index is None:
                 index = data.index
             elif not data.index.equals(index) or copy:
@@ -569,19 +570,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             com.require_length_match(data, index)
 
         # create/copy the manager
-        if isinstance(data, (SingleBlockManager, SingleArrayManager)):
+        if isinstance(data, SingleBlockManager):
             if dtype is not None:
                 data = data.astype(dtype=dtype, errors="ignore", copy=copy)
             elif copy:
                 data = data.copy()
         else:
             data = sanitize_array(data, index, dtype, copy)
-
-            manager = _get_option("mode.data_manager", silent=True)
-            if manager == "block":
-                data = SingleBlockManager.from_array(data, index, refs=refs)
-            elif manager == "array":
-                data = SingleArrayManager.from_array(data, index)
+            data = SingleBlockManager.from_array(data, index, refs=refs)
 
         NDFrame.__init__(self, data)
         self.name = name
@@ -853,9 +849,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return self._mgr.internal_values()
 
     @property
-    def _references(self) -> BlockValuesRefs | None:
-        if isinstance(self._mgr, SingleArrayManager):
-            return None
+    def _references(self) -> BlockValuesRefs:
         return self._mgr._block.refs
 
     # error: Decorated property not supported
@@ -959,7 +953,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         res_ser = self._constructor(res_values, index=self.index, copy=False)
         if isinstance(res_ser._mgr, SingleBlockManager):
             blk = res_ser._mgr._block
-            blk.refs = cast("BlockValuesRefs", self._references)
             blk.refs.add_reference(blk)
         return res_ser.__finalize__(self, method="view")
 
@@ -1195,7 +1188,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         indexer, new_index = self.index.get_loc_level(key)
         new_ser = self._constructor(self._values[indexer], index=new_index, copy=False)
         if isinstance(indexer, slice):
-            new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
+            new_ser._mgr.add_references(self._mgr)
         return new_ser.__finalize__(self)
 
     def _get_rows_with_mask(self, indexer: npt.NDArray[np.bool_]) -> Series:
@@ -1237,7 +1230,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 new_values, index=new_index, name=self.name, copy=False
             )
             if isinstance(loc, slice):
-                new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
+                new_ser._mgr.add_references(self._mgr)
             return new_ser.__finalize__(self)
 
         else:
@@ -1260,7 +1253,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 warn_copy_on_write()
                 or (
                     not warn_copy_on_write()
-                    and self._mgr.blocks[0].refs.has_reference()  # type: ignore[union-attr]
+                    and self._mgr.blocks[0].refs.has_reference()
                 )
             ):
                 warn = False
@@ -1871,7 +1864,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if not isinstance(result, str):
             raise AssertionError(
                 "result must be of type str, type "
-                f"of result is {repr(type(result).__name__)}"
+                f"of result is {type(result).__name__!r}"
             )
 
         if buf is None:
@@ -3507,6 +3500,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         from pandas.core.reshape.concat import concat
 
+        if self.dtype == other.dtype:
+            if self.index.equals(other.index):
+                return self.mask(self.isna(), other)
+            elif self._can_hold_na and not isinstance(self.dtype, SparseDtype):
+                this, other = self.align(other, join="outer")
+                return this.mask(this.isna(), other)
+
         new_index = self.index.union(other.index)
 
         this = self
@@ -4063,6 +4063,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = 0,
         kind: SortKind = "quicksort",
         order: None = None,
+        stable: None = None,
     ) -> Series:
         """
         Return the integer indices that would sort the Series values.
@@ -4078,6 +4079,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Choice of sorting algorithm. See :func:`numpy.sort` for more
             information. 'mergesort' and 'stable' are the only stable algorithms.
         order : None
+            Has no effect but is accepted for compatibility with numpy.
+        stable : None
             Has no effect but is accepted for compatibility with numpy.
 
         Returns
@@ -5630,6 +5633,121 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             )
 
         return lmask & rmask
+
+    def case_when(
+        self,
+        caselist: list[
+            tuple[
+                ArrayLike | Callable[[Series], Series | np.ndarray | Sequence[bool]],
+                ArrayLike | Scalar | Callable[[Series], Series | np.ndarray],
+            ],
+        ],
+    ) -> Series:
+        """
+        Replace values where the conditions are True.
+
+        Parameters
+        ----------
+        caselist : A list of tuples of conditions and expected replacements
+            Takes the form:  ``(condition0, replacement0)``,
+            ``(condition1, replacement1)``, ... .
+            ``condition`` should be a 1-D boolean array-like object
+            or a callable. If ``condition`` is a callable,
+            it is computed on the Series
+            and should return a boolean Series or array.
+            The callable must not change the input Series
+            (though pandas doesn`t check it). ``replacement`` should be a
+            1-D array-like object, a scalar or a callable.
+            If ``replacement`` is a callable, it is computed on the Series
+            and should return a scalar or Series. The callable
+            must not change the input Series
+            (though pandas doesn`t check it).
+
+            .. versionadded:: 2.2.0
+
+        Returns
+        -------
+        Series
+
+        See Also
+        --------
+        Series.mask : Replace values where the condition is True.
+
+        Examples
+        --------
+        >>> c = pd.Series([6, 7, 8, 9], name='c')
+        >>> a = pd.Series([0, 0, 1, 2])
+        >>> b = pd.Series([0, 3, 4, 5])
+
+        >>> c.case_when(caselist=[(a.gt(0), a),  # condition, replacement
+        ...                       (b.gt(0), b)])
+        0    6
+        1    3
+        2    1
+        3    2
+        Name: c, dtype: int64
+        """
+        if not isinstance(caselist, list):
+            raise TypeError(
+                f"The caselist argument should be a list; instead got {type(caselist)}"
+            )
+
+        if not caselist:
+            raise ValueError(
+                "provide at least one boolean condition, "
+                "with a corresponding replacement."
+            )
+
+        for num, entry in enumerate(caselist):
+            if not isinstance(entry, tuple):
+                raise TypeError(
+                    f"Argument {num} must be a tuple; instead got {type(entry)}."
+                )
+            if len(entry) != 2:
+                raise ValueError(
+                    f"Argument {num} must have length 2; "
+                    "a condition and replacement; "
+                    f"instead got length {len(entry)}."
+                )
+        caselist = [
+            (
+                com.apply_if_callable(condition, self),
+                com.apply_if_callable(replacement, self),
+            )
+            for condition, replacement in caselist
+        ]
+        default = self.copy()
+        conditions, replacements = zip(*caselist)
+        common_dtypes = [infer_dtype_from(arg)[0] for arg in [*replacements, default]]
+        if len(set(common_dtypes)) > 1:
+            common_dtype = find_common_type(common_dtypes)
+            updated_replacements = []
+            for condition, replacement in zip(conditions, replacements):
+                if is_scalar(replacement):
+                    replacement = construct_1d_arraylike_from_scalar(
+                        value=replacement, length=len(condition), dtype=common_dtype
+                    )
+                elif isinstance(replacement, ABCSeries):
+                    replacement = replacement.astype(common_dtype)
+                else:
+                    replacement = pd_array(replacement, dtype=common_dtype)
+                updated_replacements.append(replacement)
+            replacements = updated_replacements
+            default = default.astype(common_dtype)
+
+        counter = reversed(range(len(conditions)))
+        for position, condition, replacement in zip(
+            counter, conditions[::-1], replacements[::-1]
+        ):
+            try:
+                default = default.mask(
+                    condition, other=replacement, axis=0, inplace=False, level=None
+                )
+            except Exception as error:
+                raise ValueError(
+                    f"Failed to apply condition{position} and replacement{position}."
+                ) from error
+        return default
 
     # error: Cannot determine type of 'isna'
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
