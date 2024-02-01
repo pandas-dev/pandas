@@ -141,7 +141,7 @@ jobs:
 
       - name: Build normal wheels
         if: ${{ (env.IS_SCHEDULE_DISPATCH != 'true' || env.IS_PUSH == 'true') }}
-        uses: pypa/cibuildwheel@v2.16.4
+        uses: pypa/cibuildwheel@v2.16.5
         with:
          package-dir: ./dist/${{ startsWith(matrix.buildplat[1], 'macosx') && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
         env:
