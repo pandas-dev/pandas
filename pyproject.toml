@@ -249,12 +249,6 @@ ignore = [
   "E402",
   # do not assign a lambda expression, use a def
   "E731",
-  # line break before binary operator
-  # "W503",  # not yet implemented
-  # line break after binary operator
-  # "W504",  # not yet implemented
-  # controversial
-  "B006",
   # controversial
   "B007",
   # controversial
