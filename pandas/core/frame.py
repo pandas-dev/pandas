@@ -9050,7 +9050,6 @@ class DataFrame(NDFrame, OpsMixin):
     def groupby(
         self,
         by=None,
-        axis: Axis | lib.NoDefault = lib.no_default,
         level: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
@@ -9058,25 +9057,6 @@ class DataFrame(NDFrame, OpsMixin):
         observed: bool | lib.NoDefault = lib.no_default,
         dropna: bool = True,
     ) -> DataFrameGroupBy:
-        if axis is not lib.no_default:
-            axis = self._get_axis_number(axis)
-            if axis == 1:
-                warnings.warn(
-                    "DataFrame.groupby with axis=1 is deprecated. Do "
-                    "`frame.T.groupby(...)` without axis instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            else:
-                warnings.warn(
-                    "The 'axis' keyword in DataFrame.groupby is deprecated and "
-                    "will be removed in a future version.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-        else:
-            axis = 0
-
         from pandas.core.groupby.generic import DataFrameGroupBy
 
         if level is None and by is None:
@@ -9085,7 +9065,6 @@ class DataFrame(NDFrame, OpsMixin):
         return DataFrameGroupBy(
             obj=self,
             keys=by,
-            axis=axis,
             level=level,
             as_index=as_index,
             sort=sort,
