@@ -68,7 +68,6 @@ def test_tab_completion(multiindex_dataframe_random_data):
         "tail",
         "resample",
         "cummin",
-        "fillna",
         "cumsum",
         "cumcount",
         "ngroup",
@@ -191,11 +190,12 @@ def test_frame_consistency(groupby_func):
         exclude_expected = {"skipna"}
     elif groupby_func in ("pct_change",):
         exclude_expected = {"kwargs"}
-        exclude_result = {"axis"}
     elif groupby_func in ("rank",):
         exclude_expected = {"numeric_only"}
     elif groupby_func in ("quantile",):
         exclude_expected = {"method", "axis"}
+    if groupby_func not in ["pct_change", "size"]:
+        exclude_expected |= {"axis"}
 
     # Ensure excluded arguments are actually in the signatures
     assert result & exclude_result == exclude_result
@@ -229,8 +229,6 @@ def test_series_consistency(request, groupby_func):
     exclude_expected, exclude_result = set(), set()
     if groupby_func in ("any", "all"):
         exclude_expected = {"kwargs", "bool_only", "axis"}
-    elif groupby_func in ("diff",):
-        exclude_result = {"axis"}
     elif groupby_func in ("max", "min"):
         exclude_expected = {"axis", "kwargs", "skipna"}
         exclude_result = {"min_count", "engine", "engine_kwargs"}
@@ -248,13 +246,21 @@ def test_series_consistency(request, groupby_func):
         exclude_expected = {"skipna"}
     elif groupby_func in ("pct_change",):
         exclude_expected = {"kwargs"}
-        exclude_result = {"axis"}
     elif groupby_func in ("rank",):
         exclude_expected = {"numeric_only"}
     elif groupby_func in ("idxmin", "idxmax"):
         exclude_expected = {"args", "kwargs"}
     elif groupby_func in ("quantile",):
         exclude_result = {"numeric_only"}
+    if groupby_func not in [
+        "diff",
+        "pct_change",
+        "count",
+        "nunique",
+        "quantile",
+        "size",
+    ]:
+        exclude_expected |= {"axis"}
 
     # Ensure excluded arguments are actually in the signatures
     assert result & exclude_result == exclude_result
