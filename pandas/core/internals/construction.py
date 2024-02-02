@@ -85,7 +85,6 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas.core.series import Series
 # ---------------------------------------------------------------------
 # BlockManager Interface
 
@@ -358,16 +357,12 @@ def dict_to_mgr(
 
     Used in DataFrame.__init__
     """
-    arrays: Sequence[Any] | Series
+    arrays: Sequence[Any]
 
     if columns is not None:
-        # from pandas.core.series import Series
-
-        # arrays = Series(data, index=columns, dtype=object)
-        # missing = arrays.isna()
         columns = ensure_index(columns)
         arrays = [np.nan] * len(columns)
-        midxs = set(range(len(columns)))
+        midxs = set()
         data_keys = ensure_index(data.keys())
         data_values = list(data.values())
 
@@ -375,11 +370,12 @@ def dict_to_mgr(
             try:
                 idx = data_keys.get_loc(column)
             except KeyError:
+                midxs.add(i)
                 continue
             array = data_values[idx]
             arrays[i] = array
-            if not (is_scalar(array) and isna(array)):
-                midxs.remove(i)
+            if is_scalar(array) and isna(array):
+                midxs.add(i)
 
         if index is None:
             # GH10856
@@ -401,8 +397,10 @@ def dict_to_mgr(
                 # calling sanitize_array ensures we don't mix-and-match
                 #  NA dtypes
                 for i in midxs:
-                    # arr = construct_1d_arraylike_from_scalar(arrays[i], len(index), dtype)
-                    arr = sanitize_array(arrays[i], index, dtype=dtype)
+                    arr = construct_1d_arraylike_from_scalar(
+                        arrays[i], len(index), dtype
+                    )
+                    # arr = sanitize_array(arrays[i], index, dtype=dtype)
                     arrays[i] = arr
             else:
                 # GH#1783
@@ -410,44 +408,6 @@ def dict_to_mgr(
                 val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
                 for i in midxs:
                     arrays[i] = val
-                    # if copy:
-                    #     arrays[i] = val
-                    # else:
-                    #     # GH#45369
-                    #     arrays[i] = val
-
-        # if index is None:
-        #     # GH10856
-        #     # raise ValueError if only scalars in dict
-        #     index = _extract_index(arrays[~missing])
-        # else:
-        #     index = ensure_index(index)
-
-        # # no obvious "empty" int column
-        # if missing.any() and not is_integer_dtype(dtype):
-        #     nan_dtype: DtypeObj
-
-        #     if dtype is not None:
-        #         # calling sanitize_array ensures we don't mix-and-match
-        #         #  NA dtypes
-        #         midxs = missing.values.nonzero()[0]
-        #         for i in midxs:
-        #             arr = sanitize_array(arrays.iat[i], index, dtype=dtype)
-        #             arrays.iat[i] = arr
-        #     else:
-        #         # GH#1783
-        #         nan_dtype = np.dtype("object")
-        #         val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
-        #         nmissing = missing.sum()
-        #         if copy:
-        #             rhs = [val] * nmissing
-        #         else:
-        #             # GH#45369
-        #             rhs = [val.copy() for _ in range(nmissing)]
-        #         arrays.loc[missing] = rhs
-
-        # arrays = list(arrays)
-        # columns = ensure_index(columns)
 
     else:
         keys = list(data.keys())
