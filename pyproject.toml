@@ -5,7 +5,7 @@ requires = [
     "meson-python==0.13.1",
     "meson==1.2.1",
     "wheel",
-    "Cython==3.0.5",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    "Cython~=3.0.5",  # Note: sync with setup.py, environment.yml and asv.conf.json
     # Any NumPy version should be fine for compiling.  Users are unlikely
     # to get a NumPy<1.25 so the result will be compatible with all relevant
     # NumPy versions (if not it is presumably compatible with their version).
@@ -30,8 +30,7 @@ authors = [
 license = {file = 'LICENSE'}
 requires-python = '>=3.9'
 dependencies = [
-  "numpy>=1.22.4; python_version<'3.11'",
-  "numpy>=1.23.2; python_version=='3.11'",
+  "numpy>=1.23.5; python_version<'3.12'",
   "numpy>=1.26.0; python_version>='3.12'",
   "python-dateutil>=2.8.2",
   "pytz>=2020.1",
@@ -246,8 +245,6 @@ select = [
 
 ignore = [
   ### Intentionally disabled
-  # space before : (needed for how black formats slicing)
-  "E203",
   # module level import not at top of file
   "E402",
   # do not assign a lambda expression, use a def
@@ -331,20 +328,14 @@ ignore = [
   ### TODO: Enable gradually
   # Useless statement
   "B018",
-  # Within an except clause, raise exceptions with ...
-  "B904",
   # Magic number
   "PLR2004",
   # comparison-with-itself
   "PLR0124",
-  # Consider `elif` instead of `else` then `if` to remove indentation level
-  "PLR5501",
   # collection-literal-concatenation
   "RUF005",
   # pairwise-over-zipped (>=PY310 only)
   "RUF007",
-  # explicit-f-string-type-conversion
-  "RUF010",
   # mutable-class-default
   "RUF012"
 ]

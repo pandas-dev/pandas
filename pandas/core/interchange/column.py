@@ -11,6 +11,7 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
+    BaseMaskedDtype,
     DatetimeTZDtype,
 )
 
@@ -116,7 +117,7 @@ class PandasColumn(Column):
                 Endianness.NATIVE,
             )
         elif is_string_dtype(dtype):
-            if infer_dtype(self._col) == "string":
+            if infer_dtype(self._col) in ("string", "empty"):
                 return (
                     DtypeKind.STRING,
                     8,
@@ -143,6 +144,8 @@ class PandasColumn(Column):
             byteorder = dtype.numpy_dtype.byteorder
         elif isinstance(dtype, DatetimeTZDtype):
             byteorder = dtype.base.byteorder  # type: ignore[union-attr]
+        elif isinstance(dtype, BaseMaskedDtype):
+            byteorder = dtype.numpy_dtype.byteorder
         else:
             byteorder = dtype.byteorder
 
@@ -182,8 +185,8 @@ class PandasColumn(Column):
         kind = self.dtype[0]
         try:
             null, value = _NULL_DESCRIPTION[kind]
-        except KeyError:
-            raise NotImplementedError(f"Data type {kind} not yet supported")
+        except KeyError as err:
+            raise NotImplementedError(f"Data type {kind} not yet supported") from err
 
         return null, value
 
@@ -341,9 +344,9 @@ class PandasColumn(Column):
 
         try:
             msg = f"{_NO_VALIDITY_BUFFER[null]} so does not have a separate mask"
-        except KeyError:
+        except KeyError as err:
             # TODO: implement for other bit/byte masks?
-            raise NotImplementedError("See self.describe_null")
+            raise NotImplementedError("See self.describe_null") from err
 
         raise NoBufferPresent(msg)
 

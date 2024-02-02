@@ -49,11 +49,13 @@ def test_frame_equal_row_order_mismatch(check_like, frame_or_series):
 @pytest.mark.parametrize(
     "df1,df2",
     [
-        (DataFrame({"A": [1, 2, 3]}), DataFrame({"A": [1, 2, 3, 4]})),
-        (DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}), DataFrame({"A": [1, 2, 3]})),
+        ({"A": [1, 2, 3]}, {"A": [1, 2, 3, 4]}),
+        ({"A": [1, 2, 3], "B": [4, 5, 6]}, {"A": [1, 2, 3]}),
     ],
 )
 def test_frame_equal_shape_mismatch(df1, df2, frame_or_series):
+    df1 = DataFrame(df1)
+    df2 = DataFrame(df2)
     msg = f"{frame_or_series.__name__} are different"
 
     with pytest.raises(AssertionError, match=msg):
@@ -170,8 +172,8 @@ def test_frame_equal_block_mismatch(by_blocks_fixture, frame_or_series):
     "df1,df2,msg",
     [
         (
-            DataFrame({"A": ["á", "à", "ä"], "E": ["é", "è", "ë"]}),
-            DataFrame({"A": ["á", "à", "ä"], "E": ["é", "è", "e̊"]}),
+            {"A": ["á", "à", "ä"], "E": ["é", "è", "ë"]},
+            {"A": ["á", "à", "ä"], "E": ["é", "è", "e̊"]},
             """{obj}\\.iloc\\[:, 1\\] \\(column name="E"\\) are different
 
 {obj}\\.iloc\\[:, 1\\] \\(column name="E"\\) values are different \\(33\\.33333 %\\)
@@ -180,8 +182,8 @@ def test_frame_equal_block_mismatch(by_blocks_fixture, frame_or_series):
 \\[right\\]: \\[é, è, e̊\\]""",
         ),
         (
-            DataFrame({"A": ["á", "à", "ä"], "E": ["é", "è", "ë"]}),
-            DataFrame({"A": ["a", "a", "a"], "E": ["e", "e", "e"]}),
+            {"A": ["á", "à", "ä"], "E": ["é", "è", "ë"]},
+            {"A": ["a", "a", "a"], "E": ["e", "e", "e"]},
             """{obj}\\.iloc\\[:, 0\\] \\(column name="A"\\) are different
 
 {obj}\\.iloc\\[:, 0\\] \\(column name="A"\\) values are different \\(100\\.0 %\\)
@@ -196,6 +198,8 @@ def test_frame_equal_unicode(df1, df2, msg, by_blocks_fixture, frame_or_series):
     #
     # Test ensures that `tm.assert_frame_equals` raises the right exception
     # when comparing DataFrames containing differing unicode objects.
+    df1 = DataFrame(df1)
+    df2 = DataFrame(df2)
     msg = msg.format(obj=frame_or_series.__name__)
     with pytest.raises(AssertionError, match=msg):
         tm.assert_frame_equal(
@@ -256,12 +260,7 @@ def test_assert_frame_equal_ignore_extension_dtype_mismatch_cross_class():
 
 
 @pytest.mark.parametrize(
-    "dtype",
-    [
-        ("timedelta64[ns]"),
-        ("datetime64[ns, UTC]"),
-        ("Period[D]"),
-    ],
+    "dtype", ["timedelta64[ns]", "datetime64[ns, UTC]", "Period[D]"]
 )
 def test_assert_frame_equal_datetime_like_dtype_mismatch(dtype):
     df1 = DataFrame({"a": []}, dtype=dtype)

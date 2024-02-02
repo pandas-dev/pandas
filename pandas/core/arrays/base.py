@@ -819,7 +819,7 @@ class ExtensionArray:
         na_position : {'first', 'last'}, default 'last'
             If ``'first'``, put ``NaN`` values at the beginning.
             If ``'last'``, put ``NaN`` values at the end.
-        *args, **kwargs:
+        **kwargs
             Passed through to :func:`numpy.argsort`.
 
         Returns
@@ -1782,7 +1782,7 @@ class ExtensionArray:
     # Reshaping
     # ------------------------------------------------------------------------
 
-    def transpose(self, *axes: int) -> ExtensionArray:
+    def transpose(self, *axes: int) -> Self:
         """
         Return a transposed view on this array.
 
@@ -1803,10 +1803,10 @@ class ExtensionArray:
         return self[:]
 
     @property
-    def T(self) -> ExtensionArray:
+    def T(self) -> Self:
         return self.transpose()
 
-    def ravel(self, order: Literal["C", "F", "A", "K"] | None = "C") -> ExtensionArray:
+    def ravel(self, order: Literal["C", "F", "A", "K"] | None = "C") -> Self:
         """
         Return a flattened view on this array.
 
