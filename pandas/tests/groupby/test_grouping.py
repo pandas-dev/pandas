@@ -779,7 +779,7 @@ class TestGrouping:
             gr._grouper.group_info[0], np.array([], dtype=np.dtype(np.intp))
         )
 
-        assert gr.grouper.group_info[1] == 0
+        assert gr._grouper.group_info[1] == 0
 
         # check name
         gb = s.groupby(s)

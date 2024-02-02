@@ -788,14 +788,14 @@ class SeriesGroupBy(GroupBy[Series]):
         rep = partial(np.repeat, repeats=np.add.reduceat(inc, idx))
 
         # multi-index components
-        if isinstance(self.grouper.result_index, MultiIndex):
-            codes = list(self.grouper.result_index.codes)
+        if isinstance(self._grouper.result_index, MultiIndex):
+            codes = list(self._grouper.result_index.codes)
         else:
             codes = [
                 algorithms.factorize(
-                    self.grouper.result_index,
-                    sort=self.grouper._sort,
-                    use_na_sentinel=self.grouper.dropna,
+                    self._grouper.result_index,
+                    sort=self._grouper._sort,
+                    use_na_sentinel=self._grouper.dropna,
                 )[0]
             ]
         codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
