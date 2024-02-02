@@ -28,7 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
--
+- :func:`DataFrame.to_excel` now raises an ``UserWarning`` when the character count in a cell exceeds Excel's limitation of 32767 characters (:issue:`56954`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -84,7 +84,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
--
+- 3rd party ``py.path`` objects are no longer explicitly supported in IO methods. Use :py:class:`pathlib.Path` objects instead (:issue:`57091`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -94,6 +94,18 @@ Deprecations
 ~~~~~~~~~~~~
 - Deprecated :meth:`Timestamp.utcfromtimestamp`, use ``Timestamp.fromtimestamp(ts, "UTC")`` instead (:issue:`56680`)
 - Deprecated :meth:`Timestamp.utcnow`, use ``Timestamp.now("UTC")`` instead (:issue:`56680`)
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_300.prior_deprecations:
+
+Removal of prior version deprecations/changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Removed :meth:`DataFrameGroupby.fillna` and :meth:`SeriesGroupBy.fillna` (:issue:`55719`)
+- Removed ``axis`` argument from :meth:`DataFrame.groupby`, :meth:`Series.groupby`, :meth:`DataFrame.rolling`, :meth:`Series.rolling`, :meth:`DataFrame.resample`, and :meth:`Series.resample` (:issue:`51203`)
+- Removed ``axis`` argument from all groupby operations (:issue:`50405`)
+- Removed deprecated argument ``obj`` in :meth:`.DataFrameGroupBy.get_group` and :meth:`.SeriesGroupBy.get_group` (:issue:`53545`)
+- Removed the ``ArrayManager`` (:issue:`55043`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -142,7 +154,7 @@ Timezones
 
 Numeric
 ^^^^^^^
--
+- Bug in ``np.matmul`` with :class:`Index` inputs raising a ``TypeError`` (:issue:`57079`)
 -
 
 Conversion
@@ -152,7 +164,7 @@ Conversion
 
 Strings
 ^^^^^^^
--
+- Bug in :meth:`Series.value_counts` would not respect ``sort=False`` for series having ``string`` dtype (:issue:`55224`)
 -
 
 Interval

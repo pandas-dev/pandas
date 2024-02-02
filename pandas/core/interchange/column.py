@@ -11,6 +11,7 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
+    BaseMaskedDtype,
     DatetimeTZDtype,
 )
 
@@ -143,6 +144,8 @@ class PandasColumn(Column):
             byteorder = dtype.numpy_dtype.byteorder
         elif isinstance(dtype, DatetimeTZDtype):
             byteorder = dtype.base.byteorder  # type: ignore[union-attr]
+        elif isinstance(dtype, BaseMaskedDtype):
+            byteorder = dtype.numpy_dtype.byteorder
         else:
             byteorder = dtype.byteorder
 

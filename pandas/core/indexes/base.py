@@ -951,6 +951,9 @@ class Index(IndexOpsMixin, PandasObject):
         elif method == "reduce":
             result = lib.item_from_zerodim(result)
             return result
+        elif is_scalar(result):
+            # e.g. matmul
+            return result
 
         if result.dtype == np.float16:
             result = result.astype(np.float32)
@@ -4610,38 +4613,12 @@ class Index(IndexOpsMixin, PandasObject):
         if level is not None and (self._is_multi or other._is_multi):
             return self._join_level(other, level, how=how)
 
-        lidx: np.ndarray | None
-        ridx: np.ndarray | None
-
-        if len(other) == 0:
-            if how in ("left", "outer"):
-                if sort and not self.is_monotonic_increasing:
-                    lidx = self.argsort()
-                    join_index = self.take(lidx)
-                else:
-                    lidx = None
-                    join_index = self._view()
-                ridx = np.broadcast_to(np.intp(-1), len(join_index))
-                return join_index, lidx, ridx
-            elif how in ("right", "inner", "cross"):
-                join_index = other._view()
-                lidx = np.array([], dtype=np.intp)
-                return join_index, lidx, None
-
-        if len(self) == 0:
-            if how in ("right", "outer"):
-                if sort and not other.is_monotonic_increasing:
-                    ridx = other.argsort()
-                    join_index = other.take(ridx)
-                else:
-                    ridx = None
-                    join_index = other._view()
-                lidx = np.broadcast_to(np.intp(-1), len(join_index))
-                return join_index, lidx, ridx
-            elif how in ("left", "inner", "cross"):
-                join_index = self._view()
-                ridx = np.array([], dtype=np.intp)
-                return join_index, None, ridx
+        if len(self) == 0 or len(other) == 0:
+            try:
+                return self._join_empty(other, how, sort)
+            except TypeError:
+                # object dtype; non-comparable objects
+                pass
 
         if self.dtype != other.dtype:
             dtype = self._find_common_type_compat(other)
@@ -4675,6 +4652,33 @@ class Index(IndexOpsMixin, PandasObject):
             return self._join_non_unique(other, how=how, sort=sort)
 
         return self._join_via_get_indexer(other, how, sort)
+
+    @final
+    def _join_empty(
+        self, other: Index, how: JoinHow, sort: bool
+    ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
+        assert len(self) == 0 or len(other) == 0
+        _validate_join_method(how)
+
+        lidx: np.ndarray | None
+        ridx: np.ndarray | None
+
+        if len(other):
+            how = cast(JoinHow, {"left": "right", "right": "left"}.get(how, how))
+            join_index, ridx, lidx = other._join_empty(self, how, sort)
+        elif how in ["left", "outer"]:
+            if sort and not self.is_monotonic_increasing:
+                lidx = self.argsort()
+                join_index = self.take(lidx)
+            else:
+                lidx = None
+                join_index = self._view()
+            ridx = np.broadcast_to(np.intp(-1), len(join_index))
+        else:
+            join_index = other._view()
+            lidx = np.array([], dtype=np.intp)
+            ridx = None
+        return join_index, lidx, ridx
 
     @final
     def _join_via_get_indexer(
@@ -5948,17 +5952,14 @@ class Index(IndexOpsMixin, PandasObject):
         (Index([1000, 100, 10, 1], dtype='int64'), array([3, 1, 0, 2]))
         """
         if key is None and (
-            self.is_monotonic_increasing or self.is_monotonic_decreasing
+            (ascending and self.is_monotonic_increasing)
+            or (not ascending and self.is_monotonic_decreasing)
         ):
-            reverse = ascending != self.is_monotonic_increasing
-            sorted_index = self[::-1] if reverse else self.copy()
             if return_indexer:
                 indexer = np.arange(len(self), dtype=np.intp)
-                if reverse:
-                    indexer = indexer[::-1]
-                return sorted_index, indexer
+                return self.copy(), indexer
             else:
-                return sorted_index
+                return self.copy()
 
         # GH 35584. Sort missing values according to na_position kwarg
         # ignore na_position for MultiIndex
