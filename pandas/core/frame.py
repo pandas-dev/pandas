@@ -259,7 +259,7 @@ if TYPE_CHECKING:
 
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
-    from pandas.core.internals import SingleDataManager
+    from pandas.core.internals.managers import SingleBlockManager
 
     from pandas.io.formats.style import Styler
 
@@ -4530,14 +4530,14 @@ class DataFrame(NDFrame, OpsMixin):
 
             self._mgr = self._mgr.reindex_axis(index_copy, axis=1, fill_value=np.nan)
 
-    def _box_col_values(self, values: SingleDataManager, loc: int) -> Series:
+    def _box_col_values(self, values: SingleBlockManager, loc: int) -> Series:
         """
         Provide boxed values for a column.
         """
         # Lookup in columns so that if e.g. a str datetime was passed
         #  we attach the Timestamp object as the name.
         name = self.columns[loc]
-        # We get index=self.index bc values is a SingleDataManager
+        # We get index=self.index bc values is a SingleBlockManager
         obj = self._constructor_sliced_from_mgr(values, axes=values.axes)
         obj._name = name
         return obj.__finalize__(self)
