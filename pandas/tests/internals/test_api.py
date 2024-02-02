@@ -23,15 +23,12 @@ def test_namespace():
         "concat",
         "managers",
         "construction",
-        "base",
         "api",
         "ops",
     ]
     expected = [
         "make_block",
-        "DataManager",
         "BlockManager",
-        "SingleDataManager",
         "SingleBlockManager",
         "concatenate_managers",
     ]
