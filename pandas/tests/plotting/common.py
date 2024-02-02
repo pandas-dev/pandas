@@ -433,7 +433,7 @@ def _check_box_return_type(
                 raise AssertionError
 
 
-def _check_grid_settings(obj, kinds, kws={}):
+def _check_grid_settings(obj, kinds, kws=None):
     # Make sure plot defaults to rcParams['axes.grid'] setting, GH 9792
 
     import matplotlib as mpl
@@ -446,6 +446,8 @@ def _check_grid_settings(obj, kinds, kws={}):
 
         return not (xoff and yoff)
 
+    if kws is None:
+        kws = {}
     spndx = 1
     for kind in kinds:
         mpl.pyplot.subplot(1, 4 * len(kinds), spndx)

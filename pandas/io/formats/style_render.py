@@ -1996,7 +1996,7 @@ class Tooltips:
 
     def __init__(
         self,
-        css_props: CSSProperties = [
+        css_props: CSSProperties = [  # noqa: B006
             ("visibility", "hidden"),
             ("position", "absolute"),
             ("z-index", 1),

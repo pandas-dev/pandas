@@ -10,7 +10,7 @@ import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 
 
-def index_view(index_data=[1, 2]):
+def index_view(index_data):
     df = DataFrame({"a": index_data, "b": 1.5})
     view = df[:]
     df = df.set_index("a", drop=True)
@@ -142,7 +142,7 @@ def test_index_from_index(using_copy_on_write, warn_copy_on_write):
     ],
 )
 def test_index_ops(using_copy_on_write, func, request):
-    idx, view_ = index_view()
+    idx, view_ = index_view([1, 2])
     expected = idx.copy(deep=True)
     if "astype" in request.node.callspec.id:
         expected = expected.astype("Int64")
