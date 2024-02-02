@@ -362,7 +362,7 @@ def dict_to_mgr(
         columns = ensure_index(columns)
         arrays = [np.nan] * len(columns)
         midxs = set()
-        data_keys = ensure_index(data.keys())
+        data_keys = ensure_index(list(data.keys()))
         data_values = list(data.values())
 
         for i, column in enumerate(columns):
