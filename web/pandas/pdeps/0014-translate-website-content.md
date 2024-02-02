@@ -3,6 +3,7 @@
 - Created: 01 February 2024
 - Status: Under discussion
 - Discussion: [#56301](https://github.com/pandas-dev/pandas/issues/56301)
+              [#57204](https://github.com/pandas-dev/pandas/pull/57204)
 - Author: [Albert Steppi](https://github.com/steppi),
 - Revision: 1
 
