@@ -1,11 +1,10 @@
 import pytest
 
+from pandas.errors import CSSWarning
+
 import pandas._testing as tm
 
-from pandas.io.formats.css import (
-    CSSResolver,
-    CSSWarning,
-)
+from pandas.io.formats.css import CSSResolver
 
 
 def assert_resolves(css, props, inherited=None):
@@ -194,7 +193,7 @@ def test_css_border_shorthands(prop, expected):
             "margin: 1px; margin-top: 2px",
             "",
             "margin-left: 1px; margin-right: 1px; "
-            + "margin-bottom: 1px; margin-top: 2px",
+            "margin-bottom: 1px; margin-top: 2px",
         ),
         ("margin-top: 2px", "margin: 1px", "margin: 1px; margin-top: 2px"),
         ("margin: 1px", "margin-top: 2px", "margin: 1px"),
@@ -243,7 +242,6 @@ def test_css_none_absent(style, equiv):
         (".25in", "18pt"),
         ("02.54cm", "72pt"),
         ("25.4mm", "72pt"),
-        ("101.6q", "72pt"),
         ("101.6q", "72pt"),
     ],
 )

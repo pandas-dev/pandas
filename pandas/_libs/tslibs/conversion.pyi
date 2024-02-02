@@ -5,12 +5,10 @@ from datetime import (
 
 import numpy as np
 
-from pandas._typing import npt
-
 DT64NS_DTYPE: np.dtype
 TD64NS_DTYPE: np.dtype
 
-def precision_from_unit(
-    unit: str,
-) -> tuple[int, int]: ...  # (int64_t, _)
 def localize_pydatetime(dt: datetime, tz: tzinfo | None) -> datetime: ...
+def cast_from_unit_vectorized(
+    values: np.ndarray, unit: str, out_unit: str = ...
+) -> np.ndarray: ...

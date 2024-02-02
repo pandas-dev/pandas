@@ -3,14 +3,19 @@
 from collections import OrderedDict
 import datetime as dt
 import decimal
+from io import StringIO
 import json
 
 import pytest
 
 from pandas import (
+    NA,
     DataFrame,
+    Index,
     array,
+    read_json,
 )
+import pandas._testing as tm
 from pandas.core.arrays.integer import Int64Dtype
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.series import Series
@@ -44,7 +49,7 @@ class TestBuildSchema:
             "fields": [
                 {"name": "index", "type": "integer"},
                 {"name": "A", "type": "any", "extDtype": "DateDtype"},
-                {"name": "B", "type": "any", "extDtype": "decimal"},
+                {"name": "B", "type": "number", "extDtype": "decimal"},
                 {"name": "C", "type": "any", "extDtype": "string"},
                 {"name": "D", "type": "integer", "extDtype": "Int64"},
             ],
@@ -56,54 +61,33 @@ class TestBuildSchema:
 
 
 class TestTableSchemaType:
-    @pytest.mark.parametrize(
-        "date_data",
-        [
-            DateArray([dt.date(2021, 10, 10)]),
-            DateArray(dt.date(2021, 10, 10)),
-            Series(DateArray(dt.date(2021, 10, 10))),
-        ],
-    )
-    def test_as_json_table_type_ext_date_array_dtype(self, date_data):
+    @pytest.mark.parametrize("box", [lambda x: x, Series])
+    def test_as_json_table_type_ext_date_array_dtype(self, box):
+        date_data = box(DateArray([dt.date(2021, 10, 10)]))
         assert as_json_table_type(date_data.dtype) == "any"
 
     def test_as_json_table_type_ext_date_dtype(self):
         assert as_json_table_type(DateDtype()) == "any"
 
-    @pytest.mark.parametrize(
-        "decimal_data",
-        [
-            DecimalArray([decimal.Decimal(10)]),
-            Series(DecimalArray([decimal.Decimal(10)])),
-        ],
-    )
-    def test_as_json_table_type_ext_decimal_array_dtype(self, decimal_data):
-        assert as_json_table_type(decimal_data.dtype) == "any"
+    @pytest.mark.parametrize("box", [lambda x: x, Series])
+    def test_as_json_table_type_ext_decimal_array_dtype(self, box):
+        decimal_data = box(DecimalArray([decimal.Decimal(10)]))
+        assert as_json_table_type(decimal_data.dtype) == "number"
 
     def test_as_json_table_type_ext_decimal_dtype(self):
-        assert as_json_table_type(DecimalDtype()) == "any"
+        assert as_json_table_type(DecimalDtype()) == "number"
 
-    @pytest.mark.parametrize(
-        "string_data",
-        [
-            array(["pandas"], dtype="string"),
-            Series(array(["pandas"], dtype="string")),
-        ],
-    )
-    def test_as_json_table_type_ext_string_array_dtype(self, string_data):
+    @pytest.mark.parametrize("box", [lambda x: x, Series])
+    def test_as_json_table_type_ext_string_array_dtype(self, box):
+        string_data = box(array(["pandas"], dtype="string"))
         assert as_json_table_type(string_data.dtype) == "any"
 
     def test_as_json_table_type_ext_string_dtype(self):
         assert as_json_table_type(StringDtype()) == "any"
 
-    @pytest.mark.parametrize(
-        "integer_data",
-        [
-            array([10], dtype="Int64"),
-            Series(array([10], dtype="Int64")),
-        ],
-    )
-    def test_as_json_table_type_ext_integer_array_dtype(self, integer_data):
+    @pytest.mark.parametrize("box", [lambda x: x, Series])
+    def test_as_json_table_type_ext_integer_array_dtype(self, box):
+        integer_data = box(array([10], dtype="Int64"))
         assert as_json_table_type(integer_data.dtype) == "integer"
 
     def test_as_json_table_type_ext_integer_dtype(self):
@@ -111,23 +95,24 @@ class TestTableSchemaType:
 
 
 class TestTableOrient:
-    def setup_method(self):
-        self.da = DateArray([dt.date(2021, 10, 10)])
-        self.dc = DecimalArray([decimal.Decimal(10)])
-        self.sa = array(["pandas"], dtype="string")
-        self.ia = array([10], dtype="Int64")
-        self.df = DataFrame(
-            {
-                "A": self.da,
-                "B": self.dc,
-                "C": self.sa,
-                "D": self.ia,
-            }
-        )
+    @pytest.fixture
+    def da(self):
+        return DateArray([dt.date(2021, 10, 10)])
 
-    def test_build_date_series(self):
+    @pytest.fixture
+    def dc(self):
+        return DecimalArray([decimal.Decimal(10)])
 
-        s = Series(self.da, name="a")
+    @pytest.fixture
+    def sa(self):
+        return array(["pandas"], dtype="string")
+
+    @pytest.fixture
+    def ia(self):
+        return array([10], dtype="Int64")
+
+    def test_build_date_series(self, da):
+        s = Series(da, name="a")
         s.index.name = "id"
         result = s.to_json(orient="table", date_format="iso")
         result = json.loads(result, object_pairs_hook=OrderedDict)
@@ -151,9 +136,8 @@ class TestTableOrient:
 
         assert result == expected
 
-    def test_build_decimal_series(self):
-
-        s = Series(self.dc, name="a")
+    def test_build_decimal_series(self, dc):
+        s = Series(dc, name="a")
         s.index.name = "id"
         result = s.to_json(orient="table", date_format="iso")
         result = json.loads(result, object_pairs_hook=OrderedDict)
@@ -163,7 +147,7 @@ class TestTableOrient:
 
         fields = [
             {"name": "id", "type": "integer"},
-            {"name": "a", "type": "any", "extDtype": "decimal"},
+            {"name": "a", "type": "number", "extDtype": "decimal"},
         ]
 
         schema = {"fields": fields, "primaryKey": ["id"]}
@@ -177,8 +161,8 @@ class TestTableOrient:
 
         assert result == expected
 
-    def test_build_string_series(self):
-        s = Series(self.sa, name="a")
+    def test_build_string_series(self, sa):
+        s = Series(sa, name="a")
         s.index.name = "id"
         result = s.to_json(orient="table", date_format="iso")
         result = json.loads(result, object_pairs_hook=OrderedDict)
@@ -202,8 +186,8 @@ class TestTableOrient:
 
         assert result == expected
 
-    def test_build_int64_series(self):
-        s = Series(self.ia, name="a")
+    def test_build_int64_series(self, ia):
+        s = Series(ia, name="a")
         s.index.name = "id"
         result = s.to_json(orient="table", date_format="iso")
         result = json.loads(result, object_pairs_hook=OrderedDict)
@@ -227,9 +211,15 @@ class TestTableOrient:
 
         assert result == expected
 
-    def test_to_json(self):
-
-        df = self.df.copy()
+    def test_to_json(self, da, dc, sa, ia):
+        df = DataFrame(
+            {
+                "A": da,
+                "B": dc,
+                "C": sa,
+                "D": ia,
+            }
+        )
         df.index.name = "idx"
         result = df.to_json(orient="table", date_format="iso")
         result = json.loads(result, object_pairs_hook=OrderedDict)
@@ -240,7 +230,7 @@ class TestTableOrient:
         fields = [
             OrderedDict({"name": "idx", "type": "integer"}),
             OrderedDict({"name": "A", "type": "any", "extDtype": "DateDtype"}),
-            OrderedDict({"name": "B", "type": "any", "extDtype": "decimal"}),
+            OrderedDict({"name": "B", "type": "number", "extDtype": "decimal"}),
             OrderedDict({"name": "C", "type": "any", "extDtype": "string"}),
             OrderedDict({"name": "D", "type": "integer", "extDtype": "Int64"}),
         ]
@@ -260,3 +250,43 @@ class TestTableOrient:
         expected = OrderedDict([("schema", schema), ("data", data)])
 
         assert result == expected
+
+    def test_json_ext_dtype_reading_roundtrip(self):
+        # GH#40255
+        df = DataFrame(
+            {
+                "a": Series([2, NA], dtype="Int64"),
+                "b": Series([1.5, NA], dtype="Float64"),
+                "c": Series([True, NA], dtype="boolean"),
+            },
+            index=Index([1, NA], dtype="Int64"),
+        )
+        expected = df.copy()
+        data_json = df.to_json(orient="table", indent=4)
+        result = read_json(StringIO(data_json), orient="table")
+        tm.assert_frame_equal(result, expected)
+
+    def test_json_ext_dtype_reading(self):
+        # GH#40255
+        data_json = """{
+            "schema":{
+                "fields":[
+                    {
+                        "name":"a",
+                        "type":"integer",
+                        "extDtype":"Int64"
+                    }
+                ],
+            },
+            "data":[
+                {
+                    "a":2
+                },
+                {
+                    "a":null
+                }
+            ]
+        }"""
+        result = read_json(StringIO(data_json), orient="table")
+        expected = DataFrame({"a": Series([2, NA], dtype="Int64")})
+        tm.assert_frame_equal(result, expected)

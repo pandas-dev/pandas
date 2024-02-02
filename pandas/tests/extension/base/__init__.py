@@ -33,39 +33,99 @@ Your class ``TestDtype`` will inherit all the tests defined on
 ``BaseDtypeTests``. pytest's fixture discover will supply your ``dtype``
 wherever the test requires it. You're free to implement additional tests.
 
-All the tests in these modules use ``self.assert_frame_equal`` or
-``self.assert_series_equal`` for dataframe or series comparisons. By default,
-they use the usual ``pandas.testing.assert_frame_equal`` and
-``pandas.testing.assert_series_equal``. You can override the checks used
-by defining the staticmethods ``assert_frame_equal`` and
-``assert_series_equal`` on your base test class.
-
 """
-from pandas.tests.extension.base.casting import BaseCastingTests  # noqa
-from pandas.tests.extension.base.constructors import BaseConstructorsTests  # noqa
-from pandas.tests.extension.base.dim2 import (  # noqa
+from pandas.tests.extension.base.accumulate import BaseAccumulateTests
+from pandas.tests.extension.base.casting import BaseCastingTests
+from pandas.tests.extension.base.constructors import BaseConstructorsTests
+from pandas.tests.extension.base.dim2 import (  # noqa: F401
     Dim2CompatTests,
     NDArrayBacked2DTests,
 )
-from pandas.tests.extension.base.dtype import BaseDtypeTests  # noqa
-from pandas.tests.extension.base.getitem import BaseGetitemTests  # noqa
-from pandas.tests.extension.base.groupby import BaseGroupbyTests  # noqa
-from pandas.tests.extension.base.index import BaseIndexTests  # noqa
-from pandas.tests.extension.base.interface import BaseInterfaceTests  # noqa
-from pandas.tests.extension.base.io import BaseParsingTests  # noqa
-from pandas.tests.extension.base.methods import BaseMethodsTests  # noqa
-from pandas.tests.extension.base.missing import BaseMissingTests  # noqa
-from pandas.tests.extension.base.ops import (  # noqa
+from pandas.tests.extension.base.dtype import BaseDtypeTests
+from pandas.tests.extension.base.getitem import BaseGetitemTests
+from pandas.tests.extension.base.groupby import BaseGroupbyTests
+from pandas.tests.extension.base.index import BaseIndexTests
+from pandas.tests.extension.base.interface import BaseInterfaceTests
+from pandas.tests.extension.base.io import BaseParsingTests
+from pandas.tests.extension.base.methods import BaseMethodsTests
+from pandas.tests.extension.base.missing import BaseMissingTests
+from pandas.tests.extension.base.ops import (  # noqa: F401
     BaseArithmeticOpsTests,
     BaseComparisonOpsTests,
     BaseOpsUtil,
     BaseUnaryOpsTests,
 )
-from pandas.tests.extension.base.printing import BasePrintingTests  # noqa
-from pandas.tests.extension.base.reduce import (  # noqa
-    BaseBooleanReduceTests,
-    BaseNoReduceTests,
-    BaseNumericReduceTests,
-)
-from pandas.tests.extension.base.reshaping import BaseReshapingTests  # noqa
-from pandas.tests.extension.base.setitem import BaseSetitemTests  # noqa
+from pandas.tests.extension.base.printing import BasePrintingTests
+from pandas.tests.extension.base.reduce import BaseReduceTests
+from pandas.tests.extension.base.reshaping import BaseReshapingTests
+from pandas.tests.extension.base.setitem import BaseSetitemTests
+
+
+# One test class that you can inherit as an alternative to inheriting all the
+# test classes above.
+# Note 1) this excludes Dim2CompatTests and NDArrayBacked2DTests.
+# Note 2) this uses BaseReduceTests and and _not_ BaseBooleanReduceTests,
+#  BaseNoReduceTests, or BaseNumericReduceTests
+class ExtensionTests(
+    BaseAccumulateTests,
+    BaseCastingTests,
+    BaseConstructorsTests,
+    BaseDtypeTests,
+    BaseGetitemTests,
+    BaseGroupbyTests,
+    BaseIndexTests,
+    BaseInterfaceTests,
+    BaseParsingTests,
+    BaseMethodsTests,
+    BaseMissingTests,
+    BaseArithmeticOpsTests,
+    BaseComparisonOpsTests,
+    BaseUnaryOpsTests,
+    BasePrintingTests,
+    BaseReduceTests,
+    BaseReshapingTests,
+    BaseSetitemTests,
+    Dim2CompatTests,
+):
+    pass
+
+
+def __getattr__(name: str):
+    import warnings
+
+    if name == "BaseNoReduceTests":
+        warnings.warn(
+            "BaseNoReduceTests is deprecated and will be removed in a "
+            "future version. Use BaseReduceTests and override "
+            "`_supports_reduction` instead.",
+            FutureWarning,
+        )
+        from pandas.tests.extension.base.reduce import BaseNoReduceTests
+
+        return BaseNoReduceTests
+
+    elif name == "BaseNumericReduceTests":
+        warnings.warn(
+            "BaseNumericReduceTests is deprecated and will be removed in a "
+            "future version. Use BaseReduceTests and override "
+            "`_supports_reduction` instead.",
+            FutureWarning,
+        )
+        from pandas.tests.extension.base.reduce import BaseNumericReduceTests
+
+        return BaseNumericReduceTests
+
+    elif name == "BaseBooleanReduceTests":
+        warnings.warn(
+            "BaseBooleanReduceTests is deprecated and will be removed in a "
+            "future version. Use BaseReduceTests and override "
+            "`_supports_reduction` instead.",
+            FutureWarning,
+        )
+        from pandas.tests.extension.base.reduce import BaseBooleanReduceTests
+
+        return BaseBooleanReduceTests
+
+    raise AttributeError(
+        f"module 'pandas.tests.extension.base' has no attribute '{name}'"
+    )

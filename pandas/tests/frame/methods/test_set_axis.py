@@ -16,32 +16,76 @@ class SharedSetAxisTests:
     def test_set_axis(self, obj):
         # GH14636; this tests setting index for both Series and DataFrame
         new_index = list("abcd")[: len(obj)]
+        expected = obj.copy()
+        expected.index = new_index
+        result = obj.set_axis(new_index, axis=0)
+        tm.assert_equal(expected, result)
 
+    def test_set_axis_copy(self, obj, using_copy_on_write):
+        # Test copy keyword GH#47932
+        new_index = list("abcd")[: len(obj)]
+
+        orig = obj.iloc[:]
         expected = obj.copy()
         expected.index = new_index
 
-        # inplace=False
-        result = obj.set_axis(new_index, axis=0, inplace=False)
+        result = obj.set_axis(new_index, axis=0, copy=True)
         tm.assert_equal(expected, result)
+        assert result is not obj
+        # check we DID make a copy
+        if not using_copy_on_write:
+            if obj.ndim == 1:
+                assert not tm.shares_memory(result, obj)
+            else:
+                assert not any(
+                    tm.shares_memory(result.iloc[:, i], obj.iloc[:, i])
+                    for i in range(obj.shape[1])
+                )
 
-    @pytest.mark.parametrize("axis", [0, "index", 1, "columns"])
-    def test_set_axis_inplace_axis(self, axis, obj):
-        # GH#14636
-        if obj.ndim == 1 and axis in [1, "columns"]:
-            # Series only has [0, "index"]
-            return
-
-        new_index = list("abcd")[: len(obj)]
-
-        expected = obj.copy()
-        if axis in [0, "index"]:
-            expected.index = new_index
+        result = obj.set_axis(new_index, axis=0, copy=False)
+        tm.assert_equal(expected, result)
+        assert result is not obj
+        # check we did NOT make a copy
+        if obj.ndim == 1:
+            assert tm.shares_memory(result, obj)
         else:
-            expected.columns = new_index
+            assert all(
+                tm.shares_memory(result.iloc[:, i], obj.iloc[:, i])
+                for i in range(obj.shape[1])
+            )
 
-        result = obj.copy()
-        result.set_axis(new_index, axis=axis, inplace=True)
-        tm.assert_equal(result, expected)
+        # copy defaults to True
+        result = obj.set_axis(new_index, axis=0)
+        tm.assert_equal(expected, result)
+        assert result is not obj
+        if using_copy_on_write:
+            # check we DID NOT make a copy
+            if obj.ndim == 1:
+                assert tm.shares_memory(result, obj)
+            else:
+                assert any(
+                    tm.shares_memory(result.iloc[:, i], obj.iloc[:, i])
+                    for i in range(obj.shape[1])
+                )
+        # check we DID make a copy
+        elif obj.ndim == 1:
+            assert not tm.shares_memory(result, obj)
+        else:
+            assert not any(
+                tm.shares_memory(result.iloc[:, i], obj.iloc[:, i])
+                for i in range(obj.shape[1])
+            )
+
+        res = obj.set_axis(new_index, copy=False)
+        tm.assert_equal(expected, res)
+        # check we did NOT make a copy
+        if res.ndim == 1:
+            assert tm.shares_memory(res, orig)
+        else:
+            assert all(
+                tm.shares_memory(res.iloc[:, i], orig.iloc[:, i])
+                for i in range(res.shape[1])
+            )
 
     def test_set_axis_unnamed_kwarg_warns(self, obj):
         # omitting the "axis" parameter
@@ -50,8 +94,7 @@ class SharedSetAxisTests:
         expected = obj.copy()
         expected.index = new_index
 
-        with tm.assert_produces_warning(None):
-            result = obj.set_axis(new_index, inplace=False)
+        result = obj.set_axis(new_index)
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("axis", [3, "foo"])
@@ -98,26 +141,3 @@ class TestSeriesSetAxis(SharedSetAxisTests):
     def obj(self):
         ser = Series(np.arange(4), index=[1, 3, 5, 7], dtype="int64")
         return ser
-
-
-def test_nonkeyword_arguments_deprecation_warning():
-    # https://github.com/pandas-dev/pandas/issues/41485
-    df = DataFrame({"a": [1, 2, 3]})
-    msg = (
-        r"In a future version of pandas all arguments of DataFrame\.set_axis "
-        r"except for the argument 'labels' will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.set_axis([1, 2, 4], 0)
-    expected = DataFrame({"a": [1, 2, 3]}, index=[1, 2, 4])
-    tm.assert_frame_equal(result, expected)
-
-    ser = Series([1, 2, 3])
-    msg = (
-        r"In a future version of pandas all arguments of Series\.set_axis "
-        r"except for the argument 'labels' will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = ser.set_axis([1, 2, 4], 0)
-    expected = Series([1, 2, 3], index=[1, 2, 4])
-    tm.assert_series_equal(result, expected)

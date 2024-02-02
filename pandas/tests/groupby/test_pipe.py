@@ -6,20 +6,19 @@ from pandas import (
     Index,
 )
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 
 
 def test_pipe():
     # Test the pipe method of DataFrameGroupBy.
     # Issue #17871
 
-    random_state = np.random.RandomState(1234567890)
+    random_state = np.random.default_rng(2)
 
     df = DataFrame(
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
-            "B": random_state.randn(8),
-            "C": random_state.randn(8),
+            "B": random_state.standard_normal(8),
+            "C": random_state.standard_normal(8),
         }
     )
 
@@ -37,7 +36,7 @@ def test_pipe():
     result = df.groupby("A").pipe(f).pipe(square)
 
     index = Index(["bar", "foo"], dtype="object", name="A")
-    expected = pd.Series([8.99110003361, 8.17516964785], name="B", index=index)
+    expected = pd.Series([3.749306591013693, 6.717707873081384], name="B", index=index)
 
     tm.assert_series_equal(expected, result)
 
@@ -55,14 +54,11 @@ def test_pipe_args():
     )
 
     def f(dfgb, arg1):
-        return dfgb.filter(lambda grp: grp.y.mean() > arg1, dropna=False).groupby(
-            dfgb.grouper
-        )
+        filtered = dfgb.filter(lambda grp: grp.y.mean() > arg1, dropna=False)
+        return filtered.groupby("group")
 
     def g(dfgb, arg2):
-        msg = "The default value of numeric_only"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            return dfgb.sum() / dfgb.sum().sum() + arg2
+        return dfgb.sum() / dfgb.sum().sum() + arg2
 
     def h(df, arg3):
         return df.x + df.y - arg3
@@ -70,15 +66,15 @@ def test_pipe_args():
     result = df.groupby("group").pipe(f, 0).pipe(g, 10).pipe(h, 100)
 
     # Assert the results here
-    index = Index(["A", "B", "C"], name="group")
-    expected = pd.Series([-79.5160891089, -78.4839108911, -80], index=index)
+    index = Index(["A", "B"], name="group")
+    expected = pd.Series([-79.5160891089, -78.4839108911], index=index)
 
-    tm.assert_series_equal(expected, result)
+    tm.assert_series_equal(result, expected)
 
     # test SeriesGroupby.pipe
     ser = pd.Series([1, 1, 2, 2, 3, 3])
     result = ser.groupby(ser).pipe(lambda grp: grp.sum() * grp.count())
 
-    expected = pd.Series([4, 8, 12], index=Int64Index([1, 2, 3]))
+    expected = pd.Series([4, 8, 12], index=Index([1, 2, 3], dtype=np.int64))
 
     tm.assert_series_equal(result, expected)

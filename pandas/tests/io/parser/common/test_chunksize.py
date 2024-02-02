@@ -7,6 +7,7 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._libs import parsers as libparsers
 from pandas.errors import DtypeWarning
 
 from pandas import (
@@ -15,7 +16,9 @@ from pandas import (
 )
 import pandas._testing as tm
 
-pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
 
 
 @pytest.mark.parametrize("index_col", [0, "index"])
@@ -43,6 +46,13 @@ bar2,12,13,14,15
     )
     expected = expected.set_index("index")
 
+    if parser.engine == "pyarrow":
+        msg = "The 'chunksize' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            with parser.read_csv(StringIO(data), index_col=0, chunksize=2) as reader:
+                list(reader)
+        return
+
     with parser.read_csv(StringIO(data), index_col=0, chunksize=2) as reader:
         chunks = list(reader)
     tm.assert_frame_equal(chunks[0], expected[:2])
@@ -62,6 +72,8 @@ bar2,12,13,14,15
 """
     parser = all_parsers
     msg = r"'chunksize' must be an integer >=1"
+    if parser.engine == "pyarrow":
+        msg = "The 'chunksize' option is not supported with the 'pyarrow' engine"
 
     with pytest.raises(ValueError, match=msg):
         with parser.read_csv(StringIO(data), chunksize=chunksize) as _:
@@ -82,6 +94,12 @@ bar2,12,13,14,15
     parser = all_parsers
     kwargs = {"index_col": 0, "nrows": 5}
 
+    if parser.engine == "pyarrow":
+        msg = "The 'nrows' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), **kwargs)
+        return
+
     expected = parser.read_csv(StringIO(data), **kwargs)
     with parser.read_csv(StringIO(data), chunksize=chunksize, **kwargs) as reader:
         tm.assert_frame_equal(concat(reader), expected)
@@ -99,6 +117,12 @@ bar2,12,13,14,15
     parser = all_parsers
     kwargs = {"index_col": 0, "nrows": 5}
 
+    if parser.engine == "pyarrow":
+        msg = "The 'nrows' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), **kwargs)
+        return
+
     expected = parser.read_csv(StringIO(data), **kwargs)
     with parser.read_csv(StringIO(data), chunksize=8, **kwargs) as reader:
         tm.assert_frame_equal(reader.get_chunk(size=2), expected.iloc[:2])
@@ -115,6 +139,13 @@ def test_get_chunk_passed_chunksize(all_parsers):
 4,5,6
 7,8,9
 1,2,3"""
+
+    if parser.engine == "pyarrow":
+        msg = "The 'chunksize' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            with parser.read_csv(StringIO(data), chunksize=2) as reader:
+                reader.get_chunk()
+        return
 
     with parser.read_csv(StringIO(data), chunksize=2) as reader:
         result = reader.get_chunk()
@@ -136,8 +167,17 @@ bar2,12,13,14,15
 """
     parser = all_parsers
     result = parser.read_csv(StringIO(data), **kwargs)
+
+    if parser.engine == "pyarrow":
+        msg = "The 'chunksize' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            with parser.read_csv(StringIO(data), chunksize=2, **kwargs) as reader:
+                concat(reader)
+        return
+
     with parser.read_csv(StringIO(data), chunksize=2, **kwargs) as reader:
-        tm.assert_frame_equal(concat(reader), result)
+        via_reader = concat(reader)
+    tm.assert_frame_equal(via_reader, result)
 
 
 def test_read_chunksize_jagged_names(all_parsers):
@@ -146,6 +186,16 @@ def test_read_chunksize_jagged_names(all_parsers):
     data = "\n".join(["0"] * 7 + [",".join(["0"] * 10)])
 
     expected = DataFrame([[0] + [np.nan] * 9] * 7 + [[0] * 10])
+
+    if parser.engine == "pyarrow":
+        msg = "The 'chunksize' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            with parser.read_csv(
+                StringIO(data), names=range(10), chunksize=4
+            ) as reader:
+                concat(reader)
+        return
+
     with parser.read_csv(StringIO(data), names=range(10), chunksize=4) as reader:
         result = concat(reader)
     tm.assert_frame_equal(result, expected)
@@ -162,13 +212,16 @@ def test_chunk_begins_with_newline_whitespace(all_parsers):
 
 
 @pytest.mark.slow
-def test_chunks_have_consistent_numerical_type(all_parsers):
+def test_chunks_have_consistent_numerical_type(all_parsers, monkeypatch):
+    # mainly an issue with the C parser
+    heuristic = 2**3
     parser = all_parsers
-    integers = [str(i) for i in range(499999)]
+    integers = [str(i) for i in range(heuristic - 1)]
     data = "a\n" + "\n".join(integers + ["1.0", "2.0"] + integers)
 
     # Coercions should work without warnings.
-    with tm.assert_produces_warning(None):
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
         result = parser.read_csv(StringIO(data))
 
     assert type(result.a[0]) is np.float64
@@ -192,8 +245,17 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers):
 
     buf = StringIO(data)
 
-    with tm.assert_produces_warning(warning_type):
-        df = parser.read_csv(buf)
+    if parser.engine == "pyarrow":
+        df = parser.read_csv(
+            buf,
+        )
+    else:
+        df = parser.read_csv_check_warnings(
+            warning_type,
+            r"Columns \(0\) have mixed types. "
+            "Specify dtype option on import or set low_memory=False.",
+            buf,
+        )
 
     assert df.a.dtype == object
 
@@ -206,6 +268,18 @@ def test_empty_with_nrows_chunksize(all_parsers, iterator):
 
     nrows = 10
     data = StringIO("foo,bar\n")
+
+    if parser.engine == "pyarrow":
+        msg = (
+            "The '(nrows|chunksize)' option is not supported with the 'pyarrow' engine"
+        )
+        with pytest.raises(ValueError, match=msg):
+            if iterator:
+                with parser.read_csv(data, chunksize=nrows) as reader:
+                    next(iter(reader))
+            else:
+                parser.read_csv(data, nrows=nrows)
+        return
 
     if iterator:
         with parser.read_csv(data, chunksize=nrows) as reader:
@@ -224,9 +298,17 @@ def test_read_csv_memory_growth_chunksize(all_parsers):
     parser = all_parsers
 
     with tm.ensure_clean() as path:
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             for i in range(1000):
                 f.write(str(i) + "\n")
+
+        if parser.engine == "pyarrow":
+            msg = "The 'chunksize' option is not supported with the 'pyarrow' engine"
+            with pytest.raises(ValueError, match=msg):
+                with parser.read_csv(path, chunksize=20) as result:
+                    for _ in result:
+                        pass
+            return
 
         with parser.read_csv(path, chunksize=20) as result:
             for _ in result:
@@ -240,6 +322,18 @@ def test_chunksize_with_usecols_second_block_shorter(all_parsers):
 5,6,7,8
 9,10,11
 """
+
+    if parser.engine == "pyarrow":
+        msg = "The 'chunksize' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(data),
+                names=["a", "b"],
+                chunksize=2,
+                usecols=[0, 1],
+                header=None,
+            )
+        return
 
     result_chunks = parser.read_csv(
         StringIO(data),
@@ -266,6 +360,12 @@ def test_chunksize_second_block_shorter(all_parsers):
 5,6,7,8
 9,10,11
 """
+
+    if parser.engine == "pyarrow":
+        msg = "The 'chunksize' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), chunksize=2)
+        return
 
     result_chunks = parser.read_csv(StringIO(data), chunksize=2)
 

@@ -15,10 +15,12 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import AxisInt
+
     from pandas.core.generic import NDFrame
 
 
-def preprocess_weights(obj: NDFrame, weights, axis: int) -> np.ndarray:
+def preprocess_weights(obj: NDFrame, weights, axis: AxisInt) -> np.ndarray:
     """
     Process and validate the `weights` argument to `NDFrame.sample` and
     `.GroupBy.sample`.

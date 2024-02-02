@@ -20,7 +20,7 @@ import pandas._testing as tm
 from pandas.tseries.offsets import Day
 
 
-@pytest.fixture(scope="class", params=[None, "foo"])
+@pytest.fixture(params=[None, "foo"])
 def name(request):
     return request.param
 
@@ -30,97 +30,95 @@ class TestIntervalRange:
     def test_constructor_numeric(self, closed, name, freq, periods):
         start, end = 0, 100
         breaks = np.arange(101, step=freq)
-        expected = IntervalIndex.from_breaks(breaks, name=name, inclusive=closed)
+        expected = IntervalIndex.from_breaks(breaks, name=name, closed=closed)
 
         # defined from start/end/freq
         result = interval_range(
-            start=start, end=end, freq=freq, name=name, inclusive=closed
+            start=start, end=end, freq=freq, name=name, closed=closed
         )
         tm.assert_index_equal(result, expected)
 
         # defined from start/periods/freq
         result = interval_range(
-            start=start, periods=periods, freq=freq, name=name, inclusive=closed
+            start=start, periods=periods, freq=freq, name=name, closed=closed
         )
         tm.assert_index_equal(result, expected)
 
         # defined from end/periods/freq
         result = interval_range(
-            end=end, periods=periods, freq=freq, name=name, inclusive=closed
+            end=end, periods=periods, freq=freq, name=name, closed=closed
         )
         tm.assert_index_equal(result, expected)
 
         # GH 20976: linspace behavior defined from start/end/periods
         result = interval_range(
-            start=start, end=end, periods=periods, name=name, inclusive=closed
+            start=start, end=end, periods=periods, name=name, closed=closed
         )
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("tz", [None, "US/Eastern"])
     @pytest.mark.parametrize(
-        "freq, periods", [("D", 364), ("2D", 182), ("22D18H", 16), ("M", 11)]
+        "freq, periods", [("D", 364), ("2D", 182), ("22D18h", 16), ("ME", 11)]
     )
     def test_constructor_timestamp(self, closed, name, freq, periods, tz):
         start, end = Timestamp("20180101", tz=tz), Timestamp("20181231", tz=tz)
         breaks = date_range(start=start, end=end, freq=freq)
-        expected = IntervalIndex.from_breaks(breaks, name=name, inclusive=closed)
+        expected = IntervalIndex.from_breaks(breaks, name=name, closed=closed)
 
         # defined from start/end/freq
         result = interval_range(
-            start=start, end=end, freq=freq, name=name, inclusive=closed
+            start=start, end=end, freq=freq, name=name, closed=closed
         )
         tm.assert_index_equal(result, expected)
 
         # defined from start/periods/freq
         result = interval_range(
-            start=start, periods=periods, freq=freq, name=name, inclusive=closed
+            start=start, periods=periods, freq=freq, name=name, closed=closed
         )
         tm.assert_index_equal(result, expected)
 
         # defined from end/periods/freq
         result = interval_range(
-            end=end, periods=periods, freq=freq, name=name, inclusive=closed
+            end=end, periods=periods, freq=freq, name=name, closed=closed
         )
         tm.assert_index_equal(result, expected)
 
         # GH 20976: linspace behavior defined from start/end/periods
-        if not breaks.freq.is_anchored() and tz is None:
-            # matches expected only for non-anchored offsets and tz naive
-            # (anchored/DST transitions cause unequal spacing in expected)
+        if not breaks.freq.n == 1 and tz is None:
             result = interval_range(
-                start=start, end=end, periods=periods, name=name, inclusive=closed
+                start=start, end=end, periods=periods, name=name, closed=closed
             )
             tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "freq, periods", [("D", 100), ("2D12H", 40), ("5D", 20), ("25D", 4)]
+        "freq, periods", [("D", 100), ("2D12h", 40), ("5D", 20), ("25D", 4)]
     )
     def test_constructor_timedelta(self, closed, name, freq, periods):
         start, end = Timedelta("0 days"), Timedelta("100 days")
         breaks = timedelta_range(start=start, end=end, freq=freq)
-        expected = IntervalIndex.from_breaks(breaks, name=name, inclusive=closed)
+        expected = IntervalIndex.from_breaks(breaks, name=name, closed=closed)
 
         # defined from start/end/freq
         result = interval_range(
-            start=start, end=end, freq=freq, name=name, inclusive=closed
+            start=start, end=end, freq=freq, name=name, closed=closed
         )
         tm.assert_index_equal(result, expected)
 
         # defined from start/periods/freq
         result = interval_range(
-            start=start, periods=periods, freq=freq, name=name, inclusive=closed
+            start=start, periods=periods, freq=freq, name=name, closed=closed
         )
         tm.assert_index_equal(result, expected)
 
         # defined from end/periods/freq
         result = interval_range(
-            end=end, periods=periods, freq=freq, name=name, inclusive=closed
+            end=end, periods=periods, freq=freq, name=name, closed=closed
         )
         tm.assert_index_equal(result, expected)
 
         # GH 20976: linspace behavior defined from start/end/periods
         result = interval_range(
-            start=start, end=end, periods=periods, name=name, inclusive=closed
+            start=start, end=end, periods=periods, name=name, closed=closed
         )
         tm.assert_index_equal(result, expected)
 
@@ -130,7 +128,7 @@ class TestIntervalRange:
             (0, 10, 3, 9),
             (0, 10, 1.5, 9),
             (0.5, 10, 3, 9.5),
-            (Timedelta("0D"), Timedelta("10D"), "2D4H", Timedelta("8D16H")),
+            (Timedelta("0D"), Timedelta("10D"), "2D4h", Timedelta("8D16h")),
             (
                 Timestamp("2018-01-01"),
                 Timestamp("2018-02-09"),
@@ -140,7 +138,7 @@ class TestIntervalRange:
             (
                 Timestamp("2018-01-01", tz="US/Eastern"),
                 Timestamp("2018-01-20", tz="US/Eastern"),
-                "5D12H",
+                "5D12h",
                 Timestamp("2018-01-17 12:00:00", tz="US/Eastern"),
             ),
         ],
@@ -161,11 +159,9 @@ class TestIntervalRange:
             breaks = [0.5, 1.5, 2.5, 3.5, 4.5]
         else:
             breaks = [0.5, 2.0, 3.5, 5.0, 6.5]
-        expected = IntervalIndex.from_breaks(breaks, "right")
+        expected = IntervalIndex.from_breaks(breaks)
 
-        result = interval_range(
-            start=start, end=end, periods=4, freq=freq, inclusive="right"
-        )
+        result = interval_range(start=start, end=end, periods=4, freq=freq)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -186,9 +182,11 @@ class TestIntervalRange:
     def test_linspace_dst_transition(self, start, mid, end):
         # GH 20976: linspace behavior defined from start/end/periods
         # accounts for the hour gained/lost during DST transition
-        result = interval_range(start=start, end=end, periods=2, inclusive="right")
-        expected = IntervalIndex.from_breaks([start, mid, end], "right")
-
+        start = start.as_unit("ns")
+        mid = mid.as_unit("ns")
+        end = end.as_unit("ns")
+        result = interval_range(start=start, end=end, periods=2)
+        expected = IntervalIndex.from_breaks([start, mid, end])
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("freq", [2, 2.0])
@@ -222,12 +220,15 @@ class TestIntervalRange:
         expected = "int64" if is_integer(start + end) else "float64"
         assert result == expected
 
-    def test_constructor_coverage(self):
+    def test_interval_range_fractional_period(self):
         # float value for periods
         expected = interval_range(start=0, periods=10)
-        result = interval_range(start=0, periods=10.5)
+        msg = "Non-integer 'periods' in pd.date_range, .* pd.interval_range"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = interval_range(start=0, periods=10.5)
         tm.assert_index_equal(result, expected)
 
+    def test_constructor_coverage(self):
         # equivalent timestamp-like start/end
         start, end = Timestamp("2017-01-01"), Timestamp("2017-01-15")
         expected = interval_range(start=start, end=end)
@@ -337,7 +338,7 @@ class TestIntervalRange:
         # invalid end
         msg = r"end must be numeric or datetime-like, got \(0, 1\]"
         with pytest.raises(ValueError, match=msg):
-            interval_range(end=Interval(0, 1, "right"), periods=10)
+            interval_range(end=Interval(0, 1), periods=10)
 
         # invalid freq for datetime-like
         msg = "freq must be numeric or convertible to DateOffset, got foo"
@@ -357,16 +358,12 @@ class TestIntervalRange:
         with pytest.raises(TypeError, match=msg):
             interval_range(start=start, end=end)
 
-    def test_interval_range_error_and_warning(self):
-        # GH 40245
+    def test_float_freq(self):
+        # GH 54477
+        result = interval_range(0, 1, freq=0.1)
+        expected = IntervalIndex.from_breaks([0 + 0.1 * n for n in range(11)])
+        tm.assert_index_equal(result, expected)
 
-        msg = (
-            "Deprecated argument `closed` cannot "
-            "be passed if argument `inclusive` is not None"
-        )
-        with pytest.raises(ValueError, match=msg):
-            interval_range(end=5, periods=4, closed="both", inclusive="both")
-
-        msg = "Argument `closed` is deprecated in favor of `inclusive`"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            interval_range(end=5, periods=4, closed="right")
+        result = interval_range(0, 1, freq=0.6)
+        expected = IntervalIndex.from_breaks([0, 0.6])
+        tm.assert_index_equal(result, expected)

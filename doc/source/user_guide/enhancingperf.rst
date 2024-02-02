@@ -7,11 +7,9 @@ Enhancing performance
 *********************
 
 In this part of the tutorial, we will investigate how to speed up certain
-functions operating on pandas :class:`DataFrame` using three different techniques:
-Cython, Numba and :func:`pandas.eval`. We will see a speed improvement of ~200
-when we use Cython and Numba on a test function operating row-wise on the
-:class:`DataFrame`. Using :func:`pandas.eval` we will speed up a sum by an order of
-~2.
+functions operating on pandas :class:`DataFrame` using Cython, Numba and :func:`pandas.eval`.
+Generally, using Cython and Numba can offer a larger speedup than using :func:`pandas.eval`
+but will require a lot more code.
 
 .. note::
 
@@ -79,12 +77,12 @@ We achieve our result by using :meth:`DataFrame.apply` (row-wise):
 
    %timeit df.apply(lambda x: integrate_f(x["a"], x["b"], x["N"]), axis=1)
 
-But clearly this isn't fast enough for us. Let's take a look and see where the
-time is spent during this operation (limited to the most time consuming
-four calls) using the `prun ipython magic function <https://ipython.readthedocs.io/en/stable/interactive/magics.html#magic-prun>`__:
+Let's take a look and see where the time is spent during this operation
+using the `prun ipython magic function <https://ipython.readthedocs.io/en/stable/interactive/magics.html#magic-prun>`__:
 
 .. ipython:: python
 
+   # most time consuming 4 calls
    %prun -l 4 df.apply(lambda x: integrate_f(x["a"], x["b"], x["N"]), axis=1)  # noqa E999
 
 By far the majority of time is spend inside either ``integrate_f`` or ``f``,
@@ -103,8 +101,7 @@ First we're going to need to import the Cython magic function to IPython:
    %load_ext Cython
 
 
-Now, let's simply copy our functions over to Cython as is (the suffix
-is here to distinguish between function versions):
+Now, let's simply copy our functions over to Cython:
 
 .. ipython::
 
@@ -119,24 +116,20 @@ is here to distinguish between function versions):
       ...:     return s * dx
       ...:
 
-.. note::
-
-  If you're having trouble pasting the above into your ipython, you may need
-  to be using bleeding edge IPython for paste to play well with cell magics.
-
 
 .. ipython:: python
 
    %timeit df.apply(lambda x: integrate_f_plain(x["a"], x["b"], x["N"]), axis=1)
 
-Already this has shaved a third off, not too bad for a simple copy and paste.
+This has improved the performance compared to the pure Python approach by one-third.
 
 .. _enhancingperf.type:
 
-Adding type
-~~~~~~~~~~~
+Declaring C types
+~~~~~~~~~~~~~~~~~
 
-We get another huge improvement simply by providing type information:
+We can annotate the function variables and return types as well as use ``cdef``
+and ``cpdef`` to improve performance:
 
 .. ipython::
 
@@ -157,27 +150,21 @@ We get another huge improvement simply by providing type information:
 
    %timeit df.apply(lambda x: integrate_f_typed(x["a"], x["b"], x["N"]), axis=1)
 
-Now, we're talking! It's now over ten times faster than the original Python
-implementation, and we haven't *really* modified the code. Let's have another
-look at what's eating up time:
-
-.. ipython:: python
-
-   %prun -l 4 df.apply(lambda x: integrate_f_typed(x["a"], x["b"], x["N"]), axis=1)
+Annotating the functions with C types yields an over ten times performance improvement compared to
+the original Python implementation.
 
 .. _enhancingperf.ndarray:
 
 Using ndarray
 ~~~~~~~~~~~~~
 
-It's calling series a lot! It's creating a :class:`Series` from each row, and calling get from both
-the index and the series (three times for each row). Function calls are expensive
-in Python, so maybe we could minimize these by cythonizing the apply part.
+When re-profiling, time is spent creating a :class:`Series` from each row, and calling ``__getitem__`` from both
+the index and the series (three times for each row). These Python function calls are expensive and
+can be improved by passing an ``np.ndarray``.
 
-.. note::
+.. ipython:: python
 
-  We are now passing ndarrays into the Cython function, fortunately Cython plays
-  very nicely with NumPy.
+   %prun -l 4 df.apply(lambda x: integrate_f_typed(x["a"], x["b"], x["N"]), axis=1)
 
 .. ipython::
 
@@ -196,8 +183,8 @@ in Python, so maybe we could minimize these by cythonizing the apply part.
       ...:     return s * dx
       ...: cpdef np.ndarray[double] apply_integrate_f(np.ndarray col_a, np.ndarray col_b,
       ...:                                            np.ndarray col_N):
-      ...:     assert (col_a.dtype == np.float_
-      ...:             and col_b.dtype == np.float_ and col_N.dtype == np.int_)
+      ...:     assert (col_a.dtype == np.float64
+      ...:             and col_b.dtype == np.float64 and col_N.dtype == np.dtype(int))
       ...:     cdef Py_ssize_t i, n = len(col_N)
       ...:     assert (len(col_a) == len(col_b) == n)
       ...:     cdef np.ndarray[double] res = np.empty(n)
@@ -207,55 +194,30 @@ in Python, so maybe we could minimize these by cythonizing the apply part.
       ...:
 
 
-The implementation is simple, it creates an array of zeros and loops over
-the rows, applying our ``integrate_f_typed``, and putting this in the zeros array.
+This implementation creates an array of zeros and inserts the result
+of ``integrate_f_typed`` applied over each row. Looping over an ``ndarray`` is faster
+in Cython than looping over a :class:`Series` object.
 
-
-.. warning::
-
-   You can **not pass** a :class:`Series` directly as a ``ndarray`` typed parameter
-   to a Cython function. Instead pass the actual ``ndarray`` using the
-   :meth:`Series.to_numpy`. The reason is that the Cython
-   definition is specific to an ndarray and not the passed :class:`Series`.
-
-   So, do not do this:
-
-   .. code-block:: python
-
-        apply_integrate_f(df["a"], df["b"], df["N"])
-
-   But rather, use :meth:`Series.to_numpy` to get the underlying ``ndarray``:
-
-   .. code-block:: python
-
-        apply_integrate_f(df["a"].to_numpy(), df["b"].to_numpy(), df["N"].to_numpy())
-
-.. note::
-
-    Loops like this would be *extremely* slow in Python, but in Cython looping
-    over NumPy arrays is *fast*.
+Since ``apply_integrate_f`` is typed to accept an ``np.ndarray``, :meth:`Series.to_numpy`
+calls are needed to utilize this function.
 
 .. ipython:: python
 
    %timeit apply_integrate_f(df["a"].to_numpy(), df["b"].to_numpy(), df["N"].to_numpy())
 
-We've gotten another big improvement. Let's check again where the time is spent:
+Performance has improved from the prior implementation by almost ten times.
+
+.. _enhancingperf.boundswrap:
+
+Disabling compiler directives
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The majority of the time is now spent in ``apply_integrate_f``. Disabling Cython's ``boundscheck``
+and ``wraparound`` checks can yield more performance.
 
 .. ipython:: python
 
    %prun -l 4 apply_integrate_f(df["a"].to_numpy(), df["b"].to_numpy(), df["N"].to_numpy())
-
-As one might expect, the majority of the time is now spent in ``apply_integrate_f``,
-so if we wanted to make anymore efficiencies we must continue to concentrate our
-efforts here.
-
-.. _enhancingperf.boundswrap:
-
-More advanced techniques
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-There is still hope for improvement. Here's an example of using some more
-advanced Cython techniques:
 
 .. ipython::
 
@@ -291,10 +253,9 @@ advanced Cython techniques:
 
    %timeit apply_integrate_f_wrap(df["a"].to_numpy(), df["b"].to_numpy(), df["N"].to_numpy())
 
-Even faster, with the caveat that a bug in our Cython code (an off-by-one error,
-for example) might cause a segfault because memory access isn't checked.
+However, a loop indexer ``i`` accessing an invalid location in an array would cause a segfault because memory access isn't checked.
 For more about ``boundscheck`` and ``wraparound``, see the Cython docs on
-`compiler directives <https://cython.readthedocs.io/en/latest/src/reference/compilation.html?highlight=wraparound#compiler-directives>`__.
+`compiler directives <https://cython.readthedocs.io/en/latest/src/userguide/source_files_and_compilation.html#compiler-directives>`__.
 
 .. _enhancingperf.numba:
 
@@ -317,7 +278,7 @@ Numba supports compilation of Python to run on either CPU or GPU hardware and is
 Numba can be used in 2 ways with pandas:
 
 #. Specify the ``engine="numba"`` keyword in select pandas methods
-#. Define your own Python function decorated with ``@jit`` and pass the underlying NumPy array of :class:`Series` or :class:`DataFrame` (using ``to_numpy()``) into the function
+#. Define your own Python function decorated with ``@jit`` and pass the underlying NumPy array of :class:`Series` or :class:`DataFrame` (using :meth:`Series.to_numpy`) into the function
 
 pandas Numba Engine
 ~~~~~~~~~~~~~~~~~~~
@@ -327,28 +288,30 @@ Methods that support ``engine="numba"`` will also have an ``engine_kwargs`` keyw
 ``"nogil"``, ``"nopython"`` and ``"parallel"`` keys with boolean values to pass into the ``@jit`` decorator.
 If ``engine_kwargs`` is not specified, it defaults to ``{"nogil": False, "nopython": True, "parallel": False}`` unless otherwise specified.
 
-In terms of performance, **the first time a function is run using the Numba engine will be slow**
-as Numba will have some function compilation overhead. However, the JIT compiled functions are cached,
-and subsequent calls will be fast. In general, the Numba engine is performant with
-a larger amount of data points (e.g. 1+ million).
+.. note::
 
-.. code-block:: ipython
+   In terms of performance, **the first time a function is run using the Numba engine will be slow**
+   as Numba will have some function compilation overhead. However, the JIT compiled functions are cached,
+   and subsequent calls will be fast. In general, the Numba engine is performant with
+   a larger amount of data points (e.g. 1+ million).
 
-   In [1]: data = pd.Series(range(1_000_000))  # noqa: E225
+   .. code-block:: ipython
 
-   In [2]: roll = data.rolling(10)
+      In [1]: data = pd.Series(range(1_000_000))  # noqa: E225
 
-   In [3]: def f(x):
-      ...:     return np.sum(x) + 5
-   # Run the first time, compilation time will affect performance
-   In [4]: %timeit -r 1 -n 1 roll.apply(f, engine='numba', raw=True)
-   1.23 s ± 0 ns per loop (mean ± std. dev. of 1 run, 1 loop each)
-   # Function is cached and performance will improve
-   In [5]: %timeit roll.apply(f, engine='numba', raw=True)
-   188 ms ± 1.93 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+      In [2]: roll = data.rolling(10)
 
-   In [6]: %timeit roll.apply(f, engine='cython', raw=True)
-   3.92 s ± 59 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+      In [3]: def f(x):
+         ...:     return np.sum(x) + 5
+      # Run the first time, compilation time will affect performance
+      In [4]: %timeit -r 1 -n 1 roll.apply(f, engine='numba', raw=True)
+      1.23 s ± 0 ns per loop (mean ± std. dev. of 1 run, 1 loop each)
+      # Function is cached and performance will improve
+      In [5]: %timeit roll.apply(f, engine='numba', raw=True)
+      188 ms ± 1.93 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+      In [6]: %timeit roll.apply(f, engine='cython', raw=True)
+      3.92 s ± 59 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
 If your compute hardware contains multiple CPUs, the largest performance gain can be realized by setting ``parallel`` to ``True``
 to leverage more than 1 CPU. Internally, pandas leverages numba to parallelize computations over the columns of a :class:`DataFrame`;
@@ -376,7 +339,7 @@ Custom Function Examples
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 A custom Python function decorated with ``@jit`` can be used with pandas objects by passing their NumPy array
-representations with ``to_numpy()``.
+representations with :meth:`Series.to_numpy`.
 
 .. code-block:: python
 
@@ -476,40 +439,21 @@ to the `Numba issue tracker. <https://github.com/numba/numba/issues/new/choose>`
 .. _enhancingperf.eval:
 
 Expression evaluation via :func:`~pandas.eval`
------------------------------------------------
+----------------------------------------------
 
-The top-level function :func:`pandas.eval` implements expression evaluation of
-:class:`~pandas.Series` and :class:`~pandas.DataFrame` objects.
-
-.. note::
-
-   To benefit from using :func:`~pandas.eval` you need to
-   install ``numexpr``. See the :ref:`recommended dependencies section
-   <install.recommended_dependencies>` for more details.
-
-The point of using :func:`~pandas.eval` for expression evaluation rather than
-plain Python is two-fold: 1) large :class:`~pandas.DataFrame` objects are
-evaluated more efficiently and 2) large arithmetic and boolean expressions are
-evaluated all at once by the underlying engine (by default ``numexpr`` is used
-for evaluation).
+The top-level function :func:`pandas.eval` implements performant expression evaluation of
+:class:`~pandas.Series` and :class:`~pandas.DataFrame`. Expression evaluation allows operations
+to be expressed as strings and can potentially provide a performance improvement
+by evaluate arithmetic and boolean expression all at once for large :class:`~pandas.DataFrame`.
 
 .. note::
 
    You should not use :func:`~pandas.eval` for simple
    expressions or for expressions involving small DataFrames. In fact,
    :func:`~pandas.eval` is many orders of magnitude slower for
-   smaller expressions/objects than plain ol' Python. A good rule of thumb is
+   smaller expressions or objects than plain Python. A good rule of thumb is
    to only use :func:`~pandas.eval` when you have a
-   :class:`~pandas.core.frame.DataFrame` with more than 10,000 rows.
-
-
-:func:`~pandas.eval` supports all arithmetic expressions supported by the
-engine in addition to some extensions available only in pandas.
-
-.. note::
-
-   The larger the frame and the larger the expression the more speedup you will
-   see from using :func:`~pandas.eval`.
+   :class:`.DataFrame` with more than 10,000 rows.
 
 Supported syntax
 ~~~~~~~~~~~~~~~~
@@ -528,7 +472,7 @@ These operations are supported by :func:`pandas.eval`:
   ``sqrt``, ``sinh``, ``cosh``, ``tanh``, ``arcsin``, ``arccos``, ``arctan``, ``arccosh``,
   ``arcsinh``, ``arctanh``, ``abs``, ``arctan2`` and ``log10``.
 
-This Python syntax is **not** allowed:
+The following Python syntax is **not** allowed:
 
 * Expressions
 
@@ -545,27 +489,111 @@ This Python syntax is **not** allowed:
 * Statements
 
     * Neither `simple <https://docs.python.org/3/reference/simple_stmts.html>`__
-      nor `compound <https://docs.python.org/3/reference/compound_stmts.html>`__
-      statements are allowed. This includes things like ``for``, ``while``, and
+      or `compound <https://docs.python.org/3/reference/compound_stmts.html>`__
+      statements are allowed. This includes ``for``, ``while``, and
       ``if``.
 
+Local variables
+~~~~~~~~~~~~~~~
+
+You must *explicitly reference* any local variable that you want to use in an
+expression by placing the ``@`` character in front of the name. This mechanism is
+the same for both :meth:`DataFrame.query` and :meth:`DataFrame.eval`. For example,
+
+.. ipython:: python
+
+   df = pd.DataFrame(np.random.randn(5, 2), columns=list("ab"))
+   newcol = np.random.randn(len(df))
+   df.eval("b + @newcol")
+   df.query("b < @newcol")
+
+If you don't prefix the local variable with ``@``, pandas will raise an
+exception telling you the variable is undefined.
+
+When using :meth:`DataFrame.eval` and :meth:`DataFrame.query`, this allows you
+to have a local variable and a :class:`~pandas.DataFrame` column with the same
+name in an expression.
 
 
-:func:`~pandas.eval` examples
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. ipython:: python
 
-:func:`pandas.eval` works well with expressions containing large arrays.
+   a = np.random.randn()
+   df.query("@a < a")
+   df.loc[a < df["a"]]  # same as the previous expression
 
-First let's create a few decent-sized arrays to play with:
+.. warning::
+
+   :func:`pandas.eval` will raise an exception if you cannot use the ``@`` prefix because it
+   isn't defined in that context.
+
+   .. ipython:: python
+      :okexcept:
+
+      a, b = 1, 2
+      pd.eval("@a + b")
+
+   In this case, you should simply refer to the variables like you would in
+   standard Python.
+
+   .. ipython:: python
+
+      pd.eval("a + b")
+
+
+:func:`pandas.eval` parsers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are two different expression syntax parsers.
+
+The default ``'pandas'`` parser allows a more intuitive syntax for expressing
+query-like operations (comparisons, conjunctions and disjunctions). In
+particular, the precedence of the ``&`` and ``|`` operators is made equal to
+the precedence of the corresponding boolean operations ``and`` and ``or``.
+
+For example, the above conjunction can be written without parentheses.
+Alternatively, you can use the ``'python'`` parser to enforce strict Python
+semantics.
 
 .. ipython:: python
 
    nrows, ncols = 20000, 100
    df1, df2, df3, df4 = [pd.DataFrame(np.random.randn(nrows, ncols)) for _ in range(4)]
 
+   expr = "(df1 > 0) & (df2 > 0) & (df3 > 0) & (df4 > 0)"
+   x = pd.eval(expr, parser="python")
+   expr_no_parens = "df1 > 0 & df2 > 0 & df3 > 0 & df4 > 0"
+   y = pd.eval(expr_no_parens, parser="pandas")
+   np.all(x == y)
 
-Now let's compare adding them together using plain ol' Python versus
-:func:`~pandas.eval`:
+
+The same expression can be "anded" together with the word :keyword:`and` as
+well:
+
+.. ipython:: python
+
+   expr = "(df1 > 0) & (df2 > 0) & (df3 > 0) & (df4 > 0)"
+   x = pd.eval(expr, parser="python")
+   expr_with_ands = "df1 > 0 and df2 > 0 and df3 > 0 and df4 > 0"
+   y = pd.eval(expr_with_ands, parser="pandas")
+   np.all(x == y)
+
+The :keyword:`and` and :keyword:`or` operators here have the same precedence that they would
+in Python.
+
+
+:func:`pandas.eval` engines
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are two different expression engines.
+
+The ``'numexpr'`` engine is the more performant engine that can yield performance improvements
+compared to standard Python syntax for large :class:`DataFrame`. This engine requires the
+optional dependency ``numexpr`` to be installed.
+
+The ``'python'`` engine is generally *not* useful except for testing
+other evaluation engines against it. You will achieve **no** performance
+benefits using :func:`~pandas.eval` with ``engine='python'`` and may
+incur a performance hit.
 
 .. ipython:: python
 
@@ -573,45 +601,8 @@ Now let's compare adding them together using plain ol' Python versus
 
 .. ipython:: python
 
-   %timeit pd.eval("df1 + df2 + df3 + df4")
+   %timeit pd.eval("df1 + df2 + df3 + df4", engine="python")
 
-
-Now let's do the same thing but with comparisons:
-
-.. ipython:: python
-
-   %timeit (df1 > 0) & (df2 > 0) & (df3 > 0) & (df4 > 0)
-
-.. ipython:: python
-
-   %timeit pd.eval("(df1 > 0) & (df2 > 0) & (df3 > 0) & (df4 > 0)")
-
-
-:func:`~pandas.eval` also works with unaligned pandas objects:
-
-.. ipython:: python
-
-   s = pd.Series(np.random.randn(50))
-   %timeit df1 + df2 + df3 + df4 + s
-
-.. ipython:: python
-
-   %timeit pd.eval("df1 + df2 + df3 + df4 + s")
-
-.. note::
-
-   Operations such as
-
-      .. code-block:: python
-
-         1 and 2  # would parse to 1 & 2, but should evaluate to 2
-         3 or 4  # would parse to 3 | 4, but should evaluate to 3
-         ~1  # this is okay, but slower when using eval
-
-   should be performed in Python. An exception will be raised if you try to
-   perform any boolean/bitwise operations with scalar operands that are not
-   of type ``bool`` or ``np.bool_``. Again, you should perform these kinds of
-   operations in plain Python.
 
 The :meth:`DataFrame.eval` method
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -643,32 +634,28 @@ prefix the name of the :class:`~pandas.DataFrame` to the column(s) you're
 interested in evaluating.
 
 In addition, you can perform assignment of columns within an expression.
-This allows for *formulaic evaluation*.  The assignment target can be a
+This allows for *formulaic evaluation*. The assignment target can be a
 new column name or an existing column name, and it must be a valid Python
 identifier.
-
-The ``inplace`` keyword determines whether this assignment will performed
-on the original :class:`DataFrame` or return a copy with the new column.
 
 .. ipython:: python
 
    df = pd.DataFrame(dict(a=range(5), b=range(5, 10)))
-   df.eval("c = a + b", inplace=True)
-   df.eval("d = a + b + c", inplace=True)
-   df.eval("a = 1", inplace=True)
+   df = df.eval("c = a + b")
+   df = df.eval("d = a + b + c")
+   df = df.eval("a = 1")
    df
 
-When ``inplace`` is set to ``False``, the default, a copy of the :class:`DataFrame` with the
-new or modified columns is returned and the original frame is unchanged.
+A copy of the :class:`DataFrame` with the
+new or modified columns is returned, and the original frame is unchanged.
 
 .. ipython:: python
 
    df
-   df.eval("e = a - c", inplace=False)
+   df.eval("e = a - c")
    df
 
-As a convenience, multiple assignments can be performed by using a
-multi-line string.
+Multiple column assignments can be performed by using a multi-line string.
 
 .. ipython:: python
 
@@ -677,7 +664,6 @@ multi-line string.
    c = a + b
    d = a + b + c
    a = 1""",
-       inplace=False,
    )
 
 The equivalent in standard Python would be
@@ -690,116 +676,19 @@ The equivalent in standard Python would be
    df["a"] = 1
    df
 
-The :class:`DataFrame.query` method has a ``inplace`` keyword which determines
-whether the query modifies the original frame.
+
+:func:`~pandas.eval` performance comparison
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:func:`pandas.eval` works well with expressions containing large arrays.
 
 .. ipython:: python
 
-   df = pd.DataFrame(dict(a=range(5), b=range(5, 10)))
-   df.query("a > 2")
-   df.query("a > 2", inplace=True)
-   df
-
-Local variables
-~~~~~~~~~~~~~~~
-
-You must *explicitly reference* any local variable that you want to use in an
-expression by placing the ``@`` character in front of the name. For example,
-
-.. ipython:: python
-
-   df = pd.DataFrame(np.random.randn(5, 2), columns=list("ab"))
-   newcol = np.random.randn(len(df))
-   df.eval("b + @newcol")
-   df.query("b < @newcol")
-
-If you don't prefix the local variable with ``@``, pandas will raise an
-exception telling you the variable is undefined.
-
-When using :meth:`DataFrame.eval` and :meth:`DataFrame.query`, this allows you
-to have a local variable and a :class:`~pandas.DataFrame` column with the same
-name in an expression.
+   nrows, ncols = 20000, 100
+   df1, df2, df3, df4 = [pd.DataFrame(np.random.randn(nrows, ncols)) for _ in range(4)]
 
 
-.. ipython:: python
-
-   a = np.random.randn()
-   df.query("@a < a")
-   df.loc[a < df["a"]]  # same as the previous expression
-
-With :func:`pandas.eval` you cannot use the ``@`` prefix *at all*, because it
-isn't defined in that context. pandas will let you know this if you try to
-use ``@`` in a top-level call to :func:`pandas.eval`. For example,
-
-.. ipython:: python
-   :okexcept:
-
-   a, b = 1, 2
-   pd.eval("@a + b")
-
-In this case, you should simply refer to the variables like you would in
-standard Python.
-
-.. ipython:: python
-
-   pd.eval("a + b")
-
-
-:func:`pandas.eval` parsers
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-There are two different parsers and two different engines you can use as
-the backend.
-
-The default ``'pandas'`` parser allows a more intuitive syntax for expressing
-query-like operations (comparisons, conjunctions and disjunctions). In
-particular, the precedence of the ``&`` and ``|`` operators is made equal to
-the precedence of the corresponding boolean operations ``and`` and ``or``.
-
-For example, the above conjunction can be written without parentheses.
-Alternatively, you can use the ``'python'`` parser to enforce strict Python
-semantics.
-
-.. ipython:: python
-
-   expr = "(df1 > 0) & (df2 > 0) & (df3 > 0) & (df4 > 0)"
-   x = pd.eval(expr, parser="python")
-   expr_no_parens = "df1 > 0 & df2 > 0 & df3 > 0 & df4 > 0"
-   y = pd.eval(expr_no_parens, parser="pandas")
-   np.all(x == y)
-
-
-The same expression can be "anded" together with the word :keyword:`and` as
-well:
-
-.. ipython:: python
-
-   expr = "(df1 > 0) & (df2 > 0) & (df3 > 0) & (df4 > 0)"
-   x = pd.eval(expr, parser="python")
-   expr_with_ands = "df1 > 0 and df2 > 0 and df3 > 0 and df4 > 0"
-   y = pd.eval(expr_with_ands, parser="pandas")
-   np.all(x == y)
-
-
-The ``and`` and ``or`` operators here have the same precedence that they would
-in vanilla Python.
-
-
-:func:`pandas.eval` backends
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-There's also the option to make :func:`~pandas.eval` operate identical to plain
-ol' Python.
-
-.. note::
-
-   Using the ``'python'`` engine is generally *not* useful, except for testing
-   other evaluation engines against it. You will achieve **no** performance
-   benefits using :func:`~pandas.eval` with ``engine='python'`` and in fact may
-   incur a performance hit.
-
-You can see this by using :func:`pandas.eval` with the ``'python'`` engine. It
-is a bit slower (not by much) than evaluating the same expression in Python
+:class:`DataFrame` arithmetic:
 
 .. ipython:: python
 
@@ -807,47 +696,66 @@ is a bit slower (not by much) than evaluating the same expression in Python
 
 .. ipython:: python
 
-   %timeit pd.eval("df1 + df2 + df3 + df4", engine="python")
+   %timeit pd.eval("df1 + df2 + df3 + df4")
 
 
-:func:`pandas.eval` performance
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+:class:`DataFrame` comparison:
 
-:func:`~pandas.eval` is intended to speed up certain kinds of operations. In
-particular, those operations involving complex expressions with large
-:class:`~pandas.DataFrame`/:class:`~pandas.Series` objects should see a
-significant performance benefit.  Here is a plot showing the running time of
-:func:`pandas.eval` as function of the size of the frame involved in the
-computation. The two lines are two different engines.
+.. ipython:: python
+
+   %timeit (df1 > 0) & (df2 > 0) & (df3 > 0) & (df4 > 0)
+
+.. ipython:: python
+
+   %timeit pd.eval("(df1 > 0) & (df2 > 0) & (df3 > 0) & (df4 > 0)")
 
 
-.. image:: ../_static/eval-perf.png
+:class:`DataFrame` arithmetic with unaligned axes.
 
+.. ipython:: python
+
+   s = pd.Series(np.random.randn(50))
+   %timeit df1 + df2 + df3 + df4 + s
+
+.. ipython:: python
+
+   %timeit pd.eval("df1 + df2 + df3 + df4 + s")
 
 .. note::
 
-   Operations with smallish objects (around 15k-20k rows) are faster using
-   plain Python:
+   Operations such as
 
-       .. image:: ../_static/eval-perf-small.png
+   .. code-block:: python
 
+      1 and 2  # would parse to 1 & 2, but should evaluate to 2
+      3 or 4  # would parse to 3 | 4, but should evaluate to 3
+      ~1  # this is okay, but slower when using eval
+
+   should be performed in Python. An exception will be raised if you try to
+   perform any boolean/bitwise operations with scalar operands that are not
+   of type ``bool`` or ``np.bool_``.
+
+Here is a plot showing the running time of
+:func:`pandas.eval` as function of the size of the frame involved in the
+computation. The two lines are two different engines.
+
+..
+    The eval-perf.png figure below was generated with /doc/scripts/eval_performance.py
+
+.. image:: ../_static/eval-perf.png
+
+You will only see the performance benefits of using the ``numexpr`` engine with :func:`pandas.eval` if your :class:`~pandas.DataFrame`
+has more than approximately 100,000 rows.
 
 This plot was created using a :class:`DataFrame` with 3 columns each containing
 floating point values generated using ``numpy.random.randn()``.
 
-Technical minutia regarding expression evaluation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Expression evaluation limitations with ``numexpr``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Expressions that would result in an object dtype or involve datetime operations
-(because of ``NaT``) must be evaluated in Python space. The main reason for
-this behavior is to maintain backwards compatibility with versions of NumPy <
-1.7. In those versions of NumPy a call to ``ndarray.astype(str)`` will
-truncate any strings that are more than 60 characters in length. Second, we
-can't pass ``object`` arrays to ``numexpr`` thus string comparisons must be
-evaluated in Python space.
-
-The upshot is that this *only* applies to object-dtype expressions. So, if
-you have an expression--for example
+because of ``NaT`` must be evaluated in Python space, but part of an expression
+can still be evaluated with ``numexpr``. For example:
 
 .. ipython:: python
 
@@ -857,10 +765,6 @@ you have an expression--for example
    df
    df.query("strings == 'a' and nums == 1")
 
-the numeric part of the comparison (``nums == 1``) will be evaluated by
-``numexpr``.
-
-In general, :meth:`DataFrame.query`/:func:`pandas.eval` will
-evaluate the subexpressions that *can* be evaluated by ``numexpr`` and those
-that must be evaluated in Python space transparently to the user. This is done
-by inferring the result type of an expression from its arguments and operators.
+The numeric part of the comparison (``nums == 1``) will be evaluated by
+``numexpr`` and the object part of the comparison (``"strings == 'a'``) will
+be evaluated by Python.

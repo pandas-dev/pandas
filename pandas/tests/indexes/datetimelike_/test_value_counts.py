@@ -18,15 +18,15 @@ class TestValueCounts:
 
     def test_value_counts_unique_datetimeindex(self, tz_naive_fixture):
         tz = tz_naive_fixture
-        orig = date_range("2011-01-01 09:00", freq="H", periods=10, tz=tz)
+        orig = date_range("2011-01-01 09:00", freq="h", periods=10, tz=tz)
         self._check_value_counts_with_repeats(orig)
 
     def test_value_counts_unique_timedeltaindex(self):
-        orig = timedelta_range("1 days 09:00:00", freq="H", periods=10)
+        orig = timedelta_range("1 days 09:00:00", freq="h", periods=10)
         self._check_value_counts_with_repeats(orig)
 
     def test_value_counts_unique_periodindex(self):
-        orig = period_range("2011-01-01 09:00", freq="H", periods=10)
+        orig = period_range("2011-01-01 09:00", freq="h", periods=10)
         self._check_value_counts_with_repeats(orig)
 
     def _check_value_counts_with_repeats(self, orig):
@@ -38,7 +38,7 @@ class TestValueCounts:
         exp_idx = orig[::-1]
         if not isinstance(exp_idx, PeriodIndex):
             exp_idx = exp_idx._with_freq(None)
-        expected = Series(range(10, 0, -1), index=exp_idx, dtype="int64")
+        expected = Series(range(10, 0, -1), index=exp_idx, dtype="int64", name="count")
 
         for obj in [idx, Series(idx)]:
             tm.assert_series_equal(obj.value_counts(), expected)
@@ -83,19 +83,19 @@ class TestValueCounts:
                 "2013-01-01 08:00",
                 NaT,
             ],
-            freq="H",
+            freq="h",
         )
         self._check_value_counts_dropna(idx)
 
     def _check_value_counts_dropna(self, idx):
         exp_idx = idx[[2, 3]]
-        expected = Series([3, 2], index=exp_idx)
+        expected = Series([3, 2], index=exp_idx, name="count")
 
         for obj in [idx, Series(idx)]:
             tm.assert_series_equal(obj.value_counts(), expected)
 
         exp_idx = idx[[2, 3, -1]]
-        expected = Series([3, 2, 1], index=exp_idx)
+        expected = Series([3, 2, 1], index=exp_idx, name="count")
 
         for obj in [idx, Series(idx)]:
             tm.assert_series_equal(obj.value_counts(dropna=False), expected)

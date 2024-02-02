@@ -91,10 +91,10 @@ class TestAppend:
         tm.assert_frame_equal(df5, expected)
 
     def test_append_records(self):
-        arr1 = np.zeros((2,), dtype=("i4,f4,a10"))
+        arr1 = np.zeros((2,), dtype=("i4,f4,S10"))
         arr1[:] = [(1, 2.0, "Hello"), (2, 3.0, "World")]
 
-        arr2 = np.zeros((3,), dtype=("i4,f4,a10"))
+        arr2 = np.zeros((3,), dtype=("i4,f4,S10"))
         arr2[:] = [(3, 4.0, "foo"), (5, 6.0, "bar"), (7.0, 8.0, "baz")]
 
         df1 = DataFrame(arr1)
@@ -123,9 +123,9 @@ class TestAppend:
     def test_append_different_columns(self, sort):
         df = DataFrame(
             {
-                "bools": np.random.randn(10) > 0,
-                "ints": np.random.randint(0, 10, 10),
-                "floats": np.random.randn(10),
+                "bools": np.random.default_rng(2).standard_normal(10) > 0,
+                "ints": np.random.default_rng(2).integers(0, 10, 10),
+                "floats": np.random.default_rng(2).standard_normal(10),
                 "strings": ["foo", "bar"] * 5,
             }
         )
@@ -162,7 +162,9 @@ class TestAppend:
         df2 = DataFrame(data=[[1, 4, 7], [2, 5, 8], [3, 6, 9]], columns=["A", "B", "C"])
         df2 = df2.set_index(["A"])
 
-        result = df1._append(df2)
+        msg = "The behavior of array concatenation with empty entries is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df1._append(df2)
         assert result.index.name == "A"
 
     indexes_can_append = [
@@ -172,7 +174,7 @@ class TestAppend:
         Index(list("abc")),
         pd.CategoricalIndex("A B C".split()),
         pd.CategoricalIndex("D E F".split(), ordered=True),
-        pd.IntervalIndex.from_breaks([7, 8, 9, 10], inclusive="right"),
+        pd.IntervalIndex.from_breaks([7, 8, 9, 10]),
         pd.DatetimeIndex(
             [
                 dt.datetime(2013, 1, 3, 0, 0),
@@ -244,7 +246,6 @@ class TestAppend:
         tm.assert_frame_equal(result, expected)
 
     def test_append_dtype_coerce(self, sort):
-
         # GH 4993
         # appending with datetime will incorrectly convert datetime64
 
@@ -333,14 +334,13 @@ class TestAppend:
 
         # pd.NaT gets inferred as tz-naive, so append result is tz-naive
         result = df._append({"a": pd.NaT}, ignore_index=True)
-        expected = DataFrame({"a": [pd.NaT]}).astype(object)
+        expected = DataFrame({"a": [np.nan]}, dtype=object)
         tm.assert_frame_equal(result, expected)
 
         # also test with typed value to append
         df = DataFrame(columns=["a"]).astype("datetime64[ns, UTC]")
         other = Series({"a": pd.NaT}, dtype="datetime64[ns]")
         result = df._append(other, ignore_index=True)
-        expected = DataFrame({"a": [pd.NaT]}).astype(object)
         tm.assert_frame_equal(result, expected)
 
         # mismatched tz
@@ -361,6 +361,12 @@ class TestAppend:
         result = df._append(other, ignore_index=True)
 
         expected = other.astype(object)
+        if isinstance(val, str) and dtype_str != "int64":
+            # TODO: expected used to be `other.astype(object)` which is a more
+            #  reasonable result.  This was changed when tightening
+            #  assert_frame_equal's treatment of mismatched NAs to match the
+            #  existing behavior.
+            expected = DataFrame({"a": [np.nan]}, dtype=object)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(

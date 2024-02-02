@@ -25,7 +25,6 @@ except ImportError:
 
 
 class PeriodProperties:
-
     params = (
         ["M", "min"],
         [
@@ -56,12 +55,15 @@ class PeriodProperties:
 
 
 class PeriodUnaryMethods:
-
     params = ["M", "min"]
     param_names = ["freq"]
 
     def setup(self, freq):
         self.per = Period("2012-06-01", freq=freq)
+        if freq == "M":
+            self.default_fmt = "%Y-%m"
+        elif freq == "min":
+            self.default_fmt = "%Y-%m-%d %H:%M"
 
     def time_to_timestamp(self, freq):
         self.per.to_timestamp()
@@ -70,7 +72,22 @@ class PeriodUnaryMethods:
         self.per.now(freq)
 
     def time_asfreq(self, freq):
-        self.per.asfreq("A")
+        self.per.asfreq("Y")
+
+    def time_str(self, freq):
+        str(self.per)
+
+    def time_repr(self, freq):
+        repr(self.per)
+
+    def time_strftime_default(self, freq):
+        self.per.strftime(None)
+
+    def time_strftime_default_explicit(self, freq):
+        self.per.strftime(self.default_fmt)
+
+    def time_strftime_custom(self, freq):
+        self.per.strftime("%b. %d, %Y was a %A")
 
 
 class PeriodConstructor:
@@ -134,7 +151,11 @@ class TimeDT64ArrToPeriodArr:
             # tzlocal is cumbersomely slow, so skip to keep runtime in check
             raise NotImplementedError
 
-        arr = np.arange(10, dtype="i8").repeat(size // 10)
+        # we pick 2**55 because smaller values end up returning
+        # -1 from npy_datetimestruct_to_datetime with NPY_FR_Y frequency
+        # this artificially slows down functions since -1 is also the
+        # error sentinel
+        arr = np.arange(2**55, 2**55 + 10, dtype="i8").repeat(size // 10)
         self.i8values = arr
 
     def time_dt64arr_to_periodarr(self, size, freq, tz):

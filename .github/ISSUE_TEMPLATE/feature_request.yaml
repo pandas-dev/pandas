@@ -1,0 +1,72 @@
+name: Feature Request
+description: Suggest an idea for pandas
+title: "ENH: "
+labels: [Enhancement, Needs Triage]
+
+body:
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Feature Type
+      description: Please check what type of feature request you would like to propose.
+      options:
+        - label: >
+            Adding new functionality to pandas
+        - label: >
+            Changing existing functionality in pandas
+        - label: >
+            Removing existing functionality in pandas
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem Description
+      description: >
+        Please describe what problem the feature would solve, e.g. "I wish I could use pandas to ..."
+      placeholder: >
+        I wish I could use pandas to return a Series from a DataFrame when possible.
+    validations:
+      required: true
+  - type: textarea
+    id: feature
+    attributes:
+      label: Feature Description
+      description: >
+        Please describe how the new feature would be implemented, using psudocode if relevant.
+      placeholder: >
+        Add a new parameter to DataFrame, to_series, to return a Series if possible.
+
+        def __init__(self, ..., to_series: bool=False):
+            """
+            Parameters
+            ----------
+            ...
+
+            to_series : bool, default False
+                Return a Series if possible
+            """
+            if to_series:
+                return Series(data)
+    validations:
+      required: true
+  - type: textarea
+    id: alternative
+    attributes:
+      label: Alternative Solutions
+      description: >
+        Please describe any alternative solution (existing functionality, 3rd party package, etc.)
+        that would satisfy the feature request.
+      placeholder: >
+        Write a custom function to return a Series when possible.
+
+        def to_series(...)
+           result = pd.DataFrame(...)
+           ...
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: >
+        Please provide any relevant GitHub issues, code examples or references that help describe and support
+        the feature request.

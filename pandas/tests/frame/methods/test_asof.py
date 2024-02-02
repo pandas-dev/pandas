@@ -29,7 +29,8 @@ def date_range_frame():
 
 class TestFrameAsof:
     def test_basic(self, date_range_frame):
-        df = date_range_frame
+        # Explicitly cast to float to avoid implicit cast when setting np.nan
+        df = date_range_frame.astype({"A": "float"})
         N = 50
         df.loc[df.index[15:30], "A"] = np.nan
         dates = date_range("1/1/1990", periods=N * 3, freq="25s")
@@ -50,7 +51,8 @@ class TestFrameAsof:
 
     def test_subset(self, date_range_frame):
         N = 10
-        df = date_range_frame.iloc[:N].copy()
+        # explicitly cast to float to avoid implicit upcast when setting to np.nan
+        df = date_range_frame.iloc[:N].copy().astype({"A": "float"})
         df.loc[df.index[4:8], "A"] = np.nan
         dates = date_range("1/1/1990", periods=N * 3, freq="25s")
 
@@ -77,7 +79,8 @@ class TestFrameAsof:
         # GH 15118
         # no match found - `where` value before earliest date in index
         N = 10
-        df = date_range_frame.iloc[:N].copy()
+        # Cast to 'float64' to avoid upcast when introducing nan in df.asof
+        df = date_range_frame.iloc[:N].copy().astype("float64")
 
         result = df.asof("1989-12-31")
 
@@ -163,7 +166,7 @@ class TestFrameAsof:
     def test_is_copy(self, date_range_frame):
         # GH-27357, GH-30784: ensure the result of asof is an actual copy and
         # doesn't track the parent dataframe / doesn't give SettingWithCopy warnings
-        df = date_range_frame
+        df = date_range_frame.astype({"A": "float"})
         N = 50
         df.loc[df.index[15:30], "A"] = np.nan
         dates = date_range("1/1/1990", periods=N * 3, freq="25s")
@@ -175,8 +178,8 @@ class TestFrameAsof:
 
     def test_asof_periodindex_mismatched_freq(self):
         N = 50
-        rng = period_range("1/1/1990", periods=N, freq="H")
-        df = DataFrame(np.random.randn(N), index=rng)
+        rng = period_range("1/1/1990", periods=N, freq="h")
+        df = DataFrame(np.random.default_rng(2).standard_normal(N), index=rng)
 
         # Mismatched freq
         msg = "Input has different freq"

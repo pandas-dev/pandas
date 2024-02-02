@@ -2,18 +2,15 @@ import numpy as np
 
 from pandas import (
     DataFrame,
+    Index,
     date_range,
     read_stata,
 )
 
-from ..pandas_vb_common import (
-    BaseIO,
-    tm,
-)
+from ..pandas_vb_common import BaseIO
 
 
 class Stata(BaseIO):
-
     params = ["tc", "td", "tm", "tw", "th", "tq", "ty"]
     param_names = ["convert_dates"]
 
@@ -24,9 +21,9 @@ class Stata(BaseIO):
         self.df = DataFrame(
             np.random.randn(N, C),
             columns=[f"float{i}" for i in range(C)],
-            index=date_range("20000101", periods=N, freq="H"),
+            index=date_range("20000101", periods=N, freq="h"),
         )
-        self.df["object"] = tm.makeStringIndex(self.N)
+        self.df["object"] = Index([f"i-{i}" for i in range(self.N)], dtype=object)
         self.df["int8_"] = np.random.randint(
             np.iinfo(np.int8).min, np.iinfo(np.int8).max - 27, N
         )
@@ -38,13 +35,13 @@ class Stata(BaseIO):
         )
         self.df["float32_"] = np.array(np.random.randn(N), dtype=np.float32)
         self.convert_dates = {"index": convert_dates}
-        self.df.to_stata(self.fname, self.convert_dates)
+        self.df.to_stata(self.fname, convert_dates=self.convert_dates)
 
     def time_read_stata(self, convert_dates):
         read_stata(self.fname)
 
     def time_write_stata(self, convert_dates):
-        self.df.to_stata(self.fname, self.convert_dates)
+        self.df.to_stata(self.fname, convert_dates=self.convert_dates)
 
 
 class StataMissing(Stata):
@@ -54,7 +51,7 @@ class StataMissing(Stata):
             missing_data = np.random.randn(self.N)
             missing_data[missing_data < 0] = np.nan
             self.df[f"missing_{i}"] = missing_data
-        self.df.to_stata(self.fname, self.convert_dates)
+        self.df.to_stata(self.fname, convert_dates=self.convert_dates)
 
 
 from ..pandas_vb_common import setup  # noqa: F401 isort:skip

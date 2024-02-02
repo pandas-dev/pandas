@@ -347,7 +347,7 @@ Enhancements
       .. ipython:: python
 
           df = pd.DataFrame({'A': range(5), 'B': range(5)})
-          df.to_hdf('store.h5', 'table', append=True)
+          df.to_hdf('store.h5', key='table', append=True)
           pd.read_hdf('store.h5', 'table', where=['index > 2'])
 
       .. ipython:: python
@@ -367,15 +367,27 @@ Enhancements
 
   - You can now select with a string from a DataFrame with a datelike index, in a similar way to a Series (:issue:`3070`)
 
-    .. ipython:: python
-       :okwarning:
+    .. code-block:: ipython
 
-        idx = pd.date_range("2001-10-1", periods=5, freq='M')
-        ts = pd.Series(np.random.rand(len(idx)), index=idx)
-        ts['2001']
+     In [30]: idx = pd.date_range("2001-10-1", periods=5, freq='M')
 
-        df = pd.DataFrame({'A': ts})
-        df['2001']
+     In [31]: ts = pd.Series(np.random.rand(len(idx)), index=idx)
+
+     In [32]: ts['2001']
+     Out[32]:
+     2001-10-31    0.117967
+     2001-11-30    0.702184
+     2001-12-31    0.414034
+     Freq: M, dtype: float64
+
+     In [33]: df = pd.DataFrame({'A': ts})
+
+     In [34]: df['2001']
+     Out[34]:
+                        A
+     2001-10-31  0.117967
+     2001-11-30  0.702184
+     2001-12-31  0.414034
 
   - ``Squeeze`` to possibly remove length 1 dimensions from an object.
 

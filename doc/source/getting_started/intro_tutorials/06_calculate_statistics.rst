@@ -9,13 +9,13 @@
 .. raw:: html
 
     <div class="card gs-data">
-        <div class="card-header">
+        <div class="card-header gs-data-header">
             <div class="gs-data-title">
                 Data used for this tutorial:
             </div>
         </div>
         <ul class="list-group list-group-flush">
-            <li class="list-group-item">
+            <li class="list-group-item gs-data-list">
 
 .. include:: includes/titanic.rst
 
@@ -30,8 +30,8 @@
         </ul>
     </div>
 
-How to calculate summary statistics?
-------------------------------------
+How to calculate summary statistics
+-----------------------------------
 
 Aggregating statistics
 ~~~~~~~~~~~~~~~~~~~~~~

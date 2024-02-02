@@ -4,7 +4,7 @@ import pytest
 import pandas as pd
 from pandas import (
     DataFrame,
-    Index,
+    RangeIndex,
     Series,
     concat,
     date_range,
@@ -13,18 +13,22 @@ import pandas._testing as tm
 
 
 class TestEmptyConcat:
-    def test_handle_empty_objects(self, sort):
-        df = DataFrame(np.random.randn(10, 4), columns=list("abcd"))
+    def test_handle_empty_objects(self, sort, using_infer_string):
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)), columns=list("abcd")
+        )
 
-        baz = df[:5].copy()
-        baz["foo"] = "bar"
+        dfcopy = df[:5].copy()
+        dfcopy["foo"] = "bar"
         empty = df[5:5]
 
-        frames = [baz, empty, empty, df[5:]]
+        frames = [dfcopy, empty, empty, df[5:]]
         concatted = concat(frames, axis=0, sort=sort)
 
         expected = df.reindex(columns=["a", "b", "c", "d", "foo"])
-        expected["foo"] = expected["foo"].astype("O")
+        expected["foo"] = expected["foo"].astype(
+            object if not using_infer_string else "string[pyarrow_numpy]"
+        )
         expected.loc[0:4, "foo"] = "bar"
 
         tm.assert_frame_equal(concatted, expected)
@@ -52,13 +56,15 @@ class TestEmptyConcat:
         res = concat([s1, s2], axis=1)
         exp = DataFrame(
             {"x": [1, 2, 3], "y": [np.nan, np.nan, np.nan]},
-            index=Index([0, 1, 2], dtype="O"),
+            index=RangeIndex(3),
         )
         tm.assert_frame_equal(res, exp)
 
         s1 = Series([1, 2, 3], name="x")
         s2 = Series(name="y", dtype="float64")
-        res = concat([s1, s2], axis=0)
+        msg = "The behavior of array concatenation with empty entries is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = concat([s1, s2], axis=0)
         # name will be reset
         exp = Series([1, 2, 3])
         tm.assert_series_equal(res, exp)
@@ -70,7 +76,7 @@ class TestEmptyConcat:
         exp = DataFrame(
             {"x": [1, 2, 3], 0: [np.nan, np.nan, np.nan]},
             columns=["x", 0],
-            index=Index([0, 1, 2], dtype="O"),
+            index=RangeIndex(3),
         )
         tm.assert_frame_equal(res, exp)
 
@@ -96,7 +102,7 @@ class TestEmptyConcat:
         "left,right,expected",
         [
             # booleans
-            (np.bool_, np.int32, np.int32),
+            (np.bool_, np.int32, np.object_),  # changed from int32 in 2.0 GH#39817
             (np.bool_, np.float32, np.object_),
             # datetime-like
             ("m8[ns]", np.bool_, np.object_),
@@ -109,12 +115,8 @@ class TestEmptyConcat:
         ],
     )
     def test_concat_empty_series_dtypes(self, left, right, expected):
-        warn = None
-        if (left is np.bool_ or right is np.bool_) and expected is not np.object_:
-            warn = FutureWarning
-        with tm.assert_produces_warning(warn, match="concatenating bool-dtype"):
-            # GH#39817
-            result = concat([Series(dtype=left), Series(dtype=right)])
+        # GH#39817, GH#45101
+        result = concat([Series(dtype=left), Series(dtype=right)])
         assert result.dtype == expected
 
     @pytest.mark.parametrize(
@@ -135,10 +137,9 @@ class TestEmptyConcat:
         ["float64", "int8", "uint8", "m8[ns]", "M8[ns]"],
     )
     def test_concat_empty_series_dtypes_roundtrips(self, dtype, dtype2):
-
         # round-tripping with self & like self
         if dtype == dtype2:
-            return
+            pytest.skip("same dtype is not applicable for test")
 
         def int_result_type(dtype, dtype2):
             typs = {dtype.kind, dtype2.kind}
@@ -176,7 +177,6 @@ class TestEmptyConcat:
         assert result.kind == expected
 
     def test_concat_empty_series_dtypes_triple(self):
-
         assert (
             concat(
                 [Series(dtype="M8[ns]"), Series(dtype=np.bool_), Series(dtype=np.int64)]
@@ -242,14 +242,15 @@ class TestEmptyConcat:
         # GH 15328
         df_empty = DataFrame()
         df_a = DataFrame({"a": [1, 2]}, index=[0, 1], dtype="int64")
-        df_expected = DataFrame({"a": []}, index=[], dtype="int64")
+        df_expected = DataFrame({"a": []}, index=RangeIndex(0), dtype="int64")
 
-        for how, expected in [("inner", df_expected), ("outer", df_a)]:
-            result = concat([df_a, df_empty], axis=1, join=how)
-            tm.assert_frame_equal(result, expected)
+        result = concat([df_a, df_empty], axis=1, join="inner")
+        tm.assert_frame_equal(result, df_expected)
+
+        result = concat([df_a, df_empty], axis=1, join="outer")
+        tm.assert_frame_equal(result, df_a)
 
     def test_empty_dtype_coerce(self):
-
         # xref to #12411
         # xref to #12045
         # xref to #11594
@@ -276,11 +277,19 @@ class TestEmptyConcat:
         expected = DataFrame(columns=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
-    def test_concat_empty_dataframe_different_dtypes(self):
+    def test_concat_empty_dataframe_different_dtypes(self, using_infer_string):
         # 39037
         df1 = DataFrame({"a": [1, 2, 3], "b": ["a", "b", "c"]})
         df2 = DataFrame({"a": [1, 2, 3]})
 
         result = concat([df1[:0], df2[:0]])
         assert result["a"].dtype == np.int64
-        assert result["b"].dtype == np.object_
+        assert result["b"].dtype == np.object_ if not using_infer_string else "string"
+
+    def test_concat_to_empty_ea(self):
+        """48510 `concat` to an empty EA should maintain type EA dtype."""
+        df_empty = DataFrame({"a": pd.array([], dtype=pd.Int64Dtype())})
+        df_new = DataFrame({"a": pd.array([1, 2, 3], dtype=pd.Int64Dtype())})
+        expected = df_new.copy()
+        result = concat([df_empty, df_new])
+        tm.assert_frame_equal(result, expected)

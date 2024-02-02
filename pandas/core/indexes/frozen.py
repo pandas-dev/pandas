@@ -8,17 +8,23 @@ These are used for:
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import (
+    TYPE_CHECKING,
+    NoReturn,
+)
 
 from pandas.core.base import PandasObject
 
 from pandas.io.formats.printing import pprint_thing
 
+if TYPE_CHECKING:
+    from pandas._typing import Self
+
 
 class FrozenList(PandasObject, list):
     """
     Container that doesn't allow setting item *but*
-    because it's technically non-hashable, will be used
+    because it's technically hashable, will be used
     for lookups, appropriately, etc.
     """
 
@@ -62,26 +68,29 @@ class FrozenList(PandasObject, list):
         return type(self)(temp)
 
     # TODO: Consider deprecating these in favor of `union` (xref gh-15506)
-    __add__ = __iadd__ = union
+    # error: Incompatible types in assignment (expression has type
+    # "Callable[[FrozenList, Any], FrozenList]", base class "list" defined the
+    # type as overloaded function)
+    __add__ = __iadd__ = union  # type: ignore[assignment]
 
     def __getitem__(self, n):
         if isinstance(n, slice):
             return type(self)(super().__getitem__(n))
         return super().__getitem__(n)
 
-    def __radd__(self, other):
+    def __radd__(self, other) -> Self:
         if isinstance(other, tuple):
             other = list(other)
         return type(self)(other + list(self))
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, (tuple, FrozenList)):
             other = list(other)
         return super().__eq__(other)
 
     __req__ = __eq__
 
-    def __mul__(self, other):
+    def __mul__(self, other) -> Self:
         return type(self)(super().__mul__(other))
 
     __imul__ = __mul__
@@ -89,10 +98,11 @@ class FrozenList(PandasObject, list):
     def __reduce__(self):
         return type(self), (list(self),)
 
-    def __hash__(self):
+    # error: Signature of "__hash__" incompatible with supertype "list"
+    def __hash__(self) -> int:  # type: ignore[override]
         return hash(tuple(self))
 
-    def _disabled(self, *args, **kwargs):
+    def _disabled(self, *args, **kwargs) -> NoReturn:
         """
         This method will not function because object is immutable.
         """
@@ -102,7 +112,7 @@ class FrozenList(PandasObject, list):
         return pprint_thing(self, quote_strings=True, escape_chars=("\t", "\r", "\n"))
 
     def __repr__(self) -> str:
-        return f"{type(self).__name__}({str(self)})"
+        return f"{type(self).__name__}({self!s})"
 
     __setitem__ = __setslice__ = _disabled  # type: ignore[assignment]
     __delitem__ = __delslice__ = _disabled

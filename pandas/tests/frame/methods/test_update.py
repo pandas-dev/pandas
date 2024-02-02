@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -46,7 +44,6 @@ class TestDataFrameUpdate:
         tm.assert_frame_equal(df, expected)
 
     def test_update_dtypes(self):
-
         # gh 3016
         df = DataFrame(
             [[1.0, 2.0, False, True], [4.0, 5.0, True, False]],
@@ -136,26 +133,67 @@ class TestDataFrameUpdate:
     def test_update_datetime_tz(self):
         # GH 25807
         result = DataFrame([pd.Timestamp("2019", tz="UTC")])
-        result.update(result)
+        with tm.assert_produces_warning(None):
+            result.update(result)
         expected = DataFrame([pd.Timestamp("2019", tz="UTC")])
         tm.assert_frame_equal(result, expected)
 
-    def test_update_with_different_dtype(self):
+    def test_update_datetime_tz_in_place(self, using_copy_on_write, warn_copy_on_write):
+        # https://github.com/pandas-dev/pandas/issues/56227
+        result = DataFrame([pd.Timestamp("2019", tz="UTC")])
+        orig = result.copy()
+        view = result[:]
+        with tm.assert_produces_warning(
+            FutureWarning if warn_copy_on_write else None, match="Setting a value"
+        ):
+            result.update(result + pd.Timedelta(days=1))
+        expected = DataFrame([pd.Timestamp("2019-01-02", tz="UTC")])
+        tm.assert_frame_equal(result, expected)
+        if not using_copy_on_write:
+            tm.assert_frame_equal(view, expected)
+        else:
+            tm.assert_frame_equal(view, orig)
+
+    def test_update_with_different_dtype(self, using_copy_on_write):
         # GH#3217
         df = DataFrame({"a": [1, 3], "b": [np.nan, 2]})
         df["c"] = np.nan
-        df["c"].update(Series(["foo"], index=[0]))
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            df.update({"c": Series(["foo"], index=[0])})
 
-        expected = DataFrame({"a": [1, 3], "b": [np.nan, 2], "c": ["foo", np.nan]})
+        expected = DataFrame(
+            {
+                "a": [1, 3],
+                "b": [np.nan, 2],
+                "c": Series(["foo", np.nan], dtype="object"),
+            }
+        )
         tm.assert_frame_equal(df, expected)
 
-    @td.skip_array_manager_invalid_test
-    def test_update_modify_view(self):
+    def test_update_modify_view(
+        self, using_copy_on_write, warn_copy_on_write, using_infer_string
+    ):
         # GH#47188
         df = DataFrame({"A": ["1", np.nan], "B": ["100", np.nan]})
         df2 = DataFrame({"A": ["a", "x"], "B": ["100", "200"]})
+        df2_orig = df2.copy()
         result_view = df2[:]
-        df2.update(df)
+        # TODO(CoW-warn) better warning message
+        with tm.assert_cow_warning(warn_copy_on_write):
+            df2.update(df)
         expected = DataFrame({"A": ["1", "x"], "B": ["100", "200"]})
         tm.assert_frame_equal(df2, expected)
-        tm.assert_frame_equal(result_view, expected)
+        if using_copy_on_write or using_infer_string:
+            tm.assert_frame_equal(result_view, df2_orig)
+        else:
+            tm.assert_frame_equal(result_view, expected)
+
+    def test_update_dt_column_with_NaT_create_column(self):
+        # GH#16713
+        df = DataFrame({"A": [1, None], "B": [pd.NaT, pd.to_datetime("2016-01-01")]})
+        df2 = DataFrame({"A": [2, 3]})
+        df.update(df2, overwrite=False)
+        expected = DataFrame(
+            {"A": [1.0, 3.0], "B": [pd.NaT, pd.to_datetime("2016-01-01")]}
+        )
+        tm.assert_frame_equal(df, expected)

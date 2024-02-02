@@ -8,12 +8,17 @@ from io import StringIO
 
 import pytest
 
+from pandas.compat import PY311
 from pandas.errors import ParserError
 
 from pandas import DataFrame
 import pandas._testing as tm
 
-pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 @pytest.mark.parametrize(
@@ -27,6 +32,7 @@ pytestmark = pytest.mark.usefixtures("pyarrow_skip")
         ({"quotechar": 2}, '"quotechar" must be string( or None)?, not int'),
     ],
 )
+@skip_pyarrow  # ParserError: CSV parse error: Empty CSV file or block
 def test_bad_quote_char(all_parsers, kwargs, msg):
     data = "1,2,3"
     parser = all_parsers
@@ -38,10 +44,11 @@ def test_bad_quote_char(all_parsers, kwargs, msg):
 @pytest.mark.parametrize(
     "quoting,msg",
     [
-        ("foo", '"quoting" must be an integer'),
-        (5, 'bad "quoting" value'),  # quoting must be in the range [0, 3]
+        ("foo", '"quoting" must be an integer|Argument'),
+        (10, 'bad "quoting" value'),  # quoting must be in the range [0, 3]
     ],
 )
+@xfail_pyarrow  # ValueError: The 'quoting' option is not supported
 def test_bad_quoting(all_parsers, quoting, msg):
     data = "1,2,3"
     parser = all_parsers
@@ -71,6 +78,7 @@ def test_quote_char_various(all_parsers, quote_char):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # ValueError: The 'quoting' option is not supported
 @pytest.mark.parametrize("quoting", [csv.QUOTE_MINIMAL, csv.QUOTE_NONE])
 @pytest.mark.parametrize("quote_char", ["", None])
 def test_null_quote_char(all_parsers, quoting, quote_char):
@@ -80,11 +88,16 @@ def test_null_quote_char(all_parsers, quoting, quote_char):
 
     if quoting != csv.QUOTE_NONE:
         # Sanity checking.
-        msg = "quotechar must be set if quoting enabled"
+        msg = (
+            '"quotechar" must be a 1-character string'
+            if PY311 and all_parsers.engine == "python" and quote_char == ""
+            else "quotechar must be set if quoting enabled"
+        )
 
         with pytest.raises(TypeError, match=msg):
             parser.read_csv(StringIO(data), **kwargs)
-    else:
+    elif not (PY311 and all_parsers.engine == "python"):
+        # Python 3.11+ doesn't support null/blank quote chars in their csv parsers
         expected = DataFrame([[1, 2, 3]], columns=["a", "b", "c"])
         result = parser.read_csv(StringIO(data), **kwargs)
         tm.assert_frame_equal(result, expected)
@@ -106,6 +119,7 @@ def test_null_quote_char(all_parsers, quoting, quote_char):
         ({"quotechar": '"', "quoting": csv.QUOTE_NONNUMERIC}, [[1.0, 2.0, "foo"]]),
     ],
 )
+@xfail_pyarrow  # ValueError: The 'quoting' option is not supported
 def test_quoting_various(all_parsers, kwargs, exp_data):
     data = '1,2,"foo"'
     parser = all_parsers
@@ -119,9 +133,13 @@ def test_quoting_various(all_parsers, kwargs, exp_data):
 @pytest.mark.parametrize(
     "doublequote,exp_data", [(True, [[3, '4 " 5']]), (False, [[3, '4 " 5"']])]
 )
-def test_double_quote(all_parsers, doublequote, exp_data):
+def test_double_quote(all_parsers, doublequote, exp_data, request):
     parser = all_parsers
     data = 'a,b\n3,"4 "" 5"'
+
+    if parser.engine == "pyarrow" and not doublequote:
+        mark = pytest.mark.xfail(reason="Mismatched result")
+        request.applymarker(mark)
 
     result = parser.read_csv(StringIO(data), quotechar='"', doublequote=doublequote)
     expected = DataFrame(exp_data, columns=["a", "b"])
@@ -140,10 +158,14 @@ def test_quotechar_unicode(all_parsers, quotechar):
 
 
 @pytest.mark.parametrize("balanced", [True, False])
-def test_unbalanced_quoting(all_parsers, balanced):
+def test_unbalanced_quoting(all_parsers, balanced, request):
     # see gh-22789.
     parser = all_parsers
     data = 'a,b,c\n1,2,"3'
+
+    if parser.engine == "pyarrow" and not balanced:
+        mark = pytest.mark.xfail(reason="Mismatched result")
+        request.applymarker(mark)
 
     if balanced:
         # Re-balance the quoting and read in without errors.

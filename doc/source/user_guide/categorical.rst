@@ -263,14 +263,6 @@ All instances of ``CategoricalDtype`` compare equal to the string ``'category'``
 
    c1 == "category"
 
-.. warning::
-
-   Since ``dtype='category'`` is essentially ``CategoricalDtype(None, False)``,
-   and since all instances ``CategoricalDtype`` compare equal to ``'category'``,
-   all instances of ``CategoricalDtype`` compare equal to a
-   ``CategoricalDtype(None, False)``, regardless of ``categories`` or
-   ``ordered``.
-
 Description
 -----------
 
@@ -334,8 +326,7 @@ It's also possible to pass in the categories in a specific order:
 Renaming categories
 ~~~~~~~~~~~~~~~~~~~
 
-Renaming categories is done by assigning new values to the
-``Series.cat.categories`` property or by using the
+Renaming categories is done by using the
 :meth:`~pandas.Categorical.rename_categories` method:
 
 
@@ -343,9 +334,8 @@ Renaming categories is done by assigning new values to the
 
     s = pd.Series(["a", "b", "c", "a"], dtype="category")
     s
-    s.cat.categories = ["Group %s" % g for g in s.cat.categories]
-    s
-    s = s.cat.rename_categories([1, 2, 3])
+    new_categories = ["Group %s" % g for g in s.cat.categories]
+    s = s.cat.rename_categories(new_categories)
     s
     # You can also pass a dict-like object to map the renaming
     s = s.cat.rename_categories({1: "x", 2: "y", 3: "z"})
@@ -355,17 +345,12 @@ Renaming categories is done by assigning new values to the
 
     In contrast to R's ``factor``, categorical data can have categories of other types than string.
 
-.. note::
-
-    Be aware that assigning new categories is an inplace operation, while most other operations
-    under ``Series.cat`` per default return a new ``Series`` of dtype ``category``.
-
 Categories must be unique or a ``ValueError`` is raised:
 
 .. ipython:: python
 
     try:
-        s.cat.categories = [1, 1, 1]
+        s = s.cat.rename_categories([1, 1, 1])
     except ValueError as e:
         print("ValueError:", str(e))
 
@@ -374,7 +359,7 @@ Categories must also not be ``NaN`` or a ``ValueError`` is raised:
 .. ipython:: python
 
     try:
-        s.cat.categories = [1, 2, np.nan]
+        s = s.cat.rename_categories([1, 2, np.nan])
     except ValueError as e:
         print("ValueError:", str(e))
 
@@ -444,9 +429,9 @@ meaning and certain operations are possible. If the categorical is unordered, ``
 .. ipython:: python
 
     s = pd.Series(pd.Categorical(["a", "b", "c", "a"], ordered=False))
-    s.sort_values(inplace=True)
+    s = s.sort_values()
     s = pd.Series(["a", "b", "c", "a"]).astype(CategoricalDtype(ordered=True))
-    s.sort_values(inplace=True)
+    s = s.sort_values()
     s
     s.min(), s.max()
 
@@ -466,7 +451,7 @@ This is even true for strings and numeric data:
     s = pd.Series([1, 2, 3, 1], dtype="category")
     s = s.cat.set_categories([2, 3, 1], ordered=True)
     s
-    s.sort_values(inplace=True)
+    s = s.sort_values()
     s
     s.min(), s.max()
 
@@ -484,7 +469,7 @@ necessarily make the sort order the same as the categories order.
     s = pd.Series([1, 2, 3, 1], dtype="category")
     s = s.cat.reorder_categories([2, 3, 1], ordered=True)
     s
-    s.sort_values(inplace=True)
+    s = s.sort_values()
     s
     s.min(), s.max()
 
@@ -622,7 +607,7 @@ even if some categories are not present in the data:
     s = pd.Series(pd.Categorical(["a", "b", "c", "c"], categories=["c", "a", "b", "d"]))
     s.value_counts()
 
-``DataFrame`` methods like :meth:`DataFrame.sum` also show "unused" categories.
+``DataFrame`` methods like :meth:`DataFrame.sum` also show "unused" categories when ``observed=False``.
 
 .. ipython:: python
 
@@ -632,10 +617,10 @@ even if some categories are not present in the data:
     df = pd.DataFrame(
         data=[[1, 2, 3], [4, 5, 6]],
         columns=pd.MultiIndex.from_arrays([["A", "B", "B"], columns]),
-    )
-    df.groupby(axis=1, level=1).sum()
+    ).T
+    df.groupby(level=1, observed=False).sum()
 
-Groupby will also show "unused" categories:
+Groupby will also show "unused" categories when ``observed=False``:
 
 .. ipython:: python
 
@@ -643,7 +628,7 @@ Groupby will also show "unused" categories:
         ["a", "b", "b", "b", "c", "c", "c"], categories=["a", "b", "c", "d"]
     )
     df = pd.DataFrame({"cats": cats, "values": [1, 2, 2, 2, 3, 4, 5]})
-    df.groupby("cats").mean()
+    df.groupby("cats", observed=False).mean()
 
     cats2 = pd.Categorical(["a", "a", "b", "b"], categories=["a", "b", "c"])
     df2 = pd.DataFrame(
@@ -653,7 +638,7 @@ Groupby will also show "unused" categories:
             "values": [1, 2, 3, 4],
         }
     )
-    df2.groupby(["cats", "B"]).mean()
+    df2.groupby(["cats", "B"], observed=False).mean()
 
 
 Pivot tables:
@@ -662,7 +647,7 @@ Pivot tables:
 
     raw_cat = pd.Categorical(["a", "a", "b", "b"], categories=["a", "b", "c"])
     df = pd.DataFrame({"A": raw_cat, "B": ["c", "d", "c", "d"], "values": [1, 2, 3, 4]})
-    pd.pivot_table(df, values="values", index=["A", "B"])
+    pd.pivot_table(df, values="values", index=["A", "B"], observed=False)
 
 Data munging
 ------------
@@ -702,7 +687,7 @@ of length "1".
 .. ipython:: python
 
     df.iat[0, 0]
-    df["cats"].cat.categories = ["x", "y", "z"]
+    df["cats"] = df["cats"].cat.rename_categories(["x", "y", "z"])
     df.at["h", "cats"]  # returns a string
 
 .. note::
@@ -794,6 +779,7 @@ Setting values by assigning categorical data will also check that the ``categori
 Assigning a ``Categorical`` to parts of a column of other types will use the values:
 
 .. ipython:: python
+    :okwarning:
 
     df = pd.DataFrame({"a": [1, 1, 1, 1, 1], "b": ["a", "a", "a", "a", "a"]})
     df.loc[1:2, "a"] = pd.Categorical(["b", "b"], categories=["a", "b"])
@@ -846,9 +832,6 @@ The following table summarizes the results of merging ``Categoricals``:
 | category (int)    | category (float)       | False                | float (dtype is inferred)   |
 +-------------------+------------------------+----------------------+-----------------------------+
 
-See also the section on :ref:`merge dtypes<merging.dtypes>` for notes about
-preserving merge dtypes and performance.
-
 .. _categorical.union:
 
 Unioning
@@ -887,13 +870,12 @@ categoricals of the same categories and order information
 
 The below raises ``TypeError`` because the categories are ordered and not identical.
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
-   In [1]: a = pd.Categorical(["a", "b"], ordered=True)
-   In [2]: b = pd.Categorical(["a", "b", "c"], ordered=True)
-   In [3]: union_categoricals([a, b])
-   Out[3]:
-   TypeError: to union ordered Categoricals, all categories must be the same
+   a = pd.Categorical(["a", "b"], ordered=True)
+   b = pd.Categorical(["a", "b", "c"], ordered=True)
+   union_categoricals([a, b])
 
 Ordered categoricals with different categories or orderings can be combined by
 using the ``ignore_ordered=True`` argument.
@@ -954,13 +936,12 @@ categorical (categories and ordering). So if you read back the CSV file you have
 relevant columns back to ``category`` and assign the right categories and categories ordering.
 
 .. ipython:: python
-    :okwarning:
 
     import io
 
     s = pd.Series(pd.Categorical(["a", "b", "b", "a", "a", "d"]))
     # rename the categories
-    s.cat.categories = ["very good", "good", "bad"]
+    s = s.cat.rename_categories(["very good", "good", "bad"])
     # reorder the categories and add missing categories
     s = s.cat.set_categories(["very bad", "bad", "medium", "good", "very good"])
     df = pd.DataFrame({"cats": s, "vals": [1, 2, 3, 4, 5, 6]})
@@ -971,8 +952,8 @@ relevant columns back to ``category`` and assign the right categories and catego
     df2["cats"]
     # Redo the category
     df2["cats"] = df2["cats"].astype("category")
-    df2["cats"].cat.set_categories(
-        ["very bad", "bad", "medium", "good", "very good"], inplace=True
+    df2["cats"] = df2["cats"].cat.set_categories(
+        ["very bad", "bad", "medium", "good", "very good"]
     )
     df2.dtypes
     df2["cats"]
@@ -1169,9 +1150,6 @@ change the original ``Categorical``:
     s = pd.Series(cat, name="cat")
     cat
     s.iloc[0:2] = 10
-    cat
-    df = pd.DataFrame(s)
-    df["cat"].cat.categories = [1, 2, 3, 4, 5]
     cat
 
 Use ``copy=True`` to prevent such a behaviour or simply don't reuse ``Categoricals``:

@@ -1,15 +1,20 @@
 from __future__ import annotations
 
 import abc
-from collections.abc import Callable  # noqa: PDF001
-import re
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Literal,
+)
 
 import numpy as np
 
-from pandas._typing import Scalar
-
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+    import re
+
+    from pandas._typing import Scalar
+
     from pandas import Series
 
 
@@ -36,15 +41,22 @@ class BaseStringArrayMethods(abc.ABC):
             return self._str_get(key)
 
     @abc.abstractmethod
-    def _str_count(self, pat, flags=0):
+    def _str_count(self, pat, flags: int = 0):
         pass
 
     @abc.abstractmethod
-    def _str_pad(self, width, side="left", fillchar=" "):
+    def _str_pad(
+        self,
+        width: int,
+        side: Literal["left", "right", "both"] = "left",
+        fillchar: str = " ",
+    ):
         pass
 
     @abc.abstractmethod
-    def _str_contains(self, pat, case=True, flags=0, na=None, regex=True):
+    def _str_contains(
+        self, pat, case: bool = True, flags: int = 0, na=None, regex: bool = True
+    ):
         pass
 
     @abc.abstractmethod
@@ -68,7 +80,7 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_repeat(self, repeats):
+    def _str_repeat(self, repeats: int | Sequence[int]):
         pass
 
     @abc.abstractmethod
@@ -88,19 +100,19 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_encode(self, encoding, errors="strict"):
+    def _str_encode(self, encoding, errors: str = "strict"):
         pass
 
     @abc.abstractmethod
-    def _str_find(self, sub, start=0, end=None):
+    def _str_find(self, sub, start: int = 0, end=None):
         pass
 
     @abc.abstractmethod
-    def _str_rfind(self, sub, start=0, end=None):
+    def _str_rfind(self, sub, start: int = 0, end=None):
         pass
 
     @abc.abstractmethod
-    def _str_findall(self, pat, flags=0):
+    def _str_findall(self, pat, flags: int = 0):
         pass
 
     @abc.abstractmethod
@@ -108,23 +120,23 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_index(self, sub, start=0, end=None):
+    def _str_index(self, sub, start: int = 0, end=None):
         pass
 
     @abc.abstractmethod
-    def _str_rindex(self, sub, start=0, end=None):
+    def _str_rindex(self, sub, start: int = 0, end=None):
         pass
 
     @abc.abstractmethod
-    def _str_join(self, sep):
+    def _str_join(self, sep: str):
         pass
 
     @abc.abstractmethod
-    def _str_partition(self, sep, expand):
+    def _str_partition(self, sep: str, expand):
         pass
 
     @abc.abstractmethod
-    def _str_rpartition(self, sep, expand):
+    def _str_rpartition(self, sep: str, expand):
         pass
 
     @abc.abstractmethod
@@ -144,11 +156,11 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_wrap(self, width, **kwargs):
+    def _str_wrap(self, width: int, **kwargs):
         pass
 
     @abc.abstractmethod
-    def _str_get_dummies(self, sep="|"):
+    def _str_get_dummies(self, sep: str = "|"):
         pass
 
     @abc.abstractmethod
@@ -236,7 +248,9 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_split(self, pat=None, n=-1, expand=False):
+    def _str_split(
+        self, pat=None, n=-1, expand: bool = False, regex: bool | None = None
+    ):
         pass
 
     @abc.abstractmethod

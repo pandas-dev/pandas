@@ -17,6 +17,7 @@ Instead of splitting it was decided to define sections here:
 - Dtypes
 - Misc
 """
+from __future__ import annotations
 
 from collections import abc
 from datetime import (
@@ -29,6 +30,10 @@ from datetime import (
 from decimal import Decimal
 import operator
 import os
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+)
 
 from dateutil.tz import (
     tzlocal,
@@ -52,12 +57,18 @@ from pandas.core.dtypes.dtypes import (
 
 import pandas as pd
 from pandas import (
+    CategoricalIndex,
     DataFrame,
     Interval,
+    IntervalIndex,
     Period,
+    RangeIndex,
     Series,
     Timedelta,
     Timestamp,
+    date_range,
+    period_range,
+    timedelta_range,
 )
 import pandas._testing as tm
 from pandas.core import ops
@@ -65,6 +76,13 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
+from pandas.util.version import Version
+
+if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+    )
 
 try:
     import pyarrow as pa
@@ -74,15 +92,13 @@ else:
     del pa
     has_pyarrow = True
 
-zoneinfo = None
-if pd.compat.PY39:
-    # Import "zoneinfo" could not be resolved (reportMissingImports)
-    import zoneinfo  # type: ignore[no-redef]
+import zoneinfo
 
-# Until https://github.com/numpy/numpy/issues/19078 is sorted out, just suppress
-suppress_npdev_promotion_warning = pytest.mark.filterwarnings(
-    "ignore:Promotion of numbers and bools:FutureWarning"
-)
+try:
+    zoneinfo.ZoneInfo("UTC")
+except zoneinfo.ZoneInfoNotFoundError:
+    zoneinfo = None  # type: ignore[assignment]
+
 
 # ----------------------------------------------------------------
 # Configuration / Settings
@@ -90,18 +106,11 @@ suppress_npdev_promotion_warning = pytest.mark.filterwarnings(
 # pytest
 
 
-def pytest_addoption(parser):
-    parser.addoption("--skip-slow", action="store_true", help="skip slow tests")
-    parser.addoption("--skip-network", action="store_true", help="skip network tests")
-    parser.addoption("--skip-db", action="store_true", help="skip db tests")
+def pytest_addoption(parser) -> None:
     parser.addoption(
-        "--run-high-memory", action="store_true", help="run high memory tests"
-    )
-    parser.addoption("--only-slow", action="store_true", help="run only slow tests")
-    parser.addoption(
-        "--strict-data-files",
-        action="store_true",
-        help="Fail if a test is skipped for missing data file.",
+        "--no-strict-data-files",
+        action="store_false",
+        help="Don't fail if a test is skipped for missing data file.",
     )
 
 
@@ -123,64 +132,69 @@ def ignore_doctest_warning(item: pytest.Item, path: str, message: str) -> None:
         item.add_marker(pytest.mark.filterwarnings(f"ignore:{message}"))
 
 
-def pytest_collection_modifyitems(items, config):
-    skip_slow = config.getoption("--skip-slow")
-    only_slow = config.getoption("--only-slow")
-    skip_network = config.getoption("--skip-network")
-    skip_db = config.getoption("--skip-db")
-
-    marks = [
-        (pytest.mark.slow, "slow", skip_slow, "--skip-slow"),
-        (pytest.mark.network, "network", skip_network, "--network"),
-        (pytest.mark.db, "db", skip_db, "--skip-db"),
-    ]
+def pytest_collection_modifyitems(items, config) -> None:
+    is_doctest = config.getoption("--doctest-modules") or config.getoption(
+        "--doctest-cython", default=False
+    )
 
     # Warnings from doctests that can be ignored; place reason in comment above.
     # Each entry specifies (path, message) - see the ignore_doctest_warning function
     ignored_doctest_warnings = [
-        # Deprecations where the docstring will emit a warning
-        ("DataFrame.append", "The frame.append method is deprecated"),
-        ("Series.append", "The series.append method is deprecated"),
-        ("dtypes.common.is_categorical", "is_categorical is deprecated"),
-        ("Categorical.replace", "Categorical.replace is deprecated"),
-        ("dtypes.common.is_extension_type", "'is_extension_type' is deprecated"),
-        ("Index.is_mixed", "Index.is_mixed is deprecated"),
-        ("MultiIndex._is_lexsorted", "MultiIndex.is_lexsorted is deprecated"),
+        ("is_int64_dtype", "is_int64_dtype is deprecated"),
+        ("is_interval_dtype", "is_interval_dtype is deprecated"),
+        ("is_period_dtype", "is_period_dtype is deprecated"),
+        ("is_datetime64tz_dtype", "is_datetime64tz_dtype is deprecated"),
+        ("is_categorical_dtype", "is_categorical_dtype is deprecated"),
+        ("is_sparse", "is_sparse is deprecated"),
+        ("DataFrameGroupBy.fillna", "DataFrameGroupBy.fillna is deprecated"),
+        ("NDFrame.replace", "The 'method' keyword"),
+        ("NDFrame.replace", "Series.replace without 'value'"),
+        ("NDFrame.clip", "Downcasting behavior in Series and DataFrame methods"),
+        ("Series.idxmin", "The behavior of Series.idxmin"),
+        ("Series.idxmax", "The behavior of Series.idxmax"),
+        ("SeriesGroupBy.fillna", "SeriesGroupBy.fillna is deprecated"),
+        ("SeriesGroupBy.idxmin", "The behavior of Series.idxmin"),
+        ("SeriesGroupBy.idxmax", "The behavior of Series.idxmax"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
-        # Docstring demonstrates the call raises a warning
-        ("_validators.validate_axis_style_args", "Use named arguments"),
+        (
+            "to_pydatetime",
+            "The behavior of DatetimeProperties.to_pydatetime is deprecated",
+        ),
+        (
+            "pandas.core.generic.NDFrame.bool",
+            "(Series|DataFrame).bool is now deprecated and will be removed "
+            "in future version of pandas",
+        ),
+        (
+            "pandas.core.generic.NDFrame.first",
+            "first is deprecated and will be removed in a future version. "
+            "Please create a mask and filter using `.loc` instead",
+        ),
+        (
+            "Resampler.fillna",
+            "DatetimeIndexResampler.fillna is deprecated",
+        ),
+        (
+            "DataFrameGroupBy.fillna",
+            "DataFrameGroupBy.fillna with 'method' is deprecated",
+        ),
+        (
+            "DataFrameGroupBy.fillna",
+            "DataFrame.fillna with 'method' is deprecated",
+        ),
+        ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
     ]
 
-    for item in items:
-        if config.getoption("--doctest-modules") or config.getoption(
-            "--doctest-cython", default=False
-        ):
-            # autouse=True for the add_doctest_imports can lead to expensive teardowns
-            # since doctest_namespace is a session fixture
-            item.add_marker(pytest.mark.usefixtures("add_doctest_imports"))
-
+    if is_doctest:
+        for item in items:
             for path, message in ignored_doctest_warnings:
                 ignore_doctest_warning(item, path, message)
 
-        # mark all tests in the pandas/tests/frame directory with "arraymanager"
-        if "/frame/" in item.nodeid:
-            item.add_marker(pytest.mark.arraymanager)
-        item.add_marker(suppress_npdev_promotion_warning)
 
-        for (mark, kwd, skip_if_found, arg_name) in marks:
-            if kwd in item.keywords:
-                # If we're skipping, no need to actually add the marker or look for
-                # other markers
-                if skip_if_found:
-                    item.add_marker(pytest.mark.skip(f"skipping due to {arg_name}"))
-                    break
-
-                item.add_marker(mark)
-
-        if only_slow and "slow" not in item.keywords:
-            item.add_marker(pytest.mark.skip("skipping due to --only-slow"))
-
+hypothesis_health_checks = [hypothesis.HealthCheck.too_slow]
+if Version(hypothesis.__version__) >= Version("6.83.2"):
+    hypothesis_health_checks.append(hypothesis.HealthCheck.differing_executors)
 
 # Hypothesis
 hypothesis.settings.register_profile(
@@ -193,7 +207,7 @@ hypothesis.settings.register_profile(
     # 2022-02-09: Changed deadline from 500 -> None. Deadline leads to
     # non-actionable, flaky CI failures (# GH 24641, 44969, 45118, 44969)
     deadline=None,
-    suppress_health_check=(hypothesis.HealthCheck.too_slow,),
+    suppress_health_check=tuple(hypothesis_health_checks),
 )
 hypothesis.settings.load_profile("ci")
 
@@ -230,8 +244,15 @@ for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
     )
 
 
-@pytest.fixture
-def add_doctest_imports(doctest_namespace):
+# ----------------------------------------------------------------
+# Autouse fixtures
+# ----------------------------------------------------------------
+
+
+# https://github.com/pytest-dev/pytest/issues/11873
+# Would like to avoid autouse=True, but cannot as of pytest 8.0.0
+@pytest.fixture(autouse=True)
+def add_doctest_imports(doctest_namespace) -> None:
     """
     Make `np` and `pd` names available for doctests.
     """
@@ -239,11 +260,8 @@ def add_doctest_imports(doctest_namespace):
     doctest_namespace["pd"] = pd
 
 
-# ----------------------------------------------------------------
-# Autouse fixtures
-# ----------------------------------------------------------------
 @pytest.fixture(autouse=True)
-def configure_tests():
+def configure_tests() -> None:
     """
     Configure settings for all tests and test modules.
     """
@@ -253,21 +271,10 @@ def configure_tests():
 # ----------------------------------------------------------------
 # Common arguments
 # ----------------------------------------------------------------
-@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis={repr(x)}")
+@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis={x!r}")
 def axis(request):
     """
     Fixture for returning the axis numbers of a DataFrame.
-    """
-    return request.param
-
-
-axis_frame = axis
-
-
-@pytest.fixture(params=[1, "columns"], ids=lambda x: f"axis={repr(x)}")
-def axis_1(request):
-    """
-    Fixture for returning aliases of axis 1 of a DataFrame.
     """
     return request.param
 
@@ -289,6 +296,30 @@ def observed(request):
 def ordered(request):
     """
     Boolean 'ordered' parameter for Categorical.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def dropna(request):
+    """
+    Boolean 'dropna' parameter.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def sort(request):
+    """
+    Boolean 'sort' parameter.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def skipna(request):
+    """
+    Boolean 'skipna' parameter.
     """
     return request.param
 
@@ -386,6 +417,74 @@ def nselect_method(request):
     return request.param
 
 
+@pytest.fixture(params=[None, "ignore"])
+def na_action(request):
+    """
+    Fixture for 'na_action' argument in map.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def ascending(request):
+    """
+    Fixture for 'na_action' argument in sort_values/sort_index/rank.
+    """
+    return request.param
+
+
+@pytest.fixture(params=["average", "min", "max", "first", "dense"])
+def rank_method(request):
+    """
+    Fixture for 'rank' argument in rank.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def as_index(request):
+    """
+    Fixture for 'as_index' argument in groupby.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def cache(request):
+    """
+    Fixture for 'cache' argument in to_datetime.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def parallel(request):
+    """
+    Fixture for parallel keyword argument for numba.jit.
+    """
+    return request.param
+
+
+# Can parameterize nogil & nopython over True | False, but limiting per
+# https://github.com/pandas-dev/pandas/pull/41971#issuecomment-860607472
+
+
+@pytest.fixture(params=[False])
+def nogil(request):
+    """
+    Fixture for nogil keyword argument for numba.jit.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True])
+def nopython(request):
+    """
+    Fixture for nopython keyword argument for numba.jit.
+    """
+    return request.param
+
+
 # ----------------------------------------------------------------
 # Missing values & co.
 # ----------------------------------------------------------------
@@ -437,10 +536,7 @@ def frame_or_series(request):
     return request.param
 
 
-# error: List item 0 has incompatible type "Type[Index]"; expected "Type[IndexOpsMixin]"
-@pytest.fixture(
-    params=[Index, Series], ids=["index", "series"]  # type: ignore[list-item]
-)
+@pytest.fixture(params=[Index, Series], ids=["index", "series"])
 def index_or_series(request):
     """
     Fixture to parametrize over Index and Series, made necessary by a mypy
@@ -451,10 +547,6 @@ def index_or_series(request):
     See GH#29725
     """
     return request.param
-
-
-# Generate cartesian product of index_or_series fixture:
-index_or_series2 = index_or_series
 
 
 @pytest.fixture(params=[Index, Series, pd.array], ids=["index", "series", "array"])
@@ -478,7 +570,7 @@ box_with_array2 = box_with_array
 
 
 @pytest.fixture
-def dict_subclass():
+def dict_subclass() -> type[dict]:
     """
     Fixture for a dictionary subclass.
     """
@@ -491,7 +583,7 @@ def dict_subclass():
 
 
 @pytest.fixture
-def non_dict_mapping_subclass():
+def non_dict_mapping_subclass() -> type[abc.Mapping]:
     """
     Fixture for a non-mapping dictionary subclass.
     """
@@ -503,10 +595,10 @@ def non_dict_mapping_subclass():
         def __getitem__(self, key):
             return self._data.__getitem__(key)
 
-        def __iter__(self):
+        def __iter__(self) -> Iterator:
             return self._data.__iter__()
 
-        def __len__(self):
+        def __len__(self) -> int:
             return self._data.__len__()
 
     return TestNonDictMapping
@@ -521,16 +613,20 @@ def multiindex_year_month_day_dataframe_random_data():
     DataFrame with 3 level MultiIndex (year, month, day) covering
     first 100 business days from 2000-01-01 with random data
     """
-    tdf = tm.makeTimeDataFrame(100)
+    tdf = DataFrame(
+        np.random.default_rng(2).standard_normal((100, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=100, freq="B"),
+    )
     ymd = tdf.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day]).sum()
-    # use Int64Index, to make sure things work
+    # use int64 Index, to make sure things work
     ymd.index = ymd.index.set_levels([lev.astype("i8") for lev in ymd.index.levels])
     ymd.index.set_names(["year", "month", "day"], inplace=True)
     return ymd
 
 
 @pytest.fixture
-def lexsorted_two_level_string_multiindex():
+def lexsorted_two_level_string_multiindex() -> MultiIndex:
     """
     2-level MultiIndex, lexsorted, with string names.
     """
@@ -542,11 +638,15 @@ def lexsorted_two_level_string_multiindex():
 
 
 @pytest.fixture
-def multiindex_dataframe_random_data(lexsorted_two_level_string_multiindex):
+def multiindex_dataframe_random_data(
+    lexsorted_two_level_string_multiindex,
+) -> DataFrame:
     """DataFrame with 2 level MultiIndex with random data"""
     index = lexsorted_two_level_string_multiindex
     return DataFrame(
-        np.random.randn(10, 3), index=index, columns=Index(["A", "B", "C"], name="exp")
+        np.random.default_rng(2).standard_normal((10, 3)),
+        index=index,
+        columns=Index(["A", "B", "C"], name="exp"),
     )
 
 
@@ -576,37 +676,38 @@ def _create_mi_with_dt64tz_level():
     """
     # GH#8367 round trip with pickle
     return MultiIndex.from_product(
-        [[1, 2], ["a", "b"], pd.date_range("20130101", periods=3, tz="US/Eastern")],
+        [[1, 2], ["a", "b"], date_range("20130101", periods=3, tz="US/Eastern")],
         names=["one", "two", "three"],
     )
 
 
 indices_dict = {
-    "string": tm.makeStringIndex(100),
-    "datetime": tm.makeDateIndex(100),
-    "datetime-tz": tm.makeDateIndex(100, tz="US/Pacific"),
-    "period": tm.makePeriodIndex(100),
-    "timedelta": tm.makeTimedeltaIndex(100),
-    "int": tm.makeIntIndex(100),
-    "uint": tm.makeUIntIndex(100),
-    "range": tm.makeRangeIndex(100),
-    "float": tm.makeFloatIndex(100),
-    "complex64": tm.makeFloatIndex(100).astype("complex64"),
-    "complex128": tm.makeFloatIndex(100).astype("complex128"),
-    "num_int64": tm.makeNumericIndex(100, dtype="int64"),
-    "num_int32": tm.makeNumericIndex(100, dtype="int32"),
-    "num_int16": tm.makeNumericIndex(100, dtype="int16"),
-    "num_int8": tm.makeNumericIndex(100, dtype="int8"),
-    "num_uint64": tm.makeNumericIndex(100, dtype="uint64"),
-    "num_uint32": tm.makeNumericIndex(100, dtype="uint32"),
-    "num_uint16": tm.makeNumericIndex(100, dtype="uint16"),
-    "num_uint8": tm.makeNumericIndex(100, dtype="uint8"),
-    "num_float64": tm.makeNumericIndex(100, dtype="float64"),
-    "num_float32": tm.makeNumericIndex(100, dtype="float32"),
-    "bool-object": tm.makeBoolIndex(10).astype(object),
-    "bool-dtype": Index(np.random.randn(10) < 0),
-    "categorical": tm.makeCategoricalIndex(100),
-    "interval": tm.makeIntervalIndex(100, inclusive="right"),
+    "string": Index([f"pandas_{i}" for i in range(100)]),
+    "datetime": date_range("2020-01-01", periods=100),
+    "datetime-tz": date_range("2020-01-01", periods=100, tz="US/Pacific"),
+    "period": period_range("2020-01-01", periods=100, freq="D"),
+    "timedelta": timedelta_range(start="1 day", periods=100, freq="D"),
+    "range": RangeIndex(100),
+    "int8": Index(np.arange(100), dtype="int8"),
+    "int16": Index(np.arange(100), dtype="int16"),
+    "int32": Index(np.arange(100), dtype="int32"),
+    "int64": Index(np.arange(100), dtype="int64"),
+    "uint8": Index(np.arange(100), dtype="uint8"),
+    "uint16": Index(np.arange(100), dtype="uint16"),
+    "uint32": Index(np.arange(100), dtype="uint32"),
+    "uint64": Index(np.arange(100), dtype="uint64"),
+    "float32": Index(np.arange(100), dtype="float32"),
+    "float64": Index(np.arange(100), dtype="float64"),
+    "bool-object": Index([True, False] * 5, dtype=object),
+    "bool-dtype": Index([True, False] * 5, dtype=bool),
+    "complex64": Index(
+        np.arange(100, dtype="complex64") + 1.0j * np.arange(100, dtype="complex64")
+    ),
+    "complex128": Index(
+        np.arange(100, dtype="complex128") + 1.0j * np.arange(100, dtype="complex128")
+    ),
+    "categorical": CategoricalIndex(list("abcd") * 25),
+    "interval": IntervalIndex.from_breaks(np.linspace(0, 100, num=101)),
     "empty": Index([]),
     "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
     "mi-with-dt64tz-level": _create_mi_with_dt64tz_level(),
@@ -616,10 +717,12 @@ indices_dict = {
     "nullable_uint": Index(np.arange(100), dtype="UInt16"),
     "nullable_float": Index(np.arange(100), dtype="Float32"),
     "nullable_bool": Index(np.arange(100).astype(bool), dtype="boolean"),
-    "string-python": Index(pd.array(tm.makeStringIndex(100), dtype="string[python]")),
+    "string-python": Index(
+        pd.array([f"pandas_{i}" for i in range(100)], dtype="string[python]")
+    ),
 }
 if has_pyarrow:
-    idx = Index(pd.array(tm.makeStringIndex(100), dtype="string[pyarrow]"))
+    idx = Index(pd.array([f"pandas_{i}" for i in range(100)], dtype="string[pyarrow]"))
     indices_dict["string-pyarrow"] = idx
 
 
@@ -638,13 +741,9 @@ def index(request):
     return indices_dict[request.param].copy()
 
 
-# Needed to generate cartesian product of indices
-index_fixture2 = index
-
-
 @pytest.fixture(
     params=[
-        key for key in indices_dict if not isinstance(indices_dict[key], MultiIndex)
+        key for key, value in indices_dict.items() if not isinstance(value, MultiIndex)
     ]
 )
 def index_flat(request):
@@ -655,34 +754,15 @@ def index_flat(request):
     return indices_dict[key].copy()
 
 
-# Alias so we can test with cartesian product of index_flat
-index_flat2 = index_flat
-
-
 @pytest.fixture(
     params=[
         key
-        for key in indices_dict
-        if not isinstance(indices_dict[key], MultiIndex) and indices_dict[key].is_unique
-    ]
-)
-def index_flat_unique(request):
-    """
-    index_flat with uniqueness requirement.
-    """
-    key = request.param
-    return indices_dict[key].copy()
-
-
-@pytest.fixture(
-    params=[
-        key
-        for key in indices_dict
+        for key, value in indices_dict.items()
         if not (
-            key in ["int", "uint", "range", "empty", "repeats", "bool-dtype"]
-            or key.startswith("num_")
+            key.startswith(("int", "uint", "float"))
+            or key in ["range", "empty", "repeats", "bool-dtype"]
         )
-        and not isinstance(indices_dict[key], MultiIndex)
+        and not isinstance(value, MultiIndex)
     ]
 )
 def index_with_missing(request):
@@ -698,7 +778,7 @@ def index_with_missing(request):
     # GH 35538. Use deep copy to avoid illusive bug on np-dev
     # GHA pipeline that writes into indices_dict despite copy
     ind = indices_dict[request.param].copy(deep=True)
-    vals = ind.values
+    vals = ind.values.copy()
     if request.param in ["tuples", "mi-with-dt64tz-level", "multi"]:
         # For setting missing values in the top level of MultiIndex
         vals = ind.tolist()
@@ -715,40 +795,44 @@ def index_with_missing(request):
 # Series'
 # ----------------------------------------------------------------
 @pytest.fixture
-def string_series():
+def string_series() -> Series:
     """
     Fixture for Series of floats with Index of unique strings
     """
-    s = tm.makeStringSeries()
-    s.name = "series"
-    return s
+    return Series(
+        np.arange(30, dtype=np.float64) * 1.1,
+        index=Index([f"i_{i}" for i in range(30)], dtype=object),
+        name="series",
+    )
 
 
 @pytest.fixture
-def object_series():
+def object_series() -> Series:
     """
     Fixture for Series of dtype object with Index of unique strings
     """
-    s = tm.makeObjectSeries()
-    s.name = "objects"
-    return s
+    data = [f"foo_{i}" for i in range(30)]
+    index = Index([f"bar_{i}" for i in range(30)], dtype=object)
+    return Series(data, index=index, name="objects", dtype=object)
 
 
 @pytest.fixture
-def datetime_series():
+def datetime_series() -> Series:
     """
     Fixture for Series of floats with DatetimeIndex
     """
-    s = tm.makeTimeSeries()
-    s.name = "ts"
-    return s
+    return Series(
+        np.random.default_rng(2).standard_normal(30),
+        index=date_range("2000-01-01", periods=30, freq="B"),
+        name="ts",
+    )
 
 
 def _create_series(index):
     """Helper for the _series dict"""
     size = len(index)
-    data = np.random.randn(size)
-    return Series(data, index=index, name="a")
+    data = np.random.default_rng(2).standard_normal(size)
+    return Series(data, index=index, name="a", copy=False)
 
 
 _series = {
@@ -758,32 +842,17 @@ _series = {
 
 
 @pytest.fixture
-def series_with_simple_index(index):
+def series_with_simple_index(index) -> Series:
     """
     Fixture for tests on series with changing types of indices.
     """
     return _create_series(index)
 
 
-@pytest.fixture
-def series_with_multilevel_index():
-    """
-    Fixture with a Series with a 2-level MultiIndex.
-    """
-    arrays = [
-        ["bar", "bar", "baz", "baz", "qux", "qux", "foo", "foo"],
-        ["one", "two", "one", "two", "one", "two", "one", "two"],
-    ]
-    tuples = zip(*arrays)
-    index = MultiIndex.from_tuples(tuples)
-    data = np.random.randn(8)
-    ser = Series(data, index=index)
-    ser[3] = np.NaN
-    return ser
-
-
 _narrow_series = {
-    f"{dtype.__name__}-series": tm.make_rand_series(name="a", dtype=dtype)
+    f"{dtype.__name__}-series": Series(
+        range(30), index=[f"i-{i}" for i in range(30)], name="a", dtype=dtype
+    )
     for dtype in tm.NARROW_NP_DTYPES
 }
 
@@ -800,116 +869,62 @@ def index_or_series_obj(request):
     return _index_or_series_objs[request.param].copy(deep=True)
 
 
+_typ_objects_series = {
+    f"{dtype.__name__}-series": Series(dtype) for dtype in tm.PYTHON_DATA_TYPES
+}
+
+
+_index_or_series_memory_objs = {
+    **indices_dict,
+    **_series,
+    **_narrow_series,
+    **_typ_objects_series,
+}
+
+
+@pytest.fixture(params=_index_or_series_memory_objs.keys())
+def index_or_series_memory_obj(request):
+    """
+    Fixture for tests on indexes, series, series with a narrow dtype and
+    series with empty objects type
+    copy to avoid mutation, e.g. setting .name
+    """
+    return _index_or_series_memory_objs[request.param].copy(deep=True)
+
+
 # ----------------------------------------------------------------
 # DataFrames
 # ----------------------------------------------------------------
 @pytest.fixture
-def int_frame():
+def int_frame() -> DataFrame:
     """
     Fixture for DataFrame of ints with index of unique strings
 
     Columns are ['A', 'B', 'C', 'D']
-
-                A  B  C  D
-    vpBeWjM651  1  0  1  0
-    5JyxmrP1En -1  0  0  0
-    qEDaoD49U2 -1  1  0  0
-    m66TkTfsFe  0  0  0  0
-    EHPaNzEUFm -1  0 -1  0
-    fpRJCevQhi  2  0  0  0
-    OlQvnmfi3Q  0  0 -2  0
-    ...        .. .. .. ..
-    uB1FPlz4uP  0  0  0  1
-    EcSe6yNzCU  0  0 -1  0
-    L50VudaiI8 -1  1 -2  0
-    y3bpw4nwIp  0 -1  0  0
-    H0RdLLwrCT  1  1  0  0
-    rY82K0vMwm  0  0  0  0
-    1OPIUjnkjk  2  0  0  0
-
-    [30 rows x 4 columns]
-    """
-    return DataFrame(tm.getSeriesData()).astype("int64")
-
-
-@pytest.fixture
-def datetime_frame():
-    """
-    Fixture for DataFrame of floats with DatetimeIndex
-
-    Columns are ['A', 'B', 'C', 'D']
-
-                       A         B         C         D
-    2000-01-03 -1.122153  0.468535  0.122226  1.693711
-    2000-01-04  0.189378  0.486100  0.007864 -1.216052
-    2000-01-05  0.041401 -0.835752 -0.035279 -0.414357
-    2000-01-06  0.430050  0.894352  0.090719  0.036939
-    2000-01-07 -0.620982 -0.668211 -0.706153  1.466335
-    2000-01-10 -0.752633  0.328434 -0.815325  0.699674
-    2000-01-11 -2.236969  0.615737 -0.829076 -1.196106
-    ...              ...       ...       ...       ...
-    2000-02-03  1.642618 -0.579288  0.046005  1.385249
-    2000-02-04 -0.544873 -1.160962 -0.284071 -1.418351
-    2000-02-07 -2.656149 -0.601387  1.410148  0.444150
-    2000-02-08 -1.201881 -1.289040  0.772992 -1.445300
-    2000-02-09  1.377373  0.398619  1.008453 -0.928207
-    2000-02-10  0.473194 -0.636677  0.984058  0.511519
-    2000-02-11 -0.965556  0.408313 -1.312844 -0.381948
-
-    [30 rows x 4 columns]
-    """
-    return DataFrame(tm.getTimeSeriesData())
-
-
-@pytest.fixture
-def float_frame():
-    """
-    Fixture for DataFrame of floats with index of unique strings
-
-    Columns are ['A', 'B', 'C', 'D'].
-
-                       A         B         C         D
-    P7GACiRnxd -0.465578 -0.361863  0.886172 -0.053465
-    qZKh6afn8n -0.466693 -0.373773  0.266873  1.673901
-    tkp0r6Qble  0.148691 -0.059051  0.174817  1.598433
-    wP70WOCtv8  0.133045 -0.581994 -0.992240  0.261651
-    M2AeYQMnCz -1.207959 -0.185775  0.588206  0.563938
-    QEPzyGDYDo -0.381843 -0.758281  0.502575 -0.565053
-    r78Jwns6dn -0.653707  0.883127  0.682199  0.206159
-    ...              ...       ...       ...       ...
-    IHEGx9NO0T -0.277360  0.113021 -1.018314  0.196316
-    lPMj8K27FA -1.313667 -0.604776 -1.305618 -0.863999
-    qa66YMWQa5  1.110525  0.475310 -0.747865  0.032121
-    yOa0ATsmcE -0.431457  0.067094  0.096567 -0.264962
-    65znX3uRNG  1.528446  0.160416 -0.109635 -0.032987
-    eCOBvKqf3e  0.235281  1.622222  0.781255  0.392871
-    xSucinXxuV -1.263557  0.252799 -0.552247  0.400426
-
-    [30 rows x 4 columns]
-    """
-    return DataFrame(tm.getSeriesData())
-
-
-@pytest.fixture
-def mixed_type_frame():
-    """
-    Fixture for DataFrame of float/int/string columns with RangeIndex
-    Columns are ['a', 'b', 'c', 'float32', 'int32'].
     """
     return DataFrame(
-        {
-            "a": 1.0,
-            "b": 2,
-            "c": "foo",
-            "float32": np.array([1.0] * 10, dtype="float32"),
-            "int32": np.array([1] * 10, dtype="int32"),
-        },
-        index=np.arange(10),
+        np.ones((30, 4), dtype=np.int64),
+        index=Index([f"foo_{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD"), dtype=object),
     )
 
 
 @pytest.fixture
-def rand_series_with_duplicate_datetimeindex():
+def float_frame() -> DataFrame:
+    """
+    Fixture for DataFrame of floats with index of unique strings
+
+    Columns are ['A', 'B', 'C', 'D'].
+    """
+    return DataFrame(
+        np.random.default_rng(2).standard_normal((30, 4)),
+        index=Index([f"foo_{i}" for i in range(30)]),
+        columns=Index(list("ABCD")),
+    )
+
+
+@pytest.fixture
+def rand_series_with_duplicate_datetimeindex() -> Series:
     """
     Fixture for Series with a DatetimeIndex that has duplicates.
     """
@@ -926,7 +941,7 @@ def rand_series_with_duplicate_datetimeindex():
         datetime(2000, 1, 5),
     ]
 
-    return Series(np.random.randn(len(dates)), index=dates)
+    return Series(np.random.default_rng(2).standard_normal(len(dates)), index=dates)
 
 
 # ----------------------------------------------------------------
@@ -934,19 +949,13 @@ def rand_series_with_duplicate_datetimeindex():
 # ----------------------------------------------------------------
 @pytest.fixture(
     params=[
-        (
-            Interval(left=0, right=5, inclusive="right"),
-            IntervalDtype("int64", inclusive="right"),
-        ),
-        (
-            Interval(left=0.1, right=0.5, inclusive="right"),
-            IntervalDtype("float64", inclusive="right"),
-        ),
+        (Interval(left=0, right=5), IntervalDtype("int64", "right")),
+        (Interval(left=0.1, right=0.5), IntervalDtype("float64", "right")),
         (Period("2012-01", freq="M"), "period[M]"),
         (Period("2012-02-01", freq="D"), "period[D]"),
         (
             Timestamp("2011-01-01", tz="US/Eastern"),
-            DatetimeTZDtype(tz="US/Eastern"),
+            DatetimeTZDtype(unit="s", tz="US/Eastern"),
         ),
         (Timedelta(seconds=500), "timedelta64[ns]"),
     ]
@@ -958,25 +967,9 @@ def ea_scalar_and_dtype(request):
 # ----------------------------------------------------------------
 # Operators & Operations
 # ----------------------------------------------------------------
-_all_arithmetic_operators = [
-    "__add__",
-    "__radd__",
-    "__sub__",
-    "__rsub__",
-    "__mul__",
-    "__rmul__",
-    "__floordiv__",
-    "__rfloordiv__",
-    "__truediv__",
-    "__rtruediv__",
-    "__pow__",
-    "__rpow__",
-    "__mod__",
-    "__rmod__",
-]
 
 
-@pytest.fixture(params=_all_arithmetic_operators)
+@pytest.fixture(params=tm.arithmetic_dunder_methods)
 def all_arithmetic_operators(request):
     """
     Fixture for dunder names for common arithmetic operations.
@@ -1052,6 +1045,7 @@ def all_arithmetic_functions(request):
 
 
 _all_numeric_reductions = [
+    "count",
     "sum",
     "max",
     "min",
@@ -1062,6 +1056,7 @@ _all_numeric_reductions = [
     "median",
     "kurt",
     "skew",
+    "sem",
 ]
 
 
@@ -1139,19 +1134,30 @@ def all_logical_operators(request):
     return request.param
 
 
+_all_numeric_accumulations = ["cumsum", "cumprod", "cummin", "cummax"]
+
+
+@pytest.fixture(params=_all_numeric_accumulations)
+def all_numeric_accumulations(request):
+    """
+    Fixture for numeric accumulation names
+    """
+    return request.param
+
+
 # ----------------------------------------------------------------
 # Data sets/files
 # ----------------------------------------------------------------
 @pytest.fixture
 def strict_data_files(pytestconfig):
     """
-    Returns the configuration for the test setting `--strict-data-files`.
+    Returns the configuration for the test setting `--no-strict-data-files`.
     """
-    return pytestconfig.getoption("--strict-data-files")
+    return pytestconfig.getoption("--no-strict-data-files")
 
 
 @pytest.fixture
-def datapath(strict_data_files):
+def datapath(strict_data_files: str) -> Callable[..., str]:
     """
     Get the path to a data file.
 
@@ -1167,7 +1173,7 @@ def datapath(strict_data_files):
     Raises
     ------
     ValueError
-        If the path doesn't exist and the --strict-data-files option is set.
+        If the path doesn't exist and the --no-strict-data-files option is not set.
     """
     BASE_PATH = os.path.join(os.path.dirname(__file__), "tests")
 
@@ -1176,21 +1182,12 @@ def datapath(strict_data_files):
         if not os.path.exists(path):
             if strict_data_files:
                 raise ValueError(
-                    f"Could not find file {path} and --strict-data-files is set."
+                    f"Could not find file {path} and --no-strict-data-files is not set."
                 )
-            else:
-                pytest.skip(f"Could not find {path}.")
+            pytest.skip(f"Could not find {path}.")
         return path
 
     return deco
-
-
-@pytest.fixture
-def iris(datapath):
-    """
-    The iris dataset as a DataFrame.
-    """
-    return pd.read_csv(datapath("io", "data", "csv", "iris.csv"))
 
 
 # ----------------------------------------------------------------
@@ -1217,7 +1214,12 @@ TIMEZONES = [
     timezone(timedelta(hours=-1), name="foo"),
 ]
 if zoneinfo is not None:
-    TIMEZONES.extend([zoneinfo.ZoneInfo("US/Pacific"), zoneinfo.ZoneInfo("UTC")])
+    TIMEZONES.extend(
+        [
+            zoneinfo.ZoneInfo("US/Pacific"),  # type: ignore[list-item]
+            zoneinfo.ZoneInfo("UTC"),  # type: ignore[list-item]
+        ]
+    )
 TIMEZONE_IDS = [repr(i) for i in TIMEZONES]
 
 
@@ -1259,6 +1261,17 @@ def utc_fixture(request):
 utc_fixture2 = utc_fixture
 
 
+@pytest.fixture(params=["s", "ms", "us", "ns"])
+def unit(request):
+    """
+    datetime64 units we support.
+    """
+    return request.param
+
+
+unit2 = unit
+
+
 # ----------------------------------------------------------------
 # Dtypes
 # ----------------------------------------------------------------
@@ -1277,9 +1290,7 @@ def string_dtype(request):
 @pytest.fixture(
     params=[
         "string[python]",
-        pytest.param(
-            "string[pyarrow]", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
-        ),
+        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def nullable_string_dtype(request):
@@ -1295,10 +1306,28 @@ def nullable_string_dtype(request):
 @pytest.fixture(
     params=[
         "python",
-        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow", min_version="1.0.0")),
+        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
+        pytest.param("pyarrow_numpy", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def string_storage(request):
+    """
+    Parametrized fixture for pd.options.mode.string_storage.
+
+    * 'python'
+    * 'pyarrow'
+    * 'pyarrow_numpy'
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        "numpy_nullable",
+        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
+    ]
+)
+def dtype_backend(request):
     """
     Parametrized fixture for pd.options.mode.string_storage.
 
@@ -1338,9 +1367,8 @@ def object_dtype(request):
     params=[
         "object",
         "string[python]",
-        pytest.param(
-            "string[pyarrow]", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
-        ),
+        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("string[pyarrow_numpy]", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def any_string_dtype(request):
@@ -1376,11 +1404,11 @@ def timedelta64_dtype(request):
 
 
 @pytest.fixture
-def fixed_now_ts():
+def fixed_now_ts() -> Timestamp:
     """
     Fixture emits fixed Timestamp.now()
     """
-    return Timestamp(
+    return Timestamp(  # pyright: ignore[reportGeneralTypeIssues]
         year=2021, month=1, day=1, hour=12, minute=4, second=13, microsecond=22
     )
 
@@ -1408,7 +1436,7 @@ def float_ea_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.FLOAT_NUMPY_DTYPES + tm.FLOAT_EA_DTYPES)
+@pytest.fixture(params=tm.ALL_FLOAT_DTYPES)
 def any_float_dtype(request):
     """
     Parameterized fixture for float dtypes.
@@ -1496,7 +1524,7 @@ def any_int_ea_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_INT_NUMPY_DTYPES + tm.ALL_INT_EA_DTYPES)
+@pytest.fixture(params=tm.ALL_INT_DTYPES)
 def any_int_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype.
@@ -1542,6 +1570,43 @@ def any_numeric_ea_dtype(request):
     return request.param
 
 
+#  Unsupported operand types for + ("List[Union[str, ExtensionDtype, dtype[Any],
+#  Type[object]]]" and "List[str]")
+@pytest.fixture(
+    params=tm.ALL_INT_EA_DTYPES
+    + tm.FLOAT_EA_DTYPES
+    + tm.ALL_INT_PYARROW_DTYPES_STR_REPR
+    + tm.FLOAT_PYARROW_DTYPES_STR_REPR  # type: ignore[operator]
+)
+def any_numeric_ea_and_arrow_dtype(request):
+    """
+    Parameterized fixture for any nullable integer dtype and
+    any float ea dtypes.
+
+    * 'UInt8'
+    * 'Int8'
+    * 'UInt16'
+    * 'Int16'
+    * 'UInt32'
+    * 'Int32'
+    * 'UInt64'
+    * 'Int64'
+    * 'Float32'
+    * 'Float64'
+    * 'uint8[pyarrow]'
+    * 'int8[pyarrow]'
+    * 'uint16[pyarrow]'
+    * 'int16[pyarrow]'
+    * 'uint32[pyarrow]'
+    * 'int32[pyarrow]'
+    * 'uint64[pyarrow]'
+    * 'int64[pyarrow]'
+    * 'float32[pyarrow]'
+    * 'float64[pyarrow]'
+    """
+    return request.param
+
+
 @pytest.fixture(params=tm.SIGNED_INT_EA_DTYPES)
 def any_signed_int_ea_dtype(request):
     """
@@ -1572,6 +1637,29 @@ def any_real_numpy_dtype(request):
     * float
     * 'float32'
     * 'float64'
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.ALL_REAL_DTYPES)
+def any_real_numeric_dtype(request):
+    """
+    Parameterized fixture for any (purely) real numeric dtype.
+
+    * int
+    * 'int8'
+    * 'uint8'
+    * 'int16'
+    * 'uint16'
+    * 'int32'
+    * 'uint32'
+    * 'int64'
+    * 'uint64'
+    * float
+    * 'float32'
+    * 'float64'
+
+    and associated ea dtypes.
     """
     return request.param
 
@@ -1613,6 +1701,72 @@ def any_numpy_dtype(request):
     return request.param
 
 
+@pytest.fixture(params=tm.ALL_REAL_NULLABLE_DTYPES)
+def any_real_nullable_dtype(request):
+    """
+    Parameterized fixture for all real dtypes that can hold NA.
+
+    * float
+    * 'float32'
+    * 'float64'
+    * 'Float32'
+    * 'Float64'
+    * 'UInt8'
+    * 'UInt16'
+    * 'UInt32'
+    * 'UInt64'
+    * 'Int8'
+    * 'Int16'
+    * 'Int32'
+    * 'Int64'
+    * 'uint8[pyarrow]'
+    * 'uint16[pyarrow]'
+    * 'uint32[pyarrow]'
+    * 'uint64[pyarrow]'
+    * 'int8[pyarrow]'
+    * 'int16[pyarrow]'
+    * 'int32[pyarrow]'
+    * 'int64[pyarrow]'
+    * 'float[pyarrow]'
+    * 'double[pyarrow]'
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.ALL_NUMERIC_DTYPES)
+def any_numeric_dtype(request):
+    """
+    Parameterized fixture for all numeric dtypes.
+
+    * int
+    * 'int8'
+    * 'uint8'
+    * 'int16'
+    * 'uint16'
+    * 'int32'
+    * 'uint32'
+    * 'int64'
+    * 'uint64'
+    * float
+    * 'float32'
+    * 'float64'
+    * complex
+    * 'complex64'
+    * 'complex128'
+    * 'UInt8'
+    * 'Int8'
+    * 'UInt16'
+    * 'Int16'
+    * 'UInt32'
+    * 'Int32'
+    * 'UInt64'
+    * 'Int64'
+    * 'Float32'
+    * 'Float64'
+    """
+    return request.param
+
+
 # categoricals are handled separately
 _any_skipna_inferred_dtype = [
     ("string", ["a", np.nan, "c"]),
@@ -1632,8 +1786,8 @@ _any_skipna_inferred_dtype = [
     ("datetime64", [np.datetime64("2013-01-01"), np.nan, np.datetime64("2018-01-01")]),
     ("datetime", [Timestamp("20130101"), np.nan, Timestamp("20180101")]),
     ("date", [date(2013, 1, 1), np.nan, date(2018, 1, 1)]),
-    # The following two dtypes are commented out due to GH 23554
-    # ('complex', [1 + 1j, np.nan, 2 + 2j]),
+    ("complex", [1 + 1j, np.nan, 2 + 2j]),
+    # The following dtype is commented out due to GH 23554
     # ('timedelta64', [np.timedelta64(1, 'D'),
     #                  np.nan, np.timedelta64(2, 'D')]),
     ("timedelta", [timedelta(1), np.nan, timedelta(2)]),
@@ -1678,7 +1832,7 @@ def any_skipna_inferred_dtype(request):
 
     Examples
     --------
-    >>> import pandas._libs.lib as lib
+    >>> from pandas._libs import lib
     >>>
     >>> def test_something(any_skipna_inferred_dtype):
     ...     inferred_dtype, values = any_skipna_inferred_dtype
@@ -1714,21 +1868,11 @@ def ip():
     return InteractiveShell(config=c)
 
 
-@pytest.fixture(params=["bsr", "coo", "csc", "csr", "dia", "dok", "lil"])
-def spmatrix(request):
-    """
-    Yields scipy sparse matrix classes.
-    """
-    from scipy import sparse
-
-    return getattr(sparse, request.param + "_matrix")
-
-
 @pytest.fixture(
     params=[
         getattr(pd.offsets, o)
         for o in pd.offsets.__all__
-        if issubclass(getattr(pd.offsets, o), pd.offsets.Tick)
+        if issubclass(getattr(pd.offsets, o), pd.offsets.Tick) and o != "Tick"
     ]
 )
 def tick_classes(request):
@@ -1747,28 +1891,6 @@ def sort_by_key(request):
     return request.param
 
 
-@pytest.fixture()
-def fsspectest():
-    pytest.importorskip("fsspec")
-    from fsspec import register_implementation
-    from fsspec.implementations.memory import MemoryFileSystem
-    from fsspec.registry import _registry as registry
-
-    class TestMemoryFS(MemoryFileSystem):
-        protocol = "testmem"
-        test = [None]
-
-        def __init__(self, **kwargs) -> None:
-            self.test[0] = kwargs.pop("test", None)
-            super().__init__(**kwargs)
-
-    register_implementation("testmem", TestMemoryFS, clobber=True)
-    yield TestMemoryFS()
-    registry.pop("testmem", None)
-    TestMemoryFS.test[0] = None
-    TestMemoryFS.store.clear()
-
-
 @pytest.fixture(
     params=[
         ("foo", None, None),
@@ -1781,7 +1903,7 @@ def fsspectest():
         (pd.NA, pd.NA, pd.NA),
     ]
 )
-def names(request):
+def names(request) -> tuple[Hashable, Hashable, Hashable]:
     """
     A 3-tuple of names, the first two for operands, the last for a result.
     """
@@ -1837,16 +1959,45 @@ def indexer_ial(request):
 
 
 @pytest.fixture
-def using_array_manager():
-    """
-    Fixture to check if the array manager is being used.
-    """
-    return pd.options.mode.data_manager == "array"
-
-
-@pytest.fixture
-def using_copy_on_write():
+def using_copy_on_write() -> bool:
     """
     Fixture to check if Copy-on-Write is enabled.
     """
+    return True
+
+
+@pytest.fixture
+def warn_copy_on_write() -> bool:
+    """
+    Fixture to check if Copy-on-Write is in warning mode.
+    """
     return False
+
+
+@pytest.fixture
+def using_infer_string() -> bool:
+    """
+    Fixture to check if infer string option is enabled.
+    """
+    return pd.options.future.infer_string is True
+
+
+warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
+if zoneinfo is not None:
+    warsaws.append(zoneinfo.ZoneInfo("Europe/Warsaw"))  # type: ignore[arg-type]
+
+
+@pytest.fixture(params=warsaws)
+def warsaw(request) -> str:
+    """
+    tzinfo for Europe/Warsaw using pytz, dateutil, or zoneinfo.
+    """
+    return request.param
+
+
+@pytest.fixture
+def arrow_string_storage():
+    """
+    Fixture that lists possible PyArrow values for StringDtype storage field.
+    """
+    return ("pyarrow", "pyarrow_numpy")

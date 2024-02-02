@@ -66,7 +66,6 @@ Indexing, iteration
    Series.iloc
    Series.__iter__
    Series.items
-   Series.iteritems
    Series.keys
    Series.pop
    Series.item
@@ -148,7 +147,6 @@ Computations / descriptive stats
    Series.diff
    Series.factorize
    Series.kurt
-   Series.mad
    Series.max
    Series.mean
    Series.median
@@ -169,7 +167,6 @@ Computations / descriptive stats
    Series.unique
    Series.nunique
    Series.is_unique
-   Series.is_monotonic
    Series.is_monotonic_increasing
    Series.is_monotonic_decreasing
    Series.value_counts
@@ -180,6 +177,7 @@ Reindexing / selection / label manipulation
    :toctree: api/
 
    Series.align
+   Series.case_when
    Series.drop
    Series.droplevel
    Series.drop_duplicates
@@ -250,7 +248,6 @@ Combining / comparing / joining / merging
 .. autosummary::
    :toctree: api/
 
-   Series.append
    Series.compare
    Series.update
 
@@ -269,8 +266,6 @@ Time Series-related
    Series.tz_localize
    Series.at_time
    Series.between_time
-   Series.tshift
-   Series.slice_shift
 
 Accessors
 ---------
@@ -278,6 +273,19 @@ Accessors
 pandas provides dtype-specific methods under various accessors.
 These are separate namespaces within :class:`Series` that only apply
 to specific data types.
+
+.. autosummary::
+    :toctree: api/
+    :nosignatures:
+    :template: autosummary/accessor.rst
+
+    Series.str
+    Series.cat
+    Series.dt
+    Series.sparse
+    DataFrame.sparse
+    Index.str
+
 
 =========================== =================================
 Data Type                   Accessor
@@ -315,13 +323,12 @@ Datetime properties
    Series.dt.second
    Series.dt.microsecond
    Series.dt.nanosecond
-   Series.dt.week
-   Series.dt.weekofyear
    Series.dt.dayofweek
    Series.dt.day_of_week
    Series.dt.weekday
    Series.dt.dayofyear
    Series.dt.day_of_year
+   Series.dt.days_in_month
    Series.dt.quarter
    Series.dt.is_month_start
    Series.dt.is_month_end
@@ -334,6 +341,8 @@ Datetime properties
    Series.dt.days_in_month
    Series.dt.tz
    Series.dt.freq
+   Series.dt.unit
+   Series.dt.normalize
 
 Datetime methods
 ^^^^^^^^^^^^^^^^
@@ -354,6 +363,7 @@ Datetime methods
    Series.dt.ceil
    Series.dt.month_name
    Series.dt.day_name
+   Series.dt.as_unit
 
 Period properties
 ^^^^^^^^^^^^^^^^^
@@ -378,6 +388,7 @@ Timedelta properties
    Series.dt.microseconds
    Series.dt.nanoseconds
    Series.dt.components
+   Series.dt.unit
 
 Timedelta methods
 ^^^^^^^^^^^^^^^^^
@@ -388,6 +399,7 @@ Timedelta methods
 
    Series.dt.to_pytimedelta
    Series.dt.total_seconds
+   Series.dt.as_unit
 
 
 .. _api.series.str:
@@ -460,22 +472,6 @@ strings and apply several methods to it. These can be accessed like
    Series.str.isdecimal
    Series.str.get_dummies
 
-..
-    The following is needed to ensure the generated pages are created with the
-    correct template (otherwise they would be created in the Series/Index class page)
-
-..
-    .. autosummary::
-       :toctree: api/
-       :template: autosummary/accessor.rst
-
-       Series.str
-       Series.cat
-       Series.dt
-       Series.sparse
-       DataFrame.sparse
-       Index.str
-
 .. _api.series.cat:
 
 Categorical accessor
@@ -529,6 +525,46 @@ Sparse-dtype specific methods and attributes are provided under the
 
    Series.sparse.from_coo
    Series.sparse.to_coo
+
+
+.. _api.series.list:
+
+List accessor
+~~~~~~~~~~~~~
+
+Arrow list-dtype specific methods and attributes are provided under the
+``Series.list`` accessor.
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/accessor_method.rst
+
+   Series.list.flatten
+   Series.list.len
+   Series.list.__getitem__
+
+
+.. _api.series.struct:
+
+Struct accessor
+~~~~~~~~~~~~~~~
+
+Arrow struct-dtype specific methods and attributes are provided under the
+``Series.struct`` accessor.
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/accessor_attribute.rst
+
+   Series.struct.dtypes
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/accessor_method.rst
+
+   Series.struct.field
+   Series.struct.explode
+
 
 .. _api.series.flags:
 

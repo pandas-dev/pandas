@@ -4,7 +4,11 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 
-pa = pytest.importorskip("pyarrow", minversion="1.0.1")
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
+pa = pytest.importorskip("pyarrow")
 
 from pandas.core.arrays.arrow._arrow_utils import pyarrow_array_to_numpy_and_mask
 
@@ -35,6 +39,7 @@ def test_arrow_roundtrip(data):
     df = pd.DataFrame({"a": data})
     table = pa.table(df)
     assert table.field("a").type == str(data.dtype.numpy_dtype)
+
     result = table.to_pandas()
     assert result["a"].dtype == data.dtype
     tm.assert_frame_equal(result, df)
@@ -182,6 +187,15 @@ def test_pyarrow_array_to_numpy_and_mask(np_dtype_to_arrays):
     data, mask = pyarrow_array_to_numpy_and_mask(pa_array_offset, np_dtype)
     tm.assert_numpy_array_equal(data[:3], np_expected_empty)
     tm.assert_numpy_array_equal(mask, mask_expected_empty)
+
+
+@pytest.mark.parametrize(
+    "arr", [pa.nulls(10), pa.chunked_array([pa.nulls(4), pa.nulls(6)])]
+)
+def test_from_arrow_null(data, arr):
+    res = data.dtype.__from_arrow__(arr)
+    assert res.isna().all()
+    assert len(res) == 10
 
 
 def test_from_arrow_type_error(data):

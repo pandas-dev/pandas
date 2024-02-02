@@ -19,23 +19,17 @@ from pandas._libs.tslibs.offsets import (
     LastWeekOfMonth,
     Week,
     WeekOfMonth,
-    WeekOfMonthMixin,
 )
 
+import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import (
-    Base,
     WeekDay,
     assert_is_on_offset,
     assert_offset_equal,
 )
 
 
-class TestWeek(Base):
-    _offset: type[Week] = Week
-    d = Timestamp(datetime(2008, 1, 2))
-    offset1 = _offset()
-    offset2 = _offset(2)
-
+class TestWeek:
     def test_repr(self):
         assert repr(Week(weekday=0)) == "<Week: weekday=0>"
         assert repr(Week(n=-1, weekday=0)) == "<-1 * Week: weekday=0>"
@@ -49,10 +43,13 @@ class TestWeek(Base):
             Week(weekday=-1)
 
     def test_is_anchored(self):
-        assert Week(weekday=0).is_anchored()
-        assert not Week().is_anchored()
-        assert not Week(2, weekday=2).is_anchored()
-        assert not Week(2).is_anchored()
+        msg = "Week.is_anchored is deprecated "
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert Week(weekday=0).is_anchored()
+            assert not Week().is_anchored()
+            assert not Week(2, weekday=2).is_anchored()
+            assert not Week(2).is_anchored()
 
     offset_cases = []
     # not business week
@@ -121,11 +118,7 @@ class TestWeek(Base):
 
         for day in range(1, 8):
             date = datetime(2008, 1, day)
-
-            if day % 7 == weekday:
-                expected = True
-            else:
-                expected = False
+            expected = day % 7 == weekday
         assert_is_on_offset(offset, date, expected)
 
     @pytest.mark.parametrize(
@@ -153,11 +146,7 @@ class TestWeek(Base):
             offset + other
 
 
-class TestWeekOfMonth(Base):
-    _offset: type[WeekOfMonthMixin] = WeekOfMonth
-    offset1 = _offset()
-    offset2 = _offset(2)
-
+class TestWeekOfMonth:
     def test_constructor(self):
         with pytest.raises(ValueError, match="^Week"):
             WeekOfMonth(n=1, week=4, weekday=0)
@@ -269,11 +258,7 @@ class TestWeekOfMonth(Base):
         assert fast == slow
 
 
-class TestLastWeekOfMonth(Base):
-    _offset: type[WeekOfMonthMixin] = LastWeekOfMonth
-    offset1 = _offset()
-    offset2 = _offset(2)
-
+class TestLastWeekOfMonth:
     def test_constructor(self):
         with pytest.raises(ValueError, match="^N cannot be 0"):
             LastWeekOfMonth(n=0, weekday=1)

@@ -9,13 +9,13 @@
 .. raw:: html
 
     <div class="card gs-data">
-        <div class="card-header">
+        <div class="card-header gs-data-header">
             <div class="gs-data-title">
                 Data used for this tutorial:
             </div>
         </div>
         <ul class="list-group list-group-flush">
-            <li class="list-group-item">
+            <li class="list-group-item gs-data-list">
 .. include:: includes/titanic.rst
 
 .. ipython:: python
@@ -29,8 +29,8 @@
         </ul>
     </div>
 
-How to manipulate textual data?
--------------------------------
+How to manipulate textual data
+------------------------------
 
 .. raw:: html
 
@@ -179,7 +179,7 @@ applied to integers, so no ``str`` is used.
 
 Based on the index name of the row (``307``) and the column (``Name``),
 we can do a selection using the ``loc`` operator, introduced in the
-`tutorial on subsetting <3_subset_data.ipynb>`__.
+:ref:`tutorial on subsetting <10min_tut_03_subset>`.
 
 .. raw:: html
 

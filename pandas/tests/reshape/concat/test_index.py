@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import numpy as np
 import pytest
 
@@ -78,12 +80,12 @@ class TestIndexConcat:
 
     def test_concat_rename_index(self):
         a = DataFrame(
-            np.random.rand(3, 3),
+            np.random.default_rng(2).random((3, 3)),
             columns=list("ABC"),
             index=Index(list("abc"), name="index_a"),
         )
         b = DataFrame(
-            np.random.rand(3, 3),
+            np.random.default_rng(2).random((3, 3)),
             columns=list("ABC"),
             index=Index(list("abc"), name="index_b"),
         )
@@ -98,18 +100,28 @@ class TestIndexConcat:
         tm.assert_frame_equal(result, exp)
         assert result.index.names == exp.index.names
 
-    def test_concat_copy_index_series(self, axis):
+    def test_concat_copy_index_series(self, axis, using_copy_on_write):
         # GH 29879
         ser = Series([1, 2])
         comb = concat([ser, ser], axis=axis, copy=True)
-        assert comb.index is not ser.index
+        if not using_copy_on_write or axis in [0, "index"]:
+            assert comb.index is not ser.index
+        else:
+            assert comb.index is ser.index
 
-    def test_concat_copy_index_frame(self, axis):
+    def test_concat_copy_index_frame(self, axis, using_copy_on_write):
         # GH 29879
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
         comb = concat([df, df], axis=axis, copy=True)
-        assert comb.index is not df.index
-        assert comb.columns is not df.columns
+        if not using_copy_on_write:
+            assert not comb.index.is_(df.index)
+            assert not comb.columns.is_(df.columns)
+        elif axis in [0, "index"]:
+            assert not comb.index.is_(df.index)
+            assert comb.columns.is_(df.columns)
+        elif axis in [1, "columns"]:
+            assert comb.index.is_(df.index)
+            assert not comb.columns.is_(df.columns)
 
     def test_default_index(self):
         # is_series and ignore_index
@@ -148,7 +160,7 @@ class TestIndexConcat:
 
         # single dtypes
         df = DataFrame(
-            np.random.randint(0, 10, size=40).reshape(10, 4),
+            np.random.default_rng(2).integers(0, 10, size=40).reshape(10, 4),
             columns=["A", "A", "C", "C"],
         )
 
@@ -163,9 +175,13 @@ class TestIndexConcat:
         # multi dtypes
         df = concat(
             [
-                DataFrame(np.random.randn(10, 4), columns=["A", "A", "B", "B"]),
                 DataFrame(
-                    np.random.randint(0, 10, size=20).reshape(10, 2), columns=["A", "C"]
+                    np.random.default_rng(2).standard_normal((10, 4)),
+                    columns=["A", "A", "B", "B"],
+                ),
+                DataFrame(
+                    np.random.default_rng(2).integers(0, 10, size=20).reshape(10, 2),
+                    columns=["A", "C"],
                 ),
             ],
             axis=1,
@@ -228,7 +244,7 @@ class TestMultiIndexConcat:
         # when multi-index levels are RangeIndex objects
         # there is a bug in concat with objects of len 1
 
-        df = DataFrame(np.random.randn(9, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((9, 2)))
         df.index = MultiIndex(
             levels=[pd.RangeIndex(3), pd.RangeIndex(3)],
             codes=[np.repeat(np.arange(3), 3), np.tile(np.arange(3), 3)],
@@ -240,8 +256,6 @@ class TestMultiIndexConcat:
 
     def test_concat_multiindex_dfs_with_deepcopy(self):
         # GH 9967
-        from copy import deepcopy
-
         example_multiindex1 = MultiIndex.from_product([["a"], ["b"]])
         example_dataframe1 = DataFrame([0], index=example_multiindex1)
 
@@ -398,3 +412,61 @@ class TestMultiIndexConcat:
         tm.assert_frame_equal(result, expected)
         expected_index = pd.RangeIndex(0, 2)
         tm.assert_index_equal(result.index, expected_index, exact=True)
+
+    def test_concat_index_keep_dtype(self):
+        # GH#47329
+        df1 = DataFrame([[0, 1, 1]], columns=Index([1, 2, 3], dtype="object"))
+        df2 = DataFrame([[0, 1]], columns=Index([1, 2], dtype="object"))
+        result = concat([df1, df2], ignore_index=True, join="outer", sort=True)
+        expected = DataFrame(
+            [[0, 1, 1.0], [0, 1, np.nan]], columns=Index([1, 2, 3], dtype="object")
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_concat_index_keep_dtype_ea_numeric(self, any_numeric_ea_dtype):
+        # GH#47329
+        df1 = DataFrame(
+            [[0, 1, 1]], columns=Index([1, 2, 3], dtype=any_numeric_ea_dtype)
+        )
+        df2 = DataFrame([[0, 1]], columns=Index([1, 2], dtype=any_numeric_ea_dtype))
+        result = concat([df1, df2], ignore_index=True, join="outer", sort=True)
+        expected = DataFrame(
+            [[0, 1, 1.0], [0, 1, np.nan]],
+            columns=Index([1, 2, 3], dtype=any_numeric_ea_dtype),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["Int8", "Int16", "Int32"])
+    def test_concat_index_find_common(self, dtype):
+        # GH#47329
+        df1 = DataFrame([[0, 1, 1]], columns=Index([1, 2, 3], dtype=dtype))
+        df2 = DataFrame([[0, 1]], columns=Index([1, 2], dtype="Int32"))
+        result = concat([df1, df2], ignore_index=True, join="outer", sort=True)
+        expected = DataFrame(
+            [[0, 1, 1.0], [0, 1, np.nan]], columns=Index([1, 2, 3], dtype="Int32")
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_concat_axis_1_sort_false_rangeindex(self, using_infer_string):
+        # GH 46675
+        s1 = Series(["a", "b", "c"])
+        s2 = Series(["a", "b"])
+        s3 = Series(["a", "b", "c", "d"])
+        s4 = Series(
+            [], dtype=object if not using_infer_string else "string[pyarrow_numpy]"
+        )
+        result = concat(
+            [s1, s2, s3, s4], sort=False, join="outer", ignore_index=False, axis=1
+        )
+        expected = DataFrame(
+            [
+                ["a"] * 3 + [np.nan],
+                ["b"] * 3 + [np.nan],
+                ["c", np.nan] * 2,
+                [np.nan] * 2 + ["d"] + [np.nan],
+            ],
+            dtype=object if not using_infer_string else "string[pyarrow_numpy]",
+        )
+        tm.assert_frame_equal(
+            result, expected, check_index_type=True, check_column_type=True
+        )

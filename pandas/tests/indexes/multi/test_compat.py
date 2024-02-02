@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import MultiIndex
 import pandas._testing as tm
 
@@ -59,17 +60,11 @@ def test_inplace_mutation_resets_values():
     new_vals = mi1.set_levels(levels2).values
     tm.assert_almost_equal(vals2, new_vals)
 
-    # Non-inplace doesn't drop _values from _cache [implementation detail]
+    #  Doesn't drop _values from _cache [implementation detail]
     tm.assert_almost_equal(mi1._cache["_values"], vals)
 
     # ...and values is still same too
     tm.assert_almost_equal(mi1.values, vals)
-
-    # Inplace should drop _values from _cache
-    with tm.assert_produces_warning(FutureWarning):
-        mi1.set_levels(levels2, inplace=True)
-    assert "_values" not in mi1._cache
-    tm.assert_almost_equal(mi1.values, vals2)
 
     # Make sure label setting works too
     codes2 = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]]
@@ -84,15 +79,44 @@ def test_inplace_mutation_resets_values():
     new_values = new_mi.values
     assert "_values" in new_mi._cache
 
-    # Not inplace shouldn't change
+    # Shouldn't change cache
     tm.assert_almost_equal(mi2._cache["_values"], vals2)
 
     # Should have correct values
     tm.assert_almost_equal(exp_values, new_values)
 
-    # ...and again setting inplace should drop _values from _cache, etc
-    with tm.assert_produces_warning(FutureWarning):
-        mi2.set_codes(codes2, inplace=True)
-    assert "_values" not in mi2._cache
-    tm.assert_almost_equal(mi2.values, new_values)
-    assert "_values" in mi2._cache
+
+def test_boxable_categorical_values():
+    cat = pd.Categorical(pd.date_range("2012-01-01", periods=3, freq="h"))
+    result = MultiIndex.from_product([["a", "b", "c"], cat]).values
+    expected = pd.Series(
+        [
+            ("a", pd.Timestamp("2012-01-01 00:00:00")),
+            ("a", pd.Timestamp("2012-01-01 01:00:00")),
+            ("a", pd.Timestamp("2012-01-01 02:00:00")),
+            ("b", pd.Timestamp("2012-01-01 00:00:00")),
+            ("b", pd.Timestamp("2012-01-01 01:00:00")),
+            ("b", pd.Timestamp("2012-01-01 02:00:00")),
+            ("c", pd.Timestamp("2012-01-01 00:00:00")),
+            ("c", pd.Timestamp("2012-01-01 01:00:00")),
+            ("c", pd.Timestamp("2012-01-01 02:00:00")),
+        ]
+    ).values
+    tm.assert_numpy_array_equal(result, expected)
+    result = pd.DataFrame({"a": ["a", "b", "c"], "b": cat, "c": np.array(cat)}).values
+    expected = pd.DataFrame(
+        {
+            "a": ["a", "b", "c"],
+            "b": [
+                pd.Timestamp("2012-01-01 00:00:00"),
+                pd.Timestamp("2012-01-01 01:00:00"),
+                pd.Timestamp("2012-01-01 02:00:00"),
+            ],
+            "c": [
+                pd.Timestamp("2012-01-01 00:00:00"),
+                pd.Timestamp("2012-01-01 01:00:00"),
+                pd.Timestamp("2012-01-01 02:00:00"),
+            ],
+        }
+    ).values
+    tm.assert_numpy_array_equal(result, expected)

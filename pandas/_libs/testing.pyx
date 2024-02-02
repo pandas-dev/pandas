@@ -1,5 +1,6 @@
 import cmath
 import math
+import warnings
 
 import numpy as np
 
@@ -7,29 +8,31 @@ from numpy cimport import_array
 
 import_array()
 
+from pandas._libs.missing cimport (
+    checknull,
+    is_matching_na,
+)
 from pandas._libs.util cimport (
     is_array,
     is_complex_object,
     is_real_number_object,
 )
 
-from pandas.core.dtypes.common import is_dtype_equal
-from pandas.core.dtypes.missing import (
-    array_equivalent,
-    isna,
-)
+from pandas.util._exceptions import find_stack_level
+
+from pandas.core.dtypes.missing import array_equivalent
 
 
 cdef bint isiterable(obj):
-    return hasattr(obj, '__iter__')
+    return hasattr(obj, "__iter__")
 
 
 cdef bint has_length(obj):
-    return hasattr(obj, '__len__')
+    return hasattr(obj, "__len__")
 
 
 cdef bint is_dictlike(obj):
-    return hasattr(obj, 'keys') and hasattr(obj, '__getitem__')
+    return hasattr(obj, "keys") and hasattr(obj, "__getitem__")
 
 
 cpdef assert_dict_equal(a, b, bint compare_keys=True):
@@ -62,12 +65,8 @@ cpdef assert_almost_equal(a, b,
     b : object
     rtol : float, default 1e-5
         Relative tolerance.
-
-        .. versionadded:: 1.1.0
     atol : float, default 1e-8
         Absolute tolerance.
-
-        .. versionadded:: 1.1.0
     check_dtype: bool, default True
         check dtype if both a and b are np.ndarray.
     obj : str, default None
@@ -79,11 +78,9 @@ cpdef assert_almost_equal(a, b,
     robj : str, default None
         Specify right object name being compared, internally used to show
         appropriate assertion message.
-    index_values : ndarray, default None
+    index_values : Index | ndarray, default None
         Specify shared index values of objects being compared, internally used
         to show appropriate assertion message.
-
-        .. versionadded:: 1.1.0
 
     """
     cdef:
@@ -91,11 +88,16 @@ cpdef assert_almost_equal(a, b,
         Py_ssize_t i, na, nb
         double fa, fb
         bint is_unequal = False, a_is_ndarray, b_is_ndarray
+        str first_diff = ""
 
     if lobj is None:
         lobj = a
     if robj is None:
         robj = b
+
+    if isinstance(a, set) or isinstance(b, set):
+        assert a == b, f"{a} != {b}"
+        return True
 
     if isinstance(a, dict) or isinstance(b, dict):
         return assert_dict_equal(a, b)
@@ -109,9 +111,9 @@ cpdef assert_almost_equal(a, b,
 
     if obj is None:
         if a_is_ndarray or b_is_ndarray:
-            obj = 'numpy array'
+            obj = "numpy array"
         else:
-            obj = 'Iterable'
+            obj = "Iterable"
 
     if isiterable(a):
 
@@ -130,11 +132,11 @@ cpdef assert_almost_equal(a, b,
             if a.shape != b.shape:
                 from pandas._testing import raise_assert_detail
                 raise_assert_detail(
-                    obj, f'{obj} shapes are different', a.shape, b.shape)
+                    obj, f"{obj} shapes are different", a.shape, b.shape)
 
-            if check_dtype and not is_dtype_equal(a.dtype, b.dtype):
+            if check_dtype and a.dtype != b.dtype:
                 from pandas._testing import assert_attr_equal
-                assert_attr_equal('dtype', a, b, obj=obj)
+                assert_attr_equal("dtype", a, b, obj=obj)
 
             if array_equivalent(a, b, strict_nan=True):
                 return True
@@ -159,12 +161,18 @@ cpdef assert_almost_equal(a, b,
             except AssertionError:
                 is_unequal = True
                 diff += 1
+                if not first_diff:
+                    first_diff = (
+                        f"At positional index {i}, first diff: {a[i]} != {b[i]}"
+                    )
 
         if is_unequal:
             from pandas._testing import raise_assert_detail
             msg = (f"{obj} values are different "
                    f"({np.round(diff * 100.0 / na, 5)} %)")
-            raise_assert_detail(obj, msg, lobj, robj, index_values=index_values)
+            raise_assert_detail(
+                obj, msg, lobj, robj, first_diff=first_diff, index_values=index_values
+            )
 
         return True
 
@@ -174,20 +182,30 @@ cpdef assert_almost_equal(a, b,
         # classes can't be the same, to raise error
         assert_class_equal(a, b, obj=obj)
 
-    if isna(a) and isna(b):
-        # TODO: Should require same-dtype NA?
+    if checknull(a):
         # nan / None comparison
-        return True
+        if is_matching_na(a, b, nan_matches_none=False):
+            return True
+        elif checknull(b):
+            # GH#18463
+            warnings.warn(
+                f"Mismatched null-like values {a} and {b} found. In a future "
+                "version, pandas equality-testing functions "
+                "(e.g. assert_frame_equal) will consider these not-matching "
+                "and raise.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            return True
+        raise AssertionError(f"{a} != {b}")
+    elif checknull(b):
+        raise AssertionError(f"{a} != {b}")
 
     if a == b:
         # object comparison
         return True
 
     if is_real_number_object(a) and is_real_number_object(b):
-        if array_equivalent(a, b, strict_nan=True):
-            # inf comparison
-            return True
-
         fa, fb = a, b
 
         if not math.isclose(fa, fb, rel_tol=rtol, abs_tol=atol):
@@ -196,10 +214,6 @@ cpdef assert_almost_equal(a, b,
         return True
 
     if is_complex_object(a) and is_complex_object(b):
-        if array_equivalent(a, b, strict_nan=True):
-            # inf comparison
-            return True
-
         if not cmath.isclose(a, b, rel_tol=rtol, abs_tol=atol):
             assert False, (f"expected {b:.5f} but got {a:.5f}, "
                            f"with rtol={rtol}, atol={atol}")

@@ -41,75 +41,123 @@ cdef class HashTable:
 
 cdef class UInt64HashTable(HashTable):
     cdef kh_uint64_t *table
+    cdef int64_t na_position
+    cdef bint uses_mask
 
     cpdef get_item(self, uint64_t val)
     cpdef set_item(self, uint64_t key, Py_ssize_t val)
+    cpdef get_na(self)
+    cpdef set_na(self, Py_ssize_t val)
 
 cdef class Int64HashTable(HashTable):
     cdef kh_int64_t *table
+    cdef int64_t na_position
+    cdef bint uses_mask
 
     cpdef get_item(self, int64_t val)
     cpdef set_item(self, int64_t key, Py_ssize_t val)
+    cpdef get_na(self)
+    cpdef set_na(self, Py_ssize_t val)
 
 cdef class UInt32HashTable(HashTable):
     cdef kh_uint32_t *table
+    cdef int64_t na_position
+    cdef bint uses_mask
 
     cpdef get_item(self, uint32_t val)
     cpdef set_item(self, uint32_t key, Py_ssize_t val)
+    cpdef get_na(self)
+    cpdef set_na(self, Py_ssize_t val)
 
 cdef class Int32HashTable(HashTable):
     cdef kh_int32_t *table
+    cdef int64_t na_position
+    cdef bint uses_mask
 
     cpdef get_item(self, int32_t val)
     cpdef set_item(self, int32_t key, Py_ssize_t val)
+    cpdef get_na(self)
+    cpdef set_na(self, Py_ssize_t val)
 
 cdef class UInt16HashTable(HashTable):
     cdef kh_uint16_t *table
+    cdef int64_t na_position
+    cdef bint uses_mask
 
     cpdef get_item(self, uint16_t val)
     cpdef set_item(self, uint16_t key, Py_ssize_t val)
+    cpdef get_na(self)
+    cpdef set_na(self, Py_ssize_t val)
 
 cdef class Int16HashTable(HashTable):
     cdef kh_int16_t *table
+    cdef int64_t na_position
+    cdef bint uses_mask
 
     cpdef get_item(self, int16_t val)
     cpdef set_item(self, int16_t key, Py_ssize_t val)
+    cpdef get_na(self)
+    cpdef set_na(self, Py_ssize_t val)
 
 cdef class UInt8HashTable(HashTable):
     cdef kh_uint8_t *table
+    cdef int64_t na_position
+    cdef bint uses_mask
 
     cpdef get_item(self, uint8_t val)
     cpdef set_item(self, uint8_t key, Py_ssize_t val)
+    cpdef get_na(self)
+    cpdef set_na(self, Py_ssize_t val)
 
 cdef class Int8HashTable(HashTable):
     cdef kh_int8_t *table
+    cdef int64_t na_position
+    cdef bint uses_mask
 
     cpdef get_item(self, int8_t val)
     cpdef set_item(self, int8_t key, Py_ssize_t val)
+    cpdef get_na(self)
+    cpdef set_na(self, Py_ssize_t val)
 
 cdef class Float64HashTable(HashTable):
     cdef kh_float64_t *table
+    cdef int64_t na_position
+    cdef bint uses_mask
 
     cpdef get_item(self, float64_t val)
     cpdef set_item(self, float64_t key, Py_ssize_t val)
+    cpdef get_na(self)
+    cpdef set_na(self, Py_ssize_t val)
 
 cdef class Float32HashTable(HashTable):
     cdef kh_float32_t *table
+    cdef int64_t na_position
+    cdef bint uses_mask
 
     cpdef get_item(self, float32_t val)
     cpdef set_item(self, float32_t key, Py_ssize_t val)
+    cpdef get_na(self)
+    cpdef set_na(self, Py_ssize_t val)
 
 cdef class Complex64HashTable(HashTable):
     cdef kh_complex64_t *table
+    cdef int64_t na_position
+    cdef bint uses_mask
 
     cpdef get_item(self, complex64_t val)
     cpdef set_item(self, complex64_t key, Py_ssize_t val)
+    cpdef get_na(self)
+    cpdef set_na(self, Py_ssize_t val)
 
 cdef class Complex128HashTable(HashTable):
     cdef kh_complex128_t *table
+    cdef int64_t na_position
+    cdef bint uses_mask
 
     cpdef get_item(self, complex128_t val)
     cpdef set_item(self, complex128_t key, Py_ssize_t val)
+    cpdef get_na(self)
+    cpdef set_na(self, Py_ssize_t val)
 
 cdef class PyObjectHashTable(HashTable):
     cdef kh_pymap_t *table
@@ -137,5 +185,5 @@ cdef class Int64Vector(Vector):
 
     cdef resize(self)
     cpdef ndarray to_array(self)
-    cdef inline void append(self, int64_t x)
+    cdef void append(self, int64_t x) noexcept
     cdef extend(self, int64_t[:] x)

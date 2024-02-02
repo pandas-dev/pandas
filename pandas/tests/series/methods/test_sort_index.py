@@ -1,5 +1,3 @@
-import random
-
 import numpy as np
 import pytest
 
@@ -26,7 +24,7 @@ class TestSeriesSortIndex:
         datetime_series.index = datetime_series.index._with_freq(None)
 
         rindex = list(datetime_series.index)
-        random.shuffle(rindex)
+        np.random.default_rng(2).shuffle(rindex)
 
         random_order = datetime_series.reindex(rindex)
         sorted_series = random_order.sort_index()
@@ -61,7 +59,7 @@ class TestSeriesSortIndex:
 
         # For GH#11402
         rindex = list(datetime_series.index)
-        random.shuffle(rindex)
+        np.random.default_rng(2).shuffle(rindex)
 
         # descending
         random_order = datetime_series.reindex(rindex)
@@ -100,7 +98,6 @@ class TestSeriesSortIndex:
 
     @pytest.mark.parametrize("level", ["A", 0])  # GH#21052
     def test_sort_index_multiindex(self, level):
-
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))
         s = Series([1, 2], mi)
         backwards = s.iloc[[1, 0]]
@@ -321,14 +318,20 @@ class TestSeriesSortIndexKey:
         expected = s.iloc[[2, 1, 0]]
         tm.assert_series_equal(result, expected)
 
-    def test_sort_index_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        ser = Series([1, 2, 3])
-        msg = (
-            r"In a future version of pandas all arguments of Series.sort_index "
-            r"will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser.sort_index(0)
-        expected = Series([1, 2, 3])
+    @pytest.mark.parametrize(
+        "ascending",
+        [
+            [True, False],
+            [False, True],
+        ],
+    )
+    def test_sort_index_multi_already_monotonic(self, ascending):
+        # GH 56049
+        mi = MultiIndex.from_product([[1, 2], [3, 4]])
+        ser = Series(range(len(mi)), index=mi)
+        result = ser.sort_index(ascending=ascending)
+        if ascending == [True, False]:
+            expected = ser.take([1, 0, 3, 2])
+        elif ascending == [False, True]:
+            expected = ser.take([2, 3, 0, 1])
         tm.assert_series_equal(result, expected)

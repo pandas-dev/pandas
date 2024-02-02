@@ -73,7 +73,6 @@ class TestRangeIndexConstructors:
             RangeIndex(args)
 
     def test_constructor_same(self):
-
         # pass thru w and w/o copy
         index = RangeIndex(1, 5, 2)
         result = RangeIndex(index, copy=False)
@@ -97,7 +96,6 @@ class TestRangeIndexConstructors:
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_constructor_range(self):
-
         result = RangeIndex.from_range(range(1, 5, 2))
         expected = RangeIndex(1, 5, 2)
         tm.assert_index_equal(result, expected, exact=True)
@@ -148,8 +146,7 @@ class TestRangeIndexConstructors:
         arr = np.array([1, 2, 3, 4], dtype=object)
         index = RangeIndex(1, 5)
         assert index.values.dtype == np.int64
-        with tm.assert_produces_warning(FutureWarning, match="will not infer"):
-            expected = Index(arr).astype("int64")
+        expected = Index(arr).astype("int64")
 
         tm.assert_index_equal(index, expected, exact="equiv")
 

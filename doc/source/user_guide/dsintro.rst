@@ -31,9 +31,9 @@ Series
 type (integers, strings, floating point numbers, Python objects, etc.). The axis
 labels are collectively referred to as the **index**. The basic method to create a :class:`Series` is to call:
 
-::
+.. code-block:: python
 
-    >>> s = pd.Series(data, index=index)
+   s = pd.Series(data, index=index)
 
 Here, ``data`` can be many different things:
 
@@ -102,15 +102,15 @@ However, operations such as slicing will also slice the index.
 
 .. ipython:: python
 
-    s[0]
-    s[:3]
+    s.iloc[0]
+    s.iloc[:3]
     s[s > s.median()]
-    s[[4, 3, 1]]
+    s.iloc[[4, 3, 1]]
     np.exp(s)
 
 .. note::
 
-   We will address array-based indexing like ``s[[4, 3, 1]]``
+   We will address array-based indexing like ``s.iloc[[4, 3, 1]]``
    in :ref:`section on indexing <indexing>`.
 
 Like a NumPy array, a pandas :class:`Series` has a single :attr:`~Series.dtype`.
@@ -201,7 +201,7 @@ labels.
 
 .. ipython:: python
 
-    s[1:] + s[:-1]
+    s.iloc[1:] + s.iloc[:-1]
 
 The result of an operation between unaligned :class:`Series` will have the **union** of
 the indexes involved. If a label is not found in one :class:`Series` or the other, the
@@ -308,7 +308,7 @@ The row and column labels can be accessed respectively by accessing the
 From dict of ndarrays / lists
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ndarrays must all be the same length. If an index is passed, it must
+All ndarrays must share the same length. If an index is passed, it must
 also be the same length as the arrays. If no index is passed, the
 result will be ``range(n)``, where ``n`` is the array length.
 
@@ -412,8 +412,6 @@ first ``namedtuple``, a ``ValueError`` is raised.
 
 From a list of dataclasses
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. versionadded:: 1.1.0
 
 Data Classes as introduced in `PEP557 <https://www.python.org/dev/peps/pep-0557>`__,
 can be passed into the DataFrame constructor.
@@ -712,10 +710,8 @@ The ufunc is applied to the underlying array in a :class:`Series`.
    ser = pd.Series([1, 2, 3, 4])
    np.exp(ser)
 
-.. versionchanged:: 0.25.0
-
-   When multiple :class:`Series` are passed to a ufunc, they are aligned before
-   performing the operation.
+When multiple :class:`Series` are passed to a ufunc, they are aligned before
+performing the operation.
 
 Like other parts of the library, pandas will automatically align labeled inputs
 as part of a ufunc with multiple inputs. For example, using :meth:`numpy.remainder`

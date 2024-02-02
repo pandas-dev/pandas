@@ -6,12 +6,11 @@ from pandas import (
     Index,
     RangeIndex,
     Series,
+    date_range,
+    period_range,
+    timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-)
 
 
 def gen_obj(klass, index):
@@ -19,7 +18,9 @@ def gen_obj(klass, index):
         obj = Series(np.arange(len(index)), index=index)
     else:
         obj = DataFrame(
-            np.random.randn(len(index), len(index)), index=index, columns=index
+            np.random.default_rng(2).standard_normal((len(index), len(index))),
+            index=index,
+            columns=index,
         )
     return obj
 
@@ -33,32 +34,29 @@ class TestFloatIndexers:
         """
         if isinstance(original, Series):
             expected = original.iloc[indexer]
+        elif getitem:
+            expected = original.iloc[:, indexer]
         else:
-            if getitem:
-                expected = original.iloc[:, indexer]
-            else:
-                expected = original.iloc[indexer]
+            expected = original.iloc[indexer]
 
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "index_func",
+        "index",
         [
-            tm.makeStringIndex,
-            tm.makeCategoricalIndex,
-            tm.makeDateIndex,
-            tm.makeTimedeltaIndex,
-            tm.makePeriodIndex,
+            Index(list("abcde")),
+            Index(list("abcde"), dtype="category"),
+            date_range("2020-01-01", periods=5),
+            timedelta_range("1 day", periods=5),
+            period_range("2020-01-01", periods=5),
         ],
     )
-    def test_scalar_non_numeric(self, index_func, frame_or_series, indexer_sl):
-
+    def test_scalar_non_numeric(self, index, frame_or_series, indexer_sl):
         # GH 4892
         # float_indexers should raise exceptions
         # on appropriate Index types & accessors
 
-        i = index_func(5)
-        s = gen_obj(frame_or_series, i)
+        s = gen_obj(frame_or_series, index)
 
         # getting
         with pytest.raises(KeyError, match="^3.0$"):
@@ -79,25 +77,26 @@ class TestFloatIndexers:
             assert 3.0 not in s2.axes[-1]
 
     @pytest.mark.parametrize(
-        "index_func",
+        "index",
         [
-            tm.makeStringIndex,
-            tm.makeCategoricalIndex,
-            tm.makeDateIndex,
-            tm.makeTimedeltaIndex,
-            tm.makePeriodIndex,
+            Index(list("abcde")),
+            Index(list("abcde"), dtype="category"),
+            date_range("2020-01-01", periods=5),
+            timedelta_range("1 day", periods=5),
+            period_range("2020-01-01", periods=5),
         ],
     )
-    def test_scalar_non_numeric_series_fallback(self, index_func):
+    def test_scalar_non_numeric_series_fallback(self, index):
         # fallsback to position selection, series only
-        i = index_func(5)
-        s = Series(np.arange(len(i)), index=i)
-        s[3]
+        s = Series(np.arange(len(index)), index=index)
+
+        msg = "Series.__getitem__ treating keys as positions is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            s[3]
         with pytest.raises(KeyError, match="^3.0$"):
             s[3.0]
 
     def test_scalar_with_mixed(self, indexer_sl):
-
         s2 = Series([1, 2, 3], index=["a", "b", "c"])
         s3 = Series([1, 2, 3], index=["a", "b", 1.5])
 
@@ -120,7 +119,9 @@ class TestFloatIndexers:
 
         if indexer_sl is not tm.loc:
             # __getitem__ falls back to positional
-            result = s3[1]
+            msg = "Series.__getitem__ treating keys as positions is deprecated"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                result = s3[1]
             expected = 2
             assert result == expected
 
@@ -131,14 +132,16 @@ class TestFloatIndexers:
         expected = 3
         assert result == expected
 
-    @pytest.mark.parametrize("index_func", [tm.makeIntIndex, tm.makeRangeIndex])
-    def test_scalar_integer(self, index_func, frame_or_series, indexer_sl):
+    @pytest.mark.parametrize(
+        "index", [Index(np.arange(5), dtype=np.int64), RangeIndex(5)]
+    )
+    def test_scalar_integer(self, index, frame_or_series, indexer_sl):
         getitem = indexer_sl is not tm.loc
 
         # test how scalar float indexers work on int indexes
 
         # integer index
-        i = index_func(5)
+        i = index
         obj = gen_obj(frame_or_series, i)
 
         # coerce to equal int
@@ -168,18 +171,18 @@ class TestFloatIndexers:
         result = indexer_sl(s2)[3]
         compare(result, expected)
 
-    @pytest.mark.parametrize("index_func", [tm.makeIntIndex, tm.makeRangeIndex])
-    def test_scalar_integer_contains_float(self, index_func, frame_or_series):
+    @pytest.mark.parametrize(
+        "index", [Index(np.arange(5), dtype=np.int64), RangeIndex(5)]
+    )
+    def test_scalar_integer_contains_float(self, index, frame_or_series):
         # contains
         # integer index
-        index = index_func(5)
         obj = gen_obj(frame_or_series, index)
 
         # coerce to equal int
         assert 3.0 in obj
 
     def test_scalar_float(self, frame_or_series):
-
         # scalar float indexers work on a float index
         index = Index(np.arange(5.0))
         s = gen_obj(frame_or_series, index)
@@ -215,22 +218,20 @@ class TestFloatIndexers:
         self.check(result, s, 3, False)
 
     @pytest.mark.parametrize(
-        "index_func",
+        "index",
         [
-            tm.makeStringIndex,
-            tm.makeDateIndex,
-            tm.makeTimedeltaIndex,
-            tm.makePeriodIndex,
+            Index(list("abcde"), dtype=object),
+            date_range("2020-01-01", periods=5),
+            timedelta_range("1 day", periods=5),
+            period_range("2020-01-01", periods=5),
         ],
     )
     @pytest.mark.parametrize("idx", [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)])
-    def test_slice_non_numeric(self, index_func, idx, frame_or_series, indexer_sli):
-
+    def test_slice_non_numeric(self, index, idx, frame_or_series, indexer_sli):
         # GH 4892
         # float_indexers should raise exceptions
         # on appropriate Index types & accessors
 
-        index = index_func(5)
         s = gen_obj(frame_or_series, index)
 
         # getitem
@@ -258,23 +259,20 @@ class TestFloatIndexers:
             indexer_sli(s)[idx] = 0
 
     def test_slice_integer(self):
-
         # same as above, but for Integer based indexes
         # these coerce to a like integer
         # oob indicates if we are out of bounds
         # of positional indexing
         for index, oob in [
-            (Int64Index(range(5)), False),
+            (Index(np.arange(5, dtype=np.int64)), False),
             (RangeIndex(5), False),
-            (Int64Index(range(5)) + 10, True),
+            (Index(np.arange(5, dtype=np.int64) + 10), True),
         ]:
-
             # s is an in-range index
             s = Series(range(5), index=index)
 
             # getitem
             for idx in [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)]:
-
                 result = s.loc[idx]
 
                 # these are all label indexing
@@ -288,7 +286,6 @@ class TestFloatIndexers:
 
             # getitem out-of-bounds
             for idx in [slice(-6, 6), slice(-6.0, 6.0)]:
-
                 result = s.loc[idx]
 
                 # these are all label indexing
@@ -315,7 +312,6 @@ class TestFloatIndexers:
                 (slice(2, 3.5), slice(2, 4)),
                 (slice(2.5, 3.5), slice(3, 4)),
             ]:
-
                 result = s.loc[idx]
                 if oob:
                     res = slice(0, 0)
@@ -340,8 +336,7 @@ class TestFloatIndexers:
         """
         s = Series(range(2, 6), index=range(2, 6))
 
-        with tm.assert_produces_warning(FutureWarning, match="label-based"):
-            result = s[2:4]
+        result = s[2:4]
         expected = s.iloc[2:4]
         tm.assert_series_equal(result, expected)
 
@@ -356,17 +351,15 @@ class TestFloatIndexers:
         with pytest.raises(TypeError, match=msg):
             s.iloc[idx]
 
-    @pytest.mark.parametrize("index_func", [tm.makeIntIndex, tm.makeRangeIndex])
-    def test_slice_integer_frame_getitem(self, index_func):
-
+    @pytest.mark.parametrize(
+        "index", [Index(np.arange(5), dtype=np.int64), RangeIndex(5)]
+    )
+    def test_slice_integer_frame_getitem(self, index):
         # similar to above, but on the getitem dim (of a DataFrame)
-        index = index_func(5)
-
-        s = DataFrame(np.random.randn(5, 2), index=index)
+        s = DataFrame(np.random.default_rng(2).standard_normal((5, 2)), index=index)
 
         # getitem
         for idx in [slice(0.0, 1), slice(0, 1.0), slice(0.0, 1.0)]:
-
             result = s.loc[idx]
             indexer = slice(0, 2)
             self.check(result, s, indexer, False)
@@ -382,7 +375,6 @@ class TestFloatIndexers:
 
         # getitem out-of-bounds
         for idx in [slice(-10, 10), slice(-10.0, 10.0)]:
-
             result = s.loc[idx]
             self.check(result, s, slice(-10, 10), True)
 
@@ -401,7 +393,6 @@ class TestFloatIndexers:
             (slice(0, 0.5), slice(0, 1)),
             (slice(0.5, 1.5), slice(1, 2)),
         ]:
-
             result = s.loc[idx]
             self.check(result, s, res, False)
 
@@ -415,13 +406,12 @@ class TestFloatIndexers:
                 s[idx]
 
     @pytest.mark.parametrize("idx", [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)])
-    @pytest.mark.parametrize("index_func", [tm.makeIntIndex, tm.makeRangeIndex])
-    def test_float_slice_getitem_with_integer_index_raises(self, idx, index_func):
-
+    @pytest.mark.parametrize(
+        "index", [Index(np.arange(5), dtype=np.int64), RangeIndex(5)]
+    )
+    def test_float_slice_getitem_with_integer_index_raises(self, idx, index):
         # similar to above, but on the getitem dim (of a DataFrame)
-        index = index_func(5)
-
-        s = DataFrame(np.random.randn(5, 2), index=index)
+        s = DataFrame(np.random.default_rng(2).standard_normal((5, 2)), index=index)
 
         # setitem
         sc = s.copy()
@@ -443,7 +433,6 @@ class TestFloatIndexers:
 
     @pytest.mark.parametrize("idx", [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)])
     def test_slice_float(self, idx, frame_or_series, indexer_sl):
-
         # same as above, but for floats
         index = Index(np.arange(5.0)) + 0.1
         s = gen_obj(frame_or_series, index)
@@ -462,7 +451,6 @@ class TestFloatIndexers:
         assert (result == 0).all()
 
     def test_floating_index_doc_example(self):
-
         index = Index([1.5, 2, 3, 4.5, 5])
         s = Series(range(5), index=index)
         assert s[3] == 2
@@ -470,7 +458,6 @@ class TestFloatIndexers:
         assert s.iloc[3] == 3
 
     def test_floating_misc(self, indexer_sl):
-
         # related 236
         # scalar/slicing of a float index
         s = Series(np.arange(5), index=np.arange(5) * 2.5, dtype=np.int64)
@@ -496,7 +483,7 @@ class TestFloatIndexers:
 
         # fancy floats/integers create the correct entry (as nan)
         # fancy tests
-        expected = Series([2, 0], index=Float64Index([5.0, 0.0]))
+        expected = Series([2, 0], index=Index([5.0, 0.0], dtype=np.float64))
         for fancy_idx in [[5.0, 0.0], np.array([5.0, 0.0])]:  # float
             tm.assert_series_equal(indexer_sl(s)[fancy_idx], expected)
 
@@ -504,8 +491,12 @@ class TestFloatIndexers:
         for fancy_idx in [[5, 0], np.array([5, 0])]:
             tm.assert_series_equal(indexer_sl(s)[fancy_idx], expected)
 
+        warn = FutureWarning if indexer_sl is tm.setitem else None
+        msg = r"The behavior of obj\[i:j\] with a float-dtype index"
+
         # all should return the same as we are slicing 'the same'
-        result1 = indexer_sl(s)[2:5]
+        with tm.assert_produces_warning(warn, match=msg):
+            result1 = indexer_sl(s)[2:5]
         result2 = indexer_sl(s)[2.0:5.0]
         result3 = indexer_sl(s)[2.0:5]
         result4 = indexer_sl(s)[2.1:5]
@@ -514,7 +505,8 @@ class TestFloatIndexers:
         tm.assert_series_equal(result1, result4)
 
         expected = Series([1, 2], index=[2.5, 5.0])
-        result = indexer_sl(s)[2:5]
+        with tm.assert_produces_warning(warn, match=msg):
+            result = indexer_sl(s)[2:5]
 
         tm.assert_series_equal(result, expected)
 
@@ -535,8 +527,9 @@ class TestFloatIndexers:
         result = indexer_sl(s)[[2.5]]
         tm.assert_series_equal(result, Series([1], index=[2.5]))
 
-    def test_float64index_slicing_bug(self):
+    def test_floatindex_slicing_bug(self, float_numpy_dtype):
         # GH 5557, related to slicing a float index
+        dtype = float_numpy_dtype
         ser = {
             256: 2321.0,
             1: 78.0,
@@ -690,6 +683,7 @@ class TestFloatIndexers:
         }
 
         # smoke test for the repr
-        s = Series(ser)
+        s = Series(ser, dtype=dtype)
         result = s.value_counts()
+        assert result.index.dtype == dtype
         str(result)

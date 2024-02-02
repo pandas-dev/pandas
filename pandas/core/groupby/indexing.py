@@ -1,15 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import (
     TYPE_CHECKING,
-    Iterable,
     Literal,
     cast,
 )
 
 import numpy as np
 
-from pandas._typing import PositionalIndexer
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -21,6 +20,8 @@ from pandas.core.dtypes.common import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import PositionalIndexer
+
     from pandas import (
         DataFrame,
         Series,
@@ -112,6 +113,7 @@ class GroupByIndexingMixin:
         4  b  5
         """
         if TYPE_CHECKING:
+            # pylint: disable-next=used-before-assignment
             groupby_self = cast(groupby.GroupBy, self)
         else:
             groupby_self = self
@@ -279,7 +281,6 @@ class GroupByPositionalSelector:
         GroupBy.nth : Take the nth row from each group if n is an int, or a
             subset of rows, if n is a list of ints.
         """
-        self.groupby_object._reset_group_selection()
         mask = self.groupby_object._make_mask_from_positional_indexer(arg)
         return self.groupby_object._mask_selected_obj(mask)
 
@@ -297,7 +298,7 @@ class GroupByNthSelector:
         n: PositionalIndexer | tuple,
         dropna: Literal["any", "all", None] = None,
     ) -> DataFrame | Series:
-        return self.groupby_object.nth_actual(n, dropna)
+        return self.groupby_object._nth(n, dropna)
 
     def __getitem__(self, n: PositionalIndexer | tuple) -> DataFrame | Series:
-        return self.groupby_object.nth_actual(n)
+        return self.groupby_object._nth(n)

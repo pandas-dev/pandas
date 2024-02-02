@@ -8,11 +8,8 @@ from pandas import (
     date_range,
 )
 
-from ..pandas_vb_common import tm
-
 
 class IsIn:
-
     params = [
         "int64",
         "uint64",
@@ -61,9 +58,12 @@ class IsIn:
 
         elif dtype in ["str", "string[python]", "string[pyarrow]"]:
             try:
-                self.series = Series(tm.makeStringIndex(N), dtype=dtype)
-            except ImportError:
-                raise NotImplementedError
+                self.series = Series(
+                    Index([f"i-{i}" for i in range(N)], dtype=object)._values,
+                    dtype=dtype,
+                )
+            except ImportError as err:
+                raise NotImplementedError from err
             self.values = list(self.series[:2])
 
         else:
@@ -183,7 +183,6 @@ class IsinWithArange:
 
 
 class IsInFloat64:
-
     params = [
         [np.float64, "Float64"],
         ["many_different_values", "few_different_values", "only_nans_values"],
@@ -249,7 +248,7 @@ class IsInForObjects:
         elif series_type == "long":
             ser_vals = np.arange(N_many)
         elif series_type == "long_floats":
-            ser_vals = np.arange(N_many, dtype=np.float_)
+            ser_vals = np.arange(N_many, dtype=np.float64)
 
         self.series = Series(ser_vals).astype(object)
 
@@ -260,7 +259,7 @@ class IsInForObjects:
         elif vals_type == "long":
             values = np.arange(N_many)
         elif vals_type == "long_floats":
-            values = np.arange(N_many, dtype=np.float_)
+            values = np.arange(N_many, dtype=np.float64)
 
         self.values = values.astype(object)
 

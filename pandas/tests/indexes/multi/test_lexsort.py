@@ -1,5 +1,4 @@
 from pandas import MultiIndex
-import pandas._testing as tm
 
 
 class TestIsLexsorted:
@@ -21,11 +20,6 @@ class TestIsLexsorted:
         )
         assert not index._is_lexsorted()
         assert index._lexsort_depth == 0
-
-    def test_is_lexsorted_deprecation(self):
-        # GH 32259
-        with tm.assert_produces_warning():
-            MultiIndex.from_arrays([["a", "b", "c"], ["d", "f", "e"]]).is_lexsorted()
 
 
 class TestLexsortDepth:
@@ -50,8 +44,3 @@ class TestLexsortDepth:
             levels=levels, codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]], sortorder=0
         )
         assert index._lexsort_depth == 0
-
-    def test_lexsort_depth_deprecation(self):
-        # GH 32259
-        with tm.assert_produces_warning():
-            MultiIndex.from_arrays([["a", "b", "c"], ["d", "f", "e"]]).lexsort_depth

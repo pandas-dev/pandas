@@ -3,13 +3,11 @@ import pytest
 
 from pandas import (
     NaT,
+    SparseDtype,
     Timestamp,
     isna,
 )
-from pandas.core.arrays.sparse import (
-    SparseArray,
-    SparseDtype,
-)
+from pandas.core.arrays.sparse import SparseArray
 
 
 class TestReductions:
@@ -128,13 +126,13 @@ class TestReductions:
 
     @pytest.mark.parametrize(
         "arr",
-        [np.array([0, 1, np.nan, 1]), np.array([0, 1, 1])],
+        [[0, 1, np.nan, 1], [0, 1, 1]],
     )
     @pytest.mark.parametrize("fill_value", [0, 1, np.nan])
     @pytest.mark.parametrize("min_count, expected", [(3, 2), (4, np.nan)])
     def test_sum_min_count(self, arr, fill_value, min_count, expected):
         # GH#25777
-        sparray = SparseArray(arr, fill_value=fill_value)
+        sparray = SparseArray(np.array(arr), fill_value=fill_value)
         result = sparray.sum(min_count=min_count)
         if np.isnan(expected):
             assert np.isnan(result)
@@ -142,7 +140,7 @@ class TestReductions:
             assert result == expected
 
     def test_bool_sum_min_count(self):
-        spar_bool = SparseArray([False, True] * 5, dtype=np.bool8, fill_value=True)
+        spar_bool = SparseArray([False, True] * 5, dtype=np.bool_, fill_value=True)
         res = spar_bool.sum(min_count=1)
         assert res == 5
         res = spar_bool.sum(min_count=11)
@@ -268,3 +266,39 @@ class TestMinMax:
             assert result is NaT or np.isnat(result)
         else:
             assert np.isnan(result)
+
+
+class TestArgmaxArgmin:
+    @pytest.mark.parametrize(
+        "arr,argmax_expected,argmin_expected",
+        [
+            (SparseArray([1, 2, 0, 1, 2]), 1, 2),
+            (SparseArray([-1, -2, 0, -1, -2]), 2, 1),
+            (SparseArray([np.nan, 1, 0, 0, np.nan, -1]), 1, 5),
+            (SparseArray([np.nan, 1, 0, 0, np.nan, 2]), 5, 2),
+            (SparseArray([np.nan, 1, 0, 0, np.nan, 2], fill_value=-1), 5, 2),
+            (SparseArray([np.nan, 1, 0, 0, np.nan, 2], fill_value=0), 5, 2),
+            (SparseArray([np.nan, 1, 0, 0, np.nan, 2], fill_value=1), 5, 2),
+            (SparseArray([np.nan, 1, 0, 0, np.nan, 2], fill_value=2), 5, 2),
+            (SparseArray([np.nan, 1, 0, 0, np.nan, 2], fill_value=3), 5, 2),
+            (SparseArray([0] * 10 + [-1], fill_value=0), 0, 10),
+            (SparseArray([0] * 10 + [-1], fill_value=-1), 0, 10),
+            (SparseArray([0] * 10 + [-1], fill_value=1), 0, 10),
+            (SparseArray([-1] + [0] * 10, fill_value=0), 1, 0),
+            (SparseArray([1] + [0] * 10, fill_value=0), 0, 1),
+            (SparseArray([-1] + [0] * 10, fill_value=-1), 1, 0),
+            (SparseArray([1] + [0] * 10, fill_value=1), 0, 1),
+        ],
+    )
+    def test_argmax_argmin(self, arr, argmax_expected, argmin_expected):
+        argmax_result = arr.argmax()
+        argmin_result = arr.argmin()
+        assert argmax_result == argmax_expected
+        assert argmin_result == argmin_expected
+
+    @pytest.mark.parametrize("method", ["argmax", "argmin"])
+    def test_empty_array(self, method):
+        msg = f"attempt to get {method} of an empty sequence"
+        arr = SparseArray([])
+        with pytest.raises(ValueError, match=msg):
+            getattr(arr, method)()

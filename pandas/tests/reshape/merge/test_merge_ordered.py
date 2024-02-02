@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -70,6 +72,9 @@ class TestMergeOrdered:
         result = merge_ordered(left, right, on="key", left_by="group")
         assert result["group"].notna().all()
 
+    @pytest.mark.filterwarnings(
+        "ignore:Passing a BlockManager|Passing a SingleBlockManager:DeprecationWarning"
+    )
     def test_merge_type(self, left, right):
         class NotADataFrame(DataFrame):
             @property
@@ -130,54 +135,50 @@ class TestMergeOrdered:
         "left, right, on, left_by, right_by, expected",
         [
             (
-                DataFrame({"G": ["g", "g"], "H": ["h", "h"], "T": [1, 3]}),
-                DataFrame({"T": [2], "E": [1]}),
+                {"G": ["g", "g"], "H": ["h", "h"], "T": [1, 3]},
+                {"T": [2], "E": [1]},
                 ["T"],
                 ["G", "H"],
                 None,
-                DataFrame(
-                    {
-                        "G": ["g"] * 3,
-                        "H": ["h"] * 3,
-                        "T": [1, 2, 3],
-                        "E": [np.nan, 1.0, np.nan],
-                    }
-                ),
+                {
+                    "G": ["g"] * 3,
+                    "H": ["h"] * 3,
+                    "T": [1, 2, 3],
+                    "E": [np.nan, 1.0, np.nan],
+                },
             ),
             (
-                DataFrame({"G": ["g", "g"], "H": ["h", "h"], "T": [1, 3]}),
-                DataFrame({"T": [2], "E": [1]}),
+                {"G": ["g", "g"], "H": ["h", "h"], "T": [1, 3]},
+                {"T": [2], "E": [1]},
                 "T",
                 ["G", "H"],
                 None,
-                DataFrame(
-                    {
-                        "G": ["g"] * 3,
-                        "H": ["h"] * 3,
-                        "T": [1, 2, 3],
-                        "E": [np.nan, 1.0, np.nan],
-                    }
-                ),
+                {
+                    "G": ["g"] * 3,
+                    "H": ["h"] * 3,
+                    "T": [1, 2, 3],
+                    "E": [np.nan, 1.0, np.nan],
+                },
             ),
             (
-                DataFrame({"T": [2], "E": [1]}),
-                DataFrame({"G": ["g", "g"], "H": ["h", "h"], "T": [1, 3]}),
+                {"T": [2], "E": [1]},
+                {"G": ["g", "g"], "H": ["h", "h"], "T": [1, 3]},
                 ["T"],
                 None,
                 ["G", "H"],
-                DataFrame(
-                    {
-                        "T": [1, 2, 3],
-                        "E": [np.nan, 1.0, np.nan],
-                        "G": ["g"] * 3,
-                        "H": ["h"] * 3,
-                    }
-                ),
+                {
+                    "T": [1, 2, 3],
+                    "E": [np.nan, 1.0, np.nan],
+                    "G": ["g"] * 3,
+                    "H": ["h"] * 3,
+                },
             ),
         ],
     )
     def test_list_type_by(self, left, right, on, left_by, right_by, expected):
         # GH 35269
+        left = DataFrame(left)
+        right = DataFrame(right)
         result = merge_ordered(
             left=left,
             right=right,
@@ -185,6 +186,7 @@ class TestMergeOrdered:
             left_by=left_by,
             right_by=right_by,
         )
+        expected = DataFrame(expected)
 
         tm.assert_frame_equal(result, expected)
 
@@ -206,3 +208,34 @@ class TestMergeOrdered:
         msg = r"\{'h'\} not found in left columns"
         with pytest.raises(KeyError, match=msg):
             merge_ordered(left, right, on="E", left_by=["G", "h"])
+
+    @pytest.mark.parametrize("invalid_method", ["linear", "carrot"])
+    def test_ffill_validate_fill_method(self, left, right, invalid_method):
+        # GH 55884
+        with pytest.raises(
+            ValueError, match=re.escape("fill_method must be 'ffill' or None")
+        ):
+            merge_ordered(left, right, on="key", fill_method=invalid_method)
+
+    def test_ffill_left_merge(self):
+        # GH 57010
+        df1 = DataFrame(
+            {
+                "key": ["a", "c", "e", "a", "c", "e"],
+                "lvalue": [1, 2, 3, 1, 2, 3],
+                "group": ["a", "a", "a", "b", "b", "b"],
+            }
+        )
+        df2 = DataFrame({"key": ["b", "c", "d"], "rvalue": [1, 2, 3]})
+        result = merge_ordered(
+            df1, df2, fill_method="ffill", left_by="group", how="left"
+        )
+        expected = DataFrame(
+            {
+                "key": ["a", "c", "e", "a", "c", "e"],
+                "lvalue": [1, 2, 3, 1, 2, 3],
+                "group": ["a", "a", "a", "b", "b", "b"],
+                "rvalue": [np.nan, 2.0, 2.0, np.nan, 2.0, 2.0],
+            }
+        )
+        tm.assert_frame_equal(result, expected)

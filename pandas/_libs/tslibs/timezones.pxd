@@ -5,7 +5,7 @@ from cpython.datetime cimport (
 )
 
 
-cdef tzinfo utc_pytz
+cdef tzinfo utc_stdlib
 
 cpdef bint is_utc(tzinfo tz)
 cdef bint is_tzlocal(tzinfo tz)
@@ -18,6 +18,6 @@ cpdef object get_timezone(tzinfo tz)
 cpdef tzinfo maybe_get_tz(object tz)
 
 cdef timedelta get_utcoffset(tzinfo tz, datetime obj)
-cdef bint is_fixed_offset(tzinfo tz)
+cpdef bint is_fixed_offset(tzinfo tz)
 
 cdef object get_dst_info(tzinfo tz)

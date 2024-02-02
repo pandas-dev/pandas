@@ -6,7 +6,6 @@ import pandas as pd
 
 
 class Methods:
-
     params = (
         ["DataFrame", "Series"],
         [("rolling", {"window": 10}), ("rolling", {"window": 1000}), ("expanding", {})],
@@ -129,7 +128,6 @@ class NumbaEngineApply:
 
 
 class EWMMethods:
-
     params = (
         ["DataFrame", "Series"],
         [
@@ -177,7 +175,6 @@ class VariableWindowMethods(Methods):
 
 
 class Pairwise:
-
     params = (
         [({"window": 10}, "rolling"), ({"window": 1000}, "rolling"), ({}, "expanding")],
         ["corr", "cov"],
@@ -251,7 +248,6 @@ class Rank:
 
 
 class PeakMemFixedWindowMinMax:
-
     params = ["min", "max"]
 
     def setup(self, operation):
@@ -287,12 +283,11 @@ class ForwardWindowMethods:
 
 
 class Groupby:
-
     params = (
         ["sum", "median", "mean", "max", "min", "kurt", "sum"],
         [
             ("rolling", {"window": 2}),
-            ("rolling", {"window": "30s", "on": "C"}),
+            ("rolling", {"window": "30s"}),
             ("expanding", {}),
         ],
     )
@@ -304,9 +299,10 @@ class Groupby:
             {
                 "A": [str(i) for i in range(N)] * 10,
                 "B": list(range(N)) * 10,
-                "C": pd.date_range(start="1900-01-01", freq="1min", periods=N * 10),
             }
         )
+        if isinstance(kwargs.get("window", None), str):
+            df.index = pd.date_range(start="1900-01-01", freq="1min", periods=N * 10)
         self.groupby_window = getattr(df.groupby("A"), window)(**kwargs)
 
     def time_method(self, method, window_kwargs):
@@ -328,7 +324,6 @@ class GroupbyLargeGroups:
 
 
 class GroupbyEWM:
-
     params = ["var", "std", "cov", "corr"]
     param_names = ["method"]
 
@@ -341,7 +336,6 @@ class GroupbyEWM:
 
 
 class GroupbyEWMEngine:
-
     params = ["cython", "numba"]
     param_names = ["engine"]
 
@@ -358,7 +352,6 @@ def table_method_func(x):
 
 
 class TableMethod:
-
     params = ["single", "table"]
     param_names = ["method"]
 

@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.errors import SpecificationError
+from pandas.errors import (
+    DataError,
+    SpecificationError,
+)
 
 from pandas import (
     DataFrame,
@@ -18,7 +21,7 @@ import pandas._testing as tm
 
 
 def test_getitem(step):
-    frame = DataFrame(np.random.randn(5, 5))
+    frame = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
     r = frame.rolling(window=5, step=step)
     tm.assert_index_equal(r._selected_obj.columns, frame[::step].columns)
 
@@ -45,7 +48,6 @@ def test_select_bad_cols():
 
 
 def test_attribute_access():
-
     df = DataFrame([[1, 2]], columns=["A", "B"])
     r = df.rolling(window=5)
     tm.assert_series_equal(r.A.sum(), r["A"].sum())
@@ -55,7 +57,6 @@ def test_attribute_access():
 
 
 def tests_skip_nuisance(step):
-
     df = DataFrame({"A": range(5), "B": range(5, 10), "C": "foo"})
     r = df.rolling(window=3, step=step)
     result = r[["A", "B"]].sum()
@@ -66,18 +67,14 @@ def tests_skip_nuisance(step):
     tm.assert_frame_equal(result, expected)
 
 
-def test_skip_sum_object_raises(step):
+def test_sum_object_str_raises(step):
     df = DataFrame({"A": range(5), "B": range(5, 10), "C": "foo"})
     r = df.rolling(window=3, step=step)
-    msg = r"nuisance columns.*Dropped columns were Index\(\['C'\], dtype='object'\)"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        # GH#42738
-        result = r.sum()
-    expected = DataFrame(
-        {"A": [np.nan, np.nan, 3, 6, 9], "B": [np.nan, np.nan, 18, 21, 24]},
-        columns=list("AB"),
-    )[::step]
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(
+        DataError, match="Cannot aggregate non-numeric type: object|string"
+    ):
+        # GH#42738, enforced in 2.0
+        r.sum()
 
 
 def test_agg(step):
@@ -90,12 +87,14 @@ def test_agg(step):
     b_mean = r["B"].mean()
     b_std = r["B"].std()
 
-    result = r.aggregate([np.mean, np.std])
+    with tm.assert_produces_warning(FutureWarning, match="using Rolling.[mean|std]"):
+        result = r.aggregate([np.mean, np.std])
     expected = concat([a_mean, a_std, b_mean, b_std], axis=1)
     expected.columns = MultiIndex.from_product([["A", "B"], ["mean", "std"]])
     tm.assert_frame_equal(result, expected)
 
-    result = r.aggregate({"A": np.mean, "B": np.std})
+    with tm.assert_produces_warning(FutureWarning, match="using Rolling.[mean|std]"):
+        result = r.aggregate({"A": np.mean, "B": np.std})
 
     expected = concat([a_mean, b_std], axis=1)
     tm.assert_frame_equal(result, expected, check_like=True)
@@ -128,51 +127,41 @@ def test_agg(step):
     tm.assert_frame_equal(result, expected, check_like=True)
 
 
-@pytest.mark.parametrize(
-    "func", [["min"], ["mean", "max"], {"b": "sum"}, {"b": "prod", "c": "median"}]
-)
-def test_multi_axis_1_raises(func):
-    # GH#46904
-    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5], "c": [6, 7, 8]})
-    r = df.rolling(window=3, axis=1)
-    with pytest.raises(NotImplementedError, match="axis other than 0 is not supported"):
-        r.agg(func)
-
-
 def test_agg_apply(raw):
-
     # passed lambda
     df = DataFrame({"A": range(5), "B": range(0, 10, 2)})
 
     r = df.rolling(window=3)
     a_sum = r["A"].sum()
 
-    result = r.agg({"A": np.sum, "B": lambda x: np.std(x, ddof=1)})
+    with tm.assert_produces_warning(FutureWarning, match="using Rolling.[sum|std]"):
+        result = r.agg({"A": np.sum, "B": lambda x: np.std(x, ddof=1)})
     rcustom = r["B"].apply(lambda x: np.std(x, ddof=1), raw=raw)
     expected = concat([a_sum, rcustom], axis=1)
     tm.assert_frame_equal(result, expected, check_like=True)
 
 
 def test_agg_consistency(step):
-
     df = DataFrame({"A": range(5), "B": range(0, 10, 2)})
     r = df.rolling(window=3, step=step)
 
-    result = r.agg([np.sum, np.mean]).columns
+    with tm.assert_produces_warning(FutureWarning, match="using Rolling.[sum|mean]"):
+        result = r.agg([np.sum, np.mean]).columns
     expected = MultiIndex.from_product([list("AB"), ["sum", "mean"]])
     tm.assert_index_equal(result, expected)
 
-    result = r["A"].agg([np.sum, np.mean]).columns
+    with tm.assert_produces_warning(FutureWarning, match="using Rolling.[sum|mean]"):
+        result = r["A"].agg([np.sum, np.mean]).columns
     expected = Index(["sum", "mean"])
     tm.assert_index_equal(result, expected)
 
-    result = r.agg({"A": [np.sum, np.mean]}).columns
+    with tm.assert_produces_warning(FutureWarning, match="using Rolling.[sum|mean]"):
+        result = r.agg({"A": [np.sum, np.mean]}).columns
     expected = MultiIndex.from_tuples([("A", "sum"), ("A", "mean")])
     tm.assert_index_equal(result, expected)
 
 
 def test_agg_nested_dicts():
-
     # API change for disallowing these types of nested dicts
     df = DataFrame({"A": range(5), "B": range(0, 10, 2)})
     r = df.rolling(window=3)
@@ -223,9 +212,9 @@ def test_count_nonnumeric_types(step):
                 Period("2012-02"),
                 Period("2012-03"),
             ],
-            "fl_inf": [1.0, 2.0, np.Inf],
-            "fl_nan": [1.0, 2.0, np.NaN],
-            "str_nan": ["aa", "bb", np.NaN],
+            "fl_inf": [1.0, 2.0, np.inf],
+            "fl_nan": [1.0, 2.0, np.nan],
+            "str_nan": ["aa", "bb", np.nan],
             "dt_nat": dt_nat_col,
             "periods_nat": [
                 Period("2012-01"),
@@ -337,19 +326,6 @@ def test_multiple_agg_funcs(func, window_size, expected_vals):
     tm.assert_frame_equal(result, expected)
 
 
-def test_is_datetimelike_deprecated():
-    s = Series(range(1)).rolling(1)
-    with tm.assert_produces_warning(FutureWarning):
-        assert not s.is_datetimelike
-
-
-def test_validate_deprecated():
-    s = Series(range(1)).rolling(1)
-    with tm.assert_produces_warning(FutureWarning):
-        assert s.validate() is None
-
-
-@pytest.mark.filterwarnings("ignore:min_periods:FutureWarning")
 def test_dont_modify_attributes_after_methods(
     arithmetic_win_operators, closed, center, min_periods, step
 ):
@@ -361,34 +337,6 @@ def test_dont_modify_attributes_after_methods(
     getattr(roll_obj, arithmetic_win_operators)()
     result = {attr: getattr(roll_obj, attr) for attr in roll_obj._attributes}
     assert result == expected
-
-
-def test_centered_axis_validation(step):
-
-    # ok
-    Series(np.ones(10)).rolling(window=3, center=True, axis=0, step=step).mean()
-
-    # bad axis
-    msg = "No axis named 1 for object type Series"
-    with pytest.raises(ValueError, match=msg):
-        Series(np.ones(10)).rolling(window=3, center=True, axis=1, step=step).mean()
-
-    # ok ok
-    DataFrame(np.ones((10, 10))).rolling(
-        window=3, center=True, axis=0, step=step
-    ).mean()
-    DataFrame(np.ones((10, 10))).rolling(
-        window=3, center=True, axis=1, step=step
-    ).mean()
-
-    # bad axis
-    msg = "No axis named 2 for object type DataFrame"
-    with pytest.raises(ValueError, match=msg):
-        (
-            DataFrame(np.ones((10, 10)))
-            .rolling(window=3, center=True, axis=2, step=step)
-            .mean()
-        )
 
 
 def test_rolling_min_min_periods(step):

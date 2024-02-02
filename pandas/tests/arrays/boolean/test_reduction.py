@@ -43,17 +43,17 @@ def test_any_all(values, exp_any, exp_all, exp_any_noskip, exp_all_noskip):
         assert np.all(a.all()) is exp_all
 
 
-@pytest.mark.parametrize("dropna", [True, False])
 def test_reductions_return_types(dropna, data, all_numeric_reductions):
     op = all_numeric_reductions
     s = pd.Series(data)
     if dropna:
         s = s.dropna()
 
-    if op == "sum":
+    if op in ("sum", "prod"):
         assert isinstance(getattr(s, op)(), np.int_)
-    elif op == "prod":
-        assert isinstance(getattr(s, op)(), np.int_)
+    elif op == "count":
+        # Oddly on the 32 bit build (but not Windows), this is intc (!= intp)
+        assert isinstance(getattr(s, op)(), np.integer)
     elif op in ("min", "max"):
         assert isinstance(getattr(s, op)(), np.bool_)
     else:

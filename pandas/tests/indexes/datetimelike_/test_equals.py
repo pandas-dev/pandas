@@ -18,13 +18,13 @@ from pandas import (
     TimedeltaIndex,
     date_range,
     period_range,
+    timedelta_range,
 )
 import pandas._testing as tm
 
 
 class EqualsTests:
     def test_not_equals_numeric(self, index):
-
         assert not index.equals(Index(index.asi8))
         assert not index.equals(Index(index.asi8.astype("u8")))
         assert not index.equals(Index(index.asi8).astype("f8"))
@@ -39,7 +39,6 @@ class EqualsTests:
         assert not index.equals(list(index))
 
     def test_not_equals_strings(self, index):
-
         other = Index([str(x) for x in index], dtype=object)
         assert not index.equals(other)
         assert not index.equals(CategoricalIndex(other))
@@ -67,7 +66,7 @@ class TestPeriodIndexEquals(EqualsTests):
         assert not idx.equals(list(idx))
         assert not idx.equals(pd.Series(idx))
 
-        idx2 = PeriodIndex(["2011-01-01", "2011-01-02", "NaT"], freq="H")
+        idx2 = PeriodIndex(["2011-01-01", "2011-01-02", "NaT"], freq="h")
         assert not idx.equals(idx2)
         assert not idx.equals(idx2.copy())
         assert not idx.equals(idx2.astype(object))
@@ -77,7 +76,7 @@ class TestPeriodIndexEquals(EqualsTests):
 
         # same internal, different tz
         idx3 = PeriodIndex._simple_new(
-            idx._values._simple_new(idx._values.asi8, freq="H")
+            idx._values._simple_new(idx._values.asi8, dtype=pd.PeriodDtype("h"))
         )
         tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
         assert not idx.equals(idx3)
@@ -143,7 +142,7 @@ class TestDatetimeIndexEquals(EqualsTests):
 class TestTimedeltaIndexEquals(EqualsTests):
     @pytest.fixture
     def index(self):
-        return tm.makeTimedeltaIndex(10)
+        return timedelta_range("1 day", periods=10)
 
     def test_equals2(self):
         # GH#13107

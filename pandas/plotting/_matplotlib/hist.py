@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
+    final,
 )
 
 import numpy as np
-
-from pandas._typing import PlottingOrientation
 
 from pandas.core.dtypes.common import (
     is_integer,
@@ -22,8 +22,6 @@ from pandas.core.dtypes.missing import (
     remove_na_arraylike,
 )
 
-from pandas.core.frame import DataFrame
-
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.core import (
     LinePlot,
@@ -33,6 +31,7 @@ from pandas.plotting._matplotlib.groupby import (
     create_iter_data_given_by,
     reformat_hist_y_given_by,
 )
+from pandas.plotting._matplotlib.misc import unpack_single_str_list
 from pandas.plotting._matplotlib.tools import (
     create_subplots,
     flatten_axes,
@@ -42,6 +41,16 @@ from pandas.plotting._matplotlib.tools import (
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
+    from matplotlib.container import BarContainer
+    from matplotlib.figure import Figure
+    from matplotlib.patches import Polygon
+
+    from pandas._typing import PlottingOrientation
+
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 class HistPlot(LinePlot):
@@ -49,49 +58,64 @@ class HistPlot(LinePlot):
     def _kind(self) -> Literal["hist", "kde"]:
         return "hist"
 
-    def __init__(self, data, bins=10, bottom=0, **kwargs) -> None:
-        self.bins = bins  # use mpl default
+    def __init__(
+        self,
+        data,
+        bins: int | np.ndarray | list[np.ndarray] = 10,
+        bottom: int | np.ndarray = 0,
+        *,
+        range=None,
+        weights=None,
+        **kwargs,
+    ) -> None:
+        if is_list_like(bottom):
+            bottom = np.array(bottom)
         self.bottom = bottom
+
+        self._bin_range = range
+        self.weights = weights
+
+        self.xlabel = kwargs.get("xlabel")
+        self.ylabel = kwargs.get("ylabel")
         # Do not call LinePlot.__init__ which may fill nan
-        MPLPlot.__init__(self, data, **kwargs)
+        MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
 
-    def _args_adjust(self):
+        self.bins = self._adjust_bins(bins)
 
-        # calculate bin number separately in different subplots
-        # where subplots are created based on by argument
-        if is_integer(self.bins):
+    def _adjust_bins(self, bins: int | np.ndarray | list[np.ndarray]):
+        if is_integer(bins):
             if self.by is not None:
-                grouped = self.data.groupby(self.by)[self.columns]
-                self.bins = [self._calculate_bins(group) for key, group in grouped]
+                by_modified = unpack_single_str_list(self.by)
+                grouped = self.data.groupby(by_modified)[self.columns]
+                bins = [self._calculate_bins(group, bins) for key, group in grouped]
             else:
-                self.bins = self._calculate_bins(self.data)
+                bins = self._calculate_bins(self.data, bins)
+        return bins
 
-        if is_list_like(self.bottom):
-            self.bottom = np.array(self.bottom)
-
-    def _calculate_bins(self, data: DataFrame) -> np.ndarray:
+    def _calculate_bins(self, data: Series | DataFrame, bins) -> np.ndarray:
         """Calculate bins given data"""
-        nd_values = data._convert(datetime=True)._get_numeric_data()
+        nd_values = data.infer_objects(copy=False)._get_numeric_data()
         values = np.ravel(nd_values)
         values = values[~isna(values)]
 
-        hist, bins = np.histogram(
-            values, bins=self.bins, range=self.kwds.get("range", None)
-        )
+        hist, bins = np.histogram(values, bins=bins, range=self._bin_range)
         return bins
 
+    # error: Signature of "_plot" incompatible with supertype "LinePlot"
     @classmethod
-    def _plot(
+    def _plot(  # type: ignore[override]
         cls,
-        ax,
-        y,
+        ax: Axes,
+        y: np.ndarray,
         style=None,
-        bins=None,
-        bottom=0,
-        column_num=0,
+        bottom: int | np.ndarray = 0,
+        column_num: int = 0,
         stacking_id=None,
+        *,
+        bins,
         **kwds,
-    ):
+        # might return a subset from the possible return types of Axes.hist(...)[2]?
+    ) -> BarContainer | Polygon | list[BarContainer | Polygon]:
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(bins) - 1)
 
@@ -102,7 +126,7 @@ class HistPlot(LinePlot):
         cls._update_stacker(ax, stacking_id, n)
         return patches
 
-    def _make_plot(self):
+    def _make_plot(self, fig: Figure) -> None:
         colors = self._get_colors()
         stacking_id = self._get_stacking_id()
 
@@ -113,10 +137,14 @@ class HistPlot(LinePlot):
             else self.data
         )
 
-        for i, (label, y) in enumerate(self._iter_data(data=data)):
+        # error: Argument "data" to "_iter_data" of "MPLPlot" has incompatible
+        # type "object"; expected "DataFrame | dict[Hashable, Series | DataFrame]"
+        for i, (label, y) in enumerate(self._iter_data(data=data)):  # type: ignore[arg-type]
             ax = self._get_ax(i)
 
             kwds = self.kwds.copy()
+            if self.color is not None:
+                kwds["color"] = self.color
 
             label = pprint_thing(label)
             label = self._mark_right_label(label, index=i)
@@ -126,7 +154,7 @@ class HistPlot(LinePlot):
             if style is not None:
                 kwds["style"] = style
 
-            kwds = self._make_plot_keywords(kwds, y)
+            self._make_plot_keywords(kwds, y)
 
             # the bins is multi-dimension array now and each plot need only 1-d and
             # when by is applied, label should be columns that are grouped
@@ -135,14 +163,10 @@ class HistPlot(LinePlot):
                 kwds["label"] = self.columns
                 kwds.pop("color")
 
-            y = reformat_hist_y_given_by(y, self.by)
+            if self.weights is not None:
+                kwds["weights"] = type(self)._get_column_weights(self.weights, i, y)
 
-            # We allow weights to be a multi-dimensional array, e.g. a (10, 2) array,
-            # and each sub-array (10,) will be called in each iteration. If users only
-            # provide 1D array, we assume the same weights is used for all iterations
-            weights = kwds.get("weights", None)
-            if weights is not None and np.ndim(weights) != 1:
-                kwds["weights"] = weights[:, i]
+            y = reformat_hist_y_given_by(y, self.by)
 
             artists = self._plot(ax, y, column_num=i, stacking_id=stacking_id, **kwds)
 
@@ -150,20 +174,46 @@ class HistPlot(LinePlot):
             if self.by is not None:
                 ax.set_title(pprint_thing(label))
 
-            self._append_legend_handles_labels(artists[0], label)
+            # error: Value of type "Polygon" is not indexable
+            self._append_legend_handles_labels(artists[0], label)  # type: ignore[index,arg-type]
 
-    def _make_plot_keywords(self, kwds, y):
+    def _make_plot_keywords(self, kwds: dict[str, Any], y: np.ndarray) -> None:
         """merge BoxPlot/KdePlot properties to passed kwds"""
         # y is required for KdePlot
         kwds["bottom"] = self.bottom
         kwds["bins"] = self.bins
-        return kwds
 
-    def _post_plot_logic(self, ax: Axes, data):
+    @final
+    @staticmethod
+    def _get_column_weights(weights, i: int, y):
+        # We allow weights to be a multi-dimensional array, e.g. a (10, 2) array,
+        # and each sub-array (10,) will be called in each iteration. If users only
+        # provide 1D array, we assume the same weights is used for all iterations
+        if weights is not None:
+            if np.ndim(weights) != 1 and np.shape(weights)[-1] != 1:
+                try:
+                    weights = weights[:, i]
+                except IndexError as err:
+                    raise ValueError(
+                        "weights must have the same shape as data, "
+                        "or be a single column"
+                    ) from err
+            weights = weights[~isna(y)]
+        return weights
+
+    def _post_plot_logic(self, ax: Axes, data) -> None:
         if self.orientation == "horizontal":
-            ax.set_xlabel("Frequency")
+            # error: Argument 1 to "set_xlabel" of "_AxesBase" has incompatible
+            # type "Hashable"; expected "str"
+            ax.set_xlabel(
+                "Frequency" if self.xlabel is None else self.xlabel  # type: ignore[arg-type]
+            )
+            ax.set_ylabel(self.ylabel)  # type: ignore[arg-type]
         else:
-            ax.set_ylabel("Frequency")
+            ax.set_xlabel(self.xlabel)  # type: ignore[arg-type]
+            ax.set_ylabel(
+                "Frequency" if self.ylabel is None else self.ylabel  # type: ignore[arg-type]
+            )
 
     @property
     def orientation(self) -> PlottingOrientation:
@@ -182,16 +232,18 @@ class KdePlot(HistPlot):
     def orientation(self) -> Literal["vertical"]:
         return "vertical"
 
-    def __init__(self, data, bw_method=None, ind=None, **kwargs) -> None:
-        MPLPlot.__init__(self, data, **kwargs)
+    def __init__(
+        self, data, bw_method=None, ind=None, *, weights=None, **kwargs
+    ) -> None:
+        # Do not call LinePlot.__init__ which may fill nan
+        MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
         self.bw_method = bw_method
         self.ind = ind
+        self.weights = weights
 
-    def _args_adjust(self):
-        pass
-
-    def _get_ind(self, y):
-        if self.ind is None:
+    @staticmethod
+    def _get_ind(y: np.ndarray, ind):
+        if ind is None:
             # np.nanmax() and np.nanmin() ignores the missing values
             sample_range = np.nanmax(y) - np.nanmin(y)
             ind = np.linspace(
@@ -199,27 +251,26 @@ class KdePlot(HistPlot):
                 np.nanmax(y) + 0.5 * sample_range,
                 1000,
             )
-        elif is_integer(self.ind):
+        elif is_integer(ind):
             sample_range = np.nanmax(y) - np.nanmin(y)
             ind = np.linspace(
                 np.nanmin(y) - 0.5 * sample_range,
                 np.nanmax(y) + 0.5 * sample_range,
-                self.ind,
+                ind,
             )
-        else:
-            ind = self.ind
         return ind
 
     @classmethod
-    def _plot(
+    # error: Signature of "_plot" incompatible with supertype "MPLPlot"
+    def _plot(  #  type: ignore[override]
         cls,
-        ax,
-        y,
+        ax: Axes,
+        y: np.ndarray,
         style=None,
         bw_method=None,
         ind=None,
         column_num=None,
-        stacking_id=None,
+        stacking_id: int | None = None,
         **kwds,
     ):
         from scipy.stats import gaussian_kde
@@ -231,31 +282,31 @@ class KdePlot(HistPlot):
         lines = MPLPlot._plot(ax, ind, y, style=style, **kwds)
         return lines
 
-    def _make_plot_keywords(self, kwds, y):
+    def _make_plot_keywords(self, kwds: dict[str, Any], y: np.ndarray) -> None:
         kwds["bw_method"] = self.bw_method
-        kwds["ind"] = self._get_ind(y)
-        return kwds
+        kwds["ind"] = type(self)._get_ind(y, ind=self.ind)
 
-    def _post_plot_logic(self, ax, data):
+    def _post_plot_logic(self, ax: Axes, data) -> None:
         ax.set_ylabel("Density")
 
 
 def _grouped_plot(
     plotf,
-    data,
+    data: Series | DataFrame,
     column=None,
     by=None,
-    numeric_only=True,
-    figsize=None,
-    sharex=True,
-    sharey=True,
+    numeric_only: bool = True,
+    figsize: tuple[float, float] | None = None,
+    sharex: bool = True,
+    sharey: bool = True,
     layout=None,
-    rot=0,
+    rot: float = 0,
     ax=None,
     **kwargs,
 ):
-
-    if figsize == "default":
+    # error: Non-overlapping equality check (left operand type: "Optional[Tuple[float,
+    # float]]", right operand type: "Literal['default']")
+    if figsize == "default":  # type: ignore[comparison-overlap]
         # allowed to specify mpl default with 'default'
         raise ValueError(
             "figsize='default' is no longer supported. "
@@ -284,22 +335,22 @@ def _grouped_plot(
 
 
 def _grouped_hist(
-    data,
+    data: Series | DataFrame,
     column=None,
     by=None,
     ax=None,
-    bins=50,
-    figsize=None,
+    bins: int = 50,
+    figsize: tuple[float, float] | None = None,
     layout=None,
-    sharex=False,
-    sharey=False,
-    rot=90,
-    grid=True,
-    xlabelsize=None,
+    sharex: bool = False,
+    sharey: bool = False,
+    rot: float = 90,
+    grid: bool = True,
+    xlabelsize: int | None = None,
     xrot=None,
-    ylabelsize=None,
+    ylabelsize: int | None = None,
     yrot=None,
-    legend=False,
+    legend: bool = False,
     **kwargs,
 ):
     """
@@ -316,7 +367,7 @@ def _grouped_hist(
     layout : optional
     sharex : bool, default False
     sharey : bool, default False
-    rot : int, default 90
+    rot : float, default 90
     grid : bool, default True
     legend: : bool, default False
     kwargs : dict, keyword arguments passed to matplotlib.Axes.hist
@@ -334,7 +385,7 @@ def _grouped_hist(
         else:
             kwargs["label"] = column
 
-    def plot_group(group, ax):
+    def plot_group(group, ax) -> None:
         ax.hist(group.dropna().values, bins=bins, **kwargs)
         if legend:
             ax.legend()
@@ -366,16 +417,16 @@ def _grouped_hist(
 
 
 def hist_series(
-    self,
+    self: Series,
     by=None,
     ax=None,
-    grid=True,
-    xlabelsize=None,
+    grid: bool = True,
+    xlabelsize: int | None = None,
     xrot=None,
-    ylabelsize=None,
+    ylabelsize: int | None = None,
     yrot=None,
-    figsize=None,
-    bins=10,
+    figsize: tuple[float, float] | None = None,
+    bins: int = 10,
     legend: bool = False,
     **kwds,
 ):
@@ -407,7 +458,11 @@ def hist_series(
         axes = np.array([ax])
 
         set_ticks_props(
-            axes, xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot
+            axes,
+            xlabelsize=xlabelsize,
+            xrot=xrot,
+            ylabelsize=ylabelsize,
+            yrot=yrot,
         )
 
     else:
@@ -438,20 +493,20 @@ def hist_series(
 
 
 def hist_frame(
-    data,
+    data: DataFrame,
     column=None,
     by=None,
-    grid=True,
-    xlabelsize=None,
+    grid: bool = True,
+    xlabelsize: int | None = None,
     xrot=None,
-    ylabelsize=None,
+    ylabelsize: int | None = None,
     yrot=None,
     ax=None,
-    sharex=False,
-    sharey=False,
-    figsize=None,
+    sharex: bool = False,
+    sharey: bool = False,
+    figsize: tuple[float, float] | None = None,
     layout=None,
-    bins=10,
+    bins: int = 10,
     legend: bool = False,
     **kwds,
 ):

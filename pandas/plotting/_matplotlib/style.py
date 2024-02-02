@@ -1,19 +1,24 @@
 from __future__ import annotations
 
-import itertools
-from typing import (
-    TYPE_CHECKING,
+from collections.abc import (
     Collection,
     Iterator,
     Sequence,
-    Union,
+)
+import itertools
+from typing import (
+    TYPE_CHECKING,
     cast,
+    overload,
 )
 import warnings
 
-import matplotlib.cm as cm
+import matplotlib as mpl
 import matplotlib.colors
 import numpy as np
+
+from pandas._typing import MatplotlibColor as Color
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -23,15 +28,46 @@ if TYPE_CHECKING:
     from matplotlib.colors import Colormap
 
 
-Color = Union[str, Sequence[float]]
+@overload
+def get_standard_colors(
+    num_colors: int,
+    colormap: Colormap | None = ...,
+    color_type: str = ...,
+    *,
+    color: dict[str, Color],
+) -> dict[str, Color]:
+    ...
+
+
+@overload
+def get_standard_colors(
+    num_colors: int,
+    colormap: Colormap | None = ...,
+    color_type: str = ...,
+    *,
+    color: Color | Sequence[Color] | None = ...,
+) -> list[Color]:
+    ...
+
+
+@overload
+def get_standard_colors(
+    num_colors: int,
+    colormap: Colormap | None = ...,
+    color_type: str = ...,
+    *,
+    color: dict[str, Color] | Color | Sequence[Color] | None = ...,
+) -> dict[str, Color] | list[Color]:
+    ...
 
 
 def get_standard_colors(
     num_colors: int,
     colormap: Colormap | None = None,
     color_type: str = "default",
-    color: dict[str, Color] | Color | Collection[Color] | None = None,
-):
+    *,
+    color: dict[str, Color] | Color | Sequence[Color] | None = None,
+) -> dict[str, Color] | list[Color]:
     """
     Get standard colors based on `colormap`, `color_type` or `color` inputs.
 
@@ -121,7 +157,8 @@ def _derive_colors(
     elif color is not None:
         if colormap is not None:
             warnings.warn(
-                "'color' and 'colormap' cannot be used simultaneously. Using 'color'"
+                "'color' and 'colormap' cannot be used simultaneously. Using 'color'",
+                stacklevel=find_stack_level(),
             )
         return _get_colors_from_color(color)
     else:
@@ -151,7 +188,7 @@ def _get_cmap_instance(colormap: str | Colormap) -> Colormap:
     """Get instance of matplotlib colormap."""
     if isinstance(colormap, str):
         cmap = colormap
-        colormap = cm.get_cmap(colormap)
+        colormap = mpl.colormaps[colormap]
         if colormap is None:
             raise ValueError(f"Colormap {cmap} is not recognized")
     return colormap
@@ -268,7 +305,9 @@ def _is_single_string_color(color: Color) -> bool:
     """
     conv = matplotlib.colors.ColorConverter()
     try:
-        conv.to_rgba(color)
+        # error: Argument 1 to "to_rgba" of "ColorConverter" has incompatible type
+        # "str | Sequence[float]"; expected "tuple[float, float, float] | ..."
+        conv.to_rgba(color)  # type: ignore[arg-type]
     except ValueError:
         return False
     else:

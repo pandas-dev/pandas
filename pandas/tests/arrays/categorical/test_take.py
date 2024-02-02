@@ -1,11 +1,14 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Categorical,
-    Index,
-)
+from pandas import Categorical
 import pandas._testing as tm
+
+
+@pytest.fixture(params=[True, False])
+def allow_fill(request):
+    """Boolean 'allow_fill' parameter for Categorical.take"""
+    return request.param
 
 
 class TestTake:
@@ -84,12 +87,3 @@ class TestTake:
         xpr = r"Cannot setitem on a Categorical with a new category \(d\)"
         with pytest.raises(TypeError, match=xpr):
             cat.take([0, 1, -1], fill_value="d", allow_fill=True)
-
-    def test_take_nd_deprecated(self):
-        cat = Categorical(["a", "b", "c"])
-        with tm.assert_produces_warning(FutureWarning):
-            cat.take_nd([0, 1])
-
-        ci = Index(cat)
-        with tm.assert_produces_warning(FutureWarning):
-            ci.take_nd([0, 1])

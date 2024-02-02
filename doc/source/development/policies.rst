@@ -9,8 +9,6 @@ Policies
 Version policy
 ~~~~~~~~~~~~~~
 
-.. versionchanged:: 1.0.0
-
 pandas uses a loose variant of semantic versioning (`SemVer`_) to govern
 deprecations, API compatibility, and version numbering.
 
@@ -53,5 +51,9 @@ Python support
 
 pandas mirrors the `NumPy guidelines for Python support <https://numpy.org/neps/nep-0029-deprecation_policy.html#implementation>`__.
 
+Security policy
+~~~~~~~~~~~~~~~
+
+To report a security vulnerability to pandas, please go to https://github.com/pandas-dev/pandas/security/policy and see the instructions there.
 
 .. _SemVer: https://semver.org

@@ -8,29 +8,32 @@ authors
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from pandas._libs.internals import BlockPlacement
-from pandas._typing import Dtype
 
-from pandas.core.dtypes.common import (
-    is_datetime64tz_dtype,
-    is_period_dtype,
-    pandas_dtype,
+from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    PeriodDtype,
 )
 
 from pandas.core.arrays import DatetimeArray
 from pandas.core.construction import extract_array
 from pandas.core.internals.blocks import (
-    Block,
-    DatetimeTZBlock,
-    ExtensionBlock,
     check_ndim,
     ensure_block_shape,
     extract_pandas_array,
     get_block_type,
     maybe_coerce_values,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import Dtype
+
+    from pandas.core.internals.blocks import Block
 
 
 def make_block(
@@ -52,7 +55,12 @@ def make_block(
 
     values, dtype = extract_pandas_array(values, dtype, ndim)
 
-    if klass is ExtensionBlock and is_period_dtype(values.dtype):
+    from pandas.core.internals.blocks import (
+        DatetimeTZBlock,
+        ExtensionBlock,
+    )
+
+    if klass is ExtensionBlock and isinstance(values.dtype, PeriodDtype):
         # GH-44681 changed PeriodArray to be stored in the 2D
         # NDArrayBackedExtensionBlock instead of ExtensionBlock
         # -> still allow ExtensionBlock to be passed in this case for back compat
@@ -62,15 +70,21 @@ def make_block(
         dtype = dtype or values.dtype
         klass = get_block_type(dtype)
 
-    elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values.dtype):
+    elif klass is DatetimeTZBlock and not isinstance(values.dtype, DatetimeTZDtype):
         # pyarrow calls get here
-        values = DatetimeArray._simple_new(values, dtype=dtype)
+        values = DatetimeArray._simple_new(
+            # error: Argument "dtype" to "_simple_new" of "DatetimeArray" has
+            # incompatible type "Union[ExtensionDtype, dtype[Any], None]";
+            # expected "Union[dtype[datetime64], DatetimeTZDtype]"
+            values,
+            dtype=dtype,  # type: ignore[arg-type]
+        )
 
     if not isinstance(placement, BlockPlacement):
         placement = BlockPlacement(placement)
 
     ndim = maybe_infer_ndim(values, placement, ndim)
-    if is_datetime64tz_dtype(values.dtype) or is_period_dtype(values.dtype):
+    if isinstance(values.dtype, (PeriodDtype, DatetimeTZDtype)):
         # GH#41168 ensure we can pass 1D dt64tz values
         # More generally, any EA dtype that isn't is_1d_only_ea_dtype
         values = extract_array(values, extract_numpy=True)
@@ -83,7 +97,7 @@ def make_block(
 
 def maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int:
     """
-    If `ndim` is not provided, infer it from placment and values.
+    If `ndim` is not provided, infer it from placement and values.
     """
     if ndim is None:
         # GH#38134 Block constructor now assumes ndim is not None
@@ -95,3 +109,48 @@ def maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int
         else:
             ndim = values.ndim
     return ndim
+
+
+def __getattr__(name: str):
+    # GH#55139
+    import warnings
+
+    if name in [
+        "Block",
+        "ExtensionBlock",
+        "DatetimeTZBlock",
+        "create_block_manager_from_blocks",
+    ]:
+        # GH#33892
+        warnings.warn(
+            f"{name} is deprecated and will be removed in a future version. "
+            "Use public APIs instead.",
+            DeprecationWarning,
+            # https://github.com/pandas-dev/pandas/pull/55139#pullrequestreview-1720690758
+            # on hard-coding stacklevel
+            stacklevel=2,
+        )
+
+        if name == "create_block_manager_from_blocks":
+            from pandas.core.internals.managers import create_block_manager_from_blocks
+
+            return create_block_manager_from_blocks
+
+        elif name == "Block":
+            from pandas.core.internals.blocks import Block
+
+            return Block
+
+        elif name == "DatetimeTZBlock":
+            from pandas.core.internals.blocks import DatetimeTZBlock
+
+            return DatetimeTZBlock
+
+        elif name == "ExtensionBlock":
+            from pandas.core.internals.blocks import ExtensionBlock
+
+            return ExtensionBlock
+
+    raise AttributeError(
+        f"module 'pandas.core.internals.api' has no attribute '{name}'"
+    )

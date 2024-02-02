@@ -2,18 +2,13 @@ from __future__ import annotations
 
 from collections import defaultdict
 import datetime
+import json
 from typing import (
+    TYPE_CHECKING,
     Any,
     DefaultDict,
-    Tuple,
     cast,
-)
-
-import pandas._libs.json as json
-from pandas._typing import (
-    FilePath,
-    StorageOptions,
-    WriteExcelBuffer,
+    overload,
 )
 
 from pandas.io.excel._base import ExcelWriter
@@ -21,7 +16,16 @@ from pandas.io.excel._util import (
     combine_kwargs,
     validate_freeze_panes,
 )
-from pandas.io.formats.excel import ExcelCell
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ExcelWriterIfSheetExists,
+        FilePath,
+        StorageOptions,
+        WriteExcelBuffer,
+    )
+
+    from pandas.io.formats.excel import ExcelCell
 
 
 class ODSWriter(ExcelWriter):
@@ -35,8 +39,8 @@ class ODSWriter(ExcelWriter):
         date_format: str | None = None,
         datetime_format=None,
         mode: str = "w",
-        storage_options: StorageOptions = None,
-        if_sheet_exists: str | None = None,
+        storage_options: StorageOptions | None = None,
+        if_sheet_exists: ExcelWriterIfSheetExists | None = None,
         engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
     ) -> None:
@@ -44,6 +48,9 @@ class ODSWriter(ExcelWriter):
 
         if mode == "a":
             raise ValueError("Append mode is not supported with odf!")
+
+        engine_kwargs = combine_kwargs(engine_kwargs, kwargs)
+        self._book = OpenDocumentSpreadsheet(**engine_kwargs)
 
         super().__init__(
             path,
@@ -53,9 +60,6 @@ class ODSWriter(ExcelWriter):
             engine_kwargs=engine_kwargs,
         )
 
-        engine_kwargs = combine_kwargs(engine_kwargs, kwargs)
-
-        self._book = OpenDocumentSpreadsheet(**engine_kwargs)
         self._style_dict: dict[str, str] = {}
 
     @property
@@ -114,7 +118,7 @@ class ODSWriter(ExcelWriter):
             self.book.spreadsheet.addElement(wks)
 
         if validate_freeze_panes(freeze_panes):
-            freeze_panes = cast(Tuple[int, int], freeze_panes)
+            freeze_panes = cast(tuple[int, int], freeze_panes)
             self._create_freeze_panes(sheet_name, freeze_panes)
 
         for _ in range(startrow):
@@ -188,7 +192,15 @@ class ODSWriter(ExcelWriter):
         if isinstance(val, bool):
             value = str(val).lower()
             pvalue = str(val).upper()
-        if isinstance(val, datetime.datetime):
+            return (
+                pvalue,
+                TableCell(
+                    valuetype="boolean",
+                    booleanvalue=value,
+                    attributes=attributes,
+                ),
+            )
+        elif isinstance(val, datetime.datetime):
             # Fast formatting
             value = val.isoformat()
             # Slow but locale-dependent
@@ -206,23 +218,34 @@ class ODSWriter(ExcelWriter):
                 pvalue,
                 TableCell(valuetype="date", datevalue=value, attributes=attributes),
             )
-        else:
-            class_to_cell_type = {
-                str: "string",
-                int: "float",
-                float: "float",
-                bool: "boolean",
-            }
+        elif isinstance(val, str):
             return (
                 pvalue,
                 TableCell(
-                    valuetype=class_to_cell_type[type(val)],
+                    valuetype="string",
+                    stringvalue=value,
+                    attributes=attributes,
+                ),
+            )
+        else:
+            return (
+                pvalue,
+                TableCell(
+                    valuetype="float",
                     value=value,
                     attributes=attributes,
                 ),
             )
 
+    @overload
     def _process_style(self, style: dict[str, Any]) -> str:
+        ...
+
+    @overload
+    def _process_style(self, style: None) -> None:
+        ...
+
+    def _process_style(self, style: dict[str, Any] | None) -> str | None:
         """Convert a style dictionary to a OpenDocument style sheet
 
         Parameters

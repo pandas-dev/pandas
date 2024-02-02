@@ -12,6 +12,13 @@ import pandas._testing as tm
 
 
 class TestTimestampComparison:
+    def test_compare_non_nano_dt64(self):
+        # don't raise when converting dt64 to Timestamp in __richcmp__
+        dt = np.datetime64("1066-10-14")
+        ts = Timestamp(dt)
+
+        assert dt == ts
+
     def test_comparison_dt64_ndarray(self):
         ts = Timestamp("2021-01-01")
         ts2 = Timestamp("2019-04-05")
@@ -50,7 +57,6 @@ class TestTimestampComparison:
 
     @pytest.mark.parametrize("reverse", [True, False])
     def test_comparison_dt64_ndarray_tzaware(self, reverse, comparison_op):
-
         ts = Timestamp("2021-01-01 00:00:00.00000", tz="UTC")
         arr = np.array([ts.asm8, ts.asm8], dtype="M8[ns]")
 
@@ -149,36 +155,22 @@ class TestTimestampComparison:
         # GH#36131 comparing Timestamp with date object is deprecated
         ts = Timestamp("2021-01-01 00:00:00.00000", tz=tz)
         dt = ts.to_pydatetime().date()
-        # These are incorrectly considered as equal because they
-        #  dispatch to the date comparisons which truncates ts
+        # in 2.0 we disallow comparing pydate objects with Timestamps,
+        #  following the stdlib datetime behavior.
 
+        msg = "Cannot compare Timestamp with datetime.date"
         for left, right in [(ts, dt), (dt, ts)]:
-            with tm.assert_produces_warning(FutureWarning):
-                assert left == right
-            with tm.assert_produces_warning(FutureWarning):
-                assert not left != right
-            with tm.assert_produces_warning(FutureWarning):
-                assert not left < right
-            with tm.assert_produces_warning(FutureWarning):
-                assert left <= right
-            with tm.assert_produces_warning(FutureWarning):
-                assert not left > right
-            with tm.assert_produces_warning(FutureWarning):
-                assert left >= right
+            assert not left == right
+            assert left != right
 
-        # Once the deprecation is enforced, the following assertions
-        #  can be enabled:
-        #    assert not left == right
-        #    assert left != right
-        #
-        #    with pytest.raises(TypeError):
-        #        left < right
-        #    with pytest.raises(TypeError):
-        #        left <= right
-        #    with pytest.raises(TypeError):
-        #        left > right
-        #    with pytest.raises(TypeError):
-        #        left >= right
+            with pytest.raises(TypeError, match=msg):
+                left < right
+            with pytest.raises(TypeError, match=msg):
+                left <= right
+            with pytest.raises(TypeError, match=msg):
+                left > right
+            with pytest.raises(TypeError, match=msg):
+                left >= right
 
     def test_cant_compare_tz_naive_w_aware(self, utc_fixture):
         # see GH#1404
@@ -317,5 +309,5 @@ def test_rich_comparison_with_unsupported_type():
     for left, right in [(inf, timestamp), (timestamp, inf)]:
         assert left > right or left < right
         assert left >= right or left <= right
-        assert not (left == right)
+        assert not left == right  # pylint: disable=unneeded-not
         assert left != right

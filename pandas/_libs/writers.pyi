@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import numpy as np
 
 from pandas._typing import ArrayLike
@@ -17,7 +15,6 @@ def max_len_string_array(
 ) -> int: ...
 def word_len(val: object) -> int: ...
 def string_array_replace_from_nan_rep(
-    arr: np.ndarray,  #  np.ndarray[object, ndim=1]
+    arr: np.ndarray,  # np.ndarray[object, ndim=1]
     nan_rep: object,
-    replace: object = ...,
 ) -> None: ...

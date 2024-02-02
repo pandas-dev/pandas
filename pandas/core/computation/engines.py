@@ -4,6 +4,7 @@ Engine classes for :func:`~pandas.eval`
 from __future__ import annotations
 
 import abc
+from typing import TYPE_CHECKING
 
 from pandas.errors import NumExprClobberingError
 
@@ -11,13 +12,15 @@ from pandas.core.computation.align import (
     align_terms,
     reconstruct_object,
 )
-from pandas.core.computation.expr import Expr
 from pandas.core.computation.ops import (
     MATHOPS,
     REDUCTIONS,
 )
 
-import pandas.io.formats.printing as printing
+from pandas.io.formats import printing
+
+if TYPE_CHECKING:
+    from pandas.core.computation.expr import Expr
 
 _ne_builtins = frozenset(MATHOPS + REDUCTIONS)
 
@@ -99,7 +102,6 @@ class AbstractEngine(metaclass=abc.ABCMeta):
         -----
         Must be implemented by subclasses.
         """
-        pass
 
 
 class NumExprEngine(AbstractEngine):

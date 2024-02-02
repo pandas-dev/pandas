@@ -1,25 +1,32 @@
 from __future__ import annotations
 
-import numpy as np
+from typing import TYPE_CHECKING
 
-from pandas._typing import (
-    Dict,
-    IndexLabel,
-)
+import numpy as np
 
 from pandas.core.dtypes.missing import remove_na_arraylike
 
 from pandas import (
-    DataFrame,
     MultiIndex,
-    Series,
     concat,
 )
+
+from pandas.plotting._matplotlib.misc import unpack_single_str_list
+
+if TYPE_CHECKING:
+    from collections.abc import Hashable
+
+    from pandas._typing import IndexLabel
+
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 def create_iter_data_given_by(
     data: DataFrame, kind: str = "hist"
-) -> Dict[str, DataFrame | Series]:
+) -> dict[Hashable, DataFrame | Series]:
     """
     Create data for iteration given `by` is assigned or not, and it is only
     used in both hist and boxplot.
@@ -44,10 +51,10 @@ def create_iter_data_given_by(
 
     >>> import numpy as np
     >>> tuples = [('h1', 'a'), ('h1', 'b'), ('h2', 'a'), ('h2', 'b')]
-    >>> mi = MultiIndex.from_tuples(tuples)
+    >>> mi = pd.MultiIndex.from_tuples(tuples)
     >>> value = [[1, 3, np.nan, np.nan],
     ...          [3, 4, np.nan, np.nan], [np.nan, np.nan, 5, 6]]
-    >>> data = DataFrame(value, columns=mi)
+    >>> data = pd.DataFrame(value, columns=mi)
     >>> create_iter_data_given_by(data)
     {'h1':     h1
          a    b
@@ -100,7 +107,7 @@ def reconstruct_data_with_by(
     Examples
     --------
     >>> d = {'h': ['h1', 'h1', 'h2'], 'a': [1, 3, 5], 'b': [3, 4, 6]}
-    >>> df = DataFrame(d)
+    >>> df = pd.DataFrame(d)
     >>> reconstruct_data_with_by(df, by='h', cols=['a', 'b'])
        h1      h2
        a     b     a     b
@@ -108,11 +115,14 @@ def reconstruct_data_with_by(
     1  3.0   4.0   NaN   NaN
     2  NaN   NaN   5.0   6.0
     """
-    grouped = data.groupby(by)
+    by_modified = unpack_single_str_list(by)
+    grouped = data.groupby(by_modified)
 
     data_list = []
     for key, group in grouped:
-        columns = MultiIndex.from_product([[key], cols])
+        # error: List item 1 has incompatible type "Union[Hashable,
+        # Sequence[Hashable]]"; expected "Iterable[Hashable]"
+        columns = MultiIndex.from_product([[key], cols])  # type: ignore[list-item]
         sub_group = group[cols]
         sub_group.columns = columns
         data_list.append(sub_group)
@@ -121,9 +131,7 @@ def reconstruct_data_with_by(
     return data
 
 
-def reformat_hist_y_given_by(
-    y: Series | np.ndarray, by: IndexLabel | None
-) -> Series | np.ndarray:
+def reformat_hist_y_given_by(y: np.ndarray, by: IndexLabel | None) -> np.ndarray:
     """Internal function to reformat y given `by` is applied or not for hist plot.
 
     If by is None, input y is 1-d with NaN removed; and if by is not None, groupby

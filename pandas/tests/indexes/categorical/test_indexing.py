@@ -77,7 +77,6 @@ class TestTake:
             idx.take(np.array([1, -5]))
 
     def test_take_fill_value_datetime(self):
-
         # datetime category
         idx = pd.DatetimeIndex(["2011-01-01", "2011-02-01", "2011-03-01"], name="xxx")
         idx = CategoricalIndex(idx)
@@ -219,15 +218,13 @@ class TestGetIndexer:
             idx.get_indexer(idx, method="invalid")
 
     def test_get_indexer_requires_unique(self):
-        np.random.seed(123456789)
-
         ci = CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
         oidx = Index(np.array(ci))
 
         msg = "Reindexing only valid with uniquely valued Index objects"
 
         for n in [1, 2, 5, len(ci)]:
-            finder = oidx[np.random.randint(0, len(ci), size=n)]
+            finder = oidx[np.random.default_rng(2).integers(0, len(ci), size=n)]
 
             with pytest.raises(InvalidIndexError, match=msg):
                 ci.get_indexer(finder)
@@ -239,12 +236,10 @@ class TestGetIndexer:
         # respect duplicates instead of taking
         # the fast-track path.
         for finder in [list("aabbca"), list("aababca")]:
-
             with pytest.raises(InvalidIndexError, match=msg):
                 ci.get_indexer(finder)
 
     def test_get_indexer_non_unique(self):
-
         idx1 = CategoricalIndex(list("aabcde"), categories=list("edabc"))
         idx2 = CategoricalIndex(list("abf"))
 
@@ -342,7 +337,6 @@ class TestWhere:
 
 class TestContains:
     def test_contains(self):
-
         ci = CategoricalIndex(list("aabbca"), categories=list("cabdef"), ordered=False)
 
         assert "a" in ci

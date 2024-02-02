@@ -8,28 +8,23 @@ from pandas import (
     NaT,
     Period,
     PeriodIndex,
-    Timedelta,
     period_range,
 )
 import pandas._testing as tm
-from pandas.core.indexes.api import (
-    Int64Index,
-    UInt64Index,
-)
 
 
 class TestPeriodIndexAsType:
     @pytest.mark.parametrize("dtype", [float, "timedelta64", "timedelta64[ns]"])
     def test_astype_raises(self, dtype):
         # GH#13149, GH#13209
-        idx = PeriodIndex(["2016-05-16", "NaT", NaT, np.NaN], freq="D")
+        idx = PeriodIndex(["2016-05-16", "NaT", NaT, np.nan], freq="D")
         msg = "Cannot cast PeriodIndex to dtype"
         with pytest.raises(TypeError, match=msg):
             idx.astype(dtype)
 
     def test_astype_conversion(self):
         # GH#13149, GH#13209
-        idx = PeriodIndex(["2016-05-16", "NaT", NaT, np.NaN], freq="D", name="idx")
+        idx = PeriodIndex(["2016-05-16", "NaT", NaT, np.nan], freq="D", name="idx")
 
         result = idx.astype(object)
         expected = Index(
@@ -40,29 +35,27 @@ class TestPeriodIndexAsType:
         tm.assert_index_equal(result, expected)
 
         result = idx.astype(np.int64)
-        expected = Int64Index(
+        expected = Index(
             [16937] + [-9223372036854775808] * 3, dtype=np.int64, name="idx"
         )
         tm.assert_index_equal(result, expected)
 
         result = idx.astype(str)
-        expected = Index([str(x) for x in idx], name="idx")
+        expected = Index([str(x) for x in idx], name="idx", dtype=object)
         tm.assert_index_equal(result, expected)
 
-        idx = period_range("1990", "2009", freq="A", name="idx")
+        idx = period_range("1990", "2009", freq="Y", name="idx")
         result = idx.astype("i8")
         tm.assert_index_equal(result, Index(idx.asi8, name="idx"))
         tm.assert_numpy_array_equal(result.values, idx.asi8)
 
     def test_astype_uint(self):
         arr = period_range("2000", periods=2, name="idx")
-        expected = UInt64Index(np.array([10957, 10958], dtype="uint64"), name="idx")
-        tm.assert_index_equal(arr.astype("uint64"), expected)
 
-        msg = "will return exactly the specified dtype instead of uint64"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = arr.astype("uint32")
-        tm.assert_index_equal(res, expected)
+        with pytest.raises(TypeError, match=r"Do obj.astype\('int64'\)"):
+            arr.astype("uint64")
+        with pytest.raises(TypeError, match=r"Do obj.astype\('int64'\)"):
+            arr.astype("uint32")
 
     def test_astype_object(self):
         idx = PeriodIndex([], freq="M")
@@ -146,33 +139,13 @@ class TestPeriodIndexAsType:
         expected = np.array([True, True])
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_period_astype_to_timestamp(self):
+    def test_period_astype_to_timestamp(self, unit):
+        # GH#55958
         pi = PeriodIndex(["2011-01", "2011-02", "2011-03"], freq="M")
 
-        exp = DatetimeIndex(["2011-01-01", "2011-02-01", "2011-03-01"], freq="MS")
-        with tm.assert_produces_warning(FutureWarning):
-            # how keyword deprecated GH#37982
-            res = pi.astype("datetime64[ns]", how="start")
-        tm.assert_index_equal(res, exp)
-        assert res.freq == exp.freq
-
-        exp = DatetimeIndex(["2011-01-31", "2011-02-28", "2011-03-31"])
-        exp = exp + Timedelta(1, "D") - Timedelta(1, "ns")
-        with tm.assert_produces_warning(FutureWarning):
-            # how keyword deprecated GH#37982
-            res = pi.astype("datetime64[ns]", how="end")
-        tm.assert_index_equal(res, exp)
-        assert res.freq == exp.freq
-
-        exp = DatetimeIndex(["2011-01-01", "2011-02-01", "2011-03-01"], tz="US/Eastern")
-        res = pi.astype("datetime64[ns, US/Eastern]")
-        tm.assert_index_equal(res, exp)
-        assert res.freq == exp.freq
-
-        exp = DatetimeIndex(["2011-01-31", "2011-02-28", "2011-03-31"], tz="US/Eastern")
-        exp = exp + Timedelta(1, "D") - Timedelta(1, "ns")
-        with tm.assert_produces_warning(FutureWarning):
-            # how keyword deprecated GH#37982
-            res = pi.astype("datetime64[ns, US/Eastern]", how="end")
+        exp = DatetimeIndex(
+            ["2011-01-01", "2011-02-01", "2011-03-01"], tz="US/Eastern"
+        ).as_unit(unit)
+        res = pi.astype(f"datetime64[{unit}, US/Eastern]")
         tm.assert_index_equal(res, exp)
         assert res.freq == exp.freq

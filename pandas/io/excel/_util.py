@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Iterable,
+    MutableMapping,
+    Sequence,
+)
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterable,
     Literal,
-    MutableMapping,
-    Sequence,
     TypeVar,
     overload,
 )
@@ -73,7 +75,6 @@ def get_default_engine(ext: str, mode: Literal["reader", "writer"] = "reader") -
         "xlsx": "openpyxl",
         "xlsm": "openpyxl",
         "xlsb": "pyxlsb",
-        "xls": "xlwt",
         "ods": "odf",
     }
     assert mode in ["reader", "writer"]

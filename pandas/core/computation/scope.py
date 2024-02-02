@@ -3,6 +3,7 @@ Module for scope operations
 """
 from __future__ import annotations
 
+from collections import ChainMap
 import datetime
 import inspect
 from io import StringIO
@@ -10,16 +11,48 @@ import itertools
 import pprint
 import struct
 import sys
+from typing import TypeVar
 
 import numpy as np
 
 from pandas._libs.tslibs import Timestamp
-from pandas.compat.chainmap import DeepChainMap
 from pandas.errors import UndefinedVariableError
+
+_KT = TypeVar("_KT")
+_VT = TypeVar("_VT")
+
+
+# https://docs.python.org/3/library/collections.html#chainmap-examples-and-recipes
+class DeepChainMap(ChainMap[_KT, _VT]):
+    """
+    Variant of ChainMap that allows direct updates to inner scopes.
+
+    Only works when all passed mapping are mutable.
+    """
+
+    def __setitem__(self, key: _KT, value: _VT) -> None:
+        for mapping in self.maps:
+            if key in mapping:
+                mapping[key] = value
+                return
+        self.maps[0][key] = value
+
+    def __delitem__(self, key: _KT) -> None:
+        """
+        Raises
+        ------
+        KeyError
+            If `key` doesn't exist.
+        """
+        for mapping in self.maps:
+            if key in mapping:
+                del mapping[key]
+                return
+        raise KeyError(key)
 
 
 def ensure_scope(
-    level: int, global_dict=None, local_dict=None, resolvers=(), target=None, **kwargs
+    level: int, global_dict=None, local_dict=None, resolvers=(), target=None
 ) -> Scope:
     """Ensure that we are grabbing the correct scope."""
     return Scope(
@@ -250,7 +283,7 @@ class Scope:
         variables = itertools.product(scopes, stack)
         for scope, (frame, _, _, _, _, _) in variables:
             try:
-                d = getattr(frame, "f_" + scope)
+                d = getattr(frame, f"f_{scope}")
                 self.scope = DeepChainMap(self.scope.new_child(d))
             finally:
                 # won't remove it, but DECREF it
@@ -318,13 +351,5 @@ class Scope:
         vars : DeepChainMap
             All variables in this scope.
         """
-        # error: Unsupported operand types for + ("List[Dict[Any, Any]]" and
-        # "List[Mapping[Any, Any]]")
-        # error: Unsupported operand types for + ("List[Dict[Any, Any]]" and
-        # "List[Mapping[str, Any]]")
-        maps = (
-            [self.temps]
-            + self.resolvers.maps  # type: ignore[operator]
-            + self.scope.maps  # type: ignore[operator]
-        )
+        maps = [self.temps] + self.resolvers.maps + self.scope.maps
         return DeepChainMap(*maps)

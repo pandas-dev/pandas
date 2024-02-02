@@ -40,13 +40,17 @@ class TestSeries:
         tm.assert_series_equal(result, ser)
 
     def test_nonzero_single_element(self):
-
         # allow single item via bool method
+        msg_warn = (
+            "Series.bool is now deprecated and will be removed "
+            "in future version of pandas"
+        )
         ser = Series([True])
-        assert ser.bool()
-
-        ser = Series([False])
-        assert not ser.bool()
+        ser1 = Series([False])
+        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
+            assert ser.bool()
+        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
+            assert not ser1.bool()
 
     @pytest.mark.parametrize("data", [np.nan, pd.NaT, True, False])
     def test_nonzero_single_element_raise_1(self, data):
@@ -59,50 +63,61 @@ class TestSeries:
 
     @pytest.mark.parametrize("data", [np.nan, pd.NaT])
     def test_nonzero_single_element_raise_2(self, data):
+        msg_warn = (
+            "Series.bool is now deprecated and will be removed "
+            "in future version of pandas"
+        )
+        msg_err = "bool cannot act on a non-boolean single element Series"
         series = Series([data])
-
-        msg = "bool cannot act on a non-boolean single element Series"
-        with pytest.raises(ValueError, match=msg):
-            series.bool()
+        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
+            with pytest.raises(ValueError, match=msg_err):
+                series.bool()
 
     @pytest.mark.parametrize("data", [(True, True), (False, False)])
     def test_nonzero_multiple_element_raise(self, data):
         # multiple bool are still an error
+        msg_warn = (
+            "Series.bool is now deprecated and will be removed "
+            "in future version of pandas"
+        )
+        msg_err = "The truth value of a Series is ambiguous"
         series = Series([data])
-
-        msg = "The truth value of a Series is ambiguous"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg_err):
             bool(series)
-        with pytest.raises(ValueError, match=msg):
-            series.bool()
+        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
+            with pytest.raises(ValueError, match=msg_err):
+                series.bool()
 
     @pytest.mark.parametrize("data", [1, 0, "a", 0.0])
     def test_nonbool_single_element_raise(self, data):
         # single non-bool are an error
+        msg_warn = (
+            "Series.bool is now deprecated and will be removed "
+            "in future version of pandas"
+        )
+        msg_err1 = "The truth value of a Series is ambiguous"
+        msg_err2 = "bool cannot act on a non-boolean single element Series"
         series = Series([data])
-
-        msg = "The truth value of a Series is ambiguous"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg_err1):
             bool(series)
-
-        msg = "bool cannot act on a non-boolean single element Series"
-        with pytest.raises(ValueError, match=msg):
-            series.bool()
+        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
+            with pytest.raises(ValueError, match=msg_err2):
+                series.bool()
 
     def test_metadata_propagation_indiv_resample(self):
         # resample
         ts = Series(
-            np.random.rand(1000),
+            np.random.default_rng(2).random(1000),
             index=date_range("20130101", periods=1000, freq="s"),
             name="foo",
         )
-        result = ts.resample("1T").mean()
+        result = ts.resample("1min").mean()
         tm.assert_metadata_equivalent(ts, result)
 
-        result = ts.resample("1T").min()
+        result = ts.resample("1min").min()
         tm.assert_metadata_equivalent(ts, result)
 
-        result = ts.resample("1T").apply(lambda x: x.sum())
+        result = ts.resample("1min").apply(lambda x: x.sum())
         tm.assert_metadata_equivalent(ts, result)
 
     def test_metadata_propagation_indiv(self, monkeypatch):

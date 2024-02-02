@@ -30,6 +30,20 @@ def styler(df):
     return Styler(df, uuid_len=0)
 
 
+@pytest.fixture
+def df_multi():
+    return DataFrame(
+        data=np.arange(16).reshape(4, 4),
+        columns=MultiIndex.from_product([["A", "B"], ["a", "b"]]),
+        index=MultiIndex.from_product([["X", "Y"], ["x", "y"]]),
+    )
+
+
+@pytest.fixture
+def styler_multi(df_multi):
+    return Styler(df_multi, uuid_len=0)
+
+
 def test_display_format(styler):
     ctx = styler.format("{:0.1f}")._translate(True, True)
     assert all(["display_value" in c for c in row] for row in ctx["body"])
@@ -176,6 +190,53 @@ def test_format_escape_html(escape, exp):
     assert styler._translate(True, True)["head"][0][1]["display_value"] == f"&{chars}&"
     styler.format_index("&{0}&", escape=escape, axis=1)
     assert styler._translate(True, True)["head"][0][1]["display_value"] == f"&{exp}&"
+
+
+@pytest.mark.parametrize(
+    "chars, expected",
+    [
+        (
+            r"$ \$&%#_{}~^\ $ &%#_{}~^\ $",
+            "".join(
+                [
+                    r"$ \$&%#_{}~^\ $ ",
+                    r"\&\%\#\_\{\}\textasciitilde \textasciicircum ",
+                    r"\textbackslash \space \$",
+                ]
+            ),
+        ),
+        (
+            r"\( &%#_{}~^\ \) &%#_{}~^\ \(",
+            "".join(
+                [
+                    r"\( &%#_{}~^\ \) ",
+                    r"\&\%\#\_\{\}\textasciitilde \textasciicircum ",
+                    r"\textbackslash \space \textbackslash (",
+                ]
+            ),
+        ),
+        (
+            r"$\&%#_{}^\$",
+            r"\$\textbackslash \&\%\#\_\{\}\textasciicircum \textbackslash \$",
+        ),
+        (
+            r"$ \frac{1}{2} $ \( \frac{1}{2} \)",
+            "".join(
+                [
+                    r"$ \frac{1}{2} $",
+                    r" \textbackslash ( \textbackslash frac\{1\}\{2\} \textbackslash )",
+                ]
+            ),
+        ),
+    ],
+)
+def test_format_escape_latex_math(chars, expected):
+    # GH 51903
+    # latex-math escape works for each DataFrame cell separately. If we have
+    # a combination of dollar signs and brackets, the dollar sign would apply.
+    df = DataFrame([[chars]])
+    s = df.style.format("{0}", escape="latex-math")
+    assert s._translate(True, True)["body"][0][1]["display_value"] == expected
 
 
 def test_format_escape_na_rep():
@@ -345,7 +406,7 @@ def test_format_decimal(formatter, thousands, precision, func, col):
 
 
 def test_str_escape_error():
-    msg = "`escape` only permitted in {'html', 'latex'}, got "
+    msg = "`escape` only permitted in {'html', 'latex', 'latex-math'}, got "
     with pytest.raises(ValueError, match=msg):
         _str_escape("text", "bad_escape")
 
@@ -353,6 +414,17 @@ def test_str_escape_error():
         _str_escape("text", [])
 
     _str_escape(2.00, "bad_escape")  # OK since dtype is float
+
+
+def test_long_int_formatting():
+    df = DataFrame(data=[[1234567890123456789]], columns=["test"])
+    styler = df.style
+    ctx = styler._translate(True, True)
+    assert ctx["body"][0][1]["display_value"] == "1234567890123456789"
+
+    styler = df.style.format(thousands="_")
+    ctx = styler._translate(True, True)
+    assert ctx["body"][0][1]["display_value"] == "1_234_567_890_123_456_789"
 
 
 def test_format_options():
@@ -387,6 +459,9 @@ def test_format_options():
         ctx_with_op = df.style._translate(True, True)
         assert ctx_with_op["body"][0][3]["display_value"] == "&amp;&lt;"
     with option_context("styler.format.escape", "latex"):
+        ctx_with_op = df.style._translate(True, True)
+        assert ctx_with_op["body"][1][3]["display_value"] == "\\&\\textasciitilde "
+    with option_context("styler.format.escape", "latex-math"):
         ctx_with_op = df.style._translate(True, True)
         assert ctx_with_op["body"][1][3]["display_value"] == "\\&\\textasciitilde "
 
@@ -442,3 +517,46 @@ def test_boolean_format():
     ctx = df.style._translate(True, True)
     assert ctx["body"][0][1]["display_value"] is True
     assert ctx["body"][0][2]["display_value"] is False
+
+
+@pytest.mark.parametrize(
+    "hide, labels",
+    [
+        (False, [1, 2]),
+        (True, [1, 2, 3, 4]),
+    ],
+)
+def test_relabel_raise_length(styler_multi, hide, labels):
+    if hide:
+        styler_multi.hide(axis=0, subset=[("X", "x"), ("Y", "y")])
+    with pytest.raises(ValueError, match="``labels`` must be of length equal"):
+        styler_multi.relabel_index(labels=labels)
+
+
+def test_relabel_index(styler_multi):
+    labels = [(1, 2), (3, 4)]
+    styler_multi.hide(axis=0, subset=[("X", "x"), ("Y", "y")])
+    styler_multi.relabel_index(labels=labels)
+    ctx = styler_multi._translate(True, True)
+    assert {"value": "X", "display_value": 1}.items() <= ctx["body"][0][0].items()
+    assert {"value": "y", "display_value": 2}.items() <= ctx["body"][0][1].items()
+    assert {"value": "Y", "display_value": 3}.items() <= ctx["body"][1][0].items()
+    assert {"value": "x", "display_value": 4}.items() <= ctx["body"][1][1].items()
+
+
+def test_relabel_columns(styler_multi):
+    labels = [(1, 2), (3, 4)]
+    styler_multi.hide(axis=1, subset=[("A", "a"), ("B", "b")])
+    styler_multi.relabel_index(axis=1, labels=labels)
+    ctx = styler_multi._translate(True, True)
+    assert {"value": "A", "display_value": 1}.items() <= ctx["head"][0][3].items()
+    assert {"value": "B", "display_value": 3}.items() <= ctx["head"][0][4].items()
+    assert {"value": "b", "display_value": 2}.items() <= ctx["head"][1][3].items()
+    assert {"value": "a", "display_value": 4}.items() <= ctx["head"][1][4].items()
+
+
+def test_relabel_roundtrip(styler):
+    styler.relabel_index(["{}", "{}"])
+    ctx = styler._translate(True, True)
+    assert {"value": "x", "display_value": "x"}.items() <= ctx["body"][0][0].items()
+    assert {"value": "y", "display_value": "y"}.items() <= ctx["body"][1][0].items()

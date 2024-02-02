@@ -18,11 +18,6 @@ def skipif_32bit(param):
     return pytest.param(param, marks=marks)
 
 
-@pytest.fixture(scope="class", params=["int64", "float64", "uint64"])
-def dtype(request):
-    return request.param
-
-
 @pytest.fixture(params=[skipif_32bit(1), skipif_32bit(2), 10])
 def leaf_size(request):
     """
@@ -42,7 +37,7 @@ def leaf_size(request):
 )
 def tree(request, leaf_size):
     left = request.param
-    return IntervalTree(left, left + 2, leaf_size=leaf_size, inclusive="right")
+    return IntervalTree(left, left + 2, leaf_size=leaf_size)
 
 
 class TestIntervalTree:
@@ -103,6 +98,7 @@ class TestIntervalTree:
         expected_missing = np.array([0], dtype="intp")
         tm.assert_numpy_array_equal(result_missing, expected_missing)
 
+    @pytest.mark.parametrize("dtype", ["int64", "float64", "uint64"])
     def test_duplicates(self, dtype):
         left = np.array([0, 0, 0], dtype=dtype)
         tree = IntervalTree(left, left + 1)
@@ -129,7 +125,7 @@ class TestIntervalTree:
         found = x.astype("intp")
         not_found = (-1 * np.ones(1000)).astype("intp")
 
-        tree = IntervalTree(x, x + 0.5, inclusive=closed, leaf_size=leaf_size)
+        tree = IntervalTree(x, x + 0.5, closed=closed, leaf_size=leaf_size)
         tm.assert_numpy_array_equal(found, tree.get_indexer(x + 0.25))
 
         expected = found if tree.closed_left else not_found
@@ -151,7 +147,7 @@ class TestIntervalTree:
     @pytest.mark.parametrize("order", (list(x) for x in permutations(range(3))))
     def test_is_overlapping(self, closed, order, left, right, expected):
         # GH 23309
-        tree = IntervalTree(left[order], right[order], inclusive=closed)
+        tree = IntervalTree(left[order], right[order], closed=closed)
         result = tree.is_overlapping
         assert result is expected
 
@@ -160,7 +156,7 @@ class TestIntervalTree:
         """shared endpoints are marked as overlapping"""
         # GH 23309
         left, right = np.arange(3, dtype="int64"), np.arange(1, 4)
-        tree = IntervalTree(left[order], right[order], inclusive=closed)
+        tree = IntervalTree(left[order], right[order], closed=closed)
         result = tree.is_overlapping
         expected = closed == "both"
         assert result is expected
@@ -176,7 +172,7 @@ class TestIntervalTree:
     )
     def test_is_overlapping_trivial(self, closed, left, right):
         # GH 23309
-        tree = IntervalTree(left, right, inclusive=closed)
+        tree = IntervalTree(left, right, closed=closed)
         assert tree.is_overlapping is False
 
     @pytest.mark.skipif(not IS64, reason="GH 23440")
@@ -189,24 +185,6 @@ class TestIntervalTree:
         result = tree.root.pivot
         expected = (50 + np.iinfo(np.int64).max) / 2
         assert result == expected
-
-    def test_interval_tree_error_and_warning(self):
-        # GH 40245
-
-        msg = (
-            "Deprecated argument `closed` cannot "
-            "be passed if argument `inclusive` is not None"
-        )
-        with pytest.raises(ValueError, match=msg):
-            left, right = np.arange(10), [np.iinfo(np.int64).max] * 10
-            IntervalTree(left, right, closed="both", inclusive="both")
-
-        msg = "Argument `closed` is deprecated in favor of `inclusive`"
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
-        ):
-            left, right = np.arange(10), [np.iinfo(np.int64).max] * 10
-            IntervalTree(left, right, closed="both")
 
     @pytest.mark.xfail(not IS64, reason="GH 23440")
     @pytest.mark.parametrize(

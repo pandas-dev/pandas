@@ -6,13 +6,12 @@ import numpy as np
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     Series,
     Timestamp,
     date_range,
     to_timedelta,
 )
-import pandas._testing as tm
-from pandas.core.algorithms import checked_add_with_arr
 
 from .pandas_vb_common import numeric_dtypes
 
@@ -106,6 +105,10 @@ class MixedFrameWithSeriesAxis:
     def time_frame_op_with_series_axis1(self, opname):
         getattr(operator, opname)(self.df, self.ser)
 
+    # exclude comparisons from the params for time_frame_op_with_series_axis1
+    #  since they do not do alignment so raise
+    time_frame_op_with_series_axis1.params = [params[0][6:]]
+
 
 class FrameWithFrameWide:
     # Many-columns, mixed dtypes
@@ -169,7 +172,6 @@ class FrameWithFrameWide:
 
 
 class Ops:
-
     params = [[True, False], ["default", 1]]
     param_names = ["use_numexpr", "threads"]
 
@@ -253,20 +255,23 @@ class Ops2:
 
 
 class Timeseries:
-
     params = [None, "US/Eastern"]
     param_names = ["tz"]
 
     def setup(self, tz):
         N = 10**6
         halfway = (N // 2) - 1
-        self.s = Series(date_range("20010101", periods=N, freq="T", tz=tz))
+        self.s = Series(date_range("20010101", periods=N, freq="min", tz=tz))
         self.ts = self.s[halfway]
 
         self.s2 = Series(date_range("20010101", periods=N, freq="s", tz=tz))
+        self.ts_different_reso = Timestamp("2001-01-02", tz=tz)
 
     def time_series_timestamp_compare(self, tz):
         self.s <= self.ts
+
+    def time_series_timestamp_different_reso_compare(self, tz):
+        self.s <= self.ts_different_reso
 
     def time_timestamp_series_compare(self, tz):
         self.ts >= self.s
@@ -312,14 +317,15 @@ class CategoricalComparisons:
 
 
 class IndexArithmetic:
-
     params = ["float", "int"]
     param_names = ["dtype"]
 
     def setup(self, dtype):
         N = 10**6
-        indexes = {"int": "makeIntIndex", "float": "makeFloatIndex"}
-        self.index = getattr(tm, indexes[dtype])(N)
+        if dtype == "float":
+            self.index = Index(np.arange(N), dtype=np.float64)
+        elif dtype == "int":
+            self.index = Index(np.arange(N), dtype=np.int64)
 
     def time_add(self, dtype):
         self.index + 2
@@ -382,43 +388,6 @@ class DateInferOps:
         df["timedelta"] + df["timedelta"]
 
 
-class AddOverflowScalar:
-
-    params = [1, -1, 0]
-    param_names = ["scalar"]
-
-    def setup(self, scalar):
-        N = 10**6
-        self.arr = np.arange(N)
-
-    def time_add_overflow_scalar(self, scalar):
-        checked_add_with_arr(self.arr, scalar)
-
-
-class AddOverflowArray:
-    def setup(self):
-        N = 10**6
-        self.arr = np.arange(N)
-        self.arr_rev = np.arange(-N, 0)
-        self.arr_mixed = np.array([1, -1]).repeat(N / 2)
-        self.arr_nan_1 = np.random.choice([True, False], size=N)
-        self.arr_nan_2 = np.random.choice([True, False], size=N)
-
-    def time_add_overflow_arr_rev(self):
-        checked_add_with_arr(self.arr, self.arr_rev)
-
-    def time_add_overflow_arr_mask_nan(self):
-        checked_add_with_arr(self.arr, self.arr_mixed, arr_mask=self.arr_nan_1)
-
-    def time_add_overflow_b_mask_nan(self):
-        checked_add_with_arr(self.arr, self.arr_mixed, b_mask=self.arr_nan_1)
-
-    def time_add_overflow_both_arg_nan(self):
-        checked_add_with_arr(
-            self.arr, self.arr_mixed, arr_mask=self.arr_nan_1, b_mask=self.arr_nan_2
-        )
-
-
 hcal = pd.tseries.holiday.USFederalHolidayCalendar()
 # These offsets currently raise a NotImplementedError with .apply_index()
 non_apply = [
@@ -451,13 +420,12 @@ offsets = non_apply + other_offsets
 
 
 class OffsetArrayArithmetic:
-
     params = offsets
     param_names = ["offset"]
 
     def setup(self, offset):
         N = 10000
-        rng = date_range(start="1/1/2000", periods=N, freq="T")
+        rng = date_range(start="1/1/2000", periods=N, freq="min")
         self.rng = rng
         self.ser = Series(rng)
 
@@ -476,7 +444,7 @@ class ApplyIndex:
 
     def setup(self, offset):
         N = 10000
-        rng = date_range(start="1/1/2000", periods=N, freq="T")
+        rng = date_range(start="1/1/2000", periods=N, freq="min")
         self.rng = rng
 
     def time_apply_index(self, offset):
@@ -488,7 +456,7 @@ class BinaryOpsMultiIndex:
     param_names = ["func"]
 
     def setup(self, func):
-        array = date_range("20200101 00:00", "20200102 0:00", freq="S")
+        array = date_range("20200101 00:00", "20200102 0:00", freq="s")
         level_0_names = [str(i) for i in range(30)]
 
         index = pd.MultiIndex.from_product([level_0_names, array])

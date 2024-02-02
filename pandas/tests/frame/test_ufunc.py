@@ -1,10 +1,8 @@
 from functools import partial
+import re
 
 import numpy as np
 import pytest
-
-from pandas.compat.numpy import np_version_gte1p22
-import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -33,7 +31,7 @@ def test_unary_unary(dtype):
 def test_unary_binary(request, dtype):
     # unary input, binary output
     if is_extension_array_dtype(dtype) or isinstance(dtype, dict):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="Extension / mixed with multiple outputs not implemented."
             )
@@ -108,7 +106,7 @@ def test_binary_input_aligns_columns(request, dtype_a, dtype_b):
         or is_extension_array_dtype(dtype_b)
         or isinstance(dtype_b, dict)
     ):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="Extension / mixed with multiple inputs not implemented."
             )
@@ -117,64 +115,56 @@ def test_binary_input_aligns_columns(request, dtype_a, dtype_b):
     df1 = pd.DataFrame({"A": [1, 2], "B": [3, 4]}).astype(dtype_a)
 
     if isinstance(dtype_a, dict) and isinstance(dtype_b, dict):
+        dtype_b = dtype_b.copy()
         dtype_b["C"] = dtype_b.pop("B")
-
     df2 = pd.DataFrame({"A": [1, 2], "C": [3, 4]}).astype(dtype_b)
-    with tm.assert_produces_warning(FutureWarning):
-        result = np.heaviside(df1, df2)
-    # Expected future behaviour:
-    # expected = np.heaviside(
-    #     np.array([[1, 3, np.nan], [2, 4, np.nan]]),
-    #     np.array([[1, np.nan, 3], [2, np.nan, 4]]),
-    # )
-    # expected = pd.DataFrame(expected, index=[0, 1], columns=["A", "B", "C"])
-    expected = pd.DataFrame([[1.0, 1.0], [1.0, 1.0]], columns=["A", "B"])
+    # As of 2.0, align first before applying the ufunc
+    result = np.heaviside(df1, df2)
+    expected = np.heaviside(
+        np.array([[1, 3, np.nan], [2, 4, np.nan]]),
+        np.array([[1, np.nan, 3], [2, np.nan, 4]]),
+    )
+    expected = pd.DataFrame(expected, index=[0, 1], columns=["A", "B", "C"])
     tm.assert_frame_equal(result, expected)
 
-    # ensure the expected is the same when applying with numpy array
     result = np.heaviside(df1, df2.values)
+    expected = pd.DataFrame([[1.0, 1.0], [1.0, 1.0]], columns=["A", "B"])
     tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("dtype", dtypes)
 def test_binary_input_aligns_index(request, dtype):
     if is_extension_array_dtype(dtype) or isinstance(dtype, dict):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="Extension / mixed with multiple inputs not implemented."
             )
         )
     df1 = pd.DataFrame({"A": [1, 2], "B": [3, 4]}, index=["a", "b"]).astype(dtype)
     df2 = pd.DataFrame({"A": [1, 2], "B": [3, 4]}, index=["a", "c"]).astype(dtype)
-    with tm.assert_produces_warning(FutureWarning):
-        result = np.heaviside(df1, df2)
-    # Expected future behaviour:
-    # expected = np.heaviside(
-    #     np.array([[1, 3], [3, 4], [np.nan, np.nan]]),
-    #     np.array([[1, 3], [np.nan, np.nan], [3, 4]]),
-    # )
-    # # TODO(FloatArray): this will be Float64Dtype.
-    # expected = pd.DataFrame(expected, index=["a", "b", "c"], columns=["A", "B"])
+    result = np.heaviside(df1, df2)
+    expected = np.heaviside(
+        np.array([[1, 3], [3, 4], [np.nan, np.nan]]),
+        np.array([[1, 3], [np.nan, np.nan], [3, 4]]),
+    )
+    # TODO(FloatArray): this will be Float64Dtype.
+    expected = pd.DataFrame(expected, index=["a", "b", "c"], columns=["A", "B"])
+    tm.assert_frame_equal(result, expected)
+
+    result = np.heaviside(df1, df2.values)
     expected = pd.DataFrame(
         [[1.0, 1.0], [1.0, 1.0]], columns=["A", "B"], index=["a", "b"]
     )
     tm.assert_frame_equal(result, expected)
 
-    # ensure the expected is the same when applying with numpy array
-    result = np.heaviside(df1, df2.values)
-    tm.assert_frame_equal(result, expected)
 
-
-@pytest.mark.filterwarnings("ignore:Calling a ufunc on non-aligned:FutureWarning")
 def test_binary_frame_series_raises():
     # We don't currently implement
     df = pd.DataFrame({"A": [1, 2]})
-    # with pytest.raises(NotImplementedError, match="logaddexp"):
-    with pytest.raises(ValueError, match=""):
+    with pytest.raises(NotImplementedError, match="logaddexp"):
         np.logaddexp(df, df["A"])
 
-    # with pytest.raises(NotImplementedError, match="logaddexp"):
-    with pytest.raises(ValueError, match=""):
+    with pytest.raises(NotImplementedError, match="logaddexp"):
         np.logaddexp(df["A"], df)
 
 
@@ -199,13 +189,15 @@ def test_unary_accumulate_axis():
     tm.assert_frame_equal(result, expected)
 
 
-def test_frame_outer_deprecated():
+def test_frame_outer_disallowed():
     df = pd.DataFrame({"A": [1, 2]})
-    with tm.assert_produces_warning(FutureWarning):
+    with pytest.raises(NotImplementedError, match=""):
+        # deprecation enforced in 2.0
         np.subtract.outer(df, df)
 
 
-def test_alignment_deprecation():
+def test_alignment_deprecation_enforced():
+    # Enforced in 2.0
     # https://github.com/pandas-dev/pandas/issues/39184
     df1 = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     df2 = pd.DataFrame({"b": [1, 2, 3], "c": [4, 5, 6]})
@@ -220,12 +212,11 @@ def test_alignment_deprecation():
         result = np.add(df1, df1)
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(FutureWarning):
-        # non-aligned -> warns
-        result = np.add(df1, df2)
+    result = np.add(df1, df2.values)
     tm.assert_frame_equal(result, expected)
 
-    result = np.add(df1, df2.values)
+    result = np.add(df1, df2)
+    expected = pd.DataFrame({"a": [np.nan] * 3, "b": [5, 7, 9], "c": [np.nan] * 3})
     tm.assert_frame_equal(result, expected)
 
     result = np.add(df1.values, df2)
@@ -240,35 +231,28 @@ def test_alignment_deprecation():
         result = np.add(df1, s1)
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(FutureWarning):
-        result = np.add(df1, s2)
-    tm.assert_frame_equal(result, expected)
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = np.add(s2, df1)
-    tm.assert_frame_equal(result, expected)
-
     result = np.add(df1, s2.values)
     tm.assert_frame_equal(result, expected)
 
+    expected = pd.DataFrame(
+        {"a": [np.nan] * 3, "b": [5.0, 6.0, 7.0], "c": [np.nan] * 3}
+    )
+    result = np.add(df1, s2)
+    tm.assert_frame_equal(result, expected)
 
-@td.skip_if_no("numba")
-def test_alignment_deprecation_many_inputs(request):
+    msg = "Cannot apply ufunc <ufunc 'add'> to mixed DataFrame and Series inputs."
+    with pytest.raises(NotImplementedError, match=msg):
+        np.add(s2, df1)
+
+
+def test_alignment_deprecation_many_inputs_enforced():
+    # Enforced in 2.0
     # https://github.com/pandas-dev/pandas/issues/39184
     # test that the deprecation also works with > 2 inputs -> using a numba
     # written ufunc for this because numpy itself doesn't have such ufuncs
-    from numba import (
-        float64,
-        vectorize,
-    )
+    numba = pytest.importorskip("numba")
 
-    if np_version_gte1p22:
-        mark = pytest.mark.filterwarnings(
-            "ignore:`np.MachAr` is deprecated.*:DeprecationWarning"
-        )
-        request.node.add_marker(mark)
-
-    @vectorize([float64(float64, float64, float64)])
+    @numba.vectorize([numba.float64(numba.float64, numba.float64, numba.float64)])
     def my_ufunc(x, y, z):
         return x + y + z
 
@@ -276,20 +260,22 @@ def test_alignment_deprecation_many_inputs(request):
     df2 = pd.DataFrame({"b": [1, 2, 3], "c": [4, 5, 6]})
     df3 = pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]})
 
-    with tm.assert_produces_warning(FutureWarning):
-        result = my_ufunc(df1, df2, df3)
-    expected = pd.DataFrame([[3.0, 12.0], [6.0, 15.0], [9.0, 18.0]], columns=["a", "b"])
+    result = my_ufunc(df1, df2, df3)
+    expected = pd.DataFrame(np.full((3, 3), np.nan), columns=["a", "b", "c"])
     tm.assert_frame_equal(result, expected)
 
     # all aligned -> no warning
     with tm.assert_produces_warning(None):
         result = my_ufunc(df1, df1, df1)
+    expected = pd.DataFrame([[3.0, 12.0], [6.0, 15.0], [9.0, 18.0]], columns=["a", "b"])
     tm.assert_frame_equal(result, expected)
 
     # mixed frame / arrays
-    with tm.assert_produces_warning(FutureWarning):
-        result = my_ufunc(df1, df2, df3.values)
-    tm.assert_frame_equal(result, expected)
+    msg = (
+        r"operands could not be broadcast together with shapes \(3,3\) \(3,3\) \(3,2\)"
+    )
+    with pytest.raises(ValueError, match=msg):
+        my_ufunc(df1, df2, df3.values)
 
     # single frame -> no warning
     with tm.assert_produces_warning(None):
@@ -297,7 +283,29 @@ def test_alignment_deprecation_many_inputs(request):
     tm.assert_frame_equal(result, expected)
 
     # takes indices of first frame
-    with tm.assert_produces_warning(FutureWarning):
-        result = my_ufunc(df1.values, df2, df3)
-    expected = expected.set_axis(["b", "c"], axis=1)
+    msg = (
+        r"operands could not be broadcast together with shapes \(3,2\) \(3,3\) \(3,3\)"
+    )
+    with pytest.raises(ValueError, match=msg):
+        my_ufunc(df1.values, df2, df3)
+
+
+def test_array_ufuncs_for_many_arguments():
+    # GH39853
+    def add3(x, y, z):
+        return x + y + z
+
+    ufunc = np.frompyfunc(add3, 3, 1)
+    df = pd.DataFrame([[1, 2], [3, 4]])
+
+    result = ufunc(df, df, 1)
+    expected = pd.DataFrame([[3, 5], [7, 9]], dtype=object)
     tm.assert_frame_equal(result, expected)
+
+    ser = pd.Series([1, 2])
+    msg = (
+        "Cannot apply ufunc <ufunc 'add3 (vectorized)'> "
+        "to mixed DataFrame and Series inputs."
+    )
+    with pytest.raises(NotImplementedError, match=re.escape(msg)):
+        ufunc(df, df, ser)
