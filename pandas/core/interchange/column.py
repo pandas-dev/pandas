@@ -77,6 +77,14 @@ class PandasColumn(Column):
         Note: doesn't deal with extension arrays yet, just assume a regular
         Series/ndarray for now.
         """
+        if isinstance(column, pd.DataFrame):
+            raise TypeError(
+                "Expected a Series, got a DataFrame. This likely happened "
+                "because you called __dataframe__ on a DataFrame which, "
+                "after converting column names to string, resulted in duplicated "
+                f"names: {column.columns}. Please rename these columns before "
+                "using the interchange protocol."
+            )
         if not isinstance(column, pd.Series):
             raise NotImplementedError(f"Columns of type {type(column)} not handled yet")
 
