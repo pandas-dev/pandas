@@ -62,8 +62,6 @@ from pandas.core.dtypes.inference import (
     is_list_like,
 )
 
-from pandas.util import capitalize_first_letter
-
 if not pa_version_under10p1:
     import pyarrow as pa
 
@@ -1087,7 +1085,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
-            return other in [self.name, capitalize_first_letter(self.name)]
+            return other[:1].lower() + other[1:] == self.name
 
         return super().__eq__(other)
 
