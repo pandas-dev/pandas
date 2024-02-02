@@ -355,7 +355,8 @@ class ExtensionArray:
         Examples
         --------
         >>> pd.arrays.IntegerArray._from_sequence_of_strings(
-        ...    ["1", "2", "3"], dtype=pd.Int64Dtype())
+        ...     ["1", "2", "3"], dtype=pd.Int64Dtype()
+        ... )
         <IntegerArray>
         [1, 2, 3]
         Length: 3, dtype: Int64
