@@ -84,7 +84,6 @@ if TYPE_CHECKING:
         Manager,
         npt,
     )
-
 # ---------------------------------------------------------------------
 # BlockManager Interface
 
@@ -400,7 +399,6 @@ def dict_to_mgr(
                     arr = construct_1d_arraylike_from_scalar(
                         arrays[i], len(index), dtype
                     )
-                    # arr = sanitize_array(arrays[i], index, dtype=dtype)
                     arrays[i] = arr
             else:
                 # GH#1783
