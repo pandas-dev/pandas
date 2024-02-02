@@ -486,7 +486,7 @@ filled with the transformed values.
 
 Parameters
 ----------
-f : function, str
+func : function, str
     Function to apply to each group. See the Notes section below for requirements.
 
     Accepted inputs are:
