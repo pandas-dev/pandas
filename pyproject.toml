@@ -245,12 +245,6 @@ ignore = [
   "E402",
   # do not assign a lambda expression, use a def
   "E731",
-  # line break before binary operator
-  # "W503",  # not yet implemented
-  # line break after binary operator
-  # "W504",  # not yet implemented
-  # controversial
-  "B006",
   # controversial
   "B007",
   # controversial
@@ -259,18 +253,10 @@ ignore = [
   "B009",
   # getattr is used to side-step mypy
   "B010",
-  # tests use assert False
-  "B011",
   # tests use comparisons but not their returned value
   "B015",
-  # false positives
-  "B019",
-  # Loop control variable overrides iterable it iterates
-  "B020",
   # Function definition does not bind loop variable
   "B023",
-  # Functions defined inside a loop must not use variables redefined in the loop
-  # "B301",  # not yet implemented
   # Only works with python >=3.10
   "B905",
   # Too many arguments to function call
@@ -285,14 +271,10 @@ ignore = [
   "PLW2901",
   # Global statements are discouraged
   "PLW0603",
-  # Docstrings should not be included in stubs
-  "PYI021",
   # Use `typing.NamedTuple` instead of `collections.namedtuple`
   "PYI024",
   # No builtin `eval()` allowed
   "PGH001",
-  # compare-to-empty-string
-  "PLC1901",
   # while int | float can be shortened to float, the former is more explicit
   "PYI041",
   # incorrect-dict-iterator, flags valid Series.items usage
@@ -494,20 +476,10 @@ filterwarnings = [
   "ignore::ResourceWarning:asyncio",
   # From plotting doctests
   "ignore:More than 20 figures have been opened:RuntimeWarning",
-  # Will be fixed in numba 0.56: https://github.com/numba/numba/issues/7758
-  "ignore:`np.MachAr` is deprecated:DeprecationWarning:numba",
   "ignore:.*urllib3:DeprecationWarning:botocore",
   "ignore:Setuptools is replacing distutils.:UserWarning:_distutils_hack",
   # https://github.com/PyTables/PyTables/issues/822
   "ignore:a closed node found in the registry:UserWarning:tables",
-  "ignore:`np.object` is a deprecated:DeprecationWarning:tables",
-  "ignore:tostring:DeprecationWarning:tables",
-  "ignore:distutils Version classes are deprecated:DeprecationWarning:pandas_datareader",
-  "ignore:distutils Version classes are deprecated:DeprecationWarning:numexpr",
-  "ignore:distutils Version classes are deprecated:DeprecationWarning:fastparquet",
-  "ignore:distutils Version classes are deprecated:DeprecationWarning:fsspec",
-  # Can be removed once https://github.com/numpy/numpy/pull/24794 is merged
-  "ignore:.*In the future `np.long` will be defined as.*:FutureWarning",
 ]
 junit_family = "xunit2"
 markers = [
