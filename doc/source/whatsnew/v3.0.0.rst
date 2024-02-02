@@ -29,6 +29,7 @@ enhancement2
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :func:`DataFrame.to_excel` now raises an ``UserWarning`` when the character count in a cell exceeds Excel's limitation of 32767 characters (:issue:`56954`)
+- :func:`read_stata` now returns ``datetime64`` resolutions better matching those natively stored in the stata format (:issue:`55642`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -102,6 +103,7 @@ Deprecations
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - Removed :meth:`DataFrameGroupby.fillna` and :meth:`SeriesGroupBy.fillna` (:issue:`55719`)
+- Removed ``DataFrameGroupBy.grouper`` and ``SeriesGroupBy.grouper`` (:issue:`56521`)
 - Removed ``axis`` argument from :meth:`DataFrame.groupby`, :meth:`Series.groupby`, :meth:`DataFrame.rolling`, :meth:`Series.rolling`, :meth:`DataFrame.resample`, and :meth:`Series.resample` (:issue:`51203`)
 - Removed ``axis`` argument from all groupby operations (:issue:`50405`)
 - Removed deprecated argument ``obj`` in :meth:`.DataFrameGroupBy.get_group` and :meth:`.SeriesGroupBy.get_group` (:issue:`53545`)
@@ -130,7 +132,6 @@ Bug fixes
 ~~~~~~~~~
 - Fixed bug in :meth:`DataFrame.join` inconsistently setting result index name (:issue:`55815`)
 - Fixed bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
--
 
 Categorical
 ^^^^^^^^^^^
@@ -219,7 +220,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
--
+- Fixed bug in :meth:`api.types.is_datetime64_any_dtype` where a custom :class:`ExtensionDtype` would return ``False`` for array-likes (:issue:`57055`)
 -
 
 Styler

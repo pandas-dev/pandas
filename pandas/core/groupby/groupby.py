@@ -483,7 +483,7 @@ filled with the transformed values.
 
 Parameters
 ----------
-f : function, str
+func : function, str
     Function to apply to each group. See the Notes section below for requirements.
 
     Accepted inputs are:
@@ -790,17 +790,6 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     def __repr__(self) -> str:
         # TODO: Better repr for GroupBy object
         return object.__repr__(self)
-
-    @final
-    @property
-    def grouper(self) -> ops.BaseGrouper:
-        warnings.warn(
-            f"{type(self).__name__}.grouper is deprecated and will be removed in a "
-            "future version of pandas.",
-            category=FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._grouper
 
     @final
     @property

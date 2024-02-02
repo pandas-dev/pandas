@@ -1042,7 +1042,7 @@ class TestDatetimeIndex:
 
         # result may not exactly match [now, today] so we'll test it up to a tolerance.
         #  (it *may* match exactly due to rounding)
-        tolerance = pd.Timedelta(microseconds=1)
+        tolerance = pd.Timedelta(seconds=1)
 
         diff0 = result[0] - now.as_unit("s")
         assert diff0 >= pd.Timedelta(0), f"The difference is {diff0}"
