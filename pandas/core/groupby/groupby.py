@@ -796,17 +796,6 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
     @final
     @property
-    def grouper(self) -> ops.BaseGrouper:
-        warnings.warn(
-            f"{type(self).__name__}.grouper is deprecated and will be removed in a "
-            "future version of pandas.",
-            category=FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._grouper
-
-    @final
-    @property
     def groups(self) -> dict[Hashable, np.ndarray]:
         """
         Dict {group name -> group labels}.
