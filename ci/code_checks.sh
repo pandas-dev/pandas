@@ -169,8 +169,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Interval\
         pandas.Grouper\
         pandas.core.groupby.SeriesGroupBy.apply\
-        pandas.core.groupby.SeriesGroupBy.transform\
-        pandas.core.groupby.DataFrameGroupBy.transform\
         pandas.core.groupby.DataFrameGroupBy.nth\
         pandas.core.groupby.DataFrameGroupBy.rolling\
         pandas.core.groupby.SeriesGroupBy.nth\
