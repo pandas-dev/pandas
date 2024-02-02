@@ -41,7 +41,7 @@ class TestPeriodDisallowedFreqs:
     def test_offsets_not_supported(self, freq, freq_msg):
         # GH#55785
         msg = f"{freq_msg} is not supported as period frequency"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             Period(year=2014, freq=freq)
 
     def test_custom_business_day_freq_raises(self):
