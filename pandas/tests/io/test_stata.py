@@ -174,7 +174,16 @@ class TestStata:
                 "yearly_date",
             ],
         )
-        expected["yearly_date"] = expected["yearly_date"].astype("O")
+        # TODO(GH#55564): just pass M8[s] to the constructor
+        expected["datetime_c"] = expected["datetime_c"].astype("M8[ms]")
+        expected["date"] = expected["date"].astype("M8[s]")
+        expected["weekly_date"] = expected["weekly_date"].astype("M8[s]")
+        expected["monthly_date"] = expected["monthly_date"].astype("M8[s]")
+        expected["quarterly_date"] = expected["quarterly_date"].astype("M8[s]")
+        expected["half_yearly_date"] = expected["half_yearly_date"].astype("M8[s]")
+        expected["yearly_date"] = (
+            expected["yearly_date"].astype("Period[s]").array.view("M8[s]")
+        )
 
         path1 = datapath("io", "data", "stata", "stata2_114.dta")
         path2 = datapath("io", "data", "stata", "stata2_115.dta")
@@ -360,12 +369,15 @@ class TestStata:
         with tm.ensure_clean() as path:
             original.to_stata(path, convert_dates={"datetime": "tc"}, version=version)
             written_and_read_again = self.read_dta(path)
-            # original.index is np.int32, read index is np.int64
-            tm.assert_frame_equal(
-                written_and_read_again.set_index("index"),
-                original,
-                check_index_type=False,
-            )
+
+        expected = original[:]
+        # "tc" convert_dates means we store in ms
+        expected["datetime"] = expected["datetime"].astype("M8[ms]")
+
+        tm.assert_frame_equal(
+            written_and_read_again.set_index("index"),
+            expected,
+        )
 
     def test_stata_doc_examples(self):
         with tm.ensure_clean() as path:
@@ -514,9 +526,10 @@ class TestStata:
         expected["long_"] = expected["long_"].astype(np.int32)
         expected["float_"] = expected["float_"].astype(np.float32)
         expected["double_"] = expected["double_"].astype(np.float64)
-        expected["date_td"] = expected["date_td"].apply(
-            datetime.strptime, args=("%Y-%m-%d",)
-        )
+
+        # TODO(GH#55564): directly cast to M8[s]
+        arr = expected["date_td"].astype("Period[D]")._values.asfreq("s", how="S")
+        expected["date_td"] = arr.view("M8[s]")
 
         file = datapath("io", "data", "stata", f"{file}.dta")
         parsed = self.read_dta(file)
@@ -636,10 +649,11 @@ class TestStata:
 
             written_and_read_again = self.read_dta(path)
 
-        modified = original
-        modified.columns = ["_0"]
-        modified.index = original.index.astype(np.int32)
-        tm.assert_frame_equal(written_and_read_again.set_index("index"), modified)
+        expected = original.copy()
+        expected.columns = ["_0"]
+        expected.index = original.index.astype(np.int32)
+        expected["_0"] = expected["_0"].astype("M8[ms]")
+        tm.assert_frame_equal(written_and_read_again.set_index("index"), expected)
 
     def test_105(self, datapath):
         # Data obtained from:
@@ -684,7 +698,9 @@ class TestStata:
             [expected_values],
             index=pd.Index([0], dtype=np.int32, name="index"),
             columns=columns,
+            dtype="M8[s]",
         )
+        expected["tc"] = expected["tc"].astype("M8[ms]")
 
         with tm.ensure_clean() as path:
             original.to_stata(path, convert_dates=conversions)
@@ -881,6 +897,14 @@ class TestStata:
         expected[5][5] = expected[5][6] = datetime(1678, 1, 1)
 
         expected = DataFrame(expected, columns=columns, dtype=object)
+        expected["date_tc"] = expected["date_tc"].astype("M8[ms]")
+        expected["date_td"] = expected["date_td"].astype("M8[s]")
+        expected["date_tm"] = expected["date_tm"].astype("M8[s]")
+        expected["date_tw"] = expected["date_tw"].astype("M8[s]")
+        expected["date_tq"] = expected["date_tq"].astype("M8[s]")
+        expected["date_th"] = expected["date_th"].astype("M8[s]")
+        expected["date_ty"] = expected["date_ty"].astype("M8[s]")
+
         parsed_115 = read_stata(datapath("io", "data", "stata", "stata9_115.dta"))
         parsed_117 = read_stata(datapath("io", "data", "stata", "stata9_117.dta"))
         tm.assert_frame_equal(expected, parsed_115, check_datetimelike_compat=True)
@@ -906,9 +930,7 @@ class TestStata:
         expected["long_"] = expected["long_"].astype(np.int32)
         expected["float_"] = expected["float_"].astype(np.float32)
         expected["double_"] = expected["double_"].astype(np.float64)
-        expected["date_td"] = expected["date_td"].apply(
-            datetime.strptime, args=("%Y-%m-%d",)
-        )
+        expected["date_td"] = expected["date_td"].astype("M8[s]")
 
         no_conversion = read_stata(
             datapath("io", "data", "stata", "stata6_117.dta"), convert_dates=True
@@ -922,12 +944,10 @@ class TestStata:
         )
 
         # read_csv types are the same
-        expected = self.read_csv(datapath("io", "data", "stata", "stata6.csv"))
-        expected["date_td"] = expected["date_td"].apply(
-            datetime.strptime, args=("%Y-%m-%d",)
-        )
+        expected2 = self.read_csv(datapath("io", "data", "stata", "stata6.csv"))
+        expected2["date_td"] = expected["date_td"]
 
-        tm.assert_frame_equal(expected, conversion)
+        tm.assert_frame_equal(expected2, conversion)
 
     def test_drop_column(self, datapath):
         expected = self.read_csv(datapath("io", "data", "stata", "stata6.csv"))
@@ -1392,10 +1412,14 @@ class TestStata:
             }
         )
 
+        expected = original[:]
+        # "tc" for convert_dates below stores with "ms" resolution
+        expected["dates"] = expected["dates"].astype("M8[ms]")
+
         with tm.ensure_clean() as path:
             original.to_stata(path, write_index=False)
             reread = read_stata(path, convert_dates=True)
-            tm.assert_frame_equal(original, reread)
+            tm.assert_frame_equal(expected, reread)
 
             original.to_stata(path, write_index=False, convert_dates={"dates": "tc"})
             direct = read_stata(path, convert_dates=True)
@@ -1655,11 +1679,14 @@ The repeated labels are:\n-+\nwolof
                 version=117,
             )
             written_and_read_again = self.read_dta(path)
-        # original.index is np.int32, read index is np.int64
+
+        expected = original[:]
+        # "tc" for convert_dates means we store with "ms" resolution
+        expected["datetime"] = expected["datetime"].astype("M8[ms]")
+
         tm.assert_frame_equal(
             written_and_read_again.set_index("index"),
-            original,
-            check_index_type=False,
+            expected,
         )
         tm.assert_frame_equal(original, copy)
 
@@ -1932,7 +1959,8 @@ the string values returned are correct."""
                 "b": ["a", "b", "c"],
                 "c": [1.0, 0, np.nan],
                 "d": [1.5, 2.5, 3.5],
-                "e": pd.date_range("2020-12-31", periods=3, freq="D"),
+                # stata stores with ms unit, so unit does not round-trip exactly
+                "e": pd.date_range("2020-12-31", periods=3, freq="D", unit="ms"),
             },
             index=pd.Index([0, 1, 2], name="index", dtype=np.int32),
         )
