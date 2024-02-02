@@ -161,10 +161,6 @@ test-command = """
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
 
-[tool.cibuildwheel.macos]
-archs = "x86_64 arm64"
-test-skip = "*_arm64"
-
 [tool.cibuildwheel.windows]
 before-build = "pip install delvewheel"
 repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
