@@ -202,7 +202,8 @@ jobs:
     timeout-minutes: 90
     strategy:
       matrix:
-        os: [macos-latest, windows-latest]
+        # Note: Don't use macOS latest since macos 14 appears to be arm64 only
+        os: [macos-13, macos-14, windows-latest]
         env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml, actions-312.yaml]
       fail-fast: false
     runs-on: ${{ matrix.os }}
@@ -215,8 +216,7 @@ jobs:
       PANDAS_CI: 1
       PYTEST_TARGET: pandas
       PATTERN: "not slow and not db and not network and not single_cpu"
-      # GH 47443: PYTEST_WORKERS > 0 crashes Windows builds with memory related errors
-      PYTEST_WORKERS: ${{ matrix.os == 'macos-latest' && 'auto' || '0' }}
+      PYTEST_WORKERS: 'auto'
 
     steps:
       - name: Checkout
@@ -342,7 +342,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macOS-latest, windows-latest]
+        # Separate out macOS 13 and 14, since macOS 14 is arm64 only
+        os: [ubuntu-22.04, macOS-13, macOS-14, windows-latest]
 
     timeout-minutes: 90
 
