@@ -1,8 +1,4 @@
 from pandas.core.internals.api import make_block  # 2023-09-18 pyarrow uses this
-from pandas.core.internals.base import (
-    DataManager,
-    SingleDataManager,
-)
 from pandas.core.internals.concat import concatenate_managers
 from pandas.core.internals.managers import (
     BlockManager,
@@ -14,9 +10,7 @@ __all__ = [
     "DatetimeTZBlock",  # pylint: disable=undefined-all-variable
     "ExtensionBlock",  # pylint: disable=undefined-all-variable
     "make_block",
-    "DataManager",
     "BlockManager",
-    "SingleDataManager",
     "SingleBlockManager",
     "concatenate_managers",
 ]
