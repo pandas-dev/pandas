@@ -890,7 +890,11 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
         tipo = _get_dtype(arr_or_dtype)
     except TypeError:
         return False
-    return lib.is_np_dtype(tipo, "M") or isinstance(tipo, DatetimeTZDtype)
+    return (
+        lib.is_np_dtype(tipo, "M")
+        or isinstance(tipo, DatetimeTZDtype)
+        or (isinstance(tipo, ExtensionDtype) and tipo.kind == "M")
+    )
 
 
 def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
