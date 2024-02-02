@@ -15,7 +15,6 @@ from pandas.compat import ISMUSL
 import pandas as pd
 
 _all_locales = get_locales()
-_current_locale = locale.setlocale(locale.LC_ALL)  # getlocale() is wrong, see GH#46595
 
 # Don't run any of these tests if we have no locales.
 pytestmark = pytest.mark.skipif(not _all_locales, reason="Need locales")
