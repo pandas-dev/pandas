@@ -1119,7 +1119,6 @@ class BaseBlockManager(PandasObject):
         self, placement: BlockPlacement, fill_value=None, use_na_proxy: bool = False
     ) -> Block:
         # Note: we only get here with self.ndim == 2
-
         if use_na_proxy:
             assert fill_value is None
             shape = (len(placement), self.shape[1])
@@ -1127,7 +1126,7 @@ class BaseBlockManager(PandasObject):
             nb = NumpyBlock(vals, placement, ndim=2)
             return nb
 
-        if fill_value is None:
+        if fill_value is None or fill_value is np.nan:
             fill_value = np.nan
             # GH45857 avoid unnecessary upcasting
             dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
