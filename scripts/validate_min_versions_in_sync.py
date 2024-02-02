@@ -143,7 +143,7 @@ def clean_version_list(
     yaml_versions: list[str], toml_version: version.Version
 ) -> list[str]:
     for i in range(len(yaml_versions)):
-        yaml_version = yaml_versions[i]
+        yaml_version = yaml_versions[i].strip()
         operator = get_operator_from(yaml_version)
         assert operator is not None
         if "<=" in operator or ">=" in operator:

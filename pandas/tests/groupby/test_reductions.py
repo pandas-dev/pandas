@@ -420,32 +420,6 @@ def test_first_last_skipna(any_real_nullable_dtype, sort, skipna, how):
     tm.assert_frame_equal(result, expected)
 
 
-def test_idxmin_idxmax_axis1():
-    df = DataFrame(
-        np.random.default_rng(2).standard_normal((10, 4)), columns=["A", "B", "C", "D"]
-    )
-    df["A"] = [1, 2, 3, 1, 2, 3, 1, 2, 3, 4]
-
-    gb = df.groupby("A")
-
-    warn_msg = "DataFrameGroupBy.idxmax with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        res = gb.idxmax(axis=1)
-
-    alt = df.iloc[:, 1:].idxmax(axis=1)
-    indexer = res.index.get_level_values(1)
-
-    tm.assert_series_equal(alt[indexer], res.droplevel("A"))
-
-    df["E"] = date_range("2016-01-01", periods=10)
-    gb2 = df.groupby("A")
-
-    msg = "'>' not supported between instances of 'Timestamp' and 'float'"
-    with pytest.raises(TypeError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            gb2.idxmax(axis=1)
-
-
 def test_groupby_mean_no_overflow():
     # Regression test for (#22487)
     df = DataFrame(
@@ -1175,36 +1149,26 @@ def test_apply_to_nullable_integer_returns_float(values, function):
         "sem",
     ],
 )
-@pytest.mark.parametrize("axis", [0, 1])
-def test_regression_allowlist_methods(op, axis, skipna, sort):
+def test_regression_allowlist_methods(op, skipna, sort):
     # GH6944
     # GH 17537
     # explicitly test the allowlist methods
-    raw_frame = DataFrame([0])
-    if axis == 0:
-        frame = raw_frame
-        msg = "The 'axis' keyword in DataFrame.groupby is deprecated and will be"
-    else:
-        frame = raw_frame.T
-        msg = "DataFrame.groupby with axis=1 is deprecated"
+    frame = DataFrame([0])
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        grouped = frame.groupby(level=0, axis=axis, sort=sort)
+    grouped = frame.groupby(level=0, sort=sort)
 
     if op == "skew":
         # skew has skipna
         result = getattr(grouped, op)(skipna=skipna)
-        expected = frame.groupby(level=0).apply(
-            lambda h: getattr(h, op)(axis=axis, skipna=skipna)
-        )
+        expected = frame.groupby(level=0).apply(lambda h: getattr(h, op)(skipna=skipna))
         if sort:
-            expected = expected.sort_index(axis=axis)
+            expected = expected.sort_index()
         tm.assert_frame_equal(result, expected)
     else:
         result = getattr(grouped, op)()
-        expected = frame.groupby(level=0).apply(lambda h: getattr(h, op)(axis=axis))
+        expected = frame.groupby(level=0).apply(lambda h: getattr(h, op)())
         if sort:
-            expected = expected.sort_index(axis=axis)
+            expected = expected.sort_index()
         tm.assert_frame_equal(result, expected)
 
 
