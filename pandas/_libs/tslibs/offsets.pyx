@@ -4965,7 +4965,10 @@ cpdef to_offset(freq, bint is_period=False):
         raise ValueError(INVALID_FREQ_ERR_MSG.format(freq))
 
     if is_period and not hasattr(delta, "_period_dtype_code"):
-        raise ValueError(INVALID_FREQ_ERR_MSG.format(freq))
+        if isinstance(freq, str):
+            raise ValueError(f"{delta.name} is not supported as period frequency")
+        else:
+            raise ValueError(f"{freq} is not supported as period frequency")
 
     return delta
 
