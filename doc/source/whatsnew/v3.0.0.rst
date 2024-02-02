@@ -102,6 +102,7 @@ Deprecations
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - Removed :meth:`DataFrameGroupby.fillna` and :meth:`SeriesGroupBy.fillna` (:issue:`55719`)
+- Removed ``DataFrameGroupBy.grouper`` and ``SeriesGroupBy.grouper`` (:issue:`56521`)
 - Removed ``axis`` argument from all groupby operations (:issue:`50405`)
 - Removed deprecated argument ``obj`` in :meth:`.DataFrameGroupBy.get_group` and :meth:`.SeriesGroupBy.get_group` (:issue:`53545`)
 - Removed the ``ArrayManager`` (:issue:`55043`)

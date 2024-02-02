@@ -429,9 +429,7 @@ class TestGrouping:
 
     def test_grouper_iter(self, df):
         gb = df.groupby("A")
-        msg = "DataFrameGroupBy.grouper is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            grouper = gb.grouper
+        grouper = gb._grouper
         result = sorted(grouper)
         expected = ["bar", "foo"]
         assert result == expected
@@ -443,9 +441,7 @@ class TestGrouping:
 
     def test_groupby_grouper(self, df):
         grouped = df.groupby("A")
-        msg = "DataFrameGroupBy.grouper is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            grouper = grouped.grouper
+        grouper = grouped._grouper
         result = df.groupby(grouper).mean(numeric_only=True)
         expected = grouped.mean(numeric_only=True)
         tm.assert_frame_equal(result, expected)
@@ -833,9 +829,7 @@ class TestGrouping:
 
         # check name
         gb = s.groupby(s)
-        msg = "SeriesGroupBy.grouper is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            grouper = gb.grouper
+        grouper = gb._grouper
         result = grouper.names
         expected = ["name"]
         assert result == expected
@@ -1204,11 +1198,6 @@ def test_grouper_groups():
     with tm.assert_produces_warning(FutureWarning, match=msg):
         res = grper.groups
     assert res is gb.groups
-
-    msg = "Use GroupBy.grouper instead"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        res = grper.grouper
-    assert res is gb._grouper
 
     msg = "Grouper.obj is deprecated and will be removed"
     with tm.assert_produces_warning(FutureWarning, match=msg):
