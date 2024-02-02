@@ -5476,9 +5476,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if not self.observed and any(
             ping._passed_categorical for ping in self._grouper.groupings
         ):
-            expected_len = len(self.grouper.result_index)
+            expected_len = len(self._grouper.result_index)
             # TODO: Better way to find # of observed groups?
-            group_sizes = self.grouper.size()
+            group_sizes = self._grouper.size()
             result_len = group_sizes[group_sizes > 0].shape[0]
             assert result_len <= expected_len
             has_unobserved = result_len < expected_len

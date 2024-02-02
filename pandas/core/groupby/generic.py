@@ -842,7 +842,7 @@ class SeriesGroupBy(GroupBy[Series]):
             # ndarray[Any, Any]], Index, Series]]
             _, idx = get_join_indexers(
                 left,  # type: ignore[arg-type]
-                right,  # type: ignore[arg-type]
+                right,
                 sort=False,
                 how="left",
             )
