@@ -53,6 +53,7 @@ import pandas._testing as tm
 from pandas.api.extensions import no_default
 from pandas.api.types import (
     is_bool_dtype,
+    is_datetime64_any_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_numeric_dtype,
@@ -1529,6 +1530,14 @@ def test_is_unsigned_integer_dtype(data):
         assert is_unsigned_integer_dtype(data)
     else:
         assert not is_unsigned_integer_dtype(data)
+
+
+def test_is_datetime64_any_dtype(data):
+    pa_type = data.dtype.pyarrow_dtype
+    if pa.types.is_timestamp(pa_type) or pa.types.is_date(pa_type):
+        assert is_datetime64_any_dtype(data)
+    else:
+        assert not is_datetime64_any_dtype(data)
 
 
 def test_is_float_dtype(data):
