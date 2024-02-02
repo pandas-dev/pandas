@@ -8,6 +8,7 @@ from pandas.compat import (
     is_ci_environment,
     is_platform_windows,
 )
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -161,8 +162,6 @@ def test_missing_from_masked():
         }
     )
 
-    df2 = df.__dataframe__()
-
     rng = np.random.default_rng(2)
     dict_null = {col: rng.integers(low=0, high=len(df)) for col in df.columns}
     for col, num_nulls in dict_null.items():
@@ -293,6 +292,30 @@ def test_multi_chunk_pyarrow() -> None:
         pd.api.interchange.from_dataframe(table, allow_copy=False)
 
 
+def test_timestamp_ns_pyarrow():
+    # GH 56712
+    pytest.importorskip("pyarrow", "11.0.0")
+    timestamp_args = {
+        "year": 2000,
+        "month": 1,
+        "day": 1,
+        "hour": 1,
+        "minute": 1,
+        "second": 1,
+    }
+    df = pd.Series(
+        [datetime(**timestamp_args)],
+        dtype="timestamp[ns][pyarrow]",
+        name="col0",
+    ).to_frame()
+
+    dfi = df.__dataframe__()
+    result = pd.api.interchange.from_dataframe(dfi)["col0"].item()
+
+    expected = pd.Timestamp(**timestamp_args)
+    assert result == expected
+
+
 @pytest.mark.parametrize("tz", ["UTC", "US/Pacific"])
 def test_datetimetzdtype(tz, unit):
     # GH 54239
@@ -367,4 +390,48 @@ def test_large_string():
     df = pd.DataFrame({"a": ["x"]}, dtype="large_string[pyarrow]")
     result = pd.api.interchange.from_dataframe(df.__dataframe__())
     expected = pd.DataFrame({"a": ["x"]}, dtype="object")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_non_str_names():
+    # https://github.com/pandas-dev/pandas/issues/56701
+    df = pd.Series([1, 2, 3], name=0).to_frame()
+    names = df.__dataframe__().column_names()
+    assert names == ["0"]
+
+
+def test_non_str_names_w_duplicates():
+    # https://github.com/pandas-dev/pandas/issues/56701
+    df = pd.DataFrame({"0": [1, 2, 3], 0: [4, 5, 6]})
+    dfi = df.__dataframe__()
+    with pytest.raises(
+        TypeError,
+        match=(
+            "Expected a Series, got a DataFrame. This likely happened because you "
+            "called __dataframe__ on a DataFrame which, after converting column "
+            r"names to string, resulted in duplicated names: Index\(\['0', '0'\], "
+            r"dtype='object'\). Please rename these columns before using the "
+            "interchange protocol."
+        ),
+    ):
+        pd.api.interchange.from_dataframe(dfi, allow_copy=False)
+
+
+@pytest.mark.parametrize(
+    "dtype", ["Int8", pytest.param("Int8[pyarrow]", marks=td.skip_if_no("pyarrow"))]
+)
+def test_nullable_integers(dtype: str) -> None:
+    # https://github.com/pandas-dev/pandas/issues/55069
+    df = pd.DataFrame({"a": [1]}, dtype=dtype)
+    expected = pd.DataFrame({"a": [1]}, dtype="int8")
+    result = pd.api.interchange.from_dataframe(df.__dataframe__())
+    tm.assert_frame_equal(result, expected)
+
+
+def test_empty_dataframe():
+    # https://github.com/pandas-dev/pandas/issues/56700
+    df = pd.DataFrame({"a": []}, dtype="int8")
+    dfi = df.__dataframe__()
+    result = pd.api.interchange.from_dataframe(dfi, allow_copy=False)
+    expected = pd.DataFrame({"a": []}, dtype="int8")
     tm.assert_frame_equal(result, expected)
