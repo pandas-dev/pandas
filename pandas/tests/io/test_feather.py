@@ -36,7 +36,9 @@ class TestFeather:
             with tm.ensure_clean() as path:
                 to_feather(df, path)
 
-    def check_round_trip(self, df, expected=None, write_kwargs={}, **read_kwargs):
+    def check_round_trip(self, df, expected=None, write_kwargs=None, **read_kwargs):
+        if write_kwargs is None:
+            write_kwargs = {}
         if expected is None:
             expected = df.copy()
 
