@@ -140,6 +140,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :func:`date_range` where the last valid timestamp would sometimes not be produced (:issue:`56134`)
+- Bug in setting scalar values with mismatched resolution into arrays with non-nanosecond ``datetime64``, ``timedelta64`` or :class:`DatetimeTZDtype` incorrectly truncating those scalars (:issue:`56410`)
 -
 
 Timedelta
