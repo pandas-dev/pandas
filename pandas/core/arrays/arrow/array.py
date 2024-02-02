@@ -2364,20 +2364,26 @@ class ArrowExtensionArray(
         return self._str_match(pat, case, flags, na)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None) -> Self:
-        if start != 0 and end is not None:
+        if (start == 0 or start is None) and end is None:
+            result = pc.find_substring(self._pa_array, sub)
+        else:
+            if sub == "":
+                # GH 56792
+                result = self._apply_elementwise(lambda val: val.find(sub, start, end))
+                return type(self)(pa.chunked_array(result))
+            if start is None:
+                start_offset = 0
+                start = 0
+            elif start < 0:
+                start_offset = pc.add(start, pc.utf8_length(self._pa_array))
+                start_offset = pc.if_else(pc.less(start_offset, 0), 0, start_offset)
+            else:
+                start_offset = start
             slices = pc.utf8_slice_codeunits(self._pa_array, start, stop=end)
             result = pc.find_substring(slices, sub)
-            not_found = pc.equal(result, -1)
-            start_offset = max(0, start)
+            found = pc.not_equal(result, pa.scalar(-1, type=result.type))
             offset_result = pc.add(result, start_offset)
-            result = pc.if_else(not_found, result, offset_result)
-        elif start == 0 and end is None:
-            slices = self._pa_array
-            result = pc.find_substring(slices, sub)
-        else:
-            raise NotImplementedError(
-                f"find not implemented with {sub=}, {start=}, {end=}"
-            )
+            result = pc.if_else(found, offset_result, -1)
         return type(self)(result)
 
     def _str_join(self, sep: str) -> Self:
