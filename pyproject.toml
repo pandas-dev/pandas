@@ -5,7 +5,7 @@ requires = [
     "meson-python==0.13.1",
     "meson==1.2.1",
     "wheel",
-    "Cython==3.0.5",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    "Cython~=3.0.5",  # Note: sync with setup.py, environment.yml and asv.conf.json
     # Any NumPy version should be fine for compiling.  Users are unlikely
     # to get a NumPy<1.25 so the result will be compatible with all relevant
     # NumPy versions (if not it is presumably compatible with their version).
@@ -160,10 +160,6 @@ test-command = """
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "-n 2", "--no-strict-data-files"]); \
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
-
-[tool.cibuildwheel.macos]
-archs = "x86_64 arm64"
-test-skip = "*_arm64"
 
 [tool.cibuildwheel.windows]
 before-build = "pip install delvewheel"

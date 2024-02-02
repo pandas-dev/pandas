@@ -79,23 +79,14 @@ def test_missing_minp_zero():
     tm.assert_series_equal(result, expected)
 
 
-def test_expanding_axis(axis):
+def test_expanding():
     # see gh-23372.
     df = DataFrame(np.ones((10, 20)))
-    axis = df._get_axis_number(axis)
 
-    if axis == 0:
-        msg = "The 'axis' keyword in DataFrame.expanding is deprecated"
-        expected = DataFrame(
-            {i: [np.nan] * 2 + [float(j) for j in range(3, 11)] for i in range(20)}
-        )
-    else:
-        # axis == 1
-        msg = "Support for axis=1 in DataFrame.expanding is deprecated"
-        expected = DataFrame([[np.nan] * 2 + [float(i) for i in range(3, 21)]] * 10)
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.expanding(3, axis=axis).sum()
+    expected = DataFrame(
+        {i: [np.nan] * 2 + [float(j) for j in range(3, 11)] for i in range(20)}
+    )
+    result = df.expanding(3).sum()
     tm.assert_frame_equal(result, expected)
 
 
@@ -329,9 +320,7 @@ def test_expanding_corr_pairwise(frame):
 def test_expanding_func(func, static_comp, frame_or_series):
     data = frame_or_series(np.array(list(range(10)) + [np.nan] * 10))
 
-    msg = "The 'axis' keyword in (Series|DataFrame).expanding is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        obj = data.expanding(min_periods=1, axis=0)
+    obj = data.expanding(min_periods=1)
     result = getattr(obj, func)()
     assert isinstance(result, frame_or_series)
 
@@ -355,33 +344,26 @@ def test_expanding_func(func, static_comp, frame_or_series):
 def test_expanding_min_periods(func, static_comp):
     ser = Series(np.random.default_rng(2).standard_normal(50))
 
-    msg = "The 'axis' keyword in Series.expanding is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = getattr(ser.expanding(min_periods=30, axis=0), func)()
+    result = getattr(ser.expanding(min_periods=30), func)()
     assert result[:29].isna().all()
     tm.assert_almost_equal(result.iloc[-1], static_comp(ser[:50]))
 
     # min_periods is working correctly
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = getattr(ser.expanding(min_periods=15, axis=0), func)()
+    result = getattr(ser.expanding(min_periods=15), func)()
     assert isna(result.iloc[13])
     assert notna(result.iloc[14])
 
     ser2 = Series(np.random.default_rng(2).standard_normal(20))
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = getattr(ser2.expanding(min_periods=5, axis=0), func)()
+    result = getattr(ser2.expanding(min_periods=5), func)()
     assert isna(result[3])
     assert notna(result[4])
 
     # min_periods=0
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result0 = getattr(ser.expanding(min_periods=0, axis=0), func)()
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result1 = getattr(ser.expanding(min_periods=1, axis=0), func)()
+    result0 = getattr(ser.expanding(min_periods=0), func)()
+    result1 = getattr(ser.expanding(min_periods=1), func)()
     tm.assert_almost_equal(result0, result1)
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = getattr(ser.expanding(min_periods=1, axis=0), func)()
+    result = getattr(ser.expanding(min_periods=1), func)()
     tm.assert_almost_equal(result.iloc[-1], static_comp(ser[:50]))
 
 
