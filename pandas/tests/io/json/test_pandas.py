@@ -2162,6 +2162,7 @@ def test_json_pos_args_deprecation():
         df.to_json(buf, "split")
 
 
+@td.skip_if_no("pyarrow")
 def test_to_json_ea_null():
     # GH#57224
     df = DataFrame(
