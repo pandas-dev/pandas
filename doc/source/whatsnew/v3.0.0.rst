@@ -29,8 +29,8 @@ enhancement2
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :func:`DataFrame.to_excel` now raises an ``UserWarning`` when the character count in a cell exceeds Excel's limitation of 32767 characters (:issue:`56954`)
+- :func:`assert_produces_warning` now accepts warning message match for every expected warning. A must_find_all_warnings keyword argument was added, to make the function check all expected warnings. (:issue:`56555`)
 - :func:`read_stata` now returns ``datetime64`` resolutions better matching those natively stored in the stata format (:issue:`55642`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:

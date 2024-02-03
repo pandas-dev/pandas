@@ -32,7 +32,8 @@ def assert_produces_warning(
     ] = "always",
     check_stacklevel: bool = True,
     raise_on_extra_warnings: bool = True,
-    match: str | None = None,
+    match: str | tuple[str | None, ...] | None = None,
+    must_find_all_warnings: bool = False,
 ) -> Generator[list[warnings.WarningMessage], None, None]:
     """
     Context manager for running code expected to either raise a specific warning,
@@ -68,8 +69,17 @@ def assert_produces_warning(
     raise_on_extra_warnings : bool, default True
         Whether extra warnings not of the type `expected_warning` should
         cause the test to fail.
-    match : str, optional
-        Match warning message.
+    match : {str, tuple[str, ...]}, optional
+        Match warning message. If it's a tuple, it has to be the size of
+        `expected_warning`. If additionally `must_find_all_warnings` is
+        True, each expected warning's message gets matched with a respective
+        match. Otherwise, multiple values get treated as an alternative.
+    must_find_all_warnings : bool, default False
+        If True and `expected_warning` is a tuple, each expected warning
+        type must get encountered. Otherwise, even one expected warning
+        results in success.
+
+        .. versionadded:: 3.0.0
 
     Examples
     --------
@@ -99,13 +109,28 @@ def assert_produces_warning(
             yield w
         finally:
             if expected_warning:
-                expected_warning = cast(type[Warning], expected_warning)
-                _assert_caught_expected_warning(
-                    caught_warnings=w,
-                    expected_warning=expected_warning,
-                    match=match,
-                    check_stacklevel=check_stacklevel,
-                )
+                if type(expected_warning) == tuple and must_find_all_warnings:
+                    match = (
+                        match
+                        if type(match) == tuple
+                        else tuple(match for i in range(len(expected_warning)))
+                    )
+                    for warning_type, warning_match in zip(expected_warning, match):
+                        _assert_caught_expected_warning(
+                            caught_warnings=w,
+                            expected_warning=warning_type,
+                            match=warning_match,
+                            check_stacklevel=check_stacklevel,
+                        )
+                else:
+                    expected_warning = cast(type[Warning], expected_warning)
+                    match = "|".join(match) if type(match) == tuple else match
+                    _assert_caught_expected_warning(
+                        caught_warnings=w,
+                        expected_warning=expected_warning,
+                        match=match,
+                        check_stacklevel=check_stacklevel,
+                    )
             if raise_on_extra_warnings:
                 _assert_caught_no_extra_warnings(
                     caught_warnings=w,
