@@ -760,9 +760,9 @@ def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
 def test_iter_rolling_dataframe(df, expected, window, min_periods):
     # GH 11704
     df = DataFrame(df)
-    expected = [DataFrame(values, index=index) for (values, index) in expected]
+    expecteds = [DataFrame(values, index=index) for (values, index) in expected]
 
-    for expected, actual in zip(expected, df.rolling(window, min_periods=min_periods)):
+    for expected, actual in zip(expecteds, df.rolling(window, min_periods=min_periods)):
         tm.assert_frame_equal(actual, expected)
 
 
@@ -805,10 +805,10 @@ def test_iter_rolling_on_dataframe(expected, window):
         }
     )
 
-    expected = [
+    expecteds = [
         DataFrame(values, index=df.loc[index, "C"]) for (values, index) in expected
     ]
-    for expected, actual in zip(expected, df.rolling(window, on="C")):
+    for expected, actual in zip(expecteds, df.rolling(window, on="C")):
         tm.assert_frame_equal(actual, expected)
 
 
@@ -856,9 +856,11 @@ def test_iter_rolling_on_dataframe_unordered():
 )
 def test_iter_rolling_series(ser, expected, window, min_periods):
     # GH 11704
-    expected = [Series(values, index=index) for (values, index) in expected]
+    expecteds = [Series(values, index=index) for (values, index) in expected]
 
-    for expected, actual in zip(expected, ser.rolling(window, min_periods=min_periods)):
+    for expected, actual in zip(
+        expecteds, ser.rolling(window, min_periods=min_periods)
+    ):
         tm.assert_series_equal(actual, expected)
 
 
@@ -904,11 +906,11 @@ def test_iter_rolling_datetime(expected, expected_index, window):
     # GH 11704
     ser = Series(range(5), index=date_range(start="2020-01-01", periods=5, freq="D"))
 
-    expected = [
+    expecteds = [
         Series(values, index=idx) for (values, idx) in zip(expected, expected_index)
     ]
 
-    for expected, actual in zip(expected, ser.rolling(window)):
+    for expected, actual in zip(expecteds, ser.rolling(window)):
         tm.assert_series_equal(actual, expected)
 
 
