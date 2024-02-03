@@ -113,7 +113,10 @@ def assert_produces_warning(
                     match = (
                         match
                         if type(match) == tuple
-                        else tuple(match for i in range(len(expected_warning)))
+                        else tuple(
+                            cast(str | None, match)
+                            for i in range(len(expected_warning))
+                        )
                     )
                     for warning_type, warning_match in zip(expected_warning, match):
                         _assert_caught_expected_warning(
@@ -124,7 +127,12 @@ def assert_produces_warning(
                         )
                 else:
                     expected_warning = cast(type[Warning], expected_warning)
-                    match = "|".join(match) if type(match) == tuple else match
+                    match = cast(
+                        str,
+                        "|".join(m for m in match if m)
+                        if type(match) == tuple
+                        else match,
+                    )
                     _assert_caught_expected_warning(
                         caught_warnings=w,
                         expected_warning=expected_warning,
