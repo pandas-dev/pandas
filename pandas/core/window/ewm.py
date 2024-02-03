@@ -587,6 +587,8 @@ class ExponentialMovingWindow(BaseWindow):
     ):
         if not self.adjust:
             raise NotImplementedError("sum is not implemented with adjust=False")
+        if self.times is not None:
+            raise NotImplementedError("sum is not implemented with times")
         if maybe_use_numba(engine):
             if self.method == "single":
                 func = generate_numba_ewm_func
@@ -658,6 +660,8 @@ class ExponentialMovingWindow(BaseWindow):
             raise NotImplementedError(
                 f"{type(self).__name__}.std does not implement numeric_only"
             )
+        if self.times is not None:
+            raise NotImplementedError("std is not implemented with times")
         return zsqrt(self.var(bias=bias, numeric_only=numeric_only))
 
     @doc(
@@ -691,6 +695,8 @@ class ExponentialMovingWindow(BaseWindow):
         agg_method="var",
     )
     def var(self, bias: bool = False, numeric_only: bool = False):
+        if self.times is not None:
+            raise NotImplementedError("var is not implemented with times")
         window_func = window_aggregations.ewmcov
         wfunc = partial(
             window_func,
@@ -753,6 +759,9 @@ class ExponentialMovingWindow(BaseWindow):
         bias: bool = False,
         numeric_only: bool = False,
     ):
+        if self.times is not None:
+            raise NotImplementedError("cov is not implemented with times")
+
         from pandas import Series
 
         self._validate_numeric_only("cov", numeric_only)
@@ -837,6 +846,9 @@ class ExponentialMovingWindow(BaseWindow):
         pairwise: bool | None = None,
         numeric_only: bool = False,
     ):
+        if self.times is not None:
+            raise NotImplementedError("corr is not implemented with times")
+
         from pandas import Series
 
         self._validate_numeric_only("corr", numeric_only)
