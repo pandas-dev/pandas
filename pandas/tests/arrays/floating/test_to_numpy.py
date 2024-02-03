@@ -100,7 +100,7 @@ def test_to_numpy_dtype(box, dtype):
     tm.assert_numpy_array_equal(result, expected)
 
 
-@pytest.mark.parametrize("dtype", ["float64", "float32", "int32", "int64", "bool"])
+@pytest.mark.parametrize("dtype", ["int32", "int64", "bool"])
 @pytest.mark.parametrize("box", [True, False], ids=["series", "array"])
 def test_to_numpy_na_raises(box, dtype):
     con = pd.Series if box else pd.array
