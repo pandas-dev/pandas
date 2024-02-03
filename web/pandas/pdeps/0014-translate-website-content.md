@@ -5,7 +5,7 @@
 - Discussion: [#56301](https://github.com/pandas-dev/pandas/issues/56301)
               [#57204](https://github.com/pandas-dev/pandas/pull/57204)
 - Author: [Albert Steppi](https://github.com/steppi),
-- Revision: 2
+- Revision: 1
 
 ## Abstract
 
@@ -66,4 +66,3 @@ process of keeping translations up to date.
 ### PDEP History
 
 - 01 February 2024: Initial draft
-- 02 February 2024: First revision
