@@ -1346,7 +1346,9 @@ class FloatArrayFormatter(_GenericArrayFormatter):
         the parameters given at initialisation, as a numpy array
         """
 
-        def format_with_na_rep(values: ArrayLike, formatter: Callable, na_rep: str):
+        def format_with_na_rep(
+            values: ArrayLike, formatter: Callable, na_rep: str
+        ) -> np.ndarray:
             mask = isna(values)
             formatted = np.array(
                 [
@@ -1358,7 +1360,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
 
         def format_complex_with_na_rep(
             values: ArrayLike, formatter: Callable, na_rep: str
-        ):
+        ) -> np.ndarray:
             real_values = np.real(values).ravel()  # type: ignore[arg-type]
             imag_values = np.imag(values).ravel()  # type: ignore[arg-type]
             real_mask, imag_mask = isna(real_values), isna(imag_values)

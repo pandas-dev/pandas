@@ -84,7 +84,6 @@ from pandas.io.common import is_potential_multi_index
 
 if TYPE_CHECKING:
     from collections.abc import (
-        Hashable,
         Iterable,
         Mapping,
         Sequence,
@@ -94,7 +93,10 @@ if TYPE_CHECKING:
         ArrayLike,
         DtypeArg,
         DtypeObj,
+        Hashable,
+        HashableT,
         Scalar,
+        SequenceT,
     )
 
 
@@ -350,13 +352,13 @@ class ParserBase:
     @final
     def _maybe_make_multi_index_columns(
         self,
-        columns: Sequence[Hashable],
+        columns: SequenceT,
         col_names: Sequence[Hashable] | None = None,
-    ) -> Sequence[Hashable] | MultiIndex:
+    ) -> SequenceT | MultiIndex:
         # possibly create a column mi here
         if is_potential_multi_index(columns):
-            list_columns = cast(list[tuple], columns)
-            return MultiIndex.from_tuples(list_columns, names=col_names)
+            columns_mi = cast("Sequence[tuple[Hashable, ...]]", columns)
+            return MultiIndex.from_tuples(columns_mi, names=col_names)
         return columns
 
     @final
@@ -520,7 +522,7 @@ class ParserBase:
         verbose: bool = False,
         converters=None,
         dtypes=None,
-    ):
+    ) -> dict[Any, np.ndarray]:
         result = {}
         for c, values in dct.items():
             conv_f = None if converters is None else converters.get(c, None)
@@ -923,23 +925,23 @@ class ParserBase:
     @overload
     def _evaluate_usecols(
         self,
-        usecols: set[int] | Callable[[Hashable], object],
-        names: Sequence[Hashable],
+        usecols: Callable[[Hashable], object],
+        names: Iterable[Hashable],
     ) -> set[int]:
         ...
 
     @overload
     def _evaluate_usecols(
-        self, usecols: set[str], names: Sequence[Hashable]
-    ) -> set[str]:
+        self, usecols: SequenceT, names: Iterable[Hashable]
+    ) -> SequenceT:
         ...
 
     @final
     def _evaluate_usecols(
         self,
-        usecols: Callable[[Hashable], object] | set[str] | set[int],
-        names: Sequence[Hashable],
-    ) -> set[str] | set[int]:
+        usecols: Callable[[Hashable], object] | SequenceT,
+        names: Iterable[Hashable],
+    ) -> SequenceT | set[int]:
         """
         Check whether or not the 'usecols' parameter
         is a callable.  If so, enumerates the 'names'
@@ -952,7 +954,7 @@ class ParserBase:
         return usecols
 
     @final
-    def _validate_usecols_names(self, usecols, names: Sequence):
+    def _validate_usecols_names(self, usecols: SequenceT, names: Sequence) -> SequenceT:
         """
         Validates that all usecols are present in a given
         list of names. If not, raise a ValueError that
@@ -1072,7 +1074,9 @@ class ParserBase:
         return index_names, columns, index_col
 
     @final
-    def _get_empty_meta(self, columns, dtype: DtypeArg | None = None):
+    def _get_empty_meta(
+        self, columns: Sequence[HashableT], dtype: DtypeArg | None = None
+    ) -> tuple[Index, list[HashableT], dict[HashableT, Series]]:
         columns = list(columns)
 
         index_col = self.index_col
@@ -1275,7 +1279,7 @@ def _process_date_conversion(
     columns,
     keep_date_col: bool = False,
     dtype_backend=lib.no_default,
-):
+) -> tuple[dict, list]:
     def _isindex(colspec):
         return (isinstance(index_col, list) and colspec in index_col) or (
             isinstance(index_names, list) and colspec in index_names

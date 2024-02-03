@@ -2101,7 +2101,7 @@ def _floatify_na_values(na_values):
     return result
 
 
-def _stringify_na_values(na_values, floatify: bool):
+def _stringify_na_values(na_values, floatify: bool) -> set[str | float]:
     """return a stringified and numeric for these values"""
     result: list[str | float] = []
     for x in na_values:

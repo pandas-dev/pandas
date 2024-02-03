@@ -3827,7 +3827,7 @@ def _background_gradient(
     vmax: float | None = None,
     gmap: Sequence | np.ndarray | DataFrame | Series | None = None,
     text_only: bool = False,
-):
+) -> list[str] | DataFrame:
     """
     Color background in a range according to the data or a gradient map
     """

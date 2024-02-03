@@ -469,7 +469,7 @@ class _HtmlFrameParser:
 
     def _expand_colspan_rowspan(
         self, rows, section: Literal["header", "footer", "body"]
-    ):
+    ) -> list[list]:
         """
         Given a list of <tr>s, return a list of text rows.
 
