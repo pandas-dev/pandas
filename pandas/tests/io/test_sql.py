@@ -1497,16 +1497,6 @@ def test_execute_typeerror(sqlite_engine_iris):
             sql.execute("select * from iris", sqlite_engine_iris)
 
 
-def test_execute_deprecated(sqlite_conn_iris):
-    # GH50185
-    with tm.assert_produces_warning(
-        FutureWarning,
-        match="`pandas.io.sql.execute` is deprecated and "
-        "will be removed in the future version.",
-    ):
-        sql.execute("select * from iris", sqlite_conn_iris)
-
-
 def flavor(conn_name):
     if "postgresql" in conn_name:
         return "postgresql"
