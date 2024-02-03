@@ -36,10 +36,7 @@ def four_level_index_dataframe():
 
 
 class TestXS:
-    def test_xs(
-        self, float_frame, datetime_frame, using_copy_on_write, warn_copy_on_write
-    ):
-        float_frame_orig = float_frame.copy()
+    def test_xs(self, float_frame):
         idx = float_frame.index[5]
         xs = float_frame.xs(idx)
         for item, value in xs.items():
@@ -48,6 +45,7 @@ class TestXS:
             else:
                 assert value == float_frame[item][idx]
 
+    def test_xs_mixed(self):
         # mixed-type xs
         test_data = {"A": {"1": 1, "2": 2}, "B": {"1": "1", "2": "2", "3": "3"}}
         frame = DataFrame(test_data)
@@ -56,11 +54,14 @@ class TestXS:
         assert xs["A"] == 1
         assert xs["B"] == "1"
 
+    def test_xs_dt_error(self, datetime_frame):
         with pytest.raises(
             KeyError, match=re.escape("Timestamp('1999-12-31 00:00:00')")
         ):
             datetime_frame.xs(datetime_frame.index[0] - BDay())
 
+    def test_xs_other(self, float_frame, using_copy_on_write, warn_copy_on_write):
+        float_frame_orig = float_frame.copy()
         # xs get column
         series = float_frame.xs("A", axis=1)
         expected = float_frame["A"]
