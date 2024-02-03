@@ -174,9 +174,7 @@ def test_ewm_sum_adjust_false_notimplemented():
 
 
 @pytest.mark.parametrize("method", ["sum", "std", "var", "cov", "corr"])
-def test_times_only_mean_implemented(
-    frame_or_series: (type[DataFrame] | type[Series]), method: str
-):
+def test_times_only_mean_implemented(frame_or_series, method):
     # GH 51695
     halflife = "1 day"
     times = date_range("2000", freq="D", periods=10)
