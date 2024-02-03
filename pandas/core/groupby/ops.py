@@ -706,7 +706,8 @@ class BaseGrouper:
         values = result_index._values
         categories = Categorical(ids, categories=np.arange(len(result_index)))
         result = {
-            values[group]: self.axis.take(axis_ilocs)
+            # mypy is not aware that group has to be an integer
+            values[group]: self.axis.take(axis_ilocs)  # type: ignore[call-overload]
             for group, axis_ilocs in categories._reverse_indexer().items()
         }
         return result
