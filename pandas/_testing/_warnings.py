@@ -110,6 +110,7 @@ def assert_produces_warning(
         finally:
             if expected_warning:
                 if type(expected_warning) == tuple and must_find_all_warnings:
+                    expected_warning = cast(tuple[type[Warning]], expected_warning)
                     match = (
                         match
                         if type(match) == tuple
