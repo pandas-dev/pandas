@@ -2136,6 +2136,7 @@ class Tooltips:
                             )
                 d["table_styles"].extend(self._class_styles)
                 d["table_styles"].extend(self.table_styles)
+        # this conditional adds tooltips as extra "title" attribute on a <td> element
         else:
             index_offset = self.tt_data.index.nlevels
             body = d["body"]
