@@ -42,7 +42,6 @@ from numpy import ma
 from pandas._config import (
     get_option,
     using_copy_on_write,
-    warn_copy_on_write,
 )
 
 from pandas._libs import (
@@ -64,7 +63,6 @@ from pandas.errors.cow import (
     _chained_assignment_method_msg,
     _chained_assignment_msg,
     _chained_assignment_warning_method_msg,
-    _chained_assignment_warning_msg,
 )
 from pandas.util._decorators import (
     Appender,
@@ -4199,17 +4197,6 @@ class DataFrame(NDFrame, OpsMixin):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
-        elif not PYPY and not using_copy_on_write():
-            if sys.getrefcount(self) <= 3 and (
-                warn_copy_on_write()
-                or (
-                    not warn_copy_on_write()
-                    and any(b.refs.has_reference() for b in self._mgr.blocks)
-                )
-            ):
-                warnings.warn(
-                    _chained_assignment_warning_msg, FutureWarning, stacklevel=2
-                )
 
         key = com.apply_if_callable(key, self)
 
@@ -4550,7 +4537,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _get_item_cache(self, item: Hashable) -> Series:
         """Return the cached item, item represents a label indexer."""
-        if using_copy_on_write() or warn_copy_on_write():
+        if using_copy_on_write():
             loc = self.columns.get_loc(item)
             return self._ixs(loc, axis=1)
 
