@@ -702,19 +702,13 @@ class BaseGrouper:
         """dict {group name -> group labels}"""
         if len(self.groupings) == 1:
             return self.groupings[0].groups
-        if len(self.result_index) == 0:
-            index = self.result_index
-        else:
-            index = self.result_index.take(self.ids)
-        categories = (
-            self.result_index._values
-            if isinstance(self.result_index, MultiIndex)
-            else self.result_index
-        )
-        values = index._values if isinstance(index, MultiIndex) else index
-        cats = Categorical(values, categories)
-        result = {k: self.axis.take(v) for k, v in cats._reverse_indexer().items()}
-
+        result_index, ids = self.result_index_and_ids
+        values = result_index._values
+        categories = Categorical(ids, categories=np.arange(len(result_index)))
+        result = {
+            values[group]: self.axis.take(axis_ilocs)
+            for group, axis_ilocs in categories._reverse_indexer().items()
+        }
         return result
 
     @final
