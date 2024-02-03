@@ -30,10 +30,6 @@ repos:
         files: ^pandas
         exclude: ^pandas/tests
         args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix]
-    -   id: ruff
-        args: [--exit-non-zero-on-fix, --select=TID251]
-        files: ^pandas/
-        exclude: ^pandas/tests/
     -   id: ruff-format
         # TODO: "." not needed in ruff 0.1.8
         args: ["."]
