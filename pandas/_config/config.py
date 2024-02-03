@@ -337,7 +337,7 @@ Available options:
 Parameters
 ----------
 *args : str | object
-    Arguments provided in pairs, which will be interpreted as (pattern, value) 
+    Arguments provided in pairs, which will be interpreted as (pattern, value)
     pairs.
     pattern: str
         Regexp which should match a single option
