@@ -284,7 +284,9 @@ class CSSToExcelConverter:
             for side in ["top", "right", "bottom", "left"]
         }
 
-    def _border_style(self, style: str | None, width: str | None, color: str | None):
+    def _border_style(
+        self, style: str | None, width: str | None, color: str | None
+    ) -> str | None:
         # convert styles and widths to openxml, one of:
         #       'dashDot'
         #       'dashDotDot'

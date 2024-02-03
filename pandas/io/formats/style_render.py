@@ -2030,7 +2030,9 @@ class Tooltips:
             }
         ]
 
-    def _pseudo_css(self, uuid: str, name: str, row: int, col: int, text: str):
+    def _pseudo_css(
+        self, uuid: str, name: str, row: int, col: int, text: str
+    ) -> list[CSSDict]:
         """
         For every table data-cell that has a valid tooltip (not None, NaN or
         empty string) must create two pseudo CSS entries for the specific

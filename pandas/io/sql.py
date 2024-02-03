@@ -67,6 +67,7 @@ from pandas.core.tools.datetimes import to_datetime
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Generator,
         Iterator,
         Mapping,
     )
@@ -136,7 +137,7 @@ def _handle_date_column(
             return to_datetime(col, errors="coerce", format=format, utc=utc)
 
 
-def _parse_date_columns(data_frame, parse_dates):
+def _parse_date_columns(data_frame: DataFrame, parse_dates) -> DataFrame:
     """
     Force non-datetime columns to be read as such.
     Supports both string formatted and integer timestamp columns.
@@ -199,7 +200,7 @@ def _wrap_result(
     parse_dates=None,
     dtype: DtypeArg | None = None,
     dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-):
+) -> DataFrame:
     """Wrap result set of a SQLAlchemy query in a DataFrame."""
     frame = _convert_arrays_to_dataframe(data, columns, coerce_float, dtype_backend)
 
@@ -1153,7 +1154,7 @@ class SQLTable(PandasObject):
         coerce_float: bool = True,
         parse_dates=None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ):
+    ) -> Generator[DataFrame, None, None]:
         """Return generator through chunked result set."""
         has_read_data = False
         with exit_stack:
@@ -1765,7 +1766,7 @@ class SQLDatabase(PandasSQL):
         parse_dates=None,
         dtype: DtypeArg | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ):
+    ) -> Generator[DataFrame, None, None]:
         """Return generator through chunked result set"""
         has_read_data = False
         with exit_stack:
@@ -2466,7 +2467,7 @@ _SQL_TYPES = {
 }
 
 
-def _get_unicode_name(name: object):
+def _get_unicode_name(name: object) -> str:
     try:
         uname = str(name).encode("utf-8", "strict").decode("utf-8")
     except UnicodeError as err:
@@ -2474,7 +2475,7 @@ def _get_unicode_name(name: object):
     return uname
 
 
-def _get_valid_sqlite_name(name: object):
+def _get_valid_sqlite_name(name: object) -> str:
     # See https://stackoverflow.com/questions/6514274/how-do-you-escape-strings\
     # -for-sqlite-table-column-names-in-python
     # Ensure the string can be encoded as UTF-8.
@@ -2712,7 +2713,7 @@ class SQLiteDatabase(PandasSQL):
         parse_dates=None,
         dtype: DtypeArg | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ):
+    ) -> Generator[DataFrame, None, None]:
         """Return generator through chunked result set"""
         has_read_data = False
         while True:

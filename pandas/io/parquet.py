@@ -150,7 +150,7 @@ class BaseImpl:
         if not isinstance(df, DataFrame):
             raise ValueError("to_parquet only supports IO with DataFrames")
 
-    def write(self, df: DataFrame, path, compression, **kwargs):
+    def write(self, df: DataFrame, path, compression, **kwargs) -> None:
         raise AbstractMethodError(self)
 
     def read(self, path, columns=None, **kwargs) -> DataFrame:

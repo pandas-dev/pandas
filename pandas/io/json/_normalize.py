@@ -11,6 +11,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     DefaultDict,
+    overload,
 )
 
 import numpy as np
@@ -42,13 +43,35 @@ def convert_to_line_delimits(s: str) -> str:
     return convert_json_to_lines(s)
 
 
+@overload
 def nested_to_record(
-    ds,
+    ds: dict,
+    prefix: str = ...,
+    sep: str = ...,
+    level: int = ...,
+    max_level: int | None = ...,
+) -> dict[str, Any]:
+    ...
+
+
+@overload
+def nested_to_record(
+    ds: list[dict],
+    prefix: str = ...,
+    sep: str = ...,
+    level: int = ...,
+    max_level: int | None = ...,
+) -> list[dict[str, Any]]:
+    ...
+
+
+def nested_to_record(
+    ds: dict | list[dict],
     prefix: str = "",
     sep: str = ".",
     level: int = 0,
     max_level: int | None = None,
-):
+) -> dict[str, Any] | list[dict[str, Any]]:
     """
     A simplified json_normalize
 
