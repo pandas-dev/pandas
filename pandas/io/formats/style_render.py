@@ -2137,7 +2137,6 @@ class Tooltips:
                 d["table_styles"].extend(self._class_styles)
                 d["table_styles"].extend(self.table_styles)
         else:
-            if not styler.hide_index_
             index_offset = self.tt_data.index.nlevels
             body = d["body"]
             for i in range(len(self.tt_data.index)):
