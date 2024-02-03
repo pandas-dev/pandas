@@ -41,8 +41,8 @@ if TYPE_CHECKING:
     )
 
     from pandas._typing import (
-        ArrayLike,
         AnyArrayLike,
+        ArrayLike,
         DtypeArg,
         DtypeObj,
         ReadCsvBuffer,
