@@ -1707,7 +1707,6 @@ Why does assignment fail when using chained indexing?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :ref:`Copy-on-Write <copy_on_write>` is the new default with pandas 3.0.
-This means than chained indexing will never work. As a consequence,
-the ``SettingWithCopyWarning`` is not necessary anymore.
+This means than chained indexing will never work.
 See :ref:`this section <copy_on_write_chained_assignment>`
 for more context.

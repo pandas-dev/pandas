@@ -6164,21 +6164,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # Consolidation of internals
 
     @final
-    def _protect_consolidate(self, f):
-        """
-        Consolidate _mgr -- if the blocks have changed, then clear the
-        cache
-        """
-        return f()
-
-    @final
     def _consolidate_inplace(self) -> None:
         """Consolidate data in place and return None"""
 
         def f() -> None:
             self._mgr = self._mgr.consolidate()
-
-        self._protect_consolidate(f)
 
     @final
     def _consolidate(self):
@@ -6190,8 +6180,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         consolidated : same type as caller
         """
-        f = lambda: self._mgr.consolidate()
-        cons_data = self._protect_consolidate(f)
+        cons_data = self._mgr.consolidate()
         return self._constructor_from_mgr(cons_data, axes=cons_data.axes).__finalize__(
             self
         )

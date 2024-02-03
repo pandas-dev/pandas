@@ -395,8 +395,6 @@ slicers on a single axis.
 Furthermore, you can *set* the values using the following methods.
 
 .. ipython:: python
-   :okwarning:
-
    df2 = dfmi.copy()
    df2.loc(axis=0)[:, :, ["C1", "C3"]] = -10
    df2

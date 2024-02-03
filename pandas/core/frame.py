@@ -4121,7 +4121,7 @@ class DataFrame(NDFrame, OpsMixin):
             series = self._ixs(col, axis=1)
             return series._values[index]
 
-        series = self[col]
+        series = self._get_item(col)
         engine = self.index._engine
 
         if not isinstance(self.index, MultiIndex):
