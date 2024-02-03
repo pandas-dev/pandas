@@ -188,7 +188,7 @@ class PandasDocstring(Validator):
             file.write(content)
             file.flush()
             cmd = [
-                "python",
+                sys.executable,
                 "-m",
                 "flake8",
                 "--format=%(row)d\t%(col)d\t%(code)s\t%(text)s",
