@@ -392,7 +392,7 @@ class _BaseInfo(ABC):
 
     @property
     @abstractmethod
-    def non_null_counts(self) -> Sequence[int]:
+    def non_null_counts(self) -> list[int] | Series:
         """Sequence of non-null counts for all columns or column (if series)."""
 
     @property
@@ -486,7 +486,7 @@ class DataFrameInfo(_BaseInfo):
         return len(self.ids)
 
     @property
-    def non_null_counts(self) -> Sequence[int]:
+    def non_null_counts(self) -> Series:
         """Sequence of non-null counts for all columns or column (if series)."""
         return self.data.count()
 
@@ -546,7 +546,7 @@ class SeriesInfo(_BaseInfo):
         printer.to_buffer(buf)
 
     @property
-    def non_null_counts(self) -> Sequence[int]:
+    def non_null_counts(self) -> list[int]:
         return [self.data.count()]
 
     @property
@@ -750,7 +750,7 @@ class _TableBuilderAbstract(ABC):
         return self.info.memory_usage_string
 
     @property
-    def non_null_counts(self) -> Sequence[int]:
+    def non_null_counts(self) -> list[int] | Series:
         return self.info.non_null_counts
 
     def add_object_type_line(self) -> None:
