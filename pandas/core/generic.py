@@ -6167,8 +6167,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def _consolidate_inplace(self) -> None:
         """Consolidate data in place and return None"""
 
-        def f() -> None:
-            self._mgr = self._mgr.consolidate()
+        self._mgr = self._mgr.consolidate()
 
     @final
     def _consolidate(self):
