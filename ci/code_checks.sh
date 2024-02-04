@@ -91,7 +91,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.TimedeltaIndex.floor\
         pandas.TimedeltaIndex.ceil\
         pandas.PeriodIndex.strftime\
-        pandas.Series.rename_axis\
         pandas.Series.dt.to_period\
         pandas.Series.dt.tz_localize\
         pandas.Series.dt.tz_convert\
