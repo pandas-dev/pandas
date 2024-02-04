@@ -220,6 +220,8 @@ if TYPE_CHECKING:
     from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
 
+import textwrap
+
 # goal is to be able to define the docs close to function, while still being
 # able to share
 _shared_docs = {**_shared_docs}
@@ -1153,34 +1155,24 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Self | None:
         ...
 
-    def rename_axis(
-        self,
-        mapper: IndexLabel | lib.NoDefault = lib.no_default,
-        *,
-        index=lib.no_default,
-        columns=lib.no_default,
-        axis: Axis = 0,
-        copy: bool_t | None = None,
-        inplace: bool_t = False,
-    ) -> Self | None:
-        """
-        Set the name of the axis for the index or columns.
-
-        Parameters
-        ----------
+    @doc(
+        extra_parameters=textwrap.dedent(
+            """\
         mapper : scalar, list-like, optional
             Value to set the axis name attribute.
-        index, columns : scalar, list-like, dict-like or function, optional
+        index : scalar, list-like, dict-like or function, optional
+            A scalar, list-like, dict-like or functions transformations to
+            apply to that axis' values.
+        columns : scalar, list-like, dict-like or function, optional
             A scalar, list-like, dict-like or functions transformations to
             apply to that axis' values.
             Note that the ``columns`` parameter is not allowed if the
             object is a Series. This parameter only apply for DataFrame
             type objects.
-
             Use either ``mapper`` and ``axis`` to
             specify the axis to target with ``mapper``, or ``index``
             and/or ``columns``.
-        axis : {0 or 'index', 1 or 'columns'}, default 0
+        axis : {{0 or 'index', 1 or 'columns'}}, default 0
             The axis to rename. For `Series` this parameter is unused and defaults to 0.
         copy : bool, default None
             Also copy underlying data.
@@ -1199,7 +1191,25 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace : bool, default False
             Modifies the object directly, instead of creating a new Series
             or DataFrame.
+    """
+        ),
+    )
+    def rename_axis(
+        self,
+        mapper: IndexLabel | lib.NoDefault = lib.no_default,
+        *,
+        index=lib.no_default,
+        columns=lib.no_default,
+        axis: Axis = 0,
+        copy: bool_t | None = None,
+        inplace: bool_t = False,
+    ) -> Self | None:
+        """
+        Set the name of the axis for the index or columns.
 
+        Parameters
+        ----------
+        {extra_parameters}
         Returns
         -------
         Series, DataFrame, or None
@@ -1216,7 +1226,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ``DataFrame.rename_axis`` supports two calling conventions
 
         * ``(index=index_mapper, columns=columns_mapper, ...)``
-        * ``(mapper, axis={'index', 'columns'}, ...)``
+        * ``(mapper, axis={{'index', 'columns'}}, ...)``
 
         The first calling convention will only modify the names of
         the index and/or the names of the Index object that is the columns.
@@ -1249,8 +1259,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         **DataFrame**
 
-        >>> df = pd.DataFrame({"num_legs": [4, 4, 2],
-        ...                    "num_arms": [0, 0, 2]},
+        >>> df = pd.DataFrame({{"num_legs": [4, 4, 2],
+        ...                    "num_arms": [0, 0, 2]}},
         ...                   ["dog", "cat", "monkey"])
         >>> df
                 num_legs  num_arms
@@ -1284,7 +1294,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                cat            4         0
                monkey         2         2
 
-        >>> df.rename_axis(index={'type': 'class'})
+        >>> df.rename_axis(index={{'type': 'class'}})
         limbs          num_legs  num_arms
         class  name
         mammal dog            4         0

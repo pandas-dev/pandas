@@ -207,6 +207,8 @@ if TYPE_CHECKING:
     from pandas.core.frame import DataFrame
     from pandas.core.groupby.generic import SeriesGroupBy
 
+import textwrap
+
 __all__ = ["Series"]
 
 _shared_doc_kwargs = {
@@ -5173,7 +5175,37 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> Self | None:
         ...
 
-    @doc(NDFrame.rename_axis)
+    @doc(
+        NDFrame.rename_axis,
+        extra_parameters=textwrap.dedent(
+            """\
+        mapper : scalar, list-like, optional
+            Value to set the axis name attribute.
+        index : scalar, list-like, dict-like or function, optional
+            A scalar, list-like, dict-like or functions transformations to
+            apply to that axis' values.
+        axis : {{0 or 'index', 1 or 'columns'}}, default 0
+            The axis to rename. For `Series` this parameter is unused and defaults to 0.
+        copy : bool, default None
+            Also copy underlying data.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
+        inplace : bool, default False
+            Modifies the object directly, instead of creating a new Series
+            or DataFrame.
+    """
+        ),
+    )
     def rename_axis(
         self,
         mapper: IndexLabel | lib.NoDefault = lib.no_default,
