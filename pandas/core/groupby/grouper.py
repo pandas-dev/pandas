@@ -680,7 +680,7 @@ class Grouping:
 
             has_dropped_na = False
             if not self._dropna:
-                na_mask = cat.codes < 0
+                na_mask = cat.isna()
                 if np.any(na_mask):
                     has_dropped_na = True
                     if self._sort:

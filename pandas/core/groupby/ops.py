@@ -748,13 +748,11 @@ class BaseGrouper:
         return self.result_index_and_ids[0]
 
     @property
-    def ids(self) -> np.ndarray:
+    def ids(self) -> npt.NDArray[np.intp]:
         return self.result_index_and_ids[1]
 
     @cache_readonly
-    def result_index_and_ids(self) -> tuple[Index, np.ndarray]:
-        names = self.names
-        codes = [ping.codes for ping in self.groupings]
+    def result_index_and_ids(self) -> tuple[Index, npt.NDArray[np.intp]]:
         levels = [Index._with_infer(ping.uniques) for ping in self.groupings]
         obs = [
             ping._observed or not ping._passed_categorical for ping in self.groupings
@@ -766,48 +764,29 @@ class BaseGrouper:
 
         if len(self.groupings) == 1:
             result_index = levels[0]
-            result_index.name = names[0]
-            ids = ensure_platform_int(codes[0])
-            return result_index, ids
-
-        if any(obs):
-            ob_codes = [code for code, ob in zip(codes, obs) if ob]
-            ob_levels = [level for level, ob in zip(levels, obs) if ob]
-            ob_names = [name for name, ob in zip(names, obs) if ob]
-
-            shape = tuple(len(level) for level in ob_levels)
-            group_index = get_group_index(ob_codes, shape, sort=True, xnull=True)
-            ob_ids, obs_group_ids = compress_group_index(group_index, sort=self._sort)
-            ob_ids = ensure_platform_int(ob_ids)
-            ob_index_codes = decons_obs_group_ids(
-                ob_ids, obs_group_ids, shape, ob_codes, xnull=True
-            )
-            ob_index = MultiIndex(
-                levels=ob_levels,
-                codes=ob_index_codes,
-                names=ob_names,
-                verify_integrity=False,
-            )
-
-        if not all(obs):
-            unob_codes = [e for e, o in zip(codes, obs) if not o]
-            unob_levels = [e for e, o in zip(levels, obs) if not o]
-            unob_names = [e for e, o in zip(names, obs) if not o]
-
-            shape = tuple(len(level) for level in unob_levels)
-            unob_ids = get_group_index(unob_codes, shape, sort=True, xnull=True)
-            unob_index = MultiIndex.from_product(unob_levels, names=unob_names)
-
-        if all(obs):
-            result_index = ob_index
-            ids = ensure_platform_int(ob_ids)
+            result_index.name = self.names[0]
+            ids = ensure_platform_int(self.codes[0])
+        elif all(obs):
+            result_index, ids = self._ob_index_and_ids(levels, self.codes, self.names)
         elif not any(obs):
-            result_index = unob_index
-            ids = ensure_platform_int(unob_ids)
+            result_index, ids = self._unob_index_and_ids(levels, self.codes, self.names)
         else:
-            # Combine unobserved and observed parts of result_index
-            unob_indices = [k for k, e in enumerate(obs) if not e]
+            # Combine unobserved and observed parts
+            names = self.names
+            codes = [ping.codes for ping in self.groupings]
             ob_indices = [k for k, e in enumerate(obs) if e]
+            unob_indices = [k for k, e in enumerate(obs) if not e]
+            ob_index, ob_ids = self._ob_index_and_ids(
+                levels=[levels[idx] for idx in ob_indices],
+                codes=[codes[idx] for idx in ob_indices],
+                names=[names[idx] for idx in ob_indices],
+            )
+            unob_index, unob_ids = self._unob_index_and_ids(
+                levels=[levels[idx] for idx in unob_indices],
+                codes=[codes[idx] for idx in unob_indices],
+                names=[names[idx] for idx in unob_indices],
+            )
+
             result_index_codes = np.concatenate(
                 [
                     np.tile(unob_index.codes, len(ob_index)),
@@ -841,6 +820,40 @@ class BaseGrouper:
                 result_index = result_index.take(taker)
 
         return result_index, ids
+
+    def _ob_index_and_ids(
+        self,
+        levels: list[Index],
+        codes: list[npt.NDArray[np.intp]],
+        names: list[Hashable],
+    ) -> tuple[MultiIndex, npt.NDArray[np.intp]]:
+        shape = tuple(len(level) for level in levels)
+        group_index = get_group_index(codes, shape, sort=True, xnull=True)
+        ob_ids, obs_group_ids = compress_group_index(group_index, sort=self._sort)
+        ob_ids = ensure_platform_int(ob_ids)
+        ob_index_codes = decons_obs_group_ids(
+            ob_ids, obs_group_ids, shape, codes, xnull=True
+        )
+        ob_index = MultiIndex(
+            levels=levels,
+            codes=ob_index_codes,
+            names=names,
+            verify_integrity=False,
+        )
+        ob_ids = ensure_platform_int(ob_ids)
+        return ob_index, ob_ids
+
+    def _unob_index_and_ids(
+        self,
+        levels: list[Index],
+        codes: list[npt.NDArray[np.intp]],
+        names: list[Hashable],
+    ) -> tuple[MultiIndex, npt.NDArray[np.intp]]:
+        shape = tuple(len(level) for level in levels)
+        unob_ids = get_group_index(codes, shape, sort=True, xnull=True)
+        unob_index = MultiIndex.from_product(levels, names=names)
+        unob_ids = ensure_platform_int(unob_ids)
+        return unob_index, unob_ids
 
     @final
     def get_group_levels(self) -> list[Index]:
