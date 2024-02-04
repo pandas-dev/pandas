@@ -77,7 +77,7 @@ class Render:
         # subset is flexible but hinders vectorised solutions
         self.st = self.df.style.format(
             "{:,.3f}",
-            subset=IndexSlice["row_1":f"row_{ir}", "float_1":f"float_{ic}"],
+            subset=IndexSlice["row_1" : f"row_{ir}", "float_1" : f"float_{ic}"],
         )
 
     def _style_apply_format_hide(self):
