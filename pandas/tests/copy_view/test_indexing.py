@@ -513,7 +513,7 @@ def test_subset_chained_getitem(
 @pytest.mark.parametrize(
     "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
 )
-def test_subset_chained_getitem_column(backend, dtype, warn_copy_on_write):
+def test_subset_chained_getitem_column(backend, dtype):
     # Case: creating a subset using multiple, chained getitem calls using views
     # still needs to guarantee proper CoW behaviour
     dtype_backend, DataFrame, Series = backend
@@ -524,14 +524,12 @@ def test_subset_chained_getitem_column(backend, dtype, warn_copy_on_write):
 
     # modify subset -> don't modify parent
     subset = df[:]["a"][0:2]
-    with tm.assert_cow_warning(warn_copy_on_write):
-        subset.iloc[0] = 0
+    subset.iloc[0] = 0
     tm.assert_frame_equal(df, df_orig)
 
     # modify parent -> don't modify subset
     subset = df[:]["a"][0:2]
-    with tm.assert_cow_warning(warn_copy_on_write):
-        df.iloc[0, 0] = 0
+    df.iloc[0, 0] = 0
     expected = Series([1, 2], name="a")
     tm.assert_series_equal(subset, expected)
 
@@ -821,7 +819,7 @@ def test_column_as_series(backend):
     tm.assert_series_equal(df["a"], df_orig["a"])
 
 
-def test_column_as_series_set_with_upcast(backend, warn_copy_on_write):
+def test_column_as_series_set_with_upcast(backend):
     # Case: selecting a single column now also uses Copy-on-Write -> when
     # setting a value causes an upcast, we don't need to update the parent
     # DataFrame through the cache mechanism
@@ -837,7 +835,6 @@ def test_column_as_series_set_with_upcast(backend, warn_copy_on_write):
     else:
         with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
             s[0] = "foo"
-        expected = Series(["foo", 2, 3], dtype=object, name="a")
         expected = Series(["foo", 2, 3], dtype=object, name="a")
 
     tm.assert_series_equal(s, expected)
