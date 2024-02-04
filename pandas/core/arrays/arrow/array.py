@@ -1364,6 +1364,11 @@ class ArrowExtensionArray(
         np_array = np_array.astype(np_dtype)
         return TimedeltaArray._simple_new(np_array, dtype=np_dtype)
 
+    def _values_for_json(self) -> np.ndarray:
+        if is_numeric_dtype(self.dtype):
+            return np.asarray(self, dtype=object)
+        return super()._values_for_json()
+
     @doc(ExtensionArray.to_numpy)
     def to_numpy(
         self,

@@ -431,6 +431,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     # ------------------------------------------------------------------
 
+    def _values_for_json(self) -> np.ndarray:
+        return np.asarray(self, dtype=object)
+
     def to_numpy(
         self,
         dtype: npt.DTypeLike | None = None,
