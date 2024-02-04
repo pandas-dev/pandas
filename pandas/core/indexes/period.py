@@ -156,7 +156,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
     Examples
     --------
-    >>> pd.PeriodIndex(data=['2000Q1', '2002Q3'], freq='Q')
+    >>> idx = pd.PeriodIndex(data=['2000Q1', '2002Q3'], freq='Q')
+    >>> idx
     PeriodIndex(['2000Q1', '2002Q3'], dtype='period[Q-DEC]')
     """
 
@@ -336,7 +337,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
         Examples
         --------
-        >>> pd.PeriodIndex.from_fields(year=[2000, 2002], quarter=[1, 3])
+        >>> idx = pd.PeriodIndex.from_fields(year=[2000, 2002], quarter=[1, 3])
+        >>> idx
         PeriodIndex(['2000Q1', '2002Q3'], dtype='period[Q-DEC]')
         """
         fields = {
@@ -372,7 +374,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
         Examples
         --------
-        >>> pd.PeriodIndex.from_ordinals([-1, 0, 1], freq='Q')
+        >>> idx = pd.PeriodIndex.from_ordinals([-1, 0, 1], freq='Q')
+        >>> idx
         PeriodIndex(['1969Q4', '1970Q1', '1970Q2'], dtype='period[Q-DEC]')
         """
         ordinals = np.asarray(ordinals, dtype=np.int64)
