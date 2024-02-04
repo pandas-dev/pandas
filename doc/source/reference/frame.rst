@@ -186,11 +186,9 @@ Reindexing / selection / label manipulation
    DataFrame.duplicated
    DataFrame.equals
    DataFrame.filter
-   DataFrame.first
    DataFrame.head
    DataFrame.idxmax
    DataFrame.idxmin
-   DataFrame.last
    DataFrame.reindex
    DataFrame.reindex_like
    DataFrame.rename
