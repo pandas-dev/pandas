@@ -428,7 +428,7 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df.iloc[10:, :2], df2)
         tm.assert_frame_equal(df.iloc[10:, 2:], df1)
 
-    def test_iloc_setitem(self, warn_copy_on_write):
+    def test_iloc_setitem(self):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((4, 4)),
             index=np.arange(0, 8, 2),
@@ -843,9 +843,7 @@ class TestiLocBaseIndependent:
             df.iloc[[]], df.iloc[:0, :], check_index_type=True, check_column_type=True
         )
 
-    def test_identity_slice_returns_new_object(
-        self, using_copy_on_write, warn_copy_on_write
-    ):
+    def test_identity_slice_returns_new_object(self, using_copy_on_write):
         # GH13873
         original_df = DataFrame({"a": [1, 2, 3]})
         sliced_df = original_df.iloc[:]
@@ -856,8 +854,7 @@ class TestiLocBaseIndependent:
 
         # Setting using .loc[:, "a"] sets inplace so alters both sliced and orig
         # depending on CoW
-        with tm.assert_cow_warning(warn_copy_on_write):
-            original_df.loc[:, "a"] = [4, 4, 4]
+        original_df.loc[:, "a"] = [4, 4, 4]
         if using_copy_on_write:
             assert (sliced_df["a"] == [1, 2, 3]).all()
         else:
@@ -868,8 +865,7 @@ class TestiLocBaseIndependent:
         assert sliced_series is not original_series
 
         # should also be a shallow copy
-        with tm.assert_cow_warning(warn_copy_on_write):
-            original_series[:3] = [7, 8, 9]
+        original_series[:3] = [7, 8, 9]
         if using_copy_on_write:
             # shallow copy not updated (CoW)
             assert all(sliced_series[:3] == [1, 2, 3])
@@ -1233,9 +1229,7 @@ class TestiLocBaseIndependent:
 class TestILocErrors:
     # NB: this test should work for _any_ Series we can pass as
     #  series_with_simple_index
-    def test_iloc_float_raises(
-        self, series_with_simple_index, frame_or_series, warn_copy_on_write
-    ):
+    def test_iloc_float_raises(self, series_with_simple_index, frame_or_series):
         # GH#4892
         # float_indexers should raise exceptions
         # on appropriate Index types & accessors
@@ -1252,10 +1246,7 @@ class TestILocErrors:
             obj.iloc[3.0]
 
         with pytest.raises(IndexError, match=_slice_iloc_msg):
-            with tm.assert_cow_warning(
-                warn_copy_on_write and frame_or_series is DataFrame
-            ):
-                obj.iloc[3.0] = 0
+            obj.iloc[3.0] = 0
 
     def test_iloc_getitem_setitem_fancy_exceptions(self, float_frame):
         with pytest.raises(IndexingError, match="Too many indexers"):
@@ -1423,7 +1414,7 @@ class TestILocCallable:
 
 
 class TestILocSeries:
-    def test_iloc(self, using_copy_on_write, warn_copy_on_write):
+    def test_iloc(self, using_copy_on_write):
         ser = Series(
             np.random.default_rng(2).standard_normal(10), index=list(range(0, 20, 2))
         )
@@ -1442,8 +1433,7 @@ class TestILocSeries:
         # test slice is a view
         with tm.assert_produces_warning(None):
             # GH#45324 make sure we aren't giving a spurious FutureWarning
-            with tm.assert_cow_warning(warn_copy_on_write):
-                result[:] = 0
+            result[:] = 0
         if using_copy_on_write:
             tm.assert_series_equal(ser, ser_original)
         else:

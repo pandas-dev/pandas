@@ -142,7 +142,7 @@ def test_setitem_series_column_midx_broadcasting(using_copy_on_write):
         assert df._mgr._has_no_reference(0)
 
 
-def test_set_column_with_inplace_operator(using_copy_on_write, warn_copy_on_write):
+def test_set_column_with_inplace_operator(using_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
 
     # this should not raise any warning
@@ -152,5 +152,4 @@ def test_set_column_with_inplace_operator(using_copy_on_write, warn_copy_on_writ
     # when it is not in a chain, then it should produce a warning
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     ser = df["a"]
-    with tm.assert_cow_warning(warn_copy_on_write):
-        ser += 1
+    ser += 1

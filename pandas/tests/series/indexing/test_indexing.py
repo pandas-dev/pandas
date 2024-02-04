@@ -101,14 +101,13 @@ def test_basic_getitem_dt64tz_values():
     assert result == expected
 
 
-def test_getitem_setitem_ellipsis(using_copy_on_write, warn_copy_on_write):
+def test_getitem_setitem_ellipsis(using_copy_on_write):
     s = Series(np.random.default_rng(2).standard_normal(10))
 
     result = s[...]
     tm.assert_series_equal(result, s)
 
-    with tm.assert_cow_warning(warn_copy_on_write):
-        s[...] = 5
+    s[...] = 5
     if not using_copy_on_write:
         assert (result == 5).all()
 
@@ -243,7 +242,7 @@ def test_basic_getitem_setitem_corner(datetime_series):
         datetime_series[[5, [None, None]]] = 2
 
 
-def test_slice(string_series, object_series, using_copy_on_write, warn_copy_on_write):
+def test_slice(string_series, object_series, using_copy_on_write):
     original = string_series.copy()
     numSlice = string_series[10:20]
     numSliceEnd = string_series[-10:]
@@ -260,8 +259,7 @@ def test_slice(string_series, object_series, using_copy_on_write, warn_copy_on_w
 
     # Test return view.
     sl = string_series[10:20]
-    with tm.assert_cow_warning(warn_copy_on_write):
-        sl[:] = 0
+    sl[:] = 0
 
     if using_copy_on_write:
         # Doesn't modify parent (CoW)

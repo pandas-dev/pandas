@@ -120,7 +120,6 @@ class TestMultiIndexPartial:
         self,
         multiindex_year_month_day_dataframe_random_data,
         using_copy_on_write,
-        warn_copy_on_write,
     ):
         # GH #397
         ymd = multiindex_year_month_day_dataframe_random_data

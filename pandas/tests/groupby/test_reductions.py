@@ -1196,7 +1196,7 @@ def test_groupby_prod_with_int64_dtype():
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_std_datetimelike(warn_copy_on_write):
+def test_groupby_std_datetimelike():
     # GH#48481
     tdi = pd.timedelta_range("1 Day", periods=10000)
     ser = Series(tdi)
