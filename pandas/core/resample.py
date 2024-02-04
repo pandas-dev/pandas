@@ -27,7 +27,6 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas._typing import NDFrameT
-from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
     Appender,
@@ -1156,8 +1155,6 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         numeric_only: bool = False,
         min_count: int = 0,
-        *args,
-        **kwargs,
     ):
         """
         Compute sum of group values.
@@ -1195,7 +1192,6 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    7
         Freq: MS, dtype: int64
         """
-        nv.validate_resampler_func("sum", args, kwargs)
         return self._downsample("sum", numeric_only=numeric_only, min_count=min_count)
 
     @final
