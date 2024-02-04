@@ -62,7 +62,6 @@ from pandas.errors import (
 from pandas.errors.cow import (
     _chained_assignment_method_msg,
     _chained_assignment_msg,
-    _chained_assignment_warning_method_msg,
 )
 from pandas.util._decorators import (
     Appender,
@@ -706,8 +705,7 @@ class DataFrame(NDFrame, OpsMixin):
                     stacklevel=1,  # bump to 2 once pyarrow 15.0 is released with fix
                 )
 
-            if using_copy_on_write():
-                data = data.copy(deep=False)
+            data = data.copy(deep=False)
             # first check if a Manager is passed without any other arguments
             # -> use fastpath (without checking Manager type)
             if index is None and columns is None and dtype is None and not copy:
@@ -729,9 +727,7 @@ class DataFrame(NDFrame, OpsMixin):
             if isinstance(data, dict):
                 # retain pre-GH#38939 default behavior
                 copy = True
-            elif using_copy_on_write() and not isinstance(
-                data, (Index, DataFrame, Series)
-            ):
+            elif not isinstance(data, (Index, DataFrame, Series)):
                 copy = True
             else:
                 copy = False
@@ -784,7 +780,6 @@ class DataFrame(NDFrame, OpsMixin):
                 )
             elif getattr(data, "name", None) is not None:
                 # i.e. Series/Index with non-None name
-                _copy = copy if using_copy_on_write() else True
                 mgr = dict_to_mgr(
                     # error: Item "ndarray" of "Union[ndarray, Series, Index]" has no
                     # attribute "name"
@@ -792,7 +787,7 @@ class DataFrame(NDFrame, OpsMixin):
                     index,
                     columns,
                     dtype=dtype,
-                    copy=_copy,
+                    copy=copy,
                 )
             else:
                 mgr = ndarray_to_mgr(
@@ -1496,10 +1491,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         columns = self.columns
         klass = self._constructor_sliced
-        using_cow = using_copy_on_write()
         for k, v in zip(self.index, self.values):
             s = klass(v, index=columns, name=k).__finalize__(self)
-            if using_cow and self._mgr.is_single_block:
+            if self._mgr.is_single_block:
                 s._mgr.add_references(self._mgr)
             yield k, s
 
@@ -3803,8 +3797,6 @@ class DataFrame(NDFrame, OpsMixin):
         if self._can_fast_transpose:
             # Note: tests pass without this, but this improves perf quite a bit.
             new_vals = self._values.T
-            if copy and not using_copy_on_write():
-                new_vals = new_vals.copy()
 
             result = self._constructor(
                 new_vals,
@@ -3813,7 +3805,7 @@ class DataFrame(NDFrame, OpsMixin):
                 copy=False,
                 dtype=new_vals.dtype,
             )
-            if using_copy_on_write() and len(self) > 0:
+            if len(self) > 0:
                 result._mgr.add_references(self._mgr)
 
         elif (
@@ -3857,8 +3849,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         else:
             new_arr = self.values.T
-            if copy and not using_copy_on_write():
-                new_arr = new_arr.copy()
             result = self._constructor(
                 new_arr,
                 index=self.columns,
@@ -4177,7 +4167,7 @@ class DataFrame(NDFrame, OpsMixin):
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY and using_copy_on_write():
+        if not PYPY:
             if sys.getrefcount(self) <= 3:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
@@ -4385,12 +4375,7 @@ class DataFrame(NDFrame, OpsMixin):
     def _iset_item(self, loc: int, value: Series, inplace: bool = True) -> None:
         # We are only called from _replace_columnwise which guarantees that
         # no reindex is necessary
-        if using_copy_on_write():
-            self._iset_item_mgr(
-                loc, value._values, inplace=inplace, refs=value._references
-            )
-        else:
-            self._iset_item_mgr(loc, value._values.copy(), inplace=True)
+        self._iset_item_mgr(loc, value._values, inplace=inplace, refs=value._references)
 
     def _set_item(self, key, value) -> None:
         """
@@ -5125,9 +5110,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Reindexing and alignment
 
-    def _reindex_multi(
-        self, axes: dict[str, Index], copy: bool, fill_value
-    ) -> DataFrame:
+    def _reindex_multi(self, axes: dict[str, Index], fill_value) -> DataFrame:
         """
         We are guaranteed non-Nones in the axes.
         """
@@ -5149,7 +5132,7 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             return self._reindex_with_indexers(
                 {0: [new_index, row_indexer], 1: [new_columns, col_indexer]},
-                copy=copy,
+                copy=False,
                 fill_value=fill_value,
             )
 
@@ -7041,7 +7024,7 @@ class DataFrame(NDFrame, OpsMixin):
                 return self.copy(deep=None)
 
         if is_range_indexer(indexer, len(indexer)):
-            result = self.copy(deep=(not inplace and not using_copy_on_write()))
+            result = self.copy(deep=False)
             if ignore_index:
                 result.index = default_index(len(result))
 
@@ -8801,18 +8784,11 @@ class DataFrame(NDFrame, OpsMixin):
         1  2  500.0
         2  3    6.0
         """
-        if not PYPY and using_copy_on_write():
+        if not PYPY:
             if sys.getrefcount(self) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_method_msg,
                     ChainedAssignmentError,
-                    stacklevel=2,
-                )
-        elif not PYPY and not using_copy_on_write() and self._is_view_after_cow_rules():
-            if sys.getrefcount(self) <= REF_COUNT:
-                warnings.warn(
-                    _chained_assignment_warning_method_msg,
-                    FutureWarning,
                     stacklevel=2,
                 )
 
@@ -12078,7 +12054,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df2.index
         DatetimeIndex(['2023-01-31', '2024-01-31'], dtype='datetime64[ns]', freq=None)
         """
-        new_obj = self.copy(deep=copy and not using_copy_on_write())
+        new_obj = self.copy(deep=False)
 
         axis_name = self._get_axis_name(axis)
         old_ax = getattr(self, axis_name)
@@ -12147,7 +12123,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> idx.to_period("Y")
         PeriodIndex(['2001', '2002', '2003'], dtype='period[Y-DEC]')
         """
-        new_obj = self.copy(deep=copy and not using_copy_on_write())
+        new_obj = self.copy(deep=False)
 
         axis_name = self._get_axis_name(axis)
         old_ax = getattr(self, axis_name)
@@ -12464,7 +12440,7 @@ def _reindex_for_setitem(
     # reindex if necessary
 
     if value.index.equals(index) or not len(index):
-        if using_copy_on_write() and isinstance(value, Series):
+        if isinstance(value, Series):
             return value._values, value._references
         return value._values.copy(), None
 

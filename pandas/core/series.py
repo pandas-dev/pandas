@@ -413,8 +413,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     DeprecationWarning,
                     stacklevel=2,
                 )
-            if using_copy_on_write():
-                data = data.copy(deep=False)
+            data = data.copy(deep=False)
             # GH#33357 called with just the SingleBlockManager
             NDFrame.__init__(self, data)
             if fastpath:
@@ -429,7 +428,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         original_dtype = dtype
 
         if isinstance(data, (ExtensionArray, np.ndarray)):
-            if copy is not False and using_copy_on_write():
+            if copy is not False:
                 if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
                     data = data.copy()
         if copy is None:
@@ -441,7 +440,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if not isinstance(data, SingleBlockManager):
                 data = SingleBlockManager.from_array(data, index)
                 allow_mgr = True
-            elif using_copy_on_write() and not copy:
+            elif not copy:
                 data = data.copy(deep=False)
 
             if not allow_mgr:
@@ -460,7 +459,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             NDFrame.__init__(self, data)
             return
 
-        if isinstance(data, SingleBlockManager) and using_copy_on_write() and not copy:
+        if isinstance(data, SingleBlockManager) and not copy:
             data = data.copy(deep=False)
 
             if not allow_mgr:
@@ -497,12 +496,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if dtype is not None:
                 data = data.astype(dtype, copy=False)
 
-            if using_copy_on_write():
-                refs = data._references
-                data = data._values
-            else:
-                # GH#24096 we need to ensure the index remains immutable
-                data = data._values.copy()
+            refs = data._references
+            data = data._values
             copy = False
 
         elif isinstance(data, np.ndarray):
@@ -884,7 +879,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             stacklevel=2,
         )
         arr = self._values.ravel(order=order)
-        if isinstance(arr, np.ndarray) and using_copy_on_write():
+        if isinstance(arr, np.ndarray):
             arr.flags.writeable = False
         return arr
 
@@ -1000,7 +995,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         values = self._values
         arr = np.asarray(values, dtype=dtype)
-        if using_copy_on_write() and astype_is_view(values.dtype, arr.dtype):
+        if astype_is_view(values.dtype, arr.dtype):
             arr = arr.view()
             arr.flags.writeable = False
         return arr
@@ -1068,9 +1063,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         key = com.apply_if_callable(key, self)
 
         if key is Ellipsis:
-            if using_copy_on_write():
-                return self.copy(deep=False)
-            return self
+            return self.copy(deep=False)
 
         key_is_scalar = is_scalar(key)
         if isinstance(key, (list, tuple)):
@@ -1230,7 +1223,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self.iloc[loc]
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY and using_copy_on_write():
+        if not PYPY:
             if sys.getrefcount(self) <= 3:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
@@ -1615,14 +1608,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
             if inplace:
                 self.index = new_index
-            elif using_copy_on_write():
+            else:
                 new_ser = self.copy(deep=False)
                 new_ser.index = new_index
                 return new_ser.__finalize__(self, method="reset_index")
-            else:
-                return self._constructor(
-                    self._values.copy(), index=new_index, copy=False, dtype=self.dtype
-                ).__finalize__(self, method="reset_index")
         elif inplace:
             raise TypeError(
                 "Cannot reset_index inplace on a Series to create a DataFrame"
@@ -2000,11 +1989,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name : str
         inplace : bool
             Whether to modify `self` directly or return a copy.
-        deep : bool|None, default None
-            Whether to do a deep copy, a shallow copy, or Copy on Write(None)
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
-        ser = self if inplace else self.copy(deep and not using_copy_on_write())
+        ser = self if inplace else self.copy(deep=False)
         ser.name = name
         return ser
 
@@ -3479,7 +3466,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    3
         dtype: int64
         """
-        if not PYPY and using_copy_on_write():
+        if not PYPY:
             if sys.getrefcount(self) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_method_msg,
@@ -4293,7 +4280,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         {examples}
         """
         assert isinstance(self.index, MultiIndex)
-        result = self.copy(deep=copy and not using_copy_on_write())
+        result = self.copy(deep=False)
         result.index = self.index.swaplevel(i, j)
         return result
 
@@ -4627,7 +4614,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame | Series:
         # Validate axis argument
         self._get_axis_number(axis)
-        ser = self.copy(deep=False) if using_copy_on_write() else self
+        ser = self.copy(deep=False)
         result = SeriesApply(ser, func=func, args=args, kwargs=kwargs).transform()
         return result
 
@@ -4779,11 +4766,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if indexer is None and (
             new_index is None or new_index.names == self.index.names
         ):
-            if using_copy_on_write():
-                return self.copy(deep=copy)
-            if copy or copy is None:
-                return self.copy(deep=copy)
-            return self
+            return self.copy(deep=False)
 
         new_values = algorithms.take_nd(
             self._values, indexer, allow_fill=True, fill_value=None
@@ -4940,7 +4923,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 errors=errors,
             )
         else:
-            return self._set_name(index, inplace=inplace, deep=copy)
+            return self._set_name(index, inplace=inplace)
 
     @Appender(
         """
@@ -5887,7 +5870,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
 
-        new_obj = self.copy(deep=copy and not using_copy_on_write())
+        new_obj = self.copy(deep=False)
         new_index = self.index.to_timestamp(freq=freq, how=how)
         setattr(new_obj, "index", new_index)
         return new_obj
@@ -5939,7 +5922,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
 
-        new_obj = self.copy(deep=copy and not using_copy_on_write())
+        new_obj = self.copy(deep=False)
         new_index = self.index.to_period(freq=freq)
         setattr(new_obj, "index", new_index)
         return new_obj
