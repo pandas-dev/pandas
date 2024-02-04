@@ -107,14 +107,20 @@ def to_numeric(
           DataFrame.
 
         .. versionadded:: 2.0
+
     thousands : str | None, default None
         Character used to separate groups of thousands for readability,
         e.g. ',' in 1,000,000
         Must only be 1 character long.
+
+        .. versionadded:: 2.2.1
+
     decimal : str, default '.'
         Character used to separate decimal section from the integer
         section of the number, e.g., '.' in 12.45
         Must only be 1 character long.
+
+        .. versionadded:: 2.2.1
 
     Returns
     -------
