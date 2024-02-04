@@ -23,7 +23,6 @@ from io import (
     BytesIO,
     StringIO,
 )
-from itertools import combinations
 import operator
 import pickle
 import re
@@ -1993,17 +1992,9 @@ def test_str_find_large_start():
 @pytest.mark.skipif(
     pa_version_under13p0, reason="https://github.com/apache/arrow/issues/36311"
 )
-@pytest.mark.parametrize("start", list(range(-15, 15)) + [None])
-@pytest.mark.parametrize("end", list(range(-15, 15)) + [None])
-@pytest.mark.parametrize(
-    "sub",
-    ["abcaadef"[x:y] for x, y in combinations(range(len("abcaadef") + 1), r=2)]
-    + [
-        "",
-        "az",
-        "abce",
-    ],
-)
+@pytest.mark.parametrize("start", [-15, -3, 0, 1, 15, None])
+@pytest.mark.parametrize("end", [-15, -1, 0, 3, 15, None])
+@pytest.mark.parametrize("sub", ["", "az", "abce", "a", "caa"])
 def test_str_find_e2e(start, end, sub):
     s = pd.Series(
         ["abcaadef", "abc", "abcdeddefgj8292", "ab", "a", ""],

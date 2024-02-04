@@ -373,7 +373,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
 
     def parse_dates_safe(
         dates: Series, delta: bool = False, year: bool = False, days: bool = False
-    ):
+    ) -> DataFrame:
         d = {}
         if lib.is_np_dtype(dates.dtype, "M"):
             if delta:
