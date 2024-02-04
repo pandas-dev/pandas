@@ -2491,7 +2491,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             lambda df: df.dtypes, self._selected_obj
         )
 
-    @doc(DataFrame.corrwith.__doc__)
     def corrwith(
         self,
         other: DataFrame | Series,
@@ -2499,6 +2498,72 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         method: CorrelationMethod = "pearson",
         numeric_only: bool = False,
     ) -> DataFrame:
+        """
+        Compute pairwise correlation.
+
+        Pairwise correlation is computed between rows or columns of
+        DataFrame with rows or columns of Series or DataFrame. DataFrames
+        are first aligned along both axes before computing the
+        correlations.
+
+        Parameters
+        ----------
+        other : DataFrame, Series
+            Object with which to compute correlations.
+        drop : bool, default False
+            Drop missing indices from result.
+        method : {'pearson', 'kendall', 'spearman'} or callable
+            Method of correlation:
+
+            * pearson : standard correlation coefficient
+            * kendall : Kendall Tau correlation coefficient
+            * spearman : Spearman rank correlation
+            * callable: callable with input two 1d ndarrays
+                and returning a float.
+
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
+
+            .. versionchanged:: 2.0.0
+                The default value of ``numeric_only`` is now ``False``.
+
+        Returns
+        -------
+        Series
+            Pairwise correlations.
+
+        See Also
+        --------
+        DataFrame.corr : Compute pairwise correlation of columns.
+
+        Examples
+        --------
+        >>> df1 = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3],
+        ...                     "B": [2.6, 2.7, 2.0, 2.3, 2.9, 2.8]})
+        >>> df2 = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3],
+        ...                     "B": [2.4, 2.4, 2.1, 2.6, 2.5, 2.1]})
+        >>> x = df1.groupby("A").first()
+        >>> x
+            B
+        A
+        1  2.6
+        2  2.0
+        3  2.9
+
+        >>> y = df2.groupby("A").first()
+        >>> y
+            B
+        A
+        1  2.4
+        2  2.1
+        3  2.5
+
+        >>> x.corrwith(y)
+        B    0.995871
+        dtype: float64
+        """
         result = self._op_via_apply(
             "corrwith",
             other=other,
