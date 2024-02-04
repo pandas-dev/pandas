@@ -5183,7 +5183,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         inplace: bool = False,
     ) -> Self | None:
         """
-        Set the name of the axis for the index or columns.
+        Set the name of the axis for the index.
 
         Parameters
         ----------
