@@ -987,7 +987,7 @@ class PlotAccessor(PandasObject):
                         f"{kind} requires either y column or 'subplots=True'"
                     )
                 if y is not None:
-                    if is_integer(y) and not holds_integer(self.data.columns):
+                    if is_integer(y) and not holds_integer(data.columns):
                         y = data.columns[y]
                     # converted to series actually. copy to not modify
                     data = data[y].copy()
@@ -995,7 +995,7 @@ class PlotAccessor(PandasObject):
         elif isinstance(data, ABCDataFrame):
             data_cols = data.columns
             if x is not None:
-                if is_integer(x) and not holds_integer(self.data.columns):
+                if is_integer(x) and not holds_integer(data.columns):
                     x = data_cols[x]
                 elif not isinstance(data[x], ABCSeries):
                     raise ValueError("x must be a label or position")
@@ -1004,7 +1004,7 @@ class PlotAccessor(PandasObject):
                 # check if we have y as int or list of ints
                 int_ylist = is_list_like(y) and all(is_integer(c) for c in y)
                 int_y_arg = is_integer(y) or int_ylist
-                if int_y_arg and not holds_integer(self.data.columns):
+                if int_y_arg and not holds_integer(data.columns):
                     y = data_cols[y]
 
                 label_kw = kwargs["label"] if "label" in kwargs else False
