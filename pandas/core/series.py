@@ -22,14 +22,10 @@ from typing import (
     overload,
 )
 import warnings
-import weakref
 
 import numpy as np
 
-from pandas._config import (
-    using_copy_on_write,
-    warn_copy_on_write,
-)
+from pandas._config import using_copy_on_write
 
 from pandas._libs import (
     lib,
@@ -48,9 +44,6 @@ from pandas.errors import (
 from pandas.errors.cow import (
     _chained_assignment_method_msg,
     _chained_assignment_msg,
-    _chained_assignment_warning_method_msg,
-    _chained_assignment_warning_msg,
-    _check_cacher,
 )
 from pandas.util._decorators import (
     Appender,
@@ -1075,7 +1068,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         key = com.apply_if_callable(key, self)
 
         if key is Ellipsis:
-            if using_copy_on_write() or warn_copy_on_write():
+            if using_copy_on_write():
                 return self.copy(deep=False)
             return self
 
@@ -1237,43 +1230,24 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self.iloc[loc]
 
     def __setitem__(self, key, value) -> None:
-        warn = True
         if not PYPY and using_copy_on_write():
             if sys.getrefcount(self) <= 3:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
-        elif not PYPY and not using_copy_on_write():
-            ctr = sys.getrefcount(self)
-            ref_count = 3
-            if not warn_copy_on_write() and _check_cacher(self):
-                # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
-                ref_count += 1
-            if ctr <= ref_count and (
-                warn_copy_on_write()
-                or (
-                    not warn_copy_on_write()
-                    and self._mgr.blocks[0].refs.has_reference()
-                )
-            ):
-                warn = False
-                warnings.warn(
-                    _chained_assignment_warning_msg, FutureWarning, stacklevel=2
-                )
 
         check_dict_or_set_indexers(key)
         key = com.apply_if_callable(key, self)
-        cacher_needs_updating = self._check_is_chained_assignment_possible()
 
         if key is Ellipsis:
             key = slice(None)
 
         if isinstance(key, slice):
             indexer = self.index._convert_slice_indexer(key, kind="getitem")
-            return self._set_values(indexer, value, warn=warn)
+            return self._set_values(indexer, value)
 
         try:
-            self._set_with_engine(key, value, warn=warn)
+            self._set_with_engine(key, value)
         except KeyError:
             # We have a scalar (or for MultiIndex or object-dtype, scalar-like)
             #  key that is not present in self.index.
@@ -1332,25 +1306,22 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 # otherwise with listlike other we interpret series[mask] = other
                 #  as series[mask] = other[mask]
                 try:
-                    self._where(~key, value, inplace=True, warn=warn)
+                    self._where(~key, value, inplace=True)
                 except InvalidIndexError:
                     # test_where_dups
                     self.iloc[key] = value
                 return
 
             else:
-                self._set_with(key, value, warn=warn)
+                self._set_with(key, value)
 
-        if cacher_needs_updating:
-            self._maybe_update_cacher(inplace=True)
-
-    def _set_with_engine(self, key, value, warn: bool = True) -> None:
+    def _set_with_engine(self, key, value) -> None:
         loc = self.index.get_loc(key)
 
         # this is equivalent to self._values[key] = value
-        self._mgr.setitem_inplace(loc, value, warn=warn)
+        self._mgr.setitem_inplace(loc, value)
 
-    def _set_with(self, key, value, warn: bool = True) -> None:
+    def _set_with(self, key, value) -> None:
         # We got here via exception-handling off of InvalidIndexError, so
         #  key should always be listlike at this point.
         assert not isinstance(key, tuple)
@@ -1361,7 +1332,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if not self.index._should_fallback_to_positional:
             # Regardless of the key type, we're treating it as labels
-            self._set_labels(key, value, warn=warn)
+            self._set_labels(key, value)
 
         else:
             # Note: key_type == "boolean" should not occur because that
@@ -1378,24 +1349,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
-                self._set_values(key, value, warn=warn)
+                self._set_values(key, value)
             else:
-                self._set_labels(key, value, warn=warn)
+                self._set_labels(key, value)
 
-    def _set_labels(self, key, value, warn: bool = True) -> None:
+    def _set_labels(self, key, value) -> None:
         key = com.asarray_tuplesafe(key)
         indexer: np.ndarray = self.index.get_indexer(key)
         mask = indexer == -1
         if mask.any():
             raise KeyError(f"{key[mask]} not in index")
-        self._set_values(indexer, value, warn=warn)
+        self._set_values(indexer, value)
 
-    def _set_values(self, key, value, warn: bool = True) -> None:
+    def _set_values(self, key, value) -> None:
         if isinstance(key, (Index, Series)):
             key = key._values
 
-        self._mgr = self._mgr.setitem(indexer=key, value=value, warn=warn)
-        self._maybe_update_cacher()
+        self._mgr = self._mgr.setitem(indexer=key, value=value)
 
     def _set_value(self, label, value, takeable: bool = False) -> None:
         """
@@ -1423,84 +1393,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             loc = label
 
         self._set_values(loc, value)
-
-    # ----------------------------------------------------------------------
-    # Lookup Caching
-
-    @property
-    def _is_cached(self) -> bool:
-        """Return boolean indicating if self is cached or not."""
-        return getattr(self, "_cacher", None) is not None
-
-    def _get_cacher(self):
-        """return my cacher or None"""
-        cacher = getattr(self, "_cacher", None)
-        if cacher is not None:
-            cacher = cacher[1]()
-        return cacher
-
-    def _reset_cacher(self) -> None:
-        """
-        Reset the cacher.
-        """
-        if hasattr(self, "_cacher"):
-            del self._cacher
-
-    def _set_as_cached(self, item, cacher) -> None:
-        """
-        Set the _cacher attribute on the calling object with a weakref to
-        cacher.
-        """
-        if using_copy_on_write():
-            return
-        self._cacher = (item, weakref.ref(cacher))
-
-    def _clear_item_cache(self) -> None:
-        # no-op for Series
-        pass
-
-    def _check_is_chained_assignment_possible(self) -> bool:
-        """
-        See NDFrame._check_is_chained_assignment_possible.__doc__
-        """
-        if self._is_view and self._is_cached:
-            ref = self._get_cacher()
-            if ref is not None and ref._is_mixed_type:
-                self._check_setitem_copy(t="referent", force=True)
-            return True
-        return super()._check_is_chained_assignment_possible()
-
-    def _maybe_update_cacher(
-        self, clear: bool = False, verify_is_copy: bool = True, inplace: bool = False
-    ) -> None:
-        """
-        See NDFrame._maybe_update_cacher.__doc__
-        """
-        # for CoW, we never want to update the parent DataFrame cache
-        # if the Series changed, but don't keep track of any cacher
-        if using_copy_on_write():
-            return
-        cacher = getattr(self, "_cacher", None)
-        if cacher is not None:
-            ref: DataFrame = cacher[1]()
-
-            # we are trying to reference a dead referent, hence
-            # a copy
-            if ref is None:
-                del self._cacher
-            elif len(self) == len(ref) and self.name in ref.columns:
-                # GH#42530 self.name must be in ref.columns
-                # to ensure column still in dataframe
-                # otherwise, either self or ref has swapped in new arrays
-                ref._maybe_cache_changed(cacher[0], self, inplace=inplace)
-            else:
-                # GH#33675 we have swapped in a new array, so parent
-                #  reference to self is now invalid
-                ref._item_cache.pop(cacher[0], None)
-
-        super()._maybe_update_cacher(
-            clear=clear, verify_is_copy=verify_is_copy, inplace=inplace
-        )
 
     # ----------------------------------------------------------------------
     # Unsorted
@@ -3594,18 +3486,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     ChainedAssignmentError,
                     stacklevel=2,
                 )
-        elif not PYPY and not using_copy_on_write() and self._is_view_after_cow_rules():
-            ctr = sys.getrefcount(self)
-            ref_count = REF_COUNT
-            if _check_cacher(self):
-                # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
-                ref_count += 1
-            if ctr <= ref_count:
-                warnings.warn(
-                    _chained_assignment_warning_method_msg,
-                    FutureWarning,
-                    stacklevel=2,
-                )
 
         if not isinstance(other, Series):
             other = Series(other)
@@ -3614,7 +3494,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         mask = notna(other)
 
         self._mgr = self._mgr.putmask(mask=mask, new=other)
-        self._maybe_update_cacher()
 
     # ----------------------------------------------------------------------
     # Reindexing, sorting
@@ -3817,13 +3696,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         inplace = validate_bool_kwarg(inplace, "inplace")
         # Validate the axis parameter
         self._get_axis_number(axis)
-
-        # GH 5856/5853
-        if inplace and self._is_cached:
-            raise ValueError(
-                "This Series is a view of some other array, to "
-                "sort in-place you must create a copy"
-            )
 
         if is_list_like(ascending):
             ascending = cast(Sequence[bool], ascending)
@@ -4755,11 +4627,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame | Series:
         # Validate axis argument
         self._get_axis_number(axis)
-        ser = (
-            self.copy(deep=False)
-            if using_copy_on_write() or warn_copy_on_write()
-            else self
-        )
+        ser = self.copy(deep=False) if using_copy_on_write() else self
         result = SeriesApply(ser, func=func, args=args, kwargs=kwargs).transform()
         return result
 

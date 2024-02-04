@@ -13,7 +13,6 @@ from pandas._libs import iNaT
 from pandas.errors import (
     InvalidIndexError,
     PerformanceWarning,
-    SettingWithCopyError,
 )
 
 from pandas.core.dtypes.common import is_integer
@@ -287,9 +286,7 @@ class TestDataFrameIndexing:
         df.foobar = 5
         assert (df.foobar == 5).all()
 
-    def test_setitem(
-        self, float_frame, using_copy_on_write, warn_copy_on_write, using_infer_string
-    ):
+    def test_setitem(self, float_frame, using_infer_string):
         # not sure what else to do here
         series = float_frame["A"][::2]
         float_frame["col5"] = series
@@ -324,13 +321,8 @@ class TestDataFrameIndexing:
         # so raise/warn
         smaller = float_frame[:2]
 
-        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-        if using_copy_on_write or warn_copy_on_write:
-            # With CoW, adding a new column doesn't raise a warning
-            smaller["col10"] = ["1", "2"]
-        else:
-            with pytest.raises(SettingWithCopyError, match=msg):
-                smaller["col10"] = ["1", "2"]
+        # With CoW, adding a new column doesn't raise a warning
+        smaller["col10"] = ["1", "2"]
 
         if using_infer_string:
             assert smaller["col10"].dtype == "string"
@@ -574,7 +566,7 @@ class TestDataFrameIndexing:
             df2.loc[3:11] = 0
 
     def test_fancy_getitem_slice_mixed(
-        self, float_frame, float_string_frame, using_copy_on_write, warn_copy_on_write
+        self, float_frame, float_string_frame, using_copy_on_write
     ):
         sliced = float_string_frame.iloc[:, -3:]
         assert sliced["D"].dtype == np.float64
@@ -586,8 +578,7 @@ class TestDataFrameIndexing:
 
         assert np.shares_memory(sliced["C"]._values, float_frame["C"]._values)
 
-        with tm.assert_cow_warning(warn_copy_on_write):
-            sliced.loc[:, "C"] = 4.0
+        sliced.loc[:, "C"] = 4.0
         if not using_copy_on_write:
             assert (float_frame["C"] == 4).all()
 
@@ -1062,7 +1053,7 @@ class TestDataFrameIndexing:
         expected = df.reindex(df.index[[1, 2, 4, 6]])
         tm.assert_frame_equal(result, expected)
 
-    def test_iloc_row_slice_view(self, using_copy_on_write, warn_copy_on_write):
+    def test_iloc_row_slice_view(self, using_copy_on_write):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)), index=range(0, 20, 2)
         )
@@ -1075,8 +1066,7 @@ class TestDataFrameIndexing:
         assert np.shares_memory(df[2], subset[2])
 
         exp_col = original[2].copy()
-        with tm.assert_cow_warning(warn_copy_on_write):
-            subset.loc[:, 2] = 0.0
+        subset.loc[:, 2] = 0.0
         if not using_copy_on_write:
             exp_col._values[4:8] = 0.0
 
@@ -1107,7 +1097,7 @@ class TestDataFrameIndexing:
         expected = df.reindex(columns=df.columns[[1, 2, 4, 6]])
         tm.assert_frame_equal(result, expected)
 
-    def test_iloc_col_slice_view(self, using_copy_on_write, warn_copy_on_write):
+    def test_iloc_col_slice_view(self, using_copy_on_write):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((4, 10)), columns=range(0, 20, 2)
         )
@@ -1118,8 +1108,7 @@ class TestDataFrameIndexing:
             # verify slice is view
             assert np.shares_memory(df[8]._values, subset[8]._values)
 
-            with tm.assert_cow_warning(warn_copy_on_write):
-                subset.loc[:, 8] = 0.0
+            subset.loc[:, 8] = 0.0
 
             assert (df[8] == 0).all()
 
@@ -1401,7 +1390,7 @@ class TestDataFrameIndexing:
         expected = DataFrame({"a": [np.nan, val]})
         tm.assert_frame_equal(df, expected)
 
-    def test_iloc_setitem_enlarge_no_warning(self, warn_copy_on_write):
+    def test_iloc_setitem_enlarge_no_warning(self):
         # GH#47381
         df = DataFrame(columns=["a", "b"])
         expected = df.copy()
