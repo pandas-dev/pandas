@@ -770,6 +770,9 @@ cpdef ndarray[object] ensure_string_array(
         result = result.copy()
     elif not copy and result is arr:
         already_copied = False
+    elif not copy and not result.flags.writeable:
+        # Weird edge case where result is a view
+        already_copied = False
 
     if issubclass(arr.dtype.type, np.str_):
         # short-circuit, all elements are str
