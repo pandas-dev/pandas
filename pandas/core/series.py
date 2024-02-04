@@ -5191,8 +5191,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Value to set the axis name attribute.
 
             Use either ``mapper`` and ``axis`` to
-            specify the axis to target with ``mapper``, or ``index``
-            and/or ``columns``.
+            specify the axis to target with ``mapper``, or ``index``.
+
         index : scalar, list-like, dict-like or function, optional
             A scalar, list-like, dict-like or functions transformations to
             apply to that axis' values.
