@@ -160,7 +160,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
--
+- Bug in :meth:`Series.astype` might modify read-only array inplace when casting to a string dtype (:issue:`57212`)
 -
 
 Strings
