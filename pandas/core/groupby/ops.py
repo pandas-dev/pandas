@@ -774,8 +774,8 @@ class BaseGrouper:
             # Combine unobserved and observed parts
             names = self.names
             codes = [ping.codes for ping in self.groupings]
-            ob_indices = [k for k, e in enumerate(obs) if e]
-            unob_indices = [k for k, e in enumerate(obs) if not e]
+            ob_indices = [idx for idx, ob in enumerate(obs) if ob]
+            unob_indices = [idx for idx, ob in enumerate(obs) if not ob]
             ob_index, ob_ids = self._ob_index_and_ids(
                 levels=[levels[idx] for idx in ob_indices],
                 codes=[codes[idx] for idx in ob_indices],
