@@ -12,10 +12,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import (
-    using_copy_on_write,
-    warn_copy_on_write,
-)
+from pandas._config import using_copy_on_write
 
 from pandas._libs.tslibs import OutOfBoundsDatetime
 from pandas.errors import InvalidIndexError
@@ -962,7 +959,7 @@ def get_grouper(
     def is_in_obj(gpr) -> bool:
         if not hasattr(gpr, "name"):
             return False
-        if using_copy_on_write() or warn_copy_on_write():
+        if using_copy_on_write():
             # For the CoW case, we check the references to determine if the
             # series is part of the object
             try:
