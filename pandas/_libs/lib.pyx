@@ -2239,8 +2239,8 @@ def maybe_convert_numeric(
     bint convert_empty=True,
     bint coerce_numeric=False,
     bint convert_to_masked_nullable=False,
-    char* thousands=NULL,
-    char* decimal="."
+    str thousands=None,
+    str decimal=None
 ) -> tuple[np.ndarray, np.ndarray | None]:
     """
     Convert object array to a numeric array if possible.
@@ -2292,9 +2292,26 @@ def maybe_convert_numeric(
     cdef:
         object val = values[0]
 
+    # Convert python strings into ones readable by C
+
+    cdef char* tsep
+    cdef char* dsep
     # Use null char to represent lack of thousand separator
-    if thousands == NULL:
-        thousands = "\0"
+    if thousands is None:
+        tsep = "\0"
+    else:
+        bytes_tsep = thousands.encode("UTF-8")
+        tsep = bytes_tsep
+
+    if decimal is None:
+        dsep = "."
+    else:
+        bytes_dsep = decimal.encode("UTF-8")
+        dsep = bytes_dsep
+
+    print("converting to num")
+    print(tsep)
+    print(dsep)
 
     # Validate separators
     if len(thousands) > 1:
@@ -2411,8 +2428,11 @@ def maybe_convert_numeric(
             seen.float_ = True
         else:
             try:
-                floatify(val, &fval, &maybe_int, decimal[0], thousands[0])
-
+                floatify(val, &fval, &maybe_int, dsep[0], tsep[0])
+                print(val)
+                print(fval)
+                print(dsep[0])
+                print(tsep[0])
                 if fval in na_values:
                     seen.saw_null()
                     floats[i] = complexes[i] = NaN
@@ -2425,7 +2445,8 @@ def maybe_convert_numeric(
                     floats[i] = fval
 
                 if maybe_int:
-                    as_int = int(val.replace(thousands.decode("UTF-8"), ""))
+                    as_int = int(val.replace(tsep[0], ""))
+                    print("as_int")
 
                     if as_int in na_values:
                         mask[i] = 1

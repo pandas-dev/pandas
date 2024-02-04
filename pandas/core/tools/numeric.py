@@ -259,8 +259,8 @@ def to_numeric(
                     convert_to_masked_nullable=dtype_backend is not lib.no_default
                     or isinstance(values_dtype, StringDtype)
                     and not values_dtype.storage == "pyarrow_numpy",
-                    thousands=thousands.encode("ascii"),
-                    decimal=decimal.encode("ascii") if decimal else ".",
+                    thousands=thousands,
+                    decimal=decimal,
                 )
             else:
                 values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]
@@ -270,7 +270,7 @@ def to_numeric(
                     convert_to_masked_nullable=dtype_backend is not lib.no_default
                     or isinstance(values_dtype, StringDtype)
                     and not values_dtype.storage == "pyarrow_numpy",
-                    decimal=decimal.encode("ascii") if decimal else ".",
+                    decimal=decimal,
                 )
         except (ValueError, TypeError):
             if errors == "raise":
