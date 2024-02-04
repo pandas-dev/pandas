@@ -42,7 +42,6 @@ from numpy import ma
 from pandas._config import (
     get_option,
     using_copy_on_write,
-    warn_copy_on_write,
 )
 
 from pandas._libs import (
@@ -64,7 +63,6 @@ from pandas.errors.cow import (
     _chained_assignment_method_msg,
     _chained_assignment_msg,
     _chained_assignment_warning_method_msg,
-    _chained_assignment_warning_msg,
 )
 from pandas.util._decorators import (
     Appender,
@@ -259,7 +257,7 @@ if TYPE_CHECKING:
 
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
-    from pandas.core.internals import SingleDataManager
+    from pandas.core.internals.managers import SingleBlockManager
 
     from pandas.io.formats.style import Styler
 
@@ -4199,17 +4197,6 @@ class DataFrame(NDFrame, OpsMixin):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
-        elif not PYPY and not using_copy_on_write():
-            if sys.getrefcount(self) <= 3 and (
-                warn_copy_on_write()
-                or (
-                    not warn_copy_on_write()
-                    and any(b.refs.has_reference() for b in self._mgr.blocks)
-                )
-            ):
-                warnings.warn(
-                    _chained_assignment_warning_msg, FutureWarning, stacklevel=2
-                )
 
         key = com.apply_if_callable(key, self)
 
@@ -4530,14 +4517,14 @@ class DataFrame(NDFrame, OpsMixin):
 
             self._mgr = self._mgr.reindex_axis(index_copy, axis=1, fill_value=np.nan)
 
-    def _box_col_values(self, values: SingleDataManager, loc: int) -> Series:
+    def _box_col_values(self, values: SingleBlockManager, loc: int) -> Series:
         """
         Provide boxed values for a column.
         """
         # Lookup in columns so that if e.g. a str datetime was passed
         #  we attach the Timestamp object as the name.
         name = self.columns[loc]
-        # We get index=self.index bc values is a SingleDataManager
+        # We get index=self.index bc values is a SingleBlockManager
         obj = self._constructor_sliced_from_mgr(values, axes=values.axes)
         obj._name = name
         return obj.__finalize__(self)
@@ -4550,7 +4537,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _get_item_cache(self, item: Hashable) -> Series:
         """Return the cached item, item represents a label indexer."""
-        if using_copy_on_write() or warn_copy_on_write():
+        if using_copy_on_write():
             loc = self.columns.get_loc(item)
             return self._ixs(loc, axis=1)
 
@@ -9050,7 +9037,6 @@ class DataFrame(NDFrame, OpsMixin):
     def groupby(
         self,
         by=None,
-        axis: Axis | lib.NoDefault = lib.no_default,
         level: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
@@ -9058,25 +9044,6 @@ class DataFrame(NDFrame, OpsMixin):
         observed: bool | lib.NoDefault = lib.no_default,
         dropna: bool = True,
     ) -> DataFrameGroupBy:
-        if axis is not lib.no_default:
-            axis = self._get_axis_number(axis)
-            if axis == 1:
-                warnings.warn(
-                    "DataFrame.groupby with axis=1 is deprecated. Do "
-                    "`frame.T.groupby(...)` without axis instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            else:
-                warnings.warn(
-                    "The 'axis' keyword in DataFrame.groupby is deprecated and "
-                    "will be removed in a future version.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-        else:
-            axis = 0
-
         from pandas.core.groupby.generic import DataFrameGroupBy
 
         if level is None and by is None:
@@ -9085,7 +9052,6 @@ class DataFrame(NDFrame, OpsMixin):
         return DataFrameGroupBy(
             obj=self,
             keys=by,
-            axis=axis,
             level=level,
             as_index=as_index,
             sort=sort,

@@ -30,7 +30,6 @@ import numpy as np
 from pandas._config import (
     config,
     using_copy_on_write,
-    warn_copy_on_write,
 )
 
 from pandas._libs import lib
@@ -105,7 +104,6 @@ from pandas.errors import (
 from pandas.errors.cow import (
     _chained_assignment_method_msg,
     _chained_assignment_warning_method_msg,
-    _check_cacher,
 )
 from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
@@ -219,6 +217,8 @@ if TYPE_CHECKING:
     )
     from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
+
+import textwrap
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -2240,6 +2240,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         klass="object",
         storage_options=_shared_docs["storage_options"],
         storage_options_versionadded="1.2.0",
+        extra_parameters=textwrap.dedent(
+            """\
+        engine_kwargs : dict, optional
+            Arbitrary keyword arguments passed to excel engine.
+    """
+        ),
     )
     def to_excel(
         self,
@@ -2315,9 +2321,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {storage_options}
 
             .. versionadded:: {storage_options_versionadded}
-        engine_kwargs : dict, optional
-            Arbitrary keyword arguments passed to excel engine.
-
+        {extra_parameters}
         See Also
         --------
         to_csv : Write DataFrame to a comma-separated values (csv) file.
@@ -2333,6 +2337,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Once a workbook has been saved it is not possible to write further
         data without rewriting the whole workbook.
+
+        pandas will check the number of rows, columns,
+        and cell character count does not exceed Excel's limitations.
+        All other limitations must be checked by the user.
 
         Examples
         --------
@@ -4397,7 +4405,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         df.iloc[0:5]['group'] = 'a'
 
         """
-        if using_copy_on_write() or warn_copy_on_write():
+        if using_copy_on_write():
             return
 
         # return early if the check is not needed
@@ -7246,22 +7254,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
-            elif (
-                not PYPY
-                and not using_copy_on_write()
-                and self._is_view_after_cow_rules()
-            ):
-                ctr = sys.getrefcount(self)
-                ref_count = REF_COUNT
-                if isinstance(self, ABCSeries) and _check_cacher(self):
-                    # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
-                    ref_count += 1
-                if ctr <= ref_count:
-                    warnings.warn(
-                        _chained_assignment_warning_method_msg,
-                        FutureWarning,
-                        stacklevel=2,
-                    )
 
         value, method = validate_fillna_kwargs(value, method)
         if method is not None:
@@ -7549,22 +7541,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
-            elif (
-                not PYPY
-                and not using_copy_on_write()
-                and self._is_view_after_cow_rules()
-            ):
-                ctr = sys.getrefcount(self)
-                ref_count = REF_COUNT
-                if isinstance(self, ABCSeries) and _check_cacher(self):
-                    # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
-                    ref_count += 1
-                if ctr <= ref_count:
-                    warnings.warn(
-                        _chained_assignment_warning_method_msg,
-                        FutureWarning,
-                        stacklevel=2,
-                    )
 
         return self._pad_or_backfill(
             "ffill",
@@ -7753,22 +7729,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
-            elif (
-                not PYPY
-                and not using_copy_on_write()
-                and self._is_view_after_cow_rules()
-            ):
-                ctr = sys.getrefcount(self)
-                ref_count = REF_COUNT
-                if isinstance(self, ABCSeries) and _check_cacher(self):
-                    # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
-                    ref_count += 1
-                if ctr <= ref_count:
-                    warnings.warn(
-                        _chained_assignment_warning_method_msg,
-                        FutureWarning,
-                        stacklevel=2,
-                    )
 
         return self._pad_or_backfill(
             "bfill",
@@ -7922,26 +7882,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
-                        stacklevel=2,
-                    )
-            elif (
-                not PYPY
-                and not using_copy_on_write()
-                and self._is_view_after_cow_rules()
-            ):
-                ctr = sys.getrefcount(self)
-                ref_count = REF_COUNT
-                if isinstance(self, ABCSeries) and _check_cacher(self):
-                    # in non-CoW mode, chained Series access will populate the
-                    # `_item_cache` which results in an increased ref count not below
-                    # the threshold, while we still need to warn. We detect this case
-                    # of a Series derived from a DataFrame through the presence of
-                    # checking the `_cacher`
-                    ref_count += 1
-                if ctr <= ref_count:
-                    warnings.warn(
-                        _chained_assignment_warning_method_msg,
-                        FutureWarning,
                         stacklevel=2,
                     )
 
@@ -8372,22 +8312,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
-                        stacklevel=2,
-                    )
-            elif (
-                not PYPY
-                and not using_copy_on_write()
-                and self._is_view_after_cow_rules()
-            ):
-                ctr = sys.getrefcount(self)
-                ref_count = REF_COUNT
-                if isinstance(self, ABCSeries) and _check_cacher(self):
-                    # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
-                    ref_count += 1
-                if ctr <= ref_count:
-                    warnings.warn(
-                        _chained_assignment_warning_method_msg,
-                        FutureWarning,
                         stacklevel=2,
                     )
 
@@ -9351,7 +9275,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def resample(
         self,
         rule,
-        axis: Axis | lib.NoDefault = lib.no_default,
         closed: Literal["right", "left"] | None = None,
         label: Literal["right", "left"] | None = None,
         convention: Literal["start", "end", "s", "e"] | lib.NoDefault = lib.no_default,
@@ -9374,13 +9297,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         rule : DateOffset, Timedelta or str
             The offset string or object representing target conversion.
-        axis : {{0 or 'index', 1 or 'columns'}}, default 0
-            Which axis to use for up- or down-sampling. For `Series` this parameter
-            is unused and defaults to 0. Must be
-            `DatetimeIndex`, `TimedeltaIndex` or `PeriodIndex`.
-
-            .. deprecated:: 2.0.0
-                Use frame.T.resample(...) instead.
         closed : {{'right', 'left'}}, default None
             Which side of bin interval is closed. The default is 'left'
             for all frequency offsets except for 'ME', 'YE', 'QE', 'BME',
@@ -9692,25 +9608,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         from pandas.core.resample import get_resampler
 
-        if axis is not lib.no_default:
-            axis = self._get_axis_number(axis)
-            if axis == 1:
-                warnings.warn(
-                    "DataFrame.resample with axis=1 is deprecated. Do "
-                    "`frame.T.resample(...)` without axis instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            else:
-                warnings.warn(
-                    f"The 'axis' keyword in {type(self).__name__}.resample is "
-                    "deprecated and will be removed in a future version.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-        else:
-            axis = 0
-
         if kind is not lib.no_default:
             # GH#55895
             warnings.warn(
@@ -9740,7 +9637,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             freq=rule,
             label=label,
             closed=closed,
-            axis=axis,
             kind=kind,
             convention=convention,
             key=on,
@@ -10587,7 +10483,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool_t = False,
         axis: Axis | None = None,
         level=None,
-        warn: bool_t = True,
     ):
         """
         Equivalent to public method `where`, except that `other` is not
@@ -10718,7 +10613,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # we may have different type blocks come out of putmask, so
             # reconstruct the block manager
 
-            new_data = self._mgr.putmask(mask=cond, new=other, align=align, warn=warn)
+            new_data = self._mgr.putmask(mask=cond, new=other, align=align)
             result = self._constructor_from_mgr(new_data, axes=new_data.axes)
             return self._update_inplace(result)
 
@@ -12511,33 +12406,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         center: bool_t = False,
         win_type: str | None = None,
         on: str | None = None,
-        axis: Axis | lib.NoDefault = lib.no_default,
         closed: IntervalClosedType | None = None,
         step: int | None = None,
         method: str = "single",
     ) -> Window | Rolling:
-        if axis is not lib.no_default:
-            axis = self._get_axis_number(axis)
-            name = "rolling"
-            if axis == 1:
-                warnings.warn(
-                    f"Support for axis=1 in {type(self).__name__}.{name} is "
-                    "deprecated and will be removed in a future version. "
-                    f"Use obj.T.{name}(...) instead",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            else:
-                warnings.warn(
-                    f"The 'axis' keyword in {type(self).__name__}.{name} is "
-                    "deprecated and will be removed in a future version. "
-                    "Call the method without the axis keyword instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-        else:
-            axis = 0
-
         if win_type is not None:
             return Window(
                 self,
@@ -12546,7 +12418,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 center=center,
                 win_type=win_type,
                 on=on,
-                axis=axis,
                 closed=closed,
                 step=step,
                 method=method,
@@ -12559,7 +12430,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             center=center,
             win_type=win_type,
             on=on,
-            axis=axis,
             closed=closed,
             step=step,
             method=method,
@@ -12570,31 +12440,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def expanding(
         self,
         min_periods: int = 1,
-        axis: Axis | lib.NoDefault = lib.no_default,
         method: Literal["single", "table"] = "single",
     ) -> Expanding:
-        if axis is not lib.no_default:
-            axis = self._get_axis_number(axis)
-            name = "expanding"
-            if axis == 1:
-                warnings.warn(
-                    f"Support for axis=1 in {type(self).__name__}.{name} is "
-                    "deprecated and will be removed in a future version. "
-                    f"Use obj.T.{name}(...) instead",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            else:
-                warnings.warn(
-                    f"The 'axis' keyword in {type(self).__name__}.{name} is "
-                    "deprecated and will be removed in a future version. "
-                    "Call the method without the axis keyword instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-        else:
-            axis = 0
-        return Expanding(self, min_periods=min_periods, axis=axis, method=method)
+        return Expanding(self, min_periods=min_periods, method=method)
 
     @final
     @doc(ExponentialMovingWindow)
@@ -12607,32 +12455,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         min_periods: int | None = 0,
         adjust: bool_t = True,
         ignore_na: bool_t = False,
-        axis: Axis | lib.NoDefault = lib.no_default,
         times: np.ndarray | DataFrame | Series | None = None,
         method: Literal["single", "table"] = "single",
     ) -> ExponentialMovingWindow:
-        if axis is not lib.no_default:
-            axis = self._get_axis_number(axis)
-            name = "ewm"
-            if axis == 1:
-                warnings.warn(
-                    f"Support for axis=1 in {type(self).__name__}.{name} is "
-                    "deprecated and will be removed in a future version. "
-                    f"Use obj.T.{name}(...) instead",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            else:
-                warnings.warn(
-                    f"The 'axis' keyword in {type(self).__name__}.{name} is "
-                    "deprecated and will be removed in a future version. "
-                    "Call the method without the axis keyword instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-        else:
-            axis = 0
-
         return ExponentialMovingWindow(
             self,
             com=com,
@@ -12642,7 +12467,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             min_periods=min_periods,
             adjust=adjust,
             ignore_na=ignore_na,
-            axis=axis,
             times=times,
             method=method,
         )
@@ -12655,28 +12479,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Wrap arithmetic method to operate inplace.
         """
-        warn = True
-        if not PYPY and warn_copy_on_write():
-            if sys.getrefcount(self) <= REF_COUNT + 2:
-                # we are probably in an inplace setitem context (e.g. df['a'] += 1)
-                warn = False
-
         result = op(self, other)
-
-        if (
-            self.ndim == 1
-            and result._indexed_same(self)
-            and result.dtype == self.dtype
-            and not using_copy_on_write()
-            and not (warn_copy_on_write() and not warn)
-        ):
-            # GH#36498 this inplace op can _actually_ be inplace.
-            # Item "BlockManager" of "Union[BlockManager, SingleBlockManager]" has
-            # no attribute "setitem_inplace"
-            self._mgr.setitem_inplace(  # type: ignore[union-attr]
-                slice(None), result._values, warn=warn
-            )
-            return self
 
         # Delete cacher
         self._reset_cacher()
