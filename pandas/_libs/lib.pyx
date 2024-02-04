@@ -2240,7 +2240,7 @@ def maybe_convert_numeric(
     bint coerce_numeric=False,
     bint convert_to_masked_nullable=False,
     str thousands=None,
-    str decimal=None
+    str decimal="."
 ) -> tuple[np.ndarray, np.ndarray | None]:
     """
     Convert object array to a numeric array if possible.
@@ -2268,11 +2268,11 @@ def maybe_convert_numeric(
     convert_to_masked_nullable : bool, default False
         Whether to return a mask for the converted values. This also disables
         upcasting for ints with nulls to float64.
-    thousands : char*, default NULL
+    thousands : str, default None
         Character used to separate groups of thousands for readability,
         e.g. ',' in 1,000,000
         Must only be 1 character long.
-    decimal : char*, default '.'
+    decimal : str, default '.'
         Character used to separate decimal section from the integer
         section of the number, e.g., '.' in 12.45
         Must only be 1 character long.
@@ -2296,29 +2296,20 @@ def maybe_convert_numeric(
 
     cdef char* tsep
     cdef char* dsep
-    # Use null char to represent lack of thousand separator
+    # Use null char to represent lack of separator
     if thousands is None:
         tsep = "\0"
-        print("thousands none")
     else:
         bytes_tsep = thousands.encode("UTF-8")
         tsep = bytes_tsep
 
-    if decimal is None:
-        print("decimal none")
-        dsep = "."
-    else:
-        bytes_dsep = decimal.encode("UTF-8")
-        dsep = bytes_dsep
-
-    print("converting to num")
-    print(tsep)
-    print(dsep)
+    bytes_dsep = decimal.encode("UTF-8")
+    dsep = bytes_dsep
 
     # Validate separators
-    if len(thousands) > 1:
+    if len(tsep) > 1:
         raise ValueError("Thousands separator must not exceed length 1")
-    if len(decimal) > 1:
+    if len(dsep) > 1:
         raise ValueError("Decimal separator must have length 1")
     if tsep == dsep:
         raise ValueError("Decimal and thousand separators must not be the same")
@@ -2430,12 +2421,7 @@ def maybe_convert_numeric(
             seen.float_ = True
         else:
             try:
-                print("try floatify")
                 floatify(val, &fval, &maybe_int, dsep[0], tsep[0])
-                print(val)
-                print(fval)
-                print(dsep[0])
-                print(tsep[0])
                 if fval in na_values:
                     seen.saw_null()
                     floats[i] = complexes[i] = NaN
@@ -2448,8 +2434,10 @@ def maybe_convert_numeric(
                     floats[i] = fval
 
                 if maybe_int:
-                    as_int = int(val.replace(bytes_tsep[0], ""))
-                    print("as_int")
+                    if thousands is None:
+                        as_int = int(val)
+                    else:
+                        as_int = int(val.replace(thousands, ""))
 
                     if as_int in na_values:
                         mask[i] = 1

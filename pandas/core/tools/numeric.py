@@ -251,27 +251,16 @@ def to_numeric(
         coerce_numeric = errors not in ("ignore", "raise")
 
         try:
-            if thousands:
-                values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]
-                    values,
-                    set(),
-                    coerce_numeric=coerce_numeric,
-                    convert_to_masked_nullable=dtype_backend is not lib.no_default
-                    or isinstance(values_dtype, StringDtype)
-                    and not values_dtype.storage == "pyarrow_numpy",
-                    thousands=thousands,
-                    decimal=decimal,
-                )
-            else:
-                values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]
-                    values,
-                    set(),
-                    coerce_numeric=coerce_numeric,
-                    convert_to_masked_nullable=dtype_backend is not lib.no_default
-                    or isinstance(values_dtype, StringDtype)
-                    and not values_dtype.storage == "pyarrow_numpy",
-                    decimal=decimal,
-                )
+            values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]
+                values,
+                set(),
+                coerce_numeric=coerce_numeric,
+                convert_to_masked_nullable=dtype_backend is not lib.no_default
+                or isinstance(values_dtype, StringDtype)
+                and not values_dtype.storage == "pyarrow_numpy",
+                thousands=thousands,
+                decimal=decimal,
+            )
         except (ValueError, TypeError):
             if errors == "raise":
                 raise
