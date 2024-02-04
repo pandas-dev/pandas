@@ -287,32 +287,23 @@ class TestDataFrameConstructors:
         new_df["col1"] = 200.0
         assert orig_df["col1"][0] == 1.0
 
-    def test_constructor_dtype_nocast_view_dataframe(
-        self, using_copy_on_write, warn_copy_on_write
-    ):
+    def test_constructor_dtype_nocast_view_dataframe(self, using_copy_on_write):
         df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df, dtype=df[0].dtype)
         if using_copy_on_write:
             should_be_view.iloc[0, 0] = 99
             assert df.values[0, 0] == 1
         else:
-            with tm.assert_cow_warning(warn_copy_on_write):
-                should_be_view.iloc[0, 0] = 99
+            should_be_view.iloc[0, 0] = 99
             assert df.values[0, 0] == 99
 
-    def test_constructor_dtype_nocast_view_2d_array(
-        self, using_copy_on_write, warn_copy_on_write
-    ):
+    def test_constructor_dtype_nocast_view_2d_array(self, using_copy_on_write):
         df = DataFrame([[1, 2], [3, 4]], dtype="int64")
         if not using_copy_on_write:
             should_be_view = DataFrame(df.values, dtype=df[0].dtype)
-            # TODO(CoW-warn) this should warn
-            # with tm.assert_cow_warning(warn_copy_on_write):
             should_be_view.iloc[0, 0] = 97
             assert df.values[0, 0] == 97
         else:
-            # INFO(ArrayManager) DataFrame(ndarray) doesn't necessarily preserve
-            # a view on the array to ensure contiguous 1D arrays
             df2 = DataFrame(df.values, dtype=df[0].dtype)
             assert df2._mgr.arrays[0].flags.c_contiguous
 
@@ -2504,8 +2495,6 @@ class TestDataFrameConstructors:
                 raise TypeError
 
         def check_views(c_only: bool = False):
-            # written to work for either BlockManager or ArrayManager
-
             # Check that the underlying data behind df["c"] is still `c`
             #  after setting with iloc.  Since we don't know which entry in
             #  df._mgr.arrays corresponds to df["c"], we just check that exactly

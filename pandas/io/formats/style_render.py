@@ -1922,11 +1922,11 @@ def maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
                 for x in s
                 if x.strip() != ""
             ]
-        except IndexError:
+        except IndexError as err:
             raise ValueError(
                 "Styles supplied as string must follow CSS rule formats, "
                 f"for example 'attr: val;'. '{style}' was given."
-            )
+            ) from err
     return style
 
 
@@ -2001,7 +2001,7 @@ class Tooltips:
 
     def __init__(
         self,
-        css_props: CSSProperties = [
+        css_props: CSSProperties = [  # noqa: B006
             ("visibility", "hidden"),
             ("position", "absolute"),
             ("z-index", 1),
@@ -2037,7 +2037,9 @@ class Tooltips:
             }
         ]
 
-    def _pseudo_css(self, uuid: str, name: str, row: int, col: int, text: str):
+    def _pseudo_css(
+        self, uuid: str, name: str, row: int, col: int, text: str
+    ) -> list[CSSDict]:
         """
         For every table data-cell that has a valid tooltip (not None, NaN or
         empty string) must create two pseudo CSS entries for the specific

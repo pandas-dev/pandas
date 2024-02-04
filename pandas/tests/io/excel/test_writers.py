@@ -1319,18 +1319,6 @@ class TestExcelWriter:
         result = tm.round_trip_pathlib(writer, reader, path=f"foo{ext}")
         tm.assert_frame_equal(result, df)
 
-    def test_path_local_path(self, engine, ext):
-        df = DataFrame(
-            1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD")),
-            index=Index([f"i-{i}" for i in range(30)]),
-        )
-        writer = partial(df.to_excel, engine=engine)
-
-        reader = partial(pd.read_excel, index_col=0)
-        result = tm.round_trip_localpath(writer, reader, path=f"foo{ext}")
-        tm.assert_frame_equal(result, df)
-
     def test_merged_cell_custom_objects(self, path):
         # see GH-27006
         mi = MultiIndex.from_tuples(
@@ -1396,6 +1384,18 @@ class TestExcelWriter:
             result = pd.read_excel(path)
             expected = DataFrame()
             tm.assert_frame_equal(result, expected)
+
+    def test_to_excel_raising_warning_when_cell_character_exceed_limit(
+        self, path, engine
+    ):
+        # GH#56954
+        df = DataFrame({"A": ["a" * 32768]})
+        msg = "Cell contents too long, truncated to 32767 characters"
+        with tm.assert_produces_warning(
+            UserWarning, match=msg, raise_on_extra_warnings=False
+        ):
+            buf = BytesIO()
+            df.to_excel(buf)
 
 
 class TestExcelWriterEngineTests:

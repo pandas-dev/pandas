@@ -26,11 +26,7 @@ import weakref
 
 import numpy as np
 
-from pandas._config import (
-    using_copy_on_write,
-    warn_copy_on_write,
-)
-from pandas._config.config import _get_option
+from pandas._config import using_copy_on_write
 
 from pandas._libs import (
     lib,
@@ -45,11 +41,10 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     ChainedAssignmentError,
     InvalidIndexError,
+)
+from pandas.errors.cow import (
     _chained_assignment_method_msg,
     _chained_assignment_msg,
-    _chained_assignment_warning_method_msg,
-    _chained_assignment_warning_msg,
-    _check_cacher,
 )
 from pandas.util._decorators import (
     Appender,
@@ -87,6 +82,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     ExtensionDtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -147,10 +143,7 @@ from pandas.core.indexing import (
     check_bool_indexer,
     check_dict_or_set_indexers,
 )
-from pandas.core.internals import (
-    SingleArrayManager,
-    SingleBlockManager,
-)
+from pandas.core.internals import SingleBlockManager
 from pandas.core.methods import selectn
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import (
@@ -197,7 +190,6 @@ if TYPE_CHECKING:
         Renamer,
         Scalar,
         Self,
-        SingleManager,
         SortKind,
         StorageOptions,
         Suffixes,
@@ -382,7 +374,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         base.IndexOpsMixin.hasnans.fget,  # type: ignore[attr-defined]
         doc=base.IndexOpsMixin.hasnans.__doc__,
     )
-    _mgr: SingleManager
+    _mgr: SingleBlockManager
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -408,7 +400,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         allow_mgr = False
         if (
-            isinstance(data, (SingleBlockManager, SingleArrayManager))
+            isinstance(data, SingleBlockManager)
             and index is None
             and dtype is None
             and (copy is False or copy is None)
@@ -447,12 +439,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # we are called internally, so short-circuit
         if fastpath:
             # data is a ndarray, index is defined
-            if not isinstance(data, (SingleBlockManager, SingleArrayManager)):
-                manager = _get_option("mode.data_manager", silent=True)
-                if manager == "block":
-                    data = SingleBlockManager.from_array(data, index)
-                elif manager == "array":
-                    data = SingleArrayManager.from_array(data, index)
+            if not isinstance(data, SingleBlockManager):
+                data = SingleBlockManager.from_array(data, index)
                 allow_mgr = True
             elif using_copy_on_write() and not copy:
                 data = data.copy(deep=False)
@@ -538,7 +526,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             data, index = self._init_dict(data, index, dtype)
             dtype = None
             copy = False
-        elif isinstance(data, (SingleBlockManager, SingleArrayManager)):
+        elif isinstance(data, SingleBlockManager):
             if index is None:
                 index = data.index
             elif not data.index.equals(index) or copy:
@@ -576,19 +564,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             com.require_length_match(data, index)
 
         # create/copy the manager
-        if isinstance(data, (SingleBlockManager, SingleArrayManager)):
+        if isinstance(data, SingleBlockManager):
             if dtype is not None:
                 data = data.astype(dtype=dtype, errors="ignore", copy=copy)
             elif copy:
                 data = data.copy()
         else:
             data = sanitize_array(data, index, dtype, copy)
-
-            manager = _get_option("mode.data_manager", silent=True)
-            if manager == "block":
-                data = SingleBlockManager.from_array(data, index, refs=refs)
-            elif manager == "array":
-                data = SingleArrayManager.from_array(data, index)
+            data = SingleBlockManager.from_array(data, index, refs=refs)
 
         NDFrame.__init__(self, data)
         self.name = name
@@ -860,9 +843,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return self._mgr.internal_values()
 
     @property
-    def _references(self) -> BlockValuesRefs | None:
-        if isinstance(self._mgr, SingleArrayManager):
-            return None
+    def _references(self) -> BlockValuesRefs:
         return self._mgr._block.refs
 
     # error: Decorated property not supported
@@ -966,7 +947,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         res_ser = self._constructor(res_values, index=self.index, copy=False)
         if isinstance(res_ser._mgr, SingleBlockManager):
             blk = res_ser._mgr._block
-            blk.refs = cast("BlockValuesRefs", self._references)
             blk.refs.add_reference(blk)
         return res_ser.__finalize__(self, method="view")
 
@@ -1089,7 +1069,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         key = com.apply_if_callable(key, self)
 
         if key is Ellipsis:
-            if using_copy_on_write() or warn_copy_on_write():
+            if using_copy_on_write():
                 return self.copy(deep=False)
             return self
 
@@ -1202,7 +1182,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         indexer, new_index = self.index.get_loc_level(key)
         new_ser = self._constructor(self._values[indexer], index=new_index, copy=False)
         if isinstance(indexer, slice):
-            new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
+            new_ser._mgr.add_references(self._mgr)
         return new_ser.__finalize__(self)
 
     def _get_rows_with_mask(self, indexer: npt.NDArray[np.bool_]) -> Series:
@@ -1244,35 +1224,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 new_values, index=new_index, name=self.name, copy=False
             )
             if isinstance(loc, slice):
-                new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
+                new_ser._mgr.add_references(self._mgr)
             return new_ser.__finalize__(self)
 
         else:
             return self.iloc[loc]
 
     def __setitem__(self, key, value) -> None:
-        warn = True
         if not PYPY and using_copy_on_write():
             if sys.getrefcount(self) <= 3:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
-                )
-        elif not PYPY and not using_copy_on_write():
-            ctr = sys.getrefcount(self)
-            ref_count = 3
-            if not warn_copy_on_write() and _check_cacher(self):
-                # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
-                ref_count += 1
-            if ctr <= ref_count and (
-                warn_copy_on_write()
-                or (
-                    not warn_copy_on_write()
-                    and self._mgr.blocks[0].refs.has_reference()  # type: ignore[union-attr]
-                )
-            ):
-                warn = False
-                warnings.warn(
-                    _chained_assignment_warning_msg, FutureWarning, stacklevel=2
                 )
 
         check_dict_or_set_indexers(key)
@@ -1284,10 +1246,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if isinstance(key, slice):
             indexer = self.index._convert_slice_indexer(key, kind="getitem")
-            return self._set_values(indexer, value, warn=warn)
+            return self._set_values(indexer, value)
 
         try:
-            self._set_with_engine(key, value, warn=warn)
+            self._set_with_engine(key, value)
         except KeyError:
             # We have a scalar (or for MultiIndex or object-dtype, scalar-like)
             #  key that is not present in self.index.
@@ -1346,25 +1308,25 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 # otherwise with listlike other we interpret series[mask] = other
                 #  as series[mask] = other[mask]
                 try:
-                    self._where(~key, value, inplace=True, warn=warn)
+                    self._where(~key, value, inplace=True)
                 except InvalidIndexError:
                     # test_where_dups
                     self.iloc[key] = value
                 return
 
             else:
-                self._set_with(key, value, warn=warn)
+                self._set_with(key, value)
 
         if cacher_needs_updating:
             self._maybe_update_cacher(inplace=True)
 
-    def _set_with_engine(self, key, value, warn: bool = True) -> None:
+    def _set_with_engine(self, key, value) -> None:
         loc = self.index.get_loc(key)
 
         # this is equivalent to self._values[key] = value
-        self._mgr.setitem_inplace(loc, value, warn=warn)
+        self._mgr.setitem_inplace(loc, value)
 
-    def _set_with(self, key, value, warn: bool = True) -> None:
+    def _set_with(self, key, value) -> None:
         # We got here via exception-handling off of InvalidIndexError, so
         #  key should always be listlike at this point.
         assert not isinstance(key, tuple)
@@ -1375,7 +1337,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if not self.index._should_fallback_to_positional:
             # Regardless of the key type, we're treating it as labels
-            self._set_labels(key, value, warn=warn)
+            self._set_labels(key, value)
 
         else:
             # Note: key_type == "boolean" should not occur because that
@@ -1392,23 +1354,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
-                self._set_values(key, value, warn=warn)
+                self._set_values(key, value)
             else:
-                self._set_labels(key, value, warn=warn)
+                self._set_labels(key, value)
 
-    def _set_labels(self, key, value, warn: bool = True) -> None:
+    def _set_labels(self, key, value) -> None:
         key = com.asarray_tuplesafe(key)
         indexer: np.ndarray = self.index.get_indexer(key)
         mask = indexer == -1
         if mask.any():
             raise KeyError(f"{key[mask]} not in index")
-        self._set_values(indexer, value, warn=warn)
+        self._set_values(indexer, value)
 
-    def _set_values(self, key, value, warn: bool = True) -> None:
+    def _set_values(self, key, value) -> None:
         if isinstance(key, (Index, Series)):
             key = key._values
 
-        self._mgr = self._mgr.setitem(indexer=key, value=value, warn=warn)
+        self._mgr = self._mgr.setitem(indexer=key, value=value)
         self._maybe_update_cacher()
 
     def _set_value(self, label, value, takeable: bool = False) -> None:
@@ -2219,7 +2181,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def groupby(
         self,
         by=None,
-        axis: Axis = 0,
         level: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
@@ -2233,12 +2194,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             raise TypeError("You have to supply one of 'by' and 'level'")
         if not as_index:
             raise TypeError("as_index=False only valid with DataFrame")
-        axis = self._get_axis_number(axis)
 
         return SeriesGroupBy(
             obj=self,
             keys=by,
-            axis=axis,
             level=level,
             as_index=as_index,
             sort=sort,
@@ -3514,6 +3473,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         from pandas.core.reshape.concat import concat
 
+        if self.dtype == other.dtype:
+            if self.index.equals(other.index):
+                return self.mask(self.isna(), other)
+            elif self._can_hold_na and not isinstance(self.dtype, SparseDtype):
+                this, other = self.align(other, join="outer")
+                return this.mask(this.isna(), other)
+
         new_index = self.index.union(other.index)
 
         this = self
@@ -3602,18 +3568,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 warnings.warn(
                     _chained_assignment_method_msg,
                     ChainedAssignmentError,
-                    stacklevel=2,
-                )
-        elif not PYPY and not using_copy_on_write() and self._is_view_after_cow_rules():
-            ctr = sys.getrefcount(self)
-            ref_count = REF_COUNT
-            if _check_cacher(self):
-                # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
-                ref_count += 1
-            if ctr <= ref_count:
-                warnings.warn(
-                    _chained_assignment_warning_method_msg,
-                    FutureWarning,
                     stacklevel=2,
                 )
 
@@ -4070,6 +4024,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = 0,
         kind: SortKind = "quicksort",
         order: None = None,
+        stable: None = None,
     ) -> Series:
         """
         Return the integer indices that would sort the Series values.
@@ -4085,6 +4040,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Choice of sorting algorithm. See :func:`numpy.sort` for more
             information. 'mergesort' and 'stable' are the only stable algorithms.
         order : None
+            Has no effect but is accepted for compatibility with numpy.
+        stable : None
             Has no effect but is accepted for compatibility with numpy.
 
         Returns
@@ -4762,11 +4719,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame | Series:
         # Validate axis argument
         self._get_axis_number(axis)
-        ser = (
-            self.copy(deep=False)
-            if using_copy_on_write() or warn_copy_on_write()
-            else self
-        )
+        ser = self.copy(deep=False) if using_copy_on_write() else self
         result = SeriesApply(ser, func=func, args=args, kwargs=kwargs).transform()
         return result
 
