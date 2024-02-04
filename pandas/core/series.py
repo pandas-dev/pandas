@@ -207,8 +207,6 @@ if TYPE_CHECKING:
     from pandas.core.frame import DataFrame
     from pandas.core.groupby.generic import SeriesGroupBy
 
-import textwrap
-
 __all__ = ["Series"]
 
 _shared_doc_kwargs = {
@@ -5175,16 +5173,30 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> Self | None:
         ...
 
-    @doc(
-        NDFrame.rename_axis,
-        extra_parameters=textwrap.dedent(
-            """\
+    def rename_axis(
+        self,
+        mapper: IndexLabel | lib.NoDefault = lib.no_default,
+        *,
+        index=lib.no_default,
+        axis: Axis = 0,
+        copy: bool = True,
+        inplace: bool = False,
+    ) -> Self | None:
+        """
+        Set the name of the axis for the index or columns.
+
+        Parameters
+        ----------
         mapper : scalar, list-like, optional
             Value to set the axis name attribute.
+
+            Use either ``mapper`` and ``axis`` to
+            specify the axis to target with ``mapper``, or ``index``
+            and/or ``columns``.
         index : scalar, list-like, dict-like or function, optional
             A scalar, list-like, dict-like or functions transformations to
             apply to that axis' values.
-        axis : {{0 or 'index', 1 or 'columns'}}, default 0
+        axis : {0 or 'index'}, default 0
             The axis to rename. For `Series` this parameter is unused and defaults to 0.
         copy : bool, default None
             Also copy underlying data.
@@ -5203,18 +5215,34 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         inplace : bool, default False
             Modifies the object directly, instead of creating a new Series
             or DataFrame.
-    """
-        ),
-    )
-    def rename_axis(
-        self,
-        mapper: IndexLabel | lib.NoDefault = lib.no_default,
-        *,
-        index=lib.no_default,
-        axis: Axis = 0,
-        copy: bool = True,
-        inplace: bool = False,
-    ) -> Self | None:
+
+        Returns
+        -------
+        Series, or None
+            The same type as the caller or None if ``inplace=True``.
+
+        See Also
+        --------
+        Series.rename : Alter Series index labels or name.
+        DataFrame.rename : Alter DataFrame index labels or name.
+        Index.rename : Set new names on index.
+
+        Examples
+        --------
+
+        >>> s = pd.Series(["dog", "cat", "monkey"])
+        >>> s
+        0       dog
+        1       cat
+        2    monkey
+        dtype: object
+        >>> s.rename_axis("animal")
+        animal
+        0    dog
+        1    cat
+        2    monkey
+        dtype: object
+        """
         return super().rename_axis(
             mapper=mapper,
             index=index,
