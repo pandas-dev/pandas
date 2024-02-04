@@ -4759,7 +4759,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         new_index: Index | None,
         indexer: npt.NDArray[np.intp] | None,
-        copy: bool | None,
     ) -> Series:
         # Note: new_index is None iff indexer is None
         # if not None, indexer is np.intp
