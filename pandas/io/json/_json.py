@@ -251,8 +251,6 @@ class Writer(ABC):
         self.default_handler = default_handler
         self.index = index
         self.indent = indent
-
-        self.is_copy = None
         self._format_axes()
 
     def _format_axes(self) -> None:

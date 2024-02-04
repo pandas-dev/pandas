@@ -22,7 +22,6 @@ from typing import (
     overload,
 )
 import warnings
-import weakref
 
 import numpy as np
 
@@ -1239,7 +1238,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         check_dict_or_set_indexers(key)
         key = com.apply_if_callable(key, self)
-        cacher_needs_updating = self._check_is_chained_assignment_possible()
 
         if key is Ellipsis:
             key = slice(None)
@@ -1317,9 +1315,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             else:
                 self._set_with(key, value)
 
-        if cacher_needs_updating:
-            self._maybe_update_cacher(inplace=True)
-
     def _set_with_engine(self, key, value) -> None:
         loc = self.index.get_loc(key)
 
@@ -1371,7 +1366,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             key = key._values
 
         self._mgr = self._mgr.setitem(indexer=key, value=value)
-        self._maybe_update_cacher()
 
     def _set_value(self, label, value, takeable: bool = False) -> None:
         """
@@ -1399,84 +1393,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             loc = label
 
         self._set_values(loc, value)
-
-    # ----------------------------------------------------------------------
-    # Lookup Caching
-
-    @property
-    def _is_cached(self) -> bool:
-        """Return boolean indicating if self is cached or not."""
-        return getattr(self, "_cacher", None) is not None
-
-    def _get_cacher(self):
-        """return my cacher or None"""
-        cacher = getattr(self, "_cacher", None)
-        if cacher is not None:
-            cacher = cacher[1]()
-        return cacher
-
-    def _reset_cacher(self) -> None:
-        """
-        Reset the cacher.
-        """
-        if hasattr(self, "_cacher"):
-            del self._cacher
-
-    def _set_as_cached(self, item, cacher) -> None:
-        """
-        Set the _cacher attribute on the calling object with a weakref to
-        cacher.
-        """
-        if using_copy_on_write():
-            return
-        self._cacher = (item, weakref.ref(cacher))
-
-    def _clear_item_cache(self) -> None:
-        # no-op for Series
-        pass
-
-    def _check_is_chained_assignment_possible(self) -> bool:
-        """
-        See NDFrame._check_is_chained_assignment_possible.__doc__
-        """
-        if self._is_view and self._is_cached:
-            ref = self._get_cacher()
-            if ref is not None and ref._is_mixed_type:
-                self._check_setitem_copy(t="referent", force=True)
-            return True
-        return super()._check_is_chained_assignment_possible()
-
-    def _maybe_update_cacher(
-        self, clear: bool = False, verify_is_copy: bool = True, inplace: bool = False
-    ) -> None:
-        """
-        See NDFrame._maybe_update_cacher.__doc__
-        """
-        # for CoW, we never want to update the parent DataFrame cache
-        # if the Series changed, but don't keep track of any cacher
-        if using_copy_on_write():
-            return
-        cacher = getattr(self, "_cacher", None)
-        if cacher is not None:
-            ref: DataFrame = cacher[1]()
-
-            # we are trying to reference a dead referent, hence
-            # a copy
-            if ref is None:
-                del self._cacher
-            elif len(self) == len(ref) and self.name in ref.columns:
-                # GH#42530 self.name must be in ref.columns
-                # to ensure column still in dataframe
-                # otherwise, either self or ref has swapped in new arrays
-                ref._maybe_cache_changed(cacher[0], self, inplace=inplace)
-            else:
-                # GH#33675 we have swapped in a new array, so parent
-                #  reference to self is now invalid
-                ref._item_cache.pop(cacher[0], None)
-
-        super()._maybe_update_cacher(
-            clear=clear, verify_is_copy=verify_is_copy, inplace=inplace
-        )
 
     # ----------------------------------------------------------------------
     # Unsorted
@@ -3578,7 +3494,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         mask = notna(other)
 
         self._mgr = self._mgr.putmask(mask=mask, new=other)
-        self._maybe_update_cacher()
 
     # ----------------------------------------------------------------------
     # Reindexing, sorting
@@ -3781,13 +3696,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         inplace = validate_bool_kwarg(inplace, "inplace")
         # Validate the axis parameter
         self._get_axis_number(axis)
-
-        # GH 5856/5853
-        if inplace and self._is_cached:
-            raise ValueError(
-                "This Series is a view of some other array, to "
-                "sort in-place you must create a copy"
-            )
 
         if is_list_like(ascending):
             ascending = cast(Sequence[bool], ascending)

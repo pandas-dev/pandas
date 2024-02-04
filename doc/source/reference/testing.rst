@@ -58,8 +58,6 @@ Exceptions and warnings
    errors.PossiblePrecisionLoss
    errors.PyperclipException
    errors.PyperclipWindowsException
-   errors.SettingWithCopyError
-   errors.SettingWithCopyWarning
    errors.SpecificationError
    errors.UndefinedVariableError
    errors.UnsortedIndexError

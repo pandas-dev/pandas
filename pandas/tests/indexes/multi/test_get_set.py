@@ -332,10 +332,8 @@ def test_set_value_keeps_names():
         index=idx,
     )
     df = df.sort_index()
-    assert df._is_copy is None
     assert df.index.names == ("Name", "Number")
     df.at[("grethe", "4"), "one"] = 99.34
-    assert df._is_copy is None
     assert df.index.names == ("Name", "Number")
 
 

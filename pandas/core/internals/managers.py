@@ -690,7 +690,7 @@ class BaseBlockManager(PandasObject):
         # e.g. [ b.values.base is not None for b in self.blocks ]
         # but then we have the case of possibly some blocks being a view
         # and some blocks not. setting in theory is possible on the non-view
-        # blocks w/o causing a SettingWithCopy raise/warn. But this is a bit
+        # blocks. But this is a bit
         # complicated
 
         return False

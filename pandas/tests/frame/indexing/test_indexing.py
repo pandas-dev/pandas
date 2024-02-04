@@ -13,7 +13,6 @@ from pandas._libs import iNaT
 from pandas.errors import (
     InvalidIndexError,
     PerformanceWarning,
-    SettingWithCopyError,
 )
 
 from pandas.core.dtypes.common import is_integer
@@ -287,7 +286,7 @@ class TestDataFrameIndexing:
         df.foobar = 5
         assert (df.foobar == 5).all()
 
-    def test_setitem(self, float_frame, using_copy_on_write, using_infer_string):
+    def test_setitem(self, float_frame, using_infer_string):
         # not sure what else to do here
         series = float_frame["A"][::2]
         float_frame["col5"] = series
@@ -322,13 +321,8 @@ class TestDataFrameIndexing:
         # so raise/warn
         smaller = float_frame[:2]
 
-        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-        if using_copy_on_write:
-            # With CoW, adding a new column doesn't raise a warning
-            smaller["col10"] = ["1", "2"]
-        else:
-            with pytest.raises(SettingWithCopyError, match=msg):
-                smaller["col10"] = ["1", "2"]
+        # With CoW, adding a new column doesn't raise a warning
+        smaller["col10"] = ["1", "2"]
 
         if using_infer_string:
             assert smaller["col10"].dtype == "string"
