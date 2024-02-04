@@ -3,8 +3,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.errors import SettingWithCopyError
-
 from pandas import (
     DataFrame,
     Index,
@@ -122,21 +120,16 @@ class TestXS:
         result = df.xs((2008, "sat"), level=["year", "day"], drop_level=False)
         tm.assert_frame_equal(result, expected)
 
-    def test_xs_view(self, using_copy_on_write):
+    def test_xs_view(self):
         # in 0.14 this will return a view if possible a copy otherwise, but
         # this is numpy dependent
 
         dm = DataFrame(np.arange(20.0).reshape(4, 5), index=range(4), columns=range(5))
         df_orig = dm.copy()
 
-        if using_copy_on_write:
-            with tm.raises_chained_assignment_error():
-                dm.xs(2)[:] = 20
-            tm.assert_frame_equal(dm, df_orig)
-        else:
-            with tm.raises_chained_assignment_error():
-                dm.xs(2)[:] = 20
-            assert (dm.xs(2) == 20).all()
+        with tm.raises_chained_assignment_error():
+            dm.xs(2)[:] = 20
+        tm.assert_frame_equal(dm, df_orig)
 
 
 class TestXSWithMultiIndex:
@@ -194,42 +187,22 @@ class TestXSWithMultiIndex:
         result = df.xs("c", level=2)
         tm.assert_frame_equal(result, expected)
 
-    def test_xs_setting_with_copy_error(
-        self,
-        multiindex_dataframe_random_data,
-        using_copy_on_write,
-    ):
+    def test_xs_setting_with_copy_error(self, multiindex_dataframe_random_data):
         # this is a copy in 0.14
         df = multiindex_dataframe_random_data
         df_orig = df.copy()
         result = df.xs("two", level="second")
 
-        if using_copy_on_write:
-            result[:] = 10
-        else:
-            # setting this will give a SettingWithCopyError
-            # as we are trying to write a view
-            msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-            with pytest.raises(SettingWithCopyError, match=msg):
-                result[:] = 10
+        result[:] = 10
         tm.assert_frame_equal(df, df_orig)
 
-    def test_xs_setting_with_copy_error_multiple(
-        self, four_level_index_dataframe, using_copy_on_write
-    ):
+    def test_xs_setting_with_copy_error_multiple(self, four_level_index_dataframe):
         # this is a copy in 0.14
         df = four_level_index_dataframe
         df_orig = df.copy()
         result = df.xs(("a", 4), level=["one", "four"])
 
-        if using_copy_on_write:
-            result[:] = 10
-        else:
-            # setting this will give a SettingWithCopyError
-            # as we are trying to write a view
-            msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-            with pytest.raises(SettingWithCopyError, match=msg):
-                result[:] = 10
+        result[:] = 10
         tm.assert_frame_equal(df, df_orig)
 
     @pytest.mark.parametrize("key, level", [("one", "second"), (["one"], ["second"])])

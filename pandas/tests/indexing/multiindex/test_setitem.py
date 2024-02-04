@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.errors import SettingWithCopyError
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -522,38 +520,21 @@ def test_frame_setitem_view_direct(
         assert (df["foo"].values == 0).all()
 
 
-def test_frame_setitem_copy_raises(
-    multiindex_dataframe_random_data, using_copy_on_write
-):
+def test_frame_setitem_copy_raises(multiindex_dataframe_random_data):
     # will raise/warn as its chained assignment
     df = multiindex_dataframe_random_data.T
-    if using_copy_on_write:
-        with tm.raises_chained_assignment_error():
-            df["foo"]["one"] = 2
-    else:
-        msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(SettingWithCopyError, match=msg):
-            with tm.raises_chained_assignment_error():
-                df["foo"]["one"] = 2
+    with tm.raises_chained_assignment_error():
+        df["foo"]["one"] = 2
 
 
-def test_frame_setitem_copy_no_write(
-    multiindex_dataframe_random_data, using_copy_on_write
-):
+def test_frame_setitem_copy_no_write(multiindex_dataframe_random_data):
     frame = multiindex_dataframe_random_data.T
     expected = frame
     df = frame.copy()
-    if using_copy_on_write:
-        with tm.raises_chained_assignment_error():
-            df["foo"]["one"] = 2
-    else:
-        msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(SettingWithCopyError, match=msg):
-            with tm.raises_chained_assignment_error():
-                df["foo"]["one"] = 2
+    with tm.raises_chained_assignment_error():
+        df["foo"]["one"] = 2
 
-    result = df
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, expected)
 
 
 def test_frame_setitem_partial_multiindex():

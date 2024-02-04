@@ -408,50 +408,6 @@ class SpecificationError(Exception):
     """
 
 
-class SettingWithCopyError(ValueError):
-    """
-    Exception raised when trying to set on a copied slice from a ``DataFrame``.
-
-    The ``mode.chained_assignment`` needs to be set to set to 'raise.' This can
-    happen unintentionally when chained indexing.
-
-    For more information on evaluation order,
-    see :ref:`the user guide<indexing.evaluation_order>`.
-
-    For more information on view vs. copy,
-    see :ref:`the user guide<indexing.view_versus_copy>`.
-
-    Examples
-    --------
-    >>> pd.options.mode.chained_assignment = 'raise'
-    >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2]}, columns=['A'])
-    >>> df.loc[0:3]['A'] = 'a'  # doctest: +SKIP
-    ... # SettingWithCopyError: A value is trying to be set on a copy of a...
-    """
-
-
-class SettingWithCopyWarning(Warning):
-    """
-    Warning raised when trying to set on a copied slice from a ``DataFrame``.
-
-    The ``mode.chained_assignment`` needs to be set to set to 'warn.'
-    'Warn' is the default option. This can happen unintentionally when
-    chained indexing.
-
-    For more information on evaluation order,
-    see :ref:`the user guide<indexing.evaluation_order>`.
-
-    For more information on view vs. copy,
-    see :ref:`the user guide<indexing.view_versus_copy>`.
-
-    Examples
-    --------
-    >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2]}, columns=['A'])
-    >>> df.loc[0:3]['A'] = 'a'  # doctest: +SKIP
-    ... # SettingWithCopyWarning: A value is trying to be set on a copy of a...
-    """
-
-
 class ChainedAssignmentError(Warning):
     """
     Warning raised when trying to set using chained assignment.
@@ -462,8 +418,8 @@ class ChainedAssignmentError(Warning):
     Copy-on-Write always behaves as a copy. Thus, assigning through a chain
     can never update the original Series or DataFrame.
 
-    For more information on view vs. copy,
-    see :ref:`the user guide<indexing.view_versus_copy>`.
+    For more information on Copy-on-Write,
+    see :ref:`the user guide<copy_on_write>`.
 
     Examples
     --------
@@ -787,8 +743,6 @@ __all__ = [
     "PossiblePrecisionLoss",
     "PyperclipException",
     "PyperclipWindowsException",
-    "SettingWithCopyError",
-    "SettingWithCopyWarning",
     "SpecificationError",
     "UndefinedVariableError",
     "UnsortedIndexError",

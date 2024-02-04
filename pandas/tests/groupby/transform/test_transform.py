@@ -577,10 +577,9 @@ def test_transform_mixed_type():
     assert result["d"].dtype == np.float64
 
     # this is by definition a mutating operation!
-    with pd.option_context("mode.chained_assignment", None):
-        for key, group in grouped:
-            res = f(group)
-            tm.assert_frame_equal(res, result.loc[key])
+    for key, group in grouped:
+        res = f(group)
+        tm.assert_frame_equal(res, result.loc[key])
 
 
 @pytest.mark.parametrize(

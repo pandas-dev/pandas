@@ -1,9 +1,6 @@
 import numpy as np
 
-from pandas import (
-    DataFrame,
-    option_context,
-)
+from pandas import DataFrame
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 
@@ -89,9 +86,7 @@ def test_clip_chained_inplace(using_copy_on_write):
             df["a"].clip(1, 2, inplace=True)
 
         with tm.assert_produces_warning(None):
-            with option_context("mode.chained_assignment", None):
-                df[["a"]].clip(1, 2, inplace=True)
+            df[["a"]].clip(1, 2, inplace=True)
 
         with tm.assert_produces_warning(None):
-            with option_context("mode.chained_assignment", None):
-                df[df["a"] > 1].clip(1, 2, inplace=True)
+            df[df["a"] > 1].clip(1, 2, inplace=True)

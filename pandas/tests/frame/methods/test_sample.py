@@ -333,7 +333,7 @@ class TestSampleDataFrame:
 
     def test_sample_is_copy(self):
         # GH#27357, GH#30784: ensure the result of sample is an actual copy and
-        # doesn't track the parent dataframe / doesn't give SettingWithCopy warnings
+        # doesn't track the parent dataframe
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 3)), columns=["a", "b", "c"]
         )

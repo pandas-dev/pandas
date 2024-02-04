@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.errors import SettingWithCopyWarning
-
 from pandas.core.dtypes.common import is_float_dtype
 
 import pandas as pd
@@ -59,17 +57,10 @@ def test_subset_column_selection(backend, using_copy_on_write):
 
     subset = df[["a", "c"]]
 
-    if using_copy_on_write:
-        # the subset shares memory ...
-        assert np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
-        # ... but uses CoW when being modified
-        subset.iloc[0, 0] = 0
-    else:
-        assert not np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
-        # INFO this no longer raise warning since pandas 1.4
-        # with pd.option_context("chained_assignment", "warn"):
-        #     with tm.assert_produces_warning(SettingWithCopyWarning):
-        subset.iloc[0, 0] = 0
+    # the subset shares memory ...
+    assert np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
+    # ... but uses CoW when being modified
+    subset.iloc[0, 0] = 0
 
     assert not np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
 
@@ -113,37 +104,24 @@ def test_subset_row_slice(backend, using_copy_on_write):
 
     assert np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
 
-    if using_copy_on_write:
-        subset.iloc[0, 0] = 0
-        assert not np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
-
-    else:
-        # INFO this no longer raise warning since pandas 1.4
-        # with pd.option_context("chained_assignment", "warn"):
-        #     with tm.assert_produces_warning(SettingWithCopyWarning):
-        subset.iloc[0, 0] = 0
+    subset.iloc[0, 0] = 0
+    assert not np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
 
     subset._mgr._verify_integrity()
 
     expected = DataFrame({"a": [0, 3], "b": [5, 6], "c": [0.2, 0.3]}, index=range(1, 3))
     tm.assert_frame_equal(subset, expected)
-    if using_copy_on_write:
-        # original parent dataframe is not modified (CoW)
-        tm.assert_frame_equal(df, df_orig)
-    else:
-        # original parent dataframe is actually updated
-        df_orig.iloc[1, 0] = 0
-        tm.assert_frame_equal(df, df_orig)
+    # original parent dataframe is not modified (CoW)
+    tm.assert_frame_equal(df, df_orig)
 
 
 @pytest.mark.parametrize(
     "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
 )
-def test_subset_column_slice(backend, using_copy_on_write, dtype):
+def test_subset_column_slice(backend, dtype):
     # Case: taking a subset of the columns of a DataFrame using a slice
     # + afterwards modifying the subset
     dtype_backend, DataFrame, _ = backend
-    single_block = dtype == "int64" and dtype_backend == "numpy"
     df = DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
     )
@@ -152,27 +130,16 @@ def test_subset_column_slice(backend, using_copy_on_write, dtype):
     subset = df.iloc[:, 1:]
     subset._mgr._verify_integrity()
 
-    if using_copy_on_write:
-        assert np.shares_memory(get_array(subset, "b"), get_array(df, "b"))
+    assert np.shares_memory(get_array(subset, "b"), get_array(df, "b"))
 
-        subset.iloc[0, 0] = 0
-        assert not np.shares_memory(get_array(subset, "b"), get_array(df, "b"))
-    else:
-        # we only get a warning in case of a single block
-        warn = SettingWithCopyWarning if single_block else None
-        with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(warn):
-                subset.iloc[0, 0] = 0
+    subset.iloc[0, 0] = 0
+    assert not np.shares_memory(get_array(subset, "b"), get_array(df, "b"))
 
     expected = DataFrame({"b": [0, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)})
     tm.assert_frame_equal(subset, expected)
     # original parent dataframe is not modified (also not for BlockManager case,
     # except for single block)
-    if not using_copy_on_write and single_block:
-        df_orig.iloc[0, 1] = 0
-        tm.assert_frame_equal(df, df_orig)
-    else:
-        tm.assert_frame_equal(df, df_orig)
+    tm.assert_frame_equal(df, df_orig)
 
 
 @pytest.mark.parametrize(
@@ -288,7 +255,7 @@ def test_subset_iloc_rows_columns(
     [slice(0, 2), np.array([True, True, False]), np.array([0, 1])],
     ids=["slice", "mask", "array"],
 )
-def test_subset_set_with_row_indexer(backend, indexer_si, indexer, using_copy_on_write):
+def test_subset_set_with_row_indexer(backend, indexer_si, indexer):
     # Case: setting values with a row indexer on a viewing subset
     # subset[indexer] = value and subset.iloc[indexer] = value
     _, DataFrame, _ = backend
@@ -303,29 +270,17 @@ def test_subset_set_with_row_indexer(backend, indexer_si, indexer, using_copy_on
     ):
         pytest.skip("setitem with labels selects on columns")
 
-    if using_copy_on_write:
-        indexer_si(subset)[indexer] = 0
-    else:
-        # INFO iloc no longer raises warning since pandas 1.4
-        warn = SettingWithCopyWarning if indexer_si is tm.setitem else None
-        with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(warn):
-                indexer_si(subset)[indexer] = 0
+    indexer_si(subset)[indexer] = 0
 
     expected = DataFrame(
         {"a": [0, 0, 4], "b": [0, 0, 7], "c": [0.0, 0.0, 0.4]}, index=range(1, 4)
     )
     tm.assert_frame_equal(subset, expected)
-    if using_copy_on_write:
-        # original parent dataframe is not modified (CoW)
-        tm.assert_frame_equal(df, df_orig)
-    else:
-        # original parent dataframe is actually updated
-        df_orig[1:3] = 0
-        tm.assert_frame_equal(df, df_orig)
+    # original parent dataframe is not modified (CoW)
+    tm.assert_frame_equal(df, df_orig)
 
 
-def test_subset_set_with_mask(backend, using_copy_on_write):
+def test_subset_set_with_mask(backend):
     # Case: setting values with a mask on a viewing subset: subset[mask] = value
     _, DataFrame, _ = backend
     df = DataFrame({"a": [1, 2, 3, 4], "b": [4, 5, 6, 7], "c": [0.1, 0.2, 0.3, 0.4]})
@@ -334,28 +289,16 @@ def test_subset_set_with_mask(backend, using_copy_on_write):
 
     mask = subset > 3
 
-    if using_copy_on_write:
-        subset[mask] = 0
-    else:
-        with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(SettingWithCopyWarning):
-                subset[mask] = 0
+    subset[mask] = 0
 
     expected = DataFrame(
         {"a": [2, 3, 0], "b": [0, 0, 0], "c": [0.20, 0.3, 0.4]}, index=range(1, 4)
     )
     tm.assert_frame_equal(subset, expected)
-    if using_copy_on_write:
-        # original parent dataframe is not modified (CoW)
-        tm.assert_frame_equal(df, df_orig)
-    else:
-        # original parent dataframe is actually updated
-        df_orig.loc[3, "a"] = 0
-        df_orig.loc[1:3, "b"] = 0
-        tm.assert_frame_equal(df, df_orig)
+    tm.assert_frame_equal(df, df_orig)
 
 
-def test_subset_set_column(backend, using_copy_on_write):
+def test_subset_set_column(backend):
     # Case: setting a single column on a viewing subset -> subset[col] = value
     dtype_backend, DataFrame, _ = backend
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
@@ -367,13 +310,7 @@ def test_subset_set_column(backend, using_copy_on_write):
     else:
         arr = pd.array([10, 11], dtype="Int64")
 
-    if using_copy_on_write:
-        subset["a"] = arr
-    else:
-        with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(SettingWithCopyWarning):
-                subset["a"] = arr
-
+    subset["a"] = arr
     subset._mgr._verify_integrity()
     expected = DataFrame(
         {"a": [10, 11], "b": [5, 6], "c": [0.2, 0.3]}, index=range(1, 3)
@@ -459,17 +396,11 @@ def test_subset_set_columns(backend, using_copy_on_write, dtype):
     df_orig = df.copy()
     subset = df[1:3]
 
-    if using_copy_on_write:
-        subset[["a", "c"]] = 0
-    else:
-        with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(SettingWithCopyWarning):
-                subset[["a", "c"]] = 0
+    subset[["a", "c"]] = 0
 
     subset._mgr._verify_integrity()
-    if using_copy_on_write:
-        # first and third column should certainly have no references anymore
-        assert all(subset._mgr._has_no_reference(i) for i in [0, 2])
+    # first and third column should certainly have no references anymore
+    assert all(subset._mgr._has_no_reference(i) for i in [0, 2])
     expected = DataFrame({"a": [0, 0], "b": [5, 6], "c": [0, 0]}, index=range(1, 3))
     if dtype_backend == "nullable":
         # there is not yet a global option, so overriding a column by setting a scalar
@@ -582,7 +513,7 @@ def test_subset_chained_getitem(
 @pytest.mark.parametrize(
     "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
 )
-def test_subset_chained_getitem_column(backend, dtype, using_copy_on_write):
+def test_subset_chained_getitem_column(backend, dtype):
     # Case: creating a subset using multiple, chained getitem calls using views
     # still needs to guarantee proper CoW behaviour
     dtype_backend, DataFrame, Series = backend
@@ -593,22 +524,14 @@ def test_subset_chained_getitem_column(backend, dtype, using_copy_on_write):
 
     # modify subset -> don't modify parent
     subset = df[:]["a"][0:2]
-    df._clear_item_cache()
     subset.iloc[0] = 0
-    if using_copy_on_write:
-        tm.assert_frame_equal(df, df_orig)
-    else:
-        assert df.iloc[0, 0] == 0
+    tm.assert_frame_equal(df, df_orig)
 
     # modify parent -> don't modify subset
     subset = df[:]["a"][0:2]
-    df._clear_item_cache()
     df.iloc[0, 0] = 0
     expected = Series([1, 2], name="a")
-    if using_copy_on_write:
-        tm.assert_series_equal(subset, expected)
-    else:
-        assert subset.iloc[0] == 0
+    tm.assert_series_equal(subset, expected)
 
 
 @pytest.mark.parametrize(
@@ -877,7 +800,7 @@ def test_del_series(backend):
 # Accessing column as Series
 
 
-def test_column_as_series(backend, using_copy_on_write):
+def test_column_as_series(backend):
     # Case: selecting a single column now also uses Copy-on-Write
     dtype_backend, DataFrame, Series = backend
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
@@ -886,28 +809,17 @@ def test_column_as_series(backend, using_copy_on_write):
     s = df["a"]
 
     assert np.shares_memory(get_array(s, "a"), get_array(df, "a"))
-
-    if using_copy_on_write:
-        s[0] = 0
-    else:
-        warn = SettingWithCopyWarning if dtype_backend == "numpy" else None
-        with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(warn):
-                s[0] = 0
+    s[0] = 0
 
     expected = Series([0, 2, 3], name="a")
     tm.assert_series_equal(s, expected)
-    if using_copy_on_write:
-        # assert not np.shares_memory(s.values, get_array(df, "a"))
-        tm.assert_frame_equal(df, df_orig)
-        # ensure cached series on getitem is not the changed series
-        tm.assert_series_equal(df["a"], df_orig["a"])
-    else:
-        df_orig.iloc[0, 0] = 0
-        tm.assert_frame_equal(df, df_orig)
+    # assert not np.shares_memory(s.values, get_array(df, "a"))
+    tm.assert_frame_equal(df, df_orig)
+    # ensure cached series on getitem is not the changed series
+    tm.assert_series_equal(df["a"], df_orig["a"])
 
 
-def test_column_as_series_set_with_upcast(backend, using_copy_on_write):
+def test_column_as_series_set_with_upcast(backend):
     # Case: selecting a single column now also uses Copy-on-Write -> when
     # setting a value causes an upcast, we don't need to update the parent
     # DataFrame through the cache mechanism
@@ -920,32 +832,15 @@ def test_column_as_series_set_with_upcast(backend, using_copy_on_write):
         with pytest.raises(TypeError, match="Invalid value"):
             s[0] = "foo"
         expected = Series([1, 2, 3], name="a")
-    elif using_copy_on_write:
+    else:
         with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
             s[0] = "foo"
         expected = Series(["foo", 2, 3], dtype=object, name="a")
-    else:
-        with pd.option_context("chained_assignment", "warn"):
-            msg = "|".join(
-                [
-                    "A value is trying to be set on a copy of a slice from a DataFrame",
-                    "Setting an item of incompatible dtype is deprecated",
-                ]
-            )
-            with tm.assert_produces_warning(
-                (SettingWithCopyWarning, FutureWarning), match=msg
-            ):
-                s[0] = "foo"
-        expected = Series(["foo", 2, 3], dtype=object, name="a")
 
     tm.assert_series_equal(s, expected)
-    if using_copy_on_write:
-        tm.assert_frame_equal(df, df_orig)
-        # ensure cached series on getitem is not the changed series
-        tm.assert_series_equal(df["a"], df_orig["a"])
-    else:
-        df_orig["a"] = expected
-        tm.assert_frame_equal(df, df_orig)
+    tm.assert_frame_equal(df, df_orig)
+    # ensure cached series on getitem is not the changed series
+    tm.assert_series_equal(df["a"], df_orig["a"])
 
 
 @pytest.mark.parametrize(
@@ -957,12 +852,7 @@ def test_column_as_series_set_with_upcast(backend, using_copy_on_write):
     ],
     ids=["getitem", "loc", "iloc"],
 )
-def test_column_as_series_no_item_cache(
-    request,
-    backend,
-    method,
-    using_copy_on_write,
-):
+def test_column_as_series_no_item_cache(request, backend, method):
     # Case: selecting a single column (which now also uses Copy-on-Write to protect
     # the view) should always give a new object (i.e. not make use of a cache)
     dtype_backend, DataFrame, _ = backend
@@ -972,25 +862,12 @@ def test_column_as_series_no_item_cache(
     s1 = method(df)
     s2 = method(df)
 
-    is_iloc = "iloc" in request.node.name
-    if using_copy_on_write or is_iloc:
-        assert s1 is not s2
-    else:
-        assert s1 is s2
+    assert s1 is not s2
 
-    if using_copy_on_write:
-        s1.iloc[0] = 0
-    else:
-        warn = SettingWithCopyWarning if dtype_backend == "numpy" else None
-        with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(warn):
-                s1.iloc[0] = 0
+    s1.iloc[0] = 0
 
-    if using_copy_on_write:
-        tm.assert_series_equal(s2, df_orig["a"])
-        tm.assert_frame_equal(df, df_orig)
-    else:
-        assert s2.iloc[0] == 0
+    tm.assert_series_equal(s2, df_orig["a"])
+    tm.assert_frame_equal(df, df_orig)
 
 
 # TODO add tests for other indexing methods on the Series
@@ -1074,23 +951,16 @@ def test_series_midx_slice(using_copy_on_write):
         tm.assert_series_equal(ser, expected)
 
 
-def test_getitem_midx_slice(using_copy_on_write):
+def test_getitem_midx_slice():
     df = DataFrame({("a", "x"): [1, 2], ("a", "y"): 1, ("b", "x"): 2})
     df_orig = df.copy()
     new_df = df[("a",)]
 
-    if using_copy_on_write:
-        assert not new_df._mgr._has_no_reference(0)
+    assert not new_df._mgr._has_no_reference(0)
 
     assert np.shares_memory(get_array(df, ("a", "x")), get_array(new_df, "x"))
-    if using_copy_on_write:
-        new_df.iloc[0, 0] = 100
-        tm.assert_frame_equal(df_orig, df)
-    else:
-        with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(SettingWithCopyWarning):
-                new_df.iloc[0, 0] = 100
-        assert df.iloc[0, 0] == 100
+    new_df.iloc[0, 0] = 100
+    tm.assert_frame_equal(df_orig, df)
 
 
 def test_series_midx_tuples_slice(using_copy_on_write):

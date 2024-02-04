@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.errors import SettingWithCopyWarning
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -12,7 +10,6 @@ from pandas import (
     Series,
     Timestamp,
     date_range,
-    option_context,
     period_range,
 )
 import pandas._testing as tm
@@ -1540,12 +1537,10 @@ def test_chained_where_mask(using_copy_on_write, func):
             getattr(df["a"], func)(df["a"] > 2, 5, inplace=True)
 
         with tm.assert_produces_warning(None):
-            with option_context("mode.chained_assignment", None):
-                getattr(df[["a"]], func)(df["a"] > 2, 5, inplace=True)
+            getattr(df[["a"]], func)(df["a"] > 2, 5, inplace=True)
 
         with tm.assert_produces_warning(None):
-            with option_context("mode.chained_assignment", None):
-                getattr(df[df["a"] > 1], func)(df["a"] > 2, 5, inplace=True)
+            getattr(df[df["a"] > 1], func)(df["a"] > 2, 5, inplace=True)
 
 
 def test_asfreq_noop(using_copy_on_write):
@@ -1667,23 +1662,10 @@ def test_get(using_copy_on_write, key):
 
     result = df.get(key)
 
-    if using_copy_on_write:
-        assert np.shares_memory(get_array(result, "a"), get_array(df, "a"))
-        result.iloc[0] = 0
-        assert not np.shares_memory(get_array(result, "a"), get_array(df, "a"))
-        tm.assert_frame_equal(df, df_orig)
-    else:
-        # for non-CoW it depends on whether we got a Series or DataFrame if it
-        # is a view or copy or triggers a warning or not
-        warn = SettingWithCopyWarning if isinstance(key, list) else None
-        with option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(warn):
-                result.iloc[0] = 0
-
-        if isinstance(key, list):
-            tm.assert_frame_equal(df, df_orig)
-        else:
-            assert df.iloc[0, 0] == 0
+    assert np.shares_memory(get_array(result, "a"), get_array(df, "a"))
+    result.iloc[0] = 0
+    assert not np.shares_memory(get_array(result, "a"), get_array(df, "a"))
+    tm.assert_frame_equal(df, df_orig)
 
 
 @pytest.mark.parametrize("axis, key", [(0, 0), (1, "a")])
@@ -1701,20 +1683,13 @@ def test_xs(using_copy_on_write, axis, key, dtype):
 
     if axis == 1 or single_block:
         assert np.shares_memory(get_array(df, "a"), get_array(result))
-    elif using_copy_on_write:
+    else:
         assert result._mgr._has_no_reference(0)
 
     if using_copy_on_write or single_block:
         result.iloc[0] = 0
-    else:
-        with option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(SettingWithCopyWarning):
-                result.iloc[0] = 0
 
-    if using_copy_on_write or (not single_block and axis == 0):
-        tm.assert_frame_equal(df, df_orig)
-    else:
-        assert df.iloc[0, 0] == 0
+    tm.assert_frame_equal(df, df_orig)
 
 
 @pytest.mark.parametrize("axis", [0, 1])
@@ -1733,14 +1708,7 @@ def test_xs_multiindex(using_copy_on_write, key, level, axis):
         assert np.shares_memory(
             get_array(df, df.columns[0]), get_array(result, result.columns[0])
         )
-
-    if not using_copy_on_write:
-        warn = SettingWithCopyWarning
-    else:
-        warn = None
-    with option_context("chained_assignment", "warn"):
-        with tm.assert_produces_warning(warn):
-            result.iloc[0, 0] = 0
+    result.iloc[0, 0] = 0
 
     tm.assert_frame_equal(df, df_orig)
 
