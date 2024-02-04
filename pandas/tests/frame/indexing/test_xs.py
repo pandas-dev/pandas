@@ -60,7 +60,7 @@ class TestXS:
         ):
             datetime_frame.xs(datetime_frame.index[0] - BDay())
 
-    def test_xs_other(self, float_frame, using_copy_on_write, warn_copy_on_write):
+    def test_xs_other(self, float_frame, using_copy_on_write):
         float_frame_orig = float_frame.copy()
         # xs get column
         series = float_frame.xs("A", axis=1)
@@ -69,8 +69,7 @@ class TestXS:
 
         # view is returned if possible
         series = float_frame.xs("A", axis=1)
-        with tm.assert_cow_warning(warn_copy_on_write):
-            series[:] = 5
+        series[:] = 5
         if using_copy_on_write:
             # but with CoW the view shouldn't propagate mutations
             tm.assert_series_equal(float_frame["A"], float_frame_orig["A"])
@@ -123,7 +122,7 @@ class TestXS:
         result = df.xs((2008, "sat"), level=["year", "day"], drop_level=False)
         tm.assert_frame_equal(result, expected)
 
-    def test_xs_view(self, using_copy_on_write, warn_copy_on_write):
+    def test_xs_view(self, using_copy_on_write):
         # in 0.14 this will return a view if possible a copy otherwise, but
         # this is numpy dependent
 
@@ -199,14 +198,13 @@ class TestXSWithMultiIndex:
         self,
         multiindex_dataframe_random_data,
         using_copy_on_write,
-        warn_copy_on_write,
     ):
         # this is a copy in 0.14
         df = multiindex_dataframe_random_data
         df_orig = df.copy()
         result = df.xs("two", level="second")
 
-        if using_copy_on_write or warn_copy_on_write:
+        if using_copy_on_write:
             result[:] = 10
         else:
             # setting this will give a SettingWithCopyError
@@ -217,14 +215,14 @@ class TestXSWithMultiIndex:
         tm.assert_frame_equal(df, df_orig)
 
     def test_xs_setting_with_copy_error_multiple(
-        self, four_level_index_dataframe, using_copy_on_write, warn_copy_on_write
+        self, four_level_index_dataframe, using_copy_on_write
     ):
         # this is a copy in 0.14
         df = four_level_index_dataframe
         df_orig = df.copy()
         result = df.xs(("a", 4), level=["one", "four"])
 
-        if using_copy_on_write or warn_copy_on_write:
+        if using_copy_on_write:
             result[:] = 10
         else:
             # setting this will give a SettingWithCopyError
@@ -392,15 +390,14 @@ class TestXSWithMultiIndex:
         expected = DataFrame({"a": [1]})
         tm.assert_frame_equal(result, expected)
 
-    def test_xs_droplevel_false_view(self, using_copy_on_write, warn_copy_on_write):
+    def test_xs_droplevel_false_view(self, using_copy_on_write):
         # GH#37832
         df = DataFrame([[1, 2, 3]], columns=Index(["a", "b", "c"]))
         result = df.xs("a", axis=1, drop_level=False)
         # check that result still views the same data as df
         assert np.shares_memory(result.iloc[:, 0]._values, df.iloc[:, 0]._values)
 
-        with tm.assert_cow_warning(warn_copy_on_write):
-            df.iloc[0, 0] = 2
+        df.iloc[0, 0] = 2
         if using_copy_on_write:
             # with copy on write the subset is never modified
             expected = DataFrame({"a": [1]})

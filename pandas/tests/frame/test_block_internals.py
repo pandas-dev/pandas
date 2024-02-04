@@ -332,7 +332,7 @@ class TestDataFrameBlockInternals:
         assert not float_frame._is_mixed_type
         assert float_string_frame._is_mixed_type
 
-    def test_stale_cached_series_bug_473(self, using_copy_on_write, warn_copy_on_write):
+    def test_stale_cached_series_bug_473(self, using_copy_on_write):
         # this is chained, but ok
         with option_context("chained_assignment", None):
             Y = DataFrame(
