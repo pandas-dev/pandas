@@ -516,6 +516,7 @@ class Styler(StylerRenderer):
         klass="Styler",
         storage_options=_shared_docs["storage_options"],
         storage_options_versionadded="1.5.0",
+        extra_parameters="",
     )
     def to_excel(
         self,
