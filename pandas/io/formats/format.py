@@ -1546,7 +1546,7 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
 
 
 def format_percentiles(
-    percentiles: (np.ndarray | Sequence[float]),
+    percentiles: np.ndarray | Sequence[float],
 ) -> list[str]:
     """
     Outputs rounded and formatted percentiles.
