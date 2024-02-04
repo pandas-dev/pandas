@@ -1,5 +1,3 @@
-from typing import Any
-
 _chained_assignment_msg = (
     "A value is trying to be set on a copy of a DataFrame or Series "
     "through chained assignment.\n"
@@ -54,21 +52,3 @@ _chained_assignment_warning_method_msg = (
     "df[col] = df[col].method(value) instead, to perform "
     "the operation inplace on the original object.\n\n"
 )
-
-
-def _check_cacher(obj: Any) -> bool:
-    # This is a mess, selection paths that return a view set the _cacher attribute
-    # on the Series; most of them also set _item_cache which adds 1 to our relevant
-    # reference count, but iloc does not, so we have to check if we are actually
-    # in the item cache
-    if hasattr(obj, "_cacher"):
-        parent = obj._cacher[1]()
-        # parent could be dead
-        if parent is None:
-            return False
-        if hasattr(parent, "_item_cache"):
-            if obj._cacher[0] in parent._item_cache:
-                # Check if we are actually the item from item_cache, iloc creates a
-                # new object
-                return obj is parent._item_cache[obj._cacher[0]]
-    return False
