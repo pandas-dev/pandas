@@ -58,7 +58,7 @@ class TestXS:
         ):
             datetime_frame.xs(datetime_frame.index[0] - BDay())
 
-    def test_xs_other(self, float_frame, using_copy_on_write, warn_copy_on_write):
+    def test_xs_other(self, float_frame, using_copy_on_write):
         float_frame_orig = float_frame.copy()
         # xs get column
         series = float_frame.xs("A", axis=1)
@@ -67,8 +67,7 @@ class TestXS:
 
         # view is returned if possible
         series = float_frame.xs("A", axis=1)
-        with tm.assert_cow_warning(warn_copy_on_write):
-            series[:] = 5
+        series[:] = 5
         if using_copy_on_write:
             # but with CoW the view shouldn't propagate mutations
             tm.assert_series_equal(float_frame["A"], float_frame_orig["A"])
@@ -364,15 +363,14 @@ class TestXSWithMultiIndex:
         expected = DataFrame({"a": [1]})
         tm.assert_frame_equal(result, expected)
 
-    def test_xs_droplevel_false_view(self, using_copy_on_write, warn_copy_on_write):
+    def test_xs_droplevel_false_view(self, using_copy_on_write):
         # GH#37832
         df = DataFrame([[1, 2, 3]], columns=Index(["a", "b", "c"]))
         result = df.xs("a", axis=1, drop_level=False)
         # check that result still views the same data as df
         assert np.shares_memory(result.iloc[:, 0]._values, df.iloc[:, 0]._values)
 
-        with tm.assert_cow_warning(warn_copy_on_write):
-            df.iloc[0, 0] = 2
+        df.iloc[0, 0] = 2
         if using_copy_on_write:
             # with copy on write the subset is never modified
             expected = DataFrame({"a": [1]})

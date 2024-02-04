@@ -31,7 +31,7 @@ def test_detect_chained_assignment():
         zed["eyes"]["right"].fillna(value=555, inplace=True)
 
 
-def test_cache_updating(using_copy_on_write, warn_copy_on_write):
+def test_cache_updating(using_copy_on_write):
     # 5216
     # make sure that we don't try to set a dead cache
     a = np.random.default_rng(2).random((10, 3))
