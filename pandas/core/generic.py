@@ -1158,18 +1158,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         mapper : scalar, list-like, optional
             Value to set the axis name attribute.
-        index, columns : scalar, list-like, dict-like or function, optional
-            A scalar, list-like, dict-like or functions transformations to
-            apply to that axis' values.
-            Note that the ``columns`` parameter is not allowed if the
-            object is a Series. This parameter only apply for DataFrame
-            type objects.
 
             Use either ``mapper`` and ``axis`` to
             specify the axis to target with ``mapper``, or ``index``
             and/or ``columns``.
+        index : scalar, list-like, dict-like or function, optional
+            A scalar, list-like, dict-like or functions transformations to
+            apply to that axis' values.
+        columns : scalar, list-like, dict-like or function, optional
+            A scalar, list-like, dict-like or functions transformations to
+            apply to that axis' values.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to rename. For `Series` this parameter is unused and defaults to 0.
+            The axis to rename.
         copy : bool, default None
             Also copy underlying data.
 
@@ -1190,7 +1190,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        Series, DataFrame, or None
+        DataFrame, or None
             The same type as the caller or None if ``inplace=True``.
 
         See Also
@@ -1220,21 +1220,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        **Series**
-
-        >>> s = pd.Series(["dog", "cat", "monkey"])
-        >>> s
-        0       dog
-        1       cat
-        2    monkey
-        dtype: object
-        >>> s.rename_axis("animal")
-        animal
-        0    dog
-        1    cat
-        2    monkey
-        dtype: object
-
         **DataFrame**
 
         >>> df = pd.DataFrame({"num_legs": [4, 4, 2],
