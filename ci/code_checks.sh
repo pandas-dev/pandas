@@ -71,7 +71,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (PR02)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=PR02 --ignore_functions \
-        pandas.io.formats.style.Styler.to_excel\
         pandas.CategoricalIndex.rename_categories\
         pandas.CategoricalIndex.reorder_categories\
         pandas.CategoricalIndex.add_categories\
