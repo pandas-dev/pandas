@@ -220,6 +220,8 @@ if TYPE_CHECKING:
     from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
 
+import textwrap
+
 # goal is to be able to define the docs close to function, while still being
 # able to share
 _shared_docs = {**_shared_docs}
@@ -2240,6 +2242,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         klass="object",
         storage_options=_shared_docs["storage_options"],
         storage_options_versionadded="1.2.0",
+        extra_parameters=textwrap.dedent(
+            """\
+        engine_kwargs : dict, optional
+            Arbitrary keyword arguments passed to excel engine.
+    """
+        ),
     )
     def to_excel(
         self,
@@ -2315,9 +2323,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {storage_options}
 
             .. versionadded:: {storage_options_versionadded}
-        engine_kwargs : dict, optional
-            Arbitrary keyword arguments passed to excel engine.
-
+        {extra_parameters}
         See Also
         --------
         to_csv : Write DataFrame to a comma-separated values (csv) file.
