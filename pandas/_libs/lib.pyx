@@ -2299,11 +2299,13 @@ def maybe_convert_numeric(
     # Use null char to represent lack of thousand separator
     if thousands is None:
         tsep = "\0"
+        print("thousands none")
     else:
         bytes_tsep = thousands.encode("UTF-8")
         tsep = bytes_tsep
 
     if decimal is None:
+        print("decimal none")
         dsep = "."
     else:
         bytes_dsep = decimal.encode("UTF-8")
@@ -2318,7 +2320,7 @@ def maybe_convert_numeric(
         raise ValueError("Thousands separator must not exceed length 1")
     if len(decimal) > 1:
         raise ValueError("Decimal separator must have length 1")
-    if thousands == decimal:
+    if tsep == dsep:
         raise ValueError("Decimal and thousand separators must not be the same")
 
     if util.is_integer_object(val):
@@ -2428,6 +2430,7 @@ def maybe_convert_numeric(
             seen.float_ = True
         else:
             try:
+                print("try floatify")
                 floatify(val, &fval, &maybe_int, dsep[0], tsep[0])
                 print(val)
                 print(fval)
@@ -2445,7 +2448,7 @@ def maybe_convert_numeric(
                     floats[i] = fval
 
                 if maybe_int:
-                    as_int = int(val.replace(tsep[0], ""))
+                    as_int = int(val.replace(bytes_tsep[0], ""))
                     print("as_int")
 
                     if as_int in na_values:
