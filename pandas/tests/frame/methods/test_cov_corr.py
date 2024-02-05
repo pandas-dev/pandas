@@ -207,7 +207,7 @@ class TestDataFrameCorr:
         expected = DataFrame(np.ones((2, 2)), columns=["a", "b"], index=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
-    def test_corr_item_cache(self, using_copy_on_write):
+    def test_corr_item_cache(self):
         # Check that corr does not lead to incorrect entries in item_cache
 
         df = DataFrame({"A": range(10)})
@@ -218,15 +218,8 @@ class TestDataFrameCorr:
 
         _ = df.corr(numeric_only=True)
 
-        if using_copy_on_write:
-            ser.iloc[0] = 99
-            assert df.loc[0, "A"] == 0
-        else:
-            # Check that the corr didn't break link between ser and df
-            ser.values[0] = 99
-            assert df.loc[0, "A"] == 99
-            assert df["A"] is ser
-            assert df.values[0, 0] == 99
+        ser.iloc[0] = 99
+        assert df.loc[0, "A"] == 0
 
     @pytest.mark.parametrize("length", [2, 20, 200, 2000])
     def test_corr_for_constant_columns(self, length):
