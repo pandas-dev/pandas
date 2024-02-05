@@ -173,7 +173,7 @@ class TestDataFrameSelectReindex:
         result2 = df.reindex(columns=cols, index=df.index, copy=True)
         assert not np.shares_memory(result2[0]._values, df[0]._values)
 
-    def test_reindex_copies_ea(self, using_copy_on_write):
+    def test_reindex_copies_ea(self):
         # https://github.com/pandas-dev/pandas/pull/51197
         # also ensure to honor copy keyword for ExtensionDtypes
         N = 10
@@ -184,17 +184,11 @@ class TestDataFrameSelectReindex:
         np.random.default_rng(2).shuffle(cols)
 
         result = df.reindex(columns=cols, copy=True)
-        if using_copy_on_write:
-            assert np.shares_memory(result[0].array._data, df[0].array._data)
-        else:
-            assert not np.shares_memory(result[0].array._data, df[0].array._data)
+        assert np.shares_memory(result[0].array._data, df[0].array._data)
 
         # pass both columns and index
         result2 = df.reindex(columns=cols, index=df.index, copy=True)
-        if using_copy_on_write:
-            assert np.shares_memory(result2[0].array._data, df[0].array._data)
-        else:
-            assert not np.shares_memory(result2[0].array._data, df[0].array._data)
+        assert np.shares_memory(result2[0].array._data, df[0].array._data)
 
     def test_reindex_date_fill_value(self):
         # passing date to dt64 is deprecated; enforced in 2.0 to cast to object
@@ -602,7 +596,7 @@ class TestDataFrameSelectReindex:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_reindex(self, float_frame, using_copy_on_write):
+    def test_reindex(self, float_frame):
         datetime_series = Series(
             np.arange(30, dtype=np.float64), index=date_range("2020-01-01", periods=30)
         )
@@ -644,10 +638,7 @@ class TestDataFrameSelectReindex:
 
         # Same index, copies values but not index if copy=False
         newFrame = float_frame.reindex(float_frame.index, copy=False)
-        if using_copy_on_write:
-            assert newFrame.index.is_(float_frame.index)
-        else:
-            assert newFrame.index is float_frame.index
+        assert newFrame.index.is_(float_frame.index)
 
         # length zero
         newFrame = float_frame.reindex([])

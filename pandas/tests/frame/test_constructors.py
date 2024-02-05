@@ -287,25 +287,16 @@ class TestDataFrameConstructors:
         new_df["col1"] = 200.0
         assert orig_df["col1"][0] == 1.0
 
-    def test_constructor_dtype_nocast_view_dataframe(self, using_copy_on_write):
+    def test_constructor_dtype_nocast_view_dataframe(self):
         df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df, dtype=df[0].dtype)
-        if using_copy_on_write:
-            should_be_view.iloc[0, 0] = 99
-            assert df.values[0, 0] == 1
-        else:
-            should_be_view.iloc[0, 0] = 99
-            assert df.values[0, 0] == 99
+        should_be_view.iloc[0, 0] = 99
+        assert df.values[0, 0] == 1
 
-    def test_constructor_dtype_nocast_view_2d_array(self, using_copy_on_write):
+    def test_constructor_dtype_nocast_view_2d_array(self):
         df = DataFrame([[1, 2], [3, 4]], dtype="int64")
-        if not using_copy_on_write:
-            should_be_view = DataFrame(df.values, dtype=df[0].dtype)
-            should_be_view.iloc[0, 0] = 97
-            assert df.values[0, 0] == 97
-        else:
-            df2 = DataFrame(df.values, dtype=df[0].dtype)
-            assert df2._mgr.arrays[0].flags.c_contiguous
+        df2 = DataFrame(df.values, dtype=df[0].dtype)
+        assert df2._mgr.arrays[0].flags.c_contiguous
 
     @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="conversion copies")
     def test_1d_object_array_does_not_copy(self):
@@ -2127,16 +2118,12 @@ class TestDataFrameConstructors:
         cop.index = np.arange(len(cop))
         tm.assert_frame_equal(float_frame, orig)
 
-    def test_constructor_ndarray_copy(self, float_frame, using_copy_on_write):
+    def test_constructor_ndarray_copy(self, float_frame):
         arr = float_frame.values.copy()
         df = DataFrame(arr)
 
         arr[5] = 5
-        if using_copy_on_write:
-            assert not (df.values[5] == 5).all()
-        else:
-            assert (df.values[5] == 5).all()
-
+        assert not (df.values[5] == 5).all()
         df = DataFrame(arr, copy=True)
         arr[6] = 6
         assert not (df.values[6] == 6).all()
@@ -2473,7 +2460,6 @@ class TestDataFrameConstructors:
         copy,
         any_numeric_ea_dtype,
         any_numpy_dtype,
-        using_copy_on_write,
     ):
         a = np.array([1, 2], dtype=any_numpy_dtype)
         b = np.array([3, 4], dtype=any_numpy_dtype)
@@ -2541,9 +2527,6 @@ class TestDataFrameConstructors:
         #  view, so we have to check in the other direction
         df.iloc[:, 2] = pd.array([45, 46], dtype=c.dtype)
         assert df.dtypes.iloc[2] == c.dtype
-        if not copy and not using_copy_on_write:
-            check_views(True)
-
         if copy:
             if a.dtype.kind == "M":
                 assert a[0] == a.dtype.type(1, "ns")
@@ -2553,12 +2536,6 @@ class TestDataFrameConstructors:
                 assert b[0] == b.dtype.type(3)
             # FIXME(GH#35417): enable after GH#35417
             assert c[0] == c_orig[0]  # i.e. df.iloc[0, 2]=45 did *not* update c
-        elif not using_copy_on_write:
-            # TODO: we can call check_views if we stop consolidating
-            #  in setitem_with_indexer
-            assert c[0] == 45  # i.e. df.iloc[0, 2]=45 *did* update c
-            # TODO: we can check b[0] == 0 if we stop consolidating in
-            #  setitem_with_indexer (except for datetimelike?)
 
     def test_construct_from_dict_ea_series(self):
         # GH#53744 - default of copy=True should also apply for Series with

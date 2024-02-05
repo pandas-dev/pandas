@@ -138,7 +138,7 @@ class TestDataFrameUpdate:
         expected = DataFrame([pd.Timestamp("2019", tz="UTC")])
         tm.assert_frame_equal(result, expected)
 
-    def test_update_datetime_tz_in_place(self, using_copy_on_write):
+    def test_update_datetime_tz_in_place(self):
         # https://github.com/pandas-dev/pandas/issues/56227
         result = DataFrame([pd.Timestamp("2019", tz="UTC")])
         orig = result.copy()
@@ -146,12 +146,9 @@ class TestDataFrameUpdate:
         result.update(result + pd.Timedelta(days=1))
         expected = DataFrame([pd.Timestamp("2019-01-02", tz="UTC")])
         tm.assert_frame_equal(result, expected)
-        if not using_copy_on_write:
-            tm.assert_frame_equal(view, expected)
-        else:
-            tm.assert_frame_equal(view, orig)
+        tm.assert_frame_equal(view, orig)
 
-    def test_update_with_different_dtype(self, using_copy_on_write):
+    def test_update_with_different_dtype(self):
         # GH#3217
         df = DataFrame({"a": [1, 3], "b": [np.nan, 2]})
         df["c"] = np.nan
@@ -167,7 +164,7 @@ class TestDataFrameUpdate:
         )
         tm.assert_frame_equal(df, expected)
 
-    def test_update_modify_view(self, using_copy_on_write, using_infer_string):
+    def test_update_modify_view(self, using_infer_string):
         # GH#47188
         df = DataFrame({"A": ["1", np.nan], "B": ["100", np.nan]})
         df2 = DataFrame({"A": ["a", "x"], "B": ["100", "200"]})
@@ -176,10 +173,7 @@ class TestDataFrameUpdate:
         df2.update(df)
         expected = DataFrame({"A": ["1", "x"], "B": ["100", "200"]})
         tm.assert_frame_equal(df2, expected)
-        if using_copy_on_write or using_infer_string:
-            tm.assert_frame_equal(result_view, df2_orig)
-        else:
-            tm.assert_frame_equal(result_view, expected)
+        tm.assert_frame_equal(result_view, df2_orig)
 
     def test_update_dt_column_with_NaT_create_column(self):
         # GH#16713

@@ -68,7 +68,7 @@ class TestDataFrameInterpolate:
     @pytest.mark.xfail(
         using_pyarrow_string_dtype(), reason="interpolate doesn't work for string"
     )
-    def test_interp_basic(self, using_copy_on_write):
+    def test_interp_basic(self):
         df = DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
@@ -93,12 +93,8 @@ class TestDataFrameInterpolate:
         # check we didn't operate inplace GH#45791
         cvalues = df["C"]._values
         dvalues = df["D"].values
-        if using_copy_on_write:
-            assert np.shares_memory(cvalues, result["C"]._values)
-            assert np.shares_memory(dvalues, result["D"]._values)
-        else:
-            assert not np.shares_memory(cvalues, result["C"]._values)
-            assert not np.shares_memory(dvalues, result["D"]._values)
+        assert np.shares_memory(cvalues, result["C"]._values)
+        assert np.shares_memory(dvalues, result["D"]._values)
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
             res = df.interpolate(inplace=True)
@@ -371,38 +367,25 @@ class TestDataFrameInterpolate:
         with pytest.raises(TypeError, match=msg):
             df.interpolate()
 
-    def test_interp_inplace(self, using_copy_on_write):
+    def test_interp_inplace(self):
         df = DataFrame({"a": [1.0, 2.0, np.nan, 4.0]})
-        expected = DataFrame({"a": [1.0, 2.0, 3.0, 4.0]})
-        expected_cow = df.copy()
+        expected = df.copy()
         result = df.copy()
 
-        if using_copy_on_write:
-            with tm.raises_chained_assignment_error():
-                return_value = result["a"].interpolate(inplace=True)
-            assert return_value is None
-            tm.assert_frame_equal(result, expected_cow)
-        else:
-            with tm.assert_produces_warning(FutureWarning, match="inplace method"):
-                return_value = result["a"].interpolate(inplace=True)
-            assert return_value is None
-            tm.assert_frame_equal(result, expected)
+        with tm.raises_chained_assignment_error():
+            return_value = result["a"].interpolate(inplace=True)
+        assert return_value is None
+        tm.assert_frame_equal(result, expected)
 
         result = df.copy()
         msg = "The 'downcast' keyword in Series.interpolate is deprecated"
 
-        if using_copy_on_write:
-            with tm.assert_produces_warning(
-                (FutureWarning, ChainedAssignmentError), match=msg
-            ):
-                return_value = result["a"].interpolate(inplace=True, downcast="infer")
-            assert return_value is None
-            tm.assert_frame_equal(result, expected_cow)
-        else:
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                return_value = result["a"].interpolate(inplace=True, downcast="infer")
-            assert return_value is None
-            tm.assert_frame_equal(result, expected.astype("int64"))
+        with tm.assert_produces_warning(
+            (FutureWarning, ChainedAssignmentError), match=msg
+        ):
+            return_value = result["a"].interpolate(inplace=True, downcast="infer")
+        assert return_value is None
+        tm.assert_frame_equal(result, expected)
 
     def test_interp_inplace_row(self):
         # GH 10395
