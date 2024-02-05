@@ -2671,7 +2671,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: float64
         """
         nv.validate_round(args, kwargs)
-        new_mgr = self._mgr.round(decimals=decimals, using_cow=using_copy_on_write())
+        new_mgr = self._mgr.round(decimals=decimals)
         return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(
             self, method="round"
         )
@@ -5041,7 +5041,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> Self | None:
         ...
 
-    @doc(NDFrame.rename_axis)
     def rename_axis(
         self,
         mapper: IndexLabel | lib.NoDefault = lib.no_default,
@@ -5051,6 +5050,67 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         copy: bool = True,
         inplace: bool = False,
     ) -> Self | None:
+        """
+        Set the name of the axis for the index.
+
+        Parameters
+        ----------
+        mapper : scalar, list-like, optional
+            Value to set the axis name attribute.
+
+            Use either ``mapper`` and ``axis`` to
+            specify the axis to target with ``mapper``, or ``index``.
+
+        index : scalar, list-like, dict-like or function, optional
+            A scalar, list-like, dict-like or functions transformations to
+            apply to that axis' values.
+        axis : {0 or 'index'}, default 0
+            The axis to rename. For `Series` this parameter is unused and defaults to 0.
+        copy : bool, default None
+            Also copy underlying data.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
+        inplace : bool, default False
+            Modifies the object directly, instead of creating a new Series
+            or DataFrame.
+
+        Returns
+        -------
+        Series, or None
+            The same type as the caller or None if ``inplace=True``.
+
+        See Also
+        --------
+        Series.rename : Alter Series index labels or name.
+        DataFrame.rename : Alter DataFrame index labels or name.
+        Index.rename : Set new names on index.
+
+        Examples
+        --------
+
+        >>> s = pd.Series(["dog", "cat", "monkey"])
+        >>> s
+        0       dog
+        1       cat
+        2    monkey
+        dtype: object
+        >>> s.rename_axis("animal")
+        animal
+        0    dog
+        1    cat
+        2    monkey
+        dtype: object
+        """
         return super().rename_axis(
             mapper=mapper,
             index=index,

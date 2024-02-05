@@ -1158,18 +1158,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         mapper : scalar, list-like, optional
             Value to set the axis name attribute.
-        index, columns : scalar, list-like, dict-like or function, optional
-            A scalar, list-like, dict-like or functions transformations to
-            apply to that axis' values.
-            Note that the ``columns`` parameter is not allowed if the
-            object is a Series. This parameter only apply for DataFrame
-            type objects.
 
             Use either ``mapper`` and ``axis`` to
             specify the axis to target with ``mapper``, or ``index``
             and/or ``columns``.
+        index : scalar, list-like, dict-like or function, optional
+            A scalar, list-like, dict-like or functions transformations to
+            apply to that axis' values.
+        columns : scalar, list-like, dict-like or function, optional
+            A scalar, list-like, dict-like or functions transformations to
+            apply to that axis' values.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to rename. For `Series` this parameter is unused and defaults to 0.
+            The axis to rename.
         copy : bool, default None
             Also copy underlying data.
 
@@ -1190,7 +1190,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        Series, DataFrame, or None
+        DataFrame, or None
             The same type as the caller or None if ``inplace=True``.
 
         See Also
@@ -1220,21 +1220,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        **Series**
-
-        >>> s = pd.Series(["dog", "cat", "monkey"])
-        >>> s
-        0       dog
-        1       cat
-        2    monkey
-        dtype: object
-        >>> s.rename_axis("animal")
-        animal
-        0    dog
-        1    cat
-        2    monkey
-        dtype: object
-
         **DataFrame**
 
         >>> df = pd.DataFrame({"num_legs": [4, 4, 2],
@@ -6375,9 +6360,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2   2020-01-03
         dtype: datetime64[ns]
         """
-        if copy and using_copy_on_write():
-            copy = False
-
         if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
                 if len(dtype) > 1 or self.name not in dtype:
@@ -6386,7 +6368,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         "the key in Series dtype mappings."
                     )
                 new_type = dtype[self.name]
-                return self.astype(new_type, copy, errors)
+                return self.astype(new_type, errors=errors)
 
             # GH#44417 cast to Series so we can use .iat below, which will be
             #  robust in case we
@@ -6408,10 +6390,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             for i, (col_name, col) in enumerate(self.items()):
                 cdt = dtype_ser.iat[i]
                 if isna(cdt):
-                    res_col = col.copy(deep=copy)
+                    res_col = col.copy(deep=False)
                 else:
                     try:
-                        res_col = col.astype(dtype=cdt, copy=copy, errors=errors)
+                        res_col = col.astype(dtype=cdt, errors=errors)
                     except ValueError as ex:
                         ex.args = (
                             f"{ex}: Error while type casting for column '{col_name}'",
@@ -6425,22 +6407,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if isinstance(dtype, ExtensionDtype) and all(
                 arr.dtype == dtype for arr in self._mgr.arrays
             ):
-                return self.copy(deep=copy)
+                return self.copy(deep=False)
             # GH 18099/22869: columnwise conversion to extension dtype
             # GH 24704: self.items handles duplicate column names
-            results = [
-                ser.astype(dtype, copy=copy, errors=errors) for _, ser in self.items()
-            ]
+            results = [ser.astype(dtype, errors=errors) for _, ser in self.items()]
 
         else:
             # else, only a single dtype is given
-            new_data = self._mgr.astype(dtype=dtype, copy=copy, errors=errors)
+            new_data = self._mgr.astype(dtype=dtype, errors=errors)
             res = self._constructor_from_mgr(new_data, axes=new_data.axes)
             return res.__finalize__(self, method="astype")
 
         # GH 33113: handle empty frame or series
         if not results:
-            return self.copy(deep=None)
+            return self.copy(deep=False)
 
         # GH 19920: retain column metadata after concat
         result = concat(results, axis=1, copy=False)
