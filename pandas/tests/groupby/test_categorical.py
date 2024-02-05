@@ -125,7 +125,7 @@ def test_basic(using_infer_string):  # TODO: split this test
         return x.drop_duplicates("person_name").iloc[0]
 
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = g.apply(f)
     expected = x.iloc[[0, 1]].copy()
     expected.index = Index([1, 2], name="person_id")
@@ -333,7 +333,7 @@ def test_apply(ordered):
     idx = MultiIndex.from_arrays([missing, dense], names=["missing", "dense"])
     expected = Series(1, index=idx)
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = grouped.apply(lambda x: 1)
     tm.assert_series_equal(result, expected)
 
@@ -1348,22 +1348,6 @@ def test_groupby_categorical_series_dataframe_consistent(df_cat):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("code", [([1, 0, 0]), ([0, 0, 0])])
-def test_groupby_categorical_axis_1(code):
-    # GH 13420
-    df = DataFrame({"a": [1, 2, 3, 4], "b": [-1, -2, -3, -4], "c": [5, 6, 7, 8]})
-    cat = Categorical.from_codes(code, categories=list("abc"))
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby(cat, axis=1, observed=False)
-    result = gb.mean()
-    msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb2 = df.T.groupby(cat, axis=0, observed=False)
-    expected = gb2.mean().T
-    tm.assert_frame_equal(result, expected)
-
-
 def test_groupby_cat_preserves_structure(observed, ordered):
     # GH 28787
     df = DataFrame(
@@ -2049,7 +2033,7 @@ def test_category_order_apply(as_index, sort, observed, method, index_kind, orde
         df["a2"] = df["a"]
         df = df.set_index(keys)
     gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
-    warn = FutureWarning if method == "apply" and index_kind == "range" else None
+    warn = DeprecationWarning if method == "apply" and index_kind == "range" else None
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
     with tm.assert_produces_warning(warn, match=msg):
         op_result = getattr(gb, method)(lambda x: x.sum(numeric_only=True))

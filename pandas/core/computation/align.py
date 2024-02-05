@@ -133,7 +133,7 @@ def _align_core(terms):
                 ):
                     w = (
                         f"Alignment difference on axis {axis} is larger "
-                        f"than an order of magnitude on term {repr(terms[i].name)}, "
+                        f"than an order of magnitude on term {terms[i].name!r}, "
                         f"by more than {ordm:.4g}; performance may suffer."
                     )
                     warnings.warn(

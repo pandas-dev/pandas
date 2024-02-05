@@ -1,61 +1,61 @@
 .. _whatsnew_230:
 
-What's new in 2.3.0 (Month XX, 2024)
+What's new in 3.0.0 (Month XX, 2024)
 ------------------------------------
 
-These are the changes in pandas 2.2.0. See :ref:`release` for a full changelog
+These are the changes in pandas 3.0.0. See :ref:`release` for a full changelog
 including other versions of pandas.
 
 {{ header }}
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_230.enhancements:
+.. _whatsnew_300.enhancements:
 
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_230.enhancements.enhancement1:
+.. _whatsnew_300.enhancements.enhancement1:
 
 enhancement1
 ^^^^^^^^^^^^
 
-.. _whatsnew_230.enhancements.enhancement2:
+.. _whatsnew_300.enhancements.enhancement2:
 
 enhancement2
 ^^^^^^^^^^^^
 
-.. _whatsnew_230.enhancements.other:
+.. _whatsnew_300.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
--
+- :func:`DataFrame.to_excel` now raises an ``UserWarning`` when the character count in a cell exceeds Excel's limitation of 32767 characters (:issue:`56954`)
 -
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_230.notable_bug_fixes:
+.. _whatsnew_300.notable_bug_fixes:
 
 Notable bug fixes
 ~~~~~~~~~~~~~~~~~
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_230.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_300.notable_bug_fixes.notable_bug_fix1:
 
 notable_bug_fix1
 ^^^^^^^^^^^^^^^^
 
-.. _whatsnew_230.notable_bug_fixes.notable_bug_fix2:
+.. _whatsnew_300.notable_bug_fixes.notable_bug_fix2:
 
 notable_bug_fix2
 ^^^^^^^^^^^^^^^^
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_230.api_breaking:
+.. _whatsnew_300.api_breaking:
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _whatsnew_230.api_breaking.deps:
+.. _whatsnew_300.api_breaking.deps:
 
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -65,7 +65,7 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | Package         | Minimum Version | Required | Changed |
 +=================+=================+==========+=========+
-|                 |                 |    X     |    X    |
+| numpy           | 1.23.5          |    X     |    X    |
 +-----------------+-----------------+----------+---------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
@@ -80,15 +80,15 @@ Optional libraries below the lowest tested version may still work, but are not c
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
-.. _whatsnew_230.api_breaking.other:
+.. _whatsnew_300.api_breaking.other:
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
--
+- 3rd party ``py.path`` objects are no longer explicitly supported in IO methods. Use :py:class:`pathlib.Path` objects instead (:issue:`57091`)
 -
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_230.deprecations:
+.. _whatsnew_300.deprecations:
 
 Deprecations
 ~~~~~~~~~~~~
@@ -97,22 +97,40 @@ Deprecations
 -
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_230.performance:
+.. _whatsnew_300.prior_deprecations:
+
+Removal of prior version deprecations/changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Removed :meth:`DataFrameGroupby.fillna` and :meth:`SeriesGroupBy.fillna` (:issue:`55719`)
+- Removed ``axis`` argument from :meth:`DataFrame.groupby`, :meth:`Series.groupby`, :meth:`DataFrame.rolling`, :meth:`Series.rolling`, :meth:`DataFrame.resample`, and :meth:`Series.resample` (:issue:`51203`)
+- Removed ``axis`` argument from all groupby operations (:issue:`50405`)
+- Removed deprecated argument ``obj`` in :meth:`.DataFrameGroupBy.get_group` and :meth:`.SeriesGroupBy.get_group` (:issue:`53545`)
+- Removed the ``ArrayManager`` (:issue:`55043`)
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_300.performance:
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`DataFrame.join` for sorted but non-unique indexes (:issue:`56941`)
 - Performance improvement in :meth:`DataFrame.join` when left and/or right are non-unique and ``how`` is ``"left"``, ``"right"``, or ``"inner"`` (:issue:`56817`)
+- Performance improvement in :meth:`DataFrame.join` with ``how="left"`` or ``how="right"`` and ``sort=True`` (:issue:`56919`)
+- Performance improvement in :meth:`DataFrameGroupBy.ffill`, :meth:`DataFrameGroupBy.bfill`, :meth:`SeriesGroupBy.ffill`, and :meth:`SeriesGroupBy.bfill` (:issue:`56902`)
+- Performance improvement in :meth:`Index.join` by propagating cached attributes in cases where the result matches one of the inputs (:issue:`57023`)
 - Performance improvement in :meth:`Index.take` when ``indices`` is a full range indexer from zero to length of index (:issue:`56806`)
+- Performance improvement in :meth:`MultiIndex.equals` for equal length indexes (:issue:`56990`)
+- Performance improvement in indexing operations for string dtypes (:issue:`56997`)
 -
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_230.bug_fixes:
+.. _whatsnew_300.bug_fixes:
 
 Bug fixes
 ~~~~~~~~~
+- Fixed bug in :meth:`DataFrame.join` inconsistently setting result index name (:issue:`55815`)
 - Fixed bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
-
+-
 
 Categorical
 ^^^^^^^^^^^
@@ -136,7 +154,7 @@ Timezones
 
 Numeric
 ^^^^^^^
--
+- Bug in ``np.matmul`` with :class:`Index` inputs raising a ``TypeError`` (:issue:`57079`)
 -
 
 Conversion
@@ -146,7 +164,7 @@ Conversion
 
 Strings
 ^^^^^^^
--
+- Bug in :meth:`Series.value_counts` would not respect ``sort=False`` for series having ``string`` dtype (:issue:`55224`)
 -
 
 Interval
@@ -186,7 +204,7 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
--
+- Bug in :meth:`.DataFrameGroupBy.quantile` when ``interpolation="nearest"`` is inconsistent with :meth:`DataFrame.quantile` (:issue:`47942`)
 -
 
 Reshaping
@@ -211,6 +229,8 @@ Styler
 
 Other
 ^^^^^
+- Bug in :meth:`DataFrame.where` where using a non-bool type array in the function would return a ``ValueError`` instead of a ``TypeError`` (:issue:`56330`)
+
 
 .. ***DO NOT USE THIS SECTION***
 
@@ -218,7 +238,7 @@ Other
 -
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_230.contributors:
+.. _whatsnew_300.contributors:
 
 Contributors
 ~~~~~~~~~~~~
