@@ -517,16 +517,11 @@ class BaseBlockManager(PandasObject):
             to_replace=to_replace,
             value=value,
             inplace=inplace,
-            using_cow=using_copy_on_write(),
         )
 
     @final
     def replace_regex(self, **kwargs) -> Self:
-        return self.apply(
-            "_replace_regex",
-            **kwargs,
-            using_cow=using_copy_on_write(),
-        )
+        return self.apply("_replace_regex", **kwargs)
 
     @final
     def replace_list(
@@ -545,7 +540,6 @@ class BaseBlockManager(PandasObject):
             dest_list=dest_list,
             inplace=inplace,
             regex=regex,
-            using_cow=using_copy_on_write(),
         )
         bm._consolidate_inplace()
         return bm
@@ -571,7 +565,7 @@ class BaseBlockManager(PandasObject):
         if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
             raise ValueError(f"Cannot set values with ndim > {self.ndim}")
 
-        if using_copy_on_write() and not self._has_no_reference(0):
+        if not self._has_no_reference(0):
             # this method is only called if there is a single block -> hardcoded 0
             # Split blocks to only copy the columns we want to modify
             if self.ndim == 2 and isinstance(indexer, tuple):
@@ -607,16 +601,8 @@ class BaseBlockManager(PandasObject):
     def astype(self, dtype, copy: bool | None = False, errors: str = "raise") -> Self:
         return self.apply("astype", dtype=dtype, errors=errors)
 
-    def convert(self, copy: bool | None) -> Self:
-        if copy is None:
-            if using_copy_on_write():
-                copy = False
-            else:
-                copy = True
-        elif using_copy_on_write():
-            copy = False
-
-        return self.apply("convert", copy=copy, using_cow=using_copy_on_write())
+    def convert(self) -> Self:
+        return self.apply("convert")
 
     def convert_dtypes(self, **kwargs):
         return self.apply("convert_dtypes", **kwargs)
@@ -750,10 +736,7 @@ class BaseBlockManager(PandasObject):
 
             new_axes = [copy_func(ax) for ax in self.axes]
         else:
-            if using_copy_on_write():
-                new_axes = [ax.view() for ax in self.axes]
-            else:
-                new_axes = list(self.axes)
+            new_axes = [ax.view() for ax in self.axes]
 
         res = self.apply("copy", deep=deep)
         res.axes = new_axes
@@ -1006,7 +989,7 @@ class BaseBlockManager(PandasObject):
                     # A non-consolidatable block, it's easy, because there's
                     # only one item and each mgr loc is a copy of that single
                     # item.
-                    deep = not (only_slice or using_copy_on_write())
+                    deep = False
                     for mgr_loc in mgr_locs:
                         newblk = blk.copy(deep=deep)
                         newblk.mgr_locs = BlockPlacement(slice(mgr_loc, mgr_loc + 1))
@@ -1017,8 +1000,7 @@ class BaseBlockManager(PandasObject):
                     #  we may try to only slice
                     taker = blklocs[mgr_locs.indexer]
                     max_len = max(len(mgr_locs), taker.max() + 1)
-                    if only_slice or using_copy_on_write():
-                        taker = lib.maybe_indices_to_slice(taker, max_len)
+                    taker = lib.maybe_indices_to_slice(taker, max_len)
 
                     if isinstance(taker, slice):
                         nb = blk.getitem_block_columns(taker, new_mgr_locs=mgr_locs)
@@ -1335,7 +1317,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             blk_locs = blklocs[val_locs.indexer]
             if inplace and blk.should_store(value):
                 # Updating inplace -> check if we need to do Copy-on-Write
-                if using_copy_on_write() and not self._has_no_reference_block(blkno_l):
+                if not self._has_no_reference_block(blkno_l):
                     self._iset_split_block(
                         blkno_l, blk_locs, value_getitem(val_locs), refs=refs
                     )
@@ -1477,7 +1459,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         if inplace and blk.should_store(value):
             copy = False
-            if using_copy_on_write() and not self._has_no_reference_block(blkno):
+            if not self._has_no_reference_block(blkno):
                 # perform Copy-on-Write and clear the reference
                 copy = True
             iloc = self.blklocs[loc]
@@ -1499,7 +1481,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         This is a method on the BlockManager level, to avoid creating an
         intermediate Series at the DataFrame level (`s = df[loc]; s[idx] = value`)
         """
-        if using_copy_on_write() and not self._has_no_reference(loc):
+        if not self._has_no_reference(loc):
             blkno = self.blknos[loc]
             # Split blocks to only copy the column we want to modify
             blk_loc = self.blklocs[loc]
@@ -1863,7 +1845,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             else:
                 arr = np.array(blk.values, dtype=dtype, copy=copy)
 
-            if using_copy_on_write() and not copy:
+            if not copy:
                 arr = arr.view()
                 arr.flags.writeable = False
         else:
@@ -2140,7 +2122,7 @@ class SingleBlockManager(BaseBlockManager):
     def get_rows_with_mask(self, indexer: npt.NDArray[np.bool_]) -> Self:
         # similar to get_slice, but not restricted to slice indexer
         blk = self._block
-        if using_copy_on_write() and len(indexer) > 0 and indexer.all():
+        if len(indexer) > 0 and indexer.all():
             return type(self)(blk.copy(deep=False), self.index)
         array = blk.values[indexer]
 
@@ -2214,11 +2196,9 @@ class SingleBlockManager(BaseBlockManager):
         in place, not returning a new Manager (and Block), and thus never changing
         the dtype.
         """
-        using_cow = using_copy_on_write()
-        if using_cow and not self._has_no_reference(0):
-            if using_cow:
-                self.blocks = (self._block.copy(),)
-                self._cache.clear()
+        if not self._has_no_reference(0):
+            self.blocks = (self._block.copy(),)
+            self._cache.clear()
 
         arr = self.array
 
