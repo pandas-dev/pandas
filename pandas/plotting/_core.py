@@ -1614,7 +1614,7 @@ class PlotAccessor(PandasObject):
         """
         return self(kind="area", x=x, y=y, stacked=stacked, **kwargs)
 
-    def pie(self, **kwargs) -> PlotAccessor:
+    def pie(self, y: int | str | None = None, **kwargs) -> PlotAccessor:
         """
         Generate a pie plot.
 
@@ -1663,11 +1663,11 @@ class PlotAccessor(PandasObject):
         """
         if (
             isinstance(self._parent, ABCDataFrame)
-            and kwargs.get("y", None) is None
+            and y is None
             and not kwargs.get("subplots", False)
         ):
             raise ValueError("pie requires either y column or 'subplots=True'")
-        return self(kind="pie", **kwargs)
+        return self(kind="pie", y=y, **kwargs)
 
     def scatter(
         self,
