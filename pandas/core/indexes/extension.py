@@ -105,7 +105,7 @@ def _inherit_from_data(
         # error: "property" has no attribute "__name__"
         method.__name__ = name  # type: ignore[attr-defined]
         method.__doc__ = attr.__doc__
-        method.__signature__ = signature(attr)
+        method.__signature__ = signature(attr)  # type: ignore[attr-defined]
     return method
 
 
