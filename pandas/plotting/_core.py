@@ -1089,7 +1089,11 @@ class PlotAccessor(PandasObject):
     @Substitution(kind="line")
     @Appender(_bar_or_line_doc)
     def line(
-        self, x: Hashable | None = None, y: Hashable | None = None, **kwargs
+        self,
+        x: Hashable | None = None,
+        y: Hashable | None = None,
+        color: str | np.typing.ArrayLike | dict | None = None,
+        **kwargs,
     ) -> PlotAccessor:
         """
         Plot Series or DataFrame as lines.
@@ -1097,7 +1101,7 @@ class PlotAccessor(PandasObject):
         This function is useful to plot lines using DataFrame's values
         as coordinates.
         """
-        return self(kind="line", x=x, y=y, **kwargs)
+        return self(kind="line", x=x, y=y, color=color, **kwargs)
 
     @Appender(
         """
@@ -1178,7 +1182,11 @@ class PlotAccessor(PandasObject):
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
     def bar(  # pylint: disable=disallowed-name
-        self, x: Hashable | None = None, y: Hashable | None = None, **kwargs
+        self,
+        x: Hashable | None = None,
+        y: Hashable | None = None,
+        color: str | np.typing.ArrayLike | dict | None = None,
+        **kwargs,
     ) -> PlotAccessor:
         """
         Vertical bar plot.
@@ -1189,7 +1197,7 @@ class PlotAccessor(PandasObject):
         axis of the plot shows the specific categories being compared, and the
         other axis represents a measured value.
         """
-        return self(kind="bar", x=x, y=y, **kwargs)
+        return self(kind="bar", x=x, y=y, color=color, **kwargs)
 
     @Appender(
         """
@@ -1266,7 +1274,11 @@ class PlotAccessor(PandasObject):
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
     def barh(
-        self, x: Hashable | None = None, y: Hashable | None = None, **kwargs
+        self,
+        x: Hashable | None = None,
+        y: Hashable | None = None,
+        color: str | np.typing.ArrayLike | dict | None = None,
+        **kwargs,
     ) -> PlotAccessor:
         """
         Make a horizontal bar plot.
@@ -1277,7 +1289,7 @@ class PlotAccessor(PandasObject):
         axis of the plot shows the specific categories being compared, and the
         other axis represents a measured value.
         """
-        return self(kind="barh", x=x, y=y, **kwargs)
+        return self(kind="barh", x=x, y=y, color=color, **kwargs)
 
     def box(self, by: IndexLabel | None = None, **kwargs) -> PlotAccessor:
         r"""
