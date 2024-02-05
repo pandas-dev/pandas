@@ -2540,29 +2540,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Examples
         --------
-        >>> df1 = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3],
-        ...                     "B": [2.6, 2.7, 2.0, 2.3, 2.9, 2.8]})
-        >>> df2 = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3],
-        ...                     "B": [2.4, 2.4, 2.1, 2.6, 2.5, 2.1]})
-        >>> x = df1.groupby("A").first()
-        >>> x
-            B
-        A
-        1  2.6
-        2  2.0
-        3  2.9
+        >>> df1 = pd.DataFrame({"Day": [1, 1, 1, 2, 2, 2, 3, 3, 3],
+        ...                     "Data": [6, 6, 8, 5, 4, 2, 7, 3, 9]})
+        >>> df2 = pd.DataFrame({"Day": [1, 1, 1, 2, 2, 2, 3, 3, 3],
+        ...                     "Data": [5, 3, 8, 3, 1, 1, 2, 3, 6]})
 
-        >>> y = df2.groupby("A").first()
-        >>> y
-            B
-        A
-        1  2.4
-        2  2.1
-        3  2.5
-
-        >>> x.corrwith(y)
-        B    0.995871
-        dtype: float64
+        >>> df1.groupby("Day").corrwith(df2)
+                 Data  Day
+        Day
+        1    0.917663  NaN
+        2    0.755929  NaN
+        3    0.576557  NaN
         """
         result = self._op_via_apply(
             "corrwith",
