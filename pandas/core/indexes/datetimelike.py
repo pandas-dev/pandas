@@ -273,7 +273,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
     def _parsed_string_to_bounds(self, reso: Resolution, parsed):
         raise NotImplementedError
 
-    def _parse_with_reso(self, label: str):
+    def _parse_with_reso(self, label: str) -> tuple[datetime, Resolution]:
         # overridden by TimedeltaIndex
         try:
             if self.freq is None or hasattr(self.freq, "rule_code"):
@@ -295,7 +295,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         reso = Resolution.from_attrname(reso_str)
         return parsed, reso
 
-    def _get_string_slice(self, key: str):
+    def _get_string_slice(self, key: str) -> slice | npt.NDArray[np.intp]:
         # overridden by TimedeltaIndex
         parsed, reso = self._parse_with_reso(key)
         try:

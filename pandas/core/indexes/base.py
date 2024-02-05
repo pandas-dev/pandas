@@ -55,6 +55,7 @@ from pandas._typing import (
     F,
     IgnoreRaise,
     IndexLabel,
+    IndexT,
     JoinHow,
     Level,
     NaPosition,
@@ -2027,7 +2028,7 @@ class Index(IndexOpsMixin, PandasObject):
         ascending: bool | list[bool] = True,
         sort_remaining=None,
         na_position: NaPosition = "first",
-    ):
+    ) -> tuple[Self, np.ndarray]:
         """
         For internal compatibility with the Index API.
 
@@ -4432,7 +4433,7 @@ class Index(IndexOpsMixin, PandasObject):
         target = self._maybe_preserve_names(target, preserve_names)
         return target
 
-    def _maybe_preserve_names(self, target: Index, preserve_names: bool):
+    def _maybe_preserve_names(self, target: IndexT, preserve_names: bool) -> IndexT:
         if preserve_names and target.nlevels == 1 and target.name != self.name:
             target = target.copy(deep=False)
             target.name = self.name
@@ -5987,7 +5988,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         raise TypeError("cannot sort an Index object in-place, use sort_values instead")
 
-    def shift(self, periods: int = 1, freq=None):
+    def shift(self, periods: int = 1, freq=None) -> Self:
         """
         Shift index by desired number of time frequency increments.
 
