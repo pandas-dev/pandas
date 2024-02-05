@@ -4271,9 +4271,7 @@ cdef class CustomBusinessDay(BusinessDay):
     @property
     def _period_dtype_code(self):
         # GH#52534
-        raise TypeError(
-            "CustomBusinessDay is not supported as period frequency"
-        )
+        raise ValueError(f"{self.base} is not supported as period frequency")
 
     _apply_array = BaseOffset._apply_array
 
@@ -4838,6 +4836,8 @@ cpdef to_offset(freq, bint is_period=False):
         return None
 
     if isinstance(freq, BaseOffset):
+        if is_period and not hasattr(freq, "_period_dtype_code"):
+            raise ValueError(f"{freq.base} is not supported as period frequency")
         return freq
 
     if isinstance(freq, tuple):

@@ -446,11 +446,11 @@ class TestPeriodDtype(Base):
     def test_cannot_use_custom_businessday(self):
         # GH#52534
         msg = "C is not supported as period frequency"
-        msg1 = "CustomBusinessDay is not supported as period frequency"
+        msg1 = "<CustomBusinessDay> is not supported as period frequency"
         msg2 = r"PeriodDtype\[B\] is deprecated"
         with pytest.raises(ValueError, match=msg):
             PeriodDtype("C")
-        with pytest.raises(TypeError, match=msg1):
+        with pytest.raises(ValueError, match=msg1):
             with tm.assert_produces_warning(FutureWarning, match=msg2):
                 PeriodDtype(pd.offsets.CustomBusinessDay())
 

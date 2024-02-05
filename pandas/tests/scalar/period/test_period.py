@@ -40,8 +40,8 @@ class TestPeriodDisallowedFreqs:
     )
     def test_offsets_not_supported(self, freq, freq_msg):
         # GH#55785
-        msg = f"{freq_msg} is not supported as period frequency"
-        with pytest.raises(TypeError, match=msg):
+        msg = f"{freq.base} is not supported as period frequency"
+        with pytest.raises(ValueError, match=msg):
             Period(year=2014, freq=freq)
 
     def test_custom_business_day_freq_raises(self):
@@ -49,8 +49,8 @@ class TestPeriodDisallowedFreqs:
         msg = "C is not supported as period frequency"
         with pytest.raises(ValueError, match=msg):
             Period("2023-04-10", freq="C")
-        msg = "CustomBusinessDay is not supported as period frequency"
-        with pytest.raises(TypeError, match=msg):
+        msg = f"{offsets.CustomBusinessDay().base} is not supported as period frequency"
+        with pytest.raises(ValueError, match=msg):
             Period("2023-04-10", freq=offsets.CustomBusinessDay())
 
     def test_invalid_frequency_error_message(self):
