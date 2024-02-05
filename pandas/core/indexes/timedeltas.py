@@ -32,6 +32,7 @@ from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
 
 if TYPE_CHECKING:
+    from pandas._libs import NaTType
     from pandas._typing import DtypeObj
 
 
@@ -245,7 +246,10 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
         return Index.get_loc(self, key)
 
-    def _parse_with_reso(self, label: str):
+    # error: Return type "tuple[Timedelta | NaTType, None]" of "_parse_with_reso"
+    # incompatible with return type "tuple[datetime, Resolution]" in supertype
+    # "DatetimeIndexOpsMixin"
+    def _parse_with_reso(self, label: str) -> tuple[Timedelta | NaTType, None]:  # type: ignore[override]
         # the "with_reso" is a no-op for TimedeltaIndex
         parsed = Timedelta(label)
         return parsed, None

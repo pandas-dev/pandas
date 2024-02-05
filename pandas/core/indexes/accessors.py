@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    NoReturn,
     cast,
 )
 import warnings
@@ -117,7 +118,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
         return result
 
-    def _delegate_property_set(self, name: str, value, *args, **kwargs):
+    def _delegate_property_set(self, name: str, value, *args, **kwargs) -> NoReturn:
         raise ValueError(
             "modifications to a property of a datetimelike object are not supported. "
             "Change values on the original."
@@ -501,7 +502,7 @@ class TimedeltaProperties(Properties):
         return self._get_values().to_pytimedelta()
 
     @property
-    def components(self):
+    def components(self) -> DataFrame:
         """
         Return a Dataframe of the components of the Timedeltas.
 
