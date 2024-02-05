@@ -71,26 +71,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (PR02)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=PR02 --ignore_functions \
-        pandas.CategoricalIndex.rename_categories\
-        pandas.CategoricalIndex.reorder_categories\
-        pandas.CategoricalIndex.add_categories\
-        pandas.CategoricalIndex.remove_categories\
-        pandas.CategoricalIndex.set_categories\
-        pandas.IntervalIndex.set_closed\
-        pandas.IntervalIndex.contains\
-        pandas.IntervalIndex.overlaps\
-        pandas.IntervalIndex.to_tuples\
-        pandas.DatetimeIndex.round\
-        pandas.DatetimeIndex.floor\
-        pandas.DatetimeIndex.ceil\
-        pandas.DatetimeIndex.month_name\
-        pandas.DatetimeIndex.day_name\
-        pandas.DatetimeIndex.to_period\
-        pandas.DatetimeIndex.std\
-        pandas.TimedeltaIndex.round\
-        pandas.TimedeltaIndex.floor\
-        pandas.TimedeltaIndex.ceil\
-        pandas.PeriodIndex.strftime\
         pandas.Series.dt.to_period\
         pandas.Series.dt.tz_localize\
         pandas.Series.dt.tz_convert\
@@ -156,7 +136,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.tseries.offsets.Milli\
         pandas.tseries.offsets.Micro\
         pandas.tseries.offsets.Nano\
-        pandas.set_option\
         pandas.Timestamp.max\
         pandas.Timestamp.min\
         pandas.Timestamp.resolution\
