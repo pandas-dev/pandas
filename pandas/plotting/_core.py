@@ -1614,7 +1614,7 @@ class PlotAccessor(PandasObject):
         """
         return self(kind="area", x=x, y=y, stacked=stacked, **kwargs)
 
-    def pie(self, y: int | str | None = None, **kwargs) -> PlotAccessor:
+    def pie(self, y: IndexLabel | None = None, **kwargs) -> PlotAccessor:
         """
         Generate a pie plot.
 
