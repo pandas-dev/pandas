@@ -10740,7 +10740,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     f"does not match PeriodIndex freq "
                     f"{freq_to_period_freqstr(orig_freq.n, orig_freq.name)}"
                 )
-            new_ax = index.shift(periods)
+            new_ax: Index = index.shift(periods)
         else:
             new_ax = index.shift(periods, freq)
 

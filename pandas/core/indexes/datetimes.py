@@ -518,7 +518,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def _parsed_string_to_bounds(self, reso: Resolution, parsed: dt.datetime):
+    def _parsed_string_to_bounds(
+        self, reso: Resolution, parsed: dt.datetime
+    ) -> tuple[Timestamp, Timestamp]:
         """
         Calculate datetime bounds for parsed time string and its resolution.
 
@@ -555,7 +557,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         #  which localizes parsed.
         return start, end
 
-    def _parse_with_reso(self, label: str):
+    def _parse_with_reso(self, label: str) -> tuple[Timestamp, Resolution]:
         parsed, reso = super()._parse_with_reso(label)
 
         parsed = Timestamp(parsed)

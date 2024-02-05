@@ -819,7 +819,7 @@ class Block(PandasObject, libinternals.Block):
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
             # GH49404
-            blk = self._maybe_copy(inplace)
+            blk = self._maybe_copy_cow_check(inplace)
             values = cast(Categorical, blk.values)
             values._replace(to_replace=to_replace, value=value, inplace=True)
             return [blk]
@@ -841,7 +841,7 @@ class Block(PandasObject, libinternals.Block):
         elif self._can_hold_element(value):
             # TODO(CoW): Maybe split here as well into columns where mask has True
             # and rest?
-            blk = self._maybe_copy(inplace)
+            blk = self._maybe_copy_cow_check(inplace)
             putmask_inplace(blk.values, mask, value)
 
             if not (self.is_object and value is None):
@@ -928,7 +928,7 @@ class Block(PandasObject, libinternals.Block):
 
         rx = re.compile(to_replace)
 
-        block = self._maybe_copy(inplace)
+        block = self._maybe_copy_cow_check(inplace)
 
         replace_regex(block.values, rx, value, mask)
 
@@ -964,7 +964,7 @@ class Block(PandasObject, libinternals.Block):
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
             # GH49404
-            blk = self._maybe_copy(inplace)
+            blk = self._maybe_copy_cow_check(inplace)
             values = cast(Categorical, blk.values)
             values._replace(to_replace=src_list, value=dest_list, inplace=True)
             return [blk]
