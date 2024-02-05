@@ -14,7 +14,7 @@ import pandas._testing as tm
 
 
 class TestUpdate:
-    def test_update(self, using_copy_on_write):
+    def test_update(self):
         s = Series([1.5, np.nan, 3.0, 4.0, np.nan])
         s2 = Series([np.nan, 3.5, np.nan, 5.0])
         s.update(s2)
@@ -29,17 +29,9 @@ class TestUpdate:
         df["c"] = df["c"].astype(object)
         df_orig = df.copy()
 
-        if using_copy_on_write:
-            with tm.raises_chained_assignment_error():
-                df["c"].update(Series(["foo"], index=[0]))
-            expected = df_orig
-        else:
-            with tm.assert_produces_warning(FutureWarning, match="inplace method"):
-                df["c"].update(Series(["foo"], index=[0]))
-            expected = DataFrame(
-                [[1, np.nan, "foo"], [3, 2.0, np.nan]], columns=["a", "b", "c"]
-            )
-            expected["c"] = expected["c"].astype(object)
+        with tm.raises_chained_assignment_error():
+            df["c"].update(Series(["foo"], index=[0]))
+        expected = df_orig
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(
