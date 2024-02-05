@@ -926,18 +926,7 @@ def _array_strptime_object_fallback(
                 raise
             return values
 
-    import warnings
-
-    from pandas.util._exceptions import find_stack_level
-    warnings.warn(
-        "In a future version of pandas, parsing datetimes with mixed time "
-        "zones will raise an error unless `utc=True`. Please specify `utc=True` "
-        "to opt in to the new behaviour and silence this warning. "
-        "To create a `Series` with mixed offsets and `object` dtype, "
-        "please use `apply` and `datetime.datetime.strptime`",
-        FutureWarning,
-        stacklevel=find_stack_level(),
-    )
+    raise ValueError("cannot parse datetimes with mixed time zones unless `utc=True`")
 
     return result
 
