@@ -10744,7 +10744,6 @@ class DataFrame(NDFrame, OpsMixin):
             # type "Union[int, integer[Any]]"; expected "int"
             new_mgr = self._mgr.round(
                 decimals=decimals,  # type: ignore[arg-type]
-                using_cow=using_copy_on_write(),
             )
             return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(
                 self, method="round"
