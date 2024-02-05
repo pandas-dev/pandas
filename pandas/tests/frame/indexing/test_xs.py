@@ -58,7 +58,7 @@ class TestXS:
         ):
             datetime_frame.xs(datetime_frame.index[0] - BDay())
 
-    def test_xs_other(self, float_frame, using_copy_on_write):
+    def test_xs_other(self, float_frame):
         float_frame_orig = float_frame.copy()
         # xs get column
         series = float_frame.xs("A", axis=1)
@@ -68,12 +68,9 @@ class TestXS:
         # view is returned if possible
         series = float_frame.xs("A", axis=1)
         series[:] = 5
-        if using_copy_on_write:
-            # but with CoW the view shouldn't propagate mutations
-            tm.assert_series_equal(float_frame["A"], float_frame_orig["A"])
-            assert not (expected == 5).all()
-        else:
-            assert (expected == 5).all()
+        # The view shouldn't propagate mutations
+        tm.assert_series_equal(float_frame["A"], float_frame_orig["A"])
+        assert not (expected == 5).all()
 
     def test_xs_corner(self):
         # pathological mixed-type reordering case
@@ -363,7 +360,7 @@ class TestXSWithMultiIndex:
         expected = DataFrame({"a": [1]})
         tm.assert_frame_equal(result, expected)
 
-    def test_xs_droplevel_false_view(self, using_copy_on_write):
+    def test_xs_droplevel_false_view(self):
         # GH#37832
         df = DataFrame([[1, 2, 3]], columns=Index(["a", "b", "c"]))
         result = df.xs("a", axis=1, drop_level=False)
@@ -371,26 +368,15 @@ class TestXSWithMultiIndex:
         assert np.shares_memory(result.iloc[:, 0]._values, df.iloc[:, 0]._values)
 
         df.iloc[0, 0] = 2
-        if using_copy_on_write:
-            # with copy on write the subset is never modified
-            expected = DataFrame({"a": [1]})
-        else:
-            # modifying original df also modifies result when having a single block
-            expected = DataFrame({"a": [2]})
+        # The subset is never modified
+        expected = DataFrame({"a": [1]})
         tm.assert_frame_equal(result, expected)
 
-        # with mixed dataframe, modifying the parent doesn't modify result
-        # TODO the "split" path behaves differently here as with single block
         df = DataFrame([[1, 2.5, "a"]], columns=Index(["a", "b", "c"]))
         result = df.xs("a", axis=1, drop_level=False)
         df.iloc[0, 0] = 2
-        if using_copy_on_write:
-            # with copy on write the subset is never modified
-            expected = DataFrame({"a": [1]})
-        else:
-            # FIXME: iloc does not update the array inplace using
-            # "split" path
-            expected = DataFrame({"a": [1]})
+        # The subset is never modified
+        expected = DataFrame({"a": [1]})
         tm.assert_frame_equal(result, expected)
 
     def test_xs_list_indexer_droplevel_false(self):

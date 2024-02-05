@@ -565,9 +565,7 @@ class TestDataFrameIndexing:
         with pytest.raises(KeyError, match=r"^3$"):
             df2.loc[3:11] = 0
 
-    def test_fancy_getitem_slice_mixed(
-        self, float_frame, float_string_frame, using_copy_on_write
-    ):
+    def test_fancy_getitem_slice_mixed(self, float_frame, float_string_frame):
         sliced = float_string_frame.iloc[:, -3:]
         assert sliced["D"].dtype == np.float64
 
@@ -579,13 +577,7 @@ class TestDataFrameIndexing:
         assert np.shares_memory(sliced["C"]._values, float_frame["C"]._values)
 
         sliced.loc[:, "C"] = 4.0
-        if not using_copy_on_write:
-            assert (float_frame["C"] == 4).all()
-
-            # with the enforcement of GH#45333 in 2.0, this remains a view
-            np.shares_memory(sliced["C"]._values, float_frame["C"]._values)
-        else:
-            tm.assert_frame_equal(float_frame, original)
+        tm.assert_frame_equal(float_frame, original)
 
     def test_getitem_setitem_non_ix_labels(self):
         df = DataFrame(range(20), index=date_range("2020-01-01", periods=20))
@@ -1053,7 +1045,7 @@ class TestDataFrameIndexing:
         expected = df.reindex(df.index[[1, 2, 4, 6]])
         tm.assert_frame_equal(result, expected)
 
-    def test_iloc_row_slice_view(self, using_copy_on_write):
+    def test_iloc_row_slice_view(self):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)), index=range(0, 20, 2)
         )
@@ -1067,11 +1059,6 @@ class TestDataFrameIndexing:
 
         exp_col = original[2].copy()
         subset.loc[:, 2] = 0.0
-        if not using_copy_on_write:
-            exp_col._values[4:8] = 0.0
-
-            # With the enforcement of GH#45333 in 2.0, this remains a view
-            assert np.shares_memory(df[2], subset[2])
         tm.assert_series_equal(df[2], exp_col)
 
     def test_iloc_col(self):
@@ -1097,32 +1084,20 @@ class TestDataFrameIndexing:
         expected = df.reindex(columns=df.columns[[1, 2, 4, 6]])
         tm.assert_frame_equal(result, expected)
 
-    def test_iloc_col_slice_view(self, using_copy_on_write):
+    def test_iloc_col_slice_view(self):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((4, 10)), columns=range(0, 20, 2)
         )
         original = df.copy()
         subset = df.iloc[:, slice(4, 8)]
 
-        if not using_copy_on_write:
-            # verify slice is view
-            assert np.shares_memory(df[8]._values, subset[8]._values)
-
-            subset.loc[:, 8] = 0.0
-
-            assert (df[8] == 0).all()
-
-            # with the enforcement of GH#45333 in 2.0, this remains a view
-            assert np.shares_memory(df[8]._values, subset[8]._values)
-        else:
-            if using_copy_on_write:
-                # verify slice is view
-                assert np.shares_memory(df[8]._values, subset[8]._values)
-            subset[8] = 0.0
-            # subset changed
-            assert (subset[8] == 0).all()
-            # but df itself did not change (setitem replaces full column)
-            tm.assert_frame_equal(df, original)
+        # verify slice is view
+        assert np.shares_memory(df[8]._values, subset[8]._values)
+        subset[8] = 0.0
+        # subset changed
+        assert (subset[8] == 0).all()
+        # but df itself did not change (setitem replaces full column)
+        tm.assert_frame_equal(df, original)
 
     def test_loc_duplicates(self):
         # gh-17105

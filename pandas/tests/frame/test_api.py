@@ -325,7 +325,6 @@ class TestDataFrameMisc:
         self,
         allows_duplicate_labels,
         frame_or_series,
-        using_copy_on_write,
     ):
         obj = DataFrame({"A": [1, 2]})
         key = (0, 0)
@@ -354,12 +353,7 @@ class TestDataFrameMisc:
             assert np.may_share_memory(obj["A"].values, result["A"].values)
 
         result.iloc[key] = 0
-        if using_copy_on_write:
-            assert obj.iloc[key] == 1
-        else:
-            assert obj.iloc[key] == 0
-            # set back to 1 for test below
-            result.iloc[key] = 1
+        assert obj.iloc[key] == 1
 
         # Now we do copy.
         result = obj.set_flags(

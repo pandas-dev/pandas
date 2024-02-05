@@ -20,7 +20,7 @@ from pandas.tests.frame.common import _check_mixed_float
 
 
 class TestFillNA:
-    def test_fillna_dict_inplace_nonunique_columns(self, using_copy_on_write):
+    def test_fillna_dict_inplace_nonunique_columns(self):
         df = DataFrame(
             {"A": [np.nan] * 3, "B": [NaT, Timestamp(1), NaT], "C": [np.nan, "foo", 2]}
         )
@@ -35,27 +35,16 @@ class TestFillNA:
         )
         expected.columns = ["A", "A", "A"]
         tm.assert_frame_equal(df, expected)
-
-        # TODO: what's the expected/desired behavior with CoW?
-        if not using_copy_on_write:
-            assert tm.shares_memory(df.iloc[:, 0], orig.iloc[:, 0])
         assert not tm.shares_memory(df.iloc[:, 1], orig.iloc[:, 1])
-        if not using_copy_on_write:
-            assert tm.shares_memory(df.iloc[:, 2], orig.iloc[:, 2])
 
-    def test_fillna_on_column_view(self, using_copy_on_write):
+    def test_fillna_on_column_view(self):
         # GH#46149 avoid unnecessary copies
         arr = np.full((40, 50), np.nan)
         df = DataFrame(arr, copy=False)
 
-        if using_copy_on_write:
-            with tm.raises_chained_assignment_error():
-                df[0].fillna(-1, inplace=True)
-            assert np.isnan(arr[:, 0]).all()
-        else:
-            with tm.assert_produces_warning(FutureWarning, match="inplace method"):
-                df[0].fillna(-1, inplace=True)
-            assert (arr[:, 0] == -1).all()
+        with tm.raises_chained_assignment_error():
+            df[0].fillna(-1, inplace=True)
+        assert np.isnan(arr[:, 0]).all()
 
         # i.e. we didn't create a new 49-column block
         assert len(df._mgr.arrays) == 1
@@ -106,17 +95,6 @@ class TestFillNA:
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = mf.fillna(method="pad")
         _check_mixed_float(result, dtype={"C": None})
-
-    def test_fillna_empty(self, using_copy_on_write):
-        if using_copy_on_write:
-            pytest.skip("condition is unnecessary complex and is deprecated anyway")
-        # empty frame (GH#2778)
-        df = DataFrame(columns=["x"])
-        for m in ["pad", "backfill"]:
-            msg = "Series.fillna with 'method' is deprecated"
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                df.x.fillna(method=m, inplace=True)
-                df.x.fillna(method=m)
 
     def test_fillna_different_dtype(self, using_infer_string):
         # with different dtype (GH#3386)
@@ -746,7 +724,7 @@ class TestFillNA:
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("val", [-1, {"x": -1, "y": -1}])
-    def test_inplace_dict_update_view(self, val, using_copy_on_write):
+    def test_inplace_dict_update_view(self, val):
         # GH#47188
         df = DataFrame({"x": [np.nan, 2], "y": [np.nan, 2]})
         df_orig = df.copy()
@@ -754,10 +732,7 @@ class TestFillNA:
         df.fillna(val, inplace=True)
         expected = DataFrame({"x": [-1, 2.0], "y": [-1.0, 2]})
         tm.assert_frame_equal(df, expected)
-        if using_copy_on_write:
-            tm.assert_frame_equal(result_view, df_orig)
-        else:
-            tm.assert_frame_equal(result_view, expected)
+        tm.assert_frame_equal(result_view, df_orig)
 
     def test_single_block_df_with_horizontal_axis(self):
         # GH 47713
