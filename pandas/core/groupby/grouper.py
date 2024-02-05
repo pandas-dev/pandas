@@ -12,10 +12,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import (
-    using_copy_on_write,
-    warn_copy_on_write,
-)
+from pandas._config import using_copy_on_write
 
 from pandas._libs.tslibs import OutOfBoundsDatetime
 from pandas.errors import InvalidIndexError
@@ -427,17 +424,6 @@ class Grouper:
             stacklevel=find_stack_level(),
         )
         return self._obj_deprecated
-
-    @final
-    @property
-    def grouper(self):
-        warnings.warn(
-            f"{type(self).__name__}.grouper is deprecated and will be removed "
-            "in a future version. Use GroupBy.grouper instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._grouper_deprecated
 
     @final
     @property
@@ -973,7 +959,7 @@ def get_grouper(
     def is_in_obj(gpr) -> bool:
         if not hasattr(gpr, "name"):
             return False
-        if using_copy_on_write() or warn_copy_on_write():
+        if using_copy_on_write():
             # For the CoW case, we check the references to determine if the
             # series is part of the object
             try:
