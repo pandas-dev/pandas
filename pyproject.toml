@@ -330,6 +330,9 @@ exclude = [
   "env",
 ]
 
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"urllib.request.urlopen".msg = "Use pandas.io.common.urlopen instead of urllib.request.urlopen"
+
 [tool.ruff.per-file-ignores]
 # relative imports allowed for asv_bench
 "asv_bench/*" = ["TID", "NPY002"]

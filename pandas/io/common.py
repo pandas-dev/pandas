@@ -286,7 +286,7 @@ def urlopen(*args, **kwargs):
     """
     import urllib.request
 
-    return urllib.request.urlopen(*args, **kwargs)
+    return urllib.request.urlopen(*args, **kwargs)  # noqa: TID251
 
 
 def is_fsspec_url(url: FilePath | BaseBuffer) -> bool:
