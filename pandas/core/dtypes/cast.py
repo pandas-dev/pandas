@@ -1682,6 +1682,7 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
     arr = np.asarray(arr)
 
     if np.issubdtype(arr.dtype, str):
+        # TODO(numpy-2.0 min): This case will raise an OverflowError above
         if (casted.astype(str) == arr).all():
             return casted
         raise ValueError(f"string values cannot be losslessly cast to {dtype}")
