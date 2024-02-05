@@ -1092,7 +1092,7 @@ class PlotAccessor(PandasObject):
         self,
         x: Hashable | None = None,
         y: Hashable | None = None,
-        color: str | np.typing.ArrayLike | dict | None = None,
+        color: str | Sequence[str] | dict | None = None,
         **kwargs,
     ) -> PlotAccessor:
         """
@@ -1185,7 +1185,7 @@ class PlotAccessor(PandasObject):
         self,
         x: Hashable | None = None,
         y: Hashable | None = None,
-        color: str | np.typing.ArrayLike | dict | None = None,
+        color: str | Sequence[str] | dict | None = None,
         **kwargs,
     ) -> PlotAccessor:
         """
@@ -1277,7 +1277,7 @@ class PlotAccessor(PandasObject):
         self,
         x: Hashable | None = None,
         y: Hashable | None = None,
-        color: str | np.typing.ArrayLike | dict | None = None,
+        color: str | Sequence[str] | dict | None = None,
         **kwargs,
     ) -> PlotAccessor:
         """
