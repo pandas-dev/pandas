@@ -470,7 +470,6 @@ class BaseBlockManager(PandasObject):
             limit=limit,
             inplace=inplace,
             downcast=downcast,
-            using_cow=using_copy_on_write(),
         )
 
     @final
@@ -486,7 +485,6 @@ class BaseBlockManager(PandasObject):
             align_keys=align_keys,
             other=other,
             cond=cond,
-            using_cow=using_copy_on_write(),
         )
 
     @final
@@ -502,16 +500,11 @@ class BaseBlockManager(PandasObject):
             align_keys=align_keys,
             mask=mask,
             new=new,
-            using_cow=using_copy_on_write(),
         )
 
     @final
-    def round(self, decimals: int, using_cow: bool = False) -> Self:
-        return self.apply(
-            "round",
-            decimals=decimals,
-            using_cow=using_cow,
-        )
+    def round(self, decimals: int) -> Self:
+        return self.apply("round", decimals=decimals)
 
     @final
     def replace(self, to_replace, value, inplace: bool) -> Self:
@@ -558,20 +551,10 @@ class BaseBlockManager(PandasObject):
         return bm
 
     def interpolate(self, inplace: bool, **kwargs) -> Self:
-        return self.apply(
-            "interpolate",
-            inplace=inplace,
-            **kwargs,
-            using_cow=using_copy_on_write(),
-        )
+        return self.apply("interpolate", inplace=inplace, **kwargs)
 
     def pad_or_backfill(self, inplace: bool, **kwargs) -> Self:
-        return self.apply(
-            "pad_or_backfill",
-            inplace=inplace,
-            **kwargs,
-            using_cow=using_copy_on_write(),
-        )
+        return self.apply("pad_or_backfill", inplace=inplace, **kwargs)
 
     def shift(self, periods: int, fill_value) -> Self:
         if fill_value is lib.no_default:
@@ -622,21 +605,7 @@ class BaseBlockManager(PandasObject):
         return self.apply("diff", n=n)
 
     def astype(self, dtype, copy: bool | None = False, errors: str = "raise") -> Self:
-        if copy is None:
-            if using_copy_on_write():
-                copy = False
-            else:
-                copy = True
-        elif using_copy_on_write():
-            copy = False
-
-        return self.apply(
-            "astype",
-            dtype=dtype,
-            copy=copy,
-            errors=errors,
-            using_cow=using_copy_on_write(),
-        )
+        return self.apply("astype", dtype=dtype, errors=errors)
 
     def convert(self, copy: bool | None) -> Self:
         if copy is None:
@@ -650,14 +619,7 @@ class BaseBlockManager(PandasObject):
         return self.apply("convert", copy=copy, using_cow=using_copy_on_write())
 
     def convert_dtypes(self, **kwargs):
-        if using_copy_on_write():
-            copy = False
-        else:
-            copy = True
-
-        return self.apply(
-            "convert_dtypes", copy=copy, using_cow=using_copy_on_write(), **kwargs
-        )
+        return self.apply("convert_dtypes", **kwargs)
 
     def get_values_for_csv(
         self, *, float_format, date_format, decimal, na_rep: str = "nan", quoting=None
