@@ -1966,6 +1966,16 @@ def using_copy_on_write() -> bool:
     return True
 
 
+@pytest.fixture(params=[True, False])
+def performance_warning(request) -> bool:
+    """
+    Fixture to check if performance warnings are enabled. Either produces
+    ``PerformanceWarning`` if they are enabled, otherwise ``False``.
+    """
+    with pd.option_context("mode.performance_warnings", request.param):
+        yield pd.errors.PerformanceWarning if request.param else False
+
+
 @pytest.fixture
 def warn_copy_on_write() -> bool:
     """

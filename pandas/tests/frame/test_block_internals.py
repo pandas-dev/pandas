@@ -7,8 +7,6 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -353,14 +351,16 @@ class TestDataFrameBlockInternals:
                 assert pd.isna(Y["g"]["c"])
 
     @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
-    def test_strange_column_corruption_issue(self, using_copy_on_write):
+    def test_strange_column_corruption_issue(
+        self, performance_warning, using_copy_on_write
+    ):
         # TODO(wesm): Unclear how exactly this is related to internal matters
         df = DataFrame(index=[0, 1])
         df[0] = np.nan
         wasCol = {}
 
         with tm.assert_produces_warning(
-            PerformanceWarning, raise_on_extra_warnings=False
+            performance_warning, raise_on_extra_warnings=False
         ):
             for i, dt in enumerate(df.index):
                 for col in range(100, 200):
