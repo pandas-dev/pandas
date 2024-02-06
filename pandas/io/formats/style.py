@@ -516,6 +516,7 @@ class Styler(StylerRenderer):
         klass="Styler",
         storage_options=_shared_docs["storage_options"],
         storage_options_versionadded="1.5.0",
+        extra_parameters="",
     )
     def to_excel(
         self,
@@ -3827,7 +3828,7 @@ def _background_gradient(
     vmax: float | None = None,
     gmap: Sequence | np.ndarray | DataFrame | Series | None = None,
     text_only: bool = False,
-):
+) -> list[str] | DataFrame:
     """
     Color background in a range according to the data or a gradient map
     """

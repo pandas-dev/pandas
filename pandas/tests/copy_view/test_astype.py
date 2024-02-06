@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas.compat.pyarrow import pa_version_under12p0
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -136,6 +137,17 @@ def test_astype_string_copy_on_pickle_roundrip():
     base = Series(np.array([(1, 2), None, 1], dtype="object"))
     base_copy = pickle.loads(pickle.dumps(base))
     base_copy.astype(str)
+    tm.assert_series_equal(base, base_copy)
+
+
+@td.skip_if_no("pyarrow")
+def test_astype_string_read_only_on_pickle_roundrip():
+    # https://github.com/pandas-dev/pandas/issues/54654
+    # ensure_string_array may alter read-only array inplace
+    base = Series(np.array([(1, 2), None, 1], dtype="object"))
+    base_copy = pickle.loads(pickle.dumps(base))
+    base_copy._values.flags.writeable = False
+    base_copy.astype("string[pyarrow]", copy=False)
     tm.assert_series_equal(base, base_copy)
 
 
