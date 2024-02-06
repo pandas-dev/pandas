@@ -55,6 +55,7 @@ from pandas._typing import (
     F,
     IgnoreRaise,
     IndexLabel,
+    IndexT,
     JoinHow,
     Level,
     NaPosition,
@@ -2026,7 +2027,7 @@ class Index(IndexOpsMixin, PandasObject):
         ascending: bool | list[bool] = True,
         sort_remaining=None,
         na_position: NaPosition = "first",
-    ):
+    ) -> tuple[Self, np.ndarray]:
         """
         For internal compatibility with the Index API.
 
@@ -4431,7 +4432,7 @@ class Index(IndexOpsMixin, PandasObject):
         target = self._maybe_preserve_names(target, preserve_names)
         return target
 
-    def _maybe_preserve_names(self, target: Index, preserve_names: bool):
+    def _maybe_preserve_names(self, target: IndexT, preserve_names: bool) -> IndexT:
         if preserve_names and target.nlevels == 1 and target.name != self.name:
             target = target.copy(deep=False)
             target.name = self.name
@@ -5953,17 +5954,14 @@ class Index(IndexOpsMixin, PandasObject):
         (Index([1000, 100, 10, 1], dtype='int64'), array([3, 1, 0, 2]))
         """
         if key is None and (
-            self.is_monotonic_increasing or self.is_monotonic_decreasing
+            (ascending and self.is_monotonic_increasing)
+            or (not ascending and self.is_monotonic_decreasing)
         ):
-            reverse = ascending != self.is_monotonic_increasing
-            sorted_index = self[::-1] if reverse else self.copy()
             if return_indexer:
                 indexer = np.arange(len(self), dtype=np.intp)
-                if reverse:
-                    indexer = indexer[::-1]
-                return sorted_index, indexer
+                return self.copy(), indexer
             else:
-                return sorted_index
+                return self.copy()
 
         # GH 35584. Sort missing values according to na_position kwarg
         # ignore na_position for MultiIndex
@@ -5991,7 +5989,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         raise TypeError("cannot sort an Index object in-place, use sort_values instead")
 
-    def shift(self, periods: int = 1, freq=None):
+    def shift(self, periods: int = 1, freq=None) -> Self:
         """
         Shift index by desired number of time frequency increments.
 

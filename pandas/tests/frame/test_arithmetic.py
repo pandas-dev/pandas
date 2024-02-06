@@ -2006,23 +2006,16 @@ def test_arith_list_of_arraylike_raise(to_add):
         to_add + df
 
 
-def test_inplace_arithmetic_series_update(using_copy_on_write, warn_copy_on_write):
+def test_inplace_arithmetic_series_update():
     # https://github.com/pandas-dev/pandas/issues/36373
     df = DataFrame({"A": [1, 2, 3]})
     df_orig = df.copy()
     series = df["A"]
     vals = series._values
 
-    with tm.assert_cow_warning(warn_copy_on_write):
-        series += 1
-    if using_copy_on_write:
-        assert series._values is not vals
-        tm.assert_frame_equal(df, df_orig)
-    else:
-        assert series._values is vals
-
-        expected = DataFrame({"A": [2, 3, 4]})
-        tm.assert_frame_equal(df, expected)
+    series += 1
+    assert series._values is not vals
+    tm.assert_frame_equal(df, df_orig)
 
 
 def test_arithmetic_multiindex_align():

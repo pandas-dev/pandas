@@ -37,6 +37,7 @@ from pandas._typing import (
     F,
     IgnoreRaise,
     IndexLabel,
+    IndexT,
     Scalar,
     Self,
     Shape,
@@ -2733,7 +2734,7 @@ class MultiIndex(Index):
         target = self._maybe_preserve_names(target, preserve_names)
         return target
 
-    def _maybe_preserve_names(self, target: Index, preserve_names: bool) -> Index:
+    def _maybe_preserve_names(self, target: IndexT, preserve_names: bool) -> IndexT:
         if (
             preserve_names
             and target.nlevels == self.nlevels
@@ -3500,6 +3501,8 @@ class MultiIndex(Index):
                         "cannot index with a boolean indexer that "
                         "is not the same length as the index"
                     )
+                if isinstance(k, (ABCSeries, Index)):
+                    k = k._values
                 lvl_indexer = np.asarray(k)
                 if indexer is None:
                     lvl_indexer = lvl_indexer.copy()
