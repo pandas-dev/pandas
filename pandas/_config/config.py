@@ -326,9 +326,9 @@ Examples
 """
 
 _set_option_tmpl = """
-set_option(pat, value)
+set_option(*args, **kwargs)
 
-Sets the value of the specified option.
+Sets the value of the specified option or options.
 
 Available options:
 
@@ -336,13 +336,18 @@ Available options:
 
 Parameters
 ----------
-pat : str
-    Regexp which should match a single option.
-    Note: partial matches are supported for convenience, but unless you use the
-    full option name (e.g. x.y.z.option_name), your code may break in future
-    versions if new options with similar names are introduced.
-value : object
-    New value of option.
+*args : str | object
+    Arguments provided in pairs, which will be interpreted as (pattern, value)
+    pairs.
+    pattern: str
+    Regexp which should match a single option
+    value: object
+    New value of option
+    Note: partial pattern matches are supported for convenience, but unless you
+    use the full option name (e.g. x.y.z.option_name), your code may break in
+    future versions if new options with similar names are introduced.
+**kwargs : str
+    Keyword arguments are not currently supported.
 
 Returns
 -------
@@ -350,6 +355,8 @@ None
 
 Raises
 ------
+ValueError if odd numbers of non-keyword arguments are provided
+TypeError if keyword arguments are provided
 OptionError if no such option exists
 
 Notes

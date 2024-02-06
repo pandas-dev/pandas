@@ -3,8 +3,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.errors import SettingWithCopyError
-
 from pandas import (
     DataFrame,
     Index,
@@ -36,10 +34,7 @@ def four_level_index_dataframe():
 
 
 class TestXS:
-    def test_xs(
-        self, float_frame, datetime_frame, using_copy_on_write, warn_copy_on_write
-    ):
-        float_frame_orig = float_frame.copy()
+    def test_xs(self, float_frame):
         idx = float_frame.index[5]
         xs = float_frame.xs(idx)
         for item, value in xs.items():
@@ -48,6 +43,7 @@ class TestXS:
             else:
                 assert value == float_frame[item][idx]
 
+    def test_xs_mixed(self):
         # mixed-type xs
         test_data = {"A": {"1": 1, "2": 2}, "B": {"1": "1", "2": "2", "3": "3"}}
         frame = DataFrame(test_data)
@@ -56,11 +52,14 @@ class TestXS:
         assert xs["A"] == 1
         assert xs["B"] == "1"
 
+    def test_xs_dt_error(self, datetime_frame):
         with pytest.raises(
             KeyError, match=re.escape("Timestamp('1999-12-31 00:00:00')")
         ):
             datetime_frame.xs(datetime_frame.index[0] - BDay())
 
+    def test_xs_other(self, float_frame):
+        float_frame_orig = float_frame.copy()
         # xs get column
         series = float_frame.xs("A", axis=1)
         expected = float_frame["A"]
@@ -68,14 +67,10 @@ class TestXS:
 
         # view is returned if possible
         series = float_frame.xs("A", axis=1)
-        with tm.assert_cow_warning(warn_copy_on_write):
-            series[:] = 5
-        if using_copy_on_write:
-            # but with CoW the view shouldn't propagate mutations
-            tm.assert_series_equal(float_frame["A"], float_frame_orig["A"])
-            assert not (expected == 5).all()
-        else:
-            assert (expected == 5).all()
+        series[:] = 5
+        # The view shouldn't propagate mutations
+        tm.assert_series_equal(float_frame["A"], float_frame_orig["A"])
+        assert not (expected == 5).all()
 
     def test_xs_corner(self):
         # pathological mixed-type reordering case
@@ -122,21 +117,16 @@ class TestXS:
         result = df.xs((2008, "sat"), level=["year", "day"], drop_level=False)
         tm.assert_frame_equal(result, expected)
 
-    def test_xs_view(self, using_copy_on_write, warn_copy_on_write):
+    def test_xs_view(self):
         # in 0.14 this will return a view if possible a copy otherwise, but
         # this is numpy dependent
 
         dm = DataFrame(np.arange(20.0).reshape(4, 5), index=range(4), columns=range(5))
         df_orig = dm.copy()
 
-        if using_copy_on_write:
-            with tm.raises_chained_assignment_error():
-                dm.xs(2)[:] = 20
-            tm.assert_frame_equal(dm, df_orig)
-        else:
-            with tm.raises_chained_assignment_error():
-                dm.xs(2)[:] = 20
-            assert (dm.xs(2) == 20).all()
+        with tm.raises_chained_assignment_error():
+            dm.xs(2)[:] = 20
+        tm.assert_frame_equal(dm, df_orig)
 
 
 class TestXSWithMultiIndex:
@@ -194,43 +184,22 @@ class TestXSWithMultiIndex:
         result = df.xs("c", level=2)
         tm.assert_frame_equal(result, expected)
 
-    def test_xs_setting_with_copy_error(
-        self,
-        multiindex_dataframe_random_data,
-        using_copy_on_write,
-        warn_copy_on_write,
-    ):
+    def test_xs_setting_with_copy_error(self, multiindex_dataframe_random_data):
         # this is a copy in 0.14
         df = multiindex_dataframe_random_data
         df_orig = df.copy()
         result = df.xs("two", level="second")
 
-        if using_copy_on_write or warn_copy_on_write:
-            result[:] = 10
-        else:
-            # setting this will give a SettingWithCopyError
-            # as we are trying to write a view
-            msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-            with pytest.raises(SettingWithCopyError, match=msg):
-                result[:] = 10
+        result[:] = 10
         tm.assert_frame_equal(df, df_orig)
 
-    def test_xs_setting_with_copy_error_multiple(
-        self, four_level_index_dataframe, using_copy_on_write, warn_copy_on_write
-    ):
+    def test_xs_setting_with_copy_error_multiple(self, four_level_index_dataframe):
         # this is a copy in 0.14
         df = four_level_index_dataframe
         df_orig = df.copy()
         result = df.xs(("a", 4), level=["one", "four"])
 
-        if using_copy_on_write or warn_copy_on_write:
-            result[:] = 10
-        else:
-            # setting this will give a SettingWithCopyError
-            # as we are trying to write a view
-            msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-            with pytest.raises(SettingWithCopyError, match=msg):
-                result[:] = 10
+        result[:] = 10
         tm.assert_frame_equal(df, df_orig)
 
     @pytest.mark.parametrize("key, level", [("one", "second"), (["one"], ["second"])])
@@ -391,35 +360,23 @@ class TestXSWithMultiIndex:
         expected = DataFrame({"a": [1]})
         tm.assert_frame_equal(result, expected)
 
-    def test_xs_droplevel_false_view(self, using_copy_on_write, warn_copy_on_write):
+    def test_xs_droplevel_false_view(self):
         # GH#37832
         df = DataFrame([[1, 2, 3]], columns=Index(["a", "b", "c"]))
         result = df.xs("a", axis=1, drop_level=False)
         # check that result still views the same data as df
         assert np.shares_memory(result.iloc[:, 0]._values, df.iloc[:, 0]._values)
 
-        with tm.assert_cow_warning(warn_copy_on_write):
-            df.iloc[0, 0] = 2
-        if using_copy_on_write:
-            # with copy on write the subset is never modified
-            expected = DataFrame({"a": [1]})
-        else:
-            # modifying original df also modifies result when having a single block
-            expected = DataFrame({"a": [2]})
+        df.iloc[0, 0] = 2
+        # The subset is never modified
+        expected = DataFrame({"a": [1]})
         tm.assert_frame_equal(result, expected)
 
-        # with mixed dataframe, modifying the parent doesn't modify result
-        # TODO the "split" path behaves differently here as with single block
         df = DataFrame([[1, 2.5, "a"]], columns=Index(["a", "b", "c"]))
         result = df.xs("a", axis=1, drop_level=False)
         df.iloc[0, 0] = 2
-        if using_copy_on_write:
-            # with copy on write the subset is never modified
-            expected = DataFrame({"a": [1]})
-        else:
-            # FIXME: iloc does not update the array inplace using
-            # "split" path
-            expected = DataFrame({"a": [1]})
+        # The subset is never modified
+        expected = DataFrame({"a": [1]})
         tm.assert_frame_equal(result, expected)
 
     def test_xs_list_indexer_droplevel_false(self):
