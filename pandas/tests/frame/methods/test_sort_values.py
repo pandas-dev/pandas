@@ -331,21 +331,15 @@ class TestDataFrameSortValues:
         df2 = df.sort_values(by=["C", "B"])
         tm.assert_frame_equal(df1, df2)
 
-    def test_sort_values_frame_column_inplace_sort_exception(
-        self, float_frame, using_copy_on_write
-    ):
+    def test_sort_values_frame_column_inplace_sort_exception(self, float_frame):
         s = float_frame["A"]
         float_frame_orig = float_frame.copy()
-        if using_copy_on_write:
-            # INFO(CoW) Series is a new object, so can be changed inplace
-            # without modifying original datafame
-            s.sort_values(inplace=True)
-            tm.assert_series_equal(s, float_frame_orig["A"].sort_values())
-            # column in dataframe is not changed
-            tm.assert_frame_equal(float_frame, float_frame_orig)
-        else:
-            with pytest.raises(ValueError, match="This Series is a view"):
-                s.sort_values(inplace=True)
+        # INFO(CoW) Series is a new object, so can be changed inplace
+        # without modifying original datafame
+        s.sort_values(inplace=True)
+        tm.assert_series_equal(s, float_frame_orig["A"].sort_values())
+        # column in dataframe is not changed
+        tm.assert_frame_equal(float_frame, float_frame_orig)
 
         cp = s.copy()
         cp.sort_values()  # it works!
@@ -598,7 +592,7 @@ class TestDataFrameSortValues:
         result = expected.sort_values(["A", "date"])
         tm.assert_frame_equal(result, expected)
 
-    def test_sort_values_item_cache(self, using_copy_on_write):
+    def test_sort_values_item_cache(self):
         # previous behavior incorrect retained an invalid _item_cache entry
         df = DataFrame(
             np.random.default_rng(2).standard_normal((4, 3)), columns=["A", "B", "C"]
@@ -609,14 +603,9 @@ class TestDataFrameSortValues:
 
         df.sort_values(by="A")
 
-        if using_copy_on_write:
-            ser.iloc[0] = 99
-            assert df.iloc[0, 0] == df["A"][0]
-            assert df.iloc[0, 0] != 99
-        else:
-            ser.values[0] = 99
-            assert df.iloc[0, 0] == df["A"][0]
-            assert df.iloc[0, 0] == 99
+        ser.iloc[0] = 99
+        assert df.iloc[0, 0] == df["A"][0]
+        assert df.iloc[0, 0] != 99
 
     def test_sort_values_reshaping(self):
         # GH 39426
