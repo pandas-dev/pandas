@@ -7,22 +7,22 @@ from collections.abc import (
 import itertools
 from typing import (
     TYPE_CHECKING,
+    Any,
     Callable,
     Literal,
     cast,
+    final,
 )
 import warnings
 import weakref
 
 import numpy as np
 
-from pandas._config import (
-    using_copy_on_write,
-    warn_copy_on_write,
-)
+from pandas._config import using_copy_on_write
 from pandas._config.config import _get_option
 
 from pandas._libs import (
+    algos as libalgos,
     internals as libinternals,
     lib,
 )
@@ -31,11 +31,19 @@ from pandas._libs.internals import (
     BlockValuesRefs,
 )
 from pandas._libs.tslibs import Timestamp
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    AbstractMethodError,
+    PerformanceWarning,
+)
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.cast import infer_dtype_from_scalar
+from pandas.core.dtypes.cast import (
+    find_common_type,
+    infer_dtype_from_scalar,
+    np_can_hold_element,
+)
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
@@ -44,6 +52,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -55,12 +64,9 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import (
-    ArrowExtensionArray,
-    ArrowStringArray,
-    DatetimeArray,
-)
+from pandas.core.arrays import DatetimeArray
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.base import PandasObject
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
@@ -68,17 +74,10 @@ from pandas.core.construction import (
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.api import (
     Index,
+    default_index,
     ensure_index,
 )
-from pandas.core.internals.base import (
-    DataManager,
-    SingleDataManager,
-    ensure_np_dtype,
-    interleaved_dtype,
-)
 from pandas.core.internals.blocks import (
-    COW_WARNING_GENERAL_MSG,
-    COW_WARNING_SETITEM_MSG,
     Block,
     NumpyBlock,
     ensure_block_shape,
@@ -107,7 +106,39 @@ if TYPE_CHECKING:
     from pandas.api.extensions import ExtensionArray
 
 
-class BaseBlockManager(DataManager):
+def interleaved_dtype(dtypes: list[DtypeObj]) -> DtypeObj | None:
+    """
+    Find the common dtype for `blocks`.
+
+    Parameters
+    ----------
+    blocks : List[DtypeObj]
+
+    Returns
+    -------
+    dtype : np.dtype, ExtensionDtype, or None
+        None is returned when `blocks` is empty.
+    """
+    if not len(dtypes):
+        return None
+
+    return find_common_type(dtypes)
+
+
+def ensure_np_dtype(dtype: DtypeObj) -> np.dtype:
+    # TODO: https://github.com/pandas-dev/pandas/issues/22791
+    # Give EAs some input on what happens here. Sparse needs this.
+    if isinstance(dtype, SparseDtype):
+        dtype = dtype.subtype
+        dtype = cast(np.dtype, dtype)
+    elif isinstance(dtype, ExtensionDtype):
+        dtype = np.dtype("object")
+    elif dtype == np.dtype(str):
+        dtype = np.dtype("object")
+    return dtype
+
+
+class BaseBlockManager(PandasObject):
     """
     Core internal data structure to implement DataFrame, Series, etc.
 
@@ -175,6 +206,14 @@ class BaseBlockManager(DataManager):
     def __init__(self, blocks, axes, verify_integrity: bool = True) -> None:
         raise NotImplementedError
 
+    @final
+    def __len__(self) -> int:
+        return len(self.items)
+
+    @property
+    def shape(self) -> Shape:
+        return tuple(len(ax) for ax in self.axes)
+
     @classmethod
     def from_blocks(cls, blocks: list[Block], axes: list[Index]) -> Self:
         raise NotImplementedError
@@ -239,6 +278,23 @@ class BaseBlockManager(DataManager):
         # Caller is responsible for ensuring we have an Index object.
         self._validate_set_axis(axis, new_labels)
         self.axes[axis] = new_labels
+
+    @final
+    def _validate_set_axis(self, axis: AxisInt, new_labels: Index) -> None:
+        # Caller is responsible for ensuring we have an Index object.
+        old_len = len(self.axes[axis])
+        new_len = len(new_labels)
+
+        if axis == 1 and len(self.items) == 0:
+            # If we are setting the index on a DataFrame with no columns,
+            #  it is OK to change the length.
+            pass
+
+        elif new_len != old_len:
+            raise ValueError(
+                f"Length mismatch: Expected axis has {old_len} elements, new "
+                f"values have {new_len} elements"
+            )
 
     @property
     def is_single_block(self) -> bool:
@@ -316,6 +372,29 @@ class BaseBlockManager(DataManager):
             output += f"\n{block}"
         return output
 
+    def _equal_values(self, other: Self) -> bool:
+        """
+        To be implemented by the subclasses. Only check the column values
+        assuming shape and indexes have already been checked.
+        """
+        raise AbstractMethodError(self)
+
+    @final
+    def equals(self, other: object) -> bool:
+        """
+        Implementation for DataFrame.equals
+        """
+        if not isinstance(other, type(self)):
+            return False
+
+        self_axes, other_axes = self.axes, other.axes
+        if len(self_axes) != len(other_axes):
+            return False
+        if not all(ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes)):
+            return False
+
+        return self._equal_values(other)
+
     def apply(
         self,
         f,
@@ -368,7 +447,123 @@ class BaseBlockManager(DataManager):
         out = type(self).from_blocks(result_blocks, self.axes)
         return out
 
-    def setitem(self, indexer, value, warn: bool = True) -> Self:
+    def apply_with_block(
+        self,
+        f,
+        align_keys: list[str] | None = None,
+        **kwargs,
+    ) -> Self:
+        raise AbstractMethodError(self)
+
+    @final
+    def isna(self, func) -> Self:
+        return self.apply("apply", func=func)
+
+    @final
+    def fillna(self, value, limit: int | None, inplace: bool, downcast) -> Self:
+        if limit is not None:
+            # Do this validation even if we go through one of the no-op paths
+            limit = libalgos.validate_limit(None, limit=limit)
+
+        return self.apply(
+            "fillna",
+            value=value,
+            limit=limit,
+            inplace=inplace,
+            downcast=downcast,
+        )
+
+    @final
+    def where(self, other, cond, align: bool) -> Self:
+        if align:
+            align_keys = ["other", "cond"]
+        else:
+            align_keys = ["cond"]
+            other = extract_array(other, extract_numpy=True)
+
+        return self.apply(
+            "where",
+            align_keys=align_keys,
+            other=other,
+            cond=cond,
+        )
+
+    @final
+    def putmask(self, mask, new, align: bool = True) -> Self:
+        if align:
+            align_keys = ["new", "mask"]
+        else:
+            align_keys = ["mask"]
+            new = extract_array(new, extract_numpy=True)
+
+        return self.apply(
+            "putmask",
+            align_keys=align_keys,
+            mask=mask,
+            new=new,
+        )
+
+    @final
+    def round(self, decimals: int) -> Self:
+        return self.apply("round", decimals=decimals)
+
+    @final
+    def replace(self, to_replace, value, inplace: bool) -> Self:
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        # NDFrame.replace ensures the not-is_list_likes here
+        assert not lib.is_list_like(to_replace)
+        assert not lib.is_list_like(value)
+        return self.apply(
+            "replace",
+            to_replace=to_replace,
+            value=value,
+            inplace=inplace,
+            using_cow=using_copy_on_write(),
+        )
+
+    @final
+    def replace_regex(self, **kwargs) -> Self:
+        return self.apply(
+            "_replace_regex",
+            **kwargs,
+            using_cow=using_copy_on_write(),
+        )
+
+    @final
+    def replace_list(
+        self,
+        src_list: list[Any],
+        dest_list: list[Any],
+        inplace: bool = False,
+        regex: bool = False,
+    ) -> Self:
+        """do a list replace"""
+        inplace = validate_bool_kwarg(inplace, "inplace")
+
+        bm = self.apply(
+            "replace_list",
+            src_list=src_list,
+            dest_list=dest_list,
+            inplace=inplace,
+            regex=regex,
+            using_cow=using_copy_on_write(),
+        )
+        bm._consolidate_inplace()
+        return bm
+
+    def interpolate(self, inplace: bool, **kwargs) -> Self:
+        return self.apply("interpolate", inplace=inplace, **kwargs)
+
+    def pad_or_backfill(self, inplace: bool, **kwargs) -> Self:
+        return self.apply("pad_or_backfill", inplace=inplace, **kwargs)
+
+    def shift(self, periods: int, fill_value) -> Self:
+        if fill_value is lib.no_default:
+            fill_value = None
+
+        return self.apply("shift", periods=periods, fill_value=fill_value)
+
+    def setitem(self, indexer, value) -> Self:
         """
         Set values with indexer.
 
@@ -377,14 +572,7 @@ class BaseBlockManager(DataManager):
         if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
             raise ValueError(f"Cannot set values with ndim > {self.ndim}")
 
-        if warn and warn_copy_on_write() and not self._has_no_reference(0):
-            warnings.warn(
-                COW_WARNING_GENERAL_MSG,
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
-        elif using_copy_on_write() and not self._has_no_reference(0):
+        if using_copy_on_write() and not self._has_no_reference(0):
             # this method is only called if there is a single block -> hardcoded 0
             # Split blocks to only copy the columns we want to modify
             if self.ndim == 2 and isinstance(indexer, tuple):
@@ -418,21 +606,7 @@ class BaseBlockManager(DataManager):
         return self.apply("diff", n=n)
 
     def astype(self, dtype, copy: bool | None = False, errors: str = "raise") -> Self:
-        if copy is None:
-            if using_copy_on_write():
-                copy = False
-            else:
-                copy = True
-        elif using_copy_on_write():
-            copy = False
-
-        return self.apply(
-            "astype",
-            dtype=dtype,
-            copy=copy,
-            errors=errors,
-            using_cow=using_copy_on_write(),
-        )
+        return self.apply("astype", dtype=dtype, errors=errors)
 
     def convert(self, copy: bool | None) -> Self:
         if copy is None:
@@ -446,14 +620,7 @@ class BaseBlockManager(DataManager):
         return self.apply("convert", copy=copy, using_cow=using_copy_on_write())
 
     def convert_dtypes(self, **kwargs):
-        if using_copy_on_write():
-            copy = False
-        else:
-            copy = True
-
-        return self.apply(
-            "convert_dtypes", copy=copy, using_cow=using_copy_on_write(), **kwargs
-        )
+        return self.apply("convert_dtypes", **kwargs)
 
     def get_values_for_csv(
         self, *, float_format, date_format, decimal, na_rep: str = "nan", quoting=None
@@ -486,7 +653,7 @@ class BaseBlockManager(DataManager):
         # e.g. [ b.values.base is not None for b in self.blocks ]
         # but then we have the case of possibly some blocks being a view
         # and some blocks not. setting in theory is possible on the non-view
-        # blocks w/o causing a SettingWithCopy raise/warn. But this is a bit
+        # blocks. But this is a bit
         # complicated
 
         return False
@@ -603,6 +770,9 @@ class BaseBlockManager(DataManager):
             res._consolidate_inplace()
         return res
 
+    def is_consolidated(self) -> bool:
+        return True
+
     def consolidate(self) -> Self:
         """
         Join together blocks having same dtype
@@ -618,6 +788,31 @@ class BaseBlockManager(DataManager):
         bm._is_consolidated = False
         bm._consolidate_inplace()
         return bm
+
+    def _consolidate_inplace(self) -> None:
+        return
+
+    @final
+    def reindex_axis(
+        self,
+        new_index: Index,
+        axis: AxisInt,
+        fill_value=None,
+        only_slice: bool = False,
+    ) -> Self:
+        """
+        Conform data manager to new index.
+        """
+        new_index, indexer = self.axes[axis].reindex(new_index)
+
+        return self.reindex_indexer(
+            new_index,
+            indexer,
+            axis=axis,
+            fill_value=fill_value,
+            copy=False,
+            only_slice=only_slice,
+        )
 
     def reindex_indexer(
         self,
@@ -1305,17 +1500,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         This is a method on the BlockManager level, to avoid creating an
         intermediate Series at the DataFrame level (`s = df[loc]; s[idx] = value`)
         """
-        needs_to_warn = False
-        if warn_copy_on_write() and not self._has_no_reference(loc):
-            if not isinstance(
-                self.blocks[self.blknos[loc]].values,
-                (ArrowExtensionArray, ArrowStringArray),
-            ):
-                # We might raise if we are in an expansion case, so defer
-                # warning till we actually updated
-                needs_to_warn = True
-
-        elif using_copy_on_write() and not self._has_no_reference(loc):
+        if using_copy_on_write() and not self._has_no_reference(loc):
             blkno = self.blknos[loc]
             # Split blocks to only copy the column we want to modify
             blk_loc = self.blklocs[loc]
@@ -1337,13 +1522,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         else:
             new_mgr = col_mgr.setitem((idx,), value)
             self.iset(loc, new_mgr._block.values, inplace=True)
-
-        if needs_to_warn:
-            warnings.warn(
-                COW_WARNING_GENERAL_MSG,
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
 
     def insert(self, loc: int, item: Hashable, value: ArrayLike, refs=None) -> None:
         """
@@ -1824,7 +2002,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         raise NotImplementedError("This logic lives (for now) in internals.concat")
 
 
-class SingleBlockManager(BaseBlockManager, SingleDataManager):
+class SingleBlockManager(BaseBlockManager):
     """manage a single block with"""
 
     @property
@@ -1943,6 +2121,14 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
     def _block(self) -> Block:
         return self.blocks[0]
 
+    @final
+    @property
+    def array(self) -> ArrayLike:
+        """
+        Quick access to the backing array of the Block.
+        """
+        return self.arrays[0]
+
     # error: Cannot override writeable attribute with read-only property
     @property
     def _blknos(self) -> None:  # type: ignore[override]
@@ -2022,7 +2208,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
     def _can_hold_na(self) -> bool:
         return self._block._can_hold_na
 
-    def setitem_inplace(self, indexer, value, warn: bool = True) -> None:
+    def setitem_inplace(self, indexer, value) -> None:
         """
         Set values with indexer.
 
@@ -2033,19 +2219,24 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         the dtype.
         """
         using_cow = using_copy_on_write()
-        warn_cow = warn_copy_on_write()
-        if (using_cow or warn_cow) and not self._has_no_reference(0):
+        if using_cow and not self._has_no_reference(0):
             if using_cow:
                 self.blocks = (self._block.copy(),)
                 self._cache.clear()
-            elif warn_cow and warn:
-                warnings.warn(
-                    COW_WARNING_SETITEM_MSG,
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
 
-        super().setitem_inplace(indexer, value)
+        arr = self.array
+
+        # EAs will do this validation in their own __setitem__ methods.
+        if isinstance(arr, np.ndarray):
+            # Note: checking for ndarray instead of np.dtype means we exclude
+            #  dt64/td64, which do their own validation.
+            value = np_can_hold_element(arr.dtype, value)
+
+        if isinstance(value, np.ndarray) and value.ndim == 1 and len(value) == 1:
+            # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
+            value = value[0, ...]
+
+        arr[indexer] = value
 
     def idelete(self, indexer) -> SingleBlockManager:
         """
@@ -2090,6 +2281,14 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         left = self.blocks[0].values
         right = other.blocks[0].values
         return array_equals(left, right)
+
+    def grouped_reduce(self, func):
+        arr = self.array
+        res = func(arr)
+        index = default_index(len(res))
+
+        mgr = type(self).from_array(res, index)
+        return mgr
 
 
 # --------------------------------------------------------------------

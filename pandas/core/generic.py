@@ -5,7 +5,6 @@ import collections
 from copy import deepcopy
 import datetime as dt
 from functools import partial
-import gc
 from json import loads
 import operator
 import pickle
@@ -23,21 +22,18 @@ from typing import (
     overload,
 )
 import warnings
-import weakref
 
 import numpy as np
 
 from pandas._config import (
     config,
     using_copy_on_write,
-    warn_copy_on_write,
 )
 
 from pandas._libs import lib
 from pandas._libs.lib import is_range_indexer
 from pandas._libs.tslibs import (
     Period,
-    Tick,
     Timestamp,
     to_offset,
 )
@@ -99,13 +95,10 @@ from pandas.errors import (
     AbstractMethodError,
     ChainedAssignmentError,
     InvalidIndexError,
-    SettingWithCopyError,
-    SettingWithCopyWarning,
 )
 from pandas.errors.cow import (
     _chained_assignment_method_msg,
     _chained_assignment_warning_method_msg,
-    _check_cacher,
 )
 from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
@@ -220,6 +213,8 @@ if TYPE_CHECKING:
     from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
 
+import textwrap
+
 # goal is to be able to define the docs close to function, while still being
 # able to share
 _shared_docs = {**_shared_docs}
@@ -253,10 +248,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     _internal_names: list[str] = [
         "_mgr",
-        "_cacher",
         "_item_cache",
         "_cache",
-        "_is_copy",
         "_name",
         "_metadata",
         "_flags",
@@ -265,7 +258,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     _accessors: set[str] = set()
     _hidden_attrs: frozenset[str] = frozenset([])
     _metadata: list[str] = []
-    _is_copy: weakref.ReferenceType[NDFrame] | str | None = None
     _mgr: Manager
     _attrs: dict[Hashable, Any]
     _typ: str
@@ -274,9 +266,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # Constructors
 
     def __init__(self, data: Manager) -> None:
-        object.__setattr__(self, "_is_copy", None)
         object.__setattr__(self, "_mgr", data)
-        object.__setattr__(self, "_item_cache", {})
         object.__setattr__(self, "_attrs", {})
         object.__setattr__(self, "_flags", Flags(self, allows_duplicate_labels=True))
 
@@ -788,7 +778,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         labels = ensure_index(labels)
         self._mgr.set_axis(axis, labels)
-        self._clear_item_cache()
 
     @final
     def swapaxes(self, axis1: Axis, axis2: Axis, copy: bool_t | None = None) -> Self:
@@ -1106,7 +1095,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             new_index = ax._transform_index(f, level=level)
             result._set_axis_nocheck(new_index, axis=axis_no, inplace=True, copy=False)
-            result._clear_item_cache()
 
         if inplace:
             self._update_inplace(result)
@@ -1170,18 +1158,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         mapper : scalar, list-like, optional
             Value to set the axis name attribute.
-        index, columns : scalar, list-like, dict-like or function, optional
-            A scalar, list-like, dict-like or functions transformations to
-            apply to that axis' values.
-            Note that the ``columns`` parameter is not allowed if the
-            object is a Series. This parameter only apply for DataFrame
-            type objects.
 
             Use either ``mapper`` and ``axis`` to
             specify the axis to target with ``mapper``, or ``index``
             and/or ``columns``.
+        index : scalar, list-like, dict-like or function, optional
+            A scalar, list-like, dict-like or functions transformations to
+            apply to that axis' values.
+        columns : scalar, list-like, dict-like or function, optional
+            A scalar, list-like, dict-like or functions transformations to
+            apply to that axis' values.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to rename. For `Series` this parameter is unused and defaults to 0.
+            The axis to rename.
         copy : bool, default None
             Also copy underlying data.
 
@@ -1202,7 +1190,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        Series, DataFrame, or None
+        DataFrame, or None
             The same type as the caller or None if ``inplace=True``.
 
         See Also
@@ -1232,21 +1220,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        **Series**
-
-        >>> s = pd.Series(["dog", "cat", "monkey"])
-        >>> s
-        0       dog
-        1       cat
-        2    monkey
-        dtype: object
-        >>> s.rename_axis("animal")
-        animal
-        0    dog
-        1    cat
-        2    monkey
-        dtype: object
-
         **DataFrame**
 
         >>> df = pd.DataFrame({"num_legs": [4, 4, 2],
@@ -2194,8 +2167,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         elif len(state) == 2:
             raise NotImplementedError("Pre-0.12 pickles are no longer supported")
 
-        self._item_cache: dict[Hashable, Series] = {}
-
     # ----------------------------------------------------------------------
     # Rendering Methods
 
@@ -2240,6 +2211,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         klass="object",
         storage_options=_shared_docs["storage_options"],
         storage_options_versionadded="1.2.0",
+        extra_parameters=textwrap.dedent(
+            """\
+        engine_kwargs : dict, optional
+            Arbitrary keyword arguments passed to excel engine.
+    """
+        ),
     )
     def to_excel(
         self,
@@ -2315,9 +2292,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {storage_options}
 
             .. versionadded:: {storage_options_versionadded}
-        engine_kwargs : dict, optional
-            Arbitrary keyword arguments passed to excel engine.
-
+        {extra_parameters}
         See Also
         --------
         to_csv : Write DataFrame to a comma-separated values (csv) file.
@@ -3960,44 +3935,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     # ----------------------------------------------------------------------
-    # Lookup Caching
-
-    def _reset_cacher(self) -> None:
-        """
-        Reset the cacher.
-        """
-        raise AbstractMethodError(self)
-
-    def _maybe_update_cacher(
-        self,
-        clear: bool_t = False,
-        verify_is_copy: bool_t = True,
-        inplace: bool_t = False,
-    ) -> None:
-        """
-        See if we need to update our parent cacher if clear, then clear our
-        cache.
-
-        Parameters
-        ----------
-        clear : bool, default False
-            Clear the item cache.
-        verify_is_copy : bool, default True
-            Provide is_copy checks.
-        """
-        if using_copy_on_write():
-            return
-
-        if verify_is_copy:
-            self._check_setitem_copy(t="referent")
-
-        if clear:
-            self._clear_item_cache()
-
-    def _clear_item_cache(self) -> None:
-        raise AbstractMethodError(self)
-
-    # ----------------------------------------------------------------------
     # Indexing Methods
 
     @final
@@ -4114,23 +4051,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self._constructor_from_mgr(new_data, axes=new_data.axes).__finalize__(
             self, method="take"
         )
-
-    @final
-    def _take_with_is_copy(self, indices, axis: Axis = 0) -> Self:
-        """
-        Internal version of the `take` method that sets the `_is_copy`
-        attribute to keep track of the parent dataframe (using in indexing
-        for the SettingWithCopyWarning).
-
-        For Series this does the same as the public take (it never sets `_is_copy`).
-
-        See the docstring of `take` for full explanation of the parameters.
-        """
-        result = self.take(indices=indices, axis=axis)
-        # Maybe set copy if we didn't actually change the index.
-        if self.ndim == 2 and not result._get_axis(axis).equals(self._get_axis(axis)):
-            result._set_is_copy(self)
-        return result
 
     @final
     def xs(
@@ -4279,9 +4199,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if isinstance(loc, np.ndarray):
                 if loc.dtype == np.bool_:
                     (inds,) = loc.nonzero()
-                    return self._take_with_is_copy(inds, axis=axis)
+                    return self.take(inds, axis=axis)
                 else:
-                    return self._take_with_is_copy(loc, axis=axis)
+                    return self.take(loc, axis=axis)
 
             if not is_scalar(loc):
                 new_index = index[loc]
@@ -4307,9 +4227,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             result = self.iloc[loc]
             result.index = new_index
 
-        # this could be a view
-        # but only in a single-dtyped view sliceable case
-        result._set_is_copy(self, copy=not result._is_view)
         return result
 
     def __getitem__(self, item):
@@ -4345,110 +4262,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         new_mgr = self._mgr.get_slice(slobj, axis=axis)
         result = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
         result = result.__finalize__(self)
-
-        # this could be a view
-        # but only in a single-dtyped view sliceable case
-        is_copy = axis != 0 or result._is_view
-        result._set_is_copy(self, copy=is_copy)
         return result
-
-    @final
-    def _set_is_copy(self, ref: NDFrame, copy: bool_t = True) -> None:
-        if not copy:
-            self._is_copy = None
-        else:
-            assert ref is not None
-            self._is_copy = weakref.ref(ref)
-
-    def _check_is_chained_assignment_possible(self) -> bool_t:
-        """
-        Check if we are a view, have a cacher, and are of mixed type.
-        If so, then force a setitem_copy check.
-
-        Should be called just near setting a value
-
-        Will return a boolean if it we are a view and are cached, but a
-        single-dtype meaning that the cacher should be updated following
-        setting.
-        """
-        if self._is_copy:
-            self._check_setitem_copy(t="referent")
-        return False
-
-    @final
-    def _check_setitem_copy(self, t: str = "setting", force: bool_t = False) -> None:
-        """
-
-        Parameters
-        ----------
-        t : str, the type of setting error
-        force : bool, default False
-           If True, then force showing an error.
-
-        validate if we are doing a setitem on a chained copy.
-
-        It is technically possible to figure out that we are setting on
-        a copy even WITH a multi-dtyped pandas object. In other words, some
-        blocks may be views while other are not. Currently _is_view will ALWAYS
-        return False for multi-blocks to avoid having to handle this case.
-
-        df = DataFrame(np.arange(0,9), columns=['count'])
-        df['group'] = 'b'
-
-        # This technically need not raise SettingWithCopy if both are view
-        # (which is not generally guaranteed but is usually True.  However,
-        # this is in general not a good practice and we recommend using .loc.
-        df.iloc[0:5]['group'] = 'a'
-
-        """
-        if using_copy_on_write() or warn_copy_on_write():
-            return
-
-        # return early if the check is not needed
-        if not (force or self._is_copy):
-            return
-
-        value = config.get_option("mode.chained_assignment")
-        if value is None:
-            return
-
-        # see if the copy is not actually referred; if so, then dissolve
-        # the copy weakref
-        if self._is_copy is not None and not isinstance(self._is_copy, str):
-            r = self._is_copy()
-            if not gc.get_referents(r) or (r is not None and r.shape == self.shape):
-                self._is_copy = None
-                return
-
-        # a custom message
-        if isinstance(self._is_copy, str):
-            t = self._is_copy
-
-        elif t == "referent":
-            t = (
-                "\n"
-                "A value is trying to be set on a copy of a slice from a "
-                "DataFrame\n\n"
-                "See the caveats in the documentation: "
-                "https://pandas.pydata.org/pandas-docs/stable/user_guide/"
-                "indexing.html#returning-a-view-versus-a-copy"
-            )
-
-        else:
-            t = (
-                "\n"
-                "A value is trying to be set on a copy of a slice from a "
-                "DataFrame.\n"
-                "Try using .loc[row_indexer,col_indexer] = value "
-                "instead\n\nSee the caveats in the documentation: "
-                "https://pandas.pydata.org/pandas-docs/stable/user_guide/"
-                "indexing.html#returning-a-view-versus-a-copy"
-            )
-
-        if value == "raise":
-            raise SettingWithCopyError(t)
-        if value == "warn":
-            warnings.warn(t, SettingWithCopyWarning, stacklevel=find_stack_level())
 
     @final
     def __delitem__(self, key) -> None:
@@ -4481,12 +4295,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # exception:
             loc = self.axes[-1].get_loc(key)
             self._mgr = self._mgr.idelete(loc)
-
-        # delete from the caches
-        try:
-            del self._item_cache[key]
-        except KeyError:
-            pass
 
     # ----------------------------------------------------------------------
     # Unsorted
@@ -4857,22 +4665,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return result.__finalize__(self)
 
     @final
-    def _update_inplace(self, result, verify_is_copy: bool_t = True) -> None:
+    def _update_inplace(self, result) -> None:
         """
         Replace self internals with result.
 
         Parameters
         ----------
         result : same type as self
-        verify_is_copy : bool, default True
-            Provide is_copy checks.
         """
         # NOTE: This does *not* call __finalize__ and that's an explicit
         # decision that we may revisit in the future.
-        self._reset_cache()
-        self._clear_item_cache()
         self._mgr = result._mgr
-        self._maybe_update_cacher(verify_is_copy=verify_is_copy, inplace=True)
 
     @final
     def add_prefix(self, prefix: str, axis: Axis | None = None) -> Self:
@@ -6349,25 +6152,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # Consolidation of internals
 
     @final
-    def _protect_consolidate(self, f):
-        """
-        Consolidate _mgr -- if the blocks have changed, then clear the
-        cache
-        """
-        blocks_before = len(self._mgr.blocks)
-        result = f()
-        if len(self._mgr.blocks) != blocks_before:
-            self._clear_item_cache()
-        return result
-
-    @final
     def _consolidate_inplace(self) -> None:
         """Consolidate data in place and return None"""
 
-        def f() -> None:
-            self._mgr = self._mgr.consolidate()
-
-        self._protect_consolidate(f)
+        self._mgr = self._mgr.consolidate()
 
     @final
     def _consolidate(self):
@@ -6379,8 +6167,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         consolidated : same type as caller
         """
-        f = lambda: self._mgr.consolidate()
-        cons_data = self._protect_consolidate(f)
+        cons_data = self._mgr.consolidate()
         return self._constructor_from_mgr(cons_data, axes=cons_data.axes).__finalize__(
             self
         )
@@ -6573,9 +6360,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2   2020-01-03
         dtype: datetime64[ns]
         """
-        if copy and using_copy_on_write():
-            copy = False
-
         if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
                 if len(dtype) > 1 or self.name not in dtype:
@@ -6584,7 +6368,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         "the key in Series dtype mappings."
                     )
                 new_type = dtype[self.name]
-                return self.astype(new_type, copy, errors)
+                return self.astype(new_type, errors=errors)
 
             # GH#44417 cast to Series so we can use .iat below, which will be
             #  robust in case we
@@ -6606,10 +6390,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             for i, (col_name, col) in enumerate(self.items()):
                 cdt = dtype_ser.iat[i]
                 if isna(cdt):
-                    res_col = col.copy(deep=copy)
+                    res_col = col.copy(deep=False)
                 else:
                     try:
-                        res_col = col.astype(dtype=cdt, copy=copy, errors=errors)
+                        res_col = col.astype(dtype=cdt, errors=errors)
                     except ValueError as ex:
                         ex.args = (
                             f"{ex}: Error while type casting for column '{col_name}'",
@@ -6623,22 +6407,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if isinstance(dtype, ExtensionDtype) and all(
                 arr.dtype == dtype for arr in self._mgr.arrays
             ):
-                return self.copy(deep=copy)
+                return self.copy(deep=False)
             # GH 18099/22869: columnwise conversion to extension dtype
             # GH 24704: self.items handles duplicate column names
-            results = [
-                ser.astype(dtype, copy=copy, errors=errors) for _, ser in self.items()
-            ]
+            results = [ser.astype(dtype, errors=errors) for _, ser in self.items()]
 
         else:
             # else, only a single dtype is given
-            new_data = self._mgr.astype(dtype=dtype, copy=copy, errors=errors)
+            new_data = self._mgr.astype(dtype=dtype, errors=errors)
             res = self._constructor_from_mgr(new_data, axes=new_data.axes)
             return res.__finalize__(self, method="astype")
 
         # GH 33113: handle empty frame or series
         if not results:
-            return self.copy(deep=None)
+            return self.copy(deep=False)
 
         # GH 19920: retain column metadata after concat
         result = concat(results, axis=1, copy=False)
@@ -6786,7 +6568,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: object
         """
         data = self._mgr.copy(deep=deep)
-        self._clear_item_cache()
         return self._constructor_from_mgr(data, axes=data.axes).__finalize__(
             self, method="copy"
         )
@@ -7250,22 +7031,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
-            elif (
-                not PYPY
-                and not using_copy_on_write()
-                and self._is_view_after_cow_rules()
-            ):
-                ctr = sys.getrefcount(self)
-                ref_count = REF_COUNT
-                if isinstance(self, ABCSeries) and _check_cacher(self):
-                    # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
-                    ref_count += 1
-                if ctr <= ref_count:
-                    warnings.warn(
-                        _chained_assignment_warning_method_msg,
-                        FutureWarning,
-                        stacklevel=2,
-                    )
 
         value, method = validate_fillna_kwargs(value, method)
         if method is not None:
@@ -7553,22 +7318,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
-            elif (
-                not PYPY
-                and not using_copy_on_write()
-                and self._is_view_after_cow_rules()
-            ):
-                ctr = sys.getrefcount(self)
-                ref_count = REF_COUNT
-                if isinstance(self, ABCSeries) and _check_cacher(self):
-                    # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
-                    ref_count += 1
-                if ctr <= ref_count:
-                    warnings.warn(
-                        _chained_assignment_warning_method_msg,
-                        FutureWarning,
-                        stacklevel=2,
-                    )
 
         return self._pad_or_backfill(
             "ffill",
@@ -7757,22 +7506,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
-            elif (
-                not PYPY
-                and not using_copy_on_write()
-                and self._is_view_after_cow_rules()
-            ):
-                ctr = sys.getrefcount(self)
-                ref_count = REF_COUNT
-                if isinstance(self, ABCSeries) and _check_cacher(self):
-                    # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
-                    ref_count += 1
-                if ctr <= ref_count:
-                    warnings.warn(
-                        _chained_assignment_warning_method_msg,
-                        FutureWarning,
-                        stacklevel=2,
-                    )
 
         return self._pad_or_backfill(
             "bfill",
@@ -7926,26 +7659,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
-                        stacklevel=2,
-                    )
-            elif (
-                not PYPY
-                and not using_copy_on_write()
-                and self._is_view_after_cow_rules()
-            ):
-                ctr = sys.getrefcount(self)
-                ref_count = REF_COUNT
-                if isinstance(self, ABCSeries) and _check_cacher(self):
-                    # in non-CoW mode, chained Series access will populate the
-                    # `_item_cache` which results in an increased ref count not below
-                    # the threshold, while we still need to warn. We detect this case
-                    # of a Series derived from a DataFrame through the presence of
-                    # checking the `_cacher`
-                    ref_count += 1
-                if ctr <= ref_count:
-                    warnings.warn(
-                        _chained_assignment_warning_method_msg,
-                        FutureWarning,
                         stacklevel=2,
                     )
 
@@ -8376,22 +8089,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
-                        stacklevel=2,
-                    )
-            elif (
-                not PYPY
-                and not using_copy_on_write()
-                and self._is_view_after_cow_rules()
-            ):
-                ctr = sys.getrefcount(self)
-                ref_count = REF_COUNT
-                if isinstance(self, ABCSeries) and _check_cacher(self):
-                    # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
-                    ref_count += 1
-                if ctr <= ref_count:
-                    warnings.warn(
-                        _chained_assignment_warning_method_msg,
-                        FutureWarning,
                         stacklevel=2,
                     )
 
@@ -9263,7 +8960,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise TypeError("Index must be DatetimeIndex")
 
         indexer = index.indexer_at_time(time, asof=asof)
-        return self._take_with_is_copy(indexer, axis=axis)
+        return self.take(indexer, axis=axis)
 
     @final
     def between_time(
@@ -9348,7 +9045,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             include_start=left_inclusive,
             include_end=right_inclusive,
         )
-        return self._take_with_is_copy(indexer, axis=axis)
+        return self.take(indexer, axis=axis)
 
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
@@ -9725,169 +9422,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             offset=offset,
             group_keys=group_keys,
         )
-
-    @final
-    def first(self, offset) -> Self:
-        """
-        Select initial periods of time series data based on a date offset.
-
-        .. deprecated:: 2.1
-            :meth:`.first` is deprecated and will be removed in a future version.
-            Please create a mask and filter using `.loc` instead.
-
-        For a DataFrame with a sorted DatetimeIndex, this function can
-        select the first few rows based on a date offset.
-
-        Parameters
-        ----------
-        offset : str, DateOffset or dateutil.relativedelta
-            The offset length of the data that will be selected. For instance,
-            '1ME' will display all the rows having their index within the first month.
-
-        Returns
-        -------
-        Series or DataFrame
-            A subset of the caller.
-
-        Raises
-        ------
-        TypeError
-            If the index is not  a :class:`DatetimeIndex`
-
-        See Also
-        --------
-        last : Select final periods of time series based on a date offset.
-        at_time : Select values at a particular time of the day.
-        between_time : Select values between particular times of the day.
-
-        Examples
-        --------
-        >>> i = pd.date_range('2018-04-09', periods=4, freq='2D')
-        >>> ts = pd.DataFrame({'A': [1, 2, 3, 4]}, index=i)
-        >>> ts
-                    A
-        2018-04-09  1
-        2018-04-11  2
-        2018-04-13  3
-        2018-04-15  4
-
-        Get the rows for the first 3 days:
-
-        >>> ts.first('3D')
-                    A
-        2018-04-09  1
-        2018-04-11  2
-
-        Notice the data for 3 first calendar days were returned, not the first
-        3 days observed in the dataset, and therefore data for 2018-04-13 was
-        not returned.
-        """
-        warnings.warn(
-            "first is deprecated and will be removed in a future version. "
-            "Please create a mask and filter using `.loc` instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        if not isinstance(self.index, DatetimeIndex):
-            raise TypeError("'first' only supports a DatetimeIndex index")
-
-        if len(self.index) == 0:
-            return self.copy(deep=False)
-
-        offset = to_offset(offset)
-        if not isinstance(offset, Tick) and offset.is_on_offset(self.index[0]):
-            # GH#29623 if first value is end of period, remove offset with n = 1
-            #  before adding the real offset
-            end_date = end = self.index[0] - offset.base + offset
-        else:
-            end_date = end = self.index[0] + offset
-
-        # Tick-like, e.g. 3 weeks
-        if isinstance(offset, Tick) and end_date in self.index:
-            end = self.index.searchsorted(end_date, side="left")
-            return self.iloc[:end]
-
-        return self.loc[:end]
-
-    @final
-    def last(self, offset) -> Self:
-        """
-        Select final periods of time series data based on a date offset.
-
-        .. deprecated:: 2.1
-            :meth:`.last` is deprecated and will be removed in a future version.
-            Please create a mask and filter using `.loc` instead.
-
-        For a DataFrame with a sorted DatetimeIndex, this function
-        selects the last few rows based on a date offset.
-
-        Parameters
-        ----------
-        offset : str, DateOffset, dateutil.relativedelta
-            The offset length of the data that will be selected. For instance,
-            '3D' will display all the rows having their index within the last 3 days.
-
-        Returns
-        -------
-        Series or DataFrame
-            A subset of the caller.
-
-        Raises
-        ------
-        TypeError
-            If the index is not  a :class:`DatetimeIndex`
-
-        See Also
-        --------
-        first : Select initial periods of time series based on a date offset.
-        at_time : Select values at a particular time of the day.
-        between_time : Select values between particular times of the day.
-
-        Notes
-        -----
-        .. deprecated:: 2.1.0
-            Please create a mask and filter using `.loc` instead
-
-        Examples
-        --------
-        >>> i = pd.date_range('2018-04-09', periods=4, freq='2D')
-        >>> ts = pd.DataFrame({'A': [1, 2, 3, 4]}, index=i)
-        >>> ts
-                    A
-        2018-04-09  1
-        2018-04-11  2
-        2018-04-13  3
-        2018-04-15  4
-
-        Get the rows for the last 3 days:
-
-        >>> ts.last('3D')  # doctest: +SKIP
-                    A
-        2018-04-13  3
-        2018-04-15  4
-
-        Notice the data for 3 last calendar days were returned, not the last
-        3 observed days in the dataset, and therefore data for 2018-04-11 was
-        not returned.
-        """
-        warnings.warn(
-            "last is deprecated and will be removed in a future version. "
-            "Please create a mask and filter using `.loc` instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-        if not isinstance(self.index, DatetimeIndex):
-            raise TypeError("'last' only supports a DatetimeIndex index")
-
-        if len(self.index) == 0:
-            return self.copy(deep=False)
-
-        offset = to_offset(offset)
-
-        start_date = self.index[-1] - offset
-        start = self.index.searchsorted(start_date, side="right")
-        return self.iloc[start:]
 
     @final
     def rank(
@@ -10563,7 +10097,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool_t = False,
         axis: Axis | None = None,
         level=None,
-        warn: bool_t = True,
     ):
         """
         Equivalent to public method `where`, except that `other` is not
@@ -10694,7 +10227,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # we may have different type blocks come out of putmask, so
             # reconstruct the block manager
 
-            new_data = self._mgr.putmask(mask=cond, new=other, align=align, warn=warn)
+            new_data = self._mgr.putmask(mask=cond, new=other, align=align)
             result = self._constructor_from_mgr(new_data, axes=new_data.axes)
             return self._update_inplace(result)
 
@@ -11207,7 +10740,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     f"does not match PeriodIndex freq "
                     f"{freq_to_period_freqstr(orig_freq.n, orig_freq.name)}"
                 )
-            new_ax = index.shift(periods)
+            new_ax: Index = index.shift(periods)
         else:
             new_ax = index.shift(periods, freq)
 
@@ -12560,37 +12093,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Wrap arithmetic method to operate inplace.
         """
-        warn = True
-        if not PYPY and warn_copy_on_write():
-            if sys.getrefcount(self) <= REF_COUNT + 2:
-                # we are probably in an inplace setitem context (e.g. df['a'] += 1)
-                warn = False
-
         result = op(self, other)
 
-        if (
-            self.ndim == 1
-            and result._indexed_same(self)
-            and result.dtype == self.dtype
-            and not using_copy_on_write()
-            and not (warn_copy_on_write() and not warn)
-        ):
-            # GH#36498 this inplace op can _actually_ be inplace.
-            # Item "BlockManager" of "Union[BlockManager, SingleBlockManager]" has
-            # no attribute "setitem_inplace"
-            self._mgr.setitem_inplace(  # type: ignore[union-attr]
-                slice(None), result._values, warn=warn
-            )
-            return self
-
-        # Delete cacher
-        self._reset_cacher()
-
         # this makes sure that we are aligned like the input
-        # we are updating inplace so we want to ignore is_copy
-        self._update_inplace(
-            result.reindex_like(self, copy=False), verify_is_copy=False
-        )
+        # we are updating inplace
+        self._update_inplace(result.reindex_like(self, copy=False))
         return self
 
     @final

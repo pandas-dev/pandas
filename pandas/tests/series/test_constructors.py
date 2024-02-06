@@ -891,14 +891,12 @@ class TestSeriesConstructors:
         with pytest.raises(IntCastingNaNError, match=msg):
             Series(np.array(vals), dtype=any_int_numpy_dtype)
 
-    def test_constructor_dtype_no_cast(self, using_copy_on_write, warn_copy_on_write):
+    def test_constructor_dtype_no_cast(self, using_copy_on_write):
         # see gh-1572
         s = Series([1, 2, 3])
         s2 = Series(s, dtype=np.int64)
 
-        warn = FutureWarning if warn_copy_on_write else None
-        with tm.assert_produces_warning(warn):
-            s2[1] = 5
+        s2[1] = 5
         if using_copy_on_write:
             assert s[1] == 2
         else:
@@ -1951,9 +1949,15 @@ class TestSeriesConstructors:
 
     def test_constructor_raise_on_lossy_conversion_of_strings(self):
         # GH#44923
-        with pytest.raises(
-            ValueError, match="string values cannot be losslessly cast to int8"
-        ):
+        if not np_version_gt2:
+            raises = pytest.raises(
+                ValueError, match="string values cannot be losslessly cast to int8"
+            )
+        else:
+            raises = pytest.raises(
+                OverflowError, match="The elements provided in the data"
+            )
+        with raises:
             Series(["128"], dtype="int8")
 
     def test_constructor_dtype_timedelta_alternative_construct(self):
