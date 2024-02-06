@@ -1101,7 +1101,9 @@ class PlotAccessor(PandasObject):
         This function is useful to plot lines using DataFrame's values
         as coordinates.
         """
-        return self(kind="line", x=x, y=y, color=color, **kwargs)
+        if color is not None:
+            kwargs["color"] = color
+        return self(kind="line", x=x, y=y, **kwargs)
 
     @Appender(
         """
@@ -1197,7 +1199,9 @@ class PlotAccessor(PandasObject):
         axis of the plot shows the specific categories being compared, and the
         other axis represents a measured value.
         """
-        return self(kind="bar", x=x, y=y, color=color, **kwargs)
+        if color is not None:
+            kwargs["color"] = color
+        return self(kind="bar", x=x, y=y, **kwargs)
 
     @Appender(
         """
@@ -1289,7 +1293,9 @@ class PlotAccessor(PandasObject):
         axis of the plot shows the specific categories being compared, and the
         other axis represents a measured value.
         """
-        return self(kind="barh", x=x, y=y, color=color, **kwargs)
+        if color is not None:
+            kwargs["color"] = color
+        return self(kind="barh", x=x, y=y, **kwargs)
 
     def box(self, by: IndexLabel | None = None, **kwargs) -> PlotAccessor:
         r"""
@@ -1661,13 +1667,15 @@ class PlotAccessor(PandasObject):
 
             >>> plot = df.plot.pie(subplots=True, figsize=(11, 6))
         """
+        if y is not None:
+            kwargs["y"] = y
         if (
             isinstance(self._parent, ABCDataFrame)
-            and y is None
+            and kwargs.get("y", None) is None
             and not kwargs.get("subplots", False)
         ):
             raise ValueError("pie requires either y column or 'subplots=True'")
-        return self(kind="pie", y=y, **kwargs)
+        return self(kind="pie", **kwargs)
 
     def scatter(
         self,
