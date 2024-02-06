@@ -61,9 +61,7 @@ if TYPE_CHECKING:
     )
     from pandas.core.indexes.base import Index
     from pandas.core.internals import (
-        ArrayManager,
         BlockManager,
-        SingleArrayManager,
         SingleBlockManager,
     )
     from pandas.core.resample import Resampler
@@ -191,6 +189,7 @@ ToTimestampHow = Literal["s", "e", "start", "end"]
 # passed in, a DataFrame is always returned.
 NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
 
+IndexT = TypeVar("IndexT", bound="Index")
 NumpyIndexT = TypeVar("NumpyIndexT", np.ndarray, "Index")
 
 AxisInt = int
@@ -332,7 +331,7 @@ class ReadCsvBuffer(ReadBuffer[AnyStr_co], Protocol):
 
     @property
     def closed(self) -> bool:
-        # for enine=pyarrow
+        # for engine=pyarrow
         ...
 
 
@@ -382,11 +381,7 @@ InterpolateOptions = Literal[
 ]
 
 # internals
-Manager = Union[
-    "ArrayManager", "SingleArrayManager", "BlockManager", "SingleBlockManager"
-]
-SingleManager = Union["SingleArrayManager", "SingleBlockManager"]
-Manager2D = Union["ArrayManager", "BlockManager"]
+Manager = Union["BlockManager", "SingleBlockManager"]
 
 # indexing
 # PositionalIndexer -> valid 1D positional indexer, e.g. can pass
@@ -535,3 +530,6 @@ UsecolsArgType = Union[
     Callable[[HashableT], bool],
     None,
 ]
+
+# maintaine the sub-type of any hashable sequence
+SequenceT = TypeVar("SequenceT", bound=Sequence[Hashable])

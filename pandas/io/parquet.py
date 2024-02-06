@@ -13,7 +13,6 @@ import warnings
 from warnings import catch_warnings
 
 from pandas._config import using_pyarrow_string_dtype
-from pandas._config.config import _get_option
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -151,7 +150,7 @@ class BaseImpl:
         if not isinstance(df, DataFrame):
             raise ValueError("to_parquet only supports IO with DataFrames")
 
-    def write(self, df: DataFrame, path, compression, **kwargs):
+    def write(self, df: DataFrame, path, compression, **kwargs) -> None:
         raise AbstractMethodError(self)
 
     def read(self, path, columns=None, **kwargs) -> DataFrame:
@@ -260,10 +259,6 @@ class PyArrowImpl(BaseImpl):
         elif using_pyarrow_string_dtype():
             to_pandas_kwargs["types_mapper"] = arrow_string_types_mapper()
 
-        manager = _get_option("mode.data_manager", silent=True)
-        if manager == "array":
-            to_pandas_kwargs["split_blocks"] = True  # type: ignore[assignment]
-
         path_or_handle, handles, filesystem = _get_path_or_handle(
             path,
             filesystem,
@@ -279,9 +274,6 @@ class PyArrowImpl(BaseImpl):
                 **kwargs,
             )
             result = pa_table.to_pandas(**to_pandas_kwargs)
-
-            if manager == "array":
-                result = result._as_manager("array", copy=False)
 
             if pa_table.schema.metadata:
                 if b"PANDAS_ATTRS" in pa_table.schema.metadata:
