@@ -1089,7 +1089,7 @@ class TestLocBaseIndependent:
             df.loc[[]], df.iloc[:0, :], check_index_type=True, check_column_type=True
         )
 
-    def test_identity_slice_returns_new_object(self, using_copy_on_write):
+    def test_identity_slice_returns_new_object(self):
         # GH13873
 
         original_df = DataFrame({"a": [1, 2, 3]})
@@ -1104,17 +1104,11 @@ class TestLocBaseIndependent:
         # Setting using .loc[:, "a"] sets inplace so alters both sliced and orig
         # depending on CoW
         original_df.loc[:, "a"] = [4, 4, 4]
-        if using_copy_on_write:
-            assert (sliced_df["a"] == [1, 2, 3]).all()
-        else:
-            assert (sliced_df["a"] == 4).all()
+        assert (sliced_df["a"] == [1, 2, 3]).all()
 
         # These should not return copies
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
-        if using_copy_on_write:
-            assert df[0] is not df.loc[:, 0]
-        else:
-            assert df[0] is df.loc[:, 0]
+        assert df[0] is not df.loc[:, 0]
 
         # Same tests for Series
         original_series = Series([1, 2, 3, 4, 5, 6])
@@ -1123,17 +1117,10 @@ class TestLocBaseIndependent:
         assert original_series[:] is not original_series
 
         original_series[:3] = [7, 8, 9]
-        if using_copy_on_write:
-            assert all(sliced_series[:3] == [1, 2, 3])
-        else:
-            assert all(sliced_series[:3] == [7, 8, 9])
+        assert all(sliced_series[:3] == [1, 2, 3])
 
-    def test_loc_copy_vs_view(self, request, using_copy_on_write):
+    def test_loc_copy_vs_view(self, request):
         # GH 15631
-
-        if not using_copy_on_write:
-            mark = pytest.mark.xfail(reason="accidental fix reverted - GH37497")
-            request.applymarker(mark)
         x = DataFrame(zip(range(3), range(3)), columns=["a", "b"])
 
         y = x.copy()
@@ -2634,7 +2621,7 @@ class TestLocBooleanMask:
         expected = DataFrame(values, index=expected.index, columns=expected.columns)
         tm.assert_frame_equal(float_frame, expected)
 
-    def test_loc_setitem_ndframe_values_alignment(self, using_copy_on_write):
+    def test_loc_setitem_ndframe_values_alignment(self):
         # GH#45501
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         df.loc[[False, False, True], ["a"]] = DataFrame(
@@ -2658,10 +2645,7 @@ class TestLocBooleanMask:
         df_orig = df.copy()
         ser = df["a"]
         ser.loc[[False, False, True]] = Series([10, 11, 12], index=[2, 1, 0])
-        if using_copy_on_write:
-            tm.assert_frame_equal(df, df_orig)
-        else:
-            tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, df_orig)
 
     def test_loc_indexer_empty_broadcast(self):
         # GH#51450

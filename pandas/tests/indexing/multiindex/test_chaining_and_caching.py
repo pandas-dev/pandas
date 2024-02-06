@@ -31,7 +31,7 @@ def test_detect_chained_assignment():
         zed["eyes"]["right"].fillna(value=555, inplace=True)
 
 
-def test_cache_updating(using_copy_on_write):
+def test_cache_updating():
     # 5216
     # make sure that we don't try to set a dead cache
     a = np.random.default_rng(2).random((10, 3))
@@ -47,11 +47,7 @@ def test_cache_updating(using_copy_on_write):
     with tm.raises_chained_assignment_error():
         df.loc[0]["z"].iloc[0] = 1.0
 
-    if using_copy_on_write:
-        assert df.loc[(0, 0), "z"] == df_original.loc[0, "z"]
-    else:
-        result = df.loc[(0, 0), "z"]
-        assert result == 1
+    assert df.loc[(0, 0), "z"] == df_original.loc[0, "z"]
 
     # correct setting
     df.loc[(0, 0), "z"] = 2

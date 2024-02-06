@@ -101,15 +101,11 @@ def test_basic_getitem_dt64tz_values():
     assert result == expected
 
 
-def test_getitem_setitem_ellipsis(using_copy_on_write):
+def test_getitem_setitem_ellipsis():
     s = Series(np.random.default_rng(2).standard_normal(10))
 
     result = s[...]
     tm.assert_series_equal(result, s)
-
-    s[...] = 5
-    if not using_copy_on_write:
-        assert (result == 5).all()
 
 
 @pytest.mark.parametrize(
@@ -242,7 +238,7 @@ def test_basic_getitem_setitem_corner(datetime_series):
         datetime_series[[5, [None, None]]] = 2
 
 
-def test_slice(string_series, object_series, using_copy_on_write):
+def test_slice(string_series, object_series):
     original = string_series.copy()
     numSlice = string_series[10:20]
     numSliceEnd = string_series[-10:]
@@ -261,11 +257,8 @@ def test_slice(string_series, object_series, using_copy_on_write):
     sl = string_series[10:20]
     sl[:] = 0
 
-    if using_copy_on_write:
-        # Doesn't modify parent (CoW)
-        tm.assert_series_equal(string_series, original)
-    else:
-        assert (string_series[10:20] == 0).all()
+    # Doesn't modify parent (CoW)
+    tm.assert_series_equal(string_series, original)
 
 
 def test_timedelta_assignment():
@@ -282,7 +275,7 @@ def test_timedelta_assignment():
     tm.assert_series_equal(s, expected)
 
 
-def test_underlying_data_conversion(using_copy_on_write):
+def test_underlying_data_conversion():
     # GH 4080
     df = DataFrame({c: [1, 2, 3] for c in ["a", "b", "c"]})
     return_value = df.set_index(["a", "b", "c"], inplace=True)
@@ -292,18 +285,9 @@ def test_underlying_data_conversion(using_copy_on_write):
     df_original = df.copy()
     df
 
-    if using_copy_on_write:
-        with tm.raises_chained_assignment_error():
-            df["val"].update(s)
-        expected = df_original
-    else:
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
-            df["val"].update(s)
-        expected = DataFrame(
-            {"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3], "val": [0, 1, 0]}
-        )
-        return_value = expected.set_index(["a", "b", "c"], inplace=True)
-        assert return_value is None
+    with tm.raises_chained_assignment_error():
+        df["val"].update(s)
+    expected = df_original
     tm.assert_frame_equal(df, expected)
 
 
