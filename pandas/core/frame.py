@@ -42,7 +42,6 @@ from numpy import ma
 from pandas._config import (
     get_option,
     using_copy_on_write,
-    warn_copy_on_write,
 )
 
 from pandas._libs import (
@@ -64,7 +63,6 @@ from pandas.errors.cow import (
     _chained_assignment_method_msg,
     _chained_assignment_msg,
     _chained_assignment_warning_method_msg,
-    _chained_assignment_warning_msg,
 )
 from pandas.util._decorators import (
     Appender,
@@ -1448,12 +1446,8 @@ class DataFrame(NDFrame, OpsMixin):
 
     @Appender(_shared_docs["items"])
     def items(self) -> Iterable[tuple[Hashable, Series]]:
-        if self.columns.is_unique and hasattr(self, "_item_cache"):
-            for k in self.columns:
-                yield k, self._get_item_cache(k)
-        else:
-            for i, k in enumerate(self.columns):
-                yield k, self._ixs(i, axis=1)
+        for i, k in enumerate(self.columns):
+            yield k, self._ixs(i, axis=1)
 
     def iterrows(self) -> Iterable[tuple[Hashable, Series]]:
         """
@@ -3923,24 +3917,14 @@ class DataFrame(NDFrame, OpsMixin):
         if axis == 0:
             new_mgr = self._mgr.fast_xs(i)
 
-            # if we are a copy, mark as such
-            copy = isinstance(new_mgr.array, np.ndarray) and new_mgr.array.base is None
             result = self._constructor_sliced_from_mgr(new_mgr, axes=new_mgr.axes)
             result._name = self.index[i]
-            result = result.__finalize__(self)
-            result._set_is_copy(self, copy=copy)
-            return result
+            return result.__finalize__(self)
 
         # icol
         else:
-            label = self.columns[i]
-
             col_mgr = self._mgr.iget(i)
-            result = self._box_col_values(col_mgr, i)
-
-            # this is a cached value, mark it so
-            result._set_as_cached(label, self)
-            return result
+            return self._box_col_values(col_mgr, i)
 
     def _get_column_array(self, i: int) -> ArrayLike:
         """
@@ -4000,7 +3984,7 @@ class DataFrame(NDFrame, OpsMixin):
                 and key in self.columns
                 or key in self.columns.drop_duplicates(keep=False)
             ):
-                return self._get_item_cache(key)
+                return self._get_item(key)
 
             elif is_mi and self.columns.is_unique and key in self.columns:
                 return self._getitem_multilevel(key)
@@ -4039,7 +4023,7 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(indexer, slice):
             return self._slice(indexer, axis=1)
 
-        data = self._take_with_is_copy(indexer, axis=1)
+        data = self.take(indexer, axis=1)
 
         if is_single_key:
             # What does looking for a single key in a non-unique index return?
@@ -4048,7 +4032,7 @@ class DataFrame(NDFrame, OpsMixin):
             # - we have a MultiIndex on columns (test on self.columns, #21309)
             if data.shape[1] == 1 and not isinstance(self.columns, MultiIndex):
                 # GH#26490 using data[key] can cause RecursionError
-                return data._get_item_cache(key)
+                return data._get_item(key)
 
         return data
 
@@ -4077,7 +4061,7 @@ class DataFrame(NDFrame, OpsMixin):
             return self.copy(deep=None)
 
         indexer = key.nonzero()[0]
-        return self._take_with_is_copy(indexer, axis=0)
+        return self.take(indexer, axis=0)
 
     def _getitem_multilevel(self, key):
         # self.columns is a MultiIndex
@@ -4107,7 +4091,6 @@ class DataFrame(NDFrame, OpsMixin):
                             result, index=self.index, name=key
                         )
 
-            result._set_is_copy(self)
             return result
         else:
             # loc is neither a slice nor ndarray, so must be an int
@@ -4136,7 +4119,7 @@ class DataFrame(NDFrame, OpsMixin):
             series = self._ixs(col, axis=1)
             return series._values[index]
 
-        series = self._get_item_cache(col)
+        series = self._get_item(col)
         engine = self.index._engine
 
         if not isinstance(self.index, MultiIndex):
@@ -4199,17 +4182,6 @@ class DataFrame(NDFrame, OpsMixin):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
-        elif not PYPY and not using_copy_on_write():
-            if sys.getrefcount(self) <= 3 and (
-                warn_copy_on_write()
-                or (
-                    not warn_copy_on_write()
-                    and any(b.refs.has_reference() for b in self._mgr.blocks)
-                )
-            ):
-                warnings.warn(
-                    _chained_assignment_warning_msg, FutureWarning, stacklevel=2
-                )
 
         key = com.apply_if_callable(key, self)
 
@@ -4239,7 +4211,6 @@ class DataFrame(NDFrame, OpsMixin):
         # NB: we can't just use self.loc[key] = value because that
         #  operates on labels and we need to operate positional for
         #  backwards-compat, xref GH#31469
-        self._check_setitem_copy()
         self.iloc[key] = value
 
     def _setitem_array(self, key, value):
@@ -4252,7 +4223,6 @@ class DataFrame(NDFrame, OpsMixin):
                 )
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
-            self._check_setitem_copy()
             if isinstance(value, DataFrame):
                 # GH#39931 reindex since iloc does not align
                 value = value.reindex(self.index.take(indexer))
@@ -4339,7 +4309,6 @@ class DataFrame(NDFrame, OpsMixin):
                 "Must pass DataFrame or 2-d ndarray with boolean values only"
             )
 
-        self._check_setitem_copy()
         self._where(-key, value, inplace=True)
 
     def _set_item_frame_value(self, key, value: DataFrame) -> None:
@@ -4401,7 +4370,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         # when called from _set_item_mgr loc can be anything returned from get_loc
         self._mgr.iset(loc, value, inplace=inplace, refs=refs)
-        self._clear_item_cache()
 
     def _set_item_mgr(
         self, key, value: ArrayLike, refs: BlockValuesRefs | None = None
@@ -4414,12 +4382,6 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             self._iset_item_mgr(loc, value, refs=refs)
 
-        # check if we are modifying a copy
-        # try to set first as we want an invalid
-        # value exception to occur first
-        if len(self):
-            self._check_setitem_copy()
-
     def _iset_item(self, loc: int, value: Series, inplace: bool = True) -> None:
         # We are only called from _replace_columnwise which guarantees that
         # no reindex is necessary
@@ -4429,12 +4391,6 @@ class DataFrame(NDFrame, OpsMixin):
             )
         else:
             self._iset_item_mgr(loc, value._values.copy(), inplace=True)
-
-        # check if we are modifying a copy
-        # try to set first as we want an invalid
-        # value exception to occur first
-        if len(self):
-            self._check_setitem_copy()
 
     def _set_item(self, key, value) -> None:
         """
@@ -4486,7 +4442,6 @@ class DataFrame(NDFrame, OpsMixin):
                 icol = self.columns.get_loc(col)
                 iindex = self.index.get_loc(index)
             self._mgr.column_setitem(icol, iindex, value, inplace_only=True)
-            self._clear_item_cache()
 
         except (KeyError, TypeError, ValueError, LossySetitemError):
             # get_loc might raise a KeyError for missing labels (falling back
@@ -4498,7 +4453,6 @@ class DataFrame(NDFrame, OpsMixin):
                 self.iloc[index, col] = value
             else:
                 self.loc[index, col] = value
-            self._item_cache.pop(col, None)
 
         except InvalidIndexError as ii_err:
             # GH48729: Seems like you are trying to assign a value to a
@@ -4542,50 +4496,9 @@ class DataFrame(NDFrame, OpsMixin):
         obj._name = name
         return obj.__finalize__(self)
 
-    # ----------------------------------------------------------------------
-    # Lookup Caching
-
-    def _clear_item_cache(self) -> None:
-        self._item_cache.clear()
-
-    def _get_item_cache(self, item: Hashable) -> Series:
-        """Return the cached item, item represents a label indexer."""
-        if using_copy_on_write() or warn_copy_on_write():
-            loc = self.columns.get_loc(item)
-            return self._ixs(loc, axis=1)
-
-        cache = self._item_cache
-        res = cache.get(item)
-        if res is None:
-            # All places that call _get_item_cache have unique columns,
-            #  pending resolution of GH#33047
-
-            loc = self.columns.get_loc(item)
-            res = self._ixs(loc, axis=1)
-
-            cache[item] = res
-
-            # for a chain
-            res._is_copy = self._is_copy
-        return res
-
-    def _reset_cacher(self) -> None:
-        # no-op for DataFrame
-        pass
-
-    def _maybe_cache_changed(self, item, value: Series, inplace: bool) -> None:
-        """
-        The object has called back to us saying maybe it has changed.
-        """
-        loc = self._info_axis.get_loc(item)
-        arraylike = value._values
-
-        old = self._ixs(loc, axis=1)
-        if old._values is value._values and inplace:
-            # GH#46149 avoid making unnecessary copies/block-splitting
-            return
-
-        self._mgr.iset(loc, arraylike, inplace=inplace)
+    def _get_item(self, item: Hashable) -> Series:
+        loc = self.columns.get_loc(item)
+        return self._ixs(loc, axis=1)
 
     # ----------------------------------------------------------------------
     # Unsorted
@@ -10831,7 +10744,6 @@ class DataFrame(NDFrame, OpsMixin):
             # type "Union[int, integer[Any]]"; expected "int"
             new_mgr = self._mgr.round(
                 decimals=decimals,  # type: ignore[arg-type]
-                using_cow=using_copy_on_write(),
             )
             return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(
                 self, method="round"

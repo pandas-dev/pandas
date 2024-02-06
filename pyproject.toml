@@ -330,6 +330,9 @@ exclude = [
   "env",
 ]
 
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"urllib.request.urlopen".msg = "Use pandas.io.common.urlopen instead of urllib.request.urlopen"
+
 [tool.ruff.per-file-ignores]
 # relative imports allowed for asv_bench
 "asv_bench/*" = ["TID", "NPY002"]
@@ -758,5 +761,5 @@ exclude_lines = [
 directory = "coverage_html_report"
 
 [tool.codespell]
-ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere, expec, expecs"
+ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere, expec, expecs, indext"
 ignore-regex = 'https://([\w/\.])+'
