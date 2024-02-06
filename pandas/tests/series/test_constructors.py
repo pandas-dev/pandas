@@ -622,15 +622,12 @@ class TestSeriesConstructors:
         expected = Series([np.nan, np.nan, np.nan])
         tm.assert_series_equal(result, expected)
 
-    def test_series_ctor_plus_datetimeindex(self, using_copy_on_write):
+    def test_series_ctor_plus_datetimeindex(self):
         rng = date_range("20090415", "20090519", freq="B")
         data = {k: 1 for k in rng}
 
         result = Series(data, index=rng)
-        if using_copy_on_write:
-            assert result.index.is_(rng)
-        else:
-            assert result.index is rng
+        assert result.index.is_(rng)
 
     def test_constructor_default_index(self):
         s = Series([0, 1, 2])
@@ -891,16 +888,13 @@ class TestSeriesConstructors:
         with pytest.raises(IntCastingNaNError, match=msg):
             Series(np.array(vals), dtype=any_int_numpy_dtype)
 
-    def test_constructor_dtype_no_cast(self, using_copy_on_write):
+    def test_constructor_dtype_no_cast(self):
         # see gh-1572
         s = Series([1, 2, 3])
         s2 = Series(s, dtype=np.int64)
 
         s2[1] = 5
-        if using_copy_on_write:
-            assert s[1] == 2
-        else:
-            assert s[1] == 5
+        assert s[1] == 2
 
     def test_constructor_datelike_coercion(self):
         # GH 9477
@@ -1949,9 +1943,15 @@ class TestSeriesConstructors:
 
     def test_constructor_raise_on_lossy_conversion_of_strings(self):
         # GH#44923
-        with pytest.raises(
-            ValueError, match="string values cannot be losslessly cast to int8"
-        ):
+        if not np_version_gt2:
+            raises = pytest.raises(
+                ValueError, match="string values cannot be losslessly cast to int8"
+            )
+        else:
+            raises = pytest.raises(
+                OverflowError, match="The elements provided in the data"
+            )
+        with raises:
             Series(["128"], dtype="int8")
 
     def test_constructor_dtype_timedelta_alternative_construct(self):
