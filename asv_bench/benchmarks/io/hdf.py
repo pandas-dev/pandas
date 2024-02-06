@@ -123,7 +123,7 @@ class HDF(BaseIO):
             index=date_range("20000101", periods=N, freq="h"),
         )
         self.df["object"] = Index([f"i-{i}" for i in range(N)], dtype=object)
-        self.df.to_hdf(self.fname, "df", format=format)
+        self.df.to_hdf(self.fname, key="df", format=format)
 
         # Numeric df
         self.df1 = self.df.copy()
