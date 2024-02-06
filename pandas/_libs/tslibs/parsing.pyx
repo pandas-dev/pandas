@@ -733,15 +733,10 @@ cdef datetime dateutil_parse(
                 )
         elif res.tzname is not None:
             # e.g. "1994 Jan 15 05:16 FOO" where FOO is not recognized
-            # GH#18702
-            warnings.warn(
+            # GH#18702, # GH 50235 enforced in 3.0
+            raise ValueError(
                 f'Parsed string "{timestr}" included an un-recognized timezone '
-                f'"{res.tzname}". Dropping unrecognized timezones is deprecated; '
-                "in a future version this will raise. Instead pass the string "
-                "without the timezone, then use .tz_localize to convert to a "
-                "recognized timezone.",
-                FutureWarning,
-                stacklevel=find_stack_level()
+                f'"{res.tzname}".'
             )
 
     out_bestunit[0] = attrname_to_npy_unit[reso]

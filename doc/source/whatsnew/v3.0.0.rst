@@ -107,8 +107,11 @@ Removal of prior version deprecations/changes
 - Removed ``DataFrameGroupBy.grouper`` and ``SeriesGroupBy.grouper`` (:issue:`56521`)
 - Removed ``axis`` argument from :meth:`DataFrame.groupby`, :meth:`Series.groupby`, :meth:`DataFrame.rolling`, :meth:`Series.rolling`, :meth:`DataFrame.resample`, and :meth:`Series.resample` (:issue:`51203`)
 - Removed ``axis`` argument from all groupby operations (:issue:`50405`)
+- Removed ``pandas.io.sql.execute`` (:issue:`50185`)
 - Removed deprecated argument ``obj`` in :meth:`.DataFrameGroupBy.get_group` and :meth:`.SeriesGroupBy.get_group` (:issue:`53545`)
 - Removed the ``ArrayManager`` (:issue:`55043`)
+- Removed unused arguments ``*args`` and ``**kwargs`` in :class:`Resampler` methods (:issue:`50977`)
+- Unrecognized timezones when parsing strings to datetimes now raises a ``ValueError`` (:issue:`51477`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.performance:
