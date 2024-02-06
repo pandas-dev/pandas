@@ -194,7 +194,7 @@ class TestMultiIndexSetItem:
         df.loc[4, "d"] = arr
         tm.assert_series_equal(df.loc[4, "d"], Series(arr, index=[8, 10], name="d"))
 
-    def test_multiindex_assignment_single_dtype(self, using_copy_on_write):
+    def test_multiindex_assignment_single_dtype(self):
         # GH3777 part 2b
         # single dtype
         arr = np.array([0.0, 1.0])
@@ -205,7 +205,6 @@ class TestMultiIndexSetItem:
             index=[[4, 4, 8], [8, 10, 12]],
             dtype=np.int64,
         )
-        view = df["c"].iloc[:2].values
 
         # arr can be losslessly cast to int, so this setitem is inplace
         # INFO(CoW-warn) this does not warn because we directly took .values
@@ -214,10 +213,6 @@ class TestMultiIndexSetItem:
         exp = Series(arr, index=[8, 10], name="c", dtype="int64")
         result = df.loc[4, "c"]
         tm.assert_series_equal(result, exp)
-
-        # extra check for inplace-ness
-        if not using_copy_on_write:
-            tm.assert_numpy_array_equal(view, exp.values)
 
         # arr + 0.5 cannot be cast losslessly to int, so we upcast
         with tm.assert_produces_warning(
@@ -412,9 +407,7 @@ class TestMultiIndexSetItem:
         reindexed = dft.reindex(columns=[("foo", "two")])
         tm.assert_series_equal(reindexed["foo", "two"], s > s.median())
 
-    def test_set_column_scalar_with_loc(
-        self, multiindex_dataframe_random_data, using_copy_on_write
-    ):
+    def test_set_column_scalar_with_loc(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
         subset = frame.index[[1, 4, 5]]
 
@@ -424,11 +417,8 @@ class TestMultiIndexSetItem:
         frame_original = frame.copy()
         col = frame["B"]
         col[subset] = 97
-        if using_copy_on_write:
-            # chained setitem doesn't work with CoW
-            tm.assert_frame_equal(frame, frame_original)
-        else:
-            assert (frame.loc[subset, "B"] == 97).all()
+        # chained setitem doesn't work with CoW
+        tm.assert_frame_equal(frame, frame_original)
 
     def test_nonunique_assignment_1750(self):
         df = DataFrame(
@@ -505,19 +495,13 @@ class TestSetitemWithExpansionMultiIndex:
         tm.assert_frame_equal(df, expected)
 
 
-def test_frame_setitem_view_direct(
-    multiindex_dataframe_random_data, using_copy_on_write
-):
+def test_frame_setitem_view_direct(multiindex_dataframe_random_data):
     # this works because we are modifying the underlying array
     # really a no-no
     df = multiindex_dataframe_random_data.T
-    if using_copy_on_write:
-        with pytest.raises(ValueError, match="read-only"):
-            df["foo"].values[:] = 0
-        assert (df["foo"].values != 0).all()
-    else:
+    with pytest.raises(ValueError, match="read-only"):
         df["foo"].values[:] = 0
-        assert (df["foo"].values == 0).all()
+    assert (df["foo"].values != 0).all()
 
 
 def test_frame_setitem_copy_raises(multiindex_dataframe_random_data):
