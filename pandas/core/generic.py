@@ -100,10 +100,7 @@ from pandas.errors.cow import (
     _chained_assignment_method_msg,
     _chained_assignment_warning_method_msg,
 )
-from pandas.util._decorators import (
-    deprecate_nonkeyword_arguments,
-    doc,
-)
+from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     check_dtype_backend,
@@ -2665,12 +2662,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    @deprecate_nonkeyword_arguments(
-        version="3.0", allowed_args=["self", "path_or_buf"], name="to_hdf"
-    )
     def to_hdf(
         self,
         path_or_buf: FilePath | HDFStore,
+        *,
         key: str,
         mode: Literal["a", "w", "r+"] = "a",
         complevel: int | None = None,
@@ -2819,13 +2814,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    @deprecate_nonkeyword_arguments(
-        version="3.0", allowed_args=["self", "name", "con"], name="to_sql"
-    )
     def to_sql(
         self,
         name: str,
         con,
+        *,
         schema: str | None = None,
         if_exists: Literal["fail", "replace", "append"] = "fail",
         index: bool_t = True,
