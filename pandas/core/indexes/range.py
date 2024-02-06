@@ -961,10 +961,11 @@ class RangeIndex(Index):
         for obj in rng_indexes:
             if len(obj):
                 non_empty_indexes.append(obj)
-                if prev is not None and all_same_index:
-                    all_same_index = prev.equals(obj)
-                elif prev is None and all_same_index:
-                    prev = obj
+                if all_same_index:
+                    if prev is not None:
+                        all_same_index = prev.equals(obj)
+                    else:
+                        prev = obj
 
         for obj in non_empty_indexes:
             rng = obj._range
