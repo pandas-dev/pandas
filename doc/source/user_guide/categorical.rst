@@ -263,6 +263,18 @@ All instances of ``CategoricalDtype`` compare equal to the string ``'category'``
 
    c1 == "category"
 
+But notice that the ``categories_dtype`` should be considered, especially when comparing with
+two empty ``CategoricalDtype`` instances:
+
+.. ipython:: python
+    import numpy as np
+
+    c2 = pd.Categorical(np.full(2, np.nan, dtype=object))
+    c3 = pd.Categorical(np.full(2, np.nan, dtype=float))
+
+    # Unequal, since their categories_dtype are different
+    c2.dtype == c3.dtype
+
 Description
 -----------
 
