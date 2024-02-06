@@ -189,6 +189,7 @@ ToTimestampHow = Literal["s", "e", "start", "end"]
 # passed in, a DataFrame is always returned.
 NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
 
+IndexT = TypeVar("IndexT", bound="Index")
 NumpyIndexT = TypeVar("NumpyIndexT", np.ndarray, "Index")
 
 AxisInt = int

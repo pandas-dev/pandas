@@ -34,8 +34,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import option_context
-
 from pandas._libs import (
     Timestamp,
     lib,
@@ -1742,32 +1740,28 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if not include_groups:
             return self._python_apply_general(f, self._obj_with_exclusions)
 
-        # ignore SettingWithCopy here in case the user mutates
-        with option_context("mode.chained_assignment", None):
-            try:
-                result = self._python_apply_general(f, self._selected_obj)
-                if (
-                    not isinstance(self.obj, Series)
-                    and self._selection is None
-                    and self._selected_obj.shape != self._obj_with_exclusions.shape
-                ):
-                    warnings.warn(
-                        message=_apply_groupings_depr.format(
-                            type(self).__name__, "apply"
-                        ),
-                        category=DeprecationWarning,
-                        stacklevel=find_stack_level(),
-                    )
-            except TypeError:
-                # gh-20949
-                # try again, with .apply acting as a filtering
-                # operation, by excluding the grouping column
-                # This would normally not be triggered
-                # except if the udf is trying an operation that
-                # fails on *some* columns, e.g. a numeric operation
-                # on a string grouper column
+        try:
+            result = self._python_apply_general(f, self._selected_obj)
+            if (
+                not isinstance(self.obj, Series)
+                and self._selection is None
+                and self._selected_obj.shape != self._obj_with_exclusions.shape
+            ):
+                warnings.warn(
+                    message=_apply_groupings_depr.format(type(self).__name__, "apply"),
+                    category=DeprecationWarning,
+                    stacklevel=find_stack_level(),
+                )
+        except TypeError:
+            # gh-20949
+            # try again, with .apply acting as a filtering
+            # operation, by excluding the grouping column
+            # This would normally not be triggered
+            # except if the udf is trying an operation that
+            # fails on *some* columns, e.g. a numeric operation
+            # on a string grouper column
 
-                return self._python_apply_general(f, self._obj_with_exclusions)
+            return self._python_apply_general(f, self._obj_with_exclusions)
 
         return result
 
