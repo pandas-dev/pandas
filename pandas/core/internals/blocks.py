@@ -1425,7 +1425,14 @@ class Block(PandasObject, libinternals.Block):
             if isinstance(casted, np.ndarray) and casted.ndim == 1 and len(casted) == 1:
                 # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
                 casted = casted[0, ...]
-            values[indexer] = casted
+            try:
+                values[indexer] = casted
+            except (TypeError, ValueError) as err:
+                if is_list_like(casted):
+                    raise ValueError(
+                        "setting an array element with a sequence."
+                    ) from err
+                raise
         return self
 
     def putmask(

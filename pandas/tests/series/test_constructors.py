@@ -1958,9 +1958,15 @@ class TestSeriesConstructors:
 
     def test_constructor_raise_on_lossy_conversion_of_strings(self):
         # GH#44923
-        with pytest.raises(
-            ValueError, match="string values cannot be losslessly cast to int8"
-        ):
+        if not np_version_gt2:
+            raises = pytest.raises(
+                ValueError, match="string values cannot be losslessly cast to int8"
+            )
+        else:
+            raises = pytest.raises(
+                OverflowError, match="The elements provided in the data"
+            )
+        with raises:
             Series(["128"], dtype="int8")
 
     def test_constructor_dtype_timedelta_alternative_construct(self):
