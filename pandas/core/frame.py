@@ -11060,8 +11060,10 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         >>> index = ["a", "b", "c", "d", "e"]
         >>> columns = ["one", "two", "three", "four"]
-        >>> df1 = pd.DataFrame(np.arange(20).reshape(5, 4), index=index, columns=columns)
-        >>> df2 = pd.DataFrame(np.arange(16).reshape(4, 4), index=index[:4], columns=columns)
+        >>> df1 = pd.DataFrame(np.arange(20).reshape(5, 4),
+        ...                    index=index, columns=columns)
+        >>> df2 = pd.DataFrame(np.arange(16).reshape(4, 4),
+        ...                    index=index[:4], columns=columns)
         >>> df1.corrwith(df2)
         one      1.0
         two      1.0
@@ -11076,7 +11078,7 @@ class DataFrame(NDFrame, OpsMixin):
         d    1.0
         e    NaN
         dtype: float64
-        """  # noqa: E501
+        """
         axis = self._get_axis_number(axis)
         this = self._get_numeric_data() if numeric_only else self
 
