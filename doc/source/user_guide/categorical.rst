@@ -269,10 +269,12 @@ two empty ``CategoricalDtype`` instances:
 .. ipython:: python
     import numpy as np
 
-    c2 = pd.Categorical(np.full(2, np.nan, dtype=object))
-    c3 = pd.Categorical(np.full(2, np.nan, dtype=float))
+    c2 = pd.Categorical(np.array([], dtype=object))
+    c3 = pd.Categorical(np.array([], dtype=float))
 
     # Unequal, since their categories_dtype are different
+    # c2.dtype = CategoricalDtype(categories=[], ordered=False, categories_dtype=object)
+    # c3.dtype = CategoricalDtype(categories=[], ordered=False, categories_dtype=float64)
     c2.dtype == c3.dtype
 
 Description
