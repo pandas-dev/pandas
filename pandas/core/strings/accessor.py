@@ -1332,14 +1332,14 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def match(self, pat, case: bool = True, flags: int = 0, na=None):
+    def match(self, pat: str, case: bool = True, flags: int = 0, na=None):
         """
         Determine if each string starts with a match of a regular expression.
 
         Parameters
         ----------
         pat : str
-            Character sequence or regular expression.
+            Character sequence.
         case : bool, default True
             If True, case sensitive.
         flags : int, default 0 (no flags)
@@ -2374,8 +2374,6 @@ class StringMethods(NoNewAttributesMixin):
         flags : int, default 0, meaning no flags
             Flags for the `re` module. For a complete list, `see here
             <https://docs.python.org/3/howto/regex.html#compilation-flags>`_.
-        **kwargs
-            For compatibility with other string methods. Not used.
 
         Returns
         -------

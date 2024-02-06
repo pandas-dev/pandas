@@ -1326,7 +1326,15 @@ class ExcelWriter(Generic[_WorkbookT]):
             fmt = "0"
         else:
             val = str(val)
-
+            # GH#56954
+            # Excel's limitation on cell contents is 32767 characters
+            # xref https://support.microsoft.com/en-au/office/excel-specifications-and-limits-1672b34d-7043-467e-8e27-269d656771c3
+            if len(val) > 32767:
+                warnings.warn(
+                    "Cell contents too long, truncated to 32767 characters",
+                    UserWarning,
+                    stacklevel=find_stack_level(),
+                )
         return val, fmt
 
     @classmethod
@@ -1441,7 +1449,7 @@ class ExcelFile:
 
     Parameters
     ----------
-    path_or_buffer : str, bytes, path object (pathlib.Path or py._path.local.LocalPath),
+    path_or_buffer : str, bytes, pathlib.Path,
         A file-like object, xlrd workbook or openpyxl workbook.
         If a string or path object, expected to be a path to a
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.

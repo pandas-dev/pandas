@@ -414,7 +414,6 @@ class BaseSetitemTests:
         tm.assert_frame_equal(df, orig)
         if not using_copy_on_write:
             # GH#33457 Check that this setting occurred in-place
-            # FIXME(ArrayManager): this should work there too
             assert df._mgr.arrays[0] is blk_data
 
         df.iloc[:-1] = df.values[:-1]
