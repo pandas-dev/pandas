@@ -21,7 +21,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug in :meth:`PeriodIndex.asfreq` silently converting frequencies which are not supported as period frequencies instead of raising an error (:issue:`56945`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_221.other:
