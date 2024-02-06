@@ -1042,6 +1042,7 @@ class BaseBlockManager(PandasObject):
         self, placement: BlockPlacement, fill_value=None, use_na_proxy: bool = False
     ) -> Block:
         # Note: we only get here with self.ndim == 2
+
         if use_na_proxy:
             assert fill_value is None
             shape = (len(placement), self.shape[1])
