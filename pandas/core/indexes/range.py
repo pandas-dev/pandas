@@ -978,7 +978,9 @@ class RangeIndex(Index):
                 # First non-empty index had only one element
                 if rng.start == start:
                     if all_same_index:
-                        values = np.tile(rng, len(non_empty_indexes))
+                        values = np.tile(
+                            non_empty_indexes[0]._values, len(non_empty_indexes)
+                        )
                     else:
                         values = np.concatenate([x._values for x in rng_indexes])
                     result = self._constructor(values)
@@ -991,7 +993,9 @@ class RangeIndex(Index):
             )
             if non_consecutive:
                 if all_same_index:
-                    values = np.tile(rng, len(non_empty_indexes))
+                    values = np.tile(
+                        non_empty_indexes[0]._values, len(non_empty_indexes)
+                    )
                 else:
                     values = np.concatenate([x._values for x in rng_indexes])
                 result = self._constructor(values)
