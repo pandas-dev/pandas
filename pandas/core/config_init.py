@@ -473,7 +473,7 @@ with cf.config_prefix("mode"):
         validator=is_one_of_factory([None, "warn", "raise"]),
     )
 
-performance_warning = """
+performance_warnings = """
 : boolean
     Whether to show or hide PerformanceWarnings.
 """
@@ -482,7 +482,7 @@ with cf.config_prefix("mode"):
     cf.register_option(
         "performance_warnings",
         True,
-        performance_warning,
+        performance_warnings,
         validator=is_bool,
     )
 

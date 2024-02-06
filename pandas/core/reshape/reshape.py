@@ -146,7 +146,7 @@ class _Unstacker:
         num_cells = num_rows * num_columns
 
         # GH 26314: Previous ValueError raised was too restrictive for many users.
-        if _get_option("performance_warning") and num_cells > np.iinfo(np.int32).max:
+        if _get_option("performance_warnings") and num_cells > np.iinfo(np.int32).max:
             warnings.warn(
                 f"The following operation may generate {num_cells} cells "
                 f"in the resulting pandas object.",

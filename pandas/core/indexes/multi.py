@@ -2430,7 +2430,7 @@ class MultiIndex(Index):
                     step = loc.step if loc.step is not None else 1
                     inds.extend(range(loc.start, loc.stop, step))
                 elif com.is_bool_indexer(loc):
-                    if _get_option("performance_warning") and self._lexsort_depth == 0:
+                    if _get_option("performance_warnings") and self._lexsort_depth == 0:
                         warnings.warn(
                             "dropping on a non-lexsorted multi-index "
                             "without a level parameter may impact performance.",
@@ -3088,7 +3088,7 @@ class MultiIndex(Index):
         if not follow_key:
             return slice(start, stop)
 
-        if _get_option("performance_warning"):
+        if _get_option("performance_warnings"):
             warnings.warn(
                 "indexing past lexsort depth may impact performance.",
                 PerformanceWarning,
