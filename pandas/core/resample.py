@@ -27,7 +27,6 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas._typing import NDFrameT
-from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
     Appender,
@@ -1156,8 +1155,6 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         numeric_only: bool = False,
         min_count: int = 0,
-        *args,
-        **kwargs,
     ):
         """
         Compute sum of group values.
@@ -1195,8 +1192,6 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    7
         Freq: MS, dtype: int64
         """
-        maybe_warn_args_and_kwargs(type(self), "sum", args, kwargs)
-        nv.validate_resampler_func("sum", args, kwargs)
         return self._downsample("sum", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1204,8 +1199,6 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         numeric_only: bool = False,
         min_count: int = 0,
-        *args,
-        **kwargs,
     ):
         """
         Compute prod of group values.
@@ -1243,8 +1236,6 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01   12
         Freq: MS, dtype: int64
         """
-        maybe_warn_args_and_kwargs(type(self), "prod", args, kwargs)
-        nv.validate_resampler_func("prod", args, kwargs)
         return self._downsample("prod", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1252,8 +1243,6 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         numeric_only: bool = False,
         min_count: int = 0,
-        *args,
-        **kwargs,
     ):
         """
         Compute min value of group.
@@ -1277,9 +1266,6 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    3
         Freq: MS, dtype: int64
         """
-
-        maybe_warn_args_and_kwargs(type(self), "min", args, kwargs)
-        nv.validate_resampler_func("min", args, kwargs)
         return self._downsample("min", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1287,8 +1273,6 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         numeric_only: bool = False,
         min_count: int = 0,
-        *args,
-        **kwargs,
     ):
         """
         Compute max value of group.
@@ -1312,8 +1296,6 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    4
         Freq: MS, dtype: int64
         """
-        maybe_warn_args_and_kwargs(type(self), "max", args, kwargs)
-        nv.validate_resampler_func("max", args, kwargs)
         return self._downsample("max", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1323,11 +1305,7 @@ class Resampler(BaseGroupBy, PandasObject):
         numeric_only: bool = False,
         min_count: int = 0,
         skipna: bool = True,
-        *args,
-        **kwargs,
     ):
-        maybe_warn_args_and_kwargs(type(self), "first", args, kwargs)
-        nv.validate_resampler_func("first", args, kwargs)
         return self._downsample(
             "first", numeric_only=numeric_only, min_count=min_count, skipna=skipna
         )
@@ -1339,28 +1317,20 @@ class Resampler(BaseGroupBy, PandasObject):
         numeric_only: bool = False,
         min_count: int = 0,
         skipna: bool = True,
-        *args,
-        **kwargs,
     ):
-        maybe_warn_args_and_kwargs(type(self), "last", args, kwargs)
-        nv.validate_resampler_func("last", args, kwargs)
         return self._downsample(
             "last", numeric_only=numeric_only, min_count=min_count, skipna=skipna
         )
 
     @final
     @doc(GroupBy.median)
-    def median(self, numeric_only: bool = False, *args, **kwargs):
-        maybe_warn_args_and_kwargs(type(self), "median", args, kwargs)
-        nv.validate_resampler_func("median", args, kwargs)
+    def median(self, numeric_only: bool = False):
         return self._downsample("median", numeric_only=numeric_only)
 
     @final
     def mean(
         self,
         numeric_only: bool = False,
-        *args,
-        **kwargs,
     ):
         """
         Compute mean of groups, excluding missing values.
@@ -1395,8 +1365,6 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    3.5
         Freq: MS, dtype: float64
         """
-        maybe_warn_args_and_kwargs(type(self), "mean", args, kwargs)
-        nv.validate_resampler_func("mean", args, kwargs)
         return self._downsample("mean", numeric_only=numeric_only)
 
     @final
@@ -1404,8 +1372,6 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         ddof: int = 1,
         numeric_only: bool = False,
-        *args,
-        **kwargs,
     ):
         """
         Compute standard deviation of groups, excluding missing values.
@@ -1443,8 +1409,6 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    2.645751
         Freq: MS, dtype: float64
         """
-        maybe_warn_args_and_kwargs(type(self), "std", args, kwargs)
-        nv.validate_resampler_func("std", args, kwargs)
         return self._downsample("std", ddof=ddof, numeric_only=numeric_only)
 
     @final
@@ -1452,8 +1416,6 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         ddof: int = 1,
         numeric_only: bool = False,
-        *args,
-        **kwargs,
     ):
         """
         Compute variance of groups, excluding missing values.
@@ -1497,8 +1459,6 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    4.666667
         Freq: MS, dtype: float64
         """
-        maybe_warn_args_and_kwargs(type(self), "var", args, kwargs)
-        nv.validate_resampler_func("var", args, kwargs)
         return self._downsample("var", ddof=ddof, numeric_only=numeric_only)
 
     @final
@@ -1507,23 +1467,12 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         ddof: int = 1,
         numeric_only: bool = False,
-        *args,
-        **kwargs,
     ):
-        maybe_warn_args_and_kwargs(type(self), "sem", args, kwargs)
-        nv.validate_resampler_func("sem", args, kwargs)
         return self._downsample("sem", ddof=ddof, numeric_only=numeric_only)
 
     @final
     @doc(GroupBy.ohlc)
-    def ohlc(
-        self,
-        *args,
-        **kwargs,
-    ):
-        maybe_warn_args_and_kwargs(type(self), "ohlc", args, kwargs)
-        nv.validate_resampler_func("ohlc", args, kwargs)
-
+    def ohlc(self):
         ax = self.ax
         obj = self._obj_with_exclusions
         if len(ax) == 0:
@@ -1544,13 +1493,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
     @final
     @doc(SeriesGroupBy.nunique)
-    def nunique(
-        self,
-        *args,
-        **kwargs,
-    ):
-        maybe_warn_args_and_kwargs(type(self), "nunique", args, kwargs)
-        nv.validate_resampler_func("nunique", args, kwargs)
+    def nunique(self):
         return self._downsample("nunique")
 
     @final
@@ -2872,40 +2815,6 @@ def _asfreq_compat(index: DatetimeIndex | PeriodIndex | TimedeltaIndex, freq):
     else:  # pragma: no cover
         raise TypeError(type(index))
     return new_index
-
-
-def maybe_warn_args_and_kwargs(cls, kernel: str, args, kwargs) -> None:
-    """
-    Warn for deprecation of args and kwargs in resample functions.
-
-    Parameters
-    ----------
-    cls : type
-        Class to warn about.
-    kernel : str
-        Operation name.
-    args : tuple or None
-        args passed by user. Will be None if and only if kernel does not have args.
-    kwargs : dict or None
-        kwargs passed by user. Will be None if and only if kernel does not have kwargs.
-    """
-    warn_args = args is not None and len(args) > 0
-    warn_kwargs = kwargs is not None and len(kwargs) > 0
-    if warn_args and warn_kwargs:
-        msg = "args and kwargs"
-    elif warn_args:
-        msg = "args"
-    elif warn_kwargs:
-        msg = "kwargs"
-    else:
-        return
-    warnings.warn(
-        f"Passing additional {msg} to {cls.__name__}.{kernel} has "
-        "no impact on the result and is deprecated. This will "
-        "raise a TypeError in a future version of pandas.",
-        category=FutureWarning,
-        stacklevel=find_stack_level(),
-    )
 
 
 def _apply(
