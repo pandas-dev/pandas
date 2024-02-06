@@ -3672,20 +3672,17 @@ def test_to_datetime_mixed_not_necessarily_iso8601_coerce(errors, expected):
     tm.assert_index_equal(result, expected)
 
 
-def test_ignoring_unknown_tz_deprecated():
+def test_unknown_tz_raises():
     # GH#18702, GH#51476
     dtstr = "2014 Jan 9 05:15 FAKE"
-    msg = 'un-recognized timezone "FAKE". Dropping unrecognized timezones is deprecated'
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        res = Timestamp(dtstr)
-    assert res == Timestamp(dtstr[:-5])
+    msg = '.*un-recognized timezone "FAKE".'
+    with pytest.raises(ValueError, match=msg):
+        Timestamp(dtstr)
 
-    with tm.assert_produces_warning(FutureWarning):
-        res = to_datetime(dtstr)
-    assert res == to_datetime(dtstr[:-5])
-    with tm.assert_produces_warning(FutureWarning):
-        res = to_datetime([dtstr])
-    tm.assert_index_equal(res, to_datetime([dtstr[:-5]]))
+    with pytest.raises(ValueError, match=msg):
+        to_datetime(dtstr)
+    with pytest.raises(ValueError, match=msg):
+        to_datetime([dtstr])
 
 
 def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
