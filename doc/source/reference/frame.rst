@@ -381,7 +381,6 @@ Serialization / IO / conversion
    DataFrame.to_feather
    DataFrame.to_latex
    DataFrame.to_stata
-   DataFrame.to_gbq
    DataFrame.to_records
    DataFrame.to_string
    DataFrame.to_clipboard

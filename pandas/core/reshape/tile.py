@@ -548,7 +548,7 @@ def _format_labels(
     precision: int,
     right: bool = True,
     include_lowest: bool = False,
-):
+) -> IntervalIndex:
     """based on the dtype, return our labels"""
     closed: IntervalLeftRight = "right" if right else "left"
 
