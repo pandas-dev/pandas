@@ -1967,7 +1967,7 @@ def using_copy_on_write() -> bool:
 
 
 @pytest.fixture(params=[True, False])
-def performance_warning(request) -> bool:
+def performance_warning(request) -> Iterator[bool | type[Warning]]:
     """
     Fixture to check if performance warnings are enabled. Either produces
     ``PerformanceWarning`` if they are enabled, otherwise ``False``.
