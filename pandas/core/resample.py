@@ -101,6 +101,7 @@ if TYPE_CHECKING:
         AnyArrayLike,
         Axis,
         Concatenate,
+        FreqIndexT,
         Frequency,
         IndexLabel,
         InterpolateOptions,
@@ -1690,7 +1691,7 @@ class DatetimeIndexResampler(Resampler):
     ax: DatetimeIndex
 
     @property
-    def _resampler_for_grouping(self):
+    def _resampler_for_grouping(self) -> type[DatetimeIndexResamplerGroupby]:
         return DatetimeIndexResamplerGroupby
 
     def _get_binner_for_time(self):
@@ -2483,17 +2484,28 @@ class TimeGrouper(Grouper):
         return obj, ax, indexer
 
 
+@overload
 def _take_new_index(
-    obj: NDFrameT,
+    obj: DataFrame, indexer: npt.NDArray[np.intp], new_index: Index
+) -> DataFrame:
+    ...
+
+
+@overload
+def _take_new_index(
+    obj: Series, indexer: npt.NDArray[np.intp], new_index: Index
+) -> Series:
+    ...
+
+
+def _take_new_index(
+    obj: DataFrame | Series,
     indexer: npt.NDArray[np.intp],
     new_index: Index,
-) -> NDFrameT:
+) -> DataFrame | Series:
     if isinstance(obj, ABCSeries):
         new_values = algos.take_nd(obj._values, indexer)
-        # error: Incompatible return value type (got "Series", expected "NDFrameT")
-        return obj._constructor(  # type: ignore[return-value]
-            new_values, index=new_index, name=obj.name
-        )
+        return obj._constructor(new_values, index=new_index, name=obj.name)
     elif isinstance(obj, ABCDataFrame):
         new_mgr = obj._mgr.reindex_indexer(new_axis=new_index, indexer=indexer, axis=1)
         return obj._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
@@ -2788,7 +2800,7 @@ def asfreq(
     return new_obj
 
 
-def _asfreq_compat(index: DatetimeIndex | PeriodIndex | TimedeltaIndex, freq):
+def _asfreq_compat(index: FreqIndexT, freq) -> FreqIndexT:
     """
     Helper to mimic asfreq on (empty) DatetimeIndex and TimedeltaIndex.
 
@@ -2806,7 +2818,6 @@ def _asfreq_compat(index: DatetimeIndex | PeriodIndex | TimedeltaIndex, freq):
         raise ValueError(
             "Can only set arbitrary freq for empty DatetimeIndex or TimedeltaIndex"
         )
-    new_index: Index
     if isinstance(index, PeriodIndex):
         new_index = index.asfreq(freq=freq)
     elif isinstance(index, DatetimeIndex):
