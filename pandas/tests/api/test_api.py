@@ -133,7 +133,6 @@ class TestPDApi(Base):
         "show_versions",
         "timedelta_range",
         "unique",
-        "value_counts",
         "wide_to_long",
     ]
 

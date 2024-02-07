@@ -818,53 +818,6 @@ def factorize(
     return codes, uniques
 
 
-def value_counts(
-    values,
-    sort: bool = True,
-    ascending: bool = False,
-    normalize: bool = False,
-    bins=None,
-    dropna: bool = True,
-) -> Series:
-    """
-    Compute a histogram of the counts of non-null values.
-
-    Parameters
-    ----------
-    values : ndarray (1-d)
-    sort : bool, default True
-        Sort by values
-    ascending : bool, default False
-        Sort in ascending order
-    normalize: bool, default False
-        If True then compute a relative histogram
-    bins : integer, optional
-        Rather than count values, group them into half-open bins,
-        convenience for pd.cut, only works with numeric data
-    dropna : bool, default True
-        Don't include counts of NaN
-
-    Returns
-    -------
-    Series
-    """
-    warnings.warn(
-        # GH#53493
-        "pandas.value_counts is deprecated and will be removed in a "
-        "future version. Use pd.Series(obj).value_counts() instead.",
-        FutureWarning,
-        stacklevel=find_stack_level(),
-    )
-    return value_counts_internal(
-        values,
-        sort=sort,
-        ascending=ascending,
-        normalize=normalize,
-        bins=bins,
-        dropna=dropna,
-    )
-
-
 def value_counts_internal(
     values,
     sort: bool = True,
