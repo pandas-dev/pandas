@@ -86,6 +86,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 Other API changes
 ^^^^^^^^^^^^^^^^^
 - 3rd party ``py.path`` objects are no longer explicitly supported in IO methods. Use :py:class:`pathlib.Path` objects instead (:issue:`57091`)
+- :attr:`MultiIndex.codes`, :attr:`MultiIndex.levels`, and :attr:`MultiIndex.names` now returns a ``tuple`` instead of a ``FrozenList`` (:issue:`53531`)
 -
 
 .. ---------------------------------------------------------------------------

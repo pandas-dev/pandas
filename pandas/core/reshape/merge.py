@@ -105,7 +105,6 @@ if TYPE_CHECKING:
     from pandas import DataFrame
     from pandas.core import groupby
     from pandas.core.arrays import DatetimeArray
-    from pandas.core.indexes.frozen import FrozenList
 
 _factorizers = {
     np.int64: libhashtable.Int64Factorizer,
@@ -1809,7 +1808,7 @@ def restore_dropped_levels_multijoin(
     join_index: Index,
     lindexer: npt.NDArray[np.intp],
     rindexer: npt.NDArray[np.intp],
-) -> tuple[FrozenList, FrozenList, FrozenList]:
+) -> tuple[tuple, tuple, tuple]:
     """
     *this is an internal non-public method*
 
@@ -1841,7 +1840,7 @@ def restore_dropped_levels_multijoin(
         levels of combined multiindexes
     labels : np.ndarray[np.intp]
         labels of combined multiindexes
-    names : List[Hashable]
+    names : tuple[Hashable]
         names of combined multiindex levels
 
     """
@@ -1883,12 +1882,11 @@ def restore_dropped_levels_multijoin(
         else:
             restore_codes = algos.take_nd(codes, indexer, fill_value=-1)
 
-        # error: Cannot determine type of "__add__"
-        join_levels = join_levels + [restore_levels]  # type: ignore[has-type]
-        join_codes = join_codes + [restore_codes]  # type: ignore[has-type]
-        join_names = join_names + [dropped_level_name]
+        join_levels = join_levels + (restore_levels,)
+        join_codes = join_codes + (restore_codes,)
+        join_names = join_names + (dropped_level_name,)
 
-    return join_levels, join_codes, join_names
+    return tuple(join_levels), tuple(join_codes), tuple(join_names)
 
 
 class _OrderedMerge(_MergeOperation):
