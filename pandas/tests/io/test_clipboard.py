@@ -411,13 +411,3 @@ y,2,5.0,,,,,False,"""
         )
         with pytest.raises(ValueError, match=msg):
             read_clipboard(dtype_backend="numpy")
-
-    def test_to_clipboard_pos_args_deprecation(self):
-        # GH-54229
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"Starting with pandas version 3.0 all arguments of to_clipboard "
-            r"will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.to_clipboard(True, None)
