@@ -10,6 +10,7 @@ from typing import (
     Any,
     Callable,
     Literal,
+    NoReturn,
     cast,
     final,
 )
@@ -2349,7 +2350,7 @@ def raise_construction_error(
     block_shape: Shape,
     axes: list[Index],
     e: ValueError | None = None,
-):
+) -> NoReturn:
     """raise a helpful message about our construction"""
     passed = tuple(map(int, [tot_items] + list(block_shape)))
     # Correcting the user facing error message during dataframe construction

@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
 # define abstract base classes to enable isinstance type checking on our
 # objects
-def create_pandas_abc_type(name, attr, comp):
+def create_pandas_abc_type(name, attr, comp) -> type:
     def _check(inst) -> bool:
         return getattr(inst, attr, "_typ") in comp
 

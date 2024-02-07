@@ -204,7 +204,7 @@ if TYPE_CHECKING:
     from pandas.core.arrays.timedeltas import TimedeltaArray
 
 
-def get_unit_from_pa_dtype(pa_dtype):
+def get_unit_from_pa_dtype(pa_dtype) -> str:
     # https://github.com/pandas-dev/pandas/pull/50998#discussion_r1100344804
     if pa_version_under11p0:
         unit = str(pa_dtype).split("[", 1)[-1][:-1]
@@ -1966,7 +1966,7 @@ class ArrowExtensionArray(
         na_option: str = "keep",
         ascending: bool = True,
         pct: bool = False,
-    ):
+    ) -> Self:
         """
         See Series.rank.__doc__.
         """
