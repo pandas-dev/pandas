@@ -6,6 +6,10 @@ import re
 import numpy as np
 import pytest
 
+
+import pandas as pd
+from collections import namedtuple
+
 from pandas.errors import IndexingError
 
 from pandas import (
@@ -1463,3 +1467,24 @@ class TestILocSeries:
             result.loc[:, "b"] = result.loc[:, "b"].astype("Int64")
         expected = DataFrame({"a": ["test"], "b": array([NA], dtype="Int64")})
         tm.assert_frame_equal(result, expected)
+
+
+
+    def test_iloc_with_namedtuple():
+        # setup a dataFrame
+        df = pd.DataFrame(np.arange(100).reshape(10, 10))
+    
+        # define a namedtuple 
+        Indexer = namedtuple("Indexer", ["row", "col"])
+    
+        # Test .iloc with a regular tuple
+        result_with_tuple = df.iloc[(1, 2)]
+        assert result_with_tuple == df.iloc[1, 2]
+    
+        # Test .iloc with a namedtuple
+        indexer = Indexer(row=1, col=2)
+        result_with_namedtuple = df.iloc[indexer]
+        assert result_with_namedtuple == df.iloc[1, 2]
+    
+        # ensure both methods yield the same result testing the initial issue
+        assert result_with_tuple == result_with_namedtuple
