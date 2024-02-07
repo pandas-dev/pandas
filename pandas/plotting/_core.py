@@ -1089,7 +1089,11 @@ class PlotAccessor(PandasObject):
     @Substitution(kind="line")
     @Appender(_bar_or_line_doc)
     def line(
-        self, x: Hashable | None = None, y: Hashable | None = None, **kwargs
+        self,
+        x: Hashable | None = None,
+        y: Hashable | None = None,
+        color: str | Sequence[str] | dict | None = None,
+        **kwargs,
     ) -> PlotAccessor:
         """
         Plot Series or DataFrame as lines.
@@ -1097,6 +1101,8 @@ class PlotAccessor(PandasObject):
         This function is useful to plot lines using DataFrame's values
         as coordinates.
         """
+        if color is not None:
+            kwargs["color"] = color
         return self(kind="line", x=x, y=y, **kwargs)
 
     @Appender(
@@ -1178,7 +1184,11 @@ class PlotAccessor(PandasObject):
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
     def bar(  # pylint: disable=disallowed-name
-        self, x: Hashable | None = None, y: Hashable | None = None, **kwargs
+        self,
+        x: Hashable | None = None,
+        y: Hashable | None = None,
+        color: str | Sequence[str] | dict | None = None,
+        **kwargs,
     ) -> PlotAccessor:
         """
         Vertical bar plot.
@@ -1189,6 +1199,8 @@ class PlotAccessor(PandasObject):
         axis of the plot shows the specific categories being compared, and the
         other axis represents a measured value.
         """
+        if color is not None:
+            kwargs["color"] = color
         return self(kind="bar", x=x, y=y, **kwargs)
 
     @Appender(
@@ -1266,7 +1278,11 @@ class PlotAccessor(PandasObject):
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
     def barh(
-        self, x: Hashable | None = None, y: Hashable | None = None, **kwargs
+        self,
+        x: Hashable | None = None,
+        y: Hashable | None = None,
+        color: str | Sequence[str] | dict | None = None,
+        **kwargs,
     ) -> PlotAccessor:
         """
         Make a horizontal bar plot.
@@ -1277,6 +1293,8 @@ class PlotAccessor(PandasObject):
         axis of the plot shows the specific categories being compared, and the
         other axis represents a measured value.
         """
+        if color is not None:
+            kwargs["color"] = color
         return self(kind="barh", x=x, y=y, **kwargs)
 
     def box(self, by: IndexLabel | None = None, **kwargs) -> PlotAccessor:
@@ -1602,7 +1620,7 @@ class PlotAccessor(PandasObject):
         """
         return self(kind="area", x=x, y=y, stacked=stacked, **kwargs)
 
-    def pie(self, **kwargs) -> PlotAccessor:
+    def pie(self, y: IndexLabel | None = None, **kwargs) -> PlotAccessor:
         """
         Generate a pie plot.
 
@@ -1649,6 +1667,8 @@ class PlotAccessor(PandasObject):
 
             >>> plot = df.plot.pie(subplots=True, figsize=(11, 6))
         """
+        if y is not None:
+            kwargs["y"] = y
         if (
             isinstance(self._parent, ABCDataFrame)
             and kwargs.get("y", None) is None
