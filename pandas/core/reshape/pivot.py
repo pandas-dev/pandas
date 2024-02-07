@@ -830,7 +830,7 @@ def _normalize(
     return table
 
 
-def _get_names(arrs, names, prefix: str = "row"):
+def _get_names(arrs, names, prefix: str = "row") -> list:
     if names is None:
         names = []
         for i, arr in enumerate(arrs):
