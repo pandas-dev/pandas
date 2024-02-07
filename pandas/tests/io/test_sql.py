@@ -3726,20 +3726,6 @@ def test_read_sql_dtype(conn, request, func, dtype_backend):
     tm.assert_frame_equal(result, expected)
 
 
-def test_keyword_deprecation(sqlite_engine):
-    conn = sqlite_engine
-    # GH 54397
-    msg = (
-        "Starting with pandas version 3.0 all arguments of to_sql except for the "
-        "arguments 'name' and 'con' will be keyword-only."
-    )
-    df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
-    df.to_sql("example", conn)
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.to_sql("example", conn, None, if_exists="replace")
-
-
 def test_bigint_warning(sqlite_engine):
     conn = sqlite_engine
     # test no warning for BIGINT (to support int64) is raised (GH7433)

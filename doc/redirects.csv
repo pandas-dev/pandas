@@ -495,7 +495,6 @@ generated/pandas.DataFrame.to_csv,../reference/api/pandas.DataFrame.to_csv
 generated/pandas.DataFrame.to_dict,../reference/api/pandas.DataFrame.to_dict
 generated/pandas.DataFrame.to_excel,../reference/api/pandas.DataFrame.to_excel
 generated/pandas.DataFrame.to_feather,../reference/api/pandas.DataFrame.to_feather
-generated/pandas.DataFrame.to_gbq,../reference/api/pandas.DataFrame.to_gbq
 generated/pandas.DataFrame.to_hdf,../reference/api/pandas.DataFrame.to_hdf
 generated/pandas.DataFrame.to,../reference/api/pandas.DataFrame.to
 generated/pandas.DataFrame.to_json,../reference/api/pandas.DataFrame.to_json
@@ -890,7 +889,6 @@ generated/pandas.read_csv,../reference/api/pandas.read_csv
 generated/pandas.read_excel,../reference/api/pandas.read_excel
 generated/pandas.read_feather,../reference/api/pandas.read_feather
 generated/pandas.read_fwf,../reference/api/pandas.read_fwf
-generated/pandas.read_gbq,../reference/api/pandas.read_gbq
 generated/pandas.read_hdf,../reference/api/pandas.read_hdf
 generated/pandas.read,../reference/api/pandas.read
 generated/pandas.read_json,../reference/api/pandas.read_json

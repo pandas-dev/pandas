@@ -764,18 +764,6 @@ class TestDataFrameToString:
         )
         assert result == expected
 
-    def test_to_string_pos_args_deprecation(self):
-        # GH#54229
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            "Starting with pandas version 3.0 all arguments of to_string "
-            "except for the "
-            "argument 'buf' will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            buf = StringIO()
-            df.to_string(buf, None, None, True, True)
-
     def test_to_string_utf8_columns(self):
         n = "\u05d0".encode()
         df = DataFrame([1, 2], columns=[n])

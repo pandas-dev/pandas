@@ -1486,18 +1486,6 @@ class TestFSPath:
             with ExcelWriter(path) as writer:
                 assert os.fspath(writer) == str(path)
 
-    def test_to_excel_pos_args_deprecation(self):
-        # GH-54229
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"Starting with pandas version 3.0 all arguments of to_excel except "
-            r"for the argument 'excel_writer' will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            buf = BytesIO()
-            writer = ExcelWriter(buf)
-            df.to_excel(writer, "Sheet_name_1")
-
 
 @pytest.mark.parametrize("klass", _writers.values())
 def test_subclass_attr(klass):

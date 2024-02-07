@@ -188,13 +188,6 @@ SQL
    read_sql
    DataFrame.to_sql
 
-Google BigQuery
-~~~~~~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-   read_gbq
-
 STATA
 ~~~~~
 .. autosummary::
