@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from pandas import (
@@ -72,7 +74,7 @@ class TestPeriodIndex:
 
         msg = "How must be one of S or E"
         with pytest.raises(ValueError, match=msg):
-            pi7.asfreq("min", "foo")
+            pi7.asfreq("T", "foo")
         result1 = pi1.asfreq("3M")
         result2 = pi1.asfreq("M")
         expected = period_range(freq="M", start="2001-12", end="2001-12")
@@ -180,7 +182,7 @@ class TestPeriodIndex:
     )
     def test_pi_asfreq_invalid_baseoffset(self, freq):
         # GH#56945
-        msg = f"{freq.base} is not supported as period frequency"
+        msg = re.escape(f"{freq} is not supported as period frequency")
 
         pi = PeriodIndex(["2020-01-01", "2021-01-01"], freq="M")
         with pytest.raises(ValueError, match=msg):

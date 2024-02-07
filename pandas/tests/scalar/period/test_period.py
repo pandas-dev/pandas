@@ -3,6 +3,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+import re
 
 import numpy as np
 import pytest
@@ -40,7 +41,7 @@ class TestPeriodDisallowedFreqs:
     )
     def test_offsets_not_supported(self, freq, freq_msg):
         # GH#55785
-        msg = f"{freq.base} is not supported as period frequency"
+        msg = re.escape(f"{freq} is not supported as period frequency")
         with pytest.raises(ValueError, match=msg):
             Period(year=2014, freq=freq)
 

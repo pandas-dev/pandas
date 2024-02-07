@@ -4835,21 +4835,19 @@ cpdef to_offset(freq, bint is_period=False):
     if freq is None:
         return None
 
-    if isinstance(freq, BaseOffset):
-        if is_period and not hasattr(freq, "_period_dtype_code"):
-            raise ValueError(f"{freq.base} is not supported as period frequency")
-        return freq
-
     if isinstance(freq, tuple):
         raise TypeError(
             f"to_offset does not support tuples {freq}, pass as a string instead"
         )
 
+    if isinstance(freq, BaseOffset):
+        result = freq
+
     elif PyDelta_Check(freq):
-        delta = delta_to_tick(freq)
+        result = delta_to_tick(freq)
 
     elif isinstance(freq, str):
-        delta = None
+        result = None
         stride_sign = None
 
         try:
@@ -4950,27 +4948,27 @@ cpdef to_offset(freq, bint is_period=False):
                     offset = _get_offset(prefix)
                     offset = offset * int(np.fabs(stride) * stride_sign)
 
-                if delta is None:
-                    delta = offset
+                if result is None:
+                    result = offset
                 else:
-                    delta = delta + offset
+                    result = result + offset
         except (ValueError, TypeError) as err:
             raise ValueError(INVALID_FREQ_ERR_MSG.format(
                 f"{freq}, failed to parse with error message: {repr(err)}")
             )
     else:
-        delta = None
+        result = None
 
-    if delta is None:
+    if result is None:
         raise ValueError(INVALID_FREQ_ERR_MSG.format(freq))
 
-    if is_period and not hasattr(delta, "_period_dtype_code"):
+    if is_period and not hasattr(result, "_period_dtype_code"):
         if isinstance(freq, str):
-            raise ValueError(f"{delta.name} is not supported as period frequency")
+            raise ValueError(f"{result.name} is not supported as period frequency")
         else:
             raise ValueError(f"{freq} is not supported as period frequency")
 
-    return delta
+    return result
 
 
 # ----------------------------------------------------------------------
