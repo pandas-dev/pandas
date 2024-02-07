@@ -2337,7 +2337,7 @@ class ArrowDtype(StorageExtensionDtype):
         except NotImplementedError:
             return None
 
-    def __from_arrow__(self, array: pa.Array | pa.ChunkedArray):
+    def __from_arrow__(self, array: pa.Array | pa.ChunkedArray) -> ArrowExtensionArray:
         """
         Construct IntegerArray/FloatingArray from pyarrow Array/ChunkedArray.
         """

@@ -75,7 +75,7 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
     )
 
 
-def _from_dataframe(df: DataFrameXchg, allow_copy: bool = True):
+def _from_dataframe(df: DataFrameXchg, allow_copy: bool = True) -> pd.DataFrame:
     """
     Build a ``pd.DataFrame`` from the DataFrame interchange object.
 

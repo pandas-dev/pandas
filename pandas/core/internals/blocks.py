@@ -2537,7 +2537,7 @@ def get_block_type(dtype: DtypeObj) -> type[Block]:
 
 def new_block_2d(
     values: ArrayLike, placement: BlockPlacement, refs: BlockValuesRefs | None = None
-):
+) -> Block:
     # new_block specialized to case with
     #  ndim=2
     #  isinstance(placement, BlockPlacement)

@@ -1750,7 +1750,7 @@ class _iLocIndexer(_LocationIndexer):
         labels._validate_positional_slice(slice_obj)
         return self.obj._slice(slice_obj, axis=axis)
 
-    def _convert_to_indexer(self, key, axis: AxisInt):
+    def _convert_to_indexer(self, key: T, axis: AxisInt) -> T:
         """
         Much simpler as we only have to deal with our valid types.
         """
