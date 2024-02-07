@@ -37,7 +37,6 @@ VERSIONS = {
     "numexpr": "2.8.4",
     "odfpy": "1.4.1",
     "openpyxl": "3.1.0",
-    "pandas_gbq": "0.19.0",
     "psycopg2": "2.9.6",  # (dt dec pq3 ext lo64)
     "pymysql": "1.0.2",
     "pyarrow": "10.0.1",
@@ -68,7 +67,6 @@ INSTALL_MAPPING = {
     "jinja2": "Jinja2",
     "lxml.etree": "lxml",
     "odf": "odfpy",
-    "pandas_gbq": "pandas-gbq",
     "python_calamine": "python-calamine",
     "sqlalchemy": "SQLAlchemy",
     "tables": "pytables",

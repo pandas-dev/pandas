@@ -744,15 +744,3 @@ def test_to_csv_iterative_compression_buffer(compression):
             pd.read_csv(buffer, compression=compression, index_col=0), df
         )
         assert not buffer.closed
-
-
-def test_to_csv_pos_args_deprecation():
-    # GH-54229
-    df = DataFrame({"a": [1, 2, 3]})
-    msg = (
-        r"Starting with pandas version 3.0 all arguments of to_csv except for the "
-        r"argument 'path_or_buf' will be keyword-only."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        buffer = io.BytesIO()
-        df.to_csv(buffer, ";")

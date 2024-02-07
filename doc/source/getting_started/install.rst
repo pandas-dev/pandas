@@ -386,7 +386,6 @@ Dependency                Minimum Version    pip extra       Notes
 fsspec                    2022.11.0          fss, gcp, aws   Handling files aside from simple local and HTTP (required
                                                              dependency of s3fs, gcsfs).
 gcsfs                     2022.11.0          gcp             Google Cloud Storage access
-pandas-gbq                0.19.0             gcp             Google Big Query access
 s3fs                      2022.11.0          aws             Amazon S3 access
 ========================= ================== =============== =============================================================
 

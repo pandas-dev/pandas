@@ -510,9 +510,6 @@ NaAction = Literal["ignore"]
 # from_dict
 FromDictOrient = Literal["columns", "index", "tight"]
 
-# to_gbc
-ToGbqIfexist = Literal["fail", "replace", "append"]
-
 # to_stata
 ToStataByteorder = Literal[">", "<", "little", "big"]
 
