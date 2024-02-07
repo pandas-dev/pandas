@@ -959,17 +959,6 @@ class TestNumericBase:
             idx_view = idx.view(index_cls)
         tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
 
-    def test_format(self, simple_index):
-        # GH35439
-        if isinstance(simple_index, DatetimeIndex):
-            pytest.skip("Tested elsewhere")
-        idx = simple_index
-        max_width = max(len(str(x)) for x in idx)
-        expected = [str(x).ljust(max_width) for x in idx]
-        msg = r"Index\.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert idx.format() == expected
-
     def test_insert_non_na(self, simple_index):
         # GH#43921 inserting an element that we know we can hold should
         #  not change dtype or type (except for RangeIndex)
