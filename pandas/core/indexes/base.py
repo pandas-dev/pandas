@@ -6460,7 +6460,7 @@ class Index(IndexOpsMixin, PandasObject):
         return True
 
     @final
-    def groupby(self, values) -> PrettyDict[Hashable, np.ndarray]:
+    def groupby(self, values) -> PrettyDict[Hashable, Index]:
         """
         Group the index labels by a given array of values.
 
