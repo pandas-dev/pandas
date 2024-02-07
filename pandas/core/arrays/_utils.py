@@ -39,6 +39,8 @@ def to_numpy_dtype_inference(
             dtype = arr.dtype.numpy_dtype  # type: ignore[union-attr]
     elif dtype is not None:
         dtype = np.dtype(dtype)
+        if na_value is lib.no_default and hasna and dtype.kind == "f":
+            na_value = np.nan
         dtype_given = True
     else:
         dtype_given = True
