@@ -10,11 +10,9 @@ from abc import (
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     cast,
     final,
 )
-import warnings
 
 import numpy as np
 
@@ -43,7 +41,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_integer,
@@ -191,39 +188,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
     # --------------------------------------------------------------------
     # Rendering Methods
     _default_na_rep = "NaT"
-
-    def format(
-        self,
-        name: bool = False,
-        formatter: Callable | None = None,
-        na_rep: str = "NaT",
-        date_format: str | None = None,
-    ) -> list[str]:
-        """
-        Render a string representation of the Index.
-        """
-        warnings.warn(
-            # GH#55413
-            f"{type(self).__name__}.format is deprecated and will be removed "
-            "in a future version. Convert using index.astype(str) or "
-            "index.map(formatter) instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        header = []
-        if name:
-            header.append(
-                ibase.pprint_thing(self.name, escape_chars=("\t", "\r", "\n"))
-                if self.name is not None
-                else ""
-            )
-
-        if formatter is not None:
-            return header + list(self.map(formatter))
-
-        return self._format_with_header(
-            header=header, na_rep=na_rep, date_format=date_format
-        )
 
     def _format_with_header(
         self, *, header: list[str], na_rep: str, date_format: str | None = None
