@@ -1032,8 +1032,8 @@ class TestPeriodIndex:
             offsets.BusinessHour(2),
         ],
     )
-    def test_asfreq_invalid_period_freq(self, offset, frame_or_series):
-        # GH#9586
+    def test_asfreq_invalid_period_offset(self, offset, frame_or_series):
+        # GH#55785
         msg = f"Invalid offset: '{offset.base}' for converting time series "
 
         obj = frame_or_series(range(5), index=period_range("2020-01-01", periods=5))

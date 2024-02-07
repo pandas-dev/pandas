@@ -42,9 +42,7 @@ from numpy import ma
 from pandas._config import (
     get_option,
     using_copy_on_write,
-    warn_copy_on_write,
 )
-from pandas._config.config import _get_option
 
 from pandas._libs import (
     algos as libalgos,
@@ -60,10 +58,11 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     ChainedAssignmentError,
     InvalidIndexError,
+)
+from pandas.errors.cow import (
     _chained_assignment_method_msg,
     _chained_assignment_msg,
     _chained_assignment_warning_method_msg,
-    _chained_assignment_warning_msg,
 )
 from pandas.util._decorators import (
     Appender,
@@ -89,7 +88,6 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
-    maybe_box_native,
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
@@ -167,15 +165,11 @@ from pandas.core.indexing import (
     check_bool_indexer,
     check_dict_or_set_indexers,
 )
-from pandas.core.internals import (
-    ArrayManager,
-    BlockManager,
-)
+from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
     arrays_to_mgr,
     dataclasses_to_dicts,
     dict_to_mgr,
-    mgr_to_mgr,
     ndarray_to_mgr,
     nested_data_to_arrays,
     rec_array_to_mgr,
@@ -251,7 +245,6 @@ if TYPE_CHECKING:
         SortKind,
         StorageOptions,
         Suffixes,
-        ToGbqIfexist,
         ToStataByteorder,
         ToTimestampHow,
         UpdateJoin,
@@ -263,7 +256,7 @@ if TYPE_CHECKING:
 
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
-    from pandas.core.internals import SingleDataManager
+    from pandas.core.internals.managers import SingleBlockManager
 
     from pandas.io.formats.style import Styler
 
@@ -647,7 +640,7 @@ class DataFrame(NDFrame, OpsMixin):
     _HANDLED_TYPES = (Series, Index, ExtensionArray, np.ndarray)
     _accessors: set[str] = {"sparse"}
     _hidden_attrs: frozenset[str] = NDFrame._hidden_attrs | frozenset([])
-    _mgr: BlockManager | ArrayManager
+    _mgr: BlockManager
 
     # similar to __array_priority__, positions DataFrame before Series, Index,
     #  and ExtensionArray.  Should NOT be overridden by subclasses.
@@ -701,7 +694,7 @@ class DataFrame(NDFrame, OpsMixin):
                 # to avoid the result sharing the same Manager
                 data = data.copy(deep=False)
 
-        if isinstance(data, (BlockManager, ArrayManager)):
+        if isinstance(data, BlockManager):
             if not allow_mgr:
                 # GH#52419
                 warnings.warn(
@@ -721,8 +714,6 @@ class DataFrame(NDFrame, OpsMixin):
                 NDFrame.__init__(self, data)
                 return
 
-        manager = _get_option("mode.data_manager", silent=True)
-
         is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
         data_dtype = getattr(data, "dtype", None)
         original_dtype = dtype
@@ -737,14 +728,6 @@ class DataFrame(NDFrame, OpsMixin):
             if isinstance(data, dict):
                 # retain pre-GH#38939 default behavior
                 copy = True
-            elif (
-                manager == "array"
-                and isinstance(data, (np.ndarray, ExtensionArray))
-                and data.ndim == 2
-            ):
-                # INFO(ArrayManager) by default copy the 2D input array to get
-                # contiguous 1D arrays
-                copy = True
             elif using_copy_on_write() and not isinstance(
                 data, (Index, DataFrame, Series)
             ):
@@ -758,14 +741,14 @@ class DataFrame(NDFrame, OpsMixin):
             dtype = dtype if dtype is not None else pandas_dtype(object)
             data = []
 
-        if isinstance(data, (BlockManager, ArrayManager)):
+        if isinstance(data, BlockManager):
             mgr = self._init_mgr(
                 data, axes={"index": index, "columns": columns}, dtype=dtype, copy=copy
             )
 
         elif isinstance(data, dict):
             # GH#38939 de facto copy defaults to False only in non-dict cases
-            mgr = dict_to_mgr(data, index, columns, dtype=dtype, copy=copy, typ=manager)
+            mgr = dict_to_mgr(data, index, columns, dtype=dtype, copy=copy)
         elif isinstance(data, ma.MaskedArray):
             from numpy.ma import mrecords
 
@@ -785,7 +768,6 @@ class DataFrame(NDFrame, OpsMixin):
                 columns,
                 dtype=dtype,
                 copy=copy,
-                typ=manager,
             )
 
         elif isinstance(data, (np.ndarray, Series, Index, ExtensionArray)):
@@ -798,7 +780,6 @@ class DataFrame(NDFrame, OpsMixin):
                     columns,
                     dtype,
                     copy,
-                    typ=manager,
                 )
             elif getattr(data, "name", None) is not None:
                 # i.e. Series/Index with non-None name
@@ -810,7 +791,6 @@ class DataFrame(NDFrame, OpsMixin):
                     index,
                     columns,
                     dtype=dtype,
-                    typ=manager,
                     copy=_copy,
                 )
             else:
@@ -820,7 +800,6 @@ class DataFrame(NDFrame, OpsMixin):
                     columns,
                     dtype=dtype,
                     copy=copy,
-                    typ=manager,
                 )
 
         # For data is list-like, or Iterable (will consume into list)
@@ -851,7 +830,6 @@ class DataFrame(NDFrame, OpsMixin):
                         columns,
                         index,
                         dtype=dtype,
-                        typ=manager,
                     )
                 else:
                     mgr = ndarray_to_mgr(
@@ -860,7 +838,6 @@ class DataFrame(NDFrame, OpsMixin):
                         columns,
                         dtype=dtype,
                         copy=copy,
-                        typ=manager,
                     )
             else:
                 mgr = dict_to_mgr(
@@ -868,7 +845,6 @@ class DataFrame(NDFrame, OpsMixin):
                     index,
                     columns if columns is not None else default_index(0),
                     dtype=dtype,
-                    typ=manager,
                 )
         # For data is scalar
         else:
@@ -889,7 +865,7 @@ class DataFrame(NDFrame, OpsMixin):
                     construct_1d_arraylike_from_scalar(data, len(index), dtype)
                     for _ in range(len(columns))
                 ]
-                mgr = arrays_to_mgr(values, columns, index, dtype=None, typ=manager)
+                mgr = arrays_to_mgr(values, columns, index, dtype=None)
             else:
                 arr2d = construct_2d_arraylike_from_scalar(
                     data,
@@ -905,11 +881,7 @@ class DataFrame(NDFrame, OpsMixin):
                     columns,
                     dtype=arr2d.dtype,
                     copy=False,
-                    typ=manager,
                 )
-
-        # ensure correct Manager type according to settings
-        mgr = mgr_to_mgr(mgr, typ=manager)
 
         NDFrame.__init__(self, mgr)
 
@@ -1088,8 +1060,6 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Can we transpose this DataFrame without creating any new array objects.
         """
-        if isinstance(self._mgr, ArrayManager):
-            return False
         blocks = self._mgr.blocks
         if len(blocks) != 1:
             return False
@@ -1104,13 +1074,6 @@ class DataFrame(NDFrame, OpsMixin):
         Analogue to ._values that may return a 2D ExtensionArray.
         """
         mgr = self._mgr
-
-        if isinstance(mgr, ArrayManager):
-            if len(mgr.arrays) == 1 and not is_1d_only_ea_dtype(mgr.arrays[0].dtype):
-                # error: Item "ExtensionArray" of "Union[ndarray, ExtensionArray]"
-                # has no attribute "reshape"
-                return mgr.arrays[0].reshape(-1, 1)  # type: ignore[union-attr]
-            return ensure_wrapped_if_datetimelike(self.values)
 
         blocks = mgr.blocks
         if len(blocks) != 1:
@@ -1251,6 +1214,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_string(
         self,
         buf: None = ...,
+        *,
         columns: Axes | None = ...,
         col_space: int | list[int] | dict[Hashable, int] | None = ...,
         header: bool | SequenceNotStr[str] = ...,
@@ -1276,6 +1240,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_string(
         self,
         buf: FilePath | WriteBuffer[str],
+        *,
         columns: Axes | None = ...,
         col_space: int | list[int] | dict[Hashable, int] | None = ...,
         header: bool | SequenceNotStr[str] = ...,
@@ -1297,9 +1262,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
-    @deprecate_nonkeyword_arguments(
-        version="3.0", allowed_args=["self", "buf"], name="to_string"
-    )
     @Substitution(
         header_type="bool or list of str",
         header="Write out the column names. If a list of columns "
@@ -1314,6 +1276,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_string(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
+        *,
         columns: Axes | None = None,
         col_space: int | list[int] | dict[Hashable, int] | None = None,
         header: bool | SequenceNotStr[str] = True,
@@ -1482,12 +1445,8 @@ class DataFrame(NDFrame, OpsMixin):
 
     @Appender(_shared_docs["items"])
     def items(self) -> Iterable[tuple[Hashable, Series]]:
-        if self.columns.is_unique and hasattr(self, "_item_cache"):
-            for k in self.columns:
-                yield k, self._get_item_cache(k)
-        else:
-            for i, k in enumerate(self.columns):
-                yield k, self._ixs(i, axis=1)
+        for i, k in enumerate(self.columns):
+            yield k, self._ixs(i, axis=1)
 
     def iterrows(self) -> Iterable[tuple[Hashable, Series]]:
         """
@@ -1540,7 +1499,7 @@ class DataFrame(NDFrame, OpsMixin):
         for k, v in zip(self.index, self.values):
             s = klass(v, index=columns, name=k).__finalize__(self)
             if using_cow and self._mgr.is_single_block:
-                s._mgr.add_references(self._mgr)  # type: ignore[arg-type]
+                s._mgr.add_references(self._mgr)
             yield k, s
 
     def itertuples(
@@ -1983,28 +1942,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         return result
 
-    def _create_data_for_split_and_tight_to_dict(
-        self, are_all_object_dtype_cols: bool, object_dtype_indices: list[int]
-    ) -> list:
-        """
-        Simple helper method to create data for to ``to_dict(orient="split")`` and
-        ``to_dict(orient="tight")`` to create the main output data
-        """
-        if are_all_object_dtype_cols:
-            data = [
-                list(map(maybe_box_native, t))
-                for t in self.itertuples(index=False, name=None)
-            ]
-        else:
-            data = [list(t) for t in self.itertuples(index=False, name=None)]
-            if object_dtype_indices:
-                # If we have object_dtype_cols, apply maybe_box_naive after list
-                # comprehension for perf
-                for row in data:
-                    for i in object_dtype_indices:
-                        row[i] = maybe_box_native(row[i])
-        return data
-
     @overload
     def to_dict(
         self,
@@ -2047,14 +1984,12 @@ class DataFrame(NDFrame, OpsMixin):
 
     # error: Incompatible default for argument "into" (default has type "type
     # [dict[Any, Any]]", argument has type "type[MutableMappingT] | MutableMappingT")
-    @deprecate_nonkeyword_arguments(
-        version="3.0", allowed_args=["self", "orient"], name="to_dict"
-    )
     def to_dict(
         self,
         orient: Literal[
             "dict", "list", "series", "split", "tight", "records", "index"
         ] = "dict",
+        *,
         into: type[MutableMappingT] | MutableMappingT = dict,  # type: ignore[assignment]
         index: bool = True,
     ) -> MutableMappingT | list[MutableMappingT]:
@@ -2164,144 +2099,6 @@ class DataFrame(NDFrame, OpsMixin):
         from pandas.core.methods.to_dict import to_dict
 
         return to_dict(self, orient, into=into, index=index)
-
-    @deprecate_nonkeyword_arguments(
-        version="3.0", allowed_args=["self", "destination_table"], name="to_gbq"
-    )
-    def to_gbq(
-        self,
-        destination_table: str,
-        project_id: str | None = None,
-        chunksize: int | None = None,
-        reauth: bool = False,
-        if_exists: ToGbqIfexist = "fail",
-        auth_local_webserver: bool = True,
-        table_schema: list[dict[str, str]] | None = None,
-        location: str | None = None,
-        progress_bar: bool = True,
-        credentials=None,
-    ) -> None:
-        """
-        Write a DataFrame to a Google BigQuery table.
-
-        .. deprecated:: 2.2.0
-
-           Please use ``pandas_gbq.to_gbq`` instead.
-
-        This function requires the `pandas-gbq package
-        <https://pandas-gbq.readthedocs.io>`__.
-
-        See the `How to authenticate with Google BigQuery
-        <https://pandas-gbq.readthedocs.io/en/latest/howto/authentication.html>`__
-        guide for authentication instructions.
-
-        Parameters
-        ----------
-        destination_table : str
-            Name of table to be written, in the form ``dataset.tablename``.
-        project_id : str, optional
-            Google BigQuery Account project ID. Optional when available from
-            the environment.
-        chunksize : int, optional
-            Number of rows to be inserted in each chunk from the dataframe.
-            Set to ``None`` to load the whole dataframe at once.
-        reauth : bool, default False
-            Force Google BigQuery to re-authenticate the user. This is useful
-            if multiple accounts are used.
-        if_exists : str, default 'fail'
-            Behavior when the destination table exists. Value can be one of:
-
-            ``'fail'``
-                If table exists raise pandas_gbq.gbq.TableCreationError.
-            ``'replace'``
-                If table exists, drop it, recreate it, and insert data.
-            ``'append'``
-                If table exists, insert data. Create if does not exist.
-        auth_local_webserver : bool, default True
-            Use the `local webserver flow`_ instead of the `console flow`_
-            when getting user credentials.
-
-            .. _local webserver flow:
-                https://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
-            .. _console flow:
-                https://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
-
-            *New in version 0.2.0 of pandas-gbq*.
-
-            .. versionchanged:: 1.5.0
-               Default value is changed to ``True``. Google has deprecated the
-               ``auth_local_webserver = False`` `"out of band" (copy-paste)
-               flow
-               <https://developers.googleblog.com/2022/02/making-oauth-flows-safer.html?m=1#disallowed-oob>`_.
-        table_schema : list of dicts, optional
-            List of BigQuery table fields to which according DataFrame
-            columns conform to, e.g. ``[{'name': 'col1', 'type':
-            'STRING'},...]``. If schema is not provided, it will be
-            generated according to dtypes of DataFrame columns. See
-            BigQuery API documentation on available names of a field.
-
-            *New in version 0.3.1 of pandas-gbq*.
-        location : str, optional
-            Location where the load job should run. See the `BigQuery locations
-            documentation
-            <https://cloud.google.com/bigquery/docs/dataset-locations>`__ for a
-            list of available locations. The location must match that of the
-            target dataset.
-
-            *New in version 0.5.0 of pandas-gbq*.
-        progress_bar : bool, default True
-            Use the library `tqdm` to show the progress bar for the upload,
-            chunk by chunk.
-
-            *New in version 0.5.0 of pandas-gbq*.
-        credentials : google.auth.credentials.Credentials, optional
-            Credentials for accessing Google APIs. Use this parameter to
-            override default credentials, such as to use Compute Engine
-            :class:`google.auth.compute_engine.Credentials` or Service
-            Account :class:`google.oauth2.service_account.Credentials`
-            directly.
-
-            *New in version 0.8.0 of pandas-gbq*.
-
-        See Also
-        --------
-        pandas_gbq.to_gbq : This function in the pandas-gbq library.
-        read_gbq : Read a DataFrame from Google BigQuery.
-
-        Examples
-        --------
-        Example taken from `Google BigQuery documentation
-        <https://cloud.google.com/bigquery/docs/samples/bigquery-pandas-gbq-to-gbq-simple>`_
-
-        >>> project_id = "my-project"
-        >>> table_id = 'my_dataset.my_table'
-        >>> df = pd.DataFrame({
-        ...                   "my_string": ["a", "b", "c"],
-        ...                   "my_int64": [1, 2, 3],
-        ...                   "my_float64": [4.0, 5.0, 6.0],
-        ...                   "my_bool1": [True, False, True],
-        ...                   "my_bool2": [False, True, False],
-        ...                   "my_dates": pd.date_range("now", periods=3),
-        ...                   }
-        ...                   )
-
-        >>> df.to_gbq(table_id, project_id=project_id)  # doctest: +SKIP
-        """
-        from pandas.io import gbq
-
-        gbq.to_gbq(
-            self,
-            destination_table,
-            project_id=project_id,
-            chunksize=chunksize,
-            reauth=reauth,
-            if_exists=if_exists,
-            auth_local_webserver=auth_local_webserver,
-            table_schema=table_schema,
-            location=location,
-            progress_bar=progress_bar,
-            credentials=credentials,
-        )
 
     @classmethod
     def from_records(
@@ -2526,9 +2323,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             columns = columns.drop(exclude)
 
-        manager = _get_option("mode.data_manager", silent=True)
-        mgr = arrays_to_mgr(arrays, columns, result_index, typ=manager)
-
+        mgr = arrays_to_mgr(arrays, columns, result_index)
         return cls._from_mgr(mgr, axes=mgr.axes)
 
     def to_records(
@@ -2727,7 +2522,6 @@ class DataFrame(NDFrame, OpsMixin):
         if dtype is not None:
             dtype = pandas_dtype(dtype)
 
-        manager = _get_option("mode.data_manager", silent=True)
         columns = ensure_index(columns)
         if len(columns) != len(arrays):
             raise ValueError("len(columns) must match len(arrays)")
@@ -2737,7 +2531,6 @@ class DataFrame(NDFrame, OpsMixin):
             index,
             dtype=dtype,
             verify_integrity=verify_integrity,
-            typ=manager,
         )
         return cls._from_mgr(mgr, axes=mgr.axes)
 
@@ -2925,9 +2718,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         to_feather(self, path, **kwargs)
 
-    @deprecate_nonkeyword_arguments(
-        version="3.0", allowed_args=["self", "buf"], name="to_markdown"
-    )
     @doc(
         Series.to_markdown,
         klass=_shared_doc_kwargs["klass"],
@@ -2957,6 +2747,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_markdown(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
+        *,
         mode: str = "wt",
         index: bool = True,
         storage_options: StorageOptions | None = None,
@@ -2981,6 +2772,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_parquet(
         self,
         path: None = ...,
+        *,
         engine: Literal["auto", "pyarrow", "fastparquet"] = ...,
         compression: str | None = ...,
         index: bool | None = ...,
@@ -2994,6 +2786,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_parquet(
         self,
         path: FilePath | WriteBuffer[bytes],
+        *,
         engine: Literal["auto", "pyarrow", "fastparquet"] = ...,
         compression: str | None = ...,
         index: bool | None = ...,
@@ -3003,13 +2796,11 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
-    @deprecate_nonkeyword_arguments(
-        version="3.0", allowed_args=["self", "path"], name="to_parquet"
-    )
     @doc(storage_options=_shared_docs["storage_options"])
     def to_parquet(
         self,
         path: FilePath | WriteBuffer[bytes] | None = None,
+        *,
         engine: Literal["auto", "pyarrow", "fastparquet"] = "auto",
         compression: str | None = "snappy",
         index: bool | None = None,
@@ -3201,6 +2992,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_html(
         self,
         buf: FilePath | WriteBuffer[str],
+        *,
         columns: Axes | None = ...,
         col_space: ColspaceArgType | None = ...,
         header: bool = ...,
@@ -3230,6 +3022,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_html(
         self,
         buf: None = ...,
+        *,
         columns: Axes | None = ...,
         col_space: ColspaceArgType | None = ...,
         header: bool = ...,
@@ -3255,9 +3048,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> str:
         ...
 
-    @deprecate_nonkeyword_arguments(
-        version="3.0", allowed_args=["self", "buf"], name="to_html"
-    )
     @Substitution(
         header_type="bool",
         header="Whether to print column labels, default True",
@@ -3269,6 +3059,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_html(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
+        *,
         columns: Axes | None = None,
         col_space: ColspaceArgType | None = None,
         header: bool = True,
@@ -3880,7 +3671,7 @@ class DataFrame(NDFrame, OpsMixin):
                 dtype=new_vals.dtype,
             )
             if using_copy_on_write() and len(self) > 0:
-                result._mgr.add_references(self._mgr)  # type: ignore[arg-type]
+                result._mgr.add_references(self._mgr)
 
         elif (
             self._is_homogeneous_type
@@ -3983,24 +3774,14 @@ class DataFrame(NDFrame, OpsMixin):
         if axis == 0:
             new_mgr = self._mgr.fast_xs(i)
 
-            # if we are a copy, mark as such
-            copy = isinstance(new_mgr.array, np.ndarray) and new_mgr.array.base is None
             result = self._constructor_sliced_from_mgr(new_mgr, axes=new_mgr.axes)
             result._name = self.index[i]
-            result = result.__finalize__(self)
-            result._set_is_copy(self, copy=copy)
-            return result
+            return result.__finalize__(self)
 
         # icol
         else:
-            label = self.columns[i]
-
             col_mgr = self._mgr.iget(i)
-            result = self._box_col_values(col_mgr, i)
-
-            # this is a cached value, mark it so
-            result._set_as_cached(label, self)
-            return result
+            return self._box_col_values(col_mgr, i)
 
     def _get_column_array(self, i: int) -> ArrayLike:
         """
@@ -4020,11 +3801,8 @@ class DataFrame(NDFrame, OpsMixin):
         Warning! The returned array is a view but doesn't handle Copy-on-Write,
         so this should be used with caution (for read-only purposes).
         """
-        if isinstance(self._mgr, ArrayManager):
-            yield from self._mgr.arrays
-        else:
-            for i in range(len(self.columns)):
-                yield self._get_column_array(i)
+        for i in range(len(self.columns)):
+            yield self._get_column_array(i)
 
     def _getitem_nocopy(self, key: list):
         """
@@ -4063,7 +3841,7 @@ class DataFrame(NDFrame, OpsMixin):
                 and key in self.columns
                 or key in self.columns.drop_duplicates(keep=False)
             ):
-                return self._get_item_cache(key)
+                return self._get_item(key)
 
             elif is_mi and self.columns.is_unique and key in self.columns:
                 return self._getitem_multilevel(key)
@@ -4102,7 +3880,7 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(indexer, slice):
             return self._slice(indexer, axis=1)
 
-        data = self._take_with_is_copy(indexer, axis=1)
+        data = self.take(indexer, axis=1)
 
         if is_single_key:
             # What does looking for a single key in a non-unique index return?
@@ -4111,7 +3889,7 @@ class DataFrame(NDFrame, OpsMixin):
             # - we have a MultiIndex on columns (test on self.columns, #21309)
             if data.shape[1] == 1 and not isinstance(self.columns, MultiIndex):
                 # GH#26490 using data[key] can cause RecursionError
-                return data._get_item_cache(key)
+                return data._get_item(key)
 
         return data
 
@@ -4140,7 +3918,7 @@ class DataFrame(NDFrame, OpsMixin):
             return self.copy(deep=None)
 
         indexer = key.nonzero()[0]
-        return self._take_with_is_copy(indexer, axis=0)
+        return self.take(indexer, axis=0)
 
     def _getitem_multilevel(self, key):
         # self.columns is a MultiIndex
@@ -4170,7 +3948,6 @@ class DataFrame(NDFrame, OpsMixin):
                             result, index=self.index, name=key
                         )
 
-            result._set_is_copy(self)
             return result
         else:
             # loc is neither a slice nor ndarray, so must be an int
@@ -4199,7 +3976,7 @@ class DataFrame(NDFrame, OpsMixin):
             series = self._ixs(col, axis=1)
             return series._values[index]
 
-        series = self._get_item_cache(col)
+        series = self._get_item(col)
         engine = self.index._engine
 
         if not isinstance(self.index, MultiIndex):
@@ -4262,17 +4039,6 @@ class DataFrame(NDFrame, OpsMixin):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
-        elif not PYPY and not using_copy_on_write():
-            if sys.getrefcount(self) <= 3 and (
-                warn_copy_on_write()
-                or (
-                    not warn_copy_on_write()
-                    and any(b.refs.has_reference() for b in self._mgr.blocks)  # type: ignore[union-attr]
-                )
-            ):
-                warnings.warn(
-                    _chained_assignment_warning_msg, FutureWarning, stacklevel=2
-                )
 
         key = com.apply_if_callable(key, self)
 
@@ -4302,7 +4068,6 @@ class DataFrame(NDFrame, OpsMixin):
         # NB: we can't just use self.loc[key] = value because that
         #  operates on labels and we need to operate positional for
         #  backwards-compat, xref GH#31469
-        self._check_setitem_copy()
         self.iloc[key] = value
 
     def _setitem_array(self, key, value):
@@ -4315,7 +4080,6 @@ class DataFrame(NDFrame, OpsMixin):
                 )
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
-            self._check_setitem_copy()
             if isinstance(value, DataFrame):
                 # GH#39931 reindex since iloc does not align
                 value = value.reindex(self.index.take(indexer))
@@ -4402,7 +4166,6 @@ class DataFrame(NDFrame, OpsMixin):
                 "Must pass DataFrame or 2-d ndarray with boolean values only"
             )
 
-        self._check_setitem_copy()
         self._where(-key, value, inplace=True)
 
     def _set_item_frame_value(self, key, value: DataFrame) -> None:
@@ -4464,7 +4227,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         # when called from _set_item_mgr loc can be anything returned from get_loc
         self._mgr.iset(loc, value, inplace=inplace, refs=refs)
-        self._clear_item_cache()
 
     def _set_item_mgr(
         self, key, value: ArrayLike, refs: BlockValuesRefs | None = None
@@ -4477,12 +4239,6 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             self._iset_item_mgr(loc, value, refs=refs)
 
-        # check if we are modifying a copy
-        # try to set first as we want an invalid
-        # value exception to occur first
-        if len(self):
-            self._check_setitem_copy()
-
     def _iset_item(self, loc: int, value: Series, inplace: bool = True) -> None:
         # We are only called from _replace_columnwise which guarantees that
         # no reindex is necessary
@@ -4492,12 +4248,6 @@ class DataFrame(NDFrame, OpsMixin):
             )
         else:
             self._iset_item_mgr(loc, value._values.copy(), inplace=True)
-
-        # check if we are modifying a copy
-        # try to set first as we want an invalid
-        # value exception to occur first
-        if len(self):
-            self._check_setitem_copy()
 
     def _set_item(self, key, value) -> None:
         """
@@ -4549,7 +4299,6 @@ class DataFrame(NDFrame, OpsMixin):
                 icol = self.columns.get_loc(col)
                 iindex = self.index.get_loc(index)
             self._mgr.column_setitem(icol, iindex, value, inplace_only=True)
-            self._clear_item_cache()
 
         except (KeyError, TypeError, ValueError, LossySetitemError):
             # get_loc might raise a KeyError for missing labels (falling back
@@ -4561,7 +4310,6 @@ class DataFrame(NDFrame, OpsMixin):
                 self.iloc[index, col] = value
             else:
                 self.loc[index, col] = value
-            self._item_cache.pop(col, None)
 
         except InvalidIndexError as ii_err:
             # GH48729: Seems like you are trying to assign a value to a
@@ -4593,62 +4341,21 @@ class DataFrame(NDFrame, OpsMixin):
 
             self._mgr = self._mgr.reindex_axis(index_copy, axis=1, fill_value=np.nan)
 
-    def _box_col_values(self, values: SingleDataManager, loc: int) -> Series:
+    def _box_col_values(self, values: SingleBlockManager, loc: int) -> Series:
         """
         Provide boxed values for a column.
         """
         # Lookup in columns so that if e.g. a str datetime was passed
         #  we attach the Timestamp object as the name.
         name = self.columns[loc]
-        # We get index=self.index bc values is a SingleDataManager
+        # We get index=self.index bc values is a SingleBlockManager
         obj = self._constructor_sliced_from_mgr(values, axes=values.axes)
         obj._name = name
         return obj.__finalize__(self)
 
-    # ----------------------------------------------------------------------
-    # Lookup Caching
-
-    def _clear_item_cache(self) -> None:
-        self._item_cache.clear()
-
-    def _get_item_cache(self, item: Hashable) -> Series:
-        """Return the cached item, item represents a label indexer."""
-        if using_copy_on_write() or warn_copy_on_write():
-            loc = self.columns.get_loc(item)
-            return self._ixs(loc, axis=1)
-
-        cache = self._item_cache
-        res = cache.get(item)
-        if res is None:
-            # All places that call _get_item_cache have unique columns,
-            #  pending resolution of GH#33047
-
-            loc = self.columns.get_loc(item)
-            res = self._ixs(loc, axis=1)
-
-            cache[item] = res
-
-            # for a chain
-            res._is_copy = self._is_copy
-        return res
-
-    def _reset_cacher(self) -> None:
-        # no-op for DataFrame
-        pass
-
-    def _maybe_cache_changed(self, item, value: Series, inplace: bool) -> None:
-        """
-        The object has called back to us saying maybe it has changed.
-        """
-        loc = self._info_axis.get_loc(item)
-        arraylike = value._values
-
-        old = self._ixs(loc, axis=1)
-        if old._values is value._values and inplace:
-            # GH#46149 avoid making unnecessary copies/block-splitting
-            return
-
-        self._mgr.iset(loc, arraylike, inplace=inplace)
+    def _get_item(self, item: Hashable) -> Series:
+        loc = self.columns.get_loc(item)
+        return self._ixs(loc, axis=1)
 
     # ----------------------------------------------------------------------
     # Unsorted
@@ -7938,13 +7645,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             # TODO operate_blockwise expects a manager of the same type
             bm = self._mgr.operate_blockwise(
-                # error: Argument 1 to "operate_blockwise" of "ArrayManager" has
-                # incompatible type "Union[ArrayManager, BlockManager]"; expected
-                # "ArrayManager"
-                # error: Argument 1 to "operate_blockwise" of "BlockManager" has
-                # incompatible type "Union[ArrayManager, BlockManager]"; expected
-                # "BlockManager"
-                right._mgr,  # type: ignore[arg-type]
+                right._mgr,
                 array_op,
             )
             return self._constructor_from_mgr(bm, axes=bm.axes)
@@ -9119,7 +8820,6 @@ class DataFrame(NDFrame, OpsMixin):
     def groupby(
         self,
         by=None,
-        axis: Axis | lib.NoDefault = lib.no_default,
         level: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
@@ -9127,25 +8827,6 @@ class DataFrame(NDFrame, OpsMixin):
         observed: bool | lib.NoDefault = lib.no_default,
         dropna: bool = True,
     ) -> DataFrameGroupBy:
-        if axis is not lib.no_default:
-            axis = self._get_axis_number(axis)
-            if axis == 1:
-                warnings.warn(
-                    "DataFrame.groupby with axis=1 is deprecated. Do "
-                    "`frame.T.groupby(...)` without axis instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            else:
-                warnings.warn(
-                    "The 'axis' keyword in DataFrame.groupby is deprecated and "
-                    "will be removed in a future version.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-        else:
-            axis = 0
-
         from pandas.core.groupby.generic import DataFrameGroupBy
 
         if level is None and by is None:
@@ -9154,7 +8835,6 @@ class DataFrame(NDFrame, OpsMixin):
         return DataFrameGroupBy(
             obj=self,
             keys=by,
-            axis=axis,
             level=level,
             as_index=as_index,
             sort=sort,
@@ -10921,7 +10601,6 @@ class DataFrame(NDFrame, OpsMixin):
             # type "Union[int, integer[Any]]"; expected "int"
             new_mgr = self._mgr.round(
                 decimals=decimals,  # type: ignore[arg-type]
-                using_cow=using_copy_on_write(),
             )
             return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(
                 self, method="round"
@@ -11238,8 +10917,10 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         >>> index = ["a", "b", "c", "d", "e"]
         >>> columns = ["one", "two", "three", "four"]
-        >>> df1 = pd.DataFrame(np.arange(20).reshape(5, 4), index=index, columns=columns)
-        >>> df2 = pd.DataFrame(np.arange(16).reshape(4, 4), index=index[:4], columns=columns)
+        >>> df1 = pd.DataFrame(np.arange(20).reshape(5, 4),
+        ...                    index=index, columns=columns)
+        >>> df2 = pd.DataFrame(np.arange(16).reshape(4, 4),
+        ...                    index=index[:4], columns=columns)
         >>> df1.corrwith(df2)
         one      1.0
         two      1.0
@@ -11254,7 +10935,7 @@ class DataFrame(NDFrame, OpsMixin):
         d    1.0
         e    NaN
         dtype: float64
-        """  # noqa: E501
+        """
         axis = self._get_axis_number(axis)
         this = self._get_numeric_data() if numeric_only else self
 
@@ -11424,9 +11105,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         def blk_func(values, axis: Axis = 1):
             if isinstance(values, ExtensionArray):
-                if not is_1d_only_ea_dtype(values.dtype) and not isinstance(
-                    self._mgr, ArrayManager
-                ):
+                if not is_1d_only_ea_dtype(values.dtype):
                     return values._reduce(name, axis=1, skipna=skipna, **kwds)
                 has_keepdims = dtype_has_keepdims.get(values.dtype)
                 if has_keepdims is None:
@@ -12547,8 +12226,6 @@ class DataFrame(NDFrame, OpsMixin):
         Internal ONLY - only works for BlockManager
         """
         mgr = self._mgr
-        # convert to BlockManager if needed -> this way support ArrayManager as well
-        mgr = cast(BlockManager, mgr_to_mgr(mgr, "block"))
         return {
             k: self._constructor_from_mgr(v, axes=v.axes).__finalize__(self)
             for k, v in mgr.to_dict().items()

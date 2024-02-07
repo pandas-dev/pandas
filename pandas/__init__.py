@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import warnings
 
 __docformat__ = "restructuredtext"
@@ -163,7 +162,6 @@ from pandas.io.api import (
     read_parquet,
     read_orc,
     read_feather,
-    read_gbq,
     read_html,
     read_xml,
     read_json,
@@ -192,16 +190,6 @@ except ImportError:
     __version__ = v.get("closest-tag", v["version"])
     __git_version__ = v.get("full-revisionid")
     del get_versions, v
-
-# GH#55043 - deprecation of the data_manager option
-if "PANDAS_DATA_MANAGER" in os.environ:
-    warnings.warn(
-        "The env variable PANDAS_DATA_MANAGER is set. The data_manager option is "
-        "deprecated and will be removed in a future version. Only the BlockManager "
-        "will be available. Unset this environment variable to silence this warning.",
-        FutureWarning,
-        stacklevel=2,
-    )
 
 # DeprecationWarning for missing pyarrow
 from pandas.compat.pyarrow import pa_version_under10p1, pa_not_found
@@ -232,7 +220,7 @@ please provide us feedback at https://github.com/pandas-dev/pandas/issues/54466
     del VERSIONS, pa_msg
 
 # Delete all unnecessary imported modules
-del pa_version_under10p1, pa_not_found, warnings, os
+del pa_version_under10p1, pa_not_found, warnings
 
 # module level doc-string
 __doc__ = """
@@ -363,7 +351,6 @@ __all__ = [
     "read_excel",
     "read_feather",
     "read_fwf",
-    "read_gbq",
     "read_hdf",
     "read_html",
     "read_json",

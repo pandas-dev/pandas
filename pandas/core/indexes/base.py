@@ -55,6 +55,7 @@ from pandas._typing import (
     F,
     IgnoreRaise,
     IndexLabel,
+    IndexT,
     JoinHow,
     Level,
     NaPosition,
@@ -178,7 +179,6 @@ from pandas.core.indexers import (
     disallow_ndim_indexing,
     is_valid_positional_slice,
 )
-from pandas.core.indexes.frozen import FrozenList
 from pandas.core.missing import clean_reindex_fill_method
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
@@ -950,6 +950,9 @@ class Index(IndexOpsMixin, PandasObject):
             return tuple(self.__array_wrap__(x) for x in result)
         elif method == "reduce":
             result = lib.item_from_zerodim(result)
+            return result
+        elif is_scalar(result):
+            # e.g. matmul
             return result
 
         if result.dtype == np.float16:
@@ -1763,8 +1766,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         return names
 
-    def _get_names(self) -> FrozenList:
-        return FrozenList((self.name,))
+    def _get_names(self) -> tuple[Hashable | None, ...]:
+        return (self.name,)
 
     def _set_names(self, values, *, level=None) -> None:
         """
@@ -1862,7 +1865,7 @@ class Index(IndexOpsMixin, PandasObject):
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   names=['species', 'year'])
+                   names=('species', 'year'))
 
         When renaming levels with a dict, levels can not be passed.
 
@@ -1871,7 +1874,7 @@ class Index(IndexOpsMixin, PandasObject):
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   names=['snake', 'year'])
+                   names=('snake', 'year'))
         """
         if level is not None and not isinstance(self, ABCMultiIndex):
             raise ValueError("Level must be None for non-MultiIndex")
@@ -1955,19 +1958,19 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx = pd.MultiIndex.from_product([['python', 'cobra'],
         ...                                   [2018, 2019]],
-        ...                                  names=['kind', 'year'])
+        ...                                  names=('kind', 'year'))
         >>> idx
         MultiIndex([('python', 2018),
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   names=['kind', 'year'])
+                   names=('kind', 'year'))
         >>> idx.rename(['species', 'year'])
         MultiIndex([('python', 2018),
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   names=['species', 'year'])
+                   names=('species', 'year'))
         >>> idx.rename('species')
         Traceback (most recent call last):
         TypeError: Must pass list-like as `names`.
@@ -2024,7 +2027,7 @@ class Index(IndexOpsMixin, PandasObject):
         ascending: bool | list[bool] = True,
         sort_remaining=None,
         na_position: NaPosition = "first",
-    ):
+    ) -> tuple[Self, np.ndarray]:
         """
         For internal compatibility with the Index API.
 
@@ -2131,22 +2134,22 @@ class Index(IndexOpsMixin, PandasObject):
         >>> mi
         MultiIndex([(1, 3, 5),
                     (2, 4, 6)],
-                   names=['x', 'y', 'z'])
+                   names=('x', 'y', 'z'))
 
         >>> mi.droplevel()
         MultiIndex([(3, 5),
                     (4, 6)],
-                   names=['y', 'z'])
+                   names=('y', 'z'))
 
         >>> mi.droplevel(2)
         MultiIndex([(1, 3),
                     (2, 4)],
-                   names=['x', 'y'])
+                   names=('x', 'y'))
 
         >>> mi.droplevel('z')
         MultiIndex([(1, 3),
                     (2, 4)],
-                   names=['x', 'y'])
+                   names=('x', 'y'))
 
         >>> mi.droplevel(['x', 'y'])
         Index([5, 6], dtype='int64', name='z')
@@ -4429,7 +4432,7 @@ class Index(IndexOpsMixin, PandasObject):
         target = self._maybe_preserve_names(target, preserve_names)
         return target
 
-    def _maybe_preserve_names(self, target: Index, preserve_names: bool):
+    def _maybe_preserve_names(self, target: IndexT, preserve_names: bool) -> IndexT:
         if preserve_names and target.nlevels == 1 and target.name != self.name:
             target = target.copy(deep=False)
             target.name = self.name
@@ -4610,38 +4613,12 @@ class Index(IndexOpsMixin, PandasObject):
         if level is not None and (self._is_multi or other._is_multi):
             return self._join_level(other, level, how=how)
 
-        lidx: np.ndarray | None
-        ridx: np.ndarray | None
-
-        if len(other) == 0:
-            if how in ("left", "outer"):
-                if sort and not self.is_monotonic_increasing:
-                    lidx = self.argsort()
-                    join_index = self.take(lidx)
-                else:
-                    lidx = None
-                    join_index = self._view()
-                ridx = np.broadcast_to(np.intp(-1), len(join_index))
-                return join_index, lidx, ridx
-            elif how in ("right", "inner", "cross"):
-                join_index = other._view()
-                lidx = np.array([], dtype=np.intp)
-                return join_index, lidx, None
-
-        if len(self) == 0:
-            if how in ("right", "outer"):
-                if sort and not other.is_monotonic_increasing:
-                    ridx = other.argsort()
-                    join_index = other.take(ridx)
-                else:
-                    ridx = None
-                    join_index = other._view()
-                lidx = np.broadcast_to(np.intp(-1), len(join_index))
-                return join_index, lidx, ridx
-            elif how in ("left", "inner", "cross"):
-                join_index = self._view()
-                ridx = np.array([], dtype=np.intp)
-                return join_index, None, ridx
+        if len(self) == 0 or len(other) == 0:
+            try:
+                return self._join_empty(other, how, sort)
+            except TypeError:
+                # object dtype; non-comparable objects
+                pass
 
         if self.dtype != other.dtype:
             dtype = self._find_common_type_compat(other)
@@ -4675,6 +4652,33 @@ class Index(IndexOpsMixin, PandasObject):
             return self._join_non_unique(other, how=how, sort=sort)
 
         return self._join_via_get_indexer(other, how, sort)
+
+    @final
+    def _join_empty(
+        self, other: Index, how: JoinHow, sort: bool
+    ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
+        assert len(self) == 0 or len(other) == 0
+        _validate_join_method(how)
+
+        lidx: np.ndarray | None
+        ridx: np.ndarray | None
+
+        if len(other):
+            how = cast(JoinHow, {"left": "right", "right": "left"}.get(how, how))
+            join_index, ridx, lidx = other._join_empty(self, how, sort)
+        elif how in ["left", "outer"]:
+            if sort and not self.is_monotonic_increasing:
+                lidx = self.argsort()
+                join_index = self.take(lidx)
+            else:
+                lidx = None
+                join_index = self._view()
+            ridx = np.broadcast_to(np.intp(-1), len(join_index))
+        else:
+            join_index = other._view()
+            lidx = np.array([], dtype=np.intp)
+            ridx = None
+        return join_index, lidx, ridx
 
     @final
     def _join_via_get_indexer(
@@ -4860,7 +4864,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         from pandas.core.indexes.multi import MultiIndex
 
-        def _get_leaf_sorter(labels: list[np.ndarray]) -> npt.NDArray[np.intp]:
+        def _get_leaf_sorter(
+            labels: tuple[np.ndarray, ...] | list[np.ndarray]
+        ) -> npt.NDArray[np.intp]:
             """
             Returns sorter for the inner most level while preserving the
             order of higher levels.
@@ -5948,17 +5954,14 @@ class Index(IndexOpsMixin, PandasObject):
         (Index([1000, 100, 10, 1], dtype='int64'), array([3, 1, 0, 2]))
         """
         if key is None and (
-            self.is_monotonic_increasing or self.is_monotonic_decreasing
+            (ascending and self.is_monotonic_increasing)
+            or (not ascending and self.is_monotonic_decreasing)
         ):
-            reverse = ascending != self.is_monotonic_increasing
-            sorted_index = self[::-1] if reverse else self.copy()
             if return_indexer:
                 indexer = np.arange(len(self), dtype=np.intp)
-                if reverse:
-                    indexer = indexer[::-1]
-                return sorted_index, indexer
+                return self.copy(), indexer
             else:
-                return sorted_index
+                return self.copy()
 
         # GH 35584. Sort missing values according to na_position kwarg
         # ignore na_position for MultiIndex
@@ -5986,7 +5989,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         raise TypeError("cannot sort an Index object in-place, use sort_values instead")
 
-    def shift(self, periods: int = 1, freq=None):
+    def shift(self, periods: int = 1, freq=None) -> Self:
         """
         Shift index by desired number of time frequency increments.
 
@@ -6457,7 +6460,7 @@ class Index(IndexOpsMixin, PandasObject):
         return True
 
     @final
-    def groupby(self, values) -> PrettyDict[Hashable, np.ndarray]:
+    def groupby(self, values) -> PrettyDict[Hashable, Index]:
         """
         Group the index labels by a given array of values.
 
@@ -6625,7 +6628,7 @@ class Index(IndexOpsMixin, PandasObject):
         MultiIndex([(1,   'red'),
                     (2,  'blue'),
                     (3, 'green')],
-                   names=['number', 'color'])
+                   names=('number', 'color'))
 
         Check whether the strings in the 'color' level of the MultiIndex
         are in a list of colors.
@@ -7606,7 +7609,7 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
     >>> ensure_index_from_sequences([["a", "a"], ["a", "b"]], names=["L1", "L2"])
     MultiIndex([('a', 'a'),
                 ('a', 'b')],
-               names=['L1', 'L2'])
+               names=('L1', 'L2'))
 
     See Also
     --------

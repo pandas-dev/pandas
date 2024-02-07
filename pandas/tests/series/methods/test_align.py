@@ -89,7 +89,7 @@ def test_align_fill_method(
     tm.assert_series_equal(ab, eb)
 
 
-def test_align_nocopy(datetime_series, using_copy_on_write):
+def test_align_nocopy(datetime_series):
     b = datetime_series[:5].copy()
 
     # do copy
@@ -102,10 +102,7 @@ def test_align_nocopy(datetime_series, using_copy_on_write):
     a = datetime_series.copy()
     ra, _ = a.align(b, join="left", copy=False)
     ra[:5] = 5
-    if using_copy_on_write:
-        assert not (a[:5] == 5).any()
-    else:
-        assert (a[:5] == 5).all()
+    assert not (a[:5] == 5).any()
 
     # do copy
     a = datetime_series.copy()
@@ -119,20 +116,13 @@ def test_align_nocopy(datetime_series, using_copy_on_write):
     b = datetime_series[:5].copy()
     _, rb = a.align(b, join="right", copy=False)
     rb[:2] = 5
-    if using_copy_on_write:
-        assert not (b[:2] == 5).any()
-    else:
-        assert (b[:2] == 5).all()
+    assert not (b[:2] == 5).any()
 
 
-def test_align_same_index(datetime_series, using_copy_on_write):
+def test_align_same_index(datetime_series):
     a, b = datetime_series.align(datetime_series, copy=False)
-    if not using_copy_on_write:
-        assert a.index is datetime_series.index
-        assert b.index is datetime_series.index
-    else:
-        assert a.index.is_(datetime_series.index)
-        assert b.index.is_(datetime_series.index)
+    assert a.index.is_(datetime_series.index)
+    assert b.index.is_(datetime_series.index)
 
     a, b = datetime_series.align(datetime_series, copy=True)
     assert a.index is not datetime_series.index

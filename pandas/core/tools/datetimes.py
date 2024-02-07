@@ -1134,7 +1134,9 @@ _unit_map = {
 }
 
 
-def _assemble_from_unit_mappings(arg, errors: DateTimeErrorChoices, utc: bool):
+def _assemble_from_unit_mappings(
+    arg, errors: DateTimeErrorChoices, utc: bool
+) -> Series:
     """
     assemble the unit specified fields from the arg (DataFrame)
     Return a Series for actual parsing

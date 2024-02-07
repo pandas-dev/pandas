@@ -117,7 +117,7 @@ def melt(
         else:
             mdata[col] = np.tile(id_data._values, num_cols_adjusted)
 
-    mcolumns = id_vars + var_name + [value_name]
+    mcolumns = id_vars + list(var_name) + [value_name]
 
     if frame.shape[1] > 0 and not any(
         not isinstance(dt, np.dtype) and dt._supports_2d for dt in frame.dtypes
@@ -458,8 +458,7 @@ def wide_to_long(
 
     def get_var_names(df, stub: str, sep: str, suffix: str):
         regex = rf"^{re.escape(stub)}{re.escape(sep)}{suffix}$"
-        pattern = re.compile(regex)
-        return df.columns[df.columns.str.match(pattern)]
+        return df.columns[df.columns.str.match(regex)]
 
     def melt_stub(df, stub: str, i, j, value_vars, sep: str):
         newdf = melt(

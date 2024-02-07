@@ -136,6 +136,7 @@ def group_last(
     result_mask: npt.NDArray[np.bool_] | None = ...,
     min_count: int = ...,  # Py_ssize_t
     is_datetimelike: bool = ...,
+    skipna: bool = ...,
 ) -> None: ...
 def group_nth(
     out: np.ndarray,  # rank_t[:, ::1]
@@ -147,6 +148,7 @@ def group_nth(
     min_count: int = ...,  # int64_t
     rank: int = ...,  # int64_t
     is_datetimelike: bool = ...,
+    skipna: bool = ...,
 ) -> None: ...
 def group_rank(
     out: np.ndarray,  # float64_t[:, ::1]

@@ -576,16 +576,6 @@ def test_groupby_raises_category_on_category(
             return
 
     empty_groups = not observed and any(group.empty for group in gb.groups.values())
-    if (
-        not observed
-        and how != "transform"
-        and isinstance(by, list)
-        and isinstance(by[0], str)
-        and by == ["a", "b"]
-    ):
-        assert not empty_groups
-        # TODO: empty_groups should be true due to unobserved categorical combinations
-        empty_groups = True
     if how == "transform":
         # empty groups will be ignored
         empty_groups = False
@@ -698,13 +688,3 @@ def test_groupby_raises_category_on_category(
     else:
         warn_msg = ""
     _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg)
-
-
-def test_subsetting_columns_axis_1_raises():
-    # GH 35443
-    df = DataFrame({"a": [1], "b": [2], "c": [3]})
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby("a", axis=1)
-    with pytest.raises(ValueError, match="Cannot subset columns when using axis=1"):
-        gb["b"]
