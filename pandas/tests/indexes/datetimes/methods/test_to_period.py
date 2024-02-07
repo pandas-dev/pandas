@@ -221,5 +221,5 @@ class TestToPeriod:
         # GH#56243
         msg = f"{freq[1:]} is not supported as period frequency"
         ts = date_range("1/1/2012", periods=4, freq=freq)
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             ts.to_period()

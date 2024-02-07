@@ -3,6 +3,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+import re
 
 import numpy as np
 import pytest
@@ -40,21 +41,22 @@ class TestPeriodDisallowedFreqs:
     )
     def test_offsets_not_supported(self, freq, freq_msg):
         # GH#55785
-        msg = f"{freq_msg} is not supported as period frequency"
-        with pytest.raises(TypeError, match=msg):
+        msg = re.escape(f"{freq} is not supported as period frequency")
+        with pytest.raises(ValueError, match=msg):
             Period(year=2014, freq=freq)
 
     def test_custom_business_day_freq_raises(self):
         # GH#52534
-        msg = "CustomBusinessDay is not supported as period frequency"
-        with pytest.raises(TypeError, match=msg):
+        msg = "C is not supported as period frequency"
+        with pytest.raises(ValueError, match=msg):
             Period("2023-04-10", freq="C")
-        with pytest.raises(TypeError, match=msg):
+        msg = f"{offsets.CustomBusinessDay().base} is not supported as period frequency"
+        with pytest.raises(ValueError, match=msg):
             Period("2023-04-10", freq=offsets.CustomBusinessDay())
 
     def test_invalid_frequency_error_message(self):
-        msg = "WeekOfMonth is not supported as period frequency"
-        with pytest.raises(TypeError, match=msg):
+        msg = "WOM-1MON is not supported as period frequency"
+        with pytest.raises(ValueError, match=msg):
             Period("2012-01-02", freq="WOM-1MON")
 
     def test_invalid_frequency_period_error_message(self):

@@ -4271,9 +4271,7 @@ cdef class CustomBusinessDay(BusinessDay):
     @property
     def _period_dtype_code(self):
         # GH#52534
-        raise TypeError(
-            "CustomBusinessDay is not supported as period frequency"
-        )
+        raise ValueError(f"{self.base} is not supported as period frequency")
 
     _apply_array = BaseOffset._apply_array
 
@@ -4837,19 +4835,19 @@ cpdef to_offset(freq, bint is_period=False):
     if freq is None:
         return None
 
-    if isinstance(freq, BaseOffset):
-        return freq
-
     if isinstance(freq, tuple):
         raise TypeError(
             f"to_offset does not support tuples {freq}, pass as a string instead"
         )
 
+    if isinstance(freq, BaseOffset):
+        result = freq
+
     elif PyDelta_Check(freq):
-        return delta_to_tick(freq)
+        result = delta_to_tick(freq)
 
     elif isinstance(freq, str):
-        delta = None
+        result = None
         stride_sign = None
 
         try:
@@ -4950,21 +4948,27 @@ cpdef to_offset(freq, bint is_period=False):
                     offset = _get_offset(prefix)
                     offset = offset * int(np.fabs(stride) * stride_sign)
 
-                if delta is None:
-                    delta = offset
+                if result is None:
+                    result = offset
                 else:
-                    delta = delta + offset
+                    result = result + offset
         except (ValueError, TypeError) as err:
             raise ValueError(INVALID_FREQ_ERR_MSG.format(
                 f"{freq}, failed to parse with error message: {repr(err)}")
             )
     else:
-        delta = None
+        result = None
 
-    if delta is None:
+    if result is None:
         raise ValueError(INVALID_FREQ_ERR_MSG.format(freq))
 
-    return delta
+    if is_period and not hasattr(result, "_period_dtype_code"):
+        if isinstance(freq, str):
+            raise ValueError(f"{result.name} is not supported as period frequency")
+        else:
+            raise ValueError(f"{freq} is not supported as period frequency")
+
+    return result
 
 
 # ----------------------------------------------------------------------
