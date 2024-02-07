@@ -35,7 +35,6 @@ from pandas.core.frame import DataFrame
 from pandas.core.groupby import ops
 from pandas.core.groupby.categorical import recode_for_groupby
 from pandas.core.indexes.api import (
-    CategoricalIndex,
     Index,
     MultiIndex,
 )
@@ -639,7 +638,7 @@ class Grouping:
 
     @property
     def ngroups(self) -> int:
-        return len(self._group_index)
+        return len(self.uniques)
 
     @cache_readonly
     def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
@@ -654,89 +653,9 @@ class Grouping:
     def codes(self) -> npt.NDArray[np.signedinteger]:
         return self._codes_and_uniques[0]
 
-    @cache_readonly
-    def _group_arraylike(self) -> ArrayLike:
-        """
-        Analogous to result_index, but holding an ArrayLike to ensure
-        we can retain ExtensionDtypes.
-        """
-        if self._all_grouper is not None:
-            # retain dtype for categories, including unobserved ones
-            return self._result_index._values
-
-        elif self._passed_categorical:
-            return self._group_index._values
-
+    @property
+    def uniques(self) -> ArrayLike:
         return self._codes_and_uniques[1]
-
-    @property
-    def group_arraylike(self) -> ArrayLike:
-        """
-        Analogous to result_index, but holding an ArrayLike to ensure
-        we can retain ExtensionDtypes.
-        """
-        warnings.warn(
-            "group_arraylike is deprecated and will be removed in a future "
-            "version of pandas",
-            category=FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._group_arraylike
-
-    @cache_readonly
-    def _result_index(self) -> Index:
-        # result_index retains dtype for categories, including unobserved ones,
-        #  which group_index does not
-        if self._all_grouper is not None:
-            group_idx = self._group_index
-            assert isinstance(group_idx, CategoricalIndex)
-            cats = self._orig_cats
-            # set_categories is dynamically added
-            return group_idx.set_categories(cats)  # type: ignore[attr-defined]
-        return self._group_index
-
-    @property
-    def result_index(self) -> Index:
-        warnings.warn(
-            "result_index is deprecated and will be removed in a future "
-            "version of pandas",
-            category=FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._result_index
-
-    @cache_readonly
-    def _group_index(self) -> Index:
-        codes, uniques = self._codes_and_uniques
-        if not self._dropna and self._passed_categorical:
-            assert isinstance(uniques, Categorical)
-            if self._sort and (codes == len(uniques)).any():
-                # Add NA value on the end when sorting
-                uniques = Categorical.from_codes(
-                    np.append(uniques.codes, [-1]), uniques.categories, validate=False
-                )
-            elif len(codes) > 0:
-                # Need to determine proper placement of NA value when not sorting
-                cat = self.grouping_vector
-                na_idx = (cat.codes < 0).argmax()
-                if cat.codes[na_idx] < 0:
-                    # count number of unique codes that comes before the nan value
-                    na_unique_idx = algorithms.nunique_ints(cat.codes[:na_idx])
-                    new_codes = np.insert(uniques.codes, na_unique_idx, -1)
-                    uniques = Categorical.from_codes(
-                        new_codes, uniques.categories, validate=False
-                    )
-        return Index._with_infer(uniques, name=self.name)
-
-    @property
-    def group_index(self) -> Index:
-        warnings.warn(
-            "group_index is deprecated and will be removed in a future "
-            "version of pandas",
-            category=FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._group_index
 
     @cache_readonly
     def _codes_and_uniques(self) -> tuple[npt.NDArray[np.signedinteger], ArrayLike]:
@@ -756,29 +675,31 @@ class Grouping:
             else:
                 ucodes = np.arange(len(categories))
 
+            has_dropped_na = False
+            if not self._dropna:
+                na_mask = cat.isna()
+                if np.any(na_mask):
+                    has_dropped_na = True
+                    if self._sort:
+                        # NA goes at the end, gets `largest non-NA code + 1`
+                        na_code = len(categories)
+                    else:
+                        # Insert NA in result based on first appearance, need
+                        # the number of unique codes prior
+                        na_idx = na_mask.argmax()
+                        na_code = algorithms.nunique_ints(cat.codes[:na_idx])
+                    ucodes = np.insert(ucodes, na_code, -1)
+
             uniques = Categorical.from_codes(
                 codes=ucodes, categories=categories, ordered=cat.ordered, validate=False
             )
-
             codes = cat.codes
-            if not self._dropna:
-                na_mask = codes < 0
-                if np.any(na_mask):
-                    if self._sort:
-                        # Replace NA codes with `largest code + 1`
-                        na_code = len(categories)
-                        codes = np.where(na_mask, na_code, codes)
-                    else:
-                        # Insert NA code into the codes based on first appearance
-                        # A negative code must exist, no need to check codes[na_idx] < 0
-                        na_idx = na_mask.argmax()
-                        # count number of unique codes that comes before the nan value
-                        na_code = algorithms.nunique_ints(codes[:na_idx])
-                        codes = np.where(codes >= na_code, codes + 1, codes)
-                        codes = np.where(na_mask, na_code, codes)
 
-            if not self._observed:
-                uniques = uniques.reorder_categories(self._orig_cats)
+            if has_dropped_na:
+                if not self._sort:
+                    # NA code is based on first appearance, increment higher codes
+                    codes = np.where(codes >= na_code, codes + 1, codes)
+                codes = np.where(na_mask, na_code, codes)
 
             return codes, uniques
 
@@ -802,8 +723,10 @@ class Grouping:
         return codes, uniques
 
     @cache_readonly
-    def groups(self) -> dict[Hashable, np.ndarray]:
-        cats = Categorical.from_codes(self.codes, self._group_index, validate=False)
+    def groups(self) -> dict[Hashable, Index]:
+        codes, uniques = self._codes_and_uniques
+        uniques = Index._with_infer(uniques, name=self.name)
+        cats = Categorical.from_codes(codes, uniques, validate=False)
         return self._index.groupby(cats)
 
 

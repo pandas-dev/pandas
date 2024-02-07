@@ -576,16 +576,6 @@ def test_groupby_raises_category_on_category(
             return
 
     empty_groups = not observed and any(group.empty for group in gb.groups.values())
-    if (
-        not observed
-        and how != "transform"
-        and isinstance(by, list)
-        and isinstance(by[0], str)
-        and by == ["a", "b"]
-    ):
-        assert not empty_groups
-        # TODO: empty_groups should be true due to unobserved categorical combinations
-        empty_groups = True
     if how == "transform":
         # empty groups will be ignored
         empty_groups = False

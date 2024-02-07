@@ -42,8 +42,8 @@ _results_for_groupbys_with_missing_categories = {
     # These expected values can be used across several tests (i.e. they are
     # the same for SeriesGroupBy and DataFrameGroupBy) but they should only be
     # hardcoded in one place.
-    "all": np.nan,
-    "any": np.nan,
+    "all": True,
+    "any": False,
     "count": 0,
     "corrwith": np.nan,
     "first": np.nan,
@@ -56,7 +56,7 @@ _results_for_groupbys_with_missing_categories = {
     "min": np.nan,
     "nth": np.nan,
     "nunique": 0,
-    "prod": np.nan,
+    "prod": 1,
     "quantile": np.nan,
     "sem": np.nan,
     "size": 0,
@@ -1275,11 +1275,7 @@ def test_seriesgroupby_observed_false_or_none(df_cat, observed, operation):
         names=["A", "B"],
     ).sortlevel()
 
-    expected = Series(data=[2, 4, np.nan, 1, np.nan, 3], index=index, name="C")
-    if operation == "agg":
-        msg = "The 'downcast' keyword in fillna is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = expected.fillna(0, downcast="infer")
+    expected = Series(data=[2, 4, 0, 1, 0, 3], index=index, name="C")
     grouped = df_cat.groupby(["A", "B"], observed=observed)["C"]
     msg = "using SeriesGroupBy.sum" if operation == "agg" else "using np.sum"
     with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -1452,18 +1448,21 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
 
     result = agg(*args)
 
-    zero_or_nan = _results_for_groupbys_with_missing_categories[reduction_func]
+    missing_fillin = _results_for_groupbys_with_missing_categories[reduction_func]
 
     for idx in unobserved:
         val = result.loc[idx]
-        assert (pd.isna(zero_or_nan) and pd.isna(val)) or (val == zero_or_nan)
+        assert (pd.isna(missing_fillin) and pd.isna(val)) or (val == missing_fillin)
 
     # If we expect unobserved values to be zero, we also expect the dtype to be int.
     # Except for .sum(). If the observed categories sum to dtype=float (i.e. their
     # sums have decimals), then the zeros for the missing categories should also be
     # floats.
-    if zero_or_nan == 0 and reduction_func != "sum":
-        assert np.issubdtype(result.dtype, np.integer)
+    if missing_fillin == 0:
+        if reduction_func in ["count", "nunique", "size"]:
+            assert np.issubdtype(result.dtype, np.integer)
+        else:
+            assert reduction_func in ["sum", "any"]
 
 
 def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_func):
@@ -2110,15 +2109,6 @@ def test_agg_list(request, as_index, observed, reduction_func, test_series, keys
         pytest.skip("corrwith not implemented for SeriesGroupBy")
     elif reduction_func == "corrwith":
         msg = "GH#32293: attempts to call SeriesGroupBy.corrwith"
-        request.applymarker(pytest.mark.xfail(reason=msg))
-    elif (
-        reduction_func == "nunique"
-        and not test_series
-        and len(keys) != 1
-        and not observed
-        and not as_index
-    ):
-        msg = "GH#52848 - raises a ValueError"
         request.applymarker(pytest.mark.xfail(reason=msg))
 
     df = DataFrame({"a1": [0, 0, 1], "a2": [2, 3, 3], "b": [4, 5, 6]})

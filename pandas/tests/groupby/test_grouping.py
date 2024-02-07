@@ -708,7 +708,7 @@ class TestGrouping:
         # GH 17537
         grouped = multiindex_dataframe_random_data.groupby(level=0, sort=sort)
         exp_labels = np.array(labels, np.intp)
-        tm.assert_almost_equal(grouped._grouper.codes[0], exp_labels)
+        tm.assert_almost_equal(grouped._grouper.ids, exp_labels)
 
     def test_grouping_labels(self, multiindex_dataframe_random_data):
         grouped = multiindex_dataframe_random_data.groupby(
@@ -779,11 +779,7 @@ class TestGrouping:
             gr._grouper.group_info[0], np.array([], dtype=np.dtype(np.intp))
         )
 
-        tm.assert_numpy_array_equal(
-            gr._grouper.group_info[1], np.array([], dtype=np.dtype(np.intp))
-        )
-
-        assert gr._grouper.group_info[2] == 0
+        assert gr._grouper.group_info[1] == 0
 
         # check name
         gb = s.groupby(s)
@@ -1161,13 +1157,3 @@ def test_grouper_groups():
     msg = "Grouper.indexer is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         grper.indexer
-
-
-@pytest.mark.parametrize("attr", ["group_index", "result_index", "group_arraylike"])
-def test_depr_grouping_attrs(attr):
-    # GH#56148
-    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
-    gb = df.groupby("a")
-    msg = f"{attr} is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        getattr(gb._grouper.groupings[0], attr)

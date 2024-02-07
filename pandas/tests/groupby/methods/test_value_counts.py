@@ -1204,7 +1204,7 @@ def test_value_counts_sort_categorical(sort, vc_sort, normalize):
     elif not sort and vc_sort:
         taker = [0, 2, 1, 3]
     else:
-        taker = [2, 3, 0, 1]
+        taker = [2, 1, 0, 3]
     expected = expected.take(taker)
 
     tm.assert_series_equal(result, expected)

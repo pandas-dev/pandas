@@ -258,9 +258,7 @@ class TestPivotTable:
         expected = DataFrame(
             {"B": values},
             index=Index(
-                Categorical.from_codes(
-                    codes, categories=["low", "high"], ordered=dropna
-                ),
+                Categorical.from_codes(codes, categories=["low", "high"], ordered=True),
                 name="A",
             ),
         )
