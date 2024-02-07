@@ -945,6 +945,11 @@ class TestDataFrameToString:
         finally:
             sys.stdin = _stdin
 
+    def test_nested_dataframe(self):
+        df1 = DataFrame({"level1": [["row1"], ["row2"]]})
+        df2 = DataFrame({"level3": [{"level2": df1}]})
+        df2.to_string()
+
 
 class TestSeriesToString:
     def test_to_string_without_index(self):

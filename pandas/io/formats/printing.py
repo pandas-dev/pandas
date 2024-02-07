@@ -117,13 +117,16 @@ def _pprint_seq(
 
     s = iter(seq)
     # handle sets, no slicing
-    r = [
-        pprint_thing(next(s), _nest_lvl + 1, max_seq_items=max_seq_items, **kwds)
-        for i in range(min(nitems, len(seq)))
-    ]
+    r = []
+    max_item_limit = False
+    for i, item in enumerate(s):
+        if i >= nitems:
+            max_item_limit = True
+            break
+        r.append(pprint_thing(item, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds))
     body = ", ".join(r)
 
-    if nitems < len(seq):
+    if max_item_limit:
         body += ", ..."
     elif isinstance(seq, tuple) and len(seq) == 1:
         body += ","
