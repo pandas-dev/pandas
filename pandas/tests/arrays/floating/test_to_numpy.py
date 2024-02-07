@@ -33,10 +33,10 @@ def test_to_numpy_float(box):
     tm.assert_numpy_array_equal(result, expected)
 
     arr = con([0.1, 0.2, None], dtype="Float64")
-    with pytest.raises(ValueError, match="cannot convert to 'float64'-dtype"):
-        result = arr.to_numpy(dtype="float64")
+    result = arr.to_numpy(dtype="float64")
+    expected = np.array([0.1, 0.2, np.nan], dtype="float64")
+    tm.assert_numpy_array_equal(result, expected)
 
-    # need to explicitly specify na_value
     result = arr.to_numpy(dtype="float64", na_value=np.nan)
     expected = np.array([0.1, 0.2, np.nan], dtype="float64")
     tm.assert_numpy_array_equal(result, expected)
@@ -100,7 +100,7 @@ def test_to_numpy_dtype(box, dtype):
     tm.assert_numpy_array_equal(result, expected)
 
 
-@pytest.mark.parametrize("dtype", ["float64", "float32", "int32", "int64", "bool"])
+@pytest.mark.parametrize("dtype", ["int32", "int64", "bool"])
 @pytest.mark.parametrize("box", [True, False], ids=["series", "array"])
 def test_to_numpy_na_raises(box, dtype):
     con = pd.Series if box else pd.array

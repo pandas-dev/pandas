@@ -308,8 +308,6 @@ def test_to_numpy(box):
     # converting to int or float without specifying na_value raises
     with pytest.raises(ValueError, match="cannot convert to 'int64'-dtype"):
         arr.to_numpy(dtype="int64")
-    with pytest.raises(ValueError, match="cannot convert to 'float64'-dtype"):
-        arr.to_numpy(dtype="float64")
 
 
 def test_to_numpy_copy():
