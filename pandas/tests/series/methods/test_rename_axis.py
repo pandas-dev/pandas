@@ -15,13 +15,13 @@ class TestSeriesRenameAxis:
         ser = Series(list(range(len(mi))), index=mi)
 
         result = ser.rename_axis(index={"ll": "foo"})
-        assert result.index.names == ["foo", "nn"]
+        assert result.index.names == ("foo", "nn")
 
         result = ser.rename_axis(index=str.upper, axis=0)
-        assert result.index.names == ["LL", "NN"]
+        assert result.index.names == ("LL", "NN")
 
         result = ser.rename_axis(index=["foo", "goo"])
-        assert result.index.names == ["foo", "goo"]
+        assert result.index.names == ("foo", "goo")
 
         with pytest.raises(TypeError, match="unexpected"):
             ser.rename_axis(columns="wrong")

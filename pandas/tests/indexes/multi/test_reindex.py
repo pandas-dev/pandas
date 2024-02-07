@@ -12,13 +12,13 @@ import pandas._testing as tm
 def test_reindex(idx):
     result, indexer = idx.reindex(list(idx[:4]))
     assert isinstance(result, MultiIndex)
-    assert result.names == ["first", "second"]
+    assert result.names == ("first", "second")
     assert [level.name for level in result.levels] == ["first", "second"]
 
     result, indexer = idx.reindex(list(idx))
     assert isinstance(result, MultiIndex)
     assert indexer is None
-    assert result.names == ["first", "second"]
+    assert result.names == ("first", "second")
     assert [level.name for level in result.levels] == ["first", "second"]
 
 
@@ -52,27 +52,27 @@ def test_reindex_preserves_names_when_target_is_list_or_ndarray(idx):
     other_dtype = MultiIndex.from_product([[1, 2], [3, 4]])
 
     # list & ndarray cases
-    assert idx.reindex([])[0].names == [None, None]
-    assert idx.reindex(np.array([]))[0].names == [None, None]
-    assert idx.reindex(target.tolist())[0].names == [None, None]
-    assert idx.reindex(target.values)[0].names == [None, None]
-    assert idx.reindex(other_dtype.tolist())[0].names == [None, None]
-    assert idx.reindex(other_dtype.values)[0].names == [None, None]
+    assert idx.reindex([])[0].names == (None, None)
+    assert idx.reindex(np.array([]))[0].names == (None, None)
+    assert idx.reindex(target.tolist())[0].names == (None, None)
+    assert idx.reindex(target.values)[0].names == (None, None)
+    assert idx.reindex(other_dtype.tolist())[0].names == (None, None)
+    assert idx.reindex(other_dtype.values)[0].names == (None, None)
 
     idx.names = ["foo", "bar"]
-    assert idx.reindex([])[0].names == ["foo", "bar"]
-    assert idx.reindex(np.array([]))[0].names == ["foo", "bar"]
-    assert idx.reindex(target.tolist())[0].names == ["foo", "bar"]
-    assert idx.reindex(target.values)[0].names == ["foo", "bar"]
-    assert idx.reindex(other_dtype.tolist())[0].names == ["foo", "bar"]
-    assert idx.reindex(other_dtype.values)[0].names == ["foo", "bar"]
+    assert idx.reindex([])[0].names == ("foo", "bar")
+    assert idx.reindex(np.array([]))[0].names == ("foo", "bar")
+    assert idx.reindex(target.tolist())[0].names == ("foo", "bar")
+    assert idx.reindex(target.values)[0].names == ("foo", "bar")
+    assert idx.reindex(other_dtype.tolist())[0].names == ("foo", "bar")
+    assert idx.reindex(other_dtype.values)[0].names == ("foo", "bar")
 
 
 def test_reindex_lvl_preserves_names_when_target_is_list_or_array():
     # GH7774
     idx = MultiIndex.from_product([[0, 1], ["a", "b"]], names=["foo", "bar"])
-    assert idx.reindex([], level=0)[0].names == ["foo", "bar"]
-    assert idx.reindex([], level=1)[0].names == ["foo", "bar"]
+    assert idx.reindex([], level=0)[0].names == ("foo", "bar")
+    assert idx.reindex([], level=1)[0].names == ("foo", "bar")
 
 
 def test_reindex_lvl_preserves_type_if_target_is_empty_list_or_array(

@@ -109,7 +109,7 @@ def test_series_groupby_value_counts(
 
     gr = df.groupby(keys, sort=isort)
     right = gr["3rd"].apply(Series.value_counts, **kwargs)
-    right.index.names = right.index.names[:-1] + ["3rd"]
+    right.index.names = tuple(list(right.index.names[:-1]) + ["3rd"])
     # https://github.com/pandas-dev/pandas/issues/49909
     right = right.rename(name)
 
