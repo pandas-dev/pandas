@@ -282,6 +282,7 @@ def test_pyarrow_missing_warn(module):
 Pyarrow will become a required dependency of pandas in the next major release of pandas (pandas 3.0),
 (to allow more performant data types, such as the Arrow string type, and better interoperability with other libraries)
 but was not found to be installed on your system.
+To resolve this warning, please specify the pyarrow extra during installation: pandas[pyarrow]
 If this would cause problems for you,
 please provide us feedback at https://github.com/pandas-dev/pandas/issues/54466
 """  # noqa: E501
