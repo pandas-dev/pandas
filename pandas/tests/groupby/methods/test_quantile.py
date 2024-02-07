@@ -454,5 +454,8 @@ def test_groupby_quantile_nonmulti_levels_order():
     tm.assert_series_equal(result, expected)
 
     # We need to check that index levels are not sorted
-    expected_levels = pd.core.indexes.frozen.FrozenList([["B", "A"], [0.2, 0.8]])
-    tm.assert_equal(result.index.levels, expected_levels)
+    tm.assert_index_equal(
+        result.index.levels[0], Index(["B", "A"], dtype=object, name="cat1")
+    )
+    tm.assert_index_equal(result.index.levels[1], Index([0.2, 0.8]))
+    assert isinstance(result.index.levels, tuple)

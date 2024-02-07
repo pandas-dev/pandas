@@ -60,20 +60,20 @@ def test_copy_names():
     multi_idx1 = multi_idx.copy()
 
     assert multi_idx.equals(multi_idx1)
-    assert multi_idx.names == ["MyName1", "MyName2"]
-    assert multi_idx1.names == ["MyName1", "MyName2"]
+    assert multi_idx.names == ("MyName1", "MyName2")
+    assert multi_idx1.names == ("MyName1", "MyName2")
 
     multi_idx2 = multi_idx.copy(names=["NewName1", "NewName2"])
 
     assert multi_idx.equals(multi_idx2)
-    assert multi_idx.names == ["MyName1", "MyName2"]
-    assert multi_idx2.names == ["NewName1", "NewName2"]
+    assert multi_idx.names == ("MyName1", "MyName2")
+    assert multi_idx2.names == ("NewName1", "NewName2")
 
     multi_idx3 = multi_idx.copy(name=["NewName1", "NewName2"])
 
     assert multi_idx.equals(multi_idx3)
-    assert multi_idx.names == ["MyName1", "MyName2"]
-    assert multi_idx3.names == ["NewName1", "NewName2"]
+    assert multi_idx.names == ("MyName1", "MyName2")
+    assert multi_idx3.names == ("NewName1", "NewName2")
 
     # gh-35592
     with pytest.raises(ValueError, match="Length of new names must be 2, got 1"):
@@ -85,8 +85,8 @@ def test_copy_names():
 
 def test_names(idx):
     # names are assigned in setup
-    assert idx.names == ["first", "second"]
-    level_names = [level.name for level in idx.levels]
+    assert idx.names == ("first", "second")
+    level_names = tuple(level.name for level in idx.levels)
     assert level_names == idx.names
 
     # setting bad names on existing
