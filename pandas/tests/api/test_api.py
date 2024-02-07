@@ -291,7 +291,6 @@ class TestApi(Base):
         "is_int64_dtype",
         "is_integer",
         "is_integer_dtype",
-        "is_interval",
         "is_interval_dtype",
         "is_iterator",
         "is_list_like",
