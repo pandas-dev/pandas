@@ -733,8 +733,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         '2015-01'], dtype='period[M]')
         """
         how = libperiod.validate_end_alias(how)
-        if isinstance(freq, BaseOffset):
-            freq = freq_to_period_freqstr(freq.n, freq.name)
+        if isinstance(freq, BaseOffset) and hasattr(freq, "_period_dtype_code"):
+            freq = PeriodDtype(freq)._freqstr
         freq = Period._maybe_convert_freq(freq)
 
         base1 = self._dtype._dtype_code
@@ -1186,12 +1186,7 @@ def dt64arr_to_periodarr(
 
     reso = get_unit_from_dtype(data.dtype)
     freq = Period._maybe_convert_freq(freq)
-    try:
-        base = freq._period_dtype_code
-    except (AttributeError, TypeError):
-        # AttributeError: _period_dtype_code might not exist
-        # TypeError: _period_dtype_code might intentionally raise
-        raise TypeError(f"{freq.name} is not supported as period frequency")
+    base = freq._period_dtype_code
     return c_dt64arr_to_periodarr(data.view("i8"), base, tz, reso=reso), freq
 
 

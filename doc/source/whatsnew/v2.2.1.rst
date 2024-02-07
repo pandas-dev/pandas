@@ -35,6 +35,7 @@ Bug fixes
 - Fixed bug in :func:`pandas.api.interchange.from_dataframe` which was raising for empty inputs (:issue:`56700`)
 - Fixed bug in :func:`pandas.api.interchange.from_dataframe` which wasn't converting columns names to strings (:issue:`55069`)
 - Fixed bug in :meth:`DataFrame.__getitem__` for empty :class:`DataFrame` with Copy-on-Write enabled (:issue:`57130`)
+- Fixed bug in :meth:`PeriodIndex.asfreq` which was silently converting frequencies which are not supported as period frequencies instead of raising an error (:issue:`56945`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_221.other:
