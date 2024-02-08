@@ -2643,7 +2643,7 @@ def test_stack_preserves_na(dtype, na_value, test_multiindex):
     else:
         index = Index([na_value], dtype=dtype)
     df = DataFrame({"a": [1]}, index=index)
-    result = df.stack(future_stack=True)
+    result = df.stack()
 
     if test_multiindex:
         expected_index = MultiIndex.from_arrays(
