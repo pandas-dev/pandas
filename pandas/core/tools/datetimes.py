@@ -737,14 +737,6 @@ def to_datetime(
           offsets (typically, daylight savings), see :ref:`Examples
           <to_datetime_tz_examples>` section for details.
 
-        .. warning::
-
-            In a future version of pandas, parsing datetimes with mixed time
-            zones will raise an error unless `utc=True`.
-            Please specify `utc=True` to opt in to the new behaviour
-            and silence this warning. To create a `Series` with mixed offsets and
-            `object` dtype, please use `apply` and `datetime.datetime.strptime`.
-
         See also: pandas general documentation about `timezone conversion and
         localization
         <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
@@ -837,6 +829,10 @@ def to_datetime(
         of 'year', 'month', day' columns is missing in a :class:`DataFrame`, or
         when a Timezone-aware :class:`datetime.datetime` is found in an array-like
         of mixed time offsets, and ``utc=False``.
+        When parsing datetimes with mixed time zones unless `utc=True`.
+        Please specify `utc=True` to opt in to the new behaviour.
+        To create a `Series` with mixed offsets and `object` dtype,
+        please use `apply` and `datetime.datetime.strptime`.
 
     See Also
     --------
@@ -967,13 +963,17 @@ def to_datetime(
 
     >>> pd.to_datetime(['2020-10-25 02:00 +0200',
     ...                 '2020-10-25 04:00 +0100'])  # doctest: +SKIP
-    FutureWarning: In a future version of pandas, parsing datetimes with mixed
-    time zones will raise an error unless `utc=True`. Please specify `utc=True`
-    to opt in to the new behaviour and silence this warning. To create a `Series`
-    with mixed offsets and `object` dtype, please use `apply` and
-    `datetime.datetime.strptime`.
-    Index([2020-10-25 02:00:00+02:00, 2020-10-25 04:00:00+01:00],
-          dtype='object')
+    ValueError: cannot parse datetimes with mixed time zones unless `utc=True`
+
+    To create a `Series` with mixed offsets and `object` dtype, please use `apply`
+    and `datetime.datetime.strptime`.
+
+    >>> import datetime as dt
+    >>> ser = pd.Series(['2020-10-25 02:00 +0200', '2020-10-25 04:00 +0100'])
+    >>> ser.apply(lambda x: dt.datetime.strptime(x, "%Y-%m-%d %H:%M %z"))
+    0    2020-10-25 02:00:00+02:00
+    1    2020-10-25 04:00:00+01:00
+    dtype: object
 
     - A mix of timezone-aware and timezone-naive inputs is also converted to
       a simple :class:`Index` containing :class:`datetime.datetime` objects:
@@ -981,12 +981,7 @@ def to_datetime(
     >>> from datetime import datetime
     >>> pd.to_datetime(["2020-01-01 01:00:00-01:00",
     ...                 datetime(2020, 1, 1, 3, 0)])  # doctest: +SKIP
-    FutureWarning: In a future version of pandas, parsing datetimes with mixed
-    time zones will raise an error unless `utc=True`. Please specify `utc=True`
-    to opt in to the new behaviour and silence this warning. To create a `Series`
-    with mixed offsets and `object` dtype, please use `apply` and
-    `datetime.datetime.strptime`.
-    Index([2020-01-01 01:00:00-01:00, 2020-01-01 03:00:00], dtype='object')
+    ValueError: cannot parse datetimes with mixed time zones unless `utc=True`
 
     |
 
