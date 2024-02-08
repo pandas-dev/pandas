@@ -3436,6 +3436,26 @@ def test_string_to_datetime_parsing_cast():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.skipif(
+    pa_version_under13p0, reason="pairwise_diff_checked not implemented in pyarrow"
+)
+def test_interpolate_not_numeric(data):
+    if not data.dtype._is_numeric:
+        with pytest.raises(ValueError, match="Values must be numeric."):
+            pd.Series(data).interpolate()
+
+
+@pytest.mark.skipif(
+    pa_version_under13p0, reason="pairwise_diff_checked not implemented in pyarrow"
+)
+@pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
+def test_interpolate_linear(dtype):
+    ser = pd.Series([None, 1, 2, None, 4, None], dtype=dtype)
+    result = ser.interpolate()
+    expected = pd.Series([None, 1, 2, 3, 4, None], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_string_to_time_parsing_cast():
     # GH 56463
     string_times = ["11:41:43.076160"]
