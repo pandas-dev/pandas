@@ -136,7 +136,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timedelta.resolution\
         pandas.Interval\
         pandas.Grouper\
-        pandas.core.groupby.SeriesGroupBy.apply\
         pandas.core.groupby.DataFrameGroupBy.nth\
         pandas.core.groupby.DataFrameGroupBy.rolling\
         pandas.core.groupby.SeriesGroupBy.nth\
