@@ -300,7 +300,7 @@ class FixedForwardWindowIndexer(BaseIndexer):
 
     Examples
     --------
-    >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
+    >>> df = pd.DataFrame({"B": [0, 1, 2, np.nan, 4]})
     >>> df
          B
     0  0.0

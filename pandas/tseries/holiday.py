@@ -200,8 +200,10 @@ class Holiday:
         Holiday: July 3rd (month=7, day=3, )
 
         >>> NewYears = pd.tseries.holiday.Holiday(
-        ...     "New Years Day", month=1,  day=1,
-        ...      observance=pd.tseries.holiday.nearest_workday
+        ...     "New Years Day",
+        ...     month=1,
+        ...     day=1,
+        ...     observance=pd.tseries.holiday.nearest_workday,
         ... )
         >>> NewYears  # doctest: +SKIP
         Holiday: New Years Day (
@@ -209,8 +211,7 @@ class Holiday:
         )
 
         >>> July3rd = pd.tseries.holiday.Holiday(
-        ...     "July 3rd", month=7, day=3,
-        ...     days_of_week=(0, 1, 2, 3)
+        ...     "July 3rd", month=7, day=3, days_of_week=(0, 1, 2, 3)
         ... )
         >>> July3rd
         Holiday: July 3rd (month=7, day=3, )

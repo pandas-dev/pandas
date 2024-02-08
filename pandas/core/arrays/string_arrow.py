@@ -117,7 +117,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     Examples
     --------
-    >>> pd.array(['This is', 'some text', None, 'data.'], dtype="string[pyarrow]")
+    >>> pd.array(["This is", "some text", None, "data."], dtype="string[pyarrow]")
     <ArrowStringArray>
     ['This is', 'some text', <NA>, 'data.']
     Length: 4, dtype: string

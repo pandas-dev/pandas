@@ -89,9 +89,9 @@ def mask_zero_div_zero(x, y, result: np.ndarray) -> np.ndarray:
     >>> x = np.array([1, 0, -1], dtype=np.int64)
     >>> x
     array([ 1,  0, -1])
-    >>> y = 0       # int 0; numpy behavior is different with float
+    >>> y = 0  # int 0; numpy behavior is different with float
     >>> result = x // y
-    >>> result      # raw numpy result does not fill division by zero
+    >>> result  # raw numpy result does not fill division by zero
     array([0, 0, 0])
     >>> mask_zero_div_zero(x, y, result)
     array([ inf,  nan, -inf])

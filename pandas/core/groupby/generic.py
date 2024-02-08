@@ -583,12 +583,15 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
-        ...                           'foo', 'bar'],
-        ...                    'B' : [1, 2, 3, 4, 5, 6],
-        ...                    'C' : [2.0, 5., 8., 1., 2., 9.]})
-        >>> grouped = df.groupby('A')
-        >>> df.groupby('A').B.filter(lambda x: x.mean() > 3.)
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "A": ["foo", "bar", "foo", "bar", "foo", "bar"],
+        ...         "B": [1, 2, 3, 4, 5, 6],
+        ...         "C": [2.0, 5.0, 8.0, 1.0, 2.0, 9.0],
+        ...     }
+        ... )
+        >>> grouped = df.groupby("A")
+        >>> df.groupby("A").B.filter(lambda x: x.mean() > 3.0)
         1    2
         3    4
         5    6
@@ -629,7 +632,7 @@ class SeriesGroupBy(GroupBy[Series]):
         --------
         For SeriesGroupby:
 
-        >>> lst = ['a', 'a', 'b', 'b']
+        >>> lst = ["a", "a", "b", "b"]
         >>> ser = pd.Series([1, 2, 3, 3], index=lst)
         >>> ser
         a    1
@@ -644,15 +647,19 @@ class SeriesGroupBy(GroupBy[Series]):
 
         For Resampler:
 
-        >>> ser = pd.Series([1, 2, 3, 3], index=pd.DatetimeIndex(
-        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser = pd.Series(
+        ...     [1, 2, 3, 3],
+        ...     index=pd.DatetimeIndex(
+        ...         ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
+        ...     ),
+        ... )
         >>> ser
         2023-01-01    1
         2023-01-15    2
         2023-02-01    3
         2023-02-15    3
         dtype: int64
-        >>> ser.resample('MS').nunique()
+        >>> ser.resample("MS").nunique()
         2023-01-01    2
         2023-02-01    1
         Freq: MS, dtype: int64
@@ -911,13 +918,17 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Examples
         --------
-        >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
-        ...                    ('parrot', 'bird', 24.0),
-        ...                    ('lion', 'mammal', 80.5),
-        ...                    ('monkey', 'mammal', np.nan),
-        ...                    ('rabbit', 'mammal', 15.0)],
-        ...                   columns=['name', 'class', 'max_speed'],
-        ...                   index=[4, 3, 2, 1, 0])
+        >>> df = pd.DataFrame(
+        ...     [
+        ...         ("falcon", "bird", 389.0),
+        ...         ("parrot", "bird", 24.0),
+        ...         ("lion", "mammal", 80.5),
+        ...         ("monkey", "mammal", np.nan),
+        ...         ("rabbit", "mammal", 15.0),
+        ...     ],
+        ...     columns=["name", "class", "max_speed"],
+        ...     index=[4, 3, 2, 1, 0],
+        ... )
         >>> df
              name   class  max_speed
         4  falcon    bird      389.0
@@ -981,10 +992,19 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Examples
         --------
-        >>> ser = pd.Series([390., 350., 357., np.nan, 22., 20., 30.],
-        ...                 index=['Falcon', 'Falcon', 'Falcon', 'Falcon',
-        ...                        'Parrot', 'Parrot', 'Parrot'],
-        ...                 name="Max Speed")
+        >>> ser = pd.Series(
+        ...     [390.0, 350.0, 357.0, np.nan, 22.0, 20.0, 30.0],
+        ...     index=[
+        ...         "Falcon",
+        ...         "Falcon",
+        ...         "Falcon",
+        ...         "Falcon",
+        ...         "Parrot",
+        ...         "Parrot",
+        ...         "Parrot",
+        ...     ],
+        ...     name="Max Speed",
+        ... )
         >>> ser
         Falcon    390.0
         Falcon    350.0
@@ -1075,8 +1095,12 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Examples
         --------
-        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
-        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser = pd.Series(
+        ...     [1, 2, 3, 4],
+        ...     index=pd.DatetimeIndex(
+        ...         ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
+        ...     ),
+        ... )
         >>> ser
         2023-01-01    1
         2023-01-15    2
@@ -1084,7 +1108,7 @@ class SeriesGroupBy(GroupBy[Series]):
         2023-02-15    4
         dtype: int64
 
-        >>> ser.groupby(['a', 'a', 'b', 'b']).idxmin()
+        >>> ser.groupby(["a", "a", "b", "b"]).idxmin()
         a   2023-01-01
         b   2023-02-01
         dtype: datetime64[ns]
@@ -1125,8 +1149,12 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Examples
         --------
-        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
-        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser = pd.Series(
+        ...     [1, 2, 3, 4],
+        ...     index=pd.DatetimeIndex(
+        ...         ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
+        ...     ),
+        ... )
         >>> ser
         2023-01-01    1
         2023-01-15    2
@@ -1134,7 +1162,7 @@ class SeriesGroupBy(GroupBy[Series]):
         2023-02-15    4
         dtype: int64
 
-        >>> ser.groupby(['a', 'a', 'b', 'b']).idxmax()
+        >>> ser.groupby(["a", "a", "b", "b"]).idxmax()
         a   2023-01-15
         b   2023-02-15
         dtype: datetime64[ns]
@@ -1173,7 +1201,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Examples
         --------
-        >>> s = pd.Series([2, 1, 3, 4], index=['Falcon', 'Falcon', 'Parrot', 'Parrot'])
+        >>> s = pd.Series([2, 1, 3, 4], index=["Falcon", "Falcon", "Parrot", "Parrot"])
         >>> s.groupby(level=0).is_monotonic_increasing
         Falcon    False
         Parrot     True
@@ -1192,7 +1220,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Examples
         --------
-        >>> s = pd.Series([2, 1, 3, 4], index=['Falcon', 'Falcon', 'Parrot', 'Parrot'])
+        >>> s = pd.Series([2, 1, 3, 4], index=["Falcon", "Falcon", "Parrot", "Parrot"])
         >>> s.groupby(level=0).is_monotonic_decreasing
         Falcon     True
         Parrot    False
@@ -1256,13 +1284,17 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Examples
         --------
-        >>> df = pd.DataFrame([('Chihuahua', 'dog', 6.1),
-        ...                    ('Beagle', 'dog', 15.2),
-        ...                    ('Chihuahua', 'dog', 6.9),
-        ...                    ('Persian', 'cat', 9.2),
-        ...                    ('Chihuahua', 'dog', 7),
-        ...                    ('Persian', 'cat', 8.8)],
-        ...                   columns=['breed', 'animal', 'height_in'])
+        >>> df = pd.DataFrame(
+        ...     [
+        ...         ("Chihuahua", "dog", 6.1),
+        ...         ("Beagle", "dog", 15.2),
+        ...         ("Chihuahua", "dog", 6.9),
+        ...         ("Persian", "cat", 9.2),
+        ...         ("Chihuahua", "dog", 7),
+        ...         ("Persian", "cat", 8.8),
+        ...     ],
+        ...     columns=["breed", "animal", "height_in"],
+        ... )
         >>> df
                breed     animal   height_in
         0  Chihuahua        dog         6.1
@@ -1271,7 +1303,7 @@ class SeriesGroupBy(GroupBy[Series]):
         3    Persian        cat         9.2
         4  Chihuahua        dog         7.0
         5    Persian        cat         8.8
-        >>> ser = df.groupby('animal')['breed'].unique()
+        >>> ser = df.groupby("animal")["breed"].unique()
         >>> ser
         animal
         cat              [Persian]
@@ -1826,12 +1858,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
-        ...                           'foo', 'bar'],
-        ...                    'B' : [1, 2, 3, 4, 5, 6],
-        ...                    'C' : [2.0, 5., 8., 1., 2., 9.]})
-        >>> grouped = df.groupby('A')
-        >>> grouped.filter(lambda x: x['B'].mean() > 3.)
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "A": ["foo", "bar", "foo", "bar", "foo", "bar"],
+        ...         "B": [1, 2, 3, 4, 5, 6],
+        ...         "C": [2.0, 5.0, 8.0, 1.0, 2.0, 9.0],
+        ...     }
+        ... )
+        >>> grouped = df.groupby("A")
+        >>> grouped.filter(lambda x: x["B"].mean() > 3.0)
              A  B    C
         1  bar  2  5.0
         3  bar  4  1.0
@@ -1981,10 +2016,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'id': ['spam', 'egg', 'egg', 'spam',
-        ...                           'ham', 'ham'],
-        ...                    'value1': [1, 5, 5, 2, 5, 5],
-        ...                    'value2': list('abbaxy')})
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "id": ["spam", "egg", "egg", "spam", "ham", "ham"],
+        ...         "value1": [1, 5, 5, 2, 5, 5],
+        ...         "value2": list("abbaxy"),
+        ...     }
+        ... )
         >>> df
              id  value1 value2
         0  spam       1      a
@@ -1994,7 +2032,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         4   ham       5      x
         5   ham       5      y
 
-        >>> df.groupby('id').nunique()
+        >>> df.groupby("id").nunique()
               value1  value2
         id
         egg        1       1
@@ -2003,7 +2041,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Check for rows with the same id but conflicting values:
 
-        >>> df.groupby('id').filter(lambda g: (g.nunique() > 1).any())
+        >>> df.groupby("id").filter(lambda g: (g.nunique() > 1).any())
              id  value1 value2
         0  spam       1      a
         3  spam       2      a
@@ -2054,9 +2092,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         --------
         Consider a dataset containing food consumption in Argentina.
 
-        >>> df = pd.DataFrame({'consumption': [10.51, 103.11, 55.48],
-        ...                    'co2_emissions': [37.2, 19.66, 1712]},
-        ...                   index=['Pork', 'Wheat Products', 'Beef'])
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "consumption": [10.51, 103.11, 55.48],
+        ...         "co2_emissions": [37.2, 19.66, 1712],
+        ...     },
+        ...     index=["Pork", "Wheat Products", "Beef"],
+        ... )
 
         >>> df
                         consumption  co2_emissions
@@ -2115,9 +2157,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         --------
         Consider a dataset containing food consumption in Argentina.
 
-        >>> df = pd.DataFrame({'consumption': [10.51, 103.11, 55.48],
-        ...                    'co2_emissions': [37.2, 19.66, 1712]},
-        ...                   index=['Pork', 'Wheat Products', 'Beef'])
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "consumption": [10.51, 103.11, 55.48],
+        ...         "co2_emissions": [37.2, 19.66, 1712],
+        ...     },
+        ...     index=["Pork", "Wheat Products", "Beef"],
+        ... )
 
         >>> df
                         consumption  co2_emissions
@@ -2189,11 +2235,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Examples
         --------
-        >>> df = pd.DataFrame({
-        ...     'gender': ['male', 'male', 'female', 'male', 'female', 'male'],
-        ...     'education': ['low', 'medium', 'high', 'low', 'high', 'low'],
-        ...     'country': ['US', 'FR', 'US', 'FR', 'FR', 'FR']
-        ... })
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "gender": ["male", "male", "female", "male", "female", "male"],
+        ...         "education": ["low", "medium", "high", "low", "high", "low"],
+        ...         "country": ["US", "FR", "US", "FR", "FR", "FR"],
+        ...     }
+        ... )
 
         >>> df
                 gender  education   country
@@ -2204,7 +2252,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         4       female  high        FR
         5       male    low         FR
 
-        >>> df.groupby('gender').value_counts()
+        >>> df.groupby("gender").value_counts()
         gender  education  country
         female  high       FR         1
                            US         1
@@ -2213,7 +2261,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 medium     FR         1
         Name: count, dtype: int64
 
-        >>> df.groupby('gender').value_counts(ascending=True)
+        >>> df.groupby("gender").value_counts(ascending=True)
         gender  education  country
         female  high       FR         1
                            US         1
@@ -2222,7 +2270,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 low        FR         2
         Name: count, dtype: int64
 
-        >>> df.groupby('gender').value_counts(normalize=True)
+        >>> df.groupby("gender").value_counts(normalize=True)
         gender  education  country
         female  high       FR         0.50
                            US         0.50
@@ -2231,7 +2279,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 medium     FR         0.25
         Name: proportion, dtype: float64
 
-        >>> df.groupby('gender', as_index=False).value_counts()
+        >>> df.groupby("gender", as_index=False).value_counts()
            gender education country  count
         0  female      high      FR      1
         1  female      high      US      1
@@ -2239,7 +2287,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         3    male       low      US      1
         4    male    medium      FR      1
 
-        >>> df.groupby('gender', as_index=False).value_counts(normalize=True)
+        >>> df.groupby("gender", as_index=False).value_counts(normalize=True)
            gender education country  proportion
         0  female      high      FR        0.50
         1  female      high      US        0.50
@@ -2288,13 +2336,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Examples
         --------
-        >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
-        ...                    ('parrot', 'bird', 24.0),
-        ...                    ('lion', 'mammal', 80.5),
-        ...                    ('monkey', 'mammal', np.nan),
-        ...                    ('rabbit', 'mammal', 15.0)],
-        ...                   columns=['name', 'class', 'max_speed'],
-        ...                   index=[4, 3, 2, 1, 0])
+        >>> df = pd.DataFrame(
+        ...     [
+        ...         ("falcon", "bird", 389.0),
+        ...         ("parrot", "bird", 24.0),
+        ...         ("lion", "mammal", 80.5),
+        ...         ("monkey", "mammal", np.nan),
+        ...         ("rabbit", "mammal", 15.0),
+        ...     ],
+        ...     columns=["name", "class", "max_speed"],
+        ...     index=[4, 3, 2, 1, 0],
+        ... )
         >>> df
              name   class  max_speed
         4  falcon    bird      389.0
@@ -2372,14 +2424,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Examples
         --------
-        >>> arrays = [['falcon', 'parrot', 'cockatoo', 'kiwi',
-        ...            'lion', 'monkey', 'rabbit'],
-        ...           ['bird', 'bird', 'bird', 'bird',
-        ...            'mammal', 'mammal', 'mammal']]
-        >>> index = pd.MultiIndex.from_arrays(arrays, names=('name', 'class'))
-        >>> df = pd.DataFrame({'max_speed': [389.0, 24.0, 70.0, np.nan,
-        ...                                  80.5, 21.5, 15.0]},
-        ...                   index=index)
+        >>> arrays = [
+        ...     ["falcon", "parrot", "cockatoo", "kiwi", "lion", "monkey", "rabbit"],
+        ...     ["bird", "bird", "bird", "bird", "mammal", "mammal", "mammal"],
+        ... ]
+        >>> index = pd.MultiIndex.from_arrays(arrays, names=("name", "class"))
+        >>> df = pd.DataFrame(
+        ...     {"max_speed": [389.0, 24.0, 70.0, np.nan, 80.5, 21.5, 15.0]},
+        ...     index=index,
+        ... )
         >>> df
                         max_speed
         name     class
@@ -2548,10 +2601,18 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Examples
         --------
-        >>> df1 = pd.DataFrame({"Day": [1, 1, 1, 2, 2, 2, 3, 3, 3],
-        ...                     "Data": [6, 6, 8, 5, 4, 2, 7, 3, 9]})
-        >>> df2 = pd.DataFrame({"Day": [1, 1, 1, 2, 2, 2, 3, 3, 3],
-        ...                     "Data": [5, 3, 8, 3, 1, 1, 2, 3, 6]})
+        >>> df1 = pd.DataFrame(
+        ...     {
+        ...         "Day": [1, 1, 1, 2, 2, 2, 3, 3, 3],
+        ...         "Data": [6, 6, 8, 5, 4, 2, 7, 3, 9],
+        ...     }
+        ... )
+        >>> df2 = pd.DataFrame(
+        ...     {
+        ...         "Day": [1, 1, 1, 2, 2, 2, 3, 3, 3],
+        ...         "Data": [5, 3, 8, 3, 1, 1, 2, 3, 6],
+        ...     }
+        ... )
 
         >>> df1.groupby("Day").corrwith(df2)
                  Data  Day

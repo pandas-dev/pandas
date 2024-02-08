@@ -64,7 +64,7 @@ def read_clipboard(
 
     Examples
     --------
-    >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
+    >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"])
     >>> df.to_clipboard()  # doctest: +SKIP
     >>> pd.read_clipboard()  # doctest: +SKIP
          A  B  C

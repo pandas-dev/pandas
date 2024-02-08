@@ -122,44 +122,41 @@ def deprecate_kwarg(
     --------
     The following deprecates 'cols', using 'columns' instead
 
-    >>> @deprecate_kwarg(old_arg_name='cols', new_arg_name='columns')
-    ... def f(columns=''):
+    >>> @deprecate_kwarg(old_arg_name="cols", new_arg_name="columns")
+    ... def f(columns=""):
     ...     print(columns)
-    ...
-    >>> f(columns='should work ok')
+    >>> f(columns="should work ok")
     should work ok
 
-    >>> f(cols='should raise warning')  # doctest: +SKIP
+    >>> f(cols="should raise warning")  # doctest: +SKIP
     FutureWarning: cols is deprecated, use columns instead
       warnings.warn(msg, FutureWarning)
     should raise warning
 
-    >>> f(cols='should error', columns="can\'t pass do both")  # doctest: +SKIP
+    >>> f(cols="should error", columns="can't pass do both")  # doctest: +SKIP
     TypeError: Can only specify 'cols' or 'columns', not both
 
-    >>> @deprecate_kwarg('old', 'new', {'yes': True, 'no': False})
+    >>> @deprecate_kwarg("old", "new", {"yes": True, "no": False})
     ... def f(new=False):
-    ...     print('yes!' if new else 'no!')
-    ...
-    >>> f(old='yes')  # doctest: +SKIP
+    ...     print("yes!" if new else "no!")
+    >>> f(old="yes")  # doctest: +SKIP
     FutureWarning: old='yes' is deprecated, use new=True instead
       warnings.warn(msg, FutureWarning)
     yes!
 
     To raise a warning that a keyword will be removed entirely in the future
 
-    >>> @deprecate_kwarg(old_arg_name='cols', new_arg_name=None)
-    ... def f(cols='', another_param=''):
+    >>> @deprecate_kwarg(old_arg_name="cols", new_arg_name=None)
+    ... def f(cols="", another_param=""):
     ...     print(cols)
-    ...
-    >>> f(cols='should raise warning')  # doctest: +SKIP
+    >>> f(cols="should raise warning")  # doctest: +SKIP
     FutureWarning: the 'cols' keyword is deprecated and will be removed in a
     future version please takes steps to stop use of 'cols'
     should raise warning
-    >>> f(another_param='should not raise warning')  # doctest: +SKIP
+    >>> f(another_param="should not raise warning")  # doctest: +SKIP
     should not raise warning
 
-    >>> f(cols='should raise warning', another_param='')  # doctest: +SKIP
+    >>> f(cols="should raise warning", another_param="")  # doctest: +SKIP
     FutureWarning: the 'cols' keyword is deprecated and will be removed in a
     future version please takes steps to stop use of 'cols'
     should raise warning

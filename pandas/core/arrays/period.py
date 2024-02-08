@@ -172,8 +172,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
     Examples
     --------
-    >>> pd.arrays.PeriodArray(pd.PeriodIndex(['2023-01-01',
-    ...                                       '2023-01-02'], freq='D'))
+    >>> pd.arrays.PeriodArray(pd.PeriodIndex(["2023-01-01", "2023-01-02"], freq="D"))
     <PeriodArray>
     ['2023-01-01', '2023-01-02']
     Length: 2, dtype: period[D]
@@ -719,16 +718,16 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
         Examples
         --------
-        >>> pidx = pd.period_range('2010-01-01', '2015-01-01', freq='Y')
+        >>> pidx = pd.period_range("2010-01-01", "2015-01-01", freq="Y")
         >>> pidx
         PeriodIndex(['2010', '2011', '2012', '2013', '2014', '2015'],
         dtype='period[Y-DEC]')
 
-        >>> pidx.asfreq('M')
+        >>> pidx.asfreq("M")
         PeriodIndex(['2010-12', '2011-12', '2012-12', '2013-12', '2014-12',
         '2015-12'], dtype='period[M]')
 
-        >>> pidx.asfreq('M', how='S')
+        >>> pidx.asfreq("M", how="S")
         PeriodIndex(['2010-01', '2011-01', '2012-01', '2013-01', '2014-01',
         '2015-01'], dtype='period[M]')
         """
@@ -1035,29 +1034,26 @@ def period_array(
 
     Examples
     --------
-    >>> period_array([pd.Period('2017', freq='Y'),
-    ...               pd.Period('2018', freq='Y')])
+    >>> period_array([pd.Period("2017", freq="Y"), pd.Period("2018", freq="Y")])
     <PeriodArray>
     ['2017', '2018']
     Length: 2, dtype: period[Y-DEC]
 
-    >>> period_array([pd.Period('2017', freq='Y'),
-    ...               pd.Period('2018', freq='Y'),
-    ...               pd.NaT])
+    >>> period_array([pd.Period("2017", freq="Y"), pd.Period("2018", freq="Y"), pd.NaT])
     <PeriodArray>
     ['2017', '2018', 'NaT']
     Length: 3, dtype: period[Y-DEC]
 
     Integers that look like years are handled
 
-    >>> period_array([2000, 2001, 2002], freq='D')
+    >>> period_array([2000, 2001, 2002], freq="D")
     <PeriodArray>
     ['2000-01-01', '2001-01-01', '2002-01-01']
     Length: 3, dtype: period[D]
 
     Datetime-like strings may also be passed
 
-    >>> period_array(['2000-Q1', '2000-Q2', '2000-Q3', '2000-Q4'], freq='Q')
+    >>> period_array(["2000-Q1", "2000-Q2", "2000-Q3", "2000-Q4"], freq="Q")
     <PeriodArray>
     ['2000Q1', '2000Q2', '2000Q3', '2000Q4']
     Length: 4, dtype: period[Q-DEC]

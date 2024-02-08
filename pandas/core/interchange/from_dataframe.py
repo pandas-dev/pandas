@@ -50,12 +50,13 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
 
     Examples
     --------
-    >>> df_not_necessarily_pandas = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+    >>> df_not_necessarily_pandas = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
     >>> interchange_object = df_not_necessarily_pandas.__dataframe__()
     >>> interchange_object.column_names()
     Index(['A', 'B'], dtype='object')
-    >>> df_pandas = (pd.api.interchange.from_dataframe
-    ...              (interchange_object.select_columns_by_name(['A'])))
+    >>> df_pandas = pd.api.interchange.from_dataframe(
+    ...     interchange_object.select_columns_by_name(["A"])
+    ... )
     >>> df_pandas
          A
     0    1

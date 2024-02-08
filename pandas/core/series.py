@@ -294,8 +294,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     --------
     Constructing Series from a dictionary with an Index specified
 
-    >>> d = {'a': 1, 'b': 2, 'c': 3}
-    >>> ser = pd.Series(data=d, index=['a', 'b', 'c'])
+    >>> d = {"a": 1, "b": 2, "c": 3}
+    >>> ser = pd.Series(data=d, index=["a", "b", "c"])
     >>> ser
     a   1
     b   2
@@ -305,8 +305,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     The keys of the dictionary match with the Index values, hence the Index
     values have no effect.
 
-    >>> d = {'a': 1, 'b': 2, 'c': 3}
-    >>> ser = pd.Series(data=d, index=['x', 'y', 'z'])
+    >>> d = {"a": 1, "b": 2, "c": 3}
+    >>> ser = pd.Series(data=d, index=["x", "y", "z"])
     >>> ser
     x   NaN
     y   NaN
@@ -733,7 +733,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         The Series name can be set initially when calling the constructor.
 
-        >>> s = pd.Series([1, 2, 3], dtype=np.int64, name='Numbers')
+        >>> s = pd.Series([1, 2, 3], dtype=np.int64, name="Numbers")
         >>> s
         0    1
         1    2
@@ -748,8 +748,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         The name of a Series within a DataFrame is its column name.
 
-        >>> df = pd.DataFrame([[1, 2], [3, 4], [5, 6]],
-        ...                   columns=["Odd Numbers", "Even Numbers"])
+        >>> df = pd.DataFrame(
+        ...     [[1, 2], [3, 4], [5, 6]], columns=["Odd Numbers", "Even Numbers"]
+        ... )
         >>> df
            Odd Numbers  Even Numbers
         0            1             2
@@ -790,17 +791,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> pd.Series([1, 2, 3]).values
         array([1, 2, 3])
 
-        >>> pd.Series(list('aabc')).values
+        >>> pd.Series(list("aabc")).values
         array(['a', 'a', 'b', 'c'], dtype=object)
 
-        >>> pd.Series(list('aabc')).astype('category').values
+        >>> pd.Series(list("aabc")).astype("category").values
         ['a', 'a', 'b', 'c']
         Categories (3, object): ['a', 'b', 'c']
 
         Timezone aware datetime data is converted to UTC:
 
-        >>> pd.Series(pd.date_range('20130101', periods=3,
-        ...                         tz='US/Eastern')).values
+        >>> pd.Series(pd.date_range("20130101", periods=3, tz="US/Eastern")).values
         array(['2013-01-01T05:00:00.000000000',
                '2013-01-02T05:00:00.000000000',
                '2013-01-03T05:00:00.000000000'], dtype='datetime64[ns]')
@@ -985,7 +985,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         For timezone-aware data, the timezones may be retained with
         ``dtype='object'``
 
-        >>> tzser = pd.Series(pd.date_range('2000', periods=2, tz="CET"))
+        >>> tzser = pd.Series(pd.date_range("2000", periods=2, tz="CET"))
         >>> np.asarray(tzser, dtype="object")
         array([Timestamp('2000-01-01 00:00:00+0100', tz='CET'),
                Timestamp('2000-01-02 00:00:00+0100', tz='CET')],
@@ -1425,7 +1425,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> s = pd.Series(['a', 'b', 'c'])
+        >>> s = pd.Series(["a", "b", "c"])
         >>> s
         0    a
         1    b
@@ -1541,8 +1541,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> s = pd.Series([1, 2, 3, 4], name='foo',
-        ...               index=pd.Index(['a', 'b', 'c', 'd'], name='idx'))
+        >>> s = pd.Series(
+        ...     [1, 2, 3, 4],
+        ...     name="foo",
+        ...     index=pd.Index(["a", "b", "c", "d"], name="idx"),
+        ... )
 
         Generate a DataFrame with default index.
 
@@ -1555,7 +1558,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         To specify the name of the new column use `name`.
 
-        >>> s.reset_index(name='values')
+        >>> s.reset_index(name="values")
           idx  values
         0   a       1
         1   b       2
@@ -1574,16 +1577,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         The `level` parameter is interesting for Series with a multi-level
         index.
 
-        >>> arrays = [np.array(['bar', 'bar', 'baz', 'baz']),
-        ...           np.array(['one', 'two', 'one', 'two'])]
+        >>> arrays = [
+        ...     np.array(["bar", "bar", "baz", "baz"]),
+        ...     np.array(["one", "two", "one", "two"]),
+        ... ]
         >>> s2 = pd.Series(
-        ...     range(4), name='foo',
-        ...     index=pd.MultiIndex.from_arrays(arrays,
-        ...                                     names=['a', 'b']))
+        ...     range(4),
+        ...     name="foo",
+        ...     index=pd.MultiIndex.from_arrays(arrays, names=["a", "b"]),
+        ... )
 
         To remove a specific level from the Index, use `level`.
 
-        >>> s2.reset_index(level='a')
+        >>> s2.reset_index(level="a")
                a  foo
         b
         one  bar    0
@@ -1863,7 +1869,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> s = pd.Series(['A', 'B', 'C'])
+        >>> s = pd.Series(["A", "B", "C"])
         >>> for index, value in s.items():
         ...     print(f"Index : {index}, Value : {value}")
         Index : 0, Value : A
@@ -1966,8 +1972,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> s = pd.Series(["a", "b", "c"],
-        ...               name="vals")
+        >>> s = pd.Series(["a", "b", "c"], name="vals")
         >>> s.to_frame()
           vals
         0    a
@@ -2245,16 +2250,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> pd.Series([2, 1, 3, 3], name='A').unique()
+        >>> pd.Series([2, 1, 3, 3], name="A").unique()
         array([2, 1, 3])
 
-        >>> pd.Series([pd.Timestamp('2016-01-01') for _ in range(3)]).unique()
+        >>> pd.Series([pd.Timestamp("2016-01-01") for _ in range(3)]).unique()
         <DatetimeArray>
         ['2016-01-01 00:00:00']
         Length: 1, dtype: datetime64[ns]
 
-        >>> pd.Series([pd.Timestamp('2016-01-01', tz='US/Eastern')
-        ...            for _ in range(3)]).unique()
+        >>> pd.Series(
+        ...     [pd.Timestamp("2016-01-01", tz="US/Eastern") for _ in range(3)]
+        ... ).unique()
         <DatetimeArray>
         ['2016-01-01 00:00:00-05:00']
         Length: 1, dtype: datetime64[ns, US/Eastern]
@@ -2262,11 +2268,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         An Categorical will return categories in the order of
         appearance and with the same dtype.
 
-        >>> pd.Series(pd.Categorical(list('baabc'))).unique()
+        >>> pd.Series(pd.Categorical(list("baabc"))).unique()
         ['b', 'a', 'c']
         Categories (3, object): ['a', 'b', 'c']
-        >>> pd.Series(pd.Categorical(list('baabc'), categories=list('abc'),
-        ...                          ordered=True)).unique()
+        >>> pd.Series(
+        ...     pd.Categorical(list("baabc"), categories=list("abc"), ordered=True)
+        ... ).unique()
         ['b', 'a', 'c']
         Categories (3, object): ['a' < 'b' < 'c']
         """
@@ -2338,8 +2345,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         Generate a Series with duplicated entries.
 
-        >>> s = pd.Series(['llama', 'cow', 'llama', 'beetle', 'llama', 'hippo'],
-        ...               name='animal')
+        >>> s = pd.Series(
+        ...     ["llama", "cow", "llama", "beetle", "llama", "hippo"], name="animal"
+        ... )
         >>> s
         0     llama
         1       cow
@@ -2363,7 +2371,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         The value 'last' for parameter 'keep' keeps the last occurrence for
         each set of duplicated entries.
 
-        >>> s.drop_duplicates(keep='last')
+        >>> s.drop_duplicates(keep="last")
         1       cow
         3    beetle
         4     llama
@@ -2427,7 +2435,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         By default, for each set of duplicated values, the first occurrence is
         set on False and all others on True:
 
-        >>> animals = pd.Series(['llama', 'cow', 'llama', 'beetle', 'llama'])
+        >>> animals = pd.Series(["llama", "cow", "llama", "beetle", "llama"])
         >>> animals.duplicated()
         0    False
         1    False
@@ -2438,7 +2446,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         which is equivalent to
 
-        >>> animals.duplicated(keep='first')
+        >>> animals.duplicated(keep="first")
         0    False
         1    False
         2     True
@@ -2449,7 +2457,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         By using 'last', the last occurrence of each set of duplicated values
         is set on False and all others on True:
 
-        >>> animals.duplicated(keep='last')
+        >>> animals.duplicated(keep="last")
         0     True
         1    False
         2     True
@@ -2516,8 +2524,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> s = pd.Series(data=[1, None, 4, 1],
-        ...               index=['A', 'B', 'C', 'D'])
+        >>> s = pd.Series(data=[1, None, 4, 1], index=["A", "B", "C", "D"])
         >>> s
         A    1.0
         B    NaN
@@ -2599,8 +2606,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> s = pd.Series(data=[1, None, 4, 3, 4],
-        ...               index=['A', 'B', 'C', 'D', 'E'])
+        >>> s = pd.Series(data=[1, None, 4, 3, 4], index=["A", "B", "C", "D", "E"])
         >>> s
         A    1.0
         B    NaN
@@ -2736,9 +2742,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Examples
         --------
         >>> s = pd.Series([1, 2, 3, 4])
-        >>> s.quantile(.5)
+        >>> s.quantile(0.5)
         2.5
-        >>> s.quantile([.25, .5, .75])
+        >>> s.quantile([0.25, 0.5, 0.75])
         0.25    1.75
         0.50    2.50
         0.75    3.25
@@ -2820,8 +2826,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> def histogram_intersection(a, b):
         ...     v = np.minimum(a, b).sum().round(decimals=1)
         ...     return v
-        >>> s1 = pd.Series([.2, .0, .6, .2])
-        >>> s2 = pd.Series([.3, .6, .0, .1])
+        >>> s1 = pd.Series([0.2, 0.0, 0.6, 0.2])
+        >>> s2 = pd.Series([0.3, 0.6, 0.0, 0.1])
         >>> s1.corr(s2, method=histogram_intersection)
         0.3
 
@@ -3278,12 +3284,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Consider 2 Datasets ``s1`` and ``s2`` containing
         highest clocked speeds of different birds.
 
-        >>> s1 = pd.Series({'falcon': 330.0, 'eagle': 160.0})
+        >>> s1 = pd.Series({"falcon": 330.0, "eagle": 160.0})
         >>> s1
         falcon    330.0
         eagle     160.0
         dtype: float64
-        >>> s2 = pd.Series({'falcon': 345.0, 'eagle': 200.0, 'duck': 30.0})
+        >>> s2 = pd.Series({"falcon": 345.0, "eagle": 200.0, "duck": 30.0})
         >>> s2
         falcon    345.0
         eagle     200.0
@@ -3379,8 +3385,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Null values still persist if the location of that null value
         does not exist in `other`
 
-        >>> s1 = pd.Series({'falcon': np.nan, 'eagle': 160.0})
-        >>> s2 = pd.Series({'eagle': 200.0, 'duck': 30.0})
+        >>> s1 = pd.Series({"falcon": np.nan, "eagle": 160.0})
+        >>> s2 = pd.Series({"eagle": 200.0, "duck": 30.0})
         >>> s1.combine_first(s2)
         duck       30.0
         eagle     160.0
@@ -3433,8 +3439,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    6
         dtype: int64
 
-        >>> s = pd.Series(['a', 'b', 'c'])
-        >>> s.update(pd.Series(['d', 'e'], index=[0, 2]))
+        >>> s = pd.Series(["a", "b", "c"])
+        >>> s.update(pd.Series(["d", "e"], index=[0, 2]))
         >>> s
         0    d
         1    b
@@ -3624,7 +3630,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Sort values putting NAs first
 
-        >>> s.sort_values(na_position='first')
+        >>> s.sort_values(na_position="first")
         0     NaN
         1     1.0
         2     3.0
@@ -3634,7 +3640,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Sort a series of strings
 
-        >>> s = pd.Series(['z', 'b', 'd', 'a', 'c'])
+        >>> s = pd.Series(["z", "b", "d", "a", "c"])
         >>> s
         0    z
         1    b
@@ -3654,7 +3660,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Sort using a key function. Your `key` function will be
         given the ``Series`` of values and should return an array-like.
 
-        >>> s = pd.Series(['a', 'B', 'c', 'D', 'e'])
+        >>> s = pd.Series(["a", "B", "c", "D", "e"])
         >>> s.sort_values()
         1    B
         3    D
@@ -3845,7 +3851,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> s = pd.Series(['a', 'b', 'c', 'd'], index=[3, 2, 1, 4])
+        >>> s = pd.Series(["a", "b", "c", "d"], index=[3, 2, 1, 4])
         >>> s.sort_index()
         1    c
         2    b
@@ -3865,8 +3871,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         By default NaNs are put at the end, but use `na_position` to place
         them at the beginning
 
-        >>> s = pd.Series(['a', 'b', 'c', 'd'], index=[3, 2, 1, np.nan])
-        >>> s.sort_index(na_position='first')
+        >>> s = pd.Series(["a", "b", "c", "d"], index=[3, 2, 1, np.nan])
+        >>> s.sort_index(na_position="first")
         NaN     d
          1.0    c
          2.0    b
@@ -3875,10 +3881,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Specify index level to sort
 
-        >>> arrays = [np.array(['qux', 'qux', 'foo', 'foo',
-        ...                     'baz', 'baz', 'bar', 'bar']),
-        ...           np.array(['two', 'one', 'two', 'one',
-        ...                     'two', 'one', 'two', 'one'])]
+        >>> arrays = [
+        ...     np.array(["qux", "qux", "foo", "foo", "baz", "baz", "bar", "bar"]),
+        ...     np.array(["two", "one", "two", "one", "two", "one", "two", "one"]),
+        ... ]
         >>> s = pd.Series([1, 2, 3, 4, 5, 6, 7, 8], index=arrays)
         >>> s.sort_index(level=1)
         bar  one    8
@@ -3906,8 +3912,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Apply a key function before sorting
 
-        >>> s = pd.Series([1, 2, 3, 4], index=['A', 'b', 'C', 'd'])
-        >>> s.sort_index(key=lambda x : x.str.lower())
+        >>> s = pd.Series([1, 2, 3, 4], index=["A", "b", "C", "d"])
+        >>> s.sort_index(key=lambda x: x.str.lower())
         A    1
         b    2
         C    3
@@ -4039,11 +4045,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> countries_population = {"Italy": 59000000, "France": 65000000,
-        ...                         "Malta": 434000, "Maldives": 434000,
-        ...                         "Brunei": 434000, "Iceland": 337000,
-        ...                         "Nauru": 11300, "Tuvalu": 11300,
-        ...                         "Anguilla": 11300, "Montserrat": 5200}
+        >>> countries_population = {
+        ...     "Italy": 59000000,
+        ...     "France": 65000000,
+        ...     "Malta": 434000,
+        ...     "Maldives": 434000,
+        ...     "Brunei": 434000,
+        ...     "Iceland": 337000,
+        ...     "Nauru": 11300,
+        ...     "Tuvalu": 11300,
+        ...     "Anguilla": 11300,
+        ...     "Montserrat": 5200,
+        ... }
         >>> s = pd.Series(countries_population)
         >>> s
         Italy       59000000
@@ -4081,7 +4094,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Brunei will be kept since it is the last with value 434000 based on
         the index order.
 
-        >>> s.nlargest(3, keep='last')
+        >>> s.nlargest(3, keep="last")
         France      65000000
         Italy       59000000
         Brunei        434000
@@ -4090,7 +4103,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         The `n` largest elements where ``n=3`` with all duplicates kept. Note
         that the returned Series has five elements due to the three duplicates.
 
-        >>> s.nlargest(3, keep='all')
+        >>> s.nlargest(3, keep="all")
         France      65000000
         Italy       59000000
         Malta         434000
@@ -4139,11 +4152,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> countries_population = {"Italy": 59000000, "France": 65000000,
-        ...                         "Brunei": 434000, "Malta": 434000,
-        ...                         "Maldives": 434000, "Iceland": 337000,
-        ...                         "Nauru": 11300, "Tuvalu": 11300,
-        ...                         "Anguilla": 11300, "Montserrat": 5200}
+        >>> countries_population = {
+        ...     "Italy": 59000000,
+        ...     "France": 65000000,
+        ...     "Brunei": 434000,
+        ...     "Malta": 434000,
+        ...     "Maldives": 434000,
+        ...     "Iceland": 337000,
+        ...     "Nauru": 11300,
+        ...     "Tuvalu": 11300,
+        ...     "Anguilla": 11300,
+        ...     "Montserrat": 5200,
+        ... }
         >>> s = pd.Series(countries_population)
         >>> s
         Italy       59000000
@@ -4181,7 +4201,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         duplicates. Anguilla and Tuvalu will be kept since they are the last
         with value 11300 based on the index order.
 
-        >>> s.nsmallest(3, keep='last')
+        >>> s.nsmallest(3, keep="last")
         Montserrat   5200
         Anguilla    11300
         Tuvalu      11300
@@ -4190,7 +4210,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         The `n` smallest elements where ``n=3`` with all duplicates kept. Note
         that the returned Series has four elements due to the three duplicates.
 
-        >>> s.nsmallest(3, keep='all')
+        >>> s.nsmallest(3, keep="all")
         Montserrat   5200
         Nauru       11300
         Tuvalu      11300
@@ -4314,8 +4334,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> arrays = [np.array(["dog", "dog", "cat", "cat", "bird", "bird"]),
-        ...           np.array(["white", "black", "white", "black", "white", "black"])]
+        >>> arrays = [
+        ...     np.array(["dog", "dog", "cat", "cat", "bird", "bird"]),
+        ...     np.array(["white", "black", "white", "black", "white", "black"]),
+        ... ]
         >>> s = pd.Series([1, 2, 3, 3, 5, 2], index=arrays)
         >>> s
         dog   white    1
@@ -4377,7 +4399,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> s = pd.Series([[1, 2, 3], 'foo', [], [3, 4]])
+        >>> s = pd.Series([[1, 2, 3], "foo", [], [3, 4]])
         >>> s
         0    [1, 2, 3]
         1          foo
@@ -4439,9 +4461,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> s = pd.Series([1, 2, 3, 4],
-        ...               index=pd.MultiIndex.from_product([['one', 'two'],
-        ...                                                 ['a', 'b']]))
+        >>> s = pd.Series(
+        ...     [1, 2, 3, 4],
+        ...     index=pd.MultiIndex.from_product([["one", "two"], ["a", "b"]]),
+        ... )
         >>> s
         one  a    1
              b    2
@@ -4508,7 +4531,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> s = pd.Series(['cat', 'dog', np.nan, 'rabbit'])
+        >>> s = pd.Series(["cat", "dog", np.nan, "rabbit"])
         >>> s
         0      cat
         1      dog
@@ -4520,7 +4543,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         in the ``dict`` are converted to ``NaN``, unless the dict has a default
         value (e.g. ``defaultdict``):
 
-        >>> s.map({'cat': 'kitten', 'dog': 'puppy'})
+        >>> s.map({"cat": "kitten", "dog": "puppy"})
         0   kitten
         1    puppy
         2      NaN
@@ -4529,7 +4552,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         It also accepts a function:
 
-        >>> s.map('I am a {}'.format)
+        >>> s.map("I am a {}".format)
         0       I am a cat
         1       I am a dog
         2       I am a nan
@@ -4539,7 +4562,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         To avoid applying the function to missing values (and keep them as
         ``NaN``) ``na_action='ignore'`` can be used:
 
-        >>> s.map('I am a {}'.format, na_action='ignore')
+        >>> s.map("I am a {}".format, na_action="ignore")
         0     I am a cat
         1     I am a dog
         2            NaN
@@ -4696,8 +4719,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         Create a series with typical summer temperatures for each city.
 
-        >>> s = pd.Series([20, 21, 12],
-        ...               index=['London', 'New York', 'Helsinki'])
+        >>> s = pd.Series([20, 21, 12], index=["London", "New York", "Helsinki"])
         >>> s
         London      20
         New York    21
@@ -4708,7 +4730,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         argument to ``apply()``.
 
         >>> def square(x):
-        ...     return x ** 2
+        ...     return x**2
         >>> s.apply(square)
         London      400
         New York    441
@@ -4718,7 +4740,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Square the values by passing an anonymous function as an
         argument to ``apply()``.
 
-        >>> s.apply(lambda x: x ** 2)
+        >>> s.apply(lambda x: x**2)
         London      400
         New York    441
         Helsinki    144
@@ -4912,7 +4934,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         1    2
         2    3
         Name: my_name, dtype: int64
-        >>> s.rename(lambda x: x ** 2)  # function, changes labels
+        >>> s.rename(lambda x: x**2)  # function, changes labels
         0    1
         1    2
         4    3
@@ -5216,7 +5238,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> s = pd.Series(data=np.arange(3), index=['A', 'B', 'C'])
+        >>> s = pd.Series(data=np.arange(3), index=["A", "B", "C"])
         >>> s
         A  0
         B  1
@@ -5225,18 +5247,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Drop labels B en C
 
-        >>> s.drop(labels=['B', 'C'])
+        >>> s.drop(labels=["B", "C"])
         A  0
         dtype: int64
 
         Drop 2nd level label in MultiIndex Series
 
-        >>> midx = pd.MultiIndex(levels=[['llama', 'cow', 'falcon'],
-        ...                              ['speed', 'weight', 'length']],
-        ...                      codes=[[0, 0, 0, 1, 1, 1, 2, 2, 2],
-        ...                             [0, 1, 2, 0, 1, 2, 0, 1, 2]])
-        >>> s = pd.Series([45, 200, 1.2, 30, 250, 1.5, 320, 1, 0.3],
-        ...               index=midx)
+        >>> midx = pd.MultiIndex(
+        ...     levels=[["llama", "cow", "falcon"], ["speed", "weight", "length"]],
+        ...     codes=[[0, 0, 0, 1, 1, 1, 2, 2, 2], [0, 1, 2, 0, 1, 2, 0, 1, 2]],
+        ... )
+        >>> s = pd.Series([45, 200, 1.2, 30, 250, 1.5, 320, 1, 0.3], index=midx)
         >>> s
         llama   speed      45.0
                 weight    200.0
@@ -5249,7 +5270,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 length      0.3
         dtype: float64
 
-        >>> s.drop(labels='weight', level=1)
+        >>> s.drop(labels="weight", level=1)
         llama   speed      45.0
                 length      1.2
         cow     speed      30.0
@@ -5418,9 +5439,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> s = pd.Series(['llama', 'cow', 'llama', 'beetle', 'llama',
-        ...                'hippo'], name='animal')
-        >>> s.isin(['cow', 'llama'])
+        >>> s = pd.Series(
+        ...     ["llama", "cow", "llama", "beetle", "llama", "hippo"], name="animal"
+        ... )
+        >>> s.isin(["cow", "llama"])
         0     True
         1     True
         2     True
@@ -5431,7 +5453,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         To invert the boolean values, use the ``~`` operator:
 
-        >>> ~s.isin(['cow', 'llama'])
+        >>> ~s.isin(["cow", "llama"])
         0    False
         1    False
         2    False
@@ -5443,7 +5465,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Passing a single string as ``s.isin('llama')`` will raise an error. Use
         a list of one element instead:
 
-        >>> s.isin(['llama'])
+        >>> s.isin(["llama"])
         0     True
         1    False
         2     True
@@ -5454,10 +5476,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Strings and integers are distinct and are therefore not comparable:
 
-        >>> pd.Series([1]).isin(['1'])
+        >>> pd.Series([1]).isin(["1"])
         0    False
         dtype: bool
-        >>> pd.Series([1.1]).isin(['1.1'])
+        >>> pd.Series([1.1]).isin(["1.1"])
         0    False
         dtype: bool
         """
@@ -5531,8 +5553,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         `left` and `right` can be any scalar value:
 
-        >>> s = pd.Series(['Alice', 'Bob', 'Carol', 'Eve'])
-        >>> s.between('Anna', 'Daniel')
+        >>> s = pd.Series(["Alice", "Bob", "Carol", "Eve"])
+        >>> s.between("Anna", "Daniel")
         0    False
         1     True
         2     True
@@ -5600,12 +5622,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> c = pd.Series([6, 7, 8, 9], name='c')
+        >>> c = pd.Series([6, 7, 8, 9], name="c")
         >>> a = pd.Series([0, 0, 1, 2])
         >>> b = pd.Series([0, 3, 4, 5])
 
-        >>> c.case_when(caselist=[(a.gt(0), a),  # condition, replacement
-        ...                       (b.gt(0), b)])
+        >>> c.case_when(
+        ...     caselist=[
+        ...         (a.gt(0), a),  # condition, replacement
+        ...         (b.gt(0), b),
+        ...     ]
+        ... )
         0    6
         1    3
         2    1
@@ -5764,7 +5790,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> ser = pd.Series([1., 2., np.nan])
+        >>> ser = pd.Series([1.0, 2.0, np.nan])
         >>> ser
         0    1.0
         1    2.0
@@ -5781,7 +5807,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Empty strings are not considered NA values. ``None`` is considered an
         NA value.
 
-        >>> ser = pd.Series([np.nan, 2, pd.NaT, '', None, 'I stay'])
+        >>> ser = pd.Series([np.nan, 2, pd.NaT, "", None, "I stay"])
         >>> ser
         0       NaN
         1         2
@@ -5857,7 +5883,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> idx = pd.PeriodIndex(['2023', '2024', '2025'], freq='Y')
+        >>> idx = pd.PeriodIndex(["2023", "2024", "2025"], freq="Y")
         >>> s1 = pd.Series([1, 2, 3], index=idx)
         >>> s1
         2023    1
@@ -5877,7 +5903,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Using `freq` which is the offset that the Timestamps will have
 
         >>> s2 = pd.Series([1, 2, 3], index=idx)
-        >>> s2 = s2.to_timestamp(freq='M')
+        >>> s2 = s2.to_timestamp(freq="M")
         >>> s2
         2023-01-31    1
         2024-01-31    2
@@ -5922,7 +5948,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> idx = pd.DatetimeIndex(['2023', '2024', '2025'])
+        >>> idx = pd.DatetimeIndex(["2023", "2024", "2025"])
         >>> s = pd.Series([1, 2, 3], index=idx)
         >>> s = s.to_period()
         >>> s

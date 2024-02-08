@@ -124,24 +124,24 @@ def to_numeric(
     --------
     Take separate series and convert to numeric, coercing when told to
 
-    >>> s = pd.Series(['1.0', '2', -3])
+    >>> s = pd.Series(["1.0", "2", -3])
     >>> pd.to_numeric(s)
     0    1.0
     1    2.0
     2   -3.0
     dtype: float64
-    >>> pd.to_numeric(s, downcast='float')
+    >>> pd.to_numeric(s, downcast="float")
     0    1.0
     1    2.0
     2   -3.0
     dtype: float32
-    >>> pd.to_numeric(s, downcast='signed')
+    >>> pd.to_numeric(s, downcast="signed")
     0    1
     1    2
     2   -3
     dtype: int8
-    >>> s = pd.Series(['apple', '1.0', '2', -3])
-    >>> pd.to_numeric(s, errors='coerce')
+    >>> s = pd.Series(["apple", "1.0", "2", -3])
+    >>> pd.to_numeric(s, errors="coerce")
     0    NaN
     1    1.0
     2    2.0

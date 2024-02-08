@@ -111,7 +111,7 @@ def infer_freq(
 
     Examples
     --------
-    >>> idx = pd.date_range(start='2020/12/01', end='2020/12/30', periods=30)
+    >>> idx = pd.date_range(start="2020/12/01", end="2020/12/30", periods=30)
     >>> pd.infer_freq(idx)
     'D'
     """

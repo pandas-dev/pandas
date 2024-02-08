@@ -41,7 +41,7 @@ class Flags:
     >>> df.flags
     <Flags(allows_duplicate_labels=False)>
 
-    >>> df.flags['allows_duplicate_labels'] = True
+    >>> df.flags["allows_duplicate_labels"] = True
     >>> df.flags
     <Flags(allows_duplicate_labels=True)>
     """
@@ -71,7 +71,7 @@ class Flags:
 
         Examples
         --------
-        >>> df = pd.DataFrame({"A": [1, 2]}, index=['a', 'a'])
+        >>> df = pd.DataFrame({"A": [1, 2]}, index=["a", "a"])
         >>> df.flags.allows_duplicate_labels
         True
         >>> df.flags.allows_duplicate_labels = False

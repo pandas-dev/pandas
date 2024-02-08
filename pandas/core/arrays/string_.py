@@ -327,7 +327,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
     Examples
     --------
-    >>> pd.array(['This is', 'some text', None, 'data.'], dtype="string")
+    >>> pd.array(["This is", "some text", None, "data."], dtype="string")
     <StringArray>
     ['This is', 'some text', <NA>, 'data.']
     Length: 4, dtype: string
@@ -335,11 +335,11 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     Unlike arrays instantiated with ``dtype="object"``, ``StringArray``
     will convert the values to strings.
 
-    >>> pd.array(['1', 1], dtype="object")
+    >>> pd.array(["1", 1], dtype="object")
     <NumpyExtensionArray>
     ['1', 1]
     Length: 2, dtype: object
-    >>> pd.array(['1', 1], dtype="string")
+    >>> pd.array(["1", 1], dtype="string")
     <StringArray>
     ['1', '1']
     Length: 2, dtype: string

@@ -1215,8 +1215,9 @@ def take(
     >>> pd.api.extensions.take(np.array([10, 20, 30]), [0, 0, -1], allow_fill=True)
     array([10., 10., nan])
 
-    >>> pd.api.extensions.take(np.array([10, 20, 30]), [0, 0, -1], allow_fill=True,
-    ...      fill_value=-10)
+    >>> pd.api.extensions.take(
+    ...     np.array([10, 20, 30]), [0, 0, -1], allow_fill=True, fill_value=-10
+    ... )
     array([ 10,  10, -10])
     """
     if not isinstance(arr, (np.ndarray, ABCExtensionArray, ABCIndex, ABCSeries)):

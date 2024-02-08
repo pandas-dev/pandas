@@ -25,7 +25,7 @@ def cartesian_product(X) -> list[np.ndarray]:
 
     Examples
     --------
-    >>> cartesian_product([list('ABC'), [1, 2]])
+    >>> cartesian_product([list("ABC"), [1, 2]])
     [array(['A', 'A', 'B', 'B', 'C', 'C'], dtype='<U1'), array([1, 2, 1, 2, 1, 2])]
 
     See Also
