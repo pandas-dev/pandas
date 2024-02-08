@@ -474,7 +474,7 @@ def _justify(
 
     Examples
     --------
-    >>> _justify([['a', 'b']], [['abc', 'abcd']])
+    >>> _justify([["a", "b"]], [["abc", "abcd"]])
     ([('  a', '   b')], [('abc', 'abcd')])
     """
     combined = head + tail

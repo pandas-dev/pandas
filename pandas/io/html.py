@@ -1100,13 +1100,13 @@ def read_html(
         passed to lxml or Beautiful Soup. However, these attributes must be
         valid HTML table attributes to work correctly. For example, ::
 
-            attrs = {{'id': 'table'}}
+            attrs = {{"id": "table"}}
 
         is a valid attribute dictionary because the 'id' HTML tag attribute is
         a valid HTML attribute for *any* HTML tag as per `this document
         <https://html.spec.whatwg.org/multipage/dom.html#global-attributes>`__. ::
 
-            attrs = {{'asdf': 'table'}}
+            attrs = {{"asdf": "table"}}
 
         is *not* a valid attribute dictionary because 'asdf' is not a valid
         HTML attribute even if it is a valid XML attribute.  Valid HTML 4.01

@@ -897,9 +897,7 @@ def to_datetime(
     can be common abbreviations like ['year', 'month', 'day', 'minute', 'second',
     'ms', 'us', 'ns']) or plurals of the same
 
-    >>> df = pd.DataFrame({'year': [2015, 2016],
-    ...                    'month': [2, 3],
-    ...                    'day': [4, 5]})
+    >>> df = pd.DataFrame({"year": [2015, 2016], "month": [2, 3], "day": [4, 5]})
     >>> pd.to_datetime(df)
     0   2015-02-04
     1   2016-03-05
@@ -907,9 +905,9 @@ def to_datetime(
 
     Using a unix epoch time
 
-    >>> pd.to_datetime(1490195805, unit='s')
+    >>> pd.to_datetime(1490195805, unit="s")
     Timestamp('2017-03-22 15:16:45')
-    >>> pd.to_datetime(1490195805433502912, unit='ns')
+    >>> pd.to_datetime(1490195805433502912, unit="ns")
     Timestamp('2017-03-22 15:16:45.433502912')
 
     .. warning:: For float arg, precision rounding might happen. To prevent
@@ -917,8 +915,7 @@ def to_datetime(
 
     Using a non-unix epoch origin
 
-    >>> pd.to_datetime([1, 2, 3], unit='D',
-    ...                origin=pd.Timestamp('1960-01-01'))
+    >>> pd.to_datetime([1, 2, 3], unit="D", origin=pd.Timestamp("1960-01-01"))
     DatetimeIndex(['1960-01-02', '1960-01-03', '1960-01-04'],
                   dtype='datetime64[ns]', freq=None)
 
@@ -926,8 +923,7 @@ def to_datetime(
 
     :const:`"%f"` will parse all the way up to nanoseconds.
 
-    >>> pd.to_datetime('2018-10-26 12:00:00.0000000011',
-    ...                format='%Y-%m-%d %H:%M:%S.%f')
+    >>> pd.to_datetime("2018-10-26 12:00:00.0000000011", format="%Y-%m-%d %H:%M:%S.%f")
     Timestamp('2018-10-26 12:00:00.000000001')
 
     **Non-convertible date/times**
@@ -935,7 +931,7 @@ def to_datetime(
     Passing ``errors='coerce'`` will force an out-of-bounds date to :const:`NaT`,
     in addition to forcing non-dates (or non-parseable dates) to :const:`NaT`.
 
-    >>> pd.to_datetime('13000101', format='%Y%m%d', errors='coerce')
+    >>> pd.to_datetime("13000101", format="%Y%m%d", errors="coerce")
     NaT
 
     .. _to_datetime_tz_examples:
@@ -946,14 +942,14 @@ def to_datetime(
 
     - Timezone-naive inputs are converted to timezone-naive :class:`DatetimeIndex`:
 
-    >>> pd.to_datetime(['2018-10-26 12:00:00', '2018-10-26 13:00:15'])
+    >>> pd.to_datetime(["2018-10-26 12:00:00", "2018-10-26 13:00:15"])
     DatetimeIndex(['2018-10-26 12:00:00', '2018-10-26 13:00:15'],
                   dtype='datetime64[ns]', freq=None)
 
     - Timezone-aware inputs *with constant time offset* are converted to
       timezone-aware :class:`DatetimeIndex`:
 
-    >>> pd.to_datetime(['2018-10-26 12:00 -0500', '2018-10-26 13:00 -0500'])
+    >>> pd.to_datetime(["2018-10-26 12:00 -0500", "2018-10-26 13:00 -0500"])
     DatetimeIndex(['2018-10-26 12:00:00-05:00', '2018-10-26 13:00:00-05:00'],
                   dtype='datetime64[ns, UTC-05:00]', freq=None)
 
@@ -965,8 +961,9 @@ def to_datetime(
       and a simple :class:`Index` containing :class:`datetime.datetime`
       objects will be returned:
 
-    >>> pd.to_datetime(['2020-10-25 02:00 +0200',
-    ...                 '2020-10-25 04:00 +0100'])  # doctest: +SKIP
+    >>> pd.to_datetime(
+    ...     ["2020-10-25 02:00 +0200", "2020-10-25 04:00 +0100"]
+    ... )  # doctest: +SKIP
     FutureWarning: In a future version of pandas, parsing datetimes with mixed
     time zones will raise an error unless `utc=True`. Please specify `utc=True`
     to opt in to the new behaviour and silence this warning. To create a `Series`
@@ -979,8 +976,9 @@ def to_datetime(
       a simple :class:`Index` containing :class:`datetime.datetime` objects:
 
     >>> from datetime import datetime
-    >>> pd.to_datetime(["2020-01-01 01:00:00-01:00",
-    ...                 datetime(2020, 1, 1, 3, 0)])  # doctest: +SKIP
+    >>> pd.to_datetime(
+    ...     ["2020-01-01 01:00:00-01:00", datetime(2020, 1, 1, 3, 0)]
+    ... )  # doctest: +SKIP
     FutureWarning: In a future version of pandas, parsing datetimes with mixed
     time zones will raise an error unless `utc=True`. Please specify `utc=True`
     to opt in to the new behaviour and silence this warning. To create a `Series`
@@ -994,22 +992,21 @@ def to_datetime(
 
     - Timezone-naive inputs are *localized* as UTC
 
-    >>> pd.to_datetime(['2018-10-26 12:00', '2018-10-26 13:00'], utc=True)
+    >>> pd.to_datetime(["2018-10-26 12:00", "2018-10-26 13:00"], utc=True)
     DatetimeIndex(['2018-10-26 12:00:00+00:00', '2018-10-26 13:00:00+00:00'],
                   dtype='datetime64[ns, UTC]', freq=None)
 
     - Timezone-aware inputs are *converted* to UTC (the output represents the
       exact same datetime, but viewed from the UTC time offset `+00:00`).
 
-    >>> pd.to_datetime(['2018-10-26 12:00 -0530', '2018-10-26 12:00 -0500'],
-    ...                utc=True)
+    >>> pd.to_datetime(["2018-10-26 12:00 -0530", "2018-10-26 12:00 -0500"], utc=True)
     DatetimeIndex(['2018-10-26 17:30:00+00:00', '2018-10-26 17:00:00+00:00'],
                   dtype='datetime64[ns, UTC]', freq=None)
 
     - Inputs can contain both string or datetime, the above
       rules still apply
 
-    >>> pd.to_datetime(['2018-10-26 12:00', datetime(2020, 1, 1, 18)], utc=True)
+    >>> pd.to_datetime(["2018-10-26 12:00", datetime(2020, 1, 1, 18)], utc=True)
     DatetimeIndex(['2018-10-26 12:00:00+00:00', '2020-01-01 18:00:00+00:00'],
                   dtype='datetime64[ns, UTC]', freq=None)
     """
