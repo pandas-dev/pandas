@@ -78,7 +78,9 @@ def to_pickle(
 
     Examples
     --------
-    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})  # doctest: +SKIP
+    >>> original_df = pd.DataFrame(
+    ...     {{"foo": range(5), "bar": range(5, 10)}}
+    ... )  # doctest: +SKIP
     >>> original_df  # doctest: +SKIP
        foo  bar
     0    0    5
@@ -96,7 +98,7 @@ def to_pickle(
     2    2    7
     3    3    8
     4    4    9
-    """  # noqa: E501
+    """
     if protocol < 0:
         protocol = pickle.HIGHEST_PROTOCOL
 

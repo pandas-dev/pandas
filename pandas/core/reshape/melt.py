@@ -176,15 +176,21 @@ def lreshape(data: DataFrame, groups: dict, dropna: bool = True) -> DataFrame:
 
     Examples
     --------
-    >>> data = pd.DataFrame({'hr1': [514, 573], 'hr2': [545, 526],
-    ...                      'team': ['Red Sox', 'Yankees'],
-    ...                      'year1': [2007, 2007], 'year2': [2008, 2008]})
+    >>> data = pd.DataFrame(
+    ...     {
+    ...         "hr1": [514, 573],
+    ...         "hr2": [545, 526],
+    ...         "team": ["Red Sox", "Yankees"],
+    ...         "year1": [2007, 2007],
+    ...         "year2": [2008, 2008],
+    ...     }
+    ... )
     >>> data
        hr1  hr2     team  year1  year2
     0  514  545  Red Sox   2007   2008
     1  573  526  Yankees   2007   2008
 
-    >>> pd.lreshape(data, {'year': ['year1', 'year2'], 'hr': ['hr1', 'hr2']})
+    >>> pd.lreshape(data, {"year": ["year1", "year2"], "hr": ["hr1", "hr2"]})
           team  year   hr
     0  Red Sox  2007  514
     1  Yankees  2007  573
@@ -290,12 +296,15 @@ def wide_to_long(
     Examples
     --------
     >>> np.random.seed(123)
-    >>> df = pd.DataFrame({"A1970" : {0 : "a", 1 : "b", 2 : "c"},
-    ...                    "A1980" : {0 : "d", 1 : "e", 2 : "f"},
-    ...                    "B1970" : {0 : 2.5, 1 : 1.2, 2 : .7},
-    ...                    "B1980" : {0 : 3.2, 1 : 1.3, 2 : .1},
-    ...                    "X"     : dict(zip(range(3), np.random.randn(3)))
-    ...                    })
+    >>> df = pd.DataFrame(
+    ...     {
+    ...         "A1970": {0: "a", 1: "b", 2: "c"},
+    ...         "A1980": {0: "d", 1: "e", 2: "f"},
+    ...         "B1970": {0: 2.5, 1: 1.2, 2: 0.7},
+    ...         "B1980": {0: 3.2, 1: 1.3, 2: 0.1},
+    ...         "X": dict(zip(range(3), np.random.randn(3))),
+    ...     }
+    ... )
     >>> df["id"] = df.index
     >>> df
       A1970 A1980  B1970  B1980         X  id
@@ -315,12 +324,14 @@ def wide_to_long(
 
     With multiple id columns
 
-    >>> df = pd.DataFrame({
-    ...     'famid': [1, 1, 1, 2, 2, 2, 3, 3, 3],
-    ...     'birth': [1, 2, 3, 1, 2, 3, 1, 2, 3],
-    ...     'ht1': [2.8, 2.9, 2.2, 2, 1.8, 1.9, 2.2, 2.3, 2.1],
-    ...     'ht2': [3.4, 3.8, 2.9, 3.2, 2.8, 2.4, 3.3, 3.4, 2.9]
-    ... })
+    >>> df = pd.DataFrame(
+    ...     {
+    ...         "famid": [1, 1, 1, 2, 2, 2, 3, 3, 3],
+    ...         "birth": [1, 2, 3, 1, 2, 3, 1, 2, 3],
+    ...         "ht1": [2.8, 2.9, 2.2, 2, 1.8, 1.9, 2.2, 2.3, 2.1],
+    ...         "ht2": [3.4, 3.8, 2.9, 3.2, 2.8, 2.4, 3.3, 3.4, 2.9],
+    ...     }
+    ... )
     >>> df
        famid  birth  ht1  ht2
     0      1      1  2.8  3.4
@@ -332,7 +343,7 @@ def wide_to_long(
     6      3      1  2.2  3.3
     7      3      2  2.3  3.4
     8      3      3  2.1  2.9
-    >>> long_format = pd.wide_to_long(df, stubnames='ht', i=['famid', 'birth'], j='age')
+    >>> long_format = pd.wide_to_long(df, stubnames="ht", i=["famid", "birth"], j="age")
     >>> long_format
     ... # doctest: +NORMALIZE_WHITESPACE
                       ht
@@ -359,7 +370,7 @@ def wide_to_long(
     Going from long back to wide just takes some creative use of `unstack`
 
     >>> wide_format = long_format.unstack()
-    >>> wide_format.columns = wide_format.columns.map('{0[0]}{0[1]}'.format)
+    >>> wide_format.columns = wide_format.columns.map("{0[0]}{0[1]}".format)
     >>> wide_format.reset_index()
        famid  birth  ht1  ht2
     0      1      1  2.8  3.4
@@ -375,20 +386,23 @@ def wide_to_long(
     Less wieldy column names are also handled
 
     >>> np.random.seed(0)
-    >>> df = pd.DataFrame({'A(weekly)-2010': np.random.rand(3),
-    ...                    'A(weekly)-2011': np.random.rand(3),
-    ...                    'B(weekly)-2010': np.random.rand(3),
-    ...                    'B(weekly)-2011': np.random.rand(3),
-    ...                    'X' : np.random.randint(3, size=3)})
-    >>> df['id'] = df.index
+    >>> df = pd.DataFrame(
+    ...     {
+    ...         "A(weekly)-2010": np.random.rand(3),
+    ...         "A(weekly)-2011": np.random.rand(3),
+    ...         "B(weekly)-2010": np.random.rand(3),
+    ...         "B(weekly)-2011": np.random.rand(3),
+    ...         "X": np.random.randint(3, size=3),
+    ...     }
+    ... )
+    >>> df["id"] = df.index
     >>> df  # doctest: +NORMALIZE_WHITESPACE, +ELLIPSIS
        A(weekly)-2010  A(weekly)-2011  B(weekly)-2010  B(weekly)-2011  X  id
     0        0.548814        0.544883        0.437587        0.383442  0   0
     1        0.715189        0.423655        0.891773        0.791725  1   1
     2        0.602763        0.645894        0.963663        0.528895  1   2
 
-    >>> pd.wide_to_long(df, ['A(weekly)', 'B(weekly)'], i='id',
-    ...                 j='year', sep='-')
+    >>> pd.wide_to_long(df, ["A(weekly)", "B(weekly)"], i="id", j="year", sep="-")
     ... # doctest: +NORMALIZE_WHITESPACE
              X  A(weekly)  B(weekly)
     id year
@@ -403,8 +417,13 @@ def wide_to_long(
     stubnames and pass that list on to wide_to_long
 
     >>> stubnames = sorted(
-    ...     set([match[0] for match in df.columns.str.findall(
-    ...         r'[A-B]\(.*\)').values if match != []])
+    ...     set(
+    ...         [
+    ...             match[0]
+    ...             for match in df.columns.str.findall(r"[A-B]\(.*\)").values
+    ...             if match != []
+    ...         ]
+    ...     )
     ... )
     >>> list(stubnames)
     ['A(weekly)', 'B(weekly)']
@@ -412,12 +431,14 @@ def wide_to_long(
     All of the above examples have integers as suffixes. It is possible to
     have non-integers as suffixes.
 
-    >>> df = pd.DataFrame({
-    ...     'famid': [1, 1, 1, 2, 2, 2, 3, 3, 3],
-    ...     'birth': [1, 2, 3, 1, 2, 3, 1, 2, 3],
-    ...     'ht_one': [2.8, 2.9, 2.2, 2, 1.8, 1.9, 2.2, 2.3, 2.1],
-    ...     'ht_two': [3.4, 3.8, 2.9, 3.2, 2.8, 2.4, 3.3, 3.4, 2.9]
-    ... })
+    >>> df = pd.DataFrame(
+    ...     {
+    ...         "famid": [1, 1, 1, 2, 2, 2, 3, 3, 3],
+    ...         "birth": [1, 2, 3, 1, 2, 3, 1, 2, 3],
+    ...         "ht_one": [2.8, 2.9, 2.2, 2, 1.8, 1.9, 2.2, 2.3, 2.1],
+    ...         "ht_two": [3.4, 3.8, 2.9, 3.2, 2.8, 2.4, 3.3, 3.4, 2.9],
+    ...     }
+    ... )
     >>> df
        famid  birth  ht_one  ht_two
     0      1      1     2.8     3.4
@@ -430,8 +451,9 @@ def wide_to_long(
     7      3      2     2.3     3.4
     8      3      3     2.1     2.9
 
-    >>> long_format = pd.wide_to_long(df, stubnames='ht', i=['famid', 'birth'], j='age',
-    ...                               sep='_', suffix=r'\w+')
+    >>> long_format = pd.wide_to_long(
+    ...     df, stubnames="ht", i=["famid", "birth"], j="age", sep="_", suffix=r"\w+"
+    ... )
     >>> long_format
     ... # doctest: +NORMALIZE_WHITESPACE
                       ht

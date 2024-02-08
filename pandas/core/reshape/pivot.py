@@ -651,14 +651,55 @@ def crosstab(
 
     Examples
     --------
-    >>> a = np.array(["foo", "foo", "foo", "foo", "bar", "bar",
-    ...               "bar", "bar", "foo", "foo", "foo"], dtype=object)
-    >>> b = np.array(["one", "one", "one", "two", "one", "one",
-    ...               "one", "two", "two", "two", "one"], dtype=object)
-    >>> c = np.array(["dull", "dull", "shiny", "dull", "dull", "shiny",
-    ...               "shiny", "dull", "shiny", "shiny", "shiny"],
-    ...              dtype=object)
-    >>> pd.crosstab(a, [b, c], rownames=['a'], colnames=['b', 'c'])
+    >>> a = np.array(
+    ...     [
+    ...         "foo",
+    ...         "foo",
+    ...         "foo",
+    ...         "foo",
+    ...         "bar",
+    ...         "bar",
+    ...         "bar",
+    ...         "bar",
+    ...         "foo",
+    ...         "foo",
+    ...         "foo",
+    ...     ],
+    ...     dtype=object,
+    ... )
+    >>> b = np.array(
+    ...     [
+    ...         "one",
+    ...         "one",
+    ...         "one",
+    ...         "two",
+    ...         "one",
+    ...         "one",
+    ...         "one",
+    ...         "two",
+    ...         "two",
+    ...         "two",
+    ...         "one",
+    ...     ],
+    ...     dtype=object,
+    ... )
+    >>> c = np.array(
+    ...     [
+    ...         "dull",
+    ...         "dull",
+    ...         "shiny",
+    ...         "dull",
+    ...         "dull",
+    ...         "shiny",
+    ...         "shiny",
+    ...         "dull",
+    ...         "shiny",
+    ...         "shiny",
+    ...         "shiny",
+    ...     ],
+    ...     dtype=object,
+    ... )
+    >>> pd.crosstab(a, [b, c], rownames=["a"], colnames=["b", "c"])
     b   one        two
     c   dull shiny dull shiny
     a
@@ -669,8 +710,8 @@ def crosstab(
     shown in the output because dropna is True by default. Set
     dropna=False to preserve categories with no data.
 
-    >>> foo = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])
-    >>> bar = pd.Categorical(['d', 'e'], categories=['d', 'e', 'f'])
+    >>> foo = pd.Categorical(["a", "b"], categories=["a", "b", "c"])
+    >>> bar = pd.Categorical(["d", "e"], categories=["d", "e", "f"])
     >>> pd.crosstab(foo, bar)
     col_0  d  e
     row_0

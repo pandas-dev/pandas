@@ -893,10 +893,10 @@ def infer_dtype_from_array(arr) -> tuple[DtypeObj, ArrayLike]:
 
     Examples
     --------
-    >>> np.asarray([1, '1'])
+    >>> np.asarray([1, "1"])
     array(['1', '1'], dtype='<U21')
 
-    >>> infer_dtype_from_array([1, '1'])
+    >>> infer_dtype_from_array([1, "1"])
     (dtype('O'), [1, '1'])
     """
     if isinstance(arr, np.ndarray):

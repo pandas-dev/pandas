@@ -346,7 +346,7 @@ class DatetimeProperties(Properties):
 
         Examples
         --------
-        >>> s = pd.Series(pd.date_range('20180310', periods=2))
+        >>> s = pd.Series(pd.date_range("20180310", periods=2))
         >>> s
         0   2018-03-10
         1   2018-03-11
@@ -358,7 +358,7 @@ class DatetimeProperties(Properties):
 
         pandas' nanosecond precision is truncated to microseconds.
 
-        >>> s = pd.Series(pd.date_range('20180310', periods=2, freq='ns'))
+        >>> s = pd.Series(pd.date_range("20180310", periods=2, freq="ns"))
         >>> s
         0   2018-03-10 00:00:00.000000000
         1   2018-03-10 00:00:00.000000001
@@ -494,7 +494,7 @@ class TimedeltaProperties(Properties):
 
         Examples
         --------
-        >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit='s'))
+        >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit="s"))
         >>> s
         0   0 days 00:00:00
         1   0 days 00:00:01

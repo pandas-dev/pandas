@@ -82,8 +82,9 @@ class _Unstacker:
 
     Examples
     --------
-    >>> index = pd.MultiIndex.from_tuples([('one', 'a'), ('one', 'b'),
-    ...                                    ('two', 'a'), ('two', 'b')])
+    >>> index = pd.MultiIndex.from_tuples(
+    ...     [("one", "a"), ("one", "b"), ("two", "a"), ("two", "b")]
+    ... )
     >>> s = pd.Series(np.arange(1, 5, dtype=np.int64), index=index)
     >>> s
     one  a    1
@@ -889,7 +890,7 @@ def _reorder_for_extension_array_stack(
 
     Examples
     --------
-    >>> arr = np.array(['a', 'b', 'c', 'd', 'e', 'f'])
+    >>> arr = np.array(["a", "b", "c", "d", "e", "f"])
     >>> _reorder_for_extension_array_stack(arr, 2, 3)
     array(['a', 'c', 'e', 'b', 'd', 'f'], dtype='<U1')
 

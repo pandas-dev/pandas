@@ -101,7 +101,7 @@ def get_dummies(
 
     Examples
     --------
-    >>> s = pd.Series(list('abca'))
+    >>> s = pd.Series(list("abca"))
 
     >>> pd.get_dummies(s)
            a      b      c
@@ -110,7 +110,7 @@ def get_dummies(
     2  False  False   True
     3   True  False  False
 
-    >>> s1 = ['a', 'b', np.nan]
+    >>> s1 = ["a", "b", np.nan]
 
     >>> pd.get_dummies(s1)
            a      b
@@ -124,16 +124,15 @@ def get_dummies(
     1  False   True  False
     2  False  False   True
 
-    >>> df = pd.DataFrame({'A': ['a', 'b', 'a'], 'B': ['b', 'a', 'c'],
-    ...                    'C': [1, 2, 3]})
+    >>> df = pd.DataFrame({"A": ["a", "b", "a"], "B": ["b", "a", "c"], "C": [1, 2, 3]})
 
-    >>> pd.get_dummies(df, prefix=['col1', 'col2'])
+    >>> pd.get_dummies(df, prefix=["col1", "col2"])
        C  col1_a  col1_b  col2_a  col2_b  col2_c
     0  1    True   False   False    True   False
     1  2   False    True    True   False   False
     2  3    True   False   False   False    True
 
-    >>> pd.get_dummies(pd.Series(list('abcaa')))
+    >>> pd.get_dummies(pd.Series(list("abcaa")))
            a      b      c
     0   True  False  False
     1  False   True  False
@@ -141,7 +140,7 @@ def get_dummies(
     3   True  False  False
     4   True  False  False
 
-    >>> pd.get_dummies(pd.Series(list('abcaa')), drop_first=True)
+    >>> pd.get_dummies(pd.Series(list("abcaa")), drop_first=True)
            b      c
     0  False  False
     1   True  False
@@ -149,7 +148,7 @@ def get_dummies(
     3  False  False
     4  False  False
 
-    >>> pd.get_dummies(pd.Series(list('abc')), dtype=float)
+    >>> pd.get_dummies(pd.Series(list("abc")), dtype=float)
          a    b    c
     0  1.0  0.0  0.0
     1  0.0  1.0  0.0
@@ -426,8 +425,7 @@ def from_dummies(
 
     Examples
     --------
-    >>> df = pd.DataFrame({"a": [1, 0, 0, 1], "b": [0, 1, 0, 0],
-    ...                    "c": [0, 0, 1, 0]})
+    >>> df = pd.DataFrame({"a": [1, 0, 0, 1], "b": [0, 1, 0, 0], "c": [0, 0, 1, 0]})
 
     >>> df
        a  b  c
@@ -442,9 +440,15 @@ def from_dummies(
     2     c
     3     a
 
-    >>> df = pd.DataFrame({"col1_a": [1, 0, 1], "col1_b": [0, 1, 0],
-    ...                    "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
-    ...                    "col2_c": [0, 0, 1]})
+    >>> df = pd.DataFrame(
+    ...     {
+    ...         "col1_a": [1, 0, 1],
+    ...         "col1_b": [0, 1, 0],
+    ...         "col2_a": [0, 1, 0],
+    ...         "col2_b": [1, 0, 0],
+    ...         "col2_c": [0, 0, 1],
+    ...     }
+    ... )
 
     >>> df
           col1_a  col1_b  col2_a  col2_b  col2_c
@@ -458,9 +462,15 @@ def from_dummies(
     1    b       a
     2    a       c
 
-    >>> df = pd.DataFrame({"col1_a": [1, 0, 0], "col1_b": [0, 1, 0],
-    ...                    "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
-    ...                    "col2_c": [0, 0, 0]})
+    >>> df = pd.DataFrame(
+    ...     {
+    ...         "col1_a": [1, 0, 0],
+    ...         "col1_b": [0, 1, 0],
+    ...         "col2_a": [0, 1, 0],
+    ...         "col2_b": [1, 0, 0],
+    ...         "col2_c": [0, 0, 0],
+    ...     }
+    ... )
 
     >>> df
           col1_a  col1_b  col2_a  col2_b  col2_c

@@ -19,7 +19,7 @@ ci:
     skip: [pylint, pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.6
+    rev: v0.1.13
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -31,8 +31,7 @@ repos:
         exclude: ^pandas/tests
         args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix]
     -   id: ruff-format
-        # TODO: "." not needed in ruff 0.1.8
-        args: ["."]
+        exclude: ^scripts
 -   repo: https://github.com/jendrikseipp/vulture
     rev: 'v2.10'
     hooks:

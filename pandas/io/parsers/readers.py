@@ -1515,7 +1515,7 @@ def read_fwf(
 
     Examples
     --------
-    >>> pd.read_fwf('data.csv')  # doctest: +SKIP
+    >>> pd.read_fwf("data.csv")  # doctest: +SKIP
     """
     # Check input arguments.
     if colspecs is None and widths is None:

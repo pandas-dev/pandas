@@ -270,7 +270,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         Examples
         --------
-        >>> arr = pd.array(np.array(['1970-01-01'], 'datetime64[ns]'))
+        >>> arr = pd.array(np.array(["1970-01-01"], "datetime64[ns]"))
         >>> arr._unbox_scalar(arr[0])
         numpy.datetime64('1970-01-01T00:00:00.000000000')
         """
@@ -889,8 +889,9 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         The frequency can be inferred if there are more than 2 points:
 
-        >>> idx = pd.DatetimeIndex(["2018-01-01", "2018-01-03", "2018-01-05"],
-        ...                        freq="infer")
+        >>> idx = pd.DatetimeIndex(
+        ...     ["2018-01-01", "2018-01-03", "2018-01-05"], freq="infer"
+        ... )
         >>> idx.freqstr
         '2D'
 
@@ -1596,7 +1597,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         --------
         For :class:`pandas.DatetimeIndex`:
 
-        >>> idx = pd.date_range('2001-01-01 00:00', periods=3)
+        >>> idx = pd.date_range("2001-01-01 00:00", periods=3)
         >>> idx
         DatetimeIndex(['2001-01-01', '2001-01-02', '2001-01-03'],
                       dtype='datetime64[ns]', freq='D')
@@ -1605,7 +1606,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         For :class:`pandas.TimedeltaIndex`:
 
-        >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='D')
+        >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit="D")
         >>> tdelta_idx
         TimedeltaIndex(['1 days', '2 days', '3 days'],
                         dtype='timedelta64[ns]', freq=None)
@@ -1775,9 +1776,8 @@ class DatelikeOps(DatetimeLikeArrayMixin):
 
         Examples
         --------
-        >>> rng = pd.date_range(pd.Timestamp("2018-03-10 09:00"),
-        ...                     periods=3, freq='s')
-        >>> rng.strftime('%%B %%d, %%Y, %%r')
+        >>> rng = pd.date_range(pd.Timestamp("2018-03-10 09:00"), periods=3, freq="s")
+        >>> rng.strftime("%%B %%d, %%Y, %%r")
         Index(['March 10, 2018, 09:00:00 AM', 'March 10, 2018, 09:00:01 AM',
                'March 10, 2018, 09:00:02 AM'],
               dtype='object')

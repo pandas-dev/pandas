@@ -254,7 +254,7 @@ def _stata_elapsed_date_to_datetime_vec(dates: Series, fmt: str) -> Series:
     Examples
     --------
     >>> dates = pd.Series([52])
-    >>> _stata_elapsed_date_to_datetime_vec(dates , "%tw")
+    >>> _stata_elapsed_date_to_datetime_vec(dates, "%tw")
     0   1961-01-01
     dtype: datetime64[s]
 
@@ -1955,9 +1955,12 @@ The repeated labels are:
         >>> time_stamp = pd.Timestamp(2000, 2, 29, 14, 21)
         >>> data_label = "This is a data file."
         >>> path = "/My_path/filename.dta"
-        >>> df.to_stata(path, time_stamp=time_stamp,    # doctest: +SKIP
-        ...             data_label=data_label,  # doctest: +SKIP
-        ...             version=None)  # doctest: +SKIP
+        >>> df.to_stata(
+        ...     path,
+        ...     time_stamp=time_stamp,  # doctest: +SKIP
+        ...     data_label=data_label,  # doctest: +SKIP
+        ...     version=None,
+        ... )  # doctest: +SKIP
         >>> with pd.io.stata.StataReader(path) as reader:  # doctest: +SKIP
         ...     print(reader.data_label)  # doctest: +SKIP
         This is a data file.
@@ -1987,8 +1990,12 @@ The repeated labels are:
         >>> time_stamp = pd.Timestamp(2000, 2, 29, 14, 21)
         >>> path = "/My_path/filename.dta"
         >>> variable_labels = {"col_1": "This is an example"}
-        >>> df.to_stata(path, time_stamp=time_stamp,  # doctest: +SKIP
-        ...             variable_labels=variable_labels, version=None)  # doctest: +SKIP
+        >>> df.to_stata(
+        ...     path,
+        ...     time_stamp=time_stamp,  # doctest: +SKIP
+        ...     variable_labels=variable_labels,
+        ...     version=None,
+        ... )  # doctest: +SKIP
         >>> with pd.io.stata.StataReader(path) as reader:  # doctest: +SKIP
         ...     print(reader.variable_labels())  # doctest: +SKIP
         {'index': '', 'col_1': 'This is an example', 'col_2': ''}
@@ -2014,8 +2021,12 @@ The repeated labels are:
         >>> time_stamp = pd.Timestamp(2000, 2, 29, 14, 21)
         >>> path = "/My_path/filename.dta"
         >>> value_labels = {"col_1": {3: "x"}}
-        >>> df.to_stata(path, time_stamp=time_stamp,  # doctest: +SKIP
-        ...             value_labels=value_labels, version=None)  # doctest: +SKIP
+        >>> df.to_stata(
+        ...     path,
+        ...     time_stamp=time_stamp,  # doctest: +SKIP
+        ...     value_labels=value_labels,
+        ...     version=None,
+        ... )  # doctest: +SKIP
         >>> with pd.io.stata.StataReader(path) as reader:  # doctest: +SKIP
         ...     print(reader.value_labels())  # doctest: +SKIP
         {'col_1': {3: 'x'}}
@@ -2272,19 +2283,19 @@ class StataWriter(StataParser):
 
     Examples
     --------
-    >>> data = pd.DataFrame([[1.0, 1]], columns=['a', 'b'])
-    >>> writer = StataWriter('./data_file.dta', data)
+    >>> data = pd.DataFrame([[1.0, 1]], columns=["a", "b"])
+    >>> writer = StataWriter("./data_file.dta", data)
     >>> writer.write_file()
 
     Directly write a zip file
     >>> compression = {{"method": "zip", "archive_name": "data_file.dta"}}
-    >>> writer = StataWriter('./data_file.zip', data, compression=compression)
+    >>> writer = StataWriter("./data_file.zip", data, compression=compression)
     >>> writer.write_file()
 
     Save a DataFrame with dates
     >>> from datetime import datetime
-    >>> data = pd.DataFrame([[datetime(2000,1,1)]], columns=['date'])
-    >>> writer = StataWriter('./date_data_file.dta', data, {{'date' : 'tw'}})
+    >>> data = pd.DataFrame([[datetime(2000, 1, 1)]], columns=["date"])
+    >>> writer = StataWriter("./date_data_file.dta", data, {{"date": "tw"}})
     >>> writer.write_file()
     """
 
@@ -2655,18 +2666,22 @@ supported types."""
 
         Examples
         --------
-        >>> df = pd.DataFrame({"fully_labelled": [1, 2, 3, 3, 1],
-        ...                    "partially_labelled": [1.0, 2.0, np.nan, 9.0, np.nan],
-        ...                    "Y": [7, 7, 9, 8, 10],
-        ...                    "Z": pd.Categorical(["j", "k", "l", "k", "j"]),
-        ...                    })
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "fully_labelled": [1, 2, 3, 3, 1],
+        ...         "partially_labelled": [1.0, 2.0, np.nan, 9.0, np.nan],
+        ...         "Y": [7, 7, 9, 8, 10],
+        ...         "Z": pd.Categorical(["j", "k", "l", "k", "j"]),
+        ...     }
+        ... )
         >>> path = "/My_path/filename.dta"
-        >>> labels = {"fully_labelled": {1: "one", 2: "two", 3: "three"},
-        ...           "partially_labelled": {1.0: "one", 2.0: "two"},
-        ...           }
-        >>> writer = pd.io.stata.StataWriter(path,
-        ...                                  df,
-        ...                                  value_labels=labels)  # doctest: +SKIP
+        >>> labels = {
+        ...     "fully_labelled": {1: "one", 2: "two", 3: "three"},
+        ...     "partially_labelled": {1.0: "one", 2.0: "two"},
+        ... }
+        >>> writer = pd.io.stata.StataWriter(
+        ...     path, df, value_labels=labels
+        ... )  # doctest: +SKIP
         >>> writer.write_file()  # doctest: +SKIP
         >>> df = pd.read_stata(path)  # doctest: +SKIP
         >>> df  # doctest: +SKIP
@@ -3226,22 +3241,24 @@ class StataWriter117(StataWriter):
 
     Examples
     --------
-    >>> data = pd.DataFrame([[1.0, 1, 'a']], columns=['a', 'b', 'c'])
-    >>> writer = pd.io.stata.StataWriter117('./data_file.dta', data)
+    >>> data = pd.DataFrame([[1.0, 1, "a"]], columns=["a", "b", "c"])
+    >>> writer = pd.io.stata.StataWriter117("./data_file.dta", data)
     >>> writer.write_file()
 
     Directly write a zip file
     >>> compression = {"method": "zip", "archive_name": "data_file.dta"}
     >>> writer = pd.io.stata.StataWriter117(
-    ...     './data_file.zip', data, compression=compression
-    ...     )
+    ...     "./data_file.zip", data, compression=compression
+    ... )
     >>> writer.write_file()
 
     Or with long strings stored in strl format
-    >>> data = pd.DataFrame([['A relatively long string'], [''], ['']],
-    ...                     columns=['strls'])
+    >>> data = pd.DataFrame(
+    ...     [["A relatively long string"], [""], [""]], columns=["strls"]
+    ... )
     >>> writer = pd.io.stata.StataWriter117(
-    ...     './data_file_with_long_strings.dta', data, convert_strl=['strls'])
+    ...     "./data_file_with_long_strings.dta", data, convert_strl=["strls"]
+    ... )
     >>> writer.write_file()
     """
 
@@ -3619,21 +3636,23 @@ class StataWriterUTF8(StataWriter117):
     Using Unicode data and column names
 
     >>> from pandas.io.stata import StataWriterUTF8
-    >>> data = pd.DataFrame([[1.0, 1, 'ᴬ']], columns=['a', 'β', 'ĉ'])
-    >>> writer = StataWriterUTF8('./data_file.dta', data)
+    >>> data = pd.DataFrame([[1.0, 1, "ᴬ"]], columns=["a", "β", "ĉ"])
+    >>> writer = StataWriterUTF8("./data_file.dta", data)
     >>> writer.write_file()
 
     Directly write a zip file
     >>> compression = {"method": "zip", "archive_name": "data_file.dta"}
-    >>> writer = StataWriterUTF8('./data_file.zip', data, compression=compression)
+    >>> writer = StataWriterUTF8("./data_file.zip", data, compression=compression)
     >>> writer.write_file()
 
     Or with long strings stored in strl format
 
-    >>> data = pd.DataFrame([['ᴀ relatively long ŝtring'], [''], ['']],
-    ...                     columns=['strls'])
-    >>> writer = StataWriterUTF8('./data_file_with_long_strings.dta', data,
-    ...                          convert_strl=['strls'])
+    >>> data = pd.DataFrame(
+    ...     [["ᴀ relatively long ŝtring"], [""], [""]], columns=["strls"]
+    ... )
+    >>> writer = StataWriterUTF8(
+    ...     "./data_file_with_long_strings.dta", data, convert_strl=["strls"]
+    ... )
     >>> writer.write_file()
     """
 

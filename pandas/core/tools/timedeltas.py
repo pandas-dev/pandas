@@ -160,24 +160,24 @@ def to_timedelta(
     --------
     Parsing a single string to a Timedelta:
 
-    >>> pd.to_timedelta('1 days 06:05:01.00003')
+    >>> pd.to_timedelta("1 days 06:05:01.00003")
     Timedelta('1 days 06:05:01.000030')
-    >>> pd.to_timedelta('15.5us')
+    >>> pd.to_timedelta("15.5us")
     Timedelta('0 days 00:00:00.000015500')
 
     Parsing a list or array of strings:
 
-    >>> pd.to_timedelta(['1 days 06:05:01.00003', '15.5us', 'nan'])
+    >>> pd.to_timedelta(["1 days 06:05:01.00003", "15.5us", "nan"])
     TimedeltaIndex(['1 days 06:05:01.000030', '0 days 00:00:00.000015500', NaT],
                    dtype='timedelta64[ns]', freq=None)
 
     Converting numbers by specifying the `unit` keyword argument:
 
-    >>> pd.to_timedelta(np.arange(5), unit='s')
+    >>> pd.to_timedelta(np.arange(5), unit="s")
     TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:01', '0 days 00:00:02',
                     '0 days 00:00:03', '0 days 00:00:04'],
                    dtype='timedelta64[ns]', freq=None)
-    >>> pd.to_timedelta(np.arange(5), unit='d')
+    >>> pd.to_timedelta(np.arange(5), unit="d")
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq=None)
     """

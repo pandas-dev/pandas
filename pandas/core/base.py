@@ -367,7 +367,7 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
-        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s = pd.Series(["Ant", "Bear", "Cow"])
         >>> s
         0     Ant
         1    Bear
@@ -409,7 +409,7 @@ class IndexOpsMixin(OpsMixin):
 
         For an index:
 
-        >>> s = pd.Series([1], index=['a'])
+        >>> s = pd.Series([1], index=["a"])
         >>> s.index.item()
         'a'
         """
@@ -426,7 +426,7 @@ class IndexOpsMixin(OpsMixin):
         --------
         For Series:
 
-        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s = pd.Series(["Ant", "Bear", "Cow"])
         >>> s
         0     Ant
         1    Bear
@@ -454,7 +454,7 @@ class IndexOpsMixin(OpsMixin):
         --------
         For Series:
 
-        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s = pd.Series(["Ant", "Bear", "Cow"])
         >>> s
         0     Ant
         1    Bear
@@ -531,7 +531,7 @@ class IndexOpsMixin(OpsMixin):
         For extension types, like Categorical, the actual ExtensionArray
         is returned
 
-        >>> ser = pd.Series(pd.Categorical(['a', 'b', 'a']))
+        >>> ser = pd.Series(pd.Categorical(["a", "b", "a"]))
         >>> ser.array
         ['a', 'b', 'a']
         Categories (2, object): ['a', 'b']
@@ -610,7 +610,7 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
-        >>> ser = pd.Series(pd.Categorical(['a', 'b', 'a']))
+        >>> ser = pd.Series(pd.Categorical(["a", "b", "a"]))
         >>> ser.to_numpy()
         array(['a', 'b', 'a'], dtype=object)
 
@@ -618,7 +618,7 @@ class IndexOpsMixin(OpsMixin):
         Use ``dtype=object`` to return an ndarray of pandas :class:`Timestamp`
         objects, each with the correct ``tz``.
 
-        >>> ser = pd.Series(pd.date_range('2000', periods=2, tz="CET"))
+        >>> ser = pd.Series(pd.date_range("2000", periods=2, tz="CET"))
         >>> ser.to_numpy(dtype=object)
         array([Timestamp('2000-01-01 00:00:00+0100', tz='CET'),
                Timestamp('2000-01-02 00:00:00+0100', tz='CET')],
@@ -713,8 +713,15 @@ class IndexOpsMixin(OpsMixin):
         --------
         Consider dataset containing cereal calories
 
-        >>> s = pd.Series({{'Corn Flakes': 100.0, 'Almond Delight': 110.0,
-        ...                'Cinnamon Toast Crunch': 120.0, 'Cocoa Puff': 110.0}})
+        >>> s = pd.Series(
+        ...     [100.0, 110.0, 120.0, 110.0],
+        ...     index=[
+        ...         "Corn Flakes",
+        ...         "Almond Delight",
+        ...         "Cinnamon Toast Crunch",
+        ...         "Cocoa Puff",
+        ...     ],
+        ... )
         >>> s
         Corn Flakes              100.0
         Almond Delight           110.0

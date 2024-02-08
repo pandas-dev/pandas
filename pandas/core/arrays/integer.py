@@ -115,12 +115,12 @@ class IntegerArray(NumericArray):
 
     String aliases for the dtypes are also available. They are capitalized.
 
-    >>> pd.array([1, None, 3], dtype='Int32')
+    >>> pd.array([1, None, 3], dtype="Int32")
     <IntegerArray>
     [1, <NA>, 3]
     Length: 3, dtype: Int32
 
-    >>> pd.array([1, None, 3], dtype='UInt16')
+    >>> pd.array([1, None, 3], dtype="UInt16")
     <IntegerArray>
     [1, <NA>, 3]
     Length: 3, dtype: UInt16

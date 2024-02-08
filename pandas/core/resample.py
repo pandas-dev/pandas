@@ -395,16 +395,13 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Examples
         --------
-        >>> s = pd.Series([1, 2],
-        ...               index=pd.date_range('20180101',
-        ...                                   periods=2,
-        ...                                   freq='1h'))
+        >>> s = pd.Series([1, 2], index=pd.date_range("20180101", periods=2, freq="1h"))
         >>> s
         2018-01-01 00:00:00    1
         2018-01-01 01:00:00    2
         Freq: h, dtype: int64
 
-        >>> resampled = s.resample('15min')
+        >>> resampled = s.resample("15min")
         >>> resampled.transform(lambda x: (x - x.mean()) / x.std())
         2018-01-01 00:00:00   NaN
         2018-01-01 01:00:00   NaN
@@ -557,8 +554,12 @@ class Resampler(BaseGroupBy, PandasObject):
         --------
         Here we only create a ``Series``.
 
-        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
-        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser = pd.Series(
+        ...     [1, 2, 3, 4],
+        ...     index=pd.DatetimeIndex(
+        ...         ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
+        ...     ),
+        ... )
         >>> ser
         2023-01-01    1
         2023-01-15    2
@@ -568,7 +569,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Example for ``ffill`` with downsampling (we have fewer dates after resampling):
 
-        >>> ser.resample('MS').ffill()
+        >>> ser.resample("MS").ffill()
         2023-01-01    1
         2023-02-01    3
         Freq: MS, dtype: int64
@@ -576,7 +577,7 @@ class Resampler(BaseGroupBy, PandasObject):
         Example for ``ffill`` with upsampling (fill the new dates with
         the previous value):
 
-        >>> ser.resample('W').ffill()
+        >>> ser.resample("W").ffill()
         2023-01-01    1
         2023-01-08    1
         2023-01-15    2
@@ -590,7 +591,7 @@ class Resampler(BaseGroupBy, PandasObject):
         With upsampling and limiting (only fill the first new date with the
         previous value):
 
-        >>> ser.resample('W').ffill(limit=1)
+        >>> ser.resample("W").ffill(limit=1)
         2023-01-01    1.0
         2023-01-08    1.0
         2023-01-15    2.0
@@ -635,16 +636,13 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Examples
         --------
-        >>> s = pd.Series([1, 2],
-        ...               index=pd.date_range('20180101',
-        ...                                   periods=2,
-        ...                                   freq='1h'))
+        >>> s = pd.Series([1, 2], index=pd.date_range("20180101", periods=2, freq="1h"))
         >>> s
         2018-01-01 00:00:00    1
         2018-01-01 01:00:00    2
         Freq: h, dtype: int64
 
-        >>> s.resample('15min').nearest()
+        >>> s.resample("15min").nearest()
         2018-01-01 00:00:00    1
         2018-01-01 00:15:00    1
         2018-01-01 00:30:00    2
@@ -654,7 +652,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Limit the number of upsampled values imputed by the nearest:
 
-        >>> s.resample('15min').nearest(limit=1)
+        >>> s.resample("15min").nearest(limit=1)
         2018-01-01 00:00:00    1.0
         2018-01-01 00:15:00    1.0
         2018-01-01 00:30:00    NaN
@@ -706,15 +704,16 @@ class Resampler(BaseGroupBy, PandasObject):
         --------
         Resampling a Series:
 
-        >>> s = pd.Series([1, 2, 3],
-        ...               index=pd.date_range('20180101', periods=3, freq='h'))
+        >>> s = pd.Series(
+        ...     [1, 2, 3], index=pd.date_range("20180101", periods=3, freq="h")
+        ... )
         >>> s
         2018-01-01 00:00:00    1
         2018-01-01 01:00:00    2
         2018-01-01 02:00:00    3
         Freq: h, dtype: int64
 
-        >>> s.resample('30min').bfill()
+        >>> s.resample("30min").bfill()
         2018-01-01 00:00:00    1
         2018-01-01 00:30:00    2
         2018-01-01 01:00:00    2
@@ -722,7 +721,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 02:00:00    3
         Freq: 30min, dtype: int64
 
-        >>> s.resample('15min').bfill(limit=2)
+        >>> s.resample("15min").bfill(limit=2)
         2018-01-01 00:00:00    1.0
         2018-01-01 00:15:00    NaN
         2018-01-01 00:30:00    2.0
@@ -736,16 +735,17 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Resampling a DataFrame that has missing values:
 
-        >>> df = pd.DataFrame({'a': [2, np.nan, 6], 'b': [1, 3, 5]},
-        ...                   index=pd.date_range('20180101', periods=3,
-        ...                                       freq='h'))
+        >>> df = pd.DataFrame(
+        ...     {"a": [2, np.nan, 6], "b": [1, 3, 5]},
+        ...     index=pd.date_range("20180101", periods=3, freq="h"),
+        ... )
         >>> df
                                a  b
         2018-01-01 00:00:00  2.0  1
         2018-01-01 01:00:00  NaN  3
         2018-01-01 02:00:00  6.0  5
 
-        >>> df.resample('30min').bfill()
+        >>> df.resample("30min").bfill()
                                a  b
         2018-01-01 00:00:00  2.0  1
         2018-01-01 00:30:00  NaN  3
@@ -753,7 +753,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:30:00  6.0  5
         2018-01-01 02:00:00  6.0  5
 
-        >>> df.resample('15min').bfill(limit=2)
+        >>> df.resample("15min").bfill(limit=2)
                                a    b
         2018-01-01 00:00:00  2.0  1.0
         2018-01-01 00:15:00  NaN  NaN
@@ -818,8 +818,9 @@ class Resampler(BaseGroupBy, PandasObject):
         --------
         Resampling a Series:
 
-        >>> s = pd.Series([1, 2, 3],
-        ...               index=pd.date_range('20180101', periods=3, freq='h'))
+        >>> s = pd.Series(
+        ...     [1, 2, 3], index=pd.date_range("20180101", periods=3, freq="h")
+        ... )
         >>> s
         2018-01-01 00:00:00    1
         2018-01-01 01:00:00    2
@@ -836,7 +837,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 02:00:00    3.0
         Freq: 30min, dtype: float64
 
-        >>> s.resample('30min').fillna("backfill")
+        >>> s.resample("30min").fillna("backfill")
         2018-01-01 00:00:00    1
         2018-01-01 00:30:00    2
         2018-01-01 01:00:00    2
@@ -844,7 +845,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 02:00:00    3
         Freq: 30min, dtype: int64
 
-        >>> s.resample('15min').fillna("backfill", limit=2)
+        >>> s.resample("15min").fillna("backfill", limit=2)
         2018-01-01 00:00:00    1.0
         2018-01-01 00:15:00    NaN
         2018-01-01 00:30:00    2.0
@@ -856,7 +857,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 02:00:00    3.0
         Freq: 15min, dtype: float64
 
-        >>> s.resample('30min').fillna("pad")
+        >>> s.resample("30min").fillna("pad")
         2018-01-01 00:00:00    1
         2018-01-01 00:30:00    1
         2018-01-01 01:00:00    2
@@ -864,7 +865,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 02:00:00    3
         Freq: 30min, dtype: int64
 
-        >>> s.resample('30min').fillna("nearest")
+        >>> s.resample("30min").fillna("nearest")
         2018-01-01 00:00:00    1
         2018-01-01 00:30:00    2
         2018-01-01 01:00:00    2
@@ -874,15 +875,16 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Missing values present before the upsampling are not affected.
 
-        >>> sm = pd.Series([1, None, 3],
-        ...                index=pd.date_range('20180101', periods=3, freq='h'))
+        >>> sm = pd.Series(
+        ...     [1, None, 3], index=pd.date_range("20180101", periods=3, freq="h")
+        ... )
         >>> sm
         2018-01-01 00:00:00    1.0
         2018-01-01 01:00:00    NaN
         2018-01-01 02:00:00    3.0
         Freq: h, dtype: float64
 
-        >>> sm.resample('30min').fillna('backfill')
+        >>> sm.resample("30min").fillna("backfill")
         2018-01-01 00:00:00    1.0
         2018-01-01 00:30:00    NaN
         2018-01-01 01:00:00    NaN
@@ -890,7 +892,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 02:00:00    3.0
         Freq: 30min, dtype: float64
 
-        >>> sm.resample('30min').fillna('pad')
+        >>> sm.resample("30min").fillna("pad")
         2018-01-01 00:00:00    1.0
         2018-01-01 00:30:00    1.0
         2018-01-01 01:00:00    NaN
@@ -898,7 +900,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 02:00:00    3.0
         Freq: 30min, dtype: float64
 
-        >>> sm.resample('30min').fillna('nearest')
+        >>> sm.resample("30min").fillna("nearest")
         2018-01-01 00:00:00    1.0
         2018-01-01 00:30:00    NaN
         2018-01-01 01:00:00    NaN
@@ -909,16 +911,17 @@ class Resampler(BaseGroupBy, PandasObject):
         DataFrame resampling is done column-wise. All the same options are
         available.
 
-        >>> df = pd.DataFrame({'a': [2, np.nan, 6], 'b': [1, 3, 5]},
-        ...                   index=pd.date_range('20180101', periods=3,
-        ...                                       freq='h'))
+        >>> df = pd.DataFrame(
+        ...     {"a": [2, np.nan, 6], "b": [1, 3, 5]},
+        ...     index=pd.date_range("20180101", periods=3, freq="h"),
+        ... )
         >>> df
                                a  b
         2018-01-01 00:00:00  2.0  1
         2018-01-01 01:00:00  NaN  3
         2018-01-01 02:00:00  6.0  5
 
-        >>> df.resample('30min').fillna("bfill")
+        >>> df.resample("30min").fillna("bfill")
                                a  b
         2018-01-01 00:00:00  2.0  1
         2018-01-01 00:30:00  NaN  3
@@ -1136,15 +1139,19 @@ class Resampler(BaseGroupBy, PandasObject):
         Examples
         --------
 
-        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
-        ...                 ['2023-01-01', '2023-01-31', '2023-02-01', '2023-02-28']))
+        >>> ser = pd.Series(
+        ...     [1, 2, 3, 4],
+        ...     index=pd.DatetimeIndex(
+        ...         ["2023-01-01", "2023-01-31", "2023-02-01", "2023-02-28"]
+        ...     ),
+        ... )
         >>> ser
         2023-01-01    1
         2023-01-31    2
         2023-02-01    3
         2023-02-28    4
         dtype: int64
-        >>> ser.resample('MS').asfreq()
+        >>> ser.resample("MS").asfreq()
         2023-01-01    1
         2023-02-01    3
         Freq: MS, dtype: int64
@@ -1180,15 +1187,19 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Examples
         --------
-        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
-        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser = pd.Series(
+        ...     [1, 2, 3, 4],
+        ...     index=pd.DatetimeIndex(
+        ...         ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
+        ...     ),
+        ... )
         >>> ser
         2023-01-01    1
         2023-01-15    2
         2023-02-01    3
         2023-02-15    4
         dtype: int64
-        >>> ser.resample('MS').sum()
+        >>> ser.resample("MS").sum()
         2023-01-01    3
         2023-02-01    7
         Freq: MS, dtype: int64
@@ -1224,15 +1235,19 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Examples
         --------
-        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
-        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser = pd.Series(
+        ...     [1, 2, 3, 4],
+        ...     index=pd.DatetimeIndex(
+        ...         ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
+        ...     ),
+        ... )
         >>> ser
         2023-01-01    1
         2023-01-15    2
         2023-02-01    3
         2023-02-15    4
         dtype: int64
-        >>> ser.resample('MS').prod()
+        >>> ser.resample("MS").prod()
         2023-01-01    2
         2023-02-01   12
         Freq: MS, dtype: int64
@@ -1254,15 +1269,19 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Examples
         --------
-        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
-        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser = pd.Series(
+        ...     [1, 2, 3, 4],
+        ...     index=pd.DatetimeIndex(
+        ...         ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
+        ...     ),
+        ... )
         >>> ser
         2023-01-01    1
         2023-01-15    2
         2023-02-01    3
         2023-02-15    4
         dtype: int64
-        >>> ser.resample('MS').min()
+        >>> ser.resample("MS").min()
         2023-01-01    1
         2023-02-01    3
         Freq: MS, dtype: int64
@@ -1284,15 +1303,19 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Examples
         --------
-        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
-        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser = pd.Series(
+        ...     [1, 2, 3, 4],
+        ...     index=pd.DatetimeIndex(
+        ...         ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
+        ...     ),
+        ... )
         >>> ser
         2023-01-01    1
         2023-01-15    2
         2023-02-01    3
         2023-02-15    4
         dtype: int64
-        >>> ser.resample('MS').max()
+        >>> ser.resample("MS").max()
         2023-01-01    2
         2023-02-01    4
         Freq: MS, dtype: int64
@@ -1353,15 +1376,19 @@ class Resampler(BaseGroupBy, PandasObject):
         Examples
         --------
 
-        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
-        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser = pd.Series(
+        ...     [1, 2, 3, 4],
+        ...     index=pd.DatetimeIndex(
+        ...         ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
+        ...     ),
+        ... )
         >>> ser
         2023-01-01    1
         2023-01-15    2
         2023-02-01    3
         2023-02-15    4
         dtype: int64
-        >>> ser.resample('MS').mean()
+        >>> ser.resample("MS").mean()
         2023-01-01    1.5
         2023-02-01    3.5
         Freq: MS, dtype: float64
@@ -1398,14 +1425,20 @@ class Resampler(BaseGroupBy, PandasObject):
         Examples
         --------
 
-        >>> ser = pd.Series([1, 3, 2, 4, 3, 8],
-        ...                 index=pd.DatetimeIndex(['2023-01-01',
-        ...                                         '2023-01-10',
-        ...                                         '2023-01-15',
-        ...                                         '2023-02-01',
-        ...                                         '2023-02-10',
-        ...                                         '2023-02-15']))
-        >>> ser.resample('MS').std()
+        >>> ser = pd.Series(
+        ...     [1, 3, 2, 4, 3, 8],
+        ...     index=pd.DatetimeIndex(
+        ...         [
+        ...             "2023-01-01",
+        ...             "2023-01-10",
+        ...             "2023-01-15",
+        ...             "2023-02-01",
+        ...             "2023-02-10",
+        ...             "2023-02-15",
+        ...         ]
+        ...     ),
+        ... )
+        >>> ser.resample("MS").std()
         2023-01-01    1.000000
         2023-02-01    2.645751
         Freq: MS, dtype: float64
@@ -1443,19 +1476,25 @@ class Resampler(BaseGroupBy, PandasObject):
         Examples
         --------
 
-        >>> ser = pd.Series([1, 3, 2, 4, 3, 8],
-        ...                 index=pd.DatetimeIndex(['2023-01-01',
-        ...                                         '2023-01-10',
-        ...                                         '2023-01-15',
-        ...                                         '2023-02-01',
-        ...                                         '2023-02-10',
-        ...                                         '2023-02-15']))
-        >>> ser.resample('MS').var()
+        >>> ser = pd.Series(
+        ...     [1, 3, 2, 4, 3, 8],
+        ...     index=pd.DatetimeIndex(
+        ...         [
+        ...             "2023-01-01",
+        ...             "2023-01-10",
+        ...             "2023-01-15",
+        ...             "2023-02-01",
+        ...             "2023-02-10",
+        ...             "2023-02-15",
+        ...         ]
+        ...     ),
+        ... )
+        >>> ser.resample("MS").var()
         2023-01-01    1.0
         2023-02-01    7.0
         Freq: MS, dtype: float64
 
-        >>> ser.resample('MS').var(ddof=0)
+        >>> ser.resample("MS").var(ddof=0)
         2023-01-01    0.666667
         2023-02-01    4.666667
         Freq: MS, dtype: float64
@@ -1563,19 +1602,25 @@ class Resampler(BaseGroupBy, PandasObject):
         Examples
         --------
 
-        >>> ser = pd.Series([1, 3, 2, 4, 3, 8],
-        ...                 index=pd.DatetimeIndex(['2023-01-01',
-        ...                                         '2023-01-10',
-        ...                                         '2023-01-15',
-        ...                                         '2023-02-01',
-        ...                                         '2023-02-10',
-        ...                                         '2023-02-15']))
-        >>> ser.resample('MS').quantile()
+        >>> ser = pd.Series(
+        ...     [1, 3, 2, 4, 3, 8],
+        ...     index=pd.DatetimeIndex(
+        ...         [
+        ...             "2023-01-01",
+        ...             "2023-01-10",
+        ...             "2023-01-15",
+        ...             "2023-02-01",
+        ...             "2023-02-10",
+        ...             "2023-02-15",
+        ...         ]
+        ...     ),
+        ... )
+        >>> ser.resample("MS").quantile()
         2023-01-01    2.0
         2023-02-01    4.0
         Freq: MS, dtype: float64
 
-        >>> ser.resample('MS').quantile(.25)
+        >>> ser.resample("MS").quantile(0.25)
         2023-01-01    1.5
         2023-02-01    3.5
         Freq: MS, dtype: float64

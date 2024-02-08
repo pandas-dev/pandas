@@ -1100,7 +1100,7 @@ def _interp_limit(
 
         def _interp_limit(invalid, fw_limit, bw_limit):
             for x in np.where(invalid)[0]:
-                if invalid[max(0, x - fw_limit):x + bw_limit + 1].all():
+                if invalid[max(0, x - fw_limit) : x + bw_limit + 1].all():
                     yield x
     """
     # handle forward first; the backward direction is the same except
