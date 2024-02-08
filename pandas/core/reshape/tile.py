@@ -441,7 +441,7 @@ def _bins_to_cuts(
     if len(unique_bins) < len(bins) and len(bins) != 2:
         if duplicates == "raise":
             raise ValueError(
-                f"Bin edges must be unique: {repr(bins)}.\n"
+                f"Bin edges must be unique: {bins!r}.\n"
                 f"You can drop duplicate edges by setting the 'duplicates' kwarg"
             )
         bins = unique_bins
@@ -548,7 +548,7 @@ def _format_labels(
     precision: int,
     right: bool = True,
     include_lowest: bool = False,
-):
+) -> IntervalIndex:
     """based on the dtype, return our labels"""
     closed: IntervalLeftRight = "right" if right else "left"
 

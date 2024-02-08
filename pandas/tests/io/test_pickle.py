@@ -229,16 +229,6 @@ def test_pickle_path_pathlib():
     tm.assert_frame_equal(df, result)
 
 
-def test_pickle_path_localpath():
-    df = DataFrame(
-        1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
-    )
-    result = tm.round_trip_localpath(df.to_pickle, pd.read_pickle)
-    tm.assert_frame_equal(df, result)
-
-
 # ---------------------
 # test pickle compression
 # ---------------------
@@ -309,13 +299,13 @@ class TestCompression:
 
     @pytest.mark.parametrize("compression", ["", "None", "bad", "7z"])
     def test_write_explicit_bad(self, compression, get_random_path):
-        with pytest.raises(ValueError, match="Unrecognized compression type"):
-            with tm.ensure_clean(get_random_path) as path:
-                df = DataFrame(
-                    1.1 * np.arange(120).reshape((30, 4)),
-                    columns=Index(list("ABCD"), dtype=object),
-                    index=Index([f"i-{i}" for i in range(30)], dtype=object),
-                )
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
+        with tm.ensure_clean(get_random_path) as path:
+            with pytest.raises(ValueError, match="Unrecognized compression type"):
                 df.to_pickle(path, compression=compression)
 
     def test_write_infer(self, compression_ext, get_random_path):
@@ -636,15 +626,3 @@ def test_pickle_frame_v124_unpickle_130(datapath):
 
     expected = DataFrame(index=[], columns=[])
     tm.assert_frame_equal(df, expected)
-
-
-def test_pickle_pos_args_deprecation():
-    # GH-54229
-    df = DataFrame({"a": [1, 2, 3]})
-    msg = (
-        r"Starting with pandas version 3.0 all arguments of to_pickle except for the "
-        r"argument 'path' will be keyword-only."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        buffer = io.BytesIO()
-        df.to_pickle(buffer, "infer")

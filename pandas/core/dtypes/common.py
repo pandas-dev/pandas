@@ -890,7 +890,11 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
         tipo = _get_dtype(arr_or_dtype)
     except TypeError:
         return False
-    return lib.is_np_dtype(tipo, "M") or isinstance(tipo, DatetimeTZDtype)
+    return (
+        lib.is_np_dtype(tipo, "M")
+        or isinstance(tipo, DatetimeTZDtype)
+        or (isinstance(tipo, ExtensionDtype) and tipo.kind == "M")
+    )
 
 
 def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
@@ -1548,8 +1552,8 @@ def _validate_date_like_dtype(dtype) -> None:
         raise TypeError(e) from e
     if typ not in ["generic", "ns"]:
         raise ValueError(
-            f"{repr(dtype.name)} is too specific of a frequency, "
-            f"try passing {repr(dtype.type.__name__)}"
+            f"{dtype.name!r} is too specific of a frequency, "
+            f"try passing {dtype.type.__name__!r}"
         )
 
 

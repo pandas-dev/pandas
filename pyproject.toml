@@ -5,7 +5,7 @@ requires = [
     "meson-python==0.13.1",
     "meson==1.2.1",
     "wheel",
-    "Cython==3.0.5",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    "Cython~=3.0.5",  # Note: sync with setup.py, environment.yml and asv.conf.json
     # Any NumPy version should be fine for compiling.  Users are unlikely
     # to get a NumPy<1.25 so the result will be compatible with all relevant
     # NumPy versions (if not it is presumably compatible with their version).
@@ -30,8 +30,7 @@ authors = [
 license = {file = 'LICENSE'}
 requires-python = '>=3.9'
 dependencies = [
-  "numpy>=1.22.4; python_version<'3.11'",
-  "numpy>=1.23.2; python_version=='3.11'",
+  "numpy>=1.23.5; python_version<'3.12'",
   "numpy>=1.26.0; python_version>='3.12'",
   "python-dateutil>=2.8.2",
   "pytz>=2020.1",
@@ -68,7 +67,7 @@ performance = ['bottleneck>=1.3.6', 'numba>=0.56.4', 'numexpr>=2.8.4']
 computation = ['scipy>=1.10.0', 'xarray>=2022.12.0']
 fss = ['fsspec>=2022.11.0']
 aws = ['s3fs>=2022.11.0']
-gcp = ['gcsfs>=2022.11.0', 'pandas-gbq>=0.19.0']
+gcp = ['gcsfs>=2022.11.0']
 excel = ['odfpy>=1.4.1', 'openpyxl>=3.1.0', 'python-calamine>=0.1.7', 'pyxlsb>=1.0.10', 'xlrd>=2.0.1', 'xlsxwriter>=3.0.5']
 parquet = ['pyarrow>=10.0.1']
 feather = ['pyarrow>=10.0.1']
@@ -105,7 +104,6 @@ all = ['adbc-driver-postgresql>=0.8.0',
        'numexpr>=2.8.4',
        'odfpy>=1.4.1',
        'openpyxl>=3.1.0',
-       'pandas-gbq>=0.19.0',
        'psycopg2>=2.9.6',
        'pyarrow>=10.0.1',
        'pymysql>=1.0.2',
@@ -162,10 +160,6 @@ test-command = """
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
 
-[tool.cibuildwheel.macos]
-archs = "x86_64 arm64"
-test-skip = "*_arm64"
-
 [tool.cibuildwheel.windows]
 before-build = "pip install delvewheel"
 repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
@@ -212,6 +206,8 @@ select = [
   "INT",
   # pylint
   "PL",
+  # flake8-pytest-style
+  "PT",
   # misc lints
   "PIE",
   # flake8-pyi
@@ -244,18 +240,10 @@ select = [
 
 ignore = [
   ### Intentionally disabled
-  # space before : (needed for how black formats slicing)
-  "E203",
   # module level import not at top of file
   "E402",
   # do not assign a lambda expression, use a def
   "E731",
-  # line break before binary operator
-  # "W503",  # not yet implemented
-  # line break after binary operator
-  # "W504",  # not yet implemented
-  # controversial
-  "B006",
   # controversial
   "B007",
   # controversial
@@ -264,18 +252,10 @@ ignore = [
   "B009",
   # getattr is used to side-step mypy
   "B010",
-  # tests use assert False
-  "B011",
   # tests use comparisons but not their returned value
   "B015",
-  # false positives
-  "B019",
-  # Loop control variable overrides iterable it iterates
-  "B020",
   # Function definition does not bind loop variable
   "B023",
-  # Functions defined inside a loop must not use variables redefined in the loop
-  # "B301",  # not yet implemented
   # Only works with python >=3.10
   "B905",
   # Too many arguments to function call
@@ -290,20 +270,34 @@ ignore = [
   "PLW2901",
   # Global statements are discouraged
   "PLW0603",
-  # Docstrings should not be included in stubs
-  "PYI021",
   # Use `typing.NamedTuple` instead of `collections.namedtuple`
   "PYI024",
   # No builtin `eval()` allowed
   "PGH001",
-  # compare-to-empty-string
-  "PLC1901",
   # while int | float can be shortened to float, the former is more explicit
   "PYI041",
   # incorrect-dict-iterator, flags valid Series.items usage
   "PERF102",
   # try-except-in-loop, becomes useless in Python 3.11
   "PERF203",
+  # pytest-missing-fixture-name-underscore
+  "PT004",
+  # pytest-incorrect-fixture-name-underscore
+  "PT005",
+  # pytest-parametrize-names-wrong-type
+  "PT006",
+  # pytest-parametrize-values-wrong-type
+  "PT007",
+  # pytest-patch-with-lambda
+  "PT008",
+  # pytest-raises-with-multiple-statements
+  "PT012",
+  # pytest-assert-in-except
+  "PT017",
+  # pytest-composite-assertion
+  "PT018",
+  # pytest-fixture-param-without-value
+  "PT019",
   # The following rules may cause conflicts when used with the formatter:
   "ISC001",
 
@@ -311,20 +305,14 @@ ignore = [
   ### TODO: Enable gradually
   # Useless statement
   "B018",
-  # Within an except clause, raise exceptions with ...
-  "B904",
   # Magic number
   "PLR2004",
   # comparison-with-itself
   "PLR0124",
-  # Consider `elif` instead of `else` then `if` to remove indentation level
-  "PLR5501",
   # collection-literal-concatenation
   "RUF005",
   # pairwise-over-zipped (>=PY310 only)
   "RUF007",
-  # explicit-f-string-type-conversion
-  "RUF010",
   # mutable-class-default
   "RUF012"
 ]
@@ -341,6 +329,9 @@ exclude = [
   "env",
 ]
 
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"urllib.request.urlopen".msg = "Use pandas.io.common.urlopen instead of urllib.request.urlopen"
+
 [tool.ruff.per-file-ignores]
 # relative imports allowed for asv_bench
 "asv_bench/*" = ["TID", "NPY002"]
@@ -350,6 +341,10 @@ exclude = [
 "scripts/*" = ["B028"]
 # Keep this one enabled
 "pandas/_typing.py" = ["TCH"]
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+mark-parentheses = false
 
 [tool.pylint.messages_control]
 max-line-length = 88
@@ -483,20 +478,10 @@ filterwarnings = [
   "ignore::ResourceWarning:asyncio",
   # From plotting doctests
   "ignore:More than 20 figures have been opened:RuntimeWarning",
-  # Will be fixed in numba 0.56: https://github.com/numba/numba/issues/7758
-  "ignore:`np.MachAr` is deprecated:DeprecationWarning:numba",
   "ignore:.*urllib3:DeprecationWarning:botocore",
   "ignore:Setuptools is replacing distutils.:UserWarning:_distutils_hack",
   # https://github.com/PyTables/PyTables/issues/822
   "ignore:a closed node found in the registry:UserWarning:tables",
-  "ignore:`np.object` is a deprecated:DeprecationWarning:tables",
-  "ignore:tostring:DeprecationWarning:tables",
-  "ignore:distutils Version classes are deprecated:DeprecationWarning:pandas_datareader",
-  "ignore:distutils Version classes are deprecated:DeprecationWarning:numexpr",
-  "ignore:distutils Version classes are deprecated:DeprecationWarning:fastparquet",
-  "ignore:distutils Version classes are deprecated:DeprecationWarning:fsspec",
-  # Can be removed once https://github.com/numpy/numpy/pull/24794 is merged
-  "ignore:.*In the future `np.long` will be defined as.*:FutureWarning",
 ]
 junit_family = "xunit2"
 markers = [
@@ -775,5 +760,5 @@ exclude_lines = [
 directory = "coverage_html_report"
 
 [tool.codespell]
-ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere, expec, expecs"
+ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere, expec, expecs, indext"
 ignore-regex = 'https://([\w/\.])+'

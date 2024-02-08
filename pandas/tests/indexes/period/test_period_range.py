@@ -181,7 +181,9 @@ class TestPeriodRange:
 
     def test_mismatched_start_end_freq_raises(self):
         depr_msg = "Period with BDay freq is deprecated"
-        end_w = Period("2006-12-31", "1W")
+        msg = "'w' is deprecated and will be removed in a future version."
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            end_w = Period("2006-12-31", "1w")
 
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):
             start_b = Period("02-Apr-2005", "B")
@@ -220,9 +222,9 @@ class TestPeriodRangeDisallowedFreqs:
         with tm.assert_produces_warning(FutureWarning, match=msg):
             period_range(freq=freq_depr, start="1/1/2001", end="12/1/2009")
 
-    @pytest.mark.parametrize("freq_depr", ["2H", "2MIN", "2S", "2mS", "2Us", "2NS"])
-    def test_lower_uppercase_freq_deprecated_from_time_series(self, freq_depr):
-        # GH#52536, GH#54939, ,GH#56346
+    @pytest.mark.parametrize("freq_depr", ["2H", "2MIN", "2S", "2US", "2NS"])
+    def test_uppercase_freq_deprecated_from_time_series(self, freq_depr):
+        # GH#52536, GH#54939
         msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
         f"future version. Please use '{freq_depr.lower()[1:]}' instead."
 
@@ -230,8 +232,8 @@ class TestPeriodRangeDisallowedFreqs:
             period_range("2020-01-01 00:00:00 00:00", periods=2, freq=freq_depr)
 
     @pytest.mark.parametrize("freq_depr", ["2m", "2q-sep", "2y", "2w"])
-    def test_lower_lowercase_freq_deprecated_from_time_series(self, freq_depr):
-        # GH#52536, GH#54939, ,GH#56346
+    def test_lowercase_freq_deprecated_from_time_series(self, freq_depr):
+        # GH#52536, GH#54939
         msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
         f"future version. Please use '{freq_depr.upper()[1:]}' instead."
 

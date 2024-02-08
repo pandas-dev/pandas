@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
@@ -42,35 +41,6 @@ def test_consolidate(using_copy_on_write):
         assert df.loc[0, "b"] == 0.1
 
 
-@pytest.mark.single_cpu
-def test_switch_options():
-    # ensure we can switch the value of the option within one session
-    # (assuming data is constructed after switching)
-
-    # using the option_context to ensure we set back to global option value
-    # after running the test
-    with pd.option_context("mode.copy_on_write", False):
-        df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
-        subset = df[:]
-        subset.iloc[0, 0] = 0
-        # df updated with CoW disabled
-        assert df.iloc[0, 0] == 0
-
-        pd.options.mode.copy_on_write = True
-        df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
-        subset = df[:]
-        subset.iloc[0, 0] = 0
-        # df not updated with CoW enabled
-        assert df.iloc[0, 0] == 1
-
-        pd.options.mode.copy_on_write = False
-        df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
-        subset = df[:]
-        subset.iloc[0, 0] = 0
-        # df updated with CoW disabled
-        assert df.iloc[0, 0] == 0
-
-
 @pytest.mark.parametrize("dtype", [np.intp, np.int8])
 @pytest.mark.parametrize(
     "locs, arr",
@@ -82,7 +52,6 @@ def test_switch_options():
         ([0, 2], np.array([[-1, -2, -3], [-4, -5, -6]]).T),
         ([0, 1, 2], np.array([[-1, -2, -3], [-4, -5, -6], [-4, -5, -6]]).T),
         ([1, 2], np.array([[-1, -2, -3], [-4, -5, -6]]).T),
-        ([1, 3], np.array([[-1, -2, -3], [-4, -5, -6]]).T),
         ([1, 3], np.array([[-1, -2, -3], [-4, -5, -6]]).T),
     ],
 )

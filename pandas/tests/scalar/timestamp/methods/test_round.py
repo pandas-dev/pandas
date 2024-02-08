@@ -162,10 +162,6 @@ class TestTimestampRound:
         assert result._creso == dt._creso
 
     @pytest.mark.parametrize("method", ["ceil", "round", "floor"])
-    @pytest.mark.parametrize(
-        "unit",
-        ["ns", "us", "ms", "s"],
-    )
     def test_round_dst_border_ambiguous(self, method, unit):
         # GH 18946 round near "fall back" DST
         ts = Timestamp("2017-10-29 00:00:00", tz="UTC").tz_convert("Europe/Madrid")
@@ -196,10 +192,6 @@ class TestTimestampRound:
             ["round", "2018-03-11 01:59:00-0600", "5min"],
             ["floor", "2018-03-11 03:01:00-0500", "2h"],
         ],
-    )
-    @pytest.mark.parametrize(
-        "unit",
-        ["ns", "us", "ms", "s"],
     )
     def test_round_dst_border_nonexistent(self, method, ts_str, freq, unit):
         # GH 23324 round near "spring forward" DST

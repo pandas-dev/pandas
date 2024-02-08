@@ -141,8 +141,8 @@ class TestEval:
     def test_complex_cmp_ops(self, cmp1, cmp2, binop, lhs, rhs, engine, parser):
         if parser == "python" and binop in ["and", "or"]:
             msg = "'BoolOp' nodes are not implemented"
+            ex = f"(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)"
             with pytest.raises(NotImplementedError, match=msg):
-                ex = f"(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)"
                 pd.eval(ex, engine=engine, parser=parser)
             return
 
@@ -161,9 +161,8 @@ class TestEval:
 
         if parser == "python" and cmp_op in ["in", "not in"]:
             msg = "'(In|NotIn)' nodes are not implemented"
-
+            ex = f"lhs {cmp_op} rhs"
             with pytest.raises(NotImplementedError, match=msg):
-                ex = f"lhs {cmp_op} rhs"
                 pd.eval(ex, engine=engine, parser=parser)
             return
 
@@ -193,8 +192,8 @@ class TestEval:
     def test_compound_invert_op(self, op, lhs, rhs, request, engine, parser):
         if parser == "python" and op in ["in", "not in"]:
             msg = "'(In|NotIn)' nodes are not implemented"
+            ex = f"~(lhs {op} rhs)"
             with pytest.raises(NotImplementedError, match=msg):
-                ex = f"~(lhs {op} rhs)"
                 pd.eval(ex, engine=engine, parser=parser)
             return
 
@@ -523,14 +522,15 @@ class TestEval:
         "lhs",
         [
             # Float
-            DataFrame(np.random.default_rng(2).standard_normal((5, 2))),
+            np.random.default_rng(2).standard_normal((5, 2)),
             # Int
-            DataFrame(np.random.default_rng(2).integers(5, size=(5, 2))),
+            np.random.default_rng(2).integers(5, size=(5, 2)),
             # bool doesn't work with numexpr but works elsewhere
-            DataFrame(np.random.default_rng(2).standard_normal((5, 2)) > 0.5),
+            np.array([True, False, True, False, True], dtype=np.bool_),
         ],
     )
     def test_frame_pos(self, lhs, engine, parser):
+        lhs = DataFrame(lhs)
         expr = "+lhs"
         expect = lhs
 
@@ -541,14 +541,15 @@ class TestEval:
         "lhs",
         [
             # Float
-            Series(np.random.default_rng(2).standard_normal(5)),
+            np.random.default_rng(2).standard_normal(5),
             # Int
-            Series(np.random.default_rng(2).integers(5, size=5)),
+            np.random.default_rng(2).integers(5, size=5),
             # bool doesn't work with numexpr but works elsewhere
-            Series(np.random.default_rng(2).standard_normal(5) > 0.5),
+            np.array([True, False, True, False, True], dtype=np.bool_),
         ],
     )
     def test_series_pos(self, lhs, engine, parser):
+        lhs = Series(lhs)
         expr = "+lhs"
         expect = lhs
 
@@ -1289,7 +1290,7 @@ class TestOperations:
         expected["c"] = expected["a"] + expected["b"]
         tm.assert_frame_equal(df, expected)
 
-    def test_multi_line_expression(self, warn_copy_on_write):
+    def test_multi_line_expression(self):
         # GH 11149
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         expected = df.copy()
@@ -1963,15 +1964,14 @@ def test_eval_no_support_column_name(request, column):
     tm.assert_frame_equal(result, expected)
 
 
-def test_set_inplace(using_copy_on_write, warn_copy_on_write):
+def test_set_inplace(using_copy_on_write):
     # https://github.com/pandas-dev/pandas/issues/47449
     # Ensure we don't only update the DataFrame inplace, but also the actual
     # column values, such that references to this column also get updated
     df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
     result_view = df[:]
     ser = df["A"]
-    with tm.assert_cow_warning(warn_copy_on_write):
-        df.eval("A = B + C", inplace=True)
+    df.eval("A = B + C", inplace=True)
     expected = DataFrame({"A": [11, 13, 15], "B": [4, 5, 6], "C": [7, 8, 9]})
     tm.assert_frame_equal(df, expected)
     if not using_copy_on_write:

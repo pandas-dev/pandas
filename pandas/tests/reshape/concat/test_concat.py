@@ -137,7 +137,7 @@ class TestConcatenate:
         tm.assert_index_equal(result.columns.levels[0], Index(level, name="group_key"))
         tm.assert_index_equal(result.columns.levels[1], Index([0, 1, 2, 3]))
 
-        assert result.columns.names == ["group_key", None]
+        assert result.columns.names == ("group_key", None)
 
     @pytest.mark.parametrize("mapping", ["mapping", "dict"])
     def test_concat_mapping(self, mapping, non_dict_mapping_subclass):
@@ -412,7 +412,7 @@ class TestConcatenate:
         ts1 = Series(
             np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
         )
-        ts2 = ts1.copy()[::2]
+        ts2 = ts1[::2]
 
         # to join with union
         # these two are of different length!

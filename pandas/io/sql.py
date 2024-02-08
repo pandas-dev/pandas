@@ -67,6 +67,7 @@ from pandas.core.tools.datetimes import to_datetime
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Generator,
         Iterator,
         Mapping,
     )
@@ -136,7 +137,7 @@ def _handle_date_column(
             return to_datetime(col, errors="coerce", format=format, utc=utc)
 
 
-def _parse_date_columns(data_frame, parse_dates):
+def _parse_date_columns(data_frame: DataFrame, parse_dates) -> DataFrame:
     """
     Force non-datetime columns to be read as such.
     Supports both string formatted and integer timestamp columns.
@@ -199,7 +200,7 @@ def _wrap_result(
     parse_dates=None,
     dtype: DtypeArg | None = None,
     dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-):
+) -> DataFrame:
     """Wrap result set of a SQLAlchemy query in a DataFrame."""
     frame = _convert_arrays_to_dataframe(data, columns, coerce_float, dtype_backend)
 
@@ -232,37 +233,6 @@ def _wrap_result_adbc(
         df = df.set_index(index_col)
 
     return df
-
-
-def execute(sql, con, params=None):
-    """
-    Execute the given SQL query using the provided connection object.
-
-    Parameters
-    ----------
-    sql : string
-        SQL query to be executed.
-    con : SQLAlchemy connection or sqlite3 connection
-        If a DBAPI2 object, only sqlite3 is supported.
-    params : list or tuple, optional, default: None
-        List of parameters to pass to execute method.
-
-    Returns
-    -------
-    Results Iterable
-    """
-    warnings.warn(
-        "`pandas.io.sql.execute` is deprecated and "
-        "will be removed in the future version.",
-        FutureWarning,
-        stacklevel=find_stack_level(),
-    )  # GH50185
-    sqlalchemy = import_optional_dependency("sqlalchemy", errors="ignore")
-
-    if sqlalchemy is not None and isinstance(con, (str, sqlalchemy.engine.Engine)):
-        raise TypeError("pandas.io.sql.execute requires a connection")  # GH50185
-    with pandasSQL_builder(con, need_transaction=True) as pandas_sql:
-        return pandas_sql.execute(sql, params)
 
 
 # -----------------------------------------------------------------------------
@@ -652,6 +622,14 @@ def read_sql(
     read_sql_table : Read SQL database table into a DataFrame.
     read_sql_query : Read SQL query into a DataFrame.
 
+    Notes
+    -----
+    ``pandas`` does not attempt to sanitize SQL statements;
+    instead it simply forwards the statement you are executing
+    to the underlying driver, which may or may not sanitize from there.
+    Please refer to the underlying driver documentation for any details.
+    Generally, be wary when accepting statements from arbitrary sources.
+
     Examples
     --------
     Read data from SQL via either a SQL query or a SQL tablename.
@@ -671,6 +649,14 @@ def read_sql(
     1           1    12/11/10
 
     >>> pd.read_sql('test_data', 'postgres:///db_name')  # doctest:+SKIP
+
+    For parameterized query, using ``params`` is recommended over string interpolation.
+
+    >>> from sqlalchemy import text
+    >>> sql = text('SELECT int_column, date_column FROM test_data WHERE int_column=:int_val')
+    >>> pd.read_sql(sql, conn, params={'int_val': 1})  # doctest:+SKIP
+       int_column date_column
+    0           1    12/11/10
 
     Apply date parsing to columns through the ``parse_dates`` argument
     The ``parse_dates`` argument calls ``pd.to_datetime`` on the provided columns.
@@ -694,7 +680,7 @@ def read_sql(
        int_column
     0           0
     1           1
-    """
+    """  # noqa: E501
 
     check_dtype_backend(dtype_backend)
     if dtype_backend is lib.no_default:
@@ -1137,7 +1123,7 @@ class SQLTable(PandasObject):
         coerce_float: bool = True,
         parse_dates=None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ):
+    ) -> Generator[DataFrame, None, None]:
         """Return generator through chunked result set."""
         has_read_data = False
         with exit_stack:
@@ -1749,7 +1735,7 @@ class SQLDatabase(PandasSQL):
         parse_dates=None,
         dtype: DtypeArg | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ):
+    ) -> Generator[DataFrame, None, None]:
         """Return generator through chunked result set"""
         has_read_data = False
         with exit_stack:
@@ -2450,7 +2436,7 @@ _SQL_TYPES = {
 }
 
 
-def _get_unicode_name(name: object):
+def _get_unicode_name(name: object) -> str:
     try:
         uname = str(name).encode("utf-8", "strict").decode("utf-8")
     except UnicodeError as err:
@@ -2458,7 +2444,7 @@ def _get_unicode_name(name: object):
     return uname
 
 
-def _get_valid_sqlite_name(name: object):
+def _get_valid_sqlite_name(name: object) -> str:
     # See https://stackoverflow.com/questions/6514274/how-do-you-escape-strings\
     # -for-sqlite-table-column-names-in-python
     # Ensure the string can be encoded as UTF-8.
@@ -2696,7 +2682,7 @@ class SQLiteDatabase(PandasSQL):
         parse_dates=None,
         dtype: DtypeArg | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ):
+    ) -> Generator[DataFrame, None, None]:
         """Return generator through chunked result set"""
         has_read_data = False
         while True:

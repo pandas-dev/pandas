@@ -9,7 +9,6 @@ import numpy as np
 import pytest
 
 from pandas._config import using_copy_on_write
-from pandas._config.config import _get_option
 
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
@@ -45,8 +44,6 @@ except ImportError:
     _HAVE_FASTPARQUET = False
 
 
-# TODO(ArrayManager) fastparquet relies on BlockManager internals
-
 pytestmark = [
     pytest.mark.filterwarnings("ignore:DataFrame._data is deprecated:FutureWarning"),
     pytest.mark.filterwarnings(
@@ -61,9 +58,8 @@ pytestmark = [
         pytest.param(
             "fastparquet",
             marks=pytest.mark.skipif(
-                not _HAVE_FASTPARQUET
-                or _get_option("mode.data_manager", silent=True) == "array",
-                reason="fastparquet is not installed or ArrayManager is used",
+                not _HAVE_FASTPARQUET,
+                reason="fastparquet is not installed",
             ),
         ),
         pytest.param(
@@ -89,8 +85,6 @@ def pa():
 def fp():
     if not _HAVE_FASTPARQUET:
         pytest.skip("fastparquet is not installed")
-    elif _get_option("mode.data_manager", silent=True) == "array":
-        pytest.skip("ArrayManager is not supported with fastparquet")
     return "fastparquet"
 
 
@@ -353,23 +347,6 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
 
         result = read_parquet(path, engine=pa, columns=["a", "d"])
         tm.assert_frame_equal(result, df[["a", "d"]])
-
-
-def test_parquet_pos_args_deprecation(engine):
-    # GH-54229
-    df = pd.DataFrame({"a": [1, 2, 3]})
-    msg = (
-        r"Starting with pandas version 3.0 all arguments of to_parquet except for the "
-        r"argument 'path' will be keyword-only."
-    )
-    with tm.ensure_clean() as path:
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match=msg,
-            check_stacklevel=False,
-            raise_on_extra_warnings=False,
-        ):
-            df.to_parquet(path, engine)
 
 
 class Base:
@@ -827,13 +804,7 @@ class TestParquetPyArrow(Base):
         )
 
     @pytest.mark.single_cpu
-    @pytest.mark.parametrize(
-        "partition_col",
-        [
-            ["A"],
-            [],
-        ],
-    )
+    @pytest.mark.parametrize("partition_col", [["A"], []])
     def test_s3_roundtrip_for_dir(
         self, df_compat, s3_public_bucket, pa, partition_col, s3so
     ):
@@ -1002,17 +973,6 @@ class TestParquetPyArrow(Base):
             df.to_parquet(path, engine=pa)
             result = read_parquet(path, pa, filters=[("a", "==", 0)])
         assert len(result) == 1
-
-    def test_read_parquet_manager(self, pa):
-        # ensure that read_parquet honors the pandas.options.mode.data_manager option
-        df = pd.DataFrame(
-            np.random.default_rng(2).standard_normal((10, 3)), columns=["A", "B", "C"]
-        )
-
-        with tm.ensure_clean() as path:
-            df.to_parquet(path, engine=pa)
-            result = read_parquet(path, pa)
-        assert isinstance(result._mgr, pd.core.internals.BlockManager)
 
     def test_read_dtype_backend_pyarrow_config(self, pa, df_full):
         import pyarrow
@@ -1327,7 +1287,7 @@ class TestParquetFastParquet(Base):
     def test_close_file_handle_on_read_error(self):
         with tm.ensure_clean("test.parquet") as path:
             pathlib.Path(path).write_bytes(b"breakit")
-            with pytest.raises(Exception, match=""):  # Not important which exception
+            with tm.external_error_raised(Exception):  # Not important which exception
                 read_parquet(path, engine="fastparquet")
             # The next line raises an error on Windows if the file is still open
             pathlib.Path(path).unlink(missing_ok=False)

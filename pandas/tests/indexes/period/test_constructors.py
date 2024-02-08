@@ -51,6 +51,15 @@ class TestPeriodIndexDisallowedFreqs:
         with pytest.raises(ValueError, match=msg):
             PeriodIndex(["2020-01", "2020-05"], freq=freq_depr)
 
+    @pytest.mark.parametrize("freq", ["2BQE-SEP", "2BYE-MAR", "2BME"])
+    def test_period_index_from_datetime_index_invalid_freq(self, freq):
+        # GH#56899
+        msg = f"Invalid frequency: {freq[1:]}"
+
+        rng = date_range("01-Jan-2012", periods=8, freq=freq)
+        with pytest.raises(ValueError, match=msg):
+            rng.to_period()
+
 
 class TestPeriodIndex:
     def test_from_ordinals(self):
@@ -541,7 +550,9 @@ class TestPeriodIndex:
         assert i1.freq == end_intv.freq
         assert i1[-1] == end_intv
 
-        end_intv = Period("2006-12-31", "1W")
+        msg = "'w' is deprecated and will be removed in a future version."
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            end_intv = Period("2006-12-31", "1w")
         i2 = period_range(end=end_intv, periods=10)
         assert len(i1) == len(i2)
         assert (i1 == i2).all()
@@ -570,7 +581,9 @@ class TestPeriodIndex:
         with tm.assert_produces_warning(FutureWarning, match=msg):
             end_intv = Period("2005-05-01", "B")
 
-        vals = [end_intv, Period("2006-12-31", "W")]
+        msg = "'w' is deprecated and will be removed in a future version."
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            vals = [end_intv, Period("2006-12-31", "w")]
         msg = r"Input has different freq=W-SUN from PeriodIndex\(freq=B\)"
         depr_msg = r"PeriodDtype\[B\] is deprecated"
         with pytest.raises(IncompatibleFrequency, match=msg):

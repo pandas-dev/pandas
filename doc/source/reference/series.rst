@@ -177,17 +177,16 @@ Reindexing / selection / label manipulation
    :toctree: api/
 
    Series.align
+   Series.case_when
    Series.drop
    Series.droplevel
    Series.drop_duplicates
    Series.duplicated
    Series.equals
-   Series.first
    Series.head
    Series.idxmax
    Series.idxmin
    Series.isin
-   Series.last
    Series.reindex
    Series.reindex_like
    Series.rename

@@ -284,7 +284,9 @@ class CSSToExcelConverter:
             for side in ["top", "right", "bottom", "left"]
         }
 
-    def _border_style(self, style: str | None, width: str | None, color: str | None):
+    def _border_style(
+        self, style: str | None, width: str | None, color: str | None
+    ) -> str | None:
         # convert styles and widths to openxml, one of:
         #       'dashDot'
         #       'dashDotDot'
@@ -333,7 +335,7 @@ class CSSToExcelConverter:
             return self.BORDER_STYLE_MAP[style]
         else:
             warnings.warn(
-                f"Unhandled border style format: {repr(style)}",
+                f"Unhandled border style format: {style!r}",
                 CSSWarning,
                 stacklevel=find_stack_level(),
             )
@@ -469,7 +471,7 @@ class CSSToExcelConverter:
             return self.NAMED_COLORS[val]
         except KeyError:
             warnings.warn(
-                f"Unhandled color format: {repr(val)}",
+                f"Unhandled color format: {val!r}",
                 CSSWarning,
                 stacklevel=find_stack_level(),
             )

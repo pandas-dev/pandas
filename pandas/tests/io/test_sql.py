@@ -620,13 +620,13 @@ def mysql_pymysql_engine():
 def mysql_pymysql_engine_iris(mysql_pymysql_engine, iris_path):
     create_and_load_iris(mysql_pymysql_engine, iris_path)
     create_and_load_iris_view(mysql_pymysql_engine)
-    yield mysql_pymysql_engine
+    return mysql_pymysql_engine
 
 
 @pytest.fixture
 def mysql_pymysql_engine_types(mysql_pymysql_engine, types_data):
     create_and_load_types(mysql_pymysql_engine, types_data, "mysql")
-    yield mysql_pymysql_engine
+    return mysql_pymysql_engine
 
 
 @pytest.fixture
@@ -667,13 +667,13 @@ def postgresql_psycopg2_engine():
 def postgresql_psycopg2_engine_iris(postgresql_psycopg2_engine, iris_path):
     create_and_load_iris(postgresql_psycopg2_engine, iris_path)
     create_and_load_iris_view(postgresql_psycopg2_engine)
-    yield postgresql_psycopg2_engine
+    return postgresql_psycopg2_engine
 
 
 @pytest.fixture
 def postgresql_psycopg2_engine_types(postgresql_psycopg2_engine, types_data):
     create_and_load_types(postgresql_psycopg2_engine, types_data, "postgres")
-    yield postgresql_psycopg2_engine
+    return postgresql_psycopg2_engine
 
 
 @pytest.fixture
@@ -713,7 +713,7 @@ def postgresql_adbc_iris(postgresql_adbc_conn, iris_path):
     except mgr.ProgrammingError:  # note arrow-adbc issue 1022
         conn.rollback()
         create_and_load_iris_view(conn)
-    yield conn
+    return conn
 
 
 @pytest.fixture
@@ -730,7 +730,7 @@ def postgresql_adbc_types(postgresql_adbc_conn, types_data):
 
         create_and_load_types_postgresql(conn, new_data)
 
-    yield conn
+    return conn
 
 
 @pytest.fixture
@@ -784,7 +784,7 @@ def sqlite_str_iris(sqlite_str, iris_path):
 def sqlite_engine_iris(sqlite_engine, iris_path):
     create_and_load_iris(sqlite_engine, iris_path)
     create_and_load_iris_view(sqlite_engine)
-    yield sqlite_engine
+    return sqlite_engine
 
 
 @pytest.fixture
@@ -805,7 +805,7 @@ def sqlite_str_types(sqlite_str, types_data):
 @pytest.fixture
 def sqlite_engine_types(sqlite_engine, types_data):
     create_and_load_types(sqlite_engine, types_data, "sqlite")
-    yield sqlite_engine
+    return sqlite_engine
 
 
 @pytest.fixture
@@ -845,7 +845,7 @@ def sqlite_adbc_iris(sqlite_adbc_conn, iris_path):
     except mgr.ProgrammingError:
         conn.rollback()
         create_and_load_iris_view(conn)
-    yield conn
+    return conn
 
 
 @pytest.fixture
@@ -867,7 +867,7 @@ def sqlite_adbc_types(sqlite_adbc_conn, types_data):
         create_and_load_types_sqlite3(conn, new_data)
         conn.commit()
 
-    yield conn
+    return conn
 
 
 @pytest.fixture
@@ -881,14 +881,14 @@ def sqlite_buildin():
 def sqlite_buildin_iris(sqlite_buildin, iris_path):
     create_and_load_iris_sqlite3(sqlite_buildin, iris_path)
     create_and_load_iris_view(sqlite_buildin)
-    yield sqlite_buildin
+    return sqlite_buildin
 
 
 @pytest.fixture
 def sqlite_buildin_types(sqlite_buildin, types_data):
     types_data = [tuple(entry.values()) for entry in types_data]
     create_and_load_types_sqlite3(sqlite_buildin, types_data)
-    yield sqlite_buildin
+    return sqlite_buildin
 
 
 mysql_connectable = [
@@ -1485,26 +1485,6 @@ SELECT * FROM groups;
     result = pd.read_sql("SELECT * FROM group_view", sqlite_buildin)
     expected = DataFrame({"group_id": [1], "name": "name"})
     tm.assert_frame_equal(result, expected)
-
-
-def test_execute_typeerror(sqlite_engine_iris):
-    with pytest.raises(TypeError, match="pandas.io.sql.execute requires a connection"):
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match="`pandas.io.sql.execute` is deprecated and "
-            "will be removed in the future version.",
-        ):
-            sql.execute("select * from iris", sqlite_engine_iris)
-
-
-def test_execute_deprecated(sqlite_conn_iris):
-    # GH50185
-    with tm.assert_produces_warning(
-        FutureWarning,
-        match="`pandas.io.sql.execute` is deprecated and "
-        "will be removed in the future version.",
-    ):
-        sql.execute("select * from iris", sqlite_conn_iris)
 
 
 def flavor(conn_name):
@@ -2229,12 +2209,14 @@ def test_api_chunksize_read(conn, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_categorical(conn, request):
     if conn == "postgresql_adbc_conn":
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="categorical dtype not implemented for ADBC postgres driver",
-                strict=True,
+        adbc = import_optional_dependency("adbc_driver_postgresql", errors="ignore")
+        if adbc is not None and Version(adbc.__version__) < Version("0.9.0"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="categorical dtype not implemented for ADBC postgres driver",
+                    strict=True,
+                )
             )
-        )
     # GH8624
     # test that categorical gets written correctly as dense column
     conn = request.getfixturevalue(conn)
@@ -2340,15 +2322,18 @@ def test_read_table_index_col(conn, request, test_frame1):
     sql.to_sql(test_frame1, "test_frame", conn)
 
     result = sql.read_sql_table("test_frame", conn, index_col="index")
-    assert result.index.names == ["index"]
+    assert result.index.names == ("index",)
 
     result = sql.read_sql_table("test_frame", conn, index_col=["A", "B"])
-    assert result.index.names == ["A", "B"]
+    assert result.index.names == ("A", "B")
 
     result = sql.read_sql_table(
         "test_frame", conn, index_col=["A", "B"], columns=["C", "D"]
     )
-    assert result.index.names == ["A", "B"]
+    assert result.index.names == (
+        "A",
+        "B",
+    )
     assert result.columns.tolist() == ["C", "D"]
 
 
@@ -3742,20 +3727,6 @@ def test_read_sql_dtype(conn, request, func, dtype_backend):
         }
     )
     tm.assert_frame_equal(result, expected)
-
-
-def test_keyword_deprecation(sqlite_engine):
-    conn = sqlite_engine
-    # GH 54397
-    msg = (
-        "Starting with pandas version 3.0 all arguments of to_sql except for the "
-        "arguments 'name' and 'con' will be keyword-only."
-    )
-    df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
-    df.to_sql("example", conn)
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.to_sql("example", conn, None, if_exists="replace")
 
 
 def test_bigint_warning(sqlite_engine):

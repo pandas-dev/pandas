@@ -54,6 +54,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         CompressionOptions,
         FilePath,
+        NaTType,
         ReadBuffer,
     )
 
@@ -62,7 +63,7 @@ _unix_origin = Timestamp("1970-01-01")
 _sas_origin = Timestamp("1960-01-01")
 
 
-def _parse_datetime(sas_datetime: float, unit: str):
+def _parse_datetime(sas_datetime: float, unit: str) -> datetime | NaTType:
     if isna(sas_datetime):
         return pd.NaT
 
@@ -326,7 +327,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         return da
 
     # Read a single float of the given width (4 or 8).
-    def _read_float(self, offset: int, width: int):
+    def _read_float(self, offset: int, width: int) -> float:
         assert self._cached_page is not None
         if width == 4:
             return read_float_with_byteswap(
@@ -741,7 +742,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                 js += 1
             else:
                 self.close()
-                raise ValueError(f"unknown column type {repr(self._column_types[j])}")
+                raise ValueError(f"unknown column type {self._column_types[j]!r}")
 
         df = DataFrame(rslt, columns=self.column_names, index=ix, copy=False)
         return df

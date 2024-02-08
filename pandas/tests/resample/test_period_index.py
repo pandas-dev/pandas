@@ -1008,7 +1008,6 @@ class TestPeriodIndex:
     def test_resample_lowercase_frequency_deprecated(
         self, freq, freq_depr, freq_res, freq_depr_res, data
     ):
-        # GH#56346
         depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
         f"future version. Please use '{freq[1:]}' instead."
         depr_msg_res = f"'{freq_depr_res[1:]}' is deprecated and will be removed in a "
@@ -1033,8 +1032,8 @@ class TestPeriodIndex:
             offsets.BusinessHour(2),
         ],
     )
-    def test_asfreq_invalid_period_freq(self, offset, frame_or_series):
-        # GH#9586
+    def test_asfreq_invalid_period_offset(self, offset, frame_or_series):
+        # GH#55785
         msg = f"Invalid offset: '{offset.base}' for converting time series "
 
         obj = frame_or_series(range(5), index=period_range("2020-01-01", periods=5))
@@ -1051,6 +1050,7 @@ class TestPeriodIndex:
         ("2Y", "2YE"),
         ("2Y-MAR", "2YE-MAR"),
         ("2M", "2me"),
+        ("2Q", "2qe"),
         ("2Y-MAR", "2ye-mar"),
     ],
 )

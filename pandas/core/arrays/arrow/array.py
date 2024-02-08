@@ -110,30 +110,50 @@ if not pa_version_under10p1:
 
     def cast_for_truediv(
         arrow_array: pa.ChunkedArray, pa_object: pa.Array | pa.Scalar
-    ) -> pa.ChunkedArray:
+    ) -> tuple[pa.ChunkedArray, pa.Array | pa.Scalar]:
         # Ensure int / int -> float mirroring Python/Numpy behavior
         # as pc.divide_checked(int, int) -> int
         if pa.types.is_integer(arrow_array.type) and pa.types.is_integer(
             pa_object.type
         ):
+            # GH: 56645.
             # https://github.com/apache/arrow/issues/35563
-            # Arrow does not allow safe casting large integral values to float64.
-            # Intentionally not using arrow_array.cast because it could be a scalar
-            # value in reflected case, and safe=False only added to
-            # scalar cast in pyarrow 13.
-            return pc.cast(arrow_array, pa.float64(), safe=False)
-        return arrow_array
+            return pc.cast(arrow_array, pa.float64(), safe=False), pc.cast(
+                pa_object, pa.float64(), safe=False
+            )
+
+        return arrow_array, pa_object
 
     def floordiv_compat(
         left: pa.ChunkedArray | pa.Array | pa.Scalar,
         right: pa.ChunkedArray | pa.Array | pa.Scalar,
     ) -> pa.ChunkedArray:
-        # Ensure int // int -> int mirroring Python/Numpy behavior
-        # as pc.floor(pc.divide_checked(int, int)) -> float
-        converted_left = cast_for_truediv(left, right)
-        result = pc.floor(pc.divide(converted_left, right))
+        # TODO: Replace with pyarrow floordiv kernel.
+        # https://github.com/apache/arrow/issues/39386
         if pa.types.is_integer(left.type) and pa.types.is_integer(right.type):
+            divided = pc.divide_checked(left, right)
+            if pa.types.is_signed_integer(divided.type):
+                # GH 56676
+                has_remainder = pc.not_equal(pc.multiply(divided, right), left)
+                has_one_negative_operand = pc.less(
+                    pc.bit_wise_xor(left, right),
+                    pa.scalar(0, type=divided.type),
+                )
+                result = pc.if_else(
+                    pc.and_(
+                        has_remainder,
+                        has_one_negative_operand,
+                    ),
+                    # GH: 55561
+                    pc.subtract(divided, pa.scalar(1, type=divided.type)),
+                    divided,
+                )
+            else:
+                result = divided
             result = result.cast(left.type)
+        else:
+            divided = pc.divide(left, right)
+            result = pc.floor(divided)
         return result
 
     ARROW_ARITHMETIC_FUNCS = {
@@ -143,8 +163,8 @@ if not pa_version_under10p1:
         "rsub": lambda x, y: pc.subtract_checked(y, x),
         "mul": pc.multiply_checked,
         "rmul": lambda x, y: pc.multiply_checked(y, x),
-        "truediv": lambda x, y: pc.divide(cast_for_truediv(x, y), y),
-        "rtruediv": lambda x, y: pc.divide(y, cast_for_truediv(x, y)),
+        "truediv": lambda x, y: pc.divide(*cast_for_truediv(x, y)),
+        "rtruediv": lambda x, y: pc.divide(*cast_for_truediv(y, x)),
         "floordiv": lambda x, y: floordiv_compat(x, y),
         "rfloordiv": lambda x, y: floordiv_compat(y, x),
         "mod": NotImplemented,
@@ -164,6 +184,7 @@ if TYPE_CHECKING:
         AxisInt,
         Dtype,
         FillnaOptions,
+        InterpolateOptions,
         Iterator,
         NpDtype,
         NumpySorter,
@@ -183,7 +204,7 @@ if TYPE_CHECKING:
     from pandas.core.arrays.timedeltas import TimedeltaArray
 
 
-def get_unit_from_pa_dtype(pa_dtype):
+def get_unit_from_pa_dtype(pa_dtype) -> str:
     # https://github.com/pandas-dev/pandas/pull/50998#discussion_r1100344804
     if pa_version_under11p0:
         unit = str(pa_dtype).split("[", 1)[-1][:-1]
@@ -506,11 +527,7 @@ class ArrowExtensionArray(
             else:
                 try:
                     pa_array = pa_array.cast(pa_type)
-                except (
-                    pa.ArrowInvalid,
-                    pa.ArrowTypeError,
-                    pa.ArrowNotImplementedError,
-                ):
+                except (pa.ArrowNotImplementedError, pa.ArrowTypeError):
                     if pa.types.is_string(pa_array.type) or pa.types.is_large_string(
                         pa_array.type
                     ):
@@ -1088,7 +1105,7 @@ class ArrowExtensionArray(
         try:
             fill_value = self._box_pa(value, pa_type=self._pa_array.type)
         except pa.ArrowTypeError as err:
-            msg = f"Invalid value '{str(value)}' for dtype {self.dtype}"
+            msg = f"Invalid value '{value!s}' for dtype {self.dtype}"
             raise TypeError(msg) from err
 
         try:
@@ -1346,6 +1363,11 @@ class ArrowExtensionArray(
         np_array = self._pa_array.to_numpy()
         np_array = np_array.astype(np_dtype)
         return TimedeltaArray._simple_new(np_array, dtype=np_dtype)
+
+    def _values_for_json(self) -> np.ndarray:
+        if is_numeric_dtype(self.dtype):
+            return np.asarray(self, dtype=object)
+        return super()._values_for_json()
 
     @doc(ExtensionArray.to_numpy)
     def to_numpy(
@@ -1944,7 +1966,7 @@ class ArrowExtensionArray(
         na_option: str = "keep",
         ascending: bool = True,
         pct: bool = False,
-    ):
+    ) -> Self:
         """
         See Series.rank.__doc__.
         """
@@ -2044,9 +2066,48 @@ class ArrowExtensionArray(
         try:
             value = self._box_pa(value, self._pa_array.type)
         except pa.ArrowTypeError as err:
-            msg = f"Invalid value '{str(value)}' for dtype {self.dtype}"
+            msg = f"Invalid value '{value!s}' for dtype {self.dtype}"
             raise TypeError(msg) from err
         return value
+
+    def interpolate(
+        self,
+        *,
+        method: InterpolateOptions,
+        axis: int,
+        index,
+        limit,
+        limit_direction,
+        limit_area,
+        copy: bool,
+        **kwargs,
+    ) -> Self:
+        """
+        See NDFrame.interpolate.__doc__.
+        """
+        # NB: we return type(self) even if copy=False
+        mask = self.isna()
+        if self.dtype.kind == "f":
+            data = self._pa_array.to_numpy()
+        elif self.dtype.kind in "iu":
+            data = self.to_numpy(dtype="f8", na_value=0.0)
+        else:
+            raise NotImplementedError(
+                f"interpolate is not implemented for dtype={self.dtype}"
+            )
+
+        missing.interpolate_2d_inplace(
+            data,
+            method=method,
+            axis=0,
+            index=index,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            mask=mask,
+            **kwargs,
+        )
+        return type(self)(self._box_pa_array(pa.array(data, mask=mask)))
 
     @classmethod
     def _if_else(
@@ -2308,20 +2369,26 @@ class ArrowExtensionArray(
         return self._str_match(pat, case, flags, na)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None) -> Self:
-        if start != 0 and end is not None:
+        if (start == 0 or start is None) and end is None:
+            result = pc.find_substring(self._pa_array, sub)
+        else:
+            if sub == "":
+                # GH 56792
+                result = self._apply_elementwise(lambda val: val.find(sub, start, end))
+                return type(self)(pa.chunked_array(result))
+            if start is None:
+                start_offset = 0
+                start = 0
+            elif start < 0:
+                start_offset = pc.add(start, pc.utf8_length(self._pa_array))
+                start_offset = pc.if_else(pc.less(start_offset, 0), 0, start_offset)
+            else:
+                start_offset = start
             slices = pc.utf8_slice_codeunits(self._pa_array, start, stop=end)
             result = pc.find_substring(slices, sub)
-            not_found = pc.equal(result, -1)
-            start_offset = max(0, start)
+            found = pc.not_equal(result, pa.scalar(-1, type=result.type))
             offset_result = pc.add(result, start_offset)
-            result = pc.if_else(not_found, result, offset_result)
-        elif start == 0 and end is None:
-            slices = self._pa_array
-            result = pc.find_substring(slices, sub)
-        else:
-            raise NotImplementedError(
-                f"find not implemented with {sub=}, {start=}, {end=}"
-            )
+            result = pc.if_else(found, offset_result, -1)
         return type(self)(result)
 
     def _str_join(self, sep: str) -> Self:

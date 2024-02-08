@@ -756,10 +756,13 @@ cdef class BaseOffset:
         raise ValueError(f"{self} is a non-fixed frequency")
 
     def is_anchored(self) -> bool:
-        # TODO: Does this make sense for the general case?  It would help
-        # if there were a canonical docstring for what is_anchored means.
+        # GH#55388
         """
         Return boolean whether the frequency is a unit frequency (n=1).
+
+        .. deprecated:: 2.2.0
+            is_anchored is deprecated and will be removed in a future version.
+            Use ``obj.n == 1`` instead.
 
         Examples
         --------
@@ -768,6 +771,12 @@ cdef class BaseOffset:
         >>> pd.DateOffset(2).is_anchored()
         False
         """
+        warnings.warn(
+            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
+            f"in a future version, please use \'obj.n == 1\' instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.n == 1
 
     # ------------------------------------------------------------------
@@ -954,6 +963,27 @@ cdef class Tick(SingleConstructorOffset):
         return True
 
     def is_anchored(self) -> bool:
+        # GH#55388
+        """
+        Return False.
+
+        .. deprecated:: 2.2.0
+            is_anchored is deprecated and will be removed in a future version.
+            Use ``False`` instead.
+
+        Examples
+        --------
+        >>> pd.offsets.Hour().is_anchored()
+        False
+        >>> pd.offsets.Hour(2).is_anchored()
+        False
+        """
+        warnings.warn(
+            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
+            f"in a future version, please use False instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return False
 
     # This is identical to BaseOffset.__hash__, but has to be redefined here
@@ -2663,6 +2693,13 @@ cdef class QuarterOffset(SingleConstructorOffset):
         return f"{self._prefix}-{month}"
 
     def is_anchored(self) -> bool:
+        warnings.warn(
+            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
+            f"in a future version, please use \'obj.n == 1 "
+            f"and obj.startingMonth is not None\' instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.n == 1 and self.startingMonth is not None
 
     def is_on_offset(self, dt: datetime) -> bool:
@@ -3308,6 +3345,13 @@ cdef class Week(SingleConstructorOffset):
         self._cache = state.pop("_cache", {})
 
     def is_anchored(self) -> bool:
+        warnings.warn(
+            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
+            f"in a future version, please use \'obj.n == 1 "
+            f"and obj.weekday is not None\' instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.n == 1 and self.weekday is not None
 
     @apply_wraps
@@ -3597,6 +3641,12 @@ cdef class FY5253Mixin(SingleConstructorOffset):
         self.variation = state.pop("variation")
 
     def is_anchored(self) -> bool:
+        warnings.warn(
+            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
+            f"in a future version, please use \'obj.n == 1\' instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return (
             self.n == 1 and self.startingMonth is not None and self.weekday is not None
         )
@@ -4221,9 +4271,7 @@ cdef class CustomBusinessDay(BusinessDay):
     @property
     def _period_dtype_code(self):
         # GH#52534
-        raise TypeError(
-            "CustomBusinessDay is not supported as period frequency"
-        )
+        raise ValueError(f"{self.base} is not supported as period frequency")
 
     _apply_array = BaseOffset._apply_array
 
@@ -4733,6 +4781,10 @@ cpdef to_offset(freq, bint is_period=False):
     Parameters
     ----------
     freq : str, datetime.timedelta, BaseOffset or None
+        The frequency represented.
+    is_period : bool, default False
+        Convert string denoting period frequency to corresponding offsets
+        frequency if is_period=True.
 
     Returns
     -------
@@ -4767,23 +4819,34 @@ cpdef to_offset(freq, bint is_period=False):
 
     >>> to_offset(pd.offsets.Hour())
     <Hour>
+
+    Passing the parameter ``is_period`` equal to True, you can use a string
+    denoting period frequency:
+
+    >>> freq = to_offset(freq="ME", is_period=False)
+    >>> freq.rule_code
+    'ME'
+
+    >>> freq = to_offset(freq="M", is_period=True)
+    >>> freq.rule_code
+    'ME'
     """
     if freq is None:
         return None
-
-    if isinstance(freq, BaseOffset):
-        return freq
 
     if isinstance(freq, tuple):
         raise TypeError(
             f"to_offset does not support tuples {freq}, pass as a string instead"
         )
 
+    if isinstance(freq, BaseOffset):
+        result = freq
+
     elif PyDelta_Check(freq):
-        return delta_to_tick(freq)
+        result = delta_to_tick(freq)
 
     elif isinstance(freq, str):
-        delta = None
+        result = None
         stride_sign = None
 
         try:
@@ -4884,21 +4947,27 @@ cpdef to_offset(freq, bint is_period=False):
                     offset = _get_offset(prefix)
                     offset = offset * int(np.fabs(stride) * stride_sign)
 
-                if delta is None:
-                    delta = offset
+                if result is None:
+                    result = offset
                 else:
-                    delta = delta + offset
+                    result = result + offset
         except (ValueError, TypeError) as err:
             raise ValueError(INVALID_FREQ_ERR_MSG.format(
                 f"{freq}, failed to parse with error message: {repr(err)}")
             )
     else:
-        delta = None
+        result = None
 
-    if delta is None:
+    if result is None:
         raise ValueError(INVALID_FREQ_ERR_MSG.format(freq))
 
-    return delta
+    if is_period and not hasattr(result, "_period_dtype_code"):
+        if isinstance(freq, str):
+            raise ValueError(f"{result.name} is not supported as period frequency")
+        else:
+            raise ValueError(f"{freq} is not supported as period frequency")
+
+    return result
 
 
 # ----------------------------------------------------------------------

@@ -118,3 +118,11 @@ def test_pct_change_no_warning_na_beginning():
     result = ser.pct_change()
     expected = Series([np.nan, np.nan, np.nan, 1, 0.5])
     tm.assert_series_equal(result, expected)
+
+
+def test_pct_change_empty():
+    # GH 57056
+    ser = Series([], dtype="float64")
+    expected = ser.copy()
+    result = ser.pct_change(periods=0)
+    tm.assert_series_equal(expected, result)

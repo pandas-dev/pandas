@@ -8,6 +8,8 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 
+import pandas._testing as tm
+
 
 @pytest.mark.parametrize(
     "freq_input,expected",
@@ -23,7 +25,6 @@ from pandas._libs.tslibs import (
         ("0.5s", offsets.Milli(500)),
         ("15ms500us", offsets.Micro(15500)),
         ("10s75ms", offsets.Milli(10075)),
-        ("1s0.25ms", offsets.Micro(1000250)),
         ("1s0.25ms", offsets.Micro(1000250)),
         ("2800ns", offsets.Nano(2800)),
         ("2SME", offsets.SemiMonthEnd(2)),
@@ -45,9 +46,7 @@ def test_to_offset_negative(freqstr, expected):
     assert result.n == expected
 
 
-@pytest.mark.filterwarnings(
-    "ignore:'m' is deprecated and will be removed in a future version.:FutureWarning"
-)
+@pytest.mark.filterwarnings("ignore:.*'m' is deprecated.*:FutureWarning")
 @pytest.mark.parametrize(
     "freqstr",
     [
@@ -197,7 +196,7 @@ def test_to_offset_lowercase_frequency_deprecated(freq_depr):
     depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
     f"future version, please use '{freq_depr.upper()[1:]}' instead."
 
-    with pytest.raises(FutureWarning, match=depr_msg):
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
         to_offset(freq_depr)
 
 
@@ -217,5 +216,5 @@ def test_to_offset_uppercase_frequency_deprecated(freq_depr):
     depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
     f"future version, please use '{freq_depr.lower()[1:]}' instead."
 
-    with pytest.raises(FutureWarning, match=depr_msg):
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
         to_offset(freq_depr)

@@ -13,10 +13,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import (
-    using_copy_on_write,
-    warn_copy_on_write,
-)
+from pandas._config import using_copy_on_write
 
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
@@ -27,10 +24,8 @@ from pandas.errors import (
     IndexingError,
     InvalidIndexError,
     LossySetitemError,
-    _chained_assignment_msg,
-    _chained_assignment_warning_msg,
-    _check_cacher,
 )
+from pandas.errors.cow import _chained_assignment_msg
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
@@ -121,7 +116,7 @@ class _IndexSlice:
 
     Examples
     --------
-    >>> midx = pd.MultiIndex.from_product([['A0','A1'], ['B0','B1','B2','B3']])
+    >>> midx = pd.MultiIndex.from_product([['A0', 'A1'], ['B0', 'B1', 'B2', 'B3']])
     >>> columns = ['foo', 'bar']
     >>> dfmi = pd.DataFrame(np.arange(16).reshape((len(midx), len(columns))),
     ...                     index=midx, columns=columns)
@@ -887,16 +882,6 @@ class _LocationIndexer(NDFrameIndexerBase):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
-        elif not PYPY and not using_copy_on_write():
-            ctr = sys.getrefcount(self.obj)
-            ref_count = 2
-            if not warn_copy_on_write() and _check_cacher(self.obj):
-                # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
-                ref_count += 1
-            if ctr <= ref_count:
-                warnings.warn(
-                    _chained_assignment_warning_msg, FutureWarning, stacklevel=2
-                )
 
         check_dict_or_set_indexers(key)
         if isinstance(key, tuple):
@@ -1209,7 +1194,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         labels = self.obj._get_axis(axis)
         key = check_bool_indexer(labels, key)
         inds = key.nonzero()[0]
-        return self.obj._take_with_is_copy(inds, axis=axis)
+        return self.obj.take(inds, axis=axis)
 
 
 @doc(IndexingMixin.loc)
@@ -1712,7 +1697,7 @@ class _iLocIndexer(_LocationIndexer):
         `axis` can only be zero.
         """
         try:
-            return self.obj._take_with_is_copy(key, axis=axis)
+            return self.obj.take(key, axis=axis)
         except IndexError as err:
             # re-raise with different error message, e.g. test_getitem_ndarray_3d
             raise IndexError("positional indexers are out-of-bounds") from err
@@ -1765,7 +1750,7 @@ class _iLocIndexer(_LocationIndexer):
         labels._validate_positional_slice(slice_obj)
         return self.obj._slice(slice_obj, axis=axis)
 
-    def _convert_to_indexer(self, key, axis: AxisInt):
+    def _convert_to_indexer(self, key: T, axis: AxisInt) -> T:
         """
         Much simpler as we only have to deal with our valid types.
         """
@@ -1920,8 +1905,6 @@ class _iLocIndexer(_LocationIndexer):
                         reindexers, allow_dups=True
                     )
                     self.obj._mgr = new_obj._mgr
-                    self.obj._maybe_update_cacher(clear=True)
-                    self.obj._is_copy = None
 
                     nindexer.append(labels.get_loc(key))
 
@@ -2143,13 +2126,31 @@ class _iLocIndexer(_LocationIndexer):
                 # If we're setting an entire column and we can't do it inplace,
                 #  then we can use value's dtype (or inferred dtype)
                 #  instead of object
+                dtype = self.obj.dtypes.iloc[loc]
+                if dtype not in (np.void, object) and not self.obj.empty:
+                    # - Exclude np.void, as that is a special case for expansion.
+                    #   We want to warn for
+                    #       df = pd.DataFrame({'a': [1, 2]})
+                    #       df.loc[:, 'a'] = .3
+                    #   but not for
+                    #       df = pd.DataFrame({'a': [1, 2]})
+                    #       df.loc[:, 'b'] = .3
+                    # - Exclude `object`, as then no upcasting happens.
+                    # - Exclude empty initial object with enlargement,
+                    #   as then there's nothing to be inconsistent with.
+                    warnings.warn(
+                        f"Setting an item of incompatible dtype is deprecated "
+                        "and will raise in a future error of pandas. "
+                        f"Value '{value}' has dtype incompatible with {dtype}, "
+                        "please explicitly cast to a compatible dtype first.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
                 self.obj.isetitem(loc, value)
         else:
             # set value into the column (first attempting to operate inplace, then
             #  falling back to casting if necessary)
             self.obj._mgr.column_setitem(loc, plane_indexer, value)
-
-        self.obj._clear_item_cache()
 
     def _setitem_single_block(self, indexer, value, name: str) -> None:
         """
@@ -2186,12 +2187,8 @@ class _iLocIndexer(_LocationIndexer):
         if isinstance(value, ABCDataFrame) and name != "iloc":
             value = self._align_frame(indexer, value)._values
 
-        # check for chained assignment
-        self.obj._check_is_chained_assignment_possible()
-
         # actually do the set
         self.obj._mgr = self.obj._mgr.setitem(indexer=indexer, value=value)
-        self.obj._maybe_update_cacher(clear=True, inplace=True)
 
     def _setitem_with_indexer_missing(self, indexer, value):
         """
@@ -2257,7 +2254,6 @@ class _iLocIndexer(_LocationIndexer):
             self.obj._mgr = self.obj._constructor(
                 new_values, index=new_index, name=self.obj.name
             )._mgr
-            self.obj._maybe_update_cacher(clear=True)
 
         elif self.ndim == 2:
             if not len(self.obj.columns):
@@ -2301,7 +2297,6 @@ class _iLocIndexer(_LocationIndexer):
                 self.obj._mgr = df._mgr
             else:
                 self.obj._mgr = self.obj._append(value)._mgr
-            self.obj._maybe_update_cacher(clear=True)
 
     def _ensure_iterable_column_indexer(self, column_indexer):
         """

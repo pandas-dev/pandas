@@ -949,8 +949,8 @@ class TestDataFrameQueryStrings:
             ops = 2 * ([eq] + [ne])
             msg = r"'(Not)?In' nodes are not implemented"
 
-            for lhs, op, rhs in zip(lhs, ops, rhs):
-                ex = f"{lhs} {op} {rhs}"
+            for lh, op_, rh in zip(lhs, ops, rhs):
+                ex = f"{lh} {op_} {rh}"
                 with pytest.raises(NotImplementedError, match=msg):
                     df.query(
                         ex,
@@ -990,8 +990,8 @@ class TestDataFrameQueryStrings:
             ops = 2 * ([eq] + [ne])
             msg = r"'(Not)?In' nodes are not implemented"
 
-            for lhs, op, rhs in zip(lhs, ops, rhs):
-                ex = f"{lhs} {op} {rhs}"
+            for lh, ops_, rh in zip(lhs, ops, rhs):
+                ex = f"{lh} {ops_} {rh}"
                 with pytest.raises(NotImplementedError, match=msg):
                     df.query(ex, engine=engine, parser=parser)
         else:
@@ -1187,7 +1187,7 @@ class TestDataFrameQueryBacktickQuoting:
         by backticks. The last two columns cannot be escaped by backticks
         and should raise a ValueError.
         """
-        yield DataFrame(
+        return DataFrame(
             {
                 "A": [1, 2, 3],
                 "B B": [3, 2, 1],

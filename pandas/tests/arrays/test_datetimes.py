@@ -767,6 +767,7 @@ class TestDatetimeArray:
         [
             ("2ME", "2M"),
             ("2SME", "2SM"),
+            ("2SME", "2sm"),
             ("2QE", "2Q"),
             ("2QE-SEP", "2Q-SEP"),
             ("1YE", "1Y"),
@@ -776,6 +777,7 @@ class TestDatetimeArray:
             ("2ME", "2m"),
             ("2QE-SEP", "2q-sep"),
             ("2YE-MAR", "2a-mar"),
+            ("2YE", "2y"),
         ],
     )
     def test_date_range_frequency_M_Q_Y_A_deprecated(self, freq, freq_depr):
