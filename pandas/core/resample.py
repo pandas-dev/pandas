@@ -2773,11 +2773,6 @@ def asfreq(
         if isinstance(freq, BaseOffset):
             if hasattr(freq, "_period_dtype_code"):
                 freq = freq_to_period_freqstr(freq.n, freq.name)
-            else:
-                raise ValueError(
-                    f"Invalid offset: '{freq.base}' for converting time series "
-                    f"with PeriodIndex."
-                )
 
         new_obj = obj.copy()
         new_obj.index = obj.index.asfreq(freq, how=how)
