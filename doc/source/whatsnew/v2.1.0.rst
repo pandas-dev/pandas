@@ -210,7 +210,7 @@ In the previous version (``future_stack=False``), the default of ``dropna=True``
     :okwarning:
 
     df.stack([0, 1], future_stack=False, dropna=True)
-    df.stack([0, 1])
+    df.stack([0, 1], future_stack=True)
 
 If the input contains NA values, the previous version would drop those as well with ``dropna=True`` or introduce new NA values with ``dropna=False``. The new version persists all values from the input.
 
@@ -221,7 +221,7 @@ If the input contains NA values, the previous version would drop those as well w
     df
     df.stack([0, 1], future_stack=False, dropna=True)
     df.stack([0, 1], future_stack=False, dropna=False)
-    df.stack([0, 1])
+    df.stack([0, 1], future_stack=True)
 
 .. _whatsnew_210.enhancements.other:
 
