@@ -411,7 +411,6 @@ class SeriesGroupBy(GroupBy[Series]):
             # GH #823 #24880
             index = self._grouper.result_index
             res_df = self.obj._constructor_expanddim(values, index=index)
-            res_df = self._reindex_output(res_df)
             # if self.observed is False,
             # keep all-NaN rows created while re-indexing
             res_ser = res_df.stack(future_stack=True)
@@ -437,7 +436,7 @@ class SeriesGroupBy(GroupBy[Series]):
             if not self.as_index:
                 result = self._insert_inaxis_grouper(result)
                 result.index = default_index(len(result))
-            return self._reindex_output(result)
+            return result
 
     def _aggregate_named(self, func, *args, **kwargs):
         # Note: this is very similar to _aggregate_series_pure_python,
@@ -658,7 +657,7 @@ class SeriesGroupBy(GroupBy[Series]):
         2023-02-01    1
         Freq: MS, dtype: int64
         """
-        ids, _, ngroups = self._grouper.group_info
+        ids, ngroups = self._grouper.group_info
         val = self.obj._values
         codes, uniques = algorithms.factorize(val, use_na_sentinel=dropna, sort=False)
 
@@ -691,7 +690,7 @@ class SeriesGroupBy(GroupBy[Series]):
         if not self.as_index:
             result = self._insert_inaxis_grouper(result)
             result.index = default_index(len(result))
-        return self._reindex_output(result, fill_value=0)
+        return result
 
     @doc(Series.describe)
     def describe(self, percentiles=None, include=None, exclude=None) -> Series:
@@ -719,7 +718,7 @@ class SeriesGroupBy(GroupBy[Series]):
         from pandas.core.reshape.merge import get_join_indexers
         from pandas.core.reshape.tile import cut
 
-        ids, _, _ = self._grouper.group_info
+        ids, _ = self._grouper.group_info
         val = self.obj._values
 
         index_names = self._grouper.names + [self.obj.name]
@@ -789,9 +788,18 @@ class SeriesGroupBy(GroupBy[Series]):
         rep = partial(np.repeat, repeats=np.add.reduceat(inc, idx))
 
         # multi-index components
-        codes = self._grouper.reconstructed_codes
+        if isinstance(self._grouper.result_index, MultiIndex):
+            codes = list(self._grouper.result_index.codes)
+        else:
+            codes = [
+                algorithms.factorize(
+                    self._grouper.result_index,
+                    sort=self._grouper._sort,
+                    use_na_sentinel=self._grouper.dropna,
+                )[0]
+            ]
         codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
-        levels = [ping._group_index for ping in self._grouper.groupings] + [lev]
+        levels = self._grouper.levels + [lev]
 
         if dropna:
             mask = codes[-1] != -1
@@ -834,7 +842,7 @@ class SeriesGroupBy(GroupBy[Series]):
             # ndarray[Any, Any]], Index, Series]]
             _, idx = get_join_indexers(
                 left,  # type: ignore[arg-type]
-                right,  # type: ignore[arg-type]
+                right,
                 sort=False,
                 how="left",
             )
@@ -1605,7 +1613,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if not self.as_index:
             result = self._insert_inaxis_grouper(result)
 
-        return self._reindex_output(result)
+        return result
 
     def _cython_transform(
         self,
@@ -1788,7 +1796,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return path, res
 
-    def filter(self, func, dropna: bool = True, *args, **kwargs):
+    def filter(self, func, dropna: bool = True, *args, **kwargs) -> DataFrame:
         """
         Filter elements from groups that don't satisfy a criterion.
 
@@ -2491,7 +2499,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             lambda df: df.dtypes, self._selected_obj
         )
 
-    @doc(DataFrame.corrwith.__doc__)
     def corrwith(
         self,
         other: DataFrame | Series,
@@ -2499,6 +2506,60 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         method: CorrelationMethod = "pearson",
         numeric_only: bool = False,
     ) -> DataFrame:
+        """
+        Compute pairwise correlation.
+
+        Pairwise correlation is computed between rows or columns of
+        DataFrame with rows or columns of Series or DataFrame. DataFrames
+        are first aligned along both axes before computing the
+        correlations.
+
+        Parameters
+        ----------
+        other : DataFrame, Series
+            Object with which to compute correlations.
+        drop : bool, default False
+            Drop missing indices from result.
+        method : {'pearson', 'kendall', 'spearman'} or callable
+            Method of correlation:
+
+            * pearson : standard correlation coefficient
+            * kendall : Kendall Tau correlation coefficient
+            * spearman : Spearman rank correlation
+            * callable: callable with input two 1d ndarrays
+                and returning a float.
+
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
+
+            .. versionchanged:: 2.0.0
+                The default value of ``numeric_only`` is now ``False``.
+
+        Returns
+        -------
+        Series
+            Pairwise correlations.
+
+        See Also
+        --------
+        DataFrame.corr : Compute pairwise correlation of columns.
+
+        Examples
+        --------
+        >>> df1 = pd.DataFrame({"Day": [1, 1, 1, 2, 2, 2, 3, 3, 3],
+        ...                     "Data": [6, 6, 8, 5, 4, 2, 7, 3, 9]})
+        >>> df2 = pd.DataFrame({"Day": [1, 1, 1, 2, 2, 2, 3, 3, 3],
+        ...                     "Data": [5, 3, 8, 3, 1, 1, 2, 3, 6]})
+
+        >>> df1.groupby("Day").corrwith(df2)
+                 Data  Day
+        Day
+        1    0.917663  NaN
+        2    0.755929  NaN
+        3    0.576557  NaN
+        """
         result = self._op_via_apply(
             "corrwith",
             other=other,

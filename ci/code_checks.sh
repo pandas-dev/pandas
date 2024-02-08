@@ -87,15 +87,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.cat.remove_categories\
         pandas.Series.cat.set_categories\
         pandas.Series.plot\
-        pandas.Series.plot.bar\
-        pandas.Series.plot.barh\
-        pandas.Series.plot.line\
-        pandas.Series.plot.pie\
         pandas.DataFrame.plot\
-        pandas.DataFrame.plot.bar\
-        pandas.DataFrame.plot.barh\
-        pandas.DataFrame.plot.line\
-        pandas.DataFrame.plot.pie\
         pandas.tseries.offsets.DateOffset\
         pandas.tseries.offsets.BusinessDay\
         pandas.tseries.offsets.BDay\
@@ -151,7 +143,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.SeriesGroupBy.rolling\
         pandas.core.groupby.DataFrameGroupBy.hist\
         pandas.core.groupby.DataFrameGroupBy.plot\
-        pandas.core.groupby.DataFrameGroupBy.corrwith\
         pandas.core.groupby.SeriesGroupBy.plot # There should be no backslash in the final line, please keep this comment in the last ignored function
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 

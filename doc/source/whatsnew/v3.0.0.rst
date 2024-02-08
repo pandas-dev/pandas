@@ -86,6 +86,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 Other API changes
 ^^^^^^^^^^^^^^^^^
 - 3rd party ``py.path`` objects are no longer explicitly supported in IO methods. Use :py:class:`pathlib.Path` objects instead (:issue:`57091`)
+- :attr:`MultiIndex.codes`, :attr:`MultiIndex.levels`, and :attr:`MultiIndex.names` now returns a ``tuple`` instead of a ``FrozenList`` (:issue:`53531`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -102,14 +103,19 @@ Deprecations
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- All arguments except the first ``path``-like argument in IO writers are now keyword only (:issue:`54229`)
 - Enforced deprecation disallowing parsing datetimes with mixed time zones unless user passes ``utc=True`` to :func:`to_datetime` (:issue:`57275`)
 - Removed :meth:`DataFrame.first` and :meth:`DataFrame.last` (:issue:`53710`)
 - Removed :meth:`DataFrameGroupby.fillna` and :meth:`SeriesGroupBy.fillna` (:issue:`55719`)
 - Removed ``DataFrameGroupBy.grouper`` and ``SeriesGroupBy.grouper`` (:issue:`56521`)
 - Removed ``axis`` argument from :meth:`DataFrame.groupby`, :meth:`Series.groupby`, :meth:`DataFrame.rolling`, :meth:`Series.rolling`, :meth:`DataFrame.resample`, and :meth:`Series.resample` (:issue:`51203`)
 - Removed ``axis`` argument from all groupby operations (:issue:`50405`)
+- Removed ``pandas.io.sql.execute`` (:issue:`50185`)
+- Removed ``read_gbq`` and ``DataFrame.to_gbq``. Use ``pandas_gbq.read_gbq`` and ``pandas_gbq.to_gbq`` instead https://pandas-gbq.readthedocs.io/en/latest/api.html (:issue:`55525`)
 - Removed deprecated argument ``obj`` in :meth:`.DataFrameGroupBy.get_group` and :meth:`.SeriesGroupBy.get_group` (:issue:`53545`)
 - Removed the ``ArrayManager`` (:issue:`55043`)
+- Removed unused arguments ``*args`` and ``**kwargs`` in :class:`Resampler` methods (:issue:`50977`)
+- Unrecognized timezones when parsing strings to datetimes now raises a ``ValueError`` (:issue:`51477`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.performance:
@@ -208,6 +214,11 @@ Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - Bug in :meth:`.DataFrameGroupBy.quantile` when ``interpolation="nearest"`` is inconsistent with :meth:`DataFrame.quantile` (:issue:`47942`)
 - Bug in :meth:`DataFrame.ewm` and :meth:`Series.ewm` when passed ``times`` and aggregation functions other than mean (:issue:`51695`)
+- Bug in :meth:`.DataFrameGroupBy.groups` and :meth:`.SeriesGroupby.groups` that would not respect groupby arguments ``dropna`` and ``sort`` (:issue:`55919`, :issue:`56966`, :issue:`56851`)
+- Bug in :meth:`.DataFrameGroupBy.nunique` and :meth:`.SeriesGroupBy.nunique` would fail with multiple categorical groupings when ``as_index=False`` (:issue:`52848`)
+- Bug in :meth:`.DataFrameGroupBy.prod`, :meth:`.DataFrameGroupBy.any`, and :meth:`.DataFrameGroupBy.all` would result in NA values on unobserved groups; they now result in ``1``, ``False``, and ``True`` respectively (:issue:`55783`)
+- Bug in :meth:`.DataFrameGroupBy.value_counts` would produce incorrect results when used with some categorical and some non-categorical groupings and ``observed=False`` (:issue:`56016`)
+-
 
 Reshaping
 ^^^^^^^^^
