@@ -716,7 +716,7 @@ class TestAstype:
 
     def test_astype_tz_conversion(self):
         # GH 35973
-        val = {"tz": date_range("2020-08-30", freq="d", periods=2, tz="Europe/London")}
+        val = {"tz": date_range("2020-08-30", freq="D", periods=2, tz="Europe/London")}
         df = DataFrame(val)
         result = df.astype({"tz": "datetime64[ns, Europe/Berlin]"})
 
@@ -727,7 +727,7 @@ class TestAstype:
     @pytest.mark.parametrize("tz", ["UTC", "Europe/Berlin"])
     def test_astype_tz_object_conversion(self, tz):
         # GH 35973
-        val = {"tz": date_range("2020-08-30", freq="d", periods=2, tz="Europe/London")}
+        val = {"tz": date_range("2020-08-30", freq="D", periods=2, tz="Europe/London")}
         expected = DataFrame(val)
 
         # convert expected to object dtype from other tz str (independently tested)
