@@ -4912,7 +4912,15 @@ cpdef to_offset(freq, bint is_period=False):
                             stacklevel=find_stack_level(),
                         )
                     name = c_OFFSET_DEPR_FREQSTR.get(name.upper())
-
+                if name == "w"or name == "d":
+                    warnings.warn(
+                        f"\'{name}\' is deprecated and will be removed in "
+                        f"a future version, please use \'{name.upper()}\' "
+                        f"instead.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                    name = name.upper()
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
                 prefix = _lite_rule_alias.get(name) or name
