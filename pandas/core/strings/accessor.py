@@ -1484,7 +1484,7 @@ class StringMethods(NoNewAttributesMixin):
         When `pat` is a dictionary, every key in `pat` is replaced
         with its corresponding value:
 
-        >>> pd.Series(['A', 'B', np.nan]).str.replace(pat={'A': 'a', 'B': 'b'})
+        >>> pd.Series(["A", "B", np.nan]).str.replace(pat={"A": "a", "B": "b"})
         0    a
         1    b
         2    NaN
