@@ -1259,6 +1259,17 @@ class TestSeriesReductions:
         expected = np.uint64(10000000000000000000)
         tm.assert_almost_equal(result, expected)
 
+    def test_signedness_preserved_after_sum(self):
+        s = Series([1, 2, 3, 4])
+
+        result1 = s.astype("int8").sum().dtype
+        result2 = s.astype("uint8").sum().dtype
+        expected1 = "int64"
+        expected2 = "uint64"
+
+        assert result1 == expected1
+        assert result2 == expected2
+
 
 class TestDatetime64SeriesReductions:
     # Note: the name TestDatetime64SeriesReductions indicates these tests
