@@ -258,9 +258,7 @@ class TestPivotTable:
         expected = DataFrame(
             {"B": values},
             index=Index(
-                Categorical.from_codes(
-                    codes, categories=["low", "high"], ordered=dropna
-                ),
+                Categorical.from_codes(codes, categories=["low", "high"], ordered=True),
                 name="A",
             ),
         )
@@ -890,10 +888,14 @@ class TestPivotTable:
         result,
         values_col,
         data,
-        index=["A", "B"],
-        columns=["C"],
+        index=None,
+        columns=None,
         margins_col="All",
     ):
+        if index is None:
+            index = ["A", "B"]
+        if columns is None:
+            columns = ["C"]
         col_margins = result.loc[result.index[:-1], margins_col]
         expected_col_margins = data.groupby(index)[values_col].mean()
         tm.assert_series_equal(col_margins, expected_col_margins, check_names=False)

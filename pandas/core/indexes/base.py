@@ -55,6 +55,7 @@ from pandas._typing import (
     F,
     IgnoreRaise,
     IndexLabel,
+    IndexT,
     JoinHow,
     Level,
     NaPosition,
@@ -178,7 +179,6 @@ from pandas.core.indexers import (
     disallow_ndim_indexing,
     is_valid_positional_slice,
 )
-from pandas.core.indexes.frozen import FrozenList
 from pandas.core.missing import clean_reindex_fill_method
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
@@ -362,7 +362,7 @@ class Index(IndexOpsMixin, PandasObject):
     >>> pd.Index([1, 2, 3])
     Index([1, 2, 3], dtype='int64')
 
-    >>> pd.Index(list('abc'))
+    >>> pd.Index(list("abc"))
     Index(['a', 'b', 'c'], dtype='object')
 
     >>> pd.Index([1, 2, 3], dtype="uint8")
@@ -725,7 +725,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index(['a', 'b', 'a'])
+        >>> idx = pd.Index(["a", "b", "a"])
         >>> idx._format_duplicate_message()
             positions
         label
@@ -812,7 +812,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx1 = pd.Index(['1', '2', '3'])
+        >>> idx1 = pd.Index(["1", "2", "3"])
         >>> idx1.is_(idx1.view())
         True
 
@@ -951,6 +951,9 @@ class Index(IndexOpsMixin, PandasObject):
         elif method == "reduce":
             result = lib.item_from_zerodim(result)
             return result
+        elif is_scalar(result):
+            # e.g. matmul
+            return result
 
         if result.dtype == np.float16:
             result = result.astype(np.float32)
@@ -958,7 +961,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self.__array_wrap__(result)
 
     @final
-    def __array_wrap__(self, result, context=None):
+    def __array_wrap__(self, result, context=None, return_scalar=False):
         """
         Gets called after a ufunc and other functions e.g. np.split.
         """
@@ -1003,7 +1006,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> s = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
+        >>> s = pd.Series([1, 2, 3], index=["a", "b", "c"])
         >>> s.index.ravel()
         Index(['a', 'b', 'c'], dtype='object')
         """
@@ -1073,7 +1076,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx = pd.Index([1, 2, 3])
         >>> idx
         Index([1, 2, 3], dtype='int64')
-        >>> idx.astype('float')
+        >>> idx.astype("float")
         Index([1.0, 2.0, 3.0], dtype='float64')
         """
         if dtype is not None:
@@ -1276,7 +1279,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index(['a', 'b', 'c'])
+        >>> idx = pd.Index(["a", "b", "c"])
         >>> new_idx = idx.copy()
         >>> idx is new_idx
         False
@@ -1568,7 +1571,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index(['Ant', 'Bear', 'Cow'], name='animal')
+        >>> idx = pd.Index(["Ant", "Bear", "Cow"], name="animal")
 
         By default, the original index and original name is reused.
 
@@ -1589,7 +1592,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         To override the name of the resulting column, specify ``name``:
 
-        >>> idx.to_series(name='zoo')
+        >>> idx.to_series(name="zoo")
         animal
         Ant      Ant
         Bear    Bear
@@ -1632,7 +1635,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index(['Ant', 'Bear', 'Cow'], name='animal')
+        >>> idx = pd.Index(["Ant", "Bear", "Cow"], name="animal")
         >>> idx.to_frame()
                animal
         animal
@@ -1650,7 +1653,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         To override the name of the resulting column, specify `name`:
 
-        >>> idx.to_frame(index=False, name='zoo')
+        >>> idx.to_frame(index=False, name="zoo")
             zoo
         0   Ant
         1  Bear
@@ -1676,7 +1679,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index([1, 2, 3], name='x')
+        >>> idx = pd.Index([1, 2, 3], name="x")
         >>> idx
         Index([1, 2, 3], dtype='int64',  name='x')
         >>> idx.name
@@ -1763,8 +1766,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         return names
 
-    def _get_names(self) -> FrozenList:
-        return FrozenList((self.name,))
+    def _get_names(self) -> tuple[Hashable | None, ...]:
+        return (self.name,)
 
     def _set_names(self, values, *, level=None) -> None:
         """
@@ -1845,33 +1848,32 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx = pd.Index([1, 2, 3, 4])
         >>> idx
         Index([1, 2, 3, 4], dtype='int64')
-        >>> idx.set_names('quarter')
+        >>> idx.set_names("quarter")
         Index([1, 2, 3, 4], dtype='int64', name='quarter')
 
-        >>> idx = pd.MultiIndex.from_product([['python', 'cobra'],
-        ...                                   [2018, 2019]])
+        >>> idx = pd.MultiIndex.from_product([["python", "cobra"], [2018, 2019]])
         >>> idx
         MultiIndex([('python', 2018),
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
                    )
-        >>> idx = idx.set_names(['kind', 'year'])
-        >>> idx.set_names('species', level=0)
+        >>> idx = idx.set_names(["kind", "year"])
+        >>> idx.set_names("species", level=0)
         MultiIndex([('python', 2018),
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   names=['species', 'year'])
+                   names=('species', 'year'))
 
         When renaming levels with a dict, levels can not be passed.
 
-        >>> idx.set_names({'kind': 'snake'})
+        >>> idx.set_names({"kind": "snake"})
         MultiIndex([('python', 2018),
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   names=['snake', 'year'])
+                   names=('snake', 'year'))
         """
         if level is not None and not isinstance(self, ABCMultiIndex):
             raise ValueError("Level must be None for non-MultiIndex")
@@ -1949,26 +1951,26 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index(['A', 'C', 'A', 'B'], name='score')
-        >>> idx.rename('grade')
+        >>> idx = pd.Index(["A", "C", "A", "B"], name="score")
+        >>> idx.rename("grade")
         Index(['A', 'C', 'A', 'B'], dtype='object', name='grade')
 
-        >>> idx = pd.MultiIndex.from_product([['python', 'cobra'],
-        ...                                   [2018, 2019]],
-        ...                                  names=['kind', 'year'])
+        >>> idx = pd.MultiIndex.from_product(
+        ...     [["python", "cobra"], [2018, 2019]], names=["kind", "year"]
+        ... )
         >>> idx
         MultiIndex([('python', 2018),
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   names=['kind', 'year'])
-        >>> idx.rename(['species', 'year'])
+                   names=('kind', 'year'))
+        >>> idx.rename(["species", "year"])
         MultiIndex([('python', 2018),
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   names=['species', 'year'])
-        >>> idx.rename('species')
+                   names=('species', 'year'))
+        >>> idx.rename("species")
         Traceback (most recent call last):
         TypeError: Must pass list-like as `names`.
         """
@@ -2024,7 +2026,7 @@ class Index(IndexOpsMixin, PandasObject):
         ascending: bool | list[bool] = True,
         sort_remaining=None,
         na_position: NaPosition = "first",
-    ):
+    ) -> tuple[Self, np.ndarray]:
         """
         For internal compatibility with the Index API.
 
@@ -2091,7 +2093,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index(list('abc'))
+        >>> idx = pd.Index(list("abc"))
         >>> idx
         Index(['a', 'b', 'c'], dtype='object')
 
@@ -2126,29 +2128,29 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         >>> mi = pd.MultiIndex.from_arrays(
-        ...     [[1, 2], [3, 4], [5, 6]], names=['x', 'y', 'z']
+        ...     [[1, 2], [3, 4], [5, 6]], names=["x", "y", "z"]
         ... )
         >>> mi
         MultiIndex([(1, 3, 5),
                     (2, 4, 6)],
-                   names=['x', 'y', 'z'])
+                   names=('x', 'y', 'z'))
 
         >>> mi.droplevel()
         MultiIndex([(3, 5),
                     (4, 6)],
-                   names=['y', 'z'])
+                   names=('y', 'z'))
 
         >>> mi.droplevel(2)
         MultiIndex([(1, 3),
                     (2, 4)],
-                   names=['x', 'y'])
+                   names=('x', 'y'))
 
-        >>> mi.droplevel('z')
+        >>> mi.droplevel("z")
         MultiIndex([(1, 3),
                     (2, 4)],
-                   names=['x', 'y'])
+                   names=('x', 'y'))
 
-        >>> mi.droplevel(['x', 'y'])
+        >>> mi.droplevel(["x", "y"])
         Index([5, 6], dtype='int64', name='z')
         """
         if not isinstance(level, (tuple, list)):
@@ -2335,13 +2337,13 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.is_unique
         True
 
-        >>> idx = pd.Index(["Watermelon", "Orange", "Apple",
-        ...                 "Watermelon"]).astype("category")
+        >>> idx = pd.Index(["Watermelon", "Orange", "Apple", "Watermelon"]).astype(
+        ...     "category"
+        ... )
         >>> idx.is_unique
         False
 
-        >>> idx = pd.Index(["Orange", "Apple",
-        ...                 "Watermelon"]).astype("category")
+        >>> idx = pd.Index(["Orange", "Apple", "Watermelon"]).astype("category")
         >>> idx.is_unique
         True
         """
@@ -2372,13 +2374,13 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.has_duplicates
         False
 
-        >>> idx = pd.Index(["Watermelon", "Orange", "Apple",
-        ...                 "Watermelon"]).astype("category")
+        >>> idx = pd.Index(["Watermelon", "Orange", "Apple", "Watermelon"]).astype(
+        ...     "category"
+        ... )
         >>> idx.has_duplicates
         True
 
-        >>> idx = pd.Index(["Orange", "Apple",
-        ...                 "Watermelon"]).astype("category")
+        >>> idx = pd.Index(["Orange", "Apple", "Watermelon"]).astype("category")
         >>> idx.has_duplicates
         False
         """
@@ -2608,8 +2610,9 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.is_object()  # doctest: +SKIP
         True
 
-        >>> idx = pd.Index(["Watermelon", "Orange", "Apple",
-        ...                 "Watermelon"]).astype("category")
+        >>> idx = pd.Index(["Watermelon", "Orange", "Apple", "Watermelon"]).astype(
+        ...     "category"
+        ... )
         >>> idx.is_object()  # doctest: +SKIP
         False
 
@@ -2650,8 +2653,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index(["Watermelon", "Orange", "Apple",
-        ...                 "Watermelon"]).astype("category")
+        >>> idx = pd.Index(["Watermelon", "Orange", "Apple", "Watermelon"]).astype(
+        ...     "category"
+        ... )
         >>> idx.is_categorical()  # doctest: +SKIP
         True
 
@@ -2703,8 +2707,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index([pd.Interval(left=0, right=5),
-        ...                 pd.Interval(left=5, right=10)])
+        >>> idx = pd.Index(
+        ...     [pd.Interval(left=0, right=5), pd.Interval(left=5, right=10)]
+        ... )
         >>> idx.is_interval()  # doctest: +SKIP
         True
 
@@ -2829,7 +2834,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> s = pd.Series([1, 2, 3], index=['a', 'b', None])
+        >>> s = pd.Series([1, 2, 3], index=["a", "b", None])
         >>> s
         a    1
         b    2
@@ -2880,7 +2885,7 @@ class Index(IndexOpsMixin, PandasObject):
         Empty strings are not considered NA values. None is considered an NA
         value.
 
-        >>> idx = pd.Index(['black', '', 'red', None])
+        >>> idx = pd.Index(["black", "", "red", None])
         >>> idx
         Index(['black', '', 'red', None], dtype='object')
         >>> idx.isna()
@@ -2888,8 +2893,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         For datetimes, `NaT` (Not a Time) is considered as an NA value.
 
-        >>> idx = pd.DatetimeIndex([pd.Timestamp('1940-04-25'),
-        ...                         pd.Timestamp(''), None, pd.NaT])
+        >>> idx = pd.DatetimeIndex(
+        ...     [pd.Timestamp("1940-04-25"), pd.Timestamp(""), None, pd.NaT]
+        ... )
         >>> idx
         DatetimeIndex(['1940-04-25', 'NaT', 'NaT', 'NaT'],
                       dtype='datetime64[ns]', freq=None)
@@ -2936,7 +2942,7 @@ class Index(IndexOpsMixin, PandasObject):
         Empty strings are not considered NA values. None is considered a NA
         value.
 
-        >>> idx = pd.Index(['black', '', 'red', None])
+        >>> idx = pd.Index(["black", "", "red", None])
         >>> idx
         Index(['black', '', 'red', None], dtype='object')
         >>> idx.notna()
@@ -3096,20 +3102,20 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         Generate an pandas.Index with duplicate values.
 
-        >>> idx = pd.Index(['lama', 'cow', 'lama', 'beetle', 'lama', 'hippo'])
+        >>> idx = pd.Index(["llama", "cow", "llama", "beetle", "llama", "hippo"])
 
         The `keep` parameter controls  which duplicate values are removed.
         The value 'first' keeps the first occurrence for each
         set of duplicated entries. The default value of keep is 'first'.
 
-        >>> idx.drop_duplicates(keep='first')
-        Index(['lama', 'cow', 'beetle', 'hippo'], dtype='object')
+        >>> idx.drop_duplicates(keep="first")
+        Index(['llama', 'cow', 'beetle', 'hippo'], dtype='object')
 
         The value 'last' keeps the last occurrence for each set of duplicated
         entries.
 
-        >>> idx.drop_duplicates(keep='last')
-        Index(['cow', 'beetle', 'lama', 'hippo'], dtype='object')
+        >>> idx.drop_duplicates(keep="last")
+        Index(['cow', 'beetle', 'llama', 'hippo'], dtype='object')
 
         The value ``False`` discards all sets of duplicated entries.
 
@@ -3155,19 +3161,19 @@ class Index(IndexOpsMixin, PandasObject):
         By default, for each set of duplicated values, the first occurrence is
         set to False and all others to True:
 
-        >>> idx = pd.Index(['lama', 'cow', 'lama', 'beetle', 'lama'])
+        >>> idx = pd.Index(["llama", "cow", "llama", "beetle", "llama"])
         >>> idx.duplicated()
         array([False, False,  True, False,  True])
 
         which is equivalent to
 
-        >>> idx.duplicated(keep='first')
+        >>> idx.duplicated(keep="first")
         array([False, False,  True, False,  True])
 
         By using 'last', the last occurrence of each set of duplicated values
         is set on False and all others on True:
 
-        >>> idx.duplicated(keep='last')
+        >>> idx.duplicated(keep="last")
         array([ True, False,  True, False, False])
 
         By setting keep on ``False``, all duplicates are True:
@@ -3276,7 +3282,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Union mismatched dtypes
 
-        >>> idx1 = pd.Index(['a', 'b', 'c', 'd'])
+        >>> idx1 = pd.Index(["a", "b", "c", "d"])
         >>> idx2 = pd.Index([1, 2, 3, 4])
         >>> idx1.union(idx2)
         Index(['a', 'b', 'c', 'd', 1, 2, 3, 4], dtype='object')
@@ -3780,16 +3786,16 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> unique_index = pd.Index(list('abc'))
-        >>> unique_index.get_loc('b')
+        >>> unique_index = pd.Index(list("abc"))
+        >>> unique_index.get_loc("b")
         1
 
-        >>> monotonic_index = pd.Index(list('abbc'))
-        >>> monotonic_index.get_loc('b')
+        >>> monotonic_index = pd.Index(list("abbc"))
+        >>> monotonic_index.get_loc("b")
         slice(1, 3, None)
 
-        >>> non_monotonic_index = pd.Index(list('abcb'))
-        >>> non_monotonic_index.get_loc('b')
+        >>> non_monotonic_index = pd.Index(list("abcb"))
+        >>> non_monotonic_index.get_loc("b")
         array([False,  True, False,  True])
         """
         casted_key = self._maybe_cast_indexer(key)
@@ -3860,8 +3866,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> index = pd.Index(['c', 'a', 'b'])
-        >>> index.get_indexer(['a', 'b', 'x'])
+        >>> index = pd.Index(["c", "a", "b"])
+        >>> index.get_indexer(["a", "b", "x"])
         array([ 1,  2, -1])
 
         Notice that the return value is an array of locations in ``index``
@@ -4371,10 +4377,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index(['car', 'bike', 'train', 'tractor'])
+        >>> idx = pd.Index(["car", "bike", "train", "tractor"])
         >>> idx
         Index(['car', 'bike', 'train', 'tractor'], dtype='object')
-        >>> idx.reindex(['car', 'bike'])
+        >>> idx.reindex(["car", "bike"])
         (Index(['car', 'bike'], dtype='object'), array([0, 1]))
         """
         # GH6552: preserve names when reindexing to non-named target
@@ -4429,7 +4435,7 @@ class Index(IndexOpsMixin, PandasObject):
         target = self._maybe_preserve_names(target, preserve_names)
         return target
 
-    def _maybe_preserve_names(self, target: Index, preserve_names: bool):
+    def _maybe_preserve_names(self, target: IndexT, preserve_names: bool) -> IndexT:
         if preserve_names and target.nlevels == 1 and target.name != self.name:
             target = target.copy(deep=False)
             target.name = self.name
@@ -4578,7 +4584,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx1 = pd.Index([1, 2, 3])
         >>> idx2 = pd.Index([4, 5, 6])
-        >>> idx1.join(idx2, how='outer')
+        >>> idx1.join(idx2, how="outer")
         Index([1, 2, 3, 4, 5, 6], dtype='int64')
         """
         other = ensure_index(other)
@@ -4610,38 +4616,12 @@ class Index(IndexOpsMixin, PandasObject):
         if level is not None and (self._is_multi or other._is_multi):
             return self._join_level(other, level, how=how)
 
-        lidx: np.ndarray | None
-        ridx: np.ndarray | None
-
-        if len(other) == 0:
-            if how in ("left", "outer"):
-                if sort and not self.is_monotonic_increasing:
-                    lidx = self.argsort()
-                    join_index = self.take(lidx)
-                else:
-                    lidx = None
-                    join_index = self._view()
-                ridx = np.broadcast_to(np.intp(-1), len(join_index))
-                return join_index, lidx, ridx
-            elif how in ("right", "inner", "cross"):
-                join_index = other._view()
-                lidx = np.array([], dtype=np.intp)
-                return join_index, lidx, None
-
-        if len(self) == 0:
-            if how in ("right", "outer"):
-                if sort and not other.is_monotonic_increasing:
-                    ridx = other.argsort()
-                    join_index = other.take(ridx)
-                else:
-                    ridx = None
-                    join_index = other._view()
-                lidx = np.broadcast_to(np.intp(-1), len(join_index))
-                return join_index, lidx, ridx
-            elif how in ("left", "inner", "cross"):
-                join_index = self._view()
-                ridx = np.array([], dtype=np.intp)
-                return join_index, None, ridx
+        if len(self) == 0 or len(other) == 0:
+            try:
+                return self._join_empty(other, how, sort)
+            except TypeError:
+                # object dtype; non-comparable objects
+                pass
 
         if self.dtype != other.dtype:
             dtype = self._find_common_type_compat(other)
@@ -4675,6 +4655,33 @@ class Index(IndexOpsMixin, PandasObject):
             return self._join_non_unique(other, how=how, sort=sort)
 
         return self._join_via_get_indexer(other, how, sort)
+
+    @final
+    def _join_empty(
+        self, other: Index, how: JoinHow, sort: bool
+    ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
+        assert len(self) == 0 or len(other) == 0
+        _validate_join_method(how)
+
+        lidx: np.ndarray | None
+        ridx: np.ndarray | None
+
+        if len(other):
+            how = cast(JoinHow, {"left": "right", "right": "left"}.get(how, how))
+            join_index, ridx, lidx = other._join_empty(self, how, sort)
+        elif how in ["left", "outer"]:
+            if sort and not self.is_monotonic_increasing:
+                lidx = self.argsort()
+                join_index = self.take(lidx)
+            else:
+                lidx = None
+                join_index = self._view()
+            ridx = np.broadcast_to(np.intp(-1), len(join_index))
+        else:
+            join_index = other._view()
+            lidx = np.array([], dtype=np.intp)
+            ridx = None
+        return join_index, lidx, ridx
 
     @final
     def _join_via_get_indexer(
@@ -4860,7 +4867,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         from pandas.core.indexes.multi import MultiIndex
 
-        def _get_leaf_sorter(labels: list[np.ndarray]) -> npt.NDArray[np.intp]:
+        def _get_leaf_sorter(
+            labels: tuple[np.ndarray, ...] | list[np.ndarray],
+        ) -> npt.NDArray[np.intp]:
             """
             Returns sorter for the inner most level while preserving the
             order of higher levels.
@@ -5023,7 +5032,9 @@ class Index(IndexOpsMixin, PandasObject):
                 ridx = self._left_indexer_unique(other)
             else:
                 join_array, lidx, ridx = self._left_indexer(other)
-                join_index = self._wrap_joined_index(join_array, other, lidx, ridx, how)
+                join_index, lidx, ridx = self._wrap_join_result(
+                    join_array, other, lidx, ridx, how
+                )
         elif how == "right":
             if self.is_unique:
                 # We can perform much better than the general case
@@ -5032,40 +5043,52 @@ class Index(IndexOpsMixin, PandasObject):
                 ridx = None
             else:
                 join_array, ridx, lidx = other._left_indexer(self)
-                join_index = self._wrap_joined_index(join_array, other, lidx, ridx, how)
+                join_index, lidx, ridx = self._wrap_join_result(
+                    join_array, other, lidx, ridx, how
+                )
         elif how == "inner":
             join_array, lidx, ridx = self._inner_indexer(other)
-            join_index = self._wrap_joined_index(join_array, other, lidx, ridx, how)
+            join_index, lidx, ridx = self._wrap_join_result(
+                join_array, other, lidx, ridx, how
+            )
         elif how == "outer":
             join_array, lidx, ridx = self._outer_indexer(other)
-            join_index = self._wrap_joined_index(join_array, other, lidx, ridx, how)
+            join_index, lidx, ridx = self._wrap_join_result(
+                join_array, other, lidx, ridx, how
+            )
 
         lidx = None if lidx is None else ensure_platform_int(lidx)
         ridx = None if ridx is None else ensure_platform_int(ridx)
         return join_index, lidx, ridx
 
-    def _wrap_joined_index(
+    def _wrap_join_result(
         self,
         joined: ArrayLike,
         other: Self,
-        lidx: npt.NDArray[np.intp],
-        ridx: npt.NDArray[np.intp],
+        lidx: npt.NDArray[np.intp] | None,
+        ridx: npt.NDArray[np.intp] | None,
         how: JoinHow,
-    ) -> Self:
+    ) -> tuple[Self, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         assert other.dtype == self.dtype
-        names = other.names if how == "right" else self.names
-        if isinstance(self, ABCMultiIndex):
-            # error: Incompatible return value type (got "MultiIndex",
-            # expected "Self")
-            mask = lidx == -1
-            join_idx = self.take(lidx)
-            right = cast("MultiIndex", other.take(ridx))
-            join_index = join_idx.putmask(mask, right)._sort_levels_monotonic()
-            return join_index.set_names(names)  # type: ignore[return-value]
+
+        if lidx is not None and lib.is_range_indexer(lidx, len(self)):
+            lidx = None
+        if ridx is not None and lib.is_range_indexer(ridx, len(other)):
+            ridx = None
+
+        # return self or other if possible to maintain cached attributes
+        if lidx is None:
+            join_index = self
+        elif ridx is None:
+            join_index = other
         else:
-            return self._constructor._with_infer(
-                joined, name=names[0], dtype=self.dtype
-            )
+            join_index = self._constructor._with_infer(joined, dtype=self.dtype)
+
+        names = other.names if how == "right" else self.names
+        if join_index.names != names:
+            join_index = join_index.set_names(names)
+
+        return join_index, lidx, ridx
 
     @final
     @cache_readonly
@@ -5283,10 +5306,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index(['car', 'bike', 'train', 'tractor'])
+        >>> idx = pd.Index(["car", "bike", "train", "tractor"])
         >>> idx
         Index(['car', 'bike', 'train', 'tractor'], dtype='object')
-        >>> idx.where(idx.isin(['car', 'train']), 'other')
+        >>> idx.where(idx.isin(["car", "train"]), "other")
         Index(['car', 'other', 'train', 'other'], dtype='object')
         """
         if isinstance(self, ABCMultiIndex):
@@ -5615,10 +5638,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         The dtype is *not* compared
 
-        >>> int64_idx = pd.Index([1, 2, 3], dtype='int64')
+        >>> int64_idx = pd.Index([1, 2, 3], dtype="int64")
         >>> int64_idx
         Index([1, 2, 3], dtype='int64')
-        >>> uint64_idx = pd.Index([1, 2, 3], dtype='uint64')
+        >>> uint64_idx = pd.Index([1, 2, 3], dtype="uint64")
         >>> uint64_idx
         Index([1, 2, 3], dtype='uint64')
         >>> int64_idx.equals(uint64_idx)
@@ -5677,13 +5700,13 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx1 = pd.Index(['1', '2', '3'])
-        >>> idx2 = pd.Index(['1', '2', '3'])
+        >>> idx1 = pd.Index(["1", "2", "3"])
+        >>> idx2 = pd.Index(["1", "2", "3"])
         >>> idx2.identical(idx1)
         True
 
-        >>> idx1 = pd.Index(['1', '2', '3'], name="A")
-        >>> idx2 = pd.Index(['1', '2', '3'], name="B")
+        >>> idx1 = pd.Index(["1", "2", "3"], name="A")
+        >>> idx2 = pd.Index(["1", "2", "3"], name="B")
         >>> idx2.identical(idx1)
         False
         """
@@ -5731,26 +5754,25 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         `Index.asof` returns the latest index label up to the passed label.
 
-        >>> idx = pd.Index(['2013-12-31', '2014-01-02', '2014-01-03'])
-        >>> idx.asof('2014-01-01')
+        >>> idx = pd.Index(["2013-12-31", "2014-01-02", "2014-01-03"])
+        >>> idx.asof("2014-01-01")
         '2013-12-31'
 
         If the label is in the index, the method returns the passed label.
 
-        >>> idx.asof('2014-01-02')
+        >>> idx.asof("2014-01-02")
         '2014-01-02'
 
         If all of the labels in the index are later than the passed label,
         NaN is returned.
 
-        >>> idx.asof('1999-01-02')
+        >>> idx.asof("1999-01-02")
         nan
 
         If the index is not sorted, an error is raised.
 
-        >>> idx_not_sorted = pd.Index(['2013-12-31', '2015-01-02',
-        ...                            '2014-01-03'])
-        >>> idx_not_sorted.asof('2013-12-31')
+        >>> idx_not_sorted = pd.Index(["2013-12-31", "2015-01-02", "2014-01-03"])
+        >>> idx_not_sorted.asof("2013-12-31")
         Traceback (most recent call last):
         ValueError: index must be monotonic increasing or decreasing
         """
@@ -5810,9 +5832,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.date_range('2023-06-01', periods=3, freq='D')
-        >>> where = pd.DatetimeIndex(['2023-05-30 00:12:00', '2023-06-01 00:00:00',
-        ...                           '2023-06-02 23:59:59'])
+        >>> idx = pd.date_range("2023-06-01", periods=3, freq="D")
+        >>> where = pd.DatetimeIndex(
+        ...     ["2023-05-30 00:12:00", "2023-06-01 00:00:00", "2023-06-02 23:59:59"]
+        ... )
         >>> mask = np.ones(3, dtype=bool)
         >>> idx.asof_locs(where, mask)
         array([-1,  0,  1])
@@ -5934,17 +5957,14 @@ class Index(IndexOpsMixin, PandasObject):
         (Index([1000, 100, 10, 1], dtype='int64'), array([3, 1, 0, 2]))
         """
         if key is None and (
-            self.is_monotonic_increasing or self.is_monotonic_decreasing
+            (ascending and self.is_monotonic_increasing)
+            or (not ascending and self.is_monotonic_decreasing)
         ):
-            reverse = ascending != self.is_monotonic_increasing
-            sorted_index = self[::-1] if reverse else self.copy()
             if return_indexer:
                 indexer = np.arange(len(self), dtype=np.intp)
-                if reverse:
-                    indexer = indexer[::-1]
-                return sorted_index, indexer
+                return self.copy(), indexer
             else:
-                return sorted_index
+                return self.copy()
 
         # GH 35584. Sort missing values according to na_position kwarg
         # ignore na_position for MultiIndex
@@ -5972,7 +5992,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         raise TypeError("cannot sort an Index object in-place, use sort_values instead")
 
-    def shift(self, periods: int = 1, freq=None):
+    def shift(self, periods: int = 1, freq=None) -> Self:
         """
         Shift index by desired number of time frequency increments.
 
@@ -6007,7 +6027,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         Put the first 5 month starts of 2011 into an index.
 
-        >>> month_starts = pd.date_range('1/1/2011', periods=5, freq='MS')
+        >>> month_starts = pd.date_range("1/1/2011", periods=5, freq="MS")
         >>> month_starts
         DatetimeIndex(['2011-01-01', '2011-02-01', '2011-03-01', '2011-04-01',
                        '2011-05-01'],
@@ -6015,7 +6035,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Shift the index by 10 days.
 
-        >>> month_starts.shift(10, freq='D')
+        >>> month_starts.shift(10, freq="D")
         DatetimeIndex(['2011-01-11', '2011-02-11', '2011-03-11', '2011-04-11',
                        '2011-05-11'],
                       dtype='datetime64[ns]', freq=None)
@@ -6057,7 +6077,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index(['b', 'a', 'd', 'c'])
+        >>> idx = pd.Index(["b", "a", "d", "c"])
         >>> idx
         Index(['b', 'a', 'd', 'c'], dtype='object')
 
@@ -6192,7 +6212,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index([np.nan, 'var1', np.nan])
+        >>> idx = pd.Index([np.nan, "var1", np.nan])
         >>> idx.get_indexer_for([np.nan])
         array([0, 2])
         """
@@ -6443,7 +6463,7 @@ class Index(IndexOpsMixin, PandasObject):
         return True
 
     @final
-    def groupby(self, values) -> PrettyDict[Hashable, np.ndarray]:
+    def groupby(self, values) -> PrettyDict[Hashable, Index]:
         """
         Group the index labels by a given array of values.
 
@@ -6491,16 +6511,16 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         >>> idx = pd.Index([1, 2, 3])
-        >>> idx.map({1: 'a', 2: 'b', 3: 'c'})
+        >>> idx.map({1: "a", 2: "b", 3: "c"})
         Index(['a', 'b', 'c'], dtype='object')
 
         Using `map` with a function:
 
         >>> idx = pd.Index([1, 2, 3])
-        >>> idx.map('I am a {}'.format)
+        >>> idx.map("I am a {}".format)
         Index(['I am a 1', 'I am a 2', 'I am a 3'], dtype='object')
 
-        >>> idx = pd.Index(['a', 'b', 'c'])
+        >>> idx = pd.Index(["a", "b", "c"])
         >>> idx.map(lambda x: x.upper())
         Index(['A', 'B', 'C'], dtype='object')
         """
@@ -6604,24 +6624,24 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.isin([1, 4])
         array([ True, False, False])
 
-        >>> midx = pd.MultiIndex.from_arrays([[1, 2, 3],
-        ...                                  ['red', 'blue', 'green']],
-        ...                                  names=('number', 'color'))
+        >>> midx = pd.MultiIndex.from_arrays(
+        ...     [[1, 2, 3], ["red", "blue", "green"]], names=("number", "color")
+        ... )
         >>> midx
         MultiIndex([(1,   'red'),
                     (2,  'blue'),
                     (3, 'green')],
-                   names=['number', 'color'])
+                   names=('number', 'color'))
 
         Check whether the strings in the 'color' level of the MultiIndex
         are in a list of colors.
 
-        >>> midx.isin(['red', 'orange', 'yellow'], level='color')
+        >>> midx.isin(["red", "orange", "yellow"], level="color")
         array([ True, False, False])
 
         To check across the levels of a MultiIndex, pass a list of tuples:
 
-        >>> midx.isin([(1, 'red'), (3, 'red')])
+        >>> midx.isin([(1, "red"), (3, "red")])
         array([ True, False, False])
         """
         if level is not None:
@@ -6669,12 +6689,12 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         This is a method on all index types. For example you can do:
 
-        >>> idx = pd.Index(list('abcd'))
-        >>> idx.slice_indexer(start='b', end='c')
+        >>> idx = pd.Index(list("abcd"))
+        >>> idx.slice_indexer(start="b", end="c")
         slice(1, 3, None)
 
-        >>> idx = pd.MultiIndex.from_arrays([list('abcd'), list('efgh')])
-        >>> idx.slice_indexer(start='b', end=('c', 'g'))
+        >>> idx = pd.MultiIndex.from_arrays([list("abcd"), list("efgh")])
+        >>> idx.slice_indexer(start="b", end=("c", "g"))
         slice(1, 3, None)
         """
         start_slice, end_slice = self.slice_locs(start, end, step=step)
@@ -6785,16 +6805,16 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         >>> idx = pd.RangeIndex(5)
-        >>> idx.get_slice_bound(3, 'left')
+        >>> idx.get_slice_bound(3, "left")
         3
 
-        >>> idx.get_slice_bound(3, 'right')
+        >>> idx.get_slice_bound(3, "right")
         4
 
         If ``label`` is non-unique in the index, an error will be raised.
 
-        >>> idx_duplicate = pd.Index(['a', 'b', 'a', 'c', 'd'])
-        >>> idx_duplicate.get_slice_bound('a', 'left')
+        >>> idx_duplicate = pd.Index(["a", "b", "a", "c", "d"])
+        >>> idx_duplicate.get_slice_bound("a", "left")
         Traceback (most recent call last):
         KeyError: Cannot get left slice bound for non-unique label: 'a'
         """
@@ -6870,8 +6890,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index(list('abcd'))
-        >>> idx.slice_locs(start='b', end='c')
+        >>> idx = pd.Index(list("abcd"))
+        >>> idx.slice_locs(start="b", end="c")
         (1, 3)
         """
         inc = step is None or step >= 0
@@ -6952,11 +6972,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index(['a', 'b', 'c'])
+        >>> idx = pd.Index(["a", "b", "c"])
         >>> idx.delete(1)
         Index(['a', 'c'], dtype='object')
 
-        >>> idx = pd.Index(['a', 'b', 'c'])
+        >>> idx = pd.Index(["a", "b", "c"])
         >>> idx.delete([0, 2])
         Index(['b'], dtype='object')
         """
@@ -6988,8 +7008,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index(['a', 'b', 'c'])
-        >>> idx.insert(1, 'x')
+        >>> idx = pd.Index(["a", "b", "c"])
+        >>> idx.insert(1, "x")
         Index(['a', 'x', 'b', 'c'], dtype='object')
         """
         item = lib.item_from_zerodim(item)
@@ -7072,8 +7092,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index(['a', 'b', 'c'])
-        >>> idx.drop(['a'])
+        >>> idx = pd.Index(["a", "b", "c"])
+        >>> idx.drop(["a"])
         Index(['b', 'c'], dtype='object')
         """
         if not isinstance(labels, Index):
@@ -7451,13 +7471,13 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.min()
         1
 
-        >>> idx = pd.Index(['c', 'b', 'a'])
+        >>> idx = pd.Index(["c", "b", "a"])
         >>> idx.min()
         'a'
 
         For a MultiIndex, the minimum is determined lexicographically.
 
-        >>> idx = pd.MultiIndex.from_product([('a', 'b'), (2, 1)])
+        >>> idx = pd.MultiIndex.from_product([("a", "b"), (2, 1)])
         >>> idx.min()
         ('a', 1)
         """
@@ -7514,13 +7534,13 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.max()
         3
 
-        >>> idx = pd.Index(['c', 'b', 'a'])
+        >>> idx = pd.Index(["c", "b", "a"])
         >>> idx.max()
         'c'
 
         For a MultiIndex, the maximum is determined lexicographically.
 
-        >>> idx = pd.MultiIndex.from_product([('a', 'b'), (2, 1)])
+        >>> idx = pd.MultiIndex.from_product([("a", "b"), (2, 1)])
         >>> idx.max()
         ('b', 2)
         """
@@ -7592,7 +7612,7 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
     >>> ensure_index_from_sequences([["a", "a"], ["a", "b"]], names=["L1", "L2"])
     MultiIndex([('a', 'a'),
                 ('a', 'b')],
-               names=['L1', 'L2'])
+               names=('L1', 'L2'))
 
     See Also
     --------
@@ -7628,13 +7648,13 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
 
     Examples
     --------
-    >>> ensure_index(['a', 'b'])
+    >>> ensure_index(["a", "b"])
     Index(['a', 'b'], dtype='object')
 
-    >>> ensure_index([('a', 'a'),  ('b', 'c')])
+    >>> ensure_index([("a", "a"), ("b", "c")])
     Index([('a', 'a'), ('b', 'c')], dtype='object')
 
-    >>> ensure_index([['a', 'a'], ['b', 'c']])
+    >>> ensure_index([["a", "a"], ["b", "c"]])
     MultiIndex([('a', 'b'),
             ('a', 'c')],
            )

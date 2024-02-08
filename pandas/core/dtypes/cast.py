@@ -893,10 +893,10 @@ def infer_dtype_from_array(arr) -> tuple[DtypeObj, ArrayLike]:
 
     Examples
     --------
-    >>> np.asarray([1, '1'])
+    >>> np.asarray([1, "1"])
     array(['1', '1'], dtype='<U21')
 
-    >>> infer_dtype_from_array([1, '1'])
+    >>> infer_dtype_from_array([1, "1"])
     (dtype('O'), [1, '1'])
     """
     if isinstance(arr, np.ndarray):
@@ -1683,6 +1683,7 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
     arr = np.asarray(arr)
 
     if np.issubdtype(arr.dtype, str):
+        # TODO(numpy-2.0 min): This case will raise an OverflowError above
         if (casted.astype(str) == arr).all():
             return casted
         raise ValueError(f"string values cannot be losslessly cast to {dtype}")
