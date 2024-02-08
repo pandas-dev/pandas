@@ -105,8 +105,6 @@ Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - All arguments except the first ``path``-like argument in IO writers are now keyword only (:issue:`54229`)
 - Removed ``DataFrame.bool`` and ``Series.bool`` (:issue:`51756`)
-- Removed ``DataFrame.first`` and ``DataFrame.last`` (:issue:`53710`)
-- Removed ``DataFrameGroupBy.grouper`` and ``SeriesGroupBy.grouper`` (:issue:`56521`)
 - Removed ``DataFrameGroupBy.grouper`` and ``SeriesGroupBy.grouper`` (:issue:`56521`)
 - Removed ``DataFrameGroupby.fillna`` and ``SeriesGroupBy.fillna``` (:issue:`55719`)
 - Removed ``Series.__int__`` and ``Series.__float__``. Call ``int(Series.iloc[0])`` or ``float(Series.iloc[0])`` instead. (:issue:`51131`)
