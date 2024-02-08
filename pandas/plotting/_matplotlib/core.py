@@ -93,7 +93,14 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas import Series
+    from pandas import (
+        Index,
+        Series,
+    )
+
+
+def holds_integer(column: Index) -> bool:
+    return column.inferred_type in {"integer", "mixed-integer"}
 
 
 def _color_in_style(style: str) -> bool:
@@ -1246,9 +1253,9 @@ class PlanePlot(MPLPlot, ABC):
         MPLPlot.__init__(self, data, **kwargs)
         if x is None or y is None:
             raise ValueError(self._kind + " requires an x and y column")
-        if is_integer(x) and not self.data.columns._holds_integer():
+        if is_integer(x) and not holds_integer(self.data.columns):
             x = self.data.columns[x]
-        if is_integer(y) and not self.data.columns._holds_integer():
+        if is_integer(y) and not holds_integer(self.data.columns):
             y = self.data.columns[y]
 
         self.x = x
@@ -1318,7 +1325,7 @@ class ScatterPlot(PlanePlot):
         self.norm = norm
 
         super().__init__(data, x, y, **kwargs)
-        if is_integer(c) and not self.data.columns._holds_integer():
+        if is_integer(c) and not holds_integer(self.data.columns):
             c = self.data.columns[c]
         self.c = c
 
@@ -1434,7 +1441,7 @@ class HexBinPlot(PlanePlot):
 
     def __init__(self, data, x, y, C=None, *, colorbar: bool = True, **kwargs) -> None:
         super().__init__(data, x, y, **kwargs)
-        if is_integer(C) and not self.data.columns._holds_integer():
+        if is_integer(C) and not holds_integer(self.data.columns):
             C = self.data.columns[C]
         self.C = C
 
