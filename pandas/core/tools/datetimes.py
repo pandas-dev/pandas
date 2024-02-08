@@ -828,12 +828,9 @@ def to_datetime(
         When another datetime conversion error happens. For example when one
         of 'year', 'month', day' columns is missing in a :class:`DataFrame`, or
         when a Timezone-aware :class:`datetime.datetime` is found in an array-like
-        of mixed time offsets, and ``utc=False``.
-
-        When parsing datetimes with mixed time zones unless ``utc=True``.
-        Please specify ``utc=True`` to opt in to the new behaviour.
-        To create a :class:`Series` with mixed offsets and ``object`` dtype,
-        please use :meth:`Series.apply` and :func:`datetime.datetime.strptime`.
+        of mixed time offsets, and ``utc=False``, or when parsing datetimes
+        with mixed time zones unless ``utc=True``. Parsing datetimes with mixed
+        time zones, please specify ``utc=True`` to opt in to the new behaviour.
 
     See Also
     --------
@@ -956,15 +953,13 @@ def to_datetime(
       Parsing datetimes with mixed time zones will raise a ValueError unless
       ``utc=True``:
 
-    .. code-block:: python
+    >>> pd.to_datetime(
+    ...     ["2020-10-25 02:00 +0200", "2020-10-25 04:00 +0100"]
+    ... )  # doctest: +SKIP
+    ValueError: cannot parse datetimes with mixed time zones unless `utc=True`
 
-        >>> pd.to_datetime(
-        ...     ["2020-10-25 02:00 +0200", "2020-10-25 04:00 +0100"]
-        ... )  # doctest: +SKIP
-        ValueError: cannot parse datetimes with mixed time zones unless `utc=True`
-
-    To create a :class:`Series` with mixed offsets and ``object`` dtype, please use
-    :meth:`Series.apply` and :func:`datetime.datetime.strptime`:
+    - To create a :class:`Series` with mixed offsets and ``object`` dtype, please use
+      :meth:`Series.apply` and :func:`datetime.datetime.strptime`:
 
     >>> import datetime as dt
     >>> ser = pd.Series(["2020-10-25 02:00 +0200", "2020-10-25 04:00 +0100"])
@@ -974,15 +969,13 @@ def to_datetime(
     dtype: object
 
     - A mix of timezone-aware and timezone-naive inputs will also raise a ValueError
-    unless ``utc=True``:
+      unless ``utc=True``:
 
-    .. code-block:: python
-
-        >>> from datetime import datetime
-        >>> pd.to_datetime(
-        ...     ["2020-01-01 01:00:00-01:00", datetime(2020, 1, 1, 3, 0)]
-        ... )  # doctest: +SKIP
-        ValueError: cannot parse datetimes with mixed time zones unless `utc=True`
+    >>> from datetime import datetime
+    >>> pd.to_datetime(
+    ...     ["2020-01-01 01:00:00-01:00", datetime(2020, 1, 1, 3, 0)]
+    ... )  # doctest: +SKIP
+    ValueError: cannot parse datetimes with mixed time zones unless `utc=True`
 
     |
 
