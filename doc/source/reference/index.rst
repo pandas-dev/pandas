@@ -62,7 +62,6 @@ to be stable.
 ..
     .. toctree::
 
-        api/pandas.Index.holds_integer
         api/pandas.Index.nlevels
         api/pandas.Index.sort
 

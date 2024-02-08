@@ -780,38 +780,20 @@ class DataFrameFormatter:
 
         if isinstance(columns, MultiIndex):
             fmt_columns = columns._format_multi(sparsify=False, include_names=False)
-            fmt_columns = list(zip(*fmt_columns))
-            dtypes = self.frame.dtypes._values
+            if self.sparsify and len(fmt_columns):
+                fmt_columns = sparsify_labels(fmt_columns)
 
-            # if we have a Float level, they don't use leading space at all
-            restrict_formatting = any(level.is_floating for level in columns.levels)
-            need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
-
-            def space_format(x, y):
-                if (
-                    y not in self.formatters
-                    and need_leadsp[x]
-                    and not restrict_formatting
-                ):
-                    return " " + y
-                return y
-
-            str_columns_tuple = list(
-                zip(*([space_format(x, y) for y in x] for x in fmt_columns))
-            )
-            if self.sparsify and len(str_columns_tuple):
-                str_columns_tuple = sparsify_labels(str_columns_tuple)
-
-            str_columns = [list(x) for x in zip(*str_columns_tuple)]
+            str_columns = [list(x) for x in zip(*fmt_columns)]
         else:
             fmt_columns = columns._format_flat(include_name=False)
-            dtypes = self.frame.dtypes
-            need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
             str_columns = [
-                [" " + x if not self._get_formatter(i) and need_leadsp[x] else x]
-                for i, x in enumerate(fmt_columns)
+                [
+                    " " + x
+                    if not self._get_formatter(i) and is_numeric_dtype(dtype)
+                    else x
+                ]
+                for i, (x, dtype) in enumerate(zip(fmt_columns, self.frame.dtypes))
             ]
-        # self.str_columns = str_columns
         return str_columns
 
     def _get_formatted_index(self, frame: DataFrame) -> list[str]:
