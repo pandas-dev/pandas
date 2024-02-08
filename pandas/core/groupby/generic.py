@@ -269,7 +269,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Examples
         --------
-        >>> s = pd.Series([0, 1, 2], index='a a b'.split())
+        >>> s = pd.Series([0, 1, 2], index="a a b".split())
         >>> g1 = s.groupby(s.index, group_keys=False)
         >>> g2 = s.groupby(s.index, group_keys=True)
 
@@ -286,7 +286,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
             The resulting dtype will reflect the return value of the passed ``func``.
 
-        >>> g1.apply(lambda x: x * 2 if x.name == 'a' else x / 2)
+        >>> g1.apply(lambda x: x * 2 if x.name == "a" else x / 2)
         a    0.0
         a    2.0
         b    1.0
@@ -295,7 +295,7 @@ class SeriesGroupBy(GroupBy[Series]):
         In the above, the groups are not part of the index. We can have them included
         by using ``g2`` where ``group_keys=True``:
 
-        >>> g2.apply(lambda x: x * 2 if x.name == 'a' else x / 2)
+        >>> g2.apply(lambda x: x * 2 if x.name == "a" else x / 2)
         a  a    0.0
            a    2.0
         b  b    1.0

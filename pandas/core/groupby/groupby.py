@@ -1593,11 +1593,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': 'a a b'.split(),
-        ...                    'B': [1, 2, 3],
-        ...                    'C': [4, 6, 5]})
-        >>> g1 = df.groupby('A', group_keys=False)
-        >>> g2 = df.groupby('A', group_keys=True)
+        >>> df = pd.DataFrame({"A": "a a b".split(), "B": [1, 2, 3], "C": [4, 6, 5]})
+        >>> g1 = df.groupby("A", group_keys=False)
+        >>> g2 = df.groupby("A", group_keys=True)
 
         Notice that ``g1`` and ``g2`` have two groups, ``a`` and ``b``, and only
         differ in their ``group_keys`` argument. Calling `apply` in various ways,
@@ -1607,7 +1605,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         its argument and returns a DataFrame. `apply` combines the result for
         each group together into a new DataFrame:
 
-        >>> g1[['B', 'C']].apply(lambda x: x / x.sum())
+        >>> g1[["B", "C"]].apply(lambda x: x / x.sum())
                   B    C
         0  0.333333  0.4
         1  0.666667  0.6
@@ -1616,7 +1614,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         In the above, the groups are not part of the index. We can have them included
         by using ``g2`` where ``group_keys=True``:
 
-        >>> g2[['B', 'C']].apply(lambda x: x / x.sum())
+        >>> g2[["B", "C"]].apply(lambda x: x / x.sum())
                     B    C
         A
         a 0  0.333333  0.4
@@ -1631,13 +1629,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             The resulting dtype will reflect the return value of the passed ``func``.
 
-        >>> g1[['B', 'C']].apply(lambda x: x.astype(float).max() - x.min())
+        >>> g1[["B", "C"]].apply(lambda x: x.astype(float).max() - x.min())
              B    C
         A
         a  1.0  2.0
         b  0.0  0.0
 
-        >>> g2[['B', 'C']].apply(lambda x: x.astype(float).max() - x.min())
+        >>> g2[["B", "C"]].apply(lambda x: x.astype(float).max() - x.min())
              B    C
         A
         a  1.0  2.0
