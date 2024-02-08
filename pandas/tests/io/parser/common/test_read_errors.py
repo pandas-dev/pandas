@@ -19,7 +19,8 @@ from pandas.errors import (
 )
 
 from pandas import (
-    DataFrame, Series,
+    DataFrame,
+    Series,
 )
 import pandas._testing as tm
 
@@ -164,7 +165,7 @@ def test_suppress_error_output(all_parsers):
     parser = all_parsers
     data = "a\n1\n1,2,3\n4\n5,6,7"
     expected = Series([1, 4], name="a", index=[0, 1])
-                         
+
     result = parser.read_csv(StringIO(data), on_bad_lines="skip")["a"]
     tm.assert_series_equal(result, expected)
 

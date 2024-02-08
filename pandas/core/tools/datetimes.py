@@ -829,10 +829,11 @@ def to_datetime(
         of 'year', 'month', day' columns is missing in a :class:`DataFrame`, or
         when a Timezone-aware :class:`datetime.datetime` is found in an array-like
         of mixed time offsets, and ``utc=False``.
-        When parsing datetimes with mixed time zones unless `utc=True`.
-        Please specify `utc=True` to opt in to the new behaviour.
-        To create a `Series` with mixed offsets and `object` dtype,
-        please use `apply` and `datetime.datetime.strptime`.
+
+        When parsing datetimes with mixed time zones unless ``utc=True``.
+        Please specify ``utc=True`` to opt in to the new behaviour.
+        To create a :class:`Series` with mixed offsets and ``object`` dtype,
+        please use :meth:`Series.apply` and :func:`datetime.datetime.strptime`.
 
     See Also
     --------
@@ -956,17 +957,15 @@ def to_datetime(
     - However, timezone-aware inputs *with mixed time offsets* (for example
       issued from a timezone with daylight savings, such as Europe/Paris)
       are **not successfully converted** to a :class:`DatetimeIndex`.
-      Parsing datetimes with mixed time zones will show a warning unless
-      `utc=True`. If you specify `utc=False` the warning below will be shown
-      and a simple :class:`Index` containing :class:`datetime.datetime`
-      objects will be returned:
+      Parsing datetimes with mixed time zones will raise a ValueError unless
+      ``utc=True``:
 
     >>> pd.to_datetime(['2020-10-25 02:00 +0200',
     ...                 '2020-10-25 04:00 +0100'])  # doctest: +SKIP
     ValueError: cannot parse datetimes with mixed time zones unless `utc=True`
 
-    To create a `Series` with mixed offsets and `object` dtype, please use `apply`
-    and `datetime.datetime.strptime`.
+    To create a :class:`Series` with mixed offsets and ``object`` dtype, please use
+    :meth:`Series.apply` and :func:`datetime.datetime.strptime`:
 
     >>> import datetime as dt
     >>> ser = pd.Series(['2020-10-25 02:00 +0200', '2020-10-25 04:00 +0100'])
@@ -975,8 +974,8 @@ def to_datetime(
     1    2020-10-25 04:00:00+01:00
     dtype: object
 
-    - A mix of timezone-aware and timezone-naive inputs is also converted to
-      a simple :class:`Index` containing :class:`datetime.datetime` objects:
+    - A mix of timezone-aware and timezone-naive inputs will also raise a ValueError
+    unless ``utc=True``:
 
     >>> from datetime import datetime
     >>> pd.to_datetime(["2020-01-01 01:00:00-01:00",
