@@ -297,7 +297,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         >>> g2.apply(lambda x: x * 2 if x.name == 'a' else x / 2)
         a  a    0.0
-        a    2.0
+           a    2.0
         b  b    1.0
         dtype: float64
 

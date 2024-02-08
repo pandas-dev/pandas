@@ -1590,7 +1590,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         each group together into a new DataFrame:
 
         >>> g1[['B', 'C']].apply(lambda x: x / x.sum())
-                B    C
+                  B    C
         0  0.333333  0.4
         1  0.666667  0.6
         2  1.000000  1.0
@@ -1602,7 +1602,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     B    C
         A
         a 0  0.333333  0.4
-        1  0.666667  0.6
+          1  0.666667  0.6
         b 2  1.000000  1.0
 
         Example 2: The function passed to `apply` takes a DataFrame as
@@ -1614,13 +1614,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             The resulting dtype will reflect the return value of the passed ``func``.
 
         >>> g1[['B', 'C']].apply(lambda x: x.astype(float).max() - x.min())
-            B    C
+             B    C
         A
         a  1.0  2.0
         b  0.0  0.0
 
         >>> g2[['B', 'C']].apply(lambda x: x.astype(float).max() - x.min())
-            B    C
+             B    C
         A
         a  1.0  2.0
         b  0.0  0.0
