@@ -956,15 +956,16 @@ def to_datetime(
       Parsing datetimes with mixed time zones will raise a ValueError unless
       ``utc=True``:
 
-    >>> pd.to_datetime(['2020-10-25 02:00 +0200',
-    ...                 '2020-10-25 04:00 +0100'])  # doctest: +SKIP
+    >>> pd.to_datetime(
+    ...     ["2020-10-25 02:00 +0200", "2020-10-25 04:00 +0100"]
+    ... )  # doctest: +SKIP
     ValueError: cannot parse datetimes with mixed time zones unless `utc=True`
 
     To create a :class:`Series` with mixed offsets and ``object`` dtype, please use
     :meth:`Series.apply` and :func:`datetime.datetime.strptime`:
 
     >>> import datetime as dt
-    >>> ser = pd.Series(['2020-10-25 02:00 +0200', '2020-10-25 04:00 +0100'])
+    >>> ser = pd.Series(["2020-10-25 02:00 +0200", "2020-10-25 04:00 +0100"])
     >>> ser.apply(lambda x: dt.datetime.strptime(x, "%Y-%m-%d %H:%M %z"))
     0    2020-10-25 02:00:00+02:00
     1    2020-10-25 04:00:00+01:00
@@ -974,8 +975,9 @@ def to_datetime(
     unless ``utc=True``:
 
     >>> from datetime import datetime
-    >>> pd.to_datetime(["2020-01-01 01:00:00-01:00",
-    ...                 datetime(2020, 1, 1, 3, 0)])  # doctest: +SKIP
+    >>> pd.to_datetime(
+    ...     ["2020-01-01 01:00:00-01:00", datetime(2020, 1, 1, 3, 0)]
+    ... )  # doctest: +SKIP
     ValueError: cannot parse datetimes with mixed time zones unless `utc=True`
 
     |
