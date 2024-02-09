@@ -386,34 +386,6 @@ def test_where_numeric_with_string():
     assert w.dtype == "object"
 
 
-@pytest.mark.parametrize("dtype", ["timedelta64[ns]", "datetime64[ns]"])
-def test_where_datetimelike_coerce(dtype):
-    ser = Series([1, 2], dtype=dtype)
-    expected = Series([10, 10])
-    mask = np.array([False, False])
-
-    msg = "Downcasting behavior in Series and DataFrame methods 'where'"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        rs = ser.where(mask, [10, 10])
-    tm.assert_series_equal(rs, expected)
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        rs = ser.where(mask, 10)
-    tm.assert_series_equal(rs, expected)
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        rs = ser.where(mask, 10.0)
-    tm.assert_series_equal(rs, expected)
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        rs = ser.where(mask, [10.0, 10.0])
-    tm.assert_series_equal(rs, expected)
-
-    rs = ser.where(mask, [10.0, np.nan])
-    expected = Series([10, np.nan], dtype="object")
-    tm.assert_series_equal(rs, expected)
-
-
 def test_where_datetimetz():
     # GH 15701
     timestamps = ["2016-12-31 12:00:04+00:00", "2016-12-31 12:00:04.010000+00:00"]
