@@ -1394,36 +1394,6 @@ class Index(IndexOpsMixin, PandasObject):
             return cast(np.ndarray, self.values)
         return self.astype(object, copy=False)._values
 
-    def format(
-        self,
-        name: bool = False,
-        formatter: Callable | None = None,
-        na_rep: str_t = "NaN",
-    ) -> list[str_t]:
-        """
-        Render a string representation of the Index.
-        """
-        warnings.warn(
-            # GH#55413
-            f"{type(self).__name__}.format is deprecated and will be removed "
-            "in a future version. Convert using index.astype(str) or "
-            "index.map(formatter) instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        header = []
-        if name:
-            header.append(
-                pprint_thing(self.name, escape_chars=("\t", "\r", "\n"))
-                if self.name is not None
-                else ""
-            )
-
-        if formatter is not None:
-            return header + list(self.map(formatter))
-
-        return self._format_with_header(header=header, na_rep=na_rep)
-
     _default_na_rep = "NaN"
 
     @final

@@ -118,7 +118,6 @@ generated/pandas.api.types.is_int64_dtype,../reference/api/pandas.api.types.is_i
 generated/pandas.api.types.is_integer_dtype,../reference/api/pandas.api.types.is_integer_dtype
 generated/pandas.api.types.is_integer,../reference/api/pandas.api.types.is_integer
 generated/pandas.api.types.is_interval_dtype,../reference/api/pandas.api.types.is_interval_dtype
-generated/pandas.api.types.is_interval,../reference/api/pandas.api.types.is_interval
 generated/pandas.api.types.is_iterator,../reference/api/pandas.api.types.is_iterator
 generated/pandas.api.types.is_list_like,../reference/api/pandas.api.types.is_list_like
 generated/pandas.api.types.is_named_tuple,../reference/api/pandas.api.types.is_named_tuple

@@ -567,29 +567,6 @@ class TestBase:
             tm.assert_numpy_array_equal(index_a == item, expected3)
             tm.assert_series_equal(series_a == item, Series(expected3))
 
-    def test_format(self, simple_index):
-        # GH35439
-        if is_numeric_dtype(simple_index.dtype) or isinstance(
-            simple_index, DatetimeIndex
-        ):
-            pytest.skip("Tested elsewhere.")
-        idx = simple_index
-        expected = [str(x) for x in idx]
-        msg = r"Index\.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert idx.format() == expected
-
-    def test_format_empty(self, simple_index):
-        # GH35712
-        if isinstance(simple_index, (PeriodIndex, RangeIndex)):
-            pytest.skip("Tested elsewhere")
-        empty_idx = type(simple_index)([])
-        msg = r"Index\.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert empty_idx.format() == []
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert empty_idx.format(name=True) == [""]
-
     def test_fillna(self, index):
         # GH 11343
         if len(index) == 0:
@@ -926,17 +903,6 @@ class TestNumericBase:
         with tm.assert_produces_warning(FutureWarning, match=msg):
             idx_view = idx.view(index_cls)
         tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
-
-    def test_format(self, simple_index):
-        # GH35439
-        if isinstance(simple_index, DatetimeIndex):
-            pytest.skip("Tested elsewhere")
-        idx = simple_index
-        max_width = max(len(str(x)) for x in idx)
-        expected = [str(x).ljust(max_width) for x in idx]
-        msg = r"Index\.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert idx.format() == expected
 
     def test_insert_non_na(self, simple_index):
         # GH#43921 inserting an element that we know we can hold should

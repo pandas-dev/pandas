@@ -101,7 +101,6 @@ from pandas.core.api import (
     Grouper,
     factorize,
     unique,
-    value_counts,
     NamedAgg,
     array,
     Categorical,
@@ -378,6 +377,5 @@ __all__ = [
     "to_timedelta",
     "tseries",
     "unique",
-    "value_counts",
     "wide_to_long",
 ]

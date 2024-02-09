@@ -242,11 +242,6 @@ class TestRangeIndex:
             pass
         assert idx._cache == {}
 
-        msg = "RangeIndex.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            idx.format()
-        assert idx._cache == {}
-
         df = pd.DataFrame({"a": range(10)}, index=idx)
 
         # df.__repr__ should not populate index cache
@@ -569,15 +564,6 @@ class TestRangeIndex:
             idx.get_loc("a")
 
         assert "_engine" not in idx._cache
-
-    def test_format_empty(self):
-        # GH35712
-        empty_idx = RangeIndex(0)
-        msg = r"RangeIndex\.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert empty_idx.format() == []
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert empty_idx.format(name=True) == [""]
 
     @pytest.mark.parametrize(
         "ri",
