@@ -669,7 +669,7 @@ def get_data_from_filepath(
     encoding: str | None,
     compression: CompressionOptions,
     storage_options: StorageOptions,
-) -> str | bytes | ReadBuffer[bytes] | ReadBuffer[str]:
+):
     """
     Extract raw XML data.
 
@@ -677,7 +677,7 @@ def get_data_from_filepath(
         1. filepath (string-like)
         2. file-like object (e.g. open file object, StringIO)
     """
-    filepath_or_buffer = stringify_path(filepath_or_buffer)
+    filepath_or_buffer = stringify_path(filepath_or_buffer)  # type: ignore[arg-type]
     with get_handle(
         filepath_or_buffer,
         "r",
