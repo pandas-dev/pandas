@@ -21,7 +21,7 @@ is that the original data type will be coerced to ``np.float64`` or ``object``.
    pd.Series([True, False], dtype=np.bool_).reindex([0, 1, 2])
 
 :class:`NaT` for NumPy ``np.datetime64``, ``np.timedelta64``, and :class:`PeriodDtype`. For typing applications,
-use :class:`api.types.NaTType`.
+use :class:`api.typing.NaTType`.
 
 .. ipython:: python
 
