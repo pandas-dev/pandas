@@ -181,8 +181,8 @@ def to_numeric(
 
     Handling of data with non standard decimal or thousand separators
 
-    >>> s = pd.Series(['1,5', '2.000.000', -3])
-    >>> pd.to_numeric(s, thousands='.', decimal=',')
+    >>> s = pd.Series(["1,5", "2.000.000", -3])
+    >>> pd.to_numeric(s, thousands=".", decimal=",")
     0   1.5
     1   2000000.0
     2   -3.0
