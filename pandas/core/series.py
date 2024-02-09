@@ -221,28 +221,6 @@ axis : int or str, optional
     Unused.""",
 }
 
-
-def _coerce_method(converter):
-    """
-    Install the scalar coercion methods.
-    """
-
-    def wrapper(self):
-        if len(self) == 1:
-            warnings.warn(
-                f"Calling {converter.__name__} on a single element Series is "
-                "deprecated and will raise a TypeError in the future. "
-                f"Use {converter.__name__}(ser.iloc[0]) instead",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            return converter(self.iloc[0])
-        raise TypeError(f"cannot convert the series to {converter}")
-
-    wrapper.__name__ = f"__{converter.__name__}__"
-    return wrapper
-
-
 # ----------------------------------------------------------------------
 # Series class
 
@@ -888,13 +866,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 self, api_version=api_version
             )
         )
-
-    # ----------------------------------------------------------------------
-    # Unary Methods
-
-    # coercion
-    __float__ = _coerce_method(float)
-    __int__ = _coerce_method(int)
 
     # ----------------------------------------------------------------------
 

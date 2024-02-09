@@ -299,8 +299,7 @@ Boolean reductions
 ~~~~~~~~~~~~~~~~~~
 
 You can apply the reductions: :attr:`~DataFrame.empty`, :meth:`~DataFrame.any`,
-:meth:`~DataFrame.all`, and :meth:`~DataFrame.bool` to provide a
-way to summarize a boolean result.
+:meth:`~DataFrame.all`.
 
 .. ipython:: python
 
