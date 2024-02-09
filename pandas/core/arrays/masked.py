@@ -502,6 +502,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         """
         hasna = self._hasna
         dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, hasna)
+        if dtype is None:
+            dtype = object
 
         if hasna:
             if (
