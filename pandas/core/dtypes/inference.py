@@ -29,8 +29,6 @@ is_scalar = lib.is_scalar
 
 is_decimal = lib.is_decimal
 
-is_interval = lib.is_interval
-
 is_list_like = lib.is_list_like
 
 is_iterator = lib.is_iterator

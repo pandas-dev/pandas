@@ -700,7 +700,6 @@ Scalar introspection
     api.types.is_float
     api.types.is_hashable
     api.types.is_integer
-    api.types.is_interval
     api.types.is_number
     api.types.is_re
     api.types.is_re_compilable

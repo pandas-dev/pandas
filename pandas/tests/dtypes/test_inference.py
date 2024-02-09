@@ -63,7 +63,6 @@ from pandas import (
     Index,
     Interval,
     Period,
-    PeriodIndex,
     Series,
     Timedelta,
     TimedeltaIndex,
@@ -1616,25 +1615,6 @@ class TestTypeInference:
         )
         out = lib.to_object_array(rows, min_width=5)
         tm.assert_numpy_array_equal(out, expected)
-
-    def test_is_period(self):
-        # GH#55264
-        msg = "is_period is deprecated and will be removed in a future version"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert lib.is_period(Period("2011-01", freq="M"))
-            assert not lib.is_period(PeriodIndex(["2011-01"], freq="M"))
-            assert not lib.is_period(Timestamp("2011-01"))
-            assert not lib.is_period(1)
-            assert not lib.is_period(np.nan)
-
-    def test_is_interval(self):
-        # GH#55264
-        msg = "is_interval is deprecated and will be removed in a future version"
-        item = Interval(1, 2)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert lib.is_interval(item)
-            assert not lib.is_interval(pd.IntervalIndex([item]))
-            assert not lib.is_interval(pd.IntervalIndex([item])._engine)
 
     def test_categorical(self):
         # GH 8974

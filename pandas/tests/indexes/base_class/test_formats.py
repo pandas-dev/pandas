@@ -144,20 +144,6 @@ class TestIndexRendering:
     def test_index_repr_bool_nan(self):
         # GH32146
         arr = Index([True, False, np.nan], dtype=object)
-        msg = "Index.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            exp1 = arr.format()
-        out1 = ["True", "False", "NaN"]
-        assert out1 == exp1
-
         exp2 = repr(arr)
         out2 = "Index([True, False, nan], dtype='object')"
         assert out2 == exp2
-
-    def test_format_different_scalar_lengths(self):
-        # GH#35439
-        idx = Index(["aaaaaaaaa", "b"])
-        expected = ["aaaaaaaaa", "b"]
-        msg = r"Index\.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert idx.format() == expected
