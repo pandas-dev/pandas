@@ -235,10 +235,8 @@ Reshaping, sorting
    Series.unstack
    Series.explode
    Series.searchsorted
-   Series.ravel
    Series.repeat
    Series.squeeze
-   Series.view
 
 Combining / comparing / joining / merging
 -----------------------------------------
