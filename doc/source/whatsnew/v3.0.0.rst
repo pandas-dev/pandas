@@ -105,8 +105,6 @@ Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - All arguments except the first ``path``-like argument in IO writers are now keyword only (:issue:`54229`)
 - Enforced deprecation disallowing parsing datetimes with mixed time zones unless user passes ``utc=True`` to :func:`to_datetime` (:issue:`57275`)
-- Removed :meth:`DataFrame.first` and :meth:`DataFrame.last` (:issue:`53710`)
-- Removed :meth:`DataFrameGroupby.fillna` and :meth:`SeriesGroupBy.fillna` (:issue:`55719`)
 - Removed ``DataFrameGroupBy.grouper`` and ``SeriesGroupBy.grouper`` (:issue:`56521`)
 - Removed ``DataFrameGroupby.fillna`` and ``SeriesGroupBy.fillna``` (:issue:`55719`)
 - Removed ``axis`` argument from :meth:`DataFrame.groupby`, :meth:`Series.groupby`, :meth:`DataFrame.rolling`, :meth:`Series.rolling`, :meth:`DataFrame.resample`, and :meth:`Series.resample` (:issue:`51203`)
