@@ -346,6 +346,9 @@ exclude = [
 fixture-parentheses = false
 mark-parentheses = false
 
+[tool.ruff.format]
+docstring-code-format = true
+
 [tool.pylint.messages_control]
 max-line-length = 88
 disable = [

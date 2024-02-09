@@ -49,9 +49,9 @@ class PerformanceWarning(Warning):
 
     Examples
     --------
-    >>> df = pd.DataFrame({"jim": [0, 0, 1, 1],
-    ...                    "joe": ["x", "x", "z", "y"],
-    ...                    "jolie": [1, 2, 3, 4]})
+    >>> df = pd.DataFrame(
+    ...     {"jim": [0, 0, 1, 1], "joe": ["x", "x", "z", "y"], "jolie": [1, 2, 3, 4]}
+    ... )
     >>> df = df.set_index(["jim", "joe"])
     >>> df
               jolie
@@ -60,7 +60,7 @@ class PerformanceWarning(Warning):
          x    2
     1    z    3
          y    4
-    >>> df.loc[(1, 'z')]  # doctest: +SKIP
+    >>> df.loc[(1, "z")]  # doctest: +SKIP
     # PerformanceWarning: indexing past lexsort depth may impact performance.
     df.loc[(1, 'z')]
               jolie
@@ -77,10 +77,9 @@ class UnsupportedFunctionCall(ValueError):
 
     Examples
     --------
-    >>> df = pd.DataFrame({"A": [0, 0, 1, 1],
-    ...                    "B": ["x", "x", "z", "y"],
-    ...                    "C": [1, 2, 3, 4]}
-    ...                   )
+    >>> df = pd.DataFrame(
+    ...     {"A": [0, 0, 1, 1], "B": ["x", "x", "z", "y"], "C": [1, 2, 3, 4]}
+    ... )
     >>> np.cumsum(df.groupby(["A"]))
     Traceback (most recent call last):
     UnsupportedFunctionCall: numpy operations are not valid with groupby.
@@ -96,10 +95,13 @@ class UnsortedIndexError(KeyError):
 
     Examples
     --------
-    >>> df = pd.DataFrame({"cat": [0, 0, 1, 1],
-    ...                    "color": ["white", "white", "brown", "black"],
-    ...                    "lives": [4, 4, 3, 7]},
-    ...                   )
+    >>> df = pd.DataFrame(
+    ...     {
+    ...         "cat": [0, 0, 1, 1],
+    ...         "color": ["white", "white", "brown", "black"],
+    ...         "lives": [4, 4, 3, 7],
+    ...     },
+    ... )
     >>> df = df.set_index(["cat", "color"])
     >>> df
                 lives
@@ -108,7 +110,7 @@ class UnsortedIndexError(KeyError):
          white    4
     1    brown    3
          black    7
-    >>> df.loc[(0, "black"):(1, "white")]
+    >>> df.loc[(0, "black") : (1, "white")]
     Traceback (most recent call last):
     UnsortedIndexError: 'Key length (2) was greater
     than MultiIndex lexsort depth (1)'
@@ -133,7 +135,7 @@ class ParserError(ValueError):
     ... cat,foo,bar
     ... dog,foo,"baz'''
     >>> from io import StringIO
-    >>> pd.read_csv(StringIO(data), skipfooter=1, engine='python')
+    >>> pd.read_csv(StringIO(data), skipfooter=1, engine="python")
     Traceback (most recent call last):
     ParserError: ',' expected after '"'. Error could possibly be due
     to parsing errors in the skipped footer rows
@@ -167,11 +169,14 @@ class DtypeWarning(Warning):
     This example creates and reads a large CSV file with a column that contains
     `int` and `str`.
 
-    >>> df = pd.DataFrame({'a': (['1'] * 100000 + ['X'] * 100000 +
-    ...                          ['1'] * 100000),
-    ...                    'b': ['b'] * 300000})  # doctest: +SKIP
-    >>> df.to_csv('test.csv', index=False)  # doctest: +SKIP
-    >>> df2 = pd.read_csv('test.csv')  # doctest: +SKIP
+    >>> df = pd.DataFrame(
+    ...     {
+    ...         "a": (["1"] * 100000 + ["X"] * 100000 + ["1"] * 100000),
+    ...         "b": ["b"] * 300000,
+    ...     }
+    ... )  # doctest: +SKIP
+    >>> df.to_csv("test.csv", index=False)  # doctest: +SKIP
+    >>> df2 = pd.read_csv("test.csv")  # doctest: +SKIP
     ... # DtypeWarning: Columns (0) have mixed types
 
     Important to notice that ``df2`` will contain both `str` and `int` for the
@@ -189,7 +194,7 @@ class DtypeWarning(Warning):
     One way to solve this issue is using the `dtype` parameter in the
     `read_csv` and `read_table` functions to explicit the conversion:
 
-    >>> df2 = pd.read_csv('test.csv', sep=',', dtype={'a': str})  # doctest: +SKIP
+    >>> df2 = pd.read_csv("test.csv", sep=",", dtype={"a": str})  # doctest: +SKIP
 
     No warning was issued.
     """
@@ -241,12 +246,12 @@ class ParserWarning(Warning):
     >>> csv = '''a;b;c
     ...           1;1,8
     ...           1;2,1'''
-    >>> df = pd.read_csv(io.StringIO(csv), sep='[;,]')  # doctest: +SKIP
+    >>> df = pd.read_csv(io.StringIO(csv), sep="[;,]")  # doctest: +SKIP
     ... # ParserWarning: Falling back to the 'python' engine...
 
     Adding `engine='python'` to `pd.read_csv` removes the Warning:
 
-    >>> df = pd.read_csv(io.StringIO(csv), sep='[;,]', engine='python')
+    >>> df = pd.read_csv(io.StringIO(csv), sep="[;,]", engine="python")
     """
 
 
@@ -258,13 +263,19 @@ class MergeError(ValueError):
 
     Examples
     --------
-    >>> left = pd.DataFrame({"a": ["a", "b", "b", "d"],
-    ...                     "b": ["cat", "dog", "weasel", "horse"]},
-    ...                     index=range(4))
-    >>> right = pd.DataFrame({"a": ["a", "b", "c", "d"],
-    ...                      "c": ["meow", "bark", "chirp", "nay"]},
-    ...                      index=range(4)).set_index("a")
-    >>> left.join(right, on="a", validate="one_to_one",)
+    >>> left = pd.DataFrame(
+    ...     {"a": ["a", "b", "b", "d"], "b": ["cat", "dog", "weasel", "horse"]},
+    ...     index=range(4),
+    ... )
+    >>> right = pd.DataFrame(
+    ...     {"a": ["a", "b", "c", "d"], "c": ["meow", "bark", "chirp", "nay"]},
+    ...     index=range(4),
+    ... ).set_index("a")
+    >>> left.join(
+    ...     right,
+    ...     on="a",
+    ...     validate="one_to_one",
+    ... )
     Traceback (most recent call last):
     MergeError: Merge keys are not unique in left dataset; not a one-to-one merge
     """
@@ -280,6 +291,7 @@ class AbstractMethodError(NotImplementedError):
     ...     @classmethod
     ...     def classmethod(cls):
     ...         raise pd.errors.AbstractMethodError(cls, methodtype="classmethod")
+    ...
     ...     def method(self):
     ...         raise pd.errors.AbstractMethodError(self)
     >>> test = Foo.classmethod()
@@ -314,8 +326,9 @@ class NumbaUtilError(Exception):
 
     Examples
     --------
-    >>> df = pd.DataFrame({"key": ["a", "a", "b", "b"], "data": [1, 2, 3, 4]},
-    ...                   columns=["key", "data"])
+    >>> df = pd.DataFrame(
+    ...     {"key": ["a", "a", "b", "b"], "data": [1, 2, 3, 4]}, columns=["key", "data"]
+    ... )
     >>> def incorrect_function(x):
     ...     return sum(x) * 2.7
     >>> df.groupby("key").agg(incorrect_function, engine="numba")
@@ -331,10 +344,10 @@ class DuplicateLabelError(ValueError):
 
     Examples
     --------
-    >>> s = pd.Series([0, 1, 2], index=['a', 'b', 'c']).set_flags(
+    >>> s = pd.Series([0, 1, 2], index=["a", "b", "c"]).set_flags(
     ...     allows_duplicate_labels=False
     ... )
-    >>> s.reindex(['a', 'a', 'b'])
+    >>> s.reindex(["a", "a", "b"])
     Traceback (most recent call last):
        ...
     DuplicateLabelError: Index has duplicates.
@@ -351,8 +364,7 @@ class InvalidIndexError(Exception):
     Examples
     --------
     >>> idx = pd.MultiIndex.from_product([["x", "y"], [0, 1]])
-    >>> df = pd.DataFrame([[1, 1, 2, 2],
-    ...                   [3, 3, 4, 4]], columns=idx)
+    >>> df = pd.DataFrame([[1, 1, 2, 2], [3, 3, 4, 4]], columns=idx)
     >>> df
         x       y
         0   1   0   1
@@ -373,7 +385,7 @@ class DataError(Exception):
 
     Examples
     --------
-    >>> ser = pd.Series(['a', 'b', 'c'])
+    >>> ser = pd.Series(["a", "b", "c"])
     >>> ser.rolling(2).sum()
     Traceback (most recent call last):
     DataError: No numeric types to aggregate
@@ -394,16 +406,14 @@ class SpecificationError(Exception):
 
     Examples
     --------
-    >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2],
-    ...                    'B': range(5),
-    ...                    'C': range(5)})
-    >>> df.groupby('A').B.agg({'foo': 'count'})  # doctest: +SKIP
+    >>> df = pd.DataFrame({"A": [1, 1, 1, 2, 2], "B": range(5), "C": range(5)})
+    >>> df.groupby("A").B.agg({"foo": "count"})  # doctest: +SKIP
     ... # SpecificationError: nested renamer is not supported
 
-    >>> df.groupby('A').agg({'B': {'foo': ['sum', 'max']}})  # doctest: +SKIP
+    >>> df.groupby("A").agg({"B": {"foo": ["sum", "max"]}})  # doctest: +SKIP
     ... # SpecificationError: nested renamer is not supported
 
-    >>> df.groupby('A').agg(['min', 'min'])  # doctest: +SKIP
+    >>> df.groupby("A").agg(["min", "min"])  # doctest: +SKIP
     ... # SpecificationError: nested renamer is not supported
     """
 
@@ -424,7 +434,7 @@ class ChainedAssignmentError(Warning):
     Examples
     --------
     >>> pd.options.mode.copy_on_write = True
-    >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2]}, columns=['A'])
+    >>> df = pd.DataFrame({"A": [1, 1, 1, 2, 2]}, columns=["A"])
     >>> df["A"][0:3] = 10  # doctest: +SKIP
     ... # ChainedAssignmentError: ...
     >>> pd.options.mode.copy_on_write = False
@@ -441,11 +451,11 @@ class NumExprClobberingError(NameError):
 
     Examples
     --------
-    >>> df = pd.DataFrame({'abs': [1, 1, 1]})
+    >>> df = pd.DataFrame({"abs": [1, 1, 1]})
     >>> df.query("abs > 2")  # doctest: +SKIP
     ... # NumExprClobberingError: Variables in expression "(abs) > (2)" overlap...
     >>> sin, a = 1, 2
-    >>> pd.eval("sin + a", engine='numexpr')  # doctest: +SKIP
+    >>> pd.eval("sin + a", engine="numexpr")  # doctest: +SKIP
     ... # NumExprClobberingError: Variables in expression "(sin) + (a)" overlap...
     """
 
@@ -458,12 +468,12 @@ class UndefinedVariableError(NameError):
 
     Examples
     --------
-    >>> df = pd.DataFrame({'A': [1, 1, 1]})
+    >>> df = pd.DataFrame({"A": [1, 1, 1]})
     >>> df.query("A > x")  # doctest: +SKIP
     ... # UndefinedVariableError: name 'x' is not defined
     >>> df.query("A > @y")  # doctest: +SKIP
     ... # UndefinedVariableError: local variable 'y' is not defined
-    >>> pd.eval('x + 1')  # doctest: +SKIP
+    >>> pd.eval("x + 1")  # doctest: +SKIP
     ... # UndefinedVariableError: name 'x' is not defined
     """
 
@@ -493,17 +503,16 @@ class IndexingError(Exception):
 
     Examples
     --------
-    >>> df = pd.DataFrame({'A': [1, 1, 1]})
-    >>> df.loc[..., ..., 'A']   # doctest: +SKIP
+    >>> df = pd.DataFrame({"A": [1, 1, 1]})
+    >>> df.loc[..., ..., "A"]  # doctest: +SKIP
     ... # IndexingError: indexer may only contain one '...' entry
-    >>> df = pd.DataFrame({'A': [1, 1, 1]})
-    >>> df.loc[1, ..., ...]   # doctest: +SKIP
+    >>> df = pd.DataFrame({"A": [1, 1, 1]})
+    >>> df.loc[1, ..., ...]  # doctest: +SKIP
     ... # IndexingError: Too many indexers
-    >>> df[pd.Series([True], dtype=bool)]   # doctest: +SKIP
+    >>> df[pd.Series([True], dtype=bool)]  # doctest: +SKIP
     ... # IndexingError: Unalignable boolean Series provided as indexer...
-    >>> s = pd.Series(range(2),
-    ...               index=pd.MultiIndex.from_product([["a", "b"], ["c"]]))
-    >>> s.loc["a", "c", "d"]   # doctest: +SKIP
+    >>> s = pd.Series(range(2), index=pd.MultiIndex.from_product([["a", "b"], ["c"]]))
+    >>> s.loc["a", "c", "d"]  # doctest: +SKIP
     ... # IndexingError: Too many indexers
     """
 
@@ -539,14 +548,14 @@ class CSSWarning(UserWarning):
 
     Examples
     --------
-    >>> df = pd.DataFrame({'A': [1, 1, 1]})
-    >>> df.style.applymap(
-    ...     lambda x: 'background-color: blueGreenRed;'
-    ... ).to_excel('styled.xlsx')  # doctest: +SKIP
+    >>> df = pd.DataFrame({"A": [1, 1, 1]})
+    >>> df.style.applymap(lambda x: "background-color: blueGreenRed;").to_excel(
+    ...     "styled.xlsx"
+    ... )  # doctest: +SKIP
     CSSWarning: Unhandled color format: 'blueGreenRed'
-    >>> df.style.applymap(
-    ...     lambda x: 'border: 1px solid red red;'
-    ... ).to_excel('styled.xlsx')  # doctest: +SKIP
+    >>> df.style.applymap(lambda x: "border: 1px solid red red;").to_excel(
+    ...     "styled.xlsx"
+    ... )  # doctest: +SKIP
     CSSWarning: Unhandled color format: 'blueGreenRed'
     """
 
@@ -557,9 +566,8 @@ class PossibleDataLossError(Exception):
 
     Examples
     --------
-    >>> store = pd.HDFStore('my-store', 'a')  # doctest: +SKIP
+    >>> store = pd.HDFStore("my-store", "a")  # doctest: +SKIP
     >>> store.open("w")  # doctest: +SKIP
-    ... # PossibleDataLossError: Re-opening the file [my-store] with mode [a]...
     """
 
 
@@ -569,7 +577,7 @@ class ClosedFileError(Exception):
 
     Examples
     --------
-    >>> store = pd.HDFStore('my-store', 'a')  # doctest: +SKIP
+    >>> store = pd.HDFStore("my-store", "a")  # doctest: +SKIP
     >>> store.close()  # doctest: +SKIP
     >>> store.keys()  # doctest: +SKIP
     ... # ClosedFileError: my-store file is not open!
@@ -592,12 +600,12 @@ class AttributeConflictWarning(Warning):
 
     Examples
     --------
-    >>> idx1 = pd.Index(['a', 'b'], name='name1')
+    >>> idx1 = pd.Index(["a", "b"], name="name1")
     >>> df1 = pd.DataFrame([[1, 2], [3, 4]], index=idx1)
-    >>> df1.to_hdf('file', 'data', 'w', append=True)  # doctest: +SKIP
-    >>> idx2 = pd.Index(['c', 'd'], name='name2')
+    >>> df1.to_hdf("file", "data", "w", append=True)  # doctest: +SKIP
+    >>> idx2 = pd.Index(["c", "d"], name="name2")
     >>> df2 = pd.DataFrame([[5, 6], [7, 8]], index=idx2)
-    >>> df2.to_hdf('file', 'data', 'a', append=True)  # doctest: +SKIP
+    >>> df2.to_hdf("file", "data", "a", append=True)  # doctest: +SKIP
     AttributeConflictWarning: the [index_name] attribute of the existing index is
     [name1] which conflicts with the new [name2]...
     """
@@ -616,9 +624,8 @@ class DatabaseError(OSError):
     Examples
     --------
     >>> from sqlite3 import connect
-    >>> conn = connect(':memory:')
-    >>> pd.read_sql('select * test', conn)   # doctest: +SKIP
-    ... # DatabaseError: Execution failed on sql 'test': near "test": syntax error
+    >>> conn = connect(":memory:")
+    >>> pd.read_sql("select * test", conn)  # doctest: +SKIP
     """
 
 
@@ -632,8 +639,7 @@ class PossiblePrecisionLoss(Warning):
     Examples
     --------
     >>> df = pd.DataFrame({"s": pd.Series([1, 2**53], dtype=np.int64)})
-    >>> df.to_stata('test')  # doctest: +SKIP
-    ... # PossiblePrecisionLoss: Column converted from int64 to float64...
+    >>> df.to_stata("test")  # doctest: +SKIP
     """
 
 
@@ -644,8 +650,7 @@ class ValueLabelTypeMismatch(Warning):
     Examples
     --------
     >>> df = pd.DataFrame({"categories": pd.Series(["a", 2], dtype="category")})
-    >>> df.to_stata('test')  # doctest: +SKIP
-    ... # ValueLabelTypeMismatch: Stata value labels (pandas categories) must be str...
+    >>> df.to_stata("test")  # doctest: +SKIP
     """
 
 
@@ -663,8 +668,7 @@ class InvalidColumnName(Warning):
     Examples
     --------
     >>> df = pd.DataFrame({"0categories": pd.Series([2, 2])})
-    >>> df.to_stata('test')   # doctest: +SKIP
-    ... # InvalidColumnName: Not all pandas column names were valid Stata variable...
+    >>> df.to_stata("test")  # doctest: +SKIP
     """
 
 
@@ -675,7 +679,7 @@ class CategoricalConversionWarning(Warning):
     Examples
     --------
     >>> from pandas.io.stata import StataReader
-    >>> with StataReader('dta_file', chunksize=2) as reader:  # doctest: +SKIP
+    >>> with StataReader("dta_file", chunksize=2) as reader:  # doctest: +SKIP
     ...     for i, block in enumerate(reader):
     ...         print(i, block)
     ... # CategoricalConversionWarning: One or more series with value labels...
