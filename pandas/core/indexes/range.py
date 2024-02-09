@@ -955,7 +955,17 @@ class RangeIndex(Index):
         start = step = next_ = None
 
         # Filter the empty indexes
-        non_empty_indexes = [obj for obj in rng_indexes if len(obj)]
+        non_empty_indexes = []
+        all_same_index = True
+        prev: RangeIndex | None = None
+        for obj in rng_indexes:
+            if len(obj):
+                non_empty_indexes.append(obj)
+                if all_same_index:
+                    if prev is not None:
+                        all_same_index = prev.equals(obj)
+                    else:
+                        prev = obj
 
         for obj in non_empty_indexes:
             rng = obj._range
@@ -968,7 +978,12 @@ class RangeIndex(Index):
             elif step is None:
                 # First non-empty index had only one element
                 if rng.start == start:
-                    values = np.concatenate([x._values for x in rng_indexes])
+                    if all_same_index:
+                        values = np.tile(
+                            non_empty_indexes[0]._values, len(non_empty_indexes)
+                        )
+                    else:
+                        values = np.concatenate([x._values for x in rng_indexes])
                     result = self._constructor(values)
                     return result.rename(name)
 
@@ -978,9 +993,13 @@ class RangeIndex(Index):
                 next_ is not None and rng.start != next_
             )
             if non_consecutive:
-                result = self._constructor(
-                    np.concatenate([x._values for x in rng_indexes])
-                )
+                if all_same_index:
+                    values = np.tile(
+                        non_empty_indexes[0]._values, len(non_empty_indexes)
+                    )
+                else:
+                    values = np.concatenate([x._values for x in rng_indexes])
+                result = self._constructor(values)
                 return result.rename(name)
 
             if step is not None:
