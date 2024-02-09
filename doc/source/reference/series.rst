@@ -183,12 +183,10 @@ Reindexing / selection / label manipulation
    Series.drop_duplicates
    Series.duplicated
    Series.equals
-   Series.first
    Series.head
    Series.idxmax
    Series.idxmin
    Series.isin
-   Series.last
    Series.reindex
    Series.reindex_like
    Series.rename
@@ -238,10 +236,8 @@ Reshaping, sorting
    Series.unstack
    Series.explode
    Series.searchsorted
-   Series.ravel
    Series.repeat
    Series.squeeze
-   Series.view
 
 Combining / comparing / joining / merging
 -----------------------------------------

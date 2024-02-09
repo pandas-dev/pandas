@@ -94,39 +94,24 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     ----------
     data : array-like (1d int np.ndarray or PeriodArray), optional
         Optional period-like data to construct index with.
-    copy : bool
-        Make a copy of input ndarray.
+    ordinal : array-like of int, optional
+        The period offsets from the proleptic Gregorian epoch.
+
+        .. deprecated:: 2.2.0
+           Use PeriodIndex.from_ordinals instead.
     freq : str or period object, optional
         One of pandas period strings or corresponding objects.
-    year : int, array, or Series, default None
-
-        .. deprecated:: 2.2.0
-           Use PeriodIndex.from_fields instead.
-    month : int, array, or Series, default None
-
-        .. deprecated:: 2.2.0
-           Use PeriodIndex.from_fields instead.
-    quarter : int, array, or Series, default None
-
-        .. deprecated:: 2.2.0
-           Use PeriodIndex.from_fields instead.
-    day : int, array, or Series, default None
-
-        .. deprecated:: 2.2.0
-           Use PeriodIndex.from_fields instead.
-    hour : int, array, or Series, default None
-
-        .. deprecated:: 2.2.0
-           Use PeriodIndex.from_fields instead.
-    minute : int, array, or Series, default None
-
-        .. deprecated:: 2.2.0
-           Use PeriodIndex.from_fields instead.
-    second : int, array, or Series, default None
-
-        .. deprecated:: 2.2.0
-           Use PeriodIndex.from_fields instead.
     dtype : str or PeriodDtype, default None
+        A dtype from which to extract a freq.
+    copy : bool
+        Make a copy of input ndarray.
+    name : str, default None
+        Name of the resulting PeriodIndex.
+    **fields : optional
+        Date fields such as year, month, etc.
+
+        .. deprecated:: 2.2.0
+           Use PeriodIndex.from_fields instead.
 
     Attributes
     ----------
@@ -171,7 +156,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
     Examples
     --------
-    >>> idx = pd.PeriodIndex.from_fields(year=[2000, 2002], quarter=[1, 3])
+    >>> idx = pd.PeriodIndex(data=["2000Q1", "2002Q3"], freq="Q")
     >>> idx
     PeriodIndex(['2000Q1', '2002Q3'], dtype='period[Q-DEC]')
     """
@@ -331,6 +316,31 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         second=None,
         freq=None,
     ) -> Self:
+        """
+        Construct a PeriodIndex from fields (year, month, day, etc.).
+
+        Parameters
+        ----------
+        year : int, array, or Series, default None
+        quarter : int, array, or Series, default None
+        month : int, array, or Series, default None
+        day : int, array, or Series, default None
+        hour : int, array, or Series, default None
+        minute : int, array, or Series, default None
+        second : int, array, or Series, default None
+        freq : str or period object, optional
+            One of pandas period strings or corresponding objects.
+
+        Returns
+        -------
+        PeriodIndex
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex.from_fields(year=[2000, 2002], quarter=[1, 3])
+        >>> idx
+        PeriodIndex(['2000Q1', '2002Q3'], dtype='period[Q-DEC]')
+        """
         fields = {
             "year": year,
             "quarter": quarter,
@@ -346,6 +356,28 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
     @classmethod
     def from_ordinals(cls, ordinals, *, freq, name=None) -> Self:
+        """
+        Construct a PeriodIndex from ordinals.
+
+        Parameters
+        ----------
+        ordinals : array-like of int
+            The period offsets from the proleptic Gregorian epoch.
+        freq : str or period object
+            One of pandas period strings or corresponding objects.
+        name : str, default None
+            Name of the resulting PeriodIndex.
+
+        Returns
+        -------
+        PeriodIndex
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex.from_ordinals([-1, 0, 1], freq="Q")
+        >>> idx
+        PeriodIndex(['1969Q4', '1970Q1', '1970Q2'], dtype='period[Q-DEC]')
+        """
         ordinals = np.asarray(ordinals, dtype=np.int64)
         dtype = PeriodDtype(freq)
         data = PeriodArray._simple_new(ordinals, dtype=dtype)
@@ -585,7 +617,7 @@ def period_range(
 
     Examples
     --------
-    >>> pd.period_range(start='2017-01-01', end='2018-01-01', freq='M')
+    >>> pd.period_range(start="2017-01-01", end="2018-01-01", freq="M")
     PeriodIndex(['2017-01', '2017-02', '2017-03', '2017-04', '2017-05', '2017-06',
              '2017-07', '2017-08', '2017-09', '2017-10', '2017-11', '2017-12',
              '2018-01'],
@@ -595,8 +627,11 @@ def period_range(
     endpoints for a ``PeriodIndex`` with frequency matching that of the
     ``period_range`` constructor.
 
-    >>> pd.period_range(start=pd.Period('2017Q1', freq='Q'),
-    ...                 end=pd.Period('2017Q2', freq='Q'), freq='M')
+    >>> pd.period_range(
+    ...     start=pd.Period("2017Q1", freq="Q"),
+    ...     end=pd.Period("2017Q2", freq="Q"),
+    ...     freq="M",
+    ... )
     PeriodIndex(['2017-03', '2017-04', '2017-05', '2017-06'],
                 dtype='period[M]')
     """

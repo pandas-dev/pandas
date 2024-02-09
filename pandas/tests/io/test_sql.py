@@ -1487,26 +1487,6 @@ SELECT * FROM groups;
     tm.assert_frame_equal(result, expected)
 
 
-def test_execute_typeerror(sqlite_engine_iris):
-    with pytest.raises(TypeError, match="pandas.io.sql.execute requires a connection"):
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match="`pandas.io.sql.execute` is deprecated and "
-            "will be removed in the future version.",
-        ):
-            sql.execute("select * from iris", sqlite_engine_iris)
-
-
-def test_execute_deprecated(sqlite_conn_iris):
-    # GH50185
-    with tm.assert_produces_warning(
-        FutureWarning,
-        match="`pandas.io.sql.execute` is deprecated and "
-        "will be removed in the future version.",
-    ):
-        sql.execute("select * from iris", sqlite_conn_iris)
-
-
 def flavor(conn_name):
     if "postgresql" in conn_name:
         return "postgresql"
@@ -2342,15 +2322,18 @@ def test_read_table_index_col(conn, request, test_frame1):
     sql.to_sql(test_frame1, "test_frame", conn)
 
     result = sql.read_sql_table("test_frame", conn, index_col="index")
-    assert result.index.names == ["index"]
+    assert result.index.names == ("index",)
 
     result = sql.read_sql_table("test_frame", conn, index_col=["A", "B"])
-    assert result.index.names == ["A", "B"]
+    assert result.index.names == ("A", "B")
 
     result = sql.read_sql_table(
         "test_frame", conn, index_col=["A", "B"], columns=["C", "D"]
     )
-    assert result.index.names == ["A", "B"]
+    assert result.index.names == (
+        "A",
+        "B",
+    )
     assert result.columns.tolist() == ["C", "D"]
 
 
@@ -3744,20 +3727,6 @@ def test_read_sql_dtype(conn, request, func, dtype_backend):
         }
     )
     tm.assert_frame_equal(result, expected)
-
-
-def test_keyword_deprecation(sqlite_engine):
-    conn = sqlite_engine
-    # GH 54397
-    msg = (
-        "Starting with pandas version 3.0 all arguments of to_sql except for the "
-        "arguments 'name' and 'con' will be keyword-only."
-    )
-    df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
-    df.to_sql("example", conn)
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.to_sql("example", conn, None, if_exists="replace")
 
 
 def test_bigint_warning(sqlite_engine):

@@ -354,20 +354,6 @@ def test_store_dropna(tmp_path, setup_path):
     tm.assert_frame_equal(df_without_missing, reloaded)
 
 
-def test_keyword_deprecation(tmp_path, setup_path):
-    # GH 54229
-    path = tmp_path / setup_path
-
-    msg = (
-        "Starting with pandas version 3.0 all arguments of to_hdf except for the "
-        "argument 'path_or_buf' will be keyword-only."
-    )
-    df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.to_hdf(path, "key")
-
-
 def test_to_hdf_with_min_itemsize(tmp_path, setup_path):
     path = tmp_path / setup_path
 
@@ -1029,7 +1015,7 @@ def test_columns_multiindex_modified(tmp_path, setup_path):
     df.index.name = "letters"
     df = df.set_index(keys="E", append=True)
 
-    data_columns = df.index.names + df.columns.tolist()
+    data_columns = list(df.index.names) + df.columns.tolist()
     path = tmp_path / setup_path
     df.to_hdf(
         path,

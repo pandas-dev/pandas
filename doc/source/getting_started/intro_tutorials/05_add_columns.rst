@@ -51,7 +51,7 @@ hPa, the conversion factor is 1.882*)
     air_quality["london_mg_per_cubic"] = air_quality["station_london"] * 1.882
     air_quality.head()
 
-To create a new column, use the ``[]`` brackets with the new column name
+To create a new column, use the square brackets ``[]`` with the new column name
 at the left side of the assignment.
 
 .. raw:: html
