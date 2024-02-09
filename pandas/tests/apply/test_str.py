@@ -38,15 +38,8 @@ def test_apply_with_string_funcs(request, float_frame, func, args, kwds, how):
                 "argument to func",
             )
         )
-    if args:
-        with pytest.warns(
-            FutureWarning, match="Starting with pandas version 3.0 all arguments of"
-        ):
-            result = getattr(float_frame, how)(func, *args, **kwds)
-            expected = getattr(float_frame, func)(*args, **kwds)
-    else:
-        result = getattr(float_frame, how)(func, *args, **kwds)
-        expected = getattr(float_frame, func)(*args, **kwds)
+    result = getattr(float_frame, how)(func, *args, **kwds)
+    expected = getattr(float_frame, func)(*args, **kwds)
     tm.assert_series_equal(result, expected)
 
 
