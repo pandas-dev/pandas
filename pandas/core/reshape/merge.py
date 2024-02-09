@@ -163,7 +163,6 @@ def merge(
             suffixes=suffixes,
             indicator=indicator,
             validate=validate,
-            copy=copy,
         )
     else:
         op = _MergeOperation(
@@ -180,7 +179,7 @@ def merge(
             indicator=indicator,
             validate=validate,
         )
-        return op.get_result(copy=copy)
+        return op.get_result()
 
 
 def _cross_merge(
@@ -193,7 +192,6 @@ def _cross_merge(
     right_index: bool = False,
     sort: bool = False,
     suffixes: Suffixes = ("_x", "_y"),
-    copy: bool | None = None,
     indicator: str | bool = False,
     validate: str | None = None,
 ) -> DataFrame:
@@ -232,7 +230,6 @@ def _cross_merge(
         suffixes=suffixes,
         indicator=indicator,
         validate=validate,
-        copy=copy,
     )
     del res[cross_col]
     return res
@@ -827,7 +824,6 @@ class _MergeOperation:
         join_index: Index,
         left_indexer: npt.NDArray[np.intp] | None,
         right_indexer: npt.NDArray[np.intp] | None,
-        copy: bool | None,
     ) -> DataFrame:
         """
         reindex along index and concat along columns.
@@ -848,7 +844,6 @@ class _MergeOperation:
                 join_index,
                 left_indexer,
                 axis=1,
-                copy=False,
                 only_slice=True,
                 allow_dups=True,
                 use_na_proxy=True,
@@ -863,7 +858,6 @@ class _MergeOperation:
                 join_index,
                 right_indexer,
                 axis=1,
-                copy=False,
                 only_slice=True,
                 allow_dups=True,
                 use_na_proxy=True,
@@ -875,18 +869,16 @@ class _MergeOperation:
 
         left.columns = llabels
         right.columns = rlabels
-        result = concat([left, right], axis=1, copy=copy)
+        result = concat([left, right], axis=1)
         return result
 
-    def get_result(self, copy: bool | None = True) -> DataFrame:
+    def get_result(self) -> DataFrame:
         if self.indicator:
             self.left, self.right = self._indicator_pre_merge(self.left, self.right)
 
         join_index, left_indexer, right_indexer = self._get_join_info()
 
-        result = self._reindex_and_concat(
-            join_index, left_indexer, right_indexer, copy=copy
-        )
+        result = self._reindex_and_concat(join_index, left_indexer, right_indexer)
         result = result.__finalize__(self, method=self._merge_type)
 
         if self.indicator:
