@@ -113,7 +113,7 @@ class DocBuilder:
 
         Examples
         --------
-        >>> DocBuilder()._run_os('python', '--version')
+        >>> DocBuilder()._run_os("python", "--version")
         """
         subprocess.check_call(args, stdout=sys.stdout, stderr=sys.stderr)
 
@@ -129,7 +129,7 @@ class DocBuilder:
 
         Examples
         --------
-        >>> DocBuilder(num_jobs=4)._sphinx_build('html')
+        >>> DocBuilder(num_jobs=4)._sphinx_build("html")
         """
         if kind not in ("html", "latex", "linkcheck"):
             raise ValueError(f"kind must be html, latex or linkcheck, not {kind}")

@@ -10,7 +10,7 @@ import pandas._testing as tm
 
 
 class TestSeriesSortValues:
-    def test_sort_values(self, datetime_series, using_copy_on_write):
+    def test_sort_values(self, datetime_series):
         # check indexes are reordered corresponding with the values
         ser = Series([3, 2, 4, 1], ["A", "B", "C", "D"])
         expected = Series([1, 2, 3, 4], ["D", "B", "A", "C"])

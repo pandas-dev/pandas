@@ -10,6 +10,7 @@ from typing import (
     Any,
     Callable,
     Literal,
+    NoReturn,
     cast,
     final,
 )
@@ -1050,8 +1051,12 @@ class BaseBlockManager(PandasObject):
             nb = NumpyBlock(vals, placement, ndim=2)
             return nb
 
-        if fill_value is None:
+        if fill_value is None or fill_value is np.nan:
             fill_value = np.nan
+            # GH45857 avoid unnecessary upcasting
+            dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
+            if dtype is not None and np.issubdtype(dtype.type, np.floating):
+                fill_value = dtype.type(fill_value)
 
         shape = (len(placement), self.shape[1])
 
@@ -2349,7 +2354,7 @@ def raise_construction_error(
     block_shape: Shape,
     axes: list[Index],
     e: ValueError | None = None,
-):
+) -> NoReturn:
     """raise a helpful message about our construction"""
     passed = tuple(map(int, [tot_items] + list(block_shape)))
     # Correcting the user facing error message during dataframe construction

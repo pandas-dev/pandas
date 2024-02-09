@@ -204,7 +204,7 @@ if TYPE_CHECKING:
     from pandas.core.arrays.timedeltas import TimedeltaArray
 
 
-def get_unit_from_pa_dtype(pa_dtype):
+def get_unit_from_pa_dtype(pa_dtype) -> str:
     # https://github.com/pandas-dev/pandas/pull/50998#discussion_r1100344804
     if pa_version_under11p0:
         unit = str(pa_dtype).split("[", 1)[-1][:-1]
@@ -1966,7 +1966,7 @@ class ArrowExtensionArray(
         na_option: str = "keep",
         ascending: bool = True,
         pct: bool = False,
-    ):
+    ) -> Self:
         """
         See Series.rank.__doc__.
         """
@@ -2086,6 +2086,23 @@ class ArrowExtensionArray(
         See NDFrame.interpolate.__doc__.
         """
         # NB: we return type(self) even if copy=False
+        if not self.dtype._is_numeric:
+            raise ValueError("Values must be numeric.")
+
+        if (
+            not pa_version_under13p0
+            and method == "linear"
+            and limit_area is None
+            and limit is None
+            and limit_direction == "forward"
+        ):
+            values = self._pa_array.combine_chunks()
+            na_value = pa.array([None], type=values.type)
+            y_diff_2 = pc.fill_null_backward(pc.pairwise_diff_checked(values, period=2))
+            prev_values = pa.concat_arrays([na_value, values[:-2], na_value])
+            interps = pc.add_checked(prev_values, pc.divide_checked(y_diff_2, 2))
+            return type(self)(pc.coalesce(self._pa_array, interps))
+
         mask = self.isna()
         if self.dtype.kind == "f":
             data = self._pa_array.to_numpy()
