@@ -26,6 +26,7 @@ Fixed regressions
 - Fixed regression in :meth:`Index.join` raising ``TypeError`` when joining an empty index to a non-empty index containing mixed dtype values (:issue:`57048`)
 - Fixed regression in :meth:`Series.pct_change` raising a ``ValueError`` for an empty :class:`Series` (:issue:`57056`)
 - Fixed regression in :meth:`Series.to_numpy` when dtype is given as float and the data contains NaNs (:issue:`57121`)
+- Fixed regression in :meth:`DataFrame.to_sql` when method="multi" is passed and the dialect type is not Oracle (:issue:`57310`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_221.bug_fixes:
