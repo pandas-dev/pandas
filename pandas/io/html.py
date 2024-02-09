@@ -137,9 +137,11 @@ def _read(
         ) as handles:
             return handles.handle.read()
     except OSError as err:
-        raise FileNotFoundError(
-            f"[Errno {errno.ENOENT}] {os.strerror(errno.ENOENT)}: {obj}"
-        ) from err
+        if not is_url(obj):
+            raise FileNotFoundError(
+                f"[Errno {errno.ENOENT}] {os.strerror(errno.ENOENT)}: {obj}"
+            ) from err
+        raise
 
 
 class _HtmlFrameParser:

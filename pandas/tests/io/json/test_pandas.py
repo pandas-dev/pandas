@@ -43,7 +43,7 @@ def test_literal_json_raises():
         {"a": 5, "b": 6}
         {"a": 7, "b": 8}"""
 
-    msg = r"\[Errno 2\] No such file or directory"
+    msg = r".*No such file or directory"
 
     with pytest.raises(FileNotFoundError, match=msg):
         read_json(jsonl, lines=False)

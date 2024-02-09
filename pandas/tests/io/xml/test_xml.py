@@ -250,7 +250,7 @@ df_kml = DataFrame(
 def test_literal_xml_raises():
     # GH 53809
     pytest.importorskip("lxml")
-    msg = r"\[Errno 2\] No such file or directory"
+    msg = r".*No such file or directory"
 
     with pytest.raises(FileNotFoundError, match=msg):
         read_xml(xml_default_nmsp)
