@@ -110,16 +110,6 @@ def test_series_to_numpy(using_copy_on_write):
     assert arr.flags.writeable is True
 
 
-@pytest.mark.parametrize("order", ["F", "C"])
-def test_ravel_read_only(using_copy_on_write, order):
-    ser = Series([1, 2, 3])
-    with tm.assert_produces_warning(FutureWarning, match="is deprecated"):
-        arr = ser.ravel(order=order)
-    if using_copy_on_write:
-        assert arr.flags.writeable is False
-    assert np.shares_memory(get_array(ser), arr)
-
-
 def test_series_array_ea_dtypes(using_copy_on_write):
     ser = Series([1, 2, 3], dtype="Int64")
     arr = np.asarray(ser, dtype="int64")
