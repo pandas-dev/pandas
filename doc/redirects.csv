@@ -325,7 +325,6 @@ generated/pandas.DataFrame.axes,../reference/api/pandas.DataFrame.axes
 generated/pandas.DataFrame.between_time,../reference/api/pandas.DataFrame.between_time
 generated/pandas.DataFrame.bfill,../reference/api/pandas.DataFrame.bfill
 generated/pandas.DataFrame.blocks,../reference/api/pandas.DataFrame.blocks
-generated/pandas.DataFrame.bool,../reference/api/pandas.DataFrame.bool
 generated/pandas.DataFrame.boxplot,../reference/api/pandas.DataFrame.boxplot
 generated/pandas.DataFrame.clip,../reference/api/pandas.DataFrame.clip
 generated/pandas.DataFrame.clip_lower,../reference/api/pandas.DataFrame.clip_lower
@@ -930,7 +929,6 @@ generated/pandas.Series.between,../reference/api/pandas.Series.between
 generated/pandas.Series.between_time,../reference/api/pandas.Series.between_time
 generated/pandas.Series.bfill,../reference/api/pandas.Series.bfill
 generated/pandas.Series.blocks,../reference/api/pandas.Series.blocks
-generated/pandas.Series.bool,../reference/api/pandas.Series.bool
 generated/pandas.Series.cat.add_categories,../reference/api/pandas.Series.cat.add_categories
 generated/pandas.Series.cat.as_ordered,../reference/api/pandas.Series.cat.as_ordered
 generated/pandas.Series.cat.as_unordered,../reference/api/pandas.Series.cat.as_unordered

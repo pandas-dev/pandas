@@ -48,7 +48,6 @@ Conversion
    DataFrame.convert_dtypes
    DataFrame.infer_objects
    DataFrame.copy
-   DataFrame.bool
    DataFrame.to_numpy
 
 Indexing, iteration
