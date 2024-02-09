@@ -929,7 +929,6 @@ generated/pandas.Series.between,../reference/api/pandas.Series.between
 generated/pandas.Series.between_time,../reference/api/pandas.Series.between_time
 generated/pandas.Series.bfill,../reference/api/pandas.Series.bfill
 generated/pandas.Series.blocks,../reference/api/pandas.Series.blocks
-generated/pandas.Series.bool,../reference/api/pandas.Series.bool
 generated/pandas.Series.cat.add_categories,../reference/api/pandas.Series.cat.add_categories
 generated/pandas.Series.cat.as_ordered,../reference/api/pandas.Series.cat.as_ordered
 generated/pandas.Series.cat.as_unordered,../reference/api/pandas.Series.cat.as_unordered
