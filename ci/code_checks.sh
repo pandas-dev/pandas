@@ -71,26 +71,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (PR02)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=PR02 --ignore_functions \
-        pandas.CategoricalIndex.rename_categories\
-        pandas.CategoricalIndex.reorder_categories\
-        pandas.CategoricalIndex.add_categories\
-        pandas.CategoricalIndex.remove_categories\
-        pandas.CategoricalIndex.set_categories\
-        pandas.IntervalIndex.set_closed\
-        pandas.IntervalIndex.contains\
-        pandas.IntervalIndex.overlaps\
-        pandas.IntervalIndex.to_tuples\
-        pandas.DatetimeIndex.round\
-        pandas.DatetimeIndex.floor\
-        pandas.DatetimeIndex.ceil\
-        pandas.DatetimeIndex.month_name\
-        pandas.DatetimeIndex.day_name\
-        pandas.DatetimeIndex.to_period\
-        pandas.DatetimeIndex.std\
-        pandas.TimedeltaIndex.round\
-        pandas.TimedeltaIndex.floor\
-        pandas.TimedeltaIndex.ceil\
-        pandas.PeriodIndex.strftime\
         pandas.Series.dt.to_period\
         pandas.Series.dt.tz_localize\
         pandas.Series.dt.tz_convert\
@@ -107,15 +87,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.cat.remove_categories\
         pandas.Series.cat.set_categories\
         pandas.Series.plot\
-        pandas.Series.plot.bar\
-        pandas.Series.plot.barh\
-        pandas.Series.plot.line\
-        pandas.Series.plot.pie\
         pandas.DataFrame.plot\
-        pandas.DataFrame.plot.bar\
-        pandas.DataFrame.plot.barh\
-        pandas.DataFrame.plot.line\
-        pandas.DataFrame.plot.pie\
         pandas.tseries.offsets.DateOffset\
         pandas.tseries.offsets.BusinessDay\
         pandas.tseries.offsets.BDay\
@@ -156,7 +128,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.tseries.offsets.Milli\
         pandas.tseries.offsets.Micro\
         pandas.tseries.offsets.Nano\
-        pandas.set_option\
         pandas.Timestamp.max\
         pandas.Timestamp.min\
         pandas.Timestamp.resolution\
@@ -165,14 +136,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timedelta.resolution\
         pandas.Interval\
         pandas.Grouper\
-        pandas.core.groupby.SeriesGroupBy.apply\
         pandas.core.groupby.DataFrameGroupBy.nth\
         pandas.core.groupby.DataFrameGroupBy.rolling\
         pandas.core.groupby.SeriesGroupBy.nth\
         pandas.core.groupby.SeriesGroupBy.rolling\
         pandas.core.groupby.DataFrameGroupBy.hist\
         pandas.core.groupby.DataFrameGroupBy.plot\
-        pandas.core.groupby.DataFrameGroupBy.corrwith\
         pandas.core.groupby.SeriesGroupBy.plot # There should be no backslash in the final line, please keep this comment in the last ignored function
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
