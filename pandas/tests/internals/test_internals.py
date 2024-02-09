@@ -612,7 +612,7 @@ class TestBlockManager:
 
         # noops
         mgr = create_mgr("f: i8; g: f8")
-        new_mgr = mgr.convert(copy=True)
+        new_mgr = mgr.convert()
         _compare(mgr, new_mgr)
 
         # convert
@@ -620,7 +620,7 @@ class TestBlockManager:
         mgr.iset(0, np.array(["1"] * N, dtype=np.object_))
         mgr.iset(1, np.array(["2."] * N, dtype=np.object_))
         mgr.iset(2, np.array(["foo."] * N, dtype=np.object_))
-        new_mgr = mgr.convert(copy=True)
+        new_mgr = mgr.convert()
         dtype = "string[pyarrow_numpy]" if using_infer_string else np.object_
         assert new_mgr.iget(0).dtype == dtype
         assert new_mgr.iget(1).dtype == dtype
@@ -634,7 +634,7 @@ class TestBlockManager:
         mgr.iset(0, np.array(["1"] * N, dtype=np.object_))
         mgr.iset(1, np.array(["2."] * N, dtype=np.object_))
         mgr.iset(2, np.array(["foo."] * N, dtype=np.object_))
-        new_mgr = mgr.convert(copy=True)
+        new_mgr = mgr.convert()
         assert new_mgr.iget(0).dtype == dtype
         assert new_mgr.iget(1).dtype == dtype
         assert new_mgr.iget(2).dtype == dtype
