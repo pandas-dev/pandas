@@ -876,61 +876,6 @@ class TestBase:
             with pytest.raises(err, match=msg):
                 ~Series(idx)
 
-    def test_is_boolean_is_deprecated(self, simple_index):
-        # GH50042
-        idx = simple_index
-        with tm.assert_produces_warning(FutureWarning):
-            idx.is_boolean()
-
-    def test_is_floating_is_deprecated(self, simple_index):
-        # GH50042
-        idx = simple_index
-        with tm.assert_produces_warning(FutureWarning):
-            idx.is_floating()
-
-    def test_is_integer_is_deprecated(self, simple_index):
-        # GH50042
-        idx = simple_index
-        with tm.assert_produces_warning(FutureWarning):
-            idx.is_integer()
-
-    def test_holds_integer_deprecated(self, simple_index):
-        # GH50243
-        idx = simple_index
-        msg = f"{type(idx).__name__}.holds_integer is deprecated. "
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            idx.holds_integer()
-
-    def test_is_numeric_is_deprecated(self, simple_index):
-        # GH50042
-        idx = simple_index
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match=f"{type(idx).__name__}.is_numeric is deprecated. ",
-        ):
-            idx.is_numeric()
-
-    def test_is_categorical_is_deprecated(self, simple_index):
-        # GH50042
-        idx = simple_index
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match=r"Use pandas\.api\.types\.is_categorical_dtype instead",
-        ):
-            idx.is_categorical()
-
-    def test_is_interval_is_deprecated(self, simple_index):
-        # GH50042
-        idx = simple_index
-        with tm.assert_produces_warning(FutureWarning):
-            idx.is_interval()
-
-    def test_is_object_is_deprecated(self, simple_index):
-        # GH50042
-        idx = simple_index
-        with tm.assert_produces_warning(FutureWarning):
-            idx.is_object()
-
 
 class TestNumericBase:
     @pytest.fixture(
