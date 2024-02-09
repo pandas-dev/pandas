@@ -53,8 +53,6 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import (
     IOHandles,
     dedup_names,
-    extension_to_compression,
-    file_exists,
     get_handle,
     is_potential_multi_index,
     stringify_path,
@@ -909,17 +907,9 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
                 errors=self.encoding_errors,
             )
         except OSError as err:
-            if (
-                isinstance(filepath_or_buffer, str)
-                and filepath_or_buffer.lower().endswith(
-                    (".json",) + tuple(f".json{c}" for c in extension_to_compression)
-                )
-                and not file_exists(filepath_or_buffer)
-            ):
-                raise FileNotFoundError(
-                    f"File {filepath_or_buffer} does not exist"
-                ) from err
-            raise
+            raise FileNotFoundError(
+                f"File {filepath_or_buffer} does not exist"
+            ) from err
         filepath_or_buffer = self.handles.handle
         return filepath_or_buffer
 
