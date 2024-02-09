@@ -170,7 +170,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Bug in :meth:`Series.astype` might modify read-only array inplace when casting to a string dtype (:issue:`57212`)
--
+- Bug in :meth:`Series.reindex` not maintaining ``float32`` type when a ``reindex`` introduces a missing value (:issue:`45857`)
 
 Strings
 ^^^^^^^
