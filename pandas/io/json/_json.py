@@ -524,7 +524,7 @@ def read_json(
 
     Parameters
     ----------
-    path_or_buf : a string path, path object or file-like object
+    path_or_buf : a str path, path object or file-like object
         Any valid string path is acceptable. The string could be a URL. Valid
         URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be:

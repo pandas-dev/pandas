@@ -678,8 +678,8 @@ def get_data_from_filepath(
         2. file-like object (e.g. open file object, StringIO)
     """
     filepath_or_buffer = stringify_path(filepath_or_buffer)  # type: ignore[arg-type]
-    with get_handle(
-        filepath_or_buffer,
+    with get_handle(  # pyright: ignore[reportGeneralTypeIssues]
+        filepath_or_buffer,  # pyright: ignore[reportGeneralTypeIssues]
         "r",
         encoding=encoding,
         compression=compression,
