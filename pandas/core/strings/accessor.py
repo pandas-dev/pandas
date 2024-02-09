@@ -2274,12 +2274,12 @@ class StringMethods(NoNewAttributesMixin):
         dtype: object
         """
         result = self._data.array._str_wrap(
-            width,
-            expand_tabs,
-            replace_whitespace,
-            drop_whitespace,
-            break_long_words,
-            break_on_hyphens,
+            width=width,
+            expand_tabs=expand_tabs,
+            replace_whitespace=replace_whitespace,
+            drop_whitespace=drop_whitespace,
+            break_long_words=break_long_words,
+            break_on_hyphens=break_on_hyphens,
         )
         return self._wrap_result(result)
 
