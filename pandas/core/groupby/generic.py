@@ -2698,7 +2698,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             ... }
             >>> index = ["pig", "rabbit", "duck", "chicken", "horse"]
             >>> df = pd.DataFrame(data, index=index)
-            >>> hist = df.hist(bins=3)
+            >>> hist = df.groupby("length").hist(bins=3)
         """
         result = self._op_via_apply(
             "hist",
