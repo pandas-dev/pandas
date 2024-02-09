@@ -5102,7 +5102,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 result = self.copy(deep=None)
 
             if ignore_index:
-                result.index = default_index(len(self))
+                if axis == 1:
+                    result.columns = default_index(len(self.columns))
+                else:
+                    result.index = default_index(len(self))
             if inplace:
                 return None
             else:
