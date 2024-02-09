@@ -1013,12 +1013,19 @@ class SQLTable(PandasObject):
 
         from sqlalchemy import insert
 
+        # For Oracle compliance we do not allow multi statements
+        dialects_not_supporting_multi = ["oracle"]
+
+        if conn.dialect is not None and conn.dialect.name not in dialects_not_supporting_multi:
+            data = [dict(zip(keys, row)) for row in data_iter]
+            stmt = insert(self.table).values(data)
+            result = conn.execute(stmt)
+            return result.rowcount
+
+        # For compliance with Oracle, use
+        # see: https:/ /docs.sqlalchemy.org/en/20/core/dml.html#sqlalchemy.sql.expression.Insert.values
         data = [dict(zip(keys, row)) for row in data_iter]
         stmt = insert(self.table)
-        # conn.execute is used here to ensure compatibility with Oracle.
-        # Using stmt.values(data) would produce a multi row insert that
-        # isn't supported by Oracle.
-        # see: https://docs.sqlalchemy.org/en/20/core/dml.html#sqlalchemy.sql.expression.Insert.values
         result = conn.execute(stmt, data)
         return result.rowcount
 
