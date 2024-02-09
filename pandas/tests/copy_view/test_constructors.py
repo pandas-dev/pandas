@@ -90,18 +90,13 @@ def test_series_from_series_with_reindex(using_copy_on_write):
         assert not result._mgr.blocks[0].refs.has_reference()
 
 
-@pytest.mark.parametrize("fastpath", [False, True])
 @pytest.mark.parametrize("dtype", [None, "int64"])
 @pytest.mark.parametrize("idx", [None, pd.RangeIndex(start=0, stop=3, step=1)])
 @pytest.mark.parametrize(
     "arr", [np.array([1, 2, 3], dtype="int64"), pd.array([1, 2, 3], dtype="Int64")]
 )
-def test_series_from_array(using_copy_on_write, idx, dtype, fastpath, arr):
-    if idx is None or dtype is not None:
-        fastpath = False
-    msg = "The 'fastpath' keyword in pd.Series is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        ser = Series(arr, dtype=dtype, index=idx, fastpath=fastpath)
+def test_series_from_array(using_copy_on_write, idx, dtype, arr):
+    ser = Series(arr, dtype=dtype, index=idx)
     ser_orig = ser.copy()
     data = getattr(arr, "_data", arr)
     if using_copy_on_write:
@@ -151,28 +146,6 @@ def test_series_from_index_different_dtypes(using_copy_on_write):
     assert not np.shares_memory(get_array(ser), get_array(idx))
     if using_copy_on_write:
         assert ser._mgr._has_no_reference(0)
-
-
-@pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
-@pytest.mark.parametrize("fastpath", [False, True])
-@pytest.mark.parametrize("dtype", [None, "int64"])
-@pytest.mark.parametrize("idx", [None, pd.RangeIndex(start=0, stop=3, step=1)])
-def test_series_from_block_manager(using_copy_on_write, idx, dtype, fastpath):
-    ser = Series([1, 2, 3], dtype="int64")
-    ser_orig = ser.copy()
-    msg = "The 'fastpath' keyword in pd.Series is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        ser2 = Series(ser._mgr, dtype=dtype, fastpath=fastpath, index=idx)
-    assert np.shares_memory(get_array(ser), get_array(ser2))
-    if using_copy_on_write:
-        assert not ser2._mgr._has_no_reference(0)
-
-    ser2.iloc[0] = 100
-    if using_copy_on_write:
-        tm.assert_series_equal(ser, ser_orig)
-    else:
-        expected = Series([100, 2, 3])
-        tm.assert_series_equal(ser, expected)
 
 
 def test_series_from_block_manager_different_dtype(using_copy_on_write):

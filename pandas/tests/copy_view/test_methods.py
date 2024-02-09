@@ -1859,25 +1859,6 @@ def test_count_read_only_array():
     tm.assert_series_equal(result, expected)
 
 
-def test_series_view(using_copy_on_write):
-    ser = Series([1, 2, 3])
-    ser_orig = ser.copy()
-
-    with tm.assert_produces_warning(FutureWarning, match="is deprecated"):
-        ser2 = ser.view()
-    assert np.shares_memory(get_array(ser), get_array(ser2))
-    if using_copy_on_write:
-        assert not ser2._mgr._has_no_reference(0)
-
-    ser2.iloc[0] = 100
-
-    if using_copy_on_write:
-        tm.assert_series_equal(ser_orig, ser)
-    else:
-        expected = Series([100, 2, 3])
-        tm.assert_series_equal(ser, expected)
-
-
 def test_insert_series(using_copy_on_write):
     df = DataFrame({"a": [1, 2, 3]})
     ser = Series([1, 2, 3])
