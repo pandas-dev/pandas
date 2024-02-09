@@ -221,28 +221,6 @@ axis : int or str, optional
     Unused.""",
 }
 
-
-def _coerce_method(converter):
-    """
-    Install the scalar coercion methods.
-    """
-
-    def wrapper(self):
-        if len(self) == 1:
-            warnings.warn(
-                f"Calling {converter.__name__} on a single element Series is "
-                "deprecated and will raise a TypeError in the future. "
-                f"Use {converter.__name__}(ser.iloc[0]) instead",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            return converter(self.iloc[0])
-        raise TypeError(f"cannot convert the series to {converter}")
-
-    wrapper.__name__ = f"__{converter.__name__}__"
-    return wrapper
-
-
 # ----------------------------------------------------------------------
 # Series class
 
@@ -385,18 +363,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: Dtype | None = None,
         name=None,
         copy: bool | None = None,
-        fastpath: bool | lib.NoDefault = lib.no_default,
     ) -> None:
-        if fastpath is not lib.no_default:
-            warnings.warn(
-                "The 'fastpath' keyword in pd.Series is deprecated and will "
-                "be removed in a future version.",
-                DeprecationWarning,
-                stacklevel=find_stack_level(),
-            )
-        else:
-            fastpath = False
-
         allow_mgr = False
         if (
             isinstance(data, SingleBlockManager)
@@ -417,11 +384,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 data = data.copy(deep=False)
             # GH#33357 called with just the SingleBlockManager
             NDFrame.__init__(self, data)
-            if fastpath:
-                # e.g. from _box_col_values, skip validation of name
-                object.__setattr__(self, "_name", name)
-            else:
-                self.name = name
+            self.name = name
             return
 
         is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
@@ -434,31 +397,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     data = data.copy()
         if copy is None:
             copy = False
-
-        # we are called internally, so short-circuit
-        if fastpath:
-            # data is a ndarray, index is defined
-            if not isinstance(data, SingleBlockManager):
-                data = SingleBlockManager.from_array(data, index)
-                allow_mgr = True
-            elif using_copy_on_write() and not copy:
-                data = data.copy(deep=False)
-
-            if not allow_mgr:
-                warnings.warn(
-                    f"Passing a {type(data).__name__} to {type(self).__name__} "
-                    "is deprecated and will raise in a future version. "
-                    "Use public APIs instead.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-
-            if copy:
-                data = data.copy()
-            # skips validation of the name
-            object.__setattr__(self, "_name", name)
-            NDFrame.__init__(self, data)
-            return
 
         if isinstance(data, SingleBlockManager) and using_copy_on_write() and not copy:
             data = data.copy(deep=False)
@@ -851,103 +789,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def array(self) -> ExtensionArray:
         return self._mgr.array_values()
 
-    # ops
-    def ravel(self, order: str = "C") -> ArrayLike:
-        """
-        Return the flattened underlying data as an ndarray or ExtensionArray.
-
-        .. deprecated:: 2.2.0
-            Series.ravel is deprecated. The underlying array is already 1D, so
-            ravel is not necessary.  Use :meth:`to_numpy` for conversion to a numpy
-            array instead.
-
-        Returns
-        -------
-        numpy.ndarray or ExtensionArray
-            Flattened data of the Series.
-
-        See Also
-        --------
-        numpy.ndarray.ravel : Return a flattened array.
-
-        Examples
-        --------
-        >>> s = pd.Series([1, 2, 3])
-        >>> s.ravel()  # doctest: +SKIP
-        array([1, 2, 3])
-        """
-        warnings.warn(
-            "Series.ravel is deprecated. The underlying array is already 1D, so "
-            "ravel is not necessary.  Use `to_numpy()` for conversion to a numpy "
-            "array instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        arr = self._values.ravel(order=order)
-        if isinstance(arr, np.ndarray) and using_copy_on_write():
-            arr.flags.writeable = False
-        return arr
-
     def __len__(self) -> int:
         """
         Return the length of the Series.
         """
         return len(self._mgr)
-
-    def view(self, dtype: Dtype | None = None) -> Series:
-        """
-        Create a new view of the Series.
-
-        .. deprecated:: 2.2.0
-            ``Series.view`` is deprecated and will be removed in a future version.
-            Use :meth:`Series.astype` as an alternative to change the dtype.
-
-        This function will return a new Series with a view of the same
-        underlying values in memory, optionally reinterpreted with a new data
-        type. The new data type must preserve the same size in bytes as to not
-        cause index misalignment.
-
-        Parameters
-        ----------
-        dtype : data type
-            Data type object or one of their string representations.
-
-        Returns
-        -------
-        Series
-            A new Series object as a view of the same data in memory.
-
-        See Also
-        --------
-        numpy.ndarray.view : Equivalent numpy function to create a new view of
-            the same data in memory.
-
-        Notes
-        -----
-        Series are instantiated with ``dtype=float64`` by default. While
-        ``numpy.ndarray.view()`` will return a view with the same data type as
-        the original array, ``Series.view()`` (without specified dtype)
-        will try using ``float64`` and may fail if the original data type size
-        in bytes is not the same.
-
-        Examples
-        --------
-        Use ``astype`` to change the dtype instead.
-        """
-        warnings.warn(
-            "Series.view is deprecated and will be removed in a future version. "
-            "Use ``astype`` as an alternative to change the dtype.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        # self.array instead of self._values so we piggyback on NumpyExtensionArray
-        #  implementation
-        res_values = self.array.view(dtype)
-        res_ser = self._constructor(res_values, index=self.index, copy=False)
-        if isinstance(res_ser._mgr, SingleBlockManager):
-            blk = res_ser._mgr._block
-            blk.refs.add_reference(blk)
-        return res_ser.__finalize__(self, method="view")
 
     # ----------------------------------------------------------------------
     # NDArray Compat
@@ -1020,13 +866,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 self, api_version=api_version
             )
         )
-
-    # ----------------------------------------------------------------------
-    # Unary Methods
-
-    # coercion
-    __float__ = _coerce_method(float)
-    __int__ = _coerce_method(int)
 
     # ----------------------------------------------------------------------
 
