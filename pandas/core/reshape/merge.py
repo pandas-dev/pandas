@@ -288,7 +288,7 @@ def _groupby_and_merge(
     from pandas.core.reshape.concat import concat
 
     result = concat(pieces, ignore_index=True)
-    result = result.reindex(columns=pieces[0].columns, copy=False)
+    result = result.reindex(columns=pieces[0].columns)
     return result, lby
 
 
@@ -705,7 +705,6 @@ def merge_asof(
 
 
 # TODO: transformations??
-# TODO: only copy DataFrames when modification necessary
 class _MergeOperation:
     """
     Perform a database (SQL) merge operation between two DataFrame or Series
@@ -723,7 +722,6 @@ class _MergeOperation:
     right_index: bool
     sort: bool
     suffixes: Suffixes
-    copy: bool
     indicator: str | bool
     validate: str | None
     join_names: list[Hashable]
@@ -1912,7 +1910,7 @@ class _OrderedMerge(_MergeOperation):
             sort=True,  # factorize sorts
         )
 
-    def get_result(self, copy: bool | None = True) -> DataFrame:
+    def get_result(self) -> DataFrame:
         join_index, left_indexer, right_indexer = self._get_join_info()
 
         left_join_indexer: npt.NDArray[np.intp] | None
@@ -1934,7 +1932,7 @@ class _OrderedMerge(_MergeOperation):
             raise ValueError("fill_method must be 'ffill' or None")
 
         result = self._reindex_and_concat(
-            join_index, left_join_indexer, right_join_indexer, copy=copy
+            join_index, left_join_indexer, right_join_indexer
         )
         self._maybe_add_join_keys(result, left_indexer, right_indexer)
 
@@ -2300,7 +2298,7 @@ def _get_multiindex_indexer(
     if sort:
         rcodes = list(map(np.take, rcodes, index.codes))
     else:
-        i8copy = lambda a: a.astype("i8", subok=False, copy=True)
+        i8copy = lambda a: a.astype("i8", subok=False)
         rcodes = list(map(i8copy, index.codes))
 
     # fix right labels if there were any nulls
