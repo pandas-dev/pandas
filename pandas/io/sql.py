@@ -235,37 +235,6 @@ def _wrap_result_adbc(
     return df
 
 
-def execute(sql, con, params=None):
-    """
-    Execute the given SQL query using the provided connection object.
-
-    Parameters
-    ----------
-    sql : string
-        SQL query to be executed.
-    con : SQLAlchemy connection or sqlite3 connection
-        If a DBAPI2 object, only sqlite3 is supported.
-    params : list or tuple, optional, default: None
-        List of parameters to pass to execute method.
-
-    Returns
-    -------
-    Results Iterable
-    """
-    warnings.warn(
-        "`pandas.io.sql.execute` is deprecated and "
-        "will be removed in the future version.",
-        FutureWarning,
-        stacklevel=find_stack_level(),
-    )  # GH50185
-    sqlalchemy = import_optional_dependency("sqlalchemy", errors="ignore")
-
-    if sqlalchemy is not None and isinstance(con, (str, sqlalchemy.engine.Engine)):
-        raise TypeError("pandas.io.sql.execute requires a connection")  # GH50185
-    with pandasSQL_builder(con, need_transaction=True) as pandas_sql:
-        return pandas_sql.execute(sql, params)
-
-
 # -----------------------------------------------------------------------------
 # -- Read and write to DataFrames
 
@@ -374,7 +343,7 @@ def read_sql_table(
 
     Examples
     --------
-    >>> pd.read_sql_table('table_name', 'postgres:///db_name')  # doctest:+SKIP
+    >>> pd.read_sql_table("table_name", "postgres:///db_name")  # doctest:+SKIP
     """
 
     check_dtype_backend(dtype_backend)
@@ -668,24 +637,28 @@ def read_sql(
     providing only the SQL tablename will result in an error.
 
     >>> from sqlite3 import connect
-    >>> conn = connect(':memory:')
-    >>> df = pd.DataFrame(data=[[0, '10/11/12'], [1, '12/11/10']],
-    ...                   columns=['int_column', 'date_column'])
-    >>> df.to_sql(name='test_data', con=conn)
+    >>> conn = connect(":memory:")
+    >>> df = pd.DataFrame(
+    ...     data=[[0, "10/11/12"], [1, "12/11/10"]],
+    ...     columns=["int_column", "date_column"],
+    ... )
+    >>> df.to_sql(name="test_data", con=conn)
     2
 
-    >>> pd.read_sql('SELECT int_column, date_column FROM test_data', conn)
+    >>> pd.read_sql("SELECT int_column, date_column FROM test_data", conn)
        int_column date_column
     0           0    10/11/12
     1           1    12/11/10
 
-    >>> pd.read_sql('test_data', 'postgres:///db_name')  # doctest:+SKIP
+    >>> pd.read_sql("test_data", "postgres:///db_name")  # doctest:+SKIP
 
     For parameterized query, using ``params`` is recommended over string interpolation.
 
     >>> from sqlalchemy import text
-    >>> sql = text('SELECT int_column, date_column FROM test_data WHERE int_column=:int_val')
-    >>> pd.read_sql(sql, conn, params={'int_val': 1})  # doctest:+SKIP
+    >>> sql = text(
+    ...     "SELECT int_column, date_column FROM test_data WHERE int_column=:int_val"
+    ... )
+    >>> pd.read_sql(sql, conn, params={"int_val": 1})  # doctest:+SKIP
        int_column date_column
     0           1    12/11/10
 
@@ -694,9 +667,11 @@ def read_sql(
     Custom argument values for applying ``pd.to_datetime`` on a column are specified
     via a dictionary format:
 
-    >>> pd.read_sql('SELECT int_column, date_column FROM test_data',
-    ...             conn,
-    ...             parse_dates={"date_column": {"format": "%d/%m/%y"}})
+    >>> pd.read_sql(
+    ...     "SELECT int_column, date_column FROM test_data",
+    ...     conn,
+    ...     parse_dates={"date_column": {"format": "%d/%m/%y"}},
+    ... )
        int_column date_column
     0           0  2012-11-10
     1           1  2010-11-12
@@ -706,12 +681,12 @@ def read_sql(
        pandas now supports reading via ADBC drivers
 
     >>> from adbc_driver_postgresql import dbapi  # doctest:+SKIP
-    >>> with dbapi.connect('postgres:///db_name') as conn:  # doctest:+SKIP
-    ...     pd.read_sql('SELECT int_column FROM test_data', conn)
+    >>> with dbapi.connect("postgres:///db_name") as conn:  # doctest:+SKIP
+    ...     pd.read_sql("SELECT int_column FROM test_data", conn)
        int_column
     0           0
     1           1
-    """  # noqa: E501
+    """
 
     check_dtype_backend(dtype_backend)
     if dtype_backend is lib.no_default:

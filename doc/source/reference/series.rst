@@ -47,7 +47,6 @@ Conversion
    Series.convert_dtypes
    Series.infer_objects
    Series.copy
-   Series.bool
    Series.to_numpy
    Series.to_period
    Series.to_timestamp
@@ -236,10 +235,8 @@ Reshaping, sorting
    Series.unstack
    Series.explode
    Series.searchsorted
-   Series.ravel
    Series.repeat
    Series.squeeze
-   Series.view
 
 Combining / comparing / joining / merging
 -----------------------------------------

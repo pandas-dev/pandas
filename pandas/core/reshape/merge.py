@@ -105,7 +105,6 @@ if TYPE_CHECKING:
     from pandas import DataFrame
     from pandas.core import groupby
     from pandas.core.arrays import DatetimeArray
-    from pandas.core.indexes.frozen import FrozenList
 
 _factorizers = {
     np.int64: libhashtable.Int64Factorizer,
@@ -367,7 +366,7 @@ def merge_ordered(
     ...     {
     ...         "key": ["a", "c", "e", "a", "c", "e"],
     ...         "lvalue": [1, 2, 3, 1, 2, 3],
-    ...         "group": ["a", "a", "a", "b", "b", "b"]
+    ...         "group": ["a", "a", "a", "b", "b", "b"],
     ...     }
     ... )
     >>> df1
@@ -598,7 +597,7 @@ def merge_asof(
     ...             pd.Timestamp("2016-05-25 13:30:00.048"),
     ...             pd.Timestamp("2016-05-25 13:30:00.049"),
     ...             pd.Timestamp("2016-05-25 13:30:00.072"),
-    ...             pd.Timestamp("2016-05-25 13:30:00.075")
+    ...             pd.Timestamp("2016-05-25 13:30:00.075"),
     ...         ],
     ...         "ticker": [
     ...             "GOOG",
@@ -608,10 +607,10 @@ def merge_asof(
     ...             "GOOG",
     ...             "AAPL",
     ...             "GOOG",
-    ...             "MSFT"
+    ...             "MSFT",
     ...         ],
     ...         "bid": [720.50, 51.95, 51.97, 51.99, 720.50, 97.99, 720.50, 52.01],
-    ...         "ask": [720.93, 51.96, 51.98, 52.00, 720.93, 98.01, 720.88, 52.03]
+    ...         "ask": [720.93, 51.96, 51.98, 52.00, 720.93, 98.01, 720.88, 52.03],
     ...     }
     ... )
     >>> quotes
@@ -632,11 +631,11 @@ def merge_asof(
     ...             pd.Timestamp("2016-05-25 13:30:00.038"),
     ...             pd.Timestamp("2016-05-25 13:30:00.048"),
     ...             pd.Timestamp("2016-05-25 13:30:00.048"),
-    ...             pd.Timestamp("2016-05-25 13:30:00.048")
+    ...             pd.Timestamp("2016-05-25 13:30:00.048"),
     ...         ],
     ...         "ticker": ["MSFT", "MSFT", "GOOG", "GOOG", "AAPL"],
     ...         "price": [51.95, 51.95, 720.77, 720.92, 98.0],
-    ...         "quantity": [75, 155, 100, 100, 100]
+    ...         "quantity": [75, 155, 100, 100, 100],
     ...     }
     ... )
     >>> trades
@@ -679,7 +678,7 @@ def merge_asof(
     ...     on="time",
     ...     by="ticker",
     ...     tolerance=pd.Timedelta("10ms"),
-    ...     allow_exact_matches=False
+    ...     allow_exact_matches=False,
     ... )
                          time ticker   price  quantity     bid     ask
     0 2016-05-25 13:30:00.023   MSFT   51.95        75     NaN     NaN
@@ -1809,7 +1808,7 @@ def restore_dropped_levels_multijoin(
     join_index: Index,
     lindexer: npt.NDArray[np.intp],
     rindexer: npt.NDArray[np.intp],
-) -> tuple[FrozenList, FrozenList, FrozenList]:
+) -> tuple[tuple, tuple, tuple]:
     """
     *this is an internal non-public method*
 
@@ -1841,7 +1840,7 @@ def restore_dropped_levels_multijoin(
         levels of combined multiindexes
     labels : np.ndarray[np.intp]
         labels of combined multiindexes
-    names : List[Hashable]
+    names : tuple[Hashable]
         names of combined multiindex levels
 
     """
@@ -1883,12 +1882,11 @@ def restore_dropped_levels_multijoin(
         else:
             restore_codes = algos.take_nd(codes, indexer, fill_value=-1)
 
-        # error: Cannot determine type of "__add__"
-        join_levels = join_levels + [restore_levels]  # type: ignore[has-type]
-        join_codes = join_codes + [restore_codes]  # type: ignore[has-type]
-        join_names = join_names + [dropped_level_name]
+        join_levels = join_levels + (restore_levels,)
+        join_codes = join_codes + (restore_codes,)
+        join_names = join_names + (dropped_level_name,)
 
-    return join_levels, join_codes, join_names
+    return tuple(join_levels), tuple(join_codes), tuple(join_names)
 
 
 class _OrderedMerge(_MergeOperation):

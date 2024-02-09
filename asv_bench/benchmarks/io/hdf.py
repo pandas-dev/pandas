@@ -123,12 +123,12 @@ class HDF(BaseIO):
             index=date_range("20000101", periods=N, freq="h"),
         )
         self.df["object"] = Index([f"i-{i}" for i in range(N)], dtype=object)
-        self.df.to_hdf(self.fname, "df", format=format)
+        self.df.to_hdf(self.fname, key="df", format=format)
 
         # Numeric df
         self.df1 = self.df.copy()
         self.df1 = self.df1.reset_index()
-        self.df1.to_hdf(self.fname, "df1", format=format)
+        self.df1.to_hdf(self.fname, key="df1", format=format)
 
     def time_read_hdf(self, format):
         read_hdf(self.fname, "df")
@@ -137,7 +137,7 @@ class HDF(BaseIO):
         read_hdf(self.fname, "df")
 
     def time_write_hdf(self, format):
-        self.df.to_hdf(self.fname, "df", format=format)
+        self.df.to_hdf(self.fname, key="df", format=format)
 
 
 from ..pandas_vb_common import setup  # noqa: F401 isort:skip
