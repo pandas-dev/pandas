@@ -205,8 +205,10 @@ def concat(
         Check whether the new concatenated axis contains duplicates. This can
         be very expensive relative to the actual data concatenation.
     sort : bool, default False
-        Sort non-concatenation axis if it is not already aligned.
-
+        Sort non-concatenation axis if it is not already aligned. One exception to
+        this is when the non-concatentation axis is a DatetimeIndex and join='outer'
+        and the axis is not already aligned. In that case, the non-concatenation
+        axis is always sorted lexicographically.
     copy : bool, default True
         If False, do not copy data unnecessarily.
 
