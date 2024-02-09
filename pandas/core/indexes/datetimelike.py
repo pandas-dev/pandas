@@ -273,7 +273,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
     def _parsed_string_to_bounds(self, reso: Resolution, parsed):
         raise NotImplementedError
 
-    def _parse_with_reso(self, label: str):
+    def _parse_with_reso(self, label: str) -> tuple[datetime, Resolution]:
         # overridden by TimedeltaIndex
         try:
             if self.freq is None or hasattr(self.freq, "rule_code"):
@@ -295,7 +295,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         reso = Resolution.from_attrname(reso_str)
         return parsed, reso
 
-    def _get_string_slice(self, key: str):
+    def _get_string_slice(self, key: str) -> slice | npt.NDArray[np.intp]:
         # overridden by TimedeltaIndex
         parsed, reso = self._parse_with_reso(key)
         try:
@@ -463,20 +463,20 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         --------
         For :class:`pandas.DatetimeIndex`:
 
-        >>> idx = pd.DatetimeIndex(['2020-01-02 01:02:03.004005006'])
+        >>> idx = pd.DatetimeIndex(["2020-01-02 01:02:03.004005006"])
         >>> idx
         DatetimeIndex(['2020-01-02 01:02:03.004005006'],
                       dtype='datetime64[ns]', freq=None)
-        >>> idx.as_unit('s')
+        >>> idx.as_unit("s")
         DatetimeIndex(['2020-01-02 01:02:03'], dtype='datetime64[s]', freq=None)
 
         For :class:`pandas.TimedeltaIndex`:
 
-        >>> tdelta_idx = pd.to_timedelta(['1 day 3 min 2 us 42 ns'])
+        >>> tdelta_idx = pd.to_timedelta(["1 day 3 min 2 us 42 ns"])
         >>> tdelta_idx
         TimedeltaIndex(['1 days 00:03:00.000002042'],
                         dtype='timedelta64[ns]', freq=None)
-        >>> tdelta_idx.as_unit('s')
+        >>> tdelta_idx.as_unit("s")
         TimedeltaIndex(['1 days 00:03:00'], dtype='timedelta64[s]', freq=None)
         """
         arr = self._data.as_unit(unit)
