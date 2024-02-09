@@ -46,11 +46,11 @@ def to_numpy_dtype_inference(
     if na_value is lib.no_default:
         if dtype is None or not hasna:
             na_value = arr.dtype.na_value
-        elif dtype.kind == "f":
+        elif dtype.kind == "f":  # type: ignore[union-attr]
             na_value = np.nan
-        elif dtype.kind == "M":
+        elif dtype.kind == "M":  # type: ignore[union-attr]
             na_value = np.datetime64("nat")
-        elif dtype.kind == "m":
+        elif dtype.kind == "m":  # type: ignore[union-attr]
             na_value = np.timedelta64("nat")
         else:
             na_value = arr.dtype.na_value
