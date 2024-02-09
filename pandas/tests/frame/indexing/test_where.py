@@ -761,15 +761,13 @@ class TestDataFrameIndexingWhere:
             "timedelta64[ns]",
             "datetime64[ns]",
             "datetime64[ns, Asia/Tokyo]",
-            "Period[D]",
         ],
     )
     def test_where_datetimelike_noop(self, dtype):
         # GH#45135, analogue to GH#44181 for Period don't raise on no-op
         # For td64/dt64/dt64tz we already don't raise, but also are
         #  checking that we don't unnecessarily upcast to object.
-        with tm.assert_produces_warning(FutureWarning, match="is deprecated"):
-            ser = Series(np.arange(3) * 10**9, dtype=np.int64).view(dtype)
+        ser = Series(np.arange(3) * 10**9, dtype=np.int64).astype(dtype)
         df = ser.to_frame()
         mask = np.array([False, False, False])
 
