@@ -301,7 +301,7 @@ cdef class IndexEngine:
                 values = self.values
                 self.monotonic_inc, self.monotonic_dec, is_strict_monotonic = \
                     self._call_monotonic(values)
-            except (TypeError, InvalidOperation):
+            except (TypeError, InvalidOperation, ValueError):
                 self.monotonic_inc = 0
                 self.monotonic_dec = 0
                 is_strict_monotonic = 0
