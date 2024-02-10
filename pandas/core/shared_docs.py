@@ -148,14 +148,14 @@ group_keys : bool, default True
 
        ``group_keys`` now defaults to ``True``.
 
-observed : bool, default False
+observed : bool, default True
     This only applies if any of the groupers are Categoricals.
     If True: only show observed values for categorical groupers.
     If False: show all values for categorical groupers.
 
-    .. deprecated:: 2.1.0
+    .. versionchanged:: 3.0.0
 
-        The default value will change to True in a future version of pandas.
+        The default value is now ``True``.
 
 dropna : bool, default True
     If True, and if group keys contain NA values, NA values together

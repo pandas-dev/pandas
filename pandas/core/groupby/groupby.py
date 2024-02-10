@@ -1117,7 +1117,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
-        observed: bool | lib.NoDefault = lib.no_default,
+        observed: bool = False,
         dropna: bool = True,
     ) -> None:
         self._selection = selection
@@ -1137,23 +1137,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 keys,
                 level=level,
                 sort=sort,
-                observed=False if observed is lib.no_default else observed,
+                observed=observed,
                 dropna=self.dropna,
             )
 
-        if observed is lib.no_default:
-            if any(ping._passed_categorical for ping in grouper.groupings):
-                warnings.warn(
-                    "The default of observed=False is deprecated and will be changed "
-                    "to True in a future version of pandas. Pass observed=False to "
-                    "retain current behavior or observed=True to adopt the future "
-                    "default and silence this warning.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            observed = False
         self.observed = observed
-
         self.obj = obj
         self._grouper = grouper
         self.exclusions = frozenset(exclusions) if exclusions else frozenset()
