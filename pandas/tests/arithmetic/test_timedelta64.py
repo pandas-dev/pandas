@@ -2113,9 +2113,7 @@ class TestTimedeltaArraylikeMulDivOps:
         if box_with_array is not Index:
             expected = tm.box_expected(expected, box_with_array).astype(object)
             if box_with_array in [Series, DataFrame]:
-                msg = "The 'downcast' keyword in fillna is deprecated"
-                with tm.assert_produces_warning(FutureWarning, match=msg):
-                    expected = expected.fillna(tdnat, downcast=False)  # GH#18463
+                expected = expected.fillna(tdnat)  # GH#18463
 
         result = left / right
         tm.assert_equal(result, expected)
