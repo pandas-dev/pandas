@@ -2088,18 +2088,6 @@ def test_many_categories(as_index, sort, index_kind, ordered):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("cat_columns", ["a", "b", ["a", "b"]])
-@pytest.mark.parametrize("keys", ["a", "b", ["a", "b"]])
-def test_groupby_default_depr(cat_columns, keys):
-    # GH#43999
-    df = DataFrame({"a": [1, 1, 2, 3], "b": [4, 5, 6, 7]})
-    df[cat_columns] = df[cat_columns].astype("category")
-    msg = "The default of observed=False is deprecated"
-    klass = FutureWarning if set(cat_columns) & set(keys) else None
-    with tm.assert_produces_warning(klass, match=msg):
-        df.groupby(keys)
-
-
 @pytest.mark.parametrize("test_series", [True, False])
 @pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
 def test_agg_list(request, as_index, observed, reduction_func, test_series, keys):
