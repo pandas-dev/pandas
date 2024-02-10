@@ -163,7 +163,6 @@ def merge(
             suffixes=suffixes,
             indicator=indicator,
             validate=validate,
-            copy=copy,
         )
     else:
         op = _MergeOperation(
@@ -180,7 +179,7 @@ def merge(
             indicator=indicator,
             validate=validate,
         )
-        return op.get_result(copy=copy)
+        return op.get_result()
 
 
 def _cross_merge(
@@ -193,7 +192,6 @@ def _cross_merge(
     right_index: bool = False,
     sort: bool = False,
     suffixes: Suffixes = ("_x", "_y"),
-    copy: bool | None = None,
     indicator: str | bool = False,
     validate: str | None = None,
 ) -> DataFrame:
@@ -232,7 +230,6 @@ def _cross_merge(
         suffixes=suffixes,
         indicator=indicator,
         validate=validate,
-        copy=copy,
     )
     del res[cross_col]
     return res
@@ -291,7 +288,7 @@ def _groupby_and_merge(
     from pandas.core.reshape.concat import concat
 
     result = concat(pieces, ignore_index=True)
-    result = result.reindex(columns=pieces[0].columns, copy=False)
+    result = result.reindex(columns=pieces[0].columns)
     return result, lby
 
 
@@ -708,7 +705,6 @@ def merge_asof(
 
 
 # TODO: transformations??
-# TODO: only copy DataFrames when modification necessary
 class _MergeOperation:
     """
     Perform a database (SQL) merge operation between two DataFrame or Series
@@ -726,7 +722,6 @@ class _MergeOperation:
     right_index: bool
     sort: bool
     suffixes: Suffixes
-    copy: bool
     indicator: str | bool
     validate: str | None
     join_names: list[Hashable]
@@ -827,7 +822,6 @@ class _MergeOperation:
         join_index: Index,
         left_indexer: npt.NDArray[np.intp] | None,
         right_indexer: npt.NDArray[np.intp] | None,
-        copy: bool | None,
     ) -> DataFrame:
         """
         reindex along index and concat along columns.
@@ -848,7 +842,6 @@ class _MergeOperation:
                 join_index,
                 left_indexer,
                 axis=1,
-                copy=False,
                 only_slice=True,
                 allow_dups=True,
                 use_na_proxy=True,
@@ -863,7 +856,6 @@ class _MergeOperation:
                 join_index,
                 right_indexer,
                 axis=1,
-                copy=False,
                 only_slice=True,
                 allow_dups=True,
                 use_na_proxy=True,
@@ -875,18 +867,16 @@ class _MergeOperation:
 
         left.columns = llabels
         right.columns = rlabels
-        result = concat([left, right], axis=1, copy=copy)
+        result = concat([left, right], axis=1)
         return result
 
-    def get_result(self, copy: bool | None = True) -> DataFrame:
+    def get_result(self) -> DataFrame:
         if self.indicator:
             self.left, self.right = self._indicator_pre_merge(self.left, self.right)
 
         join_index, left_indexer, right_indexer = self._get_join_info()
 
-        result = self._reindex_and_concat(
-            join_index, left_indexer, right_indexer, copy=copy
-        )
+        result = self._reindex_and_concat(join_index, left_indexer, right_indexer)
         result = result.__finalize__(self, method=self._merge_type)
 
         if self.indicator:
@@ -1920,7 +1910,7 @@ class _OrderedMerge(_MergeOperation):
             sort=True,  # factorize sorts
         )
 
-    def get_result(self, copy: bool | None = True) -> DataFrame:
+    def get_result(self) -> DataFrame:
         join_index, left_indexer, right_indexer = self._get_join_info()
 
         left_join_indexer: npt.NDArray[np.intp] | None
@@ -1942,7 +1932,7 @@ class _OrderedMerge(_MergeOperation):
             raise ValueError("fill_method must be 'ffill' or None")
 
         result = self._reindex_and_concat(
-            join_index, left_join_indexer, right_join_indexer, copy=copy
+            join_index, left_join_indexer, right_join_indexer
         )
         self._maybe_add_join_keys(result, left_indexer, right_indexer)
 
@@ -2308,7 +2298,7 @@ def _get_multiindex_indexer(
     if sort:
         rcodes = list(map(np.take, rcodes, index.codes))
     else:
-        i8copy = lambda a: a.astype("i8", subok=False, copy=True)
+        i8copy = lambda a: a.astype("i8", subok=False)
         rcodes = list(map(i8copy, index.codes))
 
     # fix right labels if there were any nulls

@@ -218,7 +218,7 @@ class SelectionMixin(Generic[NDFrameT]):
             return self.obj
 
         if self._selection is not None:
-            return self.obj._getitem_nocopy(self._selection_list)
+            return self.obj[self._selection_list]
 
         if len(self.exclusions) > 0:
             # equivalent to `self.obj.drop(self.exclusions, axis=1)

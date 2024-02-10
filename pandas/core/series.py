@@ -25,8 +25,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
-
 from pandas._libs import (
     lib,
     properties,
@@ -397,7 +395,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if copy is None:
             copy = False
 
-        if isinstance(data, SingleBlockManager) and using_copy_on_write() and not copy:
+        if isinstance(data, SingleBlockManager) and not copy:
             data = data.copy(deep=False)
 
             if not allow_mgr:
@@ -432,7 +430,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         refs = None
         if isinstance(data, Index):
             if dtype is not None:
-                data = data.astype(dtype, copy=False)
+                data = data.astype(dtype)
 
             refs = data._references
             data = data._values
@@ -451,7 +449,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 index = data.index
                 data = data._mgr.copy(deep=False)
             else:
-                data = data.reindex(index, copy=copy)
+                data = data.reindex(index)
                 copy = False
                 data = data._mgr
         elif is_dict_like(data):
@@ -498,7 +496,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # create/copy the manager
         if isinstance(data, SingleBlockManager):
             if dtype is not None:
-                data = data.astype(dtype=dtype, errors="ignore", copy=copy)
+                data = data.astype(dtype=dtype, errors="ignore")
             elif copy:
                 data = data.copy()
         else:
@@ -568,7 +566,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # Now we just make sure the order is respected, if any
         if data and index is not None:
-            s = s.reindex(index, copy=False)
+            s = s.reindex(index)
         return s._mgr, s.index
 
     # ----------------------------------------------------------------------
@@ -2664,7 +2662,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s1.corr(s2)
         -1.0
         """  # noqa: E501
-        this, other = self.align(other, join="inner", copy=False)
+        this, other = self.align(other, join="inner")
         if len(this) == 0:
             return np.nan
 
@@ -2721,7 +2719,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s1.cov(s2)
         -0.01685762652715874
         """
-        this, other = self.align(other, join="inner", copy=False)
+        this, other = self.align(other, join="inner")
         if len(this) == 0:
             return np.nan
         this_values = this.to_numpy(dtype=float, na_value=np.nan, copy=False)
@@ -2923,8 +2921,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if len(common) > len(self.index) or len(common) > len(other.index):
                 raise ValueError("matrices are not aligned")
 
-            left = self.reindex(index=common, copy=False)
-            right = other.reindex(index=common, copy=False)
+            left = self.reindex(index=common)
+            right = other.reindex(index=common)
             lvals = left.values
             rvals = right.values
         else:
@@ -3235,13 +3233,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         keep_other = other.index.difference(this.index[notna(this)])
         keep_this = this.index.difference(keep_other)
 
-        this = this.reindex(keep_this, copy=False)
-        other = other.reindex(keep_other, copy=False)
+        this = this.reindex(keep_this)
+        other = other.reindex(keep_other)
 
         if this.dtype.kind == "M" and other.dtype.kind != "M":
             other = to_datetime(other)
         combined = concat([this, other])
-        combined = combined.reindex(new_index, copy=False)
+        combined = combined.reindex(new_index)
         return combined.__finalize__(self, method="combine_first")
 
     def update(self, other: Series | Sequence | Mapping) -> None:
@@ -3552,7 +3550,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if is_range_indexer(sorted_index, len(sorted_index)):
             if inplace:
                 return self._update_inplace(self)
-            return self.copy(deep=None)
+            return self.copy(deep=False)
 
         result = self._constructor(
             self._values[sorted_index], index=self.index[sorted_index], copy=False
@@ -4185,7 +4183,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if not isinstance(self.index, MultiIndex):  # pragma: no cover
             raise Exception("Can only reorder levels on a hierarchical axis.")
 
-        result = self.copy(deep=None)
+        result = self.copy(deep=False)
         assert isinstance(result.index, MultiIndex)
         result.index = result.index.reorder_levels(order)
         return result
@@ -4777,7 +4775,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # Hashable], Callable[[Any], Hashable], None]"
             return super()._rename(
                 index,  # type: ignore[arg-type]
-                copy=copy,
                 inplace=inplace,
                 level=level,
                 errors=errors,
@@ -4818,7 +4815,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = 0,
         copy: bool | None = None,
     ) -> Series:
-        return super().set_axis(labels, axis=axis, copy=copy)
+        return super().set_axis(labels, axis=axis)
 
     # error: Cannot determine type of 'reindex'
     @doc(
@@ -4841,7 +4838,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return super().reindex(
             index=index,
             method=method,
-            copy=copy,
             level=level,
             fill_value=fill_value,
             limit=limit,
@@ -4958,7 +4954,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             mapper=mapper,
             index=index,
             axis=axis,
-            copy=copy,
             inplace=inplace,
         )
 
@@ -5488,7 +5483,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             )
             for condition, replacement in caselist
         ]
-        default = self.copy()
+        default = self.copy(deep=False)
         conditions, replacements = zip(*caselist)
         common_dtypes = [infer_dtype_from(arg)[0] for arg in [*replacements, default]]
         if len(set(common_dtypes)) > 1:
@@ -5652,7 +5647,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             result = remove_na_arraylike(self)
         else:
             if not inplace:
-                result = self.copy(deep=None)
+                result = self.copy(deep=False)
             else:
                 result = self
 
@@ -5913,7 +5908,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     left = left.astype(object)
                     right = right.astype(object)
 
-                left, right = left.align(right, copy=False)
+                left, right = left.align(right)
 
         return left, right
 
@@ -5939,7 +5934,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         this = self
 
         if not self.index.equals(other.index):
-            this, other = self.align(other, level=level, join="outer", copy=False)
+            this, other = self.align(other, level=level, join="outer")
 
         this_vals, other_vals = ops.fill_binop(this._values, other._values, fill_value)
 
