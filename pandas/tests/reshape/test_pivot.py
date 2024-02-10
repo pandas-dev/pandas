@@ -2061,10 +2061,10 @@ class TestPivotTable:
         [
             ("sum", np.sum),
             ("mean", np.mean),
-            ("std", np.std),
+            ("min", np.min),
             (["sum", "mean"], [np.sum, np.mean]),
-            (["sum", "std"], [np.sum, np.std]),
-            (["std", "mean"], [np.std, np.mean]),
+            (["sum", "min"], [np.sum, np.min]),
+            (["max", "mean"], [np.max, np.mean]),
         ],
     )
     def test_pivot_string_func_vs_func(self, f, f_numpy, data):
@@ -2072,10 +2072,7 @@ class TestPivotTable:
         # for consistency purposes
         data = data.drop(columns="C")
         result = pivot_table(data, index="A", columns="B", aggfunc=f)
-        ops = "|".join(f) if isinstance(f, list) else f
-        msg = f"using DataFrameGroupBy.[{ops}]"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = pivot_table(data, index="A", columns="B", aggfunc=f_numpy)
+        expected = pivot_table(data, index="A", columns="B", aggfunc=f_numpy)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow

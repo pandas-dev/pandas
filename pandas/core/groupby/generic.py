@@ -357,11 +357,6 @@ class SeriesGroupBy(GroupBy[Series]):
             return ret
 
         else:
-            cyfunc = com.get_cython_func(func)
-            if cyfunc and not args and not kwargs:
-                warn_alias_replacement(self, func, cyfunc)
-                return getattr(self, cyfunc)()
-
             if maybe_use_numba(engine):
                 return self._aggregate_with_numba(
                     func, *args, engine_kwargs=engine_kwargs, **kwargs
@@ -409,11 +404,6 @@ class SeriesGroupBy(GroupBy[Series]):
     agg = aggregate
 
     def _python_agg_general(self, func, *args, **kwargs):
-        orig_func = func
-        func = com.is_builtin_func(func)
-        if orig_func != func:
-            alias = com._builtin_table_alias[func]
-            warn_alias_replacement(self, orig_func, alias)
         f = lambda x: func(x, *args, **kwargs)
 
         obj = self._obj_with_exclusions
@@ -1589,11 +1579,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     agg = aggregate
 
     def _python_agg_general(self, func, *args, **kwargs):
-        orig_func = func
-        func = com.is_builtin_func(func)
-        if orig_func != func:
-            alias = com._builtin_table_alias[func]
-            warn_alias_replacement(self, orig_func, alias)
         f = lambda x: func(x, *args, **kwargs)
 
         if self.ngroups == 0:

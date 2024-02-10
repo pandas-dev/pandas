@@ -86,7 +86,7 @@ def df_with_cat_col():
 
 def _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=""):
     warn_klass = None if warn_msg == "" else FutureWarning
-    with tm.assert_produces_warning(warn_klass, match=warn_msg):
+    with tm.assert_produces_warning(warn_klass, match=warn_msg, check_stacklevel=False):
         if klass is None:
             if how == "method":
                 getattr(gb, groupby_func)(*args)
@@ -222,12 +222,11 @@ def test_groupby_raises_string_np(
             re.escape("agg function failed [how->mean,dtype->object]"),
         ),
     }[groupby_func_np]
-
-    if groupby_series:
-        warn_msg = "using SeriesGroupBy.[sum|mean]"
+    if how == "transform" and groupby_func_np is np.sum and not groupby_series:
+        warn_msg = "The behavior of DataFrame.sum with axis=None is deprecated"
     else:
-        warn_msg = "using DataFrameGroupBy.[sum|mean]"
-    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg=warn_msg)
+        warn_msg = ""
+    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg)
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
@@ -328,7 +327,10 @@ def test_groupby_raises_datetime_np(
         gb = gb["d"]
 
     klass, msg = {
-        np.sum: (TypeError, "datetime64 type does not support sum operations"),
+        np.sum: (
+            TypeError,
+            re.escape("datetime64[us] does not support reduction 'sum'"),
+        ),
         np.mean: (None, ""),
     }[groupby_func_np]
 
@@ -534,10 +536,10 @@ def test_groupby_raises_category_np(
         gb = gb["d"]
 
     klass, msg = {
-        np.sum: (TypeError, "category type does not support sum operations"),
+        np.sum: (TypeError, "dtype category does not support reduction 'sum'"),
         np.mean: (
             TypeError,
-            "category dtype does not support aggregation 'mean'",
+            "dtype category does not support reduction 'mean'",
         ),
     }[groupby_func_np]
 
