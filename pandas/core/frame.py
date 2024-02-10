@@ -2113,11 +2113,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        data : structured ndarray, sequence of tuples or dicts, or DataFrame
+        data : structured ndarray, sequence of tuples or dicts
             Structured input data.
-
-            .. deprecated:: 2.1.0
-                Passing a DataFrame is deprecated.
         index : str, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
             input labels to use.
