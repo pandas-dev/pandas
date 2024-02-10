@@ -3628,7 +3628,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def rolling(self, *args, **kwargs) -> RollingGroupby:
+    def rolling(
+        self,
+        window: int,
+        min_periods: int,
+        center: bool,
+        win_type: str,
+        on: str,
+        closed: str,
+        method: str,
+    ) -> RollingGroupby:
         """
         Return a rolling grouper, providing rolling functionality per group.
 
@@ -3758,10 +3767,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         return RollingGroupby(
             self._selected_obj,
-            *args,
+            window=window,
+            min_periods=min_periods,
+            center=center,
+            win_type=win_type,
+            on=on,
+            closed=closed,
+            method=method,
             _grouper=self._grouper,
             _as_index=self.as_index,
-            **kwargs,
         )
 
     @final
