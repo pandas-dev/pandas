@@ -8856,7 +8856,7 @@ class DataFrame(NDFrame, OpsMixin):
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
-        observed: bool | lib.NoDefault = lib.no_default,
+        observed: bool = True,
         dropna: bool = True,
     ) -> DataFrameGroupBy:
         from pandas.core.groupby.generic import DataFrameGroupBy
@@ -9065,10 +9065,9 @@ class DataFrame(NDFrame, OpsMixin):
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.
 
-            .. deprecated:: 2.2.0
+            .. versionchanged:: 3.0.0
 
-                The default value of ``False`` is deprecated and will change to
-                ``True`` in a future version of pandas.
+                The default value is now ``True``.
 
         sort : bool, default True
             Specifies if the result should be sorted.
@@ -9180,7 +9179,7 @@ class DataFrame(NDFrame, OpsMixin):
         margins: bool = False,
         dropna: bool = True,
         margins_name: Level = "All",
-        observed: bool | lib.NoDefault = lib.no_default,
+        observed: bool = True,
         sort: bool = True,
     ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot_table
