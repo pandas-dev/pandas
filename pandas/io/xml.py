@@ -11,7 +11,6 @@ from typing import (
     Any,
     Callable,
 )
-import warnings
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -20,7 +19,6 @@ from pandas.errors import (
     ParserError,
 )
 from pandas.util._decorators import doc
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
@@ -28,10 +26,8 @@ from pandas.core.dtypes.common import is_list_like
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import (
-    file_exists,
     get_handle,
     infer_compression,
-    is_file_like,
     is_fsspec_url,
     is_url,
     stringify_path,
@@ -528,7 +524,7 @@ class _EtreeFrameParser(_XMLFrameParser):
             storage_options=self.storage_options,
         )
 
-        with preprocess_data(handle_data) as xml_data:
+        with handle_data as xml_data:
             curr_parser = XMLParser(encoding=self.encoding)
             document = parse(xml_data, parser=curr_parser)
 
@@ -635,7 +631,7 @@ class _LxmlFrameParser(_XMLFrameParser):
             storage_options=self.storage_options,
         )
 
-        with preprocess_data(handle_data) as xml_data:
+        with handle_data as xml_data:
             curr_parser = XMLParser(encoding=self.encoding)
 
             if isinstance(xml_data, io.StringIO):
@@ -673,44 +669,27 @@ def get_data_from_filepath(
     encoding: str | None,
     compression: CompressionOptions,
     storage_options: StorageOptions,
-) -> str | bytes | ReadBuffer[bytes] | ReadBuffer[str]:
+):
     """
     Extract raw XML data.
 
-    The method accepts three input types:
+    The method accepts two input types:
         1. filepath (string-like)
         2. file-like object (e.g. open file object, StringIO)
-        3. XML string or bytes
-
-    This method turns (1) into (2) to simplify the rest of the processing.
-    It returns input types (2) and (3) unchanged.
     """
-    if not isinstance(filepath_or_buffer, bytes):
-        filepath_or_buffer = stringify_path(filepath_or_buffer)
-
-    if (
-        isinstance(filepath_or_buffer, str)
-        and not filepath_or_buffer.startswith(("<?xml", "<"))
-    ) and (
-        not isinstance(filepath_or_buffer, str)
-        or is_url(filepath_or_buffer)
-        or is_fsspec_url(filepath_or_buffer)
-        or file_exists(filepath_or_buffer)
-    ):
-        with get_handle(
-            filepath_or_buffer,
-            "r",
-            encoding=encoding,
-            compression=compression,
-            storage_options=storage_options,
-        ) as handle_obj:
-            filepath_or_buffer = (
-                handle_obj.handle.read()
-                if hasattr(handle_obj.handle, "read")
-                else handle_obj.handle
-            )
-
-    return filepath_or_buffer
+    filepath_or_buffer = stringify_path(filepath_or_buffer)  # type: ignore[arg-type]
+    with get_handle(  # pyright: ignore[reportGeneralTypeIssues]
+        filepath_or_buffer,  # pyright: ignore[reportGeneralTypeIssues]
+        "r",
+        encoding=encoding,
+        compression=compression,
+        storage_options=storage_options,
+    ) as handle_obj:
+        return (
+            preprocess_data(handle_obj.handle.read())
+            if hasattr(handle_obj.handle, "read")
+            else handle_obj.handle
+        )
 
 
 def preprocess_data(data) -> io.StringIO | io.BytesIO:
@@ -789,22 +768,6 @@ def _parse(
     """
 
     p: _EtreeFrameParser | _LxmlFrameParser
-
-    if isinstance(path_or_buffer, str) and not any(
-        [
-            is_file_like(path_or_buffer),
-            file_exists(path_or_buffer),
-            is_url(path_or_buffer),
-            is_fsspec_url(path_or_buffer),
-        ]
-    ):
-        warnings.warn(
-            "Passing literal xml to 'read_xml' is deprecated and "
-            "will be removed in a future version. To read from a "
-            "literal string, wrap it in a 'StringIO' object.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
 
     if parser == "lxml":
         lxml = import_optional_dependency("lxml.etree", errors="ignore")
@@ -894,8 +857,8 @@ def read_xml(
     ----------
     path_or_buffer : str, path object, or file-like object
         String, path object (implementing ``os.PathLike[str]``), or file-like
-        object implementing a ``read()`` function. The string can be any valid XML
-        string or a path. The string can further be a URL. Valid URL schemes
+        object implementing a ``read()`` function. The string can be a path.
+        The string can further be a URL. Valid URL schemes
         include http, ftp, s3, and file.
 
         .. deprecated:: 2.1.0
@@ -969,7 +932,7 @@ def read_xml(
         and ability to use XSLT stylesheet are supported.
 
     stylesheet : str, path object or file-like object
-        A URL, file-like object, or a raw string containing an XSLT script.
+        A URL, file-like object, or a string path containing an XSLT script.
         This stylesheet should flatten complex, deeply nested XML documents
         for easier parsing. To use this feature you must have ``lxml`` module
         installed and specify 'lxml' as ``parser``. The ``xpath`` must

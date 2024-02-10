@@ -7,7 +7,9 @@ HTML IO.
 from __future__ import annotations
 
 from collections import abc
+import errno
 import numbers
+import os
 import re
 from re import Pattern
 from typing import (
@@ -15,7 +17,6 @@ from typing import (
     Literal,
     cast,
 )
-import warnings
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -24,7 +25,6 @@ from pandas.errors import (
     EmptyDataError,
 )
 from pandas.util._decorators import doc
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
@@ -36,10 +36,7 @@ from pandas.core.series import Series
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import (
-    file_exists,
     get_handle,
-    is_file_like,
-    is_fsspec_url,
     is_url,
     stringify_path,
     validate_header_arg,
@@ -134,21 +131,17 @@ def _read(
     -------
     raw_text : str
     """
-    text: str | bytes
-    if (
-        is_url(obj)
-        or hasattr(obj, "read")
-        or (isinstance(obj, str) and file_exists(obj))
-    ):
+    try:
         with get_handle(
             obj, "r", encoding=encoding, storage_options=storage_options
         ) as handles:
-            text = handles.handle.read()
-    elif isinstance(obj, (str, bytes)):
-        text = obj
-    else:
-        raise TypeError(f"Cannot read object of type '{type(obj).__name__}'")
-    return text
+            return handles.handle.read()
+    except OSError as err:
+        if not is_url(obj):
+            raise FileNotFoundError(
+                f"[Errno {errno.ENOENT}] {os.strerror(errno.ENOENT)}: {obj}"
+            ) from err
+        raise
 
 
 class _HtmlFrameParser:
@@ -158,7 +151,7 @@ class _HtmlFrameParser:
     Parameters
     ----------
     io : str or file-like
-        This can be either a string of raw HTML, a valid URL using the HTTP,
+        This can be either a string path, a valid URL using the HTTP,
         FTP, or FILE protocols or a file-like object.
 
     match : str or regex
@@ -780,36 +773,26 @@ class _LxmlFrameParser(_HtmlFrameParser):
         from lxml.etree import XMLSyntaxError
         from lxml.html import (
             HTMLParser,
-            fromstring,
             parse,
         )
 
         parser = HTMLParser(recover=True, encoding=self.encoding)
 
-        try:
-            if is_url(self.io):
-                with get_handle(
-                    self.io, "r", storage_options=self.storage_options
-                ) as f:
-                    r = parse(f.handle, parser=parser)
-            else:
-                # try to parse the input in the simplest way
-                r = parse(self.io, parser=parser)
+        if is_url(self.io):
+            with get_handle(self.io, "r", storage_options=self.storage_options) as f:
+                r = parse(f.handle, parser=parser)
+        else:
+            # try to parse the input in the simplest way
             try:
-                r = r.getroot()
-            except AttributeError:
-                pass
-        except (UnicodeDecodeError, OSError) as e:
-            # if the input is a blob of html goop
-            if not is_url(self.io):
-                r = fromstring(self.io, parser=parser)
-
-                try:
-                    r = r.getroot()
-                except AttributeError:
-                    pass
-            else:
-                raise e
+                r = parse(self.io, parser=parser)
+            except OSError as err:
+                raise FileNotFoundError(
+                    f"[Errno {errno.ENOENT}] {os.strerror(errno.ENOENT)}: {self.io}"
+                ) from err
+        try:
+            r = r.getroot()
+        except AttributeError:
+            pass
         else:
             if not hasattr(r, "text_content"):
                 raise XMLSyntaxError("no text parsed from document", 0, 0, 0)
@@ -1059,7 +1042,7 @@ def read_html(
     io : str, path object, or file-like object
         String, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a string ``read()`` function.
-        The string can represent a URL or the HTML itself. Note that
+        The string can represent a URL. Note that
         lxml only accepts the http, ftp and file url protocols. If you have a
         URL that starts with ``'https'`` you might try removing the ``'s'``.
 
@@ -1226,22 +1209,6 @@ def read_html(
     check_dtype_backend(dtype_backend)
 
     io = stringify_path(io)
-
-    if isinstance(io, str) and not any(
-        [
-            is_file_like(io),
-            file_exists(io),
-            is_url(io),
-            is_fsspec_url(io),
-        ]
-    ):
-        warnings.warn(
-            "Passing literal html to 'read_html' is deprecated and "
-            "will be removed in a future version. To read from a "
-            "literal string, wrap it in a 'StringIO' object.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
 
     return _parse(
         flavor=flavor,

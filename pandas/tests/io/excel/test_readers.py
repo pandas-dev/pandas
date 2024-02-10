@@ -1448,17 +1448,10 @@ class TestReaders:
 
 
 class TestExcelFileRead:
-    def test_deprecate_bytes_input(self, engine, read_ext):
+    def test_raises_bytes_input(self, engine, read_ext):
         # GH 53830
-        msg = (
-            "Passing bytes to 'read_excel' is deprecated and "
-            "will be removed in a future version. To read from a "
-            "byte string, wrap it in a `BytesIO` object."
-        )
-
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, raise_on_extra_warnings=False
-        ):
+        msg = "Expected file path name or file-like object"
+        with pytest.raises(TypeError, match=msg):
             with open("test1" + read_ext, "rb") as f:
                 pd.read_excel(f.read(), engine=engine)
 
