@@ -1937,9 +1937,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # Don't convert indices: negative indices need to give rise
             # to null values in the result
             new_ax = result.index.take(ids)
-            output = result._reindex_with_indexers(
-                {0: (new_ax, ids)}, allow_dups=True, copy=False
-            )
+            output = result._reindex_with_indexers({0: (new_ax, ids)}, allow_dups=True)
             output = output.set_axis(obj.index, axis=0)
         return output
 
