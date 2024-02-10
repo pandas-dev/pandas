@@ -311,21 +311,6 @@ def test_frame_from_numpy_array(using_copy_on_write, copy):
         assert np.shares_memory(get_array(df, 0), arr)
 
 
-def test_dataframe_from_records_with_dataframe(using_copy_on_write):
-    df = DataFrame({"a": [1, 2, 3]})
-    df_orig = df.copy()
-    with tm.assert_produces_warning(FutureWarning):
-        df2 = DataFrame.from_records(df)
-    if using_copy_on_write:
-        assert not df._mgr._has_no_reference(0)
-    assert np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
-    df2.iloc[0, 0] = 100
-    if using_copy_on_write:
-        tm.assert_frame_equal(df, df_orig)
-    else:
-        tm.assert_frame_equal(df, df2)
-
-
 def test_frame_from_dict_of_index(using_copy_on_write):
     idx = Index([1, 2, 3])
     expected = idx.copy(deep=True)
