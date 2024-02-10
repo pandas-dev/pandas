@@ -2423,8 +2423,10 @@ def test_rolling_wrong_param_min_period():
     test_df = DataFrame([name_l, val_l]).T
     test_df.columns = ["name", "val"]
 
-    result_error_msg = r"GroupBy.rolling() got unexpected keyword argument 'min_period'"
-    with pytest.raises(TypeError, match=result_error_msg):
+    result_err_msg = (
+        r"GroupBy.rolling() got an unexpected keyword argument 'min_period'"
+    )
+    with pytest.raises(TypeError, match=result_err_msg):
         test_df.groupby("name")["val"].rolling(window=2, min_period=1).sum()
 
 
