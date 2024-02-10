@@ -120,6 +120,7 @@ Removal of prior version deprecations/changes
 - Removed ``pandas.value_counts``, use :meth:`Series.value_counts` instead (:issue:`53493`)
 - Removed ``read_gbq`` and ``DataFrame.to_gbq``. Use ``pandas_gbq.read_gbq`` and ``pandas_gbq.to_gbq`` instead https://pandas-gbq.readthedocs.io/en/latest/api.html (:issue:`55525`)
 - Removed deprecated argument ``obj`` in :meth:`.DataFrameGroupBy.get_group` and :meth:`.SeriesGroupBy.get_group` (:issue:`53545`)
+- Removed deprecated behavior of :meth:`Series.agg` using :meth:`Series.apply` (:issue:`53325`)
 - Removed the ``ArrayManager`` (:issue:`55043`)
 - Removed the ``fastpath`` argument from the :class:`Series` constructor (:issue:`55466`)
 - Removed the ``is_boolean``, ``is_integer``, ``is_floating``, ``holds_integer``, ``is_numeric``, ``is_categorical``, ``is_object``, and ``is_interval`` attributes of :class:`Index` (:issue:`50042`)
