@@ -162,11 +162,6 @@ def pytest_collection_modifyitems(items, config) -> None:
             "The behavior of DatetimeProperties.to_pydatetime is deprecated",
         ),
         (
-            "pandas.core.generic.NDFrame.bool",
-            "(Series|DataFrame).bool is now deprecated and will be removed "
-            "in future version of pandas",
-        ),
-        (
             "pandas.core.generic.NDFrame.first",
             "first is deprecated and will be removed in a future version. "
             "Please create a mask and filter using `.loc` instead",
@@ -1964,14 +1959,6 @@ def using_copy_on_write() -> bool:
     Fixture to check if Copy-on-Write is enabled.
     """
     return True
-
-
-@pytest.fixture
-def warn_copy_on_write() -> bool:
-    """
-    Fixture to check if Copy-on-Write is in warning mode.
-    """
-    return False
 
 
 @pytest.fixture

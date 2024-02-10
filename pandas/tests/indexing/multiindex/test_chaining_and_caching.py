@@ -1,8 +1,6 @@
 import numpy as np
-import pytest
 
 from pandas._libs import index as libindex
-from pandas.errors import SettingWithCopyError
 
 from pandas import (
     DataFrame,
@@ -12,7 +10,7 @@ from pandas import (
 import pandas._testing as tm
 
 
-def test_detect_chained_assignment(using_copy_on_write, warn_copy_on_write):
+def test_detect_chained_assignment():
     # Inplace ops, originally from:
     # https://stackoverflow.com/questions/20508968/series-fillna-in-a-multiindex-dataframe-does-not-fill-is-this-a-bug
     a = [12, 23]
@@ -29,20 +27,11 @@ def test_detect_chained_assignment(using_copy_on_write, warn_copy_on_write):
     multiind = MultiIndex.from_tuples(tuples, names=["part", "side"])
     zed = DataFrame(events, index=["a", "b"], columns=multiind)
 
-    if using_copy_on_write:
-        with tm.raises_chained_assignment_error():
-            zed["eyes"]["right"].fillna(value=555, inplace=True)
-    elif warn_copy_on_write:
-        with tm.assert_produces_warning(None):
-            zed["eyes"]["right"].fillna(value=555, inplace=True)
-    else:
-        msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(SettingWithCopyError, match=msg):
-            with tm.assert_produces_warning(None):
-                zed["eyes"]["right"].fillna(value=555, inplace=True)
+    with tm.raises_chained_assignment_error():
+        zed["eyes"]["right"].fillna(value=555, inplace=True)
 
 
-def test_cache_updating(using_copy_on_write, warn_copy_on_write):
+def test_cache_updating():
     # 5216
     # make sure that we don't try to set a dead cache
     a = np.random.default_rng(2).random((10, 3))
@@ -58,11 +47,7 @@ def test_cache_updating(using_copy_on_write, warn_copy_on_write):
     with tm.raises_chained_assignment_error():
         df.loc[0]["z"].iloc[0] = 1.0
 
-    if using_copy_on_write:
-        assert df.loc[(0, 0), "z"] == df_original.loc[0, "z"]
-    else:
-        result = df.loc[(0, 0), "z"]
-        assert result == 1
+    assert df.loc[(0, 0), "z"] == df_original.loc[0, "z"]
 
     # correct setting
     df.loc[(0, 0), "z"] = 2

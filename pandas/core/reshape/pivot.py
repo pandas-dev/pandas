@@ -410,7 +410,7 @@ def _generate_marginal_results(
                 if isinstance(piece.index, MultiIndex):
                     # We are adding an empty level
                     transformed_piece.index = MultiIndex.from_tuples(
-                        [all_key], names=piece.index.names + [None]
+                        [all_key], names=piece.index.names + (None,)
                     )
                 else:
                     transformed_piece.index = Index([all_key], name=piece.index.name)
@@ -472,7 +472,7 @@ def _generate_marginal_results_without_values(
             margin_keys.append(all_key)
 
         else:
-            margin = data.groupby(level=0, axis=0, observed=observed).apply(aggfunc)
+            margin = data.groupby(level=0, observed=observed).apply(aggfunc)
             all_key = _all_key()
             table[all_key] = margin
             result = table
@@ -651,14 +651,55 @@ def crosstab(
 
     Examples
     --------
-    >>> a = np.array(["foo", "foo", "foo", "foo", "bar", "bar",
-    ...               "bar", "bar", "foo", "foo", "foo"], dtype=object)
-    >>> b = np.array(["one", "one", "one", "two", "one", "one",
-    ...               "one", "two", "two", "two", "one"], dtype=object)
-    >>> c = np.array(["dull", "dull", "shiny", "dull", "dull", "shiny",
-    ...               "shiny", "dull", "shiny", "shiny", "shiny"],
-    ...              dtype=object)
-    >>> pd.crosstab(a, [b, c], rownames=['a'], colnames=['b', 'c'])
+    >>> a = np.array(
+    ...     [
+    ...         "foo",
+    ...         "foo",
+    ...         "foo",
+    ...         "foo",
+    ...         "bar",
+    ...         "bar",
+    ...         "bar",
+    ...         "bar",
+    ...         "foo",
+    ...         "foo",
+    ...         "foo",
+    ...     ],
+    ...     dtype=object,
+    ... )
+    >>> b = np.array(
+    ...     [
+    ...         "one",
+    ...         "one",
+    ...         "one",
+    ...         "two",
+    ...         "one",
+    ...         "one",
+    ...         "one",
+    ...         "two",
+    ...         "two",
+    ...         "two",
+    ...         "one",
+    ...     ],
+    ...     dtype=object,
+    ... )
+    >>> c = np.array(
+    ...     [
+    ...         "dull",
+    ...         "dull",
+    ...         "shiny",
+    ...         "dull",
+    ...         "dull",
+    ...         "shiny",
+    ...         "shiny",
+    ...         "dull",
+    ...         "shiny",
+    ...         "shiny",
+    ...         "shiny",
+    ...     ],
+    ...     dtype=object,
+    ... )
+    >>> pd.crosstab(a, [b, c], rownames=["a"], colnames=["b", "c"])
     b   one        two
     c   dull shiny dull shiny
     a
@@ -669,8 +710,8 @@ def crosstab(
     shown in the output because dropna is True by default. Set
     dropna=False to preserve categories with no data.
 
-    >>> foo = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])
-    >>> bar = pd.Categorical(['d', 'e'], categories=['d', 'e', 'f'])
+    >>> foo = pd.Categorical(["a", "b"], categories=["a", "b", "c"])
+    >>> bar = pd.Categorical(["d", "e"], categories=["d", "e", "f"])
     >>> pd.crosstab(foo, bar)
     col_0  d  e
     row_0
@@ -734,7 +775,7 @@ def crosstab(
         margins=margins,
         margins_name=margins_name,
         dropna=dropna,
-        observed=False,
+        observed=dropna,
         **kwargs,  # type: ignore[arg-type]
     )
 
@@ -830,7 +871,7 @@ def _normalize(
     return table
 
 
-def _get_names(arrs, names, prefix: str = "row"):
+def _get_names(arrs, names, prefix: str = "row") -> list:
     if names is None:
         names = []
         for i, arr in enumerate(arrs):

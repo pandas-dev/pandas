@@ -16,8 +16,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config import option_context
-
 from pandas._libs import lib
 from pandas._libs.internals import BlockValuesRefs
 from pandas._typing import (
@@ -1076,14 +1074,12 @@ class FrameApply(NDFrameApply):
 
         results = {}
 
-        with option_context("mode.chained_assignment", None):
-            for i, v in enumerate(series_gen):
-                # ignore SettingWithCopy here in case the user mutates
-                results[i] = self.func(v, *self.args, **self.kwargs)
-                if isinstance(results[i], ABCSeries):
-                    # If we have a view on v, we need to make a copy because
-                    #  series_generator will swap out the underlying data
-                    results[i] = results[i].copy(deep=False)
+        for i, v in enumerate(series_gen):
+            results[i] = self.func(v, *self.args, **self.kwargs)
+            if isinstance(results[i], ABCSeries):
+                # If we have a view on v, we need to make a copy because
+                #  series_generator will swap out the underlying data
+                results[i] = results[i].copy(deep=False)
 
         return results, res_index
 
@@ -1798,14 +1794,14 @@ def normalize_keyword_aggregation(
 
 
 def _make_unique_kwarg_list(
-    seq: Sequence[tuple[Any, Any]]
+    seq: Sequence[tuple[Any, Any]],
 ) -> Sequence[tuple[Any, Any]]:
     """
     Uniquify aggfunc name of the pairs in the order list
 
     Examples:
     --------
-    >>> kwarg_list = [('a', '<lambda>'), ('a', '<lambda>'), ('b', '<lambda>')]
+    >>> kwarg_list = [("a", "<lambda>"), ("a", "<lambda>"), ("b", "<lambda>")]
     >>> _make_unique_kwarg_list(kwarg_list)
     [('a', '<lambda>_0'), ('a', '<lambda>_1'), ('b', '<lambda>')]
     """
@@ -1837,7 +1833,7 @@ def relabel_result(
     >>> from pandas.core.apply import relabel_result
     >>> result = pd.DataFrame(
     ...     {"A": [np.nan, 2, np.nan], "C": [6, np.nan, np.nan], "B": [np.nan, 4, 2.5]},
-    ...     index=["max", "mean", "min"]
+    ...     index=["max", "mean", "min"],
     ... )
     >>> funcs = {"A": ["max"], "C": ["max"], "B": ["mean", "min"]}
     >>> columns = ("foo", "aab", "bar", "dat")
@@ -1976,7 +1972,7 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
 
     Examples
     --------
-    >>> maybe_mangle_lambdas('sum')
+    >>> maybe_mangle_lambdas("sum")
     'sum'
     >>> maybe_mangle_lambdas([lambda: 1, lambda: 2])  # doctest: +SKIP
     [<function __main__.<lambda_0>,
@@ -2021,7 +2017,7 @@ def validate_func_kwargs(
 
     Examples
     --------
-    >>> validate_func_kwargs({'one': 'min', 'two': 'max'})
+    >>> validate_func_kwargs({"one": "min", "two": "max"})
     (['one', 'two'], ['min', 'max'])
     """
     tuple_given_message = "func is expected but received {} in **kwargs."

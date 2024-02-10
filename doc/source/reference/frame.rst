@@ -48,7 +48,6 @@ Conversion
    DataFrame.convert_dtypes
    DataFrame.infer_objects
    DataFrame.copy
-   DataFrame.bool
    DataFrame.to_numpy
 
 Indexing, iteration
@@ -186,11 +185,9 @@ Reindexing / selection / label manipulation
    DataFrame.duplicated
    DataFrame.equals
    DataFrame.filter
-   DataFrame.first
    DataFrame.head
    DataFrame.idxmax
    DataFrame.idxmin
-   DataFrame.last
    DataFrame.reindex
    DataFrame.reindex_like
    DataFrame.rename
@@ -383,7 +380,6 @@ Serialization / IO / conversion
    DataFrame.to_feather
    DataFrame.to_latex
    DataFrame.to_stata
-   DataFrame.to_gbq
    DataFrame.to_records
    DataFrame.to_string
    DataFrame.to_clipboard
