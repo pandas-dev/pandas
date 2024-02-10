@@ -2185,21 +2185,10 @@ class DataFrame(NDFrame, OpsMixin):
         3      0     d
         """
         if isinstance(data, DataFrame):
-            warnings.warn(
-                "Passing a DataFrame to DataFrame.from_records is deprecated. Use "
+            raise TypeError(
+                "Passing a DataFrame to DataFrame.from_records is not supported. Use "
                 "set_index and/or drop to modify the DataFrame instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
             )
-            if columns is not None:
-                if is_scalar(columns):
-                    columns = [columns]
-                data = data[columns]
-            if index is not None:
-                data = data.set_index(index)
-            if exclude is not None:
-                data = data.drop(columns=exclude)
-            return data.copy(deep=False)
 
         result_index = None
 
