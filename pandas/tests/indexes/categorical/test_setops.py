@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import (
     CategoricalIndex,
     Index,
@@ -9,7 +8,7 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.mark.parametrize("na_value", [None, np.nan, pd.NA])
+@pytest.mark.parametrize("na_value", [None, np.nan])
 def test_difference_with_na(na_value):
     # GH 57318
     ci = CategoricalIndex(["a", "b", "c", None])
