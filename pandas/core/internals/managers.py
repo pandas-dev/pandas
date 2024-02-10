@@ -12,7 +12,6 @@ from typing import (
     cast,
 )
 import warnings
-import weakref
 
 import numpy as np
 
@@ -282,8 +281,8 @@ class BaseBlockManager(DataManager):
         Checks if two blocks from two different block managers reference the
         same underlying values.
         """
-        ref = weakref.ref(self.blocks[blkno])
-        return ref in mgr.blocks[blkno].refs.referenced_blocks
+        blk = self.blocks[blkno]
+        return any(blk is ref() for ref in mgr.blocks[blkno].refs.referenced_blocks)
 
     def get_dtypes(self) -> npt.NDArray[np.object_]:
         dtypes = np.array([blk.dtype for blk in self.blocks], dtype=object)

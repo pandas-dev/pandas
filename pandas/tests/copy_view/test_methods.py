@@ -280,6 +280,17 @@ def test_reset_index_series_drop(using_copy_on_write, index):
     tm.assert_series_equal(ser, ser_orig)
 
 
+def test_groupby_column_index_in_references():
+    df = DataFrame(
+        {"A": ["a", "b", "c", "d"], "B": [1, 2, 3, 4], "C": ["a", "a", "b", "b"]}
+    )
+    df = df.set_index("A")
+    key = df["C"]
+    result = df.groupby(key, observed=True).sum()
+    expected = df.groupby("C", observed=True).sum()
+    tm.assert_frame_equal(result, expected)
+
+
 def test_rename_columns(using_copy_on_write):
     # Case: renaming columns returns a new dataframe
     # + afterwards modifying the result
