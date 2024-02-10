@@ -8,7 +8,6 @@ from collections.abc import (
 )
 import datetime
 from functools import partial
-from io import BytesIO
 import os
 from textwrap import fill
 from typing import (
@@ -94,7 +93,7 @@ a single sheet or a list of sheets.
 
 Parameters
 ----------
-io : str, bytes, ExcelFile, xlrd.Book, path object, or file-like object
+io : str, ExcelFile, xlrd.Book, path object, or file-like object
     Any valid string path is acceptable. The string could be a URL. Valid
     URL schemes include http, ftp, s3, and file. For file URLs, a host is
     expected. A local file could be: ``file://localhost/path/to/table.xlsx``.
@@ -551,10 +550,6 @@ class BaseExcelReader(Generic[_WorkbookT]):
     ) -> None:
         if engine_kwargs is None:
             engine_kwargs = {}
-
-        # First argument can also be bytes, so create a buffer
-        if isinstance(filepath_or_buffer, bytes):
-            filepath_or_buffer = BytesIO(filepath_or_buffer)
 
         self.handles = IOHandles(
             handle=filepath_or_buffer, compression={"method": None}
@@ -1405,9 +1400,6 @@ def inspect_excel_format(
     BadZipFile
         If resulting stream does not have an XLS signature and is not a valid zipfile.
     """
-    if isinstance(content_or_path, bytes):
-        content_or_path = BytesIO(content_or_path)
-
     with get_handle(
         content_or_path, "rb", storage_options=storage_options, is_text=False
     ) as handle:
@@ -1526,19 +1518,6 @@ class ExcelFile:
         if engine is not None and engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
 
-        # First argument can also be bytes, so create a buffer
-        if isinstance(path_or_buffer, bytes):
-            path_or_buffer = BytesIO(path_or_buffer)
-            warnings.warn(
-                "Passing bytes to 'read_excel' is deprecated and "
-                "will be removed in a future version. To read from a "
-                "byte string, wrap it in a `BytesIO` object.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
-        # Could be a str, ExcelFile, Book, etc.
-        self.io = path_or_buffer
         # Always a string
         self._io = stringify_path(path_or_buffer)
 
