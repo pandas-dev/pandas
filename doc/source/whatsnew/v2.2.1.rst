@@ -8,30 +8,6 @@ including other versions of pandas.
 
 {{ header }}
 
-.. _whatsnew_221.enhancements:
-
-Enhancements
-~~~~~~~~~~~~
-
-.. _whatsnew_221.enhancements.to_numeric_separators:
-
-Custom Thousand and Decimal Separators added to :func:`to_numeric`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Added two new parameters, ``decimal`` and ``thousands`` to :func:`to_numeric`, allowing users to specify custom decimal points and thousand separators. (:issue:`#4674`).
-``decimal`` has default value ``'.''`` and ``thousands`` has default value ``None``, meaning the string would contain no symbols to demarcate groups of thousands and use ``.`` as the decimal point. This default behaviour is the same as :func:`to_numeric` before the parameters were added.
-:func:`to_numeric` will now be able to parse number strings such as '1,000,000' or '1.000,5' if the user provides the correct parameters.
-
-An example of the new functionality:
-
-.. code-block:: python
-
-    >>> s = pd.Series(['1,5', '2.000.000', -3])
-    >>> pd.to_numeric(s, thousands='.', decimal=',')
-    0   1.5
-    1   2000000.0
-    2   -3.0
-    dtype: float64
-
 .. ---------------------------------------------------------------------------
 .. _whatsnew_221.regressions:
 
@@ -44,23 +20,18 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.loc` raising ``IndexError`` for non-unique, masked dtype indexes where result has more than 10,000 rows (:issue:`57027`)
 - Fixed regression in :meth:`DataFrame.sort_index` not producing a stable sort for a index with duplicates (:issue:`57151`)
 - Fixed regression in :meth:`DataFrame.to_dict` with ``orient='list'`` and datetime or timedelta types returning integers (:issue:`54824`)
-- Fixed regression in :meth:`DataFrame.to_json` converting nullable integers to floats (:issue:`57224`)
 - Fixed regression in :meth:`DataFrameGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmin`, :meth:`SeriesGroupBy.idxmax` ignoring the ``skipna`` argument (:issue:`57040`)
 - Fixed regression in :meth:`DataFrameGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmin`, :meth:`SeriesGroupBy.idxmax` where values containing the minimum or maximum value for the dtype could produce incorrect results (:issue:`57040`)
 - Fixed regression in :meth:`Index.join` raising ``TypeError`` when joining an empty index to a non-empty index containing mixed dtype values (:issue:`57048`)
 - Fixed regression in :meth:`Series.pct_change` raising a ``ValueError`` for an empty :class:`Series` (:issue:`57056`)
-- Fixed regression in :meth:`Series.to_numpy` when dtype is given as float and the data contains NaNs (:issue:`57121`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_221.bug_fixes:
 
 Bug fixes
 ~~~~~~~~~
-- Fixed bug in :func:`pandas.api.interchange.from_dataframe` which was raising for Nullable integers (:issue:`55069`)
 - Fixed bug in :func:`pandas.api.interchange.from_dataframe` which was raising for empty inputs (:issue:`56700`)
-- Fixed bug in :func:`pandas.api.interchange.from_dataframe` which wasn't converting columns names to strings (:issue:`55069`)
 - Fixed bug in :meth:`DataFrame.__getitem__` for empty :class:`DataFrame` with Copy-on-Write enabled (:issue:`57130`)
-- Fixed bug in :meth:`PeriodIndex.asfreq` which was silently converting frequencies which are not supported as period frequencies instead of raising an error (:issue:`56945`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_221.other:
