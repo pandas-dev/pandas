@@ -104,14 +104,23 @@ Deprecations
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - All arguments except the first ``path``-like argument in IO writers are now keyword only (:issue:`54229`)
+- Removed ``DataFrame.bool`` and ``Series.bool`` (:issue:`51756`)
+- Removed ``DataFrame.first`` and ``DataFrame.last`` (:issue:`53710`)
 - Removed ``DataFrameGroupBy.grouper`` and ``SeriesGroupBy.grouper`` (:issue:`56521`)
 - Removed ``DataFrameGroupby.fillna`` and ``SeriesGroupBy.fillna``` (:issue:`55719`)
+- Removed ``Index.format``, use :meth:`Index.astype` with ``str`` or :meth:`Index.map` with a ``formatter`` function instead (:issue:`55439`)
+- Removed ``Series.__int__`` and ``Series.__float__``. Call ``int(Series.iloc[0])`` or ``float(Series.iloc[0])`` instead. (:issue:`51131`)
+- Removed ``Series.ravel`` (:issue:`56053`)
+- Removed ``Series.view`` (:issue:`56054`)
 - Removed ``axis`` argument from :meth:`DataFrame.groupby`, :meth:`Series.groupby`, :meth:`DataFrame.rolling`, :meth:`Series.rolling`, :meth:`DataFrame.resample`, and :meth:`Series.resample` (:issue:`51203`)
 - Removed ``axis`` argument from all groupby operations (:issue:`50405`)
+- Removed ``pandas.api.types.is_interval`` and ``pandas.api.types.is_period``, use ``isinstance(obj, pd.Interval)`` and ``isinstance(obj, pd.Period)`` instead (:issue:`55264`)
 - Removed ``pandas.io.sql.execute`` (:issue:`50185`)
+- Removed ``pandas.value_counts``, use :meth:`Series.value_counts` instead (:issue:`53493`)
 - Removed ``read_gbq`` and ``DataFrame.to_gbq``. Use ``pandas_gbq.read_gbq`` and ``pandas_gbq.to_gbq`` instead https://pandas-gbq.readthedocs.io/en/latest/api.html (:issue:`55525`)
 - Removed deprecated argument ``obj`` in :meth:`.DataFrameGroupBy.get_group` and :meth:`.SeriesGroupBy.get_group` (:issue:`53545`)
 - Removed the ``ArrayManager`` (:issue:`55043`)
+- Removed the ``fastpath`` argument from the :class:`Series` constructor (:issue:`55466`)
 - Removed the ``is_boolean``, ``is_integer``, ``is_floating``, ``holds_integer``, ``is_numeric``, ``is_categorical``, ``is_object``, and ``is_interval`` attributes of :class:`Index` (:issue:`50042`)
 - Removed unused arguments ``*args`` and ``**kwargs`` in :class:`Resampler` methods (:issue:`50977`)
 - Unrecognized timezones when parsing strings to datetimes now raises a ``ValueError`` (:issue:`51477`)
@@ -128,6 +137,7 @@ Performance improvements
 - Performance improvement in :meth:`Index.join` by propagating cached attributes in cases where the result matches one of the inputs (:issue:`57023`)
 - Performance improvement in :meth:`Index.take` when ``indices`` is a full range indexer from zero to length of index (:issue:`56806`)
 - Performance improvement in :meth:`MultiIndex.equals` for equal length indexes (:issue:`56990`)
+- Performance improvement in :meth:`RangeIndex.append` when appending the same index (:issue:`57252`)
 - Performance improvement in indexing operations for string dtypes (:issue:`56997`)
 -
 
@@ -137,6 +147,7 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 - Fixed bug in :meth:`DataFrame.join` inconsistently setting result index name (:issue:`55815`)
+- Fixed bug in :meth:`DataFrame.to_string` that raised ``StopIteration`` with nested DataFrames. (:issue:`16098`)
 - Fixed bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
 
 Categorical
@@ -167,7 +178,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Bug in :meth:`Series.astype` might modify read-only array inplace when casting to a string dtype (:issue:`57212`)
--
+- Bug in :meth:`Series.reindex` not maintaining ``float32`` type when a ``reindex`` introduces a missing value (:issue:`45857`)
 
 Strings
 ^^^^^^^
@@ -241,8 +252,8 @@ Styler
 
 Other
 ^^^^^
+- Bug in :meth:`DataFrame.sort_index` when passing ``axis="columns"`` and ``ignore_index=True`` and ``ascending=False`` not returning a :class:`RangeIndex` columns (:issue:`57293`)
 - Bug in :meth:`DataFrame.where` where using a non-bool type array in the function would return a ``ValueError`` instead of a ``TypeError`` (:issue:`56330`)
-
 
 .. ***DO NOT USE THIS SECTION***
 

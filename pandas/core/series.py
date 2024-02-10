@@ -221,28 +221,6 @@ axis : int or str, optional
     Unused.""",
 }
 
-
-def _coerce_method(converter):
-    """
-    Install the scalar coercion methods.
-    """
-
-    def wrapper(self):
-        if len(self) == 1:
-            warnings.warn(
-                f"Calling {converter.__name__} on a single element Series is "
-                "deprecated and will raise a TypeError in the future. "
-                f"Use {converter.__name__}(ser.iloc[0]) instead",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            return converter(self.iloc[0])
-        raise TypeError(f"cannot convert the series to {converter}")
-
-    wrapper.__name__ = f"__{converter.__name__}__"
-    return wrapper
-
-
 # ----------------------------------------------------------------------
 # Series class
 
@@ -385,18 +363,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: Dtype | None = None,
         name=None,
         copy: bool | None = None,
-        fastpath: bool | lib.NoDefault = lib.no_default,
     ) -> None:
-        if fastpath is not lib.no_default:
-            warnings.warn(
-                "The 'fastpath' keyword in pd.Series is deprecated and will "
-                "be removed in a future version.",
-                DeprecationWarning,
-                stacklevel=find_stack_level(),
-            )
-        else:
-            fastpath = False
-
         allow_mgr = False
         if (
             isinstance(data, SingleBlockManager)
@@ -413,15 +380,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     DeprecationWarning,
                     stacklevel=2,
                 )
-            if using_copy_on_write():
-                data = data.copy(deep=False)
+            data = data.copy(deep=False)
             # GH#33357 called with just the SingleBlockManager
             NDFrame.__init__(self, data)
-            if fastpath:
-                # e.g. from _box_col_values, skip validation of name
-                object.__setattr__(self, "_name", name)
-            else:
-                self.name = name
+            self.name = name
             return
 
         is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
@@ -429,36 +391,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         original_dtype = dtype
 
         if isinstance(data, (ExtensionArray, np.ndarray)):
-            if copy is not False and using_copy_on_write():
+            if copy is not False:
                 if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
                     data = data.copy()
         if copy is None:
             copy = False
-
-        # we are called internally, so short-circuit
-        if fastpath:
-            # data is a ndarray, index is defined
-            if not isinstance(data, SingleBlockManager):
-                data = SingleBlockManager.from_array(data, index)
-                allow_mgr = True
-            elif using_copy_on_write() and not copy:
-                data = data.copy(deep=False)
-
-            if not allow_mgr:
-                warnings.warn(
-                    f"Passing a {type(data).__name__} to {type(self).__name__} "
-                    "is deprecated and will raise in a future version. "
-                    "Use public APIs instead.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-
-            if copy:
-                data = data.copy()
-            # skips validation of the name
-            object.__setattr__(self, "_name", name)
-            NDFrame.__init__(self, data)
-            return
 
         if isinstance(data, SingleBlockManager) and using_copy_on_write() and not copy:
             data = data.copy(deep=False)
@@ -497,12 +434,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if dtype is not None:
                 data = data.astype(dtype, copy=False)
 
-            if using_copy_on_write():
-                refs = data._references
-                data = data._values
-            else:
-                # GH#24096 we need to ensure the index remains immutable
-                data = data._values.copy()
+            refs = data._references
+            data = data._values
             copy = False
 
         elif isinstance(data, np.ndarray):
@@ -851,103 +784,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def array(self) -> ExtensionArray:
         return self._mgr.array_values()
 
-    # ops
-    def ravel(self, order: str = "C") -> ArrayLike:
-        """
-        Return the flattened underlying data as an ndarray or ExtensionArray.
-
-        .. deprecated:: 2.2.0
-            Series.ravel is deprecated. The underlying array is already 1D, so
-            ravel is not necessary.  Use :meth:`to_numpy` for conversion to a numpy
-            array instead.
-
-        Returns
-        -------
-        numpy.ndarray or ExtensionArray
-            Flattened data of the Series.
-
-        See Also
-        --------
-        numpy.ndarray.ravel : Return a flattened array.
-
-        Examples
-        --------
-        >>> s = pd.Series([1, 2, 3])
-        >>> s.ravel()  # doctest: +SKIP
-        array([1, 2, 3])
-        """
-        warnings.warn(
-            "Series.ravel is deprecated. The underlying array is already 1D, so "
-            "ravel is not necessary.  Use `to_numpy()` for conversion to a numpy "
-            "array instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        arr = self._values.ravel(order=order)
-        if isinstance(arr, np.ndarray) and using_copy_on_write():
-            arr.flags.writeable = False
-        return arr
-
     def __len__(self) -> int:
         """
         Return the length of the Series.
         """
         return len(self._mgr)
-
-    def view(self, dtype: Dtype | None = None) -> Series:
-        """
-        Create a new view of the Series.
-
-        .. deprecated:: 2.2.0
-            ``Series.view`` is deprecated and will be removed in a future version.
-            Use :meth:`Series.astype` as an alternative to change the dtype.
-
-        This function will return a new Series with a view of the same
-        underlying values in memory, optionally reinterpreted with a new data
-        type. The new data type must preserve the same size in bytes as to not
-        cause index misalignment.
-
-        Parameters
-        ----------
-        dtype : data type
-            Data type object or one of their string representations.
-
-        Returns
-        -------
-        Series
-            A new Series object as a view of the same data in memory.
-
-        See Also
-        --------
-        numpy.ndarray.view : Equivalent numpy function to create a new view of
-            the same data in memory.
-
-        Notes
-        -----
-        Series are instantiated with ``dtype=float64`` by default. While
-        ``numpy.ndarray.view()`` will return a view with the same data type as
-        the original array, ``Series.view()`` (without specified dtype)
-        will try using ``float64`` and may fail if the original data type size
-        in bytes is not the same.
-
-        Examples
-        --------
-        Use ``astype`` to change the dtype instead.
-        """
-        warnings.warn(
-            "Series.view is deprecated and will be removed in a future version. "
-            "Use ``astype`` as an alternative to change the dtype.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        # self.array instead of self._values so we piggyback on NumpyExtensionArray
-        #  implementation
-        res_values = self.array.view(dtype)
-        res_ser = self._constructor(res_values, index=self.index, copy=False)
-        if isinstance(res_ser._mgr, SingleBlockManager):
-            blk = res_ser._mgr._block
-            blk.refs.add_reference(blk)
-        return res_ser.__finalize__(self, method="view")
 
     # ----------------------------------------------------------------------
     # NDArray Compat
@@ -1000,7 +841,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         values = self._values
         arr = np.asarray(values, dtype=dtype)
-        if using_copy_on_write() and astype_is_view(values.dtype, arr.dtype):
+        if astype_is_view(values.dtype, arr.dtype):
             arr = arr.view()
             arr.flags.writeable = False
         return arr
@@ -1020,13 +861,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 self, api_version=api_version
             )
         )
-
-    # ----------------------------------------------------------------------
-    # Unary Methods
-
-    # coercion
-    __float__ = _coerce_method(float)
-    __int__ = _coerce_method(int)
 
     # ----------------------------------------------------------------------
 
@@ -1068,9 +902,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         key = com.apply_if_callable(key, self)
 
         if key is Ellipsis:
-            if using_copy_on_write():
-                return self.copy(deep=False)
-            return self
+            return self.copy(deep=False)
 
         key_is_scalar = is_scalar(key)
         if isinstance(key, (list, tuple)):
@@ -1230,7 +1062,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self.iloc[loc]
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY and using_copy_on_write():
+        if not PYPY:
             if sys.getrefcount(self) <= 3:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
@@ -1621,14 +1453,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
             if inplace:
                 self.index = new_index
-            elif using_copy_on_write():
+            else:
                 new_ser = self.copy(deep=False)
                 new_ser.index = new_index
                 return new_ser.__finalize__(self, method="reset_index")
-            else:
-                return self._constructor(
-                    self._values.copy(), index=new_index, copy=False, dtype=self.dtype
-                ).__finalize__(self, method="reset_index")
         elif inplace:
             raise TypeError(
                 "Cannot reset_index inplace on a Series to create a DataFrame"
@@ -2005,11 +1833,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name : str
         inplace : bool
             Whether to modify `self` directly or return a copy.
-        deep : bool|None, default None
-            Whether to do a deep copy, a shallow copy, or Copy on Write(None)
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
-        ser = self if inplace else self.copy(deep and not using_copy_on_write())
+        ser = self if inplace else self.copy(deep=False)
         ser.name = name
         return ser
 
@@ -3485,7 +3311,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    3
         dtype: int64
         """
-        if not PYPY and using_copy_on_write():
+        if not PYPY:
             if sys.getrefcount(self) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_method_msg,
@@ -4313,7 +4139,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         {examples}
         """
         assert isinstance(self.index, MultiIndex)
-        result = self.copy(deep=copy and not using_copy_on_write())
+        result = self.copy(deep=False)
         result.index = self.index.swaplevel(i, j)
         return result
 
@@ -4650,7 +4476,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame | Series:
         # Validate axis argument
         self._get_axis_number(axis)
-        ser = self.copy(deep=False) if using_copy_on_write() else self
+        ser = self.copy(deep=False)
         result = SeriesApply(ser, func=func, args=args, kwargs=kwargs).transform()
         return result
 
@@ -4794,18 +4620,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         new_index: Index | None,
         indexer: npt.NDArray[np.intp] | None,
-        copy: bool | None,
     ) -> Series:
         # Note: new_index is None iff indexer is None
         # if not None, indexer is np.intp
         if indexer is None and (
             new_index is None or new_index.names == self.index.names
         ):
-            if using_copy_on_write():
-                return self.copy(deep=copy)
-            if copy or copy is None:
-                return self.copy(deep=copy)
-            return self
+            return self.copy(deep=False)
 
         new_values = algorithms.take_nd(
             self._values, indexer, allow_fill=True, fill_value=None
@@ -4962,7 +4783,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 errors=errors,
             )
         else:
-            return self._set_name(index, inplace=inplace, deep=copy)
+            return self._set_name(index, inplace=inplace)
 
     @Appender(
         """
@@ -5913,7 +5734,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
 
-        new_obj = self.copy(deep=copy and not using_copy_on_write())
+        new_obj = self.copy(deep=False)
         new_index = self.index.to_timestamp(freq=freq, how=how)
         setattr(new_obj, "index", new_index)
         return new_obj
@@ -5965,7 +5786,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
 
-        new_obj = self.copy(deep=copy and not using_copy_on_write())
+        new_obj = self.copy(deep=False)
         new_index = self.index.to_period(freq=freq)
         setattr(new_obj, "index", new_index)
         return new_obj
