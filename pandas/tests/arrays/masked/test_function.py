@@ -5,6 +5,7 @@ from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.arrays import BaseMaskedArray
 
 arrays = [pd.array([1, 2, 3, None], dtype=dtype) for dtype in tm.ALL_INT_EA_DTYPES]
 arrays += [
@@ -55,3 +56,19 @@ def test_tolist(data):
     result = data.tolist()
     expected = list(data)
     tm.assert_equal(result, expected)
+
+
+def test_to_numpy():
+    # GH#56991
+
+    class MyStringArray(BaseMaskedArray):
+        dtype = pd.StringDtype()
+        _dtype_cls = pd.StringDtype
+        _internal_fill_value = pd.NA
+
+    arr = MyStringArray(
+        values=np.array(["a", "b", "c"]), mask=np.array([False, True, False])
+    )
+    result = arr.to_numpy()
+    expected = np.array(["a", pd.NA, "c"])
+    tm.assert_numpy_array_equal(result, expected)

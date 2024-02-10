@@ -686,41 +686,6 @@ class TestIndex:
     def test_summary(self, index):
         index._summary()
 
-    def test_format_bug(self):
-        # GH 14626
-        # windows has different precision on datetime.datetime.now (it doesn't
-        # include us since the default for Timestamp shows these but Index
-        # formatting does not we are skipping)
-        now = datetime.now()
-        msg = r"Index\.format is deprecated"
-
-        if not str(now).endswith("000"):
-            index = Index([now])
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                formatted = index.format()
-            expected = [str(index[0])]
-            assert formatted == expected
-
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            Index([]).format()
-
-    @pytest.mark.parametrize("vals", [[1, 2.0 + 3.0j, 4.0], ["a", "b", "c"]])
-    def test_format_missing(self, vals, nulls_fixture):
-        # 2845
-        vals = list(vals)  # Copy for each iteration
-        vals.append(nulls_fixture)
-        index = Index(vals, dtype=object)
-        # TODO: case with complex dtype?
-
-        msg = r"Index\.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            formatted = index.format()
-        null_repr = "NaN" if isinstance(nulls_fixture, float) else str(nulls_fixture)
-        expected = [str(index[0]), str(index[1]), str(index[2]), null_repr]
-
-        assert formatted == expected
-        assert index[3] is nulls_fixture
-
     def test_logical_compat(self, all_boolean_reductions, simple_index):
         index = simple_index
         left = getattr(index, all_boolean_reductions)()
@@ -942,7 +907,7 @@ class TestIndex:
     @pytest.mark.parametrize("label", [1.0, "foobar", "xyzzy", np.nan])
     def test_isin_level_kwarg_bad_label_raises(self, label, index):
         if isinstance(index, MultiIndex):
-            index = index.rename(["foo", "bar"] + index.names[2:])
+            index = index.rename(("foo", "bar") + index.names[2:])
             msg = f"'Level {label} not found'"
         else:
             index = index.rename("foo")

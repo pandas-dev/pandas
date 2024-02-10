@@ -1449,10 +1449,10 @@ class StylerRenderer:
 
             # relabel first, then hide
             df = pd.DataFrame({"col": ["a", "b", "c"]})
-            df.style.relabel_index(["A", "B", "C"]).hide([0,1])
+            df.style.relabel_index(["A", "B", "C"]).hide([0, 1])
             # hide first, then relabel
             df = pd.DataFrame({"col": ["a", "b", "c"]})
-            df.style.hide([0,1]).relabel_index(["C"])
+            df.style.hide([0, 1]).relabel_index(["C"])
 
         This method should be used, rather than :meth:`Styler.format_index`, in one of
         the following cases (see examples):
@@ -1493,8 +1493,9 @@ class StylerRenderer:
               1     5
            1  0     6
               1     7
-        >>> styler.hide((midx.get_level_values(0) == 0) |
-        ...             (midx.get_level_values(1) == 0))
+        >>> styler.hide(
+        ...     (midx.get_level_values(0) == 0) | (midx.get_level_values(1) == 0)
+        ... )
         ... # doctest: +SKIP
         >>> styler.hide(level=[0, 1])  # doctest: +SKIP
         >>> styler.relabel_index(["binary6", "binary7"])  # doctest: +SKIP
@@ -2154,10 +2155,12 @@ def _parse_latex_table_styles(table_styles: CSSStyles, selector: str) -> str | N
 
     Examples
     --------
-    >>> table_styles = [{'selector': 'foo', 'props': [('attr','value')]},
-    ...                 {'selector': 'bar', 'props': [('attr', 'overwritten')]},
-    ...                 {'selector': 'bar', 'props': [('a1', 'baz'), ('a2', 'ignore')]}]
-    >>> _parse_latex_table_styles(table_styles, selector='bar')
+    >>> table_styles = [
+    ...     {"selector": "foo", "props": [("attr", "value")]},
+    ...     {"selector": "bar", "props": [("attr", "overwritten")]},
+    ...     {"selector": "bar", "props": [("a1", "baz"), ("a2", "ignore")]},
+    ... ]
+    >>> _parse_latex_table_styles(table_styles, selector="bar")
     'baz'
 
     Notes
@@ -2241,8 +2244,8 @@ def _parse_latex_header_span(
 
     Examples
     --------
-    >>> cell = {'cellstyle': '', 'display_value':'text', 'attributes': 'colspan="3"'}
-    >>> _parse_latex_header_span(cell, 't', 'c')
+    >>> cell = {"cellstyle": "", "display_value": "text", "attributes": 'colspan="3"'}
+    >>> _parse_latex_header_span(cell, "t", "c")
     '\\multicolumn{3}{c}{text}'
     """
     display_val = _parse_latex_cell_styles(
