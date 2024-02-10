@@ -1330,7 +1330,7 @@ class _LocIndexer(_LocationIndexer):
             axis: self._get_listlike_indexer(key, axis)
             for (key, axis) in zip(tup, self.obj._AXIS_ORDERS)
         }
-        return self.obj._reindex_with_indexers(d, copy=True, allow_dups=True)
+        return self.obj._reindex_with_indexers(d, allow_dups=True)
 
     # -------------------------------------------------------------------
 
@@ -1362,7 +1362,7 @@ class _LocIndexer(_LocationIndexer):
         # A collection of keys
         keyarr, indexer = self._get_listlike_indexer(key, axis)
         return self.obj._reindex_with_indexers(
-            {axis: [keyarr, indexer]}, copy=True, allow_dups=True
+            {axis: [keyarr, indexer]}, allow_dups=True
         )
 
     def _getitem_tuple(self, tup: tuple):

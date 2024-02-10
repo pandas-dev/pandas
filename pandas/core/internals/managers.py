@@ -15,11 +15,8 @@ from typing import (
     final,
 )
 import warnings
-import weakref
 
 import numpy as np
-
-from pandas._config import using_copy_on_write
 
 from pandas._libs import (
     algos as libalgos,
@@ -339,8 +336,8 @@ class BaseBlockManager(PandasObject):
         Checks if two blocks from two different block managers reference the
         same underlying values.
         """
-        ref = weakref.ref(self.blocks[blkno])
-        return ref in mgr.blocks[blkno].refs.referenced_blocks
+        blk = self.blocks[blkno]
+        return any(blk is ref() for ref in mgr.blocks[blkno].refs.referenced_blocks)
 
     def get_dtypes(self) -> npt.NDArray[np.object_]:
         dtypes = np.array([blk.dtype for blk in self.blocks], dtype=object)
@@ -598,7 +595,7 @@ class BaseBlockManager(PandasObject):
         # only reached with self.ndim == 2
         return self.apply("diff", n=n)
 
-    def astype(self, dtype, copy: bool | None = False, errors: str = "raise") -> Self:
+    def astype(self, dtype, errors: str = "raise") -> Self:
         return self.apply("astype", dtype=dtype, errors=errors)
 
     def convert(self) -> Self:
@@ -719,14 +716,7 @@ class BaseBlockManager(PandasObject):
         -------
         BlockManager
         """
-        if deep is None:
-            if using_copy_on_write():
-                # use shallow copy
-                deep = False
-            else:
-                # preserve deep copy for BlockManager with copy=None
-                deep = True
-
+        deep = deep if deep is not None else False
         # this preserves the notion of view copying of axes
         if deep:
             # hit in e.g. tests.io.json.test_pandas
@@ -792,7 +782,6 @@ class BaseBlockManager(PandasObject):
             indexer,
             axis=axis,
             fill_value=fill_value,
-            copy=False,
             only_slice=only_slice,
         )
 
@@ -803,7 +792,6 @@ class BaseBlockManager(PandasObject):
         axis: AxisInt,
         fill_value=None,
         allow_dups: bool = False,
-        copy: bool | None = True,
         only_slice: bool = False,
         *,
         use_na_proxy: bool = False,
@@ -816,8 +804,6 @@ class BaseBlockManager(PandasObject):
         axis : int
         fill_value : object, default None
         allow_dups : bool, default False
-        copy : bool or None, default True
-            If None, regard as False to get shallow copy.
         only_slice : bool, default False
             Whether to take views, not copies, along columns.
         use_na_proxy : bool, default False
@@ -825,19 +811,11 @@ class BaseBlockManager(PandasObject):
 
         pandas-indexer with -1's only.
         """
-        if copy is None:
-            if using_copy_on_write():
-                # use shallow copy
-                copy = False
-            else:
-                # preserve deep copy for BlockManager with copy=None
-                copy = True
-
         if indexer is None:
-            if new_axis is self.axes[axis] and not copy:
+            if new_axis is self.axes[axis]:
                 return self
 
-            result = self.copy(deep=copy)
+            result = self.copy(deep=False)
             result.axes = list(self.axes)
             result.axes[axis] = new_axis
             return result
@@ -1075,7 +1053,6 @@ class BaseBlockManager(PandasObject):
             indexer=indexer,
             axis=axis,
             allow_dups=True,
-            copy=None,
         )
 
 
@@ -1462,10 +1439,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # Caller is responsible for verifying value.shape
 
         if inplace and blk.should_store(value):
-            copy = False
-            if not self._has_no_reference_block(blkno):
-                # perform Copy-on-Write and clear the reference
-                copy = True
+            copy = not self._has_no_reference_block(blkno)
             iloc = self.blklocs[loc]
             blk.set_inplace(slice(iloc, iloc + 1), value, copy=copy)
             return

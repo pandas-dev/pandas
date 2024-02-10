@@ -16,8 +16,6 @@ import weakref
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
-
 from pandas._libs import (
     NaT,
     internals as libinternals,
@@ -2418,7 +2416,7 @@ def external_values(values: ArrayLike) -> ArrayLike:
         # Avoid raising in .astype in casting from dt64tz to dt64
         values = values._ndarray
 
-    if isinstance(values, np.ndarray) and using_copy_on_write():
+    if isinstance(values, np.ndarray):
         values = values.view()
         values.flags.writeable = False
 

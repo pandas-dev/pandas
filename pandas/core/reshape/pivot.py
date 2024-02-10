@@ -10,7 +10,6 @@ from typing import (
     Literal,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -19,7 +18,6 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
@@ -70,7 +68,7 @@ def pivot_table(
     margins: bool = False,
     dropna: bool = True,
     margins_name: Hashable = "All",
-    observed: bool | lib.NoDefault = lib.no_default,
+    observed: bool = True,
     sort: bool = True,
 ) -> DataFrame:
     index = _convert_by(index)
@@ -125,7 +123,7 @@ def __internal_pivot_table(
     margins: bool,
     dropna: bool,
     margins_name: Hashable,
-    observed: bool | lib.NoDefault,
+    observed: bool,
     sort: bool,
 ) -> DataFrame:
     """
@@ -168,18 +166,7 @@ def __internal_pivot_table(
                 pass
         values = list(values)
 
-    observed_bool = False if observed is lib.no_default else observed
-    grouped = data.groupby(keys, observed=observed_bool, sort=sort, dropna=dropna)
-    if observed is lib.no_default and any(
-        ping._passed_categorical for ping in grouped._grouper.groupings
-    ):
-        warnings.warn(
-            "The default value of observed=False is deprecated and will change "
-            "to observed=True in a future version of pandas. Specify "
-            "observed=False to silence this warning and retain the current behavior",
-            category=FutureWarning,
-            stacklevel=find_stack_level(),
-        )
+    grouped = data.groupby(keys, observed=observed, sort=sort, dropna=dropna)
     agged = grouped.agg(aggfunc)
 
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
