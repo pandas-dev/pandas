@@ -1415,7 +1415,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def replace(
         self,
-        pat: str | re.Pattern | dict | None = None,
+        pat: str | re.Pattern | dict,
         repl: str | Callable | None = None,
         n: int = -1,
         case: bool | None = None,
