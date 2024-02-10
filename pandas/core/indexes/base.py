@@ -3272,9 +3272,13 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _difference(self, other, sort):
         # overridden by RangeIndex
+        if isinstance(self, ABCCategoricalIndex) and self.hasnans and other.hasnans:
+            this = self.dropna()
+        else:
+            this = self
         other = other.unique()
-        the_diff = self[other.get_indexer_for(self) == -1]
-        the_diff = the_diff if self.is_unique else the_diff.unique()
+        the_diff = this[other.get_indexer_for(this) == -1]
+        the_diff = the_diff if this.is_unique else the_diff.unique()
         the_diff = _maybe_try_sort(the_diff, sort)
         return the_diff
 
