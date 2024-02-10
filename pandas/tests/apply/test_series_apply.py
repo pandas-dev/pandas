@@ -104,12 +104,7 @@ def test_agg_args(args, kwargs, increment):
         return x + a + 10 * b + 100 * c
 
     s = Series([1, 2])
-    msg = (
-        "in Series.agg cannot aggregate and has been deprecated. "
-        "Use Series.transform to keep behavior unchanged."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = s.agg(f, 0, *args, **kwargs)
+    result = s.agg(f, 0, *args, **kwargs)
     expected = s + increment
     tm.assert_series_equal(result, expected)
 
@@ -124,13 +119,9 @@ def test_agg_mapping_func_deprecated():
     def foo2(x, b=2, c=0):
         return x + b + c
 
-    msg = "using .+ in Series.agg cannot aggregate and"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        s.agg(foo1, 0, 3, c=4)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        s.agg([foo1, foo2], 0, 3, c=4)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        s.agg({"a": foo1, "b": foo2}, 0, 3, c=4)
+    s.agg(foo1, 0, 3, c=4)
+    s.agg([foo1, foo2], 0, 3, c=4)
+    s.agg({"a": foo1, "b": foo2}, 0, 3, c=4)
 
 
 def test_series_apply_map_box_timestamps(by_row):
@@ -410,34 +401,26 @@ def test_apply_map_evaluate_lambdas_the_same(string_series, func, by_row):
 
 def test_agg_evaluate_lambdas(string_series):
     # GH53325
-    # in the future, the result will be a Series class.
+    result = string_series.agg(lambda x: type(x))
+    assert result is Series
 
-    with tm.assert_produces_warning(FutureWarning):
-        result = string_series.agg(lambda x: type(x))
-    assert isinstance(result, Series) and len(result) == len(string_series)
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = string_series.agg(type)
-    assert isinstance(result, Series) and len(result) == len(string_series)
+    result = string_series.agg(type)
+    assert result is Series
 
 
 @pytest.mark.parametrize("op_name", ["agg", "apply"])
 def test_with_nested_series(datetime_series, op_name):
-    # GH 2316
+    # GH 2316 & GH52123
     # .agg with a reducer and a transform, what to do
-    msg = "cannot aggregate"
-    warning = FutureWarning if op_name == "agg" else None
-    with tm.assert_produces_warning(warning, match=msg):
-        # GH52123
-        result = getattr(datetime_series, op_name)(
-            lambda x: Series([x, x**2], index=["x", "x^2"])
-        )
-    expected = DataFrame({"x": datetime_series, "x^2": datetime_series**2})
-    tm.assert_frame_equal(result, expected)
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = datetime_series.agg(lambda x: Series([x, x**2], index=["x", "x^2"]))
-    tm.assert_frame_equal(result, expected)
+    result = getattr(datetime_series, op_name)(
+        lambda x: Series([x, x**2], index=["x", "x^2"])
+    )
+    if op_name == "apply":
+        expected = DataFrame({"x": datetime_series, "x^2": datetime_series**2})
+        tm.assert_frame_equal(result, expected)
+    else:
+        expected = Series([datetime_series, datetime_series**2], index=["x", "x^2"])
+        tm.assert_series_equal(result, expected)
 
 
 def test_replicate_describe(string_series):
