@@ -111,19 +111,22 @@ def _pprint_seq(
         fmt = "[{body}]" if hasattr(seq, "__setitem__") else "({body})"
 
     if max_seq_items is False:
-        nitems = len(seq)
+        max_items = None
     else:
-        nitems = max_seq_items or get_option("max_seq_items") or len(seq)
+        max_items = max_seq_items or get_option("max_seq_items") or len(seq)
 
     s = iter(seq)
     # handle sets, no slicing
-    r = [
-        pprint_thing(next(s), _nest_lvl + 1, max_seq_items=max_seq_items, **kwds)
-        for i in range(min(nitems, len(seq)))
-    ]
+    r = []
+    max_items_reached = False
+    for i, item in enumerate(s):
+        if (max_items is not None) and (i >= max_items):
+            max_items_reached = True
+            break
+        r.append(pprint_thing(item, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds))
     body = ", ".join(r)
 
-    if nitems < len(seq):
+    if max_items_reached:
         body += ", ..."
     elif isinstance(seq, tuple) and len(seq) == 1:
         body += ","
