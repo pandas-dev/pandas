@@ -118,7 +118,6 @@ generated/pandas.api.types.is_int64_dtype,../reference/api/pandas.api.types.is_i
 generated/pandas.api.types.is_integer_dtype,../reference/api/pandas.api.types.is_integer_dtype
 generated/pandas.api.types.is_integer,../reference/api/pandas.api.types.is_integer
 generated/pandas.api.types.is_interval_dtype,../reference/api/pandas.api.types.is_interval_dtype
-generated/pandas.api.types.is_interval,../reference/api/pandas.api.types.is_interval
 generated/pandas.api.types.is_iterator,../reference/api/pandas.api.types.is_iterator
 generated/pandas.api.types.is_list_like,../reference/api/pandas.api.types.is_list_like
 generated/pandas.api.types.is_named_tuple,../reference/api/pandas.api.types.is_named_tuple
@@ -325,7 +324,6 @@ generated/pandas.DataFrame.axes,../reference/api/pandas.DataFrame.axes
 generated/pandas.DataFrame.between_time,../reference/api/pandas.DataFrame.between_time
 generated/pandas.DataFrame.bfill,../reference/api/pandas.DataFrame.bfill
 generated/pandas.DataFrame.blocks,../reference/api/pandas.DataFrame.blocks
-generated/pandas.DataFrame.bool,../reference/api/pandas.DataFrame.bool
 generated/pandas.DataFrame.boxplot,../reference/api/pandas.DataFrame.boxplot
 generated/pandas.DataFrame.clip,../reference/api/pandas.DataFrame.clip
 generated/pandas.DataFrame.clip_lower,../reference/api/pandas.DataFrame.clip_lower
@@ -930,7 +928,6 @@ generated/pandas.Series.between,../reference/api/pandas.Series.between
 generated/pandas.Series.between_time,../reference/api/pandas.Series.between_time
 generated/pandas.Series.bfill,../reference/api/pandas.Series.bfill
 generated/pandas.Series.blocks,../reference/api/pandas.Series.blocks
-generated/pandas.Series.bool,../reference/api/pandas.Series.bool
 generated/pandas.Series.cat.add_categories,../reference/api/pandas.Series.cat.add_categories
 generated/pandas.Series.cat.as_ordered,../reference/api/pandas.Series.cat.as_ordered
 generated/pandas.Series.cat.as_unordered,../reference/api/pandas.Series.cat.as_unordered
@@ -1114,7 +1111,6 @@ generated/pandas.Series.ptp,../reference/api/pandas.Series.ptp
 generated/pandas.Series.quantile,../reference/api/pandas.Series.quantile
 generated/pandas.Series.radd,../reference/api/pandas.Series.radd
 generated/pandas.Series.rank,../reference/api/pandas.Series.rank
-generated/pandas.Series.ravel,../reference/api/pandas.Series.ravel
 generated/pandas.Series.rdiv,../reference/api/pandas.Series.rdiv
 generated/pandas.Series.rdivmod,../reference/api/pandas.Series.rdivmod
 generated/pandas.Series.real,../reference/api/pandas.Series.real
@@ -1249,7 +1245,6 @@ generated/pandas.Series.valid,../reference/api/pandas.Series.valid
 generated/pandas.Series.value_counts,../reference/api/pandas.Series.value_counts
 generated/pandas.Series.values,../reference/api/pandas.Series.values
 generated/pandas.Series.var,../reference/api/pandas.Series.var
-generated/pandas.Series.view,../reference/api/pandas.Series.view
 generated/pandas.Series.where,../reference/api/pandas.Series.where
 generated/pandas.Series.xs,../reference/api/pandas.Series.xs
 generated/pandas.set_option,../reference/api/pandas.set_option

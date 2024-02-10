@@ -39,10 +39,7 @@ import warnings
 import numpy as np
 from numpy import ma
 
-from pandas._config import (
-    get_option,
-    using_copy_on_write,
-)
+from pandas._config import get_option
 
 from pandas._libs import (
     algos as libalgos,
@@ -62,7 +59,6 @@ from pandas.errors import (
 from pandas.errors.cow import (
     _chained_assignment_method_msg,
     _chained_assignment_msg,
-    _chained_assignment_warning_method_msg,
 )
 from pandas.util._decorators import (
     Appender,
@@ -707,8 +703,7 @@ class DataFrame(NDFrame, OpsMixin):
                     stacklevel=1,  # bump to 2 once pyarrow 15.0 is released with fix
                 )
 
-            if using_copy_on_write():
-                data = data.copy(deep=False)
+            data = data.copy(deep=False)
             # first check if a Manager is passed without any other arguments
             # -> use fastpath (without checking Manager type)
             if index is None and columns is None and dtype is None and not copy:
@@ -730,9 +725,7 @@ class DataFrame(NDFrame, OpsMixin):
             if isinstance(data, dict):
                 # retain pre-GH#38939 default behavior
                 copy = True
-            elif using_copy_on_write() and not isinstance(
-                data, (Index, DataFrame, Series)
-            ):
+            elif not isinstance(data, (Index, DataFrame, Series)):
                 copy = True
             else:
                 copy = False
@@ -785,7 +778,6 @@ class DataFrame(NDFrame, OpsMixin):
                 )
             elif getattr(data, "name", None) is not None:
                 # i.e. Series/Index with non-None name
-                _copy = copy if using_copy_on_write() else True
                 mgr = dict_to_mgr(
                     # error: Item "ndarray" of "Union[ndarray, Series, Index]" has no
                     # attribute "name"
@@ -793,7 +785,7 @@ class DataFrame(NDFrame, OpsMixin):
                     index,
                     columns,
                     dtype=dtype,
-                    copy=_copy,
+                    copy=copy,
                 )
             else:
                 mgr = ndarray_to_mgr(
@@ -1500,10 +1492,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         columns = self.columns
         klass = self._constructor_sliced
-        using_cow = using_copy_on_write()
         for k, v in zip(self.index, self.values):
             s = klass(v, index=columns, name=k).__finalize__(self)
-            if using_cow and self._mgr.is_single_block:
+            if self._mgr.is_single_block:
                 s._mgr.add_references(self._mgr)
             yield k, s
 
@@ -1685,8 +1676,8 @@ class DataFrame(NDFrame, OpsMixin):
             if len(common) > len(self.columns) or len(common) > len(other.index):
                 raise ValueError("matrices are not aligned")
 
-            left = self.reindex(columns=common, copy=False)
-            right = other.reindex(index=common, copy=False)
+            left = self.reindex(columns=common)
+            right = other.reindex(index=common)
             lvals = left.values
             rvals = right._values
         else:
@@ -3669,8 +3660,6 @@ class DataFrame(NDFrame, OpsMixin):
         if self._can_fast_transpose:
             # Note: tests pass without this, but this improves perf quite a bit.
             new_vals = self._values.T
-            if copy and not using_copy_on_write():
-                new_vals = new_vals.copy()
 
             result = self._constructor(
                 new_vals,
@@ -3679,7 +3668,7 @@ class DataFrame(NDFrame, OpsMixin):
                 copy=False,
                 dtype=new_vals.dtype,
             )
-            if using_copy_on_write() and len(self) > 0:
+            if len(self) > 0:
                 result._mgr.add_references(self._mgr)
 
         elif (
@@ -3723,8 +3712,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         else:
             new_arr = self.values.T
-            if copy and not using_copy_on_write():
-                new_arr = new_arr.copy()
             result = self._constructor(
                 new_arr,
                 index=self.columns,
@@ -3812,27 +3799,6 @@ class DataFrame(NDFrame, OpsMixin):
         """
         for i in range(len(self.columns)):
             yield self._get_column_array(i)
-
-    def _getitem_nocopy(self, key: list):
-        """
-        Behaves like __getitem__, but returns a view in cases where __getitem__
-        would make a copy.
-        """
-        # TODO(CoW): can be removed if/when we are always Copy-on-Write
-        indexer = self.columns._get_indexer_strict(key, "columns")[1]
-        new_axis = self.columns[indexer]
-
-        new_mgr = self._mgr.reindex_indexer(
-            new_axis,
-            indexer,
-            axis=0,
-            allow_dups=True,
-            copy=False,
-            only_slice=True,
-        )
-        result = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
-        result = result.__finalize__(self)
-        return result
 
     def __getitem__(self, key):
         check_dict_or_set_indexers(key)
@@ -3924,7 +3890,7 @@ class DataFrame(NDFrame, OpsMixin):
         key = check_bool_indexer(self.index, key)
 
         if key.all():
-            return self.copy(deep=None)
+            return self.copy(deep=False)
 
         indexer = key.nonzero()[0]
         return self.take(indexer, axis=0)
@@ -4043,7 +4009,7 @@ class DataFrame(NDFrame, OpsMixin):
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY and using_copy_on_write():
+        if not PYPY:
             if sys.getrefcount(self) <= 3:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
@@ -4251,12 +4217,7 @@ class DataFrame(NDFrame, OpsMixin):
     def _iset_item(self, loc: int, value: Series, inplace: bool = True) -> None:
         # We are only called from _replace_columnwise which guarantees that
         # no reindex is necessary
-        if using_copy_on_write():
-            self._iset_item_mgr(
-                loc, value._values, inplace=inplace, refs=value._references
-            )
-        else:
-            self._iset_item_mgr(loc, value._values.copy(), inplace=True)
+        self._iset_item_mgr(loc, value._values, inplace=inplace, refs=value._references)
 
     def _set_item(self, key, value) -> None:
         """
@@ -4792,7 +4753,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             return True
 
-        mgr = self._mgr._get_data_subset(predicate).copy(deep=None)
+        mgr = self._mgr._get_data_subset(predicate).copy(deep=False)
         return self._constructor_from_mgr(mgr, axes=mgr.axes).__finalize__(self)
 
     def insert(
@@ -4937,7 +4898,7 @@ class DataFrame(NDFrame, OpsMixin):
         Portland    17.0    62.6  290.15
         Berkeley    25.0    77.0  298.15
         """
-        data = self.copy(deep=None)
+        data = self.copy(deep=False)
 
         for k, v in kwargs.items():
             data[k] = com.apply_if_callable(v, data)
@@ -4992,9 +4953,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Reindexing and alignment
 
-    def _reindex_multi(
-        self, axes: dict[str, Index], copy: bool, fill_value
-    ) -> DataFrame:
+    def _reindex_multi(self, axes: dict[str, Index], fill_value) -> DataFrame:
         """
         We are guaranteed non-Nones in the axes.
         """
@@ -5016,7 +4975,6 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             return self._reindex_with_indexers(
                 {0: [new_index, row_indexer], 1: [new_columns, col_indexer]},
-                copy=copy,
                 fill_value=fill_value,
             )
 
@@ -5058,7 +5016,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = 0,
         copy: bool | None = None,
     ) -> DataFrame:
-        return super().set_axis(labels, axis=axis, copy=copy)
+        return super().set_axis(labels, axis=axis)
 
     @doc(
         NDFrame.reindex,
@@ -5085,7 +5043,6 @@ class DataFrame(NDFrame, OpsMixin):
             columns=columns,
             axis=axis,
             method=method,
-            copy=copy,
             level=level,
             fill_value=fill_value,
             limit=limit,
@@ -5483,7 +5440,6 @@ class DataFrame(NDFrame, OpsMixin):
             index=index,
             columns=columns,
             axis=axis,
-            copy=copy,
             inplace=inplace,
             level=level,
             errors=errors,
@@ -5554,7 +5510,7 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame or None
         """
         # Operate column-wise
-        res = self if inplace else self.copy(deep=None)
+        res = self if inplace else self.copy(deep=False)
         ax = self.columns
 
         for i, ax_value in enumerate(ax):
@@ -5843,8 +5799,7 @@ class DataFrame(NDFrame, OpsMixin):
         if inplace:
             frame = self
         else:
-            # GH 49473 Use "lazy copy" with Copy-on-Write
-            frame = self.copy(deep=None)
+            frame = self.copy(deep=False)
 
         arrays: list[Index] = []
         names: list[Hashable] = []
@@ -6134,7 +6089,7 @@ class DataFrame(NDFrame, OpsMixin):
         if inplace:
             new_obj = self
         else:
-            new_obj = self.copy(deep=None)
+            new_obj = self.copy(deep=False)
         if allow_duplicates is not lib.no_default:
             allow_duplicates = validate_bool_kwarg(allow_duplicates, "allow_duplicates")
 
@@ -6406,7 +6361,7 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(f"invalid how option: {how}")
 
         if np.all(mask):
-            result = self.copy(deep=None)
+            result = self.copy(deep=False)
         else:
             result = self.loc(axis=axis)[mask]
 
@@ -6535,7 +6490,7 @@ class DataFrame(NDFrame, OpsMixin):
         4  Indomie  pack     5.0
         """
         if self.empty:
-            return self.copy(deep=None)
+            return self.copy(deep=False)
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         ignore_index = validate_bool_kwarg(ignore_index, "ignore_index")
@@ -6651,7 +6606,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         def f(vals) -> tuple[np.ndarray, int]:
             labels, shape = algorithms.factorize(vals, size_hint=len(self))
-            return labels.astype("i8", copy=False), len(shape)
+            return labels.astype("i8"), len(shape)
 
         if subset is None:
             # https://github.com/pandas-dev/pandas/issues/28770
@@ -6934,10 +6889,10 @@ class DataFrame(NDFrame, OpsMixin):
             if inplace:
                 return self._update_inplace(self)
             else:
-                return self.copy(deep=None)
+                return self.copy(deep=False)
 
         if is_range_indexer(indexer, len(indexer)):
-            result = self.copy(deep=(not inplace and not using_copy_on_write()))
+            result = self.copy(deep=False)
             if ignore_index:
                 result.index = default_index(len(result))
 
@@ -7590,7 +7545,7 @@ class DataFrame(NDFrame, OpsMixin):
         ),
     )
     def swaplevel(self, i: Axis = -2, j: Axis = -1, axis: Axis = 0) -> DataFrame:
-        result = self.copy(deep=None)
+        result = self.copy(deep=False)
 
         axis = self._get_axis_number(axis)
 
@@ -7650,7 +7605,7 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(self._get_axis(axis), MultiIndex):  # pragma: no cover
             raise TypeError("Can only reorder levels on a hierarchical axis.")
 
-        result = self.copy(deep=None)
+        result = self.copy(deep=False)
 
         if axis == 0:
             assert isinstance(result.index, MultiIndex)
@@ -7953,9 +7908,7 @@ class DataFrame(NDFrame, OpsMixin):
         if flex is not None and isinstance(right, DataFrame):
             if not left._indexed_same(right):
                 if flex:
-                    left, right = left.align(
-                        right, join="outer", level=level, copy=False
-                    )
+                    left, right = left.align(right, join="outer", level=level)
                 else:
                     raise ValueError(
                         "Can only compare identically-labeled (both index and columns) "
@@ -7968,7 +7921,7 @@ class DataFrame(NDFrame, OpsMixin):
                 if not left.axes[axis].equals(right.index):
                     raise ValueError(
                         "Operands are not aligned. Do "
-                        "`left, right = left.align(right, axis=1, copy=False)` "
+                        "`left, right = left.align(right, axis=1)` "
                         "before operating."
                     )
 
@@ -7977,7 +7930,6 @@ class DataFrame(NDFrame, OpsMixin):
                 join="outer",
                 axis=axis,
                 level=level,
-                copy=False,
             )
             right = left._maybe_align_series_as_frame(right, axis)
 
@@ -8487,7 +8439,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         other_idxlen = len(other.index)  # save for compare
 
-        this, other = self.align(other, copy=False)
+        this, other = self.align(other)
         new_index = this.index
 
         if other.empty and len(new_index) == len(self.index):
@@ -8527,15 +8479,15 @@ class DataFrame(NDFrame, OpsMixin):
                 # try to promote series, which is all NaN, as other_dtype.
                 new_dtype = other_dtype
                 try:
-                    series = series.astype(new_dtype, copy=False)
+                    series = series.astype(new_dtype)
                 except ValueError:
                     # e.g. new_dtype is integer types
                     pass
             else:
                 # if we have different dtypes, possibly promote
                 new_dtype = find_common_type([this_dtype, other_dtype])
-                series = series.astype(new_dtype, copy=False)
-                other_series = other_series.astype(new_dtype, copy=False)
+                series = series.astype(new_dtype)
+                other_series = other_series.astype(new_dtype)
 
             arr = func(series, other_series)
             if isinstance(new_dtype, np.dtype):
@@ -8745,18 +8697,11 @@ class DataFrame(NDFrame, OpsMixin):
         1  2  500.0
         2  3    6.0
         """
-        if not PYPY and using_copy_on_write():
+        if not PYPY:
             if sys.getrefcount(self) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_method_msg,
                     ChainedAssignmentError,
-                    stacklevel=2,
-                )
-        elif not PYPY and not using_copy_on_write() and self._is_view_after_cow_rules():
-            if sys.getrefcount(self) <= REF_COUNT:
-                warnings.warn(
-                    _chained_assignment_warning_method_msg,
-                    FutureWarning,
                     stacklevel=2,
                 )
 
@@ -8911,7 +8856,7 @@ class DataFrame(NDFrame, OpsMixin):
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
-        observed: bool | lib.NoDefault = lib.no_default,
+        observed: bool = True,
         dropna: bool = True,
     ) -> DataFrameGroupBy:
         from pandas.core.groupby.generic import DataFrameGroupBy
@@ -9120,10 +9065,9 @@ class DataFrame(NDFrame, OpsMixin):
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.
 
-            .. deprecated:: 2.2.0
+            .. versionchanged:: 3.0.0
 
-                The default value of ``False`` is deprecated and will change to
-                ``True`` in a future version of pandas.
+                The default value is now ``True``.
 
         sort : bool, default True
             Specifies if the result should be sorted.
@@ -9235,7 +9179,7 @@ class DataFrame(NDFrame, OpsMixin):
         margins: bool = False,
         dropna: bool = True,
         margins_name: Level = "All",
-        observed: bool | lib.NoDefault = lib.no_default,
+        observed: bool = True,
         sort: bool = True,
     ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot_table
@@ -9594,7 +9538,7 @@ class DataFrame(NDFrame, OpsMixin):
             result.index = default_index(len(result))
         else:
             result.index = self.index.take(result.index)
-        result = result.reindex(columns=self.columns, copy=False)
+        result = result.reindex(columns=self.columns)
 
         return result.__finalize__(self, method="explode")
 
@@ -10290,9 +10234,7 @@ class DataFrame(NDFrame, OpsMixin):
             row_df = other.to_frame().T
             # infer_objects is needed for
             #  test_append_empty_frame_to_series_with_dateutil_tz
-            other = row_df.infer_objects(copy=False).rename_axis(
-                index.names, copy=False
-            )
+            other = row_df.infer_objects().rename_axis(index.names)
         elif isinstance(other, list):
             if not other:
                 pass
@@ -10536,7 +10478,7 @@ class DataFrame(NDFrame, OpsMixin):
                     res = concat(
                         frames, axis=1, join="outer", verify_integrity=True, sort=sort
                     )
-                    return res.reindex(self.index, copy=False)
+                    return res.reindex(self.index)
                 else:
                     return concat(
                         frames, axis=1, join=how, verify_integrity=True, sort=sort
@@ -10586,7 +10528,6 @@ class DataFrame(NDFrame, OpsMixin):
             right_index=right_index,
             sort=sort,
             suffixes=suffixes,
-            copy=copy,
             indicator=indicator,
             validate=validate,
         )
@@ -11051,7 +10992,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if numeric_only:
             other = other._get_numeric_data()
-        left, right = this.align(other, join="inner", copy=False)
+        left, right = this.align(other, join="inner")
 
         if axis == 1:
             left = left.T
@@ -11188,7 +11129,7 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             result = notna(frame).sum(axis=axis)
 
-        return result.astype("int64", copy=False).__finalize__(self, method="count")
+        return result.astype("int64").__finalize__(self, method="count")
 
     def _reduce(
         self,
@@ -11252,7 +11193,7 @@ class DataFrame(NDFrame, OpsMixin):
         if axis is None:
             dtype = find_common_type([arr.dtype for arr in df._mgr.arrays])
             if isinstance(dtype, ExtensionDtype):
-                df = df.astype(dtype, copy=False)
+                df = df.astype(dtype)
                 arr = concat_compat(list(df._iter_column_arrays()))
                 return arr._reduce(name, skipna=skipna, keepdims=False, **kwds)
             return func(df.values)
@@ -11284,7 +11225,7 @@ class DataFrame(NDFrame, OpsMixin):
                     # be equivalent to transposing the original frame and aggregating
                     # with axis=0.
                     name = {"argmax": "idxmax", "argmin": "idxmin"}.get(name, name)
-                    df = df.astype(dtype, copy=False)
+                    df = df.astype(dtype)
                     arr = concat_compat(list(df._iter_column_arrays()))
                     nrows, ncols = df.shape
                     row_index = np.tile(np.arange(nrows), ncols)
@@ -12053,7 +11994,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df2.index
         DatetimeIndex(['2023-01-31', '2024-01-31'], dtype='datetime64[ns]', freq=None)
         """
-        new_obj = self.copy(deep=copy and not using_copy_on_write())
+        new_obj = self.copy(deep=False)
 
         axis_name = self._get_axis_name(axis)
         old_ax = getattr(self, axis_name)
@@ -12122,7 +12063,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> idx.to_period("Y")
         PeriodIndex(['2001', '2002', '2003'], dtype='period[Y-DEC]')
         """
-        new_obj = self.copy(deep=copy and not using_copy_on_write())
+        new_obj = self.copy(deep=False)
 
         axis_name = self._get_axis_name(axis)
         old_ax = getattr(self, axis_name)
@@ -12445,7 +12386,7 @@ def _reindex_for_setitem(
     # reindex if necessary
 
     if value.index.equals(index) or not len(index):
-        if using_copy_on_write() and isinstance(value, Series):
+        if isinstance(value, Series):
             return value._values, value._references
         return value._values.copy(), None
 
