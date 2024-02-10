@@ -1137,7 +1137,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 keys,
                 level=level,
                 sort=sort,
-                observed=False if observed is lib.no_default else observed,
+                observed=observed,
                 dropna=self.dropna,
             )
 
