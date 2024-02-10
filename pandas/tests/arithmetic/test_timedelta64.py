@@ -2031,12 +2031,7 @@ class TestTimedeltaArraylikeMulDivOps:
         if box_with_array is DataFrame:
             expected = [tdser.iloc[0, n] / vector[n] for n in range(len(vector))]
             expected = tm.box_expected(expected, xbox).astype(object)
-            # We specifically expect timedelta64("NaT") here, not pd.NA
-            msg = "The 'downcast' keyword in fillna"
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                expected[2] = expected[2].fillna(
-                    np.timedelta64("NaT", "ns"), downcast=False
-                )
+            expected[2] = expected[2].fillna(np.timedelta64("NaT", "ns"))
         else:
             expected = [tdser[n] / vector[n] for n in range(len(tdser))]
             expected = [
