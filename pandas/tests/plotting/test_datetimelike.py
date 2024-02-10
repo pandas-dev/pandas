@@ -6,6 +6,7 @@ from datetime import (
     timedelta,
 )
 import pickle
+import re
 
 import numpy as np
 import pytest
@@ -14,7 +15,8 @@ from pandas._libs.tslibs import (
     BaseOffset,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
+
+from pandas.core.dtypes.dtypes import PeriodDtype
 
 from pandas import (
     DataFrame,
@@ -238,7 +240,8 @@ class TestTSPlot:
             index=idx,
             columns=["A", "B", "C"],
         )
-        freq = freq_to_period_freqstr(1, df.index.freq.rule_code)
+        freq = re.split(r"\d", PeriodDtype(df.index.freq)._freqstr)[-1]
+
         freq = df.index.asfreq(freq).freq
         _check_plot_works(df.plot, freq)
 
@@ -253,7 +256,7 @@ class TestTSPlot:
             index=idx,
             columns=["A", "B", "C"],
         )
-        freq = freq_to_period_freqstr(1, df.index.freq.rule_code)
+        freq = re.split(r"\d", PeriodDtype(df.index.freq)._freqstr)[-1]
         freq = df.index.to_period(freq).freq
         _check_plot_works(df.plot, freq)
 
