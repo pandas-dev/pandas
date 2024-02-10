@@ -9642,6 +9642,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         fill_value : scalar, default np.nan
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value.
+
         Returns
         -------
         tuple of ({klass}, type of other)
