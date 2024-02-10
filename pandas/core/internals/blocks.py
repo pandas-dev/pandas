@@ -16,10 +16,7 @@ import weakref
 
 import numpy as np
 
-from pandas._config import (
-    get_option,
-    using_copy_on_write,
-)
+from pandas._config import get_option
 
 from pandas._libs import (
     NaT,
@@ -549,9 +546,7 @@ class Block(PandasObject, libinternals.Block):
             if caller == "fillna" and get_option("future.no_silent_downcasting"):
                 return blocks
 
-            nbs = extend_blocks(
-                [blk.convert(using_cow=True, copy=False) for blk in blocks]
-            )
+            nbs = extend_blocks([blk.convert() for blk in blocks])
             if caller == "fillna":
                 if len(nbs) != len(blocks) or not all(
                     x.dtype == y.dtype for x, y in zip(nbs, blocks)
@@ -575,7 +570,7 @@ class Block(PandasObject, libinternals.Block):
         elif caller == "where" and get_option("future.no_silent_downcasting") is True:
             return blocks
         else:
-            nbs = extend_blocks([b._downcast_2d(downcast, True) for b in blocks])
+            nbs = extend_blocks([b._downcast_2d(downcast) for b in blocks])
 
         # When _maybe_downcast is called with caller="where", it is either
         #  a) with downcast=False, which is a no-op (the desired future behavior)
@@ -606,7 +601,7 @@ class Block(PandasObject, libinternals.Block):
 
     @final
     @maybe_split
-    def _downcast_2d(self, dtype, using_cow: bool = False) -> list[Block]:
+    def _downcast_2d(self, dtype) -> list[Block]:
         """
         downcast specialized to 2D case post-validation.
 
@@ -618,30 +613,19 @@ class Block(PandasObject, libinternals.Block):
         return [self.make_block(new_values, refs=refs)]
 
     @final
-    def convert(
-        self,
-        *,
-        copy: bool = True,
-        using_cow: bool = False,
-    ) -> list[Block]:
+    def convert(self) -> list[Block]:
         """
         Attempt to coerce any object types to better types. Return a copy
         of the block (if copy = True).
         """
         if not self.is_object:
-            if not copy and using_cow:
-                return [self.copy(deep=False)]
-            return [self.copy()] if copy else [self]
+            return [self.copy(deep=False)]
 
         if self.ndim != 1 and self.shape[0] != 1:
-            blocks = self.split_and_operate(
-                Block.convert, copy=copy, using_cow=using_cow
-            )
+            blocks = self.split_and_operate(Block.convert)
             if all(blk.dtype.kind == "O" for blk in blocks):
                 # Avoid fragmenting the block if convert is a no-op
-                if using_cow:
-                    return [self.copy(deep=False)]
-                return [self.copy()] if copy else [self]
+                return [self.copy(deep=False)]
             return blocks
 
         values = self.values
@@ -655,9 +639,7 @@ class Block(PandasObject, libinternals.Block):
             convert_non_numeric=True,
         )
         refs = None
-        if copy and res_values is values:
-            res_values = values.copy()
-        elif res_values is values:
+        if res_values is values:
             refs = self.refs
 
         res_values = ensure_block_shape(res_values, self.ndim)
@@ -674,7 +656,7 @@ class Block(PandasObject, libinternals.Block):
         dtype_backend: DtypeBackend = "numpy_nullable",
     ) -> list[Block]:
         if infer_objects and self.is_object:
-            blks = self.convert(copy=False)
+            blks = self.convert()
         else:
             blks = [self]
 
@@ -799,33 +781,11 @@ class Block(PandasObject, libinternals.Block):
         return self.copy()
 
     @final
-    def _maybe_copy_cow_check(
-        self, using_cow: bool = True, inplace: bool = True
-    ) -> Self:
-        if using_cow and inplace:
-            deep = self.refs.has_reference()
-            blk = self.copy(deep=deep)
-        else:
-            blk = self if inplace else self.copy()
-        return blk
-
-    @final
     def _get_refs_and_copy(self, inplace: bool):
         refs = None
         copy = not inplace
         if inplace:
             if self.refs.has_reference():
-                copy = True
-            else:
-                refs = self.refs
-        return copy, refs
-
-    @final
-    def _get_refs_and_copy_cow_check(self, using_cow: bool, inplace: bool):
-        refs = None
-        copy = not inplace
-        if inplace:
-            if using_cow and self.refs.has_reference():
                 copy = True
             else:
                 refs = self.refs
@@ -842,7 +802,6 @@ class Block(PandasObject, libinternals.Block):
         inplace: bool = False,
         # mask may be pre-computed if we're called from replace_list
         mask: npt.NDArray[np.bool_] | None = None,
-        using_cow: bool = False,
     ) -> list[Block]:
         """
         replace the to_replace value with value, possible to create new
@@ -857,7 +816,7 @@ class Block(PandasObject, libinternals.Block):
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
             # GH49404
-            blk = self._maybe_copy_cow_check(using_cow, inplace)
+            blk = self._maybe_copy(inplace)
             values = cast(Categorical, blk.values)
             values._replace(to_replace=to_replace, value=value, inplace=True)
             return [blk]
@@ -867,25 +826,19 @@ class Block(PandasObject, libinternals.Block):
             #  replacing it is a no-op.
             # Note: If to_replace were a list, NDFrame.replace would call
             #  replace_list instead of replace.
-            if using_cow:
-                return [self.copy(deep=False)]
-            else:
-                return [self] if inplace else [self.copy()]
+            return [self.copy(deep=False)]
 
         if mask is None:
             mask = missing.mask_missing(values, to_replace)
         if not mask.any():
             # Note: we get here with test_replace_extension_other incorrectly
             #  bc _can_hold_element is incorrect.
-            if using_cow:
-                return [self.copy(deep=False)]
-            else:
-                return [self] if inplace else [self.copy()]
+            return [self.copy(deep=False)]
 
         elif self._can_hold_element(value):
             # TODO(CoW): Maybe split here as well into columns where mask has True
             # and rest?
-            blk = self._maybe_copy_cow_check(using_cow, inplace)
+            blk = self._maybe_copy(inplace)
             putmask_inplace(blk.values, mask, value)
 
             if not (self.is_object and value is None):
@@ -894,7 +847,7 @@ class Block(PandasObject, libinternals.Block):
                 if get_option("future.no_silent_downcasting") is True:
                     blocks = [blk]
                 else:
-                    blocks = blk.convert(copy=False, using_cow=using_cow)
+                    blocks = blk.convert()
                     if len(blocks) > 1 or blocks[0].dtype != blk.dtype:
                         warnings.warn(
                             # GH#54710
@@ -935,7 +888,6 @@ class Block(PandasObject, libinternals.Block):
                         value=value,
                         inplace=True,
                         mask=mask[i : i + 1],
-                        using_cow=using_cow,
                     )
                 )
             return blocks
@@ -947,7 +899,6 @@ class Block(PandasObject, libinternals.Block):
         value,
         inplace: bool = False,
         mask=None,
-        using_cow: bool = False,
     ) -> list[Block]:
         """
         Replace elements by the given value.
@@ -962,8 +913,6 @@ class Block(PandasObject, libinternals.Block):
             Perform inplace modification.
         mask : array-like of bool, optional
             True indicate corresponding element is ignored.
-        using_cow: bool, default False
-            Specifying if copy on write is enabled.
 
         Returns
         -------
@@ -972,17 +921,15 @@ class Block(PandasObject, libinternals.Block):
         if not self._can_hold_element(to_replace):
             # i.e. only if self.is_object is True, but could in principle include a
             #  String ExtensionBlock
-            if using_cow:
-                return [self.copy(deep=False)]
-            return [self] if inplace else [self.copy()]
+            return [self.copy(deep=False)]
 
         rx = re.compile(to_replace)
 
-        block = self._maybe_copy_cow_check(using_cow, inplace)
+        block = self._maybe_copy(inplace)
 
         replace_regex(block.values, rx, value, mask)
 
-        nbs = block.convert(copy=False, using_cow=using_cow)
+        nbs = block.convert()
         opt = get_option("future.no_silent_downcasting")
         if (len(nbs) > 1 or nbs[0].dtype != block.dtype) and not opt:
             warnings.warn(
@@ -1005,7 +952,6 @@ class Block(PandasObject, libinternals.Block):
         dest_list: Sequence[Any],
         inplace: bool = False,
         regex: bool = False,
-        using_cow: bool = False,
     ) -> list[Block]:
         """
         See BlockManager.replace_list docstring.
@@ -1015,7 +961,7 @@ class Block(PandasObject, libinternals.Block):
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
             # GH49404
-            blk = self._maybe_copy_cow_check(using_cow, inplace)
+            blk = self._maybe_copy(inplace)
             values = cast(Categorical, blk.values)
             values._replace(to_replace=src_list, value=dest_list, inplace=True)
             return [blk]
@@ -1025,10 +971,7 @@ class Block(PandasObject, libinternals.Block):
             (x, y) for x, y in zip(src_list, dest_list) if self._can_hold_element(x)
         ]
         if not len(pairs):
-            if using_cow:
-                return [self.copy(deep=False)]
-            # shortcut, nothing to replace
-            return [self] if inplace else [self.copy()]
+            return [self.copy(deep=False)]
 
         src_len = len(pairs) - 1
 
@@ -1055,12 +998,9 @@ class Block(PandasObject, libinternals.Block):
         if inplace:
             masks = list(masks)
 
-        if using_cow:
-            # Don't set up refs here, otherwise we will think that we have
-            # references when we check again later
-            rb = [self]
-        else:
-            rb = [self if inplace else self.copy()]
+        # Don't set up refs here, otherwise we will think that we have
+        # references when we check again later
+        rb = [self]
 
         opt = get_option("future.no_silent_downcasting")
         for i, ((src, dest), mask) in enumerate(zip(pairs, masks)):
@@ -1087,10 +1027,9 @@ class Block(PandasObject, libinternals.Block):
                     mask=m,
                     inplace=inplace,
                     regex=regex,
-                    using_cow=using_cow,
                 )
 
-                if using_cow and i != src_len:
+                if i != src_len:
                     # This is ugly, but we have to get rid of intermediate refs
                     # that did not go out of scope yet, otherwise we will trigger
                     # many unnecessary copies
@@ -1109,9 +1048,7 @@ class Block(PandasObject, libinternals.Block):
                     # GH#44498 avoid unwanted cast-back
                     nbs = []
                     for res_blk in result:
-                        converted = res_blk.convert(
-                            copy=True and not using_cow, using_cow=using_cow
-                        )
+                        converted = res_blk.convert()
                         if len(converted) > 1 or converted[0].dtype != res_blk.dtype:
                             warnings.warn(
                                 # GH#54710
@@ -1139,7 +1076,6 @@ class Block(PandasObject, libinternals.Block):
         mask: npt.NDArray[np.bool_],
         inplace: bool = True,
         regex: bool = False,
-        using_cow: bool = False,
     ) -> list[Block]:
         """
         Replace value corresponding to the given boolean array with another
@@ -1175,22 +1111,19 @@ class Block(PandasObject, libinternals.Block):
                 if mask.any():
                     has_ref = self.refs.has_reference()
                     nb = self.astype(np.dtype(object))
-                    if (nb is self or using_cow) and not inplace:
+                    if not inplace:
                         nb = nb.copy()
-                    elif inplace and has_ref and nb.refs.has_reference() and using_cow:
+                    elif inplace and has_ref and nb.refs.has_reference():
                         # no copy in astype and we had refs before
                         nb = nb.copy()
                     putmask_inplace(nb.values, mask, value)
                     return [nb]
-                if using_cow:
-                    return [self]
-                return [self] if inplace else [self.copy()]
+                return [self]
             return self.replace(
                 to_replace=to_replace,
                 value=value,
                 inplace=inplace,
                 mask=mask,
-                using_cow=using_cow,
             )
 
     # ---------------------------------------------------------------------
@@ -2676,7 +2609,7 @@ def external_values(values: ArrayLike) -> ArrayLike:
         # Avoid raising in .astype in casting from dt64tz to dt64
         values = values._ndarray
 
-    if isinstance(values, np.ndarray) and using_copy_on_write():
+    if isinstance(values, np.ndarray):
         values = values.view()
         values.flags.writeable = False
 
