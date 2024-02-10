@@ -47,6 +47,7 @@ from pandas._typing import (
     DtypeObj,
     FillnaOptions,
     IndexLabel,
+    IntervalClosedType,
     NDFrameT,
     PositionalIndexer,
     RandomState,
@@ -139,6 +140,7 @@ from pandas.core.util.numba_ import (
 )
 
 if TYPE_CHECKING:
+    from pandas._libs.tslibs import BaseOffset
     from pandas._typing import (
         Any,
         Concatenate,
@@ -147,6 +149,7 @@ if TYPE_CHECKING:
         T,
     )
 
+    from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
     from pandas.core.window import (
         ExpandingGroupby,
@@ -3630,13 +3633,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def rolling(
         self,
-        window: int,
-        min_periods: int,
-        center: bool,
-        win_type: str,
-        on: str,
-        closed: str,
-        method: str,
+        window: int | datetime.timedelta | str | BaseOffset | BaseIndexer,
+        min_periods: int | None = None,
+        center: bool = False,
+        win_type: str | None = None,
+        on: str | None = None,
+        closed: IntervalClosedType | None = None,
+        method: str = "single",
     ) -> RollingGroupby:
         """
         Return a rolling grouper, providing rolling functionality per group.
