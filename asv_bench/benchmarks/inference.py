@@ -184,7 +184,7 @@ class ToDatetimeISO8601:
 
     def time_iso8601_infer_zero_tz_fromat(self):
         # GH 41047
-        to_datetime(self.strings_zero_tz, infer_datetime_format=True)
+        to_datetime(self.strings_zero_tz)
 
 
 class ToDatetimeNONISO8601:
@@ -266,16 +266,6 @@ class ToDatetimeCache:
 
     def time_dup_string_tzoffset_dates(self, cache):
         to_datetime(self.dup_string_with_tz, cache=cache)
-
-
-# GH 43901
-class ToDatetimeInferDatetimeFormat:
-    def setup(self):
-        rng = date_range(start="1/1/2000", periods=100000, freq="h")
-        self.strings = rng.strftime("%Y-%m-%d %H:%M:%S").tolist()
-
-    def time_infer_datetime_format(self):
-        to_datetime(self.strings, infer_datetime_format=True)
 
 
 class ToTimedelta:
