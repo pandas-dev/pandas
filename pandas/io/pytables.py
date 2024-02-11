@@ -3299,7 +3299,7 @@ class BlockManagerFixed(GenericFixed):
                 # with CoW, concat ignores the copy keyword. Here, we still want
                 # to copy to enforce optimized column-major layout
                 out = out.copy()
-            out = out.reindex(columns=items, copy=False)
+            out = out.reindex(columns=items)
             return out
 
         return DataFrame(columns=axes[0], index=axes[1])

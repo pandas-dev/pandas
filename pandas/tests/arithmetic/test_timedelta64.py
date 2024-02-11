@@ -1299,8 +1299,8 @@ class TestTimedeltaArraylikeAddSubOps:
         )
 
         tdi = tm.box_expected(tdi, box)
-        expected = tm.box_expected(expected, box).astype(object, copy=False)
-        expected_sub = tm.box_expected(expected_sub, box).astype(object, copy=False)
+        expected = tm.box_expected(expected, box).astype(object)
+        expected_sub = tm.box_expected(expected_sub, box).astype(object)
 
         with tm.assert_produces_warning(PerformanceWarning):
             res = tdi + other
