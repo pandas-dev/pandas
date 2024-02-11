@@ -1586,8 +1586,8 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     Besides, adding a DateOffsets specified by the singular form of the date
     component can be used to replace certain component of the timestamp.
 
-    Parameters  # numpydoc ignore=PR02
-    ----------  # numpydoc ignore=PR02
+    Parameters # numpydoc ignore=PR02
+    ---------- # numpydoc ignore=PR02
     n : int, default 1
         The number of time periods the offset represents.
         If specified without a temporal pattern, defaults to n days.
