@@ -41,6 +41,7 @@ Properties
    Index.empty
    Index.T
    Index.memory_usage
+   Index.array
 
 Modifying and computations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -110,6 +111,7 @@ Conversion
    Index.to_list
    Index.to_series
    Index.to_frame
+   Index.to_numpy
    Index.view
 
 Sorting
