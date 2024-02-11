@@ -51,12 +51,13 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
             :context: close-figs
 
             >>> import matplotlib.pyplot as plt
-            >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+            >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
             >>> fix, ax = plt.subplots()
-            >>> ax.axis('off')
+            >>> ax.axis("off")
             (0.0, 1.0, 0.0, 1.0)
-            >>> table = pd.plotting.table(ax, df, loc='center',
-            ...                           cellLoc='center', colWidths=list([.2, .2]))
+            >>> table = pd.plotting.table(
+            ...     ax, df, loc="center", cellLoc="center", colWidths=list([0.2, 0.2])
+            ... )
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.table(
@@ -92,16 +93,17 @@ def register() -> None:
 
         >>> pd.plotting.register_matplotlib_converters()
 
-        >>> df = pd.DataFrame({'ts': pd.period_range('2020', periods=2, freq='M'),
-        ...                    'y': [1, 2]
-        ...                    })
-        >>> plot = df.plot.line(x='ts', y='y')
+        >>> df = pd.DataFrame(
+        ...     {"ts": pd.period_range("2020", periods=2, freq="M"), "y": [1, 2]}
+        ... )
+        >>> plot = df.plot.line(x="ts", y="y")
 
     Unsetting the register manually an error will be raised:
 
-    >>> pd.set_option("plotting.matplotlib.register_converters",
-    ...               False)  # doctest: +SKIP
-    >>> df.plot.line(x='ts', y='y')  # doctest: +SKIP
+    >>> pd.set_option(
+    ...     "plotting.matplotlib.register_converters", False
+    ... )  # doctest: +SKIP
+    >>> df.plot.line(x="ts", y="y")  # doctest: +SKIP
     Traceback (most recent call last):
     TypeError: float() argument must be a string or a real number, not 'Period'
     """
@@ -135,16 +137,17 @@ def deregister() -> None:
 
         >>> pd.plotting.register_matplotlib_converters()
 
-        >>> df = pd.DataFrame({'ts': pd.period_range('2020', periods=2, freq='M'),
-        ...                    'y': [1, 2]
-        ...                    })
-        >>> plot = df.plot.line(x='ts', y='y')
+        >>> df = pd.DataFrame(
+        ...     {"ts": pd.period_range("2020", periods=2, freq="M"), "y": [1, 2]}
+        ... )
+        >>> plot = df.plot.line(x="ts", y="y")
 
     Unsetting the register manually an error will be raised:
 
-    >>> pd.set_option("plotting.matplotlib.register_converters",
-    ...               False)  # doctest: +SKIP
-    >>> df.plot.line(x='ts', y='y')  # doctest: +SKIP
+    >>> pd.set_option(
+    ...     "plotting.matplotlib.register_converters", False
+    ... )  # doctest: +SKIP
+    >>> df.plot.line(x="ts", y="y")  # doctest: +SKIP
     Traceback (most recent call last):
     TypeError: float() argument must be a string or a real number, not 'Period'
     """
@@ -204,7 +207,7 @@ def scatter_matrix(
     .. plot::
         :context: close-figs
 
-        >>> df = pd.DataFrame(np.random.randn(1000, 4), columns=['A', 'B', 'C', 'D'])
+        >>> df = pd.DataFrame(np.random.randn(1000, 4), columns=["A", "B", "C", "D"])
         >>> pd.plotting.scatter_matrix(df, alpha=0.2)
         array([[<Axes: xlabel='A', ylabel='A'>, <Axes: xlabel='B', ylabel='A'>,
                 <Axes: xlabel='C', ylabel='A'>, <Axes: xlabel='D', ylabel='A'>],
@@ -288,25 +291,25 @@ def radviz(
 
         >>> df = pd.DataFrame(
         ...     {
-        ...         'SepalLength': [6.5, 7.7, 5.1, 5.8, 7.6, 5.0, 5.4, 4.6, 6.7, 4.6],
-        ...         'SepalWidth': [3.0, 3.8, 3.8, 2.7, 3.0, 2.3, 3.0, 3.2, 3.3, 3.6],
-        ...         'PetalLength': [5.5, 6.7, 1.9, 5.1, 6.6, 3.3, 4.5, 1.4, 5.7, 1.0],
-        ...         'PetalWidth': [1.8, 2.2, 0.4, 1.9, 2.1, 1.0, 1.5, 0.2, 2.1, 0.2],
-        ...         'Category': [
-        ...             'virginica',
-        ...             'virginica',
-        ...             'setosa',
-        ...             'virginica',
-        ...             'virginica',
-        ...             'versicolor',
-        ...             'versicolor',
-        ...             'setosa',
-        ...             'virginica',
-        ...             'setosa'
-        ...         ]
+        ...         "SepalLength": [6.5, 7.7, 5.1, 5.8, 7.6, 5.0, 5.4, 4.6, 6.7, 4.6],
+        ...         "SepalWidth": [3.0, 3.8, 3.8, 2.7, 3.0, 2.3, 3.0, 3.2, 3.3, 3.6],
+        ...         "PetalLength": [5.5, 6.7, 1.9, 5.1, 6.6, 3.3, 4.5, 1.4, 5.7, 1.0],
+        ...         "PetalWidth": [1.8, 2.2, 0.4, 1.9, 2.1, 1.0, 1.5, 0.2, 2.1, 0.2],
+        ...         "Category": [
+        ...             "virginica",
+        ...             "virginica",
+        ...             "setosa",
+        ...             "virginica",
+        ...             "virginica",
+        ...             "versicolor",
+        ...             "versicolor",
+        ...             "setosa",
+        ...             "virginica",
+        ...             "setosa",
+        ...         ],
         ...     }
         ... )
-        >>> pd.plotting.radviz(df, 'Category')  # doctest: +SKIP
+        >>> pd.plotting.radviz(df, "Category")  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.radviz(
@@ -371,10 +374,10 @@ def andrews_curves(
         :context: close-figs
 
         >>> df = pd.read_csv(
-        ...     'https://raw.githubusercontent.com/pandas-dev/'
-        ...     'pandas/main/pandas/tests/io/data/csv/iris.csv'
+        ...     "https://raw.githubusercontent.com/pandas-dev/"
+        ...     "pandas/main/pandas/tests/io/data/csv/iris.csv"
         ... )
-        >>> pd.plotting.andrews_curves(df, 'Name')  # doctest: +SKIP
+        >>> pd.plotting.andrews_curves(df, "Name")  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.andrews_curves(
@@ -502,11 +505,11 @@ def parallel_coordinates(
         :context: close-figs
 
         >>> df = pd.read_csv(
-        ...     'https://raw.githubusercontent.com/pandas-dev/'
-        ...     'pandas/main/pandas/tests/io/data/csv/iris.csv'
+        ...     "https://raw.githubusercontent.com/pandas-dev/"
+        ...     "pandas/main/pandas/tests/io/data/csv/iris.csv"
         ... )
         >>> pd.plotting.parallel_coordinates(
-        ...     df, 'Name', color=('#556270', '#4ECDC4', '#C7F464')
+        ...     df, "Name", color=("#556270", "#4ECDC4", "#C7F464")
         ... )  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
@@ -620,10 +623,10 @@ class _Options(dict):
             :context: close-figs
 
              >>> np.random.seed(42)
-             >>> df = pd.DataFrame({'A': np.random.randn(10),
-             ...                   'B': np.random.randn(10)},
-             ...                   index=pd.date_range("1/1/2000",
-             ...                   freq='4MS', periods=10))
+             >>> df = pd.DataFrame(
+             ...     {"A": np.random.randn(10), "B": np.random.randn(10)},
+             ...     index=pd.date_range("1/1/2000", freq="4MS", periods=10),
+             ... )
              >>> with pd.plotting.plot_params.use("x_compat", True):
              ...     _ = df["A"].plot(color="r")
              ...     _ = df["B"].plot(color="g")

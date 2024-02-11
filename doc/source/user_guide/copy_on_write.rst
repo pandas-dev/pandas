@@ -295,7 +295,7 @@ This array is read-only, which means that it can't be modified inplace:
 
 The same holds true for a Series, since a Series always consists of a single array.
 
-There are two potential solution to this:
+There are two potential solutions to this:
 
 - Trigger a copy manually if you want to avoid updating DataFrames that share memory with your array.
 - Make the array writeable. This is a more performant solution but circumvents Copy-on-Write rules, so
