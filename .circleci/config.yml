@@ -68,6 +68,25 @@ jobs:
                 circleci-agent step halt
             fi
       - run:
+          # The process here is more complicated than on Github Actions
+          # since we need to copy the tests wheel into the unzipped sdist
+          # so that it gets copied (along with the contents of the unzipped sdist)
+          # into the Linux docker image used for building the wheel
+          # (unlike Github Actions there is no host access using cibuildwheel with CircleCI)
+          name: Build the sdist
+          command: |
+            pip3 install build
+            python3 -m build --sdist
+            sdist_name=$(ls ./dist/*.tar.gz)
+            mkdir unzipped-sdist
+            tar -xzf $sdist_name -C unzipped-sdist --strip-components=1
+            cd pandas
+            python3 -m build --wheel --outdir ../unzipped-sdist
+            cd ..
+            echo "sdist_name=./unzipped-sdist" >> "$BASH_ENV"
+            echo "pandas_tests_loc=$(ls ./unzipped-sdist/*.whl)" >> "$BASH_ENV"
+
+      - run:
           name: Build aarch64 wheels
           no_output_timeout: 30m # Sometimes the tests won't generate any output, make sure the job doesn't get killed by that
           command: |
@@ -76,10 +95,13 @@ jobs:
             if [[ "$IS_SCHEDULE_DISPATCH" == "true" || "$IS_PUSH" != 'true' ]]; then
                 export CIBW_ENVIRONMENT="PIP_EXTRA_INDEX_URL=https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
             fi
-            cibuildwheel --prerelease-pythons --output-dir wheelhouse
+            cibuildwheel ${sdist_name} --prerelease-pythons --output-dir wheelhouse
 
           environment:
             CIBW_BUILD: << parameters.cibw-build >>
+            CIBW_BEFORE_TEST: >
+              pip install pyarrow
+              pip install {project}/${pandas_tests_loc}
 
       - run:
           name: Install Anaconda Client & Upload Wheels
