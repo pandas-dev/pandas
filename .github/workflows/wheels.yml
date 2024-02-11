@@ -149,13 +149,14 @@ jobs:
         env:
           CIBW_PRERELEASE_PYTHONS: True
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
+          CIBW_BEFORE_TEST: pip install pyarrow
           # Note: Since the sdist is the project directory, it does not contain the tests
           # We need to manually install tests from the host. This isn't ideal since it breaks
           # isolation but should be no big deal
           # (On Linux, need to prefix with /host, since we run builds in a container and the root directory is
           # mounted to host)
           CIBW_TEST_COMMAND: >
-            pip install ${{ startsWith(matrix.buildplat[1], 'ubuntu') && '/host'|| '' }}${{ github.workspace }}/${{ needs.build_sdist.outputs.pandas_tests_loc }} &&
+            pip install ${{ startsWith(matrix.buildplat[0], 'ubuntu') && '/host'|| '' }}${{ github.workspace }}/${{ needs.build_sdist.outputs.pandas_tests_loc }} &&
             PANDAS_CI='1' python -c 'import pandas as pd;
             pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "-n 2", "--no-strict-data-files"]);
             pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);'
