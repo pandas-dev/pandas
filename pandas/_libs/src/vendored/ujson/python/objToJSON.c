@@ -95,11 +95,11 @@ typedef struct __TypeContext {
   JSPFN_ITERGETNAME iterGetName;
   JSPFN_ITERGETVALUE iterGetValue;
   PFN_PyTypeToUTF8 PyTypeToUTF8;
-  PyArrayObject *newObj;
+  PyObject *newObj;
   PyObject *dictObj;
   Py_ssize_t index;
   Py_ssize_t size;
-  PyArrayObject *itemValue;
+  PyObject *itemValue;
   PyObject *itemName;
   PyObject *attrList;
   PyObject *iterator;
@@ -174,8 +174,8 @@ static TypeContext *createTypeContext(void) {
   return pc;
 }
 
-static PyArrayObject *get_values(PyObject *obj) {
-  PyArrayObject *values = NULL;
+static PyObject *get_values(PyObject *obj) {
+  PyObject *values = NULL;
 
   if (object_is_index_type(obj) || object_is_series_type(obj)) {
     // The special cases to worry about are dt64tz and category[dt64tz].
@@ -404,7 +404,7 @@ static void NpyArr_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
     return;
   }
 
-  npyarr->array = (PyArrayObject *)obj;
+  npyarr->array = (PyObject *)obj;
   npyarr->getitem = (PyArray_GetItemFunc *)PyArray_DESCR(obj)->f->getitem;
   npyarr->dataptr = PyArray_DATA(obj);
   npyarr->ndim = PyArray_NDIM(obj) - 1;
@@ -1605,7 +1605,7 @@ ISITERABLE:
       if (!tmpObj) {
         goto INVALID;
       }
-      PyArrayObject *values = get_values(tmpObj);
+      PyObject *values = get_values(tmpObj);
       Py_DECREF(tmpObj);
       if (!values) {
         goto INVALID;
@@ -1687,7 +1687,7 @@ ISITERABLE:
       if (!tmpObj) {
         goto INVALID;
       }
-      PyArrayObject *values = get_values(tmpObj);
+      PyObject *values = get_values(tmpObj);
       if (!values) {
         Py_DECREF(tmpObj);
         goto INVALID;
@@ -1707,7 +1707,7 @@ ISITERABLE:
       if (!tmpObj) {
         goto INVALID;
       }
-      PyArrayObject *values = get_values(tmpObj);
+      PyObject *values = get_values(tmpObj);
       if (!values) {
         Py_DECREF(tmpObj);
         goto INVALID;
