@@ -144,6 +144,69 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.SeriesGroupBy.plot # There should be no backslash in the final line, please keep this comment in the last ignored function
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Partially validate docstrings (SA05)' ;  echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=SA05 --ignore_functions \
+        pandas.core.resample.Resampler.last\
+        pandas.core.window.expanding.Expanding.max\
+        pandas.core.window.expanding.Expanding.skew\
+        pandas.core.window.expanding.Expanding.count\
+        pandas.core.window.expanding.Expanding.rank\
+        pandas.core.window.rolling.Rolling.quantile\
+        pandas.plotting.boxplot\
+        pandas.core.window.expanding.Expanding.std\
+        pandas.core.window.rolling.Rolling.corr\
+        pandas.core.window.expanding.Expanding.sem\
+        pandas.core.window.expanding.Expanding.kurt\
+        pandas.DataFrame.agg\
+        pandas.core.window.expanding.Expanding.var\
+        pandas.core.window.rolling.Rolling.kurt\
+        pandas.core.resample.Resampler.first\
+        pandas.core.window.rolling.Window.mean\
+        pandas.core.window.ewm.ExponentialMovingWindow.std\
+        pandas.core.groupby.DataFrameGroupBy.first\
+        pandas.core.window.rolling.Rolling.aggregate\
+        pandas.core.window.rolling.Rolling.sem\
+        pandas.core.window.rolling.Rolling.var\
+        pandas.core.groupby.SeriesGroupBy.first\
+        pandas.core.window.expanding.Expanding.sum\
+        pandas.DataFrame.boxplot\
+        pandas.core.window.ewm.ExponentialMovingWindow.var\
+        pandas.core.groupby.SeriesGroupBy.last\
+        pandas.core.window.rolling.Rolling.mean\
+        pandas.plotting.radviz\
+        pandas.core.groupby.DataFrameGroupBy.last\
+        pandas.core.window.ewm.ExponentialMovingWindow.cov\
+        pandas.plotting.bootstrap_plot\
+        pandas.core.window.expanding.Expanding.quantile\
+        pandas.core.window.expanding.Expanding.cov\
+        pandas.core.window.rolling.Rolling.count\
+        pandas.core.window.rolling.Rolling.min\
+        pandas.core.window.expanding.Expanding.mean\
+        pandas.arrays.ArrowStringArray\
+        pandas.core.window.ewm.ExponentialMovingWindow.mean\
+        pandas.core.window.expanding.Expanding.corr\
+        pandas.core.window.rolling.Rolling.sum\
+        pandas.core.window.rolling.Window.std\
+        pandas.PeriodIndex.asfreq\
+        pandas.core.window.rolling.Rolling.skew\
+        pandas.core.window.rolling.Rolling.rank\
+        pandas.core.window.ewm.ExponentialMovingWindow.corr\
+        pandas.arrays.StringArray\
+        pandas.core.window.rolling.Window.sum\
+        pandas.core.window.rolling.Rolling.cov\
+        pandas.core.window.expanding.Expanding.median\
+        pandas.DataFrame.aggregate\
+        pandas.core.window.rolling.Window.var\
+        pandas.core.window.expanding.Expanding.aggregate\
+        pandas.core.window.expanding.Expanding.min\
+        pandas.core.window.ewm.ExponentialMovingWindow.sum\
+        pandas.core.window.expanding.Expanding.apply\
+        pandas.core.window.rolling.Rolling.median\
+        pandas.core.window.rolling.Rolling.std\
+        pandas.core.window.rolling.Rolling.max\
+        pandas.core.window.rolling.Rolling.apply # There should be no backslash in the final line, please keep this comment in the last ignored function
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
 fi
 
 ### DOCUMENTATION NOTEBOOKS ###
