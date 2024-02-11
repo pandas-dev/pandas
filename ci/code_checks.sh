@@ -88,7 +88,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.cat.set_categories\
         pandas.Series.plot\
         pandas.DataFrame.plot\
-        pandas.tseries.offsets.DateOffset\
         pandas.tseries.offsets.BusinessDay\
         pandas.tseries.offsets.BDay\
         pandas.tseries.offsets.BusinessHour\
