@@ -22,17 +22,14 @@ from .pandas_vb_common import lib
 
 
 class ToNumeric:
-    params = ["ignore", "coerce"]
-    param_names = ["errors"]
-
-    def setup(self, errors):
+    def setup(self):
         N = 10000
         self.float = Series(np.random.randn(N))
         self.numstr = self.float.astype("str")
         self.str = Series(Index([f"i-{i}" for i in range(N)], dtype=object))
 
-    def time_from_float(self, errors):
-        to_numeric(self.float, errors=errors)
+    def time_from_float(self):
+        to_numeric(self.float, errors="coerce")
 
     def time_from_numeric_str(self, errors):
         to_numeric(self.numstr, errors=errors)
@@ -301,16 +298,13 @@ class ToTimedelta:
 
 
 class ToTimedeltaErrors:
-    params = ["coerce", "ignore"]
-    param_names = ["errors"]
-
-    def setup(self, errors):
+    def setup(self):
         ints = np.random.randint(0, 60, size=10000)
         self.arr = [f"{i} days" for i in ints]
         self.arr[-1] = "apple"
 
-    def time_convert(self, errors):
-        to_timedelta(self.arr, errors=errors)
+    def time_convert(self):
+        to_timedelta(self.arr, errors="coerce")
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

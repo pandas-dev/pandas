@@ -216,20 +216,6 @@ def test_parsing_different_timezone_offsets():
 
 
 @pytest.mark.parametrize(
-    "data", [["-352.737091", "183.575577"], ["1", "2", "3", "4", "5"]]
-)
-def test_number_looking_strings_not_into_datetime(data):
-    # see gh-4601
-    #
-    # These strings don't look like datetimes, so
-    # they shouldn't be attempted to be converted.
-    arr = np.array(data, dtype=object)
-    result, _ = tslib.array_to_datetime(arr, errors="ignore")
-
-    tm.assert_numpy_array_equal(result, arr)
-
-
-@pytest.mark.parametrize(
     "invalid_date",
     [
         date(1000, 1, 1),
@@ -266,22 +252,12 @@ def test_coerce_outside_ns_bounds_one_valid():
     tm.assert_numpy_array_equal(result, expected)
 
 
-@pytest.mark.parametrize("errors", ["ignore", "coerce"])
-def test_coerce_of_invalid_datetimes(errors):
+def test_coerce_of_invalid_datetimes():
     arr = np.array(["01-01-2013", "not_a_date", "1"], dtype=object)
-    kwargs = {"values": arr, "errors": errors}
-
-    if errors == "ignore":
-        # Without coercing, the presence of any invalid
-        # dates prevents any values from being converted.
-        result, _ = tslib.array_to_datetime(**kwargs)
-        tm.assert_numpy_array_equal(result, arr)
-    else:  # coerce.
-        # With coercing, the invalid dates becomes iNaT
-        result, _ = tslib.array_to_datetime(arr, errors="coerce")
-        expected = ["2013-01-01T00:00:00.000000000", iNaT, iNaT]
-
-        tm.assert_numpy_array_equal(result, np.array(expected, dtype="M8[ns]"))
+    # With coercing, the invalid dates becomes iNaT
+    result, _ = tslib.array_to_datetime(arr, errors="coerce")
+    expected = ["2013-01-01T00:00:00.000000000", iNaT, iNaT]
+    tm.assert_numpy_array_equal(result, np.array(expected, dtype="M8[ns]"))
 
 
 def test_to_datetime_barely_out_of_bounds():
