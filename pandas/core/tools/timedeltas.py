@@ -241,16 +241,7 @@ def _convert_listlike(
     elif isinstance(arg_dtype, ArrowDtype) and arg_dtype.kind == "m":
         return arg
 
-    try:
-        td64arr = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]
-    except ValueError:
-        # If errors == 'raise', these errors
-        # should be raised. If errors == 'coerce', we shouldn't
-        # expect any errors to be raised, since all parsing errors
-        # cause coercion to pd.NaT. However, if an error / bug is
-        # introduced that causes an Exception to be raised, we would
-        # like to surface it.
-        raise
+    td64arr = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]
 
     from pandas import TimedeltaIndex
 
