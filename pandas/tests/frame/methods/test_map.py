@@ -205,11 +205,3 @@ def test_map_invalid_na_action(float_frame):
     # GH 23803
     with pytest.raises(ValueError, match="na_action must be .*Got 'abc'"):
         float_frame.map(lambda x: len(str(x)), na_action="abc")
-
-
-def test_applymap_deprecated():
-    # GH52353
-    df = DataFrame({"a": [1, 2, 3]})
-    msg = "DataFrame.applymap has been deprecated. Use DataFrame.map instead."
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.applymap(lambda x: x)
