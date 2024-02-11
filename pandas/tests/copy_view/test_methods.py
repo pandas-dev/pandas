@@ -273,6 +273,17 @@ def test_reset_index_series_drop(using_copy_on_write, index):
     tm.assert_series_equal(ser, ser_orig)
 
 
+def test_groupby_column_index_in_references():
+    df = DataFrame(
+        {"A": ["a", "b", "c", "d"], "B": [1, 2, 3, 4], "C": ["a", "a", "b", "b"]}
+    )
+    df = df.set_index("A")
+    key = df["C"]
+    result = df.groupby(key, observed=True).sum()
+    expected = df.groupby("C", observed=True).sum()
+    tm.assert_frame_equal(result, expected)
+
+
 def test_rename_columns(using_copy_on_write):
     # Case: renaming columns returns a new dataframe
     # + afterwards modifying the result
@@ -1857,25 +1868,6 @@ def test_count_read_only_array():
     result.iloc[0] = 100
     expected = Series([100, 2], index=["a", "b"])
     tm.assert_series_equal(result, expected)
-
-
-def test_series_view(using_copy_on_write):
-    ser = Series([1, 2, 3])
-    ser_orig = ser.copy()
-
-    with tm.assert_produces_warning(FutureWarning, match="is deprecated"):
-        ser2 = ser.view()
-    assert np.shares_memory(get_array(ser), get_array(ser2))
-    if using_copy_on_write:
-        assert not ser2._mgr._has_no_reference(0)
-
-    ser2.iloc[0] = 100
-
-    if using_copy_on_write:
-        tm.assert_series_equal(ser_orig, ser)
-    else:
-        expected = Series([100, 2, 3])
-        tm.assert_series_equal(ser, expected)
 
 
 def test_insert_series(using_copy_on_write):
