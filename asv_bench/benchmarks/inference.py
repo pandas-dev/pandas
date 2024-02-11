@@ -31,11 +31,11 @@ class ToNumeric:
     def time_from_float(self):
         to_numeric(self.float, errors="coerce")
 
-    def time_from_numeric_str(self, errors):
-        to_numeric(self.numstr, errors=errors)
+    def time_from_numeric_str(self):
+        to_numeric(self.numstr, errors="coerce")
 
-    def time_from_str(self, errors):
-        to_numeric(self.str, errors=errors)
+    def time_from_str(self):
+        to_numeric(self.str, errors="coerce")
 
 
 class ToNumericDowncast:
