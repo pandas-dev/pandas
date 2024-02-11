@@ -8458,11 +8458,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> df.clip(t, axis=0)
         col_0  col_1
-        0      9      2
-        1     -3     -4
-        2      0      6
-        3      6      8
-        4      5      3
+        0      9.0    2.0
+        1     -3.0   -4.0
+        2      0.0    6.0
+        3      6.0    8.0
+        4      5.0    3.0
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
