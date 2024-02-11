@@ -108,6 +108,28 @@ def test_interpolate_inplace_with_refs(using_copy_on_write, vals):
         assert np.shares_memory(arr, get_array(df, "a"))
 
 
+@pytest.mark.parametrize("func", ["ffill", "bfill"])
+@pytest.mark.parametrize("dtype", ["float64", "Float64"])
+def test_interp_fill_functions_inplace(using_copy_on_write, func, dtype):
+    # Check that these takes the same code paths as interpolate
+    df = DataFrame({"a": [1, np.nan, 2]}, dtype=dtype)
+    df_orig = df.copy()
+    arr = get_array(df, "a")
+    view = df[:]
+
+    getattr(df, func)(inplace=True)
+
+    if using_copy_on_write:
+        # Check that copy was triggered in interpolate and that we don't
+        # have any references left
+        assert not np.shares_memory(arr, get_array(df, "a"))
+        tm.assert_frame_equal(df_orig, view)
+        assert df._mgr._has_no_reference(0)
+        assert view._mgr._has_no_reference(0)
+    else:
+        assert np.shares_memory(arr, get_array(df, "a")) is (dtype == "float64")
+
+
 def test_interpolate_cleaned_fill_method(using_copy_on_write):
     # Check that "method is set to None" case works correctly
     df = DataFrame({"a": ["a", np.nan, "c"], "b": 1})
@@ -350,28 +372,26 @@ def test_fillna_inplace_ea_noop_shares_memory(
         tm.assert_frame_equal(df, view)
 
 
-def test_fillna_chained_assignment(using_copy_on_write):
+def test_fillna_chained_assignment():
     df = DataFrame({"a": [1, np.nan, 2], "b": 1})
     df_orig = df.copy()
-    if using_copy_on_write:
-        with tm.raises_chained_assignment_error():
-            df["a"].fillna(100, inplace=True)
-        tm.assert_frame_equal(df, df_orig)
+    with tm.raises_chained_assignment_error():
+        df["a"].fillna(100, inplace=True)
+    tm.assert_frame_equal(df, df_orig)
 
-        with tm.raises_chained_assignment_error():
-            df[["a"]].fillna(100, inplace=True)
-        tm.assert_frame_equal(df, df_orig)
+    with tm.raises_chained_assignment_error():
+        df[["a"]].fillna(100, inplace=True)
+    tm.assert_frame_equal(df, df_orig)
 
 
 @pytest.mark.parametrize("func", ["interpolate", "ffill", "bfill"])
-def test_interpolate_chained_assignment(using_copy_on_write, func):
+def test_interpolate_chained_assignment(func):
     df = DataFrame({"a": [1, np.nan, 2], "b": 1})
     df_orig = df.copy()
-    if using_copy_on_write:
-        with tm.raises_chained_assignment_error():
-            getattr(df["a"], func)(inplace=True)
-        tm.assert_frame_equal(df, df_orig)
+    with tm.raises_chained_assignment_error():
+        getattr(df["a"], func)(inplace=True)
+    tm.assert_frame_equal(df, df_orig)
 
-        with tm.raises_chained_assignment_error():
-            getattr(df[["a"]], func)(inplace=True)
-        tm.assert_frame_equal(df, df_orig)
+    with tm.raises_chained_assignment_error():
+        getattr(df[["a"]], func)(inplace=True)
+    tm.assert_frame_equal(df, df_orig)

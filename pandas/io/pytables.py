@@ -30,6 +30,7 @@ import numpy as np
 from pandas._config import (
     config,
     get_option,
+    using_copy_on_write,
     using_pyarrow_string_dtype,
 )
 
@@ -56,7 +57,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_complex_dtype,
     is_list_like,
-    is_object_dtype,
     is_string_dtype,
     needs_i8_conversion,
 )
@@ -68,7 +68,6 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.missing import array_equivalent
 
-import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -93,10 +92,6 @@ from pandas.core.computation.pytables import (
 )
 from pandas.core.construction import extract_array
 from pandas.core.indexes.api import ensure_index
-from pandas.core.internals import (
-    ArrayManager,
-    BlockManager,
-)
 
 from pandas.io.common import stringify_path
 from pandas.io.formats.printing import (
@@ -366,7 +361,7 @@ def read_hdf(
         A list of Term (or convertible) objects.
     start : int, optional
         Row number to start selection.
-    stop  : int, optional
+    stop : int, optional
         Row number to stop selection.
     columns : list, optional
         A list of columns names to return.
@@ -389,9 +384,9 @@ def read_hdf(
 
     Examples
     --------
-    >>> df = pd.DataFrame([[1, 1.0, 'a']], columns=['x', 'y', 'z'])  # doctest: +SKIP
-    >>> df.to_hdf('./store.h5', 'data')  # doctest: +SKIP
-    >>> reread = pd.read_hdf('./store.h5')  # doctest: +SKIP
+    >>> df = pd.DataFrame([[1, 1.0, "a"]], columns=["x", "y", "z"])  # doctest: +SKIP
+    >>> df.to_hdf("./store.h5", "data")  # doctest: +SKIP
+    >>> reread = pd.read_hdf("./store.h5")  # doctest: +SKIP
     """
     if mode not in ["r", "r+", "a"]:
         raise ValueError(
@@ -532,9 +527,9 @@ class HDFStore:
     Examples
     --------
     >>> bar = pd.DataFrame(np.random.randn(10, 4))
-    >>> store = pd.HDFStore('test.h5')
-    >>> store['foo'] = bar   # write to HDF5
-    >>> bar = store['foo']   # retrieve
+    >>> store = pd.HDFStore("test.h5")
+    >>> store["foo"] = bar  # write to HDF5
+    >>> bar = store["foo"]  # retrieve
     >>> store.close()
 
     **Create or load HDF5 file in-memory**
@@ -544,9 +539,9 @@ class HDFStore:
     written when closed:
 
     >>> bar = pd.DataFrame(np.random.randn(10, 4))
-    >>> store = pd.HDFStore('test.h5', driver='H5FD_CORE')
-    >>> store['foo'] = bar
-    >>> store.close()   # only now, data is written to disk
+    >>> store = pd.HDFStore("test.h5", driver="H5FD_CORE")
+    >>> store["foo"] = bar
+    >>> store.close()  # only now, data is written to disk
     """
 
     _handle: File | None
@@ -670,10 +665,10 @@ class HDFStore:
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
-        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
-        >>> store.put('data', df)  # doctest: +SKIP
-        >>> store.get('data')  # doctest: +SKIP
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df)  # doctest: +SKIP
+        >>> store.get("data")  # doctest: +SKIP
         >>> print(store.keys())  # doctest: +SKIP
         ['/data1', '/data2']
         >>> store.close()  # doctest: +SKIP
@@ -799,10 +794,10 @@ class HDFStore:
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
-        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
-        >>> store.put('data', df)  # doctest: +SKIP
-        >>> store.get('data')  # doctest: +SKIP
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df)  # doctest: +SKIP
+        >>> store.get("data")  # doctest: +SKIP
         >>> store.close()  # doctest: +SKIP
         """
         with patch_pickle():
@@ -861,17 +856,17 @@ class HDFStore:
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
-        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
-        >>> store.put('data', df)  # doctest: +SKIP
-        >>> store.get('data')  # doctest: +SKIP
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df)  # doctest: +SKIP
+        >>> store.get("data")  # doctest: +SKIP
         >>> print(store.keys())  # doctest: +SKIP
         ['/data1', '/data2']
-        >>> store.select('/data1')  # doctest: +SKIP
+        >>> store.select("/data1")  # doctest: +SKIP
            A  B
         0  1  2
         1  3  4
-        >>> store.select('/data1', where='columns == A')  # doctest: +SKIP
+        >>> store.select("/data1", where="columns == A")  # doctest: +SKIP
            A
         0  1
         1  3
@@ -1151,9 +1146,9 @@ class HDFStore:
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
-        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
-        >>> store.put('data', df)  # doctest: +SKIP
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df)  # doctest: +SKIP
         """
         if format is None:
             format = get_option("io.hdf.default_format") or "fixed"
@@ -1270,7 +1265,7 @@ class HDFStore:
                 subsets of the data.
         index : bool, default True
             Write DataFrame index as a column.
-        append       : bool, default True
+        append : bool, default True
             Append the input data to the existing.
         data_columns : list of columns, or True, default None
             List of columns to create as indexed data columns for on-disk
@@ -1278,10 +1273,10 @@ class HDFStore:
             of the object are indexed. See `here
             <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
         min_itemsize : dict of columns that specify minimum str sizes
-        nan_rep      : str to use as str nan representation
-        chunksize    : size to chunk the writing
+        nan_rep : str to use as str nan representation
+        chunksize : size to chunk the writing
         expectedrows : expected TOTAL row size of this table
-        encoding     : default None, provide an encoding for str
+        encoding : default None, provide an encoding for str
         dropna : bool, default False, optional
             Do not write an ALL nan row to the store settable
             by the option 'io.hdf.dropna_table'.
@@ -1293,11 +1288,11 @@ class HDFStore:
 
         Examples
         --------
-        >>> df1 = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
-        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
-        >>> store.put('data', df1, format='table')  # doctest: +SKIP
-        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=['A', 'B'])
-        >>> store.append('data', df2)  # doctest: +SKIP
+        >>> df1 = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df1, format="table")  # doctest: +SKIP
+        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=["A", "B"])
+        >>> store.append("data", df2)  # doctest: +SKIP
         >>> store.close()  # doctest: +SKIP
            A  B
         0  1  2
@@ -1484,9 +1479,9 @@ class HDFStore:
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
-        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
-        >>> store.put('data', df)  # doctest: +SKIP
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df)  # doctest: +SKIP
         >>> print(store.groups())  # doctest: +SKIP
         >>> store.close()  # doctest: +SKIP
         [/data (Group) ''
@@ -1539,11 +1534,11 @@ class HDFStore:
 
         Examples
         --------
-        >>> df1 = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
-        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
-        >>> store.put('data', df1, format='table')  # doctest: +SKIP
-        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=['A', 'B'])
-        >>> store.append('data', df2)  # doctest: +SKIP
+        >>> df1 = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df1, format="table")  # doctest: +SKIP
+        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=["A", "B"])
+        >>> store.append("data", df2)  # doctest: +SKIP
         >>> store.close()  # doctest: +SKIP
         >>> for group in store.walk():  # doctest: +SKIP
         ...     print(group)  # doctest: +SKIP
@@ -1665,9 +1660,9 @@ class HDFStore:
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
-        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
-        >>> store.put('data', df)  # doctest: +SKIP
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df)  # doctest: +SKIP
         >>> print(store.info())  # doctest: +SKIP
         >>> store.close()  # doctest: +SKIP
         <class 'pandas.io.pytables.HDFStore'>
@@ -1708,7 +1703,7 @@ class HDFStore:
     # ------------------------------------------------------------------------
     # private methods
 
-    def _check_if_open(self):
+    def _check_if_open(self) -> None:
         if not self.is_open:
             raise ClosedFileError(f"{self._path} file is not open!")
 
@@ -2153,7 +2148,6 @@ class IndexCol:
 
         val_kind = _ensure_decoded(self.kind)
         values = _maybe_convert(values, val_kind, encoding, errors)
-
         kwargs = {}
         kwargs["name"] = _ensure_decoded(self.index_name)
 
@@ -2170,9 +2164,9 @@ class IndexCol:
             # error: Incompatible types in assignment (expression has type
             # "Callable[[Any, KwArg(Any)], PeriodIndex]", variable has type
             # "Union[Type[Index], Type[DatetimeIndex]]")
-            factory = lambda x, **kwds: PeriodIndex(  # type: ignore[assignment]
-                ordinal=x, **kwds
-            )
+            factory = lambda x, **kwds: PeriodIndex.from_ordinals(  # type: ignore[assignment]
+                x, freq=kwds.get("freq", None)
+            )._rename(kwds["name"])
 
         # making an Index instance could throw a number of different errors
         try:
@@ -2578,7 +2572,7 @@ class DataCol(IndexCol):
         dtype = _ensure_decoded(dtype_name)
 
         # reverse converts
-        if dtype == "datetime64":
+        if dtype.startswith("datetime64"):
             # recreate with tz if indicated
             converted = _set_tz(converted, tz, coerce=True)
 
@@ -2646,7 +2640,7 @@ class DataIndexableCol(DataCol):
     is_data_indexable = True
 
     def validate_names(self) -> None:
-        if not is_object_dtype(Index(self.values).dtype):
+        if not is_string_dtype(Index(self.values).dtype):
             # TODO: should the message here be more specifically non-str?
             raise ValueError("cannot have non-object label DataIndexableCol")
 
@@ -2824,7 +2818,7 @@ class Fixed:
             "cannot read on an abstract storer: subclasses should implement"
         )
 
-    def write(self, **kwargs):
+    def write(self, obj, **kwargs) -> None:
         raise NotImplementedError(
             "cannot write on an abstract storer: subclasses should implement"
         )
@@ -2871,7 +2865,9 @@ class GenericFixed(Fixed):
 
             def f(values, freq=None, tz=None):
                 # data are already in UTC, localize and convert if tz present
-                dta = DatetimeArray._simple_new(values.values, freq=freq)
+                dta = DatetimeArray._simple_new(
+                    values.values, dtype=values.dtype, freq=freq
+                )
                 result = DatetimeIndex._simple_new(dta, name=None)
                 if tz is not None:
                     result = result.tz_localize("UTC").tz_convert(tz)
@@ -2938,8 +2934,7 @@ class GenericFixed(Fixed):
         for n in self.attributes:
             setattr(self, n, _ensure_decoded(getattr(self.attrs, n, None)))
 
-    # error: Signature of "write" incompatible with supertype "Fixed"
-    def write(self, obj, **kwargs) -> None:  # type: ignore[override]
+    def write(self, obj, **kwargs) -> None:
         self.set_attrs()
 
     def read_array(self, key: str, start: int | None = None, stop: int | None = None):
@@ -2963,7 +2958,7 @@ class GenericFixed(Fixed):
             else:
                 ret = node[start:stop]
 
-            if dtype == "datetime64":
+            if dtype and dtype.startswith("datetime64"):
                 # reconstruct a timezone if indicated
                 tz = getattr(attrs, "tz", None)
                 ret = _set_tz(ret, tz, coerce=True)
@@ -3172,7 +3167,7 @@ class GenericFixed(Fixed):
 
         elif lib.is_np_dtype(value.dtype, "M"):
             self._handle.create_array(self.group, key, value.view("i8"))
-            getattr(self.group, key)._v_attrs.value_type = "datetime64"
+            getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
         elif isinstance(value.dtype, DatetimeTZDtype):
             # store as UTC
             # with a zone
@@ -3180,14 +3175,16 @@ class GenericFixed(Fixed):
             # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
             # attribute "asi8"
             self._handle.create_array(
-                self.group, key, value.asi8  # type: ignore[union-attr]
+                self.group,
+                key,
+                value.asi8,  # type: ignore[union-attr]
             )
 
             node = getattr(self.group, key)
             # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
             # attribute "tz"
             node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[union-attr]
-            node._v_attrs.value_type = "datetime64"
+            node._v_attrs.value_type = f"datetime64[{value.dtype.unit}]"
         elif lib.is_np_dtype(value.dtype, "m"):
             self._handle.create_array(self.group, key, value.view("i8"))
             getattr(self.group, key)._v_attrs.value_type = "timedelta64"
@@ -3206,7 +3203,7 @@ class SeriesFixed(GenericFixed):
     name: Hashable
 
     @property
-    def shape(self):
+    def shape(self) -> tuple[int] | None:
         try:
             return (len(self.group.values),)
         except (TypeError, AttributeError):
@@ -3224,13 +3221,10 @@ class SeriesFixed(GenericFixed):
         values = self.read_array("values", start=start, stop=stop)
         result = Series(values, index=index, name=self.name, copy=False)
         if using_pyarrow_string_dtype() and is_string_array(values, skipna=True):
-            import pyarrow as pa
-
-            result = result.astype(pd.ArrowDtype(pa.string()))
+            result = result.astype("string[pyarrow_numpy]")
         return result
 
-    # error: Signature of "write" incompatible with supertype "Fixed"
-    def write(self, obj, **kwargs) -> None:  # type: ignore[override]
+    def write(self, obj, **kwargs) -> None:
         super().write(obj, **kwargs)
         self.write_index("index", obj.index)
         self.write_array("values", obj)
@@ -3296,25 +3290,22 @@ class BlockManagerFixed(GenericFixed):
             columns = items[items.get_indexer(blk_items)]
             df = DataFrame(values.T, columns=columns, index=axes[1], copy=False)
             if using_pyarrow_string_dtype() and is_string_array(values, skipna=True):
-                import pyarrow as pa
-
-                df = df.astype(pd.ArrowDtype(pa.string()))
+                df = df.astype("string[pyarrow_numpy]")
             dfs.append(df)
 
         if len(dfs) > 0:
             out = concat(dfs, axis=1, copy=True)
+            if using_copy_on_write():
+                # with CoW, concat ignores the copy keyword. Here, we still want
+                # to copy to enforce optimized column-major layout
+                out = out.copy()
             out = out.reindex(columns=items, copy=False)
             return out
 
         return DataFrame(columns=axes[0], index=axes[1])
 
-    # error: Signature of "write" incompatible with supertype "Fixed"
-    def write(self, obj, **kwargs) -> None:  # type: ignore[override]
+    def write(self, obj, **kwargs) -> None:
         super().write(obj, **kwargs)
-
-        # TODO(ArrayManager) HDFStore relies on accessing the blocks
-        if isinstance(obj._mgr, ArrayManager):
-            obj = obj._as_manager("block")
 
         data = obj._mgr
         if not data.is_consolidated():
@@ -4124,16 +4115,10 @@ class Table(Fixed):
         data_columns,
     ):
         # Helper to clarify non-state-altering parts of _create_axes
-
-        # TODO(ArrayManager) HDFStore relies on accessing the blocks
-        if isinstance(frame._mgr, ArrayManager):
-            frame = frame._as_manager("block")
-
         def get_blk_items(mgr):
             return [mgr.items.take(blk.mgr_locs) for blk in mgr.blocks]
 
         mgr = frame._mgr
-        mgr = cast(BlockManager, mgr)
         blocks: list[Block] = list(mgr.blocks)
         blk_items: list[Index] = get_blk_items(mgr)
 
@@ -4145,7 +4130,6 @@ class Table(Fixed):
             axis, axis_labels = new_non_index_axes[0]
             new_labels = Index(axis_labels).difference(Index(data_columns))
             mgr = frame.reindex(new_labels, axis=axis)._mgr
-            mgr = cast(BlockManager, mgr)
 
             blocks = list(mgr.blocks)
             blk_items = get_blk_items(mgr)
@@ -4154,7 +4138,6 @@ class Table(Fixed):
                 #  index, so we can infer that (as long as axis==1) we
                 #  get a single column back, so a single block.
                 mgr = frame.reindex([c], axis=axis)._mgr
-                mgr = cast(BlockManager, mgr)
                 blocks.extend(mgr.blocks)
                 blk_items.extend(get_blk_items(mgr))
 
@@ -4360,7 +4343,7 @@ class WORMTable(Table):
         """
         raise NotImplementedError("WORMTable needs to implement read")
 
-    def write(self, **kwargs) -> None:
+    def write(self, obj, **kwargs) -> None:
         """
         write in a format that we can search later on (but cannot append
         to): write out the indices and the values using _write_array
@@ -4686,9 +4669,7 @@ class AppendableFrameTable(AppendableTable):
                 values,  # type: ignore[arg-type]
                 skipna=True,
             ):
-                import pyarrow as pa
-
-                df = df.astype(pd.ArrowDtype(pa.string()))
+                df = df.astype("string[pyarrow_numpy]")
             frames.append(df)
 
         if len(frames) == 1:
@@ -4699,7 +4680,6 @@ class AppendableFrameTable(AppendableTable):
         selection = Selection(self, where=where, start=start, stop=stop)
         # apply the selection filters & axis orderings
         df = self.process_axes(df, selection=selection, columns=columns)
-
         return df
 
 
@@ -4719,12 +4699,13 @@ class AppendableSeriesTable(AppendableFrameTable):
     def get_object(cls, obj, transposed: bool):
         return obj
 
-    def write(self, obj, data_columns=None, **kwargs):
+    # error: Signature of "write" incompatible with supertype "Fixed"
+    def write(self, obj, data_columns=None, **kwargs) -> None:  # type: ignore[override]
         """we are going to write this as a frame table"""
         if not isinstance(obj, DataFrame):
             name = obj.name or "values"
             obj = obj.to_frame(name)
-        return super().write(obj=obj, data_columns=obj.columns.tolist(), **kwargs)
+        super().write(obj=obj, data_columns=obj.columns.tolist(), **kwargs)
 
     def read(
         self,
@@ -4757,7 +4738,8 @@ class AppendableMultiSeriesTable(AppendableSeriesTable):
     pandas_kind = "series_table"
     table_type = "appendable_multiseries"
 
-    def write(self, obj, **kwargs):
+    #  error: Signature of "write" incompatible with supertype "Fixed"
+    def write(self, obj, **kwargs) -> None:  # type: ignore[override]
         """we are going to write this as a frame table"""
         name = obj.name or "values"
         newobj, self.levels = self.validate_multiindex(obj)
@@ -4765,7 +4747,7 @@ class AppendableMultiSeriesTable(AppendableSeriesTable):
         cols = list(self.levels)
         cols.append(name)
         newobj.columns = Index(cols)
-        return super().write(obj=newobj, **kwargs)
+        super().write(obj=newobj, **kwargs)
 
 
 class GenericTable(AppendableFrameTable):
@@ -4830,7 +4812,8 @@ class GenericTable(AppendableFrameTable):
 
         return _indexables
 
-    def write(self, **kwargs):
+    # error: Signature of "write" incompatible with supertype "AppendableTable"
+    def write(self, **kwargs) -> None:  # type: ignore[override]
         raise NotImplementedError("cannot write on an generic table")
 
 
@@ -4846,7 +4829,8 @@ class AppendableMultiFrameTable(AppendableFrameTable):
     def table_type_short(self) -> str:
         return "appendable_multi"
 
-    def write(self, obj, data_columns=None, **kwargs):
+    # error: Signature of "write" incompatible with supertype "Fixed"
+    def write(self, obj, data_columns=None, **kwargs) -> None:  # type: ignore[override]
         if data_columns is None:
             data_columns = []
         elif data_columns is True:
@@ -4856,7 +4840,7 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         for n in self.levels:
             if n not in data_columns:
                 data_columns.insert(0, n)
-        return super().write(obj=obj, data_columns=data_columns, **kwargs)
+        super().write(obj=obj, data_columns=data_columns, **kwargs)
 
     def read(
         self,
@@ -4938,11 +4922,12 @@ def _set_tz(
         #  call below (which returns an ndarray).  So we are only non-lossy
         #  if `tz` matches `values.tz`.
         assert values.tz is None or values.tz == tz
+        if values.tz is not None:
+            return values
 
     if tz is not None:
         if isinstance(values, DatetimeIndex):
             name = values.name
-            values = values.asi8
         else:
             name = None
             values = values.ravel()
@@ -5025,8 +5010,12 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
 def _unconvert_index(data, kind: str, encoding: str, errors: str) -> np.ndarray | Index:
     index: Index | np.ndarray
 
-    if kind == "datetime64":
-        index = DatetimeIndex(data)
+    if kind.startswith("datetime64"):
+        if kind == "datetime64":
+            # created before we stored resolution information
+            index = DatetimeIndex(data)
+        else:
+            index = DatetimeIndex(data.view(kind))
     elif kind == "timedelta64":
         index = TimedeltaIndex(data)
     elif kind == "date":
@@ -5200,6 +5189,8 @@ def _maybe_convert(values: np.ndarray, val_kind: str, encoding: str, errors: str
 def _get_converter(kind: str, encoding: str, errors: str):
     if kind == "datetime64":
         return lambda x: np.asarray(x, dtype="M8[ns]")
+    elif "datetime64" in kind:
+        return lambda x: np.asarray(x, dtype=kind)
     elif kind == "string":
         return lambda x: _unconvert_string_array(
             x, nan_rep=None, encoding=encoding, errors=errors
@@ -5209,7 +5200,7 @@ def _get_converter(kind: str, encoding: str, errors: str):
 
 
 def _need_convert(kind: str) -> bool:
-    if kind in ("datetime64", "string"):
+    if kind in ("datetime64", "string") or "datetime64" in kind:
         return True
     return False
 
@@ -5254,7 +5245,7 @@ def _dtype_to_kind(dtype_str: str) -> str:
     elif dtype_str.startswith(("int", "uint")):
         kind = "integer"
     elif dtype_str.startswith("datetime64"):
-        kind = "datetime64"
+        kind = dtype_str
     elif dtype_str.startswith("timedelta"):
         kind = "timedelta64"
     elif dtype_str.startswith("bool"):
@@ -5279,8 +5270,11 @@ def _get_data_and_dtype_name(data: ArrayLike):
     if isinstance(data, Categorical):
         data = data.codes
 
-    # For datetime64tz we need to drop the TZ in tests TODO: why?
-    dtype_name = data.dtype.name.split("[")[0]
+    if isinstance(data.dtype, DatetimeTZDtype):
+        # For datetime64tz we need to drop the TZ in tests TODO: why?
+        dtype_name = f"datetime64[{data.dtype.unit}]"
+    else:
+        dtype_name = data.dtype.name
 
     if data.dtype.kind in "mM":
         data = np.asarray(data.view("i8"))

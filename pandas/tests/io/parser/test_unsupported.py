@@ -19,6 +19,10 @@ import pandas._testing as tm
 from pandas.io.parsers import read_csv
 import pandas.io.parsers.readers as parsers
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
 
 @pytest.fixture(params=["python", "python-fwf"], ids=lambda val: val)
 def python_engine(request):
@@ -39,9 +43,12 @@ class TestUnsupportedFeatures:
         data = "a b c\n1 2 3"
         msg = "does not support"
 
+        depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
+
         # specify C engine with unsupported options (raise)
         with pytest.raises(ValueError, match=msg):
-            read_csv(StringIO(data), engine="c", sep=None, delim_whitespace=False)
+            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+                read_csv(StringIO(data), engine="c", sep=None, delim_whitespace=False)
         with pytest.raises(ValueError, match=msg):
             read_csv(StringIO(data), engine="c", sep=r"\s")
         with pytest.raises(ValueError, match=msg):
@@ -50,7 +57,7 @@ class TestUnsupportedFeatures:
             read_csv(StringIO(data), engine="c", skipfooter=1)
 
         # specify C-unsupported options without python-unsupported options
-        with tm.assert_produces_warning(parsers.ParserWarning):
+        with tm.assert_produces_warning((parsers.ParserWarning, FutureWarning)):
             read_csv(StringIO(data), sep=None, delim_whitespace=False)
         with tm.assert_produces_warning(parsers.ParserWarning):
             read_csv(StringIO(data), sep=r"\s")
@@ -97,8 +104,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         for default in py_unsupported:
             msg = (
-                f"The {repr(default)} option is not "
-                f"supported with the {repr(python_engine)} engine"
+                f"The {default!r} option is not "
+                f"supported with the {python_engine!r} engine"
             )
 
             kwargs = {default: object()}
@@ -136,10 +143,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         1,2,3,4,"""
 
         for default in pa_unsupported:
-            msg = (
-                f"The {repr(default)} option is not "
-                f"supported with the 'pyarrow' engine"
-            )
+            msg = f"The {default!r} option is not supported with the 'pyarrow' engine"
             kwargs = {default: object()}
             default_needs_bool = {"warn_bad_lines", "error_bad_lines"}
             if default == "dialect":
@@ -148,16 +152,31 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                 kwargs[default] = True
             elif default == "on_bad_lines":
                 kwargs[default] = "warn"
-            with pytest.raises(ValueError, match=msg):
-                read_csv(StringIO(data), engine="pyarrow", **kwargs)
 
-    def test_on_bad_lines_callable_python_only(self, all_parsers):
+            warn = None
+            depr_msg = None
+            if "delim_whitespace" in kwargs:
+                depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
+                warn = FutureWarning
+            if "verbose" in kwargs:
+                depr_msg = "The 'verbose' keyword in pd.read_csv is deprecated"
+                warn = FutureWarning
+
+            with pytest.raises(ValueError, match=msg):
+                with tm.assert_produces_warning(warn, match=depr_msg):
+                    read_csv(StringIO(data), engine="pyarrow", **kwargs)
+
+    def test_on_bad_lines_callable_python_or_pyarrow(self, all_parsers):
         # GH 5686
+        # GH 54643
         sio = StringIO("a,b\n1,2")
         bad_lines_func = lambda x: x
         parser = all_parsers
-        if all_parsers.engine != "python":
-            msg = "on_bad_line can only be a callable function if engine='python'"
+        if all_parsers.engine not in ["python", "pyarrow"]:
+            msg = (
+                "on_bad_line can only be a callable "
+                "function if engine='python' or 'pyarrow'"
+            )
             with pytest.raises(ValueError, match=msg):
                 parser.read_csv(sio, on_bad_lines=bad_lines_func)
         else:
@@ -170,8 +189,8 @@ def test_close_file_handle_on_invalid_usecols(all_parsers):
 
     error = ValueError
     if parser.engine == "pyarrow":
-        pyarrow = pytest.importorskip("pyarrow")
-        error = pyarrow.lib.ArrowKeyError
+        # Raises pyarrow.lib.ArrowKeyError
+        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     with tm.ensure_clean("test.csv") as fname:
         Path(fname).write_text("col1,col2\na,b\n1,2", encoding="utf-8")
@@ -186,7 +205,7 @@ def test_invalid_file_inputs(request, all_parsers):
     # GH#45957
     parser = all_parsers
     if parser.engine == "python":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason=f"{parser.engine} engine supports lists.")
         )
 

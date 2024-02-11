@@ -86,10 +86,10 @@ GroupBy/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Fixed regression in :meth:`pands.core.groupby.DataFrameGroupBy.quantile` raising when multiple quantiles are given (:issue:`27526`)
-- Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.transform` where applying a timezone conversion lambda function would drop timezone information (:issue:`27496`)
-- Bug in :meth:`pandas.core.groupby.GroupBy.nth` where ``observed=False`` was being ignored for Categorical groupers (:issue:`26385`)
+- Bug in :meth:`.DataFrameGroupBy.transform` where applying a timezone conversion lambda function would drop timezone information (:issue:`27496`)
+- Bug in :meth:`.GroupBy.nth` where ``observed=False`` was being ignored for Categorical groupers (:issue:`26385`)
 - Bug in windowing over read-only arrays (:issue:`27766`)
-- Fixed segfault in ``pandas.core.groupby.DataFrameGroupBy.quantile`` when an invalid quantile was passed (:issue:`27470`)
+- Fixed segfault in ``.DataFrameGroupBy.quantile`` when an invalid quantile was passed (:issue:`27470`)
 
 Reshaping
 ^^^^^^^^^

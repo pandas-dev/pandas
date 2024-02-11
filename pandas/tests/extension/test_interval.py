@@ -56,7 +56,7 @@ def data_missing():
 
 @pytest.fixture
 def data_for_twos():
-    pytest.skip("Not a numeric dtype")
+    pytest.skip("Interval is not a numeric dtype")
 
 
 @pytest.fixture
@@ -89,12 +89,6 @@ class TestIntervalArray(base.ExtensionTests):
     )
     def test_fillna_length_mismatch(self, data_missing):
         super().test_fillna_length_mismatch(data_missing)
-
-    @pytest.mark.parametrize("engine", ["c", "python"])
-    def test_EA_types(self, engine, data):
-        expected_msg = r".*must implement _from_sequence_of_strings.*"
-        with pytest.raises(NotImplementedError, match=expected_msg):
-            super().test_EA_types(engine, data)
 
 
 # TODO: either belongs in tests.arrays.interval or move into base tests.

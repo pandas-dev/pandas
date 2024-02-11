@@ -102,7 +102,7 @@ class FixedWindowIndexer(BaseIndexer):
         closed: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
-        if center:
+        if center or self.window_size == 0:
             offset = (self.window_size - 1) // 2
         else:
             offset = 0
@@ -262,7 +262,9 @@ class VariableOffsetWindowIndexer(BaseIndexer):
             # end bound is previous end
             # or current index
             end_diff = (self.index[end[i - 1]] - end_bound) * index_growth_sign
-            if end_diff <= zero:
+            if end_diff == zero and not right_closed:
+                end[i] = end[i - 1] + 1
+            elif end_diff <= zero:
                 end[i] = i + 1
             else:
                 end[i] = end[i - 1]
@@ -298,7 +300,7 @@ class FixedForwardWindowIndexer(BaseIndexer):
 
     Examples
     --------
-    >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
+    >>> df = pd.DataFrame({"B": [0, 1, 2, np.nan, 4]})
     >>> df
          B
     0  0.0
@@ -397,7 +399,7 @@ class GroupbyIndexer(BaseIndexer):
         start_arrays = []
         end_arrays = []
         window_indices_start = 0
-        for key, indices in self.groupby_indices.items():
+        for indices in self.groupby_indices.values():
             index_array: np.ndarray | None
 
             if self.index_array is not None:

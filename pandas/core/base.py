@@ -108,7 +108,7 @@ class PandasObject(DirNamesMixin):
     @property
     def _constructor(self):
         """
-        Class constructor (for this class it's just `__class__`.
+        Class constructor (for this class it's just `__class__`).
         """
         return type(self)
 
@@ -218,7 +218,7 @@ class SelectionMixin(Generic[NDFrameT]):
             return self.obj
 
         if self._selection is not None:
-            return self.obj._getitem_nocopy(self._selection_list)
+            return self.obj[self._selection_list]
 
         if len(self.exclusions) > 0:
             # equivalent to `self.obj.drop(self.exclusions, axis=1)
@@ -367,7 +367,7 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
-        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s = pd.Series(["Ant", "Bear", "Cow"])
         >>> s
         0     Ant
         1    Bear
@@ -409,7 +409,7 @@ class IndexOpsMixin(OpsMixin):
 
         For an index:
 
-        >>> s = pd.Series([1], index=['a'])
+        >>> s = pd.Series([1], index=["a"])
         >>> s.index.item()
         'a'
         """
@@ -426,7 +426,7 @@ class IndexOpsMixin(OpsMixin):
         --------
         For Series:
 
-        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s = pd.Series(["Ant", "Bear", "Cow"])
         >>> s
         0     Ant
         1    Bear
@@ -454,7 +454,7 @@ class IndexOpsMixin(OpsMixin):
         --------
         For Series:
 
-        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s = pd.Series(["Ant", "Bear", "Cow"])
         >>> s
         0     Ant
         1    Bear
@@ -485,8 +485,8 @@ class IndexOpsMixin(OpsMixin):
             types, this is the actual array. For NumPy native types, this
             is a thin (no copy) wrapper around :class:`numpy.ndarray`.
 
-            ``.array`` differs ``.values`` which may require converting the
-            data to a different form.
+            ``.array`` differs from ``.values``, which may require converting
+            the data to a different form.
 
         See Also
         --------
@@ -531,7 +531,7 @@ class IndexOpsMixin(OpsMixin):
         For extension types, like Categorical, the actual ExtensionArray
         is returned
 
-        >>> ser = pd.Series(pd.Categorical(['a', 'b', 'a']))
+        >>> ser = pd.Series(pd.Categorical(["a", "b", "a"]))
         >>> ser.array
         ['a', 'b', 'a']
         Categories (2, object): ['a', 'b']
@@ -610,7 +610,7 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
-        >>> ser = pd.Series(pd.Categorical(['a', 'b', 'a']))
+        >>> ser = pd.Series(pd.Categorical(["a", "b", "a"]))
         >>> ser.to_numpy()
         array(['a', 'b', 'a'], dtype=object)
 
@@ -618,7 +618,7 @@ class IndexOpsMixin(OpsMixin):
         Use ``dtype=object`` to return an ndarray of pandas :class:`Timestamp`
         objects, each with the correct ``tz``.
 
-        >>> ser = pd.Series(pd.date_range('2000', periods=2, tz="CET"))
+        >>> ser = pd.Series(pd.date_range("2000", periods=2, tz="CET"))
         >>> ser.to_numpy(dtype=object)
         array([Timestamp('2000-01-01 00:00:00+0100', tz='CET'),
                Timestamp('2000-01-02 00:00:00+0100', tz='CET')],
@@ -713,8 +713,15 @@ class IndexOpsMixin(OpsMixin):
         --------
         Consider dataset containing cereal calories
 
-        >>> s = pd.Series({{'Corn Flakes': 100.0, 'Almond Delight': 110.0,
-        ...                'Cinnamon Toast Crunch': 120.0, 'Cocoa Puff': 110.0}})
+        >>> s = pd.Series(
+        ...     [100.0, 110.0, 120.0, 110.0],
+        ...     index=[
+        ...         "Corn Flakes",
+        ...         "Almond Delight",
+        ...         "Cinnamon Toast Crunch",
+        ...         "Cocoa Puff",
+        ...     ],
+        ... )
         >>> s
         Corn Flakes              100.0
         Almond Delight           110.0
@@ -1207,9 +1214,7 @@ class IndexOpsMixin(OpsMixin):
             uniques = Index(uniques)
         return codes, uniques
 
-    _shared_docs[
-        "searchsorted"
-    ] = """
+    _shared_docs["searchsorted"] = """
         Find indices where elements should be inserted to maintain order.
 
         Find the indices into a sorted {klass} `self` such that, if the
@@ -1310,12 +1315,10 @@ class IndexOpsMixin(OpsMixin):
     # This overload is needed so that the call to searchsorted in
     # pandas.core.resample.TimeGrouper._get_period_bins picks the correct result
 
-    @overload
-    # The following ignore is also present in numpy/__init__.pyi
-    # Possibly a mypy bug??
     # error: Overloaded function signatures 1 and 2 overlap with incompatible
-    # return types  [misc]
-    def searchsorted(  # type: ignore[misc]
+    # return types
+    @overload
+    def searchsorted(  # type: ignore[overload-overlap]
         self,
         value: ScalarLike_co,
         side: Literal["left", "right"] = ...,
@@ -1365,7 +1368,10 @@ class IndexOpsMixin(OpsMixin):
 
     @final
     def _duplicated(self, keep: DropKeep = "first") -> npt.NDArray[np.bool_]:
-        return algorithms.duplicated(self._values, keep=keep)
+        arr = self._values
+        if isinstance(arr, ExtensionArray):
+            return arr.duplicated(keep=keep)
+        return algorithms.duplicated(arr, keep=keep)
 
     def _arith_method(self, other, op):
         res_name = ops.get_op_result_name(self, other)

@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.errors import SettingWithCopyWarning
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -117,9 +115,7 @@ def test_copy_shallow(using_copy_on_write):
         "set_flags",
     ],
 )
-def test_methods_copy_keyword(
-    request, method, copy, using_copy_on_write, using_array_manager
-):
+def test_methods_copy_keyword(request, method, copy, using_copy_on_write):
     index = None
     if "to_timestamp" in request.node.callspec.id:
         index = period_range("2012-01-01", freq="D", periods=3)
@@ -143,7 +139,7 @@ def test_methods_copy_keyword(
 
     if request.node.callspec.id.startswith("reindex-"):
         # TODO copy=False without CoW still returns a copy in this case
-        if not using_copy_on_write and not using_array_manager and copy is False:
+        if not using_copy_on_write and copy is False:
             share_memory = False
 
     if share_memory:
@@ -225,11 +221,10 @@ def test_methods_series_copy_keyword(request, method, copy, using_copy_on_write)
 
 
 @pytest.mark.parametrize("copy", [True, None, False])
-def test_transpose_copy_keyword(using_copy_on_write, copy, using_array_manager):
+def test_transpose_copy_keyword(using_copy_on_write, copy):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     result = df.transpose(copy=copy)
     share_memory = using_copy_on_write or copy is False or copy is None
-    share_memory = share_memory and not using_array_manager
 
     if share_memory:
         assert np.shares_memory(get_array(df, "a"), get_array(result, 0))
@@ -276,6 +271,17 @@ def test_reset_index_series_drop(using_copy_on_write, index):
 
     ser2.iloc[0] = 100
     tm.assert_series_equal(ser, ser_orig)
+
+
+def test_groupby_column_index_in_references():
+    df = DataFrame(
+        {"A": ["a", "b", "c", "d"], "B": [1, 2, 3, 4], "C": ["a", "a", "b", "b"]}
+    )
+    df = df.set_index("A")
+    key = df["C"]
+    result = df.groupby(key, observed=True).sum()
+    expected = df.groupby("C", observed=True).sum()
+    tm.assert_frame_equal(result, expected)
 
 
 def test_rename_columns(using_copy_on_write):
@@ -1139,7 +1145,7 @@ def test_sort_values(using_copy_on_write, obj, kwargs):
     "obj, kwargs",
     [(Series([1, 2, 3], name="a"), {}), (DataFrame({"a": [1, 2, 3]}), {"by": "a"})],
 )
-def test_sort_values_inplace(using_copy_on_write, obj, kwargs, using_array_manager):
+def test_sort_values_inplace(using_copy_on_write, obj, kwargs):
     obj_orig = obj.copy()
     view = obj[:]
     obj.sort_values(inplace=True, **kwargs)
@@ -1171,6 +1177,7 @@ def test_round(using_copy_on_write, decimals):
             assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     else:
         assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
     df2.iloc[0, 1] = "d"
     df2.iloc[0, 0] = 4
@@ -1311,7 +1318,7 @@ def test_rename_axis(using_copy_on_write, kwargs):
 def test_tz_convert_localize(using_copy_on_write, func, tz):
     # GH 49473
     ser = Series(
-        [1, 2], index=date_range(start="2014-08-01 09:00", freq="H", periods=2, tz=tz)
+        [1, 2], index=date_range(start="2014-08-01 09:00", freq="h", periods=2, tz=tz)
     )
     ser_orig = ser.copy()
     ser2 = getattr(ser, func)("US/Central")
@@ -1536,15 +1543,24 @@ def test_chained_where_mask(using_copy_on_write, func):
         with tm.raises_chained_assignment_error():
             getattr(df[["a"]], func)(df["a"] > 2, 5, inplace=True)
         tm.assert_frame_equal(df, df_orig)
+    else:
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            getattr(df["a"], func)(df["a"] > 2, 5, inplace=True)
+
+        with tm.assert_produces_warning(None):
+            getattr(df[["a"]], func)(df["a"] > 2, 5, inplace=True)
+
+        with tm.assert_produces_warning(None):
+            getattr(df[df["a"] > 1], func)(df["a"] > 2, 5, inplace=True)
 
 
 def test_asfreq_noop(using_copy_on_write):
     df = DataFrame(
         {"a": [0.0, None, 2.0, 3.0]},
-        index=date_range("1/1/2000", periods=4, freq="T"),
+        index=date_range("1/1/2000", periods=4, freq="min"),
     )
     df_orig = df.copy()
-    df2 = df.asfreq(freq="T")
+    df2 = df.asfreq(freq="min")
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
@@ -1657,32 +1673,18 @@ def test_get(using_copy_on_write, key):
 
     result = df.get(key)
 
-    if using_copy_on_write:
-        assert np.shares_memory(get_array(result, "a"), get_array(df, "a"))
-        result.iloc[0] = 0
-        assert not np.shares_memory(get_array(result, "a"), get_array(df, "a"))
-        tm.assert_frame_equal(df, df_orig)
-    else:
-        # for non-CoW it depends on whether we got a Series or DataFrame if it
-        # is a view or copy or triggers a warning or not
-        warn = SettingWithCopyWarning if isinstance(key, list) else None
-        with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(warn):
-                result.iloc[0] = 0
-
-        if isinstance(key, list):
-            tm.assert_frame_equal(df, df_orig)
-        else:
-            assert df.iloc[0, 0] == 0
+    assert np.shares_memory(get_array(result, "a"), get_array(df, "a"))
+    result.iloc[0] = 0
+    assert not np.shares_memory(get_array(result, "a"), get_array(df, "a"))
+    tm.assert_frame_equal(df, df_orig)
 
 
 @pytest.mark.parametrize("axis, key", [(0, 0), (1, "a")])
 @pytest.mark.parametrize(
     "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
 )
-def test_xs(using_copy_on_write, using_array_manager, axis, key, dtype):
-    single_block = (dtype == "int64") and not using_array_manager
-    is_view = single_block or (using_array_manager and axis == 1)
+def test_xs(using_copy_on_write, axis, key, dtype):
+    single_block = dtype == "int64"
     df = DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
     )
@@ -1692,25 +1694,18 @@ def test_xs(using_copy_on_write, using_array_manager, axis, key, dtype):
 
     if axis == 1 or single_block:
         assert np.shares_memory(get_array(df, "a"), get_array(result))
-    elif using_copy_on_write:
+    else:
         assert result._mgr._has_no_reference(0)
 
-    if using_copy_on_write or is_view:
+    if using_copy_on_write or single_block:
         result.iloc[0] = 0
-    else:
-        with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(SettingWithCopyWarning):
-                result.iloc[0] = 0
 
-    if using_copy_on_write or (not single_block and axis == 0):
-        tm.assert_frame_equal(df, df_orig)
-    else:
-        assert df.iloc[0, 0] == 0
+    tm.assert_frame_equal(df, df_orig)
 
 
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("key, level", [("l1", 0), (2, 1)])
-def test_xs_multiindex(using_copy_on_write, using_array_manager, key, level, axis):
+def test_xs_multiindex(using_copy_on_write, key, level, axis):
     arr = np.arange(18).reshape(6, 3)
     index = MultiIndex.from_product([["l1", "l2"], [1, 2, 3]], names=["lev1", "lev2"])
     df = DataFrame(arr, index=index, columns=list("abc"))
@@ -1724,15 +1719,7 @@ def test_xs_multiindex(using_copy_on_write, using_array_manager, key, level, axi
         assert np.shares_memory(
             get_array(df, df.columns[0]), get_array(result, result.columns[0])
         )
-
-    warn = (
-        SettingWithCopyWarning
-        if not using_copy_on_write and not using_array_manager
-        else None
-    )
-    with pd.option_context("chained_assignment", "warn"):
-        with tm.assert_produces_warning(warn):
-            result.iloc[0, 0] = 0
+    result.iloc[0, 0] = 0
 
     tm.assert_frame_equal(df, df_orig)
 
@@ -1742,7 +1729,6 @@ def test_update_frame(using_copy_on_write):
     df2 = DataFrame({"b": [100.0]}, index=[1])
     df1_orig = df1.copy()
     view = df1[:]
-
     df1.update(df2)
 
     expected = DataFrame({"a": [1.0, 2.0, 3.0], "b": [4.0, 100.0, 6.0]})
@@ -1773,26 +1759,35 @@ def test_update_series(using_copy_on_write):
         tm.assert_series_equal(view, expected)
 
 
-def test_update_chained_assignment(using_copy_on_write):
+def test_update_chained_assignment():
     df = DataFrame({"a": [1, 2, 3]})
     ser2 = Series([100.0], index=[1])
     df_orig = df.copy()
-    if using_copy_on_write:
-        with tm.raises_chained_assignment_error():
-            df["a"].update(ser2)
-        tm.assert_frame_equal(df, df_orig)
+    with tm.raises_chained_assignment_error():
+        df["a"].update(ser2)
+    tm.assert_frame_equal(df, df_orig)
 
-        with tm.raises_chained_assignment_error():
-            df[["a"]].update(ser2.to_frame())
-        tm.assert_frame_equal(df, df_orig)
+    with tm.raises_chained_assignment_error():
+        df[["a"]].update(ser2.to_frame())
+    tm.assert_frame_equal(df, df_orig)
 
 
-def test_inplace_arithmetic_series():
+def test_inplace_arithmetic_series(using_copy_on_write):
     ser = Series([1, 2, 3])
+    ser_orig = ser.copy()
     data = get_array(ser)
     ser *= 2
-    assert np.shares_memory(get_array(ser), data)
-    tm.assert_numpy_array_equal(data, get_array(ser))
+    if using_copy_on_write:
+        # https://github.com/pandas-dev/pandas/pull/55745
+        # changed to NOT update inplace because there is no benefit (actual
+        # operation already done non-inplace). This was only for the optics
+        # of updating the backing array inplace, but we no longer want to make
+        # that guarantee
+        assert not np.shares_memory(get_array(ser), data)
+        tm.assert_numpy_array_equal(data, get_array(ser_orig))
+    else:
+        assert np.shares_memory(get_array(ser), data)
+        tm.assert_numpy_array_equal(data, get_array(ser))
 
 
 def test_inplace_arithmetic_series_with_reference(using_copy_on_write):
@@ -1808,12 +1803,12 @@ def test_inplace_arithmetic_series_with_reference(using_copy_on_write):
 
 
 @pytest.mark.parametrize("copy", [True, False])
-def test_transpose(using_copy_on_write, copy, using_array_manager):
+def test_transpose(using_copy_on_write, copy):
     df = DataFrame({"a": [1, 2, 3], "b": 1})
     df_orig = df.copy()
     result = df.transpose(copy=copy)
 
-    if not copy and not using_array_manager or using_copy_on_write:
+    if not copy or using_copy_on_write:
         assert np.shares_memory(get_array(df, "a"), get_array(result, 0))
     else:
         assert not np.shares_memory(get_array(df, "a"), get_array(result, 0))
@@ -1875,24 +1870,6 @@ def test_count_read_only_array():
     tm.assert_series_equal(result, expected)
 
 
-def test_series_view(using_copy_on_write):
-    ser = Series([1, 2, 3])
-    ser_orig = ser.copy()
-
-    ser2 = ser.view()
-    assert np.shares_memory(get_array(ser), get_array(ser2))
-    if using_copy_on_write:
-        assert not ser2._mgr._has_no_reference(0)
-
-    ser2.iloc[0] = 100
-
-    if using_copy_on_write:
-        tm.assert_series_equal(ser_orig, ser)
-    else:
-        expected = Series([100, 2, 3])
-        tm.assert_series_equal(ser, expected)
-
-
 def test_insert_series(using_copy_on_write):
     df = DataFrame({"a": [1, 2, 3]})
     ser = Series([1, 2, 3])
@@ -1933,3 +1910,30 @@ def test_eval_inplace(using_copy_on_write):
     df.iloc[0, 0] = 100
     if using_copy_on_write:
         tm.assert_frame_equal(df_view, df_orig)
+
+
+def test_apply_modify_row(using_copy_on_write):
+    # Case: applying a function on each row as a Series object, where the
+    # function mutates the row object (which needs to trigger CoW if row is a view)
+    df = DataFrame({"A": [1, 2], "B": [3, 4]})
+    df_orig = df.copy()
+
+    def transform(row):
+        row["B"] = 100
+        return row
+
+    df.apply(transform, axis=1)
+
+    if using_copy_on_write:
+        tm.assert_frame_equal(df, df_orig)
+    else:
+        assert df.loc[0, "B"] == 100
+
+    # row Series is a copy
+    df = DataFrame({"A": [1, 2], "B": ["b", "c"]})
+    df_orig = df.copy()
+
+    with tm.assert_produces_warning(None):
+        df.apply(transform, axis=1)
+
+    tm.assert_frame_equal(df, df_orig)

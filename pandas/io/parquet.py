@@ -150,7 +150,7 @@ class BaseImpl:
         if not isinstance(df, DataFrame):
             raise ValueError("to_parquet only supports IO with DataFrames")
 
-    def write(self, df: DataFrame, path, compression, **kwargs):
+    def write(self, df: DataFrame, path, compression, **kwargs) -> None:
         raise AbstractMethodError(self)
 
     def read(self, path, columns=None, **kwargs) -> DataFrame:
@@ -165,7 +165,7 @@ class PyArrowImpl(BaseImpl):
         import pyarrow.parquet
 
         # import utils to register the pyarrow extension types
-        import pandas.core.arrays.arrow.extension_types  # pyright: ignore[reportUnusedImport] # noqa: F401,E501
+        import pandas.core.arrays.arrow.extension_types  # pyright: ignore[reportUnusedImport] # noqa: F401
 
         self.api = pyarrow
 
@@ -206,9 +206,10 @@ class PyArrowImpl(BaseImpl):
             and hasattr(path_or_handle, "name")
             and isinstance(path_or_handle.name, (str, bytes))
         ):
-            path_or_handle = path_or_handle.name
-            if isinstance(path_or_handle, bytes):
-                path_or_handle = path_or_handle.decode()
+            if isinstance(path_or_handle.name, bytes):
+                path_or_handle = path_or_handle.name.decode()
+            else:
+                path_or_handle = path_or_handle.name
 
         try:
             if partition_cols is not None:
@@ -254,13 +255,9 @@ class PyArrowImpl(BaseImpl):
             mapping = _arrow_dtype_mapping()
             to_pandas_kwargs["types_mapper"] = mapping.get
         elif dtype_backend == "pyarrow":
-            to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]  # noqa: E501
+            to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]
         elif using_pyarrow_string_dtype():
             to_pandas_kwargs["types_mapper"] = arrow_string_types_mapper()
-
-        manager = get_option("mode.data_manager")
-        if manager == "array":
-            to_pandas_kwargs["split_blocks"] = True  # type: ignore[assignment]
 
         path_or_handle, handles, filesystem = _get_path_or_handle(
             path,
@@ -277,9 +274,6 @@ class PyArrowImpl(BaseImpl):
                 **kwargs,
             )
             result = pa_table.to_pandas(**to_pandas_kwargs)
-
-            if manager == "array":
-                result = result._as_manager("array", copy=False)
 
             if pa_table.schema.metadata:
                 if b"PANDAS_ATTRS" in pa_table.schema.metadata:
@@ -428,9 +422,6 @@ def to_parquet(
         returned as bytes. If a string, it will be used as Root Directory path
         when writing a partitioned dataset. The engine fastparquet does not
         accept file-like objects.
-
-        .. versionchanged:: 1.2.0
-
     engine : {{'auto', 'pyarrow', 'fastparquet'}}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
@@ -458,8 +449,6 @@ def to_parquet(
         Columns are partitioned in the order they are given.
         Must be None if path is not a string.
     {storage_options}
-
-        .. versionadded:: 1.2.0
 
     filesystem : fsspec or pyarrow filesystem, default None
         Filesystem object to use when reading the parquet file. Only implemented
@@ -512,6 +501,9 @@ def read_parquet(
 ) -> DataFrame:
     """
     Load a parquet object from the file path, returning a DataFrame.
+
+    The function automatically handles reading the data from a parquet file
+    and creates a DataFrame with the appropriate structure.
 
     Parameters
     ----------
@@ -594,6 +586,7 @@ def read_parquet(
     Returns
     -------
     DataFrame
+        DataFrame based on parquet file.
 
     See Also
     --------
@@ -601,9 +594,7 @@ def read_parquet(
 
     Examples
     --------
-    >>> original_df = pd.DataFrame(
-    ...     {{"foo": range(5), "bar": range(5, 10)}}
-    ...    )
+    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})
     >>> original_df
        foo  bar
     0    0    5
@@ -631,7 +622,7 @@ def read_parquet(
     2    7
     3    8
     4    9
-    >>> restored_bar.equals(original_df[['bar']])
+    >>> restored_bar.equals(original_df[["bar"]])
     True
 
     The function uses `kwargs` that are passed directly to the engine.

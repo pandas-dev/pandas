@@ -22,6 +22,7 @@ from pandas._libs.interval import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
+    Period,
     Timedelta,
     Timestamp,
     to_offset,
@@ -42,7 +43,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
-    is_float,
     is_float_dtype,
     is_integer,
     is_integer_dtype,
@@ -59,6 +59,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.algorithms import unique
+from pandas.core.arrays.datetimelike import validate_periods
 from pandas.core.arrays.interval import (
     IntervalArray,
     _interval_shared_docs,
@@ -127,7 +128,7 @@ def _get_next_label(label):
     elif is_float_dtype(dtype):
         return np.nextafter(label, np.inf)
     else:
-        raise TypeError(f"cannot determine next label for type {repr(type(label))}")
+        raise TypeError(f"cannot determine next label for type {type(label)!r}")
 
 
 def _get_prev_label(label):
@@ -144,7 +145,7 @@ def _get_prev_label(label):
     elif is_float_dtype(dtype):
         return np.nextafter(label, -np.inf)
     else:
-        raise TypeError(f"cannot determine next label for type {repr(type(label))}")
+        raise TypeError(f"cannot determine next label for type {type(label)!r}")
 
 
 def _new_IntervalIndex(cls, d):
@@ -478,7 +479,7 @@ class IntervalIndex(ExtensionIndex):
 
         Intervals that share closed endpoints overlap:
 
-        >>> index = pd.interval_range(0, 3, closed='both')
+        >>> index = pd.interval_range(0, 3, closed="both")
         >>> index
         IntervalIndex([[0, 1], [1, 2], [2, 3]],
               dtype='interval[int64, both]')
@@ -487,7 +488,7 @@ class IntervalIndex(ExtensionIndex):
 
         Intervals that only have an open endpoint in common do not overlap:
 
-        >>> index = pd.interval_range(0, 3, closed='left')
+        >>> index = pd.interval_range(0, 3, closed="left")
         >>> index
         IntervalIndex([[0, 1), [1, 2), [2, 3)],
               dtype='interval[int64, left]')
@@ -554,14 +555,12 @@ class IntervalIndex(ExtensionIndex):
             right = self._maybe_convert_i8(key.right)
             constructor = Interval if scalar else IntervalIndex.from_arrays
             # error: "object" not callable
-            return constructor(
-                left, right, closed=self.closed
-            )  # type: ignore[operator]
+            return constructor(left, right, closed=self.closed)  # type: ignore[operator]
 
         if scalar:
             # Timestamp/Timedelta
             key_dtype, key_i8 = infer_dtype_from_scalar(key)
-            if lib.is_period(key):
+            if isinstance(key, Period):
                 key_i8 = key.ordinal
             elif isinstance(key_i8, Timestamp):
                 key_i8 = key_i8._value
@@ -843,25 +842,6 @@ class IntervalIndex(ExtensionIndex):
         return Index(self._data.length, copy=False)
 
     # --------------------------------------------------------------------
-    # Rendering Methods
-    # __repr__ associated methods are based on MultiIndex
-
-    def _format_with_header(self, header: list[str], na_rep: str) -> list[str]:
-        # matches base class except for whitespace padding
-        return header + list(self._format_native_types(na_rep=na_rep))
-
-    def _format_native_types(
-        self, *, na_rep: str = "NaN", quoting=None, **kwargs
-    ) -> npt.NDArray[np.object_]:
-        # GH 28210: use base method but with different default na_rep
-        return super()._format_native_types(na_rep=na_rep, quoting=quoting, **kwargs)
-
-    def _format_data(self, name=None) -> str:
-        # TODO: integrate with categorical and make generic
-        # name argument is unused here; just for compat with base / categorical
-        return f"{self._data._format_data()},{self._format_space()}"
-
-    # --------------------------------------------------------------------
     # Set Operations
 
     def _intersection(self, other, sort):
@@ -1037,10 +1017,12 @@ def interval_range(
 
     Additionally, datetime-like input is also supported.
 
-    >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
-    ...                   end=pd.Timestamp('2017-01-04'))
-    IntervalIndex([(2017-01-01, 2017-01-02], (2017-01-02, 2017-01-03],
-                   (2017-01-03, 2017-01-04]],
+    >>> pd.interval_range(
+    ...     start=pd.Timestamp("2017-01-01"), end=pd.Timestamp("2017-01-04")
+    ... )
+    IntervalIndex([(2017-01-01 00:00:00, 2017-01-02 00:00:00],
+                   (2017-01-02 00:00:00, 2017-01-03 00:00:00],
+                   (2017-01-03 00:00:00, 2017-01-04 00:00:00]],
                   dtype='interval[datetime64[ns], right]')
 
     The ``freq`` parameter specifies the frequency between the left and right.
@@ -1054,10 +1036,10 @@ def interval_range(
     Similarly, for datetime-like ``start`` and ``end``, the frequency must be
     convertible to a DateOffset.
 
-    >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
-    ...                   periods=3, freq='MS')
-    IntervalIndex([(2017-01-01, 2017-02-01], (2017-02-01, 2017-03-01],
-                   (2017-03-01, 2017-04-01]],
+    >>> pd.interval_range(start=pd.Timestamp("2017-01-01"), periods=3, freq="MS")
+    IntervalIndex([(2017-01-01 00:00:00, 2017-02-01 00:00:00],
+                   (2017-02-01 00:00:00, 2017-03-01 00:00:00],
+                   (2017-03-01 00:00:00, 2017-04-01 00:00:00]],
                   dtype='interval[datetime64[ns], right]')
 
     Specify ``start``, ``end``, and ``periods``; the frequency is generated
@@ -1070,7 +1052,7 @@ def interval_range(
     The ``closed`` parameter specifies which endpoints of the individual
     intervals within the ``IntervalIndex`` are closed.
 
-    >>> pd.interval_range(end=5, periods=4, closed='both')
+    >>> pd.interval_range(end=5, periods=4, closed="both")
     IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]],
                   dtype='interval[int64, both]')
     """
@@ -1092,10 +1074,7 @@ def interval_range(
     if not _is_valid_endpoint(end):
         raise ValueError(f"end must be numeric or datetime-like, got {end}")
 
-    if is_float(periods):
-        periods = int(periods)
-    elif not is_integer(periods) and periods is not None:
-        raise TypeError(f"periods must be a number, got {periods}")
+    periods = validate_periods(periods)
 
     if freq is not None and not is_number(freq):
         try:

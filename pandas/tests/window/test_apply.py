@@ -301,8 +301,9 @@ def test_center_reindex_series(raw, series):
     tm.assert_series_equal(series_xp, series_rs)
 
 
-def test_center_reindex_frame(raw, frame):
+def test_center_reindex_frame(raw):
     # shifter index
+    frame = DataFrame(range(100), index=date_range("2020-01-01", freq="D", periods=100))
     s = [f"x{x:d}" for x in range(12)]
     minp = 10
 
@@ -315,13 +316,3 @@ def test_center_reindex_frame(raw, frame):
     )
     frame_rs = frame.rolling(window=25, min_periods=minp, center=True).apply(f, raw=raw)
     tm.assert_frame_equal(frame_xp, frame_rs)
-
-
-def test_axis1(raw):
-    # GH 45912
-    df = DataFrame([1, 2])
-    msg = "Support for axis=1 in DataFrame.rolling is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.rolling(window=1, axis=1).apply(np.sum, raw=raw)
-    expected = DataFrame([1.0, 2.0])
-    tm.assert_frame_equal(result, expected)

@@ -134,11 +134,6 @@ is the missing value for datetime data.
 
    Timestamp
 
-.. autosummary::
-   :toctree: api/
-
-   NaT
-
 Properties
 ~~~~~~~~~~
 .. autosummary::
@@ -256,11 +251,6 @@ is the missing value for timedelta data.
    :toctree: api/
 
    Timedelta
-
-.. autosummary::
-   :toctree: api/
-
-   NaT
 
 Properties
 ~~~~~~~~~~
@@ -465,7 +455,6 @@ pandas provides this through :class:`arrays.IntegerArray`.
    UInt16Dtype
    UInt32Dtype
    UInt64Dtype
-   NA
 
 .. _api.arrays.float_na:
 
@@ -484,7 +473,6 @@ Nullable float
 
    Float32Dtype
    Float64Dtype
-   NA
 
 .. _api.arrays.categorical:
 
@@ -550,6 +538,21 @@ To create a Series of dtype ``category``, use ``cat = s.astype(dtype)`` or
 
 If the :class:`Series` is of dtype :class:`CategoricalDtype`, ``Series.cat`` can be used to change the categorical
 data. See :ref:`api.series.cat` for more.
+
+More methods are available on :class:`Categorical`:
+
+.. autosummary::
+   :toctree: api/
+
+   Categorical.as_ordered
+   Categorical.as_unordered
+   Categorical.set_categories
+   Categorical.rename_categories
+   Categorical.reorder_categories
+   Categorical.add_categories
+   Categorical.remove_categories
+   Categorical.remove_unused_categories
+   Categorical.map
 
 .. _api.arrays.sparse:
 
@@ -621,7 +624,6 @@ with a bool :class:`numpy.ndarray`.
    :template: autosummary/class_without_autosummary.rst
 
    BooleanDtype
-   NA
 
 
 .. Dtype attributes which are manually listed in their docstrings: including
@@ -698,7 +700,6 @@ Scalar introspection
     api.types.is_float
     api.types.is_hashable
     api.types.is_integer
-    api.types.is_interval
     api.types.is_number
     api.types.is_re
     api.types.is_re_compilable

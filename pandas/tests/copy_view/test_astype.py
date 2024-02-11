@@ -1,7 +1,8 @@
+import pickle
+
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under7p0
 from pandas.compat.pyarrow import pa_version_under12p0
 import pandas.util._test_decorators as td
 
@@ -43,8 +44,8 @@ def test_astype_single_dtype(using_copy_on_write):
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])
 @pytest.mark.parametrize("new_dtype", ["int64", "Int64", "int64[pyarrow]"])
 def test_astype_avoids_copy(using_copy_on_write, dtype, new_dtype):
-    if new_dtype == "int64[pyarrow]" and pa_version_under7p0:
-        pytest.skip("pyarrow not installed")
+    if new_dtype == "int64[pyarrow]":
+        pytest.importorskip("pyarrow")
     df = DataFrame({"a": [1, 2, 3]}, dtype=dtype)
     df_orig = df.copy()
     df2 = df.astype(new_dtype)
@@ -68,8 +69,8 @@ def test_astype_avoids_copy(using_copy_on_write, dtype, new_dtype):
 
 @pytest.mark.parametrize("dtype", ["float64", "int32", "Int32", "int32[pyarrow]"])
 def test_astype_different_target_dtype(using_copy_on_write, dtype):
-    if dtype == "int32[pyarrow]" and pa_version_under7p0:
-        pytest.skip("pyarrow not installed")
+    if dtype == "int32[pyarrow]":
+        pytest.importorskip("pyarrow")
     df = DataFrame({"a": [1, 2, 3]})
     df_orig = df.copy()
     df2 = df.astype(dtype)
@@ -87,7 +88,6 @@ def test_astype_different_target_dtype(using_copy_on_write, dtype):
     tm.assert_frame_equal(df2, df_orig.astype(dtype))
 
 
-@td.skip_array_manager_invalid_test
 def test_astype_numpy_to_ea():
     ser = Series([1, 2, 3])
     with pd.option_context("mode.copy_on_write", True):
@@ -129,6 +129,26 @@ def test_astype_string_and_object_update_original(
 
     df.iloc[0, 0] = "x"
     tm.assert_frame_equal(df2, df_orig)
+
+
+def test_astype_string_copy_on_pickle_roundrip():
+    # https://github.com/pandas-dev/pandas/issues/54654
+    # ensure_string_array may alter array inplace
+    base = Series(np.array([(1, 2), None, 1], dtype="object"))
+    base_copy = pickle.loads(pickle.dumps(base))
+    base_copy.astype(str)
+    tm.assert_series_equal(base, base_copy)
+
+
+@td.skip_if_no("pyarrow")
+def test_astype_string_read_only_on_pickle_roundrip():
+    # https://github.com/pandas-dev/pandas/issues/54654
+    # ensure_string_array may alter read-only array inplace
+    base = Series(np.array([(1, 2), None, 1], dtype="object"))
+    base_copy = pickle.loads(pickle.dumps(base))
+    base_copy._values.flags.writeable = False
+    base_copy.astype("string[pyarrow]", copy=False)
+    tm.assert_series_equal(base, base_copy)
 
 
 def test_astype_dict_dtypes(using_copy_on_write):
@@ -187,8 +207,8 @@ def test_astype_different_timezones_different_reso(using_copy_on_write):
         assert not np.shares_memory(get_array(df, "a"), get_array(result, "a"))
 
 
-@pytest.mark.skipif(pa_version_under7p0, reason="pyarrow not installed")
 def test_astype_arrow_timestamp(using_copy_on_write):
+    pytest.importorskip("pyarrow")
     df = DataFrame(
         {
             "a": [

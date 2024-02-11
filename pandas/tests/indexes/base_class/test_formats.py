@@ -1,12 +1,22 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
 import pandas._config.config as cf
 
 from pandas import Index
+import pandas._testing as tm
 
 
 class TestIndexRendering:
+    def test_repr_is_valid_construction_code(self):
+        # for the case of Index, where the repr is traditional rather than
+        # stylized
+        idx = Index(["a", "b"])
+        res = eval(repr(idx))
+        tm.assert_index_equal(res, idx)
+
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="repr different")
     @pytest.mark.parametrize(
         "index,expected",
         [
@@ -71,6 +81,7 @@ class TestIndexRendering:
         result = repr(index)
         assert result == expected
 
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="repr different")
     @pytest.mark.parametrize(
         "index,expected",
         [
@@ -133,16 +144,6 @@ class TestIndexRendering:
     def test_index_repr_bool_nan(self):
         # GH32146
         arr = Index([True, False, np.nan], dtype=object)
-        exp1 = arr.format()
-        out1 = ["True", "False", "NaN"]
-        assert out1 == exp1
-
         exp2 = repr(arr)
         out2 = "Index([True, False, nan], dtype='object')"
         assert out2 == exp2
-
-    def test_format_different_scalar_lengths(self):
-        # GH#35439
-        idx = Index(["aaaaaaaaa", "b"])
-        expected = ["aaaaaaaaa", "b"]
-        assert idx.format() == expected

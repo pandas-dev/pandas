@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     CategoricalIndex,
@@ -32,20 +30,24 @@ class TestDataFrameShift:
         expected2 = DataFrame([12345] * 5, dtype="Float64")
         tm.assert_frame_equal(res2, expected2)
 
-    def test_shift_disallow_freq_and_fill_value(self, frame_or_series):
+    def test_shift_deprecate_freq_and_fill_value(self, frame_or_series):
         # Can't pass both!
         obj = frame_or_series(
             np.random.default_rng(2).standard_normal(5),
-            index=date_range("1/1/2000", periods=5, freq="H"),
+            index=date_range("1/1/2000", periods=5, freq="h"),
         )
 
-        msg = "Cannot pass both 'freq' and 'fill_value' to (Series|DataFrame).shift"
-        with pytest.raises(ValueError, match=msg):
-            obj.shift(1, fill_value=1, freq="H")
+        msg = (
+            "Passing a 'freq' together with a 'fill_value' silently ignores the "
+            "fill_value"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            obj.shift(1, fill_value=1, freq="h")
 
         if frame_or_series is DataFrame:
-            with pytest.raises(ValueError, match=msg):
-                obj.shift(1, axis=1, fill_value=1, freq="H")
+            obj.columns = date_range("1/1/2000", periods=1, freq="h")
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                obj.shift(1, axis=1, fill_value=1, freq="h")
 
     @pytest.mark.parametrize(
         "input_data, output_data",
@@ -72,15 +74,15 @@ class TestDataFrameShift:
     def test_shift_mismatched_freq(self, frame_or_series):
         ts = frame_or_series(
             np.random.default_rng(2).standard_normal(5),
-            index=date_range("1/1/2000", periods=5, freq="H"),
+            index=date_range("1/1/2000", periods=5, freq="h"),
         )
 
-        result = ts.shift(1, freq="5T")
-        exp_index = ts.index.shift(1, freq="5T")
+        result = ts.shift(1, freq="5min")
+        exp_index = ts.index.shift(1, freq="5min")
         tm.assert_index_equal(result.index, exp_index)
 
         # GH#1063, multiple of same base
-        result = ts.shift(1, freq="4H")
+        result = ts.shift(1, freq="4h")
         exp_index = ts.index + offsets.Hour(4)
         tm.assert_index_equal(result.index, exp_index)
 
@@ -88,7 +90,7 @@ class TestDataFrameShift:
         "obj",
         [
             Series([np.arange(5)]),
-            date_range("1/1/2011", periods=24, freq="H"),
+            date_range("1/1/2011", periods=24, freq="h"),
             Series(range(5), index=date_range("2017", periods=5)),
         ],
     )
@@ -140,20 +142,20 @@ class TestDataFrameShift:
         # GH#21275
         obj = frame_or_series(
             range(periods),
-            index=date_range("2016-1-1 00:00:00", periods=periods, freq="H"),
+            index=date_range("2016-1-1 00:00:00", periods=periods, freq="h"),
         )
 
-        result = obj.shift(1, "2H")
+        result = obj.shift(1, "2h")
 
         expected = frame_or_series(
             range(periods),
-            index=date_range("2016-1-1 02:00:00", periods=periods, freq="H"),
+            index=date_range("2016-1-1 02:00:00", periods=periods, freq="h"),
         )
         tm.assert_equal(result, expected)
 
     def test_shift_dst(self, frame_or_series):
         # GH#13926
-        dates = date_range("2016-11-06", freq="H", periods=10, tz="US/Eastern")
+        dates = date_range("2016-11-06", freq="h", periods=10, tz="US/Eastern")
         obj = frame_or_series(dates)
 
         res = obj.shift(0)
@@ -175,7 +177,7 @@ class TestDataFrameShift:
     @pytest.mark.parametrize("ex", [10, -10, 20, -20])
     def test_shift_dst_beyond(self, frame_or_series, ex):
         # GH#13926
-        dates = date_range("2016-11-06", freq="H", periods=10, tz="US/Eastern")
+        dates = date_range("2016-11-06", freq="h", periods=10, tz="US/Eastern")
         obj = frame_or_series(dates)
         res = obj.shift(ex)
         exp = frame_or_series([NaT] * 10, dtype="datetime64[ns, US/Eastern]")
@@ -237,7 +239,9 @@ class TestDataFrameShift:
 
     def test_shift_with_periodindex(self, frame_or_series):
         # Shifting with PeriodIndex
-        ps = tm.makePeriodFrame()
+        ps = DataFrame(
+            np.arange(4, dtype=float), index=pd.period_range("2020-01-01", periods=4)
+        )
         ps = tm.get_obj(ps, frame_or_series)
 
         shifted = ps.shift(1)
@@ -362,7 +366,7 @@ class TestDataFrameShift:
 
     def test_shift_fill_value(self, frame_or_series):
         # GH#24128
-        dti = date_range("1/1/2000", periods=5, freq="H")
+        dti = date_range("1/1/2000", periods=5, freq="h")
 
         ts = frame_or_series([1.0, 2.0, 3.0, 4.0, 5.0], index=dti)
         exp = frame_or_series([0.0, 1.0, 2.0, 3.0, 4.0], index=dti)
@@ -417,13 +421,12 @@ class TestDataFrameShift:
         tm.assert_frame_equal(shifted[0], shifted[1])
         tm.assert_frame_equal(shifted[0], shifted[2])
 
-    def test_shift_axis1_multiple_blocks(self, using_array_manager):
+    def test_shift_axis1_multiple_blocks(self):
         # GH#35488
         df1 = DataFrame(np.random.default_rng(2).integers(1000, size=(5, 3)))
         df2 = DataFrame(np.random.default_rng(2).integers(1000, size=(5, 2)))
         df3 = pd.concat([df1, df2], axis=1)
-        if not using_array_manager:
-            assert len(df3._mgr.blocks) == 2
+        assert len(df3._mgr.blocks) == 2
 
         result = df3.shift(2, axis=1)
 
@@ -443,8 +446,7 @@ class TestDataFrameShift:
         # Case with periods < 0
         # rebuild df3 because `take` call above consolidated
         df3 = pd.concat([df1, df2], axis=1)
-        if not using_array_manager:
-            assert len(df3._mgr.blocks) == 2
+        assert len(df3._mgr.blocks) == 2
         result = df3.shift(-2, axis=1)
 
         expected = df3.take([2, 3, 4, -1, -1], axis=1)
@@ -460,7 +462,6 @@ class TestDataFrameShift:
 
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) axis=1 support
     def test_shift_axis1_multiple_blocks_with_int_fill(self):
         # GH#42719
         rng = np.random.default_rng(2)
@@ -488,7 +489,7 @@ class TestDataFrameShift:
         tm.assert_frame_equal(result, expected)
 
     def test_period_index_frame_shift_with_freq(self, frame_or_series):
-        ps = tm.makePeriodFrame()
+        ps = DataFrame(range(4), index=pd.period_range("2020-01-01", periods=4))
         ps = tm.get_obj(ps, frame_or_series)
 
         shifted = ps.shift(1, freq="infer")
@@ -525,7 +526,7 @@ class TestDataFrameShift:
         tm.assert_equal(unshifted, inferred_ts)
 
     def test_period_index_frame_shift_with_freq_error(self, frame_or_series):
-        ps = tm.makePeriodFrame()
+        ps = DataFrame(range(4), index=pd.period_range("2020-01-01", periods=4))
         ps = tm.get_obj(ps, frame_or_series)
         msg = "Given freq M does not match PeriodIndex freq D"
         with pytest.raises(ValueError, match=msg):
@@ -702,7 +703,7 @@ class TestDataFrameShift:
         # GH#44424
         df = DataFrame(
             np.random.default_rng(2).standard_normal(5),
-            index=date_range("1/1/2000", periods=5, freq="H"),
+            index=date_range("1/1/2000", periods=5, freq="h"),
         )
 
         tm.assert_frame_equal(
@@ -712,13 +713,16 @@ class TestDataFrameShift:
         )
 
         tm.assert_frame_equal(
-            df.shift([1], freq="H").rename(columns=lambda x: int(x[0])),
-            df.shift(1, freq="H"),
+            df.shift([1], freq="h").rename(columns=lambda x: int(x[0])),
+            df.shift(1, freq="h"),
         )
 
-        msg = r"Cannot pass both 'freq' and 'fill_value' to.*"
-        with pytest.raises(ValueError, match=msg):
-            df.shift([1, 2], fill_value=1, freq="H")
+        msg = (
+            "Passing a 'freq' together with a 'fill_value' silently ignores the "
+            "fill_value"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.shift([1, 2], fill_value=1, freq="h")
 
     def test_shift_with_iterable_check_other_arguments(self):
         # GH#44424

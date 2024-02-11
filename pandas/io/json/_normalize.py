@@ -11,6 +11,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     DefaultDict,
+    overload,
 )
 
 import numpy as np
@@ -42,13 +43,35 @@ def convert_to_line_delimits(s: str) -> str:
     return convert_json_to_lines(s)
 
 
+@overload
 def nested_to_record(
-    ds,
+    ds: dict,
+    prefix: str = ...,
+    sep: str = ...,
+    level: int = ...,
+    max_level: int | None = ...,
+) -> dict[str, Any]:
+    ...
+
+
+@overload
+def nested_to_record(
+    ds: list[dict],
+    prefix: str = ...,
+    sep: str = ...,
+    level: int = ...,
+    max_level: int | None = ...,
+) -> list[dict[str, Any]]:
+    ...
+
+
+def nested_to_record(
+    ds: dict | list[dict],
     prefix: str = "",
     sep: str = ".",
     level: int = 0,
     max_level: int | None = None,
-):
+) -> dict[str, Any] | list[dict[str, Any]]:
     """
     A simplified json_normalize
 
@@ -427,8 +450,8 @@ def json_normalize(
                 result = []
             else:
                 raise TypeError(
-                    f"{js} has non list value {result} for path {spec}. "
-                    "Must be list or null."
+                    f"Path must contain list or null, "
+                    f"but got {type(result).__name__} at {spec!r}"
                 )
         return result
 
@@ -537,8 +560,8 @@ def json_normalize(
         if values.ndim > 1:
             # GH 37782
             values = np.empty((len(v),), dtype=object)
-            for i, v in enumerate(v):
-                values[i] = v
+            for i, val in enumerate(v):
+                values[i] = val
 
         result[k] = values.repeat(lengths)
     return result

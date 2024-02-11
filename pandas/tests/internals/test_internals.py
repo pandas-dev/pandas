@@ -10,7 +10,6 @@ import pytest
 
 from pandas._libs.internals import BlockPlacement
 from pandas.compat import IS64
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -43,10 +42,6 @@ from pandas.core.internals.blocks import (
     maybe_coerce_values,
     new_block,
 )
-
-# this file contains BlockManager specific tests
-# TODO(ArrayManager) factor out interleave_dtype tests
-pytestmark = td.skip_array_manager_invalid_test
 
 
 @pytest.fixture(params=[new_block, make_block])
@@ -201,7 +196,7 @@ def create_mgr(descr, item_shape=None):
     * components with same DTYPE_ID are combined into single block
     * to force multiple blocks with same dtype, use '-SUFFIX'::
 
-        'a:f8-1; b:f8-2; c:f8-foobar'
+        "a:f8-1; b:f8-2; c:f8-foobar"
 
     """
     if item_shape is None:
@@ -386,8 +381,8 @@ class TestBlockManager:
 
         msg = "Gaps in blk ref_locs"
 
+        mgr = BlockManager(blocks, axes)
         with pytest.raises(AssertionError, match=msg):
-            mgr = BlockManager(blocks, axes)
             mgr._rebuild_blknos_and_blklocs()
 
         blocks[0].mgr_locs = BlockPlacement(np.array([0]))
@@ -397,7 +392,10 @@ class TestBlockManager:
 
     def test_pickle(self, mgr):
         mgr2 = tm.round_trip_pickle(mgr)
-        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+        tm.assert_frame_equal(
+            DataFrame._from_mgr(mgr, axes=mgr.axes),
+            DataFrame._from_mgr(mgr2, axes=mgr2.axes),
+        )
 
         # GH2431
         assert hasattr(mgr2, "_is_consolidated")
@@ -411,16 +409,25 @@ class TestBlockManager:
     def test_non_unique_pickle(self, mgr_string):
         mgr = create_mgr(mgr_string)
         mgr2 = tm.round_trip_pickle(mgr)
-        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+        tm.assert_frame_equal(
+            DataFrame._from_mgr(mgr, axes=mgr.axes),
+            DataFrame._from_mgr(mgr2, axes=mgr2.axes),
+        )
 
     def test_categorical_block_pickle(self):
         mgr = create_mgr("a: category")
         mgr2 = tm.round_trip_pickle(mgr)
-        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+        tm.assert_frame_equal(
+            DataFrame._from_mgr(mgr, axes=mgr.axes),
+            DataFrame._from_mgr(mgr2, axes=mgr2.axes),
+        )
 
         smgr = create_single_mgr("category")
         smgr2 = tm.round_trip_pickle(smgr)
-        tm.assert_series_equal(Series(smgr), Series(smgr2))
+        tm.assert_series_equal(
+            Series()._constructor_from_mgr(smgr, axes=smgr.axes),
+            Series()._constructor_from_mgr(smgr2, axes=smgr2.axes),
+        )
 
     def test_iget(self):
         cols = Index(list("abc"))
@@ -468,7 +475,7 @@ class TestBlockManager:
             np.random.default_rng(2).standard_normal(N).astype(int),
         )
         idx = mgr2.items.get_loc("quux")
-        assert mgr2.iget(idx).dtype == np.int_
+        assert mgr2.iget(idx).dtype == np.dtype(int)
 
         mgr2.iset(
             mgr2.items.get_loc("quux"), np.random.default_rng(2).standard_normal(N)
@@ -579,7 +586,7 @@ class TestBlockManager:
         else:
             assert tmgr.iget(3).dtype.type == t
 
-    def test_convert(self):
+    def test_convert(self, using_infer_string):
         def _compare(old_mgr, new_mgr):
             """compare the blocks, numeric compare ==, object don't"""
             old_blocks = set(old_mgr.blocks)
@@ -605,7 +612,7 @@ class TestBlockManager:
 
         # noops
         mgr = create_mgr("f: i8; g: f8")
-        new_mgr = mgr.convert(copy=True)
+        new_mgr = mgr.convert()
         _compare(mgr, new_mgr)
 
         # convert
@@ -613,10 +620,11 @@ class TestBlockManager:
         mgr.iset(0, np.array(["1"] * N, dtype=np.object_))
         mgr.iset(1, np.array(["2."] * N, dtype=np.object_))
         mgr.iset(2, np.array(["foo."] * N, dtype=np.object_))
-        new_mgr = mgr.convert(copy=True)
-        assert new_mgr.iget(0).dtype == np.object_
-        assert new_mgr.iget(1).dtype == np.object_
-        assert new_mgr.iget(2).dtype == np.object_
+        new_mgr = mgr.convert()
+        dtype = "string[pyarrow_numpy]" if using_infer_string else np.object_
+        assert new_mgr.iget(0).dtype == dtype
+        assert new_mgr.iget(1).dtype == dtype
+        assert new_mgr.iget(2).dtype == dtype
         assert new_mgr.iget(3).dtype == np.int64
         assert new_mgr.iget(4).dtype == np.float64
 
@@ -626,10 +634,10 @@ class TestBlockManager:
         mgr.iset(0, np.array(["1"] * N, dtype=np.object_))
         mgr.iset(1, np.array(["2."] * N, dtype=np.object_))
         mgr.iset(2, np.array(["foo."] * N, dtype=np.object_))
-        new_mgr = mgr.convert(copy=True)
-        assert new_mgr.iget(0).dtype == np.object_
-        assert new_mgr.iget(1).dtype == np.object_
-        assert new_mgr.iget(2).dtype == np.object_
+        new_mgr = mgr.convert()
+        assert new_mgr.iget(0).dtype == dtype
+        assert new_mgr.iget(1).dtype == dtype
+        assert new_mgr.iget(2).dtype == dtype
         assert new_mgr.iget(3).dtype == np.int32
         assert new_mgr.iget(4).dtype == np.bool_
         assert new_mgr.iget(5).dtype.type, np.datetime64
@@ -777,24 +785,6 @@ class TestBlockManager:
                 np.array([100.0, 200.0, 300.0]),
             )
 
-        numeric2 = mgr.get_numeric_data(copy=True)
-        tm.assert_index_equal(numeric.items, Index(["int", "float", "complex", "bool"]))
-        numeric2.iset(
-            numeric2.items.get_loc("float"),
-            np.array([1000.0, 2000.0, 3000.0]),
-            inplace=True,
-        )
-        if using_copy_on_write:
-            tm.assert_almost_equal(
-                mgr.iget(mgr.items.get_loc("float")).internal_values(),
-                np.array([1.0, 1.0, 1.0]),
-            )
-        else:
-            tm.assert_almost_equal(
-                mgr.iget(mgr.items.get_loc("float")).internal_values(),
-                np.array([100.0, 200.0, 300.0]),
-            )
-
     def test_get_bool_data(self, using_copy_on_write):
         mgr = create_mgr(
             "int: int; float: float; complex: complex;"
@@ -811,20 +801,6 @@ class TestBlockManager:
         )
 
         bools.iset(0, np.array([True, False, True]), inplace=True)
-        if using_copy_on_write:
-            tm.assert_numpy_array_equal(
-                mgr.iget(mgr.items.get_loc("bool")).internal_values(),
-                np.array([True, True, True]),
-            )
-        else:
-            tm.assert_numpy_array_equal(
-                mgr.iget(mgr.items.get_loc("bool")).internal_values(),
-                np.array([True, False, True]),
-            )
-
-        # Check sharing
-        bools2 = mgr.get_bool_data(copy=True)
-        bools2.iset(0, np.array([False, True, False]))
         if using_copy_on_write:
             tm.assert_numpy_array_equal(
                 mgr.iget(mgr.items.get_loc("bool")).internal_values(),
@@ -979,7 +955,6 @@ class TestIndexing:
                 # 2D only support slice objects
 
                 # boolean mask
-                assert_slice_ok(mgr, ax, np.array([], dtype=np.bool_))
                 assert_slice_ok(mgr, ax, np.ones(mgr.shape[ax], dtype=np.bool_))
                 assert_slice_ok(mgr, ax, np.zeros(mgr.shape[ax], dtype=np.bool_))
 
@@ -1183,7 +1158,6 @@ class TestBlockPlacement:
             [-1],
             [-1, -2, -3],
             [-10],
-            [-1],
             [-1, 0, 1, 2],
             [-2, 0, 2, 4],
             [1, 0, -1],
@@ -1335,13 +1309,13 @@ class TestCanHoldElement:
         assert not blk._can_hold_element(elem)
 
     def test_period_can_hold_element_emptylist(self):
-        pi = period_range("2016", periods=3, freq="A")
+        pi = period_range("2016", periods=3, freq="Y")
         blk = new_block(pi._data.reshape(1, 3), BlockPlacement([1]), ndim=2)
 
         assert blk._can_hold_element([])
 
     def test_period_can_hold_element(self, element):
-        pi = period_range("2016", periods=3, freq="A")
+        pi = period_range("2016", periods=3, freq="Y")
 
         elem = element(pi)
         self.check_series_setitem(elem, pi, True)
@@ -1353,7 +1327,7 @@ class TestCanHoldElement:
         with tm.assert_produces_warning(FutureWarning):
             self.check_series_setitem(elem, pi, False)
 
-        dti = pi.to_timestamp("S")[:-1]
+        dti = pi.to_timestamp("s")[:-1]
         elem = element(dti)
         with tm.assert_produces_warning(FutureWarning):
             self.check_series_setitem(elem, pi, False)

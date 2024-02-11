@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
     overload,
 )
 import warnings
@@ -18,6 +19,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.timedeltas import (
     Timedelta,
+    disallow_ambiguous_unit,
     parse_timedelta_unit,
 )
 from pandas.util._exceptions import find_stack_level
@@ -88,7 +90,8 @@ def to_timedelta(
     | Series,
     unit: UnitChoices | None = None,
     errors: DateTimeErrorChoices = "raise",
-) -> Timedelta | TimedeltaIndex | Series:
+    # returning Any for errors="ignore"
+) -> Timedelta | TimedeltaIndex | Series | NaTType | Any:
     """
     Convert argument to timedelta.
 
@@ -113,17 +116,19 @@ def to_timedelta(
 
         * 'W'
         * 'D' / 'days' / 'day'
-        * 'hours' / 'hour' / 'hr' / 'h'
+        * 'hours' / 'hour' / 'hr' / 'h' / 'H'
         * 'm' / 'minute' / 'min' / 'minutes' / 'T'
-        * 'S' / 'seconds' / 'sec' / 'second'
+        * 's' / 'seconds' / 'sec' / 'second' / 'S'
         * 'ms' / 'milliseconds' / 'millisecond' / 'milli' / 'millis' / 'L'
         * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros' / 'U'
         * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond' / 'N'
 
-        Must not be specified when `arg` context strings and ``errors="raise"``.
+        Must not be specified when `arg` contains strings and ``errors="raise"``.
 
-        .. deprecated:: 2.1.0
-            Units 'T' and 'L' are deprecated and will be removed in a future version.
+        .. deprecated:: 2.2.0
+            Units 'H', 'T', 'S', 'L', 'U' and 'N' are deprecated and will be removed
+            in a future version. Please use 'h', 'min', 's', 'ms', 'us', and 'ns'
+            instead of 'H', 'T', 'S', 'L', 'U' and 'N'.
 
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
@@ -155,44 +160,41 @@ def to_timedelta(
     --------
     Parsing a single string to a Timedelta:
 
-    >>> pd.to_timedelta('1 days 06:05:01.00003')
+    >>> pd.to_timedelta("1 days 06:05:01.00003")
     Timedelta('1 days 06:05:01.000030')
-    >>> pd.to_timedelta('15.5us')
+    >>> pd.to_timedelta("15.5us")
     Timedelta('0 days 00:00:00.000015500')
 
     Parsing a list or array of strings:
 
-    >>> pd.to_timedelta(['1 days 06:05:01.00003', '15.5us', 'nan'])
+    >>> pd.to_timedelta(["1 days 06:05:01.00003", "15.5us", "nan"])
     TimedeltaIndex(['1 days 06:05:01.000030', '0 days 00:00:00.000015500', NaT],
                    dtype='timedelta64[ns]', freq=None)
 
     Converting numbers by specifying the `unit` keyword argument:
 
-    >>> pd.to_timedelta(np.arange(5), unit='s')
+    >>> pd.to_timedelta(np.arange(5), unit="s")
     TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:01', '0 days 00:00:02',
                     '0 days 00:00:03', '0 days 00:00:04'],
                    dtype='timedelta64[ns]', freq=None)
-    >>> pd.to_timedelta(np.arange(5), unit='d')
+    >>> pd.to_timedelta(np.arange(5), unit="d")
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq=None)
     """
-    if unit in {"T", "t", "L", "l"}:
-        warnings.warn(
-            f"Unit '{unit}' is deprecated and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
     if unit is not None:
         unit = parse_timedelta_unit(unit)
+        disallow_ambiguous_unit(unit)
 
     if errors not in ("ignore", "raise", "coerce"):
         raise ValueError("errors must be one of 'ignore', 'raise', or 'coerce'.")
-
-    if unit in {"Y", "y", "M"}:
-        raise ValueError(
-            "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
-            "represent unambiguous timedelta values durations."
+    if errors == "ignore":
+        # GH#54467
+        warnings.warn(
+            "errors='ignore' is deprecated and will raise in a future version. "
+            "Use to_timedelta without passing `errors` and catch exceptions "
+            "explicitly instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
         )
 
     if arg is None:
@@ -225,7 +227,7 @@ def to_timedelta(
 
 def _coerce_scalar_to_timedelta_type(
     r, unit: UnitChoices | None = "ns", errors: DateTimeErrorChoices = "raise"
-):
+) -> Timedelta | NaTType:
     """Convert string 'r' to a timedelta object."""
     result: Timedelta | NaTType
 
@@ -279,5 +281,5 @@ def _convert_listlike(
 
     from pandas import TimedeltaIndex
 
-    value = TimedeltaIndex(td64arr, unit="ns", name=name)
+    value = TimedeltaIndex(td64arr, name=name)
     return value

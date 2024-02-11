@@ -120,7 +120,7 @@ class TestCommon:
         # should return None
         assert res is None
         assert index.name == new_name
-        assert index.names == [new_name]
+        assert index.names == (new_name,)
         with pytest.raises(ValueError, match="Level must be None"):
             index.set_names("a", level=0)
 
@@ -128,7 +128,7 @@ class TestCommon:
         name = ("A", "B")
         index.rename(name, inplace=True)
         assert index.name == name
-        assert index.names == [name]
+        assert index.names == (name,)
 
     @pytest.mark.xfail
     def test_set_names_single_label_no_level(self, index_flat):
@@ -258,7 +258,7 @@ class TestCommon:
                 reason="IntervalIndex.searchsorted does not support Interval arg",
                 raises=NotImplementedError,
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         # nothing to test if the index is empty
         if index.empty:
@@ -459,7 +459,7 @@ def test_sort_values_with_missing(index_with_missing, na_position, request):
     # sort non-missing and place missing according to na_position
 
     if isinstance(index_with_missing, CategoricalIndex):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="missing value sorting order not well-defined", strict=False
             )
@@ -500,3 +500,12 @@ def test_ndarray_compat_properties(index):
     # test for validity
     idx.nbytes
     idx.values.nbytes
+
+
+def test_compare_read_only_array():
+    # GH#57130
+    arr = np.array([], dtype=object)
+    arr.flags.writeable = False
+    idx = pd.Index(arr)
+    result = idx > 69
+    assert result.dtype == bool

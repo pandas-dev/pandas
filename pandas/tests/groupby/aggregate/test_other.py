@@ -106,7 +106,7 @@ def test_agg_dict_parameter_cast_result_dtypes():
     df = DataFrame(
         {
             "class": ["A", "A", "B", "B", "C", "C", "D", "D"],
-            "time": date_range("1/1/2011", periods=8, freq="H"),
+            "time": date_range("1/1/2011", periods=8, freq="h"),
         }
     )
     df.loc[[0, 1, 2, 5], "time"] = None
@@ -296,7 +296,9 @@ def test_agg_item_by_item_raise_typeerror():
 
 
 def test_series_agg_multikey():
-    ts = tm.makeTimeSeries()
+    ts = Series(
+        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    )
     grouped = ts.groupby([lambda x: x.year, lambda x: x.month])
 
     result = grouped.agg("sum")
@@ -499,13 +501,17 @@ def test_agg_timezone_round_trip():
     assert ts == grouped.first()["B"].iloc[0]
 
     # GH#27110 applying iloc should return a DataFrame
-    assert ts == grouped.apply(lambda x: x.iloc[0]).iloc[0, 1]
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        assert ts == grouped.apply(lambda x: x.iloc[0]).iloc[0, 1]
 
     ts = df["B"].iloc[2]
     assert ts == grouped.last()["B"].iloc[0]
 
     # GH#27110 applying iloc should return a DataFrame
-    assert ts == grouped.apply(lambda x: x.iloc[-1]).iloc[0, 1]
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        assert ts == grouped.apply(lambda x: x.iloc[-1]).iloc[0, 1]
 
 
 def test_sum_uint64_overflow():
@@ -534,46 +540,44 @@ def test_sum_uint64_overflow():
 
 
 @pytest.mark.parametrize(
-    "structure, expected",
+    "structure, cast_as",
     [
-        (tuple, DataFrame({"C": {(1, 1): (1, 1, 1), (3, 4): (3, 4, 4)}})),
-        (list, DataFrame({"C": {(1, 1): [1, 1, 1], (3, 4): [3, 4, 4]}})),
-        (
-            lambda x: tuple(x),
-            DataFrame({"C": {(1, 1): (1, 1, 1), (3, 4): (3, 4, 4)}}),
-        ),
-        (
-            lambda x: list(x),
-            DataFrame({"C": {(1, 1): [1, 1, 1], (3, 4): [3, 4, 4]}}),
-        ),
+        (tuple, tuple),
+        (list, list),
+        (lambda x: tuple(x), tuple),
+        (lambda x: list(x), list),
     ],
 )
-def test_agg_structs_dataframe(structure, expected):
+def test_agg_structs_dataframe(structure, cast_as):
     df = DataFrame(
         {"A": [1, 1, 1, 3, 3, 3], "B": [1, 1, 1, 4, 4, 4], "C": [1, 1, 1, 3, 4, 4]}
     )
 
     result = df.groupby(["A", "B"]).aggregate(structure)
+    expected = DataFrame(
+        {"C": {(1, 1): cast_as([1, 1, 1]), (3, 4): cast_as([3, 4, 4])}}
+    )
     expected.index.names = ["A", "B"]
     tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
-    "structure, expected",
+    "structure, cast_as",
     [
-        (tuple, Series([(1, 1, 1), (3, 4, 4)], index=[1, 3], name="C")),
-        (list, Series([[1, 1, 1], [3, 4, 4]], index=[1, 3], name="C")),
-        (lambda x: tuple(x), Series([(1, 1, 1), (3, 4, 4)], index=[1, 3], name="C")),
-        (lambda x: list(x), Series([[1, 1, 1], [3, 4, 4]], index=[1, 3], name="C")),
+        (tuple, tuple),
+        (list, list),
+        (lambda x: tuple(x), tuple),
+        (lambda x: list(x), list),
     ],
 )
-def test_agg_structs_series(structure, expected):
+def test_agg_structs_series(structure, cast_as):
     # Issue #18079
     df = DataFrame(
         {"A": [1, 1, 1, 3, 3, 3], "B": [1, 1, 1, 4, 4, 4], "C": [1, 1, 1, 3, 4, 4]}
     )
 
     result = df.groupby("A")["C"].aggregate(structure)
+    expected = Series([cast_as([1, 1, 1]), cast_as([3, 4, 4])], index=[1, 3], name="C")
     expected.index.name = "A"
     tm.assert_series_equal(result, expected)
 

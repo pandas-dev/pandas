@@ -63,6 +63,7 @@ from pandas import (
 from pandas.core import algorithms
 from pandas.core.arrays import (
     ArrowExtensionArray,
+    BaseMaskedArray,
     BooleanArray,
     Categorical,
     ExtensionArray,
@@ -83,7 +84,6 @@ from pandas.io.common import is_potential_multi_index
 
 if TYPE_CHECKING:
     from collections.abc import (
-        Hashable,
         Iterable,
         Mapping,
         Sequence,
@@ -93,7 +93,10 @@ if TYPE_CHECKING:
         ArrayLike,
         DtypeArg,
         DtypeObj,
+        Hashable,
+        HashableT,
         Scalar,
+        SequenceT,
     )
 
 
@@ -349,13 +352,13 @@ class ParserBase:
     @final
     def _maybe_make_multi_index_columns(
         self,
-        columns: Sequence[Hashable],
+        columns: SequenceT,
         col_names: Sequence[Hashable] | None = None,
-    ) -> Sequence[Hashable] | MultiIndex:
+    ) -> SequenceT | MultiIndex:
         # possibly create a column mi here
         if is_potential_multi_index(columns):
-            list_columns = cast(list[tuple], columns)
-            return MultiIndex.from_tuples(list_columns, names=col_names)
+            columns_mi = cast("Sequence[tuple[Hashable, ...]]", columns)
+            return MultiIndex.from_tuples(columns_mi, names=col_names)
         return columns
 
     @final
@@ -519,7 +522,7 @@ class ParserBase:
         verbose: bool = False,
         converters=None,
         dtypes=None,
-    ):
+    ) -> dict[Any, np.ndarray]:
         result = {}
         for c, values in dct.items():
             conv_f = None if converters is None else converters.get(c, None)
@@ -711,7 +714,7 @@ class ParserBase:
                     values,
                     na_values,
                     False,
-                    convert_to_masked_nullable=non_default_dtype_backend,  # type: ignore[arg-type]  # noqa: E501
+                    convert_to_masked_nullable=non_default_dtype_backend,  # type: ignore[arg-type]
                 )
             except (ValueError, TypeError):
                 # e.g. encountering datetime string gets ValueError
@@ -747,7 +750,7 @@ class ParserBase:
                 np.asarray(values),
                 true_values=self.true_values,
                 false_values=self.false_values,
-                convert_to_masked_nullable=non_default_dtype_backend,  # type: ignore[arg-type]  # noqa: E501
+                convert_to_masked_nullable=non_default_dtype_backend,  # type: ignore[arg-type]
             )
             if result.dtype == np.bool_ and non_default_dtype_backend:
                 if bool_mask is None:
@@ -756,14 +759,23 @@ class ParserBase:
             elif result.dtype == np.object_ and non_default_dtype_backend:
                 # read_excel sends array of datetime objects
                 if not lib.is_datetime_array(result, skipna=True):
-                    result = StringDtype().construct_array_type()._from_sequence(values)
+                    dtype = StringDtype()
+                    cls = dtype.construct_array_type()
+                    result = cls._from_sequence(values, dtype=dtype)
 
         if dtype_backend == "pyarrow":
             pa = import_optional_dependency("pyarrow")
             if isinstance(result, np.ndarray):
                 result = ArrowExtensionArray(pa.array(result, from_pandas=True))
+            elif isinstance(result, BaseMaskedArray):
+                if result._mask.all():
+                    # We want an arrow null array here
+                    result = ArrowExtensionArray(pa.array([None] * len(result)))
+                else:
+                    result = ArrowExtensionArray(
+                        pa.array(result._data, mask=result._mask)
+                    )
             else:
-                # ExtensionArray
                 result = ArrowExtensionArray(
                     pa.array(result.to_numpy(), from_pandas=True)
                 )
@@ -810,7 +822,7 @@ class ParserBase:
                 if isinstance(cast_type, BooleanDtype):
                     # error: Unexpected keyword argument "true_values" for
                     # "_from_sequence_of_strings" of "ExtensionArray"
-                    return array_type._from_sequence_of_strings(  # type: ignore[call-arg]  # noqa: E501
+                    return array_type._from_sequence_of_strings(  # type: ignore[call-arg]
                         values,
                         dtype=cast_type,
                         true_values=self.true_values,
@@ -913,23 +925,23 @@ class ParserBase:
     @overload
     def _evaluate_usecols(
         self,
-        usecols: set[int] | Callable[[Hashable], object],
-        names: Sequence[Hashable],
+        usecols: Callable[[Hashable], object],
+        names: Iterable[Hashable],
     ) -> set[int]:
         ...
 
     @overload
     def _evaluate_usecols(
-        self, usecols: set[str], names: Sequence[Hashable]
-    ) -> set[str]:
+        self, usecols: SequenceT, names: Iterable[Hashable]
+    ) -> SequenceT:
         ...
 
     @final
     def _evaluate_usecols(
         self,
-        usecols: Callable[[Hashable], object] | set[str] | set[int],
-        names: Sequence[Hashable],
-    ) -> set[str] | set[int]:
+        usecols: Callable[[Hashable], object] | SequenceT,
+        names: Iterable[Hashable],
+    ) -> SequenceT | set[int]:
         """
         Check whether or not the 'usecols' parameter
         is a callable.  If so, enumerates the 'names'
@@ -942,7 +954,7 @@ class ParserBase:
         return usecols
 
     @final
-    def _validate_usecols_names(self, usecols, names: Sequence):
+    def _validate_usecols_names(self, usecols: SequenceT, names: Sequence) -> SequenceT:
         """
         Validates that all usecols are present in a given
         list of names. If not, raise a ValueError that
@@ -1062,7 +1074,9 @@ class ParserBase:
         return index_names, columns, index_col
 
     @final
-    def _get_empty_meta(self, columns, dtype: DtypeArg | None = None):
+    def _get_empty_meta(
+        self, columns: Sequence[HashableT], dtype: DtypeArg | None = None
+    ) -> tuple[Index, list[HashableT], dict[HashableT, Series]]:
         columns = list(columns)
 
         index_col = self.index_col
@@ -1147,17 +1161,22 @@ def _make_date_converter(
             with warnings.catch_warnings():
                 warnings.filterwarnings(
                     "ignore",
-                    ".*parsing datetimes with mixed time zones will raise a warning",
+                    ".*parsing datetimes with mixed time zones will raise an error",
                     category=FutureWarning,
                 )
-                result = tools.to_datetime(
-                    ensure_object(strs),
-                    format=date_fmt,
-                    utc=False,
-                    dayfirst=dayfirst,
-                    errors="ignore",
-                    cache=cache_dates,
-                )
+                str_objs = ensure_object(strs)
+                try:
+                    result = tools.to_datetime(
+                        str_objs,
+                        format=date_fmt,
+                        utc=False,
+                        dayfirst=dayfirst,
+                        cache=cache_dates,
+                    )
+                except (ValueError, TypeError):
+                    # test_usecols_with_parse_dates4
+                    return str_objs
+
             if isinstance(result, DatetimeIndex):
                 arr = result.to_numpy()
                 arr.flags.writeable = True
@@ -1169,34 +1188,41 @@ def _make_date_converter(
                     warnings.filterwarnings(
                         "ignore",
                         ".*parsing datetimes with mixed time zones "
-                        "will raise a warning",
+                        "will raise an error",
                         category=FutureWarning,
                     )
-                    result = tools.to_datetime(
-                        date_parser(
-                            *(unpack_if_single_element(arg) for arg in date_cols)
-                        ),
-                        errors="ignore",
-                        cache=cache_dates,
+                    pre_parsed = date_parser(
+                        *(unpack_if_single_element(arg) for arg in date_cols)
                     )
+                    try:
+                        result = tools.to_datetime(
+                            pre_parsed,
+                            cache=cache_dates,
+                        )
+                    except (ValueError, TypeError):
+                        # test_read_csv_with_custom_date_parser
+                        result = pre_parsed
                 if isinstance(result, datetime.datetime):
                     raise Exception("scalar parser")
                 return result
             except Exception:
+                # e.g. test_datetime_fractional_seconds
                 with warnings.catch_warnings():
                     warnings.filterwarnings(
                         "ignore",
                         ".*parsing datetimes with mixed time zones "
-                        "will raise a warning",
+                        "will raise an error",
                         category=FutureWarning,
                     )
-                    return tools.to_datetime(
-                        parsing.try_parse_dates(
-                            parsing.concat_date_cols(date_cols),
-                            parser=date_parser,
-                        ),
-                        errors="ignore",
+                    pre_parsed = parsing.try_parse_dates(
+                        parsing.concat_date_cols(date_cols),
+                        parser=date_parser,
                     )
+                    try:
+                        return tools.to_datetime(pre_parsed)
+                    except (ValueError, TypeError):
+                        # TODO: not reached in tests 2023-10-27; needed?
+                        return pre_parsed
 
     return converter
 
@@ -1253,7 +1279,7 @@ def _process_date_conversion(
     columns,
     keep_date_col: bool = False,
     dtype_backend=lib.no_default,
-):
+) -> tuple[dict, list]:
     def _isindex(colspec):
         return (isinstance(index_col, list) and colspec in index_col) or (
             isinstance(index_names, list) and colspec in index_names

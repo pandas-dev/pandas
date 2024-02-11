@@ -11,7 +11,9 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Literal,
     cast,
+    overload,
 )
 
 import numpy as np
@@ -25,6 +27,7 @@ from pandas._libs.lib import no_default
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     cache_readonly,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 
@@ -187,7 +190,7 @@ class RangeIndex(Index):
         if not isinstance(data, range):
             raise TypeError(
                 f"{cls.__name__}(...) must be called with object coercible to a "
-                f"range, {repr(data)} was passed"
+                f"range, {data!r} was passed"
             )
         cls._validate_dtype(dtype)
         return cls._simple_new(data, name=name)
@@ -240,7 +243,7 @@ class RangeIndex(Index):
         """
         return np.arange(self.start, self.stop, self.step, dtype=np.int64)
 
-    def _get_data_as_items(self):
+    def _get_data_as_items(self) -> list[tuple[str, int]]:
         """return a list of tuples of start, stop, step"""
         rng = self._range
         return [("start", rng.start), ("stop", rng.stop), ("step", rng.step)]
@@ -257,16 +260,12 @@ class RangeIndex(Index):
         """
         Return a list of tuples of the (attr, formatted_value)
         """
-        attrs = self._get_data_as_items()
+        attrs = cast("list[tuple[str, str | int]]", self._get_data_as_items())
         if self._name is not None:
             attrs.append(("name", ibase.default_pprint(self._name)))
         return attrs
 
-    def _format_data(self, name=None):
-        # we are formatting thru the attributes
-        return None
-
-    def _format_with_header(self, header: list[str], na_rep: str) -> list[str]:
+    def _format_with_header(self, *, header: list[str], na_rep: str) -> list[str]:
         # Equivalent to Index implementation, but faster
         if not len(self._range):
             return header
@@ -407,7 +406,7 @@ class RangeIndex(Index):
     # Indexing Methods
 
     @doc(Index.get_loc)
-    def get_loc(self, key):
+    def get_loc(self, key) -> int:
         if is_integer(key) or (is_float(key) and key.is_integer()):
             new_key = int(key)
             try:
@@ -492,7 +491,7 @@ class RangeIndex(Index):
         new_index = self._rename(name=name)
         return new_index
 
-    def _minmax(self, meth: str):
+    def _minmax(self, meth: str) -> int | float:
         no_steps = len(self) - 1
         if no_steps == -1:
             return np.nan
@@ -501,13 +500,13 @@ class RangeIndex(Index):
 
         return self.start + self.step * no_steps
 
-    def min(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
+    def min(self, axis=None, skipna: bool = True, *args, **kwargs) -> int | float:
         """The minimum value of the RangeIndex"""
         nv.validate_minmax_axis(axis)
         nv.validate_min(args, kwargs)
         return self._minmax("min")
 
-    def max(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
+    def max(self, axis=None, skipna: bool = True, *args, **kwargs) -> int | float:
         """The maximum value of the RangeIndex"""
         nv.validate_minmax_axis(axis)
         nv.validate_max(args, kwargs)
@@ -559,13 +558,50 @@ class RangeIndex(Index):
             return self._range == other._range
         return super().equals(other)
 
+    # error: Signature of "sort_values" incompatible with supertype "Index"
+    @overload  # type: ignore[override]
+    def sort_values(
+        self,
+        *,
+        return_indexer: Literal[False] = ...,
+        ascending: bool = ...,
+        na_position: NaPosition = ...,
+        key: Callable | None = ...,
+    ) -> Self:
+        ...
+
+    @overload
+    def sort_values(
+        self,
+        *,
+        return_indexer: Literal[True],
+        ascending: bool = ...,
+        na_position: NaPosition = ...,
+        key: Callable | None = ...,
+    ) -> tuple[Self, np.ndarray | RangeIndex]:
+        ...
+
+    @overload
+    def sort_values(
+        self,
+        *,
+        return_indexer: bool = ...,
+        ascending: bool = ...,
+        na_position: NaPosition = ...,
+        key: Callable | None = ...,
+    ) -> Self | tuple[Self, np.ndarray | RangeIndex]:
+        ...
+
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self"], name="sort_values"
+    )
     def sort_values(
         self,
         return_indexer: bool = False,
         ascending: bool = True,
         na_position: NaPosition = "last",
         key: Callable | None = None,
-    ):
+    ) -> Self | tuple[Self, np.ndarray | RangeIndex]:
         if key is not None:
             return super().sort_values(
                 return_indexer=return_indexer,
@@ -840,7 +876,7 @@ class RangeIndex(Index):
 
     def symmetric_difference(
         self, other, result_name: Hashable | None = None, sort=None
-    ):
+    ) -> Index:
         if not isinstance(other, RangeIndex) or sort is not None:
             return super().symmetric_difference(other, result_name, sort)
 
@@ -919,7 +955,17 @@ class RangeIndex(Index):
         start = step = next_ = None
 
         # Filter the empty indexes
-        non_empty_indexes = [obj for obj in rng_indexes if len(obj)]
+        non_empty_indexes = []
+        all_same_index = True
+        prev: RangeIndex | None = None
+        for obj in rng_indexes:
+            if len(obj):
+                non_empty_indexes.append(obj)
+                if all_same_index:
+                    if prev is not None:
+                        all_same_index = prev.equals(obj)
+                    else:
+                        prev = obj
 
         for obj in non_empty_indexes:
             rng = obj._range
@@ -932,7 +978,12 @@ class RangeIndex(Index):
             elif step is None:
                 # First non-empty index had only one element
                 if rng.start == start:
-                    values = np.concatenate([x._values for x in rng_indexes])
+                    if all_same_index:
+                        values = np.tile(
+                            non_empty_indexes[0]._values, len(non_empty_indexes)
+                        )
+                    else:
+                        values = np.concatenate([x._values for x in rng_indexes])
                     result = self._constructor(values)
                     return result.rename(name)
 
@@ -942,9 +993,13 @@ class RangeIndex(Index):
                 next_ is not None and rng.start != next_
             )
             if non_consecutive:
-                result = self._constructor(
-                    np.concatenate([x._values for x in rng_indexes])
-                )
+                if all_same_index:
+                    values = np.tile(
+                        non_empty_indexes[0]._values, len(non_empty_indexes)
+                    )
+                else:
+                    values = np.concatenate([x._values for x in rng_indexes])
+                result = self._constructor(values)
                 return result.rename(name)
 
             if step is not None:
@@ -1107,14 +1162,16 @@ class RangeIndex(Index):
             # test_arithmetic_explicit_conversions
             return super()._arith_method(other, op)
 
-    def take(
+    # error: Return type "Index" of "take" incompatible with return type
+    # "RangeIndex" in supertype "Index"
+    def take(  # type: ignore[override]
         self,
         indices,
         axis: Axis = 0,
         allow_fill: bool = True,
         fill_value=None,
         **kwargs,
-    ):
+    ) -> Index:
         if kwargs:
             nv.validate_take((), kwargs)
         if is_scalar(indices):

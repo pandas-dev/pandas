@@ -330,6 +330,22 @@ class TestDataFramePlots:
         assert ax.get_ylabel() == ylabel
 
     @pytest.mark.parametrize("vert", [True, False])
+    def test_plot_box(self, vert):
+        # GH 54941
+        rng = np.random.default_rng(2)
+        df1 = DataFrame(rng.integers(0, 100, size=(100, 4)), columns=list("ABCD"))
+        df2 = DataFrame(rng.integers(0, 100, size=(100, 4)), columns=list("ABCD"))
+
+        xlabel, ylabel = "x", "y"
+        _, axs = plt.subplots(ncols=2, figsize=(10, 7), sharey=True)
+        df1.plot.box(ax=axs[0], vert=vert, xlabel=xlabel, ylabel=ylabel)
+        df2.plot.box(ax=axs[1], vert=vert, xlabel=xlabel, ylabel=ylabel)
+        for ax in axs:
+            assert ax.get_xlabel() == xlabel
+            assert ax.get_ylabel() == ylabel
+        mpl.pyplot.close()
+
+    @pytest.mark.parametrize("vert", [True, False])
     def test_boxplot_xlabel_ylabel(self, vert):
         df = DataFrame(
             {
@@ -409,25 +425,6 @@ class TestDataFrameGroupByPlots:
         grouped = df.groupby(level=1)
         axes = _check_plot_works(grouped.boxplot, subplots=False, return_type="axes")
         _check_axes_shape(axes, axes_num=1, layout=(1, 1))
-
-    @pytest.mark.parametrize(
-        "subplots, warn, axes_num, layout",
-        [[True, UserWarning, 3, (2, 2)], [False, None, 1, (1, 1)]],
-    )
-    def test_boxplot_legacy3(self, subplots, warn, axes_num, layout):
-        tuples = zip(string.ascii_letters[:10], range(10))
-        df = DataFrame(
-            np.random.default_rng(2).random((10, 3)),
-            index=MultiIndex.from_tuples(tuples),
-        )
-        msg = "DataFrame.groupby with axis=1 is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            grouped = df.unstack(level=1).groupby(level=0, axis=1)
-        with tm.assert_produces_warning(warn, check_stacklevel=False):
-            axes = _check_plot_works(
-                grouped.boxplot, subplots=subplots, return_type="axes"
-            )
-        _check_axes_shape(axes, axes_num=axes_num, layout=layout)
 
     def test_grouped_plot_fignums(self):
         n = 10
@@ -647,8 +644,8 @@ class TestDataFrameGroupByPlots:
         # GH 6970, GH 7069
         df = hist_df
         msg = "The number of passed axes must be 3, the same as the output plot"
+        _, axes = mpl.pyplot.subplots(2, 3)
         with pytest.raises(ValueError, match=msg):
-            fig, axes = mpl.pyplot.subplots(2, 3)
             # pass different number of axes from required
             with tm.assert_produces_warning(UserWarning):
                 axes = df.groupby("classroom").boxplot(ax=axes)

@@ -249,7 +249,7 @@ a :class:`MultiIndex`) associate specific keys with each original :class:`DataFr
    p.plot(frames, result, labels=["df1", "df2", "df3"], vertical=True)
    plt.close("all");
 
-The ``keys`` argument cane override the column names
+The ``keys`` argument can override the column names
 when creating a new :class:`DataFrame` based on existing :class:`Series`.
 
 .. ipython:: python
@@ -525,7 +525,7 @@ Performing an outer join with duplicate join keys in :class:`DataFrame`
 
 .. warning::
 
-  Merging on duplicate keys sigificantly increase the dimensions of the result
+  Merging on duplicate keys significantly increase the dimensions of the result
   and can cause a memory overflow.
 
 .. _merging.validation:

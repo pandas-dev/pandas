@@ -98,21 +98,23 @@ class TestTZConvert:
             tm.assert_index_equal(df3.index.levels[1], l1_expected)
             assert not df3.index.levels[1].equals(l1)
 
-        # Bad Inputs
-
+    @pytest.mark.parametrize("fn", ["tz_localize", "tz_convert"])
+    def test_tz_convert_and_localize_bad_input(self, fn):
+        int_idx = Index(range(5))
+        l0 = date_range("20140701", periods=5, freq="D")
         # Not DatetimeIndex / PeriodIndex
+        df = DataFrame(index=int_idx)
         with pytest.raises(TypeError, match="DatetimeIndex"):
-            df = DataFrame(index=int_idx)
             getattr(df, fn)("US/Pacific")
 
         # Not DatetimeIndex / PeriodIndex
+        df = DataFrame(np.ones(5), MultiIndex.from_arrays([int_idx, l0]))
         with pytest.raises(TypeError, match="DatetimeIndex"):
-            df = DataFrame(np.ones(5), MultiIndex.from_arrays([int_idx, l0]))
             getattr(df, fn)("US/Pacific", level=0)
 
         # Invalid level
+        df = DataFrame(index=l0)
         with pytest.raises(ValueError, match="not valid"):
-            df = DataFrame(index=l0)
             getattr(df, fn)("US/Pacific", level=1)
 
     @pytest.mark.parametrize("copy", [True, False])
@@ -120,7 +122,7 @@ class TestTZConvert:
         # GH#6326
         obj = frame_or_series(
             np.arange(0, 5),
-            index=date_range("20131027", periods=5, freq="1H", tz="Europe/Berlin"),
+            index=date_range("20131027", periods=5, freq="h", tz="Europe/Berlin"),
         )
         orig = obj.copy()
         result = obj.tz_convert("UTC", copy=copy)

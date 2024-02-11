@@ -42,9 +42,6 @@ class TestGetitem:
         ts = df[rng[0]]
         tm.assert_series_equal(ts, df.iloc[:, 0])
 
-        # GH#1211; smoketest unrelated to the rest of this test
-        repr(df)
-
         ts = df["1/1/2000"]
         tm.assert_series_equal(ts, df.iloc[:, 0])
 
@@ -106,7 +103,7 @@ class TestGetitemListLike:
 
     def test_getitem_dupe_cols(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "a", "b"])
-        msg = "\"None of [Index(['baf'], dtype='object')] are in the [columns]\""
+        msg = "\"None of [Index(['baf'], dtype="
         with pytest.raises(KeyError, match=re.escape(msg)):
             df[["baf"]]
 
@@ -372,8 +369,6 @@ class TestGetitemBooleanMask:
         result = df[df.C > 6]
 
         tm.assert_frame_equal(result, expected)
-        result.dtypes
-        str(result)
 
     def test_getitem_boolean_frame_with_duplicate_columns(self, df_dup_cols):
         # where
@@ -388,8 +383,6 @@ class TestGetitemBooleanMask:
         result = df[df > 6]
 
         tm.assert_frame_equal(result, expected)
-        result.dtypes
-        str(result)
 
     def test_getitem_empty_frame_with_boolean(self):
         # Test for issue GH#11859
@@ -398,18 +391,13 @@ class TestGetitemBooleanMask:
         df2 = df[df > 0]
         tm.assert_frame_equal(df, df2)
 
-    def test_getitem_returns_view_when_column_is_unique_in_df(
-        self, using_copy_on_write
-    ):
+    def test_getitem_returns_view_when_column_is_unique_in_df(self):
         # GH#45316
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "a", "b"])
         df_orig = df.copy()
         view = df["b"]
         view.loc[:] = 100
-        if using_copy_on_write:
-            expected = df_orig
-        else:
-            expected = DataFrame([[1, 2, 100], [4, 5, 100]], columns=["a", "a", "b"])
+        expected = df_orig
         tm.assert_frame_equal(df, expected)
 
     def test_getitem_frozenset_unique_in_column(self):

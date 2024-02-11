@@ -3,20 +3,18 @@ import numpy as np
 from pandas import (
     DataFrame,
     HDFStore,
+    Index,
     date_range,
     read_hdf,
 )
 
-from ..pandas_vb_common import (
-    BaseIO,
-    tm,
-)
+from ..pandas_vb_common import BaseIO
 
 
 class HDFStoreDataFrame(BaseIO):
     def setup(self):
         N = 25000
-        index = tm.makeStringIndex(N)
+        index = Index([f"i-{i}" for i in range(N)], dtype=object)
         self.df = DataFrame(
             {"float1": np.random.randn(N), "float2": np.random.randn(N)}, index=index
         )
@@ -122,15 +120,15 @@ class HDF(BaseIO):
         self.df = DataFrame(
             np.random.randn(N, C),
             columns=[f"float{i}" for i in range(C)],
-            index=date_range("20000101", periods=N, freq="H"),
+            index=date_range("20000101", periods=N, freq="h"),
         )
-        self.df["object"] = tm.makeStringIndex(N)
-        self.df.to_hdf(self.fname, "df", format=format)
+        self.df["object"] = Index([f"i-{i}" for i in range(N)], dtype=object)
+        self.df.to_hdf(self.fname, key="df", format=format)
 
         # Numeric df
         self.df1 = self.df.copy()
         self.df1 = self.df1.reset_index()
-        self.df1.to_hdf(self.fname, "df1", format=format)
+        self.df1.to_hdf(self.fname, key="df1", format=format)
 
     def time_read_hdf(self, format):
         read_hdf(self.fname, "df")
@@ -139,7 +137,7 @@ class HDF(BaseIO):
         read_hdf(self.fname, "df")
 
     def time_write_hdf(self, format):
-        self.df.to_hdf(self.fname, "df", format=format)
+        self.df.to_hdf(self.fname, key="df", format=format)
 
 
 from ..pandas_vb_common import setup  # noqa: F401 isort:skip
