@@ -102,9 +102,6 @@ jobs:
 
           environment:
             CIBW_BUILD: << parameters.cibw-build >>
-            CIBW_BEFORE_TEST: >
-              pip install pyarrow
-              pip install {project}/${pandas_tests_loc}
 
       - run:
           name: Install Anaconda Client & Upload Wheels
