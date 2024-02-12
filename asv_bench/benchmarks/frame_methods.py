@@ -159,12 +159,6 @@ class Iteration:
 
     def time_items(self):
         # (monitor no-copying behaviour)
-        if hasattr(self.df, "_item_cache"):
-            self.df._item_cache.clear()
-        for name, col in self.df.items():
-            pass
-
-    def time_items_cached(self):
         for name, col in self.df.items():
             pass
 
