@@ -13,8 +13,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
-
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 from pandas.compat import PYPY
@@ -116,14 +114,17 @@ class _IndexSlice:
 
     Examples
     --------
-    >>> midx = pd.MultiIndex.from_product([['A0', 'A1'], ['B0', 'B1', 'B2', 'B3']])
-    >>> columns = ['foo', 'bar']
-    >>> dfmi = pd.DataFrame(np.arange(16).reshape((len(midx), len(columns))),
-    ...                     index=midx, columns=columns)
+    >>> midx = pd.MultiIndex.from_product([["A0", "A1"], ["B0", "B1", "B2", "B3"]])
+    >>> columns = ["foo", "bar"]
+    >>> dfmi = pd.DataFrame(
+    ...     np.arange(16).reshape((len(midx), len(columns))),
+    ...     index=midx,
+    ...     columns=columns,
+    ... )
 
     Using the default slice command:
 
-    >>> dfmi.loc[(slice(None), slice('B0', 'B1')), :]
+    >>> dfmi.loc[(slice(None), slice("B0", "B1")), :]
                foo  bar
         A0 B0    0    1
            B1    2    3
@@ -133,7 +134,7 @@ class _IndexSlice:
     Using the IndexSlice class for a more intuitive command:
 
     >>> idx = pd.IndexSlice
-    >>> dfmi.loc[idx[:, 'B0':'B1'], :]
+    >>> dfmi.loc[idx[:, "B0":"B1"], :]
                foo  bar
         A0 B0    0    1
            B1    2    3
@@ -195,9 +196,11 @@ class IndexingMixin:
 
         Examples
         --------
-        >>> mydict = [{'a': 1, 'b': 2, 'c': 3, 'd': 4},
-        ...           {'a': 100, 'b': 200, 'c': 300, 'd': 400},
-        ...           {'a': 1000, 'b': 2000, 'c': 3000, 'd': 4000}]
+        >>> mydict = [
+        ...     {"a": 1, "b": 2, "c": 3, "d": 4},
+        ...     {"a": 100, "b": 200, "c": 300, "d": 400},
+        ...     {"a": 1000, "b": 2000, "c": 3000, "d": 4000},
+        ... ]
         >>> df = pd.DataFrame(mydict)
         >>> df
               a     b     c     d
@@ -345,9 +348,11 @@ class IndexingMixin:
         --------
         **Getting values**
 
-        >>> df = pd.DataFrame([[1, 2], [4, 5], [7, 8]],
-        ...                   index=['cobra', 'viper', 'sidewinder'],
-        ...                   columns=['max_speed', 'shield'])
+        >>> df = pd.DataFrame(
+        ...     [[1, 2], [4, 5], [7, 8]],
+        ...     index=["cobra", "viper", "sidewinder"],
+        ...     columns=["max_speed", "shield"],
+        ... )
         >>> df
                     max_speed  shield
         cobra               1       2
@@ -356,27 +361,27 @@ class IndexingMixin:
 
         Single label. Note this returns the row as a Series.
 
-        >>> df.loc['viper']
+        >>> df.loc["viper"]
         max_speed    4
         shield       5
         Name: viper, dtype: int64
 
         List of labels. Note using ``[[]]`` returns a DataFrame.
 
-        >>> df.loc[['viper', 'sidewinder']]
+        >>> df.loc[["viper", "sidewinder"]]
                     max_speed  shield
         viper               4       5
         sidewinder          7       8
 
         Single label for row and column
 
-        >>> df.loc['cobra', 'shield']
+        >>> df.loc["cobra", "shield"]
         2
 
         Slice with labels for row and single label for column. As mentioned
         above, note that both the start and stop of the slice are included.
 
-        >>> df.loc['cobra':'viper', 'max_speed']
+        >>> df.loc["cobra":"viper", "max_speed"]
         cobra    1
         viper    4
         Name: max_speed, dtype: int64
@@ -389,8 +394,9 @@ class IndexingMixin:
 
         Alignable boolean Series:
 
-        >>> df.loc[pd.Series([False, True, False],
-        ...                  index=['viper', 'sidewinder', 'cobra'])]
+        >>> df.loc[
+        ...     pd.Series([False, True, False], index=["viper", "sidewinder", "cobra"])
+        ... ]
                              max_speed  shield
         sidewinder          7       8
 
@@ -404,25 +410,25 @@ class IndexingMixin:
 
         Conditional that returns a boolean Series
 
-        >>> df.loc[df['shield'] > 6]
+        >>> df.loc[df["shield"] > 6]
                     max_speed  shield
         sidewinder          7       8
 
         Conditional that returns a boolean Series with column labels specified
 
-        >>> df.loc[df['shield'] > 6, ['max_speed']]
+        >>> df.loc[df["shield"] > 6, ["max_speed"]]
                     max_speed
         sidewinder          7
 
         Multiple conditional using ``&`` that returns a boolean Series
 
-        >>> df.loc[(df['max_speed'] > 1) & (df['shield'] < 8)]
+        >>> df.loc[(df["max_speed"] > 1) & (df["shield"] < 8)]
                     max_speed  shield
         viper          4       5
 
         Multiple conditional using ``|`` that returns a boolean Series
 
-        >>> df.loc[(df['max_speed'] > 4) | (df['shield'] < 5)]
+        >>> df.loc[(df["max_speed"] > 4) | (df["shield"] < 5)]
                     max_speed  shield
         cobra               1       2
         sidewinder          7       8
@@ -439,7 +445,7 @@ class IndexingMixin:
 
         Callable that returns a boolean Series
 
-        >>> df.loc[lambda df: df['shield'] == 8]
+        >>> df.loc[lambda df: df["shield"] == 8]
                     max_speed  shield
         sidewinder          7       8
 
@@ -447,7 +453,7 @@ class IndexingMixin:
 
         Set value for all items matching the list of labels
 
-        >>> df.loc[['viper', 'sidewinder'], ['shield']] = 50
+        >>> df.loc[["viper", "sidewinder"], ["shield"]] = 50
         >>> df
                     max_speed  shield
         cobra               1       2
@@ -456,7 +462,7 @@ class IndexingMixin:
 
         Set value for an entire row
 
-        >>> df.loc['cobra'] = 10
+        >>> df.loc["cobra"] = 10
         >>> df
                     max_speed  shield
         cobra              10      10
@@ -465,7 +471,7 @@ class IndexingMixin:
 
         Set value for an entire column
 
-        >>> df.loc[:, 'max_speed'] = 30
+        >>> df.loc[:, "max_speed"] = 30
         >>> df
                     max_speed  shield
         cobra              30      10
@@ -474,7 +480,7 @@ class IndexingMixin:
 
         Set value for rows matching callable condition
 
-        >>> df.loc[df['shield'] > 35] = 0
+        >>> df.loc[df["shield"] > 35] = 0
         >>> df
                     max_speed  shield
         cobra              30      10
@@ -505,8 +511,11 @@ class IndexingMixin:
 
         Another example using integers for the index
 
-        >>> df = pd.DataFrame([[1, 2], [4, 5], [7, 8]],
-        ...                   index=[7, 8, 9], columns=['max_speed', 'shield'])
+        >>> df = pd.DataFrame(
+        ...     [[1, 2], [4, 5], [7, 8]],
+        ...     index=[7, 8, 9],
+        ...     columns=["max_speed", "shield"],
+        ... )
         >>> df
            max_speed  shield
         7          1       2
@@ -527,14 +536,16 @@ class IndexingMixin:
         A number of examples using a DataFrame with a MultiIndex
 
         >>> tuples = [
-        ...     ('cobra', 'mark i'), ('cobra', 'mark ii'),
-        ...     ('sidewinder', 'mark i'), ('sidewinder', 'mark ii'),
-        ...     ('viper', 'mark ii'), ('viper', 'mark iii')
+        ...     ("cobra", "mark i"),
+        ...     ("cobra", "mark ii"),
+        ...     ("sidewinder", "mark i"),
+        ...     ("sidewinder", "mark ii"),
+        ...     ("viper", "mark ii"),
+        ...     ("viper", "mark iii"),
         ... ]
         >>> index = pd.MultiIndex.from_tuples(tuples)
-        >>> values = [[12, 2], [0, 4], [10, 20],
-        ...           [1, 4], [7, 1], [16, 36]]
-        >>> df = pd.DataFrame(values, columns=['max_speed', 'shield'], index=index)
+        >>> values = [[12, 2], [0, 4], [10, 20], [1, 4], [7, 1], [16, 36]]
+        >>> df = pd.DataFrame(values, columns=["max_speed", "shield"], index=index)
         >>> df
                              max_speed  shield
         cobra      mark i           12       2
@@ -546,14 +557,14 @@ class IndexingMixin:
 
         Single label. Note this returns a DataFrame with a single index.
 
-        >>> df.loc['cobra']
+        >>> df.loc["cobra"]
                  max_speed  shield
         mark i          12       2
         mark ii          0       4
 
         Single index tuple. Note this returns a Series.
 
-        >>> df.loc[('cobra', 'mark ii')]
+        >>> df.loc[("cobra", "mark ii")]
         max_speed    0
         shield       4
         Name: (cobra, mark ii), dtype: int64
@@ -561,25 +572,25 @@ class IndexingMixin:
         Single label for row and column. Similar to passing in a tuple, this
         returns a Series.
 
-        >>> df.loc['cobra', 'mark i']
+        >>> df.loc["cobra", "mark i"]
         max_speed    12
         shield        2
         Name: (cobra, mark i), dtype: int64
 
         Single tuple. Note using ``[[]]`` returns a DataFrame.
 
-        >>> df.loc[[('cobra', 'mark ii')]]
+        >>> df.loc[[("cobra", "mark ii")]]
                        max_speed  shield
         cobra mark ii          0       4
 
         Single tuple for the index with a single label for the column
 
-        >>> df.loc[('cobra', 'mark i'), 'shield']
+        >>> df.loc[("cobra", "mark i"), "shield"]
         2
 
         Slice from index tuple to single label
 
-        >>> df.loc[('cobra', 'mark i'):'viper']
+        >>> df.loc[("cobra", "mark i") : "viper"]
                              max_speed  shield
         cobra      mark i           12       2
                    mark ii           0       4
@@ -590,7 +601,7 @@ class IndexingMixin:
 
         Slice from index tuple to index tuple
 
-        >>> df.loc[('cobra', 'mark i'):('viper', 'mark ii')]
+        >>> df.loc[("cobra", "mark i") : ("viper", "mark ii")]
                             max_speed  shield
         cobra      mark i          12       2
                    mark ii          0       4
@@ -642,8 +653,11 @@ class IndexingMixin:
 
         Examples
         --------
-        >>> df = pd.DataFrame([[0, 2, 3], [0, 4, 1], [10, 20, 30]],
-        ...                   index=[4, 5, 6], columns=['A', 'B', 'C'])
+        >>> df = pd.DataFrame(
+        ...     [[0, 2, 3], [0, 4, 1], [10, 20, 30]],
+        ...     index=[4, 5, 6],
+        ...     columns=["A", "B", "C"],
+        ... )
         >>> df
             A   B   C
         4   0   2   3
@@ -652,18 +666,18 @@ class IndexingMixin:
 
         Get value at specified row/column pair
 
-        >>> df.at[4, 'B']
+        >>> df.at[4, "B"]
         2
 
         Set value at specified row/column pair
 
-        >>> df.at[4, 'B'] = 10
-        >>> df.at[4, 'B']
+        >>> df.at[4, "B"] = 10
+        >>> df.at[4, "B"]
         10
 
         Get value within a Series
 
-        >>> df.loc[5].at['B']
+        >>> df.loc[5].at["B"]
         4
         """
         return _AtIndexer("at", self)
@@ -690,8 +704,9 @@ class IndexingMixin:
 
         Examples
         --------
-        >>> df = pd.DataFrame([[0, 2, 3], [0, 4, 1], [10, 20, 30]],
-        ...                   columns=['A', 'B', 'C'])
+        >>> df = pd.DataFrame(
+        ...     [[0, 2, 3], [0, 4, 1], [10, 20, 30]], columns=["A", "B", "C"]
+        ... )
         >>> df
             A   B   C
         0   0   2   3
@@ -877,7 +892,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
     @final
     def __setitem__(self, key, value) -> None:
-        if not PYPY and using_copy_on_write():
+        if not PYPY:
             if sys.getrefcount(self.obj) <= 2:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
@@ -1313,7 +1328,7 @@ class _LocIndexer(_LocationIndexer):
             axis: self._get_listlike_indexer(key, axis)
             for (key, axis) in zip(tup, self.obj._AXIS_ORDERS)
         }
-        return self.obj._reindex_with_indexers(d, copy=True, allow_dups=True)
+        return self.obj._reindex_with_indexers(d, allow_dups=True)
 
     # -------------------------------------------------------------------
 
@@ -1345,7 +1360,7 @@ class _LocIndexer(_LocationIndexer):
         # A collection of keys
         keyarr, indexer = self._get_listlike_indexer(key, axis)
         return self.obj._reindex_with_indexers(
-            {axis: [keyarr, indexer]}, copy=True, allow_dups=True
+            {axis: [keyarr, indexer]}, allow_dups=True
         )
 
     def _getitem_tuple(self, tup: tuple):
@@ -2090,7 +2105,7 @@ class _iLocIndexer(_LocationIndexer):
                         tuple(sub_indexer),
                         value[item],
                         multiindex_indexer,
-                        using_cow=using_copy_on_write(),
+                        using_cow=True,
                     )
                 else:
                     val = np.nan
@@ -2263,7 +2278,7 @@ class _iLocIndexer(_LocationIndexer):
             has_dtype = hasattr(value, "dtype")
             if isinstance(value, ABCSeries):
                 # append a Series
-                value = value.reindex(index=self.obj.columns, copy=True)
+                value = value.reindex(index=self.obj.columns)
                 value.name = indexer
             elif isinstance(value, dict):
                 value = Series(
@@ -2293,7 +2308,7 @@ class _iLocIndexer(_LocationIndexer):
                 if not has_dtype:
                     # i.e. if we already had a Series or ndarray, keep that
                     #  dtype.  But if we had a list or dict, then do inference
-                    df = df.infer_objects(copy=False)
+                    df = df.infer_objects()
                 self.obj._mgr = df._mgr
             else:
                 self.obj._mgr = self.obj._append(value)._mgr
@@ -2366,7 +2381,8 @@ class _iLocIndexer(_LocationIndexer):
             # we have a frame, with multiple indexers on both axes; and a
             # series, so need to broadcast (see GH5206)
             if sum_aligners == self.ndim and all(is_sequence(_) for _ in indexer):
-                ser_values = ser.reindex(obj.axes[0][indexer[0]], copy=True)._values
+                # TODO(CoW): copy shouldn't be needed here
+                ser_values = ser.reindex(obj.axes[0][indexer[0]]).copy()._values
 
                 # single indexer
                 if len(indexer) > 1 and not multiindex_indexer:

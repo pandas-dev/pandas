@@ -91,8 +91,8 @@ will be completed:
    df2.any                df2.combine
    df2.append             df2.D
    df2.apply              df2.describe
-   df2.applymap           df2.diff
    df2.B                  df2.duplicated
+   df2.diff
 
 As you can see, the columns ``A``, ``B``, ``C``, and ``D`` are automatically
 tab completed. ``E`` and ``F`` are there as well; the rest of the attributes have been
