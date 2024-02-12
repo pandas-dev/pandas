@@ -339,7 +339,7 @@ def _get_dummies_1d(
             )
             sparse_series.append(Series(data=sarr, index=index, name=col, copy=False))
 
-        return concat(sparse_series, axis=1, copy=False)
+        return concat(sparse_series, axis=1)
 
     else:
         # ensure ndarray layout is column-major

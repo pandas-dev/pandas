@@ -1361,7 +1361,7 @@ class FrameColumnApply(FrameApply):
         result.index = res_index
 
         # infer dtypes
-        result = result.infer_objects(copy=False)
+        result = result.infer_objects()
 
         return result
 
@@ -1873,7 +1873,7 @@ def relabel_result(
         # assign the new user-provided "named aggregation" as index names, and reindex
         # it based on the whole user-provided names.
         s.index = reordered_indexes[idx : idx + len(fun)]
-        reordered_result_in_dict[col] = s.reindex(columns, copy=False)
+        reordered_result_in_dict[col] = s.reindex(columns)
         idx = idx + len(fun)
     return reordered_result_in_dict
 
