@@ -245,18 +245,6 @@ class TestDecimalArray(base.ExtensionTests):
         ):
             super().test_fillna_series_method(data_missing, fillna_method)
 
-    def test_fillna_copy_frame(self, data_missing, using_copy_on_write):
-        warn = DeprecationWarning if not using_copy_on_write else None
-        msg = "ExtensionArray.fillna added a 'copy' keyword"
-        with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-            super().test_fillna_copy_frame(data_missing)
-
-    def test_fillna_copy_series(self, data_missing, using_copy_on_write):
-        warn = DeprecationWarning if not using_copy_on_write else None
-        msg = "ExtensionArray.fillna added a 'copy' keyword"
-        with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-            super().test_fillna_copy_series(data_missing)
-
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna):
         all_data = all_data[:10]
@@ -554,12 +542,11 @@ def test_to_numpy_keyword():
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_array_copy_on_write(using_copy_on_write):
+def test_array_copy_on_write():
     df = pd.DataFrame({"a": [decimal.Decimal(2), decimal.Decimal(3)]}, dtype="object")
     df2 = df.astype(DecimalDtype())
     df.iloc[0, 0] = 0
-    if using_copy_on_write:
-        expected = pd.DataFrame(
-            {"a": [decimal.Decimal(2), decimal.Decimal(3)]}, dtype=DecimalDtype()
-        )
-        tm.assert_equal(df2.values, expected.values)
+    expected = pd.DataFrame(
+        {"a": [decimal.Decimal(2), decimal.Decimal(3)]}, dtype=DecimalDtype()
+    )
+    tm.assert_equal(df2.values, expected.values)
