@@ -369,7 +369,6 @@ Experimental support has been added to export ``DataFrame.style`` formats to Exc
 For example, after running the following, ``styled.xlsx`` renders as below:
 
 .. ipython:: python
-   :okwarning:
 
    np.random.seed(24)
    df = pd.DataFrame({'A': np.linspace(1, 10, 10)})
@@ -379,7 +378,7 @@ For example, after running the following, ``styled.xlsx`` renders as below:
    df.iloc[0, 2] = np.nan
    df
    styled = (df.style
-             .applymap(lambda val: 'color:red;' if val < 0 else 'color:black;')
+             .map(lambda val: 'color:red;' if val < 0 else 'color:black;')
              .highlight_max())
    styled.to_excel('styled.xlsx', engine='openpyxl')
 

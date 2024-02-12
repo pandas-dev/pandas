@@ -161,7 +161,6 @@ from pandas.core.indexes.api import (
     ensure_index,
 )
 from pandas.core.internals import BlockManager
-from pandas.core.internals.construction import ndarray_to_mgr
 from pandas.core.methods.describe import describe_ndframe
 from pandas.core.missing import (
     clean_fill_method,
@@ -735,15 +734,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         %(klass)s.rename_axis : Alter the name of the index%(see_also_sub)s.
         """
-        return self._set_axis_nocheck(labels, axis, inplace=False, copy=copy)
+        return self._set_axis_nocheck(labels, axis, inplace=False)
 
     @final
-    def _set_axis_nocheck(self, labels, axis: Axis, inplace: bool, copy: bool | None):
+    def _set_axis_nocheck(self, labels, axis: Axis, inplace: bool):
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
         else:
-            # With copy=False, we create a new object but don't copy the
-            #  underlying data.
             obj = self.copy(deep=False)
             setattr(obj, obj._get_axis_name(axis), labels)
             return obj
@@ -756,66 +753,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         labels = ensure_index(labels)
         self._mgr.set_axis(axis, labels)
-
-    @final
-    def swapaxes(self, axis1: Axis, axis2: Axis, copy: bool | None = None) -> Self:
-        """
-        Interchange axes and swap values axes appropriately.
-
-        .. deprecated:: 2.1.0
-            ``swapaxes`` is deprecated and will be removed.
-            Please use ``transpose`` instead.
-
-        Returns
-        -------
-        same as input
-
-        Examples
-        --------
-        Please see examples for :meth:`DataFrame.transpose`.
-        """
-        warnings.warn(
-            # GH#51946
-            f"'{type(self).__name__}.swapaxes' is deprecated and "
-            "will be removed in a future version. "
-            f"Please use '{type(self).__name__}.transpose' instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-        i = self._get_axis_number(axis1)
-        j = self._get_axis_number(axis2)
-
-        if i == j:
-            return self.copy(deep=False)
-
-        mapping = {i: j, j: i}
-
-        new_axes = [self._get_axis(mapping.get(k, k)) for k in range(self._AXIS_LEN)]
-        new_values = self._values.swapaxes(i, j)  # type: ignore[union-attr]
-        if self._mgr.is_single_block and isinstance(self._mgr, BlockManager):
-            # This should only get hit in case of having a single block, otherwise a
-            # copy is made, we don't have to set up references.
-            new_mgr = ndarray_to_mgr(
-                new_values,
-                new_axes[0],
-                new_axes[1],
-                dtype=None,
-                copy=False,
-            )
-            assert isinstance(new_mgr, BlockManager)
-            assert isinstance(self._mgr, BlockManager)
-            new_mgr.blocks[0].refs = self._mgr.blocks[0].refs
-            new_mgr.blocks[0].refs.add_reference(new_mgr.blocks[0])
-            out = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
-            return out.__finalize__(self, method="swapaxes")
-
-        return self._constructor(
-            new_values,
-            *new_axes,
-            # The no-copy case for CoW is handled above
-            copy=False,
-        ).__finalize__(self, method="swapaxes")
 
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
@@ -880,7 +817,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         labels = self._get_axis(axis)
         new_labels = labels.droplevel(level)
-        return self.set_axis(new_labels, axis=axis, copy=None)
+        return self.set_axis(new_labels, axis=axis)
 
     def pop(self, item: Hashable) -> Series | Any:
         result = self[item]
@@ -1069,7 +1006,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     raise KeyError(f"{missing_labels} not found in axis")
 
             new_index = ax._transform_index(f, level=level)
-            result._set_axis_nocheck(new_index, axis=axis_no, inplace=True, copy=False)
+            result._set_axis_nocheck(new_index, axis=axis_no, inplace=True)
 
         if inplace:
             self._update_inplace(result)
@@ -4137,9 +4074,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         slobj = self.index._convert_slice_indexer(key, kind="getitem")
         if isinstance(slobj, np.ndarray):
             # reachable with DatetimeIndex
-            indexer = lib.maybe_indices_to_slice(
-                slobj.astype(np.intp, copy=False), len(self)
-            )
+            indexer = lib.maybe_indices_to_slice(slobj.astype(np.intp), len(self))
             if isinstance(indexer, np.ndarray):
                 # GH#43223 If we can not convert, use take
                 return self.take(indexer, axis=0)
@@ -4385,7 +4320,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         d = other._construct_axes_dict(
             axes=self._AXIS_ORDERS,
             method=method,
-            copy=copy,
             limit=limit,
             tolerance=tolerance,
         )
@@ -4551,7 +4485,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             indexer,
             axis=bm_axis,
             allow_dups=True,
-            copy=None,
             only_slice=only_slice,
         )
         result = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
@@ -4992,7 +4925,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if inplace:
                 result = self
             else:
-                result = self.copy(deep=None)
+                result = self.copy(deep=False)
 
             if ignore_index:
                 if axis == 1:
@@ -5290,7 +5223,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # perform the reindex on the axes
         return self._reindex_axes(
-            axes, level, limit, tolerance, method, fill_value, False
+            axes, level, limit, tolerance, method, fill_value
         ).__finalize__(self, method="reindex")
 
     @final
@@ -5302,7 +5235,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         tolerance,
         method,
         fill_value: Scalar | None,
-        copy: bool | None,
     ) -> Self:
         """Perform the reindex for all the axes."""
         obj = self
@@ -5320,11 +5252,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             obj = obj._reindex_with_indexers(
                 {axis: [new_index, indexer]},
                 fill_value=fill_value,
-                copy=copy,
                 allow_dups=False,
             )
-            # If we've made a copy once, no need to make another one
-            copy = False
 
         return obj
 
@@ -5347,7 +5276,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         reindexers,
         fill_value=None,
-        copy: bool | None = False,
         allow_dups: bool = False,
     ) -> Self:
         """allow_dups indicates an internal call here"""
@@ -5371,10 +5299,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 axis=baxis,
                 fill_value=fill_value,
                 allow_dups=allow_dups,
-                copy=copy,
             )
-            # If we've made a copy once, no need to make another one
-            copy = False
 
         if new_data is self._mgr:
             new_data = new_data.copy(deep=False)
@@ -6307,7 +6232,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         f"'{col_name}' not found in columns."
                     )
 
-            dtype_ser = dtype_ser.reindex(self.columns, fill_value=None, copy=False)
+            dtype_ser = dtype_ser.reindex(self.columns, fill_value=None)
 
             results = []
             for i, (col_name, col) in enumerate(self.items()):
@@ -7000,11 +6925,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         # test_fillna_nonscalar
                         if inplace:
                             return None
-                        return self.copy(deep=None)
+                        return self.copy(deep=False)
                     from pandas import Series
 
                     value = Series(value)
-                    value = value.reindex(self.index, copy=False)
+                    value = value.reindex(self.index)
                     value = value._values
                 elif not is_list_like(value):
                     pass
@@ -9820,7 +9745,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     join=join,
                     axis=axis,
                     level=level,
-                    copy=copy,
                     fill_value=fill_value,
                     method=method,
                     limit=limit,
@@ -9840,7 +9764,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     join=join,
                     axis=axis,
                     level=level,
-                    copy=copy,
                     fill_value=fill_value,
                     method=method,
                     limit=limit,
@@ -9856,7 +9779,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 join=join,
                 axis=axis,
                 level=level,
-                copy=copy,
                 fill_value=fill_value,
                 method=method,
                 limit=limit,
@@ -9869,7 +9791,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 join=join,
                 axis=axis,
                 level=level,
-                copy=copy,
                 fill_value=fill_value,
                 method=method,
                 limit=limit,
@@ -9903,7 +9824,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level=None,
-        copy: bool | None = None,
         fill_value=None,
         method=None,
         limit: int | None = None,
@@ -9936,12 +9856,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             reindexers = {0: [join_index, ilidx], 1: [join_columns, clidx]}
 
         left = self._reindex_with_indexers(
-            reindexers, copy=copy, fill_value=fill_value, allow_dups=True
+            reindexers, fill_value=fill_value, allow_dups=True
         )
         # other must be always DataFrame
         right = other._reindex_with_indexers(
             {0: [join_index, iridx], 1: [join_columns, cridx]},
-            copy=copy,
             fill_value=fill_value,
             allow_dups=True,
         )
@@ -9959,14 +9878,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level=None,
-        copy: bool | None = None,
         fill_value=None,
         method=None,
         limit: int | None = None,
         fill_axis: Axis = 0,
     ) -> tuple[Self, Series, Index | None]:
         is_series = isinstance(self, ABCSeries)
-        copy = False
 
         if (not is_series and axis is None) or axis not in [None, 0, 1]:
             raise ValueError("Must specify axis=0 or 1")
@@ -9987,9 +9904,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if is_series:
                 left = self._reindex_indexer(join_index, lidx)
             elif lidx is None or join_index is None:
-                left = self.copy(deep=copy)
+                left = self.copy(deep=False)
             else:
-                new_mgr = self._mgr.reindex_indexer(join_index, lidx, axis=1, copy=copy)
+                new_mgr = self._mgr.reindex_indexer(join_index, lidx, axis=1)
                 left = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
 
             right = other._reindex_indexer(join_index, ridx)
@@ -10008,13 +9925,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 bm_axis = self._get_block_manager_axis(1)
                 fdata = fdata.reindex_indexer(join_index, lidx, axis=bm_axis)
 
-            if copy and fdata is self._mgr:
-                fdata = fdata.copy()
-
             left = self._constructor_from_mgr(fdata, axes=fdata.axes)
 
             if ridx is None:
-                right = other.copy(deep=copy)
+                right = other.copy(deep=False)
             else:
                 right = other.reindex(join_index, level=level)
 
@@ -10059,7 +9973,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     copy=False,
                 )
                 cond.columns = self.columns
-            cond = cond.align(self, join="right", copy=False)[0]
+            cond = cond.align(self, join="right")[0]
         else:
             if not hasattr(cond, "shape"):
                 cond = np.asanyarray(cond)
@@ -10076,7 +9990,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 category=FutureWarning,
             )
             cond = cond.fillna(fill_value)
-        cond = cond.infer_objects(copy=False)
+        cond = cond.infer_objects()
 
         msg = "Boolean array expected for the condition, not {dtype}"
 
@@ -10100,7 +10014,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             cond = cond.astype(bool)
 
         cond = -cond if inplace else cond
-        cond = cond.reindex(self._info_axis, axis=self._info_axis_number, copy=False)
+        cond = cond.reindex(self._info_axis, axis=self._info_axis_number)
 
         # try to align with other
         if isinstance(other, NDFrame):
@@ -10113,7 +10027,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     axis=axis,
                     level=level,
                     fill_value=None,
-                    copy=False,
                 )[1]
 
                 # if we are NOT aligned, raise as we cannot where index
@@ -10925,7 +10838,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ax = _tz_convert(ax, tz)
 
         result = self.copy(deep=False)
-        result = result.set_axis(ax, axis=axis, copy=False)
+        result = result.set_axis(ax, axis=axis)
         return result.__finalize__(self, method="tz_convert")
 
     @final
@@ -11131,7 +11044,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ax = _tz_localize(ax, tz, ambiguous, nonexistent)
 
         result = self.copy(deep=False)
-        result = result.set_axis(ax, axis=axis, copy=False)
+        result = result.set_axis(ax, axis=axis)
         return result.__finalize__(self, method="tz_localize")
 
     # ----------------------------------------------------------------------
