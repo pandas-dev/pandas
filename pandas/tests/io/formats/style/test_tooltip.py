@@ -24,23 +24,19 @@ def styler(df):
     return Styler(df, uuid_len=0)
 
 
-ttips_dfs = [
-    DataFrame(  # Test basic reindex and ignoring blank
-        data=[["Min", "Max"], [np.nan, ""]],
-        columns=["A", "C"],
-        index=["x", "y"],
-    ),
-    DataFrame(  # Test non-referenced columns, reversed col names, short index
-        data=[["Max", "Min", "Bad-Col"]], columns=["C", "A", "D"], index=["x"]
-    ),
-]
-
-
-@pytest.fixture(params=ttips_dfs)
-def ttips(request):
-    return request.param
-
-
+@pytest.mark.parametrize(
+    "ttips",
+    [
+        DataFrame(  # Test basic reindex and ignoring blank
+            data=[["Min", "Max"], [np.nan, ""]],
+            columns=["A", "C"],
+            index=["x", "y"],
+        ),
+        DataFrame(  # Test non-referenced columns, reversed col names, short index
+            data=[["Max", "Min", "Bad-Col"]], columns=["C", "A", "D"], index=["x"]
+        ),
+    ],
+)
 def test_tooltip_render(ttips, styler):
     # GH 21266
     result = styler.set_tooltips(ttips).to_html()
@@ -93,6 +89,19 @@ def test_tooltip_css_class(styler):
     assert "#T_ .another-class {\n  color: green;\n  color: red;\n}" in result
 
 
+@pytest.mark.parametrize(
+    "ttips",
+    [
+        DataFrame(  # Test basic reindex and ignoring blank
+            data=[["Min", "Max"], [np.nan, ""]],
+            columns=["A", "C"],
+            index=["x", "y"],
+        ),
+        DataFrame(  # Test non-referenced columns, reversed col names, short index
+            data=[["Max", "Min", "Bad-Col"]], columns=["C", "A", "D"], index=["x"]
+        ),
+    ],
+)
 def test_tooltip_render_as_title(ttips, styler):
     # GH 56605
     result = styler.set_tooltips(ttips, as_title_attribute=True).to_html()
