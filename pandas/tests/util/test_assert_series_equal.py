@@ -474,3 +474,11 @@ def test_assert_series_equal_int_tol():
     tm.assert_extension_array_equal(
         left.astype("Int64").values, right.astype("Int64").values, rtol=1.5
     )
+
+
+def test_assert_series_equal_index_exact_default():
+    # GH#57067
+    ser1 = Series(np.zeros(6, dtype=int), [0, 0.2, 0.4, 0.6, 0.8, 1])
+    ser2 = Series(np.zeros(6, dtype=int), np.linspace(0, 1, 6))
+    tm.assert_series_equal(ser1, ser2)
+    tm.assert_frame_equal(ser1.to_frame(), ser2.to_frame())
