@@ -46,6 +46,7 @@ def test(extra_args: list[str] | None = None, run_doctests: bool = False) -> Non
         ]
     cmd += [PKG]
     joined = " ".join(cmd)
+    joined += " -v -k 'test_from_pandas_array[m8[ns]]"
     print(f"running: pytest {joined}")
     sys.exit(pytest.main(cmd))
 

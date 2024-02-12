@@ -68,7 +68,7 @@ jobs:
           cd pandas
           # we want to place the pandas_tests wheel in the same
           # dist directory as the sdist
-          python -m build --wheel --outdir ../dist
+          python -m build --wheel --outdir ../dist --no-isolation
 
       - uses: actions/upload-artifact@v4
         with:

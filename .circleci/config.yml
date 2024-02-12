@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   test-arm:
     machine:
-      image: ubuntu-2004:2022.04.1
+      image: default
     resource_class: arm.large
     environment:
       ENV_FILE: ci/deps/circle-310-arm64.yaml
@@ -46,7 +46,7 @@ jobs:
       cibw-build:
         type: string
     machine:
-      image: ubuntu-2004:2022.04.1
+      image: default
     resource_class: arm.large
     environment:
       TRIGGER_SOURCE: << pipeline.trigger_source >>
@@ -75,13 +75,15 @@ jobs:
           # (unlike Github Actions there is no host access using cibuildwheel with CircleCI)
           name: Build the sdist
           command: |
-            pip3 install build
+            pip3 install build setuptools-scm
             python3 -m build --sdist
             sdist_name=$(ls ./dist/*.tar.gz)
             mkdir unzipped-sdist
             tar -xzf $sdist_name -C unzipped-sdist --strip-components=1
             cd pandas
-            python3 -m build --wheel --outdir ../unzipped-sdist
+            # Have to disable isolation otherwise
+            # we won't be able to pull the version correctly
+            python3 -m build --wheel --no-isolation --outdir ../unzipped-sdist
             cd ..
             echo "sdist_name=./unzipped-sdist" >> "$BASH_ENV"
             echo "pandas_tests_loc=$(ls ./unzipped-sdist/*.whl)" >> "$BASH_ENV"

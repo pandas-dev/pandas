@@ -9,7 +9,7 @@ requires = [
 name="pandas-tests"
 # Note: The version is hardcoded since the pandas version has to
 # match the tests version. Remember to bump both!
-version="2.1"
+dynamic = ["version"]
 #dependencies=[
 #    "pandas==2.1.0"
 #]
@@ -17,6 +17,9 @@ requires-python=">=3.9"
 
 [tool.setuptools]
 package-dir={"pandas_tests"= "tests"}
+
+[tool.setuptools_scm]
+root = ".."
 
 [tool.setuptools.package-data]
 "pandas_tests"=["pytest.ini"]
