@@ -311,7 +311,6 @@ generated/pandas.DataFrame.align,../reference/api/pandas.DataFrame.align
 generated/pandas.DataFrame.all,../reference/api/pandas.DataFrame.all
 generated/pandas.DataFrame.any,../reference/api/pandas.DataFrame.any
 generated/pandas.DataFrame.apply,../reference/api/pandas.DataFrame.apply
-generated/pandas.DataFrame.applymap,../reference/api/pandas.DataFrame.applymap
 generated/pandas.DataFrame.as_blocks,../reference/api/pandas.DataFrame.as_blocks
 generated/pandas.DataFrame.asfreq,../reference/api/pandas.DataFrame.asfreq
 generated/pandas.DataFrame.as_matrix,../reference/api/pandas.DataFrame.as_matrix
@@ -747,8 +746,6 @@ generated/pandas.Interval.overlaps,../reference/api/pandas.Interval.overlaps
 generated/pandas.interval_range,../reference/api/pandas.interval_range
 generated/pandas.Interval.right,../reference/api/pandas.Interval.right
 generated/pandas.io.formats.style.Styler.apply,../reference/api/pandas.io.formats.style.Styler.apply
-generated/pandas.io.formats.style.Styler.applymap,../reference/api/pandas.io.formats.style.Styler.map
-generated/pandas.io.formats.style.Styler.applymap_index,../reference/api/pandas.io.formats.style.Styler.map_index
 generated/pandas.io.formats.style.Styler.background_gradient,../reference/api/pandas.io.formats.style.Styler.background_gradient
 generated/pandas.io.formats.style.Styler.bar,../reference/api/pandas.io.formats.style.Styler.bar
 generated/pandas.io.formats.style.Styler.clear,../reference/api/pandas.io.formats.style.Styler.clear
@@ -1432,8 +1429,6 @@ reference/api/pandas.arrays.PandasArray,pandas.arrays.NumpyExtensionArray
 reference/api/pandas.core.groupby.DataFrameGroupBy.backfill,pandas.core.groupby.DataFrameGroupBy.bfill
 reference/api/pandas.core.groupby.GroupBy.backfill,pandas.core.groupby.DataFrameGroupBy.bfill
 reference/api/pandas.core.resample.Resampler.backfill,pandas.core.resample.Resampler.bfill
-reference/api/pandas.io.formats.style.Styler.applymap,pandas.io.formats.style.Styler.map
-reference/api/pandas.io.formats.style.Styler.applymap_index,pandas.io.formats.style.Styler.map_index
 
 # EWM -> ExponentialMovingWindow
 reference/api/pandas.core.window.ewm.EWM.corr,pandas.core.window.ewm.ExponentialMovingWindow.corr
