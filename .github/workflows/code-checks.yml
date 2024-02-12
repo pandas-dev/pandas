@@ -86,7 +86,7 @@ jobs:
       if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Typing + pylint
-      uses: pre-commit/action@v3.0.0
+      uses: pre-commit/action@v3.0.1
       with:
         extra_args: --verbose --hook-stage manual --all-files
       if: ${{ steps.build.outcome == 'success' && always() }}
