@@ -87,8 +87,8 @@ with the dtype.
 .. note::
 
    Adding an empty column with :attr:`pandas.NA` creates a column dtype of 
-   ``"Object"`` while :attr:`pandas.NaT` creates ``"datetime64"``. To 
-   specify the dtypes, use :meth:`pandas.Series` with the appropriate dtype.
+   ``"Object"`` while :attr:`pandas.NaT` creates ``"datetime64"``. To specify 
+   the dtypes, use :meth:`pandas.Series` with the appropriate dtype.
 
 
 Operations
