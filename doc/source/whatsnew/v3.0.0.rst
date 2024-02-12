@@ -76,7 +76,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+---------------------+
 | Package         | New Minimum Version |
 +=================+=====================+
-|                 |                     |
+| fastparquet     | 2023.04.0           |
 +-----------------+---------------------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
