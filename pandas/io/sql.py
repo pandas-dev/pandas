@@ -1004,13 +1004,12 @@ class SQLTable(PandasObject):
 
     def _execute_insert_multi(self, conn, keys: list[str], data_iter) -> int:
         """
-        Alternative to _execute_insert for DBs support multivalue INSERT.
+        Alternative to _execute_insert for DBs support multi-value INSERT.
 
         Note: multi-value insert is usually faster for analytics DBs
         and tables containing a few columns
         but performance degrades quickly with increase of columns.
 
-        Note: Oracle does not support multi-value insert
         """
 
         from sqlalchemy import insert
