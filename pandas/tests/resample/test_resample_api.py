@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
-from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
 from pandas import (
@@ -295,32 +294,6 @@ def test_transform_frame(on):
     r = df.resample("20min", on=on)
     result = r.transform("mean")
     tm.assert_frame_equal(result, expected)
-
-
-def test_fillna():
-    # need to upsample here
-    rng = date_range("1/1/2012", periods=10, freq="2s")
-    ts = Series(np.arange(len(rng), dtype="int64"), index=rng)
-    r = ts.resample("s")
-
-    expected = r.ffill()
-    msg = "DatetimeIndexResampler.fillna is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = r.fillna(method="ffill")
-    tm.assert_series_equal(result, expected)
-
-    expected = r.bfill()
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = r.fillna(method="bfill")
-    tm.assert_series_equal(result, expected)
-
-    msg2 = (
-        r"Invalid fill method\. Expecting pad \(ffill\), backfill "
-        r"\(bfill\) or nearest\. Got 0"
-    )
-    with pytest.raises(ValueError, match=msg2):
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            r.fillna(0)
 
 
 @pytest.mark.parametrize(
@@ -985,46 +958,6 @@ def test_series_downsample_method(method, numeric_only, expected_data):
         result = func(**kwargs)
         expected = Series(expected_data, index=expected_index)
         tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "method, raises",
-    [
-        ("sum", True),
-        ("prod", True),
-        ("min", True),
-        ("max", True),
-        ("first", False),
-        ("last", False),
-        ("median", False),
-        ("mean", True),
-        ("std", True),
-        ("var", True),
-        ("sem", False),
-        ("ohlc", False),
-        ("nunique", False),
-    ],
-)
-def test_args_kwargs_depr(method, raises):
-    index = date_range("20180101", periods=3, freq="h")
-    df = Series([2, 4, 6], index=index)
-    resampled = df.resample("30min")
-    args = ()
-
-    func = getattr(resampled, method)
-
-    error_msg = "numpy operations are not valid with resample."
-    error_msg_type = "too many arguments passed in"
-    warn_msg = f"Passing additional args to DatetimeIndexResampler.{method}"
-
-    if raises:
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-                func(*args, 1, 2, 3, 4)
-    else:
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            with pytest.raises(TypeError, match=error_msg_type):
-                func(*args, 1, 2, 3, 4)
 
 
 def test_resample_empty():
