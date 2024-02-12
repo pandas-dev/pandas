@@ -17,6 +17,16 @@ import pandas._testing as tm
 
 
 class TestSeriesMissingData:
+    def test_keyword_deprecation(self):
+        # GH 57280
+        msg = (
+            "Starting with pandas version 3.0.1 all arguments of to_markdown "
+            "except for the argument 'buf' will be keyword-only."
+        )
+        s = Series(Categorical(["a", "b", np.nan, "a"]))
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            s.to_markdown(None, "wt")
+
     def test_categorical_nan_handling(self):
         # NaNs are represented as -1 in labels
         s = Series(Categorical(["a", "b", np.nan, "a"]))
