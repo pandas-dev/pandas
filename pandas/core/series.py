@@ -4481,7 +4481,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def apply(
         self,
         func: AggFuncType,
-        convert_dtype: bool | lib.NoDefault = lib.no_default,
         args: tuple[Any, ...] = (),
         *,
         by_row: Literal[False, "compat"] = "compat",
@@ -4497,14 +4496,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         func : function
             Python function or NumPy ufunc to apply.
-        convert_dtype : bool, default True
-            Try to find better dtype for elementwise function results. If
-            False, leave as dtype=object. Note that the dtype is always
-            preserved for some extension array dtypes, such as Categorical.
-
-            .. deprecated:: 2.1.0
-                ``convert_dtype`` has been deprecated. Do ``ser.astype(object).apply()``
-                instead if you want ``convert_dtype=False``.
         args : tuple
             Positional arguments passed to func after the series value.
         by_row : False or "compat", default "compat"
@@ -4608,7 +4599,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return SeriesApply(
             self,
             func,
-            convert_dtype=convert_dtype,
             by_row=by_row,
             args=args,
             kwargs=kwargs,
