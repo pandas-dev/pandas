@@ -120,6 +120,7 @@ Removal of prior version deprecations/changes
 - Removed ``StataReader.close`` (:issue:`49228`)
 - Removed ``axis`` argument from :meth:`DataFrame.groupby`, :meth:`Series.groupby`, :meth:`DataFrame.rolling`, :meth:`Series.rolling`, :meth:`DataFrame.resample`, and :meth:`Series.resample` (:issue:`51203`)
 - Removed ``axis`` argument from all groupby operations (:issue:`50405`)
+- Removed ``convert_dtype`` from :meth:`Series.apply` (:issue:`52257`)
 - Removed ``pandas.api.types.is_interval`` and ``pandas.api.types.is_period``, use ``isinstance(obj, pd.Interval)`` and ``isinstance(obj, pd.Period)`` instead (:issue:`55264`)
 - Removed ``pandas.io.sql.execute`` (:issue:`50185`)
 - Removed ``pandas.value_counts``, use :meth:`Series.value_counts` instead (:issue:`53493`)
@@ -133,6 +134,7 @@ Removal of prior version deprecations/changes
 - Removed the ``is_boolean``, ``is_integer``, ``is_floating``, ``holds_integer``, ``is_numeric``, ``is_categorical``, ``is_object``, and ``is_interval`` attributes of :class:`Index` (:issue:`50042`)
 - Removed unused arguments ``*args`` and ``**kwargs`` in :class:`Resampler` methods (:issue:`50977`)
 - Unrecognized timezones when parsing strings to datetimes now raises a ``ValueError`` (:issue:`51477`)
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.performance:
