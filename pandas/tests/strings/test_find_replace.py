@@ -355,6 +355,21 @@ def test_endswith_nullable_string_dtype(nullable_string_dtype, na):
 # --------------------------------------------------------------------------------------
 # str.replace
 # --------------------------------------------------------------------------------------
+def test_replace_dict_invalid(any_string_dtype):
+    # GH 51914
+    series = Series(data=["A", "B_junk", "C_gunk"], name="my_messy_col")
+    msg = "repl cannot be used when pat is a dictionary"
+
+    with pytest.raises(ValueError, match=msg):
+        series.str.replace(pat={"A": "a", "B": "b"}, repl="A")
+
+
+def test_replace_dict(any_string_dtype):
+    # GH 51914
+    series = Series(data=["A", "B", "C"], name="my_messy_col")
+    new_series = series.str.replace(pat={"A": "a", "B": "b"})
+    expected = Series(data=["a", "b", "C"], name="my_messy_col")
+    tm.assert_series_equal(new_series, expected)
 
 
 def test_replace(any_string_dtype):
