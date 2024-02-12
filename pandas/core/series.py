@@ -1632,6 +1632,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             +----+----------+"""
         ),
     )
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "buf"], name="to_markdown"
+    )
     def to_markdown(
         self,
         buf: IO[str] | None = None,
