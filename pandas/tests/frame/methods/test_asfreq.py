@@ -260,35 +260,26 @@ class TestAsFreq:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "freq, error, error_msg",
+        "freq, error_msg",
         [
             (
                 "2MS",
-                TypeError,
-                '"2MS" is not supported as a period frequency',
+                "MS is not supported as period frequency",
             ),
             (
                 offsets.MonthBegin(),
-                ValueError,
-                (
-                    "Invalid offset: '<MonthBegin>' for converting "
-                    "time series with PeriodIndex."
-                ),
+                r"\<MonthBegin\> is not supported as period frequency",
             ),
             (
                 offsets.DateOffset(months=2),
-                ValueError,
-                (
-                    "Invalid offset: '<DateOffset: months=2>' for converting "
-                    "time series with PeriodIndex."
-                ),
+                r"\<DateOffset: months=2\> is not supported as period frequency",
             ),
         ],
     )
-    def test_asfreq_unsupported_freq(self, freq, error, error_msg):
+    def test_asfreq_unsupported_freq(self, freq, error_msg):
         # https://github.com/pandas-dev/pandas/issues/56718
         index = PeriodIndex(["2020-01-01", "2021-01-01"], freq="M")
         df = DataFrame({"a": Series([0, 1], index=index)})
 
-        with pytest.raises(error, match=error_msg):
+        with pytest.raises(ValueError, match=error_msg):
             df.asfreq(freq=freq)
