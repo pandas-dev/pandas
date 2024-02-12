@@ -1,10 +1,7 @@
 import datetime
 from datetime import timedelta
 from decimal import Decimal
-from io import (
-    BytesIO,
-    StringIO,
-)
+from io import StringIO
 import json
 import os
 import sys
@@ -39,49 +36,29 @@ from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
 from pandas.io.json import ujson_dumps
 
 
-def test_literal_json_deprecation():
+def test_literal_json_raises():
     # PR 53409
-    expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
-
     jsonl = """{"a": 1, "b": 2}
         {"a": 3, "b": 4}
         {"a": 5, "b": 6}
         {"a": 7, "b": 8}"""
 
-    msg = (
-        "Passing literal json to 'read_json' is deprecated and "
-        "will be removed in a future version. To read from a "
-        "literal string, wrap it in a 'StringIO' object."
-    )
+    msg = r".* does not exist"
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        try:
-            read_json(jsonl, lines=False)
-        except ValueError:
-            pass
+    with pytest.raises(FileNotFoundError, match=msg):
+        read_json(jsonl, lines=False)
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        read_json(expected.to_json(), lines=False)
+    with pytest.raises(FileNotFoundError, match=msg):
+        read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
-        tm.assert_frame_equal(result, expected)
+    with pytest.raises(FileNotFoundError, match=msg):
+        read_json(
+            '{"a\\\\":"foo\\\\","b":"bar"}\n{"a\\\\":"foo\\"","b":"bar"}\n',
+            lines=False,
+        )
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        try:
-            result = read_json(
-                '{"a\\\\":"foo\\\\","b":"bar"}\n{"a\\\\":"foo\\"","b":"bar"}\n',
-                lines=False,
-            )
-        except ValueError:
-            pass
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        try:
-            result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=False)
-        except ValueError:
-            pass
-        tm.assert_frame_equal(result, expected)
+    with pytest.raises(FileNotFoundError, match=msg):
+        read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=False)
 
 
 def assert_json_roundtrip_equal(result, expected, orient):
@@ -2150,13 +2127,17 @@ def test_json_roundtrip_string_inference(orient):
     tm.assert_frame_equal(result, expected)
 
 
-def test_json_pos_args_deprecation():
-    # GH-54229
-    df = DataFrame({"a": [1, 2, 3]})
-    msg = (
-        r"Starting with pandas version 3.0 all arguments of to_json except for the "
-        r"argument 'path_or_buf' will be keyword-only."
+@td.skip_if_no("pyarrow")
+def test_to_json_ea_null():
+    # GH#57224
+    df = DataFrame(
+        {
+            "a": Series([1, NA], dtype="int64[pyarrow]"),
+            "b": Series([2, NA], dtype="Int64"),
+        }
     )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        buf = BytesIO()
-        df.to_json(buf, "split")
+    result = df.to_json(orient="records", lines=True)
+    expected = """{"a":1,"b":2}
+{"a":null,"b":null}
+"""
+    assert result == expected

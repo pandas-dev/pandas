@@ -71,29 +71,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (PR02)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=PR02 --ignore_functions \
-        pandas.io.formats.style.Styler.to_excel\
-        pandas.CategoricalIndex.rename_categories\
-        pandas.CategoricalIndex.reorder_categories\
-        pandas.CategoricalIndex.add_categories\
-        pandas.CategoricalIndex.remove_categories\
-        pandas.CategoricalIndex.set_categories\
-        pandas.IntervalIndex.set_closed\
-        pandas.IntervalIndex.contains\
-        pandas.IntervalIndex.overlaps\
-        pandas.IntervalIndex.to_tuples\
-        pandas.DatetimeIndex.round\
-        pandas.DatetimeIndex.floor\
-        pandas.DatetimeIndex.ceil\
-        pandas.DatetimeIndex.month_name\
-        pandas.DatetimeIndex.day_name\
-        pandas.DatetimeIndex.to_period\
-        pandas.DatetimeIndex.std\
-        pandas.TimedeltaIndex.round\
-        pandas.TimedeltaIndex.floor\
-        pandas.TimedeltaIndex.ceil\
-        pandas.PeriodIndex\
-        pandas.PeriodIndex.strftime\
-        pandas.Series.rename_axis\
         pandas.Series.dt.to_period\
         pandas.Series.dt.tz_localize\
         pandas.Series.dt.tz_convert\
@@ -110,15 +87,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.cat.remove_categories\
         pandas.Series.cat.set_categories\
         pandas.Series.plot\
-        pandas.Series.plot.bar\
-        pandas.Series.plot.barh\
-        pandas.Series.plot.line\
-        pandas.Series.plot.pie\
         pandas.DataFrame.plot\
-        pandas.DataFrame.plot.bar\
-        pandas.DataFrame.plot.barh\
-        pandas.DataFrame.plot.line\
-        pandas.DataFrame.plot.pie\
         pandas.tseries.offsets.DateOffset\
         pandas.tseries.offsets.BusinessDay\
         pandas.tseries.offsets.BDay\
@@ -159,7 +128,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.tseries.offsets.Milli\
         pandas.tseries.offsets.Micro\
         pandas.tseries.offsets.Nano\
-        pandas.set_option\
         pandas.Timestamp.max\
         pandas.Timestamp.min\
         pandas.Timestamp.resolution\
@@ -168,15 +136,73 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timedelta.resolution\
         pandas.Interval\
         pandas.Grouper\
-        pandas.core.groupby.SeriesGroupBy.apply\
         pandas.core.groupby.DataFrameGroupBy.nth\
-        pandas.core.groupby.DataFrameGroupBy.rolling\
         pandas.core.groupby.SeriesGroupBy.nth\
-        pandas.core.groupby.SeriesGroupBy.rolling\
-        pandas.core.groupby.DataFrameGroupBy.hist\
         pandas.core.groupby.DataFrameGroupBy.plot\
-        pandas.core.groupby.DataFrameGroupBy.corrwith\
         pandas.core.groupby.SeriesGroupBy.plot # There should be no backslash in the final line, please keep this comment in the last ignored function
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Partially validate docstrings (SA05)' ;  echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=SA05 --ignore_functions \
+        pandas.DataFrame.agg\
+        pandas.DataFrame.aggregate\
+        pandas.DataFrame.boxplot\
+        pandas.PeriodIndex.asfreq\
+        pandas.arrays.ArrowStringArray\
+        pandas.arrays.StringArray\
+        pandas.core.groupby.DataFrameGroupBy.first\
+        pandas.core.groupby.DataFrameGroupBy.last\
+        pandas.core.groupby.SeriesGroupBy.first\
+        pandas.core.groupby.SeriesGroupBy.last\
+        pandas.core.resample.Resampler.first\
+        pandas.core.resample.Resampler.last\
+        pandas.core.window.ewm.ExponentialMovingWindow.corr\
+        pandas.core.window.ewm.ExponentialMovingWindow.cov\
+        pandas.core.window.ewm.ExponentialMovingWindow.mean\
+        pandas.core.window.ewm.ExponentialMovingWindow.std\
+        pandas.core.window.ewm.ExponentialMovingWindow.sum\
+        pandas.core.window.ewm.ExponentialMovingWindow.var\
+        pandas.core.window.expanding.Expanding.aggregate\
+        pandas.core.window.expanding.Expanding.apply\
+        pandas.core.window.expanding.Expanding.corr\
+        pandas.core.window.expanding.Expanding.count\
+        pandas.core.window.expanding.Expanding.cov\
+        pandas.core.window.expanding.Expanding.kurt\
+        pandas.core.window.expanding.Expanding.max\
+        pandas.core.window.expanding.Expanding.mean\
+        pandas.core.window.expanding.Expanding.median\
+        pandas.core.window.expanding.Expanding.min\
+        pandas.core.window.expanding.Expanding.quantile\
+        pandas.core.window.expanding.Expanding.rank\
+        pandas.core.window.expanding.Expanding.sem\
+        pandas.core.window.expanding.Expanding.skew\
+        pandas.core.window.expanding.Expanding.std\
+        pandas.core.window.expanding.Expanding.sum\
+        pandas.core.window.expanding.Expanding.var\
+        pandas.core.window.rolling.Rolling.aggregate\
+        pandas.core.window.rolling.Rolling.apply\
+        pandas.core.window.rolling.Rolling.corr\
+        pandas.core.window.rolling.Rolling.count\
+        pandas.core.window.rolling.Rolling.cov\
+        pandas.core.window.rolling.Rolling.kurt\
+        pandas.core.window.rolling.Rolling.max\
+        pandas.core.window.rolling.Rolling.mean\
+        pandas.core.window.rolling.Rolling.median\
+        pandas.core.window.rolling.Rolling.min\
+        pandas.core.window.rolling.Rolling.quantile\
+        pandas.core.window.rolling.Rolling.rank\
+        pandas.core.window.rolling.Rolling.sem\
+        pandas.core.window.rolling.Rolling.skew\
+        pandas.core.window.rolling.Rolling.std\
+        pandas.core.window.rolling.Rolling.sum\
+        pandas.core.window.rolling.Rolling.var\
+        pandas.core.window.rolling.Window.mean\
+        pandas.core.window.rolling.Window.std\
+        pandas.core.window.rolling.Window.sum\
+        pandas.core.window.rolling.Window.var\
+        pandas.plotting.bootstrap_plot\
+        pandas.plotting.boxplot\
+        pandas.plotting.radviz # There should be no backslash in the final line, please keep this comment in the last ignored function
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

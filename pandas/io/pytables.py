@@ -30,7 +30,6 @@ import numpy as np
 from pandas._config import (
     config,
     get_option,
-    using_copy_on_write,
     using_pyarrow_string_dtype,
 )
 
@@ -384,9 +383,9 @@ def read_hdf(
 
     Examples
     --------
-    >>> df = pd.DataFrame([[1, 1.0, 'a']], columns=['x', 'y', 'z'])  # doctest: +SKIP
-    >>> df.to_hdf('./store.h5', 'data')  # doctest: +SKIP
-    >>> reread = pd.read_hdf('./store.h5')  # doctest: +SKIP
+    >>> df = pd.DataFrame([[1, 1.0, "a"]], columns=["x", "y", "z"])  # doctest: +SKIP
+    >>> df.to_hdf("./store.h5", "data")  # doctest: +SKIP
+    >>> reread = pd.read_hdf("./store.h5")  # doctest: +SKIP
     """
     if mode not in ["r", "r+", "a"]:
         raise ValueError(
@@ -527,9 +526,9 @@ class HDFStore:
     Examples
     --------
     >>> bar = pd.DataFrame(np.random.randn(10, 4))
-    >>> store = pd.HDFStore('test.h5')
-    >>> store['foo'] = bar   # write to HDF5
-    >>> bar = store['foo']   # retrieve
+    >>> store = pd.HDFStore("test.h5")
+    >>> store["foo"] = bar  # write to HDF5
+    >>> bar = store["foo"]  # retrieve
     >>> store.close()
 
     **Create or load HDF5 file in-memory**
@@ -539,9 +538,9 @@ class HDFStore:
     written when closed:
 
     >>> bar = pd.DataFrame(np.random.randn(10, 4))
-    >>> store = pd.HDFStore('test.h5', driver='H5FD_CORE')
-    >>> store['foo'] = bar
-    >>> store.close()   # only now, data is written to disk
+    >>> store = pd.HDFStore("test.h5", driver="H5FD_CORE")
+    >>> store["foo"] = bar
+    >>> store.close()  # only now, data is written to disk
     """
 
     _handle: File | None
@@ -665,10 +664,10 @@ class HDFStore:
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
-        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
-        >>> store.put('data', df)  # doctest: +SKIP
-        >>> store.get('data')  # doctest: +SKIP
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df)  # doctest: +SKIP
+        >>> store.get("data")  # doctest: +SKIP
         >>> print(store.keys())  # doctest: +SKIP
         ['/data1', '/data2']
         >>> store.close()  # doctest: +SKIP
@@ -794,10 +793,10 @@ class HDFStore:
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
-        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
-        >>> store.put('data', df)  # doctest: +SKIP
-        >>> store.get('data')  # doctest: +SKIP
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df)  # doctest: +SKIP
+        >>> store.get("data")  # doctest: +SKIP
         >>> store.close()  # doctest: +SKIP
         """
         with patch_pickle():
@@ -856,17 +855,17 @@ class HDFStore:
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
-        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
-        >>> store.put('data', df)  # doctest: +SKIP
-        >>> store.get('data')  # doctest: +SKIP
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df)  # doctest: +SKIP
+        >>> store.get("data")  # doctest: +SKIP
         >>> print(store.keys())  # doctest: +SKIP
         ['/data1', '/data2']
-        >>> store.select('/data1')  # doctest: +SKIP
+        >>> store.select("/data1")  # doctest: +SKIP
            A  B
         0  1  2
         1  3  4
-        >>> store.select('/data1', where='columns == A')  # doctest: +SKIP
+        >>> store.select("/data1", where="columns == A")  # doctest: +SKIP
            A
         0  1
         1  3
@@ -1146,9 +1145,9 @@ class HDFStore:
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
-        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
-        >>> store.put('data', df)  # doctest: +SKIP
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df)  # doctest: +SKIP
         """
         if format is None:
             format = get_option("io.hdf.default_format") or "fixed"
@@ -1288,11 +1287,11 @@ class HDFStore:
 
         Examples
         --------
-        >>> df1 = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
-        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
-        >>> store.put('data', df1, format='table')  # doctest: +SKIP
-        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=['A', 'B'])
-        >>> store.append('data', df2)  # doctest: +SKIP
+        >>> df1 = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df1, format="table")  # doctest: +SKIP
+        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=["A", "B"])
+        >>> store.append("data", df2)  # doctest: +SKIP
         >>> store.close()  # doctest: +SKIP
            A  B
         0  1  2
@@ -1479,9 +1478,9 @@ class HDFStore:
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
-        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
-        >>> store.put('data', df)  # doctest: +SKIP
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df)  # doctest: +SKIP
         >>> print(store.groups())  # doctest: +SKIP
         >>> store.close()  # doctest: +SKIP
         [/data (Group) ''
@@ -1534,11 +1533,11 @@ class HDFStore:
 
         Examples
         --------
-        >>> df1 = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
-        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
-        >>> store.put('data', df1, format='table')  # doctest: +SKIP
-        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=['A', 'B'])
-        >>> store.append('data', df2)  # doctest: +SKIP
+        >>> df1 = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df1, format="table")  # doctest: +SKIP
+        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=["A", "B"])
+        >>> store.append("data", df2)  # doctest: +SKIP
         >>> store.close()  # doctest: +SKIP
         >>> for group in store.walk():  # doctest: +SKIP
         ...     print(group)  # doctest: +SKIP
@@ -1660,9 +1659,9 @@ class HDFStore:
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
-        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
-        >>> store.put('data', df)  # doctest: +SKIP
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df)  # doctest: +SKIP
         >>> print(store.info())  # doctest: +SKIP
         >>> store.close()  # doctest: +SKIP
         <class 'pandas.io.pytables.HDFStore'>
@@ -3294,13 +3293,8 @@ class BlockManagerFixed(GenericFixed):
             dfs.append(df)
 
         if len(dfs) > 0:
-            out = concat(dfs, axis=1, copy=True)
-            if using_copy_on_write():
-                # with CoW, concat ignores the copy keyword. Here, we still want
-                # to copy to enforce optimized column-major layout
-                out = out.copy()
-            out = out.reindex(columns=items, copy=False)
-            return out
+            out = concat(dfs, axis=1).copy()
+            return out.reindex(columns=items, copy=False)
 
         return DataFrame(columns=axes[0], index=axes[1])
 

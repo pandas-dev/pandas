@@ -488,12 +488,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         Examples
         --------
-        >>> idx = pd.DatetimeIndex(['2023-01-01', '2023-01-02',
-        ...                        '2023-02-01', '2023-02-02'])
+        >>> idx = pd.DatetimeIndex(
+        ...     ["2023-01-01", "2023-01-02", "2023-02-01", "2023-02-02"]
+        ... )
         >>> idx
         DatetimeIndex(['2023-01-01', '2023-01-02', '2023-02-01', '2023-02-02'],
         dtype='datetime64[ns]', freq=None)
-        >>> idx.snap('MS')
+        >>> idx.snap("MS")
         DatetimeIndex(['2023-01-01', '2023-01-01', '2023-02-01', '2023-02-01'],
         dtype='datetime64[ns]', freq=None)
         """
@@ -518,7 +519,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def _parsed_string_to_bounds(self, reso: Resolution, parsed: dt.datetime):
+    def _parsed_string_to_bounds(
+        self, reso: Resolution, parsed: dt.datetime
+    ) -> tuple[Timestamp, Timestamp]:
         """
         Calculate datetime bounds for parsed time string and its resolution.
 
@@ -555,7 +558,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         #  which localizes parsed.
         return start, end
 
-    def _parse_with_reso(self, label: str):
+    def _parse_with_reso(self, label: str) -> tuple[Timestamp, Resolution]:
         parsed, reso = super()._parse_with_reso(label)
 
         parsed = Timestamp(parsed)
@@ -735,8 +738,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         Examples
         --------
-        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00", "2/1/2020 11:00",
-        ...                         "3/1/2020 10:00"])
+        >>> idx = pd.DatetimeIndex(
+        ...     ["1/1/2020 10:00", "2/1/2020 11:00", "3/1/2020 10:00"]
+        ... )
         >>> idx.indexer_at_time("10:00")
         array([0, 2])
         """
@@ -904,7 +908,7 @@ def date_range(
 
     Specify `start` and `end`, with the default daily frequency.
 
-    >>> pd.date_range(start='1/1/2018', end='1/08/2018')
+    >>> pd.date_range(start="1/1/2018", end="1/08/2018")
     DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03', '2018-01-04',
                    '2018-01-05', '2018-01-06', '2018-01-07', '2018-01-08'],
                   dtype='datetime64[ns]', freq='D')
@@ -923,14 +927,14 @@ def date_range(
 
     Specify `start` and `periods`, the number of periods (days).
 
-    >>> pd.date_range(start='1/1/2018', periods=8)
+    >>> pd.date_range(start="1/1/2018", periods=8)
     DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03', '2018-01-04',
                    '2018-01-05', '2018-01-06', '2018-01-07', '2018-01-08'],
                   dtype='datetime64[ns]', freq='D')
 
     Specify `end` and `periods`, the number of periods (days).
 
-    >>> pd.date_range(end='1/1/2018', periods=8)
+    >>> pd.date_range(end="1/1/2018", periods=8)
     DatetimeIndex(['2017-12-25', '2017-12-26', '2017-12-27', '2017-12-28',
                    '2017-12-29', '2017-12-30', '2017-12-31', '2018-01-01'],
                   dtype='datetime64[ns]', freq='D')
@@ -938,7 +942,7 @@ def date_range(
     Specify `start`, `end`, and `periods`; the frequency is generated
     automatically (linearly spaced).
 
-    >>> pd.date_range(start='2018-04-24', end='2018-04-27', periods=3)
+    >>> pd.date_range(start="2018-04-24", end="2018-04-27", periods=3)
     DatetimeIndex(['2018-04-24 00:00:00', '2018-04-25 12:00:00',
                    '2018-04-27 00:00:00'],
                   dtype='datetime64[ns]', freq=None)
@@ -947,28 +951,28 @@ def date_range(
 
     Changed the `freq` (frequency) to ``'ME'`` (month end frequency).
 
-    >>> pd.date_range(start='1/1/2018', periods=5, freq='ME')
+    >>> pd.date_range(start="1/1/2018", periods=5, freq="ME")
     DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31', '2018-04-30',
                    '2018-05-31'],
                   dtype='datetime64[ns]', freq='ME')
 
     Multiples are allowed
 
-    >>> pd.date_range(start='1/1/2018', periods=5, freq='3ME')
+    >>> pd.date_range(start="1/1/2018", periods=5, freq="3ME")
     DatetimeIndex(['2018-01-31', '2018-04-30', '2018-07-31', '2018-10-31',
                    '2019-01-31'],
                   dtype='datetime64[ns]', freq='3ME')
 
     `freq` can also be specified as an Offset object.
 
-    >>> pd.date_range(start='1/1/2018', periods=5, freq=pd.offsets.MonthEnd(3))
+    >>> pd.date_range(start="1/1/2018", periods=5, freq=pd.offsets.MonthEnd(3))
     DatetimeIndex(['2018-01-31', '2018-04-30', '2018-07-31', '2018-10-31',
                    '2019-01-31'],
                   dtype='datetime64[ns]', freq='3ME')
 
     Specify `tz` to set the timezone.
 
-    >>> pd.date_range(start='1/1/2018', periods=5, tz='Asia/Tokyo')
+    >>> pd.date_range(start="1/1/2018", periods=5, tz="Asia/Tokyo")
     DatetimeIndex(['2018-01-01 00:00:00+09:00', '2018-01-02 00:00:00+09:00',
                    '2018-01-03 00:00:00+09:00', '2018-01-04 00:00:00+09:00',
                    '2018-01-05 00:00:00+09:00'],
@@ -977,20 +981,20 @@ def date_range(
     `inclusive` controls whether to include `start` and `end` that are on the
     boundary. The default, "both", includes boundary points on either end.
 
-    >>> pd.date_range(start='2017-01-01', end='2017-01-04', inclusive="both")
+    >>> pd.date_range(start="2017-01-01", end="2017-01-04", inclusive="both")
     DatetimeIndex(['2017-01-01', '2017-01-02', '2017-01-03', '2017-01-04'],
                   dtype='datetime64[ns]', freq='D')
 
     Use ``inclusive='left'`` to exclude `end` if it falls on the boundary.
 
-    >>> pd.date_range(start='2017-01-01', end='2017-01-04', inclusive='left')
+    >>> pd.date_range(start="2017-01-01", end="2017-01-04", inclusive="left")
     DatetimeIndex(['2017-01-01', '2017-01-02', '2017-01-03'],
                   dtype='datetime64[ns]', freq='D')
 
     Use ``inclusive='right'`` to exclude `start` if it falls on the boundary, and
     similarly ``inclusive='neither'`` will exclude both `start` and `end`.
 
-    >>> pd.date_range(start='2017-01-01', end='2017-01-04', inclusive='right')
+    >>> pd.date_range(start="2017-01-01", end="2017-01-04", inclusive="right")
     DatetimeIndex(['2017-01-02', '2017-01-03', '2017-01-04'],
                   dtype='datetime64[ns]', freq='D')
 
@@ -1086,7 +1090,7 @@ def bdate_range(
     --------
     Note how the two weekend days are skipped in the result.
 
-    >>> pd.bdate_range(start='1/1/2018', end='1/08/2018')
+    >>> pd.bdate_range(start="1/1/2018", end="1/08/2018")
     DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03', '2018-01-04',
                '2018-01-05', '2018-01-08'],
               dtype='datetime64[ns]', freq='B')
