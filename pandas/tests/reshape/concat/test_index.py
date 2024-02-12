@@ -100,23 +100,20 @@ class TestIndexConcat:
         tm.assert_frame_equal(result, exp)
         assert result.index.names == exp.index.names
 
-    def test_concat_copy_index_series(self, axis, using_copy_on_write):
+    def test_concat_copy_index_series(self, axis):
         # GH 29879
         ser = Series([1, 2])
         comb = concat([ser, ser], axis=axis, copy=True)
-        if not using_copy_on_write or axis in [0, "index"]:
+        if axis in [0, "index"]:
             assert comb.index is not ser.index
         else:
             assert comb.index is ser.index
 
-    def test_concat_copy_index_frame(self, axis, using_copy_on_write):
+    def test_concat_copy_index_frame(self, axis):
         # GH 29879
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
         comb = concat([df, df], axis=axis, copy=True)
-        if not using_copy_on_write:
-            assert not comb.index.is_(df.index)
-            assert not comb.columns.is_(df.columns)
-        elif axis in [0, "index"]:
+        if axis in [0, "index"]:
             assert not comb.index.is_(df.index)
             assert comb.columns.is_(df.columns)
         elif axis in [1, "columns"]:
