@@ -18,8 +18,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
-
 from pandas._libs import lib
 from pandas._typing import (
     AxisInt,
@@ -661,10 +659,10 @@ class IndexOpsMixin(OpsMixin):
 
         result = np.asarray(values, dtype=dtype)
 
-        if (copy and not fillna) or (not copy and using_copy_on_write()):
+        if (copy and not fillna) or not copy:
             if np.shares_memory(self._values[:2], result[:2]):
                 # Take slices to improve performance of check
-                if using_copy_on_write() and not copy:
+                if not copy:
                     result = result.view()
                     result.flags.writeable = False
                 else:
@@ -896,7 +894,7 @@ class IndexOpsMixin(OpsMixin):
         return bool(isna(self).any())  # type: ignore[union-attr]
 
     @final
-    def _map_values(self, mapper, na_action=None, convert: bool = True):
+    def _map_values(self, mapper, na_action=None):
         """
         An internal function that maps values using the input
         correspondence (which can be a dict, Series, or function).
@@ -908,10 +906,6 @@ class IndexOpsMixin(OpsMixin):
         na_action : {None, 'ignore'}
             If 'ignore', propagate NA values, without passing them to the
             mapping function
-        convert : bool, default True
-            Try to find better dtype for elementwise function results. If
-            False, leave as dtype=object. Note that the dtype is always
-            preserved for some extension array dtypes, such as Categorical.
 
         Returns
         -------
@@ -925,7 +919,7 @@ class IndexOpsMixin(OpsMixin):
         if isinstance(arr, ExtensionArray):
             return arr.map(mapper, na_action=na_action)
 
-        return algorithms.map_array(arr, mapper, na_action=na_action, convert=convert)
+        return algorithms.map_array(arr, mapper, na_action=na_action)
 
     @final
     def value_counts(
