@@ -46,7 +46,12 @@ if TYPE_CHECKING:
 
     from pandas.core.dtypes.dtypes import ExtensionDtype
 
-    from pandas import Interval
+    from pandas import (
+        DatetimeIndex,
+        Interval,
+        PeriodIndex,
+        TimedeltaIndex,
+    )
     from pandas.arrays import (
         DatetimeArray,
         TimedeltaArray,
@@ -61,9 +66,7 @@ if TYPE_CHECKING:
     )
     from pandas.core.indexes.base import Index
     from pandas.core.internals import (
-        ArrayManager,
         BlockManager,
-        SingleArrayManager,
         SingleBlockManager,
     )
     from pandas.core.resample import Resampler
@@ -90,18 +93,29 @@ if TYPE_CHECKING:
     from typing import SupportsIndex
 
     if sys.version_info >= (3, 10):
+        from typing import Concatenate  # pyright: ignore[reportUnusedImport]
+        from typing import ParamSpec
         from typing import TypeGuard  # pyright: ignore[reportUnusedImport]
     else:
-        from typing_extensions import TypeGuard  # pyright: ignore[reportUnusedImport]
+        from typing_extensions import (  # pyright: ignore[reportUnusedImport]
+            Concatenate,
+            ParamSpec,
+            TypeGuard,
+        )
+
+    P = ParamSpec("P")
 
     if sys.version_info >= (3, 11):
         from typing import Self  # pyright: ignore[reportUnusedImport]
     else:
         from typing_extensions import Self  # pyright: ignore[reportUnusedImport]
+
 else:
     npt: Any = None
+    ParamSpec: Any = None
     Self: Any = None
     TypeGuard: Any = None
+    Concatenate: Any = None
 
 HashableT = TypeVar("HashableT", bound=Hashable)
 MutableMappingT = TypeVar("MutableMappingT", bound=MutableMapping)
@@ -180,6 +194,8 @@ ToTimestampHow = Literal["s", "e", "start", "end"]
 # passed in, a DataFrame is always returned.
 NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
 
+IndexT = TypeVar("IndexT", bound="Index")
+FreqIndexT = TypeVar("FreqIndexT", "DatetimeIndex", "PeriodIndex", "TimedeltaIndex")
 NumpyIndexT = TypeVar("NumpyIndexT", np.ndarray, "Index")
 
 AxisInt = int
@@ -321,7 +337,7 @@ class ReadCsvBuffer(ReadBuffer[AnyStr_co], Protocol):
 
     @property
     def closed(self) -> bool:
-        # for enine=pyarrow
+        # for engine=pyarrow
         ...
 
 
@@ -371,11 +387,7 @@ InterpolateOptions = Literal[
 ]
 
 # internals
-Manager = Union[
-    "ArrayManager", "SingleArrayManager", "BlockManager", "SingleBlockManager"
-]
-SingleManager = Union["SingleArrayManager", "SingleBlockManager"]
-Manager2D = Union["ArrayManager", "BlockManager"]
+Manager = Union["BlockManager", "SingleBlockManager"]
 
 # indexing
 # PositionalIndexer -> valid 1D positional indexer, e.g. can pass
@@ -422,7 +434,7 @@ IntervalClosedType = Union[IntervalLeftRight, Literal["both", "neither"]]
 
 # datetime and NaTType
 DatetimeNaTType = Union[datetime, "NaTType"]
-DateTimeErrorChoices = Union[IgnoreRaise, Literal["coerce"]]
+DateTimeErrorChoices = Literal["raise", "coerce"]
 
 # sort_index
 SortKind = Literal["quicksort", "mergesort", "heapsort", "stable"]
@@ -504,9 +516,6 @@ NaAction = Literal["ignore"]
 # from_dict
 FromDictOrient = Literal["columns", "index", "tight"]
 
-# to_gbc
-ToGbqIfexist = Literal["fail", "replace", "append"]
-
 # to_stata
 ToStataByteorder = Literal[">", "<", "little", "big"]
 
@@ -524,3 +533,6 @@ UsecolsArgType = Union[
     Callable[[HashableT], bool],
     None,
 ]
+
+# maintaine the sub-type of any hashable sequence
+SequenceT = TypeVar("SequenceT", bound=Sequence[Hashable])

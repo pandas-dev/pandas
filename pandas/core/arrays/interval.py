@@ -80,6 +80,7 @@ from pandas.core.algorithms import (
     unique,
     value_counts_internal as value_counts,
 )
+from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.arrays.base import (
     ExtensionArray,
     _extension_array_shared_docs,
@@ -369,11 +370,18 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         right = ensure_wrapped_if_datetimelike(right)
         right = extract_array(right, extract_numpy=True)
 
-        lbase = getattr(left, "_ndarray", left).base
-        rbase = getattr(right, "_ndarray", right).base
-        if lbase is not None and lbase is rbase:
-            # If these share data, then setitem could corrupt our IA
-            right = right.copy()
+        if isinstance(left, ArrowExtensionArray) or isinstance(
+            right, ArrowExtensionArray
+        ):
+            pass
+        else:
+            lbase = getattr(left, "_ndarray", left)
+            lbase = getattr(lbase, "_data", lbase).base
+            rbase = getattr(right, "_ndarray", right)
+            rbase = getattr(rbase, "_data", rbase).base
+            if lbase is not None and lbase is rbase:
+                # If these share data, then setitem could corrupt our IA
+                right = right.copy()
 
         dtype = IntervalDtype(left.dtype, closed=closed)
 
@@ -1719,6 +1727,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._shallow_copy(new_left, new_right)
 
     def delete(self, loc) -> Self:
+        new_left: np.ndarray | DatetimeArray | TimedeltaArray
+        new_right: np.ndarray | DatetimeArray | TimedeltaArray
         if isinstance(self._left, np.ndarray):
             new_left = np.delete(self._left, loc)
             assert isinstance(self._right, np.ndarray)

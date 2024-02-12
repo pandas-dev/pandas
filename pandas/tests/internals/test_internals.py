@@ -196,7 +196,7 @@ def create_mgr(descr, item_shape=None):
     * components with same DTYPE_ID are combined into single block
     * to force multiple blocks with same dtype, use '-SUFFIX'::
 
-        'a:f8-1; b:f8-2; c:f8-foobar'
+        "a:f8-1; b:f8-2; c:f8-foobar"
 
     """
     if item_shape is None:
@@ -612,7 +612,7 @@ class TestBlockManager:
 
         # noops
         mgr = create_mgr("f: i8; g: f8")
-        new_mgr = mgr.convert(copy=True)
+        new_mgr = mgr.convert()
         _compare(mgr, new_mgr)
 
         # convert
@@ -620,7 +620,7 @@ class TestBlockManager:
         mgr.iset(0, np.array(["1"] * N, dtype=np.object_))
         mgr.iset(1, np.array(["2."] * N, dtype=np.object_))
         mgr.iset(2, np.array(["foo."] * N, dtype=np.object_))
-        new_mgr = mgr.convert(copy=True)
+        new_mgr = mgr.convert()
         dtype = "string[pyarrow_numpy]" if using_infer_string else np.object_
         assert new_mgr.iget(0).dtype == dtype
         assert new_mgr.iget(1).dtype == dtype
@@ -634,7 +634,7 @@ class TestBlockManager:
         mgr.iset(0, np.array(["1"] * N, dtype=np.object_))
         mgr.iset(1, np.array(["2."] * N, dtype=np.object_))
         mgr.iset(2, np.array(["foo."] * N, dtype=np.object_))
-        new_mgr = mgr.convert(copy=True)
+        new_mgr = mgr.convert()
         assert new_mgr.iget(0).dtype == dtype
         assert new_mgr.iget(1).dtype == dtype
         assert new_mgr.iget(2).dtype == dtype
@@ -1377,11 +1377,9 @@ def test_validate_ndim():
     values = np.array([1.0, 2.0])
     placement = BlockPlacement(slice(2))
     msg = r"Wrong number of dimensions. values.ndim != ndim \[1 != 2\]"
-    depr_msg = "make_block is deprecated"
 
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(DeprecationWarning, match=depr_msg):
-            make_block(values, placement, ndim=2)
+        make_block(values, placement, ndim=2)
 
 
 def test_block_shape():
@@ -1396,12 +1394,8 @@ def test_make_block_no_pandas_array(block_maker):
     # https://github.com/pandas-dev/pandas/pull/24866
     arr = pd.arrays.NumpyExtensionArray(np.array([1, 2]))
 
-    warn = None if block_maker is not make_block else DeprecationWarning
-    msg = "make_block is deprecated and will be removed in a future version"
-
     # NumpyExtensionArray, no dtype
-    with tm.assert_produces_warning(warn, match=msg):
-        result = block_maker(arr, BlockPlacement(slice(len(arr))), ndim=arr.ndim)
+    result = block_maker(arr, BlockPlacement(slice(len(arr))), ndim=arr.ndim)
     assert result.dtype.kind in ["i", "u"]
 
     if block_maker is make_block:
@@ -1409,16 +1403,14 @@ def test_make_block_no_pandas_array(block_maker):
         assert result.is_extension is False
 
         # NumpyExtensionArray, NumpyEADtype
-        with tm.assert_produces_warning(warn, match=msg):
-            result = block_maker(arr, slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
+        result = block_maker(arr, slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
         assert result.dtype.kind in ["i", "u"]
         assert result.is_extension is False
 
         # new_block no longer taked dtype keyword
         # ndarray, NumpyEADtype
-        with tm.assert_produces_warning(warn, match=msg):
-            result = block_maker(
-                arr.to_numpy(), slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim
-            )
+        result = block_maker(
+            arr.to_numpy(), slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim
+        )
         assert result.dtype.kind in ["i", "u"]
         assert result.is_extension is False

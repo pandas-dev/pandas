@@ -27,7 +27,6 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_interval_shared_docs",
     "_merge_doc",
     "_shared_docs",
-    "_apply_docs",
     "_new_Index",
     "_new_PeriodIndex",
     "_agg_template_series",
@@ -56,7 +55,7 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_version_meson",
     # The numba extensions need this to mock the iloc object
     "_iLocIndexer",
-    # TODO(3.0): GH#55043 - remove upon removal of ArrayManager
+    # TODO(4.0): GH#55043 - remove upon removal of CoW option
     "_get_option",
     "_fill_limit_area_1d",
 }
@@ -174,7 +173,7 @@ def private_import_across_module(file_obj: IO[str]) -> Iterable[tuple[int, str]]
                 continue
 
             if module_name.startswith("_"):
-                yield (node.lineno, f"Import of internal function {repr(module_name)}")
+                yield (node.lineno, f"Import of internal function {module_name!r}")
 
 
 def strings_with_wrong_placed_whitespace(

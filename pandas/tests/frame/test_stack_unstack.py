@@ -803,7 +803,7 @@ class TestDataFrameReshape:
                 [[10, 20, 30], [10, 20, 40]], names=["i1", "i2", "i3"]
             ),
         )
-        assert df.unstack(["i2", "i1"]).columns.names[-2:] == ["i2", "i1"]
+        assert df.unstack(["i2", "i1"]).columns.names[-2:] == ("i2", "i1")
 
     def test_unstack_multi_level_rows_and_cols(self):
         # PH 28306: Unstack df with multi level cols and rows
@@ -1817,7 +1817,7 @@ class TestStackUnstackMultiLevel:
         )
 
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             result = df.groupby(["state", "exp", "barcode", "v"]).apply(len)
 
         unstacked = result.unstack()
@@ -1834,7 +1834,7 @@ class TestStackUnstackMultiLevel:
 
         unstacked = frame.unstack()
         assert unstacked.index.name == "first"
-        assert unstacked.columns.names == ["exp", "second"]
+        assert unstacked.columns.names == ("exp", "second")
 
         restacked = unstacked.stack(future_stack=future_stack)
         assert restacked.index.names == frame.index.names

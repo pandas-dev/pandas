@@ -190,7 +190,7 @@ class RangeIndex(Index):
         if not isinstance(data, range):
             raise TypeError(
                 f"{cls.__name__}(...) must be called with object coercible to a "
-                f"range, {repr(data)} was passed"
+                f"range, {data!r} was passed"
             )
         cls._validate_dtype(dtype)
         return cls._simple_new(data, name=name)
@@ -491,7 +491,7 @@ class RangeIndex(Index):
         new_index = self._rename(name=name)
         return new_index
 
-    def _minmax(self, meth: str):
+    def _minmax(self, meth: str) -> int | float:
         no_steps = len(self) - 1
         if no_steps == -1:
             return np.nan
@@ -500,13 +500,13 @@ class RangeIndex(Index):
 
         return self.start + self.step * no_steps
 
-    def min(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
+    def min(self, axis=None, skipna: bool = True, *args, **kwargs) -> int | float:
         """The minimum value of the RangeIndex"""
         nv.validate_minmax_axis(axis)
         nv.validate_min(args, kwargs)
         return self._minmax("min")
 
-    def max(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
+    def max(self, axis=None, skipna: bool = True, *args, **kwargs) -> int | float:
         """The maximum value of the RangeIndex"""
         nv.validate_minmax_axis(axis)
         nv.validate_max(args, kwargs)
@@ -876,7 +876,7 @@ class RangeIndex(Index):
 
     def symmetric_difference(
         self, other, result_name: Hashable | None = None, sort=None
-    ):
+    ) -> Index:
         if not isinstance(other, RangeIndex) or sort is not None:
             return super().symmetric_difference(other, result_name, sort)
 
@@ -955,7 +955,17 @@ class RangeIndex(Index):
         start = step = next_ = None
 
         # Filter the empty indexes
-        non_empty_indexes = [obj for obj in rng_indexes if len(obj)]
+        non_empty_indexes = []
+        all_same_index = True
+        prev: RangeIndex | None = None
+        for obj in rng_indexes:
+            if len(obj):
+                non_empty_indexes.append(obj)
+                if all_same_index:
+                    if prev is not None:
+                        all_same_index = prev.equals(obj)
+                    else:
+                        prev = obj
 
         for obj in non_empty_indexes:
             rng = obj._range
@@ -968,7 +978,12 @@ class RangeIndex(Index):
             elif step is None:
                 # First non-empty index had only one element
                 if rng.start == start:
-                    values = np.concatenate([x._values for x in rng_indexes])
+                    if all_same_index:
+                        values = np.tile(
+                            non_empty_indexes[0]._values, len(non_empty_indexes)
+                        )
+                    else:
+                        values = np.concatenate([x._values for x in rng_indexes])
                     result = self._constructor(values)
                     return result.rename(name)
 
@@ -978,9 +993,13 @@ class RangeIndex(Index):
                 next_ is not None and rng.start != next_
             )
             if non_consecutive:
-                result = self._constructor(
-                    np.concatenate([x._values for x in rng_indexes])
-                )
+                if all_same_index:
+                    values = np.tile(
+                        non_empty_indexes[0]._values, len(non_empty_indexes)
+                    )
+                else:
+                    values = np.concatenate([x._values for x in rng_indexes])
+                result = self._constructor(values)
                 return result.rename(name)
 
             if step is not None:

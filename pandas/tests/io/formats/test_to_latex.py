@@ -187,22 +187,6 @@ class TestToLatex:
         )
         assert result == expected
 
-    def test_to_latex_pos_args_deprecation(self):
-        # GH-54229
-        df = DataFrame(
-            {
-                "name": ["Raphael", "Donatello"],
-                "age": [26, 45],
-                "height": [181.23, 177.65],
-            }
-        )
-        msg = (
-            r"Starting with pandas version 3.0 all arguments of to_latex except for "
-            r"the argument 'buf' will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.to_latex(None, None)
-
 
 class TestToLatexLongtable:
     def test_to_latex_empty_longtable(self):
@@ -283,14 +267,15 @@ class TestToLatexLongtable:
         assert result == expected
 
     @pytest.mark.parametrize(
-        "df, expected_number",
+        "df_data, expected_number",
         [
-            (DataFrame({"a": [1, 2]}), 1),
-            (DataFrame({"a": [1, 2], "b": [3, 4]}), 2),
-            (DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}), 3),
+            ({"a": [1, 2]}, 1),
+            ({"a": [1, 2], "b": [3, 4]}, 2),
+            ({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, 3),
         ],
     )
-    def test_to_latex_longtable_continued_on_next_page(self, df, expected_number):
+    def test_to_latex_longtable_continued_on_next_page(self, df_data, expected_number):
+        df = DataFrame(df_data)
         result = df.to_latex(index=False, longtable=True)
         assert rf"\multicolumn{{{expected_number}}}" in result
 

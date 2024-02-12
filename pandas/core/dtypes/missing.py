@@ -129,7 +129,7 @@ def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     --------
     Scalar arguments (including strings) result in a scalar boolean.
 
-    >>> pd.isna('dog')
+    >>> pd.isna("dog")
     False
 
     >>> pd.isna(pd.NA)
@@ -150,8 +150,7 @@ def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     For indexes, an ndarray of booleans is returned.
 
-    >>> index = pd.DatetimeIndex(["2017-07-05", "2017-07-06", None,
-    ...                           "2017-07-08"])
+    >>> index = pd.DatetimeIndex(["2017-07-05", "2017-07-06", None, "2017-07-08"])
     >>> index
     DatetimeIndex(['2017-07-05', '2017-07-06', 'NaT', '2017-07-08'],
                   dtype='datetime64[ns]', freq=None)
@@ -160,7 +159,7 @@ def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     For Series and DataFrame, the same type is returned, containing booleans.
 
-    >>> df = pd.DataFrame([['ant', 'bee', 'cat'], ['dog', None, 'fly']])
+    >>> df = pd.DataFrame([["ant", "bee", "cat"], ["dog", None, "fly"]])
     >>> df
          0     1    2
     0  ant   bee  cat
@@ -258,7 +257,9 @@ def _use_inf_as_na(key) -> None:
         globals()["INF_AS_NA"] = False
 
 
-def _isna_array(values: ArrayLike, inf_as_na: bool = False):
+def _isna_array(
+    values: ArrayLike, inf_as_na: bool = False
+) -> npt.NDArray[np.bool_] | NDFrame:
     """
     Return an array indicating which values of the input array are NaN / NA.
 
@@ -275,6 +276,7 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
         Array of boolean values denoting the NA status of each element.
     """
     dtype = values.dtype
+    result: npt.NDArray[np.bool_] | NDFrame
 
     if not isinstance(values, np.ndarray):
         # i.e. ExtensionArray
@@ -408,7 +410,7 @@ def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     --------
     Scalar arguments (including strings) result in a scalar boolean.
 
-    >>> pd.notna('dog')
+    >>> pd.notna("dog")
     True
 
     >>> pd.notna(pd.NA)
@@ -429,8 +431,7 @@ def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     For indexes, an ndarray of booleans is returned.
 
-    >>> index = pd.DatetimeIndex(["2017-07-05", "2017-07-06", None,
-    ...                          "2017-07-08"])
+    >>> index = pd.DatetimeIndex(["2017-07-05", "2017-07-06", None, "2017-07-08"])
     >>> index
     DatetimeIndex(['2017-07-05', '2017-07-06', 'NaT', '2017-07-08'],
                   dtype='datetime64[ns]', freq=None)
@@ -439,7 +440,7 @@ def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     For Series and DataFrame, the same type is returned, containing booleans.
 
-    >>> df = pd.DataFrame([['ant', 'bee', 'cat'], ['dog', None, 'fly']])
+    >>> df = pd.DataFrame([["ant", "bee", "cat"], ["dog", None, "fly"]])
     >>> df
          0     1    2
     0  ant   bee  cat
@@ -495,13 +496,9 @@ def array_equivalent(
 
     Examples
     --------
-    >>> array_equivalent(
-    ...     np.array([1, 2, np.nan]),
-    ...     np.array([1, 2, np.nan]))
+    >>> array_equivalent(np.array([1, 2, np.nan]), np.array([1, 2, np.nan]))
     True
-    >>> array_equivalent(
-    ...     np.array([1, np.nan, 2]),
-    ...     np.array([1, 2, np.nan]))
+    >>> array_equivalent(np.array([1, np.nan, 2]), np.array([1, 2, np.nan]))
     False
     """
     left, right = np.asarray(left), np.asarray(right)
@@ -673,15 +670,15 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
 
     Examples
     --------
-    >>> na_value_for_dtype(np.dtype('int64'))
+    >>> na_value_for_dtype(np.dtype("int64"))
     0
-    >>> na_value_for_dtype(np.dtype('int64'), compat=False)
+    >>> na_value_for_dtype(np.dtype("int64"), compat=False)
     nan
-    >>> na_value_for_dtype(np.dtype('float64'))
+    >>> na_value_for_dtype(np.dtype("float64"))
     nan
-    >>> na_value_for_dtype(np.dtype('bool'))
+    >>> na_value_for_dtype(np.dtype("bool"))
     False
-    >>> na_value_for_dtype(np.dtype('datetime64[ns]'))
+    >>> na_value_for_dtype(np.dtype("datetime64[ns]"))
     numpy.datetime64('NaT')
     """
 
