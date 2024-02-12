@@ -1791,7 +1791,7 @@ class HDFStore:
             "worm": WORMTable,
         }
         try:
-            cls = _TABLE_MAP[tt]
+            cls = _TABLE_MAP[tt]  # type: ignore[index]
         except KeyError as err:
             raise TypeError(
                 f"cannot properly create the storer for: [_TABLE_MAP] [group->"
@@ -2699,7 +2699,7 @@ class Fixed:
     @property
     def version(self) -> tuple[int, int, int]:
         """compute and set our version"""
-        version = getattr(self.group._v_attrs, "pandas_version", None)
+        version: str | None = getattr(self.group._v_attrs, "pandas_version", None)
         try:
             version = tuple(int(x) for x in version.split("."))
             if len(version) == 2:
