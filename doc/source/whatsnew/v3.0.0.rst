@@ -109,6 +109,7 @@ Removal of prior version deprecations/changes
 - Removed :meth:`DataFrame.applymap`, :meth:`Styler.applymap` and :meth:`Styler.applymap_index` (:issue:`52364`)
 - Removed ``DataFrame.bool`` and ``Series.bool`` (:issue:`51756`)
 - Removed ``DataFrame.first`` and ``DataFrame.last`` (:issue:`53710`)
+- Removed ``DataFrame.swapaxes`` and ``Series.swapaxes`` (:issue:`51946`)
 - Removed ``DataFrameGroupBy.grouper`` and ``SeriesGroupBy.grouper`` (:issue:`56521`)
 - Removed ``DataFrameGroupby.fillna`` and ``SeriesGroupBy.fillna``` (:issue:`55719`)
 - Removed ``Index.format``, use :meth:`Index.astype` with ``str`` or :meth:`Index.map` with a ``formatter`` function instead (:issue:`55439`)

@@ -235,7 +235,6 @@ Reshaping, sorting, transposing
    DataFrame.swaplevel
    DataFrame.stack
    DataFrame.unstack
-   DataFrame.swapaxes
    DataFrame.melt
    DataFrame.explode
    DataFrame.squeeze
