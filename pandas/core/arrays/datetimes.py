@@ -2394,7 +2394,7 @@ def objects_to_datetime64(
     yearfirst : bool
     utc : bool, default False
         Whether to convert/localize timestamps to UTC.
-    errors : {'raise', 'ignore', 'coerce'}
+    errors : {'raise', 'coerce'}
     allow_object : bool
         Whether to return an object-dtype ndarray instead of raising if the
         data contains more than one timezone.
@@ -2414,7 +2414,7 @@ def objects_to_datetime64(
     ValueError : if data cannot be converted to datetimes
     TypeError  : When a type cannot be converted to datetime
     """
-    assert errors in ["raise", "ignore", "coerce"]
+    assert errors in ["raise", "coerce"]
 
     # if str-dtype, convert
     data = np.array(data, copy=False, dtype=np.object_)
