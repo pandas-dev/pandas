@@ -16,8 +16,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
-
 from pandas._libs import (
     NaT,
     Timedelta,
@@ -454,9 +452,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     def values(self) -> np.ndarray:
         # NB: For Datetime64TZ this is lossy
         data = self._data._ndarray
-        if using_copy_on_write():
-            data = data.view()
-            data.flags.writeable = False
+        data = data.view()
+        data.flags.writeable = False
         return data
 
     @doc(DatetimeIndexOpsMixin.shift)
