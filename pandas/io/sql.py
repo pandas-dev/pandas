@@ -1009,22 +1009,15 @@ class SQLTable(PandasObject):
         Note: multi-value insert is usually faster for analytics DBs
         and tables containing a few columns
         but performance degrades quickly with increase of columns.
+
+        Note: Oracle does not support multi-value insert
         """
 
         from sqlalchemy import insert
 
-        # For Oracle compliance we do not allow multi statements
-        dialects_not_supporting_multi = ["oracle"]
-
         data = [dict(zip(keys, row)) for row in data_iter]
-
-        if conn.dialect is not None and conn.dialect.name not in dialects_not_supporting_multi:
-            # For Oracle compliance we do not allow multi statements
-            stmt = insert(self.table).values(data)
-            result = conn.execute(stmt)
-        else:
-            stmt = insert(self.table)
-            result = conn.execute(stmt, data)
+        stmt = insert(self.table).values(data)
+        result = conn.execute(stmt)
         return result.rowcount
 
     def insert_data(self) -> tuple[list[str], list[np.ndarray]]:
