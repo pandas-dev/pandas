@@ -477,7 +477,7 @@ class Styler(StylerRenderer):
         If multiline tooltips are required, or if styling is not required and/or
         space is of concern, then utilizing as_title_attribute as True will store
         the tooltip on the <td> title attribute. This will cause no CSS
-        to be generated nor will the the <span> elements. Storing tooltips through
+        to be generated nor will the <span> elements. Storing tooltips through
         the title attribute will mean that tooltip styling effects do not apply.
 
         Examples
