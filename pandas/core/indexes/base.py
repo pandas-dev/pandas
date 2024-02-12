@@ -22,7 +22,6 @@ import numpy as np
 
 from pandas._config import (
     get_option,
-    using_copy_on_write,
     using_pyarrow_string_dtype,
 )
 
@@ -1633,7 +1632,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if name is lib.no_default:
             name = self._get_level_names()
-        result = DataFrame({name: self}, copy=not using_copy_on_write())
+        result = DataFrame({name: self}, copy=False)
 
         if index:
             result.index = self
@@ -4773,13 +4772,11 @@ class Index(IndexOpsMixin, PandasObject):
         [(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]]
         Length: 5, dtype: interval[int64, right]
         """
-        if using_copy_on_write():
-            data = self._data
-            if isinstance(data, np.ndarray):
-                data = data.view()
-                data.flags.writeable = False
-            return data
-        return self._data
+        data = self._data
+        if isinstance(data, np.ndarray):
+            data = data.view()
+            data.flags.writeable = False
+        return data
 
     @cache_readonly
     @doc(IndexOpsMixin.array)

@@ -74,7 +74,6 @@ def get_objs_combined_axis(
     intersect: bool = False,
     axis: Axis = 0,
     sort: bool = True,
-    copy: bool = False,
 ) -> Index:
     """
     Extract combined index: return intersection or union (depending on the
@@ -92,15 +91,13 @@ def get_objs_combined_axis(
         The axis to extract indexes from.
     sort : bool, default True
         Whether the result index should come out sorted or not.
-    copy : bool, default False
-        If True, return a copy of the combined index.
 
     Returns
     -------
     Index
     """
     obs_idxes = [obj._get_axis(axis) for obj in objs]
-    return _get_combined_index(obs_idxes, intersect=intersect, sort=sort, copy=copy)
+    return _get_combined_index(obs_idxes, intersect=intersect, sort=sort)
 
 
 def _get_distinct_objs(objs: list[Index]) -> list[Index]:
@@ -121,7 +118,6 @@ def _get_combined_index(
     indexes: list[Index],
     intersect: bool = False,
     sort: bool = False,
-    copy: bool = False,
 ) -> Index:
     """
     Return the union or intersection of indexes.
@@ -135,8 +131,6 @@ def _get_combined_index(
         calculate the union.
     sort : bool, default False
         Whether the result index should come out sorted or not.
-    copy : bool, default False
-        If True, return a copy of the combined index.
 
     Returns
     -------
@@ -158,10 +152,6 @@ def _get_combined_index(
 
     if sort:
         index = safe_sort_index(index)
-    # GH 29879
-    if copy:
-        index = index.copy()
-
     return index
 
 
