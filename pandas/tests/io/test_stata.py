@@ -2001,21 +2001,6 @@ def test_direct_read(datapath, monkeypatch):
                 assert reader._path_or_buf is bio
 
 
-def test_statareader_warns_when_used_without_context(datapath):
-    file_path = datapath("io", "data", "stata", "stata-compat-118.dta")
-    with tm.assert_produces_warning(
-        ResourceWarning,
-        match="without using a context manager",
-    ):
-        sr = StataReader(file_path)
-        sr.read()
-    with tm.assert_produces_warning(
-        FutureWarning,
-        match="is not part of the public API",
-    ):
-        sr.close()
-
-
 @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
 @pytest.mark.parametrize("use_dict", [True, False])
 @pytest.mark.parametrize("infer", [True, False])
