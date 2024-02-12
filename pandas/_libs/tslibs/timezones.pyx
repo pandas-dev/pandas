@@ -22,10 +22,7 @@ from dateutil.tz import (
 )
 import numpy as np
 
-try:
-    import pytz
-except ImportError:
-    pytz = None
+pytz = import_optional_dependency("pytz", errors="ignore")
 
 cimport numpy as cnp
 from numpy cimport int64_t
@@ -41,7 +38,7 @@ from pandas._libs.tslibs.util cimport (
 
 cdef int64_t NPY_NAT = get_nat()
 cdef tzinfo utc_stdlib = timezone.utc
-cdef tzinfo utc_pytz = None
+cdef object utc_pytz = pytz.UTC if pytz else None
 cdef tzinfo utc_dateutil_str = dateutil_gettz("UTC")  # NB: *not* the same as tzutc()
 
 cdef tzinfo utc_zoneinfo = None
@@ -68,26 +65,13 @@ cdef bint is_utc_zoneinfo(tzinfo tz):
     return tz is utc_zoneinfo
 
 
-cdef bint is_utc_pytz(tzinfo tz):
-    if tz is None:
-        return False
-
-    global utc_pytz
-    if utc_pytz is None:
-        if pytz is None:
-            return False
-        utc_pytz = pytz.UTC
-
-    return tz is utc_pytz
-
-
 cpdef inline bint is_utc(tzinfo tz):
     return (
         tz is utc_stdlib
         or isinstance(tz, _dateutil_tzutc)
         or tz is utc_dateutil_str
         or is_utc_zoneinfo(tz)
-        or is_utc_pytz(tz)
+        or (utc_pytz is not None and tz is utc_pytz)
     )
 
 
