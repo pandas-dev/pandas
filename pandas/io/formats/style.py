@@ -12,7 +12,6 @@ from typing import (
     Callable,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -23,7 +22,6 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 import pandas as pd
 from pandas import (
@@ -2011,42 +2009,6 @@ class Styler(StylerRenderer):
         )
         return self
 
-    def applymap_index(
-        self,
-        func: Callable,
-        axis: AxisInt | str = 0,
-        level: Level | list[Level] | None = None,
-        **kwargs,
-    ) -> Styler:
-        """
-        Apply a CSS-styling function to the index or column headers, elementwise.
-
-        .. deprecated:: 2.1.0
-
-           Styler.applymap_index has been deprecated. Use Styler.map_index instead.
-
-        Parameters
-        ----------
-        func : function
-            ``func`` should take a scalar and return a string.
-        axis : {{0, 1, "index", "columns"}}
-            The headers over which to apply the function.
-        level : int, str, list, optional
-            If index is MultiIndex the level(s) over which to apply the function.
-        **kwargs : dict
-            Pass along to ``func``.
-
-        Returns
-        -------
-        Styler
-        """
-        warnings.warn(
-            "Styler.applymap_index has been deprecated. Use Styler.map_index instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.map_index(func, axis, level, **kwargs)
-
     def _map(self, func: Callable, subset: Subset | None = None, **kwargs) -> Styler:
         func = partial(func, **kwargs)  # map doesn't take kwargs?
         if subset is None:
@@ -2116,36 +2078,6 @@ class Styler(StylerRenderer):
             (lambda instance: getattr(instance, "_map"), (func, subset), kwargs)
         )
         return self
-
-    @Substitution(subset=subset_args)
-    def applymap(
-        self, func: Callable, subset: Subset | None = None, **kwargs
-    ) -> Styler:
-        """
-        Apply a CSS-styling function elementwise.
-
-        .. deprecated:: 2.1.0
-
-           Styler.applymap has been deprecated. Use Styler.map instead.
-
-        Parameters
-        ----------
-        func : function
-            ``func`` should take a scalar and return a string.
-        %(subset)s
-        **kwargs : dict
-            Pass along to ``func``.
-
-        Returns
-        -------
-        Styler
-        """
-        warnings.warn(
-            "Styler.applymap has been deprecated. Use Styler.map instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.map(func, subset, **kwargs)
 
     def set_table_attributes(self, attributes: str) -> Styler:
         """
