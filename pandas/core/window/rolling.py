@@ -270,7 +270,7 @@ class BaseWindow(SelectionMixin):
         """
         # filter out the on from the object
         if self.on is not None and not isinstance(self.on, Index) and obj.ndim == 2:
-            obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
+            obj = obj.reindex(columns=obj.columns.difference([self.on]))
         if obj.ndim > 1 and numeric_only:
             obj = self._make_numeric_only(obj)
         return obj

@@ -1648,7 +1648,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 res_index = self._grouper.result_index
 
             result = self.obj._constructor(index=res_index, columns=data.columns)
-            result = result.astype(data.dtypes, copy=False)
+            result = result.astype(data.dtypes)
             return result
 
         # GH12824
@@ -1815,7 +1815,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         concat_index = obj.columns
         concatenated = concat(applied, axis=0, verify_integrity=False)
-        concatenated = concatenated.reindex(concat_index, axis=1, copy=False)
+        concatenated = concatenated.reindex(concat_index, axis=1)
         return self._set_result_index_ordered(concatenated)
 
     __examples_dataframe_doc = dedent(

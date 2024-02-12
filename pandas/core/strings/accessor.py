@@ -661,7 +661,6 @@ class StringMethods(NoNewAttributesMixin):
                 join=(join if join == "inner" else "outer"),
                 keys=range(len(others)),
                 sort=False,
-                copy=False,
             )
             data, others = data.align(others, join=join)
             others = [others[x] for x in others]  # again list of Series
