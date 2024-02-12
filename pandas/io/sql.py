@@ -79,7 +79,6 @@ if TYPE_CHECKING:
     )
 
     from pandas._typing import (
-        DateTimeErrorChoices,
         DtypeArg,
         DtypeBackend,
         IndexLabel,
@@ -111,14 +110,7 @@ def _handle_date_column(
         # read_sql like functions.
         # Format can take on custom to_datetime argument values such as
         # {"errors": "coerce"} or {"dayfirst": True}
-        error: DateTimeErrorChoices = format.pop("errors", None) or "ignore"
-        if error == "ignore":
-            try:
-                return to_datetime(col, **format)
-            except (TypeError, ValueError):
-                # TODO: not reached 2023-10-27; needed?
-                return col
-        return to_datetime(col, errors=error, **format)
+        return to_datetime(col, **format)
     else:
         # Allow passing of formatting string for integers
         # GH17855
