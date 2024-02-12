@@ -481,7 +481,6 @@ generated/pandas.DataFrame.style,../reference/api/pandas.DataFrame.style
 generated/pandas.DataFrame.sub,../reference/api/pandas.DataFrame.sub
 generated/pandas.DataFrame.subtract,../reference/api/pandas.DataFrame.subtract
 generated/pandas.DataFrame.sum,../reference/api/pandas.DataFrame.sum
-generated/pandas.DataFrame.swapaxes,../reference/api/pandas.DataFrame.swapaxes
 generated/pandas.DataFrame.swaplevel,../reference/api/pandas.DataFrame.swaplevel
 generated/pandas.DataFrame.tail,../reference/api/pandas.DataFrame.tail
 generated/pandas.DataFrame.take,../reference/api/pandas.DataFrame.take
@@ -1206,7 +1205,6 @@ generated/pandas.Series.str.zfill,../reference/api/pandas.Series.str.zfill
 generated/pandas.Series.sub,../reference/api/pandas.Series.sub
 generated/pandas.Series.subtract,../reference/api/pandas.Series.subtract
 generated/pandas.Series.sum,../reference/api/pandas.Series.sum
-generated/pandas.Series.swapaxes,../reference/api/pandas.Series.swapaxes
 generated/pandas.Series.swaplevel,../reference/api/pandas.Series.swaplevel
 generated/pandas.Series.tail,../reference/api/pandas.Series.tail
 generated/pandas.Series.take,../reference/api/pandas.Series.take

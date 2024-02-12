@@ -86,7 +86,6 @@ def test_copy_shallow(using_copy_on_write):
         lambda df, copy: df.rename_axis(columns="test", copy=copy),
         lambda df, copy: df.astype({"b": "int64"}, copy=copy),
         # lambda df, copy: df.swaplevel(0, 0, copy=copy),
-        lambda df, copy: df.swapaxes(0, 0, copy=copy),
         lambda df, copy: df.truncate(0, 5, copy=copy),
         lambda df, copy: df.infer_objects(copy=copy),
         lambda df, copy: df.to_timestamp(copy=copy),
@@ -105,7 +104,6 @@ def test_copy_shallow(using_copy_on_write):
         "rename_axis1",
         "astype",
         # "swaplevel",  # only series
-        "swapaxes",
         "truncate",
         "infer_objects",
         "to_timestamp",
@@ -127,13 +125,7 @@ def test_methods_copy_keyword(request, method, copy, using_copy_on_write):
         index = date_range("2012-01-01", freq="D", periods=3, tz="Europe/Brussels")
 
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]}, index=index)
-
-    if "swapaxes" in request.node.callspec.id:
-        msg = "'DataFrame.swapaxes' is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df2 = method(df, copy=copy)
-    else:
-        df2 = method(df, copy=copy)
+    df2 = method(df, copy=copy)
 
     share_memory = using_copy_on_write or copy is False
 
@@ -161,7 +153,6 @@ def test_methods_copy_keyword(request, method, copy, using_copy_on_write):
         lambda ser, copy: ser.rename_axis(index="test", copy=copy),
         lambda ser, copy: ser.astype("int64", copy=copy),
         lambda ser, copy: ser.swaplevel(0, 1, copy=copy),
-        lambda ser, copy: ser.swapaxes(0, 0, copy=copy),
         lambda ser, copy: ser.truncate(0, 5, copy=copy),
         lambda ser, copy: ser.infer_objects(copy=copy),
         lambda ser, copy: ser.to_timestamp(copy=copy),
@@ -180,7 +171,6 @@ def test_methods_copy_keyword(request, method, copy, using_copy_on_write):
         "rename_axis0",
         "astype",
         "swaplevel",
-        "swapaxes",
         "truncate",
         "infer_objects",
         "to_timestamp",
@@ -204,13 +194,7 @@ def test_methods_series_copy_keyword(request, method, copy, using_copy_on_write)
         index = MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]])
 
     ser = Series([1, 2, 3], index=index)
-
-    if "swapaxes" in request.node.callspec.id:
-        msg = "'Series.swapaxes' is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser2 = method(ser, copy=copy)
-    else:
-        ser2 = method(ser, copy=copy)
+    ser2 = method(ser, copy=copy)
 
     share_memory = using_copy_on_write or copy is False
 
@@ -686,55 +670,6 @@ def test_to_frame(using_copy_on_write):
         expected = ser_orig.copy().to_frame()
         expected.iloc[0, 0] = 0
         tm.assert_frame_equal(df, expected)
-
-
-@pytest.mark.parametrize("ax", ["index", "columns"])
-def test_swapaxes_noop(using_copy_on_write, ax):
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    df_orig = df.copy()
-    msg = "'DataFrame.swapaxes' is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df2 = df.swapaxes(ax, ax)
-
-    if using_copy_on_write:
-        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-    else:
-        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-
-    # mutating df2 triggers a copy-on-write for that column/block
-    df2.iloc[0, 0] = 0
-    if using_copy_on_write:
-        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-    tm.assert_frame_equal(df, df_orig)
-
-
-def test_swapaxes_single_block(using_copy_on_write):
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]}, index=["x", "y", "z"])
-    df_orig = df.copy()
-    msg = "'DataFrame.swapaxes' is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df2 = df.swapaxes("index", "columns")
-
-    if using_copy_on_write:
-        assert np.shares_memory(get_array(df2, "x"), get_array(df, "a"))
-    else:
-        assert not np.shares_memory(get_array(df2, "x"), get_array(df, "a"))
-
-    # mutating df2 triggers a copy-on-write for that column/block
-    df2.iloc[0, 0] = 0
-    if using_copy_on_write:
-        assert not np.shares_memory(get_array(df2, "x"), get_array(df, "a"))
-    tm.assert_frame_equal(df, df_orig)
-
-
-def test_swapaxes_read_only_array():
-    df = DataFrame({"a": [1, 2], "b": 3})
-    msg = "'DataFrame.swapaxes' is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df = df.swapaxes(axis1="index", axis2="columns")
-    df.iloc[0, 0] = 100
-    expected = DataFrame({0: [100, 3], 1: [2, 3]}, index=["a", "b"])
-    tm.assert_frame_equal(df, expected)
 
 
 @pytest.mark.parametrize(
