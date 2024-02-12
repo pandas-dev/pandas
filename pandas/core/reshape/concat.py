@@ -15,8 +15,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
-
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
@@ -370,13 +368,6 @@ def concat(
     0   1   2
     1   3   4
     """
-    if copy is None:
-        if using_copy_on_write():
-            copy = False
-        else:
-            copy = True
-    elif copy and using_copy_on_write():
-        copy = False
 
     op = _Concatenator(
         objs,
@@ -387,7 +378,6 @@ def concat(
         levels=levels,
         names=names,
         verify_integrity=verify_integrity,
-        copy=copy,
         sort=sort,
     )
 
@@ -411,7 +401,6 @@ class _Concatenator:
         names: list[HashableT] | None = None,
         ignore_index: bool = False,
         verify_integrity: bool = False,
-        copy: bool = True,
         sort: bool = False,
     ) -> None:
         if isinstance(objs, (ABCSeries, ABCDataFrame, str)):
@@ -439,7 +428,6 @@ class _Concatenator:
 
         self.ignore_index = ignore_index
         self.verify_integrity = verify_integrity
-        self.copy = copy
 
         objs, keys = self._clean_keys_and_objs(objs, keys)
 
@@ -656,7 +644,7 @@ class _Concatenator:
                 cons = sample._constructor_expanddim
 
                 index, columns = self.new_axes
-                df = cons(data, index=index, copy=self.copy)
+                df = cons(data, index=index, copy=False)
                 df.columns = columns
                 return df.__finalize__(self, method="concat")
 
@@ -681,10 +669,8 @@ class _Concatenator:
                 mgrs_indexers.append((obj._mgr, indexers))
 
             new_data = concatenate_managers(
-                mgrs_indexers, self.new_axes, concat_axis=self.bm_axis, copy=self.copy
+                mgrs_indexers, self.new_axes, concat_axis=self.bm_axis, copy=False
             )
-            if not self.copy and not using_copy_on_write():
-                new_data._consolidate_inplace()
 
             out = sample._constructor_from_mgr(new_data, axes=new_data.axes)
             return out.__finalize__(self, method="concat")
@@ -710,7 +696,6 @@ class _Concatenator:
             axis=data_axis,
             intersect=self.intersect,
             sort=self.sort,
-            copy=self.copy,
         )
 
     @cache_readonly

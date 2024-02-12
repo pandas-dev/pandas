@@ -26,8 +26,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
-
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import (
@@ -1967,7 +1965,7 @@ class TextFileReader(abc.Iterator):
                 new_col_dict,
                 columns=columns,
                 index=index,
-                copy=not using_copy_on_write(),
+                copy=False,
             )
 
             self._currow += new_rows
