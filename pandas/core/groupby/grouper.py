@@ -12,8 +12,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
-
 from pandas._libs.tslibs import OutOfBoundsDatetime
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
@@ -882,26 +880,15 @@ def get_grouper(
     def is_in_obj(gpr) -> bool:
         if not hasattr(gpr, "name"):
             return False
-        if using_copy_on_write():
-            # For the CoW case, we check the references to determine if the
-            # series is part of the object
-            try:
-                obj_gpr_column = obj[gpr.name]
-            except (KeyError, IndexError, InvalidIndexError, OutOfBoundsDatetime):
-                return False
-            if isinstance(gpr, Series) and isinstance(obj_gpr_column, Series):
-                return gpr._mgr.references_same_values(obj_gpr_column._mgr, 0)
-            return False
+        # We check the references to determine if the
+        # series is part of the object
         try:
-            return gpr is obj[gpr.name]
+            obj_gpr_column = obj[gpr.name]
         except (KeyError, IndexError, InvalidIndexError, OutOfBoundsDatetime):
-            # IndexError reached in e.g. test_skip_group_keys when we pass
-            #  lambda here
-            # InvalidIndexError raised on key-types inappropriate for index,
-            #  e.g. DatetimeIndex.get_loc(tuple())
-            # OutOfBoundsDatetime raised when obj is a Series with DatetimeIndex
-            # and gpr.name is month str
             return False
+        if isinstance(gpr, Series) and isinstance(obj_gpr_column, Series):
+            return gpr._mgr.references_same_values(obj_gpr_column._mgr, 0)
+        return False
 
     for gpr, level in zip(keys, levels):
         if is_in_obj(gpr):  # df.groupby(df['name'])

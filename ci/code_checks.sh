@@ -140,7 +140,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.DataFrameGroupBy.rolling\
         pandas.core.groupby.SeriesGroupBy.nth\
         pandas.core.groupby.SeriesGroupBy.rolling\
-        pandas.core.groupby.DataFrameGroupBy.hist\
         pandas.core.groupby.DataFrameGroupBy.plot\
         pandas.core.groupby.SeriesGroupBy.plot # There should be no backslash in the final line, please keep this comment in the last ignored function
     RET=$(($RET + $?)) ; echo $MSG "DONE"
