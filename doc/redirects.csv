@@ -238,7 +238,6 @@ generated/pandas.core.resample.Resampler.backfill,../reference/api/pandas.core.r
 generated/pandas.core.resample.Resampler.bfill,../reference/api/pandas.core.resample.Resampler.bfill
 generated/pandas.core.resample.Resampler.count,../reference/api/pandas.core.resample.Resampler.count
 generated/pandas.core.resample.Resampler.ffill,../reference/api/pandas.core.resample.Resampler.ffill
-generated/pandas.core.resample.Resampler.fillna,../reference/api/pandas.core.resample.Resampler.fillna
 generated/pandas.core.resample.Resampler.first,../reference/api/pandas.core.resample.Resampler.first
 generated/pandas.core.resample.Resampler.get_group,../reference/api/pandas.core.resample.Resampler.get_group
 generated/pandas.core.resample.Resampler.groups,../reference/api/pandas.core.resample.Resampler.groups
