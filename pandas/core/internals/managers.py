@@ -10,18 +10,13 @@ from typing import (
     Any,
     Callable,
     Literal,
+    NoReturn,
     cast,
     final,
 )
 import warnings
-import weakref
 
 import numpy as np
-
-from pandas._config import (
-    using_copy_on_write,
-    warn_copy_on_write,
-)
 
 from pandas._libs import (
     algos as libalgos,
@@ -66,11 +61,7 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import (
-    ArrowExtensionArray,
-    ArrowStringArray,
-    DatetimeArray,
-)
+from pandas.core.arrays import DatetimeArray
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.base import PandasObject
 from pandas.core.construction import (
@@ -84,8 +75,6 @@ from pandas.core.indexes.api import (
     ensure_index,
 )
 from pandas.core.internals.blocks import (
-    COW_WARNING_GENERAL_MSG,
-    COW_WARNING_SETITEM_MSG,
     Block,
     NumpyBlock,
     ensure_block_shape,
@@ -144,16 +133,6 @@ def ensure_np_dtype(dtype: DtypeObj) -> np.dtype:
     elif dtype == np.dtype(str):
         dtype = np.dtype("object")
     return dtype
-
-
-class _AlreadyWarned:
-    def __init__(self) -> None:
-        # This class is used on the manager level to the block level to
-        # ensure that we warn only once. The block method can update the
-        # warned_already option without returning a value to keep the
-        # interface consistent. This is only a temporary solution for
-        # CoW warnings.
-        self.warned_already = False
 
 
 class BaseBlockManager(PandasObject):
@@ -357,8 +336,8 @@ class BaseBlockManager(PandasObject):
         Checks if two blocks from two different block managers reference the
         same underlying values.
         """
-        ref = weakref.ref(self.blocks[blkno])
-        return ref in mgr.blocks[blkno].refs.referenced_blocks
+        blk = self.blocks[blkno]
+        return any(blk is ref() for ref in mgr.blocks[blkno].refs.referenced_blocks)
 
     def get_dtypes(self) -> npt.NDArray[np.object_]:
         dtypes = np.array([blk.dtype for blk in self.blocks], dtype=object)
@@ -489,8 +468,6 @@ class BaseBlockManager(PandasObject):
             limit=limit,
             inplace=inplace,
             downcast=downcast,
-            using_cow=using_copy_on_write(),
-            already_warned=_AlreadyWarned(),
         )
 
     @final
@@ -506,39 +483,26 @@ class BaseBlockManager(PandasObject):
             align_keys=align_keys,
             other=other,
             cond=cond,
-            using_cow=using_copy_on_write(),
         )
 
     @final
-    def putmask(self, mask, new, align: bool = True, warn: bool = True) -> Self:
+    def putmask(self, mask, new, align: bool = True) -> Self:
         if align:
             align_keys = ["new", "mask"]
         else:
             align_keys = ["mask"]
             new = extract_array(new, extract_numpy=True)
 
-        already_warned = None
-        if warn_copy_on_write():
-            already_warned = _AlreadyWarned()
-            if not warn:
-                already_warned.warned_already = True
-
         return self.apply(
             "putmask",
             align_keys=align_keys,
             mask=mask,
             new=new,
-            using_cow=using_copy_on_write(),
-            already_warned=already_warned,
         )
 
     @final
-    def round(self, decimals: int, using_cow: bool = False) -> Self:
-        return self.apply(
-            "round",
-            decimals=decimals,
-            using_cow=using_cow,
-        )
+    def round(self, decimals: int) -> Self:
+        return self.apply("round", decimals=decimals)
 
     @final
     def replace(self, to_replace, value, inplace: bool) -> Self:
@@ -551,18 +515,11 @@ class BaseBlockManager(PandasObject):
             to_replace=to_replace,
             value=value,
             inplace=inplace,
-            using_cow=using_copy_on_write(),
-            already_warned=_AlreadyWarned(),
         )
 
     @final
     def replace_regex(self, **kwargs) -> Self:
-        return self.apply(
-            "_replace_regex",
-            **kwargs,
-            using_cow=using_copy_on_write(),
-            already_warned=_AlreadyWarned(),
-        )
+        return self.apply("_replace_regex", **kwargs)
 
     @final
     def replace_list(
@@ -581,29 +538,15 @@ class BaseBlockManager(PandasObject):
             dest_list=dest_list,
             inplace=inplace,
             regex=regex,
-            using_cow=using_copy_on_write(),
-            already_warned=_AlreadyWarned(),
         )
         bm._consolidate_inplace()
         return bm
 
     def interpolate(self, inplace: bool, **kwargs) -> Self:
-        return self.apply(
-            "interpolate",
-            inplace=inplace,
-            **kwargs,
-            using_cow=using_copy_on_write(),
-            already_warned=_AlreadyWarned(),
-        )
+        return self.apply("interpolate", inplace=inplace, **kwargs)
 
     def pad_or_backfill(self, inplace: bool, **kwargs) -> Self:
-        return self.apply(
-            "pad_or_backfill",
-            inplace=inplace,
-            **kwargs,
-            using_cow=using_copy_on_write(),
-            already_warned=_AlreadyWarned(),
-        )
+        return self.apply("pad_or_backfill", inplace=inplace, **kwargs)
 
     def shift(self, periods: int, fill_value) -> Self:
         if fill_value is lib.no_default:
@@ -611,7 +554,7 @@ class BaseBlockManager(PandasObject):
 
         return self.apply("shift", periods=periods, fill_value=fill_value)
 
-    def setitem(self, indexer, value, warn: bool = True) -> Self:
+    def setitem(self, indexer, value) -> Self:
         """
         Set values with indexer.
 
@@ -620,14 +563,7 @@ class BaseBlockManager(PandasObject):
         if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
             raise ValueError(f"Cannot set values with ndim > {self.ndim}")
 
-        if warn and warn_copy_on_write() and not self._has_no_reference(0):
-            warnings.warn(
-                COW_WARNING_GENERAL_MSG,
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
-        elif using_copy_on_write() and not self._has_no_reference(0):
+        if not self._has_no_reference(0):
             # this method is only called if there is a single block -> hardcoded 0
             # Split blocks to only copy the columns we want to modify
             if self.ndim == 2 and isinstance(indexer, tuple):
@@ -660,43 +596,14 @@ class BaseBlockManager(PandasObject):
         # only reached with self.ndim == 2
         return self.apply("diff", n=n)
 
-    def astype(self, dtype, copy: bool | None = False, errors: str = "raise") -> Self:
-        if copy is None:
-            if using_copy_on_write():
-                copy = False
-            else:
-                copy = True
-        elif using_copy_on_write():
-            copy = False
+    def astype(self, dtype, errors: str = "raise") -> Self:
+        return self.apply("astype", dtype=dtype, errors=errors)
 
-        return self.apply(
-            "astype",
-            dtype=dtype,
-            copy=copy,
-            errors=errors,
-            using_cow=using_copy_on_write(),
-        )
-
-    def convert(self, copy: bool | None) -> Self:
-        if copy is None:
-            if using_copy_on_write():
-                copy = False
-            else:
-                copy = True
-        elif using_copy_on_write():
-            copy = False
-
-        return self.apply("convert", copy=copy, using_cow=using_copy_on_write())
+    def convert(self) -> Self:
+        return self.apply("convert")
 
     def convert_dtypes(self, **kwargs):
-        if using_copy_on_write():
-            copy = False
-        else:
-            copy = True
-
-        return self.apply(
-            "convert_dtypes", copy=copy, using_cow=using_copy_on_write(), **kwargs
-        )
+        return self.apply("convert_dtypes", **kwargs)
 
     def get_values_for_csv(
         self, *, float_format, date_format, decimal, na_rep: str = "nan", quoting=None
@@ -729,7 +636,7 @@ class BaseBlockManager(PandasObject):
         # e.g. [ b.values.base is not None for b in self.blocks ]
         # but then we have the case of possibly some blocks being a view
         # and some blocks not. setting in theory is possible on the non-view
-        # blocks w/o causing a SettingWithCopy raise/warn. But this is a bit
+        # blocks. But this is a bit
         # complicated
 
         return False
@@ -810,14 +717,7 @@ class BaseBlockManager(PandasObject):
         -------
         BlockManager
         """
-        if deep is None:
-            if using_copy_on_write():
-                # use shallow copy
-                deep = False
-            else:
-                # preserve deep copy for BlockManager with copy=None
-                deep = True
-
+        deep = deep if deep is not None else False
         # this preserves the notion of view copying of axes
         if deep:
             # hit in e.g. tests.io.json.test_pandas
@@ -827,10 +727,7 @@ class BaseBlockManager(PandasObject):
 
             new_axes = [copy_func(ax) for ax in self.axes]
         else:
-            if using_copy_on_write():
-                new_axes = [ax.view() for ax in self.axes]
-            else:
-                new_axes = list(self.axes)
+            new_axes = [ax.view() for ax in self.axes]
 
         res = self.apply("copy", deep=deep)
         res.axes = new_axes
@@ -886,7 +783,6 @@ class BaseBlockManager(PandasObject):
             indexer,
             axis=axis,
             fill_value=fill_value,
-            copy=False,
             only_slice=only_slice,
         )
 
@@ -897,7 +793,6 @@ class BaseBlockManager(PandasObject):
         axis: AxisInt,
         fill_value=None,
         allow_dups: bool = False,
-        copy: bool | None = True,
         only_slice: bool = False,
         *,
         use_na_proxy: bool = False,
@@ -910,8 +805,6 @@ class BaseBlockManager(PandasObject):
         axis : int
         fill_value : object, default None
         allow_dups : bool, default False
-        copy : bool or None, default True
-            If None, regard as False to get shallow copy.
         only_slice : bool, default False
             Whether to take views, not copies, along columns.
         use_na_proxy : bool, default False
@@ -919,19 +812,11 @@ class BaseBlockManager(PandasObject):
 
         pandas-indexer with -1's only.
         """
-        if copy is None:
-            if using_copy_on_write():
-                # use shallow copy
-                copy = False
-            else:
-                # preserve deep copy for BlockManager with copy=None
-                copy = True
-
         if indexer is None:
-            if new_axis is self.axes[axis] and not copy:
+            if new_axis is self.axes[axis]:
                 return self
 
-            result = self.copy(deep=copy)
+            result = self.copy(deep=False)
             result.axes = list(self.axes)
             result.axes[axis] = new_axis
             return result
@@ -1083,7 +968,7 @@ class BaseBlockManager(PandasObject):
                     # A non-consolidatable block, it's easy, because there's
                     # only one item and each mgr loc is a copy of that single
                     # item.
-                    deep = not (only_slice or using_copy_on_write())
+                    deep = False
                     for mgr_loc in mgr_locs:
                         newblk = blk.copy(deep=deep)
                         newblk.mgr_locs = BlockPlacement(slice(mgr_loc, mgr_loc + 1))
@@ -1094,8 +979,7 @@ class BaseBlockManager(PandasObject):
                     #  we may try to only slice
                     taker = blklocs[mgr_locs.indexer]
                     max_len = max(len(mgr_locs), taker.max() + 1)
-                    if only_slice or using_copy_on_write():
-                        taker = lib.maybe_indices_to_slice(taker, max_len)
+                    taker = lib.maybe_indices_to_slice(taker, max_len)
 
                     if isinstance(taker, slice):
                         nb = blk.getitem_block_columns(taker, new_mgr_locs=mgr_locs)
@@ -1127,8 +1011,12 @@ class BaseBlockManager(PandasObject):
             nb = NumpyBlock(vals, placement, ndim=2)
             return nb
 
-        if fill_value is None:
+        if fill_value is None or fill_value is np.nan:
             fill_value = np.nan
+            # GH45857 avoid unnecessary upcasting
+            dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
+            if dtype is not None and np.issubdtype(dtype.type, np.floating):
+                fill_value = dtype.type(fill_value)
 
         shape = (len(placement), self.shape[1])
 
@@ -1166,7 +1054,6 @@ class BaseBlockManager(PandasObject):
             indexer=indexer,
             axis=axis,
             allow_dups=True,
-            copy=None,
         )
 
 
@@ -1412,7 +1299,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             blk_locs = blklocs[val_locs.indexer]
             if inplace and blk.should_store(value):
                 # Updating inplace -> check if we need to do Copy-on-Write
-                if using_copy_on_write() and not self._has_no_reference_block(blkno_l):
+                if not self._has_no_reference_block(blkno_l):
                     self._iset_split_block(
                         blkno_l, blk_locs, value_getitem(val_locs), refs=refs
                     )
@@ -1553,10 +1440,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # Caller is responsible for verifying value.shape
 
         if inplace and blk.should_store(value):
-            copy = False
-            if using_copy_on_write() and not self._has_no_reference_block(blkno):
-                # perform Copy-on-Write and clear the reference
-                copy = True
+            copy = not self._has_no_reference_block(blkno)
             iloc = self.blklocs[loc]
             blk.set_inplace(slice(iloc, iloc + 1), value, copy=copy)
             return
@@ -1576,17 +1460,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         This is a method on the BlockManager level, to avoid creating an
         intermediate Series at the DataFrame level (`s = df[loc]; s[idx] = value`)
         """
-        needs_to_warn = False
-        if warn_copy_on_write() and not self._has_no_reference(loc):
-            if not isinstance(
-                self.blocks[self.blknos[loc]].values,
-                (ArrowExtensionArray, ArrowStringArray),
-            ):
-                # We might raise if we are in an expansion case, so defer
-                # warning till we actually updated
-                needs_to_warn = True
-
-        elif using_copy_on_write() and not self._has_no_reference(loc):
+        if not self._has_no_reference(loc):
             blkno = self.blknos[loc]
             # Split blocks to only copy the column we want to modify
             blk_loc = self.blklocs[loc]
@@ -1608,13 +1482,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         else:
             new_mgr = col_mgr.setitem((idx,), value)
             self.iset(loc, new_mgr._block.values, inplace=True)
-
-        if needs_to_warn:
-            warnings.warn(
-                COW_WARNING_GENERAL_MSG,
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
 
     def insert(self, loc: int, item: Hashable, value: ArrayLike, refs=None) -> None:
         """
@@ -1957,7 +1824,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             else:
                 arr = np.array(blk.values, dtype=dtype, copy=copy)
 
-            if using_copy_on_write() and not copy:
+            if not copy:
                 arr = arr.view()
                 arr.flags.writeable = False
         else:
@@ -2234,7 +2101,7 @@ class SingleBlockManager(BaseBlockManager):
     def get_rows_with_mask(self, indexer: npt.NDArray[np.bool_]) -> Self:
         # similar to get_slice, but not restricted to slice indexer
         blk = self._block
-        if using_copy_on_write() and len(indexer) > 0 and indexer.all():
+        if len(indexer) > 0 and indexer.all():
             return type(self)(blk.copy(deep=False), self.index)
         array = blk.values[indexer]
 
@@ -2298,7 +2165,7 @@ class SingleBlockManager(BaseBlockManager):
     def _can_hold_na(self) -> bool:
         return self._block._can_hold_na
 
-    def setitem_inplace(self, indexer, value, warn: bool = True) -> None:
+    def setitem_inplace(self, indexer, value) -> None:
         """
         Set values with indexer.
 
@@ -2308,18 +2175,9 @@ class SingleBlockManager(BaseBlockManager):
         in place, not returning a new Manager (and Block), and thus never changing
         the dtype.
         """
-        using_cow = using_copy_on_write()
-        warn_cow = warn_copy_on_write()
-        if (using_cow or warn_cow) and not self._has_no_reference(0):
-            if using_cow:
-                self.blocks = (self._block.copy(),)
-                self._cache.clear()
-            elif warn_cow and warn:
-                warnings.warn(
-                    COW_WARNING_SETITEM_MSG,
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
+        if not self._has_no_reference(0):
+            self.blocks = (self._block.copy(),)
+            self._cache.clear()
 
         arr = self.array
 
@@ -2450,7 +2308,7 @@ def raise_construction_error(
     block_shape: Shape,
     axes: list[Index],
     e: ValueError | None = None,
-):
+) -> NoReturn:
     """raise a helpful message about our construction"""
     passed = tuple(map(int, [tot_items] + list(block_shape)))
     # Correcting the user facing error message during dataframe construction
