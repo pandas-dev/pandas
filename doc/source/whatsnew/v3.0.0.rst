@@ -225,7 +225,7 @@ ExtensionArray
 
 Styler
 ^^^^^^
-- Enh in :meth:`Styler.set_tooltips` provides alternative method to storing tooltips by using title attribute of td elements.
+- :meth:`Styler.set_tooltips` provides alternative method to storing tooltips by using title attribute of td elements. (:issue:`56981`)
 -
 
 Other
