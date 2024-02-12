@@ -1776,7 +1776,7 @@ def test_api_date_parsing(conn, request):
 
 
 @pytest.mark.parametrize("conn", all_connectable_types)
-@pytest.mark.parametrize("error", ["ignore", "raise", "coerce"])
+@pytest.mark.parametrize("error", ["raise", "coerce"])
 @pytest.mark.parametrize(
     "read_sql, text, mode",
     [

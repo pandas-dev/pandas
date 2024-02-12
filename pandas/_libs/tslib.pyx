@@ -272,14 +272,13 @@ def array_with_unit_to_datetime(
     """
     cdef:
         Py_ssize_t i, n=len(values)
-        bint is_ignore = errors == "ignore"
         bint is_coerce = errors == "coerce"
         bint is_raise = errors == "raise"
         ndarray[int64_t] iresult
         tzinfo tz = None
         float fval
 
-    assert is_ignore or is_coerce or is_raise
+    assert is_coerce or is_raise
 
     if unit == "ns":
         result, tz = array_to_datetime(
@@ -342,11 +341,6 @@ def array_with_unit_to_datetime(
             if is_raise:
                 err.args = (f"{err}, at position {i}",)
                 raise
-            elif is_ignore:
-                # we have hit an exception
-                # and are in ignore mode
-                # redo as object
-                return _array_with_unit_to_datetime_object_fallback(values, unit)
             else:
                 # is_coerce
                 iresult[i] = NPY_NAT
@@ -461,7 +455,6 @@ cpdef array_to_datetime(
         bint utc_convert = bool(utc)
         bint seen_datetime_offset = False
         bint is_raise = errors == "raise"
-        bint is_ignore = errors == "ignore"
         bint is_coerce = errors == "coerce"
         bint is_same_offsets
         _TSObject tsobj
@@ -475,7 +468,7 @@ cpdef array_to_datetime(
         str abbrev
 
     # specify error conditions
-    assert is_raise or is_ignore or is_coerce
+    assert is_raise or is_coerce
 
     if infer_reso:
         abbrev = "ns"
@@ -687,7 +680,6 @@ cdef _array_to_datetime_object(
     cdef:
         Py_ssize_t i, n = values.size
         object val
-        bint is_ignore = errors == "ignore"
         bint is_coerce = errors == "coerce"
         bint is_raise = errors == "raise"
         ndarray oresult_nd
@@ -696,7 +688,7 @@ cdef _array_to_datetime_object(
         cnp.broadcast mi
         _TSObject tsobj
 
-    assert is_raise or is_ignore or is_coerce
+    assert is_raise or is_coerce
 
     oresult_nd = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
     mi = cnp.PyArray_MultiIterNew2(oresult_nd, values)
