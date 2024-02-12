@@ -122,6 +122,7 @@ Removal of prior version deprecations/changes
 - Removed ``pandas.io.sql.execute`` (:issue:`50185`)
 - Removed ``pandas.value_counts``, use :meth:`Series.value_counts` instead (:issue:`53493`)
 - Removed ``read_gbq`` and ``DataFrame.to_gbq``. Use ``pandas_gbq.read_gbq`` and ``pandas_gbq.to_gbq`` instead https://pandas-gbq.readthedocs.io/en/latest/api.html (:issue:`55525`)
+- Removed ``use_nullable_dtypes`` from :func:`read_parquet` (:issue:`51853`)
 - Removed deprecated argument ``obj`` in :meth:`.DataFrameGroupBy.get_group` and :meth:`.SeriesGroupBy.get_group` (:issue:`53545`)
 - Removed deprecated behavior of :meth:`Series.agg` using :meth:`Series.apply` (:issue:`53325`)
 - Removed the ``ArrayManager`` (:issue:`55043`)

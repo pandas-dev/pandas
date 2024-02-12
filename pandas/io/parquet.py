@@ -9,7 +9,6 @@ from typing import (
     Any,
     Literal,
 )
-import warnings
 from warnings import catch_warnings
 
 from pandas._config import using_pyarrow_string_dtype
@@ -18,7 +17,6 @@ from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 import pandas as pd
@@ -240,7 +238,6 @@ class PyArrowImpl(BaseImpl):
         path,
         columns=None,
         filters=None,
-        use_nullable_dtypes: bool = False,
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
         storage_options: StorageOptions | None = None,
         filesystem=None,
@@ -357,15 +354,9 @@ class FastParquetImpl(BaseImpl):
         **kwargs,
     ) -> DataFrame:
         parquet_kwargs: dict[str, Any] = {}
-        use_nullable_dtypes = kwargs.pop("use_nullable_dtypes", False)
         dtype_backend = kwargs.pop("dtype_backend", lib.no_default)
         # We are disabling nullable dtypes for fastparquet pending discussion
         parquet_kwargs["pandas_nulls"] = False
-        if use_nullable_dtypes:
-            raise ValueError(
-                "The 'use_nullable_dtypes' argument is not supported for the "
-                "fastparquet engine"
-            )
         if dtype_backend is not lib.no_default:
             raise ValueError(
                 "The 'dtype_backend' argument is not supported for the "
@@ -493,7 +484,6 @@ def read_parquet(
     engine: str = "auto",
     columns: list[str] | None = None,
     storage_options: StorageOptions | None = None,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     filesystem: Any = None,
     filters: list[tuple] | list[list[tuple]] | None = None,
@@ -533,17 +523,6 @@ def read_parquet(
     {storage_options}
 
         .. versionadded:: 1.3.0
-
-    use_nullable_dtypes : bool, default False
-        If True, use dtypes that use ``pd.NA`` as missing value indicator
-        for the resulting DataFrame. (only applicable for the ``pyarrow``
-        engine)
-        As new dtypes are added that support ``pd.NA`` in the future, the
-        output with this option will change to use those dtypes.
-        Note: this is an experimental option, and behaviour (e.g. additional
-        support dtypes) may change without notice.
-
-        .. deprecated:: 2.0
 
     dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
         Back-end data type applied to the resultant :class:`DataFrame`
@@ -643,19 +622,6 @@ def read_parquet(
     """
 
     impl = get_engine(engine)
-
-    if use_nullable_dtypes is not lib.no_default:
-        msg = (
-            "The argument 'use_nullable_dtypes' is deprecated and will be removed "
-            "in a future version."
-        )
-        if use_nullable_dtypes is True:
-            msg += (
-                "Use dtype_backend='numpy_nullable' instead of use_nullable_dtype=True."
-            )
-        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
-    else:
-        use_nullable_dtypes = False
     check_dtype_backend(dtype_backend)
 
     return impl.read(
@@ -663,7 +629,6 @@ def read_parquet(
         columns=columns,
         filters=filters,
         storage_options=storage_options,
-        use_nullable_dtypes=use_nullable_dtypes,
         dtype_backend=dtype_backend,
         filesystem=filesystem,
         **kwargs,
