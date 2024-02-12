@@ -46,7 +46,12 @@ if TYPE_CHECKING:
 
     from pandas.core.dtypes.dtypes import ExtensionDtype
 
-    from pandas import Interval
+    from pandas import (
+        DatetimeIndex,
+        Interval,
+        PeriodIndex,
+        TimedeltaIndex,
+    )
     from pandas.arrays import (
         DatetimeArray,
         TimedeltaArray,
@@ -190,6 +195,7 @@ ToTimestampHow = Literal["s", "e", "start", "end"]
 NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
 
 IndexT = TypeVar("IndexT", bound="Index")
+FreqIndexT = TypeVar("FreqIndexT", "DatetimeIndex", "PeriodIndex", "TimedeltaIndex")
 NumpyIndexT = TypeVar("NumpyIndexT", np.ndarray, "Index")
 
 AxisInt = int
@@ -428,7 +434,7 @@ IntervalClosedType = Union[IntervalLeftRight, Literal["both", "neither"]]
 
 # datetime and NaTType
 DatetimeNaTType = Union[datetime, "NaTType"]
-DateTimeErrorChoices = Union[IgnoreRaise, Literal["coerce"]]
+DateTimeErrorChoices = Literal["raise", "coerce"]
 
 # sort_index
 SortKind = Literal["quicksort", "mergesort", "heapsort", "stable"]

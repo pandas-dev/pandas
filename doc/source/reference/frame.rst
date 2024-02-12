@@ -48,7 +48,6 @@ Conversion
    DataFrame.convert_dtypes
    DataFrame.infer_objects
    DataFrame.copy
-   DataFrame.bool
    DataFrame.to_numpy
 
 Indexing, iteration
@@ -118,7 +117,6 @@ Function application, GroupBy & window
 
    DataFrame.apply
    DataFrame.map
-   DataFrame.applymap
    DataFrame.pipe
    DataFrame.agg
    DataFrame.aggregate
@@ -237,7 +235,6 @@ Reshaping, sorting, transposing
    DataFrame.swaplevel
    DataFrame.stack
    DataFrame.unstack
-   DataFrame.swapaxes
    DataFrame.melt
    DataFrame.explode
    DataFrame.squeeze

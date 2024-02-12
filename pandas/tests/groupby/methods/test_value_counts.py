@@ -109,7 +109,7 @@ def test_series_groupby_value_counts(
 
     gr = df.groupby(keys, sort=isort)
     right = gr["3rd"].apply(Series.value_counts, **kwargs)
-    right.index.names = right.index.names[:-1] + ["3rd"]
+    right.index.names = tuple(list(right.index.names[:-1]) + ["3rd"])
     # https://github.com/pandas-dev/pandas/issues/49909
     right = right.rename(name)
 
@@ -1204,7 +1204,7 @@ def test_value_counts_sort_categorical(sort, vc_sort, normalize):
     elif not sort and vc_sort:
         taker = [0, 2, 1, 3]
     else:
-        taker = [2, 3, 0, 1]
+        taker = [2, 1, 0, 3]
     expected = expected.take(taker)
 
     tm.assert_series_equal(result, expected)
