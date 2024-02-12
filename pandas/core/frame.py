@@ -5859,6 +5859,9 @@ class DataFrame(NDFrame, OpsMixin):
             )
             fill_value = lib.no_default
 
+        if self.empty:
+            return self.copy()
+
         axis = self._get_axis_number(axis)
 
         if is_list_like(periods):
