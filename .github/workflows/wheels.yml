@@ -60,7 +60,7 @@ jobs:
 
       - name: Build sdist
         run: |
-          python -m pip install build
+          python -m pip install build wheel setuptools-scm
           python -m build --sdist
 
       - name: Build pandas_tests

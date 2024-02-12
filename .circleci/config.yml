@@ -75,7 +75,7 @@ jobs:
           # (unlike Github Actions there is no host access using cibuildwheel with CircleCI)
           name: Build the sdist
           command: |
-            pip3 install build setuptools-scm
+            pip3 install build setuptools-scm wheel
             python3 -m build --sdist
             sdist_name=$(ls ./dist/*.tar.gz)
             mkdir unzipped-sdist
