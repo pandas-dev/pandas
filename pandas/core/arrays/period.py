@@ -636,6 +636,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         >>> idx.to_timestamp()
         DatetimeIndex(['2023-01-01', '2023-02-01', '2023-03-01'],
         dtype='datetime64[ns]', freq='MS')
+
+        We can not infer the frequency if len(index) < 3:
+
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02"], freq="M")
+        >>> idx.to_timestamp()
+        DatetimeIndex(['2023-01-01', '2023-02-01'], dtype='datetime64[ns]', freq=None)
         """
         from pandas.core.arrays import DatetimeArray
 
