@@ -9540,10 +9540,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level: Level | None = None,
         copy: bool | None = None,
         fill_value: Hashable | None = None,
-        method: FillnaOptions | None | lib.NoDefault = lib.no_default,
-        limit: int | None | lib.NoDefault = lib.no_default,
-        fill_axis: Axis | lib.NoDefault = lib.no_default,
-        broadcast_axis: Axis | None | lib.NoDefault = lib.no_default,
     ) -> tuple[Self, NDFrameT]:
         """
         Align two objects on their axes with the specified join method.
@@ -9585,34 +9581,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         fill_value : scalar, default np.nan
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value.
-        method : {{'backfill', 'bfill', 'pad', 'ffill', None}}, default None
-            Method to use for filling holes in reindexed Series:
-
-            - pad / ffill: propagate last valid observation forward to next valid.
-            - backfill / bfill: use NEXT valid observation to fill gap.
-
-            .. deprecated:: 2.1
-
-        limit : int, default None
-            If method is specified, this is the maximum number of consecutive
-            NaN values to forward/backward fill. In other words, if there is
-            a gap with more than this number of consecutive NaNs, it will only
-            be partially filled. If method is not specified, this is the
-            maximum number of entries along the entire axis where NaNs will be
-            filled. Must be greater than 0 if not None.
-
-            .. deprecated:: 2.1
-
-        fill_axis : {axes_single_arg}, default 0
-            Filling axis, method and limit.
-
-            .. deprecated:: 2.1
-
-        broadcast_axis : {axes_single_arg}, default None
-            Broadcast values along this axis, if aligning two objects of
-            different dimensions.
-
-            .. deprecated:: 2.1
 
         Returns
         -------
@@ -9684,92 +9652,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3   60.0   70.0   80.0   90.0 NaN
         4  600.0  700.0  800.0  900.0 NaN
         """
-        if (
-            method is not lib.no_default
-            or limit is not lib.no_default
-            or fill_axis is not lib.no_default
-        ):
-            # GH#51856
-            warnings.warn(
-                "The 'method', 'limit', and 'fill_axis' keywords in "
-                f"{type(self).__name__}.align are deprecated and will be removed "
-                "in a future version. Call fillna directly on the returned objects "
-                "instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        if fill_axis is lib.no_default:
-            fill_axis = 0
-        if method is lib.no_default:
-            method = None
-        if limit is lib.no_default:
-            limit = None
-
-        if method is not None:
-            method = clean_fill_method(method)
-
-        if broadcast_axis is not lib.no_default:
-            # GH#51856
-            # TODO(3.0): enforcing this deprecation will close GH#13194
-            msg = (
-                f"The 'broadcast_axis' keyword in {type(self).__name__}.align is "
-                "deprecated and will be removed in a future version."
-            )
-            if broadcast_axis is not None:
-                if self.ndim == 1 and other.ndim == 2:
-                    msg += (
-                        " Use left = DataFrame({col: left for col in right.columns}, "
-                        "index=right.index) before calling `left.align(right)` instead."
-                    )
-                elif self.ndim == 2 and other.ndim == 1:
-                    msg += (
-                        " Use right = DataFrame({col: right for col in left.columns}, "
-                        "index=left.index) before calling `left.align(right)` instead"
-                    )
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
-        else:
-            broadcast_axis = None
-
-        if broadcast_axis == 1 and self.ndim != other.ndim:
-            if isinstance(self, ABCSeries):
-                # this means other is a DataFrame, and we need to broadcast
-                # self
-                cons = self._constructor_expanddim
-                df = cons(
-                    {c: self for c in other.columns}, **other._construct_axes_dict()
-                )
-                # error: Incompatible return value type (got "Tuple[DataFrame,
-                # DataFrame]", expected "Tuple[Self, NDFrameT]")
-                return df._align_frame(  # type: ignore[return-value]
-                    other,  # type: ignore[arg-type]
-                    join=join,
-                    axis=axis,
-                    level=level,
-                    fill_value=fill_value,
-                    method=method,
-                    limit=limit,
-                    fill_axis=fill_axis,
-                )[:2]
-            elif isinstance(other, ABCSeries):
-                # this means self is a DataFrame, and we need to broadcast
-                # other
-                cons = other._constructor_expanddim
-                df = cons(
-                    {c: other for c in self.columns}, **self._construct_axes_dict()
-                )
-                # error: Incompatible return value type (got "Tuple[NDFrameT,
-                # DataFrame]", expected "Tuple[Self, NDFrameT]")
-                return self._align_frame(  # type: ignore[return-value]
-                    df,
-                    join=join,
-                    axis=axis,
-                    level=level,
-                    fill_value=fill_value,
-                    method=method,
-                    limit=limit,
-                    fill_axis=fill_axis,
-                )[:2]
-
         _right: DataFrame | Series
         if axis is not None:
             axis = self._get_axis_number(axis)
@@ -9780,9 +9662,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 axis=axis,
                 level=level,
                 fill_value=fill_value,
-                method=method,
-                limit=limit,
-                fill_axis=fill_axis,
             )
 
         elif isinstance(other, ABCSeries):
@@ -9792,9 +9671,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 axis=axis,
                 level=level,
                 fill_value=fill_value,
-                method=method,
-                limit=limit,
-                fill_axis=fill_axis,
             )
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")
@@ -9825,9 +9701,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = None,
         level=None,
         fill_value=None,
-        method=None,
-        limit: int | None = None,
-        fill_axis: Axis = 0,
     ) -> tuple[Self, DataFrame, Index | None]:
         # defaults
         join_index, join_columns = None, None
@@ -9864,11 +9737,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             fill_value=fill_value,
             allow_dups=True,
         )
-
-        if method is not None:
-            left = left._pad_or_backfill(method, axis=fill_axis, limit=limit)
-            right = right._pad_or_backfill(method, axis=fill_axis, limit=limit)
-
         return left, right, join_index
 
     @final
@@ -9879,9 +9747,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = None,
         level=None,
         fill_value=None,
-        method=None,
-        limit: int | None = None,
-        fill_axis: Axis = 0,
     ) -> tuple[Self, Series, Index | None]:
         is_series = isinstance(self, ABCSeries)
 
@@ -9933,15 +9798,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 right = other.reindex(join_index, level=level)
 
         # fill
-        fill_na = notna(fill_value) or (method is not None)
+        fill_na = notna(fill_value)
         if fill_na:
-            fill_value, method = validate_fillna_kwargs(fill_value, method)
-            if method is not None:
-                left = left._pad_or_backfill(method, limit=limit, axis=fill_axis)
-                right = right._pad_or_backfill(method, limit=limit)
-            else:
-                left = left.fillna(fill_value, limit=limit, axis=fill_axis)
-                right = right.fillna(fill_value, limit=limit)
+            fill_value, _ = validate_fillna_kwargs(fill_value, None)
+            left = left.fillna(fill_value)
+            right = right.fillna(fill_value)
 
         return left, right, join_index
 
