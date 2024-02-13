@@ -8,6 +8,7 @@ import textwrap
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Generic,
     Literal,
     cast,
@@ -104,7 +105,7 @@ class PandasObject(DirNamesMixin):
     _cache: dict[str, Any]
 
     @property
-    def _constructor(self):
+    def _constructor(self) -> Callable[..., Self]:
         """
         Class constructor (for this class it's just `__class__`).
         """
@@ -800,7 +801,7 @@ class IndexOpsMixin(OpsMixin):
             # "int")
             return result  # type: ignore[return-value]
 
-    def tolist(self):
+    def tolist(self) -> list:
         """
         Return a list of the values.
 

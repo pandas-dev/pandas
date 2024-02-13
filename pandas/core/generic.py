@@ -11546,6 +11546,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def any(
         self,
+        *,
         axis: Axis | None = 0,
         bool_only: bool = False,
         skipna: bool = True,
@@ -11557,6 +11558,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def all(
         self,
+        *,
         axis: Axis = 0,
         bool_only: bool = False,
         skipna: bool = True,
@@ -11660,6 +11662,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def sem(
         self,
+        *,
         axis: Axis | None = 0,
         skipna: bool = True,
         ddof: int = 1,
@@ -11672,6 +11675,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def var(
         self,
+        *,
         axis: Axis | None = 0,
         skipna: bool = True,
         ddof: int = 1,
@@ -11684,6 +11688,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def std(
         self,
+        *,
         axis: Axis | None = 0,
         skipna: bool = True,
         ddof: int = 1,
@@ -11715,6 +11720,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def min(
         self,
+        *,
         axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
@@ -11731,6 +11737,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def max(
         self,
+        *,
         axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
@@ -11747,6 +11754,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def mean(
         self,
+        *,
         axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
@@ -11758,6 +11766,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def median(
         self,
+        *,
         axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
@@ -11769,6 +11778,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def skew(
         self,
+        *,
         axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
@@ -11780,6 +11790,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def kurt(
         self,
+        *,
         axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
@@ -11832,6 +11843,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def sum(
         self,
+        *,
         axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
@@ -11844,6 +11856,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def prod(
         self,
+        *,
         axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
