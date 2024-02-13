@@ -69,15 +69,11 @@ class TestSeriesClip:
         tm.assert_series_equal(s.clip(upper=np.nan, lower=np.nan), Series([1, 2, 3]))
 
         # GH#19992
-        msg = "Downcasting behavior in Series and DataFrame methods 'where'"
-        # TODO: avoid this warning here?  seems like we should never be upcasting
-        #  in the first place?
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = s.clip(lower=[0, 4, np.nan])
-        tm.assert_series_equal(res, Series([1, 4, 3]))
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = s.clip(upper=[1, np.nan, 1])
-        tm.assert_series_equal(res, Series([1, 2, 1]))
+
+        res = s.clip(lower=[0, 4, np.nan])
+        tm.assert_series_equal(res, Series([1, 4, 3.0]))
+        res = s.clip(upper=[1, np.nan, 1])
+        tm.assert_series_equal(res, Series([1, 2, 1.0]))
 
         # GH#40420
         s = Series([1, 2, 3])

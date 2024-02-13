@@ -381,7 +381,7 @@ class TestPandasContainer:
         # GH28501 Parse missing values using read_json with dtype=False
         # to NaN instead of None
         result = read_json(StringIO("[null]"), dtype=dtype)
-        expected = DataFrame([np.nan])
+        expected = DataFrame([np.nan], dtype=object if not dtype else None)
 
         tm.assert_frame_equal(result, expected)
 
@@ -1030,9 +1030,7 @@ class TestPandasContainer:
 
         result = read_json(StringIO(s))
         res = result.reindex(index=df.index, columns=df.columns)
-        msg = "The 'downcast' keyword in fillna is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = res.fillna(np.nan, downcast=False)
+        res = res.fillna(np.nan)
         tm.assert_frame_equal(res, df)
 
     @pytest.mark.network

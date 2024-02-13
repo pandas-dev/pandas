@@ -278,56 +278,11 @@ class TestFillNA:
         df = DataFrame({"a": Categorical(idx)})
         tm.assert_frame_equal(df.fillna(value=NaT), df)
 
-    def test_fillna_downcast(self):
-        # GH#15277
-        # infer int64 from float64
-        df = DataFrame({"a": [1.0, np.nan]})
-        msg = "The 'downcast' keyword in fillna is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.fillna(0, downcast="infer")
-        expected = DataFrame({"a": [1, 0]})
-        tm.assert_frame_equal(result, expected)
-
-        # infer int64 from float64 when fillna value is a dict
-        df = DataFrame({"a": [1.0, np.nan]})
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.fillna({"a": 0}, downcast="infer")
-        expected = DataFrame({"a": [1, 0]})
-        tm.assert_frame_equal(result, expected)
-
-    def test_fillna_downcast_false(self, frame_or_series):
-        # GH#45603 preserve object dtype with downcast=False
+    def test_fillna_no_downcast(self, frame_or_series):
+        # GH#45603 preserve object dtype
         obj = frame_or_series([1, 2, 3], dtype="object")
-        msg = "The 'downcast' keyword in fillna"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = obj.fillna("", downcast=False)
+        result = obj.fillna("")
         tm.assert_equal(result, obj)
-
-    def test_fillna_downcast_noop(self, frame_or_series):
-        # GH#45423
-        # Two relevant paths:
-        #  1) not _can_hold_na (e.g. integer)
-        #  2) _can_hold_na + noop + not can_hold_element
-
-        obj = frame_or_series([1, 2, 3], dtype=np.int64)
-
-        msg = "The 'downcast' keyword in fillna"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # GH#40988
-            res = obj.fillna("foo", downcast=np.dtype(np.int32))
-        expected = obj.astype(np.int32)
-        tm.assert_equal(res, expected)
-
-        obj2 = obj.astype(np.float64)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res2 = obj2.fillna("foo", downcast="infer")
-        expected2 = obj  # get back int64
-        tm.assert_equal(res2, expected2)
-
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # GH#40988
-            res3 = obj2.fillna("foo", downcast=np.dtype(np.int32))
-        tm.assert_equal(res3, expected)
 
     @pytest.mark.parametrize("columns", [["A", "A", "B"], ["A", "A"]])
     def test_fillna_dictlike_value_duplicate_colnames(self, columns):
@@ -346,20 +301,15 @@ class TestFillNA:
         result = df.dtypes
         expected = Series([np.dtype("object")] * 5, index=[1, 2, 3, 4, 5])
         tm.assert_series_equal(result, expected)
-
-        msg = "Downcasting object dtype arrays"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.fillna(1)
-        expected = DataFrame(1, index=["A", "B", "C"], columns=[1, 2, 3, 4, 5])
+        result = df.fillna(1)
+        expected = DataFrame(
+            1, index=["A", "B", "C"], columns=[1, 2, 3, 4, 5], dtype=object
+        )
         tm.assert_frame_equal(result, expected)
 
         # empty block
         df = DataFrame(index=range(3), columns=["A", "B"], dtype="float64")
-        if using_infer_string:
-            with tm.assert_produces_warning(FutureWarning, match="Downcasting"):
-                result = df.fillna("nan")
-        else:
-            result = df.fillna("nan")
+        result = df.fillna("nan")
         expected = DataFrame("nan", index=range(3), columns=["A", "B"])
         tm.assert_frame_equal(result, expected)
 
@@ -647,16 +597,6 @@ class TestFillNA:
 
         float_frame.reindex(columns=[]).fillna(value=0)
 
-    def test_fillna_downcast_dict(self):
-        # GH#40809
-        df = DataFrame({"col1": [1, np.nan]})
-
-        msg = "The 'downcast' keyword in fillna"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.fillna({"col1": 2}, downcast={"col1": "int64"})
-        expected = DataFrame({"col1": [1, 2]})
-        tm.assert_frame_equal(result, expected)
-
     def test_fillna_with_columns_and_limit(self):
         # GH40989
         df = DataFrame(
@@ -807,20 +747,10 @@ def test_fillna_nones_inplace():
         [[None, None], [None, None]],
         columns=["A", "B"],
     )
-    msg = "Downcasting object dtype arrays"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.fillna(value={"A": 1, "B": 2}, inplace=True)
+    df.fillna(value={"A": 1, "B": 2}, inplace=True)
 
-    expected = DataFrame([[1, 2], [1, 2]], columns=["A", "B"])
+    expected = DataFrame([[1, 2], [1, 2]], columns=["A", "B"], dtype=object)
     tm.assert_frame_equal(df, expected)
-
-
-@pytest.mark.parametrize("func", ["pad", "backfill"])
-def test_pad_backfill_deprecated(func):
-    # GH#33396
-    df = DataFrame({"a": [1, 2, 3]})
-    with tm.assert_produces_warning(FutureWarning):
-        getattr(df, func)()
 
 
 @pytest.mark.parametrize(

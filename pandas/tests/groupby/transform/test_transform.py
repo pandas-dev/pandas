@@ -734,12 +734,8 @@ def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
 
     expected = expected.sort_index(axis=1)
     if op == "shift":
-        depr_msg = "The 'downcast' keyword in fillna is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            expected["string_missing"] = expected["string_missing"].fillna(
-                np.nan, downcast=False
-            )
-            expected["string"] = expected["string"].fillna(np.nan, downcast=False)
+        expected["string_missing"] = expected["string_missing"].fillna(np.nan)
+        expected["string"] = expected["string"].fillna(np.nan)
 
     result = gb[expected.columns].transform(op, *args).sort_index(axis=1)
     tm.assert_frame_equal(result, expected)
@@ -807,9 +803,7 @@ def test_cython_transform_frame_column(
         expected = gb[c].apply(targop)
         expected.name = c
         if c in ["string_missing", "string"]:
-            depr_msg = "The 'downcast' keyword in fillna is deprecated"
-            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-                expected = expected.fillna(np.nan, downcast=False)
+            expected = expected.fillna(np.nan)
 
         res = gb[c].transform(op, *args)
         tm.assert_series_equal(expected, res)

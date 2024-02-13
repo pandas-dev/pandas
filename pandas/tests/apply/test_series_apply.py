@@ -305,7 +305,7 @@ def test_transform(string_series, by_row):
 @pytest.mark.parametrize("op", series_transform_kernels)
 def test_transform_partial_failure(op, request):
     # GH 35964
-    if op in ("ffill", "bfill", "pad", "backfill", "shift"):
+    if op in ("ffill", "bfill", "shift"):
         request.applymarker(
             pytest.mark.xfail(reason=f"{op} is successful on any dtype")
         )
