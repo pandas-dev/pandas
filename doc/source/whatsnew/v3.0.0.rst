@@ -122,6 +122,7 @@ Removal of prior version deprecations/changes
 - Removed ``axis`` argument from :meth:`DataFrame.groupby`, :meth:`Series.groupby`, :meth:`DataFrame.rolling`, :meth:`Series.rolling`, :meth:`DataFrame.resample`, and :meth:`Series.resample` (:issue:`51203`)
 - Removed ``axis`` argument from all groupby operations (:issue:`50405`)
 - Removed ``convert_dtype`` from :meth:`Series.apply` (:issue:`52257`)
+- Removed ``method``, ``limit`` ``fill_axis`` and ``broadcast_axis`` keywords from :meth:`DataFrame.align` (:issue:`51968`)
 - Removed ``pandas.api.types.is_interval`` and ``pandas.api.types.is_period``, use ``isinstance(obj, pd.Interval)`` and ``isinstance(obj, pd.Period)`` instead (:issue:`55264`)
 - Removed ``pandas.io.sql.execute`` (:issue:`50185`)
 - Removed ``pandas.value_counts``, use :meth:`Series.value_counts` instead (:issue:`53493`)
