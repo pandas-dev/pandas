@@ -6,10 +6,7 @@ from collections.abc import (
     Iterable,
 )
 import itertools
-from typing import (
-    TYPE_CHECKING,
-    cast,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -492,7 +489,7 @@ def from_dummies(
             f"Received 'data' of type: {type(data).__name__}"
         )
 
-    col_isna_mask = cast(Series, data.isna().any())
+    col_isna_mask = data.isna().any()
 
     if col_isna_mask.any():
         raise ValueError(
