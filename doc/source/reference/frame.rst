@@ -206,7 +206,6 @@ Missing data handling
 .. autosummary::
    :toctree: api/
 
-   DataFrame.backfill
    DataFrame.bfill
    DataFrame.dropna
    DataFrame.ffill
@@ -216,7 +215,6 @@ Missing data handling
    DataFrame.isnull
    DataFrame.notna
    DataFrame.notnull
-   DataFrame.pad
    DataFrame.replace
 
 Reshaping, sorting, transposing
