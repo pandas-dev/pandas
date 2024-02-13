@@ -130,6 +130,7 @@ Removal of prior version deprecations/changes
 - Removed ``use_nullable_dtypes`` from :func:`read_parquet` (:issue:`51853`)
 - Removed deprecated argument ``obj`` in :meth:`.DataFrameGroupBy.get_group` and :meth:`.SeriesGroupBy.get_group` (:issue:`53545`)
 - Removed deprecated behavior of :meth:`Series.agg` using :meth:`Series.apply` (:issue:`53325`)
+- Removed support for :class:`DataFrame` in :meth:`DataFrame.from_records`(:issue:`51697`)
 - Removed support for ``errors="ignore"`` in :func:`to_datetime`, :func:`to_timedelta` and :func:`to_numeric` (:issue:`55734`)
 - Removed the ``ArrayManager`` (:issue:`55043`)
 - Removed the ``fastpath`` argument from the :class:`Series` constructor (:issue:`55466`)
