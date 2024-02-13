@@ -75,8 +75,6 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
-from pandas.tseries.offsets import BusinessDay
-
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
@@ -986,9 +984,9 @@ def raise_on_incompatible(left, right) -> IncompatibleFrequency:
     # GH#24283 error message format depends on whether right is scalar
     if isinstance(right, (np.ndarray, ABCTimedeltaArray)) or right is None:
         other_freq = None
-    elif isinstance(right, BaseOffset) and not isinstance(right, BusinessDay):
+    elif isinstance(right, BaseOffset):
         other_freq = PeriodDtype(right)._freqstr
-    elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period, BusinessDay)):
+    elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period)):
         other_freq = right.freqstr
     else:
         other_freq = delta_to_tick(Timedelta(right)).freqstr
