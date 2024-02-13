@@ -7,7 +7,6 @@ from pandas import DataFrame
 import pandas._testing as tm
 
 
-# TODO(CoW-warn) expand the cases
 @pytest.mark.parametrize(
     "indexer", [0, [0, 1], slice(0, 2), np.array([True, False, True])]
 )
