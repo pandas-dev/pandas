@@ -337,7 +337,7 @@ def _convert_listlike_datetimes(
     unit : str
         None or string of the frequency of the passed data
     errors : str
-        error handing behaviors from to_datetime, 'raise', 'coerce', 'ignore'
+        error handing behaviors from to_datetime, 'raise', 'coerce'
     dayfirst : bool
         dayfirst parsing behavior from to_datetime
     yearfirst : bool
@@ -387,7 +387,6 @@ def _convert_listlike_datetimes(
         if not is_supported_dtype(arg_dtype):
             # We go to closest supported reso, i.e. "s"
             arg = astype_overflowsafe(
-                # TODO: looks like we incorrectly raise with errors=="ignore"
                 np.asarray(arg),
                 np.dtype("M8[s]"),
                 is_coerce=errors == "coerce",
@@ -418,9 +417,6 @@ def _convert_listlike_datetimes(
         if errors == "coerce":
             npvalues = np.array(["NaT"], dtype="datetime64[ns]").repeat(len(arg))
             return DatetimeIndex(npvalues, name=name)
-        elif errors == "ignore":
-            idx = Index(arg, name=name)
-            return idx
         raise
 
     arg = ensure_object(arg)
@@ -525,12 +521,7 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
             arg = arg.astype(object, copy=False)
             arr, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
 
-    if errors == "ignore":
-        # Index constructor _may_ infer to DatetimeIndex
-        result = Index._with_infer(arr, name=name)
-    else:
-        result = DatetimeIndex(arr, name=name)
-
+    result = DatetimeIndex(arr, name=name)
     if not isinstance(result, DatetimeIndex):
         return result
 
@@ -629,7 +620,6 @@ def to_datetime(
     format: str | None = ...,
     exact: bool = ...,
     unit: str | None = ...,
-    infer_datetime_format: bool = ...,
     origin=...,
     cache: bool = ...,
 ) -> Timestamp:
@@ -646,7 +636,6 @@ def to_datetime(
     format: str | None = ...,
     exact: bool = ...,
     unit: str | None = ...,
-    infer_datetime_format: bool = ...,
     origin=...,
     cache: bool = ...,
 ) -> Series:
@@ -663,7 +652,6 @@ def to_datetime(
     format: str | None = ...,
     exact: bool = ...,
     unit: str | None = ...,
-    infer_datetime_format: bool = ...,
     origin=...,
     cache: bool = ...,
 ) -> DatetimeIndex:
@@ -679,7 +667,6 @@ def to_datetime(
     format: str | None = None,
     exact: bool | lib.NoDefault = lib.no_default,
     unit: str | None = None,
-    infer_datetime_format: lib.NoDefault | bool = lib.no_default,
     origin: str = "unix",
     cache: bool = True,
 ) -> DatetimeIndex | Series | DatetimeScalar | NaTType | None:
@@ -696,10 +683,9 @@ def to_datetime(
         method expects minimally the following columns: :const:`"year"`,
         :const:`"month"`, :const:`"day"`. The column "year"
         must be specified in 4-digit format.
-    errors : {'ignore', 'raise', 'coerce'}, default 'raise'
+    errors : {'raise', 'coerce'}, default 'raise'
         - If :const:`'raise'`, then invalid parsing will raise an exception.
         - If :const:`'coerce'`, then invalid parsing will be set as :const:`NaT`.
-        - If :const:`'ignore'`, then invalid parsing will return the input.
     dayfirst : bool, default False
         Specify a date parse order if `arg` is str or is list-like.
         If :const:`True`, parses dates with the day first, e.g. :const:`"10/11/12"`
@@ -780,16 +766,6 @@ def to_datetime(
         integer or float number. This will be based off the origin.
         Example, with ``unit='ms'`` and ``origin='unix'``, this would calculate
         the number of milliseconds to the unix epoch start.
-    infer_datetime_format : bool, default False
-        If :const:`True` and no `format` is given, attempt to infer the format
-        of the datetime strings based on the first non-NaN element,
-        and if it can be inferred, switch to a faster method of parsing them.
-        In some cases this can increase the parsing speed by ~5-10x.
-
-        .. deprecated:: 2.0.0
-            A strict version of this argument is now the default, passing it has
-            no effect.
-
     origin : scalar, default 'unix'
         Define the reference date. The numeric values would be parsed as number
         of units (defined by `unit`) since this reference date.
@@ -1012,25 +988,6 @@ def to_datetime(
     """
     if exact is not lib.no_default and format in {"mixed", "ISO8601"}:
         raise ValueError("Cannot use 'exact' when 'format' is 'mixed' or 'ISO8601'")
-    if infer_datetime_format is not lib.no_default:
-        warnings.warn(
-            "The argument 'infer_datetime_format' is deprecated and will "
-            "be removed in a future version. "
-            "A strict version of it is now the default, see "
-            "https://pandas.pydata.org/pdeps/0004-consistent-to-datetime-parsing.html. "
-            "You can safely remove this argument.",
-            stacklevel=find_stack_level(),
-        )
-    if errors == "ignore":
-        # GH#54467
-        warnings.warn(
-            "errors='ignore' is deprecated and will raise in a future version. "
-            "Use to_datetime without passing `errors` and catch exceptions "
-            "explicitly instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
     if arg is None:
         return None
 
@@ -1141,11 +1098,10 @@ def _assemble_from_unit_mappings(
     Parameters
     ----------
     arg : DataFrame
-    errors : {'ignore', 'raise', 'coerce'}, default 'raise'
+    errors : {'raise', 'coerce'}, default 'raise'
 
         - If :const:`'raise'`, then invalid parsing will raise an exception
         - If :const:`'coerce'`, then invalid parsing will be set as :const:`NaT`
-        - If :const:`'ignore'`, then invalid parsing will return the input
     utc : bool
         Whether to convert/localize timestamps to UTC.
 

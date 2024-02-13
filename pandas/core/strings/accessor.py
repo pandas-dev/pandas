@@ -661,7 +661,6 @@ class StringMethods(NoNewAttributesMixin):
                 join=(join if join == "inner" else "outer"),
                 keys=range(len(others)),
                 sort=False,
-                copy=False,
             )
             data, others = data.align(others, join=join)
             others = [others[x] for x in others]  # again list of Series
@@ -1427,8 +1426,8 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def replace(
         self,
-        pat: str | re.Pattern,
-        repl: str | Callable,
+        pat: str | re.Pattern | dict,
+        repl: str | Callable | None = None,
         n: int = -1,
         case: bool | None = None,
         flags: int = 0,
@@ -1442,11 +1441,14 @@ class StringMethods(NoNewAttributesMixin):
 
         Parameters
         ----------
-        pat : str or compiled regex
+        pat : str, compiled regex, or a dict
             String can be a character sequence or regular expression.
+            Dictionary contains <key : value> pairs of strings to be replaced
+            along with the updated value.
         repl : str or callable
             Replacement string or a callable. The callable is passed the regex
             match object and must return a replacement string to be used.
+            Must have a value of None if `pat` is a dict
             See :func:`re.sub`.
         n : int, default -1 (all)
             Number of replacements to make from start.
@@ -1480,6 +1482,7 @@ class StringMethods(NoNewAttributesMixin):
             * if `regex` is False and `repl` is a callable or `pat` is a compiled
               regex
             * if `pat` is a compiled regex and `case` or `flags` is set
+            * if `pat` is a dictionary and `repl` is not None.
 
         Notes
         -----
@@ -1489,6 +1492,15 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
+        When `pat` is a dictionary, every key in `pat` is replaced
+        with its corresponding value:
+
+        >>> pd.Series(["A", "B", np.nan]).str.replace(pat={"A": "a", "B": "b"})
+        0    a
+        1    b
+        2    NaN
+        dtype: object
+
         When `pat` is a string and `regex` is True, the given `pat`
         is compiled as a regex. When `repl` is a string, it replaces matching
         regex patterns as with :meth:`re.sub`. NaN value(s) in the Series are
@@ -1551,8 +1563,11 @@ class StringMethods(NoNewAttributesMixin):
         2    NaN
         dtype: object
         """
+        if isinstance(pat, dict) and repl is not None:
+            raise ValueError("repl cannot be used when pat is a dictionary")
+
         # Check whether repl is valid (GH 13438, GH 15055)
-        if not (isinstance(repl, str) or callable(repl)):
+        if not isinstance(pat, dict) and not (isinstance(repl, str) or callable(repl)):
             raise TypeError("repl must be a string or callable")
 
         is_compiled_re = is_re(pat)
@@ -1572,10 +1587,17 @@ class StringMethods(NoNewAttributesMixin):
         if case is None:
             case = True
 
-        result = self._data.array._str_replace(
-            pat, repl, n=n, case=case, flags=flags, regex=regex
-        )
-        return self._wrap_result(result)
+        res_output = self._data
+        if not isinstance(pat, dict):
+            pat = {pat: repl}
+
+        for key, value in pat.items():
+            result = res_output.array._str_replace(
+                key, value, n=n, case=case, flags=flags, regex=regex
+            )
+            res_output = self._wrap_result(result)
+
+        return res_output
 
     @forbid_nonstring_types(["bytes"])
     def repeat(self, repeats):
