@@ -146,9 +146,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.agg\
         pandas.DataFrame.aggregate\
         pandas.DataFrame.boxplot\
-        pandas.PeriodIndex.asfreq\
-        pandas.arrays.ArrowStringArray\
-        pandas.arrays.StringArray\
         pandas.core.groupby.DataFrameGroupBy.first\
         pandas.core.groupby.DataFrameGroupBy.last\
         pandas.core.groupby.SeriesGroupBy.first\
