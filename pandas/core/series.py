@@ -1518,7 +1518,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ...
 
     @deprecate_nonkeyword_arguments(
-        version="3.0.1", allowed_args=["self", "buf"], name="to_string"
+        version="3.0.0", allowed_args=["self", "buf"], name="to_string"
     )
     def to_string(
         self,
