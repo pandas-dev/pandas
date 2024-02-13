@@ -331,6 +331,17 @@ exclude = [
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "urllib.request.urlopen".msg = "Use pandas.io.common.urlopen instead of urllib.request.urlopen"
+# numpy.random is banned but np.random is not. Is this intentional?
+# "numpy.random".msg = "Do not use numpy.random"
+"pytest.warns".msg = "Use tm.assert_produces_warning instead of pytest.warns"
+"pytest.xfail".msg = "Use pytest.mark.xfail instead of pytest.xfail"
+"conftest".msg = "No direct imports from conftest"
+"numpy.testing".msg = "Do not use numpy.testing"
+# "numpy.array_equal".msg = "Do not use numpy.array_equal" # Used in pandas/core
+"unittest.mock".msg = "use pytest builtin monkeypatch fixture instead"
+"os.remove".msg = "Do not use os.remove"
+
+
 
 [tool.ruff.per-file-ignores]
 # relative imports allowed for asv_bench

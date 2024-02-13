@@ -208,16 +208,9 @@ repos:
         language: pygrep
         entry: |
             (?x)
-            # pytest.xfail instead of pytest.mark.xfail
-            pytest\.xfail
-
             # imports from pandas._testing instead of `import pandas._testing as tm`
-            |from\ pandas\._testing\ import
+            from\ pandas\._testing\ import
             |from\ pandas\ import\ _testing\ as\ tm
-
-            # No direct imports from conftest
-            |conftest\ import
-            |import\ conftest
 
             # pandas.testing instead of tm
             |pd\.testing\.
@@ -225,21 +218,11 @@ repos:
             # pd.api.types instead of from pandas.api.types import ...
             |(pd|pandas)\.api\.types\.
 
-            # np.testing, np.array_equal
-            |(numpy|np)(\.testing|\.array_equal)
-
-            # unittest.mock (use pytest builtin monkeypatch fixture instead)
-            |(unittest(\.| import )mock|mock\.Mock\(\)|mock\.patch)
+            # np.array_equal
+            |(numpy|np)\.array_equal
 
             # pytest raises without context
             |\s\ pytest.raises
-
-            # TODO
-            # pytest.warns (use tm.assert_produces_warning instead)
-            # |pytest\.warns
-
-            # os.remove
-            |os\.remove
 
             # Unseeded numpy default_rng
             |default_rng\(\)
