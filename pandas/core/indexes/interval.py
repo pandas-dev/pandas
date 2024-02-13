@@ -1120,10 +1120,12 @@ def interval_range(
             # error: Argument 1 to "maybe_downcast_numeric" has incompatible type
             # "Union[ndarray[Any, Any], TimedeltaIndex, DatetimeIndex]";
             # expected "ndarray[Any, Any]"  [
+            dtype = start.dtype if start.dtype == end.dtype else np.dtype("int64")
             breaks = maybe_downcast_numeric(
                 breaks,  # type: ignore[arg-type]
-                np.dtype("int64"),
+                dtype,
             )
+            return IntervalIndex.from_breaks(breaks, name=name, closed=closed, dtype=IntervalDtype(subtype=dtype, closed=closed))
     else:
         # delegate to the appropriate range function
         if isinstance(endpoint, Timestamp):
