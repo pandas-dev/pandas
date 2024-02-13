@@ -1506,6 +1506,39 @@ class TestDataFrameAnalytics:
         result = np.any(DataFrame(columns=["a", "b"])).item()
         assert result is False
 
+    def test_any_all_take_kwargs_only(self):
+        # GH 57087
+        df = DataFrame({"x": [1, 2, 3], "y": [1, 2, 3]})
+        msg = "takes 1 positional argument but"
+
+        with pytest.raises(TypeError, match=msg):
+            df.all(0)
+
+        with pytest.raises(TypeError, match=msg):
+            df.all(0, bool_only=True, skipna=False)
+
+        with pytest.raises(TypeError, match=msg):
+            df.all(0, True, False)
+
+        with pytest.raises(TypeError, match=msg):
+            df.all(0, bool_only=True)
+
+        with pytest.raises(TypeError, match=msg):
+            df.any(0)
+
+        with pytest.raises(TypeError, match=msg):
+            df.any(0, bool_only=True, skipna=False)
+
+        with pytest.raises(TypeError, match=msg):
+            df.any(0, True, False)
+
+        with pytest.raises(TypeError, match=msg):
+            df.any(0, bool_only=True)
+
+        # Ensure that it works with only keyword arguments
+        df.all(axis=0, bool_only=True, skipna=False)
+        df.any(axis=0, bool_only=True, skipna=False)
+
     def test_any_all_object_bool_only(self):
         df = DataFrame({"A": ["foo", 2], "B": [True, False]}).astype(object)
         df._consolidate_inplace()

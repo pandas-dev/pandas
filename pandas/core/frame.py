@@ -11331,6 +11331,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(make_doc("all", ndim=2))
     def all(
         self,
+        *,
         axis: Axis | None = 0,
         bool_only: bool = False,
         skipna: bool = True,
