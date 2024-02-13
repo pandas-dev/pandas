@@ -10,15 +10,11 @@ from abc import (
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     cast,
     final,
 )
-import warnings
 
 import numpy as np
-
-from pandas._config import using_copy_on_write
 
 from pandas._libs import (
     NaT,
@@ -42,7 +38,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_integer,
@@ -193,39 +188,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
     # --------------------------------------------------------------------
     # Rendering Methods
     _default_na_rep = "NaT"
-
-    def format(
-        self,
-        name: bool = False,
-        formatter: Callable | None = None,
-        na_rep: str = "NaT",
-        date_format: str | None = None,
-    ) -> list[str]:
-        """
-        Render a string representation of the Index.
-        """
-        warnings.warn(
-            # GH#55413
-            f"{type(self).__name__}.format is deprecated and will be removed "
-            "in a future version. Convert using index.astype(str) or "
-            "index.map(formatter) instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        header = []
-        if name:
-            header.append(
-                ibase.pprint_thing(self.name, escape_chars=("\t", "\r", "\n"))
-                if self.name is not None
-                else ""
-            )
-
-        if formatter is not None:
-            return header + list(self.map(formatter))
-
-        return self._format_with_header(
-            header=header, na_rep=na_rep, date_format=date_format
-        )
 
     def _format_with_header(
         self, *, header: list[str], na_rep: str, date_format: str | None = None
@@ -465,20 +427,20 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         --------
         For :class:`pandas.DatetimeIndex`:
 
-        >>> idx = pd.DatetimeIndex(['2020-01-02 01:02:03.004005006'])
+        >>> idx = pd.DatetimeIndex(["2020-01-02 01:02:03.004005006"])
         >>> idx
         DatetimeIndex(['2020-01-02 01:02:03.004005006'],
                       dtype='datetime64[ns]', freq=None)
-        >>> idx.as_unit('s')
+        >>> idx.as_unit("s")
         DatetimeIndex(['2020-01-02 01:02:03'], dtype='datetime64[s]', freq=None)
 
         For :class:`pandas.TimedeltaIndex`:
 
-        >>> tdelta_idx = pd.to_timedelta(['1 day 3 min 2 us 42 ns'])
+        >>> tdelta_idx = pd.to_timedelta(["1 day 3 min 2 us 42 ns"])
         >>> tdelta_idx
         TimedeltaIndex(['1 days 00:03:00.000002042'],
                         dtype='timedelta64[ns]', freq=None)
-        >>> tdelta_idx.as_unit('s')
+        >>> tdelta_idx.as_unit("s")
         TimedeltaIndex(['1 days 00:03:00'], dtype='timedelta64[s]', freq=None)
         """
         arr = self._data.as_unit(unit)
@@ -492,9 +454,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     def values(self) -> np.ndarray:
         # NB: For Datetime64TZ this is lossy
         data = self._data._ndarray
-        if using_copy_on_write():
-            data = data.view()
-            data.flags.writeable = False
+        data = data.view()
+        data.flags.writeable = False
         return data
 
     @doc(DatetimeIndexOpsMixin.shift)
