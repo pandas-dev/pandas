@@ -4335,32 +4335,37 @@ def test_xsqlite_if_exists(sqlite_buildin):
 
 
 def test_execution_of_multi(mysql_pymysql_engine):
-
-    from sqlalchemy import event
     from pandas.io.sql import SQLTable
+    from sqlalchemy import event
     original_function = SQLTable._execute_insert_multi
 
-    frame = DataFrame(
-        np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object))
+    frame = DataFrame(np.random.default_rng(2).standard_normal((10, 4)),
+                      columns=Index(list("ABCD"), dtype=object))
 
-    statements = []
+    # Track whether execute_many is True for the statements
+    # Multi-value inserts will be a single statement and therefore
+    # ``execute_many`` will be False
+    execute_many_types = []
 
-    def track_statements(_, __, statement, ___, ____, _____):
-        nonlocal statements
-        statements.append(statement)
+    def track_statements(_, __, ___, ____, _____, execute_many):
+        nonlocal execute_many_types
+        execute_many_types.append(execute_many)
 
+    # A connection is the first argument passed to the _execute_insert_multi
+    # function. Add an event listener to this connection
     def pandas_insert_patched(self, *args, **kwargs):
         event.listen(args[0], "before_cursor_execute", track_statements)
         return original_function(self, *args, **kwargs)
 
+    # Patch this function onto the insert function to capture the event listener
     pd.io.sql.SQLTable._execute_insert_multi = pandas_insert_patched
 
-    frame.to_sql("test_multi_prepared_statement", mysql_pymysql_engine, method="multi", index=False)
-    sql_statement = statements[-1]
+    frame.to_sql("test_multi_prepared_statement",
+                 mysql_pymysql_engine,
+                 if_exists="append",
+                 method="multi",
+                 index=False)
 
-    pattern = r'\([^()]+\)'
-
-    matches = re.findall(pattern, sql_statement)
-
-    assert len([a for a in matches if a.startswith("(A_")]) > 1
+    # The last statement executed will be the insert statement
+    # Ensure that this is not using ``execute_many``
+    assert not execute_many_types[-1]
