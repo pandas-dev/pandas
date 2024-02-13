@@ -2128,8 +2128,8 @@ class Tooltips:
                 for style in sublist
             ]
 
+            # add span class to every cell since there is at least 1 non-empty tooltip
             if self.table_styles:
-                # add span class to every cell since there is at least 1 non-empty tooltip
                 for row in d["body"]:
                     for item in row:
                         if item["type"] == "td":
