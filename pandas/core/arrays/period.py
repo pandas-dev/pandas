@@ -985,7 +985,9 @@ def raise_on_incompatible(left, right) -> IncompatibleFrequency:
     if isinstance(right, (np.ndarray, ABCTimedeltaArray)) or right is None:
         other_freq = None
     elif isinstance(right, BaseOffset):
-        other_freq = PeriodDtype(right)._freqstr
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            other_freq = PeriodDtype(right)._freqstr
     elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period)):
         other_freq = right.freqstr
     else:
