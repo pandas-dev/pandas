@@ -659,12 +659,10 @@ class TestSeriesComparison:
         result = comparison_op(ser, val)
         expected = comparison_op(ser.dropna(), val).reindex(ser.index)
 
-        msg = "Downcasting object dtype arrays"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            if comparison_op is operator.ne:
-                expected = expected.fillna(True).astype(bool)
-            else:
-                expected = expected.fillna(False).astype(bool)
+        if comparison_op is operator.ne:
+            expected = expected.fillna(True).astype(bool)
+        else:
+            expected = expected.fillna(False).astype(bool)
 
         tm.assert_series_equal(result, expected)
 
