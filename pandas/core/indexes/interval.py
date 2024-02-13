@@ -1127,8 +1127,8 @@ def interval_range(
             breaks = maybe_downcast_numeric(
                 breaks,  # type: ignore[arg-type]
                 dtype
-            )
-            return IntervalIndex.from_breaks(breaks, name=name, closed=closed, dtype=IntervalDtype(subtype=dtype, closed=closed))
+            )        
+            return IntervalIndex.from_breaks(breaks, name=name, closed=closed, dtype=IntervalDtype(subtype=breaks.dtype, closed=closed))
     else:
         # delegate to the appropriate range function
         if isinstance(endpoint, Timestamp):
