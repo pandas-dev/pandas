@@ -122,6 +122,14 @@ repos:
       files: ^pandas/_libs/src|^pandas/_libs/include
       args: [-i]
       types_or: [c, c++]
+-   repo: https://github.com/adamchainz/blacken-docs
+    rev: 1.16.0
+    hooks:
+    -   id: blacken-docs
+        additional_dependencies:
+        - black==23.12.1
+        types_or: [rst]
+        args: ["--skip-errors", "--skip-string-normalization"]
 -   repo: local
     hooks:
     -   id: pyright
