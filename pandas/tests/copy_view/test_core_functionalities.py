@@ -46,7 +46,7 @@ def test_setitem_with_view_invalidated_does_not_copy(request):
     df["b"] = 100
     arr = get_array(df, "a")
     view = None  # noqa: F841
-    # TODO(CoW-warn) false positive? -> block gets split because of `df["b"] = 100`
+    # TODO(CoW) block gets split because of `df["b"] = 100`
     # which introduces additional refs, even when those of `view` go out of scopes
     df.iloc[0, 0] = 100
     # Setitem split the block. Since the old block shared data with view

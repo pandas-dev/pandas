@@ -321,7 +321,6 @@ class TestDataFrameIndexing:
         # so raise/warn
         smaller = float_frame[:2]
 
-        # With CoW, adding a new column doesn't raise a warning
         smaller["col10"] = ["1", "2"]
 
         if using_infer_string:
