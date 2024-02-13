@@ -173,7 +173,7 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
 
         col_names = reorder_columns(ldesc)
         d = concat(
-            [x.reindex(col_names, copy=False) for x in ldesc],
+            [x.reindex(col_names) for x in ldesc],
             axis=1,
             sort=False,
         )
