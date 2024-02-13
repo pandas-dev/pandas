@@ -2699,14 +2699,15 @@ class Fixed:
     @property
     def version(self) -> tuple[int, int, int]:
         """compute and set our version"""
-        version: str | None = getattr(self.group._v_attrs, "pandas_version", None)
-        try:
-            version = tuple(int(x) for x in version.split("."))
-            if len(version) == 2:
-                version = version + (0,)
-        except AttributeError:
-            version = (0, 0, 0)
-        return version
+        version = getattr(self.group._v_attrs, "pandas_version", None)
+        if isinstance(version, str):
+            version_tup = tuple(int(x) for x in version.split("."))
+            if len(version_tup) == 2:
+                version_tup = version_tup + (0,)
+            assert len(version_tup) == 3  # needed for mypy
+            return version_tup
+        else:
+            return (0, 0, 0)
 
     @property
     def pandas_type(self):
