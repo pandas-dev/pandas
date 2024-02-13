@@ -1101,7 +1101,6 @@ def interval_range(
     breaks: np.ndarray | TimedeltaIndex | DatetimeIndex
 
     if is_number(endpoint):
-        dtype = np.dtype("int64")
         if com.all_not_none(start, end, freq):
             if isinstance(start, float | np.float16) or isinstance(
                 end, float | np.float16
@@ -1135,7 +1134,7 @@ def interval_range(
             # expected "ndarray[Any, Any]"  [
             breaks = maybe_downcast_numeric(
                 breaks,  # type: ignore[arg-type]
-                dtype,
+                breaks.dtype,
             )
     else:
         # delegate to the appropriate range function
