@@ -133,6 +133,7 @@ Removal of prior version deprecations/changes
 - Removed deprecated behavior of :meth:`Series.agg` using :meth:`Series.apply` (:issue:`53325`)
 - Removed support for :class:`DataFrame` in :meth:`DataFrame.from_records`(:issue:`51697`)
 - Removed support for ``errors="ignore"`` in :func:`to_datetime`, :func:`to_timedelta` and :func:`to_numeric` (:issue:`55734`)
+- Removed support for ``slice`` in :meth:`DataFrame.take` (:issue:`51539`)
 - Removed the ``ArrayManager`` (:issue:`55043`)
 - Removed the ``fastpath`` argument from the :class:`Series` constructor (:issue:`55466`)
 - Removed the ``is_boolean``, ``is_integer``, ``is_floating``, ``holds_integer``, ``is_numeric``, ``is_categorical``, ``is_object``, and ``is_interval`` attributes of :class:`Index` (:issue:`50042`)
