@@ -1101,6 +1101,7 @@ def interval_range(
     breaks: np.ndarray | TimedeltaIndex | DatetimeIndex
 
     if is_number(endpoint):
+        dtype = np.dtype("int64")
         if com.all_not_none(start, end, freq):
             if isinstance(start, float | np.float16) or isinstance(
                 end, float | np.float16
