@@ -19,7 +19,7 @@ Bug reports and enhancement requests
 ====================================
 
 Bug reports and enhancement requests are an important part of making pandas more stable and
-are curated though Github issues. When reporting and issue or request, please select the `appropriate
+are curated though Github issues. When reporting an issue or request, please select the `appropriate
 category and fill out the issue form fully <https://github.com/pandas-dev/pandas/issues/new/choose>`_
 to ensure others and the core development team can fully understand the scope of the issue.
 

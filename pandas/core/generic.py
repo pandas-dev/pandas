@@ -50,6 +50,7 @@ from pandas._typing import (
     Axis,
     AxisInt,
     CompressionOptions,
+    Concatenate,
     DtypeArg,
     DtypeBackend,
     DtypeObj,
@@ -213,6 +214,7 @@ if TYPE_CHECKING:
     )
 
     from pandas._libs.tslibs import BaseOffset
+    from pandas._typing import P
 
     from pandas import (
         DataFrame,
@@ -574,8 +576,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def _get_axis_number(cls, axis: Axis) -> AxisInt:
         try:
             return cls._AXIS_TO_AXIS_NUMBER[axis]
-        except KeyError:
-            raise ValueError(f"No axis named {axis} for object type {cls.__name__}")
+        except KeyError as err:
+            raise ValueError(
+                f"No axis named {axis} for object type {cls.__name__}"
+            ) from err
 
     @final
     @classmethod
@@ -2995,7 +2999,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3
         >>> from sqlalchemy import text
         >>> with engine.connect() as conn:
-        ...    conn.execute(text("SELECT * FROM users")).fetchall()
+        ...     conn.execute(text("SELECT * FROM users")).fetchall()
         [(0, 'User 1'), (1, 'User 2'), (2, 'User 3')]
 
         An `sqlalchemy.engine.Connection` can also be passed to `con`:
@@ -3012,7 +3016,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df2.to_sql(name='users', con=engine, if_exists='append')
         2
         >>> with engine.connect() as conn:
-        ...    conn.execute(text("SELECT * FROM users")).fetchall()
+        ...     conn.execute(text("SELECT * FROM users")).fetchall()
         [(0, 'User 1'), (1, 'User 2'), (2, 'User 3'),
          (0, 'User 4'), (1, 'User 5'), (0, 'User 6'),
          (1, 'User 7')]
@@ -3023,7 +3027,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...            index_label='id')
         2
         >>> with engine.connect() as conn:
-        ...    conn.execute(text("SELECT * FROM users")).fetchall()
+        ...     conn.execute(text("SELECT * FROM users")).fetchall()
         [(0, 'User 6'), (1, 'User 7')]
 
         Use ``method`` to define a callable insertion method to do nothing
@@ -3036,13 +3040,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...     stmt = insert(table.table).values(data).on_conflict_do_nothing(index_elements=["a"])
         ...     result = conn.execute(stmt)
         ...     return result.rowcount
-        >>> df_conflict.to_sql(name="conflict_table", con=conn, if_exists="append", method=insert_on_conflict_nothing)  # doctest: +SKIP
+        >>> df_conflict.to_sql(name="conflict_table", con=conn, if_exists="append",  # noqa: F821
+        ...                    method=insert_on_conflict_nothing)  # doctest: +SKIP
         0
 
         For MySQL, a callable to update columns ``b`` and ``c`` if there's a conflict
         on a primary key.
 
-        >>> from sqlalchemy.dialects.mysql import insert
+        >>> from sqlalchemy.dialects.mysql import insert   # noqa: F811
         >>> def insert_on_conflict_update(table, conn, keys, data_iter):
         ...     # update columns "b" and "c" on primary key conflict
         ...     data = [dict(zip(keys, row)) for row in data_iter]
@@ -3053,7 +3058,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...     stmt = stmt.on_duplicate_key_update(b=stmt.inserted.b, c=stmt.inserted.c)
         ...     result = conn.execute(stmt)
         ...     return result.rowcount
-        >>> df_conflict.to_sql(name="conflict_table", con=conn, if_exists="append", method=insert_on_conflict_update)  # doctest: +SKIP
+        >>> df_conflict.to_sql(name="conflict_table", con=conn, if_exists="append",  # noqa: F821
+        ...                    method=insert_on_conflict_update)  # doctest: +SKIP
         2
 
         Specify the dtype (especially useful for integers with missing values).
@@ -3074,7 +3080,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3
 
         >>> with engine.connect() as conn:
-        ...   conn.execute(text("SELECT * FROM integers")).fetchall()
+        ...     conn.execute(text("SELECT * FROM integers")).fetchall()
         [(1,), (None,), (2,)]
         """  # noqa: E501
         from pandas.io import sql
@@ -6118,13 +6124,31 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         return result
 
+    @overload
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T:
+        ...
+
+    @overload
+    def pipe(
+        self,
+        func: tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
+        ...
+
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
     def pipe(
         self,
-        func: Callable[..., T] | tuple[Callable[..., T], str],
-        *args,
-        **kwargs,
+        func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
     ) -> T:
         r"""
         Apply chainable functions that expect Series or DataFrames.
@@ -7188,6 +7212,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
 
+            .. deprecated:: 2.2.0
+
         Returns
         -------
         {klass} or None
@@ -7523,6 +7549,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
 
+            .. deprecated:: 2.2.0
+
         Returns
         -------
         {klass} or None
@@ -7713,6 +7741,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
+
+            .. deprecated:: 2.2.0
 
         Returns
         -------
@@ -7928,7 +7958,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise TypeError(
                 "Expecting 'to_replace' to be either a scalar, array-like, "
                 "dict or None, got invalid type "
-                f"{repr(type(to_replace).__name__)}"
+                f"{type(to_replace).__name__!r}"
             )
 
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -8099,7 +8129,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     raise TypeError(
                         f"'regex' must be a string or a compiled regular expression "
                         f"or a list or dict of strings or regular expressions, "
-                        f"you passed a {repr(type(regex).__name__)}"
+                        f"you passed a {type(regex).__name__!r}"
                     )
                 return self.replace(
                     regex, value, inplace=inplace, limit=limit, regex=True
@@ -8130,7 +8160,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         )
                 else:
                     raise TypeError(
-                        f'Invalid "to_replace" type: {repr(type(to_replace).__name__)}'
+                        f'Invalid "to_replace" type: {type(to_replace).__name__!r}'
                     )
 
         result = self._constructor_from_mgr(new_data, axes=new_data.axes)
@@ -8268,7 +8298,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. deprecated:: 2.1.0
 
-        ``**kwargs`` : optional
+        **kwargs : optional
             Keyword arguments to pass on to the interpolating function.
 
         Returns
@@ -9428,7 +9458,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         origin : Timestamp or str, default 'start_day'
             The timestamp on which to adjust the grouping. The timezone of origin
             must match the timezone of the index.
-            If string, must be one of the following:
+            If string, must be Timestamp convertible or one of the following:
 
             - 'epoch': `origin` is 1970-01-01
             - 'start': `origin` is the first value of the timeseries
@@ -10649,11 +10679,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not isinstance(cond, ABCDataFrame):
                 # This is a single-dimensional object.
                 if not is_bool_dtype(cond):
-                    raise ValueError(msg.format(dtype=cond.dtype))
+                    raise TypeError(msg.format(dtype=cond.dtype))
             else:
                 for _dt in cond.dtypes:
                     if not is_bool_dtype(_dt):
-                        raise ValueError(msg.format(dtype=_dt))
+                        raise TypeError(msg.format(dtype=_dt))
                 if cond._mgr.any_extension_types:
                     # GH51574: avoid object ndarray conversion later on
                     cond = cond._constructor(
@@ -10830,25 +10860,28 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        Same type as caller or None if ``inplace=True``.
+        Series or DataFrame unless ``inplace=True`` in which case
+        returns None.
 
         See Also
         --------
         :func:`DataFrame.{name_other}` : Return an object of same shape as
-            self.
+            caller.
+        :func:`Series.{name_other}` : Return an object of same shape as
+            caller.
 
         Notes
         -----
         The {name} method is an application of the if-then idiom. For each
-        element in the calling DataFrame, if ``cond`` is ``{cond}`` the
-        element is used; otherwise the corresponding element from the DataFrame
+        element in the caller, if ``cond`` is ``{cond}`` the
+        element is used; otherwise the corresponding element from
         ``other`` is used. If the axis of ``other`` does not align with axis of
         ``cond`` {klass}, the values of ``cond`` on misaligned index positions
         will be filled with {cond_rev}.
 
-        The signature for :func:`DataFrame.where` differs from
-        :func:`numpy.where`. Roughly ``df1.where(m, df2)`` is equivalent to
-        ``np.where(m, df1, df2)``.
+        The signature for :func:`Series.where` or
+        :func:`DataFrame.where` differs from :func:`numpy.where`.
+        Roughly ``df1.where(m, df2)`` is equivalent to ``np.where(m, df1, df2)``.
 
         For further details and examples see the ``{name}`` documentation in
         :ref:`indexing <indexing.where_mask>`.
@@ -11789,10 +11822,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         upper percentile is ``75``. The ``50`` percentile is the
         same as the median.
 
-        For object data (e.g. strings or timestamps), the result's index
+        For object data (e.g. strings), the result's index
         will include ``count``, ``unique``, ``top``, and ``freq``. The ``top``
         is the most common value. The ``freq`` is the most common value's
-        frequency. Timestamps also include the ``first`` and ``last`` items.
+        frequency.
 
         If multiple object values have the highest count, then the
         ``count`` and ``top`` results will be arbitrarily chosen from

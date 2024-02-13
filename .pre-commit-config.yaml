@@ -132,7 +132,7 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.339
+        - pyright@1.1.347
     -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
@@ -189,9 +189,6 @@ repos:
 
             # Check for deprecated messages without sphinx directive
             |(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)
-
-            # {foo!r} instead of {repr(foo)}
-            |!r}
 
             # builtin filter function
             |(?<!def)[\(\s]filter\(

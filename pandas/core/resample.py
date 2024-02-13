@@ -9,6 +9,7 @@ from typing import (
     cast,
     final,
     no_type_check,
+    overload,
 )
 import warnings
 
@@ -97,12 +98,16 @@ if TYPE_CHECKING:
     from collections.abc import Hashable
 
     from pandas._typing import (
+        Any,
         AnyArrayLike,
         Axis,
         AxisInt,
+        Concatenate,
         Frequency,
         IndexLabel,
         InterpolateOptions,
+        P,
+        Self,
         T,
         TimedeltaConvertibleTypes,
         TimeGrouperOrigin,
@@ -254,6 +259,24 @@ class Resampler(BaseGroupBy, PandasObject):
         bin_grouper = BinGrouper(bins, binlabels, indexer=self._indexer)
         return binner, bin_grouper
 
+    @overload
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T:
+        ...
+
+    @overload
+    def pipe(
+        self,
+        func: tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
+        ...
+
     @final
     @Substitution(
         klass="Resampler",
@@ -278,9 +301,9 @@ class Resampler(BaseGroupBy, PandasObject):
     @Appender(_pipe_template)
     def pipe(
         self,
-        func: Callable[..., T] | tuple[Callable[..., T], str],
-        *args,
-        **kwargs,
+        func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
     ) -> T:
         return super().pipe(func, *args, **kwargs)
 
@@ -1005,7 +1028,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
             .. deprecated:: 2.1.0
 
-        ``**kwargs`` : optional
+        **kwargs : optional
             Keyword arguments to pass on to the interpolating function.
 
         Returns
@@ -2906,7 +2929,7 @@ def _apply(
     new_message = _apply_groupings_depr.format("DataFrameGroupBy", "resample")
     with rewrite_warning(
         target_message=target_message,
-        target_category=FutureWarning,
+        target_category=DeprecationWarning,
         new_message=new_message,
     ):
         result = grouped.apply(how, *args, include_groups=include_groups, **kwargs)
