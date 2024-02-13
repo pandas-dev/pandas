@@ -3851,28 +3851,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         nv.validate_take((), kwargs)
 
-        if not isinstance(indices, slice):
-            indices = np.asarray(indices, dtype=np.intp)
-            if axis == 0 and indices.ndim == 1 and is_range_indexer(indices, len(self)):
-                return self.copy(deep=False)
-        elif self.ndim == 1:
+        if isinstance(indices, slice):
             raise TypeError(
                 f"{type(self).__name__}.take requires a sequence of integers, "
                 "not slice."
             )
-        else:
-            warnings.warn(
-                # GH#51539
-                f"Passing a slice to {type(self).__name__}.take is deprecated "
-                "and will raise in a future version. Use `obj[slicer]` or pass "
-                "a sequence of integers instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            # We can get here with a slice via DataFrame.__getitem__
-            indices = np.arange(
-                indices.start, indices.stop, indices.step, dtype=np.intp
-            )
+        indices = np.asarray(indices, dtype=np.intp)
+        if axis == 0 and indices.ndim == 1 and is_range_indexer(indices, len(self)):
+            return self.copy(deep=False)
 
         new_data = self._mgr.take(
             indices,
