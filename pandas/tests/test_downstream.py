@@ -155,7 +155,7 @@ def test_scikit_learn():
     clf.predict(digits.data[-1:])
 
 
-def test_seaborn():
+def test_seaborn(mpl_cleanup):
     seaborn = pytest.importorskip("seaborn")
     tips = DataFrame(
         {"day": pd.date_range("2023", freq="D", periods=5), "total_bill": range(5)}
