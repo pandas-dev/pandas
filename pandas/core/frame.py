@@ -2112,11 +2112,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        data : structured ndarray, sequence of tuples or dicts, or DataFrame
+        data : structured ndarray, sequence of tuples or dicts
             Structured input data.
-
-            .. deprecated:: 2.1.0
-                Passing a DataFrame is deprecated.
         index : str, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
             input labels to use.
@@ -2184,21 +2181,10 @@ class DataFrame(NDFrame, OpsMixin):
         3      0     d
         """
         if isinstance(data, DataFrame):
-            warnings.warn(
-                "Passing a DataFrame to DataFrame.from_records is deprecated. Use "
+            raise TypeError(
+                "Passing a DataFrame to DataFrame.from_records is not supported. Use "
                 "set_index and/or drop to modify the DataFrame instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
             )
-            if columns is not None:
-                if is_scalar(columns):
-                    columns = [columns]
-                data = data[columns]
-            if index is not None:
-                data = data.set_index(index)
-            if exclude is not None:
-                data = data.drop(columns=exclude)
-            return data.copy(deep=False)
 
         result_index = None
 
@@ -9766,11 +9752,11 @@ class DataFrame(NDFrame, OpsMixin):
     --------
     DataFrame.apply : Perform any type of operations.
     DataFrame.transform : Perform transformation type operations.
-    pandas.DataFrame.groupby : Perform operations over groups.
-    pandas.DataFrame.resample : Perform operations over resampled bins.
-    pandas.DataFrame.rolling : Perform operations over rolling window.
-    pandas.DataFrame.expanding : Perform operations over expanding window.
-    pandas.core.window.ewm.ExponentialMovingWindow : Perform operation over exponential
+    DataFrame.groupby : Perform operations over groups.
+    DataFrame.resample : Perform operations over resampled bins.
+    DataFrame.rolling : Perform operations over rolling window.
+    DataFrame.expanding : Perform operations over expanding window.
+    core.window.ewm.ExponentialMovingWindow : Perform operation over exponential
         weighted window.
     """
     )

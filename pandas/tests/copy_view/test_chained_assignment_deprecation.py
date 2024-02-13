@@ -18,7 +18,7 @@ def test_series_setitem(indexer):
 
     # using custom check instead of tm.assert_produces_warning because that doesn't
     # fail if multiple warnings are raised
-    with pytest.warns() as record:
+    with pytest.warns() as record:  # noqa: TID251
         df["a"][indexer] = 0
     assert len(record) == 1
     assert record[0].category == ChainedAssignmentError
