@@ -1122,7 +1122,7 @@ def interval_range(
             # expected "ndarray[Any, Any]"  [
             dtype = start.dtype if start.dtype == end.dtype else np.dtype("int64")
             breaks = maybe_downcast_numeric(
-                breaks,  # type: ignore[arg-type]
+                breaks,  # type: ignore[arg-type].
                 dtype,
             )
             return IntervalIndex.from_breaks(breaks, name=name, closed=closed, dtype=IntervalDtype(subtype=dtype, closed=closed))            
