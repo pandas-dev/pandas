@@ -227,7 +227,6 @@ if TYPE_CHECKING:
         MergeHow,
         MergeValidate,
         MutableMappingT,
-        NaAction,
         NaPosition,
         NsmallestNlargestKeep,
         PythonFuncType,
@@ -5546,6 +5545,9 @@ class DataFrame(NDFrame, OpsMixin):
             )
             fill_value = lib.no_default
 
+        if self.empty:
+            return self.copy()
+
         axis = self._get_axis_number(axis)
 
         if is_list_like(periods):
@@ -10150,60 +10152,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         return self.apply(infer).__finalize__(self, "map")
 
-    def applymap(
-        self, func: PythonFuncType, na_action: NaAction | None = None, **kwargs
-    ) -> DataFrame:
-        """
-        Apply a function to a Dataframe elementwise.
-
-        .. deprecated:: 2.1.0
-
-           DataFrame.applymap has been deprecated. Use DataFrame.map instead.
-
-        This method applies a function that accepts and returns a scalar
-        to every element of a DataFrame.
-
-        Parameters
-        ----------
-        func : callable
-            Python function, returns a single value from a single value.
-        na_action : {None, 'ignore'}, default None
-            If 'ignore', propagate NaN values, without passing them to func.
-        **kwargs
-            Additional keyword arguments to pass as keywords arguments to
-            `func`.
-
-        Returns
-        -------
-        DataFrame
-            Transformed DataFrame.
-
-        See Also
-        --------
-        DataFrame.apply : Apply a function along input axis of DataFrame.
-        DataFrame.map : Apply a function along input axis of DataFrame.
-        DataFrame.replace: Replace values given in `to_replace` with `value`.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame([[1, 2.12], [3.356, 4.567]])
-        >>> df
-               0      1
-        0  1.000  2.120
-        1  3.356  4.567
-
-        >>> df.map(lambda x: len(str(x)))
-           0  1
-        0  3  4
-        1  5  5
-        """
-        warnings.warn(
-            "DataFrame.applymap has been deprecated. Use DataFrame.map instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.map(func, na_action=na_action, **kwargs)
-
     # ----------------------------------------------------------------------
     # Merging / joining methods
 
@@ -10615,7 +10563,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.core.reshape.concat import concat
 
-        def _dict_round(df: DataFrame, decimals):
+        def _dict_round(df: DataFrame, decimals) -> Iterator[Series]:
             for col, vals in df.items():
                 try:
                     yield _series_round(vals, decimals[col])
@@ -11051,7 +10999,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # ndarray-like stats methods
 
-    def count(self, axis: Axis = 0, numeric_only: bool = False):
+    def count(self, axis: Axis = 0, numeric_only: bool = False) -> Series:
         """
         Count non-NA cells for each column or row.
 
@@ -11297,9 +11245,42 @@ class DataFrame(NDFrame, OpsMixin):
         res_ser = self._constructor_sliced(result, index=self.index, copy=False)
         return res_ser
 
-    @doc(make_doc("any", ndim=2))
     # error: Signature of "any" incompatible with supertype "NDFrame"
-    def any(  # type: ignore[override]
+    @overload  # type: ignore[override]
+    def any(
+        self,
+        *,
+        axis: Axis = ...,
+        bool_only: bool = ...,
+        skipna: bool = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def any(
+        self,
+        *,
+        axis: None,
+        bool_only: bool = ...,
+        skipna: bool = ...,
+        **kwargs,
+    ) -> bool:
+        ...
+
+    @overload
+    def any(
+        self,
+        *,
+        axis: Axis | None,
+        bool_only: bool = ...,
+        skipna: bool = ...,
+        **kwargs,
+    ) -> Series | bool:
+        ...
+
+    @doc(make_doc("any", ndim=2))
+    def any(
         self,
         *,
         axis: Axis | None = 0,
@@ -11313,6 +11294,39 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(result, Series):
             result = result.__finalize__(self, method="any")
         return result
+
+    @overload
+    def all(
+        self,
+        *,
+        axis: Axis = ...,
+        bool_only: bool = ...,
+        skipna: bool = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def all(
+        self,
+        *,
+        axis: None,
+        bool_only: bool = ...,
+        skipna: bool = ...,
+        **kwargs,
+    ) -> bool:
+        ...
+
+    @overload
+    def all(
+        self,
+        *,
+        axis: Axis | None,
+        bool_only: bool = ...,
+        skipna: bool = ...,
+        **kwargs,
+    ) -> Series | bool:
+        ...
 
     @doc(make_doc("all", ndim=2))
     def all(
@@ -11329,6 +11343,40 @@ class DataFrame(NDFrame, OpsMixin):
             result = result.__finalize__(self, method="all")
         return result
 
+    # error: Signature of "min" incompatible with supertype "NDFrame"
+    @overload  # type: ignore[override]
+    def min(
+        self,
+        *,
+        axis: Axis = ...,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def min(
+        self,
+        *,
+        axis: None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Any:
+        ...
+
+    @overload
+    def min(
+        self,
+        *,
+        axis: Axis | None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series | Any:
+        ...
+
     @doc(make_doc("min", ndim=2))
     def min(
         self,
@@ -11336,11 +11384,47 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
-    ):
-        result = super().min(axis, skipna, numeric_only, **kwargs)
+    ) -> Series | Any:
+        result = super().min(
+            axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
+        )
         if isinstance(result, Series):
             result = result.__finalize__(self, method="min")
         return result
+
+    # error: Signature of "max" incompatible with supertype "NDFrame"
+    @overload  # type: ignore[override]
+    def max(
+        self,
+        *,
+        axis: Axis = ...,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def max(
+        self,
+        *,
+        axis: None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Any:
+        ...
+
+    @overload
+    def max(
+        self,
+        *,
+        axis: Axis | None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series | Any:
+        ...
 
     @doc(make_doc("max", ndim=2))
     def max(
@@ -11349,8 +11433,10 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
-    ):
-        result = super().max(axis, skipna, numeric_only, **kwargs)
+    ) -> Series | Any:
+        result = super().max(
+            axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
+        )
         if isinstance(result, Series):
             result = result.__finalize__(self, method="max")
         return result
@@ -11363,8 +11449,14 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         min_count: int = 0,
         **kwargs,
-    ):
-        result = super().sum(axis, skipna, numeric_only, min_count, **kwargs)
+    ) -> Series:
+        result = super().sum(
+            axis=axis,
+            skipna=skipna,
+            numeric_only=numeric_only,
+            min_count=min_count,
+            **kwargs,
+        )
         return result.__finalize__(self, method="sum")
 
     @doc(make_doc("prod", ndim=2))
@@ -11375,9 +11467,49 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         min_count: int = 0,
         **kwargs,
-    ):
-        result = super().prod(axis, skipna, numeric_only, min_count, **kwargs)
+    ) -> Series:
+        result = super().prod(
+            axis=axis,
+            skipna=skipna,
+            numeric_only=numeric_only,
+            min_count=min_count,
+            **kwargs,
+        )
         return result.__finalize__(self, method="prod")
+
+    # error: Signature of "mean" incompatible with supertype "NDFrame"
+    @overload  # type: ignore[override]
+    def mean(
+        self,
+        *,
+        axis: Axis = ...,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def mean(
+        self,
+        *,
+        axis: None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Any:
+        ...
+
+    @overload
+    def mean(
+        self,
+        *,
+        axis: Axis | None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series | Any:
+        ...
 
     @doc(make_doc("mean", ndim=2))
     def mean(
@@ -11386,11 +11518,47 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
-    ):
-        result = super().mean(axis, skipna, numeric_only, **kwargs)
+    ) -> Series | Any:
+        result = super().mean(
+            axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
+        )
         if isinstance(result, Series):
             result = result.__finalize__(self, method="mean")
         return result
+
+    # error: Signature of "median" incompatible with supertype "NDFrame"
+    @overload  # type: ignore[override]
+    def median(
+        self,
+        *,
+        axis: Axis = ...,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def median(
+        self,
+        *,
+        axis: None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Any:
+        ...
+
+    @overload
+    def median(
+        self,
+        *,
+        axis: Axis | None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series | Any:
+        ...
 
     @doc(make_doc("median", ndim=2))
     def median(
@@ -11399,11 +11567,50 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
-    ):
-        result = super().median(axis, skipna, numeric_only, **kwargs)
+    ) -> Series | Any:
+        result = super().median(
+            axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
+        )
         if isinstance(result, Series):
             result = result.__finalize__(self, method="median")
         return result
+
+    # error: Signature of "sem" incompatible with supertype "NDFrame"
+    @overload  # type: ignore[override]
+    def sem(
+        self,
+        *,
+        axis: Axis = ...,
+        skipna: bool = ...,
+        ddof: int = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def sem(
+        self,
+        *,
+        axis: None,
+        skipna: bool = ...,
+        ddof: int = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Any:
+        ...
+
+    @overload
+    def sem(
+        self,
+        *,
+        axis: Axis | None,
+        skipna: bool = ...,
+        ddof: int = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series | Any:
+        ...
 
     @doc(make_doc("sem", ndim=2))
     def sem(
@@ -11413,11 +11620,50 @@ class DataFrame(NDFrame, OpsMixin):
         ddof: int = 1,
         numeric_only: bool = False,
         **kwargs,
-    ):
-        result = super().sem(axis, skipna, ddof, numeric_only, **kwargs)
+    ) -> Series | Any:
+        result = super().sem(
+            axis=axis, skipna=skipna, ddof=ddof, numeric_only=numeric_only, **kwargs
+        )
         if isinstance(result, Series):
             result = result.__finalize__(self, method="sem")
         return result
+
+    # error: Signature of "var" incompatible with supertype "NDFrame"
+    @overload  # type: ignore[override]
+    def var(
+        self,
+        *,
+        axis: Axis = ...,
+        skipna: bool = ...,
+        ddof: int = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def var(
+        self,
+        *,
+        axis: None,
+        skipna: bool = ...,
+        ddof: int = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Any:
+        ...
+
+    @overload
+    def var(
+        self,
+        *,
+        axis: Axis | None,
+        skipna: bool = ...,
+        ddof: int = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series | Any:
+        ...
 
     @doc(make_doc("var", ndim=2))
     def var(
@@ -11427,11 +11673,50 @@ class DataFrame(NDFrame, OpsMixin):
         ddof: int = 1,
         numeric_only: bool = False,
         **kwargs,
-    ):
-        result = super().var(axis, skipna, ddof, numeric_only, **kwargs)
+    ) -> Series | Any:
+        result = super().var(
+            axis=axis, skipna=skipna, ddof=ddof, numeric_only=numeric_only, **kwargs
+        )
         if isinstance(result, Series):
             result = result.__finalize__(self, method="var")
         return result
+
+    # error: Signature of "std" incompatible with supertype "NDFrame"
+    @overload  # type: ignore[override]
+    def std(
+        self,
+        *,
+        axis: Axis = ...,
+        skipna: bool = ...,
+        ddof: int = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def std(
+        self,
+        *,
+        axis: None,
+        skipna: bool = ...,
+        ddof: int = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Any:
+        ...
+
+    @overload
+    def std(
+        self,
+        *,
+        axis: Axis | None,
+        skipna: bool = ...,
+        ddof: int = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series | Any:
+        ...
 
     @doc(make_doc("std", ndim=2))
     def std(
@@ -11441,11 +11726,47 @@ class DataFrame(NDFrame, OpsMixin):
         ddof: int = 1,
         numeric_only: bool = False,
         **kwargs,
-    ):
-        result = super().std(axis, skipna, ddof, numeric_only, **kwargs)
+    ) -> Series | Any:
+        result = super().std(
+            axis=axis, skipna=skipna, ddof=ddof, numeric_only=numeric_only, **kwargs
+        )
         if isinstance(result, Series):
             result = result.__finalize__(self, method="std")
         return result
+
+    # error: Signature of "skew" incompatible with supertype "NDFrame"
+    @overload  # type: ignore[override]
+    def skew(
+        self,
+        *,
+        axis: Axis = ...,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def skew(
+        self,
+        *,
+        axis: None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Any:
+        ...
+
+    @overload
+    def skew(
+        self,
+        *,
+        axis: Axis | None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series | Any:
+        ...
 
     @doc(make_doc("skew", ndim=2))
     def skew(
@@ -11454,11 +11775,47 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
-    ):
-        result = super().skew(axis, skipna, numeric_only, **kwargs)
+    ) -> Series | Any:
+        result = super().skew(
+            axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
+        )
         if isinstance(result, Series):
             result = result.__finalize__(self, method="skew")
         return result
+
+    # error: Signature of "kurt" incompatible with supertype "NDFrame"
+    @overload  # type: ignore[override]
+    def kurt(
+        self,
+        *,
+        axis: Axis = ...,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def kurt(
+        self,
+        *,
+        axis: None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Any:
+        ...
+
+    @overload
+    def kurt(
+        self,
+        *,
+        axis: Axis | None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series | Any:
+        ...
 
     @doc(make_doc("kurt", ndim=2))
     def kurt(
@@ -11467,13 +11824,16 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
-    ):
-        result = super().kurt(axis, skipna, numeric_only, **kwargs)
+    ) -> Series | Any:
+        result = super().kurt(
+            axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
+        )
         if isinstance(result, Series):
             result = result.__finalize__(self, method="kurt")
         return result
 
-    kurtosis = kurt
+    # error: Incompatible types in assignment
+    kurtosis = kurt  # type: ignore[assignment]
     product = prod
 
     @doc(make_doc("cummin", ndim=2))
