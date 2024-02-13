@@ -2212,7 +2212,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def wrap(
         self,
-        width: int = 70,
+        width: int,
         expand_tabs: bool = True,
         tabsize: int = 8,
         replace_whitespace: bool = True,
@@ -2234,7 +2234,7 @@ class StringMethods(NoNewAttributesMixin):
         Parameters
         ----------
         width : int, optional
-            Maximum line width (default: 70).
+            Maximum line width.
         expand_tabs : bool, optional
             If True, tab characters will be expanded to spaces (default: True).
         tabsize : int, optional
