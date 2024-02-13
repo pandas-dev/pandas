@@ -1050,8 +1050,7 @@ class ArrowExtensionArray(
         copy: bool = True,
     ) -> Self:
         if not self._hasna:
-            # TODO(CoW): Not necessary anymore when CoW is the default
-            return self.copy()
+            return self
 
         if limit is None and limit_area is None:
             method = missing.clean_fill_method(method)
@@ -1084,8 +1083,7 @@ class ArrowExtensionArray(
         value, method = validate_fillna_kwargs(value, method)
 
         if not self._hasna:
-            # TODO(CoW): Not necessary anymore when CoW is the default
-            return self.copy()
+            return self
 
         if limit is not None:
             return super().fillna(value=value, method=method, limit=limit, copy=copy)

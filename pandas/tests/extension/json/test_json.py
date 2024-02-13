@@ -218,7 +218,7 @@ class TestJSONArray(base.ExtensionTests):
         super().test_fillna_copy_frame(data_missing)
 
     @pytest.mark.xfail(reason="Fails with CoW")
-    def test_equals_same_data_different_object(self, data, request):
+    def test_equals_same_data_different_object(self, data):
         super().test_equals_same_data_different_object(data)
 
     @pytest.mark.xfail(reason="failing on np.array(self, dtype=str)")
