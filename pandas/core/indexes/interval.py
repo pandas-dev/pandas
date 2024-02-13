@@ -1102,13 +1102,19 @@ def interval_range(
 
     if is_number(endpoint):
         if com.all_not_none(start, end, freq):
-            # 0.1 ensures we capture end
             if isinstance(start, float | np.float16) or isinstance(
                 end, float | np.float16
             ):
                 dtype = np.dtype("float64")
+            elif isinstance(start, int) or isinstance(end, int):
+                dtype = np.dtype("int64")
+            elif np.issubdtype(start.dtype, np.integer) or np.issubdtype(
+                end.dtype, np.integer
+            ):
+                dtype = start.dtype if start.dtype == end.dtype else np.dtype("int64")
             else:
                 dtype = start.dtype if start.dtype == end.dtype else np.dtype("float64")
+            # 0.1 ensures we capture end
             breaks = np.arange(start, end + (freq * 0.1), freq, dtype=dtype)
         else:
             # compute the period/start/end if unspecified (at most one)
@@ -1126,10 +1132,6 @@ def interval_range(
             # error: Argument 1 to "maybe_downcast_numeric" has incompatible type
             # "Union[ndarray[Any, Any], TimedeltaIndex, DatetimeIndex]";
             # expected "ndarray[Any, Any]"  [
-            if isinstance(start, int) or isinstance(end, int):
-                dtype = np.dtype("int64")
-            else:
-                dtype = start.dtype if start.dtype == end.dtype else np.dtype("int64")
             breaks = maybe_downcast_numeric(
                 breaks,  # type: ignore[arg-type]
                 dtype,
