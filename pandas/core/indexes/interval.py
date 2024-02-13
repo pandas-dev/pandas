@@ -1101,21 +1101,25 @@ def interval_range(
     breaks: np.ndarray | TimedeltaIndex | DatetimeIndex
 
     if is_number(endpoint):
+        dtype = np.dtype("int64")
         if com.all_not_none(start, end, freq):
-            if isinstance(start, float | np.float16) or isinstance(
-                end, float | np.float16
+            if (
+                isinstance(start, float | np.float16)
+                or isinstance(end, float | np.float16)
+                or isinstance(freq, float | np.float16)
             ):
                 dtype = np.dtype("float64")
             elif isinstance(start, int) or isinstance(end, int):
                 dtype = np.dtype("int64")
-            elif np.issubdtype(start.dtype, np.integer) or np.issubdtype(
+            elif np.issubdtype(start.dtype, np.integer) and np.issubdtype(
                 end.dtype, np.integer
             ):
                 dtype = start.dtype if start.dtype == end.dtype else np.dtype("int64")
             else:
                 dtype = start.dtype if start.dtype == end.dtype else np.dtype("float64")
             # 0.1 ensures we capture end
-            breaks = np.arange(start, end + (freq * 0.1), freq, dtype=dtype)
+            breaks = np.arange(start, end + (freq * 0.1), freq)
+            breaks = maybe_downcast_numeric(breaks, dtype)
         else:
             # compute the period/start/end if unspecified (at most one)
             if periods is None:
@@ -1134,7 +1138,7 @@ def interval_range(
             # expected "ndarray[Any, Any]"  [
             breaks = maybe_downcast_numeric(
                 breaks,  # type: ignore[arg-type]
-                breaks.dtype,
+                dtype,
             )
     else:
         # delegate to the appropriate range function
