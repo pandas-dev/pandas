@@ -10,7 +10,6 @@ from typing import (
     Literal,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -19,7 +18,6 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
@@ -70,7 +68,7 @@ def pivot_table(
     margins: bool = False,
     dropna: bool = True,
     margins_name: Hashable = "All",
-    observed: bool | lib.NoDefault = lib.no_default,
+    observed: bool = True,
     sort: bool = True,
 ) -> DataFrame:
     index = _convert_by(index)
@@ -125,7 +123,7 @@ def __internal_pivot_table(
     margins: bool,
     dropna: bool,
     margins_name: Hashable,
-    observed: bool | lib.NoDefault,
+    observed: bool,
     sort: bool,
 ) -> DataFrame:
     """
@@ -168,18 +166,7 @@ def __internal_pivot_table(
                 pass
         values = list(values)
 
-    observed_bool = False if observed is lib.no_default else observed
-    grouped = data.groupby(keys, observed=observed_bool, sort=sort, dropna=dropna)
-    if observed is lib.no_default and any(
-        ping._passed_categorical for ping in grouped._grouper.groupings
-    ):
-        warnings.warn(
-            "The default value of observed=False is deprecated and will change "
-            "to observed=True in a future version of pandas. Specify "
-            "observed=False to silence this warning and retain the current behavior",
-            category=FutureWarning,
-            stacklevel=find_stack_level(),
-        )
+    grouped = data.groupby(keys, observed=observed, sort=sort, dropna=dropna)
     agged = grouped.agg(aggfunc)
 
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
@@ -410,7 +397,7 @@ def _generate_marginal_results(
                 if isinstance(piece.index, MultiIndex):
                     # We are adding an empty level
                     transformed_piece.index = MultiIndex.from_tuples(
-                        [all_key], names=piece.index.names + [None]
+                        [all_key], names=piece.index.names + (None,)
                     )
                 else:
                     transformed_piece.index = Index([all_key], name=piece.index.name)
@@ -472,7 +459,7 @@ def _generate_marginal_results_without_values(
             margin_keys.append(all_key)
 
         else:
-            margin = data.groupby(level=0, axis=0, observed=observed).apply(aggfunc)
+            margin = data.groupby(level=0, observed=observed).apply(aggfunc)
             all_key = _all_key()
             table[all_key] = margin
             result = table
@@ -651,14 +638,55 @@ def crosstab(
 
     Examples
     --------
-    >>> a = np.array(["foo", "foo", "foo", "foo", "bar", "bar",
-    ...               "bar", "bar", "foo", "foo", "foo"], dtype=object)
-    >>> b = np.array(["one", "one", "one", "two", "one", "one",
-    ...               "one", "two", "two", "two", "one"], dtype=object)
-    >>> c = np.array(["dull", "dull", "shiny", "dull", "dull", "shiny",
-    ...               "shiny", "dull", "shiny", "shiny", "shiny"],
-    ...              dtype=object)
-    >>> pd.crosstab(a, [b, c], rownames=['a'], colnames=['b', 'c'])
+    >>> a = np.array(
+    ...     [
+    ...         "foo",
+    ...         "foo",
+    ...         "foo",
+    ...         "foo",
+    ...         "bar",
+    ...         "bar",
+    ...         "bar",
+    ...         "bar",
+    ...         "foo",
+    ...         "foo",
+    ...         "foo",
+    ...     ],
+    ...     dtype=object,
+    ... )
+    >>> b = np.array(
+    ...     [
+    ...         "one",
+    ...         "one",
+    ...         "one",
+    ...         "two",
+    ...         "one",
+    ...         "one",
+    ...         "one",
+    ...         "two",
+    ...         "two",
+    ...         "two",
+    ...         "one",
+    ...     ],
+    ...     dtype=object,
+    ... )
+    >>> c = np.array(
+    ...     [
+    ...         "dull",
+    ...         "dull",
+    ...         "shiny",
+    ...         "dull",
+    ...         "dull",
+    ...         "shiny",
+    ...         "shiny",
+    ...         "dull",
+    ...         "shiny",
+    ...         "shiny",
+    ...         "shiny",
+    ...     ],
+    ...     dtype=object,
+    ... )
+    >>> pd.crosstab(a, [b, c], rownames=["a"], colnames=["b", "c"])
     b   one        two
     c   dull shiny dull shiny
     a
@@ -669,8 +697,8 @@ def crosstab(
     shown in the output because dropna is True by default. Set
     dropna=False to preserve categories with no data.
 
-    >>> foo = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])
-    >>> bar = pd.Categorical(['d', 'e'], categories=['d', 'e', 'f'])
+    >>> foo = pd.Categorical(["a", "b"], categories=["a", "b", "c"])
+    >>> bar = pd.Categorical(["d", "e"], categories=["d", "e", "f"])
     >>> pd.crosstab(foo, bar)
     col_0  d  e
     row_0
@@ -734,7 +762,7 @@ def crosstab(
         margins=margins,
         margins_name=margins_name,
         dropna=dropna,
-        observed=False,
+        observed=dropna,
         **kwargs,  # type: ignore[arg-type]
     )
 
@@ -830,7 +858,7 @@ def _normalize(
     return table
 
 
-def _get_names(arrs, names, prefix: str = "row"):
+def _get_names(arrs, names, prefix: str = "row") -> list:
     if names is None:
         names = []
         for i, arr in enumerate(arrs):

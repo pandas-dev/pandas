@@ -200,8 +200,10 @@ class Holiday:
         Holiday: July 3rd (month=7, day=3, )
 
         >>> NewYears = pd.tseries.holiday.Holiday(
-        ...     "New Years Day", month=1,  day=1,
-        ...      observance=pd.tseries.holiday.nearest_workday
+        ...     "New Years Day",
+        ...     month=1,
+        ...     day=1,
+        ...     observance=pd.tseries.holiday.nearest_workday,
         ... )
         >>> NewYears  # doctest: +SKIP
         Holiday: New Years Day (
@@ -209,8 +211,7 @@ class Holiday:
         )
 
         >>> July3rd = pd.tseries.holiday.Holiday(
-        ...     "July 3rd", month=7, day=3,
-        ...     days_of_week=(0, 1, 2, 3)
+        ...     "July 3rd", month=7, day=3, days_of_week=(0, 1, 2, 3)
         ... )
         >>> July3rd
         Holiday: July 3rd (month=7, day=3, )
@@ -384,7 +385,7 @@ def register(cls) -> None:
     holiday_calendars[name] = cls
 
 
-def get_calendar(name: str):
+def get_calendar(name: str) -> AbstractHolidayCalendar:
     """
     Return an instance of a calendar based on its name.
 
@@ -433,7 +434,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         if rules is not None:
             self.rules = rules
 
-    def rule_from_name(self, name: str):
+    def rule_from_name(self, name: str) -> Holiday | None:
         for rule in self.rules:
             if rule.name == name:
                 return rule

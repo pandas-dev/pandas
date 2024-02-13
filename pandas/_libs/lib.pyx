@@ -770,6 +770,9 @@ cpdef ndarray[object] ensure_string_array(
         result = result.copy()
     elif not copy and result is arr:
         already_copied = False
+    elif not copy and not result.flags.writeable:
+        # Weird edge case where result is a view
+        already_copied = False
 
     if issubclass(arr.dtype.type, np.str_):
         # short-circuit, all elements are str
@@ -1159,43 +1162,6 @@ def is_complex(obj: object) -> bool:
 
 cpdef bint is_decimal(object obj):
     return isinstance(obj, Decimal)
-
-
-cpdef bint is_interval(object obj):
-    import warnings
-
-    from pandas.util._exceptions import find_stack_level
-
-    warnings.warn(
-        # GH#55264
-        "is_interval is deprecated and will be removed in a future version. "
-        "Use isinstance(obj, pd.Interval) instead.",
-        FutureWarning,
-        stacklevel=find_stack_level(),
-    )
-    return getattr(obj, "_typ", "_typ") == "interval"
-
-
-def is_period(val: object) -> bool:
-    """
-    Return True if given object is Period.
-
-    Returns
-    -------
-    bool
-    """
-    import warnings
-
-    from pandas.util._exceptions import find_stack_level
-
-    warnings.warn(
-        # GH#55264
-        "is_period is deprecated and will be removed in a future version. "
-        "Use isinstance(obj, pd.Period) instead.",
-        FutureWarning,
-        stacklevel=find_stack_level(),
-    )
-    return is_period_object(val)
 
 
 def is_list_like(obj: object, allow_sets: bool = True) -> bool:

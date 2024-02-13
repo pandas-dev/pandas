@@ -53,6 +53,7 @@ import pandas._testing as tm
 from pandas.api.extensions import no_default
 from pandas.api.types import (
     is_bool_dtype,
+    is_datetime64_any_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_numeric_dtype,
@@ -1531,6 +1532,14 @@ def test_is_unsigned_integer_dtype(data):
         assert not is_unsigned_integer_dtype(data)
 
 
+def test_is_datetime64_any_dtype(data):
+    pa_type = data.dtype.pyarrow_dtype
+    if pa.types.is_timestamp(pa_type) or pa.types.is_date(pa_type):
+        assert is_datetime64_any_dtype(data)
+    else:
+        assert not is_datetime64_any_dtype(data)
+
+
 def test_is_float_dtype(data):
     pa_type = data.dtype.pyarrow_dtype
     if pa.types.is_floating(pa_type):
@@ -1924,13 +1933,18 @@ def test_str_fullmatch(pat, case, na, exp):
 
 
 @pytest.mark.parametrize(
-    "sub, start, end, exp, exp_typ",
-    [["ab", 0, None, [0, None], pa.int32()], ["bc", 1, 3, [1, None], pa.int64()]],
+    "sub, start, end, exp, exp_type",
+    [
+        ["ab", 0, None, [0, None], pa.int32()],
+        ["bc", 1, 3, [1, None], pa.int64()],
+        ["ab", 1, 3, [-1, None], pa.int64()],
+        ["ab", -3, -3, [-1, None], pa.int64()],
+    ],
 )
-def test_str_find(sub, start, end, exp, exp_typ):
+def test_str_find(sub, start, end, exp, exp_type):
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.find(sub, start=start, end=end)
-    expected = pd.Series(exp, dtype=ArrowDtype(exp_typ))
+    expected = pd.Series(exp, dtype=ArrowDtype(exp_type))
     tm.assert_series_equal(result, expected)
 
 
@@ -1942,10 +1956,62 @@ def test_str_find_negative_start():
     tm.assert_series_equal(result, expected)
 
 
-def test_str_find_notimplemented():
+def test_str_find_no_end():
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
-    with pytest.raises(NotImplementedError, match="find not implemented"):
-        ser.str.find("ab", start=1)
+    if pa_version_under13p0:
+        # https://github.com/apache/arrow/issues/36311
+        with pytest.raises(pa.lib.ArrowInvalid, match="Negative buffer resize"):
+            ser.str.find("ab", start=1)
+    else:
+        result = ser.str.find("ab", start=1)
+        expected = pd.Series([-1, None], dtype="int64[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+
+def test_str_find_negative_start_negative_end():
+    # GH 56791
+    ser = pd.Series(["abcdefg", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.find(sub="d", start=-6, end=-3)
+    expected = pd.Series([3, None], dtype=ArrowDtype(pa.int64()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_find_large_start():
+    # GH 56791
+    ser = pd.Series(["abcdefg", None], dtype=ArrowDtype(pa.string()))
+    if pa_version_under13p0:
+        # https://github.com/apache/arrow/issues/36311
+        with pytest.raises(pa.lib.ArrowInvalid, match="Negative buffer resize"):
+            ser.str.find(sub="d", start=16)
+    else:
+        result = ser.str.find(sub="d", start=16)
+        expected = pd.Series([-1, None], dtype=ArrowDtype(pa.int64()))
+        tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.skipif(
+    pa_version_under13p0, reason="https://github.com/apache/arrow/issues/36311"
+)
+@pytest.mark.parametrize("start", [-15, -3, 0, 1, 15, None])
+@pytest.mark.parametrize("end", [-15, -1, 0, 3, 15, None])
+@pytest.mark.parametrize("sub", ["", "az", "abce", "a", "caa"])
+def test_str_find_e2e(start, end, sub):
+    s = pd.Series(
+        ["abcaadef", "abc", "abcdeddefgj8292", "ab", "a", ""],
+        dtype=ArrowDtype(pa.string()),
+    )
+    object_series = s.astype(pd.StringDtype())
+    result = s.str.find(sub, start, end)
+    expected = object_series.str.find(sub, start, end).astype(result.dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_find_negative_start_negative_end_no_match():
+    # GH 56791
+    ser = pd.Series(["abcdefg", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.find(sub="d", start=-3, end=-6)
+    expected = pd.Series([-1, None], dtype=ArrowDtype(pa.int64()))
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -3329,6 +3395,15 @@ def test_arrow_floordiv_floating_0_divisor(dtype):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("dtype", ["float64", "datetime64[ns]", "timedelta64[ns]"])
+def test_astype_int_with_null_to_numpy_dtype(dtype):
+    # GH 57093
+    ser = pd.Series([1, None], dtype="int64[pyarrow]")
+    result = ser.astype(dtype)
+    expected = pd.Series([1, None], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("pa_type", tm.ALL_INT_PYARROW_DTYPES)
 def test_arrow_integral_floordiv_large_values(pa_type):
     # GH 56676
@@ -3367,6 +3442,26 @@ def test_string_to_datetime_parsing_cast():
     expected = pd.Series(
         ArrowExtensionArray(pa.array(pd.to_datetime(string_dates), from_pandas=True))
     )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.skipif(
+    pa_version_under13p0, reason="pairwise_diff_checked not implemented in pyarrow"
+)
+def test_interpolate_not_numeric(data):
+    if not data.dtype._is_numeric:
+        with pytest.raises(ValueError, match="Values must be numeric."):
+            pd.Series(data).interpolate()
+
+
+@pytest.mark.skipif(
+    pa_version_under13p0, reason="pairwise_diff_checked not implemented in pyarrow"
+)
+@pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
+def test_interpolate_linear(dtype):
+    ser = pd.Series([None, 1, 2, None, 4, None], dtype=dtype)
+    result = ser.interpolate()
+    expected = pd.Series([None, 1, 2, 3, 4, None], dtype=dtype)
     tm.assert_series_equal(result, expected)
 
 

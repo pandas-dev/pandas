@@ -1319,18 +1319,6 @@ class TestExcelWriter:
         result = tm.round_trip_pathlib(writer, reader, path=f"foo{ext}")
         tm.assert_frame_equal(result, df)
 
-    def test_path_local_path(self, engine, ext):
-        df = DataFrame(
-            1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD")),
-            index=Index([f"i-{i}" for i in range(30)]),
-        )
-        writer = partial(df.to_excel, engine=engine)
-
-        reader = partial(pd.read_excel, index_col=0)
-        result = tm.round_trip_localpath(writer, reader, path=f"foo{ext}")
-        tm.assert_frame_equal(result, df)
-
     def test_merged_cell_custom_objects(self, path):
         # see GH-27006
         mi = MultiIndex.from_tuples(
@@ -1396,6 +1384,18 @@ class TestExcelWriter:
             result = pd.read_excel(path)
             expected = DataFrame()
             tm.assert_frame_equal(result, expected)
+
+    def test_to_excel_raising_warning_when_cell_character_exceed_limit(
+        self, path, engine
+    ):
+        # GH#56954
+        df = DataFrame({"A": ["a" * 32768]})
+        msg = "Cell contents too long, truncated to 32767 characters"
+        with tm.assert_produces_warning(
+            UserWarning, match=msg, raise_on_extra_warnings=False
+        ):
+            buf = BytesIO()
+            df.to_excel(buf)
 
 
 class TestExcelWriterEngineTests:
@@ -1485,18 +1485,6 @@ class TestFSPath:
         with tm.ensure_clean("foo.xlsx") as path:
             with ExcelWriter(path) as writer:
                 assert os.fspath(writer) == str(path)
-
-    def test_to_excel_pos_args_deprecation(self):
-        # GH-54229
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"Starting with pandas version 3.0 all arguments of to_excel except "
-            r"for the argument 'excel_writer' will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            buf = BytesIO()
-            writer = ExcelWriter(buf)
-            df.to_excel(writer, "Sheet_name_1")
 
 
 @pytest.mark.parametrize("klass", _writers.values())

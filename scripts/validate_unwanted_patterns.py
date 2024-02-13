@@ -27,7 +27,6 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_interval_shared_docs",
     "_merge_doc",
     "_shared_docs",
-    "_apply_docs",
     "_new_Index",
     "_new_PeriodIndex",
     "_agg_template_series",
@@ -56,7 +55,7 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_version_meson",
     # The numba extensions need this to mock the iloc object
     "_iLocIndexer",
-    # TODO(3.0): GH#55043 - remove upon removal of ArrayManager
+    # TODO(4.0): GH#55043 - remove upon removal of CoW option
     "_get_option",
     "_fill_limit_area_1d",
 }

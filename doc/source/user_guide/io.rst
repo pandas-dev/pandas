@@ -36,7 +36,6 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     binary;`SPSS <https://en.wikipedia.org/wiki/SPSS>`__;:ref:`read_spss<io.spss_reader>`;
     binary;`Python Pickle Format <https://docs.python.org/3/library/pickle.html>`__;:ref:`read_pickle<io.pickle>`;:ref:`to_pickle<io.pickle>`
     SQL;`SQL <https://en.wikipedia.org/wiki/SQL>`__;:ref:`read_sql<io.sql>`;:ref:`to_sql<io.sql>`
-    SQL;`Google BigQuery <https://en.wikipedia.org/wiki/BigQuery>`__;:ref:`read_gbq<io.bigquery>`;:ref:`to_gbq<io.bigquery>`
 
 :ref:`Here <io.perf>` is an informal performance comparison for some of these IO methods.
 
@@ -61,8 +60,8 @@ Basic
 +++++
 
 filepath_or_buffer : various
-  Either a path to a file (a :class:`python:str`, :class:`python:pathlib.Path`,
-  or :class:`py:py._path.local.LocalPath`), URL (including http, ftp, and S3
+  Either a path to a file (a :class:`python:str`, :class:`python:pathlib.Path`)
+  URL (including http, ftp, and S3
   locations), or any object with a ``read()`` method (such as an open file or
   :class:`~python:io.StringIO`).
 sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_table`
@@ -3248,7 +3247,7 @@ output (as shown below for demonstration) for easier parse into ``DataFrame``:
       </row>
     </response>"""
 
-   df = pd.read_xml(StringIO(xml), stylesheet=xsl)
+   df = pd.read_xml(StringIO(xml), stylesheet=StringIO(xsl))
    df
 
 For very large XML files that can range in hundreds of megabytes to gigabytes, :func:`pandas.read_xml`
@@ -3419,7 +3418,7 @@ Write an XML and transform with stylesheet:
       </xsl:template>
     </xsl:stylesheet>"""
 
-   print(geom_df.to_xml(stylesheet=xsl))
+   print(geom_df.to_xml(stylesheet=StringIO(xsl)))
 
 
 XML Final Notes
@@ -6095,10 +6094,6 @@ Google BigQuery
 ---------------
 
 The ``pandas-gbq`` package provides functionality to read/write from Google BigQuery.
-
-pandas integrates with this external package. if ``pandas-gbq`` is installed, you can
-use the pandas methods ``pd.read_gbq`` and ``DataFrame.to_gbq``, which will call the
-respective functions from ``pandas-gbq``.
 
 Full documentation can be found `here <https://pandas-gbq.readthedocs.io/en/latest/>`__.
 

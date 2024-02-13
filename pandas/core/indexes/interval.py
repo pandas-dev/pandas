@@ -479,7 +479,7 @@ class IntervalIndex(ExtensionIndex):
 
         Intervals that share closed endpoints overlap:
 
-        >>> index = pd.interval_range(0, 3, closed='both')
+        >>> index = pd.interval_range(0, 3, closed="both")
         >>> index
         IntervalIndex([[0, 1], [1, 2], [2, 3]],
               dtype='interval[int64, both]')
@@ -488,7 +488,7 @@ class IntervalIndex(ExtensionIndex):
 
         Intervals that only have an open endpoint in common do not overlap:
 
-        >>> index = pd.interval_range(0, 3, closed='left')
+        >>> index = pd.interval_range(0, 3, closed="left")
         >>> index
         IntervalIndex([[0, 1), [1, 2), [2, 3)],
               dtype='interval[int64, left]')
@@ -1017,8 +1017,9 @@ def interval_range(
 
     Additionally, datetime-like input is also supported.
 
-    >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
-    ...                   end=pd.Timestamp('2017-01-04'))
+    >>> pd.interval_range(
+    ...     start=pd.Timestamp("2017-01-01"), end=pd.Timestamp("2017-01-04")
+    ... )
     IntervalIndex([(2017-01-01 00:00:00, 2017-01-02 00:00:00],
                    (2017-01-02 00:00:00, 2017-01-03 00:00:00],
                    (2017-01-03 00:00:00, 2017-01-04 00:00:00]],
@@ -1035,8 +1036,7 @@ def interval_range(
     Similarly, for datetime-like ``start`` and ``end``, the frequency must be
     convertible to a DateOffset.
 
-    >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
-    ...                   periods=3, freq='MS')
+    >>> pd.interval_range(start=pd.Timestamp("2017-01-01"), periods=3, freq="MS")
     IntervalIndex([(2017-01-01 00:00:00, 2017-02-01 00:00:00],
                    (2017-02-01 00:00:00, 2017-03-01 00:00:00],
                    (2017-03-01 00:00:00, 2017-04-01 00:00:00]],
@@ -1052,7 +1052,7 @@ def interval_range(
     The ``closed`` parameter specifies which endpoints of the individual
     intervals within the ``IntervalIndex`` are closed.
 
-    >>> pd.interval_range(end=5, periods=4, closed='both')
+    >>> pd.interval_range(end=5, periods=4, closed="both")
     IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]],
                   dtype='interval[int64, both]')
     """
