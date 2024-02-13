@@ -854,7 +854,6 @@ class _LocationIndexer(NDFrameIndexerBase):
         if self.ndim != 2:
             return
 
-        orig_key = key
         if isinstance(key, tuple) and len(key) > 1:
             # key may be a tuple if we are .loc
             # if length of key is > 1 set key to column part
@@ -872,7 +871,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             keys = self.obj.columns.union(key, sort=False)
             diff = Index(key).difference(self.obj.columns, sort=False)
 
-            if len(diff) and com.is_null_slice(orig_key[0]):
+            if len(diff):
                 # e.g. if we are doing df.loc[:, ["A", "B"]] = 7 and "B"
                 #  is a new column, add the new columns with dtype=np.void
                 #  so that later when we go through setitem_single_column
@@ -2165,6 +2164,18 @@ class _iLocIndexer(_LocationIndexer):
         else:
             # set value into the column (first attempting to operate inplace, then
             #  falling back to casting if necessary)
+            dtype = self.obj.dtypes.iloc[loc]
+            if dtype == np.void:
+                # This means we're expanding, with multiple columns, e.g.
+                #     df = pd.DataFrame({'A': [1,2,3], 'B': [4,5,6]})
+                #     df.loc[df.index <= 2, ['F', 'G']] = (1, 'abc')
+                # Columns F and G will initially be set to np.void.
+                # Here, we replace those temporary `np.void` columns with
+                # columns of the appropriate dtype, based on `value`.
+                arr = sanitize_array(value, Index(range(1)), copy=False)
+                taker = -1 * np.ones(len(self.obj), dtype=np.intp)
+                empty_value = algos.take_nd(arr, taker)
+                self.obj.iloc[:, loc] = empty_value
             self.obj._mgr.column_setitem(loc, plane_indexer, value)
 
     def _setitem_single_block(self, indexer, value, name: str) -> None:
