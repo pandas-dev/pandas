@@ -1040,10 +1040,7 @@ class SQLTable(PandasObject):
                         # GH#53854 to_pydatetime not supported for pyarrow date dtypes
                         d = ser._values.to_numpy(dtype=object)
                     else:
-                        with warnings.catch_warnings():
-                            warnings.filterwarnings("ignore", category=FutureWarning)
-                            # GH#52459 to_pydatetime will return Index[object]
-                            d = np.asarray(ser.dt.to_pydatetime(), dtype=object)
+                        d = np.asarray(ser.dt.to_pydatetime(), dtype=object)
                 else:
                     d = ser._values.to_pydatetime()
             elif ser.dtype.kind == "m":
