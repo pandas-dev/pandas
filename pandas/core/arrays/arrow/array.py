@@ -1430,7 +1430,7 @@ class ArrowExtensionArray(
 
     def map(self, mapper, na_action=None):
         if is_numeric_dtype(self.dtype):
-            return map_array(self.to_numpy(), mapper, na_action=None)
+            return map_array(self.to_numpy(), mapper, na_action=na_action)
         else:
             return super().map(mapper, na_action)
 

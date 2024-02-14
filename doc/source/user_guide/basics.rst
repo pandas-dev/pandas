@@ -1308,8 +1308,8 @@ filling method chosen from the following table:
     :header: "Method", "Action"
     :widths: 30, 50
 
-    pad / ffill, Fill values forward
-    bfill / backfill, Fill values backward
+    ffill, Fill values forward
+    bfill, Fill values backward
     nearest, Fill from the nearest index value
 
 We illustrate these fill methods on a simple Series:

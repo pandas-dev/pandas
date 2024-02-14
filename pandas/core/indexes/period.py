@@ -185,7 +185,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
     @doc(
         PeriodArray.asfreq,
-        other="pandas.arrays.PeriodArray",
+        other="arrays.PeriodArray",
         other_name="PeriodArray",
         **_shared_doc_kwargs,
     )
