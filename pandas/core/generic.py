@@ -2913,8 +2913,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         database. Otherwise, the datetimes will be stored as timezone unaware
         timestamps local to the original timezone.
         
-        Not all datastores support ``method="multi"``. Oracle, for example, 
-        does not support multi-value insert 
+        Not all datastores support ``method="multi"``. Oracle, for example,
+        does not support multi-value insert
 
         References
         ----------
