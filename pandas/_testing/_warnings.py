@@ -79,8 +79,6 @@ def assert_produces_warning(
         type must get encountered. Otherwise, even one expected warning
         results in success.
 
-        .. versionadded:: 3.0.0
-
     Examples
     --------
     >>> import warnings
