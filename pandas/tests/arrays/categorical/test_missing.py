@@ -66,12 +66,7 @@ class TestCategoricalMissing:
     @pytest.mark.parametrize(
         "fillna_kwargs, msg",
         [
-            (
-                {"value": 1, "method": "ffill"},
-                "Cannot specify both 'value' and 'method'.",
-            ),
-            ({}, "Must specify a fill 'value' or 'method'."),
-            ({"method": "bad"}, "Invalid fill method. Expecting .* bad"),
+            ({}, "Must specify a fill 'value'."),
             (
                 {"value": Series([1, 2, 3, 4, "a"])},
                 "Cannot setitem on a Categorical with a new category",

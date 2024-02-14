@@ -294,10 +294,8 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     def fillna(  # type: ignore[override]
         self,
         value=None,
-        method=None,
-        limit: int | None = None,
     ):
-        return super().fillna(value=value, method=method, limit=limit, copy=True)
+        return super().fillna(value=value, copy=True)
 
 
 def to_decimal(values, context=None):

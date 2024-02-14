@@ -1892,13 +1892,11 @@ class ExtensionBlock(EABackedBlock):
             copy, refs = self._get_refs_and_copy(inplace)
 
             try:
-                new_values = self.values.fillna(
-                    value=value, method=None, limit=limit, copy=copy
-                )
+                new_values = self.values.fillna(value=value, copy=copy)
             except TypeError:
                 # 3rd party EA that has not implemented copy keyword yet
                 refs = None
-                new_values = self.values.fillna(value=value, method=None, limit=limit)
+                new_values = self.values.fillna(value=value)
                 # issue the warning *after* retrying, in case the TypeError
                 #  was caused by an invalid fill_value
                 warnings.warn(

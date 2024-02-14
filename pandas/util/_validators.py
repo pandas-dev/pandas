@@ -268,7 +268,7 @@ def validate_bool_kwarg(
     return value
 
 
-def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):
+def validate_fillna_kwargs(value, validate_scalar_dict_value: bool = True):
     """
     Validate the keyword arguments to 'fillna'.
 
@@ -277,34 +277,19 @@ def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = Tru
 
     Parameters
     ----------
-    value, method : object
-        The 'value' and 'method' keyword arguments for 'fillna'.
+    value : object
+        The 'value' keyword argument for 'fillna'.
     validate_scalar_dict_value : bool, default True
         Whether to validate that 'value' is a scalar or dict. Specifically,
         validate that it is not a list or tuple.
-
-    Returns
-    -------
-    value, method : object
     """
-    from pandas.core.missing import clean_fill_method
-
-    if value is None and method is None:
-        raise ValueError("Must specify a fill 'value' or 'method'.")
-    if value is None and method is not None:
-        method = clean_fill_method(method)
-
-    elif value is not None and method is None:
-        if validate_scalar_dict_value and isinstance(value, (list, tuple)):
-            raise TypeError(
-                '"value" parameter must be a scalar or dict, but '
-                f'you passed a "{type(value).__name__}"'
-            )
-
-    elif value is not None and method is not None:
-        raise ValueError("Cannot specify both 'value' and 'method'.")
-
-    return value, method
+    if value is None:
+        raise ValueError("Must specify a fill 'value'.")
+    elif validate_scalar_dict_value and isinstance(value, (list, tuple)):
+        raise TypeError(
+            '"value" parameter must be a scalar or dict, but '
+            f'you passed a "{type(value).__name__}"'
+        )
 
 
 def validate_percentile(q: float | Iterable[float]) -> np.ndarray:

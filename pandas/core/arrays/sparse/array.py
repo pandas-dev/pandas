@@ -732,28 +732,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             method=method, limit=limit, limit_area=limit_area, copy=copy
         )
 
-    def fillna(
-        self,
-        value=None,
-        method: FillnaOptions | None = None,
-        limit: int | None = None,
-        copy: bool = True,
-    ) -> Self:
+    def fillna(self, value=None, copy: bool = True) -> Self:
         """
         Fill missing values with `value`.
 
         Parameters
         ----------
         value : scalar, optional
-        method : str, optional
-
-            .. warning::
-
-               Using 'method' will result in high memory use,
-               as all `fill_value` methods will be converted to
-               an in-memory ndarray
-
-        limit : int, optional
 
         copy: bool, default True
             Ignored for SparseArray.
@@ -774,22 +759,16 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         When ``self.fill_value`` is not NA, the result dtype will be
         ``self.dtype``. Again, this preserves the amount of memory used.
         """
-        if (method is None and value is None) or (
-            method is not None and value is not None
-        ):
-            raise ValueError("Must specify one of 'method' or 'value'.")
+        if value is None:
+            raise ValueError("Must specify 'value'.")
 
-        if method is not None:
-            return super().fillna(method=method, limit=limit)
+        new_values = np.where(isna(self.sp_values), value, self.sp_values)
 
+        if self._null_fill_value:
+            # This is essentially just updating the dtype.
+            new_dtype = SparseDtype(self.dtype.subtype, fill_value=value)
         else:
-            new_values = np.where(isna(self.sp_values), value, self.sp_values)
-
-            if self._null_fill_value:
-                # This is essentially just updating the dtype.
-                new_dtype = SparseDtype(self.dtype.subtype, fill_value=value)
-            else:
-                new_dtype = self.dtype
+            new_dtype = self.dtype
 
         return self._simple_new(new_values, self._sparse_index, new_dtype)
 
