@@ -19,7 +19,7 @@ import numpy as np
 from pandas._libs.writers import convert_json_to_lines
 
 import pandas as pd
-from pandas import DataFrame
+from pandas import DataFrame, Series
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -266,7 +266,7 @@ def _simple_json_normalize(
 
 
 def json_normalize(
-    data: dict | list[dict],
+    data: dict | list[dict] | Series,
     record_path: str | list | None = None,
     meta: str | list[str | list[str]] | None = None,
     meta_prefix: str | None = None,
@@ -455,6 +455,11 @@ def json_normalize(
                 )
         return result
 
+    if isinstance(data, Series):
+        index = data.index
+    else:
+        index = None
+
     if isinstance(data, list) and not data:
         return DataFrame()
     elif isinstance(data, dict):
@@ -477,7 +482,7 @@ def json_normalize(
         and record_prefix is None
         and max_level is None
     ):
-        return DataFrame(_simple_json_normalize(data, sep=sep))
+        return DataFrame(_simple_json_normalize(data, sep=sep), index=index)
 
     if record_path is None:
         if any([isinstance(x, dict) for x in y.values()] for y in data):
@@ -489,7 +494,7 @@ def json_normalize(
             # TODO: handle record value which are lists, at least error
             #       reasonably
             data = nested_to_record(data, sep=sep, max_level=max_level)
-        return DataFrame(data)
+        return DataFrame(data, index=index)
     elif not isinstance(record_path, list):
         record_path = [record_path]
 
@@ -564,4 +569,6 @@ def json_normalize(
                 values[i] = val
 
         result[k] = values.repeat(lengths)
+    if index is not None:
+        result.index = index.repeat(lengths)
     return result
