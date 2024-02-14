@@ -33,7 +33,7 @@ def assert_produces_warning(
     check_stacklevel: bool = True,
     raise_on_extra_warnings: bool = True,
     match: str | tuple[str | None, ...] | None = None,
-    must_find_all_warnings: bool = False,
+    must_find_all_warnings: bool = True,
 ) -> Generator[list[warnings.WarningMessage], None, None]:
     """
     Context manager for running code expected to either raise a specific warning,
@@ -74,7 +74,7 @@ def assert_produces_warning(
         `expected_warning`. If additionally `must_find_all_warnings` is
         True, each expected warning's message gets matched with a respective
         match. Otherwise, multiple values get treated as an alternative.
-    must_find_all_warnings : bool, default False
+    must_find_all_warnings : bool, default True
         If True and `expected_warning` is a tuple, each expected warning
         type must get encountered. Otherwise, even one expected warning
         results in success.
