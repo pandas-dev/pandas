@@ -289,7 +289,7 @@ Look,a snake,🐍"""
             (
                 pd.read_hdf,
                 "tables",
-                ("io", "data", "legacy_hdf", "datetimetz_object.h5"),
+                ("io", "data", "legacy_hdf", "pytables_native2.h5"),
             ),
             (pd.read_stata, "os", ("io", "data", "stata", "stata10_115.dta")),
             (pd.read_sas, "os", ("io", "sas", "data", "test1.sas7bdat")),
