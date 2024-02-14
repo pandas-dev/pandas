@@ -19,7 +19,10 @@ import numpy as np
 from pandas._libs.writers import convert_json_to_lines
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

@@ -560,7 +560,7 @@ class TestJSONNormalize:
         expected = DataFrame([[4, 10, 0]], columns=["gg", "_id_a1", "_id_l2_l3"])
 
         tm.assert_frame_equal(result, expected)
-        
+
     def test_series_index(self, state_data):
         idx = [7, 8]
         series = Series(state_data, index=idx)
