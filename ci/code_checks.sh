@@ -1155,9 +1155,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (SA05)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=SA05 --ignore_functions \
-        pandas.PeriodIndex.asfreq\
-        pandas.arrays.ArrowStringArray\
-        pandas.arrays.StringArray\
         pandas.core.groupby.DataFrameGroupBy.first\
         pandas.core.groupby.DataFrameGroupBy.last\
         pandas.core.groupby.SeriesGroupBy.first\
