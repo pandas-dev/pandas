@@ -141,6 +141,122 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.SeriesGroupBy.plot # There should be no backslash in the final line, please keep this comment in the last ignored function
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Partially validate docstrings (PR07)' ;  echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=PR07 --ignore_functions \
+        pandas.DataFrame.align\
+        pandas.DataFrame.get\
+        pandas.DataFrame.rolling\
+        pandas.DataFrame.to_hdf\
+        pandas.DatetimeIndex.indexer_between_time\
+        pandas.DatetimeIndex.mean\
+        pandas.HDFStore.append\
+        pandas.HDFStore.get\
+        pandas.HDFStore.put\
+        pandas.Index\
+        pandas.Index.append\
+        pandas.Index.copy\
+        pandas.Index.difference\
+        pandas.Index.drop\
+        pandas.Index.get_indexer\
+        pandas.Index.get_indexer_non_unique\
+        pandas.Index.get_loc\
+        pandas.Index.get_slice_bound\
+        pandas.Index.insert\
+        pandas.Index.intersection\
+        pandas.Index.join\
+        pandas.Index.reindex\
+        pandas.Index.slice_indexer\
+        pandas.Index.symmetric_difference\
+        pandas.Index.take\
+        pandas.Index.union\
+        pandas.IntervalIndex.get_indexer\
+        pandas.IntervalIndex.get_loc\
+        pandas.MultiIndex.append\
+        pandas.MultiIndex.copy\
+        pandas.MultiIndex.drop\
+        pandas.MultiIndex.get_indexer\
+        pandas.MultiIndex.get_loc\
+        pandas.MultiIndex.get_loc_level\
+        pandas.MultiIndex.sortlevel\
+        pandas.PeriodIndex.from_fields\
+        pandas.RangeIndex\
+        pandas.Series.add\
+        pandas.Series.align\
+        pandas.Series.cat\
+        pandas.Series.div\
+        pandas.Series.eq\
+        pandas.Series.floordiv\
+        pandas.Series.ge\
+        pandas.Series.get\
+        pandas.Series.gt\
+        pandas.Series.le\
+        pandas.Series.lt\
+        pandas.Series.mod\
+        pandas.Series.mul\
+        pandas.Series.ne\
+        pandas.Series.pow\
+        pandas.Series.radd\
+        pandas.Series.rdiv\
+        pandas.Series.rfloordiv\
+        pandas.Series.rmod\
+        pandas.Series.rmul\
+        pandas.Series.rolling\
+        pandas.Series.rpow\
+        pandas.Series.rsub\
+        pandas.Series.rtruediv\
+        pandas.Series.sparse.from_coo\
+        pandas.Series.sparse.to_coo\
+        pandas.Series.str.decode\
+        pandas.Series.str.encode\
+        pandas.Series.sub\
+        pandas.Series.to_hdf\
+        pandas.Series.truediv\
+        pandas.Series.update\
+        pandas.Timedelta\
+        pandas.Timedelta.max\
+        pandas.Timedelta.min\
+        pandas.Timedelta.resolution\
+        pandas.TimedeltaIndex.mean\
+        pandas.Timestamp\
+        pandas.Timestamp.max\
+        pandas.Timestamp.min\
+        pandas.Timestamp.replace\
+        pandas.Timestamp.resolution\
+        pandas.api.extensions.ExtensionArray._concat_same_type\
+        pandas.api.extensions.ExtensionArray.insert\
+        pandas.api.extensions.ExtensionArray.isin\
+        pandas.api.types.infer_dtype\
+        pandas.api.types.is_dict_like\
+        pandas.api.types.is_file_like\
+        pandas.api.types.is_iterator\
+        pandas.api.types.is_named_tuple\
+        pandas.api.types.is_re\
+        pandas.api.types.is_re_compilable\
+        pandas.api.types.pandas_dtype\
+        pandas.arrays.ArrowExtensionArray\
+        pandas.arrays.SparseArray\
+        pandas.arrays.TimedeltaArray\
+        pandas.core.groupby.DataFrameGroupBy.boxplot\
+        pandas.core.resample.Resampler.quantile\
+        pandas.io.formats.style.Styler.set_table_attributes\
+        pandas.io.formats.style.Styler.set_uuid\
+        pandas.io.json.build_table_schema\
+        pandas.merge\
+        pandas.merge_asof\
+        pandas.merge_ordered\
+        pandas.pivot\
+        pandas.pivot_table\
+        pandas.plotting.parallel_coordinates\
+        pandas.plotting.scatter_matrix\
+        pandas.plotting.table\
+        pandas.qcut\
+        pandas.testing.assert_index_equal\
+        pandas.testing.assert_series_equal\
+        pandas.unique\
+        pandas.util.hash_array\
+        pandas.util.hash_pandas_object # There should be no backslash in the final line, please keep this comment in the last ignored function
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Partially validate docstrings (RT03)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=RT03 --ignore_functions \
         pandas.Index.to_numpy\
