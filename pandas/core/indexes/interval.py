@@ -1111,12 +1111,12 @@ def interval_range(
                 dtype = np.dtype("float64")
             elif isinstance(start, int) or isinstance(end, int):
                 dtype = np.dtype("int64")
-            elif np.issubdtype(start.dtype, np.integer) and np.issubdtype(
-                end.dtype, np.integer
+            elif (
+                isinstance(start, (np.integer, np.floating))
+                and isinstance(end, (np.integer, np.floating))
+                and start.dtype == end.dtype
             ):
-                dtype = start.dtype if start.dtype == end.dtype else np.dtype("int64")
-            else:
-                dtype = start.dtype if start.dtype == end.dtype else np.dtype("float64")
+                dtype = start.dtype
             # 0.1 ensures we capture end
             breaks = np.arange(start, end + (freq * 0.1), freq)
             breaks = maybe_downcast_numeric(breaks, dtype)
