@@ -1876,7 +1876,7 @@ class TestPandasContainer:
             '{"(0, \'x\')":1,"(0, \'y\')":"a","(1, \'x\')":2,'
             '"(1, \'y\')":"b","(2, \'x\')":3,"(2, \'y\')":"c"}'
         )
-        series = dataframe.stack(future_stack=True)
+        series = dataframe.stack()
         result = series.to_json(orient="index")
         assert result == expected
 
@@ -1915,7 +1915,7 @@ class TestPandasContainer:
             True,
             index=date_range("2017-01-20", "2017-01-23"),
             columns=["foo", "bar"],
-        ).stack(future_stack=True)
+        ).stack()
         result = df.to_json()
         expected = (
             "{\"(Timestamp('2017-01-20 00:00:00'), 'foo')\":true,"

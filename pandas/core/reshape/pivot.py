@@ -420,7 +420,7 @@ def _generate_marginal_results(
 
     if len(cols) > 0:
         row_margin = data[cols + values].groupby(cols, observed=observed).agg(aggfunc)
-        row_margin = row_margin.stack(future_stack=True)
+        row_margin = row_margin.stack()
 
         # GH#26568. Use names instead of indices in case of numeric names
         new_order_indices = [len(cols)] + list(range(len(cols)))
