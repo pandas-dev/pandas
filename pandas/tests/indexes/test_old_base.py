@@ -597,13 +597,6 @@ class TestBase:
 
             idx = type(index)(values)
 
-            msg = "does not support 'downcast'"
-            msg2 = r"The 'downcast' keyword in .*Index\.fillna is deprecated"
-            with tm.assert_produces_warning(FutureWarning, match=msg2):
-                with pytest.raises(NotImplementedError, match=msg):
-                    # For now at least, we only raise if there are NAs present
-                    idx.fillna(idx[0], downcast="infer")
-
             expected = np.array([False] * len(idx), dtype=bool)
             expected[1] = True
             tm.assert_numpy_array_equal(idx._isnan, expected)
