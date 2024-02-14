@@ -113,6 +113,7 @@ Removal of prior version deprecations/changes
 - Changed the default value of ``observed`` in :meth:`DataFrame.groupby` and :meth:`Series.groupby` to ``True`` (:issue:`51811`)
 - Enforced silent-downcasting deprecation for :ref:`all relevant methods <whatsnew_220.silent_downcasting>` (:issue:`54710`)
 - In :meth:`DataFrame.stack`, the default value of ``future_stack`` is now ``True``; specifying ``False`` will raise a ``FutureWarning`` (:issue:`55448`)
+- Passing both ``freq`` and ``fill_value`` in :meth:`DataFrame.shift` and :meth:`Series.shift` and :meth:`.DataFrameGroupBy.shift` now raises a ``ValueError`` (:issue:`54818`)
 - Removed ``DataFrame.applymap``, ``Styler.applymap`` and ``Styler.applymap_index`` (:issue:`52364`)
 - Removed ``DataFrame.bool`` and ``Series.bool`` (:issue:`51756`)
 - Removed ``DataFrame.first`` and ``DataFrame.last`` (:issue:`53710`)
