@@ -3497,3 +3497,10 @@ def test_to_numpy_timestamp_to_int():
     result = ser.to_numpy(dtype=np.int64)
     expected = np.array([1577853000000000000])
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_map_numeric_na_action():
+    ser = pd.Series([32, 40, None], dtype="int64[pyarrow]")
+    result = ser.map(lambda x: 42, na_action="ignore")
+    expected = pd.Series([42.0, 42.0, np.nan], dtype="float64")
+    tm.assert_series_equal(result, expected)
