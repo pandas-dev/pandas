@@ -561,6 +561,14 @@ class TestJSONNormalize:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_series_index(self, state_data):
+        idx = Index([7, 8])
+        series = Series(state_data, index=idx)
+        result = json_normalize(series)
+        tm.assert_index_equal(result.index, idx)
+        result = json_normalize(series, "counties")
+        tm.assert_index_equal(result.index, idx.repeat([3, 2]))
+
 
 class TestNestedToRecord:
     def test_flat_stays_flat(self):
@@ -891,6 +899,7 @@ class TestNestedToRecord:
                 "elements.a": [1.0, np.nan, np.nan],
                 "elements.b": [np.nan, 2.0, np.nan],
                 "elements.c": [np.nan, np.nan, 3.0],
-            }
+            },
+            index=[1, 2, 3],
         )
         tm.assert_frame_equal(result, expected)
