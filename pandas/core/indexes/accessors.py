@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    NoReturn,
     cast,
 )
 import warnings
@@ -106,18 +107,9 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         else:
             index = self._parent.index
         # return the result as a Series
-        result = Series(result, index=index, name=self.name).__finalize__(self._parent)
+        return Series(result, index=index, name=self.name).__finalize__(self._parent)
 
-        # setting this object will show a SettingWithCopyWarning/Error
-        result._is_copy = (
-            "modifications to a property of a datetimelike "
-            "object are not supported and are discarded. "
-            "Change values on the original."
-        )
-
-        return result
-
-    def _delegate_property_set(self, name: str, value, *args, **kwargs):
+    def _delegate_property_set(self, name: str, value, *args, **kwargs) -> NoReturn:
         raise ValueError(
             "modifications to a property of a datetimelike object are not supported. "
             "Change values on the original."
@@ -134,18 +126,9 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         if not is_list_like(result):
             return result
 
-        result = Series(result, index=self._parent.index, name=self.name).__finalize__(
+        return Series(result, index=self._parent.index, name=self.name).__finalize__(
             self._parent
         )
-
-        # setting this object will show a SettingWithCopyWarning/Error
-        result._is_copy = (
-            "modifications to a method of a datetimelike "
-            "object are not supported and are discarded. "
-            "Change values on the original."
-        )
-
-        return result
 
 
 @delegate_names(
@@ -363,7 +346,7 @@ class DatetimeProperties(Properties):
 
         Examples
         --------
-        >>> s = pd.Series(pd.date_range('20180310', periods=2))
+        >>> s = pd.Series(pd.date_range("20180310", periods=2))
         >>> s
         0   2018-03-10
         1   2018-03-11
@@ -375,7 +358,7 @@ class DatetimeProperties(Properties):
 
         pandas' nanosecond precision is truncated to microseconds.
 
-        >>> s = pd.Series(pd.date_range('20180310', periods=2, freq='ns'))
+        >>> s = pd.Series(pd.date_range("20180310", periods=2, freq="ns"))
         >>> s
         0   2018-03-10 00:00:00.000000000
         1   2018-03-10 00:00:00.000000001
@@ -501,7 +484,7 @@ class TimedeltaProperties(Properties):
         return self._get_values().to_pytimedelta()
 
     @property
-    def components(self):
+    def components(self) -> DataFrame:
         """
         Return a Dataframe of the components of the Timedeltas.
 
@@ -511,7 +494,7 @@ class TimedeltaProperties(Properties):
 
         Examples
         --------
-        >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit='s'))
+        >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit="s"))
         >>> s
         0   0 days 00:00:00
         1   0 days 00:00:01

@@ -105,9 +105,7 @@ class TestiLocBaseIndependent:
         expected = DataFrame({0: Series(cat.astype(object), dtype=object), 1: range(3)})
         tm.assert_frame_equal(df, expected)
 
-    def test_iloc_setitem_ea_inplace(
-        self, frame_or_series, index_or_series_or_array, using_copy_on_write
-    ):
+    def test_iloc_setitem_ea_inplace(self, frame_or_series, index_or_series_or_array):
         # GH#38952 Case with not setting a full column
         #  IntegerArray without NAs
         arr = array([1, 2, 3, 4])
@@ -128,11 +126,8 @@ class TestiLocBaseIndependent:
 
         # Check that we are actually in-place
         if frame_or_series is Series:
-            if using_copy_on_write:
-                assert obj.values is not values
-                assert np.shares_memory(obj.values, values)
-            else:
-                assert obj.values is values
+            assert obj.values is not values
+            assert np.shares_memory(obj.values, values)
         else:
             assert np.shares_memory(obj[0].values, values)
 
@@ -843,7 +838,7 @@ class TestiLocBaseIndependent:
             df.iloc[[]], df.iloc[:0, :], check_index_type=True, check_column_type=True
         )
 
-    def test_identity_slice_returns_new_object(self, using_copy_on_write):
+    def test_identity_slice_returns_new_object(self):
         # GH13873
         original_df = DataFrame({"a": [1, 2, 3]})
         sliced_df = original_df.iloc[:]
@@ -855,10 +850,7 @@ class TestiLocBaseIndependent:
         # Setting using .loc[:, "a"] sets inplace so alters both sliced and orig
         # depending on CoW
         original_df.loc[:, "a"] = [4, 4, 4]
-        if using_copy_on_write:
-            assert (sliced_df["a"] == [1, 2, 3]).all()
-        else:
-            assert (sliced_df["a"] == 4).all()
+        assert (sliced_df["a"] == [1, 2, 3]).all()
 
         original_series = Series([1, 2, 3, 4, 5, 6])
         sliced_series = original_series.iloc[:]
@@ -866,11 +858,8 @@ class TestiLocBaseIndependent:
 
         # should also be a shallow copy
         original_series[:3] = [7, 8, 9]
-        if using_copy_on_write:
-            # shallow copy not updated (CoW)
-            assert all(sliced_series[:3] == [1, 2, 3])
-        else:
-            assert all(sliced_series[:3] == [7, 8, 9])
+        # shallow copy not updated (CoW)
+        assert all(sliced_series[:3] == [1, 2, 3])
 
     def test_indexing_zerodim_np_array(self):
         # GH24919
@@ -1414,7 +1403,7 @@ class TestILocCallable:
 
 
 class TestILocSeries:
-    def test_iloc(self, using_copy_on_write):
+    def test_iloc(self):
         ser = Series(
             np.random.default_rng(2).standard_normal(10), index=list(range(0, 20, 2))
         )
@@ -1434,10 +1423,7 @@ class TestILocSeries:
         with tm.assert_produces_warning(None):
             # GH#45324 make sure we aren't giving a spurious FutureWarning
             result[:] = 0
-        if using_copy_on_write:
-            tm.assert_series_equal(ser, ser_original)
-        else:
-            assert (ser.iloc[1:3] == 0).all()
+        tm.assert_series_equal(ser, ser_original)
 
         # list of integers
         result = ser.iloc[[0, 2, 3, 4, 5]]
