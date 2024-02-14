@@ -101,7 +101,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         return cls(scalars)
 
     @classmethod
-    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
+    def _from_sequence_of_strings(cls, strings, *, dtype: ExtensionDtype, copy=False):
         return cls._from_sequence(
             [decimal.Decimal(x) for x in strings], dtype=dtype, copy=copy
         )
