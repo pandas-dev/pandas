@@ -43,12 +43,12 @@ class TestSliceLocs:
             columns=Index(list("ABCD"), dtype=object),
             index=date_range("2000-01-01", periods=50, freq="B"),
         )
-        stacked = df.stack(future_stack=True)
+        stacked = df.stack()
         idx = stacked.index
 
         slob = slice(*idx.slice_locs(df.index[5], df.index[15]))
         sliced = stacked[slob]
-        expected = df[5:16].stack(future_stack=True)
+        expected = df[5:16].stack()
         tm.assert_almost_equal(sliced.values, expected.values)
 
         slob = slice(
@@ -58,7 +58,7 @@ class TestSliceLocs:
             )
         )
         sliced = stacked[slob]
-        expected = df[6:15].stack(future_stack=True)
+        expected = df[6:15].stack()
         tm.assert_almost_equal(sliced.values, expected.values)
 
     def test_slice_locs_with_type_mismatch(self):
@@ -67,7 +67,7 @@ class TestSliceLocs:
             columns=Index(list("ABCD"), dtype=object),
             index=date_range("2000-01-01", periods=10, freq="B"),
         )
-        stacked = df.stack(future_stack=True)
+        stacked = df.stack()
         idx = stacked.index
         with pytest.raises(TypeError, match="^Level type mismatch"):
             idx.slice_locs((1, 3))
@@ -78,7 +78,7 @@ class TestSliceLocs:
             index=Index([f"i-{i}" for i in range(5)], name="a"),
             columns=Index([f"i-{i}" for i in range(5)], name="a"),
         )
-        stacked = df.stack(future_stack=True)
+        stacked = df.stack()
         idx = stacked.index
         with pytest.raises(TypeError, match="^Level type mismatch"):
             idx.slice_locs(timedelta(seconds=30))
