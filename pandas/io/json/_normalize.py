@@ -283,7 +283,7 @@ def json_normalize(
 
     Parameters
     ----------
-    data : dict or list of dicts
+    data : dict, list of dicts, or Series of dicts
         Unserialized JSON objects.
     record_path : str or list of str, default None
         Path in each object to list of records. If not passed, data will be
@@ -367,6 +367,26 @@ def json_normalize(
     0  1.0   Cole Volk             130              60
     1  NaN    Mark Reg             130              60
     2  2.0  Faye Raker             130              60
+
+    >>> data = [
+    ...     {
+    ...         "id": 1,
+    ...         "name": "Cole Volk",
+    ...         "fitness": {"height": 130, "weight": 60},
+    ...     },
+    ...     {"name": "Mark Reg", "fitness": {"height": 130, "weight": 60}},
+    ...     {
+    ...         "id": 2,
+    ...         "name": "Faye Raker",
+    ...         "fitness": {"height": 130, "weight": 60},
+    ...     },
+    ... ]
+    >>> series = pd.Series(data, index=pd.Index(["a", "b", "c"]))
+    >>> pd.json_normalize(series)
+        id        name  fitness.height  fitness.weight
+    a  1.0   Cole Volk             130              60
+    b  NaN    Mark Reg             130              60
+    c  2.0  Faye Raker             130              60
 
     >>> data = [
     ...     {
