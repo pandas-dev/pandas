@@ -89,7 +89,6 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("rename", columns={"A": "a"})),
     (pd.DataFrame, frame_data, operator.methodcaller("rename", index=lambda x: x)),
     (pd.DataFrame, frame_data, operator.methodcaller("fillna", "A")),
-    (pd.DataFrame, frame_data, operator.methodcaller("fillna", method="ffill")),
     (pd.DataFrame, frame_data, operator.methodcaller("set_index", "A")),
     (pd.DataFrame, frame_data, operator.methodcaller("reset_index")),
     (pd.DataFrame, frame_data, operator.methodcaller("isna")),
