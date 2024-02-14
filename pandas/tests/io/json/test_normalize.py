@@ -899,7 +899,7 @@ class TestNestedToRecord:
                 "elements.a": [1.0, np.nan, np.nan],
                 "elements.b": [np.nan, 2.0, np.nan],
                 "elements.c": [np.nan, np.nan, 3.0],
-            }
+            },
+            index=[1, 2, 3],
         )
-        expected.index = [1, 2, 3]
         tm.assert_frame_equal(result, expected)
