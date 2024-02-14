@@ -3219,9 +3219,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        pandas.core.groupby.DataFrameGroupBy.last : Compute the last non-null entry
+        core.groupby.DataFrameGroupBy.last : Compute the last non-null entry
             of each column.
-        pandas.core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
+        core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
@@ -3306,9 +3306,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        pandas.core.groupby.DataFrameGroupBy.first : Compute the first non-null entry
+        core.groupby.DataFrameGroupBy.first : Compute the first non-null entry
             of each column.
-        pandas.core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
+        core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
