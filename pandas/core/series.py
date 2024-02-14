@@ -46,7 +46,6 @@ from pandas.errors.cow import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
-    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import find_stack_level
@@ -1736,11 +1735,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     # error: Incompatible default for argument "into" (default has type "type[
     # dict[Any, Any]]", argument has type "type[MutableMappingT] | MutableMappingT")
-    @deprecate_nonkeyword_arguments(
-        version="3.0", allowed_args=["self"], name="to_dict"
-    )
     def to_dict(
         self,
+        *,
         into: type[MutableMappingT] | MutableMappingT = dict,  # type: ignore[assignment]
     ) -> MutableMappingT:
         """

@@ -27,7 +27,6 @@ from pandas._libs.lib import no_default
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     cache_readonly,
-    deprecate_nonkeyword_arguments,
     doc,
 )
 
@@ -592,11 +591,9 @@ class RangeIndex(Index):
     ) -> Self | tuple[Self, np.ndarray | RangeIndex]:
         ...
 
-    @deprecate_nonkeyword_arguments(
-        version="3.0", allowed_args=["self"], name="sort_values"
-    )
     def sort_values(
         self,
+        *,
         return_indexer: bool = False,
         ascending: bool = True,
         na_position: NaPosition = "last",

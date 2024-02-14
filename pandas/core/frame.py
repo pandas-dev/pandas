@@ -63,7 +63,6 @@ from pandas.errors.cow import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
-    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import (
@@ -3195,9 +3194,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
-    @deprecate_nonkeyword_arguments(
-        version="3.0", allowed_args=["self", "path_or_buffer"], name="to_xml"
-    )
     @doc(
         storage_options=_shared_docs["storage_options"],
         compression_options=_shared_docs["compression_options"] % "path_or_buffer",
@@ -3205,6 +3201,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_xml(
         self,
         path_or_buffer: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
+        *,
         index: bool = True,
         root_name: str | None = "data",
         row_name: str | None = "row",
