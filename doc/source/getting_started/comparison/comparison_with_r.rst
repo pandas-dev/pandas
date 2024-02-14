@@ -438,7 +438,7 @@ In Python, the :meth:`~pandas.melt` method is the R equivalent:
    )
 
    pd.melt(cheese, id_vars=["first", "last"])
-   cheese.set_index(["first", "last"]).stack(future_stack=True)  # alternative way
+   cheese.set_index(["first", "last"]).stack()  # alternative way
 
 For more details and examples see :ref:`the reshaping documentation
 <reshaping.melt>`.
