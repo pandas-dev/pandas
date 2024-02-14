@@ -132,13 +132,6 @@ _version = "0.15.2"
 _default_encoding = "UTF-8"
 
 
-def _ensure_decoded(s):
-    """if we have bytes, decode them to unicode"""
-    if isinstance(s, np.bytes_):
-        s = s.decode("UTF-8")
-    return s
-
-
 def _ensure_encoding(encoding: str | None) -> str:
     # set the encoding if we need
     if encoding is None:
@@ -1730,8 +1723,8 @@ class HDFStore:
         if value is not None and not isinstance(value, (Series, DataFrame)):
             raise TypeError("value must be None, Series, or DataFrame")
 
-        pt = _ensure_decoded(getattr(group._v_attrs, "pandas_type", None))
-        tt = _ensure_decoded(getattr(group._v_attrs, "table_type", None))
+        pt = getattr(group._v_attrs, "pandas_type", None)
+        tt = getattr(group._v_attrs, "table_type", None)
 
         # infer the pt from the passed value
         if pt is None:
@@ -1798,7 +1791,7 @@ class HDFStore:
             "worm": WORMTable,
         }
         try:
-            cls = _TABLE_MAP[tt]
+            cls = _TABLE_MAP[tt]  # type: ignore[index]
         except KeyError as err:
             raise TypeError(
                 f"cannot properly create the storer for: [_TABLE_MAP] [group->"
@@ -2145,13 +2138,13 @@ class IndexCol:
             # preventing the original recarry from being free'ed
             values = values[self.cname].copy()
 
-        val_kind = _ensure_decoded(self.kind)
+        val_kind = self.kind
         values = _maybe_convert(values, val_kind, encoding, errors)
         kwargs = {}
-        kwargs["name"] = _ensure_decoded(self.index_name)
+        kwargs["name"] = self.index_name
 
         if self.freq is not None:
-            kwargs["freq"] = _ensure_decoded(self.freq)
+            kwargs["freq"] = self.freq
 
         factory: type[Index | DatetimeIndex] = Index
         if lib.is_np_dtype(values.dtype, "M") or isinstance(
@@ -2210,7 +2203,7 @@ class IndexCol:
             min_itemsize can be an integer or a dict with this columns name
             with an integer size
         """
-        if _ensure_decoded(self.kind) == "string":
+        if self.kind == "string":
             if isinstance(min_itemsize, dict):
                 min_itemsize = min_itemsize.get(self.name)
 
@@ -2231,7 +2224,7 @@ class IndexCol:
     def validate_col(self, itemsize=None):
         """validate this column: return the compared against itemsize"""
         # validate this column for string truncation (or reset to the max size)
-        if _ensure_decoded(self.kind) == "string":
+        if self.kind == "string":
             c = self.col
             if c is not None:
                 if itemsize is None:
@@ -2561,14 +2554,14 @@ class DataCol(IndexCol):
         assert isinstance(converted, np.ndarray)  # for mypy
 
         # use the meta if needed
-        meta = _ensure_decoded(self.meta)
+        meta = self.meta
         metadata = self.metadata
         ordered = self.ordered
         tz = self.tz
 
         assert dtype_name is not None
         # convert to the correct dtype
-        dtype = _ensure_decoded(dtype_name)
+        dtype = dtype_name
 
         # reverse converts
         if dtype.startswith("datetime64"):
@@ -2618,7 +2611,7 @@ class DataCol(IndexCol):
                 converted = converted.astype("O", copy=False)
 
         # convert nans / decode
-        if _ensure_decoded(kind) == "string":
+        if kind == "string":
             converted = _unconvert_string_array(
                 converted, nan_rep=nan_rep, encoding=encoding, errors=errors
             )
@@ -2706,18 +2699,19 @@ class Fixed:
     @property
     def version(self) -> tuple[int, int, int]:
         """compute and set our version"""
-        version = _ensure_decoded(getattr(self.group._v_attrs, "pandas_version", None))
-        try:
-            version = tuple(int(x) for x in version.split("."))
-            if len(version) == 2:
-                version = version + (0,)
-        except AttributeError:
-            version = (0, 0, 0)
-        return version
+        version = getattr(self.group._v_attrs, "pandas_version", None)
+        if isinstance(version, str):
+            version_tup = tuple(int(x) for x in version.split("."))
+            if len(version_tup) == 2:
+                version_tup = version_tup + (0,)
+            assert len(version_tup) == 3  # needed for mypy
+            return version_tup
+        else:
+            return (0, 0, 0)
 
     @property
     def pandas_type(self):
-        return _ensure_decoded(getattr(self.group._v_attrs, "pandas_type", None))
+        return getattr(self.group._v_attrs, "pandas_type", None)
 
     def __repr__(self) -> str:
         """return a pretty representation of myself"""
@@ -2854,9 +2848,7 @@ class GenericFixed(Fixed):
         return self._reverse_index_map.get(alias, Index)
 
     def _get_index_factory(self, attrs):
-        index_class = self._alias_to_class(
-            _ensure_decoded(getattr(attrs, "index_class", ""))
-        )
+        index_class = self._alias_to_class(getattr(attrs, "index_class", ""))
 
         factory: Callable
 
@@ -2892,12 +2884,7 @@ class GenericFixed(Fixed):
                 factory = TimedeltaIndex
 
         if "tz" in attrs:
-            if isinstance(attrs["tz"], bytes):
-                # created by python2
-                kwargs["tz"] = attrs["tz"].decode("utf-8")
-            else:
-                # created by python3
-                kwargs["tz"] = attrs["tz"]
+            kwargs["tz"] = attrs["tz"]
             assert index_class is DatetimeIndex  # just checking
 
         return factory, kwargs
@@ -2929,9 +2916,9 @@ class GenericFixed(Fixed):
     def get_attrs(self) -> None:
         """retrieve our attributes"""
         self.encoding = _ensure_encoding(getattr(self.attrs, "encoding", None))
-        self.errors = _ensure_decoded(getattr(self.attrs, "errors", "strict"))
+        self.errors = getattr(self.attrs, "errors", "strict")
         for n in self.attributes:
-            setattr(self, n, _ensure_decoded(getattr(self.attrs, n, None)))
+            setattr(self, n, getattr(self.attrs, n, None))
 
     def write(self, obj, **kwargs) -> None:
         self.set_attrs()
@@ -2948,7 +2935,7 @@ class GenericFixed(Fixed):
         if isinstance(node, tables.VLArray):
             ret = node[0][start:stop]
         else:
-            dtype = _ensure_decoded(getattr(attrs, "value_type", None))
+            dtype = getattr(attrs, "value_type", None)
             shape = getattr(attrs, "shape", None)
 
             if shape is not None:
@@ -2973,7 +2960,7 @@ class GenericFixed(Fixed):
     def read_index(
         self, key: str, start: int | None = None, stop: int | None = None
     ) -> Index:
-        variety = _ensure_decoded(getattr(self.attrs, f"{key}_variety"))
+        variety = getattr(self.attrs, f"{key}_variety")
 
         if variety == "multi":
             return self.read_multi_index(key, start=start, stop=stop)
@@ -3063,12 +3050,11 @@ class GenericFixed(Fixed):
         # have written a sentinel. Here we replace it with the original.
         if "shape" in node._v_attrs and np.prod(node._v_attrs.shape) == 0:
             data = np.empty(node._v_attrs.shape, dtype=node._v_attrs.value_type)
-        kind = _ensure_decoded(node._v_attrs.kind)
+        kind = node._v_attrs.kind
         name = None
 
         if "name" in node._v_attrs:
             name = _ensure_str(node._v_attrs.name)
-            name = _ensure_decoded(name)
 
         attrs = node._v_attrs
         factory, kwargs = self._get_index_factory(attrs)
@@ -3584,7 +3570,7 @@ class Table(Fixed):
         self.info = getattr(self.attrs, "info", None) or {}
         self.nan_rep = getattr(self.attrs, "nan_rep", None)
         self.encoding = _ensure_encoding(getattr(self.attrs, "encoding", None))
-        self.errors = _ensure_decoded(getattr(self.attrs, "errors", "strict"))
+        self.errors = getattr(self.attrs, "errors", "strict")
         self.levels: list[Hashable] = getattr(self.attrs, "levels", None) or []
         self.index_axes = [a for a in self.indexables if a.is_an_indexable]
         self.values_axes = [a for a in self.indexables if not a.is_an_indexable]
@@ -4926,7 +4912,6 @@ def _set_tz(
             name = None
             values = values.ravel()
 
-        tz = _ensure_decoded(tz)
         values = DatetimeIndex(values, name=name)
         values = values.tz_localize("UTC").tz_convert(tz)
     elif coerce:
@@ -5228,8 +5213,6 @@ def _dtype_to_kind(dtype_str: str) -> str:
     """
     Find the "kind" string describing the given dtype name.
     """
-    dtype_str = _ensure_decoded(dtype_str)
-
     if dtype_str.startswith(("string", "bytes")):
         kind = "string"
     elif dtype_str.startswith("float"):
