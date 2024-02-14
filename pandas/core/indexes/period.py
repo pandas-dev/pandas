@@ -5,7 +5,6 @@ from datetime import (
     timedelta,
 )
 from typing import TYPE_CHECKING
-import warnings
 
 import numpy as np
 
@@ -22,7 +21,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.dtypes import PeriodDtype
@@ -94,11 +92,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     ----------
     data : array-like (1d int np.ndarray or PeriodArray), optional
         Optional period-like data to construct index with.
-    ordinal : array-like of int, optional
-        The period offsets from the proleptic Gregorian epoch.
-
-        .. deprecated:: 2.2.0
-           Use PeriodIndex.from_ordinals instead.
     freq : str or period object, optional
         One of pandas period strings or corresponding objects.
     dtype : str or PeriodDtype, default None
@@ -107,11 +100,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         Make a copy of input ndarray.
     name : str, default None
         Name of the resulting PeriodIndex.
-    **fields : optional
-        Date fields such as year, month, etc.
-
-        .. deprecated:: 2.2.0
-           Use PeriodIndex.from_fields instead.
 
     Attributes
     ----------
@@ -219,84 +207,29 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def __new__(
         cls,
         data=None,
-        ordinal=None,
         freq=None,
         dtype: Dtype | None = None,
         copy: bool = False,
         name: Hashable | None = None,
-        **fields,
     ) -> Self:
-        valid_field_set = {
-            "year",
-            "month",
-            "day",
-            "quarter",
-            "hour",
-            "minute",
-            "second",
-        }
-
         refs = None
         if not copy and isinstance(data, (Index, ABCSeries)):
             refs = data._references
 
-        if not set(fields).issubset(valid_field_set):
-            argument = next(iter(set(fields) - valid_field_set))
-            raise TypeError(f"__new__() got an unexpected keyword argument {argument}")
-        elif len(fields):
-            # GH#55960
-            warnings.warn(
-                "Constructing PeriodIndex from fields is deprecated. Use "
-                "PeriodIndex.from_fields instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
-        if ordinal is not None:
-            # GH#55960
-            warnings.warn(
-                "The 'ordinal' keyword in PeriodIndex is deprecated and will "
-                "be removed in a future version. Use PeriodIndex.from_ordinals "
-                "instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
         name = maybe_extract_name(name, data, cls)
 
-        if data is None and ordinal is None:
-            # range-based.
-            if not fields:
-                # test_pickle_compat_construction
-                cls._raise_scalar_data_error(None)
-            data = cls.from_fields(**fields, freq=freq)._data
-            copy = False
+        freq = validate_dtype_freq(dtype, freq)
 
-        elif fields:
-            if data is not None:
-                raise ValueError("Cannot pass both data and fields")
-            raise ValueError("Cannot pass both ordinal and fields")
+        # PeriodIndex allow PeriodIndex(period_index, freq=different)
+        # Let's not encourage that kind of behavior in PeriodArray.
 
-        else:
-            freq = validate_dtype_freq(dtype, freq)
+        if freq and isinstance(data, cls) and data.freq != freq:
+            # TODO: We can do some of these with no-copy / coercion?
+            # e.g. D -> 2D seems to be OK
+            data = data.asfreq(freq)
 
-            # PeriodIndex allow PeriodIndex(period_index, freq=different)
-            # Let's not encourage that kind of behavior in PeriodArray.
-
-            if freq and isinstance(data, cls) and data.freq != freq:
-                # TODO: We can do some of these with no-copy / coercion?
-                # e.g. D -> 2D seems to be OK
-                data = data.asfreq(freq)
-
-            if data is None and ordinal is not None:
-                ordinal = np.asarray(ordinal, dtype=np.int64)
-                dtype = PeriodDtype(freq)
-                data = PeriodArray(ordinal, dtype=dtype)
-            elif data is not None and ordinal is not None:
-                raise ValueError("Cannot pass both data and ordinal")
-            else:
-                # don't pass copy here, since we copy later.
-                data = period_array(data=data, freq=freq)
+        # don't pass copy here, since we copy later.
+        data = period_array(data=data, freq=freq)
 
         if copy:
             data = data.copy()

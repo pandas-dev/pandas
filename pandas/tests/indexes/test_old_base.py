@@ -86,6 +86,7 @@ class TestBase:
                 r"kind, None was passed",
                 r"__new__\(\) missing 1 required positional argument: 'data'",
                 r"__new__\(\) takes at least 2 arguments \(1 given\)",
+                r"'NoneType' object is not iterable",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -275,9 +276,7 @@ class TestBase:
 
         if isinstance(index, PeriodIndex):
             # .values an object array of Period, thus copied
-            depr_msg = "The 'ordinal' keyword in PeriodIndex is deprecated"
-            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-                result = index_type(ordinal=index.asi8, copy=False, **init_kwargs)
+            result = index_type.from_ordinals(ordinals=index.asi8, **init_kwargs)
             tm.assert_numpy_array_equal(index.asi8, result.asi8, check_same="same")
         elif isinstance(index, IntervalIndex):
             # checked in test_interval.py

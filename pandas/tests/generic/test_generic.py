@@ -303,13 +303,6 @@ class TestGeneric:
         assert obj_copy is not obj
         tm.assert_equal(obj_copy, obj)
 
-    def test_data_deprecated(self, frame_or_series):
-        obj = frame_or_series()
-        msg = "(Series|DataFrame)._data is deprecated"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            mgr = obj._data
-        assert mgr is obj._mgr
-
 
 class TestNDFrame:
     # tests that don't fit elsewhere

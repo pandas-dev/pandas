@@ -77,7 +77,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+---------------------+
 | Package         | New Minimum Version |
 +=================+=====================+
-|                 |                     |
+| fastparquet     | 2023.04.0           |
 +-----------------+---------------------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
@@ -125,6 +125,7 @@ Removal of prior version deprecations/changes
 - Removed ``Series.ravel`` (:issue:`56053`)
 - Removed ``Series.view`` (:issue:`56054`)
 - Removed ``StataReader.close`` (:issue:`49228`)
+- Removed ``_data`` from :class:`DataFrame`, :class:`Series`, :class:`.arrays.ArrowExtensionArray` (:issue:`52003`)
 - Removed ``axis`` argument from :meth:`DataFrame.groupby`, :meth:`Series.groupby`, :meth:`DataFrame.rolling`, :meth:`Series.rolling`, :meth:`DataFrame.resample`, and :meth:`Series.resample` (:issue:`51203`)
 - Removed ``axis`` argument from all groupby operations (:issue:`50405`)
 - Removed ``convert_dtype`` from :meth:`Series.apply` (:issue:`52257`)
@@ -134,6 +135,7 @@ Removal of prior version deprecations/changes
 - Removed ``pandas.value_counts``, use :meth:`Series.value_counts` instead (:issue:`53493`)
 - Removed ``read_gbq`` and ``DataFrame.to_gbq``. Use ``pandas_gbq.read_gbq`` and ``pandas_gbq.to_gbq`` instead https://pandas-gbq.readthedocs.io/en/latest/api.html (:issue:`55525`)
 - Removed ``use_nullable_dtypes`` from :func:`read_parquet` (:issue:`51853`)
+- Removed ``year``, ``month``, ``quarter``, ``day``, ``hour``, ``minute``, and ``second`` keywords in the :class:`PeriodIndex` constructor, use :meth:`PeriodIndex.from_fields` instead (:issue:`55960`)
 - Removed deprecated argument ``obj`` in :meth:`.DataFrameGroupBy.get_group` and :meth:`.SeriesGroupBy.get_group` (:issue:`53545`)
 - Removed deprecated behavior of :meth:`Series.agg` using :meth:`Series.apply` (:issue:`53325`)
 - Removed support for :class:`DataFrame` in :meth:`DataFrame.from_records`(:issue:`51697`)
@@ -142,6 +144,7 @@ Removal of prior version deprecations/changes
 - Removed the ``ArrayManager`` (:issue:`55043`)
 - Removed the ``fastpath`` argument from the :class:`Series` constructor (:issue:`55466`)
 - Removed the ``is_boolean``, ``is_integer``, ``is_floating``, ``holds_integer``, ``is_numeric``, ``is_categorical``, ``is_object``, and ``is_interval`` attributes of :class:`Index` (:issue:`50042`)
+- Removed the ``ordinal`` keyword in :class:`PeriodIndex`, use :meth:`PeriodIndex.from_ordinals` instead (:issue:`55960`)
 - Removed unused arguments ``*args`` and ``**kwargs`` in :class:`Resampler` methods (:issue:`50977`)
 - Unrecognized timezones when parsing strings to datetimes now raises a ``ValueError`` (:issue:`51477`)
 
