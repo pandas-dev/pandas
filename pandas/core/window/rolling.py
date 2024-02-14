@@ -270,7 +270,7 @@ class BaseWindow(SelectionMixin):
         """
         # filter out the on from the object
         if self.on is not None and not isinstance(self.on, Index) and obj.ndim == 2:
-            obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
+            obj = obj.reindex(columns=obj.columns.difference([self.on]))
         if obj.ndim > 1 and numeric_only:
             obj = self._make_numeric_only(obj)
         return obj
@@ -819,12 +819,12 @@ class BaseWindowGroupby(BaseWindow):
         else:
             idx_codes, idx_levels = factorize(result.index)
             result_codes = [idx_codes]
-            result_levels = [idx_levels]
+            result_levels = [idx_levels]  # type: ignore[list-item]
             result_names = [result.index.name]
 
         # 3) Create the resulting index by combining 1) + 2)
         result_codes = groupby_codes + result_codes
-        result_levels = groupby_levels + result_levels
+        result_levels = groupby_levels + result_levels  # type: ignore[assignment]
         result_names = self._grouper.names + result_names
 
         result_index = MultiIndex(
@@ -959,7 +959,7 @@ class Window(BaseWindow):
 
     Examples
     --------
-    >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
+    >>> df = pd.DataFrame({"B": [0, 1, 2, np.nan, 4]})
     >>> df
          B
     0  0.0
@@ -982,12 +982,16 @@ class Window(BaseWindow):
 
     Rolling sum with a window span of 2 seconds.
 
-    >>> df_time = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
-    ...                        index=[pd.Timestamp('20130101 09:00:00'),
-    ...                               pd.Timestamp('20130101 09:00:02'),
-    ...                               pd.Timestamp('20130101 09:00:03'),
-    ...                               pd.Timestamp('20130101 09:00:05'),
-    ...                               pd.Timestamp('20130101 09:00:06')])
+    >>> df_time = pd.DataFrame(
+    ...     {"B": [0, 1, 2, np.nan, 4]},
+    ...     index=[
+    ...         pd.Timestamp("20130101 09:00:00"),
+    ...         pd.Timestamp("20130101 09:00:02"),
+    ...         pd.Timestamp("20130101 09:00:03"),
+    ...         pd.Timestamp("20130101 09:00:05"),
+    ...         pd.Timestamp("20130101 09:00:06"),
+    ...     ],
+    ... )
 
     >>> df_time
                            B
@@ -997,7 +1001,7 @@ class Window(BaseWindow):
     2013-01-01 09:00:05  NaN
     2013-01-01 09:00:06  4.0
 
-    >>> df_time.rolling('2s').sum()
+    >>> df_time.rolling("2s").sum()
                            B
     2013-01-01 09:00:00  0.0
     2013-01-01 09:00:02  1.0
@@ -1065,7 +1069,7 @@ class Window(BaseWindow):
     Rolling sum with a window length of 2, using the Scipy ``'gaussian'``
     window type. ``std`` is required in the aggregation function.
 
-    >>> df.rolling(2, win_type='gaussian').sum(std=3)
+    >>> df.rolling(2, win_type="gaussian").sum(std=3)
               B
     0       NaN
     1  0.986207
@@ -1077,12 +1081,17 @@ class Window(BaseWindow):
 
     Rolling sum with a window length of 2 days.
 
-    >>> df = pd.DataFrame({
-    ...     'A': [pd.to_datetime('2020-01-01'),
-    ...           pd.to_datetime('2020-01-01'),
-    ...           pd.to_datetime('2020-01-02'),],
-    ...     'B': [1, 2, 3], },
-    ...     index=pd.date_range('2020', periods=3))
+    >>> df = pd.DataFrame(
+    ...     {
+    ...         "A": [
+    ...             pd.to_datetime("2020-01-01"),
+    ...             pd.to_datetime("2020-01-01"),
+    ...             pd.to_datetime("2020-01-02"),
+    ...         ],
+    ...         "B": [1, 2, 3],
+    ...     },
+    ...     index=pd.date_range("2020", periods=3),
+    ... )
 
     >>> df
                         A  B
@@ -1090,7 +1099,7 @@ class Window(BaseWindow):
     2020-01-02 2020-01-01  2
     2020-01-03 2020-01-02  3
 
-    >>> df.rolling('2D', on='A').sum()
+    >>> df.rolling("2D", on="A").sum()
                         A    B
     2020-01-01 2020-01-01  1.0
     2020-01-02 2020-01-01  3.0
@@ -2502,11 +2511,11 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Parameters"),
         dedent(
             """
-        quantile : float
+        q : float
             Quantile to compute. 0 <= quantile <= 1.
 
             .. deprecated:: 2.1.0
-                This will be renamed to 'q' in a future version.
+                This was renamed from 'quantile' to 'q' in version 2.1.0.
         interpolation : {{'linear', 'lower', 'higher', 'midpoint', 'nearest'}}
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:

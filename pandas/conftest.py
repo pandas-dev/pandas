@@ -28,6 +28,7 @@ from datetime import (
     timezone,
 )
 from decimal import Decimal
+import gc
 import operator
 import os
 from typing import (
@@ -160,11 +161,6 @@ def pytest_collection_modifyitems(items, config) -> None:
         (
             "to_pydatetime",
             "The behavior of DatetimeProperties.to_pydatetime is deprecated",
-        ),
-        (
-            "pandas.core.generic.NDFrame.bool",
-            "(Series|DataFrame).bool is now deprecated and will be removed "
-            "in future version of pandas",
         ),
         (
             "pandas.core.generic.NDFrame.first",
@@ -1868,6 +1864,39 @@ def ip():
     return InteractiveShell(config=c)
 
 
+@pytest.fixture
+def mpl_cleanup():
+    """
+    Ensure Matplotlib is cleaned up around a test.
+
+    Before a test is run:
+
+    1) Set the backend to "template" to avoid requiring a GUI.
+
+    After a test is run:
+
+    1) Reset units registry
+    2) Reset rc_context
+    3) Close all figures
+
+    See matplotlib/testing/decorators.py#L24.
+    """
+    mpl = pytest.importorskip("matplotlib")
+    mpl_units = pytest.importorskip("matplotlib.units")
+    plt = pytest.importorskip("matplotlib.pyplot")
+    orig_units_registry = mpl_units.registry.copy()
+    try:
+        with mpl.rc_context():
+            mpl.use("template")
+            yield
+    finally:
+        mpl_units.registry.clear()
+        mpl_units.registry.update(orig_units_registry)
+        plt.close("all")
+        # https://matplotlib.org/stable/users/prev_whats_new/whats_new_3.6.0.html#garbage-collection-is-no-longer-run-on-figure-close  # noqa: E501
+        gc.collect(1)
+
+
 @pytest.fixture(
     params=[
         getattr(pd.offsets, o)
@@ -1964,14 +1993,6 @@ def using_copy_on_write() -> bool:
     Fixture to check if Copy-on-Write is enabled.
     """
     return True
-
-
-@pytest.fixture
-def warn_copy_on_write() -> bool:
-    """
-    Fixture to check if Copy-on-Write is in warning mode.
-    """
-    return False
 
 
 @pytest.fixture
