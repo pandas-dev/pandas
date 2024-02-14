@@ -1870,8 +1870,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=SA05 --ignore_functions \
         pandas.core.groupby.SeriesGroupBy.first\
         pandas.core.groupby.SeriesGroupBy.last\
-        pandas.core.resample.Resampler.first\
-        pandas.core.resample.Resampler.last\
         pandas.core.window.expanding.Expanding.aggregate\
         pandas.core.window.rolling.Rolling.aggregate\
         pandas.plotting.bootstrap_plot\
