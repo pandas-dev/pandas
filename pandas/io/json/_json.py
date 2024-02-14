@@ -5,7 +5,6 @@ from abc import (
     abstractmethod,
 )
 from collections import abc
-from io import StringIO
 from itertools import islice
 from typing import (
     TYPE_CHECKING,
@@ -30,7 +29,6 @@ from pandas._libs.tslibs import iNaT
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
@@ -55,12 +53,8 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import (
     IOHandles,
     dedup_names,
-    extension_to_compression,
-    file_exists,
     get_handle,
-    is_fsspec_url,
     is_potential_multi_index,
-    is_url,
     stringify_path,
 )
 from pandas.io.json._normalize import convert_to_line_delimits
@@ -530,7 +524,7 @@ def read_json(
 
     Parameters
     ----------
-    path_or_buf : a valid JSON str, path object or file-like object
+    path_or_buf : a str path, path object or file-like object
         Any valid string path is acceptable. The string could be a URL. Valid
         URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be:
@@ -879,18 +873,6 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             self.nrows = validate_integer("nrows", self.nrows, 0)
             if not self.lines:
                 raise ValueError("nrows can only be passed if lines=True")
-        if (
-            isinstance(filepath_or_buffer, str)
-            and not self.lines
-            and "\n" in filepath_or_buffer
-        ):
-            warnings.warn(
-                "Passing literal json to 'read_json' is deprecated and "
-                "will be removed in a future version. To read from a "
-                "literal string, wrap it in a 'StringIO' object.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
         if self.engine == "pyarrow":
             if not self.lines:
                 raise ValueError(
@@ -900,45 +882,22 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             self.data = filepath_or_buffer
         elif self.engine == "ujson":
             data = self._get_data_from_filepath(filepath_or_buffer)
-            self.data = self._preprocess_data(data)
-
-    def _preprocess_data(self, data):
-        """
-        At this point, the data either has a `read` attribute (e.g. a file
-        object or a StringIO) or is a string that is a JSON document.
-
-        If self.chunksize, we prepare the data for the `__next__` method.
-        Otherwise, we read it into memory for the `read` method.
-        """
-        if hasattr(data, "read") and not (self.chunksize or self.nrows):
-            with self:
-                data = data.read()
-        if not hasattr(data, "read") and (self.chunksize or self.nrows):
-            data = StringIO(data)
-
-        return data
+            # If self.chunksize, we prepare the data for the `__next__` method.
+            # Otherwise, we read it into memory for the `read` method.
+            if not (self.chunksize or self.nrows):
+                with self:
+                    self.data = data.read()
+            else:
+                self.data = data
 
     def _get_data_from_filepath(self, filepath_or_buffer):
         """
         The function read_json accepts three input types:
             1. filepath (string-like)
             2. file-like object (e.g. open file object, StringIO)
-            3. JSON string
-
-        This method turns (1) into (2) to simplify the rest of the processing.
-        It returns input types (2) and (3) unchanged.
-
-        It raises FileNotFoundError if the input is a string ending in
-        one of .json, .json.gz, .json.bz2, etc. but no such file exists.
         """
-        # if it is a string but the file does not exist, it might be a JSON string
         filepath_or_buffer = stringify_path(filepath_or_buffer)
-        if (
-            not isinstance(filepath_or_buffer, str)
-            or is_url(filepath_or_buffer)
-            or is_fsspec_url(filepath_or_buffer)
-            or file_exists(filepath_or_buffer)
-        ):
+        try:
             self.handles = get_handle(
                 filepath_or_buffer,
                 "r",
@@ -947,23 +906,11 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
                 storage_options=self.storage_options,
                 errors=self.encoding_errors,
             )
-            filepath_or_buffer = self.handles.handle
-        elif (
-            isinstance(filepath_or_buffer, str)
-            and filepath_or_buffer.lower().endswith(
-                (".json",) + tuple(f".json{c}" for c in extension_to_compression)
-            )
-            and not file_exists(filepath_or_buffer)
-        ):
-            raise FileNotFoundError(f"File {filepath_or_buffer} does not exist")
-        else:
-            warnings.warn(
-                "Passing literal json to 'read_json' is deprecated and "
-                "will be removed in a future version. To read from a "
-                "literal string, wrap it in a 'StringIO' object.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+        except OSError as err:
+            raise FileNotFoundError(
+                f"File {filepath_or_buffer} does not exist"
+            ) from err
+        filepath_or_buffer = self.handles.handle
         return filepath_or_buffer
 
     def _combine_lines(self, lines) -> str:

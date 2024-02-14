@@ -36,49 +36,29 @@ from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
 from pandas.io.json import ujson_dumps
 
 
-def test_literal_json_deprecation():
+def test_literal_json_raises():
     # PR 53409
-    expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
-
     jsonl = """{"a": 1, "b": 2}
         {"a": 3, "b": 4}
         {"a": 5, "b": 6}
         {"a": 7, "b": 8}"""
 
-    msg = (
-        "Passing literal json to 'read_json' is deprecated and "
-        "will be removed in a future version. To read from a "
-        "literal string, wrap it in a 'StringIO' object."
-    )
+    msg = r".* does not exist"
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        try:
-            read_json(jsonl, lines=False)
-        except ValueError:
-            pass
+    with pytest.raises(FileNotFoundError, match=msg):
+        read_json(jsonl, lines=False)
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        read_json(expected.to_json(), lines=False)
+    with pytest.raises(FileNotFoundError, match=msg):
+        read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
-        tm.assert_frame_equal(result, expected)
+    with pytest.raises(FileNotFoundError, match=msg):
+        read_json(
+            '{"a\\\\":"foo\\\\","b":"bar"}\n{"a\\\\":"foo\\"","b":"bar"}\n',
+            lines=False,
+        )
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        try:
-            result = read_json(
-                '{"a\\\\":"foo\\\\","b":"bar"}\n{"a\\\\":"foo\\"","b":"bar"}\n',
-                lines=False,
-            )
-        except ValueError:
-            pass
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        try:
-            result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=False)
-        except ValueError:
-            pass
-        tm.assert_frame_equal(result, expected)
+    with pytest.raises(FileNotFoundError, match=msg):
+        read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=False)
 
 
 def assert_json_roundtrip_equal(result, expected, orient):
@@ -401,7 +381,7 @@ class TestPandasContainer:
         # GH28501 Parse missing values using read_json with dtype=False
         # to NaN instead of None
         result = read_json(StringIO("[null]"), dtype=dtype)
-        expected = DataFrame([np.nan])
+        expected = DataFrame([np.nan], dtype=object if not dtype else None)
 
         tm.assert_frame_equal(result, expected)
 
@@ -1050,9 +1030,7 @@ class TestPandasContainer:
 
         result = read_json(StringIO(s))
         res = result.reindex(index=df.index, columns=df.columns)
-        msg = "The 'downcast' keyword in fillna is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = res.fillna(np.nan, downcast=False)
+        res = res.fillna(np.nan)
         tm.assert_frame_equal(res, df)
 
     @pytest.mark.network
@@ -1898,7 +1876,7 @@ class TestPandasContainer:
             '{"(0, \'x\')":1,"(0, \'y\')":"a","(1, \'x\')":2,'
             '"(1, \'y\')":"b","(2, \'x\')":3,"(2, \'y\')":"c"}'
         )
-        series = dataframe.stack(future_stack=True)
+        series = dataframe.stack()
         result = series.to_json(orient="index")
         assert result == expected
 
@@ -1937,7 +1915,7 @@ class TestPandasContainer:
             True,
             index=date_range("2017-01-20", "2017-01-23"),
             columns=["foo", "bar"],
-        ).stack(future_stack=True)
+        ).stack()
         result = df.to_json()
         expected = (
             "{\"(Timestamp('2017-01-20 00:00:00'), 'foo')\":true,"

@@ -1212,9 +1212,7 @@ class TestValueCounts:
         factor = cut(arr, 4)
 
         # assert isinstance(factor, n)
-        msg = "pandas.value_counts is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = algos.value_counts(factor)
+        result = algos.value_counts_internal(factor)
         breaks = [-1.606, -1.018, -0.431, 0.155, 0.741]
         index = IntervalIndex.from_breaks(breaks).astype(CategoricalDtype(ordered=True))
         expected = Series([1, 0, 2, 1], index=index, name="count")
@@ -1222,16 +1220,13 @@ class TestValueCounts:
 
     def test_value_counts_bins(self):
         s = [1, 2, 3, 4]
-        msg = "pandas.value_counts is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = algos.value_counts(s, bins=1)
+        result = algos.value_counts_internal(s, bins=1)
         expected = Series(
             [4], index=IntervalIndex.from_tuples([(0.996, 4.0)]), name="count"
         )
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = algos.value_counts(s, bins=2, sort=False)
+        result = algos.value_counts_internal(s, bins=2, sort=False)
         expected = Series(
             [2, 2],
             index=IntervalIndex.from_tuples([(0.996, 2.5), (2.5, 4.0)]),
@@ -1240,45 +1235,35 @@ class TestValueCounts:
         tm.assert_series_equal(result, expected)
 
     def test_value_counts_dtypes(self):
-        msg2 = "pandas.value_counts is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg2):
-            result = algos.value_counts(np.array([1, 1.0]))
+        result = algos.value_counts_internal(np.array([1, 1.0]))
         assert len(result) == 1
 
-        with tm.assert_produces_warning(FutureWarning, match=msg2):
-            result = algos.value_counts(np.array([1, 1.0]), bins=1)
+        result = algos.value_counts_internal(np.array([1, 1.0]), bins=1)
         assert len(result) == 1
 
-        with tm.assert_produces_warning(FutureWarning, match=msg2):
-            result = algos.value_counts(Series([1, 1.0, "1"]))  # object
+        result = algos.value_counts_internal(Series([1, 1.0, "1"]))  # object
         assert len(result) == 2
 
         msg = "bins argument only works with numeric data"
         with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=msg2):
-                algos.value_counts(np.array(["1", 1], dtype=object), bins=1)
+            algos.value_counts_internal(np.array(["1", 1], dtype=object), bins=1)
 
     def test_value_counts_nat(self):
         td = Series([np.timedelta64(10000), NaT], dtype="timedelta64[ns]")
         dt = to_datetime(["NaT", "2014-01-01"])
 
-        msg = "pandas.value_counts is deprecated"
-
         for ser in [td, dt]:
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                vc = algos.value_counts(ser)
-                vc_with_na = algos.value_counts(ser, dropna=False)
+            vc = algos.value_counts_internal(ser)
+            vc_with_na = algos.value_counts_internal(ser, dropna=False)
             assert len(vc) == 1
             assert len(vc_with_na) == 2
 
         exp_dt = Series({Timestamp("2014-01-01 00:00:00"): 1}, name="count")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result_dt = algos.value_counts(dt)
+        result_dt = algos.value_counts_internal(dt)
         tm.assert_series_equal(result_dt, exp_dt)
 
         exp_td = Series({np.timedelta64(10000): 1}, name="count")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result_td = algos.value_counts(td)
+        result_td = algos.value_counts_internal(td)
         tm.assert_series_equal(result_td, exp_td)
 
     @pytest.mark.parametrize("dtype", [object, "M8[us]"])
@@ -1435,16 +1420,13 @@ class TestValueCounts:
     def test_value_counts_uint64(self):
         arr = np.array([2**63], dtype=np.uint64)
         expected = Series([1], index=[2**63], name="count")
-        msg = "pandas.value_counts is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = algos.value_counts(arr)
+        result = algos.value_counts_internal(arr)
 
         tm.assert_series_equal(result, expected)
 
         arr = np.array([-1, 2**63], dtype=object)
         expected = Series([1, 1], index=[-1, 2**63], name="count")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = algos.value_counts(arr)
+        result = algos.value_counts_internal(arr)
 
         tm.assert_series_equal(result, expected)
 

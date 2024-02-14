@@ -240,13 +240,9 @@ def test_basic(using_infer_string):  # TODO: split this test
     # GH 10460
     expc = Categorical.from_codes(np.arange(4).repeat(8), levels, ordered=True)
     exp = CategoricalIndex(expc)
-    tm.assert_index_equal(
-        (desc_result.stack(future_stack=True).index.get_level_values(0)), exp
-    )
+    tm.assert_index_equal((desc_result.stack().index.get_level_values(0)), exp)
     exp = Index(["count", "mean", "std", "min", "25%", "50%", "75%", "max"] * 4)
-    tm.assert_index_equal(
-        (desc_result.stack(future_stack=True).index.get_level_values(1)), exp
-    )
+    tm.assert_index_equal((desc_result.stack().index.get_level_values(1)), exp)
 
 
 def test_level_get_group(observed):
@@ -684,13 +680,9 @@ def test_datetime():
     # GH 10460
     expc = Categorical.from_codes(np.arange(4).repeat(8), levels, ordered=True)
     exp = CategoricalIndex(expc)
-    tm.assert_index_equal(
-        (desc_result.stack(future_stack=True).index.get_level_values(0)), exp
-    )
+    tm.assert_index_equal((desc_result.stack().index.get_level_values(0)), exp)
     exp = Index(["count", "mean", "std", "min", "25%", "50%", "75%", "max"] * 4)
-    tm.assert_index_equal(
-        (desc_result.stack(future_stack=True).index.get_level_values(1)), exp
-    )
+    tm.assert_index_equal((desc_result.stack().index.get_level_values(1)), exp)
 
 
 def test_categorical_index():
@@ -728,10 +720,8 @@ def test_describe_categorical_columns():
     df = DataFrame(np.random.default_rng(2).standard_normal((20, 4)), columns=cats)
     result = df.groupby([1, 2, 3, 4] * 5).describe()
 
-    tm.assert_index_equal(result.stack(future_stack=True).columns, cats)
-    tm.assert_categorical_equal(
-        result.stack(future_stack=True).columns.values, cats.values
-    )
+    tm.assert_index_equal(result.stack().columns, cats)
+    tm.assert_categorical_equal(result.stack().columns.values, cats.values)
 
 
 def test_unstack_categorical():
@@ -2086,18 +2076,6 @@ def test_many_categories(as_index, sort, index_kind, ordered):
         expected = DataFrame({"a": Series(index), "b": data})
 
     tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize("cat_columns", ["a", "b", ["a", "b"]])
-@pytest.mark.parametrize("keys", ["a", "b", ["a", "b"]])
-def test_groupby_default_depr(cat_columns, keys):
-    # GH#43999
-    df = DataFrame({"a": [1, 1, 2, 3], "b": [4, 5, 6, 7]})
-    df[cat_columns] = df[cat_columns].astype("category")
-    msg = "The default of observed=False is deprecated"
-    klass = FutureWarning if set(cat_columns) & set(keys) else None
-    with tm.assert_produces_warning(klass, match=msg):
-        df.groupby(keys)
 
 
 @pytest.mark.parametrize("test_series", [True, False])

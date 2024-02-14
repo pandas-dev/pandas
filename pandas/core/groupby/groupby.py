@@ -47,6 +47,7 @@ from pandas._typing import (
     DtypeObj,
     FillnaOptions,
     IndexLabel,
+    IntervalClosedType,
     NDFrameT,
     PositionalIndexer,
     RandomState,
@@ -139,6 +140,7 @@ from pandas.core.util.numba_ import (
 )
 
 if TYPE_CHECKING:
+    from pandas._libs.tslibs import BaseOffset
     from pandas._typing import (
         Any,
         Concatenate,
@@ -147,6 +149,7 @@ if TYPE_CHECKING:
         T,
     )
 
+    from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
     from pandas.core.window import (
         ExpandingGroupby,
@@ -161,195 +164,6 @@ _common_see_also = """
         DataFrame.%(name)s : Apply a function %(name)s
             to each row or column of a DataFrame.
 """
-
-_apply_docs = {
-    "template": """
-    Apply function ``func`` group-wise and combine the results together.
-
-    The function passed to ``apply`` must take a {input} as its first
-    argument and return a DataFrame, Series or scalar. ``apply`` will
-    then take care of combining the results back together into a single
-    dataframe or series. ``apply`` is therefore a highly flexible
-    grouping method.
-
-    While ``apply`` is a very flexible method, its downside is that
-    using it can be quite a bit slower than using more specific methods
-    like ``agg`` or ``transform``. Pandas offers a wide range of method that will
-    be much faster than using ``apply`` for their specific purposes, so try to
-    use them before reaching for ``apply``.
-
-    Parameters
-    ----------
-    func : callable
-        A callable that takes a {input} as its first argument, and
-        returns a dataframe, a series or a scalar. In addition the
-        callable may take positional and keyword arguments.
-
-    *args : tuple
-        Optional positional arguments to pass to ``func``.
-
-    include_groups : bool, default True
-        When True, will attempt to apply ``func`` to the groupings in
-        the case that they are columns of the DataFrame. If this raises a
-        TypeError, the result will be computed with the groupings excluded.
-        When False, the groupings will be excluded when applying ``func``.
-
-        .. versionadded:: 2.2.0
-
-        .. deprecated:: 2.2.0
-
-           Setting include_groups to True is deprecated. Only the value
-           False will be allowed in a future version of pandas.
-
-    **kwargs : dict
-        Optional keyword arguments to pass to ``func``.
-
-    Returns
-    -------
-    Series or DataFrame
-
-    See Also
-    --------
-    pipe : Apply function to the full GroupBy object instead of to each
-        group.
-    aggregate : Apply aggregate function to the GroupBy object.
-    transform : Apply function column-by-column to the GroupBy object.
-    Series.apply : Apply a function to a Series.
-    DataFrame.apply : Apply a function to each row or column of a DataFrame.
-
-    Notes
-    -----
-
-    .. versionchanged:: 1.3.0
-
-        The resulting dtype will reflect the return value of the passed ``func``,
-        see the examples below.
-
-    Functions that mutate the passed object can produce unexpected
-    behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
-    for more details.
-
-    Examples
-    --------
-    {examples}
-    """,
-    "dataframe_examples": """
-    >>> df = pd.DataFrame({'A': 'a a b'.split(),
-    ...                    'B': [1, 2, 3],
-    ...                    'C': [4, 6, 5]})
-    >>> g1 = df.groupby('A', group_keys=False)
-    >>> g2 = df.groupby('A', group_keys=True)
-
-    Notice that ``g1`` and ``g2`` have two groups, ``a`` and ``b``, and only
-    differ in their ``group_keys`` argument. Calling `apply` in various ways,
-    we can get different grouping results:
-
-    Example 1: below the function passed to `apply` takes a DataFrame as
-    its argument and returns a DataFrame. `apply` combines the result for
-    each group together into a new DataFrame:
-
-    >>> g1[['B', 'C']].apply(lambda x: x / x.sum())
-              B    C
-    0  0.333333  0.4
-    1  0.666667  0.6
-    2  1.000000  1.0
-
-    In the above, the groups are not part of the index. We can have them included
-    by using ``g2`` where ``group_keys=True``:
-
-    >>> g2[['B', 'C']].apply(lambda x: x / x.sum())
-                B    C
-    A
-    a 0  0.333333  0.4
-      1  0.666667  0.6
-    b 2  1.000000  1.0
-
-    Example 2: The function passed to `apply` takes a DataFrame as
-    its argument and returns a Series.  `apply` combines the result for
-    each group together into a new DataFrame.
-
-    .. versionchanged:: 1.3.0
-
-        The resulting dtype will reflect the return value of the passed ``func``.
-
-    >>> g1[['B', 'C']].apply(lambda x: x.astype(float).max() - x.min())
-         B    C
-    A
-    a  1.0  2.0
-    b  0.0  0.0
-
-    >>> g2[['B', 'C']].apply(lambda x: x.astype(float).max() - x.min())
-         B    C
-    A
-    a  1.0  2.0
-    b  0.0  0.0
-
-    The ``group_keys`` argument has no effect here because the result is not
-    like-indexed (i.e. :ref:`a transform <groupby.transform>`) when compared
-    to the input.
-
-    Example 3: The function passed to `apply` takes a DataFrame as
-    its argument and returns a scalar. `apply` combines the result for
-    each group together into a Series, including setting the index as
-    appropriate:
-
-    >>> g1.apply(lambda x: x.C.max() - x.B.min(), include_groups=False)
-    A
-    a    5
-    b    2
-    dtype: int64""",
-    "series_examples": """
-    >>> s = pd.Series([0, 1, 2], index='a a b'.split())
-    >>> g1 = s.groupby(s.index, group_keys=False)
-    >>> g2 = s.groupby(s.index, group_keys=True)
-
-    From ``s`` above we can see that ``g`` has two groups, ``a`` and ``b``.
-    Notice that ``g1`` have ``g2`` have two groups, ``a`` and ``b``, and only
-    differ in their ``group_keys`` argument. Calling `apply` in various ways,
-    we can get different grouping results:
-
-    Example 1: The function passed to `apply` takes a Series as
-    its argument and returns a Series.  `apply` combines the result for
-    each group together into a new Series.
-
-    .. versionchanged:: 1.3.0
-
-        The resulting dtype will reflect the return value of the passed ``func``.
-
-    >>> g1.apply(lambda x: x * 2 if x.name == 'a' else x / 2)
-    a    0.0
-    a    2.0
-    b    1.0
-    dtype: float64
-
-    In the above, the groups are not part of the index. We can have them included
-    by using ``g2`` where ``group_keys=True``:
-
-    >>> g2.apply(lambda x: x * 2 if x.name == 'a' else x / 2)
-    a  a    0.0
-       a    2.0
-    b  b    1.0
-    dtype: float64
-
-    Example 2: The function passed to `apply` takes a Series as
-    its argument and returns a scalar. `apply` combines the result for
-    each group together into a Series, including setting the index as
-    appropriate:
-
-    >>> g1.apply(lambda x: x.max() - x.min())
-    a    1
-    b    0
-    dtype: int64
-
-    The ``group_keys`` argument has no effect here because the result is not
-    like-indexed (i.e. :ref:`a transform <groupby.transform>`) when compared
-    to the input.
-
-    >>> g2.apply(lambda x: x.max() - x.min())
-    a    1
-    b    0
-    dtype: int64""",
-}
 
 _groupby_agg_method_template = """
 Compute {fname} of group values.
@@ -1306,7 +1120,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
-        observed: bool | lib.NoDefault = lib.no_default,
+        observed: bool = False,
         dropna: bool = True,
     ) -> None:
         self._selection = selection
@@ -1326,23 +1140,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 keys,
                 level=level,
                 sort=sort,
-                observed=False if observed is lib.no_default else observed,
+                observed=observed,
                 dropna=self.dropna,
             )
 
-        if observed is lib.no_default:
-            if any(ping._passed_categorical for ping in grouper.groupings):
-                warnings.warn(
-                    "The default of observed=False is deprecated and will be changed "
-                    "to True in a future version of pandas. Pass observed=False to "
-                    "retain current behavior or observed=True to adopt the future "
-                    "default and silence this warning.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            observed = False
         self.observed = observed
-
         self.obj = obj
         self._grouper = grouper
         self.exclusions = frozenset(exclusions) if exclusions else frozenset()
@@ -1442,7 +1244,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 indexer, _ = result.index.get_indexer_non_unique(target)
                 result = result.take(indexer, axis=0)
             else:
-                result = result.reindex(ax, axis=0, copy=False)
+                result = result.reindex(ax, axis=0)
 
         else:
             result = concat(values, axis=0)
@@ -1470,18 +1272,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         if self._grouper.is_monotonic and not self._grouper.has_dropped_na:
             # shortcut if we have an already ordered grouper
-            result = result.set_axis(index, axis=0, copy=False)
+            result = result.set_axis(index, axis=0)
             return result
 
         # row order is scrambled => sort the rows by position in original index
         original_positions = Index(self._grouper.result_ilocs)
-        result = result.set_axis(original_positions, axis=0, copy=False)
+        result = result.set_axis(original_positions, axis=0)
         result = result.sort_index(axis=0)
         if self._grouper.has_dropped_na:
             # Add back in any missing rows due to dropna - index here is integral
             # with values referring to the row of the input so can use RangeIndex
             result = result.reindex(RangeIndex(len(index)), axis=0)
-        result = result.set_axis(index, axis=0, copy=False)
+        result = result.set_axis(index, axis=0)
 
         return result
 
@@ -1713,12 +1515,138 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     # -----------------------------------------------------------------
     # apply/agg/transform
 
-    @Appender(
-        _apply_docs["template"].format(
-            input="dataframe", examples=_apply_docs["dataframe_examples"]
-        )
-    )
     def apply(self, func, *args, include_groups: bool = True, **kwargs) -> NDFrameT:
+        """
+        Apply function ``func`` group-wise and combine the results together.
+
+        The function passed to ``apply`` must take a dataframe as its first
+        argument and return a DataFrame, Series or scalar. ``apply`` will
+        then take care of combining the results back together into a single
+        dataframe or series. ``apply`` is therefore a highly flexible
+        grouping method.
+
+        While ``apply`` is a very flexible method, its downside is that
+        using it can be quite a bit slower than using more specific methods
+        like ``agg`` or ``transform``. Pandas offers a wide range of method that will
+        be much faster than using ``apply`` for their specific purposes, so try to
+        use them before reaching for ``apply``.
+
+        Parameters
+        ----------
+        func : callable
+            A callable that takes a dataframe as its first argument, and
+            returns a dataframe, a series or a scalar. In addition the
+            callable may take positional and keyword arguments.
+
+        *args : tuple
+            Optional positional arguments to pass to ``func``.
+
+        include_groups : bool, default True
+            When True, will attempt to apply ``func`` to the groupings in
+            the case that they are columns of the DataFrame. If this raises a
+            TypeError, the result will be computed with the groupings excluded.
+            When False, the groupings will be excluded when applying ``func``.
+
+            .. versionadded:: 2.2.0
+
+            .. deprecated:: 2.2.0
+
+            Setting include_groups to True is deprecated. Only the value
+            False will be allowed in a future version of pandas.
+
+        **kwargs : dict
+            Optional keyword arguments to pass to ``func``.
+
+        Returns
+        -------
+        Series or DataFrame
+
+        See Also
+        --------
+        pipe : Apply function to the full GroupBy object instead of to each
+            group.
+        aggregate : Apply aggregate function to the GroupBy object.
+        transform : Apply function column-by-column to the GroupBy object.
+        Series.apply : Apply a function to a Series.
+        DataFrame.apply : Apply a function to each row or column of a DataFrame.
+
+        Notes
+        -----
+
+        .. versionchanged:: 1.3.0
+
+            The resulting dtype will reflect the return value of the passed ``func``,
+            see the examples below.
+
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
+        for more details.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": "a a b".split(), "B": [1, 2, 3], "C": [4, 6, 5]})
+        >>> g1 = df.groupby("A", group_keys=False)
+        >>> g2 = df.groupby("A", group_keys=True)
+
+        Notice that ``g1`` and ``g2`` have two groups, ``a`` and ``b``, and only
+        differ in their ``group_keys`` argument. Calling `apply` in various ways,
+        we can get different grouping results:
+
+        Example 1: below the function passed to `apply` takes a DataFrame as
+        its argument and returns a DataFrame. `apply` combines the result for
+        each group together into a new DataFrame:
+
+        >>> g1[["B", "C"]].apply(lambda x: x / x.sum())
+                  B    C
+        0  0.333333  0.4
+        1  0.666667  0.6
+        2  1.000000  1.0
+
+        In the above, the groups are not part of the index. We can have them included
+        by using ``g2`` where ``group_keys=True``:
+
+        >>> g2[["B", "C"]].apply(lambda x: x / x.sum())
+                    B    C
+        A
+        a 0  0.333333  0.4
+          1  0.666667  0.6
+        b 2  1.000000  1.0
+
+        Example 2: The function passed to `apply` takes a DataFrame as
+        its argument and returns a Series.  `apply` combines the result for
+        each group together into a new DataFrame.
+
+        .. versionchanged:: 1.3.0
+
+            The resulting dtype will reflect the return value of the passed ``func``.
+
+        >>> g1[["B", "C"]].apply(lambda x: x.astype(float).max() - x.min())
+             B    C
+        A
+        a  1.0  2.0
+        b  0.0  0.0
+
+        >>> g2[["B", "C"]].apply(lambda x: x.astype(float).max() - x.min())
+             B    C
+        A
+        a  1.0  2.0
+        b  0.0  0.0
+
+        The ``group_keys`` argument has no effect here because the result is not
+        like-indexed (i.e. :ref:`a transform <groupby.transform>`) when compared
+        to the input.
+
+        Example 3: The function passed to `apply` takes a DataFrame as
+        its argument and returns a scalar. `apply` combines the result for
+        each group together into a Series, including setting the index as
+        appropriate:
+
+        >>> g1.apply(lambda x: x.C.max() - x.B.min(), include_groups=False)
+        A
+        a    5
+        b    2
+        dtype: int64
+        """
         orig_func = func
         func = com.is_builtin_func(func)
         if orig_func != func:
@@ -1988,7 +1916,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         # for each col, reshape to size of original frame by take operation
         ids = self._grouper.ids
-        result = result.reindex(self._grouper.result_index, axis=0, copy=False)
+        result = result.reindex(self._grouper.result_index, axis=0)
 
         if self.obj.ndim == 1:
             # i.e. SeriesGroupBy
@@ -2000,9 +1928,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # Don't convert indices: negative indices need to give rise
             # to null values in the result
             new_ax = result.index.take(ids)
-            output = result._reindex_with_indexers(
-                {0: (new_ax, ids)}, allow_dups=True, copy=False
-            )
+            output = result._reindex_with_indexers({0: (new_ax, ids)}, allow_dups=True)
             output = output.set_axis(obj.index, axis=0)
         return output
 
@@ -3293,9 +3219,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        pandas.core.groupby.DataFrameGroupBy.last : Compute the last non-null entry
+        core.groupby.DataFrameGroupBy.last : Compute the last non-null entry
             of each column.
-        pandas.core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
+        core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
@@ -3380,9 +3306,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        pandas.core.groupby.DataFrameGroupBy.first : Compute the first non-null entry
+        core.groupby.DataFrameGroupBy.first : Compute the first non-null entry
             of each column.
-        pandas.core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
+        core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
@@ -3693,7 +3619,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def rolling(self, *args, **kwargs) -> RollingGroupby:
+    def rolling(
+        self,
+        window: int | datetime.timedelta | str | BaseOffset | BaseIndexer,
+        min_periods: int | None = None,
+        center: bool = False,
+        win_type: str | None = None,
+        on: str | None = None,
+        closed: IntervalClosedType | None = None,
+        method: str = "single",
+    ) -> RollingGroupby:
         """
         Return a rolling grouper, providing rolling functionality per group.
 
@@ -3823,10 +3758,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         return RollingGroupby(
             self._selected_obj,
-            *args,
+            window=window,
+            min_periods=min_periods,
+            center=center,
+            win_type=win_type,
+            on=on,
+            closed=closed,
+            method=method,
             _grouper=self._grouper,
             _as_index=self.as_index,
-            **kwargs,
         )
 
     @final

@@ -3247,7 +3247,7 @@ output (as shown below for demonstration) for easier parse into ``DataFrame``:
       </row>
     </response>"""
 
-   df = pd.read_xml(StringIO(xml), stylesheet=xsl)
+   df = pd.read_xml(StringIO(xml), stylesheet=StringIO(xsl))
    df
 
 For very large XML files that can range in hundreds of megabytes to gigabytes, :func:`pandas.read_xml`
@@ -3418,7 +3418,7 @@ Write an XML and transform with stylesheet:
       </xsl:template>
     </xsl:stylesheet>"""
 
-   print(geom_df.to_xml(stylesheet=xsl))
+   print(geom_df.to_xml(stylesheet=StringIO(xsl)))
 
 
 XML Final Notes

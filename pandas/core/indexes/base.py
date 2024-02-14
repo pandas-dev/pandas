@@ -22,7 +22,6 @@ import numpy as np
 
 from pandas._config import (
     get_option,
-    using_copy_on_write,
     using_pyarrow_string_dtype,
 )
 
@@ -72,7 +71,6 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
-    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import (
@@ -1394,36 +1392,6 @@ class Index(IndexOpsMixin, PandasObject):
             return cast(np.ndarray, self.values)
         return self.astype(object, copy=False)._values
 
-    def format(
-        self,
-        name: bool = False,
-        formatter: Callable | None = None,
-        na_rep: str_t = "NaN",
-    ) -> list[str_t]:
-        """
-        Render a string representation of the Index.
-        """
-        warnings.warn(
-            # GH#55413
-            f"{type(self).__name__}.format is deprecated and will be removed "
-            "in a future version. Convert using index.astype(str) or "
-            "index.map(formatter) instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        header = []
-        if name:
-            header.append(
-                pprint_thing(self.name, escape_chars=("\t", "\r", "\n"))
-                if self.name is not None
-                else ""
-            )
-
-        if formatter is not None:
-            return header + list(self.map(formatter))
-
-        return self._format_with_header(header=header, na_rep=na_rep)
-
     _default_na_rep = "NaN"
 
     @final
@@ -1663,7 +1631,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if name is lib.no_default:
             name = self._get_level_names()
-        result = DataFrame({name: self}, copy=not using_copy_on_write())
+        result = DataFrame({name: self}, copy=False)
 
         if index:
             result.index = self
@@ -1922,10 +1890,7 @@ class Index(IndexOpsMixin, PandasObject):
     def rename(self, name, *, inplace: Literal[True]) -> None:
         ...
 
-    @deprecate_nonkeyword_arguments(
-        version="3.0", allowed_args=["self", "name"], name="rename"
-    )
-    def rename(self, name, inplace: bool = False) -> Self | None:
+    def rename(self, name, *, inplace: bool = False) -> Self | None:
         """
         Alter Index or MultiIndex name.
 
@@ -2590,7 +2555,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     notnull = notna
 
-    def fillna(self, value=None, downcast=lib.no_default):
+    def fillna(self, value=None):
         """
         Fill NA/NaN values with the specified value.
 
@@ -2599,12 +2564,6 @@ class Index(IndexOpsMixin, PandasObject):
         value : scalar
             Scalar value to use to fill holes (e.g. 0).
             This value cannot be a list-likes.
-        downcast : dict, default is None
-            A dict of item->dtype of what to downcast if possible,
-            or the string 'infer' which will try to downcast to an appropriate
-            equal type (e.g. float64 to int64 if possible).
-
-            .. deprecated:: 2.1.0
 
         Returns
         -------
@@ -2623,28 +2582,13 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if not is_scalar(value):
             raise TypeError(f"'value' must be a scalar, passed: {type(value).__name__}")
-        if downcast is not lib.no_default:
-            warnings.warn(
-                f"The 'downcast' keyword in {type(self).__name__}.fillna is "
-                "deprecated and will be removed in a future version. "
-                "It was previously silently ignored.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        else:
-            downcast = None
 
         if self.hasnans:
             result = self.putmask(self._isnan, value)
-            if downcast is None:
-                # no need to care metadata other than name
-                # because it can't have freq if it has NaTs
-                # _with_infer needed for test_fillna_categorical
-                return Index._with_infer(result, name=self.name)
-            raise NotImplementedError(
-                f"{type(self).__name__}.fillna does not support 'downcast' "
-                "argument values other than 'None'."
-            )
+            # no need to care metadata other than name
+            # because it can't have freq if it has NaTs
+            # _with_infer needed for test_fillna_categorical
+            return Index._with_infer(result, name=self.name)
         return self._view()
 
     def dropna(self, how: AnyAll = "any") -> Self:
@@ -3302,9 +3246,12 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _difference(self, other, sort):
         # overridden by RangeIndex
+        this = self
+        if isinstance(self, ABCCategoricalIndex) and self.hasnans and other.hasnans:
+            this = this.dropna()
         other = other.unique()
-        the_diff = self[other.get_indexer_for(self) == -1]
-        the_diff = the_diff if self.is_unique else the_diff.unique()
+        the_diff = this[other.get_indexer_for(this) == -1]
+        the_diff = the_diff if this.is_unique else the_diff.unique()
         the_diff = _maybe_try_sort(the_diff, sort)
         return the_diff
 
@@ -4800,13 +4747,11 @@ class Index(IndexOpsMixin, PandasObject):
         [(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]]
         Length: 5, dtype: interval[int64, right]
         """
-        if using_copy_on_write():
-            data = self._data
-            if isinstance(data, np.ndarray):
-                data = data.view()
-                data.flags.writeable = False
-            return data
-        return self._data
+        data = self._data
+        if isinstance(data, np.ndarray):
+            data = data.view()
+            data.flags.writeable = False
+        return data
 
     @cache_readonly
     @doc(IndexOpsMixin.array)
@@ -5533,11 +5478,9 @@ class Index(IndexOpsMixin, PandasObject):
     ) -> Self | tuple[Self, np.ndarray]:
         ...
 
-    @deprecate_nonkeyword_arguments(
-        version="3.0", allowed_args=["self"], name="sort_values"
-    )
     def sort_values(
         self,
+        *,
         return_indexer: bool = False,
         ascending: bool = True,
         na_position: NaPosition = "last",

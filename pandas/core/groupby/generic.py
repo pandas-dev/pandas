@@ -72,7 +72,6 @@ from pandas.core.groupby.groupby import (
     GroupByPlot,
     _agg_template_frame,
     _agg_template_series,
-    _apply_docs,
     _transform_template,
 )
 from pandas.core.indexes.api import (
@@ -214,12 +213,113 @@ class SeriesGroupBy(GroupBy[Series]):
     """
     )
 
-    @Appender(
-        _apply_docs["template"].format(
-            input="series", examples=_apply_docs["series_examples"]
-        )
-    )
     def apply(self, func, *args, **kwargs) -> Series:
+        """
+        Apply function ``func`` group-wise and combine the results together.
+
+        The function passed to ``apply`` must take a series as its first
+        argument and return a DataFrame, Series or scalar. ``apply`` will
+        then take care of combining the results back together into a single
+        dataframe or series. ``apply`` is therefore a highly flexible
+        grouping method.
+
+        While ``apply`` is a very flexible method, its downside is that
+        using it can be quite a bit slower than using more specific methods
+        like ``agg`` or ``transform``. Pandas offers a wide range of method that will
+        be much faster than using ``apply`` for their specific purposes, so try to
+        use them before reaching for ``apply``.
+
+        Parameters
+        ----------
+        func : callable
+            A callable that takes a series as its first argument, and
+            returns a dataframe, a series or a scalar. In addition the
+            callable may take positional and keyword arguments.
+
+        *args : tuple
+            Optional positional arguments to pass to ``func``.
+
+        **kwargs : dict
+            Optional keyword arguments to pass to ``func``.
+
+        Returns
+        -------
+        Series or DataFrame
+
+        See Also
+        --------
+        pipe : Apply function to the full GroupBy object instead of to each
+            group.
+        aggregate : Apply aggregate function to the GroupBy object.
+        transform : Apply function column-by-column to the GroupBy object.
+        Series.apply : Apply a function to a Series.
+        DataFrame.apply : Apply a function to each row or column of a DataFrame.
+
+        Notes
+        -----
+
+        .. versionchanged:: 1.3.0
+
+            The resulting dtype will reflect the return value of the passed ``func``,
+            see the examples below.
+
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
+        for more details.
+
+        Examples
+        --------
+        >>> s = pd.Series([0, 1, 2], index="a a b".split())
+        >>> g1 = s.groupby(s.index, group_keys=False)
+        >>> g2 = s.groupby(s.index, group_keys=True)
+
+        From ``s`` above we can see that ``g`` has two groups, ``a`` and ``b``.
+        Notice that ``g1`` have ``g2`` have two groups, ``a`` and ``b``, and only
+        differ in their ``group_keys`` argument. Calling `apply` in various ways,
+        we can get different grouping results:
+
+        Example 1: The function passed to `apply` takes a Series as
+        its argument and returns a Series.  `apply` combines the result for
+        each group together into a new Series.
+
+        .. versionchanged:: 1.3.0
+
+            The resulting dtype will reflect the return value of the passed ``func``.
+
+        >>> g1.apply(lambda x: x * 2 if x.name == "a" else x / 2)
+        a    0.0
+        a    2.0
+        b    1.0
+        dtype: float64
+
+        In the above, the groups are not part of the index. We can have them included
+        by using ``g2`` where ``group_keys=True``:
+
+        >>> g2.apply(lambda x: x * 2 if x.name == "a" else x / 2)
+        a  a    0.0
+           a    2.0
+        b  b    1.0
+        dtype: float64
+
+        Example 2: The function passed to `apply` takes a Series as
+        its argument and returns a scalar. `apply` combines the result for
+        each group together into a Series, including setting the index as
+        appropriate:
+
+        >>> g1.apply(lambda x: x.max() - x.min())
+        a    1
+        b    0
+        dtype: int64
+
+        The ``group_keys`` argument has no effect here because the result is not
+        like-indexed (i.e. :ref:`a transform <groupby.transform>`) when compared
+        to the input.
+
+        >>> g2.apply(lambda x: x.max() - x.min())
+        a    1
+        b    0
+        dtype: int64
+        """
         return super().apply(func, *args, **kwargs)
 
     @doc(_agg_template_series, examples=_agg_examples_doc, klass="Series")
@@ -413,7 +513,7 @@ class SeriesGroupBy(GroupBy[Series]):
             res_df = self.obj._constructor_expanddim(values, index=index)
             # if self.observed is False,
             # keep all-NaN rows created while re-indexing
-            res_ser = res_df.stack(future_stack=True)
+            res_ser = res_df.stack()
             res_ser.name = self.obj.name
             return res_ser
         elif isinstance(values[0], (Series, DataFrame)):
@@ -1548,7 +1648,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 res_index = self._grouper.result_index
 
             result = self.obj._constructor(index=res_index, columns=data.columns)
-            result = result.astype(data.dtypes, copy=False)
+            result = result.astype(data.dtypes)
             return result
 
         # GH12824
@@ -1715,7 +1815,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         concat_index = obj.columns
         concatenated = concat(applied, axis=0, verify_integrity=False)
-        concatenated = concatenated.reindex(concat_index, axis=1, copy=False)
+        concatenated = concatenated.reindex(concat_index, axis=1)
         return self._set_result_index_ordered(concatenated)
 
     __examples_dataframe_doc = dedent(
@@ -2495,7 +2595,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
         return result
 
-    @doc(DataFrame.hist.__doc__)
     def hist(
         self,
         column: IndexLabel | None = None,
@@ -2515,6 +2614,92 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         legend: bool = False,
         **kwargs,
     ):
+        """
+        Make a histogram of the DataFrame's columns.
+
+        A `histogram`_ is a representation of the distribution of data.
+        This function calls :meth:`matplotlib.pyplot.hist`, on each series in
+        the DataFrame, resulting in one histogram per column.
+
+        .. _histogram: https://en.wikipedia.org/wiki/Histogram
+
+        Parameters
+        ----------
+        column : str or sequence, optional
+            If passed, will be used to limit data to a subset of columns.
+        by : object, optional
+            If passed, then used to form histograms for separate groups.
+        grid : bool, default True
+            Whether to show axis grid lines.
+        xlabelsize : int, default None
+            If specified changes the x-axis label size.
+        xrot : float, default None
+            Rotation of x axis labels. For example, a value of 90 displays the
+            x labels rotated 90 degrees clockwise.
+        ylabelsize : int, default None
+            If specified changes the y-axis label size.
+        yrot : float, default None
+            Rotation of y axis labels. For example, a value of 90 displays the
+            y labels rotated 90 degrees clockwise.
+        ax : Matplotlib axes object, default None
+            The axes to plot the histogram on.
+        sharex : bool, default True if ax is None else False
+            In case subplots=True, share x axis and set some x axis labels to
+            invisible; defaults to True if ax is None otherwise False if an ax
+            is passed in.
+            Note that passing in both an ax and sharex=True will alter all x axis
+            labels for all subplots in a figure.
+        sharey : bool, default False
+            In case subplots=True, share y axis and set some y axis labels to
+            invisible.
+        figsize : tuple, optional
+            The size in inches of the figure to create. Uses the value in
+            `matplotlib.rcParams` by default.
+        layout : tuple, optional
+            Tuple of (rows, columns) for the layout of the histograms.
+        bins : int or sequence, default 10
+            Number of histogram bins to be used. If an integer is given, bins + 1
+            bin edges are calculated and returned. If bins is a sequence, gives
+            bin edges, including left edge of first bin and right edge of last
+            bin. In this case, bins is returned unmodified.
+
+        backend : str, default None
+            Backend to use instead of the backend specified in the option
+            ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
+            specify the ``plotting.backend`` for the whole session, set
+            ``pd.options.plotting.backend``.
+
+        legend : bool, default False
+            Whether to show the legend.
+
+        **kwargs
+            All other plotting keyword arguments to be passed to
+            :meth:`matplotlib.pyplot.hist`.
+
+        Returns
+        -------
+        matplotlib.Axes or numpy.ndarray of them
+
+        See Also
+        --------
+        matplotlib.pyplot.hist : Plot a histogram using matplotlib.
+
+        Examples
+        --------
+        This example draws a histogram based on the length and width of
+        some animals, displayed in three bins
+
+        .. plot::
+            :context: close-figs
+
+            >>> data = {
+            ...     "length": [1.5, 0.5, 1.2, 0.9, 3],
+            ...     "width": [0.7, 0.2, 0.15, 0.2, 1.1],
+            ... }
+            >>> index = ["pig", "rabbit", "duck", "chicken", "horse"]
+            >>> df = pd.DataFrame(data, index=index)
+            >>> hist = df.groupby("length").hist(bins=3)
+        """
         result = self._op_via_apply(
             "hist",
             column=column,

@@ -199,6 +199,8 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from pandas.core.dtypes.dtypes import ExtensionDtype
+
     from pandas import Series
     from pandas.core.arrays.datetimes import DatetimeArray
     from pandas.core.arrays.timedeltas import TimedeltaArray
@@ -316,7 +318,7 @@ class ArrowExtensionArray(
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
+        cls, strings, *, dtype: ExtensionDtype, copy: bool = False
     ) -> Self:
         """
         Construct a new ExtensionArray from a sequence of strings.
@@ -533,8 +535,9 @@ class ArrowExtensionArray(
                     ):
                         # TODO: Move logic in _from_sequence_of_strings into
                         # _box_pa_array
+                        dtype = ArrowDtype(pa_type)
                         return cls._from_sequence_of_strings(
-                            value, dtype=pa_type
+                            value, dtype=dtype
                         )._pa_array
                     else:
                         raise
@@ -1430,7 +1433,7 @@ class ArrowExtensionArray(
 
     def map(self, mapper, na_action=None):
         if is_numeric_dtype(self.dtype):
-            return map_array(self.to_numpy(), mapper, na_action=None)
+            return map_array(self.to_numpy(), mapper, na_action=na_action)
         else:
             return super().map(mapper, na_action)
 

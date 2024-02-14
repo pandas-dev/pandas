@@ -39,10 +39,7 @@ import warnings
 import numpy as np
 from numpy import ma
 
-from pandas._config import (
-    get_option,
-    using_copy_on_write,
-)
+from pandas._config import get_option
 
 from pandas._libs import (
     algos as libalgos,
@@ -62,12 +59,10 @@ from pandas.errors import (
 from pandas.errors.cow import (
     _chained_assignment_method_msg,
     _chained_assignment_msg,
-    _chained_assignment_warning_method_msg,
 )
 from pandas.util._decorators import (
     Appender,
     Substitution,
-    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import (
@@ -231,7 +226,6 @@ if TYPE_CHECKING:
         MergeHow,
         MergeValidate,
         MutableMappingT,
-        NaAction,
         NaPosition,
         NsmallestNlargestKeep,
         PythonFuncType,
@@ -707,8 +701,7 @@ class DataFrame(NDFrame, OpsMixin):
                     stacklevel=1,  # bump to 2 once pyarrow 15.0 is released with fix
                 )
 
-            if using_copy_on_write():
-                data = data.copy(deep=False)
+            data = data.copy(deep=False)
             # first check if a Manager is passed without any other arguments
             # -> use fastpath (without checking Manager type)
             if index is None and columns is None and dtype is None and not copy:
@@ -730,9 +723,7 @@ class DataFrame(NDFrame, OpsMixin):
             if isinstance(data, dict):
                 # retain pre-GH#38939 default behavior
                 copy = True
-            elif using_copy_on_write() and not isinstance(
-                data, (Index, DataFrame, Series)
-            ):
+            elif not isinstance(data, (Index, DataFrame, Series)):
                 copy = True
             else:
                 copy = False
@@ -785,7 +776,6 @@ class DataFrame(NDFrame, OpsMixin):
                 )
             elif getattr(data, "name", None) is not None:
                 # i.e. Series/Index with non-None name
-                _copy = copy if using_copy_on_write() else True
                 mgr = dict_to_mgr(
                     # error: Item "ndarray" of "Union[ndarray, Series, Index]" has no
                     # attribute "name"
@@ -793,7 +783,7 @@ class DataFrame(NDFrame, OpsMixin):
                     index,
                     columns,
                     dtype=dtype,
-                    copy=_copy,
+                    copy=copy,
                 )
             else:
                 mgr = ndarray_to_mgr(
@@ -1500,10 +1490,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         columns = self.columns
         klass = self._constructor_sliced
-        using_cow = using_copy_on_write()
         for k, v in zip(self.index, self.values):
             s = klass(v, index=columns, name=k).__finalize__(self)
-            if using_cow and self._mgr.is_single_block:
+            if self._mgr.is_single_block:
                 s._mgr.add_references(self._mgr)
             yield k, s
 
@@ -1685,8 +1674,8 @@ class DataFrame(NDFrame, OpsMixin):
             if len(common) > len(self.columns) or len(common) > len(other.index):
                 raise ValueError("matrices are not aligned")
 
-            left = self.reindex(columns=common, copy=False)
-            right = other.reindex(index=common, copy=False)
+            left = self.reindex(columns=common)
+            right = other.reindex(index=common)
             lvals = left.values
             rvals = right._values
         else:
@@ -2122,11 +2111,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        data : structured ndarray, sequence of tuples or dicts, or DataFrame
+        data : structured ndarray, sequence of tuples or dicts
             Structured input data.
-
-            .. deprecated:: 2.1.0
-                Passing a DataFrame is deprecated.
         index : str, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
             input labels to use.
@@ -2194,21 +2180,10 @@ class DataFrame(NDFrame, OpsMixin):
         3      0     d
         """
         if isinstance(data, DataFrame):
-            warnings.warn(
-                "Passing a DataFrame to DataFrame.from_records is deprecated. Use "
+            raise TypeError(
+                "Passing a DataFrame to DataFrame.from_records is not supported. Use "
                 "set_index and/or drop to modify the DataFrame instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
             )
-            if columns is not None:
-                if is_scalar(columns):
-                    columns = [columns]
-                data = data[columns]
-            if index is not None:
-                data = data.set_index(index)
-            if exclude is not None:
-                data = data.drop(columns=exclude)
-            return data.copy(deep=False)
 
         result_index = None
 
@@ -3219,9 +3194,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
-    @deprecate_nonkeyword_arguments(
-        version="3.0", allowed_args=["self", "path_or_buffer"], name="to_xml"
-    )
     @doc(
         storage_options=_shared_docs["storage_options"],
         compression_options=_shared_docs["compression_options"] % "path_or_buffer",
@@ -3229,6 +3201,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_xml(
         self,
         path_or_buffer: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
+        *,
         index: bool = True,
         root_name: str | None = "data",
         row_name: str | None = "row",
@@ -3669,8 +3642,6 @@ class DataFrame(NDFrame, OpsMixin):
         if self._can_fast_transpose:
             # Note: tests pass without this, but this improves perf quite a bit.
             new_vals = self._values.T
-            if copy and not using_copy_on_write():
-                new_vals = new_vals.copy()
 
             result = self._constructor(
                 new_vals,
@@ -3679,7 +3650,7 @@ class DataFrame(NDFrame, OpsMixin):
                 copy=False,
                 dtype=new_vals.dtype,
             )
-            if using_copy_on_write() and len(self) > 0:
+            if len(self) > 0:
                 result._mgr.add_references(self._mgr)
 
         elif (
@@ -3723,8 +3694,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         else:
             new_arr = self.values.T
-            if copy and not using_copy_on_write():
-                new_arr = new_arr.copy()
             result = self._constructor(
                 new_arr,
                 index=self.columns,
@@ -3812,27 +3781,6 @@ class DataFrame(NDFrame, OpsMixin):
         """
         for i in range(len(self.columns)):
             yield self._get_column_array(i)
-
-    def _getitem_nocopy(self, key: list):
-        """
-        Behaves like __getitem__, but returns a view in cases where __getitem__
-        would make a copy.
-        """
-        # TODO(CoW): can be removed if/when we are always Copy-on-Write
-        indexer = self.columns._get_indexer_strict(key, "columns")[1]
-        new_axis = self.columns[indexer]
-
-        new_mgr = self._mgr.reindex_indexer(
-            new_axis,
-            indexer,
-            axis=0,
-            allow_dups=True,
-            copy=False,
-            only_slice=True,
-        )
-        result = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
-        result = result.__finalize__(self)
-        return result
 
     def __getitem__(self, key):
         check_dict_or_set_indexers(key)
@@ -3924,7 +3872,7 @@ class DataFrame(NDFrame, OpsMixin):
         key = check_bool_indexer(self.index, key)
 
         if key.all():
-            return self.copy(deep=None)
+            return self.copy(deep=False)
 
         indexer = key.nonzero()[0]
         return self.take(indexer, axis=0)
@@ -4043,7 +3991,7 @@ class DataFrame(NDFrame, OpsMixin):
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY and using_copy_on_write():
+        if not PYPY:
             if sys.getrefcount(self) <= 3:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
@@ -4251,12 +4199,7 @@ class DataFrame(NDFrame, OpsMixin):
     def _iset_item(self, loc: int, value: Series, inplace: bool = True) -> None:
         # We are only called from _replace_columnwise which guarantees that
         # no reindex is necessary
-        if using_copy_on_write():
-            self._iset_item_mgr(
-                loc, value._values, inplace=inplace, refs=value._references
-            )
-        else:
-            self._iset_item_mgr(loc, value._values.copy(), inplace=True)
+        self._iset_item_mgr(loc, value._values, inplace=inplace, refs=value._references)
 
     def _set_item(self, key, value) -> None:
         """
@@ -4792,7 +4735,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             return True
 
-        mgr = self._mgr._get_data_subset(predicate).copy(deep=None)
+        mgr = self._mgr._get_data_subset(predicate).copy(deep=False)
         return self._constructor_from_mgr(mgr, axes=mgr.axes).__finalize__(self)
 
     def insert(
@@ -4937,7 +4880,7 @@ class DataFrame(NDFrame, OpsMixin):
         Portland    17.0    62.6  290.15
         Berkeley    25.0    77.0  298.15
         """
-        data = self.copy(deep=None)
+        data = self.copy(deep=False)
 
         for k, v in kwargs.items():
             data[k] = com.apply_if_callable(v, data)
@@ -4992,9 +4935,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Reindexing and alignment
 
-    def _reindex_multi(
-        self, axes: dict[str, Index], copy: bool, fill_value
-    ) -> DataFrame:
+    def _reindex_multi(self, axes: dict[str, Index], fill_value) -> DataFrame:
         """
         We are guaranteed non-Nones in the axes.
         """
@@ -5016,7 +4957,6 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             return self._reindex_with_indexers(
                 {0: [new_index, row_indexer], 1: [new_columns, col_indexer]},
-                copy=copy,
                 fill_value=fill_value,
             )
 
@@ -5058,7 +4998,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = 0,
         copy: bool | None = None,
     ) -> DataFrame:
-        return super().set_axis(labels, axis=axis, copy=copy)
+        return super().set_axis(labels, axis=axis)
 
     @doc(
         NDFrame.reindex,
@@ -5085,7 +5025,6 @@ class DataFrame(NDFrame, OpsMixin):
             columns=columns,
             axis=axis,
             method=method,
-            copy=copy,
             level=level,
             fill_value=fill_value,
             limit=limit,
@@ -5483,7 +5422,6 @@ class DataFrame(NDFrame, OpsMixin):
             index=index,
             columns=columns,
             axis=axis,
-            copy=copy,
             inplace=inplace,
             level=level,
             errors=errors,
@@ -5554,7 +5492,7 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame or None
         """
         # Operate column-wise
-        res = self if inplace else self.copy(deep=None)
+        res = self if inplace else self.copy(deep=False)
         ax = self.columns
 
         for i, ax_value in enumerate(ax):
@@ -5589,6 +5527,9 @@ class DataFrame(NDFrame, OpsMixin):
                 stacklevel=find_stack_level(),
             )
             fill_value = lib.no_default
+
+        if self.empty:
+            return self.copy()
 
         axis = self._get_axis_number(axis)
 
@@ -5843,8 +5784,7 @@ class DataFrame(NDFrame, OpsMixin):
         if inplace:
             frame = self
         else:
-            # GH 49473 Use "lazy copy" with Copy-on-Write
-            frame = self.copy(deep=None)
+            frame = self.copy(deep=False)
 
         arrays: list[Index] = []
         names: list[Hashable] = []
@@ -6134,7 +6074,7 @@ class DataFrame(NDFrame, OpsMixin):
         if inplace:
             new_obj = self
         else:
-            new_obj = self.copy(deep=None)
+            new_obj = self.copy(deep=False)
         if allow_duplicates is not lib.no_default:
             allow_duplicates = validate_bool_kwarg(allow_duplicates, "allow_duplicates")
 
@@ -6406,7 +6346,7 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(f"invalid how option: {how}")
 
         if np.all(mask):
-            result = self.copy(deep=None)
+            result = self.copy(deep=False)
         else:
             result = self.loc(axis=axis)[mask]
 
@@ -6535,7 +6475,7 @@ class DataFrame(NDFrame, OpsMixin):
         4  Indomie  pack     5.0
         """
         if self.empty:
-            return self.copy(deep=None)
+            return self.copy(deep=False)
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         ignore_index = validate_bool_kwarg(ignore_index, "ignore_index")
@@ -6651,7 +6591,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         def f(vals) -> tuple[np.ndarray, int]:
             labels, shape = algorithms.factorize(vals, size_hint=len(self))
-            return labels.astype("i8", copy=False), len(shape)
+            return labels.astype("i8"), len(shape)
 
         if subset is None:
             # https://github.com/pandas-dev/pandas/issues/28770
@@ -6934,10 +6874,10 @@ class DataFrame(NDFrame, OpsMixin):
             if inplace:
                 return self._update_inplace(self)
             else:
-                return self.copy(deep=None)
+                return self.copy(deep=False)
 
         if is_range_indexer(indexer, len(indexer)):
-            result = self.copy(deep=(not inplace and not using_copy_on_write()))
+            result = self.copy(deep=False)
             if ignore_index:
                 result.index = default_index(len(result))
 
@@ -7590,7 +7530,7 @@ class DataFrame(NDFrame, OpsMixin):
         ),
     )
     def swaplevel(self, i: Axis = -2, j: Axis = -1, axis: Axis = 0) -> DataFrame:
-        result = self.copy(deep=None)
+        result = self.copy(deep=False)
 
         axis = self._get_axis_number(axis)
 
@@ -7650,7 +7590,7 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(self._get_axis(axis), MultiIndex):  # pragma: no cover
             raise TypeError("Can only reorder levels on a hierarchical axis.")
 
-        result = self.copy(deep=None)
+        result = self.copy(deep=False)
 
         if axis == 0:
             assert isinstance(result.index, MultiIndex)
@@ -7953,9 +7893,7 @@ class DataFrame(NDFrame, OpsMixin):
         if flex is not None and isinstance(right, DataFrame):
             if not left._indexed_same(right):
                 if flex:
-                    left, right = left.align(
-                        right, join="outer", level=level, copy=False
-                    )
+                    left, right = left.align(right, join="outer", level=level)
                 else:
                     raise ValueError(
                         "Can only compare identically-labeled (both index and columns) "
@@ -7968,7 +7906,7 @@ class DataFrame(NDFrame, OpsMixin):
                 if not left.axes[axis].equals(right.index):
                     raise ValueError(
                         "Operands are not aligned. Do "
-                        "`left, right = left.align(right, axis=1, copy=False)` "
+                        "`left, right = left.align(right, axis=1)` "
                         "before operating."
                     )
 
@@ -7977,7 +7915,6 @@ class DataFrame(NDFrame, OpsMixin):
                 join="outer",
                 axis=axis,
                 level=level,
-                copy=False,
             )
             right = left._maybe_align_series_as_frame(right, axis)
 
@@ -8487,7 +8424,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         other_idxlen = len(other.index)  # save for compare
 
-        this, other = self.align(other, copy=False)
+        this, other = self.align(other)
         new_index = this.index
 
         if other.empty and len(new_index) == len(self.index):
@@ -8527,15 +8464,15 @@ class DataFrame(NDFrame, OpsMixin):
                 # try to promote series, which is all NaN, as other_dtype.
                 new_dtype = other_dtype
                 try:
-                    series = series.astype(new_dtype, copy=False)
+                    series = series.astype(new_dtype)
                 except ValueError:
                     # e.g. new_dtype is integer types
                     pass
             else:
                 # if we have different dtypes, possibly promote
                 new_dtype = find_common_type([this_dtype, other_dtype])
-                series = series.astype(new_dtype, copy=False)
-                other_series = other_series.astype(new_dtype, copy=False)
+                series = series.astype(new_dtype)
+                other_series = other_series.astype(new_dtype)
 
             arr = func(series, other_series)
             if isinstance(new_dtype, np.dtype):
@@ -8745,18 +8682,11 @@ class DataFrame(NDFrame, OpsMixin):
         1  2  500.0
         2  3    6.0
         """
-        if not PYPY and using_copy_on_write():
+        if not PYPY:
             if sys.getrefcount(self) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_method_msg,
                     ChainedAssignmentError,
-                    stacklevel=2,
-                )
-        elif not PYPY and not using_copy_on_write() and self._is_view_after_cow_rules():
-            if sys.getrefcount(self) <= REF_COUNT:
-                warnings.warn(
-                    _chained_assignment_warning_method_msg,
-                    FutureWarning,
                     stacklevel=2,
                 )
 
@@ -8911,7 +8841,7 @@ class DataFrame(NDFrame, OpsMixin):
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
-        observed: bool | lib.NoDefault = lib.no_default,
+        observed: bool = True,
         dropna: bool = True,
     ) -> DataFrameGroupBy:
         from pandas.core.groupby.generic import DataFrameGroupBy
@@ -9120,10 +9050,9 @@ class DataFrame(NDFrame, OpsMixin):
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.
 
-            .. deprecated:: 2.2.0
+            .. versionchanged:: 3.0.0
 
-                The default value of ``False`` is deprecated and will change to
-                ``True`` in a future version of pandas.
+                The default value is now ``True``.
 
         sort : bool, default True
             Specifies if the result should be sorted.
@@ -9235,7 +9164,7 @@ class DataFrame(NDFrame, OpsMixin):
         margins: bool = False,
         dropna: bool = True,
         margins_name: Level = "All",
-        observed: bool | lib.NoDefault = lib.no_default,
+        observed: bool = True,
         sort: bool = True,
     ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot_table
@@ -9259,7 +9188,7 @@ class DataFrame(NDFrame, OpsMixin):
         level: IndexLabel = -1,
         dropna: bool | lib.NoDefault = lib.no_default,
         sort: bool | lib.NoDefault = lib.no_default,
-        future_stack: bool = False,
+        future_stack: bool = True,
     ):
         """
         Stack the prescribed level(s) from columns to index.
@@ -9332,7 +9261,7 @@ class DataFrame(NDFrame, OpsMixin):
              weight height
         cat       0      1
         dog       2      3
-        >>> df_single_level_cols.stack(future_stack=True)
+        >>> df_single_level_cols.stack()
         cat  weight    0
              height    1
         dog  weight    2
@@ -9355,7 +9284,7 @@ class DataFrame(NDFrame, OpsMixin):
                  kg    pounds
         cat       1        2
         dog       2        4
-        >>> df_multi_level_cols1.stack(future_stack=True)
+        >>> df_multi_level_cols1.stack()
                     weight
         cat kg           1
             pounds       2
@@ -9379,7 +9308,7 @@ class DataFrame(NDFrame, OpsMixin):
                 kg      m
         cat    1.0    2.0
         dog    3.0    4.0
-        >>> df_multi_level_cols2.stack(future_stack=True)
+        >>> df_multi_level_cols2.stack()
                 weight  height
         cat kg     1.0     NaN
             m      NaN     2.0
@@ -9390,13 +9319,13 @@ class DataFrame(NDFrame, OpsMixin):
 
         The first parameter controls which level or levels are stacked:
 
-        >>> df_multi_level_cols2.stack(0, future_stack=True)
+        >>> df_multi_level_cols2.stack(0)
                      kg    m
         cat weight  1.0  NaN
             height  NaN  2.0
         dog weight  3.0  NaN
             height  NaN  4.0
-        >>> df_multi_level_cols2.stack([0, 1], future_stack=True)
+        >>> df_multi_level_cols2.stack([0, 1])
         cat  weight  kg    1.0
              height  m     2.0
         dog  weight  kg    3.0
@@ -9409,19 +9338,14 @@ class DataFrame(NDFrame, OpsMixin):
                 stack_multiple,
             )
 
-            if (
-                dropna is not lib.no_default
-                or sort is not lib.no_default
-                or self.columns.nlevels > 1
-            ):
-                warnings.warn(
-                    "The previous implementation of stack is deprecated and will be "
-                    "removed in a future version of pandas. See the What's New notes "
-                    "for pandas 2.1.0 for details. Specify future_stack=True to adopt "
-                    "the new implementation and silence this warning.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
+            warnings.warn(
+                "The previous implementation of stack is deprecated and will be "
+                "removed in a future version of pandas. See the What's New notes "
+                "for pandas 2.1.0 for details. Do not specify the future_stack "
+                "argument to adopt the new implementation and silence this warning.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
             if dropna is lib.no_default:
                 dropna = True
@@ -9437,14 +9361,14 @@ class DataFrame(NDFrame, OpsMixin):
 
             if dropna is not lib.no_default:
                 raise ValueError(
-                    "dropna must be unspecified with future_stack=True as the new "
+                    "dropna must be unspecified as the new "
                     "implementation does not introduce rows of NA values. This "
                     "argument will be removed in a future version of pandas."
                 )
 
             if sort is not lib.no_default:
                 raise ValueError(
-                    "Cannot specify sort with future_stack=True, this argument will be "
+                    "Cannot specify sort, this argument will be "
                     "removed in a future version of pandas. Sort the result using "
                     ".sort_index instead."
                 )
@@ -9594,7 +9518,7 @@ class DataFrame(NDFrame, OpsMixin):
             result.index = default_index(len(result))
         else:
             result.index = self.index.take(result.index)
-        result = result.reindex(columns=self.columns, copy=False)
+        result = result.reindex(columns=self.columns)
 
         return result.__finalize__(self, method="explode")
 
@@ -9820,11 +9744,11 @@ class DataFrame(NDFrame, OpsMixin):
     --------
     DataFrame.apply : Perform any type of operations.
     DataFrame.transform : Perform transformation type operations.
-    pandas.DataFrame.groupby : Perform operations over groups.
-    pandas.DataFrame.resample : Perform operations over resampled bins.
-    pandas.DataFrame.rolling : Perform operations over rolling window.
-    pandas.DataFrame.expanding : Perform operations over expanding window.
-    pandas.core.window.ewm.ExponentialMovingWindow : Perform operation over exponential
+    DataFrame.groupby : Perform operations over groups.
+    DataFrame.resample : Perform operations over resampled bins.
+    DataFrame.rolling : Perform operations over rolling window.
+    DataFrame.expanding : Perform operations over expanding window.
+    core.window.ewm.ExponentialMovingWindow : Perform operation over exponential
         weighted window.
     """
     )
@@ -10206,60 +10130,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         return self.apply(infer).__finalize__(self, "map")
 
-    def applymap(
-        self, func: PythonFuncType, na_action: NaAction | None = None, **kwargs
-    ) -> DataFrame:
-        """
-        Apply a function to a Dataframe elementwise.
-
-        .. deprecated:: 2.1.0
-
-           DataFrame.applymap has been deprecated. Use DataFrame.map instead.
-
-        This method applies a function that accepts and returns a scalar
-        to every element of a DataFrame.
-
-        Parameters
-        ----------
-        func : callable
-            Python function, returns a single value from a single value.
-        na_action : {None, 'ignore'}, default None
-            If 'ignore', propagate NaN values, without passing them to func.
-        **kwargs
-            Additional keyword arguments to pass as keywords arguments to
-            `func`.
-
-        Returns
-        -------
-        DataFrame
-            Transformed DataFrame.
-
-        See Also
-        --------
-        DataFrame.apply : Apply a function along input axis of DataFrame.
-        DataFrame.map : Apply a function along input axis of DataFrame.
-        DataFrame.replace: Replace values given in `to_replace` with `value`.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame([[1, 2.12], [3.356, 4.567]])
-        >>> df
-               0      1
-        0  1.000  2.120
-        1  3.356  4.567
-
-        >>> df.map(lambda x: len(str(x)))
-           0  1
-        0  3  4
-        1  5  5
-        """
-        warnings.warn(
-            "DataFrame.applymap has been deprecated. Use DataFrame.map instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.map(func, na_action=na_action, **kwargs)
-
     # ----------------------------------------------------------------------
     # Merging / joining methods
 
@@ -10290,9 +10160,7 @@ class DataFrame(NDFrame, OpsMixin):
             row_df = other.to_frame().T
             # infer_objects is needed for
             #  test_append_empty_frame_to_series_with_dateutil_tz
-            other = row_df.infer_objects(copy=False).rename_axis(
-                index.names, copy=False
-            )
+            other = row_df.infer_objects().rename_axis(index.names)
         elif isinstance(other, list):
             if not other:
                 pass
@@ -10536,7 +10404,7 @@ class DataFrame(NDFrame, OpsMixin):
                     res = concat(
                         frames, axis=1, join="outer", verify_integrity=True, sort=sort
                     )
-                    return res.reindex(self.index, copy=False)
+                    return res.reindex(self.index)
                 else:
                     return concat(
                         frames, axis=1, join=how, verify_integrity=True, sort=sort
@@ -10586,7 +10454,6 @@ class DataFrame(NDFrame, OpsMixin):
             right_index=right_index,
             sort=sort,
             suffixes=suffixes,
-            copy=copy,
             indicator=indicator,
             validate=validate,
         )
@@ -10674,7 +10541,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.core.reshape.concat import concat
 
-        def _dict_round(df: DataFrame, decimals):
+        def _dict_round(df: DataFrame, decimals) -> Iterator[Series]:
             for col, vals in df.items():
                 try:
                     yield _series_round(vals, decimals[col])
@@ -11051,7 +10918,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if numeric_only:
             other = other._get_numeric_data()
-        left, right = this.align(other, join="inner", copy=False)
+        left, right = this.align(other, join="inner")
 
         if axis == 1:
             left = left.T
@@ -11110,7 +10977,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # ndarray-like stats methods
 
-    def count(self, axis: Axis = 0, numeric_only: bool = False):
+    def count(self, axis: Axis = 0, numeric_only: bool = False) -> Series:
         """
         Count non-NA cells for each column or row.
 
@@ -11188,7 +11055,7 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             result = notna(frame).sum(axis=axis)
 
-        return result.astype("int64", copy=False).__finalize__(self, method="count")
+        return result.astype("int64").__finalize__(self, method="count")
 
     def _reduce(
         self,
@@ -11252,7 +11119,7 @@ class DataFrame(NDFrame, OpsMixin):
         if axis is None:
             dtype = find_common_type([arr.dtype for arr in df._mgr.arrays])
             if isinstance(dtype, ExtensionDtype):
-                df = df.astype(dtype, copy=False)
+                df = df.astype(dtype)
                 arr = concat_compat(list(df._iter_column_arrays()))
                 return arr._reduce(name, skipna=skipna, keepdims=False, **kwds)
             return func(df.values)
@@ -11284,7 +11151,7 @@ class DataFrame(NDFrame, OpsMixin):
                     # be equivalent to transposing the original frame and aggregating
                     # with axis=0.
                     name = {"argmax": "idxmax", "argmin": "idxmin"}.get(name, name)
-                    df = df.astype(dtype, copy=False)
+                    df = df.astype(dtype)
                     arr = concat_compat(list(df._iter_column_arrays()))
                     nrows, ncols = df.shape
                     row_index = np.tile(np.arange(nrows), ncols)
@@ -11356,9 +11223,42 @@ class DataFrame(NDFrame, OpsMixin):
         res_ser = self._constructor_sliced(result, index=self.index, copy=False)
         return res_ser
 
-    @doc(make_doc("any", ndim=2))
     # error: Signature of "any" incompatible with supertype "NDFrame"
-    def any(  # type: ignore[override]
+    @overload  # type: ignore[override]
+    def any(
+        self,
+        *,
+        axis: Axis = ...,
+        bool_only: bool = ...,
+        skipna: bool = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def any(
+        self,
+        *,
+        axis: None,
+        bool_only: bool = ...,
+        skipna: bool = ...,
+        **kwargs,
+    ) -> bool:
+        ...
+
+    @overload
+    def any(
+        self,
+        *,
+        axis: Axis | None,
+        bool_only: bool = ...,
+        skipna: bool = ...,
+        **kwargs,
+    ) -> Series | bool:
+        ...
+
+    @doc(make_doc("any", ndim=2))
+    def any(
         self,
         *,
         axis: Axis | None = 0,
@@ -11372,6 +11272,39 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(result, Series):
             result = result.__finalize__(self, method="any")
         return result
+
+    @overload
+    def all(
+        self,
+        *,
+        axis: Axis = ...,
+        bool_only: bool = ...,
+        skipna: bool = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def all(
+        self,
+        *,
+        axis: None,
+        bool_only: bool = ...,
+        skipna: bool = ...,
+        **kwargs,
+    ) -> bool:
+        ...
+
+    @overload
+    def all(
+        self,
+        *,
+        axis: Axis | None,
+        bool_only: bool = ...,
+        skipna: bool = ...,
+        **kwargs,
+    ) -> Series | bool:
+        ...
 
     @doc(make_doc("all", ndim=2))
     def all(
@@ -11388,6 +11321,40 @@ class DataFrame(NDFrame, OpsMixin):
             result = result.__finalize__(self, method="all")
         return result
 
+    # error: Signature of "min" incompatible with supertype "NDFrame"
+    @overload  # type: ignore[override]
+    def min(
+        self,
+        *,
+        axis: Axis = ...,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def min(
+        self,
+        *,
+        axis: None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Any:
+        ...
+
+    @overload
+    def min(
+        self,
+        *,
+        axis: Axis | None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series | Any:
+        ...
+
     @doc(make_doc("min", ndim=2))
     def min(
         self,
@@ -11395,11 +11362,47 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
-    ):
-        result = super().min(axis, skipna, numeric_only, **kwargs)
+    ) -> Series | Any:
+        result = super().min(
+            axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
+        )
         if isinstance(result, Series):
             result = result.__finalize__(self, method="min")
         return result
+
+    # error: Signature of "max" incompatible with supertype "NDFrame"
+    @overload  # type: ignore[override]
+    def max(
+        self,
+        *,
+        axis: Axis = ...,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def max(
+        self,
+        *,
+        axis: None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Any:
+        ...
+
+    @overload
+    def max(
+        self,
+        *,
+        axis: Axis | None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series | Any:
+        ...
 
     @doc(make_doc("max", ndim=2))
     def max(
@@ -11408,8 +11411,10 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
-    ):
-        result = super().max(axis, skipna, numeric_only, **kwargs)
+    ) -> Series | Any:
+        result = super().max(
+            axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
+        )
         if isinstance(result, Series):
             result = result.__finalize__(self, method="max")
         return result
@@ -11422,8 +11427,14 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         min_count: int = 0,
         **kwargs,
-    ):
-        result = super().sum(axis, skipna, numeric_only, min_count, **kwargs)
+    ) -> Series:
+        result = super().sum(
+            axis=axis,
+            skipna=skipna,
+            numeric_only=numeric_only,
+            min_count=min_count,
+            **kwargs,
+        )
         return result.__finalize__(self, method="sum")
 
     @doc(make_doc("prod", ndim=2))
@@ -11434,9 +11445,49 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         min_count: int = 0,
         **kwargs,
-    ):
-        result = super().prod(axis, skipna, numeric_only, min_count, **kwargs)
+    ) -> Series:
+        result = super().prod(
+            axis=axis,
+            skipna=skipna,
+            numeric_only=numeric_only,
+            min_count=min_count,
+            **kwargs,
+        )
         return result.__finalize__(self, method="prod")
+
+    # error: Signature of "mean" incompatible with supertype "NDFrame"
+    @overload  # type: ignore[override]
+    def mean(
+        self,
+        *,
+        axis: Axis = ...,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def mean(
+        self,
+        *,
+        axis: None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Any:
+        ...
+
+    @overload
+    def mean(
+        self,
+        *,
+        axis: Axis | None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series | Any:
+        ...
 
     @doc(make_doc("mean", ndim=2))
     def mean(
@@ -11445,11 +11496,47 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
-    ):
-        result = super().mean(axis, skipna, numeric_only, **kwargs)
+    ) -> Series | Any:
+        result = super().mean(
+            axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
+        )
         if isinstance(result, Series):
             result = result.__finalize__(self, method="mean")
         return result
+
+    # error: Signature of "median" incompatible with supertype "NDFrame"
+    @overload  # type: ignore[override]
+    def median(
+        self,
+        *,
+        axis: Axis = ...,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def median(
+        self,
+        *,
+        axis: None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Any:
+        ...
+
+    @overload
+    def median(
+        self,
+        *,
+        axis: Axis | None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series | Any:
+        ...
 
     @doc(make_doc("median", ndim=2))
     def median(
@@ -11458,11 +11545,50 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
-    ):
-        result = super().median(axis, skipna, numeric_only, **kwargs)
+    ) -> Series | Any:
+        result = super().median(
+            axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
+        )
         if isinstance(result, Series):
             result = result.__finalize__(self, method="median")
         return result
+
+    # error: Signature of "sem" incompatible with supertype "NDFrame"
+    @overload  # type: ignore[override]
+    def sem(
+        self,
+        *,
+        axis: Axis = ...,
+        skipna: bool = ...,
+        ddof: int = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def sem(
+        self,
+        *,
+        axis: None,
+        skipna: bool = ...,
+        ddof: int = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Any:
+        ...
+
+    @overload
+    def sem(
+        self,
+        *,
+        axis: Axis | None,
+        skipna: bool = ...,
+        ddof: int = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series | Any:
+        ...
 
     @doc(make_doc("sem", ndim=2))
     def sem(
@@ -11472,11 +11598,50 @@ class DataFrame(NDFrame, OpsMixin):
         ddof: int = 1,
         numeric_only: bool = False,
         **kwargs,
-    ):
-        result = super().sem(axis, skipna, ddof, numeric_only, **kwargs)
+    ) -> Series | Any:
+        result = super().sem(
+            axis=axis, skipna=skipna, ddof=ddof, numeric_only=numeric_only, **kwargs
+        )
         if isinstance(result, Series):
             result = result.__finalize__(self, method="sem")
         return result
+
+    # error: Signature of "var" incompatible with supertype "NDFrame"
+    @overload  # type: ignore[override]
+    def var(
+        self,
+        *,
+        axis: Axis = ...,
+        skipna: bool = ...,
+        ddof: int = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def var(
+        self,
+        *,
+        axis: None,
+        skipna: bool = ...,
+        ddof: int = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Any:
+        ...
+
+    @overload
+    def var(
+        self,
+        *,
+        axis: Axis | None,
+        skipna: bool = ...,
+        ddof: int = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series | Any:
+        ...
 
     @doc(make_doc("var", ndim=2))
     def var(
@@ -11486,11 +11651,50 @@ class DataFrame(NDFrame, OpsMixin):
         ddof: int = 1,
         numeric_only: bool = False,
         **kwargs,
-    ):
-        result = super().var(axis, skipna, ddof, numeric_only, **kwargs)
+    ) -> Series | Any:
+        result = super().var(
+            axis=axis, skipna=skipna, ddof=ddof, numeric_only=numeric_only, **kwargs
+        )
         if isinstance(result, Series):
             result = result.__finalize__(self, method="var")
         return result
+
+    # error: Signature of "std" incompatible with supertype "NDFrame"
+    @overload  # type: ignore[override]
+    def std(
+        self,
+        *,
+        axis: Axis = ...,
+        skipna: bool = ...,
+        ddof: int = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def std(
+        self,
+        *,
+        axis: None,
+        skipna: bool = ...,
+        ddof: int = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Any:
+        ...
+
+    @overload
+    def std(
+        self,
+        *,
+        axis: Axis | None,
+        skipna: bool = ...,
+        ddof: int = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series | Any:
+        ...
 
     @doc(make_doc("std", ndim=2))
     def std(
@@ -11500,11 +11704,47 @@ class DataFrame(NDFrame, OpsMixin):
         ddof: int = 1,
         numeric_only: bool = False,
         **kwargs,
-    ):
-        result = super().std(axis, skipna, ddof, numeric_only, **kwargs)
+    ) -> Series | Any:
+        result = super().std(
+            axis=axis, skipna=skipna, ddof=ddof, numeric_only=numeric_only, **kwargs
+        )
         if isinstance(result, Series):
             result = result.__finalize__(self, method="std")
         return result
+
+    # error: Signature of "skew" incompatible with supertype "NDFrame"
+    @overload  # type: ignore[override]
+    def skew(
+        self,
+        *,
+        axis: Axis = ...,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def skew(
+        self,
+        *,
+        axis: None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Any:
+        ...
+
+    @overload
+    def skew(
+        self,
+        *,
+        axis: Axis | None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series | Any:
+        ...
 
     @doc(make_doc("skew", ndim=2))
     def skew(
@@ -11513,11 +11753,47 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
-    ):
-        result = super().skew(axis, skipna, numeric_only, **kwargs)
+    ) -> Series | Any:
+        result = super().skew(
+            axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
+        )
         if isinstance(result, Series):
             result = result.__finalize__(self, method="skew")
         return result
+
+    # error: Signature of "kurt" incompatible with supertype "NDFrame"
+    @overload  # type: ignore[override]
+    def kurt(
+        self,
+        *,
+        axis: Axis = ...,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def kurt(
+        self,
+        *,
+        axis: None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Any:
+        ...
+
+    @overload
+    def kurt(
+        self,
+        *,
+        axis: Axis | None,
+        skipna: bool = ...,
+        numeric_only: bool = ...,
+        **kwargs,
+    ) -> Series | Any:
+        ...
 
     @doc(make_doc("kurt", ndim=2))
     def kurt(
@@ -11526,13 +11802,16 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
-    ):
-        result = super().kurt(axis, skipna, numeric_only, **kwargs)
+    ) -> Series | Any:
+        result = super().kurt(
+            axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
+        )
         if isinstance(result, Series):
             result = result.__finalize__(self, method="kurt")
         return result
 
-    kurtosis = kurt
+    # error: Incompatible types in assignment
+    kurtosis = kurt  # type: ignore[assignment]
     product = prod
 
     @doc(make_doc("cummin", ndim=2))
@@ -12053,7 +12332,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df2.index
         DatetimeIndex(['2023-01-31', '2024-01-31'], dtype='datetime64[ns]', freq=None)
         """
-        new_obj = self.copy(deep=copy and not using_copy_on_write())
+        new_obj = self.copy(deep=False)
 
         axis_name = self._get_axis_name(axis)
         old_ax = getattr(self, axis_name)
@@ -12122,7 +12401,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> idx.to_period("Y")
         PeriodIndex(['2001', '2002', '2003'], dtype='period[Y-DEC]')
         """
-        new_obj = self.copy(deep=copy and not using_copy_on_write())
+        new_obj = self.copy(deep=False)
 
         axis_name = self._get_axis_name(axis)
         old_ax = getattr(self, axis_name)
@@ -12445,7 +12724,7 @@ def _reindex_for_setitem(
     # reindex if necessary
 
     if value.index.equals(index) or not len(index):
-        if using_copy_on_write() and isinstance(value, Series):
+        if isinstance(value, Series):
             return value._values, value._references
         return value._values.copy(), None
 
