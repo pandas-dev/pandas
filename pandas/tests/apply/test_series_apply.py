@@ -75,17 +75,6 @@ def test_apply_map_same_length_inference_bug():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("convert_dtype", [True, False])
-def test_apply_convert_dtype_deprecated(convert_dtype):
-    ser = Series(np.random.default_rng(2).standard_normal(10))
-
-    def func(x):
-        return x if x > 0 else np.nan
-
-    with tm.assert_produces_warning(FutureWarning):
-        ser.apply(func, convert_dtype=convert_dtype, by_row="compat")
-
-
 def test_apply_args():
     s = Series(["foo,bar"])
 
@@ -316,7 +305,7 @@ def test_transform(string_series, by_row):
 @pytest.mark.parametrize("op", series_transform_kernels)
 def test_transform_partial_failure(op, request):
     # GH 35964
-    if op in ("ffill", "bfill", "pad", "backfill", "shift"):
+    if op in ("ffill", "bfill", "shift"):
         request.applymarker(
             pytest.mark.xfail(reason=f"{op} is successful on any dtype")
         )

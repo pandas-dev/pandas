@@ -207,8 +207,6 @@ class TestMultiIndexSetItem:
         )
 
         # arr can be losslessly cast to int, so this setitem is inplace
-        # INFO(CoW-warn) this does not warn because we directly took .values
-        # above, so no reference to a pandas object is alive for `view`
         df.loc[4, "c"] = arr
         exp = Series(arr, index=[8, 10], name="c", dtype="int64")
         result = df.loc[4, "c"]

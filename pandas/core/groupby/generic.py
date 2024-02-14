@@ -513,7 +513,7 @@ class SeriesGroupBy(GroupBy[Series]):
             res_df = self.obj._constructor_expanddim(values, index=index)
             # if self.observed is False,
             # keep all-NaN rows created while re-indexing
-            res_ser = res_df.stack(future_stack=True)
+            res_ser = res_df.stack()
             res_ser.name = self.obj.name
             return res_ser
         elif isinstance(values[0], (Series, DataFrame)):
@@ -1648,7 +1648,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 res_index = self._grouper.result_index
 
             result = self.obj._constructor(index=res_index, columns=data.columns)
-            result = result.astype(data.dtypes, copy=False)
+            result = result.astype(data.dtypes)
             return result
 
         # GH12824
@@ -1815,7 +1815,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         concat_index = obj.columns
         concatenated = concat(applied, axis=0, verify_integrity=False)
-        concatenated = concatenated.reindex(concat_index, axis=1, copy=False)
+        concatenated = concatenated.reindex(concat_index, axis=1)
         return self._set_result_index_ordered(concatenated)
 
     __examples_dataframe_doc = dedent(

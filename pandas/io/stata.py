@@ -1181,24 +1181,6 @@ class StataReader(StataParser, abc.Iterator):
         if self._close_file:
             self._close_file()
 
-    def close(self) -> None:
-        """Close the handle if its open.
-
-        .. deprecated: 2.0.0
-
-           The close method is not part of the public API.
-           The only supported way to use StataReader is to use it as a context manager.
-        """
-        warnings.warn(
-            "The StataReader.close() method is not part of the public API and "
-            "will be removed in a future version without notice. "
-            "Using StataReader as a context manager is the only supported method.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        if self._close_file:
-            self._close_file()
-
     def _set_encoding(self) -> None:
         """
         Set string encoding which depends on file version
