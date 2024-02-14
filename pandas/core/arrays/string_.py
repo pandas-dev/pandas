@@ -315,7 +315,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
     See Also
     --------
-    :func:`pandas.array`
+    :func:`array`
         The recommended function for creating a StringArray.
     Series.str
         The string methods are available on Series backed by

@@ -16,7 +16,6 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib
 from pandas._libs.internals import BlockValuesRefs
 from pandas._typing import (
     AggFuncType,
@@ -1361,7 +1360,7 @@ class FrameColumnApply(FrameApply):
         result.index = res_index
 
         # infer dtypes
-        result = result.infer_objects(copy=False)
+        result = result.infer_objects()
 
         return result
 
@@ -1376,23 +1375,10 @@ class SeriesApply(NDFrameApply):
         obj: Series,
         func: AggFuncType,
         *,
-        convert_dtype: bool | lib.NoDefault = lib.no_default,
         by_row: Literal[False, "compat", "_compat"] = "compat",
         args,
         kwargs,
     ) -> None:
-        if convert_dtype is lib.no_default:
-            convert_dtype = True
-        else:
-            warnings.warn(
-                "the convert_dtype parameter is deprecated and will be removed in a "
-                "future version.  Do ``ser.astype(object).apply()`` "
-                "instead if you want ``convert_dtype=False``.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        self.convert_dtype = convert_dtype
-
         super().__init__(
             obj,
             func,
@@ -1486,9 +1472,7 @@ class SeriesApply(NDFrameApply):
         # TODO: remove the `na_action="ignore"` when that default has been changed in
         #  Categorical (GH51645).
         action = "ignore" if isinstance(obj.dtype, CategoricalDtype) else None
-        mapped = obj._map_values(
-            mapper=curried, na_action=action, convert=self.convert_dtype
-        )
+        mapped = obj._map_values(mapper=curried, na_action=action)
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
             # GH#43986 Need to do list(mapped) in order to get treated as nested
@@ -1873,7 +1857,7 @@ def relabel_result(
         # assign the new user-provided "named aggregation" as index names, and reindex
         # it based on the whole user-provided names.
         s.index = reordered_indexes[idx : idx + len(fun)]
-        reordered_result_in_dict[col] = s.reindex(columns, copy=False)
+        reordered_result_in_dict[col] = s.reindex(columns)
         idx = idx + len(fun)
     return reordered_result_in_dict
 
