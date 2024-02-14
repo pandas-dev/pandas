@@ -127,7 +127,7 @@ class TestJSONArray(base.ExtensionTests):
     @pytest.mark.xfail(reason="Different definitions of NA")
     def test_stack(self):
         """
-        The test does .astype(object).stack(future_stack=True). If we happen to have
+        The test does .astype(object).stack(). If we happen to have
         any missing values in `data`, then we'll end up with different
         rows since we consider `{}` NA, but `.astype(object)` doesn't.
         """
@@ -218,7 +218,7 @@ class TestJSONArray(base.ExtensionTests):
         super().test_fillna_copy_frame(data_missing)
 
     @pytest.mark.xfail(reason="Fails with CoW")
-    def test_equals_same_data_different_object(self, data, request):
+    def test_equals_same_data_different_object(self, data):
         super().test_equals_same_data_different_object(data)
 
     @pytest.mark.xfail(reason="failing on np.array(self, dtype=str)")

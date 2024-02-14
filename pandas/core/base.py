@@ -8,6 +8,7 @@ import textwrap
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Generic,
     Literal,
     cast,
@@ -17,8 +18,6 @@ from typing import (
 import warnings
 
 import numpy as np
-
-from pandas._config import using_copy_on_write
 
 from pandas._libs import lib
 from pandas._typing import (
@@ -106,7 +105,7 @@ class PandasObject(DirNamesMixin):
     _cache: dict[str, Any]
 
     @property
-    def _constructor(self):
+    def _constructor(self) -> Callable[..., Self]:
         """
         Class constructor (for this class it's just `__class__`).
         """
@@ -661,10 +660,10 @@ class IndexOpsMixin(OpsMixin):
 
         result = np.asarray(values, dtype=dtype)
 
-        if (copy and not fillna) or (not copy and using_copy_on_write()):
+        if (copy and not fillna) or not copy:
             if np.shares_memory(self._values[:2], result[:2]):
                 # Take slices to improve performance of check
-                if using_copy_on_write() and not copy:
+                if not copy:
                     result = result.view()
                     result.flags.writeable = False
                 else:
@@ -802,7 +801,7 @@ class IndexOpsMixin(OpsMixin):
             # "int")
             return result  # type: ignore[return-value]
 
-    def tolist(self):
+    def tolist(self) -> list:
         """
         Return a list of the values.
 

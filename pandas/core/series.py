@@ -46,7 +46,6 @@ from pandas.errors.cow import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
-    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import find_stack_level
@@ -1736,11 +1735,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     # error: Incompatible default for argument "into" (default has type "type[
     # dict[Any, Any]]", argument has type "type[MutableMappingT] | MutableMappingT")
-    @deprecate_nonkeyword_arguments(
-        version="3.0", allowed_args=["self"], name="to_dict"
-    )
     def to_dict(
         self,
+        *,
         into: type[MutableMappingT] | MutableMappingT = dict,  # type: ignore[assignment]
     ) -> MutableMappingT:
         """
@@ -6241,7 +6238,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only: bool = False,
         **kwargs,
     ):
-        return NDFrame.min(self, axis, skipna, numeric_only, **kwargs)
+        return NDFrame.min(
+            self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
+        )
 
     @doc(make_doc("max", ndim=1))
     def max(
@@ -6251,7 +6250,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only: bool = False,
         **kwargs,
     ):
-        return NDFrame.max(self, axis, skipna, numeric_only, **kwargs)
+        return NDFrame.max(
+            self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
+        )
 
     @doc(make_doc("sum", ndim=1))
     def sum(
@@ -6262,7 +6263,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         min_count: int = 0,
         **kwargs,
     ):
-        return NDFrame.sum(self, axis, skipna, numeric_only, min_count, **kwargs)
+        return NDFrame.sum(
+            self,
+            axis=axis,
+            skipna=skipna,
+            numeric_only=numeric_only,
+            min_count=min_count,
+            **kwargs,
+        )
 
     @doc(make_doc("prod", ndim=1))
     def prod(
@@ -6273,7 +6281,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         min_count: int = 0,
         **kwargs,
     ):
-        return NDFrame.prod(self, axis, skipna, numeric_only, min_count, **kwargs)
+        return NDFrame.prod(
+            self,
+            axis=axis,
+            skipna=skipna,
+            numeric_only=numeric_only,
+            min_count=min_count,
+            **kwargs,
+        )
 
     @doc(make_doc("mean", ndim=1))
     def mean(
@@ -6283,7 +6298,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only: bool = False,
         **kwargs,
     ):
-        return NDFrame.mean(self, axis, skipna, numeric_only, **kwargs)
+        return NDFrame.mean(
+            self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
+        )
 
     @doc(make_doc("median", ndim=1))
     def median(
@@ -6293,7 +6310,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only: bool = False,
         **kwargs,
     ):
-        return NDFrame.median(self, axis, skipna, numeric_only, **kwargs)
+        return NDFrame.median(
+            self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
+        )
 
     @doc(make_doc("sem", ndim=1))
     def sem(
@@ -6304,7 +6323,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only: bool = False,
         **kwargs,
     ):
-        return NDFrame.sem(self, axis, skipna, ddof, numeric_only, **kwargs)
+        return NDFrame.sem(
+            self,
+            axis=axis,
+            skipna=skipna,
+            ddof=ddof,
+            numeric_only=numeric_only,
+            **kwargs,
+        )
 
     @doc(make_doc("var", ndim=1))
     def var(
@@ -6315,7 +6341,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only: bool = False,
         **kwargs,
     ):
-        return NDFrame.var(self, axis, skipna, ddof, numeric_only, **kwargs)
+        return NDFrame.var(
+            self,
+            axis=axis,
+            skipna=skipna,
+            ddof=ddof,
+            numeric_only=numeric_only,
+            **kwargs,
+        )
 
     @doc(make_doc("std", ndim=1))
     def std(
@@ -6326,7 +6359,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only: bool = False,
         **kwargs,
     ):
-        return NDFrame.std(self, axis, skipna, ddof, numeric_only, **kwargs)
+        return NDFrame.std(
+            self,
+            axis=axis,
+            skipna=skipna,
+            ddof=ddof,
+            numeric_only=numeric_only,
+            **kwargs,
+        )
 
     @doc(make_doc("skew", ndim=1))
     def skew(
@@ -6336,7 +6376,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only: bool = False,
         **kwargs,
     ):
-        return NDFrame.skew(self, axis, skipna, numeric_only, **kwargs)
+        return NDFrame.skew(
+            self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
+        )
 
     @doc(make_doc("kurt", ndim=1))
     def kurt(
@@ -6346,7 +6388,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only: bool = False,
         **kwargs,
     ):
-        return NDFrame.kurt(self, axis, skipna, numeric_only, **kwargs)
+        return NDFrame.kurt(
+            self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
+        )
 
     kurtosis = kurt
     product = prod
