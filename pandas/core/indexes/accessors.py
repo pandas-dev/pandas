@@ -337,8 +337,8 @@ class DatetimeProperties(Properties):
         dtype: datetime64[ns]
 
         >>> s.dt.to_pydatetime()
-        0   2018-03-10
-        1   2018-03-11
+        0    2018-03-10 00:00:00
+        1    2018-03-11 00:00:00
         dtype: object
 
         pandas' nanosecond precision is truncated to microseconds.
@@ -350,8 +350,9 @@ class DatetimeProperties(Properties):
         dtype: datetime64[ns]
 
         >>> s.dt.to_pydatetime()
-        array([datetime.datetime(2018, 3, 10, 0, 0),
-               datetime.datetime(2018, 3, 10, 0, 0)], dtype=object)
+        0    2018-03-10 00:00:00
+        1    2018-03-11 00:00:00
+        dtype: object
         """
         # GH#20306
         from pandas import Series
