@@ -1333,7 +1333,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._wrap_reduction_result("max", result, skipna=skipna, axis=axis)
 
     def map(self, mapper, na_action=None):
-        return map_array(self.to_numpy(), mapper, na_action=None)
+        return map_array(self.to_numpy(), mapper, na_action=na_action)
 
     def any(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         """
