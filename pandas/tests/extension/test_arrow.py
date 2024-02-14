@@ -26,6 +26,7 @@ from io import (
 import operator
 import pickle
 import re
+import sys
 
 import numpy as np
 import pytest
@@ -2172,14 +2173,21 @@ def test_str_removeprefix(val):
 @pytest.mark.parametrize(
     "encoding, exp",
     [
-        ["utf8", b"abc"],
-        ["utf32", b"\xff\xfe\x00\x00a\x00\x00\x00b\x00\x00\x00c\x00\x00\x00"],
+        ("utf8", {"little": b"abc", "big": "abc"}),
+        (
+            "utf32",
+            {
+                "little": b"\xff\xfe\x00\x00a\x00\x00\x00b\x00\x00\x00c\x00\x00\x00",
+                "big": b"\x00\x00\xfe\xff\x00\x00\x00a\x00\x00\x00b\x00\x00\x00c",
+            },
+        ),
     ],
+    ids=["utf8", "utf32"],
 )
 def test_str_encode(errors, encoding, exp):
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.encode(encoding, errors)
-    expected = pd.Series([exp, None], dtype=ArrowDtype(pa.binary()))
+    expected = pd.Series([exp[sys.byteorder], None], dtype=ArrowDtype(pa.binary()))
     tm.assert_series_equal(result, expected)
 
 
@@ -3489,3 +3497,10 @@ def test_to_numpy_timestamp_to_int():
     result = ser.to_numpy(dtype=np.int64)
     expected = np.array([1577853000000000000])
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_map_numeric_na_action():
+    ser = pd.Series([32, 40, None], dtype="int64[pyarrow]")
+    result = ser.map(lambda x: 42, na_action="ignore")
+    expected = pd.Series([42.0, 42.0, np.nan], dtype="float64")
+    tm.assert_series_equal(result, expected)

@@ -35,7 +35,7 @@ def test_series_describe_single():
     )
     grouped = ts.groupby(lambda x: x.month)
     result = grouped.apply(lambda x: x.describe())
-    expected = grouped.describe().stack(future_stack=True)
+    expected = grouped.describe().stack()
     tm.assert_series_equal(result, expected)
 
 
