@@ -107,15 +107,11 @@ def assert_produces_warning(
             yield w
         finally:
             if expected_warning:
-                if type(expected_warning) == tuple and must_find_all_warnings:
-                    expected_warning = cast(tuple[type[Warning]], expected_warning)
+                if isinstance(expected_warning, tuple) and must_find_all_warnings:
                     match = (
                         match
-                        if type(match) == tuple
-                        else tuple(
-                            cast(str | None, match)
-                            for i in range(len(expected_warning))
-                        )
+                        if isinstance(match, tuple)
+                        else tuple(match for i in range(len(expected_warning)))
                     )
                     for warning_type, warning_match in zip(expected_warning, match):
                         _assert_caught_expected_warning(
@@ -126,11 +122,10 @@ def assert_produces_warning(
                         )
                 else:
                     expected_warning = cast(type[Warning], expected_warning)
-                    match = cast(
-                        str,
+                    match = (
                         "|".join(m for m in match if m)
-                        if type(match) == tuple
-                        else match,
+                        if isinstance(match, tuple)
+                        else match
                     )
                     _assert_caught_expected_warning(
                         caught_warnings=w,
