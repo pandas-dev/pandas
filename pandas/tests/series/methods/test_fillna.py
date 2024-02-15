@@ -320,12 +320,7 @@ class TestSeriesFillNA:
         "scalar",
         [
             False,
-            pytest.param(
-                True,
-                marks=pytest.mark.xfail(
-                    reason="GH#56410 scalar case not yet addressed"
-                ),
-            ),
+            True,
         ],
     )
     @pytest.mark.parametrize("tz", [None, "UTC"])
@@ -354,12 +349,7 @@ class TestSeriesFillNA:
         "scalar",
         [
             False,
-            pytest.param(
-                True,
-                marks=pytest.mark.xfail(
-                    reason="GH#56410 scalar case not yet addressed"
-                ),
-            ),
+            True,
         ],
     )
     def test_timedelta64_fillna_mismatched_reso_no_rounding(self, scalar):
