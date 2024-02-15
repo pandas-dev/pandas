@@ -3914,7 +3914,7 @@ The look and feel of Excel worksheets created from pandas can be modified using 
     will not contain any styling. Users wishing to bold text, add bordered styles,
     etc in a worksheet output by ``to_excel`` can do so by using :meth:`Styler.to_excel`
     to create styled excel files. For documentation on styling spreadsheets, see
-`here <https://pandas.pydata.org/docs/user_guide/style.html#Export-to-Excel>`__.
+    `here <https://pandas.pydata.org/docs/user_guide/style.html#Export-to-Excel>`__.
 
 
 .. code-block:: python
