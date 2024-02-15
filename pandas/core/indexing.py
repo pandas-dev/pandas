@@ -50,6 +50,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
+    construct_1d_array_from_inferred_fill_value,
     infer_fill_value,
     is_valid_na_for_dtype,
     isna,
@@ -61,7 +62,6 @@ import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
     extract_array,
-    sanitize_array,
 )
 from pandas.core.indexers import (
     check_array_indexer,
@@ -1877,12 +1877,9 @@ class _iLocIndexer(_LocationIndexer):
 
                             self.obj[key] = empty_value
                         elif not is_list_like(value):
-                            # Find our empty_value dtype by constructing an array
-                            #  from our value and doing a .take on it
-                            arr = sanitize_array(value, Index(range(1)), copy=False)
-                            taker = -1 * np.ones(len(self.obj), dtype=np.intp)
-                            empty_value = algos.take_nd(arr, taker)
-                            self.obj[key] = empty_value
+                            self.obj[key] = construct_1d_array_from_inferred_fill_value(
+                                value, len(self.obj)
+                            )
                         else:
                             # FIXME: GH#42099#issuecomment-864326014
                             self.obj[key] = infer_fill_value(value)
@@ -2172,10 +2169,9 @@ class _iLocIndexer(_LocationIndexer):
                 # Columns F and G will initially be set to np.void.
                 # Here, we replace those temporary `np.void` columns with
                 # columns of the appropriate dtype, based on `value`.
-                arr = sanitize_array(value, Index(range(1)), copy=False)
-                taker = -1 * np.ones(len(self.obj), dtype=np.intp)
-                empty_value = algos.take_nd(arr, taker)
-                self.obj.iloc[:, loc] = empty_value
+                self.obj.iloc[:, loc] = construct_1d_array_from_inferred_fill_value(
+                    value, len(self.obj)
+                )
             self.obj._mgr.column_setitem(loc, plane_indexer, value)
 
     def _setitem_single_block(self, indexer, value, name: str) -> None:
