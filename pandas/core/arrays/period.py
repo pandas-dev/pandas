@@ -986,7 +986,9 @@ def raise_on_incompatible(left, right) -> IncompatibleFrequency:
         other_freq = None
     elif isinstance(right, BaseOffset):
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+            warnings.filterwarnings(
+                "ignore", r"PeriodDtype\[B\] is deprecated", category=FutureWarning
+            )
             other_freq = PeriodDtype(right)._freqstr
     elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period)):
         other_freq = right.freqstr
