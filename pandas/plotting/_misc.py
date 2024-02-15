@@ -278,10 +278,11 @@ def radviz(
     Returns
     -------
     :class:`matplotlib.axes.Axes`
+        The Axes object from Matplotlib.
 
     See Also
     --------
-    pandas.plotting.andrews_curves : Plot clustering visualization.
+    plotting.andrews_curves : Plot clustering visualization.
 
     Examples
     --------
@@ -431,8 +432,8 @@ def bootstrap_plot(
 
     See Also
     --------
-    pandas.DataFrame.plot : Basic plotting for DataFrame objects.
-    pandas.Series.plot : Basic plotting for Series objects.
+    DataFrame.plot : Basic plotting for DataFrame objects.
+    Series.plot : Basic plotting for Series objects.
 
     Examples
     --------
