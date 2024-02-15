@@ -805,8 +805,8 @@ def to_datetime(
         of 'year', 'month', day' columns is missing in a :class:`DataFrame`, or
         when a Timezone-aware :class:`datetime.datetime` is found in an array-like
         of mixed time offsets, and ``utc=False``, or when parsing datetimes
-        with mixed time zones unless ``utc=True``. Parsing datetimes with mixed
-        time zones, please specify ``utc=True`` to opt in to the new behaviour.
+        with mixed time zones unless ``utc=True``. If parsing datetimes with mixed
+        time zones, please specify ``utc=True``.
 
     See Also
     --------
