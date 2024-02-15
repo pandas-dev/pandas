@@ -18,10 +18,7 @@ from pandas.errors import (
     ParserWarning,
 )
 
-from pandas import (
-    DataFrame,
-    Series,
-)
+from pandas import DataFrame
 import pandas._testing as tm
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
