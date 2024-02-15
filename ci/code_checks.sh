@@ -1871,9 +1871,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.SeriesGroupBy.first\
         pandas.core.groupby.SeriesGroupBy.last\
         pandas.core.window.expanding.Expanding.aggregate\
-        pandas.core.window.rolling.Rolling.aggregate\
-        pandas.plotting.bootstrap_plot\
-        pandas.plotting.radviz # There should be no backslash in the final line, please keep this comment in the last ignored function
+        pandas.core.window.rolling.Rolling.aggregate # There should be no backslash in the final line, please keep this comment in the last ignored function
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
