@@ -486,6 +486,7 @@ def assert_categorical_equal(
     _check_isinstance(left, right, Categorical)
 
     exact: bool | str
+    # TODO: Can this be made strict?
     if isinstance(left.categories, RangeIndex) or isinstance(
         right.categories, RangeIndex
     ):
