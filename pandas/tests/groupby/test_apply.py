@@ -1502,7 +1502,7 @@ def test_include_groups(include_groups):
 
 @pytest.mark.parametrize("func, value", [(max, 2), (min, 1), (sum, 3)])
 def test_builtins_apply(func, value):
-    # GH#8155, GH#???
+    # GH#8155, GH#53974
     # Builtins act as e.g. sum(group), which sums the column labels of group
     df = DataFrame({0: [1, 1, 2], 1: [3, 4, 5], 2: [3, 4, 5]})
     gb = df.groupby(0)
