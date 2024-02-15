@@ -589,12 +589,12 @@ cpdef array_to_datetime(
             return values, None
 
     if seen_datetime_offset and not utc_convert:
-        # GH#17697
+        # GH#17697, GH#57275
         # 1) If all the offsets are equal, return one offset for
         #    the parsed dates to (maybe) pass to DatetimeIndex
-        # 2) If the offsets are different, then force the parsing down the
-        #    object path where an array of datetimes
-        #    (with individual dateutil.tzoffsets) are returned
+        # 2) If the offsets are different, then do not force the parsing
+        #    and raise a ValueError: "cannot parse datetimes with
+        #    mixed time zones unless `utc=True`" instead
         is_same_offsets = len(out_tzoffset_vals) == 1
         if not is_same_offsets:
             raise ValueError(

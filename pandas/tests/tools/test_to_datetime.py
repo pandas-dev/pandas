@@ -3589,6 +3589,7 @@ def test_to_datetime_mixed_awareness_mixed_types(aware_val, naive_val, naive_fir
         msg = "cannot parse datetimes with mixed time zones unless `utc=True`"
         with pytest.raises(ValueError, match=msg):
             to_datetime(vec, format="mixed")
+        with pytest.raises(ValueError, match=msg):
             DatetimeIndex(vec)
     else:
         msg = "Cannot mix tz-aware with tz-naive values"
