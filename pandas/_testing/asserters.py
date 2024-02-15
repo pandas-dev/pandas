@@ -181,7 +181,7 @@ def assert_dict_equal(left, right, compare_keys: bool = True) -> None:
 def assert_index_equal(
     left: Index,
     right: Index,
-    exact: bool | str = "equiv",
+    exact: bool | Literal["equiv"] = True,
     check_names: bool = True,
     check_exact: bool = True,
     check_categorical: bool = True,
@@ -201,6 +201,9 @@ def assert_index_equal(
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
         Index with an int64 dtype as well.
+
+        ..  versionchanged:: 3.0
+            The default changed from ``'equiv'`` to ``True``
     check_names : bool, default True
         Whether to check the names attribute.
     check_exact : bool, default True
@@ -828,7 +831,7 @@ def assert_series_equal(
     left,
     right,
     check_dtype: bool | Literal["equiv"] = True,
-    check_index_type: bool | Literal["equiv"] = "equiv",
+    check_index_type: bool | Literal["equiv"] = True,
     check_series_type: bool = True,
     check_names: bool = True,
     check_exact: bool | lib.NoDefault = lib.no_default,
@@ -856,6 +859,9 @@ def assert_series_equal(
     check_index_type : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical.
+
+        ..  versionchanged:: 3.0
+            The default changed from ``'equiv'`` to ``True``
     check_series_type : bool, default True
          Whether to check the Series class is identical.
     check_names : bool, default True
@@ -1095,8 +1101,8 @@ def assert_frame_equal(
     left,
     right,
     check_dtype: bool | Literal["equiv"] = True,
-    check_index_type: bool | Literal["equiv"] = "equiv",
-    check_column_type: bool | Literal["equiv"] = "equiv",
+    check_index_type: bool | Literal["equiv"] = True,
+    check_column_type: bool | Literal["equiv"] = True,
     check_frame_type: bool = True,
     check_names: bool = True,
     by_blocks: bool = False,
@@ -1126,13 +1132,19 @@ def assert_frame_equal(
         Second DataFrame to compare.
     check_dtype : bool, default True
         Whether to check the DataFrame dtype is identical.
-    check_index_type : bool or {'equiv'}, default 'equiv'
+    check_index_type : bool or {'equiv'}, default True
         Whether to check the Index class, dtype and inferred_type
         are identical.
-    check_column_type : bool or {'equiv'}, default 'equiv'
+
+        ..  versionchanged:: 3.0
+            The default changed from ``'equiv'`` to ``True``
+    check_column_type : bool or {'equiv'}, default True
         Whether to check the columns class, dtype and inferred_type
         are identical. Is passed as the ``exact`` argument of
         :func:`assert_index_equal`.
+
+        ..  versionchanged:: 3.0
+            The default changed from ``'equiv'`` to ``True``
     check_frame_type : bool, default True
         Whether to check the DataFrame class is identical.
     check_names : bool, default True
