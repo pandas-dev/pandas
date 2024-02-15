@@ -623,6 +623,15 @@ A circle        NaN      1.0
 B square        0.0      0.0
   pentagon      0.0      0.0
   hexagon       0.0      0.0
+
+>>> df_pow = pd.DataFrame({'A': [2, 3, 4],
+...                        'B': [5, 6, 7]})
+>>> df_pow.pow(2)
+    A   B
+0   4  25
+1   9  36
+2  16  49
+
 """
 
 _flex_comp_doc_FRAME = """
