@@ -42,6 +42,7 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    RangeIndex,
     Series,
     isna,
     notna,
@@ -1160,6 +1161,11 @@ class Parser:
             )
             if result:
                 new_axis = Index(new_ser, dtype=new_ser.dtype, copy=False)
+                # GH 57429
+                if new_axis.dtype.kind == "i":
+                    rng_idx = RangeIndex(len(new_axis))
+                    if new_axis.equals(rng_idx):
+                        new_axis = rng_idx
                 setattr(self.obj, axis_name, new_axis)
 
     def _try_convert_types(self) -> None:
