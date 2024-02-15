@@ -462,7 +462,7 @@ class TestTimeConversionFormats:
     def test_to_datetime_parse_tzname_or_tzoffset_utc_false_removed(
         self, fmt, dates, expected_dates
     ):
-        # GH 13486, 50887
+        # GH#13486, GH#50887, GH#57275
         msg = "cannot parse datetimes with mixed time zones unless `utc=True`"
         with pytest.raises(ValueError, match=msg):
             to_datetime(dates, format=fmt)
@@ -640,6 +640,7 @@ class TestToDatetime:
     ):
         # https://github.com/pandas-dev/pandas/issues/49298
         # https://github.com/pandas-dev/pandas/issues/50254
+        # GH#57275
         # note: ISO8601 formats go down a fastpath, so we need to check both
         # a ISO8601 format and a non-ISO8601 one
         args = ["2000-01-01 01:00:00", "2000-01-01 02:00:00+00:00"]
@@ -677,6 +678,7 @@ class TestToDatetime:
         self, fmt, expected
     ):
         # https://github.com/pandas-dev/pandas/issues/50071
+        # GH#57275
         msg = "cannot parse datetimes with mixed time zones unless `utc=True`"
 
         with pytest.raises(ValueError, match=msg):
@@ -1143,9 +1145,10 @@ class TestToDatetime:
         )
         tm.assert_index_equal(result, expected)
 
-    def test_to_datetime_different_offsets(self, cache):
+    def test_to_datetime_different_offsets_removed(self, cache):
         # inspired by asv timeseries.ToDatetimeNONISO8601 benchmark
         # see GH-26097 for more
+        # GH#57275
         ts_string_1 = "March 1, 2018 12:00:00+0400"
         ts_string_2 = "March 1, 2018 12:00:00+0500"
         arr = [ts_string_1] * 5 + [ts_string_2] * 5
@@ -1500,7 +1503,7 @@ class TestToDatetime:
             to_datetime(date, format=format)
 
     def test_to_datetime_coerce(self):
-        # GH 26122
+        # GH#26122, GH#57275
         ts_strings = [
             "March 1, 2018 12:00:00+0400",
             "March 1, 2018 12:00:00+0500",
@@ -1575,8 +1578,8 @@ class TestToDatetime:
         result = DatetimeIndex([ts_str] * 2)
         tm.assert_index_equal(result, expected)
 
-    def test_iso_8601_strings_with_different_offsets(self):
-        # GH 17697, 11736, 50887
+    def test_iso_8601_strings_with_different_offsets_removed(self):
+        # GH#17697, GH#11736, GH#50887, GH#57275
         ts_strings = ["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30", NaT]
         msg = "cannot parse datetimes with mixed time zones unless `utc=True`"
         with pytest.raises(ValueError, match=msg):
@@ -1591,7 +1594,7 @@ class TestToDatetime:
         tm.assert_index_equal(result, expected)
 
     def test_mixed_offsets_with_native_datetime_utc_false_raises(self):
-        # GH 25978
+        # GH#25978, GH#57275
 
         vals = [
             "nan",
@@ -1668,8 +1671,8 @@ class TestToDatetime:
             ],
         ],
     )
-    def test_to_datetime_mixed_offsets_with_utc_false_deprecated(self, date):
-        # GH 50887
+    def test_to_datetime_mixed_offsets_with_utc_false_removed(self, date):
+        # GH#50887, GH#57275
         msg = "cannot parse datetimes with mixed time zones unless `utc=True`"
         with pytest.raises(ValueError, match=msg):
             to_datetime(date, utc=False)
@@ -3459,7 +3462,7 @@ def test_to_datetime_with_empty_str_utc_false_format_mixed():
 
 
 def test_to_datetime_with_empty_str_utc_false_offsets_and_format_mixed():
-    # GH 50887
+    # GH#50887, GH#57275
     msg = "cannot parse datetimes with mixed time zones unless `utc=True`"
 
     with pytest.raises(ValueError, match=msg):
@@ -3521,7 +3524,7 @@ ts = Timestamp(dtstr)
 )
 @pytest.mark.parametrize("naive_first", [True, False])
 def test_to_datetime_mixed_awareness_mixed_types(aware_val, naive_val, naive_first):
-    # GH#55793, GH#55693
+    # GH#55793, GH#55693, GH#57275
     # Empty string parses to NaT
     vals = [aware_val, naive_val, ""]
 
