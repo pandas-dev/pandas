@@ -3912,15 +3912,15 @@ The look and feel of Excel worksheets created from pandas can be modified using 
 
     As of Pandas 3.0, by default spreadsheets created with the ``to_excel`` method
     will not contain any styling. Users wishing to bold text, add bordered styles,
-    etc in a worksheet output by ``to_excel`` can do so by using ``Styler.to_excel``
-    to create styled excel files.
+    etc in a worksheet output by ``to_excel`` can do so by using :meth:`Styler.to_excel`
+    to create styled excel files. For documentation on styling spreadsheets, see
+`here <https://pandas.pydata.org/docs/user_guide/style.html#Export-to-Excel>`__.
 
 
 .. code-block:: python
 
-    css = "border: 1pt solid #111222"
-    styler = df.style.map(lambda x: css)
-    styler.to_excel("path_to_file.xlsx", sheet_name="custom", index=False)
+    css = "border: 1px solid black; font-weight: bold;"
+    df.style.map_index(lambda x: css).map_index(lambda x: css, axis=1).to_excel("myfile.xlsx")
 
 Using the `Xlsxwriter`_ engine provides many options for controlling the
 format of an Excel worksheet created with the ``to_excel`` method.  Excellent examples can be found in the
