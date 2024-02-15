@@ -289,6 +289,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Index.slice_locs\
         pandas.Index.symmetric_difference\
         pandas.Index.to_frame\
+        pandas.Index.to_numpy\
         pandas.IndexSlice\
         pandas.Interval\
         pandas.Interval.is_empty\
