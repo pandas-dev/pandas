@@ -220,6 +220,20 @@ class TestIntervalRange:
         expected = "int64" if is_integer(start + end) else "float64"
         assert result == expected
 
+    @pytest.mark.parametrize(
+        "start, end, expected",
+        [
+            (np.int8(1), np.int8(10), np.dtype("int8")),
+            (np.int8(1), np.float16(10), np.dtype("float64")),
+            (np.float32(1), np.float32(10), np.dtype("float32")),
+            (1, 10, np.dtype("int64")),
+            (1, 10.0, np.dtype("float64")),
+        ],
+    )
+    def test_interval_dtype(self, start, end, expected):
+        result = interval_range(start=start, end=end).dtype.subtype
+        assert result == expected
+
     def test_interval_range_fractional_period(self):
         # float value for periods
         expected = interval_range(start=0, periods=10)

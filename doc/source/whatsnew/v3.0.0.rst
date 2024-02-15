@@ -211,7 +211,7 @@ Strings
 
 Interval
 ^^^^^^^^
--
+- Bug in :func:`interval_range` where start and end numeric types were always cast to 64 bit (:issue:`57268`)
 -
 
 Indexing
