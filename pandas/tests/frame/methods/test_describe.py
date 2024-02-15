@@ -92,7 +92,7 @@ class TestDataFrameDescribe:
         tm.assert_frame_equal(result, expected)
 
     def test_describe_categorical(self):
-        df = DataFrame({"value": np.random.randint(0, 10000, 100)})
+        df = DataFrame({"value": np.random.default_rng(2).integers(0, 10000, 100)})
         labels = [f"{i} - {i + 499}" for i in range(0, 10000, 500)]
         cat_labels = Categorical(labels, labels)
 
@@ -204,7 +204,7 @@ class TestDataFrameDescribe:
     def test_describe_timedelta_values(self):
         # GH#6145
         t1 = pd.timedelta_range("1 days", freq="D", periods=5)
-        t2 = pd.timedelta_range("1 hours", freq="H", periods=5)
+        t2 = pd.timedelta_range("1 hours", freq="h", periods=5)
         df = DataFrame({"t1": t1, "t2": t2})
 
         expected = DataFrame(
@@ -332,7 +332,7 @@ class TestDataFrameDescribe:
         result = df.describe(percentiles=pct)
 
         expected = DataFrame(
-            {"x": [1.0, 1.0, np.NaN, 1.0, *(1.0 for _ in pct), 1.0]},
+            {"x": [1.0, 1.0, np.nan, 1.0, *(1.0 for _ in pct), 1.0]},
             index=[
                 "count",
                 "mean",

@@ -19,12 +19,12 @@ See NUMPY_LICENSE.txt for the license.
 
 #ifndef NPY_NO_DEPRECATED_API
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#endif  // NPY_NO_DEPRECATED_API
+#endif // NPY_NO_DEPRECATED_API
 
-#include <numpy/ndarraytypes.h>
+#include "pandas/datetime/date_conversions.h"
 #include "pandas/vendored/numpy/datetime/np_datetime.h"
 #include "pandas/vendored/numpy/datetime/np_datetime_strings.h"
-#include "pandas/datetime/date_conversions.h"
+#include <numpy/ndarraytypes.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,9 +33,8 @@ extern "C" {
 typedef struct {
   npy_datetime (*npy_datetimestruct_to_datetime)(NPY_DATETIMEUNIT,
                                                  const npy_datetimestruct *);
-  int (*scaleNanosecToUnit)(npy_int64 *, NPY_DATETIMEUNIT);
+  int (*scaleNanosecToUnit)(int64_t *, NPY_DATETIMEUNIT);
   char *(*int64ToIso)(int64_t, NPY_DATETIMEUNIT, NPY_DATETIMEUNIT, size_t *);
-  npy_datetime (*NpyDateTimeToEpoch)(npy_datetime, NPY_DATETIMEUNIT);
   char *(*PyDateTimeToIso)(PyObject *, NPY_DATETIMEUNIT, size_t *);
   npy_datetime (*PyDateTimeToEpoch)(PyObject *, NPY_DATETIMEUNIT);
   char *(*int64ToIsoDuration)(int64_t, size_t *);
@@ -51,7 +50,7 @@ typedef struct {
                                  NPY_DATETIMEUNIT *, int *, int *, const char *,
                                  int, FormatRequirement);
   int (*get_datetime_iso_8601_strlen)(int, NPY_DATETIMEUNIT);
-  int (*make_iso_8601_datetime)(npy_datetimestruct *, char *, int, int,
+  int (*make_iso_8601_datetime)(npy_datetimestruct *, char *, size_t, int,
                                 NPY_DATETIMEUNIT);
   int (*make_iso_8601_timedelta)(pandas_timedeltastruct *, char *, size_t *);
 } PandasDateTime_CAPI;

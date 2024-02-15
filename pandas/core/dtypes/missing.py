@@ -129,7 +129,7 @@ def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     --------
     Scalar arguments (including strings) result in a scalar boolean.
 
-    >>> pd.isna('dog')
+    >>> pd.isna("dog")
     False
 
     >>> pd.isna(pd.NA)
@@ -150,8 +150,7 @@ def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     For indexes, an ndarray of booleans is returned.
 
-    >>> index = pd.DatetimeIndex(["2017-07-05", "2017-07-06", None,
-    ...                           "2017-07-08"])
+    >>> index = pd.DatetimeIndex(["2017-07-05", "2017-07-06", None, "2017-07-08"])
     >>> index
     DatetimeIndex(['2017-07-05', '2017-07-06', 'NaT', '2017-07-08'],
                   dtype='datetime64[ns]', freq=None)
@@ -160,7 +159,7 @@ def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     For Series and DataFrame, the same type is returned, containing booleans.
 
-    >>> df = pd.DataFrame([['ant', 'bee', 'cat'], ['dog', None, 'fly']])
+    >>> df = pd.DataFrame([["ant", "bee", "cat"], ["dog", None, "fly"]])
     >>> df
          0     1    2
     0  ant   bee  cat
@@ -258,7 +257,9 @@ def _use_inf_as_na(key) -> None:
         globals()["INF_AS_NA"] = False
 
 
-def _isna_array(values: ArrayLike, inf_as_na: bool = False):
+def _isna_array(
+    values: ArrayLike, inf_as_na: bool = False
+) -> npt.NDArray[np.bool_] | NDFrame:
     """
     Return an array indicating which values of the input array are NaN / NA.
 
@@ -275,6 +276,7 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
         Array of boolean values denoting the NA status of each element.
     """
     dtype = values.dtype
+    result: npt.NDArray[np.bool_] | NDFrame
 
     if not isinstance(values, np.ndarray):
         # i.e. ExtensionArray
@@ -285,7 +287,7 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
             # "Union[ndarray[Any, Any], ExtensionArraySupportsAnyAll]", variable has
             # type "ndarray[Any, dtype[bool_]]")
             result = values.isna()  # type: ignore[assignment]
-    elif isinstance(values, np.recarray):
+    elif isinstance(values, np.rec.recarray):
         # GH 48526
         result = _isna_recarray_dtype(values, inf_as_na=inf_as_na)
     elif is_string_or_object_np_dtype(values.dtype):
@@ -332,7 +334,9 @@ def _has_record_inf_value(record_as_array: np.ndarray) -> np.bool_:
     return np.any(is_inf_in_record)
 
 
-def _isna_recarray_dtype(values: np.recarray, inf_as_na: bool) -> npt.NDArray[np.bool_]:
+def _isna_recarray_dtype(
+    values: np.rec.recarray, inf_as_na: bool
+) -> npt.NDArray[np.bool_]:
     result = np.zeros(values.shape, dtype=bool)
     for i, record in enumerate(values):
         record_as_array = np.array(record.tolist())
@@ -406,7 +410,7 @@ def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     --------
     Scalar arguments (including strings) result in a scalar boolean.
 
-    >>> pd.notna('dog')
+    >>> pd.notna("dog")
     True
 
     >>> pd.notna(pd.NA)
@@ -427,8 +431,7 @@ def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     For indexes, an ndarray of booleans is returned.
 
-    >>> index = pd.DatetimeIndex(["2017-07-05", "2017-07-06", None,
-    ...                          "2017-07-08"])
+    >>> index = pd.DatetimeIndex(["2017-07-05", "2017-07-06", None, "2017-07-08"])
     >>> index
     DatetimeIndex(['2017-07-05', '2017-07-06', 'NaT', '2017-07-08'],
                   dtype='datetime64[ns]', freq=None)
@@ -437,7 +440,7 @@ def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     For Series and DataFrame, the same type is returned, containing booleans.
 
-    >>> df = pd.DataFrame([['ant', 'bee', 'cat'], ['dog', None, 'fly']])
+    >>> df = pd.DataFrame([["ant", "bee", "cat"], ["dog", None, "fly"]])
     >>> df
          0     1    2
     0  ant   bee  cat
@@ -493,13 +496,9 @@ def array_equivalent(
 
     Examples
     --------
-    >>> array_equivalent(
-    ...     np.array([1, 2, np.nan]),
-    ...     np.array([1, 2, np.nan]))
+    >>> array_equivalent(np.array([1, 2, np.nan]), np.array([1, 2, np.nan]))
     True
-    >>> array_equivalent(
-    ...     np.array([1, np.nan, 2]),
-    ...     np.array([1, 2, np.nan]))
+    >>> array_equivalent(np.array([1, np.nan, 2]), np.array([1, 2, np.nan]))
     False
     """
     left, right = np.asarray(left), np.asarray(right)
@@ -555,17 +554,36 @@ def _array_equivalent_float(left: np.ndarray, right: np.ndarray) -> bool:
     return bool(((left == right) | (np.isnan(left) & np.isnan(right))).all())
 
 
-def _array_equivalent_datetimelike(left: np.ndarray, right: np.ndarray):
+def _array_equivalent_datetimelike(left: np.ndarray, right: np.ndarray) -> bool:
     return np.array_equal(left.view("i8"), right.view("i8"))
 
 
-def _array_equivalent_object(left: np.ndarray, right: np.ndarray, strict_nan: bool):
-    if not strict_nan:
-        # isna considers NaN and None to be equivalent.
+def _array_equivalent_object(
+    left: np.ndarray, right: np.ndarray, strict_nan: bool
+) -> bool:
+    left = ensure_object(left)
+    right = ensure_object(right)
 
-        return lib.array_equivalent_object(ensure_object(left), ensure_object(right))
+    mask: npt.NDArray[np.bool_] | None = None
+    if strict_nan:
+        mask = isna(left) & isna(right)
+        if not mask.any():
+            mask = None
 
-    for left_value, right_value in zip(left, right):
+    try:
+        if mask is None:
+            return lib.array_equivalent_object(left, right)
+        if not lib.array_equivalent_object(left[~mask], right[~mask]):
+            return False
+        left_remaining = left[mask]
+        right_remaining = right[mask]
+    except ValueError:
+        # can raise a ValueError if left and right cannot be
+        # compared (e.g. nested arrays)
+        left_remaining = left
+        right_remaining = right
+
+    for left_value, right_value in zip(left_remaining, right_remaining):
         if left_value is NaT and right_value is not NaT:
             return False
 
@@ -622,6 +640,9 @@ def infer_fill_value(val):
             return np.array("NaT", dtype=DT64NS_DTYPE)
         elif dtype in ["timedelta", "timedelta64"]:
             return np.array("NaT", dtype=TD64NS_DTYPE)
+        return np.array(np.nan, dtype=object)
+    elif val.dtype.kind == "U":
+        return np.array(np.nan, dtype=val.dtype)
     return np.nan
 
 
@@ -649,22 +670,23 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
 
     Examples
     --------
-    >>> na_value_for_dtype(np.dtype('int64'))
+    >>> na_value_for_dtype(np.dtype("int64"))
     0
-    >>> na_value_for_dtype(np.dtype('int64'), compat=False)
+    >>> na_value_for_dtype(np.dtype("int64"), compat=False)
     nan
-    >>> na_value_for_dtype(np.dtype('float64'))
+    >>> na_value_for_dtype(np.dtype("float64"))
     nan
-    >>> na_value_for_dtype(np.dtype('bool'))
+    >>> na_value_for_dtype(np.dtype("bool"))
     False
-    >>> na_value_for_dtype(np.dtype('datetime64[ns]'))
+    >>> na_value_for_dtype(np.dtype("datetime64[ns]"))
     numpy.datetime64('NaT')
     """
 
     if isinstance(dtype, ExtensionDtype):
         return dtype.na_value
     elif dtype.kind in "mM":
-        return dtype.type("NaT", "ns")
+        unit = np.datetime_data(dtype)[0]
+        return dtype.type("NaT", unit)
     elif dtype.kind == "f":
         return np.nan
     elif dtype.kind in "iu":

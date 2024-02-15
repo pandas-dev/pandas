@@ -5,8 +5,6 @@ import string
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import SparseArray
@@ -28,8 +26,8 @@ def arrays_for_binary_ufunc():
     """
     A pair of random, length-100 integer-dtype arrays, that are mostly 0.
     """
-    a1 = np.random.randint(0, 10, 100, dtype="int64")
-    a2 = np.random.randint(0, 10, 100, dtype="int64")
+    a1 = np.random.default_rng(2).integers(0, 10, 100, dtype="int64")
+    a2 = np.random.default_rng(2).integers(0, 10, 100, dtype="int64")
     a1[::3] = 0
     a2[::4] = 0
     return a1, a2
@@ -38,7 +36,7 @@ def arrays_for_binary_ufunc():
 @pytest.mark.parametrize("ufunc", [np.positive, np.floor, np.exp])
 def test_unary_ufunc(ufunc, sparse):
     # Test that ufunc(pd.Series) == pd.Series(ufunc)
-    arr = np.random.randint(0, 10, 10, dtype="int64")
+    arr = np.random.default_rng(2).integers(0, 10, 10, dtype="int64")
     arr[::2] = 0
     if sparse:
         arr = SparseArray(arr, dtype=pd.SparseDtype("int64", 0))
@@ -120,7 +118,7 @@ def test_binary_ufunc_with_series(
     series = pd.Series(a1, name=name)
     other = pd.Series(a2, name=name)
 
-    idx = np.random.permutation(len(a1))
+    idx = np.random.default_rng(2).permutation(len(a1))
 
     if shuffle:
         other = other.take(idx)
@@ -274,7 +272,7 @@ class TestNumpyReductions:
 
         if isinstance(values, pd.core.arrays.SparseArray):
             mark = pytest.mark.xfail(reason="SparseArray has no 'prod'")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         if values.dtype.kind in "iuf":
             result = np.multiply.reduce(obj)
@@ -413,7 +411,7 @@ def test_outer():
     ser = pd.Series([1, 2, 3])
     obj = np.array([1, 2, 3])
 
-    with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
+    with pytest.raises(NotImplementedError, match=""):
         np.subtract.outer(ser, obj)
 
 
@@ -425,6 +423,13 @@ def test_np_matmul():
 
     result = np.matmul(df1, df2)
     tm.assert_frame_equal(expected, result)
+
+
+@pytest.mark.parametrize("box", [pd.Index, pd.Series])
+def test_np_matmul_1D(box):
+    result = np.matmul(box([1, 2]), box([2, 3]))
+    assert result == 8
+    assert isinstance(result, np.int64)
 
 
 def test_array_ufuncs_for_many_arguments():
@@ -449,8 +454,7 @@ def test_array_ufuncs_for_many_arguments():
         ufunc(ser, ser, df)
 
 
-# TODO(CoW) see https://github.com/pandas-dev/pandas/pull/51082
-@td.skip_copy_on_write_not_yet_implemented
+@pytest.mark.xfail(reason="see https://github.com/pandas-dev/pandas/pull/51082")
 def test_np_fix():
     # np.fix is not a ufunc but is composed of several ufunc calls under the hood
     # with `out` and `where` keywords

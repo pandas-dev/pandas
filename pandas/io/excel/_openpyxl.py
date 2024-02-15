@@ -24,10 +24,12 @@ from pandas.io.excel._util import (
 )
 
 if TYPE_CHECKING:
+    from openpyxl import Workbook
     from openpyxl.descriptors.serialisable import Serialisable
-    from openpyxl.workbook import Workbook
+    from openpyxl.styles import Fill
 
     from pandas._typing import (
+        ExcelWriterIfSheetExists,
         FilePath,
         ReadBuffer,
         Scalar,
@@ -48,7 +50,7 @@ class OpenpyxlWriter(ExcelWriter):
         datetime_format: str | None = None,
         mode: str = "w",
         storage_options: StorageOptions | None = None,
-        if_sheet_exists: str | None = None,
+        if_sheet_exists: ExcelWriterIfSheetExists | None = None,
         engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
     ) -> None:
@@ -243,7 +245,7 @@ class OpenpyxlWriter(ExcelWriter):
         return map(cls._convert_to_color, stop_seq)
 
     @classmethod
-    def _convert_to_fill(cls, fill_dict: dict[str, Any]):
+    def _convert_to_fill(cls, fill_dict: dict[str, Any]) -> Fill:
         """
         Convert ``fill_dict`` to an openpyxl v2 Fill object.
 
@@ -529,7 +531,7 @@ class OpenpyxlWriter(ExcelWriter):
                                 setattr(xcell, k, v)
 
 
-class OpenpyxlReader(BaseExcelReader):
+class OpenpyxlReader(BaseExcelReader["Workbook"]):
     @doc(storage_options=_shared_docs["storage_options"])
     def __init__(
         self,
@@ -556,22 +558,21 @@ class OpenpyxlReader(BaseExcelReader):
         )
 
     @property
-    def _workbook_class(self):
+    def _workbook_class(self) -> type[Workbook]:
         from openpyxl import Workbook
 
         return Workbook
 
     def load_workbook(
         self, filepath_or_buffer: FilePath | ReadBuffer[bytes], engine_kwargs
-    ):
+    ) -> Workbook:
         from openpyxl import load_workbook
+
+        default_kwargs = {"read_only": True, "data_only": True, "keep_links": False}
 
         return load_workbook(
             filepath_or_buffer,
-            read_only=True,
-            data_only=True,
-            keep_links=False,
-            **engine_kwargs,
+            **(default_kwargs | engine_kwargs),
         )
 
     @property

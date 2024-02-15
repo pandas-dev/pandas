@@ -73,8 +73,8 @@ class TestCategoricalAnalytics:
     @pytest.mark.parametrize(
         "categories,expected",
         [
-            (list("ABC"), np.NaN),
-            ([1, 2, 3], np.NaN),
+            (list("ABC"), np.nan),
+            ([1, 2, 3], np.nan),
             pytest.param(
                 Series(date_range("2020-01-01", periods=3), dtype="category"),
                 NaT,
@@ -97,7 +97,6 @@ class TestCategoricalAnalytics:
         "values, categories",
         [(["a", "b", "c", np.nan], list("cba")), ([1, 2, 3, np.nan], [3, 2, 1])],
     )
-    @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize("function", ["min", "max"])
     def test_min_max_with_nan(self, values, categories, function, skipna):
         # GH 25303
@@ -111,7 +110,6 @@ class TestCategoricalAnalytics:
             assert result == expected
 
     @pytest.mark.parametrize("function", ["min", "max"])
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_min_max_only_nan(self, function, skipna):
         # https://github.com/pandas-dev/pandas/issues/33450
         cat = Categorical([np.nan], categories=[1, 2], ordered=True)

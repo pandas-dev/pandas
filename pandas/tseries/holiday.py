@@ -200,8 +200,10 @@ class Holiday:
         Holiday: July 3rd (month=7, day=3, )
 
         >>> NewYears = pd.tseries.holiday.Holiday(
-        ...     "New Years Day", month=1,  day=1,
-        ...      observance=pd.tseries.holiday.nearest_workday
+        ...     "New Years Day",
+        ...     month=1,
+        ...     day=1,
+        ...     observance=pd.tseries.holiday.nearest_workday,
         ... )
         >>> NewYears  # doctest: +SKIP
         Holiday: New Years Day (
@@ -209,8 +211,7 @@ class Holiday:
         )
 
         >>> July3rd = pd.tseries.holiday.Holiday(
-        ...     "July 3rd", month=7, day=3,
-        ...     days_of_week=(0, 1, 2, 3)
+        ...     "July 3rd", month=7, day=3, days_of_week=(0, 1, 2, 3)
         ... )
         >>> July3rd
         Holiday: July 3rd (month=7, day=3, )
@@ -283,11 +284,11 @@ class Holiday:
         holiday_dates = self._apply_rule(dates)
         if self.days_of_week is not None:
             holiday_dates = holiday_dates[
-                np.in1d(
+                np.isin(
                     # error: "DatetimeIndex" has no attribute "dayofweek"
                     holiday_dates.dayofweek,  # type: ignore[attr-defined]
                     self.days_of_week,
-                )
+                ).ravel()
             ]
 
         if self.start_date is not None:
@@ -354,7 +355,7 @@ class Holiday:
         Dates with rules applied
         """
         if dates.empty:
-            return DatetimeIndex([])
+            return dates.copy()
 
         if self.observance is not None:
             return dates.map(lambda d: self.observance(d))
@@ -384,7 +385,7 @@ def register(cls) -> None:
     holiday_calendars[name] = cls
 
 
-def get_calendar(name: str):
+def get_calendar(name: str) -> AbstractHolidayCalendar:
     """
     Return an instance of a calendar based on its name.
 
@@ -433,7 +434,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         if rules is not None:
             self.rules = rules
 
-    def rule_from_name(self, name: str):
+    def rule_from_name(self, name: str) -> Holiday | None:
         for rule in self.rules:
             if rule.name == name:
                 return rule
@@ -484,9 +485,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
             else:
                 # error: Incompatible types in assignment (expression has type
                 # "Series", variable has type "DataFrame")
-                holidays = Series(
-                    index=DatetimeIndex([]), dtype=object
-                )  # type: ignore[assignment]
+                holidays = Series(index=DatetimeIndex([]), dtype=object)  # type: ignore[assignment]
 
             self._cache = (start, end, holidays.sort_index())
 
@@ -570,7 +569,7 @@ USMartinLutherKingJr = Holiday(
     offset=DateOffset(weekday=MO(3)),
 )
 USPresidentsDay = Holiday(
-    "Washington’s Birthday", month=2, day=1, offset=DateOffset(weekday=MO(3))
+    "Washington's Birthday", month=2, day=1, offset=DateOffset(weekday=MO(3))
 )
 GoodFriday = Holiday("Good Friday", month=1, day=1, offset=[Easter(), Day(-2)])
 

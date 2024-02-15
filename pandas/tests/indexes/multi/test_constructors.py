@@ -7,8 +7,6 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under7p0
-
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 import pandas as pd
@@ -29,7 +27,7 @@ def test_constructor_single_level():
     assert isinstance(result, MultiIndex)
     expected = Index(["foo", "bar", "baz", "qux"], name="first")
     tm.assert_index_equal(result.levels[0], expected)
-    assert result.names == ["first"]
+    assert result.names == ("first",)
 
 
 def test_constructor_no_levels():
@@ -203,15 +201,15 @@ def test_from_arrays_tuples(idx):
     [
         (
             pd.period_range("2011-01-01", freq="D", periods=3),
-            pd.period_range("2015-01-01", freq="H", periods=3),
+            pd.period_range("2015-01-01", freq="h", periods=3),
         ),
         (
             date_range("2015-01-01 10:00", freq="D", periods=3, tz="US/Eastern"),
-            date_range("2015-01-01 10:00", freq="H", periods=3, tz="Asia/Tokyo"),
+            date_range("2015-01-01 10:00", freq="h", periods=3, tz="Asia/Tokyo"),
         ),
         (
             pd.timedelta_range("1 days", freq="D", periods=3),
-            pd.timedelta_range("2 hours", freq="H", periods=3),
+            pd.timedelta_range("2 hours", freq="h", periods=3),
         ),
     ],
 )
@@ -229,7 +227,7 @@ def test_from_arrays_index_series_period_datetimetz_and_timedelta(idx1, idx2):
 
 def test_from_arrays_index_datetimelike_mixed():
     idx1 = date_range("2015-01-01 10:00", freq="D", periods=3, tz="US/Eastern")
-    idx2 = date_range("2015-01-01 10:00", freq="H", periods=3)
+    idx2 = date_range("2015-01-01 10:00", freq="h", periods=3)
     idx3 = pd.timedelta_range("1 days", freq="D", periods=3)
     idx4 = pd.period_range("2011-01-01", freq="D", periods=3)
 
@@ -279,7 +277,7 @@ def test_from_arrays_empty():
     assert isinstance(result, MultiIndex)
     expected = Index([], name="A")
     tm.assert_index_equal(result.levels[0], expected)
-    assert result.names == ["A"]
+    assert result.names == ("A",)
 
     # N levels
     for N in [2, 3]:
@@ -306,7 +304,6 @@ def test_from_arrays_empty():
         (1, 2),
         ([1], 2),
         (1, [2]),
-        "a",
         ("a",),
         ("a", "b"),
         (["a"], "b"),
@@ -427,7 +424,7 @@ def test_from_product_empty_one_level():
     result = MultiIndex.from_product([[]], names=["A"])
     expected = Index([], name="A")
     tm.assert_index_equal(result.levels[0], expected)
-    assert result.names == ["A"]
+    assert result.names == ("A",)
 
 
 @pytest.mark.parametrize(
@@ -648,10 +645,9 @@ def test_from_frame():
     tm.assert_index_equal(expected, result)
 
 
-@pytest.mark.skipif(pa_version_under7p0, reason="minimum pyarrow not installed")
 def test_from_frame_missing_values_multiIndex():
     # GH 39984
-    import pyarrow as pa
+    pa = pytest.importorskip("pyarrow")
 
     df = pd.DataFrame(
         {
@@ -716,7 +712,7 @@ def test_from_frame_dtype_fidelity():
 
 
 @pytest.mark.parametrize(
-    "names_in,names_out", [(None, [("L1", "x"), ("L2", "y")]), (["x", "y"], ["x", "y"])]
+    "names_in,names_out", [(None, (("L1", "x"), ("L2", "y"))), (["x", "y"], ("x", "y"))]
 )
 def test_from_frame_valid_names(names_in, names_out):
     # GH 22420
@@ -778,7 +774,7 @@ def test_datetimeindex():
     idx1 = pd.DatetimeIndex(
         ["2013-04-01 9:00", "2013-04-02 9:00", "2013-04-03 9:00"] * 2, tz="Asia/Tokyo"
     )
-    idx2 = date_range("2010/01/01", periods=6, freq="M", tz="US/Eastern")
+    idx2 = date_range("2010/01/01", periods=6, freq="ME", tz="US/Eastern")
     idx = MultiIndex.from_arrays([idx1, idx2])
 
     expected1 = pd.DatetimeIndex(
@@ -816,13 +812,13 @@ def test_constructor_with_tz():
 
     result = MultiIndex.from_arrays([index, columns])
 
-    assert result.names == ["dt1", "dt2"]
+    assert result.names == ("dt1", "dt2")
     tm.assert_index_equal(result.levels[0], index)
     tm.assert_index_equal(result.levels[1], columns)
 
     result = MultiIndex.from_arrays([Series(index), Series(columns)])
 
-    assert result.names == ["dt1", "dt2"]
+    assert result.names == ("dt1", "dt2")
     tm.assert_index_equal(result.levels[0], index)
     tm.assert_index_equal(result.levels[1], columns)
 
@@ -850,11 +846,14 @@ def test_multiindex_inference_consistency():
     assert lev.dtype == object
 
 
-def test_dtype_representation():
+def test_dtype_representation(using_infer_string):
     # GH#46900
     pmidx = MultiIndex.from_arrays([[1], ["a"]], names=[("a", "b"), ("c", "d")])
     result = pmidx.dtypes
+    exp = "object" if not using_infer_string else "string"
     expected = Series(
-        ["int64", "object"], index=MultiIndex.from_tuples([("a", "b"), ("c", "d")])
+        ["int64", exp],
+        index=MultiIndex.from_tuples([("a", "b"), ("c", "d")]),
+        dtype=object,
     )
     tm.assert_series_equal(result, expected)

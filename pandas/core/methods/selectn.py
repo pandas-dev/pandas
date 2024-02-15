@@ -10,6 +10,7 @@ from collections.abc import (
 )
 from typing import (
     TYPE_CHECKING,
+    Generic,
     cast,
     final,
 )
@@ -32,16 +33,25 @@ if TYPE_CHECKING:
     from pandas._typing import (
         DtypeObj,
         IndexLabel,
+        NDFrameT,
     )
 
     from pandas import (
         DataFrame,
         Series,
     )
+else:
+    # Generic[...] requires a non-str, provide it with a plain TypeVar at
+    # runtime to avoid circular imports
+    from pandas._typing import T
+
+    NDFrameT = T
+    DataFrame = T
+    Series = T
 
 
-class SelectN:
-    def __init__(self, obj, n: int, keep: str) -> None:
+class SelectN(Generic[NDFrameT]):
+    def __init__(self, obj: NDFrameT, n: int, keep: str) -> None:
         self.obj = obj
         self.n = n
         self.keep = keep
@@ -49,15 +59,15 @@ class SelectN:
         if self.keep not in ("first", "last", "all"):
             raise ValueError('keep must be either "first", "last" or "all"')
 
-    def compute(self, method: str) -> DataFrame | Series:
+    def compute(self, method: str) -> NDFrameT:
         raise NotImplementedError
 
     @final
-    def nlargest(self):
+    def nlargest(self) -> NDFrameT:
         return self.compute("nlargest")
 
     @final
-    def nsmallest(self):
+    def nsmallest(self) -> NDFrameT:
         return self.compute("nsmallest")
 
     @final
@@ -72,7 +82,7 @@ class SelectN:
         return needs_i8_conversion(dtype)
 
 
-class SelectNSeries(SelectN):
+class SelectNSeries(SelectN[Series]):
     """
     Implement n largest/smallest for Series
 
@@ -139,7 +149,11 @@ class SelectNSeries(SelectN):
 
         # arr passed into kth_smallest must be contiguous. We copy
         # here because kth_smallest will modify its input
-        kth_val = libalgos.kth_smallest(arr.copy(order="C"), n - 1)
+        # avoid OOB access with kth_smallest_c when n <= 0
+        if len(arr) > 0:
+            kth_val = libalgos.kth_smallest(arr.copy(order="C"), n - 1)
+        else:
+            kth_val = np.nan
         (ns,) = np.nonzero(arr <= kth_val)
         inds = ns[arr[ns].argsort(kind="mergesort")]
 
@@ -159,7 +173,7 @@ class SelectNSeries(SelectN):
         return concat([dropped.iloc[inds], nan_index]).iloc[:findex]
 
 
-class SelectNFrame(SelectN):
+class SelectNFrame(SelectN[DataFrame]):
     """
     Implement n largest/smallest for DataFrame
 
@@ -195,8 +209,8 @@ class SelectNFrame(SelectN):
             dtype = frame[column].dtype
             if not self.is_valid_dtype_n_method(dtype):
                 raise TypeError(
-                    f"Column {repr(column)} has dtype {dtype}, "
-                    f"cannot use method {repr(method)} with this dtype"
+                    f"Column {column!r} has dtype {dtype}, "
+                    f"cannot use method {method!r} with this dtype"
                 )
 
         def get_indexer(current_indexer, other_indexer):

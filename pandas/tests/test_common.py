@@ -8,6 +8,8 @@ import textwrap
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import Series
 import pandas._testing as tm
@@ -52,36 +54,36 @@ def test_all_not_none():
 
 
 def test_random_state():
-    import numpy.random as npr
-
     # Check with seed
     state = com.random_state(5)
-    assert state.uniform() == npr.RandomState(5).uniform()
+    assert state.uniform() == np.random.RandomState(5).uniform()
 
     # Check with random state object
-    state2 = npr.RandomState(10)
-    assert com.random_state(state2).uniform() == npr.RandomState(10).uniform()
+    state2 = np.random.RandomState(10)
+    assert com.random_state(state2).uniform() == np.random.RandomState(10).uniform()
 
     # check with no arg random state
     assert com.random_state() is np.random
 
     # check array-like
     # GH32503
-    state_arr_like = npr.randint(0, 2**31, size=624, dtype="uint32")
+    state_arr_like = np.random.default_rng(None).integers(
+        0, 2**31, size=624, dtype="uint32"
+    )
     assert (
         com.random_state(state_arr_like).uniform()
-        == npr.RandomState(state_arr_like).uniform()
+        == np.random.RandomState(state_arr_like).uniform()
     )
 
     # Check BitGenerators
     # GH32503
     assert (
-        com.random_state(npr.MT19937(3)).uniform()
-        == npr.RandomState(npr.MT19937(3)).uniform()
+        com.random_state(np.random.MT19937(3)).uniform()
+        == np.random.RandomState(np.random.MT19937(3)).uniform()
     )
     assert (
-        com.random_state(npr.PCG64(11)).uniform()
-        == npr.RandomState(npr.PCG64(11)).uniform()
+        com.random_state(np.random.PCG64(11)).uniform()
+        == np.random.RandomState(np.random.PCG64(11)).uniform()
     )
 
     # Error for floats or strings
@@ -171,10 +173,10 @@ def test_version_tag():
     version = Version(pd.__version__)
     try:
         version > Version("0.0.1")
-    except TypeError:
+    except TypeError as err:
         raise ValueError(
             "No git tags exist, please sync tags between upstream and your repo"
-        )
+        ) from err
 
 
 @pytest.mark.parametrize(
@@ -204,18 +206,6 @@ class TestIsBoolIndexer:
 
         val = MyList([True])
         assert com.is_bool_indexer(val)
-
-    def test_frozenlist(self):
-        # GH#42461
-        data = {"col1": [1, 2], "col2": [3, 4]}
-        df = pd.DataFrame(data=data)
-
-        frozen = df.index.names[1:]
-        assert not com.is_bool_indexer(frozen)
-
-        result = df[frozen]
-        expected = df[[]]
-        tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("with_exception", [True, False])
@@ -265,3 +255,26 @@ def test_bz2_missing_import():
     code = textwrap.dedent(code)
     call = [sys.executable, "-c", code]
     subprocess.check_output(call)
+
+
+@td.skip_if_installed("pyarrow")
+@pytest.mark.parametrize("module", ["pandas", "pandas.arrays"])
+def test_pyarrow_missing_warn(module):
+    # GH56896
+    response = subprocess.run(
+        [sys.executable, "-c", f"import {module}"],
+        capture_output=True,
+        check=True,
+    )
+    msg = """
+Pyarrow will become a required dependency of pandas in the next major release of pandas (pandas 3.0),
+(to allow more performant data types, such as the Arrow string type, and better interoperability with other libraries)
+but was not found to be installed on your system.
+If this would cause problems for you,
+please provide us feedback at https://github.com/pandas-dev/pandas/issues/54466
+"""  # noqa: E501
+    stderr_msg = response.stderr.decode("utf-8")
+    # Split by \n to avoid \r\n vs \n differences on Windows/Unix
+    # https://stackoverflow.com/questions/11989501/replacing-r-n-with-n
+    stderr_msg = "\n".join(stderr_msg.splitlines())
+    assert msg in stderr_msg

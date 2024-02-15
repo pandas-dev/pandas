@@ -291,17 +291,16 @@ class TestCategoricalAPI:
             (["a", "b", "c"], ["a", "b"], ["a", "b"]),
             (["a", "b", "c"], ["a", "b"], ["b", "a"]),
             (["b", "a", "c"], ["a", "b"], ["a", "b"]),
-            (["b", "a", "c"], ["a", "b"], ["a", "b"]),
+            (["b", "a", "c"], ["a", "b"], ["b", "a"]),
             # Introduce NaNs
             (["a", "b", "c"], ["a", "b"], ["a"]),
             (["a", "b", "c"], ["a", "b"], ["b"]),
             (["b", "a", "c"], ["a", "b"], ["a"]),
-            (["b", "a", "c"], ["a", "b"], ["a"]),
+            (["b", "a", "c"], ["a", "b"], ["b"]),
             # No overlap
             (["a", "b", "c"], ["a", "b"], ["d", "e"]),
         ],
     )
-    @pytest.mark.parametrize("ordered", [True, False])
     def test_set_categories_many(self, values, categories, new_categories, ordered):
         c = Categorical(values, categories)
         expected = Categorical(values, new_categories, ordered)
@@ -376,8 +375,8 @@ class TestCategoricalAPI:
         assert out.tolist() == val
 
         alpha = list("abcdefghijklmnopqrstuvwxyz")
-        val = np.random.choice(alpha[::2], 10000).astype("object")
-        val[np.random.choice(len(val), 100)] = np.nan
+        val = np.random.default_rng(2).choice(alpha[::2], 10000).astype("object")
+        val[np.random.default_rng(2).choice(len(val), 100)] = np.nan
 
         cat = Categorical(values=val, categories=alpha)
         out = cat.remove_unused_categories()
@@ -385,7 +384,8 @@ class TestCategoricalAPI:
 
 
 class TestCategoricalAPIWithFactor:
-    def test_describe(self, factor):
+    def test_describe(self):
+        factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"], ordered=True)
         # string type
         desc = factor.describe()
         assert factor.ordered

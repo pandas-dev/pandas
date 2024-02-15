@@ -16,7 +16,7 @@ class TestSetValue:
                 float_frame._set_value(idx, col, 1)
                 assert float_frame[col][idx] == 1
 
-    def test_set_value_resize(self, float_frame):
+    def test_set_value_resize(self, float_frame, using_infer_string):
         res = float_frame._set_value("foobar", "B", 0)
         assert res is None
         assert float_frame.index[-1] == "foobar"
@@ -26,17 +26,13 @@ class TestSetValue:
         assert float_frame._get_value("foobar", "qux") == 0
 
         res = float_frame.copy()
-        with tm.assert_produces_warning(
-            FutureWarning, match="Setting an item of incompatible dtype"
-        ):
-            res._set_value("foobar", "baz", "sam")
-        assert res["baz"].dtype == np.object_
-
+        res._set_value("foobar", "baz", "sam")
+        if using_infer_string:
+            assert res["baz"].dtype == "string"
+        else:
+            assert res["baz"].dtype == np.object_
         res = float_frame.copy()
-        with tm.assert_produces_warning(
-            FutureWarning, match="Setting an item of incompatible dtype"
-        ):
-            res._set_value("foobar", "baz", True)
+        res._set_value("foobar", "baz", True)
         assert res["baz"].dtype == np.object_
 
         res = float_frame.copy()
@@ -51,7 +47,11 @@ class TestSetValue:
         assert res.loc["foobar", "baz"] == "sam"
 
     def test_set_value_with_index_dtype_change(self):
-        df_orig = DataFrame(np.random.randn(3, 3), index=range(3), columns=list("ABC"))
+        df_orig = DataFrame(
+            np.random.default_rng(2).standard_normal((3, 3)),
+            index=range(3),
+            columns=list("ABC"),
+        )
 
         # this is actually ambiguous as the 2 is interpreted as a positional
         # so column is not created

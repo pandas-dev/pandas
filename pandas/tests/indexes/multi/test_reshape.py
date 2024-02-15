@@ -23,7 +23,7 @@ def test_insert(idx):
 
     exp0 = Index(list(idx.levels[0]) + ["abc"], name="first")
     tm.assert_index_equal(new_index.levels[0], exp0)
-    assert new_index.names == ["first", "second"]
+    assert new_index.names == ("first", "second")
 
     exp1 = Index(list(idx.levels[1]) + ["three"], name="second")
     tm.assert_index_equal(new_index.levels[1], exp1)
@@ -166,6 +166,28 @@ def test_append_names_dont_match():
     midx2 = MultiIndex.from_arrays([[3], [5]], names=["x", "y"])
     result = midx.append(midx2)
     expected = MultiIndex.from_arrays([[1, 2, 3], [3, 4, 5]], names=None)
+    tm.assert_index_equal(result, expected)
+
+
+def test_append_overlapping_interval_levels():
+    # GH 54934
+    ivl1 = pd.IntervalIndex.from_breaks([0.0, 1.0, 2.0])
+    ivl2 = pd.IntervalIndex.from_breaks([0.5, 1.5, 2.5])
+    mi1 = MultiIndex.from_product([ivl1, ivl1])
+    mi2 = MultiIndex.from_product([ivl2, ivl2])
+    result = mi1.append(mi2)
+    expected = MultiIndex.from_tuples(
+        [
+            (pd.Interval(0.0, 1.0), pd.Interval(0.0, 1.0)),
+            (pd.Interval(0.0, 1.0), pd.Interval(1.0, 2.0)),
+            (pd.Interval(1.0, 2.0), pd.Interval(0.0, 1.0)),
+            (pd.Interval(1.0, 2.0), pd.Interval(1.0, 2.0)),
+            (pd.Interval(0.5, 1.5), pd.Interval(0.5, 1.5)),
+            (pd.Interval(0.5, 1.5), pd.Interval(1.5, 2.5)),
+            (pd.Interval(1.5, 2.5), pd.Interval(0.5, 1.5)),
+            (pd.Interval(1.5, 2.5), pd.Interval(1.5, 2.5)),
+        ]
+    )
     tm.assert_index_equal(result, expected)
 
 

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-import pandas._libs.index as _index
+import pandas._libs.index as libindex
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -22,7 +22,7 @@ class TestMultiIndexBasic:
             {
                 "jim": [0, 0, 1, 1],
                 "joe": ["x", "x", "z", "y"],
-                "jolie": np.random.rand(4),
+                "jolie": np.random.default_rng(2).random(4),
             }
         ).set_index(["jim", "joe"])
 
@@ -33,20 +33,19 @@ class TestMultiIndexBasic:
         with tm.assert_produces_warning(PerformanceWarning):
             df.loc[(0,)]
 
-    def test_indexing_over_hashtable_size_cutoff(self):
-        n = 10000
+    @pytest.mark.parametrize("offset", [-5, 5])
+    def test_indexing_over_hashtable_size_cutoff(self, monkeypatch, offset):
+        size_cutoff = 20
+        n = size_cutoff + offset
 
-        old_cutoff = _index._SIZE_CUTOFF
-        _index._SIZE_CUTOFF = 20000
+        with monkeypatch.context():
+            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
+            s = Series(np.arange(n), MultiIndex.from_arrays((["a"] * n, np.arange(n))))
 
-        s = Series(np.arange(n), MultiIndex.from_arrays((["a"] * n, np.arange(n))))
-
-        # hai it works!
-        assert s[("a", 5)] == 5
-        assert s[("a", 6)] == 6
-        assert s[("a", 7)] == 7
-
-        _index._SIZE_CUTOFF = old_cutoff
+            # hai it works!
+            assert s[("a", 5)] == 5
+            assert s[("a", 6)] == 6
+            assert s[("a", 7)] == 7
 
     def test_multi_nan_indexing(self):
         # GH 3588
@@ -117,7 +116,7 @@ class TestMultiIndexBasic:
         idx = Index(range(2), name="A")
         dti = pd.date_range("2020-01-01", periods=7, freq="D", name="B")
         mi = MultiIndex.from_product([idx, dti])
-        df = DataFrame(np.random.randn(14, 2), index=mi)
+        df = DataFrame(np.random.default_rng(2).standard_normal((14, 2)), index=mi)
         result = df.loc[0].index
         tm.assert_index_equal(result, dti)
         assert result.freq == dti.freq

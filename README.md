@@ -1,6 +1,7 @@
-<div align="center">
-  <img src="https://pandas.pydata.org/static/img/pandas.svg"><br>
-</div>
+<picture align="center">
+  <source media="(prefers-color-scheme: dark)" srcset="https://pandas.pydata.org/static/img/pandas_white.svg">
+  <img alt="Pandas Logo" src="https://pandas.pydata.org/static/img/pandas.svg">
+</picture>
 
 -----------------
 
@@ -130,23 +131,17 @@ In the `pandas` directory (same one where you found this file after
 cloning the git repo), execute:
 
 ```sh
-python setup.py install
+pip install .
 ```
 
 or for installing in [development mode](https://pip.pypa.io/en/latest/cli/pip_install/#install-editable):
 
 
 ```sh
-python -m pip install -e . --no-build-isolation --no-use-pep517
+python -m pip install -ve . --no-build-isolation --config-settings=editable-verbose=true
 ```
 
-or alternatively
-
-```sh
-python setup.py develop
-```
-
-See the full instructions for [installing from source](https://pandas.pydata.org/pandas-docs/stable/getting_started/install.html#installing-from-source).
+See the full instructions for [installing from source](https://pandas.pydata.org/docs/dev/development/contributing_environment.html).
 
 ## License
 [BSD 3](LICENSE)

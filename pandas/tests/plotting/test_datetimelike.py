@@ -14,7 +14,7 @@ from pandas._libs.tslibs import (
     BaseOffset,
     to_offset,
 )
-import pandas.util._test_decorators as td
+from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 
 from pandas import (
     DataFrame,
@@ -49,18 +49,20 @@ class TestTSPlot:
     def test_ts_plot_with_tz(self, tz_aware_fixture):
         # GH2877, GH17173, GH31205, GH31580
         tz = tz_aware_fixture
-        index = date_range("1/1/2011", periods=2, freq="H", tz=tz)
+        index = date_range("1/1/2011", periods=2, freq="h", tz=tz)
         ts = Series([188.5, 328.25], index=index)
         _check_plot_works(ts.plot)
         ax = ts.plot()
-        xdata = list(ax.get_lines())[0].get_xdata()
+        xdata = next(iter(ax.get_lines())).get_xdata()
         # Check first and last points' labels are correct
         assert (xdata[0].hour, xdata[0].minute) == (0, 0)
         assert (xdata[-1].hour, xdata[-1].minute) == (1, 0)
 
     def test_fontsize_set_correctly(self):
         # For issue #8765
-        df = DataFrame(np.random.randn(10, 9), index=range(10))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 9)), index=range(10)
+        )
         _, ax = mpl.pyplot.subplots()
         df.plot(fontsize=2, ax=ax)
         for label in ax.get_xticklabels() + ax.get_yticklabels():
@@ -71,19 +73,25 @@ class TestTSPlot:
         idx = date_range("1/1/1987", freq="MS", periods=100)
         idx = DatetimeIndex(idx.values, freq=None)
 
-        df = DataFrame(np.random.randn(len(idx), 3), index=idx)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((len(idx), 3)), index=idx
+        )
         _check_plot_works(df.plot)
 
         # axes freq
         idx = idx[0:40].union(idx[45:99])
-        df2 = DataFrame(np.random.randn(len(idx), 3), index=idx)
+        df2 = DataFrame(
+            np.random.default_rng(2).standard_normal((len(idx), 3)), index=idx
+        )
         _check_plot_works(df2.plot)
 
     def test_frame_inferred_n_gt_1(self):
         # N > 1
-        idx = date_range("2008-1-1 00:15:00", freq="15T", periods=10)
+        idx = date_range("2008-1-1 00:15:00", freq="15min", periods=10)
         idx = DatetimeIndex(idx.values, freq=None)
-        df = DataFrame(np.random.randn(len(idx), 3), index=idx)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((len(idx), 3)), index=idx
+        )
         _check_plot_works(df.plot)
 
     def test_is_error_nozeroindex(self):
@@ -94,7 +102,7 @@ class TestTSPlot:
         _check_plot_works(a.plot, yerr=a)
 
     def test_nonnumeric_exclude(self):
-        idx = date_range("1/1/1987", freq="A", periods=3)
+        idx = date_range("1/1/1987", freq="YE", periods=3)
         df = DataFrame({"A": ["x", "y", "z"], "B": [1, 2, 3]}, idx)
 
         fig, ax = mpl.pyplot.subplots()
@@ -103,37 +111,41 @@ class TestTSPlot:
         mpl.pyplot.close(fig)
 
     def test_nonnumeric_exclude_error(self):
-        idx = date_range("1/1/1987", freq="A", periods=3)
+        idx = date_range("1/1/1987", freq="YE", periods=3)
         df = DataFrame({"A": ["x", "y", "z"], "B": [1, 2, 3]}, idx)
         msg = "no numeric data to plot"
         with pytest.raises(TypeError, match=msg):
             df["A"].plot()
 
-    @pytest.mark.parametrize("freq", ["S", "T", "H", "D", "W", "M", "Q", "A"])
+    @pytest.mark.parametrize("freq", ["s", "min", "h", "D", "W", "M", "Q", "Y"])
     def test_tsplot_period(self, freq):
         idx = period_range("12/31/1999", freq=freq, periods=100)
-        ser = Series(np.random.randn(len(idx)), idx)
+        ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         _, ax = mpl.pyplot.subplots()
         _check_plot_works(ser.plot, ax=ax)
 
     @pytest.mark.parametrize(
-        "freq", ["S", "T", "H", "D", "W", "M", "Q-DEC", "A", "1B30Min"]
+        "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "YE", "1B30Min"]
     )
     def test_tsplot_datetime(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
-        ser = Series(np.random.randn(len(idx)), idx)
+        ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         _, ax = mpl.pyplot.subplots()
         _check_plot_works(ser.plot, ax=ax)
 
     def test_tsplot(self):
-        ts = tm.makeTimeSeries()
+        ts = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
         _, ax = mpl.pyplot.subplots()
         ts.plot(style="k", ax=ax)
         color = (0.0, 0.0, 0.0, 1)
         assert color == ax.get_lines()[0].get_color()
 
     def test_both_style_and_color(self):
-        ts = tm.makeTimeSeries()
+        ts = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
         msg = (
             "Cannot pass 'style' string with a color symbol and 'color' "
             "keyword argument. Please use one or the other or pass 'style' "
@@ -150,15 +162,15 @@ class TestTSPlot:
     def test_high_freq(self, freq):
         _, ax = mpl.pyplot.subplots()
         rng = date_range("1/1/2012", periods=100, freq=freq)
-        ser = Series(np.random.randn(len(rng)), rng)
+        ser = Series(np.random.default_rng(2).standard_normal(len(rng)), rng)
         _check_plot_works(ser.plot, ax=ax)
 
     def test_get_datevalue(self):
         from pandas.plotting._matplotlib.converter import get_datevalue
 
         assert get_datevalue(None, "D") is None
-        assert get_datevalue(1987, "A") == 1987
-        assert get_datevalue(Period(1987, "A"), "M") == Period("1987-12", "M").ordinal
+        assert get_datevalue(1987, "Y") == 1987
+        assert get_datevalue(Period(1987, "Y"), "M") == Period("1987-12", "M").ordinal
         assert get_datevalue("1/1/1987", "D") == Period("1987-1-1", "D").ordinal
 
     def test_ts_plot_format_coord(self):
@@ -168,7 +180,7 @@ class TestTSPlot:
             first_y = first_line.get_ydata()[0]
             assert expected_string == ax.format_coord(first_x, first_y)
 
-        annual = Series(1, index=date_range("2014-01-01", periods=3, freq="A-DEC"))
+        annual = Series(1, index=date_range("2014-01-01", periods=3, freq="YE-DEC"))
         _, ax = mpl.pyplot.subplots()
         annual.plot(ax=ax)
         check_format_of_first_point(ax, "t = 2014  y = 1.000000")
@@ -179,64 +191,78 @@ class TestTSPlot:
         daily.plot(ax=ax)
         check_format_of_first_point(ax, "t = 2014-01-01  y = 1.000000")
 
-    @pytest.mark.parametrize("freq", ["S", "T", "H", "D", "W", "M", "Q", "A"])
+    @pytest.mark.parametrize("freq", ["s", "min", "h", "D", "W", "M", "Q", "Y"])
     def test_line_plot_period_series(self, freq):
         idx = period_range("12/31/1999", freq=freq, periods=100)
-        ser = Series(np.random.randn(len(idx)), idx)
+        ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         _check_plot_works(ser.plot, ser.index.freq)
 
     @pytest.mark.parametrize(
-        "frqncy", ["1S", "3S", "5T", "7H", "4D", "8W", "11M", "3A"]
+        "frqncy", ["1s", "3s", "5min", "7h", "4D", "8W", "11M", "3Y"]
     )
     def test_line_plot_period_mlt_series(self, frqncy):
         # test period index line plot for series with multiples (`mlt`) of the
         # frequency (`frqncy`) rule code. tests resolution of issue #14763
         idx = period_range("12/31/1999", freq=frqncy, periods=100)
-        s = Series(np.random.randn(len(idx)), idx)
+        s = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         _check_plot_works(s.plot, s.index.freq.rule_code)
 
     @pytest.mark.parametrize(
-        "freq", ["S", "T", "H", "D", "W", "M", "Q-DEC", "A", "1B30Min"]
+        "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "YE", "1B30Min"]
     )
     def test_line_plot_datetime_series(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
-        ser = Series(np.random.randn(len(idx)), idx)
+        ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         _check_plot_works(ser.plot, ser.index.freq.rule_code)
 
-    @pytest.mark.parametrize("freq", ["S", "T", "H", "D", "W", "M", "Q", "A"])
+    @pytest.mark.parametrize("freq", ["s", "min", "h", "D", "W", "ME", "QE", "YE"])
     def test_line_plot_period_frame(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
-        df = DataFrame(np.random.randn(len(idx), 3), index=idx, columns=["A", "B", "C"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((len(idx), 3)),
+            index=idx,
+            columns=["A", "B", "C"],
+        )
         _check_plot_works(df.plot, df.index.freq)
 
     @pytest.mark.parametrize(
-        "frqncy", ["1S", "3S", "5T", "7H", "4D", "8W", "11M", "3A"]
+        "frqncy", ["1s", "3s", "5min", "7h", "4D", "8W", "11M", "3Y"]
     )
     def test_line_plot_period_mlt_frame(self, frqncy):
         # test period index line plot for DataFrames with multiples (`mlt`)
         # of the frequency (`frqncy`) rule code. tests resolution of issue
         # #14763
         idx = period_range("12/31/1999", freq=frqncy, periods=100)
-        df = DataFrame(np.random.randn(len(idx), 3), index=idx, columns=["A", "B", "C"])
-        freq = df.index.asfreq(df.index.freq.rule_code).freq
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((len(idx), 3)),
+            index=idx,
+            columns=["A", "B", "C"],
+        )
+        freq = freq_to_period_freqstr(1, df.index.freq.rule_code)
+        freq = df.index.asfreq(freq).freq
         _check_plot_works(df.plot, freq)
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     @pytest.mark.parametrize(
-        "freq", ["S", "T", "H", "D", "W", "M", "Q-DEC", "A", "1B30Min"]
+        "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "YE", "1B30Min"]
     )
     def test_line_plot_datetime_frame(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
-        df = DataFrame(np.random.randn(len(idx), 3), index=idx, columns=["A", "B", "C"])
-        freq = df.index.to_period(df.index.freq.rule_code).freq
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((len(idx), 3)),
+            index=idx,
+            columns=["A", "B", "C"],
+        )
+        freq = freq_to_period_freqstr(1, df.index.freq.rule_code)
+        freq = df.index.to_period(freq).freq
         _check_plot_works(df.plot, freq)
 
     @pytest.mark.parametrize(
-        "freq", ["S", "T", "H", "D", "W", "M", "Q-DEC", "A", "1B30Min"]
+        "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "YE", "1B30Min"]
     )
     def test_line_plot_inferred_freq(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
-        ser = Series(np.random.randn(len(idx)), idx)
+        ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         ser = Series(ser.values, Index(np.asarray(ser.index)))
         _check_plot_works(ser.plot, ser.index.inferred_freq)
 
@@ -252,25 +278,29 @@ class TestTSPlot:
         assert not hasattr(ax, "freq")
 
     def test_plot_offset_freq(self):
-        ser = tm.makeTimeSeries()
+        ser = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
         _check_plot_works(ser.plot)
 
     def test_plot_offset_freq_business(self):
         dr = date_range("2023-01-01", freq="BQS", periods=10)
-        ser = Series(np.random.randn(len(dr)), index=dr)
+        ser = Series(np.random.default_rng(2).standard_normal(len(dr)), index=dr)
         _check_plot_works(ser.plot)
 
     def test_plot_multiple_inferred_freq(self):
         dr = Index([datetime(2000, 1, 1), datetime(2000, 1, 6), datetime(2000, 1, 11)])
-        ser = Series(np.random.randn(len(dr)), index=dr)
+        ser = Series(np.random.default_rng(2).standard_normal(len(dr)), index=dr)
         _check_plot_works(ser.plot)
 
     @pytest.mark.xfail(reason="Api changed in 3.6.0")
     def test_uhf(self):
         import pandas.plotting._matplotlib.converter as conv
 
-        idx = date_range("2012-6-22 21:59:51.960928", freq="L", periods=500)
-        df = DataFrame(np.random.randn(len(idx), 2), index=idx)
+        idx = date_range("2012-6-22 21:59:51.960928", freq="ms", periods=500)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((len(idx), 2)), index=idx
+        )
 
         _, ax = mpl.pyplot.subplots()
         df.plot(ax=ax)
@@ -285,8 +315,10 @@ class TestTSPlot:
                 assert xp == rs
 
     def test_irreg_hf(self):
-        idx = date_range("2012-6-22 21:59:51", freq="S", periods=10)
-        df = DataFrame(np.random.randn(len(idx), 2), index=idx)
+        idx = date_range("2012-6-22 21:59:51", freq="s", periods=10)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((len(idx), 2)), index=idx
+        )
 
         irreg = df.iloc[[0, 1, 3, 4]]
         _, ax = mpl.pyplot.subplots()
@@ -297,8 +329,10 @@ class TestTSPlot:
         assert (np.fabs(diffs[1:] - [sec, sec * 2, sec]) < 1e-8).all()
 
     def test_irreg_hf_object(self):
-        idx = date_range("2012-6-22 21:59:51", freq="S", periods=10)
-        df2 = DataFrame(np.random.randn(len(idx), 2), index=idx)
+        idx = date_range("2012-6-22 21:59:51", freq="s", periods=10)
+        df2 = DataFrame(
+            np.random.default_rng(2).standard_normal((len(idx), 2)), index=idx
+        )
         _, ax = mpl.pyplot.subplots()
         df2.index = df2.index.astype(object)
         df2.plot(ax=ax)
@@ -307,7 +341,9 @@ class TestTSPlot:
         assert (np.fabs(diffs[1:] - sec) < 1e-8).all()
 
     def test_irregular_datetime64_repr_bug(self):
-        ser = tm.makeTimeSeries()
+        ser = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
         ser = ser.iloc[[0, 1, 2, 7]]
 
         _, ax = mpl.pyplot.subplots()
@@ -319,7 +355,7 @@ class TestTSPlot:
             assert rs == xp
 
     def test_business_freq(self):
-        bts = tm.makePeriodSeries()
+        bts = Series(range(5), period_range("2020-01-01", periods=5))
         msg = r"PeriodDtype\[B\] is deprecated"
         dt = bts.index[0].to_timestamp()
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -332,7 +368,10 @@ class TestTSPlot:
             assert PeriodIndex(data=idx).freqstr == "B"
 
     def test_business_freq_convert(self):
-        bts = tm.makeTimeSeries(300).asfreq("BM")
+        bts = Series(
+            np.arange(300, dtype=np.float64),
+            index=date_range("2020-01-01", periods=300, freq="B"),
+        ).asfreq("BME")
         ts = bts.to_period("M")
         _, ax = mpl.pyplot.subplots()
         bts.plot(ax=ax)
@@ -343,7 +382,9 @@ class TestTSPlot:
     def test_freq_with_no_period_alias(self):
         # GH34487
         freq = WeekOfMonth()
-        bts = tm.makeTimeSeries(5).asfreq(freq)
+        bts = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        ).asfreq(freq)
         _, ax = mpl.pyplot.subplots()
         bts.plot(ax=ax)
 
@@ -354,7 +395,7 @@ class TestTSPlot:
 
     def test_nonzero_base(self):
         # GH2571
-        idx = date_range("2012-12-20", periods=24, freq="H") + timedelta(minutes=30)
+        idx = date_range("2012-12-20", periods=24, freq="h") + timedelta(minutes=30)
         df = DataFrame(np.arange(24), index=idx)
         _, ax = mpl.pyplot.subplots()
         df.plot(ax=ax)
@@ -362,13 +403,18 @@ class TestTSPlot:
         assert not Index(rs).is_normalized
 
     def test_dataframe(self):
-        bts = DataFrame({"a": tm.makeTimeSeries()})
+        bts = DataFrame(
+            {
+                "a": Series(
+                    np.arange(10, dtype=np.float64),
+                    index=date_range("2020-01-01", periods=10),
+                )
+            }
+        )
         _, ax = mpl.pyplot.subplots()
         bts.plot(ax=ax)
         idx = ax.get_lines()[0].get_xdata()
-        msg = r"PeriodDtype\[B\] is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            tm.assert_index_equal(bts.index.to_period(), PeriodIndex(idx))
+        tm.assert_index_equal(bts.index.to_period(), PeriodIndex(idx))
 
     @pytest.mark.filterwarnings(
         "ignore:Period with BDay freq is deprecated:FutureWarning"
@@ -376,8 +422,23 @@ class TestTSPlot:
     @pytest.mark.parametrize(
         "obj",
         [
-            tm.makeTimeSeries(),
-            DataFrame({"a": tm.makeTimeSeries(), "b": tm.makeTimeSeries() + 1}),
+            Series(
+                np.arange(10, dtype=np.float64),
+                index=date_range("2020-01-01", periods=10),
+            ),
+            DataFrame(
+                {
+                    "a": Series(
+                        np.arange(10, dtype=np.float64),
+                        index=date_range("2020-01-01", periods=10),
+                    ),
+                    "b": Series(
+                        np.arange(10, dtype=np.float64),
+                        index=date_range("2020-01-01", periods=10),
+                    )
+                    + 1,
+                }
+            ),
         ],
     )
     def test_axis_limits(self, obj):
@@ -410,9 +471,9 @@ class TestTSPlot:
 
         assert conv.get_finder(to_offset("B")) == conv._daily_finder
         assert conv.get_finder(to_offset("D")) == conv._daily_finder
-        assert conv.get_finder(to_offset("M")) == conv._monthly_finder
-        assert conv.get_finder(to_offset("Q")) == conv._quarterly_finder
-        assert conv.get_finder(to_offset("A")) == conv._annual_finder
+        assert conv.get_finder(to_offset("ME")) == conv._monthly_finder
+        assert conv.get_finder(to_offset("QE")) == conv._quarterly_finder
+        assert conv.get_finder(to_offset("YE")) == conv._annual_finder
         assert conv.get_finder(to_offset("W")) == conv._daily_finder
 
     def test_finder_daily(self):
@@ -425,7 +486,7 @@ class TestTSPlot:
         rs2 = []
         for n in day_lst:
             rng = bdate_range("1999-1-1", periods=n)
-            ser = Series(np.random.randn(len(rng)), rng)
+            ser = Series(np.random.default_rng(2).standard_normal(len(rng)), rng)
             _, ax = mpl.pyplot.subplots()
             ser.plot(ax=ax)
             xaxis = ax.get_xaxis()
@@ -447,7 +508,7 @@ class TestTSPlot:
         rs2 = []
         for n in yrs:
             rng = period_range("1987Q2", periods=int(n * 4), freq="Q")
-            ser = Series(np.random.randn(len(rng)), rng)
+            ser = Series(np.random.default_rng(2).standard_normal(len(rng)), rng)
             _, ax = mpl.pyplot.subplots()
             ser.plot(ax=ax)
             xaxis = ax.get_xaxis()
@@ -469,7 +530,7 @@ class TestTSPlot:
         rs2 = []
         for n in yrs:
             rng = period_range("1987Q2", periods=int(n * 12), freq="M")
-            ser = Series(np.random.randn(len(rng)), rng)
+            ser = Series(np.random.default_rng(2).standard_normal(len(rng)), rng)
             _, ax = mpl.pyplot.subplots()
             ser.plot(ax=ax)
             xaxis = ax.get_xaxis()
@@ -485,7 +546,7 @@ class TestTSPlot:
 
     def test_finder_monthly_long(self):
         rng = period_range("1988Q1", periods=24 * 12, freq="M")
-        ser = Series(np.random.randn(len(rng)), rng)
+        ser = Series(np.random.default_rng(2).standard_normal(len(rng)), rng)
         _, ax = mpl.pyplot.subplots()
         ser.plot(ax=ax)
         xaxis = ax.get_xaxis()
@@ -495,11 +556,11 @@ class TestTSPlot:
 
     def test_finder_annual(self):
         xp = [1987, 1988, 1990, 1990, 1995, 2020, 2070, 2170]
-        xp = [Period(x, freq="A").ordinal for x in xp]
+        xp = [Period(x, freq="Y").ordinal for x in xp]
         rs = []
         for nyears in [5, 10, 19, 49, 99, 199, 599, 1001]:
-            rng = period_range("1987", periods=nyears, freq="A")
-            ser = Series(np.random.randn(len(rng)), rng)
+            rng = period_range("1987", periods=nyears, freq="Y")
+            ser = Series(np.random.default_rng(2).standard_normal(len(rng)), rng)
             _, ax = mpl.pyplot.subplots()
             ser.plot(ax=ax)
             xaxis = ax.get_xaxis()
@@ -512,7 +573,7 @@ class TestTSPlot:
     def test_finder_minutely(self):
         nminutes = 50 * 24 * 60
         rng = date_range("1/1/1999", freq="Min", periods=nminutes)
-        ser = Series(np.random.randn(len(rng)), rng)
+        ser = Series(np.random.default_rng(2).standard_normal(len(rng)), rng)
         _, ax = mpl.pyplot.subplots()
         ser.plot(ax=ax)
         xaxis = ax.get_xaxis()
@@ -523,18 +584,20 @@ class TestTSPlot:
 
     def test_finder_hourly(self):
         nhours = 23
-        rng = date_range("1/1/1999", freq="H", periods=nhours)
-        ser = Series(np.random.randn(len(rng)), rng)
+        rng = date_range("1/1/1999", freq="h", periods=nhours)
+        ser = Series(np.random.default_rng(2).standard_normal(len(rng)), rng)
         _, ax = mpl.pyplot.subplots()
         ser.plot(ax=ax)
         xaxis = ax.get_xaxis()
         rs = xaxis.get_majorticklocs()[0]
-        xp = Period("1/1/1999", freq="H").ordinal
+        xp = Period("1/1/1999", freq="h").ordinal
 
         assert rs == xp
 
     def test_gaps(self):
-        ts = tm.makeTimeSeries()
+        ts = Series(
+            np.arange(30, dtype=np.float64), index=date_range("2020-01-01", periods=30)
+        )
         ts.iloc[5:25] = np.nan
         _, ax = mpl.pyplot.subplots()
         ts.plot(ax=ax)
@@ -552,7 +615,9 @@ class TestTSPlot:
 
     def test_gaps_irregular(self):
         # irregular
-        ts = tm.makeTimeSeries()
+        ts = Series(
+            np.arange(30, dtype=np.float64), index=date_range("2020-01-01", periods=30)
+        )
         ts = ts.iloc[[0, 1, 2, 5, 7, 9, 12, 15, 20]]
         ts.iloc[2:5] = np.nan
         _, ax = mpl.pyplot.subplots()
@@ -572,7 +637,7 @@ class TestTSPlot:
     def test_gaps_non_ts(self):
         # non-ts
         idx = [0, 1, 2, 5, 7, 9, 12, 15, 20]
-        ser = Series(np.random.randn(len(idx)), idx)
+        ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         ser.iloc[2:5] = np.nan
         _, ax = mpl.pyplot.subplots()
         ser.plot(ax=ax)
@@ -587,13 +652,15 @@ class TestTSPlot:
         assert mask[2:5, 1].all()
 
     def test_gap_upsample(self):
-        low = tm.makeTimeSeries()
+        low = Series(
+            np.arange(30, dtype=np.float64), index=date_range("2020-01-01", periods=30)
+        )
         low.iloc[5:25] = np.nan
         _, ax = mpl.pyplot.subplots()
         low.plot(ax=ax)
 
         idxh = date_range(low.index[0], low.index[-1], freq="12h")
-        s = Series(np.random.randn(len(idxh)), idxh)
+        s = Series(np.random.default_rng(2).standard_normal(len(idxh)), idxh)
         s.plot(secondary_y=True)
         lines = ax.get_lines()
         assert len(lines) == 1
@@ -608,7 +675,7 @@ class TestTSPlot:
         assert mask[5:25, 1].all()
 
     def test_secondary_y(self):
-        ser = Series(np.random.randn(10))
+        ser = Series(np.random.default_rng(2).standard_normal(10))
         fig, _ = mpl.pyplot.subplots()
         ax = ser.plot(secondary_y=True)
         assert hasattr(ax, "left_ax")
@@ -622,16 +689,16 @@ class TestTSPlot:
         mpl.pyplot.close(fig)
 
     def test_secondary_y_yaxis(self):
-        Series(np.random.randn(10))
-        ser2 = Series(np.random.randn(10))
+        Series(np.random.default_rng(2).standard_normal(10))
+        ser2 = Series(np.random.default_rng(2).standard_normal(10))
         _, ax2 = mpl.pyplot.subplots()
         ser2.plot(ax=ax2)
         assert ax2.get_yaxis().get_ticks_position() == "left"
         mpl.pyplot.close(ax2.get_figure())
 
     def test_secondary_both(self):
-        ser = Series(np.random.randn(10))
-        ser2 = Series(np.random.randn(10))
+        ser = Series(np.random.default_rng(2).standard_normal(10))
+        ser2 = Series(np.random.default_rng(2).standard_normal(10))
         ax = ser2.plot()
         ax2 = ser.plot(secondary_y=True)
         assert ax.get_yaxis().get_visible()
@@ -642,7 +709,7 @@ class TestTSPlot:
 
     def test_secondary_y_ts(self):
         idx = date_range("1/1/2000", periods=10)
-        ser = Series(np.random.randn(10), idx)
+        ser = Series(np.random.default_rng(2).standard_normal(10), idx)
         fig, _ = mpl.pyplot.subplots()
         ax = ser.plot(secondary_y=True)
         assert hasattr(ax, "left_ax")
@@ -657,7 +724,7 @@ class TestTSPlot:
 
     def test_secondary_y_ts_yaxis(self):
         idx = date_range("1/1/2000", periods=10)
-        ser2 = Series(np.random.randn(10), idx)
+        ser2 = Series(np.random.default_rng(2).standard_normal(10), idx)
         _, ax2 = mpl.pyplot.subplots()
         ser2.plot(ax=ax2)
         assert ax2.get_yaxis().get_ticks_position() == "left"
@@ -665,13 +732,13 @@ class TestTSPlot:
 
     def test_secondary_y_ts_visible(self):
         idx = date_range("1/1/2000", periods=10)
-        ser2 = Series(np.random.randn(10), idx)
+        ser2 = Series(np.random.default_rng(2).standard_normal(10), idx)
         ax = ser2.plot()
         assert ax.get_yaxis().get_visible()
 
-    @td.skip_if_no_scipy
     def test_secondary_kde(self):
-        ser = Series(np.random.randn(10))
+        pytest.importorskip("scipy")
+        ser = Series(np.random.default_rng(2).standard_normal(10))
         fig, ax = mpl.pyplot.subplots()
         ax = ser.plot(secondary_y=True, kind="density", ax=ax)
         assert hasattr(ax, "left_ax")
@@ -680,21 +747,25 @@ class TestTSPlot:
         assert axes[1].get_yaxis().get_ticks_position() == "right"
 
     def test_secondary_bar(self):
-        ser = Series(np.random.randn(10))
+        ser = Series(np.random.default_rng(2).standard_normal(10))
         fig, ax = mpl.pyplot.subplots()
         ser.plot(secondary_y=True, kind="bar", ax=ax)
         axes = fig.get_axes()
         assert axes[1].get_yaxis().get_ticks_position() == "right"
 
     def test_secondary_frame(self):
-        df = DataFrame(np.random.randn(5, 3), columns=["a", "b", "c"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 3)), columns=["a", "b", "c"]
+        )
         axes = df.plot(secondary_y=["a", "c"], subplots=True)
         assert axes[0].get_yaxis().get_ticks_position() == "right"
         assert axes[1].get_yaxis().get_ticks_position() == "left"
         assert axes[2].get_yaxis().get_ticks_position() == "right"
 
     def test_secondary_bar_frame(self):
-        df = DataFrame(np.random.randn(5, 3), columns=["a", "b", "c"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 3)), columns=["a", "b", "c"]
+        )
         axes = df.plot(kind="bar", secondary_y=["a", "c"], subplots=True)
         assert axes[0].get_yaxis().get_ticks_position() == "right"
         assert axes[1].get_yaxis().get_ticks_position() == "left"
@@ -702,7 +773,10 @@ class TestTSPlot:
 
     def test_mixed_freq_regular_first(self):
         # TODO
-        s1 = tm.makeTimeSeries()
+        s1 = Series(
+            np.arange(20, dtype=np.float64),
+            index=date_range("2020-01-01", periods=20, freq="B"),
+        )
         s2 = s1.iloc[[0, 5, 10, 11, 12, 13, 14, 15]]
 
         # it works!
@@ -725,7 +799,9 @@ class TestTSPlot:
         assert right >= pidx[-1].ordinal
 
     def test_mixed_freq_irregular_first(self):
-        s1 = tm.makeTimeSeries()
+        s1 = Series(
+            np.arange(20, dtype=np.float64), index=date_range("2020-01-01", periods=20)
+        )
         s2 = s1.iloc[[0, 5, 10, 11, 12, 13, 14, 15]]
         _, ax = mpl.pyplot.subplots()
         s2.plot(style="g", ax=ax)
@@ -739,7 +815,10 @@ class TestTSPlot:
 
     def test_mixed_freq_regular_first_df(self):
         # GH 9852
-        s1 = tm.makeTimeSeries().to_frame()
+        s1 = Series(
+            np.arange(20, dtype=np.float64),
+            index=date_range("2020-01-01", periods=20, freq="B"),
+        ).to_frame()
         s2 = s1.iloc[[0, 5, 10, 11, 12, 13, 14, 15], :]
         _, ax = mpl.pyplot.subplots()
         s1.plot(ax=ax)
@@ -758,7 +837,9 @@ class TestTSPlot:
 
     def test_mixed_freq_irregular_first_df(self):
         # GH 9852
-        s1 = tm.makeTimeSeries().to_frame()
+        s1 = Series(
+            np.arange(20, dtype=np.float64), index=date_range("2020-01-01", periods=20)
+        ).to_frame()
         s2 = s1.iloc[[0, 5, 10, 11, 12, 13, 14, 15], :]
         _, ax = mpl.pyplot.subplots()
         s2.plot(style="g", ax=ax)
@@ -772,9 +853,9 @@ class TestTSPlot:
 
     def test_mixed_freq_hf_first(self):
         idxh = date_range("1/1/1999", periods=365, freq="D")
-        idxl = date_range("1/1/1999", periods=12, freq="M")
-        high = Series(np.random.randn(len(idxh)), idxh)
-        low = Series(np.random.randn(len(idxl)), idxl)
+        idxl = date_range("1/1/1999", periods=12, freq="ME")
+        high = Series(np.random.default_rng(2).standard_normal(len(idxh)), idxh)
+        low = Series(np.random.default_rng(2).standard_normal(len(idxl)), idxl)
         _, ax = mpl.pyplot.subplots()
         high.plot(ax=ax)
         low.plot(ax=ax)
@@ -782,11 +863,11 @@ class TestTSPlot:
             assert PeriodIndex(data=line.get_xdata()).freq == "D"
 
     def test_mixed_freq_alignment(self):
-        ts_ind = date_range("2012-01-01 13:00", "2012-01-02", freq="H")
-        ts_data = np.random.randn(12)
+        ts_ind = date_range("2012-01-01 13:00", "2012-01-02", freq="h")
+        ts_data = np.random.default_rng(2).standard_normal(12)
 
         ts = Series(ts_data, index=ts_ind)
-        ts2 = ts.asfreq("T").interpolate()
+        ts2 = ts.asfreq("min").interpolate()
 
         _, ax = mpl.pyplot.subplots()
         ax = ts.plot(ax=ax)
@@ -796,9 +877,9 @@ class TestTSPlot:
 
     def test_mixed_freq_lf_first(self):
         idxh = date_range("1/1/1999", periods=365, freq="D")
-        idxl = date_range("1/1/1999", periods=12, freq="M")
-        high = Series(np.random.randn(len(idxh)), idxh)
-        low = Series(np.random.randn(len(idxl)), idxl)
+        idxl = date_range("1/1/1999", periods=12, freq="ME")
+        high = Series(np.random.default_rng(2).standard_normal(len(idxh)), idxh)
+        low = Series(np.random.default_rng(2).standard_normal(len(idxl)), idxl)
         _, ax = mpl.pyplot.subplots()
         low.plot(legend=True, ax=ax)
         high.plot(legend=True, ax=ax)
@@ -809,31 +890,33 @@ class TestTSPlot:
         mpl.pyplot.close(ax.get_figure())
 
     def test_mixed_freq_lf_first_hourly(self):
-        idxh = date_range("1/1/1999", periods=240, freq="T")
-        idxl = date_range("1/1/1999", periods=4, freq="H")
-        high = Series(np.random.randn(len(idxh)), idxh)
-        low = Series(np.random.randn(len(idxl)), idxl)
+        idxh = date_range("1/1/1999", periods=240, freq="min")
+        idxl = date_range("1/1/1999", periods=4, freq="h")
+        high = Series(np.random.default_rng(2).standard_normal(len(idxh)), idxh)
+        low = Series(np.random.default_rng(2).standard_normal(len(idxl)), idxl)
         _, ax = mpl.pyplot.subplots()
         low.plot(ax=ax)
         high.plot(ax=ax)
         for line in ax.get_lines():
-            assert PeriodIndex(data=line.get_xdata()).freq == "T"
+            assert PeriodIndex(data=line.get_xdata()).freq == "min"
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_mixed_freq_irreg_period(self):
-        ts = tm.makeTimeSeries()
+        ts = Series(
+            np.arange(30, dtype=np.float64), index=date_range("2020-01-01", periods=30)
+        )
         irreg = ts.iloc[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 16, 17, 18, 29]]
         msg = r"PeriodDtype\[B\] is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             rng = period_range("1/3/2000", periods=30, freq="B")
-        ps = Series(np.random.randn(len(rng)), rng)
+        ps = Series(np.random.default_rng(2).standard_normal(len(rng)), rng)
         _, ax = mpl.pyplot.subplots()
         irreg.plot(ax=ax)
         ps.plot(ax=ax)
 
     def test_mixed_freq_shared_ax(self):
         # GH13341, using sharex=True
-        idx1 = date_range("2015-01-01", periods=3, freq="M")
+        idx1 = date_range("2015-01-01", periods=3, freq="ME")
         idx2 = idx1[:1].union(idx1[2:])
         s1 = Series(range(len(idx1)), idx1)
         s2 = Series(range(len(idx2)), idx2)
@@ -848,26 +931,30 @@ class TestTSPlot:
 
     def test_mixed_freq_shared_ax_twin_x(self):
         # GH13341, using sharex=True
-        idx1 = date_range("2015-01-01", periods=3, freq="M")
+        idx1 = date_range("2015-01-01", periods=3, freq="ME")
         idx2 = idx1[:1].union(idx1[2:])
         s1 = Series(range(len(idx1)), idx1)
         s2 = Series(range(len(idx2)), idx2)
         # using twinx
-        fig, ax1 = mpl.pyplot.subplots()
+        _, ax1 = mpl.pyplot.subplots()
         ax2 = ax1.twinx()
         s1.plot(ax=ax1)
         s2.plot(ax=ax2)
 
         assert ax1.lines[0].get_xydata()[0, 0] == ax2.lines[0].get_xydata()[0, 0]
 
-        # TODO (GH14330, GH14322)
-        # plotting the irregular first does not yet work
-        # fig, ax1 = plt.subplots()
-        # ax2 = ax1.twinx()
-        # s2.plot(ax=ax1)
-        # s1.plot(ax=ax2)
-        # assert (ax1.lines[0].get_xydata()[0, 0] ==
-        #         ax2.lines[0].get_xydata()[0, 0])
+    @pytest.mark.xfail(reason="TODO (GH14330, GH14322)")
+    def test_mixed_freq_shared_ax_twin_x_irregular_first(self):
+        # GH13341, using sharex=True
+        idx1 = date_range("2015-01-01", periods=3, freq="M")
+        idx2 = idx1[:1].union(idx1[2:])
+        s1 = Series(range(len(idx1)), idx1)
+        s2 = Series(range(len(idx2)), idx2)
+        _, ax1 = mpl.pyplot.subplots()
+        ax2 = ax1.twinx()
+        s2.plot(ax=ax1)
+        s1.plot(ax=ax2)
+        assert ax1.lines[0].get_xydata()[0, 0] == ax2.lines[0].get_xydata()[0, 0]
 
     def test_nat_handling(self):
         _, ax = mpl.pyplot.subplots()
@@ -880,11 +967,26 @@ class TestTSPlot:
         assert s.index.min() <= Series(xdata).min()
         assert Series(xdata).max() <= s.index.max()
 
+    def test_to_weekly_resampling_disallow_how_kwd(self):
+        idxh = date_range("1/1/1999", periods=52, freq="W")
+        idxl = date_range("1/1/1999", periods=12, freq="ME")
+        high = Series(np.random.default_rng(2).standard_normal(len(idxh)), idxh)
+        low = Series(np.random.default_rng(2).standard_normal(len(idxl)), idxl)
+        _, ax = mpl.pyplot.subplots()
+        high.plot(ax=ax)
+
+        msg = (
+            "'how' is not a valid keyword for plotting functions. If plotting "
+            "multiple objects on shared axes, resample manually first."
+        )
+        with pytest.raises(ValueError, match=msg):
+            low.plot(ax=ax, how="foo")
+
     def test_to_weekly_resampling(self):
         idxh = date_range("1/1/1999", periods=52, freq="W")
-        idxl = date_range("1/1/1999", periods=12, freq="M")
-        high = Series(np.random.randn(len(idxh)), idxh)
-        low = Series(np.random.randn(len(idxl)), idxl)
+        idxl = date_range("1/1/1999", periods=12, freq="ME")
+        high = Series(np.random.default_rng(2).standard_normal(len(idxh)), idxh)
+        low = Series(np.random.default_rng(2).standard_normal(len(idxl)), idxl)
         _, ax = mpl.pyplot.subplots()
         high.plot(ax=ax)
         low.plot(ax=ax)
@@ -893,9 +995,9 @@ class TestTSPlot:
 
     def test_from_weekly_resampling(self):
         idxh = date_range("1/1/1999", periods=52, freq="W")
-        idxl = date_range("1/1/1999", periods=12, freq="M")
-        high = Series(np.random.randn(len(idxh)), idxh)
-        low = Series(np.random.randn(len(idxl)), idxl)
+        idxl = date_range("1/1/1999", periods=12, freq="ME")
+        high = Series(np.random.default_rng(2).standard_normal(len(idxh)), idxh)
+        low = Series(np.random.default_rng(2).standard_normal(len(idxl)), idxl)
         _, ax = mpl.pyplot.subplots()
         low.plot(ax=ax)
         high.plot(ax=ax)
@@ -916,9 +1018,17 @@ class TestTSPlot:
     @pytest.mark.parametrize("kind1, kind2", [("line", "area"), ("area", "line")])
     def test_from_resampling_area_line_mixed(self, kind1, kind2):
         idxh = date_range("1/1/1999", periods=52, freq="W")
-        idxl = date_range("1/1/1999", periods=12, freq="M")
-        high = DataFrame(np.random.rand(len(idxh), 3), index=idxh, columns=[0, 1, 2])
-        low = DataFrame(np.random.rand(len(idxl), 3), index=idxl, columns=[0, 1, 2])
+        idxl = date_range("1/1/1999", periods=12, freq="ME")
+        high = DataFrame(
+            np.random.default_rng(2).random((len(idxh), 3)),
+            index=idxh,
+            columns=[0, 1, 2],
+        )
+        low = DataFrame(
+            np.random.default_rng(2).random((len(idxl), 3)),
+            index=idxl,
+            columns=[0, 1, 2],
+        )
 
         _, ax = mpl.pyplot.subplots()
         low.plot(kind=kind1, stacked=True, ax=ax)
@@ -964,9 +1074,17 @@ class TestTSPlot:
     @pytest.mark.parametrize("kind1, kind2", [("line", "area"), ("area", "line")])
     def test_from_resampling_area_line_mixed_high_to_low(self, kind1, kind2):
         idxh = date_range("1/1/1999", periods=52, freq="W")
-        idxl = date_range("1/1/1999", periods=12, freq="M")
-        high = DataFrame(np.random.rand(len(idxh), 3), index=idxh, columns=[0, 1, 2])
-        low = DataFrame(np.random.rand(len(idxl), 3), index=idxl, columns=[0, 1, 2])
+        idxl = date_range("1/1/1999", periods=12, freq="ME")
+        high = DataFrame(
+            np.random.default_rng(2).random((len(idxh), 3)),
+            index=idxh,
+            columns=[0, 1, 2],
+        )
+        low = DataFrame(
+            np.random.default_rng(2).random((len(idxl), 3)),
+            index=idxl,
+            columns=[0, 1, 2],
+        )
         _, ax = mpl.pyplot.subplots()
         high.plot(kind=kind1, stacked=True, ax=ax)
         low.plot(kind=kind2, stacked=True, ax=ax)
@@ -1009,52 +1127,59 @@ class TestTSPlot:
 
     def test_mixed_freq_second_millisecond(self):
         # GH 7772, GH 7760
-        idxh = date_range("2014-07-01 09:00", freq="S", periods=50)
-        idxl = date_range("2014-07-01 09:00", freq="100L", periods=500)
-        high = Series(np.random.randn(len(idxh)), idxh)
-        low = Series(np.random.randn(len(idxl)), idxl)
+        idxh = date_range("2014-07-01 09:00", freq="s", periods=50)
+        idxl = date_range("2014-07-01 09:00", freq="100ms", periods=500)
+        high = Series(np.random.default_rng(2).standard_normal(len(idxh)), idxh)
+        low = Series(np.random.default_rng(2).standard_normal(len(idxl)), idxl)
         # high to low
         _, ax = mpl.pyplot.subplots()
         high.plot(ax=ax)
         low.plot(ax=ax)
         assert len(ax.get_lines()) == 2
         for line in ax.get_lines():
-            assert PeriodIndex(data=line.get_xdata()).freq == "L"
+            assert PeriodIndex(data=line.get_xdata()).freq == "ms"
 
     def test_mixed_freq_second_millisecond_low_to_high(self):
         # GH 7772, GH 7760
-        idxh = date_range("2014-07-01 09:00", freq="S", periods=50)
-        idxl = date_range("2014-07-01 09:00", freq="100L", periods=500)
-        high = Series(np.random.randn(len(idxh)), idxh)
-        low = Series(np.random.randn(len(idxl)), idxl)
+        idxh = date_range("2014-07-01 09:00", freq="s", periods=50)
+        idxl = date_range("2014-07-01 09:00", freq="100ms", periods=500)
+        high = Series(np.random.default_rng(2).standard_normal(len(idxh)), idxh)
+        low = Series(np.random.default_rng(2).standard_normal(len(idxl)), idxl)
         # low to high
         _, ax = mpl.pyplot.subplots()
         low.plot(ax=ax)
         high.plot(ax=ax)
         assert len(ax.get_lines()) == 2
         for line in ax.get_lines():
-            assert PeriodIndex(data=line.get_xdata()).freq == "L"
+            assert PeriodIndex(data=line.get_xdata()).freq == "ms"
 
     def test_irreg_dtypes(self):
         # date
         idx = [date(2000, 1, 1), date(2000, 1, 5), date(2000, 1, 20)]
-        df = DataFrame(np.random.randn(len(idx), 3), Index(idx, dtype=object))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((len(idx), 3)),
+            Index(idx, dtype=object),
+        )
         _check_plot_works(df.plot)
 
     def test_irreg_dtypes_dt64(self):
         # np.datetime64
         idx = date_range("1/1/2000", periods=10)
         idx = idx[[0, 2, 5, 9]].astype(object)
-        df = DataFrame(np.random.randn(len(idx), 3), idx)
+        df = DataFrame(np.random.default_rng(2).standard_normal((len(idx), 3)), idx)
         _, ax = mpl.pyplot.subplots()
         _check_plot_works(df.plot, ax=ax)
 
     def test_time(self):
         t = datetime(1, 1, 1, 3, 30, 0)
-        deltas = np.random.randint(1, 20, 3).cumsum()
+        deltas = np.random.default_rng(2).integers(1, 20, 3).cumsum()
         ts = np.array([(t + timedelta(minutes=int(x))).time() for x in deltas])
         df = DataFrame(
-            {"a": np.random.randn(len(ts)), "b": np.random.randn(len(ts))}, index=ts
+            {
+                "a": np.random.default_rng(2).standard_normal(len(ts)),
+                "b": np.random.default_rng(2).standard_normal(len(ts)),
+            },
+            index=ts,
         )
         _, ax = mpl.pyplot.subplots()
         df.plot(ax=ax)
@@ -1075,10 +1200,14 @@ class TestTSPlot:
 
     def test_time_change_xlim(self):
         t = datetime(1, 1, 1, 3, 30, 0)
-        deltas = np.random.randint(1, 20, 3).cumsum()
+        deltas = np.random.default_rng(2).integers(1, 20, 3).cumsum()
         ts = np.array([(t + timedelta(minutes=int(x))).time() for x in deltas])
         df = DataFrame(
-            {"a": np.random.randn(len(ts)), "b": np.random.randn(len(ts))}, index=ts
+            {
+                "a": np.random.default_rng(2).standard_normal(len(ts)),
+                "b": np.random.default_rng(2).standard_normal(len(ts)),
+            },
+            index=ts,
         )
         _, ax = mpl.pyplot.subplots()
         df.plot(ax=ax)
@@ -1116,10 +1245,14 @@ class TestTSPlot:
 
     def test_time_musec(self):
         t = datetime(1, 1, 1, 3, 30, 0)
-        deltas = np.random.randint(1, 20, 3).cumsum()
+        deltas = np.random.default_rng(2).integers(1, 20, 3).cumsum()
         ts = np.array([(t + timedelta(microseconds=int(x))).time() for x in deltas])
         df = DataFrame(
-            {"a": np.random.randn(len(ts)), "b": np.random.randn(len(ts))}, index=ts
+            {
+                "a": np.random.default_rng(2).standard_normal(len(ts)),
+                "b": np.random.default_rng(2).standard_normal(len(ts)),
+            },
+            index=ts,
         )
         _, ax = mpl.pyplot.subplots()
         ax = df.plot(ax=ax)
@@ -1147,9 +1280,9 @@ class TestTSPlot:
 
     def test_secondary_upsample(self):
         idxh = date_range("1/1/1999", periods=365, freq="D")
-        idxl = date_range("1/1/1999", periods=12, freq="M")
-        high = Series(np.random.randn(len(idxh)), idxh)
-        low = Series(np.random.randn(len(idxl)), idxl)
+        idxl = date_range("1/1/1999", periods=12, freq="ME")
+        high = Series(np.random.default_rng(2).standard_normal(len(idxh)), idxh)
+        low = Series(np.random.default_rng(2).standard_normal(len(idxl)), idxl)
         _, ax = mpl.pyplot.subplots()
         low.plot(ax=ax)
         ax = high.plot(secondary_y=True, ax=ax)
@@ -1165,7 +1298,11 @@ class TestTSPlot:
         ax = fig.add_subplot(211)
 
         # ts
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         df.plot(secondary_y=["A", "B"], ax=ax)
         leg = ax.get_legend()
         assert len(leg.get_lines()) == 4
@@ -1183,7 +1320,11 @@ class TestTSPlot:
         mpl.pyplot.close(fig)
 
     def test_secondary_legend_right(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         fig = mpl.pyplot.figure()
         ax = fig.add_subplot(211)
         df.plot(secondary_y=["A", "C"], mark_right=False, ax=ax)
@@ -1196,7 +1337,11 @@ class TestTSPlot:
         mpl.pyplot.close(fig)
 
     def test_secondary_legend_bar(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         fig, ax = mpl.pyplot.subplots()
         df.plot(kind="bar", secondary_y=["A"], ax=ax)
         leg = ax.get_legend()
@@ -1205,7 +1350,11 @@ class TestTSPlot:
         mpl.pyplot.close(fig)
 
     def test_secondary_legend_bar_right(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         fig, ax = mpl.pyplot.subplots()
         df.plot(kind="bar", secondary_y=["A"], mark_right=False, ax=ax)
         leg = ax.get_legend()
@@ -1214,10 +1363,18 @@ class TestTSPlot:
         mpl.pyplot.close(fig)
 
     def test_secondary_legend_multi_col(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         fig = mpl.pyplot.figure()
         ax = fig.add_subplot(211)
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         ax = df.plot(secondary_y=["C", "D"], ax=ax)
         leg = ax.get_legend()
         assert len(leg.get_lines()) == 4
@@ -1232,7 +1389,11 @@ class TestTSPlot:
 
     def test_secondary_legend_nonts(self):
         # non-ts
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         fig = mpl.pyplot.figure()
         ax = fig.add_subplot(211)
         ax = df.plot(secondary_y=["A", "B"], ax=ax)
@@ -1249,7 +1410,11 @@ class TestTSPlot:
 
     def test_secondary_legend_nonts_multi_col(self):
         # non-ts
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         fig = mpl.pyplot.figure()
         ax = fig.add_subplot(211)
         ax = df.plot(secondary_y=["C", "D"], ax=ax)
@@ -1265,8 +1430,8 @@ class TestTSPlot:
 
     @pytest.mark.xfail(reason="Api changed in 3.6.0")
     def test_format_date_axis(self):
-        rng = date_range("1/1/2012", periods=12, freq="M")
-        df = DataFrame(np.random.randn(len(rng), 3), rng)
+        rng = date_range("1/1/2012", periods=12, freq="ME")
+        df = DataFrame(np.random.default_rng(2).standard_normal((len(rng), 3)), rng)
         _, ax = mpl.pyplot.subplots()
         ax = df.plot(ax=ax)
         xaxis = ax.get_xaxis()
@@ -1303,7 +1468,9 @@ class TestTSPlot:
         # GH 2960
         from pandas.plotting._matplotlib.converter import DatetimeConverter
 
-        ts = tm.makeTimeSeries()[:20]
+        ts = Series(
+            np.arange(20, dtype=np.float64), index=date_range("2020-01-01", periods=20)
+        )
         ts_irregular = ts.iloc[[1, 4, 5, 6, 8, 9, 10, 12, 13, 14, 15, 17, 18]]
 
         # plot the left section of the irregular series, then the right section
@@ -1367,7 +1534,9 @@ class TestTSPlot:
         # GH 3490 - irregular-timeseries with secondary y
         from pandas.plotting._matplotlib.converter import DatetimeConverter
 
-        ts = tm.makeTimeSeries()[:20]
+        ts = Series(
+            np.arange(20, dtype=np.float64), index=date_range("2020-01-01", periods=20)
+        )
         ts_irregular = ts.iloc[[1, 4, 5, 6, 8, 9, 10, 12, 13, 14, 15, 17, 18]]
 
         _, ax = mpl.pyplot.subplots()
@@ -1394,7 +1563,7 @@ class TestTSPlot:
         expected_labels = [f"00:00:00.0000000{i:0>2d}" for i in np.arange(10)]
 
         rng = timedelta_range("0", periods=10, freq="ns")
-        df = DataFrame(np.random.randn(len(rng), 3), rng)
+        df = DataFrame(np.random.default_rng(2).standard_normal((len(rng), 3)), rng)
         _, ax = mpl.pyplot.subplots()
         df.plot(fontsize=2, ax=ax)
         mpl.pyplot.draw()
@@ -1418,7 +1587,7 @@ class TestTSPlot:
         ]
 
         rng = timedelta_range("0", periods=10, freq="1 d")
-        df = DataFrame(np.random.randn(len(rng), 3), rng)
+        df = DataFrame(np.random.default_rng(2).standard_normal((len(rng), 3)), rng)
         _, ax = mpl.pyplot.subplots()
         ax = df.plot(fontsize=2, ax=ax)
         mpl.pyplot.draw()
@@ -1437,20 +1606,20 @@ class TestTSPlot:
     def test_timedelta_long_period(self):
         # test long period
         index = timedelta_range("1 day 2 hr 30 min 10 s", periods=10, freq="1 d")
-        s = Series(np.random.randn(len(index)), index)
+        s = Series(np.random.default_rng(2).standard_normal(len(index)), index)
         _, ax = mpl.pyplot.subplots()
         _check_plot_works(s.plot, ax=ax)
 
     def test_timedelta_short_period(self):
         # test short period
         index = timedelta_range("1 day 2 hr 30 min 10 s", periods=10, freq="1 ns")
-        s = Series(np.random.randn(len(index)), index)
+        s = Series(np.random.default_rng(2).standard_normal(len(index)), index)
         _, ax = mpl.pyplot.subplots()
         _check_plot_works(s.plot, ax=ax)
 
     def test_hist(self):
         # https://github.com/matplotlib/matplotlib/issues/8459
-        rng = date_range("1/1/2011", periods=10, freq="H")
+        rng = date_range("1/1/2011", periods=10, freq="h")
         x = rng
         w1 = np.arange(0, 1, 0.1)
         w2 = np.arange(0, 1, 0.1)[::-1]
@@ -1488,7 +1657,10 @@ class TestTSPlot:
         # GH9053 - ensure that a plot with PeriodConverter still understands
         # datetime64 data. This still fails because matplotlib overrides the
         # ax.xaxis.converter with a DatetimeConverter
-        s = Series(np.random.randn(10), index=date_range("1970-01-02", periods=10))
+        s = Series(
+            np.random.default_rng(2).standard_normal(10),
+            index=date_range("1970-01-02", periods=10),
+        )
         ax = s.plot()
         with tm.assert_produces_warning(DeprecationWarning):
             # multi-dimensional indexing
@@ -1498,7 +1670,7 @@ class TestTSPlot:
 
     def test_matplotlib_scatter_datetime64(self):
         # https://github.com/matplotlib/matplotlib/issues/11391
-        df = DataFrame(np.random.RandomState(0).rand(10, 2), columns=["x", "y"])
+        df = DataFrame(np.random.default_rng(2).random((10, 2)), columns=["x", "y"])
         df["time"] = date_range("2018-01-01", periods=10, freq="D")
         _, ax = mpl.pyplot.subplots()
         ax.scatter(x="time", y="y", data=df)
@@ -1565,16 +1737,15 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
             if orig_axfreq is None:
                 assert ax.freq == dfreq
 
+        if freq is not None:
+            ax_freq = to_offset(ax.freq, is_period=True)
         if freq is not None and orig_axfreq is None:
-            assert ax.freq == freq
+            assert ax_freq == freq
 
         ax = fig.add_subplot(212)
         kwargs["ax"] = ax
         ret = f(*args, **kwargs)
         assert ret is not None  # TODO: do something more intelligent
-
-        with tm.ensure_clean(return_filelike=True) as path:
-            plt.savefig(path)
 
         # GH18439, GH#24088, statsmodels#4772
         with tm.ensure_clean(return_filelike=True) as path:

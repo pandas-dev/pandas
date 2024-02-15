@@ -49,6 +49,7 @@ from pandas.core.dtypes.missing import (
     maybe_fill,
 )
 
+from pandas.core.arrays import Categorical
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import grouper
 from pandas.core.indexes.api import (
@@ -61,7 +62,6 @@ from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
     decons_obs_group_ids,
-    get_flattened_list,
     get_group_index,
     get_group_index_sorter,
     get_indexer_dict,
@@ -77,7 +77,7 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
 
 
-def check_result_array(obj, dtype):
+def check_result_array(obj, dtype) -> None:
     # Our operation is supposed to be an aggregation/reduction. If
     #  it returns an ndarray, this likely means an invalid operation has
     #  been passed. See test_apply_without_aggregation, test_agg_must_agg
@@ -133,6 +133,8 @@ class WrappedCythonOp:
             "all": functools.partial(libgroupby.group_any_all, val_test="all"),
             "sum": "group_sum",
             "prod": "group_prod",
+            "idxmin": functools.partial(libgroupby.group_idxmin_idxmax, name="idxmin"),
+            "idxmax": functools.partial(libgroupby.group_idxmin_idxmax, name="idxmax"),
             "min": "group_min",
             "max": "group_max",
             "mean": "group_mean",
@@ -187,7 +189,7 @@ class WrappedCythonOp:
                     f"function is not implemented for this dtype: "
                     f"[how->{how},dtype->{dtype_str}]"
                 )
-            elif how in ["std", "sem"]:
+            elif how in ["std", "sem", "idxmin", "idxmax"]:
                 # We have a partial object that does not have __signatures__
                 return f
             elif how == "skew":
@@ -268,6 +270,10 @@ class WrappedCythonOp:
 
         if how == "rank":
             out_dtype = "float64"
+        elif how in ["idxmin", "idxmax"]:
+            # The Cython implementation only produces the row number; we'll take
+            # from the index using this in post processing
+            out_dtype = "intp"
         else:
             if dtype.kind in "iufcb":
                 out_dtype = f"{dtype.kind}{dtype.itemsize}"
@@ -399,7 +405,16 @@ class WrappedCythonOp:
         result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
         if self.kind == "aggregate":
             counts = np.zeros(ngroups, dtype=np.int64)
-            if self.how in ["min", "max", "mean", "last", "first", "sum"]:
+            if self.how in [
+                "idxmin",
+                "idxmax",
+                "min",
+                "max",
+                "mean",
+                "last",
+                "first",
+                "sum",
+            ]:
                 func(
                     out=result,
                     counts=counts,
@@ -409,6 +424,7 @@ class WrappedCythonOp:
                     mask=mask,
                     result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
+                    **kwargs,
                 )
             elif self.how in ["sem", "std", "var", "ohlc", "prod", "median"]:
                 if self.how in ["std", "sem"]:
@@ -463,10 +479,10 @@ class WrappedCythonOp:
                 **kwargs,
             )
 
-        if self.kind == "aggregate":
+        if self.kind == "aggregate" and self.how not in ["idxmin", "idxmax"]:
             # i.e. counts is defined.  Locations where count<min_count
             # need to have the result set to np.nan, which may require casting,
-            # see GH#40767
+            # see GH#40767. For idxmin/idxmax is handled specially via post-processing
             if result.dtype.kind in "iu" and not is_datetimelike:
                 # if the op keeps the int dtypes, we have to use 0
                 cutoff = max(0 if self.how in ["sum", "prod"] else 1, min_count)
@@ -588,9 +604,7 @@ class BaseGrouper:
     def nkeys(self) -> int:
         return len(self.groupings)
 
-    def get_iterator(
-        self, data: NDFrameT, axis: AxisInt = 0
-    ) -> Iterator[tuple[Hashable, NDFrameT]]:
+    def get_iterator(self, data: NDFrameT) -> Iterator[tuple[Hashable, NDFrameT]]:
         """
         Groupby iterator
 
@@ -599,37 +613,26 @@ class BaseGrouper:
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        splitter = self._get_splitter(data, axis=axis)
-        keys = self.group_keys_seq
+        splitter = self._get_splitter(data)
+        # TODO: Would be more efficient to skip unobserved for transforms
+        keys = self.result_index
         yield from zip(keys, splitter)
 
     @final
-    def _get_splitter(self, data: NDFrame, axis: AxisInt = 0) -> DataSplitter:
+    def _get_splitter(self, data: NDFrame) -> DataSplitter:
         """
         Returns
         -------
         Generator yielding subsetted objects
         """
-        ids, _, ngroups = self.group_info
+        ids, ngroups = self.group_info
         return _get_splitter(
             data,
             ids,
             ngroups,
             sorted_ids=self._sorted_ids,
-            sort_idx=self._sort_idx,
-            axis=axis,
+            sort_idx=self.result_ilocs,
         )
-
-    @final
-    @cache_readonly
-    def group_keys_seq(self):
-        if len(self.groupings) == 1:
-            return self.levels[0]
-        else:
-            ids, _, ngroups = self.group_info
-
-            # provide "flattened" iterator for multi-group setting
-            return get_flattened_list(ids, ngroups, self.levels, self.codes)
 
     @cache_readonly
     def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
@@ -638,10 +641,10 @@ class BaseGrouper:
             # This shows unused categories in indices GH#38642
             return self.groupings[0].indices
         codes_list = [ping.codes for ping in self.groupings]
-        keys = [ping.group_index for ping in self.groupings]
-        return get_indexer_dict(codes_list, keys)
+        return get_indexer_dict(codes_list, self.levels)
 
     @final
+    @cache_readonly
     def result_ilocs(self) -> npt.NDArray[np.intp]:
         """
         Get the original integer locations of result_index in the input.
@@ -649,18 +652,15 @@ class BaseGrouper:
         # Original indices are where group_index would go via sorting.
         # But when dropna is true, we need to remove null values while accounting for
         # any gaps that then occur because of them.
-        group_index = get_group_index(
-            self.codes, self.shape, sort=self._sort, xnull=True
-        )
-        group_index, _ = compress_group_index(group_index, sort=self._sort)
+        ids = self.ids
 
         if self.has_dropped_na:
-            mask = np.where(group_index >= 0)
+            mask = np.where(ids >= 0)
             # Count how many gaps are caused by previous null values for each position
-            null_gaps = np.cumsum(group_index == -1)[mask]
-            group_index = group_index[mask]
+            null_gaps = np.cumsum(ids == -1)[mask]
+            ids = ids[mask]
 
-        result = get_group_index_sorter(group_index, self.ngroups)
+        result = get_group_index_sorter(ids, self.ngroups)
 
         if self.has_dropped_na:
             # Shift by the number of prior null gaps
@@ -668,14 +668,17 @@ class BaseGrouper:
 
         return result
 
-    @final
     @property
     def codes(self) -> list[npt.NDArray[np.signedinteger]]:
         return [ping.codes for ping in self.groupings]
 
     @property
     def levels(self) -> list[Index]:
-        return [ping.group_index for ping in self.groupings]
+        if len(self.groupings) > 1:
+            # mypy doesn't know result_index must be a MultiIndex
+            return list(self.result_index.levels)  # type: ignore[attr-defined]
+        else:
+            return [self.result_index]
 
     @property
     def names(self) -> list[Hashable]:
@@ -686,29 +689,28 @@ class BaseGrouper:
         """
         Compute group sizes.
         """
-        ids, _, ngroups = self.group_info
+        ids, ngroups = self.group_info
         out: np.ndarray | list
         if ngroups:
             out = np.bincount(ids[ids != -1], minlength=ngroups)
         else:
             out = []
-        return Series(out, index=self.result_index, dtype="int64")
+        return Series(out, index=self.result_index, dtype="int64", copy=False)
 
     @cache_readonly
-    def groups(self) -> dict[Hashable, np.ndarray]:
+    def groups(self) -> dict[Hashable, Index]:
         """dict {group name -> group labels}"""
         if len(self.groupings) == 1:
             return self.groupings[0].groups
-        else:
-            to_groupby = []
-            for ping in self.groupings:
-                gv = ping.grouping_vector
-                if not isinstance(gv, BaseGrouper):
-                    to_groupby.append(gv)
-                else:
-                    to_groupby.append(gv.groupings[0].grouping_vector)
-            index = MultiIndex.from_arrays(to_groupby)
-            return self.axis.groupby(index)
+        result_index, ids = self.result_index_and_ids
+        values = result_index._values
+        categories = Categorical(ids, categories=np.arange(len(result_index)))
+        result = {
+            # mypy is not aware that group has to be an integer
+            values[group]: self.axis.take(axis_ilocs)  # type: ignore[call-overload]
+            for group, axis_ilocs in categories._reverse_indexer().items()
+        }
+        return result
 
     @final
     @cache_readonly
@@ -722,35 +724,19 @@ class BaseGrouper:
         """
         Whether grouper has null value(s) that are dropped.
         """
-        return bool((self.group_info[0] < 0).any())
+        return bool((self.ids < 0).any())
 
     @cache_readonly
-    def group_info(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
-        comp_ids, obs_group_ids = self._get_compressed_codes()
-
-        ngroups = len(obs_group_ids)
-        comp_ids = ensure_platform_int(comp_ids)
-
-        return comp_ids, obs_group_ids, ngroups
+    def group_info(self) -> tuple[npt.NDArray[np.intp], int]:
+        result_index, ids = self.result_index_and_ids
+        ngroups = len(result_index)
+        return ids, ngroups
 
     @cache_readonly
     def codes_info(self) -> npt.NDArray[np.intp]:
         # return the codes of items in original grouped axis
-        ids, _, _ = self.group_info
+        ids, _ = self.group_info
         return ids
-
-    @final
-    def _get_compressed_codes(
-        self,
-    ) -> tuple[npt.NDArray[np.signedinteger], npt.NDArray[np.intp]]:
-        # The first returned ndarray may have any signed integer dtype
-        if len(self.groupings) > 1:
-            group_index = get_group_index(self.codes, self.shape, sort=True, xnull=True)
-            return compress_group_index(group_index, sort=self._sort)
-            # FIXME: compress_group_index's second return value is int64, not intp
-
-        ping = self.groupings[0]
-        return ping.codes, np.arange(len(ping.group_index), dtype=np.intp)
 
     @final
     @cache_readonly
@@ -758,37 +744,128 @@ class BaseGrouper:
         return len(self.result_index)
 
     @property
-    def reconstructed_codes(self) -> list[npt.NDArray[np.intp]]:
-        codes = self.codes
-        ids, obs_ids, _ = self.group_info
-        return decons_obs_group_ids(ids, obs_ids, self.shape, codes, xnull=True)
+    def result_index(self) -> Index:
+        return self.result_index_and_ids[0]
+
+    @property
+    def ids(self) -> npt.NDArray[np.intp]:
+        return self.result_index_and_ids[1]
 
     @cache_readonly
-    def result_index(self) -> Index:
-        if len(self.groupings) == 1:
-            return self.groupings[0].result_index.rename(self.names[0])
+    def result_index_and_ids(self) -> tuple[Index, npt.NDArray[np.intp]]:
+        levels = [Index._with_infer(ping.uniques) for ping in self.groupings]
+        obs = [
+            ping._observed or not ping._passed_categorical for ping in self.groupings
+        ]
+        # When passed a categorical grouping, keep all categories
+        for k, (ping, level) in enumerate(zip(self.groupings, levels)):
+            if ping._passed_categorical:
+                levels[k] = level.set_categories(ping._orig_cats)
 
-        codes = self.reconstructed_codes
-        levels = [ping.result_index for ping in self.groupings]
-        return MultiIndex(
-            levels=levels, codes=codes, verify_integrity=False, names=self.names
+        if len(self.groupings) == 1:
+            result_index = levels[0]
+            result_index.name = self.names[0]
+            ids = ensure_platform_int(self.codes[0])
+        elif all(obs):
+            result_index, ids = self._ob_index_and_ids(levels, self.codes, self.names)
+        elif not any(obs):
+            result_index, ids = self._unob_index_and_ids(levels, self.codes, self.names)
+        else:
+            # Combine unobserved and observed parts
+            names = self.names
+            codes = [ping.codes for ping in self.groupings]
+            ob_indices = [idx for idx, ob in enumerate(obs) if ob]
+            unob_indices = [idx for idx, ob in enumerate(obs) if not ob]
+            ob_index, ob_ids = self._ob_index_and_ids(
+                levels=[levels[idx] for idx in ob_indices],
+                codes=[codes[idx] for idx in ob_indices],
+                names=[names[idx] for idx in ob_indices],
+            )
+            unob_index, unob_ids = self._unob_index_and_ids(
+                levels=[levels[idx] for idx in unob_indices],
+                codes=[codes[idx] for idx in unob_indices],
+                names=[names[idx] for idx in unob_indices],
+            )
+
+            result_index_codes = np.concatenate(
+                [
+                    np.tile(unob_index.codes, len(ob_index)),
+                    np.repeat(ob_index.codes, len(unob_index), axis=1),
+                ],
+                axis=0,
+            )
+            _, index = np.unique(unob_indices + ob_indices, return_index=True)
+            result_index = MultiIndex(
+                levels=list(unob_index.levels) + list(ob_index.levels),
+                codes=result_index_codes,
+                names=list(unob_index.names) + list(ob_index.names),
+            ).reorder_levels(index)
+            ids = len(unob_index) * ob_ids + unob_ids
+
+            if self._sort:
+                # Sort result_index and recode ids using the new order
+                sorter = result_index.argsort()
+                result_index = result_index.take(sorter)
+                _, index = np.unique(sorter, return_index=True)
+                ids = ensure_platform_int(ids)
+                ids = index.take(ids)
+            else:
+                # Recode ids and reorder result_index with observed groups up front,
+                # unobserved at the end
+                ids, uniques = compress_group_index(ids, sort=False)
+                ids = ensure_platform_int(ids)
+                taker = np.concatenate(
+                    [uniques, np.delete(np.arange(len(result_index)), uniques)]
+                )
+                result_index = result_index.take(taker)
+
+        return result_index, ids
+
+    def _ob_index_and_ids(
+        self,
+        levels: list[Index],
+        codes: list[npt.NDArray[np.intp]],
+        names: list[Hashable],
+    ) -> tuple[MultiIndex, npt.NDArray[np.intp]]:
+        shape = tuple(len(level) for level in levels)
+        group_index = get_group_index(codes, shape, sort=True, xnull=True)
+        ob_ids, obs_group_ids = compress_group_index(group_index, sort=self._sort)
+        ob_ids = ensure_platform_int(ob_ids)
+        ob_index_codes = decons_obs_group_ids(
+            ob_ids, obs_group_ids, shape, codes, xnull=True
         )
+        ob_index = MultiIndex(
+            levels=levels,
+            codes=ob_index_codes,
+            names=names,
+            verify_integrity=False,
+        )
+        ob_ids = ensure_platform_int(ob_ids)
+        return ob_index, ob_ids
+
+    def _unob_index_and_ids(
+        self,
+        levels: list[Index],
+        codes: list[npt.NDArray[np.intp]],
+        names: list[Hashable],
+    ) -> tuple[MultiIndex, npt.NDArray[np.intp]]:
+        shape = tuple(len(level) for level in levels)
+        unob_ids = get_group_index(codes, shape, sort=True, xnull=True)
+        unob_index = MultiIndex.from_product(levels, names=names)
+        unob_ids = ensure_platform_int(unob_ids)
+        return unob_index, unob_ids
 
     @final
-    def get_group_levels(self) -> list[ArrayLike]:
+    def get_group_levels(self) -> list[Index]:
         # Note: only called from _insert_inaxis_grouper, which
         #  is only called for BaseGrouper, never for BinGrouper
+        result_index = self.result_index
         if len(self.groupings) == 1:
-            return [self.groupings[0].group_arraylike]
-
-        name_list = []
-        for ping, codes in zip(self.groupings, self.reconstructed_codes):
-            codes = ensure_platform_int(codes)
-            levels = ping.group_arraylike.take(codes)
-
-            name_list.append(levels)
-
-        return name_list
+            return [result_index]
+        return [
+            result_index.get_level_values(level)
+            for level in range(result_index.nlevels)
+        ]
 
     # ------------------------------------------------------------
     # Aggregation functions
@@ -810,14 +887,12 @@ class BaseGrouper:
 
         cy_op = WrappedCythonOp(kind=kind, how=how, has_dropped_na=self.has_dropped_na)
 
-        ids, _, _ = self.group_info
-        ngroups = self.ngroups
         return cy_op.cython_operation(
             values=values,
             axis=axis,
             min_count=min_count,
-            comp_ids=ids,
-            ngroups=ngroups,
+            comp_ids=self.ids,
+            ngroups=self.ngroups,
             **kwargs,
         )
 
@@ -837,10 +912,8 @@ class BaseGrouper:
         -------
         np.ndarray or ExtensionArray
         """
-        # test_groupby_empty_with_category gets here with self.ngroups == 0
-        #  and len(obj) > 0
 
-        if len(obj) > 0 and not isinstance(obj._values, np.ndarray):
+        if not isinstance(obj._values, np.ndarray):
             # we can preserve a little bit more aggressively with EA dtype
             #  because maybe_cast_pointwise_result will do a try/except
             #  with _from_sequence.  NB we are assuming here that _from_sequence
@@ -860,12 +933,12 @@ class BaseGrouper:
     def _aggregate_series_pure_python(
         self, obj: Series, func: Callable
     ) -> npt.NDArray[np.object_]:
-        _, _, ngroups = self.group_info
+        _, ngroups = self.group_info
 
         result = np.empty(ngroups, dtype="O")
         initialized = False
 
-        splitter = self._get_splitter(obj, axis=0)
+        splitter = self._get_splitter(obj)
 
         for i, group in enumerate(splitter):
             res = func(group)
@@ -882,11 +955,11 @@ class BaseGrouper:
 
     @final
     def apply_groupwise(
-        self, f: Callable, data: DataFrame | Series, axis: AxisInt = 0
+        self, f: Callable, data: DataFrame | Series
     ) -> tuple[list, bool]:
         mutated = False
-        splitter = self._get_splitter(data, axis=axis)
-        group_keys = self.group_keys_seq
+        splitter = self._get_splitter(data)
+        group_keys = self.result_index
         result_values = []
 
         # This calls DataSplitter.__iter__
@@ -903,7 +976,7 @@ class BaseGrouper:
             # group might be modified
             group_axes = group.axes
             res = f(group)
-            if not mutated and not _is_indexed_like(res, group_axes, axis):
+            if not mutated and not _is_indexed_like(res, group_axes):
                 mutated = True
             result_values.append(res)
         # getattr pattern for __name__ is needed for functools.partial objects
@@ -924,16 +997,12 @@ class BaseGrouper:
 
     @final
     @cache_readonly
-    def _sort_idx(self) -> npt.NDArray[np.intp]:
-        # Counting sort indexer
-        ids, _, ngroups = self.group_info
-        return get_group_index_sorter(ids, ngroups)
-
-    @final
-    @cache_readonly
     def _sorted_ids(self) -> npt.NDArray[np.intp]:
-        ids, _, _ = self.group_info
-        return ids.take(self._sort_idx)
+        result = self.ids.take(self.result_ilocs)
+        if getattr(self, "dropna", True):
+            # BinGrouper has no dropna
+            result = result[result >= 0]
+        return result
 
 
 class BinGrouper(BaseGrouper):
@@ -996,9 +1065,6 @@ class BinGrouper(BaseGrouper):
         }
         return result
 
-    def __iter__(self) -> Iterator[Hashable]:
-        return iter(self.groupings[0].grouping_vector)
-
     @property
     def nkeys(self) -> int:
         # still matches len(self.groupings), but we can hard-code
@@ -1007,13 +1073,13 @@ class BinGrouper(BaseGrouper):
     @cache_readonly
     def codes_info(self) -> npt.NDArray[np.intp]:
         # return the codes of items in original grouped axis
-        ids, _, _ = self.group_info
+        ids, _ = self.group_info
         if self.indexer is not None:
             sorter = np.lexsort((ids, self.indexer))
             ids = ids[sorter]
         return ids
 
-    def get_iterator(self, data: NDFrame, axis: AxisInt = 0):
+    def get_iterator(self, data: NDFrame):
         """
         Groupby iterator
 
@@ -1022,12 +1088,7 @@ class BinGrouper(BaseGrouper):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        if axis == 0:
-            slicer = lambda start, edge: data.iloc[start:edge]
-        else:
-            slicer = lambda start, edge: data.iloc[:, start:edge]
-
-        length = len(data.axes[axis])
+        slicer = lambda start, edge: data.iloc[start:edge]
 
         start = 0
         for edge, label in zip(self.bins, self.binlabels):
@@ -1035,7 +1096,7 @@ class BinGrouper(BaseGrouper):
                 yield label, slicer(start, edge)
             start = edge
 
-        if start < length:
+        if start < len(data):
             yield self.binlabels[-1], slicer(start, None)
 
     @cache_readonly
@@ -1051,9 +1112,8 @@ class BinGrouper(BaseGrouper):
         return indices
 
     @cache_readonly
-    def group_info(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
+    def group_info(self) -> tuple[npt.NDArray[np.intp], int]:
         ngroups = self.ngroups
-        obs_group_ids = np.arange(ngroups, dtype=np.intp)
         rep = np.diff(np.r_[0, self.bins])
 
         rep = ensure_platform_int(rep)
@@ -1062,16 +1122,7 @@ class BinGrouper(BaseGrouper):
         else:
             comp_ids = np.repeat(np.r_[-1, np.arange(ngroups)], rep)
 
-        return (
-            ensure_platform_int(comp_ids),
-            obs_group_ids,
-            ngroups,
-        )
-
-    @cache_readonly
-    def reconstructed_codes(self) -> list[np.ndarray]:
-        # get unique result indices, and prepend 0 as groupby starts from the first
-        return [np.r_[0, np.flatnonzero(self.bins[1:] != self.bins[:-1]) + 1]]
+        return (ensure_platform_int(comp_ids), ngroups)
 
     @cache_readonly
     def result_index(self) -> Index:
@@ -1079,6 +1130,14 @@ class BinGrouper(BaseGrouper):
             return self.binlabels[1:]
 
         return self.binlabels
+
+    @cache_readonly
+    def codes(self) -> list[npt.NDArray[np.intp]]:
+        return [self.group_info[0]]
+
+    @cache_readonly
+    def result_index_and_ids(self):
+        return self.result_index, self.group_info[0]
 
     @property
     def levels(self) -> list[Index]:
@@ -1099,13 +1158,13 @@ class BinGrouper(BaseGrouper):
         return [ping]
 
 
-def _is_indexed_like(obj, axes, axis: AxisInt) -> bool:
+def _is_indexed_like(obj, axes) -> bool:
     if isinstance(obj, Series):
         if len(axes) > 1:
             return False
-        return obj.axes[axis].equals(axes[axis])
+        return obj.index.equals(axes[0])
     elif isinstance(obj, DataFrame):
-        return obj.axes[axis].equals(axes[axis])
+        return obj.index.equals(axes[0])
 
     return False
 
@@ -1123,7 +1182,6 @@ class DataSplitter(Generic[NDFrameT]):
         *,
         sort_idx: npt.NDArray[np.intp],
         sorted_ids: npt.NDArray[np.intp],
-        axis: AxisInt = 0,
     ) -> None:
         self.data = data
         self.labels = ensure_platform_int(labels)  # _should_ already be np.intp
@@ -1131,9 +1189,6 @@ class DataSplitter(Generic[NDFrameT]):
 
         self._slabels = sorted_ids
         self._sort_idx = sort_idx
-
-        self.axis = axis
-        assert isinstance(axis, int), axis
 
     def __iter__(self) -> Iterator:
         sdata = self._sorted_data
@@ -1150,7 +1205,7 @@ class DataSplitter(Generic[NDFrameT]):
 
     @cache_readonly
     def _sorted_data(self) -> NDFrameT:
-        return self.data.take(self._sort_idx, axis=self.axis)
+        return self.data.take(self._sort_idx, axis=0)
 
     def _chop(self, sdata, slice_obj: slice) -> NDFrame:
         raise AbstractMethodError(self)
@@ -1168,11 +1223,8 @@ class SeriesSplitter(DataSplitter):
 class FrameSplitter(DataSplitter):
     def _chop(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:
         # Fastpath equivalent to:
-        # if self.axis == 0:
-        #     return sdata.iloc[slice_obj]
-        # else:
-        #     return sdata.iloc[:, slice_obj]
-        mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
+        # return sdata.iloc[slice_obj]
+        mgr = sdata._mgr.get_slice(slice_obj, axis=1)
         df = sdata._constructor_from_mgr(mgr, axes=mgr.axes)
         return df.__finalize__(sdata, method="groupby")
 
@@ -1184,7 +1236,6 @@ def _get_splitter(
     *,
     sort_idx: npt.NDArray[np.intp],
     sorted_ids: npt.NDArray[np.intp],
-    axis: AxisInt = 0,
 ) -> DataSplitter:
     if isinstance(data, Series):
         klass: type[DataSplitter] = SeriesSplitter
@@ -1192,6 +1243,4 @@ def _get_splitter(
         # i.e. DataFrame
         klass = FrameSplitter
 
-    return klass(
-        data, labels, ngroups, sort_idx=sort_idx, sorted_ids=sorted_ids, axis=axis
-    )
+    return klass(data, labels, ngroups, sort_idx=sort_idx, sorted_ids=sorted_ids)

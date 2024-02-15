@@ -29,13 +29,6 @@ this area.
    production code, we recommended that you take advantage of the optimized
    pandas data access methods exposed in this chapter.
 
-.. warning::
-
-   Whether a copy or a reference is returned for a setting operation, may
-   depend on the context. This is sometimes called ``chained assignment`` and
-   should be avoided. See :ref:`Returning a View versus Copy
-   <indexing.view_versus_copy>`.
-
 See the :ref:`MultiIndex / Advanced Indexing <advanced>` for ``MultiIndex`` and more advanced indexing documentation.
 
 See the :ref:`cookbook<cookbook.selection>` for some advanced strategies.
@@ -62,6 +55,8 @@ of multi-axis indexing.
     * A boolean array (any ``NA`` values will be treated as ``False``).
     * A ``callable`` function with one argument (the calling Series or DataFrame) and
       that returns valid output for indexing (one of the above).
+    * A tuple of row (and column) indices whose elements are one of the
+      above inputs.
 
   See more at :ref:`Selection by Label <indexing.label>`.
 
@@ -78,12 +73,20 @@ of multi-axis indexing.
     * A boolean array (any ``NA`` values will be treated as ``False``).
     * A ``callable`` function with one argument (the calling Series or DataFrame) and
       that returns valid output for indexing (one of the above).
+    * A tuple of row (and column) indices whose elements are one of the
+      above inputs.
 
   See more at :ref:`Selection by Position <indexing.integer>`,
   :ref:`Advanced Indexing <advanced>` and :ref:`Advanced
   Hierarchical <advanced.advanced_hierarchical>`.
 
 * ``.loc``, ``.iloc``, and also ``[]`` indexing can accept a ``callable`` as indexer. See more at :ref:`Selection By Callable <indexing.callable>`.
+
+  .. note::
+
+     Destructuring tuple keys into row (and column) indexes occurs
+     *before* callables are applied, so you cannot return a tuple from
+     a callable to index both rows and columns.
 
 Getting values from an object with multi-axes selection uses the following
 notation (using ``.loc`` as an example, but the following applies to ``.iloc`` as
@@ -244,17 +247,13 @@ You can use attribute access to modify an existing element of a Series or column
 if you try to use attribute access to create a new column, it creates a new attribute rather than a
 new column and will this raise a ``UserWarning``:
 
-.. code-block:: ipython
+.. ipython:: python
+   :okwarning:
 
-    In [1]: df = pd.DataFrame({'one': [1., 2., 3.]})
-    In [2]: df.two = [4, 5, 6]
-    UserWarning: Pandas doesn't allow Series to be assigned into nonexistent columns - see https://pandas.pydata.org/pandas-docs/stable/indexing.html#attribute_access
-    In [3]: df
-    Out[3]:
-       one
-    0  1.0
-    1  2.0
-    2  3.0
+    df_new = pd.DataFrame({'one': [1., 2., 3.]})
+    df_new.two = [4, 5, 6]
+    df_new
+
 
 Slicing ranges
 --------------
@@ -295,26 +294,17 @@ Selection by label
 
 .. warning::
 
-   Whether a copy or a reference is returned for a setting operation, may depend on the context.
-   This is sometimes called ``chained assignment`` and should be avoided.
-   See :ref:`Returning a View versus Copy <indexing.view_versus_copy>`.
-
-.. warning::
-
    ``.loc`` is strict when you present slicers that are not compatible (or convertible) with the index type. For example
    using integers in a ``DatetimeIndex``. These will raise a ``TypeError``.
 
-  .. ipython:: python
+   .. ipython:: python
+      :okexcept:
 
-     dfl = pd.DataFrame(np.random.randn(5, 4),
-                        columns=list('ABCD'),
-                        index=pd.date_range('20130101', periods=5))
-     dfl
-
-  .. code-block:: ipython
-
-     In [4]: dfl.loc[2:3]
-     TypeError: cannot do slice indexing on <class 'pandas.tseries.index.DatetimeIndex'> with these indexers [2] of <type 'int'>
+      dfl = pd.DataFrame(np.random.randn(5, 4),
+                         columns=list('ABCD'),
+                         index=pd.date_range('20130101', periods=5))
+      dfl
+      dfl.loc[2:3]
 
   String likes in slicing *can* be convertible to the type of the index and lead to natural slicing.
 
@@ -442,12 +432,6 @@ For more information about duplicate labels, see
 Selection by position
 ---------------------
 
-.. warning::
-
-   Whether a copy or a reference is returned for a setting operation, may depend on the context.
-   This is sometimes called ``chained assignment`` and should be avoided.
-   See :ref:`Returning a View versus Copy <indexing.view_versus_copy>`.
-
 pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely Python and NumPy slicing. These are ``0-based`` indexing. When slicing, the start bound is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise an ``IndexError``.
 
 The ``.iloc`` attribute is the primary access method. The following are valid inputs:
@@ -457,6 +441,8 @@ The ``.iloc`` attribute is the primary access method. The following are valid in
 * A slice object with ints ``1:7``.
 * A boolean array.
 * A ``callable``, see :ref:`Selection By Callable <indexing.callable>`.
+* A tuple of row (and column) indexes, whose elements are one of the
+  above types.
 
 .. ipython:: python
 
@@ -542,13 +528,15 @@ A single indexer that is out of bounds will raise an ``IndexError``.
 A list of indexers where any element is out of bounds will raise an
 ``IndexError``.
 
-.. code-block:: python
+.. ipython:: python
+   :okexcept:
 
-   >>> dfl.iloc[[4, 5, 6]]
-   IndexError: positional indexers are out-of-bounds
+   dfl.iloc[[4, 5, 6]]
 
-   >>> dfl.iloc[:, 4]
-   IndexError: single positional indexer is out-of-bounds
+.. ipython:: python
+   :okexcept:
+
+   dfl.iloc[:, 4]
 
 .. _indexing.callable:
 
@@ -557,6 +545,12 @@ Selection by callable
 
 ``.loc``, ``.iloc``, and also ``[]`` indexing can accept a ``callable`` as indexer.
 The ``callable`` must be a function with one argument (the calling Series or DataFrame) that returns valid output for indexing.
+
+.. note::
+
+   For ``.iloc`` indexing, returning a tuple from the callable is
+   not supported, since tuple destructuring for row and column indexes
+   occurs *before* applying callables.
 
 .. ipython:: python
 
@@ -618,59 +612,6 @@ For getting *multiple* indexers, using ``.get_indexer``:
   dfd.iloc[[0, 2], dfd.columns.get_indexer(['A', 'B'])]
 
 
-.. _deprecate_loc_reindex_listlike:
-.. _indexing.deprecate_loc_reindex_listlike:
-
-Indexing with list with missing labels is deprecated
-----------------------------------------------------
-
-In prior versions, using ``.loc[list-of-labels]`` would work as long as *at least 1* of the keys was found (otherwise it
-would raise a ``KeyError``). This behavior was changed and will now raise a ``KeyError`` if at least one label is missing.
-The recommended alternative is to use ``.reindex()``.
-
-For example.
-
-.. ipython:: python
-
-   s = pd.Series([1, 2, 3])
-   s
-
-Selection with all keys found is unchanged.
-
-.. ipython:: python
-
-   s.loc[[1, 2]]
-
-Previous behavior
-
-.. code-block:: ipython
-
-   In [4]: s.loc[[1, 2, 3]]
-   Out[4]:
-   1    2.0
-   2    3.0
-   3    NaN
-   dtype: float64
-
-
-Current behavior
-
-.. code-block:: ipython
-
-   In [4]: s.loc[[1, 2, 3]]
-   Passing list-likes to .loc with any non-matching elements will raise
-   KeyError in the future, you can use .reindex() as an alternative.
-
-   See the documentation here:
-   https://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate-loc-reindex-listlike
-
-   Out[4]:
-   1    2.0
-   2    3.0
-   3    NaN
-   dtype: float64
-
-
 Reindexing
 ~~~~~~~~~~
 
@@ -678,6 +619,7 @@ The idiomatic way to achieve selecting potentially not-found elements is via ``.
 
 .. ipython:: python
 
+  s = pd.Series([1, 2, 3])
   s.reindex([1, 2, 3])
 
 Alternatively, if you want to select only *valid* keys, the following is idiomatic and efficient; it is guaranteed to preserve the dtype of the selection.
@@ -690,14 +632,11 @@ Alternatively, if you want to select only *valid* keys, the following is idiomat
 Having a duplicated index will raise for a ``.reindex()``:
 
 .. ipython:: python
+   :okexcept:
 
    s = pd.Series(np.arange(4), index=['a', 'a', 'b', 'c'])
    labels = ['c', 'd']
-
-.. code-block:: ipython
-
-   In [17]: s.reindex(labels)
-   ValueError: cannot reindex on an axis with duplicate labels
+   s.reindex(labels)
 
 Generally, you can intersect the desired labels with the current
 axis, and then reindex.
@@ -708,12 +647,11 @@ axis, and then reindex.
 
 However, this would *still* raise if your resulting index is duplicated.
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
-   In [41]: labels = ['a', 'd']
-
-   In [42]: s.loc[s.index.intersection(labels)].reindex(labels)
-   ValueError: cannot reindex on an axis with duplicate labels
+   labels = ['a', 'd']
+   s.loc[s.index.intersection(labels)].reindex(labels)
 
 
 .. _indexing.basics.partial_setting:
@@ -1757,198 +1695,18 @@ discards the index, instead of putting index values in the DataFrame's columns.
 Adding an ad hoc index
 ~~~~~~~~~~~~~~~~~~~~~~
 
-If you create an index yourself, you can just assign it to the ``index`` field:
-
-.. code-block:: python
-
-   data.index = index
-
-.. _indexing.view_versus_copy:
-
-Returning a view versus a copy
-------------------------------
-
-When setting values in a pandas object, care must be taken to avoid what is called
-``chained indexing``. Here is an example.
+You can assign a custom index to the ``index`` attribute:
 
 .. ipython:: python
 
-   dfmi = pd.DataFrame([list('abcd'),
-                        list('efgh'),
-                        list('ijkl'),
-                        list('mnop')],
-                       columns=pd.MultiIndex.from_product([['one', 'two'],
-                                                           ['first', 'second']]))
-   dfmi
-
-Compare these two access methods:
-
-.. ipython:: python
-
-   dfmi['one']['second']
-
-.. ipython:: python
-
-   dfmi.loc[:, ('one', 'second')]
-
-These both yield the same results, so which should you use? It is instructive to understand the order
-of operations on these and why method 2 (``.loc``) is much preferred over method 1 (chained ``[]``).
-
-``dfmi['one']`` selects the first level of the columns and returns a DataFrame that is singly-indexed.
-Then another Python operation ``dfmi_with_one['second']`` selects the series indexed by ``'second'``.
-This is indicated by the variable ``dfmi_with_one`` because pandas sees these operations as separate events.
-e.g. separate calls to ``__getitem__``, so it has to treat them as linear operations, they happen one after another.
-
-Contrast this to ``df.loc[:,('one','second')]`` which passes a nested tuple of ``(slice(None),('one','second'))`` to a single call to
-``__getitem__``. This allows pandas to deal with this as a single entity. Furthermore this order of operations *can* be significantly
-faster, and allows one to index *both* axes if so desired.
+   df_idx = pd.DataFrame(range(4))
+   df_idx.index = pd.Index([10, 20, 30, 40], name="a")
+   df_idx
 
 Why does assignment fail when using chained indexing?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The problem in the previous section is just a performance issue. What's up with
-the ``SettingWithCopy`` warning? We don't **usually** throw warnings around when
-you do something that might cost a few extra milliseconds!
-
-But it turns out that assigning to the product of chained indexing has
-inherently unpredictable results. To see this, think about how the Python
-interpreter executes this code:
-
-.. code-block:: python
-
-   dfmi.loc[:, ('one', 'second')] = value
-   # becomes
-   dfmi.loc.__setitem__((slice(None), ('one', 'second')), value)
-
-But this code is handled differently:
-
-.. code-block:: python
-
-   dfmi['one']['second'] = value
-   # becomes
-   dfmi.__getitem__('one').__setitem__('second', value)
-
-See that ``__getitem__`` in there? Outside of simple cases, it's very hard to
-predict whether it will return a view or a copy (it depends on the memory layout
-of the array, about which pandas makes no guarantees), and therefore whether
-the ``__setitem__`` will modify ``dfmi`` or a temporary object that gets thrown
-out immediately afterward. **That's** what ``SettingWithCopy`` is warning you
-about!
-
-.. note:: You may be wondering whether we should be concerned about the ``loc``
-   property in the first example. But ``dfmi.loc`` is guaranteed to be ``dfmi``
-   itself with modified indexing behavior, so ``dfmi.loc.__getitem__`` /
-   ``dfmi.loc.__setitem__`` operate on ``dfmi`` directly. Of course,
-   ``dfmi.loc.__getitem__(idx)`` may be a view or a copy of ``dfmi``.
-
-Sometimes a ``SettingWithCopy`` warning will arise at times when there's no
-obvious chained indexing going on. **These** are the bugs that
-``SettingWithCopy`` is designed to catch! pandas is probably trying to warn you
-that you've done this:
-
-.. code-block:: python
-
-   def do_something(df):
-       foo = df[['bar', 'baz']]  # Is foo a view? A copy? Nobody knows!
-       # ... many lines here ...
-       # We don't know whether this will modify df or not!
-       foo['quux'] = value
-       return foo
-
-Yikes!
-
-.. _indexing.evaluation_order:
-
-Evaluation order matters
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-When you use chained indexing, the order and type of the indexing operation
-partially determine whether the result is a slice into the original object, or
-a copy of the slice.
-
-pandas has the ``SettingWithCopyWarning`` because assigning to a copy of a
-slice is frequently not intentional, but a mistake caused by chained indexing
-returning a copy where a slice was expected.
-
-If you would like pandas to be more or less trusting about assignment to a
-chained indexing expression, you can set the :ref:`option <options>`
-``mode.chained_assignment`` to one of these values:
-
-* ``'warn'``, the default, means a ``SettingWithCopyWarning`` is printed.
-* ``'raise'`` means pandas will raise a ``SettingWithCopyError``
-  you have to deal with.
-* ``None`` will suppress the warnings entirely.
-
-.. ipython:: python
-   :okwarning:
-
-   dfb = pd.DataFrame({'a': ['one', 'one', 'two',
-                             'three', 'two', 'one', 'six'],
-                       'c': np.arange(7)})
-
-   # This will show the SettingWithCopyWarning
-   # but the frame values will be set
-   dfb['c'][dfb['a'].str.startswith('o')] = 42
-
-This however is operating on a copy and will not work.
-
-::
-
-   >>> pd.set_option('mode.chained_assignment','warn')
-   >>> dfb[dfb['a'].str.startswith('o')]['c'] = 42
-   Traceback (most recent call last)
-        ...
-   SettingWithCopyWarning:
-        A value is trying to be set on a copy of a slice from a DataFrame.
-        Try using .loc[row_index,col_indexer] = value instead
-
-A chained assignment can also crop up in setting in a mixed dtype frame.
-
-.. note::
-
-   These setting rules apply to all of ``.loc/.iloc``.
-
-The following is the recommended access method using ``.loc`` for multiple items (using ``mask``) and a single item using a fixed index:
-
-.. ipython:: python
-
-   dfc = pd.DataFrame({'a': ['one', 'one', 'two',
-                             'three', 'two', 'one', 'six'],
-                       'c': np.arange(7)})
-   dfd = dfc.copy()
-   # Setting multiple items using a mask
-   mask = dfd['a'].str.startswith('o')
-   dfd.loc[mask, 'c'] = 42
-   dfd
-
-   # Setting a single item
-   dfd = dfc.copy()
-   dfd.loc[2, 'a'] = 11
-   dfd
-
-The following *can* work at times, but it is not guaranteed to, and therefore should be avoided:
-
-.. ipython:: python
-   :okwarning:
-
-   dfd = dfc.copy()
-   dfd['a'][2] = 111
-   dfd
-
-Last, the subsequent example will **not** work at all, and so should be avoided:
-
-::
-
-   >>> pd.set_option('mode.chained_assignment','raise')
-   >>> dfd.loc[0]['a'] = 1111
-   Traceback (most recent call last)
-        ...
-   SettingWithCopyError:
-        A value is trying to be set on a copy of a slice from a DataFrame.
-        Try using .loc[row_index,col_indexer] = value instead
-
-.. warning::
-
-   The chained assignment warnings / exceptions are aiming to inform the user of a possibly invalid
-   assignment. There may be false positives; situations where a chained assignment is inadvertently
-   reported.
+:ref:`Copy-on-Write <copy_on_write>` is the new default with pandas 3.0.
+This means than chained indexing will never work.
+See :ref:`this section <copy_on_write_chained_assignment>`
+for more context.

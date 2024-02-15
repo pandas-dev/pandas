@@ -4,18 +4,21 @@ import numpy as np
 from numpy import iinfo
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     ArrowDtype,
     DataFrame,
     Index,
     Series,
+    option_context,
     to_numeric,
 )
 import pandas._testing as tm
 
 
-@pytest.fixture(params=[None, "ignore", "raise", "coerce"])
+@pytest.fixture(params=[None, "raise", "coerce"])
 def errors(request):
     return request.param
 
@@ -67,10 +70,14 @@ def test_empty(input_kwargs, result_kwargs):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
+)
 @pytest.mark.parametrize("last_val", ["7", 7])
-def test_series(last_val):
-    ser = Series(["1", "-3.14", last_val])
-    result = to_numeric(ser)
+def test_series(last_val, infer_string):
+    with option_context("future.infer_string", infer_string):
+        ser = Series(["1", "-3.14", last_val])
+        result = to_numeric(ser)
 
     expected = Series([1, -3.14, 7])
     tm.assert_series_equal(result, expected)
@@ -109,14 +116,11 @@ def test_error(data, msg):
         to_numeric(ser, errors="raise")
 
 
-@pytest.mark.parametrize(
-    "errors,exp_data", [("ignore", [1, -3.14, "apple"]), ("coerce", [1, -3.14, np.nan])]
-)
-def test_ignore_error(errors, exp_data):
+def test_ignore_error():
     ser = Series([1, -3.14, "apple"])
-    result = to_numeric(ser, errors=errors)
+    result = to_numeric(ser, errors="coerce")
 
-    expected = Series(exp_data)
+    expected = Series([1, -3.14, np.nan])
     tm.assert_series_equal(result, expected)
 
 
@@ -124,7 +128,6 @@ def test_ignore_error(errors, exp_data):
     "errors,exp",
     [
         ("raise", 'Unable to parse string "apple" at position 2'),
-        ("ignore", [True, False, "apple"]),
         # Coerces to float.
         ("coerce", [1.0, 0.0, np.nan]),
     ],
@@ -195,11 +198,9 @@ def test_numeric_df_columns(columns):
     )
 
     expected = DataFrame({"a": [1.2, 3.14, np.inf, 0.1], "b": [1.0, 2.0, 3.0, 4.0]})
+    df[columns] = df[columns].apply(to_numeric)
 
-    df_copy = df.copy()
-    df_copy[columns] = df_copy[columns].apply(to_numeric)
-
-    tm.assert_frame_equal(df_copy, expected)
+    tm.assert_frame_equal(df, expected)
 
 
 @pytest.mark.parametrize(
@@ -318,13 +319,8 @@ def test_really_large_in_arr_consistent(large_val, signed, multiple_elts, errors
             to_numeric(arr, **kwargs)
     else:
         result = to_numeric(arr, **kwargs)
-
-        if errors == "coerce":
-            expected = [float(i) for i in arr]
-            exp_dtype = float
-        else:
-            expected = arr
-            exp_dtype = object
+        expected = [float(i) for i in arr]
+        exp_dtype = float
 
         tm.assert_almost_equal(result, np.array(expected, dtype=exp_dtype))
 
@@ -333,7 +329,6 @@ def test_really_large_in_arr_consistent(large_val, signed, multiple_elts, errors
     "errors,checker",
     [
         ("raise", 'Unable to parse string "fail" at position 0'),
-        ("ignore", lambda x: x == "fail"),
         ("coerce", lambda x: np.isnan(x)),
     ],
 )
@@ -396,7 +391,7 @@ def test_period(request, transform_assert_equal):
     inp = transform(idx)
 
     if not isinstance(inp, Index):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason="Missing PeriodDtype support in to_numeric")
         )
     result = to_numeric(inp)
@@ -408,7 +403,6 @@ def test_period(request, transform_assert_equal):
     "errors,expected",
     [
         ("raise", "Invalid object type at position 0"),
-        ("ignore", Series([[10.0, 2], 1.0, "apple"])),
         ("coerce", Series([np.nan, 1.0, np.nan])),
     ],
 )
@@ -489,17 +483,6 @@ def test_signed_downcast(data, signed_downcast):
     tm.assert_numpy_array_equal(res, expected)
 
 
-def test_ignore_downcast_invalid_data():
-    # If we can't successfully cast the given
-    # data to a numeric dtype, do not bother
-    # with the downcast parameter.
-    data = ["foo", 2, 3]
-    expected = np.array(data, dtype=object)
-
-    res = to_numeric(data, errors="ignore", downcast="unsigned")
-    tm.assert_numpy_array_equal(res, expected)
-
-
 def test_ignore_downcast_neg_to_unsigned():
     # Cannot cast to an unsigned integer
     # because we have a negative number.
@@ -511,7 +494,6 @@ def test_ignore_downcast_neg_to_unsigned():
 
 
 # Warning in 32 bit platforms
-@pytest.mark.filterwarnings("ignore:invalid value encountered in cast:RuntimeWarning")
 @pytest.mark.parametrize("downcast", ["integer", "signed", "unsigned"])
 @pytest.mark.parametrize(
     "data,expected",
@@ -581,21 +563,12 @@ def test_downcast_float64_to_float32():
     assert series.dtype == result.dtype
 
 
-@pytest.mark.parametrize(
-    "ser,expected",
-    [
-        (
-            Series([0, 9223372036854775808]),
-            Series([0, 9223372036854775808], dtype=np.uint64),
-        )
-    ],
-)
-def test_downcast_uint64(ser, expected):
+def test_downcast_uint64():
     # see gh-14422:
     # BUG: to_numeric doesn't work uint64 numbers
-
+    ser = Series([0, 9223372036854775808])
     result = to_numeric(ser, downcast="unsigned")
-
+    expected = Series([0, 9223372036854775808], dtype=np.uint64)
     tm.assert_series_equal(result, expected)
 
 
@@ -622,25 +595,14 @@ def test_coerce_uint64_conflict(data, exp_data):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "errors,exp",
-    [
-        ("ignore", Series(["12345678901234567890", "1234567890", "ITEM"])),
-        ("raise", "Unable to parse string"),
-    ],
-)
-def test_non_coerce_uint64_conflict(errors, exp):
+def test_non_coerce_uint64_conflict():
     # see gh-17007 and gh-17125
     #
     # For completeness.
     ser = Series(["12345678901234567890", "1234567890", "ITEM"])
 
-    if isinstance(exp, str):
-        with pytest.raises(ValueError, match=exp):
-            to_numeric(ser, errors=errors)
-    else:
-        result = to_numeric(ser, errors=errors)
-        tm.assert_series_equal(result, ser)
+    with pytest.raises(ValueError, match="Unable to parse string"):
+        to_numeric(ser, errors="raise")
 
 
 @pytest.mark.parametrize("dc1", ["integer", "float", "unsigned"])
@@ -747,15 +709,6 @@ def test_to_numeric_from_nullable_string_coerce(nullable_string_dtype):
     ser = Series(values, dtype=nullable_string_dtype)
     result = to_numeric(ser, errors="coerce")
     expected = Series([pd.NA, 1], dtype="Int64")
-    tm.assert_series_equal(result, expected)
-
-
-def test_to_numeric_from_nullable_string_ignore(nullable_string_dtype):
-    # GH#52146
-    values = ["a", "1"]
-    ser = Series(values, dtype=nullable_string_dtype)
-    expected = ser.copy()
-    result = to_numeric(ser, errors="ignore")
     tm.assert_series_equal(result, expected)
 
 
@@ -924,9 +877,6 @@ def test_to_numeric_dtype_backend_error(dtype_backend):
     expected = ser.copy()
     with pytest.raises(ValueError, match="Unable to parse string"):
         to_numeric(ser, dtype_backend=dtype_backend)
-
-    result = to_numeric(ser, dtype_backend=dtype_backend, errors="ignore")
-    tm.assert_series_equal(result, expected)
 
     result = to_numeric(ser, dtype_backend=dtype_backend, errors="coerce")
     if dtype_backend == "pyarrow":

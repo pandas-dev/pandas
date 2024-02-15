@@ -284,7 +284,9 @@ class CSSToExcelConverter:
             for side in ["top", "right", "bottom", "left"]
         }
 
-    def _border_style(self, style: str | None, width: str | None, color: str | None):
+    def _border_style(
+        self, style: str | None, width: str | None, color: str | None
+    ) -> str | None:
         # convert styles and widths to openxml, one of:
         #       'dashDot'
         #       'dashDotDot'
@@ -333,7 +335,7 @@ class CSSToExcelConverter:
             return self.BORDER_STYLE_MAP[style]
         else:
             warnings.warn(
-                f"Unhandled border style format: {repr(style)}",
+                f"Unhandled border style format: {style!r}",
                 CSSWarning,
                 stacklevel=find_stack_level(),
             )
@@ -469,7 +471,7 @@ class CSSToExcelConverter:
             return self.NAMED_COLORS[val]
         except KeyError:
             warnings.warn(
-                f"Unhandled color format: {repr(val)}",
+                f"Unhandled color format: {val!r}",
                 CSSWarning,
                 stacklevel=find_stack_level(),
             )
@@ -610,8 +612,8 @@ class ExcelFormatter:
             return
 
         columns = self.columns
-        level_strs = columns.format(
-            sparsify=self.merge_cells, adjoin=False, names=False
+        level_strs = columns._format_multi(
+            sparsify=self.merge_cells, include_names=False
         )
         level_lengths = get_level_lengths(level_strs)
         coloffset = 0
@@ -800,8 +802,8 @@ class ExcelFormatter:
 
             if self.merge_cells:
                 # Format hierarchical rows as merged cells.
-                level_strs = self.df.index.format(
-                    sparsify=True, adjoin=False, names=False
+                level_strs = self.df.index._format_multi(
+                    sparsify=True, include_names=False
                 )
                 level_lengths = get_level_lengths(level_strs)
 
@@ -908,7 +910,6 @@ class ExcelFormatter:
 
         {storage_options}
 
-            .. versionadded:: 1.2.0
         engine_kwargs: dict, optional
             Arbitrary keyword arguments passed to excel engine.
         """
@@ -928,9 +929,7 @@ class ExcelFormatter:
         if isinstance(writer, ExcelWriter):
             need_save = False
         else:
-            # error: Cannot instantiate abstract class 'ExcelWriter' with abstract
-            # attributes 'engine', 'save', 'supported_extensions' and 'write_cells'
-            writer = ExcelWriter(  # type: ignore[abstract]
+            writer = ExcelWriter(
                 writer,
                 engine=engine,
                 storage_options=storage_options,

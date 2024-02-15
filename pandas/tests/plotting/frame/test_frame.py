@@ -7,7 +7,6 @@ import gc
 import itertools
 import re
 import string
-import warnings
 import weakref
 
 import numpy as np
@@ -20,11 +19,13 @@ from pandas.core.dtypes.api import is_list_like
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     MultiIndex,
     PeriodIndex,
     Series,
     bdate_range,
     date_range,
+    option_context,
     plotting,
 )
 import pandas._testing as tm
@@ -53,19 +54,31 @@ plt = pytest.importorskip("matplotlib.pyplot")
 class TestDataFramePlots:
     @pytest.mark.slow
     def test_plot(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         _check_plot_works(df.plot, grid=False)
 
     @pytest.mark.slow
     def test_plot_subplots(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         # _check_plot_works adds an ax so use default_axes=True to avoid warning
         axes = _check_plot_works(df.plot, default_axes=True, subplots=True)
         _check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
     @pytest.mark.slow
     def test_plot_subplots_negative_layout(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         axes = _check_plot_works(
             df.plot,
             default_axes=True,
@@ -76,7 +89,11 @@ class TestDataFramePlots:
 
     @pytest.mark.slow
     def test_plot_subplots_use_index(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         axes = _check_plot_works(
             df.plot,
             default_axes=True,
@@ -96,7 +113,10 @@ class TestDataFramePlots:
 
     @pytest.mark.slow
     def test_plot_tick_props(self):
-        df = DataFrame(np.random.rand(10, 3), index=list(string.ascii_letters[:10]))
+        df = DataFrame(
+            np.random.default_rng(2).random((10, 3)),
+            index=list(string.ascii_letters[:10]),
+        )
 
         ax = _check_plot_works(df.plot, use_index=True)
         _check_ticks_props(ax, xrot=0)
@@ -112,12 +132,18 @@ class TestDataFramePlots:
         ],
     )
     def test_plot_other_args(self, kwargs):
-        df = DataFrame(np.random.rand(10, 3), index=list(string.ascii_letters[:10]))
+        df = DataFrame(
+            np.random.default_rng(2).random((10, 3)),
+            index=list(string.ascii_letters[:10]),
+        )
         _check_plot_works(df.plot, **kwargs)
 
     @pytest.mark.slow
     def test_plot_visible_ax(self):
-        df = DataFrame(np.random.rand(10, 3), index=list(string.ascii_letters[:10]))
+        df = DataFrame(
+            np.random.default_rng(2).random((10, 3)),
+            index=list(string.ascii_letters[:10]),
+        )
         # We have to redo it here because _check_plot_works does two plots,
         # once without an ax kwarg and once with an ax kwarg and the new sharex
         # behaviour does not remove the visibility of the latter axis (as ax is
@@ -138,13 +164,19 @@ class TestDataFramePlots:
 
     @pytest.mark.slow
     def test_plot_title(self):
-        df = DataFrame(np.random.rand(10, 3), index=list(string.ascii_letters[:10]))
+        df = DataFrame(
+            np.random.default_rng(2).random((10, 3)),
+            index=list(string.ascii_letters[:10]),
+        )
         _check_plot_works(df.plot, title="blah")
 
     @pytest.mark.slow
     def test_plot_multiindex(self):
         tuples = zip(string.ascii_letters[:10], range(10))
-        df = DataFrame(np.random.rand(10, 3), index=MultiIndex.from_tuples(tuples))
+        df = DataFrame(
+            np.random.default_rng(2).random((10, 3)),
+            index=MultiIndex.from_tuples(tuples),
+        )
         ax = _check_plot_works(df.plot, use_index=True)
         _check_ticks_props(ax, xrot=0)
 
@@ -167,7 +199,11 @@ class TestDataFramePlots:
         columns = MultiIndex.from_tuples(
             [("bar", "\u0394"), ("bar", "\u0395")], names=["c0", "c1"]
         )
-        df = DataFrame(np.random.randint(0, 10, (8, 2)), columns=columns, index=index)
+        df = DataFrame(
+            np.random.default_rng(2).integers(0, 10, (8, 2)),
+            columns=columns,
+            index=index,
+        )
         _check_plot_works(df.plot, title="\u03A3")
 
     @pytest.mark.slow
@@ -175,7 +211,7 @@ class TestDataFramePlots:
     def test_plot_single_column_bar(self, layout):
         # GH 6951
         # Test with single column
-        df = DataFrame({"x": np.random.rand(10)})
+        df = DataFrame({"x": np.random.default_rng(2).random(10)})
         axes = _check_plot_works(df.plot.bar, subplots=True, layout=layout)
         _check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
@@ -183,7 +219,7 @@ class TestDataFramePlots:
     def test_plot_passed_ax(self):
         # When ax is supplied and required number of axes is 1,
         # passed ax should be used:
-        df = DataFrame({"x": np.random.rand(10)})
+        df = DataFrame({"x": np.random.default_rng(2).random(10)})
         _, ax = mpl.pyplot.subplots()
         axes = df.plot.bar(subplots=True, ax=ax)
         assert len(axes) == 1
@@ -250,20 +286,28 @@ class TestDataFramePlots:
         assert len(ax.get_lines()) == 1  # B was plotted
 
     def test_implicit_label(self):
-        df = DataFrame(np.random.randn(10, 3), columns=["a", "b", "c"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 3)), columns=["a", "b", "c"]
+        )
         ax = df.plot(x="a", y="b")
         _check_text_labels(ax.xaxis.get_label(), "a")
 
     def test_donot_overwrite_index_name(self):
         # GH 8494
-        df = DataFrame(np.random.randn(2, 2), columns=["a", "b"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((2, 2)), columns=["a", "b"]
+        )
         df.index.name = "NAME"
         df.plot(y="b", label="LABEL")
         assert df.index.name == "NAME"
 
     def test_plot_xy(self):
         # columns.inferred_type == 'string'
-        df = tm.makeTimeDataFrame(5)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=5, freq="B"),
+        )
         _check_data(df.plot(x=0, y=1), df.set_index("A")["B"].plot())
         _check_data(df.plot(x=0), df.set_index("A").plot())
         _check_data(df.plot(y=0), df.B.plot())
@@ -272,7 +316,11 @@ class TestDataFramePlots:
         _check_data(df.plot(y="B"), df.B.plot())
 
     def test_plot_xy_int_cols(self):
-        df = tm.makeTimeDataFrame(5)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=5, freq="B"),
+        )
         # columns.inferred_type == 'integer'
         df.columns = np.arange(1, len(df.columns) + 1)
         _check_data(df.plot(x=1, y=2), df.set_index(1)[2].plot())
@@ -280,7 +328,11 @@ class TestDataFramePlots:
         _check_data(df.plot(y=1), df[1].plot())
 
     def test_plot_xy_figsize_and_title(self):
-        df = tm.makeTimeDataFrame(5)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=5, freq="B"),
+        )
         # figsize and title
         ax = df.plot(x=1, y=2, title="Test", figsize=(16, 8))
         _check_text_labels(ax.title, "Test")
@@ -313,19 +365,31 @@ class TestDataFramePlots:
         # GH: 24867
         df = DataFrame({"a": np.arange(100)}, index=np.arange(100))
 
-        msg = "Boolean, None and 'sym' are valid options, 'sm' is given."
+        msg = f"keyword '{input_param}' should be bool, None, or 'sym', not 'sm'"
         with pytest.raises(ValueError, match=msg):
             df.plot(**{input_param: "sm"})
 
+        msg = f"PiePlot ignores the '{input_param}' keyword"
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            df.plot.pie(subplots=True, **{input_param: True})
+
     def test_xcompat(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         ax = df.plot(x_compat=True)
         lines = ax.get_lines()
         assert not isinstance(lines[0].get_xdata(), PeriodIndex)
         _check_ticks_props(ax, xrot=30)
 
     def test_xcompat_plot_params(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         plotting.plot_params["xaxis.compat"] = True
         ax = df.plot()
         lines = ax.get_lines()
@@ -333,7 +397,11 @@ class TestDataFramePlots:
         _check_ticks_props(ax, xrot=30)
 
     def test_xcompat_plot_params_x_compat(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         plotting.plot_params["x_compat"] = False
 
         ax = df.plot()
@@ -344,7 +412,11 @@ class TestDataFramePlots:
             assert isinstance(PeriodIndex(lines[0].get_xdata()), PeriodIndex)
 
     def test_xcompat_plot_params_context_manager(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         # useful if you're plotting a bunch together
         with plotting.plot_params.use("x_compat", True):
             ax = df.plot()
@@ -353,7 +425,11 @@ class TestDataFramePlots:
             _check_ticks_props(ax, xrot=30)
 
     def test_xcompat_plot_period(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         ax = df.plot()
         lines = ax.get_lines()
         assert not isinstance(lines[0].get_xdata(), PeriodIndex)
@@ -366,7 +442,7 @@ class TestDataFramePlots:
         # GH 9012
         # period-array conversions
         df = DataFrame(
-            np.random.rand(21, 2),
+            np.random.default_rng(2).random((21, 2)),
             index=bdate_range(datetime(2000, 1, 1), datetime(2000, 1, 31)),
             columns=["a", "b"],
         )
@@ -378,7 +454,7 @@ class TestDataFramePlots:
     def test_unsorted_index(self, index_dtype):
         df = DataFrame(
             {"y": np.arange(100)},
-            index=pd.Index(np.arange(99, -1, -1), dtype=index_dtype),
+            index=Index(np.arange(99, -1, -1), dtype=index_dtype),
             dtype=np.int64,
         )
         ax = df.plot()
@@ -414,7 +490,7 @@ class TestDataFramePlots:
 
     def test_negative_log(self):
         df = -DataFrame(
-            np.random.rand(6, 4),
+            np.random.default_rng(2).random((6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["x", "y", "z", "four"],
         )
@@ -434,8 +510,9 @@ class TestDataFramePlots:
     @pytest.mark.parametrize("kind", ["line", "area"])
     @pytest.mark.parametrize("mult", [1, -1])
     def test_line_area_stacked(self, kind, mult):
-        np_random = np.random.RandomState(42)
-        df = mult * DataFrame(np_random.rand(6, 4), columns=["w", "x", "y", "z"])
+        df = mult * DataFrame(
+            np.random.default_rng(2).random((6, 4)), columns=["w", "x", "y", "z"]
+        )
 
         ax1 = _check_plot_works(df.plot, kind=kind, stacked=False)
         ax2 = _check_plot_works(df.plot, kind=kind, stacked=True)
@@ -443,14 +520,13 @@ class TestDataFramePlots:
 
     @pytest.mark.parametrize("kind", ["line", "area"])
     def test_line_area_stacked_sep_df(self, kind):
-        np_random = np.random.RandomState(42)
         # each column has either positive or negative value
         sep_df = DataFrame(
             {
-                "w": np_random.rand(6),
-                "x": np_random.rand(6),
-                "y": -np_random.rand(6),
-                "z": -np_random.rand(6),
+                "w": np.random.default_rng(2).random(6),
+                "x": np.random.default_rng(2).random(6),
+                "y": -np.random.default_rng(2).random(6),
+                "z": -np.random.default_rng(2).random(6),
             }
         )
         ax1 = _check_plot_works(sep_df.plot, kind=kind, stacked=False)
@@ -459,9 +535,8 @@ class TestDataFramePlots:
         self._compare_stacked_y_cood(ax1.lines[2:], ax2.lines[2:])
 
     def test_line_area_stacked_mixed(self):
-        np_random = np.random.RandomState(42)
         mixed_df = DataFrame(
-            np_random.randn(6, 4),
+            np.random.default_rng(2).standard_normal((6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["w", "x", "y", "z"],
         )
@@ -477,8 +552,9 @@ class TestDataFramePlots:
 
     @pytest.mark.parametrize("kind", ["line", "area"])
     def test_line_area_stacked_positive_idx(self, kind):
-        np_random = np.random.RandomState(42)
-        df = DataFrame(np_random.rand(6, 4), columns=["w", "x", "y", "z"])
+        df = DataFrame(
+            np.random.default_rng(2).random((6, 4)), columns=["w", "x", "y", "z"]
+        )
         # Use an index with strictly positive values, preventing
         #  matplotlib from warning about ignoring xlim
         df2 = df.set_index(df.index + 1)
@@ -545,7 +621,7 @@ class TestDataFramePlots:
 
     @pytest.mark.parametrize("kwargs", [{}, {"secondary_y": True}])
     def test_line_lim(self, kwargs):
-        df = DataFrame(np.random.rand(6, 3), columns=["x", "y", "z"])
+        df = DataFrame(np.random.default_rng(2).random((6, 3)), columns=["x", "y", "z"])
         ax = df.plot(**kwargs)
         xmin, xmax = ax.get_xlim()
         lines = ax.get_lines()
@@ -553,7 +629,7 @@ class TestDataFramePlots:
         assert xmax >= lines[0].get_data()[0][-1]
 
     def test_line_lim_subplots(self):
-        df = DataFrame(np.random.rand(6, 3), columns=["x", "y", "z"])
+        df = DataFrame(np.random.default_rng(2).random((6, 3)), columns=["x", "y", "z"])
         axes = df.plot(secondary_y=True, subplots=True)
         _check_axes_shape(axes, axes_num=3, layout=(3, 1))
         for ax in axes:
@@ -571,7 +647,9 @@ class TestDataFramePlots:
     )
     @pytest.mark.parametrize("stacked", [True, False])
     def test_area_lim(self, stacked):
-        df = DataFrame(np.random.rand(6, 4), columns=["x", "y", "z", "four"])
+        df = DataFrame(
+            np.random.default_rng(2).random((6, 4)), columns=["x", "y", "z", "four"]
+        )
 
         neg_df = -df
 
@@ -589,7 +667,7 @@ class TestDataFramePlots:
 
     def test_area_sharey_dont_overwrite(self):
         # GH37942
-        df = DataFrame(np.random.rand(4, 2), columns=["x", "y"])
+        df = DataFrame(np.random.default_rng(2).random((4, 2)), columns=["x", "y"])
         fig, (ax1, ax2) = mpl.pyplot.subplots(1, 2, sharey=True)
 
         df.plot(ax=ax1, kind="area")
@@ -600,14 +678,14 @@ class TestDataFramePlots:
 
     @pytest.mark.parametrize("stacked", [True, False])
     def test_bar_linewidth(self, stacked):
-        df = DataFrame(np.random.randn(5, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
 
         ax = df.plot.bar(stacked=stacked, linewidth=2)
         for r in ax.patches:
             assert r.get_linewidth() == 2
 
     def test_bar_linewidth_subplots(self):
-        df = DataFrame(np.random.randn(5, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         # subplots
         axes = df.plot.bar(linewidth=2, subplots=True)
         _check_axes_shape(axes, axes_num=5, layout=(5, 1))
@@ -620,7 +698,7 @@ class TestDataFramePlots:
     )
     @pytest.mark.parametrize("stacked", [True, False])
     def test_bar_barwidth(self, meth, dim, stacked):
-        df = DataFrame(np.random.randn(5, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
 
         width = 0.9
 
@@ -635,7 +713,7 @@ class TestDataFramePlots:
         "meth, dim", [("bar", "get_width"), ("barh", "get_height")]
     )
     def test_barh_barwidth_subplots(self, meth, dim):
-        df = DataFrame(np.random.randn(5, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
 
         width = 0.9
 
@@ -645,7 +723,7 @@ class TestDataFramePlots:
                 assert getattr(r, dim)() == width
 
     def test_bar_bottom_left_bottom(self):
-        df = DataFrame(np.random.rand(5, 5))
+        df = DataFrame(np.random.default_rng(2).random((5, 5)))
         ax = df.plot.bar(stacked=False, bottom=1)
         result = [p.get_y() for p in ax.patches]
         assert result == [1] * 25
@@ -655,7 +733,7 @@ class TestDataFramePlots:
         assert result == [-1, -2, -3, -4, -5]
 
     def test_bar_bottom_left_left(self):
-        df = DataFrame(np.random.rand(5, 5))
+        df = DataFrame(np.random.default_rng(2).random((5, 5)))
         ax = df.plot.barh(stacked=False, left=np.array([1, 1, 1, 1, 1]))
         result = [p.get_x() for p in ax.patches]
         assert result == [1] * 25
@@ -665,7 +743,7 @@ class TestDataFramePlots:
         assert result == [1, 2, 3, 4, 5]
 
     def test_bar_bottom_left_subplots(self):
-        df = DataFrame(np.random.rand(5, 5))
+        df = DataFrame(np.random.default_rng(2).random((5, 5)))
         axes = df.plot.bar(subplots=True, bottom=-1)
         for ax in axes:
             result = [p.get_y() for p in ax.patches]
@@ -694,11 +772,11 @@ class TestDataFramePlots:
         expected = [0.0, 0.0, 0.0, 10.0, 0.0, 20.0, 15.0, 10.0, 40.0]
         assert result == expected
 
-    @pytest.mark.parametrize("idx", [pd.Index, pd.CategoricalIndex])
+    @pytest.mark.parametrize("idx", [Index, pd.CategoricalIndex])
     def test_bar_categorical(self, idx):
         # GH 13019
         df = DataFrame(
-            np.random.randn(6, 5),
+            np.random.default_rng(2).standard_normal((6, 5)),
             index=idx(list("ABCDEF")),
             columns=idx(list("abcde")),
         )
@@ -720,7 +798,7 @@ class TestDataFramePlots:
     @pytest.mark.parametrize("x, y", [("x", "y"), (1, 2)])
     def test_plot_scatter(self, x, y):
         df = DataFrame(
-            np.random.randn(6, 4),
+            np.random.default_rng(2).standard_normal((6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["x", "y", "z", "four"],
         )
@@ -729,7 +807,7 @@ class TestDataFramePlots:
 
     def test_plot_scatter_error(self):
         df = DataFrame(
-            np.random.randn(6, 4),
+            np.random.default_rng(2).standard_normal((6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["x", "y", "z", "four"],
         )
@@ -742,7 +820,7 @@ class TestDataFramePlots:
 
     def test_plot_scatter_shape(self):
         df = DataFrame(
-            np.random.randn(6, 4),
+            np.random.default_rng(2).standard_normal((6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["x", "y", "z", "four"],
         )
@@ -752,7 +830,7 @@ class TestDataFramePlots:
 
     def test_raise_error_on_datetime_time_data(self):
         # GH 8113, datetime.time type is not supported by matplotlib in scatter
-        df = DataFrame(np.random.randn(10), columns=["a"])
+        df = DataFrame(np.random.default_rng(2).standard_normal(10), columns=["a"])
         df["dtime"] = date_range(start="2014-01-01", freq="h", periods=10).time
         msg = "must be a string or a (real )?number, not 'datetime.time'"
 
@@ -763,18 +841,22 @@ class TestDataFramePlots:
     def test_scatterplot_datetime_data(self, x, y):
         # GH 30391
         dates = date_range(start=date(2019, 1, 1), periods=12, freq="W")
-        vals = np.random.normal(0, 1, len(dates))
+        vals = np.random.default_rng(2).normal(0, 1, len(dates))
         df = DataFrame({"dates": dates, "vals": vals})
 
         _check_plot_works(df.plot.scatter, x=x, y=y)
 
+    @pytest.mark.parametrize(
+        "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
+    )
     @pytest.mark.parametrize("x, y", [("a", "b"), (0, 1)])
     @pytest.mark.parametrize("b_col", [[2, 3, 4], ["a", "b", "c"]])
-    def test_scatterplot_object_data(self, b_col, x, y):
+    def test_scatterplot_object_data(self, b_col, x, y, infer_string):
         # GH 18755
-        df = DataFrame({"a": ["A", "B", "C"], "b": b_col})
+        with option_context("future.infer_string", infer_string):
+            df = DataFrame({"a": ["A", "B", "C"], "b": b_col})
 
-        _check_plot_works(df.plot.scatter, x=x, y=y)
+            _check_plot_works(df.plot.scatter, x=x, y=y)
 
     @pytest.mark.parametrize("ordered", [True, False])
     @pytest.mark.parametrize(
@@ -817,7 +899,7 @@ class TestDataFramePlots:
     @pytest.mark.parametrize("x, y, c", [("x", "y", "z"), (0, 1, 2)])
     def test_plot_scatter_with_c(self, x, y, c):
         df = DataFrame(
-            np.random.randint(low=0, high=100, size=(6, 4)),
+            np.random.default_rng(2).integers(low=0, high=100, size=(6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["x", "y", "z", "four"],
         )
@@ -830,7 +912,7 @@ class TestDataFramePlots:
 
     def test_plot_scatter_with_c_props(self):
         df = DataFrame(
-            np.random.randint(low=0, high=100, size=(6, 4)),
+            np.random.default_rng(2).integers(low=0, high=100, size=(6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["x", "y", "z", "four"],
         )
@@ -872,21 +954,27 @@ class TestDataFramePlots:
 
     def test_plot_scatter_with_s(self):
         # this refers to GH 32904
-        df = DataFrame(np.random.random((10, 3)) * 100, columns=["a", "b", "c"])
+        df = DataFrame(
+            np.random.default_rng(2).random((10, 3)) * 100, columns=["a", "b", "c"]
+        )
 
         ax = df.plot.scatter(x="a", y="b", s="c")
         tm.assert_numpy_array_equal(df["c"].values, right=ax.collections[0].get_sizes())
 
     def test_plot_scatter_with_norm(self):
         # added while fixing GH 45809
-        df = DataFrame(np.random.random((10, 3)) * 100, columns=["a", "b", "c"])
+        df = DataFrame(
+            np.random.default_rng(2).random((10, 3)) * 100, columns=["a", "b", "c"]
+        )
         norm = mpl.colors.LogNorm()
         ax = df.plot.scatter(x="a", y="b", c="c", norm=norm)
         assert ax.collections[0].norm is norm
 
     def test_plot_scatter_without_norm(self):
         # added while fixing GH 45809
-        df = DataFrame(np.random.random((10, 3)) * 100, columns=["a", "b", "c"])
+        df = DataFrame(
+            np.random.default_rng(2).random((10, 3)) * 100, columns=["a", "b", "c"]
+        )
         ax = df.plot.scatter(x="a", y="b", c="c")
         plot_norm = ax.collections[0].norm
         color_min_max = (df.c.min(), df.c.max())
@@ -906,7 +994,7 @@ class TestDataFramePlots:
     )
     def test_plot_bar(self, kwargs):
         df = DataFrame(
-            np.random.randn(6, 4),
+            np.random.default_rng(2).standard_normal((6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["one", "two", "three", "four"],
         )
@@ -916,7 +1004,7 @@ class TestDataFramePlots:
     @pytest.mark.slow
     def test_plot_bar_int_col(self):
         df = DataFrame(
-            np.random.randn(10, 15),
+            np.random.default_rng(2).standard_normal((10, 15)),
             index=list(string.ascii_letters[:10]),
             columns=range(15),
         )
@@ -1011,7 +1099,7 @@ class TestDataFramePlots:
 
     def test_boxplot_return_type_invalid(self):
         df = DataFrame(
-            np.random.randn(6, 4),
+            np.random.default_rng(2).standard_normal((6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["one", "two", "three", "four"],
         )
@@ -1022,30 +1110,30 @@ class TestDataFramePlots:
     @pytest.mark.parametrize("return_type", ["dict", "axes", "both"])
     def test_boxplot_return_type_invalid_type(self, return_type):
         df = DataFrame(
-            np.random.randn(6, 4),
+            np.random.default_rng(2).standard_normal((6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["one", "two", "three", "four"],
         )
         result = df.plot.box(return_type=return_type)
         _check_box_return_type(result, return_type)
 
-    @td.skip_if_no_scipy
     def test_kde_df(self):
-        df = DataFrame(np.random.randn(100, 4))
+        pytest.importorskip("scipy")
+        df = DataFrame(np.random.default_rng(2).standard_normal((100, 4)))
         ax = _check_plot_works(df.plot, kind="kde")
         expected = [pprint_thing(c) for c in df.columns]
         _check_legend_labels(ax, labels=expected)
         _check_ticks_props(ax, xrot=0)
 
-    @td.skip_if_no_scipy
     def test_kde_df_rot(self):
-        df = DataFrame(np.random.randn(10, 4))
+        pytest.importorskip("scipy")
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         ax = df.plot(kind="kde", rot=20, fontsize=5)
         _check_ticks_props(ax, xrot=20, xlabelsize=5, ylabelsize=5)
 
-    @td.skip_if_no_scipy
     def test_kde_df_subplots(self):
-        df = DataFrame(np.random.randn(10, 4))
+        pytest.importorskip("scipy")
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         axes = _check_plot_works(
             df.plot,
             default_axes=True,
@@ -1054,20 +1142,20 @@ class TestDataFramePlots:
         )
         _check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
-    @td.skip_if_no_scipy
     def test_kde_df_logy(self):
-        df = DataFrame(np.random.randn(10, 4))
+        pytest.importorskip("scipy")
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         axes = df.plot(kind="kde", logy=True, subplots=True)
         _check_ax_scales(axes, yaxis="log")
 
-    @td.skip_if_no_scipy
     def test_kde_missing_vals(self):
-        df = DataFrame(np.random.uniform(size=(100, 4)))
+        pytest.importorskip("scipy")
+        df = DataFrame(np.random.default_rng(2).uniform(size=(100, 4)))
         df.loc[0, 0] = np.nan
         _check_plot_works(df.plot, kind="kde")
 
     def test_hist_df(self):
-        df = DataFrame(np.random.randn(100, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((100, 4)))
 
         ax = _check_plot_works(df.plot.hist)
         expected = [pprint_thing(c) for c in df.columns]
@@ -1083,14 +1171,14 @@ class TestDataFramePlots:
         _check_ax_scales(axes, yaxis="log")
 
     def test_hist_df_series(self):
-        series = Series(np.random.rand(10))
+        series = Series(np.random.default_rng(2).random(10))
         axes = series.plot.hist(rot=40)
         _check_ticks_props(axes, xrot=40, yrot=0)
 
     def test_hist_df_series_cumulative_density(self):
         from matplotlib.patches import Rectangle
 
-        series = Series(np.random.rand(10))
+        series = Series(np.random.default_rng(2).random(10))
         ax = series.plot.hist(cumulative=True, bins=4, density=True)
         # height of last bin (index 5) must be 1.0
         rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
@@ -1099,25 +1187,25 @@ class TestDataFramePlots:
     def test_hist_df_series_cumulative(self):
         from matplotlib.patches import Rectangle
 
-        series = Series(np.random.rand(10))
+        series = Series(np.random.default_rng(2).random(10))
         ax = series.plot.hist(cumulative=True, bins=4)
         rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
 
         tm.assert_almost_equal(rects[-2].get_height(), 10.0)
 
     def test_hist_df_orientation(self):
-        df = DataFrame(np.random.randn(10, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         # if horizontal, yticklabels are rotated
         axes = df.plot.hist(rot=50, fontsize=8, orientation="horizontal")
         _check_ticks_props(axes, xrot=0, yrot=50, ylabelsize=8)
 
-    @pytest.mark.parametrize(
-        "weights", [0.1 * np.ones(shape=(100,)), 0.1 * np.ones(shape=(100, 2))]
-    )
-    def test_hist_weights(self, weights):
+    @pytest.mark.parametrize("weight_shape", [(100,), (100, 2)])
+    def test_hist_weights(self, weight_shape):
         # GH 33173
-        np.random.seed(0)
-        df = DataFrame(dict(zip(["A", "B"], np.random.randn(2, 100))))
+        weights = 0.1 * np.ones(shape=weight_shape)
+        df = DataFrame(
+            dict(zip(["A", "B"], np.random.default_rng(2).standard_normal((2, 100))))
+        )
 
         ax1 = _check_plot_works(df.plot, kind="hist", weights=weights)
         ax2 = _check_plot_works(df.plot, kind="hist")
@@ -1283,7 +1371,7 @@ class TestDataFramePlots:
         )
 
     def test_plot_int_columns(self):
-        df = DataFrame(np.random.randn(100, 4)).cumsum()
+        df = DataFrame(np.random.default_rng(2).standard_normal((100, 4))).cumsum()
         _check_plot_works(df.plot, legend=True)
 
     @pytest.mark.parametrize(
@@ -1301,7 +1389,7 @@ class TestDataFramePlots:
         fig = plt.gcf()
         fig.clf()
         fig.add_subplot(111)
-        df = DataFrame(np.random.randn(10, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 3)))
         ax = df.plot(style=markers)
         for idx, line in enumerate(ax.get_lines()[: len(markers)]):
             assert line.get_marker() == markers[idx]
@@ -1325,34 +1413,45 @@ class TestDataFramePlots:
     )
     def test_specified_props_kwd_plot_box(self, props, expected):
         # GH 30346
-        df = DataFrame({k: np.random.random(100) for k in "ABC"})
+        df = DataFrame({k: np.random.default_rng(2).random(100) for k in "ABC"})
         kwd = {props: {"color": "C1"}}
         result = df.plot.box(return_type="dict", **kwd)
 
         assert result[expected][0].get_color() == "C1"
 
     def test_unordered_ts(self):
+        # GH#2609, GH#55906
+        index = [date(2012, 10, 1), date(2012, 9, 1), date(2012, 8, 1)]
+        values = [3.0, 2.0, 1.0]
         df = DataFrame(
-            np.array([3.0, 2.0, 1.0]),
-            index=[date(2012, 10, 1), date(2012, 9, 1), date(2012, 8, 1)],
+            np.array(values),
+            index=index,
             columns=["test"],
         )
         ax = df.plot()
         xticks = ax.lines[0].get_xdata()
-        assert xticks[0] < xticks[1]
+        tm.assert_numpy_array_equal(xticks, np.array(index, dtype=object))
         ydata = ax.lines[0].get_ydata()
-        tm.assert_numpy_array_equal(ydata, np.array([1.0, 2.0, 3.0]))
+        tm.assert_numpy_array_equal(ydata, np.array(values))
 
-    @td.skip_if_no_scipy
+        # even though we don't sort the data before passing it to matplotlib,
+        # the ticks are sorted
+        xticks = ax.xaxis.get_ticklabels()
+        xlocs = [x.get_position()[0] for x in xticks]
+        assert Index(xlocs).is_monotonic_increasing
+        xlabels = [x.get_text() for x in xticks]
+        assert pd.to_datetime(xlabels, format="%Y-%m-%d").is_monotonic_increasing
+
     @pytest.mark.parametrize("kind", plotting.PlotAccessor._common_kinds)
     def test_kind_both_ways(self, kind):
+        pytest.importorskip("scipy")
         df = DataFrame({"x": [1, 2, 3]})
         df.plot(kind=kind)
         getattr(df.plot, kind)()
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("kind", ["scatter", "hexbin"])
     def test_kind_both_ways_x_y(self, kind):
+        pytest.importorskip("scipy")
         df = DataFrame({"x": [1, 2, 3]})
         df.plot("x", "x", kind=kind)
         getattr(df.plot, kind)("x", "x")
@@ -1368,14 +1467,17 @@ class TestDataFramePlots:
         "kind", list(plotting.PlotAccessor._common_kinds) + ["area"]
     )
     def test_partially_invalid_plot_data_numeric(self, kind):
-        df = DataFrame(np.random.RandomState(42).randn(10, 2), dtype=object)
-        df[np.random.rand(df.shape[0]) > 0.5] = "a"
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 2)),
+            dtype=object,
+        )
+        df[np.random.default_rng(2).random(df.shape[0]) > 0.5] = "a"
         msg = "no numeric data to plot"
         with pytest.raises(TypeError, match=msg):
             df.plot(kind=kind)
 
     def test_invalid_kind(self):
-        df = DataFrame(np.random.randn(10, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
         msg = "invalid_plot_kind is not a valid plot kind"
         with pytest.raises(ValueError, match=msg):
             df.plot(kind="invalid_plot_kind")
@@ -1433,9 +1535,9 @@ class TestDataFramePlots:
     def test_hexbin_basic(self):
         df = DataFrame(
             {
-                "A": np.random.uniform(size=20),
-                "B": np.random.uniform(size=20),
-                "C": np.arange(20) + np.random.uniform(size=20),
+                "A": np.random.default_rng(2).uniform(size=20),
+                "B": np.random.default_rng(2).uniform(size=20),
+                "C": np.arange(20) + np.random.default_rng(2).uniform(size=20),
             }
         )
 
@@ -1446,9 +1548,9 @@ class TestDataFramePlots:
     def test_hexbin_basic_subplots(self):
         df = DataFrame(
             {
-                "A": np.random.uniform(size=20),
-                "B": np.random.uniform(size=20),
-                "C": np.arange(20) + np.random.uniform(size=20),
+                "A": np.random.default_rng(2).uniform(size=20),
+                "B": np.random.default_rng(2).uniform(size=20),
+                "C": np.arange(20) + np.random.default_rng(2).uniform(size=20),
             }
         )
         # GH 6951
@@ -1463,9 +1565,9 @@ class TestDataFramePlots:
     def test_hexbin_with_c(self, reduce_C):
         df = DataFrame(
             {
-                "A": np.random.uniform(size=20),
-                "B": np.random.uniform(size=20),
-                "C": np.arange(20) + np.random.uniform(size=20),
+                "A": np.random.default_rng(2).uniform(size=20),
+                "B": np.random.default_rng(2).uniform(size=20),
+                "C": np.arange(20) + np.random.default_rng(2).uniform(size=20),
             }
         )
 
@@ -1483,9 +1585,9 @@ class TestDataFramePlots:
     def test_hexbin_cmap(self, kwargs, expected):
         df = DataFrame(
             {
-                "A": np.random.uniform(size=20),
-                "B": np.random.uniform(size=20),
-                "C": np.arange(20) + np.random.uniform(size=20),
+                "A": np.random.default_rng(2).uniform(size=20),
+                "B": np.random.default_rng(2).uniform(size=20),
+                "C": np.arange(20) + np.random.default_rng(2).uniform(size=20),
             }
         )
         ax = df.plot.hexbin(x="A", y="B", **kwargs)
@@ -1493,7 +1595,7 @@ class TestDataFramePlots:
 
     def test_pie_df_err(self):
         df = DataFrame(
-            np.random.rand(5, 3),
+            np.random.default_rng(2).random((5, 3)),
             columns=["X", "Y", "Z"],
             index=["a", "b", "c", "d", "e"],
         )
@@ -1504,7 +1606,7 @@ class TestDataFramePlots:
     @pytest.mark.parametrize("y", ["Y", 2])
     def test_pie_df(self, y):
         df = DataFrame(
-            np.random.rand(5, 3),
+            np.random.default_rng(2).random((5, 3)),
             columns=["X", "Y", "Z"],
             index=["a", "b", "c", "d", "e"],
         )
@@ -1513,7 +1615,7 @@ class TestDataFramePlots:
 
     def test_pie_df_subplots(self):
         df = DataFrame(
-            np.random.rand(5, 3),
+            np.random.default_rng(2).random((5, 3)),
             columns=["X", "Y", "Z"],
             index=["a", "b", "c", "d", "e"],
         )
@@ -1530,7 +1632,7 @@ class TestDataFramePlots:
 
     def test_pie_df_labels_colors(self):
         df = DataFrame(
-            np.random.rand(5, 3),
+            np.random.default_rng(2).random((5, 3)),
             columns=["X", "Y", "Z"],
             index=["a", "b", "c", "d", "e"],
         )
@@ -1550,7 +1652,7 @@ class TestDataFramePlots:
             _check_colors(ax.patches, facecolors=color_args)
 
     def test_pie_df_nan(self):
-        df = DataFrame(np.random.rand(4, 4))
+        df = DataFrame(np.random.default_rng(2).random((4, 4)))
         for i in range(4):
             df.iloc[i, i] = np.nan
         _, axes = mpl.pyplot.subplots(ncols=4)
@@ -1634,7 +1736,7 @@ class TestDataFramePlots:
         d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
         df = DataFrame(d)
         with tm.external_error_raised(ValueError):
-            df.plot(yerr=np.random.randn(11))
+            df.plot(yerr=np.random.default_rng(2).standard_normal(11))
 
     @pytest.mark.slow
     def test_errorbar_plot_external_typeerror(self):
@@ -1694,18 +1796,17 @@ class TestDataFramePlots:
 
     @pytest.mark.xfail(reason="Iterator is consumed", raises=ValueError)
     def test_errorbar_plot_iterator(self):
-        with warnings.catch_warnings():
-            d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
-            df = DataFrame(d)
+        d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
+        df = DataFrame(d)
 
-            # yerr is iterator
-            ax = _check_plot_works(df.plot, yerr=itertools.repeat(0.1, len(df)))
-            _check_has_errorbars(ax, xerr=0, yerr=2)
+        # yerr is iterator
+        ax = _check_plot_works(df.plot, yerr=itertools.repeat(0.1, len(df)))
+        _check_has_errorbars(ax, xerr=0, yerr=2)
 
     def test_errorbar_with_integer_column_names(self):
         # test with integer column names
-        df = DataFrame(np.abs(np.random.randn(10, 2)))
-        df_err = DataFrame(np.abs(np.random.randn(10, 2)))
+        df = DataFrame(np.abs(np.random.default_rng(2).standard_normal((10, 2))))
+        df_err = DataFrame(np.abs(np.random.default_rng(2).standard_normal((10, 2))))
         ax = _check_plot_works(df.plot, yerr=df_err)
         _check_has_errorbars(ax, xerr=0, yerr=2)
         ax = _check_plot_works(df.plot, y=0, yerr=1)
@@ -1714,16 +1815,20 @@ class TestDataFramePlots:
     @pytest.mark.slow
     @pytest.mark.parametrize("kind", ["line", "bar"])
     def test_errorbar_with_partial_columns_kind(self, kind):
-        df = DataFrame(np.abs(np.random.randn(10, 3)))
-        df_err = DataFrame(np.abs(np.random.randn(10, 2)), columns=[0, 2])
+        df = DataFrame(np.abs(np.random.default_rng(2).standard_normal((10, 3))))
+        df_err = DataFrame(
+            np.abs(np.random.default_rng(2).standard_normal((10, 2))), columns=[0, 2]
+        )
         ax = _check_plot_works(df.plot, yerr=df_err, kind=kind)
         _check_has_errorbars(ax, xerr=0, yerr=2)
 
     @pytest.mark.slow
     def test_errorbar_with_partial_columns_dti(self):
-        df = DataFrame(np.abs(np.random.randn(10, 3)))
-        df_err = DataFrame(np.abs(np.random.randn(10, 2)), columns=[0, 2])
-        ix = date_range("1/1/2000", periods=10, freq="M")
+        df = DataFrame(np.abs(np.random.default_rng(2).standard_normal((10, 3))))
+        df_err = DataFrame(
+            np.abs(np.random.default_rng(2).standard_normal((10, 2))), columns=[0, 2]
+        )
+        ix = date_range("1/1/2000", periods=10, freq="ME")
         df.set_index(ix, inplace=True)
         df_err.set_index(ix, inplace=True)
         ax = _check_plot_works(df.plot, yerr=df_err, kind="line")
@@ -1744,7 +1849,7 @@ class TestDataFramePlots:
         d_err = {"x": np.ones(12) * 0.2, "y": np.ones(12) * 0.4}
 
         # check time-series plots
-        ix = date_range("1/1/2000", "1/1/2001", freq="M")
+        ix = date_range("1/1/2000", "1/1/2001", freq="ME")
         tdf = DataFrame(d, index=ix)
         tdf_err = DataFrame(d_err, index=ix)
 
@@ -1773,8 +1878,7 @@ class TestDataFramePlots:
         _check_has_errorbars(axes, xerr=0, yerr=1)
 
     def test_errorbar_asymmetrical(self):
-        np.random.seed(0)
-        err = np.random.rand(3, 2, 5)
+        err = np.random.default_rng(2).random((3, 2, 5))
 
         # each column is [0, 1, 2, 3, 4], [3, 4, 5, 6, 7]...
         df = DataFrame(np.arange(15).reshape(3, 5)).T
@@ -1792,7 +1896,10 @@ class TestDataFramePlots:
             df.plot(yerr=err.T)
 
     def test_table(self):
-        df = DataFrame(np.random.rand(10, 3), index=list(string.ascii_letters[:10]))
+        df = DataFrame(
+            np.random.default_rng(2).random((10, 3)),
+            index=list(string.ascii_letters[:10]),
+        )
         _check_plot_works(df.plot, table=True)
         _check_plot_works(df.plot, table=df)
 
@@ -1805,10 +1912,14 @@ class TestDataFramePlots:
 
     def test_errorbar_scatter(self):
         df = DataFrame(
-            np.abs(np.random.randn(5, 2)), index=range(5), columns=["x", "y"]
+            np.abs(np.random.default_rng(2).standard_normal((5, 2))),
+            index=range(5),
+            columns=["x", "y"],
         )
         df_err = DataFrame(
-            np.abs(np.random.randn(5, 2)) / 5, index=range(5), columns=["x", "y"]
+            np.abs(np.random.default_rng(2).standard_normal((5, 2))) / 5,
+            index=range(5),
+            columns=["x", "y"],
         )
 
         ax = _check_plot_works(df.plot.scatter, x="x", y="y")
@@ -1824,7 +1935,7 @@ class TestDataFramePlots:
     def test_errorbar_scatter_color(self):
         def _check_errorbar_color(containers, expected, has_err="has_xerr"):
             lines = []
-            errs = [c.lines for c in ax.containers if getattr(c, has_err, False)][0]
+            errs = next(c.lines for c in ax.containers if getattr(c, has_err, False))
             for el in errs:
                 if is_list_like(el):
                     lines.extend(el)
@@ -1835,7 +1946,8 @@ class TestDataFramePlots:
 
         # GH 8081
         df = DataFrame(
-            np.abs(np.random.randn(10, 5)), columns=["a", "b", "c", "d", "e"]
+            np.abs(np.random.default_rng(2).standard_normal((10, 5))),
+            columns=["a", "b", "c", "d", "e"],
         )
         ax = df.plot.scatter(x="a", y="b", xerr="d", yerr="e", c="red")
         _check_has_errorbars(ax, xerr=1, yerr=1)
@@ -1982,24 +2094,32 @@ class TestDataFramePlots:
             _check_visible(ax.get_xticklabels(), visible=True)
             _check_visible(ax.get_xticklabels(minor=True), visible=True)
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("kind", plotting.PlotAccessor._all_kinds)
     def test_memory_leak(self, kind):
         """Check that every plot type gets properly collected."""
+        pytest.importorskip("scipy")
         args = {}
         if kind in ["hexbin", "scatter", "pie"]:
             df = DataFrame(
                 {
-                    "A": np.random.uniform(size=20),
-                    "B": np.random.uniform(size=20),
-                    "C": np.arange(20) + np.random.uniform(size=20),
+                    "A": np.random.default_rng(2).uniform(size=20),
+                    "B": np.random.default_rng(2).uniform(size=20),
+                    "C": np.arange(20) + np.random.default_rng(2).uniform(size=20),
                 }
             )
             args = {"x": "A", "y": "B"}
         elif kind == "area":
-            df = tm.makeTimeDataFrame().abs()
+            df = DataFrame(
+                np.random.default_rng(2).standard_normal((10, 4)),
+                columns=Index(list("ABCD"), dtype=object),
+                index=date_range("2000-01-01", periods=10, freq="B"),
+            ).abs()
         else:
-            df = tm.makeTimeDataFrame()
+            df = DataFrame(
+                np.random.default_rng(2).standard_normal((10, 4)),
+                columns=Index(list("ABCD"), dtype=object),
+                index=date_range("2000-01-01", periods=10, freq="B"),
+            )
 
         # Use a weakref so we can see if the object gets collected without
         # also preventing it from being collected
@@ -2016,9 +2136,16 @@ class TestDataFramePlots:
         from matplotlib import gridspec
         import matplotlib.pyplot as plt
 
-        ts = Series(np.random.randn(10), index=date_range("1/1/2000", periods=10))
+        ts = Series(
+            np.random.default_rng(2).standard_normal(10),
+            index=date_range("1/1/2000", periods=10),
+        )
 
-        df = DataFrame(np.random.randn(10, 2), index=ts.index, columns=list("AB"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 2)),
+            index=ts.index,
+            columns=list("AB"),
+        )
 
         def _get_vertical_grid():
             gs = gridspec.GridSpec(3, 1)
@@ -2092,7 +2219,10 @@ class TestDataFramePlots:
         from matplotlib import gridspec
         import matplotlib.pyplot as plt
 
-        ts = Series(np.random.randn(10), index=date_range("1/1/2000", periods=10))
+        ts = Series(
+            np.random.default_rng(2).standard_normal(10),
+            index=date_range("1/1/2000", periods=10),
+        )
 
         # boxed
         def _get_boxed_grid():
@@ -2105,7 +2235,11 @@ class TestDataFramePlots:
             return ax1, ax2, ax3, ax4
 
         axes = _get_boxed_grid()
-        df = DataFrame(np.random.randn(10, 4), index=ts.index, columns=list("ABCD"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            index=ts.index,
+            columns=list("ABCD"),
+        )
         axes = df.plot(subplots=True, ax=axes)
         for ax in axes:
             assert len(ax.lines) == 1
@@ -2146,12 +2280,17 @@ class TestDataFramePlots:
         # a plain Axes object (GH11556)
         fig, ax = mpl.pyplot.subplots()
         fig.add_axes([0.2, 0.2, 0.2, 0.2])
-        Series(np.random.rand(10)).plot(ax=ax)
+        Series(np.random.default_rng(2).random(10)).plot(ax=ax)
 
     def test_plain_axes_df(self):
         # supplied ax itself is a plain Axes, but because the cmap keyword
         # a new ax is created for the colorbar -> also multiples axes (GH11520)
-        df = DataFrame({"a": np.random.randn(8), "b": np.random.randn(8)})
+        df = DataFrame(
+            {
+                "a": np.random.default_rng(2).standard_normal(8),
+                "b": np.random.default_rng(2).standard_normal(8),
+            }
+        )
         fig = mpl.pyplot.figure()
         ax = fig.add_axes((0, 0, 1, 1))
         df.plot(kind="scatter", ax=ax, x="a", y="b", c="a", cmap="hsv")
@@ -2163,22 +2302,24 @@ class TestDataFramePlots:
 
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.05)
-        Series(np.random.rand(10)).plot(ax=ax)
-        Series(np.random.rand(10)).plot(ax=cax)
+        Series(np.random.default_rng(2).random(10)).plot(ax=ax)
+        Series(np.random.default_rng(2).random(10)).plot(ax=cax)
 
     def test_plain_axes_make_inset_axes(self):
         fig, ax = mpl.pyplot.subplots()
         from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
         iax = inset_axes(ax, width="30%", height=1.0, loc=3)
-        Series(np.random.rand(10)).plot(ax=ax)
-        Series(np.random.rand(10)).plot(ax=iax)
+        Series(np.random.default_rng(2).random(10)).plot(ax=ax)
+        Series(np.random.default_rng(2).random(10)).plot(ax=iax)
 
     @pytest.mark.parametrize("method", ["line", "barh", "bar"])
     def test_secondary_axis_font_size(self, method):
         # GH: 12565
         df = (
-            DataFrame(np.random.randn(15, 2), columns=list("AB"))
+            DataFrame(
+                np.random.default_rng(2).standard_normal((15, 2)), columns=list("AB")
+            )
             .assign(C=lambda df: df.B.cumsum())
             .assign(D=lambda df: df.C * 1.1)
         )
@@ -2213,7 +2354,11 @@ class TestDataFramePlots:
         # Test if multiindex plot index have a fixed xtick position
         # GH: 15912
         index = MultiIndex.from_product([[2012, 2013], [1, 2]])
-        df = DataFrame(np.random.randn(4, 2), columns=["A", "B"], index=index)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 2)),
+            columns=["A", "B"],
+            index=index,
+        )
         ax = df.plot()
         ax.set_xlim(-1, 4)
         xticklabels = [t.get_text() for t in ax.get_xticklabels()]
@@ -2275,11 +2420,11 @@ class TestDataFramePlots:
         with pytest.raises(TypeError, match="no numeric data to plot"):
             df.plot()
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize(
         "kind", ("line", "bar", "barh", "hist", "kde", "density", "area", "pie")
     )
     def test_group_subplot(self, kind):
+        pytest.importorskip("scipy")
         d = {
             "a": np.arange(10),
             "b": np.arange(10) + 1,
@@ -2418,6 +2563,19 @@ class TestDataFramePlots:
                 assert ax.get_ylabel() == "Y"
                 assert ax.get_ylim() == (0, 100)
                 assert ax.get_yticks()[0] == 99
+
+    @pytest.mark.slow
+    def test_plot_no_warning(self):
+        # GH 55138
+        # TODO(3.0): this can be removed once Period[B] deprecation is enforced
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
+        with tm.assert_produces_warning(False):
+            _ = df.plot()
+            _ = df.T.plot()
 
 
 def _generate_4_axes_via_gridspec():

@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import ctypes
 import re
-from typing import Any
+from typing import (
+    Any,
+    overload,
+)
 
 import numpy as np
 
@@ -47,12 +50,13 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
 
     Examples
     --------
-    >>> df_not_necessarily_pandas = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+    >>> df_not_necessarily_pandas = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
     >>> interchange_object = df_not_necessarily_pandas.__dataframe__()
     >>> interchange_object.column_names()
     Index(['A', 'B'], dtype='object')
-    >>> df_pandas = (pd.api.interchange.from_dataframe
-    ...              (interchange_object.select_columns_by_name(['A'])))
+    >>> df_pandas = pd.api.interchange.from_dataframe(
+    ...     interchange_object.select_columns_by_name(["A"])
+    ... )
     >>> df_pandas
          A
     0    1
@@ -67,10 +71,12 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
     if not hasattr(df, "__dataframe__"):
         raise ValueError("`df` does not support __dataframe__")
 
-    return _from_dataframe(df.__dataframe__(allow_copy=allow_copy))
+    return _from_dataframe(
+        df.__dataframe__(allow_copy=allow_copy), allow_copy=allow_copy
+    )
 
 
-def _from_dataframe(df: DataFrameXchg, allow_copy: bool = True):
+def _from_dataframe(df: DataFrameXchg, allow_copy: bool = True) -> pd.DataFrame:
     """
     Build a ``pd.DataFrame`` from the DataFrame interchange object.
 
@@ -263,10 +269,9 @@ def string_column_to_ndarray(col: Column) -> tuple[np.ndarray, Any]:
 
     assert buffers["offsets"], "String buffers must contain offsets"
     # Retrieve the data buffer containing the UTF-8 code units
-    data_buff, protocol_data_dtype = buffers["data"]
+    data_buff, _ = buffers["data"]
     # We're going to reinterpret the buffer as uint8, so make sure we can do it safely
-    assert protocol_data_dtype[1] == 8
-    assert protocol_data_dtype[2] in (
+    assert col.dtype[2] in (
         ArrowCTypes.STRING,
         ArrowCTypes.LARGE_STRING,
     )  # format_str == utf-8
@@ -374,15 +379,16 @@ def datetime_column_to_ndarray(col: Column) -> tuple[np.ndarray | pd.Series, Any
     """
     buffers = col.get_buffers()
 
-    _, _, format_str, _ = col.dtype
-    dbuf, dtype = buffers["data"]
+    _, col_bit_width, format_str, _ = col.dtype
+    dbuf, _ = buffers["data"]
     # Consider dtype being `uint` to get number of units passed since the 01.01.1970
+
     data = buffer_to_ndarray(
         dbuf,
         (
-            DtypeKind.UINT,
-            dtype[1],
-            getattr(ArrowCTypes, f"UINT{dtype[1]}"),
+            DtypeKind.INT,
+            col_bit_width,
+            getattr(ArrowCTypes, f"INT{col_bit_width}"),
             Endianness.NATIVE,
         ),
         offset=col.offset,
@@ -451,10 +457,39 @@ def buffer_to_ndarray(
         data_pointer = ctypes.cast(
             buffer.ptr + (offset * bit_width // 8), ctypes.POINTER(ctypes_type)
         )
-        return np.ctypeslib.as_array(
-            data_pointer,
-            shape=(length,),
-        )
+        if length > 0:
+            return np.ctypeslib.as_array(data_pointer, shape=(length,))
+        return np.array([], dtype=ctypes_type)
+
+
+@overload
+def set_nulls(
+    data: np.ndarray,
+    col: Column,
+    validity: tuple[Buffer, tuple[DtypeKind, int, str, str]] | None,
+    allow_modify_inplace: bool = ...,
+) -> np.ndarray:
+    ...
+
+
+@overload
+def set_nulls(
+    data: pd.Series,
+    col: Column,
+    validity: tuple[Buffer, tuple[DtypeKind, int, str, str]] | None,
+    allow_modify_inplace: bool = ...,
+) -> pd.Series:
+    ...
+
+
+@overload
+def set_nulls(
+    data: np.ndarray | pd.Series,
+    col: Column,
+    validity: tuple[Buffer, tuple[DtypeKind, int, str, str]] | None,
+    allow_modify_inplace: bool = ...,
+) -> np.ndarray | pd.Series:
+    ...
 
 
 def set_nulls(
@@ -462,7 +497,7 @@ def set_nulls(
     col: Column,
     validity: tuple[Buffer, tuple[DtypeKind, int, str, str]] | None,
     allow_modify_inplace: bool = True,
-):
+) -> np.ndarray | pd.Series:
     """
     Set null values for the data according to the column null kind.
 

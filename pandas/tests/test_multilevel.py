@@ -28,16 +28,6 @@ class TestMultiLevel:
         expected = ymd["A"].groupby(level="month").transform("sum")
         tm.assert_series_equal(result, expected, check_names=False)
 
-        # axis=1
-        msg = "DataFrame.groupby with axis=1 is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            gb = ymd.T.groupby("month", axis=1)
-
-        month_sums = gb.sum()
-        result = month_sums.reindex(columns=ymd.index, level=1)
-        expected = ymd.groupby(level="month").transform("sum").T
-        tm.assert_frame_equal(result, expected)
-
     def test_reindex(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
 
@@ -46,20 +36,26 @@ class TestMultiLevel:
         tm.assert_frame_equal(reindexed, expected)
 
     def test_reindex_preserve_levels(
-        self, multiindex_year_month_day_dataframe_random_data
+        self, multiindex_year_month_day_dataframe_random_data, using_copy_on_write
     ):
         ymd = multiindex_year_month_day_dataframe_random_data
 
         new_index = ymd.index[::10]
         chunk = ymd.reindex(new_index)
-        assert chunk.index is new_index
+        if using_copy_on_write:
+            assert chunk.index.is_(new_index)
+        else:
+            assert chunk.index is new_index
 
         chunk = ymd.loc[new_index]
         assert chunk.index.equals(new_index)
 
         ymdT = ymd.T
         chunk = ymdT.reindex(columns=new_index)
-        assert chunk.columns is new_index
+        if using_copy_on_write:
+            assert chunk.columns.is_(new_index)
+        else:
+            assert chunk.columns is new_index
 
         chunk = ymdT.loc[:, new_index]
         assert chunk.columns.equals(new_index)
@@ -83,30 +79,13 @@ class TestMultiLevel:
             codes=[[0], [0], [0]],
             names=["one", "two", "three"],
         )
-        df = DataFrame([np.random.rand(4)], columns=["a", "b", "c", "d"], index=midx)
+        df = DataFrame(
+            [np.random.default_rng(2).random(4)],
+            columns=["a", "b", "c", "d"],
+            index=midx,
+        )
         # should work
         df.groupby(level="three")
-
-    def test_groupby_level_no_obs(self):
-        # #1697
-        midx = MultiIndex.from_tuples(
-            [
-                ("f1", "s1"),
-                ("f1", "s2"),
-                ("f2", "s1"),
-                ("f2", "s2"),
-                ("f3", "s1"),
-                ("f3", "s2"),
-            ]
-        )
-        df = DataFrame([[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]], columns=midx)
-        df1 = df.loc(axis=1)[df.columns.map(lambda u: u[0] in ["f2", "f3"])]
-
-        msg = "DataFrame.groupby with axis=1 is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            grouped = df1.groupby(axis=1, level=0)
-        result = grouped.sum()
-        assert (result.columns == ["f2", "f3"]).all()
 
     def test_setitem_with_expansion_multiindex_columns(
         self, multiindex_year_month_day_dataframe_random_data
@@ -159,7 +138,9 @@ class TestMultiLevel:
         index = MultiIndex.from_tuples(
             [("foo", "one"), ("foo", "two"), ("bar", "one"), ("bar", "two")]
         )
-        df = DataFrame(np.random.randn(4, 4), index=index, columns=index)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 4)), index=index, columns=index
+        )
         df["Totals", ""] = df.sum(1)
         df = df._consolidate()
 
@@ -169,8 +150,8 @@ class TestMultiLevel:
             codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
         )
 
-        series = Series(np.random.randn(6), index=index)
-        frame = DataFrame(np.random.randn(6, 4), index=index)
+        series = Series(np.random.default_rng(2).standard_normal(6), index=index)
+        frame = DataFrame(np.random.default_rng(2).standard_normal((6, 4)), index=index)
 
         result = series[("foo", "bar", 0)]
         result2 = series.loc[("foo", "bar", 0)]
@@ -194,8 +175,8 @@ class TestMultiLevel:
             codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
         )
 
-        series = Series(np.random.randn(6), index=index)
-        frame = DataFrame(np.random.randn(6, 4), index=index)
+        series = Series(np.random.default_rng(2).standard_normal(6), index=index)
+        frame = DataFrame(np.random.default_rng(2).standard_normal((6, 4)), index=index)
 
         result = series[("foo", "bar")]
         result2 = series.loc[("foo", "bar")]

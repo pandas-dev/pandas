@@ -64,10 +64,10 @@ def to_numeric(
     ----------
     arg : scalar, list, tuple, 1-d array, or Series
         Argument to be converted.
-    errors : {'ignore', 'raise', 'coerce'}, default 'raise'
+    errors : {'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaN.
-        - If 'ignore', then invalid parsing will return the input.
+
     downcast : str, default None
         Can be 'integer', 'signed', 'unsigned', or 'float'.
         If not None, and if the data has been successfully cast to a
@@ -117,30 +117,24 @@ def to_numeric(
     --------
     Take separate series and convert to numeric, coercing when told to
 
-    >>> s = pd.Series(['1.0', '2', -3])
+    >>> s = pd.Series(["1.0", "2", -3])
     >>> pd.to_numeric(s)
     0    1.0
     1    2.0
     2   -3.0
     dtype: float64
-    >>> pd.to_numeric(s, downcast='float')
+    >>> pd.to_numeric(s, downcast="float")
     0    1.0
     1    2.0
     2   -3.0
     dtype: float32
-    >>> pd.to_numeric(s, downcast='signed')
+    >>> pd.to_numeric(s, downcast="signed")
     0    1
     1    2
     2   -3
     dtype: int8
-    >>> s = pd.Series(['apple', '1.0', '2', -3])
-    >>> pd.to_numeric(s, errors='ignore')
-    0    apple
-    1      1.0
-    2        2
-    3       -3
-    dtype: object
-    >>> pd.to_numeric(s, errors='coerce')
+    >>> s = pd.Series(["apple", "1.0", "2", -3])
+    >>> pd.to_numeric(s, errors="coerce")
     0    NaN
     1    1.0
     2    2.0
@@ -165,7 +159,7 @@ def to_numeric(
     if downcast not in (None, "integer", "signed", "unsigned", "float"):
         raise ValueError("invalid downcasting method provided")
 
-    if errors not in ("ignore", "raise", "coerce"):
+    if errors not in ("raise", "coerce"):
         raise ValueError("invalid error value specified")
 
     check_dtype_backend(dtype_backend)
@@ -197,8 +191,6 @@ def to_numeric(
     else:
         values = arg
 
-    orig_values = values
-
     # GH33013: for IntegerArray & FloatingArray extract non-null values for casting
     # save mask to reconstruct the full array after casting
     mask: npt.NDArray[np.bool_] | None = None
@@ -217,19 +209,15 @@ def to_numeric(
         values = values.view(np.int64)
     else:
         values = ensure_object(values)
-        coerce_numeric = errors not in ("ignore", "raise")
-        try:
-            values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]  # noqa: E501
-                values,
-                set(),
-                coerce_numeric=coerce_numeric,
-                convert_to_masked_nullable=dtype_backend is not lib.no_default
-                or isinstance(values_dtype, StringDtype),
-            )
-        except (ValueError, TypeError):
-            if errors == "raise":
-                raise
-            values = orig_values
+        coerce_numeric = errors != "raise"
+        values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]
+            values,
+            set(),
+            coerce_numeric=coerce_numeric,
+            convert_to_masked_nullable=dtype_backend is not lib.no_default
+            or isinstance(values_dtype, StringDtype)
+            and not values_dtype.storage == "pyarrow_numpy",
+        )
 
     if new_mask is not None:
         # Remove unnecessary values, is expected later anyway and enables
@@ -239,6 +227,7 @@ def to_numeric(
         dtype_backend is not lib.no_default
         and new_mask is None
         or isinstance(values_dtype, StringDtype)
+        and not values_dtype.storage == "pyarrow_numpy"
     ):
         new_mask = np.zeros(values.shape, dtype=np.bool_)
 
@@ -291,7 +280,7 @@ def to_numeric(
             IntegerArray,
         )
 
-        klass: type[IntegerArray] | type[BooleanArray] | type[FloatingArray]
+        klass: type[IntegerArray | BooleanArray | FloatingArray]
         if is_integer_dtype(data.dtype):
             klass = IntegerArray
         elif is_bool_dtype(data.dtype):

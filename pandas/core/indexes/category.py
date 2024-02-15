@@ -21,7 +21,6 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
-    notna,
 )
 
 from pandas.core.arrays.categorical import (
@@ -38,14 +37,13 @@ from pandas.core.indexes.extension import (
     inherit_names,
 )
 
-from pandas.io.formats.printing import pprint_thing
-
 if TYPE_CHECKING:
     from collections.abc import Hashable
 
     from pandas._typing import (
         Dtype,
         DtypeObj,
+        Self,
         npt,
     )
 
@@ -210,7 +208,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         dtype: Dtype | None = None,
         copy: bool = False,
         name: Hashable | None = None,
-    ) -> CategoricalIndex:
+    ) -> Self:
         name = maybe_extract_name(name, data, cls)
 
         if is_scalar(data):
@@ -286,14 +284,14 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
         Examples
         --------
-        >>> ci = pd.CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'])
-        >>> ci2 = pd.CategoricalIndex(pd.Categorical(['a', 'b', 'c', 'a', 'b', 'c']))
+        >>> ci = pd.CategoricalIndex(["a", "b", "c", "a", "b", "c"])
+        >>> ci2 = pd.CategoricalIndex(pd.Categorical(["a", "b", "c", "a", "b", "c"]))
         >>> ci.equals(ci2)
         True
 
         The order of elements matters.
 
-        >>> ci3 = pd.CategoricalIndex(['c', 'b', 'a', 'a', 'b', 'c'])
+        >>> ci3 = pd.CategoricalIndex(["c", "b", "a", "a", "b", "c"])
         >>> ci.equals(ci3)
         False
 
@@ -306,16 +304,17 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         The categories matter, but the order of the categories matters only when
         ``ordered=True``.
 
-        >>> ci5 = ci.set_categories(['a', 'b', 'c', 'd'])
+        >>> ci5 = ci.set_categories(["a", "b", "c", "d"])
         >>> ci.equals(ci5)
         False
 
-        >>> ci6 = ci.set_categories(['b', 'c', 'a'])
+        >>> ci6 = ci.set_categories(["b", "c", "a"])
         >>> ci.equals(ci6)
         True
-        >>> ci_ordered = pd.CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'],
-        ...                                  ordered=True)
-        >>> ci2_ordered = ci_ordered.set_categories(['b', 'c', 'a'])
+        >>> ci_ordered = pd.CategoricalIndex(
+        ...     ["a", "b", "c", "a", "b", "c"], ordered=True
+        ... )
+        >>> ci2_ordered = ci_ordered.set_categories(["b", "c", "a"])
         >>> ci_ordered.equals(ci2_ordered)
         False
         """
@@ -354,13 +353,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         ]
         extra = super()._format_attrs()
         return attrs + extra
-
-    def _format_with_header(self, header: list[str], na_rep: str) -> list[str]:
-        result = [
-            pprint_thing(x, escape_chars=("\t", "\r", "\n")) if notna(x) else na_rep
-            for x in self._values
-        ]
-        return header + result
 
     # --------------------------------------------------------------------
 
@@ -471,37 +463,37 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
         Examples
         --------
-        >>> idx = pd.CategoricalIndex(['a', 'b', 'c'])
+        >>> idx = pd.CategoricalIndex(["a", "b", "c"])
         >>> idx
         CategoricalIndex(['a', 'b', 'c'], categories=['a', 'b', 'c'],
                           ordered=False, dtype='category')
         >>> idx.map(lambda x: x.upper())
         CategoricalIndex(['A', 'B', 'C'], categories=['A', 'B', 'C'],
                          ordered=False, dtype='category')
-        >>> idx.map({'a': 'first', 'b': 'second', 'c': 'third'})
+        >>> idx.map({"a": "first", "b": "second", "c": "third"})
         CategoricalIndex(['first', 'second', 'third'], categories=['first',
                          'second', 'third'], ordered=False, dtype='category')
 
         If the mapping is one-to-one the ordering of the categories is
         preserved:
 
-        >>> idx = pd.CategoricalIndex(['a', 'b', 'c'], ordered=True)
+        >>> idx = pd.CategoricalIndex(["a", "b", "c"], ordered=True)
         >>> idx
         CategoricalIndex(['a', 'b', 'c'], categories=['a', 'b', 'c'],
                          ordered=True, dtype='category')
-        >>> idx.map({'a': 3, 'b': 2, 'c': 1})
+        >>> idx.map({"a": 3, "b": 2, "c": 1})
         CategoricalIndex([3, 2, 1], categories=[3, 2, 1], ordered=True,
                          dtype='category')
 
         If the mapping is not one-to-one an :class:`~pandas.Index` is returned:
 
-        >>> idx.map({'a': 'first', 'b': 'second', 'c': 'first'})
+        >>> idx.map({"a": "first", "b": "second", "c": "first"})
         Index(['first', 'second', 'first'], dtype='object')
 
         If a `dict` is used, all unmapped categories are mapped to `NaN` and
         the result is an :class:`~pandas.Index`:
 
-        >>> idx.map({'a': 'first', 'b': 'second'})
+        >>> idx.map({"a": "first", "b": "second"})
         Index(['first', 'second', nan], dtype='object')
         """
         mapped = self._values.map(mapper, na_action=na_action)

@@ -69,8 +69,8 @@ class TestCustomBusinessHour:
         assert offset != offset2
 
     def test_repr(self, offset1, offset2):
-        assert repr(offset1) == "<CustomBusinessHour: CBH=09:00-17:00>"
-        assert repr(offset2) == "<CustomBusinessHour: CBH=09:00-17:00>"
+        assert repr(offset1) == "<CustomBusinessHour: cbh=09:00-17:00>"
+        assert repr(offset2) == "<CustomBusinessHour: cbh=09:00-17:00>"
 
     def test_with_offset(self, dt):
         expected = Timestamp("2014-07-01 13:00")
@@ -269,28 +269,22 @@ class TestCustomBusinessHour:
         (
             CustomBusinessHour(holidays=holidays),
             {
-                Timestamp("2014-07-01 15:00")
-                + Nano(5): Timestamp("2014-07-01 16:00")
+                Timestamp("2014-07-01 15:00") + Nano(5): Timestamp("2014-07-01 16:00")
                 + Nano(5),
-                Timestamp("2014-07-01 16:00")
-                + Nano(5): Timestamp("2014-07-03 09:00")
+                Timestamp("2014-07-01 16:00") + Nano(5): Timestamp("2014-07-03 09:00")
                 + Nano(5),
-                Timestamp("2014-07-01 16:00")
-                - Nano(5): Timestamp("2014-07-01 17:00")
+                Timestamp("2014-07-01 16:00") - Nano(5): Timestamp("2014-07-01 17:00")
                 - Nano(5),
             },
         ),
         (
             CustomBusinessHour(-1, holidays=holidays),
             {
-                Timestamp("2014-07-01 15:00")
-                + Nano(5): Timestamp("2014-07-01 14:00")
+                Timestamp("2014-07-01 15:00") + Nano(5): Timestamp("2014-07-01 14:00")
                 + Nano(5),
-                Timestamp("2014-07-01 10:00")
-                + Nano(5): Timestamp("2014-07-01 09:00")
+                Timestamp("2014-07-01 10:00") + Nano(5): Timestamp("2014-07-01 09:00")
                 + Nano(5),
-                Timestamp("2014-07-01 10:00")
-                - Nano(5): Timestamp("2014-06-26 17:00")
+                Timestamp("2014-07-01 10:00") - Nano(5): Timestamp("2014-06-26 17:00")
                 - Nano(5),
             },
         ),

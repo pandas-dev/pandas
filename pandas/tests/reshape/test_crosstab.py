@@ -57,9 +57,9 @@ def df():
                 "shiny",
                 "shiny",
             ],
-            "D": np.random.randn(11),
-            "E": np.random.randn(11),
-            "F": np.random.randn(11),
+            "D": np.random.default_rng(2).standard_normal(11),
+            "E": np.random.default_rng(2).standard_normal(11),
+            "F": np.random.default_rng(2).standard_normal(11),
         }
     )
 
@@ -86,9 +86,9 @@ class TestCrosstab:
     @pytest.mark.parametrize("box", [np.array, list, tuple])
     def test_crosstab_ndarray(self, box):
         # GH 44076
-        a = box(np.random.randint(0, 5, size=100))
-        b = box(np.random.randint(0, 3, size=100))
-        c = box(np.random.randint(0, 10, size=100))
+        a = box(np.random.default_rng(2).integers(0, 5, size=100))
+        b = box(np.random.default_rng(2).integers(0, 3, size=100))
+        c = box(np.random.default_rng(2).integers(0, 10, size=100))
 
         df = DataFrame({"a": a, "b": b, "c": c})
 
@@ -126,16 +126,16 @@ class TestCrosstab:
         tm.assert_frame_equal(result, expected)
 
     def test_crosstab_margins(self):
-        a = np.random.randint(0, 7, size=100)
-        b = np.random.randint(0, 3, size=100)
-        c = np.random.randint(0, 5, size=100)
+        a = np.random.default_rng(2).integers(0, 7, size=100)
+        b = np.random.default_rng(2).integers(0, 3, size=100)
+        c = np.random.default_rng(2).integers(0, 5, size=100)
 
         df = DataFrame({"a": a, "b": b, "c": c})
 
         result = crosstab(a, [b, c], rownames=["a"], colnames=("b", "c"), margins=True)
 
         assert result.index.names == ("a",)
-        assert result.columns.names == ["b", "c"]
+        assert result.columns.names == ("b", "c")
 
         all_cols = result["All", ""]
         exp_cols = df.groupby(["a"]).size().astype("i8")
@@ -157,9 +157,9 @@ class TestCrosstab:
 
     def test_crosstab_margins_set_margin_name(self):
         # GH 15972
-        a = np.random.randint(0, 7, size=100)
-        b = np.random.randint(0, 3, size=100)
-        c = np.random.randint(0, 5, size=100)
+        a = np.random.default_rng(2).integers(0, 7, size=100)
+        b = np.random.default_rng(2).integers(0, 3, size=100)
+        c = np.random.default_rng(2).integers(0, 5, size=100)
 
         df = DataFrame({"a": a, "b": b, "c": c})
 
@@ -173,7 +173,7 @@ class TestCrosstab:
         )
 
         assert result.index.names == ("a",)
-        assert result.columns.names == ["b", "c"]
+        assert result.columns.names == ("b", "c")
 
         all_cols = result["TOTAL", ""]
         exp_cols = df.groupby(["a"]).size().astype("i8")
@@ -206,10 +206,10 @@ class TestCrosstab:
                 )
 
     def test_crosstab_pass_values(self):
-        a = np.random.randint(0, 7, size=100)
-        b = np.random.randint(0, 3, size=100)
-        c = np.random.randint(0, 5, size=100)
-        values = np.random.randn(100)
+        a = np.random.default_rng(2).integers(0, 7, size=100)
+        b = np.random.default_rng(2).integers(0, 3, size=100)
+        c = np.random.default_rng(2).integers(0, 5, size=100)
+        values = np.random.default_rng(2).standard_normal(100)
 
         table = crosstab(
             [a, b], c, values, aggfunc="sum", rownames=["foo", "bar"], colnames=["baz"]
@@ -459,7 +459,7 @@ class TestCrosstab:
             )
         tm.assert_frame_equal(test_case, norm_sum)
 
-    def test_crosstab_with_empties(self, using_array_manager):
+    def test_crosstab_with_empties(self):
         # Check handling of empties
         df = DataFrame(
             {
@@ -484,9 +484,6 @@ class TestCrosstab:
             index=Index([1, 2], name="a", dtype="int64"),
             columns=Index([3, 4], name="b"),
         )
-        if using_array_manager:
-            # INFO(ArrayManager) column without NaNs can preserve int dtype
-            nans[3] = nans[3].astype("int64")
 
         calculated = crosstab(df.a, df.b, values=df.c, aggfunc="count", normalize=False)
         tm.assert_frame_equal(nans, calculated)
@@ -546,8 +543,8 @@ class TestCrosstab:
                 "A": ["one", "one", "two", "three"] * 6,
                 "B": ["A", "B", "C"] * 8,
                 "C": ["foo", "foo", "foo", "bar", "bar", "bar"] * 4,
-                "D": np.random.randn(24),
-                "E": np.random.randn(24),
+                "D": np.random.default_rng(2).standard_normal(24),
+                "E": np.random.default_rng(2).standard_normal(24),
             }
         )
         result = crosstab(
@@ -562,7 +559,7 @@ class TestCrosstab:
             codes=[[1, 1, 1, 2, 2, 2, 3, 3, 3, 0], [1, 2, 3, 1, 2, 3, 1, 2, 3, 0]],
             names=["A", "B"],
         )
-        expected_column = Index(["bar", "foo", "All"], dtype="object", name="C")
+        expected_column = Index(["bar", "foo", "All"], name="C")
         expected_data = np.array(
             [
                 [2.0, 2.0, 4.0],
@@ -670,7 +667,7 @@ class TestCrosstab:
             )
         expected = DataFrame(
             np.array([0] * 29 + [1], dtype=float).reshape(10, 3),
-            columns=Index(["bar", "foo", "All"], dtype="object", name="C"),
+            columns=Index(["bar", "foo", "All"], name="C"),
             index=MultiIndex.from_tuples(
                 [
                     ("one", "A"),
@@ -722,7 +719,7 @@ class TestCrosstab:
             codes=[[1, 1, 2, 2, 0], [1, 2, 1, 2, 0]],
             names=["A", "B"],
         )
-        expected.columns = Index(["large", "small"], dtype="object", name="C")
+        expected.columns = Index(["large", "small"], name="C")
         tm.assert_frame_equal(result, expected)
 
         # normalize on columns
@@ -737,9 +734,7 @@ class TestCrosstab:
                 [0, 0.4, 0.222222],
             ]
         )
-        expected.columns = Index(
-            ["large", "small", "Sub-Total"], dtype="object", name="C"
-        )
+        expected.columns = Index(["large", "small", "Sub-Total"], name="C")
         expected.index = MultiIndex(
             levels=[["bar", "foo"], ["one", "two"]],
             codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
@@ -760,9 +755,7 @@ class TestCrosstab:
                 [0.444444, 0.555555, 1],
             ]
         )
-        expected.columns = Index(
-            ["large", "small", "Sub-Total"], dtype="object", name="C"
-        )
+        expected.columns = Index(["large", "small", "Sub-Total"], name="C")
         expected.index = MultiIndex(
             levels=[["Sub-Total", "bar", "foo"], ["", "one", "two"]],
             codes=[[1, 1, 2, 2, 0], [1, 2, 1, 2, 0]],
@@ -867,13 +860,13 @@ class TestCrosstab:
 @pytest.mark.parametrize("b_dtype", ["category", "int64"])
 def test_categoricals(a_dtype, b_dtype):
     # https://github.com/pandas-dev/pandas/issues/37465
-    g = np.random.RandomState(25982704)
-    a = Series(g.randint(0, 3, size=100)).astype(a_dtype)
-    b = Series(g.randint(0, 2, size=100)).astype(b_dtype)
+    g = np.random.default_rng(2)
+    a = Series(g.integers(0, 3, size=100)).astype(a_dtype)
+    b = Series(g.integers(0, 2, size=100)).astype(b_dtype)
     result = crosstab(a, b, margins=True, dropna=False)
     columns = Index([0, 1, "All"], dtype="object", name="col_0")
     index = Index([0, 1, 2, "All"], dtype="object", name="row_0")
-    values = [[18, 16, 34], [18, 16, 34], [16, 16, 32], [52, 48, 100]]
+    values = [[10, 18, 28], [23, 16, 39], [17, 16, 33], [50, 50, 100]]
     expected = DataFrame(values, index, columns)
     tm.assert_frame_equal(result, expected)
 
@@ -882,12 +875,9 @@ def test_categoricals(a_dtype, b_dtype):
     a_is_cat = isinstance(a.dtype, CategoricalDtype)
     assert not a_is_cat or a.value_counts().loc[1] == 0
     result = crosstab(a, b, margins=True, dropna=False)
-    values = [[18, 16, 34], [0, 0, 0], [34, 32, 66], [52, 48, 100]]
+    values = [[10, 18, 28], [0, 0, 0], [40, 32, 72], [50, 50, 100]]
     expected = DataFrame(values, index, columns)
     if not a_is_cat:
         expected = expected.loc[[0, 2, "All"]]
         expected["All"] = expected["All"].astype("int64")
-    repr(result)
-    repr(expected)
-    repr(expected.loc[[0, 2, "All"]])
     tm.assert_frame_equal(result, expected)

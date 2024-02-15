@@ -56,8 +56,7 @@ class TestTake:
     def test_take(self, index):
         indexer = [4, 3, 0, 2]
         if len(index) < 5:
-            # not enough elements; ignore
-            return
+            pytest.skip("Test doesn't make sense since not enough elements")
 
         result = index.take(indexer)
         expected = index[indexer]
@@ -81,7 +80,7 @@ class TestTake:
         # -1 does not get treated as NA unless allow_fill=True is passed
         if len(index) == 0:
             # Test is not applicable
-            return
+            pytest.skip("Test doesn't make sense for empty index")
 
         result = index.take([0, 0, -1])
 
@@ -93,15 +92,16 @@ class TestContains:
     @pytest.mark.parametrize(
         "index,val",
         [
-            (Index([0, 1, 2]), 2),
-            (Index([0, 1, "2"]), "2"),
-            (Index([0, 1, 2, np.inf, 4]), 4),
-            (Index([0, 1, 2, np.nan, 4]), 4),
-            (Index([0, 1, 2, np.inf]), np.inf),
-            (Index([0, 1, 2, np.nan]), np.nan),
+            ([0, 1, 2], 2),
+            ([0, 1, "2"], "2"),
+            ([0, 1, 2, np.inf, 4], 4),
+            ([0, 1, 2, np.nan, 4], 4),
+            ([0, 1, 2, np.inf], np.inf),
+            ([0, 1, 2, np.nan], np.nan),
         ],
     )
     def test_index_contains(self, index, val):
+        index = Index(index)
         assert val in index
 
     @pytest.mark.parametrize(
@@ -124,18 +124,16 @@ class TestContains:
     def test_index_not_contains(self, index, val):
         assert val not in index
 
-    @pytest.mark.parametrize(
-        "index,val", [(Index([0, 1, "2"]), 0), (Index([0, 1, "2"]), "2")]
-    )
-    def test_mixed_index_contains(self, index, val):
+    @pytest.mark.parametrize("val", [0, "2"])
+    def test_mixed_index_contains(self, val):
         # GH#19860
+        index = Index([0, 1, "2"])
         assert val in index
 
-    @pytest.mark.parametrize(
-        "index,val", [(Index([0, 1, "2"]), "1"), (Index([0, 1, "2"]), 2)]
-    )
+    @pytest.mark.parametrize("val", ["1", 2])
     def test_mixed_index_not_contains(self, index, val):
         # GH#19860
+        index = Index([0, 1, "2"])
         assert val not in index
 
     def test_contains_with_float_index(self, any_real_numpy_dtype):
@@ -289,7 +287,7 @@ class TestPutmask:
     def test_putmask_with_wrong_mask(self, index):
         # GH#18368
         if not len(index):
-            return
+            pytest.skip("Test doesn't make sense for empty index")
 
         fill = index[0]
 
@@ -304,12 +302,10 @@ class TestPutmask:
             index.putmask("foo", fill)
 
 
-@pytest.mark.parametrize(
-    "idx", [Index([1, 2, 3]), Index([0.1, 0.2, 0.3]), Index(["a", "b", "c"])]
-)
+@pytest.mark.parametrize("idx", [[1, 2, 3], [0.1, 0.2, 0.3], ["a", "b", "c"]])
 def test_getitem_deprecated_float(idx):
     # https://github.com/pandas-dev/pandas/issues/34191
-
+    idx = Index(idx)
     msg = "Indexing with a float is no longer supported"
     with pytest.raises(IndexError, match=msg):
         idx[1.0]
