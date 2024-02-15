@@ -92,7 +92,7 @@ all = ['adbc-driver-postgresql>=0.8.0',
        #'blosc>=1.21.3',
        'bottleneck>=1.3.6',
        'dataframe-api-compat>=0.1.7',
-       'fastparquet>=2022.12.0',
+       'fastparquet>=2023.04.0',
        'fsspec>=2022.11.0',
        'gcsfs>=2022.11.0',
        'html5lib>=1.1',
@@ -331,6 +331,17 @@ exclude = [
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "urllib.request.urlopen".msg = "Use pandas.io.common.urlopen instead of urllib.request.urlopen"
+# numpy.random is banned but np.random is not. Is this intentional?
+# "numpy.random".msg = "Do not use numpy.random"
+"pytest.warns".msg = "Use tm.assert_produces_warning instead of pytest.warns"
+"pytest.xfail".msg = "Use pytest.mark.xfail instead of pytest.xfail"
+"conftest".msg = "No direct imports from conftest"
+"numpy.testing".msg = "Do not use numpy.testing"
+# "numpy.array_equal".msg = "Do not use numpy.array_equal" # Used in pandas/core
+"unittest.mock".msg = "use pytest builtin monkeypatch fixture instead"
+"os.remove".msg = "Do not use os.remove"
+
+
 
 [tool.ruff.per-file-ignores]
 # relative imports allowed for asv_bench

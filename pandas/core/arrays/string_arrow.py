@@ -9,7 +9,6 @@ from typing import (
     Union,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -23,7 +22,6 @@ from pandas.compat import (
     pa_version_under10p1,
     pa_version_under13p0,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -66,6 +64,8 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from pandas.core.dtypes.dtypes import ExtensionDtype
+
     from pandas import Series
 
 
@@ -107,7 +107,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     See Also
     --------
-    :func:`pandas.array`
+    :func:`array`
         The recommended function for creating a ArrowStringArray.
     Series.str
         The string methods are available on Series backed by
@@ -206,7 +206,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, dtype: Dtype | None = None, copy: bool = False
+        cls, strings, *, dtype: ExtensionDtype, copy: bool = False
     ) -> Self:
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
@@ -273,17 +273,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             return self.to_numpy(dtype=dtype, na_value=np.nan)
 
         return super().astype(dtype, copy=copy)
-
-    @property
-    def _data(self):
-        # dask accesses ._data directlys
-        warnings.warn(
-            f"{type(self).__name__}._data is a deprecated and will be removed "
-            "in a future version, use ._pa_array instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._pa_array
 
     # ------------------------------------------------------------------------
     # String methods interface
