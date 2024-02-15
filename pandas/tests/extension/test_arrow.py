@@ -354,10 +354,9 @@ class TestArrowArray(base.ExtensionTests):
         assert isinstance(result._pa_array, pa.ChunkedArray)
 
     def test_from_sequence_pa_array_notimplemented(self, request):
+        dtype = ArrowDtype(pa.month_day_nano_interval())
         with pytest.raises(NotImplementedError, match="Converting strings to"):
-            ArrowExtensionArray._from_sequence_of_strings(
-                ["12-1"], dtype=pa.month_day_nano_interval()
-            )
+            ArrowExtensionArray._from_sequence_of_strings(["12-1"], dtype=dtype)
 
     def test_from_sequence_of_strings_pa_array(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -2409,7 +2408,8 @@ def test_duration_from_strings_with_nat(unit):
     # GH51175
     strings = ["1000", "NaT"]
     pa_type = pa.duration(unit)
-    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=pa_type)
+    dtype = ArrowDtype(pa_type)
+    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
     expected = ArrowExtensionArray(pa.array([1000, None], type=pa_type))
     tm.assert_extension_array_equal(result, expected)
 
@@ -2928,13 +2928,14 @@ def test_from_sequence_of_strings_boolean():
         [True] * len(true_strings) + [False] * len(false_strings) + [None] * len(nulls)
     )
 
-    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=pa.bool_())
+    dtype = ArrowDtype(pa.bool_())
+    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
     expected = pd.array(bools, dtype="boolean[pyarrow]")
     tm.assert_extension_array_equal(result, expected)
 
     strings = ["True", "foo"]
     with pytest.raises(pa.ArrowInvalid, match="Failed to parse"):
-        ArrowExtensionArray._from_sequence_of_strings(strings, dtype=pa.bool_())
+        ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
 
 
 def test_concat_empty_arrow_backed_series(dtype):
