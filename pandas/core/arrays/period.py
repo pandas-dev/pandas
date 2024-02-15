@@ -638,7 +638,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         dtype='datetime64[ns]', freq='MS')
 
         The frequency will not be inferred if the index contains less than
-        three elements and values of index are not strictly monotonic:
+        three elements, or if the values of index are not strictly monotonic:
 
         >>> idx = pd.PeriodIndex(["2023-01", "2023-02"], freq="M")
         >>> idx.to_timestamp()
