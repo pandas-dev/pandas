@@ -457,7 +457,7 @@ class BaseBlockManager(PandasObject):
         return self.apply("apply", func=func)
 
     @final
-    def fillna(self, value, limit: int | None, inplace: bool, downcast) -> Self:
+    def fillna(self, value, limit: int | None, inplace: bool) -> Self:
         if limit is not None:
             # Do this validation even if we go through one of the no-op paths
             limit = libalgos.validate_limit(None, limit=limit)
@@ -467,7 +467,6 @@ class BaseBlockManager(PandasObject):
             value=value,
             limit=limit,
             inplace=inplace,
-            downcast=downcast,
         )
 
     @final
