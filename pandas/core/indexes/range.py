@@ -1168,7 +1168,7 @@ class RangeIndex(Index):
         allow_fill: bool = True,
         fill_value=None,
         **kwargs,
-    ) -> Index:
+    ) -> Self | Index:
         if kwargs:
             nv.validate_take((), kwargs)
         if is_scalar(indices):
@@ -1179,7 +1179,7 @@ class RangeIndex(Index):
         self._maybe_disallow_fill(allow_fill, fill_value, indices)
 
         if len(indices) == 0:
-            taken = np.array([], dtype=self.dtype)
+            return type(self)(range(0), name=self.name)
         else:
             ind_max = indices.max()
             if ind_max >= len(self):
@@ -1199,5 +1199,4 @@ class RangeIndex(Index):
             if self.start != 0:
                 taken += self.start
 
-        # _constructor so RangeIndex-> Index with an int64 dtype
-        return self._constructor._simple_new(taken, name=self.name)
+        return self._shallow_copy(taken, name=self.name)
