@@ -32,7 +32,7 @@ Other enhancements
 - :func:`read_stata` now returns ``datetime64`` resolutions better matching those natively stored in the stata format (:issue:`55642`)
 - Allow dictionaries to be passed to :meth:`pandas.Series.str.replace` via ``pat`` parameter (:issue:`51748`)
 - Support passing a :class:`Series` input to :func:`json_normalize` that retains the :class:`Series` :class:`Index` (:issue:`51452`)
-- Updated :meth:`DataFrame.to_excel` so that the output spreadsheet has no styling. (:issue:`54154`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:
@@ -90,6 +90,7 @@ Other API changes
 - 3rd party ``py.path`` objects are no longer explicitly supported in IO methods. Use :py:class:`pathlib.Path` objects instead (:issue:`57091`)
 - :attr:`MultiIndex.codes`, :attr:`MultiIndex.levels`, and :attr:`MultiIndex.names` now returns a ``tuple`` instead of a ``FrozenList`` (:issue:`53531`)
 - Made ``dtype`` a required argument in :meth:`ExtensionArray._from_sequence_of_strings` (:issue:`56519`)
+- Updated :meth:`DataFrame.to_excel` so that the output spreadsheet has no styling. (:issue:`54154`)
 - pickle and HDF (``.h5``) files created with Python 2 are no longer explicitly supported (:issue:`57387`)
 -
 

@@ -145,18 +145,15 @@ shared_style_params = [
 ]
 
 
-@pytest.mark.parametrize(
-    "css",
-    ["background-color: #111222"],
-)
-def test_styler_custom_style(css):
+def test_styler_custom_style():
     # GH 54154
+    css_style = "background-color: #111222"
     openpyxl = pytest.importorskip("openpyxl")
     df = DataFrame([{"A": 1, "B": 2}, {"A": 1, "B": 2}])
 
     with tm.ensure_clean(".xlsx") as path:
         with ExcelWriter(path, engine="openpyxl") as writer:
-            styler = df.style.map(lambda x: css)
+            styler = df.style.map(lambda x: css_style)
             styler.to_excel(writer, sheet_name="custom", index=False)
 
         with contextlib.closing(openpyxl.load_workbook(path)) as wb:
