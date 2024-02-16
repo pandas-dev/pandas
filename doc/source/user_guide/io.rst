@@ -36,7 +36,6 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     binary;`SPSS <https://en.wikipedia.org/wiki/SPSS>`__;:ref:`read_spss<io.spss_reader>`;
     binary;`Python Pickle Format <https://docs.python.org/3/library/pickle.html>`__;:ref:`read_pickle<io.pickle>`;:ref:`to_pickle<io.pickle>`
     SQL;`SQL <https://en.wikipedia.org/wiki/SQL>`__;:ref:`read_sql<io.sql>`;:ref:`to_sql<io.sql>`
-    SQL;`Google BigQuery <https://en.wikipedia.org/wiki/BigQuery>`__;:ref:`read_gbq<io.bigquery>`;:ref:`to_gbq<io.bigquery>`
 
 :ref:`Here <io.perf>` is an informal performance comparison for some of these IO methods.
 
@@ -3248,7 +3247,7 @@ output (as shown below for demonstration) for easier parse into ``DataFrame``:
       </row>
     </response>"""
 
-   df = pd.read_xml(StringIO(xml), stylesheet=xsl)
+   df = pd.read_xml(StringIO(xml), stylesheet=StringIO(xsl))
    df
 
 For very large XML files that can range in hundreds of megabytes to gigabytes, :func:`pandas.read_xml`
@@ -3419,7 +3418,7 @@ Write an XML and transform with stylesheet:
       </xsl:template>
     </xsl:stylesheet>"""
 
-   print(geom_df.to_xml(stylesheet=xsl))
+   print(geom_df.to_xml(stylesheet=StringIO(xsl)))
 
 
 XML Final Notes
@@ -3908,6 +3907,20 @@ The look and feel of Excel worksheets created from pandas can be modified using 
 
 * ``float_format`` : Format string for floating point numbers (default ``None``).
 * ``freeze_panes`` : A tuple of two integers representing the bottommost row and rightmost column to freeze. Each of these parameters is one-based, so (1, 1) will freeze the first row and first column (default ``None``).
+
+.. note::
+
+    As of Pandas 3.0, by default spreadsheets created with the ``to_excel`` method
+    will not contain any styling. Users wishing to bold text, add bordered styles,
+    etc in a worksheet output by ``to_excel`` can do so by using :meth:`Styler.to_excel`
+    to create styled excel files. For documentation on styling spreadsheets, see
+    `here <https://pandas.pydata.org/docs/user_guide/style.html#Export-to-Excel>`__.
+
+
+.. code-block:: python
+
+    css = "border: 1px solid black; font-weight: bold;"
+    df.style.map_index(lambda x: css).map_index(lambda x: css, axis=1).to_excel("myfile.xlsx")
 
 Using the `Xlsxwriter`_ engine provides many options for controlling the
 format of an Excel worksheet created with the ``to_excel`` method.  Excellent examples can be found in the
@@ -6095,10 +6108,6 @@ Google BigQuery
 ---------------
 
 The ``pandas-gbq`` package provides functionality to read/write from Google BigQuery.
-
-pandas integrates with this external package. if ``pandas-gbq`` is installed, you can
-use the pandas methods ``pd.read_gbq`` and ``DataFrame.to_gbq``, which will call the
-respective functions from ``pandas-gbq``.
 
 Full documentation can be found `here <https://pandas-gbq.readthedocs.io/en/latest/>`__.
 

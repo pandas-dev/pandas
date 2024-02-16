@@ -502,6 +502,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         """
         hasna = self._hasna
         dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, hasna)
+        if dtype is None:
+            dtype = object
 
         if hasna:
             if (
@@ -1333,7 +1335,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._wrap_reduction_result("max", result, skipna=skipna, axis=axis)
 
     def map(self, mapper, na_action=None):
-        return map_array(self.to_numpy(), mapper, na_action=None)
+        return map_array(self.to_numpy(), mapper, na_action=na_action)
 
     @overload
     def any(

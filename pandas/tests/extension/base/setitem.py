@@ -398,10 +398,6 @@ class BaseSetitemTests:
     def test_setitem_frame_2d_values(self, data):
         # GH#44514
         df = pd.DataFrame({"A": data})
-        using_copy_on_write = pd.options.mode.copy_on_write
-
-        blk_data = df._mgr.arrays[0]
-
         orig = df.copy()
 
         df.iloc[:] = df.copy()
@@ -412,9 +408,6 @@ class BaseSetitemTests:
 
         df.iloc[:] = df.values
         tm.assert_frame_equal(df, orig)
-        if not using_copy_on_write:
-            # GH#33457 Check that this setting occurred in-place
-            assert df._mgr.arrays[0] is blk_data
 
         df.iloc[:-1] = df.values[:-1]
         tm.assert_frame_equal(df, orig)

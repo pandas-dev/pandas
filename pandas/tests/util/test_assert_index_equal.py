@@ -198,8 +198,8 @@ def test_index_equal_names(name1, name2):
         msg = f"""Index are different
 
 Attribute "names" are different
-\\[left\\]:  \\[{name1}\\]
-\\[right\\]: \\[{name2}\\]"""
+\\[left\\]:  \\({name1},\\)
+\\[right\\]: \\({name2},\\)"""
 
         with pytest.raises(AssertionError, match=msg):
             tm.assert_index_equal(idx1, idx2)

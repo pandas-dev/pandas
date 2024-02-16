@@ -12,7 +12,6 @@ from typing import (
     Callable,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -23,7 +22,6 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 import pandas as pd
 from pandas import (
@@ -245,10 +243,12 @@ class Styler(StylerRenderer):
 
     Examples
     --------
-    >>> df = pd.DataFrame([[1.0, 2.0, 3.0], [4, 5, 6]], index=['a', 'b'],
-    ...                   columns=['A', 'B', 'C'])
-    >>> pd.io.formats.style.Styler(df, precision=2,
-    ...                            caption="My table")  # doctest: +SKIP
+    >>> df = pd.DataFrame(
+    ...     [[1.0, 2.0, 3.0], [4, 5, 6]], index=["a", "b"], columns=["A", "B", "C"]
+    ... )
+    >>> pd.io.formats.style.Styler(
+    ...     df, precision=2, caption="My table"
+    ... )  # doctest: +SKIP
 
     Please see:
     `Table Visualization <../../user_guide/style.ipynb>`_ for more examples.
@@ -355,9 +355,11 @@ class Styler(StylerRenderer):
         A common use case is adding totals rows, or otherwise, via methods calculated
         in ``DataFrame.agg``.
 
-        >>> df = pd.DataFrame([[4, 6], [1, 9], [3, 4], [5, 5], [9, 6]],
-        ...                   columns=["Mike", "Jim"],
-        ...                   index=["Mon", "Tue", "Wed", "Thurs", "Fri"])
+        >>> df = pd.DataFrame(
+        ...     [[4, 6], [1, 9], [3, 4], [5, 5], [9, 6]],
+        ...     columns=["Mike", "Jim"],
+        ...     index=["Mon", "Tue", "Wed", "Thurs", "Fri"],
+        ... )
         >>> styler = df.style.concat(df.agg(["sum"]).style)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/footer_simple.png
@@ -367,14 +369,16 @@ class Styler(StylerRenderer):
 
         >>> descriptors = df.agg(["sum", "mean", lambda s: s.dtype])
         >>> descriptors.index = ["Total", "Average", "dtype"]
-        >>> other = (descriptors.style
-        ...          .highlight_max(axis=1, subset=(["Total", "Average"], slice(None)))
-        ...          .format(subset=("Average", slice(None)), precision=2, decimal=",")
-        ...          .map(lambda v: "font-weight: bold;"))
-        >>> styler = (df.style
-        ...             .highlight_max(color="salmon")
-        ...             .set_table_styles([{"selector": ".foot_row0",
-        ...                                 "props": "border-top: 1px solid black;"}]))
+        >>> other = (
+        ...     descriptors.style.highlight_max(
+        ...         axis=1, subset=(["Total", "Average"], slice(None))
+        ...     )
+        ...     .format(subset=("Average", slice(None)), precision=2, decimal=",")
+        ...     .map(lambda v: "font-weight: bold;")
+        ... )
+        >>> styler = df.style.highlight_max(color="salmon").set_table_styles(
+        ...     [{"selector": ".foot_row0", "props": "border-top: 1px solid black;"}]
+        ... )
         >>> styler.concat(other)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/footer_extended.png
@@ -382,8 +386,9 @@ class Styler(StylerRenderer):
         When ``other`` has fewer index levels than the original Styler it is possible
         to extend the index in ``other``, with placeholder levels.
 
-        >>> df = pd.DataFrame([[1], [2]],
-        ...                   index=pd.MultiIndex.from_product([[0], [1, 2]]))
+        >>> df = pd.DataFrame(
+        ...     [[1], [2]], index=pd.MultiIndex.from_product([[0], [1, 2]])
+        ... )
         >>> descriptors = df.agg(["sum"])
         >>> descriptors.index = pd.MultiIndex.from_product([[""], descriptors.index])
         >>> df.style.concat(descriptors.style)  # doctest: +SKIP
@@ -419,6 +424,7 @@ class Styler(StylerRenderer):
         ttips: DataFrame,
         props: CSSProperties | None = None,
         css_class: str | None = None,
+        as_title_attribute: bool = False,
     ) -> Styler:
         """
         Set the DataFrame of strings on ``Styler`` generating ``:hover`` tooltips.
@@ -442,6 +448,9 @@ class Styler(StylerRenderer):
             Name of the tooltip class used in CSS, should conform to HTML standards.
             Only useful if integrating tooltips with external CSS. If ``None`` uses the
             internal default value 'pd-t'.
+        as_title_attribute : bool, default False
+            Add the tooltip text as title attribute to resultant <td> element. If True
+            then props and css_class arguments are ignored.
 
         Returns
         -------
@@ -470,6 +479,12 @@ class Styler(StylerRenderer):
         additional HTML for larger tables, since they also require that ``cell_ids``
         is forced to `True`.
 
+        If multiline tooltips are required, or if styling is not required and/or
+        space is of concern, then utilizing as_title_attribute as True will store
+        the tooltip on the <td> title attribute. This will cause no CSS
+        to be generated nor will the <span> elements. Storing tooltips through
+        the title attribute will mean that tooltip styling effects do not apply.
+
         Examples
         --------
         Basic application
@@ -482,14 +497,25 @@ class Styler(StylerRenderer):
 
         Optionally controlling the tooltip visual display
 
-        >>> df.style.set_tooltips(ttips, css_class='tt-add', props=[
-        ...     ('visibility', 'hidden'),
-        ...     ('position', 'absolute'),
-        ...     ('z-index', 1)])  # doctest: +SKIP
         >>> df.style.set_tooltips(
-        ...     ttips, css_class='tt-add',
-        ...     props='visibility:hidden; position:absolute; z-index:1;')
+        ...     ttips,
+        ...     css_class="tt-add",
+        ...     props=[
+        ...         ("visibility", "hidden"),
+        ...         ("position", "absolute"),
+        ...         ("z-index", 1),
+        ...     ],
+        ... )  # doctest: +SKIP
+        >>> df.style.set_tooltips(
+        ...     ttips,
+        ...     css_class="tt-add",
+        ...     props="visibility:hidden; position:absolute; z-index:1;",
+        ... )
         ... # doctest: +SKIP
+
+        Multiline tooltips with smaller size footprint
+
+        >>> df.style.set_tooltips(ttips, as_title_attribute=True)  # doctest: +SKIP
         """
         if not self.cell_ids:
             # tooltips not optimised for individual cell check. requires reasonable
@@ -504,10 +530,13 @@ class Styler(StylerRenderer):
         if self.tooltips is None:  # create a default instance if necessary
             self.tooltips = Tooltips()
         self.tooltips.tt_data = ttips
-        if props:
-            self.tooltips.class_properties = props
-        if css_class:
-            self.tooltips.class_name = css_class
+        if not as_title_attribute:
+            if props:
+                self.tooltips.class_properties = props
+            if css_class:
+                self.tooltips.class_name = css_class
+        else:
+            self.tooltips.as_title_attribute = as_title_attribute
 
         return self
 
@@ -1316,7 +1345,7 @@ class Styler(StylerRenderer):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
         >>> print(df.style.to_html())  # doctest: +SKIP
         <style type="text/css">
         </style>
@@ -1443,7 +1472,7 @@ class Styler(StylerRenderer):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
         >>> df.style.to_string()
         ' A B\\n0 1 3\\n1 2 4\\n'
         """
@@ -1496,19 +1525,24 @@ class Styler(StylerRenderer):
         Examples
         --------
         >>> df = pd.DataFrame(data=[[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"])
-        >>> classes = pd.DataFrame([
-        ...     ["min-val red", "", "blue"],
-        ...     ["red", None, "blue max-val"]
-        ... ], index=df.index, columns=df.columns)
+        >>> classes = pd.DataFrame(
+        ...     [["min-val red", "", "blue"], ["red", None, "blue max-val"]],
+        ...     index=df.index,
+        ...     columns=df.columns,
+        ... )
         >>> df.style.set_td_classes(classes)  # doctest: +SKIP
 
         Using `MultiIndex` columns and a `classes` `DataFrame` as a subset of the
         underlying,
 
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], index=["a", "b"],
-        ...                   columns=[["level0", "level0"], ["level1a", "level1b"]])
-        >>> classes = pd.DataFrame(["min-val"], index=["a"],
-        ...                        columns=[["level0"], ["level1a"]])
+        >>> df = pd.DataFrame(
+        ...     [[1, 2], [3, 4]],
+        ...     index=["a", "b"],
+        ...     columns=[["level0", "level0"], ["level1a", "level1b"]],
+        ... )
+        >>> classes = pd.DataFrame(
+        ...     ["min-val"], index=["a"], columns=[["level0"], ["level1a"]]
+        ... )
         >>> df.style.set_td_classes(classes)  # doctest: +SKIP
 
         Form of the output with new additional css classes,
@@ -1680,11 +1714,11 @@ class Styler(StylerRenderer):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, np.nan]})
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [3, np.nan]})
 
         After any added style:
 
-        >>> df.style.highlight_null(color='yellow')  # doctest: +SKIP
+        >>> df.style.highlight_null(color="yellow")  # doctest: +SKIP
 
         Remove it with:
 
@@ -1821,22 +1855,22 @@ class Styler(StylerRenderer):
         >>> def highlight_max(x, color):
         ...     return np.where(x == np.nanmax(x.to_numpy()), f"color: {color};", None)
         >>> df = pd.DataFrame(np.random.randn(5, 2), columns=["A", "B"])
-        >>> df.style.apply(highlight_max, color='red')  # doctest: +SKIP
-        >>> df.style.apply(highlight_max, color='blue', axis=1)  # doctest: +SKIP
-        >>> df.style.apply(highlight_max, color='green', axis=None)  # doctest: +SKIP
+        >>> df.style.apply(highlight_max, color="red")  # doctest: +SKIP
+        >>> df.style.apply(highlight_max, color="blue", axis=1)  # doctest: +SKIP
+        >>> df.style.apply(highlight_max, color="green", axis=None)  # doctest: +SKIP
 
         Using ``subset`` to restrict application to a single column or multiple columns
 
-        >>> df.style.apply(highlight_max, color='red', subset="A")
+        >>> df.style.apply(highlight_max, color="red", subset="A")
         ... # doctest: +SKIP
-        >>> df.style.apply(highlight_max, color='red', subset=["A", "B"])
+        >>> df.style.apply(highlight_max, color="red", subset=["A", "B"])
         ... # doctest: +SKIP
 
         Using a 2d input to ``subset`` to select rows in addition to columns
 
-        >>> df.style.apply(highlight_max, color='red', subset=([0, 1, 2], slice(None)))
+        >>> df.style.apply(highlight_max, color="red", subset=([0, 1, 2], slice(None)))
         ... # doctest: +SKIP
-        >>> df.style.apply(highlight_max, color='red', subset=(slice(0, 5, 2), "A"))
+        >>> df.style.apply(highlight_max, color="red", subset=(slice(0, 5, 2), "A"))
         ... # doctest: +SKIP
 
         Using a function which returns a Series / DataFrame of unequal length but
@@ -1945,7 +1979,7 @@ class Styler(StylerRenderer):
 
         Selectively applying to specific levels of MultiIndex columns.
 
-        >>> midx = pd.MultiIndex.from_product([['ix', 'jy'], [0, 1], ['x3', 'z4']])
+        >>> midx = pd.MultiIndex.from_product([["ix", "jy"], [0, 1], ["x3", "z4"]])
         >>> df = pd.DataFrame([np.arange(8)], columns=midx)
         >>> def highlight_x({var}):
         ...     return {ret2}
@@ -1992,42 +2026,6 @@ class Styler(StylerRenderer):
         )
         return self
 
-    def applymap_index(
-        self,
-        func: Callable,
-        axis: AxisInt | str = 0,
-        level: Level | list[Level] | None = None,
-        **kwargs,
-    ) -> Styler:
-        """
-        Apply a CSS-styling function to the index or column headers, elementwise.
-
-        .. deprecated:: 2.1.0
-
-           Styler.applymap_index has been deprecated. Use Styler.map_index instead.
-
-        Parameters
-        ----------
-        func : function
-            ``func`` should take a scalar and return a string.
-        axis : {{0, 1, "index", "columns"}}
-            The headers over which to apply the function.
-        level : int, str, list, optional
-            If index is MultiIndex the level(s) over which to apply the function.
-        **kwargs : dict
-            Pass along to ``func``.
-
-        Returns
-        -------
-        Styler
-        """
-        warnings.warn(
-            "Styler.applymap_index has been deprecated. Use Styler.map_index instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.map_index(func, axis, level, **kwargs)
-
     def _map(self, func: Callable, subset: Subset | None = None, **kwargs) -> Styler:
         func = partial(func, **kwargs)  # map doesn't take kwargs?
         if subset is None:
@@ -2073,20 +2071,22 @@ class Styler(StylerRenderer):
         >>> def color_negative(v, color):
         ...     return f"color: {color};" if v < 0 else None
         >>> df = pd.DataFrame(np.random.randn(5, 2), columns=["A", "B"])
-        >>> df.style.map(color_negative, color='red')  # doctest: +SKIP
+        >>> df.style.map(color_negative, color="red")  # doctest: +SKIP
 
         Using ``subset`` to restrict application to a single column or multiple columns
 
-        >>> df.style.map(color_negative, color='red', subset="A")  # doctest: +SKIP
-        >>> df.style.map(color_negative,
-        ...              color='red', subset=["A", "B"])  # doctest: +SKIP
+        >>> df.style.map(color_negative, color="red", subset="A")
+        ... # doctest: +SKIP
+        >>> df.style.map(color_negative, color="red", subset=["A", "B"])
+        ... # doctest: +SKIP
 
         Using a 2d input to ``subset`` to select rows in addition to columns
 
-        >>> df.style.map(color_negative, color='red',
-        ...              subset=([0, 1, 2], slice(None)))  # doctest: +SKIP
-        >>> df.style.map(color_negative,
-        ...              color='red', subset=(slice(0, 5, 2), "A"))  # doctest: +SKIP
+        >>> df.style.map(
+        ...     color_negative, color="red", subset=([0, 1, 2], slice(None))
+        ... )  # doctest: +SKIP
+        >>> df.style.map(color_negative, color="red", subset=(slice(0, 5, 2), "A"))
+        ... # doctest: +SKIP
 
         See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
         more details.
@@ -2095,36 +2095,6 @@ class Styler(StylerRenderer):
             (lambda instance: getattr(instance, "_map"), (func, subset), kwargs)
         )
         return self
-
-    @Substitution(subset=subset_args)
-    def applymap(
-        self, func: Callable, subset: Subset | None = None, **kwargs
-    ) -> Styler:
-        """
-        Apply a CSS-styling function elementwise.
-
-        .. deprecated:: 2.1.0
-
-           Styler.applymap has been deprecated. Use Styler.map instead.
-
-        Parameters
-        ----------
-        func : function
-            ``func`` should take a scalar and return a string.
-        %(subset)s
-        **kwargs : dict
-            Pass along to ``func``.
-
-        Returns
-        -------
-        Styler
-        """
-        warnings.warn(
-            "Styler.applymap has been deprecated. Use Styler.map instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.map(func, subset, **kwargs)
 
     def set_table_attributes(self, attributes: str) -> Styler:
         """
@@ -2301,7 +2271,7 @@ class Styler(StylerRenderer):
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], index=['A', 'B'], columns=['c1', 'c2'])
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], index=["A", "B"], columns=["c1", "c2"])
 
         You can get the `id` attributes with the following:
 
@@ -2335,7 +2305,7 @@ class Styler(StylerRenderer):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
         >>> df.style.set_caption("test")  # doctest: +SKIP
 
         Please see:
@@ -2391,7 +2361,7 @@ class Styler(StylerRenderer):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
         >>> df.style.set_sticky(axis="index")  # doctest: +SKIP
 
         Please see:
@@ -2552,49 +2522,55 @@ class Styler(StylerRenderer):
 
         .. code-block:: python
 
-            css_class_names = {"row_heading": "row_heading",
-                               "col_heading": "col_heading",
-                               "index_name": "index_name",
-                               "col": "col",
-                               "row": "row",
-                               "col_trim": "col_trim",
-                               "row_trim": "row_trim",
-                               "level": "level",
-                               "data": "data",
-                               "blank": "blank",
-                               "foot": "foot"}
+            css_class_names = {
+                "row_heading": "row_heading",
+                "col_heading": "col_heading",
+                "index_name": "index_name",
+                "col": "col",
+                "row": "row",
+                "col_trim": "col_trim",
+                "row_trim": "row_trim",
+                "level": "level",
+                "data": "data",
+                "blank": "blank",
+                "foot": "foot",
+            }
 
         Examples
         --------
-        >>> df = pd.DataFrame(np.random.randn(10, 4),
-        ...                   columns=['A', 'B', 'C', 'D'])
+        >>> df = pd.DataFrame(np.random.randn(10, 4), columns=["A", "B", "C", "D"])
         >>> df.style.set_table_styles(
-        ...     [{'selector': 'tr:hover',
-        ...       'props': [('background-color', 'yellow')]}]
+        ...     [{"selector": "tr:hover", "props": [("background-color", "yellow")]}]
         ... )  # doctest: +SKIP
 
         Or with CSS strings
 
         >>> df.style.set_table_styles(
-        ...     [{'selector': 'tr:hover',
-        ...       'props': 'background-color: yellow; font-size: 1em;'}]
+        ...     [
+        ...         {
+        ...             "selector": "tr:hover",
+        ...             "props": "background-color: yellow; font-size: 1em;",
+        ...         }
+        ...     ]
         ... )  # doctest: +SKIP
 
         Adding column styling by name
 
-        >>> df.style.set_table_styles({
-        ...     'A': [{'selector': '',
-        ...            'props': [('color', 'red')]}],
-        ...     'B': [{'selector': 'td',
-        ...            'props': 'color: blue;'}]
-        ... }, overwrite=False)  # doctest: +SKIP
+        >>> df.style.set_table_styles(
+        ...     {
+        ...         "A": [{"selector": "", "props": [("color", "red")]}],
+        ...         "B": [{"selector": "td", "props": "color: blue;"}],
+        ...     },
+        ...     overwrite=False,
+        ... )  # doctest: +SKIP
 
         Adding row styling
 
-        >>> df.style.set_table_styles({
-        ...     0: [{'selector': 'td:hover',
-        ...          'props': [('font-size', '25px')]}]
-        ... }, axis=1, overwrite=False)  # doctest: +SKIP
+        >>> df.style.set_table_styles(
+        ...     {0: [{"selector": "td:hover", "props": [("font-size", "25px")]}]},
+        ...     axis=1,
+        ...     overwrite=False,
+        ... )  # doctest: +SKIP
 
         See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
         more details.
@@ -2923,10 +2899,14 @@ class Styler(StylerRenderer):
 
         Examples
         --------
-        >>> df = pd.DataFrame(columns=["City", "Temp (c)", "Rain (mm)", "Wind (m/s)"],
-        ...                   data=[["Stockholm", 21.6, 5.0, 3.2],
-        ...                         ["Oslo", 22.4, 13.3, 3.1],
-        ...                         ["Copenhagen", 24.5, 0.0, 6.7]])
+        >>> df = pd.DataFrame(
+        ...     columns=["City", "Temp (c)", "Rain (mm)", "Wind (m/s)"],
+        ...     data=[
+        ...         ["Stockholm", 21.6, 5.0, 3.2],
+        ...         ["Oslo", 22.4, 13.3, 3.1],
+        ...         ["Copenhagen", 24.5, 0.0, 6.7],
+        ...     ],
+        ... )
 
         Shading the values column-wise, with ``axis=0``, preselecting numeric columns
 
@@ -2963,9 +2943,9 @@ class Styler(StylerRenderer):
         explicitly state ``subset`` to match the ``gmap`` shape
 
         >>> gmap = np.array([[1, 2, 3], [2, 3, 4], [3, 4, 5]])
-        >>> df.style.{name}_gradient(
-        ...     axis=None, gmap=gmap, cmap='YlOrRd',
-        ...     subset=['Temp (c)', 'Rain (mm)', 'Wind (m/s)'])  # doctest: +SKIP
+        >>> df.style.{name}_gradient(axis=None, gmap=gmap,
+        ...     cmap='YlOrRd', subset=['Temp (c)', 'Rain (mm)', 'Wind (m/s)']
+        ... )  # doctest: +SKIP
 
         .. figure:: ../../_static/style/{image_prefix}_axNone_gmap.png
         """
@@ -3044,7 +3024,7 @@ class Styler(StylerRenderer):
         --------
         >>> df = pd.DataFrame(np.random.randn(10, 4))
         >>> df.style.set_properties(color="white", align="right")  # doctest: +SKIP
-        >>> df.style.set_properties(**{'background-color': 'yellow'})  # doctest: +SKIP
+        >>> df.style.set_properties(**{"background-color": "yellow"})  # doctest: +SKIP
 
         See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
         more details.
@@ -3140,8 +3120,8 @@ class Styler(StylerRenderer):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': [1, 2, 3, 4], 'B': [3, 4, 5, 6]})
-        >>> df.style.bar(subset=['A'], color='gray')  # doctest: +SKIP
+        >>> df = pd.DataFrame({"A": [1, 2, 3, 4], "B": [3, 4, 5, 6]})
+        >>> df.style.bar(subset=["A"], color="gray")  # doctest: +SKIP
         """
         if color is None and cmap is None:
             color = "#d65f5f"
@@ -3219,8 +3199,8 @@ class Styler(StylerRenderer):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, np.nan]})
-        >>> df.style.highlight_null(color='yellow')  # doctest: +SKIP
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [3, np.nan]})
+        >>> df.style.highlight_null(color="yellow")  # doctest: +SKIP
 
         Please see:
         `Table Visualization <../../user_guide/style.ipynb>`_ for more examples.
@@ -3273,8 +3253,8 @@ class Styler(StylerRenderer):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': [2, 1], 'B': [3, 4]})
-        >>> df.style.highlight_max(color='yellow')  # doctest: +SKIP
+        >>> df = pd.DataFrame({"A": [2, 1], "B": [3, 4]})
+        >>> df.style.highlight_max(color="yellow")  # doctest: +SKIP
 
         Please see:
         `Table Visualization <../../user_guide/style.ipynb>`_ for more examples.
@@ -3329,8 +3309,8 @@ class Styler(StylerRenderer):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': [2, 1], 'B': [3, 4]})
-        >>> df.style.highlight_min(color='yellow')  # doctest: +SKIP
+        >>> df = pd.DataFrame({"A": [2, 1], "B": [3, 4]})
+        >>> df.style.highlight_min(color="yellow")  # doctest: +SKIP
 
         Please see:
         `Table Visualization <../../user_guide/style.ipynb>`_ for more examples.
@@ -3409,11 +3389,13 @@ class Styler(StylerRenderer):
         --------
         Basic usage
 
-        >>> df = pd.DataFrame({
-        ...     'One': [1.2, 1.6, 1.5],
-        ...     'Two': [2.9, 2.1, 2.5],
-        ...     'Three': [3.1, 3.2, 3.8],
-        ... })
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "One": [1.2, 1.6, 1.5],
+        ...         "Two": [2.9, 2.1, 2.5],
+        ...         "Three": [3.1, 3.2, 3.8],
+        ...     }
+        ... )
         >>> df.style.highlight_between(left=2.1, right=2.9)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/hbetw_basic.png
@@ -3421,8 +3403,9 @@ class Styler(StylerRenderer):
         Using a range input sequence along an ``axis``, in this case setting a ``left``
         and ``right`` for each column individually
 
-        >>> df.style.highlight_between(left=[1.4, 2.4, 3.4], right=[1.6, 2.6, 3.6],
-        ...                            axis=1, color="#fffd75")  # doctest: +SKIP
+        >>> df.style.highlight_between(
+        ...     left=[1.4, 2.4, 3.4], right=[1.6, 2.6, 3.6], axis=1, color="#fffd75"
+        ... )  # doctest: +SKIP
 
         .. figure:: ../../_static/style/hbetw_seq.png
 
@@ -3430,16 +3413,19 @@ class Styler(StylerRenderer):
         matches the input DataFrame, with a constant ``right``
 
         >>> df.style.highlight_between(
-        ...     left=[[2, 2, 3], [2, 2, 3], [3, 3, 3]], right=3.5,
-        ...     axis=None, color="#fffd75")  # doctest: +SKIP
+        ...     left=[[2, 2, 3], [2, 2, 3], [3, 3, 3]],
+        ...     right=3.5,
+        ...     axis=None,
+        ...     color="#fffd75",
+        ... )  # doctest: +SKIP
 
         .. figure:: ../../_static/style/hbetw_axNone.png
 
         Using ``props`` instead of default background coloring
 
         >>> df.style.highlight_between(
-        ...     left=1.5, right=3.5,
-        ...     props='font-weight:bold;color:#e83e8c')  # doctest: +SKIP
+        ...     left=1.5, right=3.5, props="font-weight:bold;color:#e83e8c"
+        ... )  # doctest: +SKIP
 
         .. figure:: ../../_static/style/hbetw_props.png
         """
@@ -3529,8 +3515,11 @@ class Styler(StylerRenderer):
         Use ``props`` instead of default background coloring
 
         >>> df.style.highlight_quantile(
-        ...     axis=None, q_left=0.2, q_right=0.8,
-        ...     props='font-weight:bold;color:#e83e8c')  # doctest: +SKIP
+        ...     axis=None,
+        ...     q_left=0.2,
+        ...     q_right=0.8,
+        ...     props="font-weight:bold;color:#e83e8c",
+        ... )  # doctest: +SKIP
 
         .. figure:: ../../_static/style/hq_props.png
         """
@@ -3602,9 +3591,10 @@ class Styler(StylerRenderer):
         Examples
         --------
         >>> from pandas.io.formats.style import Styler
-        >>> EasyStyler = Styler.from_custom_template("path/to/template",
-        ...                                          "template.tpl",
-        ...                                          )  # doctest: +SKIP
+        >>> EasyStyler = Styler.from_custom_template(
+        ...     "path/to/template",
+        ...     "template.tpl",
+        ... )  # doctest: +SKIP
         >>> df = pd.DataFrame({"A": [1, 2]})
         >>> EasyStyler(df)  # doctest: +SKIP
 
@@ -3688,9 +3678,7 @@ class Styler(StylerRenderer):
 
         .. code-block:: python
 
-            (df.style.format(precision=3)
-               .pipe(g, arg1=a)
-               .pipe(f, arg2=b, arg3=c))
+            (df.style.format(precision=3).pipe(g, arg1=a).pipe(f, arg2=b, arg3=c))
 
         In particular, this allows users to define functions that take a
         styler object, along with other parameters, and return the styler after
@@ -3718,9 +3706,11 @@ class Styler(StylerRenderer):
         Since the method returns a ``Styler`` object it can be chained with other
         methods as if applying the underlying highlighters directly.
 
-        >>> (df.style.format("{:.1f}")
+        >>> (
+        ...     df.style.format("{:.1f}")
         ...     .pipe(some_highlights, min_color="green")
-        ...     .highlight_between(left=2, right=5))  # doctest: +SKIP
+        ...     .highlight_between(left=2, right=5)
+        ... )  # doctest: +SKIP
 
         .. figure:: ../../_static/style/df_pipe_hl2.png
 
@@ -3739,8 +3729,9 @@ class Styler(StylerRenderer):
 
         >>> def highlight_last_level(styler):
         ...     return styler.apply_index(
-        ...         lambda v: "background-color: pink; color: yellow", axis="columns",
-        ...         level=styler.columns.nlevels - 1
+        ...         lambda v: "background-color: pink; color: yellow",
+        ...         axis="columns",
+        ...         level=styler.columns.nlevels - 1,
         ...     )  # doctest: +SKIP
         >>> df.columns = pd.MultiIndex.from_product([["A", "B"], ["X", "Y"]])
         >>> df.style.pipe(highlight_last_level)  # doctest: +SKIP
@@ -3757,6 +3748,7 @@ class Styler(StylerRenderer):
         ...         return np.where(
         ...             styler.data.isna().any(), "background-color: red;", ""
         ...         )
+        ...
         ...     return styler.apply_index(dynamic_highlight, axis=1, level=level)
         >>> df.style.pipe(highlight_header_missing, level=1)  # doctest: +SKIP
 

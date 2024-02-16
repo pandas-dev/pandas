@@ -90,6 +90,8 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from pandas.core.dtypes.dtypes import ExtensionDtype
+
     from pandas.core.arrays import (
         DatetimeArray,
         TimedeltaArray,
@@ -172,8 +174,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
     Examples
     --------
-    >>> pd.arrays.PeriodArray(pd.PeriodIndex(['2023-01-01',
-    ...                                       '2023-01-02'], freq='D'))
+    >>> pd.arrays.PeriodArray(pd.PeriodIndex(["2023-01-01", "2023-01-02"], freq="D"))
     <PeriodArray>
     ['2023-01-01', '2023-01-02']
     Length: 2, dtype: period[D]
@@ -304,7 +305,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
+        cls, strings, *, dtype: ExtensionDtype, copy: bool = False
     ) -> Self:
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
@@ -637,6 +638,20 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         >>> idx.to_timestamp()
         DatetimeIndex(['2023-01-01', '2023-02-01', '2023-03-01'],
         dtype='datetime64[ns]', freq='MS')
+
+        The frequency will not be inferred if the index contains less than
+        three elements, or if the values of index are not strictly monotonic:
+
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02"], freq="M")
+        >>> idx.to_timestamp()
+        DatetimeIndex(['2023-01-01', '2023-02-01'], dtype='datetime64[ns]', freq=None)
+
+        >>> idx = pd.PeriodIndex(
+        ...     ["2023-01", "2023-02", "2023-02", "2023-03"], freq="2M"
+        ... )
+        >>> idx.to_timestamp()
+        DatetimeIndex(['2023-01-01', '2023-02-01', '2023-02-01', '2023-03-01'],
+        dtype='datetime64[ns]', freq=None)
         """
         from pandas.core.arrays import DatetimeArray
 
@@ -719,22 +734,22 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
         Examples
         --------
-        >>> pidx = pd.period_range('2010-01-01', '2015-01-01', freq='Y')
+        >>> pidx = pd.period_range("2010-01-01", "2015-01-01", freq="Y")
         >>> pidx
         PeriodIndex(['2010', '2011', '2012', '2013', '2014', '2015'],
         dtype='period[Y-DEC]')
 
-        >>> pidx.asfreq('M')
+        >>> pidx.asfreq("M")
         PeriodIndex(['2010-12', '2011-12', '2012-12', '2013-12', '2014-12',
         '2015-12'], dtype='period[M]')
 
-        >>> pidx.asfreq('M', how='S')
+        >>> pidx.asfreq("M", how="S")
         PeriodIndex(['2010-01', '2011-01', '2012-01', '2013-01', '2014-01',
         '2015-01'], dtype='period[M]')
         """
         how = libperiod.validate_end_alias(how)
-        if isinstance(freq, BaseOffset):
-            freq = freq_to_period_freqstr(freq.n, freq.name)
+        if isinstance(freq, BaseOffset) and hasattr(freq, "_period_dtype_code"):
+            freq = PeriodDtype(freq)._freqstr
         freq = Period._maybe_convert_freq(freq)
 
         base1 = self._dtype._dtype_code
@@ -1035,29 +1050,26 @@ def period_array(
 
     Examples
     --------
-    >>> period_array([pd.Period('2017', freq='Y'),
-    ...               pd.Period('2018', freq='Y')])
+    >>> period_array([pd.Period("2017", freq="Y"), pd.Period("2018", freq="Y")])
     <PeriodArray>
     ['2017', '2018']
     Length: 2, dtype: period[Y-DEC]
 
-    >>> period_array([pd.Period('2017', freq='Y'),
-    ...               pd.Period('2018', freq='Y'),
-    ...               pd.NaT])
+    >>> period_array([pd.Period("2017", freq="Y"), pd.Period("2018", freq="Y"), pd.NaT])
     <PeriodArray>
     ['2017', '2018', 'NaT']
     Length: 3, dtype: period[Y-DEC]
 
     Integers that look like years are handled
 
-    >>> period_array([2000, 2001, 2002], freq='D')
+    >>> period_array([2000, 2001, 2002], freq="D")
     <PeriodArray>
     ['2000-01-01', '2001-01-01', '2002-01-01']
     Length: 3, dtype: period[D]
 
     Datetime-like strings may also be passed
 
-    >>> period_array(['2000-Q1', '2000-Q2', '2000-Q3', '2000-Q4'], freq='Q')
+    >>> period_array(["2000-Q1", "2000-Q2", "2000-Q3", "2000-Q4"], freq="Q")
     <PeriodArray>
     ['2000Q1', '2000Q2', '2000Q3', '2000Q4']
     Length: 4, dtype: period[Q-DEC]
@@ -1186,12 +1198,7 @@ def dt64arr_to_periodarr(
 
     reso = get_unit_from_dtype(data.dtype)
     freq = Period._maybe_convert_freq(freq)
-    try:
-        base = freq._period_dtype_code
-    except (AttributeError, TypeError) as err:
-        # AttributeError: _period_dtype_code might not exist
-        # TypeError: _period_dtype_code might intentionally raise
-        raise TypeError(f"{freq.name} is not supported as period frequency") from err
+    base = freq._period_dtype_code
     return c_dt64arr_to_periodarr(data.view("i8"), base, tz, reso=reso), freq
 
 

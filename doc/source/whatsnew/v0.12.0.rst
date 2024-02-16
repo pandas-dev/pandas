@@ -201,12 +201,12 @@ IO enhancements
     You can use ``pd.read_html()`` to read the output from ``DataFrame.to_html()`` like so
 
     .. ipython:: python
-       :okwarning:
 
+        import io
         df = pd.DataFrame({"a": range(3), "b": list("abc")})
         print(df)
         html = df.to_html()
-        alist = pd.read_html(html, index_col=0)
+        alist = pd.read_html(io.StringIO(html), index_col=0)
         print(df == alist[0])
 
     Note that ``alist`` here is a Python ``list`` so ``pd.read_html()`` and

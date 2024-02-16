@@ -137,15 +137,6 @@ We could naturally group by either the ``A`` or ``B`` columns, or both:
 
    ``df.groupby('A')`` is just syntactic sugar for ``df.groupby(df['A'])``.
 
-If we also have a MultiIndex on columns ``A`` and ``B``, we can group by all
-the columns except the one we specify:
-
-.. ipython:: python
-
-   df2 = df.set_index(["A", "B"])
-   grouped = df2.groupby(level=df2.index.names.difference(["B"]))
-   grouped.sum()
-
 The above GroupBy will split the DataFrame on its index (rows). To split by columns, first do
 a transpose:
 
@@ -1730,4 +1721,4 @@ column index name will be used as the name of the inserted column:
 
    result
 
-   result.stack(future_stack=True)
+   result.stack()
