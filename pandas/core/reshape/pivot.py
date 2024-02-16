@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import (
-    Hashable,
-    Sequence,
-)
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -44,11 +40,14 @@ from pandas.core.reshape.util import cartesian_product
 from pandas.core.series import Series
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import (
         AggFuncType,
         AggFuncTypeBase,
         AggFuncTypeDict,
         IndexLabel,
+        SequenceNotStr,
     )
 
     from pandas import DataFrame
@@ -546,9 +545,10 @@ def pivot(
 
         if is_list_like(values) and not isinstance(values, tuple):
             # Exclude tuple because it is seen as a single column name
-            values = cast(Sequence[Hashable], values)
             indexed = data._constructor(
-                data[values]._values, index=multiindex, columns=values
+                data[values]._values,
+                index=multiindex,
+                columns=cast("SequenceNotStr", values),
             )
         else:
             indexed = data._constructor_sliced(data[values]._values, index=multiindex)
