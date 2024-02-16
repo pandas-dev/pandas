@@ -21,12 +21,12 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.sort_index` not producing a stable sort for a index with duplicates (:issue:`57151`)
 - Fixed regression in :meth:`DataFrame.to_dict` with ``orient='list'`` and datetime or timedelta types returning integers (:issue:`54824`)
 - Fixed regression in :meth:`DataFrame.to_json` converting nullable integers to floats (:issue:`57224`)
+- Fixed regression in :meth:`DataFrame.to_sql` when ``method="multi"`` is passed and the dialect type is not Oracle (:issue:`57310`)
 - Fixed regression in :meth:`DataFrameGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmin`, :meth:`SeriesGroupBy.idxmax` ignoring the ``skipna`` argument (:issue:`57040`)
 - Fixed regression in :meth:`DataFrameGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmin`, :meth:`SeriesGroupBy.idxmax` where values containing the minimum or maximum value for the dtype could produce incorrect results (:issue:`57040`)
 - Fixed regression in :meth:`Index.join` raising ``TypeError`` when joining an empty index to a non-empty index containing mixed dtype values (:issue:`57048`)
 - Fixed regression in :meth:`Series.pct_change` raising a ``ValueError`` for an empty :class:`Series` (:issue:`57056`)
 - Fixed regression in :meth:`Series.to_numpy` when dtype is given as float and the data contains NaNs (:issue:`57121`)
-- Fixed regression in :meth:`DataFrame.to_sql` when ``method="multi"`` is passed and the dialect type is not Oracle (:issue:`57310`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_221.bug_fixes:
