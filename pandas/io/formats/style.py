@@ -12,7 +12,6 @@ from typing import (
     Callable,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -23,7 +22,6 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 import pandas as pd
 from pandas import (
@@ -426,6 +424,7 @@ class Styler(StylerRenderer):
         ttips: DataFrame,
         props: CSSProperties | None = None,
         css_class: str | None = None,
+        as_title_attribute: bool = False,
     ) -> Styler:
         """
         Set the DataFrame of strings on ``Styler`` generating ``:hover`` tooltips.
@@ -449,6 +448,9 @@ class Styler(StylerRenderer):
             Name of the tooltip class used in CSS, should conform to HTML standards.
             Only useful if integrating tooltips with external CSS. If ``None`` uses the
             internal default value 'pd-t'.
+        as_title_attribute : bool, default False
+            Add the tooltip text as title attribute to resultant <td> element. If True
+            then props and css_class arguments are ignored.
 
         Returns
         -------
@@ -477,6 +479,12 @@ class Styler(StylerRenderer):
         additional HTML for larger tables, since they also require that ``cell_ids``
         is forced to `True`.
 
+        If multiline tooltips are required, or if styling is not required and/or
+        space is of concern, then utilizing as_title_attribute as True will store
+        the tooltip on the <td> title attribute. This will cause no CSS
+        to be generated nor will the <span> elements. Storing tooltips through
+        the title attribute will mean that tooltip styling effects do not apply.
+
         Examples
         --------
         Basic application
@@ -504,6 +512,10 @@ class Styler(StylerRenderer):
         ...     props="visibility:hidden; position:absolute; z-index:1;",
         ... )
         ... # doctest: +SKIP
+
+        Multiline tooltips with smaller size footprint
+
+        >>> df.style.set_tooltips(ttips, as_title_attribute=True)  # doctest: +SKIP
         """
         if not self.cell_ids:
             # tooltips not optimised for individual cell check. requires reasonable
@@ -518,10 +530,13 @@ class Styler(StylerRenderer):
         if self.tooltips is None:  # create a default instance if necessary
             self.tooltips = Tooltips()
         self.tooltips.tt_data = ttips
-        if props:
-            self.tooltips.class_properties = props
-        if css_class:
-            self.tooltips.class_name = css_class
+        if not as_title_attribute:
+            if props:
+                self.tooltips.class_properties = props
+            if css_class:
+                self.tooltips.class_name = css_class
+        else:
+            self.tooltips.as_title_attribute = as_title_attribute
 
         return self
 
@@ -2011,42 +2026,6 @@ class Styler(StylerRenderer):
         )
         return self
 
-    def applymap_index(
-        self,
-        func: Callable,
-        axis: AxisInt | str = 0,
-        level: Level | list[Level] | None = None,
-        **kwargs,
-    ) -> Styler:
-        """
-        Apply a CSS-styling function to the index or column headers, elementwise.
-
-        .. deprecated:: 2.1.0
-
-           Styler.applymap_index has been deprecated. Use Styler.map_index instead.
-
-        Parameters
-        ----------
-        func : function
-            ``func`` should take a scalar and return a string.
-        axis : {{0, 1, "index", "columns"}}
-            The headers over which to apply the function.
-        level : int, str, list, optional
-            If index is MultiIndex the level(s) over which to apply the function.
-        **kwargs : dict
-            Pass along to ``func``.
-
-        Returns
-        -------
-        Styler
-        """
-        warnings.warn(
-            "Styler.applymap_index has been deprecated. Use Styler.map_index instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.map_index(func, axis, level, **kwargs)
-
     def _map(self, func: Callable, subset: Subset | None = None, **kwargs) -> Styler:
         func = partial(func, **kwargs)  # map doesn't take kwargs?
         if subset is None:
@@ -2116,36 +2095,6 @@ class Styler(StylerRenderer):
             (lambda instance: getattr(instance, "_map"), (func, subset), kwargs)
         )
         return self
-
-    @Substitution(subset=subset_args)
-    def applymap(
-        self, func: Callable, subset: Subset | None = None, **kwargs
-    ) -> Styler:
-        """
-        Apply a CSS-styling function elementwise.
-
-        .. deprecated:: 2.1.0
-
-           Styler.applymap has been deprecated. Use Styler.map instead.
-
-        Parameters
-        ----------
-        func : function
-            ``func`` should take a scalar and return a string.
-        %(subset)s
-        **kwargs : dict
-            Pass along to ``func``.
-
-        Returns
-        -------
-        Styler
-        """
-        warnings.warn(
-            "Styler.applymap has been deprecated. Use Styler.map instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.map(func, subset, **kwargs)
 
     def set_table_attributes(self, attributes: str) -> Styler:
         """

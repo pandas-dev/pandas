@@ -365,7 +365,7 @@ def test_groupby_raises_timedelta(func):
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
 def test_groupby_raises_category(
-    how, by, groupby_series, groupby_func, using_copy_on_write, df_with_cat_col
+    how, by, groupby_series, groupby_func, df_with_cat_col
 ):
     # GH#50749
     df = df_with_cat_col
@@ -418,13 +418,7 @@ def test_groupby_raises_category(
             r"unsupported operand type\(s\) for -: 'Categorical' and 'Categorical'",
         ),
         "ffill": (None, ""),
-        "fillna": (
-            TypeError,
-            r"Cannot setitem on a Categorical with a new category \(0\), "
-            "set the categories first",
-        )
-        if not using_copy_on_write
-        else (None, ""),  # no-op with CoW
+        "fillna": (None, ""),  # no-op with CoW
         "first": (None, ""),
         "idxmax": (None, ""),
         "idxmin": (None, ""),
@@ -557,7 +551,6 @@ def test_groupby_raises_category_on_category(
     groupby_series,
     groupby_func,
     observed,
-    using_copy_on_write,
     df_with_cat_col,
 ):
     # GH#50749
@@ -618,13 +611,7 @@ def test_groupby_raises_category_on_category(
         ),
         "diff": (TypeError, "unsupported operand type"),
         "ffill": (None, ""),
-        "fillna": (
-            TypeError,
-            r"Cannot setitem on a Categorical with a new category \(0\), "
-            "set the categories first",
-        )
-        if not using_copy_on_write
-        else (None, ""),  # no-op with CoW
+        "fillna": (None, ""),  # no-op with CoW
         "first": (None, ""),
         "idxmax": (ValueError, "empty group due to unobserved categories")
         if empty_groups

@@ -15,7 +15,6 @@ from typing import (
     final,
 )
 import warnings
-import weakref
 
 import numpy as np
 
@@ -337,8 +336,8 @@ class BaseBlockManager(PandasObject):
         Checks if two blocks from two different block managers reference the
         same underlying values.
         """
-        ref = weakref.ref(self.blocks[blkno])
-        return ref in mgr.blocks[blkno].refs.referenced_blocks
+        blk = self.blocks[blkno]
+        return any(blk is ref() for ref in mgr.blocks[blkno].refs.referenced_blocks)
 
     def get_dtypes(self) -> npt.NDArray[np.object_]:
         dtypes = np.array([blk.dtype for blk in self.blocks], dtype=object)
@@ -458,7 +457,7 @@ class BaseBlockManager(PandasObject):
         return self.apply("apply", func=func)
 
     @final
-    def fillna(self, value, limit: int | None, inplace: bool, downcast) -> Self:
+    def fillna(self, value, limit: int | None, inplace: bool) -> Self:
         if limit is not None:
             # Do this validation even if we go through one of the no-op paths
             limit = libalgos.validate_limit(None, limit=limit)
@@ -468,7 +467,6 @@ class BaseBlockManager(PandasObject):
             value=value,
             limit=limit,
             inplace=inplace,
-            downcast=downcast,
         )
 
     @final

@@ -1354,7 +1354,7 @@ def _process_date_conversion(
             date_cols.update(old_names)
 
     if isinstance(data_dict, DataFrame):
-        data_dict = concat([DataFrame(new_data), data_dict], axis=1, copy=False)
+        data_dict = concat([DataFrame(new_data), data_dict], axis=1)
     else:
         data_dict.update(new_data)
     new_cols.extend(columns)

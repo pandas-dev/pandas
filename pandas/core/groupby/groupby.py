@@ -47,6 +47,7 @@ from pandas._typing import (
     DtypeObj,
     FillnaOptions,
     IndexLabel,
+    IntervalClosedType,
     NDFrameT,
     PositionalIndexer,
     RandomState,
@@ -93,7 +94,6 @@ from pandas.core import (
     sample,
 )
 from pandas.core._numba import executor
-from pandas.core.apply import warn_alias_replacement
 from pandas.core.arrays import (
     ArrowExtensionArray,
     BaseMaskedArray,
@@ -139,6 +139,7 @@ from pandas.core.util.numba_ import (
 )
 
 if TYPE_CHECKING:
+    from pandas._libs.tslibs import BaseOffset
     from pandas._typing import (
         Any,
         Concatenate,
@@ -147,6 +148,7 @@ if TYPE_CHECKING:
         T,
     )
 
+    from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
     from pandas.core.window import (
         ExpandingGroupby,
@@ -1241,7 +1243,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 indexer, _ = result.index.get_indexer_non_unique(target)
                 result = result.take(indexer, axis=0)
             else:
-                result = result.reindex(ax, axis=0, copy=False)
+                result = result.reindex(ax, axis=0)
 
         else:
             result = concat(values, axis=0)
@@ -1269,18 +1271,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         if self._grouper.is_monotonic and not self._grouper.has_dropped_na:
             # shortcut if we have an already ordered grouper
-            result = result.set_axis(index, axis=0, copy=False)
+            result = result.set_axis(index, axis=0)
             return result
 
         # row order is scrambled => sort the rows by position in original index
         original_positions = Index(self._grouper.result_ilocs)
-        result = result.set_axis(original_positions, axis=0, copy=False)
+        result = result.set_axis(original_positions, axis=0)
         result = result.sort_index(axis=0)
         if self._grouper.has_dropped_na:
             # Add back in any missing rows due to dropna - index here is integral
             # with values referring to the row of the input so can use RangeIndex
             result = result.reindex(RangeIndex(len(index)), axis=0)
-        result = result.set_axis(index, axis=0, copy=False)
+        result = result.set_axis(index, axis=0)
 
         return result
 
@@ -1771,7 +1773,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         # for each col, reshape to size of original frame by take operation
         ids = self._grouper.ids
-        result = result.reindex(self._grouper.result_index, axis=0, copy=False)
+        result = result.reindex(self._grouper.result_index, axis=0)
 
         if self.obj.ndim == 1:
             # i.e. SeriesGroupBy
@@ -3074,9 +3076,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        pandas.core.groupby.DataFrameGroupBy.last : Compute the last non-null entry
+        core.groupby.DataFrameGroupBy.last : Compute the last non-null entry
             of each column.
-        pandas.core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
+        core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
@@ -3161,9 +3163,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        pandas.core.groupby.DataFrameGroupBy.first : Compute the first non-null entry
+        core.groupby.DataFrameGroupBy.first : Compute the first non-null entry
             of each column.
-        pandas.core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
+        core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
@@ -3474,7 +3476,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def rolling(self, *args, **kwargs) -> RollingGroupby:
+    def rolling(
+        self,
+        window: int | datetime.timedelta | str | BaseOffset | BaseIndexer,
+        min_periods: int | None = None,
+        center: bool = False,
+        win_type: str | None = None,
+        on: str | None = None,
+        closed: IntervalClosedType | None = None,
+        method: str = "single",
+    ) -> RollingGroupby:
         """
         Return a rolling grouper, providing rolling functionality per group.
 
@@ -3604,10 +3615,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         return RollingGroupby(
             self._selected_obj,
-            *args,
+            window=window,
+            min_periods=min_periods,
+            center=center,
+            win_type=win_type,
+            on=on,
+            closed=closed,
+            method=method,
             _grouper=self._grouper,
             _as_index=self.as_index,
-            **kwargs,
         )
 
     @final
