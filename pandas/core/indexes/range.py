@@ -1179,7 +1179,7 @@ class RangeIndex(Index):
         self._maybe_disallow_fill(allow_fill, fill_value, indices)
 
         if len(indices) == 0:
-            return type(self)(name=self.name)
+            return type(self)(range(0), name=self.name)
         else:
             ind_max = indices.max()
             if ind_max >= len(self):
