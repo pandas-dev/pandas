@@ -3557,7 +3557,7 @@ def _get_single_group_name(regex: re.Pattern) -> Hashable:
         return None
 
 
-def _get_group_names(regex: re.Pattern) -> list[Hashable]:
+def _get_group_names(regex: re.Pattern) -> Index:
     """
     Get named groups from compiled regex.
 
@@ -3569,10 +3569,24 @@ def _get_group_names(regex: re.Pattern) -> list[Hashable]:
 
     Returns
     -------
-    list of column labels
+    Index
     """
+    from pandas import Index
+
     names = {v: k for k, v in regex.groupindex.items()}
-    return [names.get(1 + i, i) for i in range(regex.groups)]
+    if not names:
+        return Index(range(1))
+    return_rangeindex = True
+    result = []
+    for i in range(regex.groups):
+        name = names.get(1 + i, i)
+        if return_rangeindex and name != i:
+            return_rangeindex = False
+        result.append(name)
+    if return_rangeindex:
+        return Index(range(regex.groups))
+    else:
+        return Index(result)
 
 
 def str_extractall(arr, pat, flags: int = 0) -> DataFrame:

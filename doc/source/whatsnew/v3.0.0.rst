@@ -167,7 +167,7 @@ Performance improvements
 - Performance improvement in :meth:`MultiIndex.equals` for equal length indexes (:issue:`56990`)
 - Performance improvement in :meth:`RangeIndex.append` when appending the same index (:issue:`57252`)
 - Performance improvement in indexing operations for string dtypes (:issue:`56997`)
--
+- :meth:`Series.str.extract` returns a :class:`RangeIndex` columns instead of an :class:`Index` column when possible (:issue:`?``)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.bug_fixes:

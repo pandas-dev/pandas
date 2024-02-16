@@ -372,7 +372,7 @@ def test_extract_dataframe_capture_groups_index(index, any_string_dtype):
 
     result = s.str.extract(r"(\d)", expand=True)
     expected = DataFrame(["1", "2", np.nan], index=index, dtype=any_string_dtype)
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_column_type=True)
 
     result = s.str.extract(r"(?P<letter>\D)(?P<number>\d)?", expand=True)
     expected = DataFrame(
