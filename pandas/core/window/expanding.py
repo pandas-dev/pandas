@@ -139,8 +139,8 @@ class Expanding(RollingAndExpandingMixin):
             """
         See Also
         --------
-        pandas.DataFrame.aggregate : Similar DataFrame method.
-        pandas.Series.aggregate : Similar Series method.
+        DataFrame.aggregate : Similar DataFrame method.
+        Series.aggregate : Similar Series method.
         """
         ),
         examples=dedent(

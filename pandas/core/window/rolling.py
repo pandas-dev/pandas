@@ -1216,8 +1216,8 @@ class Window(BaseWindow):
             """
         See Also
         --------
-        pandas.DataFrame.aggregate : Similar DataFrame method.
-        pandas.Series.aggregate : Similar Series method.
+        DataFrame.aggregate : Similar DataFrame method.
+        Series.aggregate : Similar Series method.
         """
         ),
         examples=dedent(
@@ -1906,8 +1906,8 @@ class Rolling(RollingAndExpandingMixin):
             """
         See Also
         --------
-        pandas.Series.rolling : Calling object with Series data.
-        pandas.DataFrame.rolling : Calling object with DataFrame data.
+        Series.rolling : Calling object with Series data.
+        DataFrame.rolling : Calling object with DataFrame data.
         """
         ),
         examples=dedent(
