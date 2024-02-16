@@ -351,7 +351,7 @@ class DatetimeProperties(Properties):
 
         >>> s.dt.to_pydatetime()
         0    2018-03-10 00:00:00
-        1    2018-03-11 00:00:00
+        1    2018-03-10 00:00:00
         dtype: object
         """
         # GH#20306
