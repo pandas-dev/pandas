@@ -134,6 +134,12 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     from_fields
     from_ordinals
 
+    Raises
+    ------
+    ValueError
+        Passing the parameter data as a list without specifying either freq or
+        dtype will raise a ValueError: "freq not specified and cannot be inferred"
+
     See Also
     --------
     Index : The base pandas Index type.
