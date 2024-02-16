@@ -3182,6 +3182,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.util.hash_pandas_object # There should be no backslash in the final line, please keep this comment in the last ignored function
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Partially validate docstrings (SA05)' ;  echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=SA05
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
 fi
 
 ### DOCUMENTATION NOTEBOOKS ###
