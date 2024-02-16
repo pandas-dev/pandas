@@ -2273,10 +2273,10 @@ def maybe_convert_numeric(
     dsep = bytes_dsep
 
     # Validate separators
-    if len(tsep) > 1:
-        raise ValueError("Thousands separator must not exceed length 1")
-    if len(dsep) > 1:
-        raise ValueError("Decimal separator must have length 1")
+    if thousands is not None and len(tsep) != 1:
+        raise ValueError("Thousands separator must be length 1 or None")
+    if len(dsep) != 1:
+        raise ValueError("Decimal separator must be length 1")
     if tsep == dsep:
         raise ValueError("Decimal and thousand separators must not be the same")
 
@@ -2388,6 +2388,7 @@ def maybe_convert_numeric(
         else:
             try:
                 floatify(val, &fval, &maybe_int, dsep[0], tsep[0])
+                print("survuved")
                 if fval in na_values:
                     seen.saw_null()
                     floats[i] = complexes[i] = NaN

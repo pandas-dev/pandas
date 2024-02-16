@@ -1005,9 +1005,9 @@ def test_separator_validation():
         to_numeric(ser, thousands=",", decimal=",")
 
     with pytest.raises(
-        ValueError, match="Thousands separator must not exceed length 1"
+        ValueError, match="Thousands separator must be length 1 or None"
     ):
         to_numeric(ser, thousands="test")
 
-    with pytest.raises(ValueError, match="Decimal separator must have length 1"):
+    with pytest.raises(ValueError, match="Decimal separator must be length 1"):
         to_numeric(ser, decimal="test")
