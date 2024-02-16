@@ -240,6 +240,8 @@ na_filter : bool, default True
     performance of reading a large file.
 verbose : bool, default False
     Indicate number of ``NA`` values placed in non-numeric columns.
+
+    .. deprecated:: 2.2.0
 skip_blank_lines : bool, default True
     If ``True``, skip over blank lines rather than interpreting as ``NaN`` values.
 parse_dates : bool, list of Hashable, list of lists or dict of {{Hashable : list}}, \
