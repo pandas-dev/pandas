@@ -9645,7 +9645,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             fdata = self._mgr
             join_index = self.axes[1]
             lidx, ridx = None, None
-            if not join_index.equals(other.index):
+            if not join_index.equals(other.index) or join == "outer":
                 join_index, lidx, ridx = join_index.join(
                     other.index, how=join, level=level, return_indexers=True
                 )
