@@ -1,16 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import (
-    Hashable,
-    Sequence,
-)
 from typing import (
     TYPE_CHECKING,
     Callable,
     Literal,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -19,7 +14,6 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
@@ -46,11 +40,14 @@ from pandas.core.reshape.util import cartesian_product
 from pandas.core.series import Series
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import (
         AggFuncType,
         AggFuncTypeBase,
         AggFuncTypeDict,
         IndexLabel,
+        SequenceNotStr,
     )
 
     from pandas import DataFrame
@@ -70,7 +67,7 @@ def pivot_table(
     margins: bool = False,
     dropna: bool = True,
     margins_name: Hashable = "All",
-    observed: bool | lib.NoDefault = lib.no_default,
+    observed: bool = True,
     sort: bool = True,
 ) -> DataFrame:
     index = _convert_by(index)
@@ -125,7 +122,7 @@ def __internal_pivot_table(
     margins: bool,
     dropna: bool,
     margins_name: Hashable,
-    observed: bool | lib.NoDefault,
+    observed: bool,
     sort: bool,
 ) -> DataFrame:
     """
@@ -168,18 +165,7 @@ def __internal_pivot_table(
                 pass
         values = list(values)
 
-    observed_bool = False if observed is lib.no_default else observed
-    grouped = data.groupby(keys, observed=observed_bool, sort=sort, dropna=dropna)
-    if observed is lib.no_default and any(
-        ping._passed_categorical for ping in grouped._grouper.groupings
-    ):
-        warnings.warn(
-            "The default value of observed=False is deprecated and will change "
-            "to observed=True in a future version of pandas. Specify "
-            "observed=False to silence this warning and retain the current behavior",
-            category=FutureWarning,
-            stacklevel=find_stack_level(),
-        )
+    grouped = data.groupby(keys, observed=observed, sort=sort, dropna=dropna)
     agged = grouped.agg(aggfunc)
 
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
@@ -433,7 +419,7 @@ def _generate_marginal_results(
 
     if len(cols) > 0:
         row_margin = data[cols + values].groupby(cols, observed=observed).agg(aggfunc)
-        row_margin = row_margin.stack(future_stack=True)
+        row_margin = row_margin.stack()
 
         # GH#26568. Use names instead of indices in case of numeric names
         new_order_indices = [len(cols)] + list(range(len(cols)))
@@ -559,9 +545,10 @@ def pivot(
 
         if is_list_like(values) and not isinstance(values, tuple):
             # Exclude tuple because it is seen as a single column name
-            values = cast(Sequence[Hashable], values)
             indexed = data._constructor(
-                data[values]._values, index=multiindex, columns=values
+                data[values]._values,
+                index=multiindex,
+                columns=cast("SequenceNotStr", values),
             )
         else:
             indexed = data._constructor_sliced(data[values]._values, index=multiindex)

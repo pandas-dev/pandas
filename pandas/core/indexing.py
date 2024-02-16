@@ -13,8 +13,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
-
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 from pandas.compat import PYPY
@@ -52,6 +50,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
+    construct_1d_array_from_inferred_fill_value,
     infer_fill_value,
     is_valid_na_for_dtype,
     isna,
@@ -63,7 +62,6 @@ import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
     extract_array,
-    sanitize_array,
 )
 from pandas.core.indexers import (
     check_array_indexer,
@@ -856,7 +854,6 @@ class _LocationIndexer(NDFrameIndexerBase):
         if self.ndim != 2:
             return
 
-        orig_key = key
         if isinstance(key, tuple) and len(key) > 1:
             # key may be a tuple if we are .loc
             # if length of key is > 1 set key to column part
@@ -874,7 +871,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             keys = self.obj.columns.union(key, sort=False)
             diff = Index(key).difference(self.obj.columns, sort=False)
 
-            if len(diff) and com.is_null_slice(orig_key[0]):
+            if len(diff):
                 # e.g. if we are doing df.loc[:, ["A", "B"]] = 7 and "B"
                 #  is a new column, add the new columns with dtype=np.void
                 #  so that later when we go through setitem_single_column
@@ -894,7 +891,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
     @final
     def __setitem__(self, key, value) -> None:
-        if not PYPY and using_copy_on_write():
+        if not PYPY:
             if sys.getrefcount(self.obj) <= 2:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
@@ -1330,7 +1327,7 @@ class _LocIndexer(_LocationIndexer):
             axis: self._get_listlike_indexer(key, axis)
             for (key, axis) in zip(tup, self.obj._AXIS_ORDERS)
         }
-        return self.obj._reindex_with_indexers(d, copy=True, allow_dups=True)
+        return self.obj._reindex_with_indexers(d, allow_dups=True)
 
     # -------------------------------------------------------------------
 
@@ -1362,7 +1359,7 @@ class _LocIndexer(_LocationIndexer):
         # A collection of keys
         keyarr, indexer = self._get_listlike_indexer(key, axis)
         return self.obj._reindex_with_indexers(
-            {axis: [keyarr, indexer]}, copy=True, allow_dups=True
+            {axis: [keyarr, indexer]}, allow_dups=True
         )
 
     def _getitem_tuple(self, tup: tuple):
@@ -1880,12 +1877,9 @@ class _iLocIndexer(_LocationIndexer):
 
                             self.obj[key] = empty_value
                         elif not is_list_like(value):
-                            # Find our empty_value dtype by constructing an array
-                            #  from our value and doing a .take on it
-                            arr = sanitize_array(value, Index(range(1)), copy=False)
-                            taker = -1 * np.ones(len(self.obj), dtype=np.intp)
-                            empty_value = algos.take_nd(arr, taker)
-                            self.obj[key] = empty_value
+                            self.obj[key] = construct_1d_array_from_inferred_fill_value(
+                                value, len(self.obj)
+                            )
                         else:
                             # FIXME: GH#42099#issuecomment-864326014
                             self.obj[key] = infer_fill_value(value)
@@ -2107,7 +2101,7 @@ class _iLocIndexer(_LocationIndexer):
                         tuple(sub_indexer),
                         value[item],
                         multiindex_indexer,
-                        using_cow=using_copy_on_write(),
+                        using_cow=True,
                     )
                 else:
                     val = np.nan
@@ -2167,6 +2161,17 @@ class _iLocIndexer(_LocationIndexer):
         else:
             # set value into the column (first attempting to operate inplace, then
             #  falling back to casting if necessary)
+            dtype = self.obj.dtypes.iloc[loc]
+            if dtype == np.void:
+                # This means we're expanding, with multiple columns, e.g.
+                #     df = pd.DataFrame({'A': [1,2,3], 'B': [4,5,6]})
+                #     df.loc[df.index <= 2, ['F', 'G']] = (1, 'abc')
+                # Columns F and G will initially be set to np.void.
+                # Here, we replace those temporary `np.void` columns with
+                # columns of the appropriate dtype, based on `value`.
+                self.obj.iloc[:, loc] = construct_1d_array_from_inferred_fill_value(
+                    value, len(self.obj)
+                )
             self.obj._mgr.column_setitem(loc, plane_indexer, value)
 
     def _setitem_single_block(self, indexer, value, name: str) -> None:
@@ -2280,7 +2285,7 @@ class _iLocIndexer(_LocationIndexer):
             has_dtype = hasattr(value, "dtype")
             if isinstance(value, ABCSeries):
                 # append a Series
-                value = value.reindex(index=self.obj.columns, copy=True)
+                value = value.reindex(index=self.obj.columns)
                 value.name = indexer
             elif isinstance(value, dict):
                 value = Series(
@@ -2310,7 +2315,7 @@ class _iLocIndexer(_LocationIndexer):
                 if not has_dtype:
                     # i.e. if we already had a Series or ndarray, keep that
                     #  dtype.  But if we had a list or dict, then do inference
-                    df = df.infer_objects(copy=False)
+                    df = df.infer_objects()
                 self.obj._mgr = df._mgr
             else:
                 self.obj._mgr = self.obj._append(value)._mgr
@@ -2383,7 +2388,8 @@ class _iLocIndexer(_LocationIndexer):
             # we have a frame, with multiple indexers on both axes; and a
             # series, so need to broadcast (see GH5206)
             if sum_aligners == self.ndim and all(is_sequence(_) for _ in indexer):
-                ser_values = ser.reindex(obj.axes[0][indexer[0]], copy=True)._values
+                # TODO(CoW): copy shouldn't be needed here
+                ser_values = ser.reindex(obj.axes[0][indexer[0]]).copy()._values
 
                 # single indexer
                 if len(indexer) > 1 and not multiindex_indexer:
