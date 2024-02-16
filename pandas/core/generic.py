@@ -161,7 +161,6 @@ from pandas.core.indexes.api import (
     ensure_index,
 )
 from pandas.core.internals import BlockManager
-from pandas.core.internals.construction import ndarray_to_mgr
 from pandas.core.methods.describe import describe_ndframe
 from pandas.core.missing import (
     clean_fill_method,
@@ -754,66 +753,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         labels = ensure_index(labels)
         self._mgr.set_axis(axis, labels)
-
-    @final
-    def swapaxes(self, axis1: Axis, axis2: Axis, copy: bool | None = None) -> Self:
-        """
-        Interchange axes and swap values axes appropriately.
-
-        .. deprecated:: 2.1.0
-            ``swapaxes`` is deprecated and will be removed.
-            Please use ``transpose`` instead.
-
-        Returns
-        -------
-        same as input
-
-        Examples
-        --------
-        Please see examples for :meth:`DataFrame.transpose`.
-        """
-        warnings.warn(
-            # GH#51946
-            f"'{type(self).__name__}.swapaxes' is deprecated and "
-            "will be removed in a future version. "
-            f"Please use '{type(self).__name__}.transpose' instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-        i = self._get_axis_number(axis1)
-        j = self._get_axis_number(axis2)
-
-        if i == j:
-            return self.copy(deep=False)
-
-        mapping = {i: j, j: i}
-
-        new_axes = [self._get_axis(mapping.get(k, k)) for k in range(self._AXIS_LEN)]
-        new_values = self._values.swapaxes(i, j)  # type: ignore[union-attr]
-        if self._mgr.is_single_block and isinstance(self._mgr, BlockManager):
-            # This should only get hit in case of having a single block, otherwise a
-            # copy is made, we don't have to set up references.
-            new_mgr = ndarray_to_mgr(
-                new_values,
-                new_axes[0],
-                new_axes[1],
-                dtype=None,
-                copy=False,
-            )
-            assert isinstance(new_mgr, BlockManager)
-            assert isinstance(self._mgr, BlockManager)
-            new_mgr.blocks[0].refs = self._mgr.blocks[0].refs
-            new_mgr.blocks[0].refs.add_reference(new_mgr.blocks[0])
-            out = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
-            return out.__finalize__(self, method="swapaxes")
-
-        return self._constructor(
-            new_values,
-            *new_axes,
-            # The no-copy case for CoW is handled above
-            copy=False,
-        ).__finalize__(self, method="swapaxes")
 
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
@@ -11607,6 +11546,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def any(
         self,
+        *,
         axis: Axis | None = 0,
         bool_only: bool = False,
         skipna: bool = True,
@@ -11618,6 +11558,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def all(
         self,
+        *,
         axis: Axis = 0,
         bool_only: bool = False,
         skipna: bool = True,
@@ -11721,6 +11662,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def sem(
         self,
+        *,
         axis: Axis | None = 0,
         skipna: bool = True,
         ddof: int = 1,
@@ -11733,6 +11675,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def var(
         self,
+        *,
         axis: Axis | None = 0,
         skipna: bool = True,
         ddof: int = 1,
@@ -11745,6 +11688,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def std(
         self,
+        *,
         axis: Axis | None = 0,
         skipna: bool = True,
         ddof: int = 1,
@@ -11776,6 +11720,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def min(
         self,
+        *,
         axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
@@ -11792,6 +11737,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def max(
         self,
+        *,
         axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
@@ -11808,6 +11754,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def mean(
         self,
+        *,
         axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
@@ -11819,6 +11766,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def median(
         self,
+        *,
         axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
@@ -11830,6 +11778,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def skew(
         self,
+        *,
         axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
@@ -11841,6 +11790,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def kurt(
         self,
+        *,
         axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
@@ -11893,6 +11843,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def sum(
         self,
+        *,
         axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
@@ -11905,6 +11856,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def prod(
         self,
+        *,
         axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
