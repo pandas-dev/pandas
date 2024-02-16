@@ -481,22 +481,21 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
   }
 
   if (base == NPY_FR_ns) {
+    int64_t nanoseconds;
+
     // for near-minimum timestamps, scaling microseconds to nanoseconds
     // overflows but adding nanoseconds puts the timestamp back in a valid range
     const int64_t min_nanoseconds = NPY_MIN_INT64 + 1;
     if (microseconds == min_nanoseconds / 1000 - 1) {
       // calculate final nanoseconds from minimum without scaling microseconds
-      int64_t nanoseconds = min_nanoseconds;
       PD_CHECK_OVERFLOW(checked_int64_add(
-          nanoseconds, (dts->ps - _NS_MIN_DTS.ps) / 1000, &nanoseconds));
-      return nanoseconds;
+          min_nanoseconds, (dts->ps - _NS_MIN_DTS.ps) / 1000, &nanoseconds));
+    } else {
+      PD_CHECK_OVERFLOW(
+          scaleMicrosecondsToNanoseconds(microseconds, &nanoseconds));
+      PD_CHECK_OVERFLOW(
+          checked_int64_add(nanoseconds, dts->ps / 1000, &nanoseconds));
     }
-
-    int64_t nanoseconds;
-    PD_CHECK_OVERFLOW(
-        scaleMicrosecondsToNanoseconds(microseconds, &nanoseconds));
-    PD_CHECK_OVERFLOW(
-        checked_int64_add(nanoseconds, dts->ps / 1000, &nanoseconds));
 
     return nanoseconds;
   }
