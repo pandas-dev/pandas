@@ -272,6 +272,17 @@ def test_to_datetime_barely_out_of_bounds():
         tslib.array_to_datetime(arr)
 
 
+def test_to_datetime_barely_inside_bounds():
+    # see gh-57150
+    #
+    # Close enough to bounds that scaling micros to nanos overflows
+    # but adding nanos would result in an in-bounds datetime.
+    arr = np.array(["1677-09-21T00:12:43.145224193"], dtype=object)
+    result, _ = tslib.array_to_datetime(arr)
+    expected = ["1677-09-21T00:12:43.145224193"]
+    tm.assert_numpy_array_equal(result, np.array(expected, dtype="M8[ns]"))
+
+
 class SubDatetime(datetime):
     pass
 
