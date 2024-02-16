@@ -648,7 +648,7 @@ def infer_fill_value(val):
 
 def construct_1d_array_from_inferred_fill_value(
     value: object, length: int
-) -> np.ndarray:
+) -> ArrayLike:
     # Find our empty_value dtype by constructing an array
     #  from our value and doing a .take on it
     from pandas.core.algorithms import take_nd
