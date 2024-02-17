@@ -1661,7 +1661,9 @@ def transpose_homogeneous_masked_arrays(
     arr_type = dtype.construct_array_type()
     transposed_arrays: list[BaseMaskedArray] = []
     for i in range(transposed_values.shape[1]):
-        transposed_arr = arr_type(transposed_values[:, i], mask=transposed_masks[:, i])
+        transposed_arr = arr_type(
+            transposed_values[:, i].copy(), mask=transposed_masks[:, i].copy()
+        )
         transposed_arrays.append(transposed_arr)
 
     return transposed_arrays
