@@ -624,8 +624,8 @@ B square        0.0      0.0
   pentagon      0.0      0.0
   hexagon       0.0      0.0
 
->>> df_pow = pd.DataFrame({'A': [2, 3, 4],
-...                        'B': [5, 6, 7]})
+>>> df_pow = pd.DataFrame({{'A': [2, 3, 4],
+...                        'B': [5, 6, 7]}})
 >>> df_pow.pow(2)
     A   B
 0   4  25
