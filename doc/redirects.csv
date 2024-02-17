@@ -238,7 +238,6 @@ generated/pandas.core.resample.Resampler.backfill,../reference/api/pandas.core.r
 generated/pandas.core.resample.Resampler.bfill,../reference/api/pandas.core.resample.Resampler.bfill
 generated/pandas.core.resample.Resampler.count,../reference/api/pandas.core.resample.Resampler.count
 generated/pandas.core.resample.Resampler.ffill,../reference/api/pandas.core.resample.Resampler.ffill
-generated/pandas.core.resample.Resampler.fillna,../reference/api/pandas.core.resample.Resampler.fillna
 generated/pandas.core.resample.Resampler.first,../reference/api/pandas.core.resample.Resampler.first
 generated/pandas.core.resample.Resampler.get_group,../reference/api/pandas.core.resample.Resampler.get_group
 generated/pandas.core.resample.Resampler.groups,../reference/api/pandas.core.resample.Resampler.groups
@@ -481,7 +480,6 @@ generated/pandas.DataFrame.style,../reference/api/pandas.DataFrame.style
 generated/pandas.DataFrame.sub,../reference/api/pandas.DataFrame.sub
 generated/pandas.DataFrame.subtract,../reference/api/pandas.DataFrame.subtract
 generated/pandas.DataFrame.sum,../reference/api/pandas.DataFrame.sum
-generated/pandas.DataFrame.swapaxes,../reference/api/pandas.DataFrame.swapaxes
 generated/pandas.DataFrame.swaplevel,../reference/api/pandas.DataFrame.swaplevel
 generated/pandas.DataFrame.tail,../reference/api/pandas.DataFrame.tail
 generated/pandas.DataFrame.take,../reference/api/pandas.DataFrame.take
@@ -1206,7 +1204,6 @@ generated/pandas.Series.str.zfill,../reference/api/pandas.Series.str.zfill
 generated/pandas.Series.sub,../reference/api/pandas.Series.sub
 generated/pandas.Series.subtract,../reference/api/pandas.Series.subtract
 generated/pandas.Series.sum,../reference/api/pandas.Series.sum
-generated/pandas.Series.swapaxes,../reference/api/pandas.Series.swapaxes
 generated/pandas.Series.swaplevel,../reference/api/pandas.Series.swaplevel
 generated/pandas.Series.tail,../reference/api/pandas.Series.tail
 generated/pandas.Series.take,../reference/api/pandas.Series.take

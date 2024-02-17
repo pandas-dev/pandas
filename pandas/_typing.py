@@ -118,6 +118,7 @@ else:
     Concatenate: Any = None
 
 HashableT = TypeVar("HashableT", bound=Hashable)
+HashableT2 = TypeVar("HashableT2", bound=Hashable)
 MutableMappingT = TypeVar("MutableMappingT", bound=MutableMapping)
 
 # array-like
@@ -434,7 +435,7 @@ IntervalClosedType = Union[IntervalLeftRight, Literal["both", "neither"]]
 
 # datetime and NaTType
 DatetimeNaTType = Union[datetime, "NaTType"]
-DateTimeErrorChoices = Union[IgnoreRaise, Literal["coerce"]]
+DateTimeErrorChoices = Literal["raise", "coerce"]
 
 # sort_index
 SortKind = Literal["quicksort", "mergesort", "heapsort", "stable"]

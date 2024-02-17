@@ -324,7 +324,6 @@ class TestChaining:
         df = DataFrame(np.arange(25).reshape(5, 5))
         df_original = df.copy()
         chained = df.loc[:3]
-        # INFO(CoW) no warning, and original dataframe not changed
         chained[2] = rhs
         tm.assert_frame_equal(df, df_original)
 
