@@ -78,7 +78,6 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from pandas._typing import (
-        Unpack,
         CompressionOptions,
         CSVEngine,
         DtypeArg,
@@ -88,6 +87,7 @@ if TYPE_CHECKING:
         ReadCsvBuffer,
         Self,
         StorageOptions,
+        Unpack,
         UsecolsArgType,
     )
 _doc_read_csv_and_table = (
