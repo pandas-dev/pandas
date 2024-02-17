@@ -219,7 +219,7 @@ def test_groupby_raises_string_np(
         np.sum: (None, ""),
         np.mean: (
             TypeError,
-            re.escape("agg function failed [how->mean,dtype->object]"),
+            "Could not convert string .* to numeric",
         ),
     }[groupby_func_np]
     if how == "transform" and groupby_func_np is np.sum and not groupby_series:
@@ -333,12 +333,7 @@ def test_groupby_raises_datetime_np(
         ),
         np.mean: (None, ""),
     }[groupby_func_np]
-
-    if groupby_series:
-        warn_msg = "using SeriesGroupBy.[sum|mean]"
-    else:
-        warn_msg = "using DataFrameGroupBy.[sum|mean]"
-    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg=warn_msg)
+    _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
 
 @pytest.mark.parametrize("func", ["prod", "cumprod", "skew", "var"])
@@ -536,12 +531,7 @@ def test_groupby_raises_category_np(
             "dtype category does not support reduction 'mean'",
         ),
     }[groupby_func_np]
-
-    if groupby_series:
-        warn_msg = "using SeriesGroupBy.[sum|mean]"
-    else:
-        warn_msg = "using DataFrameGroupBy.[sum|mean]"
-    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg=warn_msg)
+    _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
