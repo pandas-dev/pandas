@@ -46,6 +46,7 @@ from pandas.errors.cow import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import find_stack_level
@@ -571,7 +572,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # ----------------------------------------------------------------------
 
     @property
-    def _constructor(self) -> Callable[..., Series]:
+    def _constructor(self) -> type[Series]:
         return Series
 
     def _constructor_from_mgr(self, mgr, axes):
@@ -1488,6 +1489,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def to_string(
         self,
         buf: None = ...,
+        *,
         na_rep: str = ...,
         float_format: str | None = ...,
         header: bool = ...,
@@ -1504,6 +1506,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def to_string(
         self,
         buf: FilePath | WriteBuffer[str],
+        *,
         na_rep: str = ...,
         float_format: str | None = ...,
         header: bool = ...,
@@ -1516,6 +1519,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> None:
         ...
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0.0", allowed_args=["self", "buf"], name="to_string"
+    )
     def to_string(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
@@ -5135,8 +5141,28 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             show_counts=show_counts,
         )
 
+    @overload
+    def _replace_single(
+        self, to_replace, method: str, inplace: Literal[False], limit
+    ) -> Self:
+        ...
+
+    @overload
+    def _replace_single(
+        self, to_replace, method: str, inplace: Literal[True], limit
+    ) -> None:
+        ...
+
+    @overload
+    def _replace_single(
+        self, to_replace, method: str, inplace: bool, limit
+    ) -> Self | None:
+        ...
+
     # TODO(3.0): this can be removed once GH#33302 deprecation is enforced
-    def _replace_single(self, to_replace, method: str, inplace: bool, limit):
+    def _replace_single(
+        self, to_replace, method: str, inplace: bool, limit
+    ) -> Self | None:
         """
         Replaces values in a Series using the fill method specified when no
         replacement value is given in the replace method
@@ -5155,7 +5181,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             fill_f(values, limit=limit, mask=mask)
 
         if inplace:
-            return
+            return None
         return result
 
     def memory_usage(self, index: bool = True, deep: bool = False) -> int:
@@ -6396,17 +6422,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     product = prod
 
     @doc(make_doc("cummin", ndim=1))
-    def cummin(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+    def cummin(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
         return NDFrame.cummin(self, axis, skipna, *args, **kwargs)
 
     @doc(make_doc("cummax", ndim=1))
-    def cummax(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+    def cummax(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
         return NDFrame.cummax(self, axis, skipna, *args, **kwargs)
 
     @doc(make_doc("cumsum", ndim=1))
-    def cumsum(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+    def cumsum(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
         return NDFrame.cumsum(self, axis, skipna, *args, **kwargs)
 
     @doc(make_doc("cumprod", 1))
-    def cumprod(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+    def cumprod(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
         return NDFrame.cumprod(self, axis, skipna, *args, **kwargs)
