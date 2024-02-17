@@ -244,8 +244,9 @@ Equality semantics
 ~~~~~~~~~~~~~~~~~~
 
 Two instances of :class:`~pandas.api.types.CategoricalDtype` compare equal
-whenever they have the same categories, order and dtypes. When comparing two
-unordered categoricals, the order of the ``categories`` is not considered.
+whenever they have the same categories, order. When comparing two
+unordered categoricals, the order of the ``categories`` is not considered. Note
+that categories with different dtypes are not the same.
 
 .. ipython:: python
 
@@ -268,13 +269,9 @@ two empty ``CategoricalDtype`` instances.
 
 .. ipython:: python
 
-    import numpy as np
-
     c2 = pd.Categorical(np.array([], dtype=object))
     c3 = pd.Categorical(np.array([], dtype=float))
 
-    # c2.dtype = CategoricalDtype(categories=[], ordered=False, categories_dtype=object)
-    # c3.dtype = CategoricalDtype(categories=[], ordered=False, categories_dtype=float64)
     c2.dtype == c3.dtype
 
 Description
