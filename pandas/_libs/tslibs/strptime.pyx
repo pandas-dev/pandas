@@ -310,7 +310,7 @@ def array_strptime(
     values : ndarray of string-like objects
     fmt : string-like regex
     exact : matches must be exact if True, search if False
-    errors : string specifying error handling, {'raise', 'ignore', 'coerce'}
+    errors : string specifying error handling, {'raise', 'coerce'}
     creso : NPY_DATETIMEUNIT, default NPY_FR_ns
         Set to NPY_FR_GENERIC to infer a resolution.
     """
@@ -322,7 +322,6 @@ def array_strptime(
         object val
         bint seen_datetime_offset = False
         bint is_raise = errors=="raise"
-        bint is_ignore = errors=="ignore"
         bint is_coerce = errors=="coerce"
         bint is_same_offsets
         set out_tzoffset_vals = set()
@@ -334,7 +333,7 @@ def array_strptime(
         bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         DatetimeParseState state = DatetimeParseState(creso)
 
-    assert is_raise or is_ignore or is_coerce
+    assert is_raise or is_coerce
 
     _validate_fmt(fmt)
     format_regex, locale_time = _get_format_regex(fmt)
@@ -806,14 +805,13 @@ def _array_strptime_object_fallback(
         object val
         tzinfo tz
         bint is_raise = errors=="raise"
-        bint is_ignore = errors=="ignore"
         bint is_coerce = errors=="coerce"
         bint iso_format = format_is_iso(fmt)
         NPY_DATETIMEUNIT creso, out_bestunit, item_reso
         int out_local = 0, out_tzoffset = 0
         bint string_to_dts_succeeded = 0
 
-    assert is_raise or is_ignore or is_coerce
+    assert is_raise or is_coerce
 
     item_reso = NPY_DATETIMEUNIT.NPY_FR_GENERIC
     format_regex, locale_time = _get_format_regex(fmt)
@@ -922,9 +920,8 @@ def _array_strptime_object_fallback(
             if is_coerce:
                 result[i] = NaT
                 continue
-            elif is_raise:
+            else:
                 raise
-            return values
 
     import warnings
 

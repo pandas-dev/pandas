@@ -43,24 +43,15 @@ class TestConcatenate:
         assert isinstance(result.index, PeriodIndex)
         assert result.index[0] == s1.index[0]
 
-    def test_concat_copy(self, using_copy_on_write):
+    def test_concat_copy(self):
         df = DataFrame(np.random.default_rng(2).standard_normal((4, 3)))
         df2 = DataFrame(np.random.default_rng(2).integers(0, 10, size=4).reshape(4, 1))
         df3 = DataFrame({5: "foo"}, index=range(4))
 
         # These are actual copies.
         result = concat([df, df2, df3], axis=1, copy=True)
-
-        if not using_copy_on_write:
-            for arr in result._mgr.arrays:
-                assert not any(
-                    np.shares_memory(arr, y)
-                    for x in [df, df2, df3]
-                    for y in x._mgr.arrays
-                )
-        else:
-            for arr in result._mgr.arrays:
-                assert arr.base is not None
+        for arr in result._mgr.arrays:
+            assert arr.base is not None
 
         # These are the same.
         result = concat([df, df2, df3], axis=1, copy=False)
@@ -78,15 +69,11 @@ class TestConcatenate:
         result = concat([df, df2, df3, df4], axis=1, copy=False)
         for arr in result._mgr.arrays:
             if arr.dtype.kind == "f":
-                if using_copy_on_write:
-                    # this is a view on some array in either df or df4
-                    assert any(
-                        np.shares_memory(arr, other)
-                        for other in df._mgr.arrays + df4._mgr.arrays
-                    )
-                else:
-                    # the block was consolidated, so we got a copy anyway
-                    assert arr.base is None
+                # this is a view on some array in either df or df4
+                assert any(
+                    np.shares_memory(arr, other)
+                    for other in df._mgr.arrays + df4._mgr.arrays
+                )
             elif arr.dtype.kind in ["i", "u"]:
                 assert arr.base is df2._mgr.arrays[0].base
             elif arr.dtype == object:

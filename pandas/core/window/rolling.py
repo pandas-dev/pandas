@@ -270,7 +270,7 @@ class BaseWindow(SelectionMixin):
         """
         # filter out the on from the object
         if self.on is not None and not isinstance(self.on, Index) and obj.ndim == 2:
-            obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
+            obj = obj.reindex(columns=obj.columns.difference([self.on]))
         if obj.ndim > 1 and numeric_only:
             obj = self._make_numeric_only(obj)
         return obj
@@ -1216,8 +1216,8 @@ class Window(BaseWindow):
             """
         See Also
         --------
-        pandas.DataFrame.aggregate : Similar DataFrame method.
-        pandas.Series.aggregate : Similar Series method.
+        DataFrame.aggregate : Similar DataFrame method.
+        Series.aggregate : Similar Series method.
         """
         ),
         examples=dedent(
@@ -1906,8 +1906,8 @@ class Rolling(RollingAndExpandingMixin):
             """
         See Also
         --------
-        pandas.Series.rolling : Calling object with Series data.
-        pandas.DataFrame.rolling : Calling object with DataFrame data.
+        Series.rolling : Calling object with Series data.
+        DataFrame.rolling : Calling object with DataFrame data.
         """
         ),
         examples=dedent(
