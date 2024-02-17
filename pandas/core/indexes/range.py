@@ -466,7 +466,6 @@ class RangeIndex(Index):
     @doc(Index._shallow_copy)
     def _shallow_copy(self, values, name: Hashable = no_default):
         name = self._name if name is no_default else name
-
         if values.dtype.kind == "f":
             return Index(values, name=name, dtype=np.float64)
         # GH 46675 & 43885: If values is equally spaced, return a
@@ -942,7 +941,8 @@ class RangeIndex(Index):
         indexes = [RangeIndex(3), RangeIndex(4, 6)] -> Index([0,1,2,4,5], dtype='int64')
         """
         if not all(isinstance(x, RangeIndex) for x in indexes):
-            return super()._concat(indexes, name)
+            result = super()._concat(indexes, name)
+            return self._shallow_copy(result._values)
 
         elif len(indexes) == 1:
             return indexes[0]

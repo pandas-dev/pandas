@@ -606,3 +606,10 @@ class TestRangeIndex:
         result = 3 - RangeIndex(0, 4, 1)
         expected = RangeIndex(3, -1, -1)
         tm.assert_index_equal(result, expected)
+
+
+def test_append_non_rangeindex_return_rangeindex():
+    ri = RangeIndex(1)
+    result = ri.append([1])
+    expected = RangeIndex(2)
+    tm.assert_index_equal(result, expected, exact=True)
