@@ -57,7 +57,7 @@ can it now take all numpy numeric dtypes, i.e.
     pd.Index([1, 2, 3], dtype=np.uint16)
     pd.Index([1, 2, 3], dtype=np.float32)
 
-The ability for :class:`Index` to hold the numpy numeric dtypes has meant some changes in Pandas
+The ability for :class:`Index` to hold the numpy numeric dtypes has meant some changes in pandas
 functionality. In particular, operations that previously were forced to create 64-bit indexes,
 can now create indexes with lower bit sizes, e.g. 32-bit indexes.
 

@@ -430,7 +430,7 @@ Release
     git checkout <branch>
     git pull --ff-only upstream <branch>
     git clean -xdf
-    git commit --allow-empty --author="Pandas Development Team <pandas-dev@python.org>" -m "RLS: <version>"
+    git commit --allow-empty --author="pandas Development Team <pandas-dev@python.org>" -m "RLS: <version>"
     git tag -a v<version> -m "Version <version>"  # NOTE that the tag is v1.5.2 with "v" not 1.5.2
     git push upstream <branch> --follow-tags
 
@@ -460,7 +460,7 @@ which will be triggered when the tag is pushed.
 4. Create a `new GitHub release <https://github.com/pandas-dev/pandas/releases/new>`_:
 
    - Tag: ``<version>``
-   - Title: ``Pandas <version>``
+   - Title: ``pandas <version>``
    - Description: Copy the description of the last release of the same kind (release candidate, major/minor or patch release)
    - Files: ``pandas-<version>.tar.gz`` source distribution just generated
    - Set as a pre-release: Only check for a release candidate
