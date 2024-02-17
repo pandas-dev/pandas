@@ -1486,6 +1486,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return self.to_string(**repr_params)
 
     @overload
+    @deprecate_nonkeyword_arguments(
+        version="3.0.0", allowed_args=["self", "buf"], name="to_string"
+    )
     def to_string(
         self,
         buf: None = ...,
@@ -1502,6 +1505,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ...
 
     @overload
+    @deprecate_nonkeyword_arguments(
+        version="3.0.0", allowed_args=["self", "buf"], name="to_string"
+    )
     def to_string(
         self,
         buf: FilePath | WriteBuffer[str],
