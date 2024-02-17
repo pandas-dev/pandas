@@ -46,6 +46,7 @@ from pandas.errors.cow import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import find_stack_level
@@ -1488,6 +1489,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def to_string(
         self,
         buf: None = ...,
+        *,
         na_rep: str = ...,
         float_format: str | None = ...,
         header: bool = ...,
@@ -1504,6 +1506,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def to_string(
         self,
         buf: FilePath | WriteBuffer[str],
+        *,
         na_rep: str = ...,
         float_format: str | None = ...,
         header: bool = ...,
@@ -1516,6 +1519,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> None:
         ...
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0.0", allowed_args=["self", "buf"], name="to_string"
+    )
     def to_string(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
