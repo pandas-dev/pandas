@@ -106,9 +106,9 @@ if TYPE_CHECKING:
     P = ParamSpec("P")
 
     if sys.version_info >= (3, 11):
-        from typing import Self  # pyright: ignore[reportUnusedImport]
+        from typing import Self, Unpack  # pyright: ignore[reportUnusedImport]
     else:
-        from typing_extensions import Self  # pyright: ignore[reportUnusedImport]
+        from typing_extensions import Self, Unpack  # pyright: ignore[reportUnusedImport]
 
 else:
     npt: Any = None
@@ -116,6 +116,7 @@ else:
     Self: Any = None
     TypeGuard: Any = None
     Concatenate: Any = None
+    Unpack: Any = None
 
 HashableT = TypeVar("HashableT", bound=Hashable)
 HashableT2 = TypeVar("HashableT2", bound=Hashable)
