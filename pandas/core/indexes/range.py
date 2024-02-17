@@ -466,6 +466,7 @@ class RangeIndex(Index):
     @doc(Index._shallow_copy)
     def _shallow_copy(self, values, name: Hashable = no_default):
         name = self._name if name is no_default else name
+
         if values.dtype.kind == "f":
             return Index(values, name=name, dtype=np.float64)
         # GH 46675 & 43885: If values is equally spaced, return a
