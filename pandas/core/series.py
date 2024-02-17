@@ -1485,10 +1485,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         repr_params = fmt.get_series_repr_params()
         return self.to_string(**repr_params)
 
-    @overload
     @deprecate_nonkeyword_arguments(
         version="3.0.0", allowed_args=["self", "buf"], name="to_string"
     )
+    @overload
     def to_string(
         self,
         buf: None = ...,
@@ -1504,10 +1504,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> str:
         ...
 
-    @overload
     @deprecate_nonkeyword_arguments(
         version="3.0.0", allowed_args=["self", "buf"], name="to_string"
     )
+    @overload
     def to_string(
         self,
         buf: FilePath | WriteBuffer[str],
