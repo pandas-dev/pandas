@@ -106,15 +106,11 @@ if TYPE_CHECKING:
     P = ParamSpec("P")
 
     if sys.version_info >= (3, 11):
-        from typing import (  # pyright: ignore[reportUnusedImport]
-            Self,
-            Unpack,
-        )
+        from typing import Self  # pyright: ignore[reportUnusedImport]
+        from typing import Unpack  # pyright: ignore[reportUnusedImport]
     else:
-        from typing_extensions import (  # pyright: ignore[reportUnusedImport]
-            Self,
-            Unpack,
-        )
+        from typing_extensions import Self  # pyright: ignore[reportUnusedImport]
+        from typing_extensions import Unpack  # pyright: ignore[reportUnusedImport]
 
 else:
     npt: Any = None
