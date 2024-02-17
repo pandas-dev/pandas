@@ -381,7 +381,7 @@ class TestPandasContainer:
         # GH28501 Parse missing values using read_json with dtype=False
         # to NaN instead of None
         result = read_json(StringIO("[null]"), dtype=dtype)
-        expected = DataFrame([np.nan])
+        expected = DataFrame([np.nan], dtype=object if not dtype else None)
 
         tm.assert_frame_equal(result, expected)
 
@@ -1030,9 +1030,7 @@ class TestPandasContainer:
 
         result = read_json(StringIO(s))
         res = result.reindex(index=df.index, columns=df.columns)
-        msg = "The 'downcast' keyword in fillna is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = res.fillna(np.nan, downcast=False)
+        res = res.fillna(np.nan)
         tm.assert_frame_equal(res, df)
 
     @pytest.mark.network
@@ -1878,7 +1876,7 @@ class TestPandasContainer:
             '{"(0, \'x\')":1,"(0, \'y\')":"a","(1, \'x\')":2,'
             '"(1, \'y\')":"b","(2, \'x\')":3,"(2, \'y\')":"c"}'
         )
-        series = dataframe.stack(future_stack=True)
+        series = dataframe.stack()
         result = series.to_json(orient="index")
         assert result == expected
 
@@ -1917,7 +1915,7 @@ class TestPandasContainer:
             True,
             index=date_range("2017-01-20", "2017-01-23"),
             columns=["foo", "bar"],
-        ).stack(future_stack=True)
+        ).stack()
         result = df.to_json()
         expected = (
             "{\"(Timestamp('2017-01-20 00:00:00'), 'foo')\":true,"

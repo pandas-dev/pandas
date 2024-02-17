@@ -1426,8 +1426,8 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def replace(
         self,
-        pat: str | re.Pattern,
-        repl: str | Callable,
+        pat: str | re.Pattern | dict,
+        repl: str | Callable | None = None,
         n: int = -1,
         case: bool | None = None,
         flags: int = 0,
@@ -1441,11 +1441,14 @@ class StringMethods(NoNewAttributesMixin):
 
         Parameters
         ----------
-        pat : str or compiled regex
+        pat : str, compiled regex, or a dict
             String can be a character sequence or regular expression.
+            Dictionary contains <key : value> pairs of strings to be replaced
+            along with the updated value.
         repl : str or callable
             Replacement string or a callable. The callable is passed the regex
             match object and must return a replacement string to be used.
+            Must have a value of None if `pat` is a dict
             See :func:`re.sub`.
         n : int, default -1 (all)
             Number of replacements to make from start.
@@ -1479,6 +1482,7 @@ class StringMethods(NoNewAttributesMixin):
             * if `regex` is False and `repl` is a callable or `pat` is a compiled
               regex
             * if `pat` is a compiled regex and `case` or `flags` is set
+            * if `pat` is a dictionary and `repl` is not None.
 
         Notes
         -----
@@ -1488,6 +1492,15 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
+        When `pat` is a dictionary, every key in `pat` is replaced
+        with its corresponding value:
+
+        >>> pd.Series(["A", "B", np.nan]).str.replace(pat={"A": "a", "B": "b"})
+        0    a
+        1    b
+        2    NaN
+        dtype: object
+
         When `pat` is a string and `regex` is True, the given `pat`
         is compiled as a regex. When `repl` is a string, it replaces matching
         regex patterns as with :meth:`re.sub`. NaN value(s) in the Series are
@@ -1550,8 +1563,11 @@ class StringMethods(NoNewAttributesMixin):
         2    NaN
         dtype: object
         """
+        if isinstance(pat, dict) and repl is not None:
+            raise ValueError("repl cannot be used when pat is a dictionary")
+
         # Check whether repl is valid (GH 13438, GH 15055)
-        if not (isinstance(repl, str) or callable(repl)):
+        if not isinstance(pat, dict) and not (isinstance(repl, str) or callable(repl)):
             raise TypeError("repl must be a string or callable")
 
         is_compiled_re = is_re(pat)
@@ -1571,10 +1587,17 @@ class StringMethods(NoNewAttributesMixin):
         if case is None:
             case = True
 
-        result = self._data.array._str_replace(
-            pat, repl, n=n, case=case, flags=flags, regex=regex
-        )
-        return self._wrap_result(result)
+        res_output = self._data
+        if not isinstance(pat, dict):
+            pat = {pat: repl}
+
+        for key, value in pat.items():
+            result = res_output.array._str_replace(
+                key, value, n=n, case=case, flags=flags, regex=regex
+            )
+            res_output = self._wrap_result(result)
+
+        return res_output
 
     @forbid_nonstring_types(["bytes"])
     def repeat(self, repeats):
@@ -2209,19 +2232,37 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
-    def wrap(self, width: int, **kwargs):
+    def wrap(
+        self,
+        width: int,
+        expand_tabs: bool = True,
+        tabsize: int = 8,
+        replace_whitespace: bool = True,
+        drop_whitespace: bool = True,
+        initial_indent: str = "",
+        subsequent_indent: str = "",
+        fix_sentence_endings: bool = False,
+        break_long_words: bool = True,
+        break_on_hyphens: bool = True,
+        max_lines: int | None = None,
+        placeholder: str = " [...]",
+    ):
         r"""
         Wrap strings in Series/Index at specified line width.
 
         This method has the same keyword parameters and defaults as
-        :class:`textwrap.TextWrapper`.
+            :class:`textwrap.TextWrapper`.
 
         Parameters
         ----------
-        width : int
+        width : int, optional
             Maximum line width.
         expand_tabs : bool, optional
             If True, tab characters will be expanded to spaces (default: True).
+        tabsize : int, optional
+            If expand_tabs is true, then all tab characters in text will be
+            expanded to zero or more spaces, depending on the current column
+            and the given tab size (default: 8).
         replace_whitespace : bool, optional
             If True, each whitespace character (as defined by string.whitespace)
             remaining after tab expansion will be replaced by a single space
@@ -2229,6 +2270,28 @@ class StringMethods(NoNewAttributesMixin):
         drop_whitespace : bool, optional
             If True, whitespace that, after wrapping, happens to end up at the
             beginning or end of a line is dropped (default: True).
+        initial_indent : str, optional
+            String that will be prepended to the first line of wrapped output.
+            Counts towards the length of the first line. The empty string is
+            not indented (default: '').
+        subsequent_indent : str, optional
+            String that will be prepended to all lines of wrapped output except
+            the first. Counts towards the length of each line except the first
+            (default: '').
+        fix_sentence_endings : bool, optional
+            If true, TextWrapper attempts to detect sentence endings and ensure
+            that sentences are always separated by exactly two spaces. This is
+            generally desired for text in a monospaced font. However, the sentence
+            detection algorithm is imperfect: it assumes that a sentence ending
+            consists of a lowercase letter followed by one of '.', '!', or '?',
+            possibly followed by one of '"' or "'", followed by a space. One
+            problem with this algorithm is that it is unable to detect the
+            difference between “Dr.” in `[...] Dr. Frankenstein's monster [...]`
+            and “Spot.” in `[...] See Spot. See Spot run [...]`
+            Since the sentence detection algorithm relies on string.lowercase
+            for the definition of “lowercase letter”, and a convention of using
+            two spaces after a period to separate sentences on the same line,
+            it is specific to English-language texts (default: False).
         break_long_words : bool, optional
             If True, then words longer than width will be broken in order to ensure
             that no lines are longer than width. If it is false, long words will
@@ -2239,6 +2302,12 @@ class StringMethods(NoNewAttributesMixin):
             only whitespaces will be considered as potentially good places for line
             breaks, but you need to set break_long_words to false if you want truly
             insecable words (default: True).
+        max_lines : int, optional
+            If not None, then the output will contain at most max_lines lines, with
+            placeholder appearing at the end of the output (default: None).
+        placeholder : str, optional
+            String that will appear at the end of the output text if it has been
+            truncated (default: ' [...]').
 
         Returns
         -------
@@ -2264,7 +2333,20 @@ class StringMethods(NoNewAttributesMixin):
         1    another line\nto be\nwrapped
         dtype: object
         """
-        result = self._data.array._str_wrap(width, **kwargs)
+        result = self._data.array._str_wrap(
+            width=width,
+            expand_tabs=expand_tabs,
+            tabsize=tabsize,
+            replace_whitespace=replace_whitespace,
+            drop_whitespace=drop_whitespace,
+            initial_indent=initial_indent,
+            subsequent_indent=subsequent_indent,
+            fix_sentence_endings=fix_sentence_endings,
+            break_long_words=break_long_words,
+            break_on_hyphens=break_on_hyphens,
+            max_lines=max_lines,
+            placeholder=placeholder,
+        )
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
