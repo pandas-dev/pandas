@@ -244,7 +244,7 @@ Equality semantics
 ~~~~~~~~~~~~~~~~~~
 
 Two instances of :class:`~pandas.api.types.CategoricalDtype` compare equal
-whenever they have the same categories, order. When comparing two
+whenever they have the same categories and order. When comparing two
 unordered categoricals, the order of the ``categories`` is not considered. Note
 that categories with different dtypes are not the same.
 
