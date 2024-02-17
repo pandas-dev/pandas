@@ -253,7 +253,7 @@ Testing type hints in code using pandas
 
 .. warning::
 
-    * Pandas is not yet a py.typed library (:pep:`561`)!
+    * pandas is not yet a py.typed library (:pep:`561`)!
       The primary purpose of locally declaring pandas as a py.typed library is to test and
       improve the pandas-builtin type annotations.
 
