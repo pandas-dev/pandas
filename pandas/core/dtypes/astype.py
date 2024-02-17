@@ -258,6 +258,10 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
     -------
     True if new data is a view or not guaranteed to be a copy, False otherwise
     """
+    if dtype.kind in "iufb" and dtype.kind == new_dtype.kind:
+        # fastpath for numeric dtypes
+        return dtype.itemsize == new_dtype.itemsize
+
     if isinstance(dtype, np.dtype) and not isinstance(new_dtype, np.dtype):
         new_dtype, dtype = dtype, new_dtype
 
