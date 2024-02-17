@@ -45,3 +45,16 @@ class TestMap:
         )
         exp_index = MultiIndex.from_product(((2018,), range(1, 7)), names=[name, name])
         tm.assert_index_equal(index, exp_index)
+
+    @pytest.mark.parametrize("input_tz", ["UTC", None])
+    @pytest.mark.parametrize("output_tz", ["UTC", None])
+    def test_mapping_tz_to_tz_agnostic(self, input_tz, output_tz):
+        # GH#57192
+        index = date_range("2018-01-01", periods=6, freq="ME", tz=input_tz)
+        expected = date_range("2018-01-01", periods=6, freq="ME", tz=output_tz)
+        if input_tz == "UTC" and output_tz == "UTC":
+            method = "tz_convert"
+        else:
+            method = "tz_localize"
+        result = index.map(lambda x: getattr(x, method)(output_tz))
+        tm.assert_index_equal(result, expected)
