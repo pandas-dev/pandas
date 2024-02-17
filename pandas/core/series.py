@@ -1488,6 +1488,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def to_string(
         self,
         buf: None = ...,
+        *,
         na_rep: str = ...,
         float_format: str | None = ...,
         header: bool = ...,
@@ -1504,6 +1505,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def to_string(
         self,
         buf: FilePath | WriteBuffer[str],
+        *,
         na_rep: str = ...,
         float_format: str | None = ...,
         header: bool = ...,
