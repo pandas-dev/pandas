@@ -2874,7 +2874,7 @@ def test_dt_to_pytimedelta():
     tm.assert_numpy_array_equal(result, expected)
     assert all(type(res) is timedelta for res in result)
 
-    msg = "The behavior of DatetimeProperties.to_pytimedelta is deprecated"
+    msg = "The behavior of TimedeltaProperties.to_pytimedelta is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         expected = ser.astype("timedelta64[ns]").dt.to_pytimedelta()
     tm.assert_numpy_array_equal(result, expected)

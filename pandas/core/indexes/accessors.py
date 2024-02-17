@@ -215,7 +215,7 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
         warnings.warn(
             f"The behavior of {type(self).__name__}.to_pytimedelta is deprecated, "
             "in a future version this will return a Series containing python "
-            "timedelta objects instead of an ndarray. To retain the old behavior, "
+            "datetime.timedelta objects instead of an ndarray. To retain the old behavior, "
             "call `np.array` on the result",
             FutureWarning,
             stacklevel=find_stack_level(),
@@ -494,7 +494,7 @@ class TimedeltaProperties(Properties):
         warnings.warn(
             f"The behavior of {type(self).__name__}.to_pytimedelta is deprecated, "
             "in a future version this will return a Series containing python "
-            "timedelta objects instead of an ndarray. To retain the old behavior, "
+            "datetime.timedelta objects instead of an ndarray. To retain the old behavior, "
             "call `np.array` on the result",
             FutureWarning,
             stacklevel=find_stack_level(),
