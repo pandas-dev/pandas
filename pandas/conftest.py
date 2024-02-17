@@ -163,6 +163,10 @@ def pytest_collection_modifyitems(items, config) -> None:
             "The behavior of DatetimeProperties.to_pydatetime is deprecated",
         ),
         (
+            "to_pytimedelta",
+            "The behavior of DatetimeProperties.to_pytimedelta is deprecated",
+        ),
+        (
             "pandas.core.generic.NDFrame.first",
             "first is deprecated and will be removed in a future version. "
             "Please create a mask and filter using `.loc` instead",

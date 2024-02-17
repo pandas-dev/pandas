@@ -196,7 +196,9 @@ class TestSeriesDatetimeValues:
             assert isinstance(result, DataFrame)
             tm.assert_index_equal(result.index, ser.index)
 
-            result = ser.dt.to_pytimedelta()
+            msg = "The behavior of DatetimeProperties.to_pytimedelta is deprecated"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                result = ser.dt.to_pytimedelta()
             assert isinstance(result, np.ndarray)
             assert result.dtype == object
 

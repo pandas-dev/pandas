@@ -211,6 +211,15 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
         return result
 
     def to_pytimedelta(self):
+        # GH#57463
+        warnings.warn(
+            f"The behavior of {type(self).__name__}.to_pytimedelta is deprecated, "
+            "in a future version this will return a Series containing python "
+            "timedelta objects instead of an ndarray. To retain the old behavior, "
+            "call `np.array` on the result",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return cast(ArrowExtensionArray, self._parent.array)._dt_to_pytimedelta()
 
     def to_pydatetime(self):
@@ -481,6 +490,15 @@ class TimedeltaProperties(Properties):
         datetime.timedelta(days=2), datetime.timedelta(days=3),
         datetime.timedelta(days=4)], dtype=object)
         """
+        # GH#57463
+        warnings.warn(
+            f"The behavior of {type(self).__name__}.to_pytimedelta is deprecated, "
+            "in a future version this will return a Series containing python "
+            "timedelta objects instead of an ndarray. To retain the old behavior, "
+            "call `np.array` on the result",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self._get_values().to_pytimedelta()
 
     @property
