@@ -631,7 +631,6 @@ B square        0.0      0.0
 0   4  25
 1   9  36
 2  16  49
-
 """
 
 _flex_comp_doc_FRAME = """
