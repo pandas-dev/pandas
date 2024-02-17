@@ -607,7 +607,7 @@ Deprecated Int64Index, UInt64Index & Float64Index
 
 :class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index` have been
 deprecated in favor of the base :class:`Index` class and will be removed in
-Pandas 2.0 (:issue:`43028`).
+pandas 2.0 (:issue:`43028`).
 
 For constructing a numeric index, you can use the base :class:`Index` class
 instead specifying the data type (which will also work on older pandas
