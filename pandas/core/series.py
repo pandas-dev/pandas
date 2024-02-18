@@ -1637,6 +1637,42 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             +----+----------+"""
         ),
     )
+    @overload
+    def to_markdown(
+        self,
+        buf: None = ...,
+        *,
+        mode: str = ...,
+        index: bool = ...,
+        storage_options: StorageOptions | None = ...,
+        **kwargs,
+    ) -> str:
+        ...
+
+    @overload
+    def to_markdown(
+        self,
+        buf: IO[str],
+        *,
+        mode: str = ...,
+        index: bool = ...,
+        storage_options: StorageOptions | None = ...,
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def to_markdown(
+        self,
+        buf: IO[str] | None,
+        *,
+        mode: str = ...,
+        index: bool = ...,
+        storage_options: StorageOptions | None = ...,
+        **kwargs,
+    ) -> str | None:
+        ...
+
     @deprecate_nonkeyword_arguments(
         version="3.0.0", allowed_args=["self", "buf"], name="to_markdown"
     )
