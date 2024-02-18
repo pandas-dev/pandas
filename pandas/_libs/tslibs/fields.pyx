@@ -253,14 +253,15 @@ def get_start_end_field(
         # month of year. Other offsets use month, startingMonth as ending
         # month of year.
 
-        if (freqstr[0:2] in ["QS", "YS"]) or (  # ["MS", "QS", "YS"]
-                freqstr[1:3] in ["QS", "YS"]):  # ["MS", "QS", "YS"]
-            # According to the above comment, these are correct for start/end
-            end_month = 1 if month_kw == 12 else month_kw - 9
-            start_month = month_kw       
-        else: # In the case of a *E freqstr
+        # According to the above comment, the first conditional is for QS and YS only
+        if (freqstr[0:2] in ["QS", "YS"]) or (
+                freqstr[1:3] in ["QS", "YS"]):
+            end_month = 12 if month_kw == 1 else month_kw - 1
+            start_month = month_kw
+
+        else:
             end_month = month_kw
-            start_month = 1 if month_kw == 12 else month_kw - 9        
+            start_month = (end_month % 12) + 1
     else:
         end_month = 12
         start_month = 1
@@ -287,14 +288,14 @@ def get_start_end_field(
                     out[i] = 1
 
         else:
-            for i in range(count): # The loop that is causing the error
-                if dtindex[i] == NPY_NAT: # If this thing is a NaT (thinking this means not a time), assinging it a False in the return array and (essentially skipping it)
+            for i in range(count):
+                if dtindex[i] == NPY_NAT:
                     out[i] = 0
                     continue
 
                 pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
 
-                if _is_on_month(dts.month, compare_month, modby) and dts.day == 1: # is_on_month is supposed to check if the given month is part of the series (ie 1, 4, 7, and 10 for quarters, 1, for years, and 1-12 for months) and if the day is the first day of the month
+                if _is_on_month(dts.month, compare_month, modby) and dts.day == 1:
                     out[i] = 1
 
     elif field in ["is_month_end", "is_quarter_end", "is_year_end"]:
