@@ -229,20 +229,27 @@ class _Unstacker:
         return new_values, mask.any(0)
         # TODO: in all tests we have mask.any(0).all(); can we rely on that?
 
-    def get_result(self, values, value_columns, fill_value) -> DataFrame:
+    def get_result(self, obj, value_columns, fill_value) -> DataFrame:
+        values = obj._values
         if values.ndim == 1:
             values = values[:, np.newaxis]
 
         if value_columns is None and values.shape[1] != 1:  # pragma: no cover
             raise ValueError("must pass column labels for multi-column data")
 
-        values, _ = self.get_new_values(values, fill_value)
+        new_values, _ = self.get_new_values(values, fill_value)
         columns = self.get_new_columns(value_columns)
         index = self.new_index
 
-        return self.constructor(
-            values, index=index, columns=columns, dtype=values.dtype
+        result = self.constructor(
+            new_values, index=index, columns=columns, dtype=values.dtype, copy=False
         )
+        if values.base is new_values.base:
+            # We can only get here if one of the dimensions is size 1
+            mgr = result._mgr
+            mgr.blocks[0].refs = obj._mgr.blocks[0].refs
+            mgr.blocks[0].refs.add_reference(mgr.blocks[0])
+        return result
 
     def get_new_values(self, values, fill_value=None):
         if values.ndim == 1:
@@ -550,7 +557,7 @@ def _unstack_frame(
         return obj._constructor_from_mgr(mgr, axes=mgr.axes)
     else:
         return unstacker.get_result(
-            obj._values, value_columns=obj.columns, fill_value=fill_value
+            obj, value_columns=obj.columns, fill_value=fill_value
         )
 
 
