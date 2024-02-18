@@ -1606,6 +1606,42 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     f.write(result)
         return None
 
+    @overload
+    def to_markdown(
+        self,
+        buf: None = ...,
+        *,
+        mode: str = ...,
+        index: bool = ...,
+        storage_options: StorageOptions | None = ...,
+        **kwargs,
+    ) -> str:
+        ...
+
+    @overload
+    def to_markdown(
+        self,
+        buf: IO[str],
+        *,
+        mode: str = ...,
+        index: bool = ...,
+        storage_options: StorageOptions | None = ...,
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def to_markdown(
+        self,
+        buf: IO[str] | None,
+        *,
+        mode: str = ...,
+        index: bool = ...,
+        storage_options: StorageOptions | None = ...,
+        **kwargs,
+    ) -> str | None:
+        ...
+
     @doc(
         klass=_shared_doc_kwargs["klass"],
         storage_options=_shared_docs["storage_options"],
@@ -1636,6 +1672,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             |  3 | quetzal  |
             +----+----------+"""
         ),
+    )
+    @deprecate_nonkeyword_arguments(
+        version="3.0.0", allowed_args=["self", "buf"], name="to_markdown"
     )
     def to_markdown(
         self,
