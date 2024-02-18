@@ -243,12 +243,13 @@ verbose : bool, default False
     .. deprecated:: 2.2.0
 skip_blank_lines : bool, default True
     If ``True``, skip over blank lines rather than interpreting as ``NaN`` values.
-parse_dates : bool, list of Hashable, list of lists or dict of {{Hashable : list}}, \
-default False
+parse_dates : bool, None, list of Hashable, list of lists or dict of {{Hashable : list}}, \
+default None
     The behavior is as follows:
 
-    * ``bool``. If ``True`` -> try parsing the index. Note: Automatically set to
-      ``True`` if ``date_format`` or ``date_parser`` arguments have been passed.
+    * ``bool``. If ``True`` -> try parsing the index.
+    * ``None``. Behaves like ``True`` if ``date_parser`` or ``date_format`` are
+      specified.
     * ``list`` of ``int`` or names. e.g. If ``[1, 2, 3]`` -> try parsing columns 1, 2, 3
       each as a separate date column.
     * ``list`` of ``list``. e.g.  If ``[[1, 3]]`` -> combine columns 1 and 3 and parse
@@ -1162,17 +1163,6 @@ def read_fwf(
     infer_nrows : int, default 100
         The number of rows to consider when letting the parser determine the
         `colspecs`.
-    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
-        Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). Behaviour is as follows:
-
-        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-          (default).
-        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-          DataFrame.
-
-        .. versionadded:: 2.0
-
     **kwds : optional
         Optional keyword arguments can be passed to ``TextFileReader``.
 
