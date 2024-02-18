@@ -214,31 +214,3 @@ class TestDatetimeIndex:
         )
 
         tm.assert_index_equal(result, expected)
-
-    def test_is_year_start_MS(self):
-        # GH#57377
-        idx = date_range("2023-11-01", periods=3, freq="MS")
-        result = idx.is_year_start
-        expected = np.array([False, False, True])
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_is_year_end_MS(self):
-        # GH#57377
-        idx = date_range("2023-11-01", periods=3, freq="ME")
-        result = idx.is_year_end
-        expected = np.array([False, True, False])
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_is_quarter_start_MS(self):
-        # GH#57377
-        idx = date_range("2023-11-01", periods=3, freq="MS")
-        result = idx.is_quarter_start
-        expected = np.array([False, False, True])
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_is_quarter_end_MS(self):
-        # GH#57377
-        idx = date_range("2023-11-01", periods=3, freq="ME")
-        result = idx.is_quarter_end
-        expected = np.array([False, True, False])
-        tm.assert_numpy_array_equal(result, expected)

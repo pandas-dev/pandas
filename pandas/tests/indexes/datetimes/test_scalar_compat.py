@@ -328,3 +328,47 @@ class TestDatetimeIndexOps:
         msg = "Custom business days is not supported by is_month_start"
         with pytest.raises(ValueError, match=msg):
             dti.is_month_start
+
+    @pytest.mark.parametrize(
+        "timestamp, freq, periods, expected_values",
+        [
+            ("2017-12-01", "MS", 3, np.array([False, True, False])),
+        ],
+    )
+    def test_dti_is_year_start(self, timestamp, freq, periods, expected_values):
+        #GH57377 
+        result = date_range(timestamp, freq=freq, periods=periods).is_year_start
+        tm.assert_numpy_array_equal(result, expected_values)
+
+    @pytest.mark.parametrize(
+        "timestamp, freq, periods, expected_values",
+        [
+            ("2017-12-01", "ME", 3, np.array([True, False, False])),
+        ],
+    )
+    def test_dti_is_year_end(self, timestamp, freq, periods, expected_values):
+        #GH57377 
+        result = date_range(timestamp, freq=freq, periods=periods).is_year_end
+        tm.assert_numpy_array_equal(result, expected_values)
+
+    @pytest.mark.parametrize(
+        "timestamp, freq, periods, expected_values",
+        [
+            ("2017-12-01", "MS", 3, np.array([False, True, False])),
+        ],
+        )
+    def test_dti_is_quarter_start(self, timestamp, freq, periods, expected_values):
+        #GH57377 
+        result = date_range(timestamp, freq=freq, periods=periods).is_quarter_start
+        tm.assert_numpy_array_equal(result, expected_values)
+
+    @pytest.mark.parametrize(
+        "timestamp, freq, periods, expected_values",
+        [
+            ("2017-12-01", "ME", 3, np.array([True, False, False])),
+        ],
+    )
+    def test_dti_is_quarter_end(self, timestamp, freq, periods, expected_values):
+        #GH57377 
+        result = date_range(timestamp, freq=freq, periods=periods).is_quarter_end
+        tm.assert_numpy_array_equal(result, expected_values)
