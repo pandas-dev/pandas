@@ -35,7 +35,7 @@ from pandas.core.arrays import (
     StringArray,
 )
 
-if is_platform_windows:
+if is_platform_windows():
     pytestmark = pytest.mark.single_cpu
 
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]

@@ -10,7 +10,7 @@ import pandas._testing as tm
 
 pytest.importorskip("odf")
 
-if is_platform_windows:
+if is_platform_windows():
     pytestmark = pytest.mark.single_cpu
 
 

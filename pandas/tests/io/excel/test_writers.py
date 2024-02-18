@@ -35,7 +35,7 @@ from pandas.io.excel import (
 )
 from pandas.io.excel._util import _writers
 
-if is_platform_windows:
+if is_platform_windows():
     pytestmark = pytest.mark.single_cpu
 
 

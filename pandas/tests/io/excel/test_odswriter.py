@@ -15,7 +15,7 @@ from pandas.io.excel import ExcelWriter
 
 odf = pytest.importorskip("odf")
 
-if is_platform_windows:
+if is_platform_windows():
     pytestmark = pytest.mark.single_cpu
 
 

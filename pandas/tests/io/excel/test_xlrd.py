@@ -13,7 +13,7 @@ from pandas.io.excel._base import inspect_excel_format
 
 xlrd = pytest.importorskip("xlrd")
 
-if is_platform_windows:
+if is_platform_windows():
     pytestmark = pytest.mark.single_cpu
 
 

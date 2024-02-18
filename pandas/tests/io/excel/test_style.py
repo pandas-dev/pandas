@@ -21,7 +21,7 @@ pytest.importorskip("jinja2")
 # could compute styles and render to excel without jinja2, since there is no
 # 'template' file, but this needs the import error to delayed until render time.
 
-if is_platform_windows:
+if is_platform_windows():
     pytestmark = pytest.mark.single_cpu
 
 
