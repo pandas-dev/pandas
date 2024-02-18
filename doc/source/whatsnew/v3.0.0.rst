@@ -189,7 +189,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :func:`date_range` where the last valid timestamp would sometimes not be produced (:issue:`56134`)
--
+- Bug in :meth:`is_year_start` where a DateTimeIndex constructed via a date_range with frequency 'MS' wouldn't have the correct year or quarter start attributes (:issue:`57377`)
 
 Timedelta
 ^^^^^^^^^
