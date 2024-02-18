@@ -424,6 +424,7 @@ class TestBasic(Base):
         )
 
     def test_write_index(self):
+        pytest.importorskip("pyarrow")
         df = pd.DataFrame({"A": [1, 2, 3]})
         check_round_trip(df, "pyarrow")
 
