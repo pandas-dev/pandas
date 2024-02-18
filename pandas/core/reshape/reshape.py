@@ -250,7 +250,7 @@ class _Unstacker:
         elif isinstance(values, NDArrayBackedExtensionArray):
             base, new_base = values._ndarray.base, new_values._ndarray.base
         else:
-            base, new_base = 1, 2
+            base, new_base = 1, 2  # type: ignore[assignment]
         if base is new_base:
             # We can only get here if one of the dimensions is size 1
             mgr = result._mgr
