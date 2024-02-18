@@ -1606,37 +1606,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     f.write(result)
         return None
 
-    @doc(
-        klass=_shared_doc_kwargs["klass"],
-        storage_options=_shared_docs["storage_options"],
-        examples=dedent(
-            """Examples
-            --------
-            >>> s = pd.Series(["elk", "pig", "dog", "quetzal"], name="animal")
-            >>> print(s.to_markdown())
-            |    | animal   |
-            |---:|:---------|
-            |  0 | elk      |
-            |  1 | pig      |
-            |  2 | dog      |
-            |  3 | quetzal  |
-
-            Output markdown with a tabulate option.
-
-            >>> print(s.to_markdown(tablefmt="grid"))
-            +----+----------+
-            |    | animal   |
-            +====+==========+
-            |  0 | elk      |
-            +----+----------+
-            |  1 | pig      |
-            +----+----------+
-            |  2 | dog      |
-            +----+----------+
-            |  3 | quetzal  |
-            +----+----------+"""
-        ),
-    )
     @overload
     def to_markdown(
         self,
@@ -1673,6 +1642,37 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> str | None:
         ...
 
+    @doc(
+        klass=_shared_doc_kwargs["klass"],
+        storage_options=_shared_docs["storage_options"],
+        examples=dedent(
+            """Examples
+            --------
+            >>> s = pd.Series(["elk", "pig", "dog", "quetzal"], name="animal")
+            >>> print(s.to_markdown())
+            |    | animal   |
+            |---:|:---------|
+            |  0 | elk      |
+            |  1 | pig      |
+            |  2 | dog      |
+            |  3 | quetzal  |
+
+            Output markdown with a tabulate option.
+
+            >>> print(s.to_markdown(tablefmt="grid"))
+            +----+----------+
+            |    | animal   |
+            +====+==========+
+            |  0 | elk      |
+            +----+----------+
+            |  1 | pig      |
+            +----+----------+
+            |  2 | dog      |
+            +----+----------+
+            |  3 | quetzal  |
+            +----+----------+"""
+        ),
+    )
     @deprecate_nonkeyword_arguments(
         version="3.0.0", allowed_args=["self", "buf"], name="to_markdown"
     )
