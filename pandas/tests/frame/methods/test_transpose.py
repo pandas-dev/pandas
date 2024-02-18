@@ -184,7 +184,7 @@ class TestTranspose:
     @pytest.mark.parametrize("dtype1", ["Int64", "Float64"])
     @pytest.mark.parametrize("dtype2", ["Int64", "Float64"])
     def test_transpose(self, dtype1, dtype2):
-        # GH#57315 - transpose should have C/F contiguous blocks
+        # GH#57315 - transpose should have F contiguous blocks
         df = DataFrame(
             {
                 "a": pd.array([1, 1, 2], dtype=dtype1),
