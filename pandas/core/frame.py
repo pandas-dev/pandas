@@ -8962,6 +8962,7 @@ class DataFrame(NDFrame, OpsMixin):
         1  2  500.0
         2  3    6.0
         """
+
         if not PYPY and using_copy_on_write():
             if sys.getrefcount(self) <= REF_COUNT:
                 warnings.warn(
@@ -9010,7 +9011,17 @@ class DataFrame(NDFrame, OpsMixin):
             if mask.all():
                 continue
 
-            self.loc[:, col] = self[col].where(mask, that)
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message="Downcasting behavior",
+                    category=FutureWarning,
+                )
+                # GH#57124 - `that` might get upcasted because of NA values, and then
+                # downcasted in where because of the mask. Ignoring the warning
+                # is a stopgap, will replace with a new implementation of update
+                # in 3.0.
+                self.loc[:, col] = self[col].where(mask, that)
 
     # ----------------------------------------------------------------------
     # Data reshaping
