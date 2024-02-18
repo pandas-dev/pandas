@@ -102,6 +102,8 @@ Deprecations
 ~~~~~~~~~~~~
 - Deprecated :meth:`Timestamp.utcfromtimestamp`, use ``Timestamp.fromtimestamp(ts, "UTC")`` instead (:issue:`56680`)
 - Deprecated :meth:`Timestamp.utcnow`, use ``Timestamp.now("UTC")`` instead (:issue:`56680`)
+- Deprecated allowing non-keyword arguments in :meth:`Series.to_markdown` except ``buf``. (:issue:`57280`)
+- Deprecated allowing non-keyword arguments in :meth:`Series.to_string` except ``buf``. (:issue:`57280`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -166,6 +168,7 @@ Performance improvements
 - Performance improvement in :meth:`Index.take` when ``indices`` is a full range indexer from zero to length of index (:issue:`56806`)
 - Performance improvement in :meth:`MultiIndex.equals` for equal length indexes (:issue:`56990`)
 - Performance improvement in :meth:`RangeIndex.append` when appending the same index (:issue:`57252`)
+- Performance improvement in :meth:`RangeIndex.take` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57445`)
 - Performance improvement in indexing operations for string dtypes (:issue:`56997`)
 -
 
