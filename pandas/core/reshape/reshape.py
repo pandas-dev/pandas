@@ -33,6 +33,7 @@ from pandas.core.algorithms import (
     factorize,
     unique,
 )
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.categorical import factorize_from_iterable
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.frame import DataFrame
@@ -242,9 +243,15 @@ class _Unstacker:
         index = self.new_index
 
         result = self.constructor(
-            new_values, index=index, columns=columns, dtype=values.dtype, copy=False
+            new_values, index=index, columns=columns, dtype=new_values.dtype, copy=False
         )
-        if values.base is new_values.base:
+        if isinstance(values, np.ndarray):
+            base, new_base = values.base, new_values.base
+        elif isinstance(values, NDArrayBackedExtensionArray):
+            base, new_base = values._ndarray.base, new_values._ndarray.base
+        else:
+            base, new_base = 1, 2
+        if base is new_base:
             # We can only get here if one of the dimensions is size 1
             mgr = result._mgr
             mgr.blocks[0].refs = obj._mgr.blocks[0].refs
@@ -539,9 +546,7 @@ def unstack(
         unstacker = _Unstacker(
             obj.index, level=level, constructor=obj._constructor_expanddim, sort=sort
         )
-        return unstacker.get_result(
-            obj._values, value_columns=None, fill_value=fill_value
-        )
+        return unstacker.get_result(obj, value_columns=None, fill_value=fill_value)
 
 
 def _unstack_frame(
