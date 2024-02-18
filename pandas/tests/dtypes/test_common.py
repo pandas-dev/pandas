@@ -153,41 +153,6 @@ def test_dtype_equal_strict(dtype1, dtype2):
     assert not com.is_dtype_equal(dtype1, dtype2)
 
 
-def get_is_dtype_funcs():
-    """
-    Get all functions in pandas.core.dtypes.common that
-    begin with 'is_' and end with 'dtype'
-
-    """
-    fnames = [f for f in dir(com) if (f.startswith("is_") and f.endswith("dtype"))]
-    fnames.remove("is_string_or_object_np_dtype")  # fastpath requires np.dtype obj
-    return [getattr(com, fname) for fname in fnames]
-
-
-@pytest.mark.filterwarnings(
-    "ignore:is_categorical_dtype is deprecated:DeprecationWarning"
-)
-@pytest.mark.parametrize("func", get_is_dtype_funcs(), ids=lambda x: x.__name__)
-def test_get_dtype_error_catch(func):
-    # see gh-15941
-    #
-    # No exception should be raised.
-
-    msg = f"{func.__name__} is deprecated"
-    warn = None
-    if (
-        func is com.is_int64_dtype
-        or func is com.is_interval_dtype
-        or func is com.is_datetime64tz_dtype
-        or func is com.is_categorical_dtype
-        or func is com.is_period_dtype
-    ):
-        warn = DeprecationWarning
-
-    with tm.assert_produces_warning(warn, match=msg):
-        assert not func(None)
-
-
 def test_is_object():
     assert com.is_object_dtype(object)
     assert com.is_object_dtype(np.array([], dtype=object))
@@ -195,22 +160,6 @@ def test_is_object():
     assert not com.is_object_dtype(int)
     assert not com.is_object_dtype(np.array([], dtype=int))
     assert not com.is_object_dtype([1, 2, 3])
-
-
-@pytest.mark.parametrize(
-    "check_scipy", [False, pytest.param(True, marks=td.skip_if_no("scipy"))]
-)
-def test_is_sparse(check_scipy):
-    msg = "is_sparse is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        assert com.is_sparse(SparseArray([1, 2, 3]))
-
-        assert not com.is_sparse(np.array([1, 2, 3]))
-
-        if check_scipy:
-            import scipy.sparse
-
-            assert not com.is_sparse(scipy.sparse.bsr_matrix([1, 2, 3]))
 
 
 def test_is_scipy_sparse():
@@ -230,15 +179,6 @@ def test_is_datetime64_dtype():
     assert com.is_datetime64_dtype(np.array([], dtype=np.datetime64))
 
 
-def test_is_datetime64tz_dtype():
-    msg = "is_datetime64tz_dtype is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        assert not com.is_datetime64tz_dtype(object)
-        assert not com.is_datetime64tz_dtype([1, 2, 3])
-        assert not com.is_datetime64tz_dtype(pd.DatetimeIndex([1, 2, 3]))
-        assert com.is_datetime64tz_dtype(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
-
-
 def test_custom_ea_kind_M_not_datetime64tz():
     # GH 34986
     class NotTZDtype(ExtensionDtype):
@@ -247,10 +187,7 @@ def test_custom_ea_kind_M_not_datetime64tz():
             return "M"
 
     not_tz_dtype = NotTZDtype()
-    msg = "is_datetime64tz_dtype is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        assert not com.is_datetime64tz_dtype(not_tz_dtype)
-        assert not com.needs_i8_conversion(not_tz_dtype)
+    assert not com.needs_i8_conversion(not_tz_dtype)
 
 
 def test_is_timedelta64_dtype():
@@ -266,41 +203,6 @@ def test_is_timedelta64_dtype():
     assert com.is_timedelta64_dtype(np.timedelta64)
     assert com.is_timedelta64_dtype(pd.Series([], dtype="timedelta64[ns]"))
     assert com.is_timedelta64_dtype(pd.to_timedelta(["0 days", "1 days"]))
-
-
-def test_is_period_dtype():
-    msg = "is_period_dtype is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        assert not com.is_period_dtype(object)
-        assert not com.is_period_dtype([1, 2, 3])
-        assert not com.is_period_dtype(pd.Period("2017-01-01"))
-
-        assert com.is_period_dtype(PeriodDtype(freq="D"))
-        assert com.is_period_dtype(pd.PeriodIndex([], freq="Y"))
-
-
-def test_is_interval_dtype():
-    msg = "is_interval_dtype is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        assert not com.is_interval_dtype(object)
-        assert not com.is_interval_dtype([1, 2, 3])
-
-        assert com.is_interval_dtype(IntervalDtype())
-
-        interval = pd.Interval(1, 2, closed="right")
-        assert not com.is_interval_dtype(interval)
-        assert com.is_interval_dtype(pd.IntervalIndex([interval]))
-
-
-def test_is_categorical_dtype():
-    msg = "is_categorical_dtype is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        assert not com.is_categorical_dtype(object)
-        assert not com.is_categorical_dtype([1, 2, 3])
-
-        assert com.is_categorical_dtype(CategoricalDtype())
-        assert com.is_categorical_dtype(pd.Categorical([1, 2, 3]))
-        assert com.is_categorical_dtype(pd.CategoricalIndex([1, 2, 3]))
 
 
 @pytest.mark.parametrize(
@@ -439,15 +341,6 @@ def test_is_not_unsigned_integer_dtype(dtype):
     assert not com.is_unsigned_integer_dtype(dtype)
 
 
-@pytest.mark.parametrize(
-    "dtype", [np.int64, np.array([1, 2], dtype=np.int64), "Int64", pd.Int64Dtype]
-)
-def test_is_int64_dtype(dtype):
-    msg = "is_int64_dtype is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        assert com.is_int64_dtype(dtype)
-
-
 def test_type_comparison_with_numeric_ea_dtype(any_numeric_ea_dtype):
     # GH#43038
     assert pandas_dtype(any_numeric_ea_dtype) == any_numeric_ea_dtype
@@ -463,27 +356,6 @@ def test_type_comparison_with_signed_int_ea_dtype_and_signed_int_numpy_dtype(
 ):
     # GH#43038
     assert not pandas_dtype(any_signed_int_ea_dtype) == any_signed_int_numpy_dtype
-
-
-@pytest.mark.parametrize(
-    "dtype",
-    [
-        str,
-        float,
-        np.int32,
-        np.uint64,
-        pd.Index([1, 2.0]),
-        np.array(["a", "b"]),
-        np.array([1, 2], dtype=np.uint32),
-        "int8",
-        "Int8",
-        pd.Int8Dtype,
-    ],
-)
-def test_is_not_int64_dtype(dtype):
-    msg = "is_int64_dtype is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        assert not com.is_int64_dtype(dtype)
 
 
 def test_is_datetime64_any_dtype():

@@ -13,8 +13,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import (
-    Interval,
-    Period,
     algos,
     lib,
 )
@@ -26,9 +24,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
-    IntervalDtype,
     PeriodDtype,
-    SparseDtype,
 )
 from pandas.core.dtypes.generic import ABCIndex
 from pandas.core.dtypes.inference import (
@@ -164,60 +160,6 @@ def is_object_dtype(arr_or_dtype) -> bool:
     return _is_dtype_type(arr_or_dtype, classes(np.object_))
 
 
-def is_sparse(arr) -> bool:
-    """
-    Check whether an array-like is a 1-D pandas sparse array.
-
-    Check that the one-dimensional array-like is a pandas sparse array.
-    Returns True if it is a pandas sparse array, not another type of
-    sparse array.
-
-    Parameters
-    ----------
-    arr : array-like
-        Array-like to check.
-
-    Returns
-    -------
-    bool
-        Whether or not the array-like is a pandas sparse array.
-
-    Examples
-    --------
-    Returns `True` if the parameter is a 1-D pandas sparse array.
-
-    >>> from pandas.api.types import is_sparse
-    >>> is_sparse(pd.arrays.SparseArray([0, 0, 1, 0]))
-    True
-    >>> is_sparse(pd.Series(pd.arrays.SparseArray([0, 0, 1, 0])))
-    True
-
-    Returns `False` if the parameter is not sparse.
-
-    >>> is_sparse(np.array([0, 0, 1, 0]))
-    False
-    >>> is_sparse(pd.Series([0, 1, 0, 0]))
-    False
-
-    Returns `False` if the parameter is not a pandas sparse array.
-
-    >>> from scipy.sparse import bsr_matrix
-    >>> is_sparse(bsr_matrix([0, 1, 0, 0]))
-    False
-
-    Returns `False` if the parameter has more than one dimension.
-    """
-    warnings.warn(
-        "is_sparse is deprecated and will be removed in a future "
-        "version. Check `isinstance(dtype, pd.SparseDtype)` instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
-    dtype = getattr(arr, "dtype", arr)
-    return isinstance(dtype, SparseDtype)
-
-
 def is_scipy_sparse(arr) -> bool:
     """
     Check whether an array-like is a scipy.sparse.spmatrix instance.
@@ -290,57 +232,6 @@ def is_datetime64_dtype(arr_or_dtype) -> bool:
     return _is_dtype_type(arr_or_dtype, classes(np.datetime64))
 
 
-def is_datetime64tz_dtype(arr_or_dtype) -> bool:
-    """
-    Check whether an array-like or dtype is of a DatetimeTZDtype dtype.
-
-    Parameters
-    ----------
-    arr_or_dtype : array-like or dtype
-        The array-like or dtype to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the array-like or dtype is of a DatetimeTZDtype dtype.
-
-    Examples
-    --------
-    >>> from pandas.api.types import is_datetime64tz_dtype
-    >>> is_datetime64tz_dtype(object)
-    False
-    >>> is_datetime64tz_dtype([1, 2, 3])
-    False
-    >>> is_datetime64tz_dtype(pd.DatetimeIndex([1, 2, 3]))  # tz-naive
-    False
-    >>> is_datetime64tz_dtype(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
-    True
-
-    >>> from pandas.core.dtypes.dtypes import DatetimeTZDtype
-    >>> dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-    >>> s = pd.Series([], dtype=dtype)
-    >>> is_datetime64tz_dtype(dtype)
-    True
-    >>> is_datetime64tz_dtype(s)
-    True
-    """
-    # GH#52607
-    warnings.warn(
-        "is_datetime64tz_dtype is deprecated and will be removed in a future "
-        "version. Check `isinstance(dtype, pd.DatetimeTZDtype)` instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    if isinstance(arr_or_dtype, DatetimeTZDtype):
-        # GH#33400 fastpath for dtype object
-        # GH 34986
-        return True
-
-    if arr_or_dtype is None:
-        return False
-    return DatetimeTZDtype.is_dtype(arr_or_dtype)
-
-
 def is_timedelta64_dtype(arr_or_dtype) -> bool:
     """
     Check whether an array-like or dtype is of the timedelta64 dtype.
@@ -374,140 +265,6 @@ def is_timedelta64_dtype(arr_or_dtype) -> bool:
         return arr_or_dtype.kind == "m"
 
     return _is_dtype_type(arr_or_dtype, classes(np.timedelta64))
-
-
-def is_period_dtype(arr_or_dtype) -> bool:
-    """
-    Check whether an array-like or dtype is of the Period dtype.
-
-    Parameters
-    ----------
-    arr_or_dtype : array-like or dtype
-        The array-like or dtype to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the array-like or dtype is of the Period dtype.
-
-    Examples
-    --------
-    >>> from pandas.core.dtypes.common import is_period_dtype
-    >>> is_period_dtype(object)
-    False
-    >>> is_period_dtype(pd.PeriodDtype(freq="D"))
-    True
-    >>> is_period_dtype([1, 2, 3])
-    False
-    >>> is_period_dtype(pd.Period("2017-01-01"))
-    False
-    >>> is_period_dtype(pd.PeriodIndex([], freq="Y"))
-    True
-    """
-    warnings.warn(
-        "is_period_dtype is deprecated and will be removed in a future version. "
-        "Use `isinstance(dtype, pd.PeriodDtype)` instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    if isinstance(arr_or_dtype, ExtensionDtype):
-        # GH#33400 fastpath for dtype object
-        return arr_or_dtype.type is Period
-
-    if arr_or_dtype is None:
-        return False
-    return PeriodDtype.is_dtype(arr_or_dtype)
-
-
-def is_interval_dtype(arr_or_dtype) -> bool:
-    """
-    Check whether an array-like or dtype is of the Interval dtype.
-
-    Parameters
-    ----------
-    arr_or_dtype : array-like or dtype
-        The array-like or dtype to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the array-like or dtype is of the Interval dtype.
-
-    Examples
-    --------
-    >>> from pandas.core.dtypes.common import is_interval_dtype
-    >>> is_interval_dtype(object)
-    False
-    >>> is_interval_dtype(pd.IntervalDtype())
-    True
-    >>> is_interval_dtype([1, 2, 3])
-    False
-    >>>
-    >>> interval = pd.Interval(1, 2, closed="right")
-    >>> is_interval_dtype(interval)
-    False
-    >>> is_interval_dtype(pd.IntervalIndex([interval]))
-    True
-    """
-    # GH#52607
-    warnings.warn(
-        "is_interval_dtype is deprecated and will be removed in a future version. "
-        "Use `isinstance(dtype, pd.IntervalDtype)` instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    if isinstance(arr_or_dtype, ExtensionDtype):
-        # GH#33400 fastpath for dtype object
-        return arr_or_dtype.type is Interval
-
-    if arr_or_dtype is None:
-        return False
-    return IntervalDtype.is_dtype(arr_or_dtype)
-
-
-def is_categorical_dtype(arr_or_dtype) -> bool:
-    """
-    Check whether an array-like or dtype is of the Categorical dtype.
-
-    Parameters
-    ----------
-    arr_or_dtype : array-like or dtype
-        The array-like or dtype to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the array-like or dtype is of the Categorical dtype.
-
-    Examples
-    --------
-    >>> from pandas.api.types import is_categorical_dtype
-    >>> from pandas import CategoricalDtype
-    >>> is_categorical_dtype(object)
-    False
-    >>> is_categorical_dtype(CategoricalDtype())
-    True
-    >>> is_categorical_dtype([1, 2, 3])
-    False
-    >>> is_categorical_dtype(pd.Categorical([1, 2, 3]))
-    True
-    >>> is_categorical_dtype(pd.CategoricalIndex([1, 2, 3]))
-    True
-    """
-    # GH#52527
-    warnings.warn(
-        "is_categorical_dtype is deprecated and will be removed in a future "
-        "version. Use isinstance(dtype, pd.CategoricalDtype) instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    if isinstance(arr_or_dtype, ExtensionDtype):
-        # GH#33400 fastpath for dtype object
-        return arr_or_dtype.name == "category"
-
-    if arr_or_dtype is None:
-        return False
-    return CategoricalDtype.is_dtype(arr_or_dtype)
 
 
 def is_string_or_object_np_dtype(dtype: np.dtype) -> bool:
@@ -778,69 +535,6 @@ def is_unsigned_integer_dtype(arr_or_dtype) -> bool:
     ) or _is_dtype(
         arr_or_dtype, lambda typ: isinstance(typ, ExtensionDtype) and typ.kind == "u"
     )
-
-
-def is_int64_dtype(arr_or_dtype) -> bool:
-    """
-    Check whether the provided array or dtype is of the int64 dtype.
-
-    .. deprecated:: 2.1.0
-
-       is_int64_dtype is deprecated and will be removed in a future
-       version. Use dtype == np.int64 instead.
-
-    Parameters
-    ----------
-    arr_or_dtype : array-like or dtype
-        The array or dtype to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the array or dtype is of the int64 dtype.
-
-    Notes
-    -----
-    Depending on system architecture, the return value of `is_int64_dtype(
-    int)` will be True if the OS uses 64-bit integers and False if the OS
-    uses 32-bit integers.
-
-    Examples
-    --------
-    >>> from pandas.api.types import is_int64_dtype
-    >>> is_int64_dtype(str)  # doctest: +SKIP
-    False
-    >>> is_int64_dtype(np.int32)  # doctest: +SKIP
-    False
-    >>> is_int64_dtype(np.int64)  # doctest: +SKIP
-    True
-    >>> is_int64_dtype("int8")  # doctest: +SKIP
-    False
-    >>> is_int64_dtype("Int8")  # doctest: +SKIP
-    False
-    >>> is_int64_dtype(pd.Int64Dtype)  # doctest: +SKIP
-    True
-    >>> is_int64_dtype(float)  # doctest: +SKIP
-    False
-    >>> is_int64_dtype(np.uint64)  # unsigned  # doctest: +SKIP
-    False
-    >>> is_int64_dtype(np.array(["a", "b"]))  # doctest: +SKIP
-    False
-    >>> is_int64_dtype(np.array([1, 2], dtype=np.int64))  # doctest: +SKIP
-    True
-    >>> is_int64_dtype(pd.Index([1, 2.0]))  # float  # doctest: +SKIP
-    False
-    >>> is_int64_dtype(np.array([1, 2], dtype=np.uint32))  # unsigned  # doctest: +SKIP
-    False
-    """
-    # GH#52564
-    warnings.warn(
-        "is_int64_dtype is deprecated and will be removed in a future "
-        "version. Use dtype == np.int64 instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return _is_dtype_type(arr_or_dtype, classes(np.int64))
 
 
 def is_datetime64_any_dtype(arr_or_dtype) -> bool:
@@ -1692,14 +1386,12 @@ __all__ = [
     "is_array_like",
     "is_bool",
     "is_bool_dtype",
-    "is_categorical_dtype",
     "is_complex",
     "is_complex_dtype",
     "is_dataclass",
     "is_datetime64_any_dtype",
     "is_datetime64_dtype",
     "is_datetime64_ns_dtype",
-    "is_datetime64tz_dtype",
     "is_decimal",
     "is_dict_like",
     "is_dtype_equal",
@@ -1707,22 +1399,18 @@ __all__ = [
     "is_extension_array_dtype",
     "is_file_like",
     "is_float_dtype",
-    "is_int64_dtype",
     "is_integer_dtype",
-    "is_interval_dtype",
     "is_iterator",
     "is_named_tuple",
     "is_nested_list_like",
     "is_number",
     "is_numeric_dtype",
     "is_object_dtype",
-    "is_period_dtype",
     "is_re",
     "is_re_compilable",
     "is_scipy_sparse",
     "is_sequence",
     "is_signed_integer_dtype",
-    "is_sparse",
     "is_string_dtype",
     "is_string_or_object_np_dtype",
     "is_timedelta64_dtype",
