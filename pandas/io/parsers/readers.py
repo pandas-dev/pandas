@@ -243,8 +243,8 @@ verbose : bool, default False
     .. deprecated:: 2.2.0
 skip_blank_lines : bool, default True
     If ``True``, skip over blank lines rather than interpreting as ``NaN`` values.
-parse_dates : bool, None, list of Hashable, list of lists or dict of {{Hashable : list}}, \
-default None
+parse_dates : bool, None, list of Hashable, list of lists or dict of {{Hashable : \
+list}}, default None
     The behavior is as follows:
 
     * ``bool``. If ``True`` -> try parsing the index.
