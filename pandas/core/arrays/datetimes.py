@@ -140,12 +140,10 @@ def _field_accessor(name: str, field: str, docstring: str | None = None):
 
             if field.endswith(("start", "end")):
                 freq = self.freq
-                month_kw = 12  # Default to December, but doesn't distinguish between start or end
+                month_kw = 12
                 if freq:
                     kwds = freq.kwds
-                    month_kw = kwds.get(
-                        "startingMonth", kwds.get("month", 12)
-                    )  # Gets the "startingMonth" if it exists, otherwise it returns 12
+                    month_kw = kwds.get("startingMonth", kwds.get("month", 12))
 
                 result = fields.get_start_end_field(
                     values, field, self.freqstr, month_kw, reso=self._creso
