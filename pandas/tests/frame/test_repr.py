@@ -7,6 +7,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas import (
     NA,
     Categorical,
@@ -174,6 +176,7 @@ NaT   4"""
 
         repr(biggie)
 
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="/r in")
     def test_repr(self):
         # columns but no index
         no_index = DataFrame(columns=[0, 1, 3])
@@ -515,4 +518,4 @@ def test_repr_with_complex_nans(data, output, as_frame):
     else:
         reprs = [f"{i}   {val}" for i, val in enumerate(output)]
         expected = "\n".join(reprs) + "\ndtype: complex128"
-    assert str(obj) == expected, f"\n{str(obj)}\n\n{expected}"
+    assert str(obj) == expected, f"\n{obj!s}\n\n{expected}"

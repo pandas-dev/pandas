@@ -66,9 +66,9 @@ int object_is_na_type(PyObject *obj);
 typedef struct __NpyArrContext {
   PyObject *array;
   char *dataptr;
-  int curdim;    // current dimension in array's order
-  int stridedim; // dimension we are striding over
-  int inc;       // stride dimension increment (+/- 1)
+  npy_intp curdim;    // current dimension in array's order
+  npy_intp stridedim; // dimension we are striding over
+  int inc;            // stride dimension increment (+/- 1)
   npy_intp dim;
   npy_intp stride;
   npy_intp ndim;
@@ -81,8 +81,8 @@ typedef struct __NpyArrContext {
 } NpyArrContext;
 
 typedef struct __PdBlockContext {
-  int colIdx;
-  int ncols;
+  Py_ssize_t colIdx;
+  Py_ssize_t ncols;
   int transpose;
 
   NpyArrContext **npyCtxts; // NpyArrContext for each column
@@ -447,8 +447,15 @@ static void NpyArrPassThru_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
   npyarr->curdim--;
   npyarr->dataptr -= npyarr->stride * npyarr->index[npyarr->stridedim];
   npyarr->stridedim -= npyarr->inc;
-  npyarr->dim = PyArray_DIM(npyarr->array, npyarr->stridedim);
-  npyarr->stride = PyArray_STRIDE(npyarr->array, npyarr->stridedim);
+
+  if (!PyArray_Check(npyarr->array)) {
+    PyErr_SetString(PyExc_TypeError,
+                    "NpyArrayPassThru_iterEnd received a non-array object");
+    return;
+  }
+  const PyArrayObject *arrayobj = (const PyArrayObject *)npyarr->array;
+  npyarr->dim = PyArray_DIM(arrayobj, npyarr->stridedim);
+  npyarr->stride = PyArray_STRIDE(arrayobj, npyarr->stridedim);
   npyarr->dataptr += npyarr->stride;
 
   NpyArr_freeItemValue(obj, tc);
@@ -467,12 +474,19 @@ static int NpyArr_iterNextItem(JSOBJ obj, JSONTypeContext *tc) {
 
   NpyArr_freeItemValue(obj, tc);
 
-  if (PyArray_ISDATETIME(npyarr->array)) {
+  if (!PyArray_Check(npyarr->array)) {
+    PyErr_SetString(PyExc_TypeError,
+                    "NpyArr_iterNextItem received a non-array object");
+    return 0;
+  }
+  PyArrayObject *arrayobj = (PyArrayObject *)npyarr->array;
+
+  if (PyArray_ISDATETIME(arrayobj)) {
     GET_TC(tc)->itemValue = obj;
     Py_INCREF(obj);
-    ((PyObjectEncoder *)tc->encoder)->npyType = PyArray_TYPE(npyarr->array);
+    ((PyObjectEncoder *)tc->encoder)->npyType = PyArray_TYPE(arrayobj);
     // Also write the resolution (unit) of the ndarray
-    PyArray_Descr *dtype = PyArray_DESCR(npyarr->array);
+    PyArray_Descr *dtype = PyArray_DESCR(arrayobj);
     ((PyObjectEncoder *)tc->encoder)->valueUnit =
         get_datetime_metadata_from_dtype(dtype).base;
     ((PyObjectEncoder *)tc->encoder)->npyValue = npyarr->dataptr;
@@ -505,8 +519,15 @@ static int NpyArr_iterNext(JSOBJ _obj, JSONTypeContext *tc) {
 
   npyarr->curdim++;
   npyarr->stridedim += npyarr->inc;
-  npyarr->dim = PyArray_DIM(npyarr->array, npyarr->stridedim);
-  npyarr->stride = PyArray_STRIDE(npyarr->array, npyarr->stridedim);
+  if (!PyArray_Check(npyarr->array)) {
+    PyErr_SetString(PyExc_TypeError,
+                    "NpyArr_iterNext received a non-array object");
+    return 0;
+  }
+  const PyArrayObject *arrayobj = (const PyArrayObject *)npyarr->array;
+
+  npyarr->dim = PyArray_DIM(arrayobj, npyarr->stridedim);
+  npyarr->stride = PyArray_STRIDE(arrayobj, npyarr->stridedim);
   npyarr->index[npyarr->stridedim] = 0;
 
   ((PyObjectEncoder *)tc->encoder)->npyCtxtPassthru = npyarr;
@@ -1610,7 +1631,14 @@ ISITERABLE:
       if (!values) {
         goto INVALID;
       }
-      pc->columnLabelsLen = PyArray_DIM(pc->newObj, 0);
+
+      if (!PyArray_Check(pc->newObj)) {
+        PyErr_SetString(PyExc_TypeError,
+                        "Object_beginTypeContext received a non-array object");
+        goto INVALID;
+      }
+      const PyArrayObject *arrayobj = (const PyArrayObject *)pc->newObj;
+      pc->columnLabelsLen = PyArray_DIM(arrayobj, 0);
       pc->columnLabels = NpyArr_encodeLabels((PyArrayObject *)values, enc,
                                              pc->columnLabelsLen);
       if (!pc->columnLabels) {
@@ -1934,39 +1962,41 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
   PyObject *odefHandler = 0;
   int indent = 0;
 
-  PyObjectEncoder pyEncoder = {{
-      Object_beginTypeContext,
-      Object_endTypeContext,
-      Object_getStringValue,
-      Object_getLongValue,
-      NULL, // getIntValue is unused
-      Object_getDoubleValue,
-      Object_getBigNumStringValue,
-      Object_iterBegin,
-      Object_iterNext,
-      Object_iterEnd,
-      Object_iterGetValue,
-      Object_iterGetName,
-      Object_releaseObject,
-      PyObject_Malloc,
-      PyObject_Realloc,
-      PyObject_Free,
-      -1, // recursionMax
-      idoublePrecision,
-      1,      // forceAscii
-      0,      // encodeHTMLChars
-      indent, // indent
-  }};
+  PyObjectEncoder pyEncoder = {
+      {
+          .beginTypeContext = Object_beginTypeContext,
+          .endTypeContext = Object_endTypeContext,
+          .getStringValue = Object_getStringValue,
+          .getLongValue = Object_getLongValue,
+          .getIntValue = NULL,
+          .getDoubleValue = Object_getDoubleValue,
+          .getBigNumStringValue = Object_getBigNumStringValue,
+          .iterBegin = Object_iterBegin,
+          .iterNext = Object_iterNext,
+          .iterEnd = Object_iterEnd,
+          .iterGetValue = Object_iterGetValue,
+          .iterGetName = Object_iterGetName,
+          .releaseObject = Object_releaseObject,
+          .malloc = PyObject_Malloc,
+          .realloc = PyObject_Realloc,
+          .free = PyObject_Free,
+          .recursionMax = -1,
+          .doublePrecision = idoublePrecision,
+          .forceASCII = 1,
+          .encodeHTMLChars = 0,
+          .indent = indent,
+          .errorMsg = NULL,
+      },
+      .npyCtxtPassthru = NULL,
+      .blkCtxtPassthru = NULL,
+      .npyType = -1,
+      .npyValue = NULL,
+      .datetimeIso = 0,
+      .datetimeUnit = NPY_FR_ms,
+      .outputFormat = COLUMNS,
+      .defaultHandler = NULL,
+  };
   JSONObjectEncoder *encoder = (JSONObjectEncoder *)&pyEncoder;
-
-  pyEncoder.npyCtxtPassthru = NULL;
-  pyEncoder.blkCtxtPassthru = NULL;
-  pyEncoder.npyType = -1;
-  pyEncoder.npyValue = NULL;
-  pyEncoder.datetimeIso = 0;
-  pyEncoder.datetimeUnit = NPY_FR_ms;
-  pyEncoder.outputFormat = COLUMNS;
-  pyEncoder.defaultHandler = 0;
 
   if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|OiOssOOi", kwlist, &oinput,
                                    &oensureAscii, &idoublePrecision,

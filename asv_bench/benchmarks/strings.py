@@ -33,10 +33,11 @@ class Dtypes:
     def setup(self, dtype):
         try:
             self.s = Series(
-                Index([f"i-{i}" for i in range(10000)], dtype=self.dtype_mapping[dtype]), dtype=dtype
+                Index([f"i-{i}" for i in range(10000)], dtype=self.dtype_mapping[dtype])._values,
+                dtype=dtype
             )
-        except ImportError:
-            raise NotImplementedError
+        except ImportError as err:
+            raise NotImplementedError from err
 
 
 class Construction:

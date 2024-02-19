@@ -132,7 +132,7 @@ cdef bint parse_today_now(
         if infer_reso:
             creso = NPY_DATETIMEUNIT.NPY_FR_us
         if utc:
-            ts = <_Timestamp>Timestamp.utcnow()
+            ts = <_Timestamp>Timestamp.now(timezone.utc)
             iresult[0] = ts._as_creso(creso)._value
         else:
             # GH#18705 make sure to_datetime("now") matches Timestamp("now")
@@ -310,7 +310,7 @@ def array_strptime(
     values : ndarray of string-like objects
     fmt : string-like regex
     exact : matches must be exact if True, search if False
-    errors : string specifying error handling, {'raise', 'ignore', 'coerce'}
+    errors : string specifying error handling, {'raise', 'coerce'}
     creso : NPY_DATETIMEUNIT, default NPY_FR_ns
         Set to NPY_FR_GENERIC to infer a resolution.
     """
@@ -319,14 +319,13 @@ def array_strptime(
         Py_ssize_t i, n = len(values)
         npy_datetimestruct dts
         int64_t[::1] iresult
-        object val, tz
+        object val
         bint seen_datetime_offset = False
         bint is_raise = errors=="raise"
-        bint is_ignore = errors=="ignore"
         bint is_coerce = errors=="coerce"
         bint is_same_offsets
         set out_tzoffset_vals = set()
-        tzinfo tz_out = None
+        tzinfo tz, tz_out = None
         bint iso_format = format_is_iso(fmt)
         NPY_DATETIMEUNIT out_bestunit, item_reso
         int out_local = 0, out_tzoffset = 0
@@ -334,7 +333,7 @@ def array_strptime(
         bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         DatetimeParseState state = DatetimeParseState(creso)
 
-    assert is_raise or is_ignore or is_coerce
+    assert is_raise or is_coerce
 
     _validate_fmt(fmt)
     format_regex, locale_time = _get_format_regex(fmt)
@@ -484,7 +483,7 @@ def array_strptime(
                 tz = None
                 out_tzoffset_vals.add("naive")
 
-        except (ValueError, OutOfBoundsDatetime) as ex:
+        except ValueError as ex:
             ex.args = (
                 f"{str(ex)}, at position {i}. You might want to try:\n"
                 "    - passing `format` if your strings have a consistent format;\n"
@@ -806,14 +805,13 @@ def _array_strptime_object_fallback(
         object val
         tzinfo tz
         bint is_raise = errors=="raise"
-        bint is_ignore = errors=="ignore"
         bint is_coerce = errors=="coerce"
         bint iso_format = format_is_iso(fmt)
         NPY_DATETIMEUNIT creso, out_bestunit, item_reso
         int out_local = 0, out_tzoffset = 0
         bint string_to_dts_succeeded = 0
 
-    assert is_raise or is_ignore or is_coerce
+    assert is_raise or is_coerce
 
     item_reso = NPY_DATETIMEUNIT.NPY_FR_GENERIC
     format_regex, locale_time = _get_format_regex(fmt)
@@ -922,9 +920,8 @@ def _array_strptime_object_fallback(
             if is_coerce:
                 result[i] = NaT
                 continue
-            elif is_raise:
+            else:
                 raise
-            return values
 
     import warnings
 
@@ -1084,7 +1081,7 @@ cdef tzinfo parse_timezone_directive(str z):
     cdef:
         int hours, minutes, seconds, pad_number, microseconds
         int total_minutes
-        object gmtoff_remainder, gmtoff_remainder_padding
+        str gmtoff_remainder, gmtoff_remainder_padding
 
     if z == "Z":
         return timezone(timedelta(0))

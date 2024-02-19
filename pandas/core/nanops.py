@@ -1153,9 +1153,10 @@ def nanargmax(
     array([2, 2, 1, 1])
     """
     values, mask = _get_values(values, True, fill_value_typ="-inf", mask=mask)
-    # error: Need type annotation for 'result'
-    result = values.argmax(axis)  # type: ignore[var-annotated]
-    result = _maybe_arg_null_out(result, axis, mask, skipna)
+    result = values.argmax(axis)
+    # error: Argument 1 to "_maybe_arg_null_out" has incompatible type "Any |
+    # signedinteger[Any]"; expected "ndarray[Any, Any]"
+    result = _maybe_arg_null_out(result, axis, mask, skipna)  # type: ignore[arg-type]
     return result
 
 
@@ -1198,9 +1199,10 @@ def nanargmin(
     array([0, 0, 1, 1])
     """
     values, mask = _get_values(values, True, fill_value_typ="+inf", mask=mask)
-    # error: Need type annotation for 'result'
-    result = values.argmin(axis)  # type: ignore[var-annotated]
-    result = _maybe_arg_null_out(result, axis, mask, skipna)
+    result = values.argmin(axis)
+    # error: Argument 1 to "_maybe_arg_null_out" has incompatible type "Any |
+    # signedinteger[Any]"; expected "ndarray[Any, Any]"
+    result = _maybe_arg_null_out(result, axis, mask, skipna)  # type: ignore[arg-type]
     return result
 
 

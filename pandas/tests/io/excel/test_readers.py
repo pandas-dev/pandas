@@ -18,6 +18,7 @@ import pytest
 
 from pandas._config import using_pyarrow_string_dtype
 
+from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -33,6 +34,9 @@ from pandas.core.arrays import (
     ArrowStringArray,
     StringArray,
 )
+
+if is_platform_windows():
+    pytestmark = pytest.mark.single_cpu
 
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [
@@ -550,7 +554,7 @@ class TestReaders:
 
         expected["a"] = expected["a"].astype("float64")
         expected["b"] = expected["b"].astype("float32")
-        expected["c"] = ["001", "002", "003", "004"]
+        expected["c"] = Series(["001", "002", "003", "004"], dtype=object)
         tm.assert_frame_equal(actual, expected)
 
         msg = "Unable to convert column d to type int64"
@@ -562,25 +566,21 @@ class TestReaders:
         [
             (
                 None,
-                DataFrame(
-                    {
-                        "a": [1, 2, 3, 4],
-                        "b": [2.5, 3.5, 4.5, 5.5],
-                        "c": [1, 2, 3, 4],
-                        "d": [1.0, 2.0, np.nan, 4.0],
-                    }
-                ),
+                {
+                    "a": [1, 2, 3, 4],
+                    "b": [2.5, 3.5, 4.5, 5.5],
+                    "c": [1, 2, 3, 4],
+                    "d": [1.0, 2.0, np.nan, 4.0],
+                },
             ),
             (
                 {"a": "float64", "b": "float32", "c": str, "d": str},
-                DataFrame(
-                    {
-                        "a": Series([1, 2, 3, 4], dtype="float64"),
-                        "b": Series([2.5, 3.5, 4.5, 5.5], dtype="float32"),
-                        "c": ["001", "002", "003", "004"],
-                        "d": ["1", "2", np.nan, "4"],
-                    }
-                ),
+                {
+                    "a": Series([1, 2, 3, 4], dtype="float64"),
+                    "b": Series([2.5, 3.5, 4.5, 5.5], dtype="float32"),
+                    "c": Series(["001", "002", "003", "004"], dtype=object),
+                    "d": Series(["1", "2", np.nan, "4"], dtype=object),
+                },
             ),
         ],
     )
@@ -589,6 +589,7 @@ class TestReaders:
         basename = "testdtype"
 
         actual = pd.read_excel(basename + read_ext, dtype=dtype)
+        expected = DataFrame(expected)
         tm.assert_frame_equal(actual, expected)
 
     def test_dtype_backend(self, read_ext, dtype_backend, engine):
@@ -694,15 +695,20 @@ class TestReaders:
                 )
             tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("dtypes, exp_value", [({}, "1"), ({"a.1": "int64"}, 1)])
+    @pytest.mark.parametrize("dtypes, exp_value", [({}, 1), ({"a.1": "int64"}, 1)])
     def test_dtype_mangle_dup_cols(self, read_ext, dtypes, exp_value):
         # GH#35211
         basename = "df_mangle_dup_col_dtypes"
-        dtype_dict = {"a": str, **dtypes}
+        dtype_dict = {"a": object, **dtypes}
         dtype_dict_copy = dtype_dict.copy()
         # GH#42462
         result = pd.read_excel(basename + read_ext, dtype=dtype_dict)
-        expected = DataFrame({"a": ["1"], "a.1": [exp_value]})
+        expected = DataFrame(
+            {
+                "a": Series([1], dtype=object),
+                "a.1": Series([exp_value], dtype=object if not dtypes else None),
+            }
+        )
         assert dtype_dict == dtype_dict_copy, "dtype dict changed"
         tm.assert_frame_equal(result, expected)
 
@@ -960,19 +966,6 @@ class TestReaders:
         expected = pd.read_excel(str_path, sheet_name="Sheet1", index_col=0)
 
         path_obj = Path("test1" + read_ext)
-        actual = pd.read_excel(path_obj, sheet_name="Sheet1", index_col=0)
-
-        tm.assert_frame_equal(expected, actual)
-
-    @td.skip_if_no("py.path")
-    def test_read_from_py_localpath(self, read_ext):
-        # GH12655
-        from py.path import local as LocalPath
-
-        str_path = os.path.join("test1" + read_ext)
-        expected = pd.read_excel(str_path, sheet_name="Sheet1", index_col=0)
-
-        path_obj = LocalPath().join("test1" + read_ext)
         actual = pd.read_excel(path_obj, sheet_name="Sheet1", index_col=0)
 
         tm.assert_frame_equal(expected, actual)
@@ -1459,17 +1452,10 @@ class TestReaders:
 
 
 class TestExcelFileRead:
-    def test_deprecate_bytes_input(self, engine, read_ext):
+    def test_raises_bytes_input(self, engine, read_ext):
         # GH 53830
-        msg = (
-            "Passing bytes to 'read_excel' is deprecated and "
-            "will be removed in a future version. To read from a "
-            "byte string, wrap it in a `BytesIO` object."
-        )
-
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, raise_on_extra_warnings=False
-        ):
+        msg = "Expected file path name or file-like object"
+        with pytest.raises(TypeError, match=msg):
             with open("test1" + read_ext, "rb") as f:
                 pd.read_excel(f.read(), engine=engine)
 

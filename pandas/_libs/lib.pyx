@@ -770,6 +770,9 @@ cpdef ndarray[object] ensure_string_array(
         result = result.copy()
     elif not copy and result is arr:
         already_copied = False
+    elif not copy and not result.flags.writeable:
+        # Weird edge case where result is a view
+        already_copied = False
 
     if issubclass(arr.dtype.type, np.str_):
         # short-circuit, all elements are str
@@ -1159,43 +1162,6 @@ def is_complex(obj: object) -> bool:
 
 cpdef bint is_decimal(object obj):
     return isinstance(obj, Decimal)
-
-
-cpdef bint is_interval(object obj):
-    import warnings
-
-    from pandas.util._exceptions import find_stack_level
-
-    warnings.warn(
-        # GH#55264
-        "is_interval is deprecated and will be removed in a future version. "
-        "Use isinstance(obj, pd.Interval) instead.",
-        FutureWarning,
-        stacklevel=find_stack_level(),
-    )
-    return getattr(obj, "_typ", "_typ") == "interval"
-
-
-def is_period(val: object) -> bool:
-    """
-    Return True if given object is Period.
-
-    Returns
-    -------
-    bool
-    """
-    import warnings
-
-    from pandas.util._exceptions import find_stack_level
-
-    warnings.warn(
-        # GH#55264
-        "is_period is deprecated and will be removed in a future version. "
-        "Use isinstance(obj, pd.Period) instead.",
-        FutureWarning,
-        stacklevel=find_stack_level(),
-    )
-    return is_period_object(val)
 
 
 def is_list_like(obj: object, allow_sets: bool = True) -> bool:
@@ -2761,8 +2727,11 @@ def maybe_convert_objects(ndarray[object] objects,
                     res[:] = NPY_NAT
                     return res
             elif dtype is not None:
-                # EA, we don't expect to get here, but _could_ implement
-                raise NotImplementedError(dtype)
+                # i.e. PeriodDtype, DatetimeTZDtype
+                cls = dtype.construct_array_type()
+                obj = cls._from_sequence([], dtype=dtype)
+                taker = -np.ones((<object>objects).shape, dtype=np.intp)
+                return obj.take(taker, allow_fill=True)
             else:
                 # we don't guess
                 seen.object_ = True
@@ -2866,10 +2835,11 @@ def map_infer_mask(
         ndarray[object] arr,
         object f,
         const uint8_t[:] mask,
+        *,
         bint convert=True,
         object na_value=no_default,
         cnp.dtype dtype=np.dtype(object)
-) -> np.ndarray:
+) -> "ArrayLike":
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2889,7 +2859,7 @@ def map_infer_mask(
 
     Returns
     -------
-    np.ndarray
+    np.ndarray or an ExtensionArray
     """
     cdef Py_ssize_t n = len(arr)
     result = np.empty(n, dtype=dtype)
@@ -2943,8 +2913,8 @@ def _map_infer_mask(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def map_infer(
-    ndarray arr, object f, bint convert=True, bint ignore_na=False
-) -> np.ndarray:
+    ndarray arr, object f, *, bint convert=True, bint ignore_na=False
+) -> "ArrayLike":
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2958,7 +2928,7 @@ def map_infer(
 
     Returns
     -------
-    np.ndarray
+    np.ndarray or an ExtensionArray
     """
     cdef:
         Py_ssize_t i, n
@@ -3093,7 +3063,7 @@ def to_object_array_tuples(rows: object) -> np.ndarray:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_multiget(dict mapping, object[:] keys, default=np.nan) -> np.ndarray:
+def fast_multiget(dict mapping, object[:] keys, default=np.nan) -> "ArrayLike":
     cdef:
         Py_ssize_t i, n = len(keys)
         object val

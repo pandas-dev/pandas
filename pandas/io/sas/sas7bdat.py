@@ -54,6 +54,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         CompressionOptions,
         FilePath,
+        NaTType,
         ReadBuffer,
     )
 
@@ -62,7 +63,7 @@ _unix_origin = Timestamp("1970-01-01")
 _sas_origin = Timestamp("1960-01-01")
 
 
-def _parse_datetime(sas_datetime: float, unit: str):
+def _parse_datetime(sas_datetime: float, unit: str) -> datetime | NaTType:
     if isna(sas_datetime):
         return pd.NaT
 
@@ -86,7 +87,7 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
     ----------
     sas_datetimes : {Series, Sequence[float]}
        Dates or datetimes in SAS
-    unit : {str}
+    unit : {'d', 's'}
        "d" if the floats represent dates, "s" for datetimes
 
     Returns
@@ -100,10 +101,10 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
             sas_datetimes._values, unit="s", out_unit="ms"
         )
         dt64ms = millis.view("M8[ms]") + td
-        return pd.Series(dt64ms, index=sas_datetimes.index)
+        return pd.Series(dt64ms, index=sas_datetimes.index, copy=False)
     else:
         vals = np.array(sas_datetimes, dtype="M8[D]") + td
-        return pd.Series(vals, dtype="M8[s]", index=sas_datetimes.index)
+        return pd.Series(vals, dtype="M8[s]", index=sas_datetimes.index, copy=False)
 
 
 class _Column:
@@ -326,7 +327,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         return da
 
     # Read a single float of the given width (4 or 8).
-    def _read_float(self, offset: int, width: int):
+    def _read_float(self, offset: int, width: int) -> float:
         assert self._cached_page is not None
         if width == 4:
             return read_float_with_byteswap(
@@ -727,7 +728,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
             if self._column_types[j] == b"d":
                 col_arr = self._byte_chunk[jb, :].view(dtype=self.byte_order + "d")
-                rslt[name] = pd.Series(col_arr, dtype=np.float64, index=ix)
+                rslt[name] = pd.Series(col_arr, dtype=np.float64, index=ix, copy=False)
                 if self.convert_dates:
                     if self.column_formats[j] in const.sas_date_formats:
                         rslt[name] = _convert_datetimes(rslt[name], "d")
@@ -735,13 +736,13 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                         rslt[name] = _convert_datetimes(rslt[name], "s")
                 jb += 1
             elif self._column_types[j] == b"s":
-                rslt[name] = pd.Series(self._string_chunk[js, :], index=ix)
+                rslt[name] = pd.Series(self._string_chunk[js, :], index=ix, copy=False)
                 if self.convert_text and (self.encoding is not None):
                     rslt[name] = self._decode_string(rslt[name].str)
                 js += 1
             else:
                 self.close()
-                raise ValueError(f"unknown column type {repr(self._column_types[j])}")
+                raise ValueError(f"unknown column type {self._column_types[j]!r}")
 
         df = DataFrame(rslt, columns=self.column_names, index=ix, copy=False)
         return df

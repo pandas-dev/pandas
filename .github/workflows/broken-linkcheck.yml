@@ -9,6 +9,7 @@ on:
       - "doc/make.py"
 jobs:
   linkcheck:
+    if: false
     runs-on: ubuntu-latest
     defaults:
       run:

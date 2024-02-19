@@ -24,6 +24,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    TypeVar,
     cast,
     overload,
 )
@@ -52,7 +53,9 @@ if TYPE_CHECKING:
     from pandas._typing import (
         AnyArrayLike,
         ArrayLike,
+        Concatenate,
         NpDtype,
+        P,
         RandomState,
         T,
     )
@@ -233,6 +236,8 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLi
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
     elif isinstance(values, ABCIndex):
+        return values._values
+    elif isinstance(values, ABCSeries):
         return values._values
 
     if isinstance(values, list) and dtype in [np.object_, object]:
@@ -464,8 +469,34 @@ def random_state(state: RandomState | None = None):
         )
 
 
+_T = TypeVar("_T")  # Secondary TypeVar for use in pipe's type hints
+
+
+@overload
 def pipe(
-    obj, func: Callable[..., T] | tuple[Callable[..., T], str], *args, **kwargs
+    obj: _T,
+    func: Callable[Concatenate[_T, P], T],
+    *args: P.args,
+    **kwargs: P.kwargs,
+) -> T:
+    ...
+
+
+@overload
+def pipe(
+    obj: Any,
+    func: tuple[Callable[..., T], str],
+    *args: Any,
+    **kwargs: Any,
+) -> T:
+    ...
+
+
+def pipe(
+    obj: _T,
+    func: Callable[Concatenate[_T, P], T] | tuple[Callable[..., T], str],
+    *args: Any,
+    **kwargs: Any,
 ) -> T:
     """
     Apply a function ``func`` to object ``obj`` either by passing obj as the
@@ -491,12 +522,13 @@ def pipe(
     object : the return type of ``func``.
     """
     if isinstance(func, tuple):
-        func, target = func
+        # Assigning to func_ so pyright understands that it's a callable
+        func_, target = func
         if target in kwargs:
             msg = f"{target} is both the pipe target and a keyword argument"
             raise ValueError(msg)
         kwargs[target] = obj
-        return func(*args, **kwargs)
+        return func_(*args, **kwargs)
     else:
         return func(obj, *args, **kwargs)
 

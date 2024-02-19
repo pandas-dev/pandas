@@ -38,189 +38,130 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 
 // Licence at LICENSES/ULTRAJSON_LICENSE
 
-#define PY_ARRAY_UNIQUE_SYMBOL UJSON_NUMPY
-#define NO_IMPORT_ARRAY
-#define PY_SSIZE_T_CLEAN
 #include "pandas/vendored/ujson/lib/ultrajson.h"
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
-#include <numpy/arrayobject.h>
 
-typedef struct __PyObjectDecoder {
-  JSONObjectDecoder dec;
-
-  void *npyarr;      // Numpy context buffer
-  void *npyarr_addr; // Ref to npyarr ptr to track DECREF calls
-} PyObjectDecoder;
-
-typedef struct __NpyArrContext {
-  PyObject *ret;
-  PyObject *labels[2];
-  PyArray_Dims shape;
-
-  PyObjectDecoder *dec;
-} NpyArrContext;
-
-// free the numpy context buffer
-void Npy_releaseContext(NpyArrContext *npyarr) {
-  if (npyarr) {
-    if (npyarr->shape.ptr) {
-      PyObject_Free(npyarr->shape.ptr);
-    }
-    if (npyarr->dec) {
-      npyarr->dec->npyarr = NULL;
-    }
-    Py_XDECREF(npyarr->labels[0]);
-    Py_XDECREF(npyarr->labels[1]);
-    Py_XDECREF(npyarr->ret);
-    PyObject_Free(npyarr);
-  }
-}
-
-static int Object_objectAddKey(void *prv, JSOBJ obj, JSOBJ name, JSOBJ value) {
+static int Object_objectAddKey(void *Py_UNUSED(prv), JSOBJ obj, JSOBJ name,
+                               JSOBJ value) {
   int ret = PyDict_SetItem(obj, name, value);
   Py_DECREF((PyObject *)name);
   Py_DECREF((PyObject *)value);
   return ret == 0 ? 1 : 0;
 }
 
-static int Object_arrayAddItem(void *prv, JSOBJ obj, JSOBJ value) {
+static int Object_arrayAddItem(void *Py_UNUSED(prv), JSOBJ obj, JSOBJ value) {
   int ret = PyList_Append(obj, value);
   Py_DECREF((PyObject *)value);
   return ret == 0 ? 1 : 0;
 }
 
-static JSOBJ Object_newString(void *prv, wchar_t *start, wchar_t *end) {
+static JSOBJ Object_newString(void *Py_UNUSED(prv), wchar_t *start,
+                              wchar_t *end) {
   return PyUnicode_FromWideChar(start, (end - start));
 }
 
-static JSOBJ Object_newTrue(void *prv) { Py_RETURN_TRUE; }
+static JSOBJ Object_newTrue(void *Py_UNUSED(prv)) { Py_RETURN_TRUE; }
 
-static JSOBJ Object_newFalse(void *prv) { Py_RETURN_FALSE; }
+static JSOBJ Object_newFalse(void *Py_UNUSED(prv)) { Py_RETURN_FALSE; }
 
-static JSOBJ Object_newNull(void *prv) { Py_RETURN_NONE; }
+static JSOBJ Object_newNull(void *Py_UNUSED(prv)) { Py_RETURN_NONE; }
 
-static JSOBJ Object_newPosInf(void *prv) {
+static JSOBJ Object_newPosInf(void *Py_UNUSED(prv)) {
   return PyFloat_FromDouble(Py_HUGE_VAL);
 }
 
-static JSOBJ Object_newNegInf(void *prv) {
+static JSOBJ Object_newNegInf(void *Py_UNUSED(prv)) {
   return PyFloat_FromDouble(-Py_HUGE_VAL);
 }
 
-static JSOBJ Object_newObject(void *prv, void *decoder) { return PyDict_New(); }
-
-static JSOBJ Object_endObject(void *prv, JSOBJ obj) { return obj; }
-
-static JSOBJ Object_newArray(void *prv, void *decoder) { return PyList_New(0); }
-
-static JSOBJ Object_endArray(void *prv, JSOBJ obj) { return obj; }
-
-static JSOBJ Object_newInteger(void *prv, JSINT32 value) {
-  return PyLong_FromLong((long)value);
+static JSOBJ Object_newObject(void *Py_UNUSED(prv), void *Py_UNUSED(decoder)) {
+  return PyDict_New();
 }
 
-static JSOBJ Object_newLong(void *prv, JSINT64 value) {
+static JSOBJ Object_endObject(void *Py_UNUSED(prv), JSOBJ obj) { return obj; }
+
+static JSOBJ Object_newArray(void *Py_UNUSED(prv), void *Py_UNUSED(decoder)) {
+  return PyList_New(0);
+}
+
+static JSOBJ Object_endArray(void *Py_UNUSED(prv), JSOBJ obj) { return obj; }
+
+static JSOBJ Object_newInteger(void *Py_UNUSED(prv), JSINT32 value) {
+  return PyLong_FromLong(value);
+}
+
+static JSOBJ Object_newLong(void *Py_UNUSED(prv), JSINT64 value) {
   return PyLong_FromLongLong(value);
 }
 
-static JSOBJ Object_newUnsignedLong(void *prv, JSUINT64 value) {
+static JSOBJ Object_newUnsignedLong(void *Py_UNUSED(prv), JSUINT64 value) {
   return PyLong_FromUnsignedLongLong(value);
 }
 
-static JSOBJ Object_newDouble(void *prv, double value) {
+static JSOBJ Object_newDouble(void *Py_UNUSED(prv), double value) {
   return PyFloat_FromDouble(value);
 }
 
-static void Object_releaseObject(void *prv, JSOBJ obj, void *_decoder) {
-  PyObjectDecoder *decoder = (PyObjectDecoder *)_decoder;
-  if (obj != decoder->npyarr_addr) {
-    Py_XDECREF(((PyObject *)obj));
-  }
+static void Object_releaseObject(void *Py_UNUSED(prv), JSOBJ obj,
+                                 void *Py_UNUSED(decoder)) {
+  Py_XDECREF(((PyObject *)obj));
 }
 
-static char *g_kwlist[] = {"obj", "precise_float", "labelled", "dtype", NULL};
+PyObject *JSONToObj(PyObject *Py_UNUSED(self), PyObject *args,
+                    PyObject *kwargs) {
+  JSONObjectDecoder dec = {.newString = Object_newString,
+                           .objectAddKey = Object_objectAddKey,
+                           .arrayAddItem = Object_arrayAddItem,
+                           .newTrue = Object_newTrue,
+                           .newFalse = Object_newFalse,
+                           .newNull = Object_newNull,
+                           .newPosInf = Object_newPosInf,
+                           .newNegInf = Object_newNegInf,
+                           .newObject = Object_newObject,
+                           .endObject = Object_endObject,
+                           .newArray = Object_newArray,
+                           .endArray = Object_endArray,
+                           .newInt = Object_newInteger,
+                           .newLong = Object_newLong,
+                           .newUnsignedLong = Object_newUnsignedLong,
+                           .newDouble = Object_newDouble,
+                           .releaseObject = Object_releaseObject,
+                           .malloc = PyObject_Malloc,
+                           .free = PyObject_Free,
+                           .realloc = PyObject_Realloc,
+                           .errorStr = NULL,
+                           .errorOffset = NULL,
+                           .preciseFloat = 0,
+                           .prv = NULL};
 
-PyObject *JSONToObj(PyObject *self, PyObject *args, PyObject *kwargs) {
-  PyObject *ret;
-  PyObject *sarg;
-  PyObject *arg;
-  PyObject *opreciseFloat = NULL;
-  JSONObjectDecoder *decoder;
-  PyObjectDecoder pyDecoder;
-  PyArray_Descr *dtype = NULL;
-  int labelled = 0;
-
-  JSONObjectDecoder dec = {
-      Object_newString,  Object_objectAddKey,  Object_arrayAddItem,
-      Object_newTrue,    Object_newFalse,      Object_newNull,
-      Object_newPosInf,  Object_newNegInf,     Object_newObject,
-      Object_endObject,  Object_newArray,      Object_endArray,
-      Object_newInteger, Object_newLong,       Object_newUnsignedLong,
-      Object_newDouble,  Object_releaseObject, PyObject_Malloc,
-      PyObject_Free,     PyObject_Realloc};
-
-  dec.preciseFloat = 0;
-  dec.prv = NULL;
-
-  pyDecoder.dec = dec;
-  pyDecoder.npyarr = NULL;
-  pyDecoder.npyarr_addr = NULL;
-
-  decoder = (JSONObjectDecoder *)&pyDecoder;
-
-  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|OiiO&", g_kwlist, &arg,
-                                   &opreciseFloat, &labelled,
-                                   PyArray_DescrConverter2, &dtype)) {
-    Npy_releaseContext(pyDecoder.npyarr);
+  char *kwlist[] = {"obj", "precise_float", NULL};
+  char *buf;
+  Py_ssize_t len;
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s#|b", kwlist, &buf, &len,
+                                   &dec.preciseFloat)) {
     return NULL;
   }
 
-  if (opreciseFloat && PyObject_IsTrue(opreciseFloat)) {
-    decoder->preciseFloat = 1;
-  }
-
-  if (PyBytes_Check(arg)) {
-    sarg = arg;
-  } else if (PyUnicode_Check(arg)) {
-    sarg = PyUnicode_AsUTF8String(arg);
-    if (sarg == NULL) {
-      // Exception raised above us by codec according to docs
-      return NULL;
-    }
-  } else {
-    PyErr_Format(PyExc_TypeError, "Expected 'str' or 'bytes'");
-    return NULL;
-  }
-
-  decoder->errorStr = NULL;
-  decoder->errorOffset = NULL;
-
-  ret = JSON_DecodeObject(decoder, PyBytes_AS_STRING(sarg),
-                          PyBytes_GET_SIZE(sarg));
-
-  if (sarg != arg) {
-    Py_DECREF(sarg);
-  }
+  PyObject *ret = JSON_DecodeObject(&dec, buf, len);
 
   if (PyErr_Occurred()) {
     if (ret) {
       Py_DECREF((PyObject *)ret);
     }
-    Npy_releaseContext(pyDecoder.npyarr);
     return NULL;
   }
 
-  if (decoder->errorStr) {
+  if (dec.errorStr) {
     /*
     FIXME: It's possible to give a much nicer error message here with actual
     failing element in input etc*/
 
-    PyErr_Format(PyExc_ValueError, "%s", decoder->errorStr);
+    PyErr_Format(PyExc_ValueError, "%s", dec.errorStr);
 
     if (ret) {
       Py_DECREF((PyObject *)ret);
     }
-    Npy_releaseContext(pyDecoder.npyarr);
 
     return NULL;
   }

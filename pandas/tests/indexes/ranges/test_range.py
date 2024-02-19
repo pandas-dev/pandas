@@ -199,7 +199,9 @@ class TestRangeIndex:
         i_view = i.view("i8")
         tm.assert_numpy_array_equal(i.values, i_view)
 
-        i_view = i.view(RangeIndex)
+        msg = "Passing a type in RangeIndex.view is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            i_view = i.view(RangeIndex)
         tm.assert_index_equal(i, i_view)
 
     def test_dtype(self, simple_index):
@@ -238,11 +240,6 @@ class TestRangeIndex:
 
         for _ in idx:
             pass
-        assert idx._cache == {}
-
-        msg = "RangeIndex.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            idx.format()
         assert idx._cache == {}
 
         df = pd.DataFrame({"a": range(10)}, index=idx)
@@ -382,7 +379,9 @@ class TestRangeIndex:
 
     def test_view_index(self, simple_index):
         index = simple_index
-        index.view(Index)
+        msg = "Passing a type in RangeIndex.view is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            index.view(Index)
 
     def test_prevent_casting(self, simple_index):
         index = simple_index
@@ -566,15 +565,6 @@ class TestRangeIndex:
 
         assert "_engine" not in idx._cache
 
-    def test_format_empty(self):
-        # GH35712
-        empty_idx = RangeIndex(0)
-        msg = r"RangeIndex\.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert empty_idx.format() == []
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert empty_idx.format(name=True) == [""]
-
     @pytest.mark.parametrize(
         "ri",
         [
@@ -616,3 +606,20 @@ class TestRangeIndex:
         result = 3 - RangeIndex(0, 4, 1)
         expected = RangeIndex(3, -1, -1)
         tm.assert_index_equal(result, expected)
+
+
+def test_take_return_rangeindex():
+    ri = RangeIndex(5, name="foo")
+    result = ri.take([])
+    expected = RangeIndex(0, name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+    result = ri.take([3, 4])
+    expected = RangeIndex(3, 5, name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+
+def test_append_one_nonempty_preserve_step():
+    expected = RangeIndex(0, -1, -1)
+    result = RangeIndex(0).append([expected])
+    tm.assert_index_equal(result, expected, exact=True)

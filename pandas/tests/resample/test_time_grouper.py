@@ -296,7 +296,7 @@ def test_repr():
     # GH18203
     result = repr(Grouper(key="A", freq="h"))
     expected = (
-        "TimeGrouper(key='A', freq=<Hour>, axis=0, sort=True, dropna=True, "
+        "TimeGrouper(key='A', freq=<Hour>, sort=True, dropna=True, "
         "closed='left', label='left', how='mean', "
         "convention='e', origin='start_day')"
     )
@@ -304,7 +304,7 @@ def test_repr():
 
     result = repr(Grouper(key="A", freq="h", origin="2000-01-01"))
     expected = (
-        "TimeGrouper(key='A', freq=<Hour>, axis=0, sort=True, dropna=True, "
+        "TimeGrouper(key='A', freq=<Hour>, sort=True, dropna=True, "
         "closed='left', label='left', how='mean', "
         "convention='e', origin=Timestamp('2000-01-01 00:00:00'))"
     )
@@ -346,7 +346,7 @@ def test_groupby_resample_interpolate():
     df["week_starting"] = date_range("01/01/2018", periods=3, freq="W")
 
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = (
             df.set_index("week_starting")
             .groupby("volume")

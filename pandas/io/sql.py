@@ -67,6 +67,7 @@ from pandas.core.tools.datetimes import to_datetime
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Generator,
         Iterator,
         Mapping,
     )
@@ -78,7 +79,6 @@ if TYPE_CHECKING:
     )
 
     from pandas._typing import (
-        DateTimeErrorChoices,
         DtypeArg,
         DtypeBackend,
         IndexLabel,
@@ -110,14 +110,7 @@ def _handle_date_column(
         # read_sql like functions.
         # Format can take on custom to_datetime argument values such as
         # {"errors": "coerce"} or {"dayfirst": True}
-        error: DateTimeErrorChoices = format.pop("errors", None) or "ignore"
-        if error == "ignore":
-            try:
-                return to_datetime(col, **format)
-            except (TypeError, ValueError):
-                # TODO: not reached 2023-10-27; needed?
-                return col
-        return to_datetime(col, errors=error, **format)
+        return to_datetime(col, **format)
     else:
         # Allow passing of formatting string for integers
         # GH17855
@@ -136,7 +129,7 @@ def _handle_date_column(
             return to_datetime(col, errors="coerce", format=format, utc=utc)
 
 
-def _parse_date_columns(data_frame, parse_dates):
+def _parse_date_columns(data_frame: DataFrame, parse_dates) -> DataFrame:
     """
     Force non-datetime columns to be read as such.
     Supports both string formatted and integer timestamp columns.
@@ -172,9 +165,17 @@ def _convert_arrays_to_dataframe(
     )
     if dtype_backend == "pyarrow":
         pa = import_optional_dependency("pyarrow")
-        arrays = [
-            ArrowExtensionArray(pa.array(arr, from_pandas=True)) for arr in arrays
-        ]
+
+        result_arrays = []
+        for arr in arrays:
+            pa_array = pa.array(arr, from_pandas=True)
+            if arr.dtype == "string":
+                # TODO: Arrow still infers strings arrays as regular strings instead
+                # of large_string, which is what we preserver everywhere else for
+                # dtype_backend="pyarrow". We may want to reconsider this
+                pa_array = pa_array.cast(pa.string())
+            result_arrays.append(ArrowExtensionArray(pa_array))
+        arrays = result_arrays  # type: ignore[assignment]
     if arrays:
         df = DataFrame(dict(zip(list(range(len(columns))), arrays)))
         df.columns = columns
@@ -191,7 +192,7 @@ def _wrap_result(
     parse_dates=None,
     dtype: DtypeArg | None = None,
     dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-):
+) -> DataFrame:
     """Wrap result set of a SQLAlchemy query in a DataFrame."""
     frame = _convert_arrays_to_dataframe(data, columns, coerce_float, dtype_backend)
 
@@ -224,37 +225,6 @@ def _wrap_result_adbc(
         df = df.set_index(index_col)
 
     return df
-
-
-def execute(sql, con, params=None):
-    """
-    Execute the given SQL query using the provided connection object.
-
-    Parameters
-    ----------
-    sql : string
-        SQL query to be executed.
-    con : SQLAlchemy connection or sqlite3 connection
-        If a DBAPI2 object, only sqlite3 is supported.
-    params : list or tuple, optional, default: None
-        List of parameters to pass to execute method.
-
-    Returns
-    -------
-    Results Iterable
-    """
-    warnings.warn(
-        "`pandas.io.sql.execute` is deprecated and "
-        "will be removed in the future version.",
-        FutureWarning,
-        stacklevel=find_stack_level(),
-    )  # GH50185
-    sqlalchemy = import_optional_dependency("sqlalchemy", errors="ignore")
-
-    if sqlalchemy is not None and isinstance(con, (str, sqlalchemy.engine.Engine)):
-        raise TypeError("pandas.io.sql.execute requires a connection")  # GH50185
-    with pandasSQL_builder(con, need_transaction=True) as pandas_sql:
-        return pandas_sql.execute(sql, params)
 
 
 # -----------------------------------------------------------------------------
@@ -365,7 +335,7 @@ def read_sql_table(
 
     Examples
     --------
-    >>> pd.read_sql_table('table_name', 'postgres:///db_name')  # doctest:+SKIP
+    >>> pd.read_sql_table("table_name", "postgres:///db_name")  # doctest:+SKIP
     """
 
     check_dtype_backend(dtype_backend)
@@ -644,6 +614,14 @@ def read_sql(
     read_sql_table : Read SQL database table into a DataFrame.
     read_sql_query : Read SQL query into a DataFrame.
 
+    Notes
+    -----
+    ``pandas`` does not attempt to sanitize SQL statements;
+    instead it simply forwards the statement you are executing
+    to the underlying driver, which may or may not sanitize from there.
+    Please refer to the underlying driver documentation for any details.
+    Generally, be wary when accepting statements from arbitrary sources.
+
     Examples
     --------
     Read data from SQL via either a SQL query or a SQL tablename.
@@ -651,27 +629,41 @@ def read_sql(
     providing only the SQL tablename will result in an error.
 
     >>> from sqlite3 import connect
-    >>> conn = connect(':memory:')
-    >>> df = pd.DataFrame(data=[[0, '10/11/12'], [1, '12/11/10']],
-    ...                   columns=['int_column', 'date_column'])
-    >>> df.to_sql(name='test_data', con=conn)
+    >>> conn = connect(":memory:")
+    >>> df = pd.DataFrame(
+    ...     data=[[0, "10/11/12"], [1, "12/11/10"]],
+    ...     columns=["int_column", "date_column"],
+    ... )
+    >>> df.to_sql(name="test_data", con=conn)
     2
 
-    >>> pd.read_sql('SELECT int_column, date_column FROM test_data', conn)
+    >>> pd.read_sql("SELECT int_column, date_column FROM test_data", conn)
        int_column date_column
     0           0    10/11/12
     1           1    12/11/10
 
-    >>> pd.read_sql('test_data', 'postgres:///db_name')  # doctest:+SKIP
+    >>> pd.read_sql("test_data", "postgres:///db_name")  # doctest:+SKIP
+
+    For parameterized query, using ``params`` is recommended over string interpolation.
+
+    >>> from sqlalchemy import text
+    >>> sql = text(
+    ...     "SELECT int_column, date_column FROM test_data WHERE int_column=:int_val"
+    ... )
+    >>> pd.read_sql(sql, conn, params={"int_val": 1})  # doctest:+SKIP
+       int_column date_column
+    0           1    12/11/10
 
     Apply date parsing to columns through the ``parse_dates`` argument
     The ``parse_dates`` argument calls ``pd.to_datetime`` on the provided columns.
     Custom argument values for applying ``pd.to_datetime`` on a column are specified
     via a dictionary format:
 
-    >>> pd.read_sql('SELECT int_column, date_column FROM test_data',
-    ...             conn,
-    ...             parse_dates={"date_column": {"format": "%d/%m/%y"}})
+    >>> pd.read_sql(
+    ...     "SELECT int_column, date_column FROM test_data",
+    ...     conn,
+    ...     parse_dates={"date_column": {"format": "%d/%m/%y"}},
+    ... )
        int_column date_column
     0           0  2012-11-10
     1           1  2010-11-12
@@ -680,9 +672,9 @@ def read_sql(
 
        pandas now supports reading via ADBC drivers
 
-    >>> from adbc_driver_postgresql import dbapi
-    >>> with dbapi.connect('postgres:///db_name') as conn:  # doctest:+SKIP
-    ...     pd.read_sql('SELECT int_column FROM test_data', conn)
+    >>> from adbc_driver_postgresql import dbapi  # doctest:+SKIP
+    >>> with dbapi.connect("postgres:///db_name") as conn:  # doctest:+SKIP
+    ...     pd.read_sql("SELECT int_column FROM test_data", conn)
        int_column
     0           0
     1           1
@@ -1004,22 +996,19 @@ class SQLTable(PandasObject):
 
     def _execute_insert_multi(self, conn, keys: list[str], data_iter) -> int:
         """
-        Alternative to _execute_insert for DBs support multivalue INSERT.
+        Alternative to _execute_insert for DBs support multi-value INSERT.
 
         Note: multi-value insert is usually faster for analytics DBs
         and tables containing a few columns
         but performance degrades quickly with increase of columns.
+
         """
 
         from sqlalchemy import insert
 
         data = [dict(zip(keys, row)) for row in data_iter]
-        stmt = insert(self.table)
-        # conn.execute is used here to ensure compatibility with Oracle.
-        # Using stmt.values(data) would produce a multi row insert that
-        # isn't supported by Oracle.
-        # see: https://docs.sqlalchemy.org/en/20/core/dml.html#sqlalchemy.sql.expression.Insert.values
-        result = conn.execute(stmt, data)
+        stmt = insert(self.table).values(data)
+        result = conn.execute(stmt)
         return result.rowcount
 
     def insert_data(self) -> tuple[list[str], list[np.ndarray]]:
@@ -1129,7 +1118,7 @@ class SQLTable(PandasObject):
         coerce_float: bool = True,
         parse_dates=None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ):
+    ) -> Generator[DataFrame, None, None]:
         """Return generator through chunked result set."""
         has_read_data = False
         with exit_stack:
@@ -1506,7 +1495,7 @@ class PandasSQL(PandasObject, ABC):
         keys: list[str] | None = None,
         dtype: DtypeArg | None = None,
         schema: str | None = None,
-    ):
+    ) -> str:
         pass
 
 
@@ -1741,7 +1730,7 @@ class SQLDatabase(PandasSQL):
         parse_dates=None,
         dtype: DtypeArg | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ):
+    ) -> Generator[DataFrame, None, None]:
         """Return generator through chunked result set"""
         has_read_data = False
         with exit_stack:
@@ -2065,7 +2054,7 @@ class SQLDatabase(PandasSQL):
         keys: list[str] | None = None,
         dtype: DtypeArg | None = None,
         schema: str | None = None,
-    ):
+    ) -> str:
         table = SQLTable(
             table_name,
             self,
@@ -2425,7 +2414,7 @@ class ADBCDatabase(PandasSQL):
         keys: list[str] | None = None,
         dtype: DtypeArg | None = None,
         schema: str | None = None,
-    ):
+    ) -> str:
         raise NotImplementedError("not implemented for adbc")
 
 
@@ -2442,7 +2431,7 @@ _SQL_TYPES = {
 }
 
 
-def _get_unicode_name(name: object):
+def _get_unicode_name(name: object) -> str:
     try:
         uname = str(name).encode("utf-8", "strict").decode("utf-8")
     except UnicodeError as err:
@@ -2450,7 +2439,7 @@ def _get_unicode_name(name: object):
     return uname
 
 
-def _get_valid_sqlite_name(name: object):
+def _get_valid_sqlite_name(name: object) -> str:
     # See https://stackoverflow.com/questions/6514274/how-do-you-escape-strings\
     # -for-sqlite-table-column-names-in-python
     # Ensure the string can be encoded as UTF-8.
@@ -2688,7 +2677,7 @@ class SQLiteDatabase(PandasSQL):
         parse_dates=None,
         dtype: DtypeArg | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ):
+    ) -> Generator[DataFrame, None, None]:
         """Return generator through chunked result set"""
         has_read_data = False
         while True:
@@ -2871,7 +2860,7 @@ class SQLiteDatabase(PandasSQL):
         keys=None,
         dtype: DtypeArg | None = None,
         schema: str | None = None,
-    ):
+    ) -> str:
         table = SQLiteTable(
             table_name,
             self,
@@ -2912,8 +2901,6 @@ def get_schema(
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
     schema: str, default: None
         Optional specifying the schema to be used in creating the table.
-
-        .. versionadded:: 1.2.0
     """
     with pandasSQL_builder(con=con) as pandas_sql:
         return pandas_sql._create_sql_schema(

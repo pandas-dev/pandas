@@ -33,11 +33,12 @@ if TYPE_CHECKING:
     import pyarrow
 
     from pandas._typing import (
-        Dtype,
         DtypeObj,
         Self,
         npt,
     )
+
+    from pandas.core.dtypes.dtypes import ExtensionDtype
 
 
 class NumericDtype(BaseMaskedDtype):
@@ -132,9 +133,12 @@ class NumericDtype(BaseMaskedDtype):
         raise AbstractMethodError(cls)
 
 
-def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype):
+def _coerce_to_data_and_mask(
+    values, dtype, copy: bool, dtype_cls: type[NumericDtype], default_dtype: np.dtype
+):
     checker = dtype_cls._checker
 
+    mask = None
     inferred_type = None
 
     if dtype is None and hasattr(values, "dtype"):
@@ -190,7 +194,7 @@ def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype
     if dtype is None:
         dtype = default_dtype
     else:
-        dtype = dtype.type
+        dtype = dtype.numpy_dtype
 
     if is_integer_dtype(dtype) and values.dtype.kind == "f" and len(values) > 0:
         if mask.all():
@@ -260,15 +264,14 @@ class NumericArray(BaseMaskedArray):
     ) -> tuple[np.ndarray, np.ndarray]:
         dtype_cls = cls._dtype_cls
         default_dtype = dtype_cls._default_np_dtype
-        mask = None
         values, mask, _, _ = _coerce_to_data_and_mask(
-            value, mask, dtype, copy, dtype_cls, default_dtype
+            value, dtype, copy, dtype_cls, default_dtype
         )
         return values, mask
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
+        cls, strings, *, dtype: ExtensionDtype, copy: bool = False
     ) -> Self:
         from pandas.core.tools.numeric import to_numeric
 

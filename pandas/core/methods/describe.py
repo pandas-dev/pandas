@@ -146,6 +146,8 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
         A black list of data types to omit from the result.
     """
 
+    obj: DataFrame
+
     def __init__(
         self,
         obj: DataFrame,
@@ -171,7 +173,7 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
 
         col_names = reorder_columns(ldesc)
         d = concat(
-            [x.reindex(col_names, copy=False) for x in ldesc],
+            [x.reindex(col_names) for x in ldesc],
             axis=1,
             sort=False,
         )
@@ -196,7 +198,7 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
                 include=self.include,
                 exclude=self.exclude,
             )
-        return data  # pyright: ignore[reportGeneralTypeIssues]
+        return data
 
 
 def reorder_columns(ldesc: Sequence[Series]) -> list[Hashable]:

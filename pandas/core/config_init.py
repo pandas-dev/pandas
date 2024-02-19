@@ -329,7 +329,7 @@ with cf.config_prefix("display"):
         "min_rows",
         10,
         pc_min_rows_doc,
-        validator=is_instance_factory([type(None), int]),
+        validator=is_instance_factory((type(None), int)),
     )
     cf.register_option("max_categories", 8, pc_max_categories_doc, validator=is_int)
 
@@ -369,7 +369,7 @@ with cf.config_prefix("display"):
     cf.register_option("chop_threshold", None, pc_chop_threshold_doc)
     cf.register_option("max_seq_items", 100, pc_max_seq_items)
     cf.register_option(
-        "width", 80, pc_width_doc, validator=is_instance_factory([type(None), int])
+        "width", 80, pc_width_doc, validator=is_instance_factory((type(None), int))
     )
     cf.register_option(
         "memory_usage",
@@ -435,32 +435,6 @@ cf.deprecate_option(
     "use_inf_as_na option is deprecated and will be removed in a future "
     "version. Convert inf values to NaN before operating instead.",
 )
-
-data_manager_doc = """
-: string
-    Internal data manager type; can be "block" or "array". Defaults to "block",
-    unless overridden by the 'PANDAS_DATA_MANAGER' environment variable (needs
-    to be set before pandas is imported).
-"""
-
-
-with cf.config_prefix("mode"):
-    cf.register_option(
-        "data_manager",
-        # Get the default from an environment variable, if set, otherwise defaults
-        # to "block". This environment variable can be set for testing.
-        os.environ.get("PANDAS_DATA_MANAGER", "block"),
-        data_manager_doc,
-        validator=is_one_of_factory(["block", "array"]),
-    )
-
-cf.deprecate_option(
-    # GH#55043
-    "mode.data_manager",
-    "data_manager option is deprecated and will be removed in a future "
-    "version. Only the BlockManager will be available.",
-)
-
 
 # TODO better name?
 copy_on_write_doc = """
@@ -850,14 +824,14 @@ with cf.config_prefix("styler"):
         "format.thousands",
         None,
         styler_thousands,
-        validator=is_instance_factory([type(None), str]),
+        validator=is_instance_factory((type(None), str)),
     )
 
     cf.register_option(
         "format.na_rep",
         None,
         styler_na_rep,
-        validator=is_instance_factory([type(None), str]),
+        validator=is_instance_factory((type(None), str)),
     )
 
     cf.register_option(
@@ -867,11 +841,15 @@ with cf.config_prefix("styler"):
         validator=is_one_of_factory([None, "html", "latex", "latex-math"]),
     )
 
+    # error: Argument 1 to "is_instance_factory" has incompatible type "tuple[
+    # ..., <typing special form>, ...]"; expected "type | tuple[type, ...]"
     cf.register_option(
         "format.formatter",
         None,
         styler_formatter,
-        validator=is_instance_factory([type(None), dict, Callable, str]),
+        validator=is_instance_factory(
+            (type(None), dict, Callable, str)  # type: ignore[arg-type]
+        ),
     )
 
     cf.register_option("html.mathjax", True, styler_mathjax, validator=is_bool)
@@ -898,7 +876,7 @@ with cf.config_prefix("styler"):
         "latex.environment",
         None,
         styler_environment,
-        validator=is_instance_factory([type(None), str]),
+        validator=is_instance_factory((type(None), str)),
     )
 
 

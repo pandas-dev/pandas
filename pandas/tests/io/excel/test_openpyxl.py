@@ -5,6 +5,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_windows
+
 import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
@@ -16,6 +18,9 @@ from pandas.io.excel import (
 from pandas.io.excel._openpyxl import OpenpyxlReader
 
 openpyxl = pytest.importorskip("openpyxl")
+
+if is_platform_windows():
+    pytestmark = pytest.mark.single_cpu
 
 
 @pytest.fixture
@@ -269,8 +274,8 @@ def test_if_sheet_exists_raises(ext, if_sheet_exists, msg):
     # GH 40230
     df = DataFrame({"fruit": ["pear"]})
     with tm.ensure_clean(ext) as f:
+        df.to_excel(f, sheet_name="foo", engine="openpyxl")
         with pytest.raises(ValueError, match=re.escape(msg)):
-            df.to_excel(f, sheet_name="foo", engine="openpyxl")
             with ExcelWriter(
                 f, engine="openpyxl", mode="a", if_sheet_exists=if_sheet_exists
             ) as writer:

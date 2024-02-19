@@ -1,10 +1,7 @@
 import datetime
 from datetime import timedelta
 from decimal import Decimal
-from io import (
-    BytesIO,
-    StringIO,
-)
+from io import StringIO
 import json
 import os
 import sys
@@ -39,49 +36,29 @@ from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
 from pandas.io.json import ujson_dumps
 
 
-def test_literal_json_deprecation():
+def test_literal_json_raises():
     # PR 53409
-    expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
-
     jsonl = """{"a": 1, "b": 2}
         {"a": 3, "b": 4}
         {"a": 5, "b": 6}
         {"a": 7, "b": 8}"""
 
-    msg = (
-        "Passing literal json to 'read_json' is deprecated and "
-        "will be removed in a future version. To read from a "
-        "literal string, wrap it in a 'StringIO' object."
-    )
+    msg = r".* does not exist"
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        try:
-            read_json(jsonl, lines=False)
-        except ValueError:
-            pass
+    with pytest.raises(FileNotFoundError, match=msg):
+        read_json(jsonl, lines=False)
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        read_json(expected.to_json(), lines=False)
+    with pytest.raises(FileNotFoundError, match=msg):
+        read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
-        tm.assert_frame_equal(result, expected)
+    with pytest.raises(FileNotFoundError, match=msg):
+        read_json(
+            '{"a\\\\":"foo\\\\","b":"bar"}\n{"a\\\\":"foo\\"","b":"bar"}\n',
+            lines=False,
+        )
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        try:
-            result = read_json(
-                '{"a\\\\":"foo\\\\","b":"bar"}\n{"a\\\\":"foo\\"","b":"bar"}\n',
-                lines=False,
-            )
-        except ValueError:
-            pass
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        try:
-            result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=False)
-        except ValueError:
-            pass
-        tm.assert_frame_equal(result, expected)
+    with pytest.raises(FileNotFoundError, match=msg):
+        read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=False)
 
 
 def assert_json_roundtrip_equal(result, expected, orient):
@@ -93,17 +70,6 @@ def assert_json_roundtrip_equal(result, expected, orient):
 
 
 class TestPandasContainer:
-    @pytest.fixture
-    def categorical_frame(self):
-        data = {
-            c: np.random.default_rng(i).standard_normal(30)
-            for i, c in enumerate(list("ABCD"))
-        }
-        cat = ["bah"] * 5 + ["bar"] * 5 + ["baz"] * 5 + ["foo"] * 15
-        data["E"] = list(reversed(cat))
-        data["sort"] = np.arange(30, dtype="int64")
-        return DataFrame(data, index=pd.CategoricalIndex(cat, name="E"))
-
     @pytest.fixture
     def datetime_series(self):
         # Same as usual datetime_series, but with index freq set to None,
@@ -179,7 +145,7 @@ class TestPandasContainer:
                 # in milliseconds; these are internally stored in nanosecond,
                 # so divide to get where we need
                 # TODO: a to_epoch method would also solve; see GH 14772
-                expected.iloc[:, 0] = expected.iloc[:, 0].astype(np.int64) // 1000000
+                expected.isetitem(0, expected.iloc[:, 0].astype(np.int64) // 1000000)
         elif orient == "split":
             expected = df
             expected.columns = ["x", "x.1"]
@@ -249,7 +215,7 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     def test_roundtrip_categorical(
-        self, request, orient, categorical_frame, convert_axes, using_infer_string
+        self, request, orient, convert_axes, using_infer_string
     ):
         # TODO: create a better frame to test with and improve coverage
         if orient in ("index", "columns"):
@@ -259,6 +225,14 @@ class TestPandasContainer:
                 )
             )
 
+        data = {
+            c: np.random.default_rng(i).standard_normal(30)
+            for i, c in enumerate(list("ABCD"))
+        }
+        cat = ["bah"] * 5 + ["bar"] * 5 + ["baz"] * 5 + ["foo"] * 15
+        data["E"] = list(reversed(cat))
+        data["sort"] = np.arange(30, dtype="int64")
+        categorical_frame = DataFrame(data, index=pd.CategoricalIndex(cat, name="E"))
         data = StringIO(categorical_frame.to_json(orient=orient))
         result = read_json(data, orient=orient, convert_axes=convert_axes)
 
@@ -407,7 +381,7 @@ class TestPandasContainer:
         # GH28501 Parse missing values using read_json with dtype=False
         # to NaN instead of None
         result = read_json(StringIO("[null]"), dtype=dtype)
-        expected = DataFrame([np.nan])
+        expected = DataFrame([np.nan], dtype=object if not dtype else None)
 
         tm.assert_frame_equal(result, expected)
 
@@ -957,7 +931,6 @@ class TestPandasContainer:
         with pytest.raises(ValueError, match=msg):
             ts.to_json(date_format="iso", date_unit="foo")
 
-    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
     def test_date_unit(self, unit, datetime_frame):
         df = datetime_frame
         df["date"] = Timestamp("20130101 20:43:42").as_unit("ns")
@@ -1057,9 +1030,7 @@ class TestPandasContainer:
 
         result = read_json(StringIO(s))
         res = result.reindex(index=df.index, columns=df.columns)
-        msg = "The 'downcast' keyword in fillna is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = res.fillna(np.nan, downcast=False)
+        res = res.fillna(np.nan)
         tm.assert_frame_equal(res, df)
 
     @pytest.mark.network
@@ -1899,18 +1870,13 @@ class TestPandasContainer:
         result = read_json(StringIO(encoded_json))
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "dataframe,expected",
-        [
-            (
-                DataFrame({"x": [1, 2, 3], "y": ["a", "b", "c"]}),
-                '{"(0, \'x\')":1,"(0, \'y\')":"a","(1, \'x\')":2,'
-                '"(1, \'y\')":"b","(2, \'x\')":3,"(2, \'y\')":"c"}',
-            )
-        ],
-    )
-    def test_json_multiindex(self, dataframe, expected):
-        series = dataframe.stack(future_stack=True)
+    def test_json_multiindex(self):
+        dataframe = DataFrame({"x": [1, 2, 3], "y": ["a", "b", "c"]})
+        expected = (
+            '{"(0, \'x\')":1,"(0, \'y\')":"a","(1, \'x\')":2,'
+            '"(1, \'y\')":"b","(2, \'x\')":3,"(2, \'y\')":"c"}'
+        )
+        series = dataframe.stack()
         result = series.to_json(orient="index")
         assert result == expected
 
@@ -1949,7 +1915,7 @@ class TestPandasContainer:
             True,
             index=date_range("2017-01-20", "2017-01-23"),
             columns=["foo", "bar"],
-        ).stack(future_stack=True)
+        ).stack()
         result = df.to_json()
         expected = (
             "{\"(Timestamp('2017-01-20 00:00:00'), 'foo')\":true,"
@@ -2026,9 +1992,6 @@ class TestPandasContainer:
         result = df.to_json(orient="split")
         assert result == expected
 
-    @pytest.mark.parametrize(
-        "orient", ["split", "records", "values", "index", "columns"]
-    )
     def test_read_json_dtype_backend(
         self, string_storage, dtype_backend, orient, using_infer_string
     ):
@@ -2053,6 +2016,13 @@ class TestPandasContainer:
         elif string_storage == "python":
             string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
             string_array_na = StringArray(np.array(["a", "b", NA], dtype=np.object_))
+
+        elif dtype_backend == "pyarrow":
+            pa = pytest.importorskip("pyarrow")
+            from pandas.arrays import ArrowExtensionArray
+
+            string_array = ArrowExtensionArray(pa.array(["a", "b", "c"]))
+            string_array_na = ArrowExtensionArray(pa.array(["a", "b", None]))
 
         else:
             string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
@@ -2155,13 +2125,17 @@ def test_json_roundtrip_string_inference(orient):
     tm.assert_frame_equal(result, expected)
 
 
-def test_json_pos_args_deprecation():
-    # GH-54229
-    df = DataFrame({"a": [1, 2, 3]})
-    msg = (
-        r"Starting with pandas version 3.0 all arguments of to_json except for the "
-        r"argument 'path_or_buf' will be keyword-only."
+@td.skip_if_no("pyarrow")
+def test_to_json_ea_null():
+    # GH#57224
+    df = DataFrame(
+        {
+            "a": Series([1, NA], dtype="int64[pyarrow]"),
+            "b": Series([2, NA], dtype="Int64"),
+        }
     )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        buf = BytesIO()
-        df.to_json(buf, "split")
+    result = df.to_json(orient="records", lines=True)
+    expected = """{"a":1,"b":2}
+{"a":null,"b":null}
+"""
+    assert result == expected

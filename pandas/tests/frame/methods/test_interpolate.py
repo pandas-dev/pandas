@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from pandas.errors import ChainedAssignmentError
+from pandas._config import using_pyarrow_string_dtype
+
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -50,12 +51,8 @@ class TestDataFrameInterpolate:
         expected_td = frame_or_series(orig - orig[0])
         tm.assert_equal(res_td, expected_td)
 
-    def test_interpolate_inplace(self, frame_or_series, using_array_manager, request):
+    def test_interpolate_inplace(self, frame_or_series, request):
         # GH#44749
-        if using_array_manager and frame_or_series is DataFrame:
-            mark = pytest.mark.xfail(reason=".values-based in-place check is invalid")
-            request.applymarker(mark)
-
         obj = frame_or_series([1, np.nan, 2])
         orig = obj.values
 
@@ -67,7 +64,10 @@ class TestDataFrameInterpolate:
         assert np.shares_memory(orig, obj.values)
         assert orig.squeeze()[1] == 1.5
 
-    def test_interp_basic(self, using_copy_on_write):
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="interpolate doesn't work for string"
+    )
+    def test_interp_basic(self):
         df = DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
@@ -92,12 +92,8 @@ class TestDataFrameInterpolate:
         # check we didn't operate inplace GH#45791
         cvalues = df["C"]._values
         dvalues = df["D"].values
-        if using_copy_on_write:
-            assert np.shares_memory(cvalues, result["C"]._values)
-            assert np.shares_memory(dvalues, result["D"]._values)
-        else:
-            assert not np.shares_memory(cvalues, result["C"]._values)
-            assert not np.shares_memory(dvalues, result["D"]._values)
+        assert np.shares_memory(cvalues, result["C"]._values)
+        assert np.shares_memory(dvalues, result["D"]._values)
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
             res = df.interpolate(inplace=True)
@@ -108,7 +104,10 @@ class TestDataFrameInterpolate:
         assert np.shares_memory(df["C"]._values, cvalues)
         assert np.shares_memory(df["D"]._values, dvalues)
 
-    def test_interp_basic_with_non_range_index(self):
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="interpolate doesn't work for string"
+    )
+    def test_interp_basic_with_non_range_index(self, using_infer_string):
         df = DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
@@ -119,7 +118,8 @@ class TestDataFrameInterpolate:
         )
 
         msg = "DataFrame.interpolate with object dtype"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        warning = FutureWarning if not using_infer_string else None
+        with tm.assert_produces_warning(warning, match=msg):
             result = df.set_index("C").interpolate()
         expected = df.set_index("C")
         expected.loc[3, "A"] = 3
@@ -165,33 +165,6 @@ class TestDataFrameInterpolate:
         result = df["A"].interpolate()
         expected = Series([1.0, 2.0, 3.0, 4.0], name="A")
         tm.assert_series_equal(result, expected)
-
-        msg = "The 'downcast' keyword in Series.interpolate is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df["A"].interpolate(downcast="infer")
-        expected = Series([1, 2, 3, 4], name="A")
-        tm.assert_series_equal(result, expected)
-
-    def test_inerpolate_invalid_downcast(self):
-        # GH#53103
-        df = DataFrame(
-            {
-                "A": [1.0, 2.0, np.nan, 4.0],
-                "B": [1, 4, 9, np.nan],
-                "C": [1, 2, 3, 5],
-                "D": list("abcd"),
-            }
-        )
-
-        msg = "downcast must be either None or 'infer'"
-        msg2 = "The 'downcast' keyword in DataFrame.interpolate is deprecated"
-        msg3 = "The 'downcast' keyword in Series.interpolate is deprecated"
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=msg2):
-                df.interpolate(downcast="int64")
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=msg3):
-                df["A"].interpolate(downcast="int64")
 
     def test_interp_nan_idx(self):
         df = DataFrame({"A": [1, 2, np.nan, 4], "B": [np.nan, 2, 3, 4]})
@@ -252,11 +225,6 @@ class TestDataFrameInterpolate:
         expected.loc[2, "A"] = 3
         expected.loc[5, "A"] = 6
         tm.assert_frame_equal(result, expected)
-
-        msg = "The 'downcast' keyword in DataFrame.interpolate is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.interpolate(method="barycentric", downcast="infer")
-        tm.assert_frame_equal(result, expected.astype(np.int64))
 
         result = df.interpolate(method="krogh")
         expectedk = df.copy()
@@ -366,38 +334,15 @@ class TestDataFrameInterpolate:
         with pytest.raises(TypeError, match=msg):
             df.interpolate()
 
-    def test_interp_inplace(self, using_copy_on_write):
+    def test_interp_inplace(self):
         df = DataFrame({"a": [1.0, 2.0, np.nan, 4.0]})
-        expected = DataFrame({"a": [1.0, 2.0, 3.0, 4.0]})
-        expected_cow = df.copy()
+        expected = df.copy()
         result = df.copy()
 
-        if using_copy_on_write:
-            with tm.raises_chained_assignment_error():
-                return_value = result["a"].interpolate(inplace=True)
-            assert return_value is None
-            tm.assert_frame_equal(result, expected_cow)
-        else:
-            with tm.assert_produces_warning(FutureWarning, match="inplace method"):
-                return_value = result["a"].interpolate(inplace=True)
-            assert return_value is None
-            tm.assert_frame_equal(result, expected)
-
-        result = df.copy()
-        msg = "The 'downcast' keyword in Series.interpolate is deprecated"
-
-        if using_copy_on_write:
-            with tm.assert_produces_warning(
-                (FutureWarning, ChainedAssignmentError), match=msg
-            ):
-                return_value = result["a"].interpolate(inplace=True, downcast="infer")
-            assert return_value is None
-            tm.assert_frame_equal(result, expected_cow)
-        else:
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                return_value = result["a"].interpolate(inplace=True, downcast="infer")
-            assert return_value is None
-            tm.assert_frame_equal(result, expected.astype("int64"))
+        with tm.raises_chained_assignment_error():
+            return_value = result["a"].interpolate(inplace=True)
+        assert return_value is None
+        tm.assert_frame_equal(result, expected)
 
     def test_interp_inplace_row(self):
         # GH 10395
@@ -427,15 +372,11 @@ class TestDataFrameInterpolate:
                 "D": np.array([1.0, 2.0, 3.0, 4.0], dtype="float64"),
             }
         )
-
-        msg = "The 'downcast' keyword in DataFrame.interpolate is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.interpolate(downcast=None)
+        result = df.interpolate()
         tm.assert_frame_equal(result, expected)
 
         # all good
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df[["B", "D"]].interpolate(downcast=None)
+        result = df[["B", "D"]].interpolate()
         tm.assert_frame_equal(result, df[["B", "D"]])
 
     def test_interp_time_inplace_axis(self):
@@ -465,14 +406,8 @@ class TestDataFrameInterpolate:
 
     @pytest.mark.parametrize("multiblock", [True, False])
     @pytest.mark.parametrize("method", ["ffill", "bfill", "pad"])
-    def test_interp_fillna_methods(
-        self, request, axis, multiblock, method, using_array_manager
-    ):
+    def test_interp_fillna_methods(self, axis, multiblock, method):
         # GH 12918
-        if using_array_manager and axis in (1, "columns"):
-            # TODO(ArrayManager) support axis=1
-            td.mark_array_manager_not_yet_implemented(request)
-
         df = DataFrame(
             {
                 "A": [1.0, 2.0, 3.0, 4.0, np.nan, 5.0],
@@ -499,8 +434,41 @@ class TestDataFrameInterpolate:
         assert result is None
         tm.assert_frame_equal(df, expected)
 
-    def test_interpolate_ea_raise(self):
+    def test_interpolate_ea(self, any_int_ea_dtype):
         # GH#55347
-        df = DataFrame({"a": [1, None, 2]}, dtype="Int64")
-        with pytest.raises(NotImplementedError, match="does not implement"):
-            df.interpolate()
+        df = DataFrame({"a": [1, None, None, None, 3]}, dtype=any_int_ea_dtype)
+        orig = df.copy()
+        result = df.interpolate(limit=2)
+        expected = DataFrame({"a": [1, 1.5, 2.0, None, 3]}, dtype="Float64")
+        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(df, orig)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "Float64",
+            "Float32",
+            pytest.param("float32[pyarrow]", marks=td.skip_if_no("pyarrow")),
+            pytest.param("float64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    def test_interpolate_ea_float(self, dtype):
+        # GH#55347
+        df = DataFrame({"a": [1, None, None, None, 3]}, dtype=dtype)
+        orig = df.copy()
+        result = df.interpolate(limit=2)
+        expected = DataFrame({"a": [1, 1.5, 2.0, None, 3]}, dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(df, orig)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        ["int64", "uint64", "int32", "int16", "int8", "uint32", "uint16", "uint8"],
+    )
+    def test_interpolate_arrow(self, dtype):
+        # GH#55347
+        pytest.importorskip("pyarrow")
+        df = DataFrame({"a": [1, None, None, None, 3]}, dtype=dtype + "[pyarrow]")
+        result = df.interpolate(limit=2)
+        expected = DataFrame({"a": [1, 1.5, 2.0, None, 3]}, dtype="float64[pyarrow]")
+        tm.assert_frame_equal(result, expected)

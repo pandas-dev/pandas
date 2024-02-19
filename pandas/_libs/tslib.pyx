@@ -272,14 +272,13 @@ def array_with_unit_to_datetime(
     """
     cdef:
         Py_ssize_t i, n=len(values)
-        bint is_ignore = errors == "ignore"
         bint is_coerce = errors == "coerce"
         bint is_raise = errors == "raise"
         ndarray[int64_t] iresult
         tzinfo tz = None
         float fval
 
-    assert is_ignore or is_coerce or is_raise
+    assert is_coerce or is_raise
 
     if unit == "ns":
         result, tz = array_to_datetime(
@@ -338,15 +337,10 @@ def array_with_unit_to_datetime(
                     f"unit='{unit}' not valid with non-numerical val='{val}'"
                 )
 
-        except (ValueError, OutOfBoundsDatetime, TypeError) as err:
+        except (ValueError, TypeError) as err:
             if is_raise:
                 err.args = (f"{err}, at position {i}",)
                 raise
-            elif is_ignore:
-                # we have hit an exception
-                # and are in ignore mode
-                # redo as object
-                return _array_with_unit_to_datetime_object_fallback(values, unit)
             else:
                 # is_coerce
                 iresult[i] = NPY_NAT
@@ -435,15 +429,15 @@ cpdef array_to_datetime(
     Parameters
     ----------
     values : ndarray of object
-         date-like objects to convert
+        date-like objects to convert
     errors : str, default 'raise'
-         error behavior when parsing
+        error behavior when parsing
     dayfirst : bool, default False
-         dayfirst parsing behavior when encountering datetime strings
+        dayfirst parsing behavior when encountering datetime strings
     yearfirst : bool, default False
-         yearfirst parsing behavior when encountering datetime strings
+        yearfirst parsing behavior when encountering datetime strings
     utc : bool, default False
-         indicator whether the dates should be UTC
+        indicator whether the dates should be UTC
     creso : NPY_DATETIMEUNIT, default NPY_FR_ns
         Set to NPY_FR_GENERIC to infer a resolution.
 
@@ -461,10 +455,9 @@ cpdef array_to_datetime(
         bint utc_convert = bool(utc)
         bint seen_datetime_offset = False
         bint is_raise = errors == "raise"
-        bint is_ignore = errors == "ignore"
         bint is_coerce = errors == "coerce"
         bint is_same_offsets
-        _TSObject _ts
+        _TSObject tsobj
         float tz_offset
         set out_tzoffset_vals = set()
         tzinfo tz, tz_out = None
@@ -475,7 +468,7 @@ cpdef array_to_datetime(
         str abbrev
 
     # specify error conditions
-    assert is_raise or is_ignore or is_coerce
+    assert is_raise or is_coerce
 
     if infer_reso:
         abbrev = "ns"
@@ -550,29 +543,28 @@ cpdef array_to_datetime(
                         creso = state.creso
                     continue
 
-                _ts = convert_str_to_tsobject(
+                tsobj = convert_str_to_tsobject(
                     val, None, dayfirst=dayfirst, yearfirst=yearfirst
                 )
 
-                if _ts.value == NPY_NAT:
+                if tsobj.value == NPY_NAT:
                     # e.g. "NaT" string or empty string, we do not consider
                     #  this as either tzaware or tznaive. See
                     #  test_to_datetime_with_empty_str_utc_false_format_mixed
                     # We also do not update resolution inference based on this,
                     #  see test_infer_with_nat_int_float_str
-                    iresult[i] = _ts.value
+                    iresult[i] = tsobj.value
                     continue
 
-                item_reso = _ts.creso
+                item_reso = tsobj.creso
                 state.update_creso(item_reso)
                 if infer_reso:
                     creso = state.creso
 
-                _ts.ensure_reso(creso, val)
+                tsobj.ensure_reso(creso, val)
+                iresult[i] = tsobj.value
 
-                iresult[i] = _ts.value
-
-                tz = _ts.tzinfo
+                tz = tsobj.tzinfo
                 if tz is not None:
                     # dateutil timezone objects cannot be hashed, so
                     # store the UTC offsets in seconds instead
@@ -688,7 +680,6 @@ cdef _array_to_datetime_object(
     cdef:
         Py_ssize_t i, n = values.size
         object val
-        bint is_ignore = errors == "ignore"
         bint is_coerce = errors == "coerce"
         bint is_raise = errors == "raise"
         ndarray oresult_nd
@@ -697,7 +688,7 @@ cdef _array_to_datetime_object(
         cnp.broadcast mi
         _TSObject tsobj
 
-    assert is_raise or is_ignore or is_coerce
+    assert is_raise or is_coerce
 
     oresult_nd = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
     mi = cnp.PyArray_MultiIterNew2(oresult_nd, values)

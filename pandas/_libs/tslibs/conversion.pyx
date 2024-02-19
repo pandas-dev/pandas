@@ -29,7 +29,6 @@ from cpython.datetime cimport (
 import_datetime()
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
-from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
     get_supported_reso,
@@ -492,7 +491,7 @@ cdef _TSObject convert_datetime_to_tsobject(
         pydatetime_to_dtstruct(ts, &obj.dts)
         obj.tzinfo = ts.tzinfo
 
-    if isinstance(ts, ABCTimestamp):
+    if isinstance(ts, _Timestamp):
         obj.dts.ps = ts.nanosecond * 1000
 
     if nanos:
@@ -599,11 +598,13 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
         # Issue 9000, we short-circuit rather than going
         # into np_datetime_strings which returns utc
         dt = datetime.now(tz)
+        return convert_datetime_to_tsobject(dt, tz, nanos=0, reso=NPY_FR_us)
     elif ts == "today":
         # Issue 9000, we short-circuit rather than going
         # into np_datetime_strings which returns a normalized datetime
         dt = datetime.now(tz)
         # equiv: datetime.today().replace(tzinfo=tz)
+        return convert_datetime_to_tsobject(dt, tz, nanos=0, reso=NPY_FR_us)
     else:
         string_to_dts_failed = string_to_dts(
             ts, &dts, &out_bestunit, &out_local,
@@ -646,8 +647,6 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
         )
         reso = get_supported_reso(out_bestunit)
         return convert_datetime_to_tsobject(dt, tz, nanos=nanos, reso=reso)
-
-    return convert_datetime_to_tsobject(dt, tz)
 
 
 cdef check_overflows(_TSObject obj, NPY_DATETIMEUNIT reso=NPY_FR_ns):
@@ -766,7 +765,7 @@ cpdef inline datetime localize_pydatetime(datetime dt, tzinfo tz):
     """
     if tz is None:
         return dt
-    elif isinstance(dt, ABCTimestamp):
+    elif isinstance(dt, _Timestamp):
         return dt.tz_localize(tz)
     return _localize_pydatetime(dt, tz)
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import (
+    AbstractContextManager,
     contextmanager,
     nullcontext,
 )
@@ -75,10 +76,8 @@ def assert_produces_warning(
     >>> import warnings
     >>> with assert_produces_warning():
     ...     warnings.warn(UserWarning())
-    ...
     >>> with assert_produces_warning(False):
     ...     warnings.warn(RuntimeWarning())
-    ...
     Traceback (most recent call last):
         ...
     AssertionError: Caused unexpected warning(s): ['RuntimeWarning'].
@@ -112,7 +111,9 @@ def assert_produces_warning(
                 )
 
 
-def maybe_produces_warning(warning: type[Warning], condition: bool, **kwargs):
+def maybe_produces_warning(
+    warning: type[Warning], condition: bool, **kwargs
+) -> AbstractContextManager:
     """
     Return a context manager that possibly checks a warning based on the condition
     """
@@ -149,13 +150,12 @@ def _assert_caught_expected_warning(
 
     if not saw_warning:
         raise AssertionError(
-            f"Did not see expected warning of class "
-            f"{repr(expected_warning.__name__)}"
+            f"Did not see expected warning of class {expected_warning.__name__!r}"
         )
 
     if match and not matched_message:
         raise AssertionError(
-            f"Did not see warning {repr(expected_warning.__name__)} "
+            f"Did not see warning {expected_warning.__name__!r} "
             f"matching '{match}'. The emitted warning messages are "
             f"{unmatched_messages}"
         )
@@ -197,7 +197,7 @@ def _assert_caught_no_extra_warnings(
             )
 
     if extra_warnings:
-        raise AssertionError(f"Caused unexpected warning(s): {repr(extra_warnings)}")
+        raise AssertionError(f"Caused unexpected warning(s): {extra_warnings!r}")
 
 
 def _is_unexpected_warning(
@@ -218,7 +218,12 @@ def _assert_raised_with_correct_stacklevel(
     frame = inspect.currentframe()
     for _ in range(4):
         frame = frame.f_back  # type: ignore[union-attr]
-    caller_filename = inspect.getfile(frame)  # type: ignore[arg-type]
+    try:
+        caller_filename = inspect.getfile(frame)  # type: ignore[arg-type]
+    finally:
+        # See note in
+        # https://docs.python.org/3/library/inspect.html#inspect.Traceback
+        del frame
     msg = (
         "Warning not set with correct stacklevel. "
         f"File where warning is raised: {actual_warning.filename} != "

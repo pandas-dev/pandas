@@ -38,7 +38,7 @@ Pre-commit
 ----------
 
 Additionally, :ref:`Continuous Integration <contributing.ci>` will run code formatting checks
-like ``black``, ``ruff``,
+like ``ruff``,
 ``isort``, and ``clang-format`` and more using `pre-commit hooks <https://pre-commit.com/>`_.
 Any warnings from these checks will cause the :ref:`Continuous Integration <contributing.ci>` to fail; therefore,
 it is helpful to run the check yourself before submitting code. This
@@ -253,7 +253,7 @@ Testing type hints in code using pandas
 
 .. warning::
 
-    * Pandas is not yet a py.typed library (:pep:`561`)!
+    * pandas is not yet a py.typed library (:pep:`561`)!
       The primary purpose of locally declaring pandas as a py.typed library is to test and
       improve the pandas-builtin type annotations.
 
