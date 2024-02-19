@@ -33,6 +33,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.to_json` converting nullable integers to floats (:issue:`57224`)
 - Fixed regression in :meth:`DataFrame.to_sql` when ``method="multi"`` is passed and the dialect type is not Oracle (:issue:`57310`)
 - Fixed regression in :meth:`DataFrame.transpose` with nullable extension dtypes not having F-contiguous data potentially causing exceptions when used (:issue:`57315`)
+- Fixed regression in :meth:`DataFrame.update` emitting incorrect warnings about downcasting (:issue:`57124`)
 - Fixed regression in :meth:`DataFrameGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmin`, :meth:`SeriesGroupBy.idxmax` ignoring the ``skipna`` argument (:issue:`57040`)
 - Fixed regression in :meth:`DataFrameGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmin`, :meth:`SeriesGroupBy.idxmax` where values containing the minimum or maximum value for the dtype could produce incorrect results (:issue:`57040`)
 - Fixed regression in :meth:`ExtensionArray.to_numpy` raising for non-numeric masked dtypes (:issue:`56991`)
