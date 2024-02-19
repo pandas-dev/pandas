@@ -11,6 +11,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_windows
 from pandas.compat._constants import PY310
 from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
@@ -33,6 +34,9 @@ from pandas.io.excel import (
     register_writer,
 )
 from pandas.io.excel._util import _writers
+
+if is_platform_windows():
+    pytestmark = pytest.mark.single_cpu
 
 
 def get_exp_unit(path: str) -> str:
