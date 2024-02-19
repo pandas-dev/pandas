@@ -723,6 +723,11 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Return number of unique elements in the group.
 
+        Parameters
+        ----------
+        dropna : bool, default True
+            Don't include NaN in the counts.
+
         Returns
         -------
         Series
@@ -1942,6 +1947,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         dropna : bool
             Drop groups that do not pass the filter. True by default; if False,
             groups that evaluate False are filled with NaNs.
+        *args
+            Additional positional arguments to pass to `func`.
+        **kwargs
+            Additional keyword arguments to pass to `func`.
 
         Returns
         -------
