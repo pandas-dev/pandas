@@ -179,13 +179,6 @@ class Styler(StylerRenderer):
         Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
         in cell display string with HTML-safe sequences.
 
-        .. warning::
-
-           ``Styler`` is primarily intended for use on safe input that you control.
-           When using ``Styler`` on untrusted, user-provided input to serve HTML,
-           you should set ``escape=true`` to prevent security vulnerabilities.
-           See the Jinja2 documentation on HTML escaping for more.
-
         Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
         ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
         LaTeX-safe sequences. Use 'latex-math' to replace the characters
@@ -217,6 +210,13 @@ class Styler(StylerRenderer):
 
     Notes
     -----
+    .. warning::
+
+       ``Styler`` is primarily intended for use on safe input that you control.
+       When using ``Styler`` on untrusted, user-provided input to serve HTML,
+       you should set ``escape="html"`` to prevent security vulnerabilities.
+       See the Jinja2 documentation on escaping HTML for more.
+
     Most styling will be done by passing style functions into
     ``Styler.apply`` or ``Styler.map``. Style functions should
     return values with strings containing CSS ``'attr: value'`` that will
