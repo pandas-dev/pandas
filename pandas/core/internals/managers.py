@@ -702,7 +702,7 @@ class BaseBlockManager(PandasObject):
     def nblocks(self) -> int:
         return len(self.blocks)
 
-    def copy(self, deep: bool | None | Literal["all"] = True) -> Self:
+    def copy(self, deep: bool | Literal["all"] = True) -> Self:
         """
         Make deep or shallow copy of BlockManager
 
@@ -716,7 +716,6 @@ class BaseBlockManager(PandasObject):
         -------
         BlockManager
         """
-        deep = deep if deep is not None else False
         # this preserves the notion of view copying of axes
         if deep:
             # hit in e.g. tests.io.json.test_pandas
