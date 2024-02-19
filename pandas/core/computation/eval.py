@@ -378,7 +378,7 @@ def eval(
                 try:
                     target = env.target
                     if isinstance(target, NDFrame):
-                        target = target.copy(deep=None)
+                        target = target.copy(deep=False)
                     else:
                         target = target.copy()
                 except AttributeError as err:
