@@ -3124,7 +3124,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         <xarray.Dataset>
         Dimensions:    (index: 4)
         Coordinates:
-          * index      (index) int64 0 1 2 3
+          * index      (index) int64 32B 0 1 2 3
         Data variables:
             name       (index) object 32B 'falcon' 'parrot' 'lion' 'monkey'
             class      (index) object 32B 'bird' 'bird' 'mammal' 'mammal'
