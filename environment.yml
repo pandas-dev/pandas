@@ -117,6 +117,5 @@ dependencies:
   - pip:
       - adbc-driver-postgresql>=0.8.0
       - adbc-driver-sqlite>=0.8.0
-      - dataframe-api-compat>=0.1.7
       - typing_extensions; python_version<"3.11"
       - tzdata>=2022.7
