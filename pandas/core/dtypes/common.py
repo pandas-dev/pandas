@@ -175,7 +175,6 @@ def is_sparse(arr) -> bool:
     Returns True if it is a pandas sparse array, not another type of
     sparse array.
 
-
     Parameters
     ----------
     arr : array-like
