@@ -3,7 +3,6 @@ import pytest
 
 from pandas._config import using_pyarrow_string_dtype
 
-from pandas.errors import ChainedAssignmentError
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -392,8 +391,8 @@ class TestDataFrameInterpolate:
         msg = "The 'downcast' keyword in Series.interpolate is deprecated"
 
         if using_copy_on_write:
-            with tm.assert_produces_warning(
-                (FutureWarning, ChainedAssignmentError), match=msg
+            with tm.raises_chained_assignment_error(
+                extra_warnings=(FutureWarning,), extra_match=(msg,)
             ):
                 return_value = result["a"].interpolate(inplace=True, downcast="infer")
             assert return_value is None
