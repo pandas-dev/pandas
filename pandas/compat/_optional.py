@@ -24,7 +24,6 @@ VERSIONS = {
     "bs4": "4.11.2",
     "blosc": "1.21.3",
     "bottleneck": "1.3.6",
-    "dataframe-api-compat": "0.1.7",
     "fastparquet": "2023.04.0",
     "fsspec": "2022.11.0",
     "html5lib": "1.1",

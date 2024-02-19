@@ -1984,14 +1984,6 @@ def indexer_ial(request):
 
 
 @pytest.fixture
-def using_copy_on_write() -> bool:
-    """
-    Fixture to check if Copy-on-Write is enabled.
-    """
-    return True
-
-
-@pytest.fixture
 def using_infer_string() -> bool:
     """
     Fixture to check if infer string option is enabled.
