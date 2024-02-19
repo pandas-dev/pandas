@@ -338,14 +338,6 @@ def test_tick_equalities(cls):
 
 
 @pytest.mark.parametrize("cls", tick_classes)
-def test_tick_offset(cls):
-    msg = f"{cls.__name__}.is_anchored is deprecated "
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        assert not cls().is_anchored()
-
-
-@pytest.mark.parametrize("cls", tick_classes)
 def test_compare_ticks(cls):
     three = cls(3)
     four = cls(4)
