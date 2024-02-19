@@ -253,9 +253,7 @@ class _Unstacker:
             base, new_base = 1, 2  # type: ignore[assignment]
         if base is new_base:
             # We can only get here if one of the dimensions is size 1
-            mgr = result._mgr
-            mgr.blocks[0].refs = obj._mgr.blocks[0].refs
-            mgr.blocks[0].refs.add_reference(mgr.blocks[0])
+            result._mgr.add_references(obj._mgr)
         return result
 
     def get_new_values(self, values, fill_value=None):
