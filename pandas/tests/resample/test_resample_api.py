@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
-from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
 from pandas import (
@@ -35,13 +34,13 @@ def test_frame(dti, _test_series):
 def test_str(_test_series):
     r = _test_series.resample("h")
     assert (
-        "DatetimeIndexResampler [freq=<Hour>, axis=0, closed=left, "
+        "DatetimeIndexResampler [freq=<Hour>, closed=left, "
         "label=left, convention=start, origin=start_day]" in str(r)
     )
 
     r = _test_series.resample("h", origin="2000-01-01")
     assert (
-        "DatetimeIndexResampler [freq=<Hour>, axis=0, closed=left, "
+        "DatetimeIndexResampler [freq=<Hour>, closed=left, "
         "label=left, convention=start, origin=2000-01-01 00:00:00]" in str(r)
     )
 
@@ -295,32 +294,6 @@ def test_transform_frame(on):
     r = df.resample("20min", on=on)
     result = r.transform("mean")
     tm.assert_frame_equal(result, expected)
-
-
-def test_fillna():
-    # need to upsample here
-    rng = date_range("1/1/2012", periods=10, freq="2s")
-    ts = Series(np.arange(len(rng), dtype="int64"), index=rng)
-    r = ts.resample("s")
-
-    expected = r.ffill()
-    msg = "DatetimeIndexResampler.fillna is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = r.fillna(method="ffill")
-    tm.assert_series_equal(result, expected)
-
-    expected = r.bfill()
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = r.fillna(method="bfill")
-    tm.assert_series_equal(result, expected)
-
-    msg2 = (
-        r"Invalid fill method\. Expecting pad \(ffill\), backfill "
-        r"\(bfill\) or nearest\. Got 0"
-    )
-    with pytest.raises(ValueError, match=msg2):
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            r.fillna(0)
 
 
 @pytest.mark.parametrize(
@@ -618,26 +591,6 @@ def test_agg_specificationerror_invalid_names(cases):
     msg = r"Column\(s\) \['B'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         cases[["A"]].agg({"A": ["sum", "std"], "B": ["mean", "std"]})
-
-
-@pytest.mark.parametrize(
-    "func", [["min"], ["mean", "max"], {"A": "sum"}, {"A": "prod", "B": "median"}]
-)
-def test_multi_agg_axis_1_raises(func):
-    # GH#46904
-
-    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
-    index.name = "date"
-    df = DataFrame(
-        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
-    ).T
-    warning_msg = "DataFrame.resample with axis=1 is deprecated."
-    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
-        res = df.resample("ME", axis=1)
-        with pytest.raises(
-            NotImplementedError, match="axis other than 0 is not supported"
-        ):
-            res.agg(func)
 
 
 def test_agg_nested_dicts():
@@ -1005,77 +958,6 @@ def test_series_downsample_method(method, numeric_only, expected_data):
         result = func(**kwargs)
         expected = Series(expected_data, index=expected_index)
         tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "method, raises",
-    [
-        ("sum", True),
-        ("prod", True),
-        ("min", True),
-        ("max", True),
-        ("first", False),
-        ("last", False),
-        ("median", False),
-        ("mean", True),
-        ("std", True),
-        ("var", True),
-        ("sem", False),
-        ("ohlc", False),
-        ("nunique", False),
-    ],
-)
-def test_args_kwargs_depr(method, raises):
-    index = date_range("20180101", periods=3, freq="h")
-    df = Series([2, 4, 6], index=index)
-    resampled = df.resample("30min")
-    args = ()
-
-    func = getattr(resampled, method)
-
-    error_msg = "numpy operations are not valid with resample."
-    error_msg_type = "too many arguments passed in"
-    warn_msg = f"Passing additional args to DatetimeIndexResampler.{method}"
-
-    if raises:
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-                func(*args, 1, 2, 3)
-    else:
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            with pytest.raises(TypeError, match=error_msg_type):
-                func(*args, 1, 2, 3)
-
-
-def test_df_axis_param_depr():
-    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
-    index.name = "date"
-    df = DataFrame(
-        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
-    ).T
-
-    # Deprecation error when axis=1 is explicitly passed
-    warning_msg = "DataFrame.resample with axis=1 is deprecated."
-    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
-        df.resample("ME", axis=1)
-
-    # Deprecation error when axis=0 is explicitly passed
-    df = df.T
-    warning_msg = (
-        "The 'axis' keyword in DataFrame.resample is deprecated and "
-        "will be removed in a future version."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
-        df.resample("ME", axis=0)
-
-
-def test_series_axis_param_depr(_test_series):
-    warning_msg = (
-        "The 'axis' keyword in Series.resample is "
-        "deprecated and will be removed in a future version."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
-        _test_series.resample("h", axis=0)
 
 
 def test_resample_empty():

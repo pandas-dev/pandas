@@ -18,6 +18,7 @@ import pytest
 
 from pandas._config import using_pyarrow_string_dtype
 
+from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -33,6 +34,9 @@ from pandas.core.arrays import (
     ArrowStringArray,
     StringArray,
 )
+
+if is_platform_windows():
+    pytestmark = pytest.mark.single_cpu
 
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [
@@ -966,19 +970,6 @@ class TestReaders:
 
         tm.assert_frame_equal(expected, actual)
 
-    @td.skip_if_no("py.path")
-    def test_read_from_py_localpath(self, read_ext):
-        # GH12655
-        from py.path import local as LocalPath
-
-        str_path = os.path.join("test1" + read_ext)
-        expected = pd.read_excel(str_path, sheet_name="Sheet1", index_col=0)
-
-        path_obj = LocalPath().join("test1" + read_ext)
-        actual = pd.read_excel(path_obj, sheet_name="Sheet1", index_col=0)
-
-        tm.assert_frame_equal(expected, actual)
-
     def test_close_from_py_localpath(self, read_ext):
         # GH31467
         str_path = os.path.join("test1" + read_ext)
@@ -1461,17 +1452,10 @@ class TestReaders:
 
 
 class TestExcelFileRead:
-    def test_deprecate_bytes_input(self, engine, read_ext):
+    def test_raises_bytes_input(self, engine, read_ext):
         # GH 53830
-        msg = (
-            "Passing bytes to 'read_excel' is deprecated and "
-            "will be removed in a future version. To read from a "
-            "byte string, wrap it in a `BytesIO` object."
-        )
-
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, raise_on_extra_warnings=False
-        ):
+        msg = "Expected file path name or file-like object"
+        with pytest.raises(TypeError, match=msg):
             with open("test1" + read_ext, "rb") as f:
                 pd.read_excel(f.read(), engine=engine)
 

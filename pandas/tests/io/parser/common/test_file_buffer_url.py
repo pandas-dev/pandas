@@ -79,20 +79,6 @@ def test_path_path_lib(all_parsers):
     tm.assert_frame_equal(df, result)
 
 
-@xfail_pyarrow  # AssertionError: DataFrame.index are different
-def test_path_local_path(all_parsers):
-    parser = all_parsers
-    df = DataFrame(
-        1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
-    )
-    result = tm.round_trip_localpath(
-        df.to_csv, lambda p: parser.read_csv(p, index_col=0)
-    )
-    tm.assert_frame_equal(df, result)
-
-
 def test_nonexistent_path(all_parsers):
     # gh-2428: pls no segfault
     # gh-14086: raise more helpful FileNotFoundError
@@ -452,7 +438,7 @@ def test_context_manageri_user_provided(all_parsers, datapath):
 
 
 @skip_pyarrow  # ParserError: Empty CSV file
-def test_file_descriptor_leak(all_parsers, using_copy_on_write):
+def test_file_descriptor_leak(all_parsers):
     # GH 31488
     parser = all_parsers
     with tm.ensure_clean() as path:

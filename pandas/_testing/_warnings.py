@@ -76,10 +76,8 @@ def assert_produces_warning(
     >>> import warnings
     >>> with assert_produces_warning():
     ...     warnings.warn(UserWarning())
-    ...
     >>> with assert_produces_warning(False):
     ...     warnings.warn(RuntimeWarning())
-    ...
     Traceback (most recent call last):
         ...
     AssertionError: Caused unexpected warning(s): ['RuntimeWarning'].
@@ -220,7 +218,12 @@ def _assert_raised_with_correct_stacklevel(
     frame = inspect.currentframe()
     for _ in range(4):
         frame = frame.f_back  # type: ignore[union-attr]
-    caller_filename = inspect.getfile(frame)  # type: ignore[arg-type]
+    try:
+        caller_filename = inspect.getfile(frame)  # type: ignore[arg-type]
+    finally:
+        # See note in
+        # https://docs.python.org/3/library/inspect.html#inspect.Traceback
+        del frame
     msg = (
         "Warning not set with correct stacklevel. "
         f"File where warning is raised: {actual_warning.filename} != "
