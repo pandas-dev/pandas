@@ -266,6 +266,11 @@ def test_tick_division(cls):
         result = off / 1000
         assert isinstance(result, offsets.Tick)
         assert not isinstance(result, cls)
+        # GH57264
+        # Test that roundtripping works
+        # to ensure that the timedelta division isn't giving something wrong
+        # (e.g. 0)
+        assert result * 1000 == off
         assert result._as_pd_timedelta == off._as_pd_timedelta / 1000
 
     if cls._nanos_inc < Timedelta(seconds=1)._value:

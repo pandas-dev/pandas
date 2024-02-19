@@ -60,6 +60,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     cmp_dtstructs,
     cmp_scalar,
     convert_reso,
+    get_conversion_factor,
     get_datetime64_unit,
     get_unit_from_dtype,
     import_pandas_datetime,
@@ -965,6 +966,7 @@ cdef _timedelta_from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso):
     #  many cases would fall outside of the pytimedelta implementation bounds.
     #  We pass 0 instead, and override seconds, microseconds, days.
     #  In principle we could pass 0 for ns and us too.
+
     if reso == NPY_FR_ns:
         td_base = _Timedelta.__new__(cls, microseconds=int(value) // 1000)
     elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
@@ -2047,6 +2049,9 @@ class Timedelta(_Timedelta):
     __rmul__ = __mul__
 
     def __truediv__(self, other):
+        cdef:
+            NPY_DATETIMEUNIT curr_unit, next_unit
+            int64_t curr_value
         if _should_cast_to_timedelta(other):
             # We interpret NaT as timedelta64("NaT")
             other = Timedelta(other)
@@ -2066,8 +2071,21 @@ class Timedelta(_Timedelta):
                 other = int(other)
             if isinstance(other, cnp.floating):
                 other = float(other)
+
+            # If we have a non-nano timedelta and
+            # self._value < other, we would get 0 as a result,
+            # which is not correct.
+            # We need to try going to a higher resolution to fix this
+            curr_value = self._value
+            curr_unit = self._creso
+            while curr_value < other and curr_unit < NPY_FR_ns:
+                next_unit = <NPY_DATETIMEUNIT>(<int64_t>curr_unit + 1)
+                cf = get_conversion_factor(curr_unit, next_unit)
+                curr_value *= cf
+                curr_unit = next_unit
+
             return Timedelta._from_value_and_reso(
-                <int64_t>(self._value/ other), self._creso
+                <int64_t>(curr_value / other), curr_unit
             )
 
         elif is_array(other):
