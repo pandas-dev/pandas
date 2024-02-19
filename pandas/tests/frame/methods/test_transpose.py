@@ -3,6 +3,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
+import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -190,3 +191,19 @@ class TestTranspose:
             dtype=object,
         )
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype1", ["Int64", "Float64"])
+    @pytest.mark.parametrize("dtype2", ["Int64", "Float64"])
+    def test_transpose(self, dtype1, dtype2):
+        # GH#57315 - transpose should have F contiguous blocks
+        df = DataFrame(
+            {
+                "a": pd.array([1, 1, 2], dtype=dtype1),
+                "b": pd.array([3, 4, 5], dtype=dtype2),
+            }
+        )
+        result = df.T
+        for blk in result._mgr.blocks:
+            # When dtypes are unequal, we get NumPy object array
+            data = blk.values._data if dtype1 == dtype2 else blk.values
+            assert data.flags["F_CONTIGUOUS"]
