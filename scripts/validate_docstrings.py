@@ -363,7 +363,7 @@ def print_validate_all_results(
     exit_status = 0
     for name, res in result.items():
         for err_code, err_desc in res["errors"]:
-            if errors and err_code not in errors:
+            if errors is not None and err_code not in errors:
                 continue
             sys.stdout.write(
                 f'{prefix}{res["file"]}:{res["file_line"]}:'
