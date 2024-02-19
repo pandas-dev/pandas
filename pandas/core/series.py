@@ -4646,6 +4646,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             kwargs=kwargs,
         ).apply()
 
+    def pipe(
+        self, 
+        func: Callable,
+        *args,
+        **kwargs,
+    ):
+        """
+        Hold for documentation
+        """
+        return func(self, *args, **kwargs)
+
     def _reindex_indexer(
         self,
         new_index: Index | None,
