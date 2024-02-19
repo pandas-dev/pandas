@@ -394,7 +394,7 @@ def eval(
                 if inplace and isinstance(target, NDFrame):
                     target.loc[:, assigner] = ret
                 else:
-                    target[assigner] = ret  # pyright: ignore[reportGeneralTypeIssues]
+                    target[assigner] = ret  # pyright: ignore[reportIndexIssue]
             except (TypeError, IndexError) as err:
                 raise ValueError("Cannot assign expression output to target") from err
 
