@@ -4867,8 +4867,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
         **kwargs : dict, optional
-            Additional keyword arguments to be passed to the function, such as `skipna`, to control whether
-            NA/null values are ignored.
+            Additional keyword arguments to be passed to the function, such as `skipna`,
+            to control whether NA/null values are ignored.
 
         Returns
         -------
