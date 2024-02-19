@@ -264,7 +264,7 @@ def is_nested_list_like(obj: object) -> bool:
         is_list_like(obj)
         and hasattr(obj, "__len__")
         # need PEP 724 to handle these typing errors
-        and len(obj) > 0  # pyright: ignore[reportGeneralTypeIssues]
+        and len(obj) > 0  # pyright: ignore[reportArgumentType]
         and all(is_list_like(item) for item in obj)  # type: ignore[attr-defined]
     )
 
