@@ -1544,7 +1544,7 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     Standard kind of date increment used for a date range.
 
     Works exactly like the keyword argument form of relativedelta.
-    Note that the positional argument form of relativedelata is not
+    Note that the positional argument form of relativedelta is not
     supported. Use of the keyword n is discouraged-- you would be better
     off specifying n in the keywords you use, but regardless it is
     there for you. n is needed for DateOffset subclasses.
