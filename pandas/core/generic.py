@@ -3126,10 +3126,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Coordinates:
           * index      (index) int64 0 1 2 3
         Data variables:
-            name       (index) object 'falcon' 'parrot' 'lion' 'monkey'
-            class      (index) object 'bird' 'bird' 'mammal' 'mammal'
-            max_speed  (index) float64 389.0 24.0 80.5 nan
-            num_legs   (index) int64 2 2 4 4
+            name       (index) object 32B 'falcon' 'parrot' 'lion' 'monkey'
+            class      (index) object 32B 'bird' 'bird' 'mammal' 'mammal'
+            max_speed  (index) float64 32B 389.0 24.0 80.5 nan
+            num_legs   (index) int64 32B 2 2 4 4
 
         >>> df["max_speed"].to_xarray()
         <xarray.DataArray 'max_speed' (index: 4)>
