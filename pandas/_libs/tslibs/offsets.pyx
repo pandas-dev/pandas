@@ -755,30 +755,6 @@ cdef class BaseOffset:
     def nanos(self):
         raise ValueError(f"{self} is a non-fixed frequency")
 
-    def is_anchored(self) -> bool:
-        # GH#55388
-        """
-        Return boolean whether the frequency is a unit frequency (n=1).
-
-        .. deprecated:: 2.2.0
-            is_anchored is deprecated and will be removed in a future version.
-            Use ``obj.n == 1`` instead.
-
-        Examples
-        --------
-        >>> pd.DateOffset().is_anchored()
-        True
-        >>> pd.DateOffset(2).is_anchored()
-        False
-        """
-        warnings.warn(
-            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
-            f"in a future version, please use \'obj.n == 1\' instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.n == 1
-
     # ------------------------------------------------------------------
 
     def is_month_start(self, _Timestamp ts):
@@ -961,30 +937,6 @@ cdef class Tick(SingleConstructorOffset):
 
     def is_on_offset(self, dt: datetime) -> bool:
         return True
-
-    def is_anchored(self) -> bool:
-        # GH#55388
-        """
-        Return False.
-
-        .. deprecated:: 2.2.0
-            is_anchored is deprecated and will be removed in a future version.
-            Use ``False`` instead.
-
-        Examples
-        --------
-        >>> pd.offsets.Hour().is_anchored()
-        False
-        >>> pd.offsets.Hour(2).is_anchored()
-        False
-        """
-        warnings.warn(
-            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
-            f"in a future version, please use False instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return False
 
     # This is identical to BaseOffset.__hash__, but has to be redefined here
     # for Python 3, because we've redefined __eq__.
@@ -1544,7 +1496,7 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     Standard kind of date increment used for a date range.
 
     Works exactly like the keyword argument form of relativedelta.
-    Note that the positional argument form of relativedelata is not
+    Note that the positional argument form of relativedelta is not
     supported. Use of the keyword n is discouraged-- you would be better
     off specifying n in the keywords you use, but regardless it is
     there for you. n is needed for DateOffset subclasses.
@@ -2692,16 +2644,6 @@ cdef class QuarterOffset(SingleConstructorOffset):
         month = MONTH_ALIASES[self.startingMonth]
         return f"{self._prefix}-{month}"
 
-    def is_anchored(self) -> bool:
-        warnings.warn(
-            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
-            f"in a future version, please use \'obj.n == 1 "
-            f"and obj.startingMonth is not None\' instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.n == 1 and self.startingMonth is not None
-
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
@@ -3344,16 +3286,6 @@ cdef class Week(SingleConstructorOffset):
         self.weekday = state.pop("weekday")
         self._cache = state.pop("_cache", {})
 
-    def is_anchored(self) -> bool:
-        warnings.warn(
-            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
-            f"in a future version, please use \'obj.n == 1 "
-            f"and obj.weekday is not None\' instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.n == 1 and self.weekday is not None
-
     @apply_wraps
     def _apply(self, other):
         if self.weekday is None:
@@ -3639,17 +3571,6 @@ cdef class FY5253Mixin(SingleConstructorOffset):
         self.normalize = state.pop("normalize")
         self.weekday = state.pop("weekday")
         self.variation = state.pop("variation")
-
-    def is_anchored(self) -> bool:
-        warnings.warn(
-            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
-            f"in a future version, please use \'obj.n == 1\' instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return (
-            self.n == 1 and self.startingMonth is not None and self.weekday is not None
-        )
 
     # --------------------------------------------------------------------
     # Name-related methods
