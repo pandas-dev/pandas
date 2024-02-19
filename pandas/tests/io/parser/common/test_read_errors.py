@@ -192,7 +192,6 @@ def test_warn_bad_lines(all_parsers):
     expected_warning = ParserWarning
     if parser.engine == "pyarrow":
         match_msg = "Expected 1 columns, but found 3: 1,2,3"
-        expected_warning = (ParserWarning, DeprecationWarning)
 
     with tm.assert_produces_warning(
         expected_warning, match=match_msg, check_stacklevel=False
@@ -311,7 +310,6 @@ a,b
     expected_warning = ParserWarning
     if parser.engine == "pyarrow":
         match_msg = "Expected 2 columns, but found 3: a,b,c"
-        expected_warning = (ParserWarning, DeprecationWarning)
 
     with tm.assert_produces_warning(
         expected_warning, match=match_msg, check_stacklevel=False
