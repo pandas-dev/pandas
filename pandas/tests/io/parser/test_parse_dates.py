@@ -2330,8 +2330,8 @@ def test_from_csv_with_mixed_offsets(all_parsers):
     result = parser.read_csv(StringIO(data), parse_dates=["a"])["a"]
     expected = Series(
         [
-            Timestamp("2020-01-01 00:00:00+01:00"),
-            Timestamp("2020-01-01 00:00:00+00:00"),
+            "2020-01-01T00:00:00+01:00",
+            "2020-01-01T00:00:00+00:00",
         ],
         name="a",
         index=[0, 1],

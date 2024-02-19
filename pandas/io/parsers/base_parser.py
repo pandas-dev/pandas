@@ -1158,24 +1158,18 @@ def _make_date_converter(
                 date_format.get(col) if isinstance(date_format, dict) else date_format
             )
 
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    ".*parsing datetimes with mixed time zones will raise an error",
-                    category=FutureWarning,
+            str_objs = ensure_object(strs)
+            try:
+                result = tools.to_datetime(
+                    str_objs,
+                    format=date_fmt,
+                    utc=False,
+                    dayfirst=dayfirst,
+                    cache=cache_dates,
                 )
-                str_objs = ensure_object(strs)
-                try:
-                    result = tools.to_datetime(
-                        str_objs,
-                        format=date_fmt,
-                        utc=False,
-                        dayfirst=dayfirst,
-                        cache=cache_dates,
-                    )
-                except (ValueError, TypeError):
-                    # test_usecols_with_parse_dates4
-                    return str_objs
+            except (ValueError, TypeError):
+                # test_usecols_with_parse_dates4
+                return str_objs
 
             if isinstance(result, DatetimeIndex):
                 arr = result.to_numpy()
@@ -1184,45 +1178,31 @@ def _make_date_converter(
             return result._values
         else:
             try:
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore",
-                        ".*parsing datetimes with mixed time zones "
-                        "will raise an error",
-                        category=FutureWarning,
+                pre_parsed = date_parser(
+                    *(unpack_if_single_element(arg) for arg in date_cols)
+                )
+                try:
+                    result = tools.to_datetime(
+                        pre_parsed,
+                        cache=cache_dates,
                     )
-                    pre_parsed = date_parser(
-                        *(unpack_if_single_element(arg) for arg in date_cols)
-                    )
-                    try:
-                        result = tools.to_datetime(
-                            pre_parsed,
-                            cache=cache_dates,
-                        )
-                    except (ValueError, TypeError):
-                        # test_read_csv_with_custom_date_parser
-                        result = pre_parsed
+                except (ValueError, TypeError):
+                    # test_read_csv_with_custom_date_parser
+                    result = pre_parsed
                 if isinstance(result, datetime.datetime):
                     raise Exception("scalar parser")
                 return result
             except Exception:
                 # e.g. test_datetime_fractional_seconds
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore",
-                        ".*parsing datetimes with mixed time zones "
-                        "will raise an error",
-                        category=FutureWarning,
-                    )
-                    pre_parsed = parsing.try_parse_dates(
-                        parsing.concat_date_cols(date_cols),
-                        parser=date_parser,
-                    )
-                    try:
-                        return tools.to_datetime(pre_parsed)
-                    except (ValueError, TypeError):
-                        # TODO: not reached in tests 2023-10-27; needed?
-                        return pre_parsed
+                pre_parsed = parsing.try_parse_dates(
+                    parsing.concat_date_cols(date_cols),
+                    parser=date_parser,
+                )
+                try:
+                    return tools.to_datetime(pre_parsed)
+                except (ValueError, TypeError):
+                    # TODO: not reached in tests 2023-10-27; needed?
+                    return pre_parsed
 
     return converter
 
