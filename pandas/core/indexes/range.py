@@ -1007,11 +1007,13 @@ class RangeIndex(Index):
             # Get the stop value from "next" or alternatively
             # from the last non-empty index
             stop = non_empty_indexes[-1].stop if next_ is None else next_
-            return RangeIndex(start, stop, step).rename(name)
+            if len(non_empty_indexes) == 1:
+                step = non_empty_indexes[0].step
+            return RangeIndex(start, stop, step, name=name)
 
         # Here all "indexes" had 0 length, i.e. were empty.
         # In this case return an empty range index.
-        return RangeIndex(0, 0).rename(name)
+        return RangeIndex(_empty_range, name=name)
 
     def __len__(self) -> int:
         """
@@ -1169,7 +1171,7 @@ class RangeIndex(Index):
         allow_fill: bool = True,
         fill_value=None,
         **kwargs,
-    ) -> Index:
+    ) -> Self | Index:
         if kwargs:
             nv.validate_take((), kwargs)
         if is_scalar(indices):
@@ -1180,7 +1182,7 @@ class RangeIndex(Index):
         self._maybe_disallow_fill(allow_fill, fill_value, indices)
 
         if len(indices) == 0:
-            taken = np.array([], dtype=self.dtype)
+            return type(self)(_empty_range, name=self.name)
         else:
             ind_max = indices.max()
             if ind_max >= len(self):
@@ -1200,5 +1202,4 @@ class RangeIndex(Index):
             if self.start != 0:
                 taken += self.start
 
-        # _constructor so RangeIndex-> Index with an int64 dtype
-        return self._constructor._simple_new(taken, name=self.name)
+        return self._shallow_copy(taken, name=self.name)

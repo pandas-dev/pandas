@@ -1404,7 +1404,7 @@ def fixed_now_ts() -> Timestamp:
     """
     Fixture emits fixed Timestamp.now()
     """
-    return Timestamp(  # pyright: ignore[reportGeneralTypeIssues]
+    return Timestamp(  # pyright: ignore[reportReturnType]
         year=2021, month=1, day=1, hour=12, minute=4, second=13, microsecond=22
     )
 
@@ -1985,14 +1985,6 @@ def indexer_ial(request):
     Parametrize over iat.__setitem__, iloc.__setitem__
     """
     return request.param
-
-
-@pytest.fixture
-def using_copy_on_write() -> bool:
-    """
-    Fixture to check if Copy-on-Write is enabled.
-    """
-    return True
 
 
 @pytest.fixture

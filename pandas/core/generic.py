@@ -597,7 +597,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         return {
             clean_column_name(k): Series(
-                v, copy=False, index=self.index, name=k
+                v, copy=False, index=self.index, name=k, dtype=self.dtypes[k]
             ).__finalize__(self)
             for k, v in zip(self.columns, self._iter_column_arrays())
             if not isinstance(k, int)
@@ -2807,6 +2807,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ``Timestamp with timezone`` type with SQLAlchemy if supported by the
         database. Otherwise, the datetimes will be stored as timezone unaware
         timestamps local to the original timezone.
+
+        Not all datastores support ``method="multi"``. Oracle, for example,
+        does not support multi-value insert.
 
         References
         ----------
@@ -7485,7 +7488,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not self.size:
                 if inplace:
                     return None
-                return self.copy(deep=None)
+                return self.copy(deep=False)
 
             if is_dict_like(to_replace):
                 if is_dict_like(value):  # {'A' : NA} -> {'A' : 0}
@@ -8099,8 +8102,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         NA values, such as None or :attr:`numpy.NaN`, gets mapped to True
         values.
         Everything else gets mapped to False values. Characters such as empty
-        strings ``''`` or :attr:`numpy.inf` are not considered NA values
-        (unless you set ``pandas.options.mode.use_inf_as_na = True``).
+        strings ``''`` or :attr:`numpy.inf` are not considered NA values.
 
         Returns
         -------
@@ -8171,8 +8173,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Return a boolean same-sized object indicating if the values are not NA.
         Non-missing values get mapped to True. Characters such as empty
-        strings ``''`` or :attr:`numpy.inf` are not considered NA values
-        (unless you set ``pandas.options.mode.use_inf_as_na = True``).
+        strings ``''`` or :attr:`numpy.inf` are not considered NA values.
         NA values, such as None or :attr:`numpy.NaN`, get mapped to False
         values.
 
@@ -10278,7 +10279,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             fill_value = lib.no_default
 
         if periods == 0:
-            return self.copy(deep=None)
+            return self.copy(deep=False)
 
         if is_list_like(periods) and isinstance(self, ABCSeries):
             return self.to_frame().shift(

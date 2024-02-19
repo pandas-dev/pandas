@@ -358,13 +358,13 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         return self._ndarray
 
     @overload
-    def __getitem__(self, item: ScalarIndexer) -> DTScalarOrNaT:
+    def __getitem__(self, key: ScalarIndexer) -> DTScalarOrNaT:
         ...
 
     @overload
     def __getitem__(
         self,
-        item: SequenceIndexer | PositionalIndexerTuple,
+        key: SequenceIndexer | PositionalIndexerTuple,
     ) -> Self:
         ...
 
