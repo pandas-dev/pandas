@@ -67,7 +67,7 @@ performance = ['bottleneck>=1.3.6', 'numba>=0.56.4', 'numexpr>=2.8.4']
 computation = ['scipy>=1.10.0', 'xarray>=2022.12.0']
 fss = ['fsspec>=2022.11.0']
 aws = ['s3fs>=2022.11.0']
-gcp = ['gcsfs>=2022.11.0', 'pandas-gbq>=0.19.0']
+gcp = ['gcsfs>=2022.11.0']
 excel = ['odfpy>=1.4.1', 'openpyxl>=3.1.0', 'python-calamine>=0.1.7', 'pyxlsb>=1.0.10', 'xlrd>=2.0.1', 'xlsxwriter>=3.0.5']
 parquet = ['pyarrow>=10.0.1']
 feather = ['pyarrow>=10.0.1']
@@ -84,15 +84,13 @@ plot = ['matplotlib>=3.6.3']
 output-formatting = ['jinja2>=3.1.2', 'tabulate>=0.9.0']
 clipboard = ['PyQt5>=5.15.9', 'qtpy>=2.3.0']
 compression = ['zstandard>=0.19.0']
-consortium-standard = ['dataframe-api-compat>=0.1.7']
 all = ['adbc-driver-postgresql>=0.8.0',
        'adbc-driver-sqlite>=0.8.0',
        'beautifulsoup4>=4.11.2',
        # blosc only available on conda (https://github.com/Blosc/python-blosc/issues/297)
        #'blosc>=1.21.3',
        'bottleneck>=1.3.6',
-       'dataframe-api-compat>=0.1.7',
-       'fastparquet>=2022.12.0',
+       'fastparquet>=2023.04.0',
        'fsspec>=2022.11.0',
        'gcsfs>=2022.11.0',
        'html5lib>=1.1',
@@ -104,7 +102,6 @@ all = ['adbc-driver-postgresql>=0.8.0',
        'numexpr>=2.8.4',
        'odfpy>=1.4.1',
        'openpyxl>=3.1.0',
-       'pandas-gbq>=0.19.0',
        'psycopg2>=2.9.6',
        'pyarrow>=10.0.1',
        'pymysql>=1.0.2',
@@ -330,6 +327,20 @@ exclude = [
   "env",
 ]
 
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"urllib.request.urlopen".msg = "Use pandas.io.common.urlopen instead of urllib.request.urlopen"
+# numpy.random is banned but np.random is not. Is this intentional?
+# "numpy.random".msg = "Do not use numpy.random"
+"pytest.warns".msg = "Use tm.assert_produces_warning instead of pytest.warns"
+"pytest.xfail".msg = "Use pytest.mark.xfail instead of pytest.xfail"
+"conftest".msg = "No direct imports from conftest"
+"numpy.testing".msg = "Do not use numpy.testing"
+# "numpy.array_equal".msg = "Do not use numpy.array_equal" # Used in pandas/core
+"unittest.mock".msg = "use pytest builtin monkeypatch fixture instead"
+"os.remove".msg = "Do not use os.remove"
+
+
+
 [tool.ruff.per-file-ignores]
 # relative imports allowed for asv_bench
 "asv_bench/*" = ["TID", "NPY002"]
@@ -343,6 +354,9 @@ exclude = [
 [tool.ruff.lint.flake8-pytest-style]
 fixture-parentheses = false
 mark-parentheses = false
+
+[tool.ruff.format]
+docstring-code-format = true
 
 [tool.pylint.messages_control]
 max-line-length = 88
@@ -758,5 +772,5 @@ exclude_lines = [
 directory = "coverage_html_report"
 
 [tool.codespell]
-ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere, expec, expecs"
+ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere, expec, expecs, indext"
 ignore-regex = 'https://([\w/\.])+'

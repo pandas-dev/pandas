@@ -23,10 +23,10 @@ from io import (
     BytesIO,
     StringIO,
 )
-from itertools import combinations
 import operator
 import pickle
 import re
+import sys
 
 import numpy as np
 import pytest
@@ -354,10 +354,9 @@ class TestArrowArray(base.ExtensionTests):
         assert isinstance(result._pa_array, pa.ChunkedArray)
 
     def test_from_sequence_pa_array_notimplemented(self, request):
+        dtype = ArrowDtype(pa.month_day_nano_interval())
         with pytest.raises(NotImplementedError, match="Converting strings to"):
-            ArrowExtensionArray._from_sequence_of_strings(
-                ["12-1"], dtype=pa.month_day_nano_interval()
-            )
+            ArrowExtensionArray._from_sequence_of_strings(["12-1"], dtype=dtype)
 
     def test_from_sequence_of_strings_pa_array(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -1993,17 +1992,9 @@ def test_str_find_large_start():
 @pytest.mark.skipif(
     pa_version_under13p0, reason="https://github.com/apache/arrow/issues/36311"
 )
-@pytest.mark.parametrize("start", list(range(-15, 15)) + [None])
-@pytest.mark.parametrize("end", list(range(-15, 15)) + [None])
-@pytest.mark.parametrize(
-    "sub",
-    ["abcaadef"[x:y] for x, y in combinations(range(len("abcaadef") + 1), r=2)]
-    + [
-        "",
-        "az",
-        "abce",
-    ],
-)
+@pytest.mark.parametrize("start", [-15, -3, 0, 1, 15, None])
+@pytest.mark.parametrize("end", [-15, -1, 0, 3, 15, None])
+@pytest.mark.parametrize("sub", ["", "az", "abce", "a", "caa"])
 def test_str_find_e2e(start, end, sub):
     s = pd.Series(
         ["abcaadef", "abc", "abcdeddefgj8292", "ab", "a", ""],
@@ -2181,14 +2172,21 @@ def test_str_removeprefix(val):
 @pytest.mark.parametrize(
     "encoding, exp",
     [
-        ["utf8", b"abc"],
-        ["utf32", b"\xff\xfe\x00\x00a\x00\x00\x00b\x00\x00\x00c\x00\x00\x00"],
+        ("utf8", {"little": b"abc", "big": "abc"}),
+        (
+            "utf32",
+            {
+                "little": b"\xff\xfe\x00\x00a\x00\x00\x00b\x00\x00\x00c\x00\x00\x00",
+                "big": b"\x00\x00\xfe\xff\x00\x00\x00a\x00\x00\x00b\x00\x00\x00c",
+            },
+        ),
     ],
+    ids=["utf8", "utf32"],
 )
 def test_str_encode(errors, encoding, exp):
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.encode(encoding, errors)
-    expected = pd.Series([exp, None], dtype=ArrowDtype(pa.binary()))
+    expected = pd.Series([exp[sys.byteorder], None], dtype=ArrowDtype(pa.binary()))
     tm.assert_series_equal(result, expected)
 
 
@@ -2410,7 +2408,8 @@ def test_duration_from_strings_with_nat(unit):
     # GH51175
     strings = ["1000", "NaT"]
     pa_type = pa.duration(unit)
-    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=pa_type)
+    dtype = ArrowDtype(pa_type)
+    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
     expected = ArrowExtensionArray(pa.array([1000, None], type=pa_type))
     tm.assert_extension_array_equal(result, expected)
 
@@ -2929,13 +2928,14 @@ def test_from_sequence_of_strings_boolean():
         [True] * len(true_strings) + [False] * len(false_strings) + [None] * len(nulls)
     )
 
-    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=pa.bool_())
+    dtype = ArrowDtype(pa.bool_())
+    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
     expected = pd.array(bools, dtype="boolean[pyarrow]")
     tm.assert_extension_array_equal(result, expected)
 
     strings = ["True", "foo"]
     with pytest.raises(pa.ArrowInvalid, match="Failed to parse"):
-        ArrowExtensionArray._from_sequence_of_strings(strings, dtype=pa.bool_())
+        ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
 
 
 def test_concat_empty_arrow_backed_series(dtype):
@@ -3404,6 +3404,15 @@ def test_arrow_floordiv_floating_0_divisor(dtype):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("dtype", ["float64", "datetime64[ns]", "timedelta64[ns]"])
+def test_astype_int_with_null_to_numpy_dtype(dtype):
+    # GH 57093
+    ser = pd.Series([1, None], dtype="int64[pyarrow]")
+    result = ser.astype(dtype)
+    expected = pd.Series([1, None], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("pa_type", tm.ALL_INT_PYARROW_DTYPES)
 def test_arrow_integral_floordiv_large_values(pa_type):
     # GH 56676
@@ -3445,6 +3454,26 @@ def test_string_to_datetime_parsing_cast():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.skipif(
+    pa_version_under13p0, reason="pairwise_diff_checked not implemented in pyarrow"
+)
+def test_interpolate_not_numeric(data):
+    if not data.dtype._is_numeric:
+        with pytest.raises(ValueError, match="Values must be numeric."):
+            pd.Series(data).interpolate()
+
+
+@pytest.mark.skipif(
+    pa_version_under13p0, reason="pairwise_diff_checked not implemented in pyarrow"
+)
+@pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
+def test_interpolate_linear(dtype):
+    ser = pd.Series([None, 1, 2, None, 4, None], dtype=dtype)
+    result = ser.interpolate()
+    expected = pd.Series([None, 1, 2, 3, 4, None], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_string_to_time_parsing_cast():
     # GH 56463
     string_times = ["11:41:43.076160"]
@@ -3469,3 +3498,10 @@ def test_to_numpy_timestamp_to_int():
     result = ser.to_numpy(dtype=np.int64)
     expected = np.array([1577853000000000000])
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_map_numeric_na_action():
+    ser = pd.Series([32, 40, None], dtype="int64[pyarrow]")
+    result = ser.map(lambda x: 42, na_action="ignore")
+    expected = pd.Series([42.0, 42.0, np.nan], dtype="float64")
+    tm.assert_series_equal(result, expected)

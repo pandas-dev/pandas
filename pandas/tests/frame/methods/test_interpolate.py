@@ -67,7 +67,7 @@ class TestDataFrameInterpolate:
     @pytest.mark.xfail(
         using_pyarrow_string_dtype(), reason="interpolate doesn't work for string"
     )
-    def test_interp_basic(self, using_copy_on_write):
+    def test_interp_basic(self):
         df = DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
@@ -92,12 +92,8 @@ class TestDataFrameInterpolate:
         # check we didn't operate inplace GH#45791
         cvalues = df["C"]._values
         dvalues = df["D"].values
-        if using_copy_on_write:
-            assert np.shares_memory(cvalues, result["C"]._values)
-            assert np.shares_memory(dvalues, result["D"]._values)
-        else:
-            assert not np.shares_memory(cvalues, result["C"]._values)
-            assert not np.shares_memory(dvalues, result["D"]._values)
+        assert np.shares_memory(cvalues, result["C"]._values)
+        assert np.shares_memory(dvalues, result["D"]._values)
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
             res = df.interpolate(inplace=True)
@@ -170,33 +166,6 @@ class TestDataFrameInterpolate:
         expected = Series([1.0, 2.0, 3.0, 4.0], name="A")
         tm.assert_series_equal(result, expected)
 
-        msg = "The 'downcast' keyword in Series.interpolate is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df["A"].interpolate(downcast="infer")
-        expected = Series([1, 2, 3, 4], name="A")
-        tm.assert_series_equal(result, expected)
-
-    def test_inerpolate_invalid_downcast(self):
-        # GH#53103
-        df = DataFrame(
-            {
-                "A": [1.0, 2.0, np.nan, 4.0],
-                "B": [1, 4, 9, np.nan],
-                "C": [1, 2, 3, 5],
-                "D": list("abcd"),
-            }
-        )
-
-        msg = "downcast must be either None or 'infer'"
-        msg2 = "The 'downcast' keyword in DataFrame.interpolate is deprecated"
-        msg3 = "The 'downcast' keyword in Series.interpolate is deprecated"
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=msg2):
-                df.interpolate(downcast="int64")
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=msg3):
-                df["A"].interpolate(downcast="int64")
-
     def test_interp_nan_idx(self):
         df = DataFrame({"A": [1, 2, np.nan, 4], "B": [np.nan, 2, 3, 4]})
         df = df.set_index("A")
@@ -256,11 +225,6 @@ class TestDataFrameInterpolate:
         expected.loc[2, "A"] = 3
         expected.loc[5, "A"] = 6
         tm.assert_frame_equal(result, expected)
-
-        msg = "The 'downcast' keyword in DataFrame.interpolate is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.interpolate(method="barycentric", downcast="infer")
-        tm.assert_frame_equal(result, expected.astype(np.int64))
 
         result = df.interpolate(method="krogh")
         expectedk = df.copy()
@@ -370,38 +334,15 @@ class TestDataFrameInterpolate:
         with pytest.raises(TypeError, match=msg):
             df.interpolate()
 
-    def test_interp_inplace(self, using_copy_on_write):
+    def test_interp_inplace(self):
         df = DataFrame({"a": [1.0, 2.0, np.nan, 4.0]})
-        expected = DataFrame({"a": [1.0, 2.0, 3.0, 4.0]})
-        expected_cow = df.copy()
+        expected = df.copy()
         result = df.copy()
 
-        if using_copy_on_write:
-            with tm.raises_chained_assignment_error():
-                return_value = result["a"].interpolate(inplace=True)
-            assert return_value is None
-            tm.assert_frame_equal(result, expected_cow)
-        else:
-            with tm.assert_produces_warning(FutureWarning, match="inplace method"):
-                return_value = result["a"].interpolate(inplace=True)
-            assert return_value is None
-            tm.assert_frame_equal(result, expected)
-
-        result = df.copy()
-        msg = "The 'downcast' keyword in Series.interpolate is deprecated"
-
-        if using_copy_on_write:
-            with tm.raises_chained_assignment_error(
-                extra_warnings=(FutureWarning,), extra_match=(msg,)
-            ):
-                return_value = result["a"].interpolate(inplace=True, downcast="infer")
-            assert return_value is None
-            tm.assert_frame_equal(result, expected_cow)
-        else:
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                return_value = result["a"].interpolate(inplace=True, downcast="infer")
-            assert return_value is None
-            tm.assert_frame_equal(result, expected.astype("int64"))
+        with tm.raises_chained_assignment_error():
+            return_value = result["a"].interpolate(inplace=True)
+        assert return_value is None
+        tm.assert_frame_equal(result, expected)
 
     def test_interp_inplace_row(self):
         # GH 10395
@@ -431,15 +372,11 @@ class TestDataFrameInterpolate:
                 "D": np.array([1.0, 2.0, 3.0, 4.0], dtype="float64"),
             }
         )
-
-        msg = "The 'downcast' keyword in DataFrame.interpolate is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.interpolate(downcast=None)
+        result = df.interpolate()
         tm.assert_frame_equal(result, expected)
 
         # all good
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df[["B", "D"]].interpolate(downcast=None)
+        result = df[["B", "D"]].interpolate()
         tm.assert_frame_equal(result, df[["B", "D"]])
 
     def test_interp_time_inplace_axis(self):
