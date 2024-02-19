@@ -4729,7 +4729,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def cumsum(self, *args, **kwargs) -> NDFrameT:
         """
         Cumulative sum for each group.
-        
+
         Parameters
         ----------
         *args : tuple
@@ -5169,27 +5169,27 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Parameters
         ----------
         periods : int, default 1
-            Periods to shift for calculating percentage change. Comparing with 
-            a period of 1 means adjacent elements are compared, whereas a period 
+            Periods to shift for calculating percentage change. Comparing with
+            a period of 1 means adjacent elements are compared, whereas a period
             of 2 compares every other element.
 
         fill_method : FillnaOptions or None, default None
-            Specifies how to handle missing values after the initial shift 
-            operation necessary for percentage change calculation. Users are 
-            encouraged to handle missing values manually in future versions. 
+            Specifies how to handle missing values after the initial shift
+            operation necessary for percentage change calculation. Users are
+            encouraged to handle missing values manually in future versions.
             Valid options are:
             - A FillnaOptions value ('ffill', 'bfill') for forward or backward filling.
             - None to avoid filling.
             Note: Usage is discouraged due to impending deprecation.
 
         limit : int or None, default None
-            The maximum number of consecutive NA values to fill, based on the chosen 
-            `fill_method`. Address NaN values prior to using `pct_change` as this 
+            The maximum number of consecutive NA values to fill, based on the chosen
+            `fill_method`. Address NaN values prior to using `pct_change` as this
             parameter is nearing deprecation.
 
         freq : str, pandas offset object, or None, default None
-            The frequency increment for time series data (e.g., 'M' for month-end). 
-            If None, the frequency is inferred from the index. Relevant for time 
+            The frequency increment for time series data (e.g., 'M' for month-end).
+            If None, the frequency is inferred from the index. Relevant for time
             series data only.
 
         Returns
