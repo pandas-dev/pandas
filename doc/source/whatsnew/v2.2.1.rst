@@ -27,6 +27,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.loc` which was unnecessarily throwing "incompatible dtype warning" when expanding with partial row indexer and multiple columns (see `PDEP6 <https://pandas.pydata.org/pdeps/0006-ban-upcasting.html>`_) (:issue:`56503`)
 - Fixed regression in :meth:`DataFrame.map` with ``na_action="ignore"`` not being respected for NumPy nullable and :class:`ArrowDtypes` (:issue:`57316`)
 - Fixed regression in :meth:`DataFrame.merge` raising ``ValueError`` for certain types of 3rd-party extension arrays (:issue:`57316`)
+- Fixed regression in :meth:`DataFrame.query` with all ``NaT`` column with object dtype (:issue:`57068`)
 - Fixed regression in :meth:`DataFrame.shift` raising ``AssertionError`` for ``axis=1`` and empty :class:`DataFrame` (:issue:`57301`)
 - Fixed regression in :meth:`DataFrame.sort_index` not producing a stable sort for a index with duplicates (:issue:`57151`)
 - Fixed regression in :meth:`DataFrame.to_dict` with ``orient='list'`` and datetime or timedelta types returning integers (:issue:`54824`)

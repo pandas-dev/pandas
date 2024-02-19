@@ -1415,3 +1415,11 @@ class TestDataFrameQueryBacktickQuoting:
             }
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_all_nat_in_object(self):
+        # GH#57068
+        now = pd.Timestamp.now("UTC")  # noqa: F841
+        df = DataFrame({"a": pd.to_datetime([None, None], utc=True)}, dtype=object)
+        result = df.query("a > @now")
+        expected = DataFrame({"a": []}, dtype=object)
+        tm.assert_frame_equal(result, expected)
