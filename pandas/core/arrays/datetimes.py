@@ -143,8 +143,7 @@ def _field_accessor(name: str, field: str, docstring: str | None = None):
                 month_kw = 12
                 if freq:
                     kwds = freq.kwds
-                    month_kw = kwds.get("startingMonth", kwds.get("month", month_kw)) # Gives the staring month index, 1 for January, 2 for February, etc.
-                    # Different offsets use different keyword names, 
+                    month_kw = kwds.get("startingMonth", kwds.get("month", month_kw))
 
                 result = fields.get_start_end_field(
                     values, field, self.freqstr, month_kw, reso=self._creso
