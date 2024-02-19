@@ -6,12 +6,17 @@ import re
 
 import pytest
 
+from pandas.compat import is_platform_windows
+
 import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.excel import ExcelWriter
 
 odf = pytest.importorskip("odf")
+
+if is_platform_windows():
+    pytestmark = pytest.mark.single_cpu
 
 
 @pytest.fixture

@@ -18,6 +18,7 @@ import pytest
 
 from pandas._config import using_pyarrow_string_dtype
 
+from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -33,6 +34,9 @@ from pandas.core.arrays import (
     ArrowStringArray,
     StringArray,
 )
+
+if is_platform_windows():
+    pytestmark = pytest.mark.single_cpu
 
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [
