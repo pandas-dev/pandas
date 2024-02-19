@@ -438,7 +438,7 @@ def test_context_manageri_user_provided(all_parsers, datapath):
 
 
 @skip_pyarrow  # ParserError: Empty CSV file
-def test_file_descriptor_leak(all_parsers, using_copy_on_write):
+def test_file_descriptor_leak(all_parsers):
     # GH 31488
     parser = all_parsers
     with tm.ensure_clean() as path:

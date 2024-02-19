@@ -12,7 +12,7 @@ import pandas._testing as tm
 
 
 class TestPeriodIndex:
-    def test_getitem_periodindex_duplicates_string_slice(self, using_copy_on_write):
+    def test_getitem_periodindex_duplicates_string_slice(self):
         # monotonic
         idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq="Y-JUN")
         ts = Series(np.random.default_rng(2).standard_normal(len(idx)), index=idx)
@@ -22,10 +22,7 @@ class TestPeriodIndex:
         expected = ts[1:3]
         tm.assert_series_equal(result, expected)
         result[:] = 1
-        if using_copy_on_write:
-            tm.assert_series_equal(ts, original)
-        else:
-            assert (ts[1:3] == 1).all()
+        tm.assert_series_equal(ts, original)
 
         # not monotonic
         idx = PeriodIndex([2000, 2007, 2007, 2009, 2007], freq="Y-JUN")
