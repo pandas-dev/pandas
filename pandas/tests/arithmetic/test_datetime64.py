@@ -182,12 +182,12 @@ class TestDatetime64SeriesComparison:
     @pytest.mark.parametrize(
         "op, expected",
         [
-            (operator.eq, Series([False, False, True])),
-            (operator.ne, Series([True, True, False])),
-            (operator.lt, Series([False, False, False])),
-            (operator.gt, Series([False, False, False])),
-            (operator.ge, Series([False, False, True])),
-            (operator.le, Series([False, False, True])),
+            (operator.eq, [False, False, True]),
+            (operator.ne, [True, True, False]),
+            (operator.lt, [False, False, False]),
+            (operator.gt, [False, False, False]),
+            (operator.ge, [False, False, True]),
+            (operator.le, [False, False, True]),
         ],
     )
     def test_nat_comparisons(
@@ -210,7 +210,7 @@ class TestDatetime64SeriesComparison:
 
         result = op(left, right)
 
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, Series(expected))
 
     @pytest.mark.parametrize(
         "data",
@@ -394,7 +394,7 @@ class TestDatetime64SeriesComparison:
 class TestDatetimeIndexComparisons:
     # TODO: moved from tests.indexes.test_base; parametrize and de-duplicate
     def test_comparators(self, comparison_op):
-        index = tm.makeDateIndex(100)
+        index = date_range("2020-01-01", periods=10)
         element = index[len(index) // 2]
         element = Timestamp(element).to_datetime64()
 
@@ -905,7 +905,7 @@ class TestDatetime64Arithmetic:
 
         dti = date_range("1994-04-01", periods=9, tz=tz, freq="QS")
         other = np.timedelta64("NaT")
-        expected = DatetimeIndex(["NaT"] * 9, tz=tz)
+        expected = DatetimeIndex(["NaT"] * 9, tz=tz).as_unit("ns")
 
         obj = tm.box_expected(dti, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -1082,6 +1082,8 @@ class TestDatetime64Arithmetic:
         self, request, dtype, index_or_series_or_array, freq, tz_naive_fixture
     ):
         # GH#19959, GH#19123, GH#19012
+        # GH#55860 use index_or_series_or_array instead of box_with_array
+        #  bc DataFrame alignment makes it inapplicable
         tz = tz_naive_fixture
 
         if freq is None:
@@ -1219,7 +1221,6 @@ class TestDatetime64DateOffsetArithmetic:
     # Tick DateOffsets
 
     # TODO: parametrize over timezone?
-    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
     def test_dt64arr_series_add_tick_DateOffset(self, box_with_array, unit):
         # GH#4532
         # operate with pd.offsets
@@ -1309,7 +1310,6 @@ class TestDatetime64DateOffsetArithmetic:
     # -------------------------------------------------------------
     # RelativeDelta DateOffsets
 
-    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
     def test_dt64arr_add_sub_relativedelta_offsets(self, box_with_array, unit):
         # GH#10699
         vec = DatetimeIndex(
@@ -1385,7 +1385,6 @@ class TestDatetime64DateOffsetArithmetic:
             "SemiMonthBegin",
             "Week",
             ("Week", {"weekday": 3}),
-            "Week",
             ("Week", {"weekday": 6}),
             "BusinessDay",
             "BDay",
@@ -1420,7 +1419,6 @@ class TestDatetime64DateOffsetArithmetic:
     )
     @pytest.mark.parametrize("normalize", [True, False])
     @pytest.mark.parametrize("n", [0, 5])
-    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_dt64arr_add_sub_DateOffsets(
         self, box_with_array, n, normalize, cls_and_kwargs, unit, tz
@@ -1487,11 +1485,10 @@ class TestDatetime64DateOffsetArithmetic:
     @pytest.mark.parametrize(
         "other",
         [
-            np.array([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)]),
-            np.array([pd.offsets.DateOffset(years=1), pd.offsets.MonthEnd()]),
-            np.array(  # matching offsets
-                [pd.offsets.DateOffset(years=1), pd.offsets.DateOffset(years=1)]
-            ),
+            [pd.offsets.MonthEnd(), pd.offsets.Day(n=2)],
+            [pd.offsets.DateOffset(years=1), pd.offsets.MonthEnd()],
+            # matching offsets
+            [pd.offsets.DateOffset(years=1), pd.offsets.DateOffset(years=1)],
         ],
     )
     @pytest.mark.parametrize("op", [operator.add, roperator.radd, operator.sub])
@@ -1504,7 +1501,7 @@ class TestDatetime64DateOffsetArithmetic:
         tz = tz_naive_fixture
         dti = date_range("2017-01-01", periods=2, tz=tz)
         dtarr = tm.box_expected(dti, box_with_array)
-
+        other = np.array(other)
         expected = DatetimeIndex([op(dti[n], other[n]) for n in range(len(dti))])
         expected = tm.box_expected(expected, box_with_array).astype(object)
 
@@ -1590,13 +1587,13 @@ class TestDatetime64OverflowHandling:
 
     def test_dt64_overflow_masking(self, box_with_array):
         # GH#25317
-        left = Series([Timestamp("1969-12-31")])
+        left = Series([Timestamp("1969-12-31")], dtype="M8[ns]")
         right = Series([NaT])
 
         left = tm.box_expected(left, box_with_array)
         right = tm.box_expected(right, box_with_array)
 
-        expected = TimedeltaIndex([NaT])
+        expected = TimedeltaIndex([NaT], dtype="m8[ns]")
         expected = tm.box_expected(expected, box_with_array)
 
         result = left - right
@@ -2354,7 +2351,6 @@ class TestDatetimeIndexArithmetic:
 
 @pytest.mark.parametrize("years", [-1, 0, 1])
 @pytest.mark.parametrize("months", [-2, 0, 2])
-@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
 def test_shift_months(years, months, unit):
     dti = DatetimeIndex(
         [

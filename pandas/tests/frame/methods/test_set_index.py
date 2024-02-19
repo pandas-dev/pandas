@@ -12,6 +12,7 @@ import pytest
 
 from pandas import (
     Categorical,
+    CategoricalIndex,
     DataFrame,
     DatetimeIndex,
     Index,
@@ -155,10 +156,14 @@ class TestSetIndex:
             df.set_index(idx[::2])
 
     def test_set_index_names(self):
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            np.ones((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(10)], dtype=object),
+        )
         df.index.name = "name"
 
-        assert df.set_index(df.index).index.names == ["name"]
+        assert df.set_index(df.index).index.names == ("name",)
 
         mi = MultiIndex.from_arrays(df[["A", "B"]].T.values, names=["A", "B"])
         mi2 = MultiIndex.from_arrays(
@@ -167,7 +172,7 @@ class TestSetIndex:
 
         df = df.set_index(["A", "B"])
 
-        assert df.set_index(df.index).index.names == ["A", "B"]
+        assert df.set_index(df.index).index.names == ("A", "B")
 
         # Check that set_index isn't converting a MultiIndex into an Index
         assert isinstance(df.set_index(df.index).index, MultiIndex)
@@ -287,7 +292,7 @@ class TestSetIndex:
             # only valid column keys are dropped
             # since B is always passed as array above, nothing is dropped
             expected = df.set_index(["B"], drop=False, append=append)
-            expected.index.names = [index_name] + name if append else name
+            expected.index.names = [index_name] + list(name) if append else name
 
             tm.assert_frame_equal(result, expected)
 
@@ -398,8 +403,7 @@ class TestSetIndex:
         tm.assert_frame_equal(result, expected)
 
     def test_construction_with_categorical_index(self):
-        ci = tm.makeCategoricalIndex(10)
-        ci.name = "B"
+        ci = CategoricalIndex(list("ab") * 5, name="B")
 
         # with Categorical
         df = DataFrame(
@@ -460,12 +464,12 @@ class TestSetIndex:
         df = df.set_index("label", append=True)
         tm.assert_index_equal(df.index.levels[0], expected)
         tm.assert_index_equal(df.index.levels[1], Index(["a", "b"], name="label"))
-        assert df.index.names == ["datetime", "label"]
+        assert df.index.names == ("datetime", "label")
 
         df = df.swaplevel(0, 1)
         tm.assert_index_equal(df.index.levels[0], Index(["a", "b"], name="label"))
         tm.assert_index_equal(df.index.levels[1], expected)
-        assert df.index.names == ["label", "datetime"]
+        assert df.index.names == ("label", "datetime")
 
         df = DataFrame(np.random.default_rng(2).random(6))
         idx1 = DatetimeIndex(
@@ -573,8 +577,8 @@ class TestSetIndexInvalid:
 
     @pytest.mark.parametrize("append", [True, False])
     @pytest.mark.parametrize("drop", [True, False])
-    @pytest.mark.parametrize("box", [set], ids=["set"])
-    def test_set_index_raise_on_type(self, frame_of_index_cols, box, drop, append):
+    def test_set_index_raise_on_type(self, frame_of_index_cols, drop, append):
+        box = set
         df = frame_of_index_cols
 
         msg = 'The parameter "keys" may be a column key, .*'
@@ -624,7 +628,7 @@ class TestSetIndexCustomLabelType:
                 self.color = color
 
             def __str__(self) -> str:
-                return f"<Thing {repr(self.name)}>"
+                return f"<Thing {self.name!r}>"
 
             # necessary for pretty KeyError
             __repr__ = __str__
@@ -702,7 +706,7 @@ class TestSetIndexCustomLabelType:
                 self.color = color
 
             def __str__(self) -> str:
-                return f"<Thing {repr(self.name)}>"
+                return f"<Thing {self.name!r}>"
 
         thing1 = Thing("One", "red")
         thing2 = Thing("Two", "blue")

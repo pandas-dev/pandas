@@ -1,6 +1,5 @@
 import re
 
-import numpy as np
 import pytest
 
 from pandas._libs import lib
@@ -180,6 +179,7 @@ class TestNumericOnly:
                 [
                     "category type does not support sum operations",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
+                    re.escape(f"agg function failed [how->{method},dtype->string]"),
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -196,6 +196,7 @@ class TestNumericOnly:
                     "function is not implemented for this dtype",
                     f"Cannot perform {method} with non-ordered Categorical",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
+                    re.escape(f"agg function failed [how->{method},dtype->string]"),
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -203,120 +204,6 @@ class TestNumericOnly:
         else:
             result = getattr(gb, method)(numeric_only=False)
             tm.assert_index_equal(result.columns, expected_columns)
-
-
-@pytest.mark.parametrize(
-    "i",
-    [
-        (
-            Timestamp("2011-01-15 12:50:28.502376"),
-            Timestamp("2011-01-20 12:50:28.593448"),
-        ),
-        (24650000000000001, 24650000000000002),
-    ],
-)
-def test_groupby_non_arithmetic_agg_int_like_precision(i):
-    # see gh-6620, gh-9311
-    df = DataFrame([{"a": 1, "b": i[0]}, {"a": 1, "b": i[1]}])
-
-    grp_exp = {
-        "first": {"expected": i[0]},
-        "last": {"expected": i[1]},
-        "min": {"expected": i[0]},
-        "max": {"expected": i[1]},
-        "nth": {"expected": i[1], "args": [1]},
-        "count": {"expected": 2},
-    }
-
-    for method, data in grp_exp.items():
-        if "args" not in data:
-            data["args"] = []
-
-        grouped = df.groupby("a")
-        res = getattr(grouped, method)(*data["args"])
-
-        assert res.iloc[0].b == data["expected"]
-
-
-@pytest.mark.parametrize("numeric_only", [True, False, None])
-def test_axis1_numeric_only(request, groupby_func, numeric_only):
-    if groupby_func in ("idxmax", "idxmin"):
-        pytest.skip("idxmax and idx_min tested in test_idxmin_idxmax_axis1")
-    if groupby_func in ("corrwith", "skew"):
-        msg = "GH#47723 groupby.corrwith and skew do not correctly implement axis=1"
-        request.applymarker(pytest.mark.xfail(reason=msg))
-
-    df = DataFrame(
-        np.random.default_rng(2).standard_normal((10, 4)), columns=["A", "B", "C", "D"]
-    )
-    df["E"] = "x"
-    groups = [1, 2, 3, 1, 2, 3, 1, 2, 3, 4]
-    gb = df.groupby(groups)
-    method = getattr(gb, groupby_func)
-    args = get_groupby_method_args(groupby_func, df)
-    kwargs = {"axis": 1}
-    if numeric_only is not None:
-        # when numeric_only is None we don't pass any argument
-        kwargs["numeric_only"] = numeric_only
-
-    # Functions without numeric_only and axis args
-    no_args = ("cumprod", "cumsum", "diff", "fillna", "pct_change", "rank", "shift")
-    # Functions with axis args
-    has_axis = (
-        "cumprod",
-        "cumsum",
-        "diff",
-        "pct_change",
-        "rank",
-        "shift",
-        "cummax",
-        "cummin",
-        "idxmin",
-        "idxmax",
-        "fillna",
-    )
-    warn_msg = f"DataFrameGroupBy.{groupby_func} with axis=1 is deprecated"
-    if numeric_only is not None and groupby_func in no_args:
-        msg = "got an unexpected keyword argument 'numeric_only'"
-        if groupby_func in ["cumprod", "cumsum"]:
-            with pytest.raises(TypeError, match=msg):
-                with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                    method(*args, **kwargs)
-        else:
-            with pytest.raises(TypeError, match=msg):
-                method(*args, **kwargs)
-    elif groupby_func not in has_axis:
-        msg = "got an unexpected keyword argument 'axis'"
-        with pytest.raises(TypeError, match=msg):
-            method(*args, **kwargs)
-    # fillna and shift are successful even on object dtypes
-    elif (numeric_only is None or not numeric_only) and groupby_func not in (
-        "fillna",
-        "shift",
-    ):
-        msgs = (
-            # cummax, cummin, rank
-            "not supported between instances of",
-            # cumprod
-            "can't multiply sequence by non-int of type 'float'",
-            # cumsum, diff, pct_change
-            "unsupported operand type",
-        )
-        with pytest.raises(TypeError, match=f"({'|'.join(msgs)})"):
-            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                method(*args, **kwargs)
-    else:
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            result = method(*args, **kwargs)
-
-        df_expected = df.drop(columns="E").T if numeric_only else df.T
-        expected = getattr(df_expected, groupby_func)(*args).T
-        if groupby_func == "shift" and not numeric_only:
-            # shift with axis=1 leaves the leftmost column as numeric
-            # but transposing for expected gives us object dtype
-            expected = expected.astype(float)
-
-        tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -334,7 +221,6 @@ def test_axis1_numeric_only(request, groupby_func, numeric_only):
         ("cumsum", True),
         ("diff", False),
         ("ffill", False),
-        ("fillna", False),
         ("first", True),
         ("idxmax", True),
         ("idxmin", True),
@@ -543,43 +429,3 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         result = method(*args, numeric_only=True)
         expected = method(*args, numeric_only=False)
         tm.assert_series_equal(result, expected)
-
-
-def test_multiindex_group_all_columns_when_empty(groupby_func):
-    # GH 32464
-    df = DataFrame({"a": [], "b": [], "c": []}).set_index(["a", "b", "c"])
-    gb = df.groupby(["a", "b", "c"], group_keys=False)
-    method = getattr(gb, groupby_func)
-    args = get_groupby_method_args(groupby_func, df)
-
-    warn = FutureWarning if groupby_func == "fillna" else None
-    warn_msg = "DataFrameGroupBy.fillna is deprecated"
-    with tm.assert_produces_warning(warn, match=warn_msg):
-        result = method(*args).index
-    expected = df.index
-    tm.assert_index_equal(result, expected)
-
-
-def test_duplicate_columns(request, groupby_func, as_index):
-    # GH#50806
-    if groupby_func == "corrwith":
-        msg = "GH#50845 - corrwith fails when there are duplicate columns"
-        request.applymarker(pytest.mark.xfail(reason=msg))
-    df = DataFrame([[1, 3, 6], [1, 4, 7], [2, 5, 8]], columns=list("abb"))
-    args = get_groupby_method_args(groupby_func, df)
-    gb = df.groupby("a", as_index=as_index)
-    warn = FutureWarning if groupby_func == "fillna" else None
-    warn_msg = "DataFrameGroupBy.fillna is deprecated"
-    with tm.assert_produces_warning(warn, match=warn_msg):
-        result = getattr(gb, groupby_func)(*args)
-
-    expected_df = df.set_axis(["a", "b", "c"], axis=1)
-    expected_args = get_groupby_method_args(groupby_func, expected_df)
-    expected_gb = expected_df.groupby("a", as_index=as_index)
-    warn = FutureWarning if groupby_func == "fillna" else None
-    warn_msg = "DataFrameGroupBy.fillna is deprecated"
-    with tm.assert_produces_warning(warn, match=warn_msg):
-        expected = getattr(expected_gb, groupby_func)(*expected_args)
-    if groupby_func not in ("size", "ngroup", "cumcount"):
-        expected = expected.rename(columns={"c": "b"})
-    tm.assert_equal(result, expected)

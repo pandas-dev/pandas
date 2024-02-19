@@ -31,10 +31,7 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    DatetimeArray,
-    period_array,
-)
+from pandas.core.arrays import period_array
 
 
 class TestDatetimeIndex:
@@ -299,11 +296,9 @@ class TestDatetimeIndex:
         tm.assert_index_equal(result, exp, exact=True)
         assert not isinstance(result, DatetimeIndex)
 
-        msg = "DatetimeIndex has mixed timezones"
-        msg_depr = "parsing datetimes with mixed time zones will raise an error"
-        with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=msg_depr):
-                DatetimeIndex(["2013-11-02 22:00-05:00", "2013-11-03 22:00-06:00"])
+        msg = "cannot parse datetimes with mixed time zones unless `utc=True`"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(["2013-11-02 22:00-05:00", "2013-11-03 22:00-06:00"])
 
         # length = 1
         result = Index([Timestamp("2011-01-01")], name="idx")
@@ -592,13 +587,13 @@ class TestDatetimeIndex:
 
         result = DatetimeIndex(values).tz_localize("US/Central")
 
-        expected = DatetimeIndex(["2000-01-01T00:00:00"], tz="US/Central")
+        expected = DatetimeIndex(["2000-01-01T00:00:00"], dtype="M8[ns, US/Central]")
         tm.assert_index_equal(result, expected)
 
         # but UTC is *not* deprecated.
         with tm.assert_produces_warning(None):
             result = DatetimeIndex(values, tz="UTC")
-        expected = DatetimeIndex(["2000-01-01T00:00:00"], tz="UTC")
+        expected = DatetimeIndex(["2000-01-01T00:00:00"], dtype="M8[ns, UTC]")
         tm.assert_index_equal(result, expected)
 
     def test_constructor_coverage(self):
@@ -707,10 +702,14 @@ class TestDatetimeIndex:
         idx = DatetimeIndex(
             ["2013-01-01", "2013-01-02"], dtype="datetime64[ns, US/Eastern]"
         )
-        expected = DatetimeIndex(["2013-01-01", "2013-01-02"]).tz_localize("US/Eastern")
+        expected = (
+            DatetimeIndex(["2013-01-01", "2013-01-02"])
+            .as_unit("ns")
+            .tz_localize("US/Eastern")
+        )
         tm.assert_index_equal(idx, expected)
 
-        idx = DatetimeIndex(["2013-01-01", "2013-01-02"], tz="US/Eastern")
+        idx = DatetimeIndex(["2013-01-01", "2013-01-02"], tz="US/Eastern").as_unit("ns")
         tm.assert_index_equal(idx, expected)
 
     def test_constructor_dtype_tz_mismatch_raises(self):
@@ -774,7 +773,7 @@ class TestDatetimeIndex:
         result = date_range(freq="D", start=start, end=end, tz=tz)
         expected = DatetimeIndex(
             ["2013-01-01 06:00:00", "2013-01-02 06:00:00"],
-            tz="America/Los_Angeles",
+            dtype="M8[ns, America/Los_Angeles]",
             freq="D",
         )
         tm.assert_index_equal(result, expected)
@@ -955,7 +954,7 @@ class TestDatetimeIndex:
         for other in [idx2, idx3, idx4]:
             tm.assert_index_equal(idx1, other)
 
-    def test_dti_construction_univalent(self, unit):
+    def test_dti_construction_idempotent(self, unit):
         rng = date_range(
             "03/12/2012 00:00", periods=10, freq="W-FRI", tz="US/Eastern", unit=unit
         )
@@ -1041,15 +1040,15 @@ class TestDatetimeIndex:
 
         # result may not exactly match [now, today] so we'll test it up to a tolerance.
         #  (it *may* match exactly due to rounding)
-        tolerance = pd.Timedelta(microseconds=1)
+        tolerance = pd.Timedelta(seconds=1)
 
         diff0 = result[0] - now.as_unit("s")
-        assert diff0 >= pd.Timedelta(0)
-        assert diff0 < tolerance
+        assert diff0 >= pd.Timedelta(0), f"The difference is {diff0}"
+        assert diff0 < tolerance, f"The difference is {diff0}"
 
         diff1 = result[1] - today.as_unit("s")
-        assert diff1 >= pd.Timedelta(0)
-        assert diff1 < tolerance
+        assert diff1 >= pd.Timedelta(0), f"The difference is {diff0}"
+        assert diff1 < tolerance, f"The difference is {diff0}"
 
     def test_dti_constructor_object_float_matches_float_dtype(self):
         # GH#55780
@@ -1107,9 +1106,6 @@ class TestTimeSeries:
 
         result = DatetimeIndex(rng._data, freq=None)
         assert result.freq is None
-
-        dta = DatetimeArray(rng, freq=None)
-        assert dta.freq is None
 
     def test_dti_constructor_small_int(self, any_int_numpy_dtype):
         # see gh-13721

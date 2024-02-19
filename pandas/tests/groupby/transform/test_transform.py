@@ -10,6 +10,7 @@ import pandas as pd
 from pandas import (
     Categorical,
     DataFrame,
+    Index,
     MultiIndex,
     Series,
     Timestamp,
@@ -67,7 +68,11 @@ def test_transform():
     tm.assert_frame_equal(result, expected)
 
     # GH 8430
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((50, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=50, freq="B"),
+    )
     g = df.groupby(pd.Grouper(freq="ME"))
     g.transform(lambda x: x - 1)
 
@@ -115,12 +120,15 @@ def test_transform_fast2():
     )
     result = df.groupby("grouping").transform("first")
 
-    dates = [
-        Timestamp("2014-1-1"),
-        Timestamp("2014-1-2"),
-        Timestamp("2014-1-2"),
-        Timestamp("2014-1-4"),
-    ]
+    dates = Index(
+        [
+            Timestamp("2014-1-1"),
+            Timestamp("2014-1-2"),
+            Timestamp("2014-1-2"),
+            Timestamp("2014-1-4"),
+        ],
+        dtype="M8[ns]",
+    )
     expected = DataFrame(
         {"f": [1.1, 2.1, 2.1, 4.5], "d": dates, "i": [1, 2, 2, 4]},
         columns=["f", "i", "d"],
@@ -162,69 +170,9 @@ def test_transform_broadcast(tsframe, ts):
         for col in tsframe:
             assert_fp_equal(res[col], agged[col])
 
-    # group columns
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        grouped = tsframe.groupby({"A": 0, "B": 0, "C": 1, "D": 1}, axis=1)
-    msg = "using DataFrameGroupBy.mean"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = grouped.transform(np.mean)
-    tm.assert_index_equal(result.index, tsframe.index)
-    tm.assert_index_equal(result.columns, tsframe.columns)
-    for _, gp in grouped:
-        agged = gp.mean(1)
-        res = result.reindex(columns=gp.columns)
-        for idx in gp.index:
-            assert_fp_equal(res.xs(idx), agged[idx])
-
-
-def test_transform_axis_1(request, transformation_func):
-    # GH 36308
-
-    df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
-    args = get_groupby_method_args(transformation_func, df)
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby([0, 0, 1], axis=1)
-    warn = FutureWarning if transformation_func == "fillna" else None
-    msg = "DataFrameGroupBy.fillna is deprecated"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = gb.transform(transformation_func, *args)
-    msg = "DataFrameGroupBy.fillna is deprecated"
-    with tm.assert_produces_warning(warn, match=msg):
-        expected = df.T.groupby([0, 0, 1]).transform(transformation_func, *args).T
-
-    if transformation_func in ["diff", "shift"]:
-        # Result contains nans, so transpose coerces to float
-        expected["b"] = expected["b"].astype("int64")
-
-    # cumcount returns Series; the rest are DataFrame
-    tm.assert_equal(result, expected)
-
-
-def test_transform_axis_1_reducer(request, reduction_func):
-    # GH#45715
-    if reduction_func in (
-        "corrwith",
-        "ngroup",
-        "nth",
-    ):
-        marker = pytest.mark.xfail(reason="transform incorrectly fails - GH#45986")
-        request.applymarker(marker)
-
-    df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby([0, 0, 1], axis=1)
-
-    result = gb.transform(reduction_func)
-    expected = df.T.groupby([0, 0, 1]).transform(reduction_func).T
-    tm.assert_equal(result, expected)
-
 
 def test_transform_axis_ts(tsframe):
-    # make sure that we are setting the axes
-    # correctly when on axis=0 or 1
+    # make sure that we are setting the axes correctly
     # in the presence of a non-monotonic indexer
     # GH12713
 
@@ -244,27 +192,11 @@ def test_transform_axis_ts(tsframe):
     expected = grouped.apply(lambda x: x - x.mean(axis=0))
     tm.assert_frame_equal(result, expected)
 
-    ts = ts.T
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
-    result = ts - grouped.transform("mean")
-    expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
-    tm.assert_frame_equal(result, expected)
-
     # non-monotonic
     ts = tso.iloc[[1, 0] + list(range(2, len(base)))]
     grouped = ts.groupby(lambda x: x.weekday(), group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: x - x.mean(axis=0))
-    tm.assert_frame_equal(result, expected)
-
-    ts = ts.T
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
-    result = ts - grouped.transform("mean")
-    expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
     tm.assert_frame_equal(result, expected)
 
 
@@ -390,31 +322,10 @@ def test_dispatch_transform(tsframe):
 
     grouped = df.groupby(lambda x: x.month)
 
-    msg = "DataFrameGroupBy.fillna is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        filled = grouped.fillna(method="pad")
-    msg = "Series.fillna with 'method' is deprecated"
-    fillit = lambda x: x.fillna(method="pad")
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        expected = df.groupby(lambda x: x.month).transform(fillit)
+    filled = grouped.ffill()
+    fillit = lambda x: x.ffill()
+    expected = df.groupby(lambda x: x.month).transform(fillit)
     tm.assert_frame_equal(filled, expected)
-
-
-def test_transform_fillna_null():
-    df = DataFrame(
-        {
-            "price": [10, 10, 20, 20, 30, 30],
-            "color": [10, 10, 20, 20, 30, 30],
-            "cost": (100, 200, 300, 400, 500, 600),
-        }
-    )
-    msg = "DataFrameGroupBy.fillna is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        with pytest.raises(ValueError, match="Must specify a fill 'value' or 'method'"):
-            df.groupby(["price"]).transform("fillna")
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        with pytest.raises(ValueError, match="Must specify a fill 'value' or 'method'"):
-            df.groupby(["price"]).fillna()
 
 
 def test_transform_transformation_func(transformation_func):
@@ -532,7 +443,7 @@ def test_series_fast_transform_date():
         Timestamp("2014-1-2"),
         Timestamp("2014-1-4"),
     ]
-    expected = Series(dates, name="d")
+    expected = Series(dates, name="d", dtype="M8[ns]")
     tm.assert_series_equal(result, expected)
 
 
@@ -660,16 +571,15 @@ def test_transform_mixed_type():
 
     grouped = df.groupby("c")
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = grouped.apply(f)
 
     assert result["d"].dtype == np.float64
 
     # this is by definition a mutating operation!
-    with pd.option_context("mode.chained_assignment", None):
-        for key, group in grouped:
-            res = f(group)
-            tm.assert_frame_equal(res, result.loc[key])
+    for key, group in grouped:
+        res = f(group)
+        tm.assert_frame_equal(res, result.loc[key])
 
 
 @pytest.mark.parametrize(
@@ -698,7 +608,6 @@ def test_cython_transform_series(op, args, targop):
 
 
 @pytest.mark.parametrize("op", ["cumprod", "cumsum"])
-@pytest.mark.parametrize("skipna", [False, True])
 @pytest.mark.parametrize(
     "input, exp",
     [
@@ -818,19 +727,15 @@ def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
         if op != "shift" or not isinstance(gb_target.get("by"), (str, list)):
             warn = None
         else:
-            warn = FutureWarning
+            warn = DeprecationWarning
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
         with tm.assert_produces_warning(warn, match=msg):
             expected = gb.apply(targop)
 
     expected = expected.sort_index(axis=1)
     if op == "shift":
-        depr_msg = "The 'downcast' keyword in fillna is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            expected["string_missing"] = expected["string_missing"].fillna(
-                np.nan, downcast=False
-            )
-            expected["string"] = expected["string"].fillna(np.nan, downcast=False)
+        expected["string_missing"] = expected["string_missing"].fillna(np.nan)
+        expected["string"] = expected["string"].fillna(np.nan)
 
     result = gb[expected.columns].transform(op, *args).sort_index(axis=1)
     tm.assert_frame_equal(result, expected)
@@ -898,46 +803,12 @@ def test_cython_transform_frame_column(
         expected = gb[c].apply(targop)
         expected.name = c
         if c in ["string_missing", "string"]:
-            depr_msg = "The 'downcast' keyword in fillna is deprecated"
-            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-                expected = expected.fillna(np.nan, downcast=False)
+            expected = expected.fillna(np.nan)
 
         res = gb[c].transform(op, *args)
         tm.assert_series_equal(expected, res)
         res2 = getattr(gb[c], op)(*args)
         tm.assert_series_equal(expected, res2)
-
-
-def test_transform_with_non_scalar_group():
-    # GH 10165
-    cols = MultiIndex.from_tuples(
-        [
-            ("syn", "A"),
-            ("foo", "A"),
-            ("non", "A"),
-            ("syn", "C"),
-            ("foo", "C"),
-            ("non", "C"),
-            ("syn", "T"),
-            ("foo", "T"),
-            ("non", "T"),
-            ("syn", "G"),
-            ("foo", "G"),
-            ("non", "G"),
-        ]
-    )
-    df = DataFrame(
-        np.random.default_rng(2).integers(1, 10, (4, 12)),
-        columns=cols,
-        index=["A", "C", "G", "T"],
-    )
-
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby(axis=1, level=1)
-    msg = "transform must return a scalar value for each group.*"
-    with pytest.raises(ValueError, match=msg):
-        gb.transform(lambda z: z.div(z.sum(axis=1), axis=0))
 
 
 @pytest.mark.parametrize(
@@ -1204,7 +1075,9 @@ def test_groupby_transform_with_datetimes(func, values):
 
     result = stocks.groupby(stocks["week_id"])["price"].transform(func)
 
-    expected = Series(data=pd.to_datetime(values), index=dates, name="price")
+    expected = Series(
+        data=pd.to_datetime(values).as_unit("ns"), index=dates, name="price"
+    )
 
     tm.assert_series_equal(result, expected)
 
@@ -1229,15 +1102,14 @@ def test_groupby_transform_dtype():
     tm.assert_series_equal(result, expected1)
 
 
-@pytest.mark.parametrize("func", ["cumsum", "cumprod", "cummin", "cummax"])
-def test_transform_absent_categories(func):
+def test_transform_absent_categories(all_numeric_accumulations):
     # GH 16771
     # cython transforms with more groups than rows
     x_vals = [1]
     x_cats = range(2)
     y = [1]
     df = DataFrame({"x": Categorical(x_vals, x_cats), "y": y})
-    result = getattr(df.y.groupby(df.x, observed=False), func)()
+    result = getattr(df.y.groupby(df.x, observed=False), all_numeric_accumulations)()
     expected = df.y
     tm.assert_series_equal(result, expected)
 
@@ -1343,7 +1215,7 @@ def test_transform_fastpath_raises():
 
     # Check that the fastpath raises, see _transform_general
     obj = gb._obj_with_exclusions
-    gen = gb.grouper.get_iterator(obj, axis=gb.axis)
+    gen = gb._grouper.get_iterator(obj)
     fast_path, slow_path = gb._define_paths(func)
     _, group = next(gen)
 
@@ -1682,11 +1554,10 @@ def test_idxmin_idxmax_transform_args(how, skipna, numeric_only):
     # GH#55268 - ensure *args are passed through when calling transform
     df = DataFrame({"a": [1, 1, 1, 2], "b": [3.0, 4.0, np.nan, 6.0], "c": list("abcd")})
     gb = df.groupby("a")
-    msg = f"'axis' keyword in DataFrameGroupBy.{how} is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = gb.transform(how, 0, skipna, numeric_only)
     warn = None if skipna else FutureWarning
     msg = f"The behavior of DataFrameGroupBy.{how} with .* any-NA and skipna=False"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = gb.transform(how, skipna, numeric_only)
     with tm.assert_produces_warning(warn, match=msg):
         expected = gb.transform(how, skipna=skipna, numeric_only=numeric_only)
     tm.assert_frame_equal(result, expected)

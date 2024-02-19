@@ -8,7 +8,6 @@ from collections.abc import (
 )
 import datetime
 from functools import partial
-from io import BytesIO
 import os
 from textwrap import fill
 from typing import (
@@ -86,7 +85,7 @@ if TYPE_CHECKING:
     )
 _read_excel_doc = (
     """
-Read an Excel file into a pandas DataFrame.
+Read an Excel file into a ``pandas`` ``DataFrame``.
 
 Supports `xls`, `xlsx`, `xlsm`, `xlsb`, `odf`, `ods` and `odt` file extensions
 read from a local filesystem or URL. Supports an option to read
@@ -94,7 +93,7 @@ a single sheet or a list of sheets.
 
 Parameters
 ----------
-io : str, bytes, ExcelFile, xlrd.Book, path object, or file-like object
+io : str, ExcelFile, xlrd.Book, path object, or file-like object
     Any valid string path is acceptable. The string could be a URL. Valid
     URL schemes include http, ftp, s3, and file. For file URLs, a host is
     expected. A local file could be: ``file://localhost/path/to/table.xlsx``.
@@ -112,7 +111,7 @@ sheet_name : str, int, list, or None, default 0
     Strings are used for sheet names. Integers are used in zero-indexed
     sheet positions (chart sheets do not count as a sheet position).
     Lists of strings/integers are used to request multiple sheets.
-    Specify None to get all worksheets.
+    Specify ``None`` to get all worksheets.
 
     Available cases:
 
@@ -121,7 +120,7 @@ sheet_name : str, int, list, or None, default 0
     * ``"Sheet1"``: Load sheet with name "Sheet1"
     * ``[0, 1, "Sheet5"]``: Load first, second and sheet named "Sheet5"
       as a dict of `DataFrame`
-    * None: All worksheets.
+    * ``None``: All worksheets.
 
 header : int, list of int, default 0
     Row (0-indexed) to use for the column labels of the parsed
@@ -155,41 +154,29 @@ usecols : str, list-like, or callable, default None
     Returns a subset of the columns according to behavior above.
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32}}
-    Use `object` to preserve data as stored in Excel and not interpret dtype,
-    which will necessarily result in `object` dtype.
+    Use ``object`` to preserve data as stored in Excel and not interpret dtype,
+    which will necessarily result in ``object`` dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
-    If you use `None`, it will infer the dtype of each column based on the data.
-engine : str, default None
+    If you use ``None``, it will infer the dtype of each column based on the data.
+engine : {{'openpyxl', 'calamine', 'odf', 'pyxlsb', 'xlrd'}}, default None
     If io is not a buffer or path, this must be set to identify io.
-    Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb", "calamine".
     Engine compatibility :
 
-    - "xlrd" supports old-style Excel files (.xls).
-    - "openpyxl" supports newer Excel file formats.
-    - "odf" supports OpenDocument file formats (.odf, .ods, .odt).
-    - "pyxlsb" supports Binary Excel files.
-    - "calamine" supports Excel (.xls, .xlsx, .xlsm, .xlsb)
+    - ``openpyxl`` supports newer Excel file formats.
+    - ``calamine`` supports Excel (.xls, .xlsx, .xlsm, .xlsb)
       and OpenDocument (.ods) file formats.
+    - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
+    - ``pyxlsb`` supports Binary Excel files.
+    - ``xlrd`` supports old-style Excel files (.xls).
 
-    .. versionchanged:: 1.2.0
-        The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
-        now only supports old-style ``.xls`` files.
-        When ``engine=None``, the following logic will be
-        used to determine the engine:
+    When ``engine=None``, the following logic will be used to determine the engine:
 
-       - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
-         then `odf <https://pypi.org/project/odfpy/>`_ will be used.
-       - Otherwise if ``path_or_buffer`` is an xls format,
-         ``xlrd`` will be used.
-       - Otherwise if ``path_or_buffer`` is in xlsb format,
-         ``pyxlsb`` will be used.
-
-         .. versionadded:: 1.3.0
-       - Otherwise ``openpyxl`` will be used.
-
-         .. versionchanged:: 1.3.0
-
+    - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+      then `odf <https://pypi.org/project/odfpy/>`_ will be used.
+    - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used.
+    - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used.
+    - Otherwise ``openpyxl`` will be used.
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
     either be integers or column labels, values are functions that take one
@@ -215,34 +202,34 @@ na_values : scalar, str, list-like, or dict, default None
     + """'.
 keep_default_na : bool, default True
     Whether or not to include the default NaN values when parsing the data.
-    Depending on whether `na_values` is passed in, the behavior is as follows:
+    Depending on whether ``na_values`` is passed in, the behavior is as follows:
 
-    * If `keep_default_na` is True, and `na_values` are specified, `na_values`
-      is appended to the default NaN values used for parsing.
-    * If `keep_default_na` is True, and `na_values` are not specified, only
+    * If ``keep_default_na`` is True, and ``na_values`` are specified,
+      ``na_values`` is appended to the default NaN values used for parsing.
+    * If ``keep_default_na`` is True, and ``na_values`` are not specified, only
       the default NaN values are used for parsing.
-    * If `keep_default_na` is False, and `na_values` are specified, only
-      the NaN values specified `na_values` are used for parsing.
-    * If `keep_default_na` is False, and `na_values` are not specified, no
+    * If ``keep_default_na`` is False, and ``na_values`` are specified, only
+      the NaN values specified ``na_values`` are used for parsing.
+    * If ``keep_default_na`` is False, and ``na_values`` are not specified, no
       strings will be parsed as NaN.
 
-    Note that if `na_filter` is passed in as False, the `keep_default_na` and
-    `na_values` parameters will be ignored.
+    Note that if `na_filter` is passed in as False, the ``keep_default_na`` and
+    ``na_values`` parameters will be ignored.
 na_filter : bool, default True
     Detect missing value markers (empty strings and the value of na_values). In
-    data without any NAs, passing na_filter=False can improve the performance
-    of reading a large file.
+    data without any NAs, passing ``na_filter=False`` can improve the
+    performance of reading a large file.
 verbose : bool, default False
     Indicate number of NA values placed in non-numeric columns.
 parse_dates : bool, list-like, or dict, default False
     The behavior is as follows:
 
-    * bool. If True -> try parsing the index.
-    * list of int or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3
+    * ``bool``. If True -> try parsing the index.
+    * ``list`` of int or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3
       each as a separate date column.
-    * list of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
+    * ``list`` of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
       a single date column.
-    * dict, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
+    * ``dict``, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
       result 'foo'
 
     If a column or index contains an unparsable date, the entire column or
@@ -291,8 +278,6 @@ comment : str, default None
 skipfooter : int, default 0
     Rows at the end to skip (0-indexed).
 {storage_options}
-
-    .. versionadded:: 1.2.0
 
 dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
     Back-end data type applied to the resultant :class:`DataFrame`
@@ -372,7 +357,8 @@ as strings or lists of strings!
 1       NaN      2
 2  #Comment      3
 
-Comment lines in the excel input file can be skipped using the `comment` kwarg
+Comment lines in the excel input file can be skipped using the
+``comment`` kwarg.
 
 >>> pd.read_excel('tmp.xlsx', index_col=0, comment='#')  # doctest: +SKIP
       Name  Value
@@ -564,10 +550,6 @@ class BaseExcelReader(Generic[_WorkbookT]):
     ) -> None:
         if engine_kwargs is None:
             engine_kwargs = {}
-
-        # First argument can also be bytes, so create a buffer
-        if isinstance(filepath_or_buffer, bytes):
-            filepath_or_buffer = BytesIO(filepath_or_buffer)
 
         self.handles = IOHandles(
             handle=filepath_or_buffer, compression={"method": None}
@@ -948,7 +930,7 @@ class ExcelWriter(Generic[_WorkbookT]):
       is installed otherwise `openpyxl <https://pypi.org/project/openpyxl/>`__
     * `odswriter <https://pypi.org/project/odswriter/>`__ for ods files
 
-    See ``DataFrame.to_excel`` for typical usage.
+    See :meth:`DataFrame.to_excel` for typical usage.
 
     The writer should be used as a context manager. Otherwise, call `close()` to save
     and close any opened file handles.
@@ -969,8 +951,6 @@ class ExcelWriter(Generic[_WorkbookT]):
     mode : {{'w', 'a'}}, default 'w'
         File mode to use (write or append). Append does not work with fsspec URLs.
     {storage_options}
-
-        .. versionadded:: 1.2.0
 
     if_sheet_exists : {{'error', 'new', 'replace', 'overlay'}}, default 'error'
         How to behave when trying to write to a sheet that already
@@ -1034,7 +1014,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     date_format="YYYY-MM-DD",
-    ...     datetime_format="YYYY-MM-DD HH:MM:SS"
+    ...     datetime_format="YYYY-MM-DD HH:MM:SS",
     ... ) as writer:
     ...     df.to_excel(writer)  # doctest: +SKIP
 
@@ -1046,7 +1026,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     Here, the `if_sheet_exists` parameter can be set to replace a sheet if it
     already exists:
 
-    >>> with ExcelWriter(
+    >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     mode="a",
     ...     engine="openpyxl",
@@ -1057,7 +1037,8 @@ class ExcelWriter(Generic[_WorkbookT]):
     You can also write multiple DataFrames to a single sheet. Note that the
     ``if_sheet_exists`` parameter needs to be set to ``overlay``:
 
-    >>> with ExcelWriter("path_to_file.xlsx",
+    >>> with pd.ExcelWriter(
+    ...     "path_to_file.xlsx",
     ...     mode="a",
     ...     engine="openpyxl",
     ...     if_sheet_exists="overlay",
@@ -1087,7 +1068,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     engine="xlsxwriter",
-    ...     engine_kwargs={{"options": {{"nan_inf_to_errors": True}}}}
+    ...     engine_kwargs={{"options": {{"nan_inf_to_errors": True}}}},
     ... ) as writer:
     ...     df.to_excel(writer)  # doctest: +SKIP
 
@@ -1098,7 +1079,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     ...     "path_to_file.xlsx",
     ...     engine="openpyxl",
     ...     mode="a",
-    ...     engine_kwargs={{"keep_vba": True}}
+    ...     engine_kwargs={{"keep_vba": True}},
     ... ) as writer:
     ...     df.to_excel(writer, sheet_name="Sheet2")  # doctest: +SKIP
     """
@@ -1340,7 +1321,15 @@ class ExcelWriter(Generic[_WorkbookT]):
             fmt = "0"
         else:
             val = str(val)
-
+            # GH#56954
+            # Excel's limitation on cell contents is 32767 characters
+            # xref https://support.microsoft.com/en-au/office/excel-specifications-and-limits-1672b34d-7043-467e-8e27-269d656771c3
+            if len(val) > 32767:
+                warnings.warn(
+                    "Cell contents too long, truncated to 32767 characters",
+                    UserWarning,
+                    stacklevel=find_stack_level(),
+                )
         return val, fmt
 
     @classmethod
@@ -1411,9 +1400,6 @@ def inspect_excel_format(
     BadZipFile
         If resulting stream does not have an XLS signature and is not a valid zipfile.
     """
-    if isinstance(content_or_path, bytes):
-        content_or_path = BytesIO(content_or_path)
-
     with get_handle(
         content_or_path, "rb", storage_options=storage_options, is_text=False
     ) as handle:
@@ -1455,7 +1441,7 @@ class ExcelFile:
 
     Parameters
     ----------
-    path_or_buffer : str, bytes, path object (pathlib.Path or py._path.local.LocalPath),
+    path_or_buffer : str, bytes, pathlib.Path,
         A file-like object, xlrd workbook or openpyxl workbook.
         If a string or path object, expected to be a path to a
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
@@ -1500,7 +1486,7 @@ class ExcelFile:
 
     Examples
     --------
-    >>> file = pd.ExcelFile('myfile.xlsx')  # doctest: +SKIP
+    >>> file = pd.ExcelFile("myfile.xlsx")  # doctest: +SKIP
     >>> with pd.ExcelFile("myfile.xls") as xls:  # doctest: +SKIP
     ...     df1 = pd.read_excel(xls, "Sheet1")  # doctest: +SKIP
     """
@@ -1532,19 +1518,6 @@ class ExcelFile:
         if engine is not None and engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
 
-        # First argument can also be bytes, so create a buffer
-        if isinstance(path_or_buffer, bytes):
-            path_or_buffer = BytesIO(path_or_buffer)
-            warnings.warn(
-                "Passing bytes to 'read_excel' is deprecated and "
-                "will be removed in a future version. To read from a "
-                "byte string, wrap it in a `BytesIO` object.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
-        # Could be a str, ExcelFile, Book, etc.
-        self.io = path_or_buffer
         # Always a string
         self._io = stringify_path(path_or_buffer)
 
@@ -1623,9 +1596,9 @@ class ExcelFile:
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
-        >>> df.to_excel('myfile.xlsx')  # doctest: +SKIP
-        >>> file = pd.ExcelFile('myfile.xlsx')  # doctest: +SKIP
+        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"])
+        >>> df.to_excel("myfile.xlsx")  # doctest: +SKIP
+        >>> file = pd.ExcelFile("myfile.xlsx")  # doctest: +SKIP
         >>> file.parse()  # doctest: +SKIP
         """
         return self._reader.parse(

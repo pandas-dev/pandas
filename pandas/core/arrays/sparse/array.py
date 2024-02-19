@@ -454,7 +454,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             # error: Argument "dtype" to "asarray" has incompatible type
             # "Union[ExtensionDtype, dtype[Any], None]"; expected "None"
             sparse_values = np.asarray(
-                data.sp_values, dtype=dtype  # type: ignore[arg-type]
+                data.sp_values,
+                dtype=dtype,  # type: ignore[arg-type]
             )
         elif sparse_index is None:
             data = extract_array(data, extract_numpy=True)
@@ -584,11 +585,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         raise TypeError(msg)
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
+    def _from_sequence(
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
+    ) -> Self:
         return cls(scalars, dtype=dtype)
 
     @classmethod
-    def _from_factorized(cls, values, original):
+    def _from_factorized(cls, values, original) -> Self:
         return cls(values, dtype=original.dtype)
 
     # ------------------------------------------------------------------------
@@ -716,11 +719,18 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return type(self)(mask, fill_value=False, dtype=dtype)
 
     def _pad_or_backfill(  # pylint: disable=useless-parent-delegation
-        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
     ) -> Self:
         # TODO(3.0): We can remove this method once deprecation for fillna method
         #  keyword is enforced.
-        return super()._pad_or_backfill(method=method, limit=limit, copy=copy)
+        return super()._pad_or_backfill(
+            method=method, limit=limit, limit_area=limit_area, copy=copy
+        )
 
     def fillna(
         self,
@@ -1241,7 +1251,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         IntIndex
         Indices: array([2, 3], dtype=int32)
 
-        >>> arr.astype(SparseDtype(np.dtype('int32')))
+        >>> arr.astype(SparseDtype(np.dtype("int32")))
         [0, 0, 1, 2]
         Fill: 0
         IntIndex
@@ -1250,7 +1260,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         Using a NumPy dtype with a different kind (e.g. float) will coerce
         just ``self.sp_values``.
 
-        >>> arr.astype(SparseDtype(np.dtype('float64')))
+        >>> arr.astype(SparseDtype(np.dtype("float64")))
         ... # doctest: +NORMALIZE_WHITESPACE
         [nan, nan, 1.0, 2.0]
         Fill: nan
@@ -1830,7 +1840,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         pp_index = printing.pprint_thing(self.sp_index)
         return f"{pp_str}\nFill: {pp_fill}\n{pp_index}"
 
-    def _formatter(self, boxed: bool = False):
+    # error: Return type "None" of "_formatter" incompatible with return
+    # type "Callable[[Any], str | None]" in supertype "ExtensionArray"
+    def _formatter(self, boxed: bool = False) -> None:  # type: ignore[override]
         # Defer to the formatter from the GenericArrayFormatter calling us.
         # This will infer the correct formatter from the dtype of the values.
         return None

@@ -5,6 +5,7 @@ import numpy as np
 
 from pandas import (
     DataFrame,
+    Index,
     MultiIndex,
     NaT,
     Series,
@@ -13,8 +14,6 @@ from pandas import (
     period_range,
     timedelta_range,
 )
-
-from .pandas_vb_common import tm
 
 
 class AsType:
@@ -160,12 +159,6 @@ class Iteration:
 
     def time_items(self):
         # (monitor no-copying behaviour)
-        if hasattr(self.df, "_item_cache"):
-            self.df._item_cache.clear()
-        for name, col in self.df.items():
-            pass
-
-    def time_items_cached(self):
         for name, col in self.df.items():
             pass
 
@@ -594,8 +587,6 @@ class Interpolate:
         N = 10000
         # this is the worst case, where every column has NaNs.
         arr = np.random.randn(N, 100)
-        # NB: we need to set values in array, not in df.values, otherwise
-        #  the benchmark will be misleading for ArrayManager
         arr[::2] = np.nan
 
         self.df = DataFrame(arr)
@@ -703,8 +694,12 @@ class SortMultiKey:
         K = 10
         df = DataFrame(
             {
-                "key1": tm.makeStringIndex(N).values.repeat(K),
-                "key2": tm.makeStringIndex(N).values.repeat(K),
+                "key1": Index([f"i-{i}" for i in range(N)], dtype=object).values.repeat(
+                    K
+                ),
+                "key2": Index([f"i-{i}" for i in range(N)], dtype=object).values.repeat(
+                    K
+                ),
                 "value": np.random.randn(N * K),
             }
         )

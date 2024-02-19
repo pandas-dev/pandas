@@ -41,7 +41,7 @@ class ArrowParserWrapper(ParserBase):
 
         self._parse_kwds()
 
-    def _parse_kwds(self):
+    def _parse_kwds(self) -> None:
         """
         Validates keywords before passing to pyarrow.
         """
@@ -65,6 +65,7 @@ class ArrowParserWrapper(ParserBase):
             "escapechar": "escape_char",
             "skip_blank_lines": "ignore_empty_lines",
             "decimal": "decimal_point",
+            "quotechar": "quote_char",
         }
         for pandas_name, pyarrow_name in mapping.items():
             if pandas_name in self.kwds and self.kwds.get(pandas_name) is not None:
@@ -103,7 +104,7 @@ class ArrowParserWrapper(ParserBase):
                 ] = None  # PyArrow raises an exception by default
             elif on_bad_lines == ParserBase.BadLineHandleMethod.WARN:
 
-                def handle_warning(invalid_row):
+                def handle_warning(invalid_row) -> str:
                     warnings.warn(
                         f"Expected {invalid_row.expected_columns} columns, but found "
                         f"{invalid_row.actual_columns}: {invalid_row.text}",
@@ -213,12 +214,12 @@ class ArrowParserWrapper(ParserBase):
                 self.dtype = pandas_dtype(self.dtype)
             try:
                 frame = frame.astype(self.dtype)
-            except TypeError as e:
+            except TypeError as err:
                 # GH#44901 reraise to keep api consistent
-                raise ValueError(e)
+                raise ValueError(str(err)) from err
         return frame
 
-    def _validate_usecols(self, usecols):
+    def _validate_usecols(self, usecols) -> None:
         if lib.is_list_like(usecols) and not all(isinstance(x, str) for x in usecols):
             raise ValueError(
                 "The pyarrow engine does not allow 'usecols' to be integer "
@@ -246,7 +247,7 @@ class ArrowParserWrapper(ParserBase):
 
         try:
             convert_options = pyarrow_csv.ConvertOptions(**self.convert_options)
-        except TypeError:
+        except TypeError as err:
             include = self.convert_options.get("include_columns", None)
             if include is not None:
                 self._validate_usecols(include)
@@ -257,7 +258,7 @@ class ArrowParserWrapper(ParserBase):
             ):
                 raise TypeError(
                     "The 'pyarrow' engine requires all na_values to be strings"
-                )
+                ) from err
 
             raise
 
@@ -296,9 +297,7 @@ class ArrowParserWrapper(ParserBase):
             frame = table.to_pandas(types_mapper=dtype_mapping.get)
         elif using_pyarrow_string_dtype():
             frame = table.to_pandas(types_mapper=arrow_string_types_mapper())
+
         else:
-            if isinstance(self.kwds.get("dtype"), dict):
-                frame = table.to_pandas(types_mapper=self.kwds["dtype"].get)
-            else:
-                frame = table.to_pandas()
+            frame = table.to_pandas()
         return self._finalize_pandas_output(frame)

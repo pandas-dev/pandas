@@ -504,7 +504,7 @@ class TestCommon:
         # GH#12724, GH#30336
         offset_s = _create_offset(offset_types)
 
-        dti = DatetimeIndex([], tz=tz_naive_fixture)
+        dti = DatetimeIndex([], tz=tz_naive_fixture).as_unit("ns")
 
         warn = None
         if isinstance(
@@ -623,10 +623,6 @@ class TestDateOffset:
 
     def test_default_constructor(self, dt):
         assert (dt + DateOffset(2)) == datetime(2008, 1, 4)
-
-    def test_is_anchored(self):
-        assert not DateOffset(2).is_anchored()
-        assert DateOffset(1).is_anchored()
 
     def test_copy(self):
         assert DateOffset(months=2).copy() == DateOffset(months=2)
@@ -795,10 +791,9 @@ def test_get_offset():
 
     for name, expected in pairs:
         offset = _get_offset(name)
-        assert offset == expected, (
-            f"Expected {repr(name)} to yield {repr(expected)} "
-            f"(actual: {repr(offset)})"
-        )
+        assert (
+            offset == expected
+        ), f"Expected {name!r} to yield {expected!r} (actual: {offset!r})"
 
 
 def test_get_offset_legacy():

@@ -40,6 +40,7 @@ from pandas import (
     Series,
     TimedeltaIndex,
     date_range,
+    period_range,
 )
 import pandas._testing as tm
 
@@ -77,11 +78,13 @@ def test_notna_notnull(notna_f):
 @pytest.mark.parametrize(
     "ser",
     [
-        tm.makeFloatSeries(),
-        tm.makeStringSeries(),
-        tm.makeObjectSeries(),
-        tm.makeTimeSeries(),
-        tm.makePeriodSeries(),
+        Series(
+            [str(i) for i in range(5)],
+            index=Index([str(i) for i in range(5)], dtype=object),
+            dtype=object,
+        ),
+        Series(range(5), date_range("2020-01-01", periods=5)),
+        Series(range(5), period_range("2020-01-01", periods=5)),
     ],
 )
 def test_null_check_is_series(null_func, ser):
@@ -124,15 +127,25 @@ class TestIsNA:
 
     @pytest.mark.parametrize("isna_f", [isna, isnull])
     @pytest.mark.parametrize(
-        "df",
+        "data",
         [
-            tm.makeTimeDataFrame(),
-            tm.makePeriodFrame(),
-            tm.makeMixedDataFrame(),
+            np.arange(4, dtype=float),
+            [0.0, 1.0, 0.0, 1.0],
+            Series(list("abcd"), dtype=object),
+            date_range("2020-01-01", periods=4),
         ],
     )
-    def test_isna_isnull_frame(self, isna_f, df):
+    @pytest.mark.parametrize(
+        "index",
+        [
+            date_range("2020-01-01", periods=4),
+            range(4),
+            period_range("2020-01-01", periods=4),
+        ],
+    )
+    def test_isna_isnull_frame(self, isna_f, data, index):
         # frame
+        df = pd.DataFrame(data, index=index)
         result = isna_f(df)
         expected = df.apply(isna_f)
         tm.assert_frame_equal(result, expected)
@@ -518,7 +531,6 @@ def test_array_equivalent_different_dtype_but_equal():
         (fix_now, fix_utcnow),
         (fix_now.to_datetime64(), fix_utcnow),
         (fix_now.to_pydatetime(), fix_utcnow),
-        (fix_now, fix_utcnow),
         (fix_now.to_datetime64(), fix_utcnow.to_pydatetime()),
         (fix_now.to_pydatetime(), fix_utcnow.to_pydatetime()),
     ],
@@ -830,7 +842,8 @@ never_na_vals = [
 class TestLibMissing:
     @pytest.mark.parametrize("func", [libmissing.checknull, isna])
     @pytest.mark.parametrize(
-        "value", na_vals + sometimes_na_vals  # type: ignore[operator]
+        "value",
+        na_vals + sometimes_na_vals,  # type: ignore[operator]
     )
     def test_checknull_na_vals(self, func, value):
         assert func(value)
@@ -851,7 +864,8 @@ class TestLibMissing:
         assert not func(value)
 
     @pytest.mark.parametrize(
-        "value", na_vals + sometimes_na_vals  # type: ignore[operator]
+        "value",
+        na_vals + sometimes_na_vals,  # type: ignore[operator]
     )
     def test_checknull_old_na_vals(self, value):
         assert libmissing.checknull(value, inf_as_na=True)

@@ -69,14 +69,25 @@ def test_groupby_preserves_metadata():
     def func(group):
         assert isinstance(group, tm.SubclassedDataFrame)
         assert hasattr(group, "testattr")
+        assert group.testattr == "hello"
         return group.testattr
 
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
     with tm.assert_produces_warning(
-        FutureWarning, match=msg, raise_on_extra_warnings=False
+        DeprecationWarning,
+        match=msg,
+        raise_on_extra_warnings=False,
+        check_stacklevel=False,
     ):
         result = custom_df.groupby("c").apply(func)
     expected = tm.SubclassedSeries(["hello"] * 3, index=Index([7, 8, 9], name="c"))
+    tm.assert_series_equal(result, expected)
+
+    result = custom_df.groupby("c").apply(func, include_groups=False)
+    tm.assert_series_equal(result, expected)
+
+    # https://github.com/pandas-dev/pandas/pull/56761
+    result = custom_df.groupby("c")[["a", "b"]].apply(func)
     tm.assert_series_equal(result, expected)
 
     def func2(group):
@@ -115,7 +126,10 @@ def test_groupby_resample_preserves_subclass(obj):
     # Confirm groupby.resample() preserves dataframe type
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
     with tm.assert_produces_warning(
-        FutureWarning, match=msg, raise_on_extra_warnings=False
+        DeprecationWarning,
+        match=msg,
+        raise_on_extra_warnings=False,
+        check_stacklevel=False,
     ):
         result = df.groupby("Buyer").resample("5D").sum()
     assert isinstance(result, obj)

@@ -19,7 +19,7 @@ Customarily, we import as follows:
 Basic data structures in pandas
 -------------------------------
 
-Pandas provides two types of classes for handling data:
+pandas provides two types of classes for handling data:
 
 1. :class:`Series`: a one-dimensional labeled array holding data of any type
     such as integers, strings, Python objects etc.
@@ -91,8 +91,8 @@ will be completed:
    df2.any                df2.combine
    df2.append             df2.D
    df2.apply              df2.describe
-   df2.applymap           df2.diff
    df2.B                  df2.duplicated
+   df2.diff
 
 As you can see, the columns ``A``, ``B``, ``C``, and ``D`` are automatically
 tab completed. ``E`` and ``F`` are there as well; the rest of the attributes have been
@@ -563,7 +563,7 @@ columns:
 
 .. ipython:: python
 
-   stacked = df2.stack(future_stack=True)
+   stacked = df2.stack()
    stacked
 
 With a "stacked" DataFrame or Series (having a :class:`MultiIndex` as the

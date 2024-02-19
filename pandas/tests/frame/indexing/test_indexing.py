@@ -13,9 +13,7 @@ from pandas._libs import iNaT
 from pandas.errors import (
     InvalidIndexError,
     PerformanceWarning,
-    SettingWithCopyError,
 )
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer
 
@@ -48,7 +46,7 @@ class TestDataFrameIndexing:
         # Column access
         for _, series in sl.items():
             assert len(series.index) == 20
-            assert tm.equalContents(series.index, sl.index)
+            tm.assert_index_equal(series.index, sl.index)
 
         for key, _ in float_frame._series.items():
             assert float_frame[key] is not None
@@ -137,7 +135,7 @@ class TestDataFrameIndexing:
         subframe_obj = datetime_frame[indexer_obj]
         tm.assert_frame_equal(subframe_obj, subframe)
 
-        with pytest.raises(ValueError, match="Boolean array expected"):
+        with pytest.raises(TypeError, match="Boolean array expected"):
             datetime_frame[datetime_frame]
 
         # test that Series work
@@ -288,7 +286,7 @@ class TestDataFrameIndexing:
         df.foobar = 5
         assert (df.foobar == 5).all()
 
-    def test_setitem(self, float_frame, using_copy_on_write, warn_copy_on_write):
+    def test_setitem(self, float_frame, using_infer_string):
         # not sure what else to do here
         series = float_frame["A"][::2]
         float_frame["col5"] = series
@@ -323,15 +321,12 @@ class TestDataFrameIndexing:
         # so raise/warn
         smaller = float_frame[:2]
 
-        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-        if using_copy_on_write or warn_copy_on_write:
-            # With CoW, adding a new column doesn't raise a warning
-            smaller["col10"] = ["1", "2"]
-        else:
-            with pytest.raises(SettingWithCopyError, match=msg):
-                smaller["col10"] = ["1", "2"]
+        smaller["col10"] = ["1", "2"]
 
-        assert smaller["col10"].dtype == np.object_
+        if using_infer_string:
+            assert smaller["col10"].dtype == "string"
+        else:
+            assert smaller["col10"].dtype == np.object_
         assert (smaller["col10"] == ["1", "2"]).all()
 
     def test_setitem2(self):
@@ -426,7 +421,7 @@ class TestDataFrameIndexing:
         float_frame["something"] = 2.5
         assert float_frame["something"].dtype == np.float64
 
-    def test_setitem_corner(self, float_frame):
+    def test_setitem_corner(self, float_frame, using_infer_string):
         # corner case
         df = DataFrame({"B": [1.0, 2.0, 3.0], "C": ["a", "b", "c"]}, index=np.arange(3))
         del df["B"]
@@ -463,10 +458,16 @@ class TestDataFrameIndexing:
         dm["foo"] = "bar"
         del dm["foo"]
         dm["foo"] = "bar"
-        assert dm["foo"].dtype == np.object_
+        if using_infer_string:
+            assert dm["foo"].dtype == "string"
+        else:
+            assert dm["foo"].dtype == np.object_
 
         dm["coercible"] = ["1", "2", "3"]
-        assert dm["coercible"].dtype == np.object_
+        if using_infer_string:
+            assert dm["coercible"].dtype == "string"
+        else:
+            assert dm["coercible"].dtype == np.object_
 
     def test_setitem_corner2(self):
         data = {
@@ -483,7 +484,7 @@ class TestDataFrameIndexing:
         assert df.loc[1, "title"] == "foobar"
         assert df.loc[1, "cruft"] == 0
 
-    def test_setitem_ambig(self):
+    def test_setitem_ambig(self, using_infer_string):
         # Difficulties with mixed-type data
         # Created as float type
         dm = DataFrame(index=range(3), columns=range(3))
@@ -499,18 +500,22 @@ class TestDataFrameIndexing:
 
         dm[2] = uncoercable_series
         assert len(dm.columns) == 3
-        assert dm[2].dtype == np.object_
+        if using_infer_string:
+            assert dm[2].dtype == "string"
+        else:
+            assert dm[2].dtype == np.object_
 
-    def test_setitem_None(self, float_frame):
+    def test_setitem_None(self, float_frame, using_infer_string):
         # GH #766
         float_frame[None] = float_frame["A"]
+        key = None if not using_infer_string else np.nan
         tm.assert_series_equal(
             float_frame.iloc[:, -1], float_frame["A"], check_names=False
         )
         tm.assert_series_equal(
-            float_frame.loc[:, None], float_frame["A"], check_names=False
+            float_frame.loc[:, key], float_frame["A"], check_names=False
         )
-        tm.assert_series_equal(float_frame[None], float_frame["A"], check_names=False)
+        tm.assert_series_equal(float_frame[key], float_frame["A"], check_names=False)
 
     def test_loc_setitem_boolean_mask_allfalse(self):
         # GH 9596
@@ -559,10 +564,7 @@ class TestDataFrameIndexing:
         with pytest.raises(KeyError, match=r"^3$"):
             df2.loc[3:11] = 0
 
-    @td.skip_array_manager_invalid_test  # already covered in test_iloc_col_slice_view
-    def test_fancy_getitem_slice_mixed(
-        self, float_frame, float_string_frame, using_copy_on_write, warn_copy_on_write
-    ):
+    def test_fancy_getitem_slice_mixed(self, float_frame, float_string_frame):
         sliced = float_string_frame.iloc[:, -3:]
         assert sliced["D"].dtype == np.float64
 
@@ -573,18 +575,11 @@ class TestDataFrameIndexing:
 
         assert np.shares_memory(sliced["C"]._values, float_frame["C"]._values)
 
-        with tm.assert_cow_warning(warn_copy_on_write):
-            sliced.loc[:, "C"] = 4.0
-        if not using_copy_on_write:
-            assert (float_frame["C"] == 4).all()
-
-            # with the enforcement of GH#45333 in 2.0, this remains a view
-            np.shares_memory(sliced["C"]._values, float_frame["C"]._values)
-        else:
-            tm.assert_frame_equal(float_frame, original)
+        sliced.loc[:, "C"] = 4.0
+        tm.assert_frame_equal(float_frame, original)
 
     def test_getitem_setitem_non_ix_labels(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(range(20), index=date_range("2020-01-01", periods=20))
 
         start, end = df.index[[5, 10]]
 
@@ -625,7 +620,6 @@ class TestDataFrameIndexing:
             for idx in f.index[::5]:
                 assert ix[idx, col] == ts[idx]
 
-    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) rewrite not using .values
     def test_setitem_fancy_scalar(self, float_frame):
         f = float_frame
         expected = float_frame.copy()
@@ -665,7 +659,6 @@ class TestDataFrameIndexing:
         expected = f.reindex(index=f.index[boolvec], columns=["C", "D"])
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) rewrite not using .values
     def test_setitem_fancy_boolean(self, float_frame):
         # from 2d, set with booleans
         frame = float_frame.copy()
@@ -724,7 +717,7 @@ class TestDataFrameIndexing:
         expected.loc[[0, 2], [1]] = 5
         tm.assert_frame_equal(df, expected)
 
-    def test_getitem_setitem_float_labels(self, using_array_manager):
+    def test_getitem_setitem_float_labels(self):
         index = Index([1.5, 2, 3, 4, 5])
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)), index=index)
 
@@ -934,7 +927,8 @@ class TestDataFrameIndexing:
         # needs upcasting
         df = DataFrame([[1, 2, "foo"], [3, 4, "bar"]], columns=["A", "B", "C"])
         df2 = df.copy()
-        df2.loc[:, ["A", "B"]] = df.loc[:, ["A", "B"]] + 0.5
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            df2.loc[:, ["A", "B"]] = df.loc[:, ["A", "B"]] + 0.5
         expected = df.reindex(columns=["A", "B"])
         expected += 0.5
         expected["C"] = df["C"]
@@ -1050,7 +1044,7 @@ class TestDataFrameIndexing:
         expected = df.reindex(df.index[[1, 2, 4, 6]])
         tm.assert_frame_equal(result, expected)
 
-    def test_iloc_row_slice_view(self, using_copy_on_write, warn_copy_on_write):
+    def test_iloc_row_slice_view(self):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)), index=range(0, 20, 2)
         )
@@ -1063,13 +1057,7 @@ class TestDataFrameIndexing:
         assert np.shares_memory(df[2], subset[2])
 
         exp_col = original[2].copy()
-        with tm.assert_cow_warning(warn_copy_on_write):
-            subset.loc[:, 2] = 0.0
-        if not using_copy_on_write:
-            exp_col._values[4:8] = 0.0
-
-            # With the enforcement of GH#45333 in 2.0, this remains a view
-            assert np.shares_memory(df[2], subset[2])
+        subset.loc[:, 2] = 0.0
         tm.assert_series_equal(df[2], exp_col)
 
     def test_iloc_col(self):
@@ -1095,35 +1083,20 @@ class TestDataFrameIndexing:
         expected = df.reindex(columns=df.columns[[1, 2, 4, 6]])
         tm.assert_frame_equal(result, expected)
 
-    def test_iloc_col_slice_view(
-        self, using_array_manager, using_copy_on_write, warn_copy_on_write
-    ):
+    def test_iloc_col_slice_view(self):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((4, 10)), columns=range(0, 20, 2)
         )
         original = df.copy()
         subset = df.iloc[:, slice(4, 8)]
 
-        if not using_array_manager and not using_copy_on_write:
-            # verify slice is view
-            assert np.shares_memory(df[8]._values, subset[8]._values)
-
-            with tm.assert_cow_warning(warn_copy_on_write):
-                subset.loc[:, 8] = 0.0
-
-            assert (df[8] == 0).all()
-
-            # with the enforcement of GH#45333 in 2.0, this remains a view
-            assert np.shares_memory(df[8]._values, subset[8]._values)
-        else:
-            if using_copy_on_write:
-                # verify slice is view
-                assert np.shares_memory(df[8]._values, subset[8]._values)
-            subset[8] = 0.0
-            # subset changed
-            assert (subset[8] == 0).all()
-            # but df itself did not change (setitem replaces full column)
-            tm.assert_frame_equal(df, original)
+        # verify slice is view
+        assert np.shares_memory(df[8]._values, subset[8]._values)
+        subset[8] = 0.0
+        # subset changed
+        assert (subset[8] == 0).all()
+        # but df itself did not change (setitem replaces full column)
+        tm.assert_frame_equal(df, original)
 
     def test_loc_duplicates(self):
         # gh-17105
@@ -1372,34 +1345,31 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(
-        "val, idxr, warn",
+        "val, idxr",
         [
-            ("x", "a", None),  # TODO: this should warn as well
-            ("x", ["a"], None),  # TODO: this should warn as well
-            (1, "a", None),  # TODO: this should warn as well
-            (1, ["a"], FutureWarning),
+            ("x", "a"),
+            ("x", ["a"]),
+            (1, "a"),
+            (1, ["a"]),
         ],
     )
-    def test_loc_setitem_rhs_frame(self, idxr, val, warn):
+    def test_loc_setitem_rhs_frame(self, idxr, val):
         # GH#47578
         df = DataFrame({"a": [1, 2]})
 
         with tm.assert_produces_warning(
-            warn, match="Setting an item of incompatible dtype"
+            FutureWarning, match="Setting an item of incompatible dtype"
         ):
             df.loc[:, idxr] = DataFrame({"a": [val, 11]}, index=[1, 2])
         expected = DataFrame({"a": [np.nan, val]})
         tm.assert_frame_equal(df, expected)
 
-    @td.skip_array_manager_invalid_test
-    def test_iloc_setitem_enlarge_no_warning(self, warn_copy_on_write):
+    def test_iloc_setitem_enlarge_no_warning(self):
         # GH#47381
         df = DataFrame(columns=["a", "b"])
         expected = df.copy()
         view = df[:]
-        # TODO(CoW-warn) false positive: shouldn't warn in case of enlargement?
-        with tm.assert_produces_warning(FutureWarning if warn_copy_on_write else None):
-            df.iloc[:, 0] = np.array([1, 2], dtype=np.float64)
+        df.iloc[:, 0] = np.array([1, 2], dtype=np.float64)
         tm.assert_frame_equal(view, expected)
 
     def test_loc_internals_not_updated_correctly(self):
@@ -1604,7 +1574,7 @@ class TestDataFrameIndexingUInt64:
         )
 
 
-def test_object_casting_indexing_wraps_datetimelike(using_array_manager):
+def test_object_casting_indexing_wraps_datetimelike():
     # GH#31649, check the indexing methods all the way down the stack
     df = DataFrame(
         {
@@ -1625,10 +1595,6 @@ def test_object_casting_indexing_wraps_datetimelike(using_array_manager):
     ser = df.xs(0, axis=0)
     assert isinstance(ser.values[1], Timestamp)
     assert isinstance(ser.values[2], pd.Timedelta)
-
-    if using_array_manager:
-        # remainder of the test checking BlockManager internals
-        return
 
     mgr = df._mgr
     mgr._rebuild_blknos_and_blklocs()
@@ -1661,25 +1627,6 @@ class TestLocILocDataFrameCategorical:
         return orig
 
     @pytest.fixture
-    def exp_single_row(self):
-        # The expected values if we change a single row
-        cats1 = Categorical(["a", "a", "b", "a", "a", "a", "a"], categories=["a", "b"])
-        idx1 = Index(["h", "i", "j", "k", "l", "m", "n"])
-        values1 = [1, 1, 2, 1, 1, 1, 1]
-        exp_single_row = DataFrame({"cats": cats1, "values": values1}, index=idx1)
-        return exp_single_row
-
-    @pytest.fixture
-    def exp_multi_row(self):
-        # assign multiple rows (mixed values) (-> array) -> exp_multi_row
-        # changed multiple rows
-        cats2 = Categorical(["a", "a", "b", "b", "a", "a", "a"], categories=["a", "b"])
-        idx2 = Index(["h", "i", "j", "k", "l", "m", "n"])
-        values2 = [1, 1, 2, 2, 1, 1, 1]
-        exp_multi_row = DataFrame({"cats": cats2, "values": values2}, index=idx2)
-        return exp_multi_row
-
-    @pytest.fixture
     def exp_parts_cats_col(self):
         # changed part of the cats column
         cats3 = Categorical(["a", "a", "b", "b", "a", "a", "a"], categories=["a", "b"])
@@ -1699,21 +1646,25 @@ class TestLocILocDataFrameCategorical:
         )
         return exp_single_cats_value
 
-    @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
-    def test_loc_iloc_setitem_list_of_lists(self, orig, exp_multi_row, indexer):
+    def test_loc_iloc_setitem_list_of_lists(self, orig, indexer_li):
         #   - assign multiple rows (mixed values) -> exp_multi_row
         df = orig.copy()
 
         key = slice(2, 4)
-        if indexer is tm.loc:
+        if indexer_li is tm.loc:
             key = slice("j", "k")
 
-        indexer(df)[key, :] = [["b", 2], ["b", 2]]
+        indexer_li(df)[key, :] = [["b", 2], ["b", 2]]
+
+        cats2 = Categorical(["a", "a", "b", "b", "a", "a", "a"], categories=["a", "b"])
+        idx2 = Index(["h", "i", "j", "k", "l", "m", "n"])
+        values2 = [1, 1, 2, 2, 1, 1, 1]
+        exp_multi_row = DataFrame({"cats": cats2, "values": values2}, index=idx2)
         tm.assert_frame_equal(df, exp_multi_row)
 
         df = orig.copy()
         with pytest.raises(TypeError, match=msg1):
-            indexer(df)[key, :] = [["c", 2], ["c", 2]]
+            indexer_li(df)[key, :] = [["c", 2], ["c", 2]]
 
     @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc, tm.at, tm.iat])
     def test_loc_iloc_at_iat_setitem_single_value_in_categories(
@@ -1734,55 +1685,54 @@ class TestLocILocDataFrameCategorical:
         with pytest.raises(TypeError, match=msg1):
             indexer(df)[key] = "c"
 
-    @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
     def test_loc_iloc_setitem_mask_single_value_in_categories(
-        self, orig, exp_single_cats_value, indexer
+        self, orig, exp_single_cats_value, indexer_li
     ):
         # mask with single True
         df = orig.copy()
 
         mask = df.index == "j"
         key = 0
-        if indexer is tm.loc:
+        if indexer_li is tm.loc:
             key = df.columns[key]
 
-        indexer(df)[mask, key] = "b"
+        indexer_li(df)[mask, key] = "b"
         tm.assert_frame_equal(df, exp_single_cats_value)
 
-    @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
-    def test_loc_iloc_setitem_full_row_non_categorical_rhs(
-        self, orig, exp_single_row, indexer
-    ):
+    def test_loc_iloc_setitem_full_row_non_categorical_rhs(self, orig, indexer_li):
         #   - assign a complete row (mixed values) -> exp_single_row
         df = orig.copy()
 
         key = 2
-        if indexer is tm.loc:
+        if indexer_li is tm.loc:
             key = df.index[2]
 
         # not categorical dtype, but "b" _is_ among the categories for df["cat"]
-        indexer(df)[key, :] = ["b", 2]
+        indexer_li(df)[key, :] = ["b", 2]
+        cats1 = Categorical(["a", "a", "b", "a", "a", "a", "a"], categories=["a", "b"])
+        idx1 = Index(["h", "i", "j", "k", "l", "m", "n"])
+        values1 = [1, 1, 2, 1, 1, 1, 1]
+        exp_single_row = DataFrame({"cats": cats1, "values": values1}, index=idx1)
         tm.assert_frame_equal(df, exp_single_row)
 
         # "c" is not among the categories for df["cat"]
         with pytest.raises(TypeError, match=msg1):
-            indexer(df)[key, :] = ["c", 2]
+            indexer_li(df)[key, :] = ["c", 2]
 
-    @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
     def test_loc_iloc_setitem_partial_col_categorical_rhs(
-        self, orig, exp_parts_cats_col, indexer
+        self, orig, exp_parts_cats_col, indexer_li
     ):
         # assign a part of a column with dtype == categorical ->
         # exp_parts_cats_col
         df = orig.copy()
 
         key = (slice(2, 4), 0)
-        if indexer is tm.loc:
+        if indexer_li is tm.loc:
             key = (slice("j", "k"), df.columns[0])
 
         # same categories as we currently have in df["cats"]
         compat = Categorical(["b", "b"], categories=["a", "b"])
-        indexer(df)[key] = compat
+        indexer_li(df)[key] = compat
         tm.assert_frame_equal(df, exp_parts_cats_col)
 
         # categories do not match df["cat"]'s, but "b" is among them
@@ -1790,32 +1740,31 @@ class TestLocILocDataFrameCategorical:
         with pytest.raises(TypeError, match=msg2):
             # different categories but holdable values
             #  -> not sure if this should fail or pass
-            indexer(df)[key] = semi_compat
+            indexer_li(df)[key] = semi_compat
 
         # categories do not match df["cat"]'s, and "c" is not among them
         incompat = Categorical(list("cc"), categories=list("abc"))
         with pytest.raises(TypeError, match=msg2):
             # different values
-            indexer(df)[key] = incompat
+            indexer_li(df)[key] = incompat
 
-    @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
     def test_loc_iloc_setitem_non_categorical_rhs(
-        self, orig, exp_parts_cats_col, indexer
+        self, orig, exp_parts_cats_col, indexer_li
     ):
         # assign a part of a column with dtype != categorical -> exp_parts_cats_col
         df = orig.copy()
 
         key = (slice(2, 4), 0)
-        if indexer is tm.loc:
+        if indexer_li is tm.loc:
             key = (slice("j", "k"), df.columns[0])
 
         # "b" is among the categories for df["cat"]
-        indexer(df)[key] = ["b", "b"]
+        indexer_li(df)[key] = ["b", "b"]
         tm.assert_frame_equal(df, exp_parts_cats_col)
 
         # "c" not part of the categories
         with pytest.raises(TypeError, match=msg1):
-            indexer(df)[key] = ["c", "c"]
+            indexer_li(df)[key] = ["c", "c"]
 
     @pytest.mark.parametrize("indexer", [tm.getitem, tm.loc, tm.iloc])
     def test_getitem_preserve_object_index_with_dates(self, indexer):
@@ -1922,6 +1871,26 @@ def test_adding_new_conditional_column() -> None:
     tm.assert_frame_equal(df, expected)
 
 
+@pytest.mark.parametrize(
+    ("dtype", "infer_string"),
+    [
+        (object, False),
+        ("string[pyarrow_numpy]", True),
+    ],
+)
+def test_adding_new_conditional_column_with_string(dtype, infer_string) -> None:
+    # https://github.com/pandas-dev/pandas/issues/56204
+    pytest.importorskip("pyarrow")
+
+    df = DataFrame({"a": [1, 2], "b": [3, 4]})
+    with pd.option_context("future.infer_string", infer_string):
+        df.loc[df["a"] == 1, "c"] = "1"
+    expected = DataFrame({"a": [1, 2], "b": [3, 4], "c": ["1", float("nan")]}).astype(
+        {"a": "int64", "b": "int64", "c": dtype}
+    )
+    tm.assert_frame_equal(df, expected)
+
+
 def test_add_new_column_infer_string():
     # GH#55366
     pytest.importorskip("pyarrow")
@@ -1963,7 +1932,7 @@ class TestSetitemValidation:
         np.datetime64("NaT"),
         np.timedelta64("NaT"),
     ]
-    _indexers = [0, [0], slice(0, 1), [True, False, False]]
+    _indexers = [0, [0], slice(0, 1), [True, False, False], slice(None, None, None)]
 
     @pytest.mark.parametrize(
         "invalid", _invalid_scalars + [1, 1.0, np.int64(1), np.float64(1)]
@@ -1977,7 +1946,7 @@ class TestSetitemValidation:
     @pytest.mark.parametrize("indexer", _indexers)
     def test_setitem_validation_scalar_int(self, invalid, any_int_numpy_dtype, indexer):
         df = DataFrame({"a": [1, 2, 3]}, dtype=any_int_numpy_dtype)
-        if isna(invalid) and invalid is not pd.NaT:
+        if isna(invalid) and invalid is not pd.NaT and not np.isnat(invalid):
             warn = None
         else:
             warn = FutureWarning

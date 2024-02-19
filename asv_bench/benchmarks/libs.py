@@ -15,13 +15,11 @@ from pandas._libs.lib import (
 
 from pandas import (
     NA,
+    Index,
     NaT,
 )
 
-from .pandas_vb_common import (
-    lib,
-    tm,
-)
+from .pandas_vb_common import lib
 
 try:
     from pandas.util import cache_readonly
@@ -61,8 +59,8 @@ class FastZip:
     def setup(self):
         N = 10000
         K = 10
-        key1 = tm.makeStringIndex(N).values.repeat(K)
-        key2 = tm.makeStringIndex(N).values.repeat(K)
+        key1 = Index([f"i-{i}" for i in range(N)], dtype=object).values.repeat(K)
+        key2 = Index([f"i-{i}" for i in range(N)], dtype=object).values.repeat(K)
         col_array = np.vstack([key1, key2, np.random.randn(N * K)])
         col_array2 = col_array.copy()
         col_array2[:, :10000] = np.nan

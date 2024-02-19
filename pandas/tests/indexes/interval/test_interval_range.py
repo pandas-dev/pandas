@@ -84,9 +84,7 @@ class TestIntervalRange:
         tm.assert_index_equal(result, expected)
 
         # GH 20976: linspace behavior defined from start/end/periods
-        if not breaks.freq.is_anchored() and tz is None:
-            # matches expected only for non-anchored offsets and tz naive
-            # (anchored/DST transitions cause unequal spacing in expected)
+        if not breaks.freq.n == 1 and tz is None:
             result = interval_range(
                 start=start, end=end, periods=periods, name=name, closed=closed
             )
@@ -184,6 +182,9 @@ class TestIntervalRange:
     def test_linspace_dst_transition(self, start, mid, end):
         # GH 20976: linspace behavior defined from start/end/periods
         # accounts for the hour gained/lost during DST transition
+        start = start.as_unit("ns")
+        mid = mid.as_unit("ns")
+        end = end.as_unit("ns")
         result = interval_range(start=start, end=end, periods=2)
         expected = IntervalIndex.from_breaks([start, mid, end])
         tm.assert_index_equal(result, expected)
@@ -217,6 +218,20 @@ class TestIntervalRange:
         index = interval_range(start=start, end=end, periods=5)
         result = index.dtype.subtype
         expected = "int64" if is_integer(start + end) else "float64"
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "start, end, expected",
+        [
+            (np.int8(1), np.int8(10), np.dtype("int8")),
+            (np.int8(1), np.float16(10), np.dtype("float64")),
+            (np.float32(1), np.float32(10), np.dtype("float32")),
+            (1, 10, np.dtype("int64")),
+            (1, 10.0, np.dtype("float64")),
+        ],
+    )
+    def test_interval_dtype(self, start, end, expected):
+        result = interval_range(start=start, end=end).dtype.subtype
         assert result == expected
 
     def test_interval_range_fractional_period(self):

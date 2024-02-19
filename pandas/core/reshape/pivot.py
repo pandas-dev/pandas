@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import (
-    Hashable,
-    Sequence,
-)
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -44,11 +40,14 @@ from pandas.core.reshape.util import cartesian_product
 from pandas.core.series import Series
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import (
         AggFuncType,
         AggFuncTypeBase,
         AggFuncTypeDict,
         IndexLabel,
+        SequenceNotStr,
     )
 
     from pandas import DataFrame
@@ -68,7 +67,7 @@ def pivot_table(
     margins: bool = False,
     dropna: bool = True,
     margins_name: Hashable = "All",
-    observed: bool = False,
+    observed: bool = True,
     sort: bool = True,
 ) -> DataFrame:
     index = _convert_by(index)
@@ -309,6 +308,7 @@ def _add_margins(
 
     row_names = result.index.names
     # check the result column and leave floats
+
     for dtype in set(result.dtypes):
         if isinstance(dtype, ExtensionDtype):
             # Can hold NA already
@@ -396,7 +396,7 @@ def _generate_marginal_results(
                 if isinstance(piece.index, MultiIndex):
                     # We are adding an empty level
                     transformed_piece.index = MultiIndex.from_tuples(
-                        [all_key], names=piece.index.names + [None]
+                        [all_key], names=piece.index.names + (None,)
                     )
                 else:
                     transformed_piece.index = Index([all_key], name=piece.index.name)
@@ -419,7 +419,7 @@ def _generate_marginal_results(
 
     if len(cols) > 0:
         row_margin = data[cols + values].groupby(cols, observed=observed).agg(aggfunc)
-        row_margin = row_margin.stack(future_stack=True)
+        row_margin = row_margin.stack()
 
         # GH#26568. Use names instead of indices in case of numeric names
         new_order_indices = [len(cols)] + list(range(len(cols)))
@@ -458,7 +458,7 @@ def _generate_marginal_results_without_values(
             margin_keys.append(all_key)
 
         else:
-            margin = data.groupby(level=0, axis=0, observed=observed).apply(aggfunc)
+            margin = data.groupby(level=0, observed=observed).apply(aggfunc)
             all_key = _all_key()
             table[all_key] = margin
             result = table
@@ -521,7 +521,8 @@ def pivot(
         # error: Unsupported operand types for + ("List[Any]" and "ExtensionArray")
         # error: Unsupported left operand type for + ("ExtensionArray")
         indexed = data.set_index(
-            cols + columns_listlike, append=append  # type: ignore[operator]
+            cols + columns_listlike,  # type: ignore[operator]
+            append=append,
         )
     else:
         index_list: list[Index] | list[Series]
@@ -544,16 +545,18 @@ def pivot(
 
         if is_list_like(values) and not isinstance(values, tuple):
             # Exclude tuple because it is seen as a single column name
-            values = cast(Sequence[Hashable], values)
             indexed = data._constructor(
-                data[values]._values, index=multiindex, columns=values
+                data[values]._values,
+                index=multiindex,
+                columns=cast("SequenceNotStr", values),
             )
         else:
             indexed = data._constructor_sliced(data[values]._values, index=multiindex)
     # error: Argument 1 to "unstack" of "DataFrame" has incompatible type "Union
     # [List[Any], ExtensionArray, ndarray[Any, Any], Index, Series]"; expected
     # "Hashable"
-    result = indexed.unstack(columns_listlike)  # type: ignore[arg-type]
+    # unstack with a MultiIndex returns a DataFrame
+    result = cast("DataFrame", indexed.unstack(columns_listlike))  # type: ignore[arg-type]
     result.index.names = [
         name if name is not lib.no_default else None for name in result.index.names
     ]
@@ -635,14 +638,55 @@ def crosstab(
 
     Examples
     --------
-    >>> a = np.array(["foo", "foo", "foo", "foo", "bar", "bar",
-    ...               "bar", "bar", "foo", "foo", "foo"], dtype=object)
-    >>> b = np.array(["one", "one", "one", "two", "one", "one",
-    ...               "one", "two", "two", "two", "one"], dtype=object)
-    >>> c = np.array(["dull", "dull", "shiny", "dull", "dull", "shiny",
-    ...               "shiny", "dull", "shiny", "shiny", "shiny"],
-    ...              dtype=object)
-    >>> pd.crosstab(a, [b, c], rownames=['a'], colnames=['b', 'c'])
+    >>> a = np.array(
+    ...     [
+    ...         "foo",
+    ...         "foo",
+    ...         "foo",
+    ...         "foo",
+    ...         "bar",
+    ...         "bar",
+    ...         "bar",
+    ...         "bar",
+    ...         "foo",
+    ...         "foo",
+    ...         "foo",
+    ...     ],
+    ...     dtype=object,
+    ... )
+    >>> b = np.array(
+    ...     [
+    ...         "one",
+    ...         "one",
+    ...         "one",
+    ...         "two",
+    ...         "one",
+    ...         "one",
+    ...         "one",
+    ...         "two",
+    ...         "two",
+    ...         "two",
+    ...         "one",
+    ...     ],
+    ...     dtype=object,
+    ... )
+    >>> c = np.array(
+    ...     [
+    ...         "dull",
+    ...         "dull",
+    ...         "shiny",
+    ...         "dull",
+    ...         "dull",
+    ...         "shiny",
+    ...         "shiny",
+    ...         "dull",
+    ...         "shiny",
+    ...         "shiny",
+    ...         "shiny",
+    ...     ],
+    ...     dtype=object,
+    ... )
+    >>> pd.crosstab(a, [b, c], rownames=["a"], colnames=["b", "c"])
     b   one        two
     c   dull shiny dull shiny
     a
@@ -653,8 +697,8 @@ def crosstab(
     shown in the output because dropna is True by default. Set
     dropna=False to preserve categories with no data.
 
-    >>> foo = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])
-    >>> bar = pd.Categorical(['d', 'e'], categories=['d', 'e', 'f'])
+    >>> foo = pd.Categorical(["a", "b"], categories=["a", "b", "c"])
+    >>> bar = pd.Categorical(["d", "e"], categories=["d", "e", "f"])
     >>> pd.crosstab(foo, bar)
     col_0  d  e
     row_0
@@ -718,6 +762,7 @@ def crosstab(
         margins=margins,
         margins_name=margins_name,
         dropna=dropna,
+        observed=dropna,
         **kwargs,  # type: ignore[arg-type]
     )
 
@@ -813,7 +858,7 @@ def _normalize(
     return table
 
 
-def _get_names(arrs, names, prefix: str = "row"):
+def _get_names(arrs, names, prefix: str = "row") -> list:
     if names is None:
         names = []
         for i, arr in enumerate(arrs):

@@ -927,7 +927,6 @@ class TestDataFrameSortIndexKey:
         result = df.sort_index(level=[0, 1], na_position="last")
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_index_multiindex_sort_remaining(self, ascending):
         # GH #24247
         df = DataFrame(
@@ -993,4 +992,53 @@ def test_sort_index_with_sliced_multiindex():
             names=["group", "str"],
         ),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_axis_columns_ignore_index():
+    # GH 56478
+    df = DataFrame([[1, 2]], columns=["d", "c"])
+    result = df.sort_index(axis="columns", ignore_index=True)
+    expected = DataFrame([[2, 1]])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_axis_columns_ignore_index_ascending_false():
+    # GH 57293
+    df = DataFrame(
+        {
+            "b": [1.0, 3.0, np.nan],
+            "a": [1, 4, 3],
+            1: ["a", "b", "c"],
+            "e": [3, 1, 4],
+            "d": [1, 2, 8],
+        }
+    ).set_index(["b", "a", 1])
+    result = df.sort_index(axis="columns", ignore_index=True, ascending=False)
+    expected = df.copy()
+    expected.columns = RangeIndex(2)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_sort_index_stable_sort():
+    # GH 57151
+    df = DataFrame(
+        data=[
+            (Timestamp("2024-01-30 13:00:00"), 13.0),
+            (Timestamp("2024-01-30 13:00:00"), 13.1),
+            (Timestamp("2024-01-30 12:00:00"), 12.0),
+            (Timestamp("2024-01-30 12:00:00"), 12.1),
+        ],
+        columns=["dt", "value"],
+    ).set_index(["dt"])
+    result = df.sort_index(level="dt", kind="stable")
+    expected = DataFrame(
+        data=[
+            (Timestamp("2024-01-30 12:00:00"), 12.0),
+            (Timestamp("2024-01-30 12:00:00"), 12.1),
+            (Timestamp("2024-01-30 13:00:00"), 13.0),
+            (Timestamp("2024-01-30 13:00:00"), 13.1),
+        ],
+        columns=["dt", "value"],
+    ).set_index(["dt"])
     tm.assert_frame_equal(result, expected)
