@@ -8,7 +8,6 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 import pandas as pd
 from pandas import (
     Categorical,
-    DataFrame,
     Index,
     Series,
     isna,
@@ -125,60 +124,6 @@ class TestCategoricalMissing:
         expected = Categorical(["A", "B", "C", "B", "A"], dtype=cat.dtype)
         tm.assert_categorical_equal(result, expected)
         assert isna(cat[-1])  # didn't modify original inplace
-
-    @pytest.mark.parametrize(
-        "values, expected",
-        [
-            ([1, 2, 3], np.array([False, False, False])),
-            ([1, 2, np.nan], np.array([False, False, True])),
-            ([1, 2, np.inf], np.array([False, False, True])),
-            ([1, 2, pd.NA], np.array([False, False, True])),
-        ],
-    )
-    def test_use_inf_as_na(self, values, expected):
-        # https://github.com/pandas-dev/pandas/issues/33594
-        msg = "use_inf_as_na option is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            with pd.option_context("mode.use_inf_as_na", True):
-                cat = Categorical(values)
-                result = cat.isna()
-                tm.assert_numpy_array_equal(result, expected)
-
-                result = Series(cat).isna()
-                expected = Series(expected)
-                tm.assert_series_equal(result, expected)
-
-                result = DataFrame(cat).isna()
-                expected = DataFrame(expected)
-                tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "values, expected",
-        [
-            ([1, 2, 3], np.array([False, False, False])),
-            ([1, 2, np.nan], np.array([False, False, True])),
-            ([1, 2, np.inf], np.array([False, False, True])),
-            ([1, 2, pd.NA], np.array([False, False, True])),
-        ],
-    )
-    def test_use_inf_as_na_outside_context(self, values, expected):
-        # https://github.com/pandas-dev/pandas/issues/33594
-        # Using isna directly for Categorical will fail in general here
-        cat = Categorical(values)
-
-        msg = "use_inf_as_na option is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            with pd.option_context("mode.use_inf_as_na", True):
-                result = isna(cat)
-                tm.assert_numpy_array_equal(result, expected)
-
-                result = isna(Series(cat))
-                expected = Series(expected)
-                tm.assert_series_equal(result, expected)
-
-                result = isna(DataFrame(cat))
-                expected = DataFrame(expected)
-                tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "a1, a2, categories",
