@@ -167,13 +167,14 @@ def is_object_dtype(arr_or_dtype) -> bool:
 def is_sparse(arr) -> bool:
     """
     Check whether an array-like is a 1-D pandas sparse array.
+    
+    .. deprecated:: 2.1.0
+        Use isinstance(dtype, pd.SparseDtype) instead.
 
     Check that the one-dimensional array-like is a pandas sparse array.
     Returns True if it is a pandas sparse array, not another type of
     sparse array.
 
-    .. deprecated:: 2.1.0
-        Use isinstance(dtype, pd.SparseDtype) instead.
 
     Parameters
     ----------
