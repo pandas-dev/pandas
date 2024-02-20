@@ -1,6 +1,7 @@
 import contextlib
 from pathlib import Path
 import re
+import uuid
 
 import numpy as np
 import pytest
@@ -25,7 +26,7 @@ def ext():
 
 @pytest.fixture
 def tmp_excel(ext, tmp_path):
-    tmp = tmp_path / f"tmp{ext}"
+    tmp = tmp_path / f"{uuid.uuid4()}{ext}"
     tmp.touch()
     yield str(tmp)
     tmp.unlink()

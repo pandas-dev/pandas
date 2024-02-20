@@ -1,5 +1,6 @@
 import contextlib
 import time
+import uuid
 
 import numpy as np
 import pytest
@@ -23,7 +24,7 @@ pytest.importorskip("jinja2")
 
 @pytest.fixture
 def tmp_excel(tmp_path):
-    tmp = tmp_path / "tmp.xlsx"
+    tmp = tmp_path / f"{uuid.uuid4()}.xlsx"
     tmp.touch()
     yield str(tmp)
     tmp.unlink()
