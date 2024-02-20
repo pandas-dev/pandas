@@ -97,7 +97,7 @@ provided. The value will be repeated to match the length of **index**.
 Series is ndarray-like
 ~~~~~~~~~~~~~~~~~~~~~~
 
-:class:`Series` acts very similarly to a ``ndarray`` and is a valid argument to most NumPy functions.
+:class:`Series` acts very similarly to a :class:`numpy.ndarray` and is a valid argument to most NumPy functions.
 However, operations such as slicing will also slice the index.
 
 .. ipython:: python
