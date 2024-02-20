@@ -42,7 +42,6 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
-    RangeIndex,
     Series,
     isna,
     notna,
@@ -1161,11 +1160,6 @@ class Parser:
             )
             if result:
                 new_axis = Index(new_ser, dtype=new_ser.dtype, copy=False)
-                # GH 57429
-                if new_axis.dtype.kind == "i":
-                    rng_idx = RangeIndex(len(new_axis))
-                    if new_axis.equals(rng_idx):
-                        new_axis = rng_idx
                 setattr(self.obj, axis_name, new_axis)
 
     def _try_convert_types(self) -> None:
@@ -1217,6 +1211,7 @@ class Parser:
             if result:
                 return new_data, True
 
+        converted = False
         if self.dtype_backend is not lib.no_default and not is_axis:
             # Fall through for conversion later on
             return data, True
@@ -1224,16 +1219,17 @@ class Parser:
             # try float
             try:
                 data = data.astype("float64")
+                converted = True
             except (TypeError, ValueError):
                 pass
 
-        if data.dtype.kind == "f":
-            if data.dtype != "float64":
-                # coerce floats to 64
-                try:
-                    data = data.astype("float64")
-                except (TypeError, ValueError):
-                    pass
+        if data.dtype.kind == "f" and data.dtype != "float64":
+            # coerce floats to 64
+            try:
+                data = data.astype("float64")
+                converted = True
+            except (TypeError, ValueError):
+                pass
 
         # don't coerce 0-len data
         if len(data) and data.dtype in ("float", "object"):
@@ -1242,14 +1238,15 @@ class Parser:
                 new_data = data.astype("int64")
                 if (new_data == data).all():
                     data = new_data
+                    converted = True
             except (TypeError, ValueError, OverflowError):
                 pass
 
-        # coerce ints to 64
-        if data.dtype == "int":
-            # coerce floats to 64
+        if data.dtype == "int" and data.dtype != "int64":
+            # coerce ints to 64
             try:
                 data = data.astype("int64")
+                converted = True
             except (TypeError, ValueError):
                 pass
 
@@ -1258,7 +1255,7 @@ class Parser:
             if self.orient == "split":
                 return data, False
 
-        return data, True
+        return data, converted
 
     @final
     def _try_convert_to_date(self, data: Series) -> tuple[Series, bool]:
