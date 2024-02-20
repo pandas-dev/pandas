@@ -169,6 +169,9 @@ def is_sparse(arr) -> bool:
     """
     Check whether an array-like is a 1-D pandas sparse array.
 
+    .. deprecated:: 2.1.0
+        Use isinstance(dtype, pd.SparseDtype) instead.
+
     Check that the one-dimensional array-like is a pandas sparse array.
     Returns True if it is a pandas sparse array, not another type of
     sparse array.
@@ -295,6 +298,9 @@ def is_datetime64tz_dtype(arr_or_dtype) -> bool:
     """
     Check whether an array-like or dtype is of a DatetimeTZDtype dtype.
 
+    .. deprecated:: 2.1.0
+        Use isinstance(dtype, pd.DatetimeTZDtype) instead.
+
     Parameters
     ----------
     arr_or_dtype : array-like or dtype
@@ -381,6 +387,9 @@ def is_period_dtype(arr_or_dtype) -> bool:
     """
     Check whether an array-like or dtype is of the Period dtype.
 
+    .. deprecated:: 2.2.0
+        Use isinstance(dtype, pd.Period) instead.
+
     Parameters
     ----------
     arr_or_dtype : array-like or dtype
@@ -423,6 +432,9 @@ def is_period_dtype(arr_or_dtype) -> bool:
 def is_interval_dtype(arr_or_dtype) -> bool:
     """
     Check whether an array-like or dtype is of the Interval dtype.
+
+    .. deprecated:: 2.2.0
+        Use isinstance(dtype, pd.IntervalDtype) instead.
 
     Parameters
     ----------
@@ -469,6 +481,9 @@ def is_interval_dtype(arr_or_dtype) -> bool:
 def is_categorical_dtype(arr_or_dtype) -> bool:
     """
     Check whether an array-like or dtype is of the Categorical dtype.
+
+    .. deprecated:: 2.2.0
+        Use isinstance(dtype, pd.CategoricalDtype) instead.
 
     Parameters
     ----------

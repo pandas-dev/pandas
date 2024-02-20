@@ -137,7 +137,7 @@ cpdef bint is_matching_na(object left, object right, bint nan_matches_none=False
     return False
 
 
-cpdef bint checknull(object val, bint inf_as_na=False):
+cpdef bint checknull(object val):
     """
     Return boolean describing of the input is NA-like, defined here as any
     of:
@@ -152,8 +152,6 @@ cpdef bint checknull(object val, bint inf_as_na=False):
     Parameters
     ----------
     val : object
-    inf_as_na : bool, default False
-        Whether to treat INF and -INF as NA values.
 
     Returns
     -------
@@ -164,8 +162,6 @@ cpdef bint checknull(object val, bint inf_as_na=False):
     elif util.is_float_object(val) or util.is_complex_object(val):
         if val != val:
             return True
-        elif inf_as_na:
-            return val == INF or val == NEGINF
         return False
     elif cnp.is_timedelta64_object(val):
         return cnp.get_timedelta64_value(val) == NPY_NAT
@@ -184,8 +180,7 @@ cdef bint is_decimal_na(object val):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef object isnaobj(ndarray arr, bint inf_as_na=False,
-                     bint check_for_any_na=False):
+cpdef object isnaobj(ndarray arr, bint check_for_any_na=False):
     """
     Return boolean mask denoting which elements of a 1-D array are na-like,
     according to the criteria defined in `checknull`:
@@ -200,8 +195,6 @@ cpdef object isnaobj(ndarray arr, bint inf_as_na=False,
     Parameters
     ----------
     arr : ndarray
-    inf_as_na : boolean
-       Treat inf as NA-like
     check_for_any_na : boolean
        If true, the return value of this function
     Returns
@@ -222,7 +215,7 @@ cpdef object isnaobj(ndarray arr, bint inf_as_na=False,
         #  equivalents to `val = values[i]`
         val = cnp.PyArray_GETITEM(arr, cnp.PyArray_ITER_DATA(it))
         cnp.PyArray_ITER_NEXT(it)
-        is_null = checknull(val, inf_as_na=inf_as_na)
+        is_null = checknull(val)
         # Dereference pointer (set value)
         (<uint8_t *>(cnp.PyArray_ITER_DATA(it2)))[0] = <uint8_t>is_null
         if not any_na and is_null:

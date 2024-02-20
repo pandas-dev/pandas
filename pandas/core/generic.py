@@ -597,7 +597,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         return {
             clean_column_name(k): Series(
-                v, copy=False, index=self.index, name=k
+                v, copy=False, index=self.index, name=k, dtype=self.dtypes[k]
             ).__finalize__(self)
             for k, v in zip(self.columns, self._iter_column_arrays())
             if not isinstance(k, int)
@@ -3120,18 +3120,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2    lion  mammal       80.5         4
         3  monkey  mammal        NaN         4
 
-        >>> df.to_xarray()
+        >>> df.to_xarray()  # doctest: +SKIP
         <xarray.Dataset>
         Dimensions:    (index: 4)
         Coordinates:
-          * index      (index) int64 0 1 2 3
+          * index      (index) int64 32B 0 1 2 3
         Data variables:
-            name       (index) object 'falcon' 'parrot' 'lion' 'monkey'
-            class      (index) object 'bird' 'bird' 'mammal' 'mammal'
-            max_speed  (index) float64 389.0 24.0 80.5 nan
-            num_legs   (index) int64 2 2 4 4
+            name       (index) object 32B 'falcon' 'parrot' 'lion' 'monkey'
+            class      (index) object 32B 'bird' 'bird' 'mammal' 'mammal'
+            max_speed  (index) float64 32B 389.0 24.0 80.5 nan
+            num_legs   (index) int64 32B 2 2 4 4
 
-        >>> df["max_speed"].to_xarray()
+        >>> df["max_speed"].to_xarray()  # doctest: +SKIP
         <xarray.DataArray 'max_speed' (index: 4)>
         array([389. ,  24. ,  80.5,   nan])
         Coordinates:
@@ -3157,7 +3157,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2018-01-02 falcon    361
                    parrot     15
 
-        >>> df_multiindex.to_xarray()
+        >>> df_multiindex.to_xarray()  # doctest: +SKIP
         <xarray.Dataset>
         Dimensions:  (date: 2, animal: 2)
         Coordinates:
@@ -6327,7 +6327,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return cast(Self, result)
 
     @final
-    def copy(self, deep: bool | None = True) -> Self:
+    def copy(self, deep: bool = True) -> Self:
         """
         Make a copy of this object's indices and data.
 
@@ -6958,7 +6958,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         "with dict/Series column "
                         "by column"
                     )
-                result = self.copy(deep=False)
+                result = self if inplace else self.copy(deep=False)
                 for k, v in value.items():
                     if k not in result:
                         continue
@@ -7488,7 +7488,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not self.size:
                 if inplace:
                     return None
-                return self.copy(deep=None)
+                return self.copy(deep=False)
 
             if is_dict_like(to_replace):
                 if is_dict_like(value):  # {'A' : NA} -> {'A' : 0}
@@ -8102,8 +8102,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         NA values, such as None or :attr:`numpy.NaN`, gets mapped to True
         values.
         Everything else gets mapped to False values. Characters such as empty
-        strings ``''`` or :attr:`numpy.inf` are not considered NA values
-        (unless you set ``pandas.options.mode.use_inf_as_na = True``).
+        strings ``''`` or :attr:`numpy.inf` are not considered NA values.
 
         Returns
         -------
@@ -8174,8 +8173,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Return a boolean same-sized object indicating if the values are not NA.
         Non-missing values get mapped to True. Characters such as empty
-        strings ``''`` or :attr:`numpy.inf` are not considered NA values
-        (unless you set ``pandas.options.mode.use_inf_as_na = True``).
+        strings ``''`` or :attr:`numpy.inf` are not considered NA values.
         NA values, such as None or :attr:`numpy.NaN`, get mapped to False
         values.
 
@@ -10271,17 +10269,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if freq is not None and fill_value is not lib.no_default:
             # GH#53832
-            warnings.warn(
-                "Passing a 'freq' together with a 'fill_value' silently ignores "
-                "the fill_value and is deprecated. This will raise in a future "
-                "version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            raise ValueError(
+                "Passing a 'freq' together with a 'fill_value' is not allowed."
             )
-            fill_value = lib.no_default
 
         if periods == 0:
-            return self.copy(deep=None)
+            return self.copy(deep=False)
 
         if is_list_like(periods) and isinstance(self, ABCSeries):
             return self.to_frame().shift(
