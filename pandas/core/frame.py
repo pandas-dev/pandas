@@ -941,21 +941,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         return PandasDataFrameXchg(self, allow_copy=allow_copy)
 
-    def __dataframe_consortium_standard__(
-        self, *, api_version: str | None = None
-    ) -> Any:
-        """
-        Provide entry point to the Consortium DataFrame Standard API.
-
-        This is developed and maintained outside of pandas.
-        Please report any issues to https://github.com/data-apis/dataframe-api-compat.
-        """
-        dataframe_api_compat = import_optional_dependency("dataframe_api_compat")
-        convert_to_standard_compliant_dataframe = (
-            dataframe_api_compat.pandas_standard.convert_to_standard_compliant_dataframe
-        )
-        return convert_to_standard_compliant_dataframe(self, api_version=api_version)
-
     def __arrow_c_stream__(self, requested_schema=None):
         """
         Export the pandas DataFrame as an Arrow C stream PyCapsule.
@@ -5603,14 +5588,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         if freq is not None and fill_value is not lib.no_default:
             # GH#53832
-            warnings.warn(
-                "Passing a 'freq' together with a 'fill_value' silently ignores "
-                "the fill_value and is deprecated. This will raise in a future "
-                "version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            raise ValueError(
+                "Passing a 'freq' together with a 'fill_value' is not allowed."
             )
-            fill_value = lib.no_default
 
         if self.empty:
             return self.copy()
