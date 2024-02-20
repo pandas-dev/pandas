@@ -89,7 +89,6 @@ def has_range_delta(values) -> bool | int:
         if new_diff != diff:
             return False
         curr = val
-        diff = new_diff
     return diff
 
 
