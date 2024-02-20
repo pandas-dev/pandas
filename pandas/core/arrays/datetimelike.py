@@ -649,7 +649,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
     def _validate_listlike(self, value, allow_object: bool = False):
         if isinstance(value, type(self)):
-            if self.dtype.kind in "mM" and not allow_object:
+            if self.dtype.kind in "mM" and not allow_object and self.unit != value.unit:  # type: ignore[attr-defined]
                 # error: "DatetimeLikeArrayMixin" has no attribute "as_unit"
                 value = value.as_unit(self.unit, round_ok=False)  # type: ignore[attr-defined]
             return value
