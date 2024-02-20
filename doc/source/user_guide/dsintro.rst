@@ -41,8 +41,8 @@ Here, ``data`` can be many different things:
 * an ndarray
 * a scalar value (like 5)
 
-The passed **index** is a list of axis labels. Thus, this separates into a few
-cases depending on what **data is**:
+The passed **index** is a list of axis labels. The constructor's behavior
+depends on **data**'s type:
 
 **From ndarray**
 
