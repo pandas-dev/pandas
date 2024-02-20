@@ -8,12 +8,10 @@ from typing import (
     NoReturn,
     cast,
 )
-import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -213,16 +211,8 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
     def to_pytimedelta(self):
         return cast(ArrowExtensionArray, self._parent.array)._dt_to_pytimedelta()
 
-    def to_pydatetime(self):
+    def to_pydatetime(self) -> Series:
         # GH#20306
-        warnings.warn(
-            f"The behavior of {type(self).__name__}.to_pydatetime is deprecated, "
-            "in a future version this will return a Series containing python "
-            "datetime objects instead of an ndarray. To retain the old behavior, "
-            "call `np.array` on the result",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
         return cast(ArrowExtensionArray, self._parent.array)._dt_to_pydatetime()
 
     def isocalendar(self) -> DataFrame:
@@ -318,15 +308,9 @@ class DatetimeProperties(Properties):
     Raises TypeError if the Series does not contain datetimelike values.
     """
 
-    def to_pydatetime(self) -> np.ndarray:
+    def to_pydatetime(self) -> Series:
         """
-        Return the data as an array of :class:`datetime.datetime` objects.
-
-        .. deprecated:: 2.1.0
-
-            The current behavior of dt.to_pydatetime is deprecated.
-            In a future version this will return a Series containing python
-            datetime objects instead of a ndarray.
+        Return the data as a Series of :class:`datetime.datetime` objects.
 
         Timezone information is retained if present.
 
@@ -353,8 +337,9 @@ class DatetimeProperties(Properties):
         dtype: datetime64[ns]
 
         >>> s.dt.to_pydatetime()
-        array([datetime.datetime(2018, 3, 10, 0, 0),
-               datetime.datetime(2018, 3, 11, 0, 0)], dtype=object)
+        0    2018-03-10 00:00:00
+        1    2018-03-11 00:00:00
+        dtype: object
 
         pandas' nanosecond precision is truncated to microseconds.
 
@@ -365,19 +350,14 @@ class DatetimeProperties(Properties):
         dtype: datetime64[ns]
 
         >>> s.dt.to_pydatetime()
-        array([datetime.datetime(2018, 3, 10, 0, 0),
-               datetime.datetime(2018, 3, 10, 0, 0)], dtype=object)
+        0    2018-03-10 00:00:00
+        1    2018-03-10 00:00:00
+        dtype: object
         """
         # GH#20306
-        warnings.warn(
-            f"The behavior of {type(self).__name__}.to_pydatetime is deprecated, "
-            "in a future version this will return a Series containing python "
-            "datetime objects instead of an ndarray. To retain the old behavior, "
-            "call `np.array` on the result",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._get_values().to_pydatetime()
+        from pandas import Series
+
+        return Series(self._get_values().to_pydatetime(), dtype=object)
 
     @property
     def freq(self):
