@@ -837,6 +837,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Whether the categories have an ordered relationship.
 
+        Returns whether the categories can be ordered.
+        Ordered categories can be sorted, and operations such
+        as .min() and .max() make sense and do not raise a
+        TypeError.
+
         Examples
         --------
         For :class:`pandas.Series`:
@@ -981,6 +986,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Set the Categorical to be ordered.
 
+        Creates a new object that contains the same categories
+        as the input, but is ordered. This means that the
+        categories can be sorted, and .min() and .max() operations
+        do not raise a TypeError.
+
         Returns
         -------
         Categorical
@@ -1011,6 +1021,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def as_unordered(self) -> Self:
         """
         Set the Categorical to be unordered.
+
+        Creates a new object that contains the same categories
+        as the input, but is not ordered. This means that the
+        categories cannot be sorted, and .min() and .max()
+        operations raise a TypeError.
 
         Returns
         -------
@@ -1153,6 +1168,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def rename_categories(self, new_categories) -> Self:
         """
         Rename categories.
+
+        Renames the categories using an array, a map, or
+        a lambda function.
 
         Parameters
         ----------
@@ -1430,6 +1448,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Remove categories which are not used.
 
+        Categorical arrays are mutable, and as such
+        it is possible that some of the initial categories
+        are no longer used down the line. This removes
+        original categories that are no longer in use.
+
         Returns
         -------
         Categorical
@@ -1656,6 +1679,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         """
         The numpy array interface.
+
+        This defines the __array__ method within a Pandas Categorical
+        class, making it compatible with numpy arrays.
+
+        The method returns a numpy array representation of the categorical
+        data. It accepts an optional dtype parameter, allowing the user
+        to specify the data type of the resulting numpy array.
 
         Returns
         -------

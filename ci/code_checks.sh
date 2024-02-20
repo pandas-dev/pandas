@@ -416,13 +416,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (ES01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=ES01 --ignore_functions \
-        pandas.Categorical.__array__\
-        pandas.Categorical.as_ordered\
-        pandas.Categorical.as_unordered\
         pandas.Categorical.dtype\
-        pandas.Categorical.ordered\
-        pandas.Categorical.remove_unused_categories\
-        pandas.Categorical.rename_categories\
         pandas.CategoricalDtype\
         pandas.CategoricalDtype.categories\
         pandas.CategoricalDtype.ordered\
