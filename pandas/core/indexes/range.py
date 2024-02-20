@@ -22,7 +22,6 @@ from pandas._libs import (
     index as libindex,
     lib,
 )
-from pandas._libs.algos import unique_deltas
 from pandas._libs.lib import no_default
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
@@ -60,6 +59,37 @@ if TYPE_CHECKING:
     )
 _empty_range = range(0)
 _dtype_int64 = np.dtype(np.int64)
+
+
+def has_range_delta(values) -> bool | int:
+    """
+    Check if values have unique difference for RangeIndex._shallow_copy.
+
+    values must have more than 2 values.
+    If there is a unique diff, it cannot be zero.
+
+    Parameters
+    ----------
+    values : iterable
+
+    Returns
+    -------
+    bool or int
+        False if there isn't a unique delta
+        int if there's a unique delta
+    """
+    if len(values) < 2:
+        return False
+    unique_diffs = set()
+    first_val = values[0]
+    for val in values[1:]:
+        diff = val - first_val
+        if diff == 0:
+            return False
+        unique_diffs.add(diff)
+        if len(unique_diffs) > 1:
+            return False
+    return unique_diffs.pop()
 
 
 class RangeIndex(Index):
@@ -469,15 +499,13 @@ class RangeIndex(Index):
 
         if values.dtype.kind == "f":
             return Index(values, name=name, dtype=np.float64)
-        # GH 46675 & 43885: If values is equally spaced, return a
-        # more memory-compact RangeIndex instead of Index with 64-bit dtype
-        unique_diffs = unique_deltas(values)
-        if len(unique_diffs) == 1 and unique_diffs[0] != 0:
-            diff = unique_diffs[0]
-            new_range = range(values[0], values[-1] + diff, diff)
-            return type(self)._simple_new(new_range, name=name)
-        else:
-            return self._constructor._simple_new(values, name=name)
+        if values.dtype.kind == "i":
+            # GH 46675 & 43885: If values is equally spaced, return a
+            # more memory-compact RangeIndex instead of Index with 64-bit dtype
+            if diff := has_range_delta(values):
+                new_range = range(values[0], values[-1] + diff, diff)
+                return type(self)._simple_new(new_range, name=name)
+        return self._constructor._simple_new(values, name=name)
 
     def _view(self) -> Self:
         result = type(self)._simple_new(self._range, name=self._name)
