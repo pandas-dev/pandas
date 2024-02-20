@@ -3120,18 +3120,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2    lion  mammal       80.5         4
         3  monkey  mammal        NaN         4
 
-        >>> df.to_xarray()
+        >>> df.to_xarray()  # doctest: +SKIP
         <xarray.Dataset>
         Dimensions:    (index: 4)
         Coordinates:
-          * index      (index) int64 0 1 2 3
+          * index      (index) int64 32B 0 1 2 3
         Data variables:
-            name       (index) object 'falcon' 'parrot' 'lion' 'monkey'
-            class      (index) object 'bird' 'bird' 'mammal' 'mammal'
-            max_speed  (index) float64 389.0 24.0 80.5 nan
-            num_legs   (index) int64 2 2 4 4
+            name       (index) object 32B 'falcon' 'parrot' 'lion' 'monkey'
+            class      (index) object 32B 'bird' 'bird' 'mammal' 'mammal'
+            max_speed  (index) float64 32B 389.0 24.0 80.5 nan
+            num_legs   (index) int64 32B 2 2 4 4
 
-        >>> df["max_speed"].to_xarray()
+        >>> df["max_speed"].to_xarray()  # doctest: +SKIP
         <xarray.DataArray 'max_speed' (index: 4)>
         array([389. ,  24. ,  80.5,   nan])
         Coordinates:
@@ -3157,7 +3157,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2018-01-02 falcon    361
                    parrot     15
 
-        >>> df_multiindex.to_xarray()
+        >>> df_multiindex.to_xarray()  # doctest: +SKIP
         <xarray.Dataset>
         Dimensions:  (date: 2, animal: 2)
         Coordinates:
@@ -6327,7 +6327,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return cast(Self, result)
 
     @final
-    def copy(self, deep: bool | None = True) -> Self:
+    def copy(self, deep: bool = True) -> Self:
         """
         Make a copy of this object's indices and data.
 
@@ -6460,7 +6460,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1     [3, 4]
         dtype: object
         """
-        data = self._mgr.copy(deep=deep)  # type: ignore[arg-type]
+        data = self._mgr.copy(deep=deep)
         return self._constructor_from_mgr(data, axes=data.axes).__finalize__(
             self, method="copy"
         )
