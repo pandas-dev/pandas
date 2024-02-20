@@ -70,7 +70,7 @@ def has_range_delta(values) -> bool | int:
 
     Parameters
     ----------
-    values : iterable
+    values : 1D iterable
 
     Returns
     -------
@@ -81,14 +81,15 @@ def has_range_delta(values) -> bool | int:
     if len(values) < 2:
         return False
     unique_diffs = set()
-    first_val = values[0]
+    curr = values[0]
     for val in values[1:]:
-        diff = val - first_val
+        diff = val - curr
         if diff == 0:
             return False
         unique_diffs.add(diff)
         if len(unique_diffs) > 1:
             return False
+        curr = val
     return unique_diffs.pop()
 
 
@@ -499,7 +500,7 @@ class RangeIndex(Index):
 
         if values.dtype.kind == "f":
             return Index(values, name=name, dtype=np.float64)
-        if values.dtype.kind == "i":
+        if values.dtype.kind == "i" and values.ndim == 1:
             # GH 46675 & 43885: If values is equally spaced, return a
             # more memory-compact RangeIndex instead of Index with 64-bit dtype
             if diff := has_range_delta(values):
