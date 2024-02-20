@@ -2108,3 +2108,15 @@ def test_mixed_col_index_dtype():
     result = df1 + df2
     expected = DataFrame(columns=list("abc"), data=1.0, index=[0])
     tm.assert_frame_equal(result, expected)
+
+
+def test_arithmetic_alignment():
+    df = DataFrame({"x": [], "a": []})
+    other = Series(dtype=float)
+    expected = DataFrame({"a": [], "x": []})
+    tm.assert_frame_equal(df + other, expected)
+
+    df = DataFrame({"x": [1], "a": [2]})
+    other = Series([3, 4], index=["x", "a"])
+    expected = DataFrame({"a": [6], "x": [4]})
+    tm.assert_frame_equal(df + other, expected)
