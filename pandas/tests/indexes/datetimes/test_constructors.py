@@ -1046,7 +1046,11 @@ class TestDatetimeIndex:
         # result may not exactly match [now, today] so we'll test it up to a tolerance.
         #  (it *may* match exactly due to rounding)
         # GH 57535
-        request.applymarker(pytest.mark.xfail(strict=False))
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="result may not exactly match [now, today]", strict=False
+            )
+        )
         tolerance = pd.Timedelta(seconds=1)
         assert diff0 < tolerance, f"The difference is {diff0}"
         assert diff1 < tolerance, f"The difference is {diff0}"
