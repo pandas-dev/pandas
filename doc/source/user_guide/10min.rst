@@ -19,7 +19,7 @@ Customarily, we import as follows:
 Basic data structures in pandas
 -------------------------------
 
-Pandas provides two types of classes for handling data:
+pandas provides two types of classes for handling data:
 
 1. :class:`Series`: a one-dimensional labeled array holding data of any type
     such as integers, strings, Python objects etc.
