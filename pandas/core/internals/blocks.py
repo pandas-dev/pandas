@@ -60,7 +60,6 @@ from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
     is_float_dtype,
     is_integer_dtype,
-    is_legacy_string_dtype,
     is_list_like,
     is_scalar,
     is_string_dtype,
@@ -2214,7 +2213,7 @@ def maybe_coerce_values(values: ArrayLike) -> ArrayLike:
     if isinstance(values, np.ndarray):
         values = ensure_wrapped_if_datetimelike(values)
 
-        if is_legacy_string_dtype(values.dtype):
+        if values.dtype.kind == "U":
             values = np.array(values, dtype=object)
 
     if isinstance(values, (DatetimeArray, TimedeltaArray)) and values.freq is not None:

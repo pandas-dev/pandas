@@ -515,20 +515,23 @@ def is_string_or_object_np_dtype(dtype: np.dtype) -> bool:
     """
     Faster alternative to is_string_dtype, assumes we have a np.dtype object.
     """
-    return dtype == object or dtype.kind in "SU" or issubclass(dtype.type, str)
+    return dtype == object or dtype.kind in "SUT"
 
+def get_numpy_string_dtype_instance(na_object=libmissing.NA, coerce=False):
+    """Get a reference to a ``numpy.dtypes.StringDType`` instance.
 
-def get_string_dtype(na_object=libmissing.NA, coerce=False):
-    import os
-    import sys
+    This is a convenience wrapper around the StringDType initializer
+    with convenient defaults chosen for use with Pandas.
 
-    if not os.environ.get("NUMPY_EXPERIMENTAL_DTYPE_API", None) == "1":
-        sys.exit()
-
-    import stringdtype
-
-    return stringdtype.StringDType(na_object=na_object, coerce=coerce)
-
+    Parameters
+    ----------
+    na_object : object
+       A missing data sentinel object.
+    coerce : bool
+       Whether or not non-strings entries in arrays should be converted
+       to strings.
+    """
+    return np.dtypes.StringDType(na_object=na_object, coerce=coerce)
 
 def is_string_dtype(arr_or_dtype) -> bool:
     """
@@ -1039,7 +1042,7 @@ def is_numeric_v_string_like(a: ArrayLike, b) -> bool:
 
 
 def needs_object_conversion(dtype: DtypeObj | None) -> bool:
-    return isinstance(dtype, type(get_string_dtype()))
+    return isinstance(dtype, type(get_numpy_string_dtype_instance()))
 
 
 def needs_i8_conversion(dtype: DtypeObj | None) -> bool:
@@ -1695,44 +1698,6 @@ def is_all_strings(value: ArrayLike) -> bool:
     return dtype == "string"
 
 
-def is_legacy_string_dtype(arr_or_dtype, include_bytes=False) -> bool:
-    """Check if the dtype is a numpy legacy string dtype
-
-    Parameters
-    ----------
-    arr_or_dtype : array-like or dtype
-        The array-like or dtype to check
-
-    include_bytes : boolean
-        whether or not to include bytestring dtypes
-
-    Returns
-    -------
-    boolean
-        True for legacy numpy dtypes that represent python strings,
-        False otherwise. If include_bytes is True, also true for
-        legacy bytes dtypes.
-
-    """
-    if arr_or_dtype is None:
-        return False
-
-    dtype = getattr(arr_or_dtype, "dtype", arr_or_dtype)
-
-    if not isinstance(dtype, np.dtype):
-        return False
-
-    # the _legacy attribute was added in Numpy 1.25. If the attribute isn't
-    # defined on the dtype class, Numpy isn't sufficiently new, so we have to be
-    # dealing with a legacy dtype.
-    is_legacy = getattr(type(dtype), "_legacy", True)
-    if not is_legacy:
-        return False
-    if include_bytes:
-        return issubclass(dtype.type, (str, bytes))
-    return issubclass(dtype.type, str)
-
-
 __all__ = [
     "classes",
     "DT64NS_DTYPE",
@@ -1766,7 +1731,6 @@ __all__ = [
     "is_integer_dtype",
     "is_interval_dtype",
     "is_iterator",
-    "is_legacy_string_dtype",
     "is_named_tuple",
     "is_nested_list_like",
     "is_number",

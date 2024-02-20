@@ -28,7 +28,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
     is_integer_dtype,
-    is_legacy_string_dtype,
     is_list_like,
     is_named_tuple,
     is_object_dtype,

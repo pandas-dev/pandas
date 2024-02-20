@@ -1703,6 +1703,7 @@ def map_array(
     if isinstance(arr.dtype, np.dtype):
         ret_dtype = arr.dtype
     else:
+        # NJG TODO: simplify this
         try:
             ret_dtype = arr._ndarray.dtype
         except AttributeError:
@@ -1717,6 +1718,7 @@ def map_array(
             values, mapper, mask=isna(values).view(np.uint8))
 
     if ret.dtype == object and ret_dtype is not None:
+        # cast from object back to StringDType
         return ret.astype(ret_dtype, copy=False)
 
     return ret

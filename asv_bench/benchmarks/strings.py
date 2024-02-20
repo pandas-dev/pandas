@@ -1,7 +1,7 @@
 import warnings
 
 import numpy as np
-from stringdtype import StringDType
+from numpy.dtypes import StringDType
 
 from pandas import (
     NA,

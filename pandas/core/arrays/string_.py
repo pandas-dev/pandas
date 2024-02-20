@@ -30,7 +30,7 @@ from pandas.core.dtypes.base import (
     register_extension_dtype,
 )
 from pandas.core.dtypes.common import (
-    get_string_dtype,
+    get_numpy_string_dtype_instance,
     is_array_like,
     is_bool_dtype,
     is_integer_dtype,
@@ -387,45 +387,6 @@ class BaseNumpyStringArray(BaseStringArray, NumpyExtensionArray):  # type: ignor
                 "StringArray requires a sequence of strings or pandas.NA. Got "
                 f"'{self._ndarray.dtype}' dtype instead."
             )
-        # Check to see if need to convert Na values to pd.NA
-        if self._ndarray.ndim > 2:
-            # Ravel if ndims > 2 b/c no cythonized version available
-            lib.convert_nans_to_NA(self._ndarray.ravel("K"))
-        else:
-            lib.convert_nans_to_NA(self._ndarray)
-
-    @classmethod
-    def _from_sequence(
-        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
-    ) -> Self:
-        if dtype and not (isinstance(dtype, str) and dtype == "string"):
-            dtype = pandas_dtype(dtype)
-            assert isinstance(dtype, StringDtype) and dtype.storage == "python"
-
-        from pandas.core.arrays.masked import BaseMaskedArray
-
-        if isinstance(scalars, BaseMaskedArray):
-            # avoid costly conversion to object dtype
-            na_values = scalars._mask
-            result = scalars._data
-            result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
-            result[na_values] = libmissing.NA
-
-        else:
-            if lib.is_pyarrow_array(scalars):
-                # pyarrow array; we cannot rely on the "to_numpy" check in
-                #  ensure_string_array because calling scalars.to_numpy would set
-                #  zero_copy_only to True which caused problems see GH#52076
-                scalars = np.array(scalars)
-            # convert non-na-likes to str, and nan-likes to StringDtype().na_value
-            result = lib.ensure_string_array(scalars, na_value=libmissing.NA, copy=copy)
-
-        # Manually creating new array avoids the validation step in the __init__, so is
-        # faster. Refactor need for validation?
-        new_string_array = cls.__new__(cls)
-        NDArrayBacked.__init__(new_string_array, result, StringDtype(storage="python"))
-
-        return new_string_array
 
     @classmethod
     def _from_sequence_of_strings(
@@ -435,7 +396,7 @@ class BaseNumpyStringArray(BaseStringArray, NumpyExtensionArray):  # type: ignor
 
     @classmethod
     def _empty(cls, shape, dtype) -> StringArray:
-        values = np.empty(shape, dtype=get_string_dtype())
+        values = np.empty(shape, dtype=get_numpy_string_dtype_instance())
         values[:] = libmissing.NA
         return cls(values).astype(dtype, copy=False)
 
@@ -720,7 +681,9 @@ class ObjectStringArray(BaseNumpyStringArray):
         return arr, None
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
+    def _from_sequence(
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
+    ) -> Self:
         if dtype and not (isinstance(dtype, str) and dtype == "string"):
             dtype = pandas_dtype(dtype)
             assert isinstance(dtype, StringDtype) and dtype.storage == "python"
@@ -746,9 +709,7 @@ class ObjectStringArray(BaseNumpyStringArray):
         # Manually creating new array avoids the validation step in the __init__, so is
         # faster. Refactor need for validation?
         new_string_array = cls.__new__(cls)
-        NDArrayBacked.__init__(
-            new_string_array, result, StringDtype(storage=cls._storage)
-        )
+        NDArrayBacked.__init__(new_string_array, result, StringDtype(storage="python"))
 
         return new_string_array
 
@@ -762,7 +723,7 @@ class NumpyStringArray(BaseNumpyStringArray):
 
     def __init__(self, values, copy: bool = False) -> None:
         try:
-            values = np.asarray(values, dtype=get_string_dtype())
+            values = np.asarray(values, dtype=get_numpy_string_dtype_instance())
         except (TypeError, ValueError):
             raise ValueError("StringArray requires a sequence of strings or pandas.NA")
         if values.size == 0:
@@ -773,13 +734,13 @@ class NumpyStringArray(BaseNumpyStringArray):
     def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
         arr = np.asarray(scalars)
         if is_object_dtype(arr.dtype):
-            result = np.empty(arr.shape, dtype=get_string_dtype())
+            result = np.empty(arr.shape, dtype=get_numpy_string_dtype_instance())
             na_mask, any_na = libmissing.isnaobj(arr, check_for_any_na=True)
             result[~na_mask] = arr[~na_mask]
             if any_na:
                 result[na_mask] = libmissing.NA
         else:
-            result = arr.astype(get_string_dtype(), copy=False)
+            result = arr.astype(get_numpy_string_dtype_instance(), copy=False)
 
         # Manually creating new array avoids the validation step in the __init__, so is
         # faster. Refactor need for validation?
@@ -803,24 +764,24 @@ class NumpyStringArray(BaseNumpyStringArray):
 
     @classmethod
     def _empty(cls, shape, dtype) -> StringArray:
-        values = np.empty(shape, dtype=get_string_dtype())
+        values = np.empty(shape, dtype=get_numpy_string_dtype_instance())
         return cls(values).astype(dtype, copy=False)
 
     def _validate(self):
         """Validate that we only store NA or strings."""
         if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
             raise ValueError("StringArray requires a sequence of strings or pandas.NA")
-        if self._ndarray.dtype != get_string_dtype():
+        if self._ndarray.dtype != get_numpy_string_dtype_instance():
             raise ValueError(
                 f"{type(self).__name__} requires a sequence of strings or "
                 "pandas.NA convertible to a NumPy array with dtype "
-                f"{get_string_dtype()}. Got "
+                f"{get_numpy_string_dtype_instance()}. Got "
                 f"'{self._ndarray.dtype}' dtype instead."
             )
 
     def _validate_setitem_value(self, value):
         if value is np.nan:
-            value = np.array(libmissing.NA, dtype=get_string_dtype())
+            value = np.array(libmissing.NA, dtype=get_numpy_string_dtype_instance())
         return value
 
     def _validate_scalar(self, fill_value):
@@ -838,5 +799,5 @@ class NumpyStringArray(BaseNumpyStringArray):
         na_value: object = lib.no_default,
     ) -> np.ndarray:
         if dtype is None and na_value is not lib.no_default:
-            dtype = get_string_dtype(na_object=na_value)
+            dtype = get_numpy_string_dtype_instance(na_object=na_value)
         return super().to_numpy(dtype, copy, na_value)

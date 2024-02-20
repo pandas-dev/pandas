@@ -1441,9 +1441,9 @@ cdef object _try_infer_map(object dtype):
     return None
 
 
-def infer_dtype(value: object, skipna: bool = True) -> object:
+def infer_dtype(value: object, skipna: bool = True) -> str:
     """
-    Return the type of a scalar or list-like of values.
+    Return a string label of the type of a scalar or list-like of values.
 
     Parameters
     ----------
@@ -1453,7 +1453,7 @@ def infer_dtype(value: object, skipna: bool = True) -> object:
 
     Returns
     -------
-    str or dtype object
+    str
         Describing the common type of the input data.
     Results can include:
 
@@ -1581,9 +1581,9 @@ def infer_dtype(value: object, skipna: bool = True) -> object:
     if inferred is not None:
         # Anything other than object-dtype should return here.
         return inferred
-    elif not getattr(type(values.dtype), "_legacy", True):
-        if issubclass(values.dtype.type, str):
-            return values.dtype
+    elif values.dtype.kind == "T":
+         # NumPy StringDType
+         return values.dtype
 
     if values.descr.type_num != NPY_OBJECT:
         # i.e. values.dtype != np.object_
@@ -1910,6 +1910,9 @@ cdef class StringValidator(Validator):
         return isinstance(value, str)
 
     cdef bint is_array_typed(self) except -1:
+        if self.dtype.kind in "TU":
+            return True
+        # this lets user-defined string DTypes through
         return issubclass(self.dtype.type, (np.str_, str))
 
 

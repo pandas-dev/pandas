@@ -6,7 +6,6 @@ import operator
 
 import numpy as np
 import pytest
-from stringdtype import StringDType
 
 from pandas.compat.pyarrow import pa_version_under12p0
 
@@ -651,7 +650,7 @@ def test_to_numpy_returns_pdna_default(dtype):
     arr = pd.array(["a", pd.NA, "b"], dtype=dtype)
     result = np.array(arr)
     if dtype.storage == "numpy":
-        res_dtype = StringDType(na_object=pd.NA, coerce=False)
+        res_dtype = np.dtypes.StringDType(na_object=pd.NA, coerce=False)
     else:
         res_dtype = object
     expected = np.array(["a", na_val(dtype), "b"], dtype=res_dtype)
@@ -661,7 +660,7 @@ def test_to_numpy_returns_pdna_default(dtype):
 def test_to_numpy_na_value(dtype, nulls_fixture):
     na_value = nulls_fixture
     if dtype.storage == "numpy":
-        res_dtype = StringDType(na_object=na_value, coerce=False)
+        res_dtype = np.dtypes.StringDType(na_object=na_value, coerce=False)
     else:
         res_dtype = object
     arr = pd.array(["a", pd.NA, "b"], dtype=dtype)

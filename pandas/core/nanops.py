@@ -153,12 +153,10 @@ class bottleneck_switch:
 
 
 def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
-    from stringdtype import StringDType
-
     # Bottleneck chokes on datetime64, PeriodDtype (or and EA)
     if (
         dtype != object
-        and dtype != StringDType(na_object=libmissing.NA)
+        and dtype != np.dtypes.StringDType(na_object=libmissing.NA)
         and not needs_i8_conversion(dtype)
     ):
         # GH 42878

@@ -26,7 +26,7 @@ from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     TD64NS_DTYPE,
     ensure_object,
-    get_string_dtype,
+    get_numpy_string_dtype_instance,
     is_scalar,
     is_string_or_object_np_dtype,
 )
@@ -311,7 +311,8 @@ def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> npt.NDArray[np.bo
 
     if dtype.kind in ("S", "U"):
         result = np.zeros(values.shape, dtype=bool)
-    elif isinstance(dtype, type(get_string_dtype())):
+    elif dtype.kind == "T":
+        # StringDType's isnan loop checks for null strings
         result = np.isnan(values)
     else:
         if values.ndim in {1, 2}:
@@ -720,10 +721,6 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
             return False
         return np.nan
     return getattr(dtype, "na_object", np.nan)
-
-
-def dtype_supports_na(dtype: np.dtype):
-    return dtype.kind in "iufcmM" or isinstance(dtype, type(get_string_dtype()))
 
 
 def remove_na_arraylike(arr: Series | Index | np.ndarray):
