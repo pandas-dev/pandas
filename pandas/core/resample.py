@@ -1358,7 +1358,7 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._downsample("ohlc")
 
     @final
-    @doc(SeriesGroupBy.nunique)
+    @doc(SeriesGroupBy.nunique, extra_params="")
     def nunique(self):
         return self._downsample("nunique")
 

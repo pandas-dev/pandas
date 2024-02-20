@@ -719,15 +719,20 @@ class SeriesGroupBy(GroupBy[Series]):
         filtered = self._apply_filter(indices, dropna)
         return filtered
 
-    def nunique(self, dropna: bool = True) -> Series | DataFrame:
+    _nunique_extra_params = dedent(
         """
-        Return number of unique elements in the group.
-
         Parameters
         ----------
         dropna : bool, default True
             Don't include NaN in the counts.
+        """
+    )
 
+    @doc(extra_params=_nunique_extra_params)
+    def nunique(self, dropna: bool = True) -> Series | DataFrame:
+        """
+        Return number of unique elements in the group.
+        {extra_params}
         Returns
         -------
         Series
