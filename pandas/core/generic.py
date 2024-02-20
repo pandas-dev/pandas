@@ -6460,7 +6460,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1     [3, 4]
         dtype: object
         """
-        data = self._mgr.copy(deep=deep)
+        data = self._mgr.copy(deep=deep)  # type: ignore[arg-type]
         return self._constructor_from_mgr(data, axes=data.axes).__finalize__(
             self, method="copy"
         )
@@ -6958,7 +6958,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         "with dict/Series column "
                         "by column"
                     )
-                result = self.copy(deep=False)
+                result = self if inplace else self.copy(deep=False)
                 for k, v in value.items():
                     if k not in result:
                         continue
