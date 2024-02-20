@@ -5469,12 +5469,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Return the first `n` rows.
 
         This function exhibits the same behavior as ``df[:n]``, returning the
-        first `n` rows based on position. It is useful for quickly testing
+        first ``n`` rows based on position. It is useful for quickly checking
         if your object has the right type of data in it.
 
-        When `n` is positive, it returns the first `n` rows. For `n` equal to 0,
-        it returns an empty object. For negative values of `n`, it returns
-        all rows except the last `|n|` rows, mirroring the behavior of ``df[:n]``.
+        When ``n`` is positive, it returns the first ``n`` rows. For ``n`` equal to 0,
+        it returns an empty object. When ``n`` is negative, it returns
+        all rows except the last ``|n|`` rows, mirroring the behavior of ``df[:n]``.
 
         If n is larger than the number of rows, this function returns all rows.
 
