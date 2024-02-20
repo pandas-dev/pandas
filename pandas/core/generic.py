@@ -6460,7 +6460,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1     [3, 4]
         dtype: object
         """
-        data = self._mgr.copy(deep=deep)
+        data = self._mgr.copy(deep=deep)  # type: ignore[arg-type]
         return self._constructor_from_mgr(data, axes=data.axes).__finalize__(
             self, method="copy"
         )
@@ -7451,7 +7451,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if items:
                 keys, values = zip(*items)
             else:
-                keys, values = ([], [])  # type: ignore[assignment]
+                keys, values = ([], [])
 
             are_mappings = [is_dict_like(v) for v in values]
 
@@ -7468,7 +7468,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 for k, v in items:
                     # error: Incompatible types in assignment (expression has type
                     # "list[Never]", variable has type "tuple[Any, ...]")
-                    keys, values = list(zip(*v.items())) or (  # type: ignore[assignment]
+                    keys, values = list(zip(*v.items())) or (
                         [],
                         [],
                     )
