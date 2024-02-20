@@ -127,8 +127,7 @@ def read_ext(engine_and_read_ext):
 def tmp_excel(read_ext, tmp_path):
     tmp = tmp_path / f"{uuid.uuid4()}{read_ext}"
     tmp.touch()
-    yield str(tmp)
-    tmp.unlink()
+    return str(tmp)
 
 
 @pytest.fixture

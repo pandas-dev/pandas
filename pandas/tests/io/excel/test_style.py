@@ -26,8 +26,7 @@ pytest.importorskip("jinja2")
 def tmp_excel(tmp_path):
     tmp = tmp_path / f"{uuid.uuid4()}.xlsx"
     tmp.touch()
-    yield str(tmp)
-    tmp.unlink()
+    return str(tmp)
 
 
 def assert_equal_cell_styles(cell1, cell2):

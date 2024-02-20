@@ -23,8 +23,7 @@ def ext():
 def tmp_excel(ext, tmp_path):
     tmp = tmp_path / f"{uuid.uuid4()}{ext}"
     tmp.touch()
-    yield str(tmp)
-    tmp.unlink()
+    return str(tmp)
 
 
 def test_write_append_mode_raises(tmp_excel):
