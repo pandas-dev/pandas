@@ -114,10 +114,8 @@ class TestSeriesDatetimeValues:
         for prop in ok_for_dt_methods:
             getattr(ser.dt, prop)
 
-        msg = "The behavior of DatetimeProperties.to_pydatetime is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser.dt.to_pydatetime()
-        assert isinstance(result, np.ndarray)
+        result = ser.dt.to_pydatetime()
+        assert isinstance(result, Series)
         assert result.dtype == object
 
         result = ser.dt.tz_localize("US/Eastern")
@@ -153,10 +151,8 @@ class TestSeriesDatetimeValues:
         for prop in ok_for_dt_methods:
             getattr(ser.dt, prop)
 
-        msg = "The behavior of DatetimeProperties.to_pydatetime is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser.dt.to_pydatetime()
-        assert isinstance(result, np.ndarray)
+        result = ser.dt.to_pydatetime()
+        assert isinstance(result, Series)
         assert result.dtype == object
 
         result = ser.dt.tz_convert("CET")
