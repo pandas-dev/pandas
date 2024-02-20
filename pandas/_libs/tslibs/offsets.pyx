@@ -1452,7 +1452,6 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 delta = Timedelta((self._offset + rem_nano) * self.n)
             else:
                 delta = Timedelta(self._offset * self.n)
-                print(delta)
                 if "microseconds" in kwds:
                     delta = delta.as_unit("us")
                 elif "milliseconds" in kwds:
