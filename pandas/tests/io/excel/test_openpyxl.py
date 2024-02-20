@@ -5,8 +5,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
-
 import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
@@ -18,9 +16,6 @@ from pandas.io.excel import (
 from pandas.io.excel._openpyxl import OpenpyxlReader
 
 openpyxl = pytest.importorskip("openpyxl")
-
-if is_platform_windows():
-    pytestmark = pytest.mark.single_cpu
 
 
 @pytest.fixture

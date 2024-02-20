@@ -4,7 +4,6 @@ import time
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -20,9 +19,6 @@ pytest.importorskip("jinja2")
 # jinja2 is currently required for Styler.__init__(). Technically Styler.to_excel
 # could compute styles and render to excel without jinja2, since there is no
 # 'template' file, but this needs the import error to delayed until render time.
-
-if is_platform_windows():
-    pytestmark = pytest.mark.single_cpu
 
 
 def assert_equal_cell_styles(cell1, cell2):
