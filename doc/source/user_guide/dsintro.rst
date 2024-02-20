@@ -111,7 +111,7 @@ However, operations such as slicing will also slice the index.
 .. note::
 
    We will address array-based indexing like ``s.iloc[[4, 3, 1]]``
-   in :ref:`section on indexing <indexing>`.
+   in the :ref:`section on indexing <indexing>`.
 
 Like a NumPy array, a pandas :class:`Series` has a single :attr:`~Series.dtype`.
 
