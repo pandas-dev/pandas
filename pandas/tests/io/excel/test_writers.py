@@ -7,6 +7,7 @@ from functools import partial
 from io import BytesIO
 import os
 import re
+import uuid
 
 import numpy as np
 import pytest
@@ -57,7 +58,7 @@ def tmp_excel(ext, tmp_path):
     """
     Fixture to open file for use in each test case.
     """
-    tmp = tmp_path / f"tmp{ext}"
+    tmp = tmp_path / f"{uuid.uuid4()}{ext}"
     tmp.touch()
     yield str(tmp)
     tmp.unlink()

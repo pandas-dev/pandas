@@ -11,6 +11,7 @@ from pathlib import Path
 import platform
 import re
 from urllib.error import URLError
+import uuid
 from zipfile import BadZipFile
 
 import numpy as np
@@ -124,7 +125,7 @@ def read_ext(engine_and_read_ext):
 
 @pytest.fixture
 def tmp_excel(read_ext, tmp_path):
-    tmp = tmp_path / f"tmp{read_ext}"
+    tmp = tmp_path / f"{uuid.uuid4()}{read_ext}"
     tmp.touch()
     yield str(tmp)
     tmp.unlink()
