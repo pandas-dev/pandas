@@ -76,21 +76,21 @@ def has_range_delta(values) -> bool | int:
     -------
     bool or int
         False if there isn't a unique delta
-        int if there's a unique delta
+        int if there's a non-zero, unique delta
     """
     if len(values) < 2:
         return False
-    unique_diffs = set()
-    curr = values[0]
-    for val in values[1:]:
-        diff = val - curr
-        if diff == 0:
-            return False
-        unique_diffs.add(diff)
-        if len(unique_diffs) > 1:
+    diff = values[1] - values[0]
+    if diff == 0:
+        return False
+    curr = values[1]
+    for val in values[2:]:
+        new_diff = val - curr
+        if new_diff != diff:
             return False
         curr = val
-    return unique_diffs.pop()
+        diff = new_diff
+    return diff
 
 
 class RangeIndex(Index):
