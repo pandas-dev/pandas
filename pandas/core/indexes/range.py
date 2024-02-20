@@ -61,37 +61,6 @@ _empty_range = range(0)
 _dtype_int64 = np.dtype(np.int64)
 
 
-def has_range_delta(values) -> bool | int:
-    """
-    Check if values have unique difference for RangeIndex._shallow_copy.
-
-    values must have more than 2 values.
-    If there is a unique diff, it cannot be zero.
-
-    Parameters
-    ----------
-    values : 1D iterable
-
-    Returns
-    -------
-    bool or int
-        False if there isn't a unique delta
-        int if there's a non-zero, unique delta
-    """
-    if len(values) < 2:
-        return False
-    diff = values[1] - values[0]
-    if diff == 0:
-        return False
-    curr = values[1]
-    for val in values[2:]:
-        new_diff = val - curr
-        if new_diff != diff:
-            return False
-        curr = val
-    return diff
-
-
 class RangeIndex(Index):
     """
     Immutable Index implementing a monotonic integer range.
