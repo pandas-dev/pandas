@@ -673,3 +673,11 @@ class TestAstypeCategorical:
         result = Series([Timedelta(1), np.nan], dtype="timedelta64[ns]")
         expected = Series([Timedelta(1), NaT], dtype="timedelta64[ns]")
         tm.assert_series_equal(result, expected)
+
+    @td.skip_if_no("pyarrow")
+    def test_astype_int_na_string(self):
+        # GH#57418
+        ser = Series([12, NA], dtype="Int64[pyarrow]")
+        result = ser.astype("string[pyarrow]")
+        expected = Series(["12", NA], dtype="string[pyarrow]")
+        tm.assert_series_equal(result, expected)
