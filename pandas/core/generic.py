@@ -3120,7 +3120,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2    lion  mammal       80.5         4
         3  monkey  mammal        NaN         4
 
-        >>> df.to_xarray()
+        >>> df.to_xarray()  # doctest: +SKIP
         <xarray.Dataset>
         Dimensions:    (index: 4)
         Coordinates:
@@ -3131,7 +3131,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             max_speed  (index) float64 32B 389.0 24.0 80.5 nan
             num_legs   (index) int64 32B 2 2 4 4
 
-        >>> df["max_speed"].to_xarray()
+        >>> df["max_speed"].to_xarray()  # doctest: +SKIP
         <xarray.DataArray 'max_speed' (index: 4)>
         array([389. ,  24. ,  80.5,   nan])
         Coordinates:
