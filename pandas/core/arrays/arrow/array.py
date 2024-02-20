@@ -2918,7 +2918,9 @@ class ArrowExtensionArray(
             locale = "C"
         return type(self)(pc.strftime(self._pa_array, format="%B", locale=locale))
 
-    def _dt_to_pydatetime(self) -> np.ndarray:
+    def _dt_to_pydatetime(self) -> Series:
+        from pandas import Series
+
         if pa.types.is_date(self.dtype.pyarrow_dtype):
             raise ValueError(
                 f"to_pydatetime cannot be called with {self.dtype.pyarrow_dtype} type. "
@@ -2927,7 +2929,7 @@ class ArrowExtensionArray(
         data = self._pa_array.to_pylist()
         if self._dtype.pyarrow_dtype.unit == "ns":
             data = [None if ts is None else ts.to_pydatetime(warn=False) for ts in data]
-        return np.array(data, dtype=object)
+        return Series(data, dtype=object)
 
     def _dt_tz_localize(
         self,

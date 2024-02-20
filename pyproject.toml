@@ -732,14 +732,22 @@ reportUntypedNamedTuple = true
 reportUnusedImport = true
 disableBytesTypePromotions = true
 # disable subset of "basic"
+reportArgumentType = false
+reportAssignmentType = false
+reportAttributeAccessIssue = false
+reportCallIssue = false
 reportGeneralTypeIssues = false
+reportIndexIssue = false
 reportMissingModuleSource = false
+reportOperatorIssue = false
 reportOptionalCall = false
 reportOptionalIterable = false
 reportOptionalMemberAccess = false
 reportOptionalOperand = false
 reportOptionalSubscript = false
 reportPrivateImportUsage = false
+reportRedeclaration = false
+reportReturnType = false
 reportUnboundVariable = false
 
 [tool.coverage.run]
