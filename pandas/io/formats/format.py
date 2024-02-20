@@ -127,6 +127,17 @@ common_docstring: Final = """
             name.
             The result of each function must be a unicode string.
             List/tuple must be of length equal to the number of columns.
+
+            IMPORTANT: formatters are not invoked for
+            ``NaN``/``NA``/``NaT``, ``None``, etc. (i.e. missing values).
+
+            NOTES:
+            If you want to replace ALL missing values with a given string in
+            output, use the na_rep parameter.
+            Alternatively, if you need to control missing value representation
+            on a per-column level, you will have to implement this separately,
+            e.g. by using fillnans() on the relevant column to replace missing
+            numerical values with a given string, before you call to_string().
         float_format : one-parameter function, optional, default None
             Formatter function to apply to columns' elements if they are
             floats. This function must return a unicode string and will be
