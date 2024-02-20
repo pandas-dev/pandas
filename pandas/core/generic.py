@@ -6327,7 +6327,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return cast(Self, result)
 
     @final
-    def copy(self, deep: bool | None = True) -> Self:
+    def copy(self, deep: bool = True) -> Self:
         """
         Make a copy of this object's indices and data.
 
@@ -6460,7 +6460,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1     [3, 4]
         dtype: object
         """
-        data = self._mgr.copy(deep=deep)  # type: ignore[arg-type]
+        data = self._mgr.copy(deep=deep)
         return self._constructor_from_mgr(data, axes=data.axes).__finalize__(
             self, method="copy"
         )
