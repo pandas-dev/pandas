@@ -1735,6 +1735,35 @@ class Index(IndexOpsMixin, PandasObject):
         return names
 
     def _get_names(self) -> tuple[Hashable | None, ...]:
+        """
+        Retrieve the names associated with the object.
+        
+        This method returns a tuple containing the name of the object. 
+        It's primarily intended for internal use.
+
+        Returns
+        -------
+        tuple[Hashable | None, ...]
+            A tuple containing the object's name, or None if the object does not have a name.
+        
+        See Also
+        --------
+        _set_names :  Set new names on index.
+
+        Examples
+        --------
+        Create an index with a name and retrieve its names:
+
+        >>> index = pd.Index([1, 2, 3], name='example_name')
+        >>> index.names
+        ('example_name',)
+
+        If the index does not have a name set:
+
+        >>> index = pd.Index([1, 2, 3])
+        >>> index.names
+        (None,)
+        """
         return (self.name,)
 
     def _set_names(self, values, *, level=None) -> None:
