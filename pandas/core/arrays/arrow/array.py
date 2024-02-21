@@ -199,6 +199,8 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from pandas.core.dtypes.dtypes import ExtensionDtype
+
     from pandas import Series
     from pandas.core.arrays.datetimes import DatetimeArray
     from pandas.core.arrays.timedeltas import TimedeltaArray
@@ -316,7 +318,7 @@ class ArrowExtensionArray(
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
+        cls, strings, *, dtype: ExtensionDtype, copy: bool = False
     ) -> Self:
         """
         Construct a new ExtensionArray from a sequence of strings.
@@ -533,8 +535,9 @@ class ArrowExtensionArray(
                     ):
                         # TODO: Move logic in _from_sequence_of_strings into
                         # _box_pa_array
+                        dtype = ArrowDtype(pa_type)
                         return cls._from_sequence_of_strings(
-                            value, dtype=pa_type
+                            value, dtype=dtype
                         )._pa_array
                     else:
                         raise
@@ -2915,7 +2918,9 @@ class ArrowExtensionArray(
             locale = "C"
         return type(self)(pc.strftime(self._pa_array, format="%B", locale=locale))
 
-    def _dt_to_pydatetime(self) -> np.ndarray:
+    def _dt_to_pydatetime(self) -> Series:
+        from pandas import Series
+
         if pa.types.is_date(self.dtype.pyarrow_dtype):
             raise ValueError(
                 f"to_pydatetime cannot be called with {self.dtype.pyarrow_dtype} type. "
@@ -2924,7 +2929,7 @@ class ArrowExtensionArray(
         data = self._pa_array.to_pylist()
         if self._dtype.pyarrow_dtype.unit == "ns":
             data = [None if ts is None else ts.to_pydatetime(warn=False) for ts in data]
-        return np.array(data, dtype=object)
+        return Series(data, dtype=object)
 
     def _dt_tz_localize(
         self,

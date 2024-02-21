@@ -68,6 +68,10 @@ class Grouper:
 
     Parameters
     ----------
+    *args
+        Currently unused, reserved for future use.
+    **kwargs
+        Dictionary of the keyword arguments to pass to Grouper.
     key : str, defaults to None
         Groupby key, which selects the grouping column of the target.
     level : name/number, defaults to None
