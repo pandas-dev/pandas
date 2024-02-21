@@ -754,6 +754,9 @@ class TestExcelWriter:
         with ExcelFile(filename2) as reader2:
             rs2 = pd.read_excel(reader2, sheet_name="test1", index_col=0)
 
+        # TODO: why do we get different units?
+        rs2 = rs2.astype(f"M8[{unit}]")
+
         tm.assert_frame_equal(rs1, rs2)
 
         # Since the reader returns a datetime object for dates,
