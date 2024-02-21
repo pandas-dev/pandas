@@ -16,7 +16,8 @@ from pandas.util.version import Version
 if TYPE_CHECKING:
     import types
 
-# Update install.rst & setup.cfg when updating versions!
+# Update install.rst, actions-39-minimum_versions.yaml,
+# deps_minimum.toml & pyproject.toml when updating versions!
 
 VERSIONS = {
     "adbc-driver-postgresql": "0.8.0",
