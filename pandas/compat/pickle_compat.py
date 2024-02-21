@@ -1,5 +1,5 @@
 """
-Support pre-0.12 series pickle compatibility.
+Pickle compatibility to pandas version 1.0
 """
 from __future__ import annotations
 
@@ -16,7 +16,6 @@ import numpy as np
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import BaseOffset
 
-from pandas import Index
 from pandas.core.arrays import (
     DatetimeArray,
     PeriodArray,
@@ -30,75 +29,18 @@ if TYPE_CHECKING:
 
 # If classes are moved, provide compat here.
 _class_locations_map = {
-    ("pandas.core.sparse.array", "SparseArray"): ("pandas.core.arrays", "SparseArray"),
-    # 15477
-    ("pandas.core.base", "FrozenNDArray"): ("numpy", "ndarray"),
     # Re-routing unpickle block logic to go through _unpickle_block instead
     # for pandas <= 1.3.5
     ("pandas.core.internals.blocks", "new_block"): (
         "pandas._libs.internals",
         "_unpickle_block",
     ),
-    ("pandas.core.indexes.frozen", "FrozenNDArray"): ("numpy", "ndarray"),
-    ("pandas.core.base", "FrozenList"): ("pandas.core.indexes.frozen", "FrozenList"),
-    # 10890
-    ("pandas.core.series", "TimeSeries"): ("pandas.core.series", "Series"),
-    ("pandas.sparse.series", "SparseTimeSeries"): (
-        "pandas.core.sparse.series",
-        "SparseSeries",
-    ),
-    # 12588, extensions moving
-    ("pandas._sparse", "BlockIndex"): ("pandas._libs.sparse", "BlockIndex"),
-    ("pandas.tslib", "Timestamp"): ("pandas._libs.tslib", "Timestamp"),
-    # 18543 moving period
-    ("pandas._period", "Period"): ("pandas._libs.tslibs.period", "Period"),
-    ("pandas._libs.period", "Period"): ("pandas._libs.tslibs.period", "Period"),
-    # 18014 moved __nat_unpickle from _libs.tslib-->_libs.tslibs.nattype
-    ("pandas.tslib", "__nat_unpickle"): (
+    # Avoid Cython's warning "contradiction to to Python 'class private name' rules"
+    ("pandas._libs.tslibs.nattype", "__nat_unpickle"): (
         "pandas._libs.tslibs.nattype",
-        "__nat_unpickle",
+        "_nat_unpickle",
     ),
-    ("pandas._libs.tslib", "__nat_unpickle"): (
-        "pandas._libs.tslibs.nattype",
-        "__nat_unpickle",
-    ),
-    # 15998 top-level dirs moving
-    ("pandas.sparse.array", "SparseArray"): (
-        "pandas.core.arrays.sparse",
-        "SparseArray",
-    ),
-    ("pandas.indexes.base", "_new_Index"): ("pandas.core.indexes.base", "_new_Index"),
-    ("pandas.indexes.base", "Index"): ("pandas.core.indexes.base", "Index"),
-    ("pandas.indexes.numeric", "Int64Index"): (
-        "pandas.core.indexes.base",
-        "Index",  # updated in 50775
-    ),
-    ("pandas.indexes.range", "RangeIndex"): ("pandas.core.indexes.range", "RangeIndex"),
-    ("pandas.indexes.multi", "MultiIndex"): ("pandas.core.indexes.multi", "MultiIndex"),
-    ("pandas.tseries.index", "_new_DatetimeIndex"): (
-        "pandas.core.indexes.datetimes",
-        "_new_DatetimeIndex",
-    ),
-    ("pandas.tseries.index", "DatetimeIndex"): (
-        "pandas.core.indexes.datetimes",
-        "DatetimeIndex",
-    ),
-    ("pandas.tseries.period", "PeriodIndex"): (
-        "pandas.core.indexes.period",
-        "PeriodIndex",
-    ),
-    # 19269, arrays moving
-    ("pandas.core.categorical", "Categorical"): ("pandas.core.arrays", "Categorical"),
-    # 19939, add timedeltaindex, float64index compat from 15998 move
-    ("pandas.tseries.tdi", "TimedeltaIndex"): (
-        "pandas.core.indexes.timedeltas",
-        "TimedeltaIndex",
-    ),
-    ("pandas.indexes.numeric", "Float64Index"): (
-        "pandas.core.indexes.base",
-        "Index",  # updated in 50775
-    ),
-    # 50775, remove Int64Index, UInt64Index & Float64Index from codabase
+    # 50775, remove Int64Index, UInt64Index & Float64Index from codebase
     ("pandas.core.indexes.numeric", "Int64Index"): (
         "pandas.core.indexes.base",
         "Index",
@@ -135,20 +77,10 @@ class Unpickler(pickle._Unpickler):
 
         try:
             stack[-1] = func(*args)
-        except TypeError as err:
+        except TypeError:
             # If we have a deprecated function,
             # try to replace and try again.
-
-            msg = "_reconstruct: First argument must be a sub-type of ndarray"
-
-            if msg in str(err):
-                try:
-                    cls = args[0]
-                    stack[-1] = object.__new__(cls)
-                    return
-                except TypeError:
-                    pass
-            elif args and isinstance(args[0], type) and issubclass(args[0], BaseOffset):
+            if args and isinstance(args[0], type) and issubclass(args[0], BaseOffset):
                 # TypeError: object.__new__(Day) is not safe, use Day.__new__()
                 cls = args[0]
                 stack[-1] = cls.__new__(*args)
@@ -157,33 +89,16 @@ class Unpickler(pickle._Unpickler):
                 cls = args[0]
                 stack[-1] = NDArrayBacked.__new__(*args)
                 return
-
             raise
 
     dispatch[pickle.REDUCE[0]] = load_reduce
-
-    def load_newobj_ex(self) -> None:
-        kwargs = self.stack.pop()
-        args = self.stack.pop()
-        cls = self.stack.pop()
-
-        # compat
-        if issubclass(cls, Index):
-            obj = object.__new__(cls)
-        else:
-            obj = cls.__new__(cls, *args, **kwargs)
-        self.append(obj)
-
-    dispatch[pickle.NEWOBJ_EX[0]] = load_newobj_ex
 
     def load_newobj(self) -> None:
         args = self.stack.pop()
         cls = self.stack.pop()
 
         # compat
-        if issubclass(cls, Index):
-            obj = object.__new__(cls)
-        elif issubclass(cls, DatetimeArray) and not args:
+        if issubclass(cls, DatetimeArray) and not args:
             arr = np.array([], dtype="M8[ns]")
             obj = cls.__new__(cls, arr, arr.dtype)
         elif issubclass(cls, TimedeltaArray) and not args:

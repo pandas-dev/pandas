@@ -158,7 +158,7 @@ def read_pickle(
 
     Notes
     -----
-    read_pickle is only guaranteed to be backwards compatible to pandas 0.20.3
+    read_pickle is only guaranteed to be backwards compatible to pandas 1.0
     provided the object was serialized with to_pickle.
 
     Examples
@@ -203,6 +203,6 @@ def read_pickle(
         except excs_to_catch:
             # e.g.
             #  "No module named 'pandas.core.sparse.series'"
-            #  "Can't get attribute '__nat_unpickle' on <module 'pandas._libs.tslib"
+            #  "Can't get attribute '_nat_unpickle' on <module 'pandas._libs.tslib"
             handles.handle.seek(0)
             return pickle_compat.Unpickler(handles.handle, encoding=None).load()
