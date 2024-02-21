@@ -176,7 +176,7 @@ Performance improvements
 - Performance improvement in :meth:`RangeIndex.append` when appending the same index (:issue:`57252`)
 - Performance improvement in :meth:`RangeIndex.take` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57445`)
 - Performance improvement in indexing operations for string dtypes (:issue:`56997`)
--
+- :meth:`Series.str.extract` returns a :class:`RangeIndex` columns instead of an :class:`Index` column when possible (:issue:`?``)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.bug_fixes:
@@ -288,6 +288,7 @@ Styler
 
 Other
 ^^^^^
+- Bug in :func:`tseries.api.guess_datetime_format` would fail to infer time format when "%Y" == "%H%M" (:issue:`57452`)
 - Bug in :meth:`DataFrame.sort_index` when passing ``axis="columns"`` and ``ignore_index=True`` and ``ascending=False`` not returning a :class:`RangeIndex` columns (:issue:`57293`)
 - Bug in :meth:`DataFrame.where` where using a non-bool type array in the function would return a ``ValueError`` instead of a ``TypeError`` (:issue:`56330`)
 
