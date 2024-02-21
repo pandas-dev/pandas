@@ -68,7 +68,7 @@ class Unpickler(pickle._Unpickler):
         module, name = _class_locations_map.get(key, key)
         return super().find_class(module, name)
 
-    dispatch = pickle._Unpickler.dispatch.copy()  # type: ignore[assignment]
+    dispatch = pickle._Unpickler.dispatch.copy()
 
     def load_reduce(self) -> None:
         stack = self.stack  # type: ignore[attr-defined]
