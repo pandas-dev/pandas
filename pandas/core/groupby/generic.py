@@ -723,15 +723,22 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Return number of unique elements in the group.
 
+        Parameters
+        ----------
+        dropna : bool, default True
+            Don't include NaN in the counts.
+
         Returns
         -------
         Series
             Number of unique values within each group.
 
+        See Also
+        --------
+        core.resample.Resampler.nunique : Method nunique for Resampler.
+
         Examples
         --------
-        For SeriesGroupby:
-
         >>> lst = ["a", "a", "b", "b"]
         >>> ser = pd.Series([1, 2, 3, 3], index=lst)
         >>> ser
@@ -744,25 +751,6 @@ class SeriesGroupBy(GroupBy[Series]):
         a    2
         b    1
         dtype: int64
-
-        For Resampler:
-
-        >>> ser = pd.Series(
-        ...     [1, 2, 3, 3],
-        ...     index=pd.DatetimeIndex(
-        ...         ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
-        ...     ),
-        ... )
-        >>> ser
-        2023-01-01    1
-        2023-01-15    2
-        2023-02-01    3
-        2023-02-15    3
-        dtype: int64
-        >>> ser.resample("MS").nunique()
-        2023-01-01    2
-        2023-02-01    1
-        Freq: MS, dtype: int64
         """
         ids, ngroups = self._grouper.group_info
         val = self.obj._values
@@ -1942,6 +1930,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         dropna : bool
             Drop groups that do not pass the filter. True by default; if False,
             groups that evaluate False are filled with NaNs.
+        *args
+            Additional positional arguments to pass to `func`.
+        **kwargs
+            Additional keyword arguments to pass to `func`.
 
         Returns
         -------

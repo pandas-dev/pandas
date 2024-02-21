@@ -4672,6 +4672,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Cumulative product for each group.
 
+        Parameters
+        ----------
+        *args : tuple
+            Positional arguments to be passed to `func`.
+        **kwargs : dict
+            Additional/specific keyword arguments to be passed to the function,
+            such as `numeric_only` and `skipna`.
+
         Returns
         -------
         Series or DataFrame
@@ -4721,6 +4729,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def cumsum(self, *args, **kwargs) -> NDFrameT:
         """
         Cumulative sum for each group.
+
+        Parameters
+        ----------
+        *args : tuple
+            Positional arguments to be passed to `func`.
+        **kwargs : dict
+            Additional/specific keyword arguments to be passed to the function,
+            such as `numeric_only` and `skipna`.
 
         Returns
         -------
@@ -4775,6 +4791,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ) -> NDFrameT:
         """
         Cumulative min for each group.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+        **kwargs : dict, optional
+            Additional keyword arguments to be passed to the function, such as `skipna`,
+            to control whether NA/null values are ignored.
 
         Returns
         -------
@@ -4837,6 +4861,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ) -> NDFrameT:
         """
         Cumulative max for each group.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+        **kwargs : dict, optional
+            Additional keyword arguments to be passed to the function, such as `skipna`,
+            to control whether NA/null values are ignored.
 
         Returns
         -------
@@ -5133,6 +5165,32 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ):
         """
         Calculate pct_change of each value to previous entry in group.
+
+        Parameters
+        ----------
+        periods : int, default 1
+            Periods to shift for calculating percentage change. Comparing with
+            a period of 1 means adjacent elements are compared, whereas a period
+            of 2 compares every other element.
+
+        fill_method : FillnaOptions or None, default None
+            Specifies how to handle missing values after the initial shift
+            operation necessary for percentage change calculation. Users are
+            encouraged to handle missing values manually in future versions.
+            Valid options are:
+            - A FillnaOptions value ('ffill', 'bfill') for forward or backward filling.
+            - None to avoid filling.
+            Note: Usage is discouraged due to impending deprecation.
+
+        limit : int or None, default None
+            The maximum number of consecutive NA values to fill, based on the chosen
+            `fill_method`. Address NaN values prior to using `pct_change` as this
+            parameter is nearing deprecation.
+
+        freq : str, pandas offset object, or None, default None
+            The frequency increment for time series data (e.g., 'M' for month-end).
+            If None, the frequency is inferred from the index. Relevant for time
+            series data only.
 
         Returns
         -------
