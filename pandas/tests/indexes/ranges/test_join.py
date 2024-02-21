@@ -175,3 +175,9 @@ class TestJoin:
         index = RangeIndex(start=0, stop=20, step=2)
         joined = index.join(index, how=join_type)
         assert index is joined
+
+
+def test_join_overlap_returns_rangeindex():
+    result = RangeIndex(3).join(RangeIndex(2, 5), how="outer")
+    expected = RangeIndex(5)
+    tm.assert_index_equal(result, expected, exact=True)
