@@ -33,7 +33,6 @@ from pandas._libs import (
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
 from pandas.compat._constants import REF_COUNT
-from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     ChainedAssignmentError,
@@ -846,22 +845,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     # ----------------------------------------------------------------------
 
-    def __column_consortium_standard__(self, *, api_version: str | None = None) -> Any:
-        """
-        Provide entry point to the Consortium DataFrame Standard API.
-
-        This is developed and maintained outside of pandas.
-        Please report any issues to https://github.com/data-apis/dataframe-api-compat.
-        """
-        dataframe_api_compat = import_optional_dependency("dataframe_api_compat")
-        return (
-            dataframe_api_compat.pandas_standard.convert_to_standard_compliant_column(
-                self, api_version=api_version
-            )
-        )
-
-    # ----------------------------------------------------------------------
-
     # indexers
     @property
     def axes(self) -> list[Index]:
@@ -1606,6 +1589,42 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     f.write(result)
         return None
 
+    @overload
+    def to_markdown(
+        self,
+        buf: None = ...,
+        *,
+        mode: str = ...,
+        index: bool = ...,
+        storage_options: StorageOptions | None = ...,
+        **kwargs,
+    ) -> str:
+        ...
+
+    @overload
+    def to_markdown(
+        self,
+        buf: IO[str],
+        *,
+        mode: str = ...,
+        index: bool = ...,
+        storage_options: StorageOptions | None = ...,
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def to_markdown(
+        self,
+        buf: IO[str] | None,
+        *,
+        mode: str = ...,
+        index: bool = ...,
+        storage_options: StorageOptions | None = ...,
+        **kwargs,
+    ) -> str | None:
+        ...
+
     @doc(
         klass=_shared_doc_kwargs["klass"],
         storage_options=_shared_docs["storage_options"],
@@ -1636,6 +1655,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             |  3 | quetzal  |
             +----+----------+"""
         ),
+    )
+    @deprecate_nonkeyword_arguments(
+        version="3.0.0", allowed_args=["self", "buf"], name="to_markdown"
     )
     def to_markdown(
         self,

@@ -102,6 +102,7 @@ Deprecations
 ~~~~~~~~~~~~
 - Deprecated :meth:`Timestamp.utcfromtimestamp`, use ``Timestamp.fromtimestamp(ts, "UTC")`` instead (:issue:`56680`)
 - Deprecated :meth:`Timestamp.utcnow`, use ``Timestamp.now("UTC")`` instead (:issue:`56680`)
+- Deprecated allowing non-keyword arguments in :meth:`Series.to_markdown` except ``buf``. (:issue:`57280`)
 - Deprecated allowing non-keyword arguments in :meth:`Series.to_string` except ``buf``. (:issue:`57280`)
 -
 
@@ -111,13 +112,17 @@ Deprecations
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - :func:`read_excel`, :func:`read_json`, :func:`read_html`, and :func:`read_xml` no longer accept raw string or byte representation of the data. That type of data must be wrapped in a :py:class:`StringIO` or :py:class:`BytesIO` (:issue:`53767`)
+- :meth:`Series.dt.to_pydatetime` now returns a :class:`Series` of :py:class:`datetime.datetime` objects (:issue:`52459`)
 - All arguments except ``name`` in :meth:`Index.rename` are now keyword only (:issue:`56493`)
 - All arguments except the first ``path``-like argument in IO writers are now keyword only (:issue:`54229`)
 - All arguments in :meth:`Index.sort_values` are now keyword only (:issue:`56493`)
 - All arguments in :meth:`Series.to_dict` are now keyword only (:issue:`56493`)
 - Changed the default value of ``observed`` in :meth:`DataFrame.groupby` and :meth:`Series.groupby` to ``True`` (:issue:`51811`)
+- Enforced deprecation disallowing parsing datetimes with mixed time zones unless user passes ``utc=True`` to :func:`to_datetime` (:issue:`57275`)
 - Enforced silent-downcasting deprecation for :ref:`all relevant methods <whatsnew_220.silent_downcasting>` (:issue:`54710`)
 - In :meth:`DataFrame.stack`, the default value of ``future_stack`` is now ``True``; specifying ``False`` will raise a ``FutureWarning`` (:issue:`55448`)
+- Passing both ``freq`` and ``fill_value`` in :meth:`DataFrame.shift` and :meth:`Series.shift` and :meth:`.DataFrameGroupBy.shift` now raises a ``ValueError`` (:issue:`54818`)
+- Removed :meth:`DateOffset.is_anchored` and :meth:`offsets.Tick.is_anchored` (:issue:`56594`)
 - Removed ``DataFrame.applymap``, ``Styler.applymap`` and ``Styler.applymap_index`` (:issue:`52364`)
 - Removed ``DataFrame.bool`` and ``Series.bool`` (:issue:`51756`)
 - Removed ``DataFrame.first`` and ``DataFrame.last`` (:issue:`53710`)
@@ -143,6 +148,7 @@ Removal of prior version deprecations/changes
 - Removed ``year``, ``month``, ``quarter``, ``day``, ``hour``, ``minute``, and ``second`` keywords in the :class:`PeriodIndex` constructor, use :meth:`PeriodIndex.from_fields` instead (:issue:`55960`)
 - Removed deprecated argument ``obj`` in :meth:`.DataFrameGroupBy.get_group` and :meth:`.SeriesGroupBy.get_group` (:issue:`53545`)
 - Removed deprecated behavior of :meth:`Series.agg` using :meth:`Series.apply` (:issue:`53325`)
+- Removed option ``mode.use_inf_as_na``, convert inf entries to ``NaN`` before instead (:issue:`51684`)
 - Removed support for :class:`DataFrame` in :meth:`DataFrame.from_records`(:issue:`51697`)
 - Removed support for ``errors="ignore"`` in :func:`to_datetime`, :func:`to_timedelta` and :func:`to_numeric` (:issue:`55734`)
 - Removed support for ``slice`` in :meth:`DataFrame.take` (:issue:`51539`)
@@ -167,6 +173,7 @@ Performance improvements
 - Performance improvement in :meth:`Index.take` when ``indices`` is a full range indexer from zero to length of index (:issue:`56806`)
 - Performance improvement in :meth:`MultiIndex.equals` for equal length indexes (:issue:`56990`)
 - Performance improvement in :meth:`RangeIndex.append` when appending the same index (:issue:`57252`)
+- Performance improvement in :meth:`RangeIndex.take` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57445`)
 - Performance improvement in indexing operations for string dtypes (:issue:`56997`)
 -
 
