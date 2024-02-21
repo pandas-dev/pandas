@@ -128,16 +128,21 @@ common_docstring: Final = """
             The result of each function must be a unicode string.
             List/tuple must be of length equal to the number of columns.
 
-            IMPORTANT: formatters are not invoked for
-            ``NaN``/``NA``/``NaT``, ``None``, etc. (i.e. missing values).
+                **IMPORTANT:** formatters are **not** invoked for missing
+                values (i.e ``isna() == True``), e.g. ``NaN``, ``None``,
+                ``NA``, ``NaT``. They are also **not invoked for string data
+                types** or ``PandasObject``.
 
-            NOTES:
-            If you want to replace ALL missing values with a given string in
-            output, use the na_rep parameter.
-            Alternatively, if you need to control missing value representation
-            on a per-column level, you will have to implement this separately,
-            e.g. by using fillnans() on the relevant column to replace missing
-            numerical values with a given string, before you call to_string().
+                - If you need to replace **all** missing values with a given
+                  string in output, use the ``na_rep`` parameter.
+
+                - Alternatively, if you need to replace missing values on
+                  a **per-column** level, you will have to implement this
+                  separately.
+                  E.g. first call ``fillnans()`` on the relevant column to
+                  replace missing numerical values with a given string, *then*
+                  call ``to_string()`` (which will pass these string values
+                  through without further formatting).
         float_format : one-parameter function, optional, default None
             Formatter function to apply to columns' elements if they are
             floats. This function must return a unicode string and will be
