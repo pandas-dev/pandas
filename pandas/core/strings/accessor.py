@@ -3575,9 +3575,9 @@ def _get_group_names(regex: re.Pattern) -> list[Hashable] | range:
     names = {v: k for k, v in regex.groupindex.items()}
     if not names:
         return rng
-    result = [names.get(1 + i, i) for i in rng]
+    result: list[Hashable] = [names.get(1 + i, i) for i in rng]
     arr = np.array(result)
-    if arr.dtype.kind == "i" and lib.is_range_indexer(arr):
+    if arr.dtype.kind == "i" and lib.is_range_indexer(arr, len(arr)):
         return rng
     return result
 
