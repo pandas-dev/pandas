@@ -53,6 +53,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Axis,
         Dtype,
+        JoinHow,
         NaPosition,
         Self,
         npt,
@@ -1015,6 +1016,22 @@ class RangeIndex(Index):
         # Here all "indexes" had 0 length, i.e. were empty.
         # In this case return an empty range index.
         return RangeIndex(_empty_range, name=name)
+
+    def _wrap_join_result(
+        self,
+        joined,
+        other,
+        lidx: npt.NDArray[np.intp] | None,
+        ridx: npt.NDArray[np.intp] | None,
+        how: JoinHow,
+    ) -> tuple[Self, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
+        join_index, lidx, ridx = super()._wrap_join_result(
+            joined, other, lidx, ridx, how
+        )
+        maybe_ri = self._shallow_copy(join_index._values)
+        if isinstance(maybe_ri, type(self)):
+            return maybe_ri, lidx, ridx
+        return join_index, lidx, ridx
 
     def __len__(self) -> int:
         """

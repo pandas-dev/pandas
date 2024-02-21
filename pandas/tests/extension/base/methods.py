@@ -397,7 +397,7 @@ class BaseMethodsTests:
         b = pd.Series(data[2:5], index=[2, 3, 4])
         result = a.combine_first(b)
         expected = pd.Series(data[:5])
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected, check_index_type=True)
 
     @pytest.mark.parametrize("frame", [True, False])
     @pytest.mark.parametrize(
