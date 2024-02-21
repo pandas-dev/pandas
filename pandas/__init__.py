@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import warnings
 
 __docformat__ = "restructuredtext"
@@ -190,36 +191,17 @@ except ImportError:
     __git_version__ = v.get("full-revisionid")
     del get_versions, v
 
-# DeprecationWarning for missing pyarrow
-from pandas.compat.pyarrow import pa_version_under10p1, pa_not_found
-
-if pa_version_under10p1:
-    # pyarrow is either too old or nonexistent, warn
-    from pandas.compat._optional import VERSIONS
-
-    if pa_not_found:
-        pa_msg = "was not found to be installed on your system."
-    else:
-        pa_msg = (
-            f"was too old on your system - pyarrow {VERSIONS['pyarrow']} "
-            "is the current minimum supported version as of this release."
-        )
-
+# GH#55043 - deprecation of the data_manager option
+if "PANDAS_DATA_MANAGER" in os.environ:
     warnings.warn(
-        f"""
-Pyarrow will become a required dependency of pandas in the next major release of pandas (pandas 3.0),
-(to allow more performant data types, such as the Arrow string type, and better interoperability with other libraries)
-but {pa_msg}
-If this would cause problems for you,
-please provide us feedback at https://github.com/pandas-dev/pandas/issues/54466
-        """,  # noqa: E501
-        DeprecationWarning,
+        "The env variable PANDAS_DATA_MANAGER is set. The data_manager option is "
+        "deprecated and will be removed in a future version. Only the BlockManager "
+        "will be available. Unset this environment variable to silence this warning.",
+        FutureWarning,
         stacklevel=2,
     )
-    del VERSIONS, pa_msg
-
-# Delete all unnecessary imported modules
-del pa_version_under10p1, pa_not_found, warnings
+# Don't allow users to use pandas.os or pandas.warnings
+del os, warnings
 
 # module level doc-string
 __doc__ = """
