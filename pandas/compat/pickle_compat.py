@@ -4,9 +4,8 @@ Support pre-0.12 series pickle compatibility.
 from __future__ import annotations
 
 import contextlib
-import copy
 import io
-import pickle as pkl
+import pickle
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -27,40 +26,6 @@ from pandas.core.internals import BlockManager
 
 if TYPE_CHECKING:
     from collections.abc import Generator
-
-
-def load_reduce(self) -> None:
-    stack = self.stack
-    args = stack.pop()
-    func = stack[-1]
-
-    try:
-        stack[-1] = func(*args)
-        return
-    except TypeError as err:
-        # If we have a deprecated function,
-        # try to replace and try again.
-
-        msg = "_reconstruct: First argument must be a sub-type of ndarray"
-
-        if msg in str(err):
-            try:
-                cls = args[0]
-                stack[-1] = object.__new__(cls)
-                return
-            except TypeError:
-                pass
-        elif args and isinstance(args[0], type) and issubclass(args[0], BaseOffset):
-            # TypeError: object.__new__(Day) is not safe, use Day.__new__()
-            cls = args[0]
-            stack[-1] = cls.__new__(*args)
-            return
-        elif args and issubclass(args[0], PeriodArray):
-            cls = args[0]
-            stack[-1] = NDArrayBacked.__new__(*args)
-            return
-
-        raise
 
 
 # If classes are moved, provide compat here.
@@ -155,61 +120,84 @@ _class_locations_map = {
 
 # our Unpickler sub-class to override methods and some dispatcher
 # functions for compat and uses a non-public class of the pickle module.
-
-
-class Unpickler(pkl._Unpickler):
+class Unpickler(pickle._Unpickler):
     def find_class(self, module, name):
-        # override superclass
         key = (module, name)
         module, name = _class_locations_map.get(key, key)
         return super().find_class(module, name)
 
+    dispatch = pickle._Unpickler.dispatch.copy()
 
-Unpickler.dispatch = copy.copy(Unpickler.dispatch)
-Unpickler.dispatch[pkl.REDUCE[0]] = load_reduce
+    def load_reduce(self) -> None:
+        stack = self.stack
+        args = stack.pop()
+        func = stack[-1]
 
+        try:
+            stack[-1] = func(*args)
+            return
+        except TypeError as err:
+            # If we have a deprecated function,
+            # try to replace and try again.
 
-def load_newobj(self) -> None:
-    args = self.stack.pop()
-    cls = self.stack[-1]
+            msg = "_reconstruct: First argument must be a sub-type of ndarray"
 
-    # compat
-    if issubclass(cls, Index):
-        obj = object.__new__(cls)
-    elif issubclass(cls, DatetimeArray) and not args:
-        arr = np.array([], dtype="M8[ns]")
-        obj = cls.__new__(cls, arr, arr.dtype)
-    elif issubclass(cls, TimedeltaArray) and not args:
-        arr = np.array([], dtype="m8[ns]")
-        obj = cls.__new__(cls, arr, arr.dtype)
-    elif cls is BlockManager and not args:
-        obj = cls.__new__(cls, (), [], False)
-    else:
-        obj = cls.__new__(cls, *args)
+            if msg in str(err):
+                try:
+                    cls = args[0]
+                    stack[-1] = object.__new__(cls)
+                    return
+                except TypeError:
+                    pass
+            elif args and isinstance(args[0], type) and issubclass(args[0], BaseOffset):
+                # TypeError: object.__new__(Day) is not safe, use Day.__new__()
+                cls = args[0]
+                stack[-1] = cls.__new__(*args)
+                return
+            elif args and issubclass(args[0], PeriodArray):
+                cls = args[0]
+                stack[-1] = NDArrayBacked.__new__(*args)
+                return
 
-    self.stack[-1] = obj
+            raise
 
+    dispatch[pickle.REDUCE[0]] = load_reduce
 
-Unpickler.dispatch[pkl.NEWOBJ[0]] = load_newobj
+    def load_newobj_ex(self) -> None:
+        kwargs = self.stack.pop()
+        args = self.stack.pop()
+        cls = self.stack.pop()
 
+        # compat
+        if issubclass(cls, Index):
+            obj = object.__new__(cls)
+        else:
+            obj = cls.__new__(cls, *args, **kwargs)
+        self.append(obj)
 
-def load_newobj_ex(self) -> None:
-    kwargs = self.stack.pop()
-    args = self.stack.pop()
-    cls = self.stack.pop()
+    dispatch[pickle.NEWOBJ_EX[0]] = load_newobj_ex
 
-    # compat
-    if issubclass(cls, Index):
-        obj = object.__new__(cls)
-    else:
-        obj = cls.__new__(cls, *args, **kwargs)
-    self.append(obj)
+    def load_newobj(self) -> None:
+        args = self.stack.pop()
+        cls = self.stack[-1]
 
+        # compat
+        if issubclass(cls, Index):
+            obj = object.__new__(cls)
+        elif issubclass(cls, DatetimeArray) and not args:
+            arr = np.array([], dtype="M8[ns]")
+            obj = cls.__new__(cls, arr, arr.dtype)
+        elif issubclass(cls, TimedeltaArray) and not args:
+            arr = np.array([], dtype="m8[ns]")
+            obj = cls.__new__(cls, arr, arr.dtype)
+        elif cls is BlockManager and not args:
+            obj = cls.__new__(cls, (), [], False)
+        else:
+            obj = cls.__new__(cls, *args)
 
-try:
-    Unpickler.dispatch[pkl.NEWOBJ_EX[0]] = load_newobj_ex
-except (AttributeError, KeyError):
-    pass
+        self.stack[-1] = obj
+
+    dispatch[pickle.NEWOBJ[0]] = load_newobj
 
 
 def load(fh, encoding: str | None = None, is_verbose: bool = False) -> Any:
@@ -257,9 +245,9 @@ def patch_pickle() -> Generator[None, None, None]:
     """
     Temporarily patch pickle to use our unpickler.
     """
-    orig_loads = pkl.loads
+    orig_loads = pickle.loads
     try:
-        setattr(pkl, "loads", loads)
+        setattr(pickle, "loads", loads)
         yield
     finally:
-        setattr(pkl, "loads", orig_loads)
+        setattr(pickle, "loads", orig_loads)
