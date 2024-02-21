@@ -59,6 +59,7 @@ from pandas.core.generic import (
     NDFrame,
     _shared_docs,
 )
+from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import (
     BaseGroupBy,
     GroupBy,
