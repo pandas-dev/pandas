@@ -205,4 +205,4 @@ def read_pickle(
             #  "No module named 'pandas.core.sparse.series'"
             #  "Can't get attribute '_nat_unpickle' on <module 'pandas._libs.tslib"
             handles.handle.seek(0)
-            return pickle_compat.Unpickler(handles.handle, encoding=None).load()
+            return pickle_compat.Unpickler(handles.handle).load()

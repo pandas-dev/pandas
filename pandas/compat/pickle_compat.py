@@ -68,10 +68,10 @@ class Unpickler(pickle._Unpickler):
         module, name = _class_locations_map.get(key, key)
         return super().find_class(module, name)
 
-    dispatch = pickle._Unpickler.dispatch.copy()
+    dispatch = pickle._Unpickler.dispatch.copy()  # type: ignore[assignment]
 
     def load_reduce(self) -> None:
-        stack = self.stack
+        stack = self.stack  # type: ignore[attr-defined]
         args = stack.pop()
         func = stack[-1]
 
@@ -91,11 +91,11 @@ class Unpickler(pickle._Unpickler):
                 return
             raise
 
-    dispatch[pickle.REDUCE[0]] = load_reduce
+    dispatch[pickle.REDUCE[0]] = load_reduce  # type: ignore[assignment]
 
     def load_newobj(self) -> None:
-        args = self.stack.pop()
-        cls = self.stack.pop()
+        args = self.stack.pop()  # type: ignore[attr-defined]
+        cls = self.stack.pop()  # type: ignore[attr-defined]
 
         # compat
         if issubclass(cls, DatetimeArray) and not args:
@@ -108,9 +108,9 @@ class Unpickler(pickle._Unpickler):
             obj = cls.__new__(cls, (), [], False)
         else:
             obj = cls.__new__(cls, *args)
-        self.append(obj)
+        self.append(obj)  # type: ignore[attr-defined]
 
-    dispatch[pickle.NEWOBJ[0]] = load_newobj
+    dispatch[pickle.NEWOBJ[0]] = load_newobj  # type: ignore[assignment]
 
 
 def loads(
