@@ -21,6 +21,7 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     Index,
+    RangeIndex,
     Series,
     Timestamp,
     date_range,
@@ -467,12 +468,12 @@ class TestPandasContainer:
             left = read_json(inp, orient=orient, convert_axes=False)
             tm.assert_frame_equal(left, right)
 
-        right.index = pd.RangeIndex(len(df))
+        right.index = RangeIndex(len(df))
         inp = StringIO(df.to_json(orient="records"))
         left = read_json(inp, orient="records", convert_axes=False)
         tm.assert_frame_equal(left, right)
 
-        right.columns = pd.RangeIndex(df.shape[1])
+        right.columns = RangeIndex(df.shape[1])
         inp = StringIO(df.to_json(orient="values"))
         left = read_json(inp, orient="values", convert_axes=False)
         tm.assert_frame_equal(left, right)
@@ -2139,3 +2140,14 @@ def test_to_json_ea_null():
 {"a":null,"b":null}
 """
     assert result == expected
+
+
+def test_read_json_lines_rangeindex():
+    # GH 57429
+    data = """
+{"a": 1, "b": 2}
+{"a": 3, "b": 4}
+"""
+    result = read_json(StringIO(data), lines=True).index
+    expected = RangeIndex(2)
+    tm.assert_index_equal(result, expected, exact=True)
