@@ -474,7 +474,7 @@ class RangeIndex(Index):
             diff = values[1] - values[0]
             if diff != 0:
                 maybe_range_indexer, remainder = np.divmod(values - values[0], diff)
-                if (remainder == 0).all() and lib.is_range_indexer(
+                if not remainder.any() and lib.is_range_indexer(
                     maybe_range_indexer, len(maybe_range_indexer)
                 ):
                     new_range = range(values[0], values[-1] + diff, diff)
