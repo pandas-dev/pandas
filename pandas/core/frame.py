@@ -657,6 +657,11 @@ class DataFrame(NDFrame, OpsMixin):
             #  this check is slightly faster, benefiting the most-common case.
             return df
 
+        elif type(self).__name__ == "GeoDataFrame":
+            # Shim until geopandas can override their _constructor_from_mgr
+            #  bc they have different behavior for Managers than for DataFrames
+            return self._constructor(mgr)
+
         # We assume that the subclass __init__ knows how to handle a
         #  pd.DataFrame object.
         return self._constructor(df)
