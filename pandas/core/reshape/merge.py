@@ -2530,24 +2530,24 @@ def _factorize_keys(
 
     if isinstance(lk, BaseMaskedArray):
         assert isinstance(rk, BaseMaskedArray)
-        llab = rizer.factorize(lk._data, mask=lk._mask)
-        rlab = rizer.factorize(rk._data, mask=rk._mask)
+        llab, lany = rizer.factorize(lk._data, mask=lk._mask)
+        rlab, rany = rizer.factorize(rk._data, mask=rk._mask)
     elif isinstance(lk, ArrowExtensionArray):
         assert isinstance(rk, ArrowExtensionArray)
         # we can only get here with numeric dtypes
         # TODO: Remove when we have a Factorizer for Arrow
-        llab = rizer.factorize(
+        llab, lany = rizer.factorize(
             lk.to_numpy(na_value=1, dtype=lk.dtype.numpy_dtype), mask=lk.isna()
         )
-        rlab = rizer.factorize(
+        rlab, rany = rizer.factorize(
             rk.to_numpy(na_value=1, dtype=lk.dtype.numpy_dtype), mask=rk.isna()
         )
     else:
         # Argument 1 to "factorize" of "ObjectFactorizer" has incompatible type
         # "Union[ndarray[Any, dtype[signedinteger[_64Bit]]],
         # ndarray[Any, dtype[object_]]]"; expected "ndarray[Any, dtype[object_]]"
-        llab = rizer.factorize(lk)  # type: ignore[arg-type]
-        rlab = rizer.factorize(rk)  # type: ignore[arg-type]
+        llab, lany = rizer.factorize(lk)  # type: ignore[arg-type]
+        rlab, rany = rizer.factorize(rk)  # type: ignore[arg-type]
     assert llab.dtype == np.dtype(np.intp), llab.dtype
     assert rlab.dtype == np.dtype(np.intp), rlab.dtype
 
@@ -2558,16 +2558,11 @@ def _factorize_keys(
         llab, rlab = _sort_labels(uniques, llab, rlab)
 
     # NA group
-    lmask = llab == -1
-    lany = lmask.any()
-    rmask = rlab == -1
-    rany = rmask.any()
-
     if lany or rany:
         if lany:
-            np.putmask(llab, lmask, count)
+            np.putmask(llab, llab == -1, count)
         if rany:
-            np.putmask(rlab, rmask, count)
+            np.putmask(rlab, rlab == -1, count)
         count += 1
 
     return llab, rlab, count

@@ -595,7 +595,8 @@ cdef class {{name}}HashTable(HashTable):
     def _unique(self, const {{dtype}}_t[:] values, {{name}}Vector uniques,
                 Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                 object na_value=None, bint ignore_na=False,
-                object mask=None, bint return_inverse=False, bint use_result_mask=False):
+                object mask=None, bint return_inverse=False, bint use_result_mask=False,
+                bint return_labels_only=False):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -684,6 +685,7 @@ cdef class {{name}}HashTable(HashTable):
                 if ignore_na and use_mask:
                     if mask_values[i]:
                         labels[i] = na_sentinel
+                        seen_na = True
                         continue
                 elif ignore_na and (
                    is_nan_{{c_type}}(val) or
@@ -693,6 +695,7 @@ cdef class {{name}}HashTable(HashTable):
                     # ignore_na is True), skip the hashtable entry for them,
                     # and replace the corresponding label with na_sentinel
                     labels[i] = na_sentinel
+                    seen_na = True
                     continue
                 elif not ignore_na and use_result_mask:
                     if mask_values[i]:
@@ -749,6 +752,8 @@ cdef class {{name}}HashTable(HashTable):
                     idx = self.table.vals[k]
                     labels[i] = idx
 
+        if return_inverse and return_labels_only:
+            return labels.base, seen_na  # .base -> underlying ndarray
         if return_inverse:
             return uniques.to_array(), labels.base  # .base -> underlying ndarray
         if use_result_mask:
@@ -824,10 +829,11 @@ cdef class {{name}}HashTable(HashTable):
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                    object na_value=None, object mask=None):
         # -> np.ndarray[np.intp]
-        _, labels = self._unique(values, uniques, count_prior=count_prior,
+        labels, seen_na = self._unique(values, uniques, count_prior=count_prior,
                                  na_sentinel=na_sentinel, na_value=na_value,
-                                 ignore_na=True, return_inverse=True, mask=mask)
-        return labels
+                                 ignore_na=True, return_inverse=True, mask=mask,
+                                 return_labels_only=True)
+        return labels, seen_na
 
     {{if dtype == 'int64'}}
     @cython.boundscheck(False)
@@ -904,16 +910,17 @@ cdef class {{name}}Factorizer(Factorizer):
         """
         cdef:
             ndarray[intp_t] labels
+            bint seen_na
 
         if self.uniques.external_view_exists:
             uniques = {{name}}Vector()
             uniques.extend(self.uniques.to_array())
             self.uniques = uniques
-        labels = self.table.get_labels(values, self.uniques,
+        labels, seen_na = self.table.get_labels(values, self.uniques,
                                        self.count, na_sentinel,
                                        na_value=na_value, mask=mask)
         self.count = len(self.uniques)
-        return labels
+        return labels, seen_na
 
 {{endfor}}
 
@@ -1080,7 +1087,7 @@ cdef class StringHashTable(HashTable):
     def _unique(self, ndarray[object] values, ObjectVector uniques,
                 Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                 object na_value=None, bint ignore_na=False,
-                bint return_inverse=False):
+                bint return_inverse=False, bint return_labels_only=False):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -1123,7 +1130,7 @@ cdef class StringHashTable(HashTable):
             const char *v
             const char **vecs
             khiter_t k
-            bint use_na_value
+            bint use_na_value, seen_na = False
 
         if return_inverse:
             labels = np.zeros(n, dtype=np.intp)
@@ -1142,6 +1149,7 @@ cdef class StringHashTable(HashTable):
                 # ignore_na is True), we can skip the actual value, and
                 # replace the label with na_sentinel directly
                 labels[i] = na_sentinel
+                seen_na = True
             else:
                 # if ignore_na is False, we also stringify NaN/None/etc.
                 try:
@@ -1179,6 +1187,8 @@ cdef class StringHashTable(HashTable):
         for i in range(count):
             uniques.append(values[uindexer[i]])
 
+        if return_inverse and return_labels_only:
+            return labels.base, seen_na  # .base -> underlying ndarray
         if return_inverse:
             return uniques.to_array(), labels.base  # .base -> underlying ndarray
         return uniques.to_array()
@@ -1247,10 +1257,11 @@ cdef class StringHashTable(HashTable):
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                    object na_value=None, object mask=None):
         # -> np.ndarray[np.intp]
-        _, labels = self._unique(values, uniques, count_prior=count_prior,
+        labels, seen_na = self._unique(values, uniques, count_prior=count_prior,
                                  na_sentinel=na_sentinel, na_value=na_value,
-                                 ignore_na=True, return_inverse=True)
-        return labels
+                                 ignore_na=True, return_inverse=True,
+                                 return_labels_only=True)
+        return labels, seen_na
 
 
 cdef class PyObjectHashTable(HashTable):
@@ -1362,7 +1373,7 @@ cdef class PyObjectHashTable(HashTable):
     def _unique(self, ndarray[object] values, ObjectVector uniques,
                 Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                 object na_value=None, bint ignore_na=False,
-                bint return_inverse=False):
+                bint return_inverse=False, bint return_labels_only=False):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -1402,7 +1413,7 @@ cdef class PyObjectHashTable(HashTable):
             int ret = 0
             object val
             khiter_t k
-            bint use_na_value
+            bint use_na_value, seen_na=False
 
         if return_inverse:
             labels = np.empty(n, dtype=np.intp)
@@ -1420,6 +1431,7 @@ cdef class PyObjectHashTable(HashTable):
                 # ignore_na is True), skip the hashtable entry for them, and
                 # replace the corresponding label with na_sentinel
                 labels[i] = na_sentinel
+                seen_na = True
                 continue
 
             k = kh_get_pymap(self.table, <PyObject*>val)
@@ -1437,6 +1449,8 @@ cdef class PyObjectHashTable(HashTable):
                 idx = self.table.vals[k]
                 labels[i] = idx
 
+        if return_inverse and return_labels_only:
+            return labels.base, seen_na  # .base -> underlying ndarray
         if return_inverse:
             return uniques.to_array(), labels.base  # .base -> underlying ndarray
         return uniques.to_array()
@@ -1505,7 +1519,8 @@ cdef class PyObjectHashTable(HashTable):
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                    object na_value=None, object mask=None):
         # -> np.ndarray[np.intp]
-        _, labels = self._unique(values, uniques, count_prior=count_prior,
+        labels, seen_na = self._unique(values, uniques, count_prior=count_prior,
                                  na_sentinel=na_sentinel, na_value=na_value,
-                                 ignore_na=True, return_inverse=True)
-        return labels
+                                 ignore_na=True, return_inverse=True,
+                                 return_labels_only=True)
+        return labels, seen_na

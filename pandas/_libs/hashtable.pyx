@@ -111,6 +111,7 @@ cdef class ObjectFactorizer(Factorizer):
         """
         cdef:
             ndarray[intp_t] labels
+            bint seen_na
 
         if mask is not None:
             raise NotImplementedError("mask not supported for ObjectFactorizer.")
@@ -119,7 +120,7 @@ cdef class ObjectFactorizer(Factorizer):
             uniques = ObjectVector()
             uniques.extend(self.uniques.to_array())
             self.uniques = uniques
-        labels = self.table.get_labels(values, self.uniques,
-                                       self.count, na_sentinel, na_value)
+        labels, seen_na = self.table.get_labels(values, self.uniques,
+                                                self.count, na_sentinel, na_value)
         self.count = len(self.uniques)
-        return labels
+        return labels, seen_na
