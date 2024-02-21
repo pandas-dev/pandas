@@ -9,6 +9,12 @@ including other versions of pandas.
 {{ header }}
 
 .. ---------------------------------------------------------------------------
+.. _whatsnew_221.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+- Added ``pyarrow`` pip extra so users can install pandas and pyarrow with pip with ``pip install pandas[pyarrow]`` (:issue:`54466`)
+
 .. _whatsnew_221.regressions:
 
 Fixed regressions
