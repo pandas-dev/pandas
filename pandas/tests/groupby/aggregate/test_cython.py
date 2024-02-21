@@ -68,7 +68,7 @@ def test_cythonized_aggers(op_name):
     expd = {}
     for (cat1, cat2), group in grouped:
         expd.setdefault(cat1, {})[cat2] = op(group["C"])
-    exp = DataFrame(expd).T.stack(future_stack=True)
+    exp = DataFrame(expd).T.stack()
     exp.index.names = ["A", "B"]
     exp.name = "C"
 
@@ -124,21 +124,6 @@ def test_cython_agg_nothing_to_agg_with_dates():
     msg = "Cannot use numeric_only=True with SeriesGroupBy.mean and non-numeric dtypes"
     with pytest.raises(TypeError, match=msg):
         frame.groupby("b").dates.mean(numeric_only=True)
-
-
-def test_cython_agg_frame_columns():
-    # #2113
-    df = DataFrame({"x": [1, 2, 3], "y": [3, 4, 5]})
-
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.groupby(level=0, axis="columns").mean()
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.groupby(level=0, axis="columns").mean()
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.groupby(level=0, axis="columns").mean()
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.groupby(level=0, axis="columns").mean()
 
 
 def test_cython_agg_return_dict():

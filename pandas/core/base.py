@@ -18,8 +18,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
-
 from pandas._libs import lib
 from pandas._typing import (
     AxisInt,
@@ -106,7 +104,7 @@ class PandasObject(DirNamesMixin):
     _cache: dict[str, Any]
 
     @property
-    def _constructor(self):
+    def _constructor(self) -> type[Self]:
         """
         Class constructor (for this class it's just `__class__`).
         """
@@ -218,7 +216,7 @@ class SelectionMixin(Generic[NDFrameT]):
             return self.obj
 
         if self._selection is not None:
-            return self.obj._getitem_nocopy(self._selection_list)
+            return self.obj[self._selection_list]
 
         if len(self.exclusions) > 0:
             # equivalent to `self.obj.drop(self.exclusions, axis=1)
@@ -367,7 +365,7 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
-        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s = pd.Series(["Ant", "Bear", "Cow"])
         >>> s
         0     Ant
         1    Bear
@@ -409,7 +407,7 @@ class IndexOpsMixin(OpsMixin):
 
         For an index:
 
-        >>> s = pd.Series([1], index=['a'])
+        >>> s = pd.Series([1], index=["a"])
         >>> s.index.item()
         'a'
         """
@@ -426,7 +424,7 @@ class IndexOpsMixin(OpsMixin):
         --------
         For Series:
 
-        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s = pd.Series(["Ant", "Bear", "Cow"])
         >>> s
         0     Ant
         1    Bear
@@ -454,7 +452,7 @@ class IndexOpsMixin(OpsMixin):
         --------
         For Series:
 
-        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s = pd.Series(["Ant", "Bear", "Cow"])
         >>> s
         0     Ant
         1    Bear
@@ -531,7 +529,7 @@ class IndexOpsMixin(OpsMixin):
         For extension types, like Categorical, the actual ExtensionArray
         is returned
 
-        >>> ser = pd.Series(pd.Categorical(['a', 'b', 'a']))
+        >>> ser = pd.Series(pd.Categorical(["a", "b", "a"]))
         >>> ser.array
         ['a', 'b', 'a']
         Categories (2, object): ['a', 'b']
@@ -610,7 +608,7 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
-        >>> ser = pd.Series(pd.Categorical(['a', 'b', 'a']))
+        >>> ser = pd.Series(pd.Categorical(["a", "b", "a"]))
         >>> ser.to_numpy()
         array(['a', 'b', 'a'], dtype=object)
 
@@ -618,7 +616,7 @@ class IndexOpsMixin(OpsMixin):
         Use ``dtype=object`` to return an ndarray of pandas :class:`Timestamp`
         objects, each with the correct ``tz``.
 
-        >>> ser = pd.Series(pd.date_range('2000', periods=2, tz="CET"))
+        >>> ser = pd.Series(pd.date_range("2000", periods=2, tz="CET"))
         >>> ser.to_numpy(dtype=object)
         array([Timestamp('2000-01-01 00:00:00+0100', tz='CET'),
                Timestamp('2000-01-02 00:00:00+0100', tz='CET')],
@@ -661,10 +659,10 @@ class IndexOpsMixin(OpsMixin):
 
         result = np.asarray(values, dtype=dtype)
 
-        if (copy and not fillna) or (not copy and using_copy_on_write()):
+        if (copy and not fillna) or not copy:
             if np.shares_memory(self._values[:2], result[:2]):
                 # Take slices to improve performance of check
-                if using_copy_on_write() and not copy:
+                if not copy:
                     result = result.view()
                     result.flags.writeable = False
                 else:
@@ -713,8 +711,15 @@ class IndexOpsMixin(OpsMixin):
         --------
         Consider dataset containing cereal calories
 
-        >>> s = pd.Series({{'Corn Flakes': 100.0, 'Almond Delight': 110.0,
-        ...                'Cinnamon Toast Crunch': 120.0, 'Cocoa Puff': 110.0}})
+        >>> s = pd.Series(
+        ...     [100.0, 110.0, 120.0, 110.0],
+        ...     index=[
+        ...         "Corn Flakes",
+        ...         "Almond Delight",
+        ...         "Cinnamon Toast Crunch",
+        ...         "Cocoa Puff",
+        ...     ],
+        ... )
         >>> s
         Corn Flakes              100.0
         Almond Delight           110.0
@@ -795,7 +800,7 @@ class IndexOpsMixin(OpsMixin):
             # "int")
             return result  # type: ignore[return-value]
 
-    def tolist(self):
+    def tolist(self) -> list:
         """
         Return a list of the values.
 
@@ -889,7 +894,7 @@ class IndexOpsMixin(OpsMixin):
         return bool(isna(self).any())  # type: ignore[union-attr]
 
     @final
-    def _map_values(self, mapper, na_action=None, convert: bool = True):
+    def _map_values(self, mapper, na_action=None):
         """
         An internal function that maps values using the input
         correspondence (which can be a dict, Series, or function).
@@ -901,10 +906,6 @@ class IndexOpsMixin(OpsMixin):
         na_action : {None, 'ignore'}
             If 'ignore', propagate NA values, without passing them to the
             mapping function
-        convert : bool, default True
-            Try to find better dtype for elementwise function results. If
-            False, leave as dtype=object. Note that the dtype is always
-            preserved for some extension array dtypes, such as Categorical.
 
         Returns
         -------
@@ -918,7 +919,7 @@ class IndexOpsMixin(OpsMixin):
         if isinstance(arr, ExtensionArray):
             return arr.map(mapper, na_action=na_action)
 
-        return algorithms.map_array(arr, mapper, na_action=na_action, convert=convert)
+        return algorithms.map_array(arr, mapper, na_action=na_action)
 
     @final
     def value_counts(
@@ -1164,7 +1165,7 @@ class IndexOpsMixin(OpsMixin):
         24
         """
         if hasattr(self.array, "memory_usage"):
-            return self.array.memory_usage(  # pyright: ignore[reportGeneralTypeIssues]
+            return self.array.memory_usage(  # pyright: ignore[reportAttributeAccessIssue]
                 deep=deep,
             )
 
@@ -1354,7 +1355,7 @@ class IndexOpsMixin(OpsMixin):
             sorter=sorter,
         )
 
-    def drop_duplicates(self, *, keep: DropKeep = "first"):
+    def drop_duplicates(self, *, keep: DropKeep = "first") -> Self:
         duplicated = self._duplicated(keep=keep)
         # error: Value of type "IndexOpsMixin" is not indexable
         return self[~duplicated]  # type: ignore[index]

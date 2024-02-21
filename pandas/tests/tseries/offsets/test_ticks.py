@@ -338,11 +338,6 @@ def test_tick_equalities(cls):
 
 
 @pytest.mark.parametrize("cls", tick_classes)
-def test_tick_offset(cls):
-    assert not cls().is_anchored()
-
-
-@pytest.mark.parametrize("cls", tick_classes)
 def test_compare_ticks(cls):
     three = cls(3)
     four = cls(4)

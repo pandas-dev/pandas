@@ -22,6 +22,7 @@ from pandas._typing import (
     AxisInt,
     DtypeObj,
     FillnaOptions,
+    InterpolateOptions,
     NpDtype,
     PositionalIndexer,
     Scalar,
@@ -99,6 +100,7 @@ if TYPE_CHECKING:
         NumpyValueArrayLike,
     )
     from pandas._libs.missing import NAType
+    from pandas.core.arrays import FloatingArray
 
 from pandas.compat.numpy import function as nv
 
@@ -301,7 +303,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         # Note: without the "str" here, the f-string rendering raises in
         #  py38 builds.
-        raise TypeError(f"Invalid value '{str(value)}' for dtype {self.dtype}")
+        raise TypeError(f"Invalid value '{value!s}' for dtype {self.dtype}")
 
     def __setitem__(self, key, value) -> None:
         key = check_array_indexer(self, key)
@@ -404,6 +406,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         DataFrame.round : Round values of a DataFrame.
         Series.round : Round values of a Series.
         """
+        if self.dtype.kind == "b":
+            return self
         nv.validate_round(args, kwargs)
         values = np.round(self._data, decimals=decimals, **kwargs)
 
@@ -426,6 +430,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._simple_new(abs(self._data), self._mask.copy())
 
     # ------------------------------------------------------------------
+
+    def _values_for_json(self) -> np.ndarray:
+        return np.asarray(self, dtype=object)
 
     def to_numpy(
         self,
@@ -495,6 +502,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         """
         hasna = self._hasna
         dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, hasna)
+        if dtype is None:
+            dtype = object
 
         if hasna:
             if (
@@ -1326,7 +1335,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._wrap_reduction_result("max", result, skipna=skipna, axis=axis)
 
     def map(self, mapper, na_action=None):
-        return map_array(self.to_numpy(), mapper, na_action=None)
+        return map_array(self.to_numpy(), mapper, na_action=na_action)
 
     @overload
     def any(
@@ -1519,6 +1528,58 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             else:
                 return self.dtype.na_value
 
+    def interpolate(
+        self,
+        *,
+        method: InterpolateOptions,
+        axis: int,
+        index,
+        limit,
+        limit_direction,
+        limit_area,
+        copy: bool,
+        **kwargs,
+    ) -> FloatingArray:
+        """
+        See NDFrame.interpolate.__doc__.
+        """
+        # NB: we return type(self) even if copy=False
+        if self.dtype.kind == "f":
+            if copy:
+                data = self._data.copy()
+                mask = self._mask.copy()
+            else:
+                data = self._data
+                mask = self._mask
+        elif self.dtype.kind in "iu":
+            copy = True
+            data = self._data.astype("f8")
+            mask = self._mask.copy()
+        else:
+            raise NotImplementedError(
+                f"interpolate is not implemented for dtype={self.dtype}"
+            )
+
+        missing.interpolate_2d_inplace(
+            data,
+            method=method,
+            axis=0,
+            index=index,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            mask=mask,
+            **kwargs,
+        )
+        if not copy:
+            return self  # type: ignore[return-value]
+        if self.dtype.kind == "f":
+            return type(self)._simple_new(data, mask)  # type: ignore[return-value]
+        else:
+            from pandas.core.arrays import FloatingArray
+
+            return FloatingArray._simple_new(data, mask)
+
     def _accumulate(
         self, name: str, *, skipna: bool = True, **kwargs
     ) -> BaseMaskedArray:
@@ -1590,13 +1651,24 @@ def transpose_homogeneous_masked_arrays(
     same dtype. The caller is responsible for ensuring validity of input data.
     """
     masked_arrays = list(masked_arrays)
+    dtype = masked_arrays[0].dtype
+
     values = [arr._data.reshape(1, -1) for arr in masked_arrays]
-    transposed_values = np.concatenate(values, axis=0)
+    transposed_values = np.concatenate(
+        values,
+        axis=0,
+        out=np.empty(
+            (len(masked_arrays), len(masked_arrays[0])),
+            order="F",
+            dtype=dtype.numpy_dtype,
+        ),
+    )
 
     masks = [arr._mask.reshape(1, -1) for arr in masked_arrays]
-    transposed_masks = np.concatenate(masks, axis=0)
+    transposed_masks = np.concatenate(
+        masks, axis=0, out=np.empty_like(transposed_values, dtype=bool)
+    )
 
-    dtype = masked_arrays[0].dtype
     arr_type = dtype.construct_array_type()
     transposed_arrays: list[BaseMaskedArray] = []
     for i in range(transposed_values.shape[1]):

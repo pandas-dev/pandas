@@ -53,11 +53,6 @@ class TestBQuarterBegin:
         expected = "<BusinessQuarterBegin: startingMonth=1>"
         assert repr(BQuarterBegin(startingMonth=1)) == expected
 
-    def test_is_anchored(self):
-        assert BQuarterBegin(startingMonth=1).is_anchored()
-        assert BQuarterBegin().is_anchored()
-        assert not BQuarterBegin(2, startingMonth=1).is_anchored()
-
     def test_offset_corner_case(self):
         # corner
         offset = BQuarterBegin(n=-1, startingMonth=1)
@@ -175,11 +170,6 @@ class TestBQuarterEnd:
         assert repr(BQuarterEnd(startingMonth=3)) == expected
         expected = "<BusinessQuarterEnd: startingMonth=1>"
         assert repr(BQuarterEnd(startingMonth=1)) == expected
-
-    def test_is_anchored(self):
-        assert BQuarterEnd(startingMonth=1).is_anchored()
-        assert BQuarterEnd().is_anchored()
-        assert not BQuarterEnd(2, startingMonth=1).is_anchored()
 
     def test_offset_corner_case(self):
         # corner

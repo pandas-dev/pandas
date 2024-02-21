@@ -7,8 +7,8 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Union,
+    cast,
 )
-import warnings
 
 import numpy as np
 
@@ -20,7 +20,6 @@ from pandas.compat import (
     pa_version_under10p1,
     pa_version_under13p0,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -63,6 +62,8 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from pandas.core.dtypes.dtypes import ExtensionDtype
+
     from pandas import Series
 
 
@@ -104,7 +105,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     See Also
     --------
-    :func:`pandas.array`
+    :func:`array`
         The recommended function for creating a ArrowStringArray.
     Series.str
         The string methods are available on Series backed by
@@ -116,7 +117,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     Examples
     --------
-    >>> pd.array(['This is', 'some text', None, 'data.'], dtype="string[pyarrow]")
+    >>> pd.array(["This is", "some text", None, "data."], dtype="string[pyarrow]")
     <ArrowStringArray>
     ['This is', 'some text', <NA>, 'data.']
     Length: 4, dtype: string
@@ -203,7 +204,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, dtype: Dtype | None = None, copy: bool = False
+        cls, strings, *, dtype: ExtensionDtype, copy: bool = False
     ) -> Self:
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
@@ -271,17 +272,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
         return super().astype(dtype, copy=copy)
 
-    @property
-    def _data(self):
-        # dask accesses ._data directlys
-        warnings.warn(
-            f"{type(self).__name__}._data is a deprecated and will be removed "
-            "in a future version, use ._pa_array instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._pa_array
-
     # ------------------------------------------------------------------------
     # String methods interface
 
@@ -327,7 +317,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 # error: Argument 1 to "dtype" has incompatible type
                 # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
                 # "Type[object]"
-                dtype=np.dtype(dtype),  # type: ignore[arg-type]
+                dtype=np.dtype(cast(type, dtype)),
             )
 
             if not na_value_is_na:
@@ -640,7 +630,7 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
                     mask.view("uint8"),
                     convert=False,
                     na_value=na_value,
-                    dtype=np.dtype(dtype),  # type: ignore[arg-type]
+                    dtype=np.dtype(cast(type, dtype)),
                 )
                 return result
 

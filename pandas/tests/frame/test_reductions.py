@@ -1180,10 +1180,7 @@ class TestDataFrameAnalytics:
     def test_idxmax_mixed_dtype(self):
         # don't cast to object, which would raise in nanops
         dti = date_range("2016-01-01", periods=3)
-
-        # Copying dti is needed for ArrayManager otherwise when we set
-        #  df.loc[0, 3] = pd.NaT below it edits dti
-        df = DataFrame({1: [0, 2, 1], 2: range(3)[::-1], 3: dti.copy(deep=True)})
+        df = DataFrame({1: [0, 2, 1], 2: range(3)[::-1], 3: dti})
 
         result = df.idxmax()
         expected = Series([1, 0, 2], index=[1, 2, 3])
@@ -1865,7 +1862,6 @@ class TestEmptyDataFrameReductions:
         "opname, dtype, exp_value, exp_dtype",
         [
             ("sum", "Int8", 0, ("Int32" if is_windows_np2_or_is32 else "Int64")),
-            ("prod", "Int8", 1, ("Int32" if is_windows_np2_or_is32 else "Int64")),
             ("prod", "Int8", 1, ("Int32" if is_windows_np2_or_is32 else "Int64")),
             ("sum", "Int64", 0, "Int64"),
             ("prod", "Int64", 1, "Int64"),

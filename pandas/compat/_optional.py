@@ -24,8 +24,7 @@ VERSIONS = {
     "bs4": "4.11.2",
     "blosc": "1.21.3",
     "bottleneck": "1.3.6",
-    "dataframe-api-compat": "0.1.7",
-    "fastparquet": "2022.12.0",
+    "fastparquet": "2023.04.0",
     "fsspec": "2022.11.0",
     "html5lib": "1.1",
     "hypothesis": "6.46.1",
@@ -37,7 +36,6 @@ VERSIONS = {
     "numexpr": "2.8.4",
     "odfpy": "1.4.1",
     "openpyxl": "3.1.0",
-    "pandas_gbq": "0.19.0",
     "psycopg2": "2.9.6",  # (dt dec pq3 ext lo64)
     "pymysql": "1.0.2",
     "pyarrow": "10.0.1",
@@ -68,7 +66,6 @@ INSTALL_MAPPING = {
     "jinja2": "Jinja2",
     "lxml.etree": "lxml",
     "odf": "odfpy",
-    "pandas_gbq": "pandas-gbq",
     "python_calamine": "python-calamine",
     "sqlalchemy": "SQLAlchemy",
     "tables": "pytables",
@@ -147,9 +144,8 @@ def import_optional_dependency(
         The imported module, when found and the version is correct.
         None is returned when the package is not found and `errors`
         is False, or when the package's version is too old and `errors`
-        is ``'warn'``.
+        is ``'warn'`` or ``'ignore'``.
     """
-
     assert errors in {"warn", "raise", "ignore"}
 
     package_name = INSTALL_MAPPING.get(name)
@@ -161,9 +157,9 @@ def import_optional_dependency(
     )
     try:
         module = importlib.import_module(name)
-    except ImportError:
+    except ImportError as err:
         if errors == "raise":
-            raise ImportError(msg)
+            raise ImportError(msg) from err
         return None
 
     # Handle submodules: if we have submodule, grab parent module from sys.modules
@@ -190,5 +186,7 @@ def import_optional_dependency(
                 return None
             elif errors == "raise":
                 raise ImportError(msg)
+            else:
+                return None
 
     return module

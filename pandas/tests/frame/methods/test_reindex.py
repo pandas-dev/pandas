@@ -173,7 +173,7 @@ class TestDataFrameSelectReindex:
         result2 = df.reindex(columns=cols, index=df.index, copy=True)
         assert not np.shares_memory(result2[0]._values, df[0]._values)
 
-    def test_reindex_copies_ea(self, using_copy_on_write):
+    def test_reindex_copies_ea(self):
         # https://github.com/pandas-dev/pandas/pull/51197
         # also ensure to honor copy keyword for ExtensionDtypes
         N = 10
@@ -184,17 +184,11 @@ class TestDataFrameSelectReindex:
         np.random.default_rng(2).shuffle(cols)
 
         result = df.reindex(columns=cols, copy=True)
-        if using_copy_on_write:
-            assert np.shares_memory(result[0].array._data, df[0].array._data)
-        else:
-            assert not np.shares_memory(result[0].array._data, df[0].array._data)
+        assert np.shares_memory(result[0].array._data, df[0].array._data)
 
         # pass both columns and index
         result2 = df.reindex(columns=cols, index=df.index, copy=True)
-        if using_copy_on_write:
-            assert np.shares_memory(result2[0].array._data, df[0].array._data)
-        else:
-            assert not np.shares_memory(result2[0].array._data, df[0].array._data)
+        assert np.shares_memory(result2[0].array._data, df[0].array._data)
 
     def test_reindex_date_fill_value(self):
         # passing date to dt64 is deprecated; enforced in 2.0 to cast to object
@@ -452,19 +446,16 @@ class TestDataFrameSelectReindex:
             ("mid",),
             ("mid", "btm"),
             ("mid", "btm", "top"),
-            ("mid",),
             ("mid", "top"),
             ("mid", "top", "btm"),
             ("btm",),
             ("btm", "mid"),
             ("btm", "mid", "top"),
-            ("btm",),
             ("btm", "top"),
             ("btm", "top", "mid"),
             ("top",),
             ("top", "mid"),
             ("top", "mid", "btm"),
-            ("top",),
             ("top", "btm"),
             ("top", "btm", "mid"),
         ],
@@ -605,7 +596,7 @@ class TestDataFrameSelectReindex:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_reindex(self, float_frame, using_copy_on_write):
+    def test_reindex(self, float_frame):
         datetime_series = Series(
             np.arange(30, dtype=np.float64), index=date_range("2020-01-01", periods=30)
         )
@@ -647,10 +638,7 @@ class TestDataFrameSelectReindex:
 
         # Same index, copies values but not index if copy=False
         newFrame = float_frame.reindex(float_frame.index, copy=False)
-        if using_copy_on_write:
-            assert newFrame.index.is_(float_frame.index)
-        else:
-            assert newFrame.index is float_frame.index
+        assert newFrame.index.is_(float_frame.index)
 
         # length zero
         newFrame = float_frame.reindex([])
@@ -1030,6 +1018,12 @@ class TestDataFrameSelectReindex:
         expected = df.iloc[[1]]
         tm.assert_frame_equal(result, expected)
 
+    def test_reindex_without_upcasting(self):
+        # GH45857
+        df = DataFrame(np.zeros((10, 10), dtype=np.float32))
+        result = df.reindex(columns=np.arange(5, 15))
+        assert result.dtypes.eq(np.float32).all()
+
     def test_reindex_multi(self):
         df = DataFrame(np.random.default_rng(2).standard_normal((3, 3)))
 
@@ -1222,13 +1216,7 @@ class TestDataFrameSelectReindex:
         expected = DataFrame({"a": [np.nan] * 3}, index=idx, dtype=object)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "src_idx",
-        [
-            Index([]),
-            CategoricalIndex([]),
-        ],
-    )
+    @pytest.mark.parametrize("src_idx", [Index, CategoricalIndex])
     @pytest.mark.parametrize(
         "cat_idx",
         [
@@ -1243,7 +1231,7 @@ class TestDataFrameSelectReindex:
         ],
     )
     def test_reindex_empty(self, src_idx, cat_idx):
-        df = DataFrame(columns=src_idx, index=["K"], dtype="f8")
+        df = DataFrame(columns=src_idx([]), index=["K"], dtype="f8")
 
         result = df.reindex(columns=cat_idx)
         expected = DataFrame(index=["K"], columns=cat_idx, dtype="f8")
@@ -1284,36 +1272,14 @@ class TestDataFrameSelectReindex:
         assert res.iloc[-1, 1] is fv
         tm.assert_frame_equal(res, expected)
 
-    @pytest.mark.parametrize(
-        "index_df,index_res,index_exp",
-        [
-            (
-                CategoricalIndex([], categories=["A"]),
-                Index(["A"]),
-                Index(["A"]),
-            ),
-            (
-                CategoricalIndex([], categories=["A"]),
-                Index(["B"]),
-                Index(["B"]),
-            ),
-            (
-                CategoricalIndex([], categories=["A"]),
-                CategoricalIndex(["A"]),
-                CategoricalIndex(["A"]),
-            ),
-            (
-                CategoricalIndex([], categories=["A"]),
-                CategoricalIndex(["B"]),
-                CategoricalIndex(["B"]),
-            ),
-        ],
-    )
-    def test_reindex_not_category(self, index_df, index_res, index_exp):
+    @pytest.mark.parametrize("klass", [Index, CategoricalIndex])
+    @pytest.mark.parametrize("data", ["A", "B"])
+    def test_reindex_not_category(self, klass, data):
         # GH#28690
-        df = DataFrame(index=index_df)
-        result = df.reindex(index=index_res)
-        expected = DataFrame(index=index_exp)
+        df = DataFrame(index=CategoricalIndex([], categories=["A"]))
+        idx = klass([data])
+        result = df.reindex(index=idx)
+        expected = DataFrame(index=idx)
         tm.assert_frame_equal(result, expected)
 
     def test_invalid_method(self):

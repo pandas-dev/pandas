@@ -93,7 +93,14 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas import Series
+    from pandas import (
+        Index,
+        Series,
+    )
+
+
+def holds_integer(column: Index) -> bool:
+    return column.inferred_type in {"integer", "mixed-integer"}
 
 
 def _color_in_style(style: str) -> bool:
@@ -465,7 +472,7 @@ class MPLPlot(ABC):
     @final
     @staticmethod
     def _iter_data(
-        data: DataFrame | dict[Hashable, Series | DataFrame]
+        data: DataFrame | dict[Hashable, Series | DataFrame],
     ) -> Iterator[tuple[Hashable, np.ndarray]]:
         for col, values in data.items():
             # This was originally written to use values.values before EAs
@@ -671,7 +678,7 @@ class MPLPlot(ABC):
 
         # GH16953, infer_objects is needed as fallback, for ``Series``
         # with ``dtype == object``
-        data = data.infer_objects(copy=False)
+        data = data.infer_objects()
         include_type = [np.number, "datetime", "datetimetz", "timedelta"]
 
         # GH23719, allow plotting boolean
@@ -1021,7 +1028,7 @@ class MPLPlot(ABC):
             return col_idx
 
     @final
-    def _get_ax(self, i: int):
+    def _get_ax(self, i: int) -> Axes:
         # get the twinx ax if appropriate
         if self.subplots:
             i = self._col_idx_to_axis_idx(i)
@@ -1037,7 +1044,7 @@ class MPLPlot(ABC):
         return ax
 
     @final
-    def on_right(self, i: int):
+    def on_right(self, i: int) -> bool:
         if isinstance(self.secondary_y, bool):
             return self.secondary_y
 
@@ -1210,7 +1217,7 @@ class MPLPlot(ABC):
         return errors
 
     @final
-    def _get_subplots(self, fig: Figure):
+    def _get_subplots(self, fig: Figure) -> list[Axes]:
         if Version(mpl.__version__) < Version("3.8"):
             from matplotlib.axes import Subplot as Klass
         else:
@@ -1246,9 +1253,9 @@ class PlanePlot(MPLPlot, ABC):
         MPLPlot.__init__(self, data, **kwargs)
         if x is None or y is None:
             raise ValueError(self._kind + " requires an x and y column")
-        if is_integer(x) and not self.data.columns._holds_integer():
+        if is_integer(x) and not holds_integer(self.data.columns):
             x = self.data.columns[x]
-        if is_integer(y) and not self.data.columns._holds_integer():
+        if is_integer(y) and not holds_integer(self.data.columns):
             y = self.data.columns[y]
 
         self.x = x
@@ -1318,7 +1325,7 @@ class ScatterPlot(PlanePlot):
         self.norm = norm
 
         super().__init__(data, x, y, **kwargs)
-        if is_integer(c) and not self.data.columns._holds_integer():
+        if is_integer(c) and not holds_integer(self.data.columns):
             c = self.data.columns[c]
         self.c = c
 
@@ -1434,7 +1441,7 @@ class HexBinPlot(PlanePlot):
 
     def __init__(self, data, x, y, C=None, *, colorbar: bool = True, **kwargs) -> None:
         super().__init__(data, x, y, **kwargs)
-        if is_integer(C) and not self.data.columns._holds_integer():
+        if is_integer(C) and not holds_integer(self.data.columns):
             C = self.data.columns[C]
         self.C = C
 
@@ -2100,9 +2107,11 @@ class PiePlot(MPLPlot):
             results = ax.pie(y, labels=blabels, **kwds)
 
             if kwds.get("autopct", None) is not None:
-                patches, texts, autotexts = results
+                # error: Need more than 2 values to unpack (3 expected)
+                patches, texts, autotexts = results  # type: ignore[misc]
             else:
-                patches, texts = results
+                # error: Too many values to unpack (2 expected, 3 provided)
+                patches, texts = results  # type: ignore[misc]
                 autotexts = []
 
             if self.fontsize is not None:

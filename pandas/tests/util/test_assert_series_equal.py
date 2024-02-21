@@ -461,3 +461,23 @@ def test_ea_and_numpy_no_dtype_check(val, check_exact, dtype):
     left = Series([1, 2, val], dtype=dtype)
     right = Series(pd.array([1, 2, val]))
     tm.assert_series_equal(left, right, check_dtype=False, check_exact=check_exact)
+
+
+def test_assert_series_equal_int_tol():
+    # GH#56646
+    left = Series([81, 18, 121, 38, 74, 72, 81, 81, 146, 81, 81, 170, 74, 74])
+    right = Series([72, 9, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72])
+    tm.assert_series_equal(left, right, rtol=1.5)
+
+    tm.assert_frame_equal(left.to_frame(), right.to_frame(), rtol=1.5)
+    tm.assert_extension_array_equal(
+        left.astype("Int64").values, right.astype("Int64").values, rtol=1.5
+    )
+
+
+def test_assert_series_equal_index_exact_default():
+    # GH#57067
+    ser1 = Series(np.zeros(6, dtype=int), [0, 0.2, 0.4, 0.6, 0.8, 1])
+    ser2 = Series(np.zeros(6, dtype=int), np.linspace(0, 1, 6))
+    tm.assert_series_equal(ser1, ser2)
+    tm.assert_frame_equal(ser1.to_frame(), ser2.to_frame())

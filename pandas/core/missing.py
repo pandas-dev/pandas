@@ -31,6 +31,7 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.core.dtypes.common import (
     is_array_like,
+    is_bool_dtype,
     is_numeric_dtype,
     is_numeric_v_string_like,
     is_object_dtype,
@@ -100,21 +101,34 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
 
     # GH 21977
     mask = np.zeros(arr.shape, dtype=bool)
-    for x in nonna:
-        if is_numeric_v_string_like(arr, x):
-            # GH#29553 prevent numpy deprecation warnings
-            pass
-        else:
-            if potential_na:
-                new_mask = np.zeros(arr.shape, dtype=np.bool_)
-                new_mask[arr_mask] = arr[arr_mask] == x
+    if (
+        is_numeric_dtype(arr.dtype)
+        and not is_bool_dtype(arr.dtype)
+        and is_bool_dtype(nonna.dtype)
+    ):
+        pass
+    elif (
+        is_bool_dtype(arr.dtype)
+        and is_numeric_dtype(nonna.dtype)
+        and not is_bool_dtype(nonna.dtype)
+    ):
+        pass
+    else:
+        for x in nonna:
+            if is_numeric_v_string_like(arr, x):
+                # GH#29553 prevent numpy deprecation warnings
+                pass
             else:
-                new_mask = arr == x
+                if potential_na:
+                    new_mask = np.zeros(arr.shape, dtype=np.bool_)
+                    new_mask[arr_mask] = arr[arr_mask] == x
+                else:
+                    new_mask = arr == x
 
-                if not isinstance(new_mask, np.ndarray):
-                    # usually BooleanArray
-                    new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
-            mask |= new_mask
+                    if not isinstance(new_mask, np.ndarray):
+                        # usually BooleanArray
+                        new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
+                mask |= new_mask
 
     if na_mask.any():
         mask |= isna(arr)
@@ -335,6 +349,7 @@ def interpolate_2d_inplace(
     limit_direction: str = "forward",
     limit_area: str | None = None,
     fill_value: Any | None = None,
+    mask=None,
     **kwargs,
 ) -> None:
     """
@@ -382,6 +397,7 @@ def interpolate_2d_inplace(
             limit_area=limit_area_validated,
             fill_value=fill_value,
             bounds_error=False,
+            mask=mask,
             **kwargs,
         )
 
@@ -426,6 +442,7 @@ def _interpolate_1d(
     fill_value: Any | None = None,
     bounds_error: bool = False,
     order: int | None = None,
+    mask=None,
     **kwargs,
 ) -> None:
     """
@@ -439,8 +456,10 @@ def _interpolate_1d(
     -----
     Fills 'yvalues' in-place.
     """
-
-    invalid = isna(yvalues)
+    if mask is not None:
+        invalid = mask
+    else:
+        invalid = isna(yvalues)
     valid = ~invalid
 
     if not valid.any():
@@ -517,7 +536,10 @@ def _interpolate_1d(
             **kwargs,
         )
 
-    if is_datetimelike:
+    if mask is not None:
+        mask[:] = False
+        mask[preserve_nans] = True
+    elif is_datetimelike:
         yvalues[preserve_nans] = NaT.value
     else:
         yvalues[preserve_nans] = np.nan
@@ -1078,7 +1100,7 @@ def _interp_limit(
 
         def _interp_limit(invalid, fw_limit, bw_limit):
             for x in np.where(invalid)[0]:
-                if invalid[max(0, x - fw_limit):x + bw_limit + 1].all():
+                if invalid[max(0, x - fw_limit) : x + bw_limit + 1].all():
                     yield x
     """
     # handle forward first; the backward direction is the same except

@@ -35,7 +35,7 @@ def test_series_describe_single():
     )
     grouped = ts.groupby(lambda x: x.month)
     result = grouped.apply(lambda x: x.describe())
-    expected = grouped.describe().stack(future_stack=True)
+    expected = grouped.describe().stack()
     tm.assert_series_equal(result, expected)
 
 
@@ -85,18 +85,6 @@ def test_frame_describe_multikey(tsframe):
         group = DataFrame(group.values, columns=group_col, index=group.index)
         desc_groups.append(group)
     expected = pd.concat(desc_groups, axis=1)
-    tm.assert_frame_equal(result, expected)
-
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        groupedT = tsframe.groupby({"A": 0, "B": 0, "C": 1, "D": 1}, axis=1)
-    result = groupedT.describe()
-    expected = tsframe.describe().T
-    # reverting the change from https://github.com/pandas-dev/pandas/pull/35441/
-    expected.index = MultiIndex(
-        levels=[[0, 1], expected.index],
-        codes=[[0, 0, 1, 1], range(len(expected.index))],
-    )
     tm.assert_frame_equal(result, expected)
 
 

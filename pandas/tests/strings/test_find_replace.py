@@ -355,6 +355,21 @@ def test_endswith_nullable_string_dtype(nullable_string_dtype, na):
 # --------------------------------------------------------------------------------------
 # str.replace
 # --------------------------------------------------------------------------------------
+def test_replace_dict_invalid(any_string_dtype):
+    # GH 51914
+    series = Series(data=["A", "B_junk", "C_gunk"], name="my_messy_col")
+    msg = "repl cannot be used when pat is a dictionary"
+
+    with pytest.raises(ValueError, match=msg):
+        series.str.replace(pat={"A": "a", "B": "b"}, repl="A")
+
+
+def test_replace_dict(any_string_dtype):
+    # GH 51914
+    series = Series(data=["A", "B", "C"], name="my_messy_col")
+    new_series = series.str.replace(pat={"A": "a", "B": "b"})
+    expected = Series(data=["a", "b", "C"], name="my_messy_col")
+    tm.assert_series_equal(new_series, expected)
 
 
 def test_replace(any_string_dtype):
@@ -515,13 +530,11 @@ def test_replace_compiled_regex_callable(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "regex,expected", [(True, ["bao", "bao", np.nan]), (False, ["bao", "foo", np.nan])]
-)
-def test_replace_literal(regex, expected, any_string_dtype):
+@pytest.mark.parametrize("regex,expected_val", [(True, "bao"), (False, "foo")])
+def test_replace_literal(regex, expected_val, any_string_dtype):
     # GH16808 literal replace (regex=False vs regex=True)
     ser = Series(["f.o", "foo", np.nan], dtype=any_string_dtype)
-    expected = Series(expected, dtype=any_string_dtype)
+    expected = Series(["bao", expected_val, np.nan], dtype=any_string_dtype)
     result = ser.str.replace("f.", "ba", regex=regex)
     tm.assert_series_equal(result, expected)
 

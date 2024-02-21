@@ -4,14 +4,14 @@ import pandas._testing as tm
 
 
 class TestDataFrameTake:
-    def test_take_slices_deprecated(self, float_frame):
+    def test_take_slices_not_supported(self, float_frame):
         # GH#51539
         df = float_frame
 
         slc = slice(0, 4, 1)
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="slice"):
             df.take(slc, axis=0)
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="slice"):
             df.take(slc, axis=1)
 
     def test_take(self, float_frame):

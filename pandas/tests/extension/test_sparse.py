@@ -70,7 +70,7 @@ def data_repeated(request):
         for _ in range(count):
             yield SparseArray(make_data(request.param), fill_value=request.param)
 
-    yield gen
+    return gen
 
 
 @pytest.fixture(params=[0, np.nan])
@@ -102,6 +102,7 @@ class TestSparseArray(base.ExtensionTests):
     def _supports_reduction(self, obj, op_name: str) -> bool:
         return True
 
+    @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
         if all_numeric_reductions in [
             "prod",
@@ -126,6 +127,7 @@ class TestSparseArray(base.ExtensionTests):
 
         super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
 
+    @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_frame(self, data, all_numeric_reductions, skipna, request):
         if all_numeric_reductions in [
             "prod",
@@ -275,7 +277,7 @@ class TestSparseArray(base.ExtensionTests):
 
     _combine_le_expected_dtype = "Sparse[bool]"
 
-    def test_fillna_copy_frame(self, data_missing, using_copy_on_write):
+    def test_fillna_copy_frame(self, data_missing):
         arr = data_missing.take([1, 1])
         df = pd.DataFrame({"A": arr}, copy=False)
 
@@ -283,24 +285,17 @@ class TestSparseArray(base.ExtensionTests):
         result = df.fillna(filled_val)
 
         if hasattr(df._mgr, "blocks"):
-            if using_copy_on_write:
-                assert df.values.base is result.values.base
-            else:
-                assert df.values.base is not result.values.base
+            assert df.values.base is result.values.base
         assert df.A._values.to_dense() is arr.to_dense()
 
-    def test_fillna_copy_series(self, data_missing, using_copy_on_write):
+    def test_fillna_copy_series(self, data_missing):
         arr = data_missing.take([1, 1])
         ser = pd.Series(arr, copy=False)
 
         filled_val = ser[0]
         result = ser.fillna(filled_val)
 
-        if using_copy_on_write:
-            assert ser._values is result._values
-
-        else:
-            assert ser._values is not result._values
+        assert ser._values is result._values
         assert ser._values.to_dense() is arr.to_dense()
 
     @pytest.mark.xfail(reason="Not Applicable")
@@ -366,6 +361,7 @@ class TestSparseArray(base.ExtensionTests):
         result = data.map(func, na_action=na_action)
         tm.assert_extension_array_equal(result, expected)
 
+    @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map_raises(self, data, na_action):
         # GH52096
         msg = "fill value in the sparse values not supported"
@@ -486,6 +482,7 @@ class TestSparseArray(base.ExtensionTests):
         super().test_array_repr(data, size)
 
     @pytest.mark.xfail(reason="result does not match expected")
+    @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         super().test_groupby_extension_agg(as_index, data_for_grouping)
 
