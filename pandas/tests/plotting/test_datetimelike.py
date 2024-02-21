@@ -241,7 +241,6 @@ class TestTSPlot:
             columns=["A", "B", "C"],
         )
         freq = re.split(r"\d", PeriodDtype(df.index.freq)._freqstr)[-1]
-
         freq = df.index.asfreq(freq).freq
         _check_plot_works(df.plot, freq)
 
@@ -256,7 +255,7 @@ class TestTSPlot:
             index=idx,
             columns=["A", "B", "C"],
         )
-        freq = re.split(r"\d", PeriodDtype(df.index.freq)._freqstr)[-1]
+        freq = PeriodDtype(df.index.freq)._freqstr
         freq = df.index.to_period(freq).freq
         _check_plot_works(df.plot, freq)
 
