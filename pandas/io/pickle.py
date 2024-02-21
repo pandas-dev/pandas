@@ -8,7 +8,7 @@ from typing import (
 )
 import warnings
 
-from pandas.compat import pickle_compat as pc
+from pandas.compat import pickle_compat
 from pandas.util._decorators import doc
 
 from pandas.core.shared_docs import _shared_docs
@@ -195,7 +195,6 @@ def read_pickle(
     ) as handles:
         # 1) try standard library Pickle
         # 2) try pickle_compat (older pandas version) to handle subclass changes
-
         try:
             with warnings.catch_warnings(record=True):
                 # We want to silence any warnings about, e.g. moved modules.
@@ -205,4 +204,5 @@ def read_pickle(
             # e.g.
             #  "No module named 'pandas.core.sparse.series'"
             #  "Can't get attribute '__nat_unpickle' on <module 'pandas._libs.tslib"
-            return pc.load(handles.handle, encoding=None)
+            handles.handle.seek(0)
+            return pickle_compat.Unpickler(handles.handle, encoding=None).load()

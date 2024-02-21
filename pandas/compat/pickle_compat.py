@@ -135,7 +135,6 @@ class Unpickler(pickle._Unpickler):
 
         try:
             stack[-1] = func(*args)
-            return
         except TypeError as err:
             # If we have a deprecated function,
             # try to replace and try again.
@@ -179,7 +178,7 @@ class Unpickler(pickle._Unpickler):
 
     def load_newobj(self) -> None:
         args = self.stack.pop()
-        cls = self.stack[-1]
+        cls = self.stack.pop()
 
         # compat
         if issubclass(cls, Index):
@@ -194,34 +193,9 @@ class Unpickler(pickle._Unpickler):
             obj = cls.__new__(cls, (), [], False)
         else:
             obj = cls.__new__(cls, *args)
-
-        self.stack[-1] = obj
+        self.append(obj)
 
     dispatch[pickle.NEWOBJ[0]] = load_newobj
-
-
-def load(fh, encoding: str | None = None, is_verbose: bool = False) -> Any:
-    """
-    Load a pickle, with a provided encoding,
-
-    Parameters
-    ----------
-    fh : a filelike object
-    encoding : an optional encoding
-    is_verbose : show exception output
-    """
-    try:
-        fh.seek(0)
-        if encoding is not None:
-            up = Unpickler(fh, encoding=encoding)
-        else:
-            up = Unpickler(fh)
-        # "Unpickler" has no attribute "is_verbose"  [attr-defined]
-        up.is_verbose = is_verbose  # type: ignore[attr-defined]
-
-        return up.load()
-    except (ValueError, TypeError):
-        raise
 
 
 def loads(
