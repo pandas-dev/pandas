@@ -63,6 +63,7 @@ matplotlib = "pandas:plotting._matplotlib"
 
 [project.optional-dependencies]
 test = ['hypothesis>=6.46.1', 'pytest>=7.3.2', 'pytest-xdist>=2.2.0']
+pyarrow = ['pyarrow>=10.0.1']
 performance = ['bottleneck>=1.3.6', 'numba>=0.56.4', 'numexpr>=2.8.4']
 computation = ['scipy>=1.10.0', 'xarray>=2022.12.0']
 fss = ['fsspec>=2022.11.0']
