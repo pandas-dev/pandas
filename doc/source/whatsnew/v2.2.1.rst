@@ -9,6 +9,12 @@ including other versions of pandas.
 {{ header }}
 
 .. ---------------------------------------------------------------------------
+.. _whatsnew_221.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+- Added ``pyarrow`` pip extra so users can install pandas and pyarrow with pip with ``pip install pandas[pyarrow]`` (:issue:`54466`)
+
 .. _whatsnew_221.regressions:
 
 Fixed regressions
@@ -18,6 +24,7 @@ Fixed regressions
 - Fixed regression in :func:`concat` changing long-standing behavior that always sorted the non-concatenation axis when the axis was a :class:`DatetimeIndex` (:issue:`57006`)
 - Fixed regression in :func:`merge_ordered` raising ``TypeError`` for ``fill_method="ffill"`` and ``how="left"`` (:issue:`57010`)
 - Fixed regression in :func:`pandas.testing.assert_series_equal` defaulting to ``check_exact=True`` when checking the :class:`Index` (:issue:`57067`)
+- Fixed regression in :func:`read_json` where an :class:`Index` would be returned instead of a :class:`RangeIndex` (:issue:`57429`)
 - Fixed regression in :func:`wide_to_long` raising an ``AttributeError`` for string columns (:issue:`57066`)
 - Fixed regression in :meth:`.DataFrameGroupBy.idxmin`, :meth:`.DataFrameGroupBy.idxmax`, :meth:`.SeriesGroupBy.idxmin`, :meth:`.SeriesGroupBy.idxmax` ignoring the ``skipna`` argument (:issue:`57040`)
 - Fixed regression in :meth:`.DataFrameGroupBy.idxmin`, :meth:`.DataFrameGroupBy.idxmax`, :meth:`.SeriesGroupBy.idxmin`, :meth:`.SeriesGroupBy.idxmax` where values containing the minimum or maximum value for the dtype could produce incorrect results (:issue:`57040`)
