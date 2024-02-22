@@ -554,7 +554,7 @@ class TestDataFramePlotsSubplots:
         _, axes = mpl.pyplot.subplots(2, **kwargs)
         with tm.assert_produces_warning(None):
             df.plot(ax=axes[0])
-            with temp_file.open(mode="w+b", encoding="utf-8") as path:
+            with temp_file.open(mode="wb") as path:
                 mpl.pyplot.savefig(path)
 
     @pytest.mark.parametrize(
