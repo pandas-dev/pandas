@@ -485,25 +485,12 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
 
     // Minimum valid timestamp in nanoseconds (1677-09-21 00:12:43.145224193).
     const int64_t min_nanoseconds = NPY_MIN_INT64 + 1;
-
-    // For near-minimum timestamps (1677-09-21 00:12:43.145224193 through
-    // 1677-09-21 00:12:43.145224999), scaling microseconds to nanoseconds
-    // overflows (1677-09-21 00:12:43.145224 -> 1677-09-21 00:12:43.145224000),
-    // but adding nanoseconds can put the timestamp back in a valid range for
-    // nanosecond parts >= 193.
-
-    // (min_nanoseconds / 1000 - 1) * 1000 would overflow, so do not scale.
-    // This happens if microseconds corresponds to 1677-09-21 00:12:43.145224.
     if (microseconds == min_nanoseconds / 1000 - 1) {
-      // Instead, use minimum nanosecond timestamp as base and offset it with
-      // nanosecond delta between dts and the minimum (_NS_MIN_DTS.ps = 193000).
-      // If dts->ps >= _NS_MIN_DTS.ps, timestamp is at/above the minimum.
-      // If dts->ps < _NS_MIN_DTS.ps, timestamp is below minimum and overflows.
+      // For values within one microsecond of min_nanoseconds, use it as base
+      // and offset it with nanosecond delta to avoid overflow during scaling.
       PD_CHECK_OVERFLOW(checked_int64_add(
           min_nanoseconds, (dts->ps - _NS_MIN_DTS.ps) / 1000, &nanoseconds));
     } else {
-      // microseconds does not correspond to near-minimum timestamp, use default
-      // scaling and addition approach, handling any other overflows.
       PD_CHECK_OVERFLOW(
           scaleMicrosecondsToNanoseconds(microseconds, &nanoseconds));
       PD_CHECK_OVERFLOW(
