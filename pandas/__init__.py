@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-__docformat__ = "restructuredtext"
-
 import os
 import warnings
+
+__docformat__ = "restructuredtext"
 
 # Let users know if they're missing any of our hard dependencies
 _hard_dependencies = ("numpy", "pytz", "dateutil")
@@ -192,7 +192,6 @@ except ImportError:
     __version__ = v.get("closest-tag", v["version"])
     __git_version__ = v.get("full-revisionid")
     del get_versions, v
-
 
 # GH#55043 - deprecation of the data_manager option
 if "PANDAS_DATA_MANAGER" in os.environ:
