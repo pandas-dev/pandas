@@ -217,9 +217,10 @@ class TestFactorize:
         key = np.array([1, 2, 1, np.nan], dtype="O")
         rizer = ht.ObjectFactorizer(len(key))
         for na_sentinel in (-1, 20):
-            ids = rizer.factorize(key, na_sentinel=na_sentinel)
+            ids, seen_na = rizer.factorize(key, na_sentinel=na_sentinel)
             expected = np.array([0, 1, 0, na_sentinel], dtype=np.intp)
             assert len(set(key)) == len(set(expected))
+            assert seen_na
             tm.assert_numpy_array_equal(pd.isna(key), expected == na_sentinel)
             tm.assert_numpy_array_equal(ids, expected)
 
@@ -228,9 +229,10 @@ class TestFactorize:
         data = np.array([1, 2, 3, 1, 1, 0], dtype="int64")
         mask = np.array([False, False, False, False, False, True])
         rizer = ht.Int64Factorizer(len(data))
-        result = rizer.factorize(data, mask=mask)
+        result, seen_na = rizer.factorize(data, mask=mask)
         expected = np.array([0, 1, 2, 0, 0, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
+        assert seen_na
         expected_uniques = np.array([1, 2, 3], dtype="int64")
         tm.assert_numpy_array_equal(rizer.uniques.to_array(), expected_uniques)
 
@@ -238,9 +240,10 @@ class TestFactorize:
         # GH#49549
         data = np.array([1, 2, 3, 1, np.nan])
         rizer = ht.ObjectFactorizer(len(data))
-        result = rizer.factorize(data.astype(object))
+        result, seen_na = rizer.factorize(data.astype(object))
         expected = np.array([0, 1, 2, 0, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
+        assert seen_na
         expected_uniques = np.array([1, 2, 3], dtype=object)
         tm.assert_numpy_array_equal(rizer.uniques.to_array(), expected_uniques)
 
