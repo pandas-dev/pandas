@@ -21,6 +21,7 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed memory leak in :func:`read_csv` (:issue:`57039`)
 - Fixed performance regression in :meth:`Series.combine_first` (:issue:`55845`)
+- Fixed regression causing overflow for near-minimum timestamps (:issue:`57150`)
 - Fixed regression in :func:`concat` changing long-standing behavior that always sorted the non-concatenation axis when the axis was a :class:`DatetimeIndex` (:issue:`57006`)
 - Fixed regression in :func:`merge_ordered` raising ``TypeError`` for ``fill_method="ffill"`` and ``how="left"`` (:issue:`57010`)
 - Fixed regression in :func:`pandas.testing.assert_series_equal` defaulting to ``check_exact=True`` when checking the :class:`Index` (:issue:`57067`)

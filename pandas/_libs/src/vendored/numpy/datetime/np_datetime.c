@@ -482,10 +482,20 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
 
   if (base == NPY_FR_ns) {
     int64_t nanoseconds;
-    PD_CHECK_OVERFLOW(
-        scaleMicrosecondsToNanoseconds(microseconds, &nanoseconds));
-    PD_CHECK_OVERFLOW(
-        checked_int64_add(nanoseconds, dts->ps / 1000, &nanoseconds));
+
+    // Minimum valid timestamp in nanoseconds (1677-09-21 00:12:43.145224193).
+    const int64_t min_nanoseconds = NPY_MIN_INT64 + 1;
+    if (microseconds == min_nanoseconds / 1000 - 1) {
+      // For values within one microsecond of min_nanoseconds, use it as base
+      // and offset it with nanosecond delta to avoid overflow during scaling.
+      PD_CHECK_OVERFLOW(checked_int64_add(
+          min_nanoseconds, (dts->ps - _NS_MIN_DTS.ps) / 1000, &nanoseconds));
+    } else {
+      PD_CHECK_OVERFLOW(
+          scaleMicrosecondsToNanoseconds(microseconds, &nanoseconds));
+      PD_CHECK_OVERFLOW(
+          checked_int64_add(nanoseconds, dts->ps / 1000, &nanoseconds));
+    }
 
     return nanoseconds;
   }
