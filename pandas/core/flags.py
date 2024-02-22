@@ -11,6 +11,10 @@ class Flags:
     """
     Flags that apply to pandas objects.
 
+    “Flags” differ from “metadata”. Flags reflect properties of the pandas
+    object (the Series or DataFrame). Metadata refer to properties of the
+    dataset, and should be stored in DataFrame.attrs.
+
     Parameters
     ----------
     obj : Series or DataFrame
@@ -29,6 +33,11 @@ class Flags:
            propagate the ``allows_duplicate_labels`` value. In future versions
            it is expected that every method taking or returning one or more
            DataFrame or Series objects will propagate ``allows_duplicate_labels``.
+
+    See Also
+    --------
+    DataFrame.attrs : Dictionary of global attributes of this dataset.
+    Series.attrs : Dictionary of global attributes of this dataset.
 
     Examples
     --------
