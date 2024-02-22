@@ -143,8 +143,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (GL08)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=GL08 --ignore_functions \
-        pandas.DatetimeIndex.as_unit\
-        pandas.DatetimeIndex.freq\
         pandas.ExcelFile.book\
         pandas.ExcelFile.sheet_names\
         pandas.Index.empty\

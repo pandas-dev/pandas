@@ -94,6 +94,9 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     @property
     def freq(self) -> BaseOffset | None:
+        """
+        Return the frequency object if it is set, otherwise None.
+        """
         return self._data.freq
 
     @freq.setter
