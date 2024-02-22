@@ -521,7 +521,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DatetimeIndex.year\
         pandas.DatetimeTZDtype.tz\
         pandas.DatetimeTZDtype.unit\
-        pandas.Flags\
         pandas.HDFStore.get\
         pandas.HDFStore.info\
         pandas.HDFStore.keys\
