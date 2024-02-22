@@ -603,7 +603,7 @@ The ``temp_file`` pytest fixture creates a temporary file :py:class:`Pathlib` ob
     def test_something(temp_file):
         pd.DataFrame([1]).to_csv(str(temp_file))
 
-Please review `pytest documentation <https://docs.pytest.org/en/7.1.x/how-to/tmp_path.html#the-default-base-temporary-directory>`_
+Please reference `pytest's documentation <https://docs.pytest.org/en/latest/how-to/tmp_path.html#the-default-base-temporary-directory>`_
 for the file retension policy.
 
 Testing involving network connectivity
