@@ -6,7 +6,6 @@ from datetime import (
     timedelta,
 )
 import pickle
-import re
 
 import numpy as np
 import pytest
@@ -240,8 +239,7 @@ class TestTSPlot:
             index=idx,
             columns=["A", "B", "C"],
         )
-        freq = re.split(r"\d", PeriodDtype(df.index.freq)._freqstr)[-1]
-        freq = df.index.asfreq(freq).freq
+        freq = df.index.freq.rule_code
         _check_plot_works(df.plot, freq)
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
