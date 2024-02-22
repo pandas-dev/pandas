@@ -8,8 +8,6 @@ import pathlib
 import numpy as np
 import pytest
 
-from pandas._config import using_copy_on_write
-
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under11p0,
@@ -425,15 +423,10 @@ class TestBasic(Base):
             repeat=1,
         )
 
-    def test_write_index(self, engine, using_copy_on_write, request):
-        check_names = engine != "fastparquet"
-        if using_copy_on_write and engine == "fastparquet":
-            request.applymarker(
-                pytest.mark.xfail(reason="fastparquet write into index")
-            )
-
+    def test_write_index(self):
+        pytest.importorskip("pyarrow")
         df = pd.DataFrame({"A": [1, 2, 3]})
-        check_round_trip(df, engine)
+        check_round_trip(df, "pyarrow")
 
         indexes = [
             [2, 3, 4],
@@ -446,12 +439,12 @@ class TestBasic(Base):
             df.index = index
             if isinstance(index, pd.DatetimeIndex):
                 df.index = df.index._with_freq(None)  # freq doesn't round-trip
-            check_round_trip(df, engine, check_names=check_names)
+            check_round_trip(df, "pyarrow")
 
         # index with meta-data
         df.index = [0, 1, 2]
         df.index.name = "foo"
-        check_round_trip(df, engine)
+        check_round_trip(df, "pyarrow")
 
     def test_write_multiindex(self, pa):
         # Not supported in fastparquet as of 0.1.3 or older pyarrow version
@@ -1256,23 +1249,6 @@ class TestParquetFastParquet(Base):
                 partition_cols=partition_cols,
             )
 
-    @pytest.mark.skipif(using_copy_on_write(), reason="fastparquet writes into Index")
-    def test_empty_dataframe(self, fp):
-        # GH #27339
-        df = pd.DataFrame()
-        expected = df.copy()
-        check_round_trip(df, fp, expected=expected)
-
-    @pytest.mark.skipif(using_copy_on_write(), reason="fastparquet writes into Index")
-    def test_timezone_aware_index(self, fp, timezone_aware_date_list):
-        idx = 5 * [timezone_aware_date_list]
-
-        df = pd.DataFrame(index=idx, data={"index_as_col": idx})
-
-        expected = df.copy()
-        expected.index.name = "index"
-        check_round_trip(df, fp, expected=expected)
-
     def test_close_file_handle_on_read_error(self):
         with tm.ensure_clean("test.parquet") as path:
             pathlib.Path(path).write_bytes(b"breakit")
@@ -1361,10 +1337,3 @@ class TestParquetFastParquet(Base):
             df.to_parquet(path)
             with pytest.raises(ValueError, match=msg):
                 read_parquet(path, dtype_backend="numpy")
-
-    @pytest.mark.skipif(using_copy_on_write(), reason="fastparquet writes into Index")
-    def test_empty_columns(self, fp):
-        # GH 52034
-        df = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
-        expected = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
-        check_round_trip(df, fp, expected=expected)
