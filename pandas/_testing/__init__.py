@@ -76,7 +76,6 @@ from pandas._testing.contexts import (
     ensure_clean,
     raises_chained_assignment_error,
     set_timezone,
-    use_numexpr,
     with_csv_dialect,
 )
 from pandas.core.arrays import (

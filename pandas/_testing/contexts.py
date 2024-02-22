@@ -93,9 +93,7 @@ def set_timezone(tz: str) -> Generator[None, None, None]:
 
 
 @contextmanager
-def ensure_clean(
-    filename=None, return_filelike: bool = False, **kwargs: Any
-) -> Generator[Any, None, None]:
+def ensure_clean(filename=None) -> Generator[Any, None, None]:
     """
     Gets a temporary path and agrees to remove on close.
 
@@ -107,12 +105,6 @@ def ensure_clean(
     ----------
     filename : str (optional)
         suffix of the created file.
-    return_filelike : bool (default False)
-        if True, returns a file-like which is *always* cleaned. Necessary for
-        savefig and other functions which want to append extensions.
-    **kwargs
-        Additional keywords are passed to open().
-
     """
     folder = Path(tempfile.gettempdir())
 
@@ -123,19 +115,11 @@ def ensure_clean(
 
     path.touch()
 
-    handle_or_str: str | IO = str(path)
-    encoding = kwargs.pop("encoding", None)
-    if return_filelike:
-        kwargs.setdefault("mode", "w+b")
-        if encoding is None and "b" not in kwargs["mode"]:
-            encoding = "utf-8"
-        handle_or_str = open(path, encoding=encoding, **kwargs)
+    handle_or_str = str(path)
 
     try:
         yield handle_or_str
     finally:
-        if not isinstance(handle_or_str, str):
-            handle_or_str.close()
         if path.is_file():
             path.unlink()
 
