@@ -996,22 +996,19 @@ class SQLTable(PandasObject):
 
     def _execute_insert_multi(self, conn, keys: list[str], data_iter) -> int:
         """
-        Alternative to _execute_insert for DBs support multivalue INSERT.
+        Alternative to _execute_insert for DBs support multi-value INSERT.
 
         Note: multi-value insert is usually faster for analytics DBs
         and tables containing a few columns
         but performance degrades quickly with increase of columns.
+
         """
 
         from sqlalchemy import insert
 
         data = [dict(zip(keys, row)) for row in data_iter]
-        stmt = insert(self.table)
-        # conn.execute is used here to ensure compatibility with Oracle.
-        # Using stmt.values(data) would produce a multi row insert that
-        # isn't supported by Oracle.
-        # see: https://docs.sqlalchemy.org/en/20/core/dml.html#sqlalchemy.sql.expression.Insert.values
-        result = conn.execute(stmt, data)
+        stmt = insert(self.table).values(data)
+        result = conn.execute(stmt)
         return result.rowcount
 
     def insert_data(self) -> tuple[list[str], list[np.ndarray]]:
@@ -1040,10 +1037,7 @@ class SQLTable(PandasObject):
                         # GH#53854 to_pydatetime not supported for pyarrow date dtypes
                         d = ser._values.to_numpy(dtype=object)
                     else:
-                        with warnings.catch_warnings():
-                            warnings.filterwarnings("ignore", category=FutureWarning)
-                            # GH#52459 to_pydatetime will return Index[object]
-                            d = np.asarray(ser.dt.to_pydatetime(), dtype=object)
+                        d = ser.dt.to_pydatetime()._values
                 else:
                     d = ser._values.to_pydatetime()
             elif ser.dtype.kind == "m":

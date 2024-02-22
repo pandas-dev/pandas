@@ -457,7 +457,7 @@ class BaseBlockManager(PandasObject):
         return self.apply("apply", func=func)
 
     @final
-    def fillna(self, value, limit: int | None, inplace: bool, downcast) -> Self:
+    def fillna(self, value, limit: int | None, inplace: bool) -> Self:
         if limit is not None:
             # Do this validation even if we go through one of the no-op paths
             limit = libalgos.validate_limit(None, limit=limit)
@@ -467,7 +467,6 @@ class BaseBlockManager(PandasObject):
             value=value,
             limit=limit,
             inplace=inplace,
-            downcast=downcast,
         )
 
     @final
@@ -703,7 +702,7 @@ class BaseBlockManager(PandasObject):
     def nblocks(self) -> int:
         return len(self.blocks)
 
-    def copy(self, deep: bool | None | Literal["all"] = True) -> Self:
+    def copy(self, deep: bool | Literal["all"] = True) -> Self:
         """
         Make deep or shallow copy of BlockManager
 
@@ -717,7 +716,6 @@ class BaseBlockManager(PandasObject):
         -------
         BlockManager
         """
-        deep = deep if deep is not None else False
         # this preserves the notion of view copying of axes
         if deep:
             # hit in e.g. tests.io.json.test_pandas
