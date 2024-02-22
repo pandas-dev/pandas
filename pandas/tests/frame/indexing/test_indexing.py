@@ -321,7 +321,6 @@ class TestDataFrameIndexing:
         # so raise/warn
         smaller = float_frame[:2]
 
-        # With CoW, adding a new column doesn't raise a warning
         smaller["col10"] = ["1", "2"]
 
         if using_infer_string:
@@ -1537,6 +1536,16 @@ class TestDataFrameIndexing:
         indexer(df)[:idx, :] = rhs
         expected = DataFrame([[1, np.nan], [2, np.nan], ["3", np.nan]], dtype=object)
         tm.assert_frame_equal(df, expected)
+
+    def test_big_endian_support_selecting_columns(self):
+        # GH#57457
+        columns = ["a"]
+        data = [np.array([1, 2], dtype=">f8")]
+        df = DataFrame(dict(zip(columns, data)))
+        result = df[df.columns]
+        dfexp = DataFrame({"a": [1, 2]}, dtype=">f8")
+        expected = dfexp[dfexp.columns]
+        tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameIndexingUInt64:

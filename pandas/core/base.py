@@ -104,7 +104,7 @@ class PandasObject(DirNamesMixin):
     _cache: dict[str, Any]
 
     @property
-    def _constructor(self):
+    def _constructor(self) -> type[Self]:
         """
         Class constructor (for this class it's just `__class__`).
         """
@@ -800,7 +800,7 @@ class IndexOpsMixin(OpsMixin):
             # "int")
             return result  # type: ignore[return-value]
 
-    def tolist(self):
+    def tolist(self) -> list:
         """
         Return a list of the values.
 
@@ -1165,7 +1165,7 @@ class IndexOpsMixin(OpsMixin):
         24
         """
         if hasattr(self.array, "memory_usage"):
-            return self.array.memory_usage(  # pyright: ignore[reportGeneralTypeIssues]
+            return self.array.memory_usage(  # pyright: ignore[reportAttributeAccessIssue]
                 deep=deep,
             )
 
@@ -1355,7 +1355,7 @@ class IndexOpsMixin(OpsMixin):
             sorter=sorter,
         )
 
-    def drop_duplicates(self, *, keep: DropKeep = "first"):
+    def drop_duplicates(self, *, keep: DropKeep = "first") -> Self:
         duplicated = self._duplicated(keep=keep)
         # error: Value of type "IndexOpsMixin" is not indexable
         return self[~duplicated]  # type: ignore[index]

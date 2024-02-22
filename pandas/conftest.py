@@ -28,6 +28,7 @@ from datetime import (
     timezone,
 )
 from decimal import Decimal
+import gc
 import operator
 import os
 from typing import (
@@ -157,10 +158,6 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("SeriesGroupBy.idxmax", "The behavior of Series.idxmax"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
-        (
-            "to_pydatetime",
-            "The behavior of DatetimeProperties.to_pydatetime is deprecated",
-        ),
         (
             "pandas.core.generic.NDFrame.first",
             "first is deprecated and will be removed in a future version. "
@@ -1403,7 +1400,7 @@ def fixed_now_ts() -> Timestamp:
     """
     Fixture emits fixed Timestamp.now()
     """
-    return Timestamp(  # pyright: ignore[reportGeneralTypeIssues]
+    return Timestamp(  # pyright: ignore[reportReturnType]
         year=2021, month=1, day=1, hour=12, minute=4, second=13, microsecond=22
     )
 
@@ -1863,6 +1860,39 @@ def ip():
     return InteractiveShell(config=c)
 
 
+@pytest.fixture
+def mpl_cleanup():
+    """
+    Ensure Matplotlib is cleaned up around a test.
+
+    Before a test is run:
+
+    1) Set the backend to "template" to avoid requiring a GUI.
+
+    After a test is run:
+
+    1) Reset units registry
+    2) Reset rc_context
+    3) Close all figures
+
+    See matplotlib/testing/decorators.py#L24.
+    """
+    mpl = pytest.importorskip("matplotlib")
+    mpl_units = pytest.importorskip("matplotlib.units")
+    plt = pytest.importorskip("matplotlib.pyplot")
+    orig_units_registry = mpl_units.registry.copy()
+    try:
+        with mpl.rc_context():
+            mpl.use("template")
+            yield
+    finally:
+        mpl_units.registry.clear()
+        mpl_units.registry.update(orig_units_registry)
+        plt.close("all")
+        # https://matplotlib.org/stable/users/prev_whats_new/whats_new_3.6.0.html#garbage-collection-is-no-longer-run-on-figure-close  # noqa: E501
+        gc.collect(1)
+
+
 @pytest.fixture(
     params=[
         getattr(pd.offsets, o)
@@ -1951,14 +1981,6 @@ def indexer_ial(request):
     Parametrize over iat.__setitem__, iloc.__setitem__
     """
     return request.param
-
-
-@pytest.fixture
-def using_copy_on_write() -> bool:
-    """
-    Fixture to check if Copy-on-Write is enabled.
-    """
-    return True
 
 
 @pytest.fixture
