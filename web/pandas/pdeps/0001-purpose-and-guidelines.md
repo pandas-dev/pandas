@@ -94,8 +94,9 @@ time to make changes based on suggestions and considerations offered by the part
 Similarly, the following voting period will remain open for 15 days.
 
 To enable and encourage discussions on PDEPs, we follow a notification schedule. At each of the
-following steps, the pandas team, and the pandas dev mailing list are notified via GitHub and
+following steps, the pandas team, and the pandas-dev mailing list are notified via GitHub and
 E-mail:
+
 - Once a PDEP is ready for discussion.
 - After 30 discussion days, with 30 days remaining for discussion.
 - After 45 discussion days, with 15 days remaining for discussion.
@@ -115,6 +116,7 @@ Each voting member, including author(s) with voting rights, may cast a vote by a
   - Reason: A one sentence reason is required.
 - -1: disapprove
   - Reason: A one sentence reason is required.
+
 A disapprove vote requires prior participation in the PDEP discussion issue.
 
 Comments made on the public VOTE issue by non-voting members will be deleted.
@@ -133,7 +135,7 @@ values:
 - 11 voting members.
 - 50% of voting members.
 
-Given a quorum, a majority of 70% of the non-abstaining votes is required as well, i.e. 75% of
+Given a quorum, a majority of 70% of the non-abstaining votes is required as well, i.e. 70% of
 the approving and disapproving votes must be in favor.
 
 Thus, abstaining votes count towards a quorum, but not towards a majority. A voting member might
@@ -253,7 +255,7 @@ hope can help clarify our meaning here:
 
 - 3 August 2022: Initial version ([GH-47938][47938])
 - 15 February 2023: Version 2 ([GH-51417][51417]) clarifies the scope of PDEPs and adds examples
-- 09 June 2023: Version 3([GH-53576][53576]) defines a structured decision making process for PDEPs
+- 09 June 2023: Version 3 ([GH-53576][53576]) defines a structured decision making process for PDEPs
 
 [7217]: https://github.com/pandas-dev/pandas/pull/7217
 [8074]: https://github.com/pandas-dev/pandas/issues/8074
