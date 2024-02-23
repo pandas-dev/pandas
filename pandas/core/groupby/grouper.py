@@ -79,8 +79,7 @@ class Grouper:
     freq : str / frequency object, defaults to None
         This will groupby the specified frequency if the target selection
         (via key or level) is a datetime-like object. For full specification
-        of available frequencies, please see `here
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_.
+        of available frequencies, please see :ref:`here<timeseries.offset_aliases>`.
     sort : bool, default to False
         Whether to sort the resulting labels.
     closed : {'left' or 'right'}
