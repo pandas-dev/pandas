@@ -7,8 +7,6 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -334,14 +332,14 @@ class TestDataFrameBlockInternals:
             Y["g"].sum()
             assert not pd.isna(Y["g"]["c"])
 
-    def test_strange_column_corruption_issue(self):
+    def test_strange_column_corruption_issue(self, performance_warning):
         # TODO(wesm): Unclear how exactly this is related to internal matters
         df = DataFrame(index=[0, 1])
         df[0] = np.nan
         wasCol = {}
 
         with tm.assert_produces_warning(
-            PerformanceWarning, raise_on_extra_warnings=False
+            performance_warning, raise_on_extra_warnings=False
         ):
             for i, dt in enumerate(df.index):
                 for col in range(100, 200):

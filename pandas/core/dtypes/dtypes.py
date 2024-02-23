@@ -21,6 +21,8 @@ import warnings
 import numpy as np
 import pytz
 
+from pandas._config.config import _get_option
+
 from pandas._libs import (
     lib,
     missing as libmissing,
@@ -2028,7 +2030,9 @@ class SparseDtype(ExtensionDtype):
 
         # np.nan isn't a singleton, so we may end up with multiple
         # NaNs here, so we ignore the all NA case too.
-        if not (len(set(fill_values)) == 1 or isna(fill_values).all()):
+        if _get_option("performance_warnings") and (
+            not (len(set(fill_values)) == 1 or isna(fill_values).all())
+        ):
             warnings.warn(
                 "Concatenating sparse arrays with multiple fill "
                 f"values: '{fill_values}'. Picking the first and "

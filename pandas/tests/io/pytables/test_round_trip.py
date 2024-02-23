@@ -287,14 +287,14 @@ def test_float_index(setup_path):
     _check_roundtrip(s, tm.assert_series_equal, path=setup_path)
 
 
-def test_tuple_index(setup_path):
+def test_tuple_index(setup_path, performance_warning):
     # GH #492
     col = np.arange(10)
     idx = [(0.0, 1.0), (2.0, 3.0), (4.0, 5.0)]
     data = np.random.default_rng(2).standard_normal(30).reshape((3, 10))
     DF = DataFrame(data, index=idx, columns=col)
 
-    with tm.assert_produces_warning(pd.errors.PerformanceWarning):
+    with tm.assert_produces_warning(performance_warning):
         _check_roundtrip(DF, tm.assert_frame_equal, path=setup_path)
 
 

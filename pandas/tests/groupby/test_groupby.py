@@ -6,10 +6,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas.errors import (
-    PerformanceWarning,
-    SpecificationError,
-)
+from pandas.errors import SpecificationError
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_string_dtype
@@ -1507,7 +1504,7 @@ def test_groupby_multiindex_missing_pair():
     tm.assert_frame_equal(res, exp)
 
 
-def test_groupby_multiindex_not_lexsorted():
+def test_groupby_multiindex_not_lexsorted(performance_warning):
     # GH 11640
 
     # define the lexsorted version
@@ -1528,7 +1525,7 @@ def test_groupby_multiindex_not_lexsorted():
     assert not not_lexsorted_df.columns._is_lexsorted()
 
     expected = lexsorted_df.groupby("a").mean()
-    with tm.assert_produces_warning(PerformanceWarning):
+    with tm.assert_produces_warning(performance_warning):
         result = not_lexsorted_df.groupby("a").mean()
     tm.assert_frame_equal(expected, result)
 

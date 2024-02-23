@@ -1005,10 +1005,12 @@ class TestAlignment:
         assert res.shape == expected.shape
         tm.assert_frame_equal(res, expected)
 
-    def test_performance_warning_for_poor_alignment(self, engine, parser):
+    def test_performance_warning_for_poor_alignment(
+        self, performance_warning, engine, parser
+    ):
         df = DataFrame(np.random.default_rng(2).standard_normal((1000, 10)))
         s = Series(np.random.default_rng(2).standard_normal(10000))
-        if engine == "numexpr":
+        if engine == "numexpr" and performance_warning:
             seen = PerformanceWarning
         else:
             seen = False
@@ -1030,7 +1032,7 @@ class TestAlignment:
 
         is_python_engine = engine == "python"
 
-        if not is_python_engine:
+        if not is_python_engine and performance_warning:
             wrn = PerformanceWarning
         else:
             wrn = False
@@ -1038,7 +1040,7 @@ class TestAlignment:
         with tm.assert_produces_warning(wrn) as w:
             pd.eval("df + s", engine=engine, parser=parser)
 
-            if not is_python_engine:
+            if not is_python_engine and performance_warning:
                 assert len(w) == 1
                 msg = str(w[0].message)
                 logged = np.log10(s.size - df.shape[1])

@@ -103,7 +103,7 @@ def test_iter_empty(setup_path):
         assert list(store) == []
 
 
-def test_repr(setup_path):
+def test_repr(setup_path, performance_warning):
     with ensure_clean_store(setup_path) as store:
         repr(store)
         store.info()
@@ -138,7 +138,7 @@ def test_repr(setup_path):
         df.loc[df.index[3:6], ["obj1"]] = np.nan
         df = df._consolidate()
 
-        with tm.assert_produces_warning(pd.errors.PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             store["df"] = df
 
         # make a random group in hdf space

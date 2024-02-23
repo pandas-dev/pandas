@@ -12,6 +12,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._config.config import _get_option
+
 from pandas._libs import (
     lib,
     missing as libmissing,
@@ -343,7 +345,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
     ):
         if flags:
-            fallback_performancewarning()
+            if _get_option("mode.performance_warnings"):
+                fallback_performancewarning()
             return super()._str_contains(pat, case, flags, na, regex)
 
         if regex:
@@ -403,7 +406,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         regex: bool = True,
     ):
         if isinstance(pat, re.Pattern) or callable(repl) or not case or flags:
-            fallback_performancewarning()
+            if _get_option("mode.performance_warnings"):
+                fallback_performancewarning()
             return super()._str_replace(pat, repl, n, case, flags, regex)
 
         func = pc.replace_substring_regex if regex else pc.replace_substring

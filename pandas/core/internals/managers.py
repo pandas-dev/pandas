@@ -18,6 +18,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config.config import _get_option
+
 from pandas._libs import (
     algos as libalgos,
     internals as libinternals,
@@ -1526,7 +1528,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         self._known_consolidated = False
 
-        if sum(not block.is_extension for block in self.blocks) > 100:
+        if (
+            _get_option("performance_warnings")
+            and sum(not block.is_extension for block in self.blocks) > 100
+        ):
             warnings.warn(
                 "DataFrame is highly fragmented.  This is usually the result "
                 "of calling `frame.insert` many times, which has poor performance.  "
