@@ -2040,7 +2040,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         Return the frequency object if it is set, otherwise None.
 
         To learn more about the frequency strings, please see
-        :ref:`this link<timeseries.offset_aliases>`
+        :ref:`this link<timeseries.offset_aliases>`.
 
         See Also
         --------
