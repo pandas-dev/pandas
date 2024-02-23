@@ -1,6 +1,6 @@
 .. _whatsnew_221:
 
-What's new in 2.2.1 (February XX, 2024)
+What's new in 2.2.1 (February 22, 2024)
 ---------------------------------------
 
 These are the changes in pandas 2.2.1. See :ref:`release` for a full changelog
