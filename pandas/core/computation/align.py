@@ -15,6 +15,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config.config import _get_option
+
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 
@@ -124,7 +126,11 @@ def _align_core(terms):
                 reindexer_size = len(reindexer)
 
                 ordm = np.log10(max(1, abs(reindexer_size - term_axis_size)))
-                if ordm >= 1 and reindexer_size >= 10000:
+                if (
+                    _get_option("performance_warnings")
+                    and ordm >= 1
+                    and reindexer_size >= 10000
+                ):
                     w = (
                         f"Alignment difference on axis {axis} is larger "
                         f"than an order of magnitude on term {terms[i].name!r}, "

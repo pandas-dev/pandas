@@ -444,6 +444,19 @@ with cf.config_prefix("mode"):
         validator=is_one_of_factory([None, "warn", "raise"]),
     )
 
+performance_warnings = """
+: boolean
+    Whether to show or hide PerformanceWarnings.
+"""
+
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "performance_warnings",
+        True,
+        performance_warnings,
+        validator=is_bool,
+    )
+
 
 string_storage_doc = """
 : string

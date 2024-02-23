@@ -18,6 +18,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config.config import _get_option
+
 from pandas._libs import lib
 import pandas._libs.sparse as splib
 from pandas._libs.sparse import (
@@ -1154,8 +1156,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
-        msg = "searchsorted requires high memory usage."
-        warnings.warn(msg, PerformanceWarning, stacklevel=find_stack_level())
+        if _get_option("performance_warnings"):
+            msg = "searchsorted requires high memory usage."
+            warnings.warn(msg, PerformanceWarning, stacklevel=find_stack_level())
         v = np.asarray(v)
         return np.asarray(self, dtype=self.dtype.subtype).searchsorted(v, side, sorter)
 

@@ -11,8 +11,6 @@ import pytest
 
 from pandas._config import using_pyarrow_string_dtype
 
-from pandas.errors import PerformanceWarning
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -2079,7 +2077,9 @@ class TestPivotTable:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow
-    def test_pivot_number_of_levels_larger_than_int32(self, monkeypatch):
+    def test_pivot_number_of_levels_larger_than_int32(
+        self, performance_warning, monkeypatch
+    ):
         # GH 20601
         # GH 26314: Change ValueError to PerformanceWarning
         class MockUnstacker(reshape_lib._Unstacker):
@@ -2095,7 +2095,7 @@ class TestPivotTable:
             )
 
             msg = "The following operation may generate"
-            with tm.assert_produces_warning(PerformanceWarning, match=msg):
+            with tm.assert_produces_warning(performance_warning, match=msg):
                 with pytest.raises(Exception, match="Don't compute final result."):
                     df.pivot_table(
                         index="ind1", columns="ind2", values="count", aggfunc="count"

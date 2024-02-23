@@ -21,6 +21,7 @@ import warnings
 import numpy as np
 
 from pandas._config import get_option
+from pandas._config.config import _get_option
 
 from pandas._libs import (
     algos as libalgos,
@@ -2356,7 +2357,7 @@ class MultiIndex(Index):
                     step = loc.step if loc.step is not None else 1
                     inds.extend(range(loc.start, loc.stop, step))
                 elif com.is_bool_indexer(loc):
-                    if self._lexsort_depth == 0:
+                    if _get_option("performance_warnings") and self._lexsort_depth == 0:
                         warnings.warn(
                             "dropping on a non-lexsorted multi-index "
                             "without a level parameter may impact performance.",
@@ -3018,11 +3019,12 @@ class MultiIndex(Index):
         if not follow_key:
             return slice(start, stop)
 
-        warnings.warn(
-            "indexing past lexsort depth may impact performance.",
-            PerformanceWarning,
-            stacklevel=find_stack_level(),
-        )
+        if _get_option("performance_warnings"):
+            warnings.warn(
+                "indexing past lexsort depth may impact performance.",
+                PerformanceWarning,
+                stacklevel=find_stack_level(),
+            )
 
         loc = np.arange(start, stop, dtype=np.intp)
 

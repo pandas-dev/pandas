@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
-from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
@@ -2186,7 +2185,9 @@ class TestStackUnstackMultiLevel:
         tm.assert_frame_equal(recons, df)
 
     @pytest.mark.slow
-    def test_unstack_number_of_levels_larger_than_int32(self, monkeypatch):
+    def test_unstack_number_of_levels_larger_than_int32(
+        self, performance_warning, monkeypatch
+    ):
         # GH#20601
         # GH 26314: Change ValueError to PerformanceWarning
 
@@ -2203,7 +2204,7 @@ class TestStackUnstackMultiLevel:
                 index=[np.arange(2**16), np.arange(2**16)],
             )
             msg = "The following operation may generate"
-            with tm.assert_produces_warning(PerformanceWarning, match=msg):
+            with tm.assert_produces_warning(performance_warning, match=msg):
                 with pytest.raises(Exception, match="Don't compute final result."):
                     df.unstack()
 
