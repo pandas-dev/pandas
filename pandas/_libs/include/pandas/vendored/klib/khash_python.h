@@ -1,6 +1,9 @@
 // Licence at LICENSES/KLIB_LICENSE
 
+#pragma once
+
 #include <Python.h>
+#include <pymem.h>
 #include <string.h>
 
 typedef struct {
@@ -11,18 +14,6 @@ typedef struct {
   double real;
   double imag;
 } khcomplex128_t;
-
-// khash should report usage to tracemalloc
-#if PY_VERSION_HEX >= 0x03060000
-#include <pymem.h>
-#if PY_VERSION_HEX < 0x03070000
-#define PyTraceMalloc_Track _PyTraceMalloc_Track
-#define PyTraceMalloc_Untrack _PyTraceMalloc_Untrack
-#endif
-#else
-#define PyTraceMalloc_Track(...)
-#define PyTraceMalloc_Untrack(...)
-#endif
 
 static const int KHASH_TRACE_DOMAIN = 424242;
 void *traced_malloc(size_t size) {
@@ -95,31 +86,12 @@ static inline khuint32_t asuint32(float key) {
   return val;
 }
 
-#define ZERO_HASH 0
-#define NAN_HASH 0
-
 static inline khuint32_t kh_float64_hash_func(double val) {
-  // 0.0 and -0.0 should have the same hash:
-  if (val == 0.0) {
-    return ZERO_HASH;
-  }
-  // all nans should have the same hash:
-  if (val != val) {
-    return NAN_HASH;
-  }
   khuint64_t as_int = asuint64(val);
   return murmur2_64to32(as_int);
 }
 
 static inline khuint32_t kh_float32_hash_func(float val) {
-  // 0.0 and -0.0 should have the same hash:
-  if (val == 0.0f) {
-    return ZERO_HASH;
-  }
-  // all nans should have the same hash:
-  if (val != val) {
-    return NAN_HASH;
-  }
   khuint32_t as_int = asuint32(val);
   return murmur2_32to32(as_int);
 }
@@ -231,15 +203,7 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
 }
 
 static inline Py_hash_t _Pandas_HashDouble(double val) {
-  // Since Python3.10, nan is no longer has hash 0
-  if (Py_IS_NAN(val)) {
-    return 0;
-  }
-#if PY_VERSION_HEX < 0x030A0000
-  return _Py_HashDouble(val);
-#else
   return _Py_HashDouble(NULL, val);
-#endif
 }
 
 static inline Py_hash_t floatobject_hash(PyFloatObject *key) {
