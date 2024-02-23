@@ -3250,27 +3250,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1  5.0  1
         3  6.0  3
         """
-
-        def first_compat(obj: NDFrameT):
-            def first(x: Series):
-                """Helper function for first item that isn't NA."""
-                arr = x.array[notna(x.array)]
-                if not len(arr):
-                    return x.array.dtype.na_value
-                return arr[0]
-
-            if isinstance(obj, DataFrame):
-                return obj.apply(first)
-            elif isinstance(obj, Series):
-                return first(obj)
-            else:  # pragma: no cover
-                raise TypeError(type(obj))
-
         return self._agg_general(
             numeric_only=numeric_only,
             min_count=min_count,
             alias="first",
-            npfunc=first_compat,
             skipna=skipna,
         )
 
@@ -3319,27 +3302,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1  5.0  2
         3  6.0  3
         """
-
-        def last_compat(obj: NDFrameT):
-            def last(x: Series):
-                """Helper function for last item that isn't NA."""
-                arr = x.array[notna(x.array)]
-                if not len(arr):
-                    return x.array.dtype.na_value
-                return arr[-1]
-
-            if isinstance(obj, DataFrame):
-                return obj.apply(last)
-            elif isinstance(obj, Series):
-                return last(obj)
-            else:  # pragma: no cover
-                raise TypeError(type(obj))
-
         return self._agg_general(
             numeric_only=numeric_only,
             min_count=min_count,
             alias="last",
-            npfunc=last_compat,
             skipna=skipna,
         )
 
