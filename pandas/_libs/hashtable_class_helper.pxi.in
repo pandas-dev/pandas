@@ -82,18 +82,6 @@ cimported_types = ['complex64',
                    'uint64']
 }}
 
-{{for name in cimported_types}}
-from pandas._libs.khash cimport (
-    kh_destroy_{{name}},
-    kh_exist_{{name}},
-    kh_get_{{name}},
-    kh_init_{{name}},
-    kh_put_{{name}},
-    kh_resize_{{name}},
-)
-
-{{endfor}}
-
 # ----------------------------------------------------------------------
 # VectorData
 # ----------------------------------------------------------------------
@@ -398,9 +386,9 @@ dtypes = [('Complex128', 'complex128', 'khcomplex128_t', 'to_khcomplex128_t'),
 cdef class {{name}}HashTable(HashTable):
 
     def __cinit__(self, int64_t size_hint=1, bint uses_mask=False):
-        self.table = kh_init_{{dtype}}()
+        self.table = kh_init({{dtype}})
         size_hint = min(kh_needed_n_buckets(size_hint), SIZE_HINT_LIMIT)
-        kh_resize_{{dtype}}(self.table, size_hint)
+        kh_resize({{dtype}}, self.table, size_hint)
 
         self.uses_mask = uses_mask
         self.na_position = -1
@@ -410,7 +398,7 @@ cdef class {{name}}HashTable(HashTable):
 
     def __dealloc__(self):
         if self.table is not NULL:
-            kh_destroy_{{dtype}}(self.table)
+            kh_destroy({{dtype}}, self.table)
             self.table = NULL
 
     def __contains__(self, object key) -> bool:
@@ -424,7 +412,7 @@ cdef class {{name}}HashTable(HashTable):
             return -1 != self.na_position
 
         ckey = {{to_c_type}}(key)
-        k = kh_get_{{dtype}}(self.table, ckey)
+        k = kh_get({{dtype}}, self.table, ckey)
         return k != self.table.n_buckets
 
     def sizeof(self, deep: bool = False) -> int:
@@ -464,7 +452,7 @@ cdef class {{name}}HashTable(HashTable):
             {{c_type}} cval
 
         cval = {{to_c_type}}(val)
-        k = kh_get_{{dtype}}(self.table, cval)
+        k = kh_get({{dtype}}, self.table, cval)
         if k != self.table.n_buckets:
             return self.table.vals[k]
         else:
@@ -494,8 +482,8 @@ cdef class {{name}}HashTable(HashTable):
             {{c_type}} ckey
 
         ckey = {{to_c_type}}(key)
-        k = kh_put_{{dtype}}(self.table, ckey, &ret)
-        if kh_exist_{{dtype}}(self.table, k):
+        k = kh_put({{dtype}}, self.table, ckey, &ret)
+        if kh_exist({{dtype}}, self.table, k):
             self.table.vals[k] = val
         else:
             raise KeyError(key)
@@ -528,7 +516,7 @@ cdef class {{name}}HashTable(HashTable):
         with nogil:
             for i in range(n):
                 key = {{to_c_type}}(keys[i])
-                k = kh_put_{{dtype}}(self.table, key, &ret)
+                k = kh_put({{dtype}}, self.table, key, &ret)
                 self.table.vals[k] = <Py_ssize_t>values[i]
     {{endif}}
 
@@ -552,12 +540,12 @@ cdef class {{name}}HashTable(HashTable):
                         na_position = i
                     else:
                         val= {{to_c_type}}(values[i])
-                        k = kh_put_{{dtype}}(self.table, val, &ret)
+                        k = kh_put({{dtype}}, self.table, val, &ret)
                         self.table.vals[k] = i
             else:
                 for i in range(n):
                     val= {{to_c_type}}(values[i])
-                    k = kh_put_{{dtype}}(self.table, val, &ret)
+                    k = kh_put({{dtype}}, self.table, val, &ret)
                     self.table.vals[k] = i
         self.na_position = na_position
 
@@ -582,7 +570,7 @@ cdef class {{name}}HashTable(HashTable):
                     locs[i] = na_position
                 else:
                     val = {{to_c_type}}(values[i])
-                    k = kh_get_{{dtype}}(self.table, val)
+                    k = kh_get({{dtype}}, self.table, val)
                     if k != self.table.n_buckets:
                         locs[i] = self.table.vals[k]
                     else:
@@ -716,11 +704,11 @@ cdef class {{name}}HashTable(HashTable):
                         append_data_uint8(rmd, 1)
                         continue
 
-                k = kh_get_{{dtype}}(self.table, val)
+                k = kh_get({{dtype}}, self.table, val)
 
                 if k == self.table.n_buckets:
                     # k hasn't been seen yet
-                    k = kh_put_{{dtype}}(self.table, val, &ret)
+                    k = kh_put({{dtype}}, self.table, val, &ret)
 
                     if needs_resize(ud):
                         with gil:
@@ -857,12 +845,12 @@ cdef class {{name}}HashTable(HashTable):
                     labels[i] = -1
                     continue
 
-                k = kh_get_{{dtype}}(self.table, val)
+                k = kh_get({{dtype}}, self.table, val)
                 if k != self.table.n_buckets:
                     idx = self.table.vals[k]
                     labels[i] = idx
                 else:
-                    k = kh_put_{{dtype}}(self.table, val, &ret)
+                    k = kh_put({{dtype}}, self.table, val, &ret)
                     self.table.vals[k] = count
 
                     if needs_resize(ud):
