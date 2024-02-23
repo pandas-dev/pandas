@@ -86,12 +86,31 @@ static inline khuint32_t asuint32(float key) {
   return val;
 }
 
+#define ZERO_HASH 0
+#define NAN_HASH 0
+
 static inline khuint32_t kh_float64_hash_func(double val) {
+  // 0.0 and -0.0 should have the same hash:
+  if (val == 0.0) {
+    return ZERO_HASH;
+  }
+  // all nans should have the same hash:
+  if (val != val) {
+    return NAN_HASH;
+  }
   khuint64_t as_int = asuint64(val);
   return murmur2_64to32(as_int);
 }
 
 static inline khuint32_t kh_float32_hash_func(float val) {
+  // 0.0 and -0.0 should have the same hash:
+  if (val == 0.0f) {
+    return ZERO_HASH;
+  }
+  // all nans should have the same hash:
+  if (val != val) {
+    return NAN_HASH;
+  }
   khuint32_t as_int = asuint32(val);
   return murmur2_32to32(as_int);
 }
@@ -204,6 +223,9 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
 
 static inline Py_hash_t _Pandas_HashDouble(double val) {
   // Since Python3.10, nan is no longer has hash 0
+  if (Py_IS_NAN(val)) {
+    return 0;
+  }
 #if PY_VERSION_HEX < 0x030A0000
   return _Py_HashDouble(val);
 #else
