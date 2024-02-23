@@ -2039,8 +2039,8 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         """
         Return the frequency object if it is set, otherwise None.
 
-        To learn more about the frequency strings, please see `this link
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+        To learn more about the frequency strings, please see
+        :ref:`this link<timeseries.offset_aliases>`
 
         See Also
         --------
@@ -2061,7 +2061,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                       dtype='datetime64[ns, America/Chicago]', freq='h')
         >>> datetimeindex.freq
         <Hour>
-        """  # (http link too long)
+        """
         return self._freq
 
     @freq.setter
