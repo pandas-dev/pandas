@@ -360,13 +360,13 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         return self._ndarray
 
     @overload
-    def __getitem__(self, item: ScalarIndexer) -> DTScalarOrNaT:
+    def __getitem__(self, key: ScalarIndexer) -> DTScalarOrNaT:
         ...
 
     @overload
     def __getitem__(
         self,
-        item: SequenceIndexer | PositionalIndexerTuple,
+        key: SequenceIndexer | PositionalIndexerTuple,
     ) -> Self:
         ...
 
@@ -651,7 +651,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
     def _validate_listlike(self, value, allow_object: bool = False):
         if isinstance(value, type(self)):
-            if self.dtype.kind in "mM" and not allow_object:
+            if self.dtype.kind in "mM" and not allow_object and self.unit != value.unit:  # type: ignore[attr-defined]
                 # error: "DatetimeLikeArrayMixin" has no attribute "as_unit"
                 value = value.as_unit(self.unit, round_ok=False)  # type: ignore[attr-defined]
             return value
