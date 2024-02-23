@@ -8,13 +8,17 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._libs import lib
+
 from pandas.core.dtypes.cast import find_common_type
 
 from pandas import (
+    CategoricalDtype,
     CategoricalIndex,
     DatetimeTZDtype,
     Index,
     MultiIndex,
+    PeriodDtype,
     RangeIndex,
     Series,
     Timestamp,
@@ -24,6 +28,37 @@ from pandas.api.types import (
     is_signed_integer_dtype,
     pandas_dtype,
 )
+
+
+def equal_contents(arr1, arr2) -> bool:
+    """
+    Checks if the set of unique elements of arr1 and arr2 are equivalent.
+    """
+    return frozenset(arr1) == frozenset(arr2)
+
+
+@pytest.fixture(
+    params=tm.ALL_REAL_NUMPY_DTYPES
+    + [
+        "object",
+        "category",
+        "datetime64[ns]",
+        "timedelta64[ns]",
+    ]
+)
+def any_dtype_for_small_pos_integer_indexes(request):
+    """
+    Dtypes that can be given to an Index with small positive integers.
+
+    This means that for any dtype `x` in the params list, `Index([1, 2, 3], dtype=x)` is
+    valid and gives the correct Index (sub-)class.
+    """
+    return request.param
+
+
+@pytest.fixture
+def index_flat2(index_flat):
+    return index_flat
 
 
 def test_union_same_types(index):
@@ -60,28 +95,32 @@ def test_union_different_types(index_flat, index_flat2, request):
         mark = pytest.mark.xfail(
             reason="GH#44000 True==1", raises=ValueError, strict=False
         )
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     common_dtype = find_common_type([idx1.dtype, idx2.dtype])
 
     warn = None
+    msg = "'<' not supported between"
     if not len(idx1) or not len(idx2):
         pass
-    elif (
-        idx1.dtype.kind == "c"
-        and (
-            idx2.dtype.kind not in ["i", "u", "f", "c"]
-            or not isinstance(idx2.dtype, np.dtype)
-        )
-    ) or (
-        idx2.dtype.kind == "c"
-        and (
-            idx1.dtype.kind not in ["i", "u", "f", "c"]
-            or not isinstance(idx1.dtype, np.dtype)
-        )
+    elif (idx1.dtype.kind == "c" and (not lib.is_np_dtype(idx2.dtype, "iufc"))) or (
+        idx2.dtype.kind == "c" and (not lib.is_np_dtype(idx1.dtype, "iufc"))
     ):
         # complex objects non-sortable
         warn = RuntimeWarning
+    elif (
+        isinstance(idx1.dtype, PeriodDtype) and isinstance(idx2.dtype, CategoricalDtype)
+    ) or (
+        isinstance(idx2.dtype, PeriodDtype) and isinstance(idx1.dtype, CategoricalDtype)
+    ):
+        warn = FutureWarning
+        msg = r"PeriodDtype\[B\] is deprecated"
+        mark = pytest.mark.xfail(
+            reason="Warning not produced on all builds",
+            raises=AssertionError,
+            strict=False,
+        )
+        request.applymarker(mark)
 
     any_uint64 = np.uint64 in (idx1.dtype, idx2.dtype)
     idx1_signed = is_signed_integer_dtype(idx1.dtype)
@@ -92,7 +131,7 @@ def test_union_different_types(index_flat, index_flat2, request):
     idx1 = idx1.sort_values()
     idx2 = idx2.sort_values()
 
-    with tm.assert_produces_warning(warn, match="'<' not supported between"):
+    with tm.assert_produces_warning(warn, match=msg):
         res1 = idx1.union(idx2)
         res2 = idx2.union(idx1)
 
@@ -105,19 +144,16 @@ def test_union_different_types(index_flat, index_flat2, request):
 
 
 @pytest.mark.parametrize(
-    "idx_fact1,idx_fact2",
+    "idx1,idx2",
     [
-        (tm.makeIntIndex, tm.makeRangeIndex),
-        (tm.makeFloatIndex, tm.makeIntIndex),
-        (tm.makeFloatIndex, tm.makeRangeIndex),
-        (tm.makeFloatIndex, tm.makeUIntIndex),
+        (Index(np.arange(5), dtype=np.int64), RangeIndex(5)),
+        (Index(np.arange(5), dtype=np.float64), Index(np.arange(5), dtype=np.int64)),
+        (Index(np.arange(5), dtype=np.float64), RangeIndex(5)),
+        (Index(np.arange(5), dtype=np.float64), Index(np.arange(5), dtype=np.uint64)),
     ],
 )
-def test_compatible_inconsistent_pairs(idx_fact1, idx_fact2):
+def test_compatible_inconsistent_pairs(idx1, idx2):
     # GH 23525
-    idx1 = idx_fact1(10)
-    idx2 = idx_fact2(20)
-
     res1 = idx1.union(idx2)
     res2 = idx2.union(idx1)
 
@@ -183,14 +219,15 @@ class TestSetOps:
         with pytest.raises(TypeError, match=msg):
             getattr(index, method)(case)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_intersection_base(self, index):
         if isinstance(index, CategoricalIndex):
-            return
+            pytest.skip(f"Not relevant for {type(index).__name__}")
 
-        first = index[:5]
-        second = index[:3]
+        first = index[:5].unique()
+        second = index[:3].unique()
         intersect = first.intersection(second)
-        assert tm.equalContents(intersect, second)
+        tm.assert_index_equal(intersect, second)
 
         if isinstance(index.dtype, DatetimeTZDtype):
             # The second.values below will drop tz, so the rest of this test
@@ -201,7 +238,7 @@ class TestSetOps:
         cases = [second.to_numpy(), second.to_series(), second.to_list()]
         for case in cases:
             result = first.intersection(case)
-            assert tm.equalContents(result, second)
+            assert equal_contents(result, second)
 
         if isinstance(index, MultiIndex):
             msg = "other must be a MultiIndex or a list of tuples"
@@ -211,13 +248,15 @@ class TestSetOps:
     @pytest.mark.filterwarnings(
         "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
     )
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_union_base(self, index):
+        index = index.unique()
         first = index[3:]
         second = index[:5]
         everything = index
 
         union = first.union(second)
-        assert tm.equalContents(union, everything)
+        tm.assert_index_equal(union.sort_values(), everything.sort_values())
 
         if isinstance(index.dtype, DatetimeTZDtype):
             # The second.values below will drop tz, so the rest of this test
@@ -228,13 +267,14 @@ class TestSetOps:
         cases = [second.to_numpy(), second.to_series(), second.to_list()]
         for case in cases:
             result = first.union(case)
-            assert tm.equalContents(result, everything)
+            assert equal_contents(result, everything)
 
         if isinstance(index, MultiIndex):
             msg = "other must be a MultiIndex or a list of tuples"
             with pytest.raises(TypeError, match=msg):
                 first.union([1, 2, 3])
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     @pytest.mark.filterwarnings(
         "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
     )
@@ -250,43 +290,44 @@ class TestSetOps:
         else:
             answer = index[4:]
         result = first.difference(second, sort)
-        assert tm.equalContents(result, answer)
+        assert equal_contents(result, answer)
 
         # GH#10149
         cases = [second.to_numpy(), second.to_series(), second.to_list()]
         for case in cases:
             result = first.difference(case, sort)
-            assert tm.equalContents(result, answer)
+            assert equal_contents(result, answer)
 
         if isinstance(index, MultiIndex):
             msg = "other must be a MultiIndex or a list of tuples"
             with pytest.raises(TypeError, match=msg):
                 first.difference([1, 2, 3], sort)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     @pytest.mark.filterwarnings(
         "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
     )
     def test_symmetric_difference(self, index):
         if isinstance(index, CategoricalIndex):
-            return
+            pytest.skip(f"Not relevant for {type(index).__name__}")
         if len(index) < 2:
-            return
+            pytest.skip("Too few values for test")
         if index[0] in index[1:] or index[-1] in index[:-1]:
             # index fixture has e.g. an index of bools that does not satisfy this,
             #  another with [0, 0, 1, 1, 2, 2]
-            return
+            pytest.skip("Index values no not satisfy test condition.")
 
         first = index[1:]
         second = index[:-1]
         answer = index[[0, -1]]
         result = first.symmetric_difference(second)
-        assert tm.equalContents(result, answer)
+        tm.assert_index_equal(result.sort_values(), answer.sort_values())
 
         # GH#10149
         cases = [second.to_numpy(), second.to_series(), second.to_list()]
         for case in cases:
             result = first.symmetric_difference(case)
-            assert tm.equalContents(result, answer)
+            assert equal_contents(result, answer)
 
         if isinstance(index, MultiIndex):
             msg = "other must be a MultiIndex or a list of tuples"
@@ -308,8 +349,9 @@ class TestSetOps:
         # Test unions with various name combinations
         # Do not test MultiIndex or repeats
         if not index_flat.is_unique:
-            pytest.skip("Randomly generated index_flat was not unique.")
-        index = index_flat
+            index = index_flat.unique()
+        else:
+            index = index_flat
 
         # Test copy.union(copy)
         first = index.copy().set_names(fname)
@@ -351,8 +393,9 @@ class TestSetOps:
     )
     def test_union_unequal(self, index_flat, fname, sname, expected_name):
         if not index_flat.is_unique:
-            pytest.skip("Randomly generated index_flat was not unique.")
-        index = index_flat
+            index = index_flat.unique()
+        else:
+            index = index_flat
 
         # test copy.union(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
@@ -375,8 +418,9 @@ class TestSetOps:
         # GH#35847
         # Test intersections with various name combinations
         if not index_flat.is_unique:
-            pytest.skip("Randomly generated index_flat was not unique.")
-        index = index_flat
+            index = index_flat.unique()
+        else:
+            index = index_flat
 
         # Test copy.intersection(copy)
         first = index.copy().set_names(fname)
@@ -418,8 +462,9 @@ class TestSetOps:
     )
     def test_intersect_unequal(self, index_flat, fname, sname, expected_name):
         if not index_flat.is_unique:
-            pytest.skip("Randomly generated index_flat was not unique.")
-        index = index_flat
+            index = index_flat.unique()
+        else:
+            index = index_flat
 
         # test copy.intersection(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
@@ -428,6 +473,7 @@ class TestSetOps:
         expected = index[1:].set_names(expected_name).sort_values()
         tm.assert_index_equal(intersect, expected)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_intersection_name_retention_with_nameless(self, index):
         if isinstance(index, MultiIndex):
             index = index.rename(list(range(index.nlevels)))
@@ -452,7 +498,7 @@ class TestSetOps:
         # If taking difference of a set and itself, it
         # needs to preserve the type of the index
         if not index.is_unique:
-            return
+            pytest.skip("Not relevant since index is not unique")
         result = index.difference(index, sort=sort)
         expected = index[:0]
         tm.assert_index_equal(result, expected, exact=True)
@@ -475,12 +521,13 @@ class TestSetOps:
         # empty index produces the same index as the difference
         # of an index with itself.  Test for all types
         if not index.is_unique:
-            return
+            pytest.skip("Not relevant because index is not unique")
         inter = index.intersection(index[:0])
         diff = index.difference(index, sort=sort)
         tm.assert_index_equal(inter, diff, exact=True)
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.filterwarnings(
     "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
 )
@@ -507,7 +554,7 @@ def test_intersection_duplicates_all_indexes(index):
     # GH#38743
     if index.empty:
         # No duplicates in empty indexes
-        return
+        pytest.skip("Not relevant for empty Index")
 
     idx = index
     idx_non_unique = idx[[0, 0, 1, 2]]
@@ -577,6 +624,43 @@ def test_union_nan_in_both(dup):
     tm.assert_index_equal(result, expected)
 
 
+def test_union_rangeindex_sort_true():
+    # GH 53490
+    idx1 = RangeIndex(1, 100, 6)
+    idx2 = RangeIndex(1, 50, 3)
+    result = idx1.union(idx2, sort=True)
+    expected = Index(
+        [
+            1,
+            4,
+            7,
+            10,
+            13,
+            16,
+            19,
+            22,
+            25,
+            28,
+            31,
+            34,
+            37,
+            40,
+            43,
+            46,
+            49,
+            55,
+            61,
+            67,
+            73,
+            79,
+            85,
+            91,
+            97,
+        ]
+    )
+    tm.assert_index_equal(result, expected)
+
+
 def test_union_with_duplicate_index_not_subset_and_non_monotonic(
     any_dtype_for_small_pos_integer_indexes,
 ):
@@ -627,23 +711,25 @@ class TestSetOpsUnsorted:
         first = index[:20]
         second = index[:10]
         intersect = first.intersection(second, sort=sort)
-        if sort is None:
-            tm.assert_index_equal(intersect, second.sort_values())
-        assert tm.equalContents(intersect, second)
+        if sort in (None, False):
+            tm.assert_index_equal(intersect.sort_values(), second.sort_values())
+        else:
+            tm.assert_index_equal(intersect, second)
 
         # Corner cases
         inter = first.intersection(first, sort=sort)
         assert inter is first
 
     @pytest.mark.parametrize(
-        "index2,keeps_name",
+        "index2_name,keeps_name",
         [
-            (Index([3, 4, 5, 6, 7], name="index"), True),  # preserve same name
-            (Index([3, 4, 5, 6, 7], name="other"), False),  # drop diff names
-            (Index([3, 4, 5, 6, 7]), False),
+            ("index", True),  # preserve same name
+            ("other", False),  # drop diff names
+            (None, False),
         ],
     )
-    def test_intersection_name_preservation(self, index2, keeps_name, sort):
+    def test_intersection_name_preservation(self, index2_name, keeps_name, sort):
+        index2 = Index([3, 4, 5, 6, 7], name=index2_name)
         index1 = Index([1, 2, 3, 4, 5], name="index")
         expected = Index([3, 4, 5])
         result = index1.intersection(index2, sort)
@@ -692,9 +778,10 @@ class TestSetOpsUnsorted:
         everything = index[:20]
 
         union = first.union(second, sort=sort)
-        if sort is None:
-            tm.assert_index_equal(union, everything.sort_values())
-        assert tm.equalContents(union, everything)
+        if sort in (None, False):
+            tm.assert_index_equal(union.sort_values(), everything.sort_values())
+        else:
+            tm.assert_index_equal(union, everything)
 
     @pytest.mark.parametrize("klass", [np.array, Series, list])
     @pytest.mark.parametrize("index", ["string"], indirect=True)
@@ -706,9 +793,10 @@ class TestSetOpsUnsorted:
 
         case = klass(second.values)
         result = first.union(case, sort=sort)
-        if sort is None:
-            tm.assert_index_equal(result, everything.sort_values())
-        assert tm.equalContents(result, everything)
+        if sort in (None, False):
+            tm.assert_index_equal(result.sort_values(), everything.sort_values())
+        else:
+            tm.assert_index_equal(result, everything)
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
     def test_union_identity(self, index, sort):
@@ -720,10 +808,10 @@ class TestSetOpsUnsorted:
 
         # This should no longer be the same object, since [] is not consistent,
         # both objects will be recast to dtype('O')
-        union = first.union([], sort=sort)
+        union = first.union(Index([], dtype=first.dtype), sort=sort)
         assert (union is first) is (not sort)
 
-        union = Index([]).union(first, sort=sort)
+        union = Index([], dtype=first.dtype).union(first, sort=sort)
         assert (union is first) is (not sort)
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
@@ -737,7 +825,11 @@ class TestSetOpsUnsorted:
         second.name = second_name
         result = first.difference(second, sort=sort)
 
-        assert tm.equalContents(result, answer)
+        if sort is True:
+            tm.assert_index_equal(result, answer)
+        else:
+            answer.name = second_name
+            tm.assert_index_equal(result.sort_values(), answer.sort_values())
 
         if expected is None:
             assert result.name is None
@@ -745,11 +837,21 @@ class TestSetOpsUnsorted:
             assert result.name == expected
 
     def test_difference_empty_arg(self, index, sort):
-        first = index[5:20]
+        first = index.copy()
+        first = first[5:20]
         first.name = "name"
         result = first.difference([], sort)
+        expected = index[5:20].unique()
+        expected.name = "name"
+        tm.assert_index_equal(result, expected)
 
-        tm.assert_index_equal(result, first)
+    def test_difference_should_not_compare(self):
+        # GH 55113
+        left = Index([1, 1])
+        right = Index([True])
+        result = left.difference(right)
+        expected = Index([1])
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
     def test_difference_identity(self, index, sort):
@@ -810,16 +912,17 @@ class TestSetOpsUnsorted:
         if sort is None:
             expected = expected.sort_values()
         tm.assert_index_equal(result, expected)
-        assert tm.equalContents(result, expected)
 
     @pytest.mark.parametrize(
         "index2,expected",
         [
-            (Index([0, 1, np.nan]), Index([2.0, 3.0, 0.0])),
-            (Index([0, 1]), Index([np.nan, 2.0, 3.0, 0.0])),
+            ([0, 1, np.nan], [2.0, 3.0, 0.0]),
+            ([0, 1], [np.nan, 2.0, 3.0, 0.0]),
         ],
     )
     def test_symmetric_difference_missing(self, index2, expected, sort):
+        index2 = Index(index2)
+        expected = Index(expected)
         # GH#13514 change: {nan} - {nan} == {}
         # (GH#6444, sorting of nans, is no longer an issue)
         index1 = Index([1, np.nan, 2, 3])
@@ -832,13 +935,20 @@ class TestSetOpsUnsorted:
     def test_symmetric_difference_non_index(self, sort):
         index1 = Index([1, 2, 3, 4], name="index1")
         index2 = np.array([2, 3, 4, 5])
-        expected = Index([1, 5])
+        expected = Index([1, 5], name="index1")
         result = index1.symmetric_difference(index2, sort=sort)
-        assert tm.equalContents(result, expected)
+        if sort in (None, True):
+            tm.assert_index_equal(result, expected)
+        else:
+            tm.assert_index_equal(result.sort_values(), expected)
         assert result.name == "index1"
 
         result = index1.symmetric_difference(index2, result_name="new_name", sort=sort)
-        assert tm.equalContents(result, expected)
+        expected.name = "new_name"
+        if sort in (None, True):
+            tm.assert_index_equal(result, expected)
+        else:
+            tm.assert_index_equal(result.sort_values(), expected)
         assert result.name == "new_name"
 
     def test_union_ea_dtypes(self, any_numeric_ea_and_arrow_dtype):
@@ -847,4 +957,11 @@ class TestSetOpsUnsorted:
         idx2 = Index([3, 4, 5], dtype=any_numeric_ea_and_arrow_dtype)
         result = idx.union(idx2)
         expected = Index([1, 2, 3, 4, 5], dtype=any_numeric_ea_and_arrow_dtype)
+        tm.assert_index_equal(result, expected)
+
+    def test_union_string_array(self, any_string_dtype):
+        idx1 = Index(["a"], dtype=any_string_dtype)
+        idx2 = Index(["b"], dtype=any_string_dtype)
+        result = idx1.union(idx2)
+        expected = Index(["a", "b"], dtype=any_string_dtype)
         tm.assert_index_equal(result, expected)

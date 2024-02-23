@@ -131,7 +131,7 @@ def test_append_with_timezones(setup_path, gettz):
 def test_append_with_timezones_as_index(setup_path, gettz):
     # GH#4098 example
 
-    dti = date_range("2000-1-1", periods=3, freq="H", tz=gettz("US/Eastern"))
+    dti = date_range("2000-1-1", periods=3, freq="h", tz=gettz("US/Eastern"))
     dti = dti._with_freq(None)  # freq doesn't round-trip
 
     df = DataFrame({"A": Series(range(3), index=dti)})
@@ -148,16 +148,20 @@ def test_append_with_timezones_as_index(setup_path, gettz):
         tm.assert_frame_equal(result, df)
 
 
-def test_roundtrip_tz_aware_index(setup_path):
+def test_roundtrip_tz_aware_index(setup_path, unit):
     # GH 17618
-    time = Timestamp("2000-01-01 01:00:00", tz="US/Eastern")
-    df = DataFrame(data=[0], index=[time])
+    ts = Timestamp("2000-01-01 01:00:00", tz="US/Eastern")
+    dti = DatetimeIndex([ts]).as_unit(unit)
+    df = DataFrame(data=[0], index=dti)
 
     with ensure_clean_store(setup_path) as store:
         store.put("frame", df, format="fixed")
         recons = store["frame"]
         tm.assert_frame_equal(recons, df)
-        assert recons.index[0]._value == 946706400000000000
+
+    value = recons.index[0]._value
+    denom = {"ns": 1, "us": 1000, "ms": 10**6, "s": 10**9}[unit]
+    assert value == 946706400000000000 // denom
 
 
 def test_store_index_name_with_tz(setup_path):
@@ -180,7 +184,9 @@ def test_tseries_select_index_column(setup_path):
 
     # check that no tz still works
     rng = date_range("1/1/2000", "1/30/2000")
-    frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
+    frame = DataFrame(
+        np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng
+    )
 
     with ensure_clean_store(setup_path) as store:
         store.append("frame", frame)
@@ -189,7 +195,9 @@ def test_tseries_select_index_column(setup_path):
 
     # check utc
     rng = date_range("1/1/2000", "1/30/2000", tz="UTC")
-    frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
+    frame = DataFrame(
+        np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng
+    )
 
     with ensure_clean_store(setup_path) as store:
         store.append("frame", frame)
@@ -198,7 +206,9 @@ def test_tseries_select_index_column(setup_path):
 
     # double check non-utc
     rng = date_range("1/1/2000", "1/30/2000", tz="US/Eastern")
-    frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
+    frame = DataFrame(
+        np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng
+    )
 
     with ensure_clean_store(setup_path) as store:
         store.append("frame", frame)
@@ -211,7 +221,9 @@ def test_timezones_fixed_format_frame_non_empty(setup_path):
         # index
         rng = date_range("1/1/2000", "1/30/2000", tz="US/Eastern")
         rng = rng._with_freq(None)  # freq doesn't round-trip
-        df = DataFrame(np.random.randn(len(rng), 4), index=rng)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng
+        )
         store["df"] = df
         result = store["df"]
         tm.assert_frame_equal(result, df)
@@ -262,7 +274,9 @@ def test_timezones_fixed_format_series_nonempty(setup_path, tz_aware_fixture):
 
 def test_fixed_offset_tz(setup_path):
     rng = date_range("1/1/2000 00:00:00-07:00", "1/30/2000 00:00:00-07:00")
-    frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
+    frame = DataFrame(
+        np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng
+    )
 
     with ensure_clean_store(setup_path) as store:
         store["frame"] = frame
@@ -298,23 +312,6 @@ def test_store_timezone(setup_path):
         tm.assert_frame_equal(result, df)
 
 
-def test_legacy_datetimetz_object(datapath):
-    # legacy from < 0.17.0
-    # 8260
-    expected = DataFrame(
-        {
-            "A": Timestamp("20130102", tz="US/Eastern").as_unit("ns"),
-            "B": Timestamp("20130603", tz="CET").as_unit("ns"),
-        },
-        index=range(5),
-    )
-    with ensure_clean_store(
-        datapath("io", "data", "legacy_hdf", "datetimetz_object.h5"), mode="r"
-    ) as store:
-        result = store["df"]
-        tm.assert_frame_equal(result, expected)
-
-
 def test_dst_transitions(setup_path):
     # make sure we are not failing on transitions
     with ensure_clean_store(setup_path) as store:
@@ -322,7 +319,7 @@ def test_dst_transitions(setup_path):
             "2013-10-26 23:00",
             "2013-10-27 01:00",
             tz="Europe/London",
-            freq="H",
+            freq="h",
             ambiguous="infer",
         )
         times = times._with_freq(None)  # freq doesn't round-trip
@@ -348,17 +345,3 @@ def test_read_with_where_tz_aware_index(tmp_path, setup_path):
         store.append(key, expected, format="table", append=True)
     result = pd.read_hdf(path, key, where="DATE > 20151130")
     tm.assert_frame_equal(result, expected)
-
-
-def test_py2_created_with_datetimez(datapath):
-    # The test HDF5 file was created in Python 2, but could not be read in
-    # Python 3.
-    #
-    # GH26443
-    index = [Timestamp("2019-01-01T18:00").tz_localize("America/New_York")]
-    expected = DataFrame({"data": 123}, index=index)
-    with ensure_clean_store(
-        datapath("io", "data", "legacy_hdf", "gh26443.h5"), mode="r"
-    ) as store:
-        result = store["key"]
-        tm.assert_frame_equal(result, expected)

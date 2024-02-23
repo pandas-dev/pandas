@@ -1,6 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Iterator,
+    Mapping,
+    MutableMapping,
+    Sequence,
+)
 from datetime import (
+    date,
     datetime,
     timedelta,
     tzinfo,
@@ -11,19 +19,13 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
-    Hashable,
-    Iterator,
-    List,
     Literal,
-    Mapping,
     Optional,
     Protocol,
-    Sequence,
-    Tuple,
     Type as type_t,
     TypeVar,
     Union,
+    overload,
 )
 
 import numpy as np
@@ -44,7 +46,12 @@ if TYPE_CHECKING:
 
     from pandas.core.dtypes.dtypes import ExtensionDtype
 
-    from pandas import Interval
+    from pandas import (
+        DatetimeIndex,
+        Interval,
+        PeriodIndex,
+        TimedeltaIndex,
+    )
     from pandas.arrays import (
         DatetimeArray,
         TimedeltaArray,
@@ -59,9 +66,7 @@ if TYPE_CHECKING:
     )
     from pandas.core.indexes.base import Index
     from pandas.core.internals import (
-        ArrayManager,
         BlockManager,
-        SingleArrayManager,
         SingleBlockManager,
     )
     from pandas.core.resample import Resampler
@@ -69,6 +74,7 @@ if TYPE_CHECKING:
     from pandas.core.window.rolling import BaseWindow
 
     from pandas.io.formats.format import EngFormatter
+    from pandas.tseries.holiday import AbstractHolidayCalendar
 
     ScalarLike_co = Union[
         int,
@@ -84,48 +90,100 @@ if TYPE_CHECKING:
     # Name "npt._ArrayLikeInt_co" is not defined  [name-defined]
     NumpySorter = Optional[npt._ArrayLikeInt_co]  # type: ignore[name-defined]
 
+    from typing import SupportsIndex
+
     if sys.version_info >= (3, 10):
-        from typing import TypeGuard
+        from typing import Concatenate  # pyright: ignore[reportUnusedImport]
+        from typing import ParamSpec
+        from typing import TypeGuard  # pyright: ignore[reportUnusedImport]
     else:
-        from typing_extensions import TypeGuard  # pyright: reportUnusedImport = false
+        from typing_extensions import (  # pyright: ignore[reportUnusedImport]
+            Concatenate,
+            ParamSpec,
+            TypeGuard,
+        )
+
+    P = ParamSpec("P")
 
     if sys.version_info >= (3, 11):
-        from typing import Self
+        from typing import Self  # pyright: ignore[reportUnusedImport]
+        from typing import Unpack  # pyright: ignore[reportUnusedImport]
     else:
-        from typing_extensions import Self  # pyright: reportUnusedImport = false
+        from typing_extensions import Self  # pyright: ignore[reportUnusedImport]
+        from typing_extensions import Unpack  # pyright: ignore[reportUnusedImport]
+
 else:
     npt: Any = None
+    ParamSpec: Any = None
     Self: Any = None
     TypeGuard: Any = None
+    Concatenate: Any = None
+    Unpack: Any = None
 
 HashableT = TypeVar("HashableT", bound=Hashable)
+HashableT2 = TypeVar("HashableT2", bound=Hashable)
+MutableMappingT = TypeVar("MutableMappingT", bound=MutableMapping)
 
 # array-like
 
 ArrayLike = Union["ExtensionArray", np.ndarray]
+ArrayLikeT = TypeVar("ArrayLikeT", "ExtensionArray", np.ndarray)
 AnyArrayLike = Union[ArrayLike, "Index", "Series"]
 TimeArrayLike = Union["DatetimeArray", "TimedeltaArray"]
 
 # list-like
 
-# Cannot use `Sequence` because a string is a sequence, and we don't want to
-# accept that.  Could refine if https://github.com/python/typing/issues/256 is
-# resolved to differentiate between Sequence[str] and str
-ListLike = Union[AnyArrayLike, List, range]
+# from https://github.com/hauntsaninja/useful_types
+# includes Sequence-like objects but excludes str and bytes
+_T_co = TypeVar("_T_co", covariant=True)
+
+
+class SequenceNotStr(Protocol[_T_co]):
+    @overload
+    def __getitem__(self, index: SupportsIndex, /) -> _T_co:
+        ...
+
+    @overload
+    def __getitem__(self, index: slice, /) -> Sequence[_T_co]:
+        ...
+
+    def __contains__(self, value: object, /) -> bool:
+        ...
+
+    def __len__(self) -> int:
+        ...
+
+    def __iter__(self) -> Iterator[_T_co]:
+        ...
+
+    def index(self, value: Any, start: int = ..., stop: int = ..., /) -> int:
+        ...
+
+    def count(self, value: Any, /) -> int:
+        ...
+
+    def __reversed__(self) -> Iterator[_T_co]:
+        ...
+
+
+ListLike = Union[AnyArrayLike, SequenceNotStr, range]
 
 # scalars
 
 PythonScalar = Union[str, float, bool]
 DatetimeLikeScalar = Union["Period", "Timestamp", "Timedelta"]
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
-Scalar = Union[PythonScalar, PandasScalar, np.datetime64, np.timedelta64, datetime]
-IntStrT = TypeVar("IntStrT", int, str)
+Scalar = Union[PythonScalar, PandasScalar, np.datetime64, np.timedelta64, date]
+IntStrT = TypeVar("IntStrT", bound=Union[int, str])
 
 
 # timestamp and timedelta convertible types
 
 TimestampConvertibleTypes = Union[
-    "Timestamp", datetime, np.datetime64, np.int64, float, str
+    "Timestamp", date, np.datetime64, np.int64, float, str
+]
+TimestampNonexistent = Union[
+    Literal["shift_forward", "shift_backward", "NaT", "raise"], timedelta
 ]
 TimedeltaConvertibleTypes = Union[
     "Timedelta", timedelta, np.timedelta64, np.int64, float, str
@@ -140,16 +198,18 @@ ToTimestampHow = Literal["s", "e", "start", "end"]
 # passed in, a DataFrame is always returned.
 NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
 
+IndexT = TypeVar("IndexT", bound="Index")
+FreqIndexT = TypeVar("FreqIndexT", "DatetimeIndex", "PeriodIndex", "TimedeltaIndex")
 NumpyIndexT = TypeVar("NumpyIndexT", np.ndarray, "Index")
 
 AxisInt = int
 Axis = Union[AxisInt, Literal["index", "columns", "rows"]]
 IndexLabel = Union[Hashable, Sequence[Hashable]]
 Level = Hashable
-Shape = Tuple[int, ...]
-Suffixes = Tuple[Optional[str], Optional[str]]
+Shape = tuple[int, ...]
+Suffixes = tuple[Optional[str], Optional[str]]
 Ordered = Optional[bool]
-JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
+JSONSerializable = Optional[Union[PythonScalar, list, dict]]
 Frequency = Union[str, "BaseOffset"]
 Axes = ListLike
 
@@ -166,15 +226,15 @@ NpDtype = Union[str, np.dtype, type_t[Union[str, complex, bool, object]]]
 Dtype = Union["ExtensionDtype", NpDtype]
 AstypeArg = Union["ExtensionDtype", "npt.DTypeLike"]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
-DtypeArg = Union[Dtype, Dict[Hashable, Dtype]]
+DtypeArg = Union[Dtype, dict[Hashable, Dtype]]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
 
 # converters
-ConvertersArg = Dict[Hashable, Callable[[Dtype], Dtype]]
+ConvertersArg = dict[Hashable, Callable[[Dtype], Dtype]]
 
 # parse_dates
 ParseDatesArg = Union[
-    bool, List[Hashable], List[List[Hashable]], Dict[Hashable, List[Hashable]]
+    bool, list[Hashable], list[list[Hashable]], dict[Hashable, list[Hashable]]
 ]
 
 # For functions like rename that convert one label to another
@@ -195,10 +255,12 @@ IndexKeyFunc = Optional[Callable[["Index"], Union["Index", AnyArrayLike]]]
 
 # types of `func` kwarg for DataFrame.aggregate and Series.aggregate
 AggFuncTypeBase = Union[Callable, str]
-AggFuncTypeDict = Dict[Hashable, Union[AggFuncTypeBase, List[AggFuncTypeBase]]]
+AggFuncTypeDict = MutableMapping[
+    Hashable, Union[AggFuncTypeBase, list[AggFuncTypeBase]]
+]
 AggFuncType = Union[
     AggFuncTypeBase,
-    List[AggFuncTypeBase],
+    list[AggFuncTypeBase],
     AggFuncTypeDict,
 ]
 AggObjType = Union[
@@ -279,25 +341,25 @@ class ReadCsvBuffer(ReadBuffer[AnyStr_co], Protocol):
 
     @property
     def closed(self) -> bool:
-        # for enine=pyarrow
+        # for engine=pyarrow
         ...
 
 
 FilePath = Union[str, "PathLike[str]"]
 
 # for arbitrary kwargs passed during reading/writing files
-StorageOptions = Optional[Dict[str, Any]]
+StorageOptions = Optional[dict[str, Any]]
 
 
 # compression keywords and compression
-CompressionDict = Dict[str, Any]
+CompressionDict = dict[str, Any]
 CompressionOptions = Optional[
     Union[Literal["infer", "gzip", "bz2", "zip", "xz", "zstd", "tar"], CompressionDict]
 ]
 
 # types in DataFrameFormatter
 FormattersType = Union[
-    List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
+    list[Callable], tuple[Callable, ...], Mapping[Union[str, int], Callable]
 ]
 ColspaceType = Mapping[Hashable, Union[str, int]]
 FloatFormatType = Union[str, Callable, "EngFormatter"]
@@ -307,13 +369,29 @@ ColspaceArgType = Union[
 
 # Arguments for fillna()
 FillnaOptions = Literal["backfill", "bfill", "ffill", "pad"]
+InterpolateOptions = Literal[
+    "linear",
+    "time",
+    "index",
+    "values",
+    "nearest",
+    "zero",
+    "slinear",
+    "quadratic",
+    "cubic",
+    "barycentric",
+    "polynomial",
+    "krogh",
+    "piecewise_polynomial",
+    "spline",
+    "pchip",
+    "akima",
+    "cubicspline",
+    "from_derivatives",
+]
 
 # internals
-Manager = Union[
-    "ArrayManager", "SingleArrayManager", "BlockManager", "SingleBlockManager"
-]
-SingleManager = Union["SingleArrayManager", "SingleBlockManager"]
-Manager2D = Union["ArrayManager", "BlockManager"]
+Manager = Union["BlockManager", "SingleBlockManager"]
 
 # indexing
 # PositionalIndexer -> valid 1D positional indexer, e.g. can pass
@@ -327,9 +405,9 @@ Manager2D = Union["ArrayManager", "BlockManager"]
 # https://bugs.python.org/issue41810
 # Using List[int] here rather than Sequence[int] to disallow tuples.
 ScalarIndexer = Union[int, np.integer]
-SequenceIndexer = Union[slice, List[int], np.ndarray]
+SequenceIndexer = Union[slice, list[int], np.ndarray]
 PositionalIndexer = Union[ScalarIndexer, SequenceIndexer]
-PositionalIndexerTuple = Tuple[PositionalIndexer, PositionalIndexer]
+PositionalIndexerTuple = tuple[PositionalIndexer, PositionalIndexer]
 PositionalIndexer2D = Union[PositionalIndexer, PositionalIndexerTuple]
 if TYPE_CHECKING:
     TakeIndexer = Union[Sequence[int], Sequence[np.integer], npt.NDArray[np.integer]]
@@ -351,13 +429,16 @@ JSONEngine = Literal["ujson", "pyarrow"]
 # read_xml parsers
 XMLParsers = Literal["lxml", "etree"]
 
+# read_html flavors
+HTMLFlavors = Literal["lxml", "html5lib", "bs4"]
+
 # Interval closed type
 IntervalLeftRight = Literal["left", "right"]
 IntervalClosedType = Union[IntervalLeftRight, Literal["both", "neither"]]
 
 # datetime and NaTType
 DatetimeNaTType = Union[datetime, "NaTType"]
-DateTimeErrorChoices = Union[IgnoreRaise, Literal["coerce"]]
+DateTimeErrorChoices = Literal["raise", "coerce"]
 
 # sort_index
 SortKind = Literal["quicksort", "mergesort", "heapsort", "stable"]
@@ -439,8 +520,23 @@ NaAction = Literal["ignore"]
 # from_dict
 FromDictOrient = Literal["columns", "index", "tight"]
 
-# to_gbc
-ToGbqIfexist = Literal["fail", "replace", "append"]
-
 # to_stata
 ToStataByteorder = Literal[">", "<", "little", "big"]
+
+# ExcelWriter
+ExcelWriterIfSheetExists = Literal["error", "new", "replace", "overlay"]
+
+# Offsets
+OffsetCalendar = Union[np.busdaycalendar, "AbstractHolidayCalendar"]
+
+# read_csv: usecols
+UsecolsArgType = Union[
+    SequenceNotStr[Hashable],
+    range,
+    AnyArrayLike,
+    Callable[[HashableT], bool],
+    None,
+]
+
+# maintaine the sub-type of any hashable sequence
+SequenceT = TypeVar("SequenceT", bound=Sequence[Hashable])

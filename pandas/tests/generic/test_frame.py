@@ -35,38 +35,21 @@ class TestDataFrame:
             columns=MultiIndex.from_tuples([("C", x) for x in list("xyz")]),
         )
 
-        level_names = ["L1", "L2"]
+        level_names = ("L1", "L2")
 
         result = methodcaller(func, level_names)(df)
         assert result.index.names == level_names
-        assert result.columns.names == [None, None]
+        assert result.columns.names == (None, None)
 
         result = methodcaller(func, level_names, axis=1)(df)
-        assert result.columns.names == ["L1", "L2"]
-        assert result.index.names == [None, None]
+        assert result.columns.names == level_names
+        assert result.index.names == (None, None)
 
     def test_nonzero_single_element(self):
-        # allow single item via bool method
-        msg_warn = (
-            "DataFrame.bool is now deprecated and will be removed "
-            "in future version of pandas"
-        )
-        df = DataFrame([[True]])
-        df1 = DataFrame([[False]])
-        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
-            assert df.bool()
-
-        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
-            assert not df1.bool()
-
         df = DataFrame([[False, False]])
         msg_err = "The truth value of a DataFrame is ambiguous"
         with pytest.raises(ValueError, match=msg_err):
             bool(df)
-
-        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
-            with pytest.raises(ValueError, match=msg_err):
-                df.bool()
 
     def test_metadata_propagation_indiv_groupby(self):
         # groupby
@@ -74,8 +57,8 @@ class TestDataFrame:
             {
                 "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
                 "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
-                "C": np.random.randn(8),
-                "D": np.random.randn(8),
+                "C": np.random.default_rng(2).standard_normal(8),
+                "D": np.random.default_rng(2).standard_normal(8),
             }
         )
         result = df.groupby("A").sum()
@@ -84,10 +67,10 @@ class TestDataFrame:
     def test_metadata_propagation_indiv_resample(self):
         # resample
         df = DataFrame(
-            np.random.randn(1000, 2),
+            np.random.default_rng(2).standard_normal((1000, 2)),
             index=date_range("20130101", periods=1000, freq="s"),
         )
-        result = df.resample("1T")
+        result = df.resample("1min")
         tm.assert_metadata_equivalent(df, result)
 
     def test_metadata_propagation_indiv(self, monkeypatch):
@@ -114,9 +97,12 @@ class TestDataFrame:
             m.setattr(DataFrame, "_metadata", ["filename"])
             m.setattr(DataFrame, "__finalize__", finalize)
 
-            np.random.seed(10)
-            df1 = DataFrame(np.random.randint(0, 4, (3, 2)), columns=["a", "b"])
-            df2 = DataFrame(np.random.randint(0, 4, (3, 2)), columns=["c", "d"])
+            df1 = DataFrame(
+                np.random.default_rng(2).integers(0, 4, (3, 2)), columns=["a", "b"]
+            )
+            df2 = DataFrame(
+                np.random.default_rng(2).integers(0, 4, (3, 2)), columns=["c", "d"]
+            )
             DataFrame._metadata = ["filename"]
             df1.filename = "fname1.csv"
             df2.filename = "fname2.csv"
@@ -126,7 +112,9 @@ class TestDataFrame:
 
             # concat
             # GH#6927
-            df1 = DataFrame(np.random.randint(0, 4, (3, 2)), columns=list("ab"))
+            df1 = DataFrame(
+                np.random.default_rng(2).integers(0, 4, (3, 2)), columns=list("ab")
+            )
             df1.filename = "foo"
 
             result = pd.concat([df1, df1])
@@ -183,7 +171,9 @@ class TestDataFrame2:
 
     def test_unexpected_keyword(self):
         # GH8597
-        df = DataFrame(np.random.randn(5, 2), columns=["jim", "joe"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 2)), columns=["jim", "joe"]
+        )
         ca = pd.Categorical([0, 0, 2, 2, 3, np.nan])
         ts = df["joe"].copy()
         ts[2] = np.nan

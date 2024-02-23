@@ -41,6 +41,7 @@ Properties
    Index.empty
    Index.T
    Index.memory_usage
+   Index.array
 
 Modifying and computations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -61,13 +62,6 @@ Modifying and computations
    Index.identical
    Index.insert
    Index.is_
-   Index.is_boolean
-   Index.is_categorical
-   Index.is_floating
-   Index.is_integer
-   Index.is_interval
-   Index.is_numeric
-   Index.is_object
    Index.min
    Index.max
    Index.reindex
@@ -110,6 +104,7 @@ Conversion
    Index.to_list
    Index.to_series
    Index.to_frame
+   Index.to_numpy
    Index.view
 
 Sorting
@@ -251,10 +246,6 @@ IntervalIndex components
 
 MultiIndex
 ----------
-.. autosummary::
-   :toctree: api/
-
-   IndexSlice
 
 .. autosummary::
    :toctree: api/
@@ -313,6 +304,11 @@ MultiIndex selecting
    MultiIndex.get_loc_level
    MultiIndex.get_indexer
    MultiIndex.get_level_values
+
+.. autosummary::
+   :toctree: api/
+
+   IndexSlice
 
 .. _api.datetimeindex:
 
@@ -488,3 +484,5 @@ Methods
     PeriodIndex.asfreq
     PeriodIndex.strftime
     PeriodIndex.to_timestamp
+    PeriodIndex.from_fields
+    PeriodIndex.from_ordinals

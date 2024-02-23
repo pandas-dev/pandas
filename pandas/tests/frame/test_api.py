@@ -5,12 +5,8 @@ import pydoc
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
 from pandas._config.config import option_context
-
-from pandas.util._test_decorators import (
-    async_mark,
-    skip_if_no,
-)
 
 import pandas as pd
 from pandas import (
@@ -117,6 +113,7 @@ class TestDataFrameMisc:
         with pytest.raises(TypeError, match=msg):
             hash(empty_frame)
 
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="surrogates not allowed")
     def test_column_name_contains_unicode_surrogate(self):
         # GH 25509
         colname = "\ud83d"
@@ -126,8 +123,8 @@ class TestDataFrameMisc:
         assert df.columns[0] == colname
 
     def test_new_empty_index(self):
-        df1 = DataFrame(np.random.randn(0, 3))
-        df2 = DataFrame(np.random.randn(0, 3))
+        df1 = DataFrame(np.random.default_rng(2).standard_normal((0, 3)))
+        df2 = DataFrame(np.random.default_rng(2).standard_normal((0, 3)))
         df1.index.name = "foo"
         assert df2.index.name is None
 
@@ -222,10 +219,8 @@ class TestDataFrameMisc:
 
     def test_deepcopy(self, float_frame):
         cp = deepcopy(float_frame)
-        series = cp["A"]
-        series[:] = 10
-        for idx, value in series.items():
-            assert float_frame["A"][idx] != value
+        cp.loc[0, "A"] = 10
+        assert not float_frame.equals(cp)
 
     def test_inplace_return_self(self):
         # GH 1893
@@ -291,8 +286,7 @@ class TestDataFrameMisc:
         f = lambda x: x.rename({1: "foo"}, inplace=True)
         _check_f(d.copy(), f)
 
-    @async_mark()
-    async def test_tab_complete_warning(self, ip, frame_or_series):
+    def test_tab_complete_warning(self, ip, frame_or_series):
         # GH 16409
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
@@ -302,11 +296,10 @@ class TestDataFrameMisc:
         else:
             code = "from pandas import Series; obj = Series(dtype=object)"
 
-        await ip.run_code(code)
-
+        ip.run_cell(code)
         # GH 31324 newer jedi version raises Deprecation warning;
         #  appears resolved 2021-02-02
-        with tm.assert_produces_warning(None):
+        with tm.assert_produces_warning(None, raise_on_extra_warnings=False):
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("obj.", 1))
 
@@ -318,9 +311,20 @@ class TestDataFrameMisc:
         result = df.rename(columns=str)
         assert result.attrs == {"version": 1}
 
+    def test_attrs_deepcopy(self):
+        df = DataFrame({"A": [2, 3]})
+        assert df.attrs == {}
+        df.attrs["tags"] = {"spam", "ham"}
+
+        result = df.rename(columns=str)
+        assert result.attrs == df.attrs
+        assert result.attrs["tags"] is not df.attrs["tags"]
+
     @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
     def test_set_flags(
-        self, allows_duplicate_labels, frame_or_series, using_copy_on_write
+        self,
+        allows_duplicate_labels,
+        frame_or_series,
     ):
         obj = DataFrame({"A": [1, 2]})
         key = (0, 0)
@@ -349,12 +353,7 @@ class TestDataFrameMisc:
             assert np.may_share_memory(obj["A"].values, result["A"].values)
 
         result.iloc[key] = 0
-        if using_copy_on_write:
-            assert obj.iloc[key] == 1
-        else:
-            assert obj.iloc[key] == 0
-            # set back to 1 for test below
-            result.iloc[key] = 1
+        assert obj.iloc[key] == 1
 
         # Now we do copy.
         result = obj.set_flags(
@@ -373,12 +372,8 @@ class TestDataFrameMisc:
         with pytest.raises(AttributeError, match=msg):
             df._constructor_expanddim(np.arange(27).reshape(3, 3, 3))
 
-    @skip_if_no("jinja2")
     def test_inspect_getmembers(self):
         # GH38740
+        pytest.importorskip("jinja2")
         df = DataFrame()
-        msg = "DataFrame._data is deprecated"
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
-        ):
-            inspect.getmembers(df)
+        inspect.getmembers(df)

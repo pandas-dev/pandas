@@ -6,6 +6,7 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.compat import IS64
 from pandas.errors import OutOfBoundsTimedelta
 
 import pandas as pd
@@ -20,12 +21,21 @@ from pandas.core.arrays import TimedeltaArray
 
 
 class TestTimedeltas:
-    @pytest.mark.parametrize("readonly", [True, False])
-    def test_to_timedelta_readonly(self, readonly):
+    def test_to_timedelta_dt64_raises(self):
+        # Passing datetime64-dtype data to TimedeltaIndex is no longer
+        #  supported GH#29794
+        msg = r"dtype datetime64\[ns\] cannot be converted to timedelta64\[ns\]"
+
+        ser = Series([pd.NaT])
+        with pytest.raises(TypeError, match=msg):
+            to_timedelta(ser)
+        with pytest.raises(TypeError, match=msg):
+            ser.to_frame().apply(to_timedelta)
+
+    def test_to_timedelta_readonly(self, writable):
         # GH#34857
         arr = np.array([], dtype=object)
-        if readonly:
-            arr.setflags(write=False)
+        arr.setflags(write=writable)
         result = to_timedelta(arr)
         expected = to_timedelta([])
         tm.assert_index_equal(result, expected)
@@ -86,14 +96,13 @@ class TestTimedeltas:
             TimedeltaIndex(arr)
 
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
-            TimedeltaArray._from_sequence(arr)
+            TimedeltaArray._from_sequence(arr, dtype="m8[s]")
 
-    @pytest.mark.parametrize(
-        "arg", [np.arange(10).reshape(2, 5), pd.DataFrame(np.arange(10).reshape(2, 5))]
-    )
-    @pytest.mark.parametrize("errors", ["ignore", "raise", "coerce"])
-    def test_to_timedelta_dataframe(self, arg, errors):
+    @pytest.mark.parametrize("box", [lambda x: x, pd.DataFrame])
+    @pytest.mark.parametrize("errors", ["raise", "coerce"])
+    def test_to_timedelta_dataframe(self, box, errors):
         # GH 11776
+        arg = box(np.arange(10).reshape(2, 5))
         with pytest.raises(TypeError, match="1-d array"):
             to_timedelta(arg, errors=errors)
 
@@ -133,25 +142,6 @@ class TestTimedeltas:
         tm.assert_index_equal(
             TimedeltaIndex(["1 day", pd.NaT, "1 min"]),
             to_timedelta(["1 day", "bar", "1 min"], errors="coerce"),
-        )
-
-    def test_to_timedelta_invalid_errors_ignore(self):
-        # gh-13613: these should not error because errors='ignore'
-        invalid_data = "apple"
-        assert invalid_data == to_timedelta(invalid_data, errors="ignore")
-
-        invalid_data = ["apple", "1 days"]
-        tm.assert_numpy_array_equal(
-            np.array(invalid_data, dtype=object),
-            to_timedelta(invalid_data, errors="ignore"),
-        )
-
-        invalid_data = pd.Index(["apple", "1 days"])
-        tm.assert_index_equal(invalid_data, to_timedelta(invalid_data, errors="ignore"))
-
-        invalid_data = Series(["apple", "1 days"])
-        tm.assert_series_equal(
-            invalid_data, to_timedelta(invalid_data, errors="ignore")
         )
 
     @pytest.mark.parametrize(
@@ -224,6 +214,7 @@ class TestTimedeltas:
         actual = to_timedelta([val])
         assert actual[0]._value == np.timedelta64("NaT").astype("int64")
 
+    @pytest.mark.xfail(not IS64, reason="Floating point error")
     def test_to_timedelta_float(self):
         # https://github.com/pandas-dev/pandas/issues/25077
         arr = np.arange(0, 1, 1e-6)[-10:]
@@ -236,11 +227,6 @@ class TestTimedeltas:
         result = to_timedelta(arr, unit="ns", errors="coerce")
         expected = to_timedelta([1, 2, pd.NaT], unit="ns")
         tm.assert_index_equal(result, expected)
-
-    def test_to_timedelta_ignore_strings_unit(self):
-        arr = np.array([1, 2, "error"], dtype=object)
-        result = to_timedelta(arr, unit="ns", errors="ignore")
-        tm.assert_numpy_array_equal(result, arr)
 
     @pytest.mark.parametrize(
         "expected_val, result_val", [[timedelta(days=2), 2], [None, None]]
@@ -305,4 +291,13 @@ def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
     ser = Series([1, 2], dtype=f"{any_numeric_ea_dtype.lower()}[pyarrow]")
     result = to_timedelta(ser)
     expected = Series([1, 2], dtype="timedelta64[ns]")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("unit", ["ns", "ms"])
+def test_from_timedelta_arrow_dtype(unit):
+    # GH 54298
+    pytest.importorskip("pyarrow")
+    expected = Series([timedelta(1)], dtype=f"duration[{unit}][pyarrow]")
+    result = to_timedelta(expected)
     tm.assert_series_equal(result, expected)

@@ -54,15 +54,17 @@ from contextlib import (
     ContextDecorator,
     contextmanager,
 )
+from inspect import signature
 import re
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
-    Generator,
     Generic,
-    Iterable,
+    Literal,
     NamedTuple,
     cast,
+    overload,
 )
 import warnings
 
@@ -71,6 +73,13 @@ from pandas._typing import (
     T,
 )
 from pandas.util._exceptions import find_stack_level
+
+if TYPE_CHECKING:
+    from collections.abc import (
+        Generator,
+        Iterable,
+        Sequence,
+    )
 
 
 class DeprecatedOption(NamedTuple):
@@ -82,7 +91,7 @@ class DeprecatedOption(NamedTuple):
 
 class RegisteredOption(NamedTuple):
     key: str
-    defval: object
+    defval: Any
     doc: str
     validator: Callable[[object], Any] | None
     cb: Callable[[str], Any] | None
@@ -106,6 +115,12 @@ class OptionError(AttributeError, KeyError):
     Exception raised for pandas.options.
 
     Backwards compatible with KeyError checks.
+
+    Examples
+    --------
+    >>> pd.options.context
+    Traceback (most recent call last):
+    OptionError: No such option
     """
 
 
@@ -118,7 +133,7 @@ def _get_single_key(pat: str, silent: bool) -> str:
     if len(keys) == 0:
         if not silent:
             _warn_if_deprecated(pat)
-        raise OptionError(f"No such keys(s): {repr(pat)}")
+        raise OptionError(f"No such keys(s): {pat!r}")
     if len(keys) > 1:
         raise OptionError("Pattern matched multiple keys")
     key = keys[0]
@@ -149,7 +164,7 @@ def _set_option(*args, **kwargs) -> None:
     silent = kwargs.pop("silent", False)
 
     if kwargs:
-        kwarg = list(kwargs.keys())[0]
+        kwarg = next(iter(kwargs.keys()))
         raise TypeError(f'_set_option() got an unexpected keyword argument "{kwarg}"')
 
     for k, v in zip(args[::2], args[1::2]):
@@ -209,6 +224,8 @@ def get_default_val(pat: str):
 class DictWrapper:
     """provide attribute-style access to a nested dict"""
 
+    d: dict[str, Any]
+
     def __init__(self, d: dict[str, Any], prefix: str = "") -> None:
         object.__setattr__(self, "d", d)
         object.__setattr__(self, "prefix", prefix)
@@ -239,7 +256,7 @@ class DictWrapper:
         else:
             return _get_option(prefix)
 
-    def __dir__(self) -> Iterable[str]:
+    def __dir__(self) -> list[str]:
         return list(self.d.keys())
 
 
@@ -256,6 +273,7 @@ class CallableDynamicDoc(Generic[T]):
     def __init__(self, func: Callable[..., T], doc_tmpl: str) -> None:
         self.__doc_tmpl__ = doc_tmpl
         self.__func__ = func
+        self.__signature__ = signature(func)
 
     def __call__(self, *args, **kwds) -> T:
         return self.__func__(*args, **kwds)
@@ -300,12 +318,17 @@ Please reference the :ref:`User Guide <options>` for more information.
 The available options with its descriptions:
 
 {opts_desc}
+
+Examples
+--------
+>>> pd.get_option('display.max_columns')  # doctest: +SKIP
+4
 """
 
 _set_option_tmpl = """
-set_option(pat, value)
+set_option(*args, **kwargs)
 
-Sets the value of the specified option.
+Sets the value of the specified option or options.
 
 Available options:
 
@@ -313,13 +336,18 @@ Available options:
 
 Parameters
 ----------
-pat : str
-    Regexp which should match a single option.
-    Note: partial matches are supported for convenience, but unless you use the
-    full option name (e.g. x.y.z.option_name), your code may break in future
-    versions if new options with similar names are introduced.
-value : object
-    New value of option.
+*args : str | object
+    Arguments provided in pairs, which will be interpreted as (pattern, value)
+    pairs.
+    pattern: str
+    Regexp which should match a single option
+    value: object
+    New value of option
+    Note: partial pattern matches are supported for convenience, but unless you
+    use the full option name (e.g. x.y.z.option_name), your code may break in
+    future versions if new options with similar names are introduced.
+**kwargs : str
+    Keyword arguments are not currently supported.
 
 Returns
 -------
@@ -327,6 +355,8 @@ None
 
 Raises
 ------
+ValueError if odd numbers of non-keyword arguments are provided
+TypeError if keyword arguments are provided
 OptionError if no such option exists
 
 Notes
@@ -336,6 +366,17 @@ Please reference the :ref:`User Guide <options>` for more information.
 The available options with its descriptions:
 
 {opts_desc}
+
+Examples
+--------
+>>> pd.set_option('display.max_columns', 4)
+>>> df = pd.DataFrame([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]])
+>>> df
+   0  1  ...  3   4
+0  1  2  ...  4   5
+1  6  7  ...  9  10
+[2 rows x 5 columns]
+>>> pd.reset_option('display.max_columns')
 """
 
 _describe_option_tmpl = """
@@ -370,6 +411,12 @@ Please reference the :ref:`User Guide <options>` for more information.
 The available options with its descriptions:
 
 {opts_desc}
+
+Examples
+--------
+>>> pd.describe_option('display.max_columns')  # doctest: +SKIP
+display.max_columns : int
+    If max_cols is exceeded, switch to truncate view...
 """
 
 _reset_option_tmpl = """
@@ -402,6 +449,10 @@ Please reference the :ref:`User Guide <options>` for more information.
 The available options with its descriptions:
 
 {opts_desc}
+
+Examples
+--------
+>>> pd.reset_option('display.max_columns')  # doctest: +SKIP
 """
 
 # bind the functions with their docstrings into a Callable
@@ -425,7 +476,7 @@ class option_context(ContextDecorator):
     Examples
     --------
     >>> from pandas import option_context
-    >>> with option_context('display.max_rows', 10, 'display.max_columns', 5):
+    >>> with option_context("display.max_rows", 10, "display.max_columns", 5):
     ...     pass
     """
 
@@ -700,7 +751,23 @@ def _build_option_description(k: str) -> str:
     return s
 
 
-def pp_options_list(keys: Iterable[str], width: int = 80, _print: bool = False):
+@overload
+def pp_options_list(
+    keys: Iterable[str], *, width: int = ..., _print: Literal[False] = ...
+) -> str:
+    ...
+
+
+@overload
+def pp_options_list(
+    keys: Iterable[str], *, width: int = ..., _print: Literal[True]
+) -> None:
+    ...
+
+
+def pp_options_list(
+    keys: Iterable[str], *, width: int = 80, _print: bool = False
+) -> str | None:
     """Builds a concise listing of available options, grouped by prefix"""
     from itertools import groupby
     from textwrap import wrap
@@ -730,8 +797,7 @@ def pp_options_list(keys: Iterable[str], width: int = 80, _print: bool = False):
     s = "\n".join(ls)
     if _print:
         print(s)
-    else:
-        return s
+    return s
 
 
 #
@@ -814,7 +880,7 @@ def is_type_factory(_type: type[Any]) -> Callable[[Any], None]:
     return inner
 
 
-def is_instance_factory(_type) -> Callable[[Any], None]:
+def is_instance_factory(_type: type | tuple[type, ...]) -> Callable[[Any], None]:
     """
 
     Parameters
@@ -827,8 +893,7 @@ def is_instance_factory(_type) -> Callable[[Any], None]:
                 ValueError if x is not an instance of `_type`
 
     """
-    if isinstance(_type, (tuple, list)):
-        _type = tuple(_type)
+    if isinstance(_type, tuple):
         type_repr = "|".join(map(str, _type))
     else:
         type_repr = f"'{_type}'"
@@ -840,7 +905,7 @@ def is_instance_factory(_type) -> Callable[[Any], None]:
     return inner
 
 
-def is_one_of_factory(legal_values) -> Callable[[Any], None]:
+def is_one_of_factory(legal_values: Sequence) -> Callable[[Any], None]:
     callables = [c for c in legal_values if callable(c)]
     legal_values = [c for c in legal_values if not callable(c)]
 
@@ -891,7 +956,7 @@ is_str = is_type_factory(str)
 is_text = is_instance_factory((str, bytes))
 
 
-def is_callable(obj) -> bool:
+def is_callable(obj: object) -> bool:
     """
 
     Parameters

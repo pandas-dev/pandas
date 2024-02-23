@@ -74,7 +74,6 @@ def get_objs_combined_axis(
     intersect: bool = False,
     axis: Axis = 0,
     sort: bool = True,
-    copy: bool = False,
 ) -> Index:
     """
     Extract combined index: return intersection or union (depending on the
@@ -92,15 +91,13 @@ def get_objs_combined_axis(
         The axis to extract indexes from.
     sort : bool, default True
         Whether the result index should come out sorted or not.
-    copy : bool, default False
-        If True, return a copy of the combined index.
 
     Returns
     -------
     Index
     """
     obs_idxes = [obj._get_axis(axis) for obj in objs]
-    return _get_combined_index(obs_idxes, intersect=intersect, sort=sort, copy=copy)
+    return _get_combined_index(obs_idxes, intersect=intersect, sort=sort)
 
 
 def _get_distinct_objs(objs: list[Index]) -> list[Index]:
@@ -121,7 +118,6 @@ def _get_combined_index(
     indexes: list[Index],
     intersect: bool = False,
     sort: bool = False,
-    copy: bool = False,
 ) -> Index:
     """
     Return the union or intersection of indexes.
@@ -135,8 +131,6 @@ def _get_combined_index(
         calculate the union.
     sort : bool, default False
         Whether the result index should come out sorted or not.
-    copy : bool, default False
-        If True, return a copy of the combined index.
 
     Returns
     -------
@@ -158,10 +152,6 @@ def _get_combined_index(
 
     if sort:
         index = safe_sort_index(index)
-    # GH 29879
-    if copy:
-        index = index.copy()
-
     return index
 
 
@@ -220,7 +210,10 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
     if len(indexes) == 1:
         result = indexes[0]
         if isinstance(result, list):
-            result = Index(sorted(result))
+            if not sort:
+                result = Index(result)
+            else:
+                result = Index(sorted(result))
         return result
 
     indexes, kind = _sanitize_and_check(indexes)
@@ -239,8 +232,12 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
         Index
         """
         if all(isinstance(ind, Index) for ind in inds):
-            result = inds[0].append(inds[1:]).unique()
-            result = result.astype(dtype, copy=False)
+            inds = [ind.astype(dtype, copy=False) for ind in inds]
+            result = inds[0].unique()
+            other = inds[1].append(inds[2:])
+            diff = other[result.get_indexer_for(other) == -1]
+            if len(diff):
+                result = result.append(diff.unique())
             if sort:
                 result = result.sort_values()
             return result
@@ -377,5 +374,5 @@ def all_indexes_same(indexes) -> bool:
 
 
 def default_index(n: int) -> RangeIndex:
-    rng = range(0, n)
+    rng = range(n)
     return RangeIndex._simple_new(rng, name=None)

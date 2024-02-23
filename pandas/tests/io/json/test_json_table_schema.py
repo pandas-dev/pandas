@@ -1,5 +1,6 @@
 """Tests for Table Schema integration."""
 from collections import OrderedDict
+from io import StringIO
 import json
 
 import numpy as np
@@ -31,7 +32,7 @@ def df_schema():
             "A": [1, 2, 3, 4],
             "B": ["a", "b", "c", "c"],
             "C": pd.date_range("2016-01-01", freq="d", periods=4),
-            "D": pd.timedelta_range("1H", periods=4, freq="T"),
+            "D": pd.timedelta_range("1h", periods=4, freq="min"),
         },
         index=pd.Index(range(4), name="idx"),
     )
@@ -44,7 +45,7 @@ def df_table():
             "A": [1, 2, 3, 4],
             "B": ["a", "b", "c", "c"],
             "C": pd.date_range("2016-01-01", freq="d", periods=4),
-            "D": pd.timedelta_range("1H", periods=4, freq="T"),
+            "D": pd.timedelta_range("1h", periods=4, freq="min"),
             "E": pd.Series(pd.Categorical(["a", "b", "c", "c"])),
             "F": pd.Series(pd.Categorical(["a", "b", "c", "c"], ordered=True)),
             "G": [1.0, 2.0, 3, 4.0],
@@ -55,7 +56,7 @@ def df_table():
 
 
 class TestBuildSchema:
-    def test_build_table_schema(self, df_schema):
+    def test_build_table_schema(self, df_schema, using_infer_string):
         result = build_table_schema(df_schema, version=False)
         expected = {
             "fields": [
@@ -67,6 +68,8 @@ class TestBuildSchema:
             ],
             "primaryKey": ["idx"],
         }
+        if using_infer_string:
+            expected["fields"][2] = {"name": "B", "type": "any", "extDtype": "string"}
         assert result == expected
         result = build_table_schema(df_schema)
         assert "pandas_version" in result
@@ -96,7 +99,7 @@ class TestBuildSchema:
         }
         assert result == expected
 
-    def test_multiindex(self, df_schema):
+    def test_multiindex(self, df_schema, using_infer_string):
         df = df_schema
         idx = pd.MultiIndex.from_product([("a", "b"), (1, 2)])
         df.index = idx
@@ -111,13 +114,20 @@ class TestBuildSchema:
                 {"name": "C", "type": "datetime"},
                 {"name": "D", "type": "duration"},
             ],
-            "primaryKey": ["level_0", "level_1"],
+            "primaryKey": ("level_0", "level_1"),
         }
+        if using_infer_string:
+            expected["fields"][0] = {
+                "name": "level_0",
+                "type": "any",
+                "extDtype": "string",
+            }
+            expected["fields"][3] = {"name": "B", "type": "any", "extDtype": "string"}
         assert result == expected
 
         df.index.names = ["idx0", None]
         expected["fields"][0]["name"] = "idx0"
-        expected["primaryKey"] = ["idx0", "level_1"]
+        expected["primaryKey"] = ("idx0", "level_1")
         result = build_table_schema(df, version=False)
         assert result == expected
 
@@ -149,14 +159,15 @@ class TestTableSchemaType:
             pd.to_datetime(["2016"], utc=True),
             pd.Series(pd.to_datetime(["2016"])),
             pd.Series(pd.to_datetime(["2016"], utc=True)),
-            pd.period_range("2016", freq="A", periods=3),
+            pd.period_range("2016", freq="Y", periods=3),
         ],
     )
     def test_as_json_table_type_date_data(self, date_data):
         assert as_json_table_type(date_data.dtype) == "datetime"
 
-    @pytest.mark.parametrize("str_data", [pd.Series(["a", "b"]), pd.Index(["a", "b"])])
-    def test_as_json_table_type_string_data(self, str_data):
+    @pytest.mark.parametrize("klass", [pd.Series, pd.Index])
+    def test_as_json_table_type_string_data(self, klass):
+        str_data = klass(["a", "b"], dtype=object)
         assert as_json_table_type(str_data.dtype) == "string"
 
     @pytest.mark.parametrize(
@@ -166,7 +177,6 @@ class TestTableSchemaType:
             pd.Categorical([1]),
             pd.Series(pd.Categorical([1])),
             pd.CategoricalIndex([1]),
-            pd.Categorical([1]),
         ],
     )
     def test_as_json_table_type_categorical_data(self, cat_data):
@@ -250,16 +260,17 @@ class TestTableOrient:
                 "recommender_id": {"row_0": 3},
                 "recommender_name_jp": {"row_0": "浦田"},
                 "recommender_name_en": {"row_0": "Urata"},
-                "name_jp": {"row_0": "博多人形（松尾吉将まつお よしまさ）"},
+                "name_jp": {"row_0": "博多人形(松尾吉将まつお よしまさ)"},
                 "name_en": {"row_0": "Hakata Dolls Matsuo"},
             }
         )
-        result1 = pd.read_json(df.to_json())
+
+        result1 = pd.read_json(StringIO(df.to_json()))
         result2 = DataFrame.from_dict(json.loads(df.to_json()))
         tm.assert_frame_equal(result1, df)
         tm.assert_frame_equal(result2, df)
 
-    def test_to_json(self, df_table):
+    def test_to_json(self, df_table, using_infer_string):
         df = df_table
         df.index.name = "idx"
         result = df.to_json(orient="table", date_format="iso")
@@ -289,6 +300,9 @@ class TestTableOrient:
             {"name": "G", "type": "number"},
             {"name": "H", "type": "datetime", "tz": "US/Central"},
         ]
+
+        if using_infer_string:
+            fields[2] = {"name": "B", "type": "any", "extDtype": "string"}
 
         schema = {"fields": fields, "primaryKey": ["idx"]}
         data = [
@@ -387,7 +401,7 @@ class TestTableOrient:
         result["schema"].pop("pandas_version")
 
         fields = [
-            {"freq": "Q-JAN", "name": "index", "type": "datetime"},
+            {"freq": "QE-JAN", "name": "index", "type": "datetime"},
             {"name": "values", "type": "integer"},
         ]
 
@@ -478,9 +492,9 @@ class TestTableOrient:
         assert result == expected
 
     def test_convert_pandas_type_to_json_period_range(self):
-        arr = pd.period_range("2016", freq="A-DEC", periods=4)
+        arr = pd.period_range("2016", freq="Y-DEC", periods=4)
         result = convert_pandas_type_to_json_field(arr)
-        expected = {"name": "values", "type": "datetime", "freq": "A-DEC"}
+        expected = {"name": "values", "type": "datetime", "freq": "YE-DEC"}
         assert result == expected
 
     @pytest.mark.parametrize("kind", [pd.Categorical, pd.CategoricalIndex])
@@ -583,21 +597,21 @@ class TestTableOrient:
             (pd.Index([1], name="myname"), "myname", "name"),
             (
                 pd.MultiIndex.from_product([("a", "b"), ("c", "d")]),
-                ["level_0", "level_1"],
+                ("level_0", "level_1"),
                 "names",
             ),
             (
                 pd.MultiIndex.from_product(
                     [("a", "b"), ("c", "d")], names=["n1", "n2"]
                 ),
-                ["n1", "n2"],
+                ("n1", "n2"),
                 "names",
             ),
             (
                 pd.MultiIndex.from_product(
                     [("a", "b"), ("c", "d")], names=["n1", None]
                 ),
-                ["n1", "level_1"],
+                ("n1", "level_1"),
                 "names",
             ),
         ],
@@ -649,7 +663,7 @@ class TestTableOrient:
     def test_mi_falsey_name(self):
         # GH 16203
         df = DataFrame(
-            np.random.randn(4, 4),
+            np.random.default_rng(2).standard_normal((4, 4)),
             index=pd.MultiIndex.from_product([("A", "B"), ("a", "b")]),
         )
         result = [x["name"] for x in build_table_schema(df)["fields"]]
@@ -684,20 +698,27 @@ class TestTableOrientReader:
             },
         ],
     )
-    def test_read_json_table_orient(self, index_nm, vals, recwarn):
+    def test_read_json_table_orient(self, index_nm, vals):
         df = DataFrame(vals, index=pd.Index(range(4), name=index_nm))
-        out = df.to_json(orient="table")
+        out = StringIO(df.to_json(orient="table"))
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
 
-    @pytest.mark.parametrize("index_nm", [None, "idx", "index"])
     @pytest.mark.parametrize(
-        "vals",
-        [{"timedeltas": pd.timedelta_range("1H", periods=4, freq="T")}],
+        "index_nm",
+        [
+            None,
+            "idx",
+            pytest.param(
+                "index",
+                marks=pytest.mark.filterwarnings("ignore:Index name:UserWarning"),
+            ),
+        ],
     )
-    def test_read_json_table_orient_raises(self, index_nm, vals, recwarn):
+    def test_read_json_table_orient_raises(self, index_nm):
+        vals = {"timedeltas": pd.timedelta_range("1h", periods=4, freq="min")}
         df = DataFrame(vals, index=pd.Index(range(4), name=index_nm))
-        out = df.to_json(orient="table")
+        out = StringIO(df.to_json(orient="table"))
         with pytest.raises(NotImplementedError, match="can not yet read "):
             pd.read_json(out, orient="table")
 
@@ -728,14 +749,14 @@ class TestTableOrientReader:
             },
         ],
     )
-    def test_read_json_table_period_orient(self, index_nm, vals, recwarn):
+    def test_read_json_table_period_orient(self, index_nm, vals):
         df = DataFrame(
             vals,
             index=pd.Index(
                 (pd.Period(f"2022Q{q}") for q in range(1, 5)), name=index_nm
             ),
         )
-        out = df.to_json(orient="table")
+        out = StringIO(df.to_json(orient="table"))
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
 
@@ -771,10 +792,10 @@ class TestTableOrientReader:
             },
         ],
     )
-    def test_read_json_table_timezones_orient(self, idx, vals, recwarn):
+    def test_read_json_table_timezones_orient(self, idx, vals):
         # GH 35973
         df = DataFrame(vals, index=idx)
-        out = df.to_json(orient="table")
+        out = StringIO(df.to_json(orient="table"))
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
 
@@ -784,7 +805,7 @@ class TestTableOrientReader:
                 "A": [1, 2, 3, 4],
                 "B": ["a", "b", "c", "c"],
                 "C": pd.date_range("2016-01-01", freq="d", periods=4),
-                # 'D': pd.timedelta_range('1H', periods=4, freq='T'),
+                # 'D': pd.timedelta_range('1h', periods=4, freq='min'),
                 "E": pd.Series(pd.Categorical(["a", "b", "c", "c"])),
                 "F": pd.Series(pd.Categorical(["a", "b", "c", "c"], ordered=True)),
                 "G": [1.1, 2.2, 3.3, 4.4],
@@ -794,7 +815,7 @@ class TestTableOrientReader:
             index=pd.Index(range(4), name="idx"),
         )
 
-        out = df.to_json(orient="table")
+        out = StringIO(df.to_json(orient="table"))
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
 
@@ -810,7 +831,7 @@ class TestTableOrientReader:
             columns=["Aussprache", "Griechisch", "Args"],
         )
         df.index.names = index_names
-        out = df.to_json(orient="table")
+        out = StringIO(df.to_json(orient="table"))
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
 
@@ -818,7 +839,7 @@ class TestTableOrientReader:
         # GH 21287
         df = DataFrame(columns=["a", "b", "c"])
         expected = df.copy()
-        out = df.to_json(orient="table")
+        out = StringIO(df.to_json(orient="table"))
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(expected, result)
 
@@ -841,5 +862,16 @@ class TestTableOrientReader:
         }
         """
         expected = DataFrame({"a": [1, 2.0, "s"]})
-        result = pd.read_json(df_json, orient="table")
+        result = pd.read_json(StringIO(df_json), orient="table")
         tm.assert_frame_equal(expected, result)
+
+    @pytest.mark.parametrize("freq", ["M", "2M", "Q", "2Q", "Y", "2Y"])
+    def test_read_json_table_orient_period_depr_freq(self, freq):
+        # GH#9586
+        df = DataFrame(
+            {"ints": [1, 2]},
+            index=pd.PeriodIndex(["2020-01", "2021-06"], freq=freq),
+        )
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)

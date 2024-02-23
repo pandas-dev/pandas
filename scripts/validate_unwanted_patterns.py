@@ -12,33 +12,29 @@ So this file is somewhat an extensions to `ci/code_checks.sh`
 
 import argparse
 import ast
+from collections.abc import Iterable
 import sys
 import token
 import tokenize
 from typing import (
     IO,
     Callable,
-    Iterable,
-    List,
-    Set,
-    Tuple,
 )
 
-PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
+PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_extension_array_shared_docs",
     "_index_shared_docs",
     "_interval_shared_docs",
     "_merge_doc",
     "_shared_docs",
-    "_apply_docs",
     "_new_Index",
     "_new_PeriodIndex",
     "_agg_template_series",
     "_agg_template_frame",
     "_pipe_template",
+    "_apply_groupings_depr",
     "__main__",
     "_transform_template",
-    "_use_inf_as_na",
     "_get_plot_backend",
     "_matplotlib",
     "_arrow_utils",
@@ -51,6 +47,13 @@ PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_arrow_dtype_mapping",
     "_global_config",
     "_chained_assignment_msg",
+    "_chained_assignment_method_msg",
+    "_version_meson",
+    # The numba extensions need this to mock the iloc object
+    "_iLocIndexer",
+    # TODO(4.0): GH#55043 - remove upon removal of CoW option
+    "_get_option",
+    "_fill_limit_area_1d",
 }
 
 
@@ -87,69 +90,10 @@ def _get_literal_string_prefix_len(token_string: str) -> int:
         return 0
 
 
-def bare_pytest_raises(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
-    """
-    Test Case for bare pytest raises.
-
-    For example, this is wrong:
-
-    >>> with pytest.raise(ValueError):
-    ...     # Some code that raises ValueError
-
-    And this is what we want instead:
-
-    >>> with pytest.raise(ValueError, match="foo"):
-    ...     # Some code that raises ValueError
-
-    Parameters
-    ----------
-    file_obj : IO
-        File-like object containing the Python code to validate.
-
-    Yields
-    ------
-    line_number : int
-        Line number of unconcatenated string.
-    msg : str
-        Explanation of the error.
-
-    Notes
-    -----
-    GH #23922
-    """
-    contents = file_obj.read()
-    tree = ast.parse(contents)
-
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.Call):
-            continue
-
-        try:
-            if not (node.func.value.id == "pytest" and node.func.attr == "raises"):
-                continue
-        except AttributeError:
-            continue
-
-        if not node.keywords:
-            yield (
-                node.lineno,
-                "Bare pytests raise have been found. "
-                "Please pass in the argument 'match' as well the exception.",
-            )
-        # Means that there are arguments that are being passed in,
-        # now we validate that `match` is one of the passed in arguments
-        elif not any(keyword.arg == "match" for keyword in node.keywords):
-            yield (
-                node.lineno,
-                "Bare pytests raise have been found. "
-                "Please pass in the argument 'match' as well the exception.",
-            )
-
-
 PRIVATE_FUNCTIONS_ALLOWED = {"sys._getframe"}  # no known alternative
 
 
-def private_function_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
+def private_function_across_module(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
     """
     Checking that a private function is not used across modules.
     Parameters
@@ -166,7 +110,7 @@ def private_function_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str
     contents = file_obj.read()
     tree = ast.parse(contents)
 
-    imported_modules: Set[str] = set()
+    imported_modules: set[str] = set()
 
     for node in ast.walk(tree):
         if isinstance(node, (ast.Import, ast.ImportFrom)):
@@ -198,7 +142,7 @@ def private_function_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str
             yield (node.lineno, f"Private function '{module_name}.{function_name}'")
 
 
-def private_import_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
+def private_import_across_module(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
     """
     Checking that a private function is not imported across modules.
     Parameters
@@ -225,12 +169,12 @@ def private_import_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str]]
                 continue
 
             if module_name.startswith("_"):
-                yield (node.lineno, f"Import of internal function {repr(module_name)}")
+                yield (node.lineno, f"Import of internal function {module_name!r}")
 
 
 def strings_with_wrong_placed_whitespace(
     file_obj: IO[str],
-) -> Iterable[Tuple[int, str]]:
+) -> Iterable[tuple[int, str]]:
     """
     Test case for leading spaces in concated strings.
 
@@ -327,7 +271,7 @@ def strings_with_wrong_placed_whitespace(
             return True
         return False
 
-    tokens: List = list(tokenize.generate_tokens(file_obj.readline))
+    tokens: list = list(tokenize.generate_tokens(file_obj.readline))
 
     for first_token, second_token, third_token in zip(tokens, tokens[1:], tokens[2:]):
         # Checking if we are in a block of concated string
@@ -353,8 +297,56 @@ def strings_with_wrong_placed_whitespace(
                 )
 
 
+def nodefault_used_not_only_for_typing(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
+    """Test case where pandas._libs.lib.NoDefault is not used for typing.
+
+    Parameters
+    ----------
+    file_obj : IO
+        File-like object containing the Python code to validate.
+
+    Yields
+    ------
+    line_number : int
+        Line number of misused lib.NoDefault.
+    msg : str
+        Explanation of the error.
+    """
+    contents = file_obj.read()
+    tree = ast.parse(contents)
+    in_annotation = False
+    nodes: list[tuple[bool, ast.AST]] = [(in_annotation, tree)]
+
+    while nodes:
+        in_annotation, node = nodes.pop()
+        if not in_annotation and (
+            isinstance(node, ast.Name)  # Case `NoDefault`
+            and node.id == "NoDefault"
+            or isinstance(node, ast.Attribute)  # Cases e.g. `lib.NoDefault`
+            and node.attr == "NoDefault"
+        ):
+            yield (node.lineno, "NoDefault is used not only for typing")
+
+        # This part is adapted from
+        # https://github.com/asottile/pyupgrade/blob/5495a248f2165941c5d3b82ac3226ba7ad1fa59d/pyupgrade/_data.py#L70-L113
+        for name in reversed(node._fields):
+            value = getattr(node, name)
+            if name in {"annotation", "returns"}:
+                next_in_annotation = True
+            else:
+                next_in_annotation = in_annotation
+            if isinstance(value, ast.AST):
+                nodes.append((next_in_annotation, value))
+            elif isinstance(value, list):
+                nodes.extend(
+                    (next_in_annotation, value)
+                    for value in reversed(value)
+                    if isinstance(value, ast.AST)
+                )
+
+
 def main(
-    function: Callable[[IO[str]], Iterable[Tuple[int, str]]],
+    function: Callable[[IO[str]], Iterable[tuple[int, str]]],
     source_path: str,
     output_format: str,
 ) -> bool:
@@ -400,11 +392,11 @@ def main(
 
 
 if __name__ == "__main__":
-    available_validation_types: List[str] = [
-        "bare_pytest_raises",
+    available_validation_types: list[str] = [
         "private_function_across_module",
         "private_import_across_module",
         "strings_with_wrong_placed_whitespace",
+        "nodefault_used_not_only_for_typing",
     ]
 
     parser = argparse.ArgumentParser(description="Unwanted patterns checker.")
@@ -413,7 +405,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--format",
         "-f",
-        default="{source_path}:{line_number}:{msg}",
+        default="{source_path}:{line_number}: {msg}",
         help="Output format of the error message.",
     )
     parser.add_argument(

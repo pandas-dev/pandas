@@ -5,13 +5,14 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Sequence,
     cast,
 )
+import warnings
 
 import numpy as np
 
 from pandas._libs import lib
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
@@ -26,6 +27,8 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pandas._typing import (
         ArrayLike,
         AxisInt,
@@ -107,6 +110,17 @@ def concat_compat(
 
     if len(to_concat) < len(orig):
         _, _, alt_dtype = _get_result_dtype(orig, non_empties)
+        if alt_dtype != target_dtype:
+            # GH#39122
+            warnings.warn(
+                "The behavior of array concatenation with empty entries is "
+                "deprecated. In a future version, this will no longer exclude "
+                "empty items when determining the result dtype. "
+                "To retain the old behavior, exclude the empty entries before "
+                "the concat operation.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
     if target_dtype is not None:
         to_concat = [astype_array(arr, target_dtype, copy=False) for arr in to_concat]
@@ -115,7 +129,16 @@ def concat_compat(
         # i.e. isinstance(to_concat[0], ExtensionArray)
         to_concat_eas = cast("Sequence[ExtensionArray]", to_concat)
         cls = type(to_concat[0])
-        return cls._concat_same_type(to_concat_eas)
+        # GH#53640: eg. for datetime array, axis=1 but 0 is default
+        # However, class method `_concat_same_type()` for some classes
+        # may not support the `axis` keyword
+        if ea_compat_axis or axis == 0:
+            return cls._concat_same_type(to_concat_eas)
+        else:
+            return cls._concat_same_type(
+                to_concat_eas,
+                axis=axis,  # type: ignore[call-arg]
+            )
     else:
         to_concat_arrs = cast("Sequence[np.ndarray]", to_concat)
         result = np.concatenate(to_concat_arrs, axis=axis)
@@ -255,8 +278,8 @@ def union_categoricals(
     containing categorical data, but note that the resulting array will
     always be a plain `Categorical`
 
-    >>> a = pd.Series(["b", "c"], dtype='category')
-    >>> b = pd.Series(["a", "b"], dtype='category')
+    >>> a = pd.Series(["b", "c"], dtype="category")
+    >>> b = pd.Series(["a", "b"], dtype="category")
     >>> pd.api.types.union_categoricals([a, b])
     ['b', 'c', 'a', 'b']
     Categories (3, object): ['b', 'c', 'a']

@@ -15,23 +15,6 @@ class TestFloatNumericIndex:
         return request.param
 
     @pytest.fixture
-    def simple_index(self, dtype):
-        values = np.arange(5, dtype=dtype)
-        return Index(values)
-
-    @pytest.fixture(
-        params=[
-            [1.5, 2, 3, 4, 5],
-            [0.0, 2.5, 5.0, 7.5, 10.0],
-            [5, 4, 3, 2, 1.5],
-            [10.0, 7.5, 5.0, 2.5, 0.0],
-        ],
-        ids=["mixed", "float", "mixed_dec", "float_dec"],
-    )
-    def index(self, request, dtype):
-        return Index(request.param, dtype=dtype)
-
-    @pytest.fixture
     def mixed_index(self, dtype):
         return Index([1.5, 2, 3, 4, 5], dtype=dtype)
 
@@ -39,7 +22,18 @@ class TestFloatNumericIndex:
     def float_index(self, dtype):
         return Index([0.0, 2.5, 5.0, 7.5, 10.0], dtype=dtype)
 
-    def test_repr_roundtrip(self, index):
+    @pytest.mark.parametrize(
+        "index_data",
+        [
+            [1.5, 2, 3, 4, 5],
+            [0.0, 2.5, 5.0, 7.5, 10.0],
+            [5, 4, 3, 2, 1.5],
+            [10.0, 7.5, 5.0, 2.5, 0.0],
+        ],
+        ids=["mixed", "float", "mixed_dec", "float_dec"],
+    )
+    def test_repr_roundtrip(self, index_data, dtype):
+        index = Index(index_data, dtype=dtype)
         tm.assert_index_equal(eval(repr(index)), index, exact=True)
 
     def check_coerce(self, a, b, is_float_index=True):
@@ -227,11 +221,19 @@ class TestFloatNumericIndex:
         exp = Index([1.0, "obj", 3.0], name="x")
         tm.assert_index_equal(idx.fillna("obj"), exp, exact=True)
 
+    def test_logical_compat(self, dtype):
+        idx = Index(np.arange(5, dtype=dtype))
+        assert idx.all() == idx.values.all()
+        assert idx.any() == idx.values.any()
+
+        assert idx.all() == idx.to_series().all()
+        assert idx.any() == idx.to_series().any()
+
 
 class TestNumericInt:
-    @pytest.fixture(params=[np.int64, np.int32, np.int16, np.int8, np.uint64])
-    def dtype(self, request):
-        return request.param
+    @pytest.fixture
+    def dtype(self, any_int_numpy_dtype):
+        return np.dtype(any_int_numpy_dtype)
 
     @pytest.fixture
     def simple_index(self, dtype):
@@ -310,7 +312,9 @@ class TestNumericInt:
 
     def test_view_index(self, simple_index):
         index = simple_index
-        index.view(Index)
+        msg = "Passing a type in .*Index.view is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            index.view(Index)
 
     def test_prevent_casting(self, simple_index):
         index = simple_index
@@ -341,14 +345,16 @@ class TestIntNumericIndex:
         # copy
         # pass list, coerce fine
         index = index_cls([-5, 0, 1, 2], dtype=dtype)
-        arr = index.values
+        arr = index.values.copy()
         new_index = index_cls(arr, copy=True)
         tm.assert_index_equal(new_index, index, exact=True)
-        val = arr[0] + 3000
+        val = int(arr[0]) + 3000
 
         # this should not change index
-        arr[0] = val
-        assert new_index[0] != val
+        if dtype != np.int8:
+            # NEP 50 won't allow assignment that would overflow
+            arr[0] = val
+            assert new_index[0] != val
 
         if dtype == np.int64:
             # pass list, coerce fine
@@ -397,8 +403,12 @@ class TestIntNumericIndex:
         any_unsigned_int_numpy_dtype,
     ):
         # see gh-15832
-        msg = "Trying to coerce negative values to unsigned integers"
-
+        msg = "|".join(
+            [
+                "Trying to coerce negative values to unsigned integers",
+                "The elements provided in the data cannot all be casted",
+            ]
+        )
         with pytest.raises(OverflowError, match=msg):
             Index([-1], dtype=any_unsigned_int_numpy_dtype)
 
@@ -519,3 +529,19 @@ def test_map_dtype_inference_overflows():
     # TODO: we could plausibly try to infer down to int16 here
     expected = Index([1000, 2000, 3000], dtype=np.int64)
     tm.assert_index_equal(result, expected)
+
+
+def test_view_to_datetimelike():
+    # GH#55710
+    idx = Index([1, 2, 3])
+    res = idx.view("m8[s]")
+    expected = pd.TimedeltaIndex(idx.values.view("m8[s]"))
+    tm.assert_index_equal(res, expected)
+
+    res2 = idx.view("m8[D]")
+    expected2 = idx.values.view("m8[D]")
+    tm.assert_numpy_array_equal(res2, expected2)
+
+    res3 = idx.view("M8[h]")
+    expected3 = idx.values.view("M8[h]")
+    tm.assert_numpy_array_equal(res3, expected3)

@@ -52,7 +52,7 @@ def generate_online_numba_ewma_func(
         exponentially weighted mean accounting minimum periods.
         """
         result = np.empty(values.shape)
-        weighted_avg = values[0]
+        weighted_avg = values[0].copy()
         nobs = (~np.isnan(weighted_avg)).astype(np.int64)
         result[0] = np.where(nobs >= minimum_periods, weighted_avg, np.nan)
 
@@ -87,15 +87,14 @@ def generate_online_numba_ewma_func(
 
 
 class EWMMeanState:
-    def __init__(self, com, adjust, ignore_na, axis, shape) -> None:
+    def __init__(self, com, adjust, ignore_na, shape) -> None:
         alpha = 1.0 / (1.0 + com)
-        self.axis = axis
         self.shape = shape
         self.adjust = adjust
         self.ignore_na = ignore_na
         self.new_wt = 1.0 if adjust else alpha
         self.old_wt_factor = 1.0 - alpha
-        self.old_wt = np.ones(self.shape[self.axis - 1])
+        self.old_wt = np.ones(self.shape[-1])
         self.last_ewm = None
 
     def run_ewm(self, weighted_avg, deltas, min_periods, ewm_func):
@@ -114,5 +113,5 @@ class EWMMeanState:
         return result
 
     def reset(self) -> None:
-        self.old_wt = np.ones(self.shape[self.axis - 1])
+        self.old_wt = np.ones(self.shape[-1])
         self.last_ewm = None

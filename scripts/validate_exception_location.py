@@ -24,7 +24,10 @@ import argparse
 import ast
 import pathlib
 import sys
-from typing import Sequence
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 API_PATH = pathlib.Path("doc/source/reference/testing.rst").resolve()
 ERROR_MESSAGE = (
@@ -68,7 +71,7 @@ class Visitor(ast.NodeVisitor):
 
 def validate_exception_and_warning_placement(
     file_path: str, file_content: str, errors: set[str]
-):
+) -> None:
     tree = ast.parse(file_content)
     visitor = Visitor(file_path, errors)
     visitor.visit(tree)

@@ -309,13 +309,13 @@ class TestTimedeltaAdditionSubtraction:
 
     def test_td_add_sub_dt64_ndarray(self):
         td = Timedelta("1 day")
-        other = pd.to_datetime(["2000-01-01"]).values
+        other = np.array(["2000-01-01"], dtype="M8[ns]")
 
-        expected = pd.to_datetime(["2000-01-02"]).values
+        expected = np.array(["2000-01-02"], dtype="M8[ns]")
         tm.assert_numpy_array_equal(td + other, expected)
         tm.assert_numpy_array_equal(other + td, expected)
 
-        expected = pd.to_datetime(["1999-12-31"]).values
+        expected = np.array(["1999-12-31"], dtype="M8[ns]")
         tm.assert_numpy_array_equal(-td + other, expected)
         tm.assert_numpy_array_equal(other - td, expected)
 
@@ -955,17 +955,19 @@ class TestTimedeltaMultiplicationDivision:
     @pytest.mark.parametrize(
         "arr",
         [
-            np.array([Timestamp("20130101 9:01"), Timestamp("20121230 9:02")]),
-            np.array([Timestamp("2021-11-09 09:54:00"), Timedelta("1D")]),
+            [Timestamp("20130101 9:01"), Timestamp("20121230 9:02")],
+            [Timestamp("2021-11-09 09:54:00"), Timedelta("1D")],
         ],
     )
     def test_td_op_timedelta_timedeltalike_array(self, op, arr):
+        arr = np.array(arr)
         msg = "unsupported operand type|cannot use operands with types"
         with pytest.raises(TypeError, match=msg):
             op(arr, Timedelta("1D"))
 
 
 class TestTimedeltaComparison:
+    @pytest.mark.skip_ubsan
     def test_compare_pytimedelta_bounds(self):
         # GH#49021 don't overflow on comparison with very large pytimedeltas
 
@@ -1034,7 +1036,7 @@ class TestTimedeltaComparison:
         cls = tick_classes
 
         off = cls(4)
-        td = off.delta
+        td = off._as_pd_timedelta
         assert isinstance(td, Timedelta)
 
         assert td == off

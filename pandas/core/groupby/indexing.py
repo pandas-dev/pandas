@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import (
     TYPE_CHECKING,
-    Iterable,
     Literal,
     cast,
 )
@@ -99,8 +99,9 @@ class GroupByIndexingMixin:
 
         Examples
         --------
-        >>> df = pd.DataFrame([["a", 1], ["a", 2], ["a", 3], ["b", 4], ["b", 5]],
-        ...                   columns=["A", "B"])
+        >>> df = pd.DataFrame(
+        ...     [["a", 1], ["a", 2], ["a", 3], ["b", 4], ["b", 5]], columns=["A", "B"]
+        ... )
         >>> df.groupby("A")._positional_selector[1:2]
            A  B
         1  a  2

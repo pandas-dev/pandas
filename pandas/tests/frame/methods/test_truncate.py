@@ -60,7 +60,7 @@ class TestDataFrameTruncate:
         truncated = ts.truncate(before=ts.index[-1] + ts.index.freq)
         assert len(truncated) == 0
 
-        msg = "Truncate: 2000-01-06 00:00:00 must be after 2000-02-04 00:00:00"
+        msg = "Truncate: 2000-01-06 00:00:00 must be after 2000-05-16 00:00:00"
         with pytest.raises(ValueError, match=msg):
             ts.truncate(
                 before=ts.index[-1] - ts.index.freq, after=ts.index[0] + ts.index.freq
@@ -79,7 +79,11 @@ class TestDataFrameTruncate:
     def test_sort_values_nonsortedindex(self):
         rng = date_range("2011-01-01", "2012-01-01", freq="W")
         ts = DataFrame(
-            {"A": np.random.randn(len(rng)), "B": np.random.randn(len(rng))}, index=rng
+            {
+                "A": np.random.default_rng(2).standard_normal(len(rng)),
+                "B": np.random.default_rng(2).standard_normal(len(rng)),
+            },
+            index=rng,
         )
 
         decreasing = ts.sort_values("A", ascending=False)
@@ -93,10 +97,10 @@ class TestDataFrameTruncate:
 
         df = DataFrame(
             {
-                3: np.random.randn(5),
-                20: np.random.randn(5),
-                2: np.random.randn(5),
-                0: np.random.randn(5),
+                3: np.random.default_rng(2).standard_normal(5),
+                20: np.random.default_rng(2).standard_normal(5),
+                2: np.random.default_rng(2).standard_normal(5),
+                0: np.random.default_rng(2).standard_normal(5),
             },
             columns=[3, 20, 2, 0],
         )

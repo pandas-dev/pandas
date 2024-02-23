@@ -3,16 +3,20 @@ from datetime import (
     timedelta,
     tzinfo as _tzinfo,
 )
+import typing
 
 import numpy as np
 
 from pandas._libs.tslibs.period import Period
+from pandas._typing import Self
 
 NaT: NaTType
 iNaT: int
 nat_strings: set[str]
 
-_NaTComparisonTypes = datetime | timedelta | Period | np.datetime64 | np.timedelta64
+_NaTComparisonTypes: typing.TypeAlias = (
+    datetime | timedelta | Period | np.datetime64 | np.timedelta64
+)
 
 class _NatComparison:
     def __call__(self, other: _NaTComparisonTypes) -> bool: ...
@@ -129,4 +133,9 @@ class NaTType:
     __le__: _NatComparison
     __gt__: _NatComparison
     __ge__: _NatComparison
+    def __sub__(self, other: Self | timedelta | datetime) -> Self: ...
+    def __rsub__(self, other: Self | timedelta | datetime) -> Self: ...
+    def __add__(self, other: Self | timedelta | datetime) -> Self: ...
+    def __radd__(self, other: Self | timedelta | datetime) -> Self: ...
+    def __hash__(self) -> int: ...
     def as_unit(self, unit: str, round_ok: bool = ...) -> NaTType: ...

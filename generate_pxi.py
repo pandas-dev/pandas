@@ -4,7 +4,7 @@ import os
 from Cython import Tempita
 
 
-def process_tempita(pxifile, outfile):
+def process_tempita(pxifile, outfile) -> None:
     with open(pxifile, encoding="utf-8") as f:
         tmpl = f.read()
     pyxcontent = Tempita.sub(tmpl)
@@ -13,7 +13,7 @@ def process_tempita(pxifile, outfile):
         f.write(pyxcontent)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("infile", type=str, help="Path to the input file")
     parser.add_argument("-o", "--outdir", type=str, help="Path to the output directory")

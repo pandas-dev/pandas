@@ -99,15 +99,15 @@ def test_construct_from_string_raises():
 @pytest.mark.parametrize(
     "dtype, expected",
     [
-        (SparseDtype(int), True),
-        (SparseDtype(float), True),
-        (SparseDtype(bool), True),
-        (SparseDtype(object), False),
-        (SparseDtype(str), False),
+        (int, True),
+        (float, True),
+        (bool, True),
+        (object, False),
+        (str, False),
     ],
 )
 def test_is_numeric(dtype, expected):
-    assert dtype._is_numeric is expected
+    assert SparseDtype(dtype)._is_numeric is expected
 
 
 def test_str_uses_object():
@@ -197,7 +197,7 @@ def test_update_dtype(original, dtype, expected):
         (
             SparseDtype(str, "abc"),
             int,
-            re.escape("invalid literal for int() with base 10: 'abc'"),
+            r"invalid literal for int\(\) with base 10: ('abc'|np\.str_\('abc'\))",
         ),
     ],
 )

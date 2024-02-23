@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import importlib
 import sys
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+    overload,
+)
 import warnings
 
 from pandas.util._exceptions import find_stack_level
@@ -12,45 +16,46 @@ from pandas.util.version import Version
 if TYPE_CHECKING:
     import types
 
-# Update install.rst & setup.cfg when updating versions!
+# Update install.rst, actions-39-minimum_versions.yaml,
+# deps_minimum.toml & pyproject.toml when updating versions!
 
 VERSIONS = {
-    "bs4": "4.11.1",
-    "blosc": "1.21.0",
-    "bottleneck": "1.3.4",
-    "brotli": "0.7.0",
-    "fastparquet": "0.8.1",
-    "fsspec": "2022.05.0",
+    "adbc-driver-postgresql": "0.8.0",
+    "adbc-driver-sqlite": "0.8.0",
+    "bs4": "4.11.2",
+    "blosc": "1.21.3",
+    "bottleneck": "1.3.6",
+    "fastparquet": "2023.04.0",
+    "fsspec": "2022.11.0",
     "html5lib": "1.1",
     "hypothesis": "6.46.1",
-    "gcsfs": "2022.05.0",
+    "gcsfs": "2022.11.0",
     "jinja2": "3.1.2",
-    "lxml.etree": "4.8.0",
-    "matplotlib": "3.6.1",
-    "numba": "0.55.2",
-    "numexpr": "2.8.0",
+    "lxml.etree": "4.9.2",
+    "matplotlib": "3.6.3",
+    "numba": "0.56.4",
+    "numexpr": "2.8.4",
     "odfpy": "1.4.1",
-    "openpyxl": "3.0.10",
-    "pandas_gbq": "0.17.5",
-    "psycopg2": "2.9.3",  # (dt dec pq3 ext lo64)
+    "openpyxl": "3.1.0",
+    "psycopg2": "2.9.6",  # (dt dec pq3 ext lo64)
     "pymysql": "1.0.2",
-    "pyarrow": "7.0.0",
-    "pyreadstat": "1.1.5",
-    "pytest": "7.0.0",
-    "pyxlsb": "1.0.9",
-    "s3fs": "2022.05.0",
-    "scipy": "1.8.1",
-    "snappy": "0.6.1",
-    "sqlalchemy": "1.4.36",
-    "tables": "3.7.0",
-    "tabulate": "0.8.10",
-    "xarray": "2022.03.0",
+    "pyarrow": "10.0.1",
+    "pyreadstat": "1.2.0",
+    "pytest": "7.3.2",
+    "python-calamine": "0.1.7",
+    "pyxlsb": "1.0.10",
+    "s3fs": "2022.11.0",
+    "scipy": "1.10.0",
+    "sqlalchemy": "2.0.0",
+    "tables": "3.8.0",
+    "tabulate": "0.9.0",
+    "xarray": "2022.12.0",
     "xlrd": "2.0.1",
-    "xlsxwriter": "3.0.3",
-    "zstandard": "0.17.0",
-    "tzdata": "2022.1",
-    "qtpy": "2.2.0",
-    "pyqt5": "5.15.6",
+    "xlsxwriter": "3.0.5",
+    "zstandard": "0.19.0",
+    "tzdata": "2022.7",
+    "qtpy": "2.3.0",
+    "pyqt5": "5.15.9",
 }
 
 # A mapping from import name to package name (on PyPI) for packages where
@@ -59,12 +64,10 @@ VERSIONS = {
 INSTALL_MAPPING = {
     "bs4": "beautifulsoup4",
     "bottleneck": "Bottleneck",
-    "brotli": "brotlipy",
     "jinja2": "Jinja2",
     "lxml.etree": "lxml",
     "odf": "odfpy",
-    "pandas_gbq": "pandas-gbq",
-    "snappy": "python-snappy",
+    "python_calamine": "python-calamine",
     "sqlalchemy": "SQLAlchemy",
     "tables": "pytables",
 }
@@ -74,13 +77,6 @@ def get_version(module: types.ModuleType) -> str:
     version = getattr(module, "__version__", None)
 
     if version is None:
-        if module.__name__ == "brotli":
-            # brotli doesn't contain attributes to confirm it's version
-            return ""
-        if module.__name__ == "snappy":
-            # snappy doesn't contain attributes to confirm it's version
-            # See https://github.com/andrix/python-snappy/pull/119
-            return ""
         raise ImportError(f"Can't determine version for {module.__name__}")
     if module.__name__ == "psycopg2":
         # psycopg2 appends " (dt dec pq3 ext lo64)" to it's version
@@ -88,12 +84,35 @@ def get_version(module: types.ModuleType) -> str:
     return version
 
 
+@overload
+def import_optional_dependency(
+    name: str,
+    extra: str = ...,
+    min_version: str | None = ...,
+    *,
+    errors: Literal["raise"] = ...,
+) -> types.ModuleType:
+    ...
+
+
+@overload
+def import_optional_dependency(
+    name: str,
+    extra: str = ...,
+    min_version: str | None = ...,
+    *,
+    errors: Literal["warn", "ignore"],
+) -> types.ModuleType | None:
+    ...
+
+
 def import_optional_dependency(
     name: str,
     extra: str = "",
-    errors: str = "raise",
     min_version: str | None = None,
-):
+    *,
+    errors: Literal["raise", "warn", "ignore"] = "raise",
+) -> types.ModuleType | None:
     """
     Import an optional dependency.
 
@@ -126,9 +145,8 @@ def import_optional_dependency(
         The imported module, when found and the version is correct.
         None is returned when the package is not found and `errors`
         is False, or when the package's version is too old and `errors`
-        is ``'warn'``.
+        is ``'warn'`` or ``'ignore'``.
     """
-
     assert errors in {"warn", "raise", "ignore"}
 
     package_name = INSTALL_MAPPING.get(name)
@@ -140,9 +158,9 @@ def import_optional_dependency(
     )
     try:
         module = importlib.import_module(name)
-    except ImportError:
+    except ImportError as err:
         if errors == "raise":
-            raise ImportError(msg)
+            raise ImportError(msg) from err
         return None
 
     # Handle submodules: if we have submodule, grab parent module from sys.modules
@@ -169,5 +187,7 @@ def import_optional_dependency(
                 return None
             elif errors == "raise":
                 raise ImportError(msg)
+            else:
+                return None
 
     return module

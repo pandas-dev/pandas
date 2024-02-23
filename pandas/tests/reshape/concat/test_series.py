@@ -15,7 +15,11 @@ import pandas._testing as tm
 
 class TestSeriesConcat:
     def test_concat_series(self):
-        ts = tm.makeTimeSeries()
+        ts = Series(
+            np.arange(20, dtype=np.float64),
+            index=date_range("2020-01-01", periods=20),
+            name="foo",
+        )
         ts.name = "foo"
 
         pieces = [ts[:5], ts[5:15], ts[15:]]
@@ -26,11 +30,11 @@ class TestSeriesConcat:
 
         result = concat(pieces, keys=[0, 1, 2])
         expected = ts.copy()
-
-        ts.index = DatetimeIndex(np.array(ts.index.values, dtype="M8[ns]"))
-
         exp_codes = [np.repeat([0, 1, 2], [len(x) for x in pieces]), np.arange(len(ts))]
-        exp_index = MultiIndex(levels=[[0, 1, 2], ts.index], codes=exp_codes)
+        exp_index = MultiIndex(
+            levels=[[0, 1, 2], DatetimeIndex(ts.index.to_numpy(dtype="M8[ns]"))],
+            codes=exp_codes,
+        )
         expected.index = exp_index
         tm.assert_series_equal(result, expected)
 
@@ -40,11 +44,15 @@ class TestSeriesConcat:
         s2 = Series([], dtype=object)
 
         expected = s1
-        result = concat([s1, s2])
+        msg = "The behavior of array concatenation with empty entries is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = concat([s1, s2])
         tm.assert_series_equal(result, expected)
 
     def test_concat_series_axis1(self):
-        ts = tm.makeTimeSeries()
+        ts = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
 
         pieces = [ts[:-2], ts[2:], ts[2:-2]]
 
@@ -58,8 +66,8 @@ class TestSeriesConcat:
 
     def test_concat_series_axis1_preserves_series_names(self):
         # preserve series names, #2489
-        s = Series(np.random.randn(5), name="A")
-        s2 = Series(np.random.randn(5), name="B")
+        s = Series(np.random.default_rng(2).standard_normal(5), name="A")
+        s2 = Series(np.random.default_rng(2).standard_normal(5), name="B")
 
         result = concat([s, s2], axis=1)
         expected = DataFrame({"A": s, "B": s2})
@@ -71,8 +79,14 @@ class TestSeriesConcat:
 
     def test_concat_series_axis1_with_reindex(self, sort):
         # must reindex, #2603
-        s = Series(np.random.randn(3), index=["c", "a", "b"], name="A")
-        s2 = Series(np.random.randn(4), index=["d", "a", "b", "c"], name="B")
+        s = Series(
+            np.random.default_rng(2).standard_normal(3), index=["c", "a", "b"], name="A"
+        )
+        s2 = Series(
+            np.random.default_rng(2).standard_normal(4),
+            index=["d", "a", "b", "c"],
+            name="B",
+        )
         result = concat([s, s2], axis=1, sort=sort)
         expected = DataFrame({"A": s, "B": s2}, index=["c", "a", "b", "d"])
         if sort:
@@ -98,19 +112,26 @@ class TestSeriesConcat:
 
     def test_concat_series_axis1_same_names_ignore_index(self):
         dates = date_range("01-Jan-2013", "01-Jan-2014", freq="MS")[0:-1]
-        s1 = Series(np.random.randn(len(dates)), index=dates, name="value")
-        s2 = Series(np.random.randn(len(dates)), index=dates, name="value")
+        s1 = Series(
+            np.random.default_rng(2).standard_normal(len(dates)),
+            index=dates,
+            name="value",
+        )
+        s2 = Series(
+            np.random.default_rng(2).standard_normal(len(dates)),
+            index=dates,
+            name="value",
+        )
 
         result = concat([s1, s2], axis=1, ignore_index=True)
         expected = Index(range(2))
 
         tm.assert_index_equal(result.columns, expected, exact=True)
 
-    @pytest.mark.parametrize(
-        "s1name,s2name", [(np.int64(190), (43, 0)), (190, (43, 0))]
-    )
-    def test_concat_series_name_npscalar_tuple(self, s1name, s2name):
+    @pytest.mark.parametrize("s1name", [np.int64(190), 190])
+    def test_concat_series_name_npscalar_tuple(self, s1name):
         # GH21015
+        s2name = (43, 0)
         s1 = Series({"a": 1, "b": 2}, name=s1name)
         s2 = Series({"c": 5, "d": 6}, name=s2name)
         result = concat([s1, s2])

@@ -16,10 +16,7 @@ import os
 import re
 import subprocess
 import sys
-from typing import (
-    Callable,
-    Dict,
-)
+from typing import Callable
 
 
 def get_keywords():
@@ -57,8 +54,8 @@ class NotThisMethod(Exception):
     """Exception raised if a method is not valid for the current scenario."""
 
 
-LONG_VERSION_PY: Dict[str, str] = {}
-HANDLERS: Dict[str, Dict[str, Callable]] = {}
+LONG_VERSION_PY: dict[str, str] = {}
+HANDLERS: dict[str, dict[str, Callable]] = {}
 
 
 def register_vcs_handler(vcs, method):  # decorator
@@ -144,7 +141,7 @@ def versions_from_parentdir(parentdir_prefix, root, verbose):
 
     if verbose:
         print(
-            f"Tried directories {str(rootdirs)} \
+            f"Tried directories {rootdirs!s} \
             but none started with prefix {parentdir_prefix}"
         )
     raise NotThisMethod("rootdir doesn't start with parentdir_prefix")
@@ -389,7 +386,7 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, runner=run_command):
     return pieces
 
 
-def plus_or_dot(pieces):
+def plus_or_dot(pieces) -> str:
     """Return a + if we don't already have one, else return a ."""
     if "+" in pieces.get("closest-tag", ""):
         return "."

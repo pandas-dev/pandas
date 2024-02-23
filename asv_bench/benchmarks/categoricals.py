@@ -6,8 +6,6 @@ import numpy as np
 
 import pandas as pd
 
-from .pandas_vb_common import tm
-
 try:
     from pandas.api.types import union_categoricals
 except ImportError:
@@ -189,7 +187,7 @@ class Rank:
         N = 10**5
         ncats = 15
 
-        self.s_str = pd.Series(tm.makeCategoricalIndex(N, ncats)).astype(str)
+        self.s_str = pd.Series(np.random.randint(0, ncats, size=N).astype(str))
         self.s_str_cat = pd.Series(self.s_str, dtype="category")
         with warnings.catch_warnings(record=True):
             str_cat_type = pd.CategoricalDtype(set(self.s_str), ordered=True)
@@ -242,7 +240,7 @@ class IsMonotonic:
 class Contains:
     def setup(self):
         N = 10**5
-        self.ci = tm.makeCategoricalIndex(N)
+        self.ci = pd.CategoricalIndex(np.arange(N))
         self.c = self.ci.values
         self.key = self.ci.categories[0]
 
@@ -260,18 +258,16 @@ class CategoricalSlicing:
     def setup(self, index):
         N = 10**6
         categories = ["a", "b", "c"]
-        values = [0] * N + [1] * N + [2] * N
         if index == "monotonic_incr":
-            self.data = pd.Categorical.from_codes(values, categories=categories)
+            codes = np.repeat([0, 1, 2], N)
         elif index == "monotonic_decr":
-            self.data = pd.Categorical.from_codes(
-                list(reversed(values)), categories=categories
-            )
+            codes = np.repeat([2, 1, 0], N)
         elif index == "non_monotonic":
-            self.data = pd.Categorical.from_codes([0, 1, 2] * N, categories=categories)
+            codes = np.tile([0, 1, 2], N)
         else:
             raise ValueError(f"Invalid index param: {index}")
 
+        self.data = pd.Categorical.from_codes(codes, categories=categories)
         self.scalar = 10000
         self.list = list(range(10000))
         self.cat_scalar = "b"
@@ -327,7 +323,7 @@ class Indexing:
 class SearchSorted:
     def setup(self):
         N = 10**5
-        self.ci = tm.makeCategoricalIndex(N).sort_values()
+        self.ci = pd.CategoricalIndex(np.arange(N)).sort_values()
         self.c = self.ci.values
         self.key = self.ci.categories[1]
 

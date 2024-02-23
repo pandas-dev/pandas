@@ -21,7 +21,7 @@ del _hard_dependencies, _dependency, _missing_dependencies
 try:
     # numpy compat
     from pandas.compat import (
-        is_numpy_dev as _is_numpy_dev,  # pyright: ignore[reportUnusedImport] # noqa: F401,E501
+        is_numpy_dev as _is_numpy_dev,  # pyright: ignore[reportUnusedImport] # noqa: F401
     )
 except ImportError as _err:  # pragma: no cover
     _module = _err.name
@@ -99,7 +99,6 @@ from pandas.core.api import (
     Grouper,
     factorize,
     unique,
-    value_counts,
     NamedAgg,
     array,
     Categorical,
@@ -160,7 +159,6 @@ from pandas.io.api import (
     read_parquet,
     read_orc,
     read_feather,
-    read_gbq,
     read_html,
     read_xml,
     read_json,
@@ -320,7 +318,6 @@ __all__ = [
     "read_excel",
     "read_feather",
     "read_fwf",
-    "read_gbq",
     "read_hdf",
     "read_html",
     "read_json",
@@ -348,6 +345,5 @@ __all__ = [
     "to_timedelta",
     "tseries",
     "unique",
-    "value_counts",
     "wide_to_long",
 ]

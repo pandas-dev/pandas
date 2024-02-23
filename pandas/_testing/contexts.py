@@ -8,9 +8,10 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    Generator,
 )
 import uuid
+
+from pandas._config import using_copy_on_write
 
 from pandas.compat import PYPY
 from pandas.errors import ChainedAssignmentError
@@ -20,6 +21,8 @@ from pandas import set_option
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from pandas._typing import (
         BaseBuffer,
         CompressionOptions,
@@ -67,9 +70,8 @@ def set_timezone(tz: str) -> Generator[None, None, None]:
     >>> tzlocal().tzname(datetime(2021, 1, 1))  # doctest: +SKIP
     'IST'
 
-    >>> with set_timezone('US/Eastern'):
+    >>> with set_timezone("US/Eastern"):
     ...     tzlocal().tzname(datetime(2021, 1, 1))
-    ...
     'EST'
     """
     import time
@@ -127,6 +129,8 @@ def ensure_clean(
     encoding = kwargs.pop("encoding", None)
     if return_filelike:
         kwargs.setdefault("mode", "w+b")
+        if encoding is None and "b" not in kwargs["mode"]:
+            encoding = "utf-8"
         handle_or_str = open(path, encoding=encoding, **kwargs)
 
     try:
@@ -136,22 +140,6 @@ def ensure_clean(
             handle_or_str.close()
         if path.is_file():
             path.unlink()
-
-
-@contextmanager
-def ensure_safe_environment_variables() -> Generator[None, None, None]:
-    """
-    Get a context manager to safely set environment variables
-
-    All changes will be undone on close, hence environment variables set
-    within this contextmanager will neither persist nor change global state.
-    """
-    saved_environ = dict(os.environ)
-    try:
-        yield
-    finally:
-        os.environ.clear()
-        os.environ.update(saved_environ)
 
 
 @contextmanager
@@ -206,8 +194,13 @@ def use_numexpr(use, min_elements=None) -> Generator[None, None, None]:
         set_option("compute.use_numexpr", olduse)
 
 
-def raises_chained_assignment_error(extra_warnings=(), extra_match=()):
+def raises_chained_assignment_error(warn=True, extra_warnings=(), extra_match=()):
     from pandas._testing import assert_produces_warning
+
+    if not warn:
+        from contextlib import nullcontext
+
+        return nullcontext()
 
     if PYPY and not extra_warnings:
         from contextlib import nullcontext
@@ -219,11 +212,19 @@ def raises_chained_assignment_error(extra_warnings=(), extra_match=()):
             match="|".join(extra_match),
         )
     else:
-        match = (
-            "A value is trying to be set on a copy of a DataFrame or Series "
-            "through chained assignment"
-        )
+        if using_copy_on_write():
+            warning = ChainedAssignmentError
+            match = (
+                "A value is trying to be set on a copy of a DataFrame or Series "
+                "through chained assignment"
+            )
+        else:
+            warning = FutureWarning  # type: ignore[assignment]
+            # TODO update match
+            match = "ChainedAssignmentError"
+        if extra_warnings:
+            warning = (warning, *extra_warnings)  # type: ignore[assignment]
         return assert_produces_warning(
-            (ChainedAssignmentError, *extra_warnings),
+            warning,
             match="|".join((match, *extra_match)),
         )

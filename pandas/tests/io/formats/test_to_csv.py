@@ -10,10 +10,10 @@ import pytest
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     compat,
 )
 import pandas._testing as tm
-from pandas.tests.io.test_compression import _compression_to_extension
 
 
 class TestToCSV:
@@ -182,7 +182,7 @@ $1$,$2$
         # see gh-11553
         #
         # Testing if NaN values are correctly represented in the index.
-        df = DataFrame({"a": [0, np.NaN], "b": [0, 1], "c": [2, 3]})
+        df = DataFrame({"a": [0, np.nan], "b": [0, 1], "c": [2, 3]})
         expected_rows = ["a,b,c", "0.0,0,2", "_,1,3"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
 
@@ -190,7 +190,7 @@ $1$,$2$
         assert df.set_index(["a", "b"]).to_csv(na_rep="_") == expected
 
         # now with an index containing only NaNs
-        df = DataFrame({"a": np.NaN, "b": [0, 1], "c": [2, 3]})
+        df = DataFrame({"a": np.nan, "b": [0, 1], "c": [2, 3]})
         expected_rows = ["a,b,c", "_,0,2", "_,1,3"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
 
@@ -286,7 +286,7 @@ $1$,$2$
         df = DataFrame(
             {
                 "date": pd.to_datetime("1970-01-01"),
-                "datetime": pd.date_range("1970-01-01", periods=2, freq="H"),
+                "datetime": pd.date_range("1970-01-01", periods=2, freq="h"),
             }
         )
         expected_rows = [
@@ -543,13 +543,15 @@ z
 
     @pytest.mark.parametrize("to_infer", [True, False])
     @pytest.mark.parametrize("read_infer", [True, False])
-    def test_to_csv_compression(self, compression_only, read_infer, to_infer):
+    def test_to_csv_compression(
+        self, compression_only, read_infer, to_infer, compression_to_extension
+    ):
         # see gh-15008
         compression = compression_only
 
         # We'll complete file extension subsequently.
         filename = "test."
-        filename += _compression_to_extension[compression]
+        filename += compression_to_extension[compression]
 
         df = DataFrame({"A": [1]})
 
@@ -664,7 +666,7 @@ z
     def test_to_csv_errors(self, errors):
         # GH 22610
         data = ["\ud800foo"]
-        ser = pd.Series(data, index=pd.Index(data))
+        ser = pd.Series(data, index=Index(data, dtype=object), dtype=object)
         with tm.ensure_clean("test.csv") as path:
             ser.to_csv(path, errors=errors)
         # No use in reading back the data as it is not the same anymore
@@ -678,7 +680,11 @@ z
 
         GH 35058 and GH 19827
         """
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(30)]),
+        )
         with tm.ensure_clean() as path:
             with open(path, mode="w+b") as handle:
                 df.to_csv(handle, mode=mode)
@@ -712,7 +718,11 @@ z
 
 def test_to_csv_iterative_compression_name(compression):
     # GH 38714
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
+    )
     with tm.ensure_clean() as path:
         df.to_csv(path, compression=compression, chunksize=1)
         tm.assert_frame_equal(
@@ -722,7 +732,11 @@ def test_to_csv_iterative_compression_name(compression):
 
 def test_to_csv_iterative_compression_buffer(compression):
     # GH 38714
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
+    )
     with io.BytesIO() as buffer:
         df.to_csv(buffer, compression=compression, chunksize=1)
         buffer.seek(0)

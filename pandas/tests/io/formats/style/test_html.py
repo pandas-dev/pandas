@@ -15,8 +15,12 @@ from pandas import (
 jinja2 = pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler
 
-loader = jinja2.PackageLoader("pandas", "io/formats/templates")
-env = jinja2.Environment(loader=loader, trim_blocks=True)
+
+@pytest.fixture
+def env():
+    loader = jinja2.PackageLoader("pandas", "io/formats/templates")
+    env = jinja2.Environment(loader=loader, trim_blocks=True)
+    return env
 
 
 @pytest.fixture
@@ -31,12 +35,12 @@ def styler_mi():
 
 
 @pytest.fixture
-def tpl_style():
+def tpl_style(env):
     return env.get_template("html_style.tpl")
 
 
 @pytest.fixture
-def tpl_table():
+def tpl_table(env):
     return env.get_template("html_table.tpl")
 
 
@@ -89,11 +93,7 @@ def test_w3_html_format(styler):
         lambda x: "att1:v1;"
     ).set_table_attributes('class="my-cls1" style="attr3:v3;"').set_td_classes(
         DataFrame(["my-cls2"], index=["a"], columns=["A"])
-    ).format(
-        "{:.1f}"
-    ).set_caption(
-        "A comprehensive test"
-    )
+    ).format("{:.1f}").set_caption("A comprehensive test")
     expected = dedent(
         """\
         <style type="text/css">

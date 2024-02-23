@@ -10,7 +10,6 @@ from functools import (
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Sequence,
 )
 import warnings
 
@@ -29,6 +28,8 @@ import pandas.core.common as com
 from pandas.core.computation.common import result_type_many
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pandas._typing import F
 
     from pandas.core.generic import NDFrame
@@ -109,7 +110,7 @@ def _align_core(terms):
                 ax, itm = axis, items
 
             if not axes[ax].is_(itm):
-                axes[ax] = axes[ax].join(itm, how="outer")
+                axes[ax] = axes[ax].union(itm)
 
     for i, ndim in ndims.items():
         for axis, items in zip(range(ndim), axes):
@@ -126,14 +127,14 @@ def _align_core(terms):
                 if ordm >= 1 and reindexer_size >= 10000:
                     w = (
                         f"Alignment difference on axis {axis} is larger "
-                        f"than an order of magnitude on term {repr(terms[i].name)}, "
+                        f"than an order of magnitude on term {terms[i].name!r}, "
                         f"by more than {ordm:.4g}; performance may suffer."
                     )
                     warnings.warn(
                         w, category=PerformanceWarning, stacklevel=find_stack_level()
                     )
 
-                obj = ti.reindex(reindexer, axis=axis, copy=False)
+                obj = ti.reindex(reindexer, axis=axis)
                 terms[i].update(obj)
 
         terms[i].update(terms[i].value.values)

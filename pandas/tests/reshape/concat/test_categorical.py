@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import numpy as np
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -49,7 +51,7 @@ class TestCategoricalConcat:
         exp["h"] = exp["h"].astype(df2["h"].dtype)
         tm.assert_frame_equal(res, exp)
 
-    def test_categorical_concat_dtypes(self):
+    def test_categorical_concat_dtypes(self, using_infer_string):
         # GH8143
         index = ["cat", "obj", "num"]
         cat = Categorical(["a", "b", "c"])
@@ -57,7 +59,9 @@ class TestCategoricalConcat:
         num = Series([1, 2, 3])
         df = pd.concat([Series(cat), obj, num], axis=1, keys=index)
 
-        result = df.dtypes == "object"
+        result = df.dtypes == (
+            object if not using_infer_string else "string[pyarrow_numpy]"
+        )
         expected = Series([False, True, False], index=index)
         tm.assert_series_equal(result, expected)
 
@@ -166,6 +170,22 @@ class TestCategoricalConcat:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_concat_categorical_datetime(self):
+        # GH-39443
+        df1 = DataFrame(
+            {"x": Series(datetime(2021, 1, 1), index=[0], dtype="category")}
+        )
+        df2 = DataFrame(
+            {"x": Series(datetime(2021, 1, 2), index=[1], dtype="category")}
+        )
+
+        result = pd.concat([df1, df2])
+        expected = DataFrame(
+            {"x": Series([datetime(2021, 1, 1), datetime(2021, 1, 2)])}
+        )
+
+        tm.assert_equal(result, expected)
+
     def test_concat_categorical_unchanged(self):
         # GH-12007
         # test fix for when concat on categorical and float
@@ -202,7 +222,7 @@ class TestCategoricalConcat:
 
     def test_categorical_index_upcast(self):
         # GH 17629
-        # test upcasting to object when concatinating on categorical indexes
+        # test upcasting to object when concatenating on categorical indexes
         # with non-identical categories
 
         a = DataFrame({"foo": [1, 2]}, index=Categorical(["foo", "bar"]))

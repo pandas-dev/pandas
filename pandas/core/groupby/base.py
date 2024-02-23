@@ -4,7 +4,10 @@ Provide basic components for groupby.
 from __future__ import annotations
 
 import dataclasses
-from typing import Hashable
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Hashable
 
 
 @dataclasses.dataclass(order=True, frozen=True)
@@ -67,7 +70,6 @@ transformation_kernels = frozenset(
         "cumsum",
         "diff",
         "ffill",
-        "fillna",
         "ngroup",
         "pct_change",
         "rank",

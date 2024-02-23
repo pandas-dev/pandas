@@ -35,7 +35,7 @@ import pandas._testing as tm
         (
             ["lev4"],
             "lev3",
-            lib.NoDefault,
+            lib.no_default,
             [
                 [1.0, np.nan, 1.0, np.nan, 0.0, np.nan],
                 [np.nan, 1.0, np.nan, 1.0, np.nan, 1.0],
@@ -72,7 +72,7 @@ import pandas._testing as tm
         (
             ["lev1", "lev2"],
             "lev3",
-            lib.NoDefault,
+            lib.no_default,
             [[1, 2, 0, 1], [3, 4, 2, 3], [5, 6, 4, 5], [7, 8, 6, 7]],
             MultiIndex.from_tuples(
                 [("lev4", 1), ("lev4", 2), ("values", 1), ("values", 2)],
@@ -197,7 +197,7 @@ def test_pivot_list_like_columns(
     tm.assert_frame_equal(result, expected)
 
 
-def test_pivot_multiindexed_rows_and_cols(using_array_manager):
+def test_pivot_multiindexed_rows_and_cols():
     # GH 36360
 
     df = pd.DataFrame(
@@ -225,9 +225,7 @@ def test_pivot_multiindexed_rows_and_cols(using_array_manager):
         ),
         index=Index([0, 1], dtype="int64", name="idx_L0"),
     )
-    if not using_array_manager:
-        # BlockManager does not preserve the dtypes
-        expected = expected.astype("float64")
+    expected = expected.astype("float64")
 
     tm.assert_frame_equal(res, expected)
 

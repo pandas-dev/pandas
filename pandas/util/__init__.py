@@ -23,3 +23,7 @@ def __getattr__(key: str):
         return cache_readonly
 
     raise AttributeError(f"module 'pandas.util' has no attribute '{key}'")
+
+
+def __dir__():
+    return list(globals().keys()) + ["hash_array", "hash_pandas_object"]

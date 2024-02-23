@@ -10,8 +10,6 @@ from abc import (
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Sequence,
     cast,
     final,
 )
@@ -30,8 +28,12 @@ from pandas._libs.tslibs import (
     parsing,
     to_offset,
 )
+from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas.compat.numpy import function as nv
-from pandas.errors import NullFrequencyError
+from pandas.errors import (
+    InvalidIndexError,
+    NullFrequencyError,
+)
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
@@ -63,10 +65,12 @@ from pandas.core.indexes.range import RangeIndex
 from pandas.core.tools.timedeltas import to_timedelta
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from datetime import datetime
 
     from pandas._typing import (
         Axis,
+        JoinHow,
         Self,
         npt,
     )
@@ -103,8 +107,16 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     @property
     @doc(DatetimeLikeArrayMixin.freqstr)
-    def freqstr(self) -> str | None:
-        return self._data.freqstr
+    def freqstr(self) -> str:
+        from pandas import PeriodIndex
+
+        if self._data.freqstr is not None and isinstance(
+            self._data, (PeriodArray, PeriodIndex)
+        ):
+            freq = freq_to_period_freqstr(self._data.freq.n, self._data.freq.name)
+            return freq
+        else:
+            return self._data.freqstr  # type: ignore[return-value]
 
     @cache_readonly
     @abstractmethod
@@ -163,7 +175,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         hash(key)
         try:
             self.get_loc(key)
-        except (KeyError, TypeError, ValueError):
+        except (KeyError, TypeError, ValueError, InvalidIndexError):
             return False
         return True
 
@@ -173,36 +185,15 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     # --------------------------------------------------------------------
     # Rendering Methods
-
-    def format(
-        self,
-        name: bool = False,
-        formatter: Callable | None = None,
-        na_rep: str = "NaT",
-        date_format: str | None = None,
-    ) -> list[str]:
-        """
-        Render a string representation of the Index.
-        """
-        header = []
-        if name:
-            header.append(
-                ibase.pprint_thing(self.name, escape_chars=("\t", "\r", "\n"))
-                if self.name is not None
-                else ""
-            )
-
-        if formatter is not None:
-            return header + list(self.map(formatter))
-
-        return self._format_with_header(header, na_rep=na_rep, date_format=date_format)
+    _default_na_rep = "NaT"
 
     def _format_with_header(
-        self, header: list[str], na_rep: str = "NaT", date_format: str | None = None
+        self, *, header: list[str], na_rep: str, date_format: str | None = None
     ) -> list[str]:
+        # TODO: not reached in tests 2023-10-11
         # matches base class except for whitespace padding and date_format
         return header + list(
-            self._format_native_types(na_rep=na_rep, date_format=date_format)
+            self._get_values_for_csv(na_rep=na_rep, date_format=date_format)
         )
 
     @property
@@ -244,7 +235,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
     def _parsed_string_to_bounds(self, reso: Resolution, parsed):
         raise NotImplementedError
 
-    def _parse_with_reso(self, label: str):
+    def _parse_with_reso(self, label: str) -> tuple[datetime, Resolution]:
         # overridden by TimedeltaIndex
         try:
             if self.freq is None or hasattr(self.freq, "rule_code"):
@@ -266,7 +257,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         reso = Resolution.from_attrname(reso_str)
         return parsed, reso
 
-    def _get_string_slice(self, key: str):
+    def _get_string_slice(self, key: str) -> slice | npt.NDArray[np.intp]:
         # overridden by TimedeltaIndex
         parsed, reso = self._parse_with_reso(key)
         try:
@@ -414,8 +405,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
 
-    _join_precedence = 10
-
     @property
     def unit(self) -> str:
         return self._data.unit
@@ -434,11 +423,22 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
 
         Examples
         --------
-        >>> tdelta_idx = pd.to_timedelta(['1 day 3 min 2 us 42 ns'])
+        For :class:`pandas.DatetimeIndex`:
+
+        >>> idx = pd.DatetimeIndex(["2020-01-02 01:02:03.004005006"])
+        >>> idx
+        DatetimeIndex(['2020-01-02 01:02:03.004005006'],
+                      dtype='datetime64[ns]', freq=None)
+        >>> idx.as_unit("s")
+        DatetimeIndex(['2020-01-02 01:02:03'], dtype='datetime64[s]', freq=None)
+
+        For :class:`pandas.TimedeltaIndex`:
+
+        >>> tdelta_idx = pd.to_timedelta(["1 day 3 min 2 us 42 ns"])
         >>> tdelta_idx
         TimedeltaIndex(['1 days 00:03:00.000002042'],
                         dtype='timedelta64[ns]', freq=None)
-        >>> tdelta_idx.as_unit('s')
+        >>> tdelta_idx.as_unit("s")
         TimedeltaIndex(['1 days 00:03:00'], dtype='timedelta64[s]', freq=None)
         """
         arr = self._data.as_unit(unit)
@@ -451,7 +451,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     @property
     def values(self) -> np.ndarray:
         # NB: For Datetime64TZ this is lossy
-        return self._data._ndarray
+        data = self._data._ndarray
+        data = data.view()
+        data.flags.writeable = False
+        return data
 
     @doc(DatetimeIndexOpsMixin.shift)
     def shift(self, periods: int = 1, freq=None) -> Self:
@@ -475,7 +478,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         #  appropriate timezone from `start` and `end`, so tz does not need
         #  to be passed explicitly.
         result = self._data._generate_range(
-            start=start, end=end, periods=None, freq=self.freq
+            start=start, end=end, periods=None, freq=self.freq, unit=self.unit
         )
         return type(self)._simple_new(result, name=self.name)
 
@@ -492,7 +495,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         # Convert our i8 representations to RangeIndex
         # Caller is responsible for checking isinstance(self.freq, Tick)
         freq = cast(Tick, self.freq)
-        tick = freq.delta._value
+        tick = Timedelta(freq).as_unit("ns")._value
         rng = range(self[0]._value, self[-1]._value + tick, tick)
         return RangeIndex(rng)
 
@@ -656,7 +659,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             dates = concat_compat([left._values, right_chunk])
             # The can_fast_union check ensures that the result.freq
             #  should match self.freq
-            dates = type(self._data)(dates, freq=self.freq)
+            assert isinstance(dates, type(self._data))
+            # error: Item "ExtensionArray" of "ExtensionArray |
+            # ndarray[Any, Any]" has no attribute "_freq"
+            assert dates._freq == self.freq  # type: ignore[union-attr]
             result = type(self)._simple_new(dates)
             return result
         else:
@@ -690,13 +696,20 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             freq = self.freq
         return freq
 
-    def _wrap_joined_index(
-        self, joined, other, lidx: npt.NDArray[np.intp], ridx: npt.NDArray[np.intp]
-    ):
+    def _wrap_join_result(
+        self,
+        joined,
+        other,
+        lidx: npt.NDArray[np.intp] | None,
+        ridx: npt.NDArray[np.intp] | None,
+        how: JoinHow,
+    ) -> tuple[Self, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         assert other.dtype == self.dtype, (other.dtype, self.dtype)
-        result = super()._wrap_joined_index(joined, other, lidx, ridx)
-        result._data._freq = self._get_join_freq(other)
-        return result
+        join_index, lidx, ridx = super()._wrap_join_result(
+            joined, other, lidx, ridx, how
+        )
+        join_index._data._freq = self._get_join_freq(other)
+        return join_index, lidx, ridx
 
     def _get_engine_target(self) -> np.ndarray:
         # engine methods and libjoin methods need dt64/td64 values cast to i8

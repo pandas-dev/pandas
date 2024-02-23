@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Iterable,
+    MutableMapping,
+    Sequence,
+)
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterable,
     Literal,
-    MutableMapping,
-    Sequence,
     TypeVar,
     overload,
 )
@@ -141,9 +143,9 @@ def _range2cols(areas: str) -> list[int]:
 
     Examples
     --------
-    >>> _range2cols('A:E')
+    >>> _range2cols("A:E")
     [0, 1, 2, 3, 4]
-    >>> _range2cols('A,C,Z:AB')
+    >>> _range2cols("A,C,Z:AB")
     [0, 2, 25, 26, 27]
     """
     cols: list[int] = []

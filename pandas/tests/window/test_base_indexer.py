@@ -157,13 +157,13 @@ def test_rolling_forward_window(
     indexer = FixedForwardWindowIndexer(window_size=3)
 
     match = "Forward-looking windows can't have center=True"
+    rolling = frame_or_series(values).rolling(window=indexer, center=True)
     with pytest.raises(ValueError, match=match):
-        rolling = frame_or_series(values).rolling(window=indexer, center=True)
         getattr(rolling, func)()
 
     match = "Forward-looking windows don't support setting the closed argument"
+    rolling = frame_or_series(values).rolling(window=indexer, closed="right")
     with pytest.raises(ValueError, match=match):
-        rolling = frame_or_series(values).rolling(window=indexer, closed="right")
         getattr(rolling, func)()
 
     rolling = frame_or_series(values).rolling(window=indexer, min_periods=2, step=step)
@@ -266,6 +266,19 @@ def test_non_fixed_variable_window_indexer(closed, expected_data):
     result = df.rolling(indexer, closed=closed).sum()
     expected = DataFrame(expected_data, index=index)
     tm.assert_frame_equal(result, expected)
+
+
+def test_variableoffsetwindowindexer_not_dti():
+    # GH 54379
+    with pytest.raises(ValueError, match="index must be a DatetimeIndex."):
+        VariableOffsetWindowIndexer(index="foo", offset=BusinessDay(1))
+
+
+def test_variableoffsetwindowindexer_not_offset():
+    # GH 54379
+    idx = date_range("2020", periods=10)
+    with pytest.raises(ValueError, match="offset must be a DateOffset-like object."):
+        VariableOffsetWindowIndexer(index=idx, offset="foo")
 
 
 def test_fixed_forward_indexer_count(step):

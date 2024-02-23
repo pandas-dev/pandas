@@ -4,7 +4,6 @@ Utility functions and objects for implementing the interchange API.
 
 from __future__ import annotations
 
-import re
 import typing
 
 import numpy as np
@@ -14,6 +13,7 @@ from pandas._libs import lib
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     CategoricalDtype,
+    DatetimeTZDtype,
 )
 
 if typing.TYPE_CHECKING:
@@ -37,6 +37,7 @@ PYARROW_CTYPES = {
     "float": "f",  # float32
     "double": "g",  # float64
     "string": "u",
+    "large_string": "U",
     "binary": "z",
     "time32[s]": "tts",
     "time32[ms]": "ttm",
@@ -134,9 +135,12 @@ def dtype_to_arrow_c_fmt(dtype: DtypeObj) -> str:
 
     if lib.is_np_dtype(dtype, "M"):
         # Selecting the first char of resolution string:
-        # dtype.str -> '<M8[ns]'
-        resolution = re.findall(r"\[(.*)\]", typing.cast(np.dtype, dtype).str)[0][:1]
+        # dtype.str -> '<M8[ns]' -> 'n'
+        resolution = np.datetime_data(dtype)[0][0]
         return ArrowCTypes.TIMESTAMP.format(resolution=resolution, tz="")
+
+    elif isinstance(dtype, DatetimeTZDtype):
+        return ArrowCTypes.TIMESTAMP.format(resolution=dtype.unit[0], tz=dtype.tz)
 
     raise NotImplementedError(
         f"Conversion of {dtype} to Arrow C format string is not implemented."

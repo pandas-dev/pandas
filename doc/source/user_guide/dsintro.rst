@@ -31,9 +31,9 @@ Series
 type (integers, strings, floating point numbers, Python objects, etc.). The axis
 labels are collectively referred to as the **index**. The basic method to create a :class:`Series` is to call:
 
-::
+.. code-block:: python
 
-    >>> s = pd.Series(data, index=index)
+   s = pd.Series(data, index=index)
 
 Here, ``data`` can be many different things:
 
@@ -41,8 +41,8 @@ Here, ``data`` can be many different things:
 * an ndarray
 * a scalar value (like 5)
 
-The passed **index** is a list of axis labels. Thus, this separates into a few
-cases depending on what **data is**:
+The passed **index** is a list of axis labels. The constructor's behavior
+depends on **data**'s type:
 
 **From ndarray**
 
@@ -97,7 +97,7 @@ provided. The value will be repeated to match the length of **index**.
 Series is ndarray-like
 ~~~~~~~~~~~~~~~~~~~~~~
 
-:class:`Series` acts very similarly to a ``ndarray`` and is a valid argument to most NumPy functions.
+:class:`Series` acts very similarly to a :class:`numpy.ndarray` and is a valid argument to most NumPy functions.
 However, operations such as slicing will also slice the index.
 
 .. ipython:: python
@@ -111,7 +111,7 @@ However, operations such as slicing will also slice the index.
 .. note::
 
    We will address array-based indexing like ``s.iloc[[4, 3, 1]]``
-   in :ref:`section on indexing <indexing>`.
+   in the :ref:`section on indexing <indexing>`.
 
 Like a NumPy array, a pandas :class:`Series` has a single :attr:`~Series.dtype`.
 
@@ -308,7 +308,7 @@ The row and column labels can be accessed respectively by accessing the
 From dict of ndarrays / lists
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ndarrays must all be the same length. If an index is passed, it must
+All ndarrays must share the same length. If an index is passed, it must
 also be the same length as the arrays. If no index is passed, the
 result will be ``range(n)``, where ``n`` is the array length.
 

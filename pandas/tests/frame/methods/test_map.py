@@ -12,6 +12,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
+from pandas.tseries.offsets import BDay
+
 
 def test_map(float_frame):
     result = float_frame.map(lambda x: x * 2)
@@ -31,7 +33,6 @@ def test_map_float_object_conversion(val):
     assert result == object
 
 
-@pytest.mark.parametrize("na_action", [None, "ignore"])
 def test_map_keeps_dtype(na_action):
     # GH52219
     arr = Series(["a", np.nan, "b"])
@@ -56,7 +57,7 @@ def test_map_keeps_dtype(na_action):
 
 def test_map_str():
     # GH 2786
-    df = DataFrame(np.random.random((3, 4)))
+    df = DataFrame(np.random.default_rng(2).random((3, 4)))
     df2 = df.copy()
     cols = ["a", "a", "a", "a"]
     df.columns = cols
@@ -73,7 +74,7 @@ def test_map_str():
 )
 def test_map_datetimelike(col, val):
     # datetime/timedelta
-    df = DataFrame(np.random.random((3, 4)))
+    df = DataFrame(np.random.default_rng(2).random((3, 4)))
     df[col] = val
     result = df.map(str)
     assert result.loc[0, col] == str(df.loc[0, col])
@@ -106,7 +107,7 @@ def test_map_na_ignore(float_frame):
     # GH 23803
     strlen_frame = float_frame.map(lambda x: len(str(x)))
     float_frame_with_na = float_frame.copy()
-    mask = np.random.randint(0, 2, size=float_frame.shape, dtype=bool)
+    mask = np.random.default_rng(2).integers(0, 2, size=float_frame.shape, dtype=bool)
     float_frame_with_na[mask] = pd.NA
     strlen_frame_na_ignore = float_frame_with_na.map(
         lambda x: len(str(x)), na_action="ignore"
@@ -158,8 +159,6 @@ def test_map_box():
 
 
 def test_frame_map_dont_convert_datetime64():
-    from pandas.tseries.offsets import BDay
-
     df = DataFrame({"x1": [datetime(1996, 1, 1)]})
 
     df = df.map(lambda x: x + BDay())
@@ -206,11 +205,3 @@ def test_map_invalid_na_action(float_frame):
     # GH 23803
     with pytest.raises(ValueError, match="na_action must be .*Got 'abc'"):
         float_frame.map(lambda x: len(str(x)), na_action="abc")
-
-
-def test_applymap_deprecated():
-    # GH52353
-    df = DataFrame({"a": [1, 2, 3]})
-    msg = "DataFrame.applymap has been deprecated. Use DataFrame.map instead."
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.applymap(lambda x: x)

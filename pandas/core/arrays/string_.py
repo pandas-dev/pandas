@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    ClassVar,
     Literal,
+    cast,
 )
 
 import numpy as np
@@ -14,7 +16,8 @@ from pandas._libs import (
     missing as libmissing,
 )
 from pandas._libs.arrays import NDArrayBacked
-from pandas.compat import pa_version_under7p0
+from pandas._libs.lib import ensure_string_array
+from pandas.compat import pa_version_under10p1
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
@@ -43,7 +46,7 @@ from pandas.core.arrays.integer import (
     IntegerArray,
     IntegerDtype,
 )
-from pandas.core.arrays.numpy_ import PandasArray
+from pandas.core.arrays.numpy_ import NumpyExtensionArray
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
@@ -54,9 +57,11 @@ if TYPE_CHECKING:
     from pandas._typing import (
         AxisInt,
         Dtype,
+        DtypeObj,
         NumpySorter,
         NumpyValueArrayLike,
         Scalar,
+        Self,
         npt,
         type_t,
     )
@@ -76,7 +81,7 @@ class StringDtype(StorageExtensionDtype):
 
     Parameters
     ----------
-    storage : {"python", "pyarrow"}, optional
+    storage : {"python", "pyarrow", "pyarrow_numpy"}, optional
         If not given, the value of ``pd.options.mode.string_storage``.
 
     Attributes
@@ -96,25 +101,36 @@ class StringDtype(StorageExtensionDtype):
     string[pyarrow]
     """
 
-    name = "string"
+    # error: Cannot override instance variable (previously declared on
+    # base class "StorageExtensionDtype") with class variable
+    name: ClassVar[str] = "string"  # type: ignore[misc]
 
-    #: StringDtype().na_value uses pandas.NA
+    #: StringDtype().na_value uses pandas.NA except the implementation that
+    # follows NumPy semantics, which uses nan.
     @property
-    def na_value(self) -> libmissing.NAType:
-        return libmissing.NA
+    def na_value(self) -> libmissing.NAType | float:  # type: ignore[override]
+        if self.storage == "pyarrow_numpy":
+            return np.nan
+        else:
+            return libmissing.NA
 
     _metadata = ("storage",)
 
     def __init__(self, storage=None) -> None:
         if storage is None:
-            storage = get_option("mode.string_storage")
-        if storage not in {"python", "pyarrow"}:
+            infer_string = get_option("future.infer_string")
+            if infer_string:
+                storage = "pyarrow_numpy"
+            else:
+                storage = get_option("mode.string_storage")
+        if storage not in {"python", "pyarrow", "pyarrow_numpy"}:
             raise ValueError(
-                f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
+                f"Storage must be 'python', 'pyarrow' or 'pyarrow_numpy'. "
+                f"Got {storage} instead."
             )
-        if storage == "pyarrow" and pa_version_under7p0:
+        if storage in ("pyarrow", "pyarrow_numpy") and pa_version_under10p1:
             raise ImportError(
-                "pyarrow>=7.0.0 is required for PyArrow backed StringArray."
+                "pyarrow>=10.0.1 is required for PyArrow backed StringArray."
             )
         self.storage = storage
 
@@ -123,7 +139,7 @@ class StringDtype(StorageExtensionDtype):
         return str
 
     @classmethod
-    def construct_from_string(cls, string):
+    def construct_from_string(cls, string) -> Self:
         """
         Construct a StringDtype from a string.
 
@@ -160,6 +176,8 @@ class StringDtype(StorageExtensionDtype):
             return cls(storage="python")
         elif string == "string[pyarrow]":
             return cls(storage="pyarrow")
+        elif string == "string[pyarrow_numpy]":
+            return cls(storage="pyarrow_numpy")
         else:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
@@ -176,12 +194,17 @@ class StringDtype(StorageExtensionDtype):
         -------
         type
         """
-        from pandas.core.arrays.string_arrow import ArrowStringArray
+        from pandas.core.arrays.string_arrow import (
+            ArrowStringArray,
+            ArrowStringArrayNumpySemantics,
+        )
 
         if self.storage == "python":
             return StringArray
-        else:
+        elif self.storage == "pyarrow":
             return ArrowStringArray
+        else:
+            return ArrowStringArrayNumpySemantics
 
     def __from_arrow__(
         self, array: pyarrow.Array | pyarrow.ChunkedArray
@@ -193,6 +216,10 @@ class StringDtype(StorageExtensionDtype):
             from pandas.core.arrays.string_arrow import ArrowStringArray
 
             return ArrowStringArray(array)
+        elif self.storage == "pyarrow_numpy":
+            from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
+
+            return ArrowStringArrayNumpySemantics(array)
         else:
             import pyarrow
 
@@ -202,11 +229,19 @@ class StringDtype(StorageExtensionDtype):
                 # pyarrow.ChunkedArray
                 chunks = array.chunks
 
+            results = []
+            for arr in chunks:
+                # convert chunk by chunk to numpy and concatenate then, to avoid
+                # overflow for large string data when concatenating the pyarrow arrays
+                arr = arr.to_numpy(zero_copy_only=False)
+                arr = ensure_string_array(arr, na_value=libmissing.NA)
+                results.append(arr)
+
         if len(chunks) == 0:
             arr = np.array([], dtype=object)
         else:
-            arr = pyarrow.concat_arrays(chunks).to_numpy(zero_copy_only=False)
-            arr = lib.convert_nans_to_NA(arr)
+            arr = np.concatenate(results)
+
         # Bypass validation inside StringArray constructor, see GH#47781
         new_string_array = StringArray.__new__(StringArray)
         NDArrayBacked.__init__(
@@ -223,15 +258,22 @@ class BaseStringArray(ExtensionArray):
     """
 
     @doc(ExtensionArray.tolist)
-    def tolist(self):
+    def tolist(self) -> list:
         if self.ndim > 1:
             return [x.tolist() for x in self]
         return list(self.to_numpy())
 
+    @classmethod
+    def _from_scalars(cls, scalars, dtype: DtypeObj) -> Self:
+        if lib.infer_dtype(scalars, skipna=True) not in ["string", "empty"]:
+            # TODO: require any NAs be valid-for-string
+            raise ValueError
+        return cls._from_sequence(scalars, dtype=dtype)
+
 
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
 # incompatible with definition in base class "ExtensionArray"
-class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
+class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     """
     Extension array for string data.
 
@@ -273,7 +315,7 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
 
     See Also
     --------
-    :func:`pandas.array`
+    :func:`array`
         The recommended function for creating a StringArray.
     Series.str
         The string methods are available on Series backed by
@@ -285,7 +327,7 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
 
     Examples
     --------
-    >>> pd.array(['This is', 'some text', None, 'data.'], dtype="string")
+    >>> pd.array(["This is", "some text", None, "data."], dtype="string")
     <StringArray>
     ['This is', 'some text', <NA>, 'data.']
     Length: 4, dtype: string
@@ -293,11 +335,11 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
     Unlike arrays instantiated with ``dtype="object"``, ``StringArray``
     will convert the values to strings.
 
-    >>> pd.array(['1', 1], dtype="object")
-    <PandasArray>
+    >>> pd.array(["1", 1], dtype="object")
+    <NumpyExtensionArray>
     ['1', 1]
     Length: 2, dtype: object
-    >>> pd.array(['1', 1], dtype="string")
+    >>> pd.array(["1", 1], dtype="string")
     <StringArray>
     ['1', '1']
     Length: 2, dtype: string
@@ -312,7 +354,7 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
     Length: 3, dtype: boolean
     """
 
-    # undo the PandasArray hack
+    # undo the NumpyExtensionArray hack
     _typ = "extension"
 
     def __init__(self, values, copy: bool = False) -> None:
@@ -323,7 +365,7 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
             self._validate()
         NDArrayBacked.__init__(self, self._ndarray, StringDtype(storage="python"))
 
-    def _validate(self):
+    def _validate(self) -> None:
         """Validate that we only store NA or strings."""
         if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
             raise ValueError("StringArray requires a sequence of strings or pandas.NA")
@@ -340,7 +382,9 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
             lib.convert_nans_to_NA(self._ndarray)
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
+    def _from_sequence(
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
+    ) -> Self:
         if dtype and not (isinstance(dtype, str) and dtype == "string"):
             dtype = pandas_dtype(dtype)
             assert isinstance(dtype, StringDtype) and dtype.storage == "python"
@@ -372,8 +416,8 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
-    ):
+        cls, strings, *, dtype: ExtensionDtype, copy: bool = False
+    ) -> Self:
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     @classmethod
@@ -395,16 +439,16 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
         values[self.isna()] = None
         return pa.array(values, type=type, from_pandas=True)
 
-    def _values_for_factorize(self):
+    def _values_for_factorize(self) -> tuple[np.ndarray, None]:
         arr = self._ndarray.copy()
         mask = self.isna()
         arr[mask] = None
         return arr, None
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         value = extract_array(value, extract_numpy=True)
         if isinstance(value, type(self)):
-            # extract_array doesn't extract PandasArray subclasses
+            # extract_array doesn't extract NumpyExtensionArray subclasses
             value = value._ndarray
 
         key = check_array_indexer(self, key)
@@ -455,13 +499,13 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
             values = arr.astype(dtype.numpy_dtype)
             return IntegerArray(values, mask, copy=False)
         elif isinstance(dtype, FloatingDtype):
-            arr = self.copy()
+            arr_ea = self.copy()
             mask = self.isna()
-            arr[mask] = "0"
-            values = arr.astype(dtype.numpy_dtype)
+            arr_ea[mask] = "0"
+            values = arr_ea.astype(dtype.numpy_dtype)
             return FloatingArray(values, mask, copy=False)
         elif isinstance(dtype, ExtensionDtype):
-            # Skip the PandasArray.astype method
+            # Skip the NumpyExtensionArray.astype method
             return ExtensionArray.astype(self, dtype, copy)
         elif np.issubdtype(dtype, np.floating):
             arr = self._ndarray.copy()
@@ -496,9 +540,9 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
         return self._wrap_reduction_result(axis, result)
 
     def value_counts(self, dropna: bool = True) -> Series:
-        from pandas import value_counts
+        from pandas.core.algorithms import value_counts_internal as value_counts
 
-        result = value_counts(self._ndarray, dropna=dropna).astype("Int64")
+        result = value_counts(self._ndarray, sort=False, dropna=dropna).astype("Int64")
         result.index = result.index.astype(self.dtype)
         return result
 
@@ -513,7 +557,7 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         if self._hasna:
             raise ValueError(
@@ -557,7 +601,7 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
     # ------------------------------------------------------------------------
     # String methods interface
     # error: Incompatible types in assignment (expression has type "NAType",
-    # base class "PandasArray" defined the type as "float")
+    # base class "NumpyExtensionArray" defined the type as "float")
     _str_na_value = libmissing.NA  # type: ignore[assignment]
 
     def _str_map(
@@ -574,7 +618,7 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
         arr = np.asarray(self)
 
         if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-            constructor: type[IntegerArray] | type[BooleanArray]
+            constructor: type[IntegerArray | BooleanArray]
             if is_integer_dtype(dtype):
                 constructor = IntegerArray
             else:
@@ -583,6 +627,8 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
             na_value_is_na = isna(na_value)
             if na_value_is_na:
                 na_value = 1
+            elif dtype == np.dtype("bool"):
+                na_value = bool(na_value)
             result = lib.map_infer_mask(
                 arr,
                 f,
@@ -592,7 +638,7 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
                 # error: Argument 1 to "dtype" has incompatible type
                 # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
                 # "Type[object]"
-                dtype=np.dtype(dtype),  # type: ignore[arg-type]
+                dtype=np.dtype(cast(type, dtype)),
             )
 
             if not na_value_is_na:

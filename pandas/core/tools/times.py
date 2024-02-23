@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 def to_time(
     arg,
-    format=None,
+    format: str | None = None,
     infer_time_format: bool = False,
     errors: DateTimeErrorChoices = "raise",
 ):
@@ -43,15 +43,16 @@ def to_time(
     infer_time_format: bool, default False
         Infer the time format based on the first non-NaN element.  If all
         strings are in the same format, this will speed up conversion.
-    errors : {'ignore', 'raise', 'coerce'}, default 'raise'
+    errors : {'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception
         - If 'coerce', then invalid parsing will be set as None
-        - If 'ignore', then invalid parsing will return the input
 
     Returns
     -------
     datetime.time
     """
+    if errors not in ("raise", "coerce"):
+        raise ValueError("errors must be one of 'raise', or 'coerce'.")
 
     def _convert_listlike(arg, format):
         if isinstance(arg, (list, tuple)):
@@ -79,10 +80,7 @@ def to_time(
                             f"format {format}"
                         )
                         raise ValueError(msg) from err
-                    if errors == "ignore":
-                        return arg
-                    else:
-                        times.append(None)
+                    times.append(None)
         else:
             formats = _time_formats[:]
             format_found = False
@@ -107,8 +105,6 @@ def to_time(
                     times.append(time_object)
                 elif errors == "raise":
                     raise ValueError(f"Cannot convert arg {arg} to a time")
-                elif errors == "ignore":
-                    return arg
                 else:
                     times.append(None)
 

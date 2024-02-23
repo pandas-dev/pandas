@@ -32,8 +32,6 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.np_datetime cimport (
     get_datetime64_unit,
-    get_datetime64_value,
-    get_timedelta64_value,
     import_pandas_datetime,
 )
 
@@ -120,18 +118,18 @@ cpdef bint is_matching_na(object left, object right, bint nan_matches_none=False
             and util.is_complex_object(right)
             and util.is_nan(right)
         )
-    elif util.is_datetime64_object(left):
+    elif cnp.is_datetime64_object(left):
         return (
-            get_datetime64_value(left) == NPY_NAT
-            and util.is_datetime64_object(right)
-            and get_datetime64_value(right) == NPY_NAT
+            cnp.get_datetime64_value(left) == NPY_NAT
+            and cnp.is_datetime64_object(right)
+            and cnp.get_datetime64_value(right) == NPY_NAT
             and get_datetime64_unit(left) == get_datetime64_unit(right)
         )
-    elif util.is_timedelta64_object(left):
+    elif cnp.is_timedelta64_object(left):
         return (
-            get_timedelta64_value(left) == NPY_NAT
-            and util.is_timedelta64_object(right)
-            and get_timedelta64_value(right) == NPY_NAT
+            cnp.get_timedelta64_value(left) == NPY_NAT
+            and cnp.is_timedelta64_object(right)
+            and cnp.get_timedelta64_value(right) == NPY_NAT
             and get_datetime64_unit(left) == get_datetime64_unit(right)
         )
     elif is_decimal_na(left):
@@ -139,7 +137,7 @@ cpdef bint is_matching_na(object left, object right, bint nan_matches_none=False
     return False
 
 
-cpdef bint checknull(object val, bint inf_as_na=False):
+cpdef bint checknull(object val):
     """
     Return boolean describing of the input is NA-like, defined here as any
     of:
@@ -154,8 +152,6 @@ cpdef bint checknull(object val, bint inf_as_na=False):
     Parameters
     ----------
     val : object
-    inf_as_na : bool, default False
-        Whether to treat INF and -INF as NA values.
 
     Returns
     -------
@@ -166,13 +162,11 @@ cpdef bint checknull(object val, bint inf_as_na=False):
     elif util.is_float_object(val) or util.is_complex_object(val):
         if val != val:
             return True
-        elif inf_as_na:
-            return val == INF or val == NEGINF
         return False
-    elif util.is_timedelta64_object(val):
-        return get_timedelta64_value(val) == NPY_NAT
-    elif util.is_datetime64_object(val):
-        return get_datetime64_value(val) == NPY_NAT
+    elif cnp.is_timedelta64_object(val):
+        return cnp.get_timedelta64_value(val) == NPY_NAT
+    elif cnp.is_datetime64_object(val):
+        return cnp.get_datetime64_value(val) == NPY_NAT
     else:
         return is_decimal_na(val)
 
@@ -186,7 +180,7 @@ cdef bint is_decimal_na(object val):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef ndarray[uint8_t] isnaobj(ndarray arr, bint inf_as_na=False):
+cpdef ndarray[uint8_t] isnaobj(ndarray arr):
     """
     Return boolean mask denoting which elements of a 1-D array are na-like,
     according to the criteria defined in `checknull`:
@@ -219,7 +213,7 @@ cpdef ndarray[uint8_t] isnaobj(ndarray arr, bint inf_as_na=False):
         #  equivalents to `val = values[i]`
         val = cnp.PyArray_GETITEM(arr, cnp.PyArray_ITER_DATA(it))
         cnp.PyArray_ITER_NEXT(it)
-        is_null = checknull(val, inf_as_na=inf_as_na)
+        is_null = checknull(val)
         # Dereference pointer (set value)
         (<uint8_t *>(cnp.PyArray_ITER_DATA(it2)))[0] = <uint8_t>is_null
         cnp.PyArray_ITER_NEXT(it2)
@@ -253,31 +247,6 @@ cdef bint is_null_timedelta64(v):
 cdef bint checknull_with_nat_and_na(object obj):
     # See GH#32214
     return checknull_with_nat(obj) or obj is C_NA
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def is_float_nan(values: ndarray) -> ndarray:
-    """
-    True for elements which correspond to a float nan
-
-    Returns
-    -------
-    ndarray[bool]
-    """
-    cdef:
-        ndarray[uint8_t] result
-        Py_ssize_t i, N
-        object val
-
-    N = len(values)
-    result = np.zeros(N, dtype=np.uint8)
-
-    for i in range(N):
-        val = values[i]
-        if util.is_nan(val):
-            result[i] = True
-    return result.view(bool)
 
 
 @cython.wraparound(False)

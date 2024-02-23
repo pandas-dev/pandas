@@ -1,21 +1,35 @@
+#!/usr/bin/env python3
+
 # Note: This file has to live next to setup.py or versioneer will not work
 import argparse
 import os
+import sys
 
 import versioneer
 
+sys.path.insert(0, "")
 
-def write_version_info(path):
+
+def write_version_info(path) -> None:
+    version = None
+    git_version = None
+
+    try:
+        import _version_meson
+
+        version = _version_meson.__version__
+        git_version = _version_meson.__git_version__
+    except ImportError:
+        version = versioneer.get_version()
+        git_version = versioneer.get_versions()["full-revisionid"]
     if os.environ.get("MESON_DIST_ROOT"):
         path = os.path.join(os.environ.get("MESON_DIST_ROOT"), path)
     with open(path, "w", encoding="utf-8") as file:
-        file.write(f'__version__="{versioneer.get_version()}"\n')
-        file.write(
-            f'__git_version__="{versioneer.get_versions()["full-revisionid"]}"\n'
-        )
+        file.write(f'__version__="{version}"\n')
+        file.write(f'__git_version__="{git_version}"\n')
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-o",
@@ -43,7 +57,13 @@ def main():
         write_version_info(args.outfile)
 
     if args.print:
-        print(versioneer.get_version())
+        try:
+            import _version_meson
+
+            version = _version_meson.__version__
+        except ImportError:
+            version = versioneer.get_version()
+        print(version)
 
 
 main()
