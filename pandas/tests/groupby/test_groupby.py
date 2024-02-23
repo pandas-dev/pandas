@@ -151,7 +151,7 @@ def test_len_nan_group():
 
 @pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
 def test_len_categorical(dropna, observed, keys):
-    # GH#??
+    # GH#57595
     df = DataFrame(
         {
             "a": Categorical([1, 1, 2, np.nan], categories=[1, 2, 3]),
