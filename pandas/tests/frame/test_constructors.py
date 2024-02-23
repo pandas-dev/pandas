@@ -3044,7 +3044,7 @@ class TestDataFrameConstructorWithDatetimeTZ:
 
     def test_from_dict_with_columns_na_scalar(self):
         result = DataFrame({"a": pd.NaT}, columns=["a"], index=range(2))
-        expected = DataFrame({"a", Series([pd.NaT, pd.NaT])})
+        expected = DataFrame({"a": Series([pd.NaT, pd.NaT])})
         tm.assert_frame_equal(result, expected)
 
 
