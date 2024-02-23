@@ -276,6 +276,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         provided).
     dtype : CategoricalDtype
         An instance of ``CategoricalDtype`` to use for this categorical.
+    fastpath : bool
+        The 'fastpath' keyword in Categorical is deprecated and will be
+        removed in a future version. Use Categorical.from_codes instead.
+    copy : bool, default True
+        Whether to copy if the codes are unchanged.
 
     Attributes
     ----------
@@ -1656,6 +1661,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         """
         The numpy array interface.
+
+        Parameters
+        ----------
+        dtype : np.dtype or None
+            Specifies the the dtype for the array.
 
         Returns
         -------
