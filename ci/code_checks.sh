@@ -521,7 +521,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DatetimeIndex.year\
         pandas.DatetimeTZDtype.tz\
         pandas.DatetimeTZDtype.unit\
-        pandas.Flags\
         pandas.HDFStore.get\
         pandas.HDFStore.info\
         pandas.HDFStore.keys\
@@ -1459,8 +1458,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (PR01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=PR01 --ignore_functions \
-        pandas.Categorical\
-        pandas.Categorical.__array__\
         pandas.CategoricalIndex.equals\
         pandas.CategoricalIndex.map\
         pandas.DataFrame.at_time\
@@ -1477,7 +1474,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DatetimeIndex.std\
         pandas.ExcelFile\
         pandas.ExcelFile.parse\
-        pandas.Grouper\
         pandas.HDFStore.append\
         pandas.HDFStore.put\
         pandas.Index.get_indexer_for\
@@ -1538,21 +1534,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.types.is_float\
         pandas.api.types.is_hashable\
         pandas.api.types.is_integer\
-        pandas.core.groupby.DataFrameGroupBy.cummax\
-        pandas.core.groupby.DataFrameGroupBy.cummin\
-        pandas.core.groupby.DataFrameGroupBy.cumprod\
-        pandas.core.groupby.DataFrameGroupBy.cumsum\
-        pandas.core.groupby.DataFrameGroupBy.filter\
-        pandas.core.groupby.DataFrameGroupBy.pct_change\
-        pandas.core.groupby.DataFrameGroupBy.rolling\
-        pandas.core.groupby.SeriesGroupBy.cummax\
-        pandas.core.groupby.SeriesGroupBy.cummin\
-        pandas.core.groupby.SeriesGroupBy.cumprod\
-        pandas.core.groupby.SeriesGroupBy.cumsum\
         pandas.core.groupby.SeriesGroupBy.filter\
-        pandas.core.groupby.SeriesGroupBy.nunique\
-        pandas.core.groupby.SeriesGroupBy.pct_change\
-        pandas.core.groupby.SeriesGroupBy.rolling\
         pandas.core.resample.Resampler.max\
         pandas.core.resample.Resampler.min\
         pandas.core.resample.Resampler.quantile\

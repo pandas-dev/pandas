@@ -53,13 +53,11 @@ repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
-    -   id: check-ast
     -   id: check-case-conflict
     -   id: check-toml
     -   id: check-xml
     -   id: check-yaml
         exclude: ^ci/meta.yaml$
-    -   id: debug-statements
     -   id: end-of-file-fixer
         exclude: \.txt$
     -   id: mixed-line-ending
@@ -129,7 +127,7 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.347
+        - pyright@1.1.350
     -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
