@@ -29,6 +29,7 @@ from pandas.util._decorators import (
     doc,
 )
 
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_python_int,
@@ -1050,7 +1051,10 @@ class RangeIndex(Index):
                 "arrays are valid indices"
             )
         elif com.is_bool_indexer(key):
-            np_key = np.asarray(key, dtype=bool)
+            if isinstance(getattr(key, "dtype", None), ExtensionDtype):
+                np_key = key.to_numpy(dtype=bool, na_value=False)
+            else:
+                np_key = np.asarray(key, dtype=bool)
             check_array_indexer(self._range, np_key)
             # Short circuit potential _shallow_copy check
             if np_key.all():
