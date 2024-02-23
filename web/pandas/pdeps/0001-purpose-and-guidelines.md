@@ -133,7 +133,7 @@ values:
 - 11 voting members.
 - 50% of voting members.
 
-Given a quorum, a majority of 75% of the non-abstaining votes is required as well, i.e. 75% of
+Given a quorum, a majority of 70% of the non-abstaining votes is required as well, i.e. 75% of
 the approving and disapproving votes must be in favor.
 
 Thus, abstaining votes count towards a quorum, but not towards a majority. A voting member might
