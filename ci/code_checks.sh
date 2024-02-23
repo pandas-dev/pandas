@@ -521,7 +521,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DatetimeIndex.year\
         pandas.DatetimeTZDtype.tz\
         pandas.DatetimeTZDtype.unit\
-        pandas.Flags\
         pandas.HDFStore.get\
         pandas.HDFStore.info\
         pandas.HDFStore.keys\
@@ -1459,8 +1458,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (PR01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=PR01 --ignore_functions \
-        pandas.Categorical\
-        pandas.Categorical.__array__\
         pandas.CategoricalIndex.equals\
         pandas.CategoricalIndex.map\
         pandas.DataFrame.at_time\
