@@ -411,7 +411,7 @@ and perform a simple operation on the data.
    %time pandas_df = pandas_df.map(lambda x: x + 0.01)
    CPU times: user 48.7 s, sys: 7.8 s, total: 56.5 s
    Wall time: 56.5 s
-   
+
    %time modin_df = pd.read_csv(filename, names=[f"col{i}" for i in range(2 ** 8)])
    CPU times: user 9.49 s, sys: 2.72 s, total: 12.2 s
    Wall time: 17.5 s
