@@ -390,22 +390,12 @@ def dict_to_mgr(
 
         # no obvious "empty" int column
         if midxs and not is_integer_dtype(dtype):
-            nan_dtype: DtypeObj
-
-            if dtype is not None:
-                # calling sanitize_array ensures we don't mix-and-match
-                #  NA dtypes
-                for i in midxs:
-                    arr = construct_1d_arraylike_from_scalar(
-                        arrays[i], len(index), dtype
-                    )
-                    arrays[i] = arr
-            else:
+            if dtype is None:
                 # GH#1783
-                nan_dtype = np.dtype("object")
-                val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
-                for i in midxs:
-                    arrays[i] = val
+                dtype = np.dtype("object")
+            for i in midxs:
+                arr = construct_1d_arraylike_from_scalar(arrays[i], len(index), dtype)
+                arrays[i] = arr
 
     else:
         keys = list(data.keys())
