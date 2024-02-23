@@ -2180,11 +2180,16 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         Parameters
         ----------
         unit : {'s', 'ms', 'us', 'ns'}
-        round_ok : bool (default True)
+        round_ok : bool, default True
+            If False and the conversion requires rounding, raise.
 
         Returns
         -------
         same type as self
+
+        See Also
+        --------
+        Timestamp.as_unit : Convert to the given unit.
 
         Examples
         --------
