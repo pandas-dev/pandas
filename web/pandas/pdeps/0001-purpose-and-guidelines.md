@@ -120,7 +120,7 @@ A disapprove vote requires prior participation in the PDEP discussion issue.
 Comments made on the public VOTE issue by non-voting members will be deleted.
 
 Once the voting period ends, any voter may tally the votes in a comment, using the format: w-x-y-z,
-where w stands for the total of approving, x of abstaining, z of disapproving votes cast, and z
+where w stands for the total of approving, x of abstaining, y of disapproving votes cast, and z
 of number of voting members who did not respond to the VOTE issue. The tally of the votes will state
 if a quorum has been reached or not.
 
