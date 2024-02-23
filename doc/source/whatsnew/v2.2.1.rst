@@ -1,6 +1,6 @@
 .. _whatsnew_221:
 
-What's new in 2.2.1 (February XX, 2024)
+What's new in 2.2.1 (February 22, 2024)
 ---------------------------------------
 
 These are the changes in pandas 2.2.1. See :ref:`release` for a full changelog
@@ -21,6 +21,7 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed memory leak in :func:`read_csv` (:issue:`57039`)
 - Fixed performance regression in :meth:`Series.combine_first` (:issue:`55845`)
+- Fixed regression causing overflow for near-minimum timestamps (:issue:`57150`)
 - Fixed regression in :func:`concat` changing long-standing behavior that always sorted the non-concatenation axis when the axis was a :class:`DatetimeIndex` (:issue:`57006`)
 - Fixed regression in :func:`merge_ordered` raising ``TypeError`` for ``fill_method="ffill"`` and ``how="left"`` (:issue:`57010`)
 - Fixed regression in :func:`pandas.testing.assert_series_equal` defaulting to ``check_exact=True`` when checking the :class:`Index` (:issue:`57067`)
@@ -67,6 +68,16 @@ Bug fixes
 
 Other
 ~~~~~
+
+.. note::
+
+    The ``DeprecationWarning`` that was raised when pandas was imported without PyArrow being
+    installed has been removed. This decision was made because the warning was too noisy for too
+    many users and a lot of feedback was collected about the decision to make PyArrow a required
+    dependency. Pandas is currently considering the decision whether or not PyArrow should be added
+    as a hard dependency in 3.0. Interested users can follow the discussion
+    `here <https://github.com/pandas-dev/pandas/issues/57073>`_.
+
 - Added the argument ``skipna`` to :meth:`DataFrameGroupBy.first`, :meth:`DataFrameGroupBy.last`, :meth:`SeriesGroupBy.first`, and :meth:`SeriesGroupBy.last`; achieving ``skipna=False`` used to be available via :meth:`DataFrameGroupBy.nth`, but the behavior was changed in pandas 2.0.0 (:issue:`57019`)
 - Added the argument ``skipna`` to :meth:`Resampler.first`, :meth:`Resampler.last` (:issue:`57019`)
 
