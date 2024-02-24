@@ -830,7 +830,8 @@ class IntervalIndex(ExtensionIndex):
         """
         Return intervals' left value.
 
-        Return number index which contains all intervals' left value in Intervalindex's interval.
+        Return number index which contains all intervals' left value
+        in Intervalindex's interval.
 
         Returns
         -------
@@ -843,7 +844,8 @@ class IntervalIndex(ExtensionIndex):
         Examples
         --------
         >>> pd.interval_range(start=0, end=5)
-        IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]], dtype='interval[int64, right]')
+        IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]],
+                        dtype='interval[int64, right]')
         >>> pd.interval_range(start=0, end=5).left
         Index([0, 1, 2, 3, 4], dtype='int64')
         """
@@ -871,7 +873,9 @@ class IntervalIndex(ExtensionIndex):
         Examples
         --------
         >>> pd.interval_range(start=0, end=10, periods=3)
-        IntervalIndex([(0.0, 3.3333333333333335], (3.3333333333333335, 6.666666666666667], (6.666666666666667, 10.0]], dtype='interval[float64, right]')
+        IntervalIndex([(0.0, 3.3333333333333335], (3.3333333333333335, 
+                    6.666666666666667], (6.666666666666667, 10.0]], 
+                    dtype='interval[float64, right]')
         >>> pd.interval_range(start=0, end=10, periods=3).mid
         Index([1.6666666666666667, 5.0, 8.333333333333334], dtype='float64')
         """
@@ -882,7 +886,8 @@ class IntervalIndex(ExtensionIndex):
         """
         Return interval's length.
 
-        Return number index which contains all intervals' length value in Intervalindex's interval.
+        Return number index which contains all intervals' length value 
+        in Intervalindex's interval.
 
         Returns
         -------
@@ -895,7 +900,8 @@ class IntervalIndex(ExtensionIndex):
         Examples
         --------
         >>> pd.interval_range(start=0, end=5)
-        IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]], dtype='interval[int64, right]')
+        IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]],
+                        dtype='interval[int64, right]')
         >>> pd.interval_range(start=0, end=5).length
         Index([1, 1, 1, 1, 1], dtype='int64')
         """
