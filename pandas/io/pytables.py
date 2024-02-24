@@ -640,6 +640,12 @@ class HDFStore:
         """
         Return a list of keys corresponding to objects stored in HDFStore.
 
+        The include parameter can be used to filter the returned
+        list based on the type of objects to include. If include
+        is set to "pandas" (default), only pandas objects will
+        be included in the list. If include is set to "native",
+        only native HDF5 Table objects will be included in the list.
+
         Parameters
         ----------
 
@@ -775,6 +781,9 @@ class HDFStore:
     def get(self, key: str):
         """
         Retrieve pandas object stored in file.
+
+        This method within the context of a Pandas HDFStore allows
+        you to retrieve data that has been previously saved.
 
         Parameters
         ----------
@@ -1106,6 +1115,10 @@ class HDFStore:
     ) -> None:
         """
         Store object in HDFStore.
+
+        It also offers options to control various aspects of the
+        storage process, such as whether to write DataFrame index
+        as a column, whether to remove missing values, etc.
 
         Parameters
         ----------
@@ -1646,6 +1659,10 @@ class HDFStore:
     def info(self) -> str:
         """
         Print detailed information on the store.
+
+        This method provide convenient ways to interact with data
+        stored in HDFStore files,allowing users to easily access
+        and inspect their content.
 
         Returns
         -------
