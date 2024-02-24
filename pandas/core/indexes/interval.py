@@ -845,10 +845,9 @@ class IntervalIndex(ExtensionIndex):
         >>> pd.interval_range(start=0, end=5)
         IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]], dtype='interval[int64, right]')
         >>> pd.interval_range(start=0, end=5).left
-        Int64Index([0, 1, 2, 3, 4], dtype='int64')
+        Index([0, 1, 2, 3, 4], dtype='int64')
         """
         return Index(self._data.left, copy=False)
-
 
     @cache_readonly
     def right(self) -> Index:
@@ -874,7 +873,7 @@ class IntervalIndex(ExtensionIndex):
         >>> pd.interval_range(start=0, end=10, periods=3)
         IntervalIndex([(0.0, 3.3333333333333335], (3.3333333333333335, 6.666666666666667], (6.666666666666667, 10.0]], dtype='interval[float64, right]')
         >>> pd.interval_range(start=0, end=10, periods=3).mid
-        Float64Index([1.6666666666666667, 5.0, 8.333333333333334], dtype='float64')
+        Index([1.6666666666666667, 5.0, 8.333333333333334], dtype='float64')
         """
         return Index(self._data.mid, copy=False)
 
@@ -898,7 +897,7 @@ class IntervalIndex(ExtensionIndex):
         >>> pd.interval_range(start=0, end=5)
         IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]], dtype='interval[int64, right]')
         >>> pd.interval_range(start=0, end=5).length
-        Int64Index([1, 1, 1, 1, 1], dtype='int64')
+        Index([1, 1, 1, 1, 1], dtype='int64')
         """
         return Index(self._data.length, copy=False)
 
