@@ -1630,7 +1630,7 @@ class ExcelFile:
     @property
     def sheet_names(self):
         """
-        Returns a list of sheet names present in the document.
+        Names of the sheets in the document.
 
         This is mainly useful for loading a specific sheet into a dataframe when you do not
         know the sheet names beforehand.
