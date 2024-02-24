@@ -1064,7 +1064,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         On the other hand this methods does not do checks (e.g., whether the
         old categories are included in the new categories on a reorder), which
         can result in surprising changes, for example when using special string
-        dtypes, which does not considers a S1 string equal to a single char
+        dtypes, which do not consider a S1 string equal to a single char
         python string.
 
         Parameters
@@ -1081,7 +1081,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         Returns
         -------
         Categorical
-            
+            New categories to be used, with optional ordering changes.
 
         Raises
         ------
