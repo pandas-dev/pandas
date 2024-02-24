@@ -566,6 +566,8 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         numpy.ndarray
+            The NumPy ndarray holding the values from this Series or Index.
+            The dtype of the array may differ. See Notes.
 
         See Also
         --------
