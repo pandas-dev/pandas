@@ -873,8 +873,8 @@ class IntervalIndex(ExtensionIndex):
         Examples
         --------
         >>> pd.interval_range(start=0, end=10, periods=3)
-        IntervalIndex([(0.0, 3.3333333333333335], (3.3333333333333335, 
-                    6.666666666666667], (6.666666666666667, 10.0]], 
+        IntervalIndex([(0.0, 3.3333333333333335], (3.3333333333333335,
+                    6.666666666666667], (6.666666666666667, 10.0]],
                     dtype='interval[float64, right]')
         >>> pd.interval_range(start=0, end=10, periods=3).mid
         Index([1.6666666666666667, 5.0, 8.333333333333334], dtype='float64')
@@ -886,7 +886,7 @@ class IntervalIndex(ExtensionIndex):
         """
         Return interval's length.
 
-        Return number index which contains all intervals' length value 
+        Return number index which contains all intervals' length value
         in Intervalindex's interval.
 
         Returns
