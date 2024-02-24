@@ -31,12 +31,14 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_named_tuple,
     is_object_dtype,
+    is_scalar,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
+from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
     algorithms,
@@ -354,45 +356,48 @@ def dict_to_mgr(
 
     Used in DataFrame.__init__
     """
-    arrays: Sequence[Any] | Series
+    arrays: Sequence[Any]
 
     if columns is not None:
-        from pandas.core.series import Series
+        columns = ensure_index(columns)
+        arrays = [np.nan] * len(columns)
+        midxs = set()
+        data_keys = ensure_index(data.keys())  # type: ignore[arg-type]
+        data_values = list(data.values())
 
-        arrays = Series(data, index=columns, dtype=object)
-        missing = arrays.isna()
+        for i, column in enumerate(columns):
+            try:
+                idx = data_keys.get_loc(column)
+            except KeyError:
+                midxs.add(i)
+                continue
+            array = data_values[idx]
+            arrays[i] = array
+            if is_scalar(array) and isna(array):
+                midxs.add(i)
+
         if index is None:
             # GH10856
             # raise ValueError if only scalars in dict
-            index = _extract_index(arrays[~missing])
+            if midxs:
+                index = _extract_index(
+                    [array for i, array in enumerate(arrays) if i not in midxs]
+                )
+            else:
+                index = _extract_index(arrays)
         else:
             index = ensure_index(index)
 
         # no obvious "empty" int column
-        if missing.any() and not is_integer_dtype(dtype):
-            nan_dtype: DtypeObj
-
-            if dtype is not None:
-                # calling sanitize_array ensures we don't mix-and-match
-                #  NA dtypes
-                midxs = missing.values.nonzero()[0]
-                for i in midxs:
-                    arr = sanitize_array(arrays.iat[i], index, dtype=dtype)
-                    arrays.iat[i] = arr
-            else:
-                # GH#1783
-                nan_dtype = np.dtype("object")
-                val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
-                nmissing = missing.sum()
-                if copy:
-                    rhs = [val] * nmissing
-                else:
-                    # GH#45369
-                    rhs = [val.copy() for _ in range(nmissing)]
-                arrays.loc[missing] = rhs
-
-        arrays = list(arrays)
-        columns = ensure_index(columns)
+        if midxs and not is_integer_dtype(dtype):
+            # GH#1783
+            for i in midxs:
+                arr = construct_1d_arraylike_from_scalar(
+                    arrays[i],
+                    len(index),
+                    dtype if dtype is not None else np.dtype("object"),
+                )
+                arrays[i] = arr
 
     else:
         keys = list(data.keys())
