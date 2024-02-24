@@ -221,15 +221,15 @@ class TestChaining:
         tm.assert_frame_equal(df, df_original)
 
     @pytest.mark.arm_slow
-    def test_detect_chained_assignment_is_copy_pickle(self):
+    def test_detect_chained_assignment_is_copy_pickle(self, temp_file):
         # gh-5475: Make sure that is_copy is picked up reconstruction
         df = DataFrame({"A": [1, 2]})
 
-        with tm.ensure_clean("__tmp__pickle") as path:
-            df.to_pickle(path)
-            df2 = pd.read_pickle(path)
-            df2["B"] = df2["A"]
-            df2["B"] = df2["A"]
+        path = str(temp_file)
+        df.to_pickle(path)
+        df2 = pd.read_pickle(path)
+        df2["B"] = df2["A"]
+        df2["B"] = df2["A"]
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_str(self):

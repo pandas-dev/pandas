@@ -42,6 +42,7 @@ from pandas.tests.plotting.common import _check_ticks_props
 from pandas.tseries.offsets import WeekOfMonth
 
 mpl = pytest.importorskip("matplotlib")
+plt = pytest.importorskip("matplotlib.pyplot")
 
 
 class TestTSPlot:
@@ -1714,6 +1715,25 @@ class TestTSPlot:
         axes = df.plot(x="x", y="y", subplots=True, sharex=False)
         _check_ticks_props(axes, xrot=0)
 
+    @pytest.mark.parametrize(
+        "idx",
+        [
+            date_range("2020-01-01", periods=5),
+            date_range("2020-01-01", periods=5, tz="UTC"),
+            timedelta_range("1 day", periods=5, freq="D"),
+            period_range("2020-01-01", periods=5, freq="D"),
+            Index([date(2000, 1, i) for i in [1, 3, 6, 20, 22]], dtype=object),
+            range(5),
+        ],
+    )
+    def test_pickle_fig(self, temp_file, frame_or_series, idx):
+        # GH18439, GH#24088, statsmodels#4772
+        df = frame_or_series(range(5), index=idx)
+        fig, ax = plt.subplots(1, 1)
+        df.plot(ax=ax)
+        with temp_file.open(mode="wb") as path:
+            pickle.dump(fig, path)
+
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     import matplotlib.pyplot as plt
@@ -1746,9 +1766,5 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
         kwargs["ax"] = ax
         ret = f(*args, **kwargs)
         assert ret is not None  # TODO: do something more intelligent
-
-        # GH18439, GH#24088, statsmodels#4772
-        with tm.ensure_clean(return_filelike=True) as path:
-            pickle.dump(fig, path)
     finally:
         plt.close(fig)
