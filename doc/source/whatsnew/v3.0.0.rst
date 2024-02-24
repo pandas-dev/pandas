@@ -43,10 +43,58 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_300.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_300.notable_bug_fixes.groupby_unobs_and_na:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+Improved behavior in groupby for ``observed=False``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A number of bugs have been fixed due to improved handling of unobserved groups. In previous versions of pandas, a single grouping with :meth:`.SeriesGroupBy.agg` when used with a user-defined function would pass the unobserved groups, resulting in ``0`` below.
+
+.. ipython:: python
+
+    df = pd.DataFrame(
+        {
+            "key1": pd.Categorical(["a", "a", "b", "b"], categories=["a", "b", "c"]),
+            "key2": [1, 1, 1, 2],
+            "values": [1, 2, 3, 4],
+        }
+    )
+    gb = df.groupby("key1", observed=False)
+    gb["values"].apply(lambda x: x.sum())
+
+However this was not the case when using multiple groupings.
+
+.. ipython:: python
+
+    In [1]: gb = df.groupby(["key1", "key2"], observed=False)
+    In [2]: gb["values"].apply(lambda x: x.sum())
+    Out[2]:
+    key1  key2
+    a     1       3.0
+          2       NaN
+    b     1       3.0
+          2       4.0
+    c     1       NaN
+          2       NaN
+    Name: values, dtype: float64
+
+Now using multiple groupings will also passed the unobserved groups to the provided function.
+
+.. ipython:: python
+    gb = df.groupby(["key1", "key2"], observed=False)
+    gb["values"].apply(lambda x: x.sum())
+
+Similarly:
+
+ - In previous versions of pandas the method :meth:`.DataFrameGroupBy.sum` would result in ``0`` for unobserved groups, but :meth:`.DataFrameGroupBy.prod`, :meth:`.DataFrameGroupBy.all`, and :meth:`.DataFrameGroupBy.any` would all result in NA values. Now these methods result in ``1``, ``True``, and ``False`` respectively.
+ - :meth:`.DataFrameGroupBy.groups` did not include unobserved groups and now does.
+
+These improvements also fixed certain bugs in groupby:
+
+ - :meth:`DataFrameGroupBy.nunique` would fail when there are multiple groupings, unobserved groups, and ``as_index=False`` (:issue:`52848`)
+ - :meth:`DataFrameGroupBy.agg` would fail when there are multiple groupings, unobserved groups, and ``as_index=False`` (:issue:`36698`)
+ - :meth:`DataFrameGroupBy.sum` would have incorrect value when there are multiple groupings, unobserved groups, and non-numeric data (:issue:`43891`)
+
 
 .. _whatsnew_300.notable_bug_fixes.notable_bug_fix2:
 
