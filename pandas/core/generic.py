@@ -6197,6 +6197,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Returns
         -------
         same type as caller
+            The pandas object casted to the specified ``dtype``.
 
         See Also
         --------
