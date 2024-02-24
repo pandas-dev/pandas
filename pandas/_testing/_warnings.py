@@ -112,20 +112,20 @@ def assert_produces_warning(
                         else tuple(match for i in range(len(expected_warning)))
                     )
                     for warning_type, warning_match in zip(expected_warning, match):
-                        _assert_caught_expected_warning(
+                        _assert_caught_expected_warnings(
                             caught_warnings=w,
                             expected_warning=warning_type,
                             match=warning_match,
                             check_stacklevel=check_stacklevel,
                         )
                 else:
-                    expected_warning = cast(type[Warning], expected_warning)
+                    expected_warning = cast(type[Warning] | tuple[type[Warning], ...], expected_warning)
                     match = (
                         "|".join(m for m in match if m)
                         if isinstance(match, tuple)
                         else match
                     )
-                    _assert_caught_expected_warning(
+                    _assert_caught_expected_warnings(
                         caught_warnings=w,
                         expected_warning=expected_warning,
                         match=match,
@@ -150,10 +150,10 @@ def maybe_produces_warning(
         return nullcontext()
 
 
-def _assert_caught_expected_warning(
+def _assert_caught_expected_warnings(
     *,
     caught_warnings: Sequence[warnings.WarningMessage],
-    expected_warning: type[Warning],
+    expected_warning: type[Warning] | tuple[type[Warning], ...],
     match: str | None,
     check_stacklevel: bool,
 ) -> None:
@@ -161,6 +161,11 @@ def _assert_caught_expected_warning(
     saw_warning = False
     matched_message = False
     unmatched_messages = []
+    warning_name = (
+        tuple(x.__name__ for x in expected_warning)
+        if isinstance(expected_warning, tuple)
+        else expected_warning.__name__
+    )
 
     for actual_warning in caught_warnings:
         if issubclass(actual_warning.category, expected_warning):
@@ -177,12 +182,12 @@ def _assert_caught_expected_warning(
 
     if not saw_warning:
         raise AssertionError(
-            f"Did not see expected warning of class {expected_warning.__name__!r}"
+            f"Did not see expected warning of class {warning_name!r}"
         )
 
     if match and not matched_message:
         raise AssertionError(
-            f"Did not see warning {expected_warning.__name__!r} "
+            f"Did not see warning {warning_name!r} "
             f"matching '{match}'. The emitted warning messages are "
             f"{unmatched_messages}"
         )
