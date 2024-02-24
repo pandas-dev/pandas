@@ -1055,7 +1055,7 @@ class RangeIndex(Index):
                 np_key = key.to_numpy(dtype=bool, na_value=False)
             else:
                 np_key = np.asarray(key, dtype=bool)
-            check_array_indexer(self._range, np_key)
+            check_array_indexer(self._range, np_key)  # type: ignore[arg-type]
             # Short circuit potential _shallow_copy check
             if np_key.all():
                 return self._simple_new(self._range, name=self.name)
