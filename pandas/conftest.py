@@ -271,7 +271,7 @@ def axis(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False, None])
+@pytest.fixture(params=[True, False])
 def observed(request):
     """
     Pass in the observed keyword to groupby for [True, False]
@@ -1981,6 +1981,16 @@ def indexer_ial(request):
     Parametrize over iat.__setitem__, iloc.__setitem__
     """
     return request.param
+
+
+@pytest.fixture(params=[True, False])
+def performance_warning(request) -> Iterator[bool | type[Warning]]:
+    """
+    Fixture to check if performance warnings are enabled. Either produces
+    ``PerformanceWarning`` if they are enabled, otherwise ``False``.
+    """
+    with pd.option_context("mode.performance_warnings", request.param):
+        yield pd.errors.PerformanceWarning if request.param else False
 
 
 @pytest.fixture
