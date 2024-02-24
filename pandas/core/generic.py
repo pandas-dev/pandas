@@ -4251,12 +4251,24 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """Return boolean indicating if self is view of another array"""
         return self._mgr.is_view
 
+    @staticmethod
+    def _check_copy_deprecation(copy):
+        if copy is not lib.no_default:
+            warnings.warn(
+                "The copy keyword is deprecated and will be removed in a future "
+                "version. Copy-on-Write is active in pandas since 3.0 which utilizes "
+                "a lazy copy mechanism that defers copies until necessary. Use "
+                ".copy() to make an eager copy if necessary.",
+                DeprecationWarning,
+                stacklevel=find_stack_level(),
+            )
+
     @final
     def reindex_like(
         self,
         other,
         method: Literal["backfill", "bfill", "pad", "ffill", "nearest"] | None = None,
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
         limit: int | None = None,
         tolerance=None,
     ) -> Self:
@@ -4284,7 +4296,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * backfill / bfill: use next valid observation to fill gap
             * nearest: use nearest valid observations to fill gap.
 
-        copy : bool, default True
+        copy : bool, default False
             Return a new object, even if the passed indexes are the same.
 
             .. note::
@@ -4298,6 +4310,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+            .. deprecated:: 3.0.0
         limit : int, default None
             Maximum number of consecutive labels to fill for inexact matches.
         tolerance : optional
@@ -4366,6 +4380,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2014-02-14           NaN              NaN       NaN
         2014-02-15          35.1              NaN    medium
         """
+        self._check_copy_deprecation(copy)
         d = other._construct_axes_dict(
             axes=self._AXIS_ORDERS,
             method=method,
@@ -5011,7 +5026,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         columns=None,
         axis: Axis | None = None,
         method: ReindexMethod | None = None,
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
         level: Level | None = None,
         fill_value: Scalar | None = np.nan,
         limit: int | None = None,
@@ -5038,7 +5053,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * backfill / bfill: Use next valid observation to fill gap.
             * nearest: Use nearest valid observations to fill gap.
 
-        copy : bool, default True
+        copy : bool, default False
             Return a new object, even if the passed indexes are the same.
 
             .. note::
@@ -5052,6 +5067,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+            .. deprecated:: 3.0.0
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
@@ -5229,6 +5246,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         # TODO: Decide if we care about having different examples for different
         # kinds
+        self._check_copy_deprecation(copy)
 
         if index is not None and columns is not None and labels is not None:
             raise TypeError("Cannot specify all of 'labels', 'index', 'columns'.")
@@ -6136,7 +6154,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def astype(
-        self, dtype, copy: bool | None = None, errors: IgnoreRaise = "raise"
+        self,
+        dtype,
+        copy: bool | lib.NoDefault = lib.no_default,
+        errors: IgnoreRaise = "raise",
     ) -> Self:
         """
         Cast a pandas object to a specified dtype ``dtype``.
@@ -6149,7 +6170,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             mapping, e.g. {col: dtype, ...}, where col is a column label and dtype is
             a numpy.dtype or Python type to cast one or more of the DataFrame's
             columns to column-specific types.
-        copy : bool, default True
+        copy : bool, default False
             Return a copy when ``copy=True`` (be very careful setting
             ``copy=False`` as changes to values then may propagate to other
             pandas objects).
@@ -6165,6 +6186,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+            .. deprecated:: 3.0.0
         errors : {'raise', 'ignore'}, default 'raise'
             Control raising of exceptions on invalid data for provided dtype.
 
@@ -6254,6 +6277,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2   2020-01-03
         dtype: datetime64[ns]
         """
+        self._check_copy_deprecation(copy)
         if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
                 if len(dtype) > 1 or self.name not in dtype:
@@ -6481,7 +6505,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self.copy(deep=True)
 
     @final
-    def infer_objects(self, copy: bool | None = None) -> Self:
+    def infer_objects(self, copy: bool | lib.NoDefault = lib.no_default) -> Self:
         """
         Attempt to infer better dtypes for object columns.
 
@@ -6492,7 +6516,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        copy : bool, default True
+        copy : bool, default False
             Whether to make a copy for non-object or non-inferable columns
             or Series.
 
@@ -6507,6 +6531,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+            .. deprecated:: 3.0.0
 
         Returns
         -------
@@ -6537,6 +6563,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         A    int64
         dtype: object
         """
+        self._check_copy_deprecation(copy)
         new_mgr = self._mgr.convert()
         res = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
         return res.__finalize__(self, method="infer_objects")
@@ -9404,7 +9431,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level | None = None,
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
         fill_value: Hashable | None = None,
     ) -> tuple[Self, NDFrameT]:
         """
@@ -9429,7 +9456,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level : int or level name, default None
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        copy : bool, default True
+        copy : bool, default False
             Always returns new objects. If copy=False and no reindexing is
             required then original objects are returned.
 
@@ -9444,6 +9471,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+            .. deprecated:: 3.0.0
         fill_value : scalar, default np.nan
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value.
@@ -9518,6 +9547,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3   60.0   70.0   80.0   90.0 NaN
         4  600.0  700.0  800.0  900.0 NaN
         """
+        self._check_copy_deprecation(copy)
+
         _right: DataFrame | Series
         if axis is not None:
             axis = self._get_axis_number(axis)
@@ -10336,7 +10367,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         before=None,
         after=None,
         axis: Axis | None = None,
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
     ) -> Self:
         """
         Truncate a Series or DataFrame before and after some index value.
@@ -10353,7 +10384,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis : {0 or 'index', 1 or 'columns'}, optional
             Axis to truncate. Truncates the index (rows) by default.
             For `Series` this parameter is unused and defaults to 0.
-        copy : bool, default is True,
+        copy : bool, default is False,
             Return a copy of the truncated section.
 
             .. note::
@@ -10367,6 +10398,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+            .. deprecated:: 3.0.0
 
         Returns
         -------
@@ -10473,6 +10506,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2016-01-10 23:59:58  1
         2016-01-10 23:59:59  1
         """
+        self._check_copy_deprecation(copy)
+
         if axis is None:
             axis = 0
         axis = self._get_axis_number(axis)
@@ -10511,7 +10546,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
     def tz_convert(
-        self, tz, axis: Axis = 0, level=None, copy: bool | None = None
+        self,
+        tz,
+        axis: Axis = 0,
+        level=None,
+        copy: bool | lib.NoDefault = lib.no_default,
     ) -> Self:
         """
         Convert tz-aware axis to target time zone.
@@ -10526,7 +10565,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level : int, str, default None
             If axis is a MultiIndex, convert a specific level. Otherwise
             must be None.
-        copy : bool, default True
+        copy : bool, default False
             Also make a copy of the underlying data.
 
             .. note::
@@ -10540,6 +10579,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+            .. deprecated:: 3.0.0
 
         Returns
         -------
@@ -10570,6 +10611,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2018-09-14 23:30:00    1
         dtype: int64
         """
+        self._check_copy_deprecation(copy)
         axis = self._get_axis_number(axis)
         ax = self._get_axis(axis)
 
@@ -10607,7 +10649,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         tz,
         axis: Axis = 0,
         level=None,
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
         ambiguous: TimeAmbiguous = "raise",
         nonexistent: TimeNonexistent = "raise",
     ) -> Self:
@@ -10627,7 +10669,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level : int, str, default None
             If axis ia a MultiIndex, localize a specific level. Otherwise
             must be None.
-        copy : bool, default True
+        copy : bool, default False
             Also make a copy of the underlying data.
 
             .. note::
@@ -10641,6 +10683,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+            .. deprecated:: 3.0.0
         ambiguous : 'infer', bool, bool-ndarray, 'NaT', default 'raise'
             When clocks moved backward due to DST, ambiguous times may arise.
             For example in Central European Time (UTC+01), when going from
@@ -10766,6 +10810,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2015-03-29 03:30:00+02:00    1
         dtype: int64
         """
+        self._check_copy_deprecation(copy)
         nonexistent_options = ("raise", "NaT", "shift_forward", "shift_backward")
         if nonexistent not in nonexistent_options and not isinstance(
             nonexistent, dt.timedelta
@@ -11720,7 +11765,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # this makes sure that we are aligned like the input
         # we are updating inplace
-        self._update_inplace(result.reindex_like(self, copy=False))
+        self._update_inplace(result.reindex_like(self))
         return self
 
     @final

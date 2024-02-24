@@ -1311,12 +1311,12 @@ class SQLTable(PandasObject):
                     self.frame[col_name] = _handle_date_column(df_col, utc=utc)
                 elif dtype_backend == "numpy" and col_type is float:
                     # floats support NA, can always convert!
-                    self.frame[col_name] = df_col.astype(col_type, copy=False)
+                    self.frame[col_name] = df_col.astype(col_type)
 
                 elif dtype_backend == "numpy" and len(df_col) == df_col.count():
                     # No NA values, can convert ints and bools
                     if col_type is np.dtype("int64") or col_type is bool:
-                        self.frame[col_name] = df_col.astype(col_type, copy=False)
+                        self.frame[col_name] = df_col.astype(col_type)
             except KeyError:
                 pass  # this column not in results
 

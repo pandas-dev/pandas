@@ -318,9 +318,7 @@ class TestDataFrameDescribe:
             "max",
             "std",
         ]
-        expected = pd.concat([s1_, s2_], axis=1, keys=["s1", "s2"]).reindex(
-            idx, copy=False
-        )
+        expected = pd.concat([s1_, s2_], axis=1, keys=["s1", "s2"]).reindex(idx)
 
         result = df.describe(include="all")
         tm.assert_frame_equal(result, expected)

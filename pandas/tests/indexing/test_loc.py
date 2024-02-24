@@ -666,7 +666,7 @@ class TestLocBaseIndependent:
         df.loc[:, ("Respondent", "EndDate")] = to_datetime(
             df.loc[:, ("Respondent", "EndDate")]
         )
-        df = df.infer_objects(copy=False)
+        df = df.infer_objects()
 
         # Adding a new key
         df.loc[:, ("Respondent", "Duration")] = (

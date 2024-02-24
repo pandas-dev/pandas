@@ -177,7 +177,7 @@ class TestDataFrameIndexingWhere:
 
         def _check_set(df, cond, check_dtypes=True):
             dfi = df.copy()
-            econd = cond.reindex_like(df).fillna(True).infer_objects(copy=False)
+            econd = cond.reindex_like(df).fillna(True).infer_objects()
             expected = dfi.mask(~econd)
 
             return_value = dfi.where(cond, np.nan, inplace=True)

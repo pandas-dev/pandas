@@ -126,7 +126,7 @@ def test_astype_string_read_only_on_pickle_roundrip():
     base = Series(np.array([(1, 2), None, 1], dtype="object"))
     base_copy = pickle.loads(pickle.dumps(base))
     base_copy._values.flags.writeable = False
-    base_copy.astype("string[pyarrow]", copy=False)
+    base_copy.astype("string[pyarrow]")
     tm.assert_series_equal(base, base_copy)
 
 
