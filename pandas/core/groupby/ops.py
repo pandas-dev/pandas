@@ -1110,23 +1110,7 @@ class BinGrouper(BaseGrouper):
 
     @cache_readonly
     def group_info(self) -> tuple[npt.NDArray[np.intp], int]:
-        ngroups = self.ngroups
-        rep = np.diff(np.r_[0, self.bins])
-
-        rep = ensure_platform_int(rep)
-        if ngroups == len(self.bins):
-            comp_ids = np.repeat(np.arange(ngroups), rep)
-        else:
-            comp_ids = np.repeat(np.r_[-1, np.arange(ngroups)], rep)
-
-        return (ensure_platform_int(comp_ids), ngroups)
-
-    @cache_readonly
-    def result_index(self) -> Index:
-        if len(self.binlabels) != 0 and isna(self.binlabels[0]):
-            return self.binlabels[1:]
-
-        return self.binlabels
+        return self.ids, self.ngroups
 
     @cache_readonly
     def codes(self) -> list[npt.NDArray[np.intp]]:
@@ -1134,7 +1118,21 @@ class BinGrouper(BaseGrouper):
 
     @cache_readonly
     def result_index_and_ids(self):
-        return self.result_index, self.group_info[0]
+        result_index = self.binlabels
+        if len(self.binlabels) != 0 and isna(self.binlabels[0]):
+            result_index = result_index[1:]
+
+        ngroups = len(result_index)
+        rep = np.diff(np.r_[0, self.bins])
+
+        rep = ensure_platform_int(rep)
+        if ngroups == len(self.bins):
+            ids = np.repeat(np.arange(ngroups), rep)
+        else:
+            ids = np.repeat(np.r_[-1, np.arange(ngroups)], rep)
+        ids = ensure_platform_int(ids)
+
+        return result_index, ids
 
     @property
     def levels(self) -> list[Index]:
