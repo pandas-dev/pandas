@@ -8676,6 +8676,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Returns
         -------
         Series or DataFrame
+            The values with the specified time.
 
         Raises
         ------
