@@ -596,7 +596,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
     @final
     def __len__(self) -> int:
-        return len(self.groups)
+        return self._grouper.ngroups
 
     @final
     def __repr__(self) -> str:
