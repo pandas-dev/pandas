@@ -11,6 +11,8 @@ import pytest
 
 from pandas._config import using_pyarrow_string_dtype
 
+from pandas.compat.numpy import np_version_gte1p25
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -2071,6 +2073,13 @@ class TestPivotTable:
         data = data.drop(columns="C")
         result = pivot_table(data, index="A", columns="B", aggfunc=f)
         expected = pivot_table(data, index="A", columns="B", aggfunc=f_numpy)
+
+        if not np_version_gte1p25 and isinstance(f_numpy, list):
+            # Prior to 1.25, np.min/np.max would come through as amin and amax
+            mapper = {"amin": "min", "amax": "max", "sum": "sum"}
+            expected.columns = expected.columns.map(
+                lambda x: (mapper[x[0]], x[1], x[2])
+            )
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow
