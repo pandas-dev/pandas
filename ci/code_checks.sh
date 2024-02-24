@@ -476,7 +476,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.sparse.from_spmatrix\
         pandas.DataFrame.sparse.to_coo\
         pandas.DataFrame.sparse.to_dense\
-        pandas.DataFrame.to_csv\
         pandas.DataFrame.to_feather\
         pandas.DataFrame.to_html\
         pandas.DataFrame.to_markdown\
