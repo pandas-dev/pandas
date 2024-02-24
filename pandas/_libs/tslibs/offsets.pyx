@@ -1410,13 +1410,22 @@ cdef class RelativeDeltaOffset(BaseOffset):
             "minutes",
             "seconds",
             "microseconds",
+            "milliseconds",
         }
         # relativedelta/_offset path only valid for base DateOffset
         if self._use_relativedelta and set(kwds).issubset(relativedelta_fast):
+            td_args = {
+                "days",
+                "hours",
+                "minutes",
+                "seconds",
+                "microseconds",
+                "milliseconds"
+            }
             td_kwds = {
                 key: val
                 for key, val in kwds.items()
-                if key in ["days", "hours", "minutes", "seconds", "microseconds"]
+                if key in td_args
             }
             if "weeks" in kwds:
                 days = td_kwds.get("days", 0)
@@ -1426,6 +1435,8 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 delta = Timedelta(**td_kwds)
                 if "microseconds" in kwds:
                     delta = delta.as_unit("us")
+                elif "milliseconds" in kwds:
+                    delta = delta.as_unit("ms")
                 else:
                     delta = delta.as_unit("s")
             else:
@@ -1443,6 +1454,8 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 delta = Timedelta(self._offset * self.n)
                 if "microseconds" in kwds:
                     delta = delta.as_unit("us")
+                elif "milliseconds" in kwds:
+                    delta = delta.as_unit("ms")
                 else:
                     delta = delta.as_unit("s")
             return delta

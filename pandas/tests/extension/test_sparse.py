@@ -17,8 +17,6 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
-
 import pandas as pd
 from pandas import SparseDtype
 import pandas._testing as tm
@@ -324,8 +322,8 @@ class TestSparseArray(base.ExtensionTests):
         expected = pd.Series(cls._from_sequence([a, b, b, b], dtype=data.dtype))
         tm.assert_series_equal(result, expected)
 
-    def test_searchsorted(self, data_for_sorting, as_series):
-        with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
+    def test_searchsorted(self, performance_warning, data_for_sorting, as_series):
+        with tm.assert_produces_warning(performance_warning, check_stacklevel=False):
             super().test_searchsorted(data_for_sorting, as_series)
 
     def test_shift_0_periods(self, data):
