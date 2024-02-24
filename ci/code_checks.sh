@@ -146,7 +146,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DatetimeIndex.as_unit\
         pandas.DatetimeIndex.freq\
         pandas.ExcelFile.book\
-        pandas.ExcelFile.sheet_names\
         pandas.Index.empty\
         pandas.Index.names\
         pandas.Index.view\
@@ -154,7 +153,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.IntervalIndex.length\
         pandas.IntervalIndex.mid\
         pandas.IntervalIndex.right\
-        pandas.MultiIndex.codes\
         pandas.Period.freq\
         pandas.Period.ordinal\
         pandas.PeriodIndex.freq\
