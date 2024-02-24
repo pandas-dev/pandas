@@ -716,7 +716,7 @@ class BaseGrouper:
     @cache_readonly
     def is_monotonic(self) -> bool:
         # return if my group orderings are monotonic
-        return Index(self.group_info[0]).is_monotonic_increasing
+        return Index(self.ids).is_monotonic_increasing
 
     @final
     @cache_readonly
@@ -735,8 +735,7 @@ class BaseGrouper:
     @cache_readonly
     def codes_info(self) -> npt.NDArray[np.intp]:
         # return the codes of items in original grouped axis
-        ids, _ = self.group_info
-        return ids
+        return self.ids
 
     @final
     @cache_readonly
@@ -933,9 +932,7 @@ class BaseGrouper:
     def _aggregate_series_pure_python(
         self, obj: Series, func: Callable
     ) -> npt.NDArray[np.object_]:
-        _, ngroups = self.group_info
-
-        result = np.empty(ngroups, dtype="O")
+        result = np.empty(self.ngroups, dtype="O")
         initialized = False
 
         splitter = self._get_splitter(obj)
@@ -1073,7 +1070,7 @@ class BinGrouper(BaseGrouper):
     @cache_readonly
     def codes_info(self) -> npt.NDArray[np.intp]:
         # return the codes of items in original grouped axis
-        ids, _ = self.group_info
+        ids = self.ids
         if self.indexer is not None:
             sorter = np.lexsort((ids, self.indexer))
             ids = ids[sorter]
@@ -1133,7 +1130,7 @@ class BinGrouper(BaseGrouper):
 
     @cache_readonly
     def codes(self) -> list[npt.NDArray[np.intp]]:
-        return [self.group_info[0]]
+        return [self.ids]
 
     @cache_readonly
     def result_index_and_ids(self):
@@ -1150,7 +1147,7 @@ class BinGrouper(BaseGrouper):
     @property
     def groupings(self) -> list[grouper.Grouping]:
         lev = self.binlabels
-        codes = self.group_info[0]
+        codes = self.ids
         labels = lev.take(codes)
         ping = grouper.Grouping(
             labels, labels, in_axis=False, level=None, uniques=lev._values
