@@ -109,7 +109,7 @@ def assert_produces_warning(
                     match = (
                         match
                         if isinstance(match, tuple)
-                        else tuple(match for i in range(len(expected_warning)))
+                        else (match,) * len(expected_warning)
                     )
                     for warning_type, warning_match in zip(expected_warning, match):
                         _assert_caught_expected_warnings(
