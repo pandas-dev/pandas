@@ -1071,7 +1071,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ----------
         new_categories : Index-like
            The categories in new order.
-        ordered : bool, default False
+        ordered : bool, default None
            Whether or not the categorical is treated as a ordered categorical.
            If not given, do not change the ordered information.
         rename : bool, default False
@@ -1080,7 +1080,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        Categorical with reordered categories.
+        Categorical
+            
 
         Raises
         ------
