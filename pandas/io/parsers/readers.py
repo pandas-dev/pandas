@@ -17,6 +17,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Generic,
     Literal,
     NamedTuple,
     TypedDict,
@@ -28,6 +29,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
+from pandas._typing import HashableT
 from pandas.errors import (
     AbstractMethodError,
     ParserWarning,
@@ -480,7 +482,7 @@ class _Fwf_Defaults(TypedDict):
     widths: None
 
 
-class _read_shared(TypedDict, total=False):
+class _read_shared(TypedDict, Generic[HashableT], total=False):
     # annotations shared between read_csv/fwf/table's overloads
     # NOTE: Keep in sync with the annotations of the implementation
     sep: str | None | lib.NoDefault
@@ -491,7 +493,7 @@ class _read_shared(TypedDict, total=False):
     usecols: UsecolsArgType
     dtype: DtypeArg | None
     engine: CSVEngine | None
-    converters: Mapping[Hashable, Callable] | None
+    converters: Mapping[HashableT, Callable] | None
     true_values: list | None
     false_values: list | None
     skipinitialspace: bool
@@ -685,7 +687,7 @@ def read_csv(
     *,
     iterator: Literal[True],
     chunksize: int | None = ...,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> TextFileReader:
     ...
 
@@ -696,7 +698,7 @@ def read_csv(
     *,
     iterator: bool = ...,
     chunksize: int,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> TextFileReader:
     ...
 
@@ -707,7 +709,7 @@ def read_csv(
     *,
     iterator: Literal[False] = ...,
     chunksize: None = ...,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> DataFrame:
     ...
 
@@ -718,7 +720,7 @@ def read_csv(
     *,
     iterator: bool = ...,
     chunksize: int | None = ...,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> DataFrame | TextFileReader:
     ...
 
@@ -748,7 +750,7 @@ def read_csv(
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
-    converters: Mapping[Hashable, Callable] | None = None,
+    converters: Mapping[HashableT, Callable] | None = None,
     true_values: list | None = None,
     false_values: list | None = None,
     skipinitialspace: bool = False,
@@ -890,7 +892,7 @@ def read_table(
     *,
     iterator: Literal[True],
     chunksize: int | None = ...,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> TextFileReader:
     ...
 
@@ -901,7 +903,7 @@ def read_table(
     *,
     iterator: bool = ...,
     chunksize: int,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> TextFileReader:
     ...
 
@@ -912,7 +914,7 @@ def read_table(
     *,
     iterator: Literal[False] = ...,
     chunksize: None = ...,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> DataFrame:
     ...
 
@@ -923,7 +925,7 @@ def read_table(
     *,
     iterator: bool = ...,
     chunksize: int | None = ...,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> DataFrame | TextFileReader:
     ...
 
@@ -955,7 +957,7 @@ def read_table(
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
-    converters: Mapping[Hashable, Callable] | None = None,
+    converters: Mapping[HashableT, Callable] | None = None,
     true_values: list | None = None,
     false_values: list | None = None,
     skipinitialspace: bool = False,
@@ -1091,7 +1093,7 @@ def read_fwf(
     infer_nrows: int = ...,
     iterator: Literal[True],
     chunksize: int | None = ...,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> TextFileReader:
     ...
 
@@ -1105,7 +1107,7 @@ def read_fwf(
     infer_nrows: int = ...,
     iterator: bool = ...,
     chunksize: int,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> TextFileReader:
     ...
 
@@ -1119,7 +1121,7 @@ def read_fwf(
     infer_nrows: int = ...,
     iterator: Literal[False] = ...,
     chunksize: None = ...,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> DataFrame:
     ...
 
@@ -1132,7 +1134,7 @@ def read_fwf(
     infer_nrows: int = 100,
     iterator: bool = False,
     chunksize: int | None = None,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> DataFrame | TextFileReader:
     r"""
     Read a table of fixed-width formatted lines into DataFrame.

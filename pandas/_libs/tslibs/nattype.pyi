@@ -3,18 +3,24 @@ from datetime import (
     timedelta,
     tzinfo as _tzinfo,
 )
-import typing
+from typing import (
+    Literal,
+    TypeAlias,
+)
 
 import numpy as np
 
 from pandas._libs.tslibs.period import Period
-from pandas._typing import Self
+from pandas._typing import (
+    Self,
+    TimestampNonexistent,
+)
 
 NaT: NaTType
 iNaT: int
 nat_strings: set[str]
 
-_NaTComparisonTypes: typing.TypeAlias = (
+_NaTComparisonTypes: TypeAlias = (
     datetime | timedelta | Period | np.datetime64 | np.timedelta64
 )
 
@@ -70,9 +76,24 @@ class NaTType:
     def now(self, *args, **kwargs) -> NaTType: ...
     def to_pydatetime(self) -> NaTType: ...
     def date(self) -> NaTType: ...
-    def round(self) -> NaTType: ...
-    def floor(self) -> NaTType: ...
-    def ceil(self) -> NaTType: ...
+    def round(
+        self,
+        freq: str,
+        ambiguous: bool | Literal["raise"] | NaTType = ...,
+        nonexistent: TimestampNonexistent = ...,
+    ) -> NaTType: ...
+    def floor(
+        self,
+        freq: str,
+        ambiguous: bool | Literal["raise"] | NaTType = ...,
+        nonexistent: TimestampNonexistent = ...,
+    ) -> NaTType: ...
+    def ceil(
+        self,
+        freq: str,
+        ambiguous: bool | Literal["raise"] | NaTType = ...,
+        nonexistent: TimestampNonexistent = ...,
+    ) -> NaTType: ...
     @property
     def tzinfo(self) -> None: ...
     @property

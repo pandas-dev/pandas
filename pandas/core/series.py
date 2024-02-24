@@ -2891,7 +2891,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self.corr(cast(Series, self.shift(lag)))
 
-    def dot(self, other: AnyArrayLike) -> Series | np.ndarray:
+    def dot(self, other: AnyArrayLike | DataFrame) -> Series | np.ndarray:
         """
         Compute the dot product between the Series and the columns of other.
 
