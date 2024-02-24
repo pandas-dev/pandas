@@ -119,7 +119,9 @@ def assert_produces_warning(
                             check_stacklevel=check_stacklevel,
                         )
                 else:
-                    expected_warning = cast(type[Warning] | tuple[type[Warning], ...], expected_warning)
+                    expected_warning = cast(
+                        type[Warning] | tuple[type[Warning], ...], expected_warning
+                    )
                     match = (
                         "|".join(m for m in match if m)
                         if isinstance(match, tuple)
@@ -181,9 +183,7 @@ def _assert_caught_expected_warnings(
                     unmatched_messages.append(actual_warning.message)
 
     if not saw_warning:
-        raise AssertionError(
-            f"Did not see expected warning of class {warning_name!r}"
-        )
+        raise AssertionError(f"Did not see expected warning of class {warning_name!r}")
 
     if match and not matched_message:
         raise AssertionError(
