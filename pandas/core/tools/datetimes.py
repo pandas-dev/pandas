@@ -1148,7 +1148,7 @@ def _assemble_from_unit_mappings(
 
         # prevent overflow in case of int8 or int16
         if is_integer_dtype(values.dtype):
-            values = values.astype("int64", copy=False)
+            values = values.astype("int64")
         return values
 
     values = (
