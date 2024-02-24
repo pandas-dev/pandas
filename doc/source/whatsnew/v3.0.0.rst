@@ -102,6 +102,29 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
+
+Copy keyword
+^^^^^^^^^^^^
+
+The ``copy`` keyword argument in the following methods is deprecated and
+will be removed in a future version:
+
+- :meth:`DataFrame.truncate` / :meth:`Series.truncate`
+- :meth:`DataFrame.tz_convert` / :meth:`Series.tz_convert`
+- :meth:`DataFrame.tz_localize` / :meth:`Series.tz_localize`
+- :meth:`DataFrame.infer_objects` / :meth:`Series.infer_objects`
+- :meth:`DataFrame.align` / :meth:`Series.align`
+- :meth:`DataFrame.astype` / :meth:`Series.astype`
+- :meth:`DataFrame.reindex` / :meth:`Series.reindex`
+- :meth:`DataFrame.reindex_like` / :meth:`Series.reindex_like`
+
+Copy-on-Write utilizes a lazy copy mechanism that defers copying the data until
+necessary. Use ``.copy`` to trigger an eager copy. The copy keyword has no effect
+starting with 3.0, so it can be safely removed from your code.
+
+Other Deprecations
+^^^^^^^^^^^^^^^^^^
+
 - Deprecated :meth:`Timestamp.utcfromtimestamp`, use ``Timestamp.fromtimestamp(ts, "UTC")`` instead (:issue:`56680`)
 - Deprecated :meth:`Timestamp.utcnow`, use ``Timestamp.now("UTC")`` instead (:issue:`56680`)
 - Deprecated allowing non-keyword arguments in :meth:`Series.to_markdown` except ``buf``. (:issue:`57280`)
