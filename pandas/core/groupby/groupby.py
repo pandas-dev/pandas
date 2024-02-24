@@ -1228,7 +1228,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             ax = self._selected_obj.index
             if self.dropna:
-                labels = self._grouper.group_info[0]
+                labels = self._grouper.ids
                 mask = labels != -1
                 ax = ax[mask]
 
@@ -1423,7 +1423,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
         # Pass group ids to kernel directly if it can handle it
         # (This is faster since it doesn't require a sort)
-        ids, _ = self._grouper.group_info
+        ids = self._grouper.ids
         ngroups = self._grouper.ngroups
 
         res_mgr = df._mgr.apply(
@@ -4163,7 +4163,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if not dropna:
             mask = self._make_mask_from_positional_indexer(n)
 
-            ids, _ = self._grouper.group_info
+            ids = self._grouper.ids
 
             # Drop NA values in grouping
             mask = mask & (ids != -1)
@@ -4503,7 +4503,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         obj = self._obj_with_exclusions
         index = obj.index
-        comp_ids = self._grouper.group_info[0]
+        comp_ids = self._grouper.ids
 
         dtype: type
         if self._grouper.has_dropped_na:
@@ -5382,7 +5382,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Filtered _selected_obj.
         """
-        ids = self._grouper.group_info[0]
+        ids = self._grouper.ids
         mask = mask & (ids != -1)
         return self._selected_obj[mask]
 

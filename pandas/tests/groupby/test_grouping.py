@@ -776,10 +776,10 @@ class TestGrouping:
         # check group properties
         assert len(gr._grouper.groupings) == 1
         tm.assert_numpy_array_equal(
-            gr._grouper.group_info[0], np.array([], dtype=np.dtype(np.intp))
+            gr._grouper.ids, np.array([], dtype=np.dtype(np.intp))
         )
 
-        assert gr._grouper.group_info[1] == 0
+        assert gr._grouper.ngroups == 0
 
         # check name
         gb = s.groupby(s)

@@ -813,7 +813,7 @@ class SeriesGroupBy(GroupBy[Series]):
         from pandas.core.reshape.merge import get_join_indexers
         from pandas.core.reshape.tile import cut
 
-        ids, _ = self._grouper.group_info
+        ids = self._grouper.ids
         val = self.obj._values
 
         index_names = self._grouper.names + [self.obj.name]
