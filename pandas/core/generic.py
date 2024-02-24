@@ -3672,14 +3672,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         r"""
         Write object to a comma-separated values (csv) file.
 
-        This method enables users to export DataFrame data to a CSV file
+        This method enables users to write object to comma-separated values (csv) file
         with customizable options. These options include specifying the delimiter,
-        handling missing data, formatting numbers,selecting columns, including headers
-        and row names, defining file opening modes, setting encoding and
-        compression options, controlling quoting and escaping characters,
-        specifying newline characters, managing chunk sizes, formatting
-        datetime objects, handling errors during encoding/decoding,
-        and providing storage connection options.
+        handling missing data, formatting numbers, selecting columns, including
+        headers and row names, defining file opening modes, setting encoding and
+        compression options, controlling quoting and escaping characters, specifying
+        newline characters, managing chunk sizes, formatting datetime objects, handling
+        errors during encoding/decoding, and providing storage connection options.
 
         The method returns None if path_or_buf is not specified;
         otherwise, it returns the resulting CSV format as a string.
