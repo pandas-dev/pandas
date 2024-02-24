@@ -1038,6 +1038,18 @@ cdef class _Timedelta(timedelta):
 
     @property
     def value(self):
+        """
+        Always return the value of Timedelta object in nanoseconds.
+
+        Returns
+        -------
+        int
+
+        Examples
+        --------
+        >>> pd.Timedelta(1, "us").value
+        1000
+        """
         try:
             return convert_reso(self._value, self._creso, NPY_FR_ns, False)
         except OverflowError:
@@ -1120,6 +1132,35 @@ cdef class _Timedelta(timedelta):
     def microseconds(self) -> int:  # TODO(cython3): make cdef property
         # NB: using the python C-API PyDateTime_DELTA_GET_MICROSECONDS will fail
         #  (or be incorrect)
+        """
+        Return the number of microseconds (n), where 0 <= n < 1 millisecond.
+
+        Returns
+        -------
+        int
+            Number of microseconds.
+
+        See Also
+        --------
+        Timedelta.components : Return all attributes with assigned values
+            (i.e. days, hours, minutes, seconds, milliseconds, microseconds,
+            nanoseconds).
+
+        Examples
+        --------
+        **Using string input**
+
+        >>> td = pd.Timedelta('1 days 2 min 3 us')
+
+        >>> td.microseconds
+        3
+
+        **Using integer input**
+
+        >>> td = pd.Timedelta(42, unit='us')
+        >>> td.microseconds
+        42
+        """
         self._ensure_components()
         return self._ms * 1000 + self._us
 
@@ -1141,6 +1182,19 @@ cdef class _Timedelta(timedelta):
 
     @property
     def unit(self) -> str:
+        """
+        Always return 'ns' as the unit of Timedelta object.
+
+        Returns
+        -------
+        str
+            Unit
+
+        Examples
+        --------
+        >>> td = pd.Timedelta(42, unit='us')
+        'ns'
+        """
         return npy_unit_to_abbrev(self._creso)
 
     def __hash__(_Timedelta self):
