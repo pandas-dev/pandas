@@ -1766,7 +1766,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (PR07)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=PR07 --ignore_functions \
-        pandas.DataFrame.align\
         pandas.DataFrame.get\
         pandas.DataFrame.rolling\
         pandas.DataFrame.to_hdf\
@@ -2170,7 +2169,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.CategoricalIndex.ordered\
         pandas.DataFrame.__dataframe__\
         pandas.DataFrame.__iter__\
-        pandas.DataFrame.align\
         pandas.DataFrame.assign\
         pandas.DataFrame.axes\
         pandas.DataFrame.backfill\
