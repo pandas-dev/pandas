@@ -112,7 +112,7 @@ if TYPE_CHECKING:
         skipfooter: int
         nrows: int | None
         na_values: Hashable | Iterable[Hashable] | Mapping[
-        Hashable, Iterable[Hashable]
+            Hashable, Iterable[Hashable]
         ] | None
         keep_default_na: bool
         na_filter: bool
@@ -146,7 +146,6 @@ if TYPE_CHECKING:
         dtype_backend: DtypeBackend | lib.NoDefault
 else:
     _read_shared = dict
-
 
 
 _doc_read_csv_and_table = (
@@ -537,7 +536,6 @@ class _Fwf_Defaults(TypedDict):
     colspecs: Literal["infer"]
     infer_nrows: Literal[100]
     widths: None
-
 
 
 _fwf_defaults: _Fwf_Defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
