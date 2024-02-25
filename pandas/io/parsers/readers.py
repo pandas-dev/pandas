@@ -29,7 +29,6 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas._typing import HashableT
 from pandas.errors import (
     AbstractMethodError,
     ParserWarning,
@@ -85,6 +84,7 @@ if TYPE_CHECKING:
         DtypeArg,
         DtypeBackend,
         FilePath,
+        HashableT,
         IndexLabel,
         ReadCsvBuffer,
         Self,
@@ -92,6 +92,63 @@ if TYPE_CHECKING:
         Unpack,
         UsecolsArgType,
     )
+
+    class _read_shared(TypedDict, Generic[HashableT], total=False):
+        # annotations shared between read_csv/fwf/table's overloads
+        # NOTE: Keep in sync with the annotations of the implementation
+        sep: str | None | lib.NoDefault
+        delimiter: str | None | lib.NoDefault
+        header: int | Sequence[int] | None | Literal["infer"]
+        names: Sequence[Hashable] | None | lib.NoDefault
+        index_col: IndexLabel | Literal[False] | None
+        usecols: UsecolsArgType
+        dtype: DtypeArg | None
+        engine: CSVEngine | None
+        converters: Mapping[HashableT, Callable] | None
+        true_values: list | None
+        false_values: list | None
+        skipinitialspace: bool
+        skiprows: list[int] | int | Callable[[Hashable], bool] | None
+        skipfooter: int
+        nrows: int | None
+        na_values: Hashable | Iterable[Hashable] | Mapping[
+        Hashable, Iterable[Hashable]
+        ] | None
+        keep_default_na: bool
+        na_filter: bool
+        verbose: bool | lib.NoDefault
+        skip_blank_lines: bool
+        parse_dates: bool | Sequence[Hashable] | None
+        infer_datetime_format: bool | lib.NoDefault
+        keep_date_col: bool | lib.NoDefault
+        date_parser: Callable | lib.NoDefault
+        date_format: str | dict[Hashable, str] | None
+        dayfirst: bool
+        cache_dates: bool
+        compression: CompressionOptions
+        thousands: str | None
+        decimal: str
+        lineterminator: str | None
+        quotechar: str
+        quoting: int
+        doublequote: bool
+        escapechar: str | None
+        comment: str | None
+        encoding: str | None
+        encoding_errors: str | None
+        dialect: str | csv.Dialect | None
+        on_bad_lines: str
+        delim_whitespace: bool | lib.NoDefault
+        low_memory: bool
+        memory_map: bool
+        float_precision: Literal["high", "legacy", "round_trip"] | None
+        storage_options: StorageOptions | None
+        dtype_backend: DtypeBackend | lib.NoDefault
+else:
+    _read_shared = dict
+
+
+
 _doc_read_csv_and_table = (
     r"""
 {summary}
@@ -481,58 +538,6 @@ class _Fwf_Defaults(TypedDict):
     infer_nrows: Literal[100]
     widths: None
 
-
-class _read_shared(TypedDict, Generic[HashableT], total=False):
-    # annotations shared between read_csv/fwf/table's overloads
-    # NOTE: Keep in sync with the annotations of the implementation
-    sep: str | None | lib.NoDefault
-    delimiter: str | None | lib.NoDefault
-    header: int | Sequence[int] | None | Literal["infer"]
-    names: Sequence[Hashable] | None | lib.NoDefault
-    index_col: IndexLabel | Literal[False] | None
-    usecols: UsecolsArgType
-    dtype: DtypeArg | None
-    engine: CSVEngine | None
-    converters: Mapping[HashableT, Callable] | None
-    true_values: list | None
-    false_values: list | None
-    skipinitialspace: bool
-    skiprows: list[int] | int | Callable[[Hashable], bool] | None
-    skipfooter: int
-    nrows: int | None
-    na_values: Hashable | Iterable[Hashable] | Mapping[
-        Hashable, Iterable[Hashable]
-    ] | None
-    keep_default_na: bool
-    na_filter: bool
-    verbose: bool | lib.NoDefault
-    skip_blank_lines: bool
-    parse_dates: bool | Sequence[Hashable] | None
-    infer_datetime_format: bool | lib.NoDefault
-    keep_date_col: bool | lib.NoDefault
-    date_parser: Callable | lib.NoDefault
-    date_format: str | dict[Hashable, str] | None
-    dayfirst: bool
-    cache_dates: bool
-    compression: CompressionOptions
-    thousands: str | None
-    decimal: str
-    lineterminator: str | None
-    quotechar: str
-    quoting: int
-    doublequote: bool
-    escapechar: str | None
-    comment: str | None
-    encoding: str | None
-    encoding_errors: str | None
-    dialect: str | csv.Dialect | None
-    on_bad_lines: str
-    delim_whitespace: bool | lib.NoDefault
-    low_memory: bool
-    memory_map: bool
-    float_precision: Literal["high", "legacy", "round_trip"] | None
-    storage_options: StorageOptions | None
-    dtype_backend: DtypeBackend | lib.NoDefault
 
 
 _fwf_defaults: _Fwf_Defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
