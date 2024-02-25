@@ -4028,6 +4028,20 @@ class DataFrame(NDFrame, OpsMixin):
 
         In cases where ``frame.columns`` is unique, this is equivalent to
         ``frame[frame.columns[i]] = value``.
+
+        See Also
+        --------
+        DataFrame.iloc : Purely integer-location based indexing
+                            for selection by position.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
+        >>> df.isetitem(1, [5, 6])
+        >>> df
+              A  B
+        0     1  5
+        1     2  6
         """
         if isinstance(value, DataFrame):
             if is_integer(loc):
