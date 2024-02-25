@@ -3281,7 +3281,7 @@ class BlockManagerFixed(GenericFixed):
 
         if len(dfs) > 0:
             out = concat(dfs, axis=1).copy()
-            return out.reindex(columns=items, copy=False)
+            return out.reindex(columns=items)
 
         return DataFrame(columns=axes[0], index=axes[1])
 
