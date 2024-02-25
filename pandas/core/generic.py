@@ -3680,7 +3680,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         newline characters, managing chunk sizes, formatting datetime objects, handling
         errors during encoding/decoding, and providing storage connection options.
 
-        The method returns None if `path_or_buf` is not specified;
+        The method returns None if ``path_or_buf`` is not specified;
         otherwise, it returns the resulting CSV format as a string.
 
         Parameters
