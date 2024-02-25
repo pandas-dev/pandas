@@ -1039,11 +1039,18 @@ cdef class _Timedelta(timedelta):
     @property
     def value(self):
         """
-        Always return the value of Timedelta object in nanoseconds.
+        Return the value of Timedelta object in nanoseconds.
+
+        Return the total seconds, milliseconds and microseconds
+        of the timedelta as nanoseconds.
 
         Returns
         -------
         int
+
+        See Also
+        --------
+        Timedelta.unit : Return the unit of Timedelta object.
 
         Examples
         --------
@@ -1135,6 +1142,8 @@ cdef class _Timedelta(timedelta):
         """
         Return the number of microseconds (n), where 0 <= n < 1 millisecond.
 
+        Timedelta.microseconds = milliseconds * 1000 + microseconds.
+
         Returns
         -------
         int
@@ -1183,12 +1192,17 @@ cdef class _Timedelta(timedelta):
     @property
     def unit(self) -> str:
         """
-        Always return 'ns' as the unit of Timedelta object.
+        Return the unit of Timedelta object.
+
+        The unit of Timedelta object is nanosecond, i.e., 'ns' by default.
 
         Returns
         -------
         str
-            Unit
+
+        See Also
+        --------
+        Timedelta.value : Return the value of Timedelta object in nanoseconds.
 
         Examples
         --------
