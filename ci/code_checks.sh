@@ -445,7 +445,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.convert_dtypes\
         pandas.DataFrame.corr\
         pandas.DataFrame.droplevel\
-        pandas.DataFrame.expanding\
         pandas.DataFrame.explode\
         pandas.DataFrame.ffill\
         pandas.DataFrame.fillna\
@@ -1886,7 +1885,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.astype\
         pandas.DataFrame.at_time\
         pandas.DataFrame.ewm\
-        pandas.DataFrame.expanding\
         pandas.DataFrame.filter\
         pandas.DataFrame.first_valid_index\
         pandas.DataFrame.get\
