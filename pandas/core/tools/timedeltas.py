@@ -19,6 +19,7 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.timedeltas import (
     Timedelta,
     disallow_ambiguous_unit,
+    disallow_deprecated_unit,
     parse_timedelta_unit,
 )
 
@@ -180,6 +181,7 @@ def to_timedelta(
     if unit is not None:
         unit = parse_timedelta_unit(unit)
         disallow_ambiguous_unit(unit)
+        disallow_deprecated_unit(unit)
 
     if errors not in ("raise", "coerce"):
         raise ValueError("errors must be one of 'raise', or 'coerce'.")

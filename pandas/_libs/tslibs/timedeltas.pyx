@@ -829,6 +829,12 @@ cpdef disallow_ambiguous_unit(unit):
             "represent unambiguous timedelta values durations."
         )
 
+cpdef disallow_deprecated_unit(unit):
+    if unit in {"H", "S", "T", "t", "L", "l", "U", "u", "N", "n"}:
+        raise ValueError(
+            f"Unit \'{unit}\' is no longer supported."
+        )
+
 
 cdef int64_t parse_iso_format_string(str ts) except? -1:
     """
@@ -1819,6 +1825,7 @@ class Timedelta(_Timedelta):
                 raise OutOfBoundsTimedelta(msg) from err
 
         disallow_ambiguous_unit(unit)
+        disallow_deprecated_unit(unit)
 
         # GH 30543 if pd.Timedelta already passed, return it
         # check that only value is passed

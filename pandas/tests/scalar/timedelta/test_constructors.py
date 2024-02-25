@@ -32,25 +32,12 @@ class TestTimedeltaConstructorUnitKeyword:
         with pytest.raises(ValueError, match=msg):
             to_timedelta([1, 2], unit)
 
-    @pytest.mark.parametrize(
-        "unit,unit_depr",
-        [
-            ("h", "H"),
-            ("min", "T"),
-            ("s", "S"),
-            ("ms", "L"),
-            ("ns", "N"),
-            ("us", "U"),
-        ],
-    )
-    def test_units_H_T_S_L_N_U_deprecated(self, unit, unit_depr):
+    @pytest.mark.parametrize("unit_depr", ["H", "T", "S", "L", "N", "U"])
+    def test_units_H_T_S_L_N_U_raise(self, unit, unit_depr):
         # GH#52536
-        msg = f"'{unit_depr}' is deprecated and will be removed in a future version."
-
-        expected = Timedelta(1, unit=unit)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = Timedelta(1, unit=unit_depr)
-        tm.assert_equal(result, expected)
+        msg = f"Unit '{unit_depr}' is no longer supported."
+        with pytest.raises(ValueError, match=msg):
+            Timedelta(1, unit=unit_depr)
 
     @pytest.mark.parametrize(
         "unit, np_unit",
@@ -103,13 +90,11 @@ class TestTimedeltaConstructorUnitKeyword:
                 "microsecond",
                 "micro",
                 "micros",
-                "u",
                 "US",
                 "Microseconds",
                 "Microsecond",
                 "Micro",
                 "Micros",
-                "U",
             ]
         ]
         + [
@@ -120,13 +105,11 @@ class TestTimedeltaConstructorUnitKeyword:
                 "nanosecond",
                 "nano",
                 "nanos",
-                "n",
                 "NS",
                 "Nanoseconds",
                 "Nanosecond",
                 "Nano",
                 "Nanos",
-                "N",
             ]
         ],
     )
@@ -139,14 +122,9 @@ class TestTimedeltaConstructorUnitKeyword:
             dtype="m8[ns]",
         )
         # TODO(2.0): the desired output dtype may have non-nano resolution
-        msg = f"'{unit}' is deprecated and will be removed in a future version."
 
-        if (unit, np_unit) in (("u", "us"), ("U", "us"), ("n", "ns"), ("N", "ns")):
-            warn = FutureWarning
-        else:
-            warn = FutureWarning
-            msg = "The 'unit' keyword in TimedeltaIndex construction is deprecated"
-        with tm.assert_produces_warning(warn, match=msg):
+        msg = "The 'unit' keyword in TimedeltaIndex construction is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             result = to_timedelta(wrapper(range(5)), unit=unit)
             tm.assert_index_equal(result, expected)
             result = TimedeltaIndex(wrapper(range(5)), unit=unit)

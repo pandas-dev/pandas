@@ -13,7 +13,10 @@ from pandas._libs.tslibs import (
     Timedelta,
     to_offset,
 )
-from pandas._libs.tslibs.timedeltas import disallow_ambiguous_unit
+from pandas._libs.tslibs.timedeltas import (
+    disallow_ambiguous_unit,
+    disallow_deprecated_unit,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -184,6 +187,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             cls._raise_scalar_data_error(data)
 
         disallow_ambiguous_unit(unit)
+        disallow_deprecated_unit(unit)
         if dtype is not None:
             dtype = pandas_dtype(dtype)
 
