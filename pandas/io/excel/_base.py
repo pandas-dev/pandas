@@ -1632,8 +1632,8 @@ class ExcelFile:
         """
         Names of the sheets in the document.
 
-        This is mainly useful for loading a specific sheet into a DataFrame when you do not
-        know the sheet names beforehand.
+        This is mainly useful for loading a specific sheet into a DataFrame when
+        you do not know the sheet names beforehand.
 
         Returns
         -------
@@ -1648,8 +1648,8 @@ class ExcelFile:
 
         Examples
         --------
-        >>> file = pd.ExcelFile("myfile.xlsx")
-        >>> file.sheet_names
+        >>> file = pd.ExcelFile("myfile.xlsx")  # doctest: +SKIP
+        >>> file.sheet_names  # doctest: +SKIP
         ["Sheet1", "Sheet2"]
         """
         return self._reader.sheet_names
