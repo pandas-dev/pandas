@@ -1456,8 +1456,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (PR01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=PR01 --ignore_functions \
-        pandas.Categorical\
-        pandas.Categorical.__array__\
         pandas.CategoricalIndex.equals\
         pandas.CategoricalIndex.map\
         pandas.DataFrame.at_time\
@@ -1882,8 +1880,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (RT03)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=RT03 --ignore_functions \
-        pandas.Index.to_numpy\
-        pandas.Categorical.set_categories\
         pandas.CategoricalIndex.set_categories\
         pandas.DataFrame.astype\
         pandas.DataFrame.at_time\
