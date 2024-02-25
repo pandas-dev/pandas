@@ -2062,7 +2062,7 @@ class ArrowDtype(StorageExtensionDtype):
     Parameters
     ----------
     pyarrow_dtype : pa.DataType
-        An instance of a :ref:`pyarrow.DataType<datatypes.factory-functions>`.
+        An instance of a `pyarrow.DataType <https://arrow.apache.org/docs/python/api/datatypes.html#factory-functions>`__.
 
     Attributes
     ----------
