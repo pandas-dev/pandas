@@ -2181,7 +2181,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         ----------
         unit : {'s', 'ms', 'us', 'ns'}
         round_ok : bool, default True
-            If False and the conversion requires rounding, raise.
+            If False and the conversion requires rounding, raise ValueError.
 
         Returns
         -------
