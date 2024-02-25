@@ -4018,6 +4018,11 @@ class DataFrame(NDFrame, OpsMixin):
         value : scalar or arraylike
             Value(s) for the column.
 
+        See Also
+        --------
+        DataFrame.iloc : Purely integer-location based indexing
+                            for selection by position.
+
         Notes
         -----
         ``frame.isetitem(loc, value)`` is an in-place method as it will
@@ -4028,11 +4033,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         In cases where ``frame.columns`` is unique, this is equivalent to
         ``frame[frame.columns[i]] = value``.
-
-        See Also
-        --------
-        DataFrame.iloc : Purely integer-location based indexing
-                            for selection by position.
 
         Examples
         --------
