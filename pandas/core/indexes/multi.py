@@ -1081,7 +1081,7 @@ class MultiIndex(Index):
         """
         Codes of the MultiIndex.
 
-        Codes are the integer labels for each level designating which label at each location.
+        Codes are the integer labels for each level designating the position of the index value in a sorted list of all index values in that level.
 
         Returns
         -------
