@@ -71,6 +71,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (PR02)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=PR02 --ignore_functions \
+        pandas.Series.dt.as_unit\
         pandas.Series.dt.to_period\
         pandas.Series.dt.tz_localize\
         pandas.Series.dt.tz_convert\
@@ -1494,6 +1495,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.cat.rename_categories\
         pandas.Series.cat.reorder_categories\
         pandas.Series.cat.set_categories\
+        pandas.Series.dt.as_unit\
         pandas.Series.dt.ceil\
         pandas.Series.dt.day_name\
         pandas.Series.dt.floor\

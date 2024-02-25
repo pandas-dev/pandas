@@ -2180,6 +2180,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         """
         Convert to a dtype with the given unit resolution.
 
+        The limits of timestamp representation depend on the chosen resolution.
+        Different resolutions can be converted to each other through as_unit.
+
         Parameters
         ----------
         unit : {'s', 'ms', 'us', 'ns'}
@@ -2189,6 +2192,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         Returns
         -------
         same type as self
+            Converted to the specified unit.
 
         See Also
         --------
