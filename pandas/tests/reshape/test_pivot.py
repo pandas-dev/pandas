@@ -2076,7 +2076,7 @@ class TestPivotTable:
 
         if not np_version_gte1p25 and isinstance(f_numpy, list):
             # Prior to 1.25, np.min/np.max would come through as amin and amax
-            mapper = {"amin": "min", "amax": "max", "sum": "sum"}
+            mapper = {"amin": "min", "amax": "max", "sum": "sum", "mean": "mean"}
             expected.columns = expected.columns.map(
                 lambda x: (mapper[x[0]], x[1], x[2])
             )
