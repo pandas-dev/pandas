@@ -423,7 +423,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Categorical.ordered\
         pandas.Categorical.remove_unused_categories\
         pandas.Categorical.rename_categories\
-        pandas.CategoricalDtype\
         pandas.CategoricalDtype.categories\
         pandas.CategoricalDtype.ordered\
         pandas.CategoricalIndex.as_ordered\

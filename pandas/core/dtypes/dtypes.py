@@ -157,6 +157,17 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     """
     Type for categorical data with the categories and orderedness.
 
+    A categorical's type is fully described by
+    1. categories: a sequence of unique values and no missing values
+    2. ordered: a boolean
+    This information can be stored in a CategoricalDtype. The categories argument
+    is optional, which implies that the actual categories should be inferred from
+    whatever is present in the data when the pandas.Categorical is created.
+    The categories are assumed to be unordered by default.
+
+    A CategoricalDtype can be used in any place pandas expects a dtype. For example
+    pandas.read_csv(), pandas.DataFrame.astype(), or in the Series constructor.
+
     Parameters
     ----------
     categories : sequence, optional
