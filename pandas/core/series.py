@@ -6346,7 +6346,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
-    ):
+    ) -> Any:
         return NDFrame.mean(
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
@@ -6358,7 +6358,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
-    ):
+    ) -> Any:
         return NDFrame.median(
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
