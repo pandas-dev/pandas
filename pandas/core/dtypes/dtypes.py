@@ -2062,7 +2062,7 @@ class ArrowDtype(StorageExtensionDtype):
     Parameters
     ----------
     pyarrow_dtype : pa.DataType
-        An instance of a `pyarrow.DataType <https://arrow.apache.org/docs/python/api/datatypes.html#factory-functions>`__.
+        An instance of a :ref:`pyarrow.DataType<datatypes.factory-functions>`.
 
     Attributes
     ----------
@@ -2075,6 +2075,10 @@ class ArrowDtype(StorageExtensionDtype):
     Returns
     -------
     ArrowDtype
+
+    See Also
+    --------
+    DataFrame.convert_dtypes : Convert columns to the best possible dtypes.
 
     Examples
     --------
