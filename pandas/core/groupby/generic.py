@@ -823,7 +823,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Returns
         -------
         Series or DataFrame
-            Series if the groupby as_index is True, otherwise DataFrame.
+            Series if the groupby ``as_index`` is True, otherwise DataFrame.
 
         See Also
         --------
@@ -833,9 +833,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Notes
         -----
-        - If the groupby as_index is True then the returned Series will have a
+        - If the groupby ``as_index`` is True then the returned Series will have a
           MultiIndex with one level per input column.
-        - If the groupby as_index is False then the returned DataFrame will have an
+        - If the groupby ``as_index`` is False then the returned DataFrame will have an
           additional column with the value_counts. The column is labelled 'count' or
           'proportion', depending on the ``normalize`` parameter.
 
@@ -2382,7 +2382,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Returns
         -------
         Series or DataFrame
-            Series if the groupby as_index is True, otherwise DataFrame.
+            Series if the groupby ``as_index`` is True, otherwise DataFrame.
 
         See Also
         --------
@@ -2392,9 +2392,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Notes
         -----
-        - If the groupby as_index is True then the returned Series will have a
+        - If the groupby ``as_index`` is True then the returned Series will have a
           MultiIndex with one level per input column.
-        - If the groupby as_index is False then the returned DataFrame will have an
+        - If the groupby ``as_index`` is False then the returned DataFrame will have an
           additional column with the value_counts. The column is labelled 'count' or
           'proportion', depending on the ``normalize`` parameter.
 
