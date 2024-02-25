@@ -16,7 +16,7 @@ typedef struct {
 } khcomplex128_t;
 
 static const int KHASH_TRACE_DOMAIN = 424242;
-static inline void *traced_malloc(size_t size) {
+static void *traced_malloc(size_t size) {
   void *ptr = malloc(size);
   if (ptr != NULL) {
     PyTraceMalloc_Track(KHASH_TRACE_DOMAIN, (uintptr_t)ptr, size);
@@ -24,7 +24,7 @@ static inline void *traced_malloc(size_t size) {
   return ptr;
 }
 
-static inline void *traced_calloc(size_t num, size_t size) {
+static void *traced_calloc(size_t num, size_t size) {
   void *ptr = calloc(num, size);
   if (ptr != NULL) {
     PyTraceMalloc_Track(KHASH_TRACE_DOMAIN, (uintptr_t)ptr, num * size);
@@ -32,7 +32,7 @@ static inline void *traced_calloc(size_t num, size_t size) {
   return ptr;
 }
 
-static inline void *traced_realloc(void *old_ptr, size_t size) {
+static void *traced_realloc(void *old_ptr, size_t size) {
   void *ptr = realloc(old_ptr, size);
   if (ptr != NULL) {
     if (old_ptr != ptr) {
@@ -43,7 +43,7 @@ static inline void *traced_realloc(void *old_ptr, size_t size) {
   return ptr;
 }
 
-static inline void traced_free(void *ptr) {
+static void traced_free(void *ptr) {
   if (ptr != NULL) {
     PyTraceMalloc_Untrack(KHASH_TRACE_DOMAIN, (uintptr_t)ptr);
   }
