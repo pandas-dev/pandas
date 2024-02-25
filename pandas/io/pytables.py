@@ -640,10 +640,10 @@ class HDFStore:
         """
         Return a list of keys corresponding to objects stored in HDFStore.
 
-        The include parameter can be used to filter the returned
-        list based on the type of objects to include. If include
+        The ``include`` parameter can be used to filter the returned
+        list based on the type of objects to include. If ``include``
         is set to "pandas" (default), only pandas objects will
-        be included in the list. If include is set to "native",
+        be included in the list. If ``include`` is set to "native",
         only native HDF5 Table objects will be included in the list.
 
         Parameters
@@ -1660,8 +1660,8 @@ class HDFStore:
         """
         Print detailed information on the store.
 
-        This method provide convenient ways to interact with data
-        stored in HDFStore files,allowing users to easily access
+        This method provides convenient ways to interact with data
+        stored in HDFStore files, allowing users to easily access
         and inspect their content.
 
         Returns
