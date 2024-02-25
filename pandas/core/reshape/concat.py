@@ -15,6 +15,7 @@ import warnings
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
@@ -79,7 +80,7 @@ def concat(
     names: list[HashableT] | None = ...,
     verify_integrity: bool = ...,
     sort: bool = ...,
-    copy: bool | None = ...,
+    copy: bool | lib.NoDefault = ...,
 ) -> DataFrame:
     ...
 
@@ -96,7 +97,7 @@ def concat(
     names: list[HashableT] | None = ...,
     verify_integrity: bool = ...,
     sort: bool = ...,
-    copy: bool | None = ...,
+    copy: bool | lib.NoDefault = ...,
 ) -> Series:
     ...
 
@@ -113,7 +114,7 @@ def concat(
     names: list[HashableT] | None = ...,
     verify_integrity: bool = ...,
     sort: bool = ...,
-    copy: bool | None = ...,
+    copy: bool | lib.NoDefault = ...,
 ) -> DataFrame | Series:
     ...
 
@@ -130,7 +131,7 @@ def concat(
     names: list[HashableT] | None = ...,
     verify_integrity: bool = ...,
     sort: bool = ...,
-    copy: bool | None = ...,
+    copy: bool | lib.NoDefault = ...,
 ) -> DataFrame:
     ...
 
@@ -147,7 +148,7 @@ def concat(
     names: list[HashableT] | None = ...,
     verify_integrity: bool = ...,
     sort: bool = ...,
-    copy: bool | None = ...,
+    copy: bool | lib.NoDefault = ...,
 ) -> DataFrame | Series:
     ...
 
@@ -163,7 +164,7 @@ def concat(
     names: list[HashableT] | None = None,
     verify_integrity: bool = False,
     sort: bool = False,
-    copy: bool | None = None,
+    copy: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame | Series:
     """
     Concatenate pandas objects along a particular axis.
@@ -207,8 +208,22 @@ def concat(
         this is when the non-concatentation axis is a DatetimeIndex and join='outer'
         and the axis is not already aligned. In that case, the non-concatenation
         axis is always sorted lexicographically.
-    copy : bool, default True
+    copy : bool, default False
         If False, do not copy data unnecessarily.
+
+        .. note::
+            The `copy` keyword will change behavior in pandas 3.0.
+            `Copy-on-Write
+            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+            will be enabled by default, which means that all methods with a
+            `copy` keyword will use a lazy copy mechanism to defer the copy and
+            ignore the `copy` keyword. The `copy` keyword will be removed in a
+            future version of pandas.
+
+            You can already get the future behavior and improvements through
+            enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+        .. deprecated:: 3.0.0
 
     Returns
     -------
@@ -368,6 +383,15 @@ def concat(
     0   1   2
     1   3   4
     """
+    if copy is not lib.no_default:
+        warnings.warn(
+            "The copy keyword is deprecated and will be removed in a future "
+            "version. Copy-on-Write is active in pandas since 3.0 which utilizes "
+            "a lazy copy mechanism that defers copies until necessary. Use "
+            ".copy() to make an eager copy if necessary.",
+            DeprecationWarning,
+            stacklevel=find_stack_level(),
+        )
 
     op = _Concatenator(
         objs,
