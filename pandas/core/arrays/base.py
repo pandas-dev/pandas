@@ -15,8 +15,10 @@ from typing import (
     Callable,
     ClassVar,
     Literal,
+    Protocol,
     cast,
     overload,
+    runtime_checkable,
 )
 import warnings
 
@@ -108,7 +110,8 @@ if TYPE_CHECKING:
 _extension_array_shared_docs: dict[str, str] = {}
 
 
-class ExtensionArray:
+@runtime_checkable
+class ExtensionArray(Protocol):
     """
     Abstract base class for custom 1-D array types.
 
