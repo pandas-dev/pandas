@@ -76,6 +76,7 @@ if TYPE_CHECKING:
         DtypeBackend,
         ExcelWriterIfSheetExists,
         FilePath,
+        HashableT,
         IntStrT,
         ReadBuffer,
         Self,
@@ -382,7 +383,7 @@ def read_excel(
     | str
     | Sequence[int]
     | Sequence[str]
-    | Callable[[str], bool]
+    | Callable[[HashableT], bool]
     | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = ...,
@@ -421,7 +422,7 @@ def read_excel(
     | str
     | Sequence[int]
     | Sequence[str]
-    | Callable[[str], bool]
+    | Callable[[HashableT], bool]
     | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = ...,
@@ -460,7 +461,7 @@ def read_excel(
     | str
     | Sequence[int]
     | Sequence[str]
-    | Callable[[str], bool]
+    | Callable[[HashableT], bool]
     | None = None,
     dtype: DtypeArg | None = None,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = None,

@@ -2891,7 +2891,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self.corr(cast(Series, self.shift(lag)))
 
-    def dot(self, other: AnyArrayLike) -> Series | np.ndarray:
+    def dot(self, other: AnyArrayLike | DataFrame) -> Series | np.ndarray:
         """
         Compute the dot product between the Series and the columns of other.
 
@@ -6346,7 +6346,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
-    ):
+    ) -> Any:
         return NDFrame.mean(
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
@@ -6358,7 +6358,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
-    ):
+    ) -> Any:
         return NDFrame.median(
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
