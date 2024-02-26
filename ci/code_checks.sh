@@ -1110,7 +1110,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (SA01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=SA01 --ignore_functions \
-        pandas.ArrowDtype\
         pandas.BooleanDtype\
         pandas.Categorical.__array__\
         pandas.Categorical.as_ordered\
