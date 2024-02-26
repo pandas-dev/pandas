@@ -4799,7 +4799,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         loc: int,
         column: Hashable,
-        value: Scalar | AnyArrayLike,
+        value: object,
         allow_duplicates: bool | lib.NoDefault = lib.no_default,
     ) -> None:
         """
@@ -6266,7 +6266,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = 0,
         how: AnyAll | lib.NoDefault = lib.no_default,
         thresh: int | lib.NoDefault = lib.no_default,
-        subset: IndexLabel | None = None,
+        subset: IndexLabel | AnyArrayLike | None = None,
         inplace: bool = False,
         ignore_index: bool = False,
     ) -> DataFrame | None:
@@ -6390,7 +6390,7 @@ class DataFrame(NDFrame, OpsMixin):
         if subset is not None:
             # subset needs to be list
             if not is_list_like(subset):
-                subset = [subset]
+                subset = [cast(Hashable, subset)]
             ax = self._get_axis(agg_axis)
             indices = ax.get_indexer_for(subset)
             check = indices == -1
