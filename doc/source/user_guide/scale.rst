@@ -378,11 +378,11 @@ Use Modin
 ---------
 
 Modin_ is a scalable dataframe library, which has a drop-in replacement API for pandas and
-provides the ability to scale pandas workflows across nodes and CPUs available and
+provides the ability to scale pandas workflows across nodes and CPUs available. It is also able
 to work with larger than memory datasets. To start working with Modin you just need
 to replace a single line of code, namely, the import statement.
 
-.. ipython:: python
+.. code-block:: ipython
 
    # import pandas as pd
    import modin.pandas as pd
@@ -395,7 +395,7 @@ along both columns and rows because it gives Modin flexibility and scalability i
 the number of rows. Let's take a look at how we can read the data from a CSV file with Modin the same way as with pandas
 and perform a simple operation on the data.
 
-.. ipython:: python
+.. code-block:: ipython
 
    import pandas
    import modin.pandas as pd
@@ -423,10 +423,10 @@ We can see that Modin has been able to perform the operations much faster than p
 Even though Modin aims to speed up each single pandas operation, there are the cases when pandas outperforms.
 It might be a case if the data size is relatively small or Modin hasn't implemented yet a certain operation
 in an efficient way. Also, for-loops is an antipattern for Modin since Modin has initially been designed to efficiently handle
-heavy tasks, rather a small number of small ones. Yet, Modin is actively working on eliminating all these drawbacks.
+heavy tasks rather than a big number of small ones. Yet, Modin is actively working on eliminating all these drawbacks.
 What you can do for now in such a case is to use pandas for the cases where it is more beneficial than Modin.
 
-.. ipython:: python
+.. code-block:: ipython
 
    from modin.pandas.io import to_pandas
 
@@ -453,7 +453,13 @@ What you can do for now in such a case is to use pandas for the cases where it i
 
 You could also rewrite this code a bit to get the same result with much less execution time.
 
-.. ipython:: python
+.. code-block:: ipython
+
+   %%time
+   pandas_subset = pandas_df.iloc[:100000]
+   pandas_subset = pandas_subset / pandas_subset.sum(axis=0)
+   CPU times: user 105 ms, sys: 97.5 ms, total: 202 ms
+   Wall time: 72.2 ms
 
    %%time
    modin_subset = modin_df.iloc[:100000]
