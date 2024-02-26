@@ -9442,6 +9442,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Parameters
         ----------
         other : DataFrame or Series
+            The object to align with.
         join : {{'outer', 'inner', 'left', 'right'}}, default 'outer'
             Type of alignment to be performed.
 
@@ -9481,6 +9482,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         tuple of ({klass}, type of other)
             Aligned objects.
+
+        See Also
+        --------
+        Series.align : Align two objects on their axes with specified join method.
+        DataFrame.align : Align two objects on their axes with specified join method.
 
         Examples
         --------
