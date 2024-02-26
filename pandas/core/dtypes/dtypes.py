@@ -2076,6 +2076,10 @@ class ArrowDtype(StorageExtensionDtype):
     -------
     ArrowDtype
 
+    See Also
+    --------
+    DataFrame.convert_dtypes : Convert columns to the best possible dtypes.
+
     Examples
     --------
     >>> import pyarrow as pa
