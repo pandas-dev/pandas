@@ -9,6 +9,8 @@ from typing import (
 
 import numpy as np
 
+from pandas.compat import PY312
+
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
 from pandas.api.extensions import (
@@ -124,6 +126,13 @@ class DateArray(ExtensionArray):
     @property
     def dtype(self) -> ExtensionDtype:
         return DateDtype()
+
+    @property
+    def T(self):
+        # Python<3.12 protocol isinstance checks used hasattr(obj, T) which raises
+        if not PY312:
+            return None
+        return super().T
 
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
