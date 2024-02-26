@@ -18,6 +18,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config.config import _get_option
+
 from pandas._libs import (
     algos as libalgos,
     internals as libinternals,
@@ -702,7 +704,7 @@ class BaseBlockManager(PandasObject):
     def nblocks(self) -> int:
         return len(self.blocks)
 
-    def copy(self, deep: bool | None | Literal["all"] = True) -> Self:
+    def copy(self, deep: bool | Literal["all"] = True) -> Self:
         """
         Make deep or shallow copy of BlockManager
 
@@ -716,7 +718,6 @@ class BaseBlockManager(PandasObject):
         -------
         BlockManager
         """
-        deep = deep if deep is not None else False
         # this preserves the notion of view copying of axes
         if deep:
             # hit in e.g. tests.io.json.test_pandas
@@ -1527,7 +1528,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         self._known_consolidated = False
 
-        if sum(not block.is_extension for block in self.blocks) > 100:
+        if (
+            _get_option("performance_warnings")
+            and sum(not block.is_extension for block in self.blocks) > 100
+        ):
             warnings.warn(
                 "DataFrame is highly fragmented.  This is usually the result "
                 "of calling `frame.insert` many times, which has poor performance.  "

@@ -5071,7 +5071,7 @@ class DataFrame(NDFrame, OpsMixin):
         columns=None,
         axis: Axis | None = None,
         method: ReindexMethod | None = None,
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
         level: Level | None = None,
         fill_value: Scalar | None = np.nan,
         limit: int | None = None,
@@ -5087,6 +5087,7 @@ class DataFrame(NDFrame, OpsMixin):
             fill_value=fill_value,
             limit=limit,
             tolerance=tolerance,
+            copy=copy,
         )
 
     @overload
@@ -5589,14 +5590,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         if freq is not None and fill_value is not lib.no_default:
             # GH#53832
-            warnings.warn(
-                "Passing a 'freq' together with a 'fill_value' silently ignores "
-                "the fill_value and is deprecated. This will raise in a future "
-                "version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            raise ValueError(
+                "Passing a 'freq' together with a 'fill_value' is not allowed."
             )
-            fill_value = lib.no_default
 
         if self.empty:
             return self.copy()

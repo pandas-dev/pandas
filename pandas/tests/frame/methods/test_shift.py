@@ -30,23 +30,20 @@ class TestDataFrameShift:
         expected2 = DataFrame([12345] * 5, dtype="Float64")
         tm.assert_frame_equal(res2, expected2)
 
-    def test_shift_deprecate_freq_and_fill_value(self, frame_or_series):
+    def test_shift_disallow_freq_and_fill_value(self, frame_or_series):
         # Can't pass both!
         obj = frame_or_series(
             np.random.default_rng(2).standard_normal(5),
             index=date_range("1/1/2000", periods=5, freq="h"),
         )
 
-        msg = (
-            "Passing a 'freq' together with a 'fill_value' silently ignores the "
-            "fill_value"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg = "Passing a 'freq' together with a 'fill_value'"
+        with pytest.raises(ValueError, match=msg):
             obj.shift(1, fill_value=1, freq="h")
 
         if frame_or_series is DataFrame:
             obj.columns = date_range("1/1/2000", periods=1, freq="h")
-            with tm.assert_produces_warning(FutureWarning, match=msg):
+            with pytest.raises(ValueError, match=msg):
                 obj.shift(1, axis=1, fill_value=1, freq="h")
 
     @pytest.mark.parametrize(
@@ -716,13 +713,6 @@ class TestDataFrameShift:
             df.shift([1], freq="h").rename(columns=lambda x: int(x[0])),
             df.shift(1, freq="h"),
         )
-
-        msg = (
-            "Passing a 'freq' together with a 'fill_value' silently ignores the "
-            "fill_value"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.shift([1, 2], fill_value=1, freq="h")
 
     def test_shift_with_iterable_check_other_arguments(self):
         # GH#44424

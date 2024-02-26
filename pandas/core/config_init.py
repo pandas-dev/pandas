@@ -406,35 +406,6 @@ tc_sim_interactive_doc = """
 with cf.config_prefix("mode"):
     cf.register_option("sim_interactive", False, tc_sim_interactive_doc)
 
-use_inf_as_na_doc = """
-: boolean
-    True means treat None, NaN, INF, -INF as NA (old way),
-    False means None and NaN are null, but INF, -INF are not NA
-    (new way).
-
-    This option is deprecated in pandas 2.1.0 and will be removed in 3.0.
-"""
-
-# We don't want to start importing everything at the global context level
-# or we'll hit circular deps.
-
-
-def use_inf_as_na_cb(key) -> None:
-    # TODO(3.0): enforcing this deprecation will close GH#52501
-    from pandas.core.dtypes.missing import _use_inf_as_na
-
-    _use_inf_as_na(key)
-
-
-with cf.config_prefix("mode"):
-    cf.register_option("use_inf_as_na", False, use_inf_as_na_doc, cb=use_inf_as_na_cb)
-
-cf.deprecate_option(
-    # GH#51684
-    "mode.use_inf_as_na",
-    "use_inf_as_na option is deprecated and will be removed in a future "
-    "version. Convert inf values to NaN before operating instead.",
-)
 
 # TODO better name?
 copy_on_write_doc = """
@@ -471,6 +442,19 @@ with cf.config_prefix("mode"):
         "warn",
         chained_assignment,
         validator=is_one_of_factory([None, "warn", "raise"]),
+    )
+
+performance_warnings = """
+: boolean
+    Whether to show or hide PerformanceWarnings.
+"""
+
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "performance_warnings",
+        True,
+        performance_warnings,
+        validator=is_bool,
     )
 
 

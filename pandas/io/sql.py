@@ -1037,10 +1037,7 @@ class SQLTable(PandasObject):
                         # GH#53854 to_pydatetime not supported for pyarrow date dtypes
                         d = ser._values.to_numpy(dtype=object)
                     else:
-                        with warnings.catch_warnings():
-                            warnings.filterwarnings("ignore", category=FutureWarning)
-                            # GH#52459 to_pydatetime will return Index[object]
-                            d = np.asarray(ser.dt.to_pydatetime(), dtype=object)
+                        d = ser.dt.to_pydatetime()._values
                 else:
                     d = ser._values.to_pydatetime()
             elif ser.dtype.kind == "m":
@@ -1314,12 +1311,12 @@ class SQLTable(PandasObject):
                     self.frame[col_name] = _handle_date_column(df_col, utc=utc)
                 elif dtype_backend == "numpy" and col_type is float:
                     # floats support NA, can always convert!
-                    self.frame[col_name] = df_col.astype(col_type, copy=False)
+                    self.frame[col_name] = df_col.astype(col_type)
 
                 elif dtype_backend == "numpy" and len(df_col) == df_col.count():
                     # No NA values, can convert ints and bools
                     if col_type is np.dtype("int64") or col_type is bool:
-                        self.frame[col_name] = df_col.astype(col_type, copy=False)
+                        self.frame[col_name] = df_col.astype(col_type)
             except KeyError:
                 pass  # this column not in results
 
