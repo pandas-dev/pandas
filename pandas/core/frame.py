@@ -808,6 +808,21 @@ class DataFrame(NDFrame, OpsMixin):
             if len(data) > 0:
                 if is_dataclass(data[0]):
                     data = dataclasses_to_dicts(data)
+
+                # Check if all elements in data are Series with categorical indices
+                if all(
+                    isinstance(item, Series)
+                    and isinstance(item.index, pandas.CategoricalIndex)
+                    for item in data
+                ):
+                    all_categorical = True
+                    # Combine all categories
+                    categories = pandas.CategoricalIndex(
+                        np.unique(np.concatenate([s.index.categories for s in data]))
+                    )
+                else:
+                    all_categorical = False
+
                 if not isinstance(data, np.ndarray) and treat_as_nested(data):
                     # exclude ndarray as we may have cast it a few lines above
                     if columns is not None:
@@ -820,6 +835,13 @@ class DataFrame(NDFrame, OpsMixin):
                         index,  # type: ignore[arg-type]
                         dtype,
                     )
+
+                    if all_categorical:
+                        # Ensure columns are CategoricalIndex
+                        columns = pandas.CategoricalIndex(
+                            columns, categories=categories, ordered=True
+                        )
+
                     mgr = arrays_to_mgr(
                         arrays,
                         columns,
