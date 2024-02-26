@@ -178,7 +178,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timestamp.tzinfo\
         pandas.Timestamp.value\
         pandas.Timestamp.year\
-        pandas.core.groupby.SeriesGroupBy.value_counts\
         pandas.tseries.offsets.BQuarterBegin.is_anchored\
         pandas.tseries.offsets.BQuarterBegin.is_on_offset\
         pandas.tseries.offsets.BQuarterBegin.n\
