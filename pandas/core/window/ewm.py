@@ -226,6 +226,8 @@ class ExponentialMovingWindow(BaseWindow):
     Returns
     -------
     pandas.api.typing.ExponentialMovingWindow
+        An instance of ExponentialMovingWindow for further exponentially weighted (EW)
+        calculations, e.g. using the ``mean`` method.
 
     See Also
     --------
