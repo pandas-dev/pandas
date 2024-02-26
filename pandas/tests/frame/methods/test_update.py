@@ -213,3 +213,10 @@ class TestDataFrameUpdate:
         expected = DataFrame({"a": [value_other, value_df]}, index=[1, 2])
         df.update(other)
         tm.assert_frame_equal(df, expected)
+
+    def test_update_raises_on_duplicate_argument_index(self):
+        # GH#55509
+        df = DataFrame({"a": [1, 1]}, index=[1, 2])
+        other = DataFrame({"a": [2, 3]}, index=[1, 1])
+        with pytest.raises(ValueError, match="duplicate index"):
+            df.update(other)
