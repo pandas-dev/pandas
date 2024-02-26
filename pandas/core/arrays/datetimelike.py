@@ -20,6 +20,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config.config import _get_option
+
 from pandas._libs import (
     algos,
     lib,
@@ -358,13 +360,13 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         return self._ndarray
 
     @overload
-    def __getitem__(self, item: ScalarIndexer) -> DTScalarOrNaT:
+    def __getitem__(self, key: ScalarIndexer) -> DTScalarOrNaT:
         ...
 
     @overload
     def __getitem__(
         self,
-        item: SequenceIndexer | PositionalIndexerTuple,
+        key: SequenceIndexer | PositionalIndexerTuple,
     ) -> Self:
         ...
 
@@ -649,7 +651,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
     def _validate_listlike(self, value, allow_object: bool = False):
         if isinstance(value, type(self)):
-            if self.dtype.kind in "mM" and not allow_object:
+            if self.dtype.kind in "mM" and not allow_object and self.unit != value.unit:  # type: ignore[attr-defined]
                 # error: "DatetimeLikeArrayMixin" has no attribute "as_unit"
                 value = value.as_unit(self.unit, round_ok=False)  # type: ignore[attr-defined]
             return value
@@ -1332,12 +1334,13 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             # If both 1D then broadcasting is unambiguous
             return op(self, other[0])
 
-        warnings.warn(
-            "Adding/subtracting object-dtype array to "
-            f"{type(self).__name__} not vectorized.",
-            PerformanceWarning,
-            stacklevel=find_stack_level(),
-        )
+        if _get_option("performance_warnings"):
+            warnings.warn(
+                "Adding/subtracting object-dtype array to "
+                f"{type(self).__name__} not vectorized.",
+                PerformanceWarning,
+                stacklevel=find_stack_level(),
+            )
 
         # Caller is responsible for broadcasting if necessary
         assert self.shape == other.shape, (self.shape, other.shape)

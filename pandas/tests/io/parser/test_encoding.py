@@ -180,7 +180,9 @@ def test_binary_mode_file_buffers(all_parsers, file_path, encoding, datapath):
 
 
 @pytest.mark.parametrize("pass_encoding", [True, False])
-def test_encoding_temp_file(all_parsers, utf_value, encoding_fmt, pass_encoding):
+def test_encoding_temp_file(
+    all_parsers, utf_value, encoding_fmt, pass_encoding, temp_file
+):
     # see gh-24130
     parser = all_parsers
     encoding = encoding_fmt.format(utf_value)
@@ -191,7 +193,7 @@ def test_encoding_temp_file(all_parsers, utf_value, encoding_fmt, pass_encoding)
 
     expected = DataFrame({"foo": ["bar"]})
 
-    with tm.ensure_clean(mode="w+", encoding=encoding, return_filelike=True) as f:
+    with temp_file.open(mode="w+", encoding=encoding) as f:
         f.write("foo\nbar")
         f.seek(0)
 

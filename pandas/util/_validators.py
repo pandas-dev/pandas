@@ -443,7 +443,7 @@ def validate_insert_loc(loc: int, length: int) -> int:
         loc += length
     if not 0 <= loc <= length:
         raise IndexError(f"loc must be an integer between -{length} and {length}")
-    return loc  # pyright: ignore[reportGeneralTypeIssues]
+    return loc  # pyright: ignore[reportReturnType]
 
 
 def check_dtype_backend(dtype_backend) -> None:

@@ -32,6 +32,7 @@ from pandas._config import (
     get_option,
     using_pyarrow_string_dtype,
 )
+from pandas._config.config import _get_option
 
 from pandas._libs import (
     lib,
@@ -3143,7 +3144,7 @@ class GenericFixed(Fixed):
                 pass
             elif inferred_type == "string":
                 pass
-            else:
+            elif _get_option("performance_warnings"):
                 ws = performance_doc % (inferred_type, key, items)
                 warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
 
@@ -3280,7 +3281,7 @@ class BlockManagerFixed(GenericFixed):
 
         if len(dfs) > 0:
             out = concat(dfs, axis=1).copy()
-            return out.reindex(columns=items, copy=False)
+            return out.reindex(columns=items)
 
         return DataFrame(columns=axes[0], index=axes[1])
 
