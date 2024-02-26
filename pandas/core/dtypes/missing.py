@@ -45,6 +45,8 @@ from pandas.core.dtypes.inference import is_list_like
 if TYPE_CHECKING:
     from re import Pattern
 
+    from pandas._libs.missing import NAType
+    from pandas._libs.tslibs import NaTType
     from pandas._typing import (
         ArrayLike,
         DtypeObj,
@@ -66,7 +68,7 @@ _dtype_str = np.dtype(str)
 
 
 @overload
-def isna(obj: Scalar | Pattern) -> bool:
+def isna(obj: Scalar | Pattern | NAType | NaTType) -> bool:
     ...
 
 
@@ -283,7 +285,7 @@ def _isna_recarray_dtype(values: np.rec.recarray) -> npt.NDArray[np.bool_]:
 
 
 @overload
-def notna(obj: Scalar) -> bool:
+def notna(obj: Scalar | Pattern | NAType | NaTType) -> bool:
     ...
 
 

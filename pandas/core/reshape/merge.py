@@ -445,7 +445,7 @@ def merge_asof(
     left_by=None,
     right_by=None,
     suffixes: Suffixes = ("_x", "_y"),
-    tolerance: int | Timedelta | None = None,
+    tolerance: int | datetime.timedelta | None = None,
     allow_exact_matches: bool = True,
     direction: str = "backward",
 ) -> DataFrame:
@@ -494,7 +494,7 @@ def merge_asof(
     suffixes : 2-length sequence (tuple, list, ...)
         Suffix to apply to overlapping column names in the left and right
         side, respectively.
-    tolerance : int or Timedelta, optional, default None
+    tolerance : int or timedelta, optional, default None
         Select asof tolerance within this range; must be compatible
         with the merge index.
     allow_exact_matches : bool, default True
