@@ -44,10 +44,63 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_300.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_300.notable_bug_fixes.groupby_unobs_and_na:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+Improved behavior in groupby for ``observed=False``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A number of bugs have been fixed due to improved handling of unobserved groups (:issue:`55738`). All remarks in this section equally impact :class:`.SeriesGroupBy`.
+
+In previous versions of pandas, a single grouping with :meth:`.DataFrameGroupBy.apply` or :meth:`.DataFrameGroupBy.agg` would pass the unobserved groups to the provided function, resulting in ``0`` below.
+
+.. ipython:: python
+
+    df = pd.DataFrame(
+        {
+            "key1": pd.Categorical(list("aabb"), categories=list("abc")),
+            "key2": [1, 1, 1, 2],
+            "values": [1, 2, 3, 4],
+        }
+    )
+    df
+    gb = df.groupby("key1", observed=False)
+    gb[["values"]].apply(lambda x: x.sum())
+
+However this was not the case when using multiple groupings, resulting in ``NaN`` below.
+
+.. code-block:: ipython
+
+    In [1]: gb = df.groupby(["key1", "key2"], observed=False)
+    In [2]: gb[["values"]].apply(lambda x: x.sum())
+    Out[2]:
+               values
+    key1 key2
+    a    1        3.0
+         2        NaN
+    b    1        3.0
+         2        4.0
+    c    1        NaN
+         2        NaN
+
+Now using multiple groupings will also pass the unobserved groups to the provided function.
+
+.. ipython:: python
+
+    gb = df.groupby(["key1", "key2"], observed=False)
+    gb[["values"]].apply(lambda x: x.sum())
+
+Similarly:
+
+  - In previous versions of pandas the method :meth:`.DataFrameGroupBy.sum` would result in ``0`` for unobserved groups, but :meth:`.DataFrameGroupBy.prod`, :meth:`.DataFrameGroupBy.all`, and :meth:`.DataFrameGroupBy.any` would all result in NA values. Now these methods result in ``1``, ``True``, and ``False`` respectively.
+  - :meth:`.DataFrameGroupBy.groups` did not include unobserved groups and now does.
+
+These improvements also fixed certain bugs in groupby:
+
+ - :meth:`.DataFrameGroupBy.nunique` would fail when there are multiple groupings, unobserved groups, and ``as_index=False`` (:issue:`52848`)
+ - :meth:`.DataFrameGroupBy.agg` would fail when there are multiple groupings, unobserved groups, and ``as_index=False`` (:issue:`36698`)
+ - :meth:`.DataFrameGroupBy.sum` would have incorrect values when there are multiple groupings, unobserved groups, and non-numeric data (:issue:`43891`)
+ - :meth:`.DataFrameGroupBy.groups` with ``sort=False`` would sort groups; they now occur in the order they are observed (:issue:`56966`)
+ - :meth:`.DataFrameGroupBy.value_counts` would produce incorrect results when used with some categorical and some non-categorical groupings and ``observed=False`` (:issue:`56016`)
 
 .. _whatsnew_300.notable_bug_fixes.notable_bug_fix2:
 
@@ -285,12 +338,9 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
+- Bug in :meth:`.DataFrameGroupBy.groups` and :meth:`.SeriesGroupby.groups` that would not respect groupby argument ``dropna`` (:issue:`55919`)
 - Bug in :meth:`.DataFrameGroupBy.quantile` when ``interpolation="nearest"`` is inconsistent with :meth:`DataFrame.quantile` (:issue:`47942`)
 - Bug in :meth:`DataFrame.ewm` and :meth:`Series.ewm` when passed ``times`` and aggregation functions other than mean (:issue:`51695`)
-- Bug in :meth:`.DataFrameGroupBy.groups` and :meth:`.SeriesGroupby.groups` that would not respect groupby arguments ``dropna`` and ``sort`` (:issue:`55919`, :issue:`56966`, :issue:`56851`)
-- Bug in :meth:`.DataFrameGroupBy.nunique` and :meth:`.SeriesGroupBy.nunique` would fail with multiple categorical groupings when ``as_index=False`` (:issue:`52848`)
-- Bug in :meth:`.DataFrameGroupBy.prod`, :meth:`.DataFrameGroupBy.any`, and :meth:`.DataFrameGroupBy.all` would result in NA values on unobserved groups; they now result in ``1``, ``False``, and ``True`` respectively (:issue:`55783`)
-- Bug in :meth:`.DataFrameGroupBy.value_counts` would produce incorrect results when used with some categorical and some non-categorical groupings and ``observed=False`` (:issue:`56016`)
 -
 
 Reshaping
