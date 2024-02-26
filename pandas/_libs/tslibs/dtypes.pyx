@@ -398,18 +398,8 @@ cdef dict c_DEPR_ABBREVS = {
     "BAS-SEP": "BYS-SEP",
     "BAS-OCT": "BYS-OCT",
     "BAS-NOV": "BYS-NOV",
-    "H": "h",
     "BH": "bh",
     "CBH": "cbh",
-    "T": "min",
-    "t": "min",
-    "S": "s",
-    "L": "ms",
-    "l": "ms",
-    "U": "us",
-    "u": "us",
-    "N": "ns",
-    "n": "ns",
 }
 
 

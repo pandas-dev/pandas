@@ -74,6 +74,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     pandas_datetime_to_datetimestruct,
     pydate_to_dtstruct,
 )
+from pandas._libs.tslibs.timedeltas cimport disallow_deprecated_unit
 
 import_pandas_datetime()
 
@@ -4865,6 +4866,8 @@ cpdef to_offset(freq, bint is_period=False):
                         stacklevel=find_stack_level(),
                     )
                     prefix = c_DEPR_ABBREVS[prefix]
+
+                disallow_deprecated_unit(prefix)
 
                 if prefix in {"D", "h", "min", "s", "ms", "us", "ns"}:
                     # For these prefixes, we have something like "3h" or

@@ -32,13 +32,6 @@ class TestTimedeltaConstructorUnitKeyword:
         with pytest.raises(ValueError, match=msg):
             to_timedelta([1, 2], unit)
 
-    @pytest.mark.parametrize("unit_depr", ["H", "T", "S", "L", "N", "U"])
-    def test_units_H_T_S_L_N_U_raise(self, unit, unit_depr):
-        # GH#52536
-        msg = f"Unit '{unit_depr}' is no longer supported."
-        with pytest.raises(ValueError, match=msg):
-            Timedelta(1, unit=unit_depr)
-
     @pytest.mark.parametrize(
         "unit, np_unit",
         [(value, "W") for value in ["W", "w"]]
@@ -147,6 +140,18 @@ class TestTimedeltaConstructorUnitKeyword:
             assert result == expected
             result = Timedelta(f"2{unit}")
             assert result == expected
+
+    @pytest.mark.parametrize("unit", ["H", "T", "t", "S", "L", "l", "U", "u", "N", "n"])
+    def test_unit_H_T_S_L_N_U_raises(self, unit):
+        msg = f"Unit '{unit}' is no longer supported."
+        with pytest.raises(ValueError, match=msg):
+            Timedelta(1, unit=unit)
+
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta(10, unit)
+
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta([1, 2], unit)
 
 
 def test_construct_from_kwargs_overflow():

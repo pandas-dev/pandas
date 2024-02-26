@@ -290,8 +290,8 @@ class TestTimedeltaIndex:
         result = TimedeltaIndex(ci)
         tm.assert_index_equal(result, tdi)
 
-    @pytest.mark.parametrize("unit", ["H", "S", "T", "t", "L", "l", "U", "u", "N", "n"])
-    def test_deprecated_unit_raises(self, unit):
+    @pytest.mark.parametrize("unit", ["H", "T", "t", "S", "L", "l", "U", "u", "N", "n"])
+    def test_unit_H_T_S_L_N_U_raises(self, unit):
         msg = f"Unit '{unit}' is no longer supported."
         depr_msg = "The 'unit' keyword in TimedeltaIndex construction is deprecated"
         with pytest.raises(ValueError, match=msg):
