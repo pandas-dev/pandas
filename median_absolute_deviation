@@ -1,0 +1,14 @@
+#MedianAbsoluteDeviation(MAD)
+
+def mad(self):
+  """
+  Calculates the median absolute deviation of each column in the DataFrame.
+
+  Returns:
+    A Series containing the MAD of each column.
+  """
+  medians = self.median()
+  devs = abs(self - medians)
+  return devs.median(axis=0)
+
+pd.DataFrame.mad = mad
