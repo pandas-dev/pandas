@@ -4020,8 +4020,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        DataFrame.iloc : Purely integer-location based indexing
-                            for selection by position.
+        DataFrame.iloc : Purely integer-location based indexing for selection by
+            position.
 
         Notes
         -----
