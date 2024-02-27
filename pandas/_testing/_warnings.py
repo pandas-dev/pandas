@@ -11,6 +11,7 @@ import sys
 from typing import (
     TYPE_CHECKING,
     Literal,
+    Union,
     cast,
 )
 import warnings
@@ -120,7 +121,8 @@ def assert_produces_warning(
                         )
                 else:
                     expected_warning = cast(
-                        type[Warning] | tuple[type[Warning], ...], expected_warning
+                        Union[type[Warning], tuple[type[Warning], ...]],
+                        expected_warning,
                     )
                     match = (
                         "|".join(m for m in match if m)
