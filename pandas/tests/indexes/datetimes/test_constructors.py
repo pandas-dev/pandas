@@ -296,11 +296,9 @@ class TestDatetimeIndex:
         tm.assert_index_equal(result, exp, exact=True)
         assert not isinstance(result, DatetimeIndex)
 
-        msg = "DatetimeIndex has mixed timezones"
-        msg_depr = "parsing datetimes with mixed time zones will raise an error"
-        with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=msg_depr):
-                DatetimeIndex(["2013-11-02 22:00-05:00", "2013-11-03 22:00-06:00"])
+        msg = "cannot parse datetimes with mixed time zones unless `utc=True`"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(["2013-11-02 22:00-05:00", "2013-11-03 22:00-06:00"])
 
         # length = 1
         result = Index([Timestamp("2011-01-01")], name="idx")
@@ -1033,23 +1031,28 @@ class TestDatetimeIndex:
         result2 = DatetimeIndex(np.array(vals, dtype=object), dtype=dtype)
         tm.assert_index_equal(result2, expected)
 
-    def test_dti_constructor_with_non_nano_now_today(self):
+    def test_dti_constructor_with_non_nano_now_today(self, request):
         # GH#55756
         now = Timestamp.now()
         today = Timestamp.today()
         result = DatetimeIndex(["now", "today"], dtype="M8[s]")
         assert result.dtype == "M8[s]"
 
-        # result may not exactly match [now, today] so we'll test it up to a tolerance.
-        #  (it *may* match exactly due to rounding)
-        tolerance = pd.Timedelta(microseconds=1)
-
         diff0 = result[0] - now.as_unit("s")
-        assert diff0 >= pd.Timedelta(0), f"The difference is {diff0}"
-        assert diff0 < tolerance, f"The difference is {diff0}"
-
         diff1 = result[1] - today.as_unit("s")
         assert diff1 >= pd.Timedelta(0), f"The difference is {diff0}"
+        assert diff0 >= pd.Timedelta(0), f"The difference is {diff0}"
+
+        # result may not exactly match [now, today] so we'll test it up to a tolerance.
+        #  (it *may* match exactly due to rounding)
+        # GH 57535
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="result may not exactly match [now, today]", strict=False
+            )
+        )
+        tolerance = pd.Timedelta(seconds=1)
+        assert diff0 < tolerance, f"The difference is {diff0}"
         assert diff1 < tolerance, f"The difference is {diff0}"
 
     def test_dti_constructor_object_float_matches_float_dtype(self):

@@ -72,12 +72,10 @@ from pandas._testing.compat import (
     get_obj,
 )
 from pandas._testing.contexts import (
-    assert_cow_warning,
     decompress_file,
     ensure_clean,
     raises_chained_assignment_error,
     set_timezone,
-    use_numexpr,
     with_csv_dialect,
 )
 from pandas.core.arrays import (
@@ -583,7 +581,6 @@ __all__ = [
     "assert_series_equal",
     "assert_sp_array_equal",
     "assert_timedelta_array_equal",
-    "assert_cow_warning",
     "at",
     "BOOL_DTYPES",
     "box_expected",
@@ -630,7 +627,6 @@ __all__ = [
     "to_array",
     "UNSIGNED_INT_EA_DTYPES",
     "UNSIGNED_INT_NUMPY_DTYPES",
-    "use_numexpr",
     "with_csv_dialect",
     "write_to_compressed",
 ]

@@ -733,15 +733,10 @@ cdef datetime dateutil_parse(
                 )
         elif res.tzname is not None:
             # e.g. "1994 Jan 15 05:16 FOO" where FOO is not recognized
-            # GH#18702
-            warnings.warn(
+            # GH#18702, # GH 50235 enforced in 3.0
+            raise ValueError(
                 f'Parsed string "{timestr}" included an un-recognized timezone '
-                f'"{res.tzname}". Dropping unrecognized timezones is deprecated; '
-                "in a future version this will raise. Instead pass the string "
-                "without the timezone, then use .tz_localize to convert to a "
-                "recognized timezone.",
-                FutureWarning,
-                stacklevel=find_stack_level()
+                f'"{res.tzname}".'
             )
 
     out_bestunit[0] = attrname_to_npy_unit[reso]
@@ -920,8 +915,8 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
         (("year", "month", "day", "hour"), "%Y%m%d%H", 0),
         (("year", "month", "day"), "%Y%m%d", 0),
         (("hour", "minute", "second"), "%H%M%S", 0),
-        (("hour", "minute"), "%H%M", 0),
         (("year",), "%Y", 0),
+        (("hour", "minute"), "%H%M", 0),
         (("month",), "%B", 0),
         (("month",), "%b", 0),
         (("month",), "%m", 2),

@@ -755,30 +755,6 @@ cdef class BaseOffset:
     def nanos(self):
         raise ValueError(f"{self} is a non-fixed frequency")
 
-    def is_anchored(self) -> bool:
-        # GH#55388
-        """
-        Return boolean whether the frequency is a unit frequency (n=1).
-
-        .. deprecated:: 2.2.0
-            is_anchored is deprecated and will be removed in a future version.
-            Use ``obj.n == 1`` instead.
-
-        Examples
-        --------
-        >>> pd.DateOffset().is_anchored()
-        True
-        >>> pd.DateOffset(2).is_anchored()
-        False
-        """
-        warnings.warn(
-            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
-            f"in a future version, please use \'obj.n == 1\' instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.n == 1
-
     # ------------------------------------------------------------------
 
     def is_month_start(self, _Timestamp ts):
@@ -961,30 +937,6 @@ cdef class Tick(SingleConstructorOffset):
 
     def is_on_offset(self, dt: datetime) -> bool:
         return True
-
-    def is_anchored(self) -> bool:
-        # GH#55388
-        """
-        Return False.
-
-        .. deprecated:: 2.2.0
-            is_anchored is deprecated and will be removed in a future version.
-            Use ``False`` instead.
-
-        Examples
-        --------
-        >>> pd.offsets.Hour().is_anchored()
-        False
-        >>> pd.offsets.Hour(2).is_anchored()
-        False
-        """
-        warnings.warn(
-            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
-            f"in a future version, please use False instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return False
 
     # This is identical to BaseOffset.__hash__, but has to be redefined here
     # for Python 3, because we've redefined __eq__.
@@ -1458,13 +1410,22 @@ cdef class RelativeDeltaOffset(BaseOffset):
             "minutes",
             "seconds",
             "microseconds",
+            "milliseconds",
         }
         # relativedelta/_offset path only valid for base DateOffset
         if self._use_relativedelta and set(kwds).issubset(relativedelta_fast):
+            td_args = {
+                "days",
+                "hours",
+                "minutes",
+                "seconds",
+                "microseconds",
+                "milliseconds"
+            }
             td_kwds = {
                 key: val
                 for key, val in kwds.items()
-                if key in ["days", "hours", "minutes", "seconds", "microseconds"]
+                if key in td_args
             }
             if "weeks" in kwds:
                 days = td_kwds.get("days", 0)
@@ -1474,6 +1435,8 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 delta = Timedelta(**td_kwds)
                 if "microseconds" in kwds:
                     delta = delta.as_unit("us")
+                elif "milliseconds" in kwds:
+                    delta = delta.as_unit("ms")
                 else:
                     delta = delta.as_unit("s")
             else:
@@ -1491,6 +1454,8 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 delta = Timedelta(self._offset * self.n)
                 if "microseconds" in kwds:
                     delta = delta.as_unit("us")
+                elif "milliseconds" in kwds:
+                    delta = delta.as_unit("ms")
                 else:
                     delta = delta.as_unit("s")
             return delta
@@ -1544,7 +1509,7 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     Standard kind of date increment used for a date range.
 
     Works exactly like the keyword argument form of relativedelta.
-    Note that the positional argument form of relativedelata is not
+    Note that the positional argument form of relativedelta is not
     supported. Use of the keyword n is discouraged-- you would be better
     off specifying n in the keywords you use, but regardless it is
     there for you. n is needed for DateOffset subclasses.
@@ -2692,16 +2657,6 @@ cdef class QuarterOffset(SingleConstructorOffset):
         month = MONTH_ALIASES[self.startingMonth]
         return f"{self._prefix}-{month}"
 
-    def is_anchored(self) -> bool:
-        warnings.warn(
-            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
-            f"in a future version, please use \'obj.n == 1 "
-            f"and obj.startingMonth is not None\' instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.n == 1 and self.startingMonth is not None
-
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
@@ -3344,16 +3299,6 @@ cdef class Week(SingleConstructorOffset):
         self.weekday = state.pop("weekday")
         self._cache = state.pop("_cache", {})
 
-    def is_anchored(self) -> bool:
-        warnings.warn(
-            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
-            f"in a future version, please use \'obj.n == 1 "
-            f"and obj.weekday is not None\' instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.n == 1 and self.weekday is not None
-
     @apply_wraps
     def _apply(self, other):
         if self.weekday is None:
@@ -3639,17 +3584,6 @@ cdef class FY5253Mixin(SingleConstructorOffset):
         self.normalize = state.pop("normalize")
         self.weekday = state.pop("weekday")
         self.variation = state.pop("variation")
-
-    def is_anchored(self) -> bool:
-        warnings.warn(
-            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
-            f"in a future version, please use \'obj.n == 1\' instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return (
-            self.n == 1 and self.startingMonth is not None and self.weekday is not None
-        )
 
     # --------------------------------------------------------------------
     # Name-related methods
@@ -4271,9 +4205,7 @@ cdef class CustomBusinessDay(BusinessDay):
     @property
     def _period_dtype_code(self):
         # GH#52534
-        raise TypeError(
-            "CustomBusinessDay is not supported as period frequency"
-        )
+        raise ValueError(f"{self.base} is not supported as period frequency")
 
     _apply_array = BaseOffset._apply_array
 
@@ -4837,19 +4769,19 @@ cpdef to_offset(freq, bint is_period=False):
     if freq is None:
         return None
 
-    if isinstance(freq, BaseOffset):
-        return freq
-
     if isinstance(freq, tuple):
         raise TypeError(
             f"to_offset does not support tuples {freq}, pass as a string instead"
         )
 
+    if isinstance(freq, BaseOffset):
+        result = freq
+
     elif PyDelta_Check(freq):
-        return delta_to_tick(freq)
+        result = delta_to_tick(freq)
 
     elif isinstance(freq, str):
-        delta = None
+        result = None
         stride_sign = None
 
         try:
@@ -4950,21 +4882,27 @@ cpdef to_offset(freq, bint is_period=False):
                     offset = _get_offset(prefix)
                     offset = offset * int(np.fabs(stride) * stride_sign)
 
-                if delta is None:
-                    delta = offset
+                if result is None:
+                    result = offset
                 else:
-                    delta = delta + offset
+                    result = result + offset
         except (ValueError, TypeError) as err:
             raise ValueError(INVALID_FREQ_ERR_MSG.format(
                 f"{freq}, failed to parse with error message: {repr(err)}")
             )
     else:
-        delta = None
+        result = None
 
-    if delta is None:
+    if result is None:
         raise ValueError(INVALID_FREQ_ERR_MSG.format(freq))
 
-    return delta
+    if is_period and not hasattr(result, "_period_dtype_code"):
+        if isinstance(freq, str):
+            raise ValueError(f"{result.name} is not supported as period frequency")
+        else:
+            raise ValueError(f"{freq} is not supported as period frequency")
+
+    return result
 
 
 # ----------------------------------------------------------------------

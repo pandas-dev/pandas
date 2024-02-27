@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -124,16 +125,12 @@ class TestTranspose:
         for col, s in mixed_T.items():
             assert s.dtype == np.object_
 
-    def test_transpose_get_view(self, float_frame, using_copy_on_write):
+    def test_transpose_get_view(self, float_frame):
         dft = float_frame.T
         dft.iloc[:, 5:10] = 5
+        assert (float_frame.values[5:10] != 5).all()
 
-        if using_copy_on_write:
-            assert (float_frame.values[5:10] != 5).all()
-        else:
-            assert (float_frame.values[5:10] == 5).all()
-
-    def test_transpose_get_view_dt64tzget_view(self, using_copy_on_write):
+    def test_transpose_get_view_dt64tzget_view(self):
         dti = date_range("2016-01-01", periods=6, tz="US/Pacific")
         arr = dti._data.reshape(3, 2)
         df = DataFrame(arr)
@@ -143,10 +140,7 @@ class TestTranspose:
         assert result._mgr.nblocks == 1
 
         rtrip = result._mgr.blocks[0].values
-        if using_copy_on_write:
-            assert np.shares_memory(df._mgr.blocks[0].values._ndarray, rtrip._ndarray)
-        else:
-            assert np.shares_memory(arr._ndarray, rtrip._ndarray)
+        assert np.shares_memory(df._mgr.blocks[0].values._ndarray, rtrip._ndarray)
 
     def test_transpose_not_inferring_dt(self):
         # GH#51546
@@ -186,3 +180,19 @@ class TestTranspose:
             dtype=object,
         )
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype1", ["Int64", "Float64"])
+    @pytest.mark.parametrize("dtype2", ["Int64", "Float64"])
+    def test_transpose(self, dtype1, dtype2):
+        # GH#57315 - transpose should have F contiguous blocks
+        df = DataFrame(
+            {
+                "a": pd.array([1, 1, 2], dtype=dtype1),
+                "b": pd.array([3, 4, 5], dtype=dtype2),
+            }
+        )
+        result = df.T
+        for blk in result._mgr.blocks:
+            # When dtypes are unequal, we get NumPy object array
+            data = blk.values._data if dtype1 == dtype2 else blk.values
+            assert data.flags["F_CONTIGUOUS"]
