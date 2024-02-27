@@ -487,6 +487,10 @@ class RangeIndex(Index):
         result._cache = self._cache
         return result
 
+    def _wrap_reindex_result(self, target, indexer, preserve_names: bool):
+        target = self._shallow_copy(target._values)
+        return super()._wrap_reindex_result(target, indexer, preserve_names)
+
     @doc(Index.copy)
     def copy(self, name: Hashable | None = None, deep: bool = False) -> Self:
         name = self._validate_names(name=name, deep=deep)[0]
