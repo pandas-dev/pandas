@@ -207,7 +207,7 @@ Axis = Union[AxisInt, Literal["index", "columns", "rows"]]
 IndexLabel = Union[Hashable, Sequence[Hashable]]
 Level = Hashable
 Shape = tuple[int, ...]
-Suffixes = tuple[Optional[str], Optional[str]]
+Suffixes = Sequence[Optional[str]]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, list, dict]]
 Frequency = Union[str, "BaseOffset"]
@@ -226,7 +226,7 @@ NpDtype = Union[str, np.dtype, type_t[Union[str, complex, bool, object]]]
 Dtype = Union["ExtensionDtype", NpDtype]
 AstypeArg = Union["ExtensionDtype", "npt.DTypeLike"]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
-DtypeArg = Union[Dtype, dict[Hashable, Dtype]]
+DtypeArg = Union[Dtype, Mapping[Hashable, Dtype]]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
 
 # converters

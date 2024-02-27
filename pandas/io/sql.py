@@ -608,6 +608,9 @@ def read_sql(
     Returns
     -------
     DataFrame or Iterator[DataFrame]
+        Returns a DataFrame object that contains the result set of the
+        executed SQL query or an SQL Table based on the provided input,
+        in relation to the specified database connection.
 
     See Also
     --------
