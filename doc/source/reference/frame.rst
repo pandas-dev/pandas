@@ -74,6 +74,7 @@ Indexing, iteration
    DataFrame.where
    DataFrame.mask
    DataFrame.query
+   DataFrame.isetitem
 
 For more information on ``.at``, ``.iat``, ``.loc``, and
 ``.iloc``,  see the :ref:`indexing documentation <indexing>`.
