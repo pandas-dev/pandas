@@ -160,10 +160,6 @@ def pytest_collection_modifyitems(items, config) -> None:
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         (
-            "to_pydatetime",
-            "The behavior of DatetimeProperties.to_pydatetime is deprecated",
-        ),
-        (
             "to_pytimedelta",
             "The behavior of TimedeltaProperties.to_pytimedelta is deprecated",
         ),
