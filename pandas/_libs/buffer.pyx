@@ -1,4 +1,7 @@
-from cpython cimport Py_buffer
+from cpython cimport (
+    Py_buffer,
+    PyLong_FromVoidPtr,
+)
 from libc.stdint cimport (
     int8_t,
     int16_t,
@@ -38,6 +41,21 @@ cdef class PandasBuffer:
     fixed number of bytes per element.
     """
 
+    # we cannot use a fused type as a class attribute, so we instead
+    # unpack the items we need for the buffer protocol in __init__
+
+    cdef:
+        void *ptr_
+        Py_ssize_t len_
+        Py_ssize_t itemsize
+
+        int readonly
+        int ndim
+        bytes format
+        Py_ssize_t *shape
+        Py_ssize_t *strides
+        Py_ssize_t *suboffsets
+
     def __init__(self, supported_buffer_t[:] buf, allow_copy: bool = True) -> None:
         """
         Handle only regular columns (= numpy arrays) for now.
@@ -56,20 +74,29 @@ cdef class PandasBuffer:
         # Store the numpy array in which the data resides as a private
         # attribute, so we can use it to retrieve the public attributes
         self.buf = buf
+        self.ptr_ = &buf[0]
+        self.len_ = len(buf)
+        self.itemsize = buf.itemsize
+        self.readonly = buf.readonly
+        self.ndim = buf.ndim
+        self.format = buf.format
+        self.shape = buf.shape
+        self.strides = buf.strides
+        self.suboffsets = buf.suboffsets
 
     def __getbuffer__(self, Py_buffer *buffer, int flags):
-        buffer.buf = &self.buf[0]
+        buffer.buf = self.ptr_
         # assumes sizeof(unsigned char) == sizeof(uint8_t)
         # TODO: use C11 static_assert macro in Cython
-        buffer.format = self.buf.format
-        buffer.itemsize = self.buf.itemsize
-        buffer.len = len(self.buf)
-        buffer.ndim = self.buf.ndim
-        buffer.obj = self
-        buffer.readonly = 1
-        buffer.shape = self.buf.shape
-        buffer.strides = self.buf.strides
-        buffer.suboffsets = self.buf.suboffsets
+        buffer.format = self.format
+        buffer.itemsize = self.itemsize
+        buffer.len = self.len_
+        buffer.ndim = self.ndim
+        buffer.obj = self.obj
+        buffer.readonly = self.readonly
+        buffer.shape = self.shape
+        buffer.strides = self.strides
+        buffer.suboffsets = self.suboffsets
 
     def __releasebuffer__(self, Py_buffer *buffer):
         pass
@@ -86,7 +113,7 @@ cdef class PandasBuffer:
         """
         Pointer to start of the buffer as an integer.
         """
-        return &self.buf[0]
+        return PyLong_FromVoidPtr(self.ptr_)
 
     def __dlpack__(self):
         """
