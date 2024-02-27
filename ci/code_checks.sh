@@ -882,7 +882,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.read_orc\
         pandas.read_sas\
         pandas.read_spss\
-        pandas.read_sql\
         pandas.read_sql_query\
         pandas.read_stata\
         pandas.set_eng_float_format\
