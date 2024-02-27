@@ -377,7 +377,7 @@ You see more dask examples at https://examples.dask.org.
 Use Modin
 ---------
 
-Modin_ is a scalable dataframe library, which has a drop-in replacement API for pandas and
+Modin_ is a scalable dataframe library, which aims to be a drop-in replacement API for pandas and
 provides the ability to scale pandas workflows across nodes and CPUs available. It is also able
 to work with larger than memory datasets. To start working with Modin you just need
 to replace a single line of code, namely, the import statement.
@@ -393,7 +393,7 @@ an execution engine it runs on. At the time of Modin 0.27.0 the following execut
 in Modin: Ray_, Dask_, `MPI through unidist`_, HDK_. The partitioning schema of a Modin DataFrame partitions it
 along both columns and rows because it gives Modin flexibility and scalability in both the number of columns and
 the number of rows. Let's take a look at how we can read the data from a CSV file with Modin the same way as with pandas
-and perform a simple operation on the data.
+and perform a custom operation on the data.
 
 .. code-block:: ipython
 
@@ -408,22 +408,22 @@ and perform a simple operation on the data.
    %time pandas_df = pandas.read_csv(filename, names=[f"col{i}" for i in range(2 ** 8)])
    CPU times: user 48.3 s, sys: 4.23 s, total: 52.5 s
    Wall time: 52.5 s
-   %time pandas_df = pandas_df.map(lambda x: x + 0.01)
-   CPU times: user 48.7 s, sys: 7.8 s, total: 56.5 s
-   Wall time: 56.5 s
+   %time pandas_df_map = pandas_df.map(lambda x: len(str(x)))
+   CPU times: user 1min 46s, sys: 3.73 s, total: 1min 50s
+   Wall time: 1min 50s
 
    %time modin_df = pd.read_csv(filename, names=[f"col{i}" for i in range(2 ** 8)])
    CPU times: user 9.49 s, sys: 2.72 s, total: 12.2 s
    Wall time: 17.5 s
-   %time modin_df = modin_df.map(lambda x: x + 0.01)
-   CPU times: user 5.74 s, sys: 1e+03 ms, total: 6.74 s
-   Wall time: 2.54 s
+   %time modin_df_map = modin_df.map(lambda x: len(str(x)))
+   CPU times: user 7.45 s, sys: 1.2 s, total: 8.64 s
+   Wall time: 3.38 s
 
 We can see that Modin has been able to perform the operations much faster than pandas due to distributing execution.
 Even though Modin aims to speed up each single pandas operation, there are the cases when pandas outperforms.
 It might be a case if the data size is relatively small or Modin hasn't implemented yet a certain operation
 in an efficient way. Also, for-loops is an antipattern for Modin since Modin has initially been designed to efficiently handle
-heavy tasks rather than a big number of small ones. Yet, Modin is actively working on eliminating all these drawbacks.
+heavy tasks rather than a large number of small ones. Yet, Modin is actively working on eliminating all these drawbacks.
 What you can do for now in such a case is to use pandas for the cases where it is more beneficial than Modin.
 
 .. code-block:: ipython
@@ -434,8 +434,8 @@ What you can do for now in such a case is to use pandas for the cases where it i
    pandas_subset = pandas_df.iloc[:100000]
    for col in pandas_subset.columns:
       pandas_subset[col] = pandas_subset[col] / pandas_subset[col].sum()
-   CPU times: user 210 ms, sys: 84.4 ms, total: 294 ms
-   Wall time: 293 ms
+   CPU times: user 189 ms, sys: 76.4 ms, total: 266 ms
+   Wall time: 264 ms
 
    %%time
    modin_subset = modin_df.iloc[:100000]
@@ -458,8 +458,8 @@ You could also rewrite this code a bit to get the same result with much less exe
    %%time
    pandas_subset = pandas_df.iloc[:100000]
    pandas_subset = pandas_subset / pandas_subset.sum(axis=0)
-   CPU times: user 105 ms, sys: 97.5 ms, total: 202 ms
-   Wall time: 72.2 ms
+   CPU times: user 104 ms, sys: 3.42 ms, total: 107 ms
+   Wall time: 58.9 ms
 
    %%time
    modin_subset = modin_df.iloc[:100000]
@@ -471,7 +471,7 @@ For more information refer to `Modin's documentation`_ or dip into `Modin's tuto
 to start scaling pandas operations with Modin and an execution engine you like.
 
 .. _Modin: https://github.com/modin-project/modin
-.. _`Modin's documetation`: https://modin.readthedocs.io/en/latest
+.. _`Modin's documentation`: https://modin.readthedocs.io/en/latest
 .. _`Modin's tutorials`: https://github.com/modin-project/modin/tree/master/examples/tutorial/jupyter/execution
 .. _Ray: https://github.com/ray-project/ray
 .. _Dask: https://dask.org
