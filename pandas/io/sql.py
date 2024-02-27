@@ -608,6 +608,8 @@ def read_sql(
     Returns
     -------
     DataFrame or Iterator[DataFrame]
+        Returns a single DataFrame if applicable, or an Iterator
+        containing multiple DataFrames.
 
     See Also
     --------
@@ -625,7 +627,7 @@ def read_sql(
     Examples
     --------
     Read data from SQL via either a SQL query or a SQL tablename.
-    When using a SQLite database only SQL queries are accepted,
+    When using a SQLite database, only SQL queries are accepted,
     providing only the SQL tablename will result in an error.
 
     >>> from sqlite3 import connect
