@@ -278,19 +278,27 @@ class PandasColumn(Column):
         """
         Return the buffer containing the data and the buffer's associated dtype.
         """
-        if self.dtype[0] in (
+        if self.dtype[0] == DtypeKind.DATETIME:
+            # self.dtype[2] is an ArrowCTypes.TIMESTAMP where the tz will make
+            # it longer than 4 characters
+            if len(self.dtype[2]) > 4:
+                np_arr = self._col.dt.tz_convert(None).to_numpy()
+            else:
+                np_arr = self._col.to_numpy()
+            buffer = PandasBuffer(np_arr, allow_copy=self._allow_copy)
+            dtype = (
+                DtypeKind.INT,
+                64,
+                ArrowCTypes.INT64,
+                Endianness.NATIVE,
+            )
+        elif self.dtype[0] in (
             DtypeKind.INT,
             DtypeKind.UINT,
             DtypeKind.FLOAT,
             DtypeKind.BOOL,
-            DtypeKind.DATETIME,
         ):
-            # self.dtype[2] is an ArrowCTypes.TIMESTAMP where the tz will make
-            # it longer than 4 characters
-            if self.dtype[0] == DtypeKind.DATETIME and len(self.dtype[2]) > 4:
-                np_arr = self._col.dt.tz_convert(None).to_numpy()
-            else:
-                np_arr = self._col.to_numpy()
+            np_arr = self._col.to_numpy()
             buffer = PandasBuffer(np_arr, allow_copy=self._allow_copy)
             dtype = self.dtype
         elif self.dtype[0] == DtypeKind.CATEGORICAL:
@@ -314,7 +322,12 @@ class PandasColumn(Column):
             # Define the dtype for the returned buffer
             # TODO: this will need correcting
             # https://github.com/pandas-dev/pandas/issues/54781
-            dtype = self.dtype
+            dtype = (
+                DtypeKind.UINT,
+                8,
+                ArrowCTypes.UINT8,
+                Endianness.NATIVE,
+            )  # note: currently only support native endianness
         else:
             raise NotImplementedError(f"Data type {self._col.dtype} not handled yet")
 
