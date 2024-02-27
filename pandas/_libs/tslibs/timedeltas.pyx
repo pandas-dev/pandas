@@ -1203,6 +1203,8 @@ cdef class _Timedelta(timedelta):
         See Also
         --------
         Timedelta.value : Return the value of Timedelta object in nanoseconds.
+        Timedelta.as_unit : Convert the underlying int64 representation to
+            the given unit.
 
         Examples
         --------
