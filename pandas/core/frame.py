@@ -8764,11 +8764,22 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(other, DataFrame):
             other = DataFrame(other)
 
-        other = other.reindex(self.index)
+        if other.index.has_duplicates:
+            raise ValueError("Update not allowed with duplicate indexes on other.")
+
+        rows = other.index.intersection(self.index)
+        if rows.empty:
+            raise ValueError(
+                "Can't update dataframe when other has no index in common with "
+                "this dataframe."
+            )
+
+        other = other.reindex(rows)
+        this_data = self.loc[rows]
 
         for col in self.columns.intersection(other.columns):
-            this = self[col]._values
-            that = other[col]._values
+            this = this_data[col]
+            that = other[col]
 
             if filter_func is not None:
                 mask = ~filter_func(this) | isna(that)
@@ -8788,7 +8799,7 @@ class DataFrame(NDFrame, OpsMixin):
             if mask.all():
                 continue
 
-            self.loc[:, col] = self[col].where(mask, that)
+            self.loc[rows, col] = this.where(mask, that)
 
     # ----------------------------------------------------------------------
     # Data reshaping
