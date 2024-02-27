@@ -1081,12 +1081,14 @@ class MultiIndex(Index):
         """
         Codes of the MultiIndex.
 
-        Codes are the integer labels for each level designating the position of the index value in a sorted list of all index values in that level.
+        Codes are the position of the index value in the list of level values
+        for each level.
 
         Returns
         -------
-        tuple of (numpy.ndarray,)
-            The codes of the MultiIndex. Each array in the tuple corresponds to a level in the MultiIndex.
+        tuple of numpy.ndarray
+            The codes of the MultiIndex. Each array in the tuple corresponds
+            to a level in the MultiIndex.
 
         See Also
         --------

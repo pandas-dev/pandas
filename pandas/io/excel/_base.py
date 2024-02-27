@@ -1632,7 +1632,7 @@ class ExcelFile:
         """
         Names of the sheets in the document.
 
-        This is mainly useful for loading a specific sheet into a DataFrame when
+        This is particularly useful for loading a specific sheet into a DataFrame when
         you do not know the sheet names beforehand.
 
         Returns
