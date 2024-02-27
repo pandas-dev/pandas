@@ -104,6 +104,8 @@ def read_feather(
     Returns
     -------
     type of object stored in file
+        The object stored in the file can be either an instance of the
+        DataFrame class or a pyarrow ArrowDtype object.
 
     Examples
     --------
