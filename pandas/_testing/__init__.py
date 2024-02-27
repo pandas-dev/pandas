@@ -76,7 +76,6 @@ from pandas._testing.contexts import (
     ensure_clean,
     raises_chained_assignment_error,
     set_timezone,
-    use_numexpr,
     with_csv_dialect,
 )
 from pandas.core.arrays import (
@@ -620,7 +619,6 @@ __all__ = [
     "to_array",
     "UNSIGNED_INT_EA_DTYPES",
     "UNSIGNED_INT_NUMPY_DTYPES",
-    "use_numexpr",
     "with_csv_dialect",
     "write_to_compressed",
 ]
