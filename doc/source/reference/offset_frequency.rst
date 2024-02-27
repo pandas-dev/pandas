@@ -26,8 +26,6 @@ Properties
     DateOffset.normalize
     DateOffset.rule_code
     DateOffset.n
-    DateOffset.is_month_start
-    DateOffset.is_month_end
 
 Methods
 ~~~~~~~
