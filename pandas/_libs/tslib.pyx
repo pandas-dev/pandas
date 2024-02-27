@@ -598,7 +598,8 @@ cpdef array_to_datetime(
         is_same_offsets = len(out_tzoffset_vals) == 1
         if not is_same_offsets:
             raise ValueError(
-                "cannot parse datetimes with mixed time zones unless `utc=True`"
+                "Mixed timezones detected. pass utc=True in to_datetime "
+                "or tz='UTC' in DatetimeIndex to convert to a common timezone."
             )
         elif state.found_naive or state.found_other:
             # e.g. test_to_datetime_mixed_awareness_mixed_types
