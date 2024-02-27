@@ -53,6 +53,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Axis,
         Dtype,
+        JoinHow,
         NaPosition,
         Self,
         npt,
@@ -887,6 +888,41 @@ class RangeIndex(Index):
         if result_name is not None:
             result = result.rename(result_name)
         return result
+
+    def _join_monotonic(
+        self, other: Index, how: JoinHow = "left"
+    ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
+        # This currently only gets called for the monotonic increasing case
+        if not isinstance(other, type(self)):
+            maybe_ri = self._shallow_copy(other._values)
+            if not isinstance(maybe_ri, type(self)):
+                return super()._join_monotonic(other, how=how)
+            other = maybe_ri
+
+        if self.equals(other):
+            ret_index = other if how == "right" else self
+            return ret_index, None, None
+
+        if how == "left":
+            join_index = self
+            lidx = None
+            ridx = join_index.get_indexer(other)
+        elif how == "right":
+            join_index = other
+            lidx = join_index.get_indexer(self)
+            ridx = None
+        elif how == "inner":
+            join_index = self.intersection(other)
+            lidx = self.get_indexer(join_index)
+            ridx = other.get_indexer(join_index)
+        elif how == "outer":
+            join_index = self.union(other)
+            lidx = self.get_indexer(join_index)
+            ridx = other.get_indexer(join_index)
+
+        lidx = None if lidx is None else ensure_platform_int(lidx)
+        ridx = None if ridx is None else ensure_platform_int(ridx)
+        return join_index, lidx, ridx
 
     # --------------------------------------------------------------------
 
