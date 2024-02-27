@@ -492,9 +492,9 @@ def test_binops(request, args, annotate, all_binary_operators):
     ]
     if is_cmp and isinstance(left, pd.DataFrame) and isinstance(right, pd.Series):
         # in 2.0 silent alignment on comparisons was removed xref GH#28759
-        left, right = left.align(right, axis=1, copy=False)
+        left, right = left.align(right, axis=1)
     elif is_cmp and isinstance(left, pd.Series) and isinstance(right, pd.DataFrame):
-        right, left = right.align(left, axis=1, copy=False)
+        right, left = right.align(left, axis=1)
 
     result = all_binary_operators(left, right)
     assert result.attrs == {"a": 1}
