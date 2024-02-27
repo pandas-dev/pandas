@@ -164,7 +164,7 @@ def pytest_collection_modifyitems(items, config) -> None:
         ),
         (
             "to_pytimedelta",
-            "The behavior of DatetimeProperties.to_pytimedelta is deprecated",
+            "The behavior of TimedeltaProperties.to_pytimedelta is deprecated",
         ),
         (
             "pandas.core.generic.NDFrame.first",
