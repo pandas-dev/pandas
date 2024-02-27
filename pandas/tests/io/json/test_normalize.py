@@ -526,8 +526,8 @@ class TestJSONNormalize:
         test_input = {"state": "Texas", "info": parsed_value}
         test_path = "info"
         msg = (
-            f"{test_input} has non list value {parsed_value} for path {test_path}. "
-            "Must be list or null."
+            f"Path must contain list or null, "
+            f"but got {type(parsed_value).__name__} at 'info'"
         )
         with pytest.raises(TypeError, match=msg):
             json_normalize([test_input], record_path=[test_path])
@@ -560,6 +560,14 @@ class TestJSONNormalize:
         expected = DataFrame([[4, 10, 0]], columns=["gg", "_id_a1", "_id_l2_l3"])
 
         tm.assert_frame_equal(result, expected)
+
+    def test_series_index(self, state_data):
+        idx = Index([7, 8])
+        series = Series(state_data, index=idx)
+        result = json_normalize(series)
+        tm.assert_index_equal(result.index, idx)
+        result = json_normalize(series, "counties")
+        tm.assert_index_equal(result.index, idx.repeat([3, 2]))
 
 
 class TestNestedToRecord:
@@ -891,6 +899,7 @@ class TestNestedToRecord:
                 "elements.a": [1.0, np.nan, np.nan],
                 "elements.b": [np.nan, 2.0, np.nan],
                 "elements.c": [np.nan, np.nan, 3.0],
-            }
+            },
+            index=[1, 2, 3],
         )
         tm.assert_frame_equal(result, expected)

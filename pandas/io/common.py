@@ -286,7 +286,7 @@ def urlopen(*args, **kwargs):
     """
     import urllib.request
 
-    return urllib.request.urlopen(*args, **kwargs)
+    return urllib.request.urlopen(*args, **kwargs)  # noqa: TID251
 
 
 def is_fsspec_url(url: FilePath | BaseBuffer) -> bool:
@@ -318,7 +318,7 @@ def _get_filepath_or_buffer(
 
     Parameters
     ----------
-    filepath_or_buffer : a url, filepath (str, py.path.local or pathlib.Path),
+    filepath_or_buffer : a url, filepath (str or pathlib.Path),
                          or buffer
     {compression_options}
 

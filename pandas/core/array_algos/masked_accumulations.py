@@ -60,10 +60,10 @@ def _cum_func(
             np.cumsum: 0,
             np.minimum.accumulate: dtype_info.max,
         }[func]
-    except KeyError:
+    except KeyError as err:
         raise NotImplementedError(
             f"No accumulation for {func} implemented on BaseMaskedArray"
-        )
+        ) from err
 
     values[mask] = fill_value
 

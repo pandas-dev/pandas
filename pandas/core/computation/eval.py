@@ -4,7 +4,10 @@ Top level ``eval`` module.
 from __future__ import annotations
 
 import tokenize
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import warnings
 
 from pandas.util._exceptions import find_stack_level
@@ -177,7 +180,7 @@ def eval(
     level: int = 0,
     target=None,
     inplace: bool = False,
-):
+) -> Any:
     """
     Evaluate a Python expression as a string using various backends.
 
@@ -375,7 +378,7 @@ def eval(
                 try:
                     target = env.target
                     if isinstance(target, NDFrame):
-                        target = target.copy(deep=None)
+                        target = target.copy(deep=False)
                     else:
                         target = target.copy()
                 except AttributeError as err:
@@ -391,7 +394,7 @@ def eval(
                 if inplace and isinstance(target, NDFrame):
                     target.loc[:, assigner] = ret
                 else:
-                    target[assigner] = ret  # pyright: ignore[reportGeneralTypeIssues]
+                    target[assigner] = ret  # pyright: ignore[reportIndexIssue]
             except (TypeError, IndexError) as err:
                 raise ValueError("Cannot assign expression output to target") from err
 

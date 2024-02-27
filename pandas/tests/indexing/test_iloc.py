@@ -105,9 +105,7 @@ class TestiLocBaseIndependent:
         expected = DataFrame({0: Series(cat.astype(object), dtype=object), 1: range(3)})
         tm.assert_frame_equal(df, expected)
 
-    def test_iloc_setitem_ea_inplace(
-        self, frame_or_series, index_or_series_or_array, using_copy_on_write
-    ):
+    def test_iloc_setitem_ea_inplace(self, frame_or_series, index_or_series_or_array):
         # GH#38952 Case with not setting a full column
         #  IntegerArray without NAs
         arr = array([1, 2, 3, 4])
@@ -128,11 +126,8 @@ class TestiLocBaseIndependent:
 
         # Check that we are actually in-place
         if frame_or_series is Series:
-            if using_copy_on_write:
-                assert obj.values is not values
-                assert np.shares_memory(obj.values, values)
-            else:
-                assert obj.values is values
+            assert obj.values is not values
+            assert np.shares_memory(obj.values, values)
         else:
             assert np.shares_memory(obj[0].values, values)
 
@@ -428,7 +423,7 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df.iloc[10:, :2], df2)
         tm.assert_frame_equal(df.iloc[10:, 2:], df1)
 
-    def test_iloc_setitem(self, warn_copy_on_write):
+    def test_iloc_setitem(self):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((4, 4)),
             index=np.arange(0, 8, 2),
@@ -534,7 +529,8 @@ class TestiLocBaseIndependent:
 
         # if the assigned values cannot be held by existing integer arrays,
         #  we cast
-        df.iloc[:, 0] = df.iloc[:, 0] + 0.5
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            df.iloc[:, 0] = df.iloc[:, 0] + 0.5
         assert len(df._mgr.blocks) == 2
 
         expected = df.copy()
@@ -842,9 +838,7 @@ class TestiLocBaseIndependent:
             df.iloc[[]], df.iloc[:0, :], check_index_type=True, check_column_type=True
         )
 
-    def test_identity_slice_returns_new_object(
-        self, using_copy_on_write, warn_copy_on_write
-    ):
+    def test_identity_slice_returns_new_object(self):
         # GH13873
         original_df = DataFrame({"a": [1, 2, 3]})
         sliced_df = original_df.iloc[:]
@@ -855,25 +849,17 @@ class TestiLocBaseIndependent:
 
         # Setting using .loc[:, "a"] sets inplace so alters both sliced and orig
         # depending on CoW
-        with tm.assert_cow_warning(warn_copy_on_write):
-            original_df.loc[:, "a"] = [4, 4, 4]
-        if using_copy_on_write:
-            assert (sliced_df["a"] == [1, 2, 3]).all()
-        else:
-            assert (sliced_df["a"] == 4).all()
+        original_df.loc[:, "a"] = [4, 4, 4]
+        assert (sliced_df["a"] == [1, 2, 3]).all()
 
         original_series = Series([1, 2, 3, 4, 5, 6])
         sliced_series = original_series.iloc[:]
         assert sliced_series is not original_series
 
         # should also be a shallow copy
-        with tm.assert_cow_warning(warn_copy_on_write):
-            original_series[:3] = [7, 8, 9]
-        if using_copy_on_write:
-            # shallow copy not updated (CoW)
-            assert all(sliced_series[:3] == [1, 2, 3])
-        else:
-            assert all(sliced_series[:3] == [7, 8, 9])
+        original_series[:3] = [7, 8, 9]
+        # shallow copy not updated (CoW)
+        assert all(sliced_series[:3] == [1, 2, 3])
 
     def test_indexing_zerodim_np_array(self):
         # GH24919
@@ -1232,9 +1218,7 @@ class TestiLocBaseIndependent:
 class TestILocErrors:
     # NB: this test should work for _any_ Series we can pass as
     #  series_with_simple_index
-    def test_iloc_float_raises(
-        self, series_with_simple_index, frame_or_series, warn_copy_on_write
-    ):
+    def test_iloc_float_raises(self, series_with_simple_index, frame_or_series):
         # GH#4892
         # float_indexers should raise exceptions
         # on appropriate Index types & accessors
@@ -1251,10 +1235,7 @@ class TestILocErrors:
             obj.iloc[3.0]
 
         with pytest.raises(IndexError, match=_slice_iloc_msg):
-            with tm.assert_cow_warning(
-                warn_copy_on_write and frame_or_series is DataFrame
-            ):
-                obj.iloc[3.0] = 0
+            obj.iloc[3.0] = 0
 
     def test_iloc_getitem_setitem_fancy_exceptions(self, float_frame):
         with pytest.raises(IndexingError, match="Too many indexers"):
@@ -1422,7 +1403,7 @@ class TestILocCallable:
 
 
 class TestILocSeries:
-    def test_iloc(self, using_copy_on_write, warn_copy_on_write):
+    def test_iloc(self):
         ser = Series(
             np.random.default_rng(2).standard_normal(10), index=list(range(0, 20, 2))
         )
@@ -1441,12 +1422,8 @@ class TestILocSeries:
         # test slice is a view
         with tm.assert_produces_warning(None):
             # GH#45324 make sure we aren't giving a spurious FutureWarning
-            with tm.assert_cow_warning(warn_copy_on_write):
-                result[:] = 0
-        if using_copy_on_write:
-            tm.assert_series_equal(ser, ser_original)
-        else:
-            assert (ser.iloc[1:3] == 0).all()
+            result[:] = 0
+        tm.assert_series_equal(ser, ser_original)
 
         # list of integers
         result = ser.iloc[[0, 2, 3, 4, 5]]
@@ -1468,6 +1445,7 @@ class TestILocSeries:
     def test_iloc_nullable_int64_size_1_nan(self):
         # GH 31861
         result = DataFrame({"a": ["test"], "b": [np.nan]})
-        result.loc[:, "b"] = result.loc[:, "b"].astype("Int64")
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            result.loc[:, "b"] = result.loc[:, "b"].astype("Int64")
         expected = DataFrame({"a": ["test"], "b": array([NA], dtype="Int64")})
         tm.assert_frame_equal(result, expected)

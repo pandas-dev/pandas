@@ -46,6 +46,8 @@ def test_dask(df):
         pd.set_option("compute.use_numexpr", olduse)
 
 
+# TODO(CoW) see https://github.com/pandas-dev/pandas/pull/51082
+@pytest.mark.skip(reason="not implemented with CoW")
 def test_dask_ufunc():
     # dask sets "compute.use_numexpr" to False, so catch the current value
     # and ensure to reset it afterwards to avoid impacting other tests
@@ -58,8 +60,8 @@ def test_dask_ufunc():
         s = Series([1.5, 2.3, 3.7, 4.0])
         ds = dd.from_pandas(s, npartitions=2)
 
-        result = da.fix(ds).compute()
-        expected = np.fix(s)
+        result = da.log(ds).compute()
+        expected = np.log(s)
         tm.assert_series_equal(result, expected)
     finally:
         pd.set_option("compute.use_numexpr", olduse)
@@ -153,7 +155,7 @@ def test_scikit_learn():
     clf.predict(digits.data[-1:])
 
 
-def test_seaborn():
+def test_seaborn(mpl_cleanup):
     seaborn = pytest.importorskip("seaborn")
     tips = DataFrame(
         {"day": pd.date_range("2023", freq="D", periods=5), "total_bill": range(5)}
@@ -302,25 +304,6 @@ def test_from_obscure_array(dtype, box):
     result = idx_cls(arr)
     expected = idx_cls(data)
     tm.assert_index_equal(result, expected)
-
-
-def test_dataframe_consortium() -> None:
-    """
-    Test some basic methods of the dataframe consortium standard.
-
-    Full testing is done at https://github.com/data-apis/dataframe-api-compat,
-    this is just to check that the entry point works as expected.
-    """
-    pytest.importorskip("dataframe_api_compat")
-    df_pd = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    df = df_pd.__dataframe_consortium_standard__()
-    result_1 = df.get_column_names()
-    expected_1 = ["a", "b"]
-    assert result_1 == expected_1
-
-    ser = Series([1, 2, 3], name="a")
-    col = ser.__column_consortium_standard__()
-    assert col.name == "a"
 
 
 def test_xarray_coerce_unit():

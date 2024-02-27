@@ -60,15 +60,15 @@ class TestDataFrameRenameAxis:
 
         # Test for renaming index using dict
         result = df.rename_axis(index={"ll": "foo"})
-        assert result.index.names == ["foo", "nn"]
+        assert result.index.names == ("foo", "nn")
 
         # Test for renaming index using a function
         result = df.rename_axis(index=str.upper, axis=0)
-        assert result.index.names == ["LL", "NN"]
+        assert result.index.names == ("LL", "NN")
 
         # Test for renaming index providing complete list
         result = df.rename_axis(index=["foo", "goo"])
-        assert result.index.names == ["foo", "goo"]
+        assert result.index.names == ("foo", "goo")
 
         # Test for changing index and columns at same time
         sdf = df.reset_index().set_index("nn").drop(columns=["ll", "y"])

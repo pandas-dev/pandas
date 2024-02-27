@@ -323,7 +323,6 @@ moved_api_pages = [
     ("pandas.io.clipboard.read_clipboard", "pandas.read_clipboard"),
     ("pandas.io.excel.ExcelFile.parse", "pandas.ExcelFile.parse"),
     ("pandas.io.excel.read_excel", "pandas.read_excel"),
-    ("pandas.io.gbq.read_gbq", "pandas.read_gbq"),
     ("pandas.io.html.read_html", "pandas.read_html"),
     ("pandas.io.json.read_json", "pandas.read_json"),
     ("pandas.io.parsers.read_csv", "pandas.read_csv"),
@@ -432,7 +431,7 @@ latex_documents = [
         "index",
         "pandas.tex",
         "pandas: powerful Python data analysis toolkit",
-        "Wes McKinney and the Pandas Development Team",
+        "Wes McKinney and the pandas Development Team",
         "manual",
     )
 ]
@@ -460,7 +459,6 @@ if include_api:
         "dateutil": ("https://dateutil.readthedocs.io/en/latest/", None),
         "matplotlib": ("https://matplotlib.org/stable/", None),
         "numpy": ("https://numpy.org/doc/stable/", None),
-        "py": ("https://pylib.readthedocs.io/en/latest/", None),
         "python": ("https://docs.python.org/3/", None),
         "scipy": ("https://docs.scipy.org/doc/scipy/", None),
         "pyarrow": ("https://arrow.apache.org/docs/", None),
@@ -813,8 +811,6 @@ linkcheck_ignore = [
         for link in [
             "http://scatterci.github.io/pydata/pandas",
             "http://specs.frictionlessdata.io/json-table-schema/",
-            "https://cloud.google.com/bigquery/docs/access-control#roles",
-            "https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query",
             "https://crates.io/crates/calamine",
             "https://devguide.python.org/setup/#macos",
             "https://en.wikipedia.org/wiki/Imputation_statistics",
@@ -830,7 +826,6 @@ linkcheck_ignore = [
             "https://nipunbatra.github.io/blog/visualisation/2013/05/01/aggregation-timeseries.html",
             "https://nbviewer.ipython.org/gist/metakermit/5720498",
             "https://numpy.org/doc/stable/user/basics.byteswapping.html",
-            "https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-8-0",
             "https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking",
             "https://pandas.pydata.org/pandas-docs/stable/ecosystem.html",
             "https://sqlalchemy.readthedocs.io/en/latest/dialects/index.html",

@@ -9,7 +9,7 @@ from pandas.compat import (
     is_ci_environment,
     is_platform_windows,
 )
-from pandas.compat.numpy import np_version_lt1p23
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -163,8 +163,6 @@ def test_missing_from_masked():
         }
     )
 
-    df2 = df.__dataframe__()
-
     rng = np.random.default_rng(2)
     dict_null = {col: rng.integers(low=0, high=len(df)) for col in df.columns}
     for col, num_nulls in dict_null.items():
@@ -261,7 +259,6 @@ def test_datetime():
     tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
 
 
-@pytest.mark.skipif(np_version_lt1p23, reason="Numpy > 1.23 required")
 def test_categorical_to_numpy_dlpack():
     # https://github.com/pandas-dev/pandas/issues/48393
     df = pd.DataFrame({"A": pd.Categorical(["a", "b", "a"])})
@@ -294,6 +291,30 @@ def test_multi_chunk_pyarrow() -> None:
         "forbidden by allow_copy=False",
     ):
         pd.api.interchange.from_dataframe(table, allow_copy=False)
+
+
+def test_timestamp_ns_pyarrow():
+    # GH 56712
+    pytest.importorskip("pyarrow", "11.0.0")
+    timestamp_args = {
+        "year": 2000,
+        "month": 1,
+        "day": 1,
+        "hour": 1,
+        "minute": 1,
+        "second": 1,
+    }
+    df = pd.Series(
+        [datetime(**timestamp_args)],
+        dtype="timestamp[ns][pyarrow]",
+        name="col0",
+    ).to_frame()
+
+    dfi = df.__dataframe__()
+    result = pd.api.interchange.from_dataframe(dfi)["col0"].item()
+
+    expected = pd.Timestamp(**timestamp_args)
+    assert result == expected
 
 
 @pytest.mark.parametrize("tz", ["UTC", "US/Pacific"])
@@ -381,3 +402,109 @@ def test_interchange_from_corrected_buffer_dtypes(monkeypatch) -> None:
     interchange.get_column_by_name = lambda _: column
     monkeypatch.setattr(df, "__dataframe__", lambda allow_copy: interchange)
     pd.api.interchange.from_dataframe(df)
+
+
+def test_empty_string_column():
+    # https://github.com/pandas-dev/pandas/issues/56703
+    df = pd.DataFrame({"a": []}, dtype=str)
+    df2 = df.__dataframe__()
+    result = pd.api.interchange.from_dataframe(df2)
+    tm.assert_frame_equal(df, result)
+
+
+def test_large_string():
+    # GH#56702
+    pytest.importorskip("pyarrow")
+    df = pd.DataFrame({"a": ["x"]}, dtype="large_string[pyarrow]")
+    result = pd.api.interchange.from_dataframe(df.__dataframe__())
+    expected = pd.DataFrame({"a": ["x"]}, dtype="object")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_non_str_names():
+    # https://github.com/pandas-dev/pandas/issues/56701
+    df = pd.Series([1, 2, 3], name=0).to_frame()
+    names = df.__dataframe__().column_names()
+    assert names == ["0"]
+
+
+def test_non_str_names_w_duplicates():
+    # https://github.com/pandas-dev/pandas/issues/56701
+    df = pd.DataFrame({"0": [1, 2, 3], 0: [4, 5, 6]})
+    dfi = df.__dataframe__()
+    with pytest.raises(
+        TypeError,
+        match=(
+            "Expected a Series, got a DataFrame. This likely happened because you "
+            "called __dataframe__ on a DataFrame which, after converting column "
+            r"names to string, resulted in duplicated names: Index\(\['0', '0'\], "
+            r"dtype='object'\). Please rename these columns before using the "
+            "interchange protocol."
+        ),
+    ):
+        pd.api.interchange.from_dataframe(dfi, allow_copy=False)
+
+
+@pytest.mark.parametrize(
+    "dtype", ["Int8", pytest.param("Int8[pyarrow]", marks=td.skip_if_no("pyarrow"))]
+)
+def test_nullable_integers(dtype: str) -> None:
+    # https://github.com/pandas-dev/pandas/issues/55069
+    df = pd.DataFrame({"a": [1]}, dtype=dtype)
+    expected = pd.DataFrame({"a": [1]}, dtype="int8")
+    result = pd.api.interchange.from_dataframe(df.__dataframe__())
+    tm.assert_frame_equal(result, expected)
+
+
+def test_empty_dataframe():
+    # https://github.com/pandas-dev/pandas/issues/56700
+    df = pd.DataFrame({"a": []}, dtype="int8")
+    dfi = df.__dataframe__()
+    result = pd.api.interchange.from_dataframe(dfi, allow_copy=False)
+    expected = pd.DataFrame({"a": []}, dtype="int8")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("data", "expected_dtype", "expected_buffer_dtype"),
+    [
+        (
+            pd.Series(["a", "b", "a"], dtype="category"),
+            (DtypeKind.CATEGORICAL, 8, "c", "="),
+            (DtypeKind.INT, 8, "c", "|"),
+        ),
+        (
+            pd.Series(
+                [datetime(2022, 1, 1), datetime(2022, 1, 2), datetime(2022, 1, 3)]
+            ),
+            (DtypeKind.DATETIME, 64, "tsn:", "="),
+            (DtypeKind.INT, 64, ArrowCTypes.INT64, "="),
+        ),
+        (
+            pd.Series(["a", "bc", None]),
+            (DtypeKind.STRING, 8, ArrowCTypes.STRING, "="),
+            (DtypeKind.UINT, 8, ArrowCTypes.UINT8, "="),
+        ),
+        (
+            pd.Series([1, 2, 3]),
+            (DtypeKind.INT, 64, ArrowCTypes.INT64, "="),
+            (DtypeKind.INT, 64, ArrowCTypes.INT64, "="),
+        ),
+        (
+            pd.Series([1.5, 2, 3]),
+            (DtypeKind.FLOAT, 64, ArrowCTypes.FLOAT64, "="),
+            (DtypeKind.FLOAT, 64, ArrowCTypes.FLOAT64, "="),
+        ),
+    ],
+)
+def test_buffer_dtype_categorical(
+    data: pd.Series,
+    expected_dtype: tuple[DtypeKind, int, str, str],
+    expected_buffer_dtype: tuple[DtypeKind, int, str, str],
+) -> None:
+    # https://github.com/pandas-dev/pandas/issues/54781
+    df = pd.DataFrame({"data": data})
+    dfi = df.__dataframe__()
+    col = dfi.get_column_by_name("data")
+    assert col.dtype == expected_dtype
+    assert col.get_buffers()["data"][1] == expected_buffer_dtype
