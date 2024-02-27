@@ -1078,6 +1078,29 @@ class MultiIndex(Index):
 
     @property
     def codes(self) -> tuple:
+        """
+        Codes of the MultiIndex.
+
+        Codes are the position of the index value in the list of level values
+        for each level.
+
+        Returns
+        -------
+        tuple of numpy.ndarray
+            The codes of the MultiIndex. Each array in the tuple corresponds
+            to a level in the MultiIndex.
+
+        See Also
+        --------
+        MultiIndex.set_codes : Set new codes on MultiIndex.
+
+        Examples
+        --------
+        >>> arrays = [[1, 1, 2, 2], ["red", "blue", "red", "blue"]]
+        >>> mi = pd.MultiIndex.from_arrays(arrays, names=("number", "color"))
+        >>> mi.codes
+        (array([0, 0, 1, 1], dtype=int8), array([1, 0, 1, 0], dtype=int8))
+        """
         return self._codes
 
     def _set_codes(

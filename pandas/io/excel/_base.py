@@ -1630,6 +1630,29 @@ class ExcelFile:
 
     @property
     def sheet_names(self):
+        """
+        Names of the sheets in the document.
+
+        This is particularly useful for loading a specific sheet into a DataFrame when
+        you do not know the sheet names beforehand.
+
+        Returns
+        -------
+        list of str
+            List of sheet names in the document.
+
+        See Also
+        --------
+        ExcelFile.parse : Parse a sheet into a DataFrame.
+        read_excel : Read an Excel file into a pandas DataFrame. If you know the sheet
+            names, it may be easier to specify them directly to read_excel.
+
+        Examples
+        --------
+        >>> file = pd.ExcelFile("myfile.xlsx")  # doctest: +SKIP
+        >>> file.sheet_names  # doctest: +SKIP
+        ["Sheet1", "Sheet2"]
+        """
         return self._reader.sheet_names
 
     def close(self) -> None:
