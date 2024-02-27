@@ -92,7 +92,7 @@ API changes
 
   .. code-block:: ipython
 
-     In [4]: gr.apply(sum)
+     In [4]: gr.apply("sum")
      Out[4]:
             joe
      jim
@@ -102,9 +102,8 @@ API changes
   current behavior:
 
   .. ipython:: python
-     :okwarning:
 
-     gr.apply(sum)
+     gr.apply("sum")
 
 - Support for slicing with monotonic decreasing indexes, even if ``start`` or ``stop`` is
   not found in the index (:issue:`7860`):

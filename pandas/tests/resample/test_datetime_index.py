@@ -1900,9 +1900,7 @@ def test_resample_apply_product(duplicates, unit):
     if duplicates:
         df.columns = ["A", "A"]
 
-    msg = "using DatetimeIndexResampler.prod"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.resample("QE").apply(np.prod)
+    result = df.resample("QE").apply(np.prod)
     expected = DataFrame(
         np.array([[0, 24], [60, 210], [336, 720], [990, 1716]], dtype=np.int64),
         index=DatetimeIndex(
