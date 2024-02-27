@@ -1177,17 +1177,14 @@ def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
 
     # Check output when no other methods are called before .apply()
     grp = df.groupby(by="a")
-    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
-        result = grp.apply(sum, include_groups=False)
+    result = grp.apply(np.sum, axis=0, include_groups=False)
     tm.assert_frame_equal(result, expected)
 
     # Check output when another method is called before .apply()
     grp = df.groupby(by="a")
     args = get_groupby_method_args(reduction_func, df)
     _ = getattr(grp, reduction_func)(*args)
-    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
-        result = grp.apply(sum, include_groups=False)
+    result = grp.apply(np.sum, axis=0, include_groups=False)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1503,46 +1500,16 @@ def test_include_groups(include_groups):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("f", [max, min, sum])
-@pytest.mark.parametrize("keys", ["jim", ["jim", "joe"]])  # Single key  # Multi-key
-def test_builtins_apply(keys, f):
-    # see gh-8155
-    rs = np.random.default_rng(2)
-    df = DataFrame(rs.integers(1, 7, (10, 2)), columns=["jim", "joe"])
-    df["jolie"] = rs.standard_normal(10)
+@pytest.mark.parametrize("func, value", [(max, 2), (min, 1), (sum, 3)])
+def test_builtins_apply(func, value):
+    # GH#8155, GH#53974
+    # Builtins act as e.g. sum(group), which sums the column labels of group
+    df = DataFrame({0: [1, 1, 2], 1: [3, 4, 5], 2: [3, 4, 5]})
+    gb = df.groupby(0)
+    result = gb.apply(func, include_groups=False)
 
-    gb = df.groupby(keys)
-
-    fname = f.__name__
-
-    warn = None if f is not sum else FutureWarning
-    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
-    with tm.assert_produces_warning(
-        warn, match=msg, check_stacklevel=False, raise_on_extra_warnings=False
-    ):
-        # Also warns on deprecation GH#53425
-        result = gb.apply(f)
-    ngroups = len(df.drop_duplicates(subset=keys))
-
-    assert_msg = f"invalid frame shape: {result.shape} (expected ({ngroups}, 3))"
-    assert result.shape == (ngroups, 3), assert_msg
-
-    npfunc = lambda x: getattr(np, fname)(x, axis=0)  # numpy's equivalent function
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        expected = gb.apply(npfunc)
-    tm.assert_frame_equal(result, expected)
-
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        expected2 = gb.apply(lambda x: npfunc(x))
-    tm.assert_frame_equal(result, expected2)
-
-    if f != sum:
-        expected = gb.agg(fname).reset_index()
-        expected.set_index(keys, inplace=True, drop=False)
-        tm.assert_frame_equal(result, expected, check_dtype=False)
-
-    tm.assert_series_equal(getattr(result, fname)(axis=0), getattr(df, fname)(axis=0))
+    expected = Series([value, value], index=Index([1, 2], name=0))
+    tm.assert_series_equal(result, expected)
 
 
 def test_inconsistent_return_type():

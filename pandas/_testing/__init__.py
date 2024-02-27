@@ -398,9 +398,6 @@ def external_error_raised(expected_exception: type[Exception]) -> ContextManager
     return pytest.raises(expected_exception, match=None)
 
 
-cython_table = pd.core.common._cython_table.items()
-
-
 def get_cython_table_params(ndframe, func_names_and_expected):
     """
     Combine frame, functions from com._cython_table
@@ -421,11 +418,6 @@ def get_cython_table_params(ndframe, func_names_and_expected):
     results = []
     for func_name, expected in func_names_and_expected:
         results.append((ndframe, func_name, expected))
-        results += [
-            (ndframe, func, expected)
-            for func, name in cython_table
-            if name == func_name
-        ]
     return results
 
 

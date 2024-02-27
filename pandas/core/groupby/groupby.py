@@ -94,7 +94,6 @@ from pandas.core import (
     sample,
 )
 from pandas.core._numba import executor
-from pandas.core.apply import warn_alias_replacement
 from pandas.core.arrays import (
     ArrowExtensionArray,
     BaseMaskedArray,
@@ -1647,12 +1646,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         b    2
         dtype: int64
         """
-        orig_func = func
-        func = com.is_builtin_func(func)
-        if orig_func != func:
-            alias = com._builtin_table_alias[orig_func]
-            warn_alias_replacement(self, orig_func, alias)
-
         if isinstance(func, str):
             if hasattr(self, func):
                 res = getattr(self, func)
@@ -1868,11 +1861,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def _transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
         # optimized transforms
-        orig_func = func
-        func = com.get_cython_func(func) or func
-        if orig_func != func:
-            warn_alias_replacement(self, orig_func, func)
-
         if not isinstance(func, str):
             return self._transform_general(func, engine, engine_kwargs, *args, **kwargs)
 

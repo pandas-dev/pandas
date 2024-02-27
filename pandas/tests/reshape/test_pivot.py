@@ -11,6 +11,8 @@ import pytest
 
 from pandas._config import using_pyarrow_string_dtype
 
+from pandas.compat.numpy import np_version_gte1p25
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -2059,10 +2061,10 @@ class TestPivotTable:
         [
             ("sum", np.sum),
             ("mean", np.mean),
-            ("std", np.std),
+            ("min", np.min),
             (["sum", "mean"], [np.sum, np.mean]),
-            (["sum", "std"], [np.sum, np.std]),
-            (["std", "mean"], [np.std, np.mean]),
+            (["sum", "min"], [np.sum, np.min]),
+            (["max", "mean"], [np.max, np.mean]),
         ],
     )
     def test_pivot_string_func_vs_func(self, f, f_numpy, data):
@@ -2070,10 +2072,14 @@ class TestPivotTable:
         # for consistency purposes
         data = data.drop(columns="C")
         result = pivot_table(data, index="A", columns="B", aggfunc=f)
-        ops = "|".join(f) if isinstance(f, list) else f
-        msg = f"using DataFrameGroupBy.[{ops}]"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = pivot_table(data, index="A", columns="B", aggfunc=f_numpy)
+        expected = pivot_table(data, index="A", columns="B", aggfunc=f_numpy)
+
+        if not np_version_gte1p25 and isinstance(f_numpy, list):
+            # Prior to 1.25, np.min/np.max would come through as amin and amax
+            mapper = {"amin": "min", "amax": "max", "sum": "sum", "mean": "mean"}
+            expected.columns = expected.columns.map(
+                lambda x: (mapper[x[0]], x[1], x[2])
+            )
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow
