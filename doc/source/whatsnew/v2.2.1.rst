@@ -19,6 +19,7 @@ Enhancements
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- :meth:`DataFrame.__dataframe__` was producing incorrect data buffers when the a column's type was a pandas nullable on with missing values (:issue:`56702`)
 - Fixed memory leak in :func:`read_csv` (:issue:`57039`)
 - Fixed performance regression in :meth:`Series.combine_first` (:issue:`55845`)
 - Fixed regression causing overflow for near-minimum timestamps (:issue:`57150`)
