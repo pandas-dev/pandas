@@ -1490,10 +1490,13 @@ class _LocIndexer(_LocationIndexer):
 
             # if we are a label return me
             try:
-                label = labels.get_loc(key)
-                if label.all():
+                label= labels.get_loc(key)
+                if isinstance(label, np.ndarray):
+                    if label.all():
+                        return label
+                if isinstance(label, int) and label:
                     return label
-                return {"key":key}
+                return {"key": key}
             except LookupError:
                 if isinstance(key, tuple) and isinstance(labels, MultiIndex):
                     if len(key) == labels.nlevels:
