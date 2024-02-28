@@ -906,10 +906,10 @@ class RangeIndex(Index):
         if how == "left":
             join_index = self
             lidx = None
-            ridx = join_index.get_indexer(other)
+            ridx = other.get_indexer(join_index)
         elif how == "right":
             join_index = other
-            lidx = join_index.get_indexer(self)
+            lidx = self.get_indexer(join_index)
             ridx = None
         elif how == "inner":
             join_index = self.intersection(other)

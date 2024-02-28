@@ -181,10 +181,10 @@ class TestJoin:
 @pytest.mark.parametrize(
     "left, right, expected, expected_lidx, expected_ridx, how",
     [
-        [RangeIndex(2), RangeIndex(3), RangeIndex(2), None, [0, 1, -1], "left"],
+        [RangeIndex(2), RangeIndex(3), RangeIndex(2), None, [0, 1], "left"],
         [RangeIndex(2), RangeIndex(2), RangeIndex(2), None, None, "left"],
         [RangeIndex(2), RangeIndex(20, 22), RangeIndex(2), None, [-1, -1], "left"],
-        [RangeIndex(2), RangeIndex(3), RangeIndex(3), [0, 1], None, "right"],
+        [RangeIndex(2), RangeIndex(3), RangeIndex(3), [0, 1, -1], None, "right"],
         [RangeIndex(2), RangeIndex(2), RangeIndex(2), None, None, "right"],
         [
             RangeIndex(2),
