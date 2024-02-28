@@ -25,7 +25,6 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas._typing import NDFrameT
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
@@ -38,7 +37,10 @@ from pandas.util._exceptions import (
     rewrite_warning,
 )
 
-from pandas.core.dtypes.dtypes import ArrowDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    PeriodDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -2650,7 +2652,7 @@ def asfreq(
 
         if isinstance(freq, BaseOffset):
             if hasattr(freq, "_period_dtype_code"):
-                freq = freq_to_period_freqstr(freq.n, freq.name)
+                freq = PeriodDtype(freq)._freqstr
 
         new_obj = obj.copy()
         new_obj.index = obj.index.asfreq(freq, how=how)

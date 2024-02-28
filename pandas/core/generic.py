@@ -34,7 +34,6 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas._typing import (
     AlignJoin,
     AnyArrayLike,
@@ -123,6 +122,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
+    PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -10358,9 +10358,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if freq != orig_freq:
                 assert orig_freq is not None  # for mypy
                 raise ValueError(
-                    f"Given freq {freq_to_period_freqstr(freq.n, freq.name)} "
+                    f"Given freq {PeriodDtype(freq)._freqstr} "
                     f"does not match PeriodIndex freq "
-                    f"{freq_to_period_freqstr(orig_freq.n, orig_freq.name)}"
+                    f"{PeriodDtype(orig_freq)._freqstr}"
                 )
             new_ax: Index = index.shift(periods)
         else:

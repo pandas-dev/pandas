@@ -14,7 +14,8 @@ from pandas._libs.tslibs import (
     BaseOffset,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
+
+from pandas.core.dtypes.dtypes import PeriodDtype
 
 from pandas import (
     DataFrame,
@@ -239,8 +240,7 @@ class TestTSPlot:
             index=idx,
             columns=["A", "B", "C"],
         )
-        freq = freq_to_period_freqstr(1, df.index.freq.rule_code)
-        freq = df.index.asfreq(freq).freq
+        freq = df.index.freq.rule_code
         _check_plot_works(df.plot, freq)
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
@@ -254,7 +254,7 @@ class TestTSPlot:
             index=idx,
             columns=["A", "B", "C"],
         )
-        freq = freq_to_period_freqstr(1, df.index.freq.rule_code)
+        freq = PeriodDtype(df.index.freq)._freqstr
         freq = df.index.to_period(freq).freq
         _check_plot_works(df.plot, freq)
 
