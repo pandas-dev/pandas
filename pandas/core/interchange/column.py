@@ -304,11 +304,11 @@ class PandasColumn(Column):
         ):
             arr = self._col.array
             if isinstance(self._col.dtype, BaseMaskedDtype):
-                np_arr = arr._data
+                np_arr = arr._data  # type: ignore[attr-defined]
             elif isinstance(self._col.dtype, ArrowDtype):
                 raise NotImplementedError("ArrowDtype not handled yet")
             else:
-                np_arr = arr._ndarray
+                np_arr = arr._ndarray  # type: ignore[attr-defined]
             buffer = PandasBuffer(np_arr, allow_copy=self._allow_copy)
             dtype = self.dtype
         elif self.dtype[0] == DtypeKind.CATEGORICAL:
@@ -352,7 +352,7 @@ class PandasColumn(Column):
         null, invalid = self.describe_null
 
         if isinstance(self._col.dtype, BaseMaskedDtype):
-            mask = self._col.array._mask
+            mask = self._col.array._mask  # type: ignore[attr-defined]
             buffer = PandasBuffer(mask)
             dtype = (DtypeKind.BOOL, 8, ArrowCTypes.BOOL, Endianness.NATIVE)
             return buffer, dtype
