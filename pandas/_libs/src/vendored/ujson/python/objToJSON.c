@@ -74,7 +74,6 @@ typedef struct __NpyArrContext {
   npy_intp ndim;
   npy_intp index[NPY_MAXDIMS];
   int type_num;
-  PyArray_GetItemFunc *getitem;
 
   char **rowLabels;
   char **columnLabels;
