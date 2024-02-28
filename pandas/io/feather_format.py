@@ -104,6 +104,7 @@ def read_feather(
     Returns
     -------
     type of object stored in file
+        DataFrame object stored in the file.
 
     Examples
     --------
