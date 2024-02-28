@@ -162,9 +162,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.dt.qyear\
         pandas.Series.dt.unit\
         pandas.Series.empty\
-        pandas.Timedelta.microseconds\
-        pandas.Timedelta.unit\
-        pandas.Timedelta.value\
         pandas.Timestamp.day\
         pandas.Timestamp.fold\
         pandas.Timestamp.hour\
