@@ -1490,7 +1490,7 @@ class _LocIndexer(_LocationIndexer):
 
             # if we are a label return me
             try:
-                label= labels.get_loc(key)
+                label = labels.get_loc(key)
                 if isinstance(label, np.ndarray):
                     if label.all():
                         return label
