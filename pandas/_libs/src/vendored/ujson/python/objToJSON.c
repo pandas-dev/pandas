@@ -405,7 +405,6 @@ static void NpyArr_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
   }
 
   npyarr->array = (PyObject *)obj;
-  npyarr->getitem = (PyArray_GetItemFunc *)PyArray_DESCR(obj)->f->getitem;
   npyarr->dataptr = PyArray_DATA(obj);
   npyarr->ndim = PyArray_NDIM(obj) - 1;
   npyarr->curdim = 0;
@@ -492,7 +491,7 @@ static int NpyArr_iterNextItem(JSOBJ obj, JSONTypeContext *tc) {
     ((PyObjectEncoder *)tc->encoder)->npyValue = npyarr->dataptr;
     ((PyObjectEncoder *)tc->encoder)->npyCtxtPassthru = npyarr;
   } else {
-    GET_TC(tc)->itemValue = npyarr->getitem(npyarr->dataptr, npyarr->array);
+    GET_TC(tc)->itemValue = PyArray_GETITEM(npyarr->array, npyarr->dataptr);
   }
 
   npyarr->dataptr += npyarr->stride;
