@@ -8692,6 +8692,10 @@ class DataFrame(NDFrame, OpsMixin):
         dict.update : Similar method for dictionaries.
         DataFrame.merge : For column(s)-on-column(s) operations.
 
+        Notes
+        --------
+        1. Duplicate indices on `other` are not supported and raises `ValueError`.
+
         Examples
         --------
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [400, 500, 600]})
