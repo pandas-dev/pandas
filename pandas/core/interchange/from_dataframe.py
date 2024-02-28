@@ -298,13 +298,14 @@ def string_column_to_ndarray(col: Column) -> tuple[np.ndarray, Any]:
 
     null_pos = None
     if null_kind in (ColumnNullType.USE_BITMASK, ColumnNullType.USE_BYTEMASK):
-        assert buffers["validity"], "Validity buffers cannot be empty for masks"
-        valid_buff, valid_dtype = buffers["validity"]
-        null_pos = buffer_to_ndarray(
-            valid_buff, valid_dtype, offset=col.offset, length=col.size()
-        )
-        if sentinel_val == 0:
-            null_pos = ~null_pos
+        validity = buffers["validity"]
+        if validity is not None:
+            valid_buff, valid_dtype = validity
+            null_pos = buffer_to_ndarray(
+                valid_buff, valid_dtype, offset=col.offset, length=col.size()
+            )
+            if sentinel_val == 0:
+                null_pos = ~null_pos
 
     # Assemble the strings from the code units
     str_list: list[None | float | str] = [None] * col.size()
@@ -516,19 +517,21 @@ def set_nulls(
     np.ndarray or pd.Series
         Data with the nulls being set.
     """
+    if validity is None:
+        return data
     null_kind, sentinel_val = col.describe_null
     null_pos = None
 
     if null_kind == ColumnNullType.USE_SENTINEL:
         null_pos = pd.Series(data) == sentinel_val
     elif null_kind in (ColumnNullType.USE_BITMASK, ColumnNullType.USE_BYTEMASK):
-        assert validity, "Expected to have a validity buffer for the mask"
         valid_buff, valid_dtype = validity
-        null_pos = buffer_to_ndarray(
-            valid_buff, valid_dtype, offset=col.offset, length=col.size()
-        )
-        if sentinel_val == 0:
-            null_pos = ~null_pos
+        if valid_buff is not None:
+            null_pos = buffer_to_ndarray(
+                valid_buff, valid_dtype, offset=col.offset, length=col.size()
+            )
+            if sentinel_val == 0:
+                null_pos = ~null_pos
     elif null_kind in (ColumnNullType.NON_NULLABLE, ColumnNullType.USE_NAN):
         pass
     else:

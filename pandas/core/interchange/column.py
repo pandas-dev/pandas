@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import numpy as np
 
@@ -9,15 +12,18 @@ from pandas._libs.tslibs import iNaT
 from pandas.errors import NoBufferPresent
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.dtypes import (
-    ArrowDtype,
-    BaseMaskedDtype,
-    DatetimeTZDtype,
-)
+from pandas.core.dtypes.dtypes import BaseMaskedDtype
 
 import pandas as pd
+from pandas import (
+    ArrowDtype,
+    DatetimeTZDtype,
+)
 from pandas.api.types import is_string_dtype
-from pandas.core.interchange.buffer import PandasBuffer
+from pandas.core.interchange.buffer import (
+    PandasBuffer,
+    PandasBufferPyarrow,
+)
 from pandas.core.interchange.dataframe_protocol import (
     Column,
     ColumnBuffers,
@@ -29,6 +35,9 @@ from pandas.core.interchange.utils import (
     Endianness,
     dtype_to_arrow_c_fmt,
 )
+
+if TYPE_CHECKING:
+    from pandas.core.interchange.dataframe_protocol import Buffer
 
 _NP_KINDS = {
     "i": DtypeKind.INT,
@@ -157,6 +166,14 @@ class PandasColumn(Column):
         else:
             byteorder = dtype.byteorder
 
+        if dtype == "bool[pyarrow]":
+            return (
+                kind,
+                dtype.itemsize,  # pyright: ignore[reportAttributeAccessIssue]
+                ArrowCTypes.BOOL,
+                byteorder,
+            )
+
         return kind, dtype.itemsize * 8, dtype_to_arrow_c_fmt(dtype), byteorder
 
     @property
@@ -194,6 +211,13 @@ class PandasColumn(Column):
             column_null_dtype = ColumnNullType.USE_BYTEMASK
             null_value = 1
             return column_null_dtype, null_value
+        if isinstance(self._col.dtype, ArrowDtype):
+            if all(
+                chunk.buffers()[0] is None
+                for chunk in self._col.array._pa_array.chunks  # type: ignore[attr-defined]
+            ):
+                return ColumnNullType.NON_NULLABLE, None
+            return ColumnNullType.USE_BITMASK, 0
         kind = self.dtype[0]
         try:
             null, value = _NULL_DESCRIPTION[kind]
@@ -278,7 +302,7 @@ class PandasColumn(Column):
 
     def _get_data_buffer(
         self,
-    ) -> tuple[PandasBuffer, Any]:  # Any is for self.dtype tuple
+    ) -> tuple[Buffer, tuple[DtypeKind, int, str, str]]:
         """
         Return the buffer containing the data and the buffer's associated dtype.
         """
@@ -289,7 +313,7 @@ class PandasColumn(Column):
                 np_arr = self._col.dt.tz_convert(None).to_numpy()
             else:
                 np_arr = self._col.to_numpy()
-            buffer = PandasBuffer(np_arr, allow_copy=self._allow_copy)
+            buffer: Buffer = PandasBuffer(np_arr, allow_copy=self._allow_copy)
             dtype = (
                 DtypeKind.INT,
                 64,
@@ -302,15 +326,27 @@ class PandasColumn(Column):
             DtypeKind.FLOAT,
             DtypeKind.BOOL,
         ):
+            dtype = self.dtype
             arr = self._col.array
+            if isinstance(self._col.dtype, ArrowDtype):
+                buffer = PandasBufferPyarrow(
+                    arr._pa_array,  # type: ignore[attr-defined]
+                    is_validity=False,
+                    allow_copy=self._allow_copy,
+                )
+                if self.dtype[0] == DtypeKind.BOOL:
+                    dtype = (
+                        DtypeKind.BOOL,
+                        1,
+                        ArrowCTypes.BOOL,
+                        Endianness.NATIVE,
+                    )
+                return buffer, dtype
             if isinstance(self._col.dtype, BaseMaskedDtype):
                 np_arr = arr._data  # type: ignore[attr-defined]
-            elif isinstance(self._col.dtype, ArrowDtype):
-                raise NotImplementedError("ArrowDtype not handled yet")
             else:
                 np_arr = arr._ndarray  # type: ignore[attr-defined]
             buffer = PandasBuffer(np_arr, allow_copy=self._allow_copy)
-            dtype = self.dtype
         elif self.dtype[0] == DtypeKind.CATEGORICAL:
             codes = self._col.values._codes
             buffer = PandasBuffer(codes, allow_copy=self._allow_copy)
@@ -343,13 +379,28 @@ class PandasColumn(Column):
 
         return buffer, dtype
 
-    def _get_validity_buffer(self) -> tuple[PandasBuffer, Any]:
+    def _get_validity_buffer(self) -> tuple[Buffer, Any] | None:
         """
         Return the buffer containing the mask values indicating missing data and
         the buffer's associated dtype.
         Raises NoBufferPresent if null representation is not a bit or byte mask.
         """
         null, invalid = self.describe_null
+
+        if isinstance(self._col.dtype, ArrowDtype):
+            arr = self._col.array
+            dtype = (DtypeKind.BOOL, 1, ArrowCTypes.BOOL, Endianness.NATIVE)
+            if all(
+                chunk.buffers()[0] is None
+                for chunk in arr._pa_array.chunks  # type: ignore[attr-defined]
+            ):
+                return None
+            buffer: Buffer = PandasBufferPyarrow(
+                arr._pa_array,  # type: ignore[attr-defined]
+                is_validity=True,
+                allow_copy=self._allow_copy,
+            )
+            return buffer, dtype
 
         if isinstance(self._col.dtype, BaseMaskedDtype):
             mask = self._col.array._mask  # type: ignore[attr-defined]

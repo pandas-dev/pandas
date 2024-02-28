@@ -12,6 +12,7 @@ from pandas.core.interchange.dataframe_protocol import (
 
 if TYPE_CHECKING:
     import numpy as np
+    import pyarrow as pa
 
 
 class PandasBuffer(Buffer):
@@ -72,6 +73,81 @@ class PandasBuffer(Buffer):
                     "bufsize": self.bufsize,
                     "ptr": self.ptr,
                     "device": self.__dlpack_device__()[0].name,
+                }
+            )
+            + ")"
+        )
+
+
+class PandasBufferPyarrow(Buffer):
+    """
+    Data in the buffer is guaranteed to be contiguous in memory.
+    """
+
+    def __init__(
+        self,
+        chunked_array: pa.ChunkedArray,
+        *,
+        is_validity: bool,
+        allow_copy: bool = True,
+    ) -> None:
+        """
+        Handle pyarrow chunked arrays.
+        """
+        if len(chunked_array.chunks) == 1:
+            arr = chunked_array.chunks[0]
+        else:
+            if not allow_copy:
+                raise RuntimeError(
+                    "Found multi-chunk pyarrow array, but `allow_copy` is False"
+                )
+            arr = chunked_array.combine_chunks()
+        if is_validity:
+            self._buffer = arr.buffers()[0]
+        else:
+            self._buffer = arr.buffers()[1]
+        self._length = len(arr)
+        self._dlpack = getattr(arr, "__dlpack__", None)
+        self._is_validity = is_validity
+
+    @property
+    def bufsize(self) -> int:
+        """
+        Buffer size in bytes.
+        """
+        return self._buffer.size
+
+    @property
+    def ptr(self) -> int:
+        """
+        Pointer to start of the buffer as an integer.
+        """
+        return self._buffer.address
+
+    def __dlpack__(self) -> Any:
+        """
+        Represent this structure as DLPack interface.
+        """
+        if self._dlpack is not None:
+            return self._dlpack()
+        raise NotImplementedError(
+            "pyarrow>=15.0.0 is required for DLPack support for pyarrow-backed buffers"
+        )
+
+    def __dlpack_device__(self) -> tuple[DlpackDeviceType, int | None]:
+        """
+        Device type and device ID for where the data in the buffer resides.
+        """
+        return (DlpackDeviceType.CPU, None)
+
+    def __repr__(self) -> str:
+        return (
+            "PandasBuffer[pyarrow]("
+            + str(
+                {
+                    "bufsize": self.bufsize,
+                    "ptr": self.ptr,
+                    "device": "CPU",
                 }
             )
             + ")"
