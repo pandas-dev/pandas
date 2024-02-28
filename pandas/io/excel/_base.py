@@ -1327,7 +1327,8 @@ class ExcelWriter(Generic[_WorkbookT]):
             # xref https://support.microsoft.com/en-au/office/excel-specifications-and-limits-1672b34d-7043-467e-8e27-269d656771c3
             if len(val) > 32767:
                 warnings.warn(
-                    "Cell contents too long, truncated to 32767 characters",
+                    f"Cell contents too long ({len(val)}), "
+                    "truncated to 32767 characters",
                     UserWarning,
                     stacklevel=find_stack_level(),
                 )
