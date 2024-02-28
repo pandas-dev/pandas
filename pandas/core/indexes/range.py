@@ -489,7 +489,7 @@ class RangeIndex(Index):
         return result
 
     def _wrap_reindex_result(self, target, indexer, preserve_names: bool):
-        if target.dtype.kind == "i":
+        if not isinstance(target, type(self)) and target.dtype.kind == "i":
             target = self._shallow_copy(target._values, name=target.name)
         return super()._wrap_reindex_result(target, indexer, preserve_names)
 
