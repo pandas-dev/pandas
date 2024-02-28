@@ -217,6 +217,8 @@ if TYPE_CHECKING:
         FormattersType,
         Frequency,
         FromDictOrient,
+        HashableT,
+        HashableT2,
         IgnoreRaise,
         IndexKeyFunc,
         IndexLabel,
@@ -239,6 +241,7 @@ if TYPE_CHECKING:
         SortKind,
         StorageOptions,
         Suffixes,
+        T,
         ToStataByteorder,
         ToTimestampHow,
         UpdateJoin,
@@ -643,10 +646,10 @@ class DataFrame(NDFrame, OpsMixin):
     __pandas_priority__ = 4000
 
     @property
-    def _constructor(self) -> Callable[..., DataFrame]:
+    def _constructor(self) -> type[DataFrame]:
         return DataFrame
 
-    def _constructor_from_mgr(self, mgr, axes):
+    def _constructor_from_mgr(self, mgr, axes) -> DataFrame:
         if self._constructor is DataFrame:
             # we are pandas.DataFrame (or a subclass that doesn't override _constructor)
             return DataFrame._from_mgr(mgr, axes=axes)
@@ -659,7 +662,7 @@ class DataFrame(NDFrame, OpsMixin):
     def _sliced_from_mgr(self, mgr, axes) -> Series:
         return Series._from_mgr(mgr, axes)
 
-    def _constructor_sliced_from_mgr(self, mgr, axes):
+    def _constructor_sliced_from_mgr(self, mgr, axes) -> Series:
         if self._constructor_sliced is Series:
             ser = self._sliced_from_mgr(mgr, axes)
             ser._name = None  # caller is responsible for setting real name
@@ -937,21 +940,6 @@ class DataFrame(NDFrame, OpsMixin):
         from pandas.core.interchange.dataframe import PandasDataFrameXchg
 
         return PandasDataFrameXchg(self, allow_copy=allow_copy)
-
-    def __dataframe_consortium_standard__(
-        self, *, api_version: str | None = None
-    ) -> Any:
-        """
-        Provide entry point to the Consortium DataFrame Standard API.
-
-        This is developed and maintained outside of pandas.
-        Please report any issues to https://github.com/data-apis/dataframe-api-compat.
-        """
-        dataframe_api_compat = import_optional_dependency("dataframe_api_compat")
-        convert_to_standard_compliant_dataframe = (
-            dataframe_api_compat.pandas_standard.convert_to_standard_compliant_dataframe
-        )
-        return convert_to_standard_compliant_dataframe(self, api_version=api_version)
 
     def __arrow_c_stream__(self, requested_schema=None):
         """
@@ -1353,7 +1341,7 @@ class DataFrame(NDFrame, OpsMixin):
         decimal: str,
         na_rep: str,
         quoting,  # int csv.QUOTE_FOO from stdlib
-    ) -> Self:
+    ) -> DataFrame:
         # helper used by to_csv
         mgr = self._mgr.get_values_for_csv(
             float_format=float_format,
@@ -1831,7 +1819,7 @@ class DataFrame(NDFrame, OpsMixin):
         a  b   1  3
            c   2  4
         """
-        index = None
+        index: list | Index | None = None
         orient = orient.lower()  # type: ignore[assignment]
         if orient == "index":
             if len(data) > 0:
@@ -1857,7 +1845,7 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             realdata = data["data"]
 
-            def create_index(indexlist, namelist):
+            def create_index(indexlist, namelist) -> Index:
                 index: Index
                 if len(namelist) > 1:
                     index = MultiIndex.from_tuples(indexlist, names=namelist)
@@ -2700,6 +2688,42 @@ class DataFrame(NDFrame, OpsMixin):
 
         to_feather(self, path, **kwargs)
 
+    @overload
+    def to_markdown(
+        self,
+        buf: None = ...,
+        *,
+        mode: str = ...,
+        index: bool = ...,
+        storage_options: StorageOptions | None = ...,
+        **kwargs,
+    ) -> str:
+        ...
+
+    @overload
+    def to_markdown(
+        self,
+        buf: FilePath | WriteBuffer[str],
+        *,
+        mode: str = ...,
+        index: bool = ...,
+        storage_options: StorageOptions | None = ...,
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def to_markdown(
+        self,
+        buf: FilePath | WriteBuffer[str] | None,
+        *,
+        mode: str = ...,
+        index: bool = ...,
+        storage_options: StorageOptions | None = ...,
+        **kwargs,
+    ) -> str | None:
+        ...
+
     @doc(
         Series.to_markdown,
         klass=_shared_doc_kwargs["klass"],
@@ -2880,6 +2904,39 @@ class DataFrame(NDFrame, OpsMixin):
             storage_options=storage_options,
             **kwargs,
         )
+
+    @overload
+    def to_orc(
+        self,
+        path: None = ...,
+        *,
+        engine: Literal["pyarrow"] = ...,
+        index: bool | None = ...,
+        engine_kwargs: dict[str, Any] | None = ...,
+    ) -> bytes:
+        ...
+
+    @overload
+    def to_orc(
+        self,
+        path: FilePath | WriteBuffer[bytes],
+        *,
+        engine: Literal["pyarrow"] = ...,
+        index: bool | None = ...,
+        engine_kwargs: dict[str, Any] | None = ...,
+    ) -> None:
+        ...
+
+    @overload
+    def to_orc(
+        self,
+        path: FilePath | WriteBuffer[bytes] | None,
+        *,
+        engine: Literal["pyarrow"] = ...,
+        index: bool | None = ...,
+        engine_kwargs: dict[str, Any] | None = ...,
+    ) -> bytes | None:
+        ...
 
     def to_orc(
         self,
@@ -3961,6 +4018,11 @@ class DataFrame(NDFrame, OpsMixin):
         value : scalar or arraylike
             Value(s) for the column.
 
+        See Also
+        --------
+        DataFrame.iloc : Purely integer-location based indexing for selection by
+            position.
+
         Notes
         -----
         ``frame.isetitem(loc, value)`` is an in-place method as it will
@@ -3971,6 +4033,15 @@ class DataFrame(NDFrame, OpsMixin):
 
         In cases where ``frame.columns`` is unique, this is equivalent to
         ``frame[frame.columns[i]] = value``.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
+        >>> df.isetitem(1, [5, 6])
+        >>> df
+              A  B
+        0     1  5
+        1     2  6
         """
         if isinstance(value, DataFrame):
             if is_integer(loc):
@@ -4027,7 +4098,7 @@ class DataFrame(NDFrame, OpsMixin):
         #  backwards-compat, xref GH#31469
         self.iloc[key] = value
 
-    def _setitem_array(self, key, value):
+    def _setitem_array(self, key, value) -> None:
         # also raises Exception if object array with NA values
         if com.is_bool_indexer(key):
             # bool indexer is indexing along rows
@@ -4061,7 +4132,7 @@ class DataFrame(NDFrame, OpsMixin):
             elif np.ndim(value) > 1:
                 # list of lists
                 value = DataFrame(value).values
-                return self._setitem_array(key, value)
+                self._setitem_array(key, value)
 
             else:
                 self._iset_not_inplace(key, value)
@@ -4595,7 +4666,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return _eval(expr, inplace=inplace, **kwargs)
 
-    def select_dtypes(self, include=None, exclude=None) -> Self:
+    def select_dtypes(self, include=None, exclude=None) -> DataFrame:
         """
         Return a subset of the DataFrame's columns based on the column dtypes.
 
@@ -4742,7 +4813,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         loc: int,
         column: Hashable,
-        value: Scalar | AnyArrayLike,
+        value: object,
         allow_duplicates: bool | lib.NoDefault = lib.no_default,
     ) -> None:
         """
@@ -5013,7 +5084,7 @@ class DataFrame(NDFrame, OpsMixin):
         columns=None,
         axis: Axis | None = None,
         method: ReindexMethod | None = None,
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
         level: Level | None = None,
         fill_value: Scalar | None = np.nan,
         limit: int | None = None,
@@ -5029,6 +5100,7 @@ class DataFrame(NDFrame, OpsMixin):
             fill_value=fill_value,
             limit=limit,
             tolerance=tolerance,
+            copy=copy,
         )
 
     @overload
@@ -5474,9 +5546,21 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return super().pop(item=item)
 
+    @overload
+    def _replace_columnwise(
+        self, mapping: dict[Hashable, tuple[Any, Any]], inplace: Literal[True], regex
+    ) -> None:
+        ...
+
+    @overload
+    def _replace_columnwise(
+        self, mapping: dict[Hashable, tuple[Any, Any]], inplace: Literal[False], regex
+    ) -> Self:
+        ...
+
     def _replace_columnwise(
         self, mapping: dict[Hashable, tuple[Any, Any]], inplace: bool, regex
-    ):
+    ) -> Self | None:
         """
         Dispatch to Series.replace column-wise.
 
@@ -5505,7 +5589,7 @@ class DataFrame(NDFrame, OpsMixin):
                 res._iset_item(i, newobj, inplace=inplace)
 
         if inplace:
-            return
+            return None
         return res.__finalize__(self)
 
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
@@ -5519,14 +5603,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         if freq is not None and fill_value is not lib.no_default:
             # GH#53832
-            warnings.warn(
-                "Passing a 'freq' together with a 'fill_value' silently ignores "
-                "the fill_value and is deprecated. This will raise in a future "
-                "version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            raise ValueError(
+                "Passing a 'freq' together with a 'fill_value' is not allowed."
             )
-            fill_value = lib.no_default
 
         if self.empty:
             return self.copy()
@@ -6201,7 +6280,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = 0,
         how: AnyAll | lib.NoDefault = lib.no_default,
         thresh: int | lib.NoDefault = lib.no_default,
-        subset: IndexLabel | None = None,
+        subset: IndexLabel | AnyArrayLike | None = None,
         inplace: bool = False,
         ignore_index: bool = False,
     ) -> DataFrame | None:
@@ -6325,7 +6404,7 @@ class DataFrame(NDFrame, OpsMixin):
         if subset is not None:
             # subset needs to be list
             if not is_list_like(subset):
-                subset = [subset]
+                subset = [cast(Hashable, subset)]
             ax = self._get_axis(agg_axis)
             indices = ax.get_indexer_for(subset)
             check = indices == -1
@@ -11815,19 +11894,19 @@ class DataFrame(NDFrame, OpsMixin):
     product = prod
 
     @doc(make_doc("cummin", ndim=2))
-    def cummin(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+    def cummin(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
         return NDFrame.cummin(self, axis, skipna, *args, **kwargs)
 
     @doc(make_doc("cummax", ndim=2))
-    def cummax(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+    def cummax(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
         return NDFrame.cummax(self, axis, skipna, *args, **kwargs)
 
     @doc(make_doc("cumsum", ndim=2))
-    def cumsum(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+    def cumsum(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
         return NDFrame.cumsum(self, axis, skipna, *args, **kwargs)
 
     @doc(make_doc("cumprod", 2))
-    def cumprod(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+    def cumprod(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
         return NDFrame.cumprod(self, axis, skipna, *args, **kwargs)
 
     def nunique(self, axis: Axis = 0, dropna: bool = True) -> Series:
@@ -12710,8 +12789,12 @@ class DataFrame(NDFrame, OpsMixin):
         return self._mgr.as_array()
 
 
-def _from_nested_dict(data) -> collections.defaultdict:
-    new_data: collections.defaultdict = collections.defaultdict(dict)
+def _from_nested_dict(
+    data: Mapping[HashableT, Mapping[HashableT2, T]],
+) -> collections.defaultdict[HashableT2, dict[HashableT, T]]:
+    new_data: collections.defaultdict[
+        HashableT2, dict[HashableT, T]
+    ] = collections.defaultdict(dict)
     for index, s in data.items():
         for col, v in s.items():
             new_data[col][index] = v

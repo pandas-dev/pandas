@@ -45,21 +45,16 @@ from pandas.core.dtypes.generic import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.apply import (
-    ResamplerWindowApply,
-    warn_alias_replacement,
-)
+from pandas.core.apply import ResamplerWindowApply
 from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.base import (
     PandasObject,
     SelectionMixin,
 )
-import pandas.core.common as com
 from pandas.core.generic import (
     NDFrame,
     _shared_docs,
 )
-from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import (
     BaseGroupBy,
     GroupBy,
@@ -1358,8 +1353,38 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._downsample("ohlc")
 
     @final
-    @doc(SeriesGroupBy.nunique)
     def nunique(self):
+        """
+        Return number of unique elements in the group.
+
+        Returns
+        -------
+        Series
+            Number of unique values within each group.
+
+        See Also
+        --------
+        core.groupby.SeriesGroupBy.nunique : Method nunique for SeriesGroupBy.
+
+        Examples
+        --------
+        >>> ser = pd.Series(
+        ...     [1, 2, 3, 3],
+        ...     index=pd.DatetimeIndex(
+        ...         ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
+        ...     ),
+        ... )
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    3
+        dtype: int64
+        >>> ser.resample("MS").nunique()
+        2023-01-01    2
+        2023-02-01    1
+        Freq: MS, dtype: int64
+        """
         return self._downsample("nunique")
 
     @final
@@ -1580,10 +1605,6 @@ class DatetimeIndexResampler(Resampler):
         how : string / cython mapped function
         **kwargs : kw args passed to how function
         """
-        orig_how = how
-        how = com.get_cython_func(how) or how
-        if orig_how != how:
-            warn_alias_replacement(self, orig_how, how)
         ax = self.ax
 
         # Excludes `on` column when provided
@@ -1746,10 +1767,6 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         if self.kind == "timestamp":
             return super()._downsample(how, **kwargs)
 
-        orig_how = how
-        how = com.get_cython_func(how) or how
-        if orig_how != how:
-            warn_alias_replacement(self, orig_how, how)
         ax = self.ax
 
         if is_subperiod(ax.freq, self.freq):
