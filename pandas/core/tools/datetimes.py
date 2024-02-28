@@ -932,7 +932,7 @@ def to_datetime(
     >>> pd.to_datetime(
     ...     ["2020-10-25 02:00 +0200", "2020-10-25 04:00 +0100"]
     ... )  # doctest: +SKIP
-    ValueError: Mixed timezones detected. pass utc=True in to_datetime
+    ValueError: Mixed timezones detected. Pass utc=True in to_datetime
     or tz='UTC' in DatetimeIndex to convert to a common timezone.
 
     - To create a :class:`Series` with mixed offsets and ``object`` dtype, please use
@@ -952,7 +952,7 @@ def to_datetime(
     >>> pd.to_datetime(
     ...     ["2020-01-01 01:00:00-01:00", datetime(2020, 1, 1, 3, 0)]
     ... )  # doctest: +SKIP
-    ValueError: Mixed timezones detected. pass utc=True in to_datetime
+    ValueError: Mixed timezones detected. Pass utc=True in to_datetime
     or tz='UTC' in DatetimeIndex to convert to a common timezone.
 
     |
