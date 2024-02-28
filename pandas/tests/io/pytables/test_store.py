@@ -103,7 +103,7 @@ def test_iter_empty(setup_path):
         assert list(store) == []
 
 
-def test_repr(setup_path):
+def test_repr(setup_path, performance_warning):
     with ensure_clean_store(setup_path) as store:
         repr(store)
         store.info()
@@ -138,7 +138,7 @@ def test_repr(setup_path):
         df.loc[df.index[3:6], ["obj1"]] = np.nan
         df = df._consolidate()
 
-        with tm.assert_produces_warning(pd.errors.PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             store["df"] = df
 
         # make a random group in hdf space
@@ -352,20 +352,6 @@ def test_store_dropna(tmp_path, setup_path):
     df_with_missing.to_hdf(path, key="df", format="table", dropna=True)
     reloaded = read_hdf(path, "df")
     tm.assert_frame_equal(df_without_missing, reloaded)
-
-
-def test_keyword_deprecation(tmp_path, setup_path):
-    # GH 54229
-    path = tmp_path / setup_path
-
-    msg = (
-        "Starting with pandas version 3.0 all arguments of to_hdf except for the "
-        "argument 'path_or_buf' will be keyword-only."
-    )
-    df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.to_hdf(path, "key")
 
 
 def test_to_hdf_with_min_itemsize(tmp_path, setup_path):
@@ -958,25 +944,6 @@ def test_pickle_path_localpath():
     tm.assert_frame_equal(df, result)
 
 
-def test_path_localpath_hdfstore():
-    df = DataFrame(
-        1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
-    )
-
-    def writer(path):
-        with HDFStore(path) as store:
-            df.to_hdf(store, key="df")
-
-    def reader(path):
-        with HDFStore(path) as store:
-            return read_hdf(store, "df")
-
-    result = tm.round_trip_localpath(writer, reader)
-    tm.assert_frame_equal(df, result)
-
-
 @pytest.mark.parametrize("propindexes", [True, False])
 def test_copy(propindexes):
     df = DataFrame(
@@ -1048,7 +1015,7 @@ def test_columns_multiindex_modified(tmp_path, setup_path):
     df.index.name = "letters"
     df = df.set_index(keys="E", append=True)
 
-    data_columns = df.index.names + df.columns.tolist()
+    data_columns = list(df.index.names) + df.columns.tolist()
     path = tmp_path / setup_path
     df.to_hdf(
         path,

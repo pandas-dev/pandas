@@ -10,7 +10,6 @@ from typing import (
 import numpy as np
 
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import SettingWithCopyError
 
 import pandas as pd
 from pandas.core.interchange.dataframe_protocol import (
@@ -51,12 +50,13 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
 
     Examples
     --------
-    >>> df_not_necessarily_pandas = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+    >>> df_not_necessarily_pandas = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
     >>> interchange_object = df_not_necessarily_pandas.__dataframe__()
     >>> interchange_object.column_names()
     Index(['A', 'B'], dtype='object')
-    >>> df_pandas = (pd.api.interchange.from_dataframe
-    ...              (interchange_object.select_columns_by_name(['A'])))
+    >>> df_pandas = pd.api.interchange.from_dataframe(
+    ...     interchange_object.select_columns_by_name(["A"])
+    ... )
     >>> df_pandas
          A
     0    1
@@ -76,7 +76,7 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
     )
 
 
-def _from_dataframe(df: DataFrameXchg, allow_copy: bool = True):
+def _from_dataframe(df: DataFrameXchg, allow_copy: bool = True) -> pd.DataFrame:
     """
     Build a ``pd.DataFrame`` from the DataFrame interchange object.
 
@@ -547,10 +547,6 @@ def set_nulls(
             # in numpy notation (bool, int, uint). If this happens,
             # cast the `data` to nullable float dtype.
             data = data.astype(float)
-            data[null_pos] = None
-        except SettingWithCopyError:
-            # `SettingWithCopyError` may happen for datetime-like with missing values.
-            data = data.copy()
             data[null_pos] = None
 
     return data

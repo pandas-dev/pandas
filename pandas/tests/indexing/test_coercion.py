@@ -860,18 +860,8 @@ class TestReplaceSeriesCoercion(CoercionBase):
             exp = pd.Series(self.rep[to_key], index=index, name="yyy")
             assert exp.dtype == to_key
 
-        msg = "Downcasting behavior in `replace`"
-        warn = FutureWarning
-        if (
-            exp.dtype == obj.dtype
-            or exp.dtype == object
-            or (exp.dtype.kind in "iufc" and obj.dtype.kind in "iufc")
-        ):
-            warn = None
-        with tm.assert_produces_warning(warn, match=msg):
-            result = obj.replace(replacer)
-
-        tm.assert_series_equal(result, exp)
+        result = obj.replace(replacer)
+        tm.assert_series_equal(result, exp, check_dtype=False)
 
     @pytest.mark.parametrize(
         "to_key",
@@ -894,12 +884,8 @@ class TestReplaceSeriesCoercion(CoercionBase):
         else:
             assert exp.dtype == to_key
 
-        msg = "Downcasting behavior in `replace`"
-        warn = FutureWarning if exp.dtype != object else None
-        with tm.assert_produces_warning(warn, match=msg):
-            result = obj.replace(replacer)
-
-        tm.assert_series_equal(result, exp)
+        result = obj.replace(replacer)
+        tm.assert_series_equal(result, exp, check_dtype=False)
 
     @pytest.mark.parametrize(
         "to_key",
@@ -917,23 +903,16 @@ class TestReplaceSeriesCoercion(CoercionBase):
         assert obj.dtype == from_key
 
         exp = pd.Series(self.rep[to_key], index=index, name="yyy")
-        warn = FutureWarning
         if isinstance(obj.dtype, pd.DatetimeTZDtype) and isinstance(
             exp.dtype, pd.DatetimeTZDtype
         ):
             # with mismatched tzs, we retain the original dtype as of 2.0
             exp = exp.astype(obj.dtype)
-            warn = None
         else:
             assert exp.dtype == to_key
-            if to_key == from_key:
-                warn = None
 
-        msg = "Downcasting behavior in `replace`"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = obj.replace(replacer)
-
-        tm.assert_series_equal(result, exp)
+        result = obj.replace(replacer)
+        tm.assert_series_equal(result, exp, check_dtype=False)
 
     @pytest.mark.xfail(reason="Test not implemented")
     def test_replace_series_period(self):

@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas.compat.pyarrow import pa_version_under12p0
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -16,22 +17,17 @@ import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 
 
-def test_astype_single_dtype(using_copy_on_write):
+def test_astype_single_dtype():
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": 1.5})
     df_orig = df.copy()
     df2 = df.astype("float64")
 
-    if using_copy_on_write:
-        assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
-        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-    else:
-        assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
-        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
     # mutating df2 triggers a copy-on-write for that column/block
     df2.iloc[0, 2] = 5.5
-    if using_copy_on_write:
-        assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
     tm.assert_frame_equal(df, df_orig)
 
     # mutating parent also doesn't update result
@@ -42,22 +38,17 @@ def test_astype_single_dtype(using_copy_on_write):
 
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])
 @pytest.mark.parametrize("new_dtype", ["int64", "Int64", "int64[pyarrow]"])
-def test_astype_avoids_copy(using_copy_on_write, dtype, new_dtype):
+def test_astype_avoids_copy(dtype, new_dtype):
     if new_dtype == "int64[pyarrow]":
         pytest.importorskip("pyarrow")
     df = DataFrame({"a": [1, 2, 3]}, dtype=dtype)
     df_orig = df.copy()
     df2 = df.astype(new_dtype)
-
-    if using_copy_on_write:
-        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-    else:
-        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
     # mutating df2 triggers a copy-on-write for that column/block
     df2.iloc[0, 0] = 10
-    if using_copy_on_write:
-        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     tm.assert_frame_equal(df, df_orig)
 
     # mutating parent also doesn't update result
@@ -67,7 +58,7 @@ def test_astype_avoids_copy(using_copy_on_write, dtype, new_dtype):
 
 
 @pytest.mark.parametrize("dtype", ["float64", "int32", "Int32", "int32[pyarrow]"])
-def test_astype_different_target_dtype(using_copy_on_write, dtype):
+def test_astype_different_target_dtype(dtype):
     if dtype == "int32[pyarrow]":
         pytest.importorskip("pyarrow")
     df = DataFrame({"a": [1, 2, 3]})
@@ -75,8 +66,7 @@ def test_astype_different_target_dtype(using_copy_on_write, dtype):
     df2 = df.astype(dtype)
 
     assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-    if using_copy_on_write:
-        assert df2._mgr._has_no_reference(0)
+    assert df2._mgr._has_no_reference(0)
 
     df2.iloc[0, 0] = 5
     tm.assert_frame_equal(df, df_orig)
@@ -97,15 +87,11 @@ def test_astype_numpy_to_ea():
 @pytest.mark.parametrize(
     "dtype, new_dtype", [("object", "string"), ("string", "object")]
 )
-def test_astype_string_and_object(using_copy_on_write, dtype, new_dtype):
+def test_astype_string_and_object(dtype, new_dtype):
     df = DataFrame({"a": ["a", "b", "c"]}, dtype=dtype)
     df_orig = df.copy()
     df2 = df.astype(new_dtype)
-
-    if using_copy_on_write:
-        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-    else:
-        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
     df2.iloc[0, 0] = "x"
     tm.assert_frame_equal(df, df_orig)
@@ -114,17 +100,11 @@ def test_astype_string_and_object(using_copy_on_write, dtype, new_dtype):
 @pytest.mark.parametrize(
     "dtype, new_dtype", [("object", "string"), ("string", "object")]
 )
-def test_astype_string_and_object_update_original(
-    using_copy_on_write, dtype, new_dtype
-):
+def test_astype_string_and_object_update_original(dtype, new_dtype):
     df = DataFrame({"a": ["a", "b", "c"]}, dtype=dtype)
     df2 = df.astype(new_dtype)
     df_orig = df2.copy()
-
-    if using_copy_on_write:
-        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-    else:
-        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
     df.iloc[0, 0] = "x"
     tm.assert_frame_equal(df2, df_orig)
@@ -139,63 +119,64 @@ def test_astype_string_copy_on_pickle_roundrip():
     tm.assert_series_equal(base, base_copy)
 
 
-def test_astype_dict_dtypes(using_copy_on_write):
+@td.skip_if_no("pyarrow")
+def test_astype_string_read_only_on_pickle_roundrip():
+    # https://github.com/pandas-dev/pandas/issues/54654
+    # ensure_string_array may alter read-only array inplace
+    base = Series(np.array([(1, 2), None, 1], dtype="object"))
+    base_copy = pickle.loads(pickle.dumps(base))
+    base_copy._values.flags.writeable = False
+    base_copy.astype("string[pyarrow]")
+    tm.assert_series_equal(base, base_copy)
+
+
+def test_astype_dict_dtypes():
     df = DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6], "c": Series([1.5, 1.5, 1.5], dtype="float64")}
     )
     df_orig = df.copy()
     df2 = df.astype({"a": "float64", "c": "float64"})
 
-    if using_copy_on_write:
-        assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
-        assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
-        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-    else:
-        assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
-        assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
-        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
     # mutating df2 triggers a copy-on-write for that column/block
     df2.iloc[0, 2] = 5.5
-    if using_copy_on_write:
-        assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
 
     df2.iloc[0, 1] = 10
-    if using_copy_on_write:
-        assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
     tm.assert_frame_equal(df, df_orig)
 
 
-def test_astype_different_datetime_resos(using_copy_on_write):
+def test_astype_different_datetime_resos():
     df = DataFrame({"a": date_range("2019-12-31", periods=2, freq="D")})
     result = df.astype("datetime64[ms]")
 
     assert not np.shares_memory(get_array(df, "a"), get_array(result, "a"))
-    if using_copy_on_write:
-        assert result._mgr._has_no_reference(0)
+    assert result._mgr._has_no_reference(0)
 
 
-def test_astype_different_timezones(using_copy_on_write):
+def test_astype_different_timezones():
     df = DataFrame(
         {"a": date_range("2019-12-31", periods=5, freq="D", tz="US/Pacific")}
     )
     result = df.astype("datetime64[ns, Europe/Berlin]")
-    if using_copy_on_write:
-        assert not result._mgr._has_no_reference(0)
-        assert np.shares_memory(get_array(df, "a"), get_array(result, "a"))
+    assert not result._mgr._has_no_reference(0)
+    assert np.shares_memory(get_array(df, "a"), get_array(result, "a"))
 
 
-def test_astype_different_timezones_different_reso(using_copy_on_write):
+def test_astype_different_timezones_different_reso():
     df = DataFrame(
         {"a": date_range("2019-12-31", periods=5, freq="D", tz="US/Pacific")}
     )
     result = df.astype("datetime64[ms, Europe/Berlin]")
-    if using_copy_on_write:
-        assert result._mgr._has_no_reference(0)
-        assert not np.shares_memory(get_array(df, "a"), get_array(result, "a"))
+    assert result._mgr._has_no_reference(0)
+    assert not np.shares_memory(get_array(df, "a"), get_array(result, "a"))
 
 
-def test_astype_arrow_timestamp(using_copy_on_write):
+def test_astype_arrow_timestamp():
     pytest.importorskip("pyarrow")
     df = DataFrame(
         {
@@ -207,19 +188,16 @@ def test_astype_arrow_timestamp(using_copy_on_write):
         dtype="M8[ns]",
     )
     result = df.astype("timestamp[ns][pyarrow]")
-    if using_copy_on_write:
-        assert not result._mgr._has_no_reference(0)
-        if pa_version_under12p0:
-            assert not np.shares_memory(
-                get_array(df, "a"), get_array(result, "a")._pa_array
-            )
-        else:
-            assert np.shares_memory(
-                get_array(df, "a"), get_array(result, "a")._pa_array
-            )
+    assert not result._mgr._has_no_reference(0)
+    if pa_version_under12p0:
+        assert not np.shares_memory(
+            get_array(df, "a"), get_array(result, "a")._pa_array
+        )
+    else:
+        assert np.shares_memory(get_array(df, "a"), get_array(result, "a")._pa_array)
 
 
-def test_convert_dtypes_infer_objects(using_copy_on_write):
+def test_convert_dtypes_infer_objects():
     ser = Series(["a", "b", "c"])
     ser_orig = ser.copy()
     result = ser.convert_dtypes(
@@ -229,30 +207,19 @@ def test_convert_dtypes_infer_objects(using_copy_on_write):
         convert_string=False,
     )
 
-    if using_copy_on_write:
-        assert np.shares_memory(get_array(ser), get_array(result))
-    else:
-        assert not np.shares_memory(get_array(ser), get_array(result))
-
+    assert np.shares_memory(get_array(ser), get_array(result))
     result.iloc[0] = "x"
     tm.assert_series_equal(ser, ser_orig)
 
 
-def test_convert_dtypes(using_copy_on_write):
+def test_convert_dtypes():
     df = DataFrame({"a": ["a", "b"], "b": [1, 2], "c": [1.5, 2.5], "d": [True, False]})
     df_orig = df.copy()
     df2 = df.convert_dtypes()
 
-    if using_copy_on_write:
-        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-        assert np.shares_memory(get_array(df2, "d"), get_array(df, "d"))
-        assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
-        assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
-    else:
-        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-        assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
-        assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
-        assert not np.shares_memory(get_array(df2, "d"), get_array(df, "d"))
-
+    assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert np.shares_memory(get_array(df2, "d"), get_array(df, "d"))
+    assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
     df2.iloc[0, 0] = "x"
     tm.assert_frame_equal(df, df_orig)

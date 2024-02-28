@@ -105,7 +105,6 @@ if TYPE_CHECKING:
     from pandas import DataFrame
     from pandas.core import groupby
     from pandas.core.arrays import DatetimeArray
-    from pandas.core.indexes.frozen import FrozenList
 
 _factorizers = {
     np.int64: libhashtable.Int64Factorizer,
@@ -164,7 +163,6 @@ def merge(
             suffixes=suffixes,
             indicator=indicator,
             validate=validate,
-            copy=copy,
         )
     else:
         op = _MergeOperation(
@@ -181,7 +179,7 @@ def merge(
             indicator=indicator,
             validate=validate,
         )
-        return op.get_result(copy=copy)
+        return op.get_result()
 
 
 def _cross_merge(
@@ -194,7 +192,6 @@ def _cross_merge(
     right_index: bool = False,
     sort: bool = False,
     suffixes: Suffixes = ("_x", "_y"),
-    copy: bool | None = None,
     indicator: str | bool = False,
     validate: str | None = None,
 ) -> DataFrame:
@@ -233,7 +230,6 @@ def _cross_merge(
         suffixes=suffixes,
         indicator=indicator,
         validate=validate,
-        copy=copy,
     )
     del res[cross_col]
     return res
@@ -264,7 +260,7 @@ def _groupby_and_merge(
     if all(item in right.columns for item in by):
         rby = right.groupby(by, sort=False)
 
-    for key, lhs in lby._grouper.get_iterator(lby._selected_obj, axis=lby.axis):
+    for key, lhs in lby._grouper.get_iterator(lby._selected_obj):
         if rby is None:
             rhs = right
         else:
@@ -292,7 +288,7 @@ def _groupby_and_merge(
     from pandas.core.reshape.concat import concat
 
     result = concat(pieces, ignore_index=True)
-    result = result.reindex(columns=pieces[0].columns, copy=False)
+    result = result.reindex(columns=pieces[0].columns)
     return result, lby
 
 
@@ -367,7 +363,7 @@ def merge_ordered(
     ...     {
     ...         "key": ["a", "c", "e", "a", "c", "e"],
     ...         "lvalue": [1, 2, 3, 1, 2, 3],
-    ...         "group": ["a", "a", "a", "b", "b", "b"]
+    ...         "group": ["a", "a", "a", "b", "b", "b"],
     ...     }
     ... )
     >>> df1
@@ -449,7 +445,7 @@ def merge_asof(
     left_by=None,
     right_by=None,
     suffixes: Suffixes = ("_x", "_y"),
-    tolerance: int | Timedelta | None = None,
+    tolerance: int | datetime.timedelta | None = None,
     allow_exact_matches: bool = True,
     direction: str = "backward",
 ) -> DataFrame:
@@ -498,7 +494,7 @@ def merge_asof(
     suffixes : 2-length sequence (tuple, list, ...)
         Suffix to apply to overlapping column names in the left and right
         side, respectively.
-    tolerance : int or Timedelta, optional, default None
+    tolerance : int or timedelta, optional, default None
         Select asof tolerance within this range; must be compatible
         with the merge index.
     allow_exact_matches : bool, default True
@@ -598,7 +594,7 @@ def merge_asof(
     ...             pd.Timestamp("2016-05-25 13:30:00.048"),
     ...             pd.Timestamp("2016-05-25 13:30:00.049"),
     ...             pd.Timestamp("2016-05-25 13:30:00.072"),
-    ...             pd.Timestamp("2016-05-25 13:30:00.075")
+    ...             pd.Timestamp("2016-05-25 13:30:00.075"),
     ...         ],
     ...         "ticker": [
     ...             "GOOG",
@@ -608,10 +604,10 @@ def merge_asof(
     ...             "GOOG",
     ...             "AAPL",
     ...             "GOOG",
-    ...             "MSFT"
+    ...             "MSFT",
     ...         ],
     ...         "bid": [720.50, 51.95, 51.97, 51.99, 720.50, 97.99, 720.50, 52.01],
-    ...         "ask": [720.93, 51.96, 51.98, 52.00, 720.93, 98.01, 720.88, 52.03]
+    ...         "ask": [720.93, 51.96, 51.98, 52.00, 720.93, 98.01, 720.88, 52.03],
     ...     }
     ... )
     >>> quotes
@@ -632,11 +628,11 @@ def merge_asof(
     ...             pd.Timestamp("2016-05-25 13:30:00.038"),
     ...             pd.Timestamp("2016-05-25 13:30:00.048"),
     ...             pd.Timestamp("2016-05-25 13:30:00.048"),
-    ...             pd.Timestamp("2016-05-25 13:30:00.048")
+    ...             pd.Timestamp("2016-05-25 13:30:00.048"),
     ...         ],
     ...         "ticker": ["MSFT", "MSFT", "GOOG", "GOOG", "AAPL"],
     ...         "price": [51.95, 51.95, 720.77, 720.92, 98.0],
-    ...         "quantity": [75, 155, 100, 100, 100]
+    ...         "quantity": [75, 155, 100, 100, 100],
     ...     }
     ... )
     >>> trades
@@ -679,7 +675,7 @@ def merge_asof(
     ...     on="time",
     ...     by="ticker",
     ...     tolerance=pd.Timedelta("10ms"),
-    ...     allow_exact_matches=False
+    ...     allow_exact_matches=False,
     ... )
                          time ticker   price  quantity     bid     ask
     0 2016-05-25 13:30:00.023   MSFT   51.95        75     NaN     NaN
@@ -709,7 +705,6 @@ def merge_asof(
 
 
 # TODO: transformations??
-# TODO: only copy DataFrames when modification necessary
 class _MergeOperation:
     """
     Perform a database (SQL) merge operation between two DataFrame or Series
@@ -727,7 +722,6 @@ class _MergeOperation:
     right_index: bool
     sort: bool
     suffixes: Suffixes
-    copy: bool
     indicator: str | bool
     validate: str | None
     join_names: list[Hashable]
@@ -828,7 +822,6 @@ class _MergeOperation:
         join_index: Index,
         left_indexer: npt.NDArray[np.intp] | None,
         right_indexer: npt.NDArray[np.intp] | None,
-        copy: bool | None,
     ) -> DataFrame:
         """
         reindex along index and concat along columns.
@@ -849,7 +842,6 @@ class _MergeOperation:
                 join_index,
                 left_indexer,
                 axis=1,
-                copy=False,
                 only_slice=True,
                 allow_dups=True,
                 use_na_proxy=True,
@@ -864,7 +856,6 @@ class _MergeOperation:
                 join_index,
                 right_indexer,
                 axis=1,
-                copy=False,
                 only_slice=True,
                 allow_dups=True,
                 use_na_proxy=True,
@@ -876,18 +867,16 @@ class _MergeOperation:
 
         left.columns = llabels
         right.columns = rlabels
-        result = concat([left, right], axis=1, copy=copy)
+        result = concat([left, right], axis=1)
         return result
 
-    def get_result(self, copy: bool | None = True) -> DataFrame:
+    def get_result(self) -> DataFrame:
         if self.indicator:
             self.left, self.right = self._indicator_pre_merge(self.left, self.right)
 
         join_index, left_indexer, right_indexer = self._get_join_info()
 
-        result = self._reindex_and_concat(
-            join_index, left_indexer, right_indexer, copy=copy
-        )
+        result = self._reindex_and_concat(join_index, left_indexer, right_indexer)
         result = result.__finalize__(self, method=self._merge_type)
 
         if self.indicator:
@@ -1580,7 +1569,7 @@ class _MergeOperation:
                     not left_cols.join(common_cols, how="inner").is_unique
                     or not right_cols.join(common_cols, how="inner").is_unique
                 ):
-                    raise MergeError(f"Data columns not unique: {repr(common_cols)}")
+                    raise MergeError(f"Data columns not unique: {common_cols!r}")
                 left_on = right_on = common_cols
         elif self.on is not None:
             if left_on is not None or right_on is not None:
@@ -1809,7 +1798,7 @@ def restore_dropped_levels_multijoin(
     join_index: Index,
     lindexer: npt.NDArray[np.intp],
     rindexer: npt.NDArray[np.intp],
-) -> tuple[FrozenList, FrozenList, FrozenList]:
+) -> tuple[tuple, tuple, tuple]:
     """
     *this is an internal non-public method*
 
@@ -1841,7 +1830,7 @@ def restore_dropped_levels_multijoin(
         levels of combined multiindexes
     labels : np.ndarray[np.intp]
         labels of combined multiindexes
-    names : List[Hashable]
+    names : tuple[Hashable]
         names of combined multiindex levels
 
     """
@@ -1883,12 +1872,11 @@ def restore_dropped_levels_multijoin(
         else:
             restore_codes = algos.take_nd(codes, indexer, fill_value=-1)
 
-        # error: Cannot determine type of "__add__"
-        join_levels = join_levels + [restore_levels]  # type: ignore[has-type]
-        join_codes = join_codes + [restore_codes]  # type: ignore[has-type]
-        join_names = join_names + [dropped_level_name]
+        join_levels = join_levels + (restore_levels,)
+        join_codes = join_codes + (restore_codes,)
+        join_names = join_names + (dropped_level_name,)
 
-    return join_levels, join_codes, join_names
+    return tuple(join_levels), tuple(join_codes), tuple(join_names)
 
 
 class _OrderedMerge(_MergeOperation):
@@ -1922,7 +1910,7 @@ class _OrderedMerge(_MergeOperation):
             sort=True,  # factorize sorts
         )
 
-    def get_result(self, copy: bool | None = True) -> DataFrame:
+    def get_result(self) -> DataFrame:
         join_index, left_indexer, right_indexer = self._get_join_info()
 
         left_join_indexer: npt.NDArray[np.intp] | None
@@ -1930,10 +1918,9 @@ class _OrderedMerge(_MergeOperation):
 
         if self.fill_method == "ffill":
             if left_indexer is None:
-                raise TypeError("left_indexer cannot be None")
-            left_indexer = cast("npt.NDArray[np.intp]", left_indexer)
-            right_indexer = cast("npt.NDArray[np.intp]", right_indexer)
-            left_join_indexer = libjoin.ffill_indexer(left_indexer)
+                left_join_indexer = None
+            else:
+                left_join_indexer = libjoin.ffill_indexer(left_indexer)
             if right_indexer is None:
                 right_join_indexer = None
             else:
@@ -1945,7 +1932,7 @@ class _OrderedMerge(_MergeOperation):
             raise ValueError("fill_method must be 'ffill' or None")
 
         result = self._reindex_and_concat(
-            join_index, left_join_indexer, right_join_indexer, copy=copy
+            join_index, left_join_indexer, right_join_indexer
         )
         self._maybe_add_join_keys(result, left_indexer, right_indexer)
 
@@ -2071,8 +2058,8 @@ class _AsOfMerge(_OrderedMerge):
             or is_string_dtype(ro_dtype)
         ):
             raise MergeError(
-                f"Incompatible merge dtype, {repr(ro_dtype)} and "
-                f"{repr(lo_dtype)}, both sides must have numeric dtype"
+                f"Incompatible merge dtype, {ro_dtype!r} and "
+                f"{lo_dtype!r}, both sides must have numeric dtype"
             )
 
         # add 'by' to our key-list so we can have it in the
@@ -2110,13 +2097,13 @@ class _AsOfMerge(_OrderedMerge):
                     # later with a ValueError, so we don't *need* to check
                     # for them here.
                     msg = (
-                        f"incompatible merge keys [{i}] {repr(left.dtype)} and "
-                        f"{repr(right.dtype)}, both sides category, but not equal ones"
+                        f"incompatible merge keys [{i}] {left.dtype!r} and "
+                        f"{right.dtype!r}, both sides category, but not equal ones"
                     )
                 else:
                     msg = (
-                        f"incompatible merge keys [{i}] {repr(left.dtype)} and "
-                        f"{repr(right.dtype)}, must be the same type"
+                        f"incompatible merge keys [{i}] {left.dtype!r} and "
+                        f"{right.dtype!r}, must be the same type"
                     )
                 raise MergeError(msg)
 
@@ -2146,7 +2133,7 @@ class _AsOfMerge(_OrderedMerge):
 
             msg = (
                 f"incompatible tolerance {self.tolerance}, must be compat "
-                f"with type {repr(lt.dtype)}"
+                f"with type {lt.dtype!r}"
             )
 
             if needs_i8_conversion(lt.dtype) or (
@@ -2311,7 +2298,7 @@ def _get_multiindex_indexer(
     if sort:
         rcodes = list(map(np.take, rcodes, index.codes))
     else:
-        i8copy = lambda a: a.astype("i8", subok=False, copy=True)
+        i8copy = lambda a: a.astype("i8", subok=False)
         rcodes = list(map(i8copy, index.codes))
 
     # fix right labels if there were any nulls

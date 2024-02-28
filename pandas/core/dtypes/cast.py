@@ -243,7 +243,7 @@ def _disallow_mismatched_datetimelike(value, dtype: DtypeObj) -> None:
     elif (vdtype.kind == "m" and dtype.kind == "M") or (
         vdtype.kind == "M" and dtype.kind == "m"
     ):
-        raise TypeError(f"Cannot cast {repr(value)} to {dtype}")
+        raise TypeError(f"Cannot cast {value!r} to {dtype}")
 
 
 @overload
@@ -893,10 +893,10 @@ def infer_dtype_from_array(arr) -> tuple[DtypeObj, ArrayLike]:
 
     Examples
     --------
-    >>> np.asarray([1, '1'])
+    >>> np.asarray([1, "1"])
     array(['1', '1'], dtype='<U21')
 
-    >>> infer_dtype_from_array([1, '1'])
+    >>> infer_dtype_from_array([1, "1"])
     (dtype('O'), [1, '1'])
     """
     if isinstance(arr, np.ndarray):
@@ -1683,6 +1683,7 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
     arr = np.asarray(arr)
 
     if np.issubdtype(arr.dtype, str):
+        # TODO(numpy-2.0 min): This case will raise an OverflowError above
         if (casted.astype(str) == arr).all():
             return casted
         raise ValueError(f"string values cannot be losslessly cast to {dtype}")
@@ -1817,8 +1818,8 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     # TODO: general-case for EAs?
                     try:
                         casted = element.astype(dtype)
-                    except (ValueError, TypeError):
-                        raise LossySetitemError
+                    except (ValueError, TypeError) as err:
+                        raise LossySetitemError from err
                     # Check for cases of either
                     #  a) lossy overflow/rounding or
                     #  b) semantic changes like dt64->int64
