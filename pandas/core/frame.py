@@ -6572,7 +6572,7 @@ class DataFrame(NDFrame, OpsMixin):
     def duplicated(
         self,
         subset: Hashable | Sequence[Hashable] | None = None,
-        keep: DropKeep = "first",
+        keep: DropKeep = False,
     ) -> Series:
         """
         Return boolean Series denoting duplicate rows.
@@ -6584,12 +6584,12 @@ class DataFrame(NDFrame, OpsMixin):
         subset : column label or sequence of labels, optional
             Only consider certain columns for identifying duplicates, by
             default use all of the columns.
-        keep : {'first', 'last', False}, default 'first'
+        keep : {False, 'first', 'last'}, default False
             Determines which duplicates (if any) to mark.
 
+            - False : Mark all duplicates as ``True``.
             - ``first`` : Mark duplicates as ``True`` except for the first occurrence.
             - ``last`` : Mark duplicates as ``True`` except for the last occurrence.
-            - False : Mark all duplicates as ``True``.
 
         Returns
         -------
@@ -6622,17 +6622,27 @@ class DataFrame(NDFrame, OpsMixin):
         3  Indomie  pack    15.0
         4  Indomie  pack     5.0
 
-        By default, for each set of duplicated values, the first occurrence
-        is set on False and all others on True.
+        By default, for each set of duplicated values, all duplicates are True.
 
         >>> df.duplicated()
-        0    False
+        0     True
         1     True
         2    False
         3    False
         4    False
         dtype: bool
 
+        By using 'first', the first occurrence of each set of duplicated values
+        is set on False and all others on True.
+
+        >>> df.duplicated(keep="first")
+        0    False
+        1     True
+        2    False
+        3    False
+        4    False
+        dtype: bool
+        
         By using 'last', the last occurrence of each set of duplicated values
         is set on False and all others on True.
 
@@ -6644,22 +6654,12 @@ class DataFrame(NDFrame, OpsMixin):
         4    False
         dtype: bool
 
-        By setting ``keep`` on False, all duplicates are True.
-
-        >>> df.duplicated(keep=False)
-        0     True
-        1     True
-        2    False
-        3    False
-        4    False
-        dtype: bool
-
         To find duplicates on specific column(s), use ``subset``.
 
         >>> df.duplicated(subset=["brand"])
-        0    False
+        0     True
         1     True
-        2    False
+        2     True
         3     True
         4     True
         dtype: bool
