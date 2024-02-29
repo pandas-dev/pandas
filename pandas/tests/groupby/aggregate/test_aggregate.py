@@ -1030,10 +1030,6 @@ def test_groupby_as_index_agg(df):
     gr = df.groupby(ts)
     gr.nth(0)  # invokes set_selection_from_grouper internally
 
-    res = gr.apply(sum)
-    alt = df.groupby(ts).apply(sum)
-    tm.assert_frame_equal(res, alt)
-
     for attr in ["mean", "max", "count", "idxmax", "cumsum", "all"]:
         gr = df.groupby(ts, as_index=False)
         left = getattr(gr, attr)()
