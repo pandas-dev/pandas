@@ -1790,7 +1790,8 @@ over the string representation of the object. All arguments are optional:
 * ``col_space`` default None, minimum width of each column.
 * ``na_rep`` default ``NaN``, representation of NA value
 * ``formatters`` default None, a dictionary (by column) of functions each of
-  which takes a single argument and returns a formatted string
+  which takes a single argument and returns a formatted string. **Note** that
+  this does not operate on missing values (see below for alternatives).
 * ``float_format`` default None, a function which takes a single (float)
   argument and returns a formatted string; to be applied to floats in the
   ``DataFrame``.
@@ -1805,6 +1806,20 @@ over the string representation of the object. All arguments are optional:
 The ``Series`` object also has a ``to_string`` method, but with only the ``buf``,
 ``na_rep``, ``float_format`` arguments. There is also a ``length`` argument
 which, if set to ``True``, will additionally output the length of the Series.
+
+   **Formatting missing values**
+
+   Formatting functions passed to the ``formatters`` argument above, are not
+   called for *missing values*, *string data types*, or ``PandasObject``.
+
+   If you need to control the format of missing values, consider these options:
+
+   - To replace *all* missing values (e.g ``NaN``) in output with a given
+     string, use the ``na_rep`` argument above.
+
+   - To replace missing values on a **per-column** level, call ``fillnans()``
+     on the relevant column to replace missing numerical values with a given
+     string, *before* you call ``to_string()``.
 
 .. _io.json:
 
