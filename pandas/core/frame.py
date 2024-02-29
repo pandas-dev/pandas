@@ -8406,10 +8406,43 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Combination-Related
 
-    @doc(
-        _shared_docs["compare"],
-        dedent(
-            """
+    def compare(
+        self,
+        other: DataFrame,
+        align_axis: Axis = 1,
+        keep_shape: bool = False,
+        keep_equal: bool = False,
+        result_names: Suffixes = ("self", "other"),
+    ) -> DataFrame:
+        """
+        Compare to another DataFrame and show the differences.
+
+        Parameters
+        ----------
+        other : DataFrame
+            Object to compare with.
+
+        align_axis : {0 or 'index', 1 or 'columns'}, default 1
+            Determine which axis to align the comparison on.
+
+            * 0, or 'index' : Resulting differences are stacked vertically
+                with rows drawn alternately from self and other.
+            * 1, or 'columns' : Resulting differences are aligned horizontally
+                with columns drawn alternately from self and other.
+
+        keep_shape : bool, default False
+            If true, all rows and columns are kept.
+            Otherwise, only the ones with different values are kept.
+
+        keep_equal : bool, default False
+            If true, the result keeps values that are equal.
+            Otherwise, equal values are shown as NaNs.
+
+        result_names : tuple, default ('self', 'other')
+            Set the dataframes names in the comparison.
+
+            .. versionadded:: 1.5.0
+
         Returns
         -------
         DataFrame
@@ -8438,11 +8471,11 @@ class DataFrame(NDFrame, OpsMixin):
         Examples
         --------
         >>> df = pd.DataFrame(
-        ...     {{
+        ...     {
         ...         "col1": ["a", "a", "b", "b", "a"],
         ...         "col2": [1.0, 2.0, 3.0, np.nan, 5.0],
-        ...         "col3": [1.0, 2.0, 3.0, 4.0, 5.0]
-        ...     }},
+        ...         "col3": [1.0, 2.0, 3.0, 4.0, 5.0],
+        ...     },
         ...     columns=["col1", "col2", "col3"],
         ... )
         >>> df
@@ -8454,8 +8487,8 @@ class DataFrame(NDFrame, OpsMixin):
         4    a   5.0   5.0
 
         >>> df2 = df.copy()
-        >>> df2.loc[0, 'col1'] = 'c'
-        >>> df2.loc[2, 'col3'] = 4.0
+        >>> df2.loc[0, "col1"] = "c"
+        >>> df2.loc[2, "col3"] = 4.0
         >>> df2
           col1  col2  col3
         0    c   1.0   1.0
@@ -8519,17 +8552,6 @@ class DataFrame(NDFrame, OpsMixin):
         3    b     b  NaN   NaN  4.0   4.0
         4    a     a  5.0   5.0  5.0   5.0
         """
-        ),
-        klass=_shared_doc_kwargs["klass"],
-    )
-    def compare(
-        self,
-        other: DataFrame,
-        align_axis: Axis = 1,
-        keep_shape: bool = False,
-        keep_equal: bool = False,
-        result_names: Suffixes = ("self", "other"),
-    ) -> DataFrame:
         return super().compare(
             other=other,
             align_axis=align_axis,
