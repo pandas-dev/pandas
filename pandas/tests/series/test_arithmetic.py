@@ -368,6 +368,94 @@ class TestSeriesArithmetic:
             result = [True, None, True] + ser
         tm.assert_series_equal(result, expected)
 
+    def test_arithmetic_same_index_same_dtype(self):
+        s1 = Series(
+            [23, 22, 21],
+            index=Index(["a", "b", "c"], name="index a", dtype=pd.StringDtype()),
+            dtype=pd.Int64Dtype(),
+        )
+
+        s2 = Series(
+            [21, 22, 23],
+            index=Index(["a", "b", "c"], name="index a", dtype=pd.StringDtype()),
+            dtype=pd.Int64Dtype(),
+        )
+        expected_result = Series(
+            [2, 0, -2],
+            index=Index(["a", "b", "c"], name="index a", dtype=pd.StringDtype()),
+            dtype=pd.Int64Dtype(),
+        )
+
+        result = s1 - s2
+
+        tm.assert_series_equal(result, expected_result)
+
+    def test_arithmetic_different_index_same_dtype(self):
+        s1 = Series(
+            [23, 22, 21],
+            index=Index(["a", "b", "c"], name="index a", dtype=pd.StringDtype()),
+            dtype=pd.Int64Dtype(),
+        )
+
+        s2 = Series(
+            [21, 22, 23],
+            index=Index(["a", "b", "c"], name="index b", dtype=pd.StringDtype()),
+            dtype=pd.Int64Dtype(),
+        )
+        expected_result = Series(
+            [2, 0, -2],
+            index=Index(["a", "b", "c"], name="index a", dtype=pd.StringDtype()),
+            dtype=pd.Int64Dtype(),
+        )
+
+        result = s1 - s2
+
+        tm.assert_series_equal(result, expected_result)
+
+    def test_arithmetic_same_index_different_dtype(self):
+        s1 = Series(
+            [23, 22, 21],
+            index=Index(["a", "b", "c"], name="index a", dtype=pd.StringDtype()),
+            dtype=pd.Int64Dtype(),
+        )
+
+        s2 = Series(
+            [21, 22, 23],
+            index=Index(["a", "b", "c"], name="index a"),
+            dtype=pd.Int64Dtype(),
+        )
+        expected_result = Series(
+            [2, 0, -2],
+            index=Index(["a", "b", "c"], name="index a", dtype=pd.StringDtype()),
+            dtype=pd.Int64Dtype(),
+        )
+
+        result = s1 - s2
+
+        tm.assert_series_equal(result, expected_result)
+
+    def test_arithmetic_different_index_different_dtype(self):
+        s1 = Series(
+            [23, 22, 21],
+            index=Index(["a", "b", "c"], name="index a", dtype=pd.StringDtype()),
+            dtype=pd.Int64Dtype(),
+        )
+
+        s2 = Series(
+            [21, 22, 23],
+            index=Index(["a", "b", "c"], name="index b"),
+            dtype=pd.Int64Dtype(),
+        )
+        expected_result = Series(
+            [2, 0, -2],
+            index=Index(["a", "b", "c"], name="index a", dtype=pd.StringDtype()),
+            dtype=pd.Int64Dtype(),
+        )
+
+        result = s1 - s2
+
+        tm.assert_series_equal(result, expected_result)
+
 
 # ------------------------------------------------------------------
 # Comparisons
