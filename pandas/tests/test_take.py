@@ -250,6 +250,12 @@ class TestTake:
         expected = np.array([2, [1]], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_take_indices_is_None(self):
+        arr = np.array([1, 2, 3])
+        indexer = None
+        result = algos.take(arr, indexer)
+        tm.assert_numpy_array_equal(result, arr)
+
 
 class TestExtensionTake:
     # The take method found in pd.api.extensions
