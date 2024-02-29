@@ -6820,10 +6820,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...
 
     @final
-    @doc(
-        klass=_shared_doc_kwargs["klass"],
-        axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
-    )
     def fillna(
         self,
         value: Hashable | Mapping | Series | DataFrame | None = None,
@@ -6844,7 +6840,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             each index (for a Series) or column (for a DataFrame).  Values not
             in the dict/Series/DataFrame will not be filled. This value cannot
             be a list.
-        method : {{'backfill', 'bfill', 'ffill', None}}, default None
+        method : {'backfill', 'bfill', 'ffill', None}, default None
             Method to use for filling holes in reindexed Series:
 
             * ffill: propagate last valid observation forward to next valid.
@@ -6853,7 +6849,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             .. deprecated:: 2.1.0
                 Use ffill or bfill instead.
 
-        axis : {axes_single_arg}
+        axis : {0 or 'index'} for Series, {0 or 'index', 1 or 'columns'} for DataFrame
             Axis along which to fill missing values. For `Series`
             this parameter is unused and defaults to 0.
         inplace : bool, default False
@@ -6870,7 +6866,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        {klass} or None
+        Series/DataFrame or None
             Object with missing values filled or None if ``inplace=True``.
 
         See Also
@@ -6911,7 +6907,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Replace all NaN elements in column 'A', 'B', 'C', and 'D', with 0, 1,
         2, and 3 respectively.
 
-        >>> values = {{"A": 0, "B": 1, "C": 2, "D": 3}}
+        >>> values = {"A": 0, "B": 1, "C": 2, "D": 3}
         >>> df.fillna(value=values)
              A    B    C    D
         0  0.0  2.0  2.0  0.0
