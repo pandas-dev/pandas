@@ -586,7 +586,7 @@ class TestUnique:
 
         mindex = mindex.repeat(2)
 
-        result = pd.unique(mindex)
+        result = pd.unique(mindex).values
         result.sort()
 
         tm.assert_almost_equal(result, expected)
@@ -646,7 +646,7 @@ class TestUnique:
             ]
         )
         result = algos.unique(dt_index)
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_index_equal(result, to_datetime(expected))
         assert result.dtype == expected.dtype
 
         s = Series(dt_index)
@@ -677,7 +677,7 @@ class TestUnique:
 
         td_index = to_timedelta([31200, 45678, 31200, 10000, 45678])
         result = algos.unique(td_index)
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_index_equal(result, to_timedelta(expected))
         assert result.dtype == expected.dtype
 
         s = Series(td_index)
