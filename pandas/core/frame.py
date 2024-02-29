@@ -6928,8 +6928,7 @@ class DataFrame(NDFrame, OpsMixin):
         If sorted indices are not needed, you may simplify the procedure as follows:
 
         >>> from natsort import natsort_keygen
-        ...
-        ... df.sort_values(
+        >>> df.sort_values(
         ...     by="time",
         ...     key=natsort_keygen(),
         ... )
