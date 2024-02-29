@@ -1186,7 +1186,10 @@ def take(
     if not is_array_like(arr):
         arr = np.asarray(arr)
 
-    indices = ensure_platform_int(indices)
+    if indices is None:
+        indices = np.arange(arr.shape[axis], dtype=np.intp)
+    else:
+        indices = ensure_platform_int(indices)
 
     if allow_fill:
         # Pandas style, -1 means NA
