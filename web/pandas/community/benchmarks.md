@@ -16,6 +16,8 @@ directory of our repository. The benchmarks are implemented for the
 The benchmarks can be run locally by any pandas developer. This can be done
 with the `asv run` command, and it can be useful to detect if local changes have
 an impact in performance, by running the benchmarks before and after the changes.
+More information on running the performance test suite is found
+[here](https://pandas.pydata.org/docs/dev/development/contributing_codebase.html#running-the-performance-test-suite).
 
 Note that benchmarks are not deterministic, and running in different hardware or
 running in the same hardware with different levels of stress have a big impact in
