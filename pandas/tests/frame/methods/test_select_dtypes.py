@@ -48,6 +48,13 @@ class DummyArray(ExtensionArray):
     def copy(self):
         return self
 
+    def isna(self):
+        pass
+
+    @property
+    def nbytes(self):
+        pass
+
 
 class TestSelectDtypes:
     def test_select_dtypes_include_using_list_like(self):

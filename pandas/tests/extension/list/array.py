@@ -122,6 +122,10 @@ class ListArray(ExtensionArray):
         data = np.concatenate([x.data for x in to_concat])
         return cls(data)
 
+    @property
+    def nbytes(self):
+        pass
+
 
 def make_data():
     # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer

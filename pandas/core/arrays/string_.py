@@ -379,7 +379,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             # Ravel if ndims > 2 b/c no cythonized version available
             lib.convert_nans_to_NA(self._ndarray.ravel("K"))
         else:
-            lib.convert_nans_to_NA(self._ndarray)
+            if self._ndarray.flags["WRITEABLE"]:  # TODO: not this
+                lib.convert_nans_to_NA(self._ndarray)
 
     @classmethod
     def _from_sequence(

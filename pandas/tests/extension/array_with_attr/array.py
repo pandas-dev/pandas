@@ -84,3 +84,7 @@ class FloatAttrArray(ExtensionArray):
         data = np.concatenate([x.data for x in to_concat])
         attr = to_concat[0].attr if len(to_concat) else None
         return cls(data, attr)
+
+    @property
+    def nbytes(self):
+        pass

@@ -33,6 +33,13 @@ class DummyArray(ExtensionArray):
 
         return np.array(self, dtype=dtype, copy=copy)
 
+    def isna(self):
+        pass
+
+    @property
+    def nbytes(self):
+        pass
+
 
 class TestExtensionArrayDtype:
     @pytest.mark.parametrize(
