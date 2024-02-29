@@ -627,14 +627,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.get\
         pandas.DataFrame.hist\
         pandas.DataFrame.infer_objects\
-        pandas.DataFrame.kurt\
         pandas.DataFrame.kurtosis\
         pandas.DataFrame.last_valid_index\
         pandas.DataFrame.mask\
-        pandas.DataFrame.max\
-        pandas.DataFrame.mean\
-        pandas.DataFrame.median\
-        pandas.DataFrame.min\
         pandas.DataFrame.nsmallest\
         pandas.DataFrame.nunique\
         pandas.DataFrame.pipe\
@@ -648,7 +643,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.reindex\
         pandas.DataFrame.reorder_levels\
         pandas.DataFrame.sem\
-        pandas.DataFrame.skew\
         pandas.DataFrame.std\
         pandas.DataFrame.sum\
         pandas.DataFrame.swapaxes\

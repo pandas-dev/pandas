@@ -11961,7 +11961,8 @@ numeric_only : bool, default False
 
 Returns
 -------
-{name1} or scalar\
+{name1} or scalar
+    Either {name1} or scalar based on ``axis`` selected.\
 {see_also}\
 {examples}
 """
