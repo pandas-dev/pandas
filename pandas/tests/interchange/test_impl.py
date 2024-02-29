@@ -433,15 +433,30 @@ def test_nullable_integers_pyarrow() -> None:
     tm.assert_frame_equal(result, expected)
 
 
-def test_nullable_integers_w_missing_values() -> None:
+@pytest.mark.parametrize(
+    ("data", "dtype", "expected_dtype"),
+    [
+        ([1, 2, None], "Int64", "int64"),
+        (
+            [1, 2, None],
+            "UInt64",
+            "uint64",
+        ),
+        ([1.0, 2.25, None], "Float32", "float32"),
+    ],
+)
+def test_pandas_nullable_w_missing_values(
+    data: list, dtype: str, expected_dtype: str
+) -> None:
     # https://github.com/pandas-dev/pandas/issues/57643
     pytest.importorskip("pyarrow", "11.0.0")
     import pyarrow.interchange as pai
 
-    df = pd.DataFrame({"a": [1, 2, None]}, dtype="Int64")
+    df = pd.DataFrame({"a": data}, dtype=dtype)
     result = pai.from_dataframe(df.__dataframe__())["a"]
-    assert result[0].as_py() == 1
-    assert result[1].as_py() == 2
+    assert result.type == expected_dtype
+    assert result[0].as_py() == data[0]
+    assert result[1].as_py() == data[1]
     assert result[2].as_py() is None
 
 
