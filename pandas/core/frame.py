@@ -187,11 +187,7 @@ from pandas.io.formats import (
     console,
     format as fmt,
 )
-from pandas.io.formats.info import (
-    INFO_DOCSTRING,
-    DataFrameInfo,
-    frame_sub_kwargs,
-)
+from pandas.io.formats.info import DataFrameInfo
 import pandas.plotting
 
 if TYPE_CHECKING:
@@ -2504,10 +2500,6 @@ class DataFrame(NDFrame, OpsMixin):
         )
         return cls._from_mgr(mgr, axes=mgr.axes)
 
-    @doc(
-        storage_options=_shared_docs["storage_options"],
-        compression_options=_shared_docs["compression_options"] % "path",
-    )
     def to_stata(
         self,
         path: FilePath | WriteBuffer[bytes],
@@ -2555,7 +2547,7 @@ class DataFrame(NDFrame, OpsMixin):
         variable_labels : dict
             Dictionary containing columns as keys and variable labels as
             values. Each label must be 80 characters or smaller.
-        version : {{114, 117, 118, 119, None}}, default 114
+        version : {114, 117, 118, 119, None}, default 114
             Version to use in the output dta file. Set to None to let pandas
             decide between 118 or 119 formats depending on the number of
             columns in the frame. Version 114 can be read by Stata 10 and
@@ -2577,11 +2569,37 @@ class DataFrame(NDFrame, OpsMixin):
             format. Only available if version is 117.  Storing strings in the
             StrL format can produce smaller dta files if strings have more than
             8 characters and values are repeated.
-        {compression_options}
+        compression : str or dict, default 'infer'
+            For on-the-fly compression of the output data. If 'infer' and 'path' is
+            path-like, then detect compression from the following extensions: '.gz',
+            '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+            (otherwise no compression).
+            Set to ``None`` for no compression.
+            Can also be a dict with key ``'method'`` set
+            to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``,
+            ``'tar'``} and
+            other key-value pairs are forwarded to
+            ``zipfile.ZipFile``, ``gzip.GzipFile``,
+            ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
+            ``tarfile.TarFile``, respectively.
+            As an example, the following could be passed for faster compression and to
+            create a reproducible gzip archive:
+            ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
+
+            .. versionadded:: 1.5.0
+                Added support for `.tar` files.
 
             .. versionchanged:: 1.4.0 Zstandard support.
 
-        {storage_options}
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+            are forwarded to ``urllib.request.Request`` as header options. For other
+            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
 
         value_labels : dict of dicts
             Dictionary containing columns as keys and dictionaries of column value
@@ -3460,7 +3478,6 @@ class DataFrame(NDFrame, OpsMixin):
         return xml_formatter.write_output()
 
     # ----------------------------------------------------------------------
-    @doc(INFO_DOCSTRING, **frame_sub_kwargs)
     def info(
         self,
         verbose: bool | None = None,
@@ -3469,6 +3486,149 @@ class DataFrame(NDFrame, OpsMixin):
         memory_usage: bool | str | None = None,
         show_counts: bool | None = None,
     ) -> None:
+        """
+        Print a concise summary of a DataFrame.
+
+        This method prints information about a DataFrame including
+        the index dtype and columns, non-null values and memory usage.
+
+        Parameters
+        ----------
+        verbose : bool, optional
+            Whether to print the full summary. By default, the setting in
+            ``pandas.options.display.max_info_columns`` is followed.
+        buf : writable buffer, defaults to sys.stdout
+            Where to send the output. By default, the output is printed to
+            sys.stdout. Pass a writable buffer if you need to further process
+            the output.
+        max_cols : int, optional
+            When to switch from the verbose to the truncated output. If the
+            DataFrame has more than `max_cols` columns, the truncated output
+            is used. By default, the setting in
+            ``pandas.options.display.max_info_columns`` is used.
+        memory_usage : bool, str, optional
+            Specifies whether total memory usage of the DataFrame
+            elements (including the index) should be displayed. By default,
+            this follows the ``pandas.options.display.memory_usage`` setting.
+
+            True always show memory usage. False never shows memory usage.
+            A value of 'deep' is equivalent to "True with deep introspection".
+            Memory usage is shown in human-readable units (base-2
+            representation). Without deep introspection a memory estimation is
+            made based in column dtype and number of rows assuming values
+            consume the same memory amount for corresponding dtypes. With deep
+            memory introspection, a real memory usage calculation is performed
+            at the cost of computational resources. See the
+            :ref:`Frequently Asked Questions <df-memory-usage>` for more
+            details.
+        show_counts : bool, optional
+            Whether to show the non-null counts. By default, this is shown
+            only if the DataFrame is smaller than
+            ``pandas.options.display.max_info_rows`` and
+            ``pandas.options.display.max_info_columns``. A value of True always
+            shows the counts, and False never shows the counts.
+
+        Returns
+        -------
+        None
+            This method prints a summary of a DataFrame and returns None.
+
+        See Also
+        --------
+        DataFrame.describe: Generate descriptive statistics of DataFrame
+            columns.
+        DataFrame.memory_usage: Memory usage of DataFrame columns.
+
+        Examples
+        --------
+        >>> int_values = [1, 2, 3, 4, 5]
+        >>> text_values = ["alpha", "beta", "gamma", "delta", "epsilon"]
+        >>> float_values = [0.0, 0.25, 0.5, 0.75, 1.0]
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "int_col": int_values,
+        ...         "text_col": text_values,
+        ...         "float_col": float_values,
+        ...     }
+        ... )
+        >>> df
+            int_col text_col  float_col
+        0        1    alpha       0.00
+        1        2     beta       0.25
+        2        3    gamma       0.50
+        3        4    delta       0.75
+        4        5  epsilon       1.00
+
+        Prints information of all columns:
+
+        >>> df.info(verbose=True)
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 5 entries, 0 to 4
+        Data columns (total 3 columns):
+         #   Column     Non-Null Count  Dtype
+        ---  ------     --------------  -----
+         0   int_col    5 non-null      int64
+         1   text_col   5 non-null      object
+         2   float_col  5 non-null      float64
+        dtypes: float64(1), int64(1), object(1)
+        memory usage: 248.0+ bytes
+
+        Prints a summary of columns count and its dtypes but not per column
+        information:
+
+        >>> df.info(verbose=False)
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 5 entries, 0 to 4
+        Columns: 3 entries, int_col to float_col
+        dtypes: float64(1), int64(1), object(1)
+        memory usage: 248.0+ bytes
+
+        Pipe output of DataFrame.info to buffer instead of sys.stdout, get
+        buffer content and writes to a text file:
+
+        >>> import io
+        >>> buffer = io.StringIO()
+        >>> df.info(buf=buffer)
+        >>> s = buffer.getvalue()
+        >>> with open("df_info.txt", "w", encoding="utf-8") as f:  # doctest: +SKIP
+        ...     f.write(s)
+        260
+
+        The `memory_usage` parameter allows deep introspection mode, specially
+        useful for big DataFrames and fine-tune memory optimization:
+
+        >>> random_strings_array = np.random.choice(["a", "b", "c"], 10**6)
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "column_1": np.random.choice(["a", "b", "c"], 10**6),
+        ...         "column_2": np.random.choice(["a", "b", "c"], 10**6),
+        ...         "column_3": np.random.choice(["a", "b", "c"], 10**6),
+        ...     }
+        ... )
+        >>> df.info()
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 1000000 entries, 0 to 999999
+        Data columns (total 3 columns):
+         #   Column    Non-Null Count    Dtype
+        ---  ------    --------------    -----
+         0   column_1  1000000 non-null  object
+         1   column_2  1000000 non-null  object
+         2   column_3  1000000 non-null  object
+        dtypes: object(3)
+        memory usage: 22.9+ MB
+
+        >>> df.info(memory_usage="deep")
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 1000000 entries, 0 to 999999
+        Data columns (total 3 columns):
+         #   Column    Non-Null Count    Dtype
+        ---  ------    --------------    -----
+         0   column_1  1000000 non-null  object
+         1   column_2  1000000 non-null  object
+         2   column_3  1000000 non-null  object
+        dtypes: object(3)
+        memory usage: 165.9 MB
+        """
         info = DataFrameInfo(
             data=self,
             memory_usage=memory_usage,
