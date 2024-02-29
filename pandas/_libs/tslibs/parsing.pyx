@@ -938,6 +938,8 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
 
     # same default used by dateutil
     default = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    if default.month == 2 and default.day == 29:
+        default -= timedelta(days=1)
     try:
         parsed_datetime = dateutil_parse(
             dt_str,
