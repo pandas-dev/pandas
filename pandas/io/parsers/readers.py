@@ -17,6 +17,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Generic,
     Literal,
     NamedTuple,
     TypedDict,
@@ -83,6 +84,7 @@ if TYPE_CHECKING:
         DtypeArg,
         DtypeBackend,
         FilePath,
+        HashableT,
         IndexLabel,
         ReadCsvBuffer,
         Self,
@@ -90,6 +92,62 @@ if TYPE_CHECKING:
         Unpack,
         UsecolsArgType,
     )
+
+    class _read_shared(TypedDict, Generic[HashableT], total=False):
+        # annotations shared between read_csv/fwf/table's overloads
+        # NOTE: Keep in sync with the annotations of the implementation
+        sep: str | None | lib.NoDefault
+        delimiter: str | None | lib.NoDefault
+        header: int | Sequence[int] | None | Literal["infer"]
+        names: Sequence[Hashable] | None | lib.NoDefault
+        index_col: IndexLabel | Literal[False] | None
+        usecols: UsecolsArgType
+        dtype: DtypeArg | None
+        engine: CSVEngine | None
+        converters: Mapping[HashableT, Callable] | None
+        true_values: list | None
+        false_values: list | None
+        skipinitialspace: bool
+        skiprows: list[int] | int | Callable[[Hashable], bool] | None
+        skipfooter: int
+        nrows: int | None
+        na_values: Hashable | Iterable[Hashable] | Mapping[
+            Hashable, Iterable[Hashable]
+        ] | None
+        keep_default_na: bool
+        na_filter: bool
+        verbose: bool | lib.NoDefault
+        skip_blank_lines: bool
+        parse_dates: bool | Sequence[Hashable] | None
+        infer_datetime_format: bool | lib.NoDefault
+        keep_date_col: bool | lib.NoDefault
+        date_parser: Callable | lib.NoDefault
+        date_format: str | dict[Hashable, str] | None
+        dayfirst: bool
+        cache_dates: bool
+        compression: CompressionOptions
+        thousands: str | None
+        decimal: str
+        lineterminator: str | None
+        quotechar: str
+        quoting: int
+        doublequote: bool
+        escapechar: str | None
+        comment: str | None
+        encoding: str | None
+        encoding_errors: str | None
+        dialect: str | csv.Dialect | None
+        on_bad_lines: str
+        delim_whitespace: bool | lib.NoDefault
+        low_memory: bool
+        memory_map: bool
+        float_precision: Literal["high", "legacy", "round_trip"] | None
+        storage_options: StorageOptions | None
+        dtype_backend: DtypeBackend | lib.NoDefault
+else:
+    _read_shared = dict
+
+
 _doc_read_csv_and_table = (
     r"""
 {summary}
@@ -480,59 +538,6 @@ class _Fwf_Defaults(TypedDict):
     widths: None
 
 
-class _read_shared(TypedDict, total=False):
-    # annotations shared between read_csv/fwf/table's overloads
-    # NOTE: Keep in sync with the annotations of the implementation
-    sep: str | None | lib.NoDefault
-    delimiter: str | None | lib.NoDefault
-    header: int | Sequence[int] | None | Literal["infer"]
-    names: Sequence[Hashable] | None | lib.NoDefault
-    index_col: IndexLabel | Literal[False] | None
-    usecols: UsecolsArgType
-    dtype: DtypeArg | None
-    engine: CSVEngine | None
-    converters: Mapping[Hashable, Callable] | None
-    true_values: list | None
-    false_values: list | None
-    skipinitialspace: bool
-    skiprows: list[int] | int | Callable[[Hashable], bool] | None
-    skipfooter: int
-    nrows: int | None
-    na_values: Hashable | Iterable[Hashable] | Mapping[
-        Hashable, Iterable[Hashable]
-    ] | None
-    keep_default_na: bool
-    na_filter: bool
-    verbose: bool | lib.NoDefault
-    skip_blank_lines: bool
-    parse_dates: bool | Sequence[Hashable] | None
-    infer_datetime_format: bool | lib.NoDefault
-    keep_date_col: bool | lib.NoDefault
-    date_parser: Callable | lib.NoDefault
-    date_format: str | dict[Hashable, str] | None
-    dayfirst: bool
-    cache_dates: bool
-    compression: CompressionOptions
-    thousands: str | None
-    decimal: str
-    lineterminator: str | None
-    quotechar: str
-    quoting: int
-    doublequote: bool
-    escapechar: str | None
-    comment: str | None
-    encoding: str | None
-    encoding_errors: str | None
-    dialect: str | csv.Dialect | None
-    on_bad_lines: str
-    delim_whitespace: bool | lib.NoDefault
-    low_memory: bool
-    memory_map: bool
-    float_precision: Literal["high", "legacy", "round_trip"] | None
-    storage_options: StorageOptions | None
-    dtype_backend: DtypeBackend | lib.NoDefault
-
-
 _fwf_defaults: _Fwf_Defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
 _c_unsupported = {"skipfooter"}
 _python_unsupported = {"low_memory", "float_precision"}
@@ -685,7 +690,7 @@ def read_csv(
     *,
     iterator: Literal[True],
     chunksize: int | None = ...,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> TextFileReader:
     ...
 
@@ -696,7 +701,7 @@ def read_csv(
     *,
     iterator: bool = ...,
     chunksize: int,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> TextFileReader:
     ...
 
@@ -707,7 +712,7 @@ def read_csv(
     *,
     iterator: Literal[False] = ...,
     chunksize: None = ...,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> DataFrame:
     ...
 
@@ -718,7 +723,7 @@ def read_csv(
     *,
     iterator: bool = ...,
     chunksize: int | None = ...,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> DataFrame | TextFileReader:
     ...
 
@@ -748,7 +753,7 @@ def read_csv(
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
-    converters: Mapping[Hashable, Callable] | None = None,
+    converters: Mapping[HashableT, Callable] | None = None,
     true_values: list | None = None,
     false_values: list | None = None,
     skipinitialspace: bool = False,
@@ -890,7 +895,7 @@ def read_table(
     *,
     iterator: Literal[True],
     chunksize: int | None = ...,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> TextFileReader:
     ...
 
@@ -901,7 +906,7 @@ def read_table(
     *,
     iterator: bool = ...,
     chunksize: int,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> TextFileReader:
     ...
 
@@ -912,7 +917,7 @@ def read_table(
     *,
     iterator: Literal[False] = ...,
     chunksize: None = ...,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> DataFrame:
     ...
 
@@ -923,7 +928,7 @@ def read_table(
     *,
     iterator: bool = ...,
     chunksize: int | None = ...,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> DataFrame | TextFileReader:
     ...
 
@@ -955,7 +960,7 @@ def read_table(
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
-    converters: Mapping[Hashable, Callable] | None = None,
+    converters: Mapping[HashableT, Callable] | None = None,
     true_values: list | None = None,
     false_values: list | None = None,
     skipinitialspace: bool = False,
@@ -1091,7 +1096,7 @@ def read_fwf(
     infer_nrows: int = ...,
     iterator: Literal[True],
     chunksize: int | None = ...,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> TextFileReader:
     ...
 
@@ -1105,7 +1110,7 @@ def read_fwf(
     infer_nrows: int = ...,
     iterator: bool = ...,
     chunksize: int,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> TextFileReader:
     ...
 
@@ -1119,7 +1124,7 @@ def read_fwf(
     infer_nrows: int = ...,
     iterator: Literal[False] = ...,
     chunksize: None = ...,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> DataFrame:
     ...
 
@@ -1132,7 +1137,7 @@ def read_fwf(
     infer_nrows: int = 100,
     iterator: bool = False,
     chunksize: int | None = None,
-    **kwds: Unpack[_read_shared],
+    **kwds: Unpack[_read_shared[HashableT]],
 ) -> DataFrame | TextFileReader:
     r"""
     Read a table of fixed-width formatted lines into DataFrame.

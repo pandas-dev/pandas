@@ -33,6 +33,7 @@ Other enhancements
 - :meth:`Styler.set_tooltips` provides alternative method to storing tooltips by using title attribute of td elements. (:issue:`56981`)
 - Allow dictionaries to be passed to :meth:`pandas.Series.str.replace` via ``pat`` parameter (:issue:`51748`)
 - Support passing a :class:`Series` input to :func:`json_normalize` that retains the :class:`Series` :class:`Index` (:issue:`51452`)
+- Users can globally disable any ``PerformanceWarning`` by setting the option ``mode.performance_warnings`` to ``False`` (:issue:`56920`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -43,10 +44,63 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_300.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_300.notable_bug_fixes.groupby_unobs_and_na:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+Improved behavior in groupby for ``observed=False``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A number of bugs have been fixed due to improved handling of unobserved groups (:issue:`55738`). All remarks in this section equally impact :class:`.SeriesGroupBy`.
+
+In previous versions of pandas, a single grouping with :meth:`.DataFrameGroupBy.apply` or :meth:`.DataFrameGroupBy.agg` would pass the unobserved groups to the provided function, resulting in ``0`` below.
+
+.. ipython:: python
+
+    df = pd.DataFrame(
+        {
+            "key1": pd.Categorical(list("aabb"), categories=list("abc")),
+            "key2": [1, 1, 1, 2],
+            "values": [1, 2, 3, 4],
+        }
+    )
+    df
+    gb = df.groupby("key1", observed=False)
+    gb[["values"]].apply(lambda x: x.sum())
+
+However this was not the case when using multiple groupings, resulting in ``NaN`` below.
+
+.. code-block:: ipython
+
+    In [1]: gb = df.groupby(["key1", "key2"], observed=False)
+    In [2]: gb[["values"]].apply(lambda x: x.sum())
+    Out[2]:
+               values
+    key1 key2
+    a    1        3.0
+         2        NaN
+    b    1        3.0
+         2        4.0
+    c    1        NaN
+         2        NaN
+
+Now using multiple groupings will also pass the unobserved groups to the provided function.
+
+.. ipython:: python
+
+    gb = df.groupby(["key1", "key2"], observed=False)
+    gb[["values"]].apply(lambda x: x.sum())
+
+Similarly:
+
+  - In previous versions of pandas the method :meth:`.DataFrameGroupBy.sum` would result in ``0`` for unobserved groups, but :meth:`.DataFrameGroupBy.prod`, :meth:`.DataFrameGroupBy.all`, and :meth:`.DataFrameGroupBy.any` would all result in NA values. Now these methods result in ``1``, ``True``, and ``False`` respectively.
+  - :meth:`.DataFrameGroupBy.groups` did not include unobserved groups and now does.
+
+These improvements also fixed certain bugs in groupby:
+
+ - :meth:`.DataFrameGroupBy.nunique` would fail when there are multiple groupings, unobserved groups, and ``as_index=False`` (:issue:`52848`)
+ - :meth:`.DataFrameGroupBy.agg` would fail when there are multiple groupings, unobserved groups, and ``as_index=False`` (:issue:`36698`)
+ - :meth:`.DataFrameGroupBy.sum` would have incorrect values when there are multiple groupings, unobserved groups, and non-numeric data (:issue:`43891`)
+ - :meth:`.DataFrameGroupBy.groups` with ``sort=False`` would sort groups; they now occur in the order they are observed (:issue:`56966`)
+ - :meth:`.DataFrameGroupBy.value_counts` would produce incorrect results when used with some categorical and some non-categorical groupings and ``observed=False`` (:issue:`56016`)
 
 .. _whatsnew_300.notable_bug_fixes.notable_bug_fix2:
 
@@ -101,6 +155,29 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
+
+Copy keyword
+^^^^^^^^^^^^
+
+The ``copy`` keyword argument in the following methods is deprecated and
+will be removed in a future version:
+
+- :meth:`DataFrame.truncate` / :meth:`Series.truncate`
+- :meth:`DataFrame.tz_convert` / :meth:`Series.tz_convert`
+- :meth:`DataFrame.tz_localize` / :meth:`Series.tz_localize`
+- :meth:`DataFrame.infer_objects` / :meth:`Series.infer_objects`
+- :meth:`DataFrame.align` / :meth:`Series.align`
+- :meth:`DataFrame.astype` / :meth:`Series.astype`
+- :meth:`DataFrame.reindex` / :meth:`Series.reindex`
+- :meth:`DataFrame.reindex_like` / :meth:`Series.reindex_like`
+
+Copy-on-Write utilizes a lazy copy mechanism that defers copying the data until
+necessary. Use ``.copy`` to trigger an eager copy. The copy keyword has no effect
+starting with 3.0, so it can be safely removed from your code.
+
+Other Deprecations
+^^^^^^^^^^^^^^^^^^
+
 - Deprecated :meth:`Timestamp.utcfromtimestamp`, use ``Timestamp.fromtimestamp(ts, "UTC")`` instead (:issue:`56680`)
 - Deprecated :meth:`Timestamp.utcnow`, use ``Timestamp.now("UTC")`` instead (:issue:`56680`)
 - Deprecated allowing non-keyword arguments in :meth:`Series.to_markdown` except ``buf``. (:issue:`57280`)
@@ -122,6 +199,7 @@ Removal of prior version deprecations/changes
 - Enforced deprecation disallowing parsing datetimes with mixed time zones unless user passes ``utc=True`` to :func:`to_datetime` (:issue:`57275`)
 - Enforced silent-downcasting deprecation for :ref:`all relevant methods <whatsnew_220.silent_downcasting>` (:issue:`54710`)
 - In :meth:`DataFrame.stack`, the default value of ``future_stack`` is now ``True``; specifying ``False`` will raise a ``FutureWarning`` (:issue:`55448`)
+- Methods ``apply``, ``agg``, and ``transform`` will no longer replace NumPy functions (e.g. ``np.sum``) and built-in functions (e.g. ``min``) with the equivalent pandas implementation; use string aliases (e.g. ``"sum"`` and ``"min"``) if you desire to use the pandas implementation (:issue:`53974`)
 - Passing both ``freq`` and ``fill_value`` in :meth:`DataFrame.shift` and :meth:`Series.shift` and :meth:`.DataFrameGroupBy.shift` now raises a ``ValueError`` (:issue:`54818`)
 - Removed :meth:`DateOffset.is_anchored` and :meth:`offsets.Tick.is_anchored` (:issue:`56594`)
 - Removed ``DataFrame.applymap``, ``Styler.applymap`` and ``Styler.applymap_index`` (:issue:`52364`)
@@ -166,6 +244,7 @@ Removal of prior version deprecations/changes
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+- Performance improvement in :class:`DataFrame` when ``data`` is a ``dict`` and ``columns`` is specified (:issue:`24368`)
 - Performance improvement in :meth:`DataFrame.join` for sorted but non-unique indexes (:issue:`56941`)
 - Performance improvement in :meth:`DataFrame.join` when left and/or right are non-unique and ``how`` is ``"left"``, ``"right"``, or ``"inner"`` (:issue:`56817`)
 - Performance improvement in :meth:`DataFrame.join` with ``how="left"`` or ``how="right"`` and ``sort=True`` (:issue:`56919`)
@@ -177,6 +256,7 @@ Performance improvements
 - Performance improvement in :meth:`RangeIndex.take` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57445`)
 - Performance improvement in indexing operations for string dtypes (:issue:`56997`)
 - :meth:`Series.str.extract` returns a :class:`RangeIndex` columns instead of an :class:`Index` column when possible (:issue:`?``)
+- Performance improvement in ``DataFrameGroupBy.__len__`` and ``SeriesGroupBy.__len__`` (:issue:`57595`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.bug_fixes:
@@ -259,12 +339,9 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
+- Bug in :meth:`.DataFrameGroupBy.groups` and :meth:`.SeriesGroupby.groups` that would not respect groupby argument ``dropna`` (:issue:`55919`)
 - Bug in :meth:`.DataFrameGroupBy.quantile` when ``interpolation="nearest"`` is inconsistent with :meth:`DataFrame.quantile` (:issue:`47942`)
 - Bug in :meth:`DataFrame.ewm` and :meth:`Series.ewm` when passed ``times`` and aggregation functions other than mean (:issue:`51695`)
-- Bug in :meth:`.DataFrameGroupBy.groups` and :meth:`.SeriesGroupby.groups` that would not respect groupby arguments ``dropna`` and ``sort`` (:issue:`55919`, :issue:`56966`, :issue:`56851`)
-- Bug in :meth:`.DataFrameGroupBy.nunique` and :meth:`.SeriesGroupBy.nunique` would fail with multiple categorical groupings when ``as_index=False`` (:issue:`52848`)
-- Bug in :meth:`.DataFrameGroupBy.prod`, :meth:`.DataFrameGroupBy.any`, and :meth:`.DataFrameGroupBy.all` would result in NA values on unobserved groups; they now result in ``1``, ``False``, and ``True`` respectively (:issue:`55783`)
-- Bug in :meth:`.DataFrameGroupBy.value_counts` would produce incorrect results when used with some categorical and some non-categorical groupings and ``observed=False`` (:issue:`56016`)
 -
 
 Reshaping
@@ -288,9 +365,11 @@ Styler
 
 Other
 ^^^^^
+- Bug in :class:`DataFrame` when passing a ``dict`` with a NA scalar and ``columns`` that would always return ``np.nan`` (:issue:`57205`)
 - Bug in :func:`tseries.api.guess_datetime_format` would fail to infer time format when "%Y" == "%H%M" (:issue:`57452`)
 - Bug in :meth:`DataFrame.sort_index` when passing ``axis="columns"`` and ``ignore_index=True`` and ``ascending=False`` not returning a :class:`RangeIndex` columns (:issue:`57293`)
 - Bug in :meth:`DataFrame.where` where using a non-bool type array in the function would return a ``ValueError`` instead of a ``TypeError`` (:issue:`56330`)
+- Bug in Dataframe Interchange Protocol implementation was returning incorrect results for data buffers' associated dtype, for string and datetime columns (:issue:`54781`)
 
 .. ***DO NOT USE THIS SECTION***
 
