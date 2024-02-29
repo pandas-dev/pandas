@@ -218,6 +218,7 @@ def test_parsers_month_freq(date_str, expected):
         ("Tue 24 Aug 2021 01:30:48 AM", "%a %d %b %Y %I:%M:%S %p"),
         ("Tuesday 24 Aug 2021 01:30:48 AM", "%A %d %b %Y %I:%M:%S %p"),
         ("27.03.2003 14:55:00.000", "%d.%m.%Y %H:%M:%S.%f"),  # GH50317
+        ("2023-11-09T20:23:46Z", "%Y-%m-%dT%H:%M:%S%z"),  # GH57452
     ],
 )
 def test_guess_datetime_format_with_parseable_formats(string, fmt):

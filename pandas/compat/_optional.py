@@ -16,7 +16,8 @@ from pandas.util.version import Version
 if TYPE_CHECKING:
     import types
 
-# Update install.rst & setup.cfg when updating versions!
+# Update install.rst, actions-39-minimum_versions.yaml,
+# deps_minimum.toml & pyproject.toml when updating versions!
 
 VERSIONS = {
     "adbc-driver-postgresql": "0.8.0",
@@ -24,8 +25,7 @@ VERSIONS = {
     "bs4": "4.11.2",
     "blosc": "1.21.3",
     "bottleneck": "1.3.6",
-    "dataframe-api-compat": "0.1.7",
-    "fastparquet": "2022.12.0",
+    "fastparquet": "2023.04.0",
     "fsspec": "2022.11.0",
     "html5lib": "1.1",
     "hypothesis": "6.46.1",
@@ -37,7 +37,6 @@ VERSIONS = {
     "numexpr": "2.8.4",
     "odfpy": "1.4.1",
     "openpyxl": "3.1.0",
-    "pandas_gbq": "0.19.0",
     "psycopg2": "2.9.6",  # (dt dec pq3 ext lo64)
     "pymysql": "1.0.2",
     "pyarrow": "10.0.1",
@@ -68,7 +67,6 @@ INSTALL_MAPPING = {
     "jinja2": "Jinja2",
     "lxml.etree": "lxml",
     "odf": "odfpy",
-    "pandas_gbq": "pandas-gbq",
     "python_calamine": "python-calamine",
     "sqlalchemy": "SQLAlchemy",
     "tables": "pytables",

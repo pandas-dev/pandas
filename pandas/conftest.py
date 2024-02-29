@@ -28,12 +28,14 @@ from datetime import (
     timezone,
 )
 from decimal import Decimal
+import gc
 import operator
 import os
 from typing import (
     TYPE_CHECKING,
     Callable,
 )
+import uuid
 
 from dateutil.tz import (
     tzlocal,
@@ -47,8 +49,6 @@ from pytz import (
     FixedOffset,
     utc,
 )
-
-from pandas._config.config import _get_option
 
 import pandas.util._test_decorators as td
 
@@ -160,15 +160,6 @@ def pytest_collection_modifyitems(items, config) -> None:
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         (
-            "to_pydatetime",
-            "The behavior of DatetimeProperties.to_pydatetime is deprecated",
-        ),
-        (
-            "pandas.core.generic.NDFrame.bool",
-            "(Series|DataFrame).bool is now deprecated and will be removed "
-            "in future version of pandas",
-        ),
-        (
             "pandas.core.generic.NDFrame.first",
             "first is deprecated and will be removed in a future version. "
             "Please create a mask and filter using `.loc` instead",
@@ -190,10 +181,6 @@ def pytest_collection_modifyitems(items, config) -> None:
 
     if is_doctest:
         for item in items:
-            # autouse=True for the add_doctest_imports can lead to expensive teardowns
-            # since doctest_namespace is a session fixture
-            item.add_marker(pytest.mark.usefixtures("add_doctest_imports"))
-
             for path, message in ignored_doctest_warnings:
                 ignore_doctest_warning(item, path, message)
 
@@ -250,7 +237,14 @@ for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
     )
 
 
-@pytest.fixture
+# ----------------------------------------------------------------
+# Autouse fixtures
+# ----------------------------------------------------------------
+
+
+# https://github.com/pytest-dev/pytest/issues/11873
+# Would like to avoid autouse=True, but cannot as of pytest 8.0.0
+@pytest.fixture(autouse=True)
 def add_doctest_imports(doctest_namespace) -> None:
     """
     Make `np` and `pd` names available for doctests.
@@ -259,9 +253,6 @@ def add_doctest_imports(doctest_namespace) -> None:
     doctest_namespace["pd"] = pd
 
 
-# ----------------------------------------------------------------
-# Autouse fixtures
-# ----------------------------------------------------------------
 @pytest.fixture(autouse=True)
 def configure_tests() -> None:
     """
@@ -281,7 +272,7 @@ def axis(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False, None])
+@pytest.fixture(params=[True, False])
 def observed(request):
     """
     Pass in the observed keyword to groupby for [True, False]
@@ -1410,7 +1401,7 @@ def fixed_now_ts() -> Timestamp:
     """
     Fixture emits fixed Timestamp.now()
     """
-    return Timestamp(  # pyright: ignore[reportGeneralTypeIssues]
+    return Timestamp(  # pyright: ignore[reportReturnType]
         year=2021, month=1, day=1, hour=12, minute=4, second=13, microsecond=22
     )
 
@@ -1703,6 +1694,38 @@ def any_numpy_dtype(request):
     return request.param
 
 
+@pytest.fixture(params=tm.ALL_REAL_NULLABLE_DTYPES)
+def any_real_nullable_dtype(request):
+    """
+    Parameterized fixture for all real dtypes that can hold NA.
+
+    * float
+    * 'float32'
+    * 'float64'
+    * 'Float32'
+    * 'Float64'
+    * 'UInt8'
+    * 'UInt16'
+    * 'UInt32'
+    * 'UInt64'
+    * 'Int8'
+    * 'Int16'
+    * 'Int32'
+    * 'Int64'
+    * 'uint8[pyarrow]'
+    * 'uint16[pyarrow]'
+    * 'uint32[pyarrow]'
+    * 'uint64[pyarrow]'
+    * 'int8[pyarrow]'
+    * 'int16[pyarrow]'
+    * 'int32[pyarrow]'
+    * 'int64[pyarrow]'
+    * 'float[pyarrow]'
+    * 'double[pyarrow]'
+    """
+    return request.param
+
+
 @pytest.fixture(params=tm.ALL_NUMERIC_DTYPES)
 def any_numeric_dtype(request):
     """
@@ -1838,6 +1861,39 @@ def ip():
     return InteractiveShell(config=c)
 
 
+@pytest.fixture
+def mpl_cleanup():
+    """
+    Ensure Matplotlib is cleaned up around a test.
+
+    Before a test is run:
+
+    1) Set the backend to "template" to avoid requiring a GUI.
+
+    After a test is run:
+
+    1) Reset units registry
+    2) Reset rc_context
+    3) Close all figures
+
+    See matplotlib/testing/decorators.py#L24.
+    """
+    mpl = pytest.importorskip("matplotlib")
+    mpl_units = pytest.importorskip("matplotlib.units")
+    plt = pytest.importorskip("matplotlib.pyplot")
+    orig_units_registry = mpl_units.registry.copy()
+    try:
+        with mpl.rc_context():
+            mpl.use("template")
+            yield
+    finally:
+        mpl_units.registry.clear()
+        mpl_units.registry.update(orig_units_registry)
+        plt.close("all")
+        # https://matplotlib.org/stable/users/prev_whats_new/whats_new_3.6.0.html#garbage-collection-is-no-longer-run-on-figure-close  # noqa: E501
+        gc.collect(1)
+
+
 @pytest.fixture(
     params=[
         getattr(pd.offsets, o)
@@ -1928,26 +1984,14 @@ def indexer_ial(request):
     return request.param
 
 
-@pytest.fixture
-def using_copy_on_write() -> bool:
+@pytest.fixture(params=[True, False])
+def performance_warning(request) -> Iterator[bool | type[Warning]]:
     """
-    Fixture to check if Copy-on-Write is enabled.
+    Fixture to check if performance warnings are enabled. Either produces
+    ``PerformanceWarning`` if they are enabled, otherwise ``False``.
     """
-    return (
-        pd.options.mode.copy_on_write is True
-        and _get_option("mode.data_manager", silent=True) == "block"
-    )
-
-
-@pytest.fixture
-def warn_copy_on_write() -> bool:
-    """
-    Fixture to check if Copy-on-Write is in warning mode.
-    """
-    return (
-        pd.options.mode.copy_on_write == "warn"
-        and _get_option("mode.data_manager", silent=True) == "block"
-    )
+    with pd.option_context("mode.performance_warnings", request.param):
+        yield pd.errors.PerformanceWarning if request.param else False
 
 
 @pytest.fixture
@@ -1977,3 +2021,14 @@ def arrow_string_storage():
     Fixture that lists possible PyArrow values for StringDtype storage field.
     """
     return ("pyarrow", "pyarrow_numpy")
+
+
+@pytest.fixture
+def temp_file(tmp_path):
+    """
+    Generate a unique file for testing use. See link for removal policy.
+    https://docs.pytest.org/en/7.1.x/how-to/tmp_path.html#the-default-base-temporary-directory
+    """
+    file_path = tmp_path / str(uuid.uuid4())
+    file_path.touch()
+    return file_path

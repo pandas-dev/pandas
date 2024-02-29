@@ -315,7 +315,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
     See Also
     --------
-    :func:`pandas.array`
+    :func:`array`
         The recommended function for creating a StringArray.
     Series.str
         The string methods are available on Series backed by
@@ -327,7 +327,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
     Examples
     --------
-    >>> pd.array(['This is', 'some text', None, 'data.'], dtype="string")
+    >>> pd.array(["This is", "some text", None, "data."], dtype="string")
     <StringArray>
     ['This is', 'some text', <NA>, 'data.']
     Length: 4, dtype: string
@@ -335,11 +335,11 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     Unlike arrays instantiated with ``dtype="object"``, ``StringArray``
     will convert the values to strings.
 
-    >>> pd.array(['1', 1], dtype="object")
+    >>> pd.array(["1", 1], dtype="object")
     <NumpyExtensionArray>
     ['1', 1]
     Length: 2, dtype: object
-    >>> pd.array(['1', 1], dtype="string")
+    >>> pd.array(["1", 1], dtype="string")
     <StringArray>
     ['1', '1']
     Length: 2, dtype: string
@@ -416,7 +416,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
+        cls, strings, *, dtype: ExtensionDtype, copy: bool = False
     ) -> Self:
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
@@ -499,10 +499,10 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             values = arr.astype(dtype.numpy_dtype)
             return IntegerArray(values, mask, copy=False)
         elif isinstance(dtype, FloatingDtype):
-            arr = self.copy()
+            arr_ea = self.copy()
             mask = self.isna()
-            arr[mask] = "0"
-            values = arr.astype(dtype.numpy_dtype)
+            arr_ea[mask] = "0"
+            values = arr_ea.astype(dtype.numpy_dtype)
             return FloatingArray(values, mask, copy=False)
         elif isinstance(dtype, ExtensionDtype):
             # Skip the NumpyExtensionArray.astype method
@@ -542,7 +542,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     def value_counts(self, dropna: bool = True) -> Series:
         from pandas.core.algorithms import value_counts_internal as value_counts
 
-        result = value_counts(self._ndarray, dropna=dropna).astype("Int64")
+        result = value_counts(self._ndarray, sort=False, dropna=dropna).astype("Int64")
         result.index = result.index.astype(self.dtype)
         return result
 
