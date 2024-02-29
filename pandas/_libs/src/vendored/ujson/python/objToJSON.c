@@ -490,7 +490,8 @@ static int NpyArr_iterNextItem(JSOBJ obj, JSONTypeContext *tc) {
     ((PyObjectEncoder *)tc->encoder)->npyValue = npyarr->dataptr;
     ((PyObjectEncoder *)tc->encoder)->npyCtxtPassthru = npyarr;
   } else {
-    GET_TC(tc)->itemValue = PyArray_GETITEM(npyarr->array, npyarr->dataptr);
+    GET_TC(tc)->itemValue =
+        PyArray_GETITEM((PyArrayObject *)npyarr->array, npyarr->dataptr);
   }
 
   npyarr->dataptr += npyarr->stride;
