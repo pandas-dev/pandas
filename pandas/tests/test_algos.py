@@ -570,6 +570,13 @@ class TestUnique:
         for i in range(1000):
             len(algos.unique(lst))
 
+    def test_index_returned(self, index):
+        # GH#57043
+        index = index.repeat(2)
+        result = algos.unique(index)
+        expected = index.unique()
+        tm.assert_index_equal(result, expected, exact=True)
+
     def test_on_index_object(self):
         mindex = MultiIndex.from_arrays(
             [np.arange(5).repeat(5), np.tile(np.arange(5), 5)]
