@@ -69,6 +69,46 @@ class TestTSPlot:
         for label in ax.get_xticklabels() + ax.get_yticklabels():
             assert label.get_fontsize() == 2
 
+
+     #TODO: Add more tests for different frequencies
+    @pytest.mark.parametrize("freq", ["1Y", "Y", "3Y", "10Y", "100Y"])
+    def test_period_range_content(self, freq):
+    # Setup your DataFrame as in your scenario
+        idx = period_range("2000-01-01", freq=freq, periods=4)
+        df = DataFrame(
+            np.array([0, 1, 0, 1]),
+            index=idx,
+            columns=["A"],
+        )
+
+        ax = df.plot()
+        lines = ax.get_lines()[0].get_xdata()
+        
+        # Convert idx and lines to lists of strings representing dates
+        idx_dates = [str(period) for period in idx]
+        lines_dates = [str(period) for period in lines]
+
+        assert idx_dates == lines_dates
+
+    #TODO: Add more tests for different frequency formats
+    @pytest.mark.parametrize("freq", ["1Y", "Y", "3Y", "10Y", "100Y"])
+    def test_date_range_content(self, freq):
+    # Setup your DataFrame as in your scenario
+        idx = date_range("2000/01/01", freq=freq, periods=4)
+        df = DataFrame(
+            np.array([0, 1, 0, 1]),
+            index=idx,
+            columns=["A"],
+        )
+        ax = df.plot()
+        lines = ax.get_lines()[0].get_xdata()
+        # Convert idx and lines to lists of strings representing dates
+        idx_dates = [str(period).split("-")[0] for period in idx]
+        lines_dates = [str(period) for period in lines]
+        assert idx_dates == lines_dates
+
+
+
     def test_frame_inferred(self):
         # inferred freq
         idx = date_range("1/1/1987", freq="MS", periods=100)
