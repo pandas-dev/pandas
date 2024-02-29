@@ -6819,7 +6819,9 @@ class DataFrame(NDFrame, OpsMixin):
         4    D     7     2    e
         5    C     4     3    F
 
-        Sort by col1
+        **Sort by a single column**
+
+        In this case, we are soring the rows according to values in ``col1``:
 
         >>> df.sort_values(by=["col1"])
           col1  col2  col3 col4
@@ -6830,7 +6832,11 @@ class DataFrame(NDFrame, OpsMixin):
         4    D     7     2    e
         3  NaN     8     4    D
 
-        Sort by multiple columns
+        **Sort by multiple columns**
+
+        You can also provide multiple columns to ``by`` argument, as shown below. In this example, the rows are 
+        first sorted according to ``col1``, and then the rows that have an identical value in ``col1`` are sorted according
+        to ``col2``.
 
         >>> df.sort_values(by=["col1", "col2"])
           col1  col2  col3 col4
@@ -6841,7 +6847,9 @@ class DataFrame(NDFrame, OpsMixin):
         4    D     7     2    e
         3  NaN     8     4    D
 
-        Sort Descending
+        **Sort in a descending order**
+
+        The sort order can be reversed using ``ascending`` argument, as shown below:
 
         >>> df.sort_values(by="col1", ascending=False)
           col1  col2  col3 col4
@@ -6852,7 +6860,10 @@ class DataFrame(NDFrame, OpsMixin):
         1    A     1     1    B
         3  NaN     8     4    D
 
-        Putting NAs first
+        **Placing any** ``NA`` **first**
+
+        Note that in the above example, the rows that contain an ``NA`` value in their ``col1`` are placed
+        at the end of the dataframe. This behavior can be modified via ``na_position`` argument, as shown below:
 
         >>> df.sort_values(by="col1", ascending=False, na_position="first")
           col1  col2  col3 col4
@@ -6863,7 +6874,10 @@ class DataFrame(NDFrame, OpsMixin):
         0    A     2     0    a
         1    A     1     1    B
 
-        Sorting with a key function
+        **Customized sort order**
+
+        The ``key`` argument allows for a further customization of sorting behaviour. For example, you may want 
+        to ignore the `letter's case <https://en.wikipedia.org/wiki/Letter_case>`__ when sorting strings:
 
         >>> df.sort_values(by="col4", key=lambda col: col.str.lower())
            col1  col2  col3 col4
@@ -6874,8 +6888,10 @@ class DataFrame(NDFrame, OpsMixin):
         4    D     7     2    e
         5    C     4     3    F
 
-        Natural sort with the key argument,
-        using the `natsort <https://github.com/SethMMorton/natsort>` package.
+        Another typical example is `natural sorting <https://en.wikipedia.org/wiki/Natural_sort_order>`__. 
+        This can be done using
+        ``natsort`` `package <https://github.com/SethMMorton/natsort>`__, which provides sorted indices according
+        to their natural order, as shown below:
 
         >>> df = pd.DataFrame(
         ...     {
@@ -6891,8 +6907,24 @@ class DataFrame(NDFrame, OpsMixin):
         3   48hr     40
         4   96hr     50
         >>> from natsort import index_natsorted
+        >>> index_natsorted(df["time"])
+        [0, 3, 2, 4, 1]
         >>> df.sort_values(
         ...     by="time", key=lambda x: np.argsort(index_natsorted(df["time"]))
+        ... )
+            time  value
+        0    0hr     10
+        3   48hr     40
+        2   72hr     30
+        4   96hr     50
+        1  128hr     20
+
+        If sorted indices are not needed, you may simplify the procedure as follows:
+
+        >>> from natsort import natsort_keygen
+        ... df.sort_values(
+        ...    by="time",
+        ...    key=natsort_keygen(),
         ... )
             time  value
         0    0hr     10
