@@ -1,6 +1,8 @@
 import collections
 import warnings
 
+from pandas.util._exceptions import find_stack_level
+
 cimport cython
 from cpython.object cimport (
     Py_EQ,
@@ -41,6 +43,7 @@ from pandas._libs.tslibs.conversion cimport (
     precision_from_unit,
 )
 from pandas._libs.tslibs.dtypes cimport (
+    c_DEPR_ABBREVS,
     get_supported_reso,
     is_supported_unit,
     npy_unit_to_abbrev,
@@ -716,7 +719,15 @@ cpdef inline str parse_timedelta_unit(str unit):
         return "ns"
     elif unit == "M":
         return unit
-    disallow_deprecated_unit(unit)
+    elif unit in c_DEPR_ABBREVS:
+        warnings.warn(
+            f"\'{unit}\' is deprecated and will be removed in a "
+            f"future version. Please use \'{c_DEPR_ABBREVS.get(unit)}\' "
+            f"instead of \'{unit}\'.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        unit = c_DEPR_ABBREVS[unit]
     try:
         return timedelta_abbrevs[unit.lower()]
     except KeyError:
@@ -816,12 +827,6 @@ cpdef disallow_ambiguous_unit(unit):
         raise ValueError(
             "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
             "represent unambiguous timedelta values durations."
-        )
-
-cpdef disallow_deprecated_unit(unit):
-    if unit in {"H", "S", "T", "t", "L", "l", "U", "u", "N", "n"}:
-        raise ValueError(
-            f"Unit \'{unit}\' is no longer supported."
         )
 
 
@@ -1814,7 +1819,6 @@ class Timedelta(_Timedelta):
                 raise OutOfBoundsTimedelta(msg) from err
 
         disallow_ambiguous_unit(unit)
-        disallow_deprecated_unit(unit)
 
         # GH 30543 if pd.Timedelta already passed, return it
         # check that only value is passed

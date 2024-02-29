@@ -44,7 +44,7 @@ class TestTimedeltas:
 
     @pytest.mark.parametrize("unit", ["H", "T", "t", "S", "L", "l", "U", "u", "N", "n"])
     def test_timedelta_unit_H_T_S_L_U_N_raises(self, unit):
-        msg = f"Unit '{unit}' is no longer supported."
+        msg = f"Invalid frequency: {unit}"
 
         with pytest.raises(ValueError, match=msg):
             to_timedelta(np.arange(5), unit=unit)
@@ -60,7 +60,7 @@ class TestTimedeltas:
 
     @pytest.mark.parametrize("msg_freq, freq", [("H", "19H12min"), ("T", "19h12T")])
     def test_timedelta_range_H_T_raises(self, msg_freq, freq):
-        msg = f"Unit '{msg_freq}' is no longer supported."
+        msg = f"Invalid frequency: {msg_freq}"
 
         with pytest.raises(ValueError, match=msg):
             timedelta_range(start="0 days", end="4 days", freq=freq)
@@ -126,6 +126,6 @@ class TestTimedeltas:
         ],
     )
     def test_timedelta_range_deprecated_freq(self, freq_depr, start, end):
-        msg = f"Unit '{freq_depr[-1]}' is no longer supported."
+        msg =f"Invalid frequency: {freq_depr[-1]}"
         with pytest.raises(ValueError, match=msg):
             timedelta_range(start=start, end=end, freq=freq_depr)

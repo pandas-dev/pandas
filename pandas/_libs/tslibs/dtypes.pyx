@@ -398,18 +398,8 @@ cdef dict c_DEPR_ABBREVS = {
     "BAS-SEP": "BYS-SEP",
     "BAS-OCT": "BYS-OCT",
     "BAS-NOV": "BYS-NOV",
-    "H": "h",
     "BH": "bh",
     "CBH": "cbh",
-    "T": "min",
-    "t": "min",
-    "S": "s",
-    "L": "ms",
-    "l": "ms",
-    "U": "us",
-    "u": "us",
-    "N": "ns",
-    "n": "ns",
 }
 
 
@@ -504,11 +494,7 @@ class Resolution(Enum):
         cdef:
             str abbrev
         try:
-            if freq in {"H", "S", "T", "L", "U", "N"}:
-                raise ValueError(
-                    f"Resolution abbreviation \'{freq}\' is no longer supported."
-                )
-            if freq in c_DEPR_ABBREVS and freq.upper() == freq:
+            if freq in c_DEPR_ABBREVS:
                 abbrev = c_DEPR_ABBREVS[freq]
                 warnings.warn(
                     f"\'{freq}\' is deprecated and will be removed in a future "
@@ -528,13 +514,7 @@ class Resolution(Enum):
             if split_freq[1] not in _month_names:
                 # i.e. we want e.g. "Q-DEC", not "Q-INVALID"
                 raise
-            if split_freq[0] in {"H", "S", "T", "L", "U", "N"}:
-                raise ValueError(
-                    f"Resolution abbreviation \'{split_freq[0]}\' "
-                    "is no longer supported."
-                )
-            if (split_freq[0] in c_DEPR_ABBREVS and
-                    split_freq[0].upper() == split_freq[0]):
+            if split_freq[0] in c_DEPR_ABBREVS:
                 abbrev = c_DEPR_ABBREVS[split_freq[0]]
                 warnings.warn(
                     f"\'{split_freq[0]}\' is deprecated and will be removed in a "

@@ -11,7 +11,6 @@ cpdef int64_t delta_to_nanoseconds(
 ) except? -1
 cdef convert_to_timedelta64(object ts, str unit)
 cdef bint is_any_td_scalar(object obj)
-cpdef disallow_deprecated_unit(unit)
 
 
 cdef class _Timedelta(timedelta):

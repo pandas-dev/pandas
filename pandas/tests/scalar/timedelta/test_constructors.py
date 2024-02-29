@@ -143,7 +143,7 @@ class TestTimedeltaConstructorUnitKeyword:
 
     @pytest.mark.parametrize("unit", ["H", "T", "t", "S", "L", "l", "U", "u", "N", "n"])
     def test_unit_H_T_S_L_N_U_raises(self, unit):
-        msg = f"Unit '{unit}' is no longer supported."
+        msg = f"Invalid frequency: {unit}"
         with pytest.raises(ValueError, match=msg):
             Timedelta(1, unit=unit)
 
