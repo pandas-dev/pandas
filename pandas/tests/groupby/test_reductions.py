@@ -65,22 +65,16 @@ def test_basic_aggregations(dtype):
     with pytest.raises(pd.errors.SpecificationError, match=msg):
         grouped.aggregate({"one": np.mean, "two": np.std})
 
-    group_constants = {0: 10, 1: 20, 2: 30}
-    msg = (
-        "Pinning the groupby key to each group in SeriesGroupBy.agg is deprecated, "
-        "and cases that relied on it will raise in a future version"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        # GH#41090
-        agged = grouped.agg(lambda x: group_constants[x.name] + x.mean())
-    assert agged[1] == 21
-
     # corner cases
-    msg = "Must produce aggregated value"
-    # exception raised is type Exception
-    with pytest.raises(Exception, match=msg):
-        grouped.aggregate(lambda x: x * 2)
-
+    result = grouped.aggregate(lambda x: x * 2)
+    expected = pd.Series(
+        {
+            0: data[data.index // 3 == 0] * 2,
+            1: data[data.index // 3 == 1] * 2,
+            2: data[data.index // 3 == 2] * 2,
+        },
+    )
+    tm.assert_series_equal(result, expected)
 
 @pytest.mark.parametrize(
     "vals",

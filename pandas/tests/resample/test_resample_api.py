@@ -643,10 +643,10 @@ def test_agg_list_like_func_with_args():
     )
 
     def foo1(x, a=1, c=0):
-        return x + a + c
+        return x.sum() + a + c
 
     def foo2(x, b=2, c=0):
-        return x + b + c
+        return x.sum() + b + c
 
     msg = r"foo1\(\) got an unexpected keyword argument 'b'"
     with pytest.raises(TypeError, match=msg):

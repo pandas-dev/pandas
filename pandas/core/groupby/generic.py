@@ -62,10 +62,7 @@ from pandas.core.apply import (
 )
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
-from pandas.core.groupby import (
-    base,
-    ops,
-)
+from pandas.core.groupby import base
 from pandas.core.groupby.groupby import (
     GroupBy,
     GroupByPlot,
@@ -373,34 +370,64 @@ class SeriesGroupBy(GroupBy[Series]):
                     index=self._grouper.result_index,
                     dtype=obj.dtype,
                 )
-
-            if self._grouper.nkeys > 1:
-                return self._python_agg_general(func, *args, **kwargs)
-
-            try:
-                return self._python_agg_general(func, *args, **kwargs)
-            except KeyError:
-                # KeyError raised in test_groupby.test_basic is bc the func does
-                #  a dictionary lookup on group.name, but group name is not
-                #  pinned in _python_agg_general, only in _aggregate_named
-                result = self._aggregate_named(func, *args, **kwargs)
-
-                warnings.warn(
-                    "Pinning the groupby key to each group in "
-                    f"{type(self).__name__}.agg is deprecated, and cases that "
-                    "relied on it will raise in a future version. "
-                    "If your operation requires utilizing the groupby keys, "
-                    "iterate over the groupby object instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-
-                # result is a dict whose keys are the elements of result_index
-                result = Series(result, index=self._grouper.result_index)
-                result = self._wrap_aggregated_output(result)
-                return result
+            return self._python_agg_general(func, *args, **kwargs)
 
     agg = aggregate
+
+    def _agg_for_resample(
+        self, func=None, *args, engine=None, engine_kwargs=None, **kwargs
+    ):
+        relabeling = func is None
+        columns = None
+        if relabeling:
+            columns, func = validate_func_kwargs(kwargs)
+            kwargs = {}
+
+        if isinstance(func, str):
+            if maybe_use_numba(engine) and engine is not None:
+                # Not all agg functions support numba, only propagate numba kwargs
+                # if user asks for numba, and engine is not None
+                # (if engine is None, the called function will handle the case where
+                # numba is requested via the global option)
+                kwargs["engine"] = engine
+            if engine_kwargs is not None:
+                kwargs["engine_kwargs"] = engine_kwargs
+            return getattr(self, func)(*args, **kwargs)
+
+        elif isinstance(func, abc.Iterable):
+            # Catch instances of lists / tuples
+            # but not the class list / tuple itself.
+            func = maybe_mangle_lambdas(func)
+            kwargs["engine"] = engine
+            kwargs["engine_kwargs"] = engine_kwargs
+            ret = self._aggregate_multiple_funcs(func, *args, **kwargs)
+            if relabeling:
+                # columns is not narrowed by mypy from relabeling flag
+                assert columns is not None  # for mypy
+                ret.columns = columns
+            if not self.as_index:
+                ret = ret.reset_index()
+            return ret
+
+        else:
+            if maybe_use_numba(engine):
+                return self._aggregate_with_numba(
+                    func, *args, engine_kwargs=engine_kwargs, **kwargs
+                )
+
+            if self.ngroups == 0:
+                # e.g. test_evaluate_with_empty_groups without any groups to
+                #  iterate over, we have no output on which to do dtype
+                #  inference. We default to using the existing dtype.
+                #  xref GH#51445
+                obj = self._obj_with_exclusions
+                return self.obj._constructor(
+                    [],
+                    name=self.obj.name,
+                    index=self._grouper.result_index,
+                    dtype=obj.dtype,
+                )
+            return self._python_agg_general(func, *args, **kwargs)
 
     def _python_agg_general(self, func, *args, **kwargs):
         f = lambda x: func(x, *args, **kwargs)
@@ -526,26 +553,6 @@ class SeriesGroupBy(GroupBy[Series]):
                 result = self._insert_inaxis_grouper(result)
                 result.index = default_index(len(result))
             return result
-
-    def _aggregate_named(self, func, *args, **kwargs):
-        # Note: this is very similar to _aggregate_series_pure_python,
-        #  but that does not pin group.name
-        result = {}
-        initialized = False
-
-        for name, group in self._grouper.get_iterator(self._obj_with_exclusions):
-            # needed for pandas/tests/groupby/test_groupby.py::test_basic_aggregations
-            object.__setattr__(group, "name", name)
-
-            output = func(group, *args, **kwargs)
-            output = ops.extract_result(output)
-            if not initialized:
-                # We only do this validation on the first iteration
-                ops.check_result_array(output, group.dtype)
-                initialized = True
-            result[name] = output
-
-        return result
 
     __examples_series_doc = dedent(
         """
@@ -1605,6 +1612,61 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     func, *args, engine_kwargs=engine_kwargs, **kwargs
                 )
             # grouper specific aggregations
+            result = self._python_agg_general(func, *args, **kwargs)
+
+        if not self.as_index:
+            result = self._insert_inaxis_grouper(result)
+            result.index = default_index(len(result))
+
+        return result
+
+    agg = aggregate
+
+    def _agg_for_resample(
+        self, func=None, *args, engine=None, engine_kwargs=None, **kwargs
+    ):
+        relabeling, func, columns, order = reconstruct_func(func, **kwargs)
+        func = maybe_mangle_lambdas(func)
+
+        if maybe_use_numba(engine):
+            # Not all agg functions support numba, only propagate numba kwargs
+            # if user asks for numba
+            kwargs["engine"] = engine
+            kwargs["engine_kwargs"] = engine_kwargs
+
+        op = GroupByApply(self, func, args=args, kwargs=kwargs)
+        result = op.agg()
+        if not is_dict_like(func) and result is not None:
+            # GH #52849
+            if not self.as_index and is_list_like(func):
+                return result.reset_index()
+            else:
+                return result
+        elif relabeling:
+            # this should be the only (non-raising) case with relabeling
+            # used reordered index of columns
+            result = cast(DataFrame, result)
+            result = result.iloc[:, order]
+            result = cast(DataFrame, result)
+            # error: Incompatible types in assignment (expression has type
+            # "Optional[List[str]]", variable has type
+            # "Union[Union[Union[ExtensionArray, ndarray[Any, Any]],
+            # Index, Series], Sequence[Any]]")
+            result.columns = columns  # type: ignore[assignment]
+
+        if result is None:
+            # Remove the kwargs we inserted
+            # (already stored in engine, engine_kwargs arguments)
+            if "engine" in kwargs:
+                del kwargs["engine"]
+                del kwargs["engine_kwargs"]
+            # at this point func is not a str, list-like, dict-like,
+            # or a known callable(e.g. sum)
+            if maybe_use_numba(engine):
+                return self._aggregate_with_numba(
+                    func, *args, engine_kwargs=engine_kwargs, **kwargs
+                )
+            # grouper specific aggregations
             if self._grouper.nkeys > 1:
                 # test_groupby_as_index_series_scalar gets here with 'not self.as_index'
                 return self._python_agg_general(func, *args, **kwargs)
@@ -1641,8 +1703,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result.index = default_index(len(result))
 
         return result
-
-    agg = aggregate
 
     def _python_agg_general(self, func, *args, **kwargs):
         f = lambda x: func(x, *args, **kwargs)

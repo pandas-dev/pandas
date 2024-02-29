@@ -47,13 +47,27 @@ def test_agg_regression1(tsframe):
 
 def test_agg_must_agg(df):
     grouped = df.groupby("A")["C"]
+    expected = pd.Series(
+        {
+            "bar": df[df.A == "bar"]["C"].describe(),
+            "foo": df[df.A == "foo"]["C"].describe(),
+        },
+        index=pd.Index(["bar", "foo"], name="A"),
+        name="C",
+    )
+    result = grouped.agg(lambda x: x.describe())
+    tm.assert_series_equal(result, expected)
 
-    msg = "Must produce aggregated value"
-    with pytest.raises(Exception, match=msg):
-        grouped.agg(lambda x: x.describe())
-    with pytest.raises(Exception, match=msg):
-        grouped.agg(lambda x: x.index[:2])
-
+    expected = pd.Series(
+        {
+            "bar": df[df.A == "bar"]["C"].index[:2],
+            "foo": df[df.A == "foo"]["C"].index[:2],
+        },
+        index=pd.Index(["bar", "foo"], name="A"),
+        name="C",
+    )
+    result = grouped.agg(lambda x: x.index[:2])
+    tm.assert_series_equal(result, expected)
 
 def test_agg_ser_multi_key(df):
     f = lambda x: x.sum()
@@ -1440,12 +1454,10 @@ def test_groupby_agg_precision(any_real_numeric_dtype):
             "key3": pd.array([max_value], dtype=any_real_numeric_dtype),
         }
     )
-    arrays = [["a"], ["b"]]
-    index = MultiIndex.from_arrays(arrays, names=("key1", "key2"))
 
-    expected = DataFrame(
-        {"key3": pd.array([max_value], dtype=any_real_numeric_dtype)}, index=index
-    )
+    expected = DataFrame({"key3": [df["key3"]]},
+                         index=pd.MultiIndex(levels=[["a"], ["b"]], codes=[[0], [0]], names=["key1", "key2"]))
+
     result = df.groupby(["key1", "key2"]).agg(lambda x: x)
     tm.assert_frame_equal(result, expected)
 
@@ -1525,26 +1537,27 @@ def test_groupby_complex_raises(func):
 
 
 @pytest.mark.parametrize(
-    "test, constant",
+    "test, values",
     [
-        ([[20, "A"], [20, "B"], [10, "C"]], {0: [10, 20], 1: ["C", ["A", "B"]]}),
-        ([[20, "A"], [20, "B"], [30, "C"]], {0: [20, 30], 1: [["A", "B"], "C"]}),
-        ([["a", 1], ["a", 1], ["b", 2], ["b", 3]], {0: ["a", "b"], 1: [1, [2, 3]]}),
-        pytest.param(
-            [["a", 1], ["a", 2], ["b", 3], ["b", 3]],
-            {0: ["a", "b"], 1: [[1, 2], 3]},
-            marks=pytest.mark.xfail,
-        ),
+        ([[20, "A"], [20, "B"], [10, "C"]], [10, 20]),
+        ([[20, "A"], [20, "B"], [30, "C"]], [20, 30]),
+        ([["a", 1], ["a", 1], ["b", 2], ["b", 3]], ["a", "b"]),
+        ([["a", 1], ["a", 2], ["b", 3], ["b", 3]], ["a", "b"]),
     ],
 )
-def test_agg_of_mode_list(test, constant):
+def test_agg_of_mode_list(test, values):
     # GH#25581
     df1 = DataFrame(test)
     result = df1.groupby(0).agg(Series.mode)
     # Mode usually only returns 1 value, but can return a list in the case of a tie.
 
-    expected = DataFrame(constant)
-    expected = expected.set_index(0)
+    expected = DataFrame(
+        [
+            [df1[df1[0] == value][1].mode()] for value in values
+        ],
+        index=pd.Index(values, name=0),
+        columns=[1],
+    )
 
     tm.assert_frame_equal(result, expected)
 

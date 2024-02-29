@@ -2471,7 +2471,7 @@ def test_by_column_values_with_same_starting_value(dtype):
     result = df.groupby(["Name"]).agg(aggregate_details)
     expected_result = DataFrame(
         {
-            "Mood": [["happy", "sad"], "happy"],
+            "Mood": [pd.Series(["happy", "sad"]), pd.Series(["happy"])],
             "Credit": [2500, 900],
             "Name": ["Thomas", "Thomas John"],
         }
