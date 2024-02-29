@@ -36,8 +36,6 @@ class TestAsArray:
 
         res = np.sum(df)
         expected = df.to_numpy().sum(axis=None)
-        print(res)
-        print(expected)
         assert res == expected
 
     def test_np_ravel(self):
