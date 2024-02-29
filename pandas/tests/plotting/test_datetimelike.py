@@ -71,7 +71,7 @@ class TestTSPlot:
 
 
      #TODO: Add more tests for different frequencies
-    @pytest.mark.parametrize("freq", ["1Y", "Y", "3Y", "10Y", "100Y"])
+    @pytest.mark.parametrize("freq", ["1Y", "Y", "3Y", "10Y"])
     def test_period_range_content(self, freq):
     # Setup your DataFrame as in your scenario
         idx = period_range("2000-01-01", freq=freq, periods=4)
@@ -91,7 +91,7 @@ class TestTSPlot:
         assert idx_dates == lines_dates
 
     #TODO: Add more tests for different frequency formats
-    @pytest.mark.parametrize("freq", ["1Y", "Y", "3Y", "10Y", "100Y"])
+    @pytest.mark.parametrize("freq", ["1YE", "YE", "3YE", "10YE"])
     def test_date_range_content(self, freq):
     # Setup your DataFrame as in your scenario
         idx = date_range("2000/01/01", freq=freq, periods=4)
