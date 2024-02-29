@@ -6,10 +6,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas.errors import (
-    PerformanceWarning,
-    SpecificationError,
-)
+from pandas.errors import SpecificationError
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_string_dtype
@@ -150,6 +147,29 @@ def test_len_nan_group():
     assert len(df.groupby("a")) == 0
     assert len(df.groupby("b")) == 3
     assert len(df.groupby(["a", "b"])) == 0
+
+
+@pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
+def test_len_categorical(dropna, observed, keys):
+    # GH#57595
+    df = DataFrame(
+        {
+            "a": Categorical([1, 1, 2, np.nan], categories=[1, 2, 3]),
+            "b": Categorical([1, 1, 2, np.nan], categories=[1, 2, 3]),
+            "c": 1,
+        }
+    )
+    gb = df.groupby(keys, observed=observed, dropna=dropna)
+    result = len(gb)
+    if observed and dropna:
+        expected = 2
+    elif observed and not dropna:
+        expected = 3
+    elif len(keys) == 1:
+        expected = 3 if dropna else 4
+    else:
+        expected = 9 if dropna else 16
+    assert result == expected, f"{result} vs {expected}"
 
 
 def test_basic_regression():
@@ -1507,7 +1527,7 @@ def test_groupby_multiindex_missing_pair():
     tm.assert_frame_equal(res, exp)
 
 
-def test_groupby_multiindex_not_lexsorted():
+def test_groupby_multiindex_not_lexsorted(performance_warning):
     # GH 11640
 
     # define the lexsorted version
@@ -1528,7 +1548,7 @@ def test_groupby_multiindex_not_lexsorted():
     assert not not_lexsorted_df.columns._is_lexsorted()
 
     expected = lexsorted_df.groupby("a").mean()
-    with tm.assert_produces_warning(PerformanceWarning):
+    with tm.assert_produces_warning(performance_warning):
         result = not_lexsorted_df.groupby("a").mean()
     tm.assert_frame_equal(expected, result)
 
