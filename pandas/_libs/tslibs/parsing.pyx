@@ -936,6 +936,9 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
         datetime_attrs_to_format.remove(day_attribute_and_format)
         datetime_attrs_to_format.insert(0, day_attribute_and_format)
 
+    # Use this instead of the dateutil default of
+    # `datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)`
+    # as that causes issues on the 29th of February.
     default = datetime(1970, 1, 1)
     try:
         parsed_datetime = dateutil_parse(
