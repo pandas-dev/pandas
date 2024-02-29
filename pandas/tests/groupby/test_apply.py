@@ -122,40 +122,6 @@ def test_apply_index_date_object(using_infer_string):
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_trivial(using_infer_string):
-    # GH 20066
-    # trivial apply: ignore input and return a constant dataframe.
-    df = DataFrame(
-        {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
-        columns=["key", "data"],
-    )
-    dtype = "string" if using_infer_string else "object"
-    expected = pd.concat([df.iloc[1:], df.iloc[1:]], axis=1, keys=["float64", dtype])
-
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby([str(x) for x in df.dtypes], axis=1)
-    result = gb.apply(lambda x: df.iloc[1:])
-
-    tm.assert_frame_equal(result, expected)
-
-
-def test_apply_trivial_fail(using_infer_string):
-    # GH 20066
-    df = DataFrame(
-        {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
-        columns=["key", "data"],
-    )
-    dtype = "string" if using_infer_string else "object"
-    expected = pd.concat([df, df], axis=1, keys=["float64", dtype])
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby([str(x) for x in df.dtypes], axis=1, group_keys=True)
-    result = gb.apply(lambda x: df)
-
-    tm.assert_frame_equal(result, expected)
-
-
 @pytest.mark.parametrize(
     "df, group_names",
     [
@@ -1020,7 +986,7 @@ def test_apply_multi_level_name(category):
     ).set_index(["A", "B"])
     result = df.groupby("B", observed=False).apply(lambda x: x.sum())
     tm.assert_frame_equal(result, expected)
-    assert df.index.names == ["A", "B"]
+    assert df.index.names == ("A", "B")
 
 
 def test_groupby_apply_datetime_result_dtypes(using_infer_string):
@@ -1211,17 +1177,14 @@ def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
 
     # Check output when no other methods are called before .apply()
     grp = df.groupby(by="a")
-    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
-        result = grp.apply(sum, include_groups=False)
+    result = grp.apply(np.sum, axis=0, include_groups=False)
     tm.assert_frame_equal(result, expected)
 
     # Check output when another method is called before .apply()
     grp = df.groupby(by="a")
     args = get_groupby_method_args(reduction_func, df)
     _ = getattr(grp, reduction_func)(*args)
-    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
-        result = grp.apply(sum, include_groups=False)
+    result = grp.apply(np.sum, axis=0, include_groups=False)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1255,31 +1218,6 @@ def test_apply_with_date_in_multiindex_does_not_convert_to_timestamp():
     tm.assert_frame_equal(result, expected)
     for val in result.index.levels[1]:
         assert type(val) is date
-
-
-def test_apply_by_cols_equals_apply_by_rows_transposed():
-    # GH 16646
-    # Operating on the columns, or transposing and operating on the rows
-    # should give the same result. There was previously a bug where the
-    # by_rows operation would work fine, but by_cols would throw a ValueError
-
-    df = DataFrame(
-        np.random.default_rng(2).random([6, 4]),
-        columns=MultiIndex.from_product([["A", "B"], [1, 2]]),
-    )
-
-    msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.T.groupby(axis=0, level=0)
-    by_rows = gb.apply(lambda x: x.droplevel(axis=0, level=0))
-
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb2 = df.groupby(axis=1, level=0)
-    by_cols = gb2.apply(lambda x: x.droplevel(axis=1, level=0))
-
-    tm.assert_frame_equal(by_cols, by_rows.T)
-    tm.assert_frame_equal(by_cols, df)
 
 
 def test_apply_dropna_with_indexed_same(dropna):
@@ -1562,46 +1500,16 @@ def test_include_groups(include_groups):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("f", [max, min, sum])
-@pytest.mark.parametrize("keys", ["jim", ["jim", "joe"]])  # Single key  # Multi-key
-def test_builtins_apply(keys, f):
-    # see gh-8155
-    rs = np.random.default_rng(2)
-    df = DataFrame(rs.integers(1, 7, (10, 2)), columns=["jim", "joe"])
-    df["jolie"] = rs.standard_normal(10)
+@pytest.mark.parametrize("func, value", [(max, 2), (min, 1), (sum, 3)])
+def test_builtins_apply(func, value):
+    # GH#8155, GH#53974
+    # Builtins act as e.g. sum(group), which sums the column labels of group
+    df = DataFrame({0: [1, 1, 2], 1: [3, 4, 5], 2: [3, 4, 5]})
+    gb = df.groupby(0)
+    result = gb.apply(func, include_groups=False)
 
-    gb = df.groupby(keys)
-
-    fname = f.__name__
-
-    warn = None if f is not sum else FutureWarning
-    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
-    with tm.assert_produces_warning(
-        warn, match=msg, check_stacklevel=False, raise_on_extra_warnings=False
-    ):
-        # Also warns on deprecation GH#53425
-        result = gb.apply(f)
-    ngroups = len(df.drop_duplicates(subset=keys))
-
-    assert_msg = f"invalid frame shape: {result.shape} (expected ({ngroups}, 3))"
-    assert result.shape == (ngroups, 3), assert_msg
-
-    npfunc = lambda x: getattr(np, fname)(x, axis=0)  # numpy's equivalent function
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        expected = gb.apply(npfunc)
-    tm.assert_frame_equal(result, expected)
-
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        expected2 = gb.apply(lambda x: npfunc(x))
-    tm.assert_frame_equal(result, expected2)
-
-    if f != sum:
-        expected = gb.agg(fname).reset_index()
-        expected.set_index(keys, inplace=True, drop=False)
-        tm.assert_frame_equal(result, expected, check_dtype=False)
-
-    tm.assert_series_equal(getattr(result, fname)(axis=0), getattr(df, fname)(axis=0))
+    expected = Series([value, value], index=Index([1, 2], name=0))
+    tm.assert_series_equal(result, expected)
 
 
 def test_inconsistent_return_type():

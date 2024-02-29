@@ -159,12 +159,6 @@ class Iteration:
 
     def time_items(self):
         # (monitor no-copying behaviour)
-        if hasattr(self.df, "_item_cache"):
-            self.df._item_cache.clear()
-        for name, col in self.df.items():
-            pass
-
-    def time_items_cached(self):
         for name, col in self.df.items():
             pass
 
@@ -593,8 +587,6 @@ class Interpolate:
         N = 10000
         # this is the worst case, where every column has NaNs.
         arr = np.random.randn(N, 100)
-        # NB: we need to set values in array, not in df.values, otherwise
-        #  the benchmark will be misleading for ArrayManager
         arr[::2] = np.nan
 
         self.df = DataFrame(arr)

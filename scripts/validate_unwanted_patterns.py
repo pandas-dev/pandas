@@ -27,7 +27,6 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_interval_shared_docs",
     "_merge_doc",
     "_shared_docs",
-    "_apply_docs",
     "_new_Index",
     "_new_PeriodIndex",
     "_agg_template_series",
@@ -36,7 +35,6 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_apply_groupings_depr",
     "__main__",
     "_transform_template",
-    "_use_inf_as_na",
     "_get_plot_backend",
     "_matplotlib",
     "_arrow_utils",
@@ -50,13 +48,10 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_global_config",
     "_chained_assignment_msg",
     "_chained_assignment_method_msg",
-    "_chained_assignment_warning_msg",
-    "_chained_assignment_warning_method_msg",
-    "_check_cacher",
     "_version_meson",
     # The numba extensions need this to mock the iloc object
     "_iLocIndexer",
-    # TODO(3.0): GH#55043 - remove upon removal of ArrayManager
+    # TODO(4.0): GH#55043 - remove upon removal of CoW option
     "_get_option",
     "_fill_limit_area_1d",
 }
