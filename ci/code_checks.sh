@@ -145,7 +145,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     MSG='Partially validate docstrings (GL08)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=GL08 --ignore_functions \
         pandas.ExcelFile.book\
-        pandas.ExcelFile.sheet_names\
         pandas.Index.empty\
         pandas.Index.names\
         pandas.Index.view\
@@ -153,7 +152,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.IntervalIndex.length\
         pandas.IntervalIndex.mid\
         pandas.IntervalIndex.right\
-        pandas.MultiIndex.codes\
         pandas.Period.freq\
         pandas.Period.ordinal\
         pandas.PeriodIndex.freq\
@@ -164,9 +162,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.dt.qyear\
         pandas.Series.dt.unit\
         pandas.Series.empty\
-        pandas.Timedelta.microseconds\
-        pandas.Timedelta.unit\
-        pandas.Timedelta.value\
         pandas.Timestamp.day\
         pandas.Timestamp.fold\
         pandas.Timestamp.hour\
@@ -178,7 +173,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timestamp.tzinfo\
         pandas.Timestamp.value\
         pandas.Timestamp.year\
-        pandas.core.groupby.SeriesGroupBy.value_counts\
         pandas.tseries.offsets.BQuarterBegin.is_anchored\
         pandas.tseries.offsets.BQuarterBegin.is_on_offset\
         pandas.tseries.offsets.BQuarterBegin.n\
@@ -415,8 +409,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (PR01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=PR01 --ignore_functions \
-        pandas.CategoricalIndex.equals\
-        pandas.CategoricalIndex.map\
         pandas.DataFrame.at_time\
         pandas.DataFrame.backfill\
         pandas.DataFrame.get\
@@ -509,217 +501,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.melt\
         pandas.option_context\
         pandas.read_fwf\
-        pandas.reset_option\
-        pandas.tseries.offsets.BQuarterBegin.is_month_end\
-        pandas.tseries.offsets.BQuarterBegin.is_month_start\
-        pandas.tseries.offsets.BQuarterBegin.is_quarter_end\
-        pandas.tseries.offsets.BQuarterBegin.is_quarter_start\
-        pandas.tseries.offsets.BQuarterBegin.is_year_end\
-        pandas.tseries.offsets.BQuarterBegin.is_year_start\
-        pandas.tseries.offsets.BQuarterEnd.is_month_end\
-        pandas.tseries.offsets.BQuarterEnd.is_month_start\
-        pandas.tseries.offsets.BQuarterEnd.is_quarter_end\
-        pandas.tseries.offsets.BQuarterEnd.is_quarter_start\
-        pandas.tseries.offsets.BQuarterEnd.is_year_end\
-        pandas.tseries.offsets.BQuarterEnd.is_year_start\
-        pandas.tseries.offsets.BYearBegin.is_month_end\
-        pandas.tseries.offsets.BYearBegin.is_month_start\
-        pandas.tseries.offsets.BYearBegin.is_quarter_end\
-        pandas.tseries.offsets.BYearBegin.is_quarter_start\
-        pandas.tseries.offsets.BYearBegin.is_year_end\
-        pandas.tseries.offsets.BYearBegin.is_year_start\
-        pandas.tseries.offsets.BYearEnd.is_month_end\
-        pandas.tseries.offsets.BYearEnd.is_month_start\
-        pandas.tseries.offsets.BYearEnd.is_quarter_end\
-        pandas.tseries.offsets.BYearEnd.is_quarter_start\
-        pandas.tseries.offsets.BYearEnd.is_year_end\
-        pandas.tseries.offsets.BYearEnd.is_year_start\
-        pandas.tseries.offsets.BusinessDay.is_month_end\
-        pandas.tseries.offsets.BusinessDay.is_month_start\
-        pandas.tseries.offsets.BusinessDay.is_quarter_end\
-        pandas.tseries.offsets.BusinessDay.is_quarter_start\
-        pandas.tseries.offsets.BusinessDay.is_year_end\
-        pandas.tseries.offsets.BusinessDay.is_year_start\
-        pandas.tseries.offsets.BusinessHour.is_month_end\
-        pandas.tseries.offsets.BusinessHour.is_month_start\
-        pandas.tseries.offsets.BusinessHour.is_quarter_end\
-        pandas.tseries.offsets.BusinessHour.is_quarter_start\
-        pandas.tseries.offsets.BusinessHour.is_year_end\
-        pandas.tseries.offsets.BusinessHour.is_year_start\
-        pandas.tseries.offsets.BusinessMonthBegin.is_month_end\
-        pandas.tseries.offsets.BusinessMonthBegin.is_month_start\
-        pandas.tseries.offsets.BusinessMonthBegin.is_quarter_end\
-        pandas.tseries.offsets.BusinessMonthBegin.is_quarter_start\
-        pandas.tseries.offsets.BusinessMonthBegin.is_year_end\
-        pandas.tseries.offsets.BusinessMonthBegin.is_year_start\
-        pandas.tseries.offsets.BusinessMonthEnd.is_month_end\
-        pandas.tseries.offsets.BusinessMonthEnd.is_month_start\
-        pandas.tseries.offsets.BusinessMonthEnd.is_quarter_end\
-        pandas.tseries.offsets.BusinessMonthEnd.is_quarter_start\
-        pandas.tseries.offsets.BusinessMonthEnd.is_year_end\
-        pandas.tseries.offsets.BusinessMonthEnd.is_year_start\
-        pandas.tseries.offsets.CustomBusinessDay.is_month_end\
-        pandas.tseries.offsets.CustomBusinessDay.is_month_start\
-        pandas.tseries.offsets.CustomBusinessDay.is_quarter_end\
-        pandas.tseries.offsets.CustomBusinessDay.is_quarter_start\
-        pandas.tseries.offsets.CustomBusinessDay.is_year_end\
-        pandas.tseries.offsets.CustomBusinessDay.is_year_start\
-        pandas.tseries.offsets.CustomBusinessHour.is_month_end\
-        pandas.tseries.offsets.CustomBusinessHour.is_month_start\
-        pandas.tseries.offsets.CustomBusinessHour.is_quarter_end\
-        pandas.tseries.offsets.CustomBusinessHour.is_quarter_start\
-        pandas.tseries.offsets.CustomBusinessHour.is_year_end\
-        pandas.tseries.offsets.CustomBusinessHour.is_year_start\
-        pandas.tseries.offsets.CustomBusinessMonthBegin.is_month_end\
-        pandas.tseries.offsets.CustomBusinessMonthBegin.is_month_start\
-        pandas.tseries.offsets.CustomBusinessMonthBegin.is_quarter_end\
-        pandas.tseries.offsets.CustomBusinessMonthBegin.is_quarter_start\
-        pandas.tseries.offsets.CustomBusinessMonthBegin.is_year_end\
-        pandas.tseries.offsets.CustomBusinessMonthBegin.is_year_start\
-        pandas.tseries.offsets.CustomBusinessMonthEnd.is_month_end\
-        pandas.tseries.offsets.CustomBusinessMonthEnd.is_month_start\
-        pandas.tseries.offsets.CustomBusinessMonthEnd.is_quarter_end\
-        pandas.tseries.offsets.CustomBusinessMonthEnd.is_quarter_start\
-        pandas.tseries.offsets.CustomBusinessMonthEnd.is_year_end\
-        pandas.tseries.offsets.CustomBusinessMonthEnd.is_year_start\
-        pandas.tseries.offsets.DateOffset.is_month_end\
-        pandas.tseries.offsets.DateOffset.is_month_start\
-        pandas.tseries.offsets.DateOffset.is_quarter_end\
-        pandas.tseries.offsets.DateOffset.is_quarter_start\
-        pandas.tseries.offsets.DateOffset.is_year_end\
-        pandas.tseries.offsets.DateOffset.is_year_start\
-        pandas.tseries.offsets.Day.is_month_end\
-        pandas.tseries.offsets.Day.is_month_start\
-        pandas.tseries.offsets.Day.is_quarter_end\
-        pandas.tseries.offsets.Day.is_quarter_start\
-        pandas.tseries.offsets.Day.is_year_end\
-        pandas.tseries.offsets.Day.is_year_start\
-        pandas.tseries.offsets.Easter.is_month_end\
-        pandas.tseries.offsets.Easter.is_month_start\
-        pandas.tseries.offsets.Easter.is_quarter_end\
-        pandas.tseries.offsets.Easter.is_quarter_start\
-        pandas.tseries.offsets.Easter.is_year_end\
-        pandas.tseries.offsets.Easter.is_year_start\
-        pandas.tseries.offsets.FY5253.is_month_end\
-        pandas.tseries.offsets.FY5253.is_month_start\
-        pandas.tseries.offsets.FY5253.is_quarter_end\
-        pandas.tseries.offsets.FY5253.is_quarter_start\
-        pandas.tseries.offsets.FY5253.is_year_end\
-        pandas.tseries.offsets.FY5253.is_year_start\
-        pandas.tseries.offsets.FY5253Quarter.is_month_end\
-        pandas.tseries.offsets.FY5253Quarter.is_month_start\
-        pandas.tseries.offsets.FY5253Quarter.is_quarter_end\
-        pandas.tseries.offsets.FY5253Quarter.is_quarter_start\
-        pandas.tseries.offsets.FY5253Quarter.is_year_end\
-        pandas.tseries.offsets.FY5253Quarter.is_year_start\
-        pandas.tseries.offsets.Hour.is_month_end\
-        pandas.tseries.offsets.Hour.is_month_start\
-        pandas.tseries.offsets.Hour.is_quarter_end\
-        pandas.tseries.offsets.Hour.is_quarter_start\
-        pandas.tseries.offsets.Hour.is_year_end\
-        pandas.tseries.offsets.Hour.is_year_start\
-        pandas.tseries.offsets.LastWeekOfMonth.is_month_end\
-        pandas.tseries.offsets.LastWeekOfMonth.is_month_start\
-        pandas.tseries.offsets.LastWeekOfMonth.is_quarter_end\
-        pandas.tseries.offsets.LastWeekOfMonth.is_quarter_start\
-        pandas.tseries.offsets.LastWeekOfMonth.is_year_end\
-        pandas.tseries.offsets.LastWeekOfMonth.is_year_start\
-        pandas.tseries.offsets.Micro.is_month_end\
-        pandas.tseries.offsets.Micro.is_month_start\
-        pandas.tseries.offsets.Micro.is_quarter_end\
-        pandas.tseries.offsets.Micro.is_quarter_start\
-        pandas.tseries.offsets.Micro.is_year_end\
-        pandas.tseries.offsets.Micro.is_year_start\
-        pandas.tseries.offsets.Milli.is_month_end\
-        pandas.tseries.offsets.Milli.is_month_start\
-        pandas.tseries.offsets.Milli.is_quarter_end\
-        pandas.tseries.offsets.Milli.is_quarter_start\
-        pandas.tseries.offsets.Milli.is_year_end\
-        pandas.tseries.offsets.Milli.is_year_start\
-        pandas.tseries.offsets.Minute.is_month_end\
-        pandas.tseries.offsets.Minute.is_month_start\
-        pandas.tseries.offsets.Minute.is_quarter_end\
-        pandas.tseries.offsets.Minute.is_quarter_start\
-        pandas.tseries.offsets.Minute.is_year_end\
-        pandas.tseries.offsets.Minute.is_year_start\
-        pandas.tseries.offsets.MonthBegin.is_month_end\
-        pandas.tseries.offsets.MonthBegin.is_month_start\
-        pandas.tseries.offsets.MonthBegin.is_quarter_end\
-        pandas.tseries.offsets.MonthBegin.is_quarter_start\
-        pandas.tseries.offsets.MonthBegin.is_year_end\
-        pandas.tseries.offsets.MonthBegin.is_year_start\
-        pandas.tseries.offsets.MonthEnd.is_month_end\
-        pandas.tseries.offsets.MonthEnd.is_month_start\
-        pandas.tseries.offsets.MonthEnd.is_quarter_end\
-        pandas.tseries.offsets.MonthEnd.is_quarter_start\
-        pandas.tseries.offsets.MonthEnd.is_year_end\
-        pandas.tseries.offsets.MonthEnd.is_year_start\
-        pandas.tseries.offsets.Nano.is_month_end\
-        pandas.tseries.offsets.Nano.is_month_start\
-        pandas.tseries.offsets.Nano.is_quarter_end\
-        pandas.tseries.offsets.Nano.is_quarter_start\
-        pandas.tseries.offsets.Nano.is_year_end\
-        pandas.tseries.offsets.Nano.is_year_start\
-        pandas.tseries.offsets.QuarterBegin.is_month_end\
-        pandas.tseries.offsets.QuarterBegin.is_month_start\
-        pandas.tseries.offsets.QuarterBegin.is_quarter_end\
-        pandas.tseries.offsets.QuarterBegin.is_quarter_start\
-        pandas.tseries.offsets.QuarterBegin.is_year_end\
-        pandas.tseries.offsets.QuarterBegin.is_year_start\
-        pandas.tseries.offsets.QuarterEnd.is_month_end\
-        pandas.tseries.offsets.QuarterEnd.is_month_start\
-        pandas.tseries.offsets.QuarterEnd.is_quarter_end\
-        pandas.tseries.offsets.QuarterEnd.is_quarter_start\
-        pandas.tseries.offsets.QuarterEnd.is_year_end\
-        pandas.tseries.offsets.QuarterEnd.is_year_start\
-        pandas.tseries.offsets.Second.is_month_end\
-        pandas.tseries.offsets.Second.is_month_start\
-        pandas.tseries.offsets.Second.is_quarter_end\
-        pandas.tseries.offsets.Second.is_quarter_start\
-        pandas.tseries.offsets.Second.is_year_end\
-        pandas.tseries.offsets.Second.is_year_start\
-        pandas.tseries.offsets.SemiMonthBegin.is_month_end\
-        pandas.tseries.offsets.SemiMonthBegin.is_month_start\
-        pandas.tseries.offsets.SemiMonthBegin.is_quarter_end\
-        pandas.tseries.offsets.SemiMonthBegin.is_quarter_start\
-        pandas.tseries.offsets.SemiMonthBegin.is_year_end\
-        pandas.tseries.offsets.SemiMonthBegin.is_year_start\
-        pandas.tseries.offsets.SemiMonthEnd.is_month_end\
-        pandas.tseries.offsets.SemiMonthEnd.is_month_start\
-        pandas.tseries.offsets.SemiMonthEnd.is_quarter_end\
-        pandas.tseries.offsets.SemiMonthEnd.is_quarter_start\
-        pandas.tseries.offsets.SemiMonthEnd.is_year_end\
-        pandas.tseries.offsets.SemiMonthEnd.is_year_start\
-        pandas.tseries.offsets.Tick.is_month_end\
-        pandas.tseries.offsets.Tick.is_month_start\
-        pandas.tseries.offsets.Tick.is_quarter_end\
-        pandas.tseries.offsets.Tick.is_quarter_start\
-        pandas.tseries.offsets.Tick.is_year_end\
-        pandas.tseries.offsets.Tick.is_year_start\
-        pandas.tseries.offsets.Week.is_month_end\
-        pandas.tseries.offsets.Week.is_month_start\
-        pandas.tseries.offsets.Week.is_quarter_end\
-        pandas.tseries.offsets.Week.is_quarter_start\
-        pandas.tseries.offsets.Week.is_year_end\
-        pandas.tseries.offsets.Week.is_year_start\
-        pandas.tseries.offsets.WeekOfMonth.is_month_end\
-        pandas.tseries.offsets.WeekOfMonth.is_month_start\
-        pandas.tseries.offsets.WeekOfMonth.is_quarter_end\
-        pandas.tseries.offsets.WeekOfMonth.is_quarter_start\
-        pandas.tseries.offsets.WeekOfMonth.is_year_end\
-        pandas.tseries.offsets.WeekOfMonth.is_year_start\
-        pandas.tseries.offsets.YearBegin.is_month_end\
-        pandas.tseries.offsets.YearBegin.is_month_start\
-        pandas.tseries.offsets.YearBegin.is_quarter_end\
-        pandas.tseries.offsets.YearBegin.is_quarter_start\
-        pandas.tseries.offsets.YearBegin.is_year_end\
-        pandas.tseries.offsets.YearBegin.is_year_start\
-        pandas.tseries.offsets.YearEnd.is_month_end\
-        pandas.tseries.offsets.YearEnd.is_month_start\
-        pandas.tseries.offsets.YearEnd.is_quarter_end\
-        pandas.tseries.offsets.YearEnd.is_quarter_start\
-        pandas.tseries.offsets.YearEnd.is_year_end\
-        pandas.tseries.offsets.YearEnd.is_year_start # There should be no backslash in the final line, please keep this comment in the last ignored function
+        pandas.reset_option # There should be no backslash in the final line, please keep this comment in the last ignored function
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Partially validate docstrings (PR07)' ;  echo $MSG
@@ -1091,12 +873,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.plotting.parallel_coordinates\
         pandas.plotting.radviz\
         pandas.plotting.table\
-        pandas.read_feather\
         pandas.read_orc\
         pandas.read_sas\
         pandas.read_spss\
-        pandas.read_sql\
-        pandas.read_sql_query\
         pandas.read_stata\
         pandas.set_eng_float_format\
         pandas.timedelta_range\
@@ -1118,7 +897,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.CategoricalIndex.as_ordered\
         pandas.CategoricalIndex.as_unordered\
         pandas.CategoricalIndex.codes\
-        pandas.CategoricalIndex.equals\
         pandas.CategoricalIndex.ordered\
         pandas.DataFrame.__dataframe__\
         pandas.DataFrame.__iter__\
@@ -1714,90 +1492,42 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.tseries.offsets.BDay\
         pandas.tseries.offsets.BQuarterBegin.copy\
         pandas.tseries.offsets.BQuarterBegin.freqstr\
-        pandas.tseries.offsets.BQuarterBegin.is_month_end\
-        pandas.tseries.offsets.BQuarterBegin.is_month_start\
-        pandas.tseries.offsets.BQuarterBegin.is_quarter_end\
-        pandas.tseries.offsets.BQuarterBegin.is_quarter_start\
-        pandas.tseries.offsets.BQuarterBegin.is_year_end\
-        pandas.tseries.offsets.BQuarterBegin.is_year_start\
         pandas.tseries.offsets.BQuarterBegin.kwds\
         pandas.tseries.offsets.BQuarterBegin.name\
         pandas.tseries.offsets.BQuarterEnd.copy\
         pandas.tseries.offsets.BQuarterEnd.freqstr\
-        pandas.tseries.offsets.BQuarterEnd.is_month_end\
-        pandas.tseries.offsets.BQuarterEnd.is_month_start\
-        pandas.tseries.offsets.BQuarterEnd.is_quarter_end\
-        pandas.tseries.offsets.BQuarterEnd.is_quarter_start\
-        pandas.tseries.offsets.BQuarterEnd.is_year_end\
-        pandas.tseries.offsets.BQuarterEnd.is_year_start\
         pandas.tseries.offsets.BQuarterEnd.kwds\
         pandas.tseries.offsets.BQuarterEnd.name\
         pandas.tseries.offsets.BYearBegin.copy\
         pandas.tseries.offsets.BYearBegin.freqstr\
         pandas.tseries.offsets.BYearBegin.is_anchored\
-        pandas.tseries.offsets.BYearBegin.is_month_end\
-        pandas.tseries.offsets.BYearBegin.is_month_start\
-        pandas.tseries.offsets.BYearBegin.is_quarter_end\
-        pandas.tseries.offsets.BYearBegin.is_quarter_start\
-        pandas.tseries.offsets.BYearBegin.is_year_end\
-        pandas.tseries.offsets.BYearBegin.is_year_start\
         pandas.tseries.offsets.BYearBegin.kwds\
         pandas.tseries.offsets.BYearBegin.name\
         pandas.tseries.offsets.BYearEnd.copy\
         pandas.tseries.offsets.BYearEnd.freqstr\
         pandas.tseries.offsets.BYearEnd.is_anchored\
-        pandas.tseries.offsets.BYearEnd.is_month_end\
-        pandas.tseries.offsets.BYearEnd.is_month_start\
-        pandas.tseries.offsets.BYearEnd.is_quarter_end\
-        pandas.tseries.offsets.BYearEnd.is_quarter_start\
-        pandas.tseries.offsets.BYearEnd.is_year_end\
-        pandas.tseries.offsets.BYearEnd.is_year_start\
         pandas.tseries.offsets.BYearEnd.kwds\
         pandas.tseries.offsets.BYearEnd.name\
         pandas.tseries.offsets.BusinessDay\
         pandas.tseries.offsets.BusinessDay.copy\
         pandas.tseries.offsets.BusinessDay.freqstr\
         pandas.tseries.offsets.BusinessDay.is_anchored\
-        pandas.tseries.offsets.BusinessDay.is_month_end\
-        pandas.tseries.offsets.BusinessDay.is_month_start\
-        pandas.tseries.offsets.BusinessDay.is_quarter_end\
-        pandas.tseries.offsets.BusinessDay.is_quarter_start\
-        pandas.tseries.offsets.BusinessDay.is_year_end\
-        pandas.tseries.offsets.BusinessDay.is_year_start\
         pandas.tseries.offsets.BusinessDay.kwds\
         pandas.tseries.offsets.BusinessDay.name\
         pandas.tseries.offsets.BusinessHour\
         pandas.tseries.offsets.BusinessHour.copy\
         pandas.tseries.offsets.BusinessHour.freqstr\
         pandas.tseries.offsets.BusinessHour.is_anchored\
-        pandas.tseries.offsets.BusinessHour.is_month_end\
-        pandas.tseries.offsets.BusinessHour.is_month_start\
-        pandas.tseries.offsets.BusinessHour.is_quarter_end\
-        pandas.tseries.offsets.BusinessHour.is_quarter_start\
-        pandas.tseries.offsets.BusinessHour.is_year_end\
-        pandas.tseries.offsets.BusinessHour.is_year_start\
         pandas.tseries.offsets.BusinessHour.kwds\
         pandas.tseries.offsets.BusinessHour.name\
         pandas.tseries.offsets.BusinessMonthBegin.copy\
         pandas.tseries.offsets.BusinessMonthBegin.freqstr\
         pandas.tseries.offsets.BusinessMonthBegin.is_anchored\
-        pandas.tseries.offsets.BusinessMonthBegin.is_month_end\
-        pandas.tseries.offsets.BusinessMonthBegin.is_month_start\
-        pandas.tseries.offsets.BusinessMonthBegin.is_quarter_end\
-        pandas.tseries.offsets.BusinessMonthBegin.is_quarter_start\
-        pandas.tseries.offsets.BusinessMonthBegin.is_year_end\
-        pandas.tseries.offsets.BusinessMonthBegin.is_year_start\
         pandas.tseries.offsets.BusinessMonthBegin.kwds\
         pandas.tseries.offsets.BusinessMonthBegin.name\
         pandas.tseries.offsets.BusinessMonthEnd.copy\
         pandas.tseries.offsets.BusinessMonthEnd.freqstr\
         pandas.tseries.offsets.BusinessMonthEnd.is_anchored\
-        pandas.tseries.offsets.BusinessMonthEnd.is_month_end\
-        pandas.tseries.offsets.BusinessMonthEnd.is_month_start\
-        pandas.tseries.offsets.BusinessMonthEnd.is_quarter_end\
-        pandas.tseries.offsets.BusinessMonthEnd.is_quarter_start\
-        pandas.tseries.offsets.BusinessMonthEnd.is_year_end\
-        pandas.tseries.offsets.BusinessMonthEnd.is_year_start\
         pandas.tseries.offsets.BusinessMonthEnd.kwds\
         pandas.tseries.offsets.BusinessMonthEnd.name\
         pandas.tseries.offsets.CDay\
@@ -1805,113 +1535,53 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.tseries.offsets.CustomBusinessDay.copy\
         pandas.tseries.offsets.CustomBusinessDay.freqstr\
         pandas.tseries.offsets.CustomBusinessDay.is_anchored\
-        pandas.tseries.offsets.CustomBusinessDay.is_month_end\
-        pandas.tseries.offsets.CustomBusinessDay.is_month_start\
-        pandas.tseries.offsets.CustomBusinessDay.is_quarter_end\
-        pandas.tseries.offsets.CustomBusinessDay.is_quarter_start\
-        pandas.tseries.offsets.CustomBusinessDay.is_year_end\
-        pandas.tseries.offsets.CustomBusinessDay.is_year_start\
         pandas.tseries.offsets.CustomBusinessDay.kwds\
         pandas.tseries.offsets.CustomBusinessDay.name\
         pandas.tseries.offsets.CustomBusinessHour\
         pandas.tseries.offsets.CustomBusinessHour.copy\
         pandas.tseries.offsets.CustomBusinessHour.freqstr\
         pandas.tseries.offsets.CustomBusinessHour.is_anchored\
-        pandas.tseries.offsets.CustomBusinessHour.is_month_end\
-        pandas.tseries.offsets.CustomBusinessHour.is_month_start\
-        pandas.tseries.offsets.CustomBusinessHour.is_quarter_end\
-        pandas.tseries.offsets.CustomBusinessHour.is_quarter_start\
-        pandas.tseries.offsets.CustomBusinessHour.is_year_end\
-        pandas.tseries.offsets.CustomBusinessHour.is_year_start\
         pandas.tseries.offsets.CustomBusinessHour.kwds\
         pandas.tseries.offsets.CustomBusinessHour.name\
         pandas.tseries.offsets.CustomBusinessMonthBegin.copy\
         pandas.tseries.offsets.CustomBusinessMonthBegin.freqstr\
         pandas.tseries.offsets.CustomBusinessMonthBegin.is_anchored\
-        pandas.tseries.offsets.CustomBusinessMonthBegin.is_month_end\
-        pandas.tseries.offsets.CustomBusinessMonthBegin.is_month_start\
         pandas.tseries.offsets.CustomBusinessMonthBegin.is_on_offset\
-        pandas.tseries.offsets.CustomBusinessMonthBegin.is_quarter_end\
-        pandas.tseries.offsets.CustomBusinessMonthBegin.is_quarter_start\
-        pandas.tseries.offsets.CustomBusinessMonthBegin.is_year_end\
-        pandas.tseries.offsets.CustomBusinessMonthBegin.is_year_start\
         pandas.tseries.offsets.CustomBusinessMonthBegin.kwds\
         pandas.tseries.offsets.CustomBusinessMonthBegin.name\
         pandas.tseries.offsets.CustomBusinessMonthEnd.copy\
         pandas.tseries.offsets.CustomBusinessMonthEnd.freqstr\
         pandas.tseries.offsets.CustomBusinessMonthEnd.is_anchored\
-        pandas.tseries.offsets.CustomBusinessMonthEnd.is_month_end\
-        pandas.tseries.offsets.CustomBusinessMonthEnd.is_month_start\
         pandas.tseries.offsets.CustomBusinessMonthEnd.is_on_offset\
-        pandas.tseries.offsets.CustomBusinessMonthEnd.is_quarter_end\
-        pandas.tseries.offsets.CustomBusinessMonthEnd.is_quarter_start\
-        pandas.tseries.offsets.CustomBusinessMonthEnd.is_year_end\
-        pandas.tseries.offsets.CustomBusinessMonthEnd.is_year_start\
         pandas.tseries.offsets.CustomBusinessMonthEnd.kwds\
         pandas.tseries.offsets.CustomBusinessMonthEnd.name\
         pandas.tseries.offsets.DateOffset.copy\
         pandas.tseries.offsets.DateOffset.freqstr\
         pandas.tseries.offsets.DateOffset.is_anchored\
-        pandas.tseries.offsets.DateOffset.is_month_end\
-        pandas.tseries.offsets.DateOffset.is_month_start\
-        pandas.tseries.offsets.DateOffset.is_quarter_end\
-        pandas.tseries.offsets.DateOffset.is_quarter_start\
-        pandas.tseries.offsets.DateOffset.is_year_end\
-        pandas.tseries.offsets.DateOffset.is_year_start\
         pandas.tseries.offsets.DateOffset.kwds\
         pandas.tseries.offsets.DateOffset.name\
         pandas.tseries.offsets.Day.copy\
         pandas.tseries.offsets.Day.freqstr\
         pandas.tseries.offsets.Day.is_anchored\
-        pandas.tseries.offsets.Day.is_month_end\
-        pandas.tseries.offsets.Day.is_month_start\
-        pandas.tseries.offsets.Day.is_quarter_end\
-        pandas.tseries.offsets.Day.is_quarter_start\
-        pandas.tseries.offsets.Day.is_year_end\
-        pandas.tseries.offsets.Day.is_year_start\
         pandas.tseries.offsets.Day.kwds\
         pandas.tseries.offsets.Day.name\
         pandas.tseries.offsets.Day.nanos\
         pandas.tseries.offsets.Easter.copy\
         pandas.tseries.offsets.Easter.freqstr\
         pandas.tseries.offsets.Easter.is_anchored\
-        pandas.tseries.offsets.Easter.is_month_end\
-        pandas.tseries.offsets.Easter.is_month_start\
-        pandas.tseries.offsets.Easter.is_quarter_end\
-        pandas.tseries.offsets.Easter.is_quarter_start\
-        pandas.tseries.offsets.Easter.is_year_end\
-        pandas.tseries.offsets.Easter.is_year_start\
         pandas.tseries.offsets.Easter.kwds\
         pandas.tseries.offsets.Easter.name\
         pandas.tseries.offsets.FY5253.copy\
         pandas.tseries.offsets.FY5253.freqstr\
-        pandas.tseries.offsets.FY5253.is_month_end\
-        pandas.tseries.offsets.FY5253.is_month_start\
-        pandas.tseries.offsets.FY5253.is_quarter_end\
-        pandas.tseries.offsets.FY5253.is_quarter_start\
-        pandas.tseries.offsets.FY5253.is_year_end\
-        pandas.tseries.offsets.FY5253.is_year_start\
         pandas.tseries.offsets.FY5253.kwds\
         pandas.tseries.offsets.FY5253.name\
         pandas.tseries.offsets.FY5253Quarter.copy\
         pandas.tseries.offsets.FY5253Quarter.freqstr\
-        pandas.tseries.offsets.FY5253Quarter.is_month_end\
-        pandas.tseries.offsets.FY5253Quarter.is_month_start\
-        pandas.tseries.offsets.FY5253Quarter.is_quarter_end\
-        pandas.tseries.offsets.FY5253Quarter.is_quarter_start\
-        pandas.tseries.offsets.FY5253Quarter.is_year_end\
-        pandas.tseries.offsets.FY5253Quarter.is_year_start\
         pandas.tseries.offsets.FY5253Quarter.kwds\
         pandas.tseries.offsets.FY5253Quarter.name\
         pandas.tseries.offsets.Hour.copy\
         pandas.tseries.offsets.Hour.freqstr\
         pandas.tseries.offsets.Hour.is_anchored\
-        pandas.tseries.offsets.Hour.is_month_end\
-        pandas.tseries.offsets.Hour.is_month_start\
-        pandas.tseries.offsets.Hour.is_quarter_end\
-        pandas.tseries.offsets.Hour.is_quarter_start\
-        pandas.tseries.offsets.Hour.is_year_end\
-        pandas.tseries.offsets.Hour.is_year_start\
         pandas.tseries.offsets.Hour.kwds\
         pandas.tseries.offsets.Hour.name\
         pandas.tseries.offsets.Hour.nanos\
@@ -1919,113 +1589,53 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.tseries.offsets.LastWeekOfMonth.copy\
         pandas.tseries.offsets.LastWeekOfMonth.freqstr\
         pandas.tseries.offsets.LastWeekOfMonth.is_anchored\
-        pandas.tseries.offsets.LastWeekOfMonth.is_month_end\
-        pandas.tseries.offsets.LastWeekOfMonth.is_month_start\
-        pandas.tseries.offsets.LastWeekOfMonth.is_quarter_end\
-        pandas.tseries.offsets.LastWeekOfMonth.is_quarter_start\
-        pandas.tseries.offsets.LastWeekOfMonth.is_year_end\
-        pandas.tseries.offsets.LastWeekOfMonth.is_year_start\
         pandas.tseries.offsets.LastWeekOfMonth.kwds\
         pandas.tseries.offsets.LastWeekOfMonth.name\
         pandas.tseries.offsets.Micro.copy\
         pandas.tseries.offsets.Micro.freqstr\
         pandas.tseries.offsets.Micro.is_anchored\
-        pandas.tseries.offsets.Micro.is_month_end\
-        pandas.tseries.offsets.Micro.is_month_start\
-        pandas.tseries.offsets.Micro.is_quarter_end\
-        pandas.tseries.offsets.Micro.is_quarter_start\
-        pandas.tseries.offsets.Micro.is_year_end\
-        pandas.tseries.offsets.Micro.is_year_start\
         pandas.tseries.offsets.Micro.kwds\
         pandas.tseries.offsets.Micro.name\
         pandas.tseries.offsets.Micro.nanos\
         pandas.tseries.offsets.Milli.copy\
         pandas.tseries.offsets.Milli.freqstr\
         pandas.tseries.offsets.Milli.is_anchored\
-        pandas.tseries.offsets.Milli.is_month_end\
-        pandas.tseries.offsets.Milli.is_month_start\
-        pandas.tseries.offsets.Milli.is_quarter_end\
-        pandas.tseries.offsets.Milli.is_quarter_start\
-        pandas.tseries.offsets.Milli.is_year_end\
-        pandas.tseries.offsets.Milli.is_year_start\
         pandas.tseries.offsets.Milli.kwds\
         pandas.tseries.offsets.Milli.name\
         pandas.tseries.offsets.Milli.nanos\
         pandas.tseries.offsets.Minute.copy\
         pandas.tseries.offsets.Minute.freqstr\
         pandas.tseries.offsets.Minute.is_anchored\
-        pandas.tseries.offsets.Minute.is_month_end\
-        pandas.tseries.offsets.Minute.is_month_start\
-        pandas.tseries.offsets.Minute.is_quarter_end\
-        pandas.tseries.offsets.Minute.is_quarter_start\
-        pandas.tseries.offsets.Minute.is_year_end\
-        pandas.tseries.offsets.Minute.is_year_start\
         pandas.tseries.offsets.Minute.kwds\
         pandas.tseries.offsets.Minute.name\
         pandas.tseries.offsets.Minute.nanos\
         pandas.tseries.offsets.MonthBegin.copy\
         pandas.tseries.offsets.MonthBegin.freqstr\
         pandas.tseries.offsets.MonthBegin.is_anchored\
-        pandas.tseries.offsets.MonthBegin.is_month_end\
-        pandas.tseries.offsets.MonthBegin.is_month_start\
-        pandas.tseries.offsets.MonthBegin.is_quarter_end\
-        pandas.tseries.offsets.MonthBegin.is_quarter_start\
-        pandas.tseries.offsets.MonthBegin.is_year_end\
-        pandas.tseries.offsets.MonthBegin.is_year_start\
         pandas.tseries.offsets.MonthBegin.kwds\
         pandas.tseries.offsets.MonthBegin.name\
         pandas.tseries.offsets.MonthEnd.copy\
         pandas.tseries.offsets.MonthEnd.freqstr\
         pandas.tseries.offsets.MonthEnd.is_anchored\
-        pandas.tseries.offsets.MonthEnd.is_month_end\
-        pandas.tseries.offsets.MonthEnd.is_month_start\
-        pandas.tseries.offsets.MonthEnd.is_quarter_end\
-        pandas.tseries.offsets.MonthEnd.is_quarter_start\
-        pandas.tseries.offsets.MonthEnd.is_year_end\
-        pandas.tseries.offsets.MonthEnd.is_year_start\
         pandas.tseries.offsets.MonthEnd.kwds\
         pandas.tseries.offsets.MonthEnd.name\
         pandas.tseries.offsets.Nano.copy\
         pandas.tseries.offsets.Nano.freqstr\
         pandas.tseries.offsets.Nano.is_anchored\
-        pandas.tseries.offsets.Nano.is_month_end\
-        pandas.tseries.offsets.Nano.is_month_start\
-        pandas.tseries.offsets.Nano.is_quarter_end\
-        pandas.tseries.offsets.Nano.is_quarter_start\
-        pandas.tseries.offsets.Nano.is_year_end\
-        pandas.tseries.offsets.Nano.is_year_start\
         pandas.tseries.offsets.Nano.kwds\
         pandas.tseries.offsets.Nano.name\
         pandas.tseries.offsets.Nano.nanos\
         pandas.tseries.offsets.QuarterBegin.copy\
         pandas.tseries.offsets.QuarterBegin.freqstr\
-        pandas.tseries.offsets.QuarterBegin.is_month_end\
-        pandas.tseries.offsets.QuarterBegin.is_month_start\
-        pandas.tseries.offsets.QuarterBegin.is_quarter_end\
-        pandas.tseries.offsets.QuarterBegin.is_quarter_start\
-        pandas.tseries.offsets.QuarterBegin.is_year_end\
-        pandas.tseries.offsets.QuarterBegin.is_year_start\
         pandas.tseries.offsets.QuarterBegin.kwds\
         pandas.tseries.offsets.QuarterBegin.name\
         pandas.tseries.offsets.QuarterEnd.copy\
         pandas.tseries.offsets.QuarterEnd.freqstr\
-        pandas.tseries.offsets.QuarterEnd.is_month_end\
-        pandas.tseries.offsets.QuarterEnd.is_month_start\
-        pandas.tseries.offsets.QuarterEnd.is_quarter_end\
-        pandas.tseries.offsets.QuarterEnd.is_quarter_start\
-        pandas.tseries.offsets.QuarterEnd.is_year_end\
-        pandas.tseries.offsets.QuarterEnd.is_year_start\
         pandas.tseries.offsets.QuarterEnd.kwds\
         pandas.tseries.offsets.QuarterEnd.name\
         pandas.tseries.offsets.Second.copy\
         pandas.tseries.offsets.Second.freqstr\
         pandas.tseries.offsets.Second.is_anchored\
-        pandas.tseries.offsets.Second.is_month_end\
-        pandas.tseries.offsets.Second.is_month_start\
-        pandas.tseries.offsets.Second.is_quarter_end\
-        pandas.tseries.offsets.Second.is_quarter_start\
-        pandas.tseries.offsets.Second.is_year_end\
-        pandas.tseries.offsets.Second.is_year_start\
         pandas.tseries.offsets.Second.kwds\
         pandas.tseries.offsets.Second.name\
         pandas.tseries.offsets.Second.nanos\
@@ -2033,80 +1643,38 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.tseries.offsets.SemiMonthBegin.copy\
         pandas.tseries.offsets.SemiMonthBegin.freqstr\
         pandas.tseries.offsets.SemiMonthBegin.is_anchored\
-        pandas.tseries.offsets.SemiMonthBegin.is_month_end\
-        pandas.tseries.offsets.SemiMonthBegin.is_month_start\
-        pandas.tseries.offsets.SemiMonthBegin.is_quarter_end\
-        pandas.tseries.offsets.SemiMonthBegin.is_quarter_start\
-        pandas.tseries.offsets.SemiMonthBegin.is_year_end\
-        pandas.tseries.offsets.SemiMonthBegin.is_year_start\
         pandas.tseries.offsets.SemiMonthBegin.kwds\
         pandas.tseries.offsets.SemiMonthBegin.name\
         pandas.tseries.offsets.SemiMonthEnd\
         pandas.tseries.offsets.SemiMonthEnd.copy\
         pandas.tseries.offsets.SemiMonthEnd.freqstr\
         pandas.tseries.offsets.SemiMonthEnd.is_anchored\
-        pandas.tseries.offsets.SemiMonthEnd.is_month_end\
-        pandas.tseries.offsets.SemiMonthEnd.is_month_start\
-        pandas.tseries.offsets.SemiMonthEnd.is_quarter_end\
-        pandas.tseries.offsets.SemiMonthEnd.is_quarter_start\
-        pandas.tseries.offsets.SemiMonthEnd.is_year_end\
-        pandas.tseries.offsets.SemiMonthEnd.is_year_start\
         pandas.tseries.offsets.SemiMonthEnd.kwds\
         pandas.tseries.offsets.SemiMonthEnd.name\
         pandas.tseries.offsets.Tick.copy\
         pandas.tseries.offsets.Tick.freqstr\
         pandas.tseries.offsets.Tick.is_anchored\
-        pandas.tseries.offsets.Tick.is_month_end\
-        pandas.tseries.offsets.Tick.is_month_start\
-        pandas.tseries.offsets.Tick.is_quarter_end\
-        pandas.tseries.offsets.Tick.is_quarter_start\
-        pandas.tseries.offsets.Tick.is_year_end\
-        pandas.tseries.offsets.Tick.is_year_start\
         pandas.tseries.offsets.Tick.kwds\
         pandas.tseries.offsets.Tick.name\
         pandas.tseries.offsets.Tick.nanos\
         pandas.tseries.offsets.Week.copy\
         pandas.tseries.offsets.Week.freqstr\
-        pandas.tseries.offsets.Week.is_month_end\
-        pandas.tseries.offsets.Week.is_month_start\
-        pandas.tseries.offsets.Week.is_quarter_end\
-        pandas.tseries.offsets.Week.is_quarter_start\
-        pandas.tseries.offsets.Week.is_year_end\
-        pandas.tseries.offsets.Week.is_year_start\
         pandas.tseries.offsets.Week.kwds\
         pandas.tseries.offsets.Week.name\
         pandas.tseries.offsets.WeekOfMonth\
         pandas.tseries.offsets.WeekOfMonth.copy\
         pandas.tseries.offsets.WeekOfMonth.freqstr\
         pandas.tseries.offsets.WeekOfMonth.is_anchored\
-        pandas.tseries.offsets.WeekOfMonth.is_month_end\
-        pandas.tseries.offsets.WeekOfMonth.is_month_start\
-        pandas.tseries.offsets.WeekOfMonth.is_quarter_end\
-        pandas.tseries.offsets.WeekOfMonth.is_quarter_start\
-        pandas.tseries.offsets.WeekOfMonth.is_year_end\
-        pandas.tseries.offsets.WeekOfMonth.is_year_start\
         pandas.tseries.offsets.WeekOfMonth.kwds\
         pandas.tseries.offsets.WeekOfMonth.name\
         pandas.tseries.offsets.YearBegin.copy\
         pandas.tseries.offsets.YearBegin.freqstr\
         pandas.tseries.offsets.YearBegin.is_anchored\
-        pandas.tseries.offsets.YearBegin.is_month_end\
-        pandas.tseries.offsets.YearBegin.is_month_start\
-        pandas.tseries.offsets.YearBegin.is_quarter_end\
-        pandas.tseries.offsets.YearBegin.is_quarter_start\
-        pandas.tseries.offsets.YearBegin.is_year_end\
-        pandas.tseries.offsets.YearBegin.is_year_start\
         pandas.tseries.offsets.YearBegin.kwds\
         pandas.tseries.offsets.YearBegin.name\
         pandas.tseries.offsets.YearEnd.copy\
         pandas.tseries.offsets.YearEnd.freqstr\
         pandas.tseries.offsets.YearEnd.is_anchored\
-        pandas.tseries.offsets.YearEnd.is_month_end\
-        pandas.tseries.offsets.YearEnd.is_month_start\
-        pandas.tseries.offsets.YearEnd.is_quarter_end\
-        pandas.tseries.offsets.YearEnd.is_quarter_start\
-        pandas.tseries.offsets.YearEnd.is_year_end\
-        pandas.tseries.offsets.YearEnd.is_year_start\
         pandas.tseries.offsets.YearEnd.kwds\
         pandas.tseries.offsets.YearEnd.name\
         pandas.util.hash_array\
