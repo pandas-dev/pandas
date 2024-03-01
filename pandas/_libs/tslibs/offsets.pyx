@@ -58,6 +58,7 @@ from pandas._libs.tslibs.conversion cimport localize_pydatetime
 from pandas._libs.tslibs.dtypes cimport (
     c_DEPR_ABBREVS,
     c_OFFSET_DEPR_FREQSTR,
+    c_REMOVED_ABBREVS,
     c_REVERSE_OFFSET_DEPR_FREQSTR,
     periods_per_day,
 )
@@ -4886,12 +4887,8 @@ cpdef to_offset(freq, bint is_period=False):
                         )
                 elif is_period and name.upper() in c_OFFSET_DEPR_FREQSTR:
                     if name.upper().startswith("A"):
-                        warnings.warn(
-                            f"\'{name}\' is deprecated and will be removed in a future "
-                            f"version, please use "
-                            f"\'{c_DEPR_ABBREVS.get(name.upper())}\' instead.",
-                            FutureWarning,
-                            stacklevel=find_stack_level(),
+                        raise ValueError(
+                             f"Frequency \'{name}\' is no longer supported."
                         )
                     if name.upper() != name:
                         warnings.warn(
@@ -4911,6 +4908,10 @@ cpdef to_offset(freq, bint is_period=False):
                 if not stride:
                     stride = 1
 
+                if prefix in c_REMOVED_ABBREVS:
+                    raise ValueError(
+                        f"Frequency \'{prefix}\' is no longer supported."
+                    )
                 if prefix in c_DEPR_ABBREVS:
                     warnings.warn(
                         f"\'{prefix}\' is deprecated and will be removed "

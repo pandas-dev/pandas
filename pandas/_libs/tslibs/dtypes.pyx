@@ -336,20 +336,6 @@ cdef dict c_REVERSE_OFFSET_DEPR_FREQSTR = {
 
 # Map deprecated resolution abbreviations to correct resolution abbreviations
 cdef dict c_DEPR_ABBREVS = {
-    "A": "Y",
-    "a": "Y",
-    "A-DEC": "Y-DEC",
-    "A-JAN": "Y-JAN",
-    "A-FEB": "Y-FEB",
-    "A-MAR": "Y-MAR",
-    "A-APR": "Y-APR",
-    "A-MAY": "Y-MAY",
-    "A-JUN": "Y-JUN",
-    "A-JUL": "Y-JUL",
-    "A-AUG": "Y-AUG",
-    "A-SEP": "Y-SEP",
-    "A-OCT": "Y-OCT",
-    "A-NOV": "Y-NOV",
     "BA": "BY",
     "BA-DEC": "BY-DEC",
     "BA-JAN": "BY-JAN",
@@ -401,6 +387,23 @@ cdef dict c_DEPR_ABBREVS = {
     "u": "us",
     "N": "ns",
     "n": "ns",
+}
+
+cdef set c_REMOVED_ABBREVS = {
+    "A",
+    "a",
+    "A-DEC",
+    "A-JAN",
+    "A-FEB",
+    "A-MAR",
+    "A-APR",
+    "A-MAY",
+    "A-JUN",
+    "A-JUL",
+    "A-AUG",
+    "A-SEP",
+    "A-OCT",
+    "A-NOV",
 }
 
 
@@ -494,6 +497,10 @@ class Resolution(Enum):
         """
         cdef:
             str abbrev
+        if freq == "A":
+            raise ValueError(
+                "Frequency \'A\' is no longer supported."
+            )
         try:
             if freq in c_DEPR_ABBREVS:
                 abbrev = c_DEPR_ABBREVS[freq]
