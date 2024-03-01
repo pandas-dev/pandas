@@ -6,9 +6,11 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
+    Protocol,
     TypeVar,
     cast,
     overload,
+    runtime_checkable,
 )
 
 import numpy as np
@@ -40,7 +42,8 @@ if TYPE_CHECKING:
     ExtensionDtypeT = TypeVar("ExtensionDtypeT", bound="ExtensionDtype")
 
 
-class ExtensionDtype:
+@runtime_checkable
+class ExtensionDtype(Protocol):
     """
     A custom data type, to be paired with an ExtensionArray.
 
