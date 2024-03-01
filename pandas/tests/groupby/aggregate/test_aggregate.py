@@ -111,28 +111,6 @@ def test_groupby_aggregation_mixed_dtype():
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_aggregation_multi_level_column():
-    # GH 29772
-    lst = [
-        [True, True, True, False],
-        [True, False, np.nan, False],
-        [True, True, np.nan, False],
-        [True, True, np.nan, False],
-    ]
-    df = DataFrame(
-        data=lst,
-        columns=MultiIndex.from_tuples([("A", 0), ("A", 1), ("B", 0), ("B", 1)]),
-    )
-
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby(level=1, axis=1)
-    result = gb.sum(numeric_only=False)
-    expected = DataFrame({0: [2.0, True, True, True], 1: [1, 0, 1, 1]})
-
-    tm.assert_frame_equal(result, expected)
-
-
 def test_agg_apply_corner(ts, tsframe):
     # nothing to group, all NA
     grouped = ts.groupby(ts * np.nan, group_keys=False)
@@ -268,65 +246,6 @@ def test_agg_str_with_kwarg_axis_1_raises(df, reduction_func):
         gb.agg(reduction_func, axis=1)
 
 
-@pytest.mark.parametrize(
-    "func, expected, dtype, result_dtype_dict",
-    [
-        ("sum", [5, 7, 9], "int64", {}),
-        ("std", [4.5**0.5] * 3, int, {"i": float, "j": float, "k": float}),
-        ("var", [4.5] * 3, int, {"i": float, "j": float, "k": float}),
-        ("sum", [5, 7, 9], "Int64", {"j": "int64"}),
-        ("std", [4.5**0.5] * 3, "Int64", {"i": float, "j": float, "k": float}),
-        ("var", [4.5] * 3, "Int64", {"i": "float64", "j": "float64", "k": "float64"}),
-    ],
-)
-def test_multiindex_groupby_mixed_cols_axis1(func, expected, dtype, result_dtype_dict):
-    # GH#43209
-    df = DataFrame(
-        [[1, 2, 3, 4, 5, 6]] * 3,
-        columns=MultiIndex.from_product([["a", "b"], ["i", "j", "k"]]),
-    ).astype({("a", "j"): dtype, ("b", "j"): dtype})
-
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby(level=1, axis=1)
-    result = gb.agg(func)
-    expected = DataFrame([expected] * 3, columns=["i", "j", "k"]).astype(
-        result_dtype_dict
-    )
-
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "func, expected_data, result_dtype_dict",
-    [
-        ("sum", [[2, 4], [10, 12], [18, 20]], {10: "int64", 20: "int64"}),
-        # std should ideally return Int64 / Float64 #43330
-        ("std", [[2**0.5] * 2] * 3, "float64"),
-        ("var", [[2] * 2] * 3, {10: "float64", 20: "float64"}),
-    ],
-)
-def test_groupby_mixed_cols_axis1(func, expected_data, result_dtype_dict):
-    # GH#43209
-    df = DataFrame(
-        np.arange(12).reshape(3, 4),
-        index=Index([0, 1, 0], name="y"),
-        columns=Index([10, 20, 10, 20], name="x"),
-        dtype="int64",
-    ).astype({10: "Int64"})
-
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby("x", axis=1)
-    result = gb.agg(func)
-    expected = DataFrame(
-        data=expected_data,
-        index=Index([0, 1, 0], name="y"),
-        columns=Index([10, 20], name="x"),
-    ).astype(result_dtype_dict)
-    tm.assert_frame_equal(result, expected)
-
-
 def test_aggregate_item_by_item(df):
     grouped = df.groupby("A")
 
@@ -370,9 +289,7 @@ def test_wrap_agg_out(three_group):
 def test_agg_multiple_functions_maintain_order(df):
     # GH #610
     funcs = [("mean", np.mean), ("max", np.max), ("min", np.min)]
-    msg = "is currently using SeriesGroupBy.mean"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A")["C"].agg(funcs)
+    result = df.groupby("A")["C"].agg(funcs)
     exp_cols = Index(["mean", "max", "min"])
 
     tm.assert_index_equal(result.columns, exp_cols)
@@ -962,11 +879,9 @@ def test_agg_relabel_multiindex_column(
     expected = DataFrame({"a_max": [1, 3]}, index=idx)
     tm.assert_frame_equal(result, expected)
 
-    msg = "is currently using SeriesGroupBy.mean"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby(("x", "group")).agg(
-            col_1=agg_col1, col_2=agg_col2, col_3=agg_col3
-        )
+    result = df.groupby(("x", "group")).agg(
+        col_1=agg_col1, col_2=agg_col2, col_3=agg_col3
+    )
     expected = DataFrame(
         {"col_1": agg_result1, "col_2": agg_result2, "col_3": agg_result3}, index=idx
     )
@@ -1116,13 +1031,6 @@ def test_groupby_as_index_agg(df):
 
     gr = df.groupby(ts)
     gr.nth(0)  # invokes set_selection_from_grouper internally
-
-    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
-        res = gr.apply(sum)
-    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
-        alt = df.groupby(ts).apply(sum)
-    tm.assert_frame_equal(res, alt)
 
     for attr in ["mean", "max", "count", "idxmax", "cumsum", "all"]:
         gr = df.groupby(ts, as_index=False)
@@ -1614,19 +1522,6 @@ def test_groupby_complex_raises(func):
     msg = "No matching signature found"
     with pytest.raises(TypeError, match=msg):
         data.groupby(data.index % 2).agg(func)
-
-
-@pytest.mark.parametrize(
-    "func", [["min"], ["mean", "max"], {"b": "sum"}, {"b": "prod", "c": "median"}]
-)
-def test_multi_axis_1_raises(func):
-    # GH#46995
-    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5], "c": [6, 7, 8]})
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby("a", axis=1)
-    with pytest.raises(NotImplementedError, match="axis other than 0 is not supported"):
-        gb.agg(func)
 
 
 @pytest.mark.parametrize(

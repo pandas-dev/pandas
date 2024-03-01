@@ -46,7 +46,12 @@ if TYPE_CHECKING:
 
     from pandas.core.dtypes.dtypes import ExtensionDtype
 
-    from pandas import Interval
+    from pandas import (
+        DatetimeIndex,
+        Interval,
+        PeriodIndex,
+        TimedeltaIndex,
+    )
     from pandas.arrays import (
         DatetimeArray,
         TimedeltaArray,
@@ -102,8 +107,10 @@ if TYPE_CHECKING:
 
     if sys.version_info >= (3, 11):
         from typing import Self  # pyright: ignore[reportUnusedImport]
+        from typing import Unpack  # pyright: ignore[reportUnusedImport]
     else:
         from typing_extensions import Self  # pyright: ignore[reportUnusedImport]
+        from typing_extensions import Unpack  # pyright: ignore[reportUnusedImport]
 
 else:
     npt: Any = None
@@ -111,8 +118,10 @@ else:
     Self: Any = None
     TypeGuard: Any = None
     Concatenate: Any = None
+    Unpack: Any = None
 
 HashableT = TypeVar("HashableT", bound=Hashable)
+HashableT2 = TypeVar("HashableT2", bound=Hashable)
 MutableMappingT = TypeVar("MutableMappingT", bound=MutableMapping)
 
 # array-like
@@ -189,6 +198,8 @@ ToTimestampHow = Literal["s", "e", "start", "end"]
 # passed in, a DataFrame is always returned.
 NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
 
+IndexT = TypeVar("IndexT", bound="Index")
+FreqIndexT = TypeVar("FreqIndexT", "DatetimeIndex", "PeriodIndex", "TimedeltaIndex")
 NumpyIndexT = TypeVar("NumpyIndexT", np.ndarray, "Index")
 
 AxisInt = int
@@ -196,7 +207,7 @@ Axis = Union[AxisInt, Literal["index", "columns", "rows"]]
 IndexLabel = Union[Hashable, Sequence[Hashable]]
 Level = Hashable
 Shape = tuple[int, ...]
-Suffixes = tuple[Optional[str], Optional[str]]
+Suffixes = Sequence[Optional[str]]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, list, dict]]
 Frequency = Union[str, "BaseOffset"]
@@ -215,7 +226,7 @@ NpDtype = Union[str, np.dtype, type_t[Union[str, complex, bool, object]]]
 Dtype = Union["ExtensionDtype", NpDtype]
 AstypeArg = Union["ExtensionDtype", "npt.DTypeLike"]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
-DtypeArg = Union[Dtype, dict[Hashable, Dtype]]
+DtypeArg = Union[Dtype, Mapping[Hashable, Dtype]]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
 
 # converters
@@ -427,7 +438,7 @@ IntervalClosedType = Union[IntervalLeftRight, Literal["both", "neither"]]
 
 # datetime and NaTType
 DatetimeNaTType = Union[datetime, "NaTType"]
-DateTimeErrorChoices = Union[IgnoreRaise, Literal["coerce"]]
+DateTimeErrorChoices = Literal["raise", "coerce"]
 
 # sort_index
 SortKind = Literal["quicksort", "mergesort", "heapsort", "stable"]
@@ -509,9 +520,6 @@ NaAction = Literal["ignore"]
 # from_dict
 FromDictOrient = Literal["columns", "index", "tight"]
 
-# to_gbc
-ToGbqIfexist = Literal["fail", "replace", "append"]
-
 # to_stata
 ToStataByteorder = Literal[">", "<", "little", "big"]
 
@@ -529,3 +537,6 @@ UsecolsArgType = Union[
     Callable[[HashableT], bool],
     None,
 ]
+
+# maintaine the sub-type of any hashable sequence
+SequenceT = TypeVar("SequenceT", bound=Sequence[Hashable])

@@ -72,12 +72,10 @@ from pandas._testing.compat import (
     get_obj,
 )
 from pandas._testing.contexts import (
-    assert_cow_warning,
     decompress_file,
     ensure_clean,
     raises_chained_assignment_error,
     set_timezone,
-    use_numexpr,
     with_csv_dialect,
 )
 from pandas.core.arrays import (
@@ -400,9 +398,6 @@ def external_error_raised(expected_exception: type[Exception]) -> ContextManager
     return pytest.raises(expected_exception, match=None)
 
 
-cython_table = pd.core.common._cython_table.items()
-
-
 def get_cython_table_params(ndframe, func_names_and_expected):
     """
     Combine frame, functions from com._cython_table
@@ -423,11 +418,6 @@ def get_cython_table_params(ndframe, func_names_and_expected):
     results = []
     for func_name, expected in func_names_and_expected:
         results.append((ndframe, func_name, expected))
-        results += [
-            (ndframe, func, expected)
-            for func, name in cython_table
-            if name == func_name
-        ]
     return results
 
 
@@ -583,7 +573,6 @@ __all__ = [
     "assert_series_equal",
     "assert_sp_array_equal",
     "assert_timedelta_array_equal",
-    "assert_cow_warning",
     "at",
     "BOOL_DTYPES",
     "box_expected",
@@ -630,7 +619,6 @@ __all__ = [
     "to_array",
     "UNSIGNED_INT_EA_DTYPES",
     "UNSIGNED_INT_NUMPY_DTYPES",
-    "use_numexpr",
     "with_csv_dialect",
     "write_to_compressed",
 ]

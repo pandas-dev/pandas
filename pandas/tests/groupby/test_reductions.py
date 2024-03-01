@@ -36,20 +36,17 @@ def test_basic_aggregations(dtype):
     for k, v in grouped:
         assert len(v) == 3
 
-    msg = "using SeriesGroupBy.mean"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        agged = grouped.aggregate(np.mean)
+    agged = grouped.aggregate(np.mean)
     assert agged[1] == 1
 
-    msg = "using SeriesGroupBy.mean"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        expected = grouped.agg(np.mean)
+    expected = grouped.agg(np.mean)
     tm.assert_series_equal(agged, expected)  # shorthand
     tm.assert_series_equal(agged, grouped.mean())
     result = grouped.sum()
-    msg = "using SeriesGroupBy.sum"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        expected = grouped.agg(np.sum)
+    expected = grouped.agg(np.sum)
+    if dtype == "int32":
+        # NumPy's sum returns int64
+        expected = expected.astype("int32")
     tm.assert_series_equal(result, expected)
 
     expected = grouped.apply(lambda x: x * x.sum())
@@ -58,15 +55,11 @@ def test_basic_aggregations(dtype):
     tm.assert_series_equal(transformed, expected)
 
     value_grouped = data.groupby(data)
-    msg = "using SeriesGroupBy.mean"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = value_grouped.aggregate(np.mean)
+    result = value_grouped.aggregate(np.mean)
     tm.assert_series_equal(result, agged, check_index_type=False)
 
     # complex agg
-    msg = "using SeriesGroupBy.[mean|std]"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        agged = grouped.aggregate([np.mean, np.std])
+    agged = grouped.aggregate([np.mean, np.std])
 
     msg = r"nested renamer is not supported"
     with pytest.raises(pd.errors.SpecificationError, match=msg):
@@ -450,15 +443,11 @@ def test_cython_median():
     labels[::17] = np.nan
 
     result = df.groupby(labels).median()
-    msg = "using DataFrameGroupBy.median"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        exp = df.groupby(labels).agg(np.nanmedian)
+    exp = df.groupby(labels).agg(np.nanmedian)
     tm.assert_frame_equal(result, exp)
 
     df = DataFrame(np.random.default_rng(2).standard_normal((1000, 5)))
-    msg = "using DataFrameGroupBy.median"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        rs = df.groupby(labels).agg(np.median)
+    rs = df.groupby(labels).agg(np.median)
     xp = df.groupby(labels).median()
     tm.assert_frame_equal(rs, xp)
 
@@ -953,15 +942,11 @@ def test_intercept_builtin_sum():
     s = Series([1.0, 2.0, np.nan, 3.0])
     grouped = s.groupby([0, 1, 2, 2])
 
-    msg = "using SeriesGroupBy.sum"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        # GH#53425
-        result = grouped.agg(builtins.sum)
-    msg = "using np.sum"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        # GH#53425
-        result2 = grouped.apply(builtins.sum)
-    expected = grouped.sum()
+    # GH#53425
+    result = grouped.agg(builtins.sum)
+    # GH#53425
+    result2 = grouped.apply(builtins.sum)
+    expected = Series([1.0, 2.0, np.nan], index=np.array([0, 1, 2]))
     tm.assert_series_equal(result, expected)
     tm.assert_series_equal(result2, expected)
 
@@ -1096,10 +1081,8 @@ def test_ops_general(op, targop):
     labels = np.random.default_rng(2).integers(0, 50, size=1000).astype(float)
 
     result = getattr(df.groupby(labels), op)()
-    warn = None if op in ("first", "last", "count", "sem") else FutureWarning
-    msg = f"using DataFrameGroupBy.{op}"
-    with tm.assert_produces_warning(warn, match=msg):
-        expected = df.groupby(labels).agg(targop)
+    kwargs = {"ddof": 1, "axis": 0} if op in ["std", "var"] else {}
+    expected = df.groupby(labels).agg(targop, **kwargs)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1149,36 +1132,26 @@ def test_apply_to_nullable_integer_returns_float(values, function):
         "sem",
     ],
 )
-@pytest.mark.parametrize("axis", [0, 1])
-def test_regression_allowlist_methods(op, axis, skipna, sort):
+def test_regression_allowlist_methods(op, skipna, sort):
     # GH6944
     # GH 17537
     # explicitly test the allowlist methods
-    raw_frame = DataFrame([0])
-    if axis == 0:
-        frame = raw_frame
-        msg = "The 'axis' keyword in DataFrame.groupby is deprecated and will be"
-    else:
-        frame = raw_frame.T
-        msg = "DataFrame.groupby with axis=1 is deprecated"
+    frame = DataFrame([0])
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        grouped = frame.groupby(level=0, axis=axis, sort=sort)
+    grouped = frame.groupby(level=0, sort=sort)
 
     if op == "skew":
         # skew has skipna
         result = getattr(grouped, op)(skipna=skipna)
-        expected = frame.groupby(level=0).apply(
-            lambda h: getattr(h, op)(axis=axis, skipna=skipna)
-        )
+        expected = frame.groupby(level=0).apply(lambda h: getattr(h, op)(skipna=skipna))
         if sort:
-            expected = expected.sort_index(axis=axis)
+            expected = expected.sort_index()
         tm.assert_frame_equal(result, expected)
     else:
         result = getattr(grouped, op)()
-        expected = frame.groupby(level=0).apply(lambda h: getattr(h, op)(axis=axis))
+        expected = frame.groupby(level=0).apply(lambda h: getattr(h, op)())
         if sort:
-            expected = expected.sort_index(axis=axis)
+            expected = expected.sort_index()
         tm.assert_frame_equal(result, expected)
 
 
@@ -1206,7 +1179,7 @@ def test_groupby_prod_with_int64_dtype():
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_std_datetimelike(warn_copy_on_write):
+def test_groupby_std_datetimelike():
     # GH#48481
     tdi = pd.timedelta_range("1 Day", periods=10000)
     ser = Series(tdi)
