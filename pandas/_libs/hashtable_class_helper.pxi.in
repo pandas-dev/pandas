@@ -163,7 +163,7 @@ ctypedef fused vector_data:
     Complex64VectorData
     StringVectorData
 
-cdef bint needs_resize(size_t size, size_t capacity) noexcept nogil:
+cdef bint needs_resize(Py_ssize_t size, Py_ssize_t capacity) noexcept nogil:
     return size == capacity
 
 # ----------------------------------------------------------------------
