@@ -394,8 +394,7 @@ in Modin: Ray_, Dask_, `MPI through unidist`_, HDK_. The partitioning schema of 
 along both columns and rows because it gives Modin flexibility and scalability in both the number of columns and
 the number of rows.
 
-For more information refer to `Modin's documentation`_ or dip into `Modin's tutorials`_ right away
-to start scaling pandas operations with Modin and an execution engine you like.
+For more information refer to `Modin's documentation`_ or the `Modin's tutorials`_.
 
 .. _Modin: https://github.com/modin-project/modin
 .. _`Modin's documentation`: https://modin.readthedocs.io/en/latest
