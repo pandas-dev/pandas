@@ -171,3 +171,23 @@ class TestTimedeltas:
             expected_values, dtype="timedelta64[ns]", freq=expected_freq
         )
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "depr_unit, unit",
+        [
+            ("MIN", "min"),
+            ("MS", "ms"),
+            ("US", "us"),
+            ("NS", "ns"),
+        ],
+    )
+    def test_timedelta_units_MIN_MS_US_NS_deprecated(self, depr_unit, unit):
+        # GH#52536
+        depr_msg = (
+            f"'{depr_unit}' is deprecated and will be removed in a future version."
+        )
+
+        expected = to_timedelta(np.arange(5), unit=unit)
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            result = to_timedelta(np.arange(5), unit=depr_unit)
+            tm.assert_index_equal(result, expected)

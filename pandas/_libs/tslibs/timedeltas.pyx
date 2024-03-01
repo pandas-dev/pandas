@@ -719,6 +719,14 @@ cpdef inline str parse_timedelta_unit(str unit):
         return "ns"
     elif unit == "M":
         return unit
+    elif unit in {"MIN", "MS", "US", "NS"}:
+        warnings.warn(
+            f"\'{unit}\' is deprecated and will be removed in a future version. "
+            f"Please use \'{unit.lower()}\' instead of \'{unit}\'.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        unit = unit.lower()
     elif unit in c_DEPR_ABBREVS:
         warnings.warn(
             f"\'{unit}\' is deprecated and will be removed in a "

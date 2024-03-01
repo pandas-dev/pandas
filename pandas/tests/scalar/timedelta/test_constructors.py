@@ -170,6 +170,24 @@ class TestTimedeltaConstructorUnitKeyword:
             result = Timedelta(f"2{unit}")
             assert result == expected
 
+    @pytest.mark.parametrize(
+        "unit,unit_depr",
+        [
+            ("min", "MIN"),
+            ("ms", "MS"),
+            ("us", "US"),
+            ("ns", "NS"),
+        ],
+    )
+    def test_units_MIN_MS_US_NS_deprecated(self, unit, unit_depr):
+        # GH#52536
+        msg = f"'{unit_depr}' is deprecated and will be removed in a future version."
+
+        expected = Timedelta(1, unit=unit)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = Timedelta(1, unit=unit_depr)
+        tm.assert_equal(result, expected)
+
 
 def test_construct_from_kwargs_overflow():
     # GH#55503
