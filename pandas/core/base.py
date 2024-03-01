@@ -566,6 +566,8 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         numpy.ndarray
+            The NumPy ndarray holding the values from this Series or Index.
+            The dtype of the array may differ. See Notes.
 
         See Also
         --------
@@ -1165,7 +1167,7 @@ class IndexOpsMixin(OpsMixin):
         24
         """
         if hasattr(self.array, "memory_usage"):
-            return self.array.memory_usage(  # pyright: ignore[reportGeneralTypeIssues]
+            return self.array.memory_usage(  # pyright: ignore[reportAttributeAccessIssue]
                 deep=deep,
             )
 

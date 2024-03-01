@@ -608,22 +608,6 @@ def require_length_match(data, index: Index) -> None:
         )
 
 
-# the ufuncs np.maximum.reduce and np.minimum.reduce default to axis=0,
-#  whereas np.min and np.max (which directly call obj.min and obj.max)
-#  default to axis=None.
-_builtin_table = {
-    builtins.sum: np.sum,
-    builtins.max: np.maximum.reduce,
-    builtins.min: np.minimum.reduce,
-}
-
-# GH#53425: Only for deprecation
-_builtin_table_alias = {
-    builtins.sum: "np.sum",
-    builtins.max: "np.maximum.reduce",
-    builtins.min: "np.minimum.reduce",
-}
-
 _cython_table = {
     builtins.sum: "sum",
     builtins.max: "max",
@@ -658,14 +642,6 @@ def get_cython_func(arg: Callable) -> str | None:
     if we define an internal function for this argument, return it
     """
     return _cython_table.get(arg)
-
-
-def is_builtin_func(arg):
-    """
-    if we define a builtin function for this argument, return it,
-    otherwise return the arg
-    """
-    return _builtin_table.get(arg, arg)
 
 
 def fill_missing_names(names: Sequence[Hashable | None]) -> list[Hashable]:
