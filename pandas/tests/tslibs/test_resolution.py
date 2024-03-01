@@ -59,6 +59,6 @@ def test_A_deprecated_from_attrname_to_abbrevs(freq):
 
 @pytest.mark.parametrize("freq", ["H", "T", "S", "L", "U", "N"])
 def test_reso_abbrev_H_T_S_L_U_N_raises(freq):
-    msg = f"Invalid frequency: {freq}"
+    msg = f"Frequency '{freq}' is no longer supported."
     with pytest.raises(ValueError, match=msg):
         Resolution.get_reso_from_freqstr(freq)
