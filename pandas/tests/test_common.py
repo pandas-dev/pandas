@@ -222,7 +222,6 @@ def test_temp_setattr(with_exception):
     assert ser.name == "first"
 
 
-@pytest.mark.skip("seeing if this is the only issue")
 @pytest.mark.single_cpu
 def test_str_size():
     # GH#21758

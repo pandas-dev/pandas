@@ -220,7 +220,7 @@ cdef class {{name}}Vector(Vector):
 
     cdef resize(self, size_t new_size):
         self.data.m = max(new_size, _INIT_VEC_CAP)
-        self.ao.resize(new_size, refcheck=False)
+        self.ao.resize(self.data.m, refcheck=False)
         self.data.data = <{{c_type}}*>self.ao.data
 
     def __dealloc__(self):
@@ -281,9 +281,7 @@ cdef class StringVector(Vector):
 
     cdef resize(self, size_t new_size):
         cdef:
-        self.data.m = max(new_size, _INIT_VEC_CAP)
             char **orig_data
-        self.data.data = <char **>realloc(self.data.data, self.data.m * sizeof(char *))
             Py_ssize_t i, m
 
         m = self.data.m
