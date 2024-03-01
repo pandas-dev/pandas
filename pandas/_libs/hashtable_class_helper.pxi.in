@@ -163,7 +163,7 @@ ctypedef fused vector_data:
     Complex64VectorData
     StringVectorData
 
-cdef bint needs_resize(size_t nelems, size_t capacity) noexcept nogil:
+cdef bint needs_resize(Py_ssize_t nelems, Py_ssize_t capacity) noexcept nogil:
     return nelems >= capacity
 
 # ----------------------------------------------------------------------
@@ -218,7 +218,7 @@ cdef class {{name}}Vector(Vector):
         self.ao = np.empty(self.data.m, dtype=np.{{dtype}})
         self.data.data = <{{c_type}}*>self.ao.data
 
-    cdef resize(self, size_t new_size):
+    cdef resize(self, Py_ssize_t new_size):
         self.data.m = max(new_size, _INIT_VEC_CAP)
         self.ao.resize(self.data.m, refcheck=False)
         self.data.data = <{{c_type}}*>self.ao.data
@@ -280,7 +280,7 @@ cdef class StringVector(Vector):
         if not self.data.data:
             raise MemoryError()
 
-    cdef resize(self, size_t new_size):
+    cdef resize(self, Py_ssize_t new_size):
         cdef:
             char **orig_data
             Py_ssize_t i, m
