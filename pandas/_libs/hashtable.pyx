@@ -10,7 +10,6 @@ from cpython.ref cimport (
 from libc.stdlib cimport (
     free,
     malloc,
-    realloc,
 )
 from libc.string cimport memcpy
 

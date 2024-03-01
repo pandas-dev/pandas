@@ -280,10 +280,21 @@ cdef class StringVector(Vector):
             raise MemoryError()
 
     cdef resize(self, size_t new_size):
+        cdef:
         self.data.m = max(new_size, _INIT_VEC_CAP)
+            char **orig_data
         self.data.data = <char **>realloc(self.data.data, self.data.m * sizeof(char *))
+            Py_ssize_t i, m
+
+        m = self.data.m
+        self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
+
+        orig_data = self.data.data
+        self.data.data = <char **>malloc(self.data.m * sizeof(char *))
         if not self.data.data:
             raise MemoryError()
+        for i in range(m):
+            self.data.data[i] = orig_data[i]
 
     def __dealloc__(self):
         if self.data is not NULL:
