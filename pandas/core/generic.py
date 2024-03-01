@@ -11962,7 +11962,7 @@ numeric_only : bool, default False
 Returns
 -------
 {name1} or scalar
-    The result of applying the {name} to the DataFrame elements,
+    The result of applying the {name} function to the DataFrame elements,
     possibly just for rows or columns based on the axis parameter.\
 {see_also}\
 {examples}
