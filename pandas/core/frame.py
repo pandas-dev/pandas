@@ -8788,7 +8788,7 @@ class DataFrame(NDFrame, OpsMixin):
         rows = other.index.intersection(self.index)
         if rows.empty:
             raise ValueError(
-                "Can't update dataframe when other has no index in common with "
+                "Update not allowed when other has no index in common with "
                 "this dataframe."
             )
 
