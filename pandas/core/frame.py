@@ -6916,7 +6916,8 @@ class DataFrame(NDFrame, OpsMixin):
         >>> index_natsorted(df["time"])
         [0, 3, 2, 4, 1]
         >>> df.sort_values(
-        ...     by="time", key=lambda x: np.argsort(index_natsorted(df["time"]))
+        ...     by="time",
+        ...     key=lambda x: np.argsort(index_natsorted(x)),
         ... )
             time  value
         0    0hr     10
