@@ -8785,15 +8785,15 @@ class DataFrame(NDFrame, OpsMixin):
         if other.index.has_duplicates:
             raise ValueError("Update not allowed with duplicate indexes on other.")
 
-        rows = other.index.intersection(self.index)
-        if rows.empty:
+        index_intersection = other.index.intersection(self.index)
+        if index_intersection.empty:
             raise ValueError(
                 "Update not allowed when the index on `other` has no intersection "
                 "with this dataframe."
             )
 
-        other = other.reindex(rows)
-        this_data = self.loc[rows]
+        other = other.reindex(index_intersection)
+        this_data = self.loc[index_intersection]
 
         for col in self.columns.intersection(other.columns):
             this = this_data[col]
@@ -8817,7 +8817,7 @@ class DataFrame(NDFrame, OpsMixin):
             if mask.all():
                 continue
 
-            self.loc[rows, col] = this.where(mask, that)
+            self.loc[index_intersection, col] = this.where(mask, that)
 
     # ----------------------------------------------------------------------
     # Data reshaping
