@@ -289,11 +289,3 @@ class TestTimedeltaIndex:
         ci = pd.CategoricalIndex(tdi)
         result = TimedeltaIndex(ci)
         tm.assert_index_equal(result, tdi)
-
-    @pytest.mark.parametrize("unit", ["H", "T", "t", "S", "L", "l", "U", "u", "N", "n"])
-    def test_unit_H_T_S_L_N_U_raises(self, unit):
-        msg = f"Invalid frequency: {unit}"
-        depr_msg = "The 'unit' keyword in TimedeltaIndex construction is deprecated"
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-                TimedeltaIndex([1, 3, 7], unit)

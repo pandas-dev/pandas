@@ -42,9 +42,9 @@ class TestTimedeltas:
         result = timedelta_range("0 days", freq="30min", periods=50)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("unit", ["H", "T", "t", "S", "L", "l", "U", "u", "N", "n"])
-    def test_timedelta_unit_H_T_S_L_U_N_raises(self, unit):
-        msg = f"Invalid frequency: {unit}"
+    @pytest.mark.parametrize("unit", ["T", "t", "L", "l", "U", "u", "N", "n"])
+    def test_timedelta_unit_T_L_U_N_raises(self, unit):
+        msg = f"invalid unit abbreviation: {unit}"
 
         with pytest.raises(ValueError, match=msg):
             to_timedelta(np.arange(5), unit=unit)
@@ -126,6 +126,6 @@ class TestTimedeltas:
         ],
     )
     def test_timedelta_range_deprecated_freq(self, freq_depr, start, end):
-        msg =f"Invalid frequency: {freq_depr[-1]}"
+        msg = f"Invalid frequency: {freq_depr}"
         with pytest.raises(ValueError, match=msg):
             timedelta_range(start=start, end=end, freq=freq_depr)

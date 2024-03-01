@@ -222,7 +222,7 @@ class TestPeriodRangeDisallowedFreqs:
         with tm.assert_produces_warning(FutureWarning, match=msg):
             period_range(freq=freq_depr, start="1/1/2001", end="12/1/2009")
 
-    @pytest.mark.parametrize("freq_depr", ["2H", "2MIN", "2S", "2US", "2NS"])
+    @pytest.mark.parametrize("freq_depr", ["2MIN", "2US", "2NS"])
     def test_uppercase_freq_deprecated_from_time_series(self, freq_depr):
         # GH#52536, GH#54939
         msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "

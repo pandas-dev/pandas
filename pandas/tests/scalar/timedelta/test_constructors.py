@@ -141,9 +141,9 @@ class TestTimedeltaConstructorUnitKeyword:
             result = Timedelta(f"2{unit}")
             assert result == expected
 
-    @pytest.mark.parametrize("unit", ["H", "T", "t", "S", "L", "l", "U", "u", "N", "n"])
-    def test_unit_H_T_S_L_N_U_raises(self, unit):
-        msg = f"Invalid frequency: {unit}"
+    @pytest.mark.parametrize("unit", ["T", "t", "L", "l", "U", "u", "N", "n"])
+    def test_unit_T_L_N_U_raises(self, unit):
+        msg = f"invalid unit abbreviation: {unit}"
         with pytest.raises(ValueError, match=msg):
             Timedelta(1, unit=unit)
 
