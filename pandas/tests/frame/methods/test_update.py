@@ -224,8 +224,8 @@ class TestDataFrameUpdate:
 
     def test_update_on_duplicate_frame_unique_argument_index(self):
         # GH#55509
-        df = DataFrame({"a": [1, 1, 1]}, index=[1, 1, 2])
-        other = DataFrame({"a": [2, 3]}, index=[1, 2])
-        expected = DataFrame({"a": [2, 2, 3]}, index=[1, 1, 2])
+        df = DataFrame({"a": [1, 1, 1]}, index=[1, 1, 2], dtype=np.dtype("int_"))
+        other = DataFrame({"a": [2, 3]}, index=[1, 2], dtype=np.dtype("int_"))
+        expected = DataFrame({"a": [2, 2, 3]}, index=[1, 1, 2], dtype=np.dtype("int_"))
         df.update(other)
         tm.assert_frame_equal(df, expected)
