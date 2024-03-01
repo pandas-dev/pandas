@@ -280,14 +280,8 @@ cdef class StringVector(Vector):
             raise MemoryError()
 
     cdef resize(self, size_t new_size):
-        cdef:
-            char **orig_data
-            Py_ssize_t i, m
-
-        m = self.data.m
         self.data.m = max(new_size, _INIT_VEC_CAP)
-
-        self.data.data = <char **>realloc(self.data, self.data.m * sizeof(char *))
+        self.data.data = <char **>realloc(self.data.data, self.data.m * sizeof(char *))
         if not self.data.data:
             raise MemoryError()
 
