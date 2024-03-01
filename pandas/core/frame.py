@@ -6939,6 +6939,13 @@ class DataFrame(NDFrame, OpsMixin):
         2   72hr     30
         4   96hr     50
         1  128hr     20
+
+        .. warning::
+           At the time of writing (1st March, 2024), ``natsort`` (v8.4.0) may fail
+           without error or warning in the case of multi-column sorting of
+           indices (e.g., ``DataFrame.sort_index()``, see
+           `here <https://github.com/SethMMorton/natsort/issues/172>`__ for further
+           details).
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
