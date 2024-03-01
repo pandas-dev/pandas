@@ -324,6 +324,7 @@ MultiIndex
 
 I/O
 ^^^
+- Bug in :class:`io.formats.excel.ExcelFormatter` when writing empty :class:`DataFrame` with :class:`MultiIndex` on both axes (:issue:`57696`)
 -
 -
 
