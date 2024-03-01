@@ -8707,7 +8707,7 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame.merge : For column(s)-on-column(s) operations.
 
         Notes
-        --------
+        -----
         1. Duplicate indices on `other` are not supported and raises `ValueError`.
 
         Examples
