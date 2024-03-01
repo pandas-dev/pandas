@@ -193,7 +193,7 @@ class TestDataFrameUpdate:
             (1.0, 2.0, float),
             (1.0 + 1j, 2.0 + 2j, complex),
             (np.uint64(1), np.uint(2), np.dtype("ubyte")),
-            (np.uint64(1), np.uint(2), np.dtype("int_")),
+            (np.uint64(1), np.uint(2), np.dtype("intc")),
             ("a", "b", pd.StringDtype()),
             (
                 pd.to_timedelta("1 ms"),
@@ -224,8 +224,8 @@ class TestDataFrameUpdate:
 
     def test_update_on_duplicate_frame_unique_argument_index(self):
         # GH#55509
-        df = DataFrame({"a": [1, 1, 1]}, index=[1, 1, 2], dtype=np.dtype("int_"))
-        other = DataFrame({"a": [2, 3]}, index=[1, 2], dtype=np.dtype("int_"))
-        expected = DataFrame({"a": [2, 2, 3]}, index=[1, 1, 2], dtype=np.dtype("int_"))
+        df = DataFrame({"a": [1, 1, 1]}, index=[1, 1, 2], dtype=np.dtype("intc"))
+        other = DataFrame({"a": [2, 3]}, index=[1, 2], dtype=np.dtype("intc"))
+        expected = DataFrame({"a": [2, 2, 3]}, index=[1, 1, 2], dtype=np.dtype("intc"))
         df.update(other)
         tm.assert_frame_equal(df, expected)
