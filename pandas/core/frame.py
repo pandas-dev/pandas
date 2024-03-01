@@ -10214,18 +10214,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         return self.apply(infer).__finalize__(self, "map")
 
-
-    def pipe(
-        self, 
-        func: PythonFuncType,
-        *args,
-        **kwargs,
-    ):
-        """
-        Hold for documentation
-        """
-        return func(self, *args, **kwargs)
-
     # ----------------------------------------------------------------------
     # Merging / joining methods
 
