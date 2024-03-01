@@ -480,7 +480,7 @@ def _unique_label_indices_{{dtype}}(const {{c_type}}[:] labels) -> ndarray:
         for i in range(n):
             kh_put_{{ttype}}(table, labels[i], &ret)
             if ret != 0:
-                if needs_resize(ud.n, ud.m):
+                if needs_resize(ud.size, ud.capacity):
                     with gil:
                         idx.resize()
                 append_data_{{ttype}}(&ud, i)
