@@ -261,6 +261,7 @@ cdef class {{name}}Vector(Vector):
             self.resize(new_size)  # TODO: do we want to multiply by 4?
 
         memcpy(&self.data[0] + self.data.n, &x[0], x_size * sizeof({{c_type}}))
+        self.data.n += x_size
 
 {{endfor}}
 
