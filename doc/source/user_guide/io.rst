@@ -1817,9 +1817,9 @@ which, if set to ``True``, will additionally output the length of the Series.
    - To replace *all* missing values (e.g ``NaN``) in output with a given
      string, use the ``na_rep`` argument above.
 
-   - To replace missing values on a **per-column** level, call ``fillnans()``
-     on the relevant column to replace missing numerical values with a given
-     string, *before* you call ``to_string()``.
+   - To replace missing values on a **per-column** level, call
+     :meth:`Series.fillna` on the relevant column to replace missing numerical
+     values with a given string, *before* you call :meth:`DataFrame.to_string`.
 
 .. _io.json:
 

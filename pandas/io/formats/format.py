@@ -128,15 +128,14 @@ common_docstring: Final = """
             The result of each function must be a unicode string.
             List/tuple must be of length equal to the number of columns.
 
-                NOTE: formatters are **not** applied to missing values.
-                Use the ``na_rep`` parameter instead, or see:
-                https://pandas.pydata.org/docs/dev/user_guide/io.html#writing-a-formatted-string
+                **Note**: formatters are **not** applied to missing values.
+                Use the ``na_rep`` parameter instead, or see `io.formatting`_.
 
         float_format : one-parameter function, optional, default None
             Formatter function to apply to columns' elements if they are
             floats. This function must return a unicode string and will be
             applied only to the non-``NaN`` elements, with ``NaN`` being
-            handled by ``na_rep``.
+            handled by ``na_rep``. See also `io.formatting`_.
         sparsify : bool, optional, default True
             Set to False for a DataFrame with a hierarchical index to print
             every multiindex key at each row.
