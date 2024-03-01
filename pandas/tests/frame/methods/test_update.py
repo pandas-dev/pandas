@@ -190,9 +190,10 @@ class TestDataFrameUpdate:
         [
             (True, False, bool),
             (1, 2, int),
-            (np.uint64(1), np.uint(2), np.dtype("uint64")),
             (1.0, 2.0, float),
             (1.0 + 1j, 2.0 + 2j, complex),
+            (np.uint64(1), np.uint(2), np.dtype("ubyte")),
+            (np.uint64(1), np.uint(2), np.dtype("int_")),
             ("a", "b", pd.StringDtype()),
             (
                 pd.to_timedelta("1 ms"),
@@ -208,9 +209,9 @@ class TestDataFrameUpdate:
     )
     def test_update_preserve_dtype(self, value_df, value_other, dtype):
         # GH#55509
-        df = DataFrame({"a": [value_df] * 2}, index=[1, 2])
-        other = DataFrame({"a": [value_other]}, index=[1])
-        expected = DataFrame({"a": [value_other, value_df]}, index=[1, 2])
+        df = DataFrame({"a": [value_df] * 2}, index=[1, 2], dtype=dtype)
+        other = DataFrame({"a": [value_other]}, index=[1], dtype=dtype)
+        expected = DataFrame({"a": [value_other, value_df]}, index=[1, 2], dtype=dtype)
         df.update(other)
         tm.assert_frame_equal(df, expected)
 
