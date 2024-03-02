@@ -628,13 +628,15 @@ cdef class {{name}}HashTable(HashTable):
             int ret = 0
             {{c_type}} val, na_value2
             khiter_t k
+            {{name}}VectorData *ud
             UInt8Vector result_mask
-            UInt8VectorData rmd
+            UInt8VectorData *rmd
             bint use_na_value, use_mask, seen_na = False
             const uint8_t[:] mask_values
 
         if return_inverse:
             labels = np.empty(n, dtype=np.intp)
+        ud = &uniques.data
         use_na_value = na_value is not None
         use_mask = mask is not None
         if not use_mask and use_result_mask:
@@ -644,7 +646,7 @@ cdef class {{name}}HashTable(HashTable):
             raise NotImplementedError  # pragma: no cover
 
         result_mask = UInt8Vector()
-        rmd = result_mask.data
+        rmd = &result_mask.data
 
         if use_mask:
             mask_values = mask.view("uint8")
@@ -682,7 +684,7 @@ cdef class {{name}}HashTable(HashTable):
                             continue
 
                         seen_na = True
-                        if needs_resize(&uniques.data):
+                        if needs_resize(ud):
                             with gil:
                                 if uniques.external_view_exists:
                                     raise ValueError("external reference to "
@@ -694,8 +696,8 @@ cdef class {{name}}HashTable(HashTable):
                                                      "result_mask held, but "
                                                      "Vector.resize() needed")
                                 result_mask.resize()
-                        append_data_{{dtype}}(&uniques.data, val)
-                        append_data_uint8(&rmd, 1)
+                        append_data_{{dtype}}(ud, val)
+                        append_data_uint8(rmd, 1)
                         continue
 
                 k = kh_get_{{dtype}}(self.table, val)
@@ -704,7 +706,7 @@ cdef class {{name}}HashTable(HashTable):
                     # k hasn't been seen yet
                     k = kh_put_{{dtype}}(self.table, val, &ret)
 
-                    if needs_resize(&uniques.data):
+                    if needs_resize(ud):
                         with gil:
                             if uniques.external_view_exists:
                                 raise ValueError("external reference to "
@@ -717,9 +719,9 @@ cdef class {{name}}HashTable(HashTable):
                                                      "result_mask held, but "
                                                      "Vector.resize() needed")
                                 result_mask.resize()
-                    append_data_{{dtype}}(&uniques.data, val)
+                    append_data_{{dtype}}(ud, val)
                     if use_result_mask:
-                        append_data_uint8(&rmd, 0)
+                        append_data_uint8(rmd, 0)
 
                     if return_inverse:
                         self.table.vals[k] = count
@@ -825,10 +827,10 @@ cdef class {{name}}HashTable(HashTable):
             {{c_type}} val
             khiter_t k
             {{name}}Vector uniques = {{name}}Vector()
-            {{name}}VectorData ud
+            {{name}}VectorData *ud
 
         labels = np.empty(n, dtype=np.intp)
-        ud = uniques.data
+        ud = &uniques.data
 
         with nogil:
             for i in range(n):
@@ -847,10 +849,10 @@ cdef class {{name}}HashTable(HashTable):
                     k = kh_put_{{dtype}}(self.table, val, &ret)
                     self.table.vals[k] = count
 
-                    if needs_resize(&ud):
+                    if needs_resize(ud):
                         with gil:
                             uniques.resize()
-                    append_data_{{dtype}}(&ud, val)
+                    append_data_{{dtype}}(ud, val)
                     labels[i] = count
                     count += 1
 
