@@ -162,9 +162,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.dt.qyear\
         pandas.Series.dt.unit\
         pandas.Series.empty\
-        pandas.Timedelta.microseconds\
-        pandas.Timedelta.unit\
-        pandas.Timedelta.value\
         pandas.Timestamp.day\
         pandas.Timestamp.fold\
         pandas.Timestamp.hour\
@@ -876,11 +873,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.plotting.parallel_coordinates\
         pandas.plotting.radviz\
         pandas.plotting.table\
-        pandas.read_feather\
         pandas.read_orc\
         pandas.read_sas\
         pandas.read_spss\
-        pandas.read_sql_query\
         pandas.read_stata\
         pandas.set_eng_float_format\
         pandas.timedelta_range\
