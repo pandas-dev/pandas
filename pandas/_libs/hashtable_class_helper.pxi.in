@@ -628,7 +628,6 @@ cdef class {{name}}HashTable(HashTable):
             int ret = 0
             {{c_type}} val, na_value2
             khiter_t k
-            {{name}}VectorData ud
             UInt8Vector result_mask
             UInt8VectorData rmd
             bint use_na_value, use_mask, seen_na = False
@@ -636,7 +635,6 @@ cdef class {{name}}HashTable(HashTable):
 
         if return_inverse:
             labels = np.empty(n, dtype=np.intp)
-        ud = uniques.data
         use_na_value = na_value is not None
         use_mask = mask is not None
         if not use_mask and use_result_mask:
@@ -684,7 +682,7 @@ cdef class {{name}}HashTable(HashTable):
                             continue
 
                         seen_na = True
-                        if needs_resize(&ud):
+                        if needs_resize(&uniques.data):
                             with gil:
                                 if uniques.external_view_exists:
                                     raise ValueError("external reference to "
@@ -696,7 +694,7 @@ cdef class {{name}}HashTable(HashTable):
                                                      "result_mask held, but "
                                                      "Vector.resize() needed")
                                 result_mask.resize()
-                        append_data_{{dtype}}(&ud, val)
+                        append_data_{{dtype}}(&uniques.data, val)
                         append_data_uint8(&rmd, 1)
                         continue
 
@@ -706,7 +704,7 @@ cdef class {{name}}HashTable(HashTable):
                     # k hasn't been seen yet
                     k = kh_put_{{dtype}}(self.table, val, &ret)
 
-                    if needs_resize(&ud):
+                    if needs_resize(&uniques.data):
                         with gil:
                             if uniques.external_view_exists:
                                 raise ValueError("external reference to "
@@ -719,7 +717,7 @@ cdef class {{name}}HashTable(HashTable):
                                                      "result_mask held, but "
                                                      "Vector.resize() needed")
                                 result_mask.resize()
-                    append_data_{{dtype}}(&ud, val)
+                    append_data_{{dtype}}(&uniques.data, val)
                     if use_result_mask:
                         append_data_uint8(&rmd, 0)
 
