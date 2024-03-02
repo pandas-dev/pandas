@@ -6896,7 +6896,35 @@ class DataFrame(NDFrame, OpsMixin):
         `natural sorting <https://en.wikipedia.org/wiki/Natural_sort_order>`__.
         This can be done using
         ``natsort`` `package <https://github.com/SethMMorton/natsort>`__,
-        which sorts according to natural order of elements.
+        which provides sorted indices according
+        to their natural order, as shown below:
+
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "time": ["0hr", "128hr", "72hr", "48hr", "96hr"],
+        ...         "value": [10, 20, 30, 40, 50],
+        ...     }
+        ... )
+        >>> df
+            time  value
+        0    0hr     10
+        1  128hr     20
+        2   72hr     30
+        3   48hr     40
+        4   96hr     50
+        >>> from natsort import index_natsorted
+        >>> index_natsorted(df["time"])
+        [0, 3, 2, 4, 1]
+        >>> df.sort_values(
+        ...     by="time",
+        ...     key=lambda x: np.argsort(index_natsorted(x)),
+        ... )
+            time  value
+        0    0hr     10
+        3   48hr     40
+        2   72hr     30
+        4   96hr     50
+        1  128hr     20
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
