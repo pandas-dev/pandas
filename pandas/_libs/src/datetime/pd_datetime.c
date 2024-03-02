@@ -71,7 +71,7 @@ static int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
   out->min = PyLong_AsLong(PyObject_GetAttrString(obj, "minute"));
   out->sec = PyLong_AsLong(PyObject_GetAttrString(obj, "second"));
   out->us = PyLong_AsLong(PyObject_GetAttrString(obj, "microsecond"));
-
+  out->ps = 1000 * PyLong_AsLong(PyObject_GetAttrString(obj, "nanosecond"));
   if (PyObject_HasAttrString(obj, "tzinfo")) {
     PyObject *offset = extract_utc_offset(obj);
     /* Apply the time zone offset if datetime obj is tz-aware */
