@@ -1483,6 +1483,14 @@ class RollingAndExpandingMixin(BaseWindow):
             numba_args=numba_args,
         )
 
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ):
+        return com.pipe(self, func, *args, **kwargs)
+
     def _generate_cython_apply_func(
         self,
         args: tuple[Any, ...],
@@ -2019,6 +2027,25 @@ class Rolling(RollingAndExpandingMixin):
             raw=raw,
             engine=engine,
             engine_kwargs=engine_kwargs,
+            args=args,
+            kwargs=kwargs,
+        )
+
+    @doc(
+        template_header,
+        create_section_header("Parameters"),
+        create_section_header("Returns"),
+        create_section_header("See Also"),
+        create_section_header("Examples"),
+    )
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ):
+        return super().pipe(
+            func,
             args=args,
             kwargs=kwargs,
         )
