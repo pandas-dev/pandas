@@ -54,8 +54,6 @@ navbar:
       target: community/coc.html
     - name: "Ecosystem"
       target: community/ecosystem.html
-    - name: "Benchmarks"
-      target: community/benchmarks.html
   - name: "Contribute"
     target: contribute.html
 blog:
