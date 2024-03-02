@@ -11961,8 +11961,8 @@ numeric_only : bool, default False
 
 Returns
 -------
-{name1} or scalar
-    The result of applying the {name} function to the DataFrame elements,
+{name1}
+    The result of applying the {name} function to the {name2} elements,
     possibly just for rows or columns based on the axis parameter.\
 {see_also}\
 {examples}
@@ -13011,6 +13011,10 @@ def make_doc(name: str, ndim: int) -> str:
 
     else:
         raise NotImplementedError
+
+    if base_doc is _num_doc:
+        if name2 == "DataFrame":
+            name1 = name1 + " or scalar"
 
     docstr = base_doc.format(
         desc=desc,
