@@ -323,6 +323,7 @@ MultiIndex
 
 I/O
 ^^^
+- Bug in :meth:`DataFrame.to_excel` when writing empty :class:`DataFrame` with :class:`MultiIndex` on both axes (:issue:`57696`)
 -
 -
 
