@@ -244,6 +244,7 @@ Removal of prior version deprecations/changes
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+- :meth:`Series.str.extract` returns a :class:`RangeIndex` columns instead of an :class:`Index` column when possible (:issue:`57542`)
 - Performance improvement in :class:`DataFrame` when ``data`` is a ``dict`` and ``columns`` is specified (:issue:`24368`)
 - Performance improvement in :meth:`DataFrame.join` for sorted but non-unique indexes (:issue:`56941`)
 - Performance improvement in :meth:`DataFrame.join` when left and/or right are non-unique and ``how`` is ``"left"``, ``"right"``, or ``"inner"`` (:issue:`56817`)
@@ -252,11 +253,11 @@ Performance improvements
 - Performance improvement in :meth:`Index.join` by propagating cached attributes in cases where the result matches one of the inputs (:issue:`57023`)
 - Performance improvement in :meth:`Index.take` when ``indices`` is a full range indexer from zero to length of index (:issue:`56806`)
 - Performance improvement in :meth:`MultiIndex.equals` for equal length indexes (:issue:`56990`)
+- Performance improvement in :meth:`RangeIndex.__getitem__` with a boolean mask returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57588`)
 - Performance improvement in :meth:`RangeIndex.append` when appending the same index (:issue:`57252`)
 - Performance improvement in :meth:`RangeIndex.take` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57445`)
-- Performance improvement in indexing operations for string dtypes (:issue:`56997`)
-- :meth:`Series.str.extract` returns a :class:`RangeIndex` columns instead of an :class:`Index` column when possible (:issue:`?``)
 - Performance improvement in ``DataFrameGroupBy.__len__`` and ``SeriesGroupBy.__len__`` (:issue:`57595`)
+- Performance improvement in indexing operations for string dtypes (:issue:`56997`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.bug_fixes:

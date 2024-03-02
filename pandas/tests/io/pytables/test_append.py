@@ -132,6 +132,8 @@ def test_append_series(setup_path):
 
         # select on the index and values
         expected = ns[(ns > 70) & (ns.index < 90)]
+        # Reading/writing RangeIndex info is not supported yet
+        expected.index = Index(expected.index._data)
         result = store.select("ns", "foo>70 and index<90")
         tm.assert_series_equal(result, expected, check_index_type=True)
 
