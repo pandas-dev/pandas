@@ -252,16 +252,16 @@ cdef class {{name}}Vector(Vector):
         append_data_{{dtype}}(self.data, x)
 
     cdef extend(self, const {{c_type}}[:] x):
-        x_size = len(x)
-        new_size = self.data.n + x_size
-        if needs_resize(new_size, self.data.m):
+        cdef Py_ssize_t x_size = len(x)
+        cdef Py_ssize_t needed_size = self.data.n + x_size
+        if needs_resize(needed_size, self.data.m):
             if self.external_view_exists:
                 raise ValueError("external reference but "
                                  "Vector.resize() needed")
-            self.resize(new_size)  # TODO: do we want to multiply by 4?
+            self.resize(needed_size)
 
-        memcpy(&self.data[0] + self.data.n, &x[0], x_size * sizeof({{c_type}}))
-        self.data.n += x_size
+        memcpy(&self.dataself[self.data.n], &x[0], x_size * sizeof({{c_type}}))
+        self.data.n = needed_size
 
 {{endfor}}
 
