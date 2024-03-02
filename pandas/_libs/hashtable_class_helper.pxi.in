@@ -328,7 +328,7 @@ cdef class ObjectVector(Vector):
             if self.external_view_exists:
                 raise ValueError("external reference but "
                                  "Vector.resize() needed")
-            self.size = max(self.capacity * 2, _INIT_VEC_CAP)
+            self.capacity = max(self.capacity * 2, _INIT_VEC_CAP)
             self.ao.resize(self.capacity, refcheck=False)
             self.data = <PyObject**>self.ao.data
 
