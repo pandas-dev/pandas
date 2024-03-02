@@ -708,14 +708,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.first_valid_index\
         pandas.Series.get\
         pandas.Series.infer_objects\
-        pandas.Series.kurt\
         pandas.Series.kurtosis\
         pandas.Series.last_valid_index\
         pandas.Series.mask\
-        pandas.Series.max\
-        pandas.Series.mean\
-        pandas.Series.median\
-        pandas.Series.min\
         pandas.Series.nunique\
         pandas.Series.pipe\
         pandas.Series.plot.box\
@@ -727,7 +722,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.reindex\
         pandas.Series.reorder_levels\
         pandas.Series.sem\
-        pandas.Series.skew\
         pandas.Series.sparse.to_coo\
         pandas.Series.std\
         pandas.Series.str.capitalize\
