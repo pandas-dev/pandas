@@ -719,7 +719,7 @@ cdef class {{name}}HashTable(HashTable):
                                                      "result_mask held, but "
                                                      "Vector.resize() needed")
                                 result_mask.resize()
-                    append_data_{{dtype}}(ud, val)
+                    append_data_{{dtype}}(&ud, val)
                     if use_result_mask:
                         append_data_uint8(&rmd, 0)
 
@@ -827,10 +827,10 @@ cdef class {{name}}HashTable(HashTable):
             {{c_type}} val
             khiter_t k
             {{name}}Vector uniques = {{name}}Vector()
-            {{name}}VectorData *ud
+            {{name}}VectorData ud
 
         labels = np.empty(n, dtype=np.intp)
-        ud = &uniques.data
+        ud = uniques.data
 
         with nogil:
             for i in range(n):
@@ -849,10 +849,10 @@ cdef class {{name}}HashTable(HashTable):
                     k = kh_put_{{dtype}}(self.table, val, &ret)
                     self.table.vals[k] = count
 
-                    if needs_resize(ud):
+                    if needs_resize(&ud):
                         with gil:
                             uniques.resize()
-                    append_data_{{dtype}}(ud, val)
+                    append_data_{{dtype}}(&ud, val)
                     labels[i] = count
                     count += 1
 
