@@ -277,6 +277,7 @@ cdef class StringVector(Vector):
 
     def __dealloc__(self):
         free(self.data.data)
+        self.data.data = NULL
 
     def __len__(self) -> int:
         return self.data.size
