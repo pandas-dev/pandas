@@ -944,8 +944,8 @@ class TestExcelWriter:
             columns=MultiIndex.from_tuples([("A", "B")]),
         )
         df.to_excel(tmp_excel)
-        result = pd.read_excel(tmp_excel, header=None)
-        assert result.iloc[:2, -1].to_list() == ["A", "B"]
+        result = pd.read_excel(tmp_excel, header=[0, 1], index_col=[0, 1])
+        tm.assert_frame_equal(result, df)
 
     def test_to_excel_float_format(self, tmp_excel):
         df = DataFrame(
