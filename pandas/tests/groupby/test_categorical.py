@@ -714,7 +714,7 @@ def test_describe_categorical_columns():
     # GH 11558
     cats = CategoricalIndex(
         ["qux", "foo", "baz", "bar"],
-        categories=["foo", "bar", "baz", "qux"],
+        categories=["bar", "baz", "foo", "qux"],
         ordered=True,
     )
     df = DataFrame(np.random.default_rng(2).standard_normal((20, 4)), columns=cats)

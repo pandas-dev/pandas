@@ -573,7 +573,7 @@ def test_union_duplicate_index_subsets_of_each_other(
 
     expected = Index([1, 2, 2, 3, 3, 4], dtype=dtype)
     if isinstance(a, CategoricalIndex):
-        expected = Index([1, 2, 2, 3, 3, 4])
+        expected = CategoricalIndex([1, 2, 2, 3, 3, 4])
     result = a.union(b)
     tm.assert_index_equal(result, expected)
     result = a.union(b, sort=False)
@@ -670,7 +670,7 @@ def test_union_with_duplicate_index_not_subset_and_non_monotonic(
     b = Index([0, 0, 1], dtype=dtype)
     expected = Index([0, 0, 1, 2], dtype=dtype)
     if isinstance(a, CategoricalIndex):
-        expected = Index([0, 0, 1, 2])
+        expected = CategoricalIndex([0, 0, 1, 2])
 
     result = a.union(b)
     tm.assert_index_equal(result, expected)
