@@ -212,6 +212,7 @@ if TYPE_CHECKING:
         PeriodArray,
     )
 
+
 __all__ = ["Index"]
 
 _unsortable_types = frozenset(("mixed", "mixed-integer"))
@@ -2912,7 +2913,17 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
         other, result_name = self._convert_can_do_setop(other)
 
-        if self.dtype != other.dtype:
+        if isinstance(self.dtype, CategoricalDtype) and isinstance(
+            other.dtype, CategoricalDtype
+        ):
+            # Unite both categories
+            both_categories = np.union1d(self.categories, other.categories)
+
+            # Convert both indexes to have the same categories
+            self = self.set_categories(both_categories)
+            other = other.set_categories(both_categories)
+
+        elif self.dtype != other.dtype:
             if (
                 isinstance(self, ABCMultiIndex)
                 and not is_object_dtype(_unpack_nested_dtype(other))
