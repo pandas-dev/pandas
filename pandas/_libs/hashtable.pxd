@@ -174,13 +174,13 @@ cdef class StringHashTable(HashTable):
 
 cdef struct Int64VectorData:
     int64_t *data
-    Py_ssize_t size, capacity
+    Py_ssize_t n, m
 
 cdef class Vector:
     cdef bint external_view_exists
 
 cdef class Int64Vector(Vector):
-    cdef Int64VectorData data
+    cdef Int64VectorData *data
     cdef ndarray ao
 
     cdef resize(self)

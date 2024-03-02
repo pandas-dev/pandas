@@ -133,7 +133,7 @@ dtypes = [('Complex128', 'complex128', 'khcomplex128_t'),
 
 ctypedef struct {{name}}VectorData:
     {{c_type}} *data
-    Py_ssize_t size, capacity
+    Py_ssize_t n, m
 
 {{endif}}
 
@@ -143,8 +143,8 @@ ctypedef struct {{name}}VectorData:
 cdef void append_data_{{dtype}}({{name}}VectorData *data,
                                        {{c_type}} x) noexcept nogil:
 
-    data.data[data.size] = x
-    data.size += 1
+    data.data[data.n] = x
+    data.n += 1
 
 {{endfor}}
 
@@ -163,8 +163,8 @@ ctypedef fused vector_data:
     Complex64VectorData
     StringVectorData
 
-cdef bint needs_resize(const vector_data *data) noexcept nogil:
-    return data.size == data.capacity
+cdef bint needs_resize(vector_data *data) noexcept nogil:
+    return data.n == data.m
 
 # ----------------------------------------------------------------------
 # Vector
@@ -204,43 +204,52 @@ cdef class {{name}}Vector(Vector):
     # Int64Vector is the only one we need exposed for other cython files.
     {{if dtype != 'int64'}}
     cdef:
-        {{name}}VectorData data
+        {{name}}VectorData *data
         ndarray ao
     {{endif}}
 
     def __cinit__(self):
-        self.data.size = 0
-        self.data.capacity = _INIT_VEC_CAP
-        self.ao = np.empty(self.data.capacity, dtype=np.{{dtype}})
+        self.data = <{{name}}VectorData *>PyMem_Malloc(
+            sizeof({{name}}VectorData))
+        if not self.data:
+            raise MemoryError()
+        self.data.n = 0
+        self.data.m = _INIT_VEC_CAP
+        self.ao = np.empty(self.data.m, dtype=np.{{dtype}})
         self.data.data = <{{c_type}}*>self.ao.data
 
     cdef resize(self):
-        self.data.capacity = max(self.data.capacity * 4, _INIT_VEC_CAP)
-        self.ao.resize(self.data.capacity, refcheck=False)
+        self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
+        self.ao.resize(self.data.m, refcheck=False)
         self.data.data = <{{c_type}}*>self.ao.data
 
+    def __dealloc__(self):
+        if self.data is not NULL:
+            PyMem_Free(self.data)
+            self.data = NULL
+
     def __len__(self) -> int:
-        return self.data.size
+        return self.data.n
 
     cpdef ndarray to_array(self):
-        if self.data.capacity != self.data.size:
+        if self.data.m != self.data.n:
             if self.external_view_exists:
                 # should never happen
                 raise ValueError("should have raised on append()")
-            self.ao.resize(self.data.size, refcheck=False)
-            self.data.capacity = self.data.size
+            self.ao.resize(self.data.n, refcheck=False)
+            self.data.m = self.data.n
         self.external_view_exists = True
         return self.ao
 
     cdef void append(self, {{c_type}} x) noexcept:
 
-        if needs_resize(&self.data):
+        if needs_resize(self.data):
             if self.external_view_exists:
                 raise ValueError("external reference but "
                                  "Vector.resize() needed")
             self.resize()
 
-        append_data_{{dtype}}(&self.data, x)
+        append_data_{{dtype}}(self.data, x)
 
     cdef extend(self, const {{c_type}}[:] x):
         for i in range(len(x)):
@@ -251,36 +260,42 @@ cdef class {{name}}Vector(Vector):
 cdef class StringVector(Vector):
 
     cdef:
-        StringVectorData data
+        StringVectorData *data
 
     def __cinit__(self):
-        self.data.size = 0
-        self.data.capacity = _INIT_VEC_CAP
-        self.data.data = <char **>malloc(self.data.capacity * sizeof(char *))
+        self.data = <StringVectorData *>PyMem_Malloc(sizeof(StringVectorData))
+        if not self.data:
+            raise MemoryError()
+        self.data.n = 0
+        self.data.m = _INIT_VEC_CAP
+        self.data.data = <char **>malloc(self.data.m * sizeof(char *))
         if not self.data.data:
             raise MemoryError()
 
     cdef resize(self):
         cdef:
             char **orig_data
-            Py_ssize_t i, capacity
+            Py_ssize_t i, m
 
-        capacity = self.data.capacity
-        self.data.capacity = max(self.data.capacity * 4, _INIT_VEC_CAP)
+        m = self.data.m
+        self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
 
         orig_data = self.data.data
-        self.data.data = <char **>malloc(self.data.capacity * sizeof(char *))
+        self.data.data = <char **>malloc(self.data.m * sizeof(char *))
         if not self.data.data:
             raise MemoryError()
-        for i in range(capacity):
+        for i in range(m):
             self.data.data[i] = orig_data[i]
 
     def __dealloc__(self):
-        free(self.data.data)
-        self.data.data = NULL
+        if self.data is not NULL:
+            if self.data.data is not NULL:
+                free(self.data.data)
+            PyMem_Free(self.data)
+            self.data = NULL
 
     def __len__(self) -> int:
-        return self.data.size
+        return self.data.n
 
     cpdef ndarray[object, ndim=1] to_array(self):
         cdef:
@@ -288,20 +303,20 @@ cdef class StringVector(Vector):
             Py_ssize_t n
             object val
 
-        ao = np.empty(self.data.size, dtype=object)
-        for i in range(self.data.size):
+        ao = np.empty(self.data.n, dtype=object)
+        for i in range(self.data.n):
             val = self.data.data[i]
             ao[i] = val
         self.external_view_exists = True
-        self.data.capacity = self.data.size
+        self.data.m = self.data.n
         return ao
 
     cdef void append(self, char *x) noexcept:
 
-        if needs_resize(&self.data):
+        if needs_resize(self.data):
             self.resize()
 
-        append_data_string(&self.data, x)
+        append_data_string(self.data, x)
 
     cdef extend(self, ndarray[object] x):
         for i in range(len(x)):
@@ -312,37 +327,37 @@ cdef class ObjectVector(Vector):
 
     cdef:
         PyObject **data
-        Py_ssize_t size, capacity
+        Py_ssize_t n, m
         ndarray ao
 
     def __cinit__(self):
-        self.size = 0
-        self.capacity = _INIT_VEC_CAP
+        self.n = 0
+        self.m = _INIT_VEC_CAP
         self.ao = np.empty(_INIT_VEC_CAP, dtype=object)
         self.data = <PyObject**>self.ao.data
 
     def __len__(self) -> int:
-        return self.size
+        return self.n
 
     cdef append(self, object obj):
-        if self.size == self.capacity:
+        if self.n == self.m:
             if self.external_view_exists:
                 raise ValueError("external reference but "
                                  "Vector.resize() needed")
-            self.capacity = max(self.capacity * 2, _INIT_VEC_CAP)
-            self.ao.resize(self.capacity, refcheck=False)
+            self.m = max(self.m * 2, _INIT_VEC_CAP)
+            self.ao.resize(self.m, refcheck=False)
             self.data = <PyObject**>self.ao.data
 
         Py_INCREF(obj)
-        self.data[self.size] = <PyObject*>obj
-        self.size += 1
+        self.data[self.n] = <PyObject*>obj
+        self.n += 1
 
     cpdef ndarray[object, ndim=1] to_array(self):
-        if self.capacity != self.size:
+        if self.m != self.n:
             if self.external_view_exists:
                 raise ValueError("should have raised on append()")
-            self.ao.resize(self.size, refcheck=False)
-            self.capacity = self.size
+            self.ao.resize(self.n, refcheck=False)
+            self.m = self.n
         self.external_view_exists = True
         return self.ao
 
@@ -629,13 +644,15 @@ cdef class {{name}}HashTable(HashTable):
             int ret = 0
             {{c_type}} val, na_value2
             khiter_t k
+            {{name}}VectorData *ud
             UInt8Vector result_mask
-            UInt8VectorData rmd
+            UInt8VectorData *rmd
             bint use_na_value, use_mask, seen_na = False
             const uint8_t[:] mask_values
 
         if return_inverse:
             labels = np.empty(n, dtype=np.intp)
+        ud = uniques.data
         use_na_value = na_value is not None
         use_mask = mask is not None
         if not use_mask and use_result_mask:
@@ -683,7 +700,7 @@ cdef class {{name}}HashTable(HashTable):
                             continue
 
                         seen_na = True
-                        if needs_resize(&uniques.data):
+                        if needs_resize(ud):
                             with gil:
                                 if uniques.external_view_exists:
                                     raise ValueError("external reference to "
@@ -695,8 +712,8 @@ cdef class {{name}}HashTable(HashTable):
                                                      "result_mask held, but "
                                                      "Vector.resize() needed")
                                 result_mask.resize()
-                        append_data_{{dtype}}(&uniques.data, val)
-                        append_data_uint8(&rmd, 1)
+                        append_data_{{dtype}}(ud, val)
+                        append_data_uint8(rmd, 1)
                         continue
 
                 k = kh_get_{{dtype}}(self.table, val)
@@ -705,7 +722,7 @@ cdef class {{name}}HashTable(HashTable):
                     # k hasn't been seen yet
                     k = kh_put_{{dtype}}(self.table, val, &ret)
 
-                    if needs_resize(&uniques.data):
+                    if needs_resize(ud):
                         with gil:
                             if uniques.external_view_exists:
                                 raise ValueError("external reference to "
@@ -718,9 +735,9 @@ cdef class {{name}}HashTable(HashTable):
                                                      "result_mask held, but "
                                                      "Vector.resize() needed")
                                 result_mask.resize()
-                    append_data_{{dtype}}(&uniques.data, val)
+                    append_data_{{dtype}}(ud, val)
                     if use_result_mask:
-                        append_data_uint8(&rmd, 0)
+                        append_data_uint8(rmd, 0)
 
                     if return_inverse:
                         self.table.vals[k] = count
@@ -826,7 +843,7 @@ cdef class {{name}}HashTable(HashTable):
             {{c_type}} val
             khiter_t k
             {{name}}Vector uniques = {{name}}Vector()
-            {{name}}VectorData ud
+            {{name}}VectorData *ud
 
         labels = np.empty(n, dtype=np.intp)
         ud = uniques.data
@@ -848,10 +865,10 @@ cdef class {{name}}HashTable(HashTable):
                     k = kh_put_{{dtype}}(self.table, val, &ret)
                     self.table.vals[k] = count
 
-                    if needs_resize(&ud):
+                    if needs_resize(ud):
                         with gil:
                             uniques.resize()
-                    append_data_{{dtype}}(&ud, val)
+                    append_data_{{dtype}}(ud, val)
                     labels[i] = count
                     count += 1
 
