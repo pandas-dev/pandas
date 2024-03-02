@@ -1,4 +1,5 @@
 """ Test cases for time series specific (freq conversion, etc) """
+
 from datetime import (
     date,
     datetime,
@@ -38,6 +39,7 @@ from pandas.core.indexes.period import (
 )
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.tests.plotting.common import _check_ticks_props
+from pandas.tests.plotting.common import _check_inputdata_equals_outputdata
 
 from pandas.tseries.offsets import WeekOfMonth
 
@@ -69,11 +71,10 @@ class TestTSPlot:
         for label in ax.get_xticklabels() + ax.get_yticklabels():
             assert label.get_fontsize() == 2
 
-
-     #TODO: Add more tests for different frequencies
-    @pytest.mark.parametrize("freq", ["1Y", "Y", "3Y", "10Y"])
+    # TODO: Add more tests for different frequencies
+    @pytest.mark.parametrize("freq", ["20s","3s","60min","5min","7h","4D","8W","11M","2Q","Y", "3Y", "10Y"])
     def test_period_range_content(self, freq):
-    # Setup your DataFrame as in your scenario
+        # Setup your DataFrame as in your scenario
         idx = period_range("2000-01-01", freq=freq, periods=4)
         df = DataFrame(
             np.array([0, 1, 0, 1]),
@@ -82,18 +83,12 @@ class TestTSPlot:
         )
 
         ax = df.plot()
-        lines = ax.get_lines()[0].get_xdata()
-        
-        # Convert idx and lines to lists of strings representing dates
-        idx_dates = [str(period) for period in idx]
-        lines_dates = [str(period) for period in lines]
+        _check_inputdata_equals_outputdata(idx=idx, ax=ax)
 
-        assert idx_dates == lines_dates
-
-    #TODO: Add more tests for different frequency formats
-    @pytest.mark.parametrize("freq", ["1YE", "YE", "3YE", "10YE"])
+    # TODO: Add more tests for different frequency formats
+    @pytest.mark.parametrize("freq", ["20s","3s","60min","5min","7h","4D","8W","11ME","2QE","YE", "3YE", "10YE"])
     def test_date_range_content(self, freq):
-    # Setup your DataFrame as in your scenario
+        # Setup your DataFrame as in your scenario
         idx = date_range("2000/01/01", freq=freq, periods=4)
         df = DataFrame(
             np.array([0, 1, 0, 1]),
@@ -101,13 +96,7 @@ class TestTSPlot:
             columns=["A"],
         )
         ax = df.plot()
-        lines = ax.get_lines()[0].get_xdata()
-        # Convert idx and lines to lists of strings representing dates
-        idx_dates = [str(period).split("-")[0] for period in idx]
-        lines_dates = [str(period) for period in lines]
-        assert idx_dates == lines_dates
-
-
+        _check_inputdata_equals_outputdata(idx=idx, ax=ax)
 
     def test_frame_inferred(self):
         # inferred freq

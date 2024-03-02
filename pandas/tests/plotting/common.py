@@ -541,6 +541,30 @@ def _check_plot_works(f, default_axes=False, **kwargs):
         plt.close(fig)
 
     return ret
+    
+def _check_inputdata_equals_outputdata(idx, ax):
+    from pandas.core.indexes.datetimes import (
+        DatetimeIndex,
+    )
+
+    """
+    Check that the input data is equal to the output data
+    Parameters
+    ----------
+    idx : PeriodIndex
+        The input data based on freq
+    ax : matplotlib Axes object
+        The input data after plotting
+    """
+
+    #Convert to periodIndex to use same formatting as the output
+    if isinstance(idx, DatetimeIndex):
+        idx = idx.to_period()
+    input = [str(period) for period in idx]
+    output_unformatted = ax.get_lines()[0].get_xdata()
+    output = [str(period) for period in output_unformatted]
+    # Convert idx and lines to lists of strings representing dates
+    assert input == output
 
 
 def _gen_default_plot(f, fig, **kwargs):
