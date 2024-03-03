@@ -1198,8 +1198,13 @@ class TestPivotTable:
         result = data[["A", "B"]].pivot_table(
             index=["A", "B"], aggfunc=len, margins=True
         )
-        result_list = result.tolist()
-        assert sum(result_list[:-1]) == result_list[-1]
+        index = MultiIndex(
+            levels=[["bar", "foo", "All"], ["one", "two", ""]],
+            codes=[[0, 0, 1, 1, 2], [0, 1, 0, 1, 2]],
+            names=["A", "B"],
+        )
+        expected = DataFrame(index=index, columns=[])
+        tm.assert_frame_equal(result, expected)
 
     def test_margins_no_values_two_rows(self, data):
         # Regression test on pivot table: no values passed but rows are a

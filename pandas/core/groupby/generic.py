@@ -1716,7 +1716,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if not len(obj.columns):
             # e.g. test_margins_no_values_no_cols
-            return self._python_apply_general(f, self._selected_obj)
+            return obj._constructor(
+                index=self._grouper.result_index, columns=obj.columns
+            )
 
         output: dict[int, ArrayLike] = {}
         for idx, (name, ser) in enumerate(obj.items()):
