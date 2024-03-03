@@ -14,8 +14,10 @@ from pandas._libs import (
     OutOfBoundsDatetime,
     Timestamp,
 )
-from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
+from pandas._libs.tslibs import to_offset
+
 from pandas.compat import is_platform_windows
+from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
 from pandas import (
@@ -55,7 +57,7 @@ def period_index(freqstr):
         warnings.filterwarnings(
             "ignore", message="Period with BDay freq", category=FutureWarning
         )
-        freqstr = freq_to_period_freqstr(1, freqstr)
+        freqstr = PeriodDtype(to_offset(freqstr))._freqstr
         pi = pd.period_range(start=Timestamp("2000-01-01"), periods=100, freq=freqstr)
     return pi
 
@@ -824,7 +826,7 @@ class TestDatetimeArray(SharedTests):
         dti = datetime_index
         arr = dti._data
 
-        freqstr = freq_to_period_freqstr(1, freqstr)
+        freqstr = PeriodDtype(to_offset(freqstr))._freqstr
         expected = dti.to_period(freq=freqstr)
         result = arr.to_period(freq=freqstr)
         assert isinstance(result, PeriodArray)

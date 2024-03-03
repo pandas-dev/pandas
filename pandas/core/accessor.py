@@ -265,7 +265,7 @@ def _register_accessor(name: str, cls):
     For consistency with pandas methods, you should raise an ``AttributeError``
     if the data passed to your accessor has an incorrect dtype.
 
-    >>> pd.Series(['a', 'b']).dt
+    >>> pd.Series(["a", "b"]).dt
     Traceback (most recent call last):
     ...
     AttributeError: Can only use .dt accessor with datetimelike values
@@ -273,8 +273,6 @@ def _register_accessor(name: str, cls):
     Examples
     --------
     In your library code::
-
-        import pandas as pd
 
         @pd.api.extensions.register_dataframe_accessor("geo")
         class GeoAccessor:
@@ -306,8 +304,8 @@ def _register_accessor(name: str, cls):
     def decorator(accessor):
         if hasattr(cls, name):
             warnings.warn(
-                f"registration of accessor {repr(accessor)} under name "
-                f"{repr(name)} for type {repr(cls)} is overriding a preexisting "
+                f"registration of accessor {accessor!r} under name "
+                f"{name!r} for type {cls!r} is overriding a preexisting "
                 f"attribute with the same name.",
                 UserWarning,
                 stacklevel=find_stack_level(),

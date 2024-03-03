@@ -112,13 +112,9 @@ def flavor_read_html(request):
 class TestReadHtml:
     def test_literal_html_deprecation(self, flavor_read_html):
         # GH 53785
-        msg = (
-            "Passing literal html to 'read_html' is deprecated and "
-            "will be removed in a future version. To read from a "
-            "literal string, wrap it in a 'StringIO' object."
-        )
+        msg = r"\[Errno 2\] No such file or director"
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(FileNotFoundError, match=msg):
             flavor_read_html(
                 """<table>
                 <thead>
@@ -1071,8 +1067,8 @@ class TestReadHtml:
 
     def test_wikipedia_states_table(self, datapath, flavor_read_html):
         data = datapath("io", "data", "html", "wikipedia_states.html")
-        assert os.path.isfile(data), f"{repr(data)} is not a file"
-        assert os.path.getsize(data), f"{repr(data)} is an empty file"
+        assert os.path.isfile(data), f"{data!r} is not a file"
+        assert os.path.getsize(data), f"{data!r} is an empty file"
         result = flavor_read_html(data, match="Arizona", header=1)[0]
         assert result.shape == (60, 12)
         assert "Unnamed" in result.columns[-1]
@@ -1405,7 +1401,7 @@ class TestReadHtml:
         try:
             with open(html_encoding_file, "rb") as fobj:
                 from_string = flavor_read_html(
-                    fobj.read(), encoding=encoding, index_col=0
+                    BytesIO(fobj.read()), encoding=encoding, index_col=0
                 ).pop()
 
             with open(html_encoding_file, "rb") as fobj:

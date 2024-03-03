@@ -242,11 +242,6 @@ class TestRangeIndex:
             pass
         assert idx._cache == {}
 
-        msg = "RangeIndex.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            idx.format()
-        assert idx._cache == {}
-
         df = pd.DataFrame({"a": range(10)}, index=idx)
 
         # df.__repr__ should not populate index cache
@@ -570,15 +565,6 @@ class TestRangeIndex:
 
         assert "_engine" not in idx._cache
 
-    def test_format_empty(self):
-        # GH35712
-        empty_idx = RangeIndex(0)
-        msg = r"RangeIndex\.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert empty_idx.format() == []
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert empty_idx.format(name=True) == [""]
-
     @pytest.mark.parametrize(
         "ri",
         [
@@ -620,3 +606,58 @@ class TestRangeIndex:
         result = 3 - RangeIndex(0, 4, 1)
         expected = RangeIndex(3, -1, -1)
         tm.assert_index_equal(result, expected)
+
+
+def test_take_return_rangeindex():
+    ri = RangeIndex(5, name="foo")
+    result = ri.take([])
+    expected = RangeIndex(0, name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+    result = ri.take([3, 4])
+    expected = RangeIndex(3, 5, name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+
+def test_append_one_nonempty_preserve_step():
+    expected = RangeIndex(0, -1, -1)
+    result = RangeIndex(0).append([expected])
+    tm.assert_index_equal(result, expected, exact=True)
+
+
+def test_getitem_boolmask_all_true():
+    ri = RangeIndex(3, name="foo")
+    expected = ri.copy()
+    result = ri[[True] * 3]
+    tm.assert_index_equal(result, expected, exact=True)
+
+
+def test_getitem_boolmask_all_false():
+    ri = RangeIndex(3, name="foo")
+    result = ri[[False] * 3]
+    expected = RangeIndex(0, name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+
+def test_getitem_boolmask_returns_rangeindex():
+    ri = RangeIndex(3, name="foo")
+    result = ri[[False, True, True]]
+    expected = RangeIndex(1, 3, name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+    result = ri[[True, False, True]]
+    expected = RangeIndex(0, 3, 2, name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+
+def test_getitem_boolmask_returns_index():
+    ri = RangeIndex(4, name="foo")
+    result = ri[[True, True, False, True]]
+    expected = Index([0, 1, 3], name="foo")
+    tm.assert_index_equal(result, expected)
+
+
+def test_getitem_boolmask_wrong_length():
+    ri = RangeIndex(4, name="foo")
+    with pytest.raises(IndexError, match="Boolean index has wrong length"):
+        ri[[True]]

@@ -122,11 +122,11 @@ class TestAstype:
     def test_astype_with_view_float(self, float_frame):
         # this is the only real reason to do it this way
         tf = np.round(float_frame).astype(np.int32)
-        tf.astype(np.float32, copy=False)
+        tf.astype(np.float32)
 
         # TODO(wesm): verification?
         tf = float_frame.astype(np.float64)
-        tf.astype(np.int64, copy=False)
+        tf.astype(np.int64)
 
     def test_astype_with_view_mixed_float(self, mixed_float_frame):
         tf = mixed_float_frame.reindex(columns=["A", "B", "C"])
@@ -553,27 +553,11 @@ class TestAstype:
         other = f"m8[{unit}]"
 
         df = DataFrame(np.array([[1, 2, 3]], dtype=dtype))
-        msg = "|".join(
-            [
-                # BlockManager path
-                rf"Cannot cast DatetimeArray to dtype timedelta64\[{unit}\]",
-                # ArrayManager path
-                "cannot astype a datetimelike from "
-                rf"\[datetime64\[ns\]\] to \[timedelta64\[{unit}\]\]",
-            ]
-        )
+        msg = rf"Cannot cast DatetimeArray to dtype timedelta64\[{unit}\]"
         with pytest.raises(TypeError, match=msg):
             df.astype(other)
 
-        msg = "|".join(
-            [
-                # BlockManager path
-                rf"Cannot cast TimedeltaArray to dtype datetime64\[{unit}\]",
-                # ArrayManager path
-                "cannot astype a timedelta from "
-                rf"\[timedelta64\[ns\]\] to \[datetime64\[{unit}\]\]",
-            ]
-        )
+        msg = rf"Cannot cast TimedeltaArray to dtype datetime64\[{unit}\]"
         df = DataFrame(np.array([[1, 2, 3]], dtype=other))
         with pytest.raises(TypeError, match=msg):
             df.astype(dtype)
@@ -881,7 +865,7 @@ class Int16DtypeNoCopy(pd.Int16Dtype):
 def test_frame_astype_no_copy():
     # GH 42501
     df = DataFrame({"a": [1, 4, None, 5], "b": [6, 7, 8, 9]}, dtype=object)
-    result = df.astype({"a": Int16DtypeNoCopy()}, copy=False)
+    result = df.astype({"a": Int16DtypeNoCopy()})
 
     assert result.a.dtype == pd.Int16Dtype()
     assert np.shares_memory(df.b.values, result.b.values)
@@ -892,7 +876,7 @@ def test_astype_copies(dtype):
     # GH#50984
     pytest.importorskip("pyarrow")
     df = DataFrame({"a": [1, 2, 3]}, dtype=dtype)
-    result = df.astype("int64[pyarrow]", copy=True)
+    result = df.astype("int64[pyarrow]")
     df.iloc[0, 0] = 100
     expected = DataFrame({"a": [1, 2, 3]}, dtype="int64[pyarrow]")
     tm.assert_frame_equal(result, expected)
@@ -904,5 +888,5 @@ def test_astype_to_string_not_modifying_input(string_storage, val):
     df = DataFrame({"a": ["a", "b", val]})
     expected = df.copy()
     with option_context("mode.string_storage", string_storage):
-        df.astype("string", copy=False)
+        df.astype("string")
     tm.assert_frame_equal(df, expected)

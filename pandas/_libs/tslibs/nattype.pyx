@@ -76,7 +76,7 @@ cdef _nat_rdivide_op(self, other):
     return NotImplemented
 
 
-def __nat_unpickle(*args):
+def _nat_unpickle(*args):
     # return constant defined in the module
     return c_NaT
 
@@ -360,7 +360,7 @@ class NaTType(_NaT):
         return self.__reduce__()
 
     def __reduce__(self):
-        return (__nat_unpickle, (None, ))
+        return (_nat_unpickle, (None, ))
 
     def __rtruediv__(self, other):
         return _nat_rdivide_op(self, other)
@@ -973,16 +973,16 @@ timedelta}, default 'raise'
 
         A timestamp can be rounded using multiple frequency units:
 
-        >>> ts.round(freq='h') # hour
+        >>> ts.round(freq='h')  # hour
         Timestamp('2020-03-14 16:00:00')
 
-        >>> ts.round(freq='min') # minute
+        >>> ts.round(freq='min')  # minute
         Timestamp('2020-03-14 15:33:00')
 
-        >>> ts.round(freq='s') # seconds
+        >>> ts.round(freq='s')  # seconds
         Timestamp('2020-03-14 15:32:52')
 
-        >>> ts.round(freq='ms') # milliseconds
+        >>> ts.round(freq='ms')  # milliseconds
         Timestamp('2020-03-14 15:32:52.193000')
 
         ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
@@ -1062,16 +1062,16 @@ timedelta}, default 'raise'
 
         A timestamp can be floored using multiple frequency units:
 
-        >>> ts.floor(freq='h') # hour
+        >>> ts.floor(freq='h')  # hour
         Timestamp('2020-03-14 15:00:00')
 
-        >>> ts.floor(freq='min') # minute
+        >>> ts.floor(freq='min')  # minute
         Timestamp('2020-03-14 15:32:00')
 
-        >>> ts.floor(freq='s') # seconds
+        >>> ts.floor(freq='s')  # seconds
         Timestamp('2020-03-14 15:32:52')
 
-        >>> ts.floor(freq='ns') # nanoseconds
+        >>> ts.floor(freq='ns')  # nanoseconds
         Timestamp('2020-03-14 15:32:52.192548651')
 
         ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
@@ -1151,16 +1151,16 @@ timedelta}, default 'raise'
 
         A timestamp can be ceiled using multiple frequency units:
 
-        >>> ts.ceil(freq='h') # hour
+        >>> ts.ceil(freq='h')  # hour
         Timestamp('2020-03-14 16:00:00')
 
-        >>> ts.ceil(freq='min') # minute
+        >>> ts.ceil(freq='min')  # minute
         Timestamp('2020-03-14 15:33:00')
 
-        >>> ts.ceil(freq='s') # seconds
+        >>> ts.ceil(freq='s')  # seconds
         Timestamp('2020-03-14 15:32:53')
 
-        >>> ts.ceil(freq='us') # microseconds
+        >>> ts.ceil(freq='us')  # microseconds
         Timestamp('2020-03-14 15:32:52.192549')
 
         ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):

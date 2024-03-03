@@ -755,35 +755,20 @@ cdef class BaseOffset:
     def nanos(self):
         raise ValueError(f"{self} is a non-fixed frequency")
 
-    def is_anchored(self) -> bool:
-        # GH#55388
-        """
-        Return boolean whether the frequency is a unit frequency (n=1).
-
-        .. deprecated:: 2.2.0
-            is_anchored is deprecated and will be removed in a future version.
-            Use ``obj.n == 1`` instead.
-
-        Examples
-        --------
-        >>> pd.DateOffset().is_anchored()
-        True
-        >>> pd.DateOffset(2).is_anchored()
-        False
-        """
-        warnings.warn(
-            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
-            f"in a future version, please use \'obj.n == 1\' instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.n == 1
-
     # ------------------------------------------------------------------
 
     def is_month_start(self, _Timestamp ts):
         """
         Return boolean whether a timestamp occurs on the month start.
+
+        Parameters
+        ----------
+        ts : Timestamp
+            The timestamp to check.
+
+        See Also
+        --------
+        is_month_end : Return boolean whether a timestamp occurs on the month end.
 
         Examples
         --------
@@ -798,6 +783,15 @@ cdef class BaseOffset:
         """
         Return boolean whether a timestamp occurs on the month end.
 
+        Parameters
+        ----------
+        ts : Timestamp
+            The timestamp to check.
+
+        See Also
+        --------
+        is_month_start : Return boolean whether a timestamp occurs on the month start.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2022, 1, 1)
@@ -810,6 +804,15 @@ cdef class BaseOffset:
     def is_quarter_start(self, _Timestamp ts):
         """
         Return boolean whether a timestamp occurs on the quarter start.
+
+        Parameters
+        ----------
+        ts : Timestamp
+            The timestamp to check.
+
+        See Also
+        --------
+        is_quarter_end : Return boolean whether a timestamp occurs on the quarter end.
 
         Examples
         --------
@@ -824,6 +827,16 @@ cdef class BaseOffset:
         """
         Return boolean whether a timestamp occurs on the quarter end.
 
+        Parameters
+        ----------
+        ts : Timestamp
+            The timestamp to check.
+
+        See Also
+        --------
+        is_quarter_start : Return boolean whether a timestamp
+            occurs on the quarter start.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2022, 1, 1)
@@ -837,6 +850,15 @@ cdef class BaseOffset:
         """
         Return boolean whether a timestamp occurs on the year start.
 
+        Parameters
+        ----------
+        ts : Timestamp
+            The timestamp to check.
+
+        See Also
+        --------
+        is_year_end : Return boolean whether a timestamp occurs on the year end.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2022, 1, 1)
@@ -849,6 +871,15 @@ cdef class BaseOffset:
     def is_year_end(self, _Timestamp ts):
         """
         Return boolean whether a timestamp occurs on the year end.
+
+        Parameters
+        ----------
+        ts : Timestamp
+            The timestamp to check.
+
+        See Also
+        --------
+        is_year_start : Return boolean whether a timestamp occurs on the year start.
 
         Examples
         --------
@@ -961,30 +992,6 @@ cdef class Tick(SingleConstructorOffset):
 
     def is_on_offset(self, dt: datetime) -> bool:
         return True
-
-    def is_anchored(self) -> bool:
-        # GH#55388
-        """
-        Return False.
-
-        .. deprecated:: 2.2.0
-            is_anchored is deprecated and will be removed in a future version.
-            Use ``False`` instead.
-
-        Examples
-        --------
-        >>> pd.offsets.Hour().is_anchored()
-        False
-        >>> pd.offsets.Hour(2).is_anchored()
-        False
-        """
-        warnings.warn(
-            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
-            f"in a future version, please use False instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return False
 
     # This is identical to BaseOffset.__hash__, but has to be redefined here
     # for Python 3, because we've redefined __eq__.
@@ -1458,13 +1465,22 @@ cdef class RelativeDeltaOffset(BaseOffset):
             "minutes",
             "seconds",
             "microseconds",
+            "milliseconds",
         }
         # relativedelta/_offset path only valid for base DateOffset
         if self._use_relativedelta and set(kwds).issubset(relativedelta_fast):
+            td_args = {
+                "days",
+                "hours",
+                "minutes",
+                "seconds",
+                "microseconds",
+                "milliseconds"
+            }
             td_kwds = {
                 key: val
                 for key, val in kwds.items()
-                if key in ["days", "hours", "minutes", "seconds", "microseconds"]
+                if key in td_args
             }
             if "weeks" in kwds:
                 days = td_kwds.get("days", 0)
@@ -1474,6 +1490,8 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 delta = Timedelta(**td_kwds)
                 if "microseconds" in kwds:
                     delta = delta.as_unit("us")
+                elif "milliseconds" in kwds:
+                    delta = delta.as_unit("ms")
                 else:
                     delta = delta.as_unit("s")
             else:
@@ -1491,6 +1509,8 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 delta = Timedelta(self._offset * self.n)
                 if "microseconds" in kwds:
                     delta = delta.as_unit("us")
+                elif "milliseconds" in kwds:
+                    delta = delta.as_unit("ms")
                 else:
                     delta = delta.as_unit("s")
             return delta
@@ -1544,7 +1564,7 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     Standard kind of date increment used for a date range.
 
     Works exactly like the keyword argument form of relativedelta.
-    Note that the positional argument form of relativedelata is not
+    Note that the positional argument form of relativedelta is not
     supported. Use of the keyword n is discouraged-- you would be better
     off specifying n in the keywords you use, but regardless it is
     there for you. n is needed for DateOffset subclasses.
@@ -2692,16 +2712,6 @@ cdef class QuarterOffset(SingleConstructorOffset):
         month = MONTH_ALIASES[self.startingMonth]
         return f"{self._prefix}-{month}"
 
-    def is_anchored(self) -> bool:
-        warnings.warn(
-            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
-            f"in a future version, please use \'obj.n == 1 "
-            f"and obj.startingMonth is not None\' instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.n == 1 and self.startingMonth is not None
-
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
@@ -3344,16 +3354,6 @@ cdef class Week(SingleConstructorOffset):
         self.weekday = state.pop("weekday")
         self._cache = state.pop("_cache", {})
 
-    def is_anchored(self) -> bool:
-        warnings.warn(
-            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
-            f"in a future version, please use \'obj.n == 1 "
-            f"and obj.weekday is not None\' instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.n == 1 and self.weekday is not None
-
     @apply_wraps
     def _apply(self, other):
         if self.weekday is None:
@@ -3639,17 +3639,6 @@ cdef class FY5253Mixin(SingleConstructorOffset):
         self.normalize = state.pop("normalize")
         self.weekday = state.pop("weekday")
         self.variation = state.pop("variation")
-
-    def is_anchored(self) -> bool:
-        warnings.warn(
-            f"{type(self).__name__}.is_anchored is deprecated and will be removed "
-            f"in a future version, please use \'obj.n == 1\' instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return (
-            self.n == 1 and self.startingMonth is not None and self.weekday is not None
-        )
 
     # --------------------------------------------------------------------
     # Name-related methods
@@ -4271,9 +4260,7 @@ cdef class CustomBusinessDay(BusinessDay):
     @property
     def _period_dtype_code(self):
         # GH#52534
-        raise TypeError(
-            "CustomBusinessDay is not supported as period frequency"
-        )
+        raise ValueError(f"{self.base} is not supported as period frequency")
 
     _apply_array = BaseOffset._apply_array
 
@@ -4711,29 +4698,7 @@ _lite_rule_alias = {
     "ns": "ns",
 }
 
-_dont_uppercase = {
-    "h",
-    "bh",
-    "cbh",
-    "MS",
-    "ms",
-    "s",
-    "me",
-    "qe",
-    "qe-dec",
-    "qe-jan",
-    "qe-feb",
-    "qe-mar",
-    "qe-apr",
-    "qe-may",
-    "qe-jun",
-    "qe-jul",
-    "qe-aug",
-    "qe-sep",
-    "qe-oct",
-    "qe-nov",
-    "ye",
-}
+_dont_uppercase = {"h", "bh", "cbh", "MS", "ms", "s"}
 
 
 INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
@@ -4752,7 +4717,29 @@ def _get_offset(name: str) -> BaseOffset:
     --------
     _get_offset('EOM') --> BMonthEnd(1)
     """
-    if name.lower() not in _dont_uppercase:
+    if (
+        name not in _lite_rule_alias
+        and (name.upper() in _lite_rule_alias)
+        and name != "ms"
+    ):
+        warnings.warn(
+            f"\'{name}\' is deprecated and will be removed "
+            f"in a future version, please use \'{name.upper()}\' instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    elif (
+        name not in _lite_rule_alias
+        and (name.lower() in _lite_rule_alias)
+        and name != "MS"
+    ):
+        warnings.warn(
+            f"\'{name}\' is deprecated and will be removed "
+            f"in a future version, please use \'{name.lower()}\' instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    if name not in _dont_uppercase:
         name = name.upper()
         name = _lite_rule_alias.get(name, name)
         name = _lite_rule_alias.get(name.lower(), name)
@@ -4837,19 +4824,19 @@ cpdef to_offset(freq, bint is_period=False):
     if freq is None:
         return None
 
-    if isinstance(freq, BaseOffset):
-        return freq
-
     if isinstance(freq, tuple):
         raise TypeError(
             f"to_offset does not support tuples {freq}, pass as a string instead"
         )
 
+    if isinstance(freq, BaseOffset):
+        result = freq
+
     elif PyDelta_Check(freq):
-        return delta_to_tick(freq)
+        result = delta_to_tick(freq)
 
     elif isinstance(freq, str):
-        delta = None
+        result = None
         stride_sign = None
 
         try:
@@ -4860,40 +4847,61 @@ cpdef to_offset(freq, bint is_period=False):
 
             tups = zip(split[0::4], split[1::4], split[2::4])
             for n, (sep, stride, name) in enumerate(tups):
-                if is_period is False and name in c_OFFSET_DEPR_FREQSTR:
+                if not is_period and name.upper() in c_OFFSET_DEPR_FREQSTR:
                     warnings.warn(
                         f"\'{name}\' is deprecated and will be removed "
                         f"in a future version, please use "
-                        f"\'{c_OFFSET_DEPR_FREQSTR.get(name)}\' instead.",
+                        f"\'{c_OFFSET_DEPR_FREQSTR.get(name.upper())}\' instead.",
                         FutureWarning,
                         stacklevel=find_stack_level(),
                     )
-                    name = c_OFFSET_DEPR_FREQSTR[name]
-                if is_period is True and name in c_REVERSE_OFFSET_DEPR_FREQSTR:
-                    if name.startswith("Y"):
+                    name = c_OFFSET_DEPR_FREQSTR[name.upper()]
+                if (not is_period and
+                        name != name.upper() and
+                        name.lower() not in {"s", "ms", "us", "ns"} and
+                        name.upper().split("-")[0].endswith(("S", "E"))):
+                    warnings.warn(
+                        f"\'{name}\' is deprecated and will be removed "
+                        f"in a future version, please use "
+                        f"\'{name.upper()}\' instead.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                    name = name.upper()
+                if is_period and name.upper() in c_REVERSE_OFFSET_DEPR_FREQSTR:
+                    if name.upper().startswith("Y"):
                         raise ValueError(
-                            f"for Period, please use \'Y{name[2:]}\' "
+                            f"for Period, please use \'Y{name.upper()[2:]}\' "
                             f"instead of \'{name}\'"
                         )
-                    if (name.startswith("B") or
-                            name.startswith("S") or name.startswith("C")):
+                    if (name.upper().startswith("B") or
+                            name.upper().startswith("S") or
+                            name.upper().startswith("C")):
                         raise ValueError(INVALID_FREQ_ERR_MSG.format(name))
                     else:
                         raise ValueError(
                             f"for Period, please use "
-                            f"\'{c_REVERSE_OFFSET_DEPR_FREQSTR.get(name)}\' "
+                            f"\'{c_REVERSE_OFFSET_DEPR_FREQSTR.get(name.upper())}\' "
                             f"instead of \'{name}\'"
                         )
-                elif is_period is True and name in c_OFFSET_DEPR_FREQSTR:
-                    if name.startswith("A"):
+                elif is_period and name.upper() in c_OFFSET_DEPR_FREQSTR:
+                    if name.upper().startswith("A"):
                         warnings.warn(
                             f"\'{name}\' is deprecated and will be removed in a future "
-                            f"version, please use \'{c_DEPR_ABBREVS.get(name)}\' "
+                            f"version, please use "
+                            f"\'{c_DEPR_ABBREVS.get(name.upper())}\' instead.",
+                            FutureWarning,
+                            stacklevel=find_stack_level(),
+                        )
+                    if name.upper() != name:
+                        warnings.warn(
+                            f"\'{name}\' is deprecated and will be removed in "
+                            f"a future version, please use \'{name.upper()}\' "
                             f"instead.",
                             FutureWarning,
                             stacklevel=find_stack_level(),
                         )
-                    name = c_OFFSET_DEPR_FREQSTR.get(name)
+                    name = c_OFFSET_DEPR_FREQSTR.get(name.upper())
 
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
@@ -4929,21 +4937,27 @@ cpdef to_offset(freq, bint is_period=False):
                     offset = _get_offset(prefix)
                     offset = offset * int(np.fabs(stride) * stride_sign)
 
-                if delta is None:
-                    delta = offset
+                if result is None:
+                    result = offset
                 else:
-                    delta = delta + offset
+                    result = result + offset
         except (ValueError, TypeError) as err:
             raise ValueError(INVALID_FREQ_ERR_MSG.format(
                 f"{freq}, failed to parse with error message: {repr(err)}")
             )
     else:
-        delta = None
+        result = None
 
-    if delta is None:
+    if result is None:
         raise ValueError(INVALID_FREQ_ERR_MSG.format(freq))
 
-    return delta
+    if is_period and not hasattr(result, "_period_dtype_code"):
+        if isinstance(freq, str):
+            raise ValueError(f"{result.name} is not supported as period frequency")
+        else:
+            raise ValueError(f"{freq} is not supported as period frequency")
+
+    return result
 
 
 # ----------------------------------------------------------------------

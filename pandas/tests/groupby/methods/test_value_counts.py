@@ -109,7 +109,7 @@ def test_series_groupby_value_counts(
 
     gr = df.groupby(keys, sort=isort)
     right = gr["3rd"].apply(Series.value_counts, **kwargs)
-    right.index.names = right.index.names[:-1] + ["3rd"]
+    right.index.names = tuple(list(right.index.names[:-1]) + ["3rd"])
     # https://github.com/pandas-dev/pandas/issues/49909
     right = right.rename(name)
 
@@ -232,14 +232,6 @@ def education_df():
     )
 
 
-def test_axis(education_df):
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gp = education_df.groupby("country", axis=1)
-    with pytest.raises(NotImplementedError, match="axis"):
-        gp.value_counts()
-
-
 def test_bad_subset(education_df):
     gp = education_df.groupby("country")
     with pytest.raises(ValueError, match="subset"):
@@ -326,7 +318,7 @@ def test_against_frame_and_seriesgroupby(
     )
     if frame:
         # compare against apply with DataFrame value_counts
-        warn = FutureWarning if groupby == "column" else None
+        warn = DeprecationWarning if groupby == "column" else None
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
         with tm.assert_produces_warning(warn, match=msg):
             expected = gp.apply(
@@ -1212,7 +1204,7 @@ def test_value_counts_sort_categorical(sort, vc_sort, normalize):
     elif not sort and vc_sort:
         taker = [0, 2, 1, 3]
     else:
-        taker = [2, 3, 0, 1]
+        taker = [2, 1, 0, 3]
     expected = expected.take(taker)
 
     tm.assert_series_equal(result, expected)

@@ -432,14 +432,14 @@ def assert_is_valid_plot_return_object(objs) -> None:
         for el in objs.ravel():
             msg = (
                 "one of 'objs' is not a matplotlib Axes instance, "
-                f"type encountered {repr(type(el).__name__)}"
+                f"type encountered {type(el).__name__!r}"
             )
             assert isinstance(el, (Axes, dict)), msg
     else:
         msg = (
             "objs is neither an ndarray of Artist instances nor a single "
             "ArtistArtist instance, tuple, or dict, 'objs' is a "
-            f"{repr(type(objs).__name__)}"
+            f"{type(objs).__name__!r}"
         )
         assert isinstance(objs, (Artist, tuple, dict)), msg
 
@@ -661,10 +661,10 @@ def assert_numpy_array_equal(
 
     if check_same == "same":
         if left_base is not right_base:
-            raise AssertionError(f"{repr(left_base)} is not {repr(right_base)}")
+            raise AssertionError(f"{left_base!r} is not {right_base!r}")
     elif check_same == "copy":
         if left_base is right_base:
-            raise AssertionError(f"{repr(left_base)} is {repr(right_base)}")
+            raise AssertionError(f"{left_base!r} is {right_base!r}")
 
     def _raise(left, right, err_msg) -> NoReturn:
         if err_msg is None:
@@ -902,6 +902,7 @@ def assert_series_equal(
     >>> tm.assert_series_equal(a, b)
     """
     __tracebackhide__ = True
+    check_exact_index = False if check_exact is lib.no_default else check_exact
     if (
         check_exact is lib.no_default
         and rtol is lib.no_default
@@ -935,7 +936,7 @@ def assert_series_equal(
         raise_assert_detail(obj, "Series length are different", msg1, msg2)
 
     if check_flags:
-        assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
+        assert left.flags == right.flags, f"{left.flags!r} != {right.flags!r}"
 
     if check_index:
         # GH #38183
@@ -944,7 +945,7 @@ def assert_series_equal(
             right.index,
             exact=check_index_type,
             check_names=check_names,
-            check_exact=check_exact,
+            check_exact=check_exact_index,
             check_categorical=check_categorical,
             check_order=not check_like,
             rtol=rtol,
@@ -1178,8 +1179,8 @@ def assert_frame_equal(
     but with columns of differing dtypes.
 
     >>> from pandas.testing import assert_frame_equal
-    >>> df1 = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
-    >>> df2 = pd.DataFrame({'a': [1, 2], 'b': [3.0, 4.0]})
+    >>> df1 = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    >>> df2 = pd.DataFrame({"a": [1, 2], "b": [3.0, 4.0]})
 
     df1 equals itself.
 
@@ -1215,11 +1216,11 @@ def assert_frame_equal(
     # shape comparison
     if left.shape != right.shape:
         raise_assert_detail(
-            obj, f"{obj} shape mismatch", f"{repr(left.shape)}", f"{repr(right.shape)}"
+            obj, f"{obj} shape mismatch", f"{left.shape!r}", f"{right.shape!r}"
         )
 
     if check_flags:
-        assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
+        assert left.flags == right.flags, f"{left.flags!r} != {right.flags!r}"
 
     # index comparison
     assert_index_equal(
@@ -1369,7 +1370,7 @@ def assert_sp_array_equal(left, right) -> None:
 
 def assert_contains_all(iterable, dic) -> None:
     for k in iterable:
-        assert k in dic, f"Did not contain item: {repr(k)}"
+        assert k in dic, f"Did not contain item: {k!r}"
 
 
 def assert_copy(iter1, iter2, **eql_kwargs) -> None:
@@ -1384,7 +1385,7 @@ def assert_copy(iter1, iter2, **eql_kwargs) -> None:
     for elem1, elem2 in zip(iter1, iter2):
         assert_almost_equal(elem1, elem2, **eql_kwargs)
         msg = (
-            f"Expected object {repr(type(elem1))} and object {repr(type(elem2))} to be "
+            f"Expected object {type(elem1)!r} and object {type(elem2)!r} to be "
             "different objects, but they were the same object."
         )
         assert elem1 is not elem2, msg

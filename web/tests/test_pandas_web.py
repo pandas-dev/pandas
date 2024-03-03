@@ -1,4 +1,4 @@
-from unittest.mock import (
+from unittest.mock import (  # noqa: TID251
     mock_open,
     patch,
 )
