@@ -95,9 +95,7 @@ class LocaleSpecificDtStrings:
         self.pm = pm
 
     def __repr__(self) -> str:
-        attrs = ", ".join(
-            [f"{k}={repr(getattr(self, k))}" for k in type(self).__slots__]
-        )
+        attrs = ", ".join([f"{k}={getattr(self, k)!r}" for k in type(self).__slots__])
         return f"{type(self).__name__}({attrs})"
 
     @classmethod
@@ -219,7 +217,7 @@ def convert_strftime_format(
         directive_maps = (_COMMON_MAP, _PERIOD_MAP)
         unsupported = (_COMMON_UNSUPPORTED, _PERIOD_UNSUPPORTED)
     else:
-        raise ValueError(f"Invalid target: {repr(target)}")
+        raise ValueError(f"Invalid target: {target!r}")
 
     # Raise if unsupported directive found in `strftime_fmt`
     for _u in unsupported:

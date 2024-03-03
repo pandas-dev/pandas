@@ -15,8 +15,8 @@ from pandas._libs import (
     Timestamp,
 )
 from pandas._libs.tslibs import to_offset
-
 from pandas.compat import is_platform_windows
+
 from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
