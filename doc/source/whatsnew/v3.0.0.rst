@@ -19,10 +19,15 @@ Enhancements
 enhancement1
 ^^^^^^^^^^^^
 
-.. _whatsnew_300.enhancements.enhancement2:
+.. _whatsnew_300.enhancements.strftime:
 
-enhancement2
-^^^^^^^^^^^^
+Strftime performance improvements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- New :func:`pd.tseries.api.convert_strftime_format` to convert a strftime formatting template into a python string formatting template.
+- All formatting procedures support faster strftime operations thanks to :func:`pd.tseries.api.convert_strftime_format`:
+  - in :meth:`DatetimeLikeArrayMixin.strftime` and :meth:`DatetimeIndexOpsMixin.format`. Classes :class:`DatetimeArray`, :class:`PeriodArray`, :class:`DatetimeIndex`, :class:`PeriodIndex` benefit from the improvement. :class:`TimedeltaArray.strftime` and :class:`TimedeltaArray.format` are not impacted as their ``date_format`` argument is currently ignored.
+  - in :meth:`NDFrame.to_csv`, :meth:`DataFrameRenderer.to_csv` and :class:`CSVFormatter`
+- New instance-level :meth:`Period._fast_strftime` and :meth:`Timestamp._fast_strftime` leveraging templates created with :func:`convert_strftime_format`
 
 .. _whatsnew_300.enhancements.other:
 
