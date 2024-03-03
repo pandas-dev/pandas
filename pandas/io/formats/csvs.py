@@ -316,6 +316,7 @@ class CSVFormatter:
         slicer = slice(start_i, end_i)
         df = self.obj.iloc[slicer]
 
+        # Format the values. Note: `self._number_format` includes `date_format` if any
         res = df._get_values_for_csv(**self._number_format)
         data = list(res._iter_column_arrays())
 
