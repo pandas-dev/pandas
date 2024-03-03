@@ -830,10 +830,10 @@ class TestPeriodMethods:
             # Period
             am_per = Period("2018-03-11 01:00", freq="h")
             assert am_local == am_per.strftime("%p")
-            assert am_local == am_per.fast_strftime(str_tmp, loc_s)
+            assert am_local == am_per._fast_strftime(str_tmp, loc_s)
             pm_per = Period("2018-03-11 13:00", freq="h")
             assert pm_local == pm_per.strftime("%p")
-            assert pm_local == pm_per.fast_strftime(str_tmp, loc_s)
+            assert pm_local == pm_per._fast_strftime(str_tmp, loc_s)
 
 
 class TestPeriodProperties:

@@ -1621,7 +1621,7 @@ def _format_datetime64_dateonly(
     if date_format:
         if str_date_fmt:
             # Faster, using string formatting
-            return x.fast_strftime(str_date_fmt, loc_s)
+            return x._fast_strftime(str_date_fmt, loc_s)
         else:
             # Slower
             return x.strftime(date_format)

@@ -253,7 +253,7 @@ def format_array_from_datetime(
                 ts = Timestamp._from_value_and_reso(val, reso=reso, tz=tz)
 
                 # Use string formatting for faster strftime
-                res = ts.fast_strftime(str_format, loc_s)
+                res = ts._fast_strftime(str_format, loc_s)
         else:
 
             ts = Timestamp._from_value_and_reso(val, reso=reso, tz=tz)

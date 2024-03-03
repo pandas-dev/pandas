@@ -1419,7 +1419,7 @@ def period_array_strftime(
             # freq = frequency_corresponding_to_dtype_code(dtype_code)
             # per = Period(ordinal, freq=freq)
             # if fast_fmt:
-            #     item_repr = per.fast_strftime(fast_fmt, fast_loc)
+            #     item_repr = per._fast_strftime(fast_fmt, fast_loc)
             # elif date_format:
             #     item_repr = per.strftime(date_format)
             # else:
@@ -2582,7 +2582,7 @@ cdef class _Period(PeriodMixin):
         object_state = None, self.freq, self.ordinal
         return (Period, object_state)
 
-    def fast_strftime(self, fmt_str: str, loc_s: object) -> str:
+    def _fast_strftime(self, fmt_str: str, loc_s: object) -> str:
         """A faster alternative to `strftime` using string formatting.
 
         `fmt_str` and `loc_s` should be created using
@@ -2598,7 +2598,7 @@ cdef class _Period(PeriodMixin):
         >>> a.strftime('%F-Q%q')
         '2006-Q1'
         >>> fast_fmt, loc_s = convert_strftime_format('%F-Q%q', target="period")
-        >>> a.fast_strftime(fast_fmt, loc_s)
+        >>> a._fast_strftime(fast_fmt, loc_s)
         '2006-Q1'
         """
         value = self.ordinal

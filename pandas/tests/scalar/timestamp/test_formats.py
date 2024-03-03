@@ -248,7 +248,7 @@ class TestTimestampRendering:
             # Timestamp
             am_ts = Timestamp(2020, 1, 1, 1)
             assert am_local == am_ts.strftime("%p")
-            assert am_local == am_ts.fast_strftime(str_tmp, loc_s)
+            assert am_local == am_ts._fast_strftime(str_tmp, loc_s)
             pm_ts = Timestamp(2020, 1, 1, 13)
             assert pm_local == pm_ts.strftime("%p")
-            assert pm_local == pm_ts.fast_strftime(str_tmp, loc_s)
+            assert pm_local == pm_ts._fast_strftime(str_tmp, loc_s)
