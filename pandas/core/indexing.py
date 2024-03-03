@@ -1738,6 +1738,9 @@ class _iLocIndexer(_LocationIndexer):
             self._validate_key(key, axis)
             return self._getbool_axis(key, axis=axis)
 
+        if type(key) is tuple or (hasattr(key, "_fields") and isinstance(key, type(key))):
+            return self.__getitem__(tuple(key))
+
         # a list of integers
         elif is_list_like_indexer(key):
             return self._get_list_axis(key, axis=axis)

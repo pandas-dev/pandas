@@ -1449,3 +1449,20 @@ class TestILocSeries:
             result.loc[:, "b"] = result.loc[:, "b"].astype("Int64")
         expected = DataFrame({"a": ["test"], "b": array([NA], dtype="Int64")})
         tm.assert_frame_equal(result, expected)
+
+    def test_iloc_with_namedtuple(self):
+        df = DataFrame(np.arange(120).reshape(6, -1))
+
+        output1 = df.iloc[1, 2]
+        output2 = df.iloc[(1, 2)]
+
+        from collections import namedtuple
+
+        indexer_tuple = namedtuple("Indexer", ["x", "y"])
+
+        output3 = df.iloc[tuple(indexer_tuple(x=1, y=2))]
+        output4 = df.iloc[indexer_tuple(x=1, y=2)]
+        tm.assert_equal(output1, output2)
+        tm.assert_equal(output3, output4)
+        tm.assert_equal(output1, output3)
+
