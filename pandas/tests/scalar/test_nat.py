@@ -185,7 +185,6 @@ def test_nat_iso_format(get_nat):
         (
             Timestamp,
             [
-                "fast_strftime",
                 "normalize",
                 "to_julian_date",
                 "to_period",
