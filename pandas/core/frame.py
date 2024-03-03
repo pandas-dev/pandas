@@ -808,7 +808,6 @@ class DataFrame(NDFrame, OpsMixin):
             if len(data) > 0:
                 if is_dataclass(data[0]):
                     data = dataclasses_to_dicts(data)
-
                 if not isinstance(data, np.ndarray) and treat_as_nested(data):
                     # exclude ndarray as we may have cast it a few lines above
                     if columns is not None:
@@ -821,7 +820,6 @@ class DataFrame(NDFrame, OpsMixin):
                         index,  # type: ignore[arg-type]
                         dtype,
                     )
-
                     mgr = arrays_to_mgr(
                         arrays,
                         columns,
