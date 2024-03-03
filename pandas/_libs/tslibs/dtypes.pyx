@@ -273,19 +273,6 @@ cdef dict c_OFFSET_DEPR_FREQSTR = {
     "Y-SEP": "YE-SEP",
     "Y-OCT": "YE-OCT",
     "Y-NOV": "YE-NOV",
-    "A": "YE",
-    "A-DEC": "YE-DEC",
-    "A-JAN": "YE-JAN",
-    "A-FEB": "YE-FEB",
-    "A-MAR": "YE-MAR",
-    "A-APR": "YE-APR",
-    "A-MAY": "YE-MAY",
-    "A-JUN": "YE-JUN",
-    "A-JUL": "YE-JUL",
-    "A-AUG": "YE-AUG",
-    "A-SEP": "YE-SEP",
-    "A-OCT": "YE-OCT",
-    "A-NOV": "YE-NOV",
     "BY": "BYE",
     "BY-DEC": "BYE-DEC",
     "BY-JAN": "BYE-JAN",
@@ -389,23 +376,6 @@ cdef dict c_DEPR_ABBREVS = {
     "n": "ns",
 }
 
-cdef set c_REMOVED_ABBREVS = {
-    "A",
-    "a",
-    "A-DEC",
-    "A-JAN",
-    "A-FEB",
-    "A-MAR",
-    "A-APR",
-    "A-MAY",
-    "A-JUN",
-    "A-JUL",
-    "A-AUG",
-    "A-SEP",
-    "A-OCT",
-    "A-NOV",
-}
-
 
 class FreqGroup(Enum):
     # Mirrors c_FreqGroup in the .pxd file
@@ -497,10 +467,6 @@ class Resolution(Enum):
         """
         cdef:
             str abbrev
-        if freq == "A":
-            raise ValueError(
-                "Frequency \'A\' is no longer supported."
-            )
         try:
             if freq in c_DEPR_ABBREVS:
                 abbrev = c_DEPR_ABBREVS[freq]

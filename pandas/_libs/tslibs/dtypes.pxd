@@ -18,7 +18,6 @@ cdef dict c_DEPR_ABBREVS
 cdef dict attrname_to_abbrevs
 cdef dict npy_unit_to_attrname
 cdef dict attrname_to_npy_unit
-cdef set c_REMOVED_ABBREVS
 
 cdef enum c_FreqGroup:
     # Mirrors FreqGroup in the .pyx file
