@@ -1734,12 +1734,12 @@ class _iLocIndexer(_LocationIndexer):
         if isinstance(key, list):
             key = np.asarray(key)
 
+        if type(key) is tuple or (hasattr(key, "_fields") and isinstance(key, type(key))):
+            return self.__getitem__(tuple(key))
+
         if com.is_bool_indexer(key):
             self._validate_key(key, axis)
             return self._getbool_axis(key, axis=axis)
-
-        if type(key) is tuple or (hasattr(key, "_fields") and isinstance(key, type(key))):
-            return self.__getitem__(tuple(key))
 
         # a list of integers
         elif is_list_like_indexer(key):
