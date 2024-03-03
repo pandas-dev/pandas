@@ -2916,16 +2916,16 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(self.dtype, CategoricalDtype) and isinstance(
             other.dtype, CategoricalDtype
         ):
-            both_categories = self.categories
-            if len(self.categories) != len(other.categories) or any(
-                self.categories != other.categories
+            both_categories = self.categories  # type: ignore[attr-defined]
+            if len(self.categories) != len(other.categories) or any(  # type: ignore[attr-defined]
+                self.categories != other.categories  # type: ignore[attr-defined]
             ):
                 # Unite both categories
-                both_categories = np.union1d(self.categories, other.categories)
+                both_categories = np.union1d(self.categories, other.categories)  # type: ignore[attr-defined]
             # if ordered and unordered, we set categories to be unordered
-            ordered = False if self.ordered != other.ordered else None
+            ordered = False if self.ordered != other.ordered else None  # type: ignore[attr-defined]
             # Convert both indexes to have the same categories
-            self = self.set_categories(both_categories, ordered=ordered)
+            self = self.set_categories(both_categories, ordered=ordered)  # type: ignore[attr-defined]
             other = other.set_categories(both_categories, ordered=ordered)
 
         elif self.dtype != other.dtype:
