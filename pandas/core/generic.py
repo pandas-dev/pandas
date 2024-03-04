@@ -34,7 +34,6 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas._typing import (
     AlignJoin,
     AnyArrayLike,
@@ -123,6 +122,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
+    PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -6197,6 +6197,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Returns
         -------
         same type as caller
+            The pandas object casted to the specified ``dtype``.
 
         See Also
         --------
@@ -8675,6 +8676,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Returns
         -------
         Series or DataFrame
+            The values with the specified time.
 
         Raises
         ------
@@ -9442,6 +9444,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Parameters
         ----------
         other : DataFrame or Series
+            The object to align with.
         join : {{'outer', 'inner', 'left', 'right'}}, default 'outer'
             Type of alignment to be performed.
 
@@ -9481,6 +9484,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         tuple of ({klass}, type of other)
             Aligned objects.
+
+        See Also
+        --------
+        Series.align : Align two objects on their axes with specified join method.
+        DataFrame.align : Align two objects on their axes with specified join method.
 
         Examples
         --------
@@ -10350,9 +10358,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if freq != orig_freq:
                 assert orig_freq is not None  # for mypy
                 raise ValueError(
-                    f"Given freq {freq_to_period_freqstr(freq.n, freq.name)} "
+                    f"Given freq {PeriodDtype(freq)._freqstr} "
                     f"does not match PeriodIndex freq "
-                    f"{freq_to_period_freqstr(orig_freq.n, orig_freq.name)}"
+                    f"{PeriodDtype(orig_freq)._freqstr}"
                 )
             new_ax: Index = index.shift(periods)
         else:
