@@ -89,7 +89,7 @@ def test_isoformat(ts, timespec, expected_iso):
 
 class TestTimestampRendering:
     @pytest.mark.parametrize(
-        "tz", ["UTC", "Asia/Tokyo", "US/Eastern", "dateutil/US/Pacific"]
+        "tz", ["UTC", "Asia/Tokyo", "US/Eastern", "dateutil/America/Los_Angeles"]
     )
     @pytest.mark.parametrize("freq", ["D", "M", "S", "N"])
     @pytest.mark.parametrize(
