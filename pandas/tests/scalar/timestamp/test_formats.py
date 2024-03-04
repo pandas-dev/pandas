@@ -111,7 +111,7 @@ class TestTimestampRendering:
 
         date_tz = Timestamp(date, tz=tz)
         assert date in repr(date_tz)
-        assert tz_repr in repr(date_tz), repr(date_tz)
+        assert tz_repr in repr(date_tz)
         assert freq_repr not in repr(date_tz)
         assert date_tz == eval(repr(date_tz))
 
