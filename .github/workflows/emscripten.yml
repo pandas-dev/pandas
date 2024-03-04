@@ -1,0 +1,74 @@
+name: Test Emscripten/Pyodide build
+
+on:
+# TODO: refine when this workflow should run when this
+# is ready for use or before merging
+  pull_request:
+  push:
+  workflow_dispatch:
+
+env:
+  FORCE_COLOR: 3
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build-wasm-emscripten:
+    name: Build pandas distribution for Pyodide
+    runs-on: ubuntu-22.04
+    # To enable this workflow on a fork, comment out:
+    # if: github.repository == 'pandas-dev/pandas'
+    env:
+      PYODIDE_VERSION: 0.25.0
+      # PYTHON_VERSION and EMSCRIPTEN_VERSION are determined by PYODIDE_VERSION.
+      # The appropriate versions can be found in the Pyodide repodata.json
+      # "info" field, or in Makefile.envs:
+      # https://github.com/pyodide/pyodide/blob/main/Makefile.envs#L2
+      PYTHON_VERSION: 3.11.3
+      EMSCRIPTEN_VERSION: 3.1.46
+      NODE_VERSION: 18
+    steps:
+      - name: Checkout pandas
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up Emscripten toolchain
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: ${{ env.EMSCRIPTEN_VERSION }}
+          actions-cache-folder: emsdk-cache
+
+      - name: Install pyodide-build
+        run: pip install "pydantic<2" pyodide-build==${{ env.PYODIDE_VERSION }}
+
+      - name: Build pandas for Pyodide
+        run: |
+          # pyodide build -Ceditable-verbose=true
+          pyodide build
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up Pyodide virtual environment
+        run: |
+          pyodide venv .venv-pyodide
+          source .venv-pyodide/bin/activate
+          pip install dist/*.whl
+
+      - name: Test pandas for Pyodide
+        run: |
+          source .venv-pyodide/bin/activate
+          export PANDAS_CI=1
+          pip install pytest
+          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas
