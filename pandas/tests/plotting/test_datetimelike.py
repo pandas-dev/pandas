@@ -1,5 +1,4 @@
 """ Test cases for time series specific (freq conversion, etc) """
-
 from datetime import (
     date,
     datetime,
@@ -71,7 +70,6 @@ class TestTSPlot:
         for label in ax.get_xticklabels() + ax.get_yticklabels():
             assert label.get_fontsize() == 2
 
-    # TODO: Add more tests for different frequencies
     @pytest.mark.parametrize("freq", ["20s","3s","60min","5min","7h","4D","8W","11M","2Q","Y", "3Y", "10Y"])
     def test_period_range_content(self, freq):
         # Setup your DataFrame as in your scenario
@@ -85,7 +83,6 @@ class TestTSPlot:
         ax = df.plot()
         _check_inputdata_equals_outputdata(idx=idx, ax=ax)
 
-    # TODO: Add more tests for different frequency formats
     @pytest.mark.parametrize("freq", ["20s","3s","60min","5min","7h","4D","8W","11ME","2QE","YE", "3YE", "10YE"])
     def test_date_range_content(self, freq):
         # Setup your DataFrame as in your scenario
