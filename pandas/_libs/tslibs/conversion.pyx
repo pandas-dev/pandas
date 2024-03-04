@@ -1,11 +1,13 @@
+cimport cython
+
 import numpy as np
 
 cimport numpy as cnp
 from libc.math cimport log10
 from numpy cimport (
+    float64_t,
     int32_t,
     int64_t,
-    is_datetime64_object,
 )
 
 cnp.import_array()
@@ -27,18 +29,20 @@ from cpython.datetime cimport (
 import_datetime()
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
-from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
     get_supported_reso,
+    npy_unit_to_attrname,
     periods_per_second,
 )
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
     NPY_FR_us,
+    astype_overflowsafe,
     check_dts_bounds,
     convert_reso,
+    dts_to_iso_string,
     get_conversion_factor,
     get_datetime64_unit,
     get_implementation_bounds,
@@ -73,6 +77,7 @@ from pandas._libs.tslibs.tzconversion cimport (
 from pandas._libs.tslibs.util cimport (
     is_float_object,
     is_integer_object,
+    is_nan,
 )
 
 # ----------------------------------------------------------------------
@@ -84,6 +89,79 @@ TD64NS_DTYPE = np.dtype("m8[ns]")
 
 # ----------------------------------------------------------------------
 # Unit Conversion Helpers
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.overflowcheck(True)
+def cast_from_unit_vectorized(
+    ndarray values,
+    str unit,
+    str out_unit="ns",
+):
+    """
+    Vectorized analogue to cast_from_unit.
+    """
+    cdef:
+        int64_t m
+        int p
+        NPY_DATETIMEUNIT in_reso, out_reso
+        Py_ssize_t i
+
+    assert values.dtype.kind == "f"
+
+    if unit in "YM":
+        if not (((values % 1) == 0) | np.isnan(values)).all():
+            # GH#47267 it is clear that 2 "M" corresponds to 1970-02-01,
+            #  but not clear what 2.5 "M" corresponds to, so we will
+            #  disallow that case.
+            raise ValueError(
+                f"Conversion of non-round float with unit={unit} "
+                "is ambiguous"
+            )
+
+        # GH#47266 go through np.datetime64 to avoid weird results e.g. with "Y"
+        #  and 150 we'd get 2120-01-01 09:00:00
+        values = values.astype(f"M8[{unit}]")
+        dtype = np.dtype(f"M8[{out_unit}]")
+        return astype_overflowsafe(values, dtype=dtype, copy=False).view("i8")
+
+    in_reso = abbrev_to_npy_unit(unit)
+    out_reso = abbrev_to_npy_unit(out_unit)
+    m, p = precision_from_unit(in_reso, out_reso)
+
+    cdef:
+        ndarray[int64_t] base, out
+        ndarray[float64_t] frac
+        tuple shape = (<object>values).shape
+
+    out = np.empty(shape, dtype="i8")
+    base = np.empty(shape, dtype="i8")
+    frac = np.empty(shape, dtype="f8")
+
+    for i in range(len(values)):
+        if is_nan(values[i]):
+            base[i] = NPY_NAT
+        else:
+            base[i] = <int64_t>values[i]
+            frac[i] = values[i] - base[i]
+
+    if p:
+        frac = np.round(frac, p)
+
+    try:
+        for i in range(len(values)):
+            if base[i] == NPY_NAT:
+                out[i] = NPY_NAT
+            else:
+                out[i] = <int64_t>(base[i] * m) + <int64_t>(frac[i] * m)
+    except (OverflowError, FloatingPointError) as err:
+        # FloatingPointError can be issued if we have float dtype and have
+        #  set np.errstate(over="raise")
+        raise OutOfBoundsDatetime(
+            f"cannot convert input {values[i]} with the unit '{unit}'"
+        ) from err
+    return out
+
 
 cdef int64_t cast_from_unit(
     object ts,
@@ -154,7 +232,7 @@ cdef int64_t cast_from_unit(
         ) from err
 
 
-cpdef (int64_t, int) precision_from_unit(
+cdef (int64_t, int) precision_from_unit(
     NPY_DATETIMEUNIT in_reso,
     NPY_DATETIMEUNIT out_reso=NPY_DATETIMEUNIT.NPY_FR_ns,
 ):
@@ -212,8 +290,13 @@ cdef int64_t get_datetime64_nanos(object val, NPY_DATETIMEUNIT reso) except? -1:
 
     if unit != reso:
         pandas_datetime_to_datetimestruct(ival, unit, &dts)
-        check_dts_bounds(&dts, reso)
-        ival = npy_datetimestruct_to_datetime(reso, &dts)
+        try:
+            ival = npy_datetimestruct_to_datetime(reso, &dts)
+        except OverflowError as err:
+            attrname = npy_unit_to_attrname[reso]
+            raise OutOfBoundsDatetime(
+                f"Out of bounds {attrname} timestamp: {val}"
+            ) from err
 
     return ival
 
@@ -245,8 +328,9 @@ cdef class _TSObject:
                 )
             except OverflowError as err:
                 if val is not None:
+                    attrname = npy_unit_to_attrname[creso]
                     raise OutOfBoundsDatetime(
-                        f"Out of bounds nanosecond timestamp: {val}"
+                        f"Out of bounds {attrname} timestamp: {val}"
                     ) from err
                 raise OutOfBoundsDatetime from err
 
@@ -277,11 +361,11 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     obj = _TSObject()
 
     if isinstance(ts, str):
-        return convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
+        return convert_str_to_tsobject(ts, tz, dayfirst, yearfirst)
 
     if checknull_with_nat_and_na(ts):
         obj.value = NPY_NAT
-    elif is_datetime64_object(ts):
+    elif cnp.is_datetime64_object(ts):
         reso = get_supported_reso(get_datetime64_unit(ts))
         obj.creso = reso
         obj.value = get_datetime64_nanos(ts, reso)
@@ -407,20 +491,23 @@ cdef _TSObject convert_datetime_to_tsobject(
         pydatetime_to_dtstruct(ts, &obj.dts)
         obj.tzinfo = ts.tzinfo
 
-    if isinstance(ts, ABCTimestamp):
+    if isinstance(ts, _Timestamp):
         obj.dts.ps = ts.nanosecond * 1000
 
     if nanos:
         obj.dts.ps = nanos * 1000
 
-    obj.value = npy_datetimestruct_to_datetime(reso, &obj.dts)
+    try:
+        obj.value = npy_datetimestruct_to_datetime(reso, &obj.dts)
+    except OverflowError as err:
+        attrname = npy_unit_to_attrname[reso]
+        raise OutOfBoundsDatetime(f"Out of bounds {attrname} timestamp") from err
 
     if obj.tzinfo is not None and not is_utc(obj.tzinfo):
         offset = get_utcoffset(obj.tzinfo, ts)
         pps = periods_per_second(reso)
         obj.value -= int(offset.total_seconds() * pps)
 
-    check_dts_bounds(&obj.dts, reso)
     check_overflows(obj, reso)
     return obj
 
@@ -467,7 +554,7 @@ cdef _adjust_tsobject_tz_using_offset(_TSObject obj, tzinfo tz):
     check_overflows(obj, obj.creso)
 
 
-cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz, str unit,
+cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
                                        bint dayfirst=False,
                                        bint yearfirst=False):
     """
@@ -483,7 +570,6 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz, str unit,
         Value to be converted to _TSObject
     tz : tzinfo or None
         timezone for the timezone-aware output
-    unit : str or None
     dayfirst : bool, default False
         When parsing an ambiguous date string, interpret e.g. "3/4/1975" as
         April 3, as opposed to the standard US interpretation March 4.
@@ -499,7 +585,7 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz, str unit,
         npy_datetimestruct dts
         int out_local = 0, out_tzoffset = 0, string_to_dts_failed
         datetime dt
-        int64_t ival
+        int64_t ival, nanos = 0
         NPY_DATETIMEUNIT out_bestunit, reso
         _TSObject obj
 
@@ -512,11 +598,13 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz, str unit,
         # Issue 9000, we short-circuit rather than going
         # into np_datetime_strings which returns utc
         dt = datetime.now(tz)
+        return convert_datetime_to_tsobject(dt, tz, nanos=0, reso=NPY_FR_us)
     elif ts == "today":
         # Issue 9000, we short-circuit rather than going
         # into np_datetime_strings which returns a normalized datetime
         dt = datetime.now(tz)
         # equiv: datetime.today().replace(tzinfo=tz)
+        return convert_datetime_to_tsobject(dt, tz, nanos=0, reso=NPY_FR_us)
     else:
         string_to_dts_failed = string_to_dts(
             ts, &dts, &out_bestunit, &out_local,
@@ -551,12 +639,14 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz, str unit,
                 return obj
 
         dt = parse_datetime_string(
-            ts, dayfirst=dayfirst, yearfirst=yearfirst, out_bestunit=&out_bestunit
+            ts,
+            dayfirst=dayfirst,
+            yearfirst=yearfirst,
+            out_bestunit=&out_bestunit,
+            nanos=&nanos,
         )
         reso = get_supported_reso(out_bestunit)
-        return convert_datetime_to_tsobject(dt, tz, nanos=0, reso=reso)
-
-    return convert_datetime_to_tsobject(dt, tz)
+        return convert_datetime_to_tsobject(dt, tz, nanos=nanos, reso=reso)
 
 
 cdef check_overflows(_TSObject obj, NPY_DATETIMEUNIT reso=NPY_FR_ns):
@@ -585,18 +675,18 @@ cdef check_overflows(_TSObject obj, NPY_DATETIMEUNIT reso=NPY_FR_ns):
     if obj.dts.year == lb.year:
         if not (obj.value < 0):
             from pandas._libs.tslibs.timestamps import Timestamp
-            fmt = (f"{obj.dts.year}-{obj.dts.month:02d}-{obj.dts.day:02d} "
-                   f"{obj.dts.hour:02d}:{obj.dts.min:02d}:{obj.dts.sec:02d}")
+            fmt = dts_to_iso_string(&obj.dts)
+            min_ts = (<_Timestamp>Timestamp(0))._as_creso(reso).min
             raise OutOfBoundsDatetime(
-                f"Converting {fmt} underflows past {Timestamp.min}"
+                f"Converting {fmt} underflows past {min_ts}"
             )
     elif obj.dts.year == ub.year:
         if not (obj.value > 0):
             from pandas._libs.tslibs.timestamps import Timestamp
-            fmt = (f"{obj.dts.year}-{obj.dts.month:02d}-{obj.dts.day:02d} "
-                   f"{obj.dts.hour:02d}:{obj.dts.min:02d}:{obj.dts.sec:02d}")
+            fmt = dts_to_iso_string(&obj.dts)
+            max_ts = (<_Timestamp>Timestamp(0))._as_creso(reso).max
             raise OutOfBoundsDatetime(
-                f"Converting {fmt} overflows past {Timestamp.max}"
+                f"Converting {fmt} overflows past {max_ts}"
             )
 
 # ----------------------------------------------------------------------
@@ -675,7 +765,7 @@ cpdef inline datetime localize_pydatetime(datetime dt, tzinfo tz):
     """
     if tz is None:
         return dt
-    elif isinstance(dt, ABCTimestamp):
+    elif isinstance(dt, _Timestamp):
         return dt.tz_localize(tz)
     return _localize_pydatetime(dt, tz)
 
@@ -710,8 +800,7 @@ cdef int64_t parse_pydatetime(
         result = _ts.value
     else:
         if isinstance(val, _Timestamp):
-            result = (<_Timestamp>val)._as_creso(creso, round_ok=False)._value
+            result = (<_Timestamp>val)._as_creso(creso, round_ok=True)._value
         else:
             result = pydatetime_to_dt64(val, dts, reso=creso)
-            check_dts_bounds(dts, creso)
     return result

@@ -19,10 +19,7 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import (
-        Iterable,
-        Sequence,
-    )
+    from collections.abc import Iterable
 
     from matplotlib.axes import Axes
     from matplotlib.axis import Axis
@@ -52,10 +49,12 @@ def maybe_adjust_figure(fig: Figure, *args, **kwargs) -> None:
 def format_date_labels(ax: Axes, rot) -> None:
     # mini version of autofmt_xdate
     for label in ax.get_xticklabels():
-        label.set_ha("right")
+        label.set_horizontalalignment("right")
         label.set_rotation(rot)
     fig = ax.get_figure()
-    maybe_adjust_figure(fig, bottom=0.2)
+    if fig is not None:
+        # should always be a Figure but can technically be None
+        maybe_adjust_figure(fig, bottom=0.2)
 
 
 def table(
@@ -76,8 +75,14 @@ def table(
 
     cellText = data.values
 
+    # error: Argument "cellText" to "table" has incompatible type "ndarray[Any,
+    # Any]"; expected "Sequence[Sequence[str]] | None"
     return matplotlib.table.table(
-        ax, cellText=cellText, rowLabels=rowLabels, colLabels=colLabels, **kwargs
+        ax,
+        cellText=cellText,  # type: ignore[arg-type]
+        rowLabels=rowLabels,
+        colLabels=colLabels,
+        **kwargs,
     )
 
 
@@ -93,13 +98,14 @@ def _get_layout(
         nrows, ncols = layout
 
         if nrows == -1 and ncols > 0:
-            layout = nrows, ncols = (ceil(nplots / ncols), ncols)
+            layout = (ceil(nplots / ncols), ncols)
         elif ncols == -1 and nrows > 0:
-            layout = nrows, ncols = (nrows, ceil(nplots / nrows))
+            layout = (nrows, ceil(nplots / nrows))
         elif ncols <= 0 and nrows <= 0:
             msg = "At least one dimension of layout must be positive"
             raise ValueError(msg)
 
+        nrows, ncols = layout
         if nrows * ncols < nplots:
             raise ValueError(
                 f"Layout of {nrows}x{ncols} must be larger than required size {nplots}"
@@ -369,12 +375,12 @@ def _has_externally_shared_axis(ax1: Axes, compare_axis: str) -> bool:
             "_has_externally_shared_axis() needs 'x' or 'y' as a second parameter"
         )
 
-    axes = axes.get_siblings(ax1)
+    axes_siblings = axes.get_siblings(ax1)
 
     # Retain ax1 and any of its siblings which aren't in the same position as it
     ax1_points = ax1.get_position().get_points()
 
-    for ax2 in axes:
+    for ax2 in axes_siblings:
         if not np.array_equal(ax1_points, ax2.get_position().get_points()):
             return True
 
@@ -434,7 +440,7 @@ def handle_shared_axes(
                     _remove_labels_from_axis(ax.yaxis)
 
 
-def flatten_axes(axes: Axes | Sequence[Axes]) -> np.ndarray:
+def flatten_axes(axes: Axes | Iterable[Axes]) -> np.ndarray:
     if not is_list_like(axes):
         return np.array([axes])
     elif isinstance(axes, (np.ndarray, ABCIndex)):
@@ -443,7 +449,7 @@ def flatten_axes(axes: Axes | Sequence[Axes]) -> np.ndarray:
 
 
 def set_ticks_props(
-    axes: Axes | Sequence[Axes],
+    axes: Axes | Iterable[Axes],
     xlabelsize: int | None = None,
     xrot=None,
     ylabelsize: int | None = None,

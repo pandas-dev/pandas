@@ -26,6 +26,7 @@ from pandas.io.excel._util import (
 if TYPE_CHECKING:
     from openpyxl import Workbook
     from openpyxl.descriptors.serialisable import Serialisable
+    from openpyxl.styles import Fill
 
     from pandas._typing import (
         ExcelWriterIfSheetExists,
@@ -244,7 +245,7 @@ class OpenpyxlWriter(ExcelWriter):
         return map(cls._convert_to_color, stop_seq)
 
     @classmethod
-    def _convert_to_fill(cls, fill_dict: dict[str, Any]):
+    def _convert_to_fill(cls, fill_dict: dict[str, Any]) -> Fill:
         """
         Convert ``fill_dict`` to an openpyxl v2 Fill object.
 
@@ -567,12 +568,11 @@ class OpenpyxlReader(BaseExcelReader["Workbook"]):
     ) -> Workbook:
         from openpyxl import load_workbook
 
+        default_kwargs = {"read_only": True, "data_only": True, "keep_links": False}
+
         return load_workbook(
             filepath_or_buffer,
-            read_only=True,
-            data_only=True,
-            keep_links=False,
-            **engine_kwargs,
+            **(default_kwargs | engine_kwargs),
         )
 
     @property

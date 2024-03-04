@@ -2,6 +2,7 @@ from typing import (
     Any,
     Hashable,
     Literal,
+    overload,
 )
 
 import numpy as np
@@ -20,7 +21,6 @@ class Factorizer:
     def factorize(
         self,
         values: np.ndarray,
-        sort: bool = ...,
         na_sentinel=...,
         na_value=...,
         mask=...,
@@ -157,9 +157,9 @@ class HashTable:
     def __contains__(self, key: Hashable) -> bool: ...
     def sizeof(self, deep: bool = ...) -> int: ...
     def get_state(self) -> dict[str, int]: ...
-    # TODO: `item` type is subclass-specific
-    def get_item(self, item): ...  # TODO: return type?
-    def set_item(self, item, val) -> None: ...
+    # TODO: `val/key` type is subclass-specific
+    def get_item(self, val): ...  # TODO: return type?
+    def set_item(self, key, val) -> None: ...
     def get_na(self): ...  # TODO: return type?
     def set_na(self, val) -> None: ...
     def map_locations(
@@ -181,23 +181,40 @@ class HashTable:
         na_value: object = ...,
         mask=...,
     ) -> npt.NDArray[np.intp]: ...
+    @overload
     def unique(
         self,
         values: np.ndarray,  # np.ndarray[subclass-specific]
-        return_inverse: bool = ...,
-    ) -> (
-        tuple[
-            np.ndarray,  # np.ndarray[subclass-specific]
-            npt.NDArray[np.intp],
-        ]
-        | np.ndarray
-    ): ...  # np.ndarray[subclass-specific]
+        *,
+        return_inverse: Literal[False] = ...,
+        mask: None = ...,
+    ) -> np.ndarray: ...  # np.ndarray[subclass-specific]
+    @overload
+    def unique(
+        self,
+        values: np.ndarray,  # np.ndarray[subclass-specific]
+        *,
+        return_inverse: Literal[True],
+        mask: None = ...,
+    ) -> tuple[np.ndarray, npt.NDArray[np.intp]]: ...  # np.ndarray[subclass-specific]
+    @overload
+    def unique(
+        self,
+        values: np.ndarray,  # np.ndarray[subclass-specific]
+        *,
+        return_inverse: Literal[False] = ...,
+        mask: npt.NDArray[np.bool_],
+    ) -> tuple[
+        np.ndarray,
+        npt.NDArray[np.bool_],
+    ]: ...  # np.ndarray[subclass-specific]
     def factorize(
         self,
         values: np.ndarray,  # np.ndarray[subclass-specific]
         na_sentinel: int = ...,
         na_value: object = ...,
         mask=...,
+        ignore_na: bool = True,
     ) -> tuple[np.ndarray, npt.NDArray[np.intp]]: ...  # np.ndarray[subclass-specific]
 
 class Complex128HashTable(HashTable): ...

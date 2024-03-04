@@ -25,6 +25,7 @@ except ImportError:
 
 
 class TestTimestampTZLocalize:
+    @pytest.mark.skip_ubsan
     def test_tz_localize_pushes_out_of_bounds(self):
         # GH#12677
         # tz_localize that pushes away from the boundary is OK
@@ -49,7 +50,6 @@ class TestTimestampTZLocalize:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp.max.tz_localize("US/Pacific")
 
-    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_tz_localize_ambiguous_bool(self, unit):
         # make sure that we are correctly accepting bool values as ambiguous
         # GH#14402
@@ -122,6 +122,44 @@ class TestTimestampTZLocalize:
         with pytest.raises(NonExistentTimeError, match=stamp):
             ts.tz_localize(tz, nonexistent="raise")
         assert ts.tz_localize(tz, nonexistent="NaT") is NaT
+
+    @pytest.mark.parametrize(
+        "stamp, tz, forward_expected, backward_expected",
+        [
+            (
+                "2015-03-29 02:00:00",
+                "Europe/Warsaw",
+                "2015-03-29 03:00:00",
+                "2015-03-29 01:59:59",
+            ),  # utc+1 -> utc+2
+            (
+                "2023-03-12 02:00:00",
+                "America/Los_Angeles",
+                "2023-03-12 03:00:00",
+                "2023-03-12 01:59:59",
+            ),  # utc-8 -> utc-7
+            (
+                "2023-03-26 01:00:00",
+                "Europe/London",
+                "2023-03-26 02:00:00",
+                "2023-03-26 00:59:59",
+            ),  # utc+0 -> utc+1
+            (
+                "2023-03-26 00:00:00",
+                "Atlantic/Azores",
+                "2023-03-26 01:00:00",
+                "2023-03-25 23:59:59",
+            ),  # utc-1 -> utc+0
+        ],
+    )
+    def test_tz_localize_nonexistent_shift(
+        self, stamp, tz, forward_expected, backward_expected
+    ):
+        ts = Timestamp(stamp)
+        forward_ts = ts.tz_localize(tz, nonexistent="shift_forward")
+        assert forward_ts == Timestamp(forward_expected, tz=tz)
+        backward_ts = ts.tz_localize(tz, nonexistent="shift_backward")
+        assert backward_ts == Timestamp(backward_expected, tz=tz)
 
     def test_tz_localize_ambiguous_raise(self):
         # GH#13057
@@ -256,7 +294,6 @@ class TestTimestampTZLocalize:
         ],
     )
     @pytest.mark.parametrize("tz_type", ["", "dateutil/"])
-    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_timestamp_tz_localize_nonexistent_shift(
         self, start_ts, tz, end_ts, shift, tz_type, unit
     ):
@@ -288,7 +325,6 @@ class TestTimestampTZLocalize:
         with pytest.raises(ValueError, match=msg):
             ts.tz_localize(tz, nonexistent=timedelta(seconds=offset))
 
-    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_timestamp_tz_localize_nonexistent_NaT(self, warsaw, unit):
         # GH 8917
         tz = warsaw
@@ -296,7 +332,6 @@ class TestTimestampTZLocalize:
         result = ts.tz_localize(tz, nonexistent="NaT")
         assert result is NaT
 
-    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_timestamp_tz_localize_nonexistent_raise(self, warsaw, unit):
         # GH 8917
         tz = warsaw

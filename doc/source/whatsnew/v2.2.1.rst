@@ -1,0 +1,90 @@
+.. _whatsnew_221:
+
+What's new in 2.2.1 (February 22, 2024)
+---------------------------------------
+
+These are the changes in pandas 2.2.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_221.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+- Added ``pyarrow`` pip extra so users can install pandas and pyarrow with pip with ``pip install pandas[pyarrow]`` (:issue:`54466`)
+
+.. _whatsnew_221.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed memory leak in :func:`read_csv` (:issue:`57039`)
+- Fixed performance regression in :meth:`Series.combine_first` (:issue:`55845`)
+- Fixed regression causing overflow for near-minimum timestamps (:issue:`57150`)
+- Fixed regression in :func:`concat` changing long-standing behavior that always sorted the non-concatenation axis when the axis was a :class:`DatetimeIndex` (:issue:`57006`)
+- Fixed regression in :func:`merge_ordered` raising ``TypeError`` for ``fill_method="ffill"`` and ``how="left"`` (:issue:`57010`)
+- Fixed regression in :func:`pandas.testing.assert_series_equal` defaulting to ``check_exact=True`` when checking the :class:`Index` (:issue:`57067`)
+- Fixed regression in :func:`read_json` where an :class:`Index` would be returned instead of a :class:`RangeIndex` (:issue:`57429`)
+- Fixed regression in :func:`wide_to_long` raising an ``AttributeError`` for string columns (:issue:`57066`)
+- Fixed regression in :meth:`.DataFrameGroupBy.idxmin`, :meth:`.DataFrameGroupBy.idxmax`, :meth:`.SeriesGroupBy.idxmin`, :meth:`.SeriesGroupBy.idxmax` ignoring the ``skipna`` argument (:issue:`57040`)
+- Fixed regression in :meth:`.DataFrameGroupBy.idxmin`, :meth:`.DataFrameGroupBy.idxmax`, :meth:`.SeriesGroupBy.idxmin`, :meth:`.SeriesGroupBy.idxmax` where values containing the minimum or maximum value for the dtype could produce incorrect results (:issue:`57040`)
+- Fixed regression in :meth:`CategoricalIndex.difference` raising ``KeyError`` when other contains null values other than NaN (:issue:`57318`)
+- Fixed regression in :meth:`DataFrame.groupby` raising ``ValueError`` when grouping by a :class:`Series` in some cases (:issue:`57276`)
+- Fixed regression in :meth:`DataFrame.loc` raising ``IndexError`` for non-unique, masked dtype indexes where result has more than 10,000 rows (:issue:`57027`)
+- Fixed regression in :meth:`DataFrame.loc` which was unnecessarily throwing "incompatible dtype warning" when expanding with partial row indexer and multiple columns (see `PDEP6 <https://pandas.pydata.org/pdeps/0006-ban-upcasting.html>`_) (:issue:`56503`)
+- Fixed regression in :meth:`DataFrame.map` with ``na_action="ignore"`` not being respected for NumPy nullable and :class:`ArrowDtypes` (:issue:`57316`)
+- Fixed regression in :meth:`DataFrame.merge` raising ``ValueError`` for certain types of 3rd-party extension arrays (:issue:`57316`)
+- Fixed regression in :meth:`DataFrame.query` with all ``NaT`` column with object dtype (:issue:`57068`)
+- Fixed regression in :meth:`DataFrame.shift` raising ``AssertionError`` for ``axis=1`` and empty :class:`DataFrame` (:issue:`57301`)
+- Fixed regression in :meth:`DataFrame.sort_index` not producing a stable sort for a index with duplicates (:issue:`57151`)
+- Fixed regression in :meth:`DataFrame.to_dict` with ``orient='list'`` and datetime or timedelta types returning integers (:issue:`54824`)
+- Fixed regression in :meth:`DataFrame.to_json` converting nullable integers to floats (:issue:`57224`)
+- Fixed regression in :meth:`DataFrame.to_sql` when ``method="multi"`` is passed and the dialect type is not Oracle (:issue:`57310`)
+- Fixed regression in :meth:`DataFrame.transpose` with nullable extension dtypes not having F-contiguous data potentially causing exceptions when used (:issue:`57315`)
+- Fixed regression in :meth:`DataFrame.update` emitting incorrect warnings about downcasting (:issue:`57124`)
+- Fixed regression in :meth:`DataFrameGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmin`, :meth:`SeriesGroupBy.idxmax` ignoring the ``skipna`` argument (:issue:`57040`)
+- Fixed regression in :meth:`DataFrameGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmin`, :meth:`SeriesGroupBy.idxmax` where values containing the minimum or maximum value for the dtype could produce incorrect results (:issue:`57040`)
+- Fixed regression in :meth:`ExtensionArray.to_numpy` raising for non-numeric masked dtypes (:issue:`56991`)
+- Fixed regression in :meth:`Index.join` raising ``TypeError`` when joining an empty index to a non-empty index containing mixed dtype values (:issue:`57048`)
+- Fixed regression in :meth:`Series.astype` introducing decimals when converting from integer with missing values to string dtype (:issue:`57418`)
+- Fixed regression in :meth:`Series.pct_change` raising a ``ValueError`` for an empty :class:`Series` (:issue:`57056`)
+- Fixed regression in :meth:`Series.to_numpy` when dtype is given as float and the data contains NaNs (:issue:`57121`)
+- Fixed regression in addition or subtraction of :class:`DateOffset` objects with millisecond components to ``datetime64`` :class:`Index`, :class:`Series`, or :class:`DataFrame` (:issue:`57529`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_221.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Fixed bug in :func:`pandas.api.interchange.from_dataframe` which was raising for Nullable integers (:issue:`55069`)
+- Fixed bug in :func:`pandas.api.interchange.from_dataframe` which was raising for empty inputs (:issue:`56700`)
+- Fixed bug in :func:`pandas.api.interchange.from_dataframe` which wasn't converting columns names to strings (:issue:`55069`)
+- Fixed bug in :meth:`DataFrame.__getitem__` for empty :class:`DataFrame` with Copy-on-Write enabled (:issue:`57130`)
+- Fixed bug in :meth:`PeriodIndex.asfreq` which was silently converting frequencies which are not supported as period frequencies instead of raising an error (:issue:`56945`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_221.other:
+
+Other
+~~~~~
+
+.. note::
+
+    The ``DeprecationWarning`` that was raised when pandas was imported without PyArrow being
+    installed has been removed. This decision was made because the warning was too noisy for too
+    many users and a lot of feedback was collected about the decision to make PyArrow a required
+    dependency. Pandas is currently considering the decision whether or not PyArrow should be added
+    as a hard dependency in 3.0. Interested users can follow the discussion
+    `here <https://github.com/pandas-dev/pandas/issues/57073>`_.
+
+- Added the argument ``skipna`` to :meth:`DataFrameGroupBy.first`, :meth:`DataFrameGroupBy.last`, :meth:`SeriesGroupBy.first`, and :meth:`SeriesGroupBy.last`; achieving ``skipna=False`` used to be available via :meth:`DataFrameGroupBy.nth`, but the behavior was changed in pandas 2.0.0 (:issue:`57019`)
+- Added the argument ``skipna`` to :meth:`Resampler.first`, :meth:`Resampler.last` (:issue:`57019`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_221.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v2.2.0..v2.2.1|HEAD

@@ -17,6 +17,11 @@ from pandas.core.accessor import (
 from pandas.core.arrays.sparse.array import SparseArray
 
 if TYPE_CHECKING:
+    from scipy.sparse import (
+        coo_matrix,
+        spmatrix,
+    )
+
     from pandas import (
         DataFrame,
         Series,
@@ -30,7 +35,7 @@ class BaseAccessor:
         self._parent = data
         self._validate(data)
 
-    def _validate(self, data):
+    def _validate(self, data) -> None:
         raise NotImplementedError
 
 
@@ -50,7 +55,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
     array([2, 2, 2])
     """
 
-    def _validate(self, data):
+    def _validate(self, data) -> None:
         if not isinstance(data.dtype, SparseDtype):
             raise AttributeError(self._validation_msg)
 
@@ -115,7 +120,9 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
 
         return result
 
-    def to_coo(self, row_levels=(0,), column_levels=(1,), sort_labels: bool = False):
+    def to_coo(
+        self, row_levels=(0,), column_levels=(1,), sort_labels: bool = False
+    ) -> tuple[coo_matrix, list, list]:
         """
         Create a scipy.sparse.coo_matrix from a Series with MultiIndex.
 
@@ -149,7 +156,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         ...         (1, 1, "b", 0),
         ...         (1, 1, "b", 1),
         ...         (2, 1, "b", 0),
-        ...         (2, 1, "b", 1)
+        ...         (2, 1, "b", 1),
         ...     ],
         ...     names=["A", "B", "C", "D"],
         ... )
@@ -237,13 +244,12 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
 
     Examples
     --------
-    >>> df = pd.DataFrame({"a": [1, 2, 0, 0],
-    ...                   "b": [3, 0, 0, 4]}, dtype="Sparse[int]")
+    >>> df = pd.DataFrame({"a": [1, 2, 0, 0], "b": [3, 0, 0, 4]}, dtype="Sparse[int]")
     >>> df.sparse.density
     0.5
     """
 
-    def _validate(self, data):
+    def _validate(self, data) -> None:
         dtypes = data.dtypes
         if not all(isinstance(t, SparseDtype) for t in dtypes):
             raise AttributeError(self._validation_msg)
@@ -270,12 +276,12 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         Examples
         --------
         >>> import scipy.sparse
-        >>> mat = scipy.sparse.eye(3)
+        >>> mat = scipy.sparse.eye(3, dtype=float)
         >>> pd.DataFrame.sparse.from_spmatrix(mat)
              0    1    2
-        0  1.0  0.0  0.0
-        1  0.0  1.0  0.0
-        2  0.0  0.0  1.0
+        0  1.0    0    0
+        1    0  1.0    0
+        2    0    0  1.0
         """
         from pandas._libs.sparse import IntIndex
 
@@ -326,7 +332,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         data = {k: v.array.to_dense() for k, v in self._parent.items()}
         return DataFrame(data, index=self._parent.index, columns=self._parent.columns)
 
-    def to_coo(self):
+    def to_coo(self) -> spmatrix:
         """
         Return the contents of the frame as a sparse SciPy COO matrix.
 

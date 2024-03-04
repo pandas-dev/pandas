@@ -915,28 +915,34 @@ class TestBusinessHour:
             (
                 BusinessHour(),
                 {
-                    Timestamp("2014-07-04 15:00")
-                    + Nano(5): Timestamp("2014-07-04 16:00")
+                    Timestamp("2014-07-04 15:00") + Nano(5): Timestamp(
+                        "2014-07-04 16:00"
+                    )
                     + Nano(5),
-                    Timestamp("2014-07-04 16:00")
-                    + Nano(5): Timestamp("2014-07-07 09:00")
+                    Timestamp("2014-07-04 16:00") + Nano(5): Timestamp(
+                        "2014-07-07 09:00"
+                    )
                     + Nano(5),
-                    Timestamp("2014-07-04 16:00")
-                    - Nano(5): Timestamp("2014-07-04 17:00")
+                    Timestamp("2014-07-04 16:00") - Nano(5): Timestamp(
+                        "2014-07-04 17:00"
+                    )
                     - Nano(5),
                 },
             ),
             (
                 BusinessHour(-1),
                 {
-                    Timestamp("2014-07-04 15:00")
-                    + Nano(5): Timestamp("2014-07-04 14:00")
+                    Timestamp("2014-07-04 15:00") + Nano(5): Timestamp(
+                        "2014-07-04 14:00"
+                    )
                     + Nano(5),
-                    Timestamp("2014-07-04 10:00")
-                    + Nano(5): Timestamp("2014-07-04 09:00")
+                    Timestamp("2014-07-04 10:00") + Nano(5): Timestamp(
+                        "2014-07-04 09:00"
+                    )
                     + Nano(5),
-                    Timestamp("2014-07-04 10:00")
-                    - Nano(5): Timestamp("2014-07-03 17:00")
+                    Timestamp("2014-07-04 10:00") - Nano(5): Timestamp(
+                        "2014-07-03 17:00"
+                    )
                     - Nano(5),
                 },
             ),
@@ -946,46 +952,7 @@ class TestBusinessHour:
             for base, expected in cases.items():
                 assert_offset_equal(offset, base, expected)
 
-    def test_datetimeindex(self):
-        idx1 = date_range(start="2014-07-04 15:00", end="2014-07-08 10:00", freq="bh")
-        idx2 = date_range(start="2014-07-04 15:00", periods=12, freq="bh")
-        idx3 = date_range(end="2014-07-08 10:00", periods=12, freq="bh")
-        expected = DatetimeIndex(
-            [
-                "2014-07-04 15:00",
-                "2014-07-04 16:00",
-                "2014-07-07 09:00",
-                "2014-07-07 10:00",
-                "2014-07-07 11:00",
-                "2014-07-07 12:00",
-                "2014-07-07 13:00",
-                "2014-07-07 14:00",
-                "2014-07-07 15:00",
-                "2014-07-07 16:00",
-                "2014-07-08 09:00",
-                "2014-07-08 10:00",
-            ],
-            freq="bh",
-        )
-        for idx in [idx1, idx2, idx3]:
-            tm.assert_index_equal(idx, expected)
-
-        idx1 = date_range(start="2014-07-04 15:45", end="2014-07-08 10:45", freq="bh")
-        idx2 = date_range(start="2014-07-04 15:45", periods=12, freq="bh")
-        idx3 = date_range(end="2014-07-08 10:45", periods=12, freq="bh")
-
-        expected = idx1
-        for idx in [idx1, idx2, idx3]:
-            tm.assert_index_equal(idx, expected)
-
-    def test_short_datetimeindex_creation(self):
-        # gh-49835
-        idx4 = date_range(start="2014-07-01 10:00", freq="bh", periods=1)
-        expected4 = DatetimeIndex(["2014-07-01 10:00"], freq="bh")
-        tm.assert_index_equal(idx4, expected4)
-
     @pytest.mark.parametrize("td_unit", ["s", "ms", "us", "ns"])
-    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
     def test_bday_ignores_timedeltas(self, unit, td_unit):
         # GH#55608
         idx = date_range("2010/02/01", "2010/02/10", freq="12h", unit=unit)

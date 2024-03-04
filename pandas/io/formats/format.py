@@ -132,9 +132,6 @@ common_docstring: Final = """
             floats. This function must return a unicode string and will be
             applied only to the non-``NaN`` elements, with ``NaN`` being
             handled by ``na_rep``.
-
-            .. versionchanged:: 1.2.0
-
         sparsify : bool, optional, default True
             Set to False for a DataFrame with a hierarchical index to print
             every multiindex key at each row.
@@ -783,38 +780,20 @@ class DataFrameFormatter:
 
         if isinstance(columns, MultiIndex):
             fmt_columns = columns._format_multi(sparsify=False, include_names=False)
-            fmt_columns = list(zip(*fmt_columns))
-            dtypes = self.frame.dtypes._values
+            if self.sparsify and len(fmt_columns):
+                fmt_columns = sparsify_labels(fmt_columns)
 
-            # if we have a Float level, they don't use leading space at all
-            restrict_formatting = any(level.is_floating for level in columns.levels)
-            need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
-
-            def space_format(x, y):
-                if (
-                    y not in self.formatters
-                    and need_leadsp[x]
-                    and not restrict_formatting
-                ):
-                    return " " + y
-                return y
-
-            str_columns = list(
-                zip(*([space_format(x, y) for y in x] for x in fmt_columns))
-            )
-            if self.sparsify and len(str_columns):
-                str_columns = sparsify_labels(str_columns)
-
-            str_columns = [list(x) for x in zip(*str_columns)]
+            str_columns = [list(x) for x in zip(*fmt_columns)]
         else:
             fmt_columns = columns._format_flat(include_name=False)
-            dtypes = self.frame.dtypes
-            need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
             str_columns = [
-                [" " + x if not self._get_formatter(i) and need_leadsp[x] else x]
-                for i, x in enumerate(fmt_columns)
+                [
+                    " " + x
+                    if not self._get_formatter(i) and is_numeric_dtype(dtype)
+                    else x
+                ]
+                for i, (x, dtype) in enumerate(zip(fmt_columns, self.frame.dtypes))
             ]
-        # self.str_columns = str_columns
         return str_columns
 
     def _get_formatted_index(self, frame: DataFrame) -> list[str]:
@@ -1226,10 +1205,6 @@ class _GenericArrayFormatter:
                     return "None"
                 elif x is NA:
                     return str(NA)
-                elif lib.is_float(x) and np.isinf(x):
-                    # TODO(3.0): this will be unreachable when use_inf_as_na
-                    #  deprecation is enforced
-                    return str(x)
                 elif x is NaT or isinstance(x, (np.datetime64, np.timedelta64)):
                     return "NaT"
                 return self.na_rep
@@ -1349,7 +1324,9 @@ class FloatArrayFormatter(_GenericArrayFormatter):
         the parameters given at initialisation, as a numpy array
         """
 
-        def format_with_na_rep(values: ArrayLike, formatter: Callable, na_rep: str):
+        def format_with_na_rep(
+            values: ArrayLike, formatter: Callable, na_rep: str
+        ) -> np.ndarray:
             mask = isna(values)
             formatted = np.array(
                 [
@@ -1361,7 +1338,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
 
         def format_complex_with_na_rep(
             values: ArrayLike, formatter: Callable, na_rep: str
-        ):
+        ) -> np.ndarray:
             real_values = np.real(values).ravel()  # type: ignore[arg-type]
             imag_values = np.imag(values).ravel()  # type: ignore[arg-type]
             real_mask, imag_mask = isna(real_values), isna(imag_values)
@@ -1528,7 +1505,7 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
             # Categorical is special for now, so that we can preserve tzinfo
             array = values._internal_get_values()
         else:
-            array = np.asarray(values)
+            array = np.asarray(values, dtype=object)
 
         fmt_values = format_array(
             array,
@@ -1547,7 +1524,7 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
 
 
 def format_percentiles(
-    percentiles: (np.ndarray | Sequence[float]),
+    percentiles: np.ndarray | Sequence[float],
 ) -> list[str]:
     """
     Outputs rounded and formatted percentiles.
@@ -1591,7 +1568,8 @@ def format_percentiles(
         raise ValueError("percentiles should all be in the interval [0,1]")
 
     percentiles = 100 * percentiles
-    percentiles_round_type = percentiles.round().astype(int)
+    prec = get_precision(percentiles)
+    percentiles_round_type = percentiles.round(prec).astype(int)
 
     int_idx = np.isclose(percentiles_round_type, percentiles)
 
@@ -1600,19 +1578,22 @@ def format_percentiles(
         return [i + "%" for i in out]
 
     unique_pcts = np.unique(percentiles)
-    to_begin = unique_pcts[0] if unique_pcts[0] > 0 else None
-    to_end = 100 - unique_pcts[-1] if unique_pcts[-1] < 100 else None
-
-    # Least precision that keeps percentiles unique after rounding
-    prec = -np.floor(
-        np.log10(np.min(np.ediff1d(unique_pcts, to_begin=to_begin, to_end=to_end)))
-    ).astype(int)
-    prec = max(1, prec)
+    prec = get_precision(unique_pcts)
     out = np.empty_like(percentiles, dtype=object)
     out[int_idx] = percentiles[int_idx].round().astype(int).astype(str)
 
     out[~int_idx] = percentiles[~int_idx].round(prec).astype(str)
     return [i + "%" for i in out]
+
+
+def get_precision(array: np.ndarray | Sequence[float]) -> int:
+    to_begin = array[0] if array[0] > 0 else None
+    to_end = 100 - array[-1] if array[-1] < 100 else None
+    diff = np.ediff1d(array, to_begin=to_begin, to_end=to_end)
+    diff = abs(diff)
+    prec = -np.floor(np.log10(np.min(diff))).astype(int)
+    prec = max(1, prec)
+    return prec
 
 
 def _format_datetime64(x: NaTType | Timestamp, nat_rep: str = "NaT") -> str:

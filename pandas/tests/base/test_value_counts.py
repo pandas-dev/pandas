@@ -14,6 +14,7 @@ from pandas import (
     Series,
     Timedelta,
     TimedeltaIndex,
+    array,
 )
 import pandas._testing as tm
 from pandas.tests.base.common import allow_na_ops
@@ -113,7 +114,7 @@ def test_value_counts_null(null_obj, index_or_series_obj):
     tm.assert_series_equal(result, expected)
 
 
-def test_value_counts_inferred(index_or_series):
+def test_value_counts_inferred(index_or_series, using_infer_string):
     klass = index_or_series
     s_values = ["a", "b", "b", "b", "b", "c", "d", "d", "a", "a"]
     s = klass(s_values)
@@ -125,7 +126,9 @@ def test_value_counts_inferred(index_or_series):
         tm.assert_index_equal(s.unique(), exp)
     else:
         exp = np.unique(np.array(s_values, dtype=np.object_))
-        tm.assert_numpy_array_equal(s.unique(), exp)
+        if using_infer_string:
+            exp = array(exp)
+        tm.assert_equal(s.unique(), exp)
 
     assert s.nunique() == 4
     # don't sort, have to sort after the fact as not sorting is
@@ -147,7 +150,7 @@ def test_value_counts_inferred(index_or_series):
     tm.assert_series_equal(hist, expected)
 
 
-def test_value_counts_bins(index_or_series):
+def test_value_counts_bins(index_or_series, using_infer_string):
     klass = index_or_series
     s_values = ["a", "b", "b", "b", "b", "c", "d", "d", "a", "a"]
     s = klass(s_values)
@@ -201,7 +204,9 @@ def test_value_counts_bins(index_or_series):
         tm.assert_index_equal(s.unique(), exp)
     else:
         exp = np.array(["a", "b", np.nan, "d"], dtype=object)
-        tm.assert_numpy_array_equal(s.unique(), exp)
+        if using_infer_string:
+            exp = array(exp)
+        tm.assert_equal(s.unique(), exp)
     assert s.nunique() == 3
 
     s = klass({}) if klass is dict else klass({}, dtype=object)
@@ -246,7 +251,7 @@ def test_value_counts_datetime64(index_or_series, unit):
     expected_s = Series([3, 2, 1], index=idx, name="count")
     tm.assert_series_equal(s.value_counts(), expected_s)
 
-    expected = pd.array(
+    expected = array(
         np.array(
             ["2010-01-01 00:00:00", "2009-01-01 00:00:00", "2008-09-09 00:00:00"],
             dtype=f"datetime64[{unit}]",
@@ -324,7 +329,6 @@ def test_value_counts_timedelta64(index_or_series, unit):
     tm.assert_series_equal(result2, expected_s)
 
 
-@pytest.mark.parametrize("dropna", [True, False])
 def test_value_counts_with_nan(dropna, index_or_series):
     # GH31944
     klass = index_or_series
@@ -336,3 +340,16 @@ def test_value_counts_with_nan(dropna, index_or_series):
     else:
         expected = Series([1, 1, 1], index=[True, pd.NA, np.nan], name="count")
     tm.assert_series_equal(res, expected)
+
+
+def test_value_counts_object_inference_deprecated():
+    # GH#56161
+    dti = pd.date_range("2016-01-01", periods=3, tz="UTC")
+
+    idx = dti.astype(object)
+    msg = "The behavior of value_counts with object-dtype is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = idx.value_counts()
+
+    exp = dti.value_counts()
+    tm.assert_series_equal(res, exp)

@@ -5,6 +5,7 @@ import pydoc
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
 from pandas._config.config import option_context
 
 import pandas as pd
@@ -112,6 +113,7 @@ class TestDataFrameMisc:
         with pytest.raises(TypeError, match=msg):
             hash(empty_frame)
 
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="surrogates not allowed")
     def test_column_name_contains_unicode_surrogate(self):
         # GH 25509
         colname = "\ud83d"
@@ -320,7 +322,9 @@ class TestDataFrameMisc:
 
     @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
     def test_set_flags(
-        self, allows_duplicate_labels, frame_or_series, using_copy_on_write
+        self,
+        allows_duplicate_labels,
+        frame_or_series,
     ):
         obj = DataFrame({"A": [1, 2]})
         key = (0, 0)
@@ -349,12 +353,7 @@ class TestDataFrameMisc:
             assert np.may_share_memory(obj["A"].values, result["A"].values)
 
         result.iloc[key] = 0
-        if using_copy_on_write:
-            assert obj.iloc[key] == 1
-        else:
-            assert obj.iloc[key] == 0
-            # set back to 1 for test below
-            result.iloc[key] = 1
+        assert obj.iloc[key] == 1
 
         # Now we do copy.
         result = obj.set_flags(
@@ -377,8 +376,4 @@ class TestDataFrameMisc:
         # GH38740
         pytest.importorskip("jinja2")
         df = DataFrame()
-        msg = "DataFrame._data is deprecated"
-        with tm.assert_produces_warning(
-            DeprecationWarning, match=msg, check_stacklevel=False
-        ):
-            inspect.getmembers(df)
+        inspect.getmembers(df)
