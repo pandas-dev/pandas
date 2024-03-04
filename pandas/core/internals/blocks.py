@@ -1665,7 +1665,9 @@ class EABackedBlock(Block):
 
         try:
             values[indexer] = value
-        except TypeError:
+        except (ValueError, TypeError) as e:
+            if str(e) == "Cannot index with an integer indexer containing NA values":
+                raise
             if isinstance(self.dtype, IntervalDtype):
                 # see TestSetitemFloatIntervalWithIntIntervalValues
                 nb = self.coerce_to_target_dtype(orig_value, warn_on_upcast=True)
