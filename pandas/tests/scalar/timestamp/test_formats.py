@@ -99,13 +99,13 @@ class TestTimestampRendering:
         # avoid to match with timezone name
         freq_repr = f"'{freq}'"
         if tz.startswith("dateutil"):
-            tz_repr = tz.replace("dateutil", "")
+            tz_repr = tz.replace("dateutil/", "")
         else:
             tz_repr = tz
 
         date_only = Timestamp(date)
         assert date in repr(date_only)
-        assert tz_repr not in repr(date_only)
+        assert tz_repr not in repr(date_only), repr(date_only)
         assert freq_repr not in repr(date_only)
         assert date_only == eval(repr(date_only))
 
