@@ -1216,6 +1216,26 @@ class TestPandasContainer:
         s_naive = Series(tz_naive)
         assert stz.to_json() == s_naive.to_json()
 
+    def test_tz_nano_datetimes(self):
+        df = DataFrame(
+            {
+                "date": Series(
+                    [
+                        datetime.datetime(
+                            2024, 1, 1, 0, 0, 0, 000000, tzinfo=datetime.timezone.utc
+                        )
+                    ]
+                )
+            }
+        )
+        df.date = df.date + np.timedelta64(1, "ns")
+        buf = StringIO()
+        df.to_json(buf, date_unit="ns", orient="columns", date_format="iso")
+        buf.seek(0)
+        tm.assert_frame_equal(
+            read_json(buf), df, check_index_type=False, check_dtype=False
+        )
+
     def test_sparse(self):
         # GH4377 df.to_json segfaults with non-ndarray blocks
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
