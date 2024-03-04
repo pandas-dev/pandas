@@ -1,7 +1,7 @@
 #include <cstring>
-#include <stdint.h>
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
+#include <stdint.h>
 #include <string>
 #include <vector>
 
@@ -33,18 +33,15 @@ private:
   std::vector<T> vec_;
 };
 
-template <typename T> class PandasHashTable {
+template <typename T, bool IsMasked> class PandasHashTable {
 public:
-
-  explicit PandasHashTable ([[maybe_unused]] int64_t size_hint=1, bool uses_mask=false) : uses_mask_(uses_mask) { }
-
-  auto __len__() const noexcept -> size_t{
-    return 42;
-  }
+  auto __len__() const noexcept -> size_t { return 42; }
 
   auto __contains__(nb::object key) const noexcept -> bool {
-    if (uses_mask_ and key.is_none()) {
-      return -1 != na_position_;
+    if constexpr (IsMasked) {
+      if (key.is_none()) {
+        return -1 != na_position_;
+      }
     }
 
     auto ckey = nb::cast<T>(key);
@@ -103,7 +100,8 @@ public:
   }
 
   auto MapKeysToValues(const nb::ndarray<const T, nb::ndim<1>> &keys,
-                       const nb::ndarray<const T, nb::ndim<1>> &values) noexcept -> void {
+                       const nb::ndarray<const T, nb::ndim<1>> &values) noexcept
+      -> void {
     const auto keys_v = keys.view();
     const auto values_v = values.view();
 
@@ -112,19 +110,22 @@ public:
     }
   }
 
-  auto MapLocations(const nb::ndarray<const T, nb::ndim<1>> &values, nb::object mask_obj) -> void {
-    // TODO: templating!
-    if (uses_mask_ && mask_obj.is_none()) {
-      throw std::invalid_argument("mask must not be None!");
+  auto MapLocations(const nb::ndarray<const T, nb::ndim<1>> &values,
+                    nb::object mask_obj) -> void {
+    if constexpr (IsMasked) {
+      if (mask_obj.is_none()) {
+        throw std::invalid_argument("mask must not be None!");
+      }
     }
 
     // TODO: how can we release the GIL imperatively?
     // https://nanobind.readthedocs.io/en/latest/api_core.html#gil-management
     const auto values_v = values.view();
-    if (uses_mask_) {
-      const auto mask = nb::cast<nb::ndarray<const uint8_t, nb::ndim<1>>>(mask_obj);
+    if constexpr (IsMasked) {
+      const auto mask =
+          nb::cast<nb::ndarray<const uint8_t, nb::ndim<1>>>(mask_obj);
       const auto mask_v = mask.view();
-      size_t na_position = na_position_;  // pandas uses int8_t here - why?
+      size_t na_position = na_position_; // pandas uses int8_t here - why?
       for (size_t i = 0; i < values_v.shape(0); i++) {
         if (mask_v(i)) {
           na_position = i;
@@ -140,11 +141,13 @@ public:
     }
   }
 
-  auto Lookup(const nb::ndarray<const T, nb::ndim<1>> &values, nb::object mask_obj) ->
-    nb::ndarray<nb::numpy, const size_t, nb::ndim<1>> {
-    // TODO: templating!
-    if (uses_mask_ && mask_obj.is_none()) {
-      throw std::invalid_argument("mask must not be None!");
+  auto Lookup(const nb::ndarray<const T, nb::ndim<1>> &values,
+              nb::object mask_obj)
+      -> nb::ndarray<nb::numpy, const size_t, nb::ndim<1>> {
+    if constexpr (IsMasked) {
+      if (mask_obj.is_none()) {
+        throw std::invalid_argument("mask must not be None!");
+      }
     }
 
     const size_t n = values.shape(0);
@@ -153,8 +156,9 @@ public:
 
     // TODO: how can we release the GIL imperatively?
     // https://nanobind.readthedocs.io/en/latest/api_core.html#gil-management
-    if (uses_mask_) {
-      const auto mask = nb::cast<nb::ndarray<const uint8_t, nb::ndim<1>>>(mask_obj);
+    if constexpr (IsMasked) {
+      const auto mask =
+          nb::cast<nb::ndarray<const uint8_t, nb::ndim<1>>>(mask_obj);
       const auto mask_v = mask.view();
       for (size_t i = 0; i < n; i++) {
         if (mask_v(i)) {
@@ -181,11 +185,13 @@ public:
       }
     }
 
-    nb::capsule owner(locs, [](void *p) noexcept {
-      delete[] (size_t *)p;
-    });
+    nb::capsule owner(locs, [](void *p) noexcept { delete[](size_t *) p; });
 
-    return nb::ndarray<nb::numpy, const size_t, nb::ndim<1>>(locs, {1,}, owner);
+    return nb::ndarray<nb::numpy, const size_t, nb::ndim<1>>(locs,
+                                                             {
+                                                                 1,
+                                                             },
+                                                             owner);
   }
 
   /*
@@ -193,10 +199,10 @@ public:
     nb::ndarray<nb::numpy, const size_t, nb::ndim<1>>,
     nb::ndarray<nb::numpy, const bool, nb::ndim<1>>
   >;
-  auto Unique(const nb::ndarray<const T, nb::ndim<1>> &values, PandasVector<T>& uniques,
-              ssize_t count_prior=0, ssize_t na_sentinel=-1, nb::object na_value= nb::none(),
-              bool ignore_na=false, nb::object mask_obj=nb::none(), bool return_inverse=false,
-              bool use_result_mask=false) -> UniqueResultT {
+  auto Unique(const nb::ndarray<const T, nb::ndim<1>> &values, PandasVector<T>&
+  uniques, ssize_t count_prior=0, ssize_t na_sentinel=-1, nb::object na_value=
+  nb::none(), bool ignore_na=false, nb::object mask_obj=nb::none(), bool
+  return_inverse=false, bool use_result_mask=false) -> UniqueResultT {
     // TODO: templating!
     if (uses_mask_ && mask_obj.is_none()) {
       throw std::invalid_argument("mask must not be None!");
@@ -209,18 +215,18 @@ public:
 
 private:
   klib::KHashMap<T, int64_t, std::hash<T>> hash_map_;
-  bool uses_mask_;
   ssize_t na_position_ = -1;
 };
 
-#define BIND_VECTOR(TYPE, NAME) do { \
-  nb::class_<PandasVector<TYPE>>(m, NAME) \
-      .def(nb::init<>()) \
-      .def("__len__", &PandasVector<TYPE>::__len__) \
-      .def("append", &PandasVector<TYPE>::Append) \
-      .def("extend", &PandasVector<TYPE>::Extend) \
-      .def("to_array", &PandasVector<TYPE>::ToNdArray); \
-  } while(0)
+#define BIND_VECTOR(TYPE, NAME)                                                \
+  do {                                                                         \
+    nb::class_<PandasVector<TYPE>>(m, NAME)                                    \
+        .def(nb::init<>())                                                     \
+        .def("__len__", &PandasVector<TYPE>::__len__)                          \
+        .def("append", &PandasVector<TYPE>::Append)                            \
+        .def("extend", &PandasVector<TYPE>::Extend)                            \
+        .def("to_array", &PandasVector<TYPE>::ToNdArray);                      \
+  } while (0)
 
 NB_MODULE(new_vector, m) {
   BIND_VECTOR(int8_t, "Int8Vector");
@@ -234,14 +240,27 @@ NB_MODULE(new_vector, m) {
   BIND_VECTOR(float, "Float32Vector");
   BIND_VECTOR(double, "Float64Vector");
 
-  nb::class_<PandasHashTable<int64_t>>(m, "Int64HashTable")
-    .def(nb::init<int64_t, bool>())
-    .def("__len__", &PandasHashTable<int64_t>::__len__)
-    .def("__contains__", &PandasHashTable<int64_t>::__contains__)
-    .def("get_item", &PandasHashTable<int64_t>::GetItem)
-    .def("set_item", &PandasHashTable<int64_t>::SetItem)
-    .def("set_na", &PandasHashTable<int64_t>::SetNA)
-    .def("map_keys_to_values", &PandasHashTable<int64_t>::MapKeysToValues)
-    .def("map_locations", &PandasHashTable<int64_t>::MapLocations)
-    .def("lookup", &PandasHashTable<int64_t>::Lookup);
+  nb::class_<PandasHashTable<int64_t, false>>(m, "Int64HashTable")
+      .def(nb::init<>())
+      .def("__len__", &PandasHashTable<int64_t, false>::__len__)
+      .def("__contains__", &PandasHashTable<int64_t, false>::__contains__)
+      .def("get_item", &PandasHashTable<int64_t, false>::GetItem)
+      .def("set_item", &PandasHashTable<int64_t, false>::SetItem)
+      .def("set_na", &PandasHashTable<int64_t, false>::SetNA)
+      .def("map_keys_to_values",
+           &PandasHashTable<int64_t, false>::MapKeysToValues)
+      .def("map_locations", &PandasHashTable<int64_t, false>::MapLocations)
+      .def("lookup", &PandasHashTable<int64_t, false>::Lookup);
+
+  nb::class_<PandasHashTable<int64_t, true>>(m, "Int64MaskedHashTable")
+      .def(nb::init<>())
+      .def("__len__", &PandasHashTable<int64_t, true>::__len__)
+      .def("__contains__", &PandasHashTable<int64_t, true>::__contains__)
+      .def("get_item", &PandasHashTable<int64_t, true>::GetItem)
+      .def("set_item", &PandasHashTable<int64_t, true>::SetItem)
+      .def("set_na", &PandasHashTable<int64_t, true>::SetNA)
+      .def("map_keys_to_values",
+           &PandasHashTable<int64_t, true>::MapKeysToValues)
+      .def("map_locations", &PandasHashTable<int64_t, true>::MapLocations)
+      .def("lookup", &PandasHashTable<int64_t, true>::Lookup);
 }
