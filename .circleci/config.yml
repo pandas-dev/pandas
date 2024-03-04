@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   test-arm:
     machine:
-      image: ubuntu-2004:2024.01.1
+      image: default
     resource_class: arm.large
     environment:
       ENV_FILE: ci/deps/circle-310-arm64.yaml
