@@ -1522,9 +1522,8 @@ class Block(PandasObject, libinternals.Block):
             Caller is responsible for validating this
         """
         if not self.is_numeric or self.is_bool:
-            return self.copy(deep=False)
-          
-        values = self.values.round(decimals)  # type: ignore[union-attr]
+            return self.copy(deep=False)          
+        values = self.values.round(decimals)
 
         refs = None
         if values is self.values:
