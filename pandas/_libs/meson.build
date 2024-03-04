@@ -159,3 +159,12 @@ foreach source: sources_to_install
 endforeach
 
 subdir('window')
+
+nanobind_dep = dependency('nanobind')
+py.extension_module(
+    'new_vector',
+    ['new_vector.cpp'],
+    dependencies: [nanobind_dep],
+    subdir: 'pandas/_libs',
+    install: true
+)
