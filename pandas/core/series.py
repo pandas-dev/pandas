@@ -804,6 +804,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             The dtype to use for the resulting NumPy array. By default,
             the dtype is inferred from the data.
 
+        copy : bool or None, optional
+            Unused.
+
         Returns
         -------
         numpy.ndarray

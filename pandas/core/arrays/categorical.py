@@ -1670,6 +1670,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         dtype : np.dtype or None
             Specifies the the dtype for the array.
 
+        copy : bool or None, optional
+            Unused.
+
         Returns
         -------
         numpy.array
