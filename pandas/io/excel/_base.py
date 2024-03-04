@@ -1130,7 +1130,7 @@ class ExcelWriter(Generic[_WorkbookT]):
                     ext = "xlsx"
 
                 try:
-                    engine = config.get_option(f"io.excel.{ext}.writer", silent=True)
+                    engine = config.get_option(f"io.excel.{ext}.writer")
                     if engine == "auto":
                         engine = get_default_engine(ext, mode="writer")
                 except KeyError as err:
@@ -1546,7 +1546,7 @@ class ExcelFile:
                         "an engine manually."
                     )
 
-            engine = config.get_option(f"io.excel.{ext}.reader", silent=True)
+            engine = config.get_option(f"io.excel.{ext}.reader")
             if engine == "auto":
                 engine = get_default_engine(ext, mode="reader")
 
