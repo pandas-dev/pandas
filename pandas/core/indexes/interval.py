@@ -830,12 +830,9 @@ class IntervalIndex(ExtensionIndex):
         """
         Return intervals' left value.
 
-        Return number index which contains all intervals' left value
-        in Intervalindex's interval.
-
         Returns
         -------
-        Int64Index or Float64Index : depend on if the type of left value.
+        Index
 
         See Also
         --------
@@ -858,13 +855,11 @@ class IntervalIndex(ExtensionIndex):
     @cache_readonly
     def mid(self) -> Index:
         """
-        Return the intervals' mean by Float64Index.
-
-        Return Float64Index which contains all intervals' left and right value mean.
+        Return the midpoint of each interval.
 
         Returns
         -------
-        Float64Index
+        Index
 
         See Also
         --------
@@ -884,14 +879,11 @@ class IntervalIndex(ExtensionIndex):
     @property
     def length(self) -> Index:
         """
-        Return interval's length.
-
-        Return number index which contains all intervals' length value
-        in Intervalindex's interval.
+        Return the intervals' length.
 
         Returns
         -------
-        Int64Index or Float64Index : depend on if the type of length value
+        Index
 
         See Also
         --------
