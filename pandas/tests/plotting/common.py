@@ -548,13 +548,13 @@ def _check_inputdata_equals_outputdata(idx, ax):
     )
 
     """
-    Check that the input data is equal to the output data
+    Check that the input dates is equal to the plotted dates
     Parameters
     ----------
-    idx : PeriodIndex
+    idx : PeriodIndex , DatetimeIndex
         The input data based on freq
     ax : matplotlib Axes object
-        The input data after plotting
+        The plotted data
     """
 
     #Convert to periodIndex to use same formatting as the output
