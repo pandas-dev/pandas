@@ -129,13 +129,16 @@ common_docstring: Final = """
             List/tuple must be of length equal to the number of columns.
 
                 **Note**: formatters are **not** applied to missing values.
-                Use the ``na_rep`` parameter instead, or see `io.formatting`_.
+                Use the ``na_rep`` parameter instead, or see
+                :ref:`Formatting missing values<formatting missing values>`:
 
         float_format : one-parameter function, optional, default None
             Formatter function to apply to columns' elements if they are
             floats. This function must return a unicode string and will be
             applied only to the non-``NaN`` elements, with ``NaN`` being
-            handled by ``na_rep``. See also `io.formatting`_.
+            handled by ``na_rep``. See also
+            :ref:`Formatting missing values<formatting missing values>`:
+
         sparsify : bool, optional, default True
             Set to False for a DataFrame with a hierarchical index to print
             every multiindex key at each row.

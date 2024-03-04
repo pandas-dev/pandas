@@ -1807,6 +1807,8 @@ The ``Series`` object also has a ``to_string`` method, but with only the ``buf``
 ``na_rep``, ``float_format`` arguments. There is also a ``length`` argument
 which, if set to ``True``, will additionally output the length of the Series.
 
+.. _formatting missing values:
+
    **Formatting missing values**
 
    Formatting functions passed to the ``formatters`` argument above, are not
