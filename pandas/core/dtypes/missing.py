@@ -18,6 +18,7 @@ from pandas._libs.tslibs import (
     NaT,
     iNaT,
 )
+from pandas.compat.numpy import np_version_gt2
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -564,7 +565,8 @@ def infer_fill_value(val):
     """
     if not is_list_like(val):
         val = [val]
-    val = np.array(val, copy=False)
+    copy_false = None if np_version_gt2 else False
+    val = np.array(val, copy=copy_false)
     if val.dtype.kind in "mM":
         return np.array("NaT", dtype=val.dtype)
     elif val.dtype == object:

@@ -8706,6 +8706,10 @@ class DataFrame(NDFrame, OpsMixin):
         dict.update : Similar method for dictionaries.
         DataFrame.merge : For column(s)-on-column(s) operations.
 
+        Notes
+        -----
+        1. Duplicate indices on `other` are not supported and raises `ValueError`.
+
         Examples
         --------
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [400, 500, 600]})
@@ -8778,11 +8782,22 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(other, DataFrame):
             other = DataFrame(other)
 
-        other = other.reindex(self.index)
+        if other.index.has_duplicates:
+            raise ValueError("Update not allowed with duplicate indexes on other.")
+
+        index_intersection = other.index.intersection(self.index)
+        if index_intersection.empty:
+            raise ValueError(
+                "Update not allowed when the index on `other` has no intersection "
+                "with this dataframe."
+            )
+
+        other = other.reindex(index_intersection)
+        this_data = self.loc[index_intersection]
 
         for col in self.columns.intersection(other.columns):
-            this = self[col]._values
-            that = other[col]._values
+            this = this_data[col]
+            that = other[col]
 
             if filter_func is not None:
                 mask = ~filter_func(this) | isna(that)
@@ -8802,7 +8817,7 @@ class DataFrame(NDFrame, OpsMixin):
             if mask.all():
                 continue
 
-            self.loc[:, col] = self[col].where(mask, that)
+            self.loc[index_intersection, col] = this.where(mask, that)
 
     # ----------------------------------------------------------------------
     # Data reshaping

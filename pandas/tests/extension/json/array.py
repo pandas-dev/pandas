@@ -28,6 +28,8 @@ from typing import (
 
 import numpy as np
 
+from pandas.compat.numpy import np_version_gt2
+
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -146,7 +148,7 @@ class JSONArray(ExtensionArray):
     def __ne__(self, other):
         return NotImplemented
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         if dtype is None:
             dtype = object
         if dtype == object:
@@ -211,6 +213,8 @@ class JSONArray(ExtensionArray):
             arr_cls = dtype.construct_array_type()
             return arr_cls._from_sequence(value, dtype=dtype, copy=False)
 
+        if np_version_gt2 and not copy:
+            copy = None
         return np.array([dict(x) for x in self], dtype=dtype, copy=copy)
 
     def unique(self):

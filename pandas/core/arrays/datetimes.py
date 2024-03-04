@@ -43,6 +43,7 @@ from pandas._libs.tslibs import (
     tzconversion,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
+from pandas.compat.numpy import np_version_gt2
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
@@ -649,12 +650,12 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype=None, copy=None) -> np.ndarray:
         if dtype is None and self.tz:
             # The default for tz-aware is object, to preserve tz info
             dtype = object
 
-        return super().__array__(dtype=dtype)
+        return super().__array__(dtype=dtype, copy=copy)
 
     def __iter__(self) -> Iterator:
         """
@@ -2421,7 +2422,8 @@ def objects_to_datetime64(
     assert errors in ["raise", "coerce"]
 
     # if str-dtype, convert
-    data = np.array(data, copy=False, dtype=np.object_)
+    copy_false = None if np_version_gt2 else False
+    data = np.array(data, dtype=np.object_, copy=copy_false)
 
     result, tz_parsed = tslib.array_to_datetime(
         data,

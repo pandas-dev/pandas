@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_gt2
+
 from pandas.core.dtypes import dtypes
 from pandas.core.dtypes.common import is_extension_array_dtype
 
@@ -17,7 +19,7 @@ class DummyArray(ExtensionArray):
     def __init__(self, data) -> None:
         self.data = data
 
-    def __array__(self, dtype):
+    def __array__(self, dtype=None, copy=None):
         return self.data
 
     @property
@@ -30,7 +32,8 @@ class DummyArray(ExtensionArray):
             if copy:
                 return type(self)(self.data)
             return self
-
+        if np_version_gt2 and not copy:
+            copy = None
         return np.array(self, dtype=dtype, copy=copy)
 
 

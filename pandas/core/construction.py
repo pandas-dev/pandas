@@ -34,6 +34,7 @@ from pandas._typing import (
     DtypeObj,
     T,
 )
+from pandas.compat.numpy import np_version_gt2
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -626,6 +627,8 @@ def sanitize_array(
 
     elif hasattr(data, "__array__"):
         # e.g. dask array GH#38645
+        if np_version_gt2 and not copy:
+            copy = None
         data = np.array(data, copy=copy)
         return sanitize_array(
             data,
@@ -735,6 +738,9 @@ def _sanitize_str_dtypes(
     """
     Ensure we have a dtype that is supported by pandas.
     """
+    copy_false = None if np_version_gt2 else False
+    if not copy:
+        copy = copy_false
 
     # This is to prevent mixed-type Series getting all casted to
     # NumPy string type, e.g. NaN --> '-1#IND'.
@@ -744,7 +750,7 @@ def _sanitize_str_dtypes(
         # GH#19853: If data is a scalar, result has already the result
         if not lib.is_scalar(data):
             if not np.all(isna(data)):
-                data = np.array(data, dtype=dtype, copy=False)
+                data = np.array(data, dtype=dtype, copy=copy_false)
             result = np.array(data, dtype=object, copy=copy)
     return result
 
@@ -781,6 +787,8 @@ def _try_cast(
     np.ndarray or ExtensionArray
     """
     is_ndarray = isinstance(arr, np.ndarray)
+    if np_version_gt2 and not copy:
+        copy = None
 
     if dtype == object:
         if not is_ndarray:

@@ -789,7 +789,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     # ----------------------------------------------------------------------
     # NDArray Compat
-    def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
+    def __array__(
+        self, dtype: npt.DTypeLike | None = None, copy: bool | None = None
+    ) -> np.ndarray:
         """
         Return the values as a NumPy array.
 

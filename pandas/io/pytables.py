@@ -40,6 +40,7 @@ from pandas._libs import (
 from pandas._libs.lib import is_string_array
 from pandas._libs.tslibs import timezones
 from pandas.compat._optional import import_optional_dependency
+from pandas.compat.numpy import np_version_gt2
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import (
     AttributeConflictWarning,
@@ -4043,7 +4044,8 @@ class Table(Fixed):
             if isinstance(data_converted.dtype, CategoricalDtype):
                 ordered = data_converted.ordered
                 meta = "category"
-                metadata = np.array(data_converted.categories, copy=False).ravel()
+                copy_false = None if np_version_gt2 else False
+                metadata = np.array(data_converted.categories, copy=copy_false).ravel()
 
             data, dtype_name = _get_data_and_dtype_name(data_converted)
 
