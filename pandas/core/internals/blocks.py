@@ -1665,7 +1665,7 @@ class EABackedBlock(Block):
 
         try:
             values[indexer] = value
-        except (ValueError, TypeError):
+        except TypeError:
             if isinstance(self.dtype, IntervalDtype):
                 # see TestSetitemFloatIntervalWithIntIntervalValues
                 nb = self.coerce_to_target_dtype(orig_value, warn_on_upcast=True)
