@@ -88,7 +88,7 @@ def test_isoformat(ts, timespec, expected_iso):
 
 
 class TestTimestampRendering:
-    timezones = ["UTC", "Asia/Tokyo", "US/Eastern", "dateutil/US/Pacific"]
+    timezones = ["UTC", "Asia/Tokyo", "US/Eastern", "dateutil/America/Los_Angeles"]
 
     @pytest.mark.parametrize("tz", timezones)
     @pytest.mark.parametrize("freq", ["D", "M", "S", "N"])
