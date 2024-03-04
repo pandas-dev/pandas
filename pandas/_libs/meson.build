@@ -164,6 +164,7 @@ nanobind_dep = dependency('nanobind')
 py.extension_module(
     'new_vector',
     ['new_vector.cpp'],
+    include_directories: [inc_pd],
     dependencies: [nanobind_dep],
     subdir: 'pandas/_libs',
     install: true
