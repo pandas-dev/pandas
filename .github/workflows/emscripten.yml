@@ -70,7 +70,7 @@ jobs:
         run: |
           source .venv-pyodide/bin/activate
           export PANDAS_CI=1
-          pip install "pytest<8.1.0"
+          pip install "pytest<8.1.0" hypothesis
           # do not import pandas from the checked out repo
           cd ..
           python -c 'import pandas as pd; pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db"])'
