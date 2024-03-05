@@ -185,14 +185,14 @@ public:
 
   auto SetItem(T key, Py_ssize_t val) noexcept -> void { hash_map_[key] = val; }
 
-  auto SetNA(Py_ssize_t val) noexcept -> void {
+  auto SetNA([[maybe_unused]] Py_ssize_t val) noexcept -> void {
     if constexpr (IsMasked) {
       na_position_ = val;
     }
   }
 
   auto MapKeysToValues(const nb::ndarray<const T, nb::ndim<1>> &keys,
-                       const nb::ndarray<const T, nb::ndim<1>> &values) noexcept
+                       const nb::ndarray<const int64_t, nb::ndim<1>> &values) noexcept
       -> void {
     nb::call_guard<nb::gil_scoped_release>();
     const auto keys_v = keys.view();
@@ -363,8 +363,8 @@ public:
 private:
   auto UniqueInternal(const nb::ndarray<const T, nb::ndim<1>> &values,
                       PandasVector<T> &uniques, Py_ssize_t count_prior = 0,
-                      Py_ssize_t na_sentinel = -1,
-                      nb::object na_value = nb::none(), bool ignore_na = false,
+                      [[maybe_unused]] Py_ssize_t na_sentinel = -1,
+                      [[maybe_unused]] nb::object na_value = nb::none(), bool ignore_na = false,
                       nb::object mask_obj = nb::none(),
                       bool return_inverse = false, bool use_result_mask = false)
       -> nb::object {
@@ -438,7 +438,7 @@ private:
   template <bool IgnoreNA, bool UseNAValue>
   auto UniqueWithInverse(const nb::ndarray<const T, nb::ndim<1>> &values,
                          PandasVector<T> &uniques, Py_ssize_t count_prior,
-                         Py_ssize_t na_sentinel, T na_value,
+                         [[maybe_unused]] Py_ssize_t na_sentinel, [[maybe_unused]] T na_value,
                          [[maybe_unused]] nb::object mask_obj = nb::none())
       -> nb::ndarray<nb::numpy, const Py_ssize_t, nb::ndim<1>> {
     if constexpr (IsMasked) {
@@ -662,7 +662,7 @@ private:
     return;
   }
 
-  klib::KHashMap<T, int64_t, PandasHashFunction<T>, PandasHashEquality<T>>
+  klib::KHashMap<T, size_t, PandasHashFunction<T>, PandasHashEquality<T>>
       hash_map_;
   Py_ssize_t na_position_ = -1;
 };
