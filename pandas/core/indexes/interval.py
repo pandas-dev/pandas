@@ -831,6 +831,22 @@ class IntervalIndex(ExtensionIndex):
 
     @cache_readonly
     def right(self) -> Index:
+        """
+        Return intervals' right value.
+        Returns
+        -------
+        Index
+        See Also
+        --------
+        IntervalIndex : The structure of IntervalIndex.
+        Examples
+        --------
+        >>> pd.interval_range(start=0, end=5)
+        IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]],
+                        dtype='interval[int64, right]')
+        >>> pd.interval_range(start=0, end=5).right
+        Index([1, 2, 3, 4, 5], dtype='int64')
+        """
         return Index(self._data.right, copy=False)
 
     @cache_readonly

@@ -151,7 +151,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.IntervalIndex.left\
         pandas.IntervalIndex.length\
         pandas.IntervalIndex.mid\
-        pandas.IntervalIndex.right\
         pandas.Period.freq\
         pandas.Period.ordinal\
         pandas.PeriodIndex.freq\
