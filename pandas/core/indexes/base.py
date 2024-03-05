@@ -1052,7 +1052,7 @@ class Index(IndexOpsMixin, PandasObject):
             reinterpretation will raise an error in a future version.
         See Also
         --------
-        copy: Returns a copy of the Index.
+        copy : Returns a copy of the Index.
 
         Examples
         --------
