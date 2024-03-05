@@ -191,6 +191,7 @@ Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - :func:`read_excel`, :func:`read_json`, :func:`read_html`, and :func:`read_xml` no longer accept raw string or byte representation of the data. That type of data must be wrapped in a :py:class:`StringIO` or :py:class:`BytesIO` (:issue:`53767`)
 - :meth:`Series.dt.to_pydatetime` now returns a :class:`Series` of :py:class:`datetime.datetime` objects (:issue:`52459`)
+- :meth:`SeriesGroupBy.agg` no longer pins the name of the group to the input passed to the provided ``func`` (:issue:`51703`)
 - All arguments except ``name`` in :meth:`Index.rename` are now keyword only (:issue:`56493`)
 - All arguments except the first ``path``-like argument in IO writers are now keyword only (:issue:`54229`)
 - All arguments in :meth:`Index.sort_values` are now keyword only (:issue:`56493`)
@@ -238,7 +239,6 @@ Removal of prior version deprecations/changes
 - Removed unused arguments ``*args`` and ``**kwargs`` in :class:`Resampler` methods (:issue:`50977`)
 - Unrecognized timezones when parsing strings to datetimes now raises a ``ValueError`` (:issue:`51477`)
 
-
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.performance:
 
@@ -255,6 +255,7 @@ Performance improvements
 - Performance improvement in :meth:`MultiIndex.equals` for equal length indexes (:issue:`56990`)
 - Performance improvement in :meth:`RangeIndex.__getitem__` with a boolean mask returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57588`)
 - Performance improvement in :meth:`RangeIndex.append` when appending the same index (:issue:`57252`)
+- Performance improvement in :meth:`RangeIndex.join` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57651`)
 - Performance improvement in :meth:`RangeIndex.take` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57445`)
 - Performance improvement in ``DataFrameGroupBy.__len__`` and ``SeriesGroupBy.__len__`` (:issue:`57595`)
 - Performance improvement in indexing operations for string dtypes (:issue:`56997`)
