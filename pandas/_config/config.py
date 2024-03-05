@@ -138,7 +138,7 @@ def _get_single_key(pat: str) -> str:
 
 def get_option(pat: str) -> Any:
     """
-    Retrieves the value of the specified option.
+    Retrieve the value of the specified option.
 
     Parameters
     ----------
@@ -153,7 +153,8 @@ def get_option(pat: str) -> Any:
 
     Returns
     -------
-    result : the value of the option
+    Any
+        The value of the option.
 
     Raises
     ------
@@ -178,7 +179,7 @@ def get_option(pat: str) -> Any:
 
 def set_option(*args) -> None:
     """
-    Sets the value of the specified option or options.
+    Set the value of the specified option or options.
 
     Parameters
     ----------
@@ -199,6 +200,7 @@ def set_option(*args) -> None:
     Returns
     -------
     None
+        No return value.
 
     Raises
     ------
@@ -244,7 +246,7 @@ def set_option(*args) -> None:
 
 def describe_option(pat: str = "", _print_desc: bool = True) -> str | None:
     """
-    Prints the description for one or more registered options.
+    Print the description for one or more registered options.
 
     Call with no arguments to get a listing for all registered options.
 
@@ -261,8 +263,10 @@ def describe_option(pat: str = "", _print_desc: bool = True) -> str | None:
 
     Returns
     -------
-    None : If ``_print_desc=True``.
-    str : If the description(s) as a string if ``_print_desc=False``.
+    None
+        If ``_print_desc=True``.
+    str
+        If the description(s) as a string if ``_print_desc=False``.
 
     Notes
     -----
@@ -306,6 +310,7 @@ def reset_option(pat: str) -> None:
     Returns
     -------
     None
+        No return value.
 
     Notes
     -----
@@ -396,6 +401,7 @@ def option_context(*args) -> Generator[None, None, None]:
     Returns
     -------
     None
+        No return value.
 
     Notes
     -----
