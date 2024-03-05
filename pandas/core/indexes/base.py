@@ -1059,11 +1059,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx.view('int32')
         array([1, 0, 2, 0, 3, 0], dtype=int32)
-
-        Attempting to view as 'str' is not supported and raises an error:
-
-        >>> idx.view('str')
-        ValueError: When changing to a smaller dtype, its size must be a divisor of the size of original dtype
         """
         # we need to see if we are subclassing an
         # index type here
