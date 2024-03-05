@@ -1045,11 +1045,6 @@ class Index(IndexOpsMixin, PandasObject):
             the original dtype's memory layout, for example, viewing an 'int64' Index
             as 'str'.
 
-        Warnings
-        --------
-        FutureWarning
-            Directly passing a dtype to `view` that results in an incompatible memory
-            reinterpretation will raise an error in a future version.
         See Also
         --------
         copy : Returns a copy of the Index.
