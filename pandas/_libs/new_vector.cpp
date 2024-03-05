@@ -1,6 +1,8 @@
+#define PY_SSIZE_T_CLEAN
+#include <Python.h>
+
 #include <cmath>
 #include <cstring>
-#include <cstddef>
 #include <map>
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
@@ -8,7 +10,6 @@
 #include <nanobind/stl/tuple.h>
 #include <stdint.h>
 #include <string>
-#include <sys/types.h>
 #include <vector>
 
 #include "pandas/vendored/klib/cpp/khashl.hpp"
@@ -137,7 +138,7 @@ public:
     const auto for_flags =
         std::max(1U, hash_map_.n_buckets() >> 5) * sizeof(uint32_t);
     const auto for_pairs =
-        hash_map_.n_buckets() * (sizeof(T) + sizeof(ssize_t));
+        hash_map_.n_buckets() * (sizeof(T) + sizeof(Py_ssize_t));
 
     return overhead + for_flags + for_pairs;
   }
@@ -182,9 +183,9 @@ public:
     return na_position_;
   }
 
-  auto SetItem(T key, ssize_t val) noexcept -> void { hash_map_[key] = val; }
+  auto SetItem(T key, Py_ssize_t val) noexcept -> void { hash_map_[key] = val; }
 
-  auto SetNA(ssize_t val) noexcept -> void {
+  auto SetNA(Py_ssize_t val) noexcept -> void {
     if constexpr (IsMasked) {
       na_position_ = val;
     }
@@ -234,7 +235,7 @@ public:
   }
 
   auto Lookup(const nb::ndarray<const T, nb::ndim<1>> &values, nb::object mask)
-      -> nb::ndarray<nb::numpy, const ssize_t, nb::ndim<1>> {
+      -> nb::ndarray<nb::numpy, const Py_ssize_t, nb::ndim<1>> {
     if constexpr (IsMasked) {
       if (mask.is_none()) {
         throw std::invalid_argument("mask must not be None!");
@@ -243,7 +244,7 @@ public:
 
     nb::call_guard<nb::gil_scoped_release>();
     const size_t n = values.shape(0);
-    ssize_t *locs = new ssize_t[n];
+    auto *locs = new Py_ssize_t[n];
     const auto values_v = values.view();
 
     // TODO: how can we release the GIL imperatively?
@@ -281,7 +282,7 @@ public:
     nb::capsule owner(locs, [](void *p) noexcept { delete[](size_t *) p; });
 
     const size_t shape[1] = {n};
-    return nb::ndarray<nb::numpy, const ssize_t, nb::ndim<1>>(locs, 1, shape,
+    return nb::ndarray<nb::numpy, const Py_ssize_t, nb::ndim<1>>(locs, 1, shape,
                                                               owner);
   }
 
@@ -296,7 +297,7 @@ public:
   }
 
   auto Factorize(const nb::ndarray<const T, nb::ndim<1>> &values,
-                 ssize_t na_sentinel = -1, nb::object na_value = nb::none(),
+                 Py_ssize_t na_sentinel = -1, nb::object na_value = nb::none(),
                  nb::object mask = nb::none(), bool ignore_na = true)
       -> nb::object {
     PandasVector<T> uniques;
@@ -305,8 +306,8 @@ public:
   }
 
   auto GetLabels(const nb::ndarray<const T, nb::ndim<1>> &values,
-                 PandasVector<T> &uniques, ssize_t count_prior = 0,
-                 ssize_t na_sentinel = -1, nb::object na_value = nb::none(),
+                 PandasVector<T> &uniques, Py_ssize_t count_prior = 0,
+                 Py_ssize_t na_sentinel = -1, nb::object na_value = nb::none(),
                  nb::object mask = nb::none(),
                  [[maybe_unused]] bool ignore_na = true) -> nb::object {
     const auto tup = UniqueInternal(values, uniques, count_prior, na_sentinel,
@@ -316,15 +317,15 @@ public:
   }
 
   auto GetLabelsGroupby(const nb::ndarray<const T, nb::ndim<1>> &values)
-      -> std::tuple<nb::ndarray<nb::numpy, const ssize_t, nb::ndim<1>>,
+      -> std::tuple<nb::ndarray<nb::numpy, const Py_ssize_t, nb::ndim<1>>,
                     nb::object> {
 
     nb::call_guard<nb::gil_scoped_release>();
     const auto values_v = values.view();
     const auto n = values.shape(0);
     PandasVector<T> uniques;
-    ssize_t *labels = new ssize_t[n];
-    ssize_t count = 0;
+    auto *labels = new Py_ssize_t[n];
+    Py_ssize_t count = 0;
 
     for (size_t i = 0; i < n; i++) {
       const auto val = values_v(i);
@@ -351,7 +352,7 @@ public:
     nb::gil_scoped_acquire();
     nb::capsule owner(labels, [](void *p) noexcept { delete[](size_t *) p; });
     const auto labels_arr =
-        nb::ndarray<nb::numpy, const ssize_t, nb::ndim<1>>(labels,
+        nb::ndarray<nb::numpy, const Py_ssize_t, nb::ndim<1>>(labels,
                                                            {
                                                                n,
                                                            },
@@ -361,8 +362,8 @@ public:
 
 private:
   auto UniqueInternal(const nb::ndarray<const T, nb::ndim<1>> &values,
-                      PandasVector<T> &uniques, ssize_t count_prior = 0,
-                      ssize_t na_sentinel = -1,
+                      PandasVector<T> &uniques, Py_ssize_t count_prior = 0,
+                      Py_ssize_t na_sentinel = -1,
                       nb::object na_value = nb::none(), bool ignore_na = false,
                       nb::object mask_obj = nb::none(),
                       bool return_inverse = false, bool use_result_mask = false)
@@ -376,7 +377,7 @@ private:
     const auto na_val = use_na_value ? nb::cast<T>(na_value) : T();
 
     if (return_inverse) { // this is really factorize
-      nb::ndarray<nb::numpy, const ssize_t, nb::ndim<1>> labels;
+      nb::ndarray<nb::numpy, const Py_ssize_t, nb::ndim<1>> labels;
       if (ignore_na) {
         if (use_na_value) {
           labels = UniqueWithInverse<true, true>(values, uniques, count_prior,
@@ -436,10 +437,10 @@ private:
 
   template <bool IgnoreNA, bool UseNAValue>
   auto UniqueWithInverse(const nb::ndarray<const T, nb::ndim<1>> &values,
-                         PandasVector<T> &uniques, ssize_t count_prior,
-                         ssize_t na_sentinel, T na_value,
+                         PandasVector<T> &uniques, Py_ssize_t count_prior,
+                         Py_ssize_t na_sentinel, T na_value,
                          [[maybe_unused]] nb::object mask_obj = nb::none())
-      -> nb::ndarray<nb::numpy, const ssize_t, nb::ndim<1>> {
+      -> nb::ndarray<nb::numpy, const Py_ssize_t, nb::ndim<1>> {
     if constexpr (IsMasked) {
       if (mask_obj.is_none()) {
         throw std::invalid_argument("mask must not be None!");
@@ -448,7 +449,7 @@ private:
 
     const auto values_v = values.view();
     const auto n = values.shape(0);
-    ssize_t *labels = new ssize_t[n];
+    auto *labels = new Py_ssize_t[n];
 
     if constexpr (IsMasked) {
       using MaskT = nb::ndarray<const uint8_t, nb::ndim<1>>;
@@ -520,7 +521,7 @@ private:
 
     nb::capsule owner(labels, [](void *p) noexcept { delete[](size_t *) p; });
 
-    return nb::ndarray<nb::numpy, const ssize_t, nb::ndim<1>>(labels,
+    return nb::ndarray<nb::numpy, const Py_ssize_t, nb::ndim<1>>(labels,
                                                               {
                                                                   n,
                                                               },
@@ -663,7 +664,7 @@ private:
 
   klib::KHashMap<T, int64_t, PandasHashFunction<T>, PandasHashEquality<T>>
       hash_map_;
-  ssize_t na_position_ = -1;
+  Py_ssize_t na_position_ = -1;
 };
 
 using namespace nb::literals;
