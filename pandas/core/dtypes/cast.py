@@ -1503,7 +1503,10 @@ def construct_2d_arraylike_from_scalar(
 
     # Attempt to coerce to a numpy array
     try:
-        arr = np.array(value, dtype=dtype, copy=copy)
+        if not copy:
+            arr = np.asarray(value, dtype=dtype)
+        else:
+            arr = np.array(value, dtype=dtype, copy=copy)
     except (ValueError, TypeError) as err:
         raise TypeError(
             f"DataFrame constructor called with incompatible data and dtype: {err}"
@@ -1652,7 +1655,7 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
                         "out-of-bound Python int",
                         DeprecationWarning,
                     )
-                casted = np.array(arr, dtype=dtype, copy=False)
+                casted = np.asarray(arr, dtype=dtype)
         else:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=RuntimeWarning)
