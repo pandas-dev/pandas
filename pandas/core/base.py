@@ -690,7 +690,7 @@ class IndexOpsMixin(OpsMixin):
         
         See Also
         --------
-        size : Return the number of elements in the Index.
+        Index.size : Return the number of elements in the Index.
 
         Examples
         --------
