@@ -25,6 +25,8 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
 from __future__ import annotations
 
+import sys
+import platform
 import locale
 from typing import (
     TYPE_CHECKING,
@@ -113,6 +115,10 @@ skip_if_windows = pytest.mark.skipif(is_platform_windows(), reason="Running on W
 skip_if_not_us_locale = pytest.mark.skipif(
     locale.getlocale()[0] != "en_US",
     reason=f"Set local {locale.getlocale()[0]} is not en_US",
+)
+skip_if_wasm = pytest.mark.skipif(
+    (sys.platform == "emscripten") or (platform.machine() in ["wasm32", "wasm64"]),
+    reason="does not support wasm"
 )
 
 
