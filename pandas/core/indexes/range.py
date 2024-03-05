@@ -29,6 +29,7 @@ from pandas.util._decorators import (
     doc,
 )
 
+from pandas.core.dtypes import missing
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -475,7 +476,7 @@ class RangeIndex(Index):
             # GH 46675 & 43885: If values is equally spaced, return a
             # more memory-compact RangeIndex instead of Index with 64-bit dtype
             diff = values[1] - values[0]
-            if diff != 0:
+            if not missing.isna(diff) and diff != 0:
                 maybe_range_indexer, remainder = np.divmod(values - values[0], diff)
                 if (
                     lib.is_range_indexer(maybe_range_indexer, len(maybe_range_indexer))
@@ -489,6 +490,11 @@ class RangeIndex(Index):
         result = type(self)._simple_new(self._range, name=self._name)
         result._cache = self._cache
         return result
+
+    def _wrap_reindex_result(self, target, indexer, preserve_names: bool):
+        if not isinstance(target, type(self)) and target.dtype.kind == "i":
+            target = self._shallow_copy(target._values, name=target.name)
+        return super()._wrap_reindex_result(target, indexer, preserve_names)
 
     @doc(Index.copy)
     def copy(self, name: Hashable | None = None, deep: bool = False) -> Self:
