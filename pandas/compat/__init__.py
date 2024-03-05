@@ -21,6 +21,7 @@ from pandas.compat._constants import (
     PY311,
     PY312,
     PYPY,
+    WASM,
 )
 import pandas.compat.compressors
 from pandas.compat.numpy import is_numpy_dev
@@ -192,4 +193,5 @@ __all__ = [
     "PY311",
     "PY312",
     "PYPY",
+    "WASM",
 ]
