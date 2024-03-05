@@ -408,6 +408,7 @@ class TestMMapWrapper:
         with pytest.raises(ValueError, match=msg):
             icom._maybe_memory_map(target, True)
 
+    @td.skip_if_wasm  # limited file system access on WASM
     def test_next(self, mmap_file):
         with open(mmap_file, encoding="utf-8") as target:
             lines = target.readlines()
