@@ -107,8 +107,10 @@ if TYPE_CHECKING:
 
     if sys.version_info >= (3, 11):
         from typing import Self  # pyright: ignore[reportUnusedImport]
+        from typing import Unpack  # pyright: ignore[reportUnusedImport]
     else:
         from typing_extensions import Self  # pyright: ignore[reportUnusedImport]
+        from typing_extensions import Unpack  # pyright: ignore[reportUnusedImport]
 
 else:
     npt: Any = None
@@ -116,6 +118,7 @@ else:
     Self: Any = None
     TypeGuard: Any = None
     Concatenate: Any = None
+    Unpack: Any = None
 
 HashableT = TypeVar("HashableT", bound=Hashable)
 HashableT2 = TypeVar("HashableT2", bound=Hashable)
@@ -204,7 +207,7 @@ Axis = Union[AxisInt, Literal["index", "columns", "rows"]]
 IndexLabel = Union[Hashable, Sequence[Hashable]]
 Level = Hashable
 Shape = tuple[int, ...]
-Suffixes = tuple[Optional[str], Optional[str]]
+Suffixes = Sequence[Optional[str]]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, list, dict]]
 Frequency = Union[str, "BaseOffset"]
@@ -223,7 +226,7 @@ NpDtype = Union[str, np.dtype, type_t[Union[str, complex, bool, object]]]
 Dtype = Union["ExtensionDtype", NpDtype]
 AstypeArg = Union["ExtensionDtype", "npt.DTypeLike"]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
-DtypeArg = Union[Dtype, dict[Hashable, Dtype]]
+DtypeArg = Union[Dtype, Mapping[Hashable, Dtype]]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
 
 # converters
