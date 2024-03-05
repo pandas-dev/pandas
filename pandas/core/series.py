@@ -33,7 +33,6 @@ from pandas._libs import (
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
 from pandas.compat._constants import REF_COUNT
-from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     ChainedAssignmentError,
@@ -843,22 +842,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             arr = arr.view()
             arr.flags.writeable = False
         return arr
-
-    # ----------------------------------------------------------------------
-
-    def __column_consortium_standard__(self, *, api_version: str | None = None) -> Any:
-        """
-        Provide entry point to the Consortium DataFrame Standard API.
-
-        This is developed and maintained outside of pandas.
-        Please report any issues to https://github.com/data-apis/dataframe-api-compat.
-        """
-        dataframe_api_compat = import_optional_dependency("dataframe_api_compat")
-        return (
-            dataframe_api_compat.pandas_standard.convert_to_standard_compliant_column(
-                self, api_version=api_version
-            )
-        )
 
     # ----------------------------------------------------------------------
 
@@ -2908,7 +2891,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self.corr(cast(Series, self.shift(lag)))
 
-    def dot(self, other: AnyArrayLike) -> Series | np.ndarray:
+    def dot(self, other: AnyArrayLike | DataFrame) -> Series | np.ndarray:
         """
         Compute the dot product between the Series and the columns of other.
 
@@ -4861,7 +4844,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         *,
         axis: Axis | None = None,
         method: ReindexMethod | None = None,
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
         level: Level | None = None,
         fill_value: Scalar | None = None,
         limit: int | None = None,
@@ -4874,6 +4857,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             fill_value=fill_value,
             limit=limit,
             tolerance=tolerance,
+            copy=copy,
         )
 
     @overload  # type: ignore[override]
@@ -6362,7 +6346,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
-    ):
+    ) -> Any:
         return NDFrame.mean(
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
@@ -6374,7 +6358,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
-    ):
+    ) -> Any:
         return NDFrame.median(
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )

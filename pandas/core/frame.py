@@ -941,21 +941,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         return PandasDataFrameXchg(self, allow_copy=allow_copy)
 
-    def __dataframe_consortium_standard__(
-        self, *, api_version: str | None = None
-    ) -> Any:
-        """
-        Provide entry point to the Consortium DataFrame Standard API.
-
-        This is developed and maintained outside of pandas.
-        Please report any issues to https://github.com/data-apis/dataframe-api-compat.
-        """
-        dataframe_api_compat = import_optional_dependency("dataframe_api_compat")
-        convert_to_standard_compliant_dataframe = (
-            dataframe_api_compat.pandas_standard.convert_to_standard_compliant_dataframe
-        )
-        return convert_to_standard_compliant_dataframe(self, api_version=api_version)
-
     def __arrow_c_stream__(self, requested_schema=None):
         """
         Export the pandas DataFrame as an Arrow C stream PyCapsule.
@@ -4033,6 +4018,11 @@ class DataFrame(NDFrame, OpsMixin):
         value : scalar or arraylike
             Value(s) for the column.
 
+        See Also
+        --------
+        DataFrame.iloc : Purely integer-location based indexing for selection by
+            position.
+
         Notes
         -----
         ``frame.isetitem(loc, value)`` is an in-place method as it will
@@ -4043,6 +4033,15 @@ class DataFrame(NDFrame, OpsMixin):
 
         In cases where ``frame.columns`` is unique, this is equivalent to
         ``frame[frame.columns[i]] = value``.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
+        >>> df.isetitem(1, [5, 6])
+        >>> df
+              A  B
+        0     1  5
+        1     2  6
         """
         if isinstance(value, DataFrame):
             if is_integer(loc):
@@ -4814,7 +4813,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         loc: int,
         column: Hashable,
-        value: Scalar | AnyArrayLike,
+        value: object,
         allow_duplicates: bool | lib.NoDefault = lib.no_default,
     ) -> None:
         """
@@ -5085,7 +5084,7 @@ class DataFrame(NDFrame, OpsMixin):
         columns=None,
         axis: Axis | None = None,
         method: ReindexMethod | None = None,
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
         level: Level | None = None,
         fill_value: Scalar | None = np.nan,
         limit: int | None = None,
@@ -5101,6 +5100,7 @@ class DataFrame(NDFrame, OpsMixin):
             fill_value=fill_value,
             limit=limit,
             tolerance=tolerance,
+            copy=copy,
         )
 
     @overload
@@ -5603,14 +5603,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         if freq is not None and fill_value is not lib.no_default:
             # GH#53832
-            warnings.warn(
-                "Passing a 'freq' together with a 'fill_value' silently ignores "
-                "the fill_value and is deprecated. This will raise in a future "
-                "version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            raise ValueError(
+                "Passing a 'freq' together with a 'fill_value' is not allowed."
             )
-            fill_value = lib.no_default
 
         if self.empty:
             return self.copy()
@@ -6285,7 +6280,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = 0,
         how: AnyAll | lib.NoDefault = lib.no_default,
         thresh: int | lib.NoDefault = lib.no_default,
-        subset: IndexLabel | None = None,
+        subset: IndexLabel | AnyArrayLike | None = None,
         inplace: bool = False,
         ignore_index: bool = False,
     ) -> DataFrame | None:
@@ -6409,7 +6404,7 @@ class DataFrame(NDFrame, OpsMixin):
         if subset is not None:
             # subset needs to be list
             if not is_list_like(subset):
-                subset = [subset]
+                subset = [cast(Hashable, subset)]
             ax = self._get_axis(agg_axis)
             indices = ax.get_indexer_for(subset)
             check = indices == -1
@@ -8711,6 +8706,10 @@ class DataFrame(NDFrame, OpsMixin):
         dict.update : Similar method for dictionaries.
         DataFrame.merge : For column(s)-on-column(s) operations.
 
+        Notes
+        -----
+        1. Duplicate indices on `other` are not supported and raises `ValueError`.
+
         Examples
         --------
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [400, 500, 600]})
@@ -8783,11 +8782,22 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(other, DataFrame):
             other = DataFrame(other)
 
-        other = other.reindex(self.index)
+        if other.index.has_duplicates:
+            raise ValueError("Update not allowed with duplicate indexes on other.")
+
+        index_intersection = other.index.intersection(self.index)
+        if index_intersection.empty:
+            raise ValueError(
+                "Update not allowed when the index on `other` has no intersection "
+                "with this dataframe."
+            )
+
+        other = other.reindex(index_intersection)
+        this_data = self.loc[index_intersection]
 
         for col in self.columns.intersection(other.columns):
-            this = self[col]._values
-            that = other[col]._values
+            this = this_data[col]
+            that = other[col]
 
             if filter_func is not None:
                 mask = ~filter_func(this) | isna(that)
@@ -8807,7 +8817,7 @@ class DataFrame(NDFrame, OpsMixin):
             if mask.all():
                 continue
 
-            self.loc[:, col] = self[col].where(mask, that)
+            self.loc[index_intersection, col] = this.where(mask, that)
 
     # ----------------------------------------------------------------------
     # Data reshaping
