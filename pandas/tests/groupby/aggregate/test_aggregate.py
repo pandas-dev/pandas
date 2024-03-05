@@ -132,9 +132,7 @@ def test_agg_apply_corner(ts, tsframe):
     tm.assert_frame_equal(grouped.sum(), exp_df)
     tm.assert_frame_equal(grouped.agg("sum"), exp_df)
 
-    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
-        res = grouped.apply(np.sum)
+    res = grouped.apply(np.sum, axis=0)
     tm.assert_frame_equal(res, exp_df)
 
 
