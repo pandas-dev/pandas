@@ -435,3 +435,48 @@ def test_empty_dataframe():
     result = pd.api.interchange.from_dataframe(dfi, allow_copy=False)
     expected = pd.DataFrame({"a": []}, dtype="int8")
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("data", "expected_dtype", "expected_buffer_dtype"),
+    [
+        (
+            pd.Series(["a", "b", "a"], dtype="category"),
+            (DtypeKind.CATEGORICAL, 8, "c", "="),
+            (DtypeKind.INT, 8, "c", "|"),
+        ),
+        (
+            pd.Series(
+                [datetime(2022, 1, 1), datetime(2022, 1, 2), datetime(2022, 1, 3)]
+            ),
+            (DtypeKind.DATETIME, 64, "tsn:", "="),
+            (DtypeKind.INT, 64, ArrowCTypes.INT64, "="),
+        ),
+        (
+            pd.Series(["a", "bc", None]),
+            (DtypeKind.STRING, 8, ArrowCTypes.STRING, "="),
+            (DtypeKind.UINT, 8, ArrowCTypes.UINT8, "="),
+        ),
+        (
+            pd.Series([1, 2, 3]),
+            (DtypeKind.INT, 64, ArrowCTypes.INT64, "="),
+            (DtypeKind.INT, 64, ArrowCTypes.INT64, "="),
+        ),
+        (
+            pd.Series([1.5, 2, 3]),
+            (DtypeKind.FLOAT, 64, ArrowCTypes.FLOAT64, "="),
+            (DtypeKind.FLOAT, 64, ArrowCTypes.FLOAT64, "="),
+        ),
+    ],
+)
+def test_buffer_dtype_categorical(
+    data: pd.Series,
+    expected_dtype: tuple[DtypeKind, int, str, str],
+    expected_buffer_dtype: tuple[DtypeKind, int, str, str],
+) -> None:
+    # https://github.com/pandas-dev/pandas/issues/54781
+    df = pd.DataFrame({"data": data})
+    dfi = df.__dataframe__()
+    col = dfi.get_column_by_name("data")
+    assert col.dtype == expected_dtype
+    assert col.get_buffers()["data"][1] == expected_buffer_dtype
