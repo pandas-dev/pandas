@@ -770,7 +770,7 @@ class MultiIndex(Index):
             ):
                 vals = vals.astype(object)
 
-            array_vals = np.array(vals, copy=False)
+            array_vals = np.asarray(vals)
             array_vals = algos.take_nd(array_vals, codes, fill_value=index._na_value)
             values.append(array_vals)
 
@@ -1330,7 +1330,7 @@ class MultiIndex(Index):
             new_index._id = self._id
         return new_index
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype=None, copy=None) -> np.ndarray:
         """the array interface, return my values"""
         return self.values
 
@@ -3357,7 +3357,7 @@ class MultiIndex(Index):
                     locs = (level_codes >= idx.start) & (level_codes < idx.stop)
                     return locs
 
-                locs = np.array(level_codes == idx, dtype=bool, copy=False)
+                locs = np.asarray(level_codes == idx, dtype=bool)
 
                 if not locs.any():
                     # The label is present in self.levels[level] but unused:
