@@ -564,6 +564,7 @@ private:
             seen_na = true;
             uniques.Append(val);
             result.Append(1);
+            continue;
           }
 
           // NaN / pd.NA are treated the same? hmmm
@@ -576,6 +577,7 @@ private:
               seen_na = true;
               uniques.Append(val);
               result.Append(1);
+              continue;
             }
           }
         }
@@ -625,7 +627,6 @@ private:
         throw std::invalid_argument("Could not convert mask to uint8_t array!");
       }
       nb::call_guard<nb::gil_scoped_release>();
-      const auto mask_v = mask.view();
 
       for (size_t i = 0; i < n; i++) {
         if constexpr (IgnoreNA) {
