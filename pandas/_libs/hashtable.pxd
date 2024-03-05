@@ -180,7 +180,7 @@ cdef class Vector:
     cdef bint external_view_exists
 
 cdef class Int64Vector(Vector):
-    cdef Int64VectorData *data
+    cdef Int64VectorData data
     cdef ndarray ao
 
     cdef resize(self)

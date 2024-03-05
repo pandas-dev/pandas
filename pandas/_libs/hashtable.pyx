@@ -1,8 +1,4 @@
 cimport cython
-from cpython.mem cimport (
-    PyMem_Free,
-    PyMem_Malloc,
-)
 from cpython.ref cimport (
     Py_INCREF,
     PyObject,
