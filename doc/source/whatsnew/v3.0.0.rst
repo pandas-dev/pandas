@@ -191,6 +191,7 @@ Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - :func:`read_excel`, :func:`read_json`, :func:`read_html`, and :func:`read_xml` no longer accept raw string or byte representation of the data. That type of data must be wrapped in a :py:class:`StringIO` or :py:class:`BytesIO` (:issue:`53767`)
 - :meth:`Series.dt.to_pydatetime` now returns a :class:`Series` of :py:class:`datetime.datetime` objects (:issue:`52459`)
+- :meth:`SeriesGroupBy.agg` no longer pins the name of the group to the input passed to the provided ``func`` (:issue:`51703`)
 - All arguments except ``name`` in :meth:`Index.rename` are now keyword only (:issue:`56493`)
 - All arguments except the first ``path``-like argument in IO writers are now keyword only (:issue:`54229`)
 - All arguments in :meth:`Index.sort_values` are now keyword only (:issue:`56493`)
@@ -237,7 +238,6 @@ Removal of prior version deprecations/changes
 - Removed the ``ordinal`` keyword in :class:`PeriodIndex`, use :meth:`PeriodIndex.from_ordinals` instead (:issue:`55960`)
 - Removed unused arguments ``*args`` and ``**kwargs`` in :class:`Resampler` methods (:issue:`50977`)
 - Unrecognized timezones when parsing strings to datetimes now raises a ``ValueError`` (:issue:`51477`)
-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.performance:
