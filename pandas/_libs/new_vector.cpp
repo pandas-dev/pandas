@@ -8,6 +8,7 @@
 #include <nanobind/stl/tuple.h>
 #include <stdint.h>
 #include <string>
+#include <sys/types.h>
 #include <vector>
 
 #include "pandas/vendored/klib/cpp/khashl.hpp"
