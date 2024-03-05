@@ -413,7 +413,7 @@ class TestIndexConstructorUnwrapping:
             def __init__(self, array) -> None:
                 self.array = array
 
-            def __array__(self, dtype=None) -> np.ndarray:
+            def __array__(self, dtype=None, copy=None) -> np.ndarray:
                 return self.array
 
         expected = Index(array)

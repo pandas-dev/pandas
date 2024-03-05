@@ -159,7 +159,10 @@ def _coerce_to_data_and_mask(
         return values, mask, dtype, inferred_type
 
     original = values
-    values = np.array(values, copy=copy)
+    if not copy:
+        values = np.asarray(values)
+    else:
+        values = np.array(values, copy=copy)
     inferred_type = None
     if values.dtype == object or is_string_dtype(values.dtype):
         inferred_type = lib.infer_dtype(values, skipna=True)
@@ -168,7 +171,10 @@ def _coerce_to_data_and_mask(
             raise TypeError(f"{values.dtype} cannot be converted to {name}")
 
     elif values.dtype.kind == "b" and checker(dtype):
-        values = np.array(values, dtype=default_dtype, copy=copy)
+        if not copy:
+            values = np.asarray(values, dtype=default_dtype)
+        else:
+            values = np.array(values, dtype=default_dtype, copy=copy)
 
     elif values.dtype.kind not in "iuf":
         name = dtype_cls.__name__.strip("_")
@@ -207,9 +213,9 @@ def _coerce_to_data_and_mask(
                     inferred_type not in ["floating", "mixed-integer-float"]
                     and not mask.any()
                 ):
-                    values = np.array(original, dtype=dtype, copy=False)
+                    values = np.asarray(original, dtype=dtype)
                 else:
-                    values = np.array(original, dtype="object", copy=False)
+                    values = np.asarray(original, dtype="object")
 
     # we copy as need to coerce here
     if mask.any():

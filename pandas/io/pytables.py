@@ -4065,7 +4065,7 @@ class Table(Fixed):
             if isinstance(data_converted.dtype, CategoricalDtype):
                 ordered = data_converted.ordered
                 meta = "category"
-                metadata = np.array(data_converted.categories, copy=False).ravel()
+                metadata = np.asarray(data_converted.categories).ravel()
 
             data, dtype_name = _get_data_and_dtype_name(data_converted)
 

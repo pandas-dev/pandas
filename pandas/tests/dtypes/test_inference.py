@@ -112,8 +112,8 @@ class MockNumpyLikeArray:
     def __len__(self) -> int:
         return len(self._values)
 
-    def __array__(self, t=None):
-        return np.asarray(self._values, dtype=t)
+    def __array__(self, dtype=None, copy=None):
+        return np.asarray(self._values, dtype=dtype)
 
     @property
     def ndim(self):

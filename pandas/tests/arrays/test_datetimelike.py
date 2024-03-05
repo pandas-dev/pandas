@@ -12,6 +12,7 @@ from pandas._libs import (
     Timestamp,
 )
 from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
+from pandas.compat.numpy import np_version_gt2
 
 import pandas as pd
 from pandas import (
@@ -638,13 +639,14 @@ class TestDatetimeArray(SharedTests):
 
     def test_array_interface(self, datetime_index):
         arr = datetime_index._data
+        copy_false = None if np_version_gt2 else False
 
         # default asarray gives the same underlying data (for tz naive)
         result = np.asarray(arr)
         expected = arr._ndarray
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
-        result = np.array(arr, copy=False)
+        result = np.array(arr, copy=copy_false)
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
 
@@ -653,7 +655,7 @@ class TestDatetimeArray(SharedTests):
         expected = arr._ndarray
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
-        result = np.array(arr, dtype="datetime64[ns]", copy=False)
+        result = np.array(arr, dtype="datetime64[ns]", copy=copy_false)
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
         result = np.array(arr, dtype="datetime64[ns]")
@@ -696,6 +698,7 @@ class TestDatetimeArray(SharedTests):
         # GH#23524
         arr = arr1d
         dti = self.index_cls(arr1d)
+        copy_false = None if np_version_gt2 else False
 
         expected = dti.asi8.view("M8[ns]")
         result = np.array(arr, dtype="M8[ns]")
@@ -704,17 +707,18 @@ class TestDatetimeArray(SharedTests):
         result = np.array(arr, dtype="datetime64[ns]")
         tm.assert_numpy_array_equal(result, expected)
 
-        # check that we are not making copies when setting copy=False
-        result = np.array(arr, dtype="M8[ns]", copy=False)
+        # check that we are not making copies when setting copy=copy_false
+        result = np.array(arr, dtype="M8[ns]", copy=copy_false)
         assert result.base is expected.base
         assert result.base is not None
-        result = np.array(arr, dtype="datetime64[ns]", copy=False)
+        result = np.array(arr, dtype="datetime64[ns]", copy=copy_false)
         assert result.base is expected.base
         assert result.base is not None
 
     def test_array_i8_dtype(self, arr1d):
         arr = arr1d
         dti = self.index_cls(arr1d)
+        copy_false = None if np_version_gt2 else False
 
         expected = dti.asi8
         result = np.array(arr, dtype="i8")
@@ -723,8 +727,8 @@ class TestDatetimeArray(SharedTests):
         result = np.array(arr, dtype=np.int64)
         tm.assert_numpy_array_equal(result, expected)
 
-        # check that we are still making copies when setting copy=False
-        result = np.array(arr, dtype="i8", copy=False)
+        # check that we are still making copies when setting copy=copy_false
+        result = np.array(arr, dtype="i8", copy=copy_false)
         assert result.base is not expected.base
         assert result.base is None
 
@@ -950,13 +954,14 @@ class TestTimedeltaArray(SharedTests):
 
     def test_array_interface(self, timedelta_index):
         arr = timedelta_index._data
+        copy_false = None if np_version_gt2 else False
 
         # default asarray gives the same underlying data
         result = np.asarray(arr)
         expected = arr._ndarray
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
-        result = np.array(arr, copy=False)
+        result = np.array(arr, copy=copy_false)
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
 
@@ -965,7 +970,7 @@ class TestTimedeltaArray(SharedTests):
         expected = arr._ndarray
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
-        result = np.array(arr, dtype="timedelta64[ns]", copy=False)
+        result = np.array(arr, dtype="timedelta64[ns]", copy=copy_false)
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
         result = np.array(arr, dtype="timedelta64[ns]")

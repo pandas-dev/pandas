@@ -719,7 +719,10 @@ class ExtensionArray:
 
             return TimedeltaArray._from_sequence(self, dtype=dtype, copy=copy)
 
-        return np.array(self, dtype=dtype, copy=copy)
+        if not copy:
+            return np.asarray(self, dtype=dtype)
+        else:
+            return np.array(self, dtype=dtype, copy=copy)
 
     def isna(self) -> np.ndarray | ExtensionArraySupportsAnyAll:
         """
