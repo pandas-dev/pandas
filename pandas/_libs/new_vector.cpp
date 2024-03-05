@@ -67,6 +67,11 @@ size_t PandasHashEquality<double>::operator()(const double &lhs,
 template <typename T> class PandasVector {
 public:
   explicit PandasVector<T>() : external_view_exists_(false) {}
+  ~PandasVector<T>() = default;
+  PandasVector<T>(PandasVector<T> const &) = delete;
+  void operator=(PandasVector<T> const &) = delete;
+  PandasVector<T>(PandasVector<T> &&) = default;
+  PandasVector<T> &operator=(PandasVector<T> &&) = default;
 
   size_t __len__() const { return vec_.size(); }
 
@@ -186,6 +191,7 @@ public:
   auto MapKeysToValues(const nb::ndarray<const T, nb::ndim<1>> &keys,
                        const nb::ndarray<const T, nb::ndim<1>> &values) noexcept
       -> void {
+    nb::call_guard<nb::gil_scoped_release>();
     const auto keys_v = keys.view();
     const auto values_v = values.view();
 
@@ -202,8 +208,7 @@ public:
       }
     }
 
-    // TODO: how can we release the GIL imperatively?
-    // https://nanobind.readthedocs.io/en/latest/api_core.html#gil-management
+    nb::call_guard<nb::gil_scoped_release>();
     const auto values_v = values.view();
     if constexpr (IsMasked) {
       const auto mask_base =
@@ -234,6 +239,7 @@ public:
       }
     }
 
+    nb::call_guard<nb::gil_scoped_release>();
     const size_t n = values.shape(0);
     ssize_t *locs = new ssize_t[n];
     const auto values_v = values.view();
@@ -269,6 +275,7 @@ public:
       }
     }
 
+    nb::gil_scoped_acquire();
     nb::capsule owner(locs, [](void *p) noexcept { delete[](size_t *) p; });
 
     const size_t shape[1] = {n};
@@ -309,6 +316,8 @@ public:
   auto GetLabelsGroupby(const nb::ndarray<const T, nb::ndim<1>> &values)
       -> std::tuple<nb::ndarray<nb::numpy, const ssize_t, nb::ndim<1>>,
                     nb::object> {
+
+    nb::call_guard<nb::gil_scoped_release>();
     const auto values_v = values.view();
     const auto n = values.shape(0);
     PandasVector<T> uniques;
@@ -337,6 +346,7 @@ public:
       }
     }
 
+    nb::gil_scoped_acquire();
     nb::capsule owner(labels, [](void *p) noexcept { delete[](size_t *) p; });
     const auto labels_arr =
         nb::ndarray<nb::numpy, const ssize_t, nb::ndim<1>>(labels,
@@ -387,19 +397,15 @@ private:
       PandasVector<uint8_t> mask;
       if (ignore_na) {
         if (use_na_value) {
-          mask = std::move(
-              UniqueWithResultMask<true, true>(values, uniques, mask_obj));
+          mask = UniqueWithResultMask<true, true>(values, uniques, mask_obj);
         } else {
-          mask = std::move(
-              UniqueWithResultMask<true, false>(values, uniques, mask_obj));
+          mask = UniqueWithResultMask<true, false>(values, uniques, mask_obj);
         }
       } else {
         if (use_na_value) {
-          mask = std::move(
-              UniqueWithResultMask<false, true>(values, uniques, mask_obj));
+          mask = UniqueWithResultMask<false, true>(values, uniques, mask_obj);
         } else {
-          mask = std::move(
-              UniqueWithResultMask<false, false>(values, uniques, mask_obj));
+          mask = UniqueWithResultMask<false, false>(values, uniques, mask_obj);
         }
       }
 
@@ -449,6 +455,7 @@ private:
         delete[] labels;
         throw std::invalid_argument("Could not convert mask to uint8_t array!");
       }
+      nb::call_guard<nb::gil_scoped_release>();
       const auto mask_v = mask.view();
 
       for (size_t i = 0; i < n; i++) {
@@ -475,6 +482,7 @@ private:
         }
       }
     } else {
+      nb::call_guard<nb::gil_scoped_release>();
       for (size_t i = 0; i < n; i++) {
         const auto val = values_v(i);
 
@@ -538,6 +546,7 @@ private:
       if (!nb::try_cast<MaskT>(mask_obj, mask, false)) {
         throw std::invalid_argument("Could not convert mask to uint8_t array!");
       }
+      nb::call_guard<nb::gil_scoped_release>();
       const auto mask_v = mask.view();
 
       bool seen_na = false;
@@ -580,6 +589,7 @@ private:
         }
       }
     } else {
+      nb::call_guard<nb::gil_scoped_release>();
       for (size_t i = 0; i < n; i++) {
         const auto val = values_v(i);
         auto k = hash_map_.get(val);
@@ -614,6 +624,7 @@ private:
       if (!nb::try_cast<MaskT>(mask_obj, mask, false)) {
         throw std::invalid_argument("Could not convert mask to uint8_t array!");
       }
+      nb::call_guard<nb::gil_scoped_release>();
       const auto mask_v = mask.view();
 
       for (size_t i = 0; i < n; i++) {
@@ -632,6 +643,7 @@ private:
         }
       }
     } else {
+      nb::call_guard<nb::gil_scoped_release>();
       for (size_t i = 0; i < n; i++) {
         const auto val = values_v(i);
         auto k = hash_map_.get(val);
