@@ -594,8 +594,9 @@ class CombinedDatetimelikeProperties(
 
     Examples
     --------
-    >>> dates = pd.Series(['2024-01-01', '2024-01-15', '2024-02-5'],
-    ...         dtype='datetime64[ns]')
+    >>> dates = pd.Series(
+    ...     ["2024-01-01", "2024-01-15", "2024-02-5"], dtype="datetime64[ns]"
+    ... )
     >>> dates.dt.day
     0     1
     1    15
@@ -607,6 +608,7 @@ class CombinedDatetimelikeProperties(
     2    2
     dtype: int32
     """
+
     def __new__(cls, data: Series):  # pyright: ignore[reportInconsistentConstructor]
         # CombinedDatetimelikeProperties isn't really instantiated. Instead
         # we need to choose which parent (datetime or timedelta) is
