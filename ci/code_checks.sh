@@ -155,7 +155,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Period.ordinal\
         pandas.PeriodIndex.freq\
         pandas.PeriodIndex.qyear\
-        pandas.Series.dt\
         pandas.Series.dt.as_unit\
         pandas.Series.dt.freq\
         pandas.Series.dt.qyear\

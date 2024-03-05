@@ -571,6 +571,38 @@ class PeriodProperties(Properties):
 class CombinedDatetimelikeProperties(
     DatetimeProperties, TimedeltaProperties, PeriodProperties
 ):
+    """
+    Combined datetime-like properties for a pandas Series.
+
+    Not meant to be instantiated directly. Instead, used
+    to determine the appropriate parent class (ArrowTemporalProperties, DatetimeProperties,
+    TimedeltaProperties, or PeriodProperties) based on the dtype of the provided pandas Series.
+    Parameters
+    ----------
+    data : pandas.Series
+        Series containing datetime-like data.
+    Raises
+    ------
+    TypeError
+        If object is not a pandas Series.
+    Returns
+    -------
+    Instance of the appropriate subclass (ArrowTemporalProperties, DatetimeProperties,
+    TimedeltaProperties, or PeriodProperties)
+    Examples
+    -------
+    >>> dates = pd.Series(['2024-01-01', '2024-01-15', '2024-02-5']).astype('datetime64[ns]')
+    >>> dates.dt.day
+    0     1
+    1    15
+    2     5
+    dtype: int32
+    >>> dates.dt.month
+    0    1
+    1    1
+    2    2
+    dtype: int32
+    """
     def __new__(cls, data: Series):  # pyright: ignore[reportInconsistentConstructor]
         # CombinedDatetimelikeProperties isn't really instantiated. Instead
         # we need to choose which parent (datetime or timedelta) is
