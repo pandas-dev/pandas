@@ -32,7 +32,7 @@ class DummyArray(ExtensionArray):
         self.data = data
         self._dtype = dtype
 
-    def __array__(self, dtype):
+    def __array__(self, dtype=None, copy=None):
         return self.data
 
     @property

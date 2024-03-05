@@ -770,7 +770,7 @@ class MultiIndex(Index):
             ):
                 vals = vals.astype(object)
 
-            array_vals = np.array(vals, copy=False)
+            array_vals = np.asarray(vals)
             array_vals = algos.take_nd(array_vals, codes, fill_value=index._na_value)
             values.append(array_vals)
 
@@ -1078,6 +1078,29 @@ class MultiIndex(Index):
 
     @property
     def codes(self) -> tuple:
+        """
+        Codes of the MultiIndex.
+
+        Codes are the position of the index value in the list of level values
+        for each level.
+
+        Returns
+        -------
+        tuple of numpy.ndarray
+            The codes of the MultiIndex. Each array in the tuple corresponds
+            to a level in the MultiIndex.
+
+        See Also
+        --------
+        MultiIndex.set_codes : Set new codes on MultiIndex.
+
+        Examples
+        --------
+        >>> arrays = [[1, 1, 2, 2], ["red", "blue", "red", "blue"]]
+        >>> mi = pd.MultiIndex.from_arrays(arrays, names=("number", "color"))
+        >>> mi.codes
+        (array([0, 0, 1, 1], dtype=int8), array([1, 0, 1, 0], dtype=int8))
+        """
         return self._codes
 
     def _set_codes(
@@ -1307,7 +1330,7 @@ class MultiIndex(Index):
             new_index._id = self._id
         return new_index
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype=None, copy=None) -> np.ndarray:
         """the array interface, return my values"""
         return self.values
 
@@ -3334,7 +3357,7 @@ class MultiIndex(Index):
                     locs = (level_codes >= idx.start) & (level_codes < idx.stop)
                     return locs
 
-                locs = np.array(level_codes == idx, dtype=bool, copy=False)
+                locs = np.asarray(level_codes == idx, dtype=bool)
 
                 if not locs.any():
                     # The label is present in self.levels[level] but unused:
