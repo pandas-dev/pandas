@@ -587,10 +587,11 @@ class CombinedDatetimelikeProperties(
     DatetimeProperties, TimedeltaProperties, or PeriodProperties)
     See Also
     --------
-    pandas.Series.dt : Accessor object for datetimelike properties of the Series values
+    pandas.Series.dt : Accessor object for datetimelike properties of the Series values.
     Examples
     --------
-    >>> dates = pd.Series(['2024-01-01', '2024-01-15', '2024-02-5']).astype('datetime64[ns]')
+    >>> dates = pd.Series(['2024-01-01', '2024-01-15', '2024-02-5'],
+    ...         dtype='datetime64[ns]')
     >>> dates.dt.day
     0     1
     1    15

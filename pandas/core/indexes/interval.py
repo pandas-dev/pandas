@@ -833,6 +833,7 @@ class IntervalIndex(ExtensionIndex):
     def right(self) -> Index:
         """
         Return intervals' right value.
+
         Returns
         -------
         Index
