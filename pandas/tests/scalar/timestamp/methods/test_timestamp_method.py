@@ -11,6 +11,7 @@ import pandas._testing as tm
 
 class TestTimestampMethod:
     @td.skip_if_windows
+    @td.skip_if_wasm  # tzset is available only on Unix-like systems
     def test_timestamp(self, fixed_now_ts):
         # GH#17329
         # tz-naive --> treat it as if it were UTC for purposes of timestamp()
