@@ -52,7 +52,3 @@ py.install_sources(
 )
 
 subdir('pandas')
-
-cmake = import('cmake')
-sub_proj = cmake.subproject('nb_libs')
-vec_lib = sub_proj.dependency('new_vector')
