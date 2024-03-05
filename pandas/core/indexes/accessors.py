@@ -577,17 +577,21 @@ class CombinedDatetimelikeProperties(
     Not meant to be instantiated directly. Instead, used to determine the appropriate
     parent class (ArrowTemporalProperties, DatetimeProperties,TimedeltaProperties,
     or PeriodProperties) based on the dtype of the provided pandas Series.
+
     Raises
     ------
     TypeError
         If object is not a pandas Series.
+
     Returns
     -------
     Instance of the appropriate subclass (ArrowTemporalProperties,
     DatetimeProperties, TimedeltaProperties, or PeriodProperties)
+
     See Also
     --------
     pandas.Series.dt : Accessor object for datetimelike properties of the Series values.
+
     Examples
     --------
     >>> dates = pd.Series(['2024-01-01', '2024-01-15', '2024-02-5'],

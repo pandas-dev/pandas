@@ -837,9 +837,11 @@ class IntervalIndex(ExtensionIndex):
         Returns
         -------
         Index
+
         See Also
         --------
         IntervalIndex : The structure of IntervalIndex.
+
         Examples
         --------
         >>> pd.interval_range(start=0, end=5)
