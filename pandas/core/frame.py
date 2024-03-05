@@ -1919,7 +1919,7 @@ class DataFrame(NDFrame, OpsMixin):
             dtype = np.dtype(dtype)
         result = self._mgr.as_array(dtype=dtype, copy=copy, na_value=na_value)
         if result.dtype is not dtype:
-            result = np.array(result, dtype=dtype, copy=False)
+            result = np.asarray(result, dtype=dtype)
 
         return result
 
