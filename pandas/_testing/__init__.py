@@ -34,7 +34,6 @@ from pandas import (
     Series,
 )
 from pandas._testing._io import (
-    round_trip_localpath,
     round_trip_pathlib,
     round_trip_pickle,
     write_to_compressed,
@@ -73,12 +72,10 @@ from pandas._testing.compat import (
     get_obj,
 )
 from pandas._testing.contexts import (
-    assert_cow_warning,
     decompress_file,
     ensure_clean,
     raises_chained_assignment_error,
     set_timezone,
-    use_numexpr,
     with_csv_dialect,
 )
 from pandas.core.arrays import (
@@ -236,11 +233,18 @@ if not pa_version_under10p1:
         + TIMEDELTA_PYARROW_DTYPES
         + BOOL_PYARROW_DTYPES
     )
+    ALL_REAL_PYARROW_DTYPES_STR_REPR = (
+        ALL_INT_PYARROW_DTYPES_STR_REPR + FLOAT_PYARROW_DTYPES_STR_REPR
+    )
 else:
     FLOAT_PYARROW_DTYPES_STR_REPR = []
     ALL_INT_PYARROW_DTYPES_STR_REPR = []
     ALL_PYARROW_DTYPES = []
+    ALL_REAL_PYARROW_DTYPES_STR_REPR = []
 
+ALL_REAL_NULLABLE_DTYPES = (
+    FLOAT_NUMPY_DTYPES + ALL_REAL_EXTENSION_DTYPES + ALL_REAL_PYARROW_DTYPES_STR_REPR
+)
 
 arithmetic_dunder_methods = [
     "__add__",
@@ -394,9 +398,6 @@ def external_error_raised(expected_exception: type[Exception]) -> ContextManager
     return pytest.raises(expected_exception, match=None)
 
 
-cython_table = pd.core.common._cython_table.items()
-
-
 def get_cython_table_params(ndframe, func_names_and_expected):
     """
     Combine frame, functions from com._cython_table
@@ -417,11 +418,6 @@ def get_cython_table_params(ndframe, func_names_and_expected):
     results = []
     for func_name, expected in func_names_and_expected:
         results.append((ndframe, func_name, expected))
-        results += [
-            (ndframe, func, expected)
-            for func, name in cython_table
-            if name == func_name
-        ]
     return results
 
 
@@ -483,7 +479,7 @@ def iat(x):
 _UNITS = ["s", "ms", "us", "ns"]
 
 
-def get_finest_unit(left: str, right: str):
+def get_finest_unit(left: str, right: str) -> str:
     """
     Find the higher of two datetime64 units.
     """
@@ -577,7 +573,6 @@ __all__ = [
     "assert_series_equal",
     "assert_sp_array_equal",
     "assert_timedelta_array_equal",
-    "assert_cow_warning",
     "at",
     "BOOL_DTYPES",
     "box_expected",
@@ -609,7 +604,6 @@ __all__ = [
     "OBJECT_DTYPES",
     "raise_assert_detail",
     "raises_chained_assignment_error",
-    "round_trip_localpath",
     "round_trip_pathlib",
     "round_trip_pickle",
     "setitem",
@@ -625,7 +619,6 @@ __all__ = [
     "to_array",
     "UNSIGNED_INT_EA_DTYPES",
     "UNSIGNED_INT_NUMPY_DTYPES",
-    "use_numexpr",
     "with_csv_dialect",
     "write_to_compressed",
 ]

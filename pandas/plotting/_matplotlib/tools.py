@@ -98,13 +98,14 @@ def _get_layout(
         nrows, ncols = layout
 
         if nrows == -1 and ncols > 0:
-            layout = nrows, ncols = (ceil(nplots / ncols), ncols)
+            layout = (ceil(nplots / ncols), ncols)
         elif ncols == -1 and nrows > 0:
-            layout = nrows, ncols = (nrows, ceil(nplots / nrows))
+            layout = (nrows, ceil(nplots / nrows))
         elif ncols <= 0 and nrows <= 0:
             msg = "At least one dimension of layout must be positive"
             raise ValueError(msg)
 
+        nrows, ncols = layout
         if nrows * ncols < nplots:
             raise ValueError(
                 f"Layout of {nrows}x{ncols} must be larger than required size {nplots}"

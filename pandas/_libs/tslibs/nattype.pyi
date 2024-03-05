@@ -1,20 +1,30 @@
 from datetime import (
+    date as date_,
     datetime,
+    time as time_,
     timedelta,
     tzinfo as _tzinfo,
 )
-import typing
+from typing import (
+    Literal,
+    NoReturn,
+    TypeAlias,
+)
 
 import numpy as np
 
 from pandas._libs.tslibs.period import Period
-from pandas._typing import Self
+from pandas._typing import (
+    Frequency,
+    Self,
+    TimestampNonexistent,
+)
 
 NaT: NaTType
 iNaT: int
 nat_strings: set[str]
 
-_NaTComparisonTypes: typing.TypeAlias = (
+_NaTComparisonTypes: TypeAlias = (
     datetime | timedelta | Period | np.datetime64 | np.timedelta64
 )
 
@@ -61,18 +71,38 @@ class NaTType:
     def week(self) -> float: ...
     @property
     def weekofyear(self) -> float: ...
+    @property
+    def fold(self) -> int: ...
     def day_name(self) -> float: ...
     def month_name(self) -> float: ...
     def weekday(self) -> float: ...
     def isoweekday(self) -> float: ...
+    def isoformat(self, sep: str = ..., timespec: str = ...) -> str: ...
+    def strftime(self, format: str) -> NoReturn: ...
     def total_seconds(self) -> float: ...
     def today(self, *args, **kwargs) -> NaTType: ...
     def now(self, *args, **kwargs) -> NaTType: ...
     def to_pydatetime(self) -> NaTType: ...
     def date(self) -> NaTType: ...
-    def round(self) -> NaTType: ...
-    def floor(self) -> NaTType: ...
-    def ceil(self) -> NaTType: ...
+    def round(
+        self,
+        freq: Frequency,
+        ambiguous: bool | Literal["raise"] | NaTType = ...,
+        nonexistent: TimestampNonexistent = ...,
+    ) -> NaTType: ...
+    def floor(
+        self,
+        freq: Frequency,
+        ambiguous: bool | Literal["raise"] | NaTType = ...,
+        nonexistent: TimestampNonexistent = ...,
+    ) -> NaTType: ...
+    def ceil(
+        self,
+        freq: Frequency,
+        ambiguous: bool | Literal["raise"] | NaTType = ...,
+        nonexistent: TimestampNonexistent = ...,
+    ) -> NaTType: ...
+    def combine(cls, date: date_, time: time_) -> NoReturn: ...
     @property
     def tzinfo(self) -> None: ...
     @property
@@ -81,8 +111,8 @@ class NaTType:
     def tz_localize(
         self,
         tz: _tzinfo | str | None,
-        ambiguous: str = ...,
-        nonexistent: str = ...,
+        ambiguous: bool | Literal["raise"] | NaTType = ...,
+        nonexistent: TimestampNonexistent = ...,
     ) -> NaTType: ...
     def replace(
         self,
@@ -120,6 +150,8 @@ class NaTType:
     # inject Timedelta properties
     @property
     def days(self) -> float: ...
+    @property
+    def seconds(self) -> float: ...
     @property
     def microseconds(self) -> float: ...
     @property

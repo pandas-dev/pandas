@@ -118,7 +118,6 @@ generated/pandas.api.types.is_int64_dtype,../reference/api/pandas.api.types.is_i
 generated/pandas.api.types.is_integer_dtype,../reference/api/pandas.api.types.is_integer_dtype
 generated/pandas.api.types.is_integer,../reference/api/pandas.api.types.is_integer
 generated/pandas.api.types.is_interval_dtype,../reference/api/pandas.api.types.is_interval_dtype
-generated/pandas.api.types.is_interval,../reference/api/pandas.api.types.is_interval
 generated/pandas.api.types.is_iterator,../reference/api/pandas.api.types.is_iterator
 generated/pandas.api.types.is_list_like,../reference/api/pandas.api.types.is_list_like
 generated/pandas.api.types.is_named_tuple,../reference/api/pandas.api.types.is_named_tuple
@@ -239,7 +238,6 @@ generated/pandas.core.resample.Resampler.backfill,../reference/api/pandas.core.r
 generated/pandas.core.resample.Resampler.bfill,../reference/api/pandas.core.resample.Resampler.bfill
 generated/pandas.core.resample.Resampler.count,../reference/api/pandas.core.resample.Resampler.count
 generated/pandas.core.resample.Resampler.ffill,../reference/api/pandas.core.resample.Resampler.ffill
-generated/pandas.core.resample.Resampler.fillna,../reference/api/pandas.core.resample.Resampler.fillna
 generated/pandas.core.resample.Resampler.first,../reference/api/pandas.core.resample.Resampler.first
 generated/pandas.core.resample.Resampler.get_group,../reference/api/pandas.core.resample.Resampler.get_group
 generated/pandas.core.resample.Resampler.groups,../reference/api/pandas.core.resample.Resampler.groups
@@ -312,7 +310,6 @@ generated/pandas.DataFrame.align,../reference/api/pandas.DataFrame.align
 generated/pandas.DataFrame.all,../reference/api/pandas.DataFrame.all
 generated/pandas.DataFrame.any,../reference/api/pandas.DataFrame.any
 generated/pandas.DataFrame.apply,../reference/api/pandas.DataFrame.apply
-generated/pandas.DataFrame.applymap,../reference/api/pandas.DataFrame.applymap
 generated/pandas.DataFrame.as_blocks,../reference/api/pandas.DataFrame.as_blocks
 generated/pandas.DataFrame.asfreq,../reference/api/pandas.DataFrame.asfreq
 generated/pandas.DataFrame.as_matrix,../reference/api/pandas.DataFrame.as_matrix
@@ -325,7 +322,6 @@ generated/pandas.DataFrame.axes,../reference/api/pandas.DataFrame.axes
 generated/pandas.DataFrame.between_time,../reference/api/pandas.DataFrame.between_time
 generated/pandas.DataFrame.bfill,../reference/api/pandas.DataFrame.bfill
 generated/pandas.DataFrame.blocks,../reference/api/pandas.DataFrame.blocks
-generated/pandas.DataFrame.bool,../reference/api/pandas.DataFrame.bool
 generated/pandas.DataFrame.boxplot,../reference/api/pandas.DataFrame.boxplot
 generated/pandas.DataFrame.clip,../reference/api/pandas.DataFrame.clip
 generated/pandas.DataFrame.clip_lower,../reference/api/pandas.DataFrame.clip_lower
@@ -484,7 +480,6 @@ generated/pandas.DataFrame.style,../reference/api/pandas.DataFrame.style
 generated/pandas.DataFrame.sub,../reference/api/pandas.DataFrame.sub
 generated/pandas.DataFrame.subtract,../reference/api/pandas.DataFrame.subtract
 generated/pandas.DataFrame.sum,../reference/api/pandas.DataFrame.sum
-generated/pandas.DataFrame.swapaxes,../reference/api/pandas.DataFrame.swapaxes
 generated/pandas.DataFrame.swaplevel,../reference/api/pandas.DataFrame.swaplevel
 generated/pandas.DataFrame.tail,../reference/api/pandas.DataFrame.tail
 generated/pandas.DataFrame.take,../reference/api/pandas.DataFrame.take
@@ -495,7 +490,6 @@ generated/pandas.DataFrame.to_csv,../reference/api/pandas.DataFrame.to_csv
 generated/pandas.DataFrame.to_dict,../reference/api/pandas.DataFrame.to_dict
 generated/pandas.DataFrame.to_excel,../reference/api/pandas.DataFrame.to_excel
 generated/pandas.DataFrame.to_feather,../reference/api/pandas.DataFrame.to_feather
-generated/pandas.DataFrame.to_gbq,../reference/api/pandas.DataFrame.to_gbq
 generated/pandas.DataFrame.to_hdf,../reference/api/pandas.DataFrame.to_hdf
 generated/pandas.DataFrame.to,../reference/api/pandas.DataFrame.to
 generated/pandas.DataFrame.to_json,../reference/api/pandas.DataFrame.to_json
@@ -750,8 +744,6 @@ generated/pandas.Interval.overlaps,../reference/api/pandas.Interval.overlaps
 generated/pandas.interval_range,../reference/api/pandas.interval_range
 generated/pandas.Interval.right,../reference/api/pandas.Interval.right
 generated/pandas.io.formats.style.Styler.apply,../reference/api/pandas.io.formats.style.Styler.apply
-generated/pandas.io.formats.style.Styler.applymap,../reference/api/pandas.io.formats.style.Styler.map
-generated/pandas.io.formats.style.Styler.applymap_index,../reference/api/pandas.io.formats.style.Styler.map_index
 generated/pandas.io.formats.style.Styler.background_gradient,../reference/api/pandas.io.formats.style.Styler.background_gradient
 generated/pandas.io.formats.style.Styler.bar,../reference/api/pandas.io.formats.style.Styler.bar
 generated/pandas.io.formats.style.Styler.clear,../reference/api/pandas.io.formats.style.Styler.clear
@@ -890,7 +882,6 @@ generated/pandas.read_csv,../reference/api/pandas.read_csv
 generated/pandas.read_excel,../reference/api/pandas.read_excel
 generated/pandas.read_feather,../reference/api/pandas.read_feather
 generated/pandas.read_fwf,../reference/api/pandas.read_fwf
-generated/pandas.read_gbq,../reference/api/pandas.read_gbq
 generated/pandas.read_hdf,../reference/api/pandas.read_hdf
 generated/pandas.read,../reference/api/pandas.read
 generated/pandas.read_json,../reference/api/pandas.read_json
@@ -932,7 +923,6 @@ generated/pandas.Series.between,../reference/api/pandas.Series.between
 generated/pandas.Series.between_time,../reference/api/pandas.Series.between_time
 generated/pandas.Series.bfill,../reference/api/pandas.Series.bfill
 generated/pandas.Series.blocks,../reference/api/pandas.Series.blocks
-generated/pandas.Series.bool,../reference/api/pandas.Series.bool
 generated/pandas.Series.cat.add_categories,../reference/api/pandas.Series.cat.add_categories
 generated/pandas.Series.cat.as_ordered,../reference/api/pandas.Series.cat.as_ordered
 generated/pandas.Series.cat.as_unordered,../reference/api/pandas.Series.cat.as_unordered
@@ -1116,7 +1106,6 @@ generated/pandas.Series.ptp,../reference/api/pandas.Series.ptp
 generated/pandas.Series.quantile,../reference/api/pandas.Series.quantile
 generated/pandas.Series.radd,../reference/api/pandas.Series.radd
 generated/pandas.Series.rank,../reference/api/pandas.Series.rank
-generated/pandas.Series.ravel,../reference/api/pandas.Series.ravel
 generated/pandas.Series.rdiv,../reference/api/pandas.Series.rdiv
 generated/pandas.Series.rdivmod,../reference/api/pandas.Series.rdivmod
 generated/pandas.Series.real,../reference/api/pandas.Series.real
@@ -1215,7 +1204,6 @@ generated/pandas.Series.str.zfill,../reference/api/pandas.Series.str.zfill
 generated/pandas.Series.sub,../reference/api/pandas.Series.sub
 generated/pandas.Series.subtract,../reference/api/pandas.Series.subtract
 generated/pandas.Series.sum,../reference/api/pandas.Series.sum
-generated/pandas.Series.swapaxes,../reference/api/pandas.Series.swapaxes
 generated/pandas.Series.swaplevel,../reference/api/pandas.Series.swaplevel
 generated/pandas.Series.tail,../reference/api/pandas.Series.tail
 generated/pandas.Series.take,../reference/api/pandas.Series.take
@@ -1251,7 +1239,6 @@ generated/pandas.Series.valid,../reference/api/pandas.Series.valid
 generated/pandas.Series.value_counts,../reference/api/pandas.Series.value_counts
 generated/pandas.Series.values,../reference/api/pandas.Series.values
 generated/pandas.Series.var,../reference/api/pandas.Series.var
-generated/pandas.Series.view,../reference/api/pandas.Series.view
 generated/pandas.Series.where,../reference/api/pandas.Series.where
 generated/pandas.Series.xs,../reference/api/pandas.Series.xs
 generated/pandas.set_option,../reference/api/pandas.set_option
@@ -1439,8 +1426,6 @@ reference/api/pandas.arrays.PandasArray,pandas.arrays.NumpyExtensionArray
 reference/api/pandas.core.groupby.DataFrameGroupBy.backfill,pandas.core.groupby.DataFrameGroupBy.bfill
 reference/api/pandas.core.groupby.GroupBy.backfill,pandas.core.groupby.DataFrameGroupBy.bfill
 reference/api/pandas.core.resample.Resampler.backfill,pandas.core.resample.Resampler.bfill
-reference/api/pandas.io.formats.style.Styler.applymap,pandas.io.formats.style.Styler.map
-reference/api/pandas.io.formats.style.Styler.applymap_index,pandas.io.formats.style.Styler.map_index
 
 # EWM -> ExponentialMovingWindow
 reference/api/pandas.core.window.ewm.EWM.corr,pandas.core.window.ewm.ExponentialMovingWindow.corr

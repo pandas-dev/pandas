@@ -54,14 +54,17 @@ from contextlib import (
     ContextDecorator,
     contextmanager,
 )
+from inspect import signature
 import re
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
     Generic,
+    Literal,
     NamedTuple,
     cast,
+    overload,
 )
 import warnings
 
@@ -88,7 +91,7 @@ class DeprecatedOption(NamedTuple):
 
 class RegisteredOption(NamedTuple):
     key: str
-    defval: object
+    defval: Any
     doc: str
     validator: Callable[[object], Any] | None
     cb: Callable[[str], Any] | None
@@ -130,7 +133,7 @@ def _get_single_key(pat: str, silent: bool) -> str:
     if len(keys) == 0:
         if not silent:
             _warn_if_deprecated(pat)
-        raise OptionError(f"No such keys(s): {repr(pat)}")
+        raise OptionError(f"No such keys(s): {pat!r}")
     if len(keys) > 1:
         raise OptionError("Pattern matched multiple keys")
     key = keys[0]
@@ -270,6 +273,7 @@ class CallableDynamicDoc(Generic[T]):
     def __init__(self, func: Callable[..., T], doc_tmpl: str) -> None:
         self.__doc_tmpl__ = doc_tmpl
         self.__func__ = func
+        self.__signature__ = signature(func)
 
     def __call__(self, *args, **kwds) -> T:
         return self.__func__(*args, **kwds)
@@ -322,9 +326,9 @@ Examples
 """
 
 _set_option_tmpl = """
-set_option(pat, value)
+set_option(*args, **kwargs)
 
-Sets the value of the specified option.
+Sets the value of the specified option or options.
 
 Available options:
 
@@ -332,13 +336,18 @@ Available options:
 
 Parameters
 ----------
-pat : str
-    Regexp which should match a single option.
-    Note: partial matches are supported for convenience, but unless you use the
-    full option name (e.g. x.y.z.option_name), your code may break in future
-    versions if new options with similar names are introduced.
-value : object
-    New value of option.
+*args : str | object
+    Arguments provided in pairs, which will be interpreted as (pattern, value)
+    pairs.
+    pattern: str
+    Regexp which should match a single option
+    value: object
+    New value of option
+    Note: partial pattern matches are supported for convenience, but unless you
+    use the full option name (e.g. x.y.z.option_name), your code may break in
+    future versions if new options with similar names are introduced.
+**kwargs : str
+    Keyword arguments are not currently supported.
 
 Returns
 -------
@@ -346,6 +355,8 @@ None
 
 Raises
 ------
+ValueError if odd numbers of non-keyword arguments are provided
+TypeError if keyword arguments are provided
 OptionError if no such option exists
 
 Notes
@@ -465,7 +476,7 @@ class option_context(ContextDecorator):
     Examples
     --------
     >>> from pandas import option_context
-    >>> with option_context('display.max_rows', 10, 'display.max_columns', 5):
+    >>> with option_context("display.max_rows", 10, "display.max_columns", 5):
     ...     pass
     """
 
@@ -740,7 +751,23 @@ def _build_option_description(k: str) -> str:
     return s
 
 
-def pp_options_list(keys: Iterable[str], width: int = 80, _print: bool = False):
+@overload
+def pp_options_list(
+    keys: Iterable[str], *, width: int = ..., _print: Literal[False] = ...
+) -> str:
+    ...
+
+
+@overload
+def pp_options_list(
+    keys: Iterable[str], *, width: int = ..., _print: Literal[True]
+) -> None:
+    ...
+
+
+def pp_options_list(
+    keys: Iterable[str], *, width: int = 80, _print: bool = False
+) -> str | None:
     """Builds a concise listing of available options, grouped by prefix"""
     from itertools import groupby
     from textwrap import wrap
@@ -770,8 +797,7 @@ def pp_options_list(keys: Iterable[str], width: int = 80, _print: bool = False):
     s = "\n".join(ls)
     if _print:
         print(s)
-    else:
-        return s
+    return s
 
 
 #

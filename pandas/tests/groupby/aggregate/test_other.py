@@ -410,10 +410,7 @@ def test_agg_callables():
 
     expected = df.groupby("foo").agg("sum")
     for ecall in equiv_callables:
-        warn = FutureWarning if ecall is sum or ecall is np.sum else None
-        msg = "using DataFrameGroupBy.sum"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = df.groupby("foo").agg(ecall)
+        result = df.groupby("foo").agg(ecall)
         tm.assert_frame_equal(result, expected)
 
 
@@ -502,7 +499,7 @@ def test_agg_timezone_round_trip():
 
     # GH#27110 applying iloc should return a DataFrame
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         assert ts == grouped.apply(lambda x: x.iloc[0]).iloc[0, 1]
 
     ts = df["B"].iloc[2]
@@ -510,7 +507,7 @@ def test_agg_timezone_round_trip():
 
     # GH#27110 applying iloc should return a DataFrame
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         assert ts == grouped.apply(lambda x: x.iloc[-1]).iloc[0, 1]
 
 
@@ -587,9 +584,7 @@ def test_agg_category_nansum(observed):
     df = DataFrame(
         {"A": pd.Categorical(["a", "a", "b"], categories=categories), "B": [1, 2, 3]}
     )
-    msg = "using SeriesGroupBy.sum"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A", observed=observed).B.agg(np.nansum)
+    result = df.groupby("A", observed=observed).B.agg(np.nansum)
     expected = Series(
         [3, 3, 0],
         index=pd.CategoricalIndex(["a", "b", "c"], categories=categories, name="A"),

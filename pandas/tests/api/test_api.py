@@ -133,7 +133,6 @@ class TestPDApi(Base):
         "show_versions",
         "timedelta_range",
         "unique",
-        "value_counts",
         "wide_to_long",
     ]
 
@@ -153,7 +152,6 @@ class TestPDApi(Base):
         "read_csv",
         "read_excel",
         "read_fwf",
-        "read_gbq",
         "read_hdf",
         "read_html",
         "read_xml",
@@ -293,7 +291,6 @@ class TestApi(Base):
         "is_int64_dtype",
         "is_integer",
         "is_integer_dtype",
-        "is_interval",
         "is_interval_dtype",
         "is_iterator",
         "is_list_like",
@@ -355,6 +352,29 @@ class TestApi(Base):
 
     def test_api_extensions(self):
         self.check(api_extensions, self.allowed_api_extensions)
+
+
+class TestErrors(Base):
+    def test_errors(self):
+        self.check(pd.errors, pd.errors.__all__, ignored=["ctypes", "cow"])
+
+
+class TestUtil(Base):
+    def test_util(self):
+        self.check(
+            pd.util,
+            ["hash_array", "hash_pandas_object"],
+            ignored=[
+                "_decorators",
+                "_test_decorators",
+                "_exceptions",
+                "_validators",
+                "capitalize_first_letter",
+                "version",
+                "_print_versions",
+                "_tester",
+            ],
+        )
 
 
 class TestTesting(Base):

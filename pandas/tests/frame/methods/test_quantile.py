@@ -691,9 +691,7 @@ class TestDataFrameQuantile:
         exp = exp.astype(object)
         if interpolation == "nearest":
             # GH#18463 TODO: would we prefer NaTs here?
-            msg = "The 'downcast' keyword in fillna is deprecated"
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                exp = exp.fillna(np.nan, downcast=False)
+            exp = exp.fillna(np.nan)
         tm.assert_series_equal(res, exp)
 
         # both dt64tz
@@ -723,7 +721,7 @@ class TestDataFrameQuantile:
         expected.columns.name = "captain tightpants"
         tm.assert_frame_equal(result, expected)
 
-    def test_quantile_item_cache(self, interp_method, using_copy_on_write):
+    def test_quantile_item_cache(self, interp_method):
         # previous behavior incorrect retained an invalid _item_cache entry
         interpolation, method = interp_method
         df = DataFrame(
@@ -735,14 +733,9 @@ class TestDataFrameQuantile:
 
         df.quantile(numeric_only=False, interpolation=interpolation, method=method)
 
-        if using_copy_on_write:
-            ser.iloc[0] = 99
-            assert df.iloc[0, 0] == df["A"][0]
-            assert df.iloc[0, 0] != 99
-        else:
-            ser.values[0] = 99
-            assert df.iloc[0, 0] == df["A"][0]
-            assert df.iloc[0, 0] == 99
+        ser.iloc[0] = 99
+        assert df.iloc[0, 0] == df["A"][0]
+        assert df.iloc[0, 0] != 99
 
     def test_invalid_method(self):
         with pytest.raises(ValueError, match="Invalid method: foo"):
