@@ -112,6 +112,7 @@ private:
 
 template <typename T, bool IsMasked> class PandasHashTable {
 public:
+  using pd_khint_t = size_t;
   explicit PandasHashTable<T, IsMasked>() = default;
   explicit PandasHashTable<T, IsMasked>(size_t new_size) {
     // historically pandas would take a size_hint constructor and pass
@@ -136,7 +137,7 @@ public:
   auto SizeOf() const noexcept -> size_t {
     constexpr size_t overhead = 4 * sizeof(uint32_t) + 3 * sizeof(uint32_t *);
     const auto for_flags =
-        std::max(1U, hash_map_.n_buckets() >> 5) * sizeof(uint32_t);
+      std::max(static_cast<pd_khint_t>(1), hash_map_.n_buckets() >> 5) * sizeof(uint32_t);
     const auto for_pairs =
         hash_map_.n_buckets() * (sizeof(T) + sizeof(Py_ssize_t));
 
@@ -662,7 +663,7 @@ private:
     return;
   }
 
-  klib::KHashMap<T, size_t, PandasHashFunction<T>, PandasHashEquality<T>, size_t>
+  klib::KHashMap<T, size_t, PandasHashFunction<T>, PandasHashEquality<T>, pd_khint_t>
       hash_map_;
   Py_ssize_t na_position_ = -1;
 };
