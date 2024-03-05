@@ -21,6 +21,7 @@ from pandas._libs import (
     hashtable as htable,
     iNaT,
     lib,
+    new_vector as nv,
 )
 from pandas._typing import (
     AnyArrayLike,
@@ -248,23 +249,37 @@ def _ensure_arraylike(values, func_name: str) -> ArrayLike:
 _hashtables = {
     "complex128": htable.Complex128HashTable,
     "complex64": htable.Complex64HashTable,
-    "float64": htable.Float64HashTable,
-    "float32": htable.Float32HashTable,
-    "uint64": htable.UInt64HashTable,
-    "uint32": htable.UInt32HashTable,
-    "uint16": htable.UInt16HashTable,
-    "uint8": htable.UInt8HashTable,
-    "int64": htable.Int64HashTable,
-    "int32": htable.Int32HashTable,
-    "int16": htable.Int16HashTable,
-    "int8": htable.Int8HashTable,
+    "float64": nv.Float64HashTable,
+    "float32": nv.Float32HashTable,
+    "uint64": nv.UInt64HashTable,
+    "uint32": nv.UInt32HashTable,
+    "uint16": nv.UInt16HashTable,
+    "uint8": nv.UInt8HashTable,
+    "int64": nv.Int64HashTable,
+    "int32": nv.Int32HashTable,
+    "int16": nv.Int16HashTable,
+    "int8": nv.Int8HashTable,
     "string": htable.StringHashTable,
     "object": htable.PyObjectHashTable,
+}
+
+_masked_hashtables = {
+    "float64": nv.Float64MaskedHashTable,
+    "float32": nv.Float32MaskedHashTable,
+    "uint64": nv.UInt64MaskedHashTable,
+    "uint32": nv.UInt32MaskedHashTable,
+    "uint16": nv.UInt16MaskedHashTable,
+    "uint8": nv.UInt8MaskedHashTable,
+    "int64": nv.Int64MaskedHashTable,
+    "int32": nv.Int32MaskedHashTable,
+    "int16": nv.Int16MaskedHashTable,
+    "int8": nv.Int8MaskedHashTable,
 }
 
 
 def _get_hashtable_algo(
     values: np.ndarray,
+    uses_mask=False,
 ) -> tuple[type[htable.HashTable], np.ndarray]:
     """
     Parameters
@@ -279,7 +294,10 @@ def _get_hashtable_algo(
     values = _ensure_data(values)
 
     ndtype = _check_object_for_strings(values)
-    hashtable = _hashtables[ndtype]
+    if uses_mask:
+        hashtable = _masked_hashtables[ndtype]
+    else:
+        hashtable = _hashtables[ndtype]
     return hashtable, values
 
 
@@ -439,7 +457,7 @@ def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
         return values.unique()
 
     original = values
-    hashtable, values = _get_hashtable_algo(values)
+    hashtable, values = _get_hashtable_algo(values, mask is not None)
 
     table = hashtable(len(values))
     if mask is None:
@@ -448,7 +466,7 @@ def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
         return uniques
 
     else:
-        uniques, mask = table.unique(values, mask=mask)
+        uniques, mask = table.unique(values, mask=mask.astype("uint8"))
         uniques = _reconstruct_data(uniques, original.dtype, original)
         assert mask is not None  # for mypy
         return uniques, mask.astype("bool")
@@ -595,14 +613,14 @@ def factorize_array(
         # e.g. test_where_datetimelike_categorical
         na_value = iNaT
 
-    hash_klass, values = _get_hashtable_algo(values)
+    hash_klass, values = _get_hashtable_algo(values, mask is not None)
 
     table = hash_klass(size_hint or len(values))
     uniques, codes = table.factorize(
         values,
         na_sentinel=-1,
         na_value=na_value,
-        mask=mask,
+        mask=mask.astype("uint8") if mask is not None else None,
         ignore_na=use_na_sentinel,
     )
 

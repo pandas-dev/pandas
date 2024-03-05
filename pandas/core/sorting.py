@@ -13,8 +13,8 @@ import numpy as np
 
 from pandas._libs import (
     algos,
-    hashtable,
     lib,
+    new_vector,
 )
 from pandas._libs.hashtable import unique_label_indices
 
@@ -601,7 +601,7 @@ def get_flattened_list(
     comp_ids = comp_ids.astype(np.int64, copy=False)
     arrays: DefaultDict[int, list[int]] = defaultdict(list)
     for labs, level in zip(labels, levels):
-        table = hashtable.Int64HashTable(ngroups)
+        table = new_vector.Int64HashTable(ngroups)
         table.map_keys_to_values(comp_ids, labs.astype(np.int64, copy=False))
         for i in range(ngroups):
             arrays[i].append(level[table.get_item(i)])
@@ -702,7 +702,7 @@ def compress_group_index(
         obs_group_ids = group_index[unique_mask]
     else:
         size_hint = len(group_index)
-        table = hashtable.Int64HashTable(size_hint)
+        table = new_vector.Int64HashTable(size_hint)
 
         group_index = ensure_int64(group_index)
 

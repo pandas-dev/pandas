@@ -7,6 +7,7 @@ import pytest
 from pandas._libs import (
     algos as libalgos,
     hashtable as ht,
+    new_vector as nv,
 )
 
 from pandas.core.dtypes.common import (
@@ -1682,15 +1683,15 @@ class TestHashTable:
         [
             (ht.PyObjectHashTable, [f"foo_{i}" for i in range(1000)]),
             (ht.StringHashTable, [f"foo_{i}" for i in range(1000)]),
-            (ht.Float64HashTable, np.arange(1000, dtype=np.float64)),
-            (ht.Int64HashTable, np.arange(1000, dtype=np.int64)),
-            (ht.UInt64HashTable, np.arange(1000, dtype=np.uint64)),
+            (nv.Float64HashTable, np.arange(1000, dtype=np.float64)),
+            (nv.Int64HashTable, np.arange(1000, dtype=np.int64)),
+            (nv.UInt64HashTable, np.arange(1000, dtype=np.uint64)),
         ],
     )
     def test_hashtable_unique(self, htable, data, writable):
         # output of maker has guaranteed unique elements
         s = Series(data)
-        if htable == ht.Float64HashTable:
+        if htable == nv.Float64HashTable:
             # add NaN for float column
             s.loc[500] = np.nan
         elif htable == ht.PyObjectHashTable:
@@ -1721,15 +1722,15 @@ class TestHashTable:
         [
             (ht.PyObjectHashTable, [f"foo_{i}" for i in range(1000)]),
             (ht.StringHashTable, [f"foo_{i}" for i in range(1000)]),
-            (ht.Float64HashTable, np.arange(1000, dtype=np.float64)),
-            (ht.Int64HashTable, np.arange(1000, dtype=np.int64)),
-            (ht.UInt64HashTable, np.arange(1000, dtype=np.uint64)),
+            (nv.Float64HashTable, np.arange(1000, dtype=np.float64)),
+            (nv.Int64HashTable, np.arange(1000, dtype=np.int64)),
+            (nv.UInt64HashTable, np.arange(1000, dtype=np.uint64)),
         ],
     )
     def test_hashtable_factorize(self, htable, writable, data):
         # output of maker has guaranteed unique elements
         s = Series(data)
-        if htable == ht.Float64HashTable:
+        if htable == nv.Float64HashTable:
             # add NaN for float column
             s.loc[500] = np.nan
         elif htable == ht.PyObjectHashTable:

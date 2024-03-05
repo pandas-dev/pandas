@@ -678,7 +678,7 @@ def outer_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t]
 # asof_join_by
 # ----------------------------------------------------------------------
 
-from pandas._libs.hashtable cimport Int64HashTable
+from pandas._libs.new_vector import Int64HashTable
 
 
 def asof_join_backward_on_X_by_Y(ndarray[numeric_t] left_values,
@@ -695,7 +695,6 @@ def asof_join_backward_on_X_by_Y(ndarray[numeric_t] left_values,
         bint has_tolerance = False
         numeric_t tolerance_ = 0
         numeric_t diff = 0
-        Int64HashTable hash_table
 
     # if we are using tolerance, set our objects
     if tolerance is not None:
@@ -766,7 +765,6 @@ def asof_join_forward_on_X_by_Y(ndarray[numeric_t] left_values,
         bint has_tolerance = False
         numeric_t tolerance_ = 0
         numeric_t diff = 0
-        Int64HashTable hash_table
 
     # if we are using tolerance, set our objects
     if tolerance is not None:
