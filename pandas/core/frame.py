@@ -6506,6 +6506,11 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame or None
             DataFrame with duplicates removed or None if ``inplace=True``.
 
+        Notes
+        -------
+        This method requires columns specified by ``subset`` to be of hashable type.
+        Passing unhashable columns will raise a ``TypeError``.
+
         See Also
         --------
         DataFrame.value_counts: Count unique combinations of columns.
