@@ -98,7 +98,10 @@ following steps, the pandas team, and the pandas-dev mailing list are notified v
 E-mail:
 
 - Once a PDEP is ready for discussion.
-- After 30 to 45 discussion days, with 15 days remaining for discussion.
+- After 30 days, with a note that there is at most 30 days remaining for discussion,
+  and that a vote will be called for if no discussion occurs in the next 15 days.
+- After 45 days, with a note that there is at most 15 days remaining for discussion,
+  and that a vote will be called for in 15 days.
 - Once the voting period starts, after 60 days or in case of an earlier vote, with 15 days
   remaining for voting.
 - After 10 voting days, with 5 days remaining for voting.
