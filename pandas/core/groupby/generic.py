@@ -1714,7 +1714,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         obj = self._obj_with_exclusions
 
-        if not len(obj.columns):
+        if self._grouper._is_resample and not len(obj.columns):
             # e.g. test_margins_no_values_no_cols
             return self._python_apply_general(f, self._selected_obj)
 
