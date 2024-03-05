@@ -1023,7 +1023,7 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         cls : dtype, optional
-            The dtype for the returned view of the Index. If None (default), a view
+            The dtype for the returned view of the Index. If ``None`` (default), a view
             of the calling Index is returned without altering the dtype. If a numeric
             dtype is specified, the method attempts to reinterpret the Index data as
             the specified dtype.
