@@ -24,7 +24,7 @@ import pandas.util._test_decorators as td
 import pandas._testing as tm
 from pandas._testing._hypothesis import DATETIME_NO_TZ
 
-
+@td.skip_if_wasm  # tzset is available only on Unix-like systems
 @pytest.mark.skipif(
     is_platform_windows() or ISMUSL,
     reason="TZ setting incorrect on Windows and MUSL Linux",
