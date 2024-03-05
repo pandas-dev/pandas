@@ -11559,7 +11559,9 @@ class DataFrame(NDFrame, OpsMixin):
             min_count=min_count,
             **kwargs,
         )
-        return result.__finalize__(self, method="sum")
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="sum")
+        return result
 
     @doc(make_doc("prod", ndim=2))
     def prod(
@@ -11577,7 +11579,9 @@ class DataFrame(NDFrame, OpsMixin):
             min_count=min_count,
             **kwargs,
         )
-        return result.__finalize__(self, method="prod")
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="prod")
+        return result
 
     # error: Signature of "mean" incompatible with supertype "NDFrame"
     @overload  # type: ignore[override]
