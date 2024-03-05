@@ -959,6 +959,7 @@ class TestToDatetime:
         assert actual == datetime(2008, 1, 15)
 
     @td.skip_if_windows  # `tm.set_timezone` does not work in windows
+    @td.skip_if_wasm  # tzset is available only on Unix-like systems
     def test_to_datetime_now(self):
         # See GH#18666
         with tm.set_timezone("US/Eastern"):
