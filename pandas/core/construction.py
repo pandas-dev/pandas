@@ -626,7 +626,10 @@ def sanitize_array(
 
     elif hasattr(data, "__array__"):
         # e.g. dask array GH#38645
-        data = np.array(data, copy=copy)
+        if not copy:
+            data = np.asarray(data)
+        else:
+            data = np.array(data, copy=copy)
         return sanitize_array(
             data,
             index=index,
@@ -744,8 +747,11 @@ def _sanitize_str_dtypes(
         # GH#19853: If data is a scalar, result has already the result
         if not lib.is_scalar(data):
             if not np.all(isna(data)):
-                data = np.array(data, dtype=dtype, copy=False)
-            result = np.array(data, dtype=object, copy=copy)
+                data = np.asarray(data, dtype=dtype)
+            if not copy:
+                result = np.asarray(data, dtype=object)
+            else:
+                result = np.array(data, dtype=object, copy=copy)
     return result
 
 
@@ -810,6 +816,8 @@ def _try_cast(
         # this will raise if we have e.g. floats
 
         subarr = maybe_cast_to_integer_array(arr, dtype)
+    elif not copy:
+        subarr = np.asarray(arr, dtype=dtype)
     else:
         subarr = np.array(arr, dtype=dtype, copy=copy)
 
