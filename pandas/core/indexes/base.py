@@ -4588,7 +4588,6 @@ class Index(IndexOpsMixin, PandasObject):
         )
         return join_index, left_indexer, right_indexer
 
-    @final
     def _join_monotonic(
         self, other: Index, how: JoinHow = "left"
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
