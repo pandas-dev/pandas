@@ -1050,7 +1050,6 @@ class Index(IndexOpsMixin, PandasObject):
         FutureWarning
             Directly passing a dtype to `view` that results in an incompatible memory
             reinterpretation will raise an error in a future version.
-        
         See Also
         --------
         copy: Returns a copy of the Index.
