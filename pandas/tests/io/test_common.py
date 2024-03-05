@@ -22,6 +22,7 @@ from pandas.compat import is_platform_windows
 
 import pandas as pd
 import pandas._testing as tm
+import pandas.util._test_decorators as td
 
 import pandas.io.common as icom
 
@@ -162,6 +163,7 @@ Look,a snake,🐍"""
             tm.assert_frame_equal(first, expected.iloc[[0]])
             tm.assert_frame_equal(pd.concat(it), expected.iloc[1:])
 
+    @td.skip_if_wasm  # limited file system access on WASM
     @pytest.mark.parametrize(
         "reader, module, error_class, fn_ext",
         [
@@ -227,6 +229,8 @@ Look,a snake,🐍"""
         ):
             method(dummy_frame, path)
 
+
+    @td.skip_if_wasm  # limited file system access on WASM
     @pytest.mark.parametrize(
         "reader, module, error_class, fn_ext",
         [
@@ -381,6 +385,7 @@ def mmap_file(datapath):
 
 
 class TestMMapWrapper:
+    @td.skip_if_wasm  # limited file system access on WASM
     def test_constructor_bad_file(self, mmap_file):
         non_file = StringIO("I am not a file")
         non_file.fileno = lambda: -1
@@ -585,7 +590,7 @@ def test_bad_encdoing_errors():
         with pytest.raises(LookupError, match="unknown error handler name"):
             icom.get_handle(path, "w", errors="bad")
 
-
+@td.skip_if_wasm  # limited file system access on WASM
 def test_errno_attribute():
     # GH 13872
     with pytest.raises(FileNotFoundError, match="\\[Errno 2\\]") as err:

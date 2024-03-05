@@ -79,6 +79,7 @@ def test_path_path_lib(all_parsers):
     tm.assert_frame_equal(df, result)
 
 
+@td.skip_if_wasm  # limited file system access on WASM
 def test_nonexistent_path(all_parsers):
     # gh-2428: pls no segfault
     # gh-14086: raise more helpful FileNotFoundError

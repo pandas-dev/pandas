@@ -484,7 +484,7 @@ def test_empty_string_etree(val):
     with pytest.raises(ParseError, match="no element found"):
         read_xml(data, parser="etree")
 
-
+@td.skip_if_wasm  # limited file system access on WASM
 def test_wrong_file_path(parser):
     filename = os.path.join("does", "not", "exist", "books.xml")
 

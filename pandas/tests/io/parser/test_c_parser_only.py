@@ -549,6 +549,7 @@ def test_chunk_whitespace_on_boundary(c_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_if_wasm  # limited file system access on WASM
 def test_file_handles_mmap(c_parser_only, csv1):
     # gh-14418
     #
