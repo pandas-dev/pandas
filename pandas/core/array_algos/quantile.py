@@ -4,8 +4,6 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from pandas.compat.numpy import np_version_gt2
-
 from pandas.core.dtypes.missing import (
     isna,
     na_value_for_dtype,
@@ -104,8 +102,7 @@ def quantile_with_mask(
             interpolation=interpolation,
         )
 
-        copy_false = None if np_version_gt2 else False
-        result = np.array(result, copy=copy_false)
+        result = np.asarray(result)
         result = result.T
 
     return result
@@ -202,12 +199,11 @@ def _nanpercentile(
             _nanpercentile_1d(val, m, qs, na_value, interpolation=interpolation)
             for (val, m) in zip(list(values), list(mask))
         ]
-        copy_false = None if np_version_gt2 else False
         if values.dtype.kind == "f":
             # preserve itemsize
-            result = np.array(result, dtype=values.dtype, copy=copy_false).T
+            result = np.asarray(result, dtype=values.dtype).T
         else:
-            result = np.array(result, copy=copy_false).T
+            result = np.asarray(result).T
             if (
                 result.dtype != values.dtype
                 and not mask.all()

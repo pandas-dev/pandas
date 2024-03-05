@@ -43,7 +43,6 @@ from pandas._libs.tslibs import (
     tzconversion,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
-from pandas.compat.numpy import np_version_gt2
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
@@ -2422,8 +2421,7 @@ def objects_to_datetime64(
     assert errors in ["raise", "coerce"]
 
     # if str-dtype, convert
-    copy_false = None if np_version_gt2 else False
-    data = np.array(data, dtype=np.object_, copy=copy_false)
+    data = np.asarray(data, dtype=np.object_)
 
     result, tz_parsed = tslib.array_to_datetime(
         data,

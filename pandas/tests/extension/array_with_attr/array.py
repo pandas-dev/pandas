@@ -9,8 +9,6 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from pandas.compat.numpy import np_version_gt2
-
 from pandas.core.dtypes.base import ExtensionDtype
 
 import pandas as pd
@@ -51,9 +49,10 @@ class FloatAttrArray(ExtensionArray):
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype=None, copy=False):
-        if np_version_gt2 and not copy:
-            copy = None
-        data = np.array(scalars, dtype="float64", copy=copy)
+        if not copy:
+            data = np.asarray(scalars, dtype="float64")
+        else:
+            data = np.array(scalars, dtype="float64", copy=copy)
         return cls(data)
 
     def __getitem__(self, item):

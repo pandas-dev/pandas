@@ -50,7 +50,6 @@ from pandas._libs.tslibs.period import (
     get_period_field_arr,
     period_asfreq_arr,
 )
-from pandas.compat.numpy import np_version_gt2
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -244,9 +243,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             if not isinstance(dtype, PeriodDtype):
                 raise ValueError(f"Invalid dtype {dtype} for PeriodArray")
 
-        if np_version_gt2 and not copy:
-            copy = None
-
         if isinstance(values, ABCSeries):
             values = values._values
             if not isinstance(values, type(self)):
@@ -260,7 +256,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
                 raise raise_on_incompatible(values, dtype.freq)
             values, dtype = values._ndarray, values.dtype
 
-        values = np.array(values, dtype="int64", copy=copy)
+        if not copy:
+            values = np.asarray(values, dtype="int64")
+        else:
+            values = np.array(values, dtype="int64", copy=copy)
         if dtype is None:
             raise ValueError("dtype is not specified and cannot be inferred")
         dtype = cast(PeriodDtype, dtype)

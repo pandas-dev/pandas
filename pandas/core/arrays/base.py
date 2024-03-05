@@ -27,10 +27,7 @@ from pandas._libs import (
     lib,
 )
 from pandas.compat import set_function_name
-from pandas.compat.numpy import (
-    function as nv,
-    np_version_gt2,
-)
+from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
     Appender,
@@ -713,8 +710,6 @@ class ExtensionArray:
                 return self
             else:
                 return self.copy()
-        if np_version_gt2 and not copy:
-            copy = None
 
         if isinstance(dtype, ExtensionDtype):
             cls = dtype.construct_array_type()
@@ -730,7 +725,10 @@ class ExtensionArray:
 
             return TimedeltaArray._from_sequence(self, dtype=dtype, copy=copy)
 
-        return np.array(self, dtype=dtype, copy=copy)
+        if not copy:
+            return np.asarray(self, dtype=dtype)
+        else:
+            return np.array(self, dtype=dtype, copy=copy)
 
     def isna(self) -> np.ndarray | ExtensionArraySupportsAnyAll:
         """

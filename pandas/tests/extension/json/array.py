@@ -28,8 +28,6 @@ from typing import (
 
 import numpy as np
 
-from pandas.compat.numpy import np_version_gt2
-
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -212,10 +210,10 @@ class JSONArray(ExtensionArray):
             value = self.astype(str)  # numpy doesn't like nested dicts
             arr_cls = dtype.construct_array_type()
             return arr_cls._from_sequence(value, dtype=dtype, copy=False)
-
-        if np_version_gt2 and not copy:
-            copy = None
-        return np.array([dict(x) for x in self], dtype=dtype, copy=copy)
+        elif not copy:
+            return np.asarray([dict(x) for x in self], dtype=dtype)
+        else:
+            return np.array([dict(x) for x in self], dtype=dtype, copy=copy)
 
     def unique(self):
         # Parent method doesn't work since np.array will try to infer

@@ -44,10 +44,7 @@ from pandas._typing import (
     Shape,
     npt,
 )
-from pandas.compat.numpy import (
-    function as nv,
-    np_version_gt2,
-)
+from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
     PerformanceWarning,
@@ -773,8 +770,7 @@ class MultiIndex(Index):
             ):
                 vals = vals.astype(object)
 
-            copy_false = None if np_version_gt2 else False
-            array_vals = np.array(vals, copy=copy_false)
+            array_vals = np.asarray(vals)
             array_vals = algos.take_nd(array_vals, codes, fill_value=index._na_value)
             values.append(array_vals)
 
@@ -3361,8 +3357,7 @@ class MultiIndex(Index):
                     locs = (level_codes >= idx.start) & (level_codes < idx.stop)
                     return locs
 
-                copy_false = None if np_version_gt2 else False
-                locs = np.array(level_codes == idx, dtype=bool, copy=copy_false)
+                locs = np.asarray(level_codes == idx, dtype=bool)
 
                 if not locs.any():
                     # The label is present in self.levels[level] but unused:

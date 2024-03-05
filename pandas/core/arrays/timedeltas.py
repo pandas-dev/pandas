@@ -36,10 +36,7 @@ from pandas._libs.tslibs.timedeltas import (
     parse_timedelta_unit,
     truediv_object_array,
 )
-from pandas.compat.numpy import (
-    function as nv,
-    np_version_gt2,
-)
+from pandas.compat.numpy import function as nv
 from pandas.util._validators import validate_endpoints
 
 from pandas.core.dtypes.common import (
@@ -1075,10 +1072,10 @@ def sequence_to_td64ns(
         # This includes datetime64-dtype, see GH#23539, GH#29794
         raise TypeError(f"dtype {data.dtype} cannot be converted to timedelta64[ns]")
 
-    copy_false = None if np_version_gt2 else False
     if not copy:
-        copy = copy_false
-    data = np.array(data, copy=copy)
+        data = np.asarray(data)
+    else:
+        data = np.array(data, copy=copy)
 
     assert data.dtype.kind == "m"
     assert data.dtype != "m8"  # i.e. not unit-less
@@ -1158,8 +1155,7 @@ def _objects_to_td64ns(
     higher level.
     """
     # coerce Index to np.ndarray, converting string-dtype if necessary
-    copy_false = None if np_version_gt2 else False
-    values = np.array(data, dtype=np.object_, copy=copy_false)
+    values = np.asarray(data, dtype=np.object_)
 
     result = array_to_timedelta64(values, unit=unit, errors=errors)
     return result.view("timedelta64[ns]")

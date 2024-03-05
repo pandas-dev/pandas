@@ -1491,9 +1491,6 @@ def construct_2d_arraylike_from_scalar(
     value: Scalar, length: int, width: int, dtype: np.dtype, copy: bool
 ) -> np.ndarray:
     shape = (length, width)
-    copy_false = None if np_version_gt2 else False
-    if not copy:
-        copy = copy_false
 
     if dtype.kind in "mM":
         value = _maybe_box_and_unbox_datetimelike(value, dtype)
@@ -1506,7 +1503,10 @@ def construct_2d_arraylike_from_scalar(
 
     # Attempt to coerce to a numpy array
     try:
-        arr = np.array(value, dtype=dtype, copy=copy)
+        if not copy:
+            arr = np.asarray(value, dtype=dtype)
+        else:
+            arr = np.array(value, dtype=dtype, copy=copy)
     except (ValueError, TypeError) as err:
         raise TypeError(
             f"DataFrame constructor called with incompatible data and dtype: {err}"
@@ -1655,8 +1655,7 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
                         "out-of-bound Python int",
                         DeprecationWarning,
                     )
-                copy_false = None if np_version_gt2 else False
-                casted = np.array(arr, dtype=dtype, copy=copy_false)
+                casted = np.asarray(arr, dtype=dtype)
         else:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=RuntimeWarning)

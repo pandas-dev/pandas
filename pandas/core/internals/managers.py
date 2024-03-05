@@ -30,7 +30,6 @@ from pandas._libs.internals import (
     BlockValuesRefs,
 )
 from pandas._libs.tslibs import Timestamp
-from pandas.compat.numpy import np_version_gt2
 from pandas.errors import (
     AbstractMethodError,
     PerformanceWarning,
@@ -1798,9 +1797,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         arr : ndarray
         """
         passed_nan = lib.is_float(na_value) and isna(na_value)
-        copy_false = None if np_version_gt2 else False
-        if not copy:
-            copy = copy_false
 
         if len(self.blocks) == 0:
             arr = np.empty(self.shape, dtype=float)
@@ -1828,6 +1824,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     na_value=na_value,
                     copy=copy,
                 ).reshape(blk.shape)
+            elif not copy:
+                arr = np.asarray(blk.values, dtype=dtype)
             else:
                 arr = np.array(blk.values, dtype=dtype, copy=copy)
 

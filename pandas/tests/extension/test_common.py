@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_gt2
-
 from pandas.core.dtypes import dtypes
 from pandas.core.dtypes.common import is_extension_array_dtype
 
@@ -32,9 +30,10 @@ class DummyArray(ExtensionArray):
             if copy:
                 return type(self)(self.data)
             return self
-        if np_version_gt2 and not copy:
-            copy = None
-        return np.array(self, dtype=dtype, copy=copy)
+        elif not copy:
+            return np.asarray(self, dtype=dtype)
+        else:
+            return np.array(self, dtype=dtype, copy=copy)
 
 
 class TestExtensionArrayDtype:
