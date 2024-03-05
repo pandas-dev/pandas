@@ -214,13 +214,13 @@ public:
         if (mask_v(i)) {
           na_position = i;
         } else {
-          hash_map_[values(i)] = i;
+          hash_map_[values_v(i)] = i;
         }
       }
       na_position_ = na_position;
     } else {
       for (size_t i = 0; i < values_v.shape(0); i++) {
-        const auto key = values(i);
+        const auto key = values_v(i);
         hash_map_[key] = i;
       }
     }
@@ -316,7 +316,7 @@ public:
     ssize_t count = 0;
 
     for (size_t i = 0; i < n; i++) {
-      const auto val = values(i);
+      const auto val = values_v(i);
 
       // specific for groupby
       if (val < 0) {
@@ -459,7 +459,7 @@ private:
           }
         }
 
-        const auto val = values(i);
+        const auto val = values_v(i);
         auto k = hash_map_.get(val);
         if (k == hash_map_.end()) {
           int dummy;
@@ -476,7 +476,7 @@ private:
       }
     } else {
       for (size_t i = 0; i < n; i++) {
-        const auto val = values(i);
+        const auto val = values_v(i);
 
         if constexpr (IgnoreNA) {
           if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
@@ -542,7 +542,7 @@ private:
 
       bool seen_na = false;
       for (size_t i = 0; i < n; i++) {
-        const auto val = values(i);
+        const auto val = values_v(i);
 
         if constexpr (IgnoreNA) {
           // TODO: current pandas code is a bit messy here...
@@ -581,7 +581,7 @@ private:
       }
     } else {
       for (size_t i = 0; i < n; i++) {
-        const auto val = values(i);
+        const auto val = values_v(i);
         auto k = hash_map_.get(val);
         if (k == hash_map_.end()) {
           int dummy;
@@ -623,7 +623,7 @@ private:
           // continue;
         }
 
-        const auto val = values(i);
+        const auto val = values_v(i);
         auto k = hash_map_.get(val);
         if (k == hash_map_.end()) {
           int dummy;
@@ -633,7 +633,7 @@ private:
       }
     } else {
       for (size_t i = 0; i < n; i++) {
-        const auto val = values(i);
+        const auto val = values_v(i);
         auto k = hash_map_.get(val);
         if (k == hash_map_.end()) {
           int dummy;
