@@ -43,6 +43,7 @@ from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
     is_bool,
+    is_file_like,
     is_float,
     is_integer,
     is_list_like,
@@ -1523,20 +1524,25 @@ class ExcelFile:
         # Always a string
         self._io = stringify_path(path_or_buffer)
 
-        # Determine xlrd version if installed
-        if import_optional_dependency("xlrd", errors="ignore") is None:
-            xlrd_version = None
-        else:
-            import xlrd
-
-            xlrd_version = Version(get_version(xlrd))
-
         if engine is None:
             # Only determine ext if it is needed
-            ext: str | None
-            if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
-                ext = "xls"
-            else:
+            ext: str | None = None
+
+            if not isinstance(
+                path_or_buffer, (str, os.PathLike, ExcelFile)
+            ) and not is_file_like(path_or_buffer):
+                # GH#56692 - avoid importing xlrd if possible
+                if import_optional_dependency("xlrd", errors="ignore") is None:
+                    xlrd_version = None
+                else:
+                    import xlrd
+
+                    xlrd_version = Version(get_version(xlrd))
+
+                if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
+                    ext = "xls"
+
+            if ext is None:
                 ext = inspect_excel_format(
                     content_or_path=path_or_buffer, storage_options=storage_options
                 )
