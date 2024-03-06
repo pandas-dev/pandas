@@ -97,7 +97,7 @@ public:
   }
 
   auto ToNdArray() -> nb::object {
-    const auto ndarray = nb::ndarray<nb::numpy, const T, nb::ndim<1>>(
+    const auto ndarray = nb::ndarray<nb::numpy, T, nb::ndim<1>>(
         vec_.data(), {vec_.size()});
 
     external_view_exists_ = true;
@@ -236,8 +236,7 @@ public:
     }
   }
 
-  auto Lookup(const nb::ndarray<const T, nb::ndim<1>> &values, nb::object mask)
-      -> nb::ndarray<nb::numpy, const Py_ssize_t, nb::ndim<1>> {
+  auto Lookup(const nb::ndarray<const T, nb::ndim<1>> &values, nb::object mask) {
     if constexpr (IsMasked) {
       if (mask.is_none()) {
         throw std::invalid_argument("mask must not be None!");
@@ -284,7 +283,7 @@ public:
     nb::capsule owner(locs, [](void *p) noexcept { delete[](size_t *) p; });
 
     const size_t shape[1] = {n};
-    return nb::ndarray<nb::numpy, const Py_ssize_t, nb::ndim<1>>(locs, 1, shape,
+    return nb::ndarray<nb::numpy, Py_ssize_t, nb::ndim<1>>(locs, 1, shape,
                                                                  owner);
   }
 
@@ -318,10 +317,7 @@ public:
     return tup[1];
   }
 
-  auto GetLabelsGroupby(const nb::ndarray<const T, nb::ndim<1>> &values)
-      -> std::tuple<nb::ndarray<nb::numpy, const Py_ssize_t, nb::ndim<1>>,
-                    nb::object> {
-
+  auto GetLabelsGroupby(const nb::ndarray<const T, nb::ndim<1>> &values) {
     nb::call_guard<nb::gil_scoped_release>();
     const auto values_v = values.view();
     const auto n = values.shape(0);
@@ -356,7 +352,7 @@ public:
     const size_t shape[1] = {n};
     nb::capsule owner(labels, [](void *p) noexcept { delete[](size_t *) p; });
     const auto labels_arr =
-        nb::ndarray<nb::numpy, const Py_ssize_t, nb::ndim<1>>(labels, 1, shape,
+        nb::ndarray<nb::numpy, Py_ssize_t, nb::ndim<1>>(labels, 1, shape,
                                                               owner);
     return std::make_tuple(labels_arr, uniques.ToNdArray());
   }
@@ -378,7 +374,7 @@ private:
     const auto na_val = use_na_value ? nb::cast<T>(na_value) : T();
 
     if (return_inverse) { // this is really factorize
-      nb::ndarray<nb::numpy, const Py_ssize_t, nb::ndim<1>> labels;
+      nb::ndarray<nb::numpy, Py_ssize_t, nb::ndim<1>> labels;
       if (ignore_na) {
         if (use_na_value) {
           labels = UniqueWithInverse<true, true>(values, uniques, count_prior,
@@ -442,7 +438,7 @@ private:
                          [[maybe_unused]] Py_ssize_t na_sentinel,
                          [[maybe_unused]] T na_value,
                          [[maybe_unused]] nb::object mask_obj = nb::none())
-      -> nb::ndarray<nb::numpy, const Py_ssize_t, nb::ndim<1>> {
+      -> nb::ndarray<nb::numpy, Py_ssize_t, nb::ndim<1>> {
     if constexpr (IsMasked) {
       if (mask_obj.is_none()) {
         throw std::invalid_argument("mask must not be None!");
@@ -523,7 +519,7 @@ private:
 
     const size_t shape[1] = {n};
     nb::capsule owner(labels, [](void *p) noexcept { delete[](size_t *) p; });
-    return nb::ndarray<nb::numpy, const Py_ssize_t, nb::ndim<1>>(labels, 1,
+    return nb::ndarray<nb::numpy, Py_ssize_t, nb::ndim<1>>(labels, 1,
                                                                  shape, owner);
   }
 
