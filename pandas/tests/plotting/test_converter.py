@@ -114,18 +114,17 @@ class TestRegistration:
 
     def test_option_no_warning(self):
         pytest.importorskip("matplotlib.pyplot")
-        ctx = cf.option_context("plotting.matplotlib.register_converters", False)
         plt = pytest.importorskip("matplotlib.pyplot")
         s = Series(range(12), index=date_range("2017", periods=12))
         _, ax = plt.subplots()
 
         # Test without registering first, no warning
-        with ctx:
+        with cf.option_context("plotting.matplotlib.register_converters", False):
             ax.plot(s.index, s.values)
 
         # Now test with registering
         register_matplotlib_converters()
-        with ctx:
+        with cf.option_context("plotting.matplotlib.register_converters", False):
             ax.plot(s.index, s.values)
         plt.close()
 

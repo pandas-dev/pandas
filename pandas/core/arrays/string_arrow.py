@@ -12,7 +12,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._config.config import _get_option
+from pandas._config.config import get_option
 
 from pandas._libs import (
     lib,
@@ -345,7 +345,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
     ):
         if flags:
-            if _get_option("mode.performance_warnings"):
+            if get_option("mode.performance_warnings"):
                 fallback_performancewarning()
             return super()._str_contains(pat, case, flags, na, regex)
 
@@ -406,7 +406,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         regex: bool = True,
     ):
         if isinstance(pat, re.Pattern) or callable(repl) or not case or flags:
-            if _get_option("mode.performance_warnings"):
+            if get_option("mode.performance_warnings"):
                 fallback_performancewarning()
             return super()._str_replace(pat, repl, n, case, flags, regex)
 
