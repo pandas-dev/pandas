@@ -666,7 +666,7 @@ class TestLocBaseIndependent:
         df.loc[:, ("Respondent", "EndDate")] = to_datetime(
             df.loc[:, ("Respondent", "EndDate")]
         )
-        df = df.infer_objects(copy=False)
+        df = df.infer_objects()
 
         # Adding a new key
         df.loc[:, ("Respondent", "Duration")] = (
@@ -1205,10 +1205,7 @@ class TestLocBaseIndependent:
         data = [1, 2]
         df = DataFrame(columns=["x", "y"])
         df.index = df.index.astype(np.int64)
-        msg = (
-            rf"None of \[Index\(\[0, 1\], dtype='{np.dtype(int)}'\)\] "
-            r"are in the \[index\]"
-        )
+        msg = r"None of .*Index.* are in the \[index\]"
         with pytest.raises(KeyError, match=msg):
             df.loc[[0, 1], "x"] = data
 

@@ -503,7 +503,8 @@ def array_strptime(
         is_same_offsets = len(out_tzoffset_vals) == 1
         if not is_same_offsets or (state.found_naive or state.found_other):
             raise ValueError(
-                "cannot parse datetimes with mixed time zones unless `utc=True`"
+                "Mixed timezones detected. Pass utc=True in to_datetime "
+                "or tz='UTC' in DatetimeIndex to convert to a common timezone."
             )
         elif tz_out is not None:
             # GH#55693
@@ -512,7 +513,8 @@ def array_strptime(
             if not tz_compare(tz_out, tz_out2):
                 # e.g. test_to_datetime_mixed_offsets_with_utc_false_removed
                 raise ValueError(
-                    "cannot parse datetimes with mixed time zones unless `utc=True`"
+                    "Mixed timezones detected. Pass utc=True in to_datetime "
+                    "or tz='UTC' in DatetimeIndex to convert to a common timezone."
                 )
             # e.g. test_guess_datetime_format_with_parseable_formats
         else:
@@ -523,7 +525,8 @@ def array_strptime(
         if tz_out and (state.found_other or state.found_naive_str):
             # found_other indicates a tz-naive int, float, dt64, or date
             raise ValueError(
-                "cannot parse datetimes with mixed time zones unless `utc=True`"
+                "Mixed timezones detected. Pass utc=True in to_datetime "
+                "or tz='UTC' in DatetimeIndex to convert to a common timezone."
             )
 
     if infer_reso:

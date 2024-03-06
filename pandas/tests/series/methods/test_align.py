@@ -63,7 +63,7 @@ def test_align_nocopy(datetime_series):
 
     # do not copy
     a = datetime_series.copy()
-    ra, _ = a.align(b, join="left", copy=False)
+    ra, _ = a.align(b, join="left")
     ra[:5] = 5
     assert not (a[:5] == 5).any()
 
@@ -77,17 +77,17 @@ def test_align_nocopy(datetime_series):
     # do not copy
     a = datetime_series.copy()
     b = datetime_series[:5].copy()
-    _, rb = a.align(b, join="right", copy=False)
+    _, rb = a.align(b, join="right")
     rb[:2] = 5
     assert not (b[:2] == 5).any()
 
 
 def test_align_same_index(datetime_series):
-    a, b = datetime_series.align(datetime_series, copy=False)
+    a, b = datetime_series.align(datetime_series)
     assert a.index.is_(datetime_series.index)
     assert b.index.is_(datetime_series.index)
 
-    a, b = datetime_series.align(datetime_series, copy=True)
+    a, b = datetime_series.align(datetime_series)
     assert a.index is not datetime_series.index
     assert b.index is not datetime_series.index
     assert a.index.is_(datetime_series.index)
