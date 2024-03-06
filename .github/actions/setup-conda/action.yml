@@ -14,3 +14,6 @@ runs:
         condarc-file: ci/.condarc
         cache-environment: true
         cache-downloads: true
+        # persist on the same day.
+        cache-environment-key: environment-${{ steps.date.outputs.date }}
+        cache-downloads-key: downloads-${{ steps.date.outputs.date }}
