@@ -22,22 +22,22 @@ namespace nb = nanobind;
 /// and support arbitrary types
 ///
 template <typename T> struct PandasHashFunction {
-  size_t operator()(const T &value) const { return std::hash<T>()(value); }
+  auto operator()(const T &value) const { return std::hash<T>()(value); }
 };
 
 template <>
-size_t PandasHashFunction<float>::operator()(const float &value) const {
+auto PandasHashFunction<float>::operator()(const float &value) const {
   if (std::isnan(value)) {
-    return 0;
+    return static_cast<decltype(std::hash<float>()(value))>(0);
   }
 
   return std::hash<float>()(value);
 }
 
 template <>
-size_t PandasHashFunction<double>::operator()(const double &value) const {
+auto PandasHashFunction<double>::operator()(const double &value) const {
   if (std::isnan(value)) {
-    return 0;
+    return static_cast<decltype(std::hash<double>()(value))>(0);
   }
 
   return std::hash<double>()(value);
@@ -110,16 +110,13 @@ private:
   bool external_view_exists_;
 };
 
-using pd_kh_int_t = uint32_t;
-
 template <typename T, bool IsMasked> class PandasHashTable {
 public:
+  using HashValueT = decltype(PandasHashFunction<T>()(T()));
   explicit PandasHashTable<T, IsMasked>() = default;
-  explicit PandasHashTable<T, IsMasked>(pd_kh_int_t new_size) {
-    // historically pandas would take a size_hint constructor and pass
-    // it to the hash map. However, klib has no public method on the map
-    // to resize from a hint (only on sets) so we silently discard
-    hash_map_.resize(new_size);
+  explicit PandasHashTable<T, IsMasked>(size_t new_size) {
+    // TODO: C++20 std::in_range would be great to safely check cast
+    hash_map_.resize(static_cast<HashValueT>(new_size));
   }
 
   auto __len__() const noexcept { return hash_map_.size(); }
@@ -138,7 +135,7 @@ public:
   auto SizeOf() const noexcept {
     constexpr auto overhead = 4 * sizeof(uint32_t) + 3 * sizeof(uint32_t *);
     const auto for_flags =
-        std::max(1U, hash_map_.n_buckets() >> 5) * sizeof(uint32_t);
+      std::max(static_cast<HashValueT>(1), hash_map_.n_buckets() >> 5) * sizeof(uint32_t);
     const auto for_pairs =
         hash_map_.n_buckets() * (sizeof(T) + sizeof(Py_ssize_t));
 
@@ -661,7 +658,7 @@ private:
     return;
   }
 
-  klib::KHashMap<T, size_t, PandasHashFunction<T>, PandasHashEquality<T>, pd_kh_int_t>
+  klib::KHashMap<T, size_t, PandasHashFunction<T>, PandasHashEquality<T>, HashValueT>
       hash_map_;
   Py_ssize_t na_position_ = -1;
 };
@@ -682,7 +679,7 @@ using namespace nb::literals;
   do {                                                                         \
     nb::class_<PandasHashTable<TYPE, MASKED>>(m, NAME)                         \
         .def(nb::init<>())                                                     \
-        .def(nb::init<pd_kh_int_t>(), "size_hint"_a)                           \
+        .def(nb::init<size_t>(), "size_hint"_a)                           \
         .def("__len__", &PandasHashTable<TYPE, MASKED>::__len__)               \
         .def("__contains__", &PandasHashTable<TYPE, MASKED>::__contains__)     \
         .def("sizeof", &PandasHashTable<TYPE, MASKED>::SizeOf)                 \
