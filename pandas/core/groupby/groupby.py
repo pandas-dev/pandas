@@ -920,17 +920,9 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         ):
             # GH#25971
             if isinstance(name, tuple) and len(name) == 1:
-                # Allow users to pass tuples of length 1 to silence warning
                 name = name[0]
-            elif not isinstance(name, tuple):
-                warnings.warn(
-                    "When grouping with a length-1 list-like, "
-                    "you will need to pass a length-1 tuple to get_group in a future "
-                    "version of pandas. Pass `(name,)` instead of `name` to silence "
-                    "this warning.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
+            else:
+                raise KeyError(name)
 
         inds = self._get_index(name)
         if not len(inds):
