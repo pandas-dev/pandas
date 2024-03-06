@@ -59,14 +59,10 @@ from pandas.core.apply import (
     maybe_mangle_lambdas,
     reconstruct_func,
     validate_func_kwargs,
-    warn_alias_replacement,
 )
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
-from pandas.core.groupby import (
-    base,
-    ops,
-)
+from pandas.core.groupby import base
 from pandas.core.groupby.groupby import (
     GroupBy,
     GroupByPlot,
@@ -357,11 +353,6 @@ class SeriesGroupBy(GroupBy[Series]):
             return ret
 
         else:
-            cyfunc = com.get_cython_func(func)
-            if cyfunc and not args and not kwargs:
-                warn_alias_replacement(self, func, cyfunc)
-                return getattr(self, cyfunc)()
-
             if maybe_use_numba(engine):
                 return self._aggregate_with_numba(
                     func, *args, engine_kwargs=engine_kwargs, **kwargs
@@ -379,41 +370,11 @@ class SeriesGroupBy(GroupBy[Series]):
                     index=self._grouper.result_index,
                     dtype=obj.dtype,
                 )
-
-            if self._grouper.nkeys > 1:
-                return self._python_agg_general(func, *args, **kwargs)
-
-            try:
-                return self._python_agg_general(func, *args, **kwargs)
-            except KeyError:
-                # KeyError raised in test_groupby.test_basic is bc the func does
-                #  a dictionary lookup on group.name, but group name is not
-                #  pinned in _python_agg_general, only in _aggregate_named
-                result = self._aggregate_named(func, *args, **kwargs)
-
-                warnings.warn(
-                    "Pinning the groupby key to each group in "
-                    f"{type(self).__name__}.agg is deprecated, and cases that "
-                    "relied on it will raise in a future version. "
-                    "If your operation requires utilizing the groupby keys, "
-                    "iterate over the groupby object instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-
-                # result is a dict whose keys are the elements of result_index
-                result = Series(result, index=self._grouper.result_index)
-                result = self._wrap_aggregated_output(result)
-                return result
+            return self._python_agg_general(func, *args, **kwargs)
 
     agg = aggregate
 
     def _python_agg_general(self, func, *args, **kwargs):
-        orig_func = func
-        func = com.is_builtin_func(func)
-        if orig_func != func:
-            alias = com._builtin_table_alias[func]
-            warn_alias_replacement(self, orig_func, alias)
         f = lambda x: func(x, *args, **kwargs)
 
         obj = self._obj_with_exclusions
@@ -537,26 +498,6 @@ class SeriesGroupBy(GroupBy[Series]):
                 result = self._insert_inaxis_grouper(result)
                 result.index = default_index(len(result))
             return result
-
-    def _aggregate_named(self, func, *args, **kwargs):
-        # Note: this is very similar to _aggregate_series_pure_python,
-        #  but that does not pin group.name
-        result = {}
-        initialized = False
-
-        for name, group in self._grouper.get_iterator(self._obj_with_exclusions):
-            # needed for pandas/tests/groupby/test_groupby.py::test_basic_aggregations
-            object.__setattr__(group, "name", name)
-
-            output = func(group, *args, **kwargs)
-            output = ops.extract_result(output)
-            if not initialized:
-                # We only do this validation on the first iteration
-                ops.check_result_array(output, group.dtype)
-                initialized = True
-            result[name] = output
-
-        return result
 
     __examples_series_doc = dedent(
         """
@@ -1656,11 +1597,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     agg = aggregate
 
     def _python_agg_general(self, func, *args, **kwargs):
-        orig_func = func
-        func = com.is_builtin_func(func)
-        if orig_func != func:
-            alias = com._builtin_table_alias[func]
-            warn_alias_replacement(self, orig_func, alias)
         f = lambda x: func(x, *args, **kwargs)
 
         if self.ngroups == 0:
