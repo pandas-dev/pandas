@@ -989,7 +989,10 @@ class RangeIndex(Index):
         indexes = [RangeIndex(3), RangeIndex(4, 6)] -> Index([0,1,2,4,5], dtype='int64')
         """
         if not all(isinstance(x, RangeIndex) for x in indexes):
-            return super()._concat(indexes, name)
+            result = super()._concat(indexes, name)
+            if result.dtype.kind == "i":
+                return self._shallow_copy(result._values)
+            return result
 
         elif len(indexes) == 1:
             return indexes[0]
