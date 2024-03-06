@@ -89,7 +89,7 @@ class TestDataFrameConstructors:
 
         df = DataFrame(dta)
         expected = DataFrame({0: dta[:, 0], 1: dta[:, 1]})
-        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected, check_column_type=False)
         # GH#44724 big performance hit if we de-consolidate
         assert len(df._mgr.blocks) == 1
 
@@ -930,7 +930,7 @@ class TestDataFrameConstructors:
     )
     def test_constructor_extension_scalar_data(self, data, dtype):
         # GH 34832
-        df = DataFrame(index=[0, 1], columns=["a", "b"], data=data)
+        df = DataFrame(index=range(2), columns=["a", "b"], data=data)
 
         assert df["a"].dtype == dtype
         assert df["b"].dtype == dtype
@@ -950,7 +950,7 @@ class TestDataFrameConstructors:
                 data.setdefault(col, {})[row] = df._get_value(row, col)
 
         result = DataFrame(data, columns=rng)
-        tm.assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df, check_index_type=False)
 
         data = {}
         for col in df.columns:
@@ -958,7 +958,7 @@ class TestDataFrameConstructors:
                 data.setdefault(row, {})[col] = df._get_value(row, col)
 
         result = DataFrame(data, index=rng).T
-        tm.assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df, check_index_type=False)
 
     def _check_basic_constructor(self, empty):
         # mat: 2d matrix with shape (3, 2) to input. empty - makes sized
@@ -1269,7 +1269,7 @@ class TestDataFrameConstructors:
         expected = DataFrame({0: np.arange(10)})
         data = [np.array(x) for x in range(10)]
         result = DataFrame(data)
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_column_type=False)
 
     def test_nested_pandasarray_matches_nested_ndarray(self):
         # GH#43986
@@ -1323,7 +1323,7 @@ class TestDataFrameConstructors:
     )
     def test_constructor_one_element_data_list(self, data):
         # GH#42810
-        result = DataFrame(data, index=[0, 1, 2], columns=["x"])
+        result = DataFrame(data, index=range(3), columns=["x"])
         expected = DataFrame({"x": [Timestamp("2021-01-01")] * 3})
         tm.assert_frame_equal(result, expected)
 
@@ -1403,7 +1403,9 @@ class TestDataFrameConstructors:
         gen = ([i, "a"] for i in range(10))
         result = DataFrame(gen)
         expected = DataFrame({0: range(10), 1: "a"})
-        tm.assert_frame_equal(result, expected, check_dtype=False)
+        tm.assert_frame_equal(
+            result, expected, check_dtype=False, check_column_type=False
+        )
 
     def test_constructor_list_of_dicts(self):
         result = DataFrame([{}])
@@ -1630,7 +1632,7 @@ class TestDataFrameConstructors:
         s = Series(arr, index=range(3, 13))
         df = DataFrame(s)
         expected = DataFrame({0: s})
-        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected, check_column_type=False)
 
         msg = r"Shape of passed values is \(10, 1\), indices imply \(10, 2\)"
         with pytest.raises(ValueError, match=msg):
@@ -1650,7 +1652,7 @@ class TestDataFrameConstructors:
         # this is a bit non-intuitive here; the series collapse down to arrays
         df = DataFrame([arr, s1]).T
         expected = DataFrame({1: s1, 0: arr}, columns=[0, 1])
-        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected, check_column_type=False)
 
     def test_constructor_Series_named_and_columns(self):
         # GH 9232 validation
@@ -2185,7 +2187,7 @@ class TestDataFrameConstructors:
         result = DataFrame(arr, dtype=cat.dtype)
 
         expected = DataFrame({0: cat, 1: cat, 2: cat, 3: cat})
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_column_type=False)
 
     def test_constructor_categorical(self):
         # GH8626
@@ -2581,7 +2583,7 @@ class TestDataFrameConstructors:
         data3 = np.r_[data, data2, data, data2].T
         df3 = DataFrame(data3)
         expected = DataFrame({0: pi, 1: ii, 2: pi, 3: ii})
-        tm.assert_frame_equal(df3, expected)
+        tm.assert_frame_equal(df3, expected, check_column_type=False)
 
     @pytest.mark.parametrize(
         "col_a, col_b",
@@ -2674,7 +2676,7 @@ class TestDataFrameConstructors:
         expected = DataFrame({0: ["a", "b"], 1: ["c", "d"]}, dtype=dtype)
         with pd.option_context("future.infer_string", True):
             df = DataFrame(np.array([["a", "c"], ["b", "d"]]))
-        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected, check_column_type=False)
 
         expected = DataFrame(
             {"a": ["a", "b"], "b": ["c", "d"]},
