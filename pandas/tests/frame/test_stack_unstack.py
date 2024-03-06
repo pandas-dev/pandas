@@ -2304,7 +2304,7 @@ class TestStackUnstackMultiLevel:
         )
         expected = DataFrame(
             [["a0", "b0"], ["a1", "b1"], ["a2", "b2"], ["a3", "b3"], ["a4", "b4"]],
-            index=[0, 1, 2, 3, 4],
+            index=range(5),
             columns=MultiIndex.from_tuples(
                 [("a", "x"), ("b", "x")], names=["first", "second"]
             ),
