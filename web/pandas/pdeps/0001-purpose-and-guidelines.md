@@ -73,6 +73,7 @@ The possible states of a PDEP are:
 - Accepted
 - Implemented
 - Rejected
+- Withdrawn
 
 Next is described the workflow that PDEPs can follow.
 
@@ -179,9 +180,15 @@ discussion. A PDEP can be rejected for different reasons, for example good ideas
 that are not backward-compatible, and the breaking changes are not considered worth
 implementing.
 
-The author(s) may choose to resubmit a rejected PDEP. We expect authors to use their judgement in
-that case, as to whether they believe more discussion, or an amended proposal has the potential to
-lead to a different result. A new PDEP is then created, which includes a link to the previously
+The PDEP author(s) can also decide to withdraw the PDEP before a final decision
+is made (`Status: Withdrawn`), when the PDEP authors themselves have decided
+that the PDEP is actually a bad idea, or have accepted that it is not broadly
+supported or a competing proposal is a better alternative.
+
+The author(s) may choose to resubmit a rejected or withdrawn PDEP. We expect
+authors to use their judgement in that case, as to whether they believe more
+discussion, or an amended proposal has the potential to lead to a different
+result. A new PDEP is then created, which includes a link to the previously
 rejected PDEP.
 
 #### Invalid PDEP
