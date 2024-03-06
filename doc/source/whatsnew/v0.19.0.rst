@@ -331,11 +331,15 @@ These provide date offsets anchored (by default) to the 15th and end of month, a
 
 .. code-block:: python
 
-   In [46]: pd.Timestamp("2016-01-01") + SemiMonthEnd()
+   In[46]: pd.Timestamp("2016-01-01") + SemiMonthEnd()
    Out[46]: Timestamp('2016-01-15 00:00:00')
 
-   In [47]: pd.date_range("2015-01-01", freq="SM", periods=4)
-   Out[47]: DatetimeIndex(['2015-01-15', '2015-01-31', '2015-02-15', '2015-02-28'], dtype='datetime64[ns]', freq='SM-15')
+   In[47]: pd.date_range("2015-01-01", freq="SM", periods=4)
+   Out[47]: DatetimeIndex(
+       ['2015-01-15', '2015-01-31', '2015-02-15', '2015-02-28'],
+       dtype='datetime64[ns]',
+       freq='SM-15',
+   )
 
 **SemiMonthBegin**:
 
@@ -349,11 +353,19 @@ Using the anchoring suffix, you can also specify the day of month to use instead
 
 .. code-block:: python
 
-   In [50]: pd.date_range("2015-01-01", freq="SMS-16", periods=4)
-   Out[50]: DatetimeIndex(['2015-01-01', '2015-01-16', '2015-02-01', '2015-02-16'], dtype='datetime64[ns]', freq='SMS-16')
+   In[50]: pd.date_range("2015-01-01", freq="SMS-16", periods=4)
+   Out[50]: DatetimeIndex(
+       ['2015-01-01', '2015-01-16', '2015-02-01', '2015-02-16'],
+       dtype='datetime64[ns]',
+       freq='SMS-16',
+   )
 
-   In [51]: pd.date_range("2015-01-01", freq="SM-14", periods=4)
-   Out[51]: DatetimeIndex(['2015-01-14', '2015-01-31', '2015-02-14', '2015-02-28'], dtype='datetime64[ns]', freq='SM-14')
+   In[51]: pd.date_range("2015-01-01", freq="SM-14", periods=4)
+   Out[51]: DatetimeIndex(
+       ['2015-01-14', '2015-01-31', '2015-02-14', '2015-02-28'],
+       dtype='datetime64[ns]',
+       freq='SM-14',
+   )
 
 .. _whatsnew_0190.enhancements.index:
 
@@ -1115,9 +1127,7 @@ Previously, most ``Index`` classes returned ``np.ndarray``, and ``DatetimeIndex`
 .. ipython:: python
 
    pd.Index([1, 2, 3]).unique()
-   pd.DatetimeIndex(
-       ["2011-01-01", "2011-01-02", "2011-01-03"], tz="Asia/Tokyo"
-   ).unique()
+   pd.DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], tz="Asia/Tokyo").unique()
 
 .. _whatsnew_0190.api.multiindex:
 

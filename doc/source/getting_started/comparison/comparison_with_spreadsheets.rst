@@ -427,9 +427,7 @@ The equivalent in pandas:
 
 .. ipython:: python
 
-    pd.pivot_table(
-        tips, values="tip", index=["size"], columns=["sex"], aggfunc=np.average
-    )
+    pd.pivot_table(tips, values="tip", index=["size"], columns=["sex"], aggfunc=np.average)
 
 
 Adding a row
@@ -440,8 +438,9 @@ Assuming we are using a :class:`~pandas.RangeIndex` (numbered ``0``, ``1``, etc.
 .. ipython:: python
 
     df
-    new_row = pd.DataFrame([["E", 51, True]],
-                           columns=["class", "student_count", "all_pass"])
+    new_row = pd.DataFrame(
+        [["E", 51, True]], columns=["class", "student_count", "all_pass"]
+    )
     pd.concat([df, new_row])
 
 

@@ -40,10 +40,8 @@ Westminster* in respectively Paris, Antwerp and London.
 
 .. ipython:: python
 
-    air_quality_no2 = pd.read_csv("data/air_quality_no2_long.csv",
-                                  parse_dates=True)
-    air_quality_no2 = air_quality_no2[["date.utc", "location",
-                                       "parameter", "value"]]
+    air_quality_no2 = pd.read_csv("data/air_quality_no2_long.csv", parse_dates=True)
+    air_quality_no2 = air_quality_no2[["date.utc", "location", "parameter", "value"]]
     air_quality_no2.head()
 
 .. raw:: html
@@ -75,10 +73,8 @@ Westminster* in respectively Paris, Antwerp and London.
 
 .. ipython:: python
 
-    air_quality_pm25 = pd.read_csv("data/air_quality_pm25_long.csv",
-                                   parse_dates=True)
-    air_quality_pm25 = air_quality_pm25[["date.utc", "location",
-                                         "parameter", "value"]]
+    air_quality_pm25 = pd.read_csv("data/air_quality_pm25_long.csv", parse_dates=True)
+    air_quality_pm25 = air_quality_pm25[["date.utc", "location", "parameter", "value"]]
     air_quality_pm25.head()
 
 .. raw:: html
@@ -265,8 +261,9 @@ Add the parameters' full description and name, provided by the parameters metada
 
 .. ipython:: python
 
-    air_quality = pd.merge(air_quality, air_quality_parameters,
-                           how='left', left_on='parameter', right_on='id')
+    air_quality = pd.merge(
+        air_quality, air_quality_parameters, how='left', left_on='parameter', right_on='id'
+    )
     air_quality.head()
 
 Compared to the previous example, there is no common column name.

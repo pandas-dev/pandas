@@ -41,9 +41,13 @@ output columns when applying multiple aggregation functions to specific columns 
 
 .. ipython:: python
 
-   animals = pd.DataFrame({'kind': ['cat', 'dog', 'cat', 'dog'],
-                           'height': [9.1, 6.0, 9.5, 34.0],
-                           'weight': [7.9, 7.5, 9.9, 198.0]})
+   animals = pd.DataFrame(
+       {
+           'kind': ['cat', 'dog', 'cat', 'dog'],
+           'height': [9.1, 6.0, 9.5, 34.0],
+           'weight': [7.9, 7.5, 9.9, 198.0],
+       }
+   )
    animals
    animals.groupby("kind").agg(
        min_height=pd.NamedAgg(column='height', aggfunc='min'),
@@ -93,14 +97,11 @@ You can now provide multiple lambda functions to a list-like aggregation in
 
 .. ipython:: python
 
-   animals.groupby('kind').height.agg([
-       lambda x: x.iloc[0], lambda x: x.iloc[-1]
-   ])
+   animals.groupby('kind').height.agg([lambda x: x.iloc[0], lambda x: x.iloc[-1]])
 
-   animals.groupby('kind').agg([
-       lambda x: x.iloc[0] - x.iloc[1],
-       lambda x: x.iloc[0] + x.iloc[1]
-   ])
+   animals.groupby('kind').agg(
+       [lambda x: x.iloc[0] - x.iloc[1], lambda x: x.iloc[0] + x.iloc[1]]
+   )
 
 Previously, these raised a ``SpecificationError``.
 
@@ -194,8 +195,7 @@ Here is a typical usecase. You have comma separated string in a column.
 
 .. ipython:: python
 
-    df = pd.DataFrame([{'var1': 'a,b,c', 'var2': 1},
-                       {'var1': 'd,e,f', 'var2': 2}])
+    df = pd.DataFrame([{'var1': 'a,b,c', 'var2': 1}, {'var1': 'd,e,f', 'var2': 2}])
     df
 
 Creating a long form ``DataFrame`` is now straightforward using chained operations
@@ -301,8 +301,7 @@ would be reassigned as -1. (:issue:`19387`)
 .. ipython:: python
     :okexcept:
 
-    pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
-                  codes=[[0, -1, 1, 2, 3, 4]])
+    pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]], codes=[[0, -1, 1, 2, 3, 4]])
     pd.MultiIndex(levels=[[1, 2]], codes=[[0, -2]])
 
 
@@ -322,6 +321,7 @@ Now every group is evaluated only a single time.
 
     df = pd.DataFrame({"a": ["x", "y"], "b": [1, 2]})
     df
+
 
     def func(group):
         print(group.name)
@@ -442,7 +442,7 @@ Previously, columns that were categorical, but not the groupby key(s) would be c
 
 .. code-block:: python
 
-   In [5]: df.groupby('payload').first().col.dtype
+   In[5]: df.groupby('payload').first().col.dtype
    Out[5]: dtype('O')
 
 *New Behavior*:
@@ -583,10 +583,10 @@ this would previously return ``True`` for any ``Interval`` overlapping an ``Inte
 
 .. code-block:: python
 
-   In [4]: pd.Interval(1, 2, closed='neither') in ii
+   In[4]: pd.Interval(1, 2, closed='neither') in ii
    Out[4]: True
 
-   In [5]: pd.Interval(-10, 10, closed='both') in ii
+   In[5]: pd.Interval(-10, 10, closed='both') in ii
    Out[5]: True
 
 *New behavior*:
@@ -603,10 +603,10 @@ returning locations for overlapping matches.  A ``KeyError`` will be raised if a
 
 .. code-block:: python
 
-   In [6]: ii.get_loc(pd.Interval(1, 5))
+   In[6]: ii.get_loc(pd.Interval(1, 5))
    Out[6]: array([0, 1])
 
-   In [7]: ii.get_loc(pd.Interval(2, 6))
+   In[7]: ii.get_loc(pd.Interval(2, 6))
    Out[7]: array([0, 1, 2])
 
 *New behavior*:
@@ -784,7 +784,7 @@ This change applies only when pandas is running on Python>=3.6 (:issue:`27309`).
    data = [
        {'name': 'Joe', 'state': 'NY', 'age': 18},
        {'name': 'Jane', 'state': 'KY', 'age': 19, 'hobby': 'Minecraft'},
-       {'name': 'Jean', 'state': 'OK', 'age': 20, 'finances': 'good'}
+       {'name': 'Jean', 'state': 'OK', 'age': 20, 'finances': 'good'},
    ]
 
 *Previous Behavior*:

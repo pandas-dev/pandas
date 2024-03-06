@@ -154,8 +154,10 @@ respectively. Previously, negative arguments returned empty frames.
 
 .. ipython:: python
 
-    df = pd.DataFrame([["g", "g0"], ["g", "g1"], ["g", "g2"], ["g", "g3"],
-                       ["h", "h0"], ["h", "h1"]], columns=["A", "B"])
+    df = pd.DataFrame(
+        [["g", "g0"], ["g", "g1"], ["g", "g2"], ["g", "g3"], ["h", "h0"], ["h", "h1"]],
+        columns=["A", "B"],
+    )
     df.groupby("A").head(-1)
 
 
@@ -189,10 +191,8 @@ library to produce a tight representation of :class:`DataFrame` objects
 
     df = pd.DataFrame.from_records(
         [[1, 3], [2, 4]],
-        index=pd.MultiIndex.from_tuples([("a", "b"), ("a", "c")],
-                                        names=["n1", "n2"]),
-        columns=pd.MultiIndex.from_tuples([("x", 1), ("y", 2)],
-                                          names=["z1", "z2"]),
+        index=pd.MultiIndex.from_tuples([("a", "b"), ("a", "c")], names=["n1", "n2"]),
+        columns=pd.MultiIndex.from_tuples([("x", 1), ("y", 2)], names=["z1", "z2"]),
     )
     df
     df.to_dict(orient='tight')
@@ -435,6 +435,7 @@ This inconsistency has been removed, pandas now tests up to equality.
 
     def func(x):
         return x.copy()
+
 
     df = pd.DataFrame({'a': [1, 2], 'b': [3, 4], 'c': [5, 6]})
     df

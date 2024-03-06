@@ -127,8 +127,7 @@ indexing functionality:
 .. ipython:: python
 
    dates = pd.date_range('1/1/2000', periods=8)
-   df = pd.DataFrame(np.random.randn(8, 4),
-                     index=dates, columns=['A', 'B', 'C', 'D'])
+   df = pd.DataFrame(np.random.randn(8, 4), index=dates, columns=['A', 'B', 'C', 'D'])
    df
 
 .. note::
@@ -184,7 +183,7 @@ columns.
 
       df[['A', 'B']]
       df.iloc[:, [1, 0]] = df[['A', 'B']]
-      df[['A','B']]
+      df[['A', 'B']]
 
 
 Attribute access
@@ -250,7 +249,7 @@ new column and will this raise a ``UserWarning``:
 .. ipython:: python
    :okwarning:
 
-    df_new = pd.DataFrame({'one': [1., 2., 3.]})
+    df_new = pd.DataFrame({'one': [1.0, 2.0, 3.0]})
     df_new.two = [4, 5, 6]
     df_new
 
@@ -300,9 +299,11 @@ Selection by label
    .. ipython:: python
       :okexcept:
 
-      dfl = pd.DataFrame(np.random.randn(5, 4),
-                         columns=list('ABCD'),
-                         index=pd.date_range('20130101', periods=5))
+      dfl = pd.DataFrame(
+          np.random.randn(5, 4),
+          columns=list('ABCD'),
+          index=pd.date_range('20130101', periods=5),
+      )
       dfl
       dfl.loc[2:3]
 
@@ -345,9 +346,7 @@ With a DataFrame:
 
 .. ipython:: python
 
-   df1 = pd.DataFrame(np.random.randn(6, 4),
-                      index=list('abcdef'),
-                      columns=list('ABCD'))
+   df1 = pd.DataFrame(np.random.randn(6, 4), index=list('abcdef'), columns=list('ABCD'))
    df1
    df1.loc[['a', 'b', 'd'], :]
 
@@ -462,9 +461,9 @@ With a DataFrame:
 
 .. ipython:: python
 
-   df1 = pd.DataFrame(np.random.randn(6, 4),
-                      index=list(range(0, 12, 2)),
-                      columns=list(range(0, 8, 2)))
+   df1 = pd.DataFrame(
+       np.random.randn(6, 4), index=list(range(0, 12, 2)), columns=list(range(0, 8, 2))
+   )
    df1
 
 Select via integer slicing:
@@ -554,9 +553,7 @@ The ``callable`` must be a function with one argument (the calling Series or Dat
 
 .. ipython:: python
 
-   df1 = pd.DataFrame(np.random.randn(6, 4),
-                      index=list('abcdef'),
-                      columns=list('ABCD'))
+   df1 = pd.DataFrame(np.random.randn(6, 4), index=list('abcdef'), columns=list('ABCD'))
    df1
 
    df1.loc[lambda df: df['A'] > 0, :]
@@ -579,8 +576,7 @@ without using a temporary variable.
 .. ipython:: python
 
    bb = pd.read_csv('data/baseball.csv', index_col='id')
-   (bb.groupby(['year', 'team']).sum(numeric_only=True)
-      .loc[lambda df: df['r'] > 100])
+   (bb.groupby(['year', 'team']).sum(numeric_only=True).loc[lambda df: df['r'] > 100])
 
 
 .. _combining_positional_and_label_based_indexing:
@@ -592,9 +588,7 @@ If you wish to get the 0th and the 2nd elements from the index in the 'A' column
 
 .. ipython:: python
 
-  dfd = pd.DataFrame({'A': [1, 2, 3],
-                      'B': [4, 5, 6]},
-                     index=list('abc'))
+  dfd = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}, index=list('abc'))
   dfd
   dfd.loc[dfd.index[[0, 2]], 'A']
 
@@ -708,8 +702,7 @@ as a string.
 
 .. ipython:: python
 
-    df2 = pd.DataFrame({'col1': [9, 8, 7, 6],
-                        'weight_column': [0.5, 0.4, 0.1, 0]})
+    df2 = pd.DataFrame({'col1': [9, 8, 7, 6], 'weight_column': [0.5, 0.4, 0.1, 0]})
     df2.sample(n=3, weights='weight_column')
 
 ``sample`` also allows users to sample columns instead of rows using the ``axis`` argument.
@@ -742,15 +735,14 @@ In the ``Series`` case this is effectively an appending operation.
 
    se = pd.Series([1, 2, 3])
    se
-   se[5] = 5.
+   se[5] = 5.0
    se
 
 A ``DataFrame`` can be enlarged on either axis via ``.loc``.
 
 .. ipython:: python
 
-   dfi = pd.DataFrame(np.arange(6).reshape(3, 2),
-                      columns=['A', 'B'])
+   dfi = pd.DataFrame(np.arange(6).reshape(3, 2), columns=['A', 'B'])
    dfi
    dfi.loc[:, 'C'] = dfi.loc[:, 'A']
    dfi
@@ -830,9 +822,13 @@ more complex criteria:
 
 .. ipython:: python
 
-   df2 = pd.DataFrame({'a': ['one', 'one', 'two', 'three', 'two', 'one', 'six'],
-                       'b': ['x', 'y', 'y', 'x', 'y', 'x', 'x'],
-                       'c': np.random.randn(7)})
+   df2 = pd.DataFrame(
+       {
+           'a': ['one', 'one', 'two', 'three', 'two', 'one', 'six'],
+           'b': ['x', 'y', 'y', 'x', 'y', 'x', 'x'],
+           'c': np.random.randn(7),
+       }
+   )
 
    # only want 'two' or 'three'
    criterion = df2['a'].map(lambda x: x.startswith('t'))
@@ -860,10 +856,8 @@ and :ref:`Advanced Indexing <advanced>` you may select along more than one axis 
 
    .. ipython:: python
 
-      df = pd.DataFrame([[1, 2], [3, 4], [5, 6]],
-                        index=list('abc'),
-                        columns=['A', 'B'])
-      s = (df['A'] > 2)
+      df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], index=list('abc'), columns=['A', 'B'])
+      s = df['A'] > 2
       s
 
       df.loc[s, 'B']
@@ -901,8 +895,9 @@ in the membership check:
 
 .. ipython:: python
 
-   s_mi = pd.Series(np.arange(6),
-                    index=pd.MultiIndex.from_product([[0, 1], ['a', 'b', 'c']]))
+   s_mi = pd.Series(
+       np.arange(6), index=pd.MultiIndex.from_product([[0, 1], ['a', 'b', 'c']])
+   )
    s_mi
    s_mi.iloc[s_mi.index.isin([(1, 'a'), (2, 'b'), (0, 'c')])]
    s_mi.iloc[s_mi.index.isin(['a', 'c', 'e'], level=1)]
@@ -914,8 +909,9 @@ wherever the element is in the sequence of values.
 
 .. ipython:: python
 
-   df = pd.DataFrame({'vals': [1, 2, 3, 4], 'ids': ['a', 'b', 'f', 'n'],
-                      'ids2': ['a', 'n', 'c', 'n']})
+   df = pd.DataFrame(
+       {'vals': [1, 2, 3, 4], 'ids': ['a', 'b', 'f', 'n'], 'ids2': ['a', 'n', 'c', 'n']}
+   )
 
    values = ['a', 'b', 1, 3]
 
@@ -980,8 +976,7 @@ The code below is equivalent to ``df.where(df < 0)``.
 .. ipython:: python
 
    dates = pd.date_range('1/1/2000', periods=8)
-   df = pd.DataFrame(np.random.randn(8, 4),
-                     index=dates, columns=['A', 'B', 'C', 'D'])
+   df = pd.DataFrame(np.random.randn(8, 4), index=dates, columns=['A', 'B', 'C', 'D'])
    df[df < 0]
 
 In addition, ``where`` takes an optional ``other`` argument for replacement of
@@ -1048,9 +1043,7 @@ as condition and ``other`` argument.
 
 .. ipython:: python
 
-   df3 = pd.DataFrame({'A': [1, 2, 3],
-                       'B': [4, 5, 6],
-                       'C': [7, 8, 9]})
+   df3 = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
    df3.where(lambda x: x > 4, lambda x: x + 10)
 
 Mask
@@ -1091,7 +1084,7 @@ as a fallback, you can do the following.
    conditions = [
        (df['col2'] == 'Z') & (df['col1'] == 'A'),
        (df['col2'] == 'Z') & (df['col1'] == 'B'),
-       (df['col1'] == 'B')
+       (df['col1'] == 'B'),
    ]
    choices = ['yellow', 'blue', 'purple']
    df['color'] = np.select(conditions, choices, default='black')
@@ -1252,9 +1245,14 @@ The ``in`` and ``not in`` operators
 .. ipython:: python
 
    # get all rows where columns "a" and "b" have overlapping values
-   df = pd.DataFrame({'a': list('aabbccddeeff'), 'b': list('aaaabbbbcccc'),
-                      'c': np.random.randint(5, size=12),
-                      'd': np.random.randint(9, size=12)})
+   df = pd.DataFrame(
+       {
+           'a': list('aabbccddeeff'),
+           'b': list('aaaabbbbcccc'),
+           'c': np.random.randint(5, size=12),
+           'd': np.random.randint(9, size=12),
+       }
+   )
    df
    df.query('a in b')
 
@@ -1342,10 +1340,9 @@ Of course, expressions can be arbitrarily complex too:
    shorter = df.query('a < b < c and (not bools) or bools > 2')
 
    # equivalent in pure Python
-   longer = df[(df['a'] < df['b'])
-               & (df['b'] < df['c'])
-               & (~df['bools'])
-               | (df['bools'] > 2)]
+   longer = df[
+       (df['a'] < df['b']) & (df['b'] < df['c']) & (~df['bools']) | (df['bools'] > 2)
+   ]
 
    shorter
    longer
@@ -1377,8 +1374,7 @@ floating point values generated using ``numpy.random.randn()``.
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(8, 4),
-                     index=dates, columns=['A', 'B', 'C', 'D'])
+   df = pd.DataFrame(np.random.randn(8, 4), index=dates, columns=['A', 'B', 'C', 'D'])
    df2 = df.copy()
 
 
@@ -1403,9 +1399,13 @@ each method has a ``keep`` parameter to specify targets to be kept.
 
 .. ipython:: python
 
-   df2 = pd.DataFrame({'a': ['one', 'one', 'two', 'two', 'two', 'three', 'four'],
-                       'b': ['x', 'y', 'x', 'y', 'x', 'x', 'x'],
-                       'c': np.random.randn(7)})
+   df2 = pd.DataFrame(
+       {
+           'a': ['one', 'one', 'two', 'two', 'two', 'three', 'four'],
+           'b': ['x', 'y', 'x', 'y', 'x', 'x', 'x'],
+           'c': np.random.randn(7),
+       }
+   )
    df2
    df2.duplicated('a')
    df2.duplicated('a', keep='last')
@@ -1426,9 +1426,9 @@ The same set of options are available for the ``keep`` parameter.
 
 .. ipython:: python
 
-   df3 = pd.DataFrame({'a': np.arange(6),
-                       'b': np.random.randn(6)},
-                      index=['a', 'a', 'b', 'c', 'b', 'a'])
+   df3 = pd.DataFrame(
+       {'a': np.arange(6), 'b': np.random.randn(6)}, index=['a', 'a', 'b', 'c', 'b', 'a']
+   )
    df3
    df3.index.duplicated()
    df3[~df3.index.duplicated()]
@@ -1460,9 +1460,9 @@ For instance:
 
 .. ipython:: python
 
-    df = pd.DataFrame({'col': ["A", "A", "B", "B"],
-                       'A': [80, 23, np.nan, 22],
-                       'B': [80, 55, 76, 67]})
+    df = pd.DataFrame(
+        {'col': ["A", "A", "B", "B"], 'A': [80, 23, np.nan, 22], 'B': [80, 55, 76, 67]}
+    )
     df
     idx, cols = pd.factorize(df['col'])
     df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
@@ -1551,7 +1551,9 @@ See :ref:`Advanced Indexing <advanced>` for usage of MultiIndexes.
 
 .. ipython:: python
 
-  index = pd.MultiIndex.from_product([range(3), ['one', 'two']], names=['first', 'second'])
+  index = pd.MultiIndex.from_product(
+      [range(3), ['one', 'two']], names=['first', 'second']
+  )
   index
   index.levels[1]
   index.set_levels(["a", "b"], level=1)
@@ -1615,9 +1617,9 @@ Missing values
    idx1
    idx1.fillna(2)
 
-   idx2 = pd.DatetimeIndex([pd.Timestamp('2011-01-01'),
-                            pd.NaT,
-                            pd.Timestamp('2011-01-03')])
+   idx2 = pd.DatetimeIndex(
+       [pd.Timestamp('2011-01-01'), pd.NaT, pd.Timestamp('2011-01-03')]
+   )
    idx2
    idx2.fillna(pd.Timestamp('2011-01-02'))
 
@@ -1639,10 +1641,14 @@ To create a new, re-indexed DataFrame:
 
 .. ipython:: python
 
-   data = pd.DataFrame({'a': ['bar', 'bar', 'foo', 'foo'],
-                        'b': ['one', 'two', 'one', 'two'],
-                        'c': ['z', 'y', 'x', 'w'],
-                        'd': [1., 2., 3, 4]})
+   data = pd.DataFrame(
+       {
+           'a': ['bar', 'bar', 'foo', 'foo'],
+           'b': ['one', 'two', 'one', 'two'],
+           'c': ['z', 'y', 'x', 'w'],
+           'd': [1.0, 2.0, 3, 4],
+       }
+   )
    data
    indexed1 = data.set_index('c')
    indexed1

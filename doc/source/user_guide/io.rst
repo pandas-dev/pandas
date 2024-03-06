@@ -1075,14 +1075,20 @@ writing to a file). For example:
            StringIO(data),
            engine="c",
            float_precision=None,
-       )["c"][0] - float(val)
+       )[
+           "c"
+       ][0]
+       - float(val)
    )
    abs(
        pd.read_csv(
            StringIO(data),
            engine="c",
            float_precision="high",
-       )["c"][0] - float(val)
+       )[
+           "c"
+       ][0]
+       - float(val)
    )
    abs(
        pd.read_csv(StringIO(data), engine="c", float_precision="round_trip")["c"][0]
@@ -1235,9 +1241,13 @@ The bad line will be a list of strings that was split by the ``sep``:
 .. ipython:: python
 
     external_list = []
+
+
     def bad_lines_func(line):
         external_list.append(line)
         return line[-3:]
+
+
     pd.read_csv(StringIO(data), on_bad_lines=bad_lines_func, engine="python")
     external_list
 
@@ -1670,7 +1680,7 @@ of header key value mappings to the ``storage_options`` keyword argument as show
    df = pd.read_csv(
        "https://download.bls.gov/pub/time.series/cu/cu.item",
        sep="\t",
-       storage_options=headers
+       storage_options=headers,
    )
 
 All URLs which are not local files or HTTP(s) are handled by
@@ -2097,6 +2107,7 @@ Reading from a JSON string:
 .. ipython:: python
 
    from io import StringIO
+
    pd.read_json(StringIO(json))
 
 Reading from a file:
@@ -2122,6 +2133,7 @@ Preserve string indices:
 .. ipython:: python
 
    from io import StringIO
+
    si = pd.DataFrame(
        np.zeros((4, 4)), columns=list(range(4)), index=[str(i) for i in range(4)]
    )
@@ -2140,6 +2152,7 @@ Dates written in nanoseconds need to be read back in nanoseconds:
 .. ipython:: python
 
    from io import StringIO
+
    json = dfj2.to_json(date_unit="ns")
 
    # Try to parse timestamps as milliseconds -> Won't Work
@@ -2159,9 +2172,9 @@ By setting the ``dtype_backend`` argument you can control the default dtypes use
 .. ipython:: python
 
     data = (
-     '{"a":{"0":1,"1":3},"b":{"0":2.5,"1":4.5},"c":{"0":true,"1":false},"d":{"0":"a","1":"b"},'
-     '"e":{"0":null,"1":6.0},"f":{"0":null,"1":7.5},"g":{"0":null,"1":true},"h":{"0":null,"1":"a"},'
-     '"i":{"0":"12-31-2019","1":"12-31-2019"},"j":{"0":null,"1":null}}'
+        '{"a":{"0":1,"1":3},"b":{"0":2.5,"1":4.5},"c":{"0":true,"1":false},"d":{"0":"a","1":"b"},'
+        '"e":{"0":null,"1":6.0},"f":{"0":null,"1":7.5},"g":{"0":null,"1":true},"h":{"0":null,"1":"a"},'
+        '"i":{"0":"12-31-2019","1":"12-31-2019"},"j":{"0":null,"1":null}}'
     )
     df = pd.read_json(StringIO(data), dtype_backend="pyarrow")
     df
@@ -2240,6 +2253,7 @@ For line-delimited json files, pandas can also return an iterator which reads in
 .. ipython:: python
 
   from io import StringIO
+
   jsonl = """
       {"a": 1, "b": 2}
       {"a": 3, "b": 4}
@@ -2259,6 +2273,7 @@ Line-limited json can also be read using the pyarrow reader by specifying ``engi
 .. ipython:: python
 
    from io import BytesIO
+
    df = pd.read_json(BytesIO(jsonl.encode()), lines=True, engine="pyarrow")
    df
 
@@ -2689,10 +2704,7 @@ Links can be extracted from cells along with the text using ``extract_links="all
     </table>
     """
 
-    df = pd.read_html(
-        StringIO(html_table),
-        extract_links="all"
-    )[0]
+    df = pd.read_html(StringIO(html_table), extract_links="all")[0]
     df
     df[("GitHub", None)]
     df[("GitHub", None)].str[1]
@@ -2946,7 +2958,8 @@ Read an XML string:
 
 .. ipython:: python
 
-    from io import StringIO
+   from io import StringIO
+
    xml = """<?xml version="1.0" encoding="UTF-8"?>
    <bookstore>
      <book category="cooking">
@@ -3081,9 +3094,9 @@ For example, below XML contains a namespace with prefix, ``doc``, and URI at
      </doc:row>
    </doc:data>"""
 
-   df = pd.read_xml(StringIO(xml),
-                    xpath="//doc:row",
-                    namespaces={"doc": "https://example.com"})
+   df = pd.read_xml(
+       StringIO(xml), xpath="//doc:row", namespaces={"doc": "https://example.com"}
+   )
    df
 
 Similarly, an XML document can have a default namespace without prefix. Failing
@@ -3111,9 +3124,9 @@ But assigning *any* temporary name to correct URI allows parsing by nodes.
     </row>
    </data>"""
 
-   df = pd.read_xml(StringIO(xml),
-                    xpath="//pandas:row",
-                    namespaces={"pandas": "https://example.com"})
+   df = pd.read_xml(
+       StringIO(xml), xpath="//pandas:row", namespaces={"pandas": "https://example.com"}
+   )
    df
 
 However, if XPath does not reference node names such as default, ``/*``, then
@@ -3340,12 +3353,7 @@ Write a mix of elements and attributes:
 
 .. ipython:: python
 
-   print(
-       geom_df.to_xml(
-           index=False,
-           attr_cols=['shape'],
-           elem_cols=['degrees', 'sides'])
-   )
+   print(geom_df.to_xml(index=False, attr_cols=['shape'], elem_cols=['degrees', 'sides']))
 
 Any ``DataFrames`` with hierarchical columns will be flattened for XML element names
 with levels delimited by underscores:
@@ -3361,10 +3369,9 @@ with levels delimited by underscores:
        }
    )
 
-   pvt_df = ext_geom_df.pivot_table(index='shape',
-                                    columns='type',
-                                    values=['degrees', 'sides'],
-                                    aggfunc='sum')
+   pvt_df = ext_geom_df.pivot_table(
+       index='shape', columns='type', values=['degrees', 'sides'], aggfunc='sum'
+   )
    pvt_df
 
    print(pvt_df.to_xml())
@@ -3379,19 +3386,13 @@ Write an XML with namespace prefix:
 
 .. ipython:: python
 
-   print(
-       geom_df.to_xml(namespaces={"doc": "https://example.com"},
-                      prefix="doc")
-   )
+   print(geom_df.to_xml(namespaces={"doc": "https://example.com"}, prefix="doc"))
 
 Write an XML without declaration or pretty print:
 
 .. ipython:: python
 
-   print(
-       geom_df.to_xml(xml_declaration=False,
-                      pretty_print=False)
-   )
+   print(geom_df.to_xml(xml_declaration=False, pretty_print=False))
 
 Write an XML and transform with stylesheet:
 
@@ -3920,7 +3921,9 @@ The look and feel of Excel worksheets created from pandas can be modified using 
 .. code-block:: python
 
     css = "border: 1px solid black; font-weight: bold;"
-    df.style.map_index(lambda x: css).map_index(lambda x: css, axis=1).to_excel("myfile.xlsx")
+    df.style.map_index(lambda x: css).map_index(lambda x: css, axis=1).to_excel(
+        "myfile.xlsx"
+    )
 
 Using the `Xlsxwriter`_ engine provides many options for controlling the
 format of an Excel worksheet created with the ``to_excel`` method.  Excellent examples can be found in the
@@ -4400,7 +4403,7 @@ will yield a tuple for each group key along with the relative keys of its conten
 
 .. ipython:: python
 
-   for (path, subgroups, subkeys) in store.walk():
+   for path, subgroups, subkeys in store.walk():
        for subgroup in subgroups:
            print("GROUP: {}/{}".format(path, subgroup))
        for subkey in subkeys:
@@ -4483,9 +4486,9 @@ storing/selecting from homogeneous index ``DataFrames``.
 .. ipython:: python
 
    index = pd.MultiIndex(
-      levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-      codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-      names=["foo", "bar"],
+       levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
+       codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+       names=["foo", "bar"],
    )
    df_mi = pd.DataFrame(np.random.randn(10, 3), index=index, columns=["A", "B", "C"])
    df_mi
@@ -4653,8 +4656,7 @@ specified in the format: ``<float>(<unit>)``, where float may be signed (and fra
        {
            "A": pd.Timestamp("20130101"),
            "B": [
-               pd.Timestamp("20130101") + timedelta(days=i, seconds=10)
-               for i in range(10)
+               pd.Timestamp("20130101") + timedelta(days=i, seconds=10) for i in range(10)
            ],
        }
    )
@@ -4826,8 +4828,10 @@ chunks.
 
    store.append("dfeq", dfeq, data_columns=["number"])
 
+
    def chunks(l, n):
-       return [l[i: i + n] for i in range(0, len(l), n)]
+       return [l[i : i + n] for i in range(0, len(l), n)]
+
 
    evens = [2, 4, 6, 8, 10]
    coordinates = store.select_as_coordinates("dfeq", "number=evens")
@@ -5408,7 +5412,9 @@ By setting the ``dtype_backend`` argument you can control the default dtypes use
 
 .. ipython:: python
 
-   result = pd.read_parquet("example_pa.parquet", engine="pyarrow", dtype_backend="pyarrow")
+   result = pd.read_parquet(
+       "example_pa.parquet", engine="pyarrow", dtype_backend="pyarrow"
+   )
 
    result.dtypes
 
@@ -5644,7 +5650,7 @@ to connect to your database.
 
    # Create the connection
    with sqlite_dbapi.connect("sqlite:///:memory:") as conn:
-        df = pd.read_sql_table("data", conn)
+       df = pd.read_sql_table("data", conn)
 
 To connect with SQLAlchemy you use the :func:`create_engine` function to create an engine
 object from database URI. You only need to create the engine once per database you are

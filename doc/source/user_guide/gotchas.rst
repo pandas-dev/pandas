@@ -199,6 +199,7 @@ Here is a similar example with :meth:`DataFrame.apply`:
        s.pop("a")
        return s
 
+
    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
    df.apply(f, axis="columns")
 
@@ -224,6 +225,7 @@ not apply to the container being iterated over.
        s = s.copy()
        s.pop("a")
        return s
+
 
    df = pd.DataFrame({"a": [1, 2, 3], 'b': [4, 5, 6]})
    df.apply(f, axis="columns")

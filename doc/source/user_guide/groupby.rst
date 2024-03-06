@@ -267,9 +267,7 @@ the number of groups, which is the same as the length of the ``groups`` dictiona
    height = np.random.normal(60, 10, size=n)
    time = pd.date_range("1/1/2000", periods=n)
    gender = np.random.choice(["male", "female"], size=n)
-   df = pd.DataFrame(
-       {"height": height, "weight": weight, "gender": gender}, index=time
-   )
+   df = pd.DataFrame({"height": height, "weight": weight, "gender": gender}, index=time)
    df
    gb = df.groupby("gender")
 
@@ -679,9 +677,9 @@ For a grouped ``DataFrame``, you can rename in a similar manner:
 .. ipython:: python
 
    (
-       grouped[["C", "D"]].agg(["sum", "mean", "std"]).rename(
-           columns={"sum": "foo", "mean": "bar", "std": "baz"}
-       )
+       grouped[["C", "D"]]
+       .agg(["sum", "mean", "std"])
+       .rename(columns={"sum": "foo", "mean": "bar", "std": "baz"})
    )
 
 .. note::
@@ -747,9 +745,7 @@ and unpack the keyword arguments
 .. ipython:: python
 
    animals.groupby("kind").agg(
-       **{
-           "total weight": pd.NamedAgg(column="weight", aggfunc="sum")
-       }
+       **{"total weight": pd.NamedAgg(column="weight", aggfunc="sum")}
    )
 
 When using named aggregation, additional keyword arguments are not passed through
@@ -910,9 +906,7 @@ Suppose we wish to standardize the data within each group:
    ts.head()
    ts.tail()
 
-   transformed = ts.groupby(lambda x: x.year).transform(
-       lambda x: (x - x.mean()) / x.std()
-   )
+   transformed = ts.groupby(lambda x: x.year).transform(lambda x: (x - x.mean()) / x.std())
 
 
 We would expect the result to now have mean 0 and standard deviation 1 within
@@ -1196,9 +1190,10 @@ The dimension of the returned result can also change:
 
     grouped = df.groupby('A')['C']
 
+
     def f(group):
-        return pd.DataFrame({'original': group,
-                             'demeaned': group - group.mean()})
+        return pd.DataFrame({'original': group, 'demeaned': group - group.mean()})
+
 
     grouped.apply(f)
 
@@ -1208,7 +1203,7 @@ that is itself a series, and possibly upcast the result to a DataFrame:
 .. ipython:: python
 
     def f(x):
-        return pd.Series([x, x ** 2], index=["x", "x^2"])
+        return pd.Series([x, x**2], index=["x", "x^2"])
 
 
     s = pd.Series(np.random.rand(5))
@@ -1369,10 +1364,10 @@ end of the result in order.
         categories=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     )
     data = pd.DataFrame(
-       {
-           "day": days,
-           "workers": [3, 4, 1, 4, 2, 2],
-       }
+        {
+            "day": days,
+            "workers": [3, 4, 1, 4, 2, 2],
+        }
     )
     data
 
@@ -1713,9 +1708,11 @@ column index name will be used as the name of the inserted column:
        }
    )
 
+
    def compute_metrics(x):
        result = {"b_sum": x["b"].sum(), "c_mean": x["c"].mean()}
        return pd.Series(result, name="metrics")
+
 
    result = df.groupby("a").apply(compute_metrics, include_groups=False)
 

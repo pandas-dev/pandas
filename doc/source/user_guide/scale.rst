@@ -24,6 +24,7 @@ Suppose our raw dataset on disk has many columns.
    import pandas as pd
    import numpy as np
 
+
    def make_timeseries(start="2000-01-01", end="2000-12-31", freq="1D", seed=None):
        index = pd.date_range(start=start, end=end, freq=freq, name="timestamp")
        n = len(index)
@@ -38,6 +39,7 @@ Suppose our raw dataset on disk has many columns.
        if df.index[-1] == end:
            df = df.iloc[:-1]
        return df
+
 
    timeseries = [
        make_timeseries(freq="1min", seed=i).rename(columns=lambda x: f"{x}_{i}")

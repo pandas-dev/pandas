@@ -179,6 +179,7 @@ The appropriate way to annotate this would be as follows
 
    str_type = str
 
+
    class SomeClass2:
        str: str_type = None
 
@@ -190,8 +191,8 @@ In some cases you may be tempted to use ``cast`` from the typing module when you
 
    from pandas.core.dtypes.common import is_number
 
-   def cannot_infer_bad(obj: Union[str, int, float]):
 
+   def cannot_infer_bad(obj: Union[str, int, float]):
        if is_number(obj):
            ...
        else:  # Reasonably only str objects would reach this but...
@@ -203,7 +204,6 @@ The limitation here is that while a human can reasonably understand that ``is_nu
 .. code-block:: python
 
    def cannot_infer_good(obj: Union[str, int, float]):
-
        if isinstance(obj, str):
            return obj.upper()
        else:
@@ -221,6 +221,7 @@ For example, quite a few functions in pandas accept a ``dtype`` argument. This c
 .. code-block:: python
 
    from pandas._typing import Dtype
+
 
    def as_type(dtype: Dtype) -> ...:
        ...
@@ -427,6 +428,7 @@ be located.
 
            import pandas as pd
            import pandas._testing as tm
+
 
            def test_getitem_listlike_of_ints():
                ser = pd.Series(range(5))
@@ -641,9 +643,13 @@ as a comment to a new test.
 
 
    @pytest.mark.parametrize(
-       'dtype', ['float32', pytest.param('int16', marks=pytest.mark.skip),
-                 pytest.param('int32', marks=pytest.mark.xfail(
-                     reason='to show how it works'))])
+       'dtype',
+       [
+           'float32',
+           pytest.param('int16', marks=pytest.mark.skip),
+           pytest.param('int32', marks=pytest.mark.xfail(reason='to show how it works')),
+       ],
+   )
    def test_mark(dtype):
        assert str(np.dtype(dtype)) == 'float32'
 
@@ -722,10 +728,16 @@ for details <https://hypothesis.readthedocs.io/en/latest/index.html>`_.
     import json
     from hypothesis import given, strategies as st
 
-    any_json_value = st.deferred(lambda: st.one_of(
-        st.none(), st.booleans(), st.floats(allow_nan=False), st.text(),
-        st.lists(any_json_value), st.dictionaries(st.text(), any_json_value)
-    ))
+    any_json_value = st.deferred(
+        lambda: st.one_of(
+            st.none(),
+            st.booleans(),
+            st.floats(allow_nan=False),
+            st.text(),
+            st.lists(any_json_value),
+            st.dictionaries(st.text(), any_json_value),
+        )
+    )
 
 
     @given(value=any_json_value)

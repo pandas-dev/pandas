@@ -264,7 +264,7 @@ Convenience methods ``ffill`` and  ``bfill`` have been added:
   .. ipython:: python
 
       def f(x):
-          return pd.Series([x, x ** 2], index=["x", "x^2"])
+          return pd.Series([x, x**2], index=["x", "x^2"])
 
 
       s = pd.Series(np.random.rand(5))

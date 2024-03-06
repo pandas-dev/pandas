@@ -1213,7 +1213,7 @@ it empty for ylabel.
 .. ipython:: python
    :suppress:
 
-   plt.figure();
+   plt.figure()
 
 .. ipython:: python
 
@@ -1428,7 +1428,7 @@ The above example is identical to using:
 
 .. ipython:: python
 
-   df.plot(subplots=True, layout=(2, -1), figsize=(6, 6), sharex=False);
+   df.plot(subplots=True, layout=(2, -1), figsize=(6, 6), sharex=False)
 
 .. ipython:: python
    :suppress:

@@ -550,8 +550,8 @@ Stack
 .. ipython:: python
 
    arrays = [
-      ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
-      ["one", "two", "one", "two", "one", "two", "one", "two"],
+       ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
+       ["one", "two", "one", "two", "one", "two", "one", "two"],
    ]
    index = pd.MultiIndex.from_arrays(arrays, names=["first", "second"])
    df = pd.DataFrame(np.random.randn(8, 2), index=index, columns=["A", "B"])

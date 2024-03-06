@@ -37,9 +37,9 @@ multiple rows for each subject where applicable.
 .. ipython:: python
 
    data = {
-      "value": range(12),
-      "variable": ["A"] * 3 + ["B"] * 3 + ["C"] * 3 + ["D"] * 3,
-      "date": pd.to_datetime(["2020-01-03", "2020-01-04", "2020-01-05"] * 4)
+       "value": range(12),
+       "variable": ["A"] * 3 + ["B"] * 3 + ["C"] * 3 + ["D"] * 3,
+       "date": pd.to_datetime(["2020-01-03", "2020-01-04", "2020-01-05"] * 4),
    }
    df = pd.DataFrame(data)
 
@@ -112,13 +112,15 @@ strategies.
    df
    pd.pivot_table(df, values="D", index=["A", "B"], columns=["C"])
    pd.pivot_table(
-       df, values=["D", "E"],
+       df,
+       values=["D", "E"],
        index=["B"],
        columns=["A", "C"],
        aggfunc="sum",
    )
    pd.pivot_table(
-       df, values="E",
+       df,
+       values="E",
        index=["B", "C"],
        columns=["A"],
        aggfunc=["sum", "mean"],
@@ -150,11 +152,7 @@ rows and columns:
 .. ipython:: python
 
    table = df.pivot_table(
-       index=["A", "B"],
-       columns="C",
-       values=["D", "E"],
-       margins=True,
-       aggfunc="std"
+       index=["A", "B"], columns="C", values=["D", "E"], margins=True, aggfunc="std"
    )
    table
 
@@ -190,8 +188,8 @@ Closely related to the :meth:`~DataFrame.pivot` method are the related
 .. ipython:: python
 
    tuples = [
-      ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
-      ["one", "two", "one", "two", "one", "two", "one", "two"],
+       ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
+       ["one", "two", "one", "two", "one", "two", "one", "two"],
    ]
    index = pd.MultiIndex.from_arrays(tuples, names=["first", "second"])
    df = pd.DataFrame(np.random.randn(8, 2), index=index, columns=["A", "B"])

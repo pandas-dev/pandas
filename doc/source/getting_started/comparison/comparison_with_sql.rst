@@ -331,9 +331,7 @@ UNION
     df1 = pd.DataFrame(
         {"city": ["Chicago", "San Francisco", "New York City"], "rank": range(1, 4)}
     )
-    df2 = pd.DataFrame(
-        {"city": ["Chicago", "Boston", "Los Angeles"], "rank": [1, 4, 5]}
-    )
+    df2 = pd.DataFrame({"city": ["Chicago", "Boston", "Los Angeles"], "rank": [1, 4, 5]})
 
 .. code-block:: sql
 
@@ -433,9 +431,7 @@ Top n rows per group
 
     (
         tips.assign(
-            rn=tips.sort_values(["total_bill"], ascending=False)
-            .groupby(["day"])
-            .cumcount()
+            rn=tips.sort_values(["total_bill"], ascending=False).groupby(["day"]).cumcount()
             + 1
         )
         .query("rn < 3")
@@ -448,9 +444,7 @@ the same using ``rank(method='first')`` function
 
     (
         tips.assign(
-            rnk=tips.groupby(["day"])["total_bill"].rank(
-                method="first", ascending=False
-            )
+            rnk=tips.groupby(["day"])["total_bill"].rank(method="first", ascending=False)
         )
         .query("rnk < 3")
         .sort_values(["day", "rnk"])

@@ -99,8 +99,7 @@ passed instead
 
 .. ipython:: python
 
-   pd.SparseDtype(np.dtype('datetime64[ns]'),
-                  fill_value=pd.Timestamp('2017-01-01'))
+   pd.SparseDtype(np.dtype('datetime64[ns]'), fill_value=pd.Timestamp('2017-01-01'))
 
 Finally, the string alias ``'Sparse[dtype]'`` may be used to specify a sparse dtype
 in many places
@@ -140,7 +139,7 @@ to :class:`arrays.SparseArray` and get a :class:`arrays.SparseArray` as a result
 
 .. ipython:: python
 
-   arr = pd.arrays.SparseArray([1., np.nan, np.nan, -2., np.nan])
+   arr = pd.arrays.SparseArray([1.0, np.nan, np.nan, -2.0, np.nan])
    np.abs(arr)
 
 
@@ -149,7 +148,7 @@ the correct dense result.
 
 .. ipython:: python
 
-   arr = pd.arrays.SparseArray([1., -1, -1, -2., -1], fill_value=-1)
+   arr = pd.arrays.SparseArray([1.0, -1, -1, -2.0, -1], fill_value=-1)
    np.abs(arr)
    np.abs(arr).to_dense()
 
@@ -183,7 +182,7 @@ Use :meth:`DataFrame.sparse.from_spmatrix` to create a :class:`DataFrame` with s
    from scipy.sparse import csr_matrix
 
    arr = np.random.random(size=(1000, 5))
-   arr[arr < .9] = 0
+   arr[arr < 0.9] = 0
 
    sp_arr = csr_matrix(arr)
    sp_arr
@@ -251,6 +250,7 @@ A convenience method :meth:`Series.sparse.from_coo` is implemented for creating 
 .. ipython:: python
 
    from scipy import sparse
+
    A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(3, 4))
    A
    A.todense()

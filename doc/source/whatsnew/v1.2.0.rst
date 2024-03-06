@@ -356,9 +356,9 @@ of columns could result in a larger Series result. See (:issue:`37799`).
 .. ipython:: python
    :okwarning:
 
-    In [5]: df.all(bool_only=True)
+    In[5]: df.all(bool_only=True)
 
-    In [6]: df[["B", "C"]].all(bool_only=True)
+    In[6]: df[["B", "C"]].all(bool_only=True)
 
 
 Other DataFrame reductions with ``numeric_only=None`` will also avoid

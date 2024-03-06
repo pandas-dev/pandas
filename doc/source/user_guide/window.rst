@@ -96,8 +96,11 @@ be calculated with :meth:`~Rolling.apply` by specifying a separate column of wei
        arr[:, :2] = (x[:, :2] * x[:, 2]).sum(axis=0) / x[:, 2].sum()
        return arr
 
+
    df = pd.DataFrame([[1, 2, 0.6], [2, 3, 0.4], [3, 4, 0.2], [4, 5, 0.7]])
-   df.rolling(2, method="table", min_periods=0).apply(weighted_mean, raw=True, engine="numba")  # noqa: E501
+   df.rolling(2, method="table", min_periods=0).apply(
+       weighted_mean, raw=True, engine="numba"
+   )  # noqa: E501
 
 .. versionadded:: 1.3
 
@@ -263,18 +266,20 @@ and we want to use an expanding window where ``use_expanding`` is ``True`` other
 
    from pandas.api.indexers import BaseIndexer
 
+
    class CustomIndexer(BaseIndexer):
-        def get_window_bounds(self, num_values, min_periods, center, closed, step):
-            start = np.empty(num_values, dtype=np.int64)
-            end = np.empty(num_values, dtype=np.int64)
-            for i in range(num_values):
-                if self.use_expanding[i]:
-                    start[i] = 0
-                    end[i] = i + 1
-                else:
-                    start[i] = i
-                    end[i] = i + self.window_size
-            return start, end
+       def get_window_bounds(self, num_values, min_periods, center, closed, step):
+           start = np.empty(num_values, dtype=np.int64)
+           end = np.empty(num_values, dtype=np.int64)
+           for i in range(num_values):
+               if self.use_expanding[i]:
+                   start[i] = 0
+                   end[i] = i + 1
+               else:
+                   start[i] = i
+                   end[i] = i + self.window_size
+           return start, end
+
 
    indexer = CustomIndexer(window_size=1, use_expanding=use_expanding)
 
@@ -305,6 +310,7 @@ forward-looking rolling window, and we can use it as follows:
 .. ipython:: python
 
    from pandas.api.indexers import FixedForwardWindowIndexer
+
    indexer = FixedForwardWindowIndexer(window_size=2)
    df.rolling(indexer, min_periods=1).sum()
 
@@ -340,6 +346,7 @@ the windows are cast as :class:`Series` objects (``raw=False``) or ndarray objec
 
    def mad(x):
        return np.fabs(x - x.mean()).mean()
+
 
    s = pd.Series(range(10))
    s.rolling(window=4).apply(mad, raw=True)
@@ -429,11 +436,7 @@ can even be omitted:
 
 .. ipython:: python
 
-   covs = (
-       df[["B", "C", "D"]]
-       .rolling(window=4)
-       .cov(df[["A", "B", "C"]], pairwise=True)
-   )
+   covs = df[["B", "C", "D"]].rolling(window=4).cov(df[["A", "B", "C"]], pairwise=True)
    covs
 
 

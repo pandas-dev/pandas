@@ -8,7 +8,7 @@ Version 0.21.0 (October 27, 2017)
 .. ipython:: python
    :suppress:
 
-   from pandas import * # noqa F401, F403
+   from pandas import *  # noqa F401, F403
 
 
 This is a major release from 0.20.3 and includes a number of API changes, deprecations, new features,
@@ -69,9 +69,9 @@ to native types, but not any coercive conversions. For example:
 
 .. ipython:: python
 
-   df = pd.DataFrame({'A': [1, 2, 3],
-                      'B': np.array([1, 2, 3], dtype='object'),
-                      'C': ['1', '2', '3']})
+   df = pd.DataFrame(
+       {'A': [1, 2, 3], 'B': np.array([1, 2, 3], dtype='object'), 'C': ['1', '2', '3']}
+   )
    df.dtypes
    df.infer_objects().dtypes
 
@@ -126,8 +126,7 @@ For example:
 
 .. ipython:: python
 
-    df = pd.DataFrame(np.arange(8).reshape(2, 4),
-                      columns=['A', 'B', 'C', 'D'])
+    df = pd.DataFrame(np.arange(8).reshape(2, 4), columns=['A', 'B', 'C', 'D'])
     df
     df.drop(['B', 'C'], axis=1)
     # the following is now equivalent
@@ -242,23 +241,28 @@ First we set the data:
 .. ipython:: python
 
    import numpy as np
+
    n = 1000
-   df = pd.DataFrame({'Store': np.random.choice(['Store_1', 'Store_2'], n),
-                      'Product': np.random.choice(['Product_1',
-                                                   'Product_2',
-                                                   'Product_3'
-                                                   ], n),
-                      'Revenue': (np.random.random(n) * 50 + 10).round(2),
-                      'Quantity': np.random.randint(1, 10, size=n)})
+   df = pd.DataFrame(
+       {
+           'Store': np.random.choice(['Store_1', 'Store_2'], n),
+           'Product': np.random.choice(['Product_1', 'Product_2', 'Product_3'], n),
+           'Revenue': (np.random.random(n) * 50 + 10).round(2),
+           'Quantity': np.random.randint(1, 10, size=n),
+       }
+   )
    df.head(2)
 
 Now, to find prices per store/product, we can simply do:
 
 .. ipython:: python
 
-   (df.groupby(['Store', 'Product'])
-      .pipe(lambda grp: grp.Revenue.sum() / grp.Quantity.sum())
-      .unstack().round(2))
+   (
+       df.groupby(['Store', 'Product'])
+       .pipe(lambda grp: grp.Revenue.sum() / grp.Quantity.sum())
+       .unstack()
+       .round(2)
+   )
 
 See the :ref:`documentation <groupby.pipe>` for more.
 

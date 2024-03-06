@@ -87,9 +87,8 @@ Below is a possibly non-exhaustive list of changes:
    .. ipython:: python
 
        from scipy import sparse
-       A = sparse.coo_matrix(
-           ([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(3, 4)
-       )
+
+       A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(3, 4))
        ser = pd.Series.sparse.from_coo(A)
        ser.index.dtypes
 
@@ -154,10 +153,13 @@ When this keyword is set to ``"pyarrow"``, then these functions will return pyar
 .. ipython:: python
 
     import io
-    data = io.StringIO("""a,b,c,d,e,f,g,h,i
+
+    data = io.StringIO(
+        """a,b,c,d,e,f,g,h,i
         1,2.5,True,a,,,,,
         3,4.5,False,b,6,7.5,True,a,
-    """)
+    """
+    )
     df = pd.read_csv(data, dtype_backend="pyarrow")
     df.dtypes
 

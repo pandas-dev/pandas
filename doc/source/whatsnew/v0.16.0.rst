@@ -63,8 +63,7 @@ a function to be evaluated.
 
 .. ipython:: python
 
-    iris.assign(sepal_ratio=lambda x: (x['SepalWidth']
-                                       / x['SepalLength'])).head()
+    iris.assign(sepal_ratio=lambda x: (x['SepalWidth'] / x['SepalLength'])).head()
 
 The power of ``assign`` comes when used in chains of operations. For example,
 we can limit the DataFrame to just those with a Sepal Length greater than 5,
@@ -73,10 +72,14 @@ calculate the ratio, and plot
 .. ipython:: python
 
    iris = pd.read_csv('data/iris.data')
-   (iris.query('SepalLength > 5')
-        .assign(SepalRatio=lambda x: x.SepalWidth / x.SepalLength,
-                PetalRatio=lambda x: x.PetalWidth / x.PetalLength)
-        .plot(kind='scatter', x='SepalRatio', y='PetalRatio'))
+   (
+       iris.query('SepalLength > 5')
+       .assign(
+           SepalRatio=lambda x: x.SepalWidth / x.SepalLength,
+           PetalRatio=lambda x: x.PetalWidth / x.PetalLength,
+       )
+       .plot(kind='scatter', x='SepalRatio', y='PetalRatio')
+   )
 
 .. image:: ../_static/whatsnew_assign.png
   :scale: 50 %
@@ -94,13 +97,17 @@ Added :meth:`SparseSeries.to_coo` and :meth:`SparseSeries.from_coo` methods (:is
 .. code-block:: python
 
    s = pd.Series([3.0, np.nan, 1.0, 3.0, np.nan, np.nan])
-   s.index = pd.MultiIndex.from_tuples([(1, 2, 'a', 0),
-                                        (1, 2, 'a', 1),
-                                        (1, 1, 'b', 0),
-                                        (1, 1, 'b', 1),
-                                        (2, 1, 'b', 0),
-                                        (2, 1, 'b', 1)],
-                                       names=['A', 'B', 'C', 'D'])
+   s.index = pd.MultiIndex.from_tuples(
+       [
+           (1, 2, 'a', 0),
+           (1, 2, 'a', 1),
+           (1, 1, 'b', 0),
+           (1, 1, 'b', 1),
+           (2, 1, 'b', 0),
+           (2, 1, 'b', 1),
+       ],
+       names=['A', 'B', 'C', 'D'],
+   )
 
    s
 
@@ -108,9 +115,9 @@ Added :meth:`SparseSeries.to_coo` and :meth:`SparseSeries.from_coo` methods (:is
    ss = s.to_sparse()
    ss
 
-   A, rows, columns = ss.to_coo(row_levels=['A', 'B'],
-                                column_levels=['C', 'D'],
-                                sort_labels=False)
+   A, rows, columns = ss.to_coo(
+       row_levels=['A', 'B'], column_levels=['C', 'D'], sort_labels=False
+   )
 
    A
    A.todense()
@@ -123,8 +130,8 @@ from a ``scipy.sparse.coo_matrix``:
 .. code-block:: python
 
    from scipy import sparse
-   A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])),
-                         shape=(3, 4))
+
+   A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(3, 4))
    A
    A.todense()
 
@@ -268,9 +275,11 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
 
   .. ipython:: python
 
-     df = pd.DataFrame(np.random.randn(5, 4),
-                       columns=list('ABCD'),
-                       index=pd.date_range('20130101', periods=5))
+     df = pd.DataFrame(
+         np.random.randn(5, 4),
+         columns=list('ABCD'),
+         index=pd.date_range('20130101', periods=5),
+     )
      df
      s = pd.Series(range(5), [-2, -1, 1, 2, 3])
      s
@@ -318,7 +327,7 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
 
   .. code-block:: python
 
-     In [4]: df.loc[2:3]
+     In[4]: df.loc[2:3]
      KeyError: 'start bound [2] is not the [index]'
 
   New behavior
@@ -676,8 +685,7 @@ Bug fixes
 
   .. ipython:: python
 
-     df1 = pd.DataFrame({'x': pd.Series(['a', 'b', 'c']),
-                         'y': pd.Series(['d', 'e', 'f'])})
+     df1 = pd.DataFrame({'x': pd.Series(['a', 'b', 'c']), 'y': pd.Series(['d', 'e', 'f'])})
      df2 = df1[['x']]
      df2['y'] = ['g', 'h', 'i']
 

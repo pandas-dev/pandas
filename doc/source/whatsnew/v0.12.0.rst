@@ -203,6 +203,7 @@ IO enhancements
     .. ipython:: python
 
         import io
+
         df = pd.DataFrame({"a": range(3), "b": list("abc")})
         print(df)
         html = df.to_html()

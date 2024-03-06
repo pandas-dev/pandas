@@ -174,8 +174,7 @@ What is the average :math:`NO_2` concentration for each day of the week for each
 
 .. ipython:: python
 
-    air_quality.groupby(
-        [air_quality["datetime"].dt.weekday, "location"])["value"].mean()
+    air_quality.groupby([air_quality["datetime"].dt.weekday, "location"])["value"].mean()
 
 Remember the split-apply-combine pattern provided by ``groupby`` from the
 :ref:`tutorial on statistics calculation <10min_tut_06_stats>`?

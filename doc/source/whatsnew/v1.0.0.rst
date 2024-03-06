@@ -208,9 +208,9 @@ Example:
 
 .. ipython:: python
 
-   df = pd.DataFrame({'x': ['abc', None, 'def'],
-                      'y': [1, 2, np.nan],
-                      'z': [True, False, True]})
+   df = pd.DataFrame(
+       {'x': ['abc', None, 'def'], 'y': [1, 2, np.nan], 'z': [True, False, True]}
+   )
    df
    df.dtypes
 
@@ -427,9 +427,9 @@ Extended verbose info output for :class:`~pandas.DataFrame`
 
 .. ipython:: python
 
-   df = pd.DataFrame({"int_col": [1, 2, 3],
-                      "text_col": ["a", "b", "c"],
-                      "float_col": [0.0, 0.1, 0.2]})
+   df = pd.DataFrame(
+       {"int_col": [1, 2, 3], "text_col": ["a", "b", "c"], "float_col": [0.0, 0.1, 0.2]}
+   )
    df.info(verbose=True)
 
 :meth:`pandas.array` inference changes
@@ -645,8 +645,9 @@ scalar values in the result are instances of the extension dtype's scalar type.
 
 .. ipython:: python
 
-   df = pd.DataFrame({"A": ['a', 'b']}, dtype='category',
-                     index=pd.date_range('2000', periods=2))
+   df = pd.DataFrame(
+       {"A": ['a', 'b']}, dtype='category', index=pd.date_range('2000', periods=2)
+   )
    df
 
 

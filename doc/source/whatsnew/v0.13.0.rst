@@ -250,13 +250,12 @@ In the ``Series`` case this is effectively an appending operation
 
    s = pd.Series([1, 2, 3])
    s
-   s[5] = 5.
+   s[5] = 5.0
    s
 
 .. ipython:: python
 
-   dfi = pd.DataFrame(np.arange(6).reshape(3, 2),
-                      columns=['A', 'B'])
+   dfi = pd.DataFrame(np.arange(6).reshape(3, 2), columns=['A', 'B'])
    dfi
 
 This would previously ``KeyError``
@@ -382,29 +381,30 @@ HDFStore API changes
   .. ipython:: python
 
      path = 'test.h5'
-     dfq = pd.DataFrame(np.random.randn(10, 4),
-                        columns=list('ABCD'),
-                        index=pd.date_range('20130101', periods=10))
+     dfq = pd.DataFrame(
+         np.random.randn(10, 4),
+         columns=list('ABCD'),
+         index=pd.date_range('20130101', periods=10),
+     )
      dfq.to_hdf(path, key='dfq', format='table', data_columns=True)
 
   Use boolean expressions, with in-line function evaluation.
 
   .. ipython:: python
 
-     pd.read_hdf(path, 'dfq',
-                 where="index>Timestamp('20130104') & columns=['A', 'B']")
+     pd.read_hdf(path, 'dfq', where="index>Timestamp('20130104') & columns=['A', 'B']")
 
   Use an inline column reference
 
   .. ipython:: python
 
-     pd.read_hdf(path, 'dfq',
-                 where="A>0 or C>0")
+     pd.read_hdf(path, 'dfq', where="A>0 or C>0")
 
   .. ipython:: python
      :suppress:
 
      import os
+
      os.remove(path)
 
 - the ``format`` keyword now replaces the ``table`` keyword; allowed values are ``fixed(f)`` or ``table(t)``
@@ -425,6 +425,7 @@ HDFStore API changes
      :suppress:
 
      import os
+
      os.remove(path)
 
 - Significant table writing performance improvements
@@ -460,6 +461,7 @@ HDFStore API changes
      :suppress:
 
      import os
+
      os.remove(path)
 
 - removed the ``_quiet`` attribute, replace by a ``DuplicateWarning`` if retrieving
@@ -539,8 +541,10 @@ Enhancements
   .. ipython:: python
 
      import datetime
+
      td = pd.Series(pd.date_range('20130101', periods=4)) - pd.Series(
-         pd.date_range('20121201', periods=4))
+         pd.date_range('20121201', periods=4)
+     )
      td[2] += np.timedelta64(datetime.timedelta(minutes=5, seconds=3))
      td[3] = np.nan
      td
@@ -593,6 +597,7 @@ Enhancements
   .. ipython:: python
 
      from pandas import offsets
+
      td + offsets.Minute(5) + offsets.Milli(5)
 
   Fillna is now supported for timedeltas
@@ -607,7 +612,7 @@ Enhancements
   .. ipython:: python
 
      td.mean()
-     td.quantile(.1)
+     td.quantile(0.1)
 
 - ``plot(kind='kde')`` now accepts the optional parameters ``bw_method`` and
   ``ind``, passed to scipy.stats.gaussian_kde() (for scipy >= 0.11.0) to set
@@ -643,16 +648,14 @@ Enhancements
   .. ipython:: python
      :okwarning:
 
-     pd.Series(['a1', 'b2', 'c3']).str.extract(
-         '(?P<letter>[ab])(?P<digit>\\d)')
+     pd.Series(['a1', 'b2', 'c3']).str.extract('(?P<letter>[ab])(?P<digit>\\d)')
 
   and optional groups can also be used.
 
   .. ipython:: python
      :okwarning:
 
-      pd.Series(['a1', 'b2', '3']).str.extract(
-          '(?P<letter>[ab])?(?P<digit>\\d)')
+      pd.Series(['a1', 'b2', '3']).str.extract('(?P<letter>[ab])?(?P<digit>\\d)')
 
 - ``read_stata`` now accepts Stata 13 format (:issue:`4291`)
 
@@ -714,6 +717,7 @@ Enhancements
 
      # note that pandas.rpy was deprecated in v0.16.0
      import pandas.rpy.common as com
+
      com.load_data('Titanic')
 
 - ``tz_localize`` can infer a fall daylight savings transition based on the structure
@@ -738,8 +742,9 @@ Enhancements
 
   .. ipython:: python
 
-      df = pd.DataFrame({'A': [1, 2.1, np.nan, 4.7, 5.6, 6.8],
-                        'B': [.25, np.nan, np.nan, 4, 12.2, 14.4]})
+      df = pd.DataFrame(
+          {'A': [1, 2.1, np.nan, 4.7, 5.6, 6.8], 'B': [0.25, np.nan, np.nan, 4, 12.2, 14.4]}
+      )
       df.interpolate()
 
   Additionally, the ``method`` argument to ``interpolate`` has been expanded
@@ -761,12 +766,15 @@ Enhancements
   .. ipython:: python
 
     np.random.seed(123)
-    df = pd.DataFrame({"A1970" : {0 : "a", 1 : "b", 2 : "c"},
-                       "A1980" : {0 : "d", 1 : "e", 2 : "f"},
-                       "B1970" : {0 : 2.5, 1 : 1.2, 2 : .7},
-                       "B1980" : {0 : 3.2, 1 : 1.3, 2 : .1},
-                       "X"     : dict(zip(range(3), np.random.randn(3)))
-                      })
+    df = pd.DataFrame(
+        {
+            "A1970": {0: "a", 1: "b", 2: "c"},
+            "A1980": {0: "d", 1: "e", 2: "f"},
+            "B1970": {0: 2.5, 1: 1.2, 2: 0.7},
+            "B1980": {0: 3.2, 1: 1.3, 2: 0.1},
+            "X": dict(zip(range(3), np.random.randn(3))),
+        }
+    )
     df["id"] = df.index
     df
     pd.wide_to_long(df, ["A", "B"], i="id", j="year")
@@ -793,8 +801,7 @@ Experimental
   .. ipython:: python
 
      nrows, ncols = 20000, 100
-     df1, df2, df3, df4 = [pd.DataFrame(np.random.randn(nrows, ncols))
-                           for _ in range(4)]
+     df1, df2, df3, df4 = [pd.DataFrame(np.random.randn(nrows, ncols)) for _ in range(4)]
 
   .. ipython:: python
 
@@ -923,8 +930,11 @@ Experimental
      # Use pandas to process and reshape the dataset
 
      df2 = df.pivot(index='STATION', columns='MONTH', values='MEAN_TEMP')
-     df3 = pd.concat([df2.min(), df2.mean(), df2.max()],
-                     axis=1, keys=["Min Tem", "Mean Temp", "Max Temp"])
+     df3 = pd.concat(
+         [df2.min(), df2.mean(), df2.max()],
+         axis=1,
+         keys=["Min Tem", "Mean Temp", "Max Temp"],
+     )
 
   The resulting DataFrame is::
 

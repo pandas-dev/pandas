@@ -898,6 +898,7 @@ method.
    def subtract_and_divide(x, sub, divide=1):
        return (x - sub) / divide
 
+
    df_udf = pd.DataFrame(np.ones((2, 2)))
    df_udf.apply(subtract_and_divide, args=(5,), divide=3)
 
@@ -1140,8 +1141,10 @@ a single value and returning a single value. For example:
    df4 = df.copy()
    df4
 
+
    def f(x):
        return len(str(x))
+
 
    df4["one"].map(f)
    df4.map(f)
@@ -1152,9 +1155,7 @@ to :ref:`merging/joining functionality <merging>`:
 
 .. ipython:: python
 
-   s = pd.Series(
-       ["six", "seven", "six", "seven", "six"], index=["a", "b", "c", "d", "e"]
-   )
+   s = pd.Series(["six", "seven", "six", "seven", "six"], index=["a", "b", "c", "d", "e"])
    t = pd.Series({"six": 6.0, "seven": 7.0})
    s
    s.map(t)
@@ -1438,9 +1439,7 @@ labels).
 
    df = pd.DataFrame(
        {"x": [1, 2, 3, 4, 5, 6], "y": [10, 20, 30, 40, 50, 60]},
-       index=pd.MultiIndex.from_product(
-           [["a", "b", "c"], [1, 2]], names=["let", "num"]
-       ),
+       index=pd.MultiIndex.from_product([["a", "b", "c"], [1, 2]], names=["let", "num"]),
    )
    df
    df.rename_axis(index={"let": "abc"})
@@ -1749,9 +1748,7 @@ used to sort a pandas object by its index levels.
        }
    )
 
-   unsorted_df = df.reindex(
-       index=["a", "d", "c", "b"], columns=["three", "two", "one"]
-   )
+   unsorted_df = df.reindex(index=["a", "d", "c", "b"], columns=["three", "two", "one"])
    unsorted_df
 
    # DataFrame
@@ -1795,9 +1792,7 @@ to use to determine the sorted order.
 
 .. ipython:: python
 
-   df1 = pd.DataFrame(
-       {"one": [2, 1, 1, 1], "two": [1, 3, 2, 4], "three": [5, 4, 3, 2]}
-   )
+   df1 = pd.DataFrame({"one": [2, 1, 1, 1], "two": [1, 3, 2, 4], "three": [5, 4, 3, 2]})
    df1.sort_values(by="two")
 
 The ``by`` parameter can take a list of column names, e.g.:
@@ -1940,9 +1935,7 @@ all levels to ``by``.
 
 .. ipython:: python
 
-   df1.columns = pd.MultiIndex.from_tuples(
-       [("a", "one"), ("a", "two"), ("b", "three")]
-   )
+   df1.columns = pd.MultiIndex.from_tuples([("a", "one"), ("a", "two"), ("b", "three")])
    df1.sort_values(by=("a", "two"))
 
 
@@ -2082,7 +2075,9 @@ different numeric dtypes will **NOT** be combined. The following example will gi
        {
            "A": pd.Series(np.random.randn(8), dtype="float16"),
            "B": pd.Series(np.random.randn(8)),
-           "C": pd.Series(np.random.randint(0, 255, size=8), dtype="uint8"),  # [0,255] (range of uint8)
+           "C": pd.Series(
+               np.random.randint(0, 255, size=8), dtype="uint8"
+           ),  # [0,255] (range of uint8)
        }
    )
    df2

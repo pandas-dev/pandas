@@ -129,8 +129,8 @@ operands is ``NA``.
 
 .. ipython:: python
 
-   pd.NA ** 0
-   1 ** pd.NA
+   pd.NA**0
+   1**pd.NA
 
 In equality and comparison operations, :class:`NA` also propagates. This deviates
 from the behaviour of ``np.nan``, where comparisons with ``np.nan`` always
@@ -264,6 +264,7 @@ the first 10 columns.
 .. ipython:: python
 
    import io
+
    data = io.StringIO("a,b\n,True\n2,")
    df = pd.read_csv(data)
    df.dtypes
@@ -281,7 +282,7 @@ The missing value sentinel used will be chosen based on the dtype.
 
 .. ipython:: python
 
-   ser = pd.Series([1., 2., 3.])
+   ser = pd.Series([1.0, 2.0, 3.0])
    ser.loc[0] = None
    ser
 
@@ -381,7 +382,10 @@ Replace NA with a scalar value
 
 .. ipython:: python
 
-   data = {"np": [1.0, np.nan, np.nan, 2], "arrow": pd.array([1.0, pd.NA, pd.NA, 2], dtype="float64[pyarrow]")}
+   data = {
+       "np": [1.0, np.nan, np.nan, 2],
+       "arrow": pd.array([1.0, pd.NA, pd.NA, 2], dtype="float64[pyarrow]"),
+   }
    df = pd.DataFrame(data)
    df
    df.fillna(0)
@@ -493,10 +497,10 @@ The appropriate interpolation method will depend on the data type.
    .. ipython:: python
 
       df = pd.DataFrame(
-         {
-            "A": [1, 2.1, np.nan, 4.7, 5.6, 6.8],
-            "B": [0.25, np.nan, np.nan, 4, 12.2, 14.4],
-         }
+          {
+              "A": [1, 2.1, np.nan, 4.7, 5.6, 6.8],
+              "B": [0.25, np.nan, np.nan, 4, 12.2, 14.4],
+          }
       )
       df
       df.interpolate(method="barycentric")

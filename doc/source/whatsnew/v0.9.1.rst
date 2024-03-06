@@ -152,9 +152,7 @@ API changes
 
         import io
 
-        data = ('A,B,C\n'
-                '00001,001,5\n'
-                '00002,002,6')
+        data = 'A,B,C\n' '00001,001,5\n' '00002,002,6'
         pd.read_csv(io.StringIO(data), converters={'A': lambda x: x.strip()})
 
 

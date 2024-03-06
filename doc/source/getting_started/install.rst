@@ -108,6 +108,7 @@ obtain these directories with.
 .. code-block:: python
 
     import sys
+
     sys.path
 
 One way you could be encountering this error is if you have multiple Python installations on your system

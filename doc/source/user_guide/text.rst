@@ -294,8 +294,10 @@ positional argument (a regex object) and return a string.
    # Reverse every lowercase alphabetic word
    pat = r"[a-z]+"
 
+
    def repl(m):
        return m.group(0)[::-1]
+
 
    pd.Series(["foo 123", "bar baz", np.nan], dtype="string").str.replace(
        pat, repl, regex=True
@@ -304,12 +306,12 @@ positional argument (a regex object) and return a string.
    # Using regex groups
    pat = r"(?P<one>\w+) (?P<two>\w+) (?P<three>\w+)"
 
+
    def repl(m):
        return m.group("two").swapcase()
 
-   pd.Series(["Foo Bar Baz", np.nan], dtype="string").str.replace(
-       pat, repl, regex=True
-   )
+
+   pd.Series(["Foo Bar Baz", np.nan], dtype="string").str.replace(pat, repl, regex=True)
 
 The ``replace`` method also accepts a compiled regular expression object
 from :func:`re.compile` as a pattern. All flags should be included in the

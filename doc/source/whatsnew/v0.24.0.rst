@@ -252,19 +252,21 @@ See the :ref:`Merge, join, and concatenate
 
 .. ipython:: python
 
-   index_left = pd.MultiIndex.from_tuples([('K0', 'X0'), ('K0', 'X1'),
-                                          ('K1', 'X2')],
-                                          names=['key', 'X'])
+   index_left = pd.MultiIndex.from_tuples(
+       [('K0', 'X0'), ('K0', 'X1'), ('K1', 'X2')], names=['key', 'X']
+   )
 
-   left = pd.DataFrame({'A': ['A0', 'A1', 'A2'],
-                        'B': ['B0', 'B1', 'B2']}, index=index_left)
+   left = pd.DataFrame(
+       {'A': ['A0', 'A1', 'A2'], 'B': ['B0', 'B1', 'B2']}, index=index_left
+   )
 
-   index_right = pd.MultiIndex.from_tuples([('K0', 'Y0'), ('K1', 'Y1'),
-                                           ('K2', 'Y2'), ('K2', 'Y3')],
-                                           names=['key', 'Y'])
+   index_right = pd.MultiIndex.from_tuples(
+       [('K0', 'Y0'), ('K1', 'Y1'), ('K2', 'Y2'), ('K2', 'Y3')], names=['key', 'Y']
+   )
 
-   right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
-                         'D': ['D0', 'D1', 'D2', 'D3']}, index=index_right)
+   right = pd.DataFrame(
+       {'C': ['C0', 'C1', 'C2', 'C3'], 'D': ['D0', 'D1', 'D2', 'D3']}, index=index_right
+   )
 
    left.join(right)
 
@@ -272,8 +274,9 @@ For earlier versions this can be done using the following.
 
 .. ipython:: python
 
-   pd.merge(left.reset_index(), right.reset_index(),
-            on=['key'], how='inner').set_index(['key', 'X', 'Y'])
+   pd.merge(left.reset_index(), right.reset_index(), on=['key'], how='inner').set_index(
+       ['key', 'X', 'Y']
+   )
 
 .. _whatsnew_0240.enhancements.read_html:
 
@@ -287,7 +290,10 @@ value. (:issue:`17054`)
 .. ipython:: python
 
     from io import StringIO
-    result = pd.read_html(StringIO("""
+
+    result = pd.read_html(
+        StringIO(
+            """
       <table>
         <thead>
           <tr>
@@ -299,7 +305,9 @@ value. (:issue:`17054`)
             <td colspan="2">1</td><td>2</td>
           </tr>
         </tbody>
-      </table>"""))
+      </table>"""
+        )
+    )
 
 *Previous behavior*:
 
@@ -328,9 +336,12 @@ convenient way to apply users' predefined styling functions, and can help reduce
 
     df = pd.DataFrame({'N': [1250, 1500, 1750], 'X': [0.25, 0.35, 0.50]})
 
+
     def format_and_align(styler):
-        return (styler.format({'N': '{:,}', 'X': '{:.1%}'})
-                      .set_properties(**{'text-align': 'right'}))
+        return styler.format({'N': '{:,}', 'X': '{:.1%}'}).set_properties(
+            **{'text-align': 'right'}
+        )
+
 
     df.style.pipe(format_and_align).set_caption('Summary of results.')
 
@@ -352,8 +363,9 @@ Example:
 
 .. ipython:: python
 
-    mi = pd.MultiIndex.from_product([list('AB'), list('CD'), list('EF')],
-                                    names=['AB', 'CD', 'EF'])
+    mi = pd.MultiIndex.from_product(
+        [list('AB'), list('CD'), list('EF')], names=['AB', 'CD', 'EF']
+    )
     df = pd.DataFrame(list(range(len(mi))), index=mi, columns=['N'])
     df
     df.rename_axis(index={'CD': 'New'})
@@ -652,8 +664,7 @@ that the dates have been converted to UTC
 
 .. ipython:: python
 
-    pd.to_datetime(["2015-11-18 15:30:00+05:30",
-                    "2015-11-18 16:30:00+06:30"], utc=True)
+    pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"], utc=True)
 
 
 .. _whatsnew_0240.api_breaking.read_csv_mixed_tz:
@@ -763,8 +774,7 @@ from an :class:`numpy.ndarray` of :class:`Timestamp` objects to a :class:`arrays
 
 .. ipython:: python
 
-   ser = pd.Series([pd.Timestamp('2000', tz='UTC'),
-                    pd.Timestamp('2000', tz='UTC')])
+   ser = pd.Series([pd.Timestamp('2000', tz='UTC'), pd.Timestamp('2000', tz='UTC')])
 
 *Previous behavior*:
 
@@ -1122,8 +1132,8 @@ broadcast.  (:issue:`23000`)
 
 .. ipython:: python
 
-   df + arr[[0], :]   # 1 row, 2 columns
-   df + arr[:, [1]]   # 1 column, 3 rows
+   df + arr[[0], :]  # 1 row, 2 columns
+   df + arr[:, [1]]  # 1 column, 3 rows
 
 .. _whatsnew_0240.api.incompatibilities:
 
