@@ -584,14 +584,8 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
     tm.assert_equal(result, expected)
 
 
-def test_categorical_transformers(
-    request, transformation_func, observed, sort, as_index
-):
+def test_categorical_transformers(transformation_func, observed, sort, as_index):
     # GH#36327
-    if transformation_func == "fillna":
-        msg = "GH#49651 fillna may incorrectly reorders results when dropna=False"
-        request.applymarker(pytest.mark.xfail(reason=msg, strict=False))
-
     values = np.append(np.random.default_rng(2).choice([1, 2, None], size=19), None)
     df = pd.DataFrame(
         {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(20)}
@@ -621,12 +615,7 @@ def test_categorical_transformers(
     )
     gb_dropna = df.groupby("x", dropna=True, observed=observed, sort=sort)
 
-    msg = "The default fill_method='ffill' in DataFrameGroupBy.pct_change is deprecated"
-    if transformation_func == "pct_change":
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = getattr(gb_keepna, "pct_change")(*args)
-    else:
-        result = getattr(gb_keepna, transformation_func)(*args)
+    result = getattr(gb_keepna, transformation_func)(*args)
     expected = getattr(gb_dropna, transformation_func)(*args)
 
     for iloc, value in zip(
