@@ -5553,15 +5553,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     f"Can't get {how} of an empty group due to unobserved categories. "
                     "Specify observed=True in groupby instead."
                 )
-        elif not skipna:
-            if self._obj_with_exclusions.isna().any(axis=None):
-                warnings.warn(
-                    f"The behavior of {type(self).__name__}.{how} with all-NA "
-                    "values, or any-NA and skipna=False, is deprecated. In a future "
-                    "version this will raise ValueError",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
+        elif not skipna and self._obj_with_exclusions.isna().any(axis=None):
+            raise ValueError(
+                f"{type(self).__name__}.{how} with skipna=False encountered an NA "
+                f"value."
+            )
 
         result = self._agg_general(
             numeric_only=numeric_only,
