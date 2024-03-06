@@ -45,7 +45,6 @@ from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
     DtypeObj,
-    FillnaOptions,
     IndexLabel,
     IntervalClosedType,
     NDFrameT,
@@ -5147,8 +5146,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def pct_change(
         self,
         periods: int = 1,
-        fill_method: FillnaOptions | None | lib.NoDefault = lib.no_default,
-        limit: int | None | lib.NoDefault = lib.no_default,
+        fill_method: None = None,
         freq=None,
     ):
         """
@@ -5161,19 +5159,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             a period of 1 means adjacent elements are compared, whereas a period
             of 2 compares every other element.
 
-        fill_method : FillnaOptions or None, default None
-            Specifies how to handle missing values after the initial shift
-            operation necessary for percentage change calculation. Users are
-            encouraged to handle missing values manually in future versions.
-            Valid options are:
-            - A FillnaOptions value ('ffill', 'bfill') for forward or backward filling.
-            - None to avoid filling.
-            Note: Usage is discouraged due to impending deprecation.
+        fill_method : None
+            Must be None. This argument will be removed in a future version of pandas.
 
-        limit : int or None, default None
-            The maximum number of consecutive NA values to fill, based on the chosen
-            `fill_method`. Address NaN values prior to using `pct_change` as this
-            parameter is nearing deprecation.
+            .. deprecated:: 2.1
+                All options of `fill_method` are deprecated except `fill_method=None`.
 
         freq : str, pandas offset object, or None, default None
             The frequency increment for time series data (e.g., 'M' for month-end).
@@ -5227,49 +5217,24 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         goldfish    0.2  0.125
         """
         # GH#53491
-        if fill_method not in (lib.no_default, None) or limit is not lib.no_default:
-            warnings.warn(
-                "The 'fill_method' keyword being not None and the 'limit' keyword in "
-                f"{type(self).__name__}.pct_change are deprecated and will be removed "
-                "in a future version. Either fill in any non-leading NA values prior "
-                "to calling pct_change or specify 'fill_method=None' to not fill NA "
-                "values.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        if fill_method is lib.no_default:
-            if limit is lib.no_default and any(
-                grp.isna().values.any() for _, grp in self
-            ):
-                warnings.warn(
-                    "The default fill_method='ffill' in "
-                    f"{type(self).__name__}.pct_change is deprecated and will "
-                    "be removed in a future version. Either fill in any "
-                    "non-leading NA values prior to calling pct_change or "
-                    "specify 'fill_method=None' to not fill NA values.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            fill_method = "ffill"
-        if limit is lib.no_default:
-            limit = None
+        if fill_method is not None:
+            raise ValueError(f"fill_method must be None; got {fill_method=}.")
 
         # TODO(GH#23918): Remove this conditional for SeriesGroupBy when
         #  GH#23918 is fixed
         if freq is not None:
             f = lambda x: x.pct_change(
                 periods=periods,
-                fill_method=fill_method,
-                limit=limit,
                 freq=freq,
                 axis=0,
             )
             return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
         if fill_method is None:  # GH30463
-            fill_method = "ffill"
-            limit = 0
-        filled = getattr(self, fill_method)(limit=limit)
+            op = "ffill"
+        else:
+            op = fill_method
+        filled = getattr(self, op)(limit=0)
         fill_grp = filled.groupby(self._grouper.codes, group_keys=self.group_keys)
         shifted = fill_grp.shift(periods=periods, freq=freq)
         return (filled / shifted) - 1
