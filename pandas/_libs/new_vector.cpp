@@ -76,16 +76,16 @@ public:
   PandasVector<T>(PandasVector<T> &&) = default;
   PandasVector<T> &operator=(PandasVector<T> &&) = default;
 
-  size_t __len__() const { return vec_.size(); }
+  auto __len__() const { return vec_.size(); }
 
-  void Append(const T &value) {
+  auto Append(const T &value) -> void {
     if (external_view_exists_) {
       throw std::domain_error("external reference but Vector.resize() needed");
     }
     vec_.emplace_back(value);
   }
 
-  void Extend(const nb::ndarray<const T, nb::ndim<1>> &values) {
+  auto Extend(const nb::ndarray<const T, nb::ndim<1>> &values) -> void {
     if (external_view_exists_) {
       throw std::domain_error("external reference but Vector.resize() needed");
     }
@@ -110,19 +110,21 @@ private:
   bool external_view_exists_;
 };
 
+using pd_kh_int_t = uint32_t;
+
 template <typename T, bool IsMasked> class PandasHashTable {
 public:
   explicit PandasHashTable<T, IsMasked>() = default;
-  explicit PandasHashTable<T, IsMasked>(size_t new_size) {
+  explicit PandasHashTable<T, IsMasked>(pd_kh_int_t new_size) {
     // historically pandas would take a size_hint constructor and pass
     // it to the hash map. However, klib has no public method on the map
     // to resize from a hint (only on sets) so we silently discard
     hash_map_.resize(new_size);
   }
 
-  auto __len__() const noexcept -> size_t { return hash_map_.size(); }
+  auto __len__() const noexcept { return hash_map_.size(); }
 
-  auto __contains__(nb::object key) const noexcept -> bool {
+  auto __contains__(nb::object key) const noexcept {
     if constexpr (IsMasked) {
       if (key.is_none()) {
         return -1 != na_position_;
@@ -133,8 +135,8 @@ public:
     return hash_map_.get(ckey) != hash_map_.end();
   }
 
-  auto SizeOf() const noexcept -> size_t {
-    constexpr size_t overhead = 4 * sizeof(uint32_t) + 3 * sizeof(uint32_t *);
+  auto SizeOf() const noexcept {
+    constexpr auto overhead = 4 * sizeof(uint32_t) + 3 * sizeof(uint32_t *);
     const auto for_flags =
         std::max(1U, hash_map_.n_buckets() >> 5) * sizeof(uint32_t);
     const auto for_pairs =
@@ -158,7 +160,7 @@ public:
   /// Returns
   /// -------
   /// The position of the requested integer.
-  auto GetItem(T key) -> int64_t {
+  auto GetItem(T key) {
     const auto k = hash_map_.get(key);
     if (k != hash_map_.end()) {
       return hash_map_.value(k);
@@ -173,7 +175,7 @@ public:
   /// Returns
   /// -------
   /// The position of the last na value.
-  auto GetNA() const -> int64_t {
+  auto GetNA() const {
     // TODO: missing NotImplementedError for mask, although this should really
     // just be templated out
     if (na_position_ == -1) {
@@ -191,14 +193,14 @@ public:
     }
   }
 
-  auto MapKeysToValues(const nb::ndarray<const T, nb::ndim<1>> &keys,
-                       const nb::ndarray<const int64_t, nb::ndim<1>> &values) noexcept
-      -> void {
+  auto MapKeysToValues(
+      const nb::ndarray<const T, nb::ndim<1>> &keys,
+      const nb::ndarray<const int64_t, nb::ndim<1>> &values) noexcept -> void {
     nb::call_guard<nb::gil_scoped_release>();
     const auto keys_v = keys.view();
     const auto values_v = values.view();
 
-    for (size_t i = 0; i < values_v.shape(0); i++) {
+    for (decltype(values_v.shape(0)) i = 0; i < values_v.shape(0); i++) {
       hash_map_[keys_v(i)] = values_v(i);
     }
   }
@@ -218,7 +220,7 @@ public:
           nb::cast<nb::ndarray<const uint8_t, nb::ndim<1>>>(mask);
       const auto mask_v = mask_base.view();
       auto na_position = na_position_; // pandas uses int8_t here - why?
-      for (size_t i = 0; i < values_v.shape(0); i++) {
+      for (decltype(values_v.shape(0)) i = 0; i < values_v.shape(0); i++) {
         if (mask_v(i)) {
           na_position = i;
         } else {
@@ -227,7 +229,7 @@ public:
       }
       na_position_ = na_position;
     } else {
-      for (size_t i = 0; i < values_v.shape(0); i++) {
+      for (decltype(values_v.shape(0)) i = 0; i < values_v.shape(0); i++) {
         const auto key = values_v(i);
         hash_map_[key] = i;
       }
@@ -243,7 +245,7 @@ public:
     }
 
     nb::call_guard<nb::gil_scoped_release>();
-    const size_t n = values.shape(0);
+    const auto n = values.shape(0);
     auto *locs = new Py_ssize_t[n];
     const auto values_v = values.view();
 
@@ -253,7 +255,7 @@ public:
       const auto mask_base =
           nb::cast<nb::ndarray<const uint8_t, nb::ndim<1>>>(mask);
       const auto mask_v = mask_base.view();
-      for (size_t i = 0; i < n; i++) {
+      for (decltype(values.shape(0)) i = 0; i < n; i++) {
         if (mask_v(i)) {
           locs[i] = na_position_;
         } else {
@@ -267,7 +269,7 @@ public:
         }
       }
     } else {
-      for (size_t i = 0; i < n; i++) {
+      for (decltype(values.shape(n)) i = 0; i < n; i++) {
         const auto val = values_v(i);
         const auto position = hash_map_.get(val);
         if (position == hash_map_.end()) {
@@ -283,7 +285,7 @@ public:
 
     const size_t shape[1] = {n};
     return nb::ndarray<nb::numpy, const Py_ssize_t, nb::ndim<1>>(locs, 1, shape,
-                                                              owner);
+                                                                 owner);
   }
 
   /// Mutates uniques argument
@@ -327,7 +329,7 @@ public:
     auto *labels = new Py_ssize_t[n];
     Py_ssize_t count = 0;
 
-    for (size_t i = 0; i < n; i++) {
+    for (decltype(values.shape(0)) i = 0; i < n; i++) {
       const auto val = values_v(i);
 
       // specific for groupby
@@ -350,13 +352,12 @@ public:
     }
 
     nb::gil_scoped_acquire();
+
+    const size_t shape[1] = {n};
     nb::capsule owner(labels, [](void *p) noexcept { delete[](size_t *) p; });
     const auto labels_arr =
-        nb::ndarray<nb::numpy, const Py_ssize_t, nb::ndim<1>>(labels,
-                                                           {
-                                                               n,
-                                                           },
-                                                           owner);
+        nb::ndarray<nb::numpy, const Py_ssize_t, nb::ndim<1>>(labels, 1, shape,
+                                                              owner);
     return std::make_tuple(labels_arr, uniques.ToNdArray());
   }
 
@@ -364,8 +365,8 @@ private:
   auto UniqueInternal(const nb::ndarray<const T, nb::ndim<1>> &values,
                       PandasVector<T> &uniques, Py_ssize_t count_prior = 0,
                       [[maybe_unused]] Py_ssize_t na_sentinel = -1,
-                      [[maybe_unused]] nb::object na_value = nb::none(), bool ignore_na = false,
-                      nb::object mask_obj = nb::none(),
+                      [[maybe_unused]] nb::object na_value = nb::none(),
+                      bool ignore_na = false, nb::object mask_obj = nb::none(),
                       bool return_inverse = false, bool use_result_mask = false)
       -> nb::object {
     if (use_result_mask && return_inverse) {
@@ -438,7 +439,8 @@ private:
   template <bool IgnoreNA, bool UseNAValue>
   auto UniqueWithInverse(const nb::ndarray<const T, nb::ndim<1>> &values,
                          PandasVector<T> &uniques, Py_ssize_t count_prior,
-                         [[maybe_unused]] Py_ssize_t na_sentinel, [[maybe_unused]] T na_value,
+                         [[maybe_unused]] Py_ssize_t na_sentinel,
+                         [[maybe_unused]] T na_value,
                          [[maybe_unused]] nb::object mask_obj = nb::none())
       -> nb::ndarray<nb::numpy, const Py_ssize_t, nb::ndim<1>> {
     if constexpr (IsMasked) {
@@ -461,7 +463,7 @@ private:
       nb::call_guard<nb::gil_scoped_release>();
       const auto mask_v = mask.view();
 
-      for (size_t i = 0; i < n; i++) {
+      for (decltype(values_v.shape(0)) i = 0; i < n; i++) {
         if constexpr (IgnoreNA) {
           if (mask_v(i)) {
             labels[i] = na_sentinel;
@@ -486,7 +488,7 @@ private:
       }
     } else {
       nb::call_guard<nb::gil_scoped_release>();
-      for (size_t i = 0; i < n; i++) {
+      for (decltype(values_v.shape(0)) i = 0; i < n; i++) {
         const auto val = values_v(i);
 
         if constexpr (IgnoreNA) {
@@ -519,13 +521,10 @@ private:
       }
     }
 
+    const size_t shape[1] = {n};
     nb::capsule owner(labels, [](void *p) noexcept { delete[](size_t *) p; });
-
-    return nb::ndarray<nb::numpy, const Py_ssize_t, nb::ndim<1>>(labels,
-                                                              {
-                                                                  n,
-                                                              },
-                                                              owner);
+    return nb::ndarray<nb::numpy, const Py_ssize_t, nb::ndim<1>>(labels, 1,
+                                                                 shape, owner);
   }
 
   template <bool IgnoreNA, bool UseNAValue>
@@ -553,7 +552,7 @@ private:
       const auto mask_v = mask.view();
 
       bool seen_na = false;
-      for (size_t i = 0; i < n; i++) {
+      for (decltype(values.shape(0)) i = 0; i < n; i++) {
         const auto val = values_v(i);
 
         if constexpr (IgnoreNA) {
@@ -595,7 +594,7 @@ private:
       }
     } else {
       nb::call_guard<nb::gil_scoped_release>();
-      for (size_t i = 0; i < n; i++) {
+      for (decltype(values.shape(0)) i = 0; i < n; i++) {
         const auto val = values_v(i);
         auto k = hash_map_.get(val);
         if (k == hash_map_.end()) {
@@ -631,7 +630,7 @@ private:
       }
       nb::call_guard<nb::gil_scoped_release>();
 
-      for (size_t i = 0; i < n; i++) {
+      for (decltype(values.shape(0)) i = 0; i < n; i++) {
         if constexpr (IgnoreNA) {
           // TODO: current pandas code is a bit messy here...
           // labels[i] = na_sentinel
@@ -648,7 +647,7 @@ private:
       }
     } else {
       nb::call_guard<nb::gil_scoped_release>();
-      for (size_t i = 0; i < n; i++) {
+      for (decltype(values.shape(0)) i = 0; i < n; i++) {
         const auto val = values_v(i);
         auto k = hash_map_.get(val);
         if (k == hash_map_.end()) {
@@ -683,7 +682,7 @@ using namespace nb::literals;
   do {                                                                         \
     nb::class_<PandasHashTable<TYPE, MASKED>>(m, NAME)                         \
         .def(nb::init<>())                                                     \
-        .def(nb::init<size_t>(), "size_hint"_a)                                \
+        .def(nb::init<pd_kh_int_t>(), "size_hint"_a)                           \
         .def("__len__", &PandasHashTable<TYPE, MASKED>::__len__)               \
         .def("__contains__", &PandasHashTable<TYPE, MASKED>::__contains__)     \
         .def("sizeof", &PandasHashTable<TYPE, MASKED>::SizeOf)                 \
