@@ -590,7 +590,7 @@ class CombinedDatetimelikeProperties(
     See Also
     --------
     pandas.Series.dt : Accessor object for datetimelike properties of the Series values.
-        
+
     Examples
     --------
     >>> dates = pd.Series(
