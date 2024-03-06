@@ -133,6 +133,9 @@ numpydoc_show_class_members = False
 numpydoc_show_inherited_class_members = False
 numpydoc_attributes_as_param_list = False
 
+# IPython
+ipython_warning_is_error = False
+
 # matplotlib plot directive
 plot_include_source = True
 plot_formats = [("png", 90)]
