@@ -77,6 +77,28 @@ class BaseMissingTests:
         expected = pd.Series(data_missing.take([1, 1, 1, 0, 1]))
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "limit_area, input_ilocs, expected_ilocs",
+        [
+            ("outside", [1, 0, 0, 0, 1], [1, 0, 0, 0, 1]),
+            ("outside", [1, 0, 1, 0, 1], [1, 0, 1, 0, 1]),
+            ("outside", [0, 1, 1, 1, 0], [0, 1, 1, 1, 1]),
+            ("outside", [0, 1, 0, 1, 0], [0, 1, 0, 1, 1]),
+            ("inside", [1, 0, 0, 0, 1], [1, 1, 1, 1, 1]),
+            ("inside", [1, 0, 1, 0, 1], [1, 1, 1, 1, 1]),
+            ("inside", [0, 1, 1, 1, 0], [0, 1, 1, 1, 0]),
+            ("inside", [0, 1, 0, 1, 0], [0, 1, 1, 1, 0]),
+        ],
+    )
+    def test_ffill_limit_area(
+        self, data_missing, limit_area, input_ilocs, expected_ilocs
+    ):
+        # GH#56616
+        arr = data_missing.take(input_ilocs)
+        result = pd.Series(arr).ffill(limit_area=limit_area)
+        expected = pd.Series(data_missing.take(expected_ilocs))
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.filterwarnings(
         "ignore:Series.fillna with 'method' is deprecated:FutureWarning"
     )
@@ -155,12 +177,3 @@ class BaseMissingTests:
         expected = pd.DataFrame({"A": data, "B": [0.0] * len(result)})
 
         tm.assert_frame_equal(result, expected)
-
-    def test_use_inf_as_na_no_effect(self, data_missing):
-        ser = pd.Series(data_missing)
-        expected = ser.isna()
-        msg = "use_inf_as_na option is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            with pd.option_context("mode.use_inf_as_na", True):
-                result = ser.isna()
-        tm.assert_series_equal(result, expected)

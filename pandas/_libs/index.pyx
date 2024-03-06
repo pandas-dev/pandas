@@ -98,6 +98,20 @@ cdef ndarray _get_bool_indexer(ndarray values, object val, ndarray mask = None):
     return indexer.view(bool)
 
 
+cdef _maybe_resize_array(ndarray values, Py_ssize_t loc, Py_ssize_t max_length):
+    """
+    Resize array if loc is out of bounds.
+    """
+    cdef:
+        Py_ssize_t n = len(values)
+
+    if loc >= n:
+        while loc >= n:
+            n *= 2
+        values = np.resize(values, min(n, max_length))
+    return values
+
+
 # Don't populate hash tables in monotonic indexes larger than this
 _SIZE_CUTOFF = 1_000_000
 
@@ -287,7 +301,7 @@ cdef class IndexEngine:
                 values = self.values
                 self.monotonic_inc, self.monotonic_dec, is_strict_monotonic = \
                     self._call_monotonic(values)
-            except (TypeError, InvalidOperation):
+            except (TypeError, InvalidOperation, ValueError):
                 self.monotonic_inc = 0
                 self.monotonic_dec = 0
                 is_strict_monotonic = 0
@@ -456,27 +470,18 @@ cdef class IndexEngine:
             # found
             if val in d:
                 key = val
-
+                result = _maybe_resize_array(
+                    result,
+                    count + len(d[key]) - 1,
+                    max_alloc
+                )
                 for j in d[key]:
-
-                    # realloc if needed
-                    if count >= n_alloc:
-                        n_alloc *= 2
-                        if n_alloc > max_alloc:
-                            n_alloc = max_alloc
-                        result = np.resize(result, n_alloc)
-
                     result[count] = j
                     count += 1
 
             # value not found
             else:
-
-                if count >= n_alloc:
-                    n_alloc *= 2
-                    if n_alloc > max_alloc:
-                        n_alloc = max_alloc
-                    result = np.resize(result, n_alloc)
+                result = _maybe_resize_array(result, count, max_alloc)
                 result[count] = -1
                 count += 1
                 missing[count_missing] = i
@@ -531,6 +536,17 @@ cdef class ObjectEngine(IndexEngine):
         except TypeError as err:
             raise KeyError(val) from err
         return loc
+
+
+cdef class StringEngine(IndexEngine):
+
+    cdef _make_hash_table(self, Py_ssize_t n):
+        return _hash.StringHashTable(n)
+
+    cdef _check_type(self, object val):
+        if not isinstance(val, str):
+            raise KeyError(val)
+        return str(val)
 
 
 cdef class DatetimeEngine(Int64Engine):
@@ -1203,13 +1219,12 @@ cdef class MaskedIndexEngine(IndexEngine):
 
             if PySequence_GetItem(target_mask, i):
                 if na_pos:
+                    result = _maybe_resize_array(
+                        result,
+                        count + len(na_pos) - 1,
+                        max_alloc,
+                    )
                     for na_idx in na_pos:
-                        # realloc if needed
-                        if count >= n_alloc:
-                            n_alloc *= 2
-                            if n_alloc > max_alloc:
-                                n_alloc = max_alloc
-
                         result[count] = na_idx
                         count += 1
                     continue
@@ -1217,23 +1232,18 @@ cdef class MaskedIndexEngine(IndexEngine):
             elif val in d:
                 # found
                 key = val
-
+                result = _maybe_resize_array(
+                    result,
+                    count + len(d[key]) - 1,
+                    max_alloc,
+                )
                 for j in d[key]:
-
-                    # realloc if needed
-                    if count >= n_alloc:
-                        n_alloc *= 2
-                        if n_alloc > max_alloc:
-                            n_alloc = max_alloc
-
                     result[count] = j
                     count += 1
                 continue
 
             # value not found
-            if count >= n_alloc:
-                n_alloc += 10_000
-                result = np.resize(result, n_alloc)
+            result = _maybe_resize_array(result, count, max_alloc)
             result[count] = -1
             count += 1
             missing[count_missing] = i

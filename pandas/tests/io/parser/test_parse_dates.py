@@ -33,12 +33,9 @@ from pandas.core.tools.datetimes import start_caching_at
 
 from pandas.io.parsers import read_csv
 
-pytestmark = [
-    pytest.mark.filterwarnings(
-        "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-    ),
-    pytest.mark.filterwarnings("ignore:make_block is deprecated:DeprecationWarning"),
-]
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
@@ -1326,9 +1323,8 @@ def test_read_with_parse_dates_invalid_type(all_parsers, parse_dates):
         parser.read_csv(StringIO(data), parse_dates=(1,))
 
 
-@pytest.mark.parametrize("cache_dates", [True, False])
 @pytest.mark.parametrize("value", ["nan", ""])
-def test_bad_date_parse(all_parsers, cache_dates, value):
+def test_bad_date_parse(all_parsers, cache, value):
     # if we have an invalid date make sure that we handle this with
     # and w/o the cache properly
     parser = all_parsers
@@ -1339,13 +1335,12 @@ def test_bad_date_parse(all_parsers, cache_dates, value):
         header=None,
         names=["foo", "bar"],
         parse_dates=["foo"],
-        cache_dates=cache_dates,
+        cache_dates=cache,
     )
 
 
-@pytest.mark.parametrize("cache_dates", [True, False])
 @pytest.mark.parametrize("value", ["0"])
-def test_bad_date_parse_with_warning(all_parsers, cache_dates, value):
+def test_bad_date_parse_with_warning(all_parsers, cache, value):
     # if we have an invalid date make sure that we handle this with
     # and w/o the cache properly.
     parser = all_parsers
@@ -1357,7 +1352,7 @@ def test_bad_date_parse_with_warning(all_parsers, cache_dates, value):
         # TODO: parse dates directly in pyarrow, see
         # https://github.com/pandas-dev/pandas/issues/48017
         warn = None
-    elif cache_dates:
+    elif cache:
         # Note: warning is not raised if 'cache_dates', because here there is only a
         # single unique date and hence no risk of inconsistent parsing.
         warn = None
@@ -1370,7 +1365,7 @@ def test_bad_date_parse_with_warning(all_parsers, cache_dates, value):
         header=None,
         names=["foo", "bar"],
         parse_dates=["foo"],
-        cache_dates=cache_dates,
+        cache_dates=cache,
         raise_on_extra_warnings=False,
     )
 
@@ -1757,11 +1752,11 @@ def test_parse_date_column_with_empty_string(all_parsers):
     [
         (
             "a\n135217135789158401\n1352171357E+5",
-            DataFrame({"a": [135217135789158401, 135217135700000]}, dtype="float64"),
+            [135217135789158401, 135217135700000],
         ),
         (
             "a\n99999999999\n123456789012345\n1234E+0",
-            DataFrame({"a": [99999999999, 123456789012345, 1234]}, dtype="float64"),
+            [99999999999, 123456789012345, 1234],
         ),
     ],
 )
@@ -1774,6 +1769,7 @@ def test_parse_date_float(all_parsers, data, expected, parse_dates):
     parser = all_parsers
 
     result = parser.read_csv(StringIO(data), parse_dates=parse_dates)
+    expected = DataFrame({"a": expected}, dtype="float64")
     tm.assert_frame_equal(result, expected)
 
 
@@ -2334,8 +2330,8 @@ def test_from_csv_with_mixed_offsets(all_parsers):
     result = parser.read_csv(StringIO(data), parse_dates=["a"])["a"]
     expected = Series(
         [
-            Timestamp("2020-01-01 00:00:00+01:00"),
-            Timestamp("2020-01-01 00:00:00+00:00"),
+            "2020-01-01T00:00:00+01:00",
+            "2020-01-01T00:00:00+00:00",
         ],
         name="a",
         index=[0, 1],

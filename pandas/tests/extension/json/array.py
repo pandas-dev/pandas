@@ -146,7 +146,7 @@ class JSONArray(ExtensionArray):
     def __ne__(self, other):
         return NotImplemented
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         if dtype is None:
             dtype = object
         if dtype == object:
@@ -210,8 +210,10 @@ class JSONArray(ExtensionArray):
             value = self.astype(str)  # numpy doesn't like nested dicts
             arr_cls = dtype.construct_array_type()
             return arr_cls._from_sequence(value, dtype=dtype, copy=False)
-
-        return np.array([dict(x) for x in self], dtype=dtype, copy=copy)
+        elif not copy:
+            return np.asarray([dict(x) for x in self], dtype=dtype)
+        else:
+            return np.array([dict(x) for x in self], dtype=dtype, copy=copy)
 
     def unique(self):
         # Parent method doesn't work since np.array will try to infer
@@ -234,6 +236,10 @@ class JSONArray(ExtensionArray):
         # Bypass NumPy's shape inference to get a (N,) array of tuples.
         frozen = [tuple(x.items()) for x in self]
         return construct_1d_object_array_from_listlike(frozen)
+
+    def _pad_or_backfill(self, *, method, limit=None, copy=True):
+        # GH#56616 - test EA method without limit_area argument
+        return super()._pad_or_backfill(method=method, limit=limit, copy=copy)
 
 
 def make_data():

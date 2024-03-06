@@ -21,7 +21,6 @@ from pandas import (
     bdate_range,
 )
 import pandas._testing as tm
-import pandas.core.common as com
 
 
 @pytest.mark.parametrize(
@@ -68,7 +67,7 @@ def test_cythonized_aggers(op_name):
     expd = {}
     for (cat1, cat2), group in grouped:
         expd.setdefault(cat1, {})[cat2] = op(group["C"])
-    exp = DataFrame(expd).T.stack(future_stack=True)
+    exp = DataFrame(expd).T.stack()
     exp.index.names = ["A", "B"]
     exp.name = "C"
 
@@ -85,10 +84,8 @@ def test_cython_agg_boolean():
         }
     )
     result = frame.groupby("a")["b"].mean()
-    msg = "using SeriesGroupBy.mean"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        # GH#53425
-        expected = frame.groupby("a")["b"].agg(np.mean)
+    # GH#53425
+    expected = frame.groupby("a")["b"].agg(np.mean)
 
     tm.assert_series_equal(result, expected)
 
@@ -126,21 +123,6 @@ def test_cython_agg_nothing_to_agg_with_dates():
         frame.groupby("b").dates.mean(numeric_only=True)
 
 
-def test_cython_agg_frame_columns():
-    # #2113
-    df = DataFrame({"x": [1, 2, 3], "y": [3, 4, 5]})
-
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.groupby(level=0, axis="columns").mean()
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.groupby(level=0, axis="columns").mean()
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.groupby(level=0, axis="columns").mean()
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.groupby(level=0, axis="columns").mean()
-
-
 def test_cython_agg_return_dict():
     # GH 16741
     df = DataFrame(
@@ -167,10 +149,7 @@ def test_cython_fail_agg():
 
     grouped = ts.groupby(lambda x: x.month)
     summed = grouped.sum()
-    msg = "using SeriesGroupBy.sum"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        # GH#53425
-        expected = grouped.agg(np.sum)
+    expected = grouped.agg(np.sum)
     tm.assert_series_equal(summed, expected)
 
 
@@ -191,13 +170,12 @@ def test_cython_fail_agg():
 def test__cython_agg_general(op, targop):
     df = DataFrame(np.random.default_rng(2).standard_normal(1000))
     labels = np.random.default_rng(2).integers(0, 50, size=1000).astype(float)
+    kwargs = {"ddof": 1} if op == "var" else {}
+    if op not in ["first", "last"]:
+        kwargs["axis"] = 0
 
     result = df.groupby(labels)._cython_agg_general(op, alt=None, numeric_only=True)
-    warn = FutureWarning if targop in com._cython_table else None
-    msg = f"using DataFrameGroupBy.{op}"
-    with tm.assert_produces_warning(warn, match=msg):
-        # GH#53425
-        expected = df.groupby(labels).agg(targop)
+    expected = df.groupby(labels).agg(targop, **kwargs)
     tm.assert_frame_equal(result, expected)
 
 

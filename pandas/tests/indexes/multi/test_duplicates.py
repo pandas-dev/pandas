@@ -112,7 +112,7 @@ def test_duplicate_multiindex_codes():
         mi.set_levels([["A", "B", "A", "A", "B"], [2, 1, 3, -2, 5]])
 
 
-@pytest.mark.parametrize("names", [["a", "b", "a"], [1, 1, 2], [1, "a", 1]])
+@pytest.mark.parametrize("names", [("a", "b", "a"), (1, 1, 2), (1, "a", 1)])
 def test_duplicate_level_names(names):
     # GH18872, GH19029
     mi = MultiIndex.from_product([[0, 1]] * 3, names=names)
@@ -243,13 +243,14 @@ def test_has_duplicates_overflow(nlevels, with_nulls):
 @pytest.mark.parametrize(
     "keep, expected",
     [
-        ("first", np.array([False, False, False, True, True, False])),
-        ("last", np.array([False, True, True, False, False, False])),
-        (False, np.array([False, True, True, True, True, False])),
+        ("first", [False, False, False, True, True, False]),
+        ("last", [False, True, True, False, False, False]),
+        (False, [False, True, True, True, True, False]),
     ],
 )
 def test_duplicated(idx_dup, keep, expected):
     result = idx_dup.duplicated(keep=keep)
+    expected = np.array(expected)
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -319,14 +320,7 @@ def test_duplicated_drop_duplicates():
     tm.assert_index_equal(idx.drop_duplicates(keep=False), expected)
 
 
-@pytest.mark.parametrize(
-    "dtype",
-    [
-        np.complex64,
-        np.complex128,
-    ],
-)
-def test_duplicated_series_complex_numbers(dtype):
+def test_duplicated_series_complex_numbers(complex_dtype):
     # GH 17927
     expected = Series(
         [False, False, False, True, False, False, False, True, False, True],
@@ -345,7 +339,7 @@ def test_duplicated_series_complex_numbers(dtype):
             np.nan,
             np.nan + np.nan * 1j,
         ],
-        dtype=dtype,
+        dtype=complex_dtype,
     ).duplicated()
     tm.assert_series_equal(result, expected)
 

@@ -117,10 +117,6 @@ class TestCategorical(base.ExtensionTests):
         # to break things by changing.
         super().test_getitem_scalar(data)
 
-    @pytest.mark.xfail(reason="Unobserved categories included")
-    def test_value_counts(self, all_data, dropna):
-        return super().test_value_counts(all_data, dropna)
-
     def test_combine_add(self, data_repeated):
         # GH 20825
         # When adding categoricals in combine, result is a string

@@ -70,6 +70,7 @@ from pandas.core.algorithms import (
     unique,
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
+from pandas.core.missing import _fill_limit_area_1d
 from pandas.core.sorting import (
     nargminmax,
     nargsort,
@@ -81,6 +82,7 @@ if TYPE_CHECKING:
         Sequence,
     )
 
+    from pandas._libs.missing import NAType
     from pandas._typing import (
         ArrayLike,
         AstypeArg,
@@ -266,7 +268,9 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
+    def _from_sequence(
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
+    ) -> Self:
         """
         Construct a new ExtensionArray from a sequence of scalars.
 
@@ -328,8 +332,8 @@ class ExtensionArray:
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
-    ):
+        cls, strings, *, dtype: ExtensionDtype, copy: bool = False
+    ) -> Self:
         """
         Construct a new ExtensionArray from a sequence of strings.
 
@@ -338,7 +342,7 @@ class ExtensionArray:
         strings : Sequence
             Each element will be an instance of the scalar type for this
             array, ``cls.dtype.type``.
-        dtype : dtype, optional
+        dtype : ExtensionDtype
             Construct for this particular dtype. This should be a Dtype
             compatible with the ExtensionArray.
         copy : bool, default False
@@ -350,7 +354,9 @@ class ExtensionArray:
 
         Examples
         --------
-        >>> pd.arrays.IntegerArray._from_sequence_of_strings(["1", "2", "3"])
+        >>> pd.arrays.IntegerArray._from_sequence_of_strings(
+        ...     ["1", "2", "3"], dtype=pd.Int64Dtype()
+        ... )
         <IntegerArray>
         [1, 2, 3]
         Length: 3, dtype: Int64
@@ -376,8 +382,9 @@ class ExtensionArray:
 
         Examples
         --------
-        >>> interv_arr = pd.arrays.IntervalArray([pd.Interval(0, 1),
-        ...                                      pd.Interval(1, 5), pd.Interval(1, 5)])
+        >>> interv_arr = pd.arrays.IntervalArray(
+        ...     [pd.Interval(0, 1), pd.Interval(1, 5), pd.Interval(1, 5)]
+        ... )
         >>> codes, uniques = pd.factorize(interv_arr)
         >>> pd.arrays.IntervalArray._from_factorized(uniques, interv_arr)
         <IntervalArray>
@@ -681,7 +688,7 @@ class ExtensionArray:
 
         Casting to another ``ExtensionDtype`` returns an ``ExtensionArray``:
 
-        >>> arr1 = arr.astype('Float64')
+        >>> arr1 = arr.astype("Float64")
         >>> arr1
         <FloatingArray>
         [1.0, 2.0, 3.0]
@@ -691,7 +698,7 @@ class ExtensionArray:
 
         Otherwise, we will get a Numpy ndarray:
 
-        >>> arr2 = arr.astype('float64')
+        >>> arr2 = arr.astype("float64")
         >>> arr2
         array([1., 2., 3.])
         >>> arr2.dtype
@@ -718,7 +725,10 @@ class ExtensionArray:
 
             return TimedeltaArray._from_sequence(self, dtype=dtype, copy=copy)
 
-        return np.array(self, dtype=dtype, copy=copy)
+        if not copy:
+            return np.asarray(self, dtype=dtype)
+        else:
+            return np.array(self, dtype=dtype, copy=copy)
 
     def isna(self) -> np.ndarray | ExtensionArraySupportsAnyAll:
         """
@@ -814,7 +824,7 @@ class ExtensionArray:
         na_position : {'first', 'last'}, default 'last'
             If ``'first'``, put ``NaN`` values at the beginning.
             If ``'last'``, put ``NaN`` values at the end.
-        *args, **kwargs:
+        **kwargs
             Passed through to :func:`numpy.argsort`.
 
         Returns
@@ -935,15 +945,16 @@ class ExtensionArray:
         Examples
         --------
         >>> arr = pd.arrays.NumpyExtensionArray(np.array([0, 1, np.nan, 3]))
-        >>> arr.interpolate(method="linear",
-        ...                 limit=3,
-        ...                 limit_direction="forward",
-        ...                 index=pd.Index([1, 2, 3, 4]),
-        ...                 fill_value=1,
-        ...                 copy=False,
-        ...                 axis=0,
-        ...                 limit_area="inside"
-        ...                 )
+        >>> arr.interpolate(
+        ...     method="linear",
+        ...     limit=3,
+        ...     limit_direction="forward",
+        ...     index=pd.Index([1, 2, 3, 4]),
+        ...     fill_value=1,
+        ...     copy=False,
+        ...     axis=0,
+        ...     limit_area="inside",
+        ... )
         <NumpyExtensionArray>
         [0.0, 1.0, 2.0, 3.0]
         Length: 4, dtype: float64
@@ -954,7 +965,12 @@ class ExtensionArray:
         )
 
     def _pad_or_backfill(
-        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
     ) -> Self:
         """
         Pad or backfill values, used by Series/DataFrame ffill and bfill.
@@ -1012,6 +1028,12 @@ class ExtensionArray:
                 DeprecationWarning,
                 stacklevel=find_stack_level(),
             )
+            if limit_area is not None:
+                raise NotImplementedError(
+                    f"{type(self).__name__} does not implement limit_area "
+                    "(added in pandas 2.2). 3rd-party ExtnsionArray authors "
+                    "need to add this argument to _pad_or_backfill."
+                )
             return self.fillna(method=method, limit=limit)
 
         mask = self.isna()
@@ -1021,6 +1043,8 @@ class ExtensionArray:
             meth = missing.clean_fill_method(method)
 
             npmask = np.asarray(mask)
+            if limit_area is not None and not npmask.all():
+                _fill_limit_area_1d(npmask, limit_area)
             if meth == "pad":
                 indexer = libalgos.get_fill_indexer(npmask, limit=limit)
                 return self.take(indexer, allow_fill=True)
@@ -1104,7 +1128,9 @@ class ExtensionArray:
         # error: Argument 2 to "check_value_size" has incompatible type
         # "ExtensionArray"; expected "ndarray"
         value = missing.check_value_size(
-            value, mask, len(self)  # type: ignore[arg-type]
+            value,
+            mask,  # type: ignore[arg-type]
+            len(self),
         )
 
         if mask.any():
@@ -1448,8 +1474,10 @@ class ExtensionArray:
 
         Examples
         --------
-        >>> idx1 = pd.PeriodIndex(["2014-01", "2014-01", "2014-02", "2014-02",
-        ...                       "2014-03", "2014-03"], freq="M")
+        >>> idx1 = pd.PeriodIndex(
+        ...     ["2014-01", "2014-01", "2014-02", "2014-02", "2014-03", "2014-03"],
+        ...     freq="M",
+        ... )
         >>> arr, idx = idx1.factorize()
         >>> arr
         array([0, 0, 1, 1, 2, 2])
@@ -1473,9 +1501,7 @@ class ExtensionArray:
         uniques_ea = self._from_factorized(uniques, self)
         return codes, uniques_ea
 
-    _extension_array_shared_docs[
-        "repeat"
-    ] = """
+    _extension_array_shared_docs["repeat"] = """
         Repeat elements of a %(klass)s.
 
         Returns a new %(klass)s where each element of the current %(klass)s
@@ -1610,10 +1636,9 @@ class ExtensionArray:
                # type for the array, to the physical storage type for
                # the data, before passing to take.
 
-               result = take(data, indices, fill_value=fill_value,
-                             allow_fill=allow_fill)
+               result = take(data, indices, fill_value=fill_value, allow_fill=allow_fill)
                return self._from_sequence(result, dtype=self.dtype)
-        """
+        """  # noqa: E501
         # Implementer note: The `fill_value` parameter should be a user-facing
         # value, an instance of self.dtype.type. When passed `fill_value=None`,
         # the default of `self.dtype.na_value` should be used.
@@ -1750,7 +1775,7 @@ class ExtensionArray:
         --------
         >>> class MyExtensionArray(pd.arrays.NumpyExtensionArray):
         ...     def _formatter(self, boxed=False):
-        ...         return lambda x: '*' + str(x) + '*' if boxed else repr(x) + '*'
+        ...         return lambda x: "*" + str(x) + "*" if boxed else repr(x) + "*"
         >>> MyExtensionArray(np.array([1, 2, 3, 4]))
         <MyExtensionArray>
         [1*, 2*, 3*, 4*]
@@ -1764,7 +1789,7 @@ class ExtensionArray:
     # Reshaping
     # ------------------------------------------------------------------------
 
-    def transpose(self, *axes: int) -> ExtensionArray:
+    def transpose(self, *axes: int) -> Self:
         """
         Return a transposed view on this array.
 
@@ -1785,10 +1810,10 @@ class ExtensionArray:
         return self[:]
 
     @property
-    def T(self) -> ExtensionArray:
+    def T(self) -> Self:
         return self.transpose()
 
-    def ravel(self, order: Literal["C", "F", "A", "K"] | None = "C") -> ExtensionArray:
+    def ravel(self, order: Literal["C", "F", "A", "K"] | None = "C") -> Self:
         """
         Return a flattened view on this array.
 
@@ -1885,7 +1910,7 @@ class ExtensionArray:
         Examples
         --------
         >>> arr = pd.array([1, 2, 3])
-        >>> arr._accumulate(name='cumsum')
+        >>> arr._accumulate(name="cumsum")
         <IntegerArray>
         [1, 3, 6]
         Length: 3, dtype: Int64
@@ -1990,10 +2015,9 @@ class ExtensionArray:
 
         Examples
         --------
-        >>> pd.array([1, 2])._hash_pandas_object(encoding='utf-8',
-        ...                                      hash_key="1000000000000000",
-        ...                                      categorize=False
-        ...                                      )
+        >>> pd.array([1, 2])._hash_pandas_object(
+        ...     encoding="utf-8", hash_key="1000000000000000", categorize=False
+        ... )
         array([ 6238072747940578789, 15839785061582574730], dtype=uint64)
         """
         from pandas.core.util.hashing import hash_array
@@ -2027,8 +2051,9 @@ class ExtensionArray:
         Examples
         --------
         >>> import pyarrow as pa
-        >>> a = pd.array([[1, 2, 3], [4], [5, 6]],
-        ...              dtype=pd.ArrowDtype(pa.list_(pa.int64())))
+        >>> a = pd.array(
+        ...     [[1, 2, 3], [4], [5, 6]], dtype=pd.ArrowDtype(pa.list_(pa.int64()))
+        ... )
         >>> a._explode()
         (<ArrowExtensionArray>
         [1, 2, 3, 4, 5, 6]
@@ -2385,10 +2410,26 @@ class ExtensionArray:
 
 
 class ExtensionArraySupportsAnyAll(ExtensionArray):
-    def any(self, *, skipna: bool = True) -> bool:
+    @overload
+    def any(self, *, skipna: Literal[True] = ...) -> bool:
+        ...
+
+    @overload
+    def any(self, *, skipna: bool) -> bool | NAType:
+        ...
+
+    def any(self, *, skipna: bool = True) -> bool | NAType:
         raise AbstractMethodError(self)
 
-    def all(self, *, skipna: bool = True) -> bool:
+    @overload
+    def all(self, *, skipna: Literal[True] = ...) -> bool:
+        ...
+
+    @overload
+    def all(self, *, skipna: bool) -> bool | NAType:
+        ...
+
+    def all(self, *, skipna: bool = True) -> bool | NAType:
         raise AbstractMethodError(self)
 
 

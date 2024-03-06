@@ -286,7 +286,7 @@ def urlopen(*args, **kwargs):
     """
     import urllib.request
 
-    return urllib.request.urlopen(*args, **kwargs)
+    return urllib.request.urlopen(*args, **kwargs)  # noqa: TID251
 
 
 def is_fsspec_url(url: FilePath | BaseBuffer) -> bool:
@@ -318,7 +318,7 @@ def _get_filepath_or_buffer(
 
     Parameters
     ----------
-    filepath_or_buffer : a url, filepath (str, py.path.local or pathlib.Path),
+    filepath_or_buffer : a url, filepath (str or pathlib.Path),
                          or buffer
     {compression_options}
 
@@ -792,7 +792,9 @@ def get_handle(
             # "Union[str, BaseBuffer]"; expected "Union[Union[str, PathLike[str]],
             # ReadBuffer[bytes], WriteBuffer[bytes]]"
             handle = _BytesZipFile(
-                handle, ioargs.mode, **compression_args  # type: ignore[arg-type]
+                handle,  # type: ignore[arg-type]
+                ioargs.mode,
+                **compression_args,
             )
             if handle.buffer.mode == "r":
                 handles.append(handle)
@@ -817,7 +819,8 @@ def get_handle(
                 # type "BaseBuffer"; expected "Union[ReadBuffer[bytes],
                 # WriteBuffer[bytes], None]"
                 handle = _BytesTarFile(
-                    fileobj=handle, **compression_args  # type: ignore[arg-type]
+                    fileobj=handle,  # type: ignore[arg-type]
+                    **compression_args,
                 )
             assert isinstance(handle, _BytesTarFile)
             if "r" in handle.buffer.mode:
@@ -841,7 +844,9 @@ def get_handle(
             # BaseBuffer]"; expected "Optional[Union[Union[str, bytes, PathLike[str],
             # PathLike[bytes]], IO[bytes]], None]"
             handle = get_lzma_file()(
-                handle, ioargs.mode, **compression_args  # type: ignore[arg-type]
+                handle,  # type: ignore[arg-type]
+                ioargs.mode,
+                **compression_args,
             )
 
         # Zstd Compression
@@ -1137,7 +1142,9 @@ def _maybe_memory_map(
         # expected "BaseBuffer"
         wrapped = _IOWrapper(
             mmap.mmap(
-                handle.fileno(), 0, access=mmap.ACCESS_READ  # type: ignore[arg-type]
+                handle.fileno(),
+                0,
+                access=mmap.ACCESS_READ,  # type: ignore[arg-type]
             )
         )
     finally:

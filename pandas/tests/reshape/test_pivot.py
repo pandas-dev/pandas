@@ -11,7 +11,7 @@ import pytest
 
 from pandas._config import using_pyarrow_string_dtype
 
-from pandas.errors import PerformanceWarning
+from pandas.compat.numpy import np_version_gte1p25
 
 import pandas as pd
 from pandas import (
@@ -28,17 +28,6 @@ import pandas._testing as tm
 from pandas.api.types import CategoricalDtype
 from pandas.core.reshape import reshape as reshape_lib
 from pandas.core.reshape.pivot import pivot_table
-
-
-@pytest.fixture(params=[True, False])
-def dropna(request):
-    return request.param
-
-
-@pytest.fixture(params=[([0] * 4, [1] * 4), (range(3), range(1, 4))])
-def interval_values(request, closed):
-    left, right = request.param
-    return Categorical(pd.IntervalIndex.from_arrays(left, right, closed))
 
 
 class TestPivotTable:
@@ -203,9 +192,9 @@ class TestPivotTable:
             ["c", "d", "c", "d"], categories=["c", "d", "y"], ordered=True
         )
         df = DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
-        msg = "The default value of observed=False is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = pivot_table(df, values="values", index=["A", "B"], dropna=True)
+        result = pivot_table(
+            df, values="values", index=["A", "B"], dropna=True, observed=False
+        )
 
         exp_index = MultiIndex.from_arrays([cat1, cat2], names=["A", "B"])
         expected = DataFrame({"values": [1.0, 2.0, 3.0, 4.0]}, index=exp_index)
@@ -224,9 +213,9 @@ class TestPivotTable:
         )
 
         df["A"] = df["A"].astype(CategoricalDtype(categories, ordered=False))
-        msg = "The default value of observed=False is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.pivot_table(index="B", columns="A", values="C", dropna=dropna)
+        result = df.pivot_table(
+            index="B", columns="A", values="C", dropna=dropna, observed=False
+        )
         expected_columns = Series(["a", "b", "c"], name="A")
         expected_columns = expected_columns.astype(
             CategoricalDtype(categories, ordered=False)
@@ -256,9 +245,7 @@ class TestPivotTable:
             }
         )
 
-        msg = "The default value of observed=False is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.pivot_table(index="A", values="B", dropna=dropna)
+        result = df.pivot_table(index="A", values="B", dropna=dropna, observed=False)
         if dropna:
             values = [2.0, 3.0]
             codes = [0, 1]
@@ -269,9 +256,7 @@ class TestPivotTable:
         expected = DataFrame(
             {"B": values},
             index=Index(
-                Categorical.from_codes(
-                    codes, categories=["low", "high"], ordered=dropna
-                ),
+                Categorical.from_codes(codes, categories=["low", "high"], ordered=True),
                 name="A",
             ),
         )
@@ -291,9 +276,7 @@ class TestPivotTable:
             }
         )
 
-        msg = "The default value of observed=False is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.pivot_table(index="A", values="B", dropna=dropna)
+        result = df.pivot_table(index="A", values="B", dropna=dropna, observed=False)
         expected = DataFrame(
             {"B": [2.0, 3.0, 0.0]},
             index=Index(
@@ -308,13 +291,16 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_pivot_with_interval_index(self, interval_values, dropna):
+    @pytest.mark.parametrize(
+        "left_right", [([0] * 4, [1] * 4), (range(3), range(1, 4))]
+    )
+    def test_pivot_with_interval_index(self, left_right, dropna, closed):
         # GH 25814
+        left, right = left_right
+        interval_values = Categorical(pd.IntervalIndex.from_arrays(left, right, closed))
         df = DataFrame({"A": interval_values, "B": 1})
 
-        msg = "The default value of observed=False is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.pivot_table(index="A", values="B", dropna=dropna)
+        result = df.pivot_table(index="A", values="B", dropna=dropna, observed=False)
         expected = DataFrame(
             {"B": 1.0}, index=Index(interval_values.unique(), name="A")
         )
@@ -335,11 +321,15 @@ class TestPivotTable:
             }
         )
 
-        msg = "The default value of observed=False is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            pivot_tab = pivot_table(
-                df, index="C", columns="B", values="A", aggfunc="sum", margins=True
-            )
+        pivot_tab = pivot_table(
+            df,
+            index="C",
+            columns="B",
+            values="A",
+            aggfunc="sum",
+            margins=True,
+            observed=False,
+        )
 
         result = pivot_tab["All"]
         expected = Series(
@@ -750,18 +740,11 @@ class TestPivotTable:
         result = df.pivot_table(index="a", columns="b", values="x", margins=True)
         tm.assert_frame_equal(expected, result)
 
-    @pytest.mark.parametrize(
-        "values",
-        [
-            ["baz", "zoo"],
-            np.array(["baz", "zoo"]),
-            Series(["baz", "zoo"]),
-            Index(["baz", "zoo"]),
-        ],
-    )
+    @pytest.mark.parametrize("box", [list, np.array, Series, Index])
     @pytest.mark.parametrize("method", [True, False])
-    def test_pivot_with_list_like_values(self, values, method):
+    def test_pivot_with_list_like_values(self, box, method):
         # issue #17160
+        values = box(["baz", "zoo"])
         df = DataFrame(
             {
                 "foo": ["one", "one", "one", "two", "two", "two"],
@@ -903,10 +886,14 @@ class TestPivotTable:
         result,
         values_col,
         data,
-        index=["A", "B"],
-        columns=["C"],
+        index=None,
+        columns=None,
         margins_col="All",
     ):
+        if index is None:
+            index = ["A", "B"]
+        if columns is None:
+            columns = ["C"]
         col_margins = result.loc[result.index[:-1], margins_col]
         expected_col_margins = data.groupby(index)[values_col].mean()
         tm.assert_series_equal(col_margins, expected_col_margins, check_names=False)
@@ -1841,9 +1828,9 @@ class TestPivotTable:
 
         df.y = df.y.astype("category")
         df.z = df.z.astype("category")
-        msg = "The default value of observed=False is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            table = df.pivot_table("x", "y", "z", dropna=observed, margins=True)
+        table = df.pivot_table(
+            "x", "y", "z", dropna=observed, margins=True, observed=False
+        )
         tm.assert_frame_equal(table, expected)
 
     def test_margins_casted_to_float(self):
@@ -1905,11 +1892,14 @@ class TestPivotTable:
             {"C1": ["A", "B", "C", "C"], "C2": ["a", "a", "b", "b"], "V": [1, 2, 3, 4]}
         )
         df["C1"] = df["C1"].astype("category")
-        msg = "The default value of observed=False is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.pivot_table(
-                "V", index="C1", columns="C2", dropna=observed, aggfunc="count"
-            )
+        result = df.pivot_table(
+            "V",
+            index="C1",
+            columns="C2",
+            dropna=observed,
+            aggfunc="count",
+            observed=False,
+        )
 
         expected_index = pd.CategoricalIndex(
             ["A", "B", "C"], categories=["A", "B", "C"], ordered=False, name="C1"
@@ -2071,10 +2061,10 @@ class TestPivotTable:
         [
             ("sum", np.sum),
             ("mean", np.mean),
-            ("std", np.std),
+            ("min", np.min),
             (["sum", "mean"], [np.sum, np.mean]),
-            (["sum", "std"], [np.sum, np.std]),
-            (["std", "mean"], [np.std, np.mean]),
+            (["sum", "min"], [np.sum, np.min]),
+            (["max", "mean"], [np.max, np.mean]),
         ],
     )
     def test_pivot_string_func_vs_func(self, f, f_numpy, data):
@@ -2082,14 +2072,20 @@ class TestPivotTable:
         # for consistency purposes
         data = data.drop(columns="C")
         result = pivot_table(data, index="A", columns="B", aggfunc=f)
-        ops = "|".join(f) if isinstance(f, list) else f
-        msg = f"using DataFrameGroupBy.[{ops}]"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = pivot_table(data, index="A", columns="B", aggfunc=f_numpy)
+        expected = pivot_table(data, index="A", columns="B", aggfunc=f_numpy)
+
+        if not np_version_gte1p25 and isinstance(f_numpy, list):
+            # Prior to 1.25, np.min/np.max would come through as amin and amax
+            mapper = {"amin": "min", "amax": "max", "sum": "sum", "mean": "mean"}
+            expected.columns = expected.columns.map(
+                lambda x: (mapper[x[0]], x[1], x[2])
+            )
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow
-    def test_pivot_number_of_levels_larger_than_int32(self, monkeypatch):
+    def test_pivot_number_of_levels_larger_than_int32(
+        self, performance_warning, monkeypatch
+    ):
         # GH 20601
         # GH 26314: Change ValueError to PerformanceWarning
         class MockUnstacker(reshape_lib._Unstacker):
@@ -2105,7 +2101,7 @@ class TestPivotTable:
             )
 
             msg = "The following operation may generate"
-            with tm.assert_produces_warning(PerformanceWarning, match=msg):
+            with tm.assert_produces_warning(performance_warning, match=msg):
                 with pytest.raises(Exception, match="Don't compute final result."):
                     df.pivot_table(
                         index="ind1", columns="ind2", values="count", aggfunc="count"
@@ -2320,7 +2316,6 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("dropna", [True, False])
     def test_pivot_ea_dtype_dropna(self, dropna):
         # GH#47477
         df = DataFrame({"x": "a", "y": "b", "age": Series([20, 40], dtype="Int64")})

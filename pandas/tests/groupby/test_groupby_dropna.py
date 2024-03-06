@@ -167,7 +167,6 @@ def test_groupby_dropna_series_by(dropna, expected):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("dropna", (False, True))
 def test_grouper_dropna_propagation(dropna):
     # GH 36604
     df = pd.DataFrame({"A": [0, 0, 1, None], "B": [1, 2, 3, None]})
@@ -325,7 +324,7 @@ def test_groupby_apply_with_dropna_for_multi_index(dropna, data, selected_data, 
     df = pd.DataFrame(data)
     gb = df.groupby("groups", dropna=dropna)
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = gb.apply(lambda grp: pd.DataFrame({"values": range(len(grp))}))
 
     mi_tuples = tuple(zip(data["groups"], selected_data["values"]))
@@ -411,7 +410,6 @@ def test_groupby_drop_nan_with_multi_index():
         "UInt64",
         "Int64",
         "Float32",
-        "Int64",
         "Float64",
         "category",
         "string",
