@@ -2533,19 +2533,14 @@ def test_groupby_string_dtype():
 @pytest.mark.parametrize(
     "level_arg, multiindex", [([0], False), ((0,), False), ([0], True), ((0,), True)]
 )
-def test_single_element_listlike_level_grouping_deprecation(level_arg, multiindex):
+def test_single_element_listlike_level_grouping(level_arg, multiindex):
     # GH 51583
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
     if multiindex:
         df = df.set_index(["a", "b"])
-    depr_msg = (
-        "Creating a Groupby object with a length-1 list-like "
-        "level parameter will yield indexes as tuples in a future version. "
-        "To keep indexes as scalars, create Groupby objects with "
-        "a scalar level parameter instead."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-        [key for key, _ in df.groupby(level=level_arg)]
+    result = [key for key, _ in df.groupby(level=level_arg)]
+    expected = [(1,), (2,)] if multiindex else [("x",), ("y",)]
+    assert result == expected
 
 
 @pytest.mark.parametrize("func", ["sum", "cumsum", "cumprod", "prod"])
