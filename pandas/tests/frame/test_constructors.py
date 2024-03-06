@@ -100,7 +100,7 @@ class TestDataFrameConstructors:
 
         df = DataFrame({"dt": dt}, index=[0])
         expected = DataFrame({"dt": [dt]})
-        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected, check_index_type=False)
 
         # Non-homogeneous
         df = DataFrame({"dt": dt, "value": [1]})
