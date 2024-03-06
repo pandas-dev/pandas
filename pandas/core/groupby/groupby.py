@@ -1288,7 +1288,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     def _insert_inaxis_grouper(
-        self, result: Series | DataFrame, qs: list[float] | None = None
+        self, result: Series | DataFrame, qs: npt.NDArray[np.float64] | None = None
     ) -> DataFrame:
         if isinstance(result, Series):
             result = result.to_frame()
