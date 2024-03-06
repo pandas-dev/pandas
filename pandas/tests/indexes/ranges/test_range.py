@@ -615,6 +615,13 @@ def test_append_non_rangeindex_return_rangeindex():
     tm.assert_index_equal(result, expected, exact=True)
 
 
+def test_append_non_rangeindex_return_index():
+    ri = RangeIndex(1)
+    result = ri.append(Index([1, 3, 4]))
+    expected = Index([0, 1, 3, 4])
+    tm.assert_index_equal(result, expected, exact=True)
+
+
 def test_reindex_returns_rangeindex():
     ri = RangeIndex(2, name="foo")
     result, result_indexer = ri.reindex([1, 2, 3])
