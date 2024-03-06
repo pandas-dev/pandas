@@ -4241,7 +4241,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._join_via_get_indexer(other, how, sort)
 
-    @final
     def _join_empty(
         self, other: Index, how: JoinHow, sort: bool
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
