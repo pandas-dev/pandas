@@ -793,7 +793,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     # ----------------------------------------------------------------------
     # NDArray Compat
-    def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
+    def __array__(
+        self, dtype: npt.DTypeLike | None = None, copy: bool | None = None
+    ) -> np.ndarray:
         """
         Return the values as a NumPy array.
 
@@ -805,6 +807,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype : str or numpy.dtype, optional
             The dtype to use for the resulting NumPy array. By default,
             the dtype is inferred from the data.
+
+        copy : bool or None, optional
+            Unused.
 
         Returns
         -------
@@ -2895,7 +2900,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self.corr(cast(Series, self.shift(lag)))
 
-    def dot(self, other: AnyArrayLike) -> Series | np.ndarray:
+    def dot(self, other: AnyArrayLike | DataFrame) -> Series | np.ndarray:
         """
         Compute the dot product between the Series and the columns of other.
 
@@ -4848,7 +4853,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         *,
         axis: Axis | None = None,
         method: ReindexMethod | None = None,
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
         level: Level | None = None,
         fill_value: Scalar | None = None,
         limit: int | None = None,
@@ -4861,6 +4866,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             fill_value=fill_value,
             limit=limit,
             tolerance=tolerance,
+            copy=copy,
         )
 
     @overload  # type: ignore[override]
@@ -6349,7 +6355,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
-    ):
+    ) -> Any:
         return NDFrame.mean(
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
@@ -6361,7 +6367,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
-    ):
+    ) -> Any:
         return NDFrame.median(
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
