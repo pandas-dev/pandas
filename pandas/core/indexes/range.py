@@ -29,6 +29,8 @@ from pandas.util._decorators import (
     doc,
 )
 
+from pandas.core.dtypes import missing
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_python_int,
@@ -42,6 +44,7 @@ from pandas.core.dtypes.generic import ABCTimedeltaIndex
 from pandas.core import ops
 import pandas.core.common as com
 from pandas.core.construction import extract_array
+from pandas.core.indexers import check_array_indexer
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
@@ -53,6 +56,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Axis,
         Dtype,
+        JoinHow,
         NaPosition,
         Self,
         npt,
@@ -472,7 +476,7 @@ class RangeIndex(Index):
             # GH 46675 & 43885: If values is equally spaced, return a
             # more memory-compact RangeIndex instead of Index with 64-bit dtype
             diff = values[1] - values[0]
-            if diff != 0:
+            if not missing.isna(diff) and diff != 0:
                 maybe_range_indexer, remainder = np.divmod(values - values[0], diff)
                 if (
                     lib.is_range_indexer(maybe_range_indexer, len(maybe_range_indexer))
@@ -486,6 +490,11 @@ class RangeIndex(Index):
         result = type(self)._simple_new(self._range, name=self._name)
         result._cache = self._cache
         return result
+
+    def _wrap_reindex_result(self, target, indexer, preserve_names: bool):
+        if not isinstance(target, type(self)) and target.dtype.kind == "i":
+            target = self._shallow_copy(target._values, name=target.name)
+        return super()._wrap_reindex_result(target, indexer, preserve_names)
 
     @doc(Index.copy)
     def copy(self, name: Hashable | None = None, deep: bool = False) -> Self:
@@ -888,6 +897,41 @@ class RangeIndex(Index):
             result = result.rename(result_name)
         return result
 
+    def _join_monotonic(
+        self, other: Index, how: JoinHow = "left"
+    ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
+        # This currently only gets called for the monotonic increasing case
+        if not isinstance(other, type(self)):
+            maybe_ri = self._shallow_copy(other._values)
+            if not isinstance(maybe_ri, type(self)):
+                return super()._join_monotonic(other, how=how)
+            other = maybe_ri
+
+        if self.equals(other):
+            ret_index = other if how == "right" else self
+            return ret_index, None, None
+
+        if how == "left":
+            join_index = self
+            lidx = None
+            ridx = other.get_indexer(join_index)
+        elif how == "right":
+            join_index = other
+            lidx = self.get_indexer(join_index)
+            ridx = None
+        elif how == "inner":
+            join_index = self.intersection(other)
+            lidx = self.get_indexer(join_index)
+            ridx = other.get_indexer(join_index)
+        elif how == "outer":
+            join_index = self.union(other)
+            lidx = self.get_indexer(join_index)
+            ridx = other.get_indexer(join_index)
+
+        lidx = None if lidx is None else ensure_platform_int(lidx)
+        ridx = None if ridx is None else ensure_platform_int(ridx)
+        return join_index, lidx, ridx
+
     # --------------------------------------------------------------------
 
     # error: Return type "Index" of "delete" incompatible with return type
@@ -1048,6 +1092,18 @@ class RangeIndex(Index):
                 "and integer or boolean "
                 "arrays are valid indices"
             )
+        elif com.is_bool_indexer(key):
+            if isinstance(getattr(key, "dtype", None), ExtensionDtype):
+                np_key = key.to_numpy(dtype=bool, na_value=False)
+            else:
+                np_key = np.asarray(key, dtype=bool)
+            check_array_indexer(self._range, np_key)  # type: ignore[arg-type]
+            # Short circuit potential _shallow_copy check
+            if np_key.all():
+                return self._simple_new(self._range, name=self.name)
+            elif not np_key.any():
+                return self._simple_new(_empty_range, name=self.name)
+            return self.take(np.flatnonzero(np_key))
         return super().__getitem__(key)
 
     def _getitem_slice(self, slobj: slice) -> Self:
