@@ -222,11 +222,7 @@ def test_groupby_raises_string_np(
             "Could not convert string .* to numeric",
         ),
     }[groupby_func_np]
-    if how == "transform" and groupby_func_np is np.sum and not groupby_series:
-        warn_msg = "The behavior of DataFrame.sum with axis=None is deprecated"
-    else:
-        warn_msg = ""
-    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg)
+    _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
