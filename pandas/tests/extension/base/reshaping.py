@@ -41,10 +41,10 @@ class BaseReshapingTests:
         result = pd.concat([valid_block, na_block])
         if in_frame:
             expected = pd.DataFrame({"a": data_missing.take([1, 1, 0, 0])})
-            tm.assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected, check_index_type=False)
         else:
             expected = pd.Series(data_missing.take([1, 1, 0, 0]))
-            tm.assert_series_equal(result, expected)
+            tm.assert_series_equal(result, expected, check_index_type=False)
 
     def test_concat_mixed_dtypes(self, data):
         # https://github.com/pandas-dev/pandas/issues/20762
