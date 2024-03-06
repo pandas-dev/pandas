@@ -678,9 +678,9 @@ class IndexOpsMixin(OpsMixin):
         """        
         Check if the Index is empty.
 
-        An Index is considered empty if it has no elements. This property can be 
-        useful for quickly checking the state of an Index, especially in data 
-        processing and analysis workflows where handling of empty datasets might 
+        An Index is considered empty if it has no elements. This property can be
+        useful for quickly checking the state of an Index, especially in data
+        processing and analysis workflows where handling of empty datasets might
         be required.
 
         Returns
