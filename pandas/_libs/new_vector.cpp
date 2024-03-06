@@ -707,6 +707,8 @@ using namespace nb::literals;
   } while (0)
 
 NB_MODULE(new_vector, m) {
+  nb::set_leak_warnings(false);  // TODO: remove this
+
   BIND_VECTOR(int8_t, "Int8Vector");
   BIND_VECTOR(int16_t, "Int16Vector");
   BIND_VECTOR(int32_t, "Int32Vector");
