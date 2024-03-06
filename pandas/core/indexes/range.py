@@ -476,17 +476,17 @@ class RangeIndex(Index):
             # GH 46675 & 43885: If values is equally spaced, return a
             # more memory-compact RangeIndex instead of Index with 64-bit dtype
             if len(values) == 0:
-                return type(self)._simple_new(_empty_range, name=self.name)
+                return type(self)._simple_new(_empty_range, name=name)
             elif len(values) == 1:
                 start = values[0]
                 new_range = range(start, start + self.step, self.step)
-                return type(self)._simple_new(new_range, name=self.name)
+                return type(self)._simple_new(new_range, name=name)
             diff = values[1] - values[0]
             if not missing.isna(diff) and diff != 0:
                 if len(values) == 2:
                     # Can skip is_range_indexer check
                     new_range = range(values[0], values[-1] + diff, diff)
-                    return type(self)._simple_new(new_range, name=self.name)
+                    return type(self)._simple_new(new_range, name=name)
                 else:
                     maybe_range_indexer, remainder = np.divmod(values - values[0], diff)
                     if (
