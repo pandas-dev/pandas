@@ -104,7 +104,7 @@ def test_append_with_timezones(setup_path, gettz):
 
         msg = (
             r"invalid info for \[values_block_1\] for \[tz\], "
-            r"existing_value \[(dateutil/.*)?US/Eastern\] "
+            r"existing_value \[(dateutil/.*)?(US/Eastern|America/New_York)\] "
             r"conflicts with new value \[(dateutil/.*)?EET\]"
         )
         with pytest.raises(ValueError, match=msg):
