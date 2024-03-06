@@ -551,7 +551,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return cls._simple_new(arr, index, dtype)
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(
+        self, dtype: NpDtype | None = None, copy: bool | None = None
+    ) -> np.ndarray:
         fill_value = self.fill_value
 
         if self.sp_index.ngaps == 0:

@@ -656,7 +656,9 @@ class ArrowExtensionArray(
         """Convert myself to a pyarrow ChunkedArray."""
         return self._pa_array
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(
+        self, dtype: NpDtype | None = None, copy: bool | None = None
+    ) -> np.ndarray:
         """Correctly construct numpy arrays when passed to `np.asarray()`."""
         return self.to_numpy(dtype=dtype)
 

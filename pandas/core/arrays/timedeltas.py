@@ -1072,7 +1072,10 @@ def sequence_to_td64ns(
         # This includes datetime64-dtype, see GH#23539, GH#29794
         raise TypeError(f"dtype {data.dtype} cannot be converted to timedelta64[ns]")
 
-    data = np.array(data, copy=copy)
+    if not copy:
+        data = np.asarray(data)
+    else:
+        data = np.array(data, copy=copy)
 
     assert data.dtype.kind == "m"
     assert data.dtype != "m8"  # i.e. not unit-less
@@ -1150,7 +1153,7 @@ def _objects_to_td64ns(data, unit=None, errors: DateTimeErrorChoices = "raise"):
     higher level.
     """
     # coerce Index to np.ndarray, converting string-dtype if necessary
-    values = np.array(data, dtype=np.object_, copy=False)
+    values = np.asarray(data, dtype=np.object_)
 
     result = array_to_timedelta64(values, unit=unit, errors=errors)
     return result.view("timedelta64[ns]")

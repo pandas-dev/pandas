@@ -59,7 +59,7 @@ class DummyElement:
         self.value = value
         self.dtype = np.dtype(dtype)
 
-    def __array__(self):
+    def __array__(self, dtype=None, copy=None):
         return np.array(self.value, dtype=self.dtype)
 
     def __str__(self) -> str:

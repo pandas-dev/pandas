@@ -1682,6 +1682,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     na_value=na_value,
                     copy=copy,
                 ).reshape(blk.shape)
+            elif not copy:
+                arr = np.asarray(blk.values, dtype=dtype)
             else:
                 arr = np.array(blk.values, dtype=dtype, copy=copy)
 

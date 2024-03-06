@@ -635,12 +635,12 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype=None, copy=None) -> np.ndarray:
         if dtype is None and self.tz:
             # The default for tz-aware is object, to preserve tz info
             dtype = object
 
-        return super().__array__(dtype=dtype)
+        return super().__array__(dtype=dtype, copy=copy)
 
     def __iter__(self) -> Iterator:
         """
@@ -2393,7 +2393,7 @@ def objects_to_datetime64(
     assert errors in ["raise", "ignore", "coerce"]
 
     # if str-dtype, convert
-    data = np.array(data, copy=False, dtype=np.object_)
+    data = np.asarray(data, dtype=np.object_)
 
     result, tz_parsed = tslib.array_to_datetime(
         data,

@@ -256,7 +256,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
                 raise raise_on_incompatible(values, dtype.freq)
             values, dtype = values._ndarray, values.dtype
 
-        values = np.array(values, dtype="int64", copy=copy)
+        if not copy:
+            values = np.asarray(values, dtype="int64")
+        else:
+            values = np.array(values, dtype="int64", copy=copy)
         if dtype is None:
             raise ValueError("dtype is not specified and cannot be inferred")
         dtype = cast(PeriodDtype, dtype)
@@ -400,7 +403,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     def freqstr(self) -> str:
         return freq_to_period_freqstr(self.freq.n, self.freq.name)
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(
+        self, dtype: NpDtype | None = None, copy: bool | None = None
+    ) -> np.ndarray:
         if dtype == "i8":
             return self.asi8
         elif dtype == bool:

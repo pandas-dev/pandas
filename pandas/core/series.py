@@ -971,7 +971,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     # ----------------------------------------------------------------------
     # NDArray Compat
-    def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
+    def __array__(
+        self, dtype: npt.DTypeLike | None = None, copy: bool | None = None
+    ) -> np.ndarray:
         """
         Return the values as a NumPy array.
 
@@ -983,6 +985,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype : str or numpy.dtype, optional
             The dtype to use for the resulting NumPy array. By default,
             the dtype is inferred from the data.
+
+        copy : bool or None, optional
+            Unused.
 
         Returns
         -------
