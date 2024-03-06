@@ -661,7 +661,7 @@ private:
     return;
   }
 
-  klib::KHashMap<T, size_t, PandasHashFunction<T>, PandasHashEquality<T>>
+  klib::KHashMap<T, size_t, PandasHashFunction<T>, PandasHashEquality<T>, pd_kh_int_t>
       hash_map_;
   Py_ssize_t na_position_ = -1;
 };
