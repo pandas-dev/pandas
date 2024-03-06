@@ -137,7 +137,7 @@ public:
   auto SizeOf() const noexcept {
     constexpr auto overhead = 4 * sizeof(uint32_t) + 3 * sizeof(uint32_t *);
     const auto for_flags =
-      std::max(1UL, hash_map_.n_buckets() >> 5) * sizeof(uint32_t);
+      std::max(decltype(hash_map_.n_buckets()){1}, hash_map_.n_buckets() >> 5) * sizeof(uint32_t);
     const auto for_pairs =
         hash_map_.n_buckets() * (sizeof(T) + sizeof(Py_ssize_t));
 
