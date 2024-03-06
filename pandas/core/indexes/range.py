@@ -1260,4 +1260,10 @@ class RangeIndex(Index):
             if self.start != 0:
                 taken += self.start
 
-        return self._shallow_copy(taken, name=self.name)
+        if len(taken) == 1:
+            start = taken[0]
+            return self._simple_new(
+                range(start, start + self.step, self.step), name=self.name
+            )
+        else:
+            return self._shallow_copy(taken, name=self.name)

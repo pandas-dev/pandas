@@ -639,6 +639,21 @@ def test_take_return_rangeindex():
     tm.assert_index_equal(result, expected, exact=True)
 
 
+@pytest.mark.parametrize(
+    "rng, exp_rng",
+    [
+        [range(5), range(3, 4)],
+        [range(0, -10, -2), range(-6, -8, -2)],
+        [range(0, 10, 2), range(6, 8, 2)],
+    ],
+)
+def test_take_1_value_returns_rangeindex(rng, exp_rng):
+    ri = RangeIndex(rng, name="foo")
+    result = ri.take([3])
+    expected = RangeIndex(exp_rng, name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+
 def test_append_one_nonempty_preserve_step():
     expected = RangeIndex(0, -1, -1)
     result = RangeIndex(0).append([expected])
