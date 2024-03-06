@@ -389,10 +389,10 @@ def test_groupby_resample_interpolate_off_grid(groupy_test_df):
     that results in missing anchor points when interpolating. See GH#21351."""
     # GH#21351
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = (
             groupy_test_df.groupby("volume")
-            .resample("265H")
+            .resample("265h")
             .interpolate(method="linear")
         )
 
