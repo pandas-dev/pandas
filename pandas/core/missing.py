@@ -622,6 +622,9 @@ def _interpolate_scipy_wrapper(
         if not new_x.flags.writeable:
             new_x = new_x.copy()
         terp = alt_methods[method]
+
+        # Make sure downcast is not in kwargs for alt methods
+        kwargs.pop("downcast", None)
         new_y = terp(x, y, new_x, **kwargs)
     return new_y
 
