@@ -395,7 +395,7 @@ class TestConfig:
         assert cf.get_option("a") == 500
 
         cf.reset_option("a")
-        assert options.a == cf.get_option("a", 0)
+        assert options.a == cf.get_option("a")
 
         msg = "You can only set the value of existing options"
         with pytest.raises(OptionError, match=msg):

@@ -622,7 +622,7 @@ class _DataFrameInfoPrinter(_InfoPrinterAbstract):
     @property
     def max_rows(self) -> int:
         """Maximum info rows to be displayed."""
-        return get_option("display.max_info_rows", len(self.data) + 1)
+        return get_option("display.max_info_rows")
 
     @property
     def exceeds_info_cols(self) -> bool:
@@ -641,7 +641,7 @@ class _DataFrameInfoPrinter(_InfoPrinterAbstract):
 
     def _initialize_max_cols(self, max_cols: int | None) -> int:
         if max_cols is None:
-            return get_option("display.max_info_columns", self.col_count + 1)
+            return get_option("display.max_info_columns")
         return max_cols
 
     def _initialize_show_counts(self, show_counts: bool | None) -> bool:
