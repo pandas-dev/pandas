@@ -1179,8 +1179,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Parameters
         ----------
         skipna : bool, default True
-            Exclude NA/null values. If the entire Series is NA, the result
-            will be NA.
+            Exclude NA values.
 
         Returns
         -------
@@ -1190,7 +1189,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Raises
         ------
         ValueError
-            If the Series is empty.
+            If the Series is empty or skipna=False and any value is NA.
 
         See Also
         --------
@@ -1233,8 +1232,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Parameters
         ----------
         skipna : bool, default True
-            Exclude NA/null values. If the entire Series is NA, the result
-            will be NA.
+            Exclude NA values.
 
         Returns
         -------
@@ -1244,7 +1242,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Raises
         ------
         ValueError
-            If the Series is empty.
+            If the Series is empty or skipna=False and any value is NA.
 
         See Also
         --------
@@ -2165,13 +2163,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         Return index of first occurrence of maximum in each group.
 
-        NA/null values are excluded.
-
         Parameters
         ----------
         skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA.
+            Exclude NA values.
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
@@ -2185,7 +2180,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Raises
         ------
         ValueError
-            * If the row/column is empty
+            * If a column is empty or skipna=False and any value is NA.
 
         See Also
         --------
@@ -2230,13 +2225,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         Return index of first occurrence of minimum in each group.
 
-        NA/null values are excluded.
-
         Parameters
         ----------
         skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA.
+            Exclude NA values.
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
@@ -2250,7 +2242,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Raises
         ------
         ValueError
-            * If the row/column is empty
+            * If a column is empty or skipna=False and any value is NA.
 
         See Also
         --------

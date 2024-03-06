@@ -291,16 +291,14 @@ def test_idxmin_idxmax_extremes_skipna(skipna, how, float_numpy_dtype):
     )
     gb = df.groupby("a")
 
-    warn = None if skipna else FutureWarning
-    msg = f"The behavior of DataFrameGroupBy.{how} with all-NA values"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = getattr(gb, how)(skipna=skipna)
-    if skipna:
-        values = [1, 3, 4, 6, np.nan]
-    else:
-        values = np.nan
+    if not skipna:
+        msg = f"DataFrameGroupBy.{how} with skipna=False"
+        with pytest.raises(ValueError, match=msg):
+            getattr(gb, how)(skipna=skipna)
+        return
+    result = getattr(gb, how)(skipna=skipna)
     expected = DataFrame(
-        {"b": values}, index=pd.Index(range(1, 6), name="a", dtype="intp")
+        {"b": [1, 3, 4, 6, np.nan]}, index=pd.Index(range(1, 6), name="a", dtype="intp")
     )
     tm.assert_frame_equal(result, expected)
 
