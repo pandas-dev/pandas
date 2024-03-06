@@ -103,11 +103,10 @@ class TestDataFramePlots:
         _check_ticks_props(axes, xrot=0)
         _check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
-    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     @pytest.mark.slow
     def test_plot_invalid_arg(self):
         df = DataFrame({"x": [1, 2], "y": [3, 4]})
-        msg = "'Line2D' object has no property 'blarg'"
+        msg = re.escape("Line2D.set() got an unexpected keyword argument 'blarg'")
         with pytest.raises(AttributeError, match=msg):
             df.plot.line(blarg=True)
 
@@ -659,11 +658,11 @@ class TestDataFramePlots:
         lines = ax.get_lines()
         assert xmin <= lines[0].get_data()[0][0]
         assert xmax >= lines[0].get_data()[0][-1]
-        assert ymin == 0
+        assert ymin == 0, ymin
 
         ax = _check_plot_works(neg_df.plot.area, stacked=stacked)
         ymin, ymax = ax.get_ylim()
-        assert ymax == 0
+        assert ymax == 0, ymax
 
     def test_area_sharey_dont_overwrite(self):
         # GH37942
@@ -1794,7 +1793,6 @@ class TestDataFramePlots:
         )
         _check_has_errorbars(axes, xerr=1, yerr=1)
 
-    @pytest.mark.xfail(reason="Iterator is consumed", raises=ValueError)
     def test_errorbar_plot_iterator(self):
         d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
         df = DataFrame(d)

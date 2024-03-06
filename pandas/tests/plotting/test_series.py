@@ -863,11 +863,6 @@ class TestSeriesPlots:
 
         _check_plot_works(s.plot)
 
-    @pytest.mark.xfail(
-        reason="GH#24426, see also "
-        "github.com/pandas-dev/pandas/commit/"
-        "ef1bd69fa42bbed5d09dd17f08c44fc8bfc2b685#r61470674"
-    )
     def test_plot_accessor_updates_on_inplace(self):
         ser = Series([1, 2, 3, 4])
         _, ax = mpl.pyplot.subplots()
@@ -875,7 +870,6 @@ class TestSeriesPlots:
         before = ax.xaxis.get_ticklocs()
 
         ser.drop([0, 1], inplace=True)
-        _, ax = mpl.pyplot.subplots()
         after = ax.xaxis.get_ticklocs()
         tm.assert_numpy_array_equal(before, after)
 
