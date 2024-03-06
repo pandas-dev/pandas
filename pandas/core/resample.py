@@ -941,9 +941,8 @@ class Resampler(BaseGroupBy, PandasObject):
                 # ... To obtain a DataFrame with the groupby columns and the
                 # datetime index, we need to reset the index and groupby again,
                 # then apply the (cheap) first-aggregator.
-                obj = (
-                    obj.reset_index().groupby(group_columns + [obj.index.name]).first()
-                )
+                index_name = obj.index.name or "index"
+                obj = obj.reset_index().groupby(group_columns + [index_name]).first()
 
                 # The value columns that became index levels have to be added
                 # back manually. This is not ideal performance-wise.
