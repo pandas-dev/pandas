@@ -112,7 +112,9 @@ private:
 
 template <typename T, bool IsMasked> class PandasHashTable {
 public:
-  using HashValueT = decltype(PandasHashFunction<T>()(T()));
+  // in English, if the return value from the hashing function is 4 bytes or less, use
+  // uint32_t for the khash "int" size. Otherwise use 64 bits
+  using HashValueT = typename std::conditional<sizeof(decltype(PandasHashFunction<T>()(T()))) <= 4, uint32_t, uint64_t>::type;
   explicit PandasHashTable<T, IsMasked>() = default;
   explicit PandasHashTable<T, IsMasked>(size_t new_size) {
     // TODO: C++20 std::in_range would be great to safely check cast
@@ -135,7 +137,7 @@ public:
   auto SizeOf() const noexcept {
     constexpr auto overhead = 4 * sizeof(uint32_t) + 3 * sizeof(uint32_t *);
     const auto for_flags =
-      std::max(static_cast<HashValueT>(1), hash_map_.n_buckets() >> 5) * sizeof(uint32_t);
+      std::max(1UL, hash_map_.n_buckets() >> 5) * sizeof(uint32_t);
     const auto for_pairs =
         hash_map_.n_buckets() * (sizeof(T) + sizeof(Py_ssize_t));
 
@@ -196,8 +198,8 @@ public:
     nb::call_guard<nb::gil_scoped_release>();
     const auto keys_v = keys.view();
     const auto values_v = values.view();
-
-    for (decltype(values_v.shape(0)) i = 0; i < values_v.shape(0); i++) {
+    const auto n = values_v.shape(0);
+    for (auto i = decltype(n){0}; i < n; i++) {
       hash_map_[keys_v(i)] = values_v(i);
     }
   }
@@ -212,12 +214,13 @@ public:
 
     nb::call_guard<nb::gil_scoped_release>();
     const auto values_v = values.view();
+    const auto n = values_v.shape(0);
     if constexpr (IsMasked) {
       const auto mask_base =
           nb::cast<nb::ndarray<const uint8_t, nb::ndim<1>>>(mask);
       const auto mask_v = mask_base.view();
       auto na_position = na_position_; // pandas uses int8_t here - why?
-      for (decltype(values_v.shape(0)) i = 0; i < values_v.shape(0); i++) {
+      for (auto i = decltype(n){0}; i < n; i++) {
         if (mask_v(i)) {
           na_position = i;
         } else {
@@ -226,7 +229,7 @@ public:
       }
       na_position_ = na_position;
     } else {
-      for (decltype(values_v.shape(0)) i = 0; i < values_v.shape(0); i++) {
+      for (auto i = decltype(n){0}; i < n; i++) {
         const auto key = values_v(i);
         hash_map_[key] = i;
       }
@@ -252,7 +255,7 @@ public:
       const auto mask_base =
           nb::cast<nb::ndarray<const uint8_t, nb::ndim<1>>>(mask);
       const auto mask_v = mask_base.view();
-      for (decltype(values.shape(0)) i = 0; i < n; i++) {
+      for (auto i = decltype(n){0}; i < n; i++) {
         if (mask_v(i)) {
           locs[i] = na_position_;
         } else {
@@ -266,7 +269,7 @@ public:
         }
       }
     } else {
-      for (decltype(values.shape(n)) i = 0; i < n; i++) {
+      for (auto i = decltype(n){0}; i < n; i++) {
         const auto val = values_v(i);
         const auto position = hash_map_.get(val);
         if (position == hash_map_.end()) {
@@ -326,7 +329,7 @@ public:
     auto *labels = new Py_ssize_t[n];
     Py_ssize_t count = 0;
 
-    for (decltype(values.shape(0)) i = 0; i < n; i++) {
+    for (auto i = decltype(n){0}; i < n; i++) {
       const auto val = values_v(i);
 
       // specific for groupby
@@ -460,7 +463,7 @@ private:
       nb::call_guard<nb::gil_scoped_release>();
       const auto mask_v = mask.view();
 
-      for (decltype(values_v.shape(0)) i = 0; i < n; i++) {
+      for (auto i = decltype(n){0}; i < n; i++) {
         if constexpr (IgnoreNA) {
           if (mask_v(i)) {
             labels[i] = na_sentinel;
@@ -485,7 +488,7 @@ private:
       }
     } else {
       nb::call_guard<nb::gil_scoped_release>();
-      for (decltype(values_v.shape(0)) i = 0; i < n; i++) {
+      for (auto i = decltype(n){0}; i < n; i++) {
         const auto val = values_v(i);
 
         if constexpr (IgnoreNA) {
@@ -549,7 +552,7 @@ private:
       const auto mask_v = mask.view();
 
       bool seen_na = false;
-      for (decltype(values.shape(0)) i = 0; i < n; i++) {
+      for (auto i = decltype(n){0}; i < n; i++) {
         const auto val = values_v(i);
 
         if constexpr (IgnoreNA) {
@@ -591,7 +594,7 @@ private:
       }
     } else {
       nb::call_guard<nb::gil_scoped_release>();
-      for (decltype(values.shape(0)) i = 0; i < n; i++) {
+      for (auto i = decltype(n){0}; i < n; i++) {
         const auto val = values_v(i);
         auto k = hash_map_.get(val);
         if (k == hash_map_.end()) {
@@ -627,7 +630,7 @@ private:
       }
       nb::call_guard<nb::gil_scoped_release>();
 
-      for (decltype(values.shape(0)) i = 0; i < n; i++) {
+      for (auto i = decltype(n){0}; i < n; i++) {
         if constexpr (IgnoreNA) {
           // TODO: current pandas code is a bit messy here...
           // labels[i] = na_sentinel
@@ -644,7 +647,7 @@ private:
       }
     } else {
       nb::call_guard<nb::gil_scoped_release>();
-      for (decltype(values.shape(0)) i = 0; i < n; i++) {
+      for (auto i = decltype(n){0}; i < n; i++) {
         const auto val = values_v(i);
         auto k = hash_map_.get(val);
         if (k == hash_map_.end()) {
