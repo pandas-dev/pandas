@@ -278,8 +278,17 @@ comment : str, default None
     comment string and the end of the current line is ignored.
 skipfooter : int, default 0
     Rows at the end to skip (0-indexed).
-{storage_options}
+storage_options : dict, optional
+        Extra options that make sense for a particular storage connection,
+        e.g. host, port, username, password, etc.
 
+        For HTTP(S) URLs the key-value pairs are forwarded to ``urllib.request.Request`` as header options.
+        For other URLs (e.g. starting with “s3://”, and “gcs://”),
+        the key-value pairs are forwarded to ``fsspec.open``.
+        
+        Please see ``fsspec`` and ``urllib`` for more details,
+        and for more examples on storage options,
+        refer `here <https://pandas.pydata.org/docs/user_guide/io.html#reading-writing-remote-files>`.
 dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
     Back-end data type applied to the resultant :class:`DataFrame`
     (still experimental). Behaviour is as follows:
@@ -1483,6 +1492,15 @@ class ExcelFile:
 
             Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.
             This is not supported, switch to using ``openpyxl`` instead.
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection,
+         e.g. host, port, username, password, etc.
+
+        For HTTP(S) URLs the key-value pairs are forwarded to ``urllib.request.Request`` as header options.
+        For other URLs (e.g. starting with “s3://”, and “gcs://”) the key-value pairs are forwarded to ``fsspec.open``.
+        
+        Please see ``fsspec`` and ``urllib`` for more details,
+         and for more examples on storage options refer `here <https://pandas.pydata.org/docs/user_guide/io.html#reading-writing-remote-files>`.
     engine_kwargs : dict, optional
         Arbitrary keyword arguments passed to excel engine.
 
@@ -1491,6 +1509,14 @@ class ExcelFile:
     >>> file = pd.ExcelFile("myfile.xlsx")  # doctest: +SKIP
     >>> with pd.ExcelFile("myfile.xls") as xls:  # doctest: +SKIP
     ...     df1 = pd.read_excel(xls, "Sheet1")  # doctest: +SKIP
+
+    See Also
+    --------
+    DataFrame.to_excel : Write DataFrame to an Excel file.
+    DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
+    read_fwf : Read a table of fixed-width formatted lines into DataFrame.
+    
     """
 
     from pandas.io.excel._calamine import CalamineReader
