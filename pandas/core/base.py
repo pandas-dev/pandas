@@ -687,6 +687,7 @@ class IndexOpsMixin(OpsMixin):
         -------
         bool
             ``True`` if the Index is empty, ``False`` otherwise.
+
         See Also
         --------
         Index.size : Return the number of elements in the Index.
