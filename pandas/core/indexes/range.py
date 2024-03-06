@@ -990,7 +990,9 @@ class RangeIndex(Index):
         """
         if not all(isinstance(x, RangeIndex) for x in indexes):
             result = super()._concat(indexes, name)
-            return self._shallow_copy(result._values)
+            if result.dtype.kind == "i":
+                return self._shallow_copy(result._values)
+            return result
 
         elif len(indexes) == 1:
             return indexes[0]
