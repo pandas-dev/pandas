@@ -112,7 +112,10 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
     validate_all_hashable,
 )
-from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.concat import (
+    concat_compat,
+    union_categoricals,
+)
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     CategoricalDtype,
@@ -2913,20 +2916,27 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
         other, result_name = self._convert_can_do_setop(other)
 
-        if isinstance(self.dtype, CategoricalDtype) and isinstance(
-            other.dtype, CategoricalDtype
-        ):
-            both_categories = self.categories  # type: ignore[attr-defined]
-            if len(self.categories) != len(other.categories) or any(  # type: ignore[attr-defined]
-                self.categories != other.categories  # type: ignore[attr-defined]
-            ):
-                # Unite both categories
-                both_categories = np.union1d(self.categories, other.categories)  # type: ignore[attr-defined]
+        from pandas import CategoricalIndex
+
+        if isinstance(self, CategoricalIndex) and isinstance(other, CategoricalIndex):
+            both_categories = self.categories
             # if ordered and unordered, we set categories to be unordered
-            ordered = False if self.ordered != other.ordered else None  # type: ignore[attr-defined]
+            ordered = False if self.ordered != other.ordered else None
+            if len(self.categories) != len(other.categories) or any(
+                self.categories != other.categories
+            ):
+                if ordered is False:
+                    both_categories = union_categoricals(
+                        [self.as_unordered(), other.as_unordered()],  # type: ignore[attr-defined]
+                        sort_categories=True,
+                    ).categories
+                else:
+                    both_categories = union_categoricals(
+                        [self, other], sort_categories=True
+                    ).categories
             # Convert both indexes to have the same categories
             self = self.set_categories(both_categories, ordered=ordered)  # type: ignore[attr-defined]
-            other = other.set_categories(both_categories, ordered=ordered)
+            other = other.set_categories(both_categories, ordered=ordered)  # type: ignore[attr-defined]
 
         elif self.dtype != other.dtype:
             if (
