@@ -4279,16 +4279,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             elif is_bool_dtype(vals.dtype) and isinstance(vals, ExtensionArray):
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
             elif is_bool_dtype(vals.dtype):
-                # GH#51424 deprecate to match Series/DataFrame behavior
-                warnings.warn(
-                    f"Allowing bool dtype in {type(self).__name__}.quantile is "
-                    "deprecated and will raise in a future version, matching "
-                    "the Series/DataFrame behavior. Cast to uint8 dtype before "
-                    "calling quantile instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                out = np.asarray(vals)
+                # GH#51424 remove to match Series/DataFrame behavior
+                raise TypeError("Cannot use quantile with bool dtype")
             elif needs_i8_conversion(vals.dtype):
                 inference = vals.dtype
                 # In this case we need to delay the casting until after the

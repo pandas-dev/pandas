@@ -368,18 +368,11 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
             msg = "cannot be performed against 'object' dtypes"
         else:
             msg = "is not supported for object dtype"
-        warn = FutureWarning if groupby_func == "fillna" else None
-        warn_msg = "DataFrameGroupBy.fillna is deprecated"
-        with tm.assert_produces_warning(warn, match=warn_msg):
-            with pytest.raises(TypeError, match=msg):
-                method(*args)
+        with pytest.raises(TypeError, match=msg):
+            method(*args)
     elif dtype is object:
-        warn = FutureWarning if groupby_func == "fillna" else None
-        warn_msg = "SeriesGroupBy.fillna is deprecated"
-        with tm.assert_produces_warning(warn, match=warn_msg):
-            result = method(*args)
-        with tm.assert_produces_warning(warn, match=warn_msg):
-            expected = expected_method(*args)
+        result = method(*args)
+        expected = expected_method(*args)
         if groupby_func in obj_result:
             expected = expected.astype(object)
         tm.assert_series_equal(result, expected)
@@ -419,12 +412,10 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         with pytest.raises(TypeError, match=msg):
             method(*args, numeric_only=True)
     elif dtype == bool and groupby_func == "quantile":
-        msg = "Allowing bool dtype in SeriesGroupBy.quantile"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg = "Cannot use quantile with bool dtype"
+        with pytest.raises(TypeError, match=msg):
             # GH#51424
-            result = method(*args, numeric_only=True)
-            expected = method(*args, numeric_only=False)
-        tm.assert_series_equal(result, expected)
+            method(*args, numeric_only=False)
     else:
         result = method(*args, numeric_only=True)
         expected = method(*args, numeric_only=False)

@@ -205,6 +205,7 @@ Removal of prior version deprecations/changes
 - In :meth:`DataFrame.stack`, the default value of ``future_stack`` is now ``True``; specifying ``False`` will raise a ``FutureWarning`` (:issue:`55448`)
 - Methods ``apply``, ``agg``, and ``transform`` will no longer replace NumPy functions (e.g. ``np.sum``) and built-in functions (e.g. ``min``) with the equivalent pandas implementation; use string aliases (e.g. ``"sum"`` and ``"min"``) if you desire to use the pandas implementation (:issue:`53974`)
 - Passing both ``freq`` and ``fill_value`` in :meth:`DataFrame.shift` and :meth:`Series.shift` and :meth:`.DataFrameGroupBy.shift` now raises a ``ValueError`` (:issue:`54818`)
+- Removed :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile` supporting bool dtype (:issue:`53975`)
 - Removed :meth:`DateOffset.is_anchored` and :meth:`offsets.Tick.is_anchored` (:issue:`56594`)
 - Removed ``DataFrame.applymap``, ``Styler.applymap`` and ``Styler.applymap_index`` (:issue:`52364`)
 - Removed ``DataFrame.bool`` and ``Series.bool`` (:issue:`51756`)
