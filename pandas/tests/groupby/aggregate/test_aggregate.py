@@ -1015,10 +1015,9 @@ def test_groupby_as_index_agg(df):
 
     expected3 = grouped["C"].sum()
     expected3 = DataFrame(expected3).rename(columns={"C": "Q"})
-    msg = "Passing a dictionary to SeriesGroupBy.agg is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result3 = grouped["C"].agg({"Q": "sum"})
-    tm.assert_frame_equal(result3, expected3)
+    msg = "nested renamer is not supported"
+    with pytest.raises(SpecificationError, match=msg):
+        grouped["C"].agg({"Q": "sum"})
 
     # GH7115 & GH8112 & GH8582
     df = DataFrame(
