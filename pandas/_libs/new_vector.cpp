@@ -116,9 +116,8 @@ public:
   // uint32_t for the khash "int" size. Otherwise use 64 bits
   using HashValueT = typename std::conditional<sizeof(decltype(PandasHashFunction<T>()(T()))) <= 4, uint32_t, uint64_t>::type;
   explicit PandasHashTable<T, IsMasked>() = default;
-  explicit PandasHashTable<T, IsMasked>(size_t new_size) {
-    // TODO: C++20 std::in_range would be great to safely check cast
-    hash_map_.resize(static_cast<HashValueT>(new_size));
+  explicit PandasHashTable<T, IsMasked>(HashValueT new_size) {
+    hash_map_.resize(new_size);
   }
 
   auto __len__() const noexcept { return hash_map_.size(); }
@@ -678,7 +677,8 @@ using namespace nb::literals;
   do {                                                                         \
     nb::class_<PandasHashTable<TYPE, MASKED>>(m, NAME)                         \
         .def(nb::init<>())                                                     \
-        .def(nb::init<size_t>(), "size_hint"_a)                           \
+        .def(nb::init<uint32_t>(), "size_hint"_a)                              \
+        .def(nb::init<uint64_t>(), "size_hint"_a)                              \
         .def("__len__", &PandasHashTable<TYPE, MASKED>::__len__)               \
         .def("__contains__", &PandasHashTable<TYPE, MASKED>::__contains__)     \
         .def("sizeof", &PandasHashTable<TYPE, MASKED>::SizeOf)                 \
