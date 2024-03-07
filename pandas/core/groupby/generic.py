@@ -384,23 +384,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
     def _aggregate_multiple_funcs(self, arg, *args, **kwargs) -> DataFrame:
         if isinstance(arg, dict):
-            if self.as_index:
-                # GH 15931
-                raise SpecificationError("nested renamer is not supported")
-            else:
-                # GH#50684 - This accidentally worked in 1.x
-                msg = (
-                    "Passing a dictionary to SeriesGroupBy.agg is deprecated "
-                    "and will raise in a future version of pandas. Pass a list "
-                    "of aggregations instead."
-                )
-                warnings.warn(
-                    message=msg,
-                    category=FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                arg = list(arg.items())
-        elif any(isinstance(x, (tuple, list)) for x in arg):
+            raise SpecificationError("nested renamer is not supported")
+
+        if any(isinstance(x, (tuple, list)) for x in arg):
             arg = [(x, x) if not isinstance(x, (tuple, list)) else x for x in arg]
         else:
             # list of functions / function names
