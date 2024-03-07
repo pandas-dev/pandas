@@ -21,7 +21,6 @@ import warnings
 import numpy as np
 
 from pandas._config import get_option
-from pandas._config.config import _get_option
 
 from pandas._libs import (
     algos as libalgos,
@@ -770,7 +769,7 @@ class MultiIndex(Index):
             ):
                 vals = vals.astype(object)
 
-            array_vals = np.array(vals, copy=False)
+            array_vals = np.asarray(vals)
             array_vals = algos.take_nd(array_vals, codes, fill_value=index._na_value)
             values.append(array_vals)
 
@@ -1330,7 +1329,7 @@ class MultiIndex(Index):
             new_index._id = self._id
         return new_index
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype=None, copy=None) -> np.ndarray:
         """the array interface, return my values"""
         return self.values
 
@@ -2380,7 +2379,7 @@ class MultiIndex(Index):
                     step = loc.step if loc.step is not None else 1
                     inds.extend(range(loc.start, loc.stop, step))
                 elif com.is_bool_indexer(loc):
-                    if _get_option("performance_warnings") and self._lexsort_depth == 0:
+                    if get_option("performance_warnings") and self._lexsort_depth == 0:
                         warnings.warn(
                             "dropping on a non-lexsorted multi-index "
                             "without a level parameter may impact performance.",
@@ -3042,7 +3041,7 @@ class MultiIndex(Index):
         if not follow_key:
             return slice(start, stop)
 
-        if _get_option("performance_warnings"):
+        if get_option("performance_warnings"):
             warnings.warn(
                 "indexing past lexsort depth may impact performance.",
                 PerformanceWarning,
@@ -3357,7 +3356,7 @@ class MultiIndex(Index):
                     locs = (level_codes >= idx.start) & (level_codes < idx.stop)
                     return locs
 
-                locs = np.array(level_codes == idx, dtype=bool, copy=False)
+                locs = np.asarray(level_codes == idx, dtype=bool)
 
                 if not locs.any():
                     # The label is present in self.levels[level] but unused:

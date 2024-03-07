@@ -21,7 +21,7 @@ import warnings
 import numpy as np
 import pytz
 
-from pandas._config.config import _get_option
+from pandas._config.config import get_option
 
 from pandas._libs import (
     lib,
@@ -2030,7 +2030,7 @@ class SparseDtype(ExtensionDtype):
 
         # np.nan isn't a singleton, so we may end up with multiple
         # NaNs here, so we ignore the all NA case too.
-        if _get_option("performance_warnings") and (
+        if get_option("performance_warnings") and (
             not (len(set(fill_values)) == 1 or isna(fill_values).all())
         ):
             warnings.warn(
