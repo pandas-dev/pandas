@@ -490,10 +490,8 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(
             df.nunique(dropna=False), Series({"A": 1, "B": 3, "C": 3})
         )
-        tm.assert_series_equal(df.nunique(axis=1), Series({0: 1, 1: 2, 2: 2}))
-        tm.assert_series_equal(
-            df.nunique(axis=1, dropna=False), Series({0: 1, 1: 3, 2: 2})
-        )
+        tm.assert_series_equal(df.nunique(axis=1), Series([1, 2, 2]))
+        tm.assert_series_equal(df.nunique(axis=1, dropna=False), Series([1, 3, 2]))
 
     @pytest.mark.parametrize("tz", [None, "UTC"])
     def test_mean_mixed_datetime_numeric(self, tz):
