@@ -190,6 +190,10 @@ class PandasColumn(Column):
 
     @property
     def describe_null(self):
+        if isinstance(self._col.dtype, BaseMaskedDtype):
+            column_null_dtype = ColumnNullType.USE_BYTEMASK
+            null_value = 1
+            return column_null_dtype, null_value
         kind = self.dtype[0]
         try:
             null, value = _NULL_DESCRIPTION[kind]
@@ -298,7 +302,13 @@ class PandasColumn(Column):
             DtypeKind.FLOAT,
             DtypeKind.BOOL,
         ):
-            np_arr = self._col.to_numpy()
+            arr = self._col.array
+            if isinstance(self._col.dtype, BaseMaskedDtype):
+                np_arr = arr._data  # type: ignore[attr-defined]
+            elif isinstance(self._col.dtype, ArrowDtype):
+                raise NotImplementedError("ArrowDtype not handled yet")
+            else:
+                np_arr = arr._ndarray  # type: ignore[attr-defined]
             buffer = PandasBuffer(np_arr, allow_copy=self._allow_copy)
             dtype = self.dtype
         elif self.dtype[0] == DtypeKind.CATEGORICAL:
@@ -340,6 +350,12 @@ class PandasColumn(Column):
         Raises NoBufferPresent if null representation is not a bit or byte mask.
         """
         null, invalid = self.describe_null
+
+        if isinstance(self._col.dtype, BaseMaskedDtype):
+            mask = self._col.array._mask  # type: ignore[attr-defined]
+            buffer = PandasBuffer(mask)
+            dtype = (DtypeKind.BOOL, 8, ArrowCTypes.BOOL, Endianness.NATIVE)
+            return buffer, dtype
 
         if self.dtype[0] == DtypeKind.STRING:
             # For now, use byte array as the mask.
