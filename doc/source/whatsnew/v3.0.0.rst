@@ -182,6 +182,7 @@ Other Deprecations
 - Deprecated :meth:`Timestamp.utcnow`, use ``Timestamp.now("UTC")`` instead (:issue:`56680`)
 - Deprecated allowing non-keyword arguments in :meth:`Series.to_markdown` except ``buf``. (:issue:`57280`)
 - Deprecated allowing non-keyword arguments in :meth:`Series.to_string` except ``buf``. (:issue:`57280`)
+- Deprecated strings ``MIN``, ``MS``, ``US``, and ``NS`` denoting units in :class:`Timedelta` and :func:`to_timedelta` (:issue:`57700`)
 -
 
 .. ---------------------------------------------------------------------------
