@@ -1286,34 +1286,43 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result
 
     @final
-    def _insert_inaxis_grouper(self, result: Series | DataFrame) -> DataFrame:
+    def _insert_inaxis_grouper(
+        self, result: Series | DataFrame, qs: npt.NDArray[np.float64] | None = None
+    ) -> DataFrame:
         if isinstance(result, Series):
             result = result.to_frame()
 
+        n_groupings = len(self._grouper.groupings)
+
+        if qs is not None:
+            result.insert(
+                0, f"level_{n_groupings}", np.tile(qs, len(result) // len(qs))
+            )
+
         # zip in reverse so we can always insert at loc 0
-        columns = result.columns
-        for name, lev, in_axis in zip(
-            reversed(self._grouper.names),
-            reversed(self._grouper.get_group_levels()),
-            reversed([grp.in_axis for grp in self._grouper.groupings]),
+        for level, (name, lev, in_axis) in enumerate(
+            zip(
+                reversed(self._grouper.names),
+                reversed(self._grouper.get_group_levels()),
+                reversed([grp.in_axis for grp in self._grouper.groupings]),
+            )
         ):
+            if name is None:
+                # Behave the same as .reset_index() when a level is unnamed
+                name = (
+                    "index"
+                    if n_groupings == 1 and qs is None
+                    else f"level_{n_groupings - level - 1}"
+                )
+
             # GH #28549
             # When using .apply(-), name will be in columns already
-            if name not in columns:
-                if in_axis:
+            if name not in result.columns:
+                # if in_axis:
+                if qs is None:
                     result.insert(0, name, lev)
                 else:
-                    msg = (
-                        "A grouping was used that is not in the columns of the "
-                        "DataFrame and so was excluded from the result. This grouping "
-                        "will be included in a future version of pandas. Add the "
-                        "grouping as a column of the DataFrame to silence this warning."
-                    )
-                    warnings.warn(
-                        message=msg,
-                        category=FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
+                    result.insert(0, name, Index(np.repeat(lev, len(qs))))
 
         return result
 
@@ -1340,18 +1349,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if not self.as_index:
             # `not self.as_index` is only relevant for DataFrameGroupBy,
             #   enforced in __init__
-            result = self._insert_inaxis_grouper(result)
+            result = self._insert_inaxis_grouper(result, qs=qs)
             result = result._consolidate()
-            index = Index(range(self._grouper.ngroups))
+            result.index = RangeIndex(len(result))
 
         else:
             index = self._grouper.result_index
-
-        if qs is not None:
-            # We get here with len(qs) != 1 and not self.as_index
-            #  in test_pass_args_kwargs
-            index = _insert_quantile_level(index, qs)
-        result.index = index
+            if qs is not None:
+                # We get here with len(qs) != 1 and not self.as_index
+                #  in test_pass_args_kwargs
+                index = _insert_quantile_level(index, qs)
+            result.index = index
 
         return result
 
