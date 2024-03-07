@@ -282,18 +282,11 @@ class TestAsFreq:
         with pytest.raises(ValueError, match=error_msg):
             df.asfreq(freq=freq)
 
-    @pytest.mark.parametrize(
-        "freq, freq_depr",
-        [
-            ("1YE", "1A"),
-            ("2YE-MAR", "2A-MAR"),
-        ],
-    )
-    def test_asfreq_frequency_A_raisees(self, freq, freq_depr):
-        msg = f"Invalid frequency: {freq_depr[1:]}"
+    def test_asfreq_frequency_A_raises(self):
+        msg = "Invalid frequency: 2A"
 
-        index = date_range("1/1/2000", periods=4, freq=f"{freq[1:]}")
+        index = date_range("1/1/2000", periods=4, freq="2ME")
         df = DataFrame({"s": Series([0.0, 1.0, 2.0, 3.0], index=index)})
 
         with pytest.raises(ValueError, match=msg):
-            df.asfreq(freq=freq_depr)
+            df.asfreq(freq="2A")
