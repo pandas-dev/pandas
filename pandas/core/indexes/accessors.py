@@ -577,6 +577,11 @@ class CombinedDatetimelikeProperties(
     parent class (ArrowTemporalProperties, DatetimeProperties,TimedeltaProperties,
     or PeriodProperties) based on the dtype of the provided pandas Series.
 
+    Parameters
+    ----------
+    data : pandas.Series
+        Series containing datetime-like data.
+
     Raises
     ------
     TypeError
