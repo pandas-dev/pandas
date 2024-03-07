@@ -22,11 +22,13 @@ namespace nb = nanobind;
 /// and support arbitrary types
 ///
 template <typename T> struct PandasHashFunction {
-  auto operator()(const T &value) const { return std::hash<T>()(value); }
+  constexpr auto operator()(const T &value) const {
+    return std::hash<T>()(value);
+  }
 };
 
 template <>
-auto PandasHashFunction<float>::operator()(const float &value) const {
+constexpr auto PandasHashFunction<float>::operator()(const float &value) const {
   if (std::isnan(value)) {
     return static_cast<decltype(std::hash<float>()(value))>(0);
   }
@@ -35,7 +37,8 @@ auto PandasHashFunction<float>::operator()(const float &value) const {
 }
 
 template <>
-auto PandasHashFunction<double>::operator()(const double &value) const {
+constexpr auto
+PandasHashFunction<double>::operator()(const double &value) const {
   if (std::isnan(value)) {
     return static_cast<decltype(std::hash<double>()(value))>(0);
   }
@@ -65,6 +68,15 @@ auto PandasHashEquality<double>::operator()(const double &lhs,
   }
 
   return lhs == rhs;
+}
+
+template <typename T> auto PandasIsNA(bool mask_value, T &scalar_value) {
+  // TODO: should NaN / pd.NA always be treated the same?
+  if constexpr (std::is_floating_point_v<T>) {
+    return mask_value || std::isnan(scalar_value);
+  } else {
+    return mask_value;
+  }
 }
 
 template <typename T> class PandasVector {
@@ -119,8 +131,14 @@ public:
       uint64_t>::type;
   explicit PandasHashTable<T, IsMasked>() = default;
   explicit PandasHashTable<T, IsMasked>(HashValueT new_size) {
+#if __APPLE__
+    // macOS cannot resolve size_t to uint32_t or uint64_t that khash needs
+    hash_map_.resize(static_cast<uint64_t>(new_size));
+    hash_set_.resize(static_cast < uint64_t < (new_size));
+#else
     hash_map_.resize(new_size);
     hash_set_.resize(new_size);
+#endif
   }
 
   auto __len__() const noexcept { return hash_map_.size(); }
@@ -309,15 +327,18 @@ public:
       mask_vector = UniqueWithResultMask(values, uniques, mask);
 
       return nb::make_tuple(uniques.ToNdArray(), mask_vector.ToNdArray());
+    } else {
+      UniquesOnly(values, uniques);
+      const auto out_array = uniques.ToNdArray();
+      return nb::cast(out_array);
     }
-    UniquesOnly(values, uniques, mask);
-    const auto out_array = uniques.ToNdArray();
-    return nb::cast(out_array);
+
+    throw std::runtime_error("Should not hit this");
   }
 
   auto Factorize(const nb::ndarray<const T, nb::ndim<1>> &values,
                  Py_ssize_t na_sentinel = -1, nb::object na_value = nb::none(),
-                 nb::object mask = nb::none(), bool ignore_na = true)
+                 nb::object mask = nb::none(), bool ignore_na = false)
       -> nb::object {
     PandasVector<T> uniques;
 
@@ -444,14 +465,14 @@ private:
       const auto mask_v = mask.view();
 
       for (auto i = decltype(n){0}; i < n; i++) {
+        const auto val = values_v(i);
         if constexpr (IgnoreNA) {
-          if (mask_v(i)) {
+          if (PandasIsNA(mask_v(i), val)) {
             labels[i] = na_sentinel;
             continue;
           }
         }
 
-        const auto val = values_v(i);
         auto k = hash_map_.get(val);
         if (k == hash_map_.end()) {
           int dummy;
@@ -472,7 +493,7 @@ private:
         const auto val = values_v(i);
 
         if constexpr (IgnoreNA) {
-          if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
+          if constexpr (std::is_floating_point_v<T>) {
             if (std::isnan(val)) {
               labels[i] = na_sentinel;
               continue;
@@ -534,17 +555,12 @@ private:
       for (auto i = decltype(n){0}; i < n; i++) {
         const auto val = values_v(i);
 
-        bool should_append_na;
-        // NaN / pd.NA are treated the same? hmmm
-        if constexpr (std::is_floating_point_v<T>) {
-          should_append_na = !seen_na && (mask_v(i) || std::isnan(val));
-        } else {
-          should_append_na = !seen_na && mask_v(i);
-        }
-        if (should_append_na) {
-          seen_na = true;
-          uniques.Append(val);
-          result.Append(1);
+        if (PandasIsNA(mask_v(i), val)) {
+          if (!seen_na) {
+            uniques.Append(val);
+            result.Append(1);
+            seen_na = true;
+          }
           continue;
         }
 
@@ -572,44 +588,19 @@ private:
   }
 
   auto UniquesOnly(const nb::ndarray<const T, nb::ndim<1>> &values,
-                   PandasVector<T> &uniques,
-                   [[maybe_unused]] nb::object mask_obj = nb::none()) -> void {
-    if constexpr (IsMasked) {
-      if (mask_obj.is_none()) {
-        throw std::invalid_argument("mask must not be None!");
-      }
-    }
+                   PandasVector<T> &uniques) -> void {
 
     const auto values_v = values.view();
     const auto n = values.shape(0);
 
-    if constexpr (IsMasked) {
-      using MaskT = nb::ndarray<const uint8_t, nb::ndim<1>>;
-      MaskT mask;
-      if (!nb::try_cast<MaskT>(mask_obj, mask, false)) {
-        throw std::invalid_argument("Could not convert mask to uint8_t array!");
-      }
-      nb::call_guard<nb::gil_scoped_release>();
-
-      for (auto i = decltype(n){0}; i < n; i++) {
-        const auto val = values_v(i);
-        auto k = hash_map_.get(val);
-        if (k == hash_map_.end()) {
-          int dummy;
-          k = hash_map_.put(val, &dummy);
-          uniques.Append(val);
-        }
-      }
-    } else {
-      nb::call_guard<nb::gil_scoped_release>();
-      for (auto i = decltype(n){0}; i < n; i++) {
-        const auto val = values_v(i);
-        auto k = hash_map_.get(val);
-        if (k == hash_map_.end()) {
-          int dummy;
-          k = hash_map_.put(val, &dummy);
-          uniques.Append(val);
-        }
+    nb::call_guard<nb::gil_scoped_release>();
+    for (auto i = decltype(n){0}; i < n; i++) {
+      const auto val = values_v(i);
+      auto k = hash_map_.get(val);
+      if (k == hash_map_.end()) {
+        int dummy;
+        k = hash_map_.put(val, &dummy);
+        uniques.Append(val);
       }
     }
 
