@@ -178,6 +178,12 @@ See the `user guide
 <https://pandas.pydata.org/pandas-docs/stable/groupby.html>`__ for more
 detailed usage and examples, including splitting an object into groups,
 iterating through groups, selecting a group, aggregation, and more.
+
+The implementation of groupby is hash-based, meaning in particular that
+objects that compare as equal will be considered to be in the same group.
+An exception to this is that pandas has special handling of NA values:
+any NA values will be collapsed to a single group, regardless of how
+they compare. See the user guide linked above for more details.
 """
 
 _shared_docs["melt"] = """

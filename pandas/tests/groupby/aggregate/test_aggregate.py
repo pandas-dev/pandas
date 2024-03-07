@@ -1015,10 +1015,9 @@ def test_groupby_as_index_agg(df):
 
     expected3 = grouped["C"].sum()
     expected3 = DataFrame(expected3).rename(columns={"C": "Q"})
-    msg = "Passing a dictionary to SeriesGroupBy.agg is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result3 = grouped["C"].agg({"Q": "sum"})
-    tm.assert_frame_equal(result3, expected3)
+    msg = "nested renamer is not supported"
+    with pytest.raises(SpecificationError, match=msg):
+        grouped["C"].agg({"Q": "sum"})
 
     # GH7115 & GH8112 & GH8582
     df = DataFrame(
@@ -1248,10 +1247,7 @@ def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
     tsframe.columns = ["A", "B", "A", "C"]
     gb = tsframe.groupby(lambda x: x.month, as_index=as_index)
 
-    warn = None if as_index else FutureWarning
-    msg = "A grouping .* was excluded from the result"
-    with tm.assert_produces_warning(warn, match=msg):
-        res = gb.agg(np.percentile, 80, axis=0)
+    res = gb.agg(np.percentile, 80, axis=0)
 
     ex_data = {
         1: tsframe[tsframe.index.month == 1].quantile(0.8),
@@ -1259,7 +1255,7 @@ def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
     }
     expected = DataFrame(ex_data).T
     if not as_index:
-        # TODO: try to get this more consistent?
+        expected.insert(0, "index", [1, 2])
         expected.index = Index(range(2))
 
     tm.assert_frame_equal(res, expected)
