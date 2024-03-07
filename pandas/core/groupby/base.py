@@ -90,7 +90,6 @@ groupby_other_methods = frozenset(
         "corr",
         "cov",
         "describe",
-        "dtypes",
         "expanding",
         "ewm",
         "filter",

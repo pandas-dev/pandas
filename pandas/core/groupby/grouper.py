@@ -8,14 +8,12 @@ from typing import (
     TYPE_CHECKING,
     final,
 )
-import warnings
 
 import numpy as np
 
 from pandas._libs.tslibs import OutOfBoundsDatetime
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_list_like,
@@ -386,56 +384,6 @@ class Grouper:
         self._obj_deprecated = obj  # type: ignore[assignment]
         self._gpr_index = ax
         return obj, ax, indexer
-
-    @final
-    @property
-    def ax(self) -> Index:
-        warnings.warn(
-            f"{type(self).__name__}.ax is deprecated and will be removed in a "
-            "future version. Use Resampler.ax instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        index = self._gpr_index
-        if index is None:
-            raise ValueError("_set_grouper must be called before ax is accessed")
-        return index
-
-    @final
-    @property
-    def indexer(self):
-        warnings.warn(
-            f"{type(self).__name__}.indexer is deprecated and will be removed "
-            "in a future version. Use Resampler.indexer instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._indexer_deprecated
-
-    @final
-    @property
-    def obj(self):
-        # TODO(3.0): enforcing these deprecations on Grouper should close
-        #  GH#25564, GH#41930
-        warnings.warn(
-            f"{type(self).__name__}.obj is deprecated and will be removed "
-            "in a future version. Use GroupBy.indexer instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._obj_deprecated
-
-    @final
-    @property
-    def groups(self):
-        warnings.warn(
-            f"{type(self).__name__}.groups is deprecated and will be removed "
-            "in a future version. Use GroupBy.groups instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        # error: "None" has no attribute "groups"
-        return self._grouper_deprecated.groups  # type: ignore[attr-defined]
 
     @final
     def __repr__(self) -> str:
