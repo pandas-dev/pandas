@@ -189,7 +189,9 @@ Other Deprecations
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- :class:`.DataFrameGroupBy.idxmin`, :class:`.DataFrameGroupBy.idxmax`, :class:`.SeriesGroupBy.idxmin`, and :class:`.SeriesGroupBy.idxmax` will now raise a ``ValueError`` when used with ``skipna=False`` and an NA value is encountered (:issue:`10694`)
 - :func:`read_excel`, :func:`read_json`, :func:`read_html`, and :func:`read_xml` no longer accept raw string or byte representation of the data. That type of data must be wrapped in a :py:class:`StringIO` or :py:class:`BytesIO` (:issue:`53767`)
+- :meth:`DataFrame.groupby` with ``as_index=False`` and aggregation methods will no longer exclude from the result the groupings that do not arise from the input (:issue:`49519`)
 - :meth:`Series.dt.to_pydatetime` now returns a :class:`Series` of :py:class:`datetime.datetime` objects (:issue:`52459`)
 - :meth:`SeriesGroupBy.agg` no longer pins the name of the group to the input passed to the provided ``func`` (:issue:`51703`)
 - All arguments except ``name`` in :meth:`Index.rename` are now keyword only (:issue:`56493`)
@@ -198,11 +200,15 @@ Removal of prior version deprecations/changes
 - All arguments in :meth:`Series.to_dict` are now keyword only (:issue:`56493`)
 - Changed the default value of ``observed`` in :meth:`DataFrame.groupby` and :meth:`Series.groupby` to ``True`` (:issue:`51811`)
 - Enforced deprecation disallowing parsing datetimes with mixed time zones unless user passes ``utc=True`` to :func:`to_datetime` (:issue:`57275`)
+- Enforced deprecation of :meth:`.DataFrameGroupBy.get_group` and :meth:`.SeriesGroupBy.get_group` allowing the ``name`` argument to be a non-tuple when grouping by a list of length 1 (:issue:`54155`)
 - Enforced deprecation of ``axis=None`` acting the same as ``axis=0`` in the DataFrame reductions ``sum``, ``prod``, ``std``, ``var``, and ``sem``, passing ``axis=None`` will now reduce over both axes; this is particularly the case when doing e.g. ``numpy.sum(df)`` (:issue:`21597`)
+- Enforced deprecation of passing a dictionary to :meth:`SeriesGroupBy.agg` (:issue:`52268`)
 - Enforced silent-downcasting deprecation for :ref:`all relevant methods <whatsnew_220.silent_downcasting>` (:issue:`54710`)
 - In :meth:`DataFrame.stack`, the default value of ``future_stack`` is now ``True``; specifying ``False`` will raise a ``FutureWarning`` (:issue:`55448`)
+- Iterating over a :class:`.DataFrameGroupBy` or :class:`.SeriesGroupBy` will return tuples of length 1 for the groups when grouping by ``level`` a list of length 1 (:issue:`50064`)
 - Methods ``apply``, ``agg``, and ``transform`` will no longer replace NumPy functions (e.g. ``np.sum``) and built-in functions (e.g. ``min``) with the equivalent pandas implementation; use string aliases (e.g. ``"sum"`` and ``"min"``) if you desire to use the pandas implementation (:issue:`53974`)
 - Passing both ``freq`` and ``fill_value`` in :meth:`DataFrame.shift` and :meth:`Series.shift` and :meth:`.DataFrameGroupBy.shift` now raises a ``ValueError`` (:issue:`54818`)
+- Removed :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile` supporting bool dtype (:issue:`53975`)
 - Removed :meth:`DateOffset.is_anchored` and :meth:`offsets.Tick.is_anchored` (:issue:`56594`)
 - Removed ``DataFrame.applymap``, ``Styler.applymap`` and ``Styler.applymap_index`` (:issue:`52364`)
 - Removed ``DataFrame.bool`` and ``Series.bool`` (:issue:`51756`)
@@ -227,6 +233,7 @@ Removal of prior version deprecations/changes
 - Removed ``read_gbq`` and ``DataFrame.to_gbq``. Use ``pandas_gbq.read_gbq`` and ``pandas_gbq.to_gbq`` instead https://pandas-gbq.readthedocs.io/en/latest/api.html (:issue:`55525`)
 - Removed ``use_nullable_dtypes`` from :func:`read_parquet` (:issue:`51853`)
 - Removed ``year``, ``month``, ``quarter``, ``day``, ``hour``, ``minute``, and ``second`` keywords in the :class:`PeriodIndex` constructor, use :meth:`PeriodIndex.from_fields` instead (:issue:`55960`)
+- Removed argument ``limit`` from :meth:`DataFrame.pct_change`, :meth:`Series.pct_change`, :meth:`.DataFrameGroupBy.pct_change`, and :meth:`.SeriesGroupBy.pct_change`; the argument ``method`` must be set to ``None`` and will be removed in a future version of pandas (:issue:`53520`)
 - Removed deprecated argument ``obj`` in :meth:`.DataFrameGroupBy.get_group` and :meth:`.SeriesGroupBy.get_group` (:issue:`53545`)
 - Removed deprecated behavior of :meth:`Series.agg` using :meth:`Series.apply` (:issue:`53325`)
 - Removed option ``mode.use_inf_as_na``, convert inf entries to ``NaN`` before instead (:issue:`51684`)
@@ -239,6 +246,8 @@ Removal of prior version deprecations/changes
 - Removed the ``ordinal`` keyword in :class:`PeriodIndex`, use :meth:`PeriodIndex.from_ordinals` instead (:issue:`55960`)
 - Removed unused arguments ``*args`` and ``**kwargs`` in :class:`Resampler` methods (:issue:`50977`)
 - Unrecognized timezones when parsing strings to datetimes now raises a ``ValueError`` (:issue:`51477`)
+- Removed the :class:`Grouper` attributes ``ax``, ``groups``, ``indexer``, and ``obj`` (:issue:`51206`, :issue:`51182`)
+- Removed the attribute ``dtypes`` from :class:`.DataFrameGroupBy` (:issue:`51997`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.performance:
