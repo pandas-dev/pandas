@@ -858,7 +858,7 @@ def test_groupby_level_nonmulti():
 def test_groupby_complex():
     # GH 12902
     a = Series(data=np.arange(4) * (1 + 2j), index=[0, 0, 1, 1])
-    expected = Series((1 + 2j, 5 + 10j))
+    expected = Series((1 + 2j, 5 + 10j), index=Index([0, 1]))
 
     result = a.groupby(level=0).sum()
     tm.assert_series_equal(result, expected)
@@ -1203,7 +1203,10 @@ def test_groupby_nat_exclude():
     )
     grouped = df.groupby("dt")
 
-    expected = [Index([1, 7]), Index([3, 5])]
+    expected = [
+        RangeIndex(start=1, stop=13, step=6),
+        RangeIndex(start=3, stop=7, step=2),
+    ]
     keys = sorted(grouped.groups.keys())
     assert len(keys) == 2
     for k, e in zip(keys, expected):
@@ -2663,7 +2666,9 @@ def test_groupby_method_drop_na(method):
             Series(["a", "b", "c"], name="A")
         )
     else:
-        expected = DataFrame({"A": ["a", "b", "c"], "B": [0, 2, 4]}, index=[0, 2, 4])
+        expected = DataFrame(
+            {"A": ["a", "b", "c"], "B": [0, 2, 4]}, index=range(0, 6, 2)
+        )
     tm.assert_frame_equal(result, expected)
 
 

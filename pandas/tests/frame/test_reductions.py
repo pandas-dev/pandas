@@ -707,8 +707,8 @@ class TestDataFrameAnalytics:
 
     def test_mode_empty_df(self):
         df = DataFrame([], columns=["a", "b"])
+        expected = df.copy()
         result = df.mode()
-        expected = DataFrame([], columns=["a", "b"], index=Index([], dtype=np.int64))
         tm.assert_frame_equal(result, expected)
 
     def test_operators_timedelta64(self):
@@ -769,7 +769,7 @@ class TestDataFrameAnalytics:
 
         # excludes non-numeric
         result = mixed.min(axis=1, numeric_only=True)
-        expected = Series([1, 1, 1.0], index=[0, 1, 2])
+        expected = Series([1, 1, 1.0])
         tm.assert_series_equal(result, expected)
 
         # works when only those columns are selected
