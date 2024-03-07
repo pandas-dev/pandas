@@ -17,6 +17,7 @@ from pandas import (
     Index,
     MultiIndex,
     PeriodIndex,
+    RangeIndex,
     Series,
     concat,
     date_range,
@@ -388,11 +389,48 @@ class TestConcatenate:
         result = concat({"a": None, "b": df0, "c": df0[:2], "d": df0[:1], "e": df0})
         expected = concat({"b": df0, "c": df0[:2], "d": df0[:1], "e": df0})
         tm.assert_frame_equal(result, expected)
-
         result = concat(
             [None, df0, df0[:2], df0[:1], df0], keys=["a", "b", "c", "d", "e"]
         )
         expected = concat([df0, df0[:2], df0[:1], df0], keys=["b", "c", "d", "e"])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("klass", [range, RangeIndex])
+    def test_concat_preserves_rangeindex(self, klass):
+        df = DataFrame([1, 2])
+        df2 = DataFrame([3, 4])
+        result = concat([df, df2], keys=klass(2))
+        expected = DataFrame(
+            [1, 2, 3, 4],
+            index=MultiIndex(
+                levels=(
+                    RangeIndex(start=0, stop=2, step=1),
+                    RangeIndex(start=0, stop=2, step=1),
+                ),
+                codes=(
+                    np.array([0, 0, 1, 1], dtype=np.int8),
+                    np.array([0, 1, 0, 1], dtype=np.int8),
+                ),
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+        df = DataFrame([1, 2])
+        df2 = DataFrame([3, 4])
+        result = concat([df, None, df2, None], keys=klass(4))
+        expected = DataFrame(
+            [1, 2, 3, 4],
+            index=MultiIndex(
+                levels=(
+                    RangeIndex(start=0, stop=4, step=2),
+                    RangeIndex(start=0, stop=2, step=1),
+                ),
+                codes=(
+                    np.array([0, 0, 1, 1], dtype=np.int8),
+                    np.array([0, 1, 0, 1], dtype=np.int8),
+                ),
+            ),
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_concat_bug_1719(self):
@@ -705,7 +743,7 @@ def test_concat_multiindex_with_empty_rangeindex():
     # GH#41234
     mi = MultiIndex.from_tuples([("B", 1), ("C", 1)])
     df1 = DataFrame([[1, 2]], columns=mi)
-    df2 = DataFrame(index=[1], columns=pd.RangeIndex(0))
+    df2 = DataFrame(index=[1], columns=RangeIndex(0))
 
     result = concat([df1, df2])
     expected = DataFrame([[1, 2], [np.nan, np.nan]], columns=mi)
@@ -830,14 +868,14 @@ def test_concat_mismatched_keys_length():
     sers = [ser + n for n in range(4)]
     keys = ["A", "B", "C"]
 
-    msg = r"The behavior of pd.concat with len\(keys\) != len\(objs\) is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    msg = r"The length of the keys"
+    with pytest.raises(ValueError, match=msg):
         concat(sers, keys=keys, axis=1)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with pytest.raises(ValueError, match=msg):
         concat(sers, keys=keys, axis=0)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with pytest.raises(ValueError, match=msg):
         concat((x for x in sers), keys=(y for y in keys), axis=1)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with pytest.raises(ValueError, match=msg):
         concat((x for x in sers), keys=(y for y in keys), axis=0)
 
 
