@@ -1490,12 +1490,11 @@ class _LocIndexer(_LocationIndexer):
 
             # if we are a label return me
             try:
-                from pandas import (
-                    DatetimeIndex,
-                    to_datetime,
-                )
-                if isinstance(labels, DatetimeIndex):
-                    key = to_datetime(key)
+                import pandas as pd
+                try:
+                    key = pd.Timestamp(key)
+                except:
+                    pass
                 return labels.get_loc(key)
             except LookupError:
                 if isinstance(key, tuple) and isinstance(labels, MultiIndex):
