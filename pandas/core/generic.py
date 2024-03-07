@@ -6919,7 +6919,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         stacklevel=2,
                     )
 
-        value, _ = validate_fillna_kwargs(value, None)
+        if isinstance(value, (list, tuple)):
+            raise TypeError(
+                '"value" parameter must be a scalar or dict, but '
+                f'you passed a "{type(value).__name__}"'
+            )
 
         # set the default here, so functions examining the signaure
         # can detect if something was set (e.g. in groupby) (GH9221)
@@ -6928,15 +6932,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
 
         if value is None:
-            return self._pad_or_backfill(
-                # error: Argument 1 to "_pad_or_backfill" of "NDFrame" has
-                # incompatible type "Optional[Literal['backfill', 'bfill', 'ffill',
-                # 'pad']]"; expected "Literal['ffill', 'bfill', 'pad', 'backfill']"
-                method=None,  # type: ignore[arg-type]
-                axis=axis,
-                limit=limit,
-                inplace=inplace,
-            )
+            raise ValueError("Must specify a fill 'value'.")
         else:
             if self.ndim == 1:
                 if isinstance(value, (dict, ABCSeries)):

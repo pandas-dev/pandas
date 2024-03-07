@@ -235,9 +235,7 @@ class TestSparseArray(base.ExtensionTests):
         tm.assert_equal(sarr.isna(), expected)
 
     def test_fillna_limit_backfill(self, data_missing):
-        warns = FutureWarning
-        with tm.assert_produces_warning(warns, check_stacklevel=False):
-            super().test_fillna_limit_backfill(data_missing)
+        super().test_fillna_limit_backfill(data_missing)
 
     def test_fillna_no_op_returns_copy(self, data, request):
         if np.isnan(data.fill_value):
