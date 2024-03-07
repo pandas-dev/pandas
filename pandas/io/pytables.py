@@ -31,7 +31,6 @@ from pandas._config import (
     get_option,
     using_pyarrow_string_dtype,
 )
-from pandas._config.config import _get_option
 
 from pandas._libs import (
     lib,
@@ -3149,7 +3148,7 @@ class GenericFixed(Fixed):
                 pass
             elif inferred_type == "string":
                 pass
-            elif _get_option("performance_warnings"):
+            elif get_option("performance_warnings"):
                 ws = performance_doc % (inferred_type, key, items)
                 warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
 
@@ -4043,7 +4042,7 @@ class Table(Fixed):
             if isinstance(data_converted.dtype, CategoricalDtype):
                 ordered = data_converted.ordered
                 meta = "category"
-                metadata = np.array(data_converted.categories, copy=False).ravel()
+                metadata = np.asarray(data_converted.categories).ravel()
 
             data, dtype_name = _get_data_and_dtype_name(data_converted)
 
