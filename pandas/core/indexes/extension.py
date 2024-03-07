@@ -1,6 +1,7 @@
 """
 Shared methods for Index subclasses backed by ExtensionArray.
 """
+
 from __future__ import annotations
 
 from inspect import signature

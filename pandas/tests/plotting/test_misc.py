@@ -1,4 +1,5 @@
-""" Test cases for misc plot functions """
+"""Test cases for misc plot functions"""
+
 import os
 
 import numpy as np

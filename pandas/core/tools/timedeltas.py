@@ -1,6 +1,7 @@
 """
 timedelta support tools
 """
+
 from __future__ import annotations
 
 from typing import (
@@ -53,8 +54,7 @@ def to_timedelta(
     arg: str | float | timedelta,
     unit: UnitChoices | None = ...,
     errors: DateTimeErrorChoices = ...,
-) -> Timedelta:
-    ...
+) -> Timedelta: ...
 
 
 @overload
@@ -62,8 +62,7 @@ def to_timedelta(
     arg: Series,
     unit: UnitChoices | None = ...,
     errors: DateTimeErrorChoices = ...,
-) -> Series:
-    ...
+) -> Series: ...
 
 
 @overload
@@ -71,8 +70,7 @@ def to_timedelta(
     arg: list | tuple | range | ArrayLike | Index,
     unit: UnitChoices | None = ...,
     errors: DateTimeErrorChoices = ...,
-) -> TimedeltaIndex:
-    ...
+) -> TimedeltaIndex: ...
 
 
 def to_timedelta(

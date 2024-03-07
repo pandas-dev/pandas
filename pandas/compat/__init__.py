@@ -7,6 +7,7 @@ Cross-compatible functions for different versions of Python.
 Other items:
 * platform checker
 """
+
 from __future__ import annotations
 
 import os

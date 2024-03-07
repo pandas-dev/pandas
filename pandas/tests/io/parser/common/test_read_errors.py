@@ -2,6 +2,7 @@
 Tests that work on the Python, C and PyArrow engines but do not have a
 specific classification into the other test modules.
 """
+
 import codecs
 import csv
 from io import StringIO
@@ -57,9 +58,12 @@ def test_bad_stream_exception(all_parsers, csv_dir_path):
     msg = "'utf-8' codec can't decode byte"
 
     # Stream must be binary UTF8.
-    with open(path, "rb") as handle, codecs.StreamRecoder(
-        handle, utf8.encode, utf8.decode, codec.streamreader, codec.streamwriter
-    ) as stream:
+    with (
+        open(path, "rb") as handle,
+        codecs.StreamRecoder(
+            handle, utf8.encode, utf8.decode, codec.streamreader, codec.streamwriter
+        ) as stream,
+    ):
         with pytest.raises(UnicodeDecodeError, match=msg):
             parser.read_csv(stream)
 

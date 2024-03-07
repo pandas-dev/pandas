@@ -3,6 +3,7 @@ Module contains tools for processing files into DataFrames or other objects
 
 GH#48849 provides a convenient way of deprecating keyword arguments
 """
+
 from __future__ import annotations
 
 from collections import (
@@ -111,9 +112,9 @@ if TYPE_CHECKING:
         skiprows: list[int] | int | Callable[[Hashable], bool] | None
         skipfooter: int
         nrows: int | None
-        na_values: Hashable | Iterable[Hashable] | Mapping[
-            Hashable, Iterable[Hashable]
-        ] | None
+        na_values: (
+            Hashable | Iterable[Hashable] | Mapping[Hashable, Iterable[Hashable]] | None
+        )
         keep_default_na: bool
         na_filter: bool
         verbose: bool | lib.NoDefault
@@ -568,18 +569,15 @@ class _DeprecationConfig(NamedTuple):
 
 
 @overload
-def validate_integer(name: str, val: None, min_val: int = ...) -> None:
-    ...
+def validate_integer(name: str, val: None, min_val: int = ...) -> None: ...
 
 
 @overload
-def validate_integer(name: str, val: float, min_val: int = ...) -> int:
-    ...
+def validate_integer(name: str, val: float, min_val: int = ...) -> int: ...
 
 
 @overload
-def validate_integer(name: str, val: int | None, min_val: int = ...) -> int | None:
-    ...
+def validate_integer(name: str, val: int | None, min_val: int = ...) -> int | None: ...
 
 
 def validate_integer(
@@ -691,8 +689,7 @@ def read_csv(
     iterator: Literal[True],
     chunksize: int | None = ...,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> TextFileReader:
-    ...
+) -> TextFileReader: ...
 
 
 @overload
@@ -702,8 +699,7 @@ def read_csv(
     iterator: bool = ...,
     chunksize: int,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> TextFileReader:
-    ...
+) -> TextFileReader: ...
 
 
 @overload
@@ -713,8 +709,7 @@ def read_csv(
     iterator: Literal[False] = ...,
     chunksize: None = ...,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
@@ -724,8 +719,7 @@ def read_csv(
     iterator: bool = ...,
     chunksize: int | None = ...,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> DataFrame | TextFileReader:
-    ...
+) -> DataFrame | TextFileReader: ...
 
 
 @Appender(
@@ -896,8 +890,7 @@ def read_table(
     iterator: Literal[True],
     chunksize: int | None = ...,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> TextFileReader:
-    ...
+) -> TextFileReader: ...
 
 
 @overload
@@ -907,8 +900,7 @@ def read_table(
     iterator: bool = ...,
     chunksize: int,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> TextFileReader:
-    ...
+) -> TextFileReader: ...
 
 
 @overload
@@ -918,8 +910,7 @@ def read_table(
     iterator: Literal[False] = ...,
     chunksize: None = ...,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
@@ -929,8 +920,7 @@ def read_table(
     iterator: bool = ...,
     chunksize: int | None = ...,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> DataFrame | TextFileReader:
-    ...
+) -> DataFrame | TextFileReader: ...
 
 
 @Appender(
@@ -1097,8 +1087,7 @@ def read_fwf(
     iterator: Literal[True],
     chunksize: int | None = ...,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> TextFileReader:
-    ...
+) -> TextFileReader: ...
 
 
 @overload
@@ -1111,8 +1100,7 @@ def read_fwf(
     iterator: bool = ...,
     chunksize: int,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> TextFileReader:
-    ...
+) -> TextFileReader: ...
 
 
 @overload
@@ -1125,8 +1113,7 @@ def read_fwf(
     iterator: Literal[False] = ...,
     chunksize: None = ...,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 def read_fwf(

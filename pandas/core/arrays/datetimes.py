@@ -103,13 +103,11 @@ _ITER_CHUNKSIZE = 10_000
 
 
 @overload
-def tz_to_dtype(tz: tzinfo, unit: str = ...) -> DatetimeTZDtype:
-    ...
+def tz_to_dtype(tz: tzinfo, unit: str = ...) -> DatetimeTZDtype: ...
 
 
 @overload
-def tz_to_dtype(tz: None, unit: str = ...) -> np.dtype[np.datetime64]:
-    ...
+def tz_to_dtype(tz: None, unit: str = ...) -> np.dtype[np.datetime64]: ...
 
 
 def tz_to_dtype(

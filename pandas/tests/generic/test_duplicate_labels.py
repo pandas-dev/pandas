@@ -1,4 +1,5 @@
 """Tests dealing with the NDFrame.allows_duplicates."""
+
 import operator
 
 import numpy as np

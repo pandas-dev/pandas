@@ -15,6 +15,7 @@ This module provides a set of commonly used default arguments for functions and
 methods that are spread throughout the codebase. This module will make it
 easier to adjust to future upstream changes in the analogous numpy signatures.
 """
+
 from __future__ import annotations
 
 from typing import (
@@ -179,13 +180,11 @@ validate_clip = CompatValidator(
 
 
 @overload
-def validate_clip_with_axis(axis: ndarray, args, kwargs) -> None:
-    ...
+def validate_clip_with_axis(axis: ndarray, args, kwargs) -> None: ...
 
 
 @overload
-def validate_clip_with_axis(axis: AxisNoneT, args, kwargs) -> AxisNoneT:
-    ...
+def validate_clip_with_axis(axis: AxisNoneT, args, kwargs) -> AxisNoneT: ...
 
 
 def validate_clip_with_axis(

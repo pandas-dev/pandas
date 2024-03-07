@@ -7,6 +7,7 @@ which was more ambitious but less idiomatic in its use of Hypothesis.
 You may wish to consult the previous version for inspiration on further
 tests, or when trying to pin down the bugs exposed by the tests below.
 """
+
 from hypothesis import (
     assume,
     given,

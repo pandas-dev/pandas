@@ -1,6 +1,7 @@
 """
 Tests for CategoricalIndex.__repr__ and related methods.
 """
+
 import pytest
 
 from pandas._config import using_pyarrow_string_dtype

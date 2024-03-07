@@ -1,6 +1,7 @@
 """
 test with the TimeGrouper / grouping with datetimes
 """
+
 from datetime import (
     datetime,
     timedelta,

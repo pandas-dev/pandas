@@ -175,12 +175,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         raise AbstractMethodError(self)
 
     @overload
-    def __getitem__(self, item: ScalarIndexer) -> Any:
-        ...
+    def __getitem__(self, item: ScalarIndexer) -> Any: ...
 
     @overload
-    def __getitem__(self, item: SequenceIndexer) -> Self:
-        ...
+    def __getitem__(self, item: SequenceIndexer) -> Self: ...
 
     def __getitem__(self, item: PositionalIndexer) -> Self | Any:
         item = check_array_indexer(self, item)
@@ -535,16 +533,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self.to_numpy(dtype=dtype, na_value=libmissing.NA).tolist()
 
     @overload
-    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
-        ...
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray: ...
 
     @overload
-    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
-        ...
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray: ...
 
     @overload
-    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
-        ...
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike: ...
 
     def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         dtype = pandas_dtype(dtype)
@@ -1342,14 +1337,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     @overload
     def any(
         self, *, skipna: Literal[True] = ..., axis: AxisInt | None = ..., **kwargs
-    ) -> np.bool_:
-        ...
+    ) -> np.bool_: ...
 
     @overload
     def any(
         self, *, skipna: bool, axis: AxisInt | None = ..., **kwargs
-    ) -> np.bool_ | NAType:
-        ...
+    ) -> np.bool_ | NAType: ...
 
     def any(
         self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs
@@ -1437,14 +1430,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     @overload
     def all(
         self, *, skipna: Literal[True] = ..., axis: AxisInt | None = ..., **kwargs
-    ) -> np.bool_:
-        ...
+    ) -> np.bool_: ...
 
     @overload
     def all(
         self, *, skipna: bool, axis: AxisInt | None = ..., **kwargs
-    ) -> np.bool_ | NAType:
-        ...
+    ) -> np.bool_ | NAType: ...
 
     def all(
         self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs

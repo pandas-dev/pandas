@@ -1,6 +1,7 @@
 """
 test where we are determining what we are grouping, or getting groups
 """
+
 from datetime import (
     date,
     timedelta,

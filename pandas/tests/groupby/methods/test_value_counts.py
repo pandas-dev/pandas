@@ -4,7 +4,6 @@ with different size combinations. This is to ensure stability of the sorting
 and proper parameter handling
 """
 
-
 import numpy as np
 import pytest
 

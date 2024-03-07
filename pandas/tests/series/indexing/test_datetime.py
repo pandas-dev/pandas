@@ -1,6 +1,7 @@
 """
 Also test support for datetime64[ns] in Series / DataFrame
 """
+
 from datetime import (
     datetime,
     timedelta,

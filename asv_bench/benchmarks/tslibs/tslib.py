@@ -15,6 +15,7 @@ for box in tr.params[0]:
             val = %timeit -o tr.time_ints_to_pydatetime(box, size, tz)
             df.loc[key] = (val.average, val.stdev)
 """
+
 from datetime import (
     timedelta,
     timezone,

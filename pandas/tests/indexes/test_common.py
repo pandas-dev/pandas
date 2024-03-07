@@ -3,6 +3,7 @@ Collection of tests asserting things that should be true for
 any index subclass except for MultiIndex. Makes use of the `index_flat`
 fixture defined in pandas/conftest.py.
 """
+
 from copy import (
     copy,
     deepcopy,

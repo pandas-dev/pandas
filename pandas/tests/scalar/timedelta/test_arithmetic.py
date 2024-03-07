@@ -1,6 +1,7 @@
 """
 Tests for scalar Timedelta arithmetic ops
 """
+
 from datetime import (
     datetime,
     timedelta,

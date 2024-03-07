@@ -1,4 +1,5 @@
-""" test get/set & misc """
+"""test get/set & misc"""
+
 from datetime import timedelta
 import re
 

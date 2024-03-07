@@ -1,6 +1,7 @@
 """
 Tests for offsets.Tick and subclasses
 """
+
 from datetime import (
     datetime,
     timedelta,

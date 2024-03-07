@@ -314,9 +314,9 @@ class StylerRenderer:
             max_cols,
         )
 
-        self.cellstyle_map_columns: DefaultDict[
-            tuple[CSSPair, ...], list[str]
-        ] = defaultdict(list)
+        self.cellstyle_map_columns: DefaultDict[tuple[CSSPair, ...], list[str]] = (
+            defaultdict(list)
+        )
         head = self._translate_header(sparse_cols, max_cols)
         d.update({"head": head})
 
@@ -329,9 +329,9 @@ class StylerRenderer:
         self.cellstyle_map: DefaultDict[tuple[CSSPair, ...], list[str]] = defaultdict(
             list
         )
-        self.cellstyle_map_index: DefaultDict[
-            tuple[CSSPair, ...], list[str]
-        ] = defaultdict(list)
+        self.cellstyle_map_index: DefaultDict[tuple[CSSPair, ...], list[str]] = (
+            defaultdict(list)
+        )
         body: list = self._translate_body(idx_lengths, max_rows, max_cols)
         d.update({"body": body})
 
@@ -776,9 +776,9 @@ class StylerRenderer:
             )
 
             if self.cell_ids:
-                header_element[
-                    "id"
-                ] = f"{self.css['level']}{c}_{self.css['row']}{r}"  # id is given
+                header_element["id"] = (
+                    f"{self.css['level']}{c}_{self.css['row']}{r}"  # id is given
+                )
             if (
                 header_element_visible
                 and (r, c) in self.ctx_index

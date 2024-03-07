@@ -1,6 +1,7 @@
 """
 Tests for statistical reductions of 2nd moment or higher: var, skew, kurt, ...
 """
+
 import inspect
 
 import numpy as np

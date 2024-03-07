@@ -1,4 +1,4 @@
-""" test fancy indexing & misc """
+"""test fancy indexing & misc"""
 
 import array
 from datetime import datetime

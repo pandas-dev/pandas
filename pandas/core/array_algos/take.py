@@ -41,8 +41,7 @@ def take_nd(
     axis: AxisInt = ...,
     fill_value=...,
     allow_fill: bool = ...,
-) -> np.ndarray:
-    ...
+) -> np.ndarray: ...
 
 
 @overload
@@ -52,8 +51,7 @@ def take_nd(
     axis: AxisInt = ...,
     fill_value=...,
     allow_fill: bool = ...,
-) -> ArrayLike:
-    ...
+) -> ArrayLike: ...
 
 
 def take_nd(

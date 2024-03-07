@@ -2,6 +2,7 @@
 Tests encoding functionality during parsing
 for all of the parsers defined in parsers.py
 """
+
 from io import (
     BytesIO,
     TextIOWrapper,

@@ -34,6 +34,7 @@ Your class ``TestDtype`` will inherit all the tests defined on
 wherever the test requires it. You're free to implement additional tests.
 
 """
+
 from pandas.tests.extension.base.accumulate import BaseAccumulateTests
 from pandas.tests.extension.base.casting import BaseCastingTests
 from pandas.tests.extension.base.constructors import BaseConstructorsTests

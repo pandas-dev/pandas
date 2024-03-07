@@ -1300,9 +1300,10 @@ class FrameColumnApply(FrameApply):
 
         # Convert from numba dict to regular dict
         # Our isinstance checks in the df constructor don't pass for numbas typed dict
-        with set_numba_data(self.obj.index) as index, set_numba_data(
-            self.columns
-        ) as columns:
+        with (
+            set_numba_data(self.obj.index) as index,
+            set_numba_data(self.columns) as columns,
+        ):
             res = dict(nb_func(self.values, columns, index))
 
         return res

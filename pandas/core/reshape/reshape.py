@@ -490,15 +490,13 @@ def _unstack_multiple(
 
 
 @overload
-def unstack(obj: Series, level, fill_value=..., sort: bool = ...) -> DataFrame:
-    ...
+def unstack(obj: Series, level, fill_value=..., sort: bool = ...) -> DataFrame: ...
 
 
 @overload
 def unstack(
     obj: Series | DataFrame, level, fill_value=..., sort: bool = ...
-) -> Series | DataFrame:
-    ...
+) -> Series | DataFrame: ...
 
 
 def unstack(

@@ -1,4 +1,5 @@
-""" miscellaneous sorting / groupby utilities """
+"""miscellaneous sorting / groupby utilities"""
+
 from __future__ import annotations
 
 from collections import defaultdict

@@ -2,6 +2,7 @@
 Module that contains many useful utilities
 for validating data or function arguments
 """
+
 from __future__ import annotations
 
 from collections.abc import (
@@ -341,13 +342,11 @@ def validate_percentile(q: float | Iterable[float]) -> np.ndarray:
 
 
 @overload
-def validate_ascending(ascending: BoolishT) -> BoolishT:
-    ...
+def validate_ascending(ascending: BoolishT) -> BoolishT: ...
 
 
 @overload
-def validate_ascending(ascending: Sequence[BoolishT]) -> list[BoolishT]:
-    ...
+def validate_ascending(ascending: Sequence[BoolishT]) -> list[BoolishT]: ...
 
 
 def validate_ascending(

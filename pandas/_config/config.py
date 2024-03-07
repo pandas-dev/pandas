@@ -688,15 +688,13 @@ def _build_option_description(k: str) -> str:
 @overload
 def pp_options_list(
     keys: Iterable[str], *, width: int = ..., _print: Literal[False] = ...
-) -> str:
-    ...
+) -> str: ...
 
 
 @overload
 def pp_options_list(
     keys: Iterable[str], *, width: int = ..., _print: Literal[True]
-) -> None:
-    ...
+) -> None: ...
 
 
 def pp_options_list(

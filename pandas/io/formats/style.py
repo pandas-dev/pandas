@@ -1,6 +1,7 @@
 """
 Module for applying conditional formatting to DataFrames and Series.
 """
+
 from __future__ import annotations
 
 from contextlib import contextmanager
@@ -618,8 +619,7 @@ class Styler(StylerRenderer):
         environment: str | None = ...,
         encoding: str | None = ...,
         convert_css: bool = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def to_latex(
@@ -641,8 +641,7 @@ class Styler(StylerRenderer):
         environment: str | None = ...,
         encoding: str | None = ...,
         convert_css: bool = ...,
-    ) -> str:
-        ...
+    ) -> str: ...
 
     def to_latex(
         self,
@@ -1234,8 +1233,7 @@ class Styler(StylerRenderer):
         doctype_html: bool = ...,
         exclude_styles: bool = ...,
         **kwargs,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def to_html(
@@ -1254,8 +1252,7 @@ class Styler(StylerRenderer):
         doctype_html: bool = ...,
         exclude_styles: bool = ...,
         **kwargs,
-    ) -> str:
-        ...
+    ) -> str: ...
 
     @Substitution(buf=buffering_args, encoding=encoding_args)
     def to_html(
@@ -1414,8 +1411,7 @@ class Styler(StylerRenderer):
         max_rows: int | None = ...,
         max_columns: int | None = ...,
         delimiter: str = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def to_string(
@@ -1428,8 +1424,7 @@ class Styler(StylerRenderer):
         max_rows: int | None = ...,
         max_columns: int | None = ...,
         delimiter: str = ...,
-    ) -> str:
-        ...
+    ) -> str: ...
 
     @Substitution(buf=buffering_args, encoding=encoding_args)
     def to_string(
@@ -3629,8 +3624,7 @@ class Styler(StylerRenderer):
         func: Callable[Concatenate[Self, P], T],
         *args: P.args,
         **kwargs: P.kwargs,
-    ) -> T:
-        ...
+    ) -> T: ...
 
     @overload
     def pipe(
@@ -3638,8 +3632,7 @@ class Styler(StylerRenderer):
         func: tuple[Callable[..., T], str],
         *args: Any,
         **kwargs: Any,
-    ) -> T:
-        ...
+    ) -> T: ...
 
     def pipe(
         self,

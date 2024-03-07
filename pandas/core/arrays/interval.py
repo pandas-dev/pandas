@@ -706,12 +706,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return len(self._left)
 
     @overload
-    def __getitem__(self, key: ScalarIndexer) -> IntervalOrNA:
-        ...
+    def __getitem__(self, key: ScalarIndexer) -> IntervalOrNA: ...
 
     @overload
-    def __getitem__(self, key: SequenceIndexer) -> Self:
-        ...
+    def __getitem__(self, key: SequenceIndexer) -> Self: ...
 
     def __getitem__(self, key: PositionalIndexer) -> Self | IntervalOrNA:
         key = check_array_indexer(self, key)

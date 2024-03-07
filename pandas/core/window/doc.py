@@ -1,4 +1,5 @@
 """Any shareable docstring components for rolling/expanding/ewm"""
+
 from __future__ import annotations
 
 from textwrap import dedent

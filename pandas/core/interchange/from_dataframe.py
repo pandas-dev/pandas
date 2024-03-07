@@ -468,8 +468,7 @@ def set_nulls(
     col: Column,
     validity: tuple[Buffer, tuple[DtypeKind, int, str, str]] | None,
     allow_modify_inplace: bool = ...,
-) -> np.ndarray:
-    ...
+) -> np.ndarray: ...
 
 
 @overload
@@ -478,8 +477,7 @@ def set_nulls(
     col: Column,
     validity: tuple[Buffer, tuple[DtypeKind, int, str, str]] | None,
     allow_modify_inplace: bool = ...,
-) -> pd.Series:
-    ...
+) -> pd.Series: ...
 
 
 @overload
@@ -488,8 +486,7 @@ def set_nulls(
     col: Column,
     validity: tuple[Buffer, tuple[DtypeKind, int, str, str]] | None,
     allow_modify_inplace: bool = ...,
-) -> np.ndarray | pd.Series:
-    ...
+) -> np.ndarray | pd.Series: ...
 
 
 def set_nulls(

@@ -6,6 +6,7 @@ and are clearly communicated to the user.
 Ultimately, the goal is to remove test cases from this
 test suite as new feature support is added to the parsers.
 """
+
 from io import StringIO
 import os
 from pathlib import Path
