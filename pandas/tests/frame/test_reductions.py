@@ -1832,7 +1832,7 @@ class TestEmptyDataFrameReductions:
         df = DataFrame({0: [], 1: []}, dtype=dtype)
         result = getattr(df, opname)(min_count=0)
 
-        expected = Series([exp_value, exp_value], dtype=exp_dtype)
+        expected = Series([exp_value, exp_value], dtype=exp_dtype, index=Index([0, 1]))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1903,7 +1903,7 @@ class TestEmptyDataFrameReductions:
         df = DataFrame({0: [], 1: []}, dtype=dtype)
         result = getattr(df, opname)(min_count=1)
 
-        expected = Series([pd.NA, pd.NA], dtype=exp_dtype)
+        expected = Series([pd.NA, pd.NA], dtype=exp_dtype, index=Index([0, 1]))
         tm.assert_series_equal(result, expected)
 
 
