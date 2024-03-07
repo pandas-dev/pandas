@@ -29,6 +29,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from numpydoc.docscrape import get_doc_object
 from numpydoc.validate import (
+    ERROR_MSGS as NUMPYDOC_ERROR_MSGS,
     Validator,
     validate,
 )
@@ -56,7 +57,7 @@ PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
 ERROR_MSGS = {
     "GL04": "Private classes ({mentioned_private_classes}) should not be "
     "mentioned in public docstrings",
-    "GL05": "Use 'array-like' rather than 'array_like' in docstrings.",
+    "PD01": "Use 'array-like' rather than 'array_like' in docstrings.",
     "SA05": "{reference_name} in `See Also` section does not need `pandas` "
     "prefix, use {right_reference} instead.",
     "EX03": "flake8 error: line {line_number}, col {col_number}: {error_code} "
@@ -239,7 +240,6 @@ def pandas_validate(func_name: str):
     doc_obj = get_doc_object(func_obj, doc=func_obj.__doc__)
     doc = PandasDocstring(func_name, doc_obj)
     result = validate(doc_obj)
-
     mentioned_errs = doc.mentioned_private_classes
     if mentioned_errs:
         result["errors"].append(
@@ -277,7 +277,7 @@ def pandas_validate(func_name: str):
         )
 
     if doc.non_hyphenated_array_like():
-        result["errors"].append(pandas_error("GL05"))
+        result["errors"].append(pandas_error("PD01"))
 
     plt.close("all")
     return result
@@ -400,11 +400,19 @@ def print_validate_one_results(func_name: str) -> None:
         sys.stderr.write(header("Doctests"))
         sys.stderr.write(result["examples_errs"])
 
+def validate_error_codes(errors):
+    overlapped_errors = set(NUMPYDOC_ERROR_MSGS).intersection(set(ERROR_MSGS))
+    assert not overlapped_errors, f"{overlapped_errors} is overlapped."
+    all_errors = set(NUMPYDOC_ERROR_MSGS).union(set(ERROR_MSGS))
+    nonexistent_errors = set(errors) - all_errors
+    assert not nonexistent_errors, f"{nonexistent_errors} don't exist."
+
 
 def main(func_name, prefix, errors, output_format, ignore_deprecated, ignore_functions):
     """
     Main entry point. Call the validation for one or for all docstrings.
     """
+    validate_error_codes(errors)
     if func_name is None:
         return print_validate_all_results(
             prefix,

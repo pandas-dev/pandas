@@ -420,7 +420,6 @@ class TestMainFunction:
         assert exit_status == 0
 
     def test_exit_status_for_validate_all_json(self, monkeypatch) -> None:
-        print("EXECUTED")
         monkeypatch.setattr(
             validate_docstrings,
             "validate_all",
@@ -469,6 +468,15 @@ class TestMainFunction:
                     "file": "series.py",
                     "file_line": 279,
                 },
+            },
+        )
+        monkeypatch.setattr(
+            validate_docstrings,
+            "ERROR_MSGS",
+            {
+                "ER01": "err desc",
+                "ER02": "err desc",
+                "ER03": "err desc",
             },
         )
         exit_status = validate_docstrings.main(
