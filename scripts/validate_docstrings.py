@@ -57,7 +57,7 @@ PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
 ERROR_MSGS = {
     "GL04": "Private classes ({mentioned_private_classes}) should not be "
     "mentioned in public docstrings",
-    "GL11": "Use 'array-like' rather than 'array_like' in docstrings.",
+    "PD01": "Use 'array-like' rather than 'array_like' in docstrings.",
     "SA05": "{reference_name} in `See Also` section does not need `pandas` "
     "prefix, use {right_reference} instead.",
     "EX03": "flake8 error: line {line_number}, col {col_number}: {error_code} "
@@ -277,7 +277,7 @@ def pandas_validate(func_name: str):
         )
 
     if doc.non_hyphenated_array_like():
-        result["errors"].append(pandas_error("GL11"))
+        result["errors"].append(pandas_error("PD01"))
 
     plt.close("all")
     return result
