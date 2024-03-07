@@ -1117,17 +1117,17 @@ class RangeIndex(Index):
             )
         elif com.is_bool_indexer(key):
             if isinstance(getattr(key, "dtype", None), ExtensionDtype):
-                np_key = key.to_numpy(dtype=bool, na_value=False)
+                key = key.to_numpy(dtype=bool, na_value=False)
             else:
-                np_key = np.asarray(key, dtype=bool)
-            check_array_indexer(self._range, np_key)  # type: ignore[arg-type]
+                key = np.asarray(key, dtype=bool)
+            check_array_indexer(self._range, key)  # type: ignore[arg-type]
             # Short circuit potential _shallow_copy check
-            if np_key.all():
+            if key.all():
                 return self._simple_new(self._range, name=self.name)
-            elif not np_key.any():
+            elif not key.any():
                 return self._simple_new(_empty_range, name=self.name)
-            return self.take(np.flatnonzero(np_key))
-        return super().__getitem__(key)
+            key = np.flatnonzero(key)
+        return self.take(key)
 
     def _getitem_slice(self, slobj: slice) -> Self:
         """
