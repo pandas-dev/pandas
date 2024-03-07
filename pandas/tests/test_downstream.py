@@ -1,6 +1,7 @@
 """
 Testing that we work in the downstream packages
 """
+
 import array
 from functools import partial
 import subprocess

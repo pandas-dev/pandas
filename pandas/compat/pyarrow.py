@@ -1,4 +1,4 @@
-""" support pyarrow compatibility across versions """
+"""support pyarrow compatibility across versions"""
 
 from __future__ import annotations
 

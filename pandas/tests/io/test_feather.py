@@ -1,4 +1,5 @@
-""" test feather-format compat """
+"""test feather-format compat"""
+
 import numpy as np
 import pytest
 

@@ -3,6 +3,7 @@ These the test the public routines exposed in types/common.py
 related to inference and not otherwise tested in types/test_common.py
 
 """
+
 import collections
 from collections import namedtuple
 from collections.abc import Iterator
@@ -239,8 +240,9 @@ def test_is_list_like_generic():
     # is_list_like was yielding false positives for Generic classes in python 3.11
     T = TypeVar("T")
 
-    class MyDataFrame(DataFrame, Generic[T]):
-        ...
+    # https://github.com/pylint-dev/pylint/issues/9398
+    # pylint: disable=multiple-statements
+    class MyDataFrame(DataFrame, Generic[T]): ...
 
     tstc = MyDataFrame[int]
     tst = MyDataFrame[int]({"x": [1, 2, 3]})

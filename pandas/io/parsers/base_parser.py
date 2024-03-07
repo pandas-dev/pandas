@@ -859,16 +859,14 @@ class ParserBase:
         self,
         names: Index,
         data: DataFrame,
-    ) -> tuple[Sequence[Hashable] | Index, DataFrame]:
-        ...
+    ) -> tuple[Sequence[Hashable] | Index, DataFrame]: ...
 
     @overload
     def _do_date_conversions(
         self,
         names: Sequence[Hashable],
         data: Mapping[Hashable, ArrayLike],
-    ) -> tuple[Sequence[Hashable], Mapping[Hashable, ArrayLike]]:
-        ...
+    ) -> tuple[Sequence[Hashable], Mapping[Hashable, ArrayLike]]: ...
 
     @final
     def _do_date_conversions(
@@ -927,14 +925,12 @@ class ParserBase:
         self,
         usecols: Callable[[Hashable], object],
         names: Iterable[Hashable],
-    ) -> set[int]:
-        ...
+    ) -> set[int]: ...
 
     @overload
     def _evaluate_usecols(
         self, usecols: SequenceT, names: Iterable[Hashable]
-    ) -> SequenceT:
-        ...
+    ) -> SequenceT: ...
 
     @final
     def _evaluate_usecols(

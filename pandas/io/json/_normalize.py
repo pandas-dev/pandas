@@ -53,8 +53,7 @@ def nested_to_record(
     sep: str = ...,
     level: int = ...,
     max_level: int | None = ...,
-) -> dict[str, Any]:
-    ...
+) -> dict[str, Any]: ...
 
 
 @overload
@@ -64,8 +63,7 @@ def nested_to_record(
     sep: str = ...,
     level: int = ...,
     max_level: int | None = ...,
-) -> list[dict[str, Any]]:
-    ...
+) -> list[dict[str, Any]]: ...
 
 
 def nested_to_record(

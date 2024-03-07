@@ -1,4 +1,4 @@
-""" generic datetimelike tests """
+"""generic datetimelike tests"""
 
 import numpy as np
 import pytest

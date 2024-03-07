@@ -1,4 +1,5 @@
-""" feather-format compat """
+"""feather-format compat"""
+
 from __future__ import annotations
 
 from typing import (

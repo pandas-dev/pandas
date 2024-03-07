@@ -1,4 +1,5 @@
-""" Test cases for .hist method """
+"""Test cases for .hist method"""
+
 import re
 
 import numpy as np

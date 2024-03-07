@@ -1,4 +1,5 @@
-""" Test cases for time series specific (freq conversion, etc) """
+"""Test cases for time series specific (freq conversion, etc)"""
+
 from datetime import (
     date,
     datetime,

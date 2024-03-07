@@ -1,6 +1,7 @@
 """
 Provide basic components for groupby.
 """
+
 from __future__ import annotations
 
 import dataclasses

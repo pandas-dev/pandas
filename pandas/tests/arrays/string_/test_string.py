@@ -2,6 +2,7 @@
 This module tests the functionality of StringArray and ArrowStringArray.
 Tests for the str accessors are in pandas/tests/strings/test_string_array.py
 """
+
 import operator
 
 import numpy as np

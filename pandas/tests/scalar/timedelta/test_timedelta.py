@@ -1,4 +1,5 @@
-""" test the scalar Timedelta """
+"""test the scalar Timedelta"""
+
 from datetime import timedelta
 import sys
 
