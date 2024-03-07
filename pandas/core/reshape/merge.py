@@ -25,7 +25,6 @@ from pandas._libs import (
     hashtable as libhashtable,
     join as libjoin,
     lib,
-    new_vector as nv,
 )
 from pandas._libs.lib import is_range_indexer
 from pandas._typing import (
@@ -108,18 +107,18 @@ if TYPE_CHECKING:
     from pandas.core.arrays import DatetimeArray
 
 _factorizers = {
-    np.int64: nv.Int64Factorizer,
-    np.longlong: nv.Int64Factorizer,
-    np.int32: nv.Int32Factorizer,
-    np.int16: nv.Int16Factorizer,
-    np.int8: nv.Int8Factorizer,
-    np.uint64: nv.UInt64Factorizer,
-    np.uint32: nv.UInt32Factorizer,
-    np.uint16: nv.UInt16Factorizer,
-    np.uint8: nv.UInt8Factorizer,
-    np.bool_: nv.UInt8Factorizer,
-    np.float64: nv.Float64Factorizer,
-    np.float32: nv.Float32Factorizer,
+    np.int64: libhashtable.Int64Factorizer,
+    np.longlong: libhashtable.Int64Factorizer,
+    np.int32: libhashtable.Int32Factorizer,
+    np.int16: libhashtable.Int16Factorizer,
+    np.int8: libhashtable.Int8Factorizer,
+    np.uint64: libhashtable.UInt64Factorizer,
+    np.uint32: libhashtable.UInt32Factorizer,
+    np.uint16: libhashtable.UInt16Factorizer,
+    np.uint8: libhashtable.UInt8Factorizer,
+    np.bool_: libhashtable.UInt8Factorizer,
+    np.float64: libhashtable.Float64Factorizer,
+    np.float32: libhashtable.Float32Factorizer,
     np.complex64: libhashtable.Complex64Factorizer,
     np.complex128: libhashtable.Complex128Factorizer,
     np.object_: libhashtable.ObjectFactorizer,
