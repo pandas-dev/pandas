@@ -1,4 +1,4 @@
-""" test the scalar Timestamp """
+"""test the scalar Timestamp"""
 
 import calendar
 from datetime import (

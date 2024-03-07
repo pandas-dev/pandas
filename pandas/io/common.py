@@ -1,4 +1,5 @@
 """Common IO api utilities"""
+
 from __future__ import annotations
 
 from abc import (
@@ -176,13 +177,11 @@ def is_url(url: object) -> bool:
 
 
 @overload
-def _expand_user(filepath_or_buffer: str) -> str:
-    ...
+def _expand_user(filepath_or_buffer: str) -> str: ...
 
 
 @overload
-def _expand_user(filepath_or_buffer: BaseBufferT) -> BaseBufferT:
-    ...
+def _expand_user(filepath_or_buffer: BaseBufferT) -> BaseBufferT: ...
 
 
 def _expand_user(filepath_or_buffer: str | BaseBufferT) -> str | BaseBufferT:
@@ -234,15 +233,15 @@ def validate_header_arg(header: object) -> None:
 
 
 @overload
-def stringify_path(filepath_or_buffer: FilePath, convert_file_like: bool = ...) -> str:
-    ...
+def stringify_path(
+    filepath_or_buffer: FilePath, convert_file_like: bool = ...
+) -> str: ...
 
 
 @overload
 def stringify_path(
     filepath_or_buffer: BaseBufferT, convert_file_like: bool = ...
-) -> BaseBufferT:
-    ...
+) -> BaseBufferT: ...
 
 
 def stringify_path(
@@ -627,8 +626,7 @@ def get_handle(
     is_text: Literal[False],
     errors: str | None = ...,
     storage_options: StorageOptions = ...,
-) -> IOHandles[bytes]:
-    ...
+) -> IOHandles[bytes]: ...
 
 
 @overload
@@ -642,8 +640,7 @@ def get_handle(
     is_text: Literal[True] = ...,
     errors: str | None = ...,
     storage_options: StorageOptions = ...,
-) -> IOHandles[str]:
-    ...
+) -> IOHandles[str]: ...
 
 
 @overload
@@ -657,8 +654,7 @@ def get_handle(
     is_text: bool = ...,
     errors: str | None = ...,
     storage_options: StorageOptions = ...,
-) -> IOHandles[str] | IOHandles[bytes]:
-    ...
+) -> IOHandles[str] | IOHandles[bytes]: ...
 
 
 @doc(compression_options=_shared_docs["compression_options"] % "path_or_buf")
@@ -953,8 +949,7 @@ class _BufferedWriter(BytesIO, ABC):  # type: ignore[misc]
     buffer = BytesIO()
 
     @abstractmethod
-    def write_to_buffer(self) -> None:
-        ...
+    def write_to_buffer(self) -> None: ...
 
     def close(self) -> None:
         if self.closed:
