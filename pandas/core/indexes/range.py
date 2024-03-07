@@ -1131,8 +1131,7 @@ class RangeIndex(Index):
             key = np.flatnonzero(key)
         try:
             return self.take(key)
-        except TypeError:
-            # Have Index.__getitem__ raise its exception
+        except (TypeError, ValueError):
             return super().__getitem__(key)
 
     def _getitem_slice(self, slobj: slice) -> Self:
