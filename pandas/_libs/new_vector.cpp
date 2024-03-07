@@ -44,12 +44,12 @@ auto PandasHashFunction<double>::operator()(const double &value) const {
 }
 
 template <typename T> struct PandasHashEquality {
-  size_t operator()(const T &lhs, const T &rhs) const { return lhs == rhs; }
+  auto operator()(const T &lhs, const T &rhs) const { return lhs == rhs; }
 };
 
 template <>
-size_t PandasHashEquality<float>::operator()(const float &lhs,
-                                             const float &rhs) const {
+auto PandasHashEquality<float>::operator()(const float &lhs,
+                                           const float &rhs) const {
   if (std::isnan(lhs) && std::isnan(rhs)) {
     return true;
   }
@@ -58,8 +58,8 @@ size_t PandasHashEquality<float>::operator()(const float &lhs,
 }
 
 template <>
-size_t PandasHashEquality<double>::operator()(const double &lhs,
-                                              const double &rhs) const {
+auto PandasHashEquality<double>::operator()(const double &lhs,
+                                            const double &rhs) const {
   if (std::isnan(lhs) && std::isnan(rhs)) {
     return true;
   }
@@ -97,8 +97,8 @@ public:
   }
 
   auto ToNdArray() -> nb::object {
-    const auto ndarray = nb::ndarray<nb::numpy, T, nb::ndim<1>>(
-        vec_.data(), {vec_.size()});
+    const auto ndarray =
+        nb::ndarray<nb::numpy, T, nb::ndim<1>>(vec_.data(), {vec_.size()});
 
     external_view_exists_ = true;
 
@@ -112,12 +112,15 @@ private:
 
 template <typename T, bool IsMasked> class PandasHashTable {
 public:
-  // in English, if the return value from the hashing function is 4 bytes or less, use
-  // uint32_t for the khash "int" size. Otherwise use 64 bits
-  using HashValueT = typename std::conditional<sizeof(decltype(PandasHashFunction<T>()(T()))) <= 4, uint32_t, uint64_t>::type;
+  // in English, if the return value from the hashing function is 4 bytes or
+  // less, use uint32_t for the khash "int" size. Otherwise use 64 bits
+  using HashValueT = typename std::conditional<
+      sizeof(decltype(PandasHashFunction<T>()(T()))) <= 4, uint32_t,
+      uint64_t>::type;
   explicit PandasHashTable<T, IsMasked>() = default;
   explicit PandasHashTable<T, IsMasked>(HashValueT new_size) {
     hash_map_.resize(new_size);
+    hash_set_.resize(new_size);
   }
 
   auto __len__() const noexcept { return hash_map_.size(); }
@@ -135,8 +138,9 @@ public:
 
   auto SizeOf() const noexcept {
     constexpr auto overhead = 4 * sizeof(uint32_t) + 3 * sizeof(uint32_t *);
-    const auto for_flags =
-      std::max(decltype(hash_map_.n_buckets()){1}, hash_map_.n_buckets() >> 5) * sizeof(uint32_t);
+    const auto for_flags = std::max(decltype(hash_map_.n_buckets()){1},
+                                    hash_map_.n_buckets() >> 5) *
+                           sizeof(uint32_t);
     const auto for_pairs =
         hash_map_.n_buckets() * (sizeof(T) + sizeof(Py_ssize_t));
 
@@ -235,7 +239,8 @@ public:
     }
   }
 
-  auto Lookup(const nb::ndarray<const T, nb::ndim<1>> &values, nb::object mask) {
+  auto Lookup(const nb::ndarray<const T, nb::ndim<1>> &values,
+              nb::object mask) {
     if constexpr (IsMasked) {
       if (mask.is_none()) {
         throw std::invalid_argument("mask must not be None!");
@@ -283,17 +288,31 @@ public:
 
     const size_t shape[1] = {n};
     return nb::ndarray<nb::numpy, Py_ssize_t, nb::ndim<1>>(locs, 1, shape,
-                                                                 owner);
+                                                           owner);
   }
 
-  /// Mutates uniques argument
   auto Unique(const nb::ndarray<const T, nb::ndim<1>> &values,
               bool return_inverse = false, nb::object mask = nb::none())
       -> nb::object {
-    PandasVector<T> uniques;
     const bool use_result_mask = mask.is_none() ? false : true;
-    return UniqueInternal(values, uniques, 0, -1, nb::none(), false, mask,
-                          return_inverse, use_result_mask);
+    if (use_result_mask && return_inverse) {
+      throw std::invalid_argument("cannot supply both mask and return_inverse");
+    }
+
+    PandasVector<T> uniques;
+    if (return_inverse) {
+      return Factorize(values, -1, nb::none(), mask);
+    }
+
+    if (use_result_mask) {
+      PandasVector<uint8_t> mask_vector;
+      mask_vector = UniqueWithResultMask(values, uniques, mask);
+
+      return nb::make_tuple(uniques.ToNdArray(), mask_vector.ToNdArray());
+    }
+    UniquesOnly(values, uniques, mask);
+    const auto out_array = uniques.ToNdArray();
+    return nb::cast(out_array);
   }
 
   auto Factorize(const nb::ndarray<const T, nb::ndim<1>> &values,
@@ -301,19 +320,60 @@ public:
                  nb::object mask = nb::none(), bool ignore_na = true)
       -> nb::object {
     PandasVector<T> uniques;
-    return UniqueInternal(values, uniques, 0, na_sentinel, na_value, ignore_na,
-                          mask, true, false);
+
+    const bool use_na_value = !na_value.is_none();
+    const auto na_val = use_na_value ? nb::cast<T>(na_value) : T();
+
+    nb::ndarray<nb::numpy, Py_ssize_t, nb::ndim<1>> labels;
+    if (ignore_na) {
+      if (use_na_value) {
+        labels = FactorizeInternal<true, true>(values, uniques, 0, na_sentinel,
+                                               na_val, mask);
+      } else {
+        labels = FactorizeInternal<true, false>(values, uniques, 0, na_sentinel,
+                                                na_val, mask);
+      }
+    } else {
+      if (use_na_value) {
+        labels = FactorizeInternal<false, true>(values, uniques, 0, na_sentinel,
+                                                na_val, mask);
+      } else {
+        labels = FactorizeInternal<false, false>(values, uniques, 0,
+                                                 na_sentinel, na_val, mask);
+      }
+    }
+
+    return nb::make_tuple(uniques.ToNdArray(), labels);
   }
 
   auto GetLabels(const nb::ndarray<const T, nb::ndim<1>> &values,
                  PandasVector<T> &uniques, Py_ssize_t count_prior = 0,
                  Py_ssize_t na_sentinel = -1, nb::object na_value = nb::none(),
                  nb::object mask = nb::none(),
-                 [[maybe_unused]] bool ignore_na = true) -> nb::object {
-    const auto tup = UniqueInternal(values, uniques, count_prior, na_sentinel,
-                                    na_value, true, mask, true, false);
+                 [[maybe_unused]] bool ignore_na = true) {
+    const bool use_na_value = !na_value.is_none();
+    const auto na_val = use_na_value ? nb::cast<T>(na_value) : T();
 
-    return tup[1];
+    nb::ndarray<nb::numpy, Py_ssize_t, nb::ndim<1>> labels;
+    if (ignore_na) {
+      if (use_na_value) {
+        labels = FactorizeInternal<true, true>(values, uniques, count_prior,
+                                               na_sentinel, na_val, mask);
+      } else {
+        labels = FactorizeInternal<true, false>(values, uniques, count_prior,
+                                                na_sentinel, na_val, mask);
+      }
+    } else {
+      if (use_na_value) {
+        labels = FactorizeInternal<false, true>(values, uniques, count_prior,
+                                                na_sentinel, na_val, mask);
+      } else {
+        labels = FactorizeInternal<false, false>(values, uniques, count_prior,
+                                                 na_sentinel, na_val, mask);
+      }
+    }
+
+    return labels;
   }
 
   auto GetLabelsGroupby(const nb::ndarray<const T, nb::ndim<1>> &values) {
@@ -350,89 +410,14 @@ public:
 
     const size_t shape[1] = {n};
     nb::capsule owner(labels, [](void *p) noexcept { delete[](size_t *) p; });
-    const auto labels_arr =
-        nb::ndarray<nb::numpy, Py_ssize_t, nb::ndim<1>>(labels, 1, shape,
-                                                              owner);
+    const auto labels_arr = nb::ndarray<nb::numpy, Py_ssize_t, nb::ndim<1>>(
+        labels, 1, shape, owner);
     return std::make_tuple(labels_arr, uniques.ToNdArray());
   }
 
 private:
-  auto UniqueInternal(const nb::ndarray<const T, nb::ndim<1>> &values,
-                      PandasVector<T> &uniques, Py_ssize_t count_prior = 0,
-                      [[maybe_unused]] Py_ssize_t na_sentinel = -1,
-                      [[maybe_unused]] nb::object na_value = nb::none(),
-                      bool ignore_na = false, nb::object mask_obj = nb::none(),
-                      bool return_inverse = false, bool use_result_mask = false)
-      -> nb::object {
-    if (use_result_mask && return_inverse) {
-      throw std::invalid_argument(
-          "cannot supply both use_result_mask and return_inverse");
-    }
-
-    const bool use_na_value = !na_value.is_none();
-    const auto na_val = use_na_value ? nb::cast<T>(na_value) : T();
-
-    if (return_inverse) { // this is really factorize
-      nb::ndarray<nb::numpy, Py_ssize_t, nb::ndim<1>> labels;
-      if (ignore_na) {
-        if (use_na_value) {
-          labels = UniqueWithInverse<true, true>(values, uniques, count_prior,
-                                                 na_sentinel, na_val, mask_obj);
-        } else {
-          labels = UniqueWithInverse<true, false>(
-              values, uniques, count_prior, na_sentinel, na_val, mask_obj);
-        }
-      } else {
-        if (use_na_value) {
-          labels = UniqueWithInverse<false, true>(
-              values, uniques, count_prior, na_sentinel, na_val, mask_obj);
-        } else {
-          labels = UniqueWithInverse<false, false>(
-              values, uniques, count_prior, na_sentinel, na_val, mask_obj);
-        }
-      }
-      return nb::make_tuple(uniques.ToNdArray(), labels);
-    } else if (use_result_mask) {
-      PandasVector<uint8_t> mask;
-      if (ignore_na) {
-        if (use_na_value) {
-          mask = UniqueWithResultMask<true, true>(values, uniques, mask_obj);
-        } else {
-          mask = UniqueWithResultMask<true, false>(values, uniques, mask_obj);
-        }
-      } else {
-        if (use_na_value) {
-          mask = UniqueWithResultMask<false, true>(values, uniques, mask_obj);
-        } else {
-          mask = UniqueWithResultMask<false, false>(values, uniques, mask_obj);
-        }
-      }
-
-      return nb::make_tuple(uniques.ToNdArray(), mask.ToNdArray());
-    } else {
-      if (ignore_na) {
-        if (use_na_value) {
-          UniquesOnly<true, true>(values, uniques, mask_obj);
-        } else {
-          UniquesOnly<true, false>(values, uniques, mask_obj);
-        }
-      } else {
-        if (use_na_value) {
-          UniquesOnly<false, true>(values, uniques, mask_obj);
-        } else {
-          UniquesOnly<false, false>(values, uniques, mask_obj);
-        }
-
-        const auto out_array = uniques.ToNdArray();
-        return nb::cast(out_array);
-      }
-    }
-
-    throw std::runtime_error("should not reach this");
-  }
-
   template <bool IgnoreNA, bool UseNAValue>
-  auto UniqueWithInverse(const nb::ndarray<const T, nb::ndim<1>> &values,
+  auto FactorizeInternal(const nb::ndarray<const T, nb::ndim<1>> &values,
                          PandasVector<T> &uniques, Py_ssize_t count_prior,
                          [[maybe_unused]] Py_ssize_t na_sentinel,
                          [[maybe_unused]] T na_value,
@@ -518,11 +503,10 @@ private:
 
     const size_t shape[1] = {n};
     nb::capsule owner(labels, [](void *p) noexcept { delete[](size_t *) p; });
-    return nb::ndarray<nb::numpy, Py_ssize_t, nb::ndim<1>>(labels, 1,
-                                                                 shape, owner);
+    return nb::ndarray<nb::numpy, Py_ssize_t, nb::ndim<1>>(labels, 1, shape,
+                                                           owner);
   }
 
-  template <bool IgnoreNA, bool UseNAValue>
   auto UniqueWithResultMask(const nb::ndarray<const T, nb::ndim<1>> &values,
                             PandasVector<T> &uniques,
                             [[maybe_unused]] nb::object mask_obj = nb::none())
@@ -550,39 +534,23 @@ private:
       for (auto i = decltype(n){0}; i < n; i++) {
         const auto val = values_v(i);
 
-        if constexpr (IgnoreNA) {
-          // TODO: current pandas code is a bit messy here...
+        bool should_append_na;
+        // NaN / pd.NA are treated the same? hmmm
+        if constexpr (std::is_floating_point_v<T>) {
+          should_append_na = !seen_na && (mask_v(i) || std::isnan(val));
         } else {
-          if (mask_v(i)) {
-            if (seen_na) {
-              continue;
-            }
-
-            seen_na = true;
-            uniques.Append(val);
-            result.Append(1);
-            continue;
-          }
-
-          // NaN / pd.NA are treated the same? hmmm
-          if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
-            if (std::isnan(val)) {
-              if (seen_na) {
-                continue;
-              }
-
-              seen_na = true;
-              uniques.Append(val);
-              result.Append(1);
-              continue;
-            }
-          }
+          should_append_na = !seen_na && mask_v(i);
+        }
+        if (should_append_na) {
+          seen_na = true;
+          uniques.Append(val);
+          result.Append(1);
+          continue;
         }
 
-        auto k = hash_map_.get(val);
-        if (k == hash_map_.end()) {
-          int dummy;
-          k = hash_map_.put(val, &dummy);
+        int absent;
+        hash_set_.put(val, &absent);
+        if (absent) {
           uniques.Append(val);
           result.Append(0);
         }
@@ -591,10 +559,9 @@ private:
       nb::call_guard<nb::gil_scoped_release>();
       for (auto i = decltype(n){0}; i < n; i++) {
         const auto val = values_v(i);
-        auto k = hash_map_.get(val);
-        if (k == hash_map_.end()) {
-          int dummy;
-          k = hash_map_.put(val, &dummy);
+        int absent;
+        hash_set_.put(val, &absent);
+        if (absent) {
           uniques.Append(val);
           result.Append(0);
         }
@@ -604,7 +571,6 @@ private:
     return result;
   }
 
-  template <bool IgnoreNA, bool UseNAValue>
   auto UniquesOnly(const nb::ndarray<const T, nb::ndim<1>> &values,
                    PandasVector<T> &uniques,
                    [[maybe_unused]] nb::object mask_obj = nb::none()) -> void {
@@ -626,12 +592,6 @@ private:
       nb::call_guard<nb::gil_scoped_release>();
 
       for (auto i = decltype(n){0}; i < n; i++) {
-        if constexpr (IgnoreNA) {
-          // TODO: current pandas code is a bit messy here...
-          // labels[i] = na_sentinel
-          // continue;
-        }
-
         const auto val = values_v(i);
         auto k = hash_map_.get(val);
         if (k == hash_map_.end()) {
@@ -656,8 +616,11 @@ private:
     return;
   }
 
-  klib::KHashMap<T, size_t, PandasHashFunction<T>, PandasHashEquality<T>, HashValueT>
+  klib::KHashMap<T, size_t, PandasHashFunction<T>, PandasHashEquality<T>,
+                 HashValueT>
       hash_map_;
+  klib::KHashSet<T, PandasHashFunction<T>, PandasHashEquality<T>, HashValueT>
+      hash_set_;
   Py_ssize_t na_position_ = -1;
 };
 
@@ -707,7 +670,7 @@ using namespace nb::literals;
   } while (0)
 
 NB_MODULE(new_vector, m) {
-  nb::set_leak_warnings(false);  // TODO: remove this
+  nb::set_leak_warnings(false); // TODO: remove this
 
   BIND_VECTOR(int8_t, "Int8Vector");
   BIND_VECTOR(int16_t, "Int16Vector");
