@@ -43,6 +43,7 @@ from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
     is_bool,
+    is_file_like,
     is_float,
     is_integer,
     is_list_like,
@@ -1130,7 +1131,7 @@ class ExcelWriter(Generic[_WorkbookT]):
                     ext = "xlsx"
 
                 try:
-                    engine = config.get_option(f"io.excel.{ext}.writer", silent=True)
+                    engine = config.get_option(f"io.excel.{ext}.writer")
                     if engine == "auto":
                         engine = get_default_engine(ext, mode="writer")
                 except KeyError as err:
@@ -1327,7 +1328,8 @@ class ExcelWriter(Generic[_WorkbookT]):
             # xref https://support.microsoft.com/en-au/office/excel-specifications-and-limits-1672b34d-7043-467e-8e27-269d656771c3
             if len(val) > 32767:
                 warnings.warn(
-                    "Cell contents too long, truncated to 32767 characters",
+                    f"Cell contents too long ({len(val)}), "
+                    "truncated to 32767 characters",
                     UserWarning,
                     stacklevel=find_stack_level(),
                 )
@@ -1522,20 +1524,25 @@ class ExcelFile:
         # Always a string
         self._io = stringify_path(path_or_buffer)
 
-        # Determine xlrd version if installed
-        if import_optional_dependency("xlrd", errors="ignore") is None:
-            xlrd_version = None
-        else:
-            import xlrd
-
-            xlrd_version = Version(get_version(xlrd))
-
         if engine is None:
             # Only determine ext if it is needed
-            ext: str | None
-            if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
-                ext = "xls"
-            else:
+            ext: str | None = None
+
+            if not isinstance(
+                path_or_buffer, (str, os.PathLike, ExcelFile)
+            ) and not is_file_like(path_or_buffer):
+                # GH#56692 - avoid importing xlrd if possible
+                if import_optional_dependency("xlrd", errors="ignore") is None:
+                    xlrd_version = None
+                else:
+                    import xlrd
+
+                    xlrd_version = Version(get_version(xlrd))
+
+                if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
+                    ext = "xls"
+
+            if ext is None:
                 ext = inspect_excel_format(
                     content_or_path=path_or_buffer, storage_options=storage_options
                 )
@@ -1545,7 +1552,7 @@ class ExcelFile:
                         "an engine manually."
                     )
 
-            engine = config.get_option(f"io.excel.{ext}.reader", silent=True)
+            engine = config.get_option(f"io.excel.{ext}.reader")
             if engine == "auto":
                 engine = get_default_engine(ext, mode="reader")
 
@@ -1630,6 +1637,29 @@ class ExcelFile:
 
     @property
     def sheet_names(self):
+        """
+        Names of the sheets in the document.
+
+        This is particularly useful for loading a specific sheet into a DataFrame when
+        you do not know the sheet names beforehand.
+
+        Returns
+        -------
+        list of str
+            List of sheet names in the document.
+
+        See Also
+        --------
+        ExcelFile.parse : Parse a sheet into a DataFrame.
+        read_excel : Read an Excel file into a pandas DataFrame. If you know the sheet
+            names, it may be easier to specify them directly to read_excel.
+
+        Examples
+        --------
+        >>> file = pd.ExcelFile("myfile.xlsx")  # doctest: +SKIP
+        >>> file.sheet_names  # doctest: +SKIP
+        ["Sheet1", "Sheet2"]
+        """
         return self._reader.sheet_names
 
     def close(self) -> None:
