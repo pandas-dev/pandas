@@ -74,7 +74,7 @@ def test_groupby_nonobject_dtype_mixed():
     tm.assert_series_equal(result, expected)
 
 
-def test_pass_args_kwargs(ts, tsframe):
+def test_pass_args_kwargs(ts):
     def f(x, q=None, axis=0):
         return np.percentile(x, q, axis=axis)
 
@@ -100,31 +100,34 @@ def test_pass_args_kwargs(ts, tsframe):
     tm.assert_series_equal(apply_result, agg_expected)
     tm.assert_series_equal(trans_result, trans_expected)
 
-    # DataFrame
-    for as_index in [True, False]:
-        df_grouped = tsframe.groupby(lambda x: x.month, as_index=as_index)
-        warn = None if as_index else FutureWarning
-        msg = "A grouping .* was excluded from the result"
-        with tm.assert_produces_warning(warn, match=msg):
-            agg_result = df_grouped.agg(np.percentile, 80, axis=0)
-        with tm.assert_produces_warning(warn, match=msg):
-            apply_result = df_grouped.apply(DataFrame.quantile, 0.8)
-        with tm.assert_produces_warning(warn, match=msg):
-            expected = df_grouped.quantile(0.8)
-        tm.assert_frame_equal(apply_result, expected, check_names=False)
-        tm.assert_frame_equal(agg_result, expected)
 
-        apply_result = df_grouped.apply(DataFrame.quantile, [0.4, 0.8])
-        with tm.assert_produces_warning(warn, match=msg):
-            expected_seq = df_grouped.quantile([0.4, 0.8])
-        tm.assert_frame_equal(apply_result, expected_seq, check_names=False)
+def test_pass_args_kwargs_dataframe(tsframe, as_index):
+    def f(x, q=None, axis=0):
+        return np.percentile(x, q, axis=axis)
 
-        with tm.assert_produces_warning(warn, match=msg):
-            agg_result = df_grouped.agg(f, q=80)
-        with tm.assert_produces_warning(warn, match=msg):
-            apply_result = df_grouped.apply(DataFrame.quantile, q=0.8)
-        tm.assert_frame_equal(agg_result, expected)
-        tm.assert_frame_equal(apply_result, expected, check_names=False)
+    df_grouped = tsframe.groupby(lambda x: x.month, as_index=as_index)
+    warn = None if as_index else FutureWarning
+    msg = "A grouping .* was excluded from the result"
+    with tm.assert_produces_warning(warn, match=msg):
+        agg_result = df_grouped.agg(np.percentile, 80, axis=0)
+    with tm.assert_produces_warning(warn, match=msg):
+        apply_result = df_grouped.apply(DataFrame.quantile, 0.8)
+    with tm.assert_produces_warning(warn, match=msg):
+        expected = df_grouped.quantile(0.8)
+    tm.assert_frame_equal(apply_result, expected, check_names=False)
+    tm.assert_frame_equal(agg_result, expected)
+
+    apply_result = df_grouped.apply(DataFrame.quantile, [0.4, 0.8])
+    with tm.assert_produces_warning(warn, match=msg):
+        expected_seq = df_grouped.quantile([0.4, 0.8])
+    tm.assert_frame_equal(apply_result, expected_seq, check_names=False)
+
+    with tm.assert_produces_warning(warn, match=msg):
+        agg_result = df_grouped.agg(f, q=80)
+    with tm.assert_produces_warning(warn, match=msg):
+        apply_result = df_grouped.apply(DataFrame.quantile, q=0.8)
+    tm.assert_frame_equal(agg_result, expected)
+    tm.assert_frame_equal(apply_result, expected, check_names=False)
 
 
 def test_len():
