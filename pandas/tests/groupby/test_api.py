@@ -80,7 +80,6 @@ def test_tab_completion(multiindex_dataframe_random_data):
         "corr",
         "corrwith",
         "cov",
-        "dtypes",
         "ndim",
         "diff",
         "idxmax",

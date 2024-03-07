@@ -20,7 +20,6 @@ from typing import (
     Union,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -32,7 +31,6 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -384,23 +382,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
     def _aggregate_multiple_funcs(self, arg, *args, **kwargs) -> DataFrame:
         if isinstance(arg, dict):
-            if self.as_index:
-                # GH 15931
-                raise SpecificationError("nested renamer is not supported")
-            else:
-                # GH#50684 - This accidentally worked in 1.x
-                msg = (
-                    "Passing a dictionary to SeriesGroupBy.agg is deprecated "
-                    "and will raise in a future version of pandas. Pass a list "
-                    "of aggregations instead."
-                )
-                warnings.warn(
-                    message=msg,
-                    category=FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                arg = list(arg.items())
-        elif any(isinstance(x, (tuple, list)) for x in arg):
+            raise SpecificationError("nested renamer is not supported")
+
+        if any(isinstance(x, (tuple, list)) for x in arg):
             arg = [(x, x) if not isinstance(x, (tuple, list)) else x for x in arg]
         else:
             # list of functions / function names
@@ -2719,22 +2703,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             **kwargs,
         )
         return result
-
-    @property
-    @doc(DataFrame.dtypes.__doc__)
-    def dtypes(self) -> Series:
-        # GH#51045
-        warnings.warn(
-            f"{type(self).__name__}.dtypes is deprecated and will be removed in "
-            "a future version. Check the dtypes on the base object instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-        # error: Incompatible return value type (got "DataFrame", expected "Series")
-        return self._python_apply_general(  # type: ignore[return-value]
-            lambda df: df.dtypes, self._selected_obj
-        )
 
     def corrwith(
         self,
