@@ -3,6 +3,7 @@ Tests for the following offsets:
 - BMonthBegin
 - BMonthEnd
 """
+
 from __future__ import annotations
 
 from datetime import datetime

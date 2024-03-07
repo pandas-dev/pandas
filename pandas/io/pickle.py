@@ -1,4 +1,5 @@
-""" pickle compat """
+"""pickle compat"""
+
 from __future__ import annotations
 
 import pickle
