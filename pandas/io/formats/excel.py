@@ -620,7 +620,7 @@ class ExcelFormatter:
         lnum = 0
 
         if self.index and isinstance(self.df.index, MultiIndex):
-            coloffset = len(self.df.index[0]) - 1
+            coloffset = self.df.index.nlevels - 1
 
         if self.merge_cells:
             # Format multi-index as a merged cells.

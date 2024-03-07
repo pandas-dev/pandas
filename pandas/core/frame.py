@@ -1919,7 +1919,7 @@ class DataFrame(NDFrame, OpsMixin):
             dtype = np.dtype(dtype)
         result = self._mgr.as_array(dtype=dtype, copy=copy, na_value=na_value)
         if result.dtype is not dtype:
-            result = np.array(result, dtype=dtype, copy=False)
+            result = np.asarray(result, dtype=dtype)
 
         return result
 
@@ -4018,6 +4018,11 @@ class DataFrame(NDFrame, OpsMixin):
         value : scalar or arraylike
             Value(s) for the column.
 
+        See Also
+        --------
+        DataFrame.iloc : Purely integer-location based indexing for selection by
+            position.
+
         Notes
         -----
         ``frame.isetitem(loc, value)`` is an in-place method as it will
@@ -4028,6 +4033,15 @@ class DataFrame(NDFrame, OpsMixin):
 
         In cases where ``frame.columns`` is unique, this is equivalent to
         ``frame[frame.columns[i]] = value``.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
+        >>> df.isetitem(1, [5, 6])
+        >>> df
+              A  B
+        0     1  5
+        1     2  6
         """
         if isinstance(value, DataFrame):
             if is_integer(loc):
@@ -4799,7 +4813,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         loc: int,
         column: Hashable,
-        value: Scalar | AnyArrayLike,
+        value: object,
         allow_duplicates: bool | lib.NoDefault = lib.no_default,
     ) -> None:
         """
@@ -5070,7 +5084,7 @@ class DataFrame(NDFrame, OpsMixin):
         columns=None,
         axis: Axis | None = None,
         method: ReindexMethod | None = None,
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
         level: Level | None = None,
         fill_value: Scalar | None = np.nan,
         limit: int | None = None,
@@ -5086,6 +5100,7 @@ class DataFrame(NDFrame, OpsMixin):
             fill_value=fill_value,
             limit=limit,
             tolerance=tolerance,
+            copy=copy,
         )
 
     @overload
@@ -6265,7 +6280,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = 0,
         how: AnyAll | lib.NoDefault = lib.no_default,
         thresh: int | lib.NoDefault = lib.no_default,
-        subset: IndexLabel | None = None,
+        subset: IndexLabel | AnyArrayLike | None = None,
         inplace: bool = False,
         ignore_index: bool = False,
     ) -> DataFrame | None:
@@ -6389,7 +6404,7 @@ class DataFrame(NDFrame, OpsMixin):
         if subset is not None:
             # subset needs to be list
             if not is_list_like(subset):
-                subset = [subset]
+                subset = [cast(Hashable, subset)]
             ax = self._get_axis(agg_axis)
             indices = ax.get_indexer_for(subset)
             check = indices == -1
@@ -6494,6 +6509,11 @@ class DataFrame(NDFrame, OpsMixin):
         See Also
         --------
         DataFrame.value_counts: Count unique combinations of columns.
+
+        Notes
+        -----
+        This method requires columns specified by ``subset`` to be of hashable type.
+        Passing unhashable columns will raise a ``TypeError``.
 
         Examples
         --------
@@ -6804,7 +6824,9 @@ class DataFrame(NDFrame, OpsMixin):
         4    D     7     2    e
         5    C     4     3    F
 
-        Sort by col1
+        **Sort by a single column**
+
+        In this case, we are sorting the rows according to values in ``col1``:
 
         >>> df.sort_values(by=["col1"])
           col1  col2  col3 col4
@@ -6815,7 +6837,12 @@ class DataFrame(NDFrame, OpsMixin):
         4    D     7     2    e
         3  NaN     8     4    D
 
-        Sort by multiple columns
+        **Sort by multiple columns**
+
+        You can also provide multiple columns to ``by`` argument, as shown below.
+        In this example, the rows are first sorted according to ``col1``, and then
+        the rows that have an identical value in ``col1`` are sorted according
+        to ``col2``.
 
         >>> df.sort_values(by=["col1", "col2"])
           col1  col2  col3 col4
@@ -6826,7 +6853,9 @@ class DataFrame(NDFrame, OpsMixin):
         4    D     7     2    e
         3  NaN     8     4    D
 
-        Sort Descending
+        **Sort in a descending order**
+
+        The sort order can be reversed using ``ascending`` argument, as shown below:
 
         >>> df.sort_values(by="col1", ascending=False)
           col1  col2  col3 col4
@@ -6837,7 +6866,11 @@ class DataFrame(NDFrame, OpsMixin):
         1    A     1     1    B
         3  NaN     8     4    D
 
-        Putting NAs first
+        **Placing any** ``NA`` **first**
+
+        Note that in the above example, the rows that contain an ``NA`` value in their
+        ``col1`` are placed at the end of the dataframe. This behavior can be modified
+        via ``na_position`` argument, as shown below:
 
         >>> df.sort_values(by="col1", ascending=False, na_position="first")
           col1  col2  col3 col4
@@ -6848,7 +6881,12 @@ class DataFrame(NDFrame, OpsMixin):
         0    A     2     0    a
         1    A     1     1    B
 
-        Sorting with a key function
+        **Customized sort order**
+
+        The ``key`` argument allows for a further customization of sorting behaviour.
+        For example, you may want
+        to ignore the `letter's case <https://en.wikipedia.org/wiki/Letter_case>`__
+        when sorting strings:
 
         >>> df.sort_values(by="col4", key=lambda col: col.str.lower())
            col1  col2  col3 col4
@@ -6859,8 +6897,12 @@ class DataFrame(NDFrame, OpsMixin):
         4    D     7     2    e
         5    C     4     3    F
 
-        Natural sort with the key argument,
-        using the `natsort <https://github.com/SethMMorton/natsort>` package.
+        Another typical example is
+        `natural sorting <https://en.wikipedia.org/wiki/Natural_sort_order>`__.
+        This can be done using
+        ``natsort`` `package <https://github.com/SethMMorton/natsort>`__,
+        which provides sorted indices according
+        to their natural order, as shown below:
 
         >>> df = pd.DataFrame(
         ...     {
@@ -6876,8 +6918,11 @@ class DataFrame(NDFrame, OpsMixin):
         3   48hr     40
         4   96hr     50
         >>> from natsort import index_natsorted
+        >>> index_natsorted(df["time"])
+        [0, 3, 2, 4, 1]
         >>> df.sort_values(
-        ...     by="time", key=lambda x: np.argsort(index_natsorted(df["time"]))
+        ...     by="time",
+        ...     key=lambda x: np.argsort(index_natsorted(x)),
         ... )
             time  value
         0    0hr     10
@@ -8691,6 +8736,10 @@ class DataFrame(NDFrame, OpsMixin):
         dict.update : Similar method for dictionaries.
         DataFrame.merge : For column(s)-on-column(s) operations.
 
+        Notes
+        -----
+        1. Duplicate indices on `other` are not supported and raises `ValueError`.
+
         Examples
         --------
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [400, 500, 600]})
@@ -8763,11 +8812,22 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(other, DataFrame):
             other = DataFrame(other)
 
-        other = other.reindex(self.index)
+        if other.index.has_duplicates:
+            raise ValueError("Update not allowed with duplicate indexes on other.")
+
+        index_intersection = other.index.intersection(self.index)
+        if index_intersection.empty:
+            raise ValueError(
+                "Update not allowed when the index on `other` has no intersection "
+                "with this dataframe."
+            )
+
+        other = other.reindex(index_intersection)
+        this_data = self.loc[index_intersection]
 
         for col in self.columns.intersection(other.columns):
-            this = self[col]._values
-            that = other[col]._values
+            this = this_data[col]
+            that = other[col]
 
             if filter_func is not None:
                 mask = ~filter_func(this) | isna(that)
@@ -8787,7 +8847,7 @@ class DataFrame(NDFrame, OpsMixin):
             if mask.all():
                 continue
 
-            self.loc[:, col] = self[col].where(mask, that)
+            self.loc[index_intersection, col] = this.where(mask, that)
 
     # ----------------------------------------------------------------------
     # Data reshaping
@@ -11499,7 +11559,9 @@ class DataFrame(NDFrame, OpsMixin):
             min_count=min_count,
             **kwargs,
         )
-        return result.__finalize__(self, method="sum")
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="sum")
+        return result
 
     @doc(make_doc("prod", ndim=2))
     def prod(
@@ -11517,7 +11579,9 @@ class DataFrame(NDFrame, OpsMixin):
             min_count=min_count,
             **kwargs,
         )
-        return result.__finalize__(self, method="prod")
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="prod")
+        return result
 
     # error: Signature of "mean" incompatible with supertype "NDFrame"
     @overload  # type: ignore[override]
