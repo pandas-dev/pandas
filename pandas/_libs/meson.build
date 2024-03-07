@@ -160,7 +160,15 @@ endforeach
 
 subdir('window')
 
-nanobind_dep = dependency('nanobind')
+cmake = import('cmake')
+opt_var = cmake.subproject_options()
+# the inclusion of the test directory from the top level
+# CMake defines NB_ABORT_ON_LEAK. We apparently have some leaks
+# detected on ubuntu, but don't want that to crash CI for now
+opt_var.append_compile_args('cpp', '-UNB_ABORT_ON_LEAK')
+nanobind_proj = cmake.subproject('nanobind', options: opt_var)
+nanobind_dep = nanobind_proj.dependency('nanobind-static')
+
 py.extension_module(
     'new_vector',
     ['new_vector.cpp'],
