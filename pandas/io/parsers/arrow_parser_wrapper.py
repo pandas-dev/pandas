@@ -99,9 +99,9 @@ class ArrowParserWrapper(ParserBase):
             if callable(on_bad_lines):
                 self.parse_options["invalid_row_handler"] = on_bad_lines
             elif on_bad_lines == ParserBase.BadLineHandleMethod.ERROR:
-                self.parse_options[
-                    "invalid_row_handler"
-                ] = None  # PyArrow raises an exception by default
+                self.parse_options["invalid_row_handler"] = (
+                    None  # PyArrow raises an exception by default
+                )
             elif on_bad_lines == ParserBase.BadLineHandleMethod.WARN:
 
                 def handle_warning(invalid_row) -> str:
