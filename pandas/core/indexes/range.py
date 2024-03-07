@@ -1098,6 +1098,8 @@ class RangeIndex(Index):
         """
         Conserve RangeIndex type for scalar and slice keys.
         """
+        if key is Ellipsis:
+            key = slice(None)
         if isinstance(key, slice):
             return self._getitem_slice(key)
         elif is_integer(key):
@@ -1127,7 +1129,11 @@ class RangeIndex(Index):
             elif not key.any():
                 return self._simple_new(_empty_range, name=self.name)
             key = np.flatnonzero(key)
-        return self.take(key)
+        try:
+            return self.take(key)
+        except TypeError:
+            # Have Index.__getitem__ raise its exception
+            return super().__getitem__(key)
 
     def _getitem_slice(self, slobj: slice) -> Self:
         """
