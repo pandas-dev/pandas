@@ -1070,5 +1070,10 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
  */
 PyArray_DatetimeMetaData
 get_datetime_metadata_from_dtype(PyArray_Descr *dtype) {
+#if NPY_ABI_VERSION >= 0x02000000
+  // we're compiling with numpy > 2.0
+  return PyDataType_C_METADATA(dtype)->meta;
+#else
   return (((PyArray_DatetimeDTypeMetaData *)dtype->c_metadata)->meta);
+#endif
 }
