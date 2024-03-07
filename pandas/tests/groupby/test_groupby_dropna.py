@@ -552,11 +552,6 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
             expected = expected.set_index(["x", "x2"])
         else:
             expected = expected.set_index("x")
-    elif index_kind != "range" and reduction_func != "size":
-        # size, unlike other methods, has the desired behavior in GH#49519
-        expected = expected.drop(columns="x")
-        if index_kind == "multi":
-            expected = expected.drop(columns="x2")
     if reduction_func in ("idxmax", "idxmin") and index_kind != "range":
         # expected was computed with a RangeIndex; need to translate to index values
         values = expected["y"].values.tolist()
@@ -572,13 +567,7 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
         if as_index:
             expected = expected["size"].rename(None)
 
-    if as_index or index_kind == "range" or reduction_func == "size":
-        warn = None
-    else:
-        warn = FutureWarning
-    msg = "A grouping .* was excluded from the result"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = getattr(gb_keepna, reduction_func)(*args)
+    result = getattr(gb_keepna, reduction_func)(*args)
 
     # size will return a Series, others are DataFrame
     tm.assert_equal(result, expected)
