@@ -244,6 +244,8 @@ Removal of prior version deprecations/changes
 - Removed the ``ordinal`` keyword in :class:`PeriodIndex`, use :meth:`PeriodIndex.from_ordinals` instead (:issue:`55960`)
 - Removed unused arguments ``*args`` and ``**kwargs`` in :class:`Resampler` methods (:issue:`50977`)
 - Unrecognized timezones when parsing strings to datetimes now raises a ``ValueError`` (:issue:`51477`)
+- Removed the :class:`Grouper` attributes ``ax``, ``groups``, ``indexer``, and ``obj`` (:issue:`51206`, :issue:`51182`)
+- Removed the attribute ``dtypes`` from :class:`.DataFrameGroupBy` (:issue:`51997`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.performance:
