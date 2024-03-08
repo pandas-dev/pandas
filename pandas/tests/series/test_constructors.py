@@ -1388,6 +1388,12 @@ class TestSeriesConstructors:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_dict_np_nan_equals_floatnan(self):
+        d = {np.nan: 1}
+        result = Series(d, index=[float("nan")])
+        expected = Series(d)
+        tm.assert_series_equal(result, expected)
+
     def test_constructor_dict_datetime64_index(self):
         # GH 9456
 
