@@ -1,5 +1,5 @@
-"""Strftime-related classes and functions.
-"""
+"""Strftime-related classes and functions."""
+
 from __future__ import annotations
 
 from datetime import time
