@@ -4182,16 +4182,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def get(self, key, default=None):
         """
         Get item from object for given key (ex: DataFrame column).
-
-        Returns default value if not found.
+        Returns ``default`` value if not found.
 
         Parameters
         ----------
         key : object
+            Key for which item should be returned.
+        default : object
+            Default value to return if key is not found.
 
         Returns
         -------
         same type as items contained in object
+            Item for given key or ``default`` value, if key is not found.
 
         Examples
         --------
