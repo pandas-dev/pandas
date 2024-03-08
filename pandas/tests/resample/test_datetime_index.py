@@ -2047,11 +2047,9 @@ def test_resample_empty_series_with_tz():
         ("2QE-SEP", "2Q-SEP"),
         ("1YE", "1Y"),
         ("2YE-MAR", "2Y-MAR"),
-        ("1YE", "1A"),
-        ("2YE-MAR", "2A-MAR"),
     ],
 )
-def test_resample_M_Q_Y_A_deprecated(freq, freq_depr):
+def test_resample_M_Q_Y_deprecated(freq, freq_depr):
     # GH#9586
     depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
     f"in a future version, please use '{freq[1:]}' instead."
@@ -2174,3 +2172,12 @@ def test_arrow_timestamp_resample(tz):
     expected = Series(np.arange(5, dtype=np.float64), index=idx)
     result = expected.resample("1D").mean()
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("freq", ["1A", "2A-MAR"])
+def test_resample_A_raises(freq):
+    msg = f"Invalid frequency: {freq[1:]}"
+
+    s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
+    with pytest.raises(ValueError, match=msg):
+        s.resample(freq).mean()

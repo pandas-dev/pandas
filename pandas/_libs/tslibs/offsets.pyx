@@ -4885,14 +4885,6 @@ cpdef to_offset(freq, bint is_period=False):
                             f"instead of \'{name}\'"
                         )
                 elif is_period and name.upper() in c_OFFSET_DEPR_FREQSTR:
-                    if name.upper().startswith("A"):
-                        warnings.warn(
-                            f"\'{name}\' is deprecated and will be removed in a future "
-                            f"version, please use "
-                            f"\'{c_DEPR_ABBREVS.get(name.upper())}\' instead.",
-                            FutureWarning,
-                            stacklevel=find_stack_level(),
-                        )
                     if name.upper() != name:
                         warnings.warn(
                             f"\'{name}\' is deprecated and will be removed in "

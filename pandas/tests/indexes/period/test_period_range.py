@@ -205,23 +205,6 @@ class TestPeriodRangeDisallowedFreqs:
         with pytest.raises(ValueError, match="Invalid frequency: X"):
             period_range("2007-1-1", periods=500, freq="X")
 
-    @pytest.mark.parametrize(
-        "freq,freq_depr",
-        [
-            ("2Y", "2A"),
-            ("2Y", "2a"),
-            ("2Y-AUG", "2A-AUG"),
-            ("2Y-AUG", "2A-aug"),
-        ],
-    )
-    def test_a_deprecated_from_time_series(self, freq, freq_depr):
-        # GH#52536
-        msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
-        f"future version. Please use '{freq[1:]}' instead."
-
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            period_range(freq=freq_depr, start="1/1/2001", end="12/1/2009")
-
     @pytest.mark.parametrize("freq_depr", ["2H", "2MIN", "2S", "2US", "2NS"])
     def test_uppercase_freq_deprecated_from_time_series(self, freq_depr):
         # GH#52536, GH#54939
@@ -239,3 +222,10 @@ class TestPeriodRangeDisallowedFreqs:
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
             period_range(freq=freq_depr, start="1/1/2001", end="12/1/2009")
+
+    @pytest.mark.parametrize("freq", ["2A", "2a", "2A-AUG", "2A-aug"])
+    def test_A_raises_from_time_series(self, freq):
+        msg = f"Invalid frequency: {freq}"
+
+        with pytest.raises(ValueError, match=msg):
+            period_range(freq=freq, start="1/1/2001", end="12/1/2009")

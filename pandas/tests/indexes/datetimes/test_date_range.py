@@ -800,13 +800,11 @@ class TestDateRanges:
     @pytest.mark.parametrize(
         "freq,freq_depr",
         [
-            ("200YE", "200A"),
             ("YE", "Y"),
-            ("2YE-MAY", "2A-MAY"),
             ("YE-MAY", "Y-MAY"),
         ],
     )
-    def test_frequencies_A_deprecated_Y_renamed(self, freq, freq_depr):
+    def test_frequencies_Y_renamed(self, freq, freq_depr):
         # GH#9586, GH#54275
         freq_msg = re.split("[0-9]*", freq, maxsplit=1)[1]
         freq_depr_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
@@ -835,6 +833,14 @@ class TestDateRanges:
         assert len(idx) == 20
         assert idx[0] == sdate + 0 * offsets.BDay()
         assert idx.freq == "B"
+
+    @pytest.mark.parametrize("freq", ["200A", "2A-MAY"])
+    def test_frequency_A_raises(self, freq):
+        freq_msg = re.split("[0-9]*", freq, maxsplit=1)[1]
+        msg = f"Invalid frequency: {freq_msg}"
+
+        with pytest.raises(ValueError, match=msg):
+            date_range("1/1/2000", periods=2, freq=freq)
 
 
 class TestDateRangeTZ:
