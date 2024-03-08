@@ -63,7 +63,7 @@ class DatetimeStrftime:
         self.data.set_index("dt").index.astype(str)
 
     def time_frame_datetime_formatting_index_default(self, nobs, tz_aware):
-        self.data.set_index("dt").index.strftime()
+        self.data.set_index("dt").index.strftime(date_format=None)
 
     def time_frame_datetime_formatting_custom(self, nobs, tz_aware):
         self.data["dt"].dt.strftime(date_format="%Y-%m-%d --- %H:%M:%S")
