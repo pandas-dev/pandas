@@ -1,6 +1,7 @@
 """
 Concat routines.
 """
+
 from __future__ import annotations
 
 from collections import abc
@@ -80,8 +81,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
@@ -97,8 +97,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
-) -> Series:
-    ...
+) -> Series: ...
 
 
 @overload
@@ -114,8 +113,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
-) -> DataFrame | Series:
-    ...
+) -> DataFrame | Series: ...
 
 
 @overload
@@ -131,8 +129,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
@@ -148,8 +145,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
-) -> DataFrame | Series:
-    ...
+) -> DataFrame | Series: ...
 
 
 def concat(
@@ -203,10 +199,10 @@ def concat(
         Check whether the new concatenated axis contains duplicates. This can
         be very expensive relative to the actual data concatenation.
     sort : bool, default False
-        Sort non-concatenation axis if it is not already aligned. One exception to
-        this is when the non-concatentation axis is a DatetimeIndex and join='outer'
-        and the axis is not already aligned. In that case, the non-concatenation
-        axis is always sorted lexicographically.
+        Sort non-concatenation axis. One exception to this is when the
+        non-concatentation axis is a DatetimeIndex and join='outer' and the axis is
+        not already aligned. In that case, the non-concatenation axis is always
+        sorted lexicographically.
     copy : bool, default True
         If False, do not copy data unnecessarily.
 

@@ -104,7 +104,7 @@ def get_local_am_pm():
 
 class TestTimestampRendering:
     @pytest.mark.parametrize(
-        "tz", ["UTC", "Asia/Tokyo", "US/Eastern", "dateutil/US/Pacific"]
+        "tz", ["UTC", "Asia/Tokyo", "US/Eastern", "dateutil/America/Los_Angeles"]
     )
     @pytest.mark.parametrize("freq", ["D", "M", "S", "N"])
     @pytest.mark.parametrize(
