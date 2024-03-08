@@ -6811,7 +6811,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         limit: int | None = None,
     ) -> Self | None:
         """
-        Fill NA/NaN values using the specified method.
+        Fill NA/NaN values with `value`.
 
         Parameters
         ----------
