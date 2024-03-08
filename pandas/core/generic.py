@@ -4189,7 +4189,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         key : object
             Key for which item should be returned.
-        default : object
+        default : object, default None
             Default value to return if key is not found.
 
         Returns
