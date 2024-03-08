@@ -397,33 +397,18 @@ class TestConcatenate:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("klass", [range, RangeIndex])
-    def test_concat_preserves_rangeindex(self, klass):
+    @pytest.mark.parametrize("include_none", [True, False])
+    def test_concat_preserves_rangeindex(self, klass, include_none):
         df = DataFrame([1, 2])
         df2 = DataFrame([3, 4])
-        result = concat([df, df2], keys=klass(2))
+        data = [df, None, df2, None] if include_none else [df, df2]
+        keys_length = 4 if include_none else 2
+        result = concat(data, keys=klass(keys_length))
         expected = DataFrame(
             [1, 2, 3, 4],
             index=MultiIndex(
                 levels=(
-                    RangeIndex(start=0, stop=2, step=1),
-                    RangeIndex(start=0, stop=2, step=1),
-                ),
-                codes=(
-                    np.array([0, 0, 1, 1], dtype=np.int8),
-                    np.array([0, 1, 0, 1], dtype=np.int8),
-                ),
-            ),
-        )
-        tm.assert_frame_equal(result, expected)
-
-        df = DataFrame([1, 2])
-        df2 = DataFrame([3, 4])
-        result = concat([df, None, df2, None], keys=klass(4))
-        expected = DataFrame(
-            [1, 2, 3, 4],
-            index=MultiIndex(
-                levels=(
-                    RangeIndex(start=0, stop=4, step=2),
+                    RangeIndex(start=0, stop=keys_length, step=keys_length / 2),
                     RangeIndex(start=0, stop=2, step=1),
                 ),
                 codes=(

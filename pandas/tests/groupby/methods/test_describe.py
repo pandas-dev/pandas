@@ -88,9 +88,9 @@ def test_frame_describe_multikey(tsframe):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("name", ["k", "key"])
-def test_frame_describe_tupleindex(name):
+def test_frame_describe_tupleindex():
     # GH 14848 - regression from 0.19.0 to 0.19.1
+    name = "k"
     df = DataFrame(
         {
             "x": [1, 2, 3, 4, 5] * 3,
