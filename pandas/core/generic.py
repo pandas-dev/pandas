@@ -5383,7 +5383,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Returns
         -------
         Same type as caller
-            The filtered subset of the DataFrame or Series. 
+            The filtered subset of the DataFrame or Series.
 
         See Also
         --------
@@ -11745,12 +11745,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @doc(position="first", klass=_shared_doc_kwargs["klass"])
     def first_valid_index(self) -> Hashable:
         """
-        Return index for {position} non-NA value or None, if no non-NA value is found.
+        Return index for {position} non-missing value or None, if no non-missing value is found.
+
+        See the :ref:`User Guide <missing_data>` for more information on which values are
+        considered missing.
 
         Returns
         -------
         type of index
-
+            Index of {position} non-missing value.
+            
         Examples
         --------
         For Series:
