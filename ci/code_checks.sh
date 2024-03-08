@@ -618,7 +618,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.infer_objects\
         pandas.DataFrame.kurt\
         pandas.DataFrame.kurtosis\
-        pandas.DataFrame.last_valid_index\
         pandas.DataFrame.mask\
         pandas.DataFrame.max\
         pandas.DataFrame.mean\
