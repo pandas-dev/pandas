@@ -267,15 +267,13 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
         return value
 
     @overload
-    def __getitem__(self, key: ScalarIndexer) -> Any:
-        ...
+    def __getitem__(self, key: ScalarIndexer) -> Any: ...
 
     @overload
     def __getitem__(
         self,
         key: SequenceIndexer | PositionalIndexerTuple,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     def __getitem__(
         self,

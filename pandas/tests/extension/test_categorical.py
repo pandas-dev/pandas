@@ -13,6 +13,7 @@ classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
+
 import string
 
 import numpy as np

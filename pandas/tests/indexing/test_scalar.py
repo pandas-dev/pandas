@@ -1,4 +1,5 @@
-""" test scalar indexing, including at and iat """
+"""test scalar indexing, including at and iat"""
+
 from datetime import (
     datetime,
     timedelta,
