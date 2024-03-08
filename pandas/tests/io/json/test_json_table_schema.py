@@ -1,4 +1,5 @@
 """Tests for Table Schema integration."""
+
 from collections import OrderedDict
 from io import StringIO
 import json

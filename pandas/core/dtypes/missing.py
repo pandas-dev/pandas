@@ -1,6 +1,7 @@
 """
 missing types & inference
 """
+
 from __future__ import annotations
 
 from decimal import Decimal
@@ -68,31 +69,28 @@ _dtype_str = np.dtype(str)
 
 
 @overload
-def isna(obj: Scalar | Pattern | NAType | NaTType) -> bool:
-    ...
+def isna(obj: Scalar | Pattern | NAType | NaTType) -> bool: ...
 
 
 @overload
 def isna(
     obj: ArrayLike | Index | list,
-) -> npt.NDArray[np.bool_]:
-    ...
+) -> npt.NDArray[np.bool_]: ...
 
 
 @overload
-def isna(obj: NDFrameT) -> NDFrameT:
-    ...
+def isna(obj: NDFrameT) -> NDFrameT: ...
 
 
 # handle unions
 @overload
-def isna(obj: NDFrameT | ArrayLike | Index | list) -> NDFrameT | npt.NDArray[np.bool_]:
-    ...
+def isna(
+    obj: NDFrameT | ArrayLike | Index | list,
+) -> NDFrameT | npt.NDArray[np.bool_]: ...
 
 
 @overload
-def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
-    ...
+def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame: ...
 
 
 def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
@@ -285,31 +283,28 @@ def _isna_recarray_dtype(values: np.rec.recarray) -> npt.NDArray[np.bool_]:
 
 
 @overload
-def notna(obj: Scalar | Pattern | NAType | NaTType) -> bool:
-    ...
+def notna(obj: Scalar | Pattern | NAType | NaTType) -> bool: ...
 
 
 @overload
 def notna(
     obj: ArrayLike | Index | list,
-) -> npt.NDArray[np.bool_]:
-    ...
+) -> npt.NDArray[np.bool_]: ...
 
 
 @overload
-def notna(obj: NDFrameT) -> NDFrameT:
-    ...
+def notna(obj: NDFrameT) -> NDFrameT: ...
 
 
 # handle unions
 @overload
-def notna(obj: NDFrameT | ArrayLike | Index | list) -> NDFrameT | npt.NDArray[np.bool_]:
-    ...
+def notna(
+    obj: NDFrameT | ArrayLike | Index | list,
+) -> NDFrameT | npt.NDArray[np.bool_]: ...
 
 
 @overload
-def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
-    ...
+def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame: ...
 
 
 def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
@@ -564,7 +559,7 @@ def infer_fill_value(val):
     """
     if not is_list_like(val):
         val = [val]
-    val = np.array(val, copy=False)
+    val = np.asarray(val)
     if val.dtype.kind in "mM":
         return np.array("NaT", dtype=val.dtype)
     elif val.dtype == object:
