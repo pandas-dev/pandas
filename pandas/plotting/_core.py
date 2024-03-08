@@ -1747,6 +1747,7 @@ class PlotAccessor(PandasObject):
         Returns
         -------
         :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+            The matplotlib axes containing the scatter plot.
 
         See Also
         --------
