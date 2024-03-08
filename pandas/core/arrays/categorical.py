@@ -431,6 +431,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if isinstance(vdtype, CategoricalDtype):
             if dtype.categories is None:
                 dtype = CategoricalDtype(values.categories, dtype.ordered)
+        elif isinstance(values, range):
+            from pandas.core.indexes.range import RangeIndex
+
+            values = RangeIndex(values)
         elif not isinstance(values, (ABCIndex, ABCSeries, ExtensionArray)):
             values = com.convert_to_list_like(values)
             if isinstance(values, list) and len(values) == 0:
