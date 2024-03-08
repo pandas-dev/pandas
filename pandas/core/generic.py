@@ -4182,6 +4182,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def get(self, key, default=None):
         """
         Get item from object for given key (ex: DataFrame column).
+
         Returns ``default`` value if not found.
 
         Parameters
@@ -5366,7 +5367,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Self:
         """
         Subset the DataFrame or Series according to the specified index labels.
-        For DataFrame, filter rows or columns depending on ``axis`` argument. 
+
+        For DataFrame, filter rows or columns depending on ``axis`` argument.
         Note that this routine does not filter based on content.
         The filter is applied to the labels of the index.
 
@@ -11748,16 +11750,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @doc(position="first", klass=_shared_doc_kwargs["klass"])
     def first_valid_index(self) -> Hashable:
         """
-        Return index for {position} non-missing value or None, if no non-missing value is found.
+        Return index for {position} non-missing value or None, if no value is found.
 
-        See the :ref:`User Guide <missing_data>` for more information on which values are
-        considered missing.
+        See the :ref:`User Guide <missing_data>` for more information
+        on which values are considered missing.
 
         Returns
         -------
         type of index
             Index of {position} non-missing value.
-            
+
         Examples
         --------
         For Series:
