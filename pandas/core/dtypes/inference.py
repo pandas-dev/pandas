@@ -1,4 +1,4 @@
-""" basic inference routines """
+"""basic inference routines"""
 
 from __future__ import annotations
 

@@ -35,8 +35,7 @@ def get_standard_colors(
     color_type: str = ...,
     *,
     color: dict[str, Color],
-) -> dict[str, Color]:
-    ...
+) -> dict[str, Color]: ...
 
 
 @overload
@@ -46,8 +45,7 @@ def get_standard_colors(
     color_type: str = ...,
     *,
     color: Color | Sequence[Color] | None = ...,
-) -> list[Color]:
-    ...
+) -> list[Color]: ...
 
 
 @overload
@@ -57,8 +55,7 @@ def get_standard_colors(
     color_type: str = ...,
     *,
     color: dict[str, Color] | Color | Sequence[Color] | None = ...,
-) -> dict[str, Color] | list[Color]:
-    ...
+) -> dict[str, Color] | list[Color]: ...
 
 
 def get_standard_colors(
