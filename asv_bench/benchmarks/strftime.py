@@ -32,14 +32,17 @@ class DatetimeStrftime:
     def time_frame_date_formatting_default(self, nobs, tz_aware):
         self.data["d"].dt.strftime(date_format=None)
 
+    def time_frame_date_formatting_index_to_str(self, nobs, tz_aware):
+        self.data.index.astype(str)
+
     def time_frame_date_formatting_index_default(self, nobs, tz_aware):
-        self.data.index.format()
+        self.data.index.strftime(date_format=None)
 
     def time_frame_date_formatting_custom(self, nobs, tz_aware):
         self.data["d"].dt.strftime(date_format="%Y---%m---%d")
 
     def time_frame_date_formatting_index_custom(self, nobs, tz_aware):
-        self.data.index.format(date_format="%Y---%m---%d")
+        self.data.index.strftime(date_format="%Y---%m---%d")
 
     def time_frame_datetime_to_str(self, nobs, tz_aware):
         self.data["dt"].astype(str)
@@ -56,14 +59,17 @@ class DatetimeStrftime:
     def time_frame_datetime_formatting_default_with_float(self, nobs, tz_aware):
         self.data["dt"].dt.strftime(date_format="%Y-%m-%d %H:%M:%S.%f")
 
+    def time_frame_datetime_formatting_index_to_str(self, nobs, tz_aware):
+        self.data.set_index("dt").index.astype(str)
+
     def time_frame_datetime_formatting_index_default(self, nobs, tz_aware):
-        self.data.set_index("dt").index.format()
+        self.data.set_index("dt").index.strftime()
 
     def time_frame_datetime_formatting_custom(self, nobs, tz_aware):
         self.data["dt"].dt.strftime(date_format="%Y-%m-%d --- %H:%M:%S")
 
     def time_frame_datetime_formatting_index_custom(self, nobs, tz_aware):
-        self.data.set_index("dt").index.format(date_format="%Y-%m-%d --- %H:%M:%S")
+        self.data.set_index("dt").index.strftime(date_format="%Y-%m-%d --- %H:%M:%S")
 
     def time_frame_datetime_formatting_iso8601_map(self, nobs, tz_aware):
         self.data["dt"].map(lambda timestamp: timestamp.isoformat())
