@@ -5362,10 +5362,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = None,
     ) -> Self:
         """
-        Subset the dataframe rows or columns according to the specified index labels.
-
-        Note that this routine does not filter a dataframe on its
-        contents. The filter is applied to the labels of the index.
+        Subset the DataFrame or Series according to the specified index labels.
+        For DataFrame, filter rows or columns depending on ``axis`` argument. 
+        Note that this routine does not filter based on content.
+        The filter is applied to the labels of the index.
 
         Parameters
         ----------
@@ -5378,11 +5378,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis : {0 or 'index', 1 or 'columns', None}, default None
             The axis to filter on, expressed either as an index (int)
             or axis name (str). By default this is the info axis, 'columns' for
-            DataFrame. For `Series` this parameter is unused and defaults to `None`.
+            `DataFrame`. For `Series` this parameter is unused and defaults to `None`.
 
         Returns
         -------
-        same type as input object
+        Same type as caller
+            The filtered subset of the DataFrame or Series. 
 
         See Also
         --------
