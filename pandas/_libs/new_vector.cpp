@@ -22,13 +22,11 @@ namespace nb = nanobind;
 /// and support arbitrary types
 ///
 template <typename T> struct PandasHashFunction {
-  constexpr auto operator()(const T &value) const {
-    return std::hash<T>()(value);
-  }
+  auto operator()(const T &value) const { return std::hash<T>()(value); }
 };
 
 template <>
-constexpr auto PandasHashFunction<float>::operator()(const float &value) const {
+auto PandasHashFunction<float>::operator()(const float &value) const {
   if (std::isnan(value)) {
     return static_cast<decltype(std::hash<float>()(value))>(0);
   }
@@ -37,8 +35,7 @@ constexpr auto PandasHashFunction<float>::operator()(const float &value) const {
 }
 
 template <>
-constexpr auto
-PandasHashFunction<double>::operator()(const double &value) const {
+auto PandasHashFunction<double>::operator()(const double &value) const {
   if (std::isnan(value)) {
     return static_cast<decltype(std::hash<double>()(value))>(0);
   }
@@ -79,8 +76,7 @@ template <typename T> auto PandasIsNA(bool mask_value, T &scalar_value) {
   }
 }
 
-template <typename T>
-auto MaybeResizeKlibContainer(T& container) {
+template <typename T> auto MaybeResizeKlibContainer(T &container) {
   const auto current_size = container.size();
   if (container.n_buckets() == current_size) {
     container.resize(current_size * 4);
@@ -142,7 +138,7 @@ public:
 #if __APPLE__
     // macOS cannot resolve size_t to uint32_t or uint64_t that khash needs
     hash_map_.resize(static_cast<uint64_t>(new_size));
-    hash_set_.resize(static_cast < uint64_t < (new_size));
+    hash_set_.resize(static_cast<uint64_t>(new_size));
 #else
     hash_map_.resize(new_size);
     hash_set_.resize(new_size);
