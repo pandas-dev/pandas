@@ -76,16 +76,16 @@ template <typename T> auto PandasIsNA(bool mask_value, T &scalar_value) {
   }
 }
 
-template <typename T> auto MaybeResizeKlibContainer(T &container) {
-  const auto current_size = container.size();
-  if (container.n_buckets() == current_size) {
-    container.resize(current_size * 4);
-  }
-}
-
 template <typename T> class PandasVector {
 public:
-  explicit PandasVector<T>() : external_view_exists_(false) {}
+  static constexpr size_t INIT_VEC_CAP = 128;
+
+  explicit PandasVector<T>() : external_view_exists_(false) {
+    vec_.reserve(INIT_VEC_CAP);
+  }
+  explicit PandasVector<T>(std::vector<T>&& vec) : vec_(vec), external_view_exists_(false) {
+    vec_.reserve(INIT_VEC_CAP);
+  }
   ~PandasVector<T>() = default;
   PandasVector<T>(PandasVector<T> const &) = delete;
   void operator=(PandasVector<T> const &) = delete;
@@ -137,8 +137,9 @@ public:
   explicit PandasHashTable<T, IsMasked>(HashValueT new_size) {
 #if __APPLE__
     // macOS cannot resolve size_t to uint32_t or uint64_t that khash needs
-    hash_map_.resize(static_cast<uint64_t>(new_size));
-    hash_set_.resize(static_cast<uint64_t>(new_size));
+    const auto ns = static_cast<uint64_t>(new_size);
+    hash_map_.resize(ns);
+    hash_set_.resize(ns);
 #else
     hash_map_.resize(new_size);
     hash_set_.resize(new_size);
@@ -226,7 +227,6 @@ public:
     const auto n = values_v.shape(0);
     for (auto i = decltype(n){0}; i < n; i++) {
       hash_map_[keys_v(i)] = values_v(i);
-      MaybeResizeKlibContainer(hash_map_);
     }
   }
 
@@ -251,7 +251,6 @@ public:
           na_position = i;
         } else {
           hash_map_[values_v(i)] = i;
-          MaybeResizeKlibContainer(hash_map_);
         }
       }
       na_position_ = na_position;
@@ -259,7 +258,6 @@ public:
       for (auto i = decltype(n){0}; i < n; i++) {
         const auto key = values_v(i);
         hash_map_[key] = i;
-        MaybeResizeKlibContainer(hash_map_);
       }
     }
   }
@@ -428,7 +426,6 @@ public:
         int dummy;
         k = hash_map_.put(val, &dummy);
         hash_map_.value(k) = count;
-        MaybeResizeKlibContainer(hash_map_);
         uniques.Append(val);
         labels[i] = count;
         count++;
@@ -487,7 +484,6 @@ private:
           k = hash_map_.put(val, &dummy);
           uniques.Append(val);
           hash_map_.value(k) = count_prior;
-          MaybeResizeKlibContainer(hash_map_);
           labels[i] = count_prior;
           count_prior++;
         } else {
@@ -521,7 +517,6 @@ private:
           k = hash_map_.put(val, &dummy);
           uniques.Append(val);
           hash_map_.value(k) = count_prior;
-          MaybeResizeKlibContainer(hash_map_);
           labels[i] = count_prior;
           count_prior++;
         } else {
@@ -550,8 +545,10 @@ private:
 
     const auto values_v = values.view();
     const auto n = values.shape(0);
-    PandasVector<uint8_t> result;
+    bool seen_na = false;
+    auto na_pos = decltype(n){0};
 
+    std::vector<uint8_t> missing_vec;
     if constexpr (IsMasked) {
       using MaskT = nb::ndarray<const uint8_t, nb::ndim<1>>;
       MaskT mask;
@@ -560,15 +557,13 @@ private:
       }
       nb::call_guard<nb::gil_scoped_release>();
       const auto mask_v = mask.view();
-
-      bool seen_na = false;
       for (auto i = decltype(n){0}; i < n; i++) {
         const auto val = values_v(i);
 
         if (PandasIsNA(mask_v(i), val)) {
           if (!seen_na) {
             uniques.Append(val);
-            result.Append(1);
+            na_pos = i;
             seen_na = true;
           }
           continue;
@@ -576,27 +571,31 @@ private:
 
         int absent;
         hash_set_.put(val, &absent);
-        MaybeResizeKlibContainer(hash_set_);
         if (absent) {
           uniques.Append(val);
-          result.Append(0);
         }
       }
     } else {
+      // TODO: why do we even have this branch?
       nb::call_guard<nb::gil_scoped_release>();
       for (auto i = decltype(n){0}; i < n; i++) {
         const auto val = values_v(i);
         int absent;
         hash_set_.put(val, &absent);
-        MaybeResizeKlibContainer(hash_set_);
         if (absent) {
           uniques.Append(val);
-          result.Append(0);
         }
       }
     }
 
-    return result;
+
+    std::vector<uint8_t> tmp;
+    tmp.resize(hash_set_.n_buckets(), 0);
+    if (seen_na) {
+      tmp[na_pos] = 1;
+    }
+
+    return PandasVector(std::move(tmp));
   }
 
   auto UniquesOnly(const nb::ndarray<const T, nb::ndim<1>> &values,
@@ -612,7 +611,6 @@ private:
       if (k == hash_map_.end()) {
         int dummy;
         k = hash_map_.put(val, &dummy);
-        MaybeResizeKlibContainer(hash_map_);
         uniques.Append(val);
       }
     }
