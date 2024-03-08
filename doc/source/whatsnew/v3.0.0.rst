@@ -281,6 +281,7 @@ Bug fixes
 - Fixed bug in :meth:`DataFrame.to_string` that raised ``StopIteration`` with nested DataFrames. (:issue:`16098`)
 - Fixed bug in :meth:`DataFrame.update` bool dtype being converted to object (:issue:`55509`)
 - Fixed bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
+- Fixed bug in :meth:`Series.rank` that doesn't preserve missing values for nullable integers when ``na_option='keep'``. (:issue:`56976`)
 
 Categorical
 ^^^^^^^^^^^
