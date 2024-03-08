@@ -7167,6 +7167,41 @@ class Index(IndexOpsMixin, PandasObject):
         return (len(self),)
 
 
+def maybe_sequence_to_range(sequence) -> Any | range:
+    """
+    Convert a 1D sequence to a range if possible.
+
+    Returns the input if not possible.
+
+    Parameters
+    ----------
+    sequence : 1D sequence
+    names : sequence of str
+
+    Returns
+    -------
+    Any : input or range
+    """
+    np_sequence = np.asarray(sequence)
+    if np_sequence.dtype.kind != "i" or len(sequence) == 1:
+        return sequence
+    elif len(sequence) == 0:
+        return range(0)
+    diff = np_sequence[1] - np_sequence[0]
+    if isna(diff) or diff == 0:
+        return sequence
+    elif len(sequence) == 2:
+        return range(sequence[0], sequence[1] + diff, diff)
+    maybe_range_indexer, remainder = np.divmod(np_sequence - np_sequence[0], diff)
+    if (
+        lib.is_range_indexer(maybe_range_indexer, len(maybe_range_indexer))
+        and not remainder.any()
+    ):
+        return range(sequence[0], sequence[-1] + diff, diff)
+    else:
+        return sequence
+
+
 def ensure_index_from_sequences(sequences, names=None) -> Index:
     """
     Construct an index from sequences of data.
@@ -7202,8 +7237,9 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
     if len(sequences) == 1:
         if names is not None:
             names = names[0]
-        return Index(sequences[0], name=names)
+        return Index(maybe_sequence_to_range(sequences[0]), name=names)
     else:
+        # TODO: Apply maybe_sequence_to_range to sequences?
         return MultiIndex.from_arrays(sequences, names=names)
 
 
