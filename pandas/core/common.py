@@ -3,6 +3,7 @@ Misc tools for implementing data structures
 
 Note: pandas.core.common is *not* part of the public API.
 """
+
 from __future__ import annotations
 
 import builtins
@@ -227,8 +228,7 @@ def asarray_tuplesafe(
 
 
 @overload
-def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = ...) -> ArrayLike:
-    ...
+def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = ...) -> ArrayLike: ...
 
 
 def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLike:
@@ -422,15 +422,13 @@ def standardize_mapping(into):
 
 
 @overload
-def random_state(state: np.random.Generator) -> np.random.Generator:
-    ...
+def random_state(state: np.random.Generator) -> np.random.Generator: ...
 
 
 @overload
 def random_state(
     state: int | np.ndarray | np.random.BitGenerator | np.random.RandomState | None,
-) -> np.random.RandomState:
-    ...
+) -> np.random.RandomState: ...
 
 
 def random_state(state: RandomState | None = None):
@@ -477,8 +475,7 @@ def pipe(
     func: Callable[Concatenate[_T, P], T],
     *args: P.args,
     **kwargs: P.kwargs,
-) -> T:
-    ...
+) -> T: ...
 
 
 @overload
@@ -487,8 +484,7 @@ def pipe(
     func: tuple[Callable[..., T], str],
     *args: Any,
     **kwargs: Any,
-) -> T:
-    ...
+) -> T: ...
 
 
 def pipe(

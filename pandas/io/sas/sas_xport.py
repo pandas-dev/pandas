@@ -7,6 +7,7 @@ The file format is defined here:
 
 https://support.sas.com/content/dam/SAS/support/en/technical-papers/record-layout-of-a-sas-version-5-or-6-data-set-in-sas-transport-xport-format.pdf
 """
+
 from __future__ import annotations
 
 from collections import abc

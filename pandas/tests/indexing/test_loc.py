@@ -1,4 +1,5 @@
-""" test label based indexing with loc """
+"""test label based indexing with loc"""
+
 from collections import namedtuple
 from datetime import (
     date,
@@ -1204,10 +1205,7 @@ class TestLocBaseIndependent:
         data = [1, 2]
         df = DataFrame(columns=["x", "y"])
         df.index = df.index.astype(np.int64)
-        msg = (
-            rf"None of \[Index\(\[0, 1\], dtype='{np.dtype(int)}'\)\] "
-            r"are in the \[index\]"
-        )
+        msg = r"None of .*Index.* are in the \[index\]"
         with pytest.raises(KeyError, match=msg):
             df.loc[[0, 1], "x"] = data
 
