@@ -822,9 +822,8 @@ class TestSeriesFillNA:
             ]
         )
         for limit in [-1, 0, 1.0, 2.0]:
-            for method in ["backfill", "bfill", "pad", "ffill", None]:
-                with pytest.raises(ValueError, match=msg):
-                    ser.fillna(1, limit=limit, method=method)
+            with pytest.raises(ValueError, match=msg):
+                ser.fillna(1, limit=limit)
 
     def test_fillna_datetime64_with_timezone_tzinfo(self):
         # https://github.com/pandas-dev/pandas/issues/38851
