@@ -1,6 +1,7 @@
 """
 Entrypoint for testing from the top-level namespace.
 """
+
 from __future__ import annotations
 
 import os

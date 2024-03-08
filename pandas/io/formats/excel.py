@@ -1,6 +1,7 @@
 """
 Utilities for conversion to writer-agnostic Excel representation.
 """
+
 from __future__ import annotations
 
 from collections.abc import (

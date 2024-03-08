@@ -1,6 +1,7 @@
 """
 Concat routines.
 """
+
 from __future__ import annotations
 
 from collections import abc
@@ -80,8 +81,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
@@ -97,8 +97,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
-) -> Series:
-    ...
+) -> Series: ...
 
 
 @overload
@@ -114,8 +113,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
-) -> DataFrame | Series:
-    ...
+) -> DataFrame | Series: ...
 
 
 @overload
@@ -131,8 +129,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
@@ -148,8 +145,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
-) -> DataFrame | Series:
-    ...
+) -> DataFrame | Series: ...
 
 
 def concat(

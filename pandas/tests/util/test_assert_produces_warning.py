@@ -1,6 +1,7 @@
-""""
+""" "
 Test module for testing ``pandas._testing.assert_produces_warning``.
 """
+
 import warnings
 
 import pytest

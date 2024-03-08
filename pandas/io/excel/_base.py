@@ -406,8 +406,7 @@ def read_excel(
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
@@ -445,8 +444,7 @@ def read_excel(
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> dict[IntStrT, DataFrame]:
-    ...
+) -> dict[IntStrT, DataFrame]: ...
 
 
 @doc(storage_options=_shared_docs["storage_options"])
@@ -1131,7 +1129,7 @@ class ExcelWriter(Generic[_WorkbookT]):
                     ext = "xlsx"
 
                 try:
-                    engine = config.get_option(f"io.excel.{ext}.writer", silent=True)
+                    engine = config.get_option(f"io.excel.{ext}.writer")
                     if engine == "auto":
                         engine = get_default_engine(ext, mode="writer")
                 except KeyError as err:
@@ -1369,7 +1367,7 @@ XLS_SIGNATURES = (
     b"\x09\x00\x04\x00\x07\x00\x10\x00",  # BIFF2
     b"\x09\x02\x06\x00\x00\x00\x10\x00",  # BIFF3
     b"\x09\x04\x06\x00\x00\x00\x10\x00",  # BIFF4
-    b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1",  # Compound File Binary
+    b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1",  # Compound File Binary
 )
 ZIP_SIGNATURE = b"PK\x03\x04"
 PEEK_SIZE = max(map(len, XLS_SIGNATURES + (ZIP_SIGNATURE,)))
@@ -1552,7 +1550,7 @@ class ExcelFile:
                         "an engine manually."
                     )
 
-            engine = config.get_option(f"io.excel.{ext}.reader", silent=True)
+            engine = config.get_option(f"io.excel.{ext}.reader")
             if engine == "auto":
                 engine = get_default_engine(ext, mode="reader")
 
