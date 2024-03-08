@@ -7432,6 +7432,7 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
+            DataFrame with the first `n` rows ordered by `columns` in ascending order.
 
         See Also
         --------
