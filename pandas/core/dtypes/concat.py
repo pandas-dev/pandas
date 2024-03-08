@@ -1,6 +1,7 @@
 """
 Utility functions related to concat.
 """
+
 from __future__ import annotations
 
 from typing import (
@@ -278,8 +279,8 @@ def union_categoricals(
     containing categorical data, but note that the resulting array will
     always be a plain `Categorical`
 
-    >>> a = pd.Series(["b", "c"], dtype='category')
-    >>> b = pd.Series(["a", "b"], dtype='category')
+    >>> a = pd.Series(["b", "c"], dtype="category")
+    >>> b = pd.Series(["a", "b"], dtype="category")
     >>> pd.api.types.union_categoricals([a, b])
     ['b', 'c', 'a', 'b']
     Categories (3, object): ['b', 'c', 'a']

@@ -1,4 +1,5 @@
 """Sparse accessor"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -17,6 +18,11 @@ from pandas.core.accessor import (
 from pandas.core.arrays.sparse.array import SparseArray
 
 if TYPE_CHECKING:
+    from scipy.sparse import (
+        coo_matrix,
+        spmatrix,
+    )
+
     from pandas import (
         DataFrame,
         Series,
@@ -115,7 +121,9 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
 
         return result
 
-    def to_coo(self, row_levels=(0,), column_levels=(1,), sort_labels: bool = False):
+    def to_coo(
+        self, row_levels=(0,), column_levels=(1,), sort_labels: bool = False
+    ) -> tuple[coo_matrix, list, list]:
         """
         Create a scipy.sparse.coo_matrix from a Series with MultiIndex.
 
@@ -149,7 +157,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         ...         (1, 1, "b", 0),
         ...         (1, 1, "b", 1),
         ...         (2, 1, "b", 0),
-        ...         (2, 1, "b", 1)
+        ...         (2, 1, "b", 1),
         ...     ],
         ...     names=["A", "B", "C", "D"],
         ... )
@@ -237,8 +245,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
 
     Examples
     --------
-    >>> df = pd.DataFrame({"a": [1, 2, 0, 0],
-    ...                   "b": [3, 0, 0, 4]}, dtype="Sparse[int]")
+    >>> df = pd.DataFrame({"a": [1, 2, 0, 0], "b": [3, 0, 0, 4]}, dtype="Sparse[int]")
     >>> df.sparse.density
     0.5
     """
@@ -326,7 +333,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         data = {k: v.array.to_dense() for k, v in self._parent.items()}
         return DataFrame(data, index=self._parent.index, columns=self._parent.columns)
 
-    def to_coo(self):
+    def to_coo(self) -> spmatrix:
         """
         Return the contents of the frame as a sparse SciPy COO matrix.
 

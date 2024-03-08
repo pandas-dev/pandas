@@ -75,7 +75,8 @@ class CalamineReader(BaseExcelReader["CalamineWorkbook"]):
         from python_calamine import load_workbook
 
         return load_workbook(
-            filepath_or_buffer, **engine_kwargs  # type: ignore[arg-type]
+            filepath_or_buffer,
+            **engine_kwargs,
         )
 
     @property

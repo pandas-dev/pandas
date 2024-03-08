@@ -335,11 +335,11 @@ class TestSeriesConstructors:
     @pytest.mark.parametrize(
         "input_vals",
         [
-            ([1, 2]),
-            (["1", "2"]),
-            (list(date_range("1/1/2011", periods=2, freq="h"))),
-            (list(date_range("1/1/2011", periods=2, freq="h", tz="US/Eastern"))),
-            ([Interval(left=0, right=5)]),
+            [1, 2],
+            ["1", "2"],
+            list(date_range("1/1/2011", periods=2, freq="h")),
+            list(date_range("1/1/2011", periods=2, freq="h", tz="US/Eastern")),
+            [Interval(left=0, right=5)],
         ],
     )
     def test_constructor_list_str(self, input_vals, string_dtype):
@@ -622,15 +622,12 @@ class TestSeriesConstructors:
         expected = Series([np.nan, np.nan, np.nan])
         tm.assert_series_equal(result, expected)
 
-    def test_series_ctor_plus_datetimeindex(self, using_copy_on_write):
+    def test_series_ctor_plus_datetimeindex(self):
         rng = date_range("20090415", "20090519", freq="B")
         data = {k: 1 for k in rng}
 
         result = Series(data, index=rng)
-        if using_copy_on_write:
-            assert result.index.is_(rng)
-        else:
-            assert result.index is rng
+        assert result.index.is_(rng)
 
     def test_constructor_default_index(self):
         s = Series([0, 1, 2])
@@ -891,18 +888,13 @@ class TestSeriesConstructors:
         with pytest.raises(IntCastingNaNError, match=msg):
             Series(np.array(vals), dtype=any_int_numpy_dtype)
 
-    def test_constructor_dtype_no_cast(self, using_copy_on_write, warn_copy_on_write):
+    def test_constructor_dtype_no_cast(self):
         # see gh-1572
         s = Series([1, 2, 3])
         s2 = Series(s, dtype=np.int64)
 
-        warn = FutureWarning if warn_copy_on_write else None
-        with tm.assert_produces_warning(warn):
-            s2[1] = 5
-        if using_copy_on_write:
-            assert s[1] == 2
-        else:
-            assert s[1] == 5
+        s2[1] = 5
+        assert s[1] == 2
 
     def test_constructor_datelike_coercion(self):
         # GH 9477
@@ -1595,7 +1587,7 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result, expected)
 
     def test_constructor_name_hashable(self):
-        for n in [777, 777.0, "name", datetime(2001, 11, 11), (1,), "\u05D0"]:
+        for n in [777, 777.0, "name", datetime(2001, 11, 11), (1,), "\u05d0"]:
             for data in [[1, 2, 3], np.ones(3), {"a": 0, "b": 1}]:
                 s = Series(data, name=n)
                 assert s.name == n
@@ -1806,15 +1798,10 @@ class TestSeriesConstructors:
         expected = Series(["M", "M", "M"], index=[1, 2, 3], dtype=nullable_string_dtype)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "values",
-        [
-            [np.datetime64("2012-01-01"), np.datetime64("2013-01-01")],
-            ["2012-01-01", "2013-01-01"],
-        ],
-    )
-    def test_constructor_sparse_datetime64(self, values):
+    @pytest.mark.parametrize("box", [lambda x: x, np.datetime64])
+    def test_constructor_sparse_datetime64(self, box):
         # https://github.com/pandas-dev/pandas/issues/35762
+        values = [box("2012-01-01"), box("2013-01-01")]
         dtype = pd.SparseDtype("datetime64[ns]")
         result = Series(values, dtype=dtype)
         arr = pd.arrays.SparseArray(values, dtype=dtype)
@@ -1956,9 +1943,15 @@ class TestSeriesConstructors:
 
     def test_constructor_raise_on_lossy_conversion_of_strings(self):
         # GH#44923
-        with pytest.raises(
-            ValueError, match="string values cannot be losslessly cast to int8"
-        ):
+        if not np_version_gt2:
+            raises = pytest.raises(
+                ValueError, match="string values cannot be losslessly cast to int8"
+            )
+        else:
+            raises = pytest.raises(
+                OverflowError, match="The elements provided in the data"
+            )
+        with raises:
             Series(["128"], dtype="int8")
 
     def test_constructor_dtype_timedelta_alternative_construct(self):

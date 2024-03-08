@@ -6,12 +6,17 @@ from abc import (
     ABCMeta,
     abstractmethod,
 )
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 from pandas.compat import (
     pa_version_under10p1,
     pa_version_under11p0,
 )
+
+from pandas.core.dtypes.common import is_list_like
 
 if not pa_version_under10p1:
     import pyarrow as pa
@@ -95,9 +100,7 @@ class ListAccessor(ArrowAccessor):
         ...         [1, 2, 3],
         ...         [3],
         ...     ],
-        ...     dtype=pd.ArrowDtype(pa.list_(
-        ...         pa.int64()
-        ...     ))
+        ...     dtype=pd.ArrowDtype(pa.list_(pa.int64())),
         ... )
         >>> s.list.len()
         0    3
@@ -131,9 +134,7 @@ class ListAccessor(ArrowAccessor):
         ...         [1, 2, 3],
         ...         [3],
         ...     ],
-        ...     dtype=pd.ArrowDtype(pa.list_(
-        ...         pa.int64()
-        ...     ))
+        ...     dtype=pd.ArrowDtype(pa.list_(pa.int64())),
         ... )
         >>> s.list[0]
         0    1
@@ -190,9 +191,7 @@ class ListAccessor(ArrowAccessor):
         ...         [1, 2, 3],
         ...         [3],
         ...     ],
-        ...     dtype=pd.ArrowDtype(pa.list_(
-        ...         pa.int64()
-        ...     ))
+        ...     dtype=pd.ArrowDtype(pa.list_(pa.int64())),
         ... )
         >>> s.list.flatten()
         0    1
@@ -248,9 +247,9 @@ class StructAccessor(ArrowAccessor):
         ...         {"version": 2, "project": "pandas"},
         ...         {"version": 1, "project": "numpy"},
         ...     ],
-        ...     dtype=pd.ArrowDtype(pa.struct(
-        ...         [("version", pa.int64()), ("project", pa.string())]
-        ...     ))
+        ...     dtype=pd.ArrowDtype(
+        ...         pa.struct([("version", pa.int64()), ("project", pa.string())])
+        ...     ),
         ... )
         >>> s.struct.dtypes
         version     int64[pyarrow]
@@ -267,14 +266,26 @@ class StructAccessor(ArrowAccessor):
         names = [struct.name for struct in pa_type]
         return Series(types, index=Index(names))
 
-    def field(self, name_or_index: str | int) -> Series:
+    def field(
+        self,
+        name_or_index: list[str]
+        | list[bytes]
+        | list[int]
+        | pc.Expression
+        | bytes
+        | str
+        | int,
+    ) -> Series:
         """
         Extract a child field of a struct as a Series.
 
         Parameters
         ----------
-        name_or_index : str | int
+        name_or_index : str | bytes | int | expression | list
             Name or index of the child field to extract.
+
+            For list-like inputs, this will index into a nested
+            struct.
 
         Returns
         -------
@@ -285,6 +296,19 @@ class StructAccessor(ArrowAccessor):
         --------
         Series.struct.explode : Return all child fields as a DataFrame.
 
+        Notes
+        -----
+        The name of the resulting Series will be set using the following
+        rules:
+
+        - For string, bytes, or integer `name_or_index` (or a list of these, for
+          a nested selection), the Series name is set to the selected
+          field's name.
+        - For a :class:`pyarrow.compute.Expression`, this is set to
+          the string form of the expression.
+        - For list-like `name_or_index`, the name will be set to the
+          name of the final field selected.
+
         Examples
         --------
         >>> import pyarrow as pa
@@ -294,9 +318,9 @@ class StructAccessor(ArrowAccessor):
         ...         {"version": 2, "project": "pandas"},
         ...         {"version": 1, "project": "numpy"},
         ...     ],
-        ...     dtype=pd.ArrowDtype(pa.struct(
-        ...         [("version", pa.int64()), ("project", pa.string())]
-        ...     ))
+        ...     dtype=pd.ArrowDtype(
+        ...         pa.struct([("version", pa.int64()), ("project", pa.string())])
+        ...     ),
         ... )
 
         Extract by field name.
@@ -314,27 +338,94 @@ class StructAccessor(ArrowAccessor):
         1    2
         2    1
         Name: version, dtype: int64[pyarrow]
+
+        Or an expression
+
+        >>> import pyarrow.compute as pc
+        >>> s.struct.field(pc.field("project"))
+        0    pandas
+        1    pandas
+        2     numpy
+        Name: project, dtype: string[pyarrow]
+
+        For nested struct types, you can pass a list of values to index
+        multiple levels:
+
+        >>> version_type = pa.struct(
+        ...     [
+        ...         ("major", pa.int64()),
+        ...         ("minor", pa.int64()),
+        ...     ]
+        ... )
+        >>> s = pd.Series(
+        ...     [
+        ...         {"version": {"major": 1, "minor": 5}, "project": "pandas"},
+        ...         {"version": {"major": 2, "minor": 1}, "project": "pandas"},
+        ...         {"version": {"major": 1, "minor": 26}, "project": "numpy"},
+        ...     ],
+        ...     dtype=pd.ArrowDtype(
+        ...         pa.struct([("version", version_type), ("project", pa.string())])
+        ...     ),
+        ... )
+        >>> s.struct.field(["version", "minor"])
+        0     5
+        1     1
+        2    26
+        Name: minor, dtype: int64[pyarrow]
+        >>> s.struct.field([0, 0])
+        0    1
+        1    2
+        2    1
+        Name: major, dtype: int64[pyarrow]
         """
         from pandas import Series
 
-        pa_arr = self._data.array._pa_array
-        if isinstance(name_or_index, int):
-            index = name_or_index
-        elif isinstance(name_or_index, str):
-            index = pa_arr.type.get_field_index(name_or_index)
-        else:
-            raise ValueError(
-                "name_or_index must be an int or str, "
-                f"got {type(name_or_index).__name__}"
-            )
+        def get_name(
+            level_name_or_index: list[str]
+            | list[bytes]
+            | list[int]
+            | pc.Expression
+            | bytes
+            | str
+            | int,
+            data: pa.ChunkedArray,
+        ):
+            if isinstance(level_name_or_index, int):
+                name = data.type.field(level_name_or_index).name
+            elif isinstance(level_name_or_index, (str, bytes)):
+                name = level_name_or_index
+            elif isinstance(level_name_or_index, pc.Expression):
+                name = str(level_name_or_index)
+            elif is_list_like(level_name_or_index):
+                # For nested input like [2, 1, 2]
+                # iteratively get the struct and field name. The last
+                # one is used for the name of the index.
+                level_name_or_index = list(reversed(level_name_or_index))
+                selected = data
+                while level_name_or_index:
+                    # we need the cast, otherwise mypy complains about
+                    # getting ints, bytes, or str here, which isn't possible.
+                    level_name_or_index = cast(list, level_name_or_index)
+                    name_or_index = level_name_or_index.pop()
+                    name = get_name(name_or_index, selected)
+                    selected = selected.type.field(selected.type.get_field_index(name))
+                    name = selected.name
+            else:
+                raise ValueError(
+                    "name_or_index must be an int, str, bytes, "
+                    "pyarrow.compute.Expression, or list of those"
+                )
+            return name
 
-        pa_field = pa_arr.type[index]
-        field_arr = pc.struct_field(pa_arr, [index])
+        pa_arr = self._data.array._pa_array
+        name = get_name(name_or_index, pa_arr)
+        field_arr = pc.struct_field(pa_arr, name_or_index)
+
         return Series(
             field_arr,
             dtype=ArrowDtype(field_arr.type),
             index=self._data.index,
-            name=pa_field.name,
+            name=name,
         )
 
     def explode(self) -> DataFrame:
@@ -359,9 +450,9 @@ class StructAccessor(ArrowAccessor):
         ...         {"version": 2, "project": "pandas"},
         ...         {"version": 1, "project": "numpy"},
         ...     ],
-        ...     dtype=pd.ArrowDtype(pa.struct(
-        ...         [("version", pa.int64()), ("project", pa.string())]
-        ...     ))
+        ...     dtype=pd.ArrowDtype(
+        ...         pa.struct([("version", pa.int64()), ("project", pa.string())])
+        ...     ),
         ... )
 
         >>> s.struct.explode()

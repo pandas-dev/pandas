@@ -23,6 +23,7 @@ def test_foo():
 
 For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
+
 from __future__ import annotations
 
 import locale
@@ -33,11 +34,8 @@ from typing import (
 
 import pytest
 
-from pandas._config import get_option
-
 if TYPE_CHECKING:
     from pandas._typing import F
-
 
 from pandas.compat import (
     IS64,
@@ -144,14 +142,3 @@ def parametrize_fixture_doc(*args) -> Callable[[F], F]:
         return fixture
 
     return documented_fixture
-
-
-skip_copy_on_write_not_yet_implemented = pytest.mark.xfail(
-    get_option("mode.copy_on_write") is True,
-    reason="Not yet implemented/adapted for Copy-on-Write mode",
-)
-
-skip_copy_on_write_invalid_test = pytest.mark.skipif(
-    get_option("mode.copy_on_write") is True,
-    reason="Test not valid for Copy-on-Write mode",
-)

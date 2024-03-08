@@ -13,6 +13,7 @@ classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
+
 import string
 
 import numpy as np
@@ -116,10 +117,6 @@ class TestCategorical(base.ExtensionTests):
         # be a parent of the elements (object). But don't want
         # to break things by changing.
         super().test_getitem_scalar(data)
-
-    @pytest.mark.xfail(reason="Unobserved categories included")
-    def test_value_counts(self, all_data, dropna):
-        return super().test_value_counts(all_data, dropna)
 
     def test_combine_add(self, data_repeated):
         # GH 20825

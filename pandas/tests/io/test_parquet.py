@@ -1,4 +1,5 @@
-""" test parquet compat """
+"""test parquet compat"""
+
 import datetime
 from decimal import Decimal
 from io import BytesIO
@@ -7,9 +8,6 @@ import pathlib
 
 import numpy as np
 import pytest
-
-from pandas._config import using_copy_on_write
-from pandas._config.config import _get_option
 
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
@@ -45,8 +43,6 @@ except ImportError:
     _HAVE_FASTPARQUET = False
 
 
-# TODO(ArrayManager) fastparquet relies on BlockManager internals
-
 pytestmark = [
     pytest.mark.filterwarnings("ignore:DataFrame._data is deprecated:FutureWarning"),
     pytest.mark.filterwarnings(
@@ -61,9 +57,8 @@ pytestmark = [
         pytest.param(
             "fastparquet",
             marks=pytest.mark.skipif(
-                not _HAVE_FASTPARQUET
-                or _get_option("mode.data_manager", silent=True) == "array",
-                reason="fastparquet is not installed or ArrayManager is used",
+                not _HAVE_FASTPARQUET,
+                reason="fastparquet is not installed",
             ),
         ),
         pytest.param(
@@ -89,8 +84,6 @@ def pa():
 def fp():
     if not _HAVE_FASTPARQUET:
         pytest.skip("fastparquet is not installed")
-    elif _get_option("mode.data_manager", silent=True) == "array":
-        pytest.skip("ArrayManager is not supported with fastparquet")
     return "fastparquet"
 
 
@@ -355,23 +348,6 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
         tm.assert_frame_equal(result, df[["a", "d"]])
 
 
-def test_parquet_pos_args_deprecation(engine):
-    # GH-54229
-    df = pd.DataFrame({"a": [1, 2, 3]})
-    msg = (
-        r"Starting with pandas version 3.0 all arguments of to_parquet except for the "
-        r"argument 'path' will be keyword-only."
-    )
-    with tm.ensure_clean() as path:
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match=msg,
-            check_stacklevel=False,
-            raise_on_extra_warnings=False,
-        ):
-            df.to_parquet(path, engine)
-
-
 class Base:
     def check_error_on_write(self, df, engine, exc, err_msg):
         # check that we are raising the exception on writing
@@ -448,15 +424,10 @@ class TestBasic(Base):
             repeat=1,
         )
 
-    def test_write_index(self, engine, using_copy_on_write, request):
-        check_names = engine != "fastparquet"
-        if using_copy_on_write and engine == "fastparquet":
-            request.applymarker(
-                pytest.mark.xfail(reason="fastparquet write into index")
-            )
-
+    def test_write_index(self):
+        pytest.importorskip("pyarrow")
         df = pd.DataFrame({"A": [1, 2, 3]})
-        check_round_trip(df, engine)
+        check_round_trip(df, "pyarrow")
 
         indexes = [
             [2, 3, 4],
@@ -469,12 +440,12 @@ class TestBasic(Base):
             df.index = index
             if isinstance(index, pd.DatetimeIndex):
                 df.index = df.index._with_freq(None)  # freq doesn't round-trip
-            check_round_trip(df, engine, check_names=check_names)
+            check_round_trip(df, "pyarrow")
 
         # index with meta-data
         df.index = [0, 1, 2]
         df.index.name = "foo"
-        check_round_trip(df, engine)
+        check_round_trip(df, "pyarrow")
 
     def test_write_multiindex(self, pa):
         # Not supported in fastparquet as of 0.1.3 or older pyarrow version
@@ -827,13 +798,7 @@ class TestParquetPyArrow(Base):
         )
 
     @pytest.mark.single_cpu
-    @pytest.mark.parametrize(
-        "partition_col",
-        [
-            ["A"],
-            [],
-        ],
-    )
+    @pytest.mark.parametrize("partition_col", [["A"], []])
     def test_s3_roundtrip_for_dir(
         self, df_compat, s3_public_bucket, pa, partition_col, s3so
     ):
@@ -1002,17 +967,6 @@ class TestParquetPyArrow(Base):
             df.to_parquet(path, engine=pa)
             result = read_parquet(path, pa, filters=[("a", "==", 0)])
         assert len(result) == 1
-
-    def test_read_parquet_manager(self, pa):
-        # ensure that read_parquet honors the pandas.options.mode.data_manager option
-        df = pd.DataFrame(
-            np.random.default_rng(2).standard_normal((10, 3)), columns=["A", "B", "C"]
-        )
-
-        with tm.ensure_clean() as path:
-            df.to_parquet(path, engine=pa)
-            result = read_parquet(path, pa)
-        assert isinstance(result._mgr, pd.core.internals.BlockManager)
 
     def test_read_dtype_backend_pyarrow_config(self, pa, df_full):
         import pyarrow
@@ -1296,38 +1250,10 @@ class TestParquetFastParquet(Base):
                 partition_cols=partition_cols,
             )
 
-    @pytest.mark.skipif(using_copy_on_write(), reason="fastparquet writes into Index")
-    def test_empty_dataframe(self, fp):
-        # GH #27339
-        df = pd.DataFrame()
-        expected = df.copy()
-        check_round_trip(df, fp, expected=expected)
-
-    @pytest.mark.skipif(using_copy_on_write(), reason="fastparquet writes into Index")
-    def test_timezone_aware_index(self, fp, timezone_aware_date_list):
-        idx = 5 * [timezone_aware_date_list]
-
-        df = pd.DataFrame(index=idx, data={"index_as_col": idx})
-
-        expected = df.copy()
-        expected.index.name = "index"
-        check_round_trip(df, fp, expected=expected)
-
-    def test_use_nullable_dtypes_not_supported(self, fp):
-        df = pd.DataFrame({"a": [1, 2]})
-
-        with tm.ensure_clean() as path:
-            df.to_parquet(path)
-            with pytest.raises(ValueError, match="not supported for the fastparquet"):
-                with tm.assert_produces_warning(FutureWarning):
-                    read_parquet(path, engine="fastparquet", use_nullable_dtypes=True)
-            with pytest.raises(ValueError, match="not supported for the fastparquet"):
-                read_parquet(path, engine="fastparquet", dtype_backend="pyarrow")
-
     def test_close_file_handle_on_read_error(self):
         with tm.ensure_clean("test.parquet") as path:
             pathlib.Path(path).write_bytes(b"breakit")
-            with pytest.raises(Exception, match=""):  # Not important which exception
+            with tm.external_error_raised(Exception):  # Not important which exception
                 read_parquet(path, engine="fastparquet")
             # The next line raises an error on Windows if the file is still open
             pathlib.Path(path).unlink(missing_ok=False)
@@ -1412,10 +1338,3 @@ class TestParquetFastParquet(Base):
             df.to_parquet(path)
             with pytest.raises(ValueError, match=msg):
                 read_parquet(path, dtype_backend="numpy")
-
-    @pytest.mark.skipif(using_copy_on_write(), reason="fastparquet writes into Index")
-    def test_empty_columns(self, fp):
-        # GH 52034
-        df = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
-        expected = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
-        check_round_trip(df, fp, expected=expected)

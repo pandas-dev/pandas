@@ -1,4 +1,5 @@
-""" miscellaneous sorting / groupby utilities """
+"""miscellaneous sorting / groupby utilities"""
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -582,11 +583,11 @@ def ensure_key_mapped(
             type_of_values = type(values)
             #  error: Too many arguments for "ExtensionArray"
             result = type_of_values(result)  # type: ignore[call-arg]
-    except TypeError:
+    except TypeError as err:
         raise TypeError(
             f"User-provided `key` function returned an invalid type {type(result)} \
             which could not be converted to {type(values)}."
-        )
+        ) from err
 
     return result
 

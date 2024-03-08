@@ -2,6 +2,7 @@
 Tests encoding functionality during parsing
 for all of the parsers defined in parsers.py
 """
+
 from io import (
     BytesIO,
     TextIOWrapper,
@@ -57,9 +58,7 @@ def test_utf16_bom_skiprows(all_parsers, sep, encoding):
 skip this too
 A,B,C
 1,2,3
-4,5,6""".replace(
-        ",", sep
-    )
+4,5,6""".replace(",", sep)
     path = f"__{uuid.uuid4()}__.csv"
     kwargs = {"sep": sep, "skiprows": 2}
     utf8 = "utf-8"
@@ -99,22 +98,22 @@ def test_unicode_encoding(all_parsers, csv_dir_path):
     "data,kwargs,expected",
     [
         # Basic test
-        ("a\n1", {}, DataFrame({"a": [1]})),
+        ("a\n1", {}, [1]),
         # "Regular" quoting
-        ('"a"\n1', {"quotechar": '"'}, DataFrame({"a": [1]})),
+        ('"a"\n1', {"quotechar": '"'}, [1]),
         # Test in a data row instead of header
-        ("b\n1", {"names": ["a"]}, DataFrame({"a": ["b", "1"]})),
+        ("b\n1", {"names": ["a"]}, ["b", "1"]),
         # Test in empty data row with skipping
-        ("\n1", {"names": ["a"], "skip_blank_lines": True}, DataFrame({"a": [1]})),
+        ("\n1", {"names": ["a"], "skip_blank_lines": True}, [1]),
         # Test in empty data row without skipping
         (
             "\n1",
             {"names": ["a"], "skip_blank_lines": False},
-            DataFrame({"a": [np.nan, 1]}),
+            [np.nan, 1],
         ),
     ],
 )
-def test_utf8_bom(all_parsers, data, kwargs, expected, request):
+def test_utf8_bom(all_parsers, data, kwargs, expected):
     # see gh-4793
     parser = all_parsers
     bom = "\ufeff"
@@ -133,6 +132,7 @@ def test_utf8_bom(all_parsers, data, kwargs, expected, request):
         pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     result = parser.read_csv(_encode_data_with_bom(data), encoding=utf8, **kwargs)
+    expected = DataFrame({"a": expected})
     tm.assert_frame_equal(result, expected)
 
 
@@ -181,7 +181,9 @@ def test_binary_mode_file_buffers(all_parsers, file_path, encoding, datapath):
 
 
 @pytest.mark.parametrize("pass_encoding", [True, False])
-def test_encoding_temp_file(all_parsers, utf_value, encoding_fmt, pass_encoding):
+def test_encoding_temp_file(
+    all_parsers, utf_value, encoding_fmt, pass_encoding, temp_file
+):
     # see gh-24130
     parser = all_parsers
     encoding = encoding_fmt.format(utf_value)
@@ -192,7 +194,7 @@ def test_encoding_temp_file(all_parsers, utf_value, encoding_fmt, pass_encoding)
 
     expected = DataFrame({"foo": ["bar"]})
 
-    with tm.ensure_clean(mode="w+", encoding=encoding, return_filelike=True) as f:
+    with temp_file.open(mode="w+", encoding=encoding) as f:
         f.write("foo\nbar")
         f.seek(0)
 

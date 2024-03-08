@@ -1,6 +1,7 @@
 """
 Also test support for datetime64[ns] in Series / DataFrame
 """
+
 from datetime import (
     datetime,
     timedelta,
@@ -430,7 +431,7 @@ def test_indexing():
     result = ts["2001"]
     tm.assert_series_equal(result, ts.iloc[:12])
 
-    df = DataFrame({"A": ts.copy()})
+    df = DataFrame({"A": ts})
 
     # GH#36179 pre-2.0 df["2001"] operated as slicing on rows. in 2.0 it behaves
     #  like any other key, so raises

@@ -13,6 +13,7 @@ classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
+
 import numpy as np
 import pytest
 
@@ -24,9 +25,9 @@ from pandas.core.arrays import DatetimeArray
 from pandas.tests.extension import base
 
 
-@pytest.fixture(params=["US/Central"])
-def dtype(request):
-    return DatetimeTZDtype(unit="ns", tz=request.param)
+@pytest.fixture
+def dtype():
+    return DatetimeTZDtype(unit="ns", tz="US/Central")
 
 
 @pytest.fixture

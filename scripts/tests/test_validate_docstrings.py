@@ -199,12 +199,6 @@ class TestValidator:
         for msg in msgs:
             assert msg in " ".join([err[1] for err in result["errors"]])
 
-    def test_leftover_files_raises(self) -> None:
-        with pytest.raises(Exception, match="The following files"):
-            validate_docstrings.pandas_validate(
-                self._import_path(klass="BadDocstrings", func="leftover_files")
-            )
-
     def test_validate_all_ignore_functions(self, monkeypatch) -> None:
         monkeypatch.setattr(
             validate_docstrings,
@@ -426,7 +420,6 @@ class TestMainFunction:
         assert exit_status == 0
 
     def test_exit_status_for_validate_all_json(self, monkeypatch) -> None:
-        print("EXECUTED")
         monkeypatch.setattr(
             validate_docstrings,
             "validate_all",
@@ -475,6 +468,15 @@ class TestMainFunction:
                     "file": "series.py",
                     "file_line": 279,
                 },
+            },
+        )
+        monkeypatch.setattr(
+            validate_docstrings,
+            "ERROR_MSGS",
+            {
+                "ER01": "err desc",
+                "ER02": "err desc",
+                "ER03": "err desc",
             },
         )
         exit_status = validate_docstrings.main(

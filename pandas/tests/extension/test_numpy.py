@@ -15,6 +15,7 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 Note: we do not bother with base.BaseIndexTests because NumpyExtensionArray
 will never be held in an Index.
 """
+
 import numpy as np
 import pytest
 
@@ -373,19 +374,6 @@ class TestNumpyExtensionArray(base.ExtensionTests):
     )
     def test_setitem_integer_array(self, data, idx, box_in_series):
         super().test_setitem_integer_array(data, idx, box_in_series)
-
-    @pytest.mark.parametrize(
-        "idx, box_in_series",
-        [
-            ([0, 1, 2, pd.NA], False),
-            pytest.param([0, 1, 2, pd.NA], True, marks=pytest.mark.xfail),
-            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),
-            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),
-        ],
-        ids=["list-False", "list-True", "integer-array-False", "integer-array-True"],
-    )
-    def test_setitem_integer_with_missing_raises(self, data, idx, box_in_series):
-        super().test_setitem_integer_with_missing_raises(data, idx, box_in_series)
 
     @skip_nested
     def test_setitem_slice(self, data, box_in_series):

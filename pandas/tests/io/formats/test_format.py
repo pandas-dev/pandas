@@ -2,9 +2,9 @@
 Tests for the file pandas.io.formats.format, *not* tests for general formatting
 of pandas objects.
 """
+
 from datetime import datetime
 from io import StringIO
-from pathlib import Path
 import re
 from shutil import get_terminal_size
 
@@ -30,55 +30,6 @@ from pandas import (
 
 from pandas.io.formats import printing
 import pandas.io.formats.format as fmt
-
-
-@pytest.fixture(params=["string", "pathlike", "buffer"])
-def filepath_or_buffer_id(request):
-    """
-    A fixture yielding test ids for filepath_or_buffer testing.
-    """
-    return request.param
-
-
-@pytest.fixture
-def filepath_or_buffer(filepath_or_buffer_id, tmp_path):
-    """
-    A fixture yielding a string representing a filepath, a path-like object
-    and a StringIO buffer. Also checks that buffer is not closed.
-    """
-    if filepath_or_buffer_id == "buffer":
-        buf = StringIO()
-        yield buf
-        assert not buf.closed
-    else:
-        assert isinstance(tmp_path, Path)
-        if filepath_or_buffer_id == "pathlike":
-            yield tmp_path / "foo"
-        else:
-            yield str(tmp_path / "foo")
-
-
-@pytest.fixture
-def assert_filepath_or_buffer_equals(
-    filepath_or_buffer, filepath_or_buffer_id, encoding
-):
-    """
-    Assertion helper for checking filepath_or_buffer.
-    """
-    if encoding is None:
-        encoding = "utf-8"
-
-    def _assert_filepath_or_buffer_equals(expected):
-        if filepath_or_buffer_id == "string":
-            with open(filepath_or_buffer, encoding=encoding) as f:
-                result = f.read()
-        elif filepath_or_buffer_id == "pathlike":
-            result = filepath_or_buffer.read_text(encoding=encoding)
-        elif filepath_or_buffer_id == "buffer":
-            result = filepath_or_buffer.getvalue()
-        assert result == expected
-
-    return _assert_filepath_or_buffer_equals
 
 
 def has_info_repr(df):
@@ -2258,14 +2209,21 @@ class TestFormatPercentiles:
     "encoding, data",
     [(None, "abc"), ("utf-8", "abc"), ("gbk", "造成输出中文显示乱码"), ("foo", "abc")],
 )
+@pytest.mark.parametrize("filepath_or_buffer_id", ["string", "pathlike", "buffer"])
 def test_filepath_or_buffer_arg(
     method,
-    filepath_or_buffer,
-    assert_filepath_or_buffer_equals,
+    tmp_path,
     encoding,
     data,
     filepath_or_buffer_id,
 ):
+    if filepath_or_buffer_id == "buffer":
+        filepath_or_buffer = StringIO()
+    elif filepath_or_buffer_id == "pathlike":
+        filepath_or_buffer = tmp_path / "foo"
+    else:
+        filepath_or_buffer = str(tmp_path / "foo")
+
     df = DataFrame([data])
     if method in ["to_latex"]:  # uses styler implementation
         pytest.importorskip("jinja2")
@@ -2281,7 +2239,17 @@ def test_filepath_or_buffer_arg(
     else:
         expected = getattr(df, method)()
         getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
-        assert_filepath_or_buffer_equals(expected)
+        encoding = encoding or "utf-8"
+        if filepath_or_buffer_id == "string":
+            with open(filepath_or_buffer, encoding=encoding) as f:
+                result = f.read()
+        elif filepath_or_buffer_id == "pathlike":
+            result = filepath_or_buffer.read_text(encoding=encoding)
+        elif filepath_or_buffer_id == "buffer":
+            result = filepath_or_buffer.getvalue()
+        assert result == expected
+    if filepath_or_buffer_id == "buffer":
+        assert not filepath_or_buffer.closed
 
 
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])

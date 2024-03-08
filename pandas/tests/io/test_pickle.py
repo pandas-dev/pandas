@@ -10,6 +10,7 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 
 3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 """
+
 from __future__ import annotations
 
 from array import array
@@ -229,16 +230,6 @@ def test_pickle_path_pathlib():
     tm.assert_frame_equal(df, result)
 
 
-def test_pickle_path_localpath():
-    df = DataFrame(
-        1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
-    )
-    result = tm.round_trip_localpath(df.to_pickle, pd.read_pickle)
-    tm.assert_frame_equal(df, result)
-
-
 # ---------------------
 # test pickle compression
 # ---------------------
@@ -309,13 +300,13 @@ class TestCompression:
 
     @pytest.mark.parametrize("compression", ["", "None", "bad", "7z"])
     def test_write_explicit_bad(self, compression, get_random_path):
-        with pytest.raises(ValueError, match="Unrecognized compression type"):
-            with tm.ensure_clean(get_random_path) as path:
-                df = DataFrame(
-                    1.1 * np.arange(120).reshape((30, 4)),
-                    columns=Index(list("ABCD"), dtype=object),
-                    index=Index([f"i-{i}" for i in range(30)], dtype=object),
-                )
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
+        with tm.ensure_clean(get_random_path) as path:
+            with pytest.raises(ValueError, match="Unrecognized compression type"):
                 df.to_pickle(path, compression=compression)
 
     def test_write_infer(self, compression_ext, get_random_path):
@@ -407,31 +398,6 @@ class TestProtocol:
             df.to_pickle(path, protocol=protocol)
             df2 = pd.read_pickle(path)
             tm.assert_frame_equal(df, df2)
-
-
-@pytest.mark.parametrize(
-    ["pickle_file", "excols"],
-    [
-        ("test_py27.pkl", Index(["a", "b", "c"])),
-        (
-            "test_mi_py27.pkl",
-            pd.MultiIndex.from_arrays([["a", "b", "c"], ["A", "B", "C"]]),
-        ),
-    ],
-)
-def test_unicode_decode_error(datapath, pickle_file, excols):
-    # pickle file written with py27, should be readable without raising
-    #  UnicodeDecodeError, see GH#28645 and GH#31988
-    path = datapath("io", "data", "pickle", pickle_file)
-    df = pd.read_pickle(path)
-
-    # just test the columns are correct since the values are random
-    tm.assert_index_equal(df.columns, excols)
-
-
-# ---------------------
-# tests for buffer I/O
-# ---------------------
 
 
 def test_pickle_buffer_roundtrip():
@@ -636,15 +602,3 @@ def test_pickle_frame_v124_unpickle_130(datapath):
 
     expected = DataFrame(index=[], columns=[])
     tm.assert_frame_equal(df, expected)
-
-
-def test_pickle_pos_args_deprecation():
-    # GH-54229
-    df = DataFrame({"a": [1, 2, 3]})
-    msg = (
-        r"Starting with pandas version 3.0 all arguments of to_pickle except for the "
-        r"argument 'path' will be keyword-only."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        buffer = io.BytesIO()
-        df.to_pickle(buffer, "infer")

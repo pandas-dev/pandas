@@ -1,4 +1,5 @@
-""" test scalar indexing, including at and iat """
+"""test scalar indexing, including at and iat"""
+
 from datetime import (
     datetime,
     timedelta,
@@ -10,6 +11,7 @@ import pytest
 
 from pandas import (
     DataFrame,
+    Index,
     Series,
     Timedelta,
     Timestamp,
@@ -32,29 +34,42 @@ def generate_indices(f, values=False):
 
 
 class TestScalar:
-    @pytest.mark.parametrize("kind", ["series", "frame"])
-    @pytest.mark.parametrize("col", ["ints", "uints"])
-    def test_iat_set_ints(self, kind, col, request):
-        f = request.getfixturevalue(f"{kind}_{col}")
+    @pytest.mark.parametrize("dtype", [np.int64, np.uint64])
+    def test_iat_set_ints(self, dtype, frame_or_series):
+        f = frame_or_series(range(3), index=Index([0, 1, 2], dtype=dtype))
         indices = generate_indices(f, True)
         for i in indices:
             f.iat[i] = 1
             expected = f.values[i]
             tm.assert_almost_equal(expected, 1)
 
-    @pytest.mark.parametrize("kind", ["series", "frame"])
-    @pytest.mark.parametrize("col", ["labels", "ts", "floats"])
-    def test_iat_set_other(self, kind, col, request):
-        f = request.getfixturevalue(f"{kind}_{col}")
+    @pytest.mark.parametrize(
+        "index",
+        [
+            Index(list("abcd"), dtype=object),
+            date_range("20130101", periods=4),
+            Index(range(0, 8, 2), dtype=np.float64),
+        ],
+    )
+    def test_iat_set_other(self, index, frame_or_series):
+        f = frame_or_series(range(len(index)), index=index)
         msg = "iAt based indexing can only have integer indexers"
+        idx = next(generate_indices(f, False))
         with pytest.raises(ValueError, match=msg):
-            idx = next(generate_indices(f, False))
             f.iat[idx] = 1
 
-    @pytest.mark.parametrize("kind", ["series", "frame"])
-    @pytest.mark.parametrize("col", ["ints", "uints", "labels", "ts", "floats"])
-    def test_at_set_ints_other(self, kind, col, request):
-        f = request.getfixturevalue(f"{kind}_{col}")
+    @pytest.mark.parametrize(
+        "index",
+        [
+            Index(list("abcd"), dtype=object),
+            date_range("20130101", periods=4),
+            Index(range(0, 8, 2), dtype=np.float64),
+            Index(range(0, 8, 2), dtype=np.uint64),
+            Index(range(0, 8, 2), dtype=np.int64),
+        ],
+    )
+    def test_at_set_ints_other(self, index, frame_or_series):
+        f = frame_or_series(range(len(index)), index=index)
         indices = generate_indices(f, False)
         for i in indices:
             f.at[i] = 1

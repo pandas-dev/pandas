@@ -2,7 +2,6 @@
 Note: for naming purposes, most tests are title with as e.g. "test_nlargest_foo"
 but are implicitly also testing nsmallest_foo.
 """
-from itertools import product
 
 import numpy as np
 import pytest
@@ -10,68 +9,6 @@ import pytest
 import pandas as pd
 from pandas import Series
 import pandas._testing as tm
-
-main_dtypes = [
-    "datetime",
-    "datetimetz",
-    "timedelta",
-    "int8",
-    "int16",
-    "int32",
-    "int64",
-    "float32",
-    "float64",
-    "uint8",
-    "uint16",
-    "uint32",
-    "uint64",
-]
-
-
-@pytest.fixture
-def s_main_dtypes():
-    """
-    A DataFrame with many dtypes
-
-    * datetime
-    * datetimetz
-    * timedelta
-    * [u]int{8,16,32,64}
-    * float{32,64}
-
-    The columns are the name of the dtype.
-    """
-    df = pd.DataFrame(
-        {
-            "datetime": pd.to_datetime(["2003", "2002", "2001", "2002", "2005"]),
-            "datetimetz": pd.to_datetime(
-                ["2003", "2002", "2001", "2002", "2005"]
-            ).tz_localize("US/Eastern"),
-            "timedelta": pd.to_timedelta(["3d", "2d", "1d", "2d", "5d"]),
-        }
-    )
-
-    for dtype in [
-        "int8",
-        "int16",
-        "int32",
-        "int64",
-        "float32",
-        "float64",
-        "uint8",
-        "uint16",
-        "uint32",
-        "uint64",
-    ]:
-        df[dtype] = Series([3, 2, 1, 2, 5], dtype=dtype)
-
-    return df
-
-
-@pytest.fixture(params=main_dtypes)
-def s_main_dtypes_split(request, s_main_dtypes):
-    """Each series in s_main_dtypes."""
-    return s_main_dtypes[request.param]
 
 
 def assert_check_nselect_boundary(vals, dtype, method):
@@ -96,19 +33,36 @@ class TestSeriesNLargestNSmallest:
             Series(list("abcde"), dtype="category"),
         ],
     )
-    def test_nlargest_error(self, r):
+    @pytest.mark.parametrize("method", ["nlargest", "nsmallest"])
+    @pytest.mark.parametrize("arg", [2, 5, 0, -1])
+    def test_nlargest_error(self, r, method, arg):
         dt = r.dtype
         msg = f"Cannot use method 'n(largest|smallest)' with dtype {dt}"
-        args = 2, len(r), 0, -1
-        methods = r.nlargest, r.nsmallest
-        for method, arg in product(methods, args):
-            with pytest.raises(TypeError, match=msg):
-                method(arg)
+        with pytest.raises(TypeError, match=msg):
+            getattr(r, method)(arg)
 
-    def test_nsmallest_nlargest(self, s_main_dtypes_split):
+    @pytest.mark.parametrize(
+        "data",
+        [
+            pd.to_datetime(["2003", "2002", "2001", "2002", "2005"]),
+            pd.to_datetime(["2003", "2002", "2001", "2002", "2005"], utc=True),
+            pd.to_timedelta(["3d", "2d", "1d", "2d", "5d"]),
+            np.array([3, 2, 1, 2, 5], dtype="int8"),
+            np.array([3, 2, 1, 2, 5], dtype="int16"),
+            np.array([3, 2, 1, 2, 5], dtype="int32"),
+            np.array([3, 2, 1, 2, 5], dtype="int64"),
+            np.array([3, 2, 1, 2, 5], dtype="uint8"),
+            np.array([3, 2, 1, 2, 5], dtype="uint16"),
+            np.array([3, 2, 1, 2, 5], dtype="uint32"),
+            np.array([3, 2, 1, 2, 5], dtype="uint64"),
+            np.array([3, 2, 1, 2, 5], dtype="float32"),
+            np.array([3, 2, 1, 2, 5], dtype="float64"),
+        ],
+    )
+    def test_nsmallest_nlargest(self, data):
         # float, int, datetime64 (use i8), timedelts64 (same),
         # object that are numbers, object that are strings
-        ser = s_main_dtypes_split
+        ser = Series(data)
 
         tm.assert_series_equal(ser.nsmallest(2), ser.iloc[[2, 1]])
         tm.assert_series_equal(ser.nsmallest(2, keep="last"), ser.iloc[[2, 3]])
@@ -224,7 +178,7 @@ class TestSeriesNLargestNSmallest:
             arr = np.random.default_rng(2).standard_normal(10)
         arr = arr.astype(dtype.lower(), copy=False)
 
-        ser = Series(arr.copy(), dtype=dtype)
+        ser = Series(arr, dtype=dtype, copy=True)
         ser[1] = pd.NA
         result = ser.nlargest(5)
 

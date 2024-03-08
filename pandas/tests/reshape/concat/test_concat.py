@@ -43,24 +43,15 @@ class TestConcatenate:
         assert isinstance(result.index, PeriodIndex)
         assert result.index[0] == s1.index[0]
 
-    def test_concat_copy(self, using_copy_on_write):
+    def test_concat_copy(self):
         df = DataFrame(np.random.default_rng(2).standard_normal((4, 3)))
         df2 = DataFrame(np.random.default_rng(2).integers(0, 10, size=4).reshape(4, 1))
         df3 = DataFrame({5: "foo"}, index=range(4))
 
         # These are actual copies.
         result = concat([df, df2, df3], axis=1, copy=True)
-
-        if not using_copy_on_write:
-            for arr in result._mgr.arrays:
-                assert not any(
-                    np.shares_memory(arr, y)
-                    for x in [df, df2, df3]
-                    for y in x._mgr.arrays
-                )
-        else:
-            for arr in result._mgr.arrays:
-                assert arr.base is not None
+        for arr in result._mgr.arrays:
+            assert arr.base is not None
 
         # These are the same.
         result = concat([df, df2, df3], axis=1, copy=False)
@@ -78,15 +69,11 @@ class TestConcatenate:
         result = concat([df, df2, df3, df4], axis=1, copy=False)
         for arr in result._mgr.arrays:
             if arr.dtype.kind == "f":
-                if using_copy_on_write:
-                    # this is a view on some array in either df or df4
-                    assert any(
-                        np.shares_memory(arr, other)
-                        for other in df._mgr.arrays + df4._mgr.arrays
-                    )
-                else:
-                    # the block was consolidated, so we got a copy anyway
-                    assert arr.base is None
+                # this is a view on some array in either df or df4
+                assert any(
+                    np.shares_memory(arr, other)
+                    for other in df._mgr.arrays + df4._mgr.arrays
+                )
             elif arr.dtype.kind in ["i", "u"]:
                 assert arr.base is df2._mgr.arrays[0].base
             elif arr.dtype == object:
@@ -137,7 +124,7 @@ class TestConcatenate:
         tm.assert_index_equal(result.columns.levels[0], Index(level, name="group_key"))
         tm.assert_index_equal(result.columns.levels[1], Index([0, 1, 2, 3]))
 
-        assert result.columns.names == ["group_key", None]
+        assert result.columns.names == ("group_key", None)
 
     @pytest.mark.parametrize("mapping", ["mapping", "dict"])
     def test_concat_mapping(self, mapping, non_dict_mapping_subclass):
@@ -412,7 +399,7 @@ class TestConcatenate:
         ts1 = Series(
             np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
         )
-        ts2 = ts1.copy()[::2]
+        ts2 = ts1[::2]
 
         # to join with union
         # these two are of different length!
@@ -545,14 +532,13 @@ def test_concat_no_unnecessary_upcast(float_numpy_dtype, frame_or_series):
     assert x.values.dtype == dt
 
 
-@pytest.mark.parametrize("pdt", [Series, DataFrame])
-def test_concat_will_upcast(pdt, any_signed_int_numpy_dtype):
+def test_concat_will_upcast(frame_or_series, any_signed_int_numpy_dtype):
     dt = any_signed_int_numpy_dtype
-    dims = pdt().ndim
+    dims = frame_or_series().ndim
     dfs = [
-        pdt(np.array([1], dtype=dt, ndmin=dims)),
-        pdt(np.array([np.nan], ndmin=dims)),
-        pdt(np.array([5], dtype=dt, ndmin=dims)),
+        frame_or_series(np.array([1], dtype=dt, ndmin=dims)),
+        frame_or_series(np.array([np.nan], ndmin=dims)),
+        frame_or_series(np.array([5], dtype=dt, ndmin=dims)),
     ]
     x = concat(dfs)
     assert x.values.dtype == "float64"

@@ -241,7 +241,7 @@ class TestSeriesArithmetic:
         result = datetime_series + empty
         assert np.isnan(result).all()
 
-        result = empty + empty.copy()
+        result = empty + empty
         assert len(result) == 0
 
     def test_add_float_plus_int(self, datetime_series):
@@ -659,12 +659,10 @@ class TestSeriesComparison:
         result = comparison_op(ser, val)
         expected = comparison_op(ser.dropna(), val).reindex(ser.index)
 
-        msg = "Downcasting object dtype arrays"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            if comparison_op is operator.ne:
-                expected = expected.fillna(True).astype(bool)
-            else:
-                expected = expected.fillna(False).astype(bool)
+        if comparison_op is operator.ne:
+            expected = expected.fillna(True).astype(bool)
+        else:
+            expected = expected.fillna(False).astype(bool)
 
         tm.assert_series_equal(result, expected)
 
@@ -674,22 +672,12 @@ class TestSeriesComparison:
         tm.assert_numpy_array_equal(ts.index != 5, expected)
         tm.assert_numpy_array_equal(~(ts.index == 5), expected)
 
-    @pytest.mark.parametrize(
-        "left, right",
-        [
-            (
-                Series([1, 2, 3], index=list("ABC"), name="x"),
-                Series([2, 2, 2], index=list("ABD"), name="x"),
-            ),
-            (
-                Series([1, 2, 3], index=list("ABC"), name="x"),
-                Series([2, 2, 2, 2], index=list("ABCD"), name="x"),
-            ),
-        ],
-    )
-    def test_comp_ops_df_compat(self, left, right, frame_or_series):
+    @pytest.mark.parametrize("right_data", [[2, 2, 2], [2, 2, 2, 2]])
+    def test_comp_ops_df_compat(self, right_data, frame_or_series):
         # GH 1134
         # GH 50083 to clarify that index and columns must be identically labeled
+        left = Series([1, 2, 3], index=list("ABC"), name="x")
+        right = Series(right_data, index=list("ABDC")[: len(right_data)], name="x")
         if frame_or_series is not Series:
             msg = (
                 rf"Can only compare identically-labeled \(both index and columns\) "

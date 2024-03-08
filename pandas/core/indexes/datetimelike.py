@@ -1,6 +1,7 @@
 """
 Base and utility classes for tseries type pandas objects.
 """
+
 from __future__ import annotations
 
 from abc import (
@@ -10,15 +11,11 @@ from abc import (
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     cast,
     final,
 )
-import warnings
 
 import numpy as np
-
-from pandas._config import using_copy_on_write
 
 from pandas._libs import (
     NaT,
@@ -32,7 +29,6 @@ from pandas._libs.tslibs import (
     parsing,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
@@ -43,14 +39,16 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    PeriodDtype,
+)
 
 from pandas.core.arrays import (
     DatetimeArray,
@@ -75,6 +73,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         Axis,
+        JoinHow,
         Self,
         npt,
     )
@@ -98,6 +97,32 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     @property
     def freq(self) -> BaseOffset | None:
+        """
+        Return the frequency object if it is set, otherwise None.
+
+        To learn more about the frequency strings, please see
+        :ref:`this link<timeseries.offset_aliases>`.
+
+        See Also
+        --------
+        DatetimeIndex.freq : Return the frequency object if it is set, otherwise None.
+        PeriodIndex.freq : Return the frequency object if it is set, otherwise None.
+
+        Examples
+        --------
+        >>> datetimeindex = pd.date_range(
+        ...     "2022-02-22 02:22:22", periods=10, tz="America/Chicago", freq="h"
+        ... )
+        >>> datetimeindex
+        DatetimeIndex(['2022-02-22 02:22:22-06:00', '2022-02-22 03:22:22-06:00',
+                       '2022-02-22 04:22:22-06:00', '2022-02-22 05:22:22-06:00',
+                       '2022-02-22 06:22:22-06:00', '2022-02-22 07:22:22-06:00',
+                       '2022-02-22 08:22:22-06:00', '2022-02-22 09:22:22-06:00',
+                       '2022-02-22 10:22:22-06:00', '2022-02-22 11:22:22-06:00'],
+                      dtype='datetime64[ns, America/Chicago]', freq='h')
+        >>> datetimeindex.freq
+        <Hour>
+        """
         return self._data.freq
 
     @freq.setter
@@ -117,15 +142,14 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         if self._data.freqstr is not None and isinstance(
             self._data, (PeriodArray, PeriodIndex)
         ):
-            freq = freq_to_period_freqstr(self._data.freq.n, self._data.freq.name)
+            freq = PeriodDtype(self._data.freq)._freqstr
             return freq
         else:
             return self._data.freqstr  # type: ignore[return-value]
 
     @cache_readonly
     @abstractmethod
-    def _resolution_obj(self) -> Resolution:
-        ...
+    def _resolution_obj(self) -> Resolution: ...
 
     @cache_readonly
     @doc(DatetimeLikeArrayMixin.resolution)
@@ -191,39 +215,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
     # Rendering Methods
     _default_na_rep = "NaT"
 
-    def format(
-        self,
-        name: bool = False,
-        formatter: Callable | None = None,
-        na_rep: str = "NaT",
-        date_format: str | None = None,
-    ) -> list[str]:
-        """
-        Render a string representation of the Index.
-        """
-        warnings.warn(
-            # GH#55413
-            f"{type(self).__name__}.format is deprecated and will be removed "
-            "in a future version. Convert using index.astype(str) or "
-            "index.map(formatter) instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        header = []
-        if name:
-            header.append(
-                ibase.pprint_thing(self.name, escape_chars=("\t", "\r", "\n"))
-                if self.name is not None
-                else ""
-            )
-
-        if formatter is not None:
-            return header + list(self.map(formatter))
-
-        return self._format_with_header(
-            header=header, na_rep=na_rep, date_format=date_format
-        )
-
     def _format_with_header(
         self, *, header: list[str], na_rep: str, date_format: str | None = None
     ) -> list[str]:
@@ -272,7 +263,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
     def _parsed_string_to_bounds(self, reso: Resolution, parsed):
         raise NotImplementedError
 
-    def _parse_with_reso(self, label: str):
+    def _parse_with_reso(self, label: str) -> tuple[datetime, Resolution]:
         # overridden by TimedeltaIndex
         try:
             if self.freq is None or hasattr(self.freq, "rule_code"):
@@ -294,7 +285,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         reso = Resolution.from_attrname(reso_str)
         return parsed, reso
 
-    def _get_string_slice(self, key: str):
+    def _get_string_slice(self, key: str) -> slice | npt.NDArray[np.intp]:
         # overridden by TimedeltaIndex
         parsed, reso = self._parse_with_reso(key)
         try:
@@ -462,20 +453,20 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         --------
         For :class:`pandas.DatetimeIndex`:
 
-        >>> idx = pd.DatetimeIndex(['2020-01-02 01:02:03.004005006'])
+        >>> idx = pd.DatetimeIndex(["2020-01-02 01:02:03.004005006"])
         >>> idx
         DatetimeIndex(['2020-01-02 01:02:03.004005006'],
                       dtype='datetime64[ns]', freq=None)
-        >>> idx.as_unit('s')
+        >>> idx.as_unit("s")
         DatetimeIndex(['2020-01-02 01:02:03'], dtype='datetime64[s]', freq=None)
 
         For :class:`pandas.TimedeltaIndex`:
 
-        >>> tdelta_idx = pd.to_timedelta(['1 day 3 min 2 us 42 ns'])
+        >>> tdelta_idx = pd.to_timedelta(["1 day 3 min 2 us 42 ns"])
         >>> tdelta_idx
         TimedeltaIndex(['1 days 00:03:00.000002042'],
                         dtype='timedelta64[ns]', freq=None)
-        >>> tdelta_idx.as_unit('s')
+        >>> tdelta_idx.as_unit("s")
         TimedeltaIndex(['1 days 00:03:00'], dtype='timedelta64[s]', freq=None)
         """
         arr = self._data.as_unit(unit)
@@ -489,9 +480,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     def values(self) -> np.ndarray:
         # NB: For Datetime64TZ this is lossy
         data = self._data._ndarray
-        if using_copy_on_write():
-            data = data.view()
-            data.flags.writeable = False
+        data = data.view()
+        data.flags.writeable = False
         return data
 
     @doc(DatetimeIndexOpsMixin.shift)
@@ -734,13 +724,20 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             freq = self.freq
         return freq
 
-    def _wrap_joined_index(
-        self, joined, other, lidx: npt.NDArray[np.intp], ridx: npt.NDArray[np.intp]
-    ):
+    def _wrap_join_result(
+        self,
+        joined,
+        other,
+        lidx: npt.NDArray[np.intp] | None,
+        ridx: npt.NDArray[np.intp] | None,
+        how: JoinHow,
+    ) -> tuple[Self, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         assert other.dtype == self.dtype, (other.dtype, self.dtype)
-        result = super()._wrap_joined_index(joined, other, lidx, ridx)
-        result._data._freq = self._get_join_freq(other)
-        return result
+        join_index, lidx, ridx = super()._wrap_join_result(
+            joined, other, lidx, ridx, how
+        )
+        join_index._data._freq = self._get_join_freq(other)
+        return join_index, lidx, ridx
 
     def _get_engine_target(self) -> np.ndarray:
         # engine methods and libjoin methods need dt64/td64 values cast to i8

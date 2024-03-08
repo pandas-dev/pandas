@@ -2,6 +2,7 @@
 Tests that work on the Python, C and PyArrow engines but do not have a
 specific classification into the other test modules.
 """
+
 import codecs
 import csv
 from io import StringIO
@@ -57,9 +58,12 @@ def test_bad_stream_exception(all_parsers, csv_dir_path):
     msg = "'utf-8' codec can't decode byte"
 
     # Stream must be binary UTF8.
-    with open(path, "rb") as handle, codecs.StreamRecoder(
-        handle, utf8.encode, utf8.decode, codec.streamreader, codec.streamwriter
-    ) as stream:
+    with (
+        open(path, "rb") as handle,
+        codecs.StreamRecoder(
+            handle, utf8.encode, utf8.decode, codec.streamreader, codec.streamwriter
+        ) as stream,
+    ):
         with pytest.raises(UnicodeDecodeError, match=msg):
             parser.read_csv(stream)
 
@@ -130,14 +134,9 @@ def test_catch_too_many_names(all_parsers):
         else "Number of passed names did not match "
         "number of header fields in the file"
     )
-    depr_msg = "Passing a BlockManager to DataFrame is deprecated"
-    warn = None
-    if parser.engine == "pyarrow":
-        warn = DeprecationWarning
 
-    with tm.assert_produces_warning(warn, match=depr_msg, check_stacklevel=False):
-        with pytest.raises(ValueError, match=msg):
-            parser.read_csv(StringIO(data), header=0, names=["a", "b", "c", "d"])
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO(data), header=0, names=["a", "b", "c", "d"])
 
 
 @skip_pyarrow  # CSV parse error: Empty CSV file or block
@@ -168,13 +167,7 @@ def test_suppress_error_output(all_parsers):
     data = "a\n1\n1,2,3\n4\n5,6,7"
     expected = DataFrame({"a": [1, 4]})
 
-    warn = None
-    if parser.engine == "pyarrow":
-        warn = DeprecationWarning
-    msg = "Passing a BlockManager to DataFrame|make_block is deprecated"
-
-    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-        result = parser.read_csv(StringIO(data), on_bad_lines="skip")
+    result = parser.read_csv(StringIO(data), on_bad_lines="skip")
     tm.assert_frame_equal(result, expected)
 
 

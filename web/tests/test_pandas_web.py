@@ -1,4 +1,4 @@
-from unittest.mock import (
+from unittest.mock import (  # noqa: TID251
     mock_open,
     patch,
 )
@@ -30,7 +30,7 @@ def context() -> dict:
     }
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def mock_response(monkeypatch, request) -> None:
     def mocked_resp(*args, **kwargs):
         status_code, response = request.param

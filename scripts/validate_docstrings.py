@@ -18,7 +18,6 @@ from __future__ import annotations
 import argparse
 import doctest
 import importlib
-import io
 import json
 import os
 import pathlib
@@ -28,14 +27,12 @@ import tempfile
 
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy
 from numpydoc.docscrape import get_doc_object
 from numpydoc.validate import (
+    ERROR_MSGS as NUMPYDOC_ERROR_MSGS,
     Validator,
     validate,
 )
-
-import pandas
 
 # With template backend, matplotlib plots nothing
 matplotlib.use("template")
@@ -60,10 +57,9 @@ PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
 ERROR_MSGS = {
     "GL04": "Private classes ({mentioned_private_classes}) should not be "
     "mentioned in public docstrings",
-    "GL05": "Use 'array-like' rather than 'array_like' in docstrings.",
+    "PD01": "Use 'array-like' rather than 'array_like' in docstrings.",
     "SA05": "{reference_name} in `See Also` section does not need `pandas` "
     "prefix, use {right_reference} instead.",
-    "EX02": "Examples do not pass tests:\n{doctest_log}",
     "EX03": "flake8 error: line {line_number}, col {col_number}: {error_code} "
     "{error_message}",
     "EX04": "Do not import {imported_library}, as it is imported "
@@ -168,32 +164,6 @@ class PandasDocstring(Validator):
         return [klass for klass in PRIVATE_CLASSES if klass in self.raw_doc]
 
     @property
-    def examples_errors(self):
-        flags = doctest.NORMALIZE_WHITESPACE | doctest.IGNORE_EXCEPTION_DETAIL
-        finder = doctest.DocTestFinder()
-        runner = doctest.DocTestRunner(optionflags=flags)
-        context = {"np": numpy, "pd": pandas}
-        error_msgs = ""
-        current_dir = set(os.listdir())
-        for test in finder.find(self.raw_doc, self.name, globs=context):
-            f = io.StringIO()
-            runner.run(test, out=f.write)
-            error_msgs += f.getvalue()
-        leftovers = set(os.listdir()).difference(current_dir)
-        if leftovers:
-            for leftover in leftovers:
-                path = pathlib.Path(leftover).resolve()
-                if path.is_dir():
-                    path.rmdir()
-                elif path.is_file():
-                    path.unlink(missing_ok=True)
-            raise Exception(
-                f"The following files were leftover from the doctest: "
-                f"{leftovers}. Please use # doctest: +SKIP"
-            )
-        return error_msgs
-
-    @property
     def examples_source_code(self):
         lines = doctest.DocTestParser().get_examples(self.raw_doc)
         return [line.source for line in lines]
@@ -219,12 +189,12 @@ class PandasDocstring(Validator):
             file.write(content)
             file.flush()
             cmd = [
-                "python",
+                sys.executable,
                 "-m",
                 "flake8",
                 "--format=%(row)d\t%(col)d\t%(code)s\t%(text)s",
                 "--max-line-length=88",
-                "--ignore=E203,E3,W503,W504,E402,E731",
+                "--ignore=E203,E3,W503,W504,E402,E731,E128,E124,E704",
                 file.name,
             ]
             response = subprocess.run(cmd, capture_output=True, check=False, text=True)
@@ -270,7 +240,6 @@ def pandas_validate(func_name: str):
     doc_obj = get_doc_object(func_obj, doc=func_obj.__doc__)
     doc = PandasDocstring(func_name, doc_obj)
     result = validate(doc_obj)
-
     mentioned_errs = doc.mentioned_private_classes
     if mentioned_errs:
         result["errors"].append(
@@ -290,12 +259,6 @@ def pandas_validate(func_name: str):
 
     result["examples_errs"] = ""
     if doc.examples:
-        result["examples_errs"] = doc.examples_errors
-        if result["examples_errs"]:
-            result["errors"].append(
-                pandas_error("EX02", doctest_log=result["examples_errs"])
-            )
-
         for error_code, error_message, line_number, col_number in doc.validate_pep8():
             result["errors"].append(
                 pandas_error(
@@ -314,7 +277,7 @@ def pandas_validate(func_name: str):
         )
 
     if doc.non_hyphenated_array_like():
-        result["errors"].append(pandas_error("GL05"))
+        result["errors"].append(pandas_error("PD01"))
 
     plt.close("all")
     return result
@@ -429,10 +392,7 @@ def print_validate_one_results(func_name: str) -> None:
     if result["errors"]:
         sys.stderr.write(f'{len(result["errors"])} Errors found for `{func_name}`:\n')
         for err_code, err_desc in result["errors"]:
-            if err_code == "EX02":  # Failing examples are printed at the end
-                sys.stderr.write("\tExamples do not pass tests\n")
-                continue
-            sys.stderr.write(f"\t{err_desc}\n")
+            sys.stderr.write(f"\t{err_code}\t{err_desc}\n")
     else:
         sys.stderr.write(f'Docstring for "{func_name}" correct. :)\n')
 
@@ -440,11 +400,19 @@ def print_validate_one_results(func_name: str) -> None:
         sys.stderr.write(header("Doctests"))
         sys.stderr.write(result["examples_errs"])
 
+def validate_error_codes(errors):
+    overlapped_errors = set(NUMPYDOC_ERROR_MSGS).intersection(set(ERROR_MSGS))
+    assert not overlapped_errors, f"{overlapped_errors} is overlapped."
+    all_errors = set(NUMPYDOC_ERROR_MSGS).union(set(ERROR_MSGS))
+    nonexistent_errors = set(errors) - all_errors
+    assert not nonexistent_errors, f"{nonexistent_errors} don't exist."
+
 
 def main(func_name, prefix, errors, output_format, ignore_deprecated, ignore_functions):
     """
     Main entry point. Call the validation for one or for all docstrings.
     """
+    validate_error_codes(errors)
     if func_name is None:
         return print_validate_all_results(
             prefix,

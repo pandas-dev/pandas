@@ -3,6 +3,9 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_extension_array_dtype
+
+import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -30,9 +33,8 @@ from pandas.core.resample import _asfreq_compat
         date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D"),
     ],
 )
-@pytest.mark.parametrize("klass", [DataFrame, Series])
-def test_asfreq(klass, index, freq):
-    obj = klass(range(len(index)), index=index)
+def test_asfreq(frame_or_series, index, freq):
+    obj = frame_or_series(range(len(index)), index=index)
     idx_range = date_range if isinstance(index, DatetimeIndex) else timedelta_range
 
     result = obj.resample(freq).asfreq()
@@ -135,7 +137,7 @@ def test_resample_empty_series(freq, index, resample_method):
 
     if resample_method == "ohlc":
         expected = DataFrame(
-            [], index=ser.index[:0].copy(), columns=["open", "high", "low", "close"]
+            [], index=ser.index[:0], columns=["open", "high", "low", "close"]
         )
         expected.index = _asfreq_compat(ser.index, freq)
         tm.assert_frame_equal(result, expected, check_dtype=False)
@@ -168,7 +170,7 @@ def test_resample_nat_index_series(freq, resample_method):
 
     if resample_method == "ohlc":
         expected = DataFrame(
-            [], index=ser.index[:0].copy(), columns=["open", "high", "low", "close"]
+            [], index=ser.index[:0], columns=["open", "high", "low", "close"]
         )
         tm.assert_frame_equal(result, expected, check_dtype=False)
     else:
@@ -249,9 +251,7 @@ def test_resample_empty_dataframe(index, freq, resample_method):
     if resample_method == "ohlc":
         # TODO: no tests with len(df.columns) > 0
         mi = MultiIndex.from_product([df.columns, ["open", "high", "low", "close"]])
-        expected = DataFrame(
-            [], index=df.index[:0].copy(), columns=mi, dtype=np.float64
-        )
+        expected = DataFrame([], index=df.index[:0], columns=mi, dtype=np.float64)
         expected.index = _asfreq_compat(df.index, freq)
 
     elif resample_method != "size":
@@ -462,3 +462,29 @@ def test_resample_quantile(index):
         result = ser.resample(freq).quantile(q)
         expected = ser.resample(freq).agg(lambda x: x.quantile(q)).rename(ser.name)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["first", "last"])
+def test_first_last_skipna(any_real_nullable_dtype, skipna, how):
+    # GH#57019
+    if is_extension_array_dtype(any_real_nullable_dtype):
+        na_value = Series(dtype=any_real_nullable_dtype).dtype.na_value
+    else:
+        na_value = np.nan
+    df = DataFrame(
+        {
+            "a": [2, 1, 1, 2],
+            "b": [na_value, 3.0, na_value, 4.0],
+            "c": [na_value, 3.0, na_value, 4.0],
+        },
+        index=date_range("2020-01-01", periods=4, freq="D"),
+        dtype=any_real_nullable_dtype,
+    )
+    rs = df.resample("ME")
+    method = getattr(rs, how)
+    result = method(skipna=skipna)
+
+    gb = df.groupby(df.shape[0] * [pd.to_datetime("2020-01-31")])
+    expected = getattr(gb, how)(skipna=skipna)
+    expected.index.freq = "ME"
+    tm.assert_frame_equal(result, expected)

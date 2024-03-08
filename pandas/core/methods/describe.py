@@ -3,6 +3,7 @@ Module responsible for execution of NDFrame.describe() method.
 
 Method NDFrame.describe() delegates actual execution to function describe_ndframe().
 """
+
 from __future__ import annotations
 
 from abc import (
@@ -173,7 +174,7 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
 
         col_names = reorder_columns(ldesc)
         d = concat(
-            [x.reindex(col_names, copy=False) for x in ldesc],
+            [x.reindex(col_names) for x in ldesc],
             axis=1,
             sort=False,
         )

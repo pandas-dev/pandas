@@ -121,7 +121,7 @@ def test_multiindex_symmetric_difference():
 
     idx2 = idx.copy().rename(["A", "B"])
     result = idx.symmetric_difference(idx2)
-    assert result.names == [None, None]
+    assert result.names == (None, None)
 
 
 def test_empty(idx):
@@ -711,17 +711,11 @@ def test_intersection_lexsort_depth(levels1, levels2, codes1, codes2, names):
     "a",
     [pd.Categorical(["a", "b"], categories=["a", "b"]), ["a", "b"]],
 )
-@pytest.mark.parametrize(
-    "b",
-    [
-        pd.Categorical(["a", "b"], categories=["b", "a"], ordered=True),
-        pd.Categorical(["a", "b"], categories=["b", "a"]),
-    ],
-)
-def test_intersection_with_non_lex_sorted_categories(a, b):
+@pytest.mark.parametrize("b_ordered", [True, False])
+def test_intersection_with_non_lex_sorted_categories(a, b_ordered):
     # GH#49974
     other = ["1", "2"]
-
+    b = pd.Categorical(["a", "b"], categories=["b", "a"], ordered=b_ordered)
     df1 = DataFrame({"x": a, "y": other})
     df2 = DataFrame({"x": b, "y": other})
 

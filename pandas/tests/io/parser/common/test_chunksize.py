@@ -2,6 +2,7 @@
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
+
 from io import StringIO
 
 import numpy as np
@@ -220,20 +221,14 @@ def test_chunks_have_consistent_numerical_type(all_parsers, monkeypatch):
     data = "a\n" + "\n".join(integers + ["1.0", "2.0"] + integers)
 
     # Coercions should work without warnings.
-    warn = None
-    if parser.engine == "pyarrow":
-        warn = DeprecationWarning
-    depr_msg = "Passing a BlockManager to DataFrame|make_block is deprecated"
-    with tm.assert_produces_warning(warn, match=depr_msg, check_stacklevel=False):
-        with monkeypatch.context() as m:
-            m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
-            result = parser.read_csv(StringIO(data))
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
+        result = parser.read_csv(StringIO(data))
 
     assert type(result.a[0]) is np.float64
     assert result.a.dtype == float
 
 
-@pytest.mark.filterwarnings("ignore:make_block is deprecated:FutureWarning")
 def test_warn_if_chunks_have_mismatched_type(all_parsers):
     warning_type = None
     parser = all_parsers
@@ -252,12 +247,8 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers):
     buf = StringIO(data)
 
     if parser.engine == "pyarrow":
-        df = parser.read_csv_check_warnings(
-            DeprecationWarning,
-            "Passing a BlockManager to DataFrame is deprecated|"
-            "make_block is deprecated",
+        df = parser.read_csv(
             buf,
-            check_stacklevel=False,
         )
     else:
         df = parser.read_csv_check_warnings(

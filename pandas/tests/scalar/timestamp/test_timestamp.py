@@ -1,4 +1,4 @@
-""" test the scalar Timestamp """
+"""test the scalar Timestamp"""
 
 import calendar
 from datetime import (
@@ -118,17 +118,16 @@ class TestTimestampProperties:
         assert getattr(ts, end)
 
     # GH 12806
-    @pytest.mark.parametrize(
-        "data",
-        [Timestamp("2017-08-28 23:00:00"), Timestamp("2017-08-28 23:00:00", tz="EST")],
-    )
+    @pytest.mark.parametrize("tz", [None, "EST"])
     # error: Unsupported operand types for + ("List[None]" and "List[str]")
     @pytest.mark.parametrize(
-        "time_locale", [None] + tm.get_locales()  # type: ignore[operator]
+        "time_locale",
+        [None] + tm.get_locales(),  # type: ignore[operator]
     )
-    def test_names(self, data, time_locale):
+    def test_names(self, tz, time_locale):
         # GH 17354
         # Test .day_name(), .month_name
+        data = Timestamp("2017-08-28 23:00:00", tz=tz)
         if time_locale is None:
             expected_day = "Monday"
             expected_month = "August"
@@ -269,7 +268,9 @@ class TestTimestamp:
             ts.tz = tz
 
     def test_default_to_stdlib_utc(self):
-        assert Timestamp.utcnow().tz is timezone.utc
+        msg = "Timestamp.utcnow is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert Timestamp.utcnow().tz is timezone.utc
         assert Timestamp.now("UTC").tz is timezone.utc
         assert Timestamp("2016-01-01", tz="UTC").tz is timezone.utc
 
@@ -312,11 +313,15 @@ class TestTimestamp:
         compare(Timestamp.now(), datetime.now())
         compare(Timestamp.now("UTC"), datetime.now(pytz.timezone("UTC")))
         compare(Timestamp.now("UTC"), datetime.now(tzutc()))
-        compare(Timestamp.utcnow(), datetime.now(timezone.utc))
+        msg = "Timestamp.utcnow is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            compare(Timestamp.utcnow(), datetime.now(timezone.utc))
         compare(Timestamp.today(), datetime.today())
         current_time = calendar.timegm(datetime.now().utctimetuple())
 
-        ts_utc = Timestamp.utcfromtimestamp(current_time)
+        msg = "Timestamp.utcfromtimestamp is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ts_utc = Timestamp.utcfromtimestamp(current_time)
         assert ts_utc.timestamp() == current_time
         compare(
             Timestamp.fromtimestamp(current_time), datetime.fromtimestamp(current_time)

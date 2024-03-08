@@ -445,12 +445,12 @@ class TestPeriodDtype(Base):
 
     def test_cannot_use_custom_businessday(self):
         # GH#52534
-        msg = "CustomBusinessDay is not supported as period frequency"
+        msg = "C is not supported as period frequency"
+        msg1 = "<CustomBusinessDay> is not supported as period frequency"
         msg2 = r"PeriodDtype\[B\] is deprecated"
-        with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=msg2):
-                PeriodDtype("C")
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(ValueError, match=msg):
+            PeriodDtype("C")
+        with pytest.raises(ValueError, match=msg1):
             with tm.assert_produces_warning(FutureWarning, match=msg2):
                 PeriodDtype(pd.offsets.CustomBusinessDay())
 
@@ -959,25 +959,24 @@ class TestCategoricalDtypeParametrized:
         c2 = CategoricalDtype(["b", "a"], ordered=True)
         assert c1 is not c2
 
-    @pytest.mark.parametrize("ordered1", [True, False, None])
     @pytest.mark.parametrize("ordered2", [True, False, None])
-    def test_categorical_equality(self, ordered1, ordered2):
+    def test_categorical_equality(self, ordered, ordered2):
         # same categories, same order
         # any combination of None/False are equal
         # True/True is the only combination with True that are equal
-        c1 = CategoricalDtype(list("abc"), ordered1)
+        c1 = CategoricalDtype(list("abc"), ordered)
         c2 = CategoricalDtype(list("abc"), ordered2)
         result = c1 == c2
-        expected = bool(ordered1) is bool(ordered2)
+        expected = bool(ordered) is bool(ordered2)
         assert result is expected
 
         # same categories, different order
         # any combination of None/False are equal (order doesn't matter)
         # any combination with True are not equal (different order of cats)
-        c1 = CategoricalDtype(list("abc"), ordered1)
+        c1 = CategoricalDtype(list("abc"), ordered)
         c2 = CategoricalDtype(list("cab"), ordered2)
         result = c1 == c2
-        expected = (bool(ordered1) is False) and (bool(ordered2) is False)
+        expected = (bool(ordered) is False) and (bool(ordered2) is False)
         assert result is expected
 
         # different categories
@@ -985,9 +984,9 @@ class TestCategoricalDtypeParametrized:
         assert c1 != c2
 
         # none categories
-        c1 = CategoricalDtype(list("abc"), ordered1)
+        c1 = CategoricalDtype(list("abc"), ordered)
         c2 = CategoricalDtype(None, ordered2)
-        c3 = CategoricalDtype(None, ordered1)
+        c3 = CategoricalDtype(None, ordered)
         assert c1 != c2
         assert c2 != c1
         assert c2 == c3
