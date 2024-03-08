@@ -48,8 +48,8 @@ def test_get_attrname_from_abbrev(freqstr, expected):
     assert reso.attrname == expected
 
 
-@pytest.mark.parametrize("freq", ["A", "H", "T", "S", "L", "U", "N"])
-def test_units_A_H_T_S_L_U_N_deprecated_from_attrname_to_abbrevs(freq):
+@pytest.mark.parametrize("freq", ["H", "T", "S", "L", "U", "N"])
+def test_units_H_T_S_L_U_N_deprecated_from_attrname_to_abbrevs(freq):
     # GH#52536
     msg = f"'{freq}' is deprecated and will be removed in a future version."
 
