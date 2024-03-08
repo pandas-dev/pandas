@@ -23,11 +23,15 @@ enhancement1
 
 Strftime performance improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+All datetime formatting procedures support faster strftime operations, achieved with using python string formatting instead of OS ``strftime``::
+- in :meth:`DatetimeLikeArrayMixin.strftime`. Classes :class:`DatetimeArray`, :class:`PeriodArray`, :class:`DatetimeIndex`, :class:`PeriodIndex` benefit from the improvement. :class:`TimedeltaArray.strftime` and :class:`TimedeltaArray.format` are not impacted as their ``date_format`` argument is currently ignored.
+- in :meth:`NDFrame.to_csv`, :meth:`DataFrameRenderer.to_csv` and :class:`CSVFormatter`
+
+This is achieved thanks to::
 - New :func:`pd.tseries.api.convert_strftime_format` to convert a strftime formatting template into a python string formatting template.
-- All formatting procedures support faster strftime operations thanks to :func:`pd.tseries.api.convert_strftime_format`:
-  - in :meth:`DatetimeLikeArrayMixin.strftime` and :meth:`DatetimeIndexOpsMixin.format`. Classes :class:`DatetimeArray`, :class:`PeriodArray`, :class:`DatetimeIndex`, :class:`PeriodIndex` benefit from the improvement. :class:`TimedeltaArray.strftime` and :class:`TimedeltaArray.format` are not impacted as their ``date_format`` argument is currently ignored.
-  - in :meth:`NDFrame.to_csv`, :meth:`DataFrameRenderer.to_csv` and :class:`CSVFormatter`
 - New instance-level :meth:`Period._fast_strftime` and :meth:`Timestamp._fast_strftime` leveraging templates created with :func:`convert_strftime_format`
+
+strftime templates that can not be converted to such a fast python string template continue to be processed with OS ``strftime`` as fallback.
 
 .. _whatsnew_300.enhancements.other:
 
