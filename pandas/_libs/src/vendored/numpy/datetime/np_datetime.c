@@ -1072,7 +1072,8 @@ PyArray_DatetimeMetaData
 get_datetime_metadata_from_dtype(PyArray_Descr *dtype) {
 #if NPY_ABI_VERSION >= 0x02000000
   // we're compiling with numpy > 2.0
-  return PyDataType_C_METADATA(dtype)->meta;
+  _PyArray_LegacyDescr *ldtype = (_PyArray_LegacyDescr *)dtype;
+  return (((PyArray_DatetimeDTypeMetaData *)ldtype->c_metadata)->meta);
 #else
   return (((PyArray_DatetimeDTypeMetaData *)dtype->c_metadata)->meta);
 #endif
