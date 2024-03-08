@@ -59,8 +59,7 @@ def to_dict(
     *,
     into: type[MutableMappingT] | MutableMappingT,
     index: bool = ...,
-) -> MutableMappingT:
-    ...
+) -> MutableMappingT: ...
 
 
 @overload
@@ -70,8 +69,7 @@ def to_dict(
     *,
     into: type[MutableMappingT] | MutableMappingT,
     index: bool = ...,
-) -> list[MutableMappingT]:
-    ...
+) -> list[MutableMappingT]: ...
 
 
 @overload
@@ -81,8 +79,7 @@ def to_dict(
     *,
     into: type[dict] = ...,
     index: bool = ...,
-) -> dict:
-    ...
+) -> dict: ...
 
 
 @overload
@@ -92,8 +89,7 @@ def to_dict(
     *,
     into: type[dict] = ...,
     index: bool = ...,
-) -> list[dict]:
-    ...
+) -> list[dict]: ...
 
 
 # error: Incompatible default for argument "into" (default has type "type[dict

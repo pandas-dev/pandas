@@ -6,6 +6,7 @@ An interface for extending pandas with custom arrays.
    This is an experimental API and subject to breaking changes
    without warning.
 """
+
 from __future__ import annotations
 
 import operator
@@ -332,7 +333,7 @@ class ExtensionArray:
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
+        cls, strings, *, dtype: ExtensionDtype, copy: bool = False
     ) -> Self:
         """
         Construct a new ExtensionArray from a sequence of strings.
@@ -342,7 +343,7 @@ class ExtensionArray:
         strings : Sequence
             Each element will be an instance of the scalar type for this
             array, ``cls.dtype.type``.
-        dtype : dtype, optional
+        dtype : ExtensionDtype
             Construct for this particular dtype. This should be a Dtype
             compatible with the ExtensionArray.
         copy : bool, default False
@@ -354,7 +355,9 @@ class ExtensionArray:
 
         Examples
         --------
-        >>> pd.arrays.IntegerArray._from_sequence_of_strings(["1", "2", "3"])
+        >>> pd.arrays.IntegerArray._from_sequence_of_strings(
+        ...     ["1", "2", "3"], dtype=pd.Int64Dtype()
+        ... )
         <IntegerArray>
         [1, 2, 3]
         Length: 3, dtype: Int64
@@ -380,8 +383,9 @@ class ExtensionArray:
 
         Examples
         --------
-        >>> interv_arr = pd.arrays.IntervalArray([pd.Interval(0, 1),
-        ...                                      pd.Interval(1, 5), pd.Interval(1, 5)])
+        >>> interv_arr = pd.arrays.IntervalArray(
+        ...     [pd.Interval(0, 1), pd.Interval(1, 5), pd.Interval(1, 5)]
+        ... )
         >>> codes, uniques = pd.factorize(interv_arr)
         >>> pd.arrays.IntervalArray._from_factorized(uniques, interv_arr)
         <IntervalArray>
@@ -394,12 +398,10 @@ class ExtensionArray:
     # Must be a Sequence
     # ------------------------------------------------------------------------
     @overload
-    def __getitem__(self, item: ScalarIndexer) -> Any:
-        ...
+    def __getitem__(self, item: ScalarIndexer) -> Any: ...
 
     @overload
-    def __getitem__(self, item: SequenceIndexer) -> Self:
-        ...
+    def __getitem__(self, item: SequenceIndexer) -> Self: ...
 
     def __getitem__(self, item: PositionalIndexer) -> Self | Any:
         """
@@ -645,16 +647,13 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     @overload
-    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
-        ...
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray: ...
 
     @overload
-    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
-        ...
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray: ...
 
     @overload
-    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
-        ...
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike: ...
 
     def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         """
@@ -685,7 +684,7 @@ class ExtensionArray:
 
         Casting to another ``ExtensionDtype`` returns an ``ExtensionArray``:
 
-        >>> arr1 = arr.astype('Float64')
+        >>> arr1 = arr.astype("Float64")
         >>> arr1
         <FloatingArray>
         [1.0, 2.0, 3.0]
@@ -695,7 +694,7 @@ class ExtensionArray:
 
         Otherwise, we will get a Numpy ndarray:
 
-        >>> arr2 = arr.astype('float64')
+        >>> arr2 = arr.astype("float64")
         >>> arr2
         array([1., 2., 3.])
         >>> arr2.dtype
@@ -722,7 +721,10 @@ class ExtensionArray:
 
             return TimedeltaArray._from_sequence(self, dtype=dtype, copy=copy)
 
-        return np.array(self, dtype=dtype, copy=copy)
+        if not copy:
+            return np.asarray(self, dtype=dtype)
+        else:
+            return np.array(self, dtype=dtype, copy=copy)
 
     def isna(self) -> np.ndarray | ExtensionArraySupportsAnyAll:
         """
@@ -939,15 +941,16 @@ class ExtensionArray:
         Examples
         --------
         >>> arr = pd.arrays.NumpyExtensionArray(np.array([0, 1, np.nan, 3]))
-        >>> arr.interpolate(method="linear",
-        ...                 limit=3,
-        ...                 limit_direction="forward",
-        ...                 index=pd.Index([1, 2, 3, 4]),
-        ...                 fill_value=1,
-        ...                 copy=False,
-        ...                 axis=0,
-        ...                 limit_area="inside"
-        ...                 )
+        >>> arr.interpolate(
+        ...     method="linear",
+        ...     limit=3,
+        ...     limit_direction="forward",
+        ...     index=pd.Index([1, 2, 3, 4]),
+        ...     fill_value=1,
+        ...     copy=False,
+        ...     axis=0,
+        ...     limit_area="inside",
+        ... )
         <NumpyExtensionArray>
         [0.0, 1.0, 2.0, 3.0]
         Length: 4, dtype: float64
@@ -1467,8 +1470,10 @@ class ExtensionArray:
 
         Examples
         --------
-        >>> idx1 = pd.PeriodIndex(["2014-01", "2014-01", "2014-02", "2014-02",
-        ...                       "2014-03", "2014-03"], freq="M")
+        >>> idx1 = pd.PeriodIndex(
+        ...     ["2014-01", "2014-01", "2014-02", "2014-02", "2014-03", "2014-03"],
+        ...     freq="M",
+        ... )
         >>> arr, idx = idx1.factorize()
         >>> arr
         array([0, 0, 1, 1, 2, 2])
@@ -1627,10 +1632,9 @@ class ExtensionArray:
                # type for the array, to the physical storage type for
                # the data, before passing to take.
 
-               result = take(data, indices, fill_value=fill_value,
-                             allow_fill=allow_fill)
+               result = take(data, indices, fill_value=fill_value, allow_fill=allow_fill)
                return self._from_sequence(result, dtype=self.dtype)
-        """
+        """  # noqa: E501
         # Implementer note: The `fill_value` parameter should be a user-facing
         # value, an instance of self.dtype.type. When passed `fill_value=None`,
         # the default of `self.dtype.na_value` should be used.
@@ -1767,7 +1771,7 @@ class ExtensionArray:
         --------
         >>> class MyExtensionArray(pd.arrays.NumpyExtensionArray):
         ...     def _formatter(self, boxed=False):
-        ...         return lambda x: '*' + str(x) + '*' if boxed else repr(x) + '*'
+        ...         return lambda x: "*" + str(x) + "*" if boxed else repr(x) + "*"
         >>> MyExtensionArray(np.array([1, 2, 3, 4]))
         <MyExtensionArray>
         [1*, 2*, 3*, 4*]
@@ -1902,7 +1906,7 @@ class ExtensionArray:
         Examples
         --------
         >>> arr = pd.array([1, 2, 3])
-        >>> arr._accumulate(name='cumsum')
+        >>> arr._accumulate(name="cumsum")
         <IntegerArray>
         [1, 3, 6]
         Length: 3, dtype: Int64
@@ -2007,10 +2011,9 @@ class ExtensionArray:
 
         Examples
         --------
-        >>> pd.array([1, 2])._hash_pandas_object(encoding='utf-8',
-        ...                                      hash_key="1000000000000000",
-        ...                                      categorize=False
-        ...                                      )
+        >>> pd.array([1, 2])._hash_pandas_object(
+        ...     encoding="utf-8", hash_key="1000000000000000", categorize=False
+        ... )
         array([ 6238072747940578789, 15839785061582574730], dtype=uint64)
         """
         from pandas.core.util.hashing import hash_array
@@ -2044,8 +2047,9 @@ class ExtensionArray:
         Examples
         --------
         >>> import pyarrow as pa
-        >>> a = pd.array([[1, 2, 3], [4], [5, 6]],
-        ...              dtype=pd.ArrowDtype(pa.list_(pa.int64())))
+        >>> a = pd.array(
+        ...     [[1, 2, 3], [4], [5, 6]], dtype=pd.ArrowDtype(pa.list_(pa.int64()))
+        ... )
         >>> a._explode()
         (<ArrowExtensionArray>
         [1, 2, 3, 4, 5, 6]
@@ -2403,23 +2407,19 @@ class ExtensionArray:
 
 class ExtensionArraySupportsAnyAll(ExtensionArray):
     @overload
-    def any(self, *, skipna: Literal[True] = ...) -> bool:
-        ...
+    def any(self, *, skipna: Literal[True] = ...) -> bool: ...
 
     @overload
-    def any(self, *, skipna: bool) -> bool | NAType:
-        ...
+    def any(self, *, skipna: bool) -> bool | NAType: ...
 
     def any(self, *, skipna: bool = True) -> bool | NAType:
         raise AbstractMethodError(self)
 
     @overload
-    def all(self, *, skipna: Literal[True] = ...) -> bool:
-        ...
+    def all(self, *, skipna: Literal[True] = ...) -> bool: ...
 
     @overload
-    def all(self, *, skipna: bool) -> bool | NAType:
-        ...
+    def all(self, *, skipna: bool) -> bool | NAType: ...
 
     def all(self, *, skipna: bool = True) -> bool | NAType:
         raise AbstractMethodError(self)

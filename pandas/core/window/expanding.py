@@ -51,6 +51,9 @@ class Expanding(RollingAndExpandingMixin):
     """
     Provide expanding window calculations.
 
+    An expanding window yields the value of an aggregation statistic with all the data
+    available up to that point in time.
+
     Parameters
     ----------
     min_periods : int, default 1
@@ -69,6 +72,8 @@ class Expanding(RollingAndExpandingMixin):
     Returns
     -------
     pandas.api.typing.Expanding
+        An instance of Expanding for further expanding window calculations,
+        e.g. using the ``sum`` method.
 
     See Also
     --------
@@ -139,8 +144,8 @@ class Expanding(RollingAndExpandingMixin):
             """
         See Also
         --------
-        pandas.DataFrame.aggregate : Similar DataFrame method.
-        pandas.Series.aggregate : Similar Series method.
+        DataFrame.aggregate : Similar DataFrame method.
+        Series.aggregate : Similar Series method.
         """
         ),
         examples=dedent(

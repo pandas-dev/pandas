@@ -4,6 +4,7 @@ and Index.__new__.
 
 These should not depend on core.internals.
 """
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -169,7 +170,7 @@ def array(
     would no longer return a :class:`arrays.NumpyExtensionArray` backed by a
     NumPy array.
 
-    >>> pd.array(['a', 'b'], dtype=str)
+    >>> pd.array(["a", "b"], dtype=str)
     <NumpyExtensionArray>
     ['a', 'b']
     Length: 2, dtype: str32
@@ -178,7 +179,7 @@ def array(
     data. If you really need the new array to be backed by a  NumPy array,
     specify that in the dtype.
 
-    >>> pd.array(['a', 'b'], dtype=np.dtype("<U1"))
+    >>> pd.array(["a", "b"], dtype=np.dtype("<U1"))
     <NumpyExtensionArray>
     ['a', 'b']
     Length: 2, dtype: str32
@@ -193,12 +194,12 @@ def array(
     rather than a ``NumpyExtensionArray``. This is for symmetry with the case of
     timezone-aware data, which NumPy does not natively support.
 
-    >>> pd.array(['2015', '2016'], dtype='datetime64[ns]')
+    >>> pd.array(["2015", "2016"], dtype="datetime64[ns]")
     <DatetimeArray>
     ['2015-01-01 00:00:00', '2016-01-01 00:00:00']
     Length: 2, dtype: datetime64[ns]
 
-    >>> pd.array(["1h", "2h"], dtype='timedelta64[ns]')
+    >>> pd.array(["1h", "2h"], dtype="timedelta64[ns]")
     <TimedeltaArray>
     ['0 days 01:00:00', '0 days 02:00:00']
     Length: 2, dtype: timedelta64[ns]
@@ -230,27 +231,27 @@ def array(
 
     >>> with pd.option_context("string_storage", "pyarrow"):
     ...     arr = pd.array(["a", None, "c"])
-    ...
     >>> arr
     <ArrowStringArray>
     ['a', <NA>, 'c']
     Length: 3, dtype: string
 
-    >>> pd.array([pd.Period('2000', freq="D"), pd.Period("2000", freq="D")])
+    >>> pd.array([pd.Period("2000", freq="D"), pd.Period("2000", freq="D")])
     <PeriodArray>
     ['2000-01-01', '2000-01-01']
     Length: 2, dtype: period[D]
 
     You can use the string alias for `dtype`
 
-    >>> pd.array(['a', 'b', 'a'], dtype='category')
+    >>> pd.array(["a", "b", "a"], dtype="category")
     ['a', 'b', 'a']
     Categories (2, object): ['a', 'b']
 
     Or specify the actual dtype
 
-    >>> pd.array(['a', 'b', 'a'],
-    ...          dtype=pd.CategoricalDtype(['a', 'b', 'c'], ordered=True))
+    >>> pd.array(
+    ...     ["a", "b", "a"], dtype=pd.CategoricalDtype(["a", "b", "c"], ordered=True)
+    ... )
     ['a', 'b', 'a']
     Categories (3, object): ['a' < 'b' < 'c']
 
@@ -402,15 +403,13 @@ _typs = frozenset(
 @overload
 def extract_array(
     obj: Series | Index, extract_numpy: bool = ..., extract_range: bool = ...
-) -> ArrayLike:
-    ...
+) -> ArrayLike: ...
 
 
 @overload
 def extract_array(
     obj: T, extract_numpy: bool = ..., extract_range: bool = ...
-) -> T | ArrayLike:
-    ...
+) -> T | ArrayLike: ...
 
 
 def extract_array(
@@ -439,7 +438,7 @@ def extract_array(
 
     Examples
     --------
-    >>> extract_array(pd.Series(['a', 'b', 'c'], dtype='category'))
+    >>> extract_array(pd.Series(["a", "b", "c"], dtype="category"))
     ['a', 'b', 'c']
     Categories (3, object): ['a', 'b', 'c']
 
@@ -626,7 +625,10 @@ def sanitize_array(
 
     elif hasattr(data, "__array__"):
         # e.g. dask array GH#38645
-        data = np.array(data, copy=copy)
+        if not copy:
+            data = np.asarray(data)
+        else:
+            data = np.array(data, copy=copy)
         return sanitize_array(
             data,
             index=index,
@@ -744,8 +746,11 @@ def _sanitize_str_dtypes(
         # GH#19853: If data is a scalar, result has already the result
         if not lib.is_scalar(data):
             if not np.all(isna(data)):
-                data = np.array(data, dtype=dtype, copy=False)
-            result = np.array(data, dtype=object, copy=copy)
+                data = np.asarray(data, dtype=dtype)
+            if not copy:
+                result = np.asarray(data, dtype=object)
+            else:
+                result = np.array(data, dtype=object, copy=copy)
     return result
 
 
@@ -810,6 +815,8 @@ def _try_cast(
         # this will raise if we have e.g. floats
 
         subarr = maybe_cast_to_integer_array(arr, dtype)
+    elif not copy:
+        subarr = np.asarray(arr, dtype=dtype)
     else:
         subarr = np.array(arr, dtype=dtype, copy=copy)
 

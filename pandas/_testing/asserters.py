@@ -902,6 +902,7 @@ def assert_series_equal(
     >>> tm.assert_series_equal(a, b)
     """
     __tracebackhide__ = True
+    check_exact_index = False if check_exact is lib.no_default else check_exact
     if (
         check_exact is lib.no_default
         and rtol is lib.no_default
@@ -944,7 +945,7 @@ def assert_series_equal(
             right.index,
             exact=check_index_type,
             check_names=check_names,
-            check_exact=check_exact,
+            check_exact=check_exact_index,
             check_categorical=check_categorical,
             check_order=not check_like,
             rtol=rtol,
@@ -1178,8 +1179,8 @@ def assert_frame_equal(
     but with columns of differing dtypes.
 
     >>> from pandas.testing import assert_frame_equal
-    >>> df1 = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
-    >>> df2 = pd.DataFrame({'a': [1, 2], 'b': [3.0, 4.0]})
+    >>> df1 = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    >>> df2 = pd.DataFrame({"a": [1, 2], "b": [3.0, 4.0]})
 
     df1 equals itself.
 

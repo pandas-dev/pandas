@@ -86,7 +86,7 @@ def df_with_cat_col():
 
 def _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=""):
     warn_klass = None if warn_msg == "" else FutureWarning
-    with tm.assert_produces_warning(warn_klass, match=warn_msg):
+    with tm.assert_produces_warning(warn_klass, match=warn_msg, check_stacklevel=False):
         if klass is None:
             if how == "method":
                 getattr(gb, groupby_func)(*args)
@@ -219,15 +219,10 @@ def test_groupby_raises_string_np(
         np.sum: (None, ""),
         np.mean: (
             TypeError,
-            re.escape("agg function failed [how->mean,dtype->object]"),
+            "Could not convert string .* to numeric",
         ),
     }[groupby_func_np]
-
-    if groupby_series:
-        warn_msg = "using SeriesGroupBy.[sum|mean]"
-    else:
-        warn_msg = "using DataFrameGroupBy.[sum|mean]"
-    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg=warn_msg)
+    _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
@@ -328,15 +323,13 @@ def test_groupby_raises_datetime_np(
         gb = gb["d"]
 
     klass, msg = {
-        np.sum: (TypeError, "datetime64 type does not support sum operations"),
+        np.sum: (
+            TypeError,
+            re.escape("datetime64[us] does not support reduction 'sum'"),
+        ),
         np.mean: (None, ""),
     }[groupby_func_np]
-
-    if groupby_series:
-        warn_msg = "using SeriesGroupBy.[sum|mean]"
-    else:
-        warn_msg = "using DataFrameGroupBy.[sum|mean]"
-    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg=warn_msg)
+    _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
 
 @pytest.mark.parametrize("func", ["prod", "cumprod", "skew", "var"])
@@ -363,7 +356,7 @@ def test_groupby_raises_timedelta(func):
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
 def test_groupby_raises_category(
-    how, by, groupby_series, groupby_func, using_copy_on_write, df_with_cat_col
+    how, by, groupby_series, groupby_func, df_with_cat_col
 ):
     # GH#50749
     df = df_with_cat_col
@@ -416,13 +409,7 @@ def test_groupby_raises_category(
             r"unsupported operand type\(s\) for -: 'Categorical' and 'Categorical'",
         ),
         "ffill": (None, ""),
-        "fillna": (
-            TypeError,
-            r"Cannot setitem on a Categorical with a new category \(0\), "
-            "set the categories first",
-        )
-        if not using_copy_on_write
-        else (None, ""),  # no-op with CoW
+        "fillna": (None, ""),  # no-op with CoW
         "first": (None, ""),
         "idxmax": (None, ""),
         "idxmin": (None, ""),
@@ -534,18 +521,13 @@ def test_groupby_raises_category_np(
         gb = gb["d"]
 
     klass, msg = {
-        np.sum: (TypeError, "category type does not support sum operations"),
+        np.sum: (TypeError, "dtype category does not support reduction 'sum'"),
         np.mean: (
             TypeError,
-            "category dtype does not support aggregation 'mean'",
+            "dtype category does not support reduction 'mean'",
         ),
     }[groupby_func_np]
-
-    if groupby_series:
-        warn_msg = "using SeriesGroupBy.[sum|mean]"
-    else:
-        warn_msg = "using DataFrameGroupBy.[sum|mean]"
-    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg=warn_msg)
+    _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
@@ -555,7 +537,6 @@ def test_groupby_raises_category_on_category(
     groupby_series,
     groupby_func,
     observed,
-    using_copy_on_write,
     df_with_cat_col,
 ):
     # GH#50749
@@ -576,16 +557,6 @@ def test_groupby_raises_category_on_category(
             return
 
     empty_groups = not observed and any(group.empty for group in gb.groups.values())
-    if (
-        not observed
-        and how != "transform"
-        and isinstance(by, list)
-        and isinstance(by[0], str)
-        and by == ["a", "b"]
-    ):
-        assert not empty_groups
-        # TODO: empty_groups should be true due to unobserved categorical combinations
-        empty_groups = True
     if how == "transform":
         # empty groups will be ignored
         empty_groups = False
@@ -626,13 +597,7 @@ def test_groupby_raises_category_on_category(
         ),
         "diff": (TypeError, "unsupported operand type"),
         "ffill": (None, ""),
-        "fillna": (
-            TypeError,
-            r"Cannot setitem on a Categorical with a new category \(0\), "
-            "set the categories first",
-        )
-        if not using_copy_on_write
-        else (None, ""),  # no-op with CoW
+        "fillna": (None, ""),  # no-op with CoW
         "first": (None, ""),
         "idxmax": (ValueError, "empty group due to unobserved categories")
         if empty_groups

@@ -40,12 +40,12 @@ class ConstructorTests:
             (Index(np.arange(-10, 11, dtype=np.int64)), np.int64),
             (Index(np.arange(10, 31, dtype=np.uint64)), np.uint64),
             (Index(np.arange(20, 30, 0.5), dtype=np.float64), np.float64),
-            (date_range("20180101", periods=10), "<M8[ns]"),
+            (date_range("20180101", periods=10), "M8[ns]"),
             (
                 date_range("20180101", periods=10, tz="US/Eastern"),
                 "datetime64[ns, US/Eastern]",
             ),
-            (timedelta_range("1 day", periods=10), "<m8[ns]"),
+            (timedelta_range("1 day", periods=10), "m8[ns]"),
         ],
     )
     @pytest.mark.parametrize("name", [None, "foo"])

@@ -419,7 +419,7 @@ class TestStata:
             [(1, 2, 3, 4)],
             columns=[
                 "good",
-                "b\u00E4d",
+                "b\u00e4d",
                 "8number",
                 "astringwithmorethan32characters______",
             ],
@@ -1368,7 +1368,7 @@ class TestStata:
                 )
 
     def test_write_variable_label_errors(self, mixed_frame):
-        values = ["\u03A1", "\u0391", "\u039D", "\u0394", "\u0391", "\u03A3"]
+        values = ["\u03a1", "\u0391", "\u039d", "\u0394", "\u0391", "\u03a3"]
 
         variable_labels_utf8 = {
             "a": "City Rank",
@@ -1999,21 +1999,6 @@ def test_direct_read(datapath, monkeypatch):
             with StataReader(bio) as reader:
                 assert not reader.read().empty
                 assert reader._path_or_buf is bio
-
-
-def test_statareader_warns_when_used_without_context(datapath):
-    file_path = datapath("io", "data", "stata", "stata-compat-118.dta")
-    with tm.assert_produces_warning(
-        ResourceWarning,
-        match="without using a context manager",
-    ):
-        sr = StataReader(file_path)
-        sr.read()
-    with tm.assert_produces_warning(
-        FutureWarning,
-        match="is not part of the public API",
-    ):
-        sr.close()
 
 
 @pytest.mark.parametrize("version", [114, 117, 118, 119, None])

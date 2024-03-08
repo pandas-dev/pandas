@@ -148,14 +148,14 @@ group_keys : bool, default True
 
        ``group_keys`` now defaults to ``True``.
 
-observed : bool, default False
+observed : bool, default True
     This only applies if any of the groupers are Categoricals.
     If True: only show observed values for categorical groupers.
     If False: show all values for categorical groupers.
 
-    .. deprecated:: 2.1.0
+    .. versionchanged:: 3.0.0
 
-        The default value will change to True in a future version of pandas.
+        The default value is now ``True``.
 
 dropna : bool, default True
     If True, and if group keys contain NA values, NA values together
@@ -178,6 +178,12 @@ See the `user guide
 <https://pandas.pydata.org/pandas-docs/stable/groupby.html>`__ for more
 detailed usage and examples, including splitting an object into groups,
 iterating through groups, selecting a group, aggregation, and more.
+
+The implementation of groupby is hash-based, meaning in particular that
+objects that compare as equal will be considered to be in the same group.
+An exception to this is that pandas has special handling of NA values:
+any NA values will be collapsed to a single group, regardless of how
+they compare. See the user guide linked above for more details.
 """
 
 _shared_docs["melt"] = """

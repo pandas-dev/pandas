@@ -1,6 +1,7 @@
 """
 Utilities for interpreting CSS from Stylers for formatting non-HTML outputs.
 """
+
 from __future__ import annotations
 
 import re
@@ -244,14 +245,17 @@ class CSSResolver:
         Examples
         --------
         >>> resolve = CSSResolver()
-        >>> inherited = {'font-family': 'serif', 'font-weight': 'bold'}
-        >>> out = resolve('''
+        >>> inherited = {"font-family": "serif", "font-weight": "bold"}
+        >>> out = resolve(
+        ...     '''
         ...               border-color: BLUE RED;
         ...               font-size: 1em;
         ...               font-size: 2em;
         ...               font-weight: normal;
         ...               font-weight: inherit;
-        ...               ''', inherited)
+        ...               ''',
+        ...     inherited,
+        ... )
         >>> sorted(out.items())  # doctest: +NORMALIZE_WHITESPACE
         [('border-bottom-color', 'blue'),
          ('border-left-color', 'red'),

@@ -1,6 +1,7 @@
 """
 test where we are determining what we are grouping, or getting groups
 """
+
 from datetime import (
     date,
     timedelta,
@@ -8,6 +9,8 @@ from datetime import (
 
 import numpy as np
 import pytest
+
+from pandas.errors import SpecificationError
 
 import pandas as pd
 from pandas import (
@@ -414,9 +417,7 @@ class TestGrouping:
 
     def test_grouper_iter(self, df):
         gb = df.groupby("A")
-        msg = "DataFrameGroupBy.grouper is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            grouper = gb.grouper
+        grouper = gb._grouper
         result = sorted(grouper)
         expected = ["bar", "foo"]
         assert result == expected
@@ -428,9 +429,7 @@ class TestGrouping:
 
     def test_groupby_grouper(self, df):
         grouped = df.groupby("A")
-        msg = "DataFrameGroupBy.grouper is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            grouper = grouped.grouper
+        grouper = grouped._grouper
         result = df.groupby(grouper).mean(numeric_only=True)
         expected = grouped.mean(numeric_only=True)
         tm.assert_frame_equal(result, expected)
@@ -534,12 +533,10 @@ class TestGrouping:
         ).sum()
         tm.assert_frame_equal(result, expected)
 
-    def test_multifunc_select_col_integer_cols(self, df):
+    def test_agg_with_dict_raises(self, df):
         df.columns = np.arange(len(df.columns))
-
-        # it works!
-        msg = "Passing a dictionary to SeriesGroupBy.agg is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg = "nested renamer is not supported"
+        with pytest.raises(SpecificationError, match=msg):
             df.groupby(1, as_index=False)[2].agg({"Q": np.mean})
 
     def test_multiindex_columns_empty_level(self):
@@ -712,7 +709,7 @@ class TestGrouping:
         # GH 17537
         grouped = multiindex_dataframe_random_data.groupby(level=0, sort=sort)
         exp_labels = np.array(labels, np.intp)
-        tm.assert_almost_equal(grouped._grouper.codes[0], exp_labels)
+        tm.assert_almost_equal(grouped._grouper.ids, exp_labels)
 
     def test_grouping_labels(self, multiindex_dataframe_random_data):
         grouped = multiindex_dataframe_random_data.groupby(
@@ -780,20 +777,14 @@ class TestGrouping:
         # check group properties
         assert len(gr._grouper.groupings) == 1
         tm.assert_numpy_array_equal(
-            gr._grouper.group_info[0], np.array([], dtype=np.dtype(np.intp))
+            gr._grouper.ids, np.array([], dtype=np.dtype(np.intp))
         )
 
-        tm.assert_numpy_array_equal(
-            gr._grouper.group_info[1], np.array([], dtype=np.dtype(np.intp))
-        )
-
-        assert gr._grouper.group_info[2] == 0
+        assert gr._grouper.ngroups == 0
 
         # check name
         gb = s.groupby(s)
-        msg = "SeriesGroupBy.grouper is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            grouper = gb.grouper
+        grouper = gb._grouper
         result = grouper.names
         expected = ["name"]
         assert result == expected
@@ -1135,50 +1126,6 @@ def test_grouping_by_key_is_in_axis():
     assert not gb._grouper.groupings[0].in_axis
     assert gb._grouper.groupings[1].in_axis
 
-    # Currently only in-axis groupings are including in the result when as_index=False;
-    # This is likely to change in the future.
-    msg = "A grouping .* was excluded from the result"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = gb.sum()
-    expected = DataFrame({"b": [1, 2], "c": [7, 5]})
+    result = gb.sum()
+    expected = DataFrame({"a": [1, 2], "b": [1, 2], "c": [7, 5]})
     tm.assert_frame_equal(result, expected)
-
-
-def test_grouper_groups():
-    # GH#51182 check Grouper.groups does not raise AttributeError
-    df = DataFrame({"a": [1, 2, 3], "b": 1})
-    grper = Grouper(key="a")
-    gb = df.groupby(grper)
-
-    msg = "Use GroupBy.groups instead"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        res = grper.groups
-    assert res is gb.groups
-
-    msg = "Use GroupBy.grouper instead"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        res = grper.grouper
-    assert res is gb._grouper
-
-    msg = "Grouper.obj is deprecated and will be removed"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        res = grper.obj
-    assert res is gb.obj
-
-    msg = "Use Resampler.ax instead"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        grper.ax
-
-    msg = "Grouper.indexer is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        grper.indexer
-
-
-@pytest.mark.parametrize("attr", ["group_index", "result_index", "group_arraylike"])
-def test_depr_grouping_attrs(attr):
-    # GH#56148
-    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
-    gb = df.groupby("a")
-    msg = f"{attr} is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        getattr(gb._grouper.groupings[0], attr)

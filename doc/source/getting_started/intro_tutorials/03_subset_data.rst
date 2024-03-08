@@ -101,7 +101,7 @@ selection brackets ``[]``.
 .. note::
     The inner square brackets define a
     :ref:`Python list <python:tut-morelists>` with column names, whereas
-    the outer brackets are used to select the data from a pandas
+    the outer square brackets are used to select the data from a pandas
     ``DataFrame`` as seen in the previous example.
 
 The returned data type is a pandas DataFrame:
@@ -354,7 +354,7 @@ See the user guide section on :ref:`different choices for indexing <indexing.cho
         <h4>REMEMBER</h4>
 
 -  When selecting subsets of data, square brackets ``[]`` are used.
--  Inside these brackets, you can use a single column/row label, a list
+-  Inside these square brackets, you can use a single column/row label, a list
    of column/row labels, a slice of labels, a conditional expression or
    a colon.
 -  Select specific rows and/or columns using ``loc`` when using the row

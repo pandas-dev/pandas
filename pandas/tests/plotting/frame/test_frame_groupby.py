@@ -1,4 +1,4 @@
-""" Test cases for DataFrame.plot """
+"""Test cases for DataFrame.plot"""
 
 import pytest
 
