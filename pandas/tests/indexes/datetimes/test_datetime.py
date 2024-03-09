@@ -166,11 +166,6 @@ class TestDatetimeIndex:
                 ["2021-08-01", "2022-08-01", "2023-08-01"],
                 "YS-AUG",
             ),
-            (
-                "1BAS-MAY",
-                ["2021-05-03", "2022-05-02", "2023-05-01"],
-                "1BYS-MAY",
-            ),
         ],
     )
     def test_AS_BAS_deprecated(self, freq_depr, expected_values, expected_freq):
@@ -193,7 +188,6 @@ class TestDatetimeIndex:
     @pytest.mark.parametrize(
         "freq, expected_values, freq_depr",
         [
-            ("2BYE-MAR", ["2016-03-31"], "2BA-MAR"),
             ("2BYE-JUN", ["2016-06-30"], "2BY-JUN"),
             ("2BME", ["2016-02-29", "2016-04-29", "2016-06-30"], "2BM"),
             ("2BQE", ["2016-03-31"], "2BQ"),
@@ -214,3 +208,10 @@ class TestDatetimeIndex:
         )
 
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("freq", ["2BA-MAR", "1BAS-MAY"])
+    def test_BA_BAS_raises(self, freq):
+        msg = f"Invalid frequency: {freq}"
+
+        with pytest.raises(ValueError, match=msg):
+            date_range(start="2016-02-21", end="2016-08-21", freq=freq)
