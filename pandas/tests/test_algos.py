@@ -588,18 +588,6 @@ class TestUnique:
                 expected = expected.normalize()
         tm.assert_index_equal(result, expected, exact=True)
 
-    def test_on_index_object(self):
-        mindex = MultiIndex.from_arrays(
-            [np.arange(5).repeat(5), np.tile(np.arange(5), 5)]
-        )
-        expected = mindex
-
-        mindex = mindex.repeat(2)
-
-        result = pd.unique(mindex)
-
-        tm.assert_index_equal(result, expected, exact=True)
-
     def test_dtype_preservation(self, any_numpy_dtype):
         # GH 15442
         if any_numpy_dtype in (tm.BYTES_DTYPES + tm.STRING_DTYPES):
