@@ -904,13 +904,7 @@ def _build_names_mapper(
         a list of column names with duplicate names replaced by dummy names
 
     """
-
-    def get_duplicates(names):
-        seen: set = set()
-        return {name for name in names if name not in seen}
-
-    shared_names = set(rownames).intersection(set(colnames))
-    dup_names = get_duplicates(rownames) | get_duplicates(colnames) | shared_names
+    dup_names = set(rownames) | set(colnames)
 
     rownames_mapper = {
         f"row_{i}": name for i, name in enumerate(rownames) if name in dup_names
