@@ -1,4 +1,5 @@
 """Sparse accessor"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -156,7 +157,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         ...         (1, 1, "b", 0),
         ...         (1, 1, "b", 1),
         ...         (2, 1, "b", 0),
-        ...         (2, 1, "b", 1)
+        ...         (2, 1, "b", 1),
         ...     ],
         ...     names=["A", "B", "C", "D"],
         ... )
@@ -244,8 +245,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
 
     Examples
     --------
-    >>> df = pd.DataFrame({"a": [1, 2, 0, 0],
-    ...                   "b": [3, 0, 0, 4]}, dtype="Sparse[int]")
+    >>> df = pd.DataFrame({"a": [1, 2, 0, 0], "b": [3, 0, 0, 4]}, dtype="Sparse[int]")
     >>> df.sparse.density
     0.5
     """

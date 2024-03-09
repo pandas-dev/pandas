@@ -11,7 +11,7 @@ def xml_data_path():
     Examples
     --------
     >>> def test_read_xml(xml_data_path):
-    ...     read_xml(xml_data_path / 'file.xsl')
+    ...     read_xml(xml_data_path / "file.xsl")
     """
     return Path(__file__).parent.parent / "data" / "xml"
 

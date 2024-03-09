@@ -102,15 +102,6 @@ by : mapping, function, label, pd.Grouper or list of such
     the values are used as-is to determine the groups. A label or list
     of labels may be passed to group by the columns in ``self``.
     Notice that a tuple is interpreted as a (single) key.
-axis : {0 or 'index', 1 or 'columns'}, default 0
-    Split along rows (0) or columns (1). For `Series` this parameter
-    is unused and defaults to 0.
-
-    .. deprecated:: 2.1.0
-
-        Will be removed and behave like axis=0 in a future version.
-        For ``axis=1``, do ``frame.T.groupby(...)`` instead.
-
 level : int, level name, or sequence of such, default None
     If the axis is a MultiIndex (hierarchical), group by a particular
     level or levels. Do not specify both ``by`` and ``level``.
@@ -157,14 +148,14 @@ group_keys : bool, default True
 
        ``group_keys`` now defaults to ``True``.
 
-observed : bool, default False
+observed : bool, default True
     This only applies if any of the groupers are Categoricals.
     If True: only show observed values for categorical groupers.
     If False: show all values for categorical groupers.
 
-    .. deprecated:: 2.1.0
+    .. versionchanged:: 3.0.0
 
-        The default value will change to True in a future version of pandas.
+        The default value is now ``True``.
 
 dropna : bool, default True
     If True, and if group keys contain NA values, NA values together
@@ -187,6 +178,12 @@ See the `user guide
 <https://pandas.pydata.org/pandas-docs/stable/groupby.html>`__ for more
 detailed usage and examples, including splitting an object into groups,
 iterating through groups, selecting a group, aggregation, and more.
+
+The implementation of groupby is hash-based, meaning in particular that
+objects that compare as equal will be considered to be in the same group.
+An exception to this is that pandas has special handling of NA values:
+any NA values will be collapsed to a single group, regardless of how
+they compare. See the user guide linked above for more details.
 """
 
 _shared_docs["melt"] = """

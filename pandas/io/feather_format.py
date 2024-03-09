@@ -1,4 +1,5 @@
-""" feather-format compat """
+"""feather-format compat"""
+
 from __future__ import annotations
 
 from typing import (
@@ -104,6 +105,7 @@ def read_feather(
     Returns
     -------
     type of object stored in file
+        DataFrame object stored in the file.
 
     Examples
     --------

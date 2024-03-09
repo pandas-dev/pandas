@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import os
-import warnings
-
 __docformat__ = "restructuredtext"
 
 # Let users know if they're missing any of our hard dependencies
@@ -102,7 +99,6 @@ from pandas.core.api import (
     Grouper,
     factorize,
     unique,
-    value_counts,
     NamedAgg,
     array,
     Categorical,
@@ -163,7 +159,6 @@ from pandas.io.api import (
     read_parquet,
     read_orc,
     read_feather,
-    read_gbq,
     read_html,
     read_xml,
     read_json,
@@ -193,46 +188,6 @@ except ImportError:
     __git_version__ = v.get("full-revisionid")
     del get_versions, v
 
-# GH#55043 - deprecation of the data_manager option
-if "PANDAS_DATA_MANAGER" in os.environ:
-    warnings.warn(
-        "The env variable PANDAS_DATA_MANAGER is set. The data_manager option is "
-        "deprecated and will be removed in a future version. Only the BlockManager "
-        "will be available. Unset this environment variable to silence this warning.",
-        FutureWarning,
-        stacklevel=2,
-    )
-
-# DeprecationWarning for missing pyarrow
-from pandas.compat.pyarrow import pa_version_under10p1, pa_not_found
-
-if pa_version_under10p1:
-    # pyarrow is either too old or nonexistent, warn
-    from pandas.compat._optional import VERSIONS
-
-    if pa_not_found:
-        pa_msg = "was not found to be installed on your system."
-    else:
-        pa_msg = (
-            f"was too old on your system - pyarrow {VERSIONS['pyarrow']} "
-            "is the current minimum supported version as of this release."
-        )
-
-    warnings.warn(
-        f"""
-Pyarrow will become a required dependency of pandas in the next major release of pandas (pandas 3.0),
-(to allow more performant data types, such as the Arrow string type, and better interoperability with other libraries)
-but {pa_msg}
-If this would cause problems for you,
-please provide us feedback at https://github.com/pandas-dev/pandas/issues/54466
-        """,  # noqa: E501
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    del VERSIONS, pa_msg
-
-# Delete all unnecessary imported modules
-del pa_version_under10p1, pa_not_found, warnings, os
 
 # module level doc-string
 __doc__ = """
@@ -363,7 +318,6 @@ __all__ = [
     "read_excel",
     "read_feather",
     "read_fwf",
-    "read_gbq",
     "read_hdf",
     "read_html",
     "read_json",
@@ -391,6 +345,5 @@ __all__ = [
     "to_timedelta",
     "tseries",
     "unique",
-    "value_counts",
     "wide_to_long",
 ]
