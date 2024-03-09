@@ -1278,6 +1278,9 @@ default 'raise'
         """
         Return the month names with specified locale.
 
+        This function returns the names of months corresponding to the datetime values in a DatetimeIndex object,
+        with the option to specify a locale for the language.
+
         Parameters
         ----------
         locale : str, optional
@@ -1290,6 +1293,10 @@ default 'raise'
         -------
         Series or Index
             Series or Index of month names.
+
+        See Also
+        --------
+        Series.dt.day_name: Return the day names of a datetime Series.
 
         Examples
         --------
@@ -1335,6 +1342,9 @@ default 'raise'
         """
         Return the day names with specified locale.
 
+        This function returns the names of days corresponding to the datetime values in a DatetimeIndex object,
+        with the option to specify a locale for the language.
+
         Parameters
         ----------
         locale : str, optional
@@ -1347,6 +1357,10 @@ default 'raise'
         -------
         Series or Index
             Series or Index of day names.
+
+        See Also
+        --------
+        Series.dt.month_name: Return the month names of a datetime Series.
 
         Examples
         --------
