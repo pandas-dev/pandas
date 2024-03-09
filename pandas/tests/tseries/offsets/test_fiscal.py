@@ -1,6 +1,7 @@
 """
 Tests for Fiscal Year and Fiscal Quarter offset classes
 """
+
 from datetime import datetime
 
 from dateutil.relativedelta import relativedelta

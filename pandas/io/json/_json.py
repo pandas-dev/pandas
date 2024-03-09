@@ -107,8 +107,7 @@ def to_json(
     indent: int = ...,
     storage_options: StorageOptions = ...,
     mode: Literal["a", "w"] = ...,
-) -> None:
-    ...
+) -> None: ...
 
 
 @overload
@@ -127,8 +126,7 @@ def to_json(
     indent: int = ...,
     storage_options: StorageOptions = ...,
     mode: Literal["a", "w"] = ...,
-) -> str:
-    ...
+) -> str: ...
 
 
 def to_json(
@@ -415,8 +413,7 @@ def read_json(
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     engine: JSONEngine = ...,
-) -> JsonReader[Literal["frame"]]:
-    ...
+) -> JsonReader[Literal["frame"]]: ...
 
 
 @overload
@@ -440,8 +437,7 @@ def read_json(
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     engine: JSONEngine = ...,
-) -> JsonReader[Literal["series"]]:
-    ...
+) -> JsonReader[Literal["series"]]: ...
 
 
 @overload
@@ -465,8 +461,7 @@ def read_json(
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     engine: JSONEngine = ...,
-) -> Series:
-    ...
+) -> Series: ...
 
 
 @overload
@@ -490,8 +485,7 @@ def read_json(
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     engine: JSONEngine = ...,
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @doc(
@@ -922,16 +916,13 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         )
 
     @overload
-    def read(self: JsonReader[Literal["frame"]]) -> DataFrame:
-        ...
+    def read(self: JsonReader[Literal["frame"]]) -> DataFrame: ...
 
     @overload
-    def read(self: JsonReader[Literal["series"]]) -> Series:
-        ...
+    def read(self: JsonReader[Literal["series"]]) -> Series: ...
 
     @overload
-    def read(self: JsonReader[Literal["frame", "series"]]) -> DataFrame | Series:
-        ...
+    def read(self: JsonReader[Literal["frame", "series"]]) -> DataFrame | Series: ...
 
     def read(self) -> DataFrame | Series:
         """
@@ -1016,16 +1007,15 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         return self
 
     @overload
-    def __next__(self: JsonReader[Literal["frame"]]) -> DataFrame:
-        ...
+    def __next__(self: JsonReader[Literal["frame"]]) -> DataFrame: ...
 
     @overload
-    def __next__(self: JsonReader[Literal["series"]]) -> Series:
-        ...
+    def __next__(self: JsonReader[Literal["series"]]) -> Series: ...
 
     @overload
-    def __next__(self: JsonReader[Literal["frame", "series"]]) -> DataFrame | Series:
-        ...
+    def __next__(
+        self: JsonReader[Literal["frame", "series"]],
+    ) -> DataFrame | Series: ...
 
     def __next__(self) -> DataFrame | Series:
         if self.nrows and self.nrows_seen >= self.nrows:

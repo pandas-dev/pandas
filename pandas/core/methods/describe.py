@@ -3,6 +3,7 @@ Module responsible for execution of NDFrame.describe() method.
 
 Method NDFrame.describe() delegates actual execution to function describe_ndframe().
 """
+
 from __future__ import annotations
 
 from abc import (
