@@ -185,6 +185,8 @@ environment = {CFLAGS="-g0"}
 line-length = 88
 target-version = "py310"
 fix = true
+
+[tool.ruff.lint]
 unfixable = []
 typing-modules = ["pandas._typing"]
 
@@ -271,8 +273,8 @@ ignore = [
   "PLW0603",
   # Use `typing.NamedTuple` instead of `collections.namedtuple`
   "PYI024",
-  # No builtin `eval()` allowed
-  "PGH001",
+  # Use of possibly insecure function; consider using ast.literal_eval
+  "S307",
   # while int | float can be shortened to float, the former is more explicit
   "PYI041",
   # incorrect-dict-iterator, flags valid Series.items usage
@@ -345,7 +347,7 @@ exclude = [
 [tool.ruff.lint.flake8-import-conventions.aliases]
 "pandas.core.construction.array" = "pd_array"
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 # relative imports allowed for asv_bench
 "asv_bench/*" = ["TID", "NPY002"]
 # to be enabled gradually
