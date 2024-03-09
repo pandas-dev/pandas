@@ -185,7 +185,6 @@ def _maybe_reindex_columns_na_proxy(
                 axes[i],
                 indexers[i],
                 axis=i,
-                copy=False,
                 only_slice=True,  # only relevant for i==0
                 allow_dups=True,
                 use_na_proxy=True,  # only relevant for i==0

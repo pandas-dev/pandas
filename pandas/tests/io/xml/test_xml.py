@@ -247,16 +247,12 @@ df_kml = DataFrame(
 )
 
 
-def test_literal_xml_deprecation():
+def test_literal_xml_raises():
     # GH 53809
     pytest.importorskip("lxml")
-    msg = (
-        "Passing literal xml to 'read_xml' is deprecated and "
-        "will be removed in a future version. To read from a "
-        "literal string, wrap it in a 'StringIO' object."
-    )
+    msg = "|".join([r".*No such file or directory", r".*Invalid argument"])
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with pytest.raises((FileNotFoundError, OSError), match=msg):
         read_xml(xml_default_nmsp)
 
 
@@ -490,16 +486,10 @@ def test_empty_string_etree(val):
 
 
 def test_wrong_file_path(parser):
-    msg = (
-        "Passing literal xml to 'read_xml' is deprecated and "
-        "will be removed in a future version. To read from a "
-        "literal string, wrap it in a 'StringIO' object."
-    )
-    filename = os.path.join("data", "html", "books.xml")
+    filename = os.path.join("does", "not", "exist", "books.xml")
 
     with pytest.raises(
-        FutureWarning,
-        match=msg,
+        FileNotFoundError, match=r"\[Errno 2\] No such file or directory"
     ):
         read_xml(filename, parser=parser)
 
@@ -1197,14 +1187,12 @@ def test_stylesheet_io(kml_cta_rail_lines, xsl_flatten_doc, mode):
 def test_stylesheet_buffered_reader(kml_cta_rail_lines, xsl_flatten_doc, mode):
     pytest.importorskip("lxml")
     with open(xsl_flatten_doc, mode, encoding="utf-8" if mode == "r" else None) as f:
-        xsl_obj = f.read()
-
-    df_style = read_xml(
-        kml_cta_rail_lines,
-        xpath=".//k:Placemark",
-        namespaces={"k": "http://www.opengis.net/kml/2.2"},
-        stylesheet=xsl_obj,
-    )
+        df_style = read_xml(
+            kml_cta_rail_lines,
+            xpath=".//k:Placemark",
+            namespaces={"k": "http://www.opengis.net/kml/2.2"},
+            stylesheet=f,
+        )
 
     tm.assert_frame_equal(df_kml, df_style)
 
@@ -1233,7 +1221,7 @@ def test_style_charset():
 </xsl:stylesheet>"""
 
     df_orig = read_xml(StringIO(xml))
-    df_style = read_xml(StringIO(xml), stylesheet=xsl)
+    df_style = read_xml(StringIO(xml), stylesheet=StringIO(xsl))
 
     tm.assert_frame_equal(df_orig, df_style)
 
@@ -1271,9 +1259,9 @@ def test_incorrect_xsl_syntax(kml_cta_rail_lines):
 </xsl:stylesheet>"""
 
     with pytest.raises(
-        lxml_etree.XMLSyntaxError, match=("Extra content at the end of the document")
+        lxml_etree.XMLSyntaxError, match="Extra content at the end of the document"
     ):
-        read_xml(kml_cta_rail_lines, stylesheet=xsl)
+        read_xml(kml_cta_rail_lines, stylesheet=StringIO(xsl))
 
 
 def test_incorrect_xsl_eval(kml_cta_rail_lines):
@@ -1299,8 +1287,8 @@ def test_incorrect_xsl_eval(kml_cta_rail_lines):
     <xsl:template match="k:description|k:Snippet|k:Style"/>
 </xsl:stylesheet>"""
 
-    with pytest.raises(lxml_etree.XSLTParseError, match=("failed to compile")):
-        read_xml(kml_cta_rail_lines, stylesheet=xsl)
+    with pytest.raises(lxml_etree.XSLTParseError, match="failed to compile"):
+        read_xml(kml_cta_rail_lines, stylesheet=StringIO(xsl))
 
 
 def test_incorrect_xsl_apply(kml_cta_rail_lines):
@@ -1318,18 +1306,17 @@ def test_incorrect_xsl_apply(kml_cta_rail_lines):
     </xsl:template>
 </xsl:stylesheet>"""
 
-    with pytest.raises(lxml_etree.XSLTApplyError, match=("Cannot resolve URI")):
-        read_xml(kml_cta_rail_lines, stylesheet=xsl)
+    with pytest.raises(lxml_etree.XSLTApplyError, match="Cannot resolve URI"):
+        read_xml(kml_cta_rail_lines, stylesheet=StringIO(xsl))
 
 
 def test_wrong_stylesheet(kml_cta_rail_lines, xml_data_path):
-    xml_etree = pytest.importorskip("lxml.etree")
+    pytest.importorskip("lxml.etree")
 
-    xsl = xml_data_path / "flatten.xsl"
+    xsl = xml_data_path / "flatten_doesnt_exist.xsl"
 
     with pytest.raises(
-        xml_etree.XMLSyntaxError,
-        match=("Start tag expected, '<' not found"),
+        FileNotFoundError, match=r"\[Errno 2\] No such file or directory"
     ):
         read_xml(kml_cta_rail_lines, stylesheet=xsl)
 
@@ -1359,20 +1346,11 @@ def test_stylesheet_with_etree(kml_cta_rail_lines, xsl_flatten_doc):
         read_xml(kml_cta_rail_lines, parser="etree", stylesheet=xsl_flatten_doc)
 
 
-@pytest.mark.parametrize("val", ["", b""])
-def test_empty_stylesheet(val):
+@pytest.mark.parametrize("val", [StringIO(""), BytesIO(b"")])
+def test_empty_stylesheet(val, kml_cta_rail_lines):
     lxml_etree = pytest.importorskip("lxml.etree")
-
-    msg = (
-        "Passing literal xml to 'read_xml' is deprecated and "
-        "will be removed in a future version. To read from a "
-        "literal string, wrap it in a 'StringIO' object."
-    )
-    kml = os.path.join("data", "xml", "cta_rail_lines.kml")
-
     with pytest.raises(lxml_etree.XMLSyntaxError):
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            read_xml(kml, stylesheet=val)
+        read_xml(kml_cta_rail_lines, stylesheet=val)
 
 
 # ITERPARSE
@@ -1910,7 +1888,7 @@ def test_online_stylesheet():
         StringIO(xml),
         xpath=".//tr[td and position() <= 6]",
         names=["title", "artist"],
-        stylesheet=xsl,
+        stylesheet=StringIO(xsl),
     )
 
     df_expected = DataFrame(

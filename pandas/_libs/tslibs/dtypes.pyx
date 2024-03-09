@@ -273,19 +273,6 @@ cdef dict c_OFFSET_DEPR_FREQSTR = {
     "Y-SEP": "YE-SEP",
     "Y-OCT": "YE-OCT",
     "Y-NOV": "YE-NOV",
-    "A": "YE",
-    "A-DEC": "YE-DEC",
-    "A-JAN": "YE-JAN",
-    "A-FEB": "YE-FEB",
-    "A-MAR": "YE-MAR",
-    "A-APR": "YE-APR",
-    "A-MAY": "YE-MAY",
-    "A-JUN": "YE-JUN",
-    "A-JUL": "YE-JUL",
-    "A-AUG": "YE-AUG",
-    "A-SEP": "YE-SEP",
-    "A-OCT": "YE-OCT",
-    "A-NOV": "YE-NOV",
     "BY": "BYE",
     "BY-DEC": "BYE-DEC",
     "BY-JAN": "BYE-JAN",
@@ -334,31 +321,8 @@ cdef dict c_REVERSE_OFFSET_DEPR_FREQSTR = {
     v: k for k, v in c_OFFSET_DEPR_FREQSTR.items()
 }
 
-cpdef freq_to_period_freqstr(freq_n, freq_name):
-    if freq_n == 1:
-        freqstr = f"""{c_OFFSET_TO_PERIOD_FREQSTR.get(
-            freq_name, freq_name)}"""
-    else:
-        freqstr = f"""{freq_n}{c_OFFSET_TO_PERIOD_FREQSTR.get(
-            freq_name, freq_name)}"""
-    return freqstr
-
 # Map deprecated resolution abbreviations to correct resolution abbreviations
 cdef dict c_DEPR_ABBREVS = {
-    "A": "Y",
-    "a": "Y",
-    "A-DEC": "Y-DEC",
-    "A-JAN": "Y-JAN",
-    "A-FEB": "Y-FEB",
-    "A-MAR": "Y-MAR",
-    "A-APR": "Y-APR",
-    "A-MAY": "Y-MAY",
-    "A-JUN": "Y-JUN",
-    "A-JUL": "Y-JUL",
-    "A-AUG": "Y-AUG",
-    "A-SEP": "Y-SEP",
-    "A-OCT": "Y-OCT",
-    "A-NOV": "Y-NOV",
     "BA": "BY",
     "BA-DEC": "BY-DEC",
     "BA-JAN": "BY-JAN",

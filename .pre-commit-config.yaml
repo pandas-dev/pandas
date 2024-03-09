@@ -19,7 +19,7 @@ ci:
     skip: [pylint, pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.6
+    rev: v0.3.1
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -30,9 +30,14 @@ repos:
         files: ^pandas
         exclude: ^pandas/tests
         args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix]
+    -   id: ruff
+        name: ruff-use-pd_array-in-core
+        alias: ruff-use-pd_array-in-core
+        files: ^pandas/core/
+        exclude: ^pandas/core/api\.py$
+        args: [--select, "ICN001", --exit-non-zero-on-fix]
     -   id: ruff-format
-        # TODO: "." not needed in ruff 0.1.8
-        args: ["."]
+        exclude: ^scripts
 -   repo: https://github.com/jendrikseipp/vulture
     rev: 'v2.10'
     hooks:
@@ -54,13 +59,11 @@ repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
-    -   id: check-ast
     -   id: check-case-conflict
     -   id: check-toml
     -   id: check-xml
     -   id: check-yaml
         exclude: ^ci/meta.yaml$
-    -   id: debug-statements
     -   id: end-of-file-fixer
         exclude: \.txt$
     -   id: mixed-line-ending
@@ -130,7 +133,7 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.347
+        - pyright@1.1.351
     -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
@@ -209,16 +212,9 @@ repos:
         language: pygrep
         entry: |
             (?x)
-            # pytest.xfail instead of pytest.mark.xfail
-            pytest\.xfail
-
             # imports from pandas._testing instead of `import pandas._testing as tm`
-            |from\ pandas\._testing\ import
+            from\ pandas\._testing\ import
             |from\ pandas\ import\ _testing\ as\ tm
-
-            # No direct imports from conftest
-            |conftest\ import
-            |import\ conftest
 
             # pandas.testing instead of tm
             |pd\.testing\.
@@ -226,21 +222,11 @@ repos:
             # pd.api.types instead of from pandas.api.types import ...
             |(pd|pandas)\.api\.types\.
 
-            # np.testing, np.array_equal
-            |(numpy|np)(\.testing|\.array_equal)
-
-            # unittest.mock (use pytest builtin monkeypatch fixture instead)
-            |(unittest(\.| import )mock|mock\.Mock\(\)|mock\.patch)
+            # np.array_equal
+            |(numpy|np)\.array_equal
 
             # pytest raises without context
             |\s\ pytest.raises
-
-            # TODO
-            # pytest.warns (use tm.assert_produces_warning instead)
-            # |pytest\.warns
-
-            # os.remove
-            |os\.remove
 
             # Unseeded numpy default_rng
             |default_rng\(\)
@@ -292,25 +278,6 @@ repos:
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="nodefault_used_not_only_for_typing"
         types: [python]
-    -   id: use-pd_array-in-core
-        name: Import pandas.array as pd_array in core
-        language: python
-        entry: python scripts/use_pd_array_in_core.py
-        files: ^pandas/core/
-        exclude: ^pandas/core/api\.py$
-        types: [python]
-    -   id: use-io-common-urlopen
-        name: Use pandas.io.common.urlopen instead of urllib.request.urlopen
-        language: python
-        entry: python scripts/use_io_common_urlopen.py
-        files: ^pandas/
-        exclude: ^pandas/tests/
-        types: [python]
-    -   id: no-bool-in-core-generic
-        name: Use bool_t instead of bool in pandas/core/generic.py
-        entry: python scripts/no_bool_in_generic.py
-        language: python
-        files: ^pandas/core/generic\.py$
     -   id: no-return-exception
         name: Use raise instead of return for exceptions
         language: pygrep

@@ -3,6 +3,7 @@ Collection of tests asserting things that should be true for
 any index subclass except for MultiIndex. Makes use of the `index_flat`
 fixture defined in pandas/conftest.py.
 """
+
 from copy import (
     copy,
     deepcopy,
@@ -32,7 +33,7 @@ import pandas._testing as tm
 
 class TestCommon:
     @pytest.mark.parametrize("name", [None, "new_name"])
-    def test_to_frame(self, name, index_flat, using_copy_on_write):
+    def test_to_frame(self, name, index_flat):
         # see GH#15230, GH#22580
         idx = index_flat
 
@@ -46,8 +47,6 @@ class TestCommon:
         assert df.index is idx
         assert len(df.columns) == 1
         assert df.columns[0] == idx_name
-        if not using_copy_on_write:
-            assert df[idx_name].values is not idx.values
 
         df = idx.to_frame(index=False, name=idx_name)
         assert df.index is not idx
@@ -120,7 +119,7 @@ class TestCommon:
         # should return None
         assert res is None
         assert index.name == new_name
-        assert index.names == [new_name]
+        assert index.names == (new_name,)
         with pytest.raises(ValueError, match="Level must be None"):
             index.set_names("a", level=0)
 
@@ -128,7 +127,7 @@ class TestCommon:
         name = ("A", "B")
         index.rename(name, inplace=True)
         assert index.name == name
-        assert index.names == [name]
+        assert index.names == (name,)
 
     @pytest.mark.xfail
     def test_set_names_single_label_no_level(self, index_flat):

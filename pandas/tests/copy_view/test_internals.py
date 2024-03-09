@@ -6,7 +6,7 @@ import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 
 
-def test_consolidate(using_copy_on_write):
+def test_consolidate():
     # create unconsolidated DataFrame
     df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
     df["c"] = [4, 5, 6]
@@ -35,10 +35,9 @@ def test_consolidate(using_copy_on_write):
     assert not df._mgr.blocks[2].refs.has_reference()
 
     # and modifying subset still doesn't modify parent
-    if using_copy_on_write:
-        subset.iloc[0, 1] = 0.0
-        assert not df._mgr.blocks[1].refs.has_reference()
-        assert df.loc[0, "b"] == 0.1
+    subset.iloc[0, 1] = 0.0
+    assert not df._mgr.blocks[1].refs.has_reference()
+    assert df.loc[0, "b"] == 0.1
 
 
 @pytest.mark.parametrize("dtype", [np.intp, np.int8])
@@ -55,7 +54,7 @@ def test_consolidate(using_copy_on_write):
         ([1, 3], np.array([[-1, -2, -3], [-4, -5, -6]]).T),
     ],
 )
-def test_iset_splits_blocks_inplace(using_copy_on_write, locs, arr, dtype):
+def test_iset_splits_blocks_inplace(locs, arr, dtype):
     # Nothing currently calls iset with
     # more than 1 loc with inplace=True (only happens with inplace=False)
     # but ensure that it works
@@ -71,18 +70,13 @@ def test_iset_splits_blocks_inplace(using_copy_on_write, locs, arr, dtype):
     )
     arr = arr.astype(dtype)
     df_orig = df.copy()
-    df2 = df.copy(deep=None)  # Trigger a CoW (if enabled, otherwise makes copy)
+    df2 = df.copy(deep=False)  # Trigger a CoW (if enabled, otherwise makes copy)
     df2._mgr.iset(locs, arr, inplace=True)
 
     tm.assert_frame_equal(df, df_orig)
-
-    if using_copy_on_write:
-        for i, col in enumerate(df.columns):
-            if i not in locs:
-                assert np.shares_memory(get_array(df, col), get_array(df2, col))
-    else:
-        for col in df.columns:
-            assert not np.shares_memory(get_array(df, col), get_array(df2, col))
+    for i, col in enumerate(df.columns):
+        if i not in locs:
+            assert np.shares_memory(get_array(df, col), get_array(df2, col))
 
 
 def test_exponential_backoff():

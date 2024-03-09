@@ -361,7 +361,7 @@ Dependency                Minimum Version    pip extra        Notes
 PyTables                  3.8.0              hdf5             HDF5-based reading / writing
 blosc                     1.21.3             hdf5             Compression for HDF5; only available on ``conda``
 zlib                                         hdf5             Compression for HDF5
-fastparquet               2022.12.0          -                Parquet reading / writing (pyarrow is default)
+fastparquet               2023.04.0          -                Parquet reading / writing (pyarrow is default)
 pyarrow                   10.0.1             parquet, feather Parquet, ORC, and feather reading / writing
 pyreadstat                1.2.0              spss             SPSS files (.sav) reading
 odfpy                     1.4.1              excel            Open document format (.odf, .ods, .odt) reading / writing
@@ -386,7 +386,6 @@ Dependency                Minimum Version    pip extra       Notes
 fsspec                    2022.11.0          fss, gcp, aws   Handling files aside from simple local and HTTP (required
                                                              dependency of s3fs, gcsfs).
 gcsfs                     2022.11.0          gcp             Google Cloud Storage access
-pandas-gbq                0.19.0             gcp             Google Big Query access
 s3fs                      2022.11.0          aws             Amazon S3 access
 ========================= ================== =============== =============================================================
 
@@ -418,14 +417,3 @@ Dependency                Minimum Version    pip extra       Notes
 ========================= ================== =============== =============================================================
 Zstandard                 0.19.0             compression     Zstandard compression
 ========================= ================== =============== =============================================================
-
-Consortium Standard
-^^^^^^^^^^^^^^^^^^^
-
-Installable with ``pip install "pandas[consortium-standard]"``
-
-========================= ================== =================== =============================================================
-Dependency                Minimum Version    pip extra           Notes
-========================= ================== =================== =============================================================
-dataframe-api-compat      0.1.7              consortium-standard Consortium Standard-compatible implementation based on pandas
-========================= ================== =================== =============================================================

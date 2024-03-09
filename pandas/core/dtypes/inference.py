@@ -1,4 +1,4 @@
-""" basic inference routines """
+"""basic inference routines"""
 
 from __future__ import annotations
 
@@ -28,8 +28,6 @@ is_complex = lib.is_complex
 is_scalar = lib.is_scalar
 
 is_decimal = lib.is_decimal
-
-is_interval = lib.is_interval
 
 is_list_like = lib.is_list_like
 
@@ -266,7 +264,7 @@ def is_nested_list_like(obj: object) -> bool:
         is_list_like(obj)
         and hasattr(obj, "__len__")
         # need PEP 724 to handle these typing errors
-        and len(obj) > 0  # pyright: ignore[reportGeneralTypeIssues]
+        and len(obj) > 0  # pyright: ignore[reportArgumentType]
         and all(is_list_like(item) for item in obj)  # type: ignore[attr-defined]
     )
 
@@ -428,7 +426,7 @@ def is_dataclass(item: object) -> bool:
 
     >>> is_dataclass(Point)
     False
-    >>> is_dataclass(Point(0,2))
+    >>> is_dataclass(Point(0, 2))
     True
 
     """

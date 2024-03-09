@@ -1,6 +1,7 @@
 """
 Top level ``eval`` module.
 """
+
 from __future__ import annotations
 
 import tokenize
@@ -378,7 +379,7 @@ def eval(
                 try:
                     target = env.target
                     if isinstance(target, NDFrame):
-                        target = target.copy(deep=None)
+                        target = target.copy(deep=False)
                     else:
                         target = target.copy()
                 except AttributeError as err:
@@ -394,7 +395,7 @@ def eval(
                 if inplace and isinstance(target, NDFrame):
                     target.loc[:, assigner] = ret
                 else:
-                    target[assigner] = ret  # pyright: ignore[reportGeneralTypeIssues]
+                    target[assigner] = ret  # pyright: ignore[reportIndexIssue]
             except (TypeError, IndexError) as err:
                 raise ValueError("Cannot assign expression output to target") from err
 

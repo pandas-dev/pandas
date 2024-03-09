@@ -8,6 +8,7 @@ from pandas._libs.tslibs.offsets import MonthEnd
 from pandas import (
     DataFrame,
     DatetimeIndex,
+    PeriodIndex,
     Series,
     date_range,
     period_range,
@@ -241,8 +242,6 @@ class TestAsFreq:
             ("2BQE-SEP", "2BQ-SEP"),
             ("1YE", "1Y"),
             ("2YE-MAR", "2Y-MAR"),
-            ("1YE", "1A"),
-            ("2YE-MAR", "2A-MAR"),
             ("2BYE-MAR", "2BA-MAR"),
         ],
     )
@@ -257,3 +256,37 @@ class TestAsFreq:
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):
             result = df.asfreq(freq=freq_depr)
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "freq, error_msg",
+        [
+            (
+                "2MS",
+                "MS is not supported as period frequency",
+            ),
+            (
+                offsets.MonthBegin(),
+                r"\<MonthBegin\> is not supported as period frequency",
+            ),
+            (
+                offsets.DateOffset(months=2),
+                r"\<DateOffset: months=2\> is not supported as period frequency",
+            ),
+        ],
+    )
+    def test_asfreq_unsupported_freq(self, freq, error_msg):
+        # https://github.com/pandas-dev/pandas/issues/56718
+        index = PeriodIndex(["2020-01-01", "2021-01-01"], freq="M")
+        df = DataFrame({"a": Series([0, 1], index=index)})
+
+        with pytest.raises(ValueError, match=error_msg):
+            df.asfreq(freq=freq)
+
+    def test_asfreq_frequency_A_raises(self):
+        msg = "Invalid frequency: 2A"
+
+        index = date_range("1/1/2000", periods=4, freq="2ME")
+        df = DataFrame({"s": Series([0.0, 1.0, 2.0, 3.0], index=index)})
+
+        with pytest.raises(ValueError, match=msg):
+            df.asfreq(freq="2A")
