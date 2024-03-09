@@ -616,21 +616,13 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=RT03 --ignore_functions \
         pandas.DataFrame.hist\
         pandas.DataFrame.infer_objects\
-        pandas.DataFrame.kurt\
         pandas.DataFrame.kurtosis\
         pandas.DataFrame.mask\
-        pandas.DataFrame.max\
-        pandas.DataFrame.mean\
-        pandas.DataFrame.median\
-        pandas.DataFrame.min\
         pandas.DataFrame.pop\
         pandas.DataFrame.prod\
         pandas.DataFrame.product\
         pandas.DataFrame.reindex\
         pandas.DataFrame.reorder_levels\
-        pandas.DataFrame.sem\
-        pandas.DataFrame.skew\
-        pandas.DataFrame.std\
         pandas.DataFrame.sum\
         pandas.DataFrame.swapaxes\
         pandas.DataFrame.to_numpy\
@@ -638,7 +630,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.to_parquet\
         pandas.DataFrame.unstack\
         pandas.DataFrame.value_counts\
-        pandas.DataFrame.var\
         pandas.DataFrame.where\
         pandas.DatetimeIndex.indexer_at_time\
         pandas.DatetimeIndex.indexer_between_time\
@@ -695,14 +686,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.first_valid_index\
         pandas.Series.get\
         pandas.Series.infer_objects\
-        pandas.Series.kurt\
         pandas.Series.kurtosis\
         pandas.Series.last_valid_index\
         pandas.Series.mask\
-        pandas.Series.max\
-        pandas.Series.mean\
-        pandas.Series.median\
-        pandas.Series.min\
         pandas.Series.nunique\
         pandas.Series.pipe\
         pandas.Series.plot.box\
@@ -713,10 +699,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.product\
         pandas.Series.reindex\
         pandas.Series.reorder_levels\
-        pandas.Series.sem\
-        pandas.Series.skew\
         pandas.Series.sparse.to_coo\
-        pandas.Series.std\
         pandas.Series.str.capitalize\
         pandas.Series.str.casefold\
         pandas.Series.str.center\
@@ -749,7 +732,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.to_numpy\
         pandas.Series.to_timestamp\
         pandas.Series.value_counts\
-        pandas.Series.var\
         pandas.Series.where\
         pandas.TimedeltaIndex.as_unit\
         pandas.TimedeltaIndex.to_pytimedelta\

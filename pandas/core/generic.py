@@ -11859,7 +11859,7 @@ numeric_only : bool, default False
 
 Returns
 -------
-{name1}
+{return_type}
     The result of applying the {name} function to the {name2} elements,
     possibly just for rows or columns based on the ``axis`` parameter.\
 {see_also}\
@@ -11894,7 +11894,9 @@ numeric_only : bool, default False
 
 Returns
 -------
-{name1} or scalar\
+{return_type}
+    The result of applying the {name} function to the {name2} elements,
+    possibly just for rows or columns based on the ``axis`` parameter.\
 {see_also}\
 {examples}
 """
@@ -11924,7 +11926,9 @@ numeric_only : bool, default False
 
 Returns
 -------
-{name1} or {name2} (if level specified) \
+{return_type} (if level specified)
+    The result of applying the {name} function to the {name2} elements,
+    possibly just for rows or columns based on the ``axis`` parameter.\
 {notes}\
 {examples}
 """
@@ -12022,9 +12026,9 @@ skipna : bool, default True
 
 Returns
 -------
-{name1} or {name2}
-    If level is specified, then, {name2} is returned; otherwise, {name1}
-    is returned.
+{return_type}
+    The result of applying the {name} function to the {name2} elements,
+    possibly just for rows or columns based on the ``axis`` parameter.\
 
 {see_also}
 {examples}"""
@@ -12109,8 +12113,9 @@ skipna : bool, default True
 
 Returns
 -------
-{name1} or {name2}
-    Return cumulative {desc} of {name1} or {name2}.
+{return_type}
+    The result of applying the cumulative {desc} function to the {name2} elements,
+    possibly just for rows or columns based on the ``axis`` parameter.\
 
 See Also
 --------
@@ -12575,14 +12580,6 @@ def make_doc(name: str, ndim: int) -> str:
     """
     Generate the docstring for a Series/DataFrame reduction.
     """
-    if ndim == 1:
-        name1 = "scalar"
-        name2 = "Series"
-        axis_descr = "{index (0)}"
-    else:
-        name1 = "Series"
-        name2 = "DataFrame"
-        axis_descr = "{index (0), columns (1)}"
 
     if name == "any":
         base_doc = _bool_doc
@@ -12910,14 +12907,22 @@ def make_doc(name: str, ndim: int) -> str:
     else:
         raise NotImplementedError
 
-    if base_doc is _num_doc:
-        if name2 == "DataFrame":
-            name1 = name1 + " or scalar"
+    if ndim == 1:
+        return_type = "Series or scalar"
+        axis_descr = "{index (0)}"
+        name2 = "Series"
+    else:
+        if base_doc in (_num_doc, _sum_prod_doc):
+            return_type = "scalar"
+        else:
+            return_type = "Series or scalar"
+        axis_descr = "{index (0), columns (1)}"
+        name2 = "DataFrame"
 
     docstr = base_doc.format(
         desc=desc,
         name=name,
-        name1=name1,
+        return_type=return_type,
         name2=name2,
         axis_descr=axis_descr,
         see_also=see_also,
