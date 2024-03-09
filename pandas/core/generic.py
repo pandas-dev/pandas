@@ -4183,15 +4183,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Get item from object for given key (ex: DataFrame column).
 
-        Returns default value if not found.
+        Returns ``default`` value if not found.
 
         Parameters
         ----------
         key : object
+            Key for which item should be returned.
+        default : object, default None
+            Default value to return if key is not found.
 
         Returns
         -------
         same type as items contained in object
+            Item for given key or ``default`` value, if key is not found.
 
         Examples
         --------
@@ -5362,10 +5366,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = None,
     ) -> Self:
         """
-        Subset the dataframe rows or columns according to the specified index labels.
+        Subset the DataFrame or Series according to the specified index labels.
 
-        Note that this routine does not filter a dataframe on its
-        contents. The filter is applied to the labels of the index.
+        For DataFrame, filter rows or columns depending on ``axis`` argument.
+        Note that this routine does not filter based on content.
+        The filter is applied to the labels of the index.
 
         Parameters
         ----------
@@ -5378,11 +5383,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis : {0 or 'index', 1 or 'columns', None}, default None
             The axis to filter on, expressed either as an index (int)
             or axis name (str). By default this is the info axis, 'columns' for
-            DataFrame. For `Series` this parameter is unused and defaults to `None`.
+            ``DataFrame``. For ``Series`` this parameter is unused and defaults to
+            ``None``.
 
         Returns
         -------
-        same type as input object
+        Same type as caller
+            The filtered subset of the DataFrame or Series.
 
         See Also
         --------
@@ -5839,7 +5846,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        the return type of ``func``.
+        The return type of ``func``.
+            The result of applying ``func`` to the Series or DataFrame.
 
         See Also
         --------
@@ -5855,7 +5863,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        Constructing a income DataFrame from a dictionary.
+        Constructing an income DataFrame from a dictionary.
 
         >>> data = [[8000, 1000], [9500, np.nan], [5000, 2000]]
         >>> df = pd.DataFrame(data, columns=["Salary", "Others"])
@@ -11744,11 +11752,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @doc(position="first", klass=_shared_doc_kwargs["klass"])
     def first_valid_index(self) -> Hashable:
         """
-        Return index for {position} non-NA value or None, if no non-NA value is found.
+        Return index for {position} non-missing value or None, if no value is found.
+
+        See the :ref:`User Guide <missing_data>` for more information
+        on which values are considered missing.
 
         Returns
         -------
         type of index
+            Index of {position} non-missing value.
 
         Examples
         --------
