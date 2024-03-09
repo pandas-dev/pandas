@@ -60,7 +60,7 @@ def test_compare_various_formats(keep_shape, keep_equal):
     result = df.compare(df2, keep_shape=keep_shape, keep_equal=keep_equal)
 
     if keep_shape:
-        indices = pd.Index([0, 1, 2])
+        indices = pd.RangeIndex(3)
         columns = pd.MultiIndex.from_product(
             [["col1", "col2", "col3"], ["self", "other"]]
         )
@@ -85,7 +85,7 @@ def test_compare_various_formats(keep_shape, keep_equal):
                 columns=columns,
             )
     else:
-        indices = pd.Index([0, 2])
+        indices = pd.RangeIndex(0, 4, 2)
         columns = pd.MultiIndex.from_product([["col1", "col3"], ["self", "other"]])
         expected = pd.DataFrame(
             [["a", "c", 1.0, 1.0], ["c", "c", 3.0, 4.0]], index=indices, columns=columns
@@ -203,6 +203,7 @@ def test_compare_result_names():
         },
     )
     result = df1.compare(df2, result_names=("left", "right"))
+    result.index = pd.Index([0, 2])
     expected = pd.DataFrame(
         {
             ("col1", "left"): {0: "a", 2: np.nan},
