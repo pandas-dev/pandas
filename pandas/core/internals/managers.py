@@ -18,7 +18,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import _get_option
+from pandas._config.config import get_option
 
 from pandas._libs import (
     algos as libalgos,
@@ -1529,7 +1529,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self._known_consolidated = False
 
         if (
-            _get_option("performance_warnings")
+            get_option("performance_warnings")
             and sum(not block.is_extension for block in self.blocks) > 100
         ):
             warnings.warn(
