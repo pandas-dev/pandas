@@ -7210,8 +7210,8 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
 
     Examples
     --------
-    >>> ensure_index_from_sequences([[1, 2, 3]], names=["name"])
-    Index([1, 2, 3], dtype='int64', name='name')
+    >>> ensure_index_from_sequences([[1, 2, 4]], names=["name"])
+    Index([1, 2, 4], dtype='int64', name='name')
 
     >>> ensure_index_from_sequences([["a", "a"], ["a", "b"]], names=["L1", "L2"])
     MultiIndex([('a', 'a'),
