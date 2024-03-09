@@ -1278,7 +1278,7 @@ default 'raise'
         """
         Return the month names with specified locale.
 
-        This function returns names of months corresponding to the datetime values in  DatetimeIndex object.
+        This function returns names of months corresponding to the datetime values.
 
         Parameters
         ----------
@@ -1341,7 +1341,7 @@ default 'raise'
         """
         Return the day names with specified locale.
 
-        This function returns names of days corresponding to the datetime values in DatetimeIndex object.
+        This function returns names of days corresponding to the datetime values.
 
         Parameters
         ----------
