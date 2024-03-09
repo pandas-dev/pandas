@@ -21,7 +21,7 @@ def test_compare_axis(align_axis):
     result = df.compare(df2, align_axis=align_axis)
 
     if align_axis in (1, "columns"):
-        indices = pd.Index([0, 2])
+        indices = pd.RangeIndex(0, 4, 2)
         columns = pd.MultiIndex.from_product([["col1", "col3"], ["self", "other"]])
         expected = pd.DataFrame(
             [["a", "c", np.nan, np.nan], [np.nan, np.nan, 3.0, 4.0]],
@@ -29,7 +29,7 @@ def test_compare_axis(align_axis):
             columns=columns,
         )
     else:
-        indices = pd.MultiIndex.from_product([[0, 2], ["self", "other"]])
+        indices = pd.MultiIndex.from_product([range(0, 4, 2), ["self", "other"]])
         columns = pd.Index(["col1", "col3"])
         expected = pd.DataFrame(
             [["a", np.nan], ["c", np.nan], [np.nan, 3.0], [np.nan, 4.0]],
