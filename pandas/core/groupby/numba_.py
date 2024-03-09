@@ -1,4 +1,5 @@
 """Common utilities for Numba operations with groupby ops"""
+
 from __future__ import annotations
 
 import functools
