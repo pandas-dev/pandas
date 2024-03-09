@@ -12028,7 +12028,7 @@ Returns
 -------
 {return_type}
     The result of applying the {name} function to the {name2} elements,
-    possibly just for rows or columns based on the ``axis`` parameter.\
+    possibly just for rows or columns based on the ``axis`` parameter.
 
 {see_also}
 {examples}"""
@@ -12115,7 +12115,7 @@ Returns
 -------
 {return_type}
     The result of applying the cumulative {desc} function to the {name2} elements,
-    possibly just for rows or columns based on the ``axis`` parameter.\
+    possibly just for rows or columns based on the ``axis`` parameter.
 
 See Also
 --------
