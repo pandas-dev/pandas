@@ -857,7 +857,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (SA01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=SA01 --ignore_functions \
-        pandas.BooleanDtype\
         pandas.Categorical.__array__\
         pandas.Categorical.as_ordered\
         pandas.Categorical.as_unordered\
@@ -1169,7 +1168,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.update\
         pandas.Series.var\
         pandas.SparseDtype\
-        pandas.StringDtype\
         pandas.Timedelta\
         pandas.Timedelta.as_unit\
         pandas.Timedelta.asm8\
