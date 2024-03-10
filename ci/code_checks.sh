@@ -623,18 +623,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.mean\
         pandas.DataFrame.median\
         pandas.DataFrame.min\
-        pandas.DataFrame.pop\
         pandas.DataFrame.prod\
         pandas.DataFrame.product\
-        pandas.DataFrame.reindex\
-        pandas.DataFrame.reorder_levels\
         pandas.DataFrame.sem\
         pandas.DataFrame.skew\
         pandas.DataFrame.std\
         pandas.DataFrame.sum\
-        pandas.DataFrame.swapaxes\
-        pandas.DataFrame.to_numpy\
-        pandas.DataFrame.to_orc\
         pandas.DataFrame.to_parquet\
         pandas.DataFrame.unstack\
         pandas.DataFrame.value_counts\
