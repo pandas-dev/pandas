@@ -20,6 +20,9 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #include <Python.h>
 
 #include "datetime.h"
+/* Need to import_array for np_datetime.c (for NumPy 1.x support only) */
+#define PY_ARRAY_UNIQUE_SYMBOL PANDAS_DATETIME_NUMPY
+#include "numpy/ndarrayobject.h"
 #include "pandas/datetime/pd_datetime.h"
 #include "pandas/portable.h"
 
@@ -255,5 +258,6 @@ static struct PyModuleDef pandas_datetimemodule = {
 
 PyMODINIT_FUNC PyInit_pandas_datetime(void) {
   PyDateTime_IMPORT;
+  import_array();
   return PyModuleDef_Init(&pandas_datetimemodule);
 }

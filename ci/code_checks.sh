@@ -614,27 +614,15 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (RT03)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=RT03 --ignore_functions \
-        pandas.DataFrame.expanding\
-        pandas.DataFrame.filter\
-        pandas.DataFrame.first_valid_index\
-        pandas.DataFrame.get\
         pandas.DataFrame.hist\
         pandas.DataFrame.infer_objects\
         pandas.DataFrame.kurt\
         pandas.DataFrame.kurtosis\
-        pandas.DataFrame.last_valid_index\
         pandas.DataFrame.mask\
         pandas.DataFrame.max\
         pandas.DataFrame.mean\
         pandas.DataFrame.median\
         pandas.DataFrame.min\
-        pandas.DataFrame.nsmallest\
-        pandas.DataFrame.nunique\
-        pandas.DataFrame.pipe\
-        pandas.DataFrame.plot.box\
-        pandas.DataFrame.plot.density\
-        pandas.DataFrame.plot.kde\
-        pandas.DataFrame.plot.scatter\
         pandas.DataFrame.pop\
         pandas.DataFrame.prod\
         pandas.DataFrame.product\
