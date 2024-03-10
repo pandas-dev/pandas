@@ -1,5 +1,6 @@
 from typing import Callable
 
+
 def __getattr__(key: str) -> Callable:
     # These imports need to be lazy to avoid circular import errors
     if key == "hash_array":

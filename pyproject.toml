@@ -591,7 +591,7 @@ module = [
   "pandas.core.groupby.categorical", # TODO
   "pandas.core.groupby.generic", # TODO
   "pandas.core.groupby.grouper", # TODO
-  "pandas.core.groupby.groupby", # TODO
+  "pandas.core.groupby.groupby", # TODO 79 errors
   "pandas.core.groupby.ops", # TODO
   "pandas.core.indexers.*", # TODO
   "pandas.core.indexes.*", # TODO
@@ -607,7 +607,7 @@ module = [
   "pandas.core.ops.missing", # TODO
   "pandas.core.reshape.*", # TODO
   "pandas.core.strings.*", # TODO
-  "pandas.core.tools.*", # TODO
+  "pandas.core.tools.*", # TODO 30 errors
   "pandas.core.window.common", # TODO
   "pandas.core.window.ewm", # TODO
   "pandas.core.window.expanding", # TODO
@@ -620,10 +620,9 @@ module = [
   "pandas.core.arraylike", # TODO
   "pandas.core.base", # TODO
   "pandas.core.common", # TODO
-  "pandas.core.config_init", # TODO
   "pandas.core.construction", # TODO
   "pandas.core.flags", # TODO
-  "pandas.core.frame", # TODO
+  "pandas.core.frame", # TODO 215 errors
   "pandas.core.generic", # TODO
   "pandas.core.indexing", # TODO
   "pandas.core.missing", # TODO
@@ -654,8 +653,8 @@ module = [
   "pandas.io.parsers.*", # TODO
   "pandas.io.sas.sas_xport", # TODO
   "pandas.io.sas.sas7bdat", # TODO
-  "pandas.io.clipboards", # TODO
-  "pandas.io.common", # TODO
+  "pandas.io.clipboards", # TODO 6 errors
+  "pandas.io.common", # TODO 4 errors
   "pandas.io.html", # TODO
   "pandas.io.parquet", # TODO
   "pandas.io.pytables", # TODO
