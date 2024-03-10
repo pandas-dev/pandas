@@ -304,6 +304,7 @@ def timedelta_range(
     Returns
     -------
     TimedeltaIndex
+        Fixed frequency, with day as the default.
 
     Notes
     -----
