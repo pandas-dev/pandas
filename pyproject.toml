@@ -626,15 +626,15 @@ module = [
   "pandas.core.generic", # TODO
   "pandas.core.indexing", # TODO
   "pandas.core.missing", # TODO
-  "pandas.core.nanops", # TODO
-  "pandas.core.resample", # TODO
+  "pandas.core.nanops", # TODO 43 errors
+  "pandas.core.resample", # TODO 104 errors
   "pandas.core.roperator", # TODO
-  "pandas.core.sample", # TODO
+  "pandas.core.sample", # TODO 1 error
   "pandas.core.series", # TODO
-  "pandas.core.sorting", # TODO
-  "pandas.errors", # TODO
+  "pandas.core.sorting", # TODO 10 errors
+  "pandas.errors", # TODO 1 error
   "pandas.io.clipboard", # TODO
-  "pandas.io.excel._base", # TODO
+  "pandas.io.excel._base", # TODO 18 errors
   "pandas.io.excel._odfreader", # TODO
   "pandas.io.excel._odswriter", # TODO
   "pandas.io.excel._openpyxl", # TODO
@@ -651,7 +651,7 @@ module = [
   "pandas.io.formats.xml", # TODO
   "pandas.io.json.*", # TODO
   "pandas.io.parsers.*", # TODO
-  "pandas.io.sas.sas_xport", # TODO
+  "pandas.io.sas.sas_xport", # TODO 19 errors
   "pandas.io.sas.sas7bdat", # TODO
   "pandas.io.clipboards", # TODO 6 errors
   "pandas.io.common", # TODO 4 errors
@@ -663,12 +663,13 @@ module = [
   "pandas.io.xml", # TODO
   "pandas.plotting.*", # TODO
   "pandas.tests.*",
-  "pandas.tseries.frequencies", # TODO
-  "pandas.tseries.holiday", # TODO
+  "pandas.tseries.frequencies", # TODO 9 errors
+  "pandas.tseries.holiday", # TODO 15 errors
   "pandas.util._decorators", # TODO
   "pandas.util._doctools", # TODO 8 errors
   "pandas.util._test_decorators", # TODO
   "pandas.util._validators", # TODO
+  "pandas.util", # TODO 1 error
   "pandas._version",
   "pandas.conftest",
   "pandas"
