@@ -988,6 +988,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         Categorical
             Ordered Categorical.
 
+        See Also
+        --------
+        as_unordered : Set the Categorical to be unordered.
+
         Examples
         --------
         For :class:`pandas.Series`:
@@ -1018,6 +1022,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         Categorical
             Unordered Categorical.
+
+        See Also
+        --------
+        as_ordered : Set the Categorical to be ordered.
 
         Examples
         --------
