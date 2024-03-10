@@ -925,12 +925,11 @@ class Window(BaseWindow):
         Default ``None`` (``'right'``).
 
     step : int, default None
-
-        .. versionadded:: 1.5.0
-
         Evaluate the window at every ``step`` result, equivalent to slicing as
         ``[::step]``. ``window`` must be an integer. Using a step argument other
         than None or 1 will produce a result with a different shape than the input.
+
+        .. versionadded:: 1.5.0
 
     method : str {'single', 'table'}, default 'single'
 
