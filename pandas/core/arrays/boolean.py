@@ -56,6 +56,10 @@ class BooleanDtype(BaseMaskedDtype):
     -------
     None
 
+    See Also
+    --------
+    StringDtype : Extension dtype for string data.
+
     Examples
     --------
     >>> pd.BooleanDtype()
