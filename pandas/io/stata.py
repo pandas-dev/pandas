@@ -161,7 +161,8 @@ filepath_or_buffer : str, path object or file-like object
 
 Returns
 -------
-DataFrame or pandas.api.typing.StataReader
+DataFrame, pandas.api.typing.StataReader
+    If iterator or chunksize, returns StataReader, else DataFrame.
 
 See Also
 --------
