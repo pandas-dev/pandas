@@ -207,6 +207,7 @@ Removal of prior version deprecations/changes
 - Enforced deprecation of string ``A`` denoting frequency in :class:`YearEnd` and strings ``A-DEC``, ``A-JAN``, etc. denoting annual frequencies with various fiscal year ends (:issue:`57699`)
 - Enforced deprecation of string ``BAS`` denoting frequency in :class:`BYearBegin` and strings ``BAS-DEC``, ``BAS-JAN``, etc. denoting annual frequencies with various fiscal year starts (:issue:`57793`)
 - Enforced deprecation of string ``BA`` denoting frequency in :class:`BYearEnd` and strings ``BA-DEC``, ``BA-JAN``, etc. denoting annual frequencies with various fiscal year ends (:issue:`57793`)
+- Enforced deprecation of the behavior of :func:`concat` when ``len(keys) != len(objs)`` would truncate to the shorter of the two. Now this raises a ``ValueError`` (:issue:`43485`)
 - Enforced silent-downcasting deprecation for :ref:`all relevant methods <whatsnew_220.silent_downcasting>` (:issue:`54710`)
 - In :meth:`DataFrame.stack`, the default value of ``future_stack`` is now ``True``; specifying ``False`` will raise a ``FutureWarning`` (:issue:`55448`)
 - Iterating over a :class:`.DataFrameGroupBy` or :class:`.SeriesGroupBy` will return tuples of length 1 for the groups when grouping by ``level`` a list of length 1 (:issue:`50064`)
@@ -258,6 +259,7 @@ Removal of prior version deprecations/changes
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+- :func:`concat` returns a :class:`RangeIndex` level in the :class:`MultiIndex` result when ``keys`` is a ``range`` or :class:`RangeIndex` (:issue:`57542`)
 - :meth:`RangeIndex.append` returns a :class:`RangeIndex` instead of a :class:`Index` when appending values that could continue the :class:`RangeIndex` (:issue:`57467`)
 - :meth:`Series.str.extract` returns a :class:`RangeIndex` columns instead of an :class:`Index` column when possible (:issue:`57542`)
 - Performance improvement in :class:`DataFrame` when ``data`` is a ``dict`` and ``columns`` is specified (:issue:`24368`)
@@ -281,10 +283,12 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
+- Fixed bug in :class:`SparseDtype` for equal comparison with na fill value. (:issue:`54770`)
 - Fixed bug in :meth:`DataFrame.join` inconsistently setting result index name (:issue:`55815`)
 - Fixed bug in :meth:`DataFrame.to_string` that raised ``StopIteration`` with nested DataFrames. (:issue:`16098`)
 - Fixed bug in :meth:`DataFrame.update` bool dtype being converted to object (:issue:`55509`)
 - Fixed bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
+- Fixed bug in :meth:`Series.rank` that doesn't preserve missing values for nullable integers when ``na_option='keep'``. (:issue:`56976`)
 
 Categorical
 ^^^^^^^^^^^
