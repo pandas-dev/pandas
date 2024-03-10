@@ -2980,7 +2980,7 @@ class DataFrame(NDFrame, OpsMixin):
         Notes
         -----
         * Find more information on ORC
-          :ref:`here <https://en.wikipedia.org/wiki/Apache_ORC>`__.
+          `here <https://en.wikipedia.org/wiki/Apache_ORC>`__.
         * Before using this function you should read the :ref:`user guide about
           ORC <io.orc>` and :ref:`install optional dependencies <install.warn_orc>`.
         * This function requires `pyarrow <https://arrow.apache.org/docs/python/>`_
