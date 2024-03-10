@@ -4874,7 +4874,8 @@ cpdef to_offset(freq, bint is_period=False):
                             f"for Period, please use \'Y{name.upper()[2:]}\' "
                             f"instead of \'{name}\'"
                         )
-                    if (name.upper().startswith("S") or
+                    if (name.upper().startswith("B") or
+                            name.upper().startswith("S") or
                             name.upper().startswith("C")):
                         raise ValueError(INVALID_FREQ_ERR_MSG.format(name))
                     else:
