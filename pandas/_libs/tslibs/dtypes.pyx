@@ -310,19 +310,6 @@ cdef dict c_REVERSE_OFFSET_DEPR_FREQSTR = {
 
 # Map deprecated resolution abbreviations to correct resolution abbreviations
 cdef dict c_DEPR_ABBREVS = {
-    "AS": "YS",
-    "AS-DEC": "YS-DEC",
-    "AS-JAN": "YS-JAN",
-    "AS-FEB": "YS-FEB",
-    "AS-MAR": "YS-MAR",
-    "AS-APR": "YS-APR",
-    "AS-MAY": "YS-MAY",
-    "AS-JUN": "YS-JUN",
-    "AS-JUL": "YS-JUL",
-    "AS-AUG": "YS-AUG",
-    "AS-SEP": "YS-SEP",
-    "AS-OCT": "YS-OCT",
-    "AS-NOV": "YS-NOV",
     "H": "h",
     "BH": "bh",
     "CBH": "cbh",
