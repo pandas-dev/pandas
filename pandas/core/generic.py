@@ -2646,6 +2646,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             See the errors argument for :func:`open` for a full list
             of options.
         encoding : str, default "UTF-8"
+            Set character encoding.
 
         See Also
         --------
