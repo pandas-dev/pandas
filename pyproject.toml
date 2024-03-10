@@ -600,27 +600,26 @@ module = [
   "pandas.core.ops.array_ops", # TODO
   "pandas.core.ops.common", # TODO 4 errors
   "pandas.core.ops.invalid", # TODO
-  "pandas.core.ops.mask_ops", # TODO
   "pandas.core.ops.missing", # TODO 3 errors
-  "pandas.core.reshape.*", # TODO
-  "pandas.core.strings.*", # TODO
+  "pandas.core.reshape.*", # TODO 122 errors
+  "pandas.core.strings.*", # TODO 214 errors
   "pandas.core.tools.*", # TODO 30 errors
   "pandas.core.window.common", # TODO 13 errors
-  "pandas.core.window.ewm", # TODO
+  "pandas.core.window.ewm", # TODO 31 errors
   "pandas.core.window.expanding", # TODO 19 errors
-  "pandas.core.window.numba_", # TODO
+  "pandas.core.window.numba_", # TODO 7 errors
   "pandas.core.window.online", # TODO 4 errors
   "pandas.core.window.rolling", # TODO 74 errors
-  "pandas.core.accessor", # TODO
-  "pandas.core.algorithms", # TODO
+  "pandas.core.accessor", # TODO 22 errors
+  "pandas.core.algorithms", # TODO 20 errors
   "pandas.core.apply", # TODO 55 errors
   "pandas.core.arraylike", # TODO 75 errors
-  "pandas.core.base", # TODO
+  "pandas.core.base", # TODO 26 errors
   "pandas.core.common", # TODO 24 errors
-  "pandas.core.construction", # TODO
+  "pandas.core.construction", # TODO 9 errors
   "pandas.core.flags", # TODO 2 errors
   "pandas.core.frame", # TODO 215 errors
-  "pandas.core.generic", # TODO
+  "pandas.core.generic", # TODO 173 errors
   "pandas.core.indexing", # TODO 96 errors
   "pandas.core.missing", # TODO 26 errors
   "pandas.core.nanops", # TODO 43 errors
@@ -630,30 +629,30 @@ module = [
   "pandas.core.series", # TODO 144 errors
   "pandas.core.sorting", # TODO 10 errors
   "pandas.errors", # TODO 1 errors
-  "pandas.io.clipboard", # TODO
+  "pandas.io.clipboard", # TODO 42 errors
   "pandas.io.excel._base", # TODO 18 errors
-  "pandas.io.excel._odfreader", # TODO
-  "pandas.io.excel._odswriter", # TODO
-  "pandas.io.excel._openpyxl", # TODO
-  "pandas.io.excel._pyxlsb", # TODO
-  "pandas.io.excel._xlrd", # TODO
-  "pandas.io.excel._xlsxwriter", # TODO
+  "pandas.io.excel._odfreader", # TODO 8 errors
+  "pandas.io.excel._odswriter", # TODO 4 errors
+  "pandas.io.excel._openpyxl", # TODO 21 errors
+  "pandas.io.excel._pyxlsb", # TODO 5 errors
+  "pandas.io.excel._xlrd", # TODO 8 errors
+  "pandas.io.excel._xlsxwriter", # TODO 5 errors
   "pandas.io.formats.css", # TODO 29 errors
   "pandas.io.formats.excel", # TODO 6 errors
   "pandas.io.formats.format", # TODO 20 errors
   "pandas.io.formats.printing", # TODO 11 errors
   "pandas.io.formats.style", # TODO 24 errors
-  "pandas.io.formats.style_render", # TODO
-  "pandas.io.formats.xml", # TODO
+  "pandas.io.formats.style_render", # TODO 38 errors
+  "pandas.io.formats.xml", # TODO 4 errors
   "pandas.io.json.*", # TODO 17 errors
-  "pandas.io.parsers.*", # TODO
+  "pandas.io.parsers.*", # TODO 66 errors
   "pandas.io.sas.sas_xport", # TODO 19 errors
-  "pandas.io.sas.sas7bdat", # TODO
+  "pandas.io.sas.sas7bdat", # TODO 7 errors
   "pandas.io.clipboards", # TODO 6 errors
   "pandas.io.common", # TODO 4 errors
   "pandas.io.html", # TODO 59 errors
   "pandas.io.parquet", # TODO 8 errors
-  "pandas.io.pytables", # TODO
+  "pandas.io.pytables", # TODO 195 errors
   "pandas.io.sql", # TODO 83 errors
   "pandas.io.xml", # TODO 4 errors
   "pandas.plotting.*", # TODO 290 errors
@@ -662,7 +661,7 @@ module = [
   "pandas.tseries.holiday", # TODO 15 errors
   "pandas.util._decorators", # TODO 6 errors
   "pandas.util._doctools", # TODO 8 errors
-  "pandas.util._test_decorators", # TODO
+  "pandas.util._test_decorators", # TODO 2 errors
   "pandas.util._validators", # TODO 9 errors
   "pandas.util", # TODO 1 errors
   "pandas._version",
