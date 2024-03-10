@@ -502,11 +502,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.get\
         pandas.DataFrame.rolling\
         pandas.DataFrame.to_hdf\
-        pandas.DatetimeIndex.indexer_between_time\
-        pandas.DatetimeIndex.mean\
-        pandas.HDFStore.append\
-        pandas.HDFStore.get\
-        pandas.HDFStore.put\
         pandas.Index\
         pandas.Index.append\
         pandas.Index.copy\
