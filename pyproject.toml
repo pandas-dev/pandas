@@ -564,7 +564,7 @@ show_error_codes = true
 
 [[tool.mypy.overrides]]
 module = [
-  "pandas._config.config", # TODO
+  "pandas._config.config", # TODO 11 errors
   "pandas._libs.*",
   "pandas._testing.*", # TODO
   "pandas.arrays", # TODO
@@ -585,7 +585,7 @@ module = [
   "pandas.core.dtypes.cast", # TODO
   "pandas.core.dtypes.common", # TODO
   "pandas.core.dtypes.concat", # TODO
-  "pandas.core.dtypes.dtypes", # TODO
+  "pandas.core.dtypes.dtypes", # TODO 21 errors
   "pandas.core.dtypes.generic", # TODO
   "pandas.core.dtypes.missing", # TODO
   "pandas.core.groupby.categorical", # TODO
@@ -601,10 +601,10 @@ module = [
   "pandas.core.internals.*", # TODO
   "pandas.core.methods.*", # TODO
   "pandas.core.ops.array_ops", # TODO
-  "pandas.core.ops.common", # TODO
+  "pandas.core.ops.common", # TODO 4 errors
   "pandas.core.ops.invalid", # TODO
   "pandas.core.ops.mask_ops", # TODO
-  "pandas.core.ops.missing", # TODO
+  "pandas.core.ops.missing", # TODO 3 errors
   "pandas.core.reshape.*", # TODO
   "pandas.core.strings.*", # TODO
   "pandas.core.tools.*", # TODO 30 errors
@@ -612,14 +612,14 @@ module = [
   "pandas.core.window.ewm", # TODO
   "pandas.core.window.expanding", # TODO
   "pandas.core.window.numba_", # TODO
-  "pandas.core.window.online", # TODO
+  "pandas.core.window.online", # TODO 4 errors
   "pandas.core.window.rolling", # TODO 74 errors
   "pandas.core.accessor", # TODO
   "pandas.core.algorithms", # TODO
   "pandas.core.apply", # TODO
-  "pandas.core.arraylike", # TODO
+  "pandas.core.arraylike", # TODO 75 errors
   "pandas.core.base", # TODO
-  "pandas.core.common", # TODO
+  "pandas.core.common", # TODO 24 errors
   "pandas.core.construction", # TODO
   "pandas.core.flags", # TODO
   "pandas.core.frame", # TODO 215 errors
@@ -630,7 +630,7 @@ module = [
   "pandas.core.resample", # TODO 104 errors
   "pandas.core.roperator", # TODO
   "pandas.core.sample", # TODO 1 error
-  "pandas.core.series", # TODO
+  "pandas.core.series", # TODO 144 errors
   "pandas.core.sorting", # TODO 10 errors
   "pandas.errors", # TODO 1 error
   "pandas.io.clipboard", # TODO
@@ -641,8 +641,7 @@ module = [
   "pandas.io.excel._pyxlsb", # TODO
   "pandas.io.excel._xlrd", # TODO
   "pandas.io.excel._xlsxwriter", # TODO
-  "pandas.io.formats.console", # TODO
-  "pandas.io.formats.css", # TODO
+  # "pandas.io.formats.css", # TODO
   "pandas.io.formats.excel", # TODO
   "pandas.io.formats.format", # TODO 20 errors
   "pandas.io.formats.printing", # TODO 11 errors
@@ -655,12 +654,12 @@ module = [
   "pandas.io.sas.sas7bdat", # TODO
   "pandas.io.clipboards", # TODO 6 errors
   "pandas.io.common", # TODO 4 errors
-  "pandas.io.html", # TODO
+  "pandas.io.html", # TODO 59 errors
   "pandas.io.parquet", # TODO
   "pandas.io.pytables", # TODO
   "pandas.io.sql", # TODO 83 errors
   "pandas.io.stata", # TODO
-  "pandas.io.xml", # TODO
+  "pandas.io.xml", # TODO 4 errors
   "pandas.plotting.*", # TODO
   "pandas.tests.*",
   "pandas.tseries.frequencies", # TODO 9 errors
