@@ -1642,8 +1642,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         first_not_none = next(com.not_none(*values), None)
 
         if first_not_none is None:
-            # GH9684 - All values are None, return an empty frame.
-            return self.obj._constructor()
+            # GH9684 - All values are None, return an empty frame
+            # GH57775 - Ensure that no information from the original frame is lost.
+            frame = self.obj
+            return frame.drop(index=frame.index, inplace=False)
         elif isinstance(first_not_none, DataFrame):
             return self._concat_objects(
                 values,
