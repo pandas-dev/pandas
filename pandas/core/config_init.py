@@ -612,7 +612,7 @@ plotting_backend_doc = """
 """
 
 
-def register_plotting_backend_cb(key) -> None:  # type: ignore[no-untyped-def]
+def register_plotting_backend_cb(key: str | None) -> None:
     if key == "matplotlib":
         # We defer matplotlib validation, since it's the default
         return
@@ -626,7 +626,7 @@ with cf.config_prefix("plotting"):
         "backend",
         defval="matplotlib",
         doc=plotting_backend_doc,
-        validator=register_plotting_backend_cb,
+        validator=register_plotting_backend_cb,  # type: ignore[arg-type]
     )
 
 
