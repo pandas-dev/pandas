@@ -1644,8 +1644,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         b    2
         dtype: int64
 
-        Example 4: The function passed to ``apply`` returns ``None`` for some of the
-        groups. These group will be filtered from the result:
+        Example 4: The function passed to ``apply`` returns ``None`` for one of the
+        group. This group is filtered from the result:
 
         >>> g1.apply(lambda x: None if x.iloc[0, 0] == 3 else x, include_groups=False)
            B  C
