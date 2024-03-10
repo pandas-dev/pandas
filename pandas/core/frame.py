@@ -1883,6 +1883,7 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         numpy.ndarray
+            The NumPy array representing the values in the DataFrame.
 
         See Also
         --------
