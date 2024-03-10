@@ -1572,12 +1572,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
-        Groups for which ``func`` returns ``None`` will be filtered out of the result.
+        Groups for which ``func`` returns ``None`` will be filtered from the result.
 
         .. versionchanged:: 2.2.2
 
-            In case all groups are filtered out, an empty DataFrame with the columns
-            and dtypes of the original dataframe will be returned.
+            In case all groups are filtered from the result, an empty DataFrame
+            with the columns and dtypes of the original dataframe will be returned.
 
         Examples
         --------
@@ -1644,8 +1644,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         b    2
         dtype: int64
 
-        Example 4: The function passed to àpply` returns `None` for for some of the
-        groups. These group will be filtered out of the result:
+        Example 4: The function passed to àpply` returns `None` for some of the
+        groups. These group will be filtered from the result:
 
         >>> g1.apply(lambda x: None if x.iloc[0, 0] == 3 else x, include_groups=False)
            B  C
