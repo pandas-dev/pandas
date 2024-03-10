@@ -1,4 +1,6 @@
-def __getattr__(key: str):
+from typing import Callable
+
+def __getattr__(key: str) -> Callable:
     # These imports need to be lazy to avoid circular import errors
     if key == "hash_array":
         from pandas.core.util.hashing import hash_array
@@ -25,5 +27,5 @@ def __getattr__(key: str):
     raise AttributeError(f"module 'pandas.util' has no attribute '{key}'")
 
 
-def __dir__():
+def __dir__() -> list:
     return list(globals().keys()) + ["hash_array", "hash_pandas_object"]

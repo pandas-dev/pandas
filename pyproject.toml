@@ -595,9 +595,9 @@ module = [
   "pandas.core.groupby.ops", # TODO
   "pandas.core.indexers.*", # TODO
   "pandas.core.indexes.*", # TODO
-  "pandas.core.interchange.column", # TODO
+  "pandas.core.interchange.column", # TODO 4 errors
   "pandas.core.interchange.dataframe_protocol", # TODO
-  "pandas.core.interchange.from_dataframe", # TODO
+  "pandas.core.interchange.from_dataframe", # TODO 2 errors
   "pandas.core.internals.*", # TODO
   "pandas.core.methods.*", # TODO
   "pandas.core.ops.array_ops", # TODO
@@ -613,7 +613,7 @@ module = [
   "pandas.core.window.expanding", # TODO
   "pandas.core.window.numba_", # TODO
   "pandas.core.window.online", # TODO
-  "pandas.core.window.rolling", # TODO
+  "pandas.core.window.rolling", # TODO 74 errors
   "pandas.core.accessor", # TODO
   "pandas.core.algorithms", # TODO
   "pandas.core.apply", # TODO
@@ -645,9 +645,8 @@ module = [
   "pandas.io.formats.console", # TODO
   "pandas.io.formats.css", # TODO
   "pandas.io.formats.excel", # TODO
-  "pandas.io.formats.format", # TODO
-  "pandas.io.formats.info", # TODO
-  "pandas.io.formats.printing", # TODO
+  "pandas.io.formats.format", # TODO 20 errors
+  "pandas.io.formats.printing", # TODO 11 errors
   "pandas.io.formats.style", # TODO
   "pandas.io.formats.style_render", # TODO
   "pandas.io.formats.xml", # TODO
@@ -660,7 +659,7 @@ module = [
   "pandas.io.html", # TODO
   "pandas.io.parquet", # TODO
   "pandas.io.pytables", # TODO
-  "pandas.io.sql", # TODO
+  "pandas.io.sql", # TODO 83 errors
   "pandas.io.stata", # TODO
   "pandas.io.xml", # TODO
   "pandas.plotting.*", # TODO
@@ -668,11 +667,9 @@ module = [
   "pandas.tseries.frequencies", # TODO
   "pandas.tseries.holiday", # TODO
   "pandas.util._decorators", # TODO
-  "pandas.util._doctools", # TODO
-  "pandas.util._print_versions", # TODO
+  "pandas.util._doctools", # TODO 8 errors
   "pandas.util._test_decorators", # TODO
   "pandas.util._validators", # TODO
-  "pandas.util", # TODO
   "pandas._version",
   "pandas.conftest",
   "pandas"
