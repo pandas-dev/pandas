@@ -852,9 +852,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.read_sas\
         pandas.read_spss\
         pandas.read_stata\
-        pandas.set_eng_float_format\
-        pandas.timedelta_range\
-        pandas.util.hash_pandas_object # There should be no backslash in the final line, please keep this comment in the last ignored function
+        pandas.set_eng_float_format # There should be no backslash in the final line, please keep this comment in the last ignored function
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Partially validate docstrings (SA01)' ;  echo $MSG
