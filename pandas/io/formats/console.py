@@ -63,7 +63,7 @@ def in_interactive_session() -> bool:
     """
     from pandas import get_option
 
-    def check_main():
+    def check_main() -> bool:
         try:
             import __main__ as main
         except ModuleNotFoundError:

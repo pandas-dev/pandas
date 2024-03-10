@@ -42,7 +42,7 @@ if TYPE_CHECKING:
     )
 
 
-def _is_nonempty(x, axis) -> bool:
+def _is_nonempty(x: ArrayLike, axis: AxisInt) -> bool:
     # filter empty arrays
     # 1-d dtypes always are included here
     if x.ndim <= axis:

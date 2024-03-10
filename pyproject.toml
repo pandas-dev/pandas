@@ -567,13 +567,9 @@ module = [
   "pandas._config.config", # TODO
   "pandas._libs.*",
   "pandas._testing.*", # TODO
-  "pandas.arrays", # TODO
   "pandas.compat.numpy.function", # TODO
   "pandas.compat.compressors", # TODO
-  "pandas.compat.pickle_compat", # TODO
   "pandas.core._numba.executor", # TODO
-  "pandas.core.array_algos.datetimelike_accumulations", # TODO
-  "pandas.core.array_algos.masked_accumulations", # TODO
   "pandas.core.array_algos.masked_reductions", # TODO
   "pandas.core.array_algos.putmask", # TODO
   "pandas.core.array_algos.quantile", # TODO
@@ -588,7 +584,6 @@ module = [
   "pandas.core.dtypes.dtypes", # TODO
   "pandas.core.dtypes.generic", # TODO
   "pandas.core.dtypes.missing", # TODO
-  "pandas.core.groupby.categorical", # TODO
   "pandas.core.groupby.generic", # TODO
   "pandas.core.groupby.grouper", # TODO
   "pandas.core.groupby.groupby", # TODO
@@ -603,7 +598,6 @@ module = [
   "pandas.core.ops.array_ops", # TODO
   "pandas.core.ops.common", # TODO
   "pandas.core.ops.invalid", # TODO
-  "pandas.core.ops.mask_ops", # TODO
   "pandas.core.ops.missing", # TODO
   "pandas.core.reshape.*", # TODO
   "pandas.core.strings.*", # TODO
@@ -620,7 +614,6 @@ module = [
   "pandas.core.arraylike", # TODO
   "pandas.core.base", # TODO
   "pandas.core.common", # TODO
-  "pandas.core.config_init", # TODO
   "pandas.core.construction", # TODO
   "pandas.core.flags", # TODO
   "pandas.core.frame", # TODO
@@ -642,11 +635,9 @@ module = [
   "pandas.io.excel._pyxlsb", # TODO
   "pandas.io.excel._xlrd", # TODO
   "pandas.io.excel._xlsxwriter", # TODO
-  "pandas.io.formats.console", # TODO
   "pandas.io.formats.css", # TODO
   "pandas.io.formats.excel", # TODO
   "pandas.io.formats.format", # TODO
-  "pandas.io.formats.info", # TODO
   "pandas.io.formats.printing", # TODO
   "pandas.io.formats.style", # TODO
   "pandas.io.formats.style_render", # TODO
@@ -661,7 +652,6 @@ module = [
   "pandas.io.parquet", # TODO
   "pandas.io.pytables", # TODO
   "pandas.io.sql", # TODO
-  "pandas.io.stata", # TODO
   "pandas.io.xml", # TODO
   "pandas.plotting.*", # TODO
   "pandas.tests.*",
@@ -669,7 +659,6 @@ module = [
   "pandas.tseries.holiday", # TODO
   "pandas.util._decorators", # TODO
   "pandas.util._doctools", # TODO
-  "pandas.util._print_versions", # TODO
   "pandas.util._test_decorators", # TODO
   "pandas.util._validators", # TODO
   "pandas.util", # TODO
