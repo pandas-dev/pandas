@@ -50,7 +50,7 @@ def recode_for_groupby(
         # In cases with c.ordered, this is equivalent to
         #  return c.remove_unused_categories(), c
 
-        unique_codes = unique1d(c.codes)
+        unique_codes = unique1d(c.codes)  # type: ignore[no-untyped-call]
 
         take_codes = unique_codes[unique_codes != -1]
         if sort:
@@ -74,7 +74,7 @@ def recode_for_groupby(
     # xref GH:46909: Re-ordering codes faster than using (set|add|reorder)_categories
     all_codes = np.arange(c.categories.nunique())
     # GH 38140: exclude nan from indexer for categories
-    unique_notnan_codes = unique1d(c.codes[c.codes != -1])
+    unique_notnan_codes = unique1d(c.codes[c.codes != -1])  # type: ignore[no-untyped-call]
     if sort:
         unique_notnan_codes = np.sort(unique_notnan_codes)
     if len(all_codes) > len(unique_notnan_codes):
