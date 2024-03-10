@@ -569,14 +569,14 @@ module = [
   "pandas._testing.*", # TODO 55 errors
   "pandas.compat.numpy.function", # TODO 14 errors
   "pandas.compat.compressors", # TODO 11 errors
-  "pandas.core._numba.executor", # TODO
+  "pandas.core._numba.executor", # TODO 10 errors
   "pandas.core.array_algos.masked_reductions", # TODO 10 errors
   "pandas.core.array_algos.putmask", # TODO 2 errors
   "pandas.core.array_algos.quantile", # TODO 3 errors
   "pandas.core.array_algos.replace", # TODO 4 errors
   "pandas.core.array_algos.take", # TODO 37 errors
-  "pandas.core.arrays.*", # TODO
-  "pandas.core.computation.*", # TODO
+  "pandas.core.arrays.*", # TODO 753 errors
+  "pandas.core.computation.*", # TODO 250 errors
   "pandas.core.dtypes.astype", # TODO 3 errors
   "pandas.core.dtypes.cast", # TODO 22 errors
   "pandas.core.dtypes.common", # TODO 36 errors
