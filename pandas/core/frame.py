@@ -2931,7 +2931,7 @@ class DataFrame(NDFrame, OpsMixin):
         engine_kwargs: dict[str, Any] | None = None,
     ) -> bytes | None:
         """
-        Write a DataFrame to the `Optimized Row Columnar (ORC) format.
+        Write a DataFrame to the Optimized Row Columnar (ORC) format.
 
         .. versionadded:: 1.5.0
 
@@ -2979,7 +2979,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        * Find more information on ORC `here <https://en.wikipedia.org/wiki/Apache_ORC>`
+        * Find more information on ORC
+          :ref:`here <https://en.wikipedia.org/wiki/Apache_ORC>`.
         * Before using this function you should read the :ref:`user guide about
           ORC <io.orc>` and :ref:`install optional dependencies <install.warn_orc>`.
         * This function requires `pyarrow <https://arrow.apache.org/docs/python/>`_
