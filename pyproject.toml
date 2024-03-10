@@ -585,21 +585,20 @@ module = [
   "pandas.core.dtypes.dtypes", # TODO 21 errors
   "pandas.core.dtypes.generic", # TODO 4 errors
   "pandas.core.dtypes.missing", # TODO 7 errors
-  "pandas.core.groupby.categorical", # TODO
-  "pandas.core.groupby.generic", # TODO
-  "pandas.core.groupby.grouper", # TODO
+  "pandas.core.groupby.generic", # TODO 59 errors
+  "pandas.core.groupby.grouper", # TODO 12 errors
   "pandas.core.groupby.groupby", # TODO 79 errors
-  "pandas.core.groupby.ops", # TODO
-  "pandas.core.indexers.*", # TODO
-  "pandas.core.indexes.*", # TODO
+  "pandas.core.groupby.ops", # TODO 19 errors
+  "pandas.core.indexers.*", # TODO 13 errors
+  "pandas.core.indexes.*", # TODO 512 errors
   "pandas.core.interchange.column", # TODO 4 errors
-  "pandas.core.interchange.dataframe_protocol", # TODO
+  "pandas.core.interchange.dataframe_protocol", # TODO 2 errors
   "pandas.core.interchange.from_dataframe", # TODO 2 errors
   "pandas.core.internals.*", # TODO 133 errors
-  "pandas.core.methods.*", # TODO
-  "pandas.core.ops.array_ops", # TODO
+  "pandas.core.methods.*", # TODO 4 errors
+  "pandas.core.ops.array_ops", # TODO 23 errors
   "pandas.core.ops.common", # TODO 4 errors
-  "pandas.core.ops.invalid", # TODO
+  "pandas.core.ops.invalid", # TODO 2 errors
   "pandas.core.ops.missing", # TODO 3 errors
   "pandas.core.reshape.*", # TODO 122 errors
   "pandas.core.strings.*", # TODO 214 errors
