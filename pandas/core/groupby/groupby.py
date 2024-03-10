@@ -1573,8 +1573,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         for more details.
 
         Groups for which ``func`` returns ``None`` will be filtered out of the result.
-        In case all groups are filtered out, an empty DataFrame with the columns
-        and dtypes of the original dataframe will be returned.
+
+        .. versionchanged:: 2.2.2
+
+            In case all groups are filtered out, an empty DataFrame with the columns
+            and dtypes of the original dataframe will be returned.
 
         Examples
         --------
@@ -1640,6 +1643,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         a    5
         b    2
         dtype: int64
+
+        Example 4: The function passed to àpply` returns `None` for for some of the
+        groups. These group will be filtered out of the result:
+
+        >>> g1.apply(lambda x: None if x.iloc[0, 0] == 3 else x, include_groups=False)
+           B  C
+        0  1  4
+        1  2  6
+
         """
         if isinstance(func, str):
             if hasattr(self, func):
