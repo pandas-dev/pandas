@@ -7613,7 +7613,8 @@ class DataFrame(NDFrame, OpsMixin):
 
     def reorder_levels(self, order: Sequence[int | str], axis: Axis = 0) -> DataFrame:
         """
-        Rearrange index levels using input order. May not drop or duplicate levels.
+        Rearrange index or column levels using input ``order``.
+        May not drop or duplicate levels.
 
         Parameters
         ----------
@@ -7626,6 +7627,7 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
+            DataFrame with indices or columns with reordered levels.
 
         Examples
         --------
