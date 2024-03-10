@@ -2931,7 +2931,8 @@ class DataFrame(NDFrame, OpsMixin):
         engine_kwargs: dict[str, Any] | None = None,
     ) -> bytes | None:
         """
-        Write a DataFrame to the ORC format.
+        Write a DataFrame to the `Optimized Row Columnar (ORC)
+        https://en.wikipedia.org/wiki/Apache_ORC>` format.
 
         .. versionadded:: 1.5.0
 
@@ -2958,7 +2959,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        bytes if no path argument is provided else None
+        bytes if no ``path`` argument is provided else None
+            Bytes object with DataFrame data if ``path`` is not specified else None.
 
         Raises
         ------
