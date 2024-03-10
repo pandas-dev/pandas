@@ -625,7 +625,7 @@ module = [
   "pandas.core.frame", # TODO 215 errors
   "pandas.core.generic", # TODO
   "pandas.core.indexing", # TODO
-  "pandas.core.missing", # TODO
+  "pandas.core.missing", # TODO 26 errors
   "pandas.core.nanops", # TODO 43 errors
   "pandas.core.resample", # TODO 104 errors
   "pandas.core.roperator", # TODO
@@ -641,7 +641,7 @@ module = [
   "pandas.io.excel._pyxlsb", # TODO
   "pandas.io.excel._xlrd", # TODO
   "pandas.io.excel._xlsxwriter", # TODO
-  # "pandas.io.formats.css", # TODO
+  "pandas.io.formats.css", # TODO 29 errors
   "pandas.io.formats.excel", # TODO
   "pandas.io.formats.format", # TODO 20 errors
   "pandas.io.formats.printing", # TODO 11 errors
@@ -658,9 +658,8 @@ module = [
   "pandas.io.parquet", # TODO
   "pandas.io.pytables", # TODO
   "pandas.io.sql", # TODO 83 errors
-  "pandas.io.stata", # TODO
   "pandas.io.xml", # TODO 4 errors
-  "pandas.plotting.*", # TODO
+  "pandas.plotting.*", # TODO 290 errors
   "pandas.tests.*",
   "pandas.tseries.frequencies", # TODO 9 errors
   "pandas.tseries.holiday", # TODO 15 errors
