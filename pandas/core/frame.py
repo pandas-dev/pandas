@@ -5473,7 +5473,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def pop(self, item: Hashable) -> Series:
         """
-        Return item and drop from frame. Raise KeyError if not found.
+        Return item and drop it from DataFrame. Raise KeyError if not found.
 
         Parameters
         ----------
@@ -5483,6 +5483,7 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         Series
+            Series representing the item that is dropped.
 
         Examples
         --------
