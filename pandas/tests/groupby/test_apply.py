@@ -838,7 +838,7 @@ def test_groupby_apply_all_none():
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
     with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = test_df.groupby("groups").apply(test_func)
-    expected = DataFrame()
+    expected = test_df.drop(index=test_df.index, inplace=False)
     tm.assert_frame_equal(result, expected)
 
 
