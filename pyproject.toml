@@ -568,7 +568,7 @@ module = [
   "pandas._libs.*",
   "pandas._testing.*", # TODO
   "pandas.arrays", # TODO
-  "pandas.compat.numpy.function", # TODO
+  "pandas.compat.numpy.function", # TODO 14 errors
   "pandas.compat.compressors", # TODO
   "pandas.compat.pickle_compat", # TODO
   "pandas.core._numba.executor", # TODO
@@ -578,13 +578,13 @@ module = [
   "pandas.core.array_algos.putmask", # TODO
   "pandas.core.array_algos.quantile", # TODO
   "pandas.core.array_algos.replace", # TODO
-  "pandas.core.array_algos.take", # TODO
+  "pandas.core.array_algos.take", # TODO 37 errors
   "pandas.core.arrays.*", # TODO
   "pandas.core.computation.*", # TODO
   "pandas.core.dtypes.astype", # TODO
-  "pandas.core.dtypes.cast", # TODO
-  "pandas.core.dtypes.common", # TODO
-  "pandas.core.dtypes.concat", # TODO
+  "pandas.core.dtypes.cast", # TODO 22 errors
+  "pandas.core.dtypes.common", # TODO 36 errors
+  "pandas.core.dtypes.concat", # TODO 3 errors
   "pandas.core.dtypes.dtypes", # TODO 21 errors
   "pandas.core.dtypes.generic", # TODO
   "pandas.core.dtypes.missing", # TODO
@@ -598,7 +598,7 @@ module = [
   "pandas.core.interchange.column", # TODO 4 errors
   "pandas.core.interchange.dataframe_protocol", # TODO
   "pandas.core.interchange.from_dataframe", # TODO 2 errors
-  "pandas.core.internals.*", # TODO
+  "pandas.core.internals.*", # TODO 133 errors
   "pandas.core.methods.*", # TODO
   "pandas.core.ops.array_ops", # TODO
   "pandas.core.ops.common", # TODO 4 errors
@@ -608,7 +608,7 @@ module = [
   "pandas.core.reshape.*", # TODO
   "pandas.core.strings.*", # TODO
   "pandas.core.tools.*", # TODO 30 errors
-  "pandas.core.window.common", # TODO
+  "pandas.core.window.common", # TODO 13 errors
   "pandas.core.window.ewm", # TODO
   "pandas.core.window.expanding", # TODO
   "pandas.core.window.numba_", # TODO
@@ -655,7 +655,7 @@ module = [
   "pandas.io.clipboards", # TODO 6 errors
   "pandas.io.common", # TODO 4 errors
   "pandas.io.html", # TODO 59 errors
-  "pandas.io.parquet", # TODO
+  "pandas.io.parquet", # TODO 8 errors
   "pandas.io.pytables", # TODO
   "pandas.io.sql", # TODO 83 errors
   "pandas.io.xml", # TODO 4 errors
