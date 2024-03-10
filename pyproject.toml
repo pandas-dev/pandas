@@ -566,13 +566,10 @@ show_error_codes = true
 module = [
   "pandas._config.config", # TODO 11 errors
   "pandas._libs.*",
-  "pandas._testing.*", # TODO
-  "pandas.arrays", # TODO
+  "pandas._testing.*", # TODO 55 errors
   "pandas.compat.numpy.function", # TODO 14 errors
-  "pandas.compat.compressors", # TODO
-  "pandas.compat.pickle_compat", # TODO
+  "pandas.compat.compressors", # TODO 11 errors
   "pandas.core._numba.executor", # TODO
-  "pandas.core.array_algos.datetimelike_accumulations", # TODO
   "pandas.core.array_algos.masked_accumulations", # TODO
   "pandas.core.array_algos.masked_reductions", # TODO
   "pandas.core.array_algos.putmask", # TODO
@@ -581,13 +578,13 @@ module = [
   "pandas.core.array_algos.take", # TODO 37 errors
   "pandas.core.arrays.*", # TODO
   "pandas.core.computation.*", # TODO
-  "pandas.core.dtypes.astype", # TODO
+  "pandas.core.dtypes.astype", # TODO 3 errors
   "pandas.core.dtypes.cast", # TODO 22 errors
   "pandas.core.dtypes.common", # TODO 36 errors
   "pandas.core.dtypes.concat", # TODO 3 errors
   "pandas.core.dtypes.dtypes", # TODO 21 errors
-  "pandas.core.dtypes.generic", # TODO
-  "pandas.core.dtypes.missing", # TODO
+  "pandas.core.dtypes.generic", # TODO 4 errors
+  "pandas.core.dtypes.missing", # TODO 7 errors
   "pandas.core.groupby.categorical", # TODO
   "pandas.core.groupby.generic", # TODO
   "pandas.core.groupby.grouper", # TODO
@@ -610,29 +607,29 @@ module = [
   "pandas.core.tools.*", # TODO 30 errors
   "pandas.core.window.common", # TODO 13 errors
   "pandas.core.window.ewm", # TODO
-  "pandas.core.window.expanding", # TODO
+  "pandas.core.window.expanding", # TODO 19 errors
   "pandas.core.window.numba_", # TODO
   "pandas.core.window.online", # TODO 4 errors
   "pandas.core.window.rolling", # TODO 74 errors
   "pandas.core.accessor", # TODO
   "pandas.core.algorithms", # TODO
-  "pandas.core.apply", # TODO
+  "pandas.core.apply", # TODO 55 errors
   "pandas.core.arraylike", # TODO 75 errors
   "pandas.core.base", # TODO
   "pandas.core.common", # TODO 24 errors
   "pandas.core.construction", # TODO
-  "pandas.core.flags", # TODO
+  "pandas.core.flags", # TODO 2 errors
   "pandas.core.frame", # TODO 215 errors
   "pandas.core.generic", # TODO
-  "pandas.core.indexing", # TODO
+  "pandas.core.indexing", # TODO 96 errors
   "pandas.core.missing", # TODO 26 errors
   "pandas.core.nanops", # TODO 43 errors
   "pandas.core.resample", # TODO 104 errors
-  "pandas.core.roperator", # TODO
-  "pandas.core.sample", # TODO 1 error
+  "pandas.core.roperator", # TODO 12 errors
+  "pandas.core.sample", # TODO 1 errors
   "pandas.core.series", # TODO 144 errors
   "pandas.core.sorting", # TODO 10 errors
-  "pandas.errors", # TODO 1 error
+  "pandas.errors", # TODO 1 errors
   "pandas.io.clipboard", # TODO
   "pandas.io.excel._base", # TODO 18 errors
   "pandas.io.excel._odfreader", # TODO
@@ -642,13 +639,13 @@ module = [
   "pandas.io.excel._xlrd", # TODO
   "pandas.io.excel._xlsxwriter", # TODO
   "pandas.io.formats.css", # TODO 29 errors
-  "pandas.io.formats.excel", # TODO
+  "pandas.io.formats.excel", # TODO 6 errors
   "pandas.io.formats.format", # TODO 20 errors
   "pandas.io.formats.printing", # TODO 11 errors
-  "pandas.io.formats.style", # TODO
+  "pandas.io.formats.style", # TODO 24 errors
   "pandas.io.formats.style_render", # TODO
   "pandas.io.formats.xml", # TODO
-  "pandas.io.json.*", # TODO
+  "pandas.io.json.*", # TODO 17 errors
   "pandas.io.parsers.*", # TODO
   "pandas.io.sas.sas_xport", # TODO 19 errors
   "pandas.io.sas.sas7bdat", # TODO
@@ -663,11 +660,11 @@ module = [
   "pandas.tests.*",
   "pandas.tseries.frequencies", # TODO 9 errors
   "pandas.tseries.holiday", # TODO 15 errors
-  "pandas.util._decorators", # TODO
+  "pandas.util._decorators", # TODO 6 errors
   "pandas.util._doctools", # TODO 8 errors
   "pandas.util._test_decorators", # TODO
-  "pandas.util._validators", # TODO
-  "pandas.util", # TODO 1 error
+  "pandas.util._validators", # TODO 9 errors
+  "pandas.util", # TODO 1 errors
   "pandas._version",
   "pandas.conftest",
   "pandas"
