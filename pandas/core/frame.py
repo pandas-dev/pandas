@@ -1883,6 +1883,7 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         numpy.ndarray
+            The NumPy array representing the values in the DataFrame.
 
         See Also
         --------
@@ -2930,7 +2931,7 @@ class DataFrame(NDFrame, OpsMixin):
         engine_kwargs: dict[str, Any] | None = None,
     ) -> bytes | None:
         """
-        Write a DataFrame to the ORC format.
+        Write a DataFrame to the Optimized Row Columnar (ORC) format.
 
         .. versionadded:: 1.5.0
 
@@ -2957,7 +2958,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        bytes if no path argument is provided else None
+        bytes if no ``path`` argument is provided else None
+            Bytes object with DataFrame data if ``path`` is not specified else None.
 
         Raises
         ------
@@ -2977,6 +2979,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
+        * Find more information on ORC
+          `here <https://en.wikipedia.org/wiki/Apache_ORC>`__.
         * Before using this function you should read the :ref:`user guide about
           ORC <io.orc>` and :ref:`install optional dependencies <install.warn_orc>`.
         * This function requires `pyarrow <https://arrow.apache.org/docs/python/>`_
@@ -5473,7 +5477,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def pop(self, item: Hashable) -> Series:
         """
-        Return item and drop from frame. Raise KeyError if not found.
+        Return item and drop it from DataFrame. Raise KeyError if not found.
 
         Parameters
         ----------
@@ -5483,6 +5487,7 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         Series
+            Series representing the item that is dropped.
 
         Examples
         --------
@@ -7612,7 +7617,9 @@ class DataFrame(NDFrame, OpsMixin):
 
     def reorder_levels(self, order: Sequence[int | str], axis: Axis = 0) -> DataFrame:
         """
-        Rearrange index levels using input order. May not drop or duplicate levels.
+        Rearrange index or column levels using input ``order``.
+
+        May not drop or duplicate levels.
 
         Parameters
         ----------
@@ -7625,6 +7632,7 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
+            DataFrame with indices or columns with reordered levels.
 
         Examples
         --------
