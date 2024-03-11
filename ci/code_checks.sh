@@ -144,7 +144,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (GL08)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=GL08 --ignore_functions \
-        pandas.ExcelFile.book\
         pandas.Index.empty\
         pandas.Index.names\
         pandas.Index.view\
