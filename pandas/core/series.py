@@ -414,13 +414,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
-        if data is None:
-            index = index if index is not None else default_index(0)
-            if len(index) or dtype is not None:
-                data = na_value_for_dtype(pandas_dtype(dtype), compat=False)
-            else:
-                data = []
-
         if isinstance(data, MultiIndex):
             raise NotImplementedError(
                 "initializing a Series from a MultiIndex is not supported"
@@ -480,6 +473,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif isinstance(data, ExtensionArray):
             pass
         else:
+            if data is None:
+                index = index if index is not None else default_index(0)
+                if len(index) or dtype is not None:
+                    data = na_value_for_dtype(pandas_dtype(dtype), compat=False)
+                else:
+                    data = []
+
             data = com.maybe_iterable_to_list(data)
             if is_list_like(data) and not len(data) and dtype is None:
                 # GH 29405: Pre-2.0, this defaulted to float.
