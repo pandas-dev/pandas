@@ -119,8 +119,9 @@ def read_sas(
 
     Returns
     -------
-    DataFrame if iterator=False and chunksize=None, else SAS7BDATReader
-    or XportReader
+    DataFrame, SAS7BDATReader, or XportReader
+        DataFrame if iterator=False and chunksize=None, else SAS7BDATReader
+        or XportReader, file format is inferred from file extension.
 
     Examples
     --------

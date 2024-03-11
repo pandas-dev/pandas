@@ -83,6 +83,7 @@ def read_orc(
     Returns
     -------
     DataFrame
+        DataFrame based on the ORC file.
 
     Notes
     -----
