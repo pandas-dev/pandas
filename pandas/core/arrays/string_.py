@@ -96,6 +96,10 @@ class StringDtype(StorageExtensionDtype):
     -------
     None
 
+    See Also
+    --------
+    BooleanDtype : Extension dtype for boolean data.
+
     Examples
     --------
     >>> pd.StringDtype()

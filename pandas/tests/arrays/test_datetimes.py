@@ -1,6 +1,7 @@
 """
 Tests for DatetimeArray
 """
+
 from __future__ import annotations
 
 from datetime import timedelta
@@ -772,11 +773,8 @@ class TestDatetimeArray:
             ("2QE-SEP", "2Q-SEP"),
             ("1YE", "1Y"),
             ("2YE-MAR", "2Y-MAR"),
-            ("1YE", "1A"),
-            ("2YE-MAR", "2A-MAR"),
             ("2ME", "2m"),
             ("2QE-SEP", "2q-sep"),
-            ("2YE-MAR", "2a-mar"),
             ("2YE", "2y"),
         ],
     )
@@ -825,6 +823,13 @@ class TestDatetimeArray:
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):
             result = pd.date_range("1/1/2000", periods=4, freq=freq_depr)
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("freq", ["1A", "2A-MAR", "2a-mar"])
+    def test_date_range_frequency_A_raises(self, freq):
+        msg = f"Invalid frequency: {freq}"
+
+        with pytest.raises(ValueError, match=msg):
+            pd.date_range("1/1/2000", periods=4, freq=freq)
 
 
 def test_factorize_sort_without_freq():

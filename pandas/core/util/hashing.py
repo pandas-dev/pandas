@@ -1,6 +1,7 @@
 """
 data hash pandas / numpy objects
 """
+
 from __future__ import annotations
 
 import itertools
@@ -105,7 +106,8 @@ def hash_pandas_object(
 
     Returns
     -------
-    Series of uint64, same length as the object
+    Series of uint64
+        Same length as the object.
 
     Examples
     --------

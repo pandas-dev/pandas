@@ -1,6 +1,7 @@
 """
 Routines for filling missing data.
 """
+
 from __future__ import annotations
 
 from functools import wraps
@@ -142,8 +143,7 @@ def clean_fill_method(
     method: Literal["ffill", "pad", "bfill", "backfill"],
     *,
     allow_nearest: Literal[False] = ...,
-) -> Literal["pad", "backfill"]:
-    ...
+) -> Literal["pad", "backfill"]: ...
 
 
 @overload
@@ -151,8 +151,7 @@ def clean_fill_method(
     method: Literal["ffill", "pad", "bfill", "backfill", "nearest"],
     *,
     allow_nearest: Literal[True],
-) -> Literal["pad", "backfill", "nearest"]:
-    ...
+) -> Literal["pad", "backfill", "nearest"]: ...
 
 
 def clean_fill_method(
