@@ -386,6 +386,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
         data_dtype = getattr(data, "dtype", None)
         original_dtype = dtype
+        refs = None
 
         if isinstance(data, (ExtensionArray, np.ndarray)):
             if copy is not False:
@@ -419,26 +420,25 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 "initializing a Series from a MultiIndex is not supported"
             )
 
-        refs = None
-
-        data_is_dict = is_dict_like(data) and not is_pandas_object
-        if data_is_dict:  #
+        if is_dict_like(data) and not is_pandas_object:
             if data:
-                pass
-                # if index is None or (index is not None and not len(index)):
-                #     pass
+                # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
+                # raises KeyError). Send it to Series for "standard" construction:
+                data = Series(
+                    list(data.values()), index=tuple(data.keys()), dtype=dtype
+                )
+                dtype = None
             else:
                 data = None
-                data_is_dict = False
 
-        if data_is_dict:
-            if data:
-                data, index = self._init_non_empty_dict(data, index, dtype)
-                dtype = None
-                copy = False
+        if data is None:
+            index = index if index is not None else default_index(0)
+            if len(index) or dtype is not None:
+                data = na_value_for_dtype(pandas_dtype(dtype), compat=False)
             else:
-                pass
-        elif isinstance(data, Index):
+                data = []
+
+        if isinstance(data, Index):
             if dtype is not None:
                 data = data.astype(dtype)
 
@@ -487,13 +487,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif isinstance(data, ExtensionArray):
             pass
         else:
-            if data is None:
-                index = index if index is not None else default_index(0)
-                if len(index) or dtype is not None:
-                    data = na_value_for_dtype(pandas_dtype(dtype), compat=False)
-                else:
-                    data = []
-
             data = com.maybe_iterable_to_list(data)
             if is_list_like(data) and not len(data) and dtype is None:
                 # GH 29405: Pre-2.0, this defaulted to float.
@@ -530,43 +523,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
-
-    def _init_non_empty_dict(
-        self, data, index: Index | None = None, dtype: DtypeObj | None = None
-    ):
-        """
-        Derive the "_mgr" and "index" attributes of a new Series from a
-        dictionary input.
-
-        Parameters
-        ----------
-        data : dict or dict-like
-            Data used to populate the new Series.
-        index : Index or None, default None
-            Index for the new Series: if None, use dict keys.
-        dtype : np.dtype, ExtensionDtype, or None, default None
-            The dtype for the new Series: if None, infer from data.
-
-        Returns
-        -------
-        _data : BlockManager for the new Series
-        index : index for the new Series
-        """
-        # GH:34717, issue was using zip to extract key and values from data.
-        # using generators in effects the performance.
-        # Below is the new way of extracting the keys and values]
-        keys = tuple(data.keys())
-        values = list(data.values())  # Generating list of values- faster way
-
-        # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
-        # raises KeyError), so we iterate the entire dict, and align
-        # Input is now list-like, so rely on "standard" construction:
-        s = Series(values, index=keys, dtype=dtype)
-
-        # Now we just make sure the order is respected, if any
-        if index is not None:
-            s = s.reindex(index)
-        return s._mgr, s.index
 
     # ----------------------------------------------------------------------
 
