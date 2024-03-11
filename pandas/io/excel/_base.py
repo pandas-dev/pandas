@@ -1647,14 +1647,14 @@ class ExcelFile:
 
         Examples
         --------
-        >>> file = pd.ExcelFile("MyWorkbook.xlsx")
-        >>> file.book
+        >>> file = pd.ExcelFile("myfile.xlsx")  # doctest: +SKIP
+        >>> file.book  # doctest: +SKIP
         <openpyxl.workbook.workbook.Workbook object at 0x11eb5ad70>
-        >>> file.book.path
+        >>> file.book.path  # doctest: +SKIP
         '/xl/workbook.xml'
-        >>> file.book.active
+        >>> file.book.active  # doctest: +SKIP
         <openpyxl.worksheet._read_only.ReadOnlyWorksheet object at 0x11eb5b370>
-        >>> file.book.sheetnames
+        >>> file.book.sheetnames  # doctest: +SKIP
         ['Sheet1', 'Sheet2']
         """
         return self._reader.book
