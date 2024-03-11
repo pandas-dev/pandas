@@ -203,7 +203,10 @@ Removal of prior version deprecations/changes
 - Enforced deprecation of :meth:`.DataFrameGroupBy.get_group` and :meth:`.SeriesGroupBy.get_group` allowing the ``name`` argument to be a non-tuple when grouping by a list of length 1 (:issue:`54155`)
 - Enforced deprecation of ``axis=None`` acting the same as ``axis=0`` in the DataFrame reductions ``sum``, ``prod``, ``std``, ``var``, and ``sem``, passing ``axis=None`` will now reduce over both axes; this is particularly the case when doing e.g. ``numpy.sum(df)`` (:issue:`21597`)
 - Enforced deprecation of passing a dictionary to :meth:`SeriesGroupBy.agg` (:issue:`52268`)
+- Enforced deprecation of string ``AS`` denoting frequency in :class:`YearBegin` and strings ``AS-DEC``, ``AS-JAN``, etc. denoting annual frequencies with various fiscal year starts (:issue:`57793`)
 - Enforced deprecation of string ``A`` denoting frequency in :class:`YearEnd` and strings ``A-DEC``, ``A-JAN``, etc. denoting annual frequencies with various fiscal year ends (:issue:`57699`)
+- Enforced deprecation of string ``BAS`` denoting frequency in :class:`BYearBegin` and strings ``BAS-DEC``, ``BAS-JAN``, etc. denoting annual frequencies with various fiscal year starts (:issue:`57793`)
+- Enforced deprecation of string ``BA`` denoting frequency in :class:`BYearEnd` and strings ``BA-DEC``, ``BA-JAN``, etc. denoting annual frequencies with various fiscal year ends (:issue:`57793`)
 - Enforced deprecation of the behavior of :func:`concat` when ``len(keys) != len(objs)`` would truncate to the shorter of the two. Now this raises a ``ValueError`` (:issue:`43485`)
 - Enforced silent-downcasting deprecation for :ref:`all relevant methods <whatsnew_220.silent_downcasting>` (:issue:`54710`)
 - In :meth:`DataFrame.stack`, the default value of ``future_stack`` is now ``True``; specifying ``False`` will raise a ``FutureWarning`` (:issue:`55448`)
@@ -256,9 +259,11 @@ Removal of prior version deprecations/changes
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+- :attr:`Categorical.categories` returns a :class:`RangeIndex` columns instead of an :class:`Index` if the constructed ``values`` was a ``range``. (:issue:`57787`)
 - :func:`concat` returns a :class:`RangeIndex` level in the :class:`MultiIndex` result when ``keys`` is a ``range`` or :class:`RangeIndex` (:issue:`57542`)
 - :meth:`RangeIndex.append` returns a :class:`RangeIndex` instead of a :class:`Index` when appending values that could continue the :class:`RangeIndex` (:issue:`57467`)
 - :meth:`Series.str.extract` returns a :class:`RangeIndex` columns instead of an :class:`Index` column when possible (:issue:`57542`)
+- :meth:`Series.str.partition` with :class:`ArrowDtype` returns a :class:`RangeIndex` columns instead of an :class:`Index` column when possible (:issue:`57768`)
 - Performance improvement in :class:`DataFrame` when ``data`` is a ``dict`` and ``columns`` is specified (:issue:`24368`)
 - Performance improvement in :meth:`DataFrame.join` for sorted but non-unique indexes (:issue:`56941`)
 - Performance improvement in :meth:`DataFrame.join` when left and/or right are non-unique and ``how`` is ``"left"``, ``"right"``, or ``"inner"`` (:issue:`56817`)
