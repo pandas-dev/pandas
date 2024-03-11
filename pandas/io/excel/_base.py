@@ -1647,13 +1647,13 @@ class ExcelFile:
 
         Examples
         --------
-        >>> file = pd.ExcelFile("myfile.xlsx")  # doctest: +SKIP
+        >>> file = pd.ExcelFile("MyWorkbook.xlsx")
         >>> file.book
-        <openpyxl.workbook.workbook.Workbook object at 0x13055ab90>
+        <openpyxl.workbook.workbook.Workbook object at 0x11eb5ad70>
         >>> file.book.path
         '/xl/workbook.xml'
         >>> file.book.active
-        <openpyxl.worksheet._read_only.ReadOnlyWorksheet object at 0x13055b040>
+        <openpyxl.worksheet._read_only.ReadOnlyWorksheet object at 0x11eb5b370>
         >>> file.book.sheetnames
         ['Sheet1', 'Sheet2']
         """
