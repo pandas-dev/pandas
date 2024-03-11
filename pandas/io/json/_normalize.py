@@ -435,7 +435,7 @@ def json_normalize(
         try:
             if isinstance(spec, list):
                 for field in spec:
-                    if result is None or (isinstance(result,Iterable) and not len(result)):
+                    if result is None or result==[]:
                         raise KeyError(field)
                     result = result[field]
             else:
