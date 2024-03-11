@@ -386,8 +386,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
 
         if is_dict_like(data) and not is_pandas_object:
-            if len(data) == 0:
-                data = None  # Stating that Series(dict(),...) = Series (None, ...) OK
+            if data:
+                pass
+            else:
+                data = None
+            # if not len(data):
+            #     data = None  # Stating that Series(dict(),...) = Series (None, ...) OK
+            # elif index is None or (index is not None and not len(index)):
+            #     pass
+            #     # data = list(data.values())
+            #     # index = tuple(data.keys())
 
         data_dtype = getattr(data, "dtype", None)
         original_dtype = dtype
@@ -427,7 +435,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         refs = None
 
         if is_dict_like(data) and not is_pandas_object:
-            data, index = self._init_dict(data, index, dtype)
+            data, index = self._init_non_empty_dict(data, index, dtype)
             dtype = None
             copy = False
         elif isinstance(data, Index):
@@ -523,7 +531,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     stacklevel=find_stack_level(),
                 )
 
-    def _init_dict(
+    def _init_non_empty_dict(
         self, data, index: Index | None = None, dtype: DtypeObj | None = None
     ):
         """
@@ -544,30 +552,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         _data : BlockManager for the new Series
         index : index for the new Series
         """
-        keys: Index | tuple
+        # GH:34717, issue was using zip to extract key and values from data.
+        # using generators in effects the performance.
+        # Below is the new way of extracting the keys and values]
+        keys = tuple(data.keys())
+        values = list(data.values())  # Generating list of values- faster way
 
         # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
         # raises KeyError), so we iterate the entire dict, and align
-        values = list(data.values())  # Generating list of values- faster way
-        if data:
-            # GH:34717, issue was using zip to extract key and values from data.
-            # using generators in effects the performance.
-            # Below is the new way of extracting the keys and values]
-            keys = tuple(data.keys())
-        elif index is not None:
-            # fastpath for Series(data=None). Just use broadcasting a scalar
-            # instead of reindexing.
-            if len(index) or dtype is not None:
-                values = na_value_for_dtype(pandas_dtype(dtype), compat=False)
-            keys = index
-        else:
-            keys = default_index(0)
-
         # Input is now list-like, so rely on "standard" construction:
         s = Series(values, index=keys, dtype=dtype)
 
         # Now we just make sure the order is respected, if any
-        if data and index is not None:
+        if index is not None:
             s = s.reindex(index)
         return s._mgr, s.index
 
