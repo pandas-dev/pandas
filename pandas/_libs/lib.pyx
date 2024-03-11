@@ -659,7 +659,7 @@ ctypedef fused int6432_t:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_range_indexer(ndarray[int6432_t, ndim=1] left, Py_ssize_t n, int diff=1) -> bool:
+def is_range_indexer(ndarray[int6432_t, ndim=1] left, Py_ssize_t n) -> bool:
     """
     Perform an element by element comparison on 1-d integer arrays, meant for indexer
     comparisons
@@ -667,12 +667,32 @@ def is_range_indexer(ndarray[int6432_t, ndim=1] left, Py_ssize_t n, int diff=1) 
     cdef:
         Py_ssize_t i
 
-    if left.size != n or diff == 0:
+    if left.size != n:
         return False
 
     for i in range(n):
 
-        if left[i] != left[0] + i * diff:
+        if left[i] != i:
+            return False
+
+    return True
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def is_range(ndarray[int6432_t, ndim=1] sequence, int64_t diff) -> bool:
+    """
+    Check if sequence is equivalent to a range with the specified diff.
+    """
+    cdef:
+        Py_ssize_t i, n = len(sequence)
+
+    if diff == 0:
+        return False
+
+    for i in range(n):
+
+        if sequence[i] != sequence[0] + i * diff:
             return False
 
     return True

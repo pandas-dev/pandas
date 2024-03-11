@@ -476,9 +476,7 @@ class RangeIndex(Index):
             # GH 46675 & 43885: If values is equally spaced, return a
             # more memory-compact RangeIndex instead of Index with 64-bit dtype
             diff = values[1] - values[0]
-            if not missing.isna(diff) and lib.is_range_indexer(
-                values, len(values), diff
-            ):
+            if not missing.isna(diff) and lib.is_range(values, diff):
                 new_range = range(values[0], values[-1] + diff, diff)
                 return type(self)._simple_new(new_range, name=name)
         return self._constructor._simple_new(values, name=name)
