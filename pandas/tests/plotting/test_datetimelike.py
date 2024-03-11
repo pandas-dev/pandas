@@ -295,27 +295,6 @@ class TestTSPlot:
         ser = Series(np.random.default_rng(2).standard_normal(len(dr)), index=dr)
         _check_plot_works(ser.plot)
 
-    @pytest.mark.xfail(reason="Api changed in 3.6.0")
-    def test_uhf(self):
-        import pandas.plotting._matplotlib.converter as conv
-
-        idx = date_range("2012-6-22 21:59:51.960928", freq="ms", periods=500)
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((len(idx), 2)), index=idx
-        )
-
-        _, ax = mpl.pyplot.subplots()
-        df.plot(ax=ax)
-        axis = ax.get_xaxis()
-
-        tlocs = axis.get_ticklocs()
-        tlabels = axis.get_ticklabels()
-        for loc, label in zip(tlocs, tlabels):
-            xp = conv._from_ordinal(loc).strftime("%H:%M:%S.%f")
-            rs = str(label.get_text())
-            if len(rs):
-                assert xp == rs
-
     def test_irreg_hf(self):
         idx = date_range("2012-6-22 21:59:51", freq="s", periods=10)
         df = DataFrame(
