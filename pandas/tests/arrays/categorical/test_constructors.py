@@ -24,6 +24,7 @@ from pandas import (
     IntervalIndex,
     MultiIndex,
     NaT,
+    RangeIndex,
     Series,
     Timestamp,
     date_range,
@@ -779,3 +780,17 @@ class TestCategoricalConstructors:
         result = cat.categories.freq
 
         assert expected == result
+
+    @pytest.mark.parametrize(
+        "values, categories",
+        [
+            [range(5), None],
+            [range(4), range(5)],
+            [[0, 1, 2, 3], range(5)],
+            [[], range(5)],
+        ],
+    )
+    def test_range_values_preserves_rangeindex_categories(self, values, categories):
+        result = Categorical(values=values, categories=categories).categories
+        expected = RangeIndex(range(5))
+        tm.assert_index_equal(result, expected, exact=True)
