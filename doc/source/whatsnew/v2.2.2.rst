@@ -21,7 +21,8 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+-- Fixed bug in :func:`pandas.io.json_normalize` raising with errors='ignore' while traversing empty list (:issue:`57810`)
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_222.other:
