@@ -2326,7 +2326,8 @@ def test_str_split():
         {
             0: ArrowExtensionArray(pa.array(["a", "a", None])),
             1: ArrowExtensionArray(pa.array(["cbcb", "cbcb", None])),
-        }
+        },
+        columns=range(2),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -2335,7 +2336,8 @@ def test_str_split():
         {
             0: ArrowExtensionArray(pa.array(["a", "a2cbcb", None])),
             1: ArrowExtensionArray(pa.array(["cbcb", None, None])),
-        }
+        },
+        columns=range(2),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -2360,7 +2362,8 @@ def test_str_rsplit():
         {
             0: ArrowExtensionArray(pa.array(["a1cb", "a2cb", None])),
             1: ArrowExtensionArray(pa.array(["b", "b", None])),
-        }
+        },
+        columns=range(2),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -2369,7 +2372,8 @@ def test_str_rsplit():
         {
             0: ArrowExtensionArray(pa.array(["a", "a2cbcb", None])),
             1: ArrowExtensionArray(pa.array(["cbcb", None, None])),
-        }
+        },
+        columns=range(2),
     )
     tm.assert_frame_equal(result, expected)
 
