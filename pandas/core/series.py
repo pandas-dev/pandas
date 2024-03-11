@@ -384,19 +384,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return
 
         is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
-
-        if is_dict_like(data) and not is_pandas_object:
-            if data:
-                pass
-            else:
-                data = None
-            # if not len(data):
-            #     data = None  # Stating that Series(dict(),...) = Series (None, ...) OK
-            # elif index is None or (index is not None and not len(index)):
-            #     pass
-            #     # data = list(data.values())
-            #     # index = tuple(data.keys())
-
         data_dtype = getattr(data, "dtype", None)
         original_dtype = dtype
 
@@ -434,10 +421,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         refs = None
 
-        if is_dict_like(data) and not is_pandas_object:
-            data, index = self._init_non_empty_dict(data, index, dtype)
-            dtype = None
-            copy = False
+        data_is_dict = is_dict_like(data) and not is_pandas_object
+        if data_is_dict:  #
+            if data:
+                pass
+                # if index is None or (index is not None and not len(index)):
+                #     pass
+            else:
+                data = None
+                data_is_dict = False
+
+        if data_is_dict:
+            if data:
+                data, index = self._init_non_empty_dict(data, index, dtype)
+                dtype = None
+                copy = False
+            else:
+                pass
         elif isinstance(data, Index):
             if dtype is not None:
                 data = data.astype(dtype)
