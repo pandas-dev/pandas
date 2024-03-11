@@ -490,11 +490,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.AbstractMethodError\
         pandas.errors.UndefinedVariableError\
         pandas.get_option\
-        pandas.io.formats.style.Styler.to_excel\
-        pandas.melt\
-        pandas.option_context\
-        pandas.read_fwf\
-        pandas.reset_option # There should be no backslash in the final line, please keep this comment in the last ignored function
+        pandas.io.formats.style.Styler.to_excel # There should be no backslash in the final line, please keep this comment in the last ignored function
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Partially validate docstrings (PR07)' ;  echo $MSG

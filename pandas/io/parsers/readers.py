@@ -1155,6 +1155,11 @@ def read_fwf(
     infer_nrows : int, default 100
         The number of rows to consider when letting the parser determine the
         `colspecs`.
+    iterator : bool, default False
+        Return ``TextFileReader`` object for iteration or getting chunks with
+        ``get_chunk()``.
+    chunksize : int, optional
+        Number of lines to read from the file per chunk.
     **kwds : optional
         Optional keyword arguments can be passed to ``TextFileReader``.
 
