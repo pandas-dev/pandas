@@ -1577,6 +1577,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         skipna : bool, default True
             Whether to ignore any NaT elements.
         axis : int, optional, default 0
+            Axis for the function to be applied on.
 
         Returns
         -------
