@@ -1572,13 +1572,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
-        Groups for which ``func`` returns ``None`` will be filtered from the result.
-
-        .. versionchanged:: 3.0.0
-
-            In case all groups are filtered from the result, an empty DataFrame
-            with the columns and dtypes of the original dataframe will be returned.
-
         Examples
         --------
         >>> df = pd.DataFrame({"A": "a a b".split(), "B": [1, 2, 3], "C": [4, 6, 5]})
