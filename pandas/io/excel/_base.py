@@ -1631,6 +1631,32 @@ class ExcelFile:
 
     @property
     def book(self):
+        """
+        Gets the Excel workbook.
+
+        Workbook is the top-level container for all document information.
+
+        Returns
+        -------
+        Excel Workbook
+            The workbook object of the type defined by the engine being used.
+
+        See Also
+        --------
+        read_excel : Read an Excel file into a pandas DataFrame.
+
+        Examples
+        --------
+        >>> file = pd.ExcelFile("myfile.xlsx")  # doctest: +SKIP
+        >>> file.book
+        <openpyxl.workbook.workbook.Workbook object at 0x13055ab90>
+        >>> file.book.path
+        '/xl/workbook.xml'
+        >>> file.book.active
+        <openpyxl.worksheet._read_only.ReadOnlyWorksheet object at 0x13055b040>
+        >>> file.book.sheetnames
+        ['Sheet1', 'Sheet2']
+        """
         return self._reader.book
 
     @property
