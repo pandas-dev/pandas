@@ -411,10 +411,15 @@ def test_drop_duplicates_inplace():
 @pytest.mark.parametrize(
     "origin_dict, output_dict, ignore_index, output_index",
     [
-        ({"A": [2, 2, 3]}, {"A": [2, 3]}, True, [0, 1]),
-        ({"A": [2, 2, 3]}, {"A": [2, 3]}, False, [0, 2]),
-        ({"A": [2, 2, 3], "B": [2, 2, 4]}, {"A": [2, 3], "B": [2, 4]}, True, [0, 1]),
-        ({"A": [2, 2, 3], "B": [2, 2, 4]}, {"A": [2, 3], "B": [2, 4]}, False, [0, 2]),
+        ({"A": [2, 2, 3]}, {"A": [2, 3]}, True, range(2)),
+        ({"A": [2, 2, 3]}, {"A": [2, 3]}, False, range(0, 4, 2)),
+        ({"A": [2, 2, 3], "B": [2, 2, 4]}, {"A": [2, 3], "B": [2, 4]}, True, range(2)),
+        (
+            {"A": [2, 2, 3], "B": [2, 2, 4]},
+            {"A": [2, 3], "B": [2, 4]},
+            False,
+            range(0, 4, 2),
+        ),
     ],
 )
 def test_drop_duplicates_ignore_index(
