@@ -1574,7 +1574,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Groups for which ``func`` returns ``None`` will be filtered from the result.
 
-        .. versionchanged:: 2.2.2
+        .. versionchanged:: 3.0.0
 
             In case all groups are filtered from the result, an empty DataFrame
             with the columns and dtypes of the original dataframe will be returned.

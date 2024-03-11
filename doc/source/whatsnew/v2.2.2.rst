@@ -21,8 +21,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
-- :meth:`DataFrameGroupBy.apply` was returning a completely empty DataFrame when all return values of ``func`` were ``None`` instead of returning an empty DataFrame with the original columns and dtypes. (:issue:`57775`)
-
+-
 .. ---------------------------------------------------------------------------
 .. _whatsnew_222.other:
 
