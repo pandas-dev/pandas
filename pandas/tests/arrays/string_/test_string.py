@@ -52,15 +52,20 @@ def test_repr(dtype):
         expected = "0       a\n1    <NA>\n2       b\nName: A, dtype: string"
     assert repr(df.A) == expected
 
-    if dtype.storage == "pyarrow":
-        arr_name = "ArrowStringArray"
-    elif dtype.storage == "python":
-        arr_name = "ObjectStringArray"
-    elif dtype.storage == "numpy":
-        arr_name = "NumpyStringArray"
-    elif dtype.storage == "pyarrow_numpy":
-        arr_name = "ArrowStringArrayNumpySemantics"
-    expected = f"<{arr_name}>\n['a', <NA>, 'b']\nLength: 3, dtype: string"
+    arr_names = {
+        'pyarrow': 'ArrowStringArray',
+        'python': 'ObjectStringArray',
+        'numpy': 'NumpyStringArray',
+        'pyarrow_numpy': "ArrowStringArrayNumpySemantics"
+    }
+
+    if dtype.storage == "pyarrow_numpy":
+        na_name = "nan"
+    else:
+        na_name = "<NA>"
+
+    expected = (f"<{arr_names[dtype.storage]}>\n['a', {na_name}, 'b']\n" +
+                "Length: 3, dtype: string")
     assert repr(df.A.array) == expected
 
 

@@ -214,7 +214,7 @@ class StringDtype(StorageExtensionDtype):
             return ArrowStringArray
         elif self.storage == "numpy":
             return NumpyStringArray
-        elif self.storage == "pyarrow-numpy":
+        elif self.storage == "pyarrow_numpy":
             return ArrowStringArrayNumpySemantics
         else:
             raise NotImplementedError

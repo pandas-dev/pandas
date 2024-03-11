@@ -1910,10 +1910,10 @@ cdef class StringValidator(Validator):
         return isinstance(value, str)
 
     cdef bint is_array_typed(self) except -1:
-        if self.dtype.kind in "TU":
+        if self.dtype.char == "T" or self.dtype.char == "U":
             return True
         # this lets user-defined string DTypes through
-        return issubclass(self.dtype.type, (np.str_, str))
+        return issubclass(<object>self.dtype.typeobj, (np.str_, str))
 
 
 cpdef bint is_string_array(ndarray values, bint skipna=False):
