@@ -499,11 +499,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (PR07)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=PR07 --ignore_functions \
-        pandas.DatetimeIndex.indexer_between_time\
-        pandas.DatetimeIndex.mean\
-        pandas.HDFStore.append\
-        pandas.HDFStore.get\
-        pandas.HDFStore.put\
         pandas.Index\
         pandas.Index.append\
         pandas.Index.copy\
