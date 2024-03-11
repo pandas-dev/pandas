@@ -232,6 +232,6 @@ def is_range_indexer(
     n: int,  # np.ndarray[np.int64, ndim=1]
 ) -> bool: ...
 def is_range(
-    left: np.ndarray,
+    sequence: np.ndarray,
     diff: int,  # np.ndarray[np.int64, ndim=1]
 ) -> bool: ...
