@@ -197,6 +197,8 @@ the row axis, leaving just two non-identifier columns, 'variable' and
 
 Parameters
 ----------
+frame : DataFrame
+    The DataFrame to unpivot.
 id_vars : scalar, tuple, list, or ndarray, optional
     Column(s) to use as identifier variables.
 value_vars : scalar, tuple, list, or ndarray, optional
