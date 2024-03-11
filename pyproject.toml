@@ -482,8 +482,10 @@ doctest_optionflags = [
 ]
 filterwarnings = [
   "error:::pandas",
-  "error::FutureWarning",
-  "error::DeprecationWarning",
+  "error::FutureWarning:numpy",
+  "error::DeprecationWarning:numpy",
+  "error::FutureWarning:pyarrow",
+  "error::DeprecationWarning:pyarrow",
   "error::ResourceWarning",
   "error::pytest.PytestUnraisableExceptionWarning",
   # TODO(PY311-minimum): Specify EncodingWarning
@@ -502,8 +504,6 @@ filterwarnings = [
   "ignore:Setuptools is replacing distutils.:UserWarning:_distutils_hack",
   # https://github.com/PyTables/PyTables/issues/822
   "ignore:a closed node found in the registry:UserWarning:tables",
-  # https://github.com/pytest-dev/pytest-cov/issues/557
-  "ignore:The --rsyncdir command line argument:DeprecationWarning:xdist"
 ]
 junit_family = "xunit2"
 markers = [
