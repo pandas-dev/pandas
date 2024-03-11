@@ -161,7 +161,8 @@ filepath_or_buffer : str, path object or file-like object
 
 Returns
 -------
-DataFrame or pandas.api.typing.StataReader
+DataFrame, pandas.api.typing.StataReader
+    If iterator or chunksize, returns StataReader, else DataFrame.
 
 See Also
 --------
@@ -1835,7 +1836,7 @@ the string values returned are correct."""
             fmtlist = []
             lbllist = []
             for col in columns:
-                i = data.columns.get_loc(col)
+                i = data.columns.get_loc(col)  # type: ignore[no-untyped-call]
                 dtyplist.append(self._dtyplist[i])
                 typlist.append(self._typlist[i])
                 fmtlist.append(self._fmtlist[i])
@@ -2155,7 +2156,7 @@ def _dtype_to_stata_type(dtype: np.dtype, column: Series) -> int:
 
 
 def _dtype_to_default_stata_fmt(
-    dtype, column: Series, dta_version: int = 114, force_strl: bool = False
+    dtype: np.dtype, column: Series, dta_version: int = 114, force_strl: bool = False
 ) -> str:
     """
     Map numpy dtype to stata's default format for this type. Not terribly
@@ -3467,7 +3468,7 @@ class StataWriter117(StataWriter):
         self._update_map("characteristics")
         self._write_bytes(self._tag(b"", "characteristics"))
 
-    def _write_data(self, records) -> None:
+    def _write_data(self, records: np.rec.recarray) -> None:
         self._update_map("data")
         self._write_bytes(b"<data>")
         self._write_bytes(records.tobytes())

@@ -131,7 +131,7 @@ class InvalidVersion(ValueError):
 
     Examples
     --------
-    >>> pd.util.version.Version('1.')
+    >>> pd.util.version.Version("1.")
     Traceback (most recent call last):
     InvalidVersion: Invalid version: '1.'
     """
