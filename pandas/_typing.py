@@ -23,7 +23,6 @@ from typing import (
     Optional,
     Protocol,
     Type as type_t,
-    TypeAlias,
     TypeVar,
     Union,
     overload,
@@ -94,13 +93,17 @@ if TYPE_CHECKING:
     from typing import SupportsIndex
 
     if sys.version_info >= (3, 10):
+        from typing import (
+            ParamSpec,
+            TypeAlias,
+        )
         from typing import Concatenate  # pyright: ignore[reportUnusedImport]
-        from typing import ParamSpec
         from typing import TypeGuard  # pyright: ignore[reportUnusedImport]
     else:
         from typing_extensions import (  # pyright: ignore[reportUnusedImport]
             Concatenate,
             ParamSpec,
+            TypeAlias,
             TypeGuard,
         )
 
