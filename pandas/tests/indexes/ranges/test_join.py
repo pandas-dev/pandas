@@ -207,9 +207,15 @@ class TestJoin:
             [-1, -1, 0, 1],
             "outer",
         ],
+        [RangeIndex(2), RangeIndex(0), RangeIndex(2), None, [-1, -1], "left"],
+        [RangeIndex(2), RangeIndex(0), RangeIndex(0), [], None, "right"],
+        [RangeIndex(2), RangeIndex(0), RangeIndex(0), [], None, "inner"],
+        [RangeIndex(2), RangeIndex(0), RangeIndex(2), None, [-1, -1], "outer"],
     ],
 )
-@pytest.mark.parametrize("right_type", [RangeIndex, lambda x: Index(list(x))])
+@pytest.mark.parametrize(
+    "right_type", [RangeIndex, lambda x: Index(list(x), dtype=x.dtype)]
+)
 def test_join_preserves_rangeindex(
     left, right, expected, expected_lidx, expected_ridx, how, right_type
 ):
