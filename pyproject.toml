@@ -312,7 +312,131 @@ ignore = [
   # pairwise-over-zipped (>=PY310 only)
   "RUF007",
   # mutable-class-default
-  "RUF012"
+  "RUF012",
+
+  # Additional pylint rules
+  # literal-membership
+  "PLR6201", # 847 errors
+  # Method could be a function, class method, or static method
+  "PLR6301", # 11411 errors
+  # Private name import
+  "PLC2701", # 27 errors
+  # Too many positional arguments (6/5)
+  "PLR0917", # 470 errors
+  # compare-to-empty-string
+  "PLC1901",
+  # `tempfile.NamedTemporaryFile` in text mode without explicit `encoding` argument
+  "PLW1514", # 1 error
+  # Object does not implement `__hash__` method
+  "PLW1641", # 16 errors
+  # Bad or misspelled dunder method name
+  "PLW3201", # 69 errors, seems to be all false positive
+  # Unnecessary lookup of dictionary value by key
+  "PLR1733", # 5 errors, it seems like we wannt to ignore these
+  # Unnecessary lookup of list item by index
+  "PLR1736", # 4 errors, we're currently having inline pylint ignore
+  # empty-comment
+  "PLR2044", # autofixable
+  # Unpacking a dictionary in iteration without calling `.items()`
+  "PLE1141", # autofixable
+
+  # Output of pylint-to-ruff
+  # "PLC0103",  # invalid-name
+  # "PLC0114",  # missing-module-docstring
+  # "PLC0115",  # missing-class-docstring
+  # "PLC0116",  # missing-function-docstring
+  # "PLC0121",  # singleton-comparison
+  # "PLC0123",  # unidiomatic-typecheck
+  # "PLC0200",  # consider-using-enumerate
+  # "PLC0204",  # bad-mcs-classmethod-argument
+  # "PLC0302",  # too-many-lines
+  # "PLC0325",  # superfluous-parens
+  # "PLC0411",  # wrong-import-order
+  # "PLC0412",  # ungrouped-imports
+  # "PLC0413",  # wrong-import-position
+  "PLC0415",  # import-outside-toplevel
+  # "PLC1802",  # use-implicit-booleaness-not-len
+  # "PLC1803",  # use-implicit-booleaness-not-comparison
+  # "PLC1804",  # use-implicit-booleaness-not-comparison-to-string
+  # "PLC1805",  # use-implicit-booleaness-not-comparison-to-zero
+  "PLC2801",  # unnecessary-dunder-call
+  # "PLC3001",  # unnecessary-lambda-assignment
+  # "PLE0110",  # abstract-class-instantiated
+  # "PLE0401",  # import-error
+  # "PLE0601",  # used-before-assignment
+  # "PLE0602",  # undefined-variable
+  # "PLE0611",  # no-name-in-module
+  # "PLE0633",  # unpacking-non-sequence
+  # "PLE1101",  # no-member
+  # "PLE1120",  # no-value-for-parameter
+  # "PLE1121",  # too-many-function-args
+  # "PLE1123",  # unexpected-keyword-arg
+  # "PLE1124",  # redundant-keyword-arg
+  # "PLE1130",  # invalid-unary-operand-type
+  # "PLE1133",  # not-an-iterable
+  # "PLE1135",  # unsupported-membership-test
+  # "PLE1136",  # unsubscriptable-object
+  # "PLE1137",  # unsupported-assignment-operation
+  # "PLI0001",  # raw-checker-failed
+  # "PLI0010",  # bad-inline-option
+  # "PLI0011",  # locally-disabled
+  # "PLI0013",  # file-ignored
+  # "PLI0020",  # suppressed-message
+  # "PLI0021",  # useless-suppression
+  # "PLI0022",  # deprecated-pragma
+  # "PLI0023",  # use-symbolic-message-instead
+  # "PLI1101",  # c-extension-no-member
+  "PLR0124",  # comparison-with-itself
+  # "PLR0401",  # cyclic-import
+  # "PLR0801",  # duplicate-code
+  # "PLR0901",  # too-many-ancestors
+  # "PLR0902",  # too-many-instance-attributes
+  # "PLR0903",  # too-few-public-methods
+  "PLR0904",  # too-many-public-methods
+  "PLR0911",  # too-many-return-statements
+  "PLR0912",  # too-many-branches
+  "PLR0913",  # too-many-arguments
+  "PLR0914",  # too-many-locals
+  "PLR0915",  # too-many-statements
+  "PLR0916",  # too-many-boolean-expressions
+  "PLR1702",  # too-many-nested-blocks
+  "PLR1704",  # redefined-argument-from-local
+  # "PLR1705",  # no-else-return
+  # "PLR1710",  # inconsistent-return-statements
+  # "PLR1720",  # no-else-raise
+  # "PLR1724",  # no-else-continue
+  # "PLR1732",  # consider-using-with
+  # "PLR1735",  # use-dict-literal
+  # "PLW0102",  # dangerous-default-value
+  # "PLW0104",  # pointless-statement
+  # "PLW0106",  # expression-not-assigned
+  "PLW0108",  # unnecessary-lambda
+  # "PLW0123",  # eval-used
+  # "PLW0125",  # using-constant-test
+  # "PLW0143",  # comparison-with-callable
+  # "PLW0201",  # attribute-defined-outside-init
+  # "PLW0212",  # protected-access
+  # "PLW0221",  # arguments-differ
+  # "PLW0222",  # signature-differs
+  # "PLW0223",  # abstract-method
+  # "PLW0231",  # super-init-not-called
+  # "PLW0236",  # invalid-overridden-method
+  # "PLW0237",  # arguments-renamed
+  # "PLW0239",  # overridden-final-method
+  # "PLW0511",  # fixme
+  "PLW0603",  # global-statement
+  # "PLW0613",  # unused-argument
+  # "PLW0621",  # redefined-outer-name
+  # "PLW0622",  # redefined-builtin
+  # "PLW0641",  # possibly-unused-variable
+  # "PLW0642",  # self-cls-assignment
+  # "PLW0706",  # try-except-raise
+  # "PLW0707",  # raise-missing-from
+  # "PLW0718",  # broad-exception-caught
+  # "PLW0719",  # broad-exception-raised
+  # "PLW1113",  # keyword-arg-before-vararg
+  # "PLW1114",  # arguments-out-of-order
+  # "PLW4901",  # deprecated-module
 ]
 
 exclude = [
