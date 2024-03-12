@@ -106,11 +106,7 @@ def missing_metadata():
             ],
             "previous_residences": {"cities": [{"city_name": "Barmingham"}]},
         },
-        {
-            "name": "Minnie",
-            "addresses":[],
-            "previous_residences":[]
-        }
+        {"name": "Minnie", "addresses": [], "previous_residences": []},
     ]
 
 
