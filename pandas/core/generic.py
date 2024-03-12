@@ -12022,8 +12022,8 @@ skipna : bool, default True
 
 Returns
 -------
-{name1} or {name2}
-    If level is specified, then, {name2} is returned; otherwise, {name1}
+{name1} or scalar
+    If axis=None, then a scalar boolean is returned. Otherwise, a {name1} is returned with index matching the index argument.
     is returned.
 
 {see_also}
