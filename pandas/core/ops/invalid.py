@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 def invalid_comparison(
     left: ArrayLike,
     right: ArrayLike | Scalar,
-    op: Callable[[Any, Any], bool],  # Can we reuse _BoolOp here?
+    op: Callable[[Any, Any], bool],
 ) -> npt.NDArray[np.bool_]:
     """
     If a comparison has mismatched types and is not necessarily meaningful,
