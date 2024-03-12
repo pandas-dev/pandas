@@ -65,12 +65,14 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (EX01, EX03, EX04, GL01, GL02, GL03, GL04, GL05, GL06, GL07, GL09, GL10, PD01, PR03, PR04, PR05, PR06, PR08, PR09, PR10, RT01, RT02, RT04, RT05, SA02, SA03, SA04, SA05, SS01, SS02, SS03, SS04, SS05, SS06)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01,EX03,EX04,GL01,GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,PD01,PR03,PR04,PR05,PR06,PR08,PR09,PR10,RT01,RT02,RT04,RT05,SA02,SA03,SA04,SA05,SS01,SS02,SS03,SS04,SS05,SS06
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Partially validate docstrings (PR02)' ;  echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=PR02 --ignore_functions \
+    # Run multiple calls of the validation script in a single python python process
+    # Each group of parameters is separated with '--'
+    # This way module compiles, imports and processed source files can be cached, among other things
+    PARAMETERS=(--format=actions --errors=EX01,EX03,EX04,GL01,GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,PD01,PR03,PR04,PR05,PR06,PR08,PR09,PR10,RT01,RT02,RT04,RT05,SA02,SA03,SA04,SA05,SS01,SS02,SS03,SS04,SS05,SS06)
+    #####
+    # end of full error validation group
+    #####
+    PARAMETERS+=(-- --format=actions --errors=PR02 --ignore_functions \
         pandas.Series.dt.as_unit\
         pandas.Series.dt.to_period\
         pandas.Series.dt.tz_localize\
@@ -139,11 +141,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.DataFrameGroupBy.nth\
         pandas.core.groupby.SeriesGroupBy.nth\
         pandas.core.groupby.DataFrameGroupBy.plot\
-        pandas.core.groupby.SeriesGroupBy.plot # There should be no backslash in the final line, please keep this comment in the last ignored function
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Partially validate docstrings (GL08)' ;  echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=GL08 --ignore_functions \
+        pandas.core.groupby.SeriesGroupBy.plot
+    )
+    #####
+    # end of PR02 group
+    #####
+    PARAMETERS+=(-- --format=actions --errors=GL08 --ignore_functions \
         pandas.ExcelFile.book\
         pandas.Index.empty\
         pandas.Index.names\
@@ -397,11 +400,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.tseries.offsets.YearEnd.n\
         pandas.tseries.offsets.YearEnd.nanos\
         pandas.tseries.offsets.YearEnd.normalize\
-        pandas.tseries.offsets.YearEnd.rule_code # There should be no backslash in the final line, please keep this comment in the last ignored function
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Partially validate docstrings (PR01)' ;  echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=PR01 --ignore_functions \
+        pandas.tseries.offsets.YearEnd.rule_code
+    )
+    #####
+    # end of GL08 group
+    #####
+    PARAMETERS+=(-- --format=actions --errors=PR01 --ignore_functions \
         pandas.DataFrame.at_time\
         pandas.DataFrame.backfill\
         pandas.DataFrame.get\
@@ -494,11 +498,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.melt\
         pandas.option_context\
         pandas.read_fwf\
-        pandas.reset_option # There should be no backslash in the final line, please keep this comment in the last ignored function
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Partially validate docstrings (PR07)' ;  echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=PR07 --ignore_functions \
+        pandas.reset_option
+    )
+    #####
+    # end of PR01 group
+    #####
+    PARAMETERS+=(-- --format=actions --errors=PR07 --ignore_functions \
         pandas.DataFrame.get\
         pandas.DataFrame.rolling\
         pandas.DataFrame.to_hdf\
@@ -609,11 +614,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.testing.assert_series_equal\
         pandas.unique\
         pandas.util.hash_array\
-        pandas.util.hash_pandas_object # There should be no backslash in the final line, please keep this comment in the last ignored function
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Partially validate docstrings (RT03)' ;  echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=RT03 --ignore_functions \
+        pandas.util.hash_pandas_object
+    )
+    #####
+    # end of PR07 group
+    #####
+    PARAMETERS+=(-- --format=actions --errors=RT03 --ignore_functions \
         pandas.DataFrame.hist\
         pandas.DataFrame.infer_objects\
         pandas.DataFrame.kurt\
@@ -860,11 +866,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.read_stata\
         pandas.set_eng_float_format\
         pandas.timedelta_range\
-        pandas.util.hash_pandas_object # There should be no backslash in the final line, please keep this comment in the last ignored function
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Partially validate docstrings (SA01)' ;  echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=SA01 --ignore_functions \
+        pandas.util.hash_pandas_object
+    )
+    #####
+    # end of RT03 group
+    #####
+    PARAMETERS+=(-- --format=actions --errors=SA01 --ignore_functions \
         pandas.BooleanDtype\
         pandas.Categorical.__array__\
         pandas.Categorical.as_ordered\
@@ -1631,8 +1638,13 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.tseries.offsets.YearEnd.kwds\
         pandas.tseries.offsets.YearEnd.name\
         pandas.util.hash_array\
-        pandas.util.hash_pandas_object # There should be no backslash in the final line, please keep this comment in the last ignored function
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
+        pandas.util.hash_pandas_object
+    )
+    #####
+    # end of SA01 group
+    #####
+    $BASE_DIR/scripts/validate_docstrings.py ${PARAMETERS[@]}
+    RET=$(($RET + $?)) ;
 
 fi
 
