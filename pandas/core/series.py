@@ -392,6 +392,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if copy is not False:
                 if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
                     data = data.copy()
+
         if copy is None:
             copy = False
 
@@ -409,16 +410,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         name = ibase.maybe_extract_name(name, data, type(self))
 
-        if index is not None:
-            index = ensure_index(index)
-
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
-
-        if isinstance(data, MultiIndex):
-            raise NotImplementedError(
-                "initializing a Series from a MultiIndex is not supported"
-            )
 
         if is_dict_like(data) and not is_pandas_object:
             if data:
@@ -431,22 +424,43 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             else:
                 data = None
 
-        if data is None:
-            index = index if index is not None else default_index(0)
-            if len(index) or dtype is not None:
-                data = na_value_for_dtype(pandas_dtype(dtype), compat=False)
+        if isinstance(data, MultiIndex):
+            raise NotImplementedError(
+                "initializing a Series from a MultiIndex is not supported"
+            )
+
+        if index is not None:
+            index = ensure_index(index)
+
+        # Código 1
+        if data is None:  # TODO - simplificar a lógica e juntar com o código
+            if index is None:
+                index = default_index(0)
+
+            if index is not None:
+                if len(index) or dtype is not None:
+                    data = na_value_for_dtype(pandas_dtype(dtype), compat=False)
+                else:
+                    data = []
             else:
-                data = []
+                if dtype is not None:
+                    data = na_value_for_dtype(pandas_dtype(dtype), compat=False)
+                else:
+                    data = []
 
         if isinstance(data, Index):
             if dtype is not None:
                 data = data.astype(dtype)
-
+            if index is None:
+                index = default_index(len(data))
             refs = data._references
             data = data._values
             copy = False
 
         elif isinstance(data, np.ndarray):
+            if index is None:
+                index = default_index(len(data))
+
             if len(data.dtype):
                 # GH#13296 we are dealing with a compound dtype, which
                 #  should be treated as 2D
@@ -485,18 +499,26 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 allow_mgr = True
 
         elif isinstance(data, ExtensionArray):
-            pass
-        else:
+            if index is None:
+                index = default_index(len(data))
+            # pass
+        elif is_iterator(data) or is_list_like(data):
             data = com.maybe_iterable_to_list(data)
-            if is_list_like(data) and not len(data) and dtype is None:
+            if index is None:
+                index = default_index(len(data))
+
+            if not len(data) and dtype is None:
                 # GH 29405: Pre-2.0, this defaulted to float.
                 dtype = np.dtype(object)
-
-        if index is None:
-            if not is_list_like(data):
+        else:
+            # código 2 -
+            # TODO: simplificar a lógica e juntar com o código 2
+            if index is None:
                 data = [data]
-            index = default_index(len(data))
-        elif is_list_like(data):
+                index = default_index(len(data))
+
+        # Final requirement
+        if is_list_like(data):
             com.require_length_match(data, index)
 
         # create/copy the manager
