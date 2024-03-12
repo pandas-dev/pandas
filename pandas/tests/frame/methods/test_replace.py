@@ -757,9 +757,6 @@ class TestDataFrameReplace:
         tsframe.loc[tsframe.index[:5], "A"] = np.nan
         tsframe.loc[tsframe.index[-5:], "A"] = np.nan
         tsframe.loc[tsframe.index[:5], "B"] = np.nan
-        # TODO: what is this even testing?
-        result = tsframe.bfill()
-        tm.assert_frame_equal(result, tsframe.bfill())
 
     @pytest.mark.parametrize(
         "frame, to_replace, value, expected",
