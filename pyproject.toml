@@ -594,10 +594,8 @@ module = [
   "pandas.core.interchange.dataframe_protocol", # TODO
   "pandas.core.interchange.from_dataframe", # TODO
   "pandas.core.internals.*", # TODO
-  "pandas.core.methods.*", # TODO
   "pandas.core.ops.array_ops", # TODO
   "pandas.core.ops.common", # TODO
-  "pandas.core.ops.invalid", # TODO
   "pandas.core.ops.missing", # TODO
   "pandas.core.reshape.*", # TODO
   "pandas.core.strings.*", # TODO
@@ -630,15 +628,12 @@ module = [
   "pandas.io.clipboard", # TODO
   "pandas.io.excel._base", # TODO
   "pandas.io.excel._odfreader", # TODO
-  "pandas.io.excel._odswriter", # TODO
   "pandas.io.excel._openpyxl", # TODO
   "pandas.io.excel._pyxlsb", # TODO
   "pandas.io.excel._xlrd", # TODO
   "pandas.io.excel._xlsxwriter", # TODO
-  "pandas.io.formats.css", # TODO
   "pandas.io.formats.excel", # TODO
   "pandas.io.formats.format", # TODO
-  "pandas.io.formats.printing", # TODO
   "pandas.io.formats.style", # TODO
   "pandas.io.formats.style_render", # TODO
   "pandas.io.formats.xml", # TODO
@@ -647,7 +642,6 @@ module = [
   "pandas.io.sas.sas_xport", # TODO
   "pandas.io.sas.sas7bdat", # TODO
   "pandas.io.clipboards", # TODO
-  "pandas.io.common", # TODO
   "pandas.io.html", # TODO
   "pandas.io.parquet", # TODO
   "pandas.io.pytables", # TODO

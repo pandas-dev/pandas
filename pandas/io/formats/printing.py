@@ -11,6 +11,7 @@ from collections.abc import (
 )
 import sys
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     TypeVar,
@@ -24,12 +25,14 @@ from pandas.core.dtypes.inference import is_sequence
 
 from pandas.io.formats.console import get_console_size
 
+if TYPE_CHECKING:
+    from pandas._typing import ListLike
 EscapeChars = Union[Mapping[str, str], Iterable[str]]
 _KT = TypeVar("_KT")
 _VT = TypeVar("_VT")
 
 
-def adjoin(space: int, *lists: list[str], **kwargs) -> str:
+def adjoin(space: int, *lists: list[str], **kwargs: Any) -> str:
     """
     Glues together two sets of strings using the amount of space requested.
     The idea is to prettify.
@@ -98,7 +101,7 @@ def _adj_justify(texts: Iterable[str], max_len: int, mode: str = "right") -> lis
 
 
 def _pprint_seq(
-    seq: Sequence, _nest_lvl: int = 0, max_seq_items: int | None = None, **kwds
+    seq: ListLike, _nest_lvl: int = 0, max_seq_items: int | None = None, **kwds: Any
 ) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
@@ -136,7 +139,7 @@ def _pprint_seq(
 
 
 def _pprint_dict(
-    seq: Mapping, _nest_lvl: int = 0, max_seq_items: int | None = None, **kwds
+    seq: Mapping, _nest_lvl: int = 0, max_seq_items: int | None = None, **kwds: Any
 ) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
@@ -167,7 +170,7 @@ def _pprint_dict(
 
 
 def pprint_thing(
-    thing: Any,
+    thing: object,
     _nest_lvl: int = 0,
     escape_chars: EscapeChars | None = None,
     default_escapes: bool = False,
@@ -225,7 +228,10 @@ def pprint_thing(
         )
     elif is_sequence(thing) and _nest_lvl < get_option("display.pprint_nest_depth"):
         result = _pprint_seq(
-            thing,
+            # error: Argument 1 to "_pprint_seq" has incompatible type "object";
+            # expected "ExtensionArray | ndarray[Any, Any] | Index | Series |
+            # SequenceNotStr[Any] | range"
+            thing,  # type: ignore[arg-type]
             _nest_lvl,
             escape_chars=escape_chars,
             quote_strings=quote_strings,
@@ -240,7 +246,7 @@ def pprint_thing(
 
 
 def pprint_thing_encoded(
-    object, encoding: str = "utf-8", errors: str = "replace"
+    object: object, encoding: str = "utf-8", errors: str = "replace"
 ) -> bytes:
     value = pprint_thing(object)  # get unicode representation of object
     return value.encode(encoding, errors)
@@ -252,7 +258,8 @@ def enable_data_resource_formatter(enable: bool) -> None:
         return
     from IPython import get_ipython
 
-    ip = get_ipython()
+    # error: Call to untyped function "get_ipython" in typed context
+    ip = get_ipython()  # type: ignore[no-untyped-call]
     if ip is None:
         # still not in IPython
         return
@@ -289,7 +296,7 @@ def default_pprint(thing: Any, max_seq_items: int | None = None) -> str:
 
 
 def format_object_summary(
-    obj,
+    obj: ListLike,
     formatter: Callable,
     is_justify: bool = True,
     name: str | None = None,
@@ -525,7 +532,7 @@ class _TextAdjustment:
         else:
             return [x.rjust(max_len) for x in texts]
 
-    def adjoin(self, space: int, *lists, **kwargs) -> str:
+    def adjoin(self, space: int, *lists: Any, **kwargs: Any) -> str:
         return adjoin(space, *lists, strlen=self.len, justfunc=self.justify, **kwargs)
 
 
@@ -557,7 +564,7 @@ class _EastAsianTextAdjustment(_TextAdjustment):
         self, texts: Iterable[str], max_len: int, mode: str = "right"
     ) -> list[str]:
         # re-calculate padding space per str considering East Asian Width
-        def _get_pad(t):
+        def _get_pad(t: str) -> int:
             return max_len - self.len(t) + len(t)
 
         if mode == "left":

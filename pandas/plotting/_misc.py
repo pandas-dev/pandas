@@ -672,7 +672,7 @@ class _Options(dict):
         # error: Cannot access "__init__" directly
         self.__init__()  # type: ignore[misc]
 
-    def _get_canonical_key(self, key):
+    def _get_canonical_key(self, key: str) -> str:
         return self._ALIASES.get(key, key)
 
     @contextmanager
