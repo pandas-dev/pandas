@@ -1165,7 +1165,9 @@ class RangeIndex(Index):
 
     # --------------------------------------------------------------------
 
-    def round(self, decimals: int = 0) -> Self | Index:
+    # error: Return type "RangeIndex | Index" of "round" incompatible with
+    # return type "RangeIndex" in supertype "Index"
+    def round(self, decimals: int = 0) -> Self | Index:  # type: ignore[override]
         """
         Round each value in the Index to the given number of decimals.
 
