@@ -228,6 +228,9 @@ def pprint_thing(
         )
     elif is_sequence(thing) and _nest_lvl < get_option("display.pprint_nest_depth"):
         result = _pprint_seq(
+            # error: Argument 1 to "_pprint_seq" has incompatible type "object";
+            # expected "ExtensionArray | ndarray[Any, Any] | Index | Series |
+            # SequenceNotStr[Any] | range"
             thing,  # type: ignore[arg-type]
             _nest_lvl,
             escape_chars=escape_chars,
