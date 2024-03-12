@@ -1121,11 +1121,8 @@ class StataReader(StataParser, abc.Iterator):
 
         # State variables for the file
         self._close_file: Callable[[], None] | None = None
-        self._missing_values = False
-        self._can_read_value_labels = False
         self._column_selector_set = False
         self._value_labels_read = False
-        self._data_read = False
         self._dtype: np.dtype | None = None
         self._lines_read = 0
 
@@ -1650,8 +1647,6 @@ the string values returned are correct."""
         # StopIteration.  If reading the whole thing return an empty
         # data frame.
         if (self._nobs == 0) and nrows == 0:
-            self._can_read_value_labels = True
-            self._data_read = True
             data = DataFrame(columns=self._varlist)
             # Apply dtypes correctly
             for i, col in enumerate(data.columns):
@@ -1664,7 +1659,6 @@ the string values returned are correct."""
             return data
 
         if (self._format_version >= 117) and (not self._value_labels_read):
-            self._can_read_value_labels = True
             self._read_strls()
 
         # Read data
@@ -1687,9 +1681,7 @@ the string values returned are correct."""
         )
 
         self._lines_read += read_lines
-        if self._lines_read == self._nobs:
-            self._can_read_value_labels = True
-            self._data_read = True
+
         # if necessary, swap the byte order to native here
         if self._byteorder != self._native_byteorder:
             raw_data = raw_data.byteswap().view(raw_data.dtype.newbyteorder())
