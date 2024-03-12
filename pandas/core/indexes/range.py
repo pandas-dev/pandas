@@ -1140,6 +1140,41 @@ class RangeIndex(Index):
 
     # --------------------------------------------------------------------
 
+    def round(self, decimals: int = 0) -> Self | Index:
+        """
+        Round each value in the Index to the given number of decimals.
+
+        Parameters
+        ----------
+        decimals : int, optional
+            Number of decimal places to round to. If decimals is negative,
+            it specifies the number of positions to the left of the decimal point.
+
+        Returns
+        -------
+        Index or RangeIndex
+            A new Index with the rounded values.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> idx = pd.RangeIndex(10, 30, 10)
+        >>> idx.round(decimals=-1)
+        RangeIndex(start=10, stop=30, step=10)
+        >>> idx = pd.RangeIndex(10, 15, 1)
+        >>> idx.round(decimals=-1)
+        Index([10, 10, 10, 10, 10], dtype='int64')
+        """
+        if decimals >= 0:
+            return self.copy()
+        elif all(
+            getattr(self, attr) % 10**-decimals == 0 for attr in ("start", "step")
+        ):
+            # e.g. Range(10, 30, 10).round(-1) doesn't need rounding
+            return self.copy()
+        else:
+            return super().round(decimals=decimals)
+
     def _cmp_method(self, other, op):
         if isinstance(other, RangeIndex) and self._range == other._range:
             # Both are immutable so if ._range attr. are equal, shortcut is possible

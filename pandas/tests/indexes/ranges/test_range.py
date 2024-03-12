@@ -608,6 +608,37 @@ class TestRangeIndex:
         tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "rng, decimals",
+    [
+        [range(5), 0],
+        [range(5), 2],
+        [range(10, 30, 10), -1],
+        [range(30, 10, -10), -1],
+    ],
+)
+def test_range_round_returns_rangeindex(rng, decimals):
+    ri = RangeIndex(rng)
+    expected = ri.copy()
+    result = ri.round(decimals=decimals)
+    tm.assert_index_equal(result, expected, exact=True)
+
+
+@pytest.mark.parametrize(
+    "rng, decimals",
+    [
+        [range(10, 30, 1), -1],
+        [range(30, 10, -1), -1],
+        [range(11, 14), -10],
+    ],
+)
+def test_range_round_returns_index(rng, decimals):
+    ri = RangeIndex(rng)
+    expected = Index(list(rng)).round(decimals=decimals)
+    result = ri.round(decimals=decimals)
+    tm.assert_index_equal(result, expected, exact=True)
+
+
 def test_append_non_rangeindex_return_rangeindex():
     ri = RangeIndex(1)
     result = ri.append(Index([1]))
