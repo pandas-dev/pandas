@@ -695,3 +695,27 @@ def test_getitem_boolmask_wrong_length():
     ri = RangeIndex(4, name="foo")
     with pytest.raises(IndexError, match="Boolean index has wrong length"):
         ri[[True]]
+
+
+@pytest.mark.parametrize(
+    "rng",
+    [
+        range(0, 5, 1),
+        range(0, 5, 2),
+        range(10, 15, 1),
+        range(10, 5, -1),
+        range(10, 5, -2),
+        range(5, 0, -1),
+    ],
+)
+@pytest.mark.parametrize("meth", ["argmax", "argmin"])
+def test_arg_min_max(rng, meth):
+    ri = RangeIndex(rng)
+    idx = Index(list(rng))
+    assert getattr(ri, meth)() == getattr(idx, meth)()
+
+
+@pytest.mark.parametrize("meth", ["argmin", "argmax"])
+def test_empty_argmin_argmax_raises(meth):
+    with pytest.raises(ValueError, match=f"attempt to get {meth} of an empty sequence"):
+        assert getattr(RangeIndex(0), meth)()
