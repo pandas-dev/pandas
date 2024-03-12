@@ -1493,7 +1493,7 @@ class _LocIndexer(_LocationIndexer):
                 label = labels.get_loc(key)
                 if label:
                     return label
-                return {"key": key} 
+                return {"key": key}
             except LookupError:
                 if isinstance(key, tuple) and isinstance(labels, MultiIndex):
                     if len(key) == labels.nlevels:
