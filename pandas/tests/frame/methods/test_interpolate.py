@@ -79,7 +79,7 @@ class TestDataFrameInterpolate:
         msg = "DataFrame cannot interpolate with object dtype"
         with pytest.raises(TypeError, match=msg):
             df.interpolate()
-        
+
         cvalues = df["C"]._values
         dvalues = df["D"].values
         with pytest.raises(TypeError, match=msg):
