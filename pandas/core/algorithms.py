@@ -439,6 +439,10 @@ def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
         # Dispatch to extension dtype's unique.
         return values.unique()
 
+    if isinstance(values, ABCIndex):
+        # Dispatch to Index's unique.
+        return values.unique()
+
     original = values
     hashtable, values = _get_hashtable_algo(values)
 
