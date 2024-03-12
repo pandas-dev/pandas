@@ -161,7 +161,7 @@ def test_pyarrow_array_to_numpy_and_mask(np_dtype_to_arrays):
     # Add offset to the buffer.
     offset = b"\x00" * (pa_array.type.bit_width // 8)
     data_buffer_offset = pa.py_buffer(offset + data_buffer_bytes)
-    mask_buffer_offset = pa.py_buffer(b"\x0E")
+    mask_buffer_offset = pa.py_buffer(b"\x0e")
     pa_array_offset = pa.Array.from_buffers(
         type=pa_array.type,
         length=len(pa_array),
