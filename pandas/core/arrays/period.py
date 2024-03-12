@@ -4,7 +4,6 @@ from datetime import timedelta
 import operator
 from typing import (
     TYPE_CHECKING,
-    Any,
     Callable,
     Literal,
     TypeVar,
@@ -80,6 +79,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         AnyArrayLike,
+        BinOp,
         Dtype,
         FillnaOptions,
         NpDtype,
@@ -863,9 +863,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     # ------------------------------------------------------------------
     # Arithmetic Methods
 
-    def _addsub_int_array_or_scalar(
-        self, other: np.ndarray | int, op: Callable[[Any, Any], Any]
-    ) -> Self:
+    def _addsub_int_array_or_scalar(self, other: np.ndarray | int, op: BinOp) -> Self:
         """
         Add or subtract array of integers.
 

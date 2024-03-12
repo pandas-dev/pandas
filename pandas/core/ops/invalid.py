@@ -7,7 +7,6 @@ from __future__ import annotations
 import operator
 from typing import (
     TYPE_CHECKING,
-    Any,
     Callable,
     NoReturn,
 )
@@ -17,6 +16,7 @@ import numpy as np
 if TYPE_CHECKING:
     from pandas._typing import (
         ArrayLike,
+        BoolOp,
         Scalar,
         npt,
     )
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 def invalid_comparison(
     left: ArrayLike,
     right: ArrayLike | Scalar,
-    op: Callable[[Any, Any], bool],  # Can we reuse _BoolOp here?
+    op: BoolOp,
 ) -> npt.NDArray[np.bool_]:
     """
     If a comparison has mismatched types and is not necessarily meaningful,
