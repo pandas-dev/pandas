@@ -968,6 +968,8 @@ def test_append_to_multiple_min_itemsize(setup_path):
         }
     )
     expected = df.iloc[[0]]
+    # Reading/writing RangeIndex info is not supported yet
+    expected.index = Index(list(range(len(expected.index))))
 
     with ensure_clean_store(setup_path) as store:
         store.append_to_multiple(
