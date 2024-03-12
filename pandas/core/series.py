@@ -438,17 +438,39 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 index = default_index(0)
                 if dtype is not None:
                     data = na_value_for_dtype(pandas_dtype(dtype), compat=False)
+                    # continue on scalar branch but does nothing.
                 else:
                     data = []
+                    data = com.maybe_iterable_to_list(data)
+                    # if index is None:
+                    #     index = default_index(len(data))
+
+                    if not len(data) and dtype is None:
+                        # GH 29405: Pre-2.0, this defaulted to float.
+                        dtype = np.dtype(object)
+                    # continue on list branch
+                    # list branch, index is not None, but 'len(index)==0'.
+                    # Note that index = default_index(0). OK
             else:
                 if len(index) or dtype is not None:
                     data = na_value_for_dtype(pandas_dtype(dtype), compat=False)
+                    # continue on scalar branch but does nothing.
                 else:
                     data = []
+                    # continue on list branch
+                    # list branch, index is not None,  but 'len(index)==0'.
+                    # Note that index = ensure_index(index).
+                    data = com.maybe_iterable_to_list(data)
+                    # if index is None:
+                    #     index = default_index(len(data))
+
+                    if not len(data) and dtype is None:
+                        # GH 29405: Pre-2.0, this defaulted to float.
+                        dtype = np.dtype(object)
 
         # Here >>> Maybe data is list, data is not None
 
-        if isinstance(data, Index):
+        elif isinstance(data, Index):
             if dtype is not None:
                 data = data.astype(dtype)
             if index is None:
@@ -502,7 +524,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if index is None:
                 index = default_index(len(data))
             # pass
-        elif is_iterator(data) or is_list_like(data):
+        elif is_list_like(data) or is_iterator(data):
             data = com.maybe_iterable_to_list(data)
             if index is None:
                 index = default_index(len(data))
@@ -510,7 +532,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if not len(data) and dtype is None:
                 # GH 29405: Pre-2.0, this defaulted to float.
                 dtype = np.dtype(object)
-        elif data is not None:  # Possibly scalar! Check with 'hasattr(bar, '__len__')'
+        elif data is not None:  # scalar directly form input only.
             if index is None:
                 data = [data]
                 index = default_index(1)
