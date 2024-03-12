@@ -1503,22 +1503,20 @@ class ExcelFile:
          and for more examples on storage options refer `here <https://pandas.pydata.org/docs/user_guide/io.html#reading-writing-remote-files>`.
     engine_kwargs : dict, optional
         Arbitrary keyword arguments passed to excel engine.
-
-    Examples
-    --------
-    >>> file = pd.ExcelFile("myfile.xlsx")  # doctest: +SKIP
-    >>> with pd.ExcelFile("myfile.xls") as xls:  # doctest: +SKIP
-    ...     df1 = pd.read_excel(xls, "Sheet1")  # doctest: +SKIP
-
+        
     See Also
     --------
     DataFrame.to_excel : Write DataFrame to an Excel file.
     DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
     read_csv : Read a comma-separated values (csv) file into DataFrame.
     read_fwf : Read a table of fixed-width formatted lines into DataFrame.
-    
-    """
 
+    Examples
+    --------
+    >>> file = pd.ExcelFile("myfile.xlsx")  # doctest: +SKIP
+    >>> with pd.ExcelFile("myfile.xls") as xls:  # doctest: +SKIP
+    ...     df1 = pd.read_excel(xls, "Sheet1")  # doctest: +SKIP
+    """
     from pandas.io.excel._calamine import CalamineReader
     from pandas.io.excel._odfreader import ODFReader
     from pandas.io.excel._openpyxl import OpenpyxlReader
