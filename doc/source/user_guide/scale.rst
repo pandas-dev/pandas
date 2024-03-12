@@ -170,7 +170,7 @@ files. Each file in the directory represents a different year of the entire data
    starts = [f"20{i:>02d}-01-01" for i in range(N)]
    ends = [f"20{i:>02d}-12-13" for i in range(N)]
 
-   pathlib.Path("data/timeseries").mkdir(exist_ok=True)
+   pathlib.Path("data/timeseries").mkdir(exist_ok=True, parents=True)
 
    for i, (start, end) in enumerate(zip(starts, ends)):
        ts = make_timeseries(start=start, end=end, freq="1min", seed=i)
