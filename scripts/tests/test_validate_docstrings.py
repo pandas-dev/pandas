@@ -1,3 +1,4 @@
+import argparse
 import io
 import textwrap
 
@@ -399,6 +400,28 @@ class TestMainFunction:
             ignore_functions=None,
         )
         assert exit_status == 5
+
+    def test_exit_status_errors_for_combined_validations(self, monkeypatch) -> None:
+        default_return = 5
+        mock = lambda func, fmt, pref, err, ignore_depr, ignore_func: default_return
+        monkeypatch.setattr(
+            validate_docstrings,
+            "main",
+            mock
+        )
+
+        command = argparse.Namespace(
+            function=None,
+            format="default",
+            prefix=None,
+            errors=None,
+            ignore_deprecated=False,
+            ignore_functions=None
+        )
+
+        n = 3
+        exit_status = validate_docstrings.validate_all_arg_groups([command] * n)
+        assert exit_status == default_return * n
 
     def test_no_exit_status_noerrors_for_validate_all(self, monkeypatch) -> None:
         monkeypatch.setattr(
