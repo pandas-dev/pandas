@@ -23,7 +23,6 @@ from typing import (
     Optional,
     Protocol,
     Type as type_t,
-    TypeAlias,
     TypeVar,
     Union,
     overload,
@@ -531,6 +530,3 @@ UsecolsArgType = Union[
 
 # maintaine the sub-type of any hashable sequence
 SequenceT = TypeVar("SequenceT", bound=Sequence[Hashable])
-
-BinOp: TypeAlias = Callable[[Any, Any], Any]
-BoolOp: TypeAlias = Callable[[Any, Any], bool]
