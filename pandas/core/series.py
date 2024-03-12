@@ -413,16 +413,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
+        # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
+        # raises KeyError). Send it to Series for "standard" construction:
         if is_dict_like(data) and not is_pandas_object:
-            if data:
-                # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
-                # raises KeyError). Send it to Series for "standard" construction:
-                data = Series(
-                    list(data.values()), index=tuple(data.keys()), dtype=dtype
+            data = (
+                Series(
+                    data=list(data.values()),
+                    index=tuple(data.keys()),
+                    dtype=dtype,
                 )
-                dtype = None
-            else:
-                data = None
+                if data
+                else None
+            )
 
         if isinstance(data, MultiIndex):
             raise NotImplementedError(
@@ -432,43 +434,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if index is not None:
             index = ensure_index(index)
 
-        # Código 1
-        if data is None:  # TODO - simplificar a lógica e juntar com o código
+        if data is None:
+            na_value = na_value_for_dtype(pandas_dtype(dtype), compat=False)
             if index is None:
                 index = default_index(0)
-                if dtype is not None:
-                    data = na_value_for_dtype(pandas_dtype(dtype), compat=False)
-                    # continue on scalar branch but does nothing.
-                else:
-                    data = []
-                    data = com.maybe_iterable_to_list(data)
-                    # if index is None:
-                    #     index = default_index(len(data))
-
-                    if not len(data) and dtype is None:
-                        # GH 29405: Pre-2.0, this defaulted to float.
-                        dtype = np.dtype(object)
-                    # continue on list branch
-                    # list branch, index is not None, but 'len(index)==0'.
-                    # Note that index = default_index(0). OK
+                data = na_value if dtype is not None else []
             else:
-                if len(index) or dtype is not None:
-                    data = na_value_for_dtype(pandas_dtype(dtype), compat=False)
-                    # continue on scalar branch but does nothing.
-                else:
-                    data = []
-                    # continue on list branch
-                    # list branch, index is not None,  but 'len(index)==0'.
-                    # Note that index = ensure_index(index).
-                    data = com.maybe_iterable_to_list(data)
-                    # if index is None:
-                    #     index = default_index(len(data))
+                data = na_value if len(index) or dtype is not None else []
 
-                    if not len(data) and dtype is None:
-                        # GH 29405: Pre-2.0, this defaulted to float.
-                        dtype = np.dtype(object)
-
-        # Here >>> Maybe data is list, data is not None
+            if isinstance(data, list) and dtype is None:
+                # GH 29405: Pre-2.0, this defaulted to float.
+                dtype = np.dtype(object)
 
         elif isinstance(data, Index):
             if dtype is not None:
@@ -490,6 +466,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "Cannot construct a Series from an ndarray with "
                     "compound dtype.  Use DataFrame instead."
                 )
+
         elif isinstance(data, Series):
             if index is None:
                 index = data.index
@@ -498,6 +475,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 data = data.reindex(index)
                 copy = False
                 data = data._mgr
+
         elif isinstance(data, SingleBlockManager):
             if index is None:
                 index = data.index
@@ -523,7 +501,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif isinstance(data, ExtensionArray):
             if index is None:
                 index = default_index(len(data))
-            # pass
+
         elif is_list_like(data) or is_iterator(data):
             data = com.maybe_iterable_to_list(data)
             if index is None:
@@ -532,7 +510,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if not len(data) and dtype is None:
                 # GH 29405: Pre-2.0, this defaulted to float.
                 dtype = np.dtype(object)
-        elif data is not None:  # scalar directly form input only.
+
+        else:  # scalar directly from input only. Could be #elif data is not None:
             if index is None:
                 data = [data]
                 index = default_index(1)
