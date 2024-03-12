@@ -11,6 +11,7 @@ from collections.abc import (
 )
 import sys
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     TypeVar,
@@ -24,6 +25,8 @@ from pandas.core.dtypes.inference import is_sequence
 
 from pandas.io.formats.console import get_console_size
 
+if TYPE_CHECKING:
+    from pandas._typing import ListLike
 EscapeChars = Union[Mapping[str, str], Iterable[str]]
 _KT = TypeVar("_KT")
 _VT = TypeVar("_VT")
@@ -98,7 +101,7 @@ def _adj_justify(texts: Iterable[str], max_len: int, mode: str = "right") -> lis
 
 
 def _pprint_seq(
-    seq: Sequence, _nest_lvl: int = 0, max_seq_items: int | None = None, **kwds: Any
+    seq: ListLike, _nest_lvl: int = 0, max_seq_items: int | None = None, **kwds: Any
 ) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
@@ -167,7 +170,7 @@ def _pprint_dict(
 
 
 def pprint_thing(
-    thing: Any,
+    thing: object,
     _nest_lvl: int = 0,
     escape_chars: EscapeChars | None = None,
     default_escapes: bool = False,
@@ -225,7 +228,7 @@ def pprint_thing(
         )
     elif is_sequence(thing) and _nest_lvl < get_option("display.pprint_nest_depth"):
         result = _pprint_seq(
-            thing,
+            thing,  # type: ignore[arg-type]
             _nest_lvl,
             escape_chars=escape_chars,
             quote_strings=quote_strings,
@@ -240,7 +243,7 @@ def pprint_thing(
 
 
 def pprint_thing_encoded(
-    object: Any, encoding: str = "utf-8", errors: str = "replace"
+    object: object, encoding: str = "utf-8", errors: str = "replace"
 ) -> bytes:
     value = pprint_thing(object)  # get unicode representation of object
     return value.encode(encoding, errors)
@@ -289,7 +292,7 @@ def default_pprint(thing: Any, max_seq_items: int | None = None) -> str:
 
 
 def format_object_summary(
-    obj: Any,
+    obj: ListLike,
     formatter: Callable,
     is_justify: bool = True,
     name: str | None = None,

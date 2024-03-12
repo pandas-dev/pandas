@@ -68,7 +68,7 @@ def make_invalid_op(name: str) -> Callable[..., NoReturn]:
     invalid_op : function
     """
 
-    def invalid_op(self: Any, other: Any = None) -> NoReturn:
+    def invalid_op(self: object, other: object = None) -> NoReturn:
         typ = type(self).__name__
         raise TypeError(f"cannot perform {name} with this index type: {typ}")
 
