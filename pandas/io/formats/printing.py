@@ -255,7 +255,7 @@ def enable_data_resource_formatter(enable: bool) -> None:
         return
     from IPython import get_ipython
 
-    # error: Call to untyped function "standardize_mapping" in typed context
+    # error: Call to untyped function "get_ipython" in typed context
     ip = get_ipython()  # type: ignore[no-untyped-call]
     if ip is None:
         # still not in IPython
