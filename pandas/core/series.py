@@ -436,14 +436,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if data is None:  # TODO - simplificar a lógica e juntar com o código
             if index is None:
                 index = default_index(0)
-
-            if index is not None:
-                if len(index) or dtype is not None:
+                if dtype is not None:
                     data = na_value_for_dtype(pandas_dtype(dtype), compat=False)
                 else:
                     data = []
             else:
-                if dtype is not None:
+                if len(index) or dtype is not None:
                     data = na_value_for_dtype(pandas_dtype(dtype), compat=False)
                 else:
                     data = []
@@ -510,9 +508,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if not len(data) and dtype is None:
                 # GH 29405: Pre-2.0, this defaulted to float.
                 dtype = np.dtype(object)
-        else:
+        elif data is None:
             # código 2 -
             # TODO: simplificar a lógica e juntar com o código 2
+            if index is None:
+                data = [data]
+                index = default_index(len(data))
+        elif data is not None:
             if index is None:
                 data = [data]
                 index = default_index(len(data))
