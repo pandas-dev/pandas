@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import doctest
+from functools import lru_cache
 import importlib
 import json
 import os
@@ -221,6 +222,7 @@ class PandasDocstring(Validator):
         return "array_like" in self.raw_doc
 
 
+@lru_cache(maxsize=None)
 def pandas_validate(func_name: str):
     """
     Call the numpydoc validation, and add the errors specific to pandas.
@@ -426,7 +428,7 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated, ignore_fun
         return 0
 
 
-if __name__ == "__main__":
+def init_argparser():
     format_opts = "default", "json", "actions"
     func_help = (
         "function or method to validate (e.g. pandas.DataFrame.head) "
@@ -477,9 +479,20 @@ if __name__ == "__main__":
         "Inverse of the `function` argument.",
     )
 
-    args = argparser.parse_args()
-    sys.exit(
-        main(
+    return argparser
+
+
+def validate_all_arg_groups(arg_groups):
+    exit_status = 0
+    for args in arg_groups:
+        error_str = args.errors.replace(",", ", ") if args.errors else ""
+        if args.ignore_functions:
+            msg = f"Partially validate docstrings ({error_str})\n"
+        else:
+            msg = f"Validate docstrings ({error_str})\n"
+        sys.stdout.write(msg)
+
+        exit_status += main(
             args.function,
             args.prefix,
             args.errors.split(",") if args.errors else None,
@@ -487,4 +500,22 @@ if __name__ == "__main__":
             args.ignore_deprecated,
             args.ignore_functions,
         )
+        sys.stdout.write(f"({error_str}) DONE")
+    return exit_status
+
+
+if __name__ == "__main__":
+    # we are processing multiple validation runs, each parametrized differently and
+    # delimited with "--" in the command line arguments
+    if "--" in sys.argv[1:]:
+        arg_groups = " ".join(sys.argv[1:]).split(" -- ")
+        arg_groups = [group.split(" ") for group in arg_groups]
+    else:
+        arg_groups = [sys.argv[1:]]
+
+    argparser = init_argparser()
+    parsed_arg_groups = [argparser.parse_args(arg_group) for arg_group in arg_groups]
+
+    sys.exit(
+        validate_all_arg_groups(parsed_arg_groups)
     )
