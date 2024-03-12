@@ -12911,11 +12911,10 @@ def make_doc(name: str, ndim: int) -> str:
         return_type = "Series or scalar"
         axis_descr = "{index (0)}"
         name2 = "Series"
-    else:
         if base_doc in (_num_doc, _sum_prod_doc):
             return_type = "scalar"
-        else:
-            return_type = "Series or scalar"
+    else:
+        return_type = "Series or scalar"
         axis_descr = "{index (0), columns (1)}"
         name2 = "DataFrame"
 
