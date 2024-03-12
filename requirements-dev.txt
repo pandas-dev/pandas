@@ -49,6 +49,7 @@ xlsxwriter>=3.0.5
 zstandard>=0.19.0
 dask
 seaborn
+dask-expr
 moto
 flask
 asv>=0.6.1
