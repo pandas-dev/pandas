@@ -240,10 +240,6 @@ class TestSparseArray(base.ExtensionTests):
             super().test_fillna_limit_backfill(data_missing)
 
     def test_fillna_no_op_returns_copy(self, data, request):
-        if np.isnan(data.fill_value):
-            request.applymarker(
-                pytest.mark.xfail(reason="returns array with different fill value")
-            )
         super().test_fillna_no_op_returns_copy(data)
 
     @pytest.mark.xfail(reason="Unsupported")
@@ -400,6 +396,8 @@ class TestSparseArray(base.ExtensionTests):
             "rmul",
             "floordiv",
             "rfloordiv",
+            "truediv",
+            "rtruediv",
             "pow",
             "mod",
             "rmod",
