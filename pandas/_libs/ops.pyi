@@ -1,5 +1,4 @@
 from typing import (
-    TYPE_CHECKING,
     Iterable,
     Literal,
     overload,
@@ -7,12 +6,11 @@ from typing import (
 
 import numpy as np
 
-if TYPE_CHECKING:  # noqa: PYI002
-    from pandas._typing import (
-        BinOp,
-        BoolOp,
-        npt,
-    )
+from pandas._typing import (
+    BinOp,
+    BoolOp,
+    npt,
+)
 
 def scalar_compare(
     values: np.ndarray,  # object[:]
