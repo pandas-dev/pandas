@@ -428,7 +428,7 @@ def json_normalize(
     """
 
     def _pull_field(
-        js: dict[str, Any], spec: list | str, extract_record: bool = False
+        js: dict[str, Any] | list, spec: list | str, extract_record: bool = False
     ) -> Scalar | Iterable:
         """Internal function to pull field"""
         result = js
