@@ -16,8 +16,6 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 
 // Licence at LICENSES/NUMPY_LICENSE
 
-#define NO_IMPORT
-
 #ifndef NPY_NO_DEPRECATED_API
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #endif // NPY_NO_DEPRECATED_API
@@ -25,7 +23,10 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #include <Python.h>
 
 #include "pandas/vendored/numpy/datetime/np_datetime.h"
-#include <numpy/ndarraytypes.h>
+
+#define NO_IMPORT_ARRAY
+#define PY_ARRAY_UNIQUE_SYMBOL PANDAS_DATETIME_NUMPY
+#include <numpy/ndarrayobject.h>
 #include <numpy/npy_common.h>
 
 #if defined(_WIN32)
@@ -1070,5 +1071,8 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
  */
 PyArray_DatetimeMetaData
 get_datetime_metadata_from_dtype(PyArray_Descr *dtype) {
-  return (((PyArray_DatetimeDTypeMetaData *)dtype->c_metadata)->meta);
+#if NPY_ABI_VERSION < 0x02000000
+#define PyDataType_C_METADATA(dtype) ((dtype)->c_metadata)
+#endif
+  return ((PyArray_DatetimeDTypeMetaData *)PyDataType_C_METADATA(dtype))->meta;
 }

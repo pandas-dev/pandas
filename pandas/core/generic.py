@@ -583,7 +583,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     def _get_cleaned_column_resolvers(self) -> dict[Hashable, Series]:
         """
-        Return the special character free column resolvers of a dataframe.
+        Return the special character free column resolvers of a DataFrame.
 
         Column names with special characters are 'cleaned up' so that they can
         be referred to by backtick quoting.
@@ -2646,6 +2646,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             See the errors argument for :func:`open` for a full list
             of options.
         encoding : str, default "UTF-8"
+            Set character encoding.
 
         See Also
         --------
@@ -4183,15 +4184,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Get item from object for given key (ex: DataFrame column).
 
-        Returns default value if not found.
+        Returns ``default`` value if not found.
 
         Parameters
         ----------
         key : object
+            Key for which item should be returned.
+        default : object, default None
+            Default value to return if key is not found.
 
         Returns
         -------
         same type as items contained in object
+            Item for given key or ``default`` value, if key is not found.
 
         Examples
         --------
@@ -5073,7 +5078,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        {klass} with changed index.
+        {klass}
+            {klass} with changed index.
 
         See Also
         --------
@@ -5091,7 +5097,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         We *highly* recommend using keyword arguments to clarify your
         intent.
 
-        Create a dataframe with some fictional data.
+        Create a DataFrame with some fictional data.
 
         >>> index = ["Firefox", "Chrome", "Safari", "IE10", "Konqueror"]
         >>> columns = ["http_status", "response_time"]
@@ -5108,9 +5114,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         IE10               404           0.08
         Konqueror          301           1.00
 
-        Create a new index and reindex the dataframe. By default
+        Create a new index and reindex the DataFrame. By default
         values in the new index that do not have corresponding
-        records in the dataframe are assigned ``NaN``.
+        records in the DataFrame are assigned ``NaN``.
 
         >>> new_index = ["Safari", "Iceweasel", "Comodo Dragon", "IE10", "Chrome"]
         >>> df.reindex(new_index)
@@ -5163,7 +5169,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Konqueror          301         NaN
 
         To further illustrate the filling functionality in
-        ``reindex``, we will create a dataframe with a
+        ``reindex``, we will create a DataFrame with a
         monotonically increasing index (for example, a sequence
         of dates).
 
@@ -5180,7 +5186,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2010-01-05    89.0
         2010-01-06    88.0
 
-        Suppose we decide to expand the dataframe to cover a wider
+        Suppose we decide to expand the DataFrame to cover a wider
         date range.
 
         >>> date_index2 = pd.date_range("12/29/2009", periods=10, freq="D")
@@ -5218,12 +5224,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2010-01-06    88.0
         2010-01-07     NaN
 
-        Please note that the ``NaN`` value present in the original dataframe
+        Please note that the ``NaN`` value present in the original DataFrame
         (at index value 2010-01-03) will not be filled by any of the
         value propagation schemes. This is because filling while reindexing
-        does not look at dataframe values, but only compares the original and
+        does not look at DataFrame values, but only compares the original and
         desired indexes. If you do want to fill in the ``NaN`` values present
-        in the original dataframe, use the ``fillna()`` method.
+        in the original DataFrame, use the ``fillna()`` method.
 
         See the :ref:`user guide <basics.reindexing>` for more.
         """
@@ -5362,10 +5368,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = None,
     ) -> Self:
         """
-        Subset the dataframe rows or columns according to the specified index labels.
+        Subset the DataFrame or Series according to the specified index labels.
 
-        Note that this routine does not filter a dataframe on its
-        contents. The filter is applied to the labels of the index.
+        For DataFrame, filter rows or columns depending on ``axis`` argument.
+        Note that this routine does not filter based on content.
+        The filter is applied to the labels of the index.
 
         Parameters
         ----------
@@ -5378,11 +5385,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis : {0 or 'index', 1 or 'columns', None}, default None
             The axis to filter on, expressed either as an index (int)
             or axis name (str). By default this is the info axis, 'columns' for
-            DataFrame. For `Series` this parameter is unused and defaults to `None`.
+            ``DataFrame``. For ``Series`` this parameter is unused and defaults to
+            ``None``.
 
         Returns
         -------
-        same type as input object
+        Same type as caller
+            The filtered subset of the DataFrame or Series.
 
         See Also
         --------
@@ -5839,7 +5848,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        the return type of ``func``.
+        The return type of ``func``.
+            The result of applying ``func`` to the Series or DataFrame.
 
         See Also
         --------
@@ -5855,7 +5865,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        Constructing a income DataFrame from a dictionary.
+        Constructing an income DataFrame from a dictionary.
 
         >>> data = [[8000, 1000], [9500, np.nan], [5000, 2000]]
         >>> df = pd.DataFrame(data, columns=["Salary", "Others"])
@@ -8365,7 +8375,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         See Also
         --------
         Series.clip : Trim values at input threshold in series.
-        DataFrame.clip : Trim values at input threshold in dataframe.
+        DataFrame.clip : Trim values at input threshold in DataFrame.
         numpy.clip : Clip (limit) the values in an array.
 
         Examples
@@ -10901,7 +10911,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         among those with the highest count.
 
         For mixed data types provided via a ``DataFrame``, the default is to
-        return only an analysis of numeric columns. If the dataframe consists
+        return only an analysis of numeric columns. If the DataFrame consists
         only of object and categorical data without any numeric columns, the
         default is to return an analysis of both the object and categorical
         columns. If ``include='all'`` is provided as an option, the result
@@ -11744,11 +11754,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @doc(position="first", klass=_shared_doc_kwargs["klass"])
     def first_valid_index(self) -> Hashable:
         """
-        Return index for {position} non-NA value or None, if no non-NA value is found.
+        Return index for {position} non-missing value or None, if no value is found.
+
+        See the :ref:`User Guide <missing_data>` for more information
+        on which values are considered missing.
 
         Returns
         -------
         type of index
+            Index of {position} non-missing value.
 
         Examples
         --------
@@ -12040,7 +12054,7 @@ True
 
 **DataFrames**
 
-Create a dataframe from a dictionary.
+Create a DataFrame from a dictionary.
 
 >>> df = pd.DataFrame({'col1': [True, True], 'col2': [True, False]})
 >>> df
