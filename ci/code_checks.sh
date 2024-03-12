@@ -66,7 +66,7 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     # Run multiple calls of the validation script in a single python python process
-    # Each group of parameters is separated with '--'
+    # Each group of parameters is separated with --
     # This way module compiles, imports and processed source files can be cached, among other things
     PARAMETERS=(--format=actions --errors=EX01,EX03,EX04,GL01,GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,PD01,PR03,PR04,PR05,PR06,PR08,PR09,PR10,RT01,RT02,RT04,RT05,SA02,SA03,SA04,SA05,SS01,SS02,SS03,SS04,SS05,SS06)
     #####
@@ -141,7 +141,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.DataFrameGroupBy.nth\
         pandas.core.groupby.SeriesGroupBy.nth\
         pandas.core.groupby.DataFrameGroupBy.plot\
-        pandas.core.groupby.SeriesGroupBy.plot
+        pandas.core.groupby.SeriesGroupBy.plot # There should be no backslash in the final line, please keep this comment in the last ignored function
     )
     #####
     # end of PR02 group
@@ -400,7 +400,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.tseries.offsets.YearEnd.n\
         pandas.tseries.offsets.YearEnd.nanos\
         pandas.tseries.offsets.YearEnd.normalize\
-        pandas.tseries.offsets.YearEnd.rule_code
+        pandas.tseries.offsets.YearEnd.rule_code # There should be no backslash in the final line, please keep this comment in the last ignored function
     )
     #####
     # end of GL08 group
@@ -494,24 +494,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.AbstractMethodError\
         pandas.errors.UndefinedVariableError\
         pandas.get_option\
-        pandas.io.formats.style.Styler.to_excel\
-        pandas.melt\
-        pandas.option_context\
-        pandas.read_fwf\
-        pandas.reset_option
+        pandas.io.formats.style.Styler.to_excel # There should be no backslash in the final line, please keep this comment in the last ignored function
     )
     #####
     # end of PR01 group
     #####
     PARAMETERS+=(-- --format=actions --errors=PR07 --ignore_functions \
-        pandas.DataFrame.get\
-        pandas.DataFrame.rolling\
-        pandas.DataFrame.to_hdf\
-        pandas.DatetimeIndex.indexer_between_time\
-        pandas.DatetimeIndex.mean\
-        pandas.HDFStore.append\
-        pandas.HDFStore.get\
-        pandas.HDFStore.put\
         pandas.Index\
         pandas.Index.append\
         pandas.Index.copy\
@@ -629,18 +617,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.mean\
         pandas.DataFrame.median\
         pandas.DataFrame.min\
-        pandas.DataFrame.pop\
         pandas.DataFrame.prod\
         pandas.DataFrame.product\
-        pandas.DataFrame.reindex\
-        pandas.DataFrame.reorder_levels\
         pandas.DataFrame.sem\
         pandas.DataFrame.skew\
         pandas.DataFrame.std\
         pandas.DataFrame.sum\
-        pandas.DataFrame.swapaxes\
-        pandas.DataFrame.to_numpy\
-        pandas.DataFrame.to_orc\
         pandas.DataFrame.to_parquet\
         pandas.DataFrame.unstack\
         pandas.DataFrame.value_counts\
@@ -860,30 +842,19 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.plotting.parallel_coordinates\
         pandas.plotting.radviz\
         pandas.plotting.table\
-        pandas.read_orc\
-        pandas.read_sas\
-        pandas.read_spss\
-        pandas.read_stata\
-        pandas.set_eng_float_format\
-        pandas.timedelta_range\
-        pandas.util.hash_pandas_object
+        pandas.set_eng_float_format # There should be no backslash in the final line, please keep this comment in the last ignored function
     )
     #####
     # end of RT03 group
     #####
     PARAMETERS+=(-- --format=actions --errors=SA01 --ignore_functions \
-        pandas.BooleanDtype\
         pandas.Categorical.__array__\
-        pandas.Categorical.as_ordered\
-        pandas.Categorical.as_unordered\
         pandas.Categorical.codes\
         pandas.Categorical.dtype\
         pandas.Categorical.from_codes\
         pandas.Categorical.ordered\
         pandas.CategoricalDtype.categories\
         pandas.CategoricalDtype.ordered\
-        pandas.CategoricalIndex.as_ordered\
-        pandas.CategoricalIndex.as_unordered\
         pandas.CategoricalIndex.codes\
         pandas.CategoricalIndex.ordered\
         pandas.DataFrame.__dataframe__\
@@ -1080,8 +1051,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.backfill\
         pandas.Series.bfill\
         pandas.Series.cat\
-        pandas.Series.cat.as_ordered\
-        pandas.Series.cat.as_unordered\
         pandas.Series.cat.codes\
         pandas.Series.cat.ordered\
         pandas.Series.copy\
@@ -1184,7 +1153,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.update\
         pandas.Series.var\
         pandas.SparseDtype\
-        pandas.StringDtype\
         pandas.Timedelta\
         pandas.Timedelta.as_unit\
         pandas.Timedelta.asm8\
@@ -1638,7 +1606,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.tseries.offsets.YearEnd.kwds\
         pandas.tseries.offsets.YearEnd.name\
         pandas.util.hash_array\
-        pandas.util.hash_pandas_object
+        pandas.util.hash_pandas_object  # There should be no backslash in the final line, please keep this comment in the last ignored function
     )
     #####
     # end of SA01 group

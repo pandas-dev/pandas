@@ -222,7 +222,9 @@ class PandasDocstring(Validator):
         return "array_like" in self.raw_doc
 
 
-@lru_cache(maxsize=None)
+# reuse validation result in case redundant validations are run due to errors with
+# excluded functions
+@lru_cache(maxsize=4000)
 def pandas_validate(func_name: str):
     """
     Call the numpydoc validation, and add the errors specific to pandas.
@@ -501,6 +503,7 @@ def validate_all_arg_groups(arg_groups):
             args.ignore_functions,
         )
         sys.stdout.write(f"({error_str}) DONE")
+        sys.stdout.write(f"({error_str}) DONE\n")
     return exit_status
 
 
