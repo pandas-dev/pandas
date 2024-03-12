@@ -108,6 +108,7 @@ def missing_metadata():
         },
         {
             "name": "Minnie",
+            "addresses":[],
             "previous_residences":[]
         }
     ]
