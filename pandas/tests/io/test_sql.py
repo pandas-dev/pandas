@@ -93,7 +93,9 @@ def sql_strings():
 
 
 def is_adbc_080():
-    adbc = import_optional_dependency("adbc_driver_manager").__version__ == "0.8.0"
+    adbc = import_optional_dependency("adbc_driver_manager")
+    if isinstance(adbc, bool):
+        return False
     return adbc.__version__ == "0.8.0"
 
 
