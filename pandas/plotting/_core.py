@@ -1397,7 +1397,7 @@ class PlotAccessor(PandasObject):
 
         Returns
         -------
-        class:`matplotlib.Axes`
+        :class:`matplotlib.axes.Axes`
             Return a histogram plot.
 
         See Also

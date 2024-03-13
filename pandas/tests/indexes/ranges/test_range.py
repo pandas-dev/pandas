@@ -730,3 +730,25 @@ def test_getitem_boolmask_wrong_length():
     ri = RangeIndex(4, name="foo")
     with pytest.raises(IndexError, match="Boolean index has wrong length"):
         ri[[True]]
+
+
+def test_getitem_integers_return_rangeindex():
+    result = RangeIndex(0, 10, 2, name="foo")[[0, -1]]
+    expected = RangeIndex(start=0, stop=16, step=8, name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+    result = RangeIndex(0, 10, 2, name="foo")[[3]]
+    expected = RangeIndex(start=6, stop=8, step=2, name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+
+def test_getitem_empty_return_rangeindex():
+    result = RangeIndex(0, 10, 2, name="foo")[[]]
+    expected = RangeIndex(start=0, stop=0, step=1, name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+
+def test_getitem_integers_return_index():
+    result = RangeIndex(0, 10, 2, name="foo")[[0, 1, -1]]
+    expected = Index([0, 2, 8], dtype="int64", name="foo")
+    tm.assert_index_equal(result, expected)
