@@ -360,7 +360,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 - Fixed bug in :meth:`api.types.is_datetime64_any_dtype` where a custom :class:`ExtensionDtype` would return ``False`` for array-likes (:issue:`57055`)
--
+- A default, unoptimised :meth:`ExtensionArray.round` method is now provided for numeric ExtensionArrays (:issue:`49387`)
 
 Styler
 ^^^^^^
