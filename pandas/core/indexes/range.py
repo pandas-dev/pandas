@@ -482,7 +482,7 @@ class RangeIndex(Index):
                 new_range = range(start, start + self.step, self.step)
                 return type(self)._simple_new(new_range, name=name)
             diff = values[1] - values[0]
-            if not missing.isna(diff) and lib.is_range(values, diff):
+            if not missing.isna(diff) and lib.is_sequence_range(values, diff):
                 new_range = range(values[0], values[-1] + diff, diff)
                 return type(self)._simple_new(new_range, name=name)
         return self._constructor._simple_new(values, name=name)
