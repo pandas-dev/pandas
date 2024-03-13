@@ -720,9 +720,13 @@ class BaseMethodsTests:
         assert pd.Series(data).equals(pd.Series(data))
 
     def test_round(self, data):
-        if not data.dtype._is_numeric or data.dtype._is_boolean:
+        if not data.dtype._is_numeric:
             with pytest.raises(TypeError):
-                pd.Series(data).round()
+                data.round()
+        elif data.dtype._is_boolean:
+            result = pd.Series(data).round()
+            expected = pd.Series(data)
+            tm.assert_series_equal(result, expected)
         else:
             result = pd.Series(data).round()
             expected = pd.Series(

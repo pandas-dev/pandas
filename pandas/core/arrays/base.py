@@ -2282,10 +2282,10 @@ class ExtensionArray:
         # Implementer note: This is a non-optimized default implementation.
         # Implementers are encouraged to override this method to avoid
         # elementwise rounding.
-        if not self.dtype._is_numeric or self.dtype._is_boolean:
-            raise TypeError(
-                f"Cannot round {type(self)} dtype as it is non-numeric or boolean"
-            )
+        if self.dtype._is_boolean:
+            return self
+        if not self.dtype._is_numeric:
+            raise TypeError(f"Cannot round {type(self)} dtype as it is non-numeric")
         return self._from_sequence(
             [
                 round(element) if not element_isna else element
