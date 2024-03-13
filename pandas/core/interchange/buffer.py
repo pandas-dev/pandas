@@ -128,11 +128,11 @@ class PandasBufferPyarrow(Buffer):
         """
         Represent this structure as DLPack interface.
         """
-        if self._dlpack is not None:
-            return self._dlpack()
-        raise NotImplementedError(
-            "pyarrow>=15.0.0 is required for DLPack support for pyarrow-backed buffers"
-        )
+        if self._dlpack is None:
+            raise NotImplementedError(
+                "pyarrow>=15.0.0 required for DLPack support for pyarrow-backed buffers"
+            )
+        return self._dlpack()
 
     def __dlpack_device__(self) -> tuple[DlpackDeviceType, int | None]:
         """
