@@ -7174,7 +7174,11 @@ def maybe_sequence_to_range(sequence) -> Any | range:
     if not (dtype is None or isinstance(dtype, np.dtype)):
         return sequence
     np_sequence = np.asarray(sequence)
-    if np_sequence.dtype.kind != "i" or len(sequence) == 1:
+    if (
+        not (np_sequence.dtype.kind == "i" and np_sequence.dtype.alignment == 8)
+        or len(sequence) == 1
+    ):
+        # TODO: Coerce non int64 to ranges?
         return sequence
     elif len(sequence) == 0:
         return range(0)
@@ -7188,7 +7192,7 @@ def maybe_sequence_to_range(sequence) -> Any | range:
         lib.is_range_indexer(maybe_range_indexer, len(maybe_range_indexer))
         and not remainder.any()
     ):
-        return range(sequence[0], sequence[-1] + diff, diff)
+        return range(sequence[0], sequence[len(sequence) - 1] + diff, diff)
     else:
         return sequence
 
