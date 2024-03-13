@@ -502,7 +502,6 @@ def validate_all_arg_groups(arg_groups):
             args.ignore_deprecated,
             args.ignore_functions,
         )
-        sys.stdout.write(f"({error_str}) DONE")
         sys.stdout.write(f"({error_str}) DONE\n")
     return exit_status
 
