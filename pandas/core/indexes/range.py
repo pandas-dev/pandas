@@ -541,14 +541,12 @@ class RangeIndex(Index):
         meth: Literal["min", "max"],
         axis=None,
         skipna: bool = True,
-        *args,
-        **kwargs,
     ) -> int:
-        getattr(nv, f"validate_arg{meth}")(args, kwargs)
         nv.validate_minmax_axis(axis)
         if len(self) == 0:
             return getattr(super(), f"arg{meth}")(
-                *args, axis=axis, skipna=skipna, **kwargs
+                axis=axis,
+                skipna=skipna,
             )
         elif meth == "min":
             if self.step > 0:
@@ -564,9 +562,11 @@ class RangeIndex(Index):
             raise ValueError(f"{meth=} must be max or min")
 
     def argmin(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
+        nv.validate_argmin(args, kwargs)
         return self._argminmax("min", *args, axis=axis, skipna=skipna, **kwargs)
 
     def argmax(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
+        nv.validate_argmax(args, kwargs)
         return self._argminmax("max", *args, axis=axis, skipna=skipna, **kwargs)
 
     def argsort(self, *args, **kwargs) -> npt.NDArray[np.intp]:
