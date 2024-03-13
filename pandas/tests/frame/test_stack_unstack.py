@@ -1418,7 +1418,7 @@ def test_stack_timezone_aware_values(future_stack):
 @pytest.mark.parametrize("dropna", [True, False, lib.no_default])
 def test_stack_empty_frame(dropna, future_stack):
     # GH 36113
-    levels = [np.array([], dtype=np.int64), np.array([], dtype=np.int64)]
+    levels = [pd.RangeIndex(0), pd.RangeIndex(0)]
     expected = Series(dtype=np.float64, index=MultiIndex(levels=levels, codes=[[], []]))
     if future_stack and dropna is not lib.no_default:
         with pytest.raises(ValueError, match="dropna must be unspecified"):
