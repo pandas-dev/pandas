@@ -111,7 +111,6 @@ def missing_metadata():
             "addresses": [
                 {
                     "number": 8449,
-                    "zip": [],
                 }
             ],
             "previous_residences": [],
