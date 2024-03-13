@@ -272,11 +272,11 @@ Performance improvements
 - Performance improvement in :meth:`Index.join` by propagating cached attributes in cases where the result matches one of the inputs (:issue:`57023`)
 - Performance improvement in :meth:`Index.take` when ``indices`` is a full range indexer from zero to length of index (:issue:`56806`)
 - Performance improvement in :meth:`MultiIndex.equals` for equal length indexes (:issue:`56990`)
-- Performance improvement in :meth:`RangeIndex.__getitem__` with a boolean mask returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57588`)
+- Performance improvement in :meth:`RangeIndex.__getitem__` with a boolean mask or integers returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57588`)
 - Performance improvement in :meth:`RangeIndex.append` when appending the same index (:issue:`57252`)
-- Performance improvement in :meth:`RangeIndex.join` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57651`)
-- Performance improvement in :meth:`RangeIndex.reindex` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57647`)
-- Performance improvement in :meth:`RangeIndex.take` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57445`)
+- Performance improvement in :meth:`RangeIndex.join` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57651`, :issue:`57752`)
+- Performance improvement in :meth:`RangeIndex.reindex` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57647`, :issue:`57752`)
+- Performance improvement in :meth:`RangeIndex.take` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57445`, :issue:`57752`)
 - Performance improvement in ``DataFrameGroupBy.__len__`` and ``SeriesGroupBy.__len__`` (:issue:`57595`)
 - Performance improvement in indexing operations for string dtypes (:issue:`56997`)
 
@@ -289,6 +289,7 @@ Bug fixes
 - Fixed bug in :meth:`DataFrame.join` inconsistently setting result index name (:issue:`55815`)
 - Fixed bug in :meth:`DataFrame.to_string` that raised ``StopIteration`` with nested DataFrames. (:issue:`16098`)
 - Fixed bug in :meth:`DataFrame.update` bool dtype being converted to object (:issue:`55509`)
+- Fixed bug in :meth:`DataFrameGroupBy.apply` that was returning a completely empty DataFrame when all return values of ``func`` were ``None`` instead of returning an empty DataFrame with the original columns and dtypes. (:issue:`57775`)
 - Fixed bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
 - Fixed bug in :meth:`Series.rank` that doesn't preserve missing values for nullable integers when ``na_option='keep'``. (:issue:`56976`)
 
@@ -393,6 +394,7 @@ Other
 ^^^^^
 - Bug in :class:`DataFrame` when passing a ``dict`` with a NA scalar and ``columns`` that would always return ``np.nan`` (:issue:`57205`)
 - Bug in :func:`tseries.api.guess_datetime_format` would fail to infer time format when "%Y" == "%H%M" (:issue:`57452`)
+- Bug in :func:`unique` on :class:`Index` not always returning :class:`Index` (:issue:`57043`)
 - Bug in :meth:`DataFrame.sort_index` when passing ``axis="columns"`` and ``ignore_index=True`` and ``ascending=False`` not returning a :class:`RangeIndex` columns (:issue:`57293`)
 - Bug in :meth:`DataFrame.where` where using a non-bool type array in the function would return a ``ValueError`` instead of a ``TypeError`` (:issue:`56330`)
 - Bug in Dataframe Interchange Protocol implementation was returning incorrect results for data buffers' associated dtype, for string and datetime columns (:issue:`54781`)
