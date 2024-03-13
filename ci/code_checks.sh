@@ -147,7 +147,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     # end of PR02 group
     #####
     PARAMETERS+=(-- --format=actions --errors=GL08 --ignore_functions \
-        pandas.ExcelFile.book\
         pandas.Index.empty\
         pandas.Index.names\
         pandas.Index.view\
@@ -602,7 +601,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.testing.assert_series_equal\
         pandas.unique\
         pandas.util.hash_array\
-        pandas.util.hash_pandas_object
+        pandas.util.hash_pandas_object # There should be no backslash in the final line, please keep this comment in the last ignored function
     )
     #####
     # end of PR07 group
@@ -1607,7 +1606,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.tseries.offsets.YearEnd.name\
         pandas.util.hash_array\
         pandas.util.hash_pandas_object # There should be no backslash in the final line, please keep this comment in the last ignored function
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
+    )
+    #####
+    # end of SA01 group
+    #####
+    $BASE_DIR/scripts/validate_docstrings.py ${PARAMETERS[@]}
+    RET=$(($RET + $?)) ;
 
 fi
 
