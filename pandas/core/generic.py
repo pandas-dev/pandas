@@ -7845,12 +7845,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             obj, should_transpose = self, False
         else:
             obj, should_transpose = (self.T, True) if axis == 1 else (self, False)
-            if np.any(obj.dtypes == object):
-                # GH#53631
-                if not (obj.ndim == 2 and np.all(obj.dtypes == object)):
-                    raise TypeError(
-                        f"{type(self).__name__} cannot interpolate with object dtype."
-                    )
+            # GH#53631
+            if np.any(obj.dtypes == object) and (
+                obj.ndim == 1 or not np.all(obj.dtypes == object)
+            ):
+                raise TypeError(
+                    f"{type(self).__name__} cannot interpolate with object dtype."
+                )
 
         if method in fillna_methods and "fill_value" in kwargs:
             raise ValueError(
