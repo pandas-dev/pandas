@@ -454,8 +454,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if data is None:
                 index = default_index(0)
                 data = na_value if dtype is not None else []
-            else:
-                pass
         else:
             index = ensure_index(index)
             if data is None:
@@ -463,15 +461,21 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # Preparing the SingleBlockManager
         if isinstance(data, (Series, SingleBlockManager)):  # has the manager.
+            # deep = True #  <------ Next step, include this
             if isinstance(data, Series):
+                deep = True  # <----  and remove this
                 if index is None:
                     index = data.index
-                    data = data._mgr.copy(deep=False)
+                    deep = False
+                    data = data._mgr.copy(deep=deep)
+
                 else:
-                    data = data.reindex(index)  # Copy the manager
-                    copy = False
+                    key = index
+                    data = data.reindex(index=key)  # Copy the manager
                     index = data.index
                     data = data._mgr
+
+                copy = False
 
             elif isinstance(data, SingleBlockManager):
                 if index is None:
@@ -500,7 +504,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 copy = False
 
             if copy:
-                data = data.copy()
+                # data = data.copy(deep)    <------ Next step, include this
+                data = data.copy()  # <----  and remove this
 
         else:
             if isinstance(data, Index):
