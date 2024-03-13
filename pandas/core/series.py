@@ -459,9 +459,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if data is None:
                 data = na_value if len(index) or dtype is not None else []
 
-        # Preparing the SingleBlockManager
-        if isinstance(data, (Series, SingleBlockManager)):  # has the manager.
-            deep = True  #
+        if isinstance(
+            data, (Series, SingleBlockManager)
+        ):  # Preparing the SingleBlockManager
+            deep = True
+
             if isinstance(data, Series):
                 if index is None:
                     index = data.index
