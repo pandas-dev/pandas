@@ -384,20 +384,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self.name = name
             return
 
-        # Series TASK 1: Capturing relevant data for latter access
+        # Series TASK 0: RAISE ERRORS ON KNOWN UNACEPPTED CASES, ETC.
+
+        # Series TASK 1: CAPTURE DATA NECESSARY FOR WARNINGS AND CLOSING
         is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
         data_dtype = getattr(data, "dtype", None)
         original_dtype = dtype
         refs = None
         name = ibase.maybe_extract_name(name, data, type(self))
 
-        # Series TASK 1: Validating dtype
+        # Series TASK 2: VALIDATE BASIC TYPES (meanwhile, dtype only).
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
-        # Series TASK 2: Data Preparation
-
-        # TODO: Investigate. But below the logic changes!
+        # TODO 10.1: Codes to move to Series TASK copy below. CODE1, CODE 2
+        #
+        # CODE 2.0, TRY TO move below, to copy.
+        # Note that the logic changes!
         # Is it so? ExtensionArray copies with None and True
         # And BlockManagers copies only with True
         # Since copy maybe None, if copy is None it will enter this
@@ -406,18 +409,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
                     data = data.copy()
 
+        # TODO 1: Move above, to TASK 0.
         if isinstance(data, MultiIndex):
             raise NotImplementedError(
                 "initializing a Series from a MultiIndex is not supported"
             )
 
-        # It Fails if go to Task 1
+        # TODO 10.0: TRY TO UNIFY WITH CODE 2
+        # CODE 2.1
         if copy is None:
             copy = False
 
+        # TODO 9:
+        # CODE 1. Move to Series TASK 5.A
         if isinstance(data, SingleBlockManager) and not copy:
             data = data.copy(deep=False)
 
+            # TODO 8N-2: Try to move to  Series TASK 7- WARNINGS
             if not allow_mgr:
                 warnings.warn(
                     f"Passing a {type(data).__name__} to {type(self).__name__} "
@@ -426,6 +434,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     DeprecationWarning,
                     stacklevel=2,
                 )
+
+        # Series TASK 3: DATA TRANSFORMATION.
 
         # COMMENT: Dict is a just a special case of data preparation.
         # Here it is being sent to Series, but it could different, for simplicity.
@@ -444,10 +454,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 else None
             )
 
-        # TODO: Investigate. This is an unknown type that must be converted to list.
+        # TODO 11: Investigate. This is an unknown type that must be converted to list.
         if is_list_like(data) and not isinstance(data, Sized):
             data = list(data)
 
+        # Series TASK 4: COMMON INDEX MANIPULATION
         # Common operations on index
         na_value = na_value_for_dtype(pandas_dtype(dtype), compat=False)
         if index is None:
@@ -459,9 +470,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if data is None:
                 data = na_value if len(index) or dtype is not None else []
 
-        if isinstance(
-            data, (Series, SingleBlockManager)
-        ):  # Preparing the SingleBlockManager
+        # Series TASK 5: CREATING OR COPYING THE MANAGER.
+        # TODO 6: DECOUPLE MANAGER PREPARATION FROM COPYING
+        if isinstance(data, (Series, SingleBlockManager)):
             deep = True
 
             if isinstance(data, Series):
@@ -481,7 +492,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             elif isinstance(data, SingleBlockManager):
                 if index is None:
                     index = data.index
-                elif not data.index.equals(index) or copy:  # TODO: FAIL FAST!
+
+                # TODO 3.0: Check if is possible to move to Series TASK-0. Above
+                # TODO 3.1: Move to Series Task 0
+                # TODO 3.2: Unify if-else structure
+                if (
+                    isinstance(data, SingleBlockManager)
+                    and index is not None
+                    and not data.index.equals(index)
+                    or copy
+                ):
                     # GH#19275 SingleBlockManager input should only be called
                     # internally
                     raise AssertionError(
@@ -490,6 +510,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                         "`index` argument. `copy` must be False."
                     )
 
+                # TODO 4.0: Check if it is possible to move below to Series TASK 7.
+                # TODO 4.1: Recreate if
+                # TODO 4.2: and move.
+                # TODO 4.3: Unify if-else structure.
                 if not allow_mgr:
                     warnings.warn(
                         f"Passing a {type(data).__name__} to {type(self).__name__} "
@@ -500,6 +524,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     )
                     allow_mgr = True
 
+            # Series TASK 5.A: COPYING THE MANAGER.
             if dtype is not None:
                 data = data.astype(dtype=dtype, errors="ignore")
                 copy = False
@@ -508,6 +533,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 data = data.copy(deep)
 
         else:  # Creating the SingleBlockManager
+            # TODO Decouple single element from the other data.
+            # Use 'single_element' signature.
+            # TODO 8.0. Separate if-else single element;
+            # TODO 8.1. Group common 'index' definitions on 'not single_element' cases.
             if isinstance(data, Index):
                 if index is None:
                     index = default_index(len(data))
@@ -523,6 +552,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 if index is None:
                     index = default_index(len(data))
 
+                # TODO 6.0: Prepare if-signature to move to Series TASK-0
+                # TODO 6.1: Try to move
+                # TODO 6.2: Move
+                # TODO 6.3: Unify if-else signature.
                 if len(data.dtype):
                     # GH#13296 we are dealing with a compound dtype, which
                     #  should be treated as 2D
@@ -539,29 +572,36 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 if index is None:
                     index = default_index(len(data))
 
+                # TODO 7: Try to Move above, on data preparation.
+                # TODO 7.0: Prepare if-signature to move to Series TASK-
+                # TODO 7.1: Try to move
+                # TODO 7.2: Move
+                # TODO 7.3: Unify if-else signature.
                 if not len(data) and dtype is None:
                     # GH 29405: Pre-2.0, this defaulted to float.
                     dtype = np.dtype(object)
 
-            else:  # data is not None:
+            else:  # data is not None: # TODO 12: FIND HOW TO CAPTURE THIS DATA TYPE.
                 # is_scalar(data) fails: #data is not None: OK
                 # seems scalar, directly from input only.
                 if index is None:
                     index = default_index(1)
                     data = [data]
 
-            # Final requirement
+            # Series TASK 5.B: CREATING THE MANAGER.
+            # Final requirements
             if is_list_like(data):
                 com.require_length_match(data, index)
 
-            # create the manager
             data = sanitize_array(data, index, dtype, copy)
             data = SingleBlockManager.from_array(data, index, refs=refs)
 
+        # Series TASK 6: CREATE THE MANAGER
         NDFrame.__init__(self, data)
         self.name = name
         self._set_axis(0, index)
 
+        # Series TASK 7: RAISE WARNINGS
         if original_dtype is None and is_pandas_object and data_dtype == np.object_:
             if self.dtype != data_dtype:
                 warnings.warn(
