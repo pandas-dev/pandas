@@ -393,7 +393,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
                     data = data.copy()
 
-        if copy is None:
+        if copy is None:  # Check if can go up or down. After pushing to pandas-dev
             copy = False
 
         if isinstance(data, SingleBlockManager) and not copy:
@@ -431,22 +431,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 "initializing a Series from a MultiIndex is not supported"
             )
 
-        if index is not None:
+        na_value = na_value_for_dtype(pandas_dtype(dtype), compat=False)
+
+        if index is None:
+            # Next, decouple simple basic index operations
+            # from bulk data in operations.
+            pass
+        else:
             index = ensure_index(index)
 
         if data is None:
-            na_value = na_value_for_dtype(pandas_dtype(dtype), compat=False)
             if index is None:
                 index = default_index(0)
                 data = na_value if dtype is not None else []
             else:
                 data = na_value if len(index) or dtype is not None else []
 
-            if isinstance(data, list) and dtype is None:
-                # GH 29405: Pre-2.0, this defaulted to float.
-                dtype = np.dtype(object)
-
-        elif isinstance(data, Index):
+        if isinstance(data, Index):
             if dtype is not None:
                 data = data.astype(dtype)
             if index is None:
@@ -510,11 +511,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if not len(data) and dtype is None:
                 # GH 29405: Pre-2.0, this defaulted to float.
                 dtype = np.dtype(object)
-
-        else:  # scalar directly from input only. Could be #elif data is not None:
+        else:  # if data is not None:
+            # scalar, directly from input only.
             if index is None:
-                data = [data]
                 index = default_index(1)
+                data = [data]
 
         # Final requirement
         if is_list_like(data):
