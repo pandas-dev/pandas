@@ -385,6 +385,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return
 
         # Series TASK 0: RAISE ERRORS ON KNOWN UNACEPPTED CASES, ETC.
+        if isinstance(data, MultiIndex):
+            raise NotImplementedError(
+                "initializing a Series from a MultiIndex is not supported"
+            )
 
         # Series TASK 1: CAPTURE DATA NECESSARY FOR WARNINGS AND CLOSING
         is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
@@ -408,12 +412,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if copy is not False:
                 if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
                     data = data.copy()
-
-        # TODO 1: Move above, to TASK 0.
-        if isinstance(data, MultiIndex):
-            raise NotImplementedError(
-                "initializing a Series from a MultiIndex is not supported"
-            )
 
         # TODO 10.0: TRY TO UNIFY WITH CODE 2
         # CODE 2.1
@@ -492,7 +490,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             elif isinstance(data, SingleBlockManager):
                 if index is None:
                     index = data.index
-
+                # TODO 1: DONE
+                # TODO 2: (I possibly just skipped the number)
                 # TODO 3.0: Check if is possible to move to Series TASK-0. Above
                 # TODO 3.1: Move to Series Task 0
                 # TODO 3.2: Unify if-else structure
