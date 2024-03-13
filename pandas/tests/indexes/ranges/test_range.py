@@ -608,6 +608,26 @@ class TestRangeIndex:
         tm.assert_index_equal(result, expected)
 
 
+def test_reindex_1_value_returns_rangeindex():
+    ri = RangeIndex(0, 10, 2, name="foo")
+    result, result_indexer = ri.reindex([2])
+    expected = RangeIndex(2, 4, 2, name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+    expected_indexer = np.array([1], dtype=np.intp)
+    tm.assert_numpy_array_equal(result_indexer, expected_indexer)
+
+
+def test_reindex_empty_returns_rangeindex():
+    ri = RangeIndex(0, 10, 2, name="foo")
+    result, result_indexer = ri.reindex([])
+    expected = RangeIndex(0, 0, 2, name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+    expected_indexer = np.array([], dtype=np.intp)
+    tm.assert_numpy_array_equal(result_indexer, expected_indexer)
+
+
 def test_append_non_rangeindex_return_rangeindex():
     ri = RangeIndex(1)
     result = ri.append(Index([1]))
@@ -650,6 +670,21 @@ def test_take_return_rangeindex():
 
     result = ri.take([3, 4])
     expected = RangeIndex(3, 5, name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+
+@pytest.mark.parametrize(
+    "rng, exp_rng",
+    [
+        [range(5), range(3, 4)],
+        [range(0, -10, -2), range(-6, -8, -2)],
+        [range(0, 10, 2), range(6, 8, 2)],
+    ],
+)
+def test_take_1_value_returns_rangeindex(rng, exp_rng):
+    ri = RangeIndex(rng, name="foo")
+    result = ri.take([3])
+    expected = RangeIndex(exp_rng, name="foo")
     tm.assert_index_equal(result, expected, exact=True)
 
 
@@ -719,3 +754,25 @@ def test_arg_min_max(rng, meth):
 def test_empty_argmin_argmax_raises(meth):
     with pytest.raises(ValueError, match=f"attempt to get {meth} of an empty sequence"):
         assert getattr(RangeIndex(0), meth)()
+
+
+def test_getitem_integers_return_rangeindex():
+    result = RangeIndex(0, 10, 2, name="foo")[[0, -1]]
+    expected = RangeIndex(start=0, stop=16, step=8, name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+    result = RangeIndex(0, 10, 2, name="foo")[[3]]
+    expected = RangeIndex(start=6, stop=8, step=2, name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+
+def test_getitem_empty_return_rangeindex():
+    result = RangeIndex(0, 10, 2, name="foo")[[]]
+    expected = RangeIndex(start=0, stop=0, step=1, name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+
+def test_getitem_integers_return_index():
+    result = RangeIndex(0, 10, 2, name="foo")[[0, 1, -1]]
+    expected = Index([0, 2, 8], dtype="int64", name="foo")
+    tm.assert_index_equal(result, expected)
