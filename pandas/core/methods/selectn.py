@@ -213,7 +213,7 @@ class SelectNFrame(SelectN[DataFrame]):
                     f"cannot use method {method!r} with this dtype"
                 )
 
-        def get_indexer(current_indexer, other_indexer):
+        def get_indexer(current_indexer: Index, other_indexer: Index) -> Index:
             """
             Helper function to concat `current_indexer` and `other_indexer`
             depending on `method`
