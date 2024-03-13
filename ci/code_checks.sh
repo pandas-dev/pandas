@@ -1606,13 +1606,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.tseries.offsets.YearEnd.kwds\
         pandas.tseries.offsets.YearEnd.name\
         pandas.util.hash_array\
-        pandas.util.hash_pandas_object  # There should be no backslash in the final line, please keep this comment in the last ignored function
-    )
-    #####
-    # end of SA01 group
-    #####
-    $BASE_DIR/scripts/validate_docstrings.py ${PARAMETERS[@]}
-    RET=$(($RET + $?)) ;
+        pandas.util.hash_pandas_object # There should be no backslash in the final line, please keep this comment in the last ignored function
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
 
