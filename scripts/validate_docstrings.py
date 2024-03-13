@@ -489,10 +489,10 @@ def validate_all_arg_groups(arg_groups):
     for args in arg_groups:
         error_str = args.errors.replace(",", ", ") if args.errors else ""
         if args.ignore_functions:
-            msg = f"Partially validate docstrings ({error_str})\n"
+            msg = f"Partially validate docstrings ({error_str})"
         else:
-            msg = f"Validate docstrings ({error_str})\n"
-        sys.stdout.write(msg)
+            msg = f"Validate docstrings ({error_str})"
+        sys.stdout.write(msg + os.linesep)
 
         exit_status += main(
             args.function,
@@ -502,7 +502,7 @@ def validate_all_arg_groups(arg_groups):
             args.ignore_deprecated,
             args.ignore_functions,
         )
-        sys.stdout.write(f"({error_str}) DONE\n")
+        sys.stdout.write(msg + " DONE" + os.linesep)
     return exit_status
 
 
