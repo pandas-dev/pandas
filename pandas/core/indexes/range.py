@@ -563,11 +563,11 @@ class RangeIndex(Index):
 
     def argmin(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
         nv.validate_argmin(args, kwargs)
-        return self._argminmax("min", *args, axis=axis, skipna=skipna, **kwargs)
+        return self._argminmax("min", axis=axis, skipna=skipna)
 
     def argmax(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
         nv.validate_argmax(args, kwargs)
-        return self._argminmax("max", *args, axis=axis, skipna=skipna, **kwargs)
+        return self._argminmax("max", axis=axis, skipna=skipna)
 
     def argsort(self, *args, **kwargs) -> npt.NDArray[np.intp]:
         """
