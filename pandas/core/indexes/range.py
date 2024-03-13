@@ -396,7 +396,7 @@ class RangeIndex(Index):
         hash(key)
         try:
             key = ensure_python_int(key)
-        except TypeError:
+        except (TypeError, OverflowError):
             return False
         return key in self._range
 
