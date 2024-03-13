@@ -384,11 +384,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self.name = name
             return
 
+        # TASK: Capturing relevant data for latter access
         is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
         data_dtype = getattr(data, "dtype", None)
         original_dtype = dtype
         refs = None
 
+        # TASK: Validating dtype
+        if dtype is not None:
+            dtype = self._validate_dtype(dtype)
+
+        # TASK: Especial Data Manipulation
         if isinstance(data, (ExtensionArray, np.ndarray)):
             if copy is not False:
                 if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
@@ -411,8 +417,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         name = ibase.maybe_extract_name(name, data, type(self))
 
-        if dtype is not None:
-            dtype = self._validate_dtype(dtype)
+        # ESPECIAL DATA MANIPULATIONS
 
         # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
         # raises KeyError). Send it to Series for "standard" construction:
@@ -426,6 +431,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 if data
                 else None
             )
+
+        # Which type is this data?
+        if is_list_like(data) and not isinstance(data, Sized):
+            data = list(data)
 
         if isinstance(data, MultiIndex):
             raise NotImplementedError(
@@ -446,6 +455,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if data is None:
                 data = na_value if len(index) or dtype is not None else []
 
+        # Final data preparation manipulation
         if isinstance(data, Index):
             if index is None:
                 index = default_index(len(data))
@@ -509,8 +519,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # but somehow is_list_like()
             # Does it have something to do with DateTime?
             # data = com.maybe_iterable_to_list(data)
-            if not isinstance(data, Sized):
-                data = list(data)
 
             if index is None:
                 index = default_index(len(data))
@@ -519,8 +527,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 # GH 29405: Pre-2.0, this defaulted to float.
                 dtype = np.dtype(object)
 
-        else:  # is_scalar(data) fails: #data is not None: OK
-            # scalar, directly from input only.
+        else:  # data is not None and not is_iterator(data):
+            # is_scalar(data) fails: #data is not None: OK
+            # seems scalar, directly from input only.
+
             if index is None:
                 index = default_index(1)
                 data = [data]
