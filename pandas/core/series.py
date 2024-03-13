@@ -431,20 +431,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 "initializing a Series from a MultiIndex is not supported"
             )
 
+        # Common operations on index
         na_value = na_value_for_dtype(pandas_dtype(dtype), compat=False)
-
         if index is None:
-            # Next, decouple simple basic index operations
-            # from bulk data in operations.
-            pass
-        else:
-            index = ensure_index(index)
-
-        if data is None:
-            if index is None:
+            if data is None:
                 index = default_index(0)
                 data = na_value if dtype is not None else []
-            else:
+        else:
+            index = ensure_index(index)
+            if data is None:
                 data = na_value if len(index) or dtype is not None else []
 
         if isinstance(data, Index):
