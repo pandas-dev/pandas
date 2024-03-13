@@ -7170,7 +7170,8 @@ def maybe_sequence_to_range(sequence) -> Any | range:
     -------
     Any : input or range
     """
-    if hasattr(sequence, "dtype") and not isinstance(sequence, np.ndarray):
+    dtype = getattr(sequence, "dtype", None)
+    if not (dtype is None or isinstance(dtype, np.dtype)):
         return sequence
     np_sequence = np.asarray(sequence)
     if np_sequence.dtype.kind != "i" or len(sequence) == 1:
