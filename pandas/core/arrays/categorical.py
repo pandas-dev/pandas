@@ -431,6 +431,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if isinstance(vdtype, CategoricalDtype):
             if dtype.categories is None:
                 dtype = CategoricalDtype(values.categories, dtype.ordered)
+        elif isinstance(values, range):
+            from pandas.core.indexes.range import RangeIndex
+
+            values = RangeIndex(values)
         elif not isinstance(values, (ABCIndex, ABCSeries, ExtensionArray)):
             values = com.convert_to_list_like(values)
             if isinstance(values, list) and len(values) == 0:
@@ -554,16 +558,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return res
 
     @overload
-    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
-        ...
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray: ...
 
     @overload
-    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
-        ...
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray: ...
 
     @overload
-    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
-        ...
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike: ...
 
     def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         """
@@ -991,6 +992,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         Categorical
             Ordered Categorical.
 
+        See Also
+        --------
+        as_unordered : Set the Categorical to be unordered.
+
         Examples
         --------
         For :class:`pandas.Series`:
@@ -1021,6 +1026,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         Categorical
             Unordered Categorical.
+
+        See Also
+        --------
+        as_ordered : Set the Categorical to be ordered.
 
         Examples
         --------
@@ -1975,14 +1984,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         inplace: Literal[False] = ...,
         ascending: bool = ...,
         na_position: str = ...,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     @overload
     def sort_values(
         self, *, inplace: Literal[True], ascending: bool = ..., na_position: str = ...
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def sort_values(
         self,
@@ -2667,12 +2674,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return algorithms.isin(self.codes, code_values)
 
     @overload
-    def _replace(self, *, to_replace, value, inplace: Literal[False] = ...) -> Self:
-        ...
+    def _replace(self, *, to_replace, value, inplace: Literal[False] = ...) -> Self: ...
 
     @overload
-    def _replace(self, *, to_replace, value, inplace: Literal[True]) -> None:
-        ...
+    def _replace(self, *, to_replace, value, inplace: Literal[True]) -> None: ...
 
     def _replace(self, *, to_replace, value, inplace: bool = False) -> Self | None:
         from pandas import Index

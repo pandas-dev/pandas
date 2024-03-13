@@ -1,4 +1,5 @@
-""" orc compat """
+"""orc compat"""
+
 from __future__ import annotations
 
 import io
@@ -82,6 +83,7 @@ def read_orc(
     Returns
     -------
     DataFrame
+        DataFrame based on the ORC file.
 
     Notes
     -----

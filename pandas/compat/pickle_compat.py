@@ -1,6 +1,7 @@
 """
 Pickle compatibility to pandas version 1.0
 """
+
 from __future__ import annotations
 
 import contextlib
@@ -63,7 +64,7 @@ _class_locations_map = {
 # our Unpickler sub-class to override methods and some dispatcher
 # functions for compat and uses a non-public class of the pickle module.
 class Unpickler(pickle._Unpickler):
-    def find_class(self, module, name):
+    def find_class(self, module: str, name: str) -> Any:
         key = (module, name)
         module, name = _class_locations_map.get(key, key)
         return super().find_class(module, name)

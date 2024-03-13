@@ -472,18 +472,31 @@ class RangeIndex(Index):
 
         if values.dtype.kind == "f":
             return Index(values, name=name, dtype=np.float64)
-        if values.dtype.kind == "i" and values.ndim == 1 and len(values) > 1:
+        if values.dtype.kind == "i" and values.ndim == 1:
             # GH 46675 & 43885: If values is equally spaced, return a
             # more memory-compact RangeIndex instead of Index with 64-bit dtype
+            if len(values) == 0:
+                return type(self)._simple_new(_empty_range, name=name)
+            elif len(values) == 1:
+                start = values[0]
+                new_range = range(start, start + self.step, self.step)
+                return type(self)._simple_new(new_range, name=name)
             diff = values[1] - values[0]
             if not missing.isna(diff) and diff != 0:
-                maybe_range_indexer, remainder = np.divmod(values - values[0], diff)
-                if (
-                    lib.is_range_indexer(maybe_range_indexer, len(maybe_range_indexer))
-                    and not remainder.any()
-                ):
+                if len(values) == 2:
+                    # Can skip is_range_indexer check
                     new_range = range(values[0], values[-1] + diff, diff)
                     return type(self)._simple_new(new_range, name=name)
+                else:
+                    maybe_range_indexer, remainder = np.divmod(values - values[0], diff)
+                    if (
+                        lib.is_range_indexer(
+                            maybe_range_indexer, len(maybe_range_indexer)
+                        )
+                        and not remainder.any()
+                    ):
+                        new_range = range(values[0], values[-1] + diff, diff)
+                        return type(self)._simple_new(new_range, name=name)
         return self._constructor._simple_new(values, name=name)
 
     def _view(self) -> Self:
@@ -578,8 +591,7 @@ class RangeIndex(Index):
         ascending: bool = ...,
         na_position: NaPosition = ...,
         key: Callable | None = ...,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     @overload
     def sort_values(
@@ -589,8 +601,7 @@ class RangeIndex(Index):
         ascending: bool = ...,
         na_position: NaPosition = ...,
         key: Callable | None = ...,
-    ) -> tuple[Self, np.ndarray | RangeIndex]:
-        ...
+    ) -> tuple[Self, np.ndarray | RangeIndex]: ...
 
     @overload
     def sort_values(
@@ -600,8 +611,7 @@ class RangeIndex(Index):
         ascending: bool = ...,
         na_position: NaPosition = ...,
         key: Callable | None = ...,
-    ) -> Self | tuple[Self, np.ndarray | RangeIndex]:
-        ...
+    ) -> Self | tuple[Self, np.ndarray | RangeIndex]: ...
 
     def sort_values(
         self,
@@ -897,12 +907,19 @@ class RangeIndex(Index):
             result = result.rename(result_name)
         return result
 
+    def _join_empty(
+        self, other: Index, how: JoinHow, sort: bool
+    ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
+        if other.dtype.kind == "i":
+            other = self._shallow_copy(other._values, name=other.name)
+        return super()._join_empty(other, how=how, sort=sort)
+
     def _join_monotonic(
         self, other: Index, how: JoinHow = "left"
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         # This currently only gets called for the monotonic increasing case
         if not isinstance(other, type(self)):
-            maybe_ri = self._shallow_copy(other._values)
+            maybe_ri = self._shallow_copy(other._values, name=other.name)
             if not isinstance(maybe_ri, type(self)):
                 return super()._join_monotonic(other, how=how)
             other = maybe_ri
@@ -989,7 +1006,10 @@ class RangeIndex(Index):
         indexes = [RangeIndex(3), RangeIndex(4, 6)] -> Index([0,1,2,4,5], dtype='int64')
         """
         if not all(isinstance(x, RangeIndex) for x in indexes):
-            return super()._concat(indexes, name)
+            result = super()._concat(indexes, name)
+            if result.dtype.kind == "i":
+                return self._shallow_copy(result._values)
+            return result
 
         elif len(indexes) == 1:
             return indexes[0]
@@ -1075,6 +1095,8 @@ class RangeIndex(Index):
         """
         Conserve RangeIndex type for scalar and slice keys.
         """
+        if key is Ellipsis:
+            key = slice(None)
         if isinstance(key, slice):
             return self._getitem_slice(key)
         elif is_integer(key):
@@ -1094,17 +1116,20 @@ class RangeIndex(Index):
             )
         elif com.is_bool_indexer(key):
             if isinstance(getattr(key, "dtype", None), ExtensionDtype):
-                np_key = key.to_numpy(dtype=bool, na_value=False)
+                key = key.to_numpy(dtype=bool, na_value=False)
             else:
-                np_key = np.asarray(key, dtype=bool)
-            check_array_indexer(self._range, np_key)  # type: ignore[arg-type]
+                key = np.asarray(key, dtype=bool)
+            check_array_indexer(self._range, key)  # type: ignore[arg-type]
             # Short circuit potential _shallow_copy check
-            if np_key.all():
+            if key.all():
                 return self._simple_new(self._range, name=self.name)
-            elif not np_key.any():
+            elif not key.any():
                 return self._simple_new(_empty_range, name=self.name)
-            return self.take(np.flatnonzero(np_key))
-        return super().__getitem__(key)
+            key = np.flatnonzero(key)
+        try:
+            return self.take(key)
+        except (TypeError, ValueError):
+            return super().__getitem__(key)
 
     def _getitem_slice(self, slobj: slice) -> Self:
         """
