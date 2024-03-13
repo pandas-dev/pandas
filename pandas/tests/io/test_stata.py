@@ -2049,6 +2049,7 @@ def test_compression(compression, version, use_dict, infer, compression_to_exten
         reread = read_stata(fp, index_col="index")
 
     expected = df
+    expected.index = expected.index.astype(np.int32)
     tm.assert_frame_equal(reread, expected)
 
 
