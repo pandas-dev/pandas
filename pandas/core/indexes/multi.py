@@ -2063,7 +2063,7 @@ class MultiIndex(Index):
 
         >>> mi2 = mi[2:].remove_unused_levels()
         >>> mi2.levels
-        (Index([1], dtype='int64'), Index(['a', 'b'], dtype='object'))
+        (RangeIndex(start=1, stop=2, step=1), Index(['a', 'b'], dtype='object'))
         """
         new_levels = []
         new_codes = []
