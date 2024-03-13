@@ -784,7 +784,7 @@ def test_arg_min_max(rng, meth):
 @pytest.mark.parametrize("meth", ["argmin", "argmax"])
 def test_empty_argmin_argmax_raises(meth):
     with pytest.raises(ValueError, match=f"attempt to get {meth} of an empty sequence"):
-        assert getattr(RangeIndex(0), meth)()
+        getattr(RangeIndex(0), meth)()
 
 
 def test_getitem_integers_return_rangeindex():
