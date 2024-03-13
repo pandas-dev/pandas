@@ -384,23 +384,30 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self.name = name
             return
 
-        # TASK: Capturing relevant data for latter access
+        # Series TASK 1: Capturing relevant data for latter access
         is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
         data_dtype = getattr(data, "dtype", None)
         original_dtype = dtype
         refs = None
+        name = ibase.maybe_extract_name(name, data, type(self))
 
-        # TASK: Validating dtype
+        # Series TASK 1: Validating dtype
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
-        # TASK: Especial Data Manipulation
+        # Series TASK 2: Data Preparation
         if isinstance(data, (ExtensionArray, np.ndarray)):
             if copy is not False:
                 if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
                     data = data.copy()
 
-        if copy is None:  # Check if can go up or down. After pushing to pandas-dev
+        if isinstance(data, MultiIndex):
+            raise NotImplementedError(
+                "initializing a Series from a MultiIndex is not supported"
+            )
+
+        # It Fails if go to Task 1
+        if copy is None:
             copy = False
 
         if isinstance(data, SingleBlockManager) and not copy:
@@ -415,9 +422,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     stacklevel=2,
                 )
 
-        name = ibase.maybe_extract_name(name, data, type(self))
-
-        # ESPECIAL DATA MANIPULATIONS
+        # Dict is a just a special case of data preparation.
+        # Here it is being sent to Series, but it could different, for simplicity.
+        # It could be sent to array (for faster manipulation, for example).
 
         # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
         # raises KeyError). Send it to Series for "standard" construction:
@@ -432,14 +439,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 else None
             )
 
-        # Which type is this data?
+        # TODO: Investigate. This is an unknown type that must be converted to list.
         if is_list_like(data) and not isinstance(data, Sized):
             data = list(data)
-
-        if isinstance(data, MultiIndex):
-            raise NotImplementedError(
-                "initializing a Series from a MultiIndex is not supported"
-            )
 
         # Common operations on index
         na_value = na_value_for_dtype(pandas_dtype(dtype), compat=False)
