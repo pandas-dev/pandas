@@ -1175,7 +1175,8 @@ class RangeIndex(Index):
         ----------
         decimals : int, optional
             Number of decimal places to round to. If decimals is negative,
-            it specifies the number of positions to the left of the decimal point.
+            it specifies the number of positions to the left of the decimal point
+            e.g. ``round(11.0, -1) == 10.0``.
 
         Returns
         -------
@@ -1194,10 +1195,8 @@ class RangeIndex(Index):
         """
         if decimals >= 0:
             return self.copy()
-        elif all(
-            getattr(self, attr) % 10**-decimals == 0 for attr in ("start", "step")
-        ):
-            # e.g. Range(10, 30, 10).round(-1) doesn't need rounding
+        elif self.start % 10**-decimals == 0 and self.step % 10**-decimals == 0:
+            # e.g. RangeIndex(10, 30, 10).round(-1) doesn't need rounding
             return self.copy()
         else:
             return super().round(decimals=decimals)
