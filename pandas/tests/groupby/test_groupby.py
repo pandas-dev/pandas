@@ -1960,9 +1960,9 @@ def test_groups_sort_dropna(sort, dropna):
     df = DataFrame([[2.0, 1.0], [np.nan, 4.0], [0.0, 3.0]])
     keys = [(2.0, 1.0), (np.nan, 4.0), (0.0, 3.0)]
     values = [
-        Index([0], dtype="int64"),
-        Index([1], dtype="int64"),
-        Index([2], dtype="int64"),
+        RangeIndex(0, 1),
+        RangeIndex(1, 2),
+        RangeIndex(2, 3),
     ]
     if sort:
         taker = [2, 0] if dropna else [2, 0, 1]
