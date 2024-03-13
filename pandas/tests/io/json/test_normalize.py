@@ -632,6 +632,7 @@ class TestNestedToRecord:
         ex_data = [
             [9562, "Morris St.", "Massillon", "OH", 44646, "Alice"],
             [8449, "Spring St.", "Elizabethton", "TN", 37643, np.nan],
+            [np.nan, np.nan, np.nan, np.nan, np.nan, "Minnie"],
         ]
         columns = ["number", "street", "city", "state", "zip", "name"]
         expected = DataFrame(ex_data, columns=columns)
@@ -693,6 +694,7 @@ class TestNestedToRecord:
         ex_data = [
             ["Foo York City", "Alice"],
             ["Barmingham", np.nan],
+            [np.nan, "Minnie"],
         ]
         columns = ["city_name", "name"]
         expected = DataFrame(ex_data, columns=columns)
