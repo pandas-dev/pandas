@@ -1005,7 +1005,7 @@ class TestDataFrameIndexing:
         result = df.loc[0, "b"]
         assert is_integer(result)
 
-        expected = Series([666], [0], name="b")
+        expected = Series([666], index=range(1), name="b")
         result = df.loc[[0], "b"]
         tm.assert_series_equal(result, expected)
 
@@ -1470,7 +1470,7 @@ class TestDataFrameIndexing:
         indexer = Series([0, 1], dtype="Int64")
         row_indexer = Series([1], dtype="Int64")
         result = df.iloc[row_indexer, indexer]
-        expected = DataFrame([[5, 6]], index=[1])
+        expected = DataFrame([[5, 6]], index=range(1, 2))
         tm.assert_frame_equal(result, expected)
 
         result = df.iloc[row_indexer.values, indexer.values]
