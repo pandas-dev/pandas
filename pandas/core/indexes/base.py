@@ -7186,12 +7186,13 @@ def maybe_sequence_to_range(sequence) -> Any | range:
         return sequence
     elif len(idx_sequence) == 2:
         return range(idx_sequence[0], idx_sequence[1] + diff, diff)
-    maybe_range_indexer, remainder = np.divmod(idx_sequence - idx_sequence[0], diff)
+    np_values = idx_sequence._data
+    maybe_range_indexer, remainder = np.divmod(np_values - np_values[0], diff)
     if (
         lib.is_range_indexer(maybe_range_indexer, len(maybe_range_indexer))
         and not remainder.any()
     ):
-        return range(idx_sequence[0], idx_sequence[-1] + diff, diff)
+        return range(np_values[0], np_values[-1] + diff, diff)
     else:
         return sequence
 
