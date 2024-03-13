@@ -8,6 +8,7 @@ from collections.abc import (
     Iterable,
     Mapping,
     Sequence,
+    Sized,
 )
 import operator
 import sys
@@ -437,16 +438,21 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if data is None:
                 index = default_index(0)
                 data = na_value if dtype is not None else []
+            else:
+                # if isinstance(data,(Series, SingleBlockManager, ...)):
+                pass
         else:
             index = ensure_index(index)
             if data is None:
                 data = na_value if len(index) or dtype is not None else []
 
         if isinstance(data, Index):
-            if dtype is not None:
-                data = data.astype(dtype)
             if index is None:
                 index = default_index(len(data))
+
+            if dtype is not None:
+                data = data.astype(dtype)
+
             refs = data._references
             data = data._values
             copy = False
@@ -498,15 +504,22 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if index is None:
                 index = default_index(len(data))
 
-        elif is_list_like(data) or is_iterator(data):
-            data = com.maybe_iterable_to_list(data)
+        elif is_list_like(data):
+            # Code below is getting some object that is not scalar,
+            # but somehow is_list_like()
+            # Does it have something to do with DateTime?
+            # data = com.maybe_iterable_to_list(data)
+            if not isinstance(data, Sized):
+                data = list(data)
+
             if index is None:
                 index = default_index(len(data))
 
             if not len(data) and dtype is None:
                 # GH 29405: Pre-2.0, this defaulted to float.
                 dtype = np.dtype(object)
-        else:  # if data is not None:
+
+        else:  # is_scalar(data) fails: #data is not None: OK
             # scalar, directly from input only.
             if index is None:
                 index = default_index(1)
