@@ -396,6 +396,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             dtype = self._validate_dtype(dtype)
 
         # Series TASK 2: Data Preparation
+
+        # TODO: Investigate. But below the logic changes!
+        # Is it so? ExtensionArray copies with None and True
+        # And BlockManagers copies only with True
+        # Since copy maybe None, if copy is None it will enter this
         if isinstance(data, (ExtensionArray, np.ndarray)):
             if copy is not False:
                 if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
@@ -422,7 +427,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     stacklevel=2,
                 )
 
-        # Dict is a just a special case of data preparation.
+        # COMMENT: Dict is a just a special case of data preparation.
         # Here it is being sent to Series, but it could different, for simplicity.
         # It could be sent to array (for faster manipulation, for example).
 
@@ -517,11 +522,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 index = default_index(len(data))
 
         elif is_list_like(data):
-            # Code below is getting some object that is not scalar,
-            # but somehow is_list_like()
-            # Does it have something to do with DateTime?
-            # data = com.maybe_iterable_to_list(data)
-
             if index is None:
                 index = default_index(len(data))
 
@@ -529,10 +529,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 # GH 29405: Pre-2.0, this defaulted to float.
                 dtype = np.dtype(object)
 
-        else:  # data is not None and not is_iterator(data):
+        else:  # data is not None:
             # is_scalar(data) fails: #data is not None: OK
             # seems scalar, directly from input only.
-
             if index is None:
                 index = default_index(1)
                 data = [data]
@@ -545,7 +544,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if isinstance(data, SingleBlockManager):
             if dtype is not None:
                 data = data.astype(dtype=dtype, errors="ignore")
-            elif copy:
+                copy = False
+
+            if copy:
                 data = data.copy()
         else:
             data = sanitize_array(data, index, dtype, copy)
