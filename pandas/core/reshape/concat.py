@@ -173,8 +173,7 @@ def concat(
     objs : an iterable or mapping of Series or DataFrame objects
         If a mapping is passed, the sorted keys will be used as the `keys`
         argument, unless it is passed, in which case the values will be
-        selected (see below). Any None objects will be dropped silently unless
-        they are all None in which case a ValueError will be raised.
+        selected (see below).
     axis : {0/'index', 1/'columns'}, default 0
         The axis to concatenate along.
     join : {'inner', 'outer'}, default 'outer'
@@ -491,8 +490,6 @@ class _Concatenator:
             objs_list = list(com.not_none(*objs_list))
         else:
             # GH#1649
-            key_indices = []
-            clean_objs = []
             if is_iterator(keys):
                 keys = list(keys)
             if len(keys) != len(objs_list):
@@ -501,17 +498,9 @@ class _Concatenator:
                     f"The length of the keys ({len(keys)}) must match "
                     f"the length of the objects to concatenate ({len(objs_list)})"
                 )
-            for i, obj in enumerate(objs_list):
-                if obj is not None:
-                    key_indices.append(i)
-                    clean_objs.append(obj)
-            objs_list = clean_objs
 
             if not isinstance(keys, Index):
                 keys = Index(keys)
-
-            if len(key_indices) < len(keys):
-                keys = keys.take(key_indices)
 
         if len(objs_list) == 0:
             raise ValueError("All objects passed were None")

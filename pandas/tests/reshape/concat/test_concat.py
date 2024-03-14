@@ -383,26 +383,20 @@ class TestConcatenate:
             concat([None, None])
 
     def test_concat_keys_with_none(self):
-        # #1649
+        # #57846
         df0 = DataFrame([[10, 20, 30], [10, 20, 30], [10, 20, 30]])
 
-        result = concat({"a": None, "b": df0, "c": df0[:2], "d": df0[:1], "e": df0})
-        expected = concat({"b": df0, "c": df0[:2], "d": df0[:1], "e": df0})
-        tm.assert_frame_equal(result, expected)
-
-        result = concat(
-            [None, df0, df0[:2], df0[:1], df0], keys=["a", "b", "c", "d", "e"]
-        )
-        expected = concat([df0, df0[:2], df0[:1], df0], keys=["b", "c", "d", "e"])
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(
+            TypeError, match="cannot concatenate object of type '<class 'NoneType'>'"
+        ):
+            concat({"a": None, "b": df0, "c": df0[:2], "d": df0[:1], "e": df0})
 
     @pytest.mark.parametrize("klass", [range, RangeIndex])
-    @pytest.mark.parametrize("include_none", [True, False])
-    def test_concat_preserves_rangeindex(self, klass, include_none):
+    def test_concat_preserves_rangeindex(self, klass):
         df = DataFrame([1, 2])
         df2 = DataFrame([3, 4])
-        data = [df, None, df2, None] if include_none else [df, df2]
-        keys_length = 4 if include_none else 2
+        data = [df, df2]
+        keys_length = 2
         result = concat(data, keys=klass(keys_length))
         expected = DataFrame(
             [1, 2, 3, 4],
