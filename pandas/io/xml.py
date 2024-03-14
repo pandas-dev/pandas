@@ -172,7 +172,6 @@ class _XMLFrameParser:
         self.encoding = encoding
         self.stylesheet = stylesheet
         self.iterparse = iterparse
-        self.is_style = None
         self.compression: CompressionOptions = compression
         self.storage_options = storage_options
 

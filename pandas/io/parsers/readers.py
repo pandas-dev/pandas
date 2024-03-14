@@ -20,7 +20,6 @@ from typing import (
     Callable,
     Generic,
     Literal,
-    NamedTuple,
     TypedDict,
     overload,
 )
@@ -561,11 +560,6 @@ _pyarrow_unsupported = {
     "skipinitialspace",
     "low_memory",
 }
-
-
-class _DeprecationConfig(NamedTuple):
-    default_value: Any
-    msg: str | None
 
 
 @overload
