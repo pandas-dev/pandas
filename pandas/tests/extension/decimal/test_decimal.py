@@ -187,15 +187,6 @@ class TestDecimalArray(base.ExtensionTests):
                 )
 
     def test_fillna_limit_backfill(self, data_missing):
-        msg = "Series.fillna with 'method' is deprecated"
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match=msg,
-            check_stacklevel=False,
-            raise_on_extra_warnings=False,
-        ):
-            super().test_fillna_limit_backfill(data_missing)
-
         msg = "ExtensionArray.fillna 'method' keyword is deprecated"
         with tm.assert_produces_warning(
             DeprecationWarning,

@@ -757,11 +757,6 @@ class TestDataFrameReplace:
         tsframe.loc[tsframe.index[:5], "A"] = np.nan
         tsframe.loc[tsframe.index[-5:], "A"] = np.nan
         tsframe.loc[tsframe.index[:5], "B"] = np.nan
-        msg = "DataFrame.fillna with 'method' is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # TODO: what is this even testing?
-            result = tsframe.fillna(method="bfill")
-            tm.assert_frame_equal(result, tsframe.fillna(method="bfill"))
 
     @pytest.mark.parametrize(
         "frame, to_replace, value, expected",

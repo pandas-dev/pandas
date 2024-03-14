@@ -25,14 +25,11 @@ import pandas._testing as tm
 from pandas.core.arrays import period_array
 
 
-@pytest.mark.filterwarnings(
-    "ignore:(Series|DataFrame).fillna with 'method' is deprecated:FutureWarning"
-)
 class TestSeriesFillNA:
     def test_fillna_nat(self):
         series = Series([0, 1, 2, NaT._value], dtype="M8[ns]")
 
-        filled = series.fillna(method="pad")
+        filled = series.ffill()
         filled2 = series.fillna(value=series.values[2])
 
         expected = series.copy()
@@ -42,7 +39,7 @@ class TestSeriesFillNA:
         tm.assert_series_equal(filled2, expected)
 
         df = DataFrame({"A": series})
-        filled = df.fillna(method="pad")
+        filled = df.ffill()
         filled2 = df.fillna(value=series.values[2])
         expected = DataFrame({"A": expected})
         tm.assert_frame_equal(filled, expected)
@@ -50,7 +47,7 @@ class TestSeriesFillNA:
 
         series = Series([NaT._value, 0, 1, 2], dtype="M8[ns]")
 
-        filled = series.fillna(method="bfill")
+        filled = series.bfill()
         filled2 = series.fillna(value=series[1])
 
         expected = series.copy()
@@ -60,38 +57,29 @@ class TestSeriesFillNA:
         tm.assert_series_equal(filled2, expected)
 
         df = DataFrame({"A": series})
-        filled = df.fillna(method="bfill")
+        filled = df.bfill()
         filled2 = df.fillna(value=series[1])
         expected = DataFrame({"A": expected})
         tm.assert_frame_equal(filled, expected)
         tm.assert_frame_equal(filled2, expected)
-
-    def test_fillna_value_or_method(self, datetime_series):
-        msg = "Cannot specify both 'value' and 'method'"
-        with pytest.raises(ValueError, match=msg):
-            datetime_series.fillna(value=0, method="ffill")
 
     def test_fillna(self):
         ts = Series(
             [0.0, 1.0, 2.0, 3.0, 4.0], index=date_range("2020-01-01", periods=5)
         )
 
-        tm.assert_series_equal(ts, ts.fillna(method="ffill"))
+        tm.assert_series_equal(ts, ts.ffill())
 
         ts.iloc[2] = np.nan
 
         exp = Series([0.0, 1.0, 1.0, 3.0, 4.0], index=ts.index)
-        tm.assert_series_equal(ts.fillna(method="ffill"), exp)
+        tm.assert_series_equal(ts.ffill(), exp)
 
         exp = Series([0.0, 1.0, 3.0, 3.0, 4.0], index=ts.index)
-        tm.assert_series_equal(ts.fillna(method="backfill"), exp)
+        tm.assert_series_equal(ts.bfill(), exp)
 
         exp = Series([0.0, 1.0, 5.0, 3.0, 4.0], index=ts.index)
         tm.assert_series_equal(ts.fillna(value=5), exp)
-
-        msg = "Must specify a fill 'value' or 'method'"
-        with pytest.raises(ValueError, match=msg):
-            ts.fillna()
 
     def test_fillna_nonscalar(self):
         # GH#5703
@@ -395,7 +383,7 @@ class TestSeriesFillNA:
             ],
             dtype="M8[ns]",
         )
-        result = ser.fillna(method="backfill")
+        result = ser.bfill()
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "Asia/Tokyo"])
@@ -615,7 +603,7 @@ class TestSeriesFillNA:
                 Timestamp("2012-11-11 00:00:00+01:00"),
             ]
         )
-        tm.assert_series_equal(ser.fillna(method="pad"), exp)
+        tm.assert_series_equal(ser.ffill(), exp)
 
         ser = Series([NaT, Timestamp("2012-11-11 00:00:00+01:00")])
         exp = Series(
@@ -624,7 +612,7 @@ class TestSeriesFillNA:
                 Timestamp("2012-11-11 00:00:00+01:00"),
             ]
         )
-        tm.assert_series_equal(ser.fillna(method="bfill"), exp)
+        tm.assert_series_equal(ser.bfill(), exp)
 
     def test_fillna_pytimedelta(self):
         # GH#8209
@@ -807,12 +795,6 @@ class TestSeriesFillNA:
     # ---------------------------------------------------------------
     # Invalid Usages
 
-    def test_fillna_invalid_method(self, datetime_series):
-        try:
-            datetime_series.fillna(method="ffil")
-        except ValueError as inst:
-            assert "ffil" in str(inst)
-
     def test_fillna_listlike_invalid(self):
         ser = Series(np.random.default_rng(2).integers(-100, 100, 50))
         msg = '"value" parameter must be a scalar or dict, but you passed a "list"'
@@ -834,9 +816,8 @@ class TestSeriesFillNA:
             ]
         )
         for limit in [-1, 0, 1.0, 2.0]:
-            for method in ["backfill", "bfill", "pad", "ffill", None]:
-                with pytest.raises(ValueError, match=msg):
-                    ser.fillna(1, limit=limit, method=method)
+            with pytest.raises(ValueError, match=msg):
+                ser.fillna(1, limit=limit)
 
     def test_fillna_datetime64_with_timezone_tzinfo(self):
         # https://github.com/pandas-dev/pandas/issues/38851
@@ -877,26 +858,16 @@ class TestSeriesFillNA:
         tm.assert_categorical_equal(result, expected)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:Series.fillna with 'method' is deprecated:FutureWarning"
-)
 class TestFillnaPad:
     def test_fillna_bug(self):
         ser = Series([np.nan, 1.0, np.nan, 3.0, np.nan], ["z", "a", "b", "c", "d"])
-        filled = ser.fillna(method="ffill")
+        filled = ser.ffill()
         expected = Series([np.nan, 1.0, 1.0, 3.0, 3.0], ser.index)
         tm.assert_series_equal(filled, expected)
 
-        filled = ser.fillna(method="bfill")
+        filled = ser.bfill()
         expected = Series([1.0, 1.0, 3.0, 3.0, np.nan], ser.index)
         tm.assert_series_equal(filled, expected)
-
-    def test_ffill(self):
-        ts = Series(
-            [0.0, 1.0, 2.0, 3.0, 4.0], index=date_range("2020-01-01", periods=5)
-        )
-        ts.iloc[2] = np.nan
-        tm.assert_series_equal(ts.ffill(), ts.fillna(method="ffill"))
 
     def test_ffill_mixed_dtypes_without_missing_data(self):
         # GH#14956
@@ -904,19 +875,12 @@ class TestFillnaPad:
         result = series.ffill()
         tm.assert_series_equal(series, result)
 
-    def test_bfill(self):
-        ts = Series(
-            [0.0, 1.0, 2.0, 3.0, 4.0], index=date_range("2020-01-01", periods=5)
-        )
-        ts.iloc[2] = np.nan
-        tm.assert_series_equal(ts.bfill(), ts.fillna(method="bfill"))
-
     def test_pad_nan(self):
         x = Series(
             [np.nan, 1.0, np.nan, 3.0, np.nan], ["z", "a", "b", "c", "d"], dtype=float
         )
 
-        return_value = x.fillna(method="pad", inplace=True)
+        return_value = x.ffill(inplace=True)
         assert return_value is None
 
         expected = Series(
@@ -930,16 +894,16 @@ class TestFillnaPad:
         s = Series(np.random.default_rng(2).standard_normal(10), index=index)
 
         result = s[:2].reindex(index)
-        result = result.fillna(method="pad", limit=5)
+        result = result.ffill(limit=5)
 
-        expected = s[:2].reindex(index).fillna(method="pad")
+        expected = s[:2].reindex(index).ffill()
         expected[-3:] = np.nan
         tm.assert_series_equal(result, expected)
 
         result = s[-2:].reindex(index)
-        result = result.fillna(method="bfill", limit=5)
+        result = result.bfill(limit=5)
 
-        expected = s[-2:].reindex(index).fillna(method="backfill")
+        expected = s[-2:].reindex(index).bfill()
         expected[:3] = np.nan
         tm.assert_series_equal(result, expected)
 
@@ -949,21 +913,21 @@ class TestFillnaPad:
 
         result = s[:2].reindex(index, method="pad", limit=5)
 
-        expected = s[:2].reindex(index).fillna(method="pad")
+        expected = s[:2].reindex(index).ffill()
         expected[-3:] = np.nan
         tm.assert_series_equal(result, expected)
 
         result = s[-2:].reindex(index, method="backfill", limit=5)
 
-        expected = s[-2:].reindex(index).fillna(method="backfill")
+        expected = s[-2:].reindex(index).bfill()
         expected[:3] = np.nan
         tm.assert_series_equal(result, expected)
 
     def test_fillna_int(self):
         ser = Series(np.random.default_rng(2).integers(-100, 100, 50))
-        return_value = ser.fillna(method="ffill", inplace=True)
+        return_value = ser.ffill(inplace=True)
         assert return_value is None
-        tm.assert_series_equal(ser.fillna(method="ffill", inplace=False), ser)
+        tm.assert_series_equal(ser.ffill(inplace=False), ser)
 
     def test_datetime64tz_fillna_round_issue(self):
         # GH#14872
