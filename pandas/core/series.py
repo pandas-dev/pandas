@@ -432,36 +432,34 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if copy is None:
             copy = False
 
-        # WORKING HERE!!!!!
+        # This one I will do a single commit documenting each sub-step, so that
+        # other programmers can understand the method I am using on this refactoring.
         # TODO 2: Decouple warning/Manager manipulation IN THE TWO CALLS BELOW.
-        # TODO 2.1: Join the two Manager checks below into a single if-else
+        # TODO 2.1.1: <--- Make the two if-else checks below have a common pattern
+        # TODO 2.1.2: Join the two Manager checks below into a single if-else
         # TODO 2.2: Decouple warnings / DATA MANIPULATION.
         # TODO 2.3: Slide the warnings to Series Task 7.
         # TODO 2.4: Slide copying the manager to Series TASK 5.A
         # TODO 2.5: Check if it is possible to separate NDFrame.__init__ to
         # --------- To Series Task 6.
-        if (
-            isinstance(data, SingleBlockManager)
-            and index is None
-            and dtype is None
-            and not copy
-        ):
-            if not allow_mgr:
-                # GH#52419
-                warnings.warn(
-                    f"Passing a {type(data).__name__} to {type(self).__name__} "
-                    "is deprecated and will raise in a future version. "
-                    "Use public APIs instead.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-            data = data.copy(deep=False)
-            # GH#33357 called with just the SingleBlockManager
-            NDFrame.__init__(self, data)
-            self.name = name
-            return
+        if isinstance(data, SingleBlockManager) and not copy:  # <---
+            if index is None and dtype is None:  # <---
+                if not allow_mgr:
+                    # GH#52419
+                    warnings.warn(
+                        f"Passing a {type(data).__name__} to {type(self).__name__} "
+                        "is deprecated and will raise in a future version. "
+                        "Use public APIs instead.",
+                        DeprecationWarning,
+                        stacklevel=2,
+                    )
+                data = data.copy(deep=False)
+                # GH#33357 called with just the SingleBlockManager
+                NDFrame.__init__(self, data)
+                self.name = name
+                return
         #  Move to Series TASK 5
-        if isinstance(data, SingleBlockManager) and not copy:
+        if isinstance(data, SingleBlockManager) and not copy:  # <---
             data = data.copy(deep=False)
 
             # TODO 8N-2: Try to move to  Series TASK 7- WARNINGS
