@@ -412,6 +412,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
         data_dtype = getattr(data, "dtype", None)
         original_dtype = dtype
+        original_data_type = type(data)  # For warning in the end
         refs = None
         name = ibase.maybe_extract_name(name, data, type(self))
 
@@ -437,15 +438,32 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # TODO 2: Decouple warning/Manager manipulation IN THE TWO CALLS BELOW.
         # TODO 2.1.1: (DONE) Make the two if-else checks below have a common pattern
         # TODO 2.1.2: (DONE) Join the two Manager checks below into a single if-else
-        # TODO 2.2: <--- Decouple warnings / DATA MANIPULATION.
-        # TODO 2.3: Slide the warnings to Series Task 7.
+        # TODO 2.2: (DONE) Decouple warnings / DATA MANIPULATION.
+        # TODO 2.3: (Working) Here Slide the warnings to Series Task 7.
+        #           Decouple and Move in one commit.
+        # TODO 2.3.1 <--- Decouple Dataframe Creation from warning.
+        # TODO 2.3.2 <--- Check if 'allow_mgr' doesn't changes signature.
+        # TODO 2.3.3 <--- Capture 'original_data_type' to raise warnings latter.
+        # TODO 2.3.4 Move
         # TODO 2.4: Slide copying the manager to Series TASK 5.A
         # TODO 2.5: (DONE) Check if it is possible to separate copying from
         # --------- Data Frame Creation.
         # TODO 2.5.1: Move both blocks to TASK 5.A
         # TODO 2.5.2: Decouple Copying DataFrame Creation to TASKS 5.A AND 6
         # TODO 2.5.3: Move DataFrame Creation to 'Series Task 6'.
-        if isinstance(data, SingleBlockManager) and not copy:  # <---
+        if isinstance(data, SingleBlockManager) and not copy:
+            if index is None and dtype is None:  # TODO 2.5 Starts here.
+                data = data.copy(deep=False)  # <--- to TASK 5.A
+                # GH#33357 called with just the SingleBlockManager
+
+                NDFrame.__init__(self, data)  # < --- to TASK 6
+                self.name = name
+                return
+
+        if (
+            original_data_type is SingleBlockManager and not copy
+        ):  # <--- Warnings (Change signature)
+            # if isinstance(data, SingleBlockManager) and not copy:  # <--- Warnings
             if index is None and dtype is None:  # <--- to TASK 7
                 if not allow_mgr:
                     # GH#52419
@@ -465,14 +483,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     DeprecationWarning,
                     stacklevel=2,
                 )
-
-            if index is None and dtype is None:  # TODO 2.5 Starts here.
-                data = data.copy(deep=False)  # <--- to TASK 5.A
-                # GH#33357 called with just the SingleBlockManager
-
-                NDFrame.__init__(self, data)  # < --- to TASK 6
-                self.name = name
-                return
 
         # Series TASK 3: DATA TRANSFORMATION.
 
