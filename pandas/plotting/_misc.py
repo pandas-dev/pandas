@@ -638,7 +638,6 @@ class _Options(dict):
     _DEFAULT_KEYS = ["xaxis.compat"]
 
     def __init__(self, deprecated: bool = False) -> None:
-        self._deprecated = deprecated
         super().__setitem__("xaxis.compat", False)
 
     def __getitem__(self, key):
