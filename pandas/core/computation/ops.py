@@ -320,12 +320,6 @@ _arith_ops_funcs = (
 )
 _arith_ops_dict = dict(zip(ARITH_OPS_SYMS, _arith_ops_funcs))
 
-SPECIAL_CASE_ARITH_OPS_SYMS = ("**", "//", "%")
-_special_case_arith_ops_funcs = (operator.pow, operator.floordiv, operator.mod)
-_special_case_arith_ops_dict = dict(
-    zip(SPECIAL_CASE_ARITH_OPS_SYMS, _special_case_arith_ops_funcs)
-)
-
 _binary_ops_dict = {}
 
 for d in (_cmp_ops_dict, _bool_ops_dict, _arith_ops_dict):
