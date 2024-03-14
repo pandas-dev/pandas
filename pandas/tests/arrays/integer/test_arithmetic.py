@@ -197,6 +197,7 @@ def test_error_invalid_values(data, all_arithmetic_operators, using_infer_string
             "Addition/subtraction of integers and integer-arrays with Timestamp",
             "has no kernel",
             "not implemented",
+            "The 'out' kwarg is necessary. Use numpy.strings.multiply without it.",
         ]
     )
     with pytest.raises(errs, match=msg):

@@ -152,13 +152,13 @@ class TestDatetimeIndexShift:
         assert shifted[0] == rng[0]
         assert shifted.freq == rng.freq
 
-    def test_shift_bmonth(self, unit):
+    def test_shift_bmonth(self, performance_warning, unit):
         rng = date_range(START, END, freq=pd.offsets.BMonthEnd(), unit=unit)
         shifted = rng.shift(1, freq=pd.offsets.BDay())
         assert shifted[0] == rng[0] + pd.offsets.BDay()
 
         rng = date_range(START, END, freq=pd.offsets.BMonthEnd(), unit=unit)
-        with tm.assert_produces_warning(pd.errors.PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             shifted = rng.shift(1, freq=pd.offsets.CDay())
             assert shifted[0] == rng[0] + pd.offsets.CDay()
 

@@ -5,6 +5,7 @@ should have no intra-pandas dependencies.
 importing `dates` and `display` ensures that keys needed by _libs
 are initialized.
 """
+
 __all__ = [
     "config",
     "detect_console_encoding",
