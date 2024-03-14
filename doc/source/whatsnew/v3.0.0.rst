@@ -241,6 +241,7 @@ Removal of prior version deprecations/changes
 - Removed argument ``limit`` from :meth:`DataFrame.pct_change`, :meth:`Series.pct_change`, :meth:`.DataFrameGroupBy.pct_change`, and :meth:`.SeriesGroupBy.pct_change`; the argument ``method`` must be set to ``None`` and will be removed in a future version of pandas (:issue:`53520`)
 - Removed deprecated argument ``obj`` in :meth:`.DataFrameGroupBy.get_group` and :meth:`.SeriesGroupBy.get_group` (:issue:`53545`)
 - Removed deprecated behavior of :meth:`Series.agg` using :meth:`Series.apply` (:issue:`53325`)
+- Removed deprecated keyword ``method`` on :meth:`Series.fillna`, :meth:`DataFrame.fillna` (:issue:`57760`)
 - Removed option ``mode.use_inf_as_na``, convert inf entries to ``NaN`` before instead (:issue:`51684`)
 - Removed support for :class:`DataFrame` in :meth:`DataFrame.from_records`(:issue:`51697`)
 - Removed support for ``errors="ignore"`` in :func:`to_datetime`, :func:`to_timedelta` and :func:`to_numeric` (:issue:`55734`)

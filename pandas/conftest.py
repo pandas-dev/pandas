@@ -173,10 +173,6 @@ def pytest_collection_modifyitems(items, config) -> None:
             "DataFrameGroupBy.fillna",
             "DataFrameGroupBy.fillna with 'method' is deprecated",
         ),
-        (
-            "DataFrameGroupBy.fillna",
-            "DataFrame.fillna with 'method' is deprecated",
-        ),
         ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
     ]
 

@@ -68,9 +68,6 @@ class BaseMissingTests:
         expected = data_missing.fillna(valid)
         tm.assert_extension_array_equal(result, expected)
 
-    @pytest.mark.filterwarnings(
-        "ignore:Series.fillna with 'method' is deprecated:FutureWarning"
-    )
     def test_fillna_limit_pad(self, data_missing):
         arr = data_missing.take([1, 0, 0, 0, 1])
         result = pd.Series(arr).ffill(limit=2)
@@ -99,12 +96,9 @@ class BaseMissingTests:
         expected = pd.Series(data_missing.take(expected_ilocs))
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.filterwarnings(
-        "ignore:Series.fillna with 'method' is deprecated:FutureWarning"
-    )
     def test_fillna_limit_backfill(self, data_missing):
         arr = data_missing.take([1, 0, 0, 0, 1])
-        result = pd.Series(arr).fillna(method="backfill", limit=2)
+        result = pd.Series(arr).bfill(limit=2)
         expected = pd.Series(data_missing.take([1, 0, 1, 1, 1]))
         tm.assert_series_equal(result, expected)
 
