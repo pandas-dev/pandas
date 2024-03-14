@@ -216,3 +216,11 @@ Manually chunking is an OK option for workflows that don't
 require too sophisticated of operations. Some operations, like :meth:`pandas.DataFrame.groupby`, are
 much harder to do chunkwise. In these cases, you may be better switching to a
 different library that implements these out-of-core algorithms for you.
+
+Use Other Libraries
+-------------------
+
+pandas is just one library offering a DataFrame API. Because of its popularity,
+pandas' API has become something of a standard that other libraries implement.
+The pandas documentation maintains a list of libraries implementing a DataFrame API
+in `the ecosystem page <https://pandas.pydata.org/community/ecosystem.html#out-of-core>`_.
