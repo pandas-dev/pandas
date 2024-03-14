@@ -680,7 +680,7 @@ def is_range_indexer(ndarray[int6432_t, ndim=1] left, Py_ssize_t n) -> bool:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_sequence_range(ndarray[int64_t, ndim=1] sequence, int64_t step) -> bool:
+def is_sequence_range(ndarray[int6432_t, ndim=1] sequence, int64_t step) -> bool:
     """
     Check if sequence is equivalent to a range with the specified step.
     """
