@@ -188,11 +188,7 @@ from pandas.io.formats import (
     console,
     format as fmt,
 )
-from pandas.io.formats.info import (
-    INFO_DOCSTRING,
-    DataFrameInfo,
-    frame_sub_kwargs,
-)
+from pandas.io.formats.info import DataFrameInfo
 import pandas.plotting
 
 if TYPE_CHECKING:
@@ -2496,10 +2492,6 @@ class DataFrame(NDFrame, OpsMixin):
         )
         return cls._from_mgr(mgr, axes=mgr.axes)
 
-    @doc(
-        storage_options=_shared_docs["storage_options"],
-        compression_options=_shared_docs["compression_options"] % "path",
-    )
     def to_stata(
         self,
         path: FilePath | WriteBuffer[bytes],
@@ -2547,7 +2539,7 @@ class DataFrame(NDFrame, OpsMixin):
         variable_labels : dict
             Dictionary containing columns as keys and variable labels as
             values. Each label must be 80 characters or smaller.
-        version : {{114, 117, 118, 119, None}}, default 114
+        version : {114, 117, 118, 119, None}, default 114
             Version to use in the output dta file. Set to None to let pandas
             decide between 118 or 119 formats depending on the number of
             columns in the frame. Version 114 can be read by Stata 10 and
@@ -2569,11 +2561,37 @@ class DataFrame(NDFrame, OpsMixin):
             format. Only available if version is 117.  Storing strings in the
             StrL format can produce smaller dta files if strings have more than
             8 characters and values are repeated.
-        {compression_options}
+        compression : str or dict, default 'infer'
+            For on-the-fly compression of the output data. If 'infer' and 'path' is
+            path-like, then detect compression from the following extensions: '.gz',
+            '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+            (otherwise no compression).
+            Set to ``None`` for no compression.
+            Can also be a dict with key ``'method'`` set
+            to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``,
+            ``'tar'``} and
+            other key-value pairs are forwarded to
+            ``zipfile.ZipFile``, ``gzip.GzipFile``,
+            ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
+            ``tarfile.TarFile``, respectively.
+            As an example, the following could be passed for faster compression and to
+            create a reproducible gzip archive:
+            ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
+
+            .. versionadded:: 1.5.0
+                Added support for `.tar` files.
 
             .. versionchanged:: 1.4.0 Zstandard support.
 
-        {storage_options}
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+            are forwarded to ``urllib.request.Request`` as header options. For other
+            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
 
         value_labels : dict of dicts
             Dictionary containing columns as keys and dictionaries of column value
@@ -3443,7 +3461,6 @@ class DataFrame(NDFrame, OpsMixin):
         return xml_formatter.write_output()
 
     # ----------------------------------------------------------------------
-    @doc(INFO_DOCSTRING, **frame_sub_kwargs)
     def info(
         self,
         verbose: bool | None = None,
@@ -3452,6 +3469,149 @@ class DataFrame(NDFrame, OpsMixin):
         memory_usage: bool | str | None = None,
         show_counts: bool | None = None,
     ) -> None:
+        """
+        Print a concise summary of a DataFrame.
+
+        This method prints information about a DataFrame including
+        the index dtype and columns, non-null values and memory usage.
+
+        Parameters
+        ----------
+        verbose : bool, optional
+            Whether to print the full summary. By default, the setting in
+            ``pandas.options.display.max_info_columns`` is followed.
+        buf : writable buffer, defaults to sys.stdout
+            Where to send the output. By default, the output is printed to
+            sys.stdout. Pass a writable buffer if you need to further process
+            the output.
+        max_cols : int, optional
+            When to switch from the verbose to the truncated output. If the
+            DataFrame has more than `max_cols` columns, the truncated output
+            is used. By default, the setting in
+            ``pandas.options.display.max_info_columns`` is used.
+        memory_usage : bool, str, optional
+            Specifies whether total memory usage of the DataFrame
+            elements (including the index) should be displayed. By default,
+            this follows the ``pandas.options.display.memory_usage`` setting.
+
+            True always show memory usage. False never shows memory usage.
+            A value of 'deep' is equivalent to "True with deep introspection".
+            Memory usage is shown in human-readable units (base-2
+            representation). Without deep introspection a memory estimation is
+            made based in column dtype and number of rows assuming values
+            consume the same memory amount for corresponding dtypes. With deep
+            memory introspection, a real memory usage calculation is performed
+            at the cost of computational resources. See the
+            :ref:`Frequently Asked Questions <df-memory-usage>` for more
+            details.
+        show_counts : bool, optional
+            Whether to show the non-null counts. By default, this is shown
+            only if the DataFrame is smaller than
+            ``pandas.options.display.max_info_rows`` and
+            ``pandas.options.display.max_info_columns``. A value of True always
+            shows the counts, and False never shows the counts.
+
+        Returns
+        -------
+        None
+            This method prints a summary of a DataFrame and returns None.
+
+        See Also
+        --------
+        DataFrame.describe: Generate descriptive statistics of DataFrame
+            columns.
+        DataFrame.memory_usage: Memory usage of DataFrame columns.
+
+        Examples
+        --------
+        >>> int_values = [1, 2, 3, 4, 5]
+        >>> text_values = ["alpha", "beta", "gamma", "delta", "epsilon"]
+        >>> float_values = [0.0, 0.25, 0.5, 0.75, 1.0]
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "int_col": int_values,
+        ...         "text_col": text_values,
+        ...         "float_col": float_values,
+        ...     }
+        ... )
+        >>> df
+            int_col text_col  float_col
+        0        1    alpha       0.00
+        1        2     beta       0.25
+        2        3    gamma       0.50
+        3        4    delta       0.75
+        4        5  epsilon       1.00
+
+        Prints information of all columns:
+
+        >>> df.info(verbose=True)
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 5 entries, 0 to 4
+        Data columns (total 3 columns):
+         #   Column     Non-Null Count  Dtype
+        ---  ------     --------------  -----
+         0   int_col    5 non-null      int64
+         1   text_col   5 non-null      object
+         2   float_col  5 non-null      float64
+        dtypes: float64(1), int64(1), object(1)
+        memory usage: 248.0+ bytes
+
+        Prints a summary of columns count and its dtypes but not per column
+        information:
+
+        >>> df.info(verbose=False)
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 5 entries, 0 to 4
+        Columns: 3 entries, int_col to float_col
+        dtypes: float64(1), int64(1), object(1)
+        memory usage: 248.0+ bytes
+
+        Pipe output of DataFrame.info to buffer instead of sys.stdout, get
+        buffer content and writes to a text file:
+
+        >>> import io
+        >>> buffer = io.StringIO()
+        >>> df.info(buf=buffer)
+        >>> s = buffer.getvalue()
+        >>> with open("df_info.txt", "w", encoding="utf-8") as f:  # doctest: +SKIP
+        ...     f.write(s)
+        260
+
+        The `memory_usage` parameter allows deep introspection mode, specially
+        useful for big DataFrames and fine-tune memory optimization:
+
+        >>> random_strings_array = np.random.choice(["a", "b", "c"], 10**6)
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "column_1": np.random.choice(["a", "b", "c"], 10**6),
+        ...         "column_2": np.random.choice(["a", "b", "c"], 10**6),
+        ...         "column_3": np.random.choice(["a", "b", "c"], 10**6),
+        ...     }
+        ... )
+        >>> df.info()
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 1000000 entries, 0 to 999999
+        Data columns (total 3 columns):
+         #   Column    Non-Null Count    Dtype
+        ---  ------    --------------    -----
+         0   column_1  1000000 non-null  object
+         1   column_2  1000000 non-null  object
+         2   column_3  1000000 non-null  object
+        dtypes: object(3)
+        memory usage: 22.9+ MB
+
+        >>> df.info(memory_usage="deep")
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 1000000 entries, 0 to 999999
+        Data columns (total 3 columns):
+         #   Column    Non-Null Count    Dtype
+        ---  ------    --------------    -----
+         0   column_1  1000000 non-null  object
+         1   column_2  1000000 non-null  object
+         2   column_3  1000000 non-null  object
+        dtypes: object(3)
+        memory usage: 165.9 MB
+        """
         info = DataFrameInfo(
             data=self,
             memory_usage=memory_usage,
@@ -5053,11 +5213,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         return super().set_axis(labels, axis=axis)
 
-    @doc(
-        NDFrame.reindex,
-        klass=_shared_doc_kwargs["klass"],
-        optional_reindex=_shared_doc_kwargs["optional_reindex"],
-    )
     def reindex(
         self,
         labels=None,
@@ -5072,6 +5227,229 @@ class DataFrame(NDFrame, OpsMixin):
         limit: int | None = None,
         tolerance=None,
     ) -> DataFrame:
+        """
+        Conform DataFrame to new index with optional filling logic.
+
+        Places NA/NaN in locations having no value in the previous index. A new object
+        is produced unless the new index is equivalent to the current one and
+        ``copy=False``.
+
+        Parameters
+        ----------
+
+        labels : array-like, optional
+            New labels / index to conform the axis specified by 'axis' to.
+        index : array-like, optional
+            New labels for the index. Preferably an Index object to avoid
+            duplicating data.
+        columns : array-like, optional
+            New labels for the columns. Preferably an Index object to avoid
+            duplicating data.
+        axis : int or str, optional
+            Axis to target. Can be either the axis name ('index', 'columns')
+            or number (0, 1).
+        method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}
+            Method to use for filling holes in reindexed DataFrame.
+            Please note: this is only applicable to DataFrames/Series with a
+            monotonically increasing/decreasing index.
+
+            * None (default): don't fill gaps
+            * pad / ffill: Propagate last valid observation forward to next
+              valid.
+            * backfill / bfill: Use next valid observation to fill gap.
+            * nearest: Use nearest valid observations to fill gap.
+
+        copy : bool, default False
+            Return a new object, even if the passed indexes are the same.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+            .. deprecated:: 3.0.0
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        fill_value : scalar, default np.nan
+            Value to use for missing values. Defaults to NaN, but can be any
+            "compatible" value.
+        limit : int, default None
+            Maximum number of consecutive elements to forward or backward fill.
+        tolerance : optional
+            Maximum distance between original and new labels for inexact
+            matches. The values of the index at the matching locations most
+            satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
+
+            Tolerance may be a scalar value, which applies the same tolerance
+            to all values, or list-like, which applies variable tolerance per
+            element. List-like includes list, tuple, array, Series, and must be
+            the same size as the index and its dtype must exactly match the
+            index's type.
+
+        Returns
+        -------
+        DataFrame with changed index.
+
+        See Also
+        --------
+        DataFrame.set_index : Set row labels.
+        DataFrame.reset_index : Remove row labels or move them to new columns.
+        DataFrame.reindex_like : Change to same indices as other DataFrame.
+
+        Examples
+        --------
+        ``DataFrame.reindex`` supports two calling conventions
+
+        * ``(index=index_labels, columns=column_labels, ...)``
+        * ``(labels, axis={'index', 'columns'}, ...)``
+
+        We *highly* recommend using keyword arguments to clarify your
+        intent.
+
+        Create a dataframe with some fictional data.
+
+        >>> index = ["Firefox", "Chrome", "Safari", "IE10", "Konqueror"]
+        >>> columns = ["http_status", "response_time"]
+        >>> df = pd.DataFrame(
+        ...     [[200, 0.04], [200, 0.02], [404, 0.07], [404, 0.08], [301, 1.0]],
+        ...     columns=columns,
+        ...     index=index,
+        ... )
+        >>> df
+                   http_status  response_time
+        Firefox            200           0.04
+        Chrome             200           0.02
+        Safari             404           0.07
+        IE10               404           0.08
+        Konqueror          301           1.00
+
+        Create a new index and reindex the dataframe. By default
+        values in the new index that do not have corresponding
+        records in the dataframe are assigned ``NaN``.
+
+        >>> new_index = ["Safari", "Iceweasel", "Comodo Dragon", "IE10", "Chrome"]
+        >>> df.reindex(new_index)
+                       http_status  response_time
+        Safari               404.0           0.07
+        Iceweasel              NaN            NaN
+        Comodo Dragon          NaN            NaN
+        IE10                 404.0           0.08
+        Chrome               200.0           0.02
+
+        We can fill in the missing values by passing a value to
+        the keyword ``fill_value``. Because the index is not monotonically
+        increasing or decreasing, we cannot use arguments to the keyword
+        ``method`` to fill the ``NaN`` values.
+
+        >>> df.reindex(new_index, fill_value=0)
+                       http_status  response_time
+        Safari                 404           0.07
+        Iceweasel                0           0.00
+        Comodo Dragon            0           0.00
+        IE10                   404           0.08
+        Chrome                 200           0.02
+
+        >>> df.reindex(new_index, fill_value="missing")
+                      http_status response_time
+        Safari                404          0.07
+        Iceweasel         missing       missing
+        Comodo Dragon     missing       missing
+        IE10                  404          0.08
+        Chrome                200          0.02
+
+        We can also reindex the columns.
+
+        >>> df.reindex(columns=["http_status", "user_agent"])
+                   http_status  user_agent
+        Firefox            200         NaN
+        Chrome             200         NaN
+        Safari             404         NaN
+        IE10               404         NaN
+        Konqueror          301         NaN
+
+        Or we can use "axis-style" keyword arguments
+
+        >>> df.reindex(["http_status", "user_agent"], axis="columns")
+                   http_status  user_agent
+        Firefox            200         NaN
+        Chrome             200         NaN
+        Safari             404         NaN
+        IE10               404         NaN
+        Konqueror          301         NaN
+
+        To further illustrate the filling functionality in
+        ``reindex``, we will create a dataframe with a
+        monotonically increasing index (for example, a sequence
+        of dates).
+
+        >>> date_index = pd.date_range("1/1/2010", periods=6, freq="D")
+        >>> df2 = pd.DataFrame(
+        ...     {"prices": [100, 101, np.nan, 100, 89, 88]}, index=date_index
+        ... )
+        >>> df2
+                    prices
+        2010-01-01   100.0
+        2010-01-02   101.0
+        2010-01-03     NaN
+        2010-01-04   100.0
+        2010-01-05    89.0
+        2010-01-06    88.0
+
+        Suppose we decide to expand the dataframe to cover a wider
+        date range.
+
+        >>> date_index2 = pd.date_range("12/29/2009", periods=10, freq="D")
+        >>> df2.reindex(date_index2)
+                    prices
+        2009-12-29     NaN
+        2009-12-30     NaN
+        2009-12-31     NaN
+        2010-01-01   100.0
+        2010-01-02   101.0
+        2010-01-03     NaN
+        2010-01-04   100.0
+        2010-01-05    89.0
+        2010-01-06    88.0
+        2010-01-07     NaN
+
+        The index entries that did not have a value in the original data frame
+        (for example, '2009-12-29') are by default filled with ``NaN``.
+        If desired, we can fill in the missing values using one of several
+        options.
+
+        For example, to back-propagate the last valid value to fill the ``NaN``
+        values, pass ``bfill`` as an argument to the ``method`` keyword.
+
+        >>> df2.reindex(date_index2, method="bfill")
+                    prices
+        2009-12-29   100.0
+        2009-12-30   100.0
+        2009-12-31   100.0
+        2010-01-01   100.0
+        2010-01-02   101.0
+        2010-01-03     NaN
+        2010-01-04   100.0
+        2010-01-05    89.0
+        2010-01-06    88.0
+        2010-01-07     NaN
+
+        Please note that the ``NaN`` value present in the original dataframe
+        (at index value 2010-01-03) will not be filled by any of the
+        value propagation schemes. This is because filling while reindexing
+        does not look at dataframe values, but only compares the original and
+        desired indexes. If you do want to fill in the ``NaN`` values present
+        in the original dataframe, use the ``fillna()`` method.
+
+        See the :ref:`user guide <basics.reindexing>` for more.
+        """
         return super().reindex(
             labels=labels,
             index=index,
@@ -8240,10 +8618,43 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Combination-Related
 
-    @doc(
-        _shared_docs["compare"],
-        dedent(
-            """
+    def compare(
+        self,
+        other: DataFrame,
+        align_axis: Axis = 1,
+        keep_shape: bool = False,
+        keep_equal: bool = False,
+        result_names: Suffixes = ("self", "other"),
+    ) -> DataFrame:
+        """
+        Compare to another DataFrame and show the differences.
+
+        Parameters
+        ----------
+        other : DataFrame
+            Object to compare with.
+
+        align_axis : {0 or 'index', 1 or 'columns'}, default 1
+            Determine which axis to align the comparison on.
+
+            * 0, or 'index' : Resulting differences are stacked vertically
+                with rows drawn alternately from self and other.
+            * 1, or 'columns' : Resulting differences are aligned horizontally
+                with columns drawn alternately from self and other.
+
+        keep_shape : bool, default False
+            If true, all rows and columns are kept.
+            Otherwise, only the ones with different values are kept.
+
+        keep_equal : bool, default False
+            If true, the result keeps values that are equal.
+            Otherwise, equal values are shown as NaNs.
+
+        result_names : tuple, default ('self', 'other')
+            Set the dataframes names in the comparison.
+
+            .. versionadded:: 1.5.0
+
         Returns
         -------
         DataFrame
@@ -8272,11 +8683,11 @@ class DataFrame(NDFrame, OpsMixin):
         Examples
         --------
         >>> df = pd.DataFrame(
-        ...     {{
+        ...     {
         ...         "col1": ["a", "a", "b", "b", "a"],
         ...         "col2": [1.0, 2.0, 3.0, np.nan, 5.0],
-        ...         "col3": [1.0, 2.0, 3.0, 4.0, 5.0]
-        ...     }},
+        ...         "col3": [1.0, 2.0, 3.0, 4.0, 5.0],
+        ...     },
         ...     columns=["col1", "col2", "col3"],
         ... )
         >>> df
@@ -8288,8 +8699,8 @@ class DataFrame(NDFrame, OpsMixin):
         4    a   5.0   5.0
 
         >>> df2 = df.copy()
-        >>> df2.loc[0, 'col1'] = 'c'
-        >>> df2.loc[2, 'col3'] = 4.0
+        >>> df2.loc[0, "col1"] = "c"
+        >>> df2.loc[2, "col3"] = 4.0
         >>> df2
           col1  col2  col3
         0    c   1.0   1.0
@@ -8353,17 +8764,6 @@ class DataFrame(NDFrame, OpsMixin):
         3    b     b  NaN   NaN  4.0   4.0
         4    a     a  5.0   5.0  5.0   5.0
         """
-        ),
-        klass=_shared_doc_kwargs["klass"],
-    )
-    def compare(
-        self,
-        other: DataFrame,
-        align_axis: Axis = 1,
-        keep_shape: bool = False,
-        keep_equal: bool = False,
-        result_names: Suffixes = ("self", "other"),
-    ) -> DataFrame:
         return super().compare(
             other=other,
             align_axis=align_axis,
@@ -10006,14 +10406,108 @@ class DataFrame(NDFrame, OpsMixin):
     """
     )
 
-    @doc(
-        _shared_docs["aggregate"],
-        klass=_shared_doc_kwargs["klass"],
-        axis=_shared_doc_kwargs["axis"],
-        see_also=_agg_see_also_doc,
-        examples=_agg_examples_doc,
-    )
     def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
+        """
+        Aggregate using one or more operations over the specified axis.
+
+        Parameters
+        ----------
+        func : function, str, list or dict
+            Function to use for aggregating the data. If a function, must either
+            work when passed a DataFrame or when passed to DataFrame.apply.
+
+            Accepted combinations are:
+
+            - function
+            - string function name
+            - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
+            - dict of axis labels -> functions, function names or list of such.
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+                If 0 or 'index': apply function to each column.
+                If 1 or 'columns': apply function to each row.
+        *args
+            Positional arguments to pass to `func`.
+        **kwargs
+            Keyword arguments to pass to `func`.
+
+        Returns
+        -------
+        scalar, Series or DataFrame
+
+            The return can be:
+
+            * scalar : when Series.agg is called with single function
+            * Series : when DataFrame.agg is called with a single function
+            * DataFrame : when DataFrame.agg is called with several functions
+
+        See Also
+        --------
+        DataFrame.apply : Perform any type of operations.
+        DataFrame.transform : Perform transformation type operations.
+        DataFrame.groupby : Perform operations over groups.
+        DataFrame.resample : Perform operations over resampled bins.
+        DataFrame.rolling : Perform operations over rolling window.
+        DataFrame.expanding : Perform operations over expanding window.
+        core.window.ewm.ExponentialMovingWindow : Perform operation over exponential
+            weighted window.
+
+        Notes
+        -----
+        The aggregation operations are always performed over an axis, either the
+        index (default) or the column axis. This behavior is different from
+        `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
+        `var`), where the default is to compute the aggregation of the flattened
+        array, e.g., ``numpy.mean(arr_2d)`` as opposed to
+        ``numpy.mean(arr_2d, axis=0)``.
+
+        `agg` is an alias for `aggregate`. Use the alias.
+
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
+        for more details.
+
+        A passed user-defined-function will be passed a Series for evaluation.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     [[1, 2, 3], [4, 5, 6], [7, 8, 9], [np.nan, np.nan, np.nan]],
+        ...     columns=["A", "B", "C"],
+        ... )
+
+        Aggregate these functions over the rows.
+
+        >>> df.agg(["sum", "min"])
+                A     B     C
+        sum  12.0  15.0  18.0
+        min   1.0   2.0   3.0
+
+        Different aggregations per column.
+
+        >>> df.agg({"A": ["sum", "min"], "B": ["min", "max"]})
+                A    B
+        sum  12.0  NaN
+        min   1.0  2.0
+        max   NaN  8.0
+
+        Aggregate different functions over the columns and rename the index of the
+        resulting DataFrame.
+
+        >>> df.agg(x=("A", "max"), y=("B", "min"), z=("C", "mean"))
+             A    B    C
+        x  7.0  NaN  NaN
+        y  NaN  2.0  NaN
+        z  NaN  NaN  6.0
+
+        Aggregate over the columns.
+
+        >>> df.agg("mean", axis="columns")
+        0    2.0
+        1    5.0
+        2    8.0
+        3    NaN
+        dtype: float64
+        """
         from pandas.core.apply import frame_apply
 
         axis = self._get_axis_number(axis)
@@ -10025,14 +10519,147 @@ class DataFrame(NDFrame, OpsMixin):
 
     agg = aggregate
 
-    @doc(
-        _shared_docs["transform"],
-        klass=_shared_doc_kwargs["klass"],
-        axis=_shared_doc_kwargs["axis"],
-    )
     def transform(
         self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
     ) -> DataFrame:
+        """
+        Call ``func`` on self producing a DataFrame with the same axis shape as self.
+
+        Parameters
+        ----------
+        func : function, str, list-like or dict-like
+            Function to use for transforming the data. If a function, must either
+            work when passed a DataFrame or when passed to DataFrame.apply. If func
+            is both list-like and dict-like, dict-like behavior takes precedence.
+
+            Accepted combinations are:
+
+            - function
+            - string function name
+            - list-like of functions and/or function names, e.g. ``[np.exp, 'sqrt']``
+            - dict-like of axis labels -> functions, function names or list-like of
+              such.
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+                If 0 or 'index': apply function to each column.
+                If 1 or 'columns': apply function to each row.
+        *args
+            Positional arguments to pass to `func`.
+        **kwargs
+            Keyword arguments to pass to `func`.
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame that must have the same length as self.
+
+        Raises
+        ------
+        ValueError : If the returned DataFrame has a different length than self.
+
+        See Also
+        --------
+        DataFrame.agg : Only perform aggregating type operations.
+        DataFrame.apply : Invoke function on a DataFrame.
+
+        Notes
+        -----
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
+        for more details.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": range(3), "B": range(1, 4)})
+        >>> df
+           A  B
+        0  0  1
+        1  1  2
+        2  2  3
+        >>> df.transform(lambda x: x + 1)
+           A  B
+        0  1  2
+        1  2  3
+        2  3  4
+
+        Even though the resulting DataFrame must have the same length as the
+        input DataFrame, it is possible to provide several input functions:
+
+        >>> s = pd.Series(range(3))
+        >>> s
+        0    0
+        1    1
+        2    2
+        dtype: int64
+        >>> s.transform([np.sqrt, np.exp])
+               sqrt        exp
+        0  0.000000   1.000000
+        1  1.000000   2.718282
+        2  1.414214   7.389056
+
+        You can call transform on a GroupBy object:
+
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "Date": [
+        ...             "2015-05-08",
+        ...             "2015-05-07",
+        ...             "2015-05-06",
+        ...             "2015-05-05",
+        ...             "2015-05-08",
+        ...             "2015-05-07",
+        ...             "2015-05-06",
+        ...             "2015-05-05",
+        ...         ],
+        ...         "Data": [5, 8, 6, 1, 50, 100, 60, 120],
+        ...     }
+        ... )
+        >>> df
+                 Date  Data
+        0  2015-05-08     5
+        1  2015-05-07     8
+        2  2015-05-06     6
+        3  2015-05-05     1
+        4  2015-05-08    50
+        5  2015-05-07   100
+        6  2015-05-06    60
+        7  2015-05-05   120
+        >>> df.groupby("Date")["Data"].transform("sum")
+        0     55
+        1    108
+        2     66
+        3    121
+        4     55
+        5    108
+        6     66
+        7    121
+        Name: Data, dtype: int64
+
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "c": [1, 1, 1, 2, 2, 2, 2],
+        ...         "type": ["m", "n", "o", "m", "m", "n", "n"],
+        ...     }
+        ... )
+        >>> df
+           c type
+        0  1    m
+        1  1    n
+        2  1    o
+        3  2    m
+        4  2    m
+        5  2    n
+        6  2    n
+        >>> df["size"] = df.groupby("c")["type"].transform(len)
+        >>> df
+           c type size
+        0  1    m    3
+        1  1    n    3
+        2  1    o    3
+        3  2    m    4
+        4  2    m    4
+        5  2    n    4
+        6  2    n    4
+        """
         from pandas.core.apply import frame_apply
 
         op = frame_apply(self, func=func, axis=axis, args=args, kwargs=kwargs)

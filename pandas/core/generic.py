@@ -2263,10 +2263,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    @doc(
-        storage_options=_shared_docs["storage_options"],
-        compression_options=_shared_docs["compression_options"] % "path_or_buf",
-    )
     def to_json(
         self,
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
@@ -2303,27 +2299,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * Series:
 
                 - default is 'index'
-                - allowed values are: {{'split', 'records', 'index', 'table'}}.
+                - allowed values are: {'split', 'records', 'index', 'table'}.
 
             * DataFrame:
 
                 - default is 'columns'
-                - allowed values are: {{'split', 'records', 'index', 'columns',
-                  'values', 'table'}}.
+                - allowed values are: {'split', 'records', 'index', 'columns',
+                  'values', 'table'}.
 
             * The format of the JSON string:
 
-                - 'split' : dict like {{'index' -> [index], 'columns' -> [columns],
-                  'data' -> [values]}}
-                - 'records' : list like [{{column -> value}}, ... , {{column -> value}}]
-                - 'index' : dict like {{index -> {{column -> value}}}}
-                - 'columns' : dict like {{column -> {{index -> value}}}}
+                - 'split' : dict like {'index' -> [index], 'columns' -> [columns],
+                  'data' -> [values]}
+                - 'records' : list like [{column -> value}, ... , {column -> value}]
+                - 'index' : dict like {index -> {column -> value}}
+                - 'columns' : dict like {column -> {index -> value}}
                 - 'values' : just the values array
-                - 'table' : dict like {{'schema': {{schema}}, 'data': {{data}}}}
+                - 'table' : dict like {'schema': {schema}, 'data': {data}}
 
                 Describing the data, where data component is like ``orient='records'``.
 
-        date_format : {{None, 'epoch', 'iso'}}
+        date_format : {None, 'epoch', 'iso'}
             Type of date conversion. 'epoch' = epoch milliseconds,
             'iso' = ISO8601. The default depends on the `orient`. For
             ``orient='table'``, the default is 'iso'. For all other orients,
@@ -2346,7 +2342,24 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If 'orient' is 'records' write out line-delimited json format. Will
             throw ValueError if incorrect 'orient' since others are not
             list-like.
-        {compression_options}
+        compression : str or dict, default 'infer'
+            For on-the-fly compression of the output data. If 'infer' and 'path_or_buf'
+            is path-like, then detect compression from the following extensions: '.gz',
+            '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+            (otherwise no compression).
+            Set to ``None`` for no compression.
+            Can also be a dict with key ``'method'`` set
+            to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``,
+            ``'tar'``} and other key-value pairs are forwarded to
+            ``zipfile.ZipFile``, ``gzip.GzipFile``,
+            ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
+            ``tarfile.TarFile``, respectively.
+            As an example, the following could be passed for faster compression and to
+            create a reproducible gzip archive:
+            ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
+
+            .. versionadded:: 1.5.0
+                Added support for `.tar` files.
 
             .. versionchanged:: 1.4.0 Zstandard support.
 
@@ -2358,7 +2371,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         indent : int, optional
            Length of whitespace used to indent each record.
 
-        {storage_options}
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+            are forwarded to ``urllib.request.Request`` as header options. For other
+            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
 
         mode : str, default 'w' (writing)
             Specify the IO mode for output when supplying a path_or_buf.
@@ -2398,7 +2419,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> result = df.to_json(orient="split")
         >>> parsed = loads(result)
         >>> dumps(parsed, indent=4)  # doctest: +SKIP
-        {{
+        {
             "columns": [
                 "col 1",
                 "col 2"
@@ -2417,7 +2438,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     "d"
                 ]
             ]
-        }}
+        }
 
         Encoding/decoding a Dataframe using ``'records'`` formatted JSON.
         Note that index labels are not preserved with this encoding.
@@ -2426,14 +2447,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> parsed = loads(result)
         >>> dumps(parsed, indent=4)  # doctest: +SKIP
         [
-            {{
+            {
                 "col 1": "a",
                 "col 2": "b"
-            }},
-            {{
+            },
+            {
                 "col 1": "c",
                 "col 2": "d"
-            }}
+            }
         ]
 
         Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
@@ -2441,32 +2462,32 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> result = df.to_json(orient="index")
         >>> parsed = loads(result)
         >>> dumps(parsed, indent=4)  # doctest: +SKIP
-        {{
-            "row 1": {{
+        {
+            "row 1": {
                 "col 1": "a",
                 "col 2": "b"
-            }},
-            "row 2": {{
+            },
+            "row 2": {
                 "col 1": "c",
                 "col 2": "d"
-            }}
-        }}
+            }
+        }
 
         Encoding/decoding a Dataframe using ``'columns'`` formatted JSON:
 
         >>> result = df.to_json(orient="columns")
         >>> parsed = loads(result)
         >>> dumps(parsed, indent=4)  # doctest: +SKIP
-        {{
-            "col 1": {{
+        {
+            "col 1": {
                 "row 1": "a",
                 "row 2": "c"
-            }},
-            "col 2": {{
+            },
+            "col 2": {
                 "row 1": "b",
                 "row 2": "d"
-            }}
-        }}
+            }
+        }
 
         Encoding/decoding a Dataframe using ``'values'`` formatted JSON:
 
@@ -2489,40 +2510,40 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> result = df.to_json(orient="table")
         >>> parsed = loads(result)
         >>> dumps(parsed, indent=4)  # doctest: +SKIP
-        {{
-            "schema": {{
+        {
+            "schema": {
                 "fields": [
-                    {{
+                    {
                         "name": "index",
                         "type": "string"
-                    }},
-                    {{
+                    },
+                    {
                         "name": "col 1",
                         "type": "string"
-                    }},
-                    {{
+                    },
+                    {
                         "name": "col 2",
                         "type": "string"
-                    }}
+                    }
                 ],
                 "primaryKey": [
                     "index"
                 ],
                 "pandas_version": "1.4.0"
-            }},
+            },
             "data": [
-                {{
+                {
                     "index": "row 1",
                     "col 1": "a",
                     "col 2": "b"
-                }},
-                {{
+                },
+                {
                     "index": "row 2",
                     "col 1": "c",
                     "col 2": "d"
-                }}
+                }
             ]
-        }}
+        }
         """
         from pandas.io import json
 
@@ -6787,10 +6808,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Self | None: ...
 
     @final
-    @doc(
-        klass=_shared_doc_kwargs["klass"],
-        axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
-    )
     def fillna(
         self,
         value: Hashable | Mapping | Series | DataFrame | None = None,
@@ -6811,7 +6828,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             each index (for a Series) or column (for a DataFrame).  Values not
             in the dict/Series/DataFrame will not be filled. This value cannot
             be a list.
-        method : {{'backfill', 'bfill', 'ffill', None}}, default None
+        method : {'backfill', 'bfill', 'ffill', None}, default None
             Method to use for filling holes in reindexed Series:
 
             * ffill: propagate last valid observation forward to next valid.
@@ -6820,7 +6837,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             .. deprecated:: 2.1.0
                 Use ffill or bfill instead.
 
-        axis : {axes_single_arg}
+        axis : {0 or 'index'} for Series, {0 or 'index', 1 or 'columns'} for DataFrame
             Axis along which to fill missing values. For `Series`
             this parameter is unused and defaults to 0.
         inplace : bool, default False
@@ -6837,7 +6854,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        {klass} or None
+        Series/DataFrame or None
             Object with missing values filled or None if ``inplace=True``.
 
         See Also
@@ -6878,7 +6895,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Replace all NaN elements in column 'A', 'B', 'C', and 'D', with 0, 1,
         2, and 3 respectively.
 
-        >>> values = {{"A": 0, "B": 1, "C": 2, "D": 3}}
+        >>> values = {"A": 0, "B": 1, "C": 2, "D": 3}
         >>> df.fillna(value=values)
              A    B    C    D
         0  0.0  2.0  2.0  0.0
