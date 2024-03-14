@@ -515,7 +515,7 @@ class RangeIndex(Index):
         new_index = self._rename(name=name)
         return new_index
 
-    def _minmax(self, meth: str) -> int | float:
+    def _minmax(self, meth: Literal["min", "max"]) -> int | float:
         no_steps = len(self) - 1
         if no_steps == -1:
             return np.nan
@@ -535,6 +535,39 @@ class RangeIndex(Index):
         nv.validate_minmax_axis(axis)
         nv.validate_max(args, kwargs)
         return self._minmax("max")
+
+    def _argminmax(
+        self,
+        meth: Literal["min", "max"],
+        axis=None,
+        skipna: bool = True,
+    ) -> int:
+        nv.validate_minmax_axis(axis)
+        if len(self) == 0:
+            return getattr(super(), f"arg{meth}")(
+                axis=axis,
+                skipna=skipna,
+            )
+        elif meth == "min":
+            if self.step > 0:
+                return 0
+            else:
+                return len(self) - 1
+        elif meth == "max":
+            if self.step > 0:
+                return len(self) - 1
+            else:
+                return 0
+        else:
+            raise ValueError(f"{meth=} must be max or min")
+
+    def argmin(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
+        nv.validate_argmin(args, kwargs)
+        return self._argminmax("min", axis=axis, skipna=skipna)
+
+    def argmax(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
+        nv.validate_argmax(args, kwargs)
+        return self._argminmax("max", axis=axis, skipna=skipna)
 
     def argsort(self, *args, **kwargs) -> npt.NDArray[np.intp]:
         """
