@@ -16,6 +16,7 @@ Usage::
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 import doctest
 from functools import lru_cache
 import importlib
@@ -474,11 +475,15 @@ def init_argparser():
         "all docstrings",
     )
     argparser.add_argument(
-        "--ignore_functions",
-        nargs="*",
-        help="function or method to not validate "
-        "(e.g. pandas.DataFrame.head). "
-        "Inverse of the `function` argument.",
+        "--for_error_ignore_functions",
+        action="append",
+        nargs=2,
+        metavar=("error_code", "functions"),
+        help="error code for which comma separated list "
+        "of functions should not be validated"
+        "(e.g. PR01 pandas.DataFrame.head). "
+        "Partial validation for more than one error code"
+        "can be achieved by repeating this parameter.",
     )
 
     return argparser
@@ -487,17 +492,17 @@ def init_argparser():
 def validate_all_arg_groups(arg_groups):
     exit_status = 0
     for args in arg_groups:
-        error_str = args.errors.replace(",", ", ") if args.errors else ""
+        error_str = ", ".join(args.errors) if args.errors else ""
         if args.ignore_functions:
-            msg = f"Partially validate docstrings ({error_str})"
+            msg = f"Partially validate docstrings ({error_str})\n"
         else:
-            msg = f"Validate docstrings ({error_str})"
-        sys.stdout.write(msg + os.linesep)
+            msg = f"Validate docstrings ({error_str})\n"
+        sys.stdout.write(msg)
 
         exit_status += main(
             args.function,
             args.prefix,
-            args.errors.split(",") if args.errors else None,
+            args.errors,
             args.format,
             args.ignore_deprecated,
             args.ignore_functions,
@@ -506,17 +511,39 @@ def validate_all_arg_groups(arg_groups):
     return exit_status
 
 
+def _group_args(parsed_args):
+    # get all errors that should be fully validated
+    parsed_args.errors = parsed_args.errors.split(",") if parsed_args.errors else None
+    fully_validate = deepcopy(parsed_args)
+    fully_validate.for_error_ignore_functions = None
+    fully_validate.ignore_functions = None
+
+    if not parsed_args.for_error_ignore_functions:
+        return [fully_validate]
+
+    partial_validation_groups = []
+    for error_code, functions in parsed_args.for_error_ignore_functions:
+        # partial error validation runs should have otherwise identical parameters
+        partial_validation = deepcopy(fully_validate)
+        partial_validation.errors = [error_code]
+        partial_validation.ignore_functions = functions.split(",")
+        partial_validation_groups.append(partial_validation)
+        if fully_validate.errors and error_code in fully_validate.errors:
+            fully_validate.errors.remove(error_code)
+
+    if fully_validate.errors:
+        return [fully_validate] + partial_validation_groups
+    else:
+        return partial_validation_groups
+
+
 if __name__ == "__main__":
     # we are processing multiple validation runs, each parametrized differently and
     # delimited with "--" in the command line arguments
-    if "--" in sys.argv[1:]:
-        arg_groups = " ".join(sys.argv[1:]).split(" -- ")
-        arg_groups = [group.split(" ") for group in arg_groups]
-    else:
-        arg_groups = [sys.argv[1:]]
 
     argparser = init_argparser()
-    parsed_arg_groups = [argparser.parse_args(arg_group) for arg_group in arg_groups]
+    args = argparser.parse_args(sys.argv[1:])
+    parsed_arg_groups = _group_args(args)
 
     sys.exit(
         validate_all_arg_groups(parsed_arg_groups)
