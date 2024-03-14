@@ -338,7 +338,7 @@ def test_constructor_raises(cls):
     with pytest.raises(ValueError, match=msg):
         cls(np.array([]))
 
-    if cls is pd.arrays.StringArray:
+    if cls in (pd.arrays.ObjectStringArray, pd.core.arrays.string_.NumpyStringArray):
         # GH#45057 np.nan and None do NOT raise, as they are considered valid NAs
         #  for string dtype
         cls(np.array(["a", np.nan], dtype=object))

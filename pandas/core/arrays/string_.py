@@ -584,7 +584,7 @@ class BaseNumpyStringArray(BaseStringArray, NumpyExtensionArray):  # type: ignor
             result = np.zeros(len(self._ndarray), dtype="bool")
             try:
                 result[valid] = op(self._ndarray[valid], other)
-            except np.core._exceptions._UFuncNoLoopError:
+            except np._core._exceptions._UFuncNoLoopError:
                 if hasattr(other, "_ndarray"):
                     other_type = other._ndarray.dtype
                 else:
@@ -724,15 +724,41 @@ StringArray = ObjectStringArray
 class NumpyStringArray(BaseNumpyStringArray):
     _na_value = libmissing.NA
     _storage = "numpy"
+    _ctor_err_msg = "StringArray requires a sequence of strings or pandas.NA"
 
     def __init__(self, values, copy: bool = False) -> None:
+        default_dtype = get_numpy_string_dtype_instance()
         try:
-            values = np.asarray(values, dtype=get_numpy_string_dtype_instance())
+            arr_values = np.asarray(values)
         except (TypeError, ValueError):
-            raise ValueError("StringArray requires a sequence of strings or pandas.NA")
-        if values.size == 0:
-            raise ValueError("StringArray requires a sequence of strings or pandas.NA")
-        super().__init__(values, copy=copy)
+            raise ValueError(self._ctor_err_msg)
+        # this check exists purely to satisfy test_constructor_raises and could
+        # be deleted if that restriction was relaxed for NumpyStringArray
+        if (arr_values.size == 0 or arr_values.dtype.char == "S"):
+            raise ValueError(self._ctor_err_msg)
+        try:
+            str_values = arr_values.astype(default_dtype)
+        except ValueError:
+            # we want to emulate ObjectStringArray, which accepts nan and None
+            # as valid missing values
+            if arr_values.dtype.kind == "O":
+                # try again with NA set to np.nan or None
+                str_values = None
+                for na_object in (np.nan, None):
+                    try:
+                        dtype = get_numpy_string_dtype_instance(
+                            na_object=na_object, coerce=False)
+                        str_values = arr_values.astype(dtype)
+                        continue
+                    except ValueError:
+                        pass
+                if str_values is None:
+                    raise ValueError(self._ctor_err_msg)
+                else:
+                    str_values = str_values.astype(default_dtype)
+            else:
+                raise ValueError(self._ctor_err_msg)
+        super().__init__(str_values, copy=copy)
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
