@@ -362,28 +362,29 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name=None,
         copy: bool | None = None,
     ) -> None:
-        # TODO 2: Send to Series Task 7, below. URGENT. Classify this.
         allow_mgr = False
-        if (
-            isinstance(data, SingleBlockManager)
-            and index is None
-            and dtype is None
-            and (copy is False or copy is None)
-        ):
-            if not allow_mgr:
-                # GH#52419
-                warnings.warn(
-                    f"Passing a {type(data).__name__} to {type(self).__name__} "
-                    "is deprecated and will raise in a future version. "
-                    "Use public APIs instead.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-            data = data.copy(deep=False)
-            # GH#33357 called with just the SingleBlockManager
-            NDFrame.__init__(self, data)
-            self.name = name
-            return
+
+        # # TODO 2: Send to Series Task 7, below. URGENT. Classify this.
+        # if (
+        #     isinstance(data, SingleBlockManager)
+        #     and index is None
+        #     and dtype is None
+        #     and (copy is False or copy is None)
+        # ):
+        #     if not allow_mgr:
+        #         # GH#52419
+        #         warnings.warn(
+        #             f"Passing a {type(data).__name__} to {type(self).__name__} "
+        #             "is deprecated and will raise in a future version. "
+        #             "Use public APIs instead.",
+        #             DeprecationWarning,
+        #             stacklevel=2,
+        #         )
+        #     data = data.copy(deep=False)
+        #     # GH#33357 called with just the SingleBlockManager
+        #     NDFrame.__init__(self, data)
+        #     self.name = name
+        #     return
 
         # Series TASK 1: RAISE ERRORS ON KNOWN UNACEPPTED CASES, ETC.
         if isinstance(data, MultiIndex):
@@ -391,10 +392,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 "initializing a Series from a MultiIndex is not supported"
             )
 
+        # DONE
         # TODO 3.0: OK Create if-else-logic to move
         # TODO 3.1: OK Check if is possible to move to Series TASK-0. Above
-        # TODO 3.2: Move to Series Task 0
-        # TODO 3.3: Unify if-else structure
+        # TODO 3.2: OK Move to Series Task 0
+        # TODO 3.3: OK Unify if-else structure
         if isinstance(data, SingleBlockManager):
             # DeMorgan Rule
             if not (data.index.equals(index) or index is None) or copy:
@@ -417,25 +419,48 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
-        # TODO 10.1: Codes to move to Series TASK copy below. CODE1, CODE 2
-        #
-        # CODE 2.0, TRY TO move below, to copy.
+        # TODO 10: Codes to move to Series TASK 5.B. Copying the Manager, below.
+        # TRY TO move below, to copy.
         # Note that the logic changes!
-        # Is it so? ExtensionArray copies with None and True
-        # And BlockManagers copies only with True
+        # Does ExtensionArray copies with None and True?
+        # BlockManagers copies only with True
         # Since copy maybe None, if copy is None it will enter this
         if isinstance(data, (ExtensionArray, np.ndarray)):
             if copy is not False:
                 if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
                     data = data.copy()
-
-        # TODO 10.0: TRY TO UNIFY WITH CODE 2
-        # CODE 2.1
         if copy is None:
             copy = False
 
-        # TODO 9:
-        # CODE 1. Move to Series TASK 5.A
+        # WORKING HERE!!!!!
+        # TODO 2: Decouple warning/Manager manipulation IN THE TWO CALLS BELOW.
+        # TODO 2.1: Join the two Manager checks below into a single if-else
+        # TODO 2.2: Decouple warnings / DATA MANIPULATION.
+        # TODO 2.3: Slide the warnings to Series Task 7.
+        # TODO 2.4: Slide copying the manager to Series TASK 5.A
+        # TODO 2.5: Check if it is possible to separate NDFrame.__init__ to
+        # --------- To Series Task 6.
+        if (
+            isinstance(data, SingleBlockManager)
+            and index is None
+            and dtype is None
+            and not copy
+        ):
+            if not allow_mgr:
+                # GH#52419
+                warnings.warn(
+                    f"Passing a {type(data).__name__} to {type(self).__name__} "
+                    "is deprecated and will raise in a future version. "
+                    "Use public APIs instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+            data = data.copy(deep=False)
+            # GH#33357 called with just the SingleBlockManager
+            NDFrame.__init__(self, data)
+            self.name = name
+            return
+        #  Move to Series TASK 5
         if isinstance(data, SingleBlockManager) and not copy:
             data = data.copy(deep=False)
 
