@@ -979,7 +979,7 @@ class RangeIndex(Index):
         if is_integer(item) or is_float(item):
             # We can retain RangeIndex is inserting at the beginning or end,
             #  or right in the middle.
-            if len(self) == 0 and loc == 0:
+            if len(self) == 0 and loc == 0 and is_integer(item):
                 new_rng = range(item, item + self.step, self.step)
                 return type(self)._simple_new(new_rng, name=self._name)
             elif len(self):
