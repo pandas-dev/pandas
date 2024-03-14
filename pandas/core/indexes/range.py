@@ -1314,6 +1314,27 @@ class RangeIndex(Index):
             # test_arithmetic_explicit_conversions
             return super()._arith_method(other, op)
 
+    def __abs__(self) -> Self | Index:
+        if len(self) == 0 or self.min() >= 0:
+            return self.copy()
+        elif self.max() <= 0:
+            return -self
+        else:
+            return super().__abs__()
+
+    def __neg__(self) -> Self:
+        rng = range(-self.start, -self.stop, -self.step)
+        return self._simple_new(rng, name=self.name)
+
+    def __pos__(self) -> Self:
+        return self.copy()
+
+    def __invert__(self) -> Self:
+        if len(self) == 0:
+            return self.copy()
+        rng = range(~self.start, ~self.stop, -self.step)
+        return self._simple_new(rng, name=self.name)
+
     # error: Return type "Index" of "take" incompatible with return type
     # "RangeIndex" in supertype "Index"
     def take(  # type: ignore[override]
