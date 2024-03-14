@@ -33,6 +33,7 @@ class FrameMixedDtypesOps:
                 ("median", 1),
                 ("median", None),
                 ("std", 1),
+                ("std", None),
             )
         ):
             # Skipping cases where datetime aggregations are not implemented

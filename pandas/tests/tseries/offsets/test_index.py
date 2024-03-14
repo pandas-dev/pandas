@@ -1,6 +1,7 @@
 """
 Tests for offset behavior with indices.
 """
+
 import pytest
 
 from pandas import (

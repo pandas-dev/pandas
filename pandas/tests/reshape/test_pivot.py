@@ -11,7 +11,7 @@ import pytest
 
 from pandas._config import using_pyarrow_string_dtype
 
-from pandas.errors import PerformanceWarning
+from pandas.compat.numpy import np_version_gte1p25
 
 import pandas as pd
 from pandas import (
@@ -2061,10 +2061,10 @@ class TestPivotTable:
         [
             ("sum", np.sum),
             ("mean", np.mean),
-            ("std", np.std),
+            ("min", np.min),
             (["sum", "mean"], [np.sum, np.mean]),
-            (["sum", "std"], [np.sum, np.std]),
-            (["std", "mean"], [np.std, np.mean]),
+            (["sum", "min"], [np.sum, np.min]),
+            (["max", "mean"], [np.max, np.mean]),
         ],
     )
     def test_pivot_string_func_vs_func(self, f, f_numpy, data):
@@ -2072,14 +2072,20 @@ class TestPivotTable:
         # for consistency purposes
         data = data.drop(columns="C")
         result = pivot_table(data, index="A", columns="B", aggfunc=f)
-        ops = "|".join(f) if isinstance(f, list) else f
-        msg = f"using DataFrameGroupBy.[{ops}]"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = pivot_table(data, index="A", columns="B", aggfunc=f_numpy)
+        expected = pivot_table(data, index="A", columns="B", aggfunc=f_numpy)
+
+        if not np_version_gte1p25 and isinstance(f_numpy, list):
+            # Prior to 1.25, np.min/np.max would come through as amin and amax
+            mapper = {"amin": "min", "amax": "max", "sum": "sum", "mean": "mean"}
+            expected.columns = expected.columns.map(
+                lambda x: (mapper[x[0]], x[1], x[2])
+            )
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow
-    def test_pivot_number_of_levels_larger_than_int32(self, monkeypatch):
+    def test_pivot_number_of_levels_larger_than_int32(
+        self, performance_warning, monkeypatch
+    ):
         # GH 20601
         # GH 26314: Change ValueError to PerformanceWarning
         class MockUnstacker(reshape_lib._Unstacker):
@@ -2095,7 +2101,7 @@ class TestPivotTable:
             )
 
             msg = "The following operation may generate"
-            with tm.assert_produces_warning(PerformanceWarning, match=msg):
+            with tm.assert_produces_warning(performance_warning, match=msg):
                 with pytest.raises(Exception, match="Don't compute final result."):
                     df.pivot_table(
                         index="ind1", columns="ind2", values="count", aggfunc="count"

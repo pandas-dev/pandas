@@ -10,6 +10,7 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 
 3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 """
+
 from __future__ import annotations
 
 from array import array

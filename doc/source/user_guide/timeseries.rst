@@ -1327,8 +1327,8 @@ frequencies. We will refer to these aliases as *period aliases*.
 
 .. deprecated:: 2.2.0
 
-   Aliases ``A``, ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` are deprecated in favour of the aliases
-   ``Y``, ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns``.
+   Aliases ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` are deprecated in favour of the aliases
+   ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns``.
 
 
 Combining aliases

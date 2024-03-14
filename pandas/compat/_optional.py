@@ -92,8 +92,7 @@ def import_optional_dependency(
     min_version: str | None = ...,
     *,
     errors: Literal["raise"] = ...,
-) -> types.ModuleType:
-    ...
+) -> types.ModuleType: ...
 
 
 @overload
@@ -103,8 +102,7 @@ def import_optional_dependency(
     min_version: str | None = ...,
     *,
     errors: Literal["warn", "ignore"],
-) -> types.ModuleType | None:
-    ...
+) -> types.ModuleType | None: ...
 
 
 def import_optional_dependency(

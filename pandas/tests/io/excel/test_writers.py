@@ -936,6 +936,17 @@ class TestExcelWriter:
             result, expected, check_index_type=False, check_dtype=False
         )
 
+    def test_to_excel_empty_multiindex_both_axes(self, tmp_excel):
+        # GH 57696
+        df = DataFrame(
+            [],
+            index=MultiIndex.from_tuples([], names=[0, 1]),
+            columns=MultiIndex.from_tuples([("A", "B")]),
+        )
+        df.to_excel(tmp_excel)
+        result = pd.read_excel(tmp_excel, header=[0, 1], index_col=[0, 1])
+        tm.assert_frame_equal(result, df)
+
     def test_to_excel_float_format(self, tmp_excel):
         df = DataFrame(
             [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],
@@ -1246,18 +1257,18 @@ class TestExcelWriter:
         }
 
         if PY310:
-            msgs[
-                "openpyxl"
-            ] = "Workbook.__init__() got an unexpected keyword argument 'foo'"
-            msgs[
-                "xlsxwriter"
-            ] = "Workbook.__init__() got an unexpected keyword argument 'foo'"
+            msgs["openpyxl"] = (
+                "Workbook.__init__() got an unexpected keyword argument 'foo'"
+            )
+            msgs["xlsxwriter"] = (
+                "Workbook.__init__() got an unexpected keyword argument 'foo'"
+            )
 
         # Handle change in error message for openpyxl (write and append mode)
         if engine == "openpyxl" and not os.path.exists(tmp_excel):
-            msgs[
-                "openpyxl"
-            ] = r"load_workbook() got an unexpected keyword argument 'foo'"
+            msgs["openpyxl"] = (
+                r"load_workbook() got an unexpected keyword argument 'foo'"
+            )
 
         with pytest.raises(TypeError, match=re.escape(msgs[engine])):
             df.to_excel(
@@ -1390,7 +1401,7 @@ class TestExcelWriter:
     def test_to_excel_raising_warning_when_cell_character_exceed_limit(self):
         # GH#56954
         df = DataFrame({"A": ["a" * 32768]})
-        msg = "Cell contents too long, truncated to 32767 characters"
+        msg = r"Cell contents too long \(32768\), truncated to 32767 characters"
         with tm.assert_produces_warning(
             UserWarning, match=msg, raise_on_extra_warnings=False
         ):
