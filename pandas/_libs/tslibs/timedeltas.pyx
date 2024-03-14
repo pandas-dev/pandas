@@ -1307,7 +1307,7 @@ cdef class _Timedelta(timedelta):
         """
         if self._creso == NPY_FR_ns:
             us, remainder = divmod(self._value, 1000)
-            if remainder > 500:
+            if remainder >= 500:
                 us += 1
             return timedelta(microseconds=us)
 
