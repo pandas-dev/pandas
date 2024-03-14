@@ -646,9 +646,9 @@ class TestNestedToRecord:
         expected = DataFrame(ex_data, columns=columns)
         tm.assert_frame_equal(result, expected)
 
-    def test_missing_nested_meta(self):
+    def test_missing_nested_meta_traverse_none(self):
         # GH44312
-        # If errors="ignore" and nested metadata is null, we should return nan
+        # If errors="ignore" and nested metadata is nullable, return nan
         data = {"meta": "foo", "nested_meta": None, "value": [{"rec": 1}, {"rec": 2}]}
         result = json_normalize(
             data,
@@ -672,6 +672,22 @@ class TestNestedToRecord:
                 meta=["meta", ["nested_meta", "leaf"]],
                 errors="raise",
             )
+
+    def test_missing_nested_meta_traverse_empty_list(self):
+        # If errors="ignore" and nested metadata is nullable, return nan
+        data = {"meta": "foo", "nested_meta": [], "value": [{"rec": 1}, {"rec": 2}]}
+        result = json_normalize(
+            data,
+            record_path="value",
+            meta=["meta", ["nested_meta", "leaf"]],
+            errors="ignore",
+        )
+        ex_data = [[1, "foo", np.nan], [2, "foo", np.nan]]
+        columns = ["rec", "meta", "nested_meta.leaf"]
+        expected = DataFrame(ex_data, columns=columns).astype(
+            {"nested_meta.leaf": object}
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_missing_meta_multilevel_record_path_errors_raise(self, missing_metadata):
         # GH41876
