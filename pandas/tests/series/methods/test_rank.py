@@ -234,6 +234,16 @@ class TestSeriesRank:
         tm.assert_series_equal(na_ser.rank(na_option="bottom", pct=True), exp_bot)
         tm.assert_series_equal(na_ser.rank(na_option="keep", pct=True), exp_keep)
 
+    def test_rank_nullable_integer(self):
+        # GH 56976
+        exp = Series([np.nan, 2, np.nan, 3, 3, 2, 3, 1])
+        exp = exp.astype("Int64")
+        result = exp.rank(na_option="keep")
+
+        expected = Series([np.nan, 2.5, np.nan, 5.0, 5.0, 2.5, 5.0, 1.0])
+
+        tm.assert_series_equal(result, expected)
+
     def test_rank_signature(self):
         s = Series([0, 1])
         s.rank(method="average")

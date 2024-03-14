@@ -1840,16 +1840,13 @@ class Index(IndexOpsMixin, PandasObject):
     names = property(fset=_set_names, fget=_get_names)
 
     @overload
-    def set_names(self, names, *, level=..., inplace: Literal[False] = ...) -> Self:
-        ...
+    def set_names(self, names, *, level=..., inplace: Literal[False] = ...) -> Self: ...
 
     @overload
-    def set_names(self, names, *, level=..., inplace: Literal[True]) -> None:
-        ...
+    def set_names(self, names, *, level=..., inplace: Literal[True]) -> None: ...
 
     @overload
-    def set_names(self, names, *, level=..., inplace: bool = ...) -> Self | None:
-        ...
+    def set_names(self, names, *, level=..., inplace: bool = ...) -> Self | None: ...
 
     def set_names(self, names, *, level=None, inplace: bool = False) -> Self | None:
         """
@@ -1956,12 +1953,10 @@ class Index(IndexOpsMixin, PandasObject):
         return None
 
     @overload
-    def rename(self, name, *, inplace: Literal[False] = ...) -> Self:
-        ...
+    def rename(self, name, *, inplace: Literal[False] = ...) -> Self: ...
 
     @overload
-    def rename(self, name, *, inplace: Literal[True]) -> None:
-        ...
+    def rename(self, name, *, inplace: Literal[True]) -> None: ...
 
     def rename(self, name, *, inplace: bool = False) -> Self | None:
         """
@@ -4183,8 +4178,7 @@ class Index(IndexOpsMixin, PandasObject):
         level: Level = ...,
         return_indexers: Literal[True],
         sort: bool = ...,
-    ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
-        ...
+    ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]: ...
 
     @overload
     def join(
@@ -4195,8 +4189,7 @@ class Index(IndexOpsMixin, PandasObject):
         level: Level = ...,
         return_indexers: Literal[False] = ...,
         sort: bool = ...,
-    ) -> Index:
-        ...
+    ) -> Index: ...
 
     @overload
     def join(
@@ -4207,8 +4200,9 @@ class Index(IndexOpsMixin, PandasObject):
         level: Level = ...,
         return_indexers: bool = ...,
         sort: bool = ...,
-    ) -> Index | tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
-        ...
+    ) -> (
+        Index | tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]
+    ): ...
 
     @final
     @_maybe_return_indexers
@@ -4314,7 +4308,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._join_via_get_indexer(other, how, sort)
 
-    @final
     def _join_empty(
         self, other: Index, how: JoinHow, sort: bool
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
@@ -5525,8 +5518,7 @@ class Index(IndexOpsMixin, PandasObject):
         ascending: bool = ...,
         na_position: NaPosition = ...,
         key: Callable | None = ...,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     @overload
     def sort_values(
@@ -5536,8 +5528,7 @@ class Index(IndexOpsMixin, PandasObject):
         ascending: bool = ...,
         na_position: NaPosition = ...,
         key: Callable | None = ...,
-    ) -> tuple[Self, np.ndarray]:
-        ...
+    ) -> tuple[Self, np.ndarray]: ...
 
     @overload
     def sort_values(
@@ -5547,8 +5538,7 @@ class Index(IndexOpsMixin, PandasObject):
         ascending: bool = ...,
         na_position: NaPosition = ...,
         key: Callable | None = ...,
-    ) -> Self | tuple[Self, np.ndarray]:
-        ...
+    ) -> Self | tuple[Self, np.ndarray]: ...
 
     def sort_values(
         self,
@@ -5945,20 +5935,17 @@ class Index(IndexOpsMixin, PandasObject):
     @overload
     def _get_indexer_non_comparable(
         self, target: Index, method, unique: Literal[True] = ...
-    ) -> npt.NDArray[np.intp]:
-        ...
+    ) -> npt.NDArray[np.intp]: ...
 
     @overload
     def _get_indexer_non_comparable(
         self, target: Index, method, unique: Literal[False]
-    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
-        ...
+    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
 
     @overload
     def _get_indexer_non_comparable(
         self, target: Index, method, unique: bool = True
-    ) -> npt.NDArray[np.intp] | tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
-        ...
+    ) -> npt.NDArray[np.intp] | tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
 
     @final
     def _get_indexer_non_comparable(
@@ -6823,7 +6810,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return Index(self.to_series().diff(periods))
 
-    @final
     def round(self, decimals: int = 0) -> Self:
         """
         Round each value in the Index to the given number of decimals.

@@ -11,6 +11,7 @@ internally that specifically check for dicts, and does non-scalar things
 in that case. We *want* the dictionaries to be treated as scalars, so we
 hack around pandas by using UserDicts.
 """
+
 from __future__ import annotations
 
 from collections import (
