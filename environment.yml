@@ -62,7 +62,6 @@ dependencies:
   # downstream packages
   - dask-core<=2024.2.1
   - seaborn-base
-  - dask-expr<=0.5.3
 
   # local testing dependencies
   - moto
