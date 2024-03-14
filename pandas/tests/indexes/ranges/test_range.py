@@ -608,6 +608,37 @@ class TestRangeIndex:
         tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "rng, decimals",
+    [
+        [range(5), 0],
+        [range(5), 2],
+        [range(10, 30, 10), -1],
+        [range(30, 10, -10), -1],
+    ],
+)
+def test_range_round_returns_rangeindex(rng, decimals):
+    ri = RangeIndex(rng)
+    expected = ri.copy()
+    result = ri.round(decimals=decimals)
+    tm.assert_index_equal(result, expected, exact=True)
+
+
+@pytest.mark.parametrize(
+    "rng, decimals",
+    [
+        [range(10, 30, 1), -1],
+        [range(30, 10, -1), -1],
+        [range(11, 14), -10],
+    ],
+)
+def test_range_round_returns_index(rng, decimals):
+    ri = RangeIndex(rng)
+    expected = Index(list(rng)).round(decimals=decimals)
+    result = ri.round(decimals=decimals)
+    tm.assert_index_equal(result, expected, exact=True)
+
+
 def test_reindex_1_value_returns_rangeindex():
     ri = RangeIndex(0, 10, 2, name="foo")
     result, result_indexer = ri.reindex([2])
@@ -730,6 +761,30 @@ def test_getitem_boolmask_wrong_length():
     ri = RangeIndex(4, name="foo")
     with pytest.raises(IndexError, match="Boolean index has wrong length"):
         ri[[True]]
+
+
+@pytest.mark.parametrize(
+    "rng",
+    [
+        range(0, 5, 1),
+        range(0, 5, 2),
+        range(10, 15, 1),
+        range(10, 5, -1),
+        range(10, 5, -2),
+        range(5, 0, -1),
+    ],
+)
+@pytest.mark.parametrize("meth", ["argmax", "argmin"])
+def test_arg_min_max(rng, meth):
+    ri = RangeIndex(rng)
+    idx = Index(list(rng))
+    assert getattr(ri, meth)() == getattr(idx, meth)()
+
+
+@pytest.mark.parametrize("meth", ["argmin", "argmax"])
+def test_empty_argmin_argmax_raises(meth):
+    with pytest.raises(ValueError, match=f"attempt to get {meth} of an empty sequence"):
+        getattr(RangeIndex(0), meth)()
 
 
 def test_getitem_integers_return_rangeindex():
