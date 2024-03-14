@@ -257,6 +257,7 @@ class StringMethods(NoNewAttributesMixin):
         result,
         name=None,
         expand: bool | None = None,
+        fill_value=np.nan,
         returns_string: bool = True,
         dtype=None,
     ):
