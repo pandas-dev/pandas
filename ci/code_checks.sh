@@ -146,8 +146,8 @@ pandas.core.groupby.SeriesGroupBy.plot # There should be no backslash in the fin
     #####
     # end of PR02 group
     #####
-    PARAMETERS+=(--for_error_ignore_functions GL08 \\
-pandas.Index.empty,
+    PARAMETERS+=(--for_error_ignore_functions GL08 \
+pandas.Index.empty,\
 pandas.Index.names,\
 pandas.Index.view,\
 pandas.IntervalIndex.left,\
@@ -400,7 +400,7 @@ pandas.tseries.offsets.YearEnd.n,\
 pandas.tseries.offsets.YearEnd.nanos,\
 pandas.tseries.offsets.YearEnd.normalize,\
 pandas.tseries.offsets.YearEnd.rule_code # There should be no backslash in the final line, please keep this comment in the last ignored function
-    )
+)
     #####
     # end of GL08 group
     #####
@@ -602,7 +602,7 @@ pandas.testing.assert_series_equal,\
 pandas.unique,\
 pandas.util.hash_array,\
 pandas.util.hash_pandas_object
-    )
+)
     #####
     # end of PR07 group
     #####
@@ -842,7 +842,7 @@ pandas.plotting.parallel_coordinates,\
 pandas.plotting.radviz,\
 pandas.plotting.table,\
 pandas.set_eng_float_format # There should be no backslash in the final line, please keep this comment in the last ignored function
-    )
+)
     #####
     # end of RT03 group
     #####
@@ -1606,7 +1606,7 @@ pandas.tseries.offsets.YearEnd.kwds,\
 pandas.tseries.offsets.YearEnd.name,\
 pandas.util.hash_array,\
 pandas.util.hash_pandas_object # There should be no backslash in the final line, please keep this comment in the last ignored function
-    )
+)
     #####
     # end of SA01 group
     #####
