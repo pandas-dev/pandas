@@ -182,7 +182,8 @@ class TestNLargestNSmallest:
             {
                 "a": [5, 4, 4, 3, 3, 3, 3],
                 "b": [10, 9, 8, 5, 50, 10, 20],
-            }
+            },
+            index=[0, 1, 2, 4, 5, 6, 7],
         )
         tm.assert_frame_equal(result, expected)
 
