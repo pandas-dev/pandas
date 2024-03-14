@@ -362,6 +362,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name=None,
         copy: bool | None = None,
     ) -> None:
+        # TODO 2: Send to Series Task 7, below. URGENT. Classify this.
         allow_mgr = False
         if (
             isinstance(data, SingleBlockManager)
@@ -384,11 +385,26 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self.name = name
             return
 
-        # Series TASK 0: RAISE ERRORS ON KNOWN UNACEPPTED CASES, ETC.
+        # Series TASK 1: RAISE ERRORS ON KNOWN UNACEPPTED CASES, ETC.
         if isinstance(data, MultiIndex):
             raise NotImplementedError(
                 "initializing a Series from a MultiIndex is not supported"
             )
+
+        # TODO 3.0: OK Create if-else-logic to move
+        # TODO 3.1: OK Check if is possible to move to Series TASK-0. Above
+        # TODO 3.2: Move to Series Task 0
+        # TODO 3.3: Unify if-else structure
+        if isinstance(data, SingleBlockManager):
+            # DeMorgan Rule
+            if not (data.index.equals(index) or index is None) or copy:
+                # GH#19275 SingleBlockManager input should only be called
+                # internally
+                raise AssertionError(
+                    "Cannot pass both SingleBlockManager "
+                    "`data` argument and a different "
+                    "`index` argument. `copy` must be False."
+                )
 
         # Series TASK 1: CAPTURE DATA NECESSARY FOR WARNINGS AND CLOSING
         is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
@@ -490,24 +506,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             elif isinstance(data, SingleBlockManager):
                 if index is None:
                     index = data.index
-                # TODO 1: DONE
-                # TODO 2: (I possibly just skipped the number)
-                # TODO 3.0: Check if is possible to move to Series TASK-0. Above
-                # TODO 3.1: Move to Series Task 0
-                # TODO 3.2: Unify if-else structure
-                if (
-                    isinstance(data, SingleBlockManager)
-                    and index is not None
-                    and not data.index.equals(index)
-                    or copy
-                ):
-                    # GH#19275 SingleBlockManager input should only be called
-                    # internally
-                    raise AssertionError(
-                        "Cannot pass both SingleBlockManager "
-                        "`data` argument and a different "
-                        "`index` argument. `copy` must be False."
-                    )
 
                 # TODO 4.0: Check if it is possible to move below to Series TASK 7.
                 # TODO 4.1: Recreate if
