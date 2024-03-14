@@ -435,8 +435,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # This one I will do a single commit documenting each sub-step, so that
         # other programmers can understand the method I am using on this refactoring.
         # TODO 2: Decouple warning/Manager manipulation IN THE TWO CALLS BELOW.
-        # TODO 2.1.1: <--- Make the two if-else checks below have a common pattern
-        # TODO 2.1.2: Join the two Manager checks below into a single if-else
+        # TODO 2.1.1: (DONE) Make the two if-else checks below have a common pattern
+        # TODO 2.1.2: <--- Join the two Manager checks below into a single if-else
         # TODO 2.2: Decouple warnings / DATA MANIPULATION.
         # TODO 2.3: Slide the warnings to Series Task 7.
         # TODO 2.4: Slide copying the manager to Series TASK 5.A
@@ -458,12 +458,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 NDFrame.__init__(self, data)
                 self.name = name
                 return
-        #  Move to Series TASK 5
-        if isinstance(data, SingleBlockManager) and not copy:  # <---
-            data = data.copy(deep=False)
 
-            # TODO 8N-2: Try to move to  Series TASK 7- WARNINGS
-            if not allow_mgr:
+            if not allow_mgr:  # <---
                 warnings.warn(
                     f"Passing a {type(data).__name__} to {type(self).__name__} "
                     "is deprecated and will raise in a future version. "
@@ -474,7 +470,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # Series TASK 3: DATA TRANSFORMATION.
 
-        # COMMENT: Dict is a just a special case of data preparation.
+        # COMMENT: Dict is SPECIAL case, since it's data has
+        # data values and index keys.
         # Here it is being sent to Series, but it could different, for simplicity.
         # It could be sent to array (for faster manipulation, for example).
 
