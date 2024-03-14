@@ -55,6 +55,7 @@
         "xlrd": [],
         "odfpy": [],
         "jinja2": [],
+        "cmake": [],
         "meson": [],
         "meson-python": [],
         "python-build": [],
