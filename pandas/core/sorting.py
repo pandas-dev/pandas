@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
 from typing import (
     TYPE_CHECKING,
     Callable,
-    DefaultDict,
     cast,
 )
 
@@ -34,7 +32,6 @@ from pandas.core.construction import extract_array
 if TYPE_CHECKING:
     from collections.abc import (
         Hashable,
-        Iterable,
         Sequence,
     )
 
@@ -590,23 +587,6 @@ def ensure_key_mapped(
         ) from err
 
     return result
-
-
-def get_flattened_list(
-    comp_ids: npt.NDArray[np.intp],
-    ngroups: int,
-    levels: Iterable[Index],
-    labels: Iterable[np.ndarray],
-) -> list[tuple]:
-    """Map compressed group id -> key tuple."""
-    comp_ids = comp_ids.astype(np.int64, copy=False)
-    arrays: DefaultDict[int, list[int]] = defaultdict(list)
-    for labs, level in zip(labels, levels):
-        table = hashtable.Int64HashTable(ngroups)
-        table.map_keys_to_values(comp_ids, labs.astype(np.int64, copy=False))
-        for i in range(ngroups):
-            arrays[i].append(level[table.get_item(i)])
-    return [tuple(array) for array in arrays.values()]
 
 
 def get_indexer_dict(
