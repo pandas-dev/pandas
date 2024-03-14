@@ -675,7 +675,7 @@ class IndexOpsMixin(OpsMixin):
     @final
     @property
     def empty(self) -> bool:
-        """        
+        """
         Check if the Index is empty.
 
         An Index is considered empty if it has no elements. This property can be
