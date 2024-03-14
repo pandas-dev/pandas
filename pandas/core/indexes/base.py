@@ -7156,7 +7156,7 @@ class Index(IndexOpsMixin, PandasObject):
 
 def maybe_sequence_to_range(sequence) -> Any | range:
     """
-    Convert a 1D sequence to a range if possible.
+    Convert a 1D, non-pandas sequence to a range if possible.
 
     Returns the input if not possible.
 
@@ -7169,30 +7169,24 @@ def maybe_sequence_to_range(sequence) -> Any | range:
     -------
     Any : input or range
     """
-    dtype = getattr(sequence, "dtype", None)
-    if not (dtype is None or isinstance(dtype, np.dtype)):
+    if isinstance(sequence, (ABCSeries, Index)):
         return sequence
-    idx_sequence = Index(sequence)
-    if (
-        not (idx_sequence.dtype.kind == "i" and idx_sequence.dtype.alignment == 8)
-        or len(sequence) == 1
-    ):
-        # TODO: Coerce non int64 to ranges?
+    np_sequence = np.asarray(sequence)
+    if np_sequence.dtype.kind == "i" or len(np_sequence) == 1:
         return sequence
-    elif len(idx_sequence) == 0:
+    elif len(np_sequence) == 0:
         return range(0)
-    diff = idx_sequence[1] - idx_sequence[0]
-    if isna(diff) or diff == 0:
+    diff = np_sequence[1] - np_sequence[0]
+    if diff == 0:
         return sequence
-    elif len(idx_sequence) == 2:
-        return range(idx_sequence[0], idx_sequence[1] + diff, diff)
-    np_values = idx_sequence._data
-    maybe_range_indexer, remainder = np.divmod(np_values - np_values[0], diff)
+    elif len(np_sequence) == 2:
+        return range(np_sequence[0], np_sequence[1] + diff, diff)
+    maybe_range_indexer, remainder = np.divmod(np_sequence - np_sequence[0], diff)
     if (
         lib.is_range_indexer(maybe_range_indexer, len(maybe_range_indexer))
         and not remainder.any()
     ):
-        return range(np_values[0], np_values[-1] + diff, diff)
+        return range(np_sequence[0], np_sequence[-1] + diff, diff)
     else:
         return sequence
 
