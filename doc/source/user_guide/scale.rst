@@ -374,5 +374,33 @@ datasets.
 
 You see more dask examples at https://examples.dask.org.
 
+Use Modin
+---------
+
+Modin_ is a scalable dataframe library, which aims to be a drop-in replacement API for pandas and
+provides the ability to scale pandas workflows across nodes and CPUs available. It is also able
+to work with larger than memory datasets. To start working with Modin you just need
+to replace a single line of code, namely, the import statement.
+
+.. code-block:: ipython
+
+   # import pandas as pd
+   import modin.pandas as pd
+
+After you have changed the import statement, you can proceed using the well-known pandas API
+to scale computation. Modin distributes computation across nodes and CPUs available utilizing
+an execution engine it runs on. At the time of Modin 0.27.0 the following execution engines are supported
+in Modin: Ray_, Dask_, `MPI through unidist`_, HDK_. The partitioning schema of a Modin DataFrame partitions it
+along both columns and rows because it gives Modin flexibility and scalability in both the number of columns and
+the number of rows.
+
+For more information refer to `Modin's documentation`_ or the `Modin's tutorials`_.
+
+.. _Modin: https://github.com/modin-project/modin
+.. _`Modin's documentation`: https://modin.readthedocs.io/en/latest
+.. _`Modin's tutorials`: https://github.com/modin-project/modin/tree/master/examples/tutorial/jupyter/execution
+.. _Ray: https://github.com/ray-project/ray
 .. _Dask: https://dask.org
+.. _`MPI through unidist`: https://github.com/modin-project/unidist
+.. _HDK: https://github.com/intel-ai/hdk
 .. _dask.dataframe: https://docs.dask.org/en/latest/dataframe.html

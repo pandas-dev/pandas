@@ -17,6 +17,7 @@ Instead of splitting it was decided to define sections here:
 - Dtypes
 - Misc
 """
+
 from __future__ import annotations
 
 from collections import abc
@@ -35,6 +36,7 @@ from typing import (
     TYPE_CHECKING,
     Callable,
 )
+import uuid
 
 from dateutil.tz import (
     tzlocal,
@@ -171,10 +173,6 @@ def pytest_collection_modifyitems(items, config) -> None:
             "DataFrameGroupBy.fillna",
             "DataFrameGroupBy.fillna with 'method' is deprecated",
         ),
-        (
-            "DataFrameGroupBy.fillna",
-            "DataFrame.fillna with 'method' is deprecated",
-        ),
         ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
     ]
 
@@ -271,7 +269,7 @@ def axis(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False, None])
+@pytest.fixture(params=[True, False])
 def observed(request):
     """
     Pass in the observed keyword to groupby for [True, False]
@@ -1983,6 +1981,16 @@ def indexer_ial(request):
     return request.param
 
 
+@pytest.fixture(params=[True, False])
+def performance_warning(request) -> Iterator[bool | type[Warning]]:
+    """
+    Fixture to check if performance warnings are enabled. Either produces
+    ``PerformanceWarning`` if they are enabled, otherwise ``False``.
+    """
+    with pd.option_context("mode.performance_warnings", request.param):
+        yield pd.errors.PerformanceWarning if request.param else False
+
+
 @pytest.fixture
 def using_infer_string() -> bool:
     """
@@ -2010,3 +2018,14 @@ def arrow_string_storage():
     Fixture that lists possible PyArrow values for StringDtype storage field.
     """
     return ("pyarrow", "pyarrow_numpy")
+
+
+@pytest.fixture
+def temp_file(tmp_path):
+    """
+    Generate a unique file for testing use. See link for removal policy.
+    https://docs.pytest.org/en/7.1.x/how-to/tmp_path.html#the-default-base-temporary-directory
+    """
+    file_path = tmp_path / str(uuid.uuid4())
+    file_path.touch()
+    return file_path
