@@ -515,7 +515,7 @@ class RangeIndex(Index):
         new_index = self._rename(name=name)
         return new_index
 
-    def _minmax(self, meth: str) -> int | float:
+    def _minmax(self, meth: Literal["min", "max"]) -> int | float:
         no_steps = len(self) - 1
         if no_steps == -1:
             return np.nan
@@ -535,6 +535,39 @@ class RangeIndex(Index):
         nv.validate_minmax_axis(axis)
         nv.validate_max(args, kwargs)
         return self._minmax("max")
+
+    def _argminmax(
+        self,
+        meth: Literal["min", "max"],
+        axis=None,
+        skipna: bool = True,
+    ) -> int:
+        nv.validate_minmax_axis(axis)
+        if len(self) == 0:
+            return getattr(super(), f"arg{meth}")(
+                axis=axis,
+                skipna=skipna,
+            )
+        elif meth == "min":
+            if self.step > 0:
+                return 0
+            else:
+                return len(self) - 1
+        elif meth == "max":
+            if self.step > 0:
+                return len(self) - 1
+            else:
+                return 0
+        else:
+            raise ValueError(f"{meth=} must be max or min")
+
+    def argmin(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
+        nv.validate_argmin(args, kwargs)
+        return self._argminmax("min", axis=axis, skipna=skipna)
+
+    def argmax(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
+        nv.validate_argmax(args, kwargs)
+        return self._argminmax("max", axis=axis, skipna=skipna)
 
     def argsort(self, *args, **kwargs) -> npt.NDArray[np.intp]:
         """
@@ -1164,6 +1197,42 @@ class RangeIndex(Index):
         return any(self._range)
 
     # --------------------------------------------------------------------
+
+    # error: Return type "RangeIndex | Index" of "round" incompatible with
+    # return type "RangeIndex" in supertype "Index"
+    def round(self, decimals: int = 0) -> Self | Index:  # type: ignore[override]
+        """
+        Round each value in the Index to the given number of decimals.
+
+        Parameters
+        ----------
+        decimals : int, optional
+            Number of decimal places to round to. If decimals is negative,
+            it specifies the number of positions to the left of the decimal point
+            e.g. ``round(11.0, -1) == 10.0``.
+
+        Returns
+        -------
+        Index or RangeIndex
+            A new Index with the rounded values.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> idx = pd.RangeIndex(10, 30, 10)
+        >>> idx.round(decimals=-1)
+        RangeIndex(start=10, stop=30, step=10)
+        >>> idx = pd.RangeIndex(10, 15, 1)
+        >>> idx.round(decimals=-1)
+        Index([10, 10, 10, 10, 10], dtype='int64')
+        """
+        if decimals >= 0:
+            return self.copy()
+        elif self.start % 10**-decimals == 0 and self.step % 10**-decimals == 0:
+            # e.g. RangeIndex(10, 30, 10).round(-1) doesn't need rounding
+            return self.copy()
+        else:
+            return super().round(decimals=decimals)
 
     def _cmp_method(self, other, op):
         if isinstance(other, RangeIndex) and self._range == other._range:
