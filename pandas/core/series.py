@@ -436,14 +436,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # other programmers can understand the method I am using on this refactoring.
         # TODO 2: Decouple warning/Manager manipulation IN THE TWO CALLS BELOW.
         # TODO 2.1.1: (DONE) Make the two if-else checks below have a common pattern
-        # TODO 2.1.2: <--- Join the two Manager checks below into a single if-else
-        # TODO 2.2: Decouple warnings / DATA MANIPULATION.
+        # TODO 2.1.2: (DONE) Join the two Manager checks below into a single if-else
+        # TODO 2.2: <--- Decouple warnings / DATA MANIPULATION.
         # TODO 2.3: Slide the warnings to Series Task 7.
         # TODO 2.4: Slide copying the manager to Series TASK 5.A
-        # TODO 2.5: Check if it is possible to separate NDFrame.__init__ to
-        # --------- To Series Task 6.
+        # TODO 2.5: (DONE) Check if it is possible to separate copying from
+        # --------- Data Frame Creation.
+        # TODO 2.5.1: Move both blocks to TASK 5.A
+        # TODO 2.5.2: Decouple Copying DataFrame Creation to TASKS 5.A AND 6
+        # TODO 2.5.3: Move DataFrame Creation to 'Series Task 6'.
         if isinstance(data, SingleBlockManager) and not copy:  # <---
-            if index is None and dtype is None:  # <---
+            if index is None and dtype is None:  # <--- to TASK 7
                 if not allow_mgr:
                     # GH#52419
                     warnings.warn(
@@ -453,13 +456,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                         DeprecationWarning,
                         stacklevel=2,
                     )
-                data = data.copy(deep=False)
-                # GH#33357 called with just the SingleBlockManager
-                NDFrame.__init__(self, data)
-                self.name = name
-                return
 
-            if not allow_mgr:  # <---
+            if not allow_mgr:  # <--- to TASK 7
                 warnings.warn(
                     f"Passing a {type(data).__name__} to {type(self).__name__} "
                     "is deprecated and will raise in a future version. "
@@ -467,6 +465,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     DeprecationWarning,
                     stacklevel=2,
                 )
+
+            if index is None and dtype is None:  # TODO 2.5 Starts here.
+                data = data.copy(deep=False)  # <--- to TASK 5.A
+                # GH#33357 called with just the SingleBlockManager
+
+                NDFrame.__init__(self, data)  # < --- to TASK 6
+                self.name = name
+                return
 
         # Series TASK 3: DATA TRANSFORMATION.
 
