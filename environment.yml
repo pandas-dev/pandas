@@ -60,9 +60,8 @@ dependencies:
   - zstandard>=0.19.0
 
   # downstream packages
-  - dask-core<=2024.2.1
+  - dask-core
   - seaborn-base
-  - dask-expr<=0.5.3
 
   # local testing dependencies
   - moto
