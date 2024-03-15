@@ -4235,7 +4235,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._join_via_get_indexer(other, how, sort)
 
-    @final
     def _join_empty(
         self, other: Index, how: JoinHow, sort: bool
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
@@ -6738,7 +6737,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return Index(self.to_series().diff(periods))
 
-    @final
     def round(self, decimals: int = 0) -> Self:
         """
         Round each value in the Index to the given number of decimals.
