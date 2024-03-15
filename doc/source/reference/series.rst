@@ -335,7 +335,6 @@ Datetime properties
    Series.dt.tz
    Series.dt.freq
    Series.dt.unit
-   Series.dt.normalize
 
 Datetime methods
 ^^^^^^^^^^^^^^^^
