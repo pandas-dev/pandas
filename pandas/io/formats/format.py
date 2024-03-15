@@ -127,10 +127,9 @@ common_docstring: Final = """
             name.
             The result of each function must be a unicode string.
             List/tuple must be of length equal to the number of columns.
-
-                **Note**: formatters are **not** applied to missing values.
-                Use the ``na_rep`` parameter instead, or see
-                :ref:`Formatting missing values<formatting missing values>`.
+            **Note** that formatters are **not** applied to missing values;
+            use the ``na_rep`` parameter instead, or see
+            :ref:`Formatting missing values<formatting missing values>`.
 
         float_format : one-parameter function, optional, default None
             Formatter function to apply to columns' elements if they are

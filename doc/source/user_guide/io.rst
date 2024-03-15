@@ -1812,7 +1812,7 @@ which, if set to ``True``, will additionally output the length of the Series.
    **Formatting missing values**
 
    Formatting functions passed to the ``formatters`` argument above, are not
-   called for *missing values*, *string data types*, or ``PandasObject``.
+   called for *missing values*, or ``PandasObject``.
 
    If you need to control the format of missing values, consider these options:
 
