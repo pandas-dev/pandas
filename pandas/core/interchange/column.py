@@ -34,6 +34,7 @@ from pandas.core.interchange.utils import (
     ArrowCTypes,
     Endianness,
     dtype_to_arrow_c_fmt,
+    maybe_rechunk,
 )
 
 if TYPE_CHECKING:
@@ -167,6 +168,8 @@ class PandasColumn(Column):
             byteorder = dtype.byteorder
 
         if dtype == "bool[pyarrow]":
+            # return early to avoid the `* 8` below, as this is a bitmask
+            # rather than a bytemask
             return (
                 kind,
                 dtype.itemsize,  # pyright: ignore[reportAttributeAccessIssue]
@@ -329,10 +332,10 @@ class PandasColumn(Column):
             dtype = self.dtype
             arr = self._col.array
             if isinstance(self._col.dtype, ArrowDtype):
+                arr = maybe_rechunk(arr._pa_array, allow_copy=self._allow_copy)
                 buffer = PandasBufferPyarrow(
-                    arr._pa_array,  # type: ignore[attr-defined]
-                    is_validity=False,
-                    allow_copy=self._allow_copy,
+                    arr.buffers()[1],  # type: ignore[attr-defined]
+                    length=len(arr),
                 )
                 if self.dtype[0] == DtypeKind.BOOL:
                     dtype = (
@@ -395,10 +398,13 @@ class PandasColumn(Column):
                 for chunk in arr._pa_array.chunks  # type: ignore[attr-defined]
             ):
                 return None
+            chunked_array = arr._pa_array
+            arr = maybe_rechunk(chunked_array, allow_copy=self._allow_copy)
+            if arr.buffers()[0] is None:
+                return None
             buffer: Buffer = PandasBufferPyarrow(
-                arr._pa_array,  # type: ignore[attr-defined]
-                is_validity=True,
-                allow_copy=self._allow_copy,
+                arr.buffers()[0],  # type: ignore[attr-defined]
+                length=len(arr),
             )
             return buffer, dtype
 

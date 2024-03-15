@@ -17,6 +17,8 @@ from pandas.core.dtypes.dtypes import (
 )
 
 if typing.TYPE_CHECKING:
+    import pyarrow as pa
+
     from pandas._typing import DtypeObj
 
 
@@ -145,3 +147,15 @@ def dtype_to_arrow_c_fmt(dtype: DtypeObj) -> str:
     raise NotImplementedError(
         f"Conversion of {dtype} to Arrow C format string is not implemented."
     )
+
+
+def maybe_rechunk(chunked_array: pa.ChunkedArray, *, allow_copy: bool) -> pa.Array:
+    if len(chunked_array.chunks) == 1:
+        arr = chunked_array.chunks[0]
+    else:
+        if not allow_copy:
+            raise RuntimeError(
+                "Found multi-chunk pyarrow array, but `allow_copy` is False"
+            )
+        arr = chunked_array.combine_chunks()
+    return arr

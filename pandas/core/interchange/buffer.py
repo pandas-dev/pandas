@@ -86,29 +86,15 @@ class PandasBufferPyarrow(Buffer):
 
     def __init__(
         self,
-        chunked_array: pa.ChunkedArray,
+        buffer: pa.Buffer,
         *,
-        is_validity: bool,
-        allow_copy: bool = True,
+        length: int,
     ) -> None:
         """
         Handle pyarrow chunked arrays.
         """
-        if len(chunked_array.chunks) == 1:
-            arr = chunked_array.chunks[0]
-        else:
-            if not allow_copy:
-                raise RuntimeError(
-                    "Found multi-chunk pyarrow array, but `allow_copy` is False"
-                )
-            arr = chunked_array.combine_chunks()
-        if is_validity:
-            self._buffer = arr.buffers()[0]
-        else:
-            self._buffer = arr.buffers()[1]
-        self._length = len(arr)
-        self._dlpack = getattr(arr, "__dlpack__", None)
-        self._is_validity = is_validity
+        self._buffer = buffer
+        self._length = length
 
     @property
     def bufsize(self) -> int:
@@ -128,11 +114,7 @@ class PandasBufferPyarrow(Buffer):
         """
         Represent this structure as DLPack interface.
         """
-        if self._dlpack is None:
-            raise NotImplementedError(
-                "pyarrow>=15.0.0 required for DLPack support for pyarrow-backed buffers"
-            )
-        return self._dlpack()
+        raise NotImplementedError()
 
     def __dlpack_device__(self) -> tuple[DlpackDeviceType, int | None]:
         """
