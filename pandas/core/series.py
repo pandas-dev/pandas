@@ -382,10 +382,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # DONE 4.1: Recreate if
         # DONE 4.2: and move.
         # DONE 4.3: Unify if-else structure.
-        # TODO 5.0: Prepare if-signature to move to Series TASK-0
-        # TODO 5.1: Try to move
-        # TODO 5.2: Move
-        # TODO 5.3: Unify if-else signature.
+        # DONE 5.0: Move ndarray ValueError to TASK-0.
         # TODO 6: <--- DECOUPLE MANAGER PREPARATION FROM COPYING.
         # I realize it will help with the other tasks if I do this first! Let's do it.
 
@@ -405,10 +402,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # Use 'single_element' signature.
         # TODO 8.0. Separate if-else single element;
         # TODO 8.1. Group common 'index' definitions on 'not single_element' cases.
-        # TODO 10: Codes for Copying ExtensionArray to TASK 5.B.
-        # TODO 10.1: Try to move copy validation to Series TASK-1
-        # TODO 10.2: If possible, use:
-        # --------- 'copy = copy if copy else False' to convert None to False
+
+        # TODO 10: <---Move codes for Copying ExtensionArray to TASK 5.B.
+        # DONE 10.1: <--- Understand that the logic is different for
+        # ---------  ExtensionArrays + Arrays   vs
+        # ---------  Managers, Series, etc.
+        # DONE 10.2: <--- Split if-else logic for Extension Arrays and arrays
+        # DONE 10.3: <--- Move np.ndarray
+        # DONE 10.4: <--- Move ExtensionArray
+        # TODO 10.5: Unify if-else np.ndarray
+        # TODO 10.6: Unify if-else ExtensionArray
+
         # TODO 11: Investigate. This is an unknown type that is being converted to list.
         # DONE 12: 'allow_mgr' were not used anyware.
         # TODO 13: Try capture final data type that seems scalar.
@@ -419,9 +423,21 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # TODO 15: Check GitHub Issue
         # TODO 16: GH#33357 called with just the SingleBlockManager,
         # -------- Avoid warnings on fast_path_manager?
+        # TODO 17: Invert the name 'Series TASK 0' and 'Series TASK 2'.
+        # -------- There is an array error that most be done after validating
 
         allow_mgr = False
         fast_path_manager = False
+
+        # TODO 17: Invert the name 'Series TASK 0' and 'Series TASK 2'.
+        # Series TASK 2: VALIDATE BASIC TYPES (meanwhile, dtype only).
+        if dtype is not None:
+            dtype = self._validate_dtype(dtype)
+
+        copy_arrays = copy is True or copy is None  # for Arrays and ExtendedArrays
+        # original_copy_arrays = copy_arrays
+        copy = copy is True  # This is for Series and Block Manager
+        # original_copy = copy
 
         # Series TASK 0: RAISE ERRORS ON KNOWN UNACEPPTED CASES, ETC.
         if isinstance(data, MultiIndex):
@@ -433,38 +449,31 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # DeMorgan Rule
             if not (data.index.equals(index) or index is None) or copy:
                 # TODO 15: Check GitHub Issue
-                # GH #19275 SingleBlockManager input should only be called
-                # internally
+                # GH #19275 SingleBlockManager input should only be called internally
                 raise AssertionError(
                     "Cannot pass both SingleBlockManager "
                     "`data` argument and a different "
                     "`index` argument. `copy` must be False."
                 )
 
+        if isinstance(data, np.ndarray):
+            if len(data.dtype):
+                # GH#13296 we are dealing with a compound dtype,
+                # which should be treated as 2D.
+                raise ValueError(
+                    "Cannot construct a Series from an ndarray with "
+                    "compound dtype. Use DataFrame instead."
+                )
+
         # Series TASK 1: CAPTURE INPUT SIGNATURE. NECESSARY FOR WARNINGS AND ERRORS.
         is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
-        # original_copy = copy if copy else False  # proper way to convert None to False
+        # original_copy = original_copy # defined above.
         original_dtype = dtype
         # original_index_type = type(index)
         original_data_type = type(data)
         original_data_dtype = getattr(data, "dtype", None)
         refs = None
         name = ibase.maybe_extract_name(name, data, type(self))
-
-        # Series TASK 2: VALIDATE BASIC TYPES (meanwhile, dtype only).
-        if dtype is not None:
-            dtype = self._validate_dtype(dtype)
-
-        # TODO 10: Codes for Copying ExtensionArray to TASK 5.B.
-        # TRY TO move below, to copy. Note that the logic changes!
-        # Does ExtensionArray copies with None and True?  BlockManagers copies
-        # only with True! Since copy maybe None, if copy is None it will enter this.
-        if isinstance(data, (ExtensionArray, np.ndarray)):
-            if copy is not False:
-                if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
-                    data = data.copy()
-        if copy is None:
-            copy = False
 
         # Series TASK 3: DATA TRANSFORMATION.
 
@@ -548,6 +557,26 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 data = data.copy(deep)
 
         else:  # Creating the SingleBlockManager
+            # TODO 10: Move codes for Copying ExtensionArray to TASK 5.B.
+            # DONE 10.1: Understand that the logic is different for
+            # ---------  ExtensionArrays + Arrays   vs
+            # ---------  Managers, Series, etc.
+            # DONE 10.2: Split if-else logic for Extension Arrays and arrays
+            # DONE 10.3: Move np.ndarray
+            # DONE 10.4: Move ExtensionArray
+            # TODO 10.5: Unify if-else np.ndarray
+            # TODO 10.6: Unify if-else ExtensionArray
+
+            if isinstance(data, np.ndarray):
+                if copy_arrays:
+                    if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
+                        data = data.copy()
+
+            if isinstance(data, ExtensionArray):
+                if copy_arrays:
+                    if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
+                        data = data.copy()
+
             # TODO 8: Decouple single element from the other data.
             if isinstance(data, Index):
                 if index is None:
@@ -563,15 +592,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             elif isinstance(data, np.ndarray):
                 if index is None:
                     index = default_index(len(data))
-
-                # TODO 5.0: Prepare if-signature to move to Series TASK-0
-                if len(data.dtype):
-                    # GH#13296 we are dealing with a compound dtype, which
-                    #  should be treated as 2D
-                    raise ValueError(
-                        "Cannot construct a Series from an ndarray with "
-                        "compound dtype.  Use DataFrame instead."
-                    )
 
             elif isinstance(data, ExtensionArray):
                 if index is None:
