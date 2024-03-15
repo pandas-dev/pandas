@@ -392,26 +392,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # TODO 6.3: Move the copying logic on the series to below.
         # TODO 6.4: Unify the if-else logic within the Series+SingleBlockManager) case.
 
-        # TODO 7: Code that changes dtype to object when data satisfies:
-        # is_list_like, empty and with None, should be moved to Series TASK-1.
-        # TODO 7.0: Prepare if-signature to move to Series TASK-
-        # TODO 7.1: Try to move
-        # TODO 7.2: Move
-        # TODO 7.3: Unify if-else signature.
+        # DONE 7: Move code to Final requirements. Task 5.
+        # ------  dtype Series with arguments equivalent to empty list,
+        # ------  with dtype=None, must be object.
         # TODO 8: Decouple single element from the other data.
         # Use 'single_element' signature.
         # TODO 8.0. Separate if-else single element;
         # TODO 8.1. Group common 'index' definitions on 'not single_element' cases.
 
-        # TODO 10: <---Move codes for Copying ExtensionArray to TASK 5.B.
-        # DONE 10.1: <--- Understand that the logic is different for
+        # DONE 10: Move codes for Copying ExtensionArray to TASK 5.B.
+        # DONE 10.1: Understand that the logic is different for
         # ---------  ExtensionArrays + Arrays   vs
         # ---------  Managers, Series, etc.
-        # DONE 10.2: <--- Split if-else logic for Extension Arrays and arrays
-        # DONE 10.3: <--- Move np.ndarray
-        # DONE 10.4: <--- Move ExtensionArray
-        # TODO 10.5: Unify if-else np.ndarray
-        # TODO 10.6: Unify if-else ExtensionArray
+        # DONE 10.2: Split if-else logic for Extension Arrays and arrays
+        # DONE 10.3: Move np.ndarray
+        # DONE 10.4: Move ExtensionArray
+        # OTHERTODO: 10.5: Unify if-else np.ndarray --- Unnecessary.
+        # OTHERTODO: 10.6: Unify if-else ExtensionArray --- Solves in OTHERTODO.
 
         # TODO 11: Investigate. This is an unknown type that is being converted to list.
         # DONE 12: 'allow_mgr' were not used anyware.
@@ -557,15 +554,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 data = data.copy(deep)
 
         else:  # Creating the SingleBlockManager
-            # TODO 10: Move codes for Copying ExtensionArray to TASK 5.B.
-            # DONE 10.1: Understand that the logic is different for
-            # ---------  ExtensionArrays + Arrays   vs
-            # ---------  Managers, Series, etc.
-            # DONE 10.2: Split if-else logic for Extension Arrays and arrays
-            # DONE 10.3: Move np.ndarray
-            # DONE 10.4: Move ExtensionArray
-            # TODO 10.5: Unify if-else np.ndarray
-            # TODO 10.6: Unify if-else ExtensionArray
+            list_like_input = False
 
             # TODO 8: Decouple single element from the other data.
             if isinstance(data, Index):
@@ -599,11 +588,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 if index is None:
                     index = default_index(len(data))
 
-                # TODO 7: Code that changes dtype to object when data satisfies:
-                # is_list_like, empty and with None, should be moved to Series TASK-1.
-                if not len(data) and dtype is None:
-                    # GH 29405: Pre-2.0, this defaulted to float.
-                    dtype = np.dtype(object)
+                list_like_input = True
 
             else:  # elif data is not None: # this works too
                 # TODO 13: Try capture final data type that seems scalar.
@@ -611,10 +596,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     index = default_index(1)
                     data = [data]
 
-            # Series TASK 5.B: CREATING THE MANAGER.
             # Final requirements
             if is_list_like(data):
                 com.require_length_match(data, index)
+
+                if list_like_input and dtype is None:
+                    if not len(data):
+                        # GH 29405: Pre-2.0, this defaulted to float.
+                        dtype = np.dtype(object)
+
+            # Series TASK 5.B: CREATING THE MANAGER.
 
             data = sanitize_array(data, index, dtype, copy)
             data = SingleBlockManager.from_array(data, index, refs=refs)
