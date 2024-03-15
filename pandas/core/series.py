@@ -567,16 +567,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # TODO 10.5: Unify if-else np.ndarray
             # TODO 10.6: Unify if-else ExtensionArray
 
-            if isinstance(data, np.ndarray):
-                if copy_arrays:
-                    if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
-                        data = data.copy()
-
-            if isinstance(data, ExtensionArray):
-                if copy_arrays:
-                    if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
-                        data = data.copy()
-
             # TODO 8: Decouple single element from the other data.
             if isinstance(data, Index):
                 if index is None:
@@ -593,9 +583,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 if index is None:
                     index = default_index(len(data))
 
+                if copy_arrays:
+                    if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
+                        data = data.copy()
+
             elif isinstance(data, ExtensionArray):
                 if index is None:
                     index = default_index(len(data))
+
+                if copy_arrays:
+                    if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
+                        data = data.copy()
 
             elif is_list_like(data):
                 if index is None:
