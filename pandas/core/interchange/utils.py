@@ -16,9 +16,9 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
 )
 
-if typing.TYPE_CHECKING:
-    import pyarrow as pa
+import pandas as pd
 
+if typing.TYPE_CHECKING:
     from pandas._typing import DtypeObj
 
 
@@ -149,13 +149,13 @@ def dtype_to_arrow_c_fmt(dtype: DtypeObj) -> str:
     )
 
 
-def maybe_rechunk(chunked_array: pa.ChunkedArray, *, allow_copy: bool) -> pa.Array:
+def maybe_rechunk(series: pd.Series, *, allow_copy: bool) -> pd.Series | None:
+    if not isinstance(series.dtype, pd.ArrowDtype):
+        return None
+    chunked_array = series.array._pa_array
     if len(chunked_array.chunks) == 1:
-        arr = chunked_array.chunks[0]
-    else:
-        if not allow_copy:
-            raise RuntimeError(
-                "Found multi-chunk pyarrow array, but `allow_copy` is False"
-            )
-        arr = chunked_array.combine_chunks()
-    return arr
+        return None
+    if not allow_copy:
+        raise RuntimeError("Found multi-chunk pyarrow array, but `allow_copy` is False")
+    arr = chunked_array.combine_chunks()
+    return pd.Series(arr, dtype=series.dtype, name=series.name, index=series.index)

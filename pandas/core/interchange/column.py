@@ -34,7 +34,6 @@ from pandas.core.interchange.utils import (
     ArrowCTypes,
     Endianness,
     dtype_to_arrow_c_fmt,
-    maybe_rechunk,
 )
 
 if TYPE_CHECKING:
@@ -215,10 +214,9 @@ class PandasColumn(Column):
             null_value = 1
             return column_null_dtype, null_value
         if isinstance(self._col.dtype, ArrowDtype):
-            if all(
-                chunk.buffers()[0] is None
-                for chunk in self._col.array._pa_array.chunks  # type: ignore[attr-defined]
-            ):
+            # We already rechunk (if necessary / allowed) upon initialization, so this
+            # is already single-chunk by the time we get here.
+            if self._col.array._pa_array.chunks[0].buffers()[0] is None:  # type: ignore[attr-defined]
                 return ColumnNullType.NON_NULLABLE, None
             return ColumnNullType.USE_BITMASK, 0
         kind = self.dtype[0]
@@ -332,7 +330,9 @@ class PandasColumn(Column):
             dtype = self.dtype
             arr = self._col.array
             if isinstance(self._col.dtype, ArrowDtype):
-                arr = maybe_rechunk(arr._pa_array, allow_copy=self._allow_copy)
+                # We already rechunk (if necessary / allowed) upon initialization, so
+                # this is already single-chunk by the time we get here.
+                arr = arr._pa_array.chunks[0]
                 buffer = PandasBufferPyarrow(
                     arr.buffers()[1],  # type: ignore[attr-defined]
                     length=len(arr),
@@ -391,15 +391,10 @@ class PandasColumn(Column):
         null, invalid = self.describe_null
 
         if isinstance(self._col.dtype, ArrowDtype):
-            arr = self._col.array
+            # We already rechunk (if necessary / allowed) upon initialization, so this
+            # is already single-chunk by the time we get here.
+            arr = self._col.array._pa_array.chunks[0]
             dtype = (DtypeKind.BOOL, 1, ArrowCTypes.BOOL, Endianness.NATIVE)
-            if all(
-                chunk.buffers()[0] is None
-                for chunk in arr._pa_array.chunks  # type: ignore[attr-defined]
-            ):
-                return None
-            chunked_array = arr._pa_array
-            arr = maybe_rechunk(chunked_array, allow_copy=self._allow_copy)
             if arr.buffers()[0] is None:
                 return None
             buffer: Buffer = PandasBufferPyarrow(
