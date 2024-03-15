@@ -15,15 +15,19 @@ def write_version_info(path) -> None:
     git_version = None
 
     try:
+        print("Getting _version_meson")
         import _version_meson
 
         version = _version_meson.__version__
         git_version = _version_meson.__git_version__
     except ImportError:
+        print("Getting versioneer")
         version = versioneer.get_version()
         git_version = versioneer.get_versions()["full-revisionid"]
+    print("Getting MESON_DIST_ROOT env variable")
     if os.environ.get("MESON_DIST_ROOT"):
         path = os.path.join(os.environ.get("MESON_DIST_ROOT"), path)
+    print("Writing versions")
     with open(path, "w", encoding="utf-8") as file:
         file.write(f'__version__="{version}"\n')
         file.write(f'__git_version__="{git_version}"\n')
@@ -57,11 +61,14 @@ def main() -> None:
         write_version_info(args.outfile)
 
     if args.print:
+        print("Printing version")
         try:
+            print("Getting _version_meson2")
             import _version_meson
 
             version = _version_meson.__version__
         except ImportError:
+            print("Getting versioneer2")
             version = versioneer.get_version()
         print(version)
 
