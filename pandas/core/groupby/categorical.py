@@ -10,9 +10,7 @@ from pandas.core.arrays.categorical import (
 )
 
 
-def recode_for_groupby(
-    c: Categorical, sort: bool, observed: bool
-) -> tuple[Categorical, Categorical | None]:
+def recode_for_groupby(c: Categorical, sort: bool, observed: bool) -> Categorical:
     """
     Code the categories to ensure we can groupby for categoricals.
 
@@ -63,11 +61,11 @@ def recode_for_groupby(
         # return a new categorical that maps our new codes
         # and categories
         dtype = CategoricalDtype(categories, ordered=c.ordered)
-        return Categorical._simple_new(codes, dtype=dtype), c
+        return Categorical._simple_new(codes, dtype=dtype)
 
     # Already sorted according to c.categories; all is fine
     if sort:
-        return c, None
+        return c
 
     # sort=False should order groups in as-encountered order (GH-8868)
 
@@ -84,4 +82,4 @@ def recode_for_groupby(
     else:
         take_codes = unique_notnan_codes
 
-    return Categorical(c, c.unique().categories.take(take_codes)), None
+    return Categorical(c, c.unique().categories.take(take_codes))
