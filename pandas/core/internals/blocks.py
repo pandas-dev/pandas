@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from functools import wraps
 import inspect
 import re
 from typing import (
@@ -31,7 +30,6 @@ from pandas._typing import (
     AxisInt,
     DtypeBackend,
     DtypeObj,
-    F,
     FillnaOptions,
     IgnoreRaise,
     InterpolateOptions,
@@ -129,23 +127,6 @@ if TYPE_CHECKING:
 
 # comparison is faster than is_object_dtype
 _dtype_obj = np.dtype("object")
-
-
-def maybe_split(meth: F) -> F:
-    """
-    If we have a multi-column block, split and operate block-wise.  Otherwise
-    use the original method.
-    """
-
-    @wraps(meth)
-    def newfunc(self, *args, **kwargs) -> list[Block]:
-        if self.ndim == 1 or self.shape[0] == 1:
-            return meth(self, *args, **kwargs)
-        else:
-            # Split and operate column-by-column
-            return self.split_and_operate(meth, *args, **kwargs)
-
-    return cast(F, newfunc)
 
 
 class Block(PandasObject, libinternals.Block):
@@ -2146,18 +2127,6 @@ class NumpyBlock(Block):
         kind = dtype.kind
 
         return kind in "fciub"
-
-
-class NumericBlock(NumpyBlock):
-    # this Block type is kept for backwards-compatibility
-    # TODO(3.0): delete and remove deprecation in __init__.py.
-    __slots__ = ()
-
-
-class ObjectBlock(NumpyBlock):
-    # this Block type is kept for backwards-compatibility
-    # TODO(3.0): delete and remove deprecation in __init__.py.
-    __slots__ = ()
 
 
 class NDArrayBackedExtensionBlock(EABackedBlock):

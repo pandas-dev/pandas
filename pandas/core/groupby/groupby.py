@@ -1202,7 +1202,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:
                 # GH5610, returns a MI, with the first level being a
                 # range index
-                keys = list(range(len(values)))
+                keys = RangeIndex(len(values))
                 result = concat(values, axis=0, keys=keys)
 
         elif not not_indexed_same:
@@ -1636,6 +1636,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         a    5
         b    2
         dtype: int64
+
+        Example 4: The function passed to ``apply`` returns ``None`` for one of the
+        group. This group is filtered from the result:
+
+        >>> g1.apply(lambda x: None if x.iloc[0, 0] == 3 else x, include_groups=False)
+           B  C
+        0  1  4
+        1  2  6
         """
         if isinstance(func, str):
             if hasattr(self, func):
