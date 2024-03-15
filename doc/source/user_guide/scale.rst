@@ -217,12 +217,15 @@ require too sophisticated of operations. Some operations, like :meth:`pandas.Dat
 much harder to do chunkwise. In these cases, you may be better switching to a
 different library that implements these out-of-core algorithms for you.
 
-.. _scale.other_libraries:
+.. _scale.other_libraries::q:wq
+
+
+
 
 Use Other Libraries
 -------------------
 
-There are many other libraries which provide similar APIs to pandas and work nicely with pandas DataFrame,
-but can give you the ability to scale your large dataset processing and analytics
+There are other libraries which provide similar APIs to pandas and work nicely with pandas DataFrame,
+and can give you the ability to scale your large dataset processing and analytics
 by parallel runtime, distributed memory, clustering, etc. You can find more information
 in `the ecosystem page <https://pandas.pydata.org/community/ecosystem.html#out-of-core>`_.
