@@ -217,10 +217,7 @@ require too sophisticated of operations. Some operations, like :meth:`pandas.Dat
 much harder to do chunkwise. In these cases, you may be better switching to a
 different library that implements these out-of-core algorithms for you.
 
-.. _scale.other_libraries::q:wq
-
-
-
+.. _scale.other_libraries:
 
 Use Other Libraries
 -------------------
