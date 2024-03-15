@@ -383,7 +383,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # DONE 4.2: and move.
         # DONE 4.3: Unify if-else structure.
         # DONE 5.0: Move ndarray ValueError to TASK-0.
-        # TODO 6: <--- DECOUPLE MANAGER PREPARATION FROM COPYING.
+        # TODO 6: DECOUPLE MANAGER PREPARATION FROM COPYING.
         # I realize it will help with the other tasks if I do this first! Let's do it.
 
         # DONE 6.1 Avoid copying twice the manager when type(data) is SingleBlockManager
@@ -392,7 +392,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # TODO 6.3: Move the copying logic on the series to below.
         # TODO 6.4: Unify the if-else logic within the Series+SingleBlockManager) case.
 
-        # DONE 7: Move code to Final requirements. Task 5.
+        # DONE 7: <--- Move code to Final Requirements. Task 5.
         # ------  dtype Series with arguments equivalent to empty list,
         # ------  with dtype=None, must be object.
         # TODO 8: Decouple single element from the other data.
@@ -410,33 +410,30 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # OTHERTODO: 10.5: Unify if-else np.ndarray --- Unnecessary.
         # OTHERTODO: 10.6: Unify if-else ExtensionArray --- Solves in OTHERTODO.
 
-        # TODO 11: Investigate. This is an unknown type that is being converted to list.
-        # DONE 12: 'allow_mgr' were not used anyware.
-        # TODO 13: Try capture final data type that seems scalar.
+        # DONE 11: Invert the name 'Series TASK 0' and 'Series TASK 2'.
+        # -------- There is an array error that most be done after validating
+        # TODO 12: Investigate. This is an unknown type that is being converted to list.
+        # DONE 13: 'allow_mgr' were not used anyware.
+        # TODO 14: Try capture final data type that seems scalar.
         # -------- But does not satisfy is_scalar(). It comes directly from args.
-        # TODO 14: Check GH#52419. This is somewhat peculiar. There were 3 identical
+        # TODO 15: Check GH#52419. This is somewhat peculiar. There were 3 identical
         # -------- warnings. Check if there is a reason for it. If so:
         # -------- fix and create a new test.
-        # TODO 15: Check GitHub Issue
-        # TODO 16: GH#33357 called with just the SingleBlockManager,
+        # TODO 16: Check GitHub Issue
+        # TODO 17: GH#33357 called with just the SingleBlockManager,
         # -------- Avoid warnings on fast_path_manager?
-        # TODO 17: Invert the name 'Series TASK 0' and 'Series TASK 2'.
-        # -------- There is an array error that most be done after validating
 
         allow_mgr = False
         fast_path_manager = False
 
-        # TODO 17: Invert the name 'Series TASK 0' and 'Series TASK 2'.
-        # Series TASK 2: VALIDATE BASIC TYPES (meanwhile, dtype only).
+        # Series TASK 0: VALIDATE BASIC TYPES.
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
-        copy_arrays = copy is True or copy is None  # for Arrays and ExtendedArrays
-        # original_copy_arrays = copy_arrays
-        copy = copy is True  # This is for Series and Block Manager
-        # original_copy = copy
+        copy_arrays = copy is True or copy is None  # Arrays and ExtendedArrays
+        copy = copy is True  # Series and Manager
 
-        # Series TASK 0: RAISE ERRORS ON KNOWN UNACEPPTED CASES, ETC.
+        # Series TASK 1: RAISE ERRORS ON KNOWN UNACEPPTED CASES, ETC.
         if isinstance(data, MultiIndex):
             raise NotImplementedError(
                 "initializing a Series from a MultiIndex is not supported"
@@ -464,16 +461,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # Series TASK 1: CAPTURE INPUT SIGNATURE. NECESSARY FOR WARNINGS AND ERRORS.
         is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
-        # original_copy = original_copy # defined above.
         original_dtype = dtype
-        # original_index_type = type(index)
         original_data_type = type(data)
         original_data_dtype = getattr(data, "dtype", None)
         refs = None
         name = ibase.maybe_extract_name(name, data, type(self))
 
         # Series TASK 3: DATA TRANSFORMATION.
-
         if is_dict_like(data) and not is_pandas_object:
             # COMMENT: Dict is SPECIAL case, since it's data has
             # data values and index keys.
@@ -482,7 +476,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
             # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
             # raises KeyError). Send it to Series for "standard" construction:
-
             data = (
                 Series(
                     data=list(data.values()),
@@ -517,7 +510,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         #          type(data) is Series (index is None: ... else: ...)
         # TODO 6.3 Move the copying logic on the series to below.
         # TODO 6.4 Unify the if-else logic within the (Series, SingleBlockManager) case.
-
         if isinstance(data, (Series, SingleBlockManager)):
             deep = True
 
@@ -591,7 +583,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 list_like_input = True
 
             else:  # elif data is not None: # this works too
-                # TODO 13: Try capture final data type that seems scalar.
                 if index is None:
                     index = default_index(1)
                     data = [data]
@@ -606,7 +597,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                         dtype = np.dtype(object)
 
             # Series TASK 5.B: CREATING THE MANAGER.
-
             data = sanitize_array(data, index, dtype, copy)
             data = SingleBlockManager.from_array(data, index, refs=refs)
 
@@ -641,23 +631,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     DeprecationWarning,
                     stacklevel=2,
                 )
-        # DONE 12: Review warnings 'allow_mgr' is not used below.
-        # This code is no longer necessary.
-        # allow_mgr = True
-
-        # THIS IS NO LONGER NECESSARY
-        # if original_data_type is SingleBlockManager and not original_copy:
-        #     if not allow_mgr:
-        #         if original_index_type is NoneType and original_dtype is None:
-        #             # DONE 14: Check GH#52419 (Review main and use it here.)
-        #             warnings.warn(
-        #                 f"Passing a {original_data_type.__name__}"
-        #                 "to {type(self).__name__} "
-        #                 "is deprecated and will raise in a future version. "
-        #                 "Use public APIs instead.",
-        #                 DeprecationWarning,
-        #                 stacklevel=2,
-        #             )
 
     # ----------------------------------------------------------------------
 
