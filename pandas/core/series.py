@@ -366,20 +366,61 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # todo management
         # This one I will do a single commit documenting each sub-step, so
         # that other programmers can understand the refactoring procedure.
-        # TODO 1: DONE
-        # TODO 3: DONE
-        # TODO 2.1: (DONE) Organize if-else logic to visualize decoupling
-        # TODO 2.2: (DONE) Decouple warnings / DATA MANIPULATION.
-        # TODO 2.3  (DONE): Here Slide the warnings to Series Task 7.
-        # TODO 2.4: (DONE) Slide copying the manager to Series TASK 5.A
-        # TODO 2.5.0: (DONE) Check if it is possible to separate copying
-        # --------- from DataFrame Creation.
-        # TODO 2.5.1: (DONE) Move block to TASK 5.A
-        # TODO 2.5.2: (DONE) Decouple DF Copying from Creation.
-        #           Send to to TASKS 5.A AND 6.
-        # TODO 2: Decouple warning/Manager manipulation IN THE TWO CALLS BELOW.
-        # TODO 2.5.3: (DONE) Grouping again because it is a Fast Path
-        # --------- for DataFrame Creation
+        # DONE 1:
+        # DONE 2.1: Organize if-else logic to visualize decoupling
+        # DONE 2.2: Decouple warnings / DATA MANIPULATION.
+        # DONE 2.3: Here Slide the warnings to Series Task 7.
+        # DONE 2.4: Slide copying the manager to Series TASK 5.A
+        # DONE 2.5.0: Check if it is possible to separate copying from DF Creation.
+        # DONE 2.5.1: Move block to TASK 5.A
+        # DONE 2.5.2: Decouple DF Copying from Creation. Send to to TASKS 5.A AND 6.
+        # DONE 2: Decouple warning/Manager manipulation IN THE TWO CALLS BELOW.
+        # DONE 2.5.3: Grouping again because it is a Fast Path for DataFrame Creation
+        # DONE 2.5.4: Implement fast path logic
+        # DONE 2.5.5: Move DataFrame Creation to 'Series Task 6'.
+        # DONE 3: (DONE) FINAL: Recover the FINAL Steps used on that for final register.
+        # TODO 4: Move Warning to Series TASK 7
+        # TODO 4.1: Recreate if
+        # TODO 4.2: and move.
+        # TODO 4.3: Unify if-else structure.
+        # TODO 5.0: Prepare if-signature to move to Series TASK-0
+        # TODO 5.1: Try to move
+        # TODO 5.2: Move
+        # TODO 5.3: Unify if-else signature.
+        # TODO 6: <--- DECOUPLE MANAGER PREPARATION FROM COPYING.
+        # I realize it will help with the other tasks if I do this first! Let's do it.
+
+        # TODO 6.1: (NEXT) Avoid copying twice the manager when
+        #          type(data) is SingleBlockManager
+        # TODO 6.2: Unify the copying signature when
+        #          type(data) is Series (index is None: ... else: ...)
+        # TODO 6.3: Move the copying logic on the series to below.
+        # TODO 6.4: Unify the if-else logic within the Series+SingleBlockManager) case.
+
+        # TODO 7: Code that changes dtype to object when data satisfies:
+        # is_list_like, empty and with None, should be moved to Series TASK-1.
+        # TODO 7.0: Prepare if-signature to move to Series TASK-
+        # TODO 7.1: Try to move
+        # TODO 7.2: Move
+        # TODO 7.3: Unify if-else signature.
+        # TODO 8: Decouple single element from the other data.
+        # Use 'single_element' signature.
+        # TODO 8.0. Separate if-else single element;
+        # TODO 8.1. Group common 'index' definitions on 'not single_element' cases.
+        # TODO 10: Codes for Copying ExtensionArray to TASK 5.B.
+        # TODO 10.1: Try to move copy validation to Series TASK-1
+        # TODO 10.2: If possible, use:
+        # --------- 'copy = copy if copy else False' to convert None to False
+        # TODO 11: Investigate. This is an unknown type that is being converted to list.
+        # TODO 12: Review warnings 'allow_mgr' is not used below.
+        # -------  This variable is used only for warnings. Possibly to block
+        #  ------- one or more similar warnings after the first one was raised.
+        # TODO 13: Try capture final data type that seems scalar.
+        # -------- But does not satisfy is_scalar(). It comes directly from args.
+        # TODO 14: Check GH#52419
+        # This is somewhat peculiar, because the same warning was being
+        # presented twice. Check if there is a reason for that,
+        # If so, come back to that code and create a new test.
 
         allow_mgr = False
         fast_path_manager = False
@@ -402,49 +443,42 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "`index` argument. `copy` must be False."
                 )
 
-        # Series TASK 1: CAPTURE INPUT SIGNATURE
-        # COMMENT: NECESSARY FOR WARNINGS AND ERRORS
+        # Series TASK 1: CAPTURE INPUT SIGNATURE. NECESSARY FOR WARNINGS AND ERRORS.
         is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
-        original_copy = copy if copy else False  # convert None to False
+        original_copy = copy if copy else False  # proper way to convert None to False
         original_dtype = dtype
         original_index_type = type(index)
-        original_data_type = type(data)  # For warning in the end
+        original_data_type = type(data)
         original_data_dtype = getattr(data, "dtype", None)
         refs = None
         name = ibase.maybe_extract_name(name, data, type(self))
 
         # Series TASK 2: VALIDATE BASIC TYPES (meanwhile, dtype only).
-
-        # TODO FINAL: Try to move copy validation to here.
-        # copy = copy if copy else False  # convert None to False
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
-        # TODO 10: Codes to move to Series TASK 5.B. Copying the Manager, below.
-        # TRY TO move below, to copy.
-        # Note that the logic changes!
-        # Does ExtensionArray copies with None and True?
-        # BlockManagers copies only with True
-        # Since copy maybe None, if copy is None it will enter this
+        # TODO 10: Codes for Copying ExtensionArray to TASK 5.B.
+        # TRY TO move below, to copy. Note that the logic changes!
+        # Does ExtensionArray copies with None and True?  BlockManagers copies
+        # only with True! Since copy maybe None, if copy is None it will enter this.
         if isinstance(data, (ExtensionArray, np.ndarray)):
             if copy is not False:
                 if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
                     data = data.copy()
-
-        # TODO: NEXT Try to
         if copy is None:
             copy = False
 
         # Series TASK 3: DATA TRANSFORMATION.
 
-        # COMMENT: Dict is SPECIAL case, since it's data has
-        # data values and index keys.
-        # Here it is being sent to Series, but it could different, for simplicity.
-        # It could be sent to array (for faster manipulation, for example).
-
-        # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
-        # raises KeyError). Send it to Series for "standard" construction:
         if is_dict_like(data) and not is_pandas_object:
+            # COMMENT: Dict is SPECIAL case, since it's data has
+            # data values and index keys.
+            # Here it is being sent to Series, but it could different, for simplicity.
+            # It could be sent to array (for faster manipulation, for example).
+
+            # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
+            # raises KeyError). Send it to Series for "standard" construction:
+
             data = (
                 Series(
                     data=list(data.values()),
@@ -460,7 +494,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             data = list(data)
 
         # Series TASK 4: COMMON INDEX MANIPULATION
-        # Common operations on index
         na_value = na_value_for_dtype(pandas_dtype(dtype), compat=False)
         if index is None:
             if data is None:
@@ -471,11 +504,21 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if data is None:
                 data = na_value if len(index) or dtype is not None else []
 
-        # Series TASK 5: CREATING OR COPYING THE MANAGER.
-        # TODO 6: DECOUPLE MANAGER PREPARATION FROM COPYING
+        # Series TASK 5: CREATING OR COPYING THE MANAGER. A: PREPARE. B: COPY.
+
+        # TODO 6: DECOUPLE MANAGER PREPARATION FROM COPYING. I realize it will help
+        # ------ with the other tasks if I do this first! Let's do it.
+        # TODO 6.1 (NEXT) Avoid copying twice the manager when
+        #          type(data) is SingleBlockManager
+        # TODO 6.2 Unify the copying signature when
+        #          type(data) is Series (index is None: ... else: ...)
+        # TODO 6.3 Move the copying logic on the series to below.
+        # TODO 6.4 Unify the if-else logic within the (Series, SingleBlockManager) case.
+
         if isinstance(data, (Series, SingleBlockManager)):
             deep = True
 
+            # Series TASK 5.A: ADAPTING DATA AND INDEX ON SERIES EACH CASE.
             if isinstance(data, Series):
                 if index is None:
                     index = data.index
@@ -491,27 +534,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 copy = False
 
             elif isinstance(data, SingleBlockManager):
-                # GH#33357 called with just the SingleBlockManager
-                # Note, this is a fast track to DF Creation
-
-                # TODO 2.5.4: (DONE) Implement fast path logic
-                # TODO 2.5.5: (DONE) Move DataFrame Creation to 'Series Task 6'.
                 if index is None:
                     if not copy and dtype is None:
+                        # TODO FINAL: Avoid warnings on fast_path_manager?
+                        # GH#33357 called with just the SingleBlockManager
+                        # Note, this is a fast track to DF Creation
                         deep = False
                         fast_path_manager = True
                         data = data.copy(deep)
-                        # NDFrame.__init__(self, data)  # < --- DUPLICATED
-                        # self.name = name              # < --- same
-                        # return                        # < --- Not needed.
-                        # TODO FINAL: Avoid warnings on fast_path_manager?
                     else:
                         index = data.index
 
-                # TODO 4.0: Check if it is possible to move below to Series TASK 7.
-                # TODO 4.1: Recreate if
-                # TODO 4.2: and move.
-                # TODO 4.3: Unify if-else structure.
+                # TODO 4: Move Warning to TASK 7
                 if not allow_mgr:
                     warnings.warn(
                         f"Passing a {type(data).__name__} to {type(self).__name__} "
@@ -520,15 +554,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                         DeprecationWarning,
                         stacklevel=2,
                     )
-
-                    # TODO FINAL: Review warnings
-                    # This not used after this point.
-                    # This variable is used only for warnings.
-                    # Possibly to block on or more similar warnings
-                    # after the first one was raised.
+                    # TODO 12: Review warnings 'allow_mgr' is not used below.
                     allow_mgr = True
 
-            # Series TASK 5.A: COPYING THE MANAGER.
+            # Series TASK 5.B: COPYING THE MANAGER.
             if dtype is not None:
                 data = data.astype(dtype=dtype, errors="ignore")
                 copy = False
@@ -538,9 +567,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         else:  # Creating the SingleBlockManager
             # TODO 8: Decouple single element from the other data.
-            # Use 'single_element' signature.
-            # TODO 8.0. Separate if-else single element;
-            # TODO 8.1. Group common 'index' definitions on 'not single_element' cases.
             if isinstance(data, Index):
                 if index is None:
                     index = default_index(len(data))
@@ -556,10 +582,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 if index is None:
                     index = default_index(len(data))
 
-                # TODO 6.0: Prepare if-signature to move to Series TASK-0
-                # TODO 6.1: Try to move
-                # TODO 6.2: Move
-                # TODO 6.3: Unify if-else signature.
+                # TODO 5.0: Prepare if-signature to move to Series TASK-0
                 if len(data.dtype):
                     # GH#13296 we are dealing with a compound dtype, which
                     #  should be treated as 2D
@@ -576,18 +599,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 if index is None:
                     index = default_index(len(data))
 
-                # TODO 7: Try to Move above, on data preparation.
-                # TODO 7.0: Prepare if-signature to move to Series TASK-
-                # TODO 7.1: Try to move
-                # TODO 7.2: Move
-                # TODO 7.3: Unify if-else signature.
+                # TODO 7: Code that changes dtype to object when data satisfies:
+                # is_list_like, empty and with None, should be moved to Series TASK-1.
                 if not len(data) and dtype is None:
                     # GH 29405: Pre-2.0, this defaulted to float.
                     dtype = np.dtype(object)
 
-            else:  # data is not None: # TODO 12: FIND HOW TO CAPTURE THIS DATA TYPE.
-                # is_scalar(data) fails: #data is not None: OK
-                # seems scalar, directly from input only.
+            else:  # elif data is not None: # this works too
+                # TODO 13: Try capture final data type that seems scalar.
                 if index is None:
                     index = default_index(1)
                     data = [data]
@@ -625,10 +644,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if original_data_type is SingleBlockManager and not original_copy:
             if not allow_mgr:
                 if original_index_type is NoneType and original_dtype is None:
-                    # TODO FINAL: Check GH#52419
-                    # This is somewhat peculiar, because the same warning was being
-                    # presented twice. Check if there is a reason for that,
-                    # If so, come back to that code and create a new test.
+                    # TODO 14: Check GH#52419 (Review main and use it here.)
                     warnings.warn(
                         f"Passing a {original_data_type.__name__}"
                         "to {type(self).__name__} "
