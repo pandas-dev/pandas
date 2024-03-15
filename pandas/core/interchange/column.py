@@ -332,7 +332,7 @@ class PandasColumn(Column):
             if isinstance(self._col.dtype, ArrowDtype):
                 # We already rechunk (if necessary / allowed) upon initialization, so
                 # this is already single-chunk by the time we get here.
-                arr = arr._pa_array.chunks[0]
+                arr = arr._pa_array.chunks[0]  # type: ignore[attr-defined]
                 buffer = PandasBufferPyarrow(
                     arr.buffers()[1],  # type: ignore[attr-defined]
                     length=len(arr),
@@ -386,12 +386,12 @@ class PandasColumn(Column):
         if isinstance(self._col.dtype, ArrowDtype):
             # We already rechunk (if necessary / allowed) upon initialization, so this
             # is already single-chunk by the time we get here.
-            arr = self._col.array._pa_array.chunks[0]
+            arr = self._col.array._pa_array.chunks[0]  # type: ignore[attr-defined]
             dtype = (DtypeKind.BOOL, 1, ArrowCTypes.BOOL, Endianness.NATIVE)
             if arr.buffers()[0] is None:
                 return None
             buffer: Buffer = PandasBufferPyarrow(
-                arr.buffers()[0],  # type: ignore[attr-defined]
+                arr.buffers()[0],
                 length=len(arr),
             )
             return buffer, dtype

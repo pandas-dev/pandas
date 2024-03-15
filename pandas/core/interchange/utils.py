@@ -162,7 +162,7 @@ def maybe_rechunk(series: pd.Series, *, allow_copy: bool) -> pd.Series | None:
     """
     if not isinstance(series.dtype, pd.ArrowDtype):
         return None
-    chunked_array = series.array._pa_array
+    chunked_array = series.array._pa_array  # type: ignore[attr-defined]
     if len(chunked_array.chunks) == 1:
         return None
     if not allow_copy:
