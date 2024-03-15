@@ -156,7 +156,7 @@ fits in memory, you can work with datasets that are much larger than memory.
 
    Chunking works well when the operation you're performing requires zero or minimal
    coordination between chunks. For more complicated workflows, you're better off
-   :ref:`using another library <scale.other_libraries>`.
+   :ref:`using other libraries <scale.other_libraries>`.
 
 Suppose we have an even larger "logical dataset" on disk that's a directory of parquet
 files. Each file in the directory represents a different year of the entire dataset.
@@ -222,7 +222,7 @@ different library that implements these out-of-core algorithms for you.
 Use Other Libraries
 -------------------
 
-pandas is just one library offering a DataFrame API. Because of its popularity,
-pandas' API has become something of a standard that other libraries implement.
-The pandas documentation maintains a list of libraries implementing a DataFrame API
+There are many other libraries which provide similar APIs to pandas and work nicely with pandas DataFrame,
+but can give you the ability to scale your large dataset processing and analytics
+by parallel runtime, distributed memory, clustering, etc. You can find more information
 in `the ecosystem page <https://pandas.pydata.org/community/ecosystem.html#out-of-core>`_.
