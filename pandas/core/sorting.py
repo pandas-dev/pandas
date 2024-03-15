@@ -523,11 +523,11 @@ def _ensure_key_mapped_multiindex(
 
     if level is not None:
         if isinstance(level, (str, int)):
-            sort_levels = [level]
+            level_iter = [level]
         else:
-            sort_levels = level
+            level_iter = level
 
-        sort_levels: range | set = {index._get_level_number(lev) for lev in sort_levels}
+        sort_levels: range | set = {index._get_level_number(lev) for lev in level_iter}
     else:
         sort_levels = range(index.nlevels)
 

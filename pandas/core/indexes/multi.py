@@ -921,7 +921,7 @@ class MultiIndex(Index):
 
         if level is None:
             new_levels = tuple(ensure_index(lev, copy=copy)._view() for lev in levels)
-            level_numbers = range(len(new_levels))
+            level_numbers: range | list[int] = range(len(new_levels))
         else:
             level_numbers = [self._get_level_number(lev) for lev in level]
             new_levels_list = list(self._levels)
