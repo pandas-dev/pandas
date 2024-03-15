@@ -852,12 +852,10 @@ class ArrowExtensionArray(
         return self._pa_array.is_null().to_numpy()
 
     @overload
-    def any(self, *, skipna: Literal[True] = ..., **kwargs) -> bool:
-        ...
+    def any(self, *, skipna: Literal[True] = ..., **kwargs) -> bool: ...
 
     @overload
-    def any(self, *, skipna: bool, **kwargs) -> bool | NAType:
-        ...
+    def any(self, *, skipna: bool, **kwargs) -> bool | NAType: ...
 
     def any(self, *, skipna: bool = True, **kwargs) -> bool | NAType:
         """
@@ -918,12 +916,10 @@ class ArrowExtensionArray(
         return self._reduce("any", skipna=skipna, **kwargs)
 
     @overload
-    def all(self, *, skipna: Literal[True] = ..., **kwargs) -> bool:
-        ...
+    def all(self, *, skipna: Literal[True] = ..., **kwargs) -> bool: ...
 
     @overload
-    def all(self, *, skipna: bool, **kwargs) -> bool | NAType:
-        ...
+    def all(self, *, skipna: bool, **kwargs) -> bool | NAType: ...
 
     def all(self, *, skipna: bool = True, **kwargs) -> bool | NAType:
         """

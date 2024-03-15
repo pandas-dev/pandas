@@ -1124,13 +1124,11 @@ def period_array(
 
 
 @overload
-def validate_dtype_freq(dtype, freq: BaseOffsetT) -> BaseOffsetT:
-    ...
+def validate_dtype_freq(dtype, freq: BaseOffsetT) -> BaseOffsetT: ...
 
 
 @overload
-def validate_dtype_freq(dtype, freq: timedelta | str | None) -> BaseOffset:
-    ...
+def validate_dtype_freq(dtype, freq: timedelta | str | None) -> BaseOffset: ...
 
 
 def validate_dtype_freq(

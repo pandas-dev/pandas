@@ -1,0 +1,37 @@
+.. _whatsnew_222:
+
+What's new in 2.2.2 (April XX, 2024)
+---------------------------------------
+
+These are the changes in pandas 2.2.2. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_222.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- :meth:`DataFrame.__dataframe__` was producing incorrect data buffers when the a column's type was a pandas nullable on with missing values (:issue:`56702`)
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_222.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_222.other:
+
+Other
+~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_222.contributors:
+
+Contributors
+~~~~~~~~~~~~
