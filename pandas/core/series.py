@@ -421,6 +421,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # This is somewhat peculiar, because the same warning was being
         # presented twice. Check if there is a reason for that,
         # If so, come back to that code and create a new test.
+        # TODO 15: Check GitHub Issue
+        # TODO 16: GH#33357 called with just the SingleBlockManager,
+        # -------- Avoid warnings on fast_path_manager?
 
         allow_mgr = False
         fast_path_manager = False
@@ -434,7 +437,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if isinstance(data, SingleBlockManager):
             # DeMorgan Rule
             if not (data.index.equals(index) or index is None) or copy:
-                # TODO FINAL: Check GitHub Issue
+                # TODO 15: Check GitHub Issue
                 # GH #19275 SingleBlockManager input should only be called
                 # internally
                 raise AssertionError(
@@ -508,8 +511,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # TODO 6: DECOUPLE MANAGER PREPARATION FROM COPYING. I realize it will help
         # ------ with the other tasks if I do this first! Let's do it.
-        # TODO 6.1 (NEXT) Avoid copying twice the manager when
-        #          type(data) is SingleBlockManager
+        # DONE 6.1 Avoid copying twice the manager when type(data) is SingleBlockManager
         # TODO 6.2 Unify the copying signature when
         #          type(data) is Series (index is None: ... else: ...)
         # TODO 6.3 Move the copying logic on the series to below.
@@ -536,12 +538,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             elif isinstance(data, SingleBlockManager):
                 if index is None:
                     if not copy and dtype is None:
-                        # TODO FINAL: Avoid warnings on fast_path_manager?
-                        # GH#33357 called with just the SingleBlockManager
-                        # Note, this is a fast track to DF Creation
+                        # TODO 16: # GH#33357 called with just the SingleBlockManager
                         deep = False
                         fast_path_manager = True
-                        data = data.copy(deep)
                     else:
                         index = data.index
 
