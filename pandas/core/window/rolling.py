@@ -100,8 +100,11 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         ArrayLike,
+        Concatenate,
         NDFrameT,
+        P,
         QuantileInterpolation,
+        T,
         WindowingRankType,
         npt,
     )
