@@ -398,7 +398,7 @@ def test_astype_int(dtype):
         msg = "cannot convert float NaN to integer"
     elif dtype.storage == "numpy":
         err = ValueError
-        msg = "Arrays with missing data cannot be converted to integers"
+        msg = "Arrays with missing data cannot be converted to a non-nullable type"
     else:
         err = TypeError
         msg = (
@@ -501,10 +501,9 @@ def test_arrow_array(dtype):
     expected = pa.array(list(data), type=pa.large_string(), from_pandas=True)
     if dtype.storage in ("pyarrow", "pyarrow_numpy") and pa_version_under12p0:
         expected = pa.chunked_array(expected)
-    if dtype.storage == "python":
+    if dtype.storage in ("python", "numpy"):
         expected = pc.cast(expected, pa.string())
     assert arr.equals(expected)
-
 
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_arrow_roundtrip(dtype, string_storage2, request, using_infer_string):
@@ -521,7 +520,7 @@ def test_arrow_roundtrip(dtype, string_storage2, request, using_infer_string):
     data = pd.array(["a", "b", None], dtype=dtype)
     df = pd.DataFrame({"a": data})
     table = pa.table(df)
-    if dtype.storage == "python":
+    if dtype.storage in ("python", "numpy"):
         assert table.field("a").type == "string"
     else:
         assert table.field("a").type == "large_string"
@@ -529,6 +528,8 @@ def test_arrow_roundtrip(dtype, string_storage2, request, using_infer_string):
         result = table.to_pandas()
     assert isinstance(result["a"].dtype, pd.StringDtype)
     expected = df.astype(f"string[{string_storage2}]")
+    if string_storage2 == "numpy":
+        pytest.xfail("pyarrow does notsupport conversion to string[numpy]")
     tm.assert_frame_equal(result, expected)
     # ensure the missing value is represented by NA and not np.nan or None
     assert result.loc[2, "a"] is na_val(result["a"].dtype)
@@ -551,12 +552,14 @@ def test_arrow_load_from_zero_chunks(
     data = pd.array([], dtype=dtype)
     df = pd.DataFrame({"a": data})
     table = pa.table(df)
-    if dtype.storage == "python":
+    if dtype.storage in ("python", "numpy"):
         assert table.field("a").type == "string"
     else:
         assert table.field("a").type == "large_string"
     # Instantiate the same table with no chunks at all
     table = pa.table([pa.chunked_array([], type=pa.string())], schema=table.schema)
+    if string_storage2 == "numpy":
+        pytest.xfail("pyarrow does notsupport conversion to string[numpy]")
     with pd.option_context("string_storage", string_storage2):
         result = table.to_pandas()
     assert isinstance(result["a"].dtype, pd.StringDtype)

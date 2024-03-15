@@ -734,7 +734,8 @@ class NumpyStringArray(BaseNumpyStringArray):
             raise ValueError(self._ctor_err_msg)
         # this check exists purely to satisfy test_constructor_raises and could
         # be deleted if that restriction was relaxed for NumpyStringArray
-        if (arr_values.size == 0 or arr_values.dtype.char == "S"):
+        if (((arr_values.dtype.char == "d" and arr_values.size == 0) or
+             (arr_values.dtype.char == "S"))):
             raise ValueError(self._ctor_err_msg)
         try:
             str_values = arr_values.astype(default_dtype)
