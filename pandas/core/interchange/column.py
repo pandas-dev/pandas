@@ -337,13 +337,6 @@ class PandasColumn(Column):
                     arr.buffers()[1],  # type: ignore[attr-defined]
                     length=len(arr),
                 )
-                if self.dtype[0] == DtypeKind.BOOL:
-                    dtype = (
-                        DtypeKind.BOOL,
-                        1,
-                        ArrowCTypes.BOOL,
-                        Endianness.NATIVE,
-                    )
                 return buffer, dtype
             if isinstance(self._col.dtype, BaseMaskedDtype):
                 np_arr = arr._data  # type: ignore[attr-defined]
