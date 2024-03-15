@@ -13,7 +13,6 @@ from collections.abc import (
 import operator
 import sys
 from textwrap import dedent
-from types import NoneType
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -379,10 +378,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # DONE 2.5.4: Implement fast path logic
         # DONE 2.5.5: Move DataFrame Creation to 'Series Task 6'.
         # DONE 3: (DONE) FINAL: Recover the FINAL Steps used on that for final register.
-        # TODO 4: Move Warning to Series TASK 7
-        # TODO 4.1: Recreate if
-        # TODO 4.2: and move.
-        # TODO 4.3: Unify if-else structure.
+        # DONE 4: Move Warning to Series TASK 7
+        # DONE 4.1: Recreate if
+        # DONE 4.2: and move.
+        # DONE 4.3: Unify if-else structure.
         # TODO 5.0: Prepare if-signature to move to Series TASK-0
         # TODO 5.1: Try to move
         # TODO 5.2: Move
@@ -390,8 +389,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # TODO 6: <--- DECOUPLE MANAGER PREPARATION FROM COPYING.
         # I realize it will help with the other tasks if I do this first! Let's do it.
 
-        # TODO 6.1: (NEXT) Avoid copying twice the manager when
-        #          type(data) is SingleBlockManager
+        # DONE 6.1 Avoid copying twice the manager when type(data) is SingleBlockManager
         # TODO 6.2: Unify the copying signature when
         #          type(data) is Series (index is None: ... else: ...)
         # TODO 6.3: Move the copying logic on the series to below.
@@ -412,15 +410,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # TODO 10.2: If possible, use:
         # --------- 'copy = copy if copy else False' to convert None to False
         # TODO 11: Investigate. This is an unknown type that is being converted to list.
-        # TODO 12: Review warnings 'allow_mgr' is not used below.
-        # -------  This variable is used only for warnings. Possibly to block
-        #  ------- one or more similar warnings after the first one was raised.
+        # DONE 12: 'allow_mgr' were not used anyware.
         # TODO 13: Try capture final data type that seems scalar.
         # -------- But does not satisfy is_scalar(). It comes directly from args.
-        # TODO 14: Check GH#52419
-        # This is somewhat peculiar, because the same warning was being
-        # presented twice. Check if there is a reason for that,
-        # If so, come back to that code and create a new test.
+        # TODO 14: Check GH#52419. This is somewhat peculiar. There were 3 identical
+        # -------- warnings. Check if there is a reason for it. If so:
+        # -------- fix and create a new test.
         # TODO 15: Check GitHub Issue
         # TODO 16: GH#33357 called with just the SingleBlockManager,
         # -------- Avoid warnings on fast_path_manager?
@@ -448,9 +443,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # Series TASK 1: CAPTURE INPUT SIGNATURE. NECESSARY FOR WARNINGS AND ERRORS.
         is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
-        original_copy = copy if copy else False  # proper way to convert None to False
+        # original_copy = copy if copy else False  # proper way to convert None to False
         original_dtype = dtype
-        original_index_type = type(index)
+        # original_index_type = type(index)
         original_data_type = type(data)
         original_data_dtype = getattr(data, "dtype", None)
         refs = None
@@ -544,18 +539,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     else:
                         index = data.index
 
-                # TODO 4: Move Warning to TASK 7
-                if not allow_mgr:
-                    warnings.warn(
-                        f"Passing a {type(data).__name__} to {type(self).__name__} "
-                        "is deprecated and will raise in a future version. "
-                        "Use public APIs instead.",
-                        DeprecationWarning,
-                        stacklevel=2,
-                    )
-                    # TODO 12: Review warnings 'allow_mgr' is not used below.
-                    allow_mgr = True
-
             # Series TASK 5.B: COPYING THE MANAGER.
             if dtype is not None:
                 data = data.astype(dtype=dtype, errors="ignore")
@@ -640,18 +623,32 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 stacklevel=find_stack_level(),
             )
 
-        if original_data_type is SingleBlockManager and not original_copy:
+        if original_data_type is SingleBlockManager:
             if not allow_mgr:
-                if original_index_type is NoneType and original_dtype is None:
-                    # TODO 14: Check GH#52419 (Review main and use it here.)
-                    warnings.warn(
-                        f"Passing a {original_data_type.__name__}"
-                        "to {type(self).__name__} "
-                        "is deprecated and will raise in a future version. "
-                        "Use public APIs instead.",
-                        DeprecationWarning,
-                        stacklevel=2,
-                    )
+                warnings.warn(
+                    f"Passing a {type(data).__name__} to {type(self).__name__} "
+                    "is deprecated and will raise in a future version. "
+                    "Use public APIs instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+        # DONE 12: Review warnings 'allow_mgr' is not used below.
+        # This code is no longer necessary.
+        # allow_mgr = True
+
+        # THIS IS NO LONGER NECESSARY
+        # if original_data_type is SingleBlockManager and not original_copy:
+        #     if not allow_mgr:
+        #         if original_index_type is NoneType and original_dtype is None:
+        #             # DONE 14: Check GH#52419 (Review main and use it here.)
+        #             warnings.warn(
+        #                 f"Passing a {original_data_type.__name__}"
+        #                 "to {type(self).__name__} "
+        #                 "is deprecated and will raise in a future version. "
+        #                 "Use public APIs instead.",
+        #                 DeprecationWarning,
+        #                 stacklevel=2,
+        #             )
 
     # ----------------------------------------------------------------------
 
