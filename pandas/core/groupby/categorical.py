@@ -40,8 +40,6 @@ def recode_for_groupby(c: Categorical, sort: bool, observed: bool) -> Categorica
         appearance in codes (unless ordered=True, in which case the
         original order is preserved), followed by any unrepresented
         categories in the original order.
-    Categorical or None
-        If we are observed, return the original categorical, otherwise None
     """
     # we only care about observed values
     if observed:
