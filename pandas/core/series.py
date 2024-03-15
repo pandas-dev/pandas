@@ -363,6 +363,24 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name=None,
         copy: bool | None = None,
     ) -> None:
+        # todo management
+        # This one I will do a single commit documenting each sub-step, so
+        # that other programmers can understand the refactoring procedure.
+        # TODO 1: DONE
+        # TODO 3: DONE
+        # TODO 2.1: (DONE) Organize if-else logic to visualize decoupling
+        # TODO 2.2: (DONE) Decouple warnings / DATA MANIPULATION.
+        # TODO 2.3  (DONE): Here Slide the warnings to Series Task 7.
+        # TODO 2.4: (DONE) Slide copying the manager to Series TASK 5.A
+        # TODO 2.5.0: (DONE) Check if it is possible to separate copying
+        # --------- from DataFrame Creation.
+        # TODO 2.5.1: (DONE) Move block to TASK 5.A
+        # TODO 2.5.2: (DONE) Decouple DF Copying from Creation.
+        #           Send to to TASKS 5.A AND 6.
+        # TODO 2: Decouple warning/Manager manipulation IN THE TWO CALLS BELOW.
+        # TODO 2.5.3: (DONE) Grouping again because it is a Fast Path
+        # --------- for DataFrame Creation
+
         allow_mgr = False
 
         # Series TASK 0: RAISE ERRORS ON KNOWN UNACEPPTED CASES, ETC.
@@ -472,24 +490,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 copy = False
 
             elif isinstance(data, SingleBlockManager):
-                # todo management
-                # This one I will do a single commit documenting each sub-step, so
-                # that other programmers can understand the refactoring procedure.
-                # TODO 1: DONE
-                # TODO 3: DONE
-                # TODO 2.1: (DONE) Organize if-else logic to visualize decoupling
-                # TODO 2.2: (DONE) Decouple warnings / DATA MANIPULATION.
-                # TODO 2.3  (DONE): Here Slide the warnings to Series Task 7.
-                # TODO 2.4: (DONE) Slide copying the manager to Series TASK 5.A
-                # TODO 2.5.0: (DONE) Check if it is possible to separate copying
-                # --------- from DataFrame Creation.
-                # TODO 2.5.1: (DONE) Move block to TASK 5.A
-                # TODO 2.5.2: (DONE) Decouple DF Copying from Creation.
-                #           Send to to TASKS 5.A AND 6.
-                # TODO 2: Decouple warning/Manager manipulation IN THE TWO CALLS BELOW.
-                # TODO 2.5.3: <--- Grouping again because it is a Fast Path
-                # --------- for DataFrame Creation
-                # TODO 2.5.4: Implement fast path logic
+                # TODO 2.5.4: < --- Implement fast path logic
                 # TODO 2.5.5: Move DataFrame Creation to 'Series Task 6'.
                 if not copy:
                     # GH#33357 called with just the SingleBlockManager
