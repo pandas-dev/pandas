@@ -13,6 +13,7 @@ from collections.abc import (
 import operator
 import sys
 from textwrap import dedent
+from types import NoneType
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -364,39 +365,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> None:
         allow_mgr = False
 
-        # # TODO 2: Send to Series Task 7, below. URGENT. Classify this.
-        # if (
-        #     isinstance(data, SingleBlockManager)
-        #     and index is None
-        #     and dtype is None
-        #     and (copy is False or copy is None)
-        # ):
-        #     if not allow_mgr:
-        #         # GH#52419
-        #         warnings.warn(
-        #             f"Passing a {type(data).__name__} to {type(self).__name__} "
-        #             "is deprecated and will raise in a future version. "
-        #             "Use public APIs instead.",
-        #             DeprecationWarning,
-        #             stacklevel=2,
-        #         )
-        #     data = data.copy(deep=False)
-        #     # GH#33357 called with just the SingleBlockManager
-        #     NDFrame.__init__(self, data)
-        #     self.name = name
-        #     return
-
         # Series TASK 1: RAISE ERRORS ON KNOWN UNACEPPTED CASES, ETC.
         if isinstance(data, MultiIndex):
             raise NotImplementedError(
                 "initializing a Series from a MultiIndex is not supported"
             )
 
-        # DONE
-        # TODO 3.0: OK Create if-else-logic to move
-        # TODO 3.1: OK Check if is possible to move to Series TASK-0. Above
-        # TODO 3.2: OK Move to Series Task 0
-        # TODO 3.3: OK Unify if-else structure
+        # TODO FINAL: Check GH#19275
         if isinstance(data, SingleBlockManager):
             # DeMorgan Rule
             if not (data.index.equals(index) or index is None) or copy:
@@ -408,15 +383,21 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "`index` argument. `copy` must be False."
                 )
 
-        # Series TASK 1: CAPTURE DATA NECESSARY FOR WARNINGS AND CLOSING
+        # Series TASK 1: CAPTURE INPUT SIGNATURE
+        # COMMENT: NECESSARY FOR WARNINGS AND ERRORS
         is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
-        data_dtype = getattr(data, "dtype", None)
+        original_copy = copy if copy else False  # convert None to False
         original_dtype = dtype
+        original_index_type = type(index)
         original_data_type = type(data)  # For warning in the end
+        original_data_dtype = getattr(data, "dtype", None)
         refs = None
         name = ibase.maybe_extract_name(name, data, type(self))
 
         # Series TASK 2: VALIDATE BASIC TYPES (meanwhile, dtype only).
+
+        # TODO FINAL: Try to move copy validation to here.
+        # copy = copy if copy else False  # convert None to False
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
@@ -430,6 +411,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if copy is not False:
                 if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
                     data = data.copy()
+
+        # TODO: NEXT Try to
         if copy is None:
             copy = False
 
@@ -439,18 +422,24 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # TODO 2.1.1: (DONE) Make the two if-else checks below have a common pattern
         # TODO 2.1.2: (DONE) Join the two Manager checks below into a single if-else
         # TODO 2.2: (DONE) Decouple warnings / DATA MANIPULATION.
-        # TODO 2.3: (Working) Here Slide the warnings to Series Task 7.
+        # TODO 2.3 (DONE): Here Slide the warnings to Series Task 7.
         #           Decouple and Move in one commit.
-        # TODO 2.3.1 <--- Decouple Dataframe Creation from warning.
-        # TODO 2.3.2 <--- Check if 'allow_mgr' doesn't changes signature.
-        # TODO 2.3.3 <--- Capture 'original_data_type' to raise warnings latter.
-        # TODO 2.3.4 Move
+        # TODO 2.3.1 (DONE) Decouple Dataframe Creation from warning.
+        # TODO 2.3.2 (DONE) Capture 'original_data_type' to raise warnings latter.
+        # TODO 2.3.3 (DONE) Check if 'allow_mgr' doesn't changes signature.
+        #      This variable is used only for warnings. Possibly to block on or more
+        #      similar warnings after the first one was raised. Investigate in the end.
+        # TODO 2.3.4 <--- (DONE) Capture signature 'original_index_dtype'
+        #            and 'original_copy'
+        # TODO 2.3.5 <--- (DONE) Move
         # TODO 2.4: Slide copying the manager to Series TASK 5.A
         # TODO 2.5: (DONE) Check if it is possible to separate copying from
         # --------- Data Frame Creation.
         # TODO 2.5.1: Move both blocks to TASK 5.A
         # TODO 2.5.2: Decouple Copying DataFrame Creation to TASKS 5.A AND 6
         # TODO 2.5.3: Move DataFrame Creation to 'Series Task 6'.
+        # TODO 1: DONE
+        # TODO 3: DONE
         if isinstance(data, SingleBlockManager) and not copy:
             if index is None and dtype is None:  # TODO 2.5 Starts here.
                 data = data.copy(deep=False)  # <--- to TASK 5.A
@@ -459,30 +448,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 NDFrame.__init__(self, data)  # < --- to TASK 6
                 self.name = name
                 return
-
-        if (
-            original_data_type is SingleBlockManager and not copy
-        ):  # <--- Warnings (Change signature)
-            # if isinstance(data, SingleBlockManager) and not copy:  # <--- Warnings
-            if index is None and dtype is None:  # <--- to TASK 7
-                if not allow_mgr:
-                    # GH#52419
-                    warnings.warn(
-                        f"Passing a {type(data).__name__} to {type(self).__name__} "
-                        "is deprecated and will raise in a future version. "
-                        "Use public APIs instead.",
-                        DeprecationWarning,
-                        stacklevel=2,
-                    )
-
-            if not allow_mgr:  # <--- to TASK 7
-                warnings.warn(
-                    f"Passing a {type(data).__name__} to {type(self).__name__} "
-                    "is deprecated and will raise in a future version. "
-                    "Use public APIs instead.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
 
         # Series TASK 3: DATA TRANSFORMATION.
 
@@ -555,6 +520,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                         DeprecationWarning,
                         stacklevel=2,
                     )
+
+                    # TODO FINAL: Review warnings
+                    # This not used after this point.
+                    # This variable is used only for warnings.
+                    # Possibly to block on or more similar warnings
+                    # after the first one was raised.
                     allow_mgr = True
 
             # Series TASK 5.A: COPYING THE MANAGER.
@@ -566,7 +537,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 data = data.copy(deep)
 
         else:  # Creating the SingleBlockManager
-            # TODO Decouple single element from the other data.
+            # TODO 8: Decouple single element from the other data.
             # Use 'single_element' signature.
             # TODO 8.0. Separate if-else single element;
             # TODO 8.1. Group common 'index' definitions on 'not single_element' cases.
@@ -635,16 +606,36 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self._set_axis(0, index)
 
         # Series TASK 7: RAISE WARNINGS
-        if original_dtype is None and is_pandas_object and data_dtype == np.object_:
-            if self.dtype != data_dtype:
-                warnings.warn(
-                    "Dtype inference on a pandas object "
-                    "(Series, Index, ExtensionArray) is deprecated. The Series "
-                    "constructor will keep the original dtype in the future. "
-                    "Call `infer_objects` on the result to get the old behavior.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
+        if (
+            original_dtype is None
+            and is_pandas_object
+            and original_data_dtype == np.object_
+            and self.dtype != original_data_dtype
+        ):
+            warnings.warn(
+                "Dtype inference on a pandas object "
+                "(Series, Index, ExtensionArray) is deprecated. The Series "
+                "constructor will keep the original dtype in the future. "
+                "Call `infer_objects` on the result to get the old behavior.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
+        if original_data_type is SingleBlockManager and not original_copy:
+            if not allow_mgr:
+                if original_index_type is NoneType and original_dtype is None:
+                    # TODO FINAL: Check GH#52419
+                    # This is somewhat peculiar, because the same warning was being
+                    # presented twice. Check if there is a reason for that,
+                    # If so, come back to that code and create a new test.
+                    warnings.warn(
+                        f"Passing a {original_data_type.__name__}"
+                        "to {type(self).__name__} "
+                        "is deprecated and will raise in a future version. "
+                        "Use public APIs instead.",
+                        DeprecationWarning,
+                        stacklevel=2,
+                    )
 
     # ----------------------------------------------------------------------
 
