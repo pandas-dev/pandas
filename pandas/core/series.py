@@ -382,6 +382,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # --------- for DataFrame Creation
 
         allow_mgr = False
+        fast_path_manager = False
 
         # Series TASK 0: RAISE ERRORS ON KNOWN UNACEPPTED CASES, ETC.
         if isinstance(data, MultiIndex):
@@ -490,19 +491,22 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 copy = False
 
             elif isinstance(data, SingleBlockManager):
-                # TODO 2.5.4: < --- Implement fast path logic
-                # TODO 2.5.5: Move DataFrame Creation to 'Series Task 6'.
-                if not copy:
-                    # GH#33357 called with just the SingleBlockManager
-                    # Note, this is a fast track to
-                    if index is None and dtype is None:
-                        data = data.copy(deep=False)
-                        NDFrame.__init__(self, data)  # < --- MOVE TO TASK 6
-                        self.name = name  # < --- MOVE
-                        return  # < --- MOVE
+                # GH#33357 called with just the SingleBlockManager
+                # Note, this is a fast track to DF Creation
 
+                # TODO 2.5.4: (DONE) Implement fast path logic
+                # TODO 2.5.5: (DONE) Move DataFrame Creation to 'Series Task 6'.
                 if index is None:
-                    index = data.index
+                    if not copy and dtype is None:
+                        deep = False
+                        fast_path_manager = True
+                        data = data.copy(deep)
+                        # NDFrame.__init__(self, data)  # < --- DUPLICATED
+                        # self.name = name              # < --- same
+                        # return                        # < --- Not needed.
+                        # TODO FINAL: Avoid warnings on fast_path_manager?
+                    else:
+                        index = data.index
 
                 # TODO 4.0: Check if it is possible to move below to Series TASK 7.
                 # TODO 4.1: Recreate if
@@ -529,7 +533,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 data = data.astype(dtype=dtype, errors="ignore")
                 copy = False
 
-            if copy:
+            if copy or fast_path_manager:
                 data = data.copy(deep)
 
         else:  # Creating the SingleBlockManager
@@ -599,7 +603,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # Series TASK 6: CREATE THE MANAGER
         NDFrame.__init__(self, data)
         self.name = name
-        self._set_axis(0, index)
+        if not fast_path_manager:
+            self._set_axis(0, index)
 
         # Series TASK 7: RAISE WARNINGS
         if (
