@@ -673,12 +673,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def _null_fill_value(self) -> bool:
         return self._dtype._is_na_fill_value
 
-    def _fill_value_matches(self, fill_value) -> bool:
-        if self._null_fill_value:
-            return isna(fill_value)
-        else:
-            return self.fill_value == fill_value
-
     @property
     def nbytes(self) -> int:
         return self.sp_values.nbytes + self.sp_index.nbytes
