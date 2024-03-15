@@ -4242,12 +4242,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         except (KeyError, ValueError, IndexError):
             return default
 
-    @final
-    @property
-    def _is_view(self) -> bool:
-        """Return boolean indicating if self is view of another array"""
-        return self._mgr.is_view
-
     @staticmethod
     def _check_copy_deprecation(copy):
         if copy is not lib.no_default:
