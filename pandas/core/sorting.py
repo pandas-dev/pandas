@@ -527,9 +527,9 @@ def _ensure_key_mapped_multiindex(
         else:
             sort_levels = level
 
-        sort_levels = [index._get_level_number(lev) for lev in sort_levels]
+        sort_levels: range | set = {index._get_level_number(lev) for lev in sort_levels}
     else:
-        sort_levels = list(range(index.nlevels))  # satisfies mypy
+        sort_levels = range(index.nlevels)
 
     mapped = [
         ensure_key_mapped(index._get_level_values(level), key)
