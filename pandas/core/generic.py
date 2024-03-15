@@ -7846,21 +7846,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             obj, should_transpose = (self.T, True) if axis == 1 else (self, False)
             # GH#53631
-            if obj.ndim == 1 and obj.dtype == object:
+            if (obj.ndim == 1 and obj.dtype == object) or (
+                obj.ndim == 2 and np.any(obj.dtypes == object)
+            ):
                 raise TypeError(
                     f"{type(self).__name__} cannot interpolate with object dtype."
                 )
-            if obj.ndim == 2:
-                if np.all(obj.dtypes == object):
-                    raise TypeError(
-                        "Cannot interpolate with all object-dtype columns "
-                        "in the DataFrame. Try setting at least one "
-                        "column to a numeric dtype."
-                    )
-                elif np.any(obj.dtypes == object):
-                    raise TypeError(
-                        f"{type(self).__name__} cannot interpolate with object dtype."
-                    )
 
         if method in fillna_methods and "fill_value" in kwargs:
             raise ValueError(

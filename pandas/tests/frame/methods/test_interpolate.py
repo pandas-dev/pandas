@@ -302,22 +302,14 @@ class TestDataFrameInterpolate:
                 "E": [1, 2, 3, 4],
             }
         )
-        msg = (
-            "Cannot interpolate with all object-dtype columns "
-            "in the DataFrame. Try setting at least one "
-            "column to a numeric dtype."
-        )
+        msg = "DataFrame cannot interpolate with object dtype"
         with pytest.raises(TypeError, match=msg):
             df.astype("object").interpolate(axis=axis)
 
     def test_interp_raise_on_all_object_dtype(self):
         # GH 22985
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, dtype="object")
-        msg = (
-            "Cannot interpolate with all object-dtype columns "
-            "in the DataFrame. Try setting at least one "
-            "column to a numeric dtype."
-        )
+        msg = "DataFrame cannot interpolate with object dtype"
         with pytest.raises(TypeError, match=msg):
             df.interpolate()
 
