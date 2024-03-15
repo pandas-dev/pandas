@@ -294,6 +294,21 @@ def test_multi_chunk_pyarrow() -> None:
         pd.api.interchange.from_dataframe(table, allow_copy=False)
 
 
+def test_multi_chunk_column() -> None:
+    pytest.importorskip("pyarrow", "11.0.0")
+    ser = pd.Series([1, 2, None], dtype="Int64[pyarrow]")
+    df = pd.concat([ser, ser], ignore_index=True).to_frame("a")
+    with pytest.raises(
+        RuntimeError, match="Found multi-chunk pyarrow array, but `allow_copy` is False"
+    ):
+        pd.api.interchange.from_dataframe(df.__dataframe__(allow_copy=False))
+    result = pd.api.interchange.from_dataframe(df.__dataframe__(allow_copy=True))
+    # Interchange protocol defaults to creating numpy-backed columns, so currently this
+    # is 'float64'.
+    expected = pd.DataFrame({"a": [1.0, 2.0, None, 1.0, 2.0, None]}, dtype="float64")
+    tm.assert_frame_equal(result, expected)
+
+
 def test_timestamp_ns_pyarrow():
     # GH 56712
     pytest.importorskip("pyarrow", "11.0.0")

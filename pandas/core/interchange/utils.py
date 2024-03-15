@@ -166,6 +166,10 @@ def maybe_rechunk(series: pd.Series, *, allow_copy: bool) -> pd.Series | None:
     if len(chunked_array.chunks) == 1:
         return None
     if not allow_copy:
-        raise RuntimeError("Found multi-chunk pyarrow array, but `allow_copy` is False")
+        raise RuntimeError(
+            "Found multi-chunk pyarrow array, but `allow_copy` is False. "
+            "Please rechunk the array before calling this function, or set "
+            "`allow_copy=True`."
+        )
     arr = chunked_array.combine_chunks()
     return pd.Series(arr, dtype=series.dtype, name=series.name, index=series.index)
