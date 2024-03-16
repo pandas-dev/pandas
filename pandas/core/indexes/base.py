@@ -1786,6 +1786,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _get_names(self) -> tuple[Hashable | None, ...]:
         """
         Retrieve the names associated with the object.
+
         This method returns a tuple containing the name of the object.
         It's primarily intended for internal use.
 
