@@ -760,33 +760,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.DataFrameGroupBy.aggregate\
         pandas.core.groupby.DataFrameGroupBy.apply\
         pandas.core.groupby.DataFrameGroupBy.boxplot\
-        pandas.core.groupby.DataFrameGroupBy.cummax\
-        pandas.core.groupby.DataFrameGroupBy.cummin\
-        pandas.core.groupby.DataFrameGroupBy.cumprod\
-        pandas.core.groupby.DataFrameGroupBy.cumsum\
-        pandas.core.groupby.DataFrameGroupBy.filter\
         pandas.core.groupby.DataFrameGroupBy.get_group\
         pandas.core.groupby.DataFrameGroupBy.hist\
-        pandas.core.groupby.DataFrameGroupBy.mean\
-        pandas.core.groupby.DataFrameGroupBy.nunique\
-        pandas.core.groupby.DataFrameGroupBy.rank\
-        pandas.core.groupby.DataFrameGroupBy.resample\
-        pandas.core.groupby.DataFrameGroupBy.skew\
-        pandas.core.groupby.DataFrameGroupBy.transform\
         pandas.core.groupby.SeriesGroupBy.__iter__\
         pandas.core.groupby.SeriesGroupBy.agg\
         pandas.core.groupby.SeriesGroupBy.aggregate\
-        pandas.core.groupby.SeriesGroupBy.cummax\
-        pandas.core.groupby.SeriesGroupBy.cummin\
-        pandas.core.groupby.SeriesGroupBy.cumprod\
-        pandas.core.groupby.SeriesGroupBy.cumsum\
-        pandas.core.groupby.SeriesGroupBy.filter\
         pandas.core.groupby.SeriesGroupBy.get_group\
-        pandas.core.groupby.SeriesGroupBy.mean\
-        pandas.core.groupby.SeriesGroupBy.rank\
-        pandas.core.groupby.SeriesGroupBy.resample\
-        pandas.core.groupby.SeriesGroupBy.skew\
-        pandas.core.groupby.SeriesGroupBy.transform\
         pandas.core.resample.Resampler.__iter__\
         pandas.core.resample.Resampler.ffill\
         pandas.core.resample.Resampler.get_group\
