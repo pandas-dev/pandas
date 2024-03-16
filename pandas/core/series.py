@@ -383,14 +383,22 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # DONE 4.2: and move.
         # DONE 4.3: Unify if-else structure.
         # DONE 5.0: Move ndarray ValueError to TASK-0.
-        # TODO 6: <--- WORKING HERE!! DECOUPLE MANAGER PREPARATION FROM COPYING.
-        # I realize it will help with the other tasks if I do this first! Let's do it.
 
+        # TODO 6: DECOUPLE MANAGER PREPARATION FROM COPYING. I realize it will help
+        # ------ with the other tasks if I do this first! Let's do it.
         # DONE 6.1 Avoid copying twice the manager when type(data) is SingleBlockManager
-        # TODO 6.2: Unify the copying signature when
+        # DONE 6.2 Unify the copying signature when
         #          type(data) is Series (index is None: ... else: ...)
-        # TODO 6.3: Move the copying logic on the series to below.
-        # TODO 6.4: Unify the if-else logic within the Series+SingleBlockManager) case.
+        # DONE 6.3 Simplify logic on copy for both Series and manager.
+        # --------
+        # DONE 6.4 Move the copying logic on the series to below.
+        # DONE 6.5 Unify the if-else logic within the (Series, SingleBlockManager) case.
+        # DONE 6.6 Use deep arg for NDArrays and Extension Array
+        # TODO 6.7 Simplify dtype = object for (Index, arrays, is_list) +
+        # -------- single element group.
+        # TODO 6.7 DO TASK 8 HERE
+        # TODO 6.8 Move single element to outside the (Index, arrays, is_list) group
+        # TODO 6.9 Separate the index is None case on the group (Index, arrays, is_list)
 
         # DONE 7:  Move code to Final Requirements. Task 5.
         # ------  dtype Series with arguments equivalent to empty list,
@@ -426,6 +434,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         allow_mgr = False
         fast_path_manager = False
+        deep = True  # deep copy, by standard.
 
         # Series TASK 0: VALIDATE BASIC TYPES.
         if dtype is not None:
@@ -511,11 +520,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         #          type(data) is Series (index is None: ... else: ...)
         # DONE 6.3 Simplify logic on copy for both Series and manager.
         # --------
-        # TODO 6.4 Move the copying logic on the series to below.
-        # TODO 6.5 Unify the if-else logic within the (Series, SingleBlockManager) case.
+        # DONE 6.4 Move the copying logic on the series to below.
+        # DONE 6.5 Unify the if-else logic within the (Series, SingleBlockManager) case.
+        # DONE 6.6 Use deep arg for NDArrays and Extension Array
+        # TODO 6.7 Simplify dtype = object for (Index, arrays, is_list) +
+        # -------- single element group.
+        # TODO 6.7 DO TASK 8 HERE
+        # TODO 6.8 Move single element to outside the (Index, arrays, is_list) group
+        # TODO 6.9 Separate the index is None case on the group (Index, arrays, is_list)
         if isinstance(data, (Series, SingleBlockManager)):
-            deep = True
-
             # Series TASK 5.A: ADAPTING DATA AND INDEX ON SERIES EACH CASE.
             if isinstance(data, Series):
                 # copy logic is delicate and maybe has no been fully implemented.
@@ -557,15 +570,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 data = data._values
                 copy = False
 
-            elif isinstance(data, np.ndarray):
-                if index is None:
-                    index = default_index(len(data))
-
-                if copy_arrays:
-                    if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
-                        data = data.copy()
-
-            elif isinstance(data, ExtensionArray):
+            elif isinstance(data, (np.ndarray, ExtensionArray)):
                 if index is None:
                     index = default_index(len(data))
 
@@ -588,10 +593,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if is_list_like(data):
                 com.require_length_match(data, index)
 
-                if list_like_input and dtype is None:
-                    if not len(data):
-                        # GH 29405: Pre-2.0, this defaulted to float.
-                        dtype = np.dtype(object)
+                # GH 29405: Pre-2.0, this defaulted to float.
+                empty_list = list_like_input and dtype is None and not len(data)
+                dtype = np.dtype(object) if empty_list else dtype
+
+                # if list_like_input and dtype is None:
+                #     if not len(data):
+                #         # GH 29405: Pre-2.0, this defaulted to float.
+                #         dtype = np.dtype(object)
 
             # Series TASK 5.B: CREATING THE MANAGER.
             data = sanitize_array(data, index, dtype, copy)
