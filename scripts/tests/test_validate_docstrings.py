@@ -218,7 +218,7 @@ class TestValidator:
         result = validate_docstrings.validate_all(prefix=None, ignore_deprecated=True)
         assert len(result) == 0
 
-    def test_validate_all_for_error_ignore_functions(self, monkeypatch):
+    def test_validate_all_ignore_errors(self, monkeypatch):
         monkeypatch.setattr(
             validate_docstrings,
             "pandas_validate",
@@ -260,14 +260,18 @@ class TestValidator:
             prefix=None,
             errors=["ER01", "ER02"],
             ignore_deprecated=False,
-            for_error_ignore_functions={"ER01": ["pandas.DataFrame.align"]}
+            ignore_errors={
+                "pandas.DataFrame.align": ["ER01"],
+                # ignoring an error that is not requested should be of no effect
+                "pandas.Index.all": ["ER03"]
+            }
         )
         exit_status = validate_docstrings.print_validate_all_results(
             output_format="default",
             prefix=None,
             errors=["ER01", "ER02"],
             ignore_deprecated=False,
-            for_error_ignore_functions=None
+            ignore_errors=None
         )
 
         # we have 2 error codes activated out of the 3 available in the validate results
@@ -397,7 +401,7 @@ class TestMainFunction:
             output_format="default",
             errors=[],
             ignore_deprecated=False,
-            for_error_ignore_functions=None,
+            ignore_errors=None,
         )
         assert exit_status == 0
 
@@ -428,7 +432,7 @@ class TestMainFunction:
             output_format="default",
             errors=[],
             ignore_deprecated=False,
-            for_error_ignore_functions=None,
+            ignore_errors=None,
         )
         assert exit_status == 5
 
@@ -447,7 +451,7 @@ class TestMainFunction:
             prefix=None,
             errors=[],
             ignore_deprecated=False,
-            for_error_ignore_functions=None,
+            ignore_errors=None,
         )
         assert exit_status == 0
 
@@ -472,7 +476,7 @@ class TestMainFunction:
             prefix=None,
             errors=[],
             ignore_deprecated=False,
-            for_error_ignore_functions=None,
+            ignore_errors=None,
         )
         assert exit_status == 0
 
@@ -517,7 +521,7 @@ class TestMainFunction:
             prefix=None,
             errors=["ER01"],
             ignore_deprecated=False,
-            for_error_ignore_functions=None,
+            ignore_errors=None,
         )
         assert exit_status == 3
 
@@ -527,6 +531,6 @@ class TestMainFunction:
             output_format="default",
             errors=["ER03"],
             ignore_deprecated=False,
-            for_error_ignore_functions=None,
+            ignore_errors=None,
         )
         assert exit_status == 1
