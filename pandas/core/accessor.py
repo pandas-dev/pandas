@@ -262,13 +262,19 @@ def _register_accessor(name: str, cls):
     The requirements for the accessor class are as follows:
 
     * Must contain an init method that:
-        * accepts a single {klass} object
-        * raises an {AttributeError} if the {klass} object does not have correctly
+
+      * accepts a single {klass} object
+
+      * raises an AttributeError if the {klass} object does not have correctly
         matching inputs for the accessor
+
     * Must contain a method for each access pattern.
-        * The methods should be able to take any argument signature.
-        * Accessible using the @property decorator if no additional arguments are
+
+      * The methods should be able to take any argument signature.
+
+      * Accessible using the @property decorator if no additional arguments are
         needed.
+
     """
 
     def decorator(accessor):
@@ -309,7 +315,9 @@ have a class defined like this:
 
 
 Back in an interactive IPython session:
+
 .. code-block:: ipython
+
     >>> df = pd.DataFrame([[1, 2], ['x', 'y']])
     >>> df.int_accessor
     Traceback (most recent call last):
@@ -353,7 +361,9 @@ have a class defined like this:
 
 
 Back in an interactive IPython session:
+
 .. code-block:: ipython
+
     >>> df = pd.Series([1, 2, 'x'])
     >>> df.int_accessor
     Traceback (most recent call last):
@@ -394,7 +404,9 @@ have a class defined like this:
             return [x for x in self._obj if x % 2 == 0]
 
 Back in an interactive IPython session:
+
 .. code-block:: ipython
+
     >>> df = pd.DataFrame.from_dict({
             'row1': {'1':1, '2':'a'},
             'row2': {'1':2, '2':'b'}
