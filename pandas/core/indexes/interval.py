@@ -1,4 +1,5 @@
-""" define the IntervalIndex """
+"""define the IntervalIndex"""
+
 from __future__ import annotations
 
 from operator import (
@@ -1004,8 +1005,8 @@ def interval_range(
     ``IntervalIndex`` will have ``periods`` linearly spaced elements between
     ``start`` and ``end``, inclusively.
 
-    To learn more about datetime-like frequency strings, please see `this link
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+    To learn more about datetime-like frequency strings, please see
+    :ref:`this link<timeseries.offset_aliases>`.
 
     Examples
     --------

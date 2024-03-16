@@ -1,6 +1,7 @@
 """
 Quantilization functions and related stuff
 """
+
 from __future__ import annotations
 
 from typing import (
