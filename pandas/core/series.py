@@ -386,27 +386,27 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # TODO 6: DECOUPLE MANAGER PREPARATION FROM COPYING. I realize it will help
         # ------ with the other tasks if I do this first! Let's do it.
-        # DONE 6.1 Avoid copying twice the manager when type(data) is SingleBlockManager
-        # DONE 6.2 Unify the copying signature when
+        # DONE 6.1: Avoid copying twice when type(data) is SingleBlockManager
+        # DONE 6.2: Unify the copying signature when
         #          type(data) is Series (index is None: ... else: ...)
-        # DONE 6.3 Simplify logic on copy for both Series and manager.
+        # DONE 6.3: Simplify logic on copy for both Series and manager.
         # --------
-        # DONE 6.4 Move the copying logic on the series to below.
-        # DONE 6.5 Unify the if-else logic within the (Series, SingleBlockManager) case.
-        # DONE 6.6 Use deep arg for NDArrays and Extension Array
-        # TODO 6.7 Simplify dtype = object for (Index, arrays, is_list) +
+        # DONE 6.4: Move the copying logic on the series to below.
+        # DONE 6.5: Unify the if-else within the (Series, SingleBlockManager) case.
+        # DONE 6.6: Use deep arg for NDArrays and Extension Array
+        # DONE 6.7: Simplify dtype = object for (Index, arrays, is_list) +
         # -------- single element group.
-        # TODO 6.7 DO TASK 8 HERE
-        # TODO 6.8 Move single element to outside the (Index, arrays, is_list) group
+        # DONE 6.7: DO TASK 8 HERE
+        # DONE 6.8 Move single element to outside the (Index, arrays, is_list) group
         # TODO 6.9 Separate the index is None case on the group (Index, arrays, is_list)
 
         # DONE 7:  Move code to Final Requirements. Task 5.
         # ------  dtype Series with arguments equivalent to empty list,
         # ------  with dtype=None, must be object.
-        # TODO 8: Decouple single element from the other data.
+        # DONE 8: Decouple single element from the other data.
         # Use 'single_element' signature.
-        # TODO 8.0. Separate if-else single element;
-        # TODO 8.1. Group common 'index' definitions on 'not single_element' cases.
+        # DONE 8.0. Separate if-else single element;
+        # DONE 8.1. Group common 'index' definitions on 'not single_element' cases.
 
         # DONE 10: Move codes for Copying ExtensionArray to TASK 5.B.
         # DONE 10.1: Understand that the logic is different for
@@ -450,7 +450,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             )
 
         if isinstance(data, SingleBlockManager):
-            # DeMorgan Rule
             if not (data.index.equals(index) or index is None) or copy:
                 # TODO 15: Check GitHub Issue
                 # GH #19275 SingleBlockManager input should only be called internally
@@ -514,20 +513,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # Series TASK 5: CREATING OR COPYING THE MANAGER. A: PREPARE. B: COPY.
 
         # TODO 6: DECOUPLE MANAGER PREPARATION FROM COPYING. I realize it will help
-        # ------ with the other tasks if I do this first! Let's do it.
-        # DONE 6.1 Avoid copying twice the manager when type(data) is SingleBlockManager
-        # DONE 6.2 Unify the copying signature when
-        #          type(data) is Series (index is None: ... else: ...)
-        # DONE 6.3 Simplify logic on copy for both Series and manager.
-        # --------
-        # DONE 6.4 Move the copying logic on the series to below.
-        # DONE 6.5 Unify the if-else logic within the (Series, SingleBlockManager) case.
-        # DONE 6.6 Use deep arg for NDArrays and Extension Array
-        # TODO 6.7 Simplify dtype = object for (Index, arrays, is_list) +
-        # -------- single element group.
-        # TODO 6.7 DO TASK 8 HERE
-        # TODO 6.8 Move single element to outside the (Index, arrays, is_list) group
-        # TODO 6.9 Separate the index is None case on the group (Index, arrays, is_list)
+        # TODO 6.9: Separate the index is None case on the group (Index,arrays,is_list)
         if isinstance(data, (Series, SingleBlockManager)):
             # Series TASK 5.A: ADAPTING DATA AND INDEX ON SERIES EACH CASE.
             if isinstance(data, Series):
@@ -557,34 +543,37 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         else:  # Creating the SingleBlockManager
             list_like_input = False
+            if isinstance(data, (Index, np.ndarray, ExtensionArray)) or is_list_like(
+                data
+            ):
+                if isinstance(data, Index):
+                    if index is None:
+                        index = default_index(len(data))
 
-            # TODO 8: Decouple single element from the other data.
-            if isinstance(data, Index):
-                if index is None:
-                    index = default_index(len(data))
+                    if dtype is not None:
+                        data = data.astype(dtype)
 
-                if dtype is not None:
-                    data = data.astype(dtype)
+                    refs = data._references
+                    data = data._values
+                    copy = False
 
-                refs = data._references
-                data = data._values
-                copy = False
+                elif isinstance(data, (np.ndarray, ExtensionArray)):
+                    if index is None:
+                        index = default_index(len(data))
 
-            elif isinstance(data, (np.ndarray, ExtensionArray)):
-                if index is None:
-                    index = default_index(len(data))
+                    if copy_arrays:
+                        if dtype is None or astype_is_view(
+                            data.dtype, pandas_dtype(dtype)
+                        ):
+                            data = data.copy()  # not np.ndarray.copy(deep=...)
 
-                if copy_arrays:
-                    if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
-                        data = data.copy()
+                elif is_list_like(data):
+                    if index is None:
+                        index = default_index(len(data))
 
-            elif is_list_like(data):
-                if index is None:
-                    index = default_index(len(data))
+                    list_like_input = True
 
-                list_like_input = True
-
-            else:  # elif data is not None: # this works too
+            else:  # elif data is not None: # this works too # possibly single_element.
                 if index is None:
                     index = default_index(1)
                     data = [data]
@@ -593,14 +582,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if is_list_like(data):
                 com.require_length_match(data, index)
 
-                # GH 29405: Pre-2.0, this defaulted to float.
-                empty_list = list_like_input and dtype is None and not len(data)
-                dtype = np.dtype(object) if empty_list else dtype
-
-                # if list_like_input and dtype is None:
-                #     if not len(data):
-                #         # GH 29405: Pre-2.0, this defaulted to float.
-                #         dtype = np.dtype(object)
+            # GH 29405: Pre-2.0, this defaulted to float.
+            empty_list = list_like_input and dtype is None and not len(data)
+            dtype = np.dtype(object) if empty_list else dtype
 
             # Series TASK 5.B: CREATING THE MANAGER.
             data = sanitize_array(data, index, dtype, copy)
