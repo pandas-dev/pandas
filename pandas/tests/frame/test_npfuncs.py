@@ -1,6 +1,7 @@
 """
 Tests for np.foo applied to DataFrame, not necessarily ufuncs.
 """
+
 import numpy as np
 
 from pandas import (

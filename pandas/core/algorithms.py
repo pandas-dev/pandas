@@ -2,6 +2,7 @@
 Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
+
 from __future__ import annotations
 
 import decimal
@@ -436,6 +437,10 @@ def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
 
     if isinstance(values.dtype, ExtensionDtype):
         # Dispatch to extension dtype's unique.
+        return values.unique()
+
+    if isinstance(values, ABCIndex):
+        # Dispatch to Index's unique.
         return values.unique()
 
     original = values
