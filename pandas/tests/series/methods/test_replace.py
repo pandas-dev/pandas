@@ -625,7 +625,9 @@ class TestSeriesReplace:
             "CC": "CC-REPL",
         }
         result = ser.replace(regex_mapping, regex=True)
-        exp = pd.Series(["CC", "CC", "CC-REPL", "DD", "CC", "", pd.NA, "CC"], dtype="string")
+        exp = pd.Series(
+            ["CC", "CC", "CC-REPL", "DD", "CC", "", pd.NA, "CC"], dtype="string"
+        )
         tm.assert_series_equal(result, exp)
 
     @pytest.mark.parametrize(
