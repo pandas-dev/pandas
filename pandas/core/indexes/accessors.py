@@ -573,8 +573,7 @@ class CombinedDatetimelikeProperties(
     DatetimeProperties, TimedeltaProperties, PeriodProperties
 ):
     """
-    Accessor object for datetime-like, timedelta and period properties
-    of the Series values.
+    Accessor object for Series values' datetime-like, timedelta and period properties.
 
     See Also
     --------

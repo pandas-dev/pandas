@@ -436,6 +436,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.cat.rename_categories\
         pandas.Series.cat.reorder_categories\
         pandas.Series.cat.set_categories\
+        pandas.Series.dt\
         pandas.Series.dt.as_unit\
         pandas.Series.dt.ceil\
         pandas.Series.dt.day_name\
