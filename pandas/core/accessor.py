@@ -13,7 +13,7 @@ from typing import (
 )
 import warnings
 
-from pandas.util._decorators import doc
+from pandas.util._decorators import doc, Appender
 from pandas.util._exceptions import find_stack_level
 
 
@@ -255,51 +255,15 @@ def _register_accessor(name: str, cls):
 
     Notes
     -----
-    When accessed, your accessor will be initialized with the pandas object
-    the user is interacting with. So the signature must be
+    This function allows you to register a custom-defined accessor class for {klass}.
+    The requirements for the accessor class are as follows:
 
-    .. code-block:: python
-
-        def __init__(self, pandas_object):  # noqa: E999
-            ...
-
-    For consistency with pandas methods, you should raise an ``AttributeError``
-    if the data passed to your accessor has an incorrect dtype.
-
-    >>> pd.Series(["a", "b"]).dt
-    Traceback (most recent call last):
-    ...
-    AttributeError: Can only use .dt accessor with datetimelike values
-
-    Examples
-    --------
-    In your library code::
-
-        @pd.api.extensions.register_dataframe_accessor("geo")
-        class GeoAccessor:
-            def __init__(self, pandas_obj):
-                self._obj = pandas_obj
-
-            @property
-            def center(self):
-                # return the geographic center point of this DataFrame
-                lat = self._obj.latitude
-                lon = self._obj.longitude
-                return (float(lon.mean()), float(lat.mean()))
-
-            def plot(self):
-                # plot this array's data on a map, e.g., using Cartopy
-                pass
-
-    Back in an interactive IPython session:
-
-        .. code-block:: ipython
-
-            In [1]: ds = pd.DataFrame({{"longitude": np.linspace(0, 10),
-               ...:                    "latitude": np.linspace(0, 20)}})
-            In [2]: ds.geo.center
-            Out[2]: (5.0, 10.0)
-            In [3]: ds.geo.plot()  # plots data on a map
+    * Must contain an init method that:
+        * accepts a single {klass} object
+        * raises an {AttributeError} if the {klass} object does not have correctly matching inputs for the accessor
+    * Must contain a method for each access pattern.
+        * The methods should be able to take any argument signature.
+        * Accessible using the @property decorator if no additional arguments are needed.
     """
 
     def decorator(accessor):
@@ -318,6 +282,41 @@ def _register_accessor(name: str, cls):
     return decorator
 
 
+_register_df_doc = """
+Examples
+--------
+In your library code, an accessor that only accepts integers could have a class defined like this:
+.. code-block:: python
+
+    import pandas as pd
+
+    @pd.api.extensions.register_dataframe_accessor("int_accessor")
+    class IntAccessor:
+        def __init__(self, pandas_obj):
+            if not all(pandas_obj[col].dtype == 'int64' for col in pandas_obj.columns):
+                raise AttributeError("All columns must contain integer values only")
+            self._obj = pandas_obj
+
+        def sum(self):
+            return self._obj.sum()
+
+
+Back in an interactive IPython session:
+.. code-block:: ipython
+    >>> df = pd.DataFrame([[1, 2], ['x', 'y']])
+    >>> df.int_accessor
+    Traceback (most recent call last):
+    ...
+    AttributeError: All columns must contain integer values only. Did you mean: '_accessors'?
+    >>> df = pd.DataFrame([[1, 2], [3, 4]])
+    >>> df.int_accessor.sum()
+    0    4
+    1    6
+    dtype: int64
+"""
+
+
+@Appender(_register_df_doc)
 @doc(_register_accessor, klass="DataFrame")
 def register_dataframe_accessor(name: str):
     from pandas import DataFrame
@@ -325,6 +324,39 @@ def register_dataframe_accessor(name: str):
     return _register_accessor(name, DataFrame)
 
 
+_series_doc = """
+Examples
+--------
+In your library code, an accessor that only accepts integers could have a class defined like this:
+.. code-block:: python
+
+    import pandas as pd
+
+    @pd.api.extensions.register_series_accessor("int_accessor")
+    class IntAccessor:
+        def __init__(self, pandas_obj):
+            if not all(pandas_obj[col].dtype == 'int64' for col in pandas_obj.columns):
+                raise AttributeError("All columns must contain integer values only")
+            self._obj = pandas_obj
+
+        def sum(self):
+            return self._obj.sum() 
+
+
+Back in an interactive IPython session:
+.. code-block:: ipython
+    >>> df = pd.Series([1, 2, 'x'])
+    >>> df.int_accessor
+    Traceback (most recent call last):
+    ...
+    AttributeError: The series must contain integer data only. Did you mean: '_accessors'?
+    >>> df = pd.Series([1, 2, 3])
+    >>> df.int_accessor.sum
+    6
+"""
+
+
+@Appender(_series_doc)
 @doc(_register_accessor, klass="Series")
 def register_series_accessor(name: str):
     from pandas import Series
@@ -332,6 +364,43 @@ def register_series_accessor(name: str):
     return _register_accessor(name, Series)
 
 
+_index_doc = """
+Examples
+--------
+In your library code, an accessor that only accepts integers could have a class defined like this:
+.. code-block:: python
+
+    import pandas as pd
+
+    @pd.api.extensions.register_index_accessor("int_accessor")
+    class IntAccessor:
+        def __init__(self, pandas_obj):
+            if not all(isinstance(x, int) for x in pandas_obj):
+                raise AttributeError("The index must only be an integer value")
+            self._obj = pandas_obj
+
+        def even(self):
+            return [x for x in self._obj if x % 2 == 0]
+
+Back in an interactive IPython session:
+.. code-block:: ipython
+    >>> df = pd.DataFrame.from_dict({
+            'row1': {'1':1, '2':'a'},
+            'row2': {'1':2, '2':'b'}
+            },orient='index')
+    >>> df.index.int_accessor
+    Traceback (most recent call last):
+    ...
+    AttributeError: The index must only be an integer value. Did you mean: '_accessors'?
+    >>> df = pd.DataFrame({
+            'col1': [1, 2, 3, 4],
+            'col2': ['a', 'b', 'c', 'd']
+            }, index=[1, 2, 5, 8])
+    >>> df.index.my_accessor.even()
+    [2,8]
+"""
+
+@Appender(_index_doc)
 @doc(_register_accessor, klass="Index")
 def register_index_accessor(name: str):
     from pandas import Index
