@@ -1057,7 +1057,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Viewing as 'int32' reinterprets the memory, which may lead to unexpected behavior:
 
-        >>> idx.view('int32')
+        >>> idx.view("int32")
         array([1, 0, 2, 0, 3, 0], dtype=int32)
         """
         # we need to see if we are subclassing an
@@ -1804,7 +1804,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         Create an index with a name and retrieve its names:
 
-        >>> index = pd.Index([1, 2, 3], name='example_name')
+        >>> index = pd.Index([1, 2, 3], name="example_name")
         >>> index.names
         ('example_name',)
 
