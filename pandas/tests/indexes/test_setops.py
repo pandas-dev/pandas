@@ -62,11 +62,11 @@ def index_flat2(index_flat):
     return index_flat
 
 
-def test_union_same_types(index):
+def test_union_same_types(index, request):
     # Union with a non-unique, non-monotonic index raises error
     # Only needed for bool index factory
     # This check is written for the mixed-int-string entry
-    if tm.is_mixed_int_string_entry(index.values):
+    if request.node.callspec.id == "mixed-int-string":
         with pytest.raises(
             TypeError, match="'<' not supported between instances of 'str' and 'int'"
         ):
@@ -137,9 +137,7 @@ def test_union_different_types(index_flat, index_flat2, request):
     # Union with a non-unique, non-monotonic index raises error
     # This applies to the boolean index
     # This check is written for the mixed-int-string entry
-    if tm.is_mixed_int_string_entry(idx1.values) or tm.is_mixed_int_string_entry(
-        idx2.values
-    ):
+    if request.node.callspec.id == "mixed-int-string":
         with pytest.raises(
             TypeError, match="'<' not supported between instances of 'str' and 'int'"
         ):
@@ -266,7 +264,7 @@ class TestSetOps:
         "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
     )
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-    def test_union_base(self, index):
+    def test_union_base(self, index, request):
         index = index.unique()
         first = index[3:]
         second = index[:5]
@@ -274,7 +272,7 @@ class TestSetOps:
 
         union = first.union(second)
         # This check is written for the mixed-int-string entry
-        if tm.is_mixed_int_string_entry(index.values):
+        if request.node.callspec.id == "mixed-int-string":
             with pytest.raises(
                 TypeError,
                 match="'<' not supported between instances of 'str' and 'int'",
@@ -332,7 +330,7 @@ class TestSetOps:
     @pytest.mark.filterwarnings(
         "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
     )
-    def test_symmetric_difference(self, index):
+    def test_symmetric_difference(self, index, request):
         if isinstance(index, CategoricalIndex):
             pytest.skip(f"Not relevant for {type(index).__name__}")
         if len(index) < 2:
@@ -347,7 +345,7 @@ class TestSetOps:
         answer = index[[0, -1]]
         result = first.symmetric_difference(second)
         # This check is written for the mixed-int-string entry
-        if tm.is_mixed_int_string_entry(index.values):
+        if request.node.callspec.id == "mixed-int-string":
             with pytest.raises(
                 TypeError,
                 match="'<' not supported between instances of 'str' and 'int'",
@@ -424,7 +422,7 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_union_unequal(self, index_flat, fname, sname, expected_name):
+    def test_union_unequal(self, index_flat, fname, sname, expected_name, request):
         if not index_flat.is_unique:
             index = index_flat.unique()
         else:
@@ -434,7 +432,16 @@ class TestSetOps:
         first = index.copy().set_names(fname)
         second = index[1:].set_names(sname)
         # This check is written for the mixed-int-string entry
-        if tm.is_mixed_int_string_entry(second.values):
+        if request.node.callspec.id in [
+            "-".join(["mixed-int-string", t])
+            for t in [
+                "A-A-A",
+                "A-B-None",
+                "A-None-None",
+                "None-B-None",
+                "None-None-None",
+            ]
+        ]:
             with pytest.raises(
                 TypeError,
                 match="'<' not supported between instances of 'str' and 'int'",
@@ -501,7 +508,7 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_intersect_unequal(self, index_flat, fname, sname, expected_name):
+    def test_intersect_unequal(self, index_flat, fname, sname, expected_name, request):
         if not index_flat.is_unique:
             index = index_flat.unique()
         else:
@@ -510,7 +517,17 @@ class TestSetOps:
         # test copy.intersection(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
         second = index[1:].set_names(sname)
-        if tm.is_mixed_int_string_entry(index.values):
+        # This check is written for the mixed-int-string entry
+        if request.node.callspec.id in [
+            "-".join(["mixed-int-string", t])
+            for t in [
+                "A-A-A",
+                "A-B-None",
+                "A-None-None",
+                "None-B-None",
+                "None-None-None",
+            ]
+        ]:
             with pytest.raises(
                 TypeError,
                 match="'<' not supported between instances of 'int' and 'str'",

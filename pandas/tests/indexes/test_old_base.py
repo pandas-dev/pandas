@@ -331,12 +331,12 @@ class TestBase:
         if index.inferred_type == "object":
             assert result3 > result2
 
-    def test_argsort(self, index):
+    def test_argsort(self, index, request):
         if isinstance(index, CategoricalIndex):
             pytest.skip(f"{type(self).__name__} separately tested")
 
         # This check is written for the mixed-int-string entry
-        if tm.is_mixed_int_string_entry(index.values):
+        if request.node.callspec.id == "mixed-int-string":
             with pytest.raises(
                 TypeError,
                 match="'<' not supported between instances of 'str' and 'int'",
@@ -347,9 +347,9 @@ class TestBase:
             expected = np.array(index).argsort()
             tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
-    def test_numpy_argsort(self, index):
+    def test_numpy_argsort(self, index, request):
         # This check is written for the mixed-int-string entry
-        if tm.is_mixed_int_string_entry(index.values):
+        if request.node.callspec.id == "mixed-int-string":
             with pytest.raises(
                 TypeError,
                 match="'<' not supported between instances of 'str' and 'int'",

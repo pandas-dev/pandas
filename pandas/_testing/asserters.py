@@ -1433,20 +1433,3 @@ def assert_metadata_equivalent(
             assert val is None
         else:
             assert val == getattr(right, attr, None)
-
-
-def is_mixed_int_string_entry(arr) -> bool:
-    """
-    Check that fixtures `index`, `index_flat` and `index_with_missing`
-    contain arr mixed int-string array.
-    """
-    # we might have an entry [0, "a", 1, "b", 2, "c"] with duplicates
-    # or with None or without the first element
-    if len(arr) < 3:
-        return False
-    elif isinstance(arr[0], int):
-        return isinstance(arr[1], str)
-    elif isinstance(arr[0], str):
-        return isinstance(arr[1], int)
-    else:
-        return isinstance(arr[2], int) and isinstance(arr[3], str)

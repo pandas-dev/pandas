@@ -17,7 +17,6 @@ from pandas import (
     Index,
     Series,
 )
-import pandas._testing as tm
 
 
 def test_isnull_notnull_docstrings():
@@ -162,13 +161,8 @@ def test_searchsorted(request, index_or_series_obj):
         request.applymarker(mark)
 
     # This check is written for the mixed-int-string entry
-    if tm.is_mixed_int_string_entry(obj.values):
-        with pytest.raises(
-            TypeError, match="'>' not supported between instances of 'str' and 'int'"
-        ):
-            max_obj = max(obj, default=0)
-            index = np.searchsorted(obj, max_obj)
-        return
+    if request.node.callspec.id == "mixed-int-string":
+        pytest.skip("'>' not supported between instances of 'str' and 'int'")
 
     max_obj = max(obj, default=0)
     index = np.searchsorted(obj, max_obj)

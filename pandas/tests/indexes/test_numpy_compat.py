@@ -161,7 +161,10 @@ def test_numpy_ufuncs_reductions(index, func, request):
             func.reduce(index)
         return
     # This check is written for the mixed-int-string entry
-    elif tm.is_mixed_int_string_entry(index.values):
+    elif request.node.callspec.id in [
+        "mixed-int-string-maximum",
+        "mixed-int-string-minimum",
+    ]:
         with pytest.raises(
             TypeError, match=".* not supported between instances of 'int' and 'str'"
         ):

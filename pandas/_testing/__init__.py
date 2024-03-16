@@ -65,7 +65,6 @@ from pandas._testing.asserters import (
     assert_series_equal,
     assert_sp_array_equal,
     assert_timedelta_array_equal,
-    is_mixed_int_string_entry,
     raise_assert_detail,
 )
 from pandas._testing.compat import (
@@ -573,7 +572,6 @@ __all__ = [
     "assert_produces_warning",
     "assert_series_equal",
     "assert_sp_array_equal",
-    "is_mixed_int_string_entry",
     "assert_timedelta_array_equal",
     "at",
     "BOOL_DTYPES",

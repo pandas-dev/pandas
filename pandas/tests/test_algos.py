@@ -66,7 +66,7 @@ class TestFactorize:
         expected_uniques = np.array([(1 + 0j), (2 + 0j), (2 + 1j)], dtype=object)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
-    def test_factorize(self, index_or_series_obj, sort):
+    def test_factorize(self, index_or_series_obj, sort, request):
         obj = index_or_series_obj
         result_codes, result_uniques = obj.factorize(sort=sort)
 
@@ -86,7 +86,7 @@ class TestFactorize:
 
         if sort:
             # This check is written for the mixed-int-string entry
-            if tm.is_mixed_int_string_entry(expected_uniques.values):
+            if request.node.callspec.id == "mixed-int-string-True":
                 pytest.skip("'<' not supported between instances of 'str' and 'int'")
             expected_uniques = expected_uniques.sort_values()
 
