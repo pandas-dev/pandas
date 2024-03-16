@@ -492,6 +492,7 @@ if __name__ == "__main__":
     )
     argparser.add_argument(
         "--ignore_errors",
+        default=None,
         action="append",
         nargs=2,
         metavar=("function", "error_codes"),
@@ -508,19 +509,6 @@ if __name__ == "__main__":
         args.ignore_errors = {function: error_codes.split(",")
                               for function, error_codes
                               in args.ignore_errors}
-    else:
-        args.ignore_errors = None
-    func_to_errors = {}
-    for error, funcs in args.ignore_errors.items():
-        for func in funcs:
-            if func_to_errors.get(func, None) is None:
-                func_to_errors[func] = []
-            func_to_errors[func].append(error)
-    param = "    PARAMETERS+=(\\\n"
-    for func in sorted(func_to_errors.keys()):
-        errors = sorted(func_to_errors[func])
-        param += f"        --ignore_errors {func} {','.join(errors)}\\\n"
-    param += ")\n"
 
     sys.exit(
         main(args.function,
