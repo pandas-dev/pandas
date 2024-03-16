@@ -121,7 +121,7 @@ def test_multiindex_symmetric_difference():
 
     idx2 = idx.copy().rename(["A", "B"])
     result = idx.symmetric_difference(idx2)
-    assert result.names == [None, None]
+    assert result.names == (None, None)
 
 
 def test_empty(idx):
@@ -263,19 +263,23 @@ def test_union(idx, sort):
         assert result.equals(idx)
 
 
-def test_union_with_regular_index(idx):
+def test_union_with_regular_index(idx, using_infer_string):
     other = Index(["A", "B", "C"])
 
     result = other.union(idx)
     assert ("foo", "one") in result
     assert "B" in result
 
-    msg = "The values in the array are unorderable"
-    with tm.assert_produces_warning(RuntimeWarning, match=msg):
-        result2 = idx.union(other)
-    # This is more consistent now, if sorting fails then we don't sort at all
-    # in the MultiIndex case.
-    assert not result.equals(result2)
+    if using_infer_string:
+        with pytest.raises(NotImplementedError, match="Can only union"):
+            idx.union(other)
+    else:
+        msg = "The values in the array are unorderable"
+        with tm.assert_produces_warning(RuntimeWarning, match=msg):
+            result2 = idx.union(other)
+        # This is more consistent now, if sorting fails then we don't sort at all
+        # in the MultiIndex case.
+        assert not result.equals(result2)
 
 
 def test_intersection(idx, sort):
@@ -707,17 +711,11 @@ def test_intersection_lexsort_depth(levels1, levels2, codes1, codes2, names):
     "a",
     [pd.Categorical(["a", "b"], categories=["a", "b"]), ["a", "b"]],
 )
-@pytest.mark.parametrize(
-    "b",
-    [
-        pd.Categorical(["a", "b"], categories=["b", "a"], ordered=True),
-        pd.Categorical(["a", "b"], categories=["b", "a"]),
-    ],
-)
-def test_intersection_with_non_lex_sorted_categories(a, b):
+@pytest.mark.parametrize("b_ordered", [True, False])
+def test_intersection_with_non_lex_sorted_categories(a, b_ordered):
     # GH#49974
     other = ["1", "2"]
-
+    b = pd.Categorical(["a", "b"], categories=["b", "a"], ordered=b_ordered)
     df1 = DataFrame({"x": a, "y": other})
     df2 = DataFrame({"x": b, "y": other})
 
@@ -756,7 +754,12 @@ def test_intersection_keep_ea_dtypes(val, any_numeric_ea_dtype):
 
 def test_union_with_na_when_constructing_dataframe():
     # GH43222
-    series1 = Series((1,), index=MultiIndex.from_tuples(((None, None),)))
+    series1 = Series(
+        (1,),
+        index=MultiIndex.from_arrays(
+            [Series([None], dtype="string"), Series([None], dtype="string")]
+        ),
+    )
     series2 = Series((10, 20), index=MultiIndex.from_tuples(((None, None), ("a", "b"))))
     result = DataFrame([series1, series2])
     expected = DataFrame({(np.nan, np.nan): [1.0, 10.0], ("a", "b"): [np.nan, 20.0]})

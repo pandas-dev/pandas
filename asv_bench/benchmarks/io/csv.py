@@ -408,6 +408,9 @@ class ReadCSVEngine(StringIORewind):
     def time_read_bytescsv(self, engine):
         read_csv(self.data(self.BytesIO_input), engine=engine)
 
+    def peakmem_read_csv(self, engine):
+        read_csv(self.data(self.BytesIO_input), engine=engine)
+
 
 class ReadCSVCategorical(BaseIO):
     fname = "__test__.csv"

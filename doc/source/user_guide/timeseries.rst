@@ -1327,8 +1327,8 @@ frequencies. We will refer to these aliases as *period aliases*.
 
 .. deprecated:: 2.2.0
 
-   Aliases ``A``, ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` are deprecated in favour of the aliases
-   ``Y``, ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns``.
+   Aliases ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` are deprecated in favour of the aliases
+   ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns``.
 
 
 Combining aliases
@@ -1770,7 +1770,8 @@ We can instead only resample those groups where we have points as follows:
     def round(t, freq):
         # round a Timestamp to a specified freq
         freq = to_offset(freq)
-        return pd.Timestamp((t.value // freq.delta.value) * freq.delta.value)
+        td = pd.Timedelta(freq)
+        return pd.Timestamp((t.value // td.value) * td.value)
 
     ts.groupby(partial(round, freq="3min")).sum()
 

@@ -1,6 +1,7 @@
 """
 Quantilization functions and related stuff
 """
+
 from __future__ import annotations
 
 from typing import (
@@ -166,16 +167,14 @@ def cut(
     Discovers the same bins, but assign them specific labels. Notice that
     the returned Categorical's categories are `labels` and is ordered.
 
-    >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]),
-    ...        3, labels=["bad", "medium", "good"])
+    >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]), 3, labels=["bad", "medium", "good"])
     ['bad', 'good', 'medium', 'medium', 'good', 'bad']
     Categories (3, object): ['bad' < 'medium' < 'good']
 
     ``ordered=False`` will result in unordered categories when labels are passed.
     This parameter can be used to allow non-unique labels:
 
-    >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]), 3,
-    ...        labels=["B", "A", "B"], ordered=False)
+    >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]), 3, labels=["B", "A", "B"], ordered=False)
     ['B', 'B', 'A', 'A', 'B', 'B']
     Categories (2, object): ['A', 'B']
 
@@ -186,8 +185,7 @@ def cut(
 
     Passing a Series as an input returns a Series with categorical dtype:
 
-    >>> s = pd.Series(np.array([2, 4, 6, 8, 10]),
-    ...               index=['a', 'b', 'c', 'd', 'e'])
+    >>> s = pd.Series(np.array([2, 4, 6, 8, 10]), index=["a", "b", "c", "d", "e"])
     >>> pd.cut(s, 3)
     ... # doctest: +ELLIPSIS
     a    (1.992, 4.667]
@@ -201,8 +199,7 @@ def cut(
     Passing a Series as an input returns a Series with mapping value.
     It is used to map numerically to intervals based on bins.
 
-    >>> s = pd.Series(np.array([2, 4, 6, 8, 10]),
-    ...               index=['a', 'b', 'c', 'd', 'e'])
+    >>> s = pd.Series(np.array([2, 4, 6, 8, 10]), index=["a", "b", "c", "d", "e"])
     >>> pd.cut(s, [0, 2, 4, 6, 8, 10], labels=False, retbins=True, right=False)
     ... # doctest: +ELLIPSIS
     (a    1.0
@@ -215,8 +212,14 @@ def cut(
 
     Use `drop` optional when bins is not unique
 
-    >>> pd.cut(s, [0, 2, 4, 6, 10, 10], labels=False, retbins=True,
-    ...        right=False, duplicates='drop')
+    >>> pd.cut(
+    ...     s,
+    ...     [0, 2, 4, 6, 10, 10],
+    ...     labels=False,
+    ...     retbins=True,
+    ...     right=False,
+    ...     duplicates="drop",
+    ... )
     ... # doctest: +ELLIPSIS
     (a    1.0
      b    2.0
@@ -441,7 +444,7 @@ def _bins_to_cuts(
     if len(unique_bins) < len(bins) and len(bins) != 2:
         if duplicates == "raise":
             raise ValueError(
-                f"Bin edges must be unique: {repr(bins)}.\n"
+                f"Bin edges must be unique: {bins!r}.\n"
                 f"You can drop duplicate edges by setting the 'duplicates' kwarg"
             )
         bins = unique_bins
@@ -548,7 +551,7 @@ def _format_labels(
     precision: int,
     right: bool = True,
     include_lowest: bool = False,
-):
+) -> IntervalIndex:
     """based on the dtype, return our labels"""
     closed: IntervalLeftRight = "right" if right else "left"
 

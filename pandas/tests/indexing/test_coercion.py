@@ -15,6 +15,7 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
+from pandas.compat.numpy import np_version_gt2
 
 import pandas as pd
 import pandas._testing as tm
@@ -226,6 +227,8 @@ class TestInsertIndexCoercion(CoercionBase):
         "insert, coerced_val, coerced_dtype",
         [
             (1, 1.0, None),
+            # When float_numpy_dtype=float32, this is not the case
+            # see the correction below
             (1.1, 1.1, np.float64),
             (False, False, object),  # GH#36319
             ("x", "x", object),
@@ -238,6 +241,10 @@ class TestInsertIndexCoercion(CoercionBase):
         obj = pd.Index([1.0, 2.0, 3.0, 4.0], dtype=dtype)
         coerced_dtype = coerced_dtype if coerced_dtype is not None else dtype
 
+        if np_version_gt2 and dtype == "float32" and coerced_val == 1.1:
+            # Hack, in the 2nd test case, since 1.1 can be losslessly cast to float32
+            # the expected dtype will be float32 if the original dtype was float32
+            coerced_dtype = np.float32
         exp = pd.Index([1.0, coerced_val, 2.0, 3.0, 4.0], dtype=coerced_dtype)
         self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
 
@@ -853,18 +860,8 @@ class TestReplaceSeriesCoercion(CoercionBase):
             exp = pd.Series(self.rep[to_key], index=index, name="yyy")
             assert exp.dtype == to_key
 
-        msg = "Downcasting behavior in `replace`"
-        warn = FutureWarning
-        if (
-            exp.dtype == obj.dtype
-            or exp.dtype == object
-            or (exp.dtype.kind in "iufc" and obj.dtype.kind in "iufc")
-        ):
-            warn = None
-        with tm.assert_produces_warning(warn, match=msg):
-            result = obj.replace(replacer)
-
-        tm.assert_series_equal(result, exp)
+        result = obj.replace(replacer)
+        tm.assert_series_equal(result, exp, check_dtype=False)
 
     @pytest.mark.parametrize(
         "to_key",
@@ -887,12 +884,8 @@ class TestReplaceSeriesCoercion(CoercionBase):
         else:
             assert exp.dtype == to_key
 
-        msg = "Downcasting behavior in `replace`"
-        warn = FutureWarning if exp.dtype != object else None
-        with tm.assert_produces_warning(warn, match=msg):
-            result = obj.replace(replacer)
-
-        tm.assert_series_equal(result, exp)
+        result = obj.replace(replacer)
+        tm.assert_series_equal(result, exp, check_dtype=False)
 
     @pytest.mark.parametrize(
         "to_key",
@@ -910,23 +903,16 @@ class TestReplaceSeriesCoercion(CoercionBase):
         assert obj.dtype == from_key
 
         exp = pd.Series(self.rep[to_key], index=index, name="yyy")
-        warn = FutureWarning
         if isinstance(obj.dtype, pd.DatetimeTZDtype) and isinstance(
             exp.dtype, pd.DatetimeTZDtype
         ):
             # with mismatched tzs, we retain the original dtype as of 2.0
             exp = exp.astype(obj.dtype)
-            warn = None
         else:
             assert exp.dtype == to_key
-            if to_key == from_key:
-                warn = None
 
-        msg = "Downcasting behavior in `replace`"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = obj.replace(replacer)
-
-        tm.assert_series_equal(result, exp)
+        result = obj.replace(replacer)
+        tm.assert_series_equal(result, exp, check_dtype=False)
 
     @pytest.mark.xfail(reason="Test not implemented")
     def test_replace_series_period(self):

@@ -2,6 +2,7 @@
 Tests that NA values are properly handled during
 parsing for all of the parsers defined in parsers.py
 """
+
 from io import StringIO
 
 import numpy as np
@@ -263,43 +264,35 @@ a,b,c,d
     [
         (
             {},
-            DataFrame(
-                {
-                    "A": ["a", "b", np.nan, "d", "e", np.nan, "g"],
-                    "B": [1, 2, 3, 4, 5, 6, 7],
-                    "C": ["one", "two", "three", np.nan, "five", np.nan, "seven"],
-                }
-            ),
+            {
+                "A": ["a", "b", np.nan, "d", "e", np.nan, "g"],
+                "B": [1, 2, 3, 4, 5, 6, 7],
+                "C": ["one", "two", "three", np.nan, "five", np.nan, "seven"],
+            },
         ),
         (
             {"na_values": {"A": [], "C": []}, "keep_default_na": False},
-            DataFrame(
-                {
-                    "A": ["a", "b", "", "d", "e", "nan", "g"],
-                    "B": [1, 2, 3, 4, 5, 6, 7],
-                    "C": ["one", "two", "three", "nan", "five", "", "seven"],
-                }
-            ),
+            {
+                "A": ["a", "b", "", "d", "e", "nan", "g"],
+                "B": [1, 2, 3, 4, 5, 6, 7],
+                "C": ["one", "two", "three", "nan", "five", "", "seven"],
+            },
         ),
         (
             {"na_values": ["a"], "keep_default_na": False},
-            DataFrame(
-                {
-                    "A": [np.nan, "b", "", "d", "e", "nan", "g"],
-                    "B": [1, 2, 3, 4, 5, 6, 7],
-                    "C": ["one", "two", "three", "nan", "five", "", "seven"],
-                }
-            ),
+            {
+                "A": [np.nan, "b", "", "d", "e", "nan", "g"],
+                "B": [1, 2, 3, 4, 5, 6, 7],
+                "C": ["one", "two", "three", "nan", "five", "", "seven"],
+            },
         ),
         (
             {"na_values": {"A": [], "C": []}},
-            DataFrame(
-                {
-                    "A": ["a", "b", np.nan, "d", "e", np.nan, "g"],
-                    "B": [1, 2, 3, 4, 5, 6, 7],
-                    "C": ["one", "two", "three", np.nan, "five", np.nan, "seven"],
-                }
-            ),
+            {
+                "A": ["a", "b", np.nan, "d", "e", np.nan, "g"],
+                "B": [1, 2, 3, 4, 5, 6, 7],
+                "C": ["one", "two", "three", np.nan, "five", np.nan, "seven"],
+            },
         ),
     ],
 )
@@ -325,6 +318,7 @@ g,7,seven
         request.applymarker(mark)
 
     result = parser.read_csv(StringIO(data), **kwargs)
+    expected = DataFrame(expected)
     tm.assert_frame_equal(result, expected)
 
 
@@ -561,10 +555,10 @@ def test_na_values_dict_col_index(all_parsers):
         (
             str(2**63) + "\n" + str(2**63 + 1),
             {"na_values": [2**63]},
-            DataFrame([str(2**63), str(2**63 + 1)]),
+            [str(2**63), str(2**63 + 1)],
         ),
-        (str(2**63) + ",1" + "\n,2", {}, DataFrame([[str(2**63), 1], ["", 2]])),
-        (str(2**63) + "\n1", {"na_values": [2**63]}, DataFrame([np.nan, 1])),
+        (str(2**63) + ",1" + "\n,2", {}, [[str(2**63), 1], ["", 2]]),
+        (str(2**63) + "\n1", {"na_values": [2**63]}, [np.nan, 1]),
     ],
 )
 def test_na_values_uint64(all_parsers, data, kwargs, expected, request):
@@ -581,6 +575,7 @@ def test_na_values_uint64(all_parsers, data, kwargs, expected, request):
         request.applymarker(mark)
 
     result = parser.read_csv(StringIO(data), header=None, **kwargs)
+    expected = DataFrame(expected)
     tm.assert_frame_equal(result, expected)
 
 

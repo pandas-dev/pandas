@@ -161,26 +161,6 @@ test-command = ""
 select = "*-win32"
 environment = { IS_32_BIT="true" }
 
-[tool.black]
-target-version = ['py38', 'py39']
-exclude = '''
-(
-    asv_bench/env
-  | \.egg
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.nox
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-  | setup.py
-)
-'''
-
 [tool.ruff]
 line-length = 88
 update-check = false
@@ -382,7 +362,7 @@ markers = [
   "db: tests requiring a database (mysql or postgres)",
   "clipboard: mark a pd.read_clipboard test",
   "arm_slow: mark a test as slow for arm64 architecture",
-  "arraymanager: mark a test to run with ArrayManager enabled",
+  "skip_ubsan: tests known to invoke undefined behavior",
 ]
 
 [tool.mypy]
@@ -514,14 +494,11 @@ exclude_lines = [
   "pragma: no cover",
   # Don't complain about missing debug-only code:s
   "def __repr__",
-  "if self.debug",
   # Don't complain if tests don't hit defensive assertion code:
   "raise AssertionError",
   "raise NotImplementedError",
   "AbstractMethodError",
   # Don't complain if non-runnable code isn't run:
-  "if 0:",
-  "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
 ]
 

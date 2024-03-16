@@ -1,6 +1,7 @@
 """
 Methods used by Block.replace and related methods.
 """
+
 from __future__ import annotations
 
 import operator
@@ -67,7 +68,7 @@ def compare_or_regex_search(
 
     def _check_comparison_types(
         result: ArrayLike | bool, a: ArrayLike, b: Scalar | Pattern
-    ):
+    ) -> None:
         """
         Raises an error if the two arrays (a,b) cannot be compared.
         Otherwise, returns the comparison result as expected.
@@ -78,7 +79,7 @@ def compare_or_regex_search(
             type_names[0] = f"ndarray(dtype={a.dtype})"
 
             raise TypeError(
-                f"Cannot compare types {repr(type_names[0])} and {repr(type_names[1])}"
+                f"Cannot compare types {type_names[0]!r} and {type_names[1]!r}"
             )
 
     if not regex or not should_use_regex(regex, b):

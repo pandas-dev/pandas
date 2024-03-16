@@ -1,9 +1,12 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     DataFrame,
     DatetimeIndex,
+    Index,
     MultiIndex,
     NaT,
     Series,
@@ -686,14 +689,21 @@ class TestRollingTS:
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("msg, axis", [["column", 1], ["index", 0]])
-def test_nat_axis_error(msg, axis):
+def test_nat_axis_error():
     idx = [Timestamp("2020"), NaT]
-    kwargs = {"columns" if axis == 1 else "index": idx}
-    df = DataFrame(np.eye(2), **kwargs)
-    warn_msg = "The 'axis' keyword in DataFrame.rolling is deprecated"
-    if axis == 1:
-        warn_msg = "Support for axis=1 in DataFrame.rolling is deprecated"
-    with pytest.raises(ValueError, match=f"{msg} values must not have NaT"):
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            df.rolling("D", axis=axis).mean()
+    df = DataFrame(np.eye(2), index=idx)
+    with pytest.raises(ValueError, match="index values must not have NaT"):
+        df.rolling("D").mean()
+
+
+@td.skip_if_no("pyarrow")
+def test_arrow_datetime_axis():
+    # GH 55849
+    expected = Series(
+        np.arange(5, dtype=np.float64),
+        index=Index(
+            date_range("2020-01-01", periods=5), dtype="timestamp[ns][pyarrow]"
+        ),
+    )
+    result = expected.rolling("1D").sum()
+    tm.assert_series_equal(result, expected)

@@ -118,3 +118,5 @@ cdef int64_t convert_reso(
     NPY_DATETIMEUNIT to_reso,
     bint round_ok,
 ) except? -1
+
+cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right)

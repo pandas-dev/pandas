@@ -12,8 +12,11 @@ from pandas import (
     NA,
     DataFrame,
     Index,
+    Interval,
     MultiIndex,
+    Period,
     Series,
+    Timedelta,
     Timestamp,
 )
 import pandas._testing as tm
@@ -510,12 +513,13 @@ class TestDataFrameToDict:
         result = df.to_dict(orient="records")
         assert isinstance(result[0]["a"], int)
 
-    def test_to_dict_pos_args_deprecation(self):
-        # GH-54229
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"Starting with pandas version 3.0 all arguments of to_dict except for the "
-            r"argument 'orient' will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.to_dict("records", {})
+
+@pytest.mark.parametrize(
+    "val", [Timestamp(2020, 1, 1), Timedelta(1), Period("2020"), Interval(1, 2)]
+)
+def test_to_dict_list_pd_scalars(val):
+    # GH 54824
+    df = DataFrame({"a": [val]})
+    result = df.to_dict(orient="list")
+    expected = {"a": [val]}
+    assert result == expected

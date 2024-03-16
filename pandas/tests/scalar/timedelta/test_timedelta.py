@@ -1,4 +1,5 @@
-""" test the scalar Timedelta """
+"""test the scalar Timedelta"""
+
 from datetime import timedelta
 import sys
 
@@ -551,6 +552,7 @@ class TestTimedeltas:
         ns_td = Timedelta(1, "ns")
         assert hash(ns_td) != hash(ns_td.to_pytimedelta())
 
+    @pytest.mark.skip_ubsan
     @pytest.mark.xfail(
         reason="pd.Timedelta violates the Python hash invariant (GH#44504).",
     )

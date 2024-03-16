@@ -55,6 +55,7 @@ https://github.com/pyviz/hvplot as a reference on how to write a backend.
 For the discussion about the API see
 https://github.com/pandas-dev/pandas/issues/26747.
 """
+
 from pandas.plotting._core import (
     PlotAccessor,
     boxplot,
