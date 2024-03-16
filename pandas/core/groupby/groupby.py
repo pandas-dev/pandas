@@ -333,7 +333,8 @@ engine_kwargs : dict, default None
 Returns
 -------
 %(klass)s
-    %(klass)s with the same indexes as the original object filled with transformed values.
+    %(klass)s with the same indexes as the original object filled
+    with transformed values.
 
 See Also
 --------
