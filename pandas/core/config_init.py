@@ -875,3 +875,21 @@ with cf.config_prefix("future"):
         "(at which point this option will be deprecated).",
         validator=is_one_of_factory([True, False]),
     )
+
+
+cf.deprecate_option(
+    # GH#55043
+    "mode.copy_on_write",
+    "copy_on_write option is deprecated and will be removed in a future "
+    "version. Copy-on-Write is already enabled; this option has no effect "
+    "anymore.",
+)
+
+
+cf.deprecate_option(
+    # GH#55043
+    "future.no_silent_downcasting",
+    "no_silent_downcasting option is deprecated and will be removed in a future "
+    "version. The deprecation is enforced and this option doesn't have any effect "
+    "anymore.",
+)
