@@ -118,11 +118,14 @@ class TestValidator:
         return base_path
 
     def test_bad_class(self, capsys) -> None:
-        errors = validate_docstrings.pandas_validate(
+        results = validate_docstrings.pandas_validate(
             self._import_path(klass="BadDocstrings")
-        )["errors"]
-        assert isinstance(errors, list)
-        assert errors
+        )
+        assert len(results.keys()) == 1
+        for docinfo in results.values():
+            errors = docinfo["errors"]
+            assert errors
+            assert isinstance(errors, list)
 
     @pytest.mark.parametrize(
         "klass,func,msgs",
@@ -193,36 +196,40 @@ class TestValidator:
         ],
     )
     def test_bad_docstrings(self, capsys, klass, func, msgs) -> None:
-        result = validate_docstrings.pandas_validate(
+        results = validate_docstrings.pandas_validate(
             self._import_path(klass=klass, func=func)
         )
-        for msg in msgs:
-            assert msg in " ".join([err[1] for err in result["errors"]])
+        assert len(results.keys()) == 1
+        for result in results.values():
+            for msg in msgs:
+                assert msg in " ".join([err[1] for err in result["errors"]])
 
     def test_validate_all_ignore_deprecated(self, monkeypatch) -> None:
+        dummy_docinfo = {
+            "docstring": "docstring1",
+            "errors": [
+                ("ER01", "err desc"),
+                ("ER02", "err desc"),
+                ("ER03", "err desc"),
+            ],
+            "warnings": [],
+            "examples_errors": "",
+            "deprecated": True,
+        }
         monkeypatch.setattr(
             validate_docstrings,
             "pandas_validate",
-            lambda func_name: {
-                "docstring": "docstring1",
-                "errors": [
-                    ("ER01", "err desc"),
-                    ("ER02", "err desc"),
-                    ("ER03", "err desc"),
-                ],
-                "warnings": [],
-                "examples_errors": "",
-                "deprecated": True,
+            lambda func_names: {
+                func_name: dummy_docinfo
+                for func_name in func_names
             },
         )
-        result = validate_docstrings.validate_all(prefix=None, ignore_deprecated=True)
-        assert len(result) == 0
+        results = validate_docstrings.validate_all(prefix=None, ignore_deprecated=True)
+        for _, docinfo in results.items():
+            assert len(docinfo) == 0
 
     def test_validate_all_for_error_ignore_functions(self, monkeypatch):
-        monkeypatch.setattr(
-            validate_docstrings,
-            "pandas_validate",
-            lambda func_name: {
+        dummy_docinfo = {
                 "docstring": "docstring1",
                 "errors": [
                     ("ER01", "err desc"),
@@ -234,7 +241,13 @@ class TestValidator:
                 "deprecated": True,
                 "file": "file1",
                 "file_line": "file_line1"
-            },
+            }
+        monkeypatch.setattr(
+            validate_docstrings,
+            "pandas_validate",
+            lambda func_names: {
+                func_name: dummy_docinfo
+                for func_name in func_names},
         )
         monkeypatch.setattr(
             validate_docstrings,
@@ -242,15 +255,15 @@ class TestValidator:
             lambda: [
                 (
                     "pandas.DataFrame.align",
-                    "func",
-                    "current_section",
-                    "current_subsection",
+                    "func1",
+                    "current_section1",
+                    "current_subsection1",
                 ),
                 (
                     "pandas.Index.all",
-                    "func",
-                    "current_section",
-                    "current_subsection",
+                    "func2",
+                    "current_section2",
+                    "current_subsection2",
                 ),
             ],
         )
