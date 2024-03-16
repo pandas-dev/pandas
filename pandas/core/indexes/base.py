@@ -1047,7 +1047,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        copy : Returns a copy of the Index.
+        Index.copy : Returns a copy of the Index.
 
         Examples
         --------
