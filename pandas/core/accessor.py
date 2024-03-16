@@ -263,10 +263,12 @@ def _register_accessor(name: str, cls):
 
     * Must contain an init method that:
         * accepts a single {klass} object
-        * raises an {AttributeError} if the {klass} object does not have correctly matching inputs for the accessor
+        * raises an {AttributeError} if the {klass} object does not have correctly
+        matching inputs for the accessor
     * Must contain a method for each access pattern.
         * The methods should be able to take any argument signature.
-        * Accessible using the @property decorator if no additional arguments are needed.
+        * Accessible using the @property decorator if no additional arguments are
+        needed.
     """
 
     def decorator(accessor):
@@ -288,7 +290,9 @@ def _register_accessor(name: str, cls):
 _register_df_doc = """
 Examples
 --------
-In your library code, an accessor that only accepts integers could have a class defined like this:
+In your library code, an accessor that only accepts integers could 
+have a class defined like this:
+
 .. code-block:: python
 
     import pandas as pd
@@ -310,7 +314,7 @@ Back in an interactive IPython session:
     >>> df.int_accessor
     Traceback (most recent call last):
     ...
-    AttributeError: All columns must contain integer values only. Did you mean: '_accessors'?
+    AttributeError: All columns must contain integer values only.
     >>> df = pd.DataFrame([[1, 2], [3, 4]])
     >>> df.int_accessor.sum()
     0    4
@@ -330,7 +334,9 @@ def register_dataframe_accessor(name: str):
 _series_doc = """
 Examples
 --------
-In your library code, an accessor that only accepts integers could have a class defined like this:
+In your library code, an accessor that only accepts integers could 
+have a class defined like this:
+
 .. code-block:: python
 
     import pandas as pd
@@ -352,7 +358,7 @@ Back in an interactive IPython session:
     >>> df.int_accessor
     Traceback (most recent call last):
     ...
-    AttributeError: The series must contain integer data only. Did you mean: '_accessors'?
+    AttributeError: The series must contain integer data only.
     >>> df = pd.Series([1, 2, 3])
     >>> df.int_accessor.sum
     6
@@ -370,7 +376,9 @@ def register_series_accessor(name: str):
 _index_doc = """
 Examples
 --------
-In your library code, an accessor that only accepts integers could have a class defined like this:
+In your library code, an accessor that only accepts integers could 
+have a class defined like this:
+
 .. code-block:: python
 
     import pandas as pd
@@ -394,7 +402,7 @@ Back in an interactive IPython session:
     >>> df.index.int_accessor
     Traceback (most recent call last):
     ...
-    AttributeError: The index must only be an integer value. Did you mean: '_accessors'?
+    AttributeError: The index must only be an integer value.
     >>> df = pd.DataFrame({
             'col1': [1, 2, 3, 4],
             'col2': ['a', 'b', 'c', 'd']
