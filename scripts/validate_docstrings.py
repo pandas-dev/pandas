@@ -423,12 +423,12 @@ def print_validate_all_results(
     prefix: str | None,
     errors: list[str] | None,
     ignore_deprecated: bool,
-    for_error_ignore_functions: dict[str, list[str]] | None,
+    ignore_errors: dict[str, list[str]] | None,
 ):
     if output_format not in ("default", "json", "actions"):
         raise ValueError(f'Unknown output_format "{output_format}"')
-    if for_error_ignore_functions is None:
-        for_error_ignore_functions = {}
+    if ignore_errors is None:
+        ignore_errors = {}
 
     result = validate_all(prefix, ignore_deprecated)
 
@@ -440,10 +440,9 @@ def print_validate_all_results(
     exit_status = 0
     for func_name, res in result.items():
         for err_code, err_desc in res["errors"]:
-            ignore_functions = for_error_ignore_functions.get(err_code, [])
-            if errors and err_code not in errors:
-                continue
-            elif func_name in ignore_functions:
+            is_not_requested_error = errors and err_code not in errors
+            is_ignored_error = err_code in ignore_errors.get(func_name, [])
+            if is_not_requested_error or is_ignored_error:
                 continue
 
             sys.stdout.write(
@@ -496,32 +495,22 @@ def main(
     prefix,
     errors,
     ignore_deprecated,
-    for_error_ignore_functions
+    ignore_errors
 ):
     """
     Main entry point. Call the validation for one or for all docstrings.
     """
-    if errors is None:
-        errors = []
-    if for_error_ignore_functions is None:
-        for_error_ignore_functions = {}
-    partial_validation_errors = for_error_ignore_functions.keys()
-    errors = [error for error in errors if error not in partial_validation_errors]
-
-    msg = []
     if func_name is None:
-        if errors:
-            error_str = ", ".join(errors)
-            msg.append(f"Validate docstrings ({error_str})\n")
-        if partial_validation_errors:
-            error_str = ", ".join(partial_validation_errors)
-            msg.append(f"Partially validate docstrings ({error_str})\n")
+        error_str = ", ".join(errors)
+        msg = f"Validate docstrings ({error_str})\n"
     else:
-        msg.append(f"Validate docstring in function {func_name}\n")
-    msg = "and\n".join(msg)
+        msg = f"Validate docstring in function {func_name}\n"
     sys.stdout.write(msg)
 
     validate_error_codes(errors)
+    if ignore_errors is not None:
+        for error_codes in ignore_errors.values():
+            validate_error_codes(error_codes)
 
     if func_name is None:
         exit_status = print_validate_all_results(
@@ -529,7 +518,7 @@ def main(
             prefix,
             errors,
             ignore_deprecated,
-            for_error_ignore_functions
+            ignore_errors
         )
     else:
         print_validate_one_results(func_name)
@@ -587,22 +576,24 @@ if __name__ == "__main__":
         "all docstrings",
     )
     argparser.add_argument(
-        "--for_error_ignore_functions",
+        "--ignore_errors",
+        default=None,
         action="append",
         nargs=2,
-        metavar=("error_code", "functions"),
-        help="error code for which comma separated list "
-        "of functions should not be validated"
-        "(e.g. PR01 pandas.DataFrame.head). "
-        "Partial validation for more than one error code"
+        metavar=("function", "error_codes"),
+        help="function for which comma separated list "
+        "of error codes should not be validated"
+        "(e.g. pandas.DataFrame.head PR01,SA01). "
+        "Partial validation for more than one function"
         "can be achieved by repeating this parameter.",
     )
     args = argparser.parse_args(sys.argv[1:])
 
     args.errors = args.errors.split(",") if args.errors else None
-    args.for_error_ignore_functions = {error_code: functions.split(",")
-                                       for error_code, functions
-                                       in args.for_error_ignore_functions}
+    if args.ignore_errors:
+        args.ignore_errors = {function: error_codes.split(",")
+                              for function, error_codes
+                              in args.ignore_errors}
 
     sys.exit(
         main(args.function,
@@ -610,6 +601,6 @@ if __name__ == "__main__":
              args.prefix,
              args.errors,
              args.ignore_deprecated,
-             args.for_error_ignore_functions
+             args.ignore_errors
              )
     )
