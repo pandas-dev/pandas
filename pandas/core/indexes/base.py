@@ -1056,7 +1056,8 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.view()
         Index([1, 2, 3], dtype='int64')
 
-        Viewing as 'int32' reinterprets the memory, which may lead to unexpected behavior:
+        Viewing as 'int32' reinterprets the memory, which may lead to unexpected
+        behavior:
 
         >>> idx.view("int32")
         array([1, 0, 2, 0, 3, 0], dtype=int32)
