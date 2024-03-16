@@ -659,6 +659,13 @@ def test_reindex_empty_returns_rangeindex():
     tm.assert_numpy_array_equal(result_indexer, expected_indexer)
 
 
+def test_insert_empty_0_loc():
+    ri = RangeIndex(0, step=10, name="foo")
+    result = ri.insert(0, 5)
+    expected = RangeIndex(5, 15, 10, name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+
 def test_append_non_rangeindex_return_rangeindex():
     ri = RangeIndex(1)
     result = ri.append(Index([1]))
