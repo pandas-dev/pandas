@@ -240,6 +240,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Returns
         -------
         Series or DataFrame
+            The resulting dtype will reflect the return value of the passed ``func``.
 
         See Also
         --------
