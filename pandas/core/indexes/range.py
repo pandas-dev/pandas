@@ -943,7 +943,7 @@ class RangeIndex(Index):
     def _join_empty(
         self, other: Index, how: JoinHow, sort: bool
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
-        if other.dtype.kind == "i":
+        if not isinstance(other, RangeIndex) and other.dtype.kind == "i":
             other = self._shallow_copy(other._values, name=other.name)
         return super()._join_empty(other, how=how, sort=sort)
 
