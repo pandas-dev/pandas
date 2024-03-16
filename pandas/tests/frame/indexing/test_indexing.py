@@ -10,10 +10,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
-from pandas.errors import (
-    InvalidIndexError,
-    PerformanceWarning,
-)
+from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import is_integer
 
@@ -1491,7 +1488,7 @@ class TestDataFrameIndexing:
 
     @pytest.mark.parametrize("indexer", [True, (True,)])
     @pytest.mark.parametrize("dtype", [bool, "boolean"])
-    def test_loc_bool_multiindex(self, dtype, indexer):
+    def test_loc_bool_multiindex(self, performance_warning, dtype, indexer):
         # GH#47687
         midx = MultiIndex.from_arrays(
             [
@@ -1501,7 +1498,7 @@ class TestDataFrameIndexing:
             names=["a", "b"],
         )
         df = DataFrame({"c": [1, 2, 3, 4]}, index=midx)
-        with tm.maybe_produces_warning(PerformanceWarning, isinstance(indexer, tuple)):
+        with tm.maybe_produces_warning(performance_warning, isinstance(indexer, tuple)):
             result = df.loc[indexer]
         expected = DataFrame(
             {"c": [1, 2]}, index=Index([True, False], name="b", dtype=dtype)
@@ -1536,6 +1533,16 @@ class TestDataFrameIndexing:
         indexer(df)[:idx, :] = rhs
         expected = DataFrame([[1, np.nan], [2, np.nan], ["3", np.nan]], dtype=object)
         tm.assert_frame_equal(df, expected)
+
+    def test_big_endian_support_selecting_columns(self):
+        # GH#57457
+        columns = ["a"]
+        data = [np.array([1, 2], dtype=">f8")]
+        df = DataFrame(dict(zip(columns, data)))
+        result = df[df.columns]
+        dfexp = DataFrame({"a": [1, 2]}, dtype=">f8")
+        expected = dfexp[dfexp.columns]
+        tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameIndexingUInt64:

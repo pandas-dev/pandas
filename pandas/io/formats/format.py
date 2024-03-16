@@ -2,6 +2,7 @@
 Internal module for formatting output data in csv, html, xml,
 and latex files. This module also applies to display formatting.
 """
+
 from __future__ import annotations
 
 from collections.abc import (
@@ -1205,10 +1206,6 @@ class _GenericArrayFormatter:
                     return "None"
                 elif x is NA:
                     return str(NA)
-                elif lib.is_float(x) and np.isinf(x):
-                    # TODO(3.0): this will be unreachable when use_inf_as_na
-                    #  deprecation is enforced
-                    return str(x)
                 elif x is NaT or isinstance(x, (np.datetime64, np.timedelta64)):
                     return "NaT"
                 return self.na_rep

@@ -1,4 +1,4 @@
-""" test partial slicing on Series/Frame """
+"""test partial slicing on Series/Frame"""
 
 from datetime import datetime
 
