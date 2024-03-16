@@ -577,7 +577,7 @@ class CombinedDatetimelikeProperties(
 
     See Also
     --------
-    Series.dt : Accessor object for datetimelike properties of the Series values.
+    DatetimeIndex : Index of datetime64 data.
 
     Examples
     --------
