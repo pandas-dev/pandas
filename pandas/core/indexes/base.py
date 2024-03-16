@@ -1795,6 +1795,11 @@ class Index(IndexOpsMixin, PandasObject):
         tuple[Hashable | None, ...]
             A tuple containing the object's name, or None if the object does not have a name.
 
+        See Also
+        --------
+        Index.name : Index name as a string instead of a tuple, or None for MultiIndex.
+        Series.name : Series name.
+
         Examples
         --------
         Create an index with a name and retrieve its names:
