@@ -3517,9 +3517,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         pandas.api.typing.DatetimeIndexResampler
             Return a new groupby object, with type depending on the data
             being resampled:
-                - pandas.api.typing.DatetimeIndexResamplerGroupby
-                - pandas.api.typing.PeriodIndexResamplerGroupby
-                - pandas.api.typing.TimedeltaIndexResamplerGroupby
+            - pandas.api.typing.DatetimeIndexResamplerGroupby
+            - pandas.api.typing.PeriodIndexResamplerGroupby
+            - pandas.api.typing.TimedeltaIndexResamplerGroupby
 
         See Also
         --------
