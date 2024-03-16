@@ -383,7 +383,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # DONE 4.2: and move.
         # DONE 4.3: Unify if-else structure.
         # DONE 5.0: Move ndarray ValueError to TASK-0.
-        # TODO 6: DECOUPLE MANAGER PREPARATION FROM COPYING.
+        # TODO 6: <--- WORKING HERE!! DECOUPLE MANAGER PREPARATION FROM COPYING.
         # I realize it will help with the other tasks if I do this first! Let's do it.
 
         # DONE 6.1 Avoid copying twice the manager when type(data) is SingleBlockManager
@@ -392,7 +392,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # TODO 6.3: Move the copying logic on the series to below.
         # TODO 6.4: Unify the if-else logic within the Series+SingleBlockManager) case.
 
-        # DONE 7: <--- Move code to Final Requirements. Task 5.
+        # DONE 7:  Move code to Final Requirements. Task 5.
         # ------  dtype Series with arguments equivalent to empty list,
         # ------  with dtype=None, must be object.
         # TODO 8: Decouple single element from the other data.
@@ -422,6 +422,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # TODO 16: Check GitHub Issue
         # TODO 17: GH#33357 called with just the SingleBlockManager,
         # -------- Avoid warnings on fast_path_manager?
+        # TODO 18: Check if DataFrame.astype() copies
 
         allow_mgr = False
         fast_path_manager = False
@@ -503,43 +504,42 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # Series TASK 5: CREATING OR COPYING THE MANAGER. A: PREPARE. B: COPY.
 
+        # START WORKING HERE 2024-03-16 Saturday Morning!
         # TODO 6: DECOUPLE MANAGER PREPARATION FROM COPYING. I realize it will help
         # ------ with the other tasks if I do this first! Let's do it.
         # DONE 6.1 Avoid copying twice the manager when type(data) is SingleBlockManager
-        # TODO 6.2 Unify the copying signature when
+        # DONE 6.2 Unify the copying signature when
         #          type(data) is Series (index is None: ... else: ...)
-        # TODO 6.3 Move the copying logic on the series to below.
-        # TODO 6.4 Unify the if-else logic within the (Series, SingleBlockManager) case.
+        # DONE 6.3 Simplify logic on copy for both Series and manager.
+        # --------
+        # TODO 6.4 Move the copying logic on the series to below.
+        # TODO 6.5 Unify the if-else logic within the (Series, SingleBlockManager) case.
         if isinstance(data, (Series, SingleBlockManager)):
             deep = True
 
             # Series TASK 5.A: ADAPTING DATA AND INDEX ON SERIES EACH CASE.
             if isinstance(data, Series):
-                if index is None:
-                    index = data.index
-                    deep = False
-                    data = data._mgr.copy(deep=deep)
+                copy = True if index is None else False  # I think it's better verbose.
+                deep = False if index is None else True
 
-                else:
-                    key = index
-                    data = data.reindex(index=key)  # Copy the manager
-                    index = data.index
-                    data = data._mgr
+                if index is not None:
+                    data = data.reindex(index)  # Copy the manager
 
-                copy = False
+                data = data._mgr
+                index = data.index
 
             elif isinstance(data, SingleBlockManager):
-                if index is None:
-                    if not copy and dtype is None:
-                        # TODO 16: # GH#33357 called with just the SingleBlockManager
-                        deep = False
-                        fast_path_manager = True
-                    else:
-                        index = data.index
+                if index is None and not copy and dtype is None:
+                    # TODO 16: # GH#33357 called with just the SingleBlockManager
+                    deep = False
+                    fast_path_manager = True
+
+                index = data.index
 
             # Series TASK 5.B: COPYING THE MANAGER.
             if dtype is not None:
-                data = data.astype(dtype=dtype, errors="ignore")
+                # TODO 18: Check if DataFrame.astype() copies
+                data = data.astype(dtype=dtype, errors="ignore")  # Copy the manager?
                 copy = False
 
             if copy or fast_path_manager:
