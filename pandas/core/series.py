@@ -504,7 +504,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # Series TASK 5: CREATING OR COPYING THE MANAGER. A: PREPARE. B: COPY.
 
-        # START WORKING HERE 2024-03-16 Saturday Morning!
         # TODO 6: DECOUPLE MANAGER PREPARATION FROM COPYING. I realize it will help
         # ------ with the other tasks if I do this first! Let's do it.
         # DONE 6.1 Avoid copying twice the manager when type(data) is SingleBlockManager
@@ -519,24 +518,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
             # Series TASK 5.A: ADAPTING DATA AND INDEX ON SERIES EACH CASE.
             if isinstance(data, Series):
-                copy = True if index is None else False  # I think it's better verbose.
-                deep = False if index is None else True
+                # copy logic is delicate and maybe has no been fully implemented.
+                # Each data instance has it's own logic.
+                copy = True if index is None else False
+                deep = not copy
 
                 if index is not None:
                     data = data.reindex(index)  # Copy the manager
 
                 data = data._mgr
-                index = data.index
 
             elif isinstance(data, SingleBlockManager):
-                if index is None and not copy and dtype is None:
-                    # TODO 16: # GH#33357 called with just the SingleBlockManager
-                    deep = False
-                    fast_path_manager = True
+                fast_path_manager = index is None and not copy and dtype is None
 
-                index = data.index
+            index = data.index
 
             # Series TASK 5.B: COPYING THE MANAGER.
+            deep = deep if not fast_path_manager else False
             if dtype is not None:
                 # TODO 18: Check if DataFrame.astype() copies
                 data = data.astype(dtype=dtype, errors="ignore")  # Copy the manager?
