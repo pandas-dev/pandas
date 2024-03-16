@@ -1795,7 +1795,8 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         tuple[Hashable | None, ...]
-            A tuple containing the object's name, or None if the object does not have a name.
+            A tuple containing the object's name, or None if the object does not have a
+            name.
 
         See Also
         --------
