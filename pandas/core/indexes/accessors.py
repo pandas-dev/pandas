@@ -579,16 +579,6 @@ class CombinedDatetimelikeProperties(
     parent class (ArrowTemporalProperties, DatetimeProperties,TimedeltaProperties,
     or PeriodProperties) based on the dtype of the provided pandas Series.
 
-    Parameters
-    ----------
-    data : pandas.Series
-        Series containing datetime-like data.
-
-    Returns
-    -------
-    Instance of the appropriate subclass (ArrowTemporalProperties,
-    DatetimeProperties, TimedeltaProperties, or PeriodProperties)
-
     Raises
     ------
     TypeError
@@ -597,6 +587,10 @@ class CombinedDatetimelikeProperties(
     See Also
     --------
     Series.dt : Accessor object for datetimelike properties of the Series values.
+
+    Notes
+    -----
+    Reference :ref:`Series.dt <series.dt>`
 
     Examples
     --------
