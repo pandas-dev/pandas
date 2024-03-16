@@ -547,9 +547,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 data
             ):
                 if isinstance(data, Index):
-                    if index is None:
-                        index = default_index(len(data))
-
                     if dtype is not None:
                         data = data.astype(dtype)
 
@@ -558,9 +555,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     copy = False
 
                 elif isinstance(data, (np.ndarray, ExtensionArray)):
-                    if index is None:
-                        index = default_index(len(data))
-
                     if copy_arrays:
                         if dtype is None or astype_is_view(
                             data.dtype, pandas_dtype(dtype)
@@ -568,15 +562,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                             data = data.copy()  # not np.ndarray.copy(deep=...)
 
                 elif is_list_like(data):
-                    if index is None:
-                        index = default_index(len(data))
-
                     list_like_input = True
 
             else:  # elif data is not None: # this works too # possibly single_element.
                 if index is None:
-                    index = default_index(1)
                     data = [data]
+
+            index = index if index is not None else default_index(len(data))
 
             # Final requirements
             if is_list_like(data):
