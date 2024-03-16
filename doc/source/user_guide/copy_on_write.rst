@@ -38,9 +38,9 @@ might accidentally mutate another:
     2    3    6
 
 
-Mutating ``subset``, e.g. updating its values, also updates ``df``. The exact behavior is
+Mutating ``subset``, e.g. updating its values, also updated ``df``. The exact behavior was
 hard to predict. Copy-on-Write solves accidentally modifying more than one object,
-it explicitly disallows this. With CoW enabled, ``df`` is unchanged:
+it explicitly disallows this. ``df`` is unchanged:
 
 .. ipython:: python
 
