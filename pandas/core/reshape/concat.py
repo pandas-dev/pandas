@@ -1,6 +1,7 @@
 """
 Concat routines.
 """
+
 from __future__ import annotations
 
 from collections import abc
@@ -81,8 +82,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | lib.NoDefault = ...,
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
@@ -98,8 +98,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | lib.NoDefault = ...,
-) -> Series:
-    ...
+) -> Series: ...
 
 
 @overload
@@ -115,8 +114,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | lib.NoDefault = ...,
-) -> DataFrame | Series:
-    ...
+) -> DataFrame | Series: ...
 
 
 @overload
@@ -132,8 +130,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | lib.NoDefault = ...,
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
@@ -149,8 +146,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | lib.NoDefault = ...,
-) -> DataFrame | Series:
-    ...
+) -> DataFrame | Series: ...
 
 
 def concat(
@@ -204,10 +200,10 @@ def concat(
         Check whether the new concatenated axis contains duplicates. This can
         be very expensive relative to the actual data concatenation.
     sort : bool, default False
-        Sort non-concatenation axis if it is not already aligned. One exception to
-        this is when the non-concatentation axis is a DatetimeIndex and join='outer'
-        and the axis is not already aligned. In that case, the non-concatenation
-        axis is always sorted lexicographically.
+        Sort non-concatenation axis. One exception to this is when the
+        non-concatentation axis is a DatetimeIndex and join='outer' and the axis is
+        not already aligned. In that case, the non-concatenation axis is always
+        sorted lexicographically.
     copy : bool, default False
         If False, do not copy data unnecessarily.
 
@@ -521,32 +517,27 @@ class _Concatenator:
             objs_list = list(com.not_none(*objs_list))
         else:
             # GH#1649
-            clean_keys = []
+            key_indices = []
             clean_objs = []
             if is_iterator(keys):
                 keys = list(keys)
             if len(keys) != len(objs_list):
                 # GH#43485
-                warnings.warn(
-                    "The behavior of pd.concat with len(keys) != len(objs) is "
-                    "deprecated. In a future version this will raise instead of "
-                    "truncating to the smaller of the two sequences",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
+                raise ValueError(
+                    f"The length of the keys ({len(keys)}) must match "
+                    f"the length of the objects to concatenate ({len(objs_list)})"
                 )
-            for k, v in zip(keys, objs_list):
-                if v is None:
-                    continue
-                clean_keys.append(k)
-                clean_objs.append(v)
+            for i, obj in enumerate(objs_list):
+                if obj is not None:
+                    key_indices.append(i)
+                    clean_objs.append(obj)
             objs_list = clean_objs
 
-            if isinstance(keys, MultiIndex):
-                # TODO: retain levels?
-                keys = type(keys).from_tuples(clean_keys, names=keys.names)
-            else:
-                name = getattr(keys, "name", None)
-                keys = Index(clean_keys, name=name, dtype=getattr(keys, "dtype", None))
+            if not isinstance(keys, Index):
+                keys = Index(keys)
+
+            if len(key_indices) < len(keys):
+                keys = keys.take(key_indices)
 
         if len(objs_list) == 0:
             raise ValueError("All objects passed were None")

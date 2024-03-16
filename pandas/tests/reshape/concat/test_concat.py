@@ -17,6 +17,7 @@ from pandas import (
     Index,
     MultiIndex,
     PeriodIndex,
+    RangeIndex,
     Series,
     concat,
     date_range,
@@ -395,6 +396,29 @@ class TestConcatenate:
         expected = concat([df0, df0[:2], df0[:1], df0], keys=["b", "c", "d", "e"])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("klass", [range, RangeIndex])
+    @pytest.mark.parametrize("include_none", [True, False])
+    def test_concat_preserves_rangeindex(self, klass, include_none):
+        df = DataFrame([1, 2])
+        df2 = DataFrame([3, 4])
+        data = [df, None, df2, None] if include_none else [df, df2]
+        keys_length = 4 if include_none else 2
+        result = concat(data, keys=klass(keys_length))
+        expected = DataFrame(
+            [1, 2, 3, 4],
+            index=MultiIndex(
+                levels=(
+                    RangeIndex(start=0, stop=keys_length, step=keys_length / 2),
+                    RangeIndex(start=0, stop=2, step=1),
+                ),
+                codes=(
+                    np.array([0, 0, 1, 1], dtype=np.int8),
+                    np.array([0, 1, 0, 1], dtype=np.int8),
+                ),
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_concat_bug_1719(self):
         ts1 = Series(
             np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
@@ -705,7 +729,7 @@ def test_concat_multiindex_with_empty_rangeindex():
     # GH#41234
     mi = MultiIndex.from_tuples([("B", 1), ("C", 1)])
     df1 = DataFrame([[1, 2]], columns=mi)
-    df2 = DataFrame(index=[1], columns=pd.RangeIndex(0))
+    df2 = DataFrame(index=[1], columns=RangeIndex(0))
 
     result = concat([df1, df2])
     expected = DataFrame([[1, 2], [np.nan, np.nan]], columns=mi)
@@ -830,14 +854,14 @@ def test_concat_mismatched_keys_length():
     sers = [ser + n for n in range(4)]
     keys = ["A", "B", "C"]
 
-    msg = r"The behavior of pd.concat with len\(keys\) != len\(objs\) is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    msg = r"The length of the keys"
+    with pytest.raises(ValueError, match=msg):
         concat(sers, keys=keys, axis=1)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with pytest.raises(ValueError, match=msg):
         concat(sers, keys=keys, axis=0)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with pytest.raises(ValueError, match=msg):
         concat((x for x in sers), keys=(y for y in keys), axis=1)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with pytest.raises(ValueError, match=msg):
         concat((x for x in sers), keys=(y for y in keys), axis=0)
 
 
