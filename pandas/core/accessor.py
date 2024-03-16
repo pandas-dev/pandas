@@ -13,7 +13,10 @@ from typing import (
 )
 import warnings
 
-from pandas.util._decorators import doc, Appender
+from pandas.util._decorators import (
+    Appender,
+    doc,
+)
 from pandas.util._exceptions import find_stack_level
 
 
@@ -340,7 +343,7 @@ In your library code, an accessor that only accepts integers could have a class 
             self._obj = pandas_obj
 
         def sum(self):
-            return self._obj.sum() 
+            return self._obj.sum()
 
 
 Back in an interactive IPython session:
@@ -399,6 +402,7 @@ Back in an interactive IPython session:
     >>> df.index.my_accessor.even()
     [2,8]
 """
+
 
 @Appender(_index_doc)
 @doc(_register_accessor, klass="Index")
