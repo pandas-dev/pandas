@@ -264,8 +264,6 @@ def pandas_validate(func_names: str | list[str]):
                 if rel_name.startswith("pandas.")
             )
 
-    result["examples_errs"] = ""
-    if doc.examples:
         result["examples_errs"] = ""
         results[func_name] = result
         docs[func_name] = doc
