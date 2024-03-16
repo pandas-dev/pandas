@@ -943,7 +943,7 @@ class RangeIndex(Index):
     def _join_empty(
         self, other: Index, how: JoinHow, sort: bool
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
-        if other.dtype.kind == "i":
+        if not isinstance(other, RangeIndex) and other.dtype.kind == "i":
             other = self._shallow_copy(other._values, name=other.name)
         return super()._join_empty(other, how=how, sort=sort)
 
@@ -1153,11 +1153,6 @@ class RangeIndex(Index):
             else:
                 key = np.asarray(key, dtype=bool)
             check_array_indexer(self._range, key)  # type: ignore[arg-type]
-            # Short circuit potential _shallow_copy check
-            if key.all():
-                return self._simple_new(self._range, name=self.name)
-            elif not key.any():
-                return self._simple_new(_empty_range, name=self.name)
             key = np.flatnonzero(key)
         try:
             return self.take(key)
@@ -1313,6 +1308,27 @@ class RangeIndex(Index):
         except (ValueError, TypeError, ZeroDivisionError):
             # test_arithmetic_explicit_conversions
             return super()._arith_method(other, op)
+
+    def __abs__(self) -> Self | Index:
+        if len(self) == 0 or self.min() >= 0:
+            return self.copy()
+        elif self.max() <= 0:
+            return -self
+        else:
+            return super().__abs__()
+
+    def __neg__(self) -> Self:
+        rng = range(-self.start, -self.stop, -self.step)
+        return self._simple_new(rng, name=self.name)
+
+    def __pos__(self) -> Self:
+        return self.copy()
+
+    def __invert__(self) -> Self:
+        if len(self) == 0:
+            return self.copy()
+        rng = range(~self.start, ~self.stop, -self.step)
+        return self._simple_new(rng, name=self.name)
 
     # error: Return type "Index" of "take" incompatible with return type
     # "RangeIndex" in supertype "Index"

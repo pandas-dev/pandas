@@ -763,6 +763,67 @@ def test_getitem_boolmask_wrong_length():
         ri[[True]]
 
 
+def test_pos_returns_rangeindex():
+    ri = RangeIndex(2, name="foo")
+    expected = ri.copy()
+    result = +ri
+    tm.assert_index_equal(result, expected, exact=True)
+
+
+def test_neg_returns_rangeindex():
+    ri = RangeIndex(2, name="foo")
+    result = -ri
+    expected = RangeIndex(0, -2, -1, name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+    ri = RangeIndex(-2, 2, name="foo")
+    result = -ri
+    expected = RangeIndex(2, -2, -1, name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+
+@pytest.mark.parametrize(
+    "rng, exp_rng",
+    [
+        [range(0), range(0)],
+        [range(10), range(10)],
+        [range(-2, 1, 1), range(2, -1, -1)],
+        [range(0, -10, -1), range(0, 10, 1)],
+    ],
+)
+def test_abs_returns_rangeindex(rng, exp_rng):
+    ri = RangeIndex(rng, name="foo")
+    expected = RangeIndex(exp_rng, name="foo")
+    result = abs(ri)
+    tm.assert_index_equal(result, expected, exact=True)
+
+
+def test_abs_returns_index():
+    ri = RangeIndex(-2, 2, name="foo")
+    result = abs(ri)
+    expected = Index([2, 1, 0, 1], name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+
+@pytest.mark.parametrize(
+    "rng",
+    [
+        range(0),
+        range(5),
+        range(0, -5, -1),
+        range(-2, 2, 1),
+        range(2, -2, -2),
+        range(0, 5, 2),
+    ],
+)
+def test_invert_returns_rangeindex(rng):
+    ri = RangeIndex(rng, name="foo")
+    result = ~ri
+    assert isinstance(result, RangeIndex)
+    expected = ~Index(list(rng), name="foo")
+    tm.assert_index_equal(result, expected, exact=False)
+
+
 @pytest.mark.parametrize(
     "rng",
     [
