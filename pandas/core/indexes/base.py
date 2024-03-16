@@ -1034,7 +1034,8 @@ class Index(IndexOpsMixin, PandasObject):
             A view of the Index. If `cls` is None, the returned object is an Index
             view with the same dtype as the calling object. If a numeric `cls` is
             specified, the behavior depends on the compatibility of the conversion:
-            - If the conversion is valid, an ndarray view with the new dtype is returned.
+            - If the conversion is valid, an ndarray view with the new dtype is
+              returned.
             - If `cls` specifies a dtype that leads to an incompatible conversion,
             a ValueError is raised.
 
