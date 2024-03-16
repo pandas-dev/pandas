@@ -1487,7 +1487,7 @@ def test_apply_dtype(col):
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_mutating(using_copy_on_write):
+def test_apply_mutating():
     # GH#35462 case where applied func pins a new BlockManager to a row
     df = DataFrame({"a": range(100), "b": range(100, 200)})
     df_orig = df.copy()
@@ -1504,11 +1504,7 @@ def test_apply_mutating(using_copy_on_write):
     result = df.apply(func, axis=1)
 
     tm.assert_frame_equal(result, expected)
-    if using_copy_on_write:
-        # INFO(CoW) With copy on write, mutating a viewing row doesn't mutate the parent
-        tm.assert_frame_equal(df, df_orig)
-    else:
-        tm.assert_frame_equal(df, result)
+    tm.assert_frame_equal(df, df_orig)
 
 
 def test_apply_empty_list_reduce():
@@ -1703,13 +1699,11 @@ def test_agg_mapping_func_deprecated():
 def test_agg_std():
     df = DataFrame(np.arange(6).reshape(3, 2), columns=["A", "B"])
 
-    with tm.assert_produces_warning(FutureWarning, match="using DataFrame.std"):
-        result = df.agg(np.std)
+    result = df.agg(np.std, ddof=1)
     expected = Series({"A": 2.0, "B": 2.0}, dtype=float)
     tm.assert_series_equal(result, expected)
 
-    with tm.assert_produces_warning(FutureWarning, match="using Series.std"):
-        result = df.agg([np.std])
+    result = df.agg([np.std], ddof=1)
     expected = DataFrame({"A": 2.0, "B": 2.0}, index=["std"])
     tm.assert_frame_equal(result, expected)
 

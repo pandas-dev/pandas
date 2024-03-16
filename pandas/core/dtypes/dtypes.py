@@ -1,6 +1,7 @@
 """
 Define extension dtypes.
 """
+
 from __future__ import annotations
 
 from datetime import (
@@ -20,6 +21,8 @@ import warnings
 
 import numpy as np
 import pytz
+
+from pandas._config.config import get_option
 
 from pandas._libs import (
     lib,
@@ -1702,17 +1705,15 @@ class SparseDtype(ExtensionDtype):
 
         if isinstance(other, type(self)):
             subtype = self.subtype == other.subtype
-            if self._is_na_fill_value:
+            if self._is_na_fill_value or other._is_na_fill_value:
                 # this case is complicated by two things:
                 # SparseDtype(float, float(nan)) == SparseDtype(float, np.nan)
                 # SparseDtype(float, np.nan)     != SparseDtype(float, pd.NaT)
                 # i.e. we want to treat any floating-point NaN as equal, but
                 # not a floating-point NaN and a datetime NaT.
-                fill_value = (
-                    other._is_na_fill_value
-                    and isinstance(self.fill_value, type(other.fill_value))
-                    or isinstance(other.fill_value, type(self.fill_value))
-                )
+                fill_value = isinstance(
+                    self.fill_value, type(other.fill_value)
+                ) or isinstance(other.fill_value, type(self.fill_value))
             else:
                 with warnings.catch_warnings():
                     # Ignore spurious numpy warning
@@ -2028,7 +2029,9 @@ class SparseDtype(ExtensionDtype):
 
         # np.nan isn't a singleton, so we may end up with multiple
         # NaNs here, so we ignore the all NA case too.
-        if not (len(set(fill_values)) == 1 or isna(fill_values).all()):
+        if get_option("performance_warnings") and (
+            not (len(set(fill_values)) == 1 or isna(fill_values).all())
+        ):
             warnings.warn(
                 "Concatenating sparse arrays with multiple fill "
                 f"values: '{fill_values}'. Picking the first and "
@@ -2071,6 +2074,10 @@ class ArrowDtype(StorageExtensionDtype):
     Returns
     -------
     ArrowDtype
+
+    See Also
+    --------
+    DataFrame.convert_dtypes : Convert columns to the best possible dtypes.
 
     Examples
     --------

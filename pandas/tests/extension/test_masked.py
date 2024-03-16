@@ -13,6 +13,7 @@ classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
+
 import warnings
 
 import numpy as np
@@ -177,6 +178,15 @@ class TestMaskedArrays(base.ExtensionTests):
             expected = data_missing.to_numpy(dtype="float64", na_value=np.nan)
         else:
             expected = data_missing.to_numpy()
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_map_na_action_ignore(self, data_missing_for_sorting):
+        zero = data_missing_for_sorting[2]
+        result = data_missing_for_sorting.map(lambda x: zero, na_action="ignore")
+        if data_missing_for_sorting.dtype.kind == "b":
+            expected = np.array([False, pd.NA, False], dtype=object)
+        else:
+            expected = np.array([zero, np.nan, zero])
         tm.assert_numpy_array_equal(result, expected)
 
     def _get_expected_exception(self, op_name, obj, other):

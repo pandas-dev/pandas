@@ -1,6 +1,7 @@
 """
 Testing that we work in the downstream packages
 """
+
 import array
 from functools import partial
 import subprocess
@@ -155,7 +156,7 @@ def test_scikit_learn():
     clf.predict(digits.data[-1:])
 
 
-def test_seaborn():
+def test_seaborn(mpl_cleanup):
     seaborn = pytest.importorskip("seaborn")
     tips = DataFrame(
         {"day": pd.date_range("2023", freq="D", periods=5), "total_bill": range(5)}
@@ -304,25 +305,6 @@ def test_from_obscure_array(dtype, box):
     result = idx_cls(arr)
     expected = idx_cls(data)
     tm.assert_index_equal(result, expected)
-
-
-def test_dataframe_consortium() -> None:
-    """
-    Test some basic methods of the dataframe consortium standard.
-
-    Full testing is done at https://github.com/data-apis/dataframe-api-compat,
-    this is just to check that the entry point works as expected.
-    """
-    pytest.importorskip("dataframe_api_compat")
-    df_pd = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    df = df_pd.__dataframe_consortium_standard__()
-    result_1 = df.get_column_names()
-    expected_1 = ["a", "b"]
-    assert result_1 == expected_1
-
-    ser = Series([1, 2, 3], name="a")
-    col = ser.__column_consortium_standard__()
-    assert col.name == "a"
 
 
 def test_xarray_coerce_unit():

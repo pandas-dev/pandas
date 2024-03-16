@@ -25,7 +25,6 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas._typing import NDFrameT
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
@@ -38,28 +37,26 @@ from pandas.util._exceptions import (
     rewrite_warning,
 )
 
-from pandas.core.dtypes.dtypes import ArrowDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    PeriodDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.apply import (
-    ResamplerWindowApply,
-    warn_alias_replacement,
-)
+from pandas.core.apply import ResamplerWindowApply
 from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.base import (
     PandasObject,
     SelectionMixin,
 )
-import pandas.core.common as com
 from pandas.core.generic import (
     NDFrame,
     _shared_docs,
 )
-from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import (
     BaseGroupBy,
     GroupBy,
@@ -260,8 +257,7 @@ class Resampler(BaseGroupBy, PandasObject):
         func: Callable[Concatenate[Self, P], T],
         *args: P.args,
         **kwargs: P.kwargs,
-    ) -> T:
-        ...
+    ) -> T: ...
 
     @overload
     def pipe(
@@ -269,8 +265,7 @@ class Resampler(BaseGroupBy, PandasObject):
         func: tuple[Callable[..., T], str],
         *args: Any,
         **kwargs: Any,
-    ) -> T:
-        ...
+    ) -> T: ...
 
     @final
     @Substitution(
@@ -631,8 +626,8 @@ class Resampler(BaseGroupBy, PandasObject):
 
         See Also
         --------
-        backfill : Backward fill the new missing values in the resampled data.
-        pad : Forward fill ``NaN`` values.
+        bfill : Backward fill the new missing values in the resampled data.
+        ffill : Forward fill ``NaN`` values.
 
         Examples
         --------
@@ -686,9 +681,6 @@ class Resampler(BaseGroupBy, PandasObject):
 
         See Also
         --------
-        bfill : Alias of backfill.
-        fillna : Fill NaN values using the specified method, which can be
-            'backfill'.
         nearest : Fill NaN values with nearest neighbor starting from center.
         ffill : Forward fill NaN values.
         Series.fillna : Fill NaN values in the Series using the
@@ -768,177 +760,6 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._upsample("bfill", limit=limit)
 
     @final
-    def fillna(self, method, limit: int | None = None):
-        """
-        Fill missing values introduced by upsampling.
-
-        In statistics, imputation is the process of replacing missing data with
-        substituted values [1]_. When resampling data, missing values may
-        appear (e.g., when the resampling frequency is higher than the original
-        frequency).
-
-        Missing values that existed in the original data will
-        not be modified.
-
-        Parameters
-        ----------
-        method : {'pad', 'backfill', 'ffill', 'bfill', 'nearest'}
-            Method to use for filling holes in resampled data
-
-            * 'pad' or 'ffill': use previous valid observation to fill gap
-              (forward fill).
-            * 'backfill' or 'bfill': use next valid observation to fill gap.
-            * 'nearest': use nearest valid observation to fill gap.
-
-        limit : int, optional
-            Limit of how many consecutive missing values to fill.
-
-        Returns
-        -------
-        Series or DataFrame
-            An upsampled Series or DataFrame with missing values filled.
-
-        See Also
-        --------
-        bfill : Backward fill NaN values in the resampled data.
-        ffill : Forward fill NaN values in the resampled data.
-        nearest : Fill NaN values in the resampled data
-            with nearest neighbor starting from center.
-        interpolate : Fill NaN values using interpolation.
-        Series.fillna : Fill NaN values in the Series using the
-            specified method, which can be 'bfill' and 'ffill'.
-        DataFrame.fillna : Fill NaN values in the DataFrame using the
-            specified method, which can be 'bfill' and 'ffill'.
-
-        References
-        ----------
-        .. [1] https://en.wikipedia.org/wiki/Imputation_(statistics)
-
-        Examples
-        --------
-        Resampling a Series:
-
-        >>> s = pd.Series(
-        ...     [1, 2, 3], index=pd.date_range("20180101", periods=3, freq="h")
-        ... )
-        >>> s
-        2018-01-01 00:00:00    1
-        2018-01-01 01:00:00    2
-        2018-01-01 02:00:00    3
-        Freq: h, dtype: int64
-
-        Without filling the missing values you get:
-
-        >>> s.resample("30min").asfreq()
-        2018-01-01 00:00:00    1.0
-        2018-01-01 00:30:00    NaN
-        2018-01-01 01:00:00    2.0
-        2018-01-01 01:30:00    NaN
-        2018-01-01 02:00:00    3.0
-        Freq: 30min, dtype: float64
-
-        >>> s.resample("30min").fillna("backfill")
-        2018-01-01 00:00:00    1
-        2018-01-01 00:30:00    2
-        2018-01-01 01:00:00    2
-        2018-01-01 01:30:00    3
-        2018-01-01 02:00:00    3
-        Freq: 30min, dtype: int64
-
-        >>> s.resample("15min").fillna("backfill", limit=2)
-        2018-01-01 00:00:00    1.0
-        2018-01-01 00:15:00    NaN
-        2018-01-01 00:30:00    2.0
-        2018-01-01 00:45:00    2.0
-        2018-01-01 01:00:00    2.0
-        2018-01-01 01:15:00    NaN
-        2018-01-01 01:30:00    3.0
-        2018-01-01 01:45:00    3.0
-        2018-01-01 02:00:00    3.0
-        Freq: 15min, dtype: float64
-
-        >>> s.resample("30min").fillna("pad")
-        2018-01-01 00:00:00    1
-        2018-01-01 00:30:00    1
-        2018-01-01 01:00:00    2
-        2018-01-01 01:30:00    2
-        2018-01-01 02:00:00    3
-        Freq: 30min, dtype: int64
-
-        >>> s.resample("30min").fillna("nearest")
-        2018-01-01 00:00:00    1
-        2018-01-01 00:30:00    2
-        2018-01-01 01:00:00    2
-        2018-01-01 01:30:00    3
-        2018-01-01 02:00:00    3
-        Freq: 30min, dtype: int64
-
-        Missing values present before the upsampling are not affected.
-
-        >>> sm = pd.Series(
-        ...     [1, None, 3], index=pd.date_range("20180101", periods=3, freq="h")
-        ... )
-        >>> sm
-        2018-01-01 00:00:00    1.0
-        2018-01-01 01:00:00    NaN
-        2018-01-01 02:00:00    3.0
-        Freq: h, dtype: float64
-
-        >>> sm.resample("30min").fillna("backfill")
-        2018-01-01 00:00:00    1.0
-        2018-01-01 00:30:00    NaN
-        2018-01-01 01:00:00    NaN
-        2018-01-01 01:30:00    3.0
-        2018-01-01 02:00:00    3.0
-        Freq: 30min, dtype: float64
-
-        >>> sm.resample("30min").fillna("pad")
-        2018-01-01 00:00:00    1.0
-        2018-01-01 00:30:00    1.0
-        2018-01-01 01:00:00    NaN
-        2018-01-01 01:30:00    NaN
-        2018-01-01 02:00:00    3.0
-        Freq: 30min, dtype: float64
-
-        >>> sm.resample("30min").fillna("nearest")
-        2018-01-01 00:00:00    1.0
-        2018-01-01 00:30:00    NaN
-        2018-01-01 01:00:00    NaN
-        2018-01-01 01:30:00    3.0
-        2018-01-01 02:00:00    3.0
-        Freq: 30min, dtype: float64
-
-        DataFrame resampling is done column-wise. All the same options are
-        available.
-
-        >>> df = pd.DataFrame(
-        ...     {"a": [2, np.nan, 6], "b": [1, 3, 5]},
-        ...     index=pd.date_range("20180101", periods=3, freq="h"),
-        ... )
-        >>> df
-                               a  b
-        2018-01-01 00:00:00  2.0  1
-        2018-01-01 01:00:00  NaN  3
-        2018-01-01 02:00:00  6.0  5
-
-        >>> df.resample("30min").fillna("bfill")
-                               a  b
-        2018-01-01 00:00:00  2.0  1
-        2018-01-01 00:30:00  NaN  3
-        2018-01-01 01:00:00  NaN  3
-        2018-01-01 01:30:00  6.0  5
-        2018-01-01 02:00:00  6.0  5
-        """
-        warnings.warn(
-            f"{type(self).__name__}.fillna is deprecated and will be removed "
-            "in a future version. Use obj.ffill(), obj.bfill(), "
-            "or obj.nearest() instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._upsample(method, limit=limit)
-
-    @final
     def interpolate(
         self,
         method: InterpolateOptions = "linear",
@@ -996,20 +817,6 @@ class Resampler(BaseGroupBy, PandasObject):
         limit_direction : {{'forward', 'backward', 'both'}}, Optional
             Consecutive NaNs will be filled in this direction.
 
-            If limit is specified:
-                * If 'method' is 'pad' or 'ffill', 'limit_direction' must be 'forward'.
-                * If 'method' is 'backfill' or 'bfill', 'limit_direction' must be
-                  'backwards'.
-
-            If 'limit' is not specified:
-                * If 'method' is 'backfill' or 'bfill', the default is 'backward'
-                * else the default is 'forward'
-
-                raises ValueError if `limit_direction` is 'forward' or 'both' and
-                    method is 'backfill' or 'bfill'.
-                raises ValueError if `limit_direction` is 'backward' or 'both' and
-                    method is 'pad' or 'ffill'.
-
         limit_area : {{`None`, 'inside', 'outside'}}, default None
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
@@ -1037,6 +844,8 @@ class Resampler(BaseGroupBy, PandasObject):
         core.resample.Resampler.asfreq: Return the values at the new freq,
             essentially a reindex.
         DataFrame.interpolate: Fill NaN values using an interpolation method.
+        DataFrame.bfill : Backward fill NaN values in the resampled data.
+        DataFrame.ffill : Forward fill NaN values.
 
         Notes
         -----
@@ -1532,8 +1341,38 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._downsample("ohlc")
 
     @final
-    @doc(SeriesGroupBy.nunique)
     def nunique(self):
+        """
+        Return number of unique elements in the group.
+
+        Returns
+        -------
+        Series
+            Number of unique values within each group.
+
+        See Also
+        --------
+        core.groupby.SeriesGroupBy.nunique : Method nunique for SeriesGroupBy.
+
+        Examples
+        --------
+        >>> ser = pd.Series(
+        ...     [1, 2, 3, 3],
+        ...     index=pd.DatetimeIndex(
+        ...         ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
+        ...     ),
+        ... )
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    3
+        dtype: int64
+        >>> ser.resample("MS").nunique()
+        2023-01-01    2
+        2023-02-01    1
+        Freq: MS, dtype: int64
+        """
         return self._downsample("nunique")
 
     @final
@@ -1544,7 +1383,7 @@ class Resampler(BaseGroupBy, PandasObject):
         # If the result is a non-empty DataFrame we stack to get a Series
         # GH 46826
         if isinstance(result, ABCDataFrame) and not result.empty:
-            result = result.stack(future_stack=True)
+            result = result.stack()
 
         if not len(self.ax):
             from pandas import Series
@@ -1754,10 +1593,6 @@ class DatetimeIndexResampler(Resampler):
         how : string / cython mapped function
         **kwargs : kw args passed to how function
         """
-        orig_how = how
-        how = com.get_cython_func(how) or how
-        if orig_how != how:
-            warn_alias_replacement(self, orig_how, how)
         ax = self.ax
 
         # Excludes `on` column when provided
@@ -1808,11 +1643,6 @@ class DatetimeIndexResampler(Resampler):
             Maximum size gap to fill when reindexing
         fill_value : scalar, default None
             Value to use for missing values
-
-        See Also
-        --------
-        .fillna: Fill NA/NaN values using the specified method.
-
         """
         if self._from_selection:
             raise ValueError(
@@ -1925,10 +1755,6 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         if self.kind == "timestamp":
             return super()._downsample(how, **kwargs)
 
-        orig_how = how
-        how = com.get_cython_func(how) or how
-        if orig_how != how:
-            warn_alias_replacement(self, orig_how, how)
         ax = self.ax
 
         if is_subperiod(ax.freq, self.freq):
@@ -1961,11 +1787,6 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             Maximum size gap to fill when reindexing.
         fill_value : scalar, default None
             Value to use for missing values.
-
-        See Also
-        --------
-        .fillna: Fill NA/NaN values using the specified method.
-
         """
         # we may need to actually resample as if we are timestamps
         if self.kind == "timestamp":
@@ -2532,15 +2353,13 @@ class TimeGrouper(Grouper):
 @overload
 def _take_new_index(
     obj: DataFrame, indexer: npt.NDArray[np.intp], new_index: Index
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
 def _take_new_index(
     obj: Series, indexer: npt.NDArray[np.intp], new_index: Index
-) -> Series:
-    ...
+) -> Series: ...
 
 
 def _take_new_index(
@@ -2817,7 +2636,7 @@ def asfreq(
 
         if isinstance(freq, BaseOffset):
             if hasattr(freq, "_period_dtype_code"):
-                freq = freq_to_period_freqstr(freq.n, freq.name)
+                freq = PeriodDtype(freq)._freqstr
 
         new_obj = obj.copy()
         new_obj.index = obj.index.asfreq(freq, how=how)

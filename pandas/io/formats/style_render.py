@@ -314,9 +314,9 @@ class StylerRenderer:
             max_cols,
         )
 
-        self.cellstyle_map_columns: DefaultDict[
-            tuple[CSSPair, ...], list[str]
-        ] = defaultdict(list)
+        self.cellstyle_map_columns: DefaultDict[tuple[CSSPair, ...], list[str]] = (
+            defaultdict(list)
+        )
         head = self._translate_header(sparse_cols, max_cols)
         d.update({"head": head})
 
@@ -329,9 +329,9 @@ class StylerRenderer:
         self.cellstyle_map: DefaultDict[tuple[CSSPair, ...], list[str]] = defaultdict(
             list
         )
-        self.cellstyle_map_index: DefaultDict[
-            tuple[CSSPair, ...], list[str]
-        ] = defaultdict(list)
+        self.cellstyle_map_index: DefaultDict[tuple[CSSPair, ...], list[str]] = (
+            defaultdict(list)
+        )
         body: list = self._translate_body(idx_lengths, max_rows, max_cols)
         d.update({"body": body})
 
@@ -776,9 +776,9 @@ class StylerRenderer:
             )
 
             if self.cell_ids:
-                header_element[
-                    "id"
-                ] = f"{self.css['level']}{c}_{self.css['row']}{r}"  # id is given
+                header_element["id"] = (
+                    f"{self.css['level']}{c}_{self.css['row']}{r}"  # id is given
+                )
             if (
                 header_element_visible
                 and (r, c) in self.ctx_index
@@ -1979,6 +1979,11 @@ class Tooltips:
     tooltips: DataFrame, default empty
         DataFrame of strings aligned with underlying Styler data for tooltip
         display.
+    as_title_attribute: bool, default False
+        Flag to use title attribute based tooltips (True) or <span> based
+        tooltips (False).
+        Add the tooltip text as title attribute to resultant <td> element. If
+        True, no CSS is generated and styling effects do not apply.
 
     Notes
     -----
@@ -2007,11 +2012,13 @@ class Tooltips:
         ],
         css_name: str = "pd-t",
         tooltips: DataFrame = DataFrame(),
+        as_title_attribute: bool = False,
     ) -> None:
         self.class_name = css_name
         self.class_properties = css_props
         self.tt_data = tooltips
         self.table_styles: CSSStyles = []
+        self.as_title_attribute = as_title_attribute
 
     @property
     def _class_styles(self):
@@ -2101,35 +2108,53 @@ class Tooltips:
         if self.tt_data.empty:
             return d
 
-        name = self.class_name
         mask = (self.tt_data.isna()) | (self.tt_data.eq(""))  # empty string = no ttip
-        self.table_styles = [
-            style
-            for sublist in [
-                self._pseudo_css(styler.uuid, name, i, j, str(self.tt_data.iloc[i, j]))
-                for i in range(len(self.tt_data.index))
-                for j in range(len(self.tt_data.columns))
-                if not (
-                    mask.iloc[i, j]
-                    or i in styler.hidden_rows
-                    or j in styler.hidden_columns
-                )
+        # this conditional adds tooltips via pseudo css and <span> elements.
+        if not self.as_title_attribute:
+            name = self.class_name
+            self.table_styles = [
+                style
+                for sublist in [
+                    self._pseudo_css(
+                        styler.uuid, name, i, j, str(self.tt_data.iloc[i, j])
+                    )
+                    for i in range(len(self.tt_data.index))
+                    for j in range(len(self.tt_data.columns))
+                    if not (
+                        mask.iloc[i, j]
+                        or i in styler.hidden_rows
+                        or j in styler.hidden_columns
+                    )
+                ]
+                for style in sublist
             ]
-            for style in sublist
-        ]
 
-        if self.table_styles:
-            # add span class to every cell only if at least 1 non-empty tooltip
-            for row in d["body"]:
-                for item in row:
-                    if item["type"] == "td":
-                        item["display_value"] = (
-                            str(item["display_value"])
-                            + f'<span class="{self.class_name}"></span>'
-                        )
-            d["table_styles"].extend(self._class_styles)
-            d["table_styles"].extend(self.table_styles)
-
+            # add span class to every cell since there is at least 1 non-empty tooltip
+            if self.table_styles:
+                for row in d["body"]:
+                    for item in row:
+                        if item["type"] == "td":
+                            item["display_value"] = (
+                                str(item["display_value"])
+                                + f'<span class="{self.class_name}"></span>'
+                            )
+                d["table_styles"].extend(self._class_styles)
+                d["table_styles"].extend(self.table_styles)
+        # this conditional adds tooltips as extra "title" attribute on a <td> element
+        else:
+            index_offset = self.tt_data.index.nlevels
+            body = d["body"]
+            for i in range(len(self.tt_data.index)):
+                for j in range(len(self.tt_data.columns)):
+                    if (
+                        not mask.iloc[i, j]
+                        or i in styler.hidden_rows
+                        or j in styler.hidden_columns
+                    ):
+                        row = body[i]
+                        item = row[j + index_offset]
+                        value = self.tt_data.iloc[i, j]
+                        item["attributes"] += f' title="{value}"'
         return d
 
 

@@ -2,6 +2,7 @@
 Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
+
 from __future__ import annotations
 
 import decimal
@@ -436,6 +437,10 @@ def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
 
     if isinstance(values.dtype, ExtensionDtype):
         # Dispatch to extension dtype's unique.
+        return values.unique()
+
+    if isinstance(values, ABCIndex):
+        # Dispatch to Index's unique.
         return values.unique()
 
     original = values
@@ -1635,7 +1640,6 @@ def map_array(
     arr: ArrayLike,
     mapper,
     na_action: Literal["ignore"] | None = None,
-    convert: bool = True,
 ) -> np.ndarray | ExtensionArray | Index:
     """
     Map values using an input mapping or function.
@@ -1647,9 +1651,6 @@ def map_array(
     na_action : {None, 'ignore'}, default None
         If 'ignore', propagate NA values, without passing them to the
         mapping correspondence.
-    convert : bool, default True
-        Try to find better dtype for elementwise function results. If
-        False, leave as dtype=object.
 
     Returns
     -------
@@ -1707,8 +1708,6 @@ def map_array(
     # we must convert to python types
     values = arr.astype(object, copy=False)
     if na_action is None:
-        return lib.map_infer(values, mapper, convert=convert)
+        return lib.map_infer(values, mapper)
     else:
-        return lib.map_infer_mask(
-            values, mapper, mask=isna(values).view(np.uint8), convert=convert
-        )
+        return lib.map_infer_mask(values, mapper, mask=isna(values).view(np.uint8))

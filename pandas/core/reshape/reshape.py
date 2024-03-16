@@ -10,6 +10,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config.config import get_option
+
 import pandas._libs.reshape as libreshape
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
@@ -144,7 +146,7 @@ class _Unstacker:
         num_cells = num_rows * num_columns
 
         # GH 26314: Previous ValueError raised was too restrictive for many users.
-        if num_cells > np.iinfo(np.int32).max:
+        if get_option("performance_warnings") and num_cells > np.iinfo(np.int32).max:
             warnings.warn(
                 f"The following operation may generate {num_cells} cells "
                 f"in the resulting pandas object.",
@@ -488,15 +490,13 @@ def _unstack_multiple(
 
 
 @overload
-def unstack(obj: Series, level, fill_value=..., sort: bool = ...) -> DataFrame:
-    ...
+def unstack(obj: Series, level, fill_value=..., sort: bool = ...) -> DataFrame: ...
 
 
 @overload
 def unstack(
     obj: Series | DataFrame, level, fill_value=..., sort: bool = ...
-) -> Series | DataFrame:
-    ...
+) -> Series | DataFrame: ...
 
 
 def unstack(
@@ -518,7 +518,7 @@ def unstack(
         if isinstance(obj.index, MultiIndex):
             return _unstack_frame(obj, level, fill_value=fill_value, sort=sort)
         else:
-            return obj.T.stack(future_stack=True)
+            return obj.T.stack()
     elif not isinstance(obj.index, MultiIndex):
         # GH 36113
         # Give nicer error messages when unstack a Series whose

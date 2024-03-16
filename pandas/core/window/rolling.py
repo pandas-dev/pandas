@@ -2,6 +2,7 @@
 Provide a generic structure to support window functions,
 similar to how we have a Groupby object.
 """
+
 from __future__ import annotations
 
 import copy
@@ -270,7 +271,7 @@ class BaseWindow(SelectionMixin):
         """
         # filter out the on from the object
         if self.on is not None and not isinstance(self.on, Index) and obj.ndim == 2:
-            obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
+            obj = obj.reindex(columns=obj.columns.difference([self.on]))
         if obj.ndim > 1 and numeric_only:
             obj = self._make_numeric_only(obj)
         return obj
@@ -872,8 +873,8 @@ class Window(BaseWindow):
         If a timedelta, str, or offset, the time period of each window. Each
         window will be a variable sized based on the observations included in
         the time-period. This is only valid for datetimelike indexes.
-        To learn more about the offsets & frequency strings, please see `this link
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+        To learn more about the offsets & frequency strings, please see
+        :ref:`this link<timeseries.offset_aliases>`.
 
         If a BaseIndexer subclass, the window boundaries
         based on the defined ``get_window_bounds`` method. Additional rolling
@@ -924,12 +925,11 @@ class Window(BaseWindow):
         Default ``None`` (``'right'``).
 
     step : int, default None
-
-        .. versionadded:: 1.5.0
-
         Evaluate the window at every ``step`` result, equivalent to slicing as
         ``[::step]``. ``window`` must be an integer. Using a step argument other
         than None or 1 will produce a result with a different shape than the input.
+
+        .. versionadded:: 1.5.0
 
     method : str {'single', 'table'}, default 'single'
 
@@ -1216,8 +1216,8 @@ class Window(BaseWindow):
             """
         See Also
         --------
-        pandas.DataFrame.aggregate : Similar DataFrame method.
-        pandas.Series.aggregate : Similar Series method.
+        DataFrame.aggregate : Similar DataFrame method.
+        Series.aggregate : Similar Series method.
         """
         ),
         examples=dedent(
@@ -1906,8 +1906,8 @@ class Rolling(RollingAndExpandingMixin):
             """
         See Also
         --------
-        pandas.Series.rolling : Calling object with Series data.
-        pandas.DataFrame.rolling : Calling object with DataFrame data.
+        Series.rolling : Calling object with Series data.
+        DataFrame.rolling : Calling object with DataFrame data.
         """
         ),
         examples=dedent(

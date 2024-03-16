@@ -6,6 +6,7 @@ An interface for extending pandas with custom arrays.
    This is an experimental API and subject to breaking changes
    without warning.
 """
+
 from __future__ import annotations
 
 import operator
@@ -332,7 +333,7 @@ class ExtensionArray:
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
+        cls, strings, *, dtype: ExtensionDtype, copy: bool = False
     ) -> Self:
         """
         Construct a new ExtensionArray from a sequence of strings.
@@ -342,7 +343,7 @@ class ExtensionArray:
         strings : Sequence
             Each element will be an instance of the scalar type for this
             array, ``cls.dtype.type``.
-        dtype : dtype, optional
+        dtype : ExtensionDtype
             Construct for this particular dtype. This should be a Dtype
             compatible with the ExtensionArray.
         copy : bool, default False
@@ -354,7 +355,9 @@ class ExtensionArray:
 
         Examples
         --------
-        >>> pd.arrays.IntegerArray._from_sequence_of_strings(["1", "2", "3"])
+        >>> pd.arrays.IntegerArray._from_sequence_of_strings(
+        ...     ["1", "2", "3"], dtype=pd.Int64Dtype()
+        ... )
         <IntegerArray>
         [1, 2, 3]
         Length: 3, dtype: Int64
@@ -395,12 +398,10 @@ class ExtensionArray:
     # Must be a Sequence
     # ------------------------------------------------------------------------
     @overload
-    def __getitem__(self, item: ScalarIndexer) -> Any:
-        ...
+    def __getitem__(self, item: ScalarIndexer) -> Any: ...
 
     @overload
-    def __getitem__(self, item: SequenceIndexer) -> Self:
-        ...
+    def __getitem__(self, item: SequenceIndexer) -> Self: ...
 
     def __getitem__(self, item: PositionalIndexer) -> Self | Any:
         """
@@ -646,16 +647,13 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     @overload
-    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
-        ...
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray: ...
 
     @overload
-    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
-        ...
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray: ...
 
     @overload
-    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
-        ...
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike: ...
 
     def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         """
@@ -723,7 +721,10 @@ class ExtensionArray:
 
             return TimedeltaArray._from_sequence(self, dtype=dtype, copy=copy)
 
-        return np.array(self, dtype=dtype, copy=copy)
+        if not copy:
+            return np.asarray(self, dtype=dtype)
+        else:
+            return np.array(self, dtype=dtype, copy=copy)
 
     def isna(self) -> np.ndarray | ExtensionArraySupportsAnyAll:
         """
@@ -2205,7 +2206,7 @@ class ExtensionArray:
             raise NotImplementedError
 
         return rank(
-            self._values_for_argsort(),
+            self,
             axis=axis,
             method=method,
             na_option=na_option,
@@ -2406,23 +2407,19 @@ class ExtensionArray:
 
 class ExtensionArraySupportsAnyAll(ExtensionArray):
     @overload
-    def any(self, *, skipna: Literal[True] = ...) -> bool:
-        ...
+    def any(self, *, skipna: Literal[True] = ...) -> bool: ...
 
     @overload
-    def any(self, *, skipna: bool) -> bool | NAType:
-        ...
+    def any(self, *, skipna: bool) -> bool | NAType: ...
 
     def any(self, *, skipna: bool = True) -> bool | NAType:
         raise AbstractMethodError(self)
 
     @overload
-    def all(self, *, skipna: Literal[True] = ...) -> bool:
-        ...
+    def all(self, *, skipna: Literal[True] = ...) -> bool: ...
 
     @overload
-    def all(self, *, skipna: bool) -> bool | NAType:
-        ...
+    def all(self, *, skipna: bool) -> bool | NAType: ...
 
     def all(self, *, skipna: bool = True) -> bool | NAType:
         raise AbstractMethodError(self)

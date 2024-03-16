@@ -37,7 +37,6 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.dtypes import (
     FreqGroup,
     PeriodDtypeBase,
-    freq_to_period_freqstr,
 )
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.offsets import (
@@ -89,6 +88,8 @@ if TYPE_CHECKING:
         Self,
         npt,
     )
+
+    from pandas.core.dtypes.dtypes import ExtensionDtype
 
     from pandas.core.arrays import (
         DatetimeArray,
@@ -255,7 +256,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
                 raise raise_on_incompatible(values, dtype.freq)
             values, dtype = values._ndarray, values.dtype
 
-        values = np.array(values, dtype="int64", copy=copy)
+        if not copy:
+            values = np.asarray(values, dtype="int64")
+        else:
+            values = np.array(values, dtype="int64", copy=copy)
         if dtype is None:
             raise ValueError("dtype is not specified and cannot be inferred")
         dtype = cast(PeriodDtype, dtype)
@@ -303,7 +307,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
+        cls, strings, *, dtype: ExtensionDtype, copy: bool = False
     ) -> Self:
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
@@ -323,7 +327,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         PeriodArray[freq]
         """
         if isinstance(freq, BaseOffset):
-            freq = freq_to_period_freqstr(freq.n, freq.name)
+            freq = PeriodDtype(freq)._freqstr
         data, freq = dt64arr_to_periodarr(data, freq, tz)
         dtype = PeriodDtype(freq)
         return cls(data, dtype=dtype)
@@ -397,9 +401,11 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
     @property
     def freqstr(self) -> str:
-        return freq_to_period_freqstr(self.freq.n, self.freq.name)
+        return PeriodDtype(self.freq)._freqstr
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(
+        self, dtype: NpDtype | None = None, copy: bool | None = None
+    ) -> np.ndarray:
         if dtype == "i8":
             return self.asi8
         elif dtype == bool:
@@ -636,6 +642,20 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         >>> idx.to_timestamp()
         DatetimeIndex(['2023-01-01', '2023-02-01', '2023-03-01'],
         dtype='datetime64[ns]', freq='MS')
+
+        The frequency will not be inferred if the index contains less than
+        three elements, or if the values of index are not strictly monotonic:
+
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02"], freq="M")
+        >>> idx.to_timestamp()
+        DatetimeIndex(['2023-01-01', '2023-02-01'], dtype='datetime64[ns]', freq=None)
+
+        >>> idx = pd.PeriodIndex(
+        ...     ["2023-01", "2023-02", "2023-02", "2023-03"], freq="2M"
+        ... )
+        >>> idx.to_timestamp()
+        DatetimeIndex(['2023-01-01', '2023-02-01', '2023-02-01', '2023-03-01'],
+        dtype='datetime64[ns]', freq=None)
         """
         from pandas.core.arrays import DatetimeArray
 
@@ -986,13 +1006,17 @@ def raise_on_incompatible(left, right) -> IncompatibleFrequency:
     if isinstance(right, (np.ndarray, ABCTimedeltaArray)) or right is None:
         other_freq = None
     elif isinstance(right, BaseOffset):
-        other_freq = freq_to_period_freqstr(right.n, right.name)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", r"PeriodDtype\[B\] is deprecated", category=FutureWarning
+            )
+            other_freq = PeriodDtype(right)._freqstr
     elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period)):
         other_freq = right.freqstr
     else:
         other_freq = delta_to_tick(Timedelta(right)).freqstr
 
-    own_freq = freq_to_period_freqstr(left.freq.n, left.freq.name)
+    own_freq = PeriodDtype(left.freq)._freqstr
     msg = DIFFERENT_FREQ.format(
         cls=type(left).__name__, own_freq=own_freq, other_freq=other_freq
     )
@@ -1100,13 +1124,11 @@ def period_array(
 
 
 @overload
-def validate_dtype_freq(dtype, freq: BaseOffsetT) -> BaseOffsetT:
-    ...
+def validate_dtype_freq(dtype, freq: BaseOffsetT) -> BaseOffsetT: ...
 
 
 @overload
-def validate_dtype_freq(dtype, freq: timedelta | str | None) -> BaseOffset:
-    ...
+def validate_dtype_freq(dtype, freq: timedelta | str | None) -> BaseOffset: ...
 
 
 def validate_dtype_freq(

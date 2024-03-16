@@ -92,6 +92,10 @@ class StringDtype(StorageExtensionDtype):
     -------
     None
 
+    See Also
+    --------
+    BooleanDtype : Extension dtype for boolean data.
+
     Examples
     --------
     >>> pd.StringDtype()
@@ -315,7 +319,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
     See Also
     --------
-    :func:`pandas.array`
+    :func:`array`
         The recommended function for creating a StringArray.
     Series.str
         The string methods are available on Series backed by
@@ -416,7 +420,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
+        cls, strings, *, dtype: ExtensionDtype, copy: bool = False
     ) -> Self:
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 

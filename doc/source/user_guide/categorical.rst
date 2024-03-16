@@ -245,7 +245,8 @@ Equality semantics
 
 Two instances of :class:`~pandas.api.types.CategoricalDtype` compare equal
 whenever they have the same categories and order. When comparing two
-unordered categoricals, the order of the ``categories`` is not considered.
+unordered categoricals, the order of the ``categories`` is not considered. Note
+that categories with different dtypes are not the same.
 
 .. ipython:: python
 
@@ -262,6 +263,16 @@ All instances of ``CategoricalDtype`` compare equal to the string ``'category'``
 .. ipython:: python
 
    c1 == "category"
+
+Notice that the ``categories_dtype`` should be considered, especially when comparing with
+two empty ``CategoricalDtype`` instances.
+
+.. ipython:: python
+
+    c2 = pd.Categorical(np.array([], dtype=object))
+    c3 = pd.Categorical(np.array([], dtype=float))
+
+    c2.dtype == c3.dtype
 
 Description
 -----------

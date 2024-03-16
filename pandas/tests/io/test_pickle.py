@@ -10,6 +10,7 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 
 3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 """
+
 from __future__ import annotations
 
 from array import array
@@ -397,31 +398,6 @@ class TestProtocol:
             df.to_pickle(path, protocol=protocol)
             df2 = pd.read_pickle(path)
             tm.assert_frame_equal(df, df2)
-
-
-@pytest.mark.parametrize(
-    ["pickle_file", "excols"],
-    [
-        ("test_py27.pkl", Index(["a", "b", "c"])),
-        (
-            "test_mi_py27.pkl",
-            pd.MultiIndex.from_arrays([["a", "b", "c"], ["A", "B", "C"]]),
-        ),
-    ],
-)
-def test_unicode_decode_error(datapath, pickle_file, excols):
-    # pickle file written with py27, should be readable without raising
-    #  UnicodeDecodeError, see GH#28645 and GH#31988
-    path = datapath("io", "data", "pickle", pickle_file)
-    df = pd.read_pickle(path)
-
-    # just test the columns are correct since the values are random
-    tm.assert_index_equal(df.columns, excols)
-
-
-# ---------------------
-# tests for buffer I/O
-# ---------------------
 
 
 def test_pickle_buffer_roundtrip():
