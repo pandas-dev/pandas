@@ -290,7 +290,7 @@ def _register_accessor(name: str, cls):
 _register_df_doc = """
 Examples
 --------
-In your library code, an accessor that only accepts integers could 
+In your library code, an accessor that only accepts integers could
 have a class defined like this:
 
 .. code-block:: python
@@ -334,7 +334,7 @@ def register_dataframe_accessor(name: str):
 _series_doc = """
 Examples
 --------
-In your library code, an accessor that only accepts integers could 
+In your library code, an accessor that only accepts integers could
 have a class defined like this:
 
 .. code-block:: python
@@ -376,7 +376,7 @@ def register_series_accessor(name: str):
 _index_doc = """
 Examples
 --------
-In your library code, an accessor that only accepts integers could 
+In your library code, an accessor that only accepts integers could
 have a class defined like this:
 
 .. code-block:: python
