@@ -422,7 +422,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # TODO 16: Check GitHub Issue
         # TODO 17: GH#33357 called with just the SingleBlockManager,
         # -------- Avoid warnings on fast_path_manager?
-        # TODO 18: Check if DataFrame.astype() copies
+        # DONE 18: Check if DataFrame.astype() copies. 'copy: bool, default True'.
 
         allow_mgr = False
         fast_path_manager = False
@@ -536,8 +536,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # Series TASK 5.B: COPYING THE MANAGER.
             deep = deep if not fast_path_manager else False
             if dtype is not None:
-                # TODO 18: Check if DataFrame.astype() copies
-                data = data.astype(dtype=dtype, errors="ignore")  # Copy the manager?
+                data = data.astype(dtype=dtype, errors="ignore")  # Copy the manager
                 copy = False
 
             if copy or fast_path_manager:
