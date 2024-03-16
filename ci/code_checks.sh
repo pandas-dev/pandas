@@ -776,7 +776,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.SeriesGroupBy.__iter__\
         pandas.core.groupby.SeriesGroupBy.agg\
         pandas.core.groupby.SeriesGroupBy.aggregate\
-        pandas.core.groupby.SeriesGroupBy.apply\
         pandas.core.groupby.SeriesGroupBy.cummax\
         pandas.core.groupby.SeriesGroupBy.cummin\
         pandas.core.groupby.SeriesGroupBy.cumprod\
