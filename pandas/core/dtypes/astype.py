@@ -261,7 +261,7 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
     if dtype.kind in "iufb" and dtype.kind == new_dtype.kind:
         # fastpath for numeric dtypes
         if hasattr(dtype, "itemsize") and hasattr(new_dtype, "itemsize"):
-            return dtype.itemsize == new_dtype.itemsize  # type: ignore[reportGeneralTypeIssues]
+            return dtype.itemsize == new_dtype.itemsize  # pyright: ignore[reportGeneralTypeIssues]
 
     if isinstance(dtype, np.dtype) and not isinstance(new_dtype, np.dtype):
         new_dtype, dtype = dtype, new_dtype
