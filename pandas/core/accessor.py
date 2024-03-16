@@ -313,7 +313,6 @@ have a class defined like this:
         def sum(self):
             return self._obj.sum()
 
-
 Back in an interactive IPython session:
 
 .. code-block:: ipython
@@ -358,7 +357,6 @@ have a class defined like this:
 
         def sum(self):
             return self._obj.sum()
-
 
 Back in an interactive IPython session:
 
