@@ -35,7 +35,7 @@ class PandasDataFrameXchg(DataFrameXchg):
         """
         self._df = df.rename(columns=str, copy=False)
         self._allow_copy = allow_copy
-        for i, col in enumerate(self._df.columns):
+        for i, _col in enumerate(self._df.columns):
             rechunked = maybe_rechunk(self._df.iloc[:, i], allow_copy=allow_copy)
             if rechunked is not None:
                 self._df.isetitem(i, rechunked)
