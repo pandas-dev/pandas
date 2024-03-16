@@ -1153,11 +1153,6 @@ class RangeIndex(Index):
             else:
                 key = np.asarray(key, dtype=bool)
             check_array_indexer(self._range, key)  # type: ignore[arg-type]
-            # Short circuit potential _shallow_copy check
-            if key.all():
-                return self._simple_new(self._range, name=self.name)
-            elif not key.any():
-                return self._simple_new(_empty_range, name=self.name)
             key = np.flatnonzero(key)
         try:
             return self.take(key)
