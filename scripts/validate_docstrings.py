@@ -148,6 +148,73 @@ def get_api_items(api_doc_fd):
         previous_line = line_stripped
 
 
+def bulk_validate_pep8(docs: dict[str, PandasDocstring]) -> list[list]:
+    all_docs_error_messages = []
+    temp_files = []
+
+    try:
+        for func_name, doc in docs.items():
+            if not doc.examples:
+                continue
+
+            content = "".join(
+                (
+                    "import numpy as np  # noqa: F401\n",
+                    "import pandas as pd  # noqa: F401\n",
+                    *doc.examples_source_code,
+                )
+            )
+
+            temp_file = tempfile.NamedTemporaryFile(mode="w", encoding="utf-8",
+                                                    delete=False)
+            temp_file.write(content)
+            temp_file.flush()
+            temp_files.append(temp_file)
+
+        if not temp_files:  # No docs with examples to process
+            return all_docs_error_messages
+
+        cmd = [
+            sys.executable,
+            "-m",
+            "flake8",
+            "--format=%(row)d\t%(col)d\t%(code)s\t%(text)s",
+            "--max-line-length=88",
+            "--ignore=E203,E3,W503,W504,E402,E731,E128,E124,E704",
+        ]
+        # Extend cmd with names of all temporary files
+        cmd.extend([temp_file.name for temp_file in temp_files])
+        response = subprocess.run(cmd, capture_output=True, check=False,
+                                  text=True)
+
+        # Parsing output for each file
+        for temp_file in temp_files:
+            error_messages = []
+            for output in ("stdout", "stderr"):
+                out = getattr(response, output).replace(temp_file.name,
+                                                        "").strip(
+                    "\n").splitlines()
+                if out:
+                    error_messages.extend(out)
+
+            # Parsing error messages for each document
+            doc_error_messages = []
+            for error_message in error_messages:
+                line_number, col_number, error_code, message = error_message.split(
+                    "\t", maxsplit=3)
+                doc_error_messages.append((error_code, message,
+                                           int(line_number) - 2,
+                                           int(col_number)))
+            all_docs_error_messages.append(doc_error_messages)
+
+    finally:
+        for temp_file in temp_files:
+            temp_file.close()
+            os.unlink(temp_file.name)
+
+    return all_docs_error_messages
+
+
 class PandasDocstring(Validator):
     def __init__(self, func_name: str, doc_obj=None) -> None:
         self.func_name = func_name
