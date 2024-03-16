@@ -2686,7 +2686,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             names = result_series.index.names
             # GH#55951 - Temporarily replace names in case they are integers
             result_series.index.names = range(len(names))
-            index_level = list(range(len(self._grouper.groupings)))
+            index_level = range(len(self._grouper.groupings))
             result_series = result_series.sort_index(
                 level=index_level, sort_remaining=False
             )
