@@ -7630,7 +7630,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * 'time': Works on daily and higher resolution data to interpolate
               given length of interval.
             * 'index', 'values': use the actual numerical values of the index.
-            * 'pad': Fill in NaNs using existing values.
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
               'barycentric', 'polynomial': Passed to
               `scipy.interpolate.interp1d`, whereas 'spline' is passed to
@@ -7654,22 +7653,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             0.
         inplace : bool, default False
             Update the data in place if possible.
-        limit_direction : {{'forward', 'backward', 'both'}}, Optional
+        limit_direction : {{'forward', 'backward', 'both'}}, optional, default 'forward'
             Consecutive NaNs will be filled in this direction.
-
-            If limit is specified:
-                * If 'method' is 'pad' or 'ffill', 'limit_direction' must be 'forward'.
-                * If 'method' is 'backfill' or 'bfill', 'limit_direction' must be
-                  'backwards'.
-
-            If 'limit' is not specified:
-                * If 'method' is 'backfill' or 'bfill', the default is 'backward'
-                * else the default is 'forward'
-
-            raises ValueError if `limit_direction` is 'forward' or 'both' and
-                method is 'backfill' or 'bfill'.
-            raises ValueError if `limit_direction` is 'backward' or 'both' and
-                method is 'pad' or 'ffill'.
 
         limit_area : {{`None`, 'inside', 'outside'}}, default None
             If limit is specified, consecutive NaNs will be filled with this
@@ -7806,14 +7791,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         fillna_methods = ["ffill", "bfill", "pad", "backfill"]
         if method.lower() in fillna_methods:
             # GH#53581
-            warnings.warn(
-                f"{type(self).__name__}.interpolate with method={method} is "
-                "deprecated and will raise in a future version. "
-                "Use obj.ffill() or obj.bfill() instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            raise ValueError(
+                f"{type(self).__name__} cannot interpolate with method={method}."
             )
-            obj, should_transpose = self, False
         else:
             obj, should_transpose = (self.T, True) if axis == 1 else (self, False)
             # GH#53631

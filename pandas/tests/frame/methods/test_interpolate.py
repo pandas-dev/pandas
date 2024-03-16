@@ -398,12 +398,9 @@ class TestDataFrameInterpolate:
             df["D"] = np.nan
             df["E"] = 1.0
 
-        method2 = method if method != "pad" else "ffill"
-        expected = getattr(df, method2)(axis=axis)
-        msg = f"DataFrame.interpolate with method={method} is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.interpolate(method=method, axis=axis)
-        tm.assert_frame_equal(result, expected)
+        msg = f"DataFrame cannot interpolate with method={method}"
+        with pytest.raises(ValueError, match=msg):
+            df.interpolate(method=method, axis=axis)
 
     def test_interpolate_empty_df(self):
         # GH#53199
