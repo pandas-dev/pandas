@@ -276,11 +276,23 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         """
         Determine if two CategoricalIndex objects contain the same elements.
 
+        The order and orderedness of elements matters. The categories matter,
+        but the order of the categories matters only when ``ordered=True``.
+
+        Parameters
+        ----------
+        other : object
+            The CategoricalIndex object to compare with.
+
         Returns
         -------
         bool
             ``True`` if two :class:`pandas.CategoricalIndex` objects have equal
             elements, ``False`` otherwise.
+
+        See Also
+        --------
+        Categorical.equals : Returns True if categorical arrays are equal.
 
         Examples
         --------
@@ -446,6 +458,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         ----------
         mapper : function, dict, or Series
             Mapping correspondence.
+        na_action : {None, 'ignore'}, default 'ignore'
+            If 'ignore', propagate NaN values, without passing them to
+            the mapping correspondence.
 
         Returns
         -------

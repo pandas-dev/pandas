@@ -172,7 +172,6 @@ class _XMLFrameParser:
         self.encoding = encoding
         self.stylesheet = stylesheet
         self.iterparse = iterparse
-        self.is_style = None
         self.compression: CompressionOptions = compression
         self.storage_options = storage_options
 
@@ -678,8 +677,8 @@ def get_data_from_filepath(
         2. file-like object (e.g. open file object, StringIO)
     """
     filepath_or_buffer = stringify_path(filepath_or_buffer)  # type: ignore[arg-type]
-    with get_handle(  # pyright: ignore[reportGeneralTypeIssues]
-        filepath_or_buffer,  # pyright: ignore[reportGeneralTypeIssues]
+    with get_handle(  # pyright: ignore[reportCallIssue]
+        filepath_or_buffer,  # pyright: ignore[reportArgumentType]
         "r",
         encoding=encoding,
         compression=compression,

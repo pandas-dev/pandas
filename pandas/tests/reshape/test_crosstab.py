@@ -452,11 +452,9 @@ class TestCrosstab:
             index=Index([1, 2, "All"], name="a", dtype="object"),
             columns=Index([3, 4, "All"], name="b", dtype="object"),
         )
-        msg = "using DataFrameGroupBy.sum"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            test_case = crosstab(
-                df.a, df.b, df.c, aggfunc=np.sum, normalize="all", margins=True
-            )
+        test_case = crosstab(
+            df.a, df.b, df.c, aggfunc=np.sum, normalize="all", margins=True
+        )
         tm.assert_frame_equal(test_case, norm_sum)
 
     def test_crosstab_with_empties(self):
@@ -655,16 +653,14 @@ class TestCrosstab:
             }
         )
 
-        msg = "using DataFrameGroupBy.sum"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = crosstab(
-                [df.A, df.B],
-                df.C,
-                values=df.D,
-                aggfunc=np.sum,
-                normalize=True,
-                margins=True,
-            )
+        result = crosstab(
+            [df.A, df.B],
+            df.C,
+            values=df.D,
+            aggfunc=np.sum,
+            normalize=True,
+            margins=True,
+        )
         expected = DataFrame(
             np.array([0] * 29 + [1], dtype=float).reshape(10, 3),
             columns=Index(["bar", "foo", "All"], name="C"),
