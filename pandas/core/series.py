@@ -477,6 +477,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         original_data_dtype = getattr(data, "dtype", None)
         refs = None
         name = ibase.maybe_extract_name(name, data, type(self))
+        na_value = na_value_for_dtype(pandas_dtype(dtype), compat=False)
+
+        # TODO 11: Investigate. This is an unknown type that must be converted to list.
+        if is_list_like(data) and not isinstance(data, Sized):
+            data = list(data)
+
+        is_scalar = (
+            not is_pandas_object
+            and not is_array
+            and not is_list_like(data)
+            and not isinstance(data, SingleBlockManager)
+        )
 
         # Series TASK 3: DATA TRANSFORMATION.
         if is_dict_like(data) and not is_pandas_object:
@@ -497,20 +509,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 else None
             )
 
-        # TODO 11: Investigate. This is an unknown type that must be converted to list.
-        if is_list_like(data) and not isinstance(data, Sized):
-            data = list(data)
-
         # Series TASK 4: COMMON INDEX MANIPULATION
-        na_value = na_value_for_dtype(pandas_dtype(dtype), compat=False)
-
-        is_scalar = (
-            not is_pandas_object
-            and not is_array
-            and not is_list_like(data)
-            and not isinstance(data, SingleBlockManager)
-        )
-
         if index is None:
             if data is None:
                 index = default_index(0)
@@ -525,7 +524,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 data = na_value if len(index) or dtype is not None else []
 
         is_list = is_list_like(data)
-
         list_like_input = False
 
         # Series TASK 5: PREPARING THE MANAGER
