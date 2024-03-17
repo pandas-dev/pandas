@@ -2,6 +2,7 @@
 Tests for the file pandas.io.formats.format, *not* tests for general formatting
 of pandas objects.
 """
+
 from datetime import datetime
 from io import StringIO
 import re

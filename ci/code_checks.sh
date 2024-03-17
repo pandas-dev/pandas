@@ -65,8 +65,8 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (EX01, EX03, EX04, GL01, GL02, GL03, GL04, GL05, GL06, GL07, GL09, GL10, PR03, PR04, PR05, PR06, PR08, PR09, PR10, RT01, RT02, RT04, RT05, SA02, SA03, SA04, SA05, SS01, SS02, SS03, SS04, SS05, SS06)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01,EX03,EX04,GL01,GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,PR03,PR04,PR05,PR06,PR08,PR09,PR10,RT01,RT02,RT04,RT05,SA02,SA03,SA04,SA05,SS01,SS02,SS03,SS04,SS05,SS06
+    MSG='Validate docstrings (EX01, EX03, EX04, GL01, GL02, GL03, GL04, GL05, GL06, GL07, GL09, GL10, PD01, PR03, PR04, PR05, PR06, PR08, PR09, PR10, RT01, RT02, RT04, RT05, SA02, SA03, SA04, SA05, SS01, SS02, SS03, SS04, SS05, SS06)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01,EX03,EX04,GL01,GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,PD01,PR03,PR04,PR05,PR06,PR08,PR09,PR10,RT01,RT02,RT04,RT05,SA02,SA03,SA04,SA05,SS01,SS02,SS03,SS04,SS05,SS06
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Partially validate docstrings (PR02)' ;  echo $MSG
@@ -144,7 +144,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (GL08)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=GL08 --ignore_functions \
-        pandas.ExcelFile.book\
         pandas.Index.empty\
         pandas.Index.names\
         pandas.Index.view\
@@ -173,14 +172,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timestamp.tzinfo\
         pandas.Timestamp.value\
         pandas.Timestamp.year\
-        pandas.tseries.offsets.BQuarterBegin.is_anchored\
         pandas.tseries.offsets.BQuarterBegin.is_on_offset\
         pandas.tseries.offsets.BQuarterBegin.n\
         pandas.tseries.offsets.BQuarterBegin.nanos\
         pandas.tseries.offsets.BQuarterBegin.normalize\
         pandas.tseries.offsets.BQuarterBegin.rule_code\
         pandas.tseries.offsets.BQuarterBegin.startingMonth\
-        pandas.tseries.offsets.BQuarterEnd.is_anchored\
         pandas.tseries.offsets.BQuarterEnd.is_on_offset\
         pandas.tseries.offsets.BQuarterEnd.n\
         pandas.tseries.offsets.BQuarterEnd.nanos\
@@ -278,7 +275,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.tseries.offsets.Easter.rule_code\
         pandas.tseries.offsets.FY5253.get_rule_code_suffix\
         pandas.tseries.offsets.FY5253.get_year_end\
-        pandas.tseries.offsets.FY5253.is_anchored\
         pandas.tseries.offsets.FY5253.is_on_offset\
         pandas.tseries.offsets.FY5253.n\
         pandas.tseries.offsets.FY5253.nanos\
@@ -289,7 +285,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.tseries.offsets.FY5253.weekday\
         pandas.tseries.offsets.FY5253Quarter.get_rule_code_suffix\
         pandas.tseries.offsets.FY5253Quarter.get_weeks\
-        pandas.tseries.offsets.FY5253Quarter.is_anchored\
         pandas.tseries.offsets.FY5253Quarter.is_on_offset\
         pandas.tseries.offsets.FY5253Quarter.n\
         pandas.tseries.offsets.FY5253Quarter.nanos\
@@ -342,14 +337,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.tseries.offsets.Nano.n\
         pandas.tseries.offsets.Nano.normalize\
         pandas.tseries.offsets.Nano.rule_code\
-        pandas.tseries.offsets.QuarterBegin.is_anchored\
         pandas.tseries.offsets.QuarterBegin.is_on_offset\
         pandas.tseries.offsets.QuarterBegin.n\
         pandas.tseries.offsets.QuarterBegin.nanos\
         pandas.tseries.offsets.QuarterBegin.normalize\
         pandas.tseries.offsets.QuarterBegin.rule_code\
         pandas.tseries.offsets.QuarterBegin.startingMonth\
-        pandas.tseries.offsets.QuarterEnd.is_anchored\
         pandas.tseries.offsets.QuarterEnd.is_on_offset\
         pandas.tseries.offsets.QuarterEnd.n\
         pandas.tseries.offsets.QuarterEnd.nanos\
@@ -379,7 +372,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.tseries.offsets.Tick.n\
         pandas.tseries.offsets.Tick.normalize\
         pandas.tseries.offsets.Tick.rule_code\
-        pandas.tseries.offsets.Week.is_anchored\
         pandas.tseries.offsets.Week.is_on_offset\
         pandas.tseries.offsets.Week.n\
         pandas.tseries.offsets.Week.nanos\
@@ -497,23 +489,11 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.AbstractMethodError\
         pandas.errors.UndefinedVariableError\
         pandas.get_option\
-        pandas.io.formats.style.Styler.to_excel\
-        pandas.melt\
-        pandas.option_context\
-        pandas.read_fwf\
-        pandas.reset_option # There should be no backslash in the final line, please keep this comment in the last ignored function
+        pandas.io.formats.style.Styler.to_excel # There should be no backslash in the final line, please keep this comment in the last ignored function
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Partially validate docstrings (PR07)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=PR07 --ignore_functions \
-        pandas.DataFrame.get\
-        pandas.DataFrame.rolling\
-        pandas.DataFrame.to_hdf\
-        pandas.DatetimeIndex.indexer_between_time\
-        pandas.DatetimeIndex.mean\
-        pandas.HDFStore.append\
-        pandas.HDFStore.get\
-        pandas.HDFStore.put\
         pandas.Index\
         pandas.Index.append\
         pandas.Index.copy\
@@ -621,39 +601,21 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (RT03)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=RT03 --ignore_functions \
-        pandas.DataFrame.expanding\
-        pandas.DataFrame.filter\
-        pandas.DataFrame.first_valid_index\
-        pandas.DataFrame.get\
         pandas.DataFrame.hist\
         pandas.DataFrame.infer_objects\
         pandas.DataFrame.kurt\
         pandas.DataFrame.kurtosis\
-        pandas.DataFrame.last_valid_index\
         pandas.DataFrame.mask\
         pandas.DataFrame.max\
         pandas.DataFrame.mean\
         pandas.DataFrame.median\
         pandas.DataFrame.min\
-        pandas.DataFrame.nsmallest\
-        pandas.DataFrame.nunique\
-        pandas.DataFrame.pipe\
-        pandas.DataFrame.plot.box\
-        pandas.DataFrame.plot.density\
-        pandas.DataFrame.plot.kde\
-        pandas.DataFrame.plot.scatter\
-        pandas.DataFrame.pop\
         pandas.DataFrame.prod\
         pandas.DataFrame.product\
-        pandas.DataFrame.reindex\
-        pandas.DataFrame.reorder_levels\
         pandas.DataFrame.sem\
         pandas.DataFrame.skew\
         pandas.DataFrame.std\
         pandas.DataFrame.sum\
-        pandas.DataFrame.swapaxes\
-        pandas.DataFrame.to_numpy\
-        pandas.DataFrame.to_orc\
         pandas.DataFrame.to_parquet\
         pandas.DataFrame.unstack\
         pandas.DataFrame.value_counts\
@@ -873,29 +835,18 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.plotting.parallel_coordinates\
         pandas.plotting.radviz\
         pandas.plotting.table\
-        pandas.read_orc\
-        pandas.read_sas\
-        pandas.read_spss\
-        pandas.read_stata\
-        pandas.set_eng_float_format\
-        pandas.timedelta_range\
-        pandas.util.hash_pandas_object # There should be no backslash in the final line, please keep this comment in the last ignored function
+        pandas.set_eng_float_format # There should be no backslash in the final line, please keep this comment in the last ignored function
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Partially validate docstrings (SA01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=SA01 --ignore_functions \
-        pandas.BooleanDtype\
         pandas.Categorical.__array__\
-        pandas.Categorical.as_ordered\
-        pandas.Categorical.as_unordered\
         pandas.Categorical.codes\
         pandas.Categorical.dtype\
         pandas.Categorical.from_codes\
         pandas.Categorical.ordered\
         pandas.CategoricalDtype.categories\
         pandas.CategoricalDtype.ordered\
-        pandas.CategoricalIndex.as_ordered\
-        pandas.CategoricalIndex.as_unordered\
         pandas.CategoricalIndex.codes\
         pandas.CategoricalIndex.ordered\
         pandas.DataFrame.__dataframe__\
@@ -1092,8 +1043,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.backfill\
         pandas.Series.bfill\
         pandas.Series.cat\
-        pandas.Series.cat.as_ordered\
-        pandas.Series.cat.as_unordered\
         pandas.Series.cat.codes\
         pandas.Series.cat.ordered\
         pandas.Series.copy\
@@ -1196,7 +1145,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.update\
         pandas.Series.var\
         pandas.SparseDtype\
-        pandas.StringDtype\
         pandas.Timedelta\
         pandas.Timedelta.as_unit\
         pandas.Timedelta.asm8\
@@ -1500,75 +1448,62 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.tseries.offsets.BQuarterEnd.name\
         pandas.tseries.offsets.BYearBegin.copy\
         pandas.tseries.offsets.BYearBegin.freqstr\
-        pandas.tseries.offsets.BYearBegin.is_anchored\
         pandas.tseries.offsets.BYearBegin.kwds\
         pandas.tseries.offsets.BYearBegin.name\
         pandas.tseries.offsets.BYearEnd.copy\
         pandas.tseries.offsets.BYearEnd.freqstr\
-        pandas.tseries.offsets.BYearEnd.is_anchored\
         pandas.tseries.offsets.BYearEnd.kwds\
         pandas.tseries.offsets.BYearEnd.name\
         pandas.tseries.offsets.BusinessDay\
         pandas.tseries.offsets.BusinessDay.copy\
         pandas.tseries.offsets.BusinessDay.freqstr\
-        pandas.tseries.offsets.BusinessDay.is_anchored\
         pandas.tseries.offsets.BusinessDay.kwds\
         pandas.tseries.offsets.BusinessDay.name\
         pandas.tseries.offsets.BusinessHour\
         pandas.tseries.offsets.BusinessHour.copy\
         pandas.tseries.offsets.BusinessHour.freqstr\
-        pandas.tseries.offsets.BusinessHour.is_anchored\
         pandas.tseries.offsets.BusinessHour.kwds\
         pandas.tseries.offsets.BusinessHour.name\
         pandas.tseries.offsets.BusinessMonthBegin.copy\
         pandas.tseries.offsets.BusinessMonthBegin.freqstr\
-        pandas.tseries.offsets.BusinessMonthBegin.is_anchored\
         pandas.tseries.offsets.BusinessMonthBegin.kwds\
         pandas.tseries.offsets.BusinessMonthBegin.name\
         pandas.tseries.offsets.BusinessMonthEnd.copy\
         pandas.tseries.offsets.BusinessMonthEnd.freqstr\
-        pandas.tseries.offsets.BusinessMonthEnd.is_anchored\
         pandas.tseries.offsets.BusinessMonthEnd.kwds\
         pandas.tseries.offsets.BusinessMonthEnd.name\
         pandas.tseries.offsets.CDay\
         pandas.tseries.offsets.CustomBusinessDay\
         pandas.tseries.offsets.CustomBusinessDay.copy\
         pandas.tseries.offsets.CustomBusinessDay.freqstr\
-        pandas.tseries.offsets.CustomBusinessDay.is_anchored\
         pandas.tseries.offsets.CustomBusinessDay.kwds\
         pandas.tseries.offsets.CustomBusinessDay.name\
         pandas.tseries.offsets.CustomBusinessHour\
         pandas.tseries.offsets.CustomBusinessHour.copy\
         pandas.tseries.offsets.CustomBusinessHour.freqstr\
-        pandas.tseries.offsets.CustomBusinessHour.is_anchored\
         pandas.tseries.offsets.CustomBusinessHour.kwds\
         pandas.tseries.offsets.CustomBusinessHour.name\
         pandas.tseries.offsets.CustomBusinessMonthBegin.copy\
         pandas.tseries.offsets.CustomBusinessMonthBegin.freqstr\
-        pandas.tseries.offsets.CustomBusinessMonthBegin.is_anchored\
         pandas.tseries.offsets.CustomBusinessMonthBegin.is_on_offset\
         pandas.tseries.offsets.CustomBusinessMonthBegin.kwds\
         pandas.tseries.offsets.CustomBusinessMonthBegin.name\
         pandas.tseries.offsets.CustomBusinessMonthEnd.copy\
         pandas.tseries.offsets.CustomBusinessMonthEnd.freqstr\
-        pandas.tseries.offsets.CustomBusinessMonthEnd.is_anchored\
         pandas.tseries.offsets.CustomBusinessMonthEnd.is_on_offset\
         pandas.tseries.offsets.CustomBusinessMonthEnd.kwds\
         pandas.tseries.offsets.CustomBusinessMonthEnd.name\
         pandas.tseries.offsets.DateOffset.copy\
         pandas.tseries.offsets.DateOffset.freqstr\
-        pandas.tseries.offsets.DateOffset.is_anchored\
         pandas.tseries.offsets.DateOffset.kwds\
         pandas.tseries.offsets.DateOffset.name\
         pandas.tseries.offsets.Day.copy\
         pandas.tseries.offsets.Day.freqstr\
-        pandas.tseries.offsets.Day.is_anchored\
         pandas.tseries.offsets.Day.kwds\
         pandas.tseries.offsets.Day.name\
         pandas.tseries.offsets.Day.nanos\
         pandas.tseries.offsets.Easter.copy\
         pandas.tseries.offsets.Easter.freqstr\
-        pandas.tseries.offsets.Easter.is_anchored\
         pandas.tseries.offsets.Easter.kwds\
         pandas.tseries.offsets.Easter.name\
         pandas.tseries.offsets.FY5253.copy\
@@ -1581,47 +1516,39 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.tseries.offsets.FY5253Quarter.name\
         pandas.tseries.offsets.Hour.copy\
         pandas.tseries.offsets.Hour.freqstr\
-        pandas.tseries.offsets.Hour.is_anchored\
         pandas.tseries.offsets.Hour.kwds\
         pandas.tseries.offsets.Hour.name\
         pandas.tseries.offsets.Hour.nanos\
         pandas.tseries.offsets.LastWeekOfMonth\
         pandas.tseries.offsets.LastWeekOfMonth.copy\
         pandas.tseries.offsets.LastWeekOfMonth.freqstr\
-        pandas.tseries.offsets.LastWeekOfMonth.is_anchored\
         pandas.tseries.offsets.LastWeekOfMonth.kwds\
         pandas.tseries.offsets.LastWeekOfMonth.name\
         pandas.tseries.offsets.Micro.copy\
         pandas.tseries.offsets.Micro.freqstr\
-        pandas.tseries.offsets.Micro.is_anchored\
         pandas.tseries.offsets.Micro.kwds\
         pandas.tseries.offsets.Micro.name\
         pandas.tseries.offsets.Micro.nanos\
         pandas.tseries.offsets.Milli.copy\
         pandas.tseries.offsets.Milli.freqstr\
-        pandas.tseries.offsets.Milli.is_anchored\
         pandas.tseries.offsets.Milli.kwds\
         pandas.tseries.offsets.Milli.name\
         pandas.tseries.offsets.Milli.nanos\
         pandas.tseries.offsets.Minute.copy\
         pandas.tseries.offsets.Minute.freqstr\
-        pandas.tseries.offsets.Minute.is_anchored\
         pandas.tseries.offsets.Minute.kwds\
         pandas.tseries.offsets.Minute.name\
         pandas.tseries.offsets.Minute.nanos\
         pandas.tseries.offsets.MonthBegin.copy\
         pandas.tseries.offsets.MonthBegin.freqstr\
-        pandas.tseries.offsets.MonthBegin.is_anchored\
         pandas.tseries.offsets.MonthBegin.kwds\
         pandas.tseries.offsets.MonthBegin.name\
         pandas.tseries.offsets.MonthEnd.copy\
         pandas.tseries.offsets.MonthEnd.freqstr\
-        pandas.tseries.offsets.MonthEnd.is_anchored\
         pandas.tseries.offsets.MonthEnd.kwds\
         pandas.tseries.offsets.MonthEnd.name\
         pandas.tseries.offsets.Nano.copy\
         pandas.tseries.offsets.Nano.freqstr\
-        pandas.tseries.offsets.Nano.is_anchored\
         pandas.tseries.offsets.Nano.kwds\
         pandas.tseries.offsets.Nano.name\
         pandas.tseries.offsets.Nano.nanos\
@@ -1635,25 +1562,21 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.tseries.offsets.QuarterEnd.name\
         pandas.tseries.offsets.Second.copy\
         pandas.tseries.offsets.Second.freqstr\
-        pandas.tseries.offsets.Second.is_anchored\
         pandas.tseries.offsets.Second.kwds\
         pandas.tseries.offsets.Second.name\
         pandas.tseries.offsets.Second.nanos\
         pandas.tseries.offsets.SemiMonthBegin\
         pandas.tseries.offsets.SemiMonthBegin.copy\
         pandas.tseries.offsets.SemiMonthBegin.freqstr\
-        pandas.tseries.offsets.SemiMonthBegin.is_anchored\
         pandas.tseries.offsets.SemiMonthBegin.kwds\
         pandas.tseries.offsets.SemiMonthBegin.name\
         pandas.tseries.offsets.SemiMonthEnd\
         pandas.tseries.offsets.SemiMonthEnd.copy\
         pandas.tseries.offsets.SemiMonthEnd.freqstr\
-        pandas.tseries.offsets.SemiMonthEnd.is_anchored\
         pandas.tseries.offsets.SemiMonthEnd.kwds\
         pandas.tseries.offsets.SemiMonthEnd.name\
         pandas.tseries.offsets.Tick.copy\
         pandas.tseries.offsets.Tick.freqstr\
-        pandas.tseries.offsets.Tick.is_anchored\
         pandas.tseries.offsets.Tick.kwds\
         pandas.tseries.offsets.Tick.name\
         pandas.tseries.offsets.Tick.nanos\
@@ -1664,17 +1587,14 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.tseries.offsets.WeekOfMonth\
         pandas.tseries.offsets.WeekOfMonth.copy\
         pandas.tseries.offsets.WeekOfMonth.freqstr\
-        pandas.tseries.offsets.WeekOfMonth.is_anchored\
         pandas.tseries.offsets.WeekOfMonth.kwds\
         pandas.tseries.offsets.WeekOfMonth.name\
         pandas.tseries.offsets.YearBegin.copy\
         pandas.tseries.offsets.YearBegin.freqstr\
-        pandas.tseries.offsets.YearBegin.is_anchored\
         pandas.tseries.offsets.YearBegin.kwds\
         pandas.tseries.offsets.YearBegin.name\
         pandas.tseries.offsets.YearEnd.copy\
         pandas.tseries.offsets.YearEnd.freqstr\
-        pandas.tseries.offsets.YearEnd.is_anchored\
         pandas.tseries.offsets.YearEnd.kwds\
         pandas.tseries.offsets.YearEnd.name\
         pandas.util.hash_array\
