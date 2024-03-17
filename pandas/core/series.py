@@ -503,10 +503,22 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # Series TASK 4: COMMON INDEX MANIPULATION
         na_value = na_value_for_dtype(pandas_dtype(dtype), compat=False)
+
+        # single_element = False
+        single_element = (
+            not is_pandas_object and not is_array and not is_list_like(data)
+        )
+
         if index is None:
             if data is None:
                 index = default_index(0)
                 data = na_value if dtype is not None else []
+            else:
+                pass
+                # single_element = (not is_pandas_object and
+                #                 not is_array and
+                #                 not is_list_like(data))
+
         else:
             index = ensure_index(index)
             if data is None:
@@ -549,7 +561,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             elif is_list_like(data):
                 list_like_input = True
 
-            else:  # elif data is not None: # possibly single_element.
+            elif single_element:  # elif data is not None: # possibly single_element.
                 if index is None:
                     data = [data]
 
