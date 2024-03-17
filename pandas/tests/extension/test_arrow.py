@@ -10,6 +10,7 @@ Additional tests should either be added to one of the BaseExtensionTests
 classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 """
+
 from __future__ import annotations
 
 from datetime import (
@@ -2267,9 +2268,11 @@ def test_str_partition():
     ser = pd.Series(["abcba", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.partition("b")
     expected = pd.DataFrame(
-        [["a", "b", "cba"], [None, None, None]], dtype=ArrowDtype(pa.string())
+        [["a", "b", "cba"], [None, None, None]],
+        dtype=ArrowDtype(pa.string()),
+        columns=pd.RangeIndex(3),
     )
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_column_type=True)
 
     result = ser.str.partition("b", expand=False)
     expected = pd.Series(ArrowExtensionArray(pa.array([["a", "b", "cba"], None])))
@@ -2277,9 +2280,11 @@ def test_str_partition():
 
     result = ser.str.rpartition("b")
     expected = pd.DataFrame(
-        [["abc", "b", "a"], [None, None, None]], dtype=ArrowDtype(pa.string())
+        [["abc", "b", "a"], [None, None, None]],
+        dtype=ArrowDtype(pa.string()),
+        columns=pd.RangeIndex(3),
     )
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_column_type=True)
 
     result = ser.str.rpartition("b", expand=False)
     expected = pd.Series(ArrowExtensionArray(pa.array([["abc", "b", "a"], None])))

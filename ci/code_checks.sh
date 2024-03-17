@@ -65,8 +65,8 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (EX01, EX03, EX04, GL01, GL02, GL03, GL04, GL05, GL06, GL07, GL09, GL10, PR03, PR04, PR05, PR06, PR08, PR09, PR10, RT01, RT02, RT04, RT05, SA02, SA03, SA04, SA05, SS01, SS02, SS03, SS04, SS05, SS06)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01,EX03,EX04,GL01,GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,PR03,PR04,PR05,PR06,PR08,PR09,PR10,RT01,RT02,RT04,RT05,SA02,SA03,SA04,SA05,SS01,SS02,SS03,SS04,SS05,SS06
+    MSG='Validate docstrings (EX01, EX03, EX04, GL01, GL02, GL03, GL04, GL05, GL06, GL07, GL09, GL10, PD01, PR03, PR04, PR05, PR06, PR08, PR09, PR10, RT01, RT02, RT04, RT05, SA02, SA03, SA04, SA05, SS01, SS02, SS03, SS04, SS05, SS06)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01,EX03,EX04,GL01,GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,PD01,PR03,PR04,PR05,PR06,PR08,PR09,PR10,RT01,RT02,RT04,RT05,SA02,SA03,SA04,SA05,SS01,SS02,SS03,SS04,SS05,SS06
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Partially validate docstrings (PR02)' ;  echo $MSG
@@ -144,7 +144,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (GL08)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=GL08 --ignore_functions \
-        pandas.ExcelFile.book\
         pandas.Index.empty\
         pandas.Index.names\
         pandas.Index.view\
@@ -156,7 +155,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Period.ordinal\
         pandas.PeriodIndex.freq\
         pandas.PeriodIndex.qyear\
-        pandas.Series.dt\
         pandas.Series.dt.as_unit\
         pandas.Series.dt.freq\
         pandas.Series.dt.qyear\
@@ -438,6 +436,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.cat.rename_categories\
         pandas.Series.cat.reorder_categories\
         pandas.Series.cat.set_categories\
+        pandas.Series.dt `# Accessors are implemented as classes, but we do not document the Parameters section` \
         pandas.Series.dt.as_unit\
         pandas.Series.dt.ceil\
         pandas.Series.dt.day_name\
@@ -490,23 +489,11 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.AbstractMethodError\
         pandas.errors.UndefinedVariableError\
         pandas.get_option\
-        pandas.io.formats.style.Styler.to_excel\
-        pandas.melt\
-        pandas.option_context\
-        pandas.read_fwf\
-        pandas.reset_option # There should be no backslash in the final line, please keep this comment in the last ignored function
+        pandas.io.formats.style.Styler.to_excel # There should be no backslash in the final line, please keep this comment in the last ignored function
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Partially validate docstrings (PR07)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=PR07 --ignore_functions \
-        pandas.DataFrame.get\
-        pandas.DataFrame.rolling\
-        pandas.DataFrame.to_hdf\
-        pandas.DatetimeIndex.indexer_between_time\
-        pandas.DatetimeIndex.mean\
-        pandas.HDFStore.append\
-        pandas.HDFStore.get\
-        pandas.HDFStore.put\
         pandas.Index\
         pandas.Index.append\
         pandas.Index.copy\
@@ -614,39 +601,21 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (RT03)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=RT03 --ignore_functions \
-        pandas.DataFrame.expanding\
-        pandas.DataFrame.filter\
-        pandas.DataFrame.first_valid_index\
-        pandas.DataFrame.get\
         pandas.DataFrame.hist\
         pandas.DataFrame.infer_objects\
         pandas.DataFrame.kurt\
         pandas.DataFrame.kurtosis\
-        pandas.DataFrame.last_valid_index\
         pandas.DataFrame.mask\
         pandas.DataFrame.max\
         pandas.DataFrame.mean\
         pandas.DataFrame.median\
         pandas.DataFrame.min\
-        pandas.DataFrame.nsmallest\
-        pandas.DataFrame.nunique\
-        pandas.DataFrame.pipe\
-        pandas.DataFrame.plot.box\
-        pandas.DataFrame.plot.density\
-        pandas.DataFrame.plot.kde\
-        pandas.DataFrame.plot.scatter\
-        pandas.DataFrame.pop\
         pandas.DataFrame.prod\
         pandas.DataFrame.product\
-        pandas.DataFrame.reindex\
-        pandas.DataFrame.reorder_levels\
         pandas.DataFrame.sem\
         pandas.DataFrame.skew\
         pandas.DataFrame.std\
         pandas.DataFrame.sum\
-        pandas.DataFrame.swapaxes\
-        pandas.DataFrame.to_numpy\
-        pandas.DataFrame.to_orc\
         pandas.DataFrame.to_parquet\
         pandas.DataFrame.unstack\
         pandas.DataFrame.value_counts\
@@ -866,29 +835,18 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.plotting.parallel_coordinates\
         pandas.plotting.radviz\
         pandas.plotting.table\
-        pandas.read_orc\
-        pandas.read_sas\
-        pandas.read_spss\
-        pandas.read_stata\
-        pandas.set_eng_float_format\
-        pandas.timedelta_range\
-        pandas.util.hash_pandas_object # There should be no backslash in the final line, please keep this comment in the last ignored function
+        pandas.set_eng_float_format # There should be no backslash in the final line, please keep this comment in the last ignored function
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Partially validate docstrings (SA01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=SA01 --ignore_functions \
-        pandas.BooleanDtype\
         pandas.Categorical.__array__\
-        pandas.Categorical.as_ordered\
-        pandas.Categorical.as_unordered\
         pandas.Categorical.codes\
         pandas.Categorical.dtype\
         pandas.Categorical.from_codes\
         pandas.Categorical.ordered\
         pandas.CategoricalDtype.categories\
         pandas.CategoricalDtype.ordered\
-        pandas.CategoricalIndex.as_ordered\
-        pandas.CategoricalIndex.as_unordered\
         pandas.CategoricalIndex.codes\
         pandas.CategoricalIndex.ordered\
         pandas.DataFrame.__dataframe__\
@@ -1085,8 +1043,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.backfill\
         pandas.Series.bfill\
         pandas.Series.cat\
-        pandas.Series.cat.as_ordered\
-        pandas.Series.cat.as_unordered\
         pandas.Series.cat.codes\
         pandas.Series.cat.ordered\
         pandas.Series.copy\
@@ -1189,7 +1145,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.update\
         pandas.Series.var\
         pandas.SparseDtype\
-        pandas.StringDtype\
         pandas.Timedelta\
         pandas.Timedelta.as_unit\
         pandas.Timedelta.asm8\

@@ -3,6 +3,7 @@ Test extension array for storing nested data in a pandas container.
 
 The ListArray stores an ndarray of lists.
 """
+
 from __future__ import annotations
 
 import numbers
@@ -115,7 +116,10 @@ class ListArray(ExtensionArray):
         elif is_string_dtype(dtype) and not is_object_dtype(dtype):
             # numpy has problems with astype(str) for nested elements
             return np.array([str(x) for x in self.data], dtype=dtype)
-        return np.array(self.data, dtype=dtype, copy=copy)
+        elif not copy:
+            return np.asarray(self.data, dtype=dtype)
+        else:
+            return np.array(self.data, dtype=dtype, copy=copy)
 
     @classmethod
     def _concat_same_type(cls, to_concat):

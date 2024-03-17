@@ -6,6 +6,7 @@ The SeriesGroupBy and DataFrameGroupBy sub-class
 (defined in pandas.core.groupby.generic)
 expose these user-facing objects to provide specific functionality.
 """
+
 from __future__ import annotations
 
 from collections.abc import (
@@ -45,7 +46,6 @@ from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
     DtypeObj,
-    FillnaOptions,
     IndexLabel,
     IntervalClosedType,
     NDFrameT,
@@ -803,8 +803,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         func: Callable[Concatenate[Self, P], T],
         *args: P.args,
         **kwargs: P.kwargs,
-    ) -> T:
-        ...
+    ) -> T: ...
 
     @overload
     def pipe(
@@ -812,8 +811,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         func: tuple[Callable[..., T], str],
         *args: Any,
         **kwargs: Any,
-    ) -> T:
-        ...
+    ) -> T: ...
 
     @Substitution(
         klass="GroupBy",
@@ -920,17 +918,9 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         ):
             # GH#25971
             if isinstance(name, tuple) and len(name) == 1:
-                # Allow users to pass tuples of length 1 to silence warning
                 name = name[0]
-            elif not isinstance(name, tuple):
-                warnings.warn(
-                    "When grouping with a length-1 list-like, "
-                    "you will need to pass a length-1 tuple to get_group in a future "
-                    "version of pandas. Pass `(name,)` instead of `name` to silence "
-                    "this warning.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
+            else:
+                raise KeyError(name)
 
         inds = self._get_index(name)
         if not len(inds):
@@ -1016,18 +1006,11 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         keys = self.keys
         level = self.level
         result = self._grouper.get_iterator(self._selected_obj)
-        # error: Argument 1 to "len" has incompatible type "Hashable"; expected "Sized"
-        if is_list_like(level) and len(level) == 1:  # type: ignore[arg-type]
-            # GH 51583
-            warnings.warn(
-                "Creating a Groupby object with a length-1 list-like "
-                "level parameter will yield indexes as tuples in a future version. "
-                "To keep indexes as scalars, create Groupby objects with "
-                "a scalar level parameter instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        if isinstance(keys, list) and len(keys) == 1:
+        # mypy: Argument 1 to "len" has incompatible type "Hashable"; expected "Sized"
+        if (
+            (is_list_like(level) and len(level) == 1)  # type: ignore[arg-type]
+            or (isinstance(keys, list) and len(keys) == 1)
+        ):
             # GH#42795 - when keys is a list, return tuples even when length is 1
             result = (((key,), group) for key, group in result)
         return result
@@ -1219,7 +1202,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:
                 # GH5610, returns a MI, with the first level being a
                 # range index
-                keys = list(range(len(values)))
+                keys = RangeIndex(len(values))
                 result = concat(values, axis=0, keys=keys)
 
         elif not not_indexed_same:
@@ -1287,34 +1270,43 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result
 
     @final
-    def _insert_inaxis_grouper(self, result: Series | DataFrame) -> DataFrame:
+    def _insert_inaxis_grouper(
+        self, result: Series | DataFrame, qs: npt.NDArray[np.float64] | None = None
+    ) -> DataFrame:
         if isinstance(result, Series):
             result = result.to_frame()
 
+        n_groupings = len(self._grouper.groupings)
+
+        if qs is not None:
+            result.insert(
+                0, f"level_{n_groupings}", np.tile(qs, len(result) // len(qs))
+            )
+
         # zip in reverse so we can always insert at loc 0
-        columns = result.columns
-        for name, lev, in_axis in zip(
-            reversed(self._grouper.names),
-            reversed(self._grouper.get_group_levels()),
-            reversed([grp.in_axis for grp in self._grouper.groupings]),
+        for level, (name, lev, in_axis) in enumerate(
+            zip(
+                reversed(self._grouper.names),
+                reversed(self._grouper.get_group_levels()),
+                reversed([grp.in_axis for grp in self._grouper.groupings]),
+            )
         ):
+            if name is None:
+                # Behave the same as .reset_index() when a level is unnamed
+                name = (
+                    "index"
+                    if n_groupings == 1 and qs is None
+                    else f"level_{n_groupings - level - 1}"
+                )
+
             # GH #28549
             # When using .apply(-), name will be in columns already
-            if name not in columns:
-                if in_axis:
+            if name not in result.columns:
+                # if in_axis:
+                if qs is None:
                     result.insert(0, name, lev)
                 else:
-                    msg = (
-                        "A grouping was used that is not in the columns of the "
-                        "DataFrame and so was excluded from the result. This grouping "
-                        "will be included in a future version of pandas. Add the "
-                        "grouping as a column of the DataFrame to silence this warning."
-                    )
-                    warnings.warn(
-                        message=msg,
-                        category=FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
+                    result.insert(0, name, Index(np.repeat(lev, len(qs))))
 
         return result
 
@@ -1341,18 +1333,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if not self.as_index:
             # `not self.as_index` is only relevant for DataFrameGroupBy,
             #   enforced in __init__
-            result = self._insert_inaxis_grouper(result)
+            result = self._insert_inaxis_grouper(result, qs=qs)
             result = result._consolidate()
-            index = Index(range(self._grouper.ngroups))
+            result.index = RangeIndex(len(result))
 
         else:
             index = self._grouper.result_index
-
-        if qs is not None:
-            # We get here with len(qs) != 1 and not self.as_index
-            #  in test_pass_args_kwargs
-            index = _insert_quantile_level(index, qs)
-        result.index = index
+            if qs is not None:
+                # We get here with len(qs) != 1 and not self.as_index
+                #  in test_pass_args_kwargs
+                index = _insert_quantile_level(index, qs)
+            result.index = index
 
         return result
 
@@ -1645,6 +1636,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         a    5
         b    2
         dtype: int64
+
+        Example 4: The function passed to ``apply`` returns ``None`` for one of the
+        group. This group is filtered from the result:
+
+        >>> g1.apply(lambda x: None if x.iloc[0, 0] == 3 else x, include_groups=False)
+           B  C
+        0  1  4
+        1  2  6
         """
         if isinstance(func, str):
             if hasattr(self, func):
@@ -2687,7 +2686,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             names = result_series.index.names
             # GH#55951 - Temporarily replace names in case they are integers
             result_series.index.names = range(len(names))
-            index_level = list(range(len(self._grouper.groupings)))
+            index_level = range(len(self._grouper.groupings))
             result_series = result_series.sort_index(
                 level=index_level, sort_remaining=False
             )
@@ -4272,16 +4271,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             elif is_bool_dtype(vals.dtype) and isinstance(vals, ExtensionArray):
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
             elif is_bool_dtype(vals.dtype):
-                # GH#51424 deprecate to match Series/DataFrame behavior
-                warnings.warn(
-                    f"Allowing bool dtype in {type(self).__name__}.quantile is "
-                    "deprecated and will raise in a future version, matching "
-                    "the Series/DataFrame behavior. Cast to uint8 dtype before "
-                    "calling quantile instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                out = np.asarray(vals)
+                # GH#51424 remove to match Series/DataFrame behavior
+                raise TypeError("Cannot use quantile with bool dtype")
             elif needs_i8_conversion(vals.dtype):
                 inference = vals.dtype
                 # In this case we need to delay the casting until after the
@@ -5147,8 +5138,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def pct_change(
         self,
         periods: int = 1,
-        fill_method: FillnaOptions | None | lib.NoDefault = lib.no_default,
-        limit: int | None | lib.NoDefault = lib.no_default,
+        fill_method: None = None,
         freq=None,
     ):
         """
@@ -5161,19 +5151,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             a period of 1 means adjacent elements are compared, whereas a period
             of 2 compares every other element.
 
-        fill_method : FillnaOptions or None, default None
-            Specifies how to handle missing values after the initial shift
-            operation necessary for percentage change calculation. Users are
-            encouraged to handle missing values manually in future versions.
-            Valid options are:
-            - A FillnaOptions value ('ffill', 'bfill') for forward or backward filling.
-            - None to avoid filling.
-            Note: Usage is discouraged due to impending deprecation.
+        fill_method : None
+            Must be None. This argument will be removed in a future version of pandas.
 
-        limit : int or None, default None
-            The maximum number of consecutive NA values to fill, based on the chosen
-            `fill_method`. Address NaN values prior to using `pct_change` as this
-            parameter is nearing deprecation.
+            .. deprecated:: 2.1
+                All options of `fill_method` are deprecated except `fill_method=None`.
 
         freq : str, pandas offset object, or None, default None
             The frequency increment for time series data (e.g., 'M' for month-end).
@@ -5227,49 +5209,24 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         goldfish    0.2  0.125
         """
         # GH#53491
-        if fill_method not in (lib.no_default, None) or limit is not lib.no_default:
-            warnings.warn(
-                "The 'fill_method' keyword being not None and the 'limit' keyword in "
-                f"{type(self).__name__}.pct_change are deprecated and will be removed "
-                "in a future version. Either fill in any non-leading NA values prior "
-                "to calling pct_change or specify 'fill_method=None' to not fill NA "
-                "values.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        if fill_method is lib.no_default:
-            if limit is lib.no_default and any(
-                grp.isna().values.any() for _, grp in self
-            ):
-                warnings.warn(
-                    "The default fill_method='ffill' in "
-                    f"{type(self).__name__}.pct_change is deprecated and will "
-                    "be removed in a future version. Either fill in any "
-                    "non-leading NA values prior to calling pct_change or "
-                    "specify 'fill_method=None' to not fill NA values.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            fill_method = "ffill"
-        if limit is lib.no_default:
-            limit = None
+        if fill_method is not None:
+            raise ValueError(f"fill_method must be None; got {fill_method=}.")
 
         # TODO(GH#23918): Remove this conditional for SeriesGroupBy when
         #  GH#23918 is fixed
         if freq is not None:
             f = lambda x: x.pct_change(
                 periods=periods,
-                fill_method=fill_method,
-                limit=limit,
                 freq=freq,
                 axis=0,
             )
             return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
         if fill_method is None:  # GH30463
-            fill_method = "ffill"
-            limit = 0
-        filled = getattr(self, fill_method)(limit=limit)
+            op = "ffill"
+        else:
+            op = fill_method
+        filled = getattr(self, op)(limit=0)
         fill_grp = filled.groupby(self._grouper.codes, group_keys=self.group_keys)
         shifted = fill_grp.shift(periods=periods, freq=freq)
         return (filled / shifted) - 1
@@ -5553,15 +5510,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     f"Can't get {how} of an empty group due to unobserved categories. "
                     "Specify observed=True in groupby instead."
                 )
-        elif not skipna:
-            if self._obj_with_exclusions.isna().any(axis=None):
-                warnings.warn(
-                    f"The behavior of {type(self).__name__}.{how} with all-NA "
-                    "values, or any-NA and skipna=False, is deprecated. In a future "
-                    "version this will raise ValueError",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
+        elif not skipna and self._obj_with_exclusions.isna().any(axis=None):
+            raise ValueError(
+                f"{type(self).__name__}.{how} with skipna=False encountered an NA "
+                f"value."
+            )
 
         result = self._agg_general(
             numeric_only=numeric_only,

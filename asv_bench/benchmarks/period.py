@@ -2,6 +2,7 @@
 Period benchmarks with non-tslibs dependencies.  See
 benchmarks.tslibs.period for benchmarks that rely only on tslibs.
 """
+
 from pandas import (
     DataFrame,
     Period,
