@@ -234,7 +234,7 @@ class CachedAccessor:
         return accessor_obj
 
 
-@doc(klass="", others="")
+@doc(klass="", examples="", others="")
 def _register_accessor(name: str, cls):
     """
     Register a custom accessor on {klass} objects.
@@ -275,6 +275,9 @@ def _register_accessor(name: str, cls):
       * Accessible using the @property decorator if no additional arguments are
         needed.
 
+    Examples
+    --------
+    {examples}
     """
 
     def decorator(accessor):
@@ -293,9 +296,7 @@ def _register_accessor(name: str, cls):
     return decorator
 
 
-_register_df_doc = """
-Examples
---------
+_register_df_examples = """
 In your library code, an accessor that only accepts integers could
 have a class defined like this:
 
@@ -326,17 +327,14 @@ dtype: int64
 """
 
 
-@Appender(_register_df_doc)
-@doc(_register_accessor, klass="DataFrame")
+@doc(_register_accessor, klass="DataFrame", examples=_register_df_examples)
 def register_dataframe_accessor(name: str):
     from pandas import DataFrame
 
     return _register_accessor(name, DataFrame)
 
 
-_series_doc = """
-Examples
---------
+_register_series_examples = """
 In your library code, an accessor that only accepts integers could
 have a class defined like this:
 
@@ -365,17 +363,14 @@ AttributeError: The series must contain integer data only.
 """
 
 
-@Appender(_series_doc)
-@doc(_register_accessor, klass="Series")
+@doc(_register_accessor, klass="Series", examples=_register_series_examples)
 def register_series_accessor(name: str):
     from pandas import Series
 
     return _register_accessor(name, Series)
 
 
-_index_doc = """
-Examples
---------
+_register_index_examples = """
 In your library code, an accessor that only accepts integers could
 have a class defined like this:
 
@@ -410,8 +405,7 @@ AttributeError: The index must only be an integer value.
 """
 
 
-@Appender(_index_doc)
-@doc(_register_accessor, klass="Index")
+@doc(_register_accessor, klass="Index", examples=_register_index_examples)
 def register_index_accessor(name: str):
     from pandas import Index
 
