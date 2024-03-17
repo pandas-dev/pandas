@@ -13,10 +13,7 @@ from typing import (
 )
 import warnings
 
-from pandas.util._decorators import (
-    Appender,
-    doc,
-)
+from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
 
