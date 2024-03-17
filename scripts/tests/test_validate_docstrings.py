@@ -213,7 +213,6 @@ class TestValidator:
                 ("ER03", "err desc"),
             ],
             "warnings": [],
-            "examples_errors": "",
             "deprecated": True,
         }
         monkeypatch.setattr(
@@ -237,7 +236,6 @@ class TestValidator:
                     ("ER03", "err desc")
                 ],
                 "warnings": [],
-                "examples_errors": "",
                 "deprecated": True,
                 "file": "file1",
                 "file_line": "file_line1"
@@ -387,7 +385,8 @@ class TestPandasDocstringClass:
     )
     def test_encode_content_write_to_file(self, name) -> None:
         # GH25466
-        docstr = validate_docstrings.PandasDocstring(name).validate_pep8()
+        docstr = validate_docstrings.PandasDocstring(name)
+        docstr = validate_docstrings.validate_pep8_for_examples(docstr)[docstr]
         # the list of pep8 errors should be empty
         assert not list(docstr)
 
@@ -404,7 +403,6 @@ class TestMainFunction:
                     ("ER02", "err desc"),
                     ("ER03", "err desc"),
                 ],
-                "examples_errs": "",
             },
         )
         exit_status = validate_docstrings.main(

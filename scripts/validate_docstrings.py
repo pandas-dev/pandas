@@ -56,14 +56,14 @@ IGNORE_VALIDATION = {
 PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
 ERROR_MSGS = {
     "GL04": "Private classes ({mentioned_private_classes}) should not be "
-    "mentioned in public docstrings",
+            "mentioned in public docstrings",
     "PD01": "Use 'array-like' rather than 'array_like' in docstrings.",
     "SA05": "{reference_name} in `See Also` section does not need `pandas` "
-    "prefix, use {right_reference} instead.",
+            "prefix, use {right_reference} instead.",
     "EX03": "flake8 error: line {line_number}, col {col_number}: {error_code} "
-    "{error_message}",
+            "{error_message}",
     "EX04": "Do not import {imported_library}, as it is imported "
-    "automatically for the examples (numpy as np, pandas as pd)",
+            "automatically for the examples (numpy as np, pandas as pd)",
 }
 
 
@@ -148,9 +148,10 @@ def get_api_items(api_doc_fd):
         previous_line = line_stripped
 
 
-def validate_pep8_for_examples(docs: list[PandasDocstring]) -> dict[str, list[tuple]]:
+def validate_pep8_for_examples(docs: list[PandasDocstring] | PandasDocstring
+                               ) -> dict[PandasDocstring, list[tuple]]:
     """
-    Call the pep8 validation for docstrings with examples, and add the errors found.
+    Call the pep8 validation for docstrings with examples and add the found errors.
 
     Parameters
     ----------
@@ -159,7 +160,7 @@ def validate_pep8_for_examples(docs: list[PandasDocstring]) -> dict[str, list[tu
 
     Returns
     -------
-    dict[str, list]
+    dict[PandasDocstring, list]
        Dict of function names and the pep8 error messages found in their docstrings.
        The errors messages are of the form
        (error_code, message, line_number, col_number).
@@ -168,11 +169,13 @@ def validate_pep8_for_examples(docs: list[PandasDocstring]) -> dict[str, list[tu
         docs = [docs]
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        func_name_to_file_name = {}
+        doc_to_filename = {}
         for doc in docs:
             if not doc.examples:
                 continue
 
+            # F401 is needed to not generate flake8 errors in examples
+            # that do not use numpy or pandas
             content = "".join(
                 (
                     "import numpy as np  # noqa: F401\n",
@@ -187,9 +190,10 @@ def validate_pep8_for_examples(docs: list[PandasDocstring]) -> dict[str, list[tu
                                                     delete=False)
             temp_file.write(content)
             temp_file.flush()
-            func_name_to_file_name[doc.func_name] = temp_file.name
+            doc_to_filename[doc] = temp_file.name
 
-        if not func_name_to_file_name:  # No docs with examples to process
+        # No docs with examples to process
+        if not doc_to_filename:
             return {}
 
         cmd = [
@@ -200,20 +204,20 @@ def validate_pep8_for_examples(docs: list[PandasDocstring]) -> dict[str, list[tu
             "--max-line-length=88",
             "--ignore=E203,E3,W503,W504,E402,E731,E128,E124,E704",
         ]
-        cmd.extend(func_name_to_file_name.values())
+        cmd.extend(doc_to_filename.values())
         response = subprocess.run(cmd, capture_output=True, check=False,
                                   text=True)
 
-    all_docs_error_messages = {doc.func_name: [] for doc in docs}
-    for func_name, temp_file_name in func_name_to_file_name.items():
+    all_docs_error_messages = {doc: [] for doc in docs}
+    for doc, temp_file_name in doc_to_filename.items():
         # one output for each error, each error must be mapped to the func_name
         for output in ("stdout", "stderr"):
             out = getattr(response, output)
             out = out.replace(temp_file_name, "").strip("\n").splitlines()
             if out:
-                all_docs_error_messages[func_name].extend(out)
+                all_docs_error_messages[doc].extend(out)
 
-    for func_name, raw_error_messages in all_docs_error_messages.items():
+    for doc, raw_error_messages in all_docs_error_messages.items():
         doc_error_messages = []
         for raw_error_message in raw_error_messages:
             line_num, col_num, err_code, msg = raw_error_message.split("\t", maxsplit=3)
@@ -226,9 +230,14 @@ def validate_pep8_for_examples(docs: list[PandasDocstring]) -> dict[str, list[tu
                     msg,
                     int(line_num) - 2,
                     int(col_num)
-                 )
+                )
             )
-        all_docs_error_messages[func_name] = doc_error_messages
+        all_docs_error_messages[doc] = doc_error_messages
+
+    for doc in docs:
+        if doc.examples and doc not in all_docs_error_messages.keys():
+            raise KeyError(f"Docstring\n###\n{doc}\n###\nhas examples but "
+                           f"no pep8 validation results.")
 
     return all_docs_error_messages
 
@@ -275,7 +284,7 @@ def pandas_validate(func_names: str | list[str]) -> dict[str, dict]:
     Returns
     -------
     dict[str, dict]
-        Information about the docstrings and the errors found for each function.
+        For each function, information about the docstring and the errors found.
     """
     if isinstance(func_names, str):
         func_names = [func_names]
@@ -300,42 +309,38 @@ def pandas_validate(func_names: str | list[str]) -> dict[str, dict]:
             )
 
         if doc.see_also:
-            result["errors"].extend(
-                pandas_error(
-                    "SA05",
-                    reference_name=rel_name,
-                    right_reference=rel_name[len("pandas."):],
-                )
+            see_also_prefix_errors = [
+                pandas_error("SA05",
+                             reference_name=rel_name,
+                             right_reference=rel_name[len("pandas."):],
+                             )
                 for rel_name in doc.see_also
                 if rel_name.startswith("pandas.")
-            )
+            ]
+            result["errors"].extend(see_also_prefix_errors)
 
         if doc.non_hyphenated_array_like():
             result["errors"].append(pandas_error("PD01"))
 
-        result["examples_errs"] = ""
+    pep8_results = validate_pep8_for_examples(list(docs_to_results.keys()))
 
-    pep8_errors = validate_pep8_for_examples(list(docs_to_results.keys()))
-
-    for doc, result in docs_to_results.items():
-        if not doc.examples:
-            continue
-        for err_code, err_msg, line_number, col_number in pep8_errors[doc.func_name]:
-            result["errors"].append(
-                pandas_error(
-                    "EX03",
-                    error_code=err_code,
-                    error_message=err_msg,
-                    line_number=line_number,
-                    col_number=col_number,
-                )
-            )
+    for doc, pep8_errors in pep8_results.items():
+        result = docs_to_results[doc]
+        pep8_pandas_errors = [
+            pandas_error(
+                "EX03",
+                error_code=err_code,
+                error_message=err_msg,
+                line_number=line_number,
+                col_number=col_number,
+            ) for err_code, err_msg, line_number, col_number in pep8_errors
+        ]
+        result["errors"].extend(pep8_pandas_errors)
         examples_source_code = "".join(doc.examples_source_code)
-        result["errors"].extend(
-            pandas_error("EX04", imported_library=wrong_import)
-            for wrong_import in ("numpy", "pandas")
-            if f"import {wrong_import}" in examples_source_code
-        )
+        import_errors = [pandas_error("EX04", imported_library=wrong_import)
+                         for wrong_import in ("numpy", "pandas")
+                         if f"import {wrong_import}" in examples_source_code]
+        result["errors"].extend(import_errors)
 
     plt.close("all")
     validation_results = {doc.func_name: result
@@ -366,8 +371,12 @@ def validate_all(prefix, ignore_deprecated=False):
     result = {}
     seen = {}
 
-    func_names = [func_name for func_name, _, _, _ in get_all_api_items()
-                  if not prefix or prefix and func_name.startswith(prefix)]
+    def matches_prefix(func_name):
+        return func_name.startswith(prefix) if prefix else True
+
+    func_names = [func_name for func_name, _, _, _
+                  in get_all_api_items()
+                  if matches_prefix(func_name)]
     doc_infos = pandas_validate(func_names)
 
     for func_name, _, section, subsection in get_all_api_items():
@@ -401,11 +410,11 @@ def get_all_api_items():
 
 
 def print_validate_all_results(
-    output_format: str,
-    prefix: str | None,
-    errors: list[str] | None,
-    ignore_deprecated: bool,
-    ignore_errors: dict[str, list[str]] | None,
+        output_format: str,
+        prefix: str | None,
+        errors: list[str] | None,
+        ignore_deprecated: bool,
+        ignore_errors: dict[str, list[str]] | None,
 ):
     if output_format not in ("default", "json", "actions"):
         raise ValueError(f'Unknown output_format "{output_format}"')
@@ -458,10 +467,6 @@ def print_validate_one_results(func_name: str) -> None:
     else:
         sys.stderr.write(f'Docstring for "{func_name}" correct. :)\n')
 
-    if result["examples_errs"]:
-        sys.stderr.write(header("Doctests"))
-        sys.stderr.write(str(result["examples_errs"]))
-
 
 def validate_error_codes(errors):
     overlapped_errors = set(NUMPYDOC_ERROR_MSGS).intersection(set(ERROR_MSGS))
@@ -472,12 +477,12 @@ def validate_error_codes(errors):
 
 
 def main(
-    func_name,
-    output_format,
-    prefix,
-    errors,
-    ignore_deprecated,
-    ignore_errors
+        func_name,
+        output_format,
+        prefix,
+        errors,
+        ignore_deprecated,
+        ignore_errors
 ):
     """
     Main entry point. Call the validation for one or for all docstrings.
@@ -528,34 +533,34 @@ if __name__ == "__main__":
         default="default",
         choices=format_opts,
         help="format of the output when validating "
-        "multiple docstrings (ignored when validating one). "
-        "It can be {str(format_opts)[1:-1]}",
+             "multiple docstrings (ignored when validating one). "
+             "It can be {str(format_opts)[1:-1]}",
     )
     argparser.add_argument(
         "--prefix",
         default=None,
         help="pattern for the "
-        "docstring names, in order to decide which ones "
-        'will be validated. A prefix "pandas.Series.str."'
-        "will make the script validate all the docstrings "
-        "of methods starting by this pattern. It is "
-        "ignored if parameter function is provided",
+             "docstring names, in order to decide which ones "
+             'will be validated. A prefix "pandas.Series.str."'
+             "will make the script validate all the docstrings "
+             "of methods starting by this pattern. It is "
+             "ignored if parameter function is provided",
     )
     argparser.add_argument(
         "--errors",
         default=None,
         help="comma separated "
-        "list of error codes to validate. By default it "
-        "validates all errors (ignored when validating "
-        "a single docstring)",
+             "list of error codes to validate. By default it "
+             "validates all errors (ignored when validating "
+             "a single docstring)",
     )
     argparser.add_argument(
         "--ignore_deprecated",
         default=False,
         action="store_true",
         help="if this flag is set, "
-        "deprecated objects are ignored when validating "
-        "all docstrings",
+             "deprecated objects are ignored when validating "
+             "all docstrings",
     )
     argparser.add_argument(
         "--ignore_errors",
@@ -564,10 +569,10 @@ if __name__ == "__main__":
         nargs=2,
         metavar=("function", "error_codes"),
         help="function for which comma separated list "
-        "of error codes should not be validated"
-        "(e.g. pandas.DataFrame.head PR01,SA01). "
-        "Partial validation for more than one function"
-        "can be achieved by repeating this parameter.",
+             "of error codes should not be validated"
+             "(e.g. pandas.DataFrame.head PR01,SA01). "
+             "Partial validation for more than one function"
+             "can be achieved by repeating this parameter.",
     )
     args = argparser.parse_args(sys.argv[1:])
 
