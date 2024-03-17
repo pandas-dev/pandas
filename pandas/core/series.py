@@ -522,6 +522,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             and not is_list_like(data)
             and not isinstance(data, SingleBlockManager)
         )
+        is_list = is_list_like(data)
 
         # Series TASK 5: PREPARING THE MANAGER
         if isinstance(data, (Series, SingleBlockManager)):
@@ -562,7 +563,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             elif is_array:
                 pass
 
-            elif is_list_like(data):
+            elif is_list:  # _like(data):
                 list_like_input = True
 
             index = index if index is not None else default_index(len(data))
