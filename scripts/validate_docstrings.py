@@ -72,7 +72,7 @@ def pandas_error(code, **kwargs):
     Copy of the numpydoc error function, since ERROR_MSGS can't be updated
     with our custom errors yet.
     """
-    return (code, ERROR_MSGS[code].format(**kwargs))
+    return code, ERROR_MSGS[code].format(**kwargs)
 
 
 def get_api_items(api_doc_fd):
@@ -91,7 +91,7 @@ def get_api_items(api_doc_fd):
     Yields
     ------
     name : str
-        The name of the object (e.g. 'pandas.Series.str.upper).
+        The name of the object (e.g. 'pandas.Series.str.upper').
     func : function
         The object itself. In most cases this will be a function or method,
         but it can also be classes, properties, cython objects...
@@ -251,7 +251,7 @@ def pandas_validate(func_name: str):
             pandas_error(
                 "SA05",
                 reference_name=rel_name,
-                right_reference=rel_name[len("pandas.") :],
+                right_reference=rel_name[len("pandas."):],
             )
             for rel_name in doc.see_also
             if rel_name.startswith("pandas.")
@@ -283,7 +283,7 @@ def pandas_validate(func_name: str):
     return result
 
 
-def validate_all(prefix, ignore_deprecated=False, ignore_functions=None):
+def validate_all(prefix, ignore_deprecated=False):
     """
     Execute the validation of all docstrings, and return a dict with the
     results.
@@ -295,8 +295,6 @@ def validate_all(prefix, ignore_deprecated=False, ignore_functions=None):
         validated. If None, all docstrings will be validated.
     ignore_deprecated: bool, default False
         If True, deprecated objects are ignored when validating docstrings.
-    ignore_functions: list of str or None, default None
-        If not None, contains a list of function to ignore
 
     Returns
     -------
@@ -307,11 +305,7 @@ def validate_all(prefix, ignore_deprecated=False, ignore_functions=None):
     result = {}
     seen = {}
 
-    ignore_functions = set(ignore_functions or [])
-
     for func_name, _, section, subsection in get_all_api_items():
-        if func_name in ignore_functions:
-            continue
         if prefix and not func_name.startswith(prefix):
             continue
         doc_info = pandas_validate(func_name)
@@ -344,16 +338,18 @@ def get_all_api_items():
 
 
 def print_validate_all_results(
-    prefix: str,
-    errors: list[str] | None,
     output_format: str,
+    prefix: str | None,
+    errors: list[str] | None,
     ignore_deprecated: bool,
-    ignore_functions: list[str] | None,
+    ignore_errors: dict[str, list[str]] | None,
 ):
     if output_format not in ("default", "json", "actions"):
         raise ValueError(f'Unknown output_format "{output_format}"')
+    if ignore_errors is None:
+        ignore_errors = {}
 
-    result = validate_all(prefix, ignore_deprecated, ignore_functions)
+    result = validate_all(prefix, ignore_deprecated)
 
     if output_format == "json":
         sys.stdout.write(json.dumps(result))
@@ -361,13 +357,16 @@ def print_validate_all_results(
 
     prefix = "##[error]" if output_format == "actions" else ""
     exit_status = 0
-    for name, res in result.items():
+    for func_name, res in result.items():
         for err_code, err_desc in res["errors"]:
-            if errors and err_code not in errors:
+            is_not_requested_error = errors and err_code not in errors
+            is_ignored_error = err_code in ignore_errors.get(func_name, [])
+            if is_not_requested_error or is_ignored_error:
                 continue
+
             sys.stdout.write(
                 f'{prefix}{res["file"]}:{res["file_line"]}:'
-                f"{err_code}:{name}:{err_desc}\n"
+                f"{err_code}:{func_name}:{err_desc}\n"
             )
             exit_status += 1
 
@@ -400,6 +399,7 @@ def print_validate_one_results(func_name: str) -> None:
         sys.stderr.write(header("Doctests"))
         sys.stderr.write(result["examples_errs"])
 
+
 def validate_error_codes(errors):
     overlapped_errors = set(NUMPYDOC_ERROR_MSGS).intersection(set(ERROR_MSGS))
     assert not overlapped_errors, f"{overlapped_errors} is overlapped."
@@ -408,22 +408,43 @@ def validate_error_codes(errors):
     assert not nonexistent_errors, f"{nonexistent_errors} don't exist."
 
 
-def main(func_name, prefix, errors, output_format, ignore_deprecated, ignore_functions):
+def main(
+    func_name,
+    output_format,
+    prefix,
+    errors,
+    ignore_deprecated,
+    ignore_errors
+):
     """
     Main entry point. Call the validation for one or for all docstrings.
     """
-    validate_error_codes(errors)
     if func_name is None:
-        return print_validate_all_results(
+        error_str = ", ".join(errors)
+        msg = f"Validate docstrings ({error_str})\n"
+    else:
+        msg = f"Validate docstring in function {func_name}\n"
+    sys.stdout.write(msg)
+
+    validate_error_codes(errors)
+    if ignore_errors is not None:
+        for error_codes in ignore_errors.values():
+            validate_error_codes(error_codes)
+
+    if func_name is None:
+        exit_status = print_validate_all_results(
+            output_format,
             prefix,
             errors,
-            output_format,
             ignore_deprecated,
-            ignore_functions,
+            ignore_errors
         )
     else:
         print_validate_one_results(func_name)
-        return 0
+        exit_status = 0
+    sys.stdout.write(msg + "DONE" + os.linesep)
+
+    return exit_status
 
 
 if __name__ == "__main__":
@@ -470,21 +491,31 @@ if __name__ == "__main__":
         "all docstrings",
     )
     argparser.add_argument(
-        "--ignore_functions",
-        nargs="*",
-        help="function or method to not validate "
-        "(e.g. pandas.DataFrame.head). "
-        "Inverse of the `function` argument.",
+        "--ignore_errors",
+        default=None,
+        action="append",
+        nargs=2,
+        metavar=("function", "error_codes"),
+        help="function for which comma separated list "
+        "of error codes should not be validated"
+        "(e.g. pandas.DataFrame.head PR01,SA01). "
+        "Partial validation for more than one function"
+        "can be achieved by repeating this parameter.",
     )
+    args = argparser.parse_args(sys.argv[1:])
 
-    args = argparser.parse_args()
+    args.errors = args.errors.split(",") if args.errors else None
+    if args.ignore_errors:
+        args.ignore_errors = {function: error_codes.split(",")
+                              for function, error_codes
+                              in args.ignore_errors}
+
     sys.exit(
-        main(
-            args.function,
-            args.prefix,
-            args.errors.split(",") if args.errors else None,
-            args.format,
-            args.ignore_deprecated,
-            args.ignore_functions,
-        )
+        main(args.function,
+             args.format,
+             args.prefix,
+             args.errors,
+             args.ignore_deprecated,
+             args.ignore_errors
+             )
     )
