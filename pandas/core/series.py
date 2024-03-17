@@ -504,19 +504,20 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # Series TASK 4: COMMON INDEX MANIPULATION
         na_value = na_value_for_dtype(pandas_dtype(dtype), compat=False)
 
-        is_scalar_without_index = False
+        is_scalar = (
+            not is_pandas_object
+            and not is_array
+            and not is_list_like(data)
+            and not isinstance(data, SingleBlockManager)
+        )
 
         if index is None:
             if data is None:
                 index = default_index(0)
                 data = na_value if dtype is not None else []
-
-            is_scalar_without_index = (
-                not is_pandas_object
-                and not is_array
-                and not is_list_like(data)
-                and not isinstance(data, SingleBlockManager)
-            )
+            else:
+                if is_scalar:
+                    data = [data]
 
         else:
             index = ensure_index(index)
@@ -526,10 +527,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         is_list = is_list_like(data)
 
         list_like_input = False
-
-        if is_scalar_without_index:  # elif data is not None: # possibly single_element.
-            if index is None:
-                data = [data]
 
         # Series TASK 5: PREPARING THE MANAGER
         if isinstance(data, (Series, SingleBlockManager)):
