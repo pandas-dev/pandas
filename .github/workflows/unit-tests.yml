@@ -85,7 +85,7 @@ jobs:
       PANDAS_CI: ${{ matrix.pandas_ci || '1' }}
       TEST_ARGS: ${{ matrix.test_args || '' }}
       PYTEST_WORKERS: ${{ matrix.pytest_workers || 'auto' }}
-      PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
+      PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas/tests' }}
       NPY_PROMOTION_STATE: ${{ matrix.env_file == 'actions-311-numpydev.yaml' && 'weak' || 'legacy' }}
       # Clipboard tests
       QT_QPA_PLATFORM: offscreen
