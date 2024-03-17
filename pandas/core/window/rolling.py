@@ -2035,11 +2035,15 @@ class Rolling(RollingAndExpandingMixin):
         )
 
     @doc(
-        template_header,
+        dedent(),
         create_section_header("Parameters"),
+        dedent(),
         create_section_header("Returns"),
+        dedent(),
         create_section_header("See Also"),
+        dedent(),
         create_section_header("Examples"),
+        dedent(),
     )
     def pipe(
         self,
