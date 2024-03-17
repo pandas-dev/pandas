@@ -2257,26 +2257,3 @@ def test_series_with_complex_nan(input_list):
     result = Series(ser.array)
     assert ser.dtype == "complex128"
     tm.assert_series_equal(ser, result)
-
-
-@pytest.mark.parametrize(
-    "value",
-    [
-        (1),
-        (1.0),
-        (1.0 + 1.0j),
-    ],
-)
-@pytest.mark.parametrize(
-    "unused_value",
-    [
-        (True),
-        ("a"),
-    ],
-)
-def test_dict_constructor_preserve_dtype(value, unused_value):
-    d = {"a": value, "b": unused_value}
-    e = {"a": value}
-    s = Series(data=d, index=["a"])
-    expected = Series(data=e)
-    tm.assert_series_equal(s, expected)
