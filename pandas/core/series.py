@@ -504,25 +504,32 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # Series TASK 4: COMMON INDEX MANIPULATION
         na_value = na_value_for_dtype(pandas_dtype(dtype), compat=False)
 
+        is_scalar_without_index = False
+
         if index is None:
             if data is None:
                 index = default_index(0)
                 data = na_value if dtype is not None else []
-            else:
-                pass
+
+            is_scalar_without_index = (
+                not is_pandas_object
+                and not is_array
+                and not is_list_like(data)
+                and not isinstance(data, SingleBlockManager)
+            )
 
         else:
             index = ensure_index(index)
             if data is None:
                 data = na_value if len(index) or dtype is not None else []
 
-        scalar_input = (
-            not is_pandas_object
-            and not is_array
-            and not is_list_like(data)
-            and not isinstance(data, SingleBlockManager)
-        )
         is_list = is_list_like(data)
+
+        list_like_input = False
+
+        if is_scalar_without_index:  # elif data is not None: # possibly single_element.
+            if index is None:
+                data = [data]
 
         # Series TASK 5: PREPARING THE MANAGER
         if isinstance(data, (Series, SingleBlockManager)):
@@ -546,13 +553,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         else:  # Creating the manager
             require_manager = True
-            list_like_input = False
 
-            if scalar_input:  # elif data is not None: # possibly single_element.
-                if index is None:
-                    data = [data]
-
-            elif isinstance(data, Index):
+            if isinstance(data, Index):
                 if dtype is not None:
                     data = data.astype(dtype)
 
@@ -563,7 +565,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             elif is_array:
                 pass
 
-            elif is_list:  # _like(data):
+            elif is_list:
                 list_like_input = True
 
             index = index if index is not None else default_index(len(data))
