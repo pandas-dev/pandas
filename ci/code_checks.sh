@@ -339,7 +339,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         --ignore_errors pandas.Series.copy SA01\
         --ignore_errors pandas.Series.div PR07\
         --ignore_errors pandas.Series.droplevel SA01\
-        --ignore_errors pandas.Series.dt GL08\
+        --ignore_errors pandas.Series.dt PR01\`# Accessors are implemented as classes, but we do not document the Parameters section` \
         --ignore_errors pandas.Series.dt.as_unit GL08,PR01,PR02\
         --ignore_errors pandas.Series.dt.ceil PR01,PR02,SA01\
         --ignore_errors pandas.Series.dt.components SA01\
@@ -1291,7 +1291,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         --ignore_errors pandas.tseries.offsets.YearEnd.rule_code GL08\
         --ignore_errors pandas.unique PR07\
         --ignore_errors pandas.util.hash_array PR07,SA01\
-        --ignore_errors pandas.util.hash_pandas_object PR07,SA01
+        --ignore_errors pandas.util.hash_pandas_object PR07,SA01 # There should be no backslash in the final line, please keep this comment in the last ignored function
     )
     $BASE_DIR/scripts/validate_docstrings.py ${PARAMETERS[@]}
     RET=$(($RET + $?)) ;
