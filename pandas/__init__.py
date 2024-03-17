@@ -189,15 +189,13 @@ except ImportError:
     del get_versions, v
 
 
-def __getattr__(name):
-    import importlib
+try:
+    import sys
+    import pandas_tests
 
-    if name == "tests":
-        return importlib.import_module("pandas_tests")
-    if name.startswith("tests."):
-        to_import = name.replace("tests", "pandas_tests.tests")
-        return importlib.import_module(to_import)
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    sys.modules["pandas.tests"] = pandas_tests
+except ImportError:
+    pass
 
 
 # module level doc-string
