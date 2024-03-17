@@ -188,17 +188,18 @@ except ImportError:
     __git_version__ = v.get("full-revisionid")
     del get_versions, v
 
+import sys
 
 try:
-    import sys
     import pandas_tests
 
     sys.modules["pandas.tests"] = pandas_tests
 
-    del sys
     del pandas_tests
 except ImportError:
     pass
+
+del sys
 
 
 # module level doc-string
