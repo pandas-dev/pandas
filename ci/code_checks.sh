@@ -339,7 +339,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         --ignore_errors pandas.Series.copy SA01\
         --ignore_errors pandas.Series.div PR07\
         --ignore_errors pandas.Series.droplevel SA01\
-        --ignore_errors pandas.Series.dt GL08\
+        --ignore_errors pandas.Series.dt PR01\`# Accessors are implemented as classes, but we do not document the Parameters section` \
         --ignore_errors pandas.Series.dt.as_unit GL08,PR01,PR02\
         --ignore_errors pandas.Series.dt.ceil PR01,PR02,SA01\
         --ignore_errors pandas.Series.dt.components SA01\
