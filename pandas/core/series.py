@@ -470,6 +470,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 )
 
         # Series TASK 1: CAPTURE INPUT SIGNATURE. NECESSARY FOR WARNINGS AND ERRORS.
+        is_array = isinstance(data, (np.ndarray, ExtensionArray))
         is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
         original_dtype = dtype
         original_data_type = type(data)
@@ -514,7 +515,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # Series TASK 5: CREATING OR COPYING THE MANAGER. A: PREPARE. B: COPY.
 
         # TODO 6: DECOUPLE MANAGER PREPARATION FROM COPYING. I realize it will help
-        # TODO 6.9: Separate the index is None case on the group (Index,arrays,is_list)
+        # DONE 6.9: Separate the index is None case on the group (Index,arrays,is_list)
+        # TODO 6.10: Separate copy logic when data is ndarray or extended array
         if isinstance(data, (Series, SingleBlockManager)):
             # Series TASK 5.A: ADAPTING DATA AND INDEX ON SERIES EACH CASE.
             if isinstance(data, Series):
@@ -544,26 +546,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         else:  # Creating the SingleBlockManager
             list_like_input = False
-            if isinstance(data, (Index, np.ndarray, ExtensionArray)) or is_list_like(
-                data
-            ):
-                if isinstance(data, Index):
-                    if dtype is not None:
-                        data = data.astype(dtype)
+            if isinstance(data, Index):
+                if dtype is not None:
+                    data = data.astype(dtype)
 
-                    refs = data._references
-                    data = data._values
-                    copy = False
+                refs = data._references
+                data = data._values
+                copy = False
 
-                elif isinstance(data, (np.ndarray, ExtensionArray)):
-                    if copy_arrays:
-                        if dtype is None or astype_is_view(
-                            data.dtype, pandas_dtype(dtype)
-                        ):
-                            data = data.copy()  # not np.ndarray.copy(deep=...)
+            elif is_array:
+                pass
 
-                elif is_list_like(data):
-                    list_like_input = True
+            elif is_list_like(data):
+                list_like_input = True
 
             else:  # elif data is not None: # this works too # possibly single_element.
                 if index is None:
@@ -578,6 +573,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # GH 29405: Pre-2.0, this defaulted to float.
             empty_list = list_like_input and dtype is None and not len(data)
             dtype = np.dtype(object) if empty_list else dtype
+
+            # copy
+            if is_array and copy_arrays:
+                if copy_arrays:
+                    if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
+                        data = data.copy()  # not np.ndarray.copy(deep=...)
 
             # Series TASK 5.B: CREATING THE MANAGER.
             data = sanitize_array(data, index, dtype, copy)
