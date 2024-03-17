@@ -194,6 +194,9 @@ try:
     import pandas_tests
 
     sys.modules["pandas.tests"] = pandas_tests
+
+    del sys
+    del pandas_tests
 except ImportError:
     pass
 
