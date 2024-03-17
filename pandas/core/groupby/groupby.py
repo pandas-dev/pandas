@@ -1552,7 +1552,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Returns
         -------
         Series or DataFrame
-            The resulting dtype will reflect the return value of the passed ``func``.
+            A pandas object with the result of applying ``func`` to each group.
 
         See Also
         --------
