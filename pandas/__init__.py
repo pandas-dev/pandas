@@ -201,6 +201,8 @@ if "PANDAS_COPY_ON_WRITE" in os.environ:
         stacklevel=2,
     )
 
+del os, warnings
+
 
 # module level doc-string
 __doc__ = """
