@@ -412,7 +412,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DatetimeIndex.indexer_at_time\
         pandas.DatetimeIndex.snap\
         pandas.DatetimeIndex.std\
-        pandas.ExcelFile\
         pandas.ExcelFile.parse\
         pandas.HDFStore.append\
         pandas.HDFStore.put\
@@ -917,7 +916,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DatetimeTZDtype\
         pandas.DatetimeTZDtype.tz\
         pandas.DatetimeTZDtype.unit\
-        pandas.ExcelFile\
         pandas.ExcelFile.parse\
         pandas.ExcelWriter\
         pandas.Flags\
