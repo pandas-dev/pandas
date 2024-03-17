@@ -148,12 +148,28 @@ def get_api_items(api_doc_fd):
         previous_line = line_stripped
 
 
-def bulk_validate_pep8(docs: dict[str, PandasDocstring]) -> list[list]:
-    all_docs_error_messages = []
-    temp_files = []
+def validate_pep8_for_examples( docs: list[PandasDocstring]) -> dict[str, list[tuple]]:
+    """
+    Call the pep8 validation for docstrings with examples, and add the errors found.
 
-    try:
-        for func_name, doc in docs.items():
+    Parameters
+    ----------
+    docs : list[PandasDocString]
+        List of docstrings to validate.
+
+    Returns
+    -------
+    dict[str, list]
+       Dict of function names and the pep8 error messages found in their docstrings.
+       The errors messages are of the form
+       (error_code, message, line_number, col_number).
+    """
+    if isinstance(docs, PandasDocstring):
+        docs = [docs]
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        func_name_to_file_name = {}
+        for doc in docs:
             if not doc.examples:
                 continue
 
@@ -165,14 +181,16 @@ def bulk_validate_pep8(docs: dict[str, PandasDocstring]) -> list[list]:
                 )
             )
 
-            temp_file = tempfile.NamedTemporaryFile(mode="w", encoding="utf-8",
+            temp_file = tempfile.NamedTemporaryFile(mode="w",
+                                                    dir=temp_dir,
+                                                    encoding="utf-8",
                                                     delete=False)
             temp_file.write(content)
             temp_file.flush()
-            temp_files.append(temp_file)
+            func_name_to_file_name[doc.func_name] = temp_file.name
 
-        if not temp_files:  # No docs with examples to process
-            return all_docs_error_messages
+        if not func_name_to_file_name:  # No docs with examples to process
+            return {}
 
         cmd = [
             sys.executable,
@@ -182,35 +200,35 @@ def bulk_validate_pep8(docs: dict[str, PandasDocstring]) -> list[list]:
             "--max-line-length=88",
             "--ignore=E203,E3,W503,W504,E402,E731,E128,E124,E704",
         ]
-        # Extend cmd with names of all temporary files
-        cmd.extend([temp_file.name for temp_file in temp_files])
+        cmd.extend(func_name_to_file_name.values())
         response = subprocess.run(cmd, capture_output=True, check=False,
                                   text=True)
 
-        # Parsing output for each file
-        for temp_file in temp_files:
-            error_messages = []
-            for output in ("stdout", "stderr"):
-                out = getattr(response, output).replace(temp_file.name,
-                                                        "").strip(
-                    "\n").splitlines()
-                if out:
-                    error_messages.extend(out)
+    all_docs_error_messages = {doc.func_name: [] for doc in docs}
+    for func_name, temp_file_name in func_name_to_file_name.items():
+        # one output for each error, each error must be mapped to the func_name
+        for output in ("stdout", "stderr"):
+            out = getattr(response, output)
+            out = out.replace(temp_file_name, "").strip("\n").splitlines()
+            if out:
+                all_docs_error_messages[func_name].extend(out)
 
-            # Parsing error messages for each document
-            doc_error_messages = []
-            for error_message in error_messages:
-                line_number, col_number, error_code, message = error_message.split(
-                    "\t", maxsplit=3)
-                doc_error_messages.append((error_code, message,
-                                           int(line_number) - 2,
-                                           int(col_number)))
-            all_docs_error_messages.append(doc_error_messages)
-
-    finally:
-        for temp_file in temp_files:
-            temp_file.close()
-            os.unlink(temp_file.name)
+    for func_name, raw_error_messages in all_docs_error_messages.items():
+        doc_error_messages = []
+        for raw_error_message in raw_error_messages:
+            line_num, col_num, err_code, msg = raw_error_message.split("\t", maxsplit=3)
+            # Note: we subtract 2 from the line number because
+            # 'import numpy as np\nimport pandas as pd\n'
+            # is prepended to the docstrings.
+            doc_error_messages.append(
+                (
+                    err_code,
+                    msg,
+                    int(line_num) - 2,
+                    int(col_num)
+                 )
+            )
+        all_docs_error_messages[func_name] = doc_error_messages
 
     return all_docs_error_messages
 
@@ -288,7 +306,13 @@ class PandasDocstring(Validator):
         return "array_like" in self.raw_doc
 
 
-def pandas_validate(func_names: str | list[str]):
+def pandas_validate_single_func(func_name: str) -> dict:
+    func_names = [func_name]
+    results = pandas_validate(func_names)
+    return results[func_name]
+
+
+def pandas_validate(func_names: str | list[str]) -> dict[str, dict]:
     """
     Call the numpydoc validation, and add the errors specific to pandas.
 
@@ -299,19 +323,23 @@ def pandas_validate(func_names: str | list[str]):
 
     Returns
     -------
-    dict
-        Information about the docstrings and the errors found.
+    dict[str, dict]
+        Information about the docstrings and the errors found for each function.
     """
     if isinstance(func_names, str):
         func_names = [func_names]
-    results = {}
-    docs = {}
+
+    docs_to_results = {}
     for func_name in func_names:
         func_obj = Validator._load_obj(func_name)
         # Some objects are instances, e.g. IndexSlice, which numpydoc can't validate
         doc_obj = get_doc_object(func_obj, doc=func_obj.__doc__)
         doc = PandasDocstring(func_name, doc_obj)
         result = validate(doc_obj)
+        docs_to_results[doc] = result
+
+    # add errors not from examples to the result
+    for doc, result in docs_to_results.items():
         mentioned_errs = doc.mentioned_private_classes
         if mentioned_errs:
             result["errors"].append(
@@ -331,35 +359,38 @@ def pandas_validate(func_names: str | list[str]):
                 if rel_name.startswith("pandas.")
             )
 
-        result["examples_errs"] = ""
-        results[func_name] = result
-        docs[func_name] = doc
+        if doc.non_hyphenated_array_like():
+            result["errors"].append(pandas_error("PD01"))
 
-    for func_name, doc in docs.items():
+        result["examples_errs"] = ""
+
+    pep8_errors = validate_pep8_for_examples(list(docs_to_results.keys()))
+
+    for doc, result in docs_to_results.items():
         if not doc.examples:
             continue
-        for error_code, error_message, line_number, col_number in doc.validate_pep8():
-            results[func_name]["errors"].append(
+        for err_code, err_msg, line_number, col_number in pep8_errors[doc.func_name]:
+            result["errors"].append(
                 pandas_error(
                     "EX03",
-                    error_code=error_code,
-                    error_message=error_message,
+                    error_code=err_code,
+                    error_message=err_msg,
                     line_number=line_number,
                     col_number=col_number,
                 )
             )
         examples_source_code = "".join(doc.examples_source_code)
-        results[func_name]["errors"].extend(
+        result["errors"].extend(
             pandas_error("EX04", imported_library=wrong_import)
             for wrong_import in ("numpy", "pandas")
             if f"import {wrong_import}" in examples_source_code
         )
 
-        if doc.non_hyphenated_array_like():
-            results[func_name]["errors"].append(pandas_error("PD01"))
-
     plt.close("all")
-    return results
+    validation_results = {doc.func_name: result
+                          for doc, result
+                          in docs_to_results.items()}
+    return validation_results
 
 
 def validate_all(prefix, ignore_deprecated=False):

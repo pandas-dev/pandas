@@ -293,7 +293,6 @@ class TestValidator:
         assert exit_status_ignore_func == exit_status - 1
 
 
-
 class TestApiItems:
     @property
     def api_doc(self):
