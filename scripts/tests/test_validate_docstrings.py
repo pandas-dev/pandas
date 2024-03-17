@@ -228,7 +228,7 @@ class TestValidator:
         for docinfo in results.values():
             assert len(docinfo) == 0
 
-    def test_validate_all_for_error_ignore_functions(self, monkeypatch):
+    def test_validate_all_ignore_errors(self, monkeypatch):
         dummy_docinfo = {
                 "docstring": "docstring1",
                 "errors": [
