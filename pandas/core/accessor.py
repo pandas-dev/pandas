@@ -301,8 +301,6 @@ have a class defined like this:
 
 .. code-block:: python
 
-    import pandas as pd
-
     @pd.api.extensions.register_dataframe_accessor("int_accessor")
     class IntAccessor:
         def __init__(self, pandas_obj):
@@ -315,18 +313,16 @@ have a class defined like this:
 
 Back in an interactive IPython session:
 
-.. code-block:: ipython
-
-    >>> df = pd.DataFrame([[1, 2], ['x', 'y']])
-    >>> df.int_accessor
-    Traceback (most recent call last):
-    ...
-    AttributeError: All columns must contain integer values only.
-    >>> df = pd.DataFrame([[1, 2], [3, 4]])
-    >>> df.int_accessor.sum()
-    0    4
-    1    6
-    dtype: int64
+>>> df = pd.DataFrame([[1, 2], ['x', 'y']])
+>>> df.int_accessor
+Traceback (most recent call last):
+...
+AttributeError: All columns must contain integer values only.
+>>> df = pd.DataFrame([[1, 2], [3, 4]])
+>>> df.int_accessor.sum()
+0    4
+1    6
+dtype: int64
 """
 
 
@@ -346,8 +342,6 @@ have a class defined like this:
 
 .. code-block:: python
 
-    import pandas as pd
-
     @pd.api.extensions.register_series_accessor("int_accessor")
     class IntAccessor:
         def __init__(self, pandas_obj):
@@ -360,16 +354,14 @@ have a class defined like this:
 
 Back in an interactive IPython session:
 
-.. code-block:: ipython
-
-    >>> df = pd.Series([1, 2, 'x'])
-    >>> df.int_accessor
-    Traceback (most recent call last):
-    ...
-    AttributeError: The series must contain integer data only.
-    >>> df = pd.Series([1, 2, 3])
-    >>> df.int_accessor.sum
-    6
+>>> df = pd.Series([1, 2, 'x'])
+>>> df.int_accessor
+Traceback (most recent call last):
+...
+AttributeError: The series must contain integer data only.
+>>> df = pd.Series([1, 2, 3])
+>>> df.int_accessor.sum
+6
 """
 
 
@@ -389,8 +381,6 @@ have a class defined like this:
 
 .. code-block:: python
 
-    import pandas as pd
-
     @pd.api.extensions.register_index_accessor("int_accessor")
     class IntAccessor:
         def __init__(self, pandas_obj):
@@ -403,22 +393,20 @@ have a class defined like this:
 
 Back in an interactive IPython session:
 
-.. code-block:: ipython
-
-    >>> df = pd.DataFrame.from_dict({
-            'row1': {'1':1, '2':'a'},
-            'row2': {'1':2, '2':'b'}
-            },orient='index')
-    >>> df.index.int_accessor
-    Traceback (most recent call last):
-    ...
-    AttributeError: The index must only be an integer value.
-    >>> df = pd.DataFrame({
-            'col1': [1, 2, 3, 4],
-            'col2': ['a', 'b', 'c', 'd']
-            }, index=[1, 2, 5, 8])
-    >>> df.index.my_accessor.even()
-    [2,8]
+>>> df = pd.DataFrame.from_dict({
+        'row1': {'1':1, '2':'a'},
+        'row2': {'1':2, '2':'b'}
+        },orient='index')
+>>> df.index.int_accessor
+Traceback (most recent call last):
+...
+AttributeError: The index must only be an integer value.
+>>> df = pd.DataFrame({
+        'col1': [1, 2, 3, 4],
+        'col2': ['a', 'b', 'c', 'd']
+        }, index=[1, 2, 5, 8])
+>>> df.index.my_accessor.even()
+[2,8]
 """
 
 
