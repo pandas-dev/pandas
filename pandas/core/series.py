@@ -384,8 +384,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # DONE 4.2: and move.
         # DONE 4.3: Unify if-else structure.
         # DONE 5.0: Move ndarray ValueError to TASK-0.
-
-        # TODO 6: DECOUPLE MANAGER PREPARATION FROM COPYING. I realize it will help
+        # DONE 6: DECOUPLE MANAGER PREPARATION FROM COPYING. I realize it will help
         # ------ with the other tasks if I do this first! Let's do it.
         # DONE 6.1: Avoid copying twice when type(data) is SingleBlockManager
         # DONE 6.2: Unify the copying signature when
@@ -399,8 +398,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # -------- single element group.
         # DONE 6.7: DO TASK 8 HERE
         # DONE 6.8 Move single element to outside the (Index, arrays, is_list) group
-        # TODO 6.9 Separate the index is None case on the group (Index, arrays, is_list)
-
+        # DONE 6.9: Separate the index is None case on the group (Index,arrays,is_list)
+        # DONE 6.10: Separate copy logic when data is ndarray or extended array
+        # DONE 6.11: Move copy logic below preparation.
         # DONE 7:  Move code to Final Requirements. Task 5.
         # ------  dtype Series with arguments equivalent to empty list,
         # ------  with dtype=None, must be object.
@@ -512,13 +512,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if data is None:
                 data = na_value if len(index) or dtype is not None else []
 
-        # Series TASK 5: CREATING OR COPYING THE MANAGER. A: PREPARE. B: COPY.
-
-        # TODO 6: DECOUPLE MANAGER PREPARATION FROM COPYING. I realize it will help
-        # DONE 6.9: Separate the index is None case on the group (Index,arrays,is_list)
-        # TODO 6.10: Separate copy logic when data is ndarray or extended array
+        # Series TASK 5: PREPARING THE MANAGER
         if isinstance(data, (Series, SingleBlockManager)):
-            # Series TASK 5.A: ADAPTING DATA AND INDEX ON SERIES EACH CASE.
+            require_manager = False
+
             if isinstance(data, Series):
                 # copy logic is delicate and maybe has no been fully implemented.
                 # Each data instance has it's own logic.
@@ -535,16 +532,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
             index = data.index
 
-            # Series TASK 5.B: COPYING THE MANAGER.
-            deep = deep if not fast_path_manager else False
-            if dtype is not None:
-                data = data.astype(dtype=dtype, errors="ignore")  # Copy the manager
-                copy = False
-
-            if copy or fast_path_manager:
-                data = data.copy(deep)
-
-        else:  # Creating the SingleBlockManager
+        else:  # Creating the manager
+            require_manager = True
             list_like_input = False
             if isinstance(data, Index):
                 if dtype is not None:
@@ -560,7 +549,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             elif is_list_like(data):
                 list_like_input = True
 
-            else:  # elif data is not None: # this works too # possibly single_element.
+            else:  # elif data is not None: # possibly single_element.
                 if index is None:
                     data = [data]
 
@@ -574,23 +563,32 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             empty_list = list_like_input and dtype is None and not len(data)
             dtype = np.dtype(object) if empty_list else dtype
 
-            # copy
+        # Series TASK 6: COPYING THE MANAGER.
+        if require_manager:
             if is_array and copy_arrays:
                 if copy_arrays:
                     if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
                         data = data.copy()  # not np.ndarray.copy(deep=...)
 
-            # Series TASK 5.B: CREATING THE MANAGER.
             data = sanitize_array(data, index, dtype, copy)
             data = SingleBlockManager.from_array(data, index, refs=refs)
 
-        # Series TASK 6: CREATE THE MANAGER
+        else:
+            deep = deep if not fast_path_manager else False
+            if dtype is not None:
+                data = data.astype(dtype=dtype, errors="ignore")  # Copy the manager
+                copy = False
+
+            if copy or fast_path_manager:
+                data = data.copy(deep)
+
+        # Series TASK 7: CREATE THE DATAFRAME
         NDFrame.__init__(self, data)
         self.name = name
         if not fast_path_manager:
             self._set_axis(0, index)
 
-        # Series TASK 7: RAISE WARNINGS
+        # Series TASK 8: RAISE WARNINGS
         if (
             original_dtype is None
             and is_pandas_object
