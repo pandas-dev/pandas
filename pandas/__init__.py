@@ -189,6 +189,17 @@ except ImportError:
     del get_versions, v
 
 
+def __getattr__(name):
+    import importlib
+
+    if name == "tests":
+        return importlib.import_module("pandas_tests")
+    if name.startswith("tests."):
+        to_import = name.replace("tests", "pandas_tests")
+        return importlib.import_module(to_import)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 # module level doc-string
 __doc__ = """
 pandas - a powerful data analysis and manipulation library for Python
