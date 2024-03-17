@@ -1037,7 +1037,7 @@ class Index(IndexOpsMixin, PandasObject):
             - If the conversion is valid, an ndarray view with the new dtype is
               returned.
             - If `cls` specifies a dtype that leads to an incompatible conversion,
-            a ValueError is raised.
+              a ValueError is raised.
 
         Raises
         ------
