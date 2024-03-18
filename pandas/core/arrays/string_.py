@@ -537,8 +537,6 @@ class BaseNumpyStringArray(BaseStringArray, NumpyExtensionArray):  # type: ignor
 
     def memory_usage(self, deep: bool = False) -> int:
         result = self._ndarray.nbytes
-        if deep:
-            return result + lib.memory_usage_of_objects(self._ndarray)
         return result
 
     @doc(ExtensionArray.searchsorted)
@@ -716,6 +714,12 @@ class ObjectStringArray(BaseNumpyStringArray):
         NDArrayBacked.__init__(new_string_array, result, StringDtype(storage="python"))
 
         return new_string_array
+
+    def memory_usage(self, deep: bool = False) -> int:
+        ret = super().memory_usage()
+        if deep:
+            ret += lib.memory_usage_of_objects(self._ndarray)
+        return ret
 
 
 StringArray = ObjectStringArray
