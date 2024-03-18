@@ -396,7 +396,7 @@ class RangeIndex(Index):
         hash(key)
         try:
             key = ensure_python_int(key)
-        except TypeError:
+        except (TypeError, OverflowError):
             return False
         return key in self._range
 
@@ -515,7 +515,7 @@ class RangeIndex(Index):
         new_index = self._rename(name=name)
         return new_index
 
-    def _minmax(self, meth: str) -> int | float:
+    def _minmax(self, meth: Literal["min", "max"]) -> int | float:
         no_steps = len(self) - 1
         if no_steps == -1:
             return np.nan
@@ -535,6 +535,39 @@ class RangeIndex(Index):
         nv.validate_minmax_axis(axis)
         nv.validate_max(args, kwargs)
         return self._minmax("max")
+
+    def _argminmax(
+        self,
+        meth: Literal["min", "max"],
+        axis=None,
+        skipna: bool = True,
+    ) -> int:
+        nv.validate_minmax_axis(axis)
+        if len(self) == 0:
+            return getattr(super(), f"arg{meth}")(
+                axis=axis,
+                skipna=skipna,
+            )
+        elif meth == "min":
+            if self.step > 0:
+                return 0
+            else:
+                return len(self) - 1
+        elif meth == "max":
+            if self.step > 0:
+                return len(self) - 1
+            else:
+                return 0
+        else:
+            raise ValueError(f"{meth=} must be max or min")
+
+    def argmin(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
+        nv.validate_argmin(args, kwargs)
+        return self._argminmax("min", axis=axis, skipna=skipna)
+
+    def argmax(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
+        nv.validate_argmax(args, kwargs)
+        return self._argminmax("max", axis=axis, skipna=skipna)
 
     def argsort(self, *args, **kwargs) -> npt.NDArray[np.intp]:
         """
@@ -910,7 +943,7 @@ class RangeIndex(Index):
     def _join_empty(
         self, other: Index, how: JoinHow, sort: bool
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
-        if other.dtype.kind == "i":
+        if not isinstance(other, RangeIndex) and other.dtype.kind == "i":
             other = self._shallow_copy(other._values, name=other.name)
         return super()._join_empty(other, how=how, sort=sort)
 
@@ -976,23 +1009,27 @@ class RangeIndex(Index):
         return super().delete(loc)
 
     def insert(self, loc: int, item) -> Index:
-        if len(self) and (is_integer(item) or is_float(item)):
+        if is_integer(item) or is_float(item):
             # We can retain RangeIndex is inserting at the beginning or end,
             #  or right in the middle.
-            rng = self._range
-            if loc == 0 and item == self[0] - self.step:
-                new_rng = range(rng.start - rng.step, rng.stop, rng.step)
+            if len(self) == 0 and loc == 0 and is_integer(item):
+                new_rng = range(item, item + self.step, self.step)
                 return type(self)._simple_new(new_rng, name=self._name)
+            elif len(self):
+                rng = self._range
+                if loc == 0 and item == self[0] - self.step:
+                    new_rng = range(rng.start - rng.step, rng.stop, rng.step)
+                    return type(self)._simple_new(new_rng, name=self._name)
 
-            elif loc == len(self) and item == self[-1] + self.step:
-                new_rng = range(rng.start, rng.stop + rng.step, rng.step)
-                return type(self)._simple_new(new_rng, name=self._name)
+                elif loc == len(self) and item == self[-1] + self.step:
+                    new_rng = range(rng.start, rng.stop + rng.step, rng.step)
+                    return type(self)._simple_new(new_rng, name=self._name)
 
-            elif len(self) == 2 and item == self[0] + self.step / 2:
-                # e.g. inserting 1 into [0, 2]
-                step = int(self.step / 2)
-                new_rng = range(self.start, self.stop, step)
-                return type(self)._simple_new(new_rng, name=self._name)
+                elif len(self) == 2 and item == self[0] + self.step / 2:
+                    # e.g. inserting 1 into [0, 2]
+                    step = int(self.step / 2)
+                    new_rng = range(self.start, self.stop, step)
+                    return type(self)._simple_new(new_rng, name=self._name)
 
         return super().insert(loc, item)
 
@@ -1120,11 +1157,6 @@ class RangeIndex(Index):
             else:
                 key = np.asarray(key, dtype=bool)
             check_array_indexer(self._range, key)  # type: ignore[arg-type]
-            # Short circuit potential _shallow_copy check
-            if key.all():
-                return self._simple_new(self._range, name=self.name)
-            elif not key.any():
-                return self._simple_new(_empty_range, name=self.name)
             key = np.flatnonzero(key)
         try:
             return self.take(key)
@@ -1164,6 +1196,42 @@ class RangeIndex(Index):
         return any(self._range)
 
     # --------------------------------------------------------------------
+
+    # error: Return type "RangeIndex | Index" of "round" incompatible with
+    # return type "RangeIndex" in supertype "Index"
+    def round(self, decimals: int = 0) -> Self | Index:  # type: ignore[override]
+        """
+        Round each value in the Index to the given number of decimals.
+
+        Parameters
+        ----------
+        decimals : int, optional
+            Number of decimal places to round to. If decimals is negative,
+            it specifies the number of positions to the left of the decimal point
+            e.g. ``round(11.0, -1) == 10.0``.
+
+        Returns
+        -------
+        Index or RangeIndex
+            A new Index with the rounded values.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> idx = pd.RangeIndex(10, 30, 10)
+        >>> idx.round(decimals=-1)
+        RangeIndex(start=10, stop=30, step=10)
+        >>> idx = pd.RangeIndex(10, 15, 1)
+        >>> idx.round(decimals=-1)
+        Index([10, 10, 10, 10, 10], dtype='int64')
+        """
+        if decimals >= 0:
+            return self.copy()
+        elif self.start % 10**-decimals == 0 and self.step % 10**-decimals == 0:
+            # e.g. RangeIndex(10, 30, 10).round(-1) doesn't need rounding
+            return self.copy()
+        else:
+            return super().round(decimals=decimals)
 
     def _cmp_method(self, other, op):
         if isinstance(other, RangeIndex) and self._range == other._range:
@@ -1244,6 +1312,27 @@ class RangeIndex(Index):
         except (ValueError, TypeError, ZeroDivisionError):
             # test_arithmetic_explicit_conversions
             return super()._arith_method(other, op)
+
+    def __abs__(self) -> Self | Index:
+        if len(self) == 0 or self.min() >= 0:
+            return self.copy()
+        elif self.max() <= 0:
+            return -self
+        else:
+            return super().__abs__()
+
+    def __neg__(self) -> Self:
+        rng = range(-self.start, -self.stop, -self.step)
+        return self._simple_new(rng, name=self.name)
+
+    def __pos__(self) -> Self:
+        return self.copy()
+
+    def __invert__(self) -> Self:
+        if len(self) == 0:
+            return self.copy()
+        rng = range(~self.start, ~self.stop, -self.step)
+        return self._simple_new(rng, name=self.name)
 
     # error: Return type "Index" of "take" incompatible with return type
     # "RangeIndex" in supertype "Index"

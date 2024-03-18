@@ -20,7 +20,6 @@ from typing import (
     Callable,
     Generic,
     Literal,
-    NamedTuple,
     TypedDict,
     overload,
 )
@@ -561,11 +560,6 @@ _pyarrow_unsupported = {
     "skipinitialspace",
     "low_memory",
 }
-
-
-class _DeprecationConfig(NamedTuple):
-    default_value: Any
-    msg: str | None
 
 
 @overload
@@ -1488,7 +1482,7 @@ class TextFileReader(abc.Iterator):
                 )
         else:
             if is_integer(skiprows):
-                skiprows = list(range(skiprows))
+                skiprows = range(skiprows)
             if skiprows is None:
                 skiprows = set()
             elif not callable(skiprows):
