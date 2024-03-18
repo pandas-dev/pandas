@@ -23,3 +23,12 @@ root = ".."
 
 [tool.setuptools.package-data]
 "pandas_tests"=["pytest.ini"]
+
+# Only present to specify options for the doctests
+[tool.pytest.ini_options]
+minversion = "7.3.2"
+doctest_optionflags = [
+  "NORMALIZE_WHITESPACE",
+  "IGNORE_EXCEPTION_DETAIL",
+  "ELLIPSIS",
+]
