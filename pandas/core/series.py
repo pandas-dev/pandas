@@ -523,7 +523,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if data is None:
                 data = na_value if len(index) or dtype is not None else []
 
-        is_list = is_list_like(data)
         list_like_input = False
 
         # Series TASK 5: PREPARING THE MANAGER
@@ -560,7 +559,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             elif is_array:
                 pass
 
-            elif is_list:
+            elif is_list_like(data):
                 list_like_input = True
 
             index = index if index is not None else default_index(len(data))
