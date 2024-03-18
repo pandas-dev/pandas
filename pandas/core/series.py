@@ -518,10 +518,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 if is_scalar:
                     data = [data]
 
+            # if not isinstance(data, (Series, SingleBlockManager)):
+            #     index = index if index is not None else default_index(len(data))
+
         else:
             index = ensure_index(index)
             if data is None:
                 data = na_value if len(index) or dtype is not None else []
+
+        if not isinstance(data, (Series, SingleBlockManager)):
+            index = index if index is not None else default_index(len(data))
 
         list_like_input = False
 
