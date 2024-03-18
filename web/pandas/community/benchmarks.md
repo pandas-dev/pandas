@@ -75,5 +75,5 @@ There is a quick summary here:
 
 The main benchmarks comparing dataframe tools that include pandas are:
 
-- [H2O.ai benchmarks](https://h2oai.github.io/db-benchmark/)
+- [DuckDB (former H2O.ai) benchmarks](https://duckdblabs.github.io/db-benchmark/)
 - [TPCH benchmarks](https://pola.rs/posts/benchmarks/)
