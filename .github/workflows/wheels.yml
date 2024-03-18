@@ -155,7 +155,6 @@ jobs:
           # (On Linux, need to prefix with /host, since we run builds in a container and the root directory is
           # mounted to host)
           CIBW_BEFORE_TEST: >
-            pip install pyarrow
             pip install ${{ startsWith(matrix.buildplat[0], 'ubuntu') && '/host'|| '' }}${{ github.workspace }}/${{ needs.build_sdist.outputs.pandas_tests_loc }}
 
       - name: Build nightly wheels (with NumPy pre-release)
