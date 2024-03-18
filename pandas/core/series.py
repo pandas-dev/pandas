@@ -514,33 +514,28 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if is_list_like(data) and not isinstance(data, Sized):
             data = list(data)
 
-        # Series TASK 5: DATA AND INDEX TRANSFORMATION ON EDGE CASES
-
+        # Series TASK 5: TRANSFORMATION ON EDGE CASES
         # TASK 5.A: INDEX
-
         if index is None:
-            if data is None and dtype is not None:
+            if data is None:
                 index = default_index(0)
         else:
             index = ensure_index(index)
 
         # TASK 5.B: DATA
-
         if data is None:
             if index is None:
                 data = [] if dtype is None else data
             elif index is not None:
                 data = [] if not len(index) and dtype is None else na_value
 
-        # TASK 5.B: COUPLING
-
+        # TASK 5.C: COUPLING
         if not isinstance(data, (Series, SingleBlockManager)):
             index = index if index is not None else default_index(len(data))
 
+        # Series TASK 6: DETAILS FOR SERIES AND MANAGER. CREATES OTHERWISE
         list_like_input = False
         require_manager = True
-
-        # Series TASK 5: PREPARING THE MANAGER
         if isinstance(data, (Series, SingleBlockManager)):
             require_manager = False
 
@@ -560,7 +555,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
             index = data.index
 
-        else:  # Creating the manager
+        else:
             if isinstance(data, Index):
                 if dtype is not None:
                     data = data.astype(dtype)
@@ -583,7 +578,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             empty_list = list_like_input and dtype is None and not len(data)
             dtype = np.dtype(object) if empty_list else dtype
 
-        # Series TASK 6: COPYING THE MANAGER.
+        # Series TASK 7: COPYING THE MANAGER.
         if require_manager:
             if is_array and copy_arrays:
                 if copy_arrays:
@@ -602,13 +597,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if copy or fast_path_manager:
                 data = data.copy(deep)
 
-        # Series TASK 7: CREATE THE DATAFRAME
+        # Series TASK 8: CREATE THE DATAFRAME
         NDFrame.__init__(self, data)
         self.name = name
         if not fast_path_manager:
             self._set_axis(0, index)
 
-        # Series TASK 8: RAISE WARNINGS
+        # Series TASK 9: RAISE WARNINGS
         if (
             original_dtype is None
             and is_pandas_object
