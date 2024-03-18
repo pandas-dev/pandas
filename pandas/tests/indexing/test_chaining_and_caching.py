@@ -17,15 +17,6 @@ import pandas._testing as tm
 msg = "A value is trying to be set on a copy of a slice from a DataFrame"
 
 
-def random_text(nobs=100):
-    # Construct a DataFrame where each row is a random slice from 'letters'
-    idxs = np.random.default_rng(2).integers(len(ascii_letters), size=(nobs, 2))
-    idxs.sort(axis=1)
-    strings = [ascii_letters[x[0] : x[1]] for x in idxs]
-
-    return DataFrame(strings, columns=["letters"])
-
-
 class TestCaching:
     def test_slice_consolidate_invalidate_item_cache(self):
         # this is chained assignment, but will 'work'
@@ -233,7 +224,11 @@ class TestChaining:
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_str(self):
-        df = random_text(100000)
+        idxs = np.random.default_rng(2).integers(len(ascii_letters), size=(100, 2))
+        idxs.sort(axis=1)
+        strings = [ascii_letters[x[0] : x[1]] for x in idxs]
+
+        df = DataFrame(strings, columns=["letters"])
         indexer = df.letters.apply(lambda x: len(x) > 10)
         df.loc[indexer, "letters"] = df.loc[indexer, "letters"].apply(str.lower)
 
