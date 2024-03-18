@@ -191,7 +191,7 @@ except ImportError:
 import sys
 
 try:
-    import pandas_tests
+    import pandas_tests  # pyright: ignore [reportMissingImports]
 
     sys.modules["pandas.tests"] = pandas_tests
 
