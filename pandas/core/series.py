@@ -543,7 +543,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
         # raises KeyError), so we iterate the entire dict, and align
-        if data:
+        if len(data):
             # GH:34717, issue was using zip to extract key and values from data.
             # using generators in effects the performance.
             # Below is the new way of extracting the keys and values
