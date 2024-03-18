@@ -38,12 +38,18 @@ from typing import (
 )
 import uuid
 
-from dateutil.tz import tzutc
+from dateutil.tz import (
+    tzlocal,
+    tzutc,
+)
 import hypothesis
 from hypothesis import strategies as st
 import numpy as np
 import pytest
-from pytz import utc
+from pytz import (
+    FixedOffset,
+    utc,
+)
 
 import pandas.util._test_decorators as td
 
@@ -1096,6 +1102,61 @@ def datapath(strict_data_files: str) -> Callable[..., str]:
         return path
 
     return deco
+
+
+# ----------------------------------------------------------------
+# Time zones
+# ----------------------------------------------------------------
+TIMEZONES = [
+    None,
+    "UTC",
+    "US/Eastern",
+    "Asia/Tokyo",
+    "dateutil/US/Pacific",
+    "dateutil/Asia/Singapore",
+    "+01:15",
+    "-02:15",
+    "UTC+01:15",
+    "UTC-02:15",
+    tzutc(),
+    tzlocal(),
+    FixedOffset(300),
+    FixedOffset(0),
+    FixedOffset(-300),
+    timezone.utc,
+    timezone(timedelta(hours=1)),
+    timezone(timedelta(hours=-1), name="foo"),
+]
+if zoneinfo is not None:
+    TIMEZONES.extend(
+        [
+            zoneinfo.ZoneInfo("US/Pacific"),  # type: ignore[list-item]
+            zoneinfo.ZoneInfo("UTC"),  # type: ignore[list-item]
+        ]
+    )
+TIMEZONE_IDS = [repr(i) for i in TIMEZONES]
+
+
+@td.parametrize_fixture_doc(str(TIMEZONE_IDS))
+@pytest.fixture(params=TIMEZONES, ids=TIMEZONE_IDS)
+def tz_naive_fixture(request):
+    """
+    Fixture for trying timezones including default (None): {0}
+    """
+    return request.param
+
+
+@td.parametrize_fixture_doc(str(TIMEZONE_IDS[1:]))
+@pytest.fixture(params=TIMEZONES[1:], ids=TIMEZONE_IDS[1:])
+def tz_aware_fixture(request):
+    """
+    Fixture for trying explicit timezones: {0}
+    """
+    return request.param
+
+
+# Generate cartesian product of tz_aware_fixture:
+tz_aware_fixture2 = tz_aware_fixture
 
 
 _UTCS = ["utc", "dateutil/UTC", utc, tzutc(), timezone.utc]
