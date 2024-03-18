@@ -148,8 +148,9 @@ def cast_from_unit_vectorized(
     if p:
         frac = np.round(frac, p)
 
+    rng = range(len(values))
     try:
-        for i in range(len(values)):
+        for i in rng:
             if base[i] == NPY_NAT:
                 out[i] = NPY_NAT
             else:
