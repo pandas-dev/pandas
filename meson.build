@@ -29,7 +29,7 @@ add_project_arguments('-DNPY_TARGET_VERSION=NPY_1_21_API_VERSION', language : 'c
 
 if build_machine.system() == 'darwin'
     #  error: pragma diagnostic pop could not pop, no matching push
-    add_project_arguments('-Wno-unknown-pragmas')
+    add_project_arguments('-Wno-unknown-pragmas', language: 'c')
 endif
 
 if fs.exists('_version_meson.py')
