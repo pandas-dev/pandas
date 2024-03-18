@@ -517,10 +517,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             else:
                 if is_scalar:
                     data = [data]
-
-            # if not isinstance(data, (Series, SingleBlockManager)):
-            #     index = index if index is not None else default_index(len(data))
-
         else:
             index = ensure_index(index)
             if data is None:
@@ -530,6 +526,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             index = index if index is not None else default_index(len(data))
 
         list_like_input = False
+        require_manager = True
 
         # Series TASK 5: PREPARING THE MANAGER
         if isinstance(data, (Series, SingleBlockManager)):
@@ -552,8 +549,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             index = data.index
 
         else:  # Creating the manager
-            require_manager = True
-
             if isinstance(data, Index):
                 if dtype is not None:
                     data = data.astype(dtype)
@@ -568,7 +563,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             elif is_list_like(data):
                 list_like_input = True
 
-            index = index if index is not None else default_index(len(data))
+            # index = index if index is not None else default_index(len(data))
 
             # Final requirements
             if is_list_like(data):
