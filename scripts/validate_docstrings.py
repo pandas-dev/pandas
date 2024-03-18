@@ -68,8 +68,8 @@ ERROR_MSGS = {
 }
 ALL_ERRORS = set(NUMPYDOC_ERROR_MSGS).union(set(ERROR_MSGS))
 duplicated_errors = set(NUMPYDOC_ERROR_MSGS).intersection(set(ERROR_MSGS))
-assert not duplicated_errors, f"Errors {duplicated_errors} exist in both pandas "
-"and numpydoc, should they be removed from pandas?"
+assert not duplicated_errors, (f"Errors {duplicated_errors} exist in both pandas "
+                               "and numpydoc, should they be removed from pandas?")
 
 
 def pandas_error(code, **kwargs):
