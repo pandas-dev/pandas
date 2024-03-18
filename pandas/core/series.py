@@ -488,6 +488,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             and not is_array
             and not is_list_like(data)
             and not isinstance(data, SingleBlockManager)
+            and data is not None
         )
 
         # Series TASK 3: DATA TRANSFORMATION.
@@ -515,7 +516,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 data = [] if dtype is None else data
                 index = default_index(0) if dtype is not None else index
 
-            elif is_scalar:
+            if is_scalar:  # None is scalar
                 data = [data]
 
             if not isinstance(data, (Series, SingleBlockManager)):
