@@ -46,7 +46,7 @@ def find_stack_level() -> int:
     try:
         # can't use import_optional_dependency cause it uses find_stack_level and we'd
         # have ourselves a circular import :(
-        import pandas_tests
+        import pandas_tests  # pyright: ignore [reportMissingImports]
 
         pd_tests_dir = os.path.dirname(pandas_tests.__file__)
     except ImportError:
