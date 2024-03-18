@@ -266,12 +266,6 @@ class PandasDocstring(Validator):
         return "array_like" in self.raw_doc
 
 
-def pandas_validate_single_func(func_name: str) -> dict:
-    func_names = [func_name]
-    results = pandas_validate(func_names)
-    return results[func_name]
-
-
 def pandas_validate(func_names: str | list[str]) -> dict[str, dict]:
     """
     Call the numpydoc validation, and add the errors specific to pandas.
@@ -279,7 +273,7 @@ def pandas_validate(func_names: str | list[str]) -> dict[str, dict]:
     Parameters
     ----------
     func_names : list[str]
-        List of name of the object of the docstrings to validate.
+        The names of the objects of the docstrings to validate.
 
     Returns
     -------
@@ -371,15 +365,16 @@ def validate_all(prefix, ignore_deprecated=False):
     result = {}
     seen = {}
 
-    def matches_prefix(func_name):
-        return func_name.startswith(prefix) if prefix else True
+    def matches_prefix(function_name):
+        return function_name.startswith(prefix) if prefix else True
 
-    func_names = [func_name for func_name, _, _, _
-                  in get_all_api_items()
-                  if matches_prefix(func_name)]
+    api_items = [api_item for api_item
+                 in get_all_api_items()
+                 if matches_prefix(api_item[0])]
+    func_names = [api_item[0] for api_item in api_items]
     doc_infos = pandas_validate(func_names)
 
-    for func_name, _, section, subsection in get_all_api_items():
+    for func_name, _, section, subsection in api_items:
         doc_info = doc_infos[func_name]
         if ignore_deprecated and doc_info["deprecated"]:
             continue
@@ -410,12 +405,12 @@ def get_all_api_items():
 
 
 def print_validate_all_results(
-        output_format: str,
-        prefix: str | None,
-        errors: list[str] | None,
-        ignore_deprecated: bool,
-        ignore_errors: dict[str, list[str]] | None,
-):
+    output_format: str,
+    prefix: str | None,
+    errors: list[str] | None,
+    ignore_deprecated: bool,
+    ignore_errors: dict[str, list[str]] | None,
+) -> int:
     if output_format not in ("default", "json", "actions"):
         raise ValueError(f'Unknown output_format "{output_format}"')
     if ignore_errors is None:
@@ -477,12 +472,12 @@ def validate_error_codes(errors):
 
 
 def main(
-        func_name,
-        output_format,
-        prefix,
-        errors,
-        ignore_deprecated,
-        ignore_errors
+    func_name,
+    output_format,
+    prefix,
+    errors,
+    ignore_deprecated,
+    ignore_errors
 ):
     """
     Main entry point. Call the validation for one or for all docstrings.
@@ -533,34 +528,34 @@ if __name__ == "__main__":
         default="default",
         choices=format_opts,
         help="format of the output when validating "
-             "multiple docstrings (ignored when validating one). "
-             "It can be {str(format_opts)[1:-1]}",
+        "multiple docstrings (ignored when validating one). "
+        "It can be {str(format_opts)[1:-1]}",
     )
     argparser.add_argument(
         "--prefix",
         default=None,
         help="pattern for the "
-             "docstring names, in order to decide which ones "
-             'will be validated. A prefix "pandas.Series.str."'
-             "will make the script validate all the docstrings "
-             "of methods starting by this pattern. It is "
-             "ignored if parameter function is provided",
+        "docstring names, in order to decide which ones "
+        'will be validated. A prefix "pandas.Series.str."'
+        "will make the script validate all the docstrings "
+        "of methods starting by this pattern. It is "
+        "ignored if parameter function is provided",
     )
     argparser.add_argument(
         "--errors",
         default=None,
         help="comma separated "
-             "list of error codes to validate. By default it "
-             "validates all errors (ignored when validating "
-             "a single docstring)",
+        "list of error codes to validate. By default it "
+        "validates all errors (ignored when validating "
+        "a single docstring)",
     )
     argparser.add_argument(
         "--ignore_deprecated",
         default=False,
         action="store_true",
         help="if this flag is set, "
-             "deprecated objects are ignored when validating "
-             "all docstrings",
+        "deprecated objects are ignored when validating "
+        "all docstrings",
     )
     argparser.add_argument(
         "--ignore_errors",
@@ -569,10 +564,10 @@ if __name__ == "__main__":
         nargs=2,
         metavar=("function", "error_codes"),
         help="function for which comma separated list "
-             "of error codes should not be validated"
-             "(e.g. pandas.DataFrame.head PR01,SA01). "
-             "Partial validation for more than one function"
-             "can be achieved by repeating this parameter.",
+        "of error codes should not be validated"
+        "(e.g. pandas.DataFrame.head PR01,SA01). "
+        "Partial validation for more than one function"
+        "can be achieved by repeating this parameter.",
     )
     args = argparser.parse_args(sys.argv[1:])
 

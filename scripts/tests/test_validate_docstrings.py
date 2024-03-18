@@ -90,6 +90,69 @@ class BadDocstrings:
         """
 
 
+def _print_validate_all_base(monkeypatch,
+                             prefix=None,
+                             ignore_deprecated=False,
+                             ignore_errors=None,
+                             overwrite_api_items=True
+                             ) -> tuple[int, int]:
+    dummy_docinfo = {
+            "docstring": "docstring1",
+            "errors": [
+                ("ER01", "err desc"),
+                ("ER02", "err desc"),
+                ("ER03", "err desc")
+            ],
+            "warnings": [],
+            "deprecated": True,
+            "file": "file1",
+            "file_line": "file_line1"
+        }
+    monkeypatch.setattr(
+        validate_docstrings,
+        "pandas_validate",
+        lambda func_names: {
+            func_name: dummy_docinfo
+            for func_name in func_names},
+    )
+    if overwrite_api_items:
+        monkeypatch.setattr(
+            validate_docstrings,
+            "get_all_api_items",
+            lambda: [
+                (
+                    "pandas.DataFrame.align",
+                    "func",
+                    "current_section",
+                    "current_subsection",
+                ),
+                (
+                    "pandas.Index.all",
+                    "func",
+                    "current_section",
+                    "current_subsection",
+                ),
+            ],
+        )
+
+    exit_status = validate_docstrings.print_validate_all_results(
+        output_format="default",
+        prefix=prefix,
+        errors=["ER01", "ER02"],
+        ignore_deprecated=ignore_deprecated,
+        ignore_errors=ignore_errors
+    )
+    exit_status_reference = validate_docstrings.print_validate_all_results(
+        output_format="default",
+        prefix=None,
+        errors=["ER01", "ER02"],
+        ignore_deprecated=False,
+        ignore_errors=None
+    )
+
+    return exit_status_reference, exit_status
+
+
 class TestValidator:
     def _import_path(self, klass=None, func=None):
         """
@@ -204,91 +267,33 @@ class TestValidator:
             for msg in msgs:
                 assert msg in " ".join([err[1] for err in result["errors"]])
 
-    def test_validate_all_ignore_deprecated(self, monkeypatch) -> None:
-        dummy_docinfo = {
-            "docstring": "docstring1",
-            "errors": [
-                ("ER01", "err desc"),
-                ("ER02", "err desc"),
-                ("ER03", "err desc"),
-            ],
-            "warnings": [],
-            "deprecated": True,
-        }
-        monkeypatch.setattr(
-            validate_docstrings,
-            "pandas_validate",
-            lambda func_names: {
-                func_name: dummy_docinfo
-                for func_name in func_names
-            },
-        )
-        results = validate_docstrings.validate_all(prefix=None, ignore_deprecated=True)
-        for docinfo in results.values():
-            assert len(docinfo) == 0
+    def test_print_validate_all_ignore_deprecated(self, monkeypatch) -> None:
+        status, status_ignore_depr = _print_validate_all_base(monkeypatch,
+                                                              ignore_deprecated=True,
+                                                              overwrite_api_items=False)
+        assert status_ignore_depr == 0
+        assert status > 100
+        assert status % 2 == 0
+
+    def test_validate_all_prefix(self, monkeypatch):
+        status, status_prefix = _print_validate_all_base(monkeypatch,
+                                                         prefix="pandas.DataFrame")
+        # the two errors of pandas.Index shall not be counted
+        assert status_prefix == status - 2
 
     def test_validate_all_ignore_errors(self, monkeypatch):
-        dummy_docinfo = {
-                "docstring": "docstring1",
-                "errors": [
-                    ("ER01", "err desc"),
-                    ("ER02", "err desc"),
-                    ("ER03", "err desc")
-                ],
-                "warnings": [],
-                "deprecated": True,
-                "file": "file1",
-                "file_line": "file_line1"
-            }
-        monkeypatch.setattr(
-            validate_docstrings,
-            "pandas_validate",
-            lambda func_names: {
-                func_name: dummy_docinfo
-                for func_name in func_names},
-        )
-        monkeypatch.setattr(
-            validate_docstrings,
-            "get_all_api_items",
-            lambda: [
-                (
-                    "pandas.DataFrame.align",
-                    "func",
-                    "current_section",
-                    "current_subsection",
-                ),
-                (
-                    "pandas.Index.all",
-                    "func",
-                    "current_section",
-                    "current_subsection",
-                ),
-            ],
-        )
-
-        exit_status_ignore_func = validate_docstrings.print_validate_all_results(
-            output_format="default",
-            prefix=None,
-            errors=["ER01", "ER02"],
-            ignore_deprecated=False,
-            ignore_errors={
-                "pandas.DataFrame.align": ["ER01"],
-                # ignoring an error that is not requested should be of no effect
-                "pandas.Index.all": ["ER03"]
-            }
-        )
-        exit_status = validate_docstrings.print_validate_all_results(
-            output_format="default",
-            prefix=None,
-            errors=["ER01", "ER02"],
-            ignore_deprecated=False,
-            ignore_errors=None
-        )
+        ignore_errs = {
+            "pandas.DataFrame.align": ["ER01"],
+            # ignoring an error that is not requested should be of no effect
+            "pandas.Index.all": ["ER03"]
+        }
+        status, status_ignore_func = _print_validate_all_base(monkeypatch,
+                                                              ignore_errors=ignore_errs)
 
         # we have 2 error codes activated out of the 3 available in the validate results
         # one run has a function to ignore, the other does not
-        assert exit_status == 2*2
-        assert exit_status_ignore_func == exit_status - 1
+        assert status == 2*2
+        assert status_ignore_func == status - 1
 
 
 class TestApiItems:
