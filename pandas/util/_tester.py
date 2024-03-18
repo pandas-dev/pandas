@@ -39,11 +39,12 @@ def test(extra_args: list[str] | None = None, run_doctests: bool = False) -> Non
         cmd = extra_args
     # Don't require pandas_tests if only running doctests
     if run_doctests:
+        PKG = os.path.dirname(os.path.dirname(__file__))
         cmd = [
             "--doctest-modules",
             "--doctest-cython",
+            f"--ignore={os.path.join(PKG, 'tests')}",
         ]
-        PKG = os.path.dirname(os.path.dirname(__file__))
     else:
         pandas_tests = import_optional_dependency("pandas_tests")
         PKG = os.path.dirname(pandas_tests.__file__)
