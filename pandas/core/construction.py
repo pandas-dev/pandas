@@ -795,6 +795,7 @@ def _try_cast(
             shape = arr.shape
             if arr.ndim > 1:
                 arr = arr.ravel()
+            arr = ensure_wrapped_if_datetimelike(arr)
         else:
             shape = (len(arr),)
         return lib.ensure_string_array(arr, convert_na_value=False, copy=copy).reshape(
