@@ -535,10 +535,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # Series TASK 6: DETAILS FOR SERIES AND MANAGER. CREATES OTHERWISE
         list_like_input = False
-        require_manager = True
-        if isinstance(data, (Series, SingleBlockManager)):
-            require_manager = False
-
+        # require_manager = True
+        data_has_manager = isinstance(data, (Series, SingleBlockManager))
+        # if isinstance(data, (Series, SingleBlockManager)):
+        if data_has_manager:
             if isinstance(data, Series):
                 # copy logic is delicate and maybe has no been fully implemented.
                 # Each data instance has it's own logic.
@@ -579,7 +579,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             dtype = np.dtype(object) if empty_list else dtype
 
         # Series TASK 7: COPYING THE MANAGER.
-        if require_manager:
+        # if require_manager:
+        if not data_has_manager:
             if is_array and copy_arrays:
                 if copy_arrays:
                     if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
