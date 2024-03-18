@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import os
 import sys
+from typing import cast
 
 from pandas.compat._optional import import_optional_dependency
 
@@ -47,7 +48,7 @@ def test(extra_args: list[str] | None = None, run_doctests: bool = False) -> Non
         ]
     else:
         pandas_tests = import_optional_dependency("pandas_tests")
-        PKG = os.path.dirname(pandas_tests.__file__)
+        PKG = os.path.dirname(cast(str, pandas_tests.__file__))
     cmd += [PKG]
     joined = " ".join(cmd)
     print(f"running: pytest {joined}")
