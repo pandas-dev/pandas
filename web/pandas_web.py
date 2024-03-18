@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simple static site generator for the pandas web.
+Simple static site generator for the pandas web. 
 
 pandas_web.py takes a directory as parameter, and copies all the files into the
 target directory after converting markdown files into html and rendering both
