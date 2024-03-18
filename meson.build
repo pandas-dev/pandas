@@ -4,7 +4,7 @@ project(
     'c', 'cpp', 'cython',
     version: run_command(['generate_version.py', '--print'], check: true).stdout().strip(),
     license: 'BSD-3',
-    meson_version: '>=1.2.1',
+    meson_version: '>=1.4.0',
     default_options: [
         'buildtype=release',
         'c_std=c11',
