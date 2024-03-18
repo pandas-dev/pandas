@@ -437,14 +437,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         fast_path_manager = False
         deep = True  # deep copy, by standard.
 
-        # Series TASK 0: VALIDATE BASIC TYPES.
+        # Series TASK 1: VALIDATE BASIC TYPES.
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
         copy_arrays = copy is True or copy is None  # Arrays and ExtendedArrays
         copy = copy is True  # Series and Manager
 
-        # Series TASK 1: RAISE ERRORS ON KNOWN UNACEPPTED CASES, ETC.
+        # Series TASK 2: RAISE ERRORS ON KNOWN UNACEPPTED CASES, ETC.
         if isinstance(data, MultiIndex):
             raise NotImplementedError(
                 "initializing a Series from a MultiIndex is not supported"
@@ -469,7 +469,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "compound dtype. Use DataFrame instead."
                 )
 
-        # Series TASK 1: CAPTURE INPUT SIGNATURE. NECESSARY FOR WARNINGS AND ERRORS.
+        # Series TASK 3: CAPTURE INPUT SIGNATURE. NECESSARY FOR WARNINGS AND ERRORS.
         is_array = isinstance(data, (np.ndarray, ExtensionArray))
         is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
         original_dtype = dtype
@@ -488,7 +488,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             and data is not None
         )
 
-        # Series TASK 3: DATA TRANSFORMATION.
+        # Series TASK 4: DATA TRANSFORMATIONS.
         if is_dict_like(data) and not is_pandas_object:
             # COMMENT: Dict is SPECIAL case, since it's data has
             # data values and index keys.
@@ -514,32 +514,28 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if is_list_like(data) and not isinstance(data, Sized):
             data = list(data)
 
-        # Series TASK 4: COMMON INDEX MANIPULATION
+        # Series TASK 5: DATA AND INDEX TRANSFORMATION ON EDGE CASES
 
-        # Default empty Series with dtype
+        # TASK 5.A: INDEX
+
         if index is None:
             if data is None and dtype is not None:
                 index = default_index(0)
-
-        # Series TASK 4: COMMON INDEX MANIPULATION   ** this will have data manipulation
-        if index is None:
-            if data is None:
-                data = [] if dtype is None else data
-
-        # if index is None and is_scalar:
-        #     data = [data]
-
-        if index is not None:
-            if data is None:
-                # TODO FINAL: avoid using na_value
-                data = na_value if len(index) or dtype is not None else []
-
-        if index is None:
-            if not isinstance(data, (Series, SingleBlockManager)):
-                index = index if index is not None else default_index(len(data))
-
-        if index is not None:
+        else:
             index = ensure_index(index)
+
+        # TASK 5.B: DATA
+
+        if data is None:
+            if index is None:
+                data = [] if dtype is None else data
+            elif index is not None:
+                data = [] if not len(index) and dtype is None else na_value
+
+        # TASK 5.B: COUPLING
+
+        if not isinstance(data, (Series, SingleBlockManager)):
+            index = index if index is not None else default_index(len(data))
 
         list_like_input = False
         require_manager = True
