@@ -452,7 +452,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 data = data.reindex(index)
                 copy = False
                 data = data._mgr
-        elif is_dict_like(data):
+        elif isinstance(data, dict):
             data, index = self._init_dict(data, index, dtype)
             dtype = None
             copy = False
@@ -519,7 +519,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 )
 
     def _init_dict(
-        self, data, index: Index | None = None, dtype: DtypeObj | None = None
+        self, data: dict, index: Index | None = None, dtype: DtypeObj | None = None
     ):
         """
         Derive the "_mgr" and "index" attributes of a new Series from a
@@ -543,7 +543,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
         # raises KeyError), so we iterate the entire dict, and align
-        if len(data):
+        if data:
             # GH:34717, issue was using zip to extract key and values from data.
             # using generators in effects the performance.
             # Below is the new way of extracting the keys and values
