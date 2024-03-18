@@ -7797,34 +7797,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     f"{type(self).__name__} cannot interpolate with object dtype."
                 )
 
-        else:
-            raise ValueError(
-                f"{type(self).__name__} cannot interpolate with method={method}."
-            )
-
-        if isinstance(obj.index, MultiIndex) and method != "linear":
-            raise ValueError(
-                "Only `method=linear` interpolation is supported on MultiIndexes."
-            )
+            if isinstance(obj.index, MultiIndex) and method != "linear":
+                raise ValueError(
+                    "Only `method=linear` interpolation is supported on MultiIndexes."
+                )
 
         limit_direction = missing.infer_limit_direction(limit_direction, method)
 
         if method.lower() in fillna_methods:
-            # TODO(3.0): remove this case
-            # TODO: warn/raise on limit_direction or kwargs which are ignored?
-            #  as of 2023-06-26 no tests get here with either
-            if not self._mgr.is_single_block and axis == 1:
-                # GH#53898
-                if inplace:
-                    raise NotImplementedError()
-                obj, axis, should_transpose = self.T, 1 - axis, True
-
-            new_data = obj._mgr.pad_or_backfill(
-                method=method,
-                axis=self._get_block_manager_axis(axis),
-                limit=limit,
-                limit_area=limit_area,
-                inplace=inplace,
+            raise ValueError(
+                f"{type(self).__name__} cannot interpolate with method={method}."
             )
         else:
             index = missing.get_interp_index(method, obj.index)
