@@ -511,13 +511,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # Series TASK 4: COMMON INDEX MANIPULATION
         if index is None:
-            if data is None and dtype is None:
-                # index = default_index(0)
-                data = []
-
-            elif data is None and dtype is not None:
-                index = default_index(0)
-                # data = na_value
+            if data is None:
+                data = [] if dtype is None else data
+                index = default_index(0) if dtype is not None else index
 
             elif is_scalar:
                 data = [data]
