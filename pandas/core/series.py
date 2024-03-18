@@ -522,21 +522,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         else:
             index = ensure_index(index)
 
+        require_manager = True
         # TASK 5.B: DATA
         if data is None:
             if index is None:
-                data = []
+                data = []  # needed for consistency
+
             elif index is not None:
                 if not len(index):
                     if dtype is None:
-                        data = []
-                    else:
-                        pass
-                elif len(index):
-                    if dtype is None:
-                        data = na_value  # np.float64 (tem que poder retirar.)
-                    else:
-                        data = na_value  # na_value # exchange for 'pass'
+                        data = []  # needed to to make dtype=np.object
+                else:
+                    data = na_value  # Check tests
 
         # TASK 5.C: COUPLING
         if not isinstance(data, (Series, SingleBlockManager)):
@@ -544,10 +541,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # Series TASK 6: DETAILS FOR SERIES AND MANAGER. CREATES OTHERWISE
         list_like_input = False
-        # require_manager = True
-        data_has_manager = isinstance(data, (Series, SingleBlockManager))
-        # if isinstance(data, (Series, SingleBlockManager)):
-        if data_has_manager:
+        if isinstance(data, (Series, SingleBlockManager)):
+            require_manager = False
             if isinstance(data, Series):
                 # copy logic is delicate and maybe has no been fully implemented.
                 # Each data instance has it's own logic.
@@ -565,6 +560,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             index = data.index
 
         else:
+            require_manager = True
             if isinstance(data, Index):
                 if dtype is not None:
                     data = data.astype(dtype)
@@ -588,8 +584,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             dtype = np.dtype(object) if empty_list else dtype
 
         # Series TASK 7: COPYING THE MANAGER.
-        # if require_manager:
-        if not data_has_manager:
+        if require_manager:
             # # Final requirements
             # if is_list_like(data):
             #     com.require_length_match(data, index)
