@@ -57,10 +57,6 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Python and Cython Doctests' ; echo $MSG
-    # pytest will get confused by how meson-python does editable installs
-    # and will try to raise a ImportMismatchError
-    # we can ignore this
-    # https://github.com/pytest-dev/pytest/issues/2042
     PY_IGNORE_IMPORTMISMATCH=1 python -c 'import pandas as pd; pd.test(run_doctests=True)'
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 

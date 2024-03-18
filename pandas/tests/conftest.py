@@ -239,17 +239,6 @@ for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
 # ----------------------------------------------------------------
 
 
-# https://github.com/pytest-dev/pytest/issues/11873
-# Would like to avoid autouse=True, but cannot as of pytest 8.0.0
-@pytest.fixture(autouse=True)
-def add_doctest_imports(doctest_namespace) -> None:
-    """
-    Make `np` and `pd` names available for doctests.
-    """
-    doctest_namespace["np"] = np
-    doctest_namespace["pd"] = pd
-
-
 @pytest.fixture(autouse=True)
 def configure_tests() -> None:
     """
