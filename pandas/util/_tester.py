@@ -43,10 +43,11 @@ def test(extra_args: list[str] | None = None, run_doctests: bool = False) -> Non
             "--doctest-modules",
             "--doctest-cython",
         ]
+        PKG = os.path.dirname(os.path.dirname(__file__))
     else:
         pandas_tests = import_optional_dependency("pandas_tests")
         PKG = os.path.dirname(pandas_tests.__file__)
-        cmd += [PKG]
+    cmd += [PKG]
     joined = " ".join(cmd)
     print(f"running: pytest {joined}")
     sys.exit(pytest.main(cmd))
