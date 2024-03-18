@@ -525,9 +525,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # TASK 5.B: DATA
         if data is None:
             if index is None:
-                data = [] if dtype is None else data
+                data = []
             elif index is not None:
-                data = [] if not len(index) and dtype is None else na_value
+                if not len(index):
+                    if dtype is None:
+                        data = []
+                    else:
+                        pass
+                elif len(index):
+                    if dtype is None:
+                        data = na_value  # np.float64 (tem que poder retirar.)
+                    else:
+                        data = na_value  # na_value # exchange for 'pass'
 
         # TASK 5.C: COUPLING
         if not isinstance(data, (Series, SingleBlockManager)):
@@ -581,6 +590,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # Series TASK 7: COPYING THE MANAGER.
         # if require_manager:
         if not data_has_manager:
+            # # Final requirements
+            # if is_list_like(data):
+            #     com.require_length_match(data, index)
+
+            # # GH 29405: Pre-2.0, this defaulted to float.
+            # empty_series = list_like_input and dtype is None and not len(data)
+            # dtype = np.dtype(object) if empty_series else dtype
+
             if is_array and copy_arrays:
                 if copy_arrays:
                     if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
