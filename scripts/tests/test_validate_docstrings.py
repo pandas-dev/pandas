@@ -255,28 +255,28 @@ class TestValidator:
             ],
         )
 
-        exit_status_ignore_func = validate_docstrings.print_validate_all_results(
-            output_format="default",
-            prefix=None,
-            ignore_deprecated=False,
-            ignore_errors={
-                "*": ["ER01", "ER02"],
-                "pandas.DataFrame.align": ["ER01"],
-                # ignoring an error that is not requested should be of no effect
-                "pandas.Index.all": ["ER03"]
-            }
-        )
         exit_status = validate_docstrings.print_validate_all_results(
             output_format="default",
             prefix=None,
             ignore_deprecated=False,
-            ignore_errors={"*": ["ER01", "ER02"]},
+            ignore_errors={"*": {"ER03"}},
         )
+        # two functions * two not ignored errors
+        assert exit_status == 2 * 2
 
-        # we have 2 error codes activated out of the 3 available in the validate results
-        # one run has a function to ignore, the other does not
-        assert exit_status == 2*2
-        assert exit_status_ignore_func == exit_status - 1
+        exit_status = validate_docstrings.print_validate_all_results(
+            output_format="default",
+            prefix=None,
+            ignore_deprecated=False,
+            ignore_errors={
+                "*": {"ER03"},
+                "pandas.DataFrame.align": {"ER01"},
+                # ignoring an error that is not requested should be of no effect
+                "pandas.Index.all": {"ER03"}
+            }
+        )
+        # two functions * two not global ignored errors - one function ignored error
+        assert exit_status == 2 * 2 - 1
 
 
 
@@ -401,7 +401,7 @@ class TestMainFunction:
             ignore_deprecated=False,
             ignore_errors=None,
         )
-        assert exit_status == 0
+        assert exit_status == 3
 
     def test_exit_status_errors_for_validate_all(self, monkeypatch) -> None:
         monkeypatch.setattr(
@@ -515,16 +515,15 @@ class TestMainFunction:
             output_format="default",
             prefix=None,
             ignore_deprecated=False,
-            ignore_errors={"*": ["ER01"]},
+            ignore_errors={"*": {"ER02", "ER03"}},
         )
         assert exit_status == 3
 
         exit_status = validate_docstrings.main(
             func_name=None,
-            prefix=None,
             output_format="default",
-            errors=["ER03"],
+            prefix=None,
             ignore_deprecated=False,
-            ignore_errors={"*": ["ER03"]},
+            ignore_errors={"*": {"ER01", "ER02"}},
         )
         assert exit_status == 1
