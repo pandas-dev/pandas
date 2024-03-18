@@ -7789,12 +7789,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise ValueError("'method' should be a string, not None.")
 
         fillna_methods = ["ffill", "bfill", "pad", "backfill"]
-        if method.lower() in fillna_methods:
-            # GH#53581
-            raise ValueError(
-                f"{type(self).__name__} cannot interpolate with method={method}."
-            )
-        else:
+        if method.lower() not in fillna_methods:
             obj, should_transpose = (self.T, True) if axis == 1 else (self, False)
             # GH#53631
             if np.any(obj.dtypes == object):
@@ -7802,11 +7797,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     f"{type(self).__name__} cannot interpolate with object dtype."
                 )
 
-        if method in fillna_methods and "fill_value" in kwargs:
+        else:
             raise ValueError(
-                "'fill_value' is not a valid keyword for "
-                f"{type(self).__name__}.interpolate with method from "
-                f"{fillna_methods}"
+                f"{type(self).__name__} cannot interpolate with method={method}."
             )
 
         if isinstance(obj.index, MultiIndex) and method != "linear":
