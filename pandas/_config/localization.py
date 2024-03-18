@@ -10,6 +10,7 @@ from contextlib import contextmanager
 import locale
 import platform
 import re
+import subprocess
 from typing import (
     TYPE_CHECKING,
     cast,
@@ -141,8 +142,7 @@ def get_locales(
 
     """
     if platform.system() in ("Linux", "Darwin"):
-        # raw_locales = subprocess.check_output(["locale", "-a"])
-        raw_locales = []
+        raw_locales = subprocess.check_output(["locale", "-a"])
     else:
         # Other platforms e.g. windows platforms don't define "locale -a"
         #  Note: is_platform_windows causes circular import here
