@@ -921,7 +921,7 @@ class MultiIndex(Index):
 
         if level is None:
             new_levels = tuple(ensure_index(lev, copy=copy)._view() for lev in levels)
-            level_numbers = list(range(len(new_levels)))
+            level_numbers: range | list[int] = range(len(new_levels))
         else:
             level_numbers = [self._get_level_number(lev) for lev in level]
             new_levels_list = list(self._levels)
@@ -3014,7 +3014,7 @@ class MultiIndex(Index):
                 raise KeyError(key) from err
             except TypeError:
                 # e.g. test_partial_slicing_with_multiindex partial string slicing
-                loc, _ = self.get_loc_level(key, list(range(self.nlevels)))
+                loc, _ = self.get_loc_level(key, range(self.nlevels))
                 return loc
 
         # -- partial selection or non-unique index
@@ -3101,7 +3101,7 @@ class MultiIndex(Index):
         >>> mi.get_loc_level(["b", "e"])
         (1, None)
         """
-        if not isinstance(level, (list, tuple)):
+        if not isinstance(level, (range, list, tuple)):
             level = self._get_level_number(level)
         else:
             level = [self._get_level_number(lev) for lev in level]
