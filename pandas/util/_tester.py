@@ -31,21 +31,22 @@ def test(extra_args: list[str] | None = None, run_doctests: bool = False) -> Non
     running: pytest...
     """
     pytest = import_optional_dependency("pytest")
-    pandas_tests = import_optional_dependency("pandas_tests")
-    PKG = os.path.dirname(pandas_tests.__file__)
     import_optional_dependency("hypothesis")
     cmd = ["-m not slow and not network and not db"]
     if extra_args:
         if not isinstance(extra_args, list):
             extra_args = [extra_args]
         cmd = extra_args
+    # Don't require pandas_tests if only running doctests
     if run_doctests:
         cmd = [
             "--doctest-modules",
             "--doctest-cython",
-            f"--ignore={os.path.join(PKG, 'tests')}",
         ]
-    cmd += [PKG]
+    else:
+        pandas_tests = import_optional_dependency("pandas_tests")
+        PKG = os.path.dirname(pandas_tests.__file__)
+        cmd += [PKG]
     joined = " ".join(cmd)
     print(f"running: pytest {joined}")
     sys.exit(pytest.main(cmd))

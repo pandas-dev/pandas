@@ -9,7 +9,7 @@ jobs:
       ENV_FILE: ci/deps/circle-310-arm64.yaml
       PYTEST_WORKERS: auto
       PATTERN: "not single_cpu and not slow and not network and not clipboard and not arm_slow and not db"
-      PYTEST_TARGET: "pandas"
+      PYTEST_TARGET: "pandas/tests"
       PANDAS_CI: "1"
     steps:
       - checkout
