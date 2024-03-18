@@ -479,15 +479,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name = ibase.maybe_extract_name(name, data, type(self))
         na_value = na_value_for_dtype(pandas_dtype(dtype), compat=False)
 
-        # TODO 11: Investigate. This is an unknown type that must be converted to list.
-        if is_list_like(data) and not isinstance(data, Sized):
-            data = list(data)
-
         is_scalar = (
             not is_pandas_object
             and not is_array
             and not is_list_like(data)
             and not isinstance(data, SingleBlockManager)
+            and not (is_list_like(data) and not isinstance(data, Sized))  #
             and data is not None
         )
 
@@ -510,6 +507,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 else None
             )
 
+        if is_scalar and index is None:
+            data = [data]
+
+        # TODO 11: Investigate. This is an unknown type that must be converted to list.
+        if is_list_like(data) and not isinstance(data, Sized):
+            data = list(data)
+
         # Series TASK 4: COMMON INDEX MANIPULATION
 
         # Default empty Series with dtype
@@ -522,10 +526,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if data is None:
                 data = [] if dtype is None else data
 
-        if index is None and is_scalar:
-            data = [data]
+        # if index is None and is_scalar:
+        #     data = [data]
 
-        else:
+        if index is not None:
             if data is None:
                 # TODO FINAL: avoid using na_value
                 data = na_value if len(index) or dtype is not None else []
