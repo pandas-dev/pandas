@@ -46,7 +46,7 @@ endif
 
 # Needed by pandas.test() when it looks for the pytest ini options
 py.install_sources(
-    'pyproject.toml',
+    'pandas/pyproject.toml',
     subdir: 'pandas'
 )
 
