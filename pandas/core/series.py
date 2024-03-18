@@ -511,20 +511,28 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             )
 
         # Series TASK 4: COMMON INDEX MANIPULATION
+
+        # Default empty Series with dtype
+        if index is None:
+            if data is None and dtype is not None:
+                index = default_index(0)
+        else:
+            index = ensure_index(index)
+
+        # Series TASK 4: COMMON INDEX MANIPULATION   ** this will have data manipulation
         if index is None:
             if data is None:
                 data = [] if dtype is None else data
-                index = default_index(0) if dtype is not None else index
 
-            if is_scalar:  # None is scalar
+            if is_scalar:
                 data = [data]
 
             if not isinstance(data, (Series, SingleBlockManager)):
                 index = index if index is not None else default_index(len(data))
 
         else:
-            index = ensure_index(index)
             if data is None:
+                # TODO FINAL: avoid using na_value
                 data = na_value if len(index) or dtype is not None else []
 
         list_like_input = False
