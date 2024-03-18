@@ -142,7 +142,7 @@ def get_locales(
     """
     if platform.system() in ("Linux", "Darwin"):
         # raw_locales = subprocess.check_output(["locale", "-a"])
-        raw_locales = b""
+        raw_locales = []
     else:
         # Other platforms e.g. windows platforms don't define "locale -a"
         #  Note: is_platform_windows causes circular import here
