@@ -516,19 +516,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if index is None:
             if data is None and dtype is not None:
                 index = default_index(0)
-        else:
-            index = ensure_index(index)
 
         # Series TASK 4: COMMON INDEX MANIPULATION   ** this will have data manipulation
         if index is None:
             if data is None:
                 data = [] if dtype is None else data
 
-            if is_scalar:
-                data = [data]
-
-            # if not isinstance(data, (Series, SingleBlockManager)):
-            #     index = index if index is not None else default_index(len(data))
+        if index is None and is_scalar:
+            data = [data]
 
         else:
             if data is None:
@@ -538,6 +533,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if index is None:
             if not isinstance(data, (Series, SingleBlockManager)):
                 index = index if index is not None else default_index(len(data))
+
+        if index is not None:
+            index = ensure_index(index)
 
         list_like_input = False
         require_manager = True
