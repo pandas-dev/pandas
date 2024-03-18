@@ -615,6 +615,23 @@ class TestSeriesConstructors:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", ["M8[s]", "M8[ms]", "M8[us]", "M8[ns]"])
+    def test_constructor_str_object_datetime_array(self, dtype):
+        # GH 57512
+        dt_arr = np.array(
+            [
+                "2024-01-03T00:00:00.000000000",
+                "2024-01-01T00:00:00.000000000",
+            ],
+            dtype=dtype,
+        )
+        result = Series(Series(dt_arr, dtype=str), dtype=dtype)
+        expected = Series(dt_arr, dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+        result = Series(Series(dt_arr, dtype=object), dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
     def test_constructor_maskedarray_hardened(self):
         # Check numpy masked arrays with hard masks -- from GH24574
         data = ma.masked_all((3,), dtype=float).harden_mask()
