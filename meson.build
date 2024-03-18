@@ -27,6 +27,10 @@ add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language : 'cpp')
 add_project_arguments('-DNPY_TARGET_VERSION=NPY_1_21_API_VERSION', language : 'c')
 add_project_arguments('-DNPY_TARGET_VERSION=NPY_1_21_API_VERSION', language : 'cpp')
 
+if build_machine.system() == 'darwin'
+    #  error: pragma diagnostic pop could not pop, no matching push
+    add_project_arguments('-Wno-unknown-pragmas')
+endif
 
 if fs.exists('_version_meson.py')
     py.install_sources('_version_meson.py', subdir: 'pandas')

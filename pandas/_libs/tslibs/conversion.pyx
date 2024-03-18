@@ -105,7 +105,7 @@ def cast_from_unit_vectorized(
         int64_t m
         int p
         NPY_DATETIMEUNIT in_reso, out_reso
-        Py_ssize_t i
+        Py_ssize_t i = 0
 
     assert values.dtype.kind == "f"
 
@@ -148,9 +148,8 @@ def cast_from_unit_vectorized(
     if p:
         frac = np.round(frac, p)
 
-    rng = range(len(values))
     try:
-        for i in rng:
+        for i in range(len(values)):
             if base[i] == NPY_NAT:
                 out[i] = NPY_NAT
             else:
