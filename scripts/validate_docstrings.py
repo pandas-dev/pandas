@@ -365,7 +365,7 @@ def print_validate_all_results(
         error_messages = dict(res["errors"])
         actual_failures = set(error_messages)
         expected_failures = (ignore_errors.get(func_name, set())
-                             | ignore_errors.get("*", set()))
+                             | ignore_errors.get(None, set()))
         for err_code in actual_failures - expected_failures:
             sys.stdout.write(
                 f'{prefix}{res["file"]}:{res["file_line"]}:'
@@ -383,7 +383,8 @@ def print_validate_all_results(
     return exit_status
 
 
-def print_validate_one_results(func_name: str) -> int:
+def print_validate_one_results(func_name: str,
+                               ignore_errors: dict[str, set[str]]) -> int:
     def header(title, width=80, char="#") -> str:
         full_line = char * width
         side_len = (width - len(title) - 2) // 2
@@ -393,6 +394,9 @@ def print_validate_one_results(func_name: str) -> int:
         return f"\n{full_line}\n{title_line}\n{full_line}\n\n"
 
     result = pandas_validate(func_name)
+
+    result["errors"] = [(code, message) for code, message in result["errors"]
+                        if code not in ignore_errors.get(None, set())]
 
     sys.stderr.write(header(f"Docstring ({func_name})"))
     sys.stderr.write(f"{result['docstring']}\n")
@@ -415,9 +419,13 @@ def print_validate_one_results(func_name: str) -> int:
 def _format_ignore_errors(raw_ignore_errors):
     ignore_errors = collections.defaultdict(set)
     if raw_ignore_errors:
-        for obj_name, error_codes in raw_ignore_errors:
+        for error_codes in raw_ignore_errors:
+            obj_name = None
+            if " " in error_codes:
+                obj_name, error_codes = error_codes.split(" ")
+
             # function errors "pandas.Series PR01,SA01"
-            if obj_name != "*":
+            if obj_name:
                 if obj_name in ignore_errors:
                     raise ValueError(
                         f"Object `{obj_name}` is present in more than one "
@@ -433,7 +441,7 @@ def _format_ignore_errors(raw_ignore_errors):
 
             # global errors "PR02,ES01"
             else:
-                ignore_errors["*"].update(set(error_codes.split(",")))
+                ignore_errors[None].update(set(error_codes.split(",")))
 
         unknown_errors = ignore_errors["*"] - ALL_ERRORS
         if unknown_errors:
@@ -462,7 +470,7 @@ def main(
             ignore_errors
         )
     else:
-        return print_validate_one_results(func_name)
+        return print_validate_one_results(func_name, ignore_errors)
 
 
 if __name__ == "__main__":
@@ -505,11 +513,10 @@ if __name__ == "__main__":
         "-i",
         default=None,
         action="append",
-        nargs=2,
-        metavar=("function", "error_codes"),
-        help="function for which comma separated list "
-        "of error codes should not be validated"
-        "(e.g. pandas.DataFrame.head PR01,SA01). "
+        help="comma-separated list of error codes "
+        "(e.g. 'PR02,SA01'), with optional object path "
+        "to ignore errors for a single object "
+        "(e.g. pandas.DataFrame.head PR02,SA01). "
         "Partial validation for more than one function"
         "can be achieved by repeating this parameter.",
     )
