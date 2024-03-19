@@ -153,18 +153,12 @@ jobs:
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
       if: ${{ matrix.name != 'Pypy' }}
-      with:
-        preload: ${{ matrix.preload }}
-        asan_options: ${{ matrix.asan_options }}
       env:
         # Set pattern to not single_cpu if not already set
         PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
 
     - name: Test (single_cpu)
       uses: ./.github/actions/run-tests
-      with:
-        preload: ${{ matrix.preload }}
-        asan_options: ${{ matrix.asan_options }}
       env:
         PATTERN: 'single_cpu'
         PYTEST_WORKERS: 0
