@@ -742,7 +742,7 @@ class NumpyStringArray(BaseNumpyStringArray):
              (arr_values.dtype.char == "S"))):
             raise ValueError(self._ctor_err_msg)
         try:
-            str_values = arr_values.astype(default_dtype)
+            str_values = arr_values.astype(default_dtype, copy=copy)
         except ValueError:
             # we want to emulate ObjectStringArray, which accepts nan and None
             # as valid missing values
@@ -777,8 +777,8 @@ class NumpyStringArray(BaseNumpyStringArray):
         else:
             result = arr.astype(get_numpy_string_dtype_instance(), copy=False)
 
-        # Manually creating new array avoids the validation step in the __init__, so is
-        # faster. Refactor need for validation?
+        # Manually creating with new array avoids the validation step in the
+        # __init__, so is faster. Refactor need for validation?
         new_string_array = cls.__new__(cls)
         NDArrayBacked.__init__(
             new_string_array, result, StringDtype(storage=cls._storage)
