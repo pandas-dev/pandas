@@ -544,50 +544,43 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # # Series TASK 6: DETAILS FOR SERIES AND MANAGER. CREATES OTHERWISE
         list_like_input = False
 
-        if isinstance(data, (Series, SingleBlockManager)):
+        if isinstance(data, Series):
             require_manager = False
-            if isinstance(data, Series):
-                # copy logic is delicate and maybe has no been fully implemented.
-                # Each data instance has it's own logic.
-                copy = True if original_index is None else False
-                deep = not copy
+            # copy logic is delicate and maybe has no been fully implemented.
+            # Each data instance has it's own logic.
+            copy = True if original_index is None else False
+            deep = not copy
 
-                if original_index is not None:
-                    data = data.reindex(index)  # Copy the manager
-                    index = data.index
+            if original_index is not None:
+                data = data.reindex(index)  # Copy the manager
+                index = data.index
 
-                data = data._mgr
+            data = data._mgr
 
-            elif isinstance(data, SingleBlockManager):
-                fast_path_manager = (
-                    original_index is None and not copy and dtype is None
-                )
+        elif isinstance(data, SingleBlockManager):
+            require_manager = False
+            fast_path_manager = original_index is None and not copy and dtype is None
 
-        else:
-            require_manager = True
-            if isinstance(data, Index):
-                if dtype is not None:
-                    data = data.astype(dtype)
+        elif isinstance(data, Index):
+            if dtype is not None:
+                data = data.astype(dtype)
 
-                refs = data._references
-                data = data._values
-                copy = False
+            refs = data._references
+            data = data._values
+            copy = False
 
-            elif is_array:
-                pass
+        elif is_array:
+            pass
 
-            elif is_list_like(data):
-                list_like_input = True
+        elif is_list_like(data):
+            list_like_input = True
 
-            # list_like_input = (not isinstance(data, (Series, SingleBlockManager))
-            #                 #    and not isinstance(data, Index)
-            #                    and not is_array
-            #                    and not isinstance(data, np.ndarray)
-            #                    and is_list_like(data)
-            #                    )
-
+        # Series TASK 7: COPYING THE MANAGER.
+        if require_manager:
             # GH 29405: Pre-2.0, this defaulted to float.
-            default_empty_series = list_like_input and dtype is None and not len(data)
+            default_empty_series = False
+            if list_like_input:
+                default_empty_series = dtype is None and not len(data)
 
             dtype = np.dtype(object) if default_empty_series else dtype
 
@@ -595,8 +588,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if is_list_like(data):
                 com.require_length_match(data, index)
 
-        # Series TASK 7: COPYING THE MANAGER.
-        if require_manager:
             if is_array and copy_arrays:
                 if copy_arrays:
                     if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
