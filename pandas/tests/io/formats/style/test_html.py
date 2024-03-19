@@ -9,7 +9,6 @@ import pytest
 from pandas import (
     DataFrame,
     MultiIndex,
-    Series,
     option_context,
 )
 
@@ -33,6 +32,16 @@ def styler():
 def styler_mi():
     midx = MultiIndex.from_product([["a", "b"], ["c", "d"]])
     return Styler(DataFrame(np.arange(16).reshape(4, 4), index=midx, columns=midx))
+
+
+@pytest.fixture
+def styler_multi():
+    df = DataFrame(
+        data=np.arange(16).reshape(4, 4),
+        columns=MultiIndex.from_product([["A", "B"], ["a", "b"]], names=["A&", "b&"]),
+        index=MultiIndex.from_product([["X", "Y"], ["x", "y"]], names=["X>", "y_"]),
+    )
+    return Styler(df)
 
 
 @pytest.fixture
@@ -1008,51 +1017,80 @@ def test_to_html_na_rep_non_scalar_data(datapath):
 
 @pytest.mark.parametrize("escape_axis_0", [True, False])
 @pytest.mark.parametrize("escape_axis_1", [True, False])
-def test_format_index_names(escape_axis_0, escape_axis_1):
-    index = Series(["a", "b"], name=">c_name")
-    columns = Series(["A"], name="col_name>")
-    df = DataFrame([[2.61], [2.69]], index=index, columns=columns)
-    styler = Styler(df)
-
+def test_format_index_names(styler_multi, escape_axis_0, escape_axis_1):
     if escape_axis_0:
-        styler.format_index_names(axis=0, escape="html")
-        expected_index = "&gt;c_name"
+        styler_multi.format_index_names(axis=0, escape="html")
+        expected_index = ["X&gt;", "y_"]
     else:
-        expected_index = ">c_name"
+        expected_index = ["X>", "y_"]
 
     if escape_axis_1:
-        styler.format_index_names(axis=1, escape="html")
-        expected_columns = "col_name&gt;"
+        styler_multi.format_index_names(axis=1, escape="html")
+        expected_columns = ["A&amp;", "b&amp;"]
     else:
-        expected_columns = "col_name>"
+        expected_columns = ["A&", "b&"]
 
-    result = styler.to_html(table_uuid="test")
-    expected = dedent(
-        f"""\
-        <style type="text/css">
-        </style>
-        <table id="T_test">
-          <thead>
-            <tr>
-              <th class="index_name level0" >{expected_columns}</th>
-              <th id="T_test_level0_col0" class="col_heading level0 col0" >A</th>
-            </tr>
-            <tr>
-              <th class="index_name level0" >{expected_index}</th>
-              <th class="blank col0" >&nbsp;</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th id="T_test_level0_row0" class="row_heading level0 row0" >a</th>
-              <td id="T_test_row0_col0" class="data row0 col0" >2.610000</td>
-            </tr>
-            <tr>
-              <th id="T_test_level0_row1" class="row_heading level0 row1" >b</th>
-              <td id="T_test_row1_col0" class="data row1 col0" >2.690000</td>
-            </tr>
-          </tbody>
-        </table>
-        """
-    )
+    result = styler_multi.to_html(table_uuid="test")
+    expected = f"""\
+<style type="text/css">
+</style>
+<table id="T_test">
+  <thead>
+    <tr>
+      <th class="blank" >&nbsp;</th>
+      <th class="index_name level0" >{expected_columns[0]}</th>
+      <th id="T_test_level0_col0" class="col_heading level0 col0" colspan="2">A</th>
+      <th id="T_test_level0_col2" class="col_heading level0 col2" colspan="2">B</th>
+    </tr>
+    <tr>
+      <th class="blank" >&nbsp;</th>
+      <th class="index_name level1" >{expected_columns[1]}</th>
+      <th id="T_test_level1_col0" class="col_heading level1 col0" >a</th>
+      <th id="T_test_level1_col1" class="col_heading level1 col1" >b</th>
+      <th id="T_test_level1_col2" class="col_heading level1 col2" >a</th>
+      <th id="T_test_level1_col3" class="col_heading level1 col3" >b</th>
+    </tr>
+    <tr>
+      <th class="index_name level0" >{expected_index[0]}</th>
+      <th class="index_name level1" >{expected_index[1]}</th>
+      <th class="blank col0" >&nbsp;</th>
+      <th class="blank col1" >&nbsp;</th>
+      <th class="blank col2" >&nbsp;</th>
+      <th class="blank col3" >&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_test_level0_row0" class="row_heading level0 row0" rowspan="2">X</th>
+      <th id="T_test_level1_row0" class="row_heading level1 row0" >x</th>
+      <td id="T_test_row0_col0" class="data row0 col0" >0</td>
+      <td id="T_test_row0_col1" class="data row0 col1" >1</td>
+      <td id="T_test_row0_col2" class="data row0 col2" >2</td>
+      <td id="T_test_row0_col3" class="data row0 col3" >3</td>
+    </tr>
+    <tr>
+      <th id="T_test_level1_row1" class="row_heading level1 row1" >y</th>
+      <td id="T_test_row1_col0" class="data row1 col0" >4</td>
+      <td id="T_test_row1_col1" class="data row1 col1" >5</td>
+      <td id="T_test_row1_col2" class="data row1 col2" >6</td>
+      <td id="T_test_row1_col3" class="data row1 col3" >7</td>
+    </tr>
+    <tr>
+      <th id="T_test_level0_row2" class="row_heading level0 row2" rowspan="2">Y</th>
+      <th id="T_test_level1_row2" class="row_heading level1 row2" >x</th>
+      <td id="T_test_row2_col0" class="data row2 col0" >8</td>
+      <td id="T_test_row2_col1" class="data row2 col1" >9</td>
+      <td id="T_test_row2_col2" class="data row2 col2" >10</td>
+      <td id="T_test_row2_col3" class="data row2 col3" >11</td>
+    </tr>
+    <tr>
+      <th id="T_test_level1_row3" class="row_heading level1 row3" >y</th>
+      <td id="T_test_row3_col0" class="data row3 col0" >12</td>
+      <td id="T_test_row3_col1" class="data row3 col1" >13</td>
+      <td id="T_test_row3_col2" class="data row3 col2" >14</td>
+      <td id="T_test_row3_col3" class="data row3 col3" >15</td>
+    </tr>
+  </tbody>
+</table>
+"""
     assert result == expected
