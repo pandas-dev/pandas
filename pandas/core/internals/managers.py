@@ -1550,8 +1550,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._blknos = np.append(self._blknos, len(self.blocks))
         elif loc == 0:
             # As of numpy 1.26.4, np.concatenate faster than np.append
-            self._blklocs = np.concatenate(([0], self._blklocs))
-            self._blknos = np.concatenate(([len(self.blocks)], self._blknos))
+            self._blklocs = np.concatenate([[0], self._blklocs])
+            self._blknos = np.concatenate([[len(self.blocks)], self._blknos])
         else:
             new_blklocs, new_blknos = libinternals.update_blklocs_and_blknos(
                 self.blklocs, self.blknos, loc, len(self.blocks)
