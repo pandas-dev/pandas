@@ -434,7 +434,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # DONE 18: Check if DataFrame.astype() copies. 'copy: bool, default True'.
 
         allow_mgr = False
-        fast_path_manager = False
         deep = True  # deep copy, by standard.
 
         # Series TASK 1: VALIDATE BASIC TYPES.
@@ -516,7 +515,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             data = list(data)
 
         # Series TASK 5: TRANSFORMATION ON INDEX
-        # TASK 5.A: ENSURE that there is always an index below. 'index is not == True'
+        # ENSURE that there is always an index below.
         # Except for Series, whose index can be None.
         original_index = index
         if index is None:
@@ -536,7 +535,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # WITH REQUISITES FOR COPYING AND MANAGER CREATION (WHEN NEEDED).
         list_like_input = False
         require_manager = True
-
+        fast_path_manager = False
         if data is None and len(index):
             data = na_value
 
@@ -574,11 +573,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # Series TASK 7: COPYING THE MANAGER.
         if require_manager:
             # GH 29405: Pre-2.0, this defaulted to float.
-            default_empty_series = False
-            if list_like_input:
-                default_empty_series = dtype is None and not len(data)
-
-            dtype = np.dtype(object) if default_empty_series else dtype
+            default_empty_series = list_like_input and not len(data) and dtype is None
+            if default_empty_series:
+                dtype = np.dtype(object)
 
             # Final requirements
             if is_list_like(data):
