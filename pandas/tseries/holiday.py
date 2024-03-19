@@ -223,7 +223,18 @@ class Holiday:
         self.year = year
         self.month = month
         self.day = day
-        self.offset = offset
+        if isinstance(offset, list):
+            self.offset = []
+            for off in offset:
+                # check if we are handling offsets of another holiday
+                if isinstance(off, list):
+                    self.offset.extend(np.ravel(off))
+                else:
+                    # otherwise it should be a DateOffset, we do not support other
+                    # array-like types
+                    self.offset.append(off)
+        else:
+            self.offset = offset
         self.start_date = (
             Timestamp(start_date) if start_date is not None else start_date
         )
