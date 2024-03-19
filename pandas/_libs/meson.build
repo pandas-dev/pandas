@@ -54,37 +54,25 @@ _intervaltree_helper = custom_target('intervaltree_helper_pxi',
         py, tempita, '@INPUT@', '-o', '@OUTDIR@'
     ]
 )
-
-_algos_pxi_dep = declare_dependency(sources: [_algos_take_helper, _algos_common_helper])
-_khash_pxi_dep = declare_dependency(sources: _khash_primitive_helper)
-_hashtable_pxi_dep = declare_dependency(
-    sources: [_hashtable_class_helper, _hashtable_func_helper]
-)
-_index_pxi_dep = declare_dependency(sources: _index_class_helper)
-_intervaltree_pxi_dep = declare_dependency(sources: _intervaltree_helper)
-_sparse_pxi_dep = declare_dependency(sources: _sparse_op_helper)
-
+_khash_primitive_helper_dep = declare_dependency(sources: _khash_primitive_helper)
 
 subdir('tslibs')
 
 libs_sources = {
     # Dict of extension name -> dict of {sources, include_dirs, and deps}
     # numpy include dir is implicitly included
-    'algos': {'sources': ['algos.pyx'],
-              'deps': [_khash_pxi_dep, _algos_pxi_dep]},
+    'algos': {'sources': ['algos.pyx', _algos_common_helper, _algos_take_helper], 'deps': _khash_primitive_helper_dep},
     'arrays': {'sources': ['arrays.pyx']},
     'groupby': {'sources': ['groupby.pyx']},
     'hashing': {'sources': ['hashing.pyx']},
-    'hashtable': {'sources': ['hashtable.pyx'],
-                  'deps': [_khash_pxi_dep, _hashtable_pxi_dep]},
-    'index': {'sources': ['index.pyx'],
-              'deps': [_khash_pxi_dep, _index_pxi_dep]},
+    'hashtable': {'sources': ['hashtable.pyx', _hashtable_class_helper, _hashtable_func_helper], 'deps': _khash_primitive_helper_dep},
+    'index': {'sources': ['index.pyx', _index_class_helper], 'deps': _khash_primitive_helper_dep},
     'indexing': {'sources': ['indexing.pyx']},
     'internals': {'sources': ['internals.pyx']},
-    'interval': {'sources': ['interval.pyx'],
-                 'deps': [_khash_pxi_dep, _intervaltree_pxi_dep]},
-    'join': {'sources': ['join.pyx'],
-             'deps': [_khash_pxi_dep]},
+    'interval': {'sources': ['interval.pyx', _intervaltree_helper],
+                 'deps': _khash_primitive_helper_dep},
+    'join': {'sources': ['join.pyx', _khash_primitive_helper],
+             'deps': _khash_primitive_helper_dep},
     'lib': {'sources': ['lib.pyx', 'src/parser/tokenizer.c']},
     'missing': {'sources': ['missing.pyx']},
     'pandas_datetime': {'sources': ['src/vendored/numpy/datetime/np_datetime.c',
@@ -95,7 +83,7 @@ libs_sources = {
                                   'src/parser/io.c',
                                   'src/parser/pd_parser.c']},
     'parsers': {'sources': ['parsers.pyx', 'src/parser/tokenizer.c', 'src/parser/io.c'],
-                'deps': [_khash_pxi_dep]},
+                'deps': _khash_primitive_helper_dep},
     'json': {'sources': ['src/vendored/ujson/python/ujson.c',
                          'src/vendored/ujson/python/objToJSON.c',
                          'src/vendored/ujson/python/JSONtoObj.c',
@@ -107,8 +95,7 @@ libs_sources = {
     'reshape': {'sources': ['reshape.pyx']},
     'sas': {'sources': ['sas.pyx']},
     'byteswap': {'sources': ['byteswap.pyx']},
-    'sparse': {'sources': ['sparse.pyx'],
-               'deps': [_sparse_pxi_dep]},
+    'sparse': {'sources': ['sparse.pyx', _sparse_op_helper]},
     'tslib': {'sources': ['tslib.pyx']},
     'testing': {'sources': ['testing.pyx']},
     'writers': {'sources': ['writers.pyx']}
