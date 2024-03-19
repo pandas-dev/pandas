@@ -22,7 +22,7 @@ class TestTZConvert:
         expected = DataFrame({"a": 1}, rng.tz_convert("Europe/Berlin"))
         expected = tm.get_obj(expected, frame_or_series)
 
-        assert result.index.tz.zone == "Europe/Berlin"
+        assert result.index.tz.key == "Europe/Berlin"
         tm.assert_equal(result, expected)
 
     def test_tz_convert_axis1(self):
@@ -32,7 +32,7 @@ class TestTZConvert:
 
         obj = obj.T
         result = obj.tz_convert("Europe/Berlin", axis=1)
-        assert result.columns.tz.zone == "Europe/Berlin"
+        assert result.columns.tz.key == "Europe/Berlin"
 
         expected = DataFrame({"a": 1}, rng.tz_convert("Europe/Berlin"))
 

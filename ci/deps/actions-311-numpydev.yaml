@@ -21,7 +21,6 @@ dependencies:
 
   # pandas dependencies
   - python-dateutil
-  - pytz
   - pip
 
   - pip:

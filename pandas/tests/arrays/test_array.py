@@ -1,10 +1,10 @@
 import datetime
 import decimal
 import re
+import zoneinfo
 
 import numpy as np
 import pytest
-import pytz
 
 import pandas as pd
 import pandas._testing as tm
@@ -272,9 +272,6 @@ def test_array_copy():
     assert tm.shares_memory(a, b)
 
 
-cet = pytz.timezone("CET")
-
-
 @pytest.mark.parametrize(
     "data, expected",
     [
@@ -313,11 +310,18 @@ cet = pytz.timezone("CET")
         ),
         (
             [
-                datetime.datetime(2000, 1, 1, tzinfo=cet),
-                datetime.datetime(2001, 1, 1, tzinfo=cet),
+                datetime.datetime(
+                    2000, 1, 1, tzinfo=zoneinfo.ZoneInfo("Europe/Berlin")
+                ),
+                datetime.datetime(
+                    2001, 1, 1, tzinfo=zoneinfo.ZoneInfo("Europe/Berlin")
+                ),
             ],
             DatetimeArray._from_sequence(
-                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz=cet, unit="ns")
+                ["2000", "2001"],
+                dtype=pd.DatetimeTZDtype(
+                    tz=zoneinfo.ZoneInfo("Europe/Berlin"), unit="ns"
+                ),
             ),
         ),
         # timedelta

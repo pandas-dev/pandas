@@ -2328,7 +2328,7 @@ Time zone handling
 ------------------
 
 pandas provides rich support for working with timestamps in different time
-zones using the ``pytz`` and ``dateutil`` libraries or :class:`datetime.timezone`
+zones using the ``zoneinfo``, ``pytz``, ``dateutil`` libraries or :class:`datetime.timezone`
 objects from the standard library.
 
 
@@ -2345,22 +2345,22 @@ By default, pandas objects are time zone unaware:
 To localize these dates to a time zone (assign a particular time zone to a naive date),
 you can use the ``tz_localize`` method or the ``tz`` keyword argument in
 :func:`date_range`, :class:`Timestamp`, or :class:`DatetimeIndex`.
-You can either pass ``pytz`` or ``dateutil`` time zone objects or Olson time zone database strings.
-Olson time zone strings will return ``pytz`` time zone objects by default.
+You can either pass ``zoneinfo``, ``pytz`` or ``dateutil`` time zone objects or Olson time zone database strings.
+Olson time zone strings will return :py:class:`zoneinfo.ZoneInfo` time zone objects by default.
 To return ``dateutil`` time zone objects, append ``dateutil/`` before the string.
 
-* In ``pytz`` you can find a list of common (and less common) time zones using
-  ``from pytz import common_timezones, all_timezones``.
+* For ``zoneinfo``, a list of available timezones are available from ``zoneinfo.available_timezones()``.
+* In ``pytz`` you can find a list of common (and less common) time zones using ``pytz.all_timezones``.
 * ``dateutil`` uses the OS time zones so there isn't a fixed list available. For
-  common zones, the names are the same as ``pytz``.
+   common zones, the names are the same as ``pytz`` and ``zoneinfo``.
 
 .. ipython:: python
 
    import dateutil
 
-   # pytz
-   rng_pytz = pd.date_range("3/6/2012 00:00", periods=3, freq="D", tz="Europe/London")
-   rng_pytz.tz
+   # zoneinfo
+   rng_zinfo = pd.date_range("3/6/2012 00:00", periods=3, freq="D", tz="Europe/London")
+   rng_zinfo.tz
 
    # dateutil
    rng_dateutil = pd.date_range("3/6/2012 00:00", periods=3, freq="D")
@@ -2457,7 +2457,7 @@ you can use the ``tz_convert`` method.
 
 .. warning::
 
-    If you are using dates beyond 2038-01-18, due to current deficiencies
+    If you are using dates beyond 2038-01-18 with ``pytz``, due to current deficiencies
     in the underlying libraries caused by the year 2038 problem, daylight saving time (DST) adjustments
     to timezone aware dates will not be applied. If and when the underlying libraries are fixed,
     the DST transitions will be applied.
@@ -2466,9 +2466,11 @@ you can use the ``tz_convert`` method.
 
     .. ipython:: python
 
+       import pytz
+
        d_2037 = "2037-03-31T010101"
        d_2038 = "2038-03-31T010101"
-       DST = "Europe/London"
+       DST = pytz.timezone("Europe/London")
        assert pd.Timestamp(d_2037, tz=DST) != pd.Timestamp(d_2037, tz="GMT")
        assert pd.Timestamp(d_2038, tz=DST) == pd.Timestamp(d_2038, tz="GMT")
 
@@ -2558,7 +2560,7 @@ Ambiguous times when localizing
 because daylight savings time (DST) in a local time zone causes some times to occur
 twice within one day ("clocks fall back"). The following options are available:
 
-* ``'raise'``: Raises a ``pytz.AmbiguousTimeError`` (the default behavior)
+* ``'raise'``: Raises an :class:`errors.AmbiguousTimeError` (the default behavior)
 * ``'infer'``: Attempt to determine the correct offset base on the monotonicity of the timestamps
 * ``'NaT'``: Replaces ambiguous times with ``NaT``
 * ``bool``: ``True`` represents a DST time, ``False`` represents non-DST time. An array-like of ``bool`` values is supported for a sequence of times.
@@ -2593,7 +2595,7 @@ A DST transition may also shift the local time ahead by 1 hour creating nonexist
 local times ("clocks spring forward"). The behavior of localizing a timeseries with nonexistent times
 can be controlled by the ``nonexistent`` argument. The following options are available:
 
-* ``'raise'``: Raises a ``pytz.NonExistentTimeError`` (the default behavior)
+* ``'raise'``: Raises a :class:`errors.NonExistentTimeError` (the default behavior)
 * ``'NaT'``: Replaces nonexistent times with ``NaT``
 * ``'shift_forward'``: Shifts nonexistent times forward to the closest real time
 * ``'shift_backward'``: Shifts nonexistent times backward to the closest real time

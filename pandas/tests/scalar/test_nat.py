@@ -3,10 +3,10 @@ from datetime import (
     timedelta,
 )
 import operator
+import zoneinfo
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs import iNaT
 from pandas.compat.numpy import np_version_gte1p24p3
@@ -361,7 +361,7 @@ _ops = {
         (Timestamp("2014-01-01"), "timestamp"),
         (Timestamp("2014-01-01", tz="UTC"), "timestamp"),
         (Timestamp("2014-01-01", tz="US/Eastern"), "timestamp"),
-        (pytz.timezone("Asia/Tokyo").localize(datetime(2014, 1, 1)), "timestamp"),
+        (datetime(2014, 1, 1).astimezone(zoneinfo.ZoneInfo("Asia/Tokyo")), "timestamp"),
     ],
 )
 def test_nat_arithmetic_scalar(op_name, value, val_type):

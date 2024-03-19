@@ -14,6 +14,7 @@ from pandas.compat.pyarrow import (
     pa_version_under11p0,
     pa_version_under13p0,
     pa_version_under15p0,
+    pa_version_under16p0,
 )
 
 import pandas as pd
@@ -938,7 +939,10 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa, write_kwargs={"version": ver})
 
     def test_timezone_aware_index(self, request, pa, timezone_aware_date_list):
-        if timezone_aware_date_list.tzinfo != datetime.timezone.utc:
+        if (
+            timezone_aware_date_list.tzinfo != datetime.timezone.utc
+            and pa_version_under16p0
+        ):
             request.applymarker(
                 pytest.mark.xfail(
                     reason="temporary skip this test until it is properly resolved: "
@@ -1107,9 +1111,11 @@ class TestParquetPyArrow(Base):
 
 class TestParquetFastParquet(Base):
     def test_basic(self, fp, df_full):
+        pytz = pytest.importorskip("pytz")
+        tz = pytz.timezone("US/Eastern")
         df = df_full
 
-        dti = pd.date_range("20130101", periods=3, tz="US/Eastern")
+        dti = pd.date_range("20130101", periods=3, tz=tz)
         dti = dti._with_freq(None)  # freq doesn't round-trip
         df["datetime_tz"] = dti
         df["timedelta"] = pd.timedelta_range("1 day", periods=3)

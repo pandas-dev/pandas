@@ -561,4 +561,4 @@ class TestDataFrameJoin:
         expected = test1.index.union(test2.index)
 
         tm.assert_index_equal(result.index, expected)
-        assert result.index.tz.zone == "US/Central"
+        assert result.index.tz.key == "US/Central"
