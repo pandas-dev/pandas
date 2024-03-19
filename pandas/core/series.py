@@ -489,7 +489,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
         # Series TASK 4: DATA TRANSFORMATIONS.
-        if is_dict_like(data) and not is_pandas_object:
+        if is_dict_like(data) and not is_pandas_object and data is not None:
             # COMMENT: Dict is SPECIAL case, since it's data has
             # data values and index keys.
             # Here it is being sent to Series, but it could different, for simplicity.
@@ -497,15 +497,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
             # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
             # raises KeyError). Send it to Series for "standard" construction:
-            data = (
-                Series(
+
+            # index = tuple(data.keys()) consumes more memory (up to 25%).
+            if data:
+                data = Series(
                     data=list(data.values()),
-                    index=tuple(data.keys()),
+                    index=data.keys(),
                     dtype=dtype,
                 )
-                if data
-                else None
-            )
+            else:
+                data = None
 
         if is_scalar and index is None:
             data = [data]
@@ -541,6 +542,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # Series TASK 6: DETAILS FOR SERIES AND MANAGER. CREATES OTHERWISE
         list_like_input = False
+
         if isinstance(data, (Series, SingleBlockManager)):
             require_manager = False
             if isinstance(data, Series):
@@ -585,14 +587,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # Series TASK 7: COPYING THE MANAGER.
         if require_manager:
-            # # Final requirements
-            # if is_list_like(data):
-            #     com.require_length_match(data, index)
-
-            # # GH 29405: Pre-2.0, this defaulted to float.
-            # empty_series = list_like_input and dtype is None and not len(data)
-            # dtype = np.dtype(object) if empty_series else dtype
-
             if is_array and copy_arrays:
                 if copy_arrays:
                     if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
