@@ -16,6 +16,7 @@ Usage::
 from __future__ import annotations
 
 import argparse
+import collections
 import doctest
 import importlib
 import json
@@ -65,6 +66,10 @@ ERROR_MSGS = {
     "EX04": "Do not import {imported_library}, as it is imported "
     "automatically for the examples (numpy as np, pandas as pd)",
 }
+ALL_ERRORS = set(NUMPYDOC_ERROR_MSGS).union(set(ERROR_MSGS))
+duplicated_errors = set(NUMPYDOC_ERROR_MSGS).intersection(set(ERROR_MSGS))
+assert not duplicated_errors, (f"Errors {duplicated_errors} exist in both pandas "
+                               "and numpydoc, should they be removed from pandas?")
 
 
 def pandas_error(code, **kwargs):
@@ -340,9 +345,8 @@ def get_all_api_items():
 def print_validate_all_results(
     output_format: str,
     prefix: str | None,
-    errors: list[str] | None,
     ignore_deprecated: bool,
-    ignore_errors: dict[str, list[str]] | None,
+    ignore_errors: dict[str, set[str]],
 ):
     if output_format not in ("default", "json", "actions"):
         raise ValueError(f'Unknown output_format "{output_format}"')
@@ -358,22 +362,28 @@ def print_validate_all_results(
     prefix = "##[error]" if output_format == "actions" else ""
     exit_status = 0
     for func_name, res in result.items():
-        for err_code, err_desc in res["errors"]:
-            is_not_requested_error = errors and err_code not in errors
-            is_ignored_error = err_code in ignore_errors.get(func_name, [])
-            if is_not_requested_error or is_ignored_error:
-                continue
-
+        error_messages = dict(res["errors"])
+        actual_failures = set(error_messages)
+        expected_failures = (ignore_errors.get(func_name, set())
+                             | ignore_errors.get("*", set()))
+        for err_code in actual_failures - expected_failures:
             sys.stdout.write(
                 f'{prefix}{res["file"]}:{res["file_line"]}:'
-                f"{err_code}:{func_name}:{err_desc}\n"
+                f'{err_code}:{func_name}:{error_messages[err_code]}\n'
+            )
+            exit_status += 1
+        for err_code in ignore_errors.get(func_name, set()) - actual_failures:
+            sys.stdout.write(
+                f'{prefix}{res["file"]}:{res["file_line"]}:'
+                f"{err_code}:{func_name}:"
+                "EXPECTED TO FAIL, BUT NOT FAILING\n"
             )
             exit_status += 1
 
     return exit_status
 
 
-def print_validate_one_results(func_name: str) -> None:
+def print_validate_one_results(func_name: str) -> int:
     def header(title, width=80, char="#") -> str:
         full_line = char * width
         side_len = (width - len(title) - 2) // 2
@@ -399,20 +409,45 @@ def print_validate_one_results(func_name: str) -> None:
         sys.stderr.write(header("Doctests"))
         sys.stderr.write(result["examples_errs"])
 
+    return len(result["errors"]) + len(result["examples_errs"])
 
-def validate_error_codes(errors):
-    overlapped_errors = set(NUMPYDOC_ERROR_MSGS).intersection(set(ERROR_MSGS))
-    assert not overlapped_errors, f"{overlapped_errors} is overlapped."
-    all_errors = set(NUMPYDOC_ERROR_MSGS).union(set(ERROR_MSGS))
-    nonexistent_errors = set(errors) - all_errors
-    assert not nonexistent_errors, f"{nonexistent_errors} don't exist."
+
+def _format_ignore_errors(raw_ignore_errors):
+    ignore_errors = collections.defaultdict(set)
+    if raw_ignore_errors:
+        for obj_name, error_codes in raw_ignore_errors:
+            # function errors "pandas.Series PR01,SA01"
+            if obj_name != "*":
+                if obj_name in ignore_errors:
+                    raise ValueError(
+                        f"Object `{obj_name}` is present in more than one "
+                        "--ignore_errors argument. Please use it once and specify "
+                        "the errors separated by commas.")
+                ignore_errors[obj_name] = set(error_codes.split(","))
+
+                unknown_errors = ignore_errors[obj_name] - ALL_ERRORS
+                if unknown_errors:
+                    raise ValueError(
+                        f"Object `{obj_name}` is ignoring errors {unknown_errors} "
+                        f"which are not known. Known errors are: {ALL_ERRORS}")
+
+            # global errors "PR02,ES01"
+            else:
+                ignore_errors["*"].update(set(error_codes.split(",")))
+
+        unknown_errors = ignore_errors["*"] - ALL_ERRORS
+        if unknown_errors:
+            raise ValueError(
+                f"Unknown errors {unknown_errors} specified using --ignore_errors "
+                "Known errors are: {ALL_ERRORS}")
+
+    return ignore_errors
 
 
 def main(
     func_name,
     output_format,
     prefix,
-    errors,
     ignore_deprecated,
     ignore_errors
 ):
@@ -420,31 +455,14 @@ def main(
     Main entry point. Call the validation for one or for all docstrings.
     """
     if func_name is None:
-        error_str = ", ".join(errors)
-        msg = f"Validate docstrings ({error_str})\n"
-    else:
-        msg = f"Validate docstring in function {func_name}\n"
-    sys.stdout.write(msg)
-
-    validate_error_codes(errors)
-    if ignore_errors is not None:
-        for error_codes in ignore_errors.values():
-            validate_error_codes(error_codes)
-
-    if func_name is None:
-        exit_status = print_validate_all_results(
+        return print_validate_all_results(
             output_format,
             prefix,
-            errors,
             ignore_deprecated,
             ignore_errors
         )
     else:
-        print_validate_one_results(func_name)
-        exit_status = 0
-    sys.stdout.write(msg + "DONE" + os.linesep)
-
-    return exit_status
+        return print_validate_one_results(func_name)
 
 
 if __name__ == "__main__":
@@ -475,14 +493,6 @@ if __name__ == "__main__":
         "ignored if parameter function is provided",
     )
     argparser.add_argument(
-        "--errors",
-        default=None,
-        help="comma separated "
-        "list of error codes to validate. By default it "
-        "validates all errors (ignored when validating "
-        "a single docstring)",
-    )
-    argparser.add_argument(
         "--ignore_deprecated",
         default=False,
         action="store_true",
@@ -492,6 +502,7 @@ if __name__ == "__main__":
     )
     argparser.add_argument(
         "--ignore_errors",
+        "-i",
         default=None,
         action="append",
         nargs=2,
@@ -504,18 +515,11 @@ if __name__ == "__main__":
     )
     args = argparser.parse_args(sys.argv[1:])
 
-    args.errors = args.errors.split(",") if args.errors else None
-    if args.ignore_errors:
-        args.ignore_errors = {function: error_codes.split(",")
-                              for function, error_codes
-                              in args.ignore_errors}
-
     sys.exit(
         main(args.function,
              args.format,
              args.prefix,
-             args.errors,
              args.ignore_deprecated,
-             args.ignore_errors
+             _format_ignore_errors(args.ignore_errors),
              )
     )
