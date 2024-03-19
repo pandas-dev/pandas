@@ -537,11 +537,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         list_like_input = False
         require_manager = True
 
-        if data is None:
-            if len(index):
-                data = na_value
+        if data is None and len(index):
+            data = na_value
 
-        if isinstance(data, Series):
+        elif isinstance(data, Series):
             require_manager = False
             # copy logic is delicate and maybe has no been fully implemented.
             # Each data instance has it's own logic.
