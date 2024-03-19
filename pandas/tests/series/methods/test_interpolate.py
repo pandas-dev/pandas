@@ -344,7 +344,7 @@ class TestSeriesInterpolateData:
     def test_interp_invalid_method(self, invalid_method):
         s = Series([1, 3, np.nan, 12, np.nan, 25])
 
-        msg = f"method must be one of.* Got '{invalid_method}' instead"
+        msg = "Can not interpolate with method=nonexistent_method"
         if invalid_method is None:
             msg = "'method' should be a string, not None"
         with pytest.raises(ValueError, match=msg):
@@ -354,14 +354,6 @@ class TestSeriesInterpolateData:
         # provided, the error message reflects the invalid method.
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method=invalid_method, limit=-1)
-
-    def test_interp_invalid_method_and_value(self):
-        # GH#36624
-        ser = Series([1, 3, np.nan, 12, np.nan, 25])
-
-        msg2 = "Series cannot interpolate with method=pad"
-        with pytest.raises(ValueError, match=msg2):
-            ser.interpolate(fill_value=3, method="pad")
 
     def test_interp_limit_forward(self):
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
@@ -485,7 +477,7 @@ class TestSeriesInterpolateData:
         # GH26796
 
         s = Series(data)
-        msg = "Series cannot interpolate with method=pad"
+        msg = "Can not interpolate with method=pad"
         with pytest.raises(ValueError, match=msg):
             s.interpolate(**kwargs)
 
@@ -514,7 +506,7 @@ class TestSeriesInterpolateData:
         # GH26796
         s = Series(data)
 
-        msg = "Series cannot interpolate with method=bfill"
+        msg = "Can not interpolate with method=bfill"
         with pytest.raises(ValueError, match=msg):
             s.interpolate(**kwargs)
 
@@ -620,7 +612,7 @@ class TestSeriesInterpolateData:
             )
             tm.assert_series_equal(result, expected)
         else:
-            msg = "Series cannot interpolate with method=pad"
+            msg = "Can not interpolate with method=pad"
             with pytest.raises(ValueError, match=msg):
                 df.interpolate(method=method)
 
@@ -630,7 +622,7 @@ class TestSeriesInterpolateData:
         ser = Series(dti)
         ser[1] = pd.NaT
 
-        msg = "Series cannot interpolate with method=pad"
+        msg = "Can not interpolate with method=pad"
         with pytest.raises(ValueError, match=msg):
             ser.interpolate(method="pad")
 

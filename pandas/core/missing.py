@@ -322,6 +322,9 @@ def get_interp_index(method, index: Index) -> Index:
             or isinstance(index.dtype, DatetimeTZDtype)
             or lib.is_np_dtype(index.dtype, "mM")
         )
+        valid = NP_METHODS + SP_METHODS
+        if method not in valid:
+            raise ValueError(f"Can not interpolate with method={method}.")
         if method not in methods and not is_numeric_or_datetime:
             raise ValueError(
                 "Index column must be numeric or datetime type when "

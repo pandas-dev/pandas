@@ -7788,37 +7788,30 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if not isinstance(method, str):
             raise ValueError("'method' should be a string, not None.")
 
-        fillna_methods = ["ffill", "bfill", "pad", "backfill"]
-        if method.lower() not in fillna_methods:
-            obj, should_transpose = (self.T, True) if axis == 1 else (self, False)
-            # GH#53631
-            if np.any(obj.dtypes == object):
-                raise TypeError(
-                    f"{type(self).__name__} cannot interpolate with object dtype."
-                )
+        obj, should_transpose = (self.T, True) if axis == 1 else (self, False)
+        # GH#53631
+        if np.any(obj.dtypes == object):
+            raise TypeError(
+                f"{type(self).__name__} cannot interpolate with object dtype."
+            )
 
-            if isinstance(obj.index, MultiIndex) and method != "linear":
-                raise ValueError(
-                    "Only `method=linear` interpolation is supported on MultiIndexes."
-                )
+        if isinstance(obj.index, MultiIndex) and method != "linear":
+            raise ValueError(
+                "Only `method=linear` interpolation is supported on MultiIndexes."
+            )
 
         limit_direction = missing.infer_limit_direction(limit_direction, method)
 
-        if method.lower() in fillna_methods:
-            raise ValueError(
-                f"{type(self).__name__} cannot interpolate with method={method}."
-            )
-        else:
-            index = missing.get_interp_index(method, obj.index)
-            new_data = obj._mgr.interpolate(
-                method=method,
-                index=index,
-                limit=limit,
-                limit_direction=limit_direction,
-                limit_area=limit_area,
-                inplace=inplace,
-                **kwargs,
-            )
+        index = missing.get_interp_index(method, obj.index)
+        new_data = obj._mgr.interpolate(
+            method=method,
+            index=index,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            inplace=inplace,
+            **kwargs,
+        )
 
         result = self._constructor_from_mgr(new_data, axes=new_data.axes)
         if should_transpose:

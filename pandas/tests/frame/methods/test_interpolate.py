@@ -129,13 +129,7 @@ class TestDataFrameInterpolate:
                 "C": [1, 2, 3, 5],
             }
         )
-        msg = (
-            r"method must be one of \['linear', 'time', 'index', 'values', "
-            r"'nearest', 'zero', 'slinear', 'quadratic', 'cubic', "
-            r"'barycentric', 'krogh', 'spline', 'polynomial', "
-            r"'from_derivatives', 'piecewise_polynomial', 'pchip', 'akima', "
-            r"'cubicspline'\]. Got 'not_a_method' instead."
-        )
+        msg = "Can not interpolate with method=not_a_method"
         with pytest.raises(ValueError, match=msg):
             df.interpolate(method="not_a_method")
 
@@ -398,7 +392,7 @@ class TestDataFrameInterpolate:
             df["D"] = np.nan
             df["E"] = 1.0
 
-        msg = f"DataFrame cannot interpolate with method={method}"
+        msg = f"Can not interpolate with method={method}"
         with pytest.raises(ValueError, match=msg):
             df.interpolate(method=method, axis=axis)
 

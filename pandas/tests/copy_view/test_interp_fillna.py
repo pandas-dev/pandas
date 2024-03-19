@@ -20,7 +20,7 @@ def test_interpolate_no_op(method):
     df_orig = df.copy()
 
     if method == "pad":
-        msg = f"DataFrame cannot interpolate with method={method}"
+        msg = f"Can not interpolate with method={method}"
         with pytest.raises(ValueError, match=msg):
             df.interpolate(method=method)
     else:
@@ -121,9 +121,6 @@ def test_interpolate_cannot_with_object_dtype():
 def test_interpolate_object_convert_no_op():
     df = DataFrame({"a": ["a", "b", "c"], "b": 1})
     arr_a = get_array(df, "a")
-    msg = "DataFrame cannot interpolate with method=pad"
-    with pytest.raises(ValueError, match=msg):
-        df.interpolate(method="pad", inplace=True)
 
     # Now CoW makes a copy, it should not!
     assert df._mgr._has_no_reference(0)
@@ -133,7 +130,7 @@ def test_interpolate_object_convert_no_op():
 def test_interpolate_object_convert_copies():
     df = DataFrame({"a": [1, np.nan, 2.5], "b": 1})
     arr_a = get_array(df, "a")
-    msg = "DataFrame cannot interpolate with method=pad"
+    msg = "Can not interpolate with method=pad"
     with pytest.raises(ValueError, match=msg):
         df.interpolate(method="pad", inplace=True, downcast="infer")
 
@@ -147,7 +144,7 @@ def test_interpolate_downcast_reference_triggers_copy():
     arr_a = get_array(df, "a")
     view = df[:]
 
-    msg = "DataFrame cannot interpolate with method=pad"
+    msg = "Can not interpolate with method=pad"
     with pytest.raises(ValueError, match=msg):
         df.interpolate(method="pad", inplace=True, downcast="infer")
         assert df._mgr._has_no_reference(0)
