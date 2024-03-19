@@ -385,10 +385,9 @@ have a class defined like this:
 
 Back in an interactive IPython session:
 
->>> df = pd.DataFrame.from_dict({
-        'row1': {'1':1, '2':'a'},
-        'row2': {'1':2, '2':'b'}
-        },orient='index')
+>>> df = pd.DataFrame.from_dict(
+...     {"row1": {"1": 1, "2": "a"}, "row2": {"1": 2, "2": "b"}}, orient="index"
+... )
 >>> df.index.int_accessor
 Traceback (most recent call last):
 ...
