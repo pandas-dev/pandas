@@ -111,7 +111,7 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
     cdef:
         int64_t[::1] result_counts = np.empty(table.size + na_add, dtype=np.int64)
 
-    for i in range(table.size):
+    for i in range(<Py_ssize_t>table.size):  # cast required for 32 bit builds
         {{if dtype == 'object'}}
         k = kh_get_{{ttype}}(table, result_keys.data[i])
         {{else}}
