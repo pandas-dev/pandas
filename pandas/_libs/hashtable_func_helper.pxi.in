@@ -43,7 +43,13 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
         # Don't use Py_ssize_t, since table.n_buckets is unsigned
         khiter_t k
 
-        {{c_type}} val
+        # without explicit initialization the compiler detects that val could
+        # be uninitialized towards the end of this function
+        {{if dtype == 'object'}}
+        {{c_type}} val = None
+        {{else}}
+        {{c_type}} val = {{to_c_type}}(0)
+        {{endif}}
 
         int ret = 0
         bint uses_mask = mask is not None
@@ -114,6 +120,8 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
         result_counts[i] = table.vals[k]
 
     if na_counter > 0:
+        if n <= 0:  # in this case val would be uninitialized
+            raise ValueError("Expected n > 0")
         result_counts[table.size] = na_counter
         result_keys.append(val)
 
