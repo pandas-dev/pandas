@@ -152,8 +152,8 @@ def get_api_items(api_doc_fd):
         previous_line = line_stripped
 
 
-def validate_pep8_for_examples(docs: list[PandasDocstring] | PandasDocstring
-                               ) -> dict[PandasDocstring, list[tuple]]:
+def validate_pep8(docs: list[PandasDocstring] | PandasDocstring
+                  ) -> dict[PandasDocstring, list[tuple]]:
     """
     Call the pep8 validation for docstrings with examples and add the found errors.
 
@@ -308,8 +308,7 @@ def pandas_validate(func_name: str):
 
     result["examples_errs"] = ""
     if doc.examples:
-        for err_code, err_message, line_num, col_num \
-                in validate_pep8_for_examples(doc)[doc]:
+        for err_code, err_message, line_num, col_num in validate_pep8(doc)[doc]:
             result["errors"].append(
                 pandas_error(
                     "EX03",
