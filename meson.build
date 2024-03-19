@@ -35,7 +35,7 @@ else
     args = ['-Wall', '-Wextra']
     if build_machine.system() == 'darwin'
         #  error: pragma diagnostic pop could not pop, no matching push
-        args.append('-Wno-unknown-pragmas')
+        args += ['-Wno-unknown-pragmas']
     endif
     add_project_arguments(args, language: 'c')
     add_project_arguments(args, language: 'cpp')
