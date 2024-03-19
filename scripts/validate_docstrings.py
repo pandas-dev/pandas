@@ -429,7 +429,7 @@ def _format_ignore_errors(raw_ignore_errors):
                 if unknown_errors:
                     raise ValueError(
                         f"Object `{obj_name}` is ignoring errors {unknown_errors} "
-                        "which are not known. Known errors are: {ALL_ERRORS}")
+                        f"which are not known. Known errors are: {ALL_ERRORS}")
 
             # global errors "PR02,ES01"
             else:
