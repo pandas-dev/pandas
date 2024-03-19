@@ -29,8 +29,8 @@ if meson.get_compiler('c').get_id() == 'msvc'
     # MSVC throws a lot of C4244 warnings around loss of data with warning_level=2
     # On other compilers we would have to add -Wconversion to see these
     # these expose a lot of potential issues in our code base
-    add_project_arguments(['/W2'], language: 'c')
-    add_project_arguments(['/W2'], language: 'cpp')
+    add_project_arguments(['/W1'], language: 'c')
+    add_project_arguments(['/W1'], language: 'cpp')
 else
     args = ['-Wall', '-Wextra']
     if build_machine.system() == 'darwin'
