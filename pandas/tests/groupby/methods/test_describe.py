@@ -90,20 +90,22 @@ def test_frame_describe_multikey(tsframe):
 
 def test_frame_describe_tupleindex():
     # GH 14848 - regression from 0.19.0 to 0.19.1
-    df1 = DataFrame(
+    name = "k"
+    df = DataFrame(
         {
             "x": [1, 2, 3, 4, 5] * 3,
-            "y": [10, 20, 30, 40, 50] * 3,
-            "z": [100, 200, 300, 400, 500] * 3,
+            name: [(0, 0, 1), (0, 1, 0), (1, 0, 0)] * 5,
         }
     )
-    df1["k"] = [(0, 0, 1), (0, 1, 0), (1, 0, 0)] * 5
-    df2 = df1.rename(columns={"k": "key"})
-    msg = "Names should be list-like for a MultiIndex"
-    with pytest.raises(ValueError, match=msg):
-        df1.groupby("k").describe()
-    with pytest.raises(ValueError, match=msg):
-        df2.groupby("key").describe()
+    result = df.groupby(name).describe()
+    expected = DataFrame(
+        [[5.0, 3.0, 1.581139, 1.0, 2.0, 3.0, 4.0, 5.0]] * 3,
+        index=Index([(0, 0, 1), (0, 1, 0), (1, 0, 0)], tupleize_cols=False, name=name),
+        columns=MultiIndex.from_arrays(
+            [["x"] * 8, ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]]
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_frame_describe_unstacked_format():

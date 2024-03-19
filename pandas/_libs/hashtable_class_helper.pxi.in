@@ -204,15 +204,11 @@ cdef class {{name}}Vector(Vector):
     # Int64Vector is the only one we need exposed for other cython files.
     {{if dtype != 'int64'}}
     cdef:
-        {{name}}VectorData *data
+        {{name}}VectorData data
         ndarray ao
     {{endif}}
 
     def __cinit__(self):
-        self.data = <{{name}}VectorData *>PyMem_Malloc(
-            sizeof({{name}}VectorData))
-        if not self.data:
-            raise MemoryError()
         self.data.n = 0
         self.data.m = _INIT_VEC_CAP
         self.ao = np.empty(self.data.m, dtype=np.{{dtype}})
@@ -222,11 +218,6 @@ cdef class {{name}}Vector(Vector):
         self.data.m = max(new_size, _INIT_VEC_CAP)
         self.ao.resize(self.data.m, refcheck=False)
         self.data.data = <{{c_type}}*>self.ao.data
-
-    def __dealloc__(self):
-        if self.data is not NULL:
-            PyMem_Free(self.data)
-            self.data = NULL
 
     def __len__(self) -> int:
         return self.data.n
@@ -249,7 +240,7 @@ cdef class {{name}}Vector(Vector):
                                  "Vector.resize() needed")
             self.resize(self.data.m * 4)
 
-        append_data_{{dtype}}(self.data, x)
+        append_data_{{dtype}}(&self.data, x)
 
     cdef extend(self, const {{c_type}}[:] x):
         cdef Py_ssize_t x_size = len(x)
@@ -268,12 +259,9 @@ cdef class {{name}}Vector(Vector):
 cdef class StringVector(Vector):
 
     cdef:
-        StringVectorData *data
+        StringVectorData data
 
     def __cinit__(self):
-        self.data = <StringVectorData *>PyMem_Malloc(sizeof(StringVectorData))
-        if not self.data:
-            raise MemoryError()
         self.data.n = 0
         self.data.m = _INIT_VEC_CAP
         self.data.data = <char **>malloc(self.data.m * sizeof(char *))
@@ -296,11 +284,7 @@ cdef class StringVector(Vector):
             self.data.data[i] = orig_data[i]
 
     def __dealloc__(self):
-        if self.data is not NULL:
-            if self.data.data is not NULL:
-                free(self.data.data)
-            PyMem_Free(self.data)
-            self.data = NULL
+        free(self.data.data)
 
     def __len__(self) -> int:
         return self.data.n
@@ -324,7 +308,7 @@ cdef class StringVector(Vector):
         if needs_resize(self.data.n, self.data.m):
             self.resize(self.data.m * 4)
 
-        append_data_string(self.data, x)
+        append_data_string(&self.data, x)
 
     cdef extend(self, ndarray[object] x):
         for i in range(len(x)):
@@ -660,7 +644,7 @@ cdef class {{name}}HashTable(HashTable):
 
         if return_inverse:
             labels = np.empty(n, dtype=np.intp)
-        ud = uniques.data
+        ud = &uniques.data
         use_na_value = na_value is not None
         use_mask = mask is not None
         if not use_mask and use_result_mask:
@@ -670,7 +654,7 @@ cdef class {{name}}HashTable(HashTable):
             raise NotImplementedError  # pragma: no cover
 
         result_mask = UInt8Vector()
-        rmd = result_mask.data
+        rmd = &result_mask.data
 
         if use_mask:
             mask_values = mask.view("uint8")
@@ -854,7 +838,7 @@ cdef class {{name}}HashTable(HashTable):
             {{name}}VectorData *ud
 
         labels = np.empty(n, dtype=np.intp)
-        ud = uniques.data
+        ud = &uniques.data
 
         with nogil:
             for i in range(n):
