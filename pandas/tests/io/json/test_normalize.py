@@ -723,6 +723,26 @@ class TestNestedToRecord:
         expected = DataFrame(ex_data, columns=columns)
         tm.assert_frame_equal(result, expected)
 
+    def test_missing_meta_multilevel_record_path_errors_raise_ignores_value(
+        self, missing_metadata
+    ):
+        # GH41876
+        # Ensure errors='raise' works as intended
+        # when a requested value is missing from json
+        result = json_normalize(
+            data=missing_metadata,
+            record_path=["previous_residences"],
+            meta="name",
+            errors="ignore",
+        )
+        ex_data = [
+            [{"cities": [{"city_name": "Foo York City"}]}, "Alice"],
+            [{"cities": [{"city_name": "Barmingham"}]}, np.nan],
+        ]
+        columns = ["previous_residences", "name"]
+        expected = DataFrame(ex_data, columns=columns)
+        tm.assert_frame_equal(result, expected)
+
     def test_donot_drop_nonevalues(self):
         # GH21356
         data = [

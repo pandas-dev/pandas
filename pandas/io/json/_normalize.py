@@ -438,6 +438,8 @@ def json_normalize(
             for field in spec:
                 # GH 57810
                 if result is None or not len(result):
+                    if field == spec[-1]:
+                        return np.nan
                     raise KeyError(field)
                 result = result[field]
         except KeyError as e:
