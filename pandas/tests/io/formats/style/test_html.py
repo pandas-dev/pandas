@@ -1008,20 +1008,20 @@ def test_to_html_na_rep_non_scalar_data(datapath):
 
 @pytest.mark.parametrize("escape_axis_0", [True, False])
 @pytest.mark.parametrize("escape_axis_1", [True, False])
-def test_format_names(escape_axis_0, escape_axis_1):
+def test_format_index_names(escape_axis_0, escape_axis_1):
     index = Series(["a", "b"], name=">c_name")
     columns = Series(["A"], name="col_name>")
     df = DataFrame([[2.61], [2.69]], index=index, columns=columns)
     styler = Styler(df)
 
     if escape_axis_0:
-        styler.format_names(axis=0, escape="html")
+        styler.format_index_names(axis=0, escape="html")
         expected_index = "&gt;c_name"
     else:
         expected_index = ">c_name"
 
     if escape_axis_1:
-        styler.format_names(axis=1, escape="html")
+        styler.format_index_names(axis=1, escape="html")
         expected_columns = "col_name&gt;"
     else:
         expected_columns = "col_name>"

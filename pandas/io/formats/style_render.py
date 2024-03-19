@@ -1574,7 +1574,7 @@ class StylerRenderer:
 
         return self
 
-    def format_names(
+    def format_index_names(
         self,
         formatter: ExtFormatter | None = None,
         axis: Axis = 0,
