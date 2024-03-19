@@ -144,7 +144,8 @@ class TestTimedeltaConstructorUnitKeyword:
         if (unit, np_unit) in (("u", "us"), ("U", "us"), ("n", "ns"), ("N", "ns")):
             warn = FutureWarning
         else:
-            warn = None
+            warn = FutureWarning
+            msg = "The 'unit' keyword in TimedeltaIndex construction is deprecated"
         with tm.assert_produces_warning(warn, match=msg):
             result = to_timedelta(wrapper(range(5)), unit=unit)
             tm.assert_index_equal(result, expected)
@@ -630,17 +631,16 @@ def test_timedelta_pass_td_and_kwargs_raises():
 
 
 @pytest.mark.parametrize(
-    "constructor, value, unit, expectation",
+    "constructor, value, unit",
     [
-        (Timedelta, "10s", "ms", (ValueError, "unit must not be specified")),
-        (to_timedelta, "10s", "ms", (ValueError, "unit must not be specified")),
-        (to_timedelta, ["1", 2, 3], "s", (ValueError, "unit must not be specified")),
+        (Timedelta, "10s", "ms"),
+        (to_timedelta, "10s", "ms"),
+        (to_timedelta, ["1", 2, 3], "s"),
     ],
 )
-def test_string_with_unit(constructor, value, unit, expectation):
-    exp, match = expectation
-    with pytest.raises(exp, match=match):
-        _ = constructor(value, unit=unit)
+def test_string_with_unit(constructor, value, unit):
+    with pytest.raises(ValueError, match="unit must not be specified"):
+        constructor(value, unit=unit)
 
 
 @pytest.mark.parametrize(

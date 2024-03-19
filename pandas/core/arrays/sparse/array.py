@@ -1,6 +1,7 @@
 """
 SparseArray data structure
 """
+
 from __future__ import annotations
 
 from collections import abc
@@ -17,6 +18,8 @@ from typing import (
 import warnings
 
 import numpy as np
+
+from pandas._config.config import get_option
 
 from pandas._libs import lib
 import pandas._libs.sparse as splib
@@ -454,7 +457,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             # error: Argument "dtype" to "asarray" has incompatible type
             # "Union[ExtensionDtype, dtype[Any], None]"; expected "None"
             sparse_values = np.asarray(
-                data.sp_values, dtype=dtype  # type: ignore[arg-type]
+                data.sp_values,
+                dtype=dtype,  # type: ignore[arg-type]
             )
         elif sparse_index is None:
             data = extract_array(data, extract_numpy=True)
@@ -551,7 +555,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return cls._simple_new(arr, index, dtype)
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(
+        self, dtype: NpDtype | None = None, copy: bool | None = None
+    ) -> np.ndarray:
         fill_value = self.fill_value
 
         if self.sp_index.ngaps == 0:
@@ -584,11 +590,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         raise TypeError(msg)
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
+    def _from_sequence(
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
+    ) -> Self:
         return cls(scalars, dtype=dtype)
 
     @classmethod
-    def _from_factorized(cls, values, original):
+    def _from_factorized(cls, values, original) -> Self:
         return cls(values, dtype=original.dtype)
 
     # ------------------------------------------------------------------------
@@ -665,12 +673,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def _null_fill_value(self) -> bool:
         return self._dtype._is_na_fill_value
 
-    def _fill_value_matches(self, fill_value) -> bool:
-        if self._null_fill_value:
-            return isna(fill_value)
-        else:
-            return self.fill_value == fill_value
-
     @property
     def nbytes(self) -> int:
         return self.sp_values.nbytes + self.sp_index.nbytes
@@ -716,11 +718,18 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return type(self)(mask, fill_value=False, dtype=dtype)
 
     def _pad_or_backfill(  # pylint: disable=useless-parent-delegation
-        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
     ) -> Self:
         # TODO(3.0): We can remove this method once deprecation for fillna method
         #  keyword is enforced.
-        return super()._pad_or_backfill(method=method, limit=limit, copy=copy)
+        return super()._pad_or_backfill(
+            method=method, limit=limit, limit_area=limit_area, copy=copy
+        )
 
     def fillna(
         self,
@@ -916,15 +925,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # Indexing
     # --------
     @overload
-    def __getitem__(self, key: ScalarIndexer) -> Any:
-        ...
+    def __getitem__(self, key: ScalarIndexer) -> Any: ...
 
     @overload
     def __getitem__(
         self,
         key: SequenceIndexer | tuple[int | ellipsis, ...],
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     def __getitem__(
         self,
@@ -1086,9 +1093,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             )
 
         elif self.sp_index.npoints == 0:
-            # Avoid taking from the empty self.sp_values
+            # Use the old fill_value unless we took for an index of -1
             _dtype = np.result_type(self.dtype.subtype, type(fill_value))
             taken = np.full(sp_indexer.shape, fill_value=fill_value, dtype=_dtype)
+            taken[old_fill_indices] = self.fill_value
         else:
             taken = self.sp_values.take(sp_indexer)
 
@@ -1143,8 +1151,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
-        msg = "searchsorted requires high memory usage."
-        warnings.warn(msg, PerformanceWarning, stacklevel=find_stack_level())
+        if get_option("performance_warnings"):
+            msg = "searchsorted requires high memory usage."
+            warnings.warn(msg, PerformanceWarning, stacklevel=find_stack_level())
         v = np.asarray(v)
         return np.asarray(self, dtype=self.dtype.subtype).searchsorted(v, side, sorter)
 
@@ -1240,7 +1249,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         IntIndex
         Indices: array([2, 3], dtype=int32)
 
-        >>> arr.astype(SparseDtype(np.dtype('int32')))
+        >>> arr.astype(SparseDtype(np.dtype("int32")))
         [0, 0, 1, 2]
         Fill: 0
         IntIndex
@@ -1249,7 +1258,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         Using a NumPy dtype with a different kind (e.g. float) will coerce
         just ``self.sp_values``.
 
-        >>> arr.astype(SparseDtype(np.dtype('float64')))
+        >>> arr.astype(SparseDtype(np.dtype("float64")))
         ... # doctest: +NORMALIZE_WHITESPACE
         [nan, nan, 1.0, 2.0]
         Fill: nan
@@ -1829,7 +1838,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         pp_index = printing.pprint_thing(self.sp_index)
         return f"{pp_str}\nFill: {pp_fill}\n{pp_index}"
 
-    def _formatter(self, boxed: bool = False):
+    # error: Return type "None" of "_formatter" incompatible with return
+    # type "Callable[[Any], str | None]" in supertype "ExtensionArray"
+    def _formatter(self, boxed: bool = False) -> None:  # type: ignore[override]
         # Defer to the formatter from the GenericArrayFormatter calling us.
         # This will infer the correct formatter from the dtype of the values.
         return None
@@ -1898,13 +1909,11 @@ def _make_sparse(
 
 
 @overload
-def make_sparse_index(length: int, indices, kind: Literal["block"]) -> BlockIndex:
-    ...
+def make_sparse_index(length: int, indices, kind: Literal["block"]) -> BlockIndex: ...
 
 
 @overload
-def make_sparse_index(length: int, indices, kind: Literal["integer"]) -> IntIndex:
-    ...
+def make_sparse_index(length: int, indices, kind: Literal["integer"]) -> IntIndex: ...
 
 
 def make_sparse_index(length: int, indices, kind: SparseIndexKind) -> SparseIndex:

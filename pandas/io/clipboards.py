@@ -1,4 +1,5 @@
-""" io on the clipboard """
+"""io on the clipboard"""
+
 from __future__ import annotations
 
 from io import StringIO
@@ -64,7 +65,7 @@ def read_clipboard(
 
     Examples
     --------
-    >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
+    >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"])
     >>> df.to_clipboard()  # doctest: +SKIP
     >>> pd.read_clipboard()  # doctest: +SKIP
          A  B  C

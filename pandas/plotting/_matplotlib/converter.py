@@ -4,7 +4,6 @@ import contextlib
 import datetime as pydt
 from datetime import (
     datetime,
-    timedelta,
     tzinfo,
 )
 import functools
@@ -458,28 +457,6 @@ class MilliSecondLocator(mdates.DateLocator):
         vmax = mdates.date2num(dmax)
 
         return self.nonsingular(vmin, vmax)
-
-
-def _from_ordinal(x, tz: tzinfo | None = None) -> datetime:
-    ix = int(x)
-    dt = datetime.fromordinal(ix)
-    remainder = float(x) - ix
-    hour, remainder = divmod(24 * remainder, 1)
-    minute, remainder = divmod(60 * remainder, 1)
-    second, remainder = divmod(60 * remainder, 1)
-    microsecond = int(1_000_000 * remainder)
-    if microsecond < 10:
-        microsecond = 0  # compensate for rounding errors
-    dt = datetime(
-        dt.year, dt.month, dt.day, int(hour), int(minute), int(second), microsecond
-    )
-    if tz is not None:
-        dt = dt.astimezone(tz)
-
-    if microsecond > 999990:  # compensate for rounding errors
-        dt += timedelta(microseconds=1_000_000 - microsecond)
-
-    return dt
 
 
 # Fixed frequency dynamic tick locators and formatters
@@ -983,10 +960,7 @@ class TimeSeries_DateLocator(Locator):
 
     def _get_default_locs(self, vmin, vmax):
         """Returns the default locations of ticks."""
-        if self.plot_obj.date_axis_info is None:
-            self.plot_obj.date_axis_info = self.finder(vmin, vmax, self.freq)
-
-        locator = self.plot_obj.date_axis_info
+        locator = self.finder(vmin, vmax, self.freq)
 
         if self.isminor:
             return np.compress(locator["min"], locator["val"])
@@ -997,9 +971,6 @@ class TimeSeries_DateLocator(Locator):
         # axis calls Locator.set_axis inside set_m<xxxx>_formatter
 
         vi = tuple(self.axis.get_view_interval())
-        if vi != self.plot_obj.view_interval:
-            self.plot_obj.date_axis_info = None
-        self.plot_obj.view_interval = vi
         vmin, vmax = vi
         if vmax < vmin:
             vmin, vmax = vmax, vmin
@@ -1072,9 +1043,7 @@ class TimeSeries_DateFormatter(Formatter):
 
     def _set_default_format(self, vmin, vmax):
         """Returns the default ticks spacing."""
-        if self.plot_obj.date_axis_info is None:
-            self.plot_obj.date_axis_info = self.finder(vmin, vmax, self.freq)
-        info = self.plot_obj.date_axis_info
+        info = self.finder(vmin, vmax, self.freq)
 
         if self.isminor:
             format = np.compress(info["min"] & np.logical_not(info["maj"]), info)
@@ -1090,10 +1059,7 @@ class TimeSeries_DateFormatter(Formatter):
 
         self.locs = locs
 
-        (vmin, vmax) = vi = tuple(self.axis.get_view_interval())
-        if vi != self.plot_obj.view_interval:
-            self.plot_obj.date_axis_info = None
-        self.plot_obj.view_interval = vi
+        (vmin, vmax) = tuple(self.axis.get_view_interval())
         if vmax < vmin:
             (vmin, vmax) = (vmax, vmin)
         self._set_default_format(vmin, vmax)

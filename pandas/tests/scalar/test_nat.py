@@ -146,7 +146,6 @@ def test_round_nat(klass, method, freq):
         "utcnow",
         "utcoffset",
         "utctimetuple",
-        "timestamp",
     ],
 )
 def test_nat_methods_raise(method):
@@ -442,7 +441,7 @@ def test_nat_rfloordiv_timedelta(val, expected):
     [
         DatetimeIndex(["2011-01-01", "2011-01-02"], name="x"),
         DatetimeIndex(["2011-01-01", "2011-01-02"], tz="US/Eastern", name="x"),
-        DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"]),
+        DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"], dtype="M8[ns]"),
         DatetimeArray._from_sequence(
             ["2011-01-01", "2011-01-02"], dtype=DatetimeTZDtype(tz="US/Pacific")
         ),
@@ -458,6 +457,7 @@ def test_nat_arithmetic_index(op_name, value):
         expected = DatetimeIndex(exp_data, tz=value.tz, name=exp_name)
     else:
         expected = TimedeltaIndex(exp_data, name=exp_name)
+    expected = expected.as_unit(value.unit)
 
     if not isinstance(value, Index):
         expected = expected.array

@@ -19,10 +19,7 @@ from pandas._libs.tslibs.ccalendar import (
     MONTHS,
     int_to_weekday,
 )
-from pandas._libs.tslibs.dtypes import (
-    OFFSET_TO_PERIOD_FREQSTR,
-    freq_to_period_freqstr,
-)
+from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 from pandas._libs.tslibs.fields import (
     build_field_sarray,
     month_position_check,
@@ -59,7 +56,7 @@ if TYPE_CHECKING:
 # --------------------------------------------------------------------
 # Offset related functions
 
-_need_suffix = ["QS", "BQE", "BQS", "YS", "BY", "BYS"]
+_need_suffix = ["QS", "BQE", "BQS", "YS", "BYE", "BYS"]
 
 for _prefix in _need_suffix:
     for _m in MONTHS:
@@ -111,7 +108,7 @@ def infer_freq(
 
     Examples
     --------
-    >>> idx = pd.date_range(start='2020/12/01', end='2020/12/30', periods=30)
+    >>> idx = pd.date_range(start="2020/12/01", end="2020/12/30", periods=30)
     >>> pd.infer_freq(idx)
     'D'
     """
@@ -345,7 +342,7 @@ class _FrequencyInferer:
         if pos_check is None:
             return None
         else:
-            return {"cs": "YS", "bs": "BYS", "ce": "YE", "be": "BY"}.get(pos_check)
+            return {"cs": "YS", "bs": "BYS", "ce": "YE", "be": "BYE"}.get(pos_check)
 
     def _get_quarterly_rule(self) -> str | None:
         if len(self.mdiffs) > 1:
@@ -559,7 +556,7 @@ def _maybe_coerce_freq(code) -> str:
     """
     assert code is not None
     if isinstance(code, DateOffset):
-        code = freq_to_period_freqstr(1, code.name)
+        code = PeriodDtype(to_offset(code.name))._freqstr
     if code in {"h", "min", "s", "ms", "us", "ns"}:
         return code
     else:

@@ -2,6 +2,7 @@
 Tests that work on the Python, C and PyArrow engines but do not have a
 specific classification into the other test modules.
 """
+
 import codecs
 import csv
 from io import StringIO
@@ -57,9 +58,12 @@ def test_bad_stream_exception(all_parsers, csv_dir_path):
     msg = "'utf-8' codec can't decode byte"
 
     # Stream must be binary UTF8.
-    with open(path, "rb") as handle, codecs.StreamRecoder(
-        handle, utf8.encode, utf8.decode, codec.streamreader, codec.streamwriter
-    ) as stream:
+    with (
+        open(path, "rb") as handle,
+        codecs.StreamRecoder(
+            handle, utf8.encode, utf8.decode, codec.streamreader, codec.streamwriter
+        ) as stream,
+    ):
         with pytest.raises(UnicodeDecodeError, match=msg):
             parser.read_csv(stream)
 
@@ -130,14 +134,9 @@ def test_catch_too_many_names(all_parsers):
         else "Number of passed names did not match "
         "number of header fields in the file"
     )
-    depr_msg = "Passing a BlockManager to DataFrame is deprecated"
-    warn = None
-    if parser.engine == "pyarrow":
-        warn = DeprecationWarning
 
-    with tm.assert_produces_warning(warn, match=depr_msg, check_stacklevel=False):
-        with pytest.raises(ValueError, match=msg):
-            parser.read_csv(StringIO(data), header=0, names=["a", "b", "c", "d"])
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO(data), header=0, names=["a", "b", "c", "d"])
 
 
 @skip_pyarrow  # CSV parse error: Empty CSV file or block
@@ -168,13 +167,7 @@ def test_suppress_error_output(all_parsers):
     data = "a\n1\n1,2,3\n4\n5,6,7"
     expected = DataFrame({"a": [1, 4]})
 
-    warn = None
-    if parser.engine == "pyarrow":
-        warn = DeprecationWarning
-    msg = "Passing a BlockManager to DataFrame"
-
-    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-        result = parser.read_csv(StringIO(data), on_bad_lines="skip")
+    result = parser.read_csv(StringIO(data), on_bad_lines="skip")
     tm.assert_frame_equal(result, expected)
 
 
@@ -186,7 +179,8 @@ def test_error_bad_lines(all_parsers):
     msg = "Expected 1 fields in line 3, saw 3"
 
     if parser.engine == "pyarrow":
-        msg = "CSV parse error: Expected 1 columns, got 3: 1,2,3"
+        # "CSV parse error: Expected 1 columns, got 3: 1,2,3"
+        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data), on_bad_lines="error")
@@ -222,7 +216,8 @@ def test_read_csv_wrong_num_columns(all_parsers):
     msg = "Expected 6 fields in line 3, saw 7"
 
     if parser.engine == "pyarrow":
-        msg = "Expected 6 columns, got 7: 6,7,8,9,10,11,12"
+        # Expected 6 columns, got 7: 6,7,8,9,10,11,12
+        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data))
@@ -246,10 +241,9 @@ def test_null_byte_char(request, all_parsers):
         tm.assert_frame_equal(out, expected)
     else:
         if parser.engine == "pyarrow":
-            msg = (
-                "CSV parse error: Empty CSV file or block: "
-                "cannot infer number of columns"
-            )
+            # CSV parse error: Empty CSV file or block: "
+            # cannot infer number of columns"
+            pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
         else:
             msg = "NULL byte detected"
         with pytest.raises(ParserError, match=msg):
@@ -299,7 +293,8 @@ def test_bad_header_uniform_error(all_parsers):
             "number of columns, but 3 left to parse."
         )
     elif parser.engine == "pyarrow":
-        msg = "CSV parse error: Expected 1 columns, got 4: col1,col2,col3,col4"
+        # "CSV parse error: Expected 1 columns, got 4: col1,col2,col3,col4"
+        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data), index_col=0, on_bad_lines="error")

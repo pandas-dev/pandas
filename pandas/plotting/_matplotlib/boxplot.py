@@ -15,6 +15,7 @@ from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_dict_like
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import remove_na_arraylike
 
 import pandas as pd
@@ -362,7 +363,7 @@ def boxplot(
     if return_type not in BoxPlot._valid_return_types:
         raise ValueError("return_type must be {'axes', 'dict', 'both'}")
 
-    if isinstance(data, pd.Series):
+    if isinstance(data, ABCSeries):
         data = data.to_frame("x")
         column = "x"
 
@@ -370,8 +371,8 @@ def boxplot(
         #  num_colors=3 is required as method maybe_color_bp takes the colors
         #  in positions 0 and 2.
         #  if colors not provided, use same defaults as DataFrame.plot.box
-        result = get_standard_colors(num_colors=3)
-        result = np.take(result, [0, 0, 2])
+        result_list = get_standard_colors(num_colors=3)
+        result = np.take(result_list, [0, 0, 2])
         result = np.append(result, "k")
 
         colors = kwds.pop("color", None)
@@ -543,12 +544,7 @@ def boxplot_frame_groupby(
         maybe_adjust_figure(fig, bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
     else:
         keys, frames = zip(*grouped)
-        if grouped.axis == 0:
-            df = pd.concat(frames, keys=keys, axis=1)
-        elif len(frames) > 1:
-            df = frames[0].join(frames[1::])
-        else:
-            df = frames[0]
+        df = pd.concat(frames, keys=keys, axis=1)
 
         # GH 16748, DataFrameGroupby fails when subplots=False and `column` argument
         # is assigned, and in this case, since `df` here becomes MI after groupby,

@@ -38,19 +38,7 @@ import pandas._testing as tm
     ],
 )
 @pytest.mark.parametrize("q", [0, 0.25, 0.5, 0.75, 1])
-def test_quantile(interpolation, a_vals, b_vals, q, request):
-    if (
-        interpolation == "nearest"
-        and q == 0.5
-        and isinstance(b_vals, list)
-        and b_vals == [4, 3, 2, 1]
-    ):
-        request.applymarker(
-            pytest.mark.xfail(
-                reason="Unclear numpy expectation for nearest "
-                "result with equidistant data"
-            )
-        )
+def test_quantile(interpolation, a_vals, b_vals, q):
     all_vals = pd.concat([pd.Series(a_vals), pd.Series(b_vals)])
 
     a_expected = pd.Series(a_vals).quantile(q, interpolation=interpolation)
@@ -389,32 +377,6 @@ def test_groupby_timedelta_quantile():
     tm.assert_frame_equal(result, expected)
 
 
-def test_columns_groupby_quantile():
-    # GH 33795
-    df = DataFrame(
-        np.arange(12).reshape(3, -1),
-        index=list("XYZ"),
-        columns=pd.Series(list("ABAB"), name="col"),
-    )
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby("col", axis=1)
-    result = gb.quantile(q=[0.8, 0.2])
-    expected = DataFrame(
-        [
-            [1.6, 0.4, 2.6, 1.4],
-            [5.6, 4.4, 6.6, 5.4],
-            [9.6, 8.4, 10.6, 9.4],
-        ],
-        index=list("XYZ"),
-        columns=pd.MultiIndex.from_tuples(
-            [("A", 0.8), ("A", 0.2), ("B", 0.8), ("B", 0.2)], names=["col", None]
-        ),
-    )
-
-    tm.assert_frame_equal(result, expected)
-
-
 def test_timestamp_groupby_quantile(unit):
     # GH 33168
     dti = pd.date_range(
@@ -492,5 +454,8 @@ def test_groupby_quantile_nonmulti_levels_order():
     tm.assert_series_equal(result, expected)
 
     # We need to check that index levels are not sorted
-    expected_levels = pd.core.indexes.frozen.FrozenList([["B", "A"], [0.2, 0.8]])
-    tm.assert_equal(result.index.levels, expected_levels)
+    tm.assert_index_equal(
+        result.index.levels[0], Index(["B", "A"], dtype=object, name="cat1")
+    )
+    tm.assert_index_equal(result.index.levels[1], Index([0.2, 0.8]))
+    assert isinstance(result.index.levels, tuple)

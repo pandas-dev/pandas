@@ -205,7 +205,7 @@ class TestSeriesInterpolateData:
         [
             {},
             pytest.param(
-                {"method": "polynomial", "order": 1}, marks=td.skip_if_no_scipy
+                {"method": "polynomial", "order": 1}, marks=td.skip_if_no("scipy")
             ),
         ],
     )
@@ -224,8 +224,7 @@ class TestSeriesInterpolateData:
 
         result = s.interpolate(method="index")
 
-        expected = s.copy()
-        bad = isna(expected.values)
+        bad = isna(s)
         good = ~bad
         expected = Series(
             np.interp(vals[bad], vals[good], s.values[good]), index=s.index[bad]
@@ -253,7 +252,7 @@ class TestSeriesInterpolateData:
         [
             {},
             pytest.param(
-                {"method": "polynomial", "order": 1}, marks=td.skip_if_no_scipy
+                {"method": "polynomial", "order": 1}, marks=td.skip_if_no("scipy")
             ),
         ],
     )
@@ -289,26 +288,21 @@ class TestSeriesInterpolateData:
         expected = Series([1.0, 3.0, 7.5, 12.0, 18.5, 25.0])
         result = s.interpolate(method="slinear")
         tm.assert_series_equal(result, expected)
-
-        msg = "The 'downcast' keyword in Series.interpolate is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = s.interpolate(method="slinear", downcast="infer")
+        result = s.interpolate(method="slinear")
         tm.assert_series_equal(result, expected)
         # nearest
-        expected = Series([1, 3, 3, 12, 12, 25])
+        expected = Series([1, 3, 3, 12, 12, 25.0])
         result = s.interpolate(method="nearest")
         tm.assert_series_equal(result, expected.astype("float"))
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = s.interpolate(method="nearest", downcast="infer")
+        result = s.interpolate(method="nearest")
         tm.assert_series_equal(result, expected)
         # zero
-        expected = Series([1, 3, 3, 12, 12, 25])
+        expected = Series([1, 3, 3, 12, 12, 25.0])
         result = s.interpolate(method="zero")
         tm.assert_series_equal(result, expected.astype("float"))
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = s.interpolate(method="zero", downcast="infer")
+        result = s.interpolate(method="zero")
         tm.assert_series_equal(result, expected)
         # quadratic
         # GH #15662.
@@ -316,8 +310,7 @@ class TestSeriesInterpolateData:
         result = s.interpolate(method="quadratic")
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = s.interpolate(method="quadratic", downcast="infer")
+        result = s.interpolate(method="quadratic")
         tm.assert_series_equal(result, expected)
         # cubic
         expected = Series([1.0, 3.0, 6.8, 12.0, 18.2, 25.0])
@@ -628,7 +621,7 @@ class TestSeriesInterpolateData:
         tm.assert_series_equal(result, s)
 
     @pytest.mark.parametrize(
-        "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
+        "check_scipy", [False, pytest.param(True, marks=td.skip_if_no("scipy"))]
     )
     def test_interp_multiIndex(self, check_scipy):
         idx = MultiIndex.from_tuples([(0, "a"), (1, "b"), (2, "c")])
@@ -853,10 +846,10 @@ class TestSeriesInterpolateData:
 
     def test_interpolate_asfreq_raises(self):
         ser = Series(["a", None, "b"], dtype=object)
-        msg2 = "Series.interpolate with object dtype"
+        msg2 = "Series cannot interpolate with object dtype"
         msg = "Invalid fill method"
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=msg2):
+        with pytest.raises(TypeError, match=msg2):
+            with pytest.raises(ValueError, match=msg):
                 ser.interpolate(method="asfreq")
 
     def test_interpolate_fill_value(self):

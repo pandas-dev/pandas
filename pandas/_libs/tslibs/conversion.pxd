@@ -45,7 +45,7 @@ cdef int64_t get_datetime64_nanos(object val, NPY_DATETIMEUNIT reso) except? -1
 
 cpdef datetime localize_pydatetime(datetime dt, tzinfo tz)
 cdef int64_t cast_from_unit(object ts, str unit, NPY_DATETIMEUNIT out_reso=*) except? -1
-cpdef (int64_t, int) precision_from_unit(
+cdef (int64_t, int) precision_from_unit(
     NPY_DATETIMEUNIT in_reso, NPY_DATETIMEUNIT out_reso=*
 )
 

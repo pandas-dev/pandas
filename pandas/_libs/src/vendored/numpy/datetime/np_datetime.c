@@ -16,17 +16,15 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 
 // Licence at LICENSES/NUMPY_LICENSE
 
-#define NO_IMPORT
-
 #ifndef NPY_NO_DEPRECATED_API
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #endif // NPY_NO_DEPRECATED_API
 
 #include "pandas/vendored/numpy/datetime/np_datetime.h"
-#include <Python.h>
-#include <numpy/arrayobject.h>
-#include <numpy/arrayscalars.h>
-#include <numpy/ndarraytypes.h>
+#define NO_IMPORT_ARRAY
+#define PY_ARRAY_UNIQUE_SYMBOL PANDAS_DATETIME_NUMPY
+#include <numpy/ndarrayobject.h>
+#include <numpy/npy_common.h>
 #include <stdbool.h>
 
 #if defined(_WIN32)
@@ -247,7 +245,7 @@ static void set_datetimestruct_days(npy_int64 days, npy_datetimestruct *dts) {
   for (i = 0; i < 12; ++i) {
     if (days < month_lengths[i]) {
       dts->month = i + 1;
-      dts->day = days + 1;
+      dts->day = (npy_int32)days + 1;
       return;
     } else {
       days -= month_lengths[i];
@@ -495,10 +493,20 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
 
   if (base == NPY_FR_ns) {
     int64_t nanoseconds;
-    PD_CHECK_OVERFLOW(
-        scaleMicrosecondsToNanoseconds(microseconds, &nanoseconds));
-    PD_CHECK_OVERFLOW(
-        checked_int64_add(nanoseconds, dts->ps / 1000, &nanoseconds));
+
+    // Minimum valid timestamp in nanoseconds (1677-09-21 00:12:43.145224193).
+    const int64_t min_nanoseconds = NPY_MIN_INT64 + 1;
+    if (microseconds == min_nanoseconds / 1000 - 1) {
+      // For values within one microsecond of min_nanoseconds, use it as base
+      // and offset it with nanosecond delta to avoid overflow during scaling.
+      PD_CHECK_OVERFLOW(checked_int64_add(
+          min_nanoseconds, (dts->ps - _NS_MIN_DTS.ps) / 1000, &nanoseconds));
+    } else {
+      PD_CHECK_OVERFLOW(
+          scaleMicrosecondsToNanoseconds(microseconds, &nanoseconds));
+      PD_CHECK_OVERFLOW(
+          checked_int64_add(nanoseconds, dts->ps / 1000, &nanoseconds));
+    }
 
     return nanoseconds;
   }
@@ -581,7 +589,7 @@ void pandas_datetime_to_datetimestruct(npy_datetime dt, NPY_DATETIMEUNIT base,
 
   case NPY_FR_M:
     out->year = 1970 + extract_unit(&dt, 12);
-    out->month = dt + 1;
+    out->month = (npy_int32)dt + 1;
     break;
 
   case NPY_FR_W:
@@ -597,72 +605,72 @@ void pandas_datetime_to_datetimestruct(npy_datetime dt, NPY_DATETIMEUNIT base,
     perday = 24LL;
 
     set_datetimestruct_days(extract_unit(&dt, perday), out);
-    out->hour = dt;
+    out->hour = (npy_int32)dt;
     break;
 
   case NPY_FR_m:
     perday = 24LL * 60;
 
     set_datetimestruct_days(extract_unit(&dt, perday), out);
-    out->hour = (int)extract_unit(&dt, 60);
-    out->min = (int)dt;
+    out->hour = (npy_int32)extract_unit(&dt, 60);
+    out->min = (npy_int32)dt;
     break;
 
   case NPY_FR_s:
     perday = 24LL * 60 * 60;
 
     set_datetimestruct_days(extract_unit(&dt, perday), out);
-    out->hour = (int)extract_unit(&dt, 60 * 60);
-    out->min = (int)extract_unit(&dt, 60);
-    out->sec = (int)dt;
+    out->hour = (npy_int32)extract_unit(&dt, 60 * 60);
+    out->min = (npy_int32)extract_unit(&dt, 60);
+    out->sec = (npy_int32)dt;
     break;
 
   case NPY_FR_ms:
     perday = 24LL * 60 * 60 * 1000;
 
     set_datetimestruct_days(extract_unit(&dt, perday), out);
-    out->hour = (int)extract_unit(&dt, 1000LL * 60 * 60);
-    out->min = (int)extract_unit(&dt, 1000LL * 60);
-    out->sec = (int)extract_unit(&dt, 1000LL);
-    out->us = (int)(dt * 1000);
+    out->hour = (npy_int32)extract_unit(&dt, 1000LL * 60 * 60);
+    out->min = (npy_int32)extract_unit(&dt, 1000LL * 60);
+    out->sec = (npy_int32)extract_unit(&dt, 1000LL);
+    out->us = (npy_int32)(dt * 1000);
     break;
 
   case NPY_FR_us:
     perday = 24LL * 60LL * 60LL * 1000LL * 1000LL;
 
     set_datetimestruct_days(extract_unit(&dt, perday), out);
-    out->hour = (int)extract_unit(&dt, 1000LL * 1000 * 60 * 60);
-    out->min = (int)extract_unit(&dt, 1000LL * 1000 * 60);
-    out->sec = (int)extract_unit(&dt, 1000LL * 1000);
-    out->us = (int)dt;
+    out->hour = (npy_int32)extract_unit(&dt, 1000LL * 1000 * 60 * 60);
+    out->min = (npy_int32)extract_unit(&dt, 1000LL * 1000 * 60);
+    out->sec = (npy_int32)extract_unit(&dt, 1000LL * 1000);
+    out->us = (npy_int32)dt;
     break;
 
   case NPY_FR_ns:
     perday = 24LL * 60LL * 60LL * 1000LL * 1000LL * 1000LL;
 
     set_datetimestruct_days(extract_unit(&dt, perday), out);
-    out->hour = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 60 * 60);
-    out->min = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 60);
-    out->sec = (int)extract_unit(&dt, 1000LL * 1000 * 1000);
-    out->us = (int)extract_unit(&dt, 1000LL);
-    out->ps = (int)(dt * 1000);
+    out->hour = (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000 * 60 * 60);
+    out->min = (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000 * 60);
+    out->sec = (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000);
+    out->us = (npy_int32)extract_unit(&dt, 1000LL);
+    out->ps = (npy_int32)(dt * 1000);
     break;
 
   case NPY_FR_ps:
     perday = 24LL * 60 * 60 * 1000 * 1000 * 1000 * 1000;
 
     set_datetimestruct_days(extract_unit(&dt, perday), out);
-    out->hour = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 60 * 60);
-    out->min = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 60);
-    out->sec = (int)extract_unit(&dt, 1000LL * 1000 * 1000);
-    out->us = (int)extract_unit(&dt, 1000LL);
-    out->ps = (int)(dt * 1000);
+    out->hour = (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000 * 60 * 60);
+    out->min = (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000 * 60);
+    out->sec = (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000);
+    out->us = (npy_int32)extract_unit(&dt, 1000LL);
+    out->ps = (npy_int32)(dt * 1000);
     break;
 
   case NPY_FR_fs:
     /* entire range is only +- 2.6 hours */
-    out->hour =
-        (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000 * 1000 * 60 * 60);
+    out->hour = (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000 *
+                                                 1000 * 60 * 60);
     if (out->hour < 0) {
       out->year = 1969;
       out->month = 12;
@@ -670,17 +678,18 @@ void pandas_datetime_to_datetimestruct(npy_datetime dt, NPY_DATETIMEUNIT base,
       out->hour += 24;
       assert(out->hour >= 0);
     }
-    out->min = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000 * 1000 * 60);
-    out->sec = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000 * 1000);
-    out->us = (int)extract_unit(&dt, 1000LL * 1000 * 1000);
-    out->ps = (int)extract_unit(&dt, 1000LL);
-    out->as = (int)(dt * 1000);
+    out->min =
+        (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000 * 1000 * 60);
+    out->sec = (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000 * 1000);
+    out->us = (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000);
+    out->ps = (npy_int32)extract_unit(&dt, 1000LL);
+    out->as = (npy_int32)(dt * 1000);
     break;
 
   case NPY_FR_as:
     /* entire range is only +- 9.2 seconds */
     out->sec =
-        (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000 * 1000 * 1000);
+        (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000 * 1000 * 1000);
     if (out->sec < 0) {
       out->year = 1969;
       out->month = 12;
@@ -690,9 +699,9 @@ void pandas_datetime_to_datetimestruct(npy_datetime dt, NPY_DATETIMEUNIT base,
       out->sec += 60;
       assert(out->sec >= 0);
     }
-    out->us = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000);
-    out->ps = (int)extract_unit(&dt, 1000LL * 1000);
-    out->as = (int)dt;
+    out->us = (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000);
+    out->ps = (npy_int32)extract_unit(&dt, 1000LL * 1000);
+    out->as = (npy_int32)dt;
     break;
 
   default:
@@ -754,21 +763,21 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
     }
 
     if (frac >= 3600) {
-      out->hrs = frac / 3600LL;
+      out->hrs = (npy_int32)(frac / 3600LL);
       frac -= out->hrs * 3600LL;
     } else {
       out->hrs = 0;
     }
 
     if (frac >= 60) {
-      out->min = frac / 60LL;
+      out->min = (npy_int32)(frac / 60LL);
       frac -= out->min * 60LL;
     } else {
       out->min = 0;
     }
 
     if (frac >= 0) {
-      out->sec = frac;
+      out->sec = (npy_int32)frac;
       frac -= out->sec;
     } else {
       out->sec = 0;
@@ -782,11 +791,11 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
     ifrac = td - (out->days * per_day + sfrac);
 
     if (ifrac != 0) {
-      out->ms = ifrac / (1000LL * 1000LL);
+      out->ms = (npy_int32)(ifrac / (1000LL * 1000LL));
       ifrac -= out->ms * 1000LL * 1000LL;
-      out->us = ifrac / 1000LL;
+      out->us = (npy_int32)(ifrac / 1000LL);
       ifrac -= out->us * 1000LL;
-      out->ns = ifrac;
+      out->ns = (npy_int32)ifrac;
     } else {
       out->ms = 0;
       out->us = 0;
@@ -826,21 +835,21 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
     }
 
     if (frac >= 3600) {
-      out->hrs = frac / 3600LL;
+      out->hrs = (npy_int32)(frac / 3600LL);
       frac -= out->hrs * 3600LL;
     } else {
       out->hrs = 0;
     }
 
     if (frac >= 60) {
-      out->min = frac / 60LL;
+      out->min = (npy_int32)(frac / 60LL);
       frac -= out->min * 60LL;
     } else {
       out->min = 0;
     }
 
     if (frac >= 0) {
-      out->sec = frac;
+      out->sec = (npy_int32)frac;
       frac -= out->sec;
     } else {
       out->sec = 0;
@@ -854,11 +863,11 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
     ifrac = td - (out->days * per_day + sfrac);
 
     if (ifrac != 0) {
-      out->ms = ifrac / 1000LL;
+      out->ms = (npy_int32)(ifrac / 1000LL);
       ifrac -= out->ms * 1000LL;
-      out->us = ifrac / 1L;
+      out->us = (npy_int32)(ifrac / 1L);
       ifrac -= out->us * 1L;
-      out->ns = ifrac;
+      out->ns = (npy_int32)ifrac;
     } else {
       out->ms = 0;
       out->us = 0;
@@ -898,21 +907,21 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
     }
 
     if (frac >= 3600) {
-      out->hrs = frac / 3600LL;
+      out->hrs = (npy_int32)(frac / 3600LL);
       frac -= out->hrs * 3600LL;
     } else {
       out->hrs = 0;
     }
 
     if (frac >= 60) {
-      out->min = frac / 60LL;
+      out->min = (npy_int32)(frac / 60LL);
       frac -= out->min * 60LL;
     } else {
       out->min = 0;
     }
 
     if (frac >= 0) {
-      out->sec = frac;
+      out->sec = (npy_int32)frac;
       frac -= out->sec;
     } else {
       out->sec = 0;
@@ -926,7 +935,7 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
     ifrac = td - (out->days * per_day + sfrac);
 
     if (ifrac != 0) {
-      out->ms = ifrac;
+      out->ms = (npy_int32)ifrac;
       out->us = 0;
       out->ns = 0;
     } else {
@@ -969,21 +978,21 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
     }
 
     if (frac >= 3600) {
-      out->hrs = frac / 3600LL;
+      out->hrs = (npy_int32)(frac / 3600LL);
       frac -= out->hrs * 3600LL;
     } else {
       out->hrs = 0;
     }
 
     if (frac >= 60) {
-      out->min = frac / 60LL;
+      out->min = (npy_int32)(frac / 60LL);
       frac -= out->min * 60LL;
     } else {
       out->min = 0;
     }
 
     if (frac >= 0) {
-      out->sec = frac;
+      out->sec = (npy_int32)frac;
       frac -= out->sec;
     } else {
       out->sec = 0;
@@ -1011,9 +1020,9 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
 
     out->days = td / 1440LL;
     td -= out->days * 1440LL;
-    out->hrs = td / 60LL;
+    out->hrs = (npy_int32)(td / 60LL);
     td -= out->hrs * 60LL;
-    out->min = td;
+    out->min = (npy_int32)td;
 
     out->sec = 0;
     out->ms = 0;
@@ -1024,7 +1033,7 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
   case NPY_FR_h:
     out->days = td / 24LL;
     td -= out->days * 24LL;
-    out->hrs = td;
+    out->hrs = (npy_int32)td;
 
     out->min = 0;
     out->sec = 0;
@@ -1072,5 +1081,8 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
  */
 PyArray_DatetimeMetaData
 get_datetime_metadata_from_dtype(PyArray_Descr *dtype) {
-  return (((PyArray_DatetimeDTypeMetaData *)dtype->c_metadata)->meta);
+#if NPY_ABI_VERSION < 0x02000000
+#define PyDataType_C_METADATA(dtype) ((dtype)->c_metadata)
+#endif
+  return ((PyArray_DatetimeDTypeMetaData *)PyDataType_C_METADATA(dtype))->meta;
 }
