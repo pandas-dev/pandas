@@ -515,7 +515,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if is_list_like(data) and not isinstance(data, Sized):
             data = list(data)
 
-        # Series TASK 5: TRANSFORMATION ON EDGE CASES
+        # Series TASK 5: TRANSFORMATION ON INDEX
         # TASK 5.A: ENSURE that there is always an index below. 'index is not == True'
         # Except for Series, whose index can be None.
         original_index = index
@@ -532,17 +532,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         else:
             index = ensure_index(index)
 
-        require_manager = True
-        # TASK 5.B: DATA
-        if data is None:
-            if not len(index):
-                if dtype is None:
-                    data = []  # needed to to make dtype=np.object
-            else:
-                data = na_value  # Check tests
-
-        # # Series TASK 6: DETAILS FOR SERIES AND MANAGER. CREATES OTHERWISE
+        # Series TASK 6: TRANSFORMATIONS ON DATA.
+        # WITH REQUISITES FOR COPYING AND MANAGER CREATION (WHEN NEEDED).
         list_like_input = False
+        require_manager = True
+
+        if data is None:
+            if len(index):
+                data = na_value
 
         if isinstance(data, Series):
             require_manager = False
