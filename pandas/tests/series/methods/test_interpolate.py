@@ -846,10 +846,10 @@ class TestSeriesInterpolateData:
 
     def test_interpolate_asfreq_raises(self):
         ser = Series(["a", None, "b"], dtype=object)
-        msg2 = "Series.interpolate with object dtype"
+        msg2 = "Series cannot interpolate with object dtype"
         msg = "Invalid fill method"
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=msg2):
+        with pytest.raises(TypeError, match=msg2):
+            with pytest.raises(ValueError, match=msg):
                 ser.interpolate(method="asfreq")
 
     def test_interpolate_fill_value(self):
