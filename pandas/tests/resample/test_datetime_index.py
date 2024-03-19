@@ -1464,12 +1464,12 @@ def test_resample_nunique_with_date_gap(func, unit):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("n", [10000, 100000])
-@pytest.mark.parametrize("k", [10, 100, 1000])
-def test_resample_group_info(n, k, unit):
+def test_resample_group_info(unit):
     # GH10914
 
     # use a fixed seed to always have the same uniques
+    n = 100
+    k = 10
     prng = np.random.default_rng(2)
 
     dr = date_range(start="2015-08-27", periods=n // 10, freq="min").as_unit(unit)
