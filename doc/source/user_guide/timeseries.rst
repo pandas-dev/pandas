@@ -1475,6 +1475,7 @@ or some other non-observed day.  Defined observance rules are:
     "next_monday_or_tuesday", "move Saturday to Monday and Sunday/Monday to Tuesday"
     "previous_friday", move Saturday and Sunday to previous Friday"
     "next_monday", "move Saturday and Sunday to following Monday"
+    "weekend_to_monday", "same as ``next_monday``"
 
 An example of how holidays and holiday calendars are defined:
 
