@@ -1657,11 +1657,9 @@ class StylerRenderer:
         `ValueError` will be raised.
 
         .. warning::
-           `Styler.format_index` is ignored when using the output format
+           `Styler.format_index_names` is ignored when using the output format
            `Styler.to_excel`, since Excel and Python have inherrently different
            formatting structures.
-           However, it is possible to use the `number-format` pseudo CSS attribute
-           to force Excel permissible formatting. See documentation for `Styler.format`.
         """
         axis = self.data._get_axis_number(axis)
         if axis == 0:
