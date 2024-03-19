@@ -4,6 +4,10 @@ from datetime import (
     datetime,
     timedelta,
 )
+from typing import (
+    Callable,
+    SupportsIndex,
+)
 import warnings
 
 from dateutil.relativedelta import (
@@ -156,25 +160,33 @@ class Holiday:
     def __init__(
         self,
         name: str,
-        year=None,
-        month=None,
-        day=None,
-        offset=None,
-        observance=None,
+        year: SupportsIndex | None = None,
+        month: SupportsIndex | None = None,
+        day: SupportsIndex | None = None,
+        offset: None | DateOffset | list[DateOffset | list[DateOffset]] = None,
+        observance: Callable | None = None,
         start_date=None,
         end_date=None,
-        days_of_week=None,
+        days_of_week: tuple | None = None,
     ) -> None:
         """
         Parameters
         ----------
         name : str
             Name of the holiday , defaults to class name
+        year: int
+            Year of the holiday
+        month: int
+            Month of the holiday
+        day: int
+            Day of the holiday
         offset : array of pandas.tseries.offsets or
                 class from pandas.tseries.offsets
             computes offset from date
         observance: function
             computes when holiday is given a pandas Timestamp
+        start_date : datetime-like, optional
+        end_date : datetime-like, optional
         days_of_week:
             provide a tuple of days e.g  (0,1,2,3,) for Monday Through Thursday
             Monday=0,..,Sunday=6
