@@ -423,7 +423,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # -------- There is an array error that most be done after validating
         # TODO 12: Investigate. This is an unknown type that is being converted to list.
         # DONE 13: 'allow_mgr' were not used anyware.
-        # TODO 14: Try capture final data type that seems scalar.
+        # DONE 14: capture final data type that seems scalar.
         # -------- But does not satisfy is_scalar(). It comes directly from args.
         # TODO 15: Check GH#52419. This is somewhat peculiar. There were 3 identical
         # -------- warnings. Check if there is a reason for it. If so:
@@ -516,10 +516,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             data = list(data)
 
         # Series TASK 5: TRANSFORMATION ON EDGE CASES
-        # TASK 5.A: INDEX
+        # TASK 5.A: ENSURE that there is always an index below. 'index is not == True'
+        # Except for Series, whose index can be None.
         if index is None:
             if data is None:
                 index = default_index(0)
+            else:
+                if isinstance(data, SingleBlockManager):
+                    index = data.index
+                if isinstance(data, Series):
+                    pass
+                else:
+                    index = default_index(len(data))
+
         else:
             index = ensure_index(index)
 
@@ -536,11 +545,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 else:
                     data = na_value  # Check tests
 
-        # TASK 5.C: COUPLING
-        if not isinstance(data, (Series, SingleBlockManager)):
-            index = index if index is not None else default_index(len(data))
-
-        # Series TASK 6: DETAILS FOR SERIES AND MANAGER. CREATES OTHERWISE
+        # # Series TASK 6: DETAILS FOR SERIES AND MANAGER. CREATES OTHERWISE
         list_like_input = False
 
         if isinstance(data, (Series, SingleBlockManager)):
@@ -559,7 +564,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             elif isinstance(data, SingleBlockManager):
                 fast_path_manager = index is None and not copy and dtype is None
 
-            index = data.index
+            index = data.index  # Pode subir para Series
 
         else:
             require_manager = True
@@ -577,13 +582,21 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             elif is_list_like(data):
                 list_like_input = True
 
+            # list_like_input = (not isinstance(data, (Series, SingleBlockManager))
+            #                 #    and not isinstance(data, Index)
+            #                    and not is_array
+            #                    and not isinstance(data, np.ndarray)
+            #                    and is_list_like(data)
+            #                    )
+
+            # GH 29405: Pre-2.0, this defaulted to float.
+            default_empty_series = list_like_input and dtype is None and not len(data)
+
+            dtype = np.dtype(object) if default_empty_series else dtype
+
             # Final requirements
             if is_list_like(data):
                 com.require_length_match(data, index)
-
-            # GH 29405: Pre-2.0, this defaulted to float.
-            empty_list = list_like_input and dtype is None and not len(data)
-            dtype = np.dtype(object) if empty_list else dtype
 
         # Series TASK 7: COPYING THE MANAGER.
         if require_manager:
