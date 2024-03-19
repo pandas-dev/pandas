@@ -1514,8 +1514,10 @@ class TestIndexUtils:
     @pytest.mark.parametrize(
         "data, names, expected",
         [
-            ([[1, 2, 3]], None, Index([1, 2, 3])),
-            ([[1, 2, 3]], ["name"], Index([1, 2, 3], name="name")),
+            ([[1, 2, 4]], None, Index([1, 2, 4])),
+            ([[1, 2, 4]], ["name"], Index([1, 2, 4], name="name")),
+            ([[1, 2, 3]], None, RangeIndex(1, 4)),
+            ([[1, 2, 3]], ["name"], RangeIndex(1, 4, name="name")),
             (
                 [["a", "a"], ["c", "d"]],
                 None,
@@ -1530,7 +1532,7 @@ class TestIndexUtils:
     )
     def test_ensure_index_from_sequences(self, data, names, expected):
         result = ensure_index_from_sequences(data, names)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_ensure_index_mixed_closed_intervals(self):
         # GH27172
