@@ -25,11 +25,6 @@ add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language : 'cpp')
 add_project_arguments('-DNPY_TARGET_VERSION=NPY_1_21_API_VERSION', language : 'c')
 add_project_arguments('-DNPY_TARGET_VERSION=NPY_1_21_API_VERSION', language : 'cpp')
 
-if build_machine.system() == 'darwin'
-    #  error: pragma diagnostic pop could not pop, no matching push
-    add_project_arguments('-Wno-unknown-pragmas', language: 'c')
-endif
-
 if meson.get_compiler('c').get_id() == 'msvc'
     # MSVC throws a lot of C4244 warnings around loss of data with warning_level=2
     # On other compilers we would have to add -Wconversion to see these
@@ -37,8 +32,13 @@ if meson.get_compiler('c').get_id() == 'msvc'
     add_project_arguments(['/W2'], language: 'c')
     add_project_arguments(['/W2'], language: 'cpp')
 else
-    add_project_arguments(['-Wall', '-Wextra'], language: 'c')
-    add_project_arguments(['-Wall', '-Wextra'], language: 'cpp')
+    args = ['-Wall', '-Wextra']
+    if build_machine.system() == 'darwin'
+        #  error: pragma diagnostic pop could not pop, no matching push
+        args.append('-Wno-unknown-pragmas')
+    endif
+    add_project_arguments(args, language: 'c')
+    add_project_arguments(args, language: 'cpp')
 endif
 
 
