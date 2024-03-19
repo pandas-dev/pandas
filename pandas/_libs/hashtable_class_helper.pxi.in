@@ -251,7 +251,7 @@ cdef class {{name}}Vector(Vector):
                                  "Vector.resize() needed")
             self.resize(needed_size)
 
-        memcpy(&self.dataself[self.data.n], &x[0], x_size * sizeof({{c_type}}))
+        memcpy(&self.data[self.data.n], &x[0], x_size * sizeof({{c_type}}))
         self.data.n = needed_size
 
 {{endfor}}
