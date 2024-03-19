@@ -535,15 +535,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         require_manager = True
         # TASK 5.B: DATA
         if data is None:
-            if index is None:
-                data = []  # needed for consistency
-
-            elif index is not None:
-                if not len(index):
-                    if dtype is None:
-                        data = []  # needed to to make dtype=np.object
-                else:
-                    data = na_value  # Check tests
+            if not len(index):
+                if dtype is None:
+                    data = []  # needed to to make dtype=np.object
+            else:
+                data = na_value  # Check tests
 
         # # Series TASK 6: DETAILS FOR SERIES AND MANAGER. CREATES OTHERWISE
         list_like_input = False
