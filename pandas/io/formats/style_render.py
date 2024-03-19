@@ -141,13 +141,13 @@ class StylerRenderer:
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
         self._display_funcs_index_names: DefaultDict[  # maps index level -> format func
-            tuple[int, int], Callable[[Any], str]
+            int, Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
         self._display_funcs_columns: DefaultDict[  # maps (level, col) -> format func
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
         self._display_funcs_column_names: DefaultDict[  # maps col level -> format func
-            tuple[int, int], Callable[[Any], str]
+            int, Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
 
     def _render(
