@@ -13,10 +13,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.arrays import NDArrayBacked
-from pandas._libs.tslibs import (
-    get_unit_from_dtype,
-    is_supported_unit,
-)
+from pandas._libs.tslibs import is_supported_dtype
 from pandas._typing import (
     ArrayLike,
     AxisInt,
@@ -92,7 +89,9 @@ def ravel_compat(meth: F) -> F:
     return cast(F, method)
 
 
-class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
+# error: Definition of "delete/ravel/T/repeat/copy" in base class "NDArrayBacked"
+# is incompatible with definition in base class "ExtensionArray"
+class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignore[misc]
     """
     ExtensionArray that is backed by a single NumPy ndarray.
     """
@@ -136,25 +135,20 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             cls = dtype.construct_array_type()
             return cls(arr.view("i8"), dtype=dtype)
         elif isinstance(dtype, DatetimeTZDtype):
-            # error: Incompatible types in assignment (expression has type
-            # "type[DatetimeArray]", variable has type "type[PeriodArray]")
-            cls = dtype.construct_array_type()  # type: ignore[assignment]
+            dt_cls = dtype.construct_array_type()
             dt64_values = arr.view(f"M8[{dtype.unit}]")
-            return cls(dt64_values, dtype=dtype)
-        elif lib.is_np_dtype(dtype, "M") and is_supported_unit(
-            get_unit_from_dtype(dtype)
-        ):
+            return dt_cls._simple_new(dt64_values, dtype=dtype)
+        elif lib.is_np_dtype(dtype, "M") and is_supported_dtype(dtype):
             from pandas.core.arrays import DatetimeArray
 
             dt64_values = arr.view(dtype)
-            return DatetimeArray(dt64_values, dtype=dtype)
-        elif lib.is_np_dtype(dtype, "m") and is_supported_unit(
-            get_unit_from_dtype(dtype)
-        ):
+            return DatetimeArray._simple_new(dt64_values, dtype=dtype)
+
+        elif lib.is_np_dtype(dtype, "m") and is_supported_dtype(dtype):
             from pandas.core.arrays import TimedeltaArray
 
             td64_values = arr.view(dtype)
-            return TimedeltaArray(td64_values, dtype=dtype)
+            return TimedeltaArray._simple_new(td64_values, dtype=dtype)
 
         # error: Argument "dtype" to "view" of "_ArrayOrScalarCommon" has incompatible
         # type "Union[ExtensionDtype, dtype[Any]]"; expected "Union[dtype[Any], None,
@@ -256,7 +250,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return self._ndarray.searchsorted(npvalue, side=side, sorter=sorter)
 
     @doc(ExtensionArray.shift)
-    def shift(self, periods: int = 1, fill_value=None):
+    def shift(self, periods: int = 1, fill_value=None) -> Self:
         # NB: shift is always along axis=0
         axis = 0
         fill_value = self._validate_scalar(fill_value)
@@ -273,15 +267,13 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return value
 
     @overload
-    def __getitem__(self, key: ScalarIndexer) -> Any:
-        ...
+    def __getitem__(self, key: ScalarIndexer) -> Any: ...
 
     @overload
     def __getitem__(
         self,
         key: SequenceIndexer | PositionalIndexerTuple,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     def __getitem__(
         self,
@@ -313,7 +305,12 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         func(self._ndarray.T, limit=limit, mask=mask.T)
 
     def _pad_or_backfill(
-        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
     ) -> Self:
         mask = self.isna()
         if mask.any():
@@ -323,7 +320,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             npvalues = self._ndarray.T
             if copy:
                 npvalues = npvalues.copy()
-            func(npvalues, limit=limit, mask=mask.T)
+            func(npvalues, limit=limit, limit_area=limit_area, mask=mask.T)
             npvalues = npvalues.T
 
             if copy:
@@ -350,7 +347,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         # error: Argument 2 to "check_value_size" has incompatible type
         # "ExtensionArray"; expected "ndarray"
         value = missing.check_value_size(
-            value, mask, len(self)  # type: ignore[arg-type]
+            value,
+            mask,  # type: ignore[arg-type]
+            len(self),
         )
 
         if mask.any():
@@ -387,7 +386,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     # ------------------------------------------------------------------------
     # Reductions
 
-    def _wrap_reduction_result(self, axis: AxisInt | None, result):
+    def _wrap_reduction_result(self, axis: AxisInt | None, result) -> Any:
         if axis is None or self.ndim == 1:
             return self._box_func(result)
         return self._from_backing_data(result)

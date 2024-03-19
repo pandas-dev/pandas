@@ -23,10 +23,12 @@ main:
 
 The rest of the items in the file will be added directly to the context.
 """
+
 import argparse
 import collections
 import datetime
 import importlib
+import itertools
 import json
 import operator
 import os
@@ -40,6 +42,7 @@ import typing
 import feedparser
 import jinja2
 import markdown
+from packaging import version
 import requests
 import yaml
 
@@ -116,11 +119,11 @@ class Preprocessors:
                 summary = re.sub(tag_expr, "", html)
                 try:
                     body_position = summary.index(title) + len(title)
-                except ValueError:
+                except ValueError as err:
                     raise ValueError(
                         f'Blog post "{fname}" should have a markdown header '
                         f'corresponding to its "Title" element "{title}"'
-                    )
+                    ) from err
                 summary = " ".join(summary[body_position:].split(" ")[:30])
                 posts.append(
                     {
@@ -245,6 +248,7 @@ class Preprocessors:
             context["releases"].append(
                 {
                     "name": release["tag_name"].lstrip("v"),
+                    "parsed_version": version.parse(release["tag_name"].lstrip("v")),
                     "tag": release["tag_name"],
                     "published": published,
                     "url": (
@@ -254,7 +258,17 @@ class Preprocessors:
                     ),
                 }
             )
-
+        # sorting out obsolete versions
+        grouped_releases = itertools.groupby(
+            context["releases"],
+            key=lambda r: (r["parsed_version"].major, r["parsed_version"].minor),
+        )
+        context["releases"] = [
+            max(release_group, key=lambda r: r["parsed_version"].minor)
+            for _, release_group in grouped_releases
+        ]
+        # sorting releases by version number
+        context["releases"].sort(key=lambda r: r["parsed_version"], reverse=True)
         return context
 
     @staticmethod

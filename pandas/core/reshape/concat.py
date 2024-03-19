@@ -1,6 +1,7 @@
 """
 Concat routines.
 """
+
 from __future__ import annotations
 
 from collections import abc
@@ -11,14 +12,10 @@ from typing import (
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
-
 from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -82,8 +79,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
@@ -99,8 +95,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
-) -> Series:
-    ...
+) -> Series: ...
 
 
 @overload
@@ -116,8 +111,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
-) -> DataFrame | Series:
-    ...
+) -> DataFrame | Series: ...
 
 
 @overload
@@ -133,8 +127,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
@@ -150,8 +143,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
-) -> DataFrame | Series:
-    ...
+) -> DataFrame | Series: ...
 
 
 def concat(
@@ -178,7 +170,7 @@ def concat(
 
     Parameters
     ----------
-    objs : a sequence or mapping of Series or DataFrame objects
+    objs : an iterable or mapping of Series or DataFrame objects
         If a mapping is passed, the sorted keys will be used as the `keys`
         argument, unless it is passed, in which case the values will be
         selected (see below). Any None objects will be dropped silently unless
@@ -205,8 +197,10 @@ def concat(
         Check whether the new concatenated axis contains duplicates. This can
         be very expensive relative to the actual data concatenation.
     sort : bool, default False
-        Sort non-concatenation axis if it is not already aligned.
-
+        Sort non-concatenation axis. One exception to this is when the
+        non-concatentation axis is a DatetimeIndex and join='outer' and the axis is
+        not already aligned. In that case, the non-concatenation axis is always
+        sorted lexicographically.
     copy : bool, default True
         If False, do not copy data unnecessarily.
 
@@ -238,8 +232,8 @@ def concat(
     --------
     Combine two ``Series``.
 
-    >>> s1 = pd.Series(['a', 'b'])
-    >>> s2 = pd.Series(['c', 'd'])
+    >>> s1 = pd.Series(["a", "b"])
+    >>> s2 = pd.Series(["c", "d"])
     >>> pd.concat([s1, s2])
     0    a
     1    b
@@ -260,7 +254,7 @@ def concat(
     Add a hierarchical index at the outermost level of
     the data with the ``keys`` option.
 
-    >>> pd.concat([s1, s2], keys=['s1', 's2'])
+    >>> pd.concat([s1, s2], keys=["s1", "s2"])
     s1  0    a
         1    b
     s2  0    c
@@ -269,8 +263,7 @@ def concat(
 
     Label the index keys you create with the ``names`` option.
 
-    >>> pd.concat([s1, s2], keys=['s1', 's2'],
-    ...           names=['Series name', 'Row ID'])
+    >>> pd.concat([s1, s2], keys=["s1", "s2"], names=["Series name", "Row ID"])
     Series name  Row ID
     s1           0         a
                  1         b
@@ -280,14 +273,12 @@ def concat(
 
     Combine two ``DataFrame`` objects with identical columns.
 
-    >>> df1 = pd.DataFrame([['a', 1], ['b', 2]],
-    ...                    columns=['letter', 'number'])
+    >>> df1 = pd.DataFrame([["a", 1], ["b", 2]], columns=["letter", "number"])
     >>> df1
       letter  number
     0      a       1
     1      b       2
-    >>> df2 = pd.DataFrame([['c', 3], ['d', 4]],
-    ...                    columns=['letter', 'number'])
+    >>> df2 = pd.DataFrame([["c", 3], ["d", 4]], columns=["letter", "number"])
     >>> df2
       letter  number
     0      c       3
@@ -303,8 +294,9 @@ def concat(
     and return everything. Columns outside the intersection will
     be filled with ``NaN`` values.
 
-    >>> df3 = pd.DataFrame([['c', 3, 'cat'], ['d', 4, 'dog']],
-    ...                    columns=['letter', 'number', 'animal'])
+    >>> df3 = pd.DataFrame(
+    ...     [["c", 3, "cat"], ["d", 4, "dog"]], columns=["letter", "number", "animal"]
+    ... )
     >>> df3
       letter  number animal
     0      c       3    cat
@@ -330,8 +322,9 @@ def concat(
     Combine ``DataFrame`` objects horizontally along the x axis by
     passing in ``axis=1``.
 
-    >>> df4 = pd.DataFrame([['bird', 'polly'], ['monkey', 'george']],
-    ...                    columns=['animal', 'name'])
+    >>> df4 = pd.DataFrame(
+    ...     [["bird", "polly"], ["monkey", "george"]], columns=["animal", "name"]
+    ... )
     >>> pd.concat([df1, df4], axis=1)
       letter  number  animal    name
     0      a       1    bird   polly
@@ -340,11 +333,11 @@ def concat(
     Prevent the result from including duplicate index values with the
     ``verify_integrity`` option.
 
-    >>> df5 = pd.DataFrame([1], index=['a'])
+    >>> df5 = pd.DataFrame([1], index=["a"])
     >>> df5
        0
     a  1
-    >>> df6 = pd.DataFrame([2], index=['a'])
+    >>> df6 = pd.DataFrame([2], index=["a"])
     >>> df6
        0
     a  2
@@ -355,11 +348,11 @@ def concat(
 
     Append a single row to the end of a ``DataFrame`` object.
 
-    >>> df7 = pd.DataFrame({'a': 1, 'b': 2}, index=[0])
+    >>> df7 = pd.DataFrame({"a": 1, "b": 2}, index=[0])
     >>> df7
         a   b
     0   1   2
-    >>> new_row = pd.Series({'a': 3, 'b': 4})
+    >>> new_row = pd.Series({"a": 3, "b": 4})
     >>> new_row
     a    3
     b    4
@@ -369,13 +362,6 @@ def concat(
     0   1   2
     1   3   4
     """
-    if copy is None:
-        if using_copy_on_write():
-            copy = False
-        else:
-            copy = True
-    elif copy and using_copy_on_write():
-        copy = False
 
     op = _Concatenator(
         objs,
@@ -386,7 +372,6 @@ def concat(
         levels=levels,
         names=names,
         verify_integrity=verify_integrity,
-        copy=copy,
         sort=sort,
     )
 
@@ -410,7 +395,6 @@ class _Concatenator:
         names: list[HashableT] | None = None,
         ignore_index: bool = False,
         verify_integrity: bool = False,
-        copy: bool = True,
         sort: bool = False,
     ) -> None:
         if isinstance(objs, (ABCSeries, ABCDataFrame, str)):
@@ -438,7 +422,6 @@ class _Concatenator:
 
         self.ignore_index = ignore_index
         self.verify_integrity = verify_integrity
-        self.copy = copy
 
         objs, keys = self._clean_keys_and_objs(objs, keys)
 
@@ -508,32 +491,27 @@ class _Concatenator:
             objs_list = list(com.not_none(*objs_list))
         else:
             # GH#1649
-            clean_keys = []
+            key_indices = []
             clean_objs = []
             if is_iterator(keys):
                 keys = list(keys)
             if len(keys) != len(objs_list):
                 # GH#43485
-                warnings.warn(
-                    "The behavior of pd.concat with len(keys) != len(objs) is "
-                    "deprecated. In a future version this will raise instead of "
-                    "truncating to the smaller of the two sequences",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
+                raise ValueError(
+                    f"The length of the keys ({len(keys)}) must match "
+                    f"the length of the objects to concatenate ({len(objs_list)})"
                 )
-            for k, v in zip(keys, objs_list):
-                if v is None:
-                    continue
-                clean_keys.append(k)
-                clean_objs.append(v)
+            for i, obj in enumerate(objs_list):
+                if obj is not None:
+                    key_indices.append(i)
+                    clean_objs.append(obj)
             objs_list = clean_objs
 
-            if isinstance(keys, MultiIndex):
-                # TODO: retain levels?
-                keys = type(keys).from_tuples(clean_keys, names=keys.names)
-            else:
-                name = getattr(keys, "name", None)
-                keys = Index(clean_keys, name=name, dtype=getattr(keys, "dtype", None))
+            if not isinstance(keys, Index):
+                keys = Index(keys)
+
+            if len(key_indices) < len(keys):
+                keys = keys.take(key_indices)
 
         if len(objs_list) == 0:
             raise ValueError("All objects passed were None")
@@ -655,7 +633,7 @@ class _Concatenator:
                 cons = sample._constructor_expanddim
 
                 index, columns = self.new_axes
-                df = cons(data, index=index, copy=self.copy)
+                df = cons(data, index=index, copy=False)
                 df.columns = columns
                 return df.__finalize__(self, method="concat")
 
@@ -680,10 +658,8 @@ class _Concatenator:
                 mgrs_indexers.append((obj._mgr, indexers))
 
             new_data = concatenate_managers(
-                mgrs_indexers, self.new_axes, concat_axis=self.bm_axis, copy=self.copy
+                mgrs_indexers, self.new_axes, concat_axis=self.bm_axis, copy=False
             )
-            if not self.copy and not using_copy_on_write():
-                new_data._consolidate_inplace()
 
             out = sample._constructor_from_mgr(new_data, axes=new_data.axes)
             return out.__finalize__(self, method="concat")
@@ -709,7 +685,6 @@ class _Concatenator:
             axis=data_axis,
             intersect=self.intersect,
             sort=self.sort,
-            copy=self.copy,
         )
 
     @cache_readonly
@@ -765,7 +740,7 @@ class _Concatenator:
 
         return concat_axis
 
-    def _maybe_check_integrity(self, concat_index: Index):
+    def _maybe_check_integrity(self, concat_index: Index) -> None:
         if self.verify_integrity:
             if not concat_index.is_unique:
                 overlap = concat_index[concat_index.duplicated()].unique()
@@ -865,12 +840,14 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
     # do something a bit more speedy
 
     for hlevel, level in zip(zipped, levels):
-        hlevel = ensure_index(hlevel)
-        mapped = level.get_indexer(hlevel)
+        hlevel_index = ensure_index(hlevel)
+        mapped = level.get_indexer(hlevel_index)
 
         mask = mapped == -1
         if mask.any():
-            raise ValueError(f"Values not found in passed level: {hlevel[mask]!s}")
+            raise ValueError(
+                f"Values not found in passed level: {hlevel_index[mask]!s}"
+            )
 
         new_codes.append(np.repeat(mapped, n))
 

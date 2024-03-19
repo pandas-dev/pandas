@@ -75,17 +75,6 @@ def test_apply_map_same_length_inference_bug():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("convert_dtype", [True, False])
-def test_apply_convert_dtype_deprecated(convert_dtype):
-    ser = Series(np.random.default_rng(2).standard_normal(10))
-
-    def func(x):
-        return x if x > 0 else np.nan
-
-    with tm.assert_produces_warning(FutureWarning):
-        ser.apply(func, convert_dtype=convert_dtype, by_row="compat")
-
-
 def test_apply_args():
     s = Series(["foo,bar"])
 
@@ -104,12 +93,7 @@ def test_agg_args(args, kwargs, increment):
         return x + a + 10 * b + 100 * c
 
     s = Series([1, 2])
-    msg = (
-        "in Series.agg cannot aggregate and has been deprecated. "
-        "Use Series.transform to keep behavior unchanged."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = s.agg(f, 0, *args, **kwargs)
+    result = s.agg(f, 0, *args, **kwargs)
     expected = s + increment
     tm.assert_series_equal(result, expected)
 
@@ -124,13 +108,9 @@ def test_agg_mapping_func_deprecated():
     def foo2(x, b=2, c=0):
         return x + b + c
 
-    msg = "using .+ in Series.agg cannot aggregate and"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        s.agg(foo1, 0, 3, c=4)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        s.agg([foo1, foo2], 0, 3, c=4)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        s.agg({"a": foo1, "b": foo2}, 0, 3, c=4)
+    s.agg(foo1, 0, 3, c=4)
+    s.agg([foo1, foo2], 0, 3, c=4)
+    s.agg({"a": foo1, "b": foo2}, 0, 3, c=4)
 
 
 def test_series_apply_map_box_timestamps(by_row):
@@ -325,7 +305,7 @@ def test_transform(string_series, by_row):
 @pytest.mark.parametrize("op", series_transform_kernels)
 def test_transform_partial_failure(op, request):
     # GH 35964
-    if op in ("ffill", "bfill", "pad", "backfill", "shift"):
+    if op in ("ffill", "bfill", "shift"):
         request.applymarker(
             pytest.mark.xfail(reason=f"{op} is successful on any dtype")
         )
@@ -410,34 +390,26 @@ def test_apply_map_evaluate_lambdas_the_same(string_series, func, by_row):
 
 def test_agg_evaluate_lambdas(string_series):
     # GH53325
-    # in the future, the result will be a Series class.
+    result = string_series.agg(lambda x: type(x))
+    assert result is Series
 
-    with tm.assert_produces_warning(FutureWarning):
-        result = string_series.agg(lambda x: type(x))
-    assert isinstance(result, Series) and len(result) == len(string_series)
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = string_series.agg(type)
-    assert isinstance(result, Series) and len(result) == len(string_series)
+    result = string_series.agg(type)
+    assert result is Series
 
 
 @pytest.mark.parametrize("op_name", ["agg", "apply"])
 def test_with_nested_series(datetime_series, op_name):
-    # GH 2316
+    # GH 2316 & GH52123
     # .agg with a reducer and a transform, what to do
-    msg = "cannot aggregate"
-    warning = FutureWarning if op_name == "agg" else None
-    with tm.assert_produces_warning(warning, match=msg):
-        # GH52123
-        result = getattr(datetime_series, op_name)(
-            lambda x: Series([x, x**2], index=["x", "x^2"])
-        )
-    expected = DataFrame({"x": datetime_series, "x^2": datetime_series**2})
-    tm.assert_frame_equal(result, expected)
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = datetime_series.agg(lambda x: Series([x, x**2], index=["x", "x^2"]))
-    tm.assert_frame_equal(result, expected)
+    result = getattr(datetime_series, op_name)(
+        lambda x: Series([x, x**2], index=["x", "x^2"])
+    )
+    if op_name == "apply":
+        expected = DataFrame({"x": datetime_series, "x^2": datetime_series**2})
+        tm.assert_frame_equal(result, expected)
+    else:
+        expected = Series([datetime_series, datetime_series**2], index=["x", "x^2"])
+        tm.assert_series_equal(result, expected)
 
 
 def test_replicate_describe(string_series):
@@ -575,10 +547,7 @@ def test_apply_listlike_reducer(string_series, ops, names, how, kwargs):
     # GH 39140
     expected = Series({name: op(string_series) for name, op in zip(names, ops)})
     expected.name = "series"
-    warn = FutureWarning if how == "agg" else None
-    msg = f"using Series.[{'|'.join(names)}]"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = getattr(string_series, how)(ops, **kwargs)
+    result = getattr(string_series, how)(ops, **kwargs)
     tm.assert_series_equal(result, expected)
 
 
@@ -599,10 +568,7 @@ def test_apply_dictlike_reducer(string_series, ops, how, kwargs, by_row):
     # GH 39140
     expected = Series({name: op(string_series) for name, op in ops.items()})
     expected.name = string_series.name
-    warn = FutureWarning if how == "agg" else None
-    msg = "using Series.[sum|mean]"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = getattr(string_series, how)(ops, **kwargs)
+    result = getattr(string_series, how)(ops, **kwargs)
     tm.assert_series_equal(result, expected)
 
 

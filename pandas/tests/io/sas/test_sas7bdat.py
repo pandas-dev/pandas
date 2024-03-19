@@ -9,10 +9,11 @@ import pytest
 
 from pandas.compat import IS64
 from pandas.errors import EmptyDataError
-import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
+
+from pandas.io.sas.sas7bdat import SAS7BDATReader
 
 
 @pytest.fixture
@@ -80,17 +81,6 @@ class TestSAS7BDAT:
             df = pd.read_sas(fname, encoding="utf-8")
             tm.assert_frame_equal(df, expected)
 
-    @td.skip_if_no("py.path")
-    @pytest.mark.slow
-    def test_path_localpath(self, dirpath, data_test_ix):
-        from py.path import local as LocalPath
-
-        expected, test_ix = data_test_ix
-        for k in test_ix:
-            fname = LocalPath(os.path.join(dirpath, f"test{k}.sas7bdat"))
-            df = pd.read_sas(fname, encoding="utf-8")
-            tm.assert_frame_equal(df, expected)
-
     @pytest.mark.slow
     @pytest.mark.parametrize("chunksize", (3, 5, 10, 11))
     @pytest.mark.parametrize("k", range(1, 17))
@@ -126,8 +116,6 @@ def test_encoding_options(datapath):
         except AttributeError:
             pass
     tm.assert_frame_equal(df1, df2)
-
-    from pandas.io.sas.sas7bdat import SAS7BDATReader
 
     with contextlib.closing(SAS7BDATReader(fname, convert_header_text=False)) as rdr:
         df3 = rdr.read()
@@ -189,10 +177,9 @@ def test_date_time(datapath):
         fname, parse_dates=["Date1", "Date2", "DateTime", "DateTimeHi", "Taiw"]
     )
     # GH 19732: Timestamps imported from sas will incur floating point errors
-    # 2023-11-16 we don't know the correct "expected" result bc we do not have
-    #  access to SAS to read the sas7bdat file. We are really just testing
-    #  that we are "close". This only seems to be an issue near the
-    #  implementation bounds.
+    # See GH#56014 for discussion of the correct "expected" results
+    #  We are really just testing that we are "close". This only seems to be
+    #  an issue near the implementation bounds.
 
     df[df.columns[3]] = df.iloc[:, 3].dt.round("us")
     df0["Date1"] = df0["Date1"].astype("M8[s]")
@@ -271,6 +258,7 @@ def test_max_sas_date(datapath):
     # NB. max datetime in SAS dataset is 31DEC9999:23:59:59.999
     #    but this is read as 29DEC9999:23:59:59.998993 by a buggy
     #    sas7bdat module
+    # See also GH#56014 for discussion of the correct "expected" results.
     fname = datapath("io", "sas", "data", "max_sas_date.sas7bdat")
     df = pd.read_sas(fname, encoding="iso-8859-1")
 

@@ -1,4 +1,5 @@
-""" Test cases for DataFrame.plot """
+"""Test cases for DataFrame.plot"""
+
 from datetime import (
     date,
     datetime,
@@ -204,7 +205,7 @@ class TestDataFramePlots:
             columns=columns,
             index=index,
         )
-        _check_plot_works(df.plot, title="\u03A3")
+        _check_plot_works(df.plot, title="\u03a3")
 
     @pytest.mark.slow
     @pytest.mark.parametrize("layout", [None, (-1, 1)])
@@ -1199,12 +1200,10 @@ class TestDataFramePlots:
         axes = df.plot.hist(rot=50, fontsize=8, orientation="horizontal")
         _check_ticks_props(axes, xrot=0, yrot=50, ylabelsize=8)
 
-    @pytest.mark.parametrize(
-        "weights", [0.1 * np.ones(shape=(100,)), 0.1 * np.ones(shape=(100, 2))]
-    )
-    def test_hist_weights(self, weights):
+    @pytest.mark.parametrize("weight_shape", [(100,), (100, 2)])
+    def test_hist_weights(self, weight_shape):
         # GH 33173
-
+        weights = 0.1 * np.ones(shape=weight_shape)
         df = DataFrame(
             dict(zip(["A", "B"], np.random.default_rng(2).standard_normal((2, 100))))
         )

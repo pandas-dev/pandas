@@ -6,6 +6,7 @@ Numba 1D mean kernels that can be shared by
 
 Mirrors pandas/_libs/window/aggregation.pyx
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -107,7 +108,7 @@ def sliding_mean(
                     neg_ct,
                     compensation_add,
                     num_consecutive_same_value,
-                    prev_value,  # pyright: ignore[reportGeneralTypeIssues]
+                    prev_value,  # pyright: ignore[reportArgumentType]
                 )
         else:
             for j in range(start[i - 1], s):
@@ -132,7 +133,7 @@ def sliding_mean(
                     neg_ct,
                     compensation_add,
                     num_consecutive_same_value,
-                    prev_value,  # pyright: ignore[reportGeneralTypeIssues]
+                    prev_value,  # pyright: ignore[reportArgumentType]
                 )
 
         if nobs >= min_periods and nobs > 0:

@@ -2,6 +2,7 @@
 The tests in this package are to ensure the proper resultant dtypes of
 set operations.
 """
+
 from datetime import datetime
 import operator
 
@@ -54,6 +55,11 @@ def any_dtype_for_small_pos_integer_indexes(request):
     valid and gives the correct Index (sub-)class.
     """
     return request.param
+
+
+@pytest.fixture
+def index_flat2(index_flat):
+    return index_flat
 
 
 def test_union_same_types(index):
@@ -716,14 +722,15 @@ class TestSetOpsUnsorted:
         assert inter is first
 
     @pytest.mark.parametrize(
-        "index2,keeps_name",
+        "index2_name,keeps_name",
         [
-            (Index([3, 4, 5, 6, 7], name="index"), True),  # preserve same name
-            (Index([3, 4, 5, 6, 7], name="other"), False),  # drop diff names
-            (Index([3, 4, 5, 6, 7]), False),
+            ("index", True),  # preserve same name
+            ("other", False),  # drop diff names
+            (None, False),
         ],
     )
-    def test_intersection_name_preservation(self, index2, keeps_name, sort):
+    def test_intersection_name_preservation(self, index2_name, keeps_name, sort):
+        index2 = Index([3, 4, 5, 6, 7], name=index2_name)
         index1 = Index([1, 2, 3, 4, 5], name="index")
         expected = Index([3, 4, 5])
         result = index1.intersection(index2, sort)
@@ -910,11 +917,13 @@ class TestSetOpsUnsorted:
     @pytest.mark.parametrize(
         "index2,expected",
         [
-            (Index([0, 1, np.nan]), Index([2.0, 3.0, 0.0])),
-            (Index([0, 1]), Index([np.nan, 2.0, 3.0, 0.0])),
+            ([0, 1, np.nan], [2.0, 3.0, 0.0]),
+            ([0, 1], [np.nan, 2.0, 3.0, 0.0]),
         ],
     )
     def test_symmetric_difference_missing(self, index2, expected, sort):
+        index2 = Index(index2)
+        expected = Index(expected)
         # GH#13514 change: {nan} - {nan} == {}
         # (GH#6444, sorting of nans, is no longer an issue)
         index1 = Index([1, np.nan, 2, 3])

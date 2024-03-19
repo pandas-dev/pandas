@@ -35,7 +35,7 @@ def test_series_describe_single():
     )
     grouped = ts.groupby(lambda x: x.month)
     result = grouped.apply(lambda x: x.describe())
-    expected = grouped.describe().stack(future_stack=True)
+    expected = grouped.describe().stack()
     tm.assert_series_equal(result, expected)
 
 
@@ -87,35 +87,25 @@ def test_frame_describe_multikey(tsframe):
     expected = pd.concat(desc_groups, axis=1)
     tm.assert_frame_equal(result, expected)
 
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        groupedT = tsframe.groupby({"A": 0, "B": 0, "C": 1, "D": 1}, axis=1)
-    result = groupedT.describe()
-    expected = tsframe.describe().T
-    # reverting the change from https://github.com/pandas-dev/pandas/pull/35441/
-    expected.index = MultiIndex(
-        levels=[[0, 1], expected.index],
-        codes=[[0, 0, 1, 1], range(len(expected.index))],
-    )
-    tm.assert_frame_equal(result, expected)
-
 
 def test_frame_describe_tupleindex():
     # GH 14848 - regression from 0.19.0 to 0.19.1
-    df1 = DataFrame(
+    name = "k"
+    df = DataFrame(
         {
             "x": [1, 2, 3, 4, 5] * 3,
-            "y": [10, 20, 30, 40, 50] * 3,
-            "z": [100, 200, 300, 400, 500] * 3,
+            name: [(0, 0, 1), (0, 1, 0), (1, 0, 0)] * 5,
         }
     )
-    df1["k"] = [(0, 0, 1), (0, 1, 0), (1, 0, 0)] * 5
-    df2 = df1.rename(columns={"k": "key"})
-    msg = "Names should be list-like for a MultiIndex"
-    with pytest.raises(ValueError, match=msg):
-        df1.groupby("k").describe()
-    with pytest.raises(ValueError, match=msg):
-        df2.groupby("key").describe()
+    result = df.groupby(name).describe()
+    expected = DataFrame(
+        [[5.0, 3.0, 1.581139, 1.0, 2.0, 3.0, 4.0, 5.0]] * 3,
+        index=Index([(0, 0, 1), (0, 1, 0), (1, 0, 0)], tupleize_cols=False, name=name),
+        columns=MultiIndex.from_arrays(
+            [["x"] * 8, ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]]
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_frame_describe_unstacked_format():
@@ -149,7 +139,6 @@ def test_frame_describe_unstacked_format():
     "indexing past lexsort depth may impact performance:"
     "pandas.errors.PerformanceWarning"
 )
-@pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
 def test_describe_with_duplicate_output_column_names(as_index, keys):
     # GH 35314
@@ -227,49 +216,34 @@ def test_describe_duplicate_columns():
     tm.assert_frame_equal(result, expected)
 
 
-class TestGroupByNonCythonPaths:
+def test_describe_non_cython_paths():
     # GH#5610 non-cython calls should not include the grouper
     # Tests for code not expected to go through cython paths.
+    df = DataFrame(
+        [[1, 2, "foo"], [1, np.nan, "bar"], [3, np.nan, "baz"]],
+        columns=["A", "B", "C"],
+    )
+    gb = df.groupby("A")
+    expected_index = Index([1, 3], name="A")
+    expected_col = MultiIndex(
+        levels=[["B"], ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]],
+        codes=[[0] * 8, list(range(8))],
+    )
+    expected = DataFrame(
+        [
+            [1.0, 2.0, np.nan, 2.0, 2.0, 2.0, 2.0, 2.0],
+            [0.0, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+        ],
+        index=expected_index,
+        columns=expected_col,
+    )
+    result = gb.describe()
+    tm.assert_frame_equal(result, expected)
 
-    @pytest.fixture
-    def df(self):
-        df = DataFrame(
-            [[1, 2, "foo"], [1, np.nan, "bar"], [3, np.nan, "baz"]],
-            columns=["A", "B", "C"],
-        )
-        return df
-
-    @pytest.fixture
-    def gb(self, df):
-        gb = df.groupby("A")
-        return gb
-
-    @pytest.fixture
-    def gni(self, df):
-        gni = df.groupby("A", as_index=False)
-        return gni
-
-    def test_describe(self, df, gb, gni):
-        # describe
-        expected_index = Index([1, 3], name="A")
-        expected_col = MultiIndex(
-            levels=[["B"], ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]],
-            codes=[[0] * 8, list(range(8))],
-        )
-        expected = DataFrame(
-            [
-                [1.0, 2.0, np.nan, 2.0, 2.0, 2.0, 2.0, 2.0],
-                [0.0, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
-            ],
-            index=expected_index,
-            columns=expected_col,
-        )
-        result = gb.describe()
-        tm.assert_frame_equal(result, expected)
-
-        expected = expected.reset_index()
-        result = gni.describe()
-        tm.assert_frame_equal(result, expected)
+    gni = df.groupby("A", as_index=False)
+    expected = expected.reset_index()
+    result = gni.describe()
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("dtype", [int, float, object])

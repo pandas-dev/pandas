@@ -27,7 +27,7 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture()
+@pytest.fixture
 def multiindex_df():
     levels = [["A", ""], ["B", "b"]]
     return DataFrame([[0, 2], [1, 3]], columns=MultiIndex.from_tuples(levels))
@@ -106,7 +106,7 @@ class TestResetIndex:
         tm.assert_frame_equal(result2, original)
 
     def test_reset_index(self, float_frame):
-        stacked = float_frame.stack(future_stack=True)[::2]
+        stacked = float_frame.stack()[::2]
         stacked = DataFrame({"foo": stacked, "bar": stacked})
 
         names = ["first", "second"]
@@ -232,9 +232,7 @@ class TestResetIndex:
 
     def test_reset_index_right_dtype(self):
         time = np.arange(0.0, 10, np.sqrt(2) / 2)
-        s1 = Series(
-            (9.81 * time**2) / 2, index=Index(time, name="time"), name="speed"
-        )
+        s1 = Series((9.81 * time**2) / 2, index=Index(time, name="time"), name="speed")
         df = DataFrame(s1)
 
         reset = s1.reset_index()
@@ -741,7 +739,7 @@ def test_reset_index_rename(float_frame):
 
 def test_reset_index_rename_multiindex(float_frame):
     # GH 6878
-    stacked_df = float_frame.stack(future_stack=True)[::2]
+    stacked_df = float_frame.stack()[::2]
     stacked_df = DataFrame({"foo": stacked_df, "bar": stacked_df})
 
     names = ["first", "second"]
@@ -755,7 +753,7 @@ def test_reset_index_rename_multiindex(float_frame):
 
 def test_errorreset_index_rename(float_frame):
     # GH 6878
-    stacked_df = float_frame.stack(future_stack=True)[::2]
+    stacked_df = float_frame.stack()[::2]
     stacked_df = DataFrame({"first": stacked_df, "second": stacked_df})
 
     with pytest.raises(

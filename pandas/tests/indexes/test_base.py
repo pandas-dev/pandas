@@ -104,7 +104,8 @@ class TestIndex:
     )
     def test_constructor_from_index_dtlike(self, cast_as_obj, index):
         if cast_as_obj:
-            result = Index(index.astype(object))
+            with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
+                result = Index(index.astype(object))
         else:
             result = Index(index)
 
@@ -685,47 +686,11 @@ class TestIndex:
     def test_summary(self, index):
         index._summary()
 
-    def test_format_bug(self):
-        # GH 14626
-        # windows has different precision on datetime.datetime.now (it doesn't
-        # include us since the default for Timestamp shows these but Index
-        # formatting does not we are skipping)
-        now = datetime.now()
-        msg = r"Index\.format is deprecated"
-
-        if not str(now).endswith("000"):
-            index = Index([now])
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                formatted = index.format()
-            expected = [str(index[0])]
-            assert formatted == expected
-
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            Index([]).format()
-
-    @pytest.mark.parametrize("vals", [[1, 2.0 + 3.0j, 4.0], ["a", "b", "c"]])
-    def test_format_missing(self, vals, nulls_fixture):
-        # 2845
-        vals = list(vals)  # Copy for each iteration
-        vals.append(nulls_fixture)
-        index = Index(vals, dtype=object)
-        # TODO: case with complex dtype?
-
-        msg = r"Index\.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            formatted = index.format()
-        null_repr = "NaN" if isinstance(nulls_fixture, float) else str(nulls_fixture)
-        expected = [str(index[0]), str(index[1]), str(index[2]), null_repr]
-
-        assert formatted == expected
-        assert index[3] is nulls_fixture
-
-    @pytest.mark.parametrize("op", ["any", "all"])
-    def test_logical_compat(self, op, simple_index):
+    def test_logical_compat(self, all_boolean_reductions, simple_index):
         index = simple_index
-        left = getattr(index, op)()
-        assert left == getattr(index.values, op)()
-        right = getattr(index.to_series(), op)()
+        left = getattr(index, all_boolean_reductions)()
+        assert left == getattr(index.values, all_boolean_reductions)()
+        right = getattr(index.to_series(), all_boolean_reductions)()
         # left might not match right exactly in e.g. string cases where the
         # because we use np.any/all instead of .any/all
         assert bool(left) == bool(right)
@@ -844,12 +809,14 @@ class TestIndex:
     @pytest.mark.parametrize(
         "index,expected",
         [
-            (Index(["qux", "baz", "foo", "bar"]), np.array([False, False, True, True])),
-            (Index([]), np.array([], dtype=bool)),  # empty
+            (["qux", "baz", "foo", "bar"], [False, False, True, True]),
+            ([], []),  # empty
         ],
     )
     def test_isin(self, values, index, expected):
+        index = Index(index)
         result = index.isin(values)
+        expected = np.array(expected, dtype=bool)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_isin_nan_common_object(
@@ -897,7 +864,7 @@ class TestIndex:
             #  and 2) that with an NaN we do not have .isin(nulls_fixture)
             msg = (
                 r"float\(\) argument must be a string or a (real )?number, "
-                f"not {repr(type(nulls_fixture).__name__)}"
+                f"not {type(nulls_fixture).__name__!r}"
             )
             with pytest.raises(TypeError, match=msg):
                 Index([1.0, nulls_fixture], dtype=dtype)
@@ -918,11 +885,12 @@ class TestIndex:
     @pytest.mark.parametrize(
         "index",
         [
-            Index(["qux", "baz", "foo", "bar"]),
-            Index([1.0, 2.0, 3.0, 4.0], dtype=np.float64),
+            ["qux", "baz", "foo", "bar"],
+            np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float64),
         ],
     )
     def test_isin_level_kwarg(self, level, index):
+        index = Index(index)
         values = index.tolist()[-2:] + ["nonexisting"]
 
         expected = np.array([False, False, True, True])
@@ -939,7 +907,7 @@ class TestIndex:
     @pytest.mark.parametrize("label", [1.0, "foobar", "xyzzy", np.nan])
     def test_isin_level_kwarg_bad_label_raises(self, label, index):
         if isinstance(index, MultiIndex):
-            index = index.rename(["foo", "bar"] + index.names[2:])
+            index = index.rename(("foo", "bar") + index.names[2:])
             msg = f"'Level {label} not found'"
         else:
             index = index.rename("foo")
@@ -1078,10 +1046,11 @@ class TestIndex:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "index,expected", [(Index(list("abcd")), True), (Index(range(4)), False)]
+        "index,expected", [(list("abcd"), True), (range(4), False)]
     )
     def test_tab_completion(self, index, expected):
         # GH 9910
+        index = Index(index)
         result = "str" in dir(index)
         assert result == expected
 
@@ -1164,15 +1133,11 @@ class TestIndex:
         index = Index(list("abc"))
         assert index.reindex(labels)[0].dtype.type == index.dtype.type
 
-    @pytest.mark.parametrize(
-        "labels,dtype",
-        [
-            (DatetimeIndex([]), np.datetime64),
-        ],
-    )
-    def test_reindex_doesnt_preserve_type_if_target_is_empty_index(self, labels, dtype):
+    def test_reindex_doesnt_preserve_type_if_target_is_empty_index(self):
         # GH7774
         index = Index(list("abc"))
+        labels = DatetimeIndex([])
+        dtype = np.datetime64
         assert index.reindex(labels)[0].dtype.type == dtype
 
     def test_reindex_doesnt_preserve_type_if_target_is_empty_index_numeric(
@@ -1721,3 +1686,13 @@ def test_nan_comparison_same_object(op):
 
     result = op(idx, idx.copy())
     tm.assert_numpy_array_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_is_monotonic_pyarrow_list_type():
+    # GH 57333
+    import pyarrow as pa
+
+    idx = Index([[1], [2, 3]], dtype=pd.ArrowDtype(pa.list_(pa.int64())))
+    assert not idx.is_monotonic_increasing
+    assert not idx.is_monotonic_decreasing

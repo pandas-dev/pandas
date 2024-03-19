@@ -4,7 +4,6 @@ with different size combinations. This is to ensure stability of the sorting
 and proper parameter handling
 """
 
-
 import numpy as np
 import pytest
 
@@ -76,9 +75,6 @@ def seed_df(seed_nans, n, m):
 @pytest.mark.parametrize("bins", [None, [0, 5]], ids=repr)
 @pytest.mark.parametrize("isort", [True, False])
 @pytest.mark.parametrize("normalize, name", [(True, "proportion"), (False, "count")])
-@pytest.mark.parametrize("sort", [True, False])
-@pytest.mark.parametrize("ascending", [True, False])
-@pytest.mark.parametrize("dropna", [True, False])
 def test_series_groupby_value_counts(
     seed_nans,
     num_rows,
@@ -112,7 +108,7 @@ def test_series_groupby_value_counts(
 
     gr = df.groupby(keys, sort=isort)
     right = gr["3rd"].apply(Series.value_counts, **kwargs)
-    right.index.names = right.index.names[:-1] + ["3rd"]
+    right.index.names = tuple(list(right.index.names[:-1]) + ["3rd"])
     # https://github.com/pandas-dev/pandas/issues/49909
     right = right.rename(name)
 
@@ -235,14 +231,6 @@ def education_df():
     )
 
 
-def test_axis(education_df):
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gp = education_df.groupby("country", axis=1)
-    with pytest.raises(NotImplementedError, match="axis"):
-        gp.value_counts()
-
-
 def test_bad_subset(education_df):
     gp = education_df.groupby("country")
     with pytest.raises(ValueError, match="subset"):
@@ -295,7 +283,6 @@ def _frame_value_counts(df, keys, normalize, sort, ascending):
         (True, False),
     ],
 )
-@pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize("frame", [True, False])
 def test_against_frame_and_seriesgroupby(
     education_df, groupby, normalize, name, sort, ascending, as_index, frame, request
@@ -330,7 +317,7 @@ def test_against_frame_and_seriesgroupby(
     )
     if frame:
         # compare against apply with DataFrame value_counts
-        warn = FutureWarning if groupby == "column" else None
+        warn = DeprecationWarning if groupby == "column" else None
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
         with tm.assert_produces_warning(warn, match=msg):
             expected = gp.apply(
@@ -423,14 +410,6 @@ def test_compound(
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.fixture
-def animals_df():
-    return DataFrame(
-        {"key": [1, 1, 1, 1], "num_legs": [2, 4, 4, 6], "num_wings": [2, 0, 0, 0]},
-        index=["falcon", "dog", "cat", "ant"],
-    )
-
-
 @pytest.mark.parametrize(
     "sort, ascending, normalize, name, expected_data, expected_index",
     [
@@ -448,10 +427,14 @@ def animals_df():
     ],
 )
 def test_data_frame_value_counts(
-    animals_df, sort, ascending, normalize, name, expected_data, expected_index
+    sort, ascending, normalize, name, expected_data, expected_index
 ):
     # 3-way compare with :meth:`~DataFrame.value_counts`
     # Tests from frame/methods/test_value_counts.py
+    animals_df = DataFrame(
+        {"key": [1, 1, 1, 1], "num_legs": [2, 4, 4, 6], "num_wings": [2, 0, 0, 0]},
+        index=["falcon", "dog", "cat", "ant"],
+    )
     result_frame = animals_df.value_counts(
         sort=sort, ascending=ascending, normalize=normalize
     )
@@ -471,19 +454,6 @@ def test_data_frame_value_counts(
     tm.assert_series_equal(result_frame_groupby, expected)
 
 
-@pytest.fixture
-def nulls_df():
-    n = np.nan
-    return DataFrame(
-        {
-            "A": [1, 1, n, 4, n, 6, 6, 6, 6],
-            "B": [1, 1, 3, n, n, 6, 6, 6, 6],
-            "C": [1, 2, 3, 4, 5, 6, n, 8, n],
-            "D": [1, 2, 3, 4, 5, 6, 7, n, n],
-        }
-    )
-
-
 @pytest.mark.parametrize(
     "group_dropna, count_dropna, expected_rows, expected_values",
     [
@@ -499,7 +469,7 @@ def nulls_df():
     ],
 )
 def test_dropna_combinations(
-    nulls_df, group_dropna, count_dropna, expected_rows, expected_values, request
+    group_dropna, count_dropna, expected_rows, expected_values, request
 ):
     if Version(np.__version__) >= Version("1.25") and not group_dropna:
         request.applymarker(
@@ -511,6 +481,14 @@ def test_dropna_combinations(
                 strict=False,
             )
         )
+    nulls_df = DataFrame(
+        {
+            "A": [1, 1, np.nan, 4, np.nan, 6, 6, 6, 6],
+            "B": [1, 1, 3, np.nan, np.nan, 6, 6, 6, 6],
+            "C": [1, 2, 3, 4, 5, 6, np.nan, 8, np.nan],
+            "D": [1, 2, 3, 4, 5, 6, 7, np.nan, np.nan],
+        }
+    )
     gp = nulls_df.groupby(["A", "B"], dropna=group_dropna)
     result = gp.value_counts(normalize=True, sort=True, dropna=count_dropna)
     columns = DataFrame()
@@ -519,17 +497,6 @@ def test_dropna_combinations(
     index = MultiIndex.from_frame(columns)
     expected = Series(data=expected_values, index=index, name="proportion")
     tm.assert_series_equal(result, expected)
-
-
-@pytest.fixture
-def names_with_nulls_df(nulls_fixture):
-    return DataFrame(
-        {
-            "key": [1, 1, 1, 1],
-            "first_name": ["John", "Anne", "John", "Beth"],
-            "middle_name": ["Smith", nulls_fixture, nulls_fixture, "Louise"],
-        },
-    )
 
 
 @pytest.mark.parametrize(
@@ -560,11 +527,18 @@ def names_with_nulls_df(nulls_fixture):
 )
 @pytest.mark.parametrize("normalize, name", [(False, "count"), (True, "proportion")])
 def test_data_frame_value_counts_dropna(
-    names_with_nulls_df, dropna, normalize, name, expected_data, expected_index
+    nulls_fixture, dropna, normalize, name, expected_data, expected_index
 ):
     # GH 41334
     # 3-way compare with :meth:`~DataFrame.value_counts`
     # Tests with nulls from frame/methods/test_value_counts.py
+    names_with_nulls_df = DataFrame(
+        {
+            "key": [1, 1, 1, 1],
+            "first_name": ["John", "Anne", "John", "Beth"],
+            "middle_name": ["Smith", nulls_fixture, nulls_fixture, "Louise"],
+        },
+    )
     result_frame = names_with_nulls_df.value_counts(dropna=dropna, normalize=normalize)
     expected = Series(
         data=expected_data,
@@ -583,7 +557,6 @@ def test_data_frame_value_counts_dropna(
     tm.assert_series_equal(result_frame_groupby, expected)
 
 
-@pytest.mark.parametrize("as_index", [False, True])
 @pytest.mark.parametrize("observed", [False, True])
 @pytest.mark.parametrize(
     "normalize, name, expected_data",
@@ -693,7 +666,6 @@ def assert_categorical_single_grouper(
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize(
     "normalize, name, expected_data",
     [
@@ -751,7 +723,6 @@ def test_categorical_single_grouper_observed_true(
     )
 
 
-@pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize(
     "normalize, name, expected_data",
     [
@@ -838,7 +809,6 @@ def test_categorical_single_grouper_observed_false(
     )
 
 
-@pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize(
     "observed, expected_index",
     [
@@ -924,7 +894,6 @@ def test_categorical_multiple_groupers(
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("as_index", [False, True])
 @pytest.mark.parametrize("observed", [False, True])
 @pytest.mark.parametrize(
     "normalize, name, expected_data",
@@ -1033,7 +1002,6 @@ def test_mixed_groupings(normalize, expected_label, expected_values):
         ("level", list("abcd") + ["level_1"], ["a", None, "d", "b", "c", "level_1"]),
     ],
 )
-@pytest.mark.parametrize("as_index", [False, True])
 def test_column_label_duplicates(test, columns, expected_names, as_index):
     # GH 44992
     # Test for duplicate input column labels and generated duplicate labels
@@ -1235,7 +1203,7 @@ def test_value_counts_sort_categorical(sort, vc_sort, normalize):
     elif not sort and vc_sort:
         taker = [0, 2, 1, 3]
     else:
-        taker = [2, 3, 0, 1]
+        taker = [2, 1, 0, 3]
     expected = expected.take(taker)
 
     tm.assert_series_equal(result, expected)

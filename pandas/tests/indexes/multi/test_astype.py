@@ -11,7 +11,7 @@ def test_astype(idx):
     actual = idx.astype("O")
     tm.assert_copy(actual.levels, expected.levels)
     tm.assert_copy(actual.codes, expected.codes)
-    assert actual.names == list(expected.names)
+    assert actual.names == expected.names
 
     with pytest.raises(TypeError, match="^Setting.*dtype.*object"):
         idx.astype(np.dtype(int))

@@ -23,7 +23,6 @@ from pandas.core.dtypes.missing import (
 from pandas.core.algorithms import (
     factorize,
     unique,
-    value_counts,
 )
 from pandas.core.arrays import Categorical
 from pandas.core.arrays.boolean import BooleanDtype
@@ -136,5 +135,4 @@ __all__ = [
     "UInt64Dtype",
     "UInt8Dtype",
     "unique",
-    "value_counts",
 ]

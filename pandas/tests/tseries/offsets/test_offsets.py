@@ -1,6 +1,7 @@
 """
 Tests of pandas.tseries.offsets
 """
+
 from __future__ import annotations
 
 from datetime import (
@@ -25,7 +26,6 @@ from pandas._libs.tslibs.offsets import (
     to_offset,
 )
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
-from pandas.errors import PerformanceWarning
 
 from pandas import (
     DataFrame,
@@ -500,14 +500,15 @@ class TestCommon:
         assert isinstance(result, Timestamp)
         assert result == expected_localize
 
-    def test_add_empty_datetimeindex(self, offset_types, tz_naive_fixture):
+    def test_add_empty_datetimeindex(
+        self, performance_warning, offset_types, tz_naive_fixture
+    ):
         # GH#12724, GH#30336
         offset_s = _create_offset(offset_types)
 
         dti = DatetimeIndex([], tz=tz_naive_fixture).as_unit("ns")
 
-        warn = None
-        if isinstance(
+        if not isinstance(
             offset_s,
             (
                 Easter,
@@ -523,23 +524,31 @@ class TestCommon:
             ),
         ):
             # We don't have an optimized apply_index
-            warn = PerformanceWarning
+            performance_warning = False
 
         # stacklevel checking is slow, and we have ~800 of variants of this
         #  test, so let's only check the stacklevel in a subset of them
         check_stacklevel = tz_naive_fixture is None
-        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
+        with tm.assert_produces_warning(
+            performance_warning, check_stacklevel=check_stacklevel
+        ):
             result = dti + offset_s
         tm.assert_index_equal(result, dti)
-        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
+        with tm.assert_produces_warning(
+            performance_warning, check_stacklevel=check_stacklevel
+        ):
             result = offset_s + dti
         tm.assert_index_equal(result, dti)
 
         dta = dti._data
-        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
+        with tm.assert_produces_warning(
+            performance_warning, check_stacklevel=check_stacklevel
+        ):
             result = dta + offset_s
         tm.assert_equal(result, dta)
-        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
+        with tm.assert_produces_warning(
+            performance_warning, check_stacklevel=check_stacklevel
+        ):
             result = offset_s + dta
         tm.assert_equal(result, dta)
 
@@ -623,10 +632,6 @@ class TestDateOffset:
 
     def test_default_constructor(self, dt):
         assert (dt + DateOffset(2)) == datetime(2008, 1, 4)
-
-    def test_is_anchored(self):
-        assert not DateOffset(2).is_anchored()
-        assert DateOffset(1).is_anchored()
 
     def test_copy(self):
         assert DateOffset(months=2).copy() == DateOffset(months=2)
@@ -795,10 +800,9 @@ def test_get_offset():
 
     for name, expected in pairs:
         offset = _get_offset(name)
-        assert offset == expected, (
-            f"Expected {repr(name)} to yield {repr(expected)} "
-            f"(actual: {repr(offset)})"
-        )
+        assert (
+            offset == expected
+        ), f"Expected {name!r} to yield {expected!r} (actual: {offset!r})"
 
 
 def test_get_offset_legacy():
@@ -1116,7 +1120,7 @@ def test_offset_multiplication(
     tm.assert_series_equal(resultarray, expectedarray)
 
 
-def test_dateoffset_operations_on_dataframes():
+def test_dateoffset_operations_on_dataframes(performance_warning):
     # GH 47953
     df = DataFrame({"T": [Timestamp("2019-04-30")], "D": [DateOffset(months=1)]})
     frameresult1 = df["T"] + 26 * df["D"]
@@ -1127,7 +1131,7 @@ def test_dateoffset_operations_on_dataframes():
         }
     )
     expecteddate = Timestamp("2021-06-30")
-    with tm.assert_produces_warning(PerformanceWarning):
+    with tm.assert_produces_warning(performance_warning):
         frameresult2 = df2["T"] + 26 * df2["D"]
 
     assert frameresult1[0] == expecteddate
