@@ -16,7 +16,10 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_object_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -570,19 +573,20 @@ class TestUnique:
         for i in range(1000):
             len(algos.unique(lst))
 
-    def test_on_index_object(self):
-        mindex = MultiIndex.from_arrays(
-            [np.arange(5).repeat(5), np.tile(np.arange(5), 5)]
-        )
-        expected = mindex.values
-        expected.sort()
+    def test_index_returned(self, index):
+        # GH#57043
+        index = index.repeat(2)
+        result = algos.unique(index)
 
-        mindex = mindex.repeat(2)
-
-        result = pd.unique(mindex)
-        result.sort()
-
-        tm.assert_almost_equal(result, expected)
+        # dict.fromkeys preserves the order
+        unique_values = list(dict.fromkeys(index.values))
+        if isinstance(index, MultiIndex):
+            expected = MultiIndex.from_tuples(unique_values, names=index.names)
+        else:
+            expected = Index(unique_values, dtype=index.dtype)
+            if isinstance(index.dtype, DatetimeTZDtype):
+                expected = expected.normalize()
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_dtype_preservation(self, any_numpy_dtype):
         # GH 15442
@@ -623,7 +627,7 @@ class TestUnique:
 
     def test_datetime64_dtype_array_returned(self):
         # GH 9431
-        expected = np.array(
+        dt_arr = np.array(
             [
                 "2015-01-03T00:00:00.000000000",
                 "2015-01-01T00:00:00.000000000",
@@ -639,18 +643,18 @@ class TestUnique:
             ]
         )
         result = algos.unique(dt_index)
-        tm.assert_numpy_array_equal(result, expected)
-        assert result.dtype == expected.dtype
+        expected = to_datetime(dt_arr)
+        tm.assert_index_equal(result, expected, exact=True)
 
         s = Series(dt_index)
         result = algos.unique(s)
-        tm.assert_numpy_array_equal(result, expected)
-        assert result.dtype == expected.dtype
+        tm.assert_numpy_array_equal(result, dt_arr)
+        assert result.dtype == dt_arr.dtype
 
         arr = s.values
         result = algos.unique(arr)
-        tm.assert_numpy_array_equal(result, expected)
-        assert result.dtype == expected.dtype
+        tm.assert_numpy_array_equal(result, dt_arr)
+        assert result.dtype == dt_arr.dtype
 
     def test_datetime_non_ns(self):
         a = np.array(["2000", "2000", "2001"], dtype="datetime64[s]")
@@ -666,22 +670,23 @@ class TestUnique:
 
     def test_timedelta64_dtype_array_returned(self):
         # GH 9431
-        expected = np.array([31200, 45678, 10000], dtype="m8[ns]")
+        td_arr = np.array([31200, 45678, 10000], dtype="m8[ns]")
 
         td_index = to_timedelta([31200, 45678, 31200, 10000, 45678])
         result = algos.unique(td_index)
-        tm.assert_numpy_array_equal(result, expected)
+        expected = to_timedelta(td_arr)
+        tm.assert_index_equal(result, expected)
         assert result.dtype == expected.dtype
 
         s = Series(td_index)
         result = algos.unique(s)
-        tm.assert_numpy_array_equal(result, expected)
-        assert result.dtype == expected.dtype
+        tm.assert_numpy_array_equal(result, td_arr)
+        assert result.dtype == td_arr.dtype
 
         arr = s.values
         result = algos.unique(arr)
-        tm.assert_numpy_array_equal(result, expected)
-        assert result.dtype == expected.dtype
+        tm.assert_numpy_array_equal(result, td_arr)
+        assert result.dtype == td_arr.dtype
 
     def test_uint64_overflow(self):
         s = Series([1, 2, 2**63, 2**63], dtype=np.uint64)

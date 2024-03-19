@@ -1,6 +1,7 @@
 """
 Hypothesis data generator helpers.
 """
+
 from datetime import datetime
 
 from hypothesis import strategies as st
