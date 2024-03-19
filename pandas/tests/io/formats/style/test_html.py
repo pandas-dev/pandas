@@ -9,6 +9,7 @@ import pytest
 from pandas import (
     DataFrame,
     MultiIndex,
+    Series,
     option_context,
 )
 
@@ -1002,4 +1003,56 @@ def test_to_html_na_rep_non_scalar_data(datapath):
   </tbody>
 </table>
 """
+    assert result == expected
+
+
+@pytest.mark.parametrize("escape_axis_0", [True, False])
+@pytest.mark.parametrize("escape_axis_1", [True, False])
+def test_format_names(escape_axis_0, escape_axis_1):
+    index = Series(["a", "b"], name=">c_name")
+    columns = Series(["A"], name="col_name>")
+    df = DataFrame([[2.61], [2.69]], index=index, columns=columns)
+    styler = Styler(df)
+
+    if escape_axis_0:
+        styler.format_names(axis=0, escape="html")
+        expected_index = "&gt;c_name"
+    else:
+        expected_index = ">c_name"
+
+    if escape_axis_1:
+        styler.format_names(axis=1, escape="html")
+        expected_columns = "col_name&gt;"
+    else:
+        expected_columns = "col_name>"
+
+    result = styler.to_html(table_uuid="test")
+    expected = dedent(
+        f"""\
+        <style type="text/css">
+        </style>
+        <table id="T_test">
+          <thead>
+            <tr>
+              <th class="index_name level0" >{expected_columns}</th>
+              <th id="T_test_level0_col0" class="col_heading level0 col0" >A</th>
+            </tr>
+            <tr>
+              <th class="index_name level0" >{expected_index}</th>
+              <th class="blank col0" >&nbsp;</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th id="T_test_level0_row0" class="row_heading level0 row0" >a</th>
+              <td id="T_test_row0_col0" class="data row0 col0" >2.610000</td>
+            </tr>
+            <tr>
+              <th id="T_test_level0_row1" class="row_heading level0 row1" >b</th>
+              <td id="T_test_row1_col0" class="data row1 col0" >2.690000</td>
+            </tr>
+          </tbody>
+        </table>
+        """
+    )
     assert result == expected
