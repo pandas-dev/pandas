@@ -526,7 +526,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 if isinstance(data, SingleBlockManager):
                     index = data.index
                 if isinstance(data, Series):
-                    pass
+                    index = data.index
                 else:
                     index = default_index(len(data))
         else:
@@ -552,13 +552,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 copy = True if original_index is None else False
                 deep = not copy
 
-                if index is not None:
+                if original_index is not None:
                     data = data.reindex(index)  # Copy the manager
 
                 data = data._mgr
 
             elif isinstance(data, SingleBlockManager):
-                fast_path_manager = index is None and not copy and dtype is None
+                fast_path_manager = (
+                    original_index is None and not copy and dtype is None
+                )
 
             index = data.index  # Pode subir para Series
 
