@@ -554,6 +554,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
                 if original_index is not None:
                     data = data.reindex(index)  # Copy the manager
+                    index = data.index
 
                 data = data._mgr
 
@@ -561,8 +562,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 fast_path_manager = (
                     original_index is None and not copy and dtype is None
                 )
-
-            index = data.index  # Pode subir para Series
 
         else:
             require_manager = True
