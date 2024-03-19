@@ -518,6 +518,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # Series TASK 5: TRANSFORMATION ON EDGE CASES
         # TASK 5.A: ENSURE that there is always an index below. 'index is not == True'
         # Except for Series, whose index can be None.
+        original_index = index
         if index is None:
             if data is None:
                 index = default_index(0)
@@ -528,7 +529,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     pass
                 else:
                     index = default_index(len(data))
-
         else:
             index = ensure_index(index)
 
@@ -549,7 +549,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if isinstance(data, Series):
                 # copy logic is delicate and maybe has no been fully implemented.
                 # Each data instance has it's own logic.
-                copy = True if index is None else False
+                copy = True if original_index is None else False
                 deep = not copy
 
                 if index is not None:
