@@ -1632,36 +1632,17 @@ class StylerRenderer:
 
         Notes
         -----
-        This method assigns a formatting function, ``formatter``, to each level label
-        in the DataFrame's index or column headers. If ``formatter`` is ``None``,
-        then the default formatter is used.
-        If a callable then that function should take a label value as input and return
-        a displayable representation, such as a string. If ``formatter`` is
-        given as a string this is assumed to be a valid Python format specification
-        and is wrapped to a callable as ``string.format(x)``. If a ``dict`` is given,
-        keys should correspond to MultiIndex level numbers or names, and values should
-        be string or callable, as above.
-
-        The default formatter currently expresses floats and complex numbers with the
-        pandas display precision unless using the ``precision`` argument here. The
-        default formatter does not adjust the representation of missing values unless
-        the ``na_rep`` argument is used.
-
-        The ``level`` argument defines which levels of a MultiIndex to apply the
-        method to. If the ``formatter`` argument is given in dict form but does
-        not include all levels within the level argument then these unspecified levels
-        will have the default formatter applied. Any levels in the formatter dict
-        specifically excluded from the level argument will be ignored.
+    This method has a similar signature to :meth:`Styler.format_index`. Since `names` are generally label 
+    based, and often not numeric, the typical features expected to be more frequently used here are 
+    ``escape`` and ``hyperlinks``.
 
         When using a ``formatter`` string the dtypes must be compatible, otherwise a
         `ValueError` will be raised.
 
         .. warning::
-           `Styler.format_index` is ignored when using the output format
+           `Styler.format_index_names` is ignored when using the output format
            `Styler.to_excel`, since Excel and Python have inherrently different
            formatting structures.
-           However, it is possible to use the `number-format` pseudo CSS attribute
-           to force Excel permissible formatting. See documentation for `Styler.format`.
         """
         axis = self.data._get_axis_number(axis)
         if axis == 0:
