@@ -279,7 +279,6 @@ class TestValidator:
         assert exit_status == 2 * 2 - 1
 
 
-
 class TestApiItems:
     @property
     def api_doc(self):
@@ -374,9 +373,10 @@ class TestPandasDocstringClass:
     )
     def test_encode_content_write_to_file(self, name) -> None:
         # GH25466
-        docstr = validate_docstrings.PandasDocstring(name).validate_pep8()
+        docstr = validate_docstrings.PandasDocstring(name)
+        errors = validate_docstrings.validate_pep8_for_examples(docstr)[docstr]
         # the list of pep8 errors should be empty
-        assert not list(docstr)
+        assert not list(errors)
 
 
 class TestMainFunction:
