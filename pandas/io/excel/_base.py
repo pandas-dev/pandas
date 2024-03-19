@@ -43,6 +43,7 @@ from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
     is_bool,
+    is_file_like,
     is_float,
     is_integer,
     is_list_like,
@@ -405,8 +406,7 @@ def read_excel(
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
@@ -444,8 +444,7 @@ def read_excel(
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> dict[IntStrT, DataFrame]:
-    ...
+) -> dict[IntStrT, DataFrame]: ...
 
 
 @doc(storage_options=_shared_docs["storage_options"])
@@ -1130,7 +1129,7 @@ class ExcelWriter(Generic[_WorkbookT]):
                     ext = "xlsx"
 
                 try:
-                    engine = config.get_option(f"io.excel.{ext}.writer", silent=True)
+                    engine = config.get_option(f"io.excel.{ext}.writer")
                     if engine == "auto":
                         engine = get_default_engine(ext, mode="writer")
                 except KeyError as err:
@@ -1368,7 +1367,7 @@ XLS_SIGNATURES = (
     b"\x09\x00\x04\x00\x07\x00\x10\x00",  # BIFF2
     b"\x09\x02\x06\x00\x00\x00\x10\x00",  # BIFF3
     b"\x09\x04\x06\x00\x00\x00\x10\x00",  # BIFF4
-    b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1",  # Compound File Binary
+    b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1",  # Compound File Binary
 )
 ZIP_SIGNATURE = b"PK\x03\x04"
 PEEK_SIZE = max(map(len, XLS_SIGNATURES + (ZIP_SIGNATURE,)))
@@ -1523,20 +1522,25 @@ class ExcelFile:
         # Always a string
         self._io = stringify_path(path_or_buffer)
 
-        # Determine xlrd version if installed
-        if import_optional_dependency("xlrd", errors="ignore") is None:
-            xlrd_version = None
-        else:
-            import xlrd
-
-            xlrd_version = Version(get_version(xlrd))
-
         if engine is None:
             # Only determine ext if it is needed
-            ext: str | None
-            if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
-                ext = "xls"
-            else:
+            ext: str | None = None
+
+            if not isinstance(
+                path_or_buffer, (str, os.PathLike, ExcelFile)
+            ) and not is_file_like(path_or_buffer):
+                # GH#56692 - avoid importing xlrd if possible
+                if import_optional_dependency("xlrd", errors="ignore") is None:
+                    xlrd_version = None
+                else:
+                    import xlrd
+
+                    xlrd_version = Version(get_version(xlrd))
+
+                if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
+                    ext = "xls"
+
+            if ext is None:
                 ext = inspect_excel_format(
                     content_or_path=path_or_buffer, storage_options=storage_options
                 )
@@ -1546,7 +1550,7 @@ class ExcelFile:
                         "an engine manually."
                     )
 
-            engine = config.get_option(f"io.excel.{ext}.reader", silent=True)
+            engine = config.get_option(f"io.excel.{ext}.reader")
             if engine == "auto":
                 engine = get_default_engine(ext, mode="reader")
 
@@ -1627,6 +1631,32 @@ class ExcelFile:
 
     @property
     def book(self):
+        """
+        Gets the Excel workbook.
+
+        Workbook is the top-level container for all document information.
+
+        Returns
+        -------
+        Excel Workbook
+            The workbook object of the type defined by the engine being used.
+
+        See Also
+        --------
+        read_excel : Read an Excel file into a pandas DataFrame.
+
+        Examples
+        --------
+        >>> file = pd.ExcelFile("myfile.xlsx")  # doctest: +SKIP
+        >>> file.book  # doctest: +SKIP
+        <openpyxl.workbook.workbook.Workbook object at 0x11eb5ad70>
+        >>> file.book.path  # doctest: +SKIP
+        '/xl/workbook.xml'
+        >>> file.book.active  # doctest: +SKIP
+        <openpyxl.worksheet._read_only.ReadOnlyWorksheet object at 0x11eb5b370>
+        >>> file.book.sheetnames  # doctest: +SKIP
+        ['Sheet1', 'Sheet2']
+        """
         return self._reader.book
 
     @property
