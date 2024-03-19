@@ -29,7 +29,6 @@ from pandas.util._decorators import (
     doc,
 )
 
-from pandas.core.dtypes import missing
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -396,7 +395,7 @@ class RangeIndex(Index):
         hash(key)
         try:
             key = ensure_python_int(key)
-        except TypeError:
+        except (TypeError, OverflowError):
             return False
         return key in self._range
 
@@ -475,28 +474,13 @@ class RangeIndex(Index):
         if values.dtype.kind == "i" and values.ndim == 1:
             # GH 46675 & 43885: If values is equally spaced, return a
             # more memory-compact RangeIndex instead of Index with 64-bit dtype
-            if len(values) == 0:
-                return type(self)._simple_new(_empty_range, name=name)
-            elif len(values) == 1:
+            if len(values) == 1:
                 start = values[0]
                 new_range = range(start, start + self.step, self.step)
                 return type(self)._simple_new(new_range, name=name)
-            diff = values[1] - values[0]
-            if not missing.isna(diff) and diff != 0:
-                if len(values) == 2:
-                    # Can skip is_range_indexer check
-                    new_range = range(values[0], values[-1] + diff, diff)
-                    return type(self)._simple_new(new_range, name=name)
-                else:
-                    maybe_range_indexer, remainder = np.divmod(values - values[0], diff)
-                    if (
-                        lib.is_range_indexer(
-                            maybe_range_indexer, len(maybe_range_indexer)
-                        )
-                        and not remainder.any()
-                    ):
-                        new_range = range(values[0], values[-1] + diff, diff)
-                        return type(self)._simple_new(new_range, name=name)
+            maybe_range = ibase.maybe_sequence_to_range(values)
+            if isinstance(maybe_range, range):
+                return type(self)._simple_new(maybe_range, name=name)
         return self._constructor._simple_new(values, name=name)
 
     def _view(self) -> Self:
@@ -943,7 +927,7 @@ class RangeIndex(Index):
     def _join_empty(
         self, other: Index, how: JoinHow, sort: bool
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
-        if other.dtype.kind == "i":
+        if not isinstance(other, RangeIndex) and other.dtype.kind == "i":
             other = self._shallow_copy(other._values, name=other.name)
         return super()._join_empty(other, how=how, sort=sort)
 
@@ -1009,23 +993,27 @@ class RangeIndex(Index):
         return super().delete(loc)
 
     def insert(self, loc: int, item) -> Index:
-        if len(self) and (is_integer(item) or is_float(item)):
+        if is_integer(item) or is_float(item):
             # We can retain RangeIndex is inserting at the beginning or end,
             #  or right in the middle.
-            rng = self._range
-            if loc == 0 and item == self[0] - self.step:
-                new_rng = range(rng.start - rng.step, rng.stop, rng.step)
+            if len(self) == 0 and loc == 0 and is_integer(item):
+                new_rng = range(item, item + self.step, self.step)
                 return type(self)._simple_new(new_rng, name=self._name)
+            elif len(self):
+                rng = self._range
+                if loc == 0 and item == self[0] - self.step:
+                    new_rng = range(rng.start - rng.step, rng.stop, rng.step)
+                    return type(self)._simple_new(new_rng, name=self._name)
 
-            elif loc == len(self) and item == self[-1] + self.step:
-                new_rng = range(rng.start, rng.stop + rng.step, rng.step)
-                return type(self)._simple_new(new_rng, name=self._name)
+                elif loc == len(self) and item == self[-1] + self.step:
+                    new_rng = range(rng.start, rng.stop + rng.step, rng.step)
+                    return type(self)._simple_new(new_rng, name=self._name)
 
-            elif len(self) == 2 and item == self[0] + self.step / 2:
-                # e.g. inserting 1 into [0, 2]
-                step = int(self.step / 2)
-                new_rng = range(self.start, self.stop, step)
-                return type(self)._simple_new(new_rng, name=self._name)
+                elif len(self) == 2 and item == self[0] + self.step / 2:
+                    # e.g. inserting 1 into [0, 2]
+                    step = int(self.step / 2)
+                    new_rng = range(self.start, self.stop, step)
+                    return type(self)._simple_new(new_rng, name=self._name)
 
         return super().insert(loc, item)
 
@@ -1153,11 +1141,6 @@ class RangeIndex(Index):
             else:
                 key = np.asarray(key, dtype=bool)
             check_array_indexer(self._range, key)  # type: ignore[arg-type]
-            # Short circuit potential _shallow_copy check
-            if key.all():
-                return self._simple_new(self._range, name=self.name)
-            elif not key.any():
-                return self._simple_new(_empty_range, name=self.name)
             key = np.flatnonzero(key)
         try:
             return self.take(key)
