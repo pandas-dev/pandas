@@ -88,7 +88,7 @@ To detect these missing value, use the :func:`isna` or :func:`notna` methods.
 
 .. warning::
 
-   Experimental: the behaviour of :class:`NA`` can still change without warning.
+   Experimental: the behaviour of :class:`NA` can still change without warning.
 
 Starting from pandas 1.0, an experimental :class:`NA` value (singleton) is
 available to represent scalar missing values. The goal of :class:`NA` is provide a
@@ -105,7 +105,7 @@ dtype, it will use :class:`NA`:
     s[2]
     s[2] is pd.NA
 
-Currently, pandas does not yet use those data types using :class:`NA` by default
+Currently, pandas does not use those data types using :class:`NA` by default in
 a :class:`DataFrame` or :class:`Series`, so you need to specify
 the dtype explicitly. An easy way to convert to those dtypes is explained in the
 :ref:`conversion section <missing_data.NA.conversion>`.
@@ -253,8 +253,8 @@ Conversion
 ^^^^^^^^^^
 
 If you have a :class:`DataFrame` or :class:`Series` using ``np.nan``,
-:meth:`Series.convert_dtypes` and :meth:`DataFrame.convert_dtypes`
-in :class:`DataFrame` that can convert data to use the data types that use :class:`NA`
+:meth:`DataFrame.convert_dtypes` and :meth:`Series.convert_dtypes`, respectively,
+will convert your data to use the nullable data types supporting :class:`NA`,
 such as :class:`Int64Dtype` or :class:`ArrowDtype`. This is especially helpful after reading
 in data sets from IO methods where data types were inferred.
 
