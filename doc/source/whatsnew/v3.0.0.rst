@@ -357,6 +357,7 @@ MultiIndex
 I/O
 ^^^
 - Bug in :meth:`DataFrame.to_excel` when writing empty :class:`DataFrame` with :class:`MultiIndex` on both axes (:issue:`57696`)
+- Now all ``Mapping`` s are pretty printed correctly. Before only literal ``dict`` s were. (:issue:`57915`)
 -
 -
 

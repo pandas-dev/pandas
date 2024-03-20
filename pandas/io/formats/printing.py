@@ -187,8 +187,8 @@ def pprint_thing(
     _nest_lvl : internal use only. pprint_thing() is mutually-recursive
         with pprint_sequence, this argument is used to keep track of the
         current nesting level, and limit it.
-    escape_chars : list or dict, optional
-        Characters to escape. If a dict is passed the values are the
+    escape_chars : list[str] or Mapping[str, str], optional
+        Characters to escape. If a Mapping is passed the values are the
         replacements
     default_escapes : bool, default False
         Whether the input escape characters replaces or adds to the defaults
@@ -204,11 +204,11 @@ def pprint_thing(
         thing: Any, escape_chars: EscapeChars | None = escape_chars
     ) -> str:
         translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r"}
-        if isinstance(escape_chars, dict):
+        if isinstance(escape_chars, Mapping):
             if default_escapes:
                 translate.update(escape_chars)
             else:
-                translate = escape_chars
+                translate = escape_chars  # type: ignore[assignment]
             escape_chars = list(escape_chars.keys())
         else:
             escape_chars = escape_chars or ()
@@ -220,7 +220,7 @@ def pprint_thing(
 
     if hasattr(thing, "__next__"):
         return str(thing)
-    elif isinstance(thing, dict) and _nest_lvl < get_option(
+    elif isinstance(thing, Mapping) and _nest_lvl < get_option(
         "display.pprint_nest_depth"
     ):
         result = _pprint_dict(
