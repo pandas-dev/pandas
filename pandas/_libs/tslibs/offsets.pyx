@@ -689,6 +689,22 @@ cdef class BaseOffset:
             "does not have a vectorized implementation"
         )
 
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        import traceback, sys
+        traceback.print_stack(file=sys.stdout)
+        print(ufunc, method, type(inputs[0]), type(inputs[1]))
+        a, b = inputs
+        if isinstance(a, ndarray) and isinstance(b, BaseOffset):
+            array = a
+            offset = b
+        elif isinstance(b, ndarray) and isinstance(a, BaseOffset):
+            array = b
+            offset = a
+        else:
+            return NotImplemented
+
+        return offset._apply_array(a).astype('M8[ns]')
+
     def rollback(self, dt) -> datetime:
         """
         Roll provided date backward to next offset only if not on offset.

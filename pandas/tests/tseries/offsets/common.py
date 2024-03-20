@@ -24,6 +24,8 @@ from pandas._libs.tslibs.offsets import (
     WeekOfMonth,
 )
 from pandas.compat import IS64
+from pandas import Series, Timedelta, Timestamp
+from numpy.testing import assert_allclose
 
 
 def assert_offset_equal(offset, base, expected):
@@ -205,3 +207,41 @@ class Base:
         assert off != "foo"
         # Note: inequalities are only implemented for Tick subclasses;
         #  tests for this are in test_ticks
+
+    test_dates_sr = Series([Timestamp(2021, 1, 1) + Timedelta(days=d) for d in range(1000)])
+
+    def test_np_array_add(self):
+        if self._offset is None or not hasattr(self, "offset2"):
+            # i.e. skip for TestCommon and YQM subclasses that do not have
+            # offset2 attr
+            return
+        a, b = self.offset2, self.test_dates_sr.to_numpy()
+        #breakpoint()
+        c = a + b
+        assert_allclose((self.offset2 + self.test_dates_sr).to_numpy(),
+                        c)
+
+    def test_np_array_radd(self):
+        if self._offset is None or not hasattr(self, "offset2"):
+            # i.e. skip for TestCommon and YQM subclasses that do not have
+            # offset2 attr
+            return
+        a, b = self.test_dates_sr.to_numpy(), self.offset2
+        #breakpoint()
+        c = a + b
+        assert_allclose((self.test_dates_sr + self.offset2).to_numpy(),
+                        c)
+
+    def test_np_array_sub(self):
+        if self._offset is None or not hasattr(self, "offset2"):
+            # i.e. skip for TestCommon and YQM subclasses that do not have
+            # offset2 attr
+            return
+        assert (self.offset2 - self.test_dates_sr).to_numpy() == self.offset2 - self.test_dates_sr.to_numpy()
+
+    def test_np_array_rsub(self):
+        if self._offset is None or not hasattr(self, "offset2"):
+            # i.e. skip for TestCommon and YQM subclasses that do not have
+            # offset2 attr
+            return
+        assert (self.test_dates_sr - self.offset2).to_numpy() == self.test_dates_sr.to_numpy() - self.offset2
