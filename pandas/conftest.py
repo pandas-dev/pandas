@@ -1231,10 +1231,6 @@ def tz_aware_fixture(request):
     return request.param
 
 
-# Generate cartesian product of tz_aware_fixture:
-tz_aware_fixture2 = tz_aware_fixture
-
-
 _UTCS = ["utc", "dateutil/UTC", utc, tzutc(), timezone.utc]
 if zoneinfo is not None:
     _UTCS.append(zoneinfo.ZoneInfo("UTC"))
