@@ -64,6 +64,12 @@ _empty_range = range(0)
 _dtype_int64 = np.dtype(np.int64)
 
 
+def min_fitting_element(start: int, step: int, lower_limit: int) -> int:
+    """Returns the smallest element greater than or equal to the limit"""
+    no_steps = -(-(lower_limit - start) // abs(step))
+    return start + abs(step) * no_steps
+
+
 class RangeIndex(Index):
     """
     Immutable Index implementing a monotonic integer range.
@@ -570,25 +576,30 @@ class RangeIndex(Index):
         kwargs.pop("kind", None)  # e.g. "mergesort" is irrelevant
         nv.validate_argsort(args, kwargs)
 
+        start, stop, step = None, None, None
         if self._range.step > 0:
-            result = np.arange(len(self), dtype=np.intp)
+            if ascending:
+                start = len(self)
+            else:
+                start, stop, step = len(self) - 1, -1, -1
+        elif ascending:
+            start, stop, step = len(self) - 1, -1, -1
         else:
-            result = np.arange(len(self) - 1, -1, -1, dtype=np.intp)
+            start = len(self)
 
-        if not ascending:
-            result = result[::-1]
-        return result
+        return np.arange(start, stop, step, dtype=np.intp)
 
     def factorize(
         self,
         sort: bool = False,
         use_na_sentinel: bool = True,
     ) -> tuple[npt.NDArray[np.intp], RangeIndex]:
-        codes = np.arange(len(self), dtype=np.intp)
-        uniques = self
         if sort and self.step < 0:
-            codes = codes[::-1]
-            uniques = uniques[::-1]
+            codes = np.arange(len(self) - 1, -1, -1, dtype=np.intp)
+            uniques = self[::-1]
+        else:
+            codes = np.arange(len(self), dtype=np.intp)
+            uniques = self
         return codes, uniques
 
     def equals(self, other: object) -> bool:
@@ -699,26 +710,15 @@ class RangeIndex(Index):
         # intersection disregarding the lower bounds
         tmp_start = first.start + (second.start - first.start) * first.step // gcd * s
         new_step = first.step * second.step // gcd
-        new_range = range(tmp_start, int_high, new_step)
-        new_index = self._simple_new(new_range)
 
         # adjust index to limiting interval
-        new_start = new_index._min_fitting_element(int_low)
-        new_range = range(new_start, new_index.stop, new_index.step)
-        new_index = self._simple_new(new_range)
+        new_start = min_fitting_element(tmp_start, new_step, int_low)
+        new_range = range(new_start, int_high, new_step)
 
-        if (self.step < 0 and other.step < 0) is not (new_index.step < 0):
-            new_index = new_index[::-1]
+        if (self.step < 0 and other.step < 0) is not (new_range.step < 0):
+            new_range = new_range[::-1]
 
-        if sort is None:
-            new_index = new_index.sort_values()
-
-        return new_index
-
-    def _min_fitting_element(self, lower_limit: int) -> int:
-        """Returns the smallest element greater than or equal to the limit"""
-        no_steps = -(-(lower_limit - self.start) // abs(self.step))
-        return self.start + abs(self.step) * no_steps
+        return self._simple_new(new_range)
 
     def _extended_gcd(self, a: int, b: int) -> tuple[int, int, int]:
         """
@@ -904,9 +904,9 @@ class RangeIndex(Index):
                 # e.g. range(10) and range(0, 10, 3)
                 return super()._difference(other, sort=sort)
 
-        new_index = type(self)._simple_new(new_rng, name=res_name)
         if first is not self._range:
-            new_index = new_index[::-1]
+            new_rng = new_rng[::-1]
+        new_index = type(self)._simple_new(new_rng, name=res_name)
 
         return new_index
 
