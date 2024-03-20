@@ -114,7 +114,6 @@ class GroupByIndexingMixin:
         4  b  5
         """
         if TYPE_CHECKING:
-            # pylint: disable-next=used-before-assignment
             groupby_self = cast(groupby.GroupBy, self)
         else:
             groupby_self = self

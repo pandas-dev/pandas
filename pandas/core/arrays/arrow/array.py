@@ -659,7 +659,9 @@ class ArrowExtensionArray(
         """Convert myself to a pyarrow ChunkedArray."""
         return self._pa_array
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(
+        self, dtype: NpDtype | None = None, copy: bool | None = None
+    ) -> np.ndarray:
         """Correctly construct numpy arrays when passed to `np.asarray()`."""
         return self.to_numpy(dtype=dtype)
 
@@ -850,12 +852,10 @@ class ArrowExtensionArray(
         return self._pa_array.is_null().to_numpy()
 
     @overload
-    def any(self, *, skipna: Literal[True] = ..., **kwargs) -> bool:
-        ...
+    def any(self, *, skipna: Literal[True] = ..., **kwargs) -> bool: ...
 
     @overload
-    def any(self, *, skipna: bool, **kwargs) -> bool | NAType:
-        ...
+    def any(self, *, skipna: bool, **kwargs) -> bool | NAType: ...
 
     def any(self, *, skipna: bool = True, **kwargs) -> bool | NAType:
         """
@@ -916,12 +916,10 @@ class ArrowExtensionArray(
         return self._reduce("any", skipna=skipna, **kwargs)
 
     @overload
-    def all(self, *, skipna: Literal[True] = ..., **kwargs) -> bool:
-        ...
+    def all(self, *, skipna: Literal[True] = ..., **kwargs) -> bool: ...
 
     @overload
-    def all(self, *, skipna: bool, **kwargs) -> bool | NAType:
-        ...
+    def all(self, *, skipna: bool, **kwargs) -> bool | NAType: ...
 
     def all(self, *, skipna: bool = True, **kwargs) -> bool | NAType:
         """

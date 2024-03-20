@@ -7,6 +7,7 @@ Cross-compatible functions for different versions of Python.
 Other items:
 * platform checker
 """
+
 from __future__ import annotations
 
 import os
@@ -30,6 +31,7 @@ from pandas.compat.pyarrow import (
     pa_version_under13p0,
     pa_version_under14p0,
     pa_version_under14p1,
+    pa_version_under16p0,
 )
 
 if TYPE_CHECKING:
@@ -186,6 +188,7 @@ __all__ = [
     "pa_version_under13p0",
     "pa_version_under14p0",
     "pa_version_under14p1",
+    "pa_version_under16p0",
     "IS64",
     "ISMUSL",
     "PY310",

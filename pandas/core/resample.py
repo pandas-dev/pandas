@@ -257,8 +257,7 @@ class Resampler(BaseGroupBy, PandasObject):
         func: Callable[Concatenate[Self, P], T],
         *args: P.args,
         **kwargs: P.kwargs,
-    ) -> T:
-        ...
+    ) -> T: ...
 
     @overload
     def pipe(
@@ -266,8 +265,7 @@ class Resampler(BaseGroupBy, PandasObject):
         func: tuple[Callable[..., T], str],
         *args: Any,
         **kwargs: Any,
-    ) -> T:
-        ...
+    ) -> T: ...
 
     @final
     @Substitution(
@@ -819,20 +817,6 @@ class Resampler(BaseGroupBy, PandasObject):
         limit_direction : {{'forward', 'backward', 'both'}}, Optional
             Consecutive NaNs will be filled in this direction.
 
-            If limit is specified:
-                * If 'method' is 'pad' or 'ffill', 'limit_direction' must be 'forward'.
-                * If 'method' is 'backfill' or 'bfill', 'limit_direction' must be
-                  'backwards'.
-
-            If 'limit' is not specified:
-                * If 'method' is 'backfill' or 'bfill', the default is 'backward'
-                * else the default is 'forward'
-
-                raises ValueError if `limit_direction` is 'forward' or 'both' and
-                    method is 'backfill' or 'bfill'.
-                raises ValueError if `limit_direction` is 'backward' or 'both' and
-                    method is 'pad' or 'ffill'.
-
         limit_area : {{`None`, 'inside', 'outside'}}, default None
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
@@ -860,6 +844,8 @@ class Resampler(BaseGroupBy, PandasObject):
         core.resample.Resampler.asfreq: Return the values at the new freq,
             essentially a reindex.
         DataFrame.interpolate: Fill NaN values using an interpolation method.
+        DataFrame.bfill : Backward fill NaN values in the resampled data.
+        DataFrame.ffill : Forward fill NaN values.
 
         Notes
         -----
@@ -2367,15 +2353,13 @@ class TimeGrouper(Grouper):
 @overload
 def _take_new_index(
     obj: DataFrame, indexer: npt.NDArray[np.intp], new_index: Index
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
 def _take_new_index(
     obj: Series, indexer: npt.NDArray[np.intp], new_index: Index
-) -> Series:
-    ...
+) -> Series: ...
 
 
 def _take_new_index(
