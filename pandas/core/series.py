@@ -450,9 +450,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if data is None:
                 index = default_index(0)
             else:
-                if isinstance(data, SingleBlockManager):  # TODO: GROUP SERIES AND MANAG
-                    index = data.index
-                if isinstance(data, Series):
+                if isinstance(data, (SingleBlockManager, Series)):
                     index = data.index
                 else:
                     index = default_index(len(data))
