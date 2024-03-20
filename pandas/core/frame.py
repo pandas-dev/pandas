@@ -10713,7 +10713,19 @@ class DataFrame(NDFrame, OpsMixin):
             # "Iterable[Union[DataFrame, Series]]" due to the if statements
             frames = [cast("DataFrame | Series", self)] + list(other)
 
-            can_concat = all(df.index.is_unique for df in frames)
+            # We might need to get indexes out of MultiIndexes, checking only the
+            # common indexes between the inserted frames
+            indexes = (set(df.index.names) for df in frames)
+            common_indexes = set.intersection(*indexes)
+
+            if not common_indexes:
+                raise ValueError("cannot join with no overlapping index names")
+
+            can_concat = False
+            for idx in common_indexes:
+                can_concat = all(
+                    df.index.get_level_values(idx).is_unique for df in frames
+                )
 
             # join indexes only using concat
             if can_concat:

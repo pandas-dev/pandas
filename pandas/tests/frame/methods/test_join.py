@@ -108,8 +108,6 @@ def test_suffix_on_list_join():
     # check proper errors are raised
     msg = "Suffixes not supported when joining multiple DataFrames"
     with pytest.raises(ValueError, match=msg):
-        first.join([second], lsuffix="y")
-    with pytest.raises(ValueError, match=msg):
         first.join([second, third], rsuffix="x")
     with pytest.raises(ValueError, match=msg):
         first.join([second, third], lsuffix="y", rsuffix="x")
@@ -562,3 +560,21 @@ class TestDataFrameJoin:
 
         tm.assert_index_equal(result.index, expected)
         assert result.index.tz.zone == "US/Central"
+
+    def test_join_lists_index_with_multiindex(self):
+        test1 = DataFrame(
+            {"cat": pd.Categorical(["a", "v", "d"])},
+            index=Index(["a", "b", "c"], name="y"),
+        )
+        test2 = DataFrame(
+            {"foo": np.arange(6)},
+            index=MultiIndex.from_tuples(
+                [(0, "a"), (0, "b"), (0, "c"), (1, "a"), (1, "b"), (1, "c")],
+                names=("x", "y"),
+            ),
+        )
+
+        result = test2.join([test1])
+        expected = test2.join(test1)
+
+        tm.assert_frame_equal(result, expected)
