@@ -37,8 +37,6 @@ if TYPE_CHECKING:
 
     from pandas.core.arrays import ExtensionArray
 
-_dtype_obj = np.dtype(object)
-
 
 @overload
 def _astype_nansafe(
