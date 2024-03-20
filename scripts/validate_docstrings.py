@@ -16,9 +16,9 @@ Usage::
 from __future__ import annotations
 
 import argparse
+import collections
 import doctest
 import importlib
-import io
 import json
 import os
 import pathlib
@@ -28,14 +28,12 @@ import tempfile
 
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy
 from numpydoc.docscrape import get_doc_object
 from numpydoc.validate import (
+    ERROR_MSGS as NUMPYDOC_ERROR_MSGS,
     Validator,
     validate,
 )
-
-import pandas
 
 # With template backend, matplotlib plots nothing
 matplotlib.use("template")
@@ -49,19 +47,29 @@ IGNORE_VALIDATION = {
     "Styler.template_latex",
     "Styler.template_string",
     "Styler.loader",
+    "errors.InvalidComparison",
+    "errors.LossySetitemError",
+    "errors.NoBufferPresent",
+    "errors.IncompatibilityWarning",
+    "errors.PyperclipException",
+    "errors.PyperclipWindowsException",
 }
 PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
 ERROR_MSGS = {
     "GL04": "Private classes ({mentioned_private_classes}) should not be "
     "mentioned in public docstrings",
-    "GL05": "Use 'array-like' rather than 'array_like' in docstrings.",
+    "PD01": "Use 'array-like' rather than 'array_like' in docstrings.",
     "SA05": "{reference_name} in `See Also` section does not need `pandas` "
     "prefix, use {right_reference} instead.",
-    "EX02": "Examples do not pass tests:\n{doctest_log}",
-    "EX03": "flake8 error: {error_code} {error_message}{times_happening}",
+    "EX03": "flake8 error: line {line_number}, col {col_number}: {error_code} "
+    "{error_message}",
     "EX04": "Do not import {imported_library}, as it is imported "
     "automatically for the examples (numpy as np, pandas as pd)",
 }
+ALL_ERRORS = set(NUMPYDOC_ERROR_MSGS).union(set(ERROR_MSGS))
+duplicated_errors = set(NUMPYDOC_ERROR_MSGS).intersection(set(ERROR_MSGS))
+assert not duplicated_errors, (f"Errors {duplicated_errors} exist in both pandas "
+                               "and numpydoc, should they be removed from pandas?")
 
 
 def pandas_error(code, **kwargs):
@@ -69,7 +77,7 @@ def pandas_error(code, **kwargs):
     Copy of the numpydoc error function, since ERROR_MSGS can't be updated
     with our custom errors yet.
     """
-    return (code, ERROR_MSGS[code].format(**kwargs))
+    return code, ERROR_MSGS[code].format(**kwargs)
 
 
 def get_api_items(api_doc_fd):
@@ -88,7 +96,7 @@ def get_api_items(api_doc_fd):
     Yields
     ------
     name : str
-        The name of the object (e.g. 'pandas.Series.str.upper).
+        The name of the object (e.g. 'pandas.Series.str.upper').
     func : function
         The object itself. In most cases this will be a function or method,
         but it can also be classes, properties, cython objects...
@@ -103,47 +111,46 @@ def get_api_items(api_doc_fd):
     previous_line = current_section = current_subsection = ""
     position = None
     for line in api_doc_fd:
-        line = line.strip()
-        if len(line) == len(previous_line):
-            if set(line) == set("-"):
+        line_stripped = line.strip()
+        if len(line_stripped) == len(previous_line):
+            if set(line_stripped) == set("-"):
                 current_section = previous_line
                 continue
-            if set(line) == set("~"):
+            if set(line_stripped) == set("~"):
                 current_subsection = previous_line
                 continue
 
-        if line.startswith(".. currentmodule::"):
-            current_module = line.replace(".. currentmodule::", "").strip()
+        if line_stripped.startswith(".. currentmodule::"):
+            current_module = line_stripped.replace(".. currentmodule::", "").strip()
             continue
 
-        if line == ".. autosummary::":
+        if line_stripped == ".. autosummary::":
             position = "autosummary"
             continue
 
         if position == "autosummary":
-            if line == "":
+            if line_stripped == "":
                 position = "items"
                 continue
 
         if position == "items":
-            if line == "":
+            if line_stripped == "":
                 position = None
                 continue
-            item = line.strip()
-            if item in IGNORE_VALIDATION:
+            if line_stripped in IGNORE_VALIDATION:
                 continue
             func = importlib.import_module(current_module)
-            for part in item.split("."):
+            for part in line_stripped.split("."):
                 func = getattr(func, part)
 
             yield (
-                ".".join([current_module, item]),
+                f"{current_module}.{line_stripped}",
                 func,
                 current_section,
                 current_subsection,
             )
 
-        previous_line = line
+        previous_line = line_stripped
 
 
 class PandasDocstring(Validator):
@@ -160,32 +167,6 @@ class PandasDocstring(Validator):
     @property
     def mentioned_private_classes(self):
         return [klass for klass in PRIVATE_CLASSES if klass in self.raw_doc]
-
-    @property
-    def examples_errors(self):
-        flags = doctest.NORMALIZE_WHITESPACE | doctest.IGNORE_EXCEPTION_DETAIL
-        finder = doctest.DocTestFinder()
-        runner = doctest.DocTestRunner(optionflags=flags)
-        context = {"np": numpy, "pd": pandas}
-        error_msgs = ""
-        current_dir = set(os.listdir())
-        for test in finder.find(self.raw_doc, self.name, globs=context):
-            f = io.StringIO()
-            runner.run(test, out=f.write)
-            error_msgs += f.getvalue()
-        leftovers = set(os.listdir()).difference(current_dir)
-        if leftovers:
-            for leftover in leftovers:
-                path = pathlib.Path(leftover).resolve()
-                if path.is_dir():
-                    path.rmdir()
-                elif path.is_file():
-                    path.unlink(missing_ok=True)
-            raise Exception(
-                f"The following files were leftover from the doctest: "
-                f"{leftovers}. Please use # doctest: +SKIP"
-            )
-        return error_msgs
 
     @property
     def examples_source_code(self):
@@ -207,20 +188,39 @@ class PandasDocstring(Validator):
         )
 
         error_messages = []
-        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8") as file:
+
+        file = tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", delete=False)
+        try:
             file.write(content)
             file.flush()
-            cmd = ["python", "-m", "flake8", "--quiet", "--statistics", file.name]
-            response = subprocess.run(cmd, capture_output=True, text=True)
-            stdout = response.stdout
-            stdout = stdout.replace(file.name, "")
-            messages = stdout.strip("\n")
-            if messages:
-                error_messages.append(messages)
+            cmd = [
+                sys.executable,
+                "-m",
+                "flake8",
+                "--format=%(row)d\t%(col)d\t%(code)s\t%(text)s",
+                "--max-line-length=88",
+                "--ignore=E203,E3,W503,W504,E402,E731,E128,E124,E704",
+                file.name,
+            ]
+            response = subprocess.run(cmd, capture_output=True, check=False, text=True)
+            for output in ("stdout", "stderr"):
+                out = getattr(response, output)
+                out = out.replace(file.name, "")
+                messages = out.strip("\n").splitlines()
+                if messages:
+                    error_messages.extend(messages)
+        finally:
+            file.close()
+            os.unlink(file.name)
 
         for error_message in error_messages:
-            error_count, error_code, message = error_message.split(maxsplit=2)
-            yield error_code, message, int(error_count)
+            line_number, col_number, error_code, message = error_message.split(
+                "\t", maxsplit=3
+            )
+            # Note: we subtract 2 from the line number because
+            # 'import numpy as np\nimport pandas as pd\n'
+            # is prepended to the docstrings.
+            yield error_code, message, int(line_number) - 2, int(col_number)
 
     def non_hyphenated_array_like(self):
         return "array_like" in self.raw_doc
@@ -245,7 +245,6 @@ def pandas_validate(func_name: str):
     doc_obj = get_doc_object(func_obj, doc=func_obj.__doc__)
     doc = PandasDocstring(func_name, doc_obj)
     result = validate(doc_obj)
-
     mentioned_errs = doc.mentioned_private_classes
     if mentioned_errs:
         result["errors"].append(
@@ -253,43 +252,37 @@ def pandas_validate(func_name: str):
         )
 
     if doc.see_also:
-        for rel_name in doc.see_also:
-            if rel_name.startswith("pandas."):
-                result["errors"].append(
-                    pandas_error(
-                        "SA05",
-                        reference_name=rel_name,
-                        right_reference=rel_name[len("pandas.") :],
-                    )
-                )
+        result["errors"].extend(
+            pandas_error(
+                "SA05",
+                reference_name=rel_name,
+                right_reference=rel_name[len("pandas."):],
+            )
+            for rel_name in doc.see_also
+            if rel_name.startswith("pandas.")
+        )
 
     result["examples_errs"] = ""
     if doc.examples:
-        result["examples_errs"] = doc.examples_errors
-        if result["examples_errs"]:
-            result["errors"].append(
-                pandas_error("EX02", doctest_log=result["examples_errs"])
-            )
-
-        for error_code, error_message, error_count in doc.validate_pep8():
-            times_happening = f" ({error_count} times)" if error_count > 1 else ""
+        for error_code, error_message, line_number, col_number in doc.validate_pep8():
             result["errors"].append(
                 pandas_error(
                     "EX03",
                     error_code=error_code,
                     error_message=error_message,
-                    times_happening=times_happening,
+                    line_number=line_number,
+                    col_number=col_number,
                 )
             )
         examples_source_code = "".join(doc.examples_source_code)
-        for wrong_import in ("numpy", "pandas"):
-            if f"import {wrong_import}" in examples_source_code:
-                result["errors"].append(
-                    pandas_error("EX04", imported_library=wrong_import)
-                )
+        result["errors"].extend(
+            pandas_error("EX04", imported_library=wrong_import)
+            for wrong_import in ("numpy", "pandas")
+            if f"import {wrong_import}" in examples_source_code
+        )
 
     if doc.non_hyphenated_array_like():
-        result["errors"].append(pandas_error("GL05"))
+        result["errors"].append(pandas_error("PD01"))
 
     plt.close("all")
     return result
@@ -317,14 +310,7 @@ def validate_all(prefix, ignore_deprecated=False):
     result = {}
     seen = {}
 
-    base_path = pathlib.Path(__file__).parent.parent
-    api_doc_fnames = pathlib.Path(base_path, "doc", "source", "reference")
-    api_items = []
-    for api_doc_fname in api_doc_fnames.glob("*.rst"):
-        with open(api_doc_fname) as f:
-            api_items += list(get_api_items(f))
-
-    for func_name, _, section, subsection in api_items:
+    for func_name, _, section, subsection in get_all_api_items():
         if prefix and not func_name.startswith(prefix):
             continue
         doc_info = pandas_validate(func_name)
@@ -348,14 +334,24 @@ def validate_all(prefix, ignore_deprecated=False):
     return result
 
 
+def get_all_api_items():
+    base_path = pathlib.Path(__file__).parent.parent
+    api_doc_fnames = pathlib.Path(base_path, "doc", "source", "reference")
+    for api_doc_fname in api_doc_fnames.glob("*.rst"):
+        with open(api_doc_fname, encoding="utf-8") as f:
+            yield from get_api_items(f)
+
+
 def print_validate_all_results(
-    prefix: str,
-    errors: list[str] | None,
     output_format: str,
+    prefix: str | None,
     ignore_deprecated: bool,
+    ignore_errors: dict[str, set[str]],
 ):
     if output_format not in ("default", "json", "actions"):
         raise ValueError(f'Unknown output_format "{output_format}"')
+    if ignore_errors is None:
+        ignore_errors = {}
 
     result = validate_all(prefix, ignore_deprecated)
 
@@ -365,21 +361,31 @@ def print_validate_all_results(
 
     prefix = "##[error]" if output_format == "actions" else ""
     exit_status = 0
-    for name, res in result.items():
-        for err_code, err_desc in res["errors"]:
-            if errors and err_code not in errors:
-                continue
+    for func_name, res in result.items():
+        error_messages = dict(res["errors"])
+        actual_failures = set(error_messages)
+        expected_failures = (ignore_errors.get(func_name, set())
+                             | ignore_errors.get(None, set()))
+        for err_code in actual_failures - expected_failures:
             sys.stdout.write(
                 f'{prefix}{res["file"]}:{res["file_line"]}:'
-                f"{err_code}:{name}:{err_desc}\n"
+                f'{err_code}:{func_name}:{error_messages[err_code]}\n'
+            )
+            exit_status += 1
+        for err_code in ignore_errors.get(func_name, set()) - actual_failures:
+            sys.stdout.write(
+                f'{prefix}{res["file"]}:{res["file_line"]}:'
+                f"{err_code}:{func_name}:"
+                "EXPECTED TO FAIL, BUT NOT FAILING\n"
             )
             exit_status += 1
 
     return exit_status
 
 
-def print_validate_one_results(func_name: str):
-    def header(title, width=80, char="#"):
+def print_validate_one_results(func_name: str,
+                               ignore_errors: dict[str, set[str]]) -> int:
+    def header(title, width=80, char="#") -> str:
         full_line = char * width
         side_len = (width - len(title) - 2) // 2
         adj = "" if len(title) % 2 == 0 else " "
@@ -389,17 +395,17 @@ def print_validate_one_results(func_name: str):
 
     result = pandas_validate(func_name)
 
+    result["errors"] = [(code, message) for code, message in result["errors"]
+                        if code not in ignore_errors.get(None, set())]
+
     sys.stderr.write(header(f"Docstring ({func_name})"))
     sys.stderr.write(f"{result['docstring']}\n")
 
     sys.stderr.write(header("Validation"))
     if result["errors"]:
-        sys.stderr.write(f'{len(result["errors"])} Errors found:\n')
+        sys.stderr.write(f'{len(result["errors"])} Errors found for `{func_name}`:\n')
         for err_code, err_desc in result["errors"]:
-            if err_code == "EX02":  # Failing examples are printed at the end
-                sys.stderr.write("\tExamples do not pass tests\n")
-                continue
-            sys.stderr.write(f"\t{err_desc}\n")
+            sys.stderr.write(f"\t{err_code}\t{err_desc}\n")
     else:
         sys.stderr.write(f'Docstring for "{func_name}" correct. :)\n')
 
@@ -407,18 +413,64 @@ def print_validate_one_results(func_name: str):
         sys.stderr.write(header("Doctests"))
         sys.stderr.write(result["examples_errs"])
 
+    return len(result["errors"]) + len(result["examples_errs"])
 
-def main(func_name, prefix, errors, output_format, ignore_deprecated):
+
+def _format_ignore_errors(raw_ignore_errors):
+    ignore_errors = collections.defaultdict(set)
+    if raw_ignore_errors:
+        for error_codes in raw_ignore_errors:
+            obj_name = None
+            if " " in error_codes:
+                obj_name, error_codes = error_codes.split(" ")
+
+            # function errors "pandas.Series PR01,SA01"
+            if obj_name:
+                if obj_name in ignore_errors:
+                    raise ValueError(
+                        f"Object `{obj_name}` is present in more than one "
+                        "--ignore_errors argument. Please use it once and specify "
+                        "the errors separated by commas.")
+                ignore_errors[obj_name] = set(error_codes.split(","))
+
+                unknown_errors = ignore_errors[obj_name] - ALL_ERRORS
+                if unknown_errors:
+                    raise ValueError(
+                        f"Object `{obj_name}` is ignoring errors {unknown_errors} "
+                        f"which are not known. Known errors are: {ALL_ERRORS}")
+
+            # global errors "PR02,ES01"
+            else:
+                ignore_errors[None].update(set(error_codes.split(",")))
+
+        unknown_errors = ignore_errors["*"] - ALL_ERRORS
+        if unknown_errors:
+            raise ValueError(
+                f"Unknown errors {unknown_errors} specified using --ignore_errors "
+                "Known errors are: {ALL_ERRORS}")
+
+    return ignore_errors
+
+
+def main(
+    func_name,
+    output_format,
+    prefix,
+    ignore_deprecated,
+    ignore_errors
+):
     """
     Main entry point. Call the validation for one or for all docstrings.
     """
     if func_name is None:
         return print_validate_all_results(
-            prefix, errors, output_format, ignore_deprecated
+            output_format,
+            prefix,
+            ignore_deprecated,
+            ignore_errors
         )
     else:
-        print_validate_one_results(func_name)
-        return 0
+        return print_validate_one_results(func_name, ignore_errors)
 
 
 if __name__ == "__main__":
@@ -449,14 +501,6 @@ if __name__ == "__main__":
         "ignored if parameter function is provided",
     )
     argparser.add_argument(
-        "--errors",
-        default=None,
-        help="comma separated "
-        "list of error codes to validate. By default it "
-        "validates all errors (ignored when validating "
-        "a single docstring)",
-    )
-    argparser.add_argument(
         "--ignore_deprecated",
         default=False,
         action="store_true",
@@ -464,14 +508,25 @@ if __name__ == "__main__":
         "deprecated objects are ignored when validating "
         "all docstrings",
     )
+    argparser.add_argument(
+        "--ignore_errors",
+        "-i",
+        default=None,
+        action="append",
+        help="comma-separated list of error codes "
+        "(e.g. 'PR02,SA01'), with optional object path "
+        "to ignore errors for a single object "
+        "(e.g. pandas.DataFrame.head PR02,SA01). "
+        "Partial validation for more than one function"
+        "can be achieved by repeating this parameter.",
+    )
+    args = argparser.parse_args(sys.argv[1:])
 
-    args = argparser.parse_args()
     sys.exit(
-        main(
-            args.function,
-            args.prefix,
-            args.errors.split(",") if args.errors else None,
-            args.format,
-            args.ignore_deprecated,
-        )
+        main(args.function,
+             args.format,
+             args.prefix,
+             args.ignore_deprecated,
+             _format_ignore_errors(args.ignore_errors),
+             )
     )

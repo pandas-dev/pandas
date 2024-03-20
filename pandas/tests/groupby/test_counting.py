@@ -189,8 +189,7 @@ class TestCounting:
             tm.assert_series_equal(g.cumcount(), Series(cumcounted))
 
     def test_ngroup_respects_groupby_order(self, sort):
-        np.random.seed(0)
-        df = DataFrame({"a": np.random.choice(list("abcdef"), 100)})
+        df = DataFrame({"a": np.random.default_rng(2).choice(list("abcdef"), 100)})
         g = df.groupby("a", sort=sort)
         df["group_id"] = -1
         df["group_index"] = -1
@@ -233,7 +232,7 @@ class TestCounting:
 
     def test_count_groupby_column_with_nan_in_groupby_column(self):
         # https://github.com/pandas-dev/pandas/issues/32841
-        df = DataFrame({"A": [1, 1, 1, 1, 1], "B": [5, 4, np.NaN, 3, 0]})
+        df = DataFrame({"A": [1, 1, 1, 1, 1], "B": [5, 4, np.nan, 3, 0]})
         res = df.groupby(["B"]).count()
         expected = DataFrame(
             index=Index([0.0, 3.0, 4.0, 5.0], name="B"), data={"A": [1, 1, 1, 1]}
@@ -257,39 +256,42 @@ class TestCounting:
 
 def test_groupby_timedelta_cython_count():
     df = DataFrame(
-        {"g": list("ab" * 2), "delt": np.arange(4).astype("timedelta64[ns]")}
+        {"g": list("ab" * 2), "delta": np.arange(4).astype("timedelta64[ns]")}
     )
-    expected = Series([2, 2], index=Index(["a", "b"], name="g"), name="delt")
-    result = df.groupby("g").delt.count()
+    expected = Series([2, 2], index=Index(["a", "b"], name="g"), name="delta")
+    result = df.groupby("g").delta.count()
     tm.assert_series_equal(expected, result)
 
 
 def test_count():
     n = 1 << 15
-    dr = date_range("2015-08-30", periods=n // 10, freq="T")
+    dr = date_range("2015-08-30", periods=n // 10, freq="min")
 
     df = DataFrame(
         {
-            "1st": np.random.choice(list(ascii_lowercase), n),
-            "2nd": np.random.randint(0, 5, n),
-            "3rd": np.random.randn(n).round(3),
-            "4th": np.random.randint(-10, 10, n),
-            "5th": np.random.choice(dr, n),
-            "6th": np.random.randn(n).round(3),
-            "7th": np.random.randn(n).round(3),
-            "8th": np.random.choice(dr, n) - np.random.choice(dr, 1),
-            "9th": np.random.choice(list(ascii_lowercase), n),
+            "1st": np.random.default_rng(2).choice(list(ascii_lowercase), n),
+            "2nd": np.random.default_rng(2).integers(0, 5, n),
+            "3rd": np.random.default_rng(2).standard_normal(n).round(3),
+            "4th": np.random.default_rng(2).integers(-10, 10, n),
+            "5th": np.random.default_rng(2).choice(dr, n),
+            "6th": np.random.default_rng(2).standard_normal(n).round(3),
+            "7th": np.random.default_rng(2).standard_normal(n).round(3),
+            "8th": np.random.default_rng(2).choice(dr, n)
+            - np.random.default_rng(2).choice(dr, 1),
+            "9th": np.random.default_rng(2).choice(list(ascii_lowercase), n),
         }
     )
 
     for col in df.columns.drop(["1st", "2nd", "4th"]):
-        df.loc[np.random.choice(n, n // 10), col] = np.nan
+        df.loc[np.random.default_rng(2).choice(n, n // 10), col] = np.nan
 
     df["9th"] = df["9th"].astype("category")
 
     for key in ["1st", "2nd", ["1st", "2nd"]]:
         left = df.groupby(key).count()
-        right = df.groupby(key).apply(DataFrame.count).drop(key, axis=1)
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+            right = df.groupby(key).apply(DataFrame.count).drop(key, axis=1)
         tm.assert_frame_equal(left, right)
 
 
@@ -327,9 +329,13 @@ def test_count_object():
 
 def test_count_cross_type():
     # GH8169
+    # Set float64 dtype to avoid upcast when setting nan below
     vals = np.hstack(
-        (np.random.randint(0, 5, (100, 2)), np.random.randint(0, 2, (100, 2)))
-    )
+        (
+            np.random.default_rng(2).integers(0, 5, (100, 2)),
+            np.random.default_rng(2).integers(0, 2, (100, 2)),
+        )
+    ).astype("float64")
 
     df = DataFrame(vals, columns=["a", "b", "c", "d"])
     df[df == 2] = np.nan
@@ -374,4 +380,15 @@ def test_count_uses_size_on_exception():
     df = DataFrame({"a": [RaisingObject() for _ in range(4)], "grp": list("ab" * 2)})
     result = df.groupby("grp").count()
     expected = DataFrame({"a": [2, 2]}, index=Index(list("ab"), name="grp"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_count_arrow_string_array(any_string_dtype):
+    # GH#54751
+    pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {"a": [1, 2, 3], "b": Series(["a", "b", "a"], dtype=any_string_dtype)}
+    )
+    result = df.groupby("a").count()
+    expected = DataFrame({"b": 1}, index=Index([1, 2, 3], name="a"))
     tm.assert_frame_equal(result, expected)

@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     NaT,
@@ -15,10 +13,10 @@ import pandas._testing as tm
 
 
 class TestDataFrameValues:
-    @td.skip_array_manager_invalid_test
     def test_values(self, float_frame):
-        float_frame.values[:, 0] = 5.0
-        assert (float_frame.values[:, 0] == 5).all()
+        with pytest.raises(ValueError, match="read-only"):
+            float_frame.values[:, 0] = 5.0
+        assert (float_frame.values[:, 0] != 5).all()
 
     def test_more_values(self, float_string_frame):
         values = float_string_frame.values
@@ -33,9 +31,9 @@ class TestDataFrameValues:
             for j, value in enumerate(row):
                 col = frame_cols[j]
                 if np.isnan(value):
-                    assert np.isnan(frame[col][i])
+                    assert np.isnan(frame[col].iloc[i])
                 else:
-                    assert value == frame[col][i]
+                    assert value == frame[col].iloc[i]
 
         # mixed type
         arr = float_string_frame[["foo", "A"]].values
@@ -67,7 +65,9 @@ class TestDataFrameValues:
 
         expected = series.astype("object")
 
-        df = DataFrame({"a": series, "b": np.random.randn(len(series))})
+        df = DataFrame(
+            {"a": series, "b": np.random.default_rng(2).standard_normal(len(series))}
+        )
 
         result = df.values.squeeze()
         assert (result[:, 0] == expected.values).all()
@@ -115,7 +115,6 @@ class TestDataFrameValues:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_interleave_with_tzaware(self, timezone_frame):
-
         # interleave with object
         result = timezone_frame.assign(D="foo").values
         expected = np.array(
@@ -185,7 +184,6 @@ class TestDataFrameValues:
         assert values.dtype == np.float64
 
     def test_values_lcd(self, mixed_float_frame, mixed_int_frame):
-
         # mixed lcd
         values = mixed_float_frame[["A", "B", "C", "D"]].values
         assert values.dtype == np.float64
@@ -226,41 +224,33 @@ class TestDataFrameValues:
 
 
 class TestPrivateValues:
-    @td.skip_array_manager_invalid_test
     def test_private_values_dt64tz(self):
         dta = date_range("2000", periods=4, tz="US/Central")._data.reshape(-1, 1)
 
         df = DataFrame(dta, columns=["A"])
         tm.assert_equal(df._values, dta)
 
-        # we have a view
-        assert np.shares_memory(df._values._ndarray, dta._ndarray)
+        assert not np.shares_memory(df._values._ndarray, dta._ndarray)
 
         # TimedeltaArray
         tda = dta - dta
         df2 = df - df
         tm.assert_equal(df2._values, tda)
 
-    @td.skip_array_manager_invalid_test
     def test_private_values_dt64tz_multicol(self):
         dta = date_range("2000", periods=8, tz="US/Central")._data.reshape(-1, 2)
 
         df = DataFrame(dta, columns=["A", "B"])
         tm.assert_equal(df._values, dta)
 
-        # we have a view
-        assert np.shares_memory(df._values._ndarray, dta._ndarray)
+        assert not np.shares_memory(df._values._ndarray, dta._ndarray)
 
         # TimedeltaArray
         tda = dta - dta
         df2 = df - df
         tm.assert_equal(df2._values, tda)
 
-    def test_private_values_dt64_multiblock(self, using_array_manager, request):
-        if using_array_manager:
-            mark = pytest.mark.xfail(reason="returns ndarray")
-            request.node.add_marker(mark)
-
+    def test_private_values_dt64_multiblock(self):
         dta = date_range("2000", periods=8)._data
 
         df = DataFrame({"A": dta[:4]}, copy=False)

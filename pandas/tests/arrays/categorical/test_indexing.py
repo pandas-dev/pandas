@@ -21,7 +21,8 @@ import pandas.core.common as com
 
 
 class TestCategoricalIndexingWithFactor:
-    def test_getitem(self, factor):
+    def test_getitem(self):
+        factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"], ordered=True)
         assert factor[0] == "a"
         assert factor[-1] == "c"
 
@@ -31,8 +32,8 @@ class TestCategoricalIndexingWithFactor:
         subf = factor[np.asarray(factor) == "c"]
         tm.assert_numpy_array_equal(subf._codes, np.array([2, 2, 2], dtype=np.int8))
 
-    def test_setitem(self, factor):
-
+    def test_setitem(self):
+        factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"], ordered=True)
         # int/positional
         c = factor.copy()
         c[0] = "b"
@@ -50,12 +51,10 @@ class TestCategoricalIndexingWithFactor:
 
         tm.assert_categorical_equal(c, expected)
 
-    @pytest.mark.parametrize(
-        "other",
-        [Categorical(["b", "a"]), Categorical(["b", "a"], categories=["b", "a"])],
-    )
-    def test_setitem_same_but_unordered(self, other):
+    @pytest.mark.parametrize("categories", [None, ["b", "a"]])
+    def test_setitem_same_but_unordered(self, categories):
         # GH-24142
+        other = Categorical(["b", "a"], categories=categories)
         target = Categorical(["a", "b"], categories=["a", "b"])
         mask = np.array([True, False])
         target[mask] = other[mask]
@@ -104,12 +103,11 @@ class TestCategoricalIndexingWithFactor:
         assert cat[1] == (0, 1)
 
     def test_setitem_listlike(self):
-
         # GH#9469
         # properly coerce the input indexers
-        np.random.seed(1)
+
         cat = Categorical(
-            np.random.randint(0, 5, size=150000).astype(np.int8)
+            np.random.default_rng(2).integers(0, 5, size=150000).astype(np.int8)
         ).add_categories([-1000])
         indexer = np.array([100000]).astype(np.int64)
         cat[indexer] = -1000
@@ -131,18 +129,20 @@ class TestCategoricalIndexing:
         tm.assert_categorical_equal(sliced, expected)
 
     def test_getitem_listlike(self):
-
         # GH 9469
         # properly coerce the input indexers
-        np.random.seed(1)
-        c = Categorical(np.random.randint(0, 5, size=150000).astype(np.int8))
+
+        c = Categorical(
+            np.random.default_rng(2).integers(0, 5, size=150000).astype(np.int8)
+        )
         result = c.codes[np.array([100000]).astype(np.int64)]
         expected = c[np.array([100000]).astype(np.int64)].codes
         tm.assert_numpy_array_equal(result, expected)
 
     def test_periodindex(self):
         idx1 = PeriodIndex(
-            ["2014-01", "2014-01", "2014-02", "2014-02", "2014-03", "2014-03"], freq="M"
+            ["2014-01", "2014-01", "2014-02", "2014-02", "2014-03", "2014-03"],
+            freq="M",
         )
 
         cat1 = Categorical(idx1)
@@ -153,7 +153,8 @@ class TestCategoricalIndexing:
         tm.assert_index_equal(cat1.categories, exp_idx)
 
         idx2 = PeriodIndex(
-            ["2014-03", "2014-03", "2014-02", "2014-01", "2014-03", "2014-01"], freq="M"
+            ["2014-03", "2014-03", "2014-02", "2014-01", "2014-03", "2014-01"],
+            freq="M",
         )
         cat2 = Categorical(idx2, ordered=True)
         str(cat2)
@@ -191,14 +192,6 @@ class TestCategoricalIndexing:
         tm.assert_numpy_array_equal(cat3._codes, exp_arr)
         tm.assert_index_equal(cat3.categories, exp_idx)
 
-    def test_categories_assignments(self):
-        cat = Categorical(["a", "b", "c", "a"])
-        exp = np.array([1, 2, 3, 1], dtype=np.int64)
-        with tm.assert_produces_warning(FutureWarning, match="Use rename_categories"):
-            cat.categories = [1, 2, 3]
-        tm.assert_numpy_array_equal(cat.__array__(), exp)
-        tm.assert_index_equal(cat.categories, Index([1, 2, 3]))
-
     @pytest.mark.parametrize(
         "null_val",
         [None, np.nan, NaT, NA, math.nan, "NaT", "nat", "NAT", "nan", "NaN", "NAN"],
@@ -217,9 +210,8 @@ class TestCategoricalIndexing:
             "new categories need to have the same number of items "
             "as the old categories!"
         )
-        with tm.assert_produces_warning(FutureWarning, match="Use rename_categories"):
-            with pytest.raises(ValueError, match=msg):
-                cat.categories = new_categories
+        with pytest.raises(ValueError, match=msg):
+            cat.rename_categories(new_categories)
 
     # Combinations of sorted/unique:
     @pytest.mark.parametrize(
@@ -376,6 +368,7 @@ def non_coercible_categorical(monkeypatch):
     ValueError
         When Categorical.__array__ is called.
     """
+
     # TODO(Categorical): identify other places where this may be
     # useful and move to a conftest.py
     def array(self, dtype=None):

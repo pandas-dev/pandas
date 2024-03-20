@@ -47,7 +47,7 @@ def test_cythonized_aggers(op_name):
     data = {
         "A": [0, 0, 0, 0, 1, 1, 1, 1, 1, 1.0, np.nan, np.nan],
         "B": ["A", "B"] * 6,
-        "C": np.random.randn(12),
+        "C": np.random.default_rng(2).standard_normal(12),
     }
     df = DataFrame(data)
     df.loc[2:10:2, "C"] = np.nan
@@ -67,7 +67,7 @@ def test_cythonized_aggers(op_name):
     expd = {}
     for (cat1, cat2), group in grouped:
         expd.setdefault(cat1, {})[cat2] = op(group["C"])
-    exp = DataFrame(expd).T.stack(dropna=False)
+    exp = DataFrame(expd).T.stack()
     exp.index.names = ["A", "B"]
     exp.name = "C"
 
@@ -79,55 +79,48 @@ def test_cythonized_aggers(op_name):
 def test_cython_agg_boolean():
     frame = DataFrame(
         {
-            "a": np.random.randint(0, 5, 50),
-            "b": np.random.randint(0, 2, 50).astype("bool"),
+            "a": np.random.default_rng(2).integers(0, 5, 50),
+            "b": np.random.default_rng(2).integers(0, 2, 50).astype("bool"),
         }
     )
     result = frame.groupby("a")["b"].mean()
+    # GH#53425
     expected = frame.groupby("a")["b"].agg(np.mean)
 
     tm.assert_series_equal(result, expected)
 
 
 def test_cython_agg_nothing_to_agg():
-    frame = DataFrame({"a": np.random.randint(0, 5, 50), "b": ["foo", "bar"] * 25})
+    frame = DataFrame(
+        {"a": np.random.default_rng(2).integers(0, 5, 50), "b": ["foo", "bar"] * 25}
+    )
 
-    with tm.assert_produces_warning(FutureWarning, match="This will raise a TypeError"):
-        with pytest.raises(NotImplementedError, match="does not implement"):
-            frame.groupby("a")["b"].mean(numeric_only=True)
+    msg = "Cannot use numeric_only=True with SeriesGroupBy.mean and non-numeric dtypes"
+    with pytest.raises(TypeError, match=msg):
+        frame.groupby("a")["b"].mean(numeric_only=True)
 
-    with pytest.raises(TypeError, match="Could not convert (foo|bar)*"):
-        frame.groupby("a")["b"].mean()
+    frame = DataFrame(
+        {"a": np.random.default_rng(2).integers(0, 5, 50), "b": ["foo", "bar"] * 25}
+    )
 
-    frame = DataFrame({"a": np.random.randint(0, 5, 50), "b": ["foo", "bar"] * 25})
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = frame[["b"]].groupby(frame["a"]).mean()
-    expected = DataFrame([], index=frame["a"].sort_values().drop_duplicates())
+    result = frame[["b"]].groupby(frame["a"]).mean(numeric_only=True)
+    expected = DataFrame(
+        [], index=frame["a"].sort_values().drop_duplicates(), columns=[]
+    )
     tm.assert_frame_equal(result, expected)
 
 
 def test_cython_agg_nothing_to_agg_with_dates():
     frame = DataFrame(
         {
-            "a": np.random.randint(0, 5, 50),
+            "a": np.random.default_rng(2).integers(0, 5, 50),
             "b": ["foo", "bar"] * 25,
-            "dates": pd.date_range("now", periods=50, freq="T"),
+            "dates": pd.date_range("now", periods=50, freq="min"),
         }
     )
-    with tm.assert_produces_warning(FutureWarning, match="This will raise a TypeError"):
-        with pytest.raises(NotImplementedError, match="does not implement"):
-            frame.groupby("b").dates.mean(numeric_only=True)
-
-
-def test_cython_agg_frame_columns():
-    # #2113
-    df = DataFrame({"x": [1, 2, 3], "y": [3, 4, 5]})
-
-    df.groupby(level=0, axis="columns").mean()
-    df.groupby(level=0, axis="columns").mean()
-    df.groupby(level=0, axis="columns").mean()
-    df.groupby(level=0, axis="columns").mean()
+    msg = "Cannot use numeric_only=True with SeriesGroupBy.mean and non-numeric dtypes"
+    with pytest.raises(TypeError, match=msg):
+        frame.groupby("b").dates.mean(numeric_only=True)
 
 
 def test_cython_agg_return_dict():
@@ -136,8 +129,8 @@ def test_cython_agg_return_dict():
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
-            "C": np.random.randn(8),
-            "D": np.random.randn(8),
+            "C": np.random.default_rng(2).standard_normal(8),
+            "D": np.random.default_rng(2).standard_normal(8),
         }
     )
 
@@ -175,11 +168,14 @@ def test_cython_fail_agg():
     ],
 )
 def test__cython_agg_general(op, targop):
-    df = DataFrame(np.random.randn(1000))
-    labels = np.random.randint(0, 50, size=1000).astype(float)
+    df = DataFrame(np.random.default_rng(2).standard_normal(1000))
+    labels = np.random.default_rng(2).integers(0, 50, size=1000).astype(float)
+    kwargs = {"ddof": 1} if op == "var" else {}
+    if op not in ["first", "last"]:
+        kwargs["axis"] = 0
 
     result = df.groupby(labels)._cython_agg_general(op, alt=None, numeric_only=True)
-    expected = df.groupby(labels).agg(targop)
+    expected = df.groupby(labels).agg(targop, **kwargs)
     tm.assert_frame_equal(result, expected)
 
 
@@ -211,7 +207,7 @@ def test_cython_agg_empty_buckets_nanops(observed):
     # GH-18869 can't call nanops on empty groups, so hardcode expected
     # for these
     df = DataFrame([11, 12, 13], columns=["a"])
-    grps = range(0, 25, 5)
+    grps = np.arange(0, 25, 5, dtype=int)
     # add / sum
     result = df.groupby(pd.cut(df["a"], grps), observed=observed)._cython_agg_general(
         "sum", alt=None, numeric_only=True
@@ -324,12 +320,28 @@ def test_cython_agg_nullable_int(op_name):
     result = getattr(df.groupby("A")["B"], op_name)()
     df2 = df.assign(B=df["B"].astype("float64"))
     expected = getattr(df2.groupby("A")["B"], op_name)()
-
-    if op_name != "count":
-        # the result is not yet consistently using Int64/Float64 dtype,
-        # so for now just checking the values by casting to float
-        result = result.astype("float64")
+    if op_name in ("mean", "median"):
+        convert_integer = False
+    else:
+        convert_integer = True
+    expected = expected.convert_dtypes(convert_integer=convert_integer)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean"])
+def test_count_masked_returns_masked_dtype(dtype):
+    df = DataFrame(
+        {
+            "A": [1, 1],
+            "B": pd.array([1, pd.NA], dtype=dtype),
+            "C": pd.array([1, 1], dtype=dtype),
+        }
+    )
+    result = df.groupby("A").count()
+    expected = DataFrame(
+        [[1, 2]], index=Index([1], name="A"), columns=["B", "C"], dtype="Int64"
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("with_na", [True, False])

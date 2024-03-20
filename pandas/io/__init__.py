@@ -1,3 +1,4 @@
+# ruff: noqa: TCH004
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -8,5 +9,5 @@ if TYPE_CHECKING:
         stata,
     )
 
-    # and mark only those modules as public
+    # mark only those modules as public
     __all__ = ["formats", "json", "stata"]

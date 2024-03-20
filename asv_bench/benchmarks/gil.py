@@ -5,14 +5,13 @@ import numpy as np
 
 from pandas import (
     DataFrame,
+    Index,
     Series,
     date_range,
     factorize,
     read_csv,
 )
 from pandas.core.algorithms import take_nd
-
-from .pandas_vb_common import tm
 
 try:
     from pandas import (
@@ -33,7 +32,6 @@ try:
     from pandas._libs import algos
 except ImportError:
     from pandas import algos
-
 
 from .pandas_vb_common import BaseIO  # isort:skip
 
@@ -87,12 +85,10 @@ def test_parallel(num_threads=2, kwargs_list=None):
 
 
 class ParallelGroupbyMethods:
-
     params = ([2, 4, 8], ["count", "last", "max", "mean", "min", "prod", "sum", "var"])
     param_names = ["threads", "method"]
 
     def setup(self, threads, method):
-
         N = 10**6
         ngroups = 10**3
         df = DataFrame(
@@ -119,12 +115,10 @@ class ParallelGroupbyMethods:
 
 
 class ParallelGroups:
-
     params = [2, 4, 8]
     param_names = ["threads"]
 
     def setup(self, threads):
-
         size = 2**22
         ngroups = 10**3
         data = Series(np.random.randint(0, ngroups, size=size))
@@ -140,12 +134,10 @@ class ParallelGroups:
 
 
 class ParallelTake1D:
-
     params = ["int64", "float64"]
     param_names = ["dtype"]
 
     def setup(self, dtype):
-
         N = 10**6
         df = DataFrame({"col": np.arange(N, dtype=dtype)})
         indexer = np.arange(100, len(df) - 100)
@@ -167,7 +159,6 @@ class ParallelKth:
     repeat = 5
 
     def setup(self):
-
         N = 10**7
         k = 5 * 10**5
         kwargs_list = [{"arr": np.random.randn(N)}, {"arr": np.random.randn(N)}]
@@ -184,9 +175,8 @@ class ParallelKth:
 
 class ParallelDatetimeFields:
     def setup(self):
-
         N = 10**6
-        self.dti = date_range("1900-01-01", periods=N, freq="T")
+        self.dti = date_range("1900-01-01", periods=N, freq="min")
         self.period = self.dti.to_period("D")
 
     def time_datetime_field_year(self):
@@ -220,7 +210,7 @@ class ParallelDatetimeFields:
     def time_datetime_to_period(self):
         @test_parallel(num_threads=2)
         def run(dti):
-            dti.to_period("S")
+            dti.to_period("s")
 
         run(self.dti)
 
@@ -233,12 +223,10 @@ class ParallelDatetimeFields:
 
 
 class ParallelRolling:
-
     params = ["median", "mean", "min", "max", "var", "skew", "kurt", "std"]
     param_names = ["method"]
 
     def setup(self, method):
-
         win = 100
         arr = np.random.rand(100000)
         if hasattr(DataFrame, "rolling"):
@@ -274,28 +262,28 @@ class ParallelRolling:
 
 
 class ParallelReadCSV(BaseIO):
-
     number = 1
     repeat = 5
     params = ["float", "object", "datetime"]
     param_names = ["dtype"]
 
     def setup(self, dtype):
-
         rows = 10000
         cols = 50
-        data = {
-            "float": DataFrame(np.random.randn(rows, cols)),
-            "datetime": DataFrame(
+        if dtype == "float":
+            df = DataFrame(np.random.randn(rows, cols))
+        elif dtype == "datetime":
+            df = DataFrame(
                 np.random.randn(rows, cols), index=date_range("1/1/2000", periods=rows)
-            ),
-            "object": DataFrame(
+            )
+        elif dtype == "object":
+            df = DataFrame(
                 "foo", index=range(rows), columns=["object%03d" for _ in range(5)]
-            ),
-        }
+            )
+        else:
+            raise NotImplementedError
 
         self.fname = f"__test_{dtype}__.csv"
-        df = data[dtype]
         df.to_csv(self.fname)
 
         @test_parallel(num_threads=2)
@@ -309,15 +297,13 @@ class ParallelReadCSV(BaseIO):
 
 
 class ParallelFactorize:
-
     number = 1
     repeat = 5
     params = [2, 4, 8]
     param_names = ["threads"]
 
     def setup(self, threads):
-
-        strings = tm.makeStringIndex(100000)
+        strings = Index([f"i-{i}" for i in range(100000)], dtype=object)
 
         @test_parallel(num_threads=threads)
         def parallel():

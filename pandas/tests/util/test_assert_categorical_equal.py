@@ -4,11 +4,9 @@ from pandas import Categorical
 import pandas._testing as tm
 
 
-@pytest.mark.parametrize(
-    "c",
-    [Categorical([1, 2, 3, 4]), Categorical([1, 2, 3, 4], categories=[1, 2, 3, 4, 5])],
-)
+@pytest.mark.parametrize("c", [None, [1, 2, 3, 4, 5]])
 def test_categorical_equal(c):
+    c = Categorical([1, 2, 3, 4], categories=c)
     tm.assert_categorical_equal(c, c)
 
 
@@ -22,8 +20,8 @@ def test_categorical_equal_order_mismatch(check_category_order):
         msg = """Categorical\\.categories are different
 
 Categorical\\.categories values are different \\(100\\.0 %\\)
-\\[left\\]:  Int64Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)
-\\[right\\]: Int64Index\\(\\[4, 3, 2, 1\\], dtype='int64'\\)"""
+\\[left\\]:  Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)
+\\[right\\]: Index\\(\\[4, 3, 2, 1\\], dtype='int64'\\)"""
         with pytest.raises(AssertionError, match=msg):
             tm.assert_categorical_equal(c1, c2, **kwargs)
     else:
@@ -34,8 +32,8 @@ def test_categorical_equal_categories_mismatch():
     msg = """Categorical\\.categories are different
 
 Categorical\\.categories values are different \\(25\\.0 %\\)
-\\[left\\]:  Int64Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)
-\\[right\\]: Int64Index\\(\\[1, 2, 3, 5\\], dtype='int64'\\)"""
+\\[left\\]:  Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)
+\\[right\\]: Index\\(\\[1, 2, 3, 5\\], dtype='int64'\\)"""
 
     c1 = Categorical([1, 2, 3, 4])
     c2 = Categorical([1, 2, 3, 5])

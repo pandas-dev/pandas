@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import textwrap
-from typing import cast
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 import numpy as np
 
@@ -12,7 +15,6 @@ from pandas._libs import (
 from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.cast import find_common_type
-from pandas.core.dtypes.common import is_dtype_equal
 
 from pandas.core.algorithms import safe_sort
 from pandas.core.indexes.base import (
@@ -26,16 +28,12 @@ from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.interval import IntervalIndex
 from pandas.core.indexes.multi import MultiIndex
-from pandas.core.indexes.numeric import (
-    Float64Index,
-    Int64Index,
-    NumericIndex,
-    UInt64Index,
-)
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.range import RangeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
+if TYPE_CHECKING:
+    from pandas._typing import Axis
 _sort_msg = textwrap.dedent(
     """\
 Sorting because non-concatenation axis is not aligned. A future version
@@ -51,13 +49,9 @@ To retain the current behavior and silence the warning, pass 'sort=True'.
 __all__ = [
     "Index",
     "MultiIndex",
-    "NumericIndex",
-    "Float64Index",
-    "Int64Index",
     "CategoricalIndex",
     "IntervalIndex",
     "RangeIndex",
-    "UInt64Index",
     "InvalidIndexError",
     "TimedeltaIndex",
     "PeriodIndex",
@@ -76,7 +70,10 @@ __all__ = [
 
 
 def get_objs_combined_axis(
-    objs, intersect: bool = False, axis=0, sort: bool = True, copy: bool = False
+    objs,
+    intersect: bool = False,
+    axis: Axis = 0,
+    sort: bool = True,
 ) -> Index:
     """
     Extract combined index: return intersection or union (depending on the
@@ -94,15 +91,13 @@ def get_objs_combined_axis(
         The axis to extract indexes from.
     sort : bool, default True
         Whether the result index should come out sorted or not.
-    copy : bool, default False
-        If True, return a copy of the combined index.
 
     Returns
     -------
     Index
     """
     obs_idxes = [obj._get_axis(axis) for obj in objs]
-    return _get_combined_index(obs_idxes, intersect=intersect, sort=sort, copy=copy)
+    return _get_combined_index(obs_idxes, intersect=intersect, sort=sort)
 
 
 def _get_distinct_objs(objs: list[Index]) -> list[Index]:
@@ -123,7 +118,6 @@ def _get_combined_index(
     indexes: list[Index],
     intersect: bool = False,
     sort: bool = False,
-    copy: bool = False,
 ) -> Index:
     """
     Return the union or intersection of indexes.
@@ -137,8 +131,6 @@ def _get_combined_index(
         calculate the union.
     sort : bool, default False
         Whether the result index should come out sorted or not.
-    copy : bool, default False
-        If True, return a copy of the combined index.
 
     Returns
     -------
@@ -160,10 +152,6 @@ def _get_combined_index(
 
     if sort:
         index = safe_sort_index(index)
-    # GH 29879
-    if copy:
-        index = index.copy()
-
     return index
 
 
@@ -189,6 +177,9 @@ def safe_sort_index(index: Index) -> Index:
     except TypeError:
         pass
     else:
+        if isinstance(array_sorted, Index):
+            return array_sorted
+
         array_sorted = cast(np.ndarray, array_sorted)
         if isinstance(index, MultiIndex):
             index = MultiIndex.from_tuples(array_sorted, names=index.names)
@@ -219,16 +210,17 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
     if len(indexes) == 1:
         result = indexes[0]
         if isinstance(result, list):
-            result = Index(sorted(result))
+            if not sort:
+                result = Index(result)
+            else:
+                result = Index(sorted(result))
         return result
 
     indexes, kind = _sanitize_and_check(indexes)
 
     def _unique_indices(inds, dtype) -> Index:
         """
-        Convert indexes to lists and concatenate them, removing duplicates.
-
-        The final dtype is inferred.
+        Concatenate indices and remove duplicates.
 
         Parameters
         ----------
@@ -239,6 +231,16 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
         -------
         Index
         """
+        if all(isinstance(ind, Index) for ind in inds):
+            inds = [ind.astype(dtype, copy=False) for ind in inds]
+            result = inds[0].unique()
+            other = inds[1].append(inds[2:])
+            diff = other[result.get_indexer_for(other) == -1]
+            if len(diff):
+                result = result.append(diff.unique())
+            if sort:
+                result = result.sort_values()
+            return result
 
         def conv(i):
             if isinstance(i, Index):
@@ -272,7 +274,6 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
 
     if kind == "special":
         result = indexes[0]
-        first = result
 
         dtis = [x for x in indexes if isinstance(x, DatetimeIndex)]
         dti_tzs = [x for x in dtis if x.tz is not None]
@@ -285,12 +286,6 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
 
         if len(dtis) == len(indexes):
             sort = True
-            if not all(is_dtype_equal(x.dtype, first.dtype) for x in indexes):
-                # i.e. timezones mismatch
-                # TODO(2.0): once deprecation is enforced, this union will
-                #  cast to UTC automatically.
-                indexes = [x.tz_convert("UTC") for x in indexes]
-
             result = indexes[0]
 
         elif len(dtis) > 1:
@@ -379,5 +374,5 @@ def all_indexes_same(indexes) -> bool:
 
 
 def default_index(n: int) -> RangeIndex:
-    rng = range(0, n)
+    rng = range(n)
     return RangeIndex._simple_new(rng, name=None)

@@ -10,9 +10,9 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.core.api import (
-    Float64Index,
-    NumericIndex,
+from pandas.api.types import (
+    is_complex_dtype,
+    is_numeric_dtype,
 )
 from pandas.core.arrays import BooleanArray
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
@@ -68,32 +68,37 @@ def test_numpy_ufuncs_basic(index, func):
         with tm.external_error_raised((TypeError, AttributeError)):
             with np.errstate(all="ignore"):
                 func(index)
-    elif (
-        isinstance(index, NumericIndex)
-        or (not isinstance(index.dtype, np.dtype) and index.dtype._is_numeric)
-        or (index.dtype.kind == "c" and func not in [np.deg2rad, np.rad2deg])
-        or index.dtype == bool
+    elif is_numeric_dtype(index) and not (
+        is_complex_dtype(index) and func in [np.deg2rad, np.rad2deg]
     ):
         # coerces to float (e.g. np.sin)
         with np.errstate(all="ignore"):
             result = func(index)
-            exp = Index(func(index.values), name=index.name)
+            arr_result = func(index.values)
+            if arr_result.dtype == np.float16:
+                arr_result = arr_result.astype(np.float32)
+            exp = Index(arr_result, name=index.name)
 
         tm.assert_index_equal(result, exp)
-        if type(index) is not Index or index.dtype == bool:
-            # i.e NumericIndex
-            assert isinstance(result, Float64Index)
+        if isinstance(index.dtype, np.dtype) and is_numeric_dtype(index):
+            if is_complex_dtype(index):
+                assert result.dtype == index.dtype
+            elif index.dtype in ["bool", "int8", "uint8"]:
+                assert result.dtype in ["float16", "float32"]
+            elif index.dtype in ["int16", "uint16", "float32"]:
+                assert result.dtype == "float32"
+            else:
+                assert result.dtype == "float64"
         else:
             # e.g. np.exp with Int64 -> Float64
             assert type(result) is Index
+    # raise AttributeError or TypeError
+    elif len(index) == 0:
+        pass
     else:
-        # raise AttributeError or TypeError
-        if len(index) == 0:
-            pass
-        else:
-            with tm.external_error_raised((TypeError, AttributeError)):
-                with np.errstate(all="ignore"):
-                    func(index)
+        with tm.external_error_raised((TypeError, AttributeError)):
+            with np.errstate(all="ignore"):
+                func(index)
 
 
 @pytest.mark.parametrize(
@@ -103,7 +108,6 @@ def test_numpy_ufuncs_other(index, func):
     # test ufuncs of numpy, see:
     # https://numpy.org/doc/stable/reference/ufuncs.html
     if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
-
         if func in (np.isfinite, np.isinf, np.isnan):
             # numpy 1.18 changed isinf and isnan to not raise on dt64/td64
             result = func(index)
@@ -120,11 +124,8 @@ def test_numpy_ufuncs_other(index, func):
         with tm.external_error_raised(TypeError):
             func(index)
 
-    elif (
-        isinstance(index, NumericIndex)
-        or (not isinstance(index.dtype, np.dtype) and index.dtype._is_numeric)
-        or (index.dtype.kind == "c" and func is not np.signbit)
-        or index.dtype == bool
+    elif is_numeric_dtype(index) and not (
+        is_complex_dtype(index) and func is np.signbit
     ):
         # Results in bool array
         result = func(index)
@@ -142,23 +143,18 @@ def test_numpy_ufuncs_other(index, func):
         else:
             tm.assert_numpy_array_equal(out, result)
 
+    elif len(index) == 0:
+        pass
     else:
-        if len(index) == 0:
-            pass
-        else:
-            with tm.external_error_raised(TypeError):
-                func(index)
+        with tm.external_error_raised(TypeError):
+            func(index)
 
 
 @pytest.mark.parametrize("func", [np.maximum, np.minimum])
 def test_numpy_ufuncs_reductions(index, func, request):
     # TODO: overlap with tests.series.test_ufunc.test_reductions
     if len(index) == 0:
-        return
-
-    if repr(index.dtype) == "string[pyarrow]":
-        mark = pytest.mark.xfail(reason="ArrowStringArray has no min/max")
-        request.node.add_marker(mark)
+        pytest.skip("Test doesn't make sense for empty index.")
 
     if isinstance(index, CategoricalIndex) and index.dtype.ordered is False:
         with pytest.raises(TypeError, match="is not ordered for"):

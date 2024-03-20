@@ -10,11 +10,14 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 
 3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 """
+
+from __future__ import annotations
+
+from array import array
 import bz2
 import datetime
 import functools
 from functools import partial
-import glob
 import gzip
 import io
 import os
@@ -22,12 +25,8 @@ from pathlib import Path
 import pickle
 import shutil
 import tarfile
+from typing import Any
 import uuid
-from warnings import (
-    catch_warnings,
-    filterwarnings,
-    simplefilter,
-)
 import zipfile
 
 import numpy as np
@@ -38,38 +37,23 @@ from pandas.compat import (
     is_platform_little_endian,
 )
 from pandas.compat._optional import import_optional_dependency
-import pandas.util._test_decorators as td
+from pandas.compat.compressors import flatten_buffer
 
 import pandas as pd
 from pandas import (
+    DataFrame,
     Index,
     Series,
     period_range,
 )
 import pandas._testing as tm
+from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
 
 import pandas.io.common as icom
 from pandas.tseries.offsets import (
     Day,
     MonthEnd,
 )
-
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Timestamp.freq is deprecated:FutureWarning"
-)
-
-
-@pytest.fixture(scope="module")
-def current_pickle_data():
-    # our current version pickle data
-    from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
-
-    with catch_warnings():
-        filterwarnings(
-            "ignore", "The 'freq' argument in Timestamp", category=FutureWarning
-        )
-
-        return create_pickle_data()
 
 
 # ---------------------
@@ -87,30 +71,52 @@ def compare_element(result, expected, typ):
             assert result is pd.NaT
         else:
             assert result == expected
-            assert result.freq == expected.freq
     else:
         comparator = getattr(tm, f"assert_{typ}_equal", tm.assert_almost_equal)
         comparator(result, expected)
 
 
-legacy_dirname = os.path.join(os.path.dirname(__file__), "data", "legacy_pickle")
-files = glob.glob(os.path.join(legacy_dirname, "*", "*.pickle"))
-
-
-@pytest.fixture(params=files)
-def legacy_pickle(request, datapath):
-    return datapath(request.param)
-
-
 # ---------------------
 # tests
 # ---------------------
-def test_pickles(legacy_pickle):
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        b"123",
+        b"123456",
+        bytearray(b"123"),
+        memoryview(b"123"),
+        pickle.PickleBuffer(b"123"),
+        array("I", [1, 2, 3]),
+        memoryview(b"123456").cast("B", (3, 2)),
+        memoryview(b"123456").cast("B", (3, 2))[::2],
+        np.arange(12).reshape((3, 4), order="C"),
+        np.arange(12).reshape((3, 4), order="F"),
+        np.arange(12).reshape((3, 4), order="C")[:, ::2],
+    ],
+)
+def test_flatten_buffer(data):
+    result = flatten_buffer(data)
+    expected = memoryview(data).tobytes("A")
+    assert result == expected
+    if isinstance(data, (bytes, bytearray)):
+        assert result is data
+    elif isinstance(result, memoryview):
+        assert result.ndim == 1
+        assert result.format == "B"
+        assert result.contiguous
+        assert result.shape == (result.nbytes,)
+
+
+def test_pickles(datapath):
     if not is_platform_little_endian():
         pytest.skip("known failure on non-little endian")
 
-    with catch_warnings(record=True):
-        simplefilter("ignore")
+    # For loop for compat with --strict-data-files
+    for legacy_pickle in Path(__file__).parent.glob("data/legacy_pickle/*/*.p*kl*"):
+        legacy_pickle = datapath(legacy_pickle)
 
         data = pd.read_pickle(legacy_pickle)
 
@@ -165,6 +171,15 @@ def python_unpickler(path):
         return pickle.load(fh)
 
 
+def flatten(data: dict) -> list[tuple[str, Any]]:
+    """Flatten create_pickle_data"""
+    return [
+        (typ, example)
+        for typ, examples in data.items()
+        for example in examples.values()
+    ]
+
+
 @pytest.mark.parametrize(
     "pickle_writer",
     [
@@ -182,65 +197,37 @@ def python_unpickler(path):
     ],
 )
 @pytest.mark.parametrize("writer", [pd.to_pickle, python_pickler])
-@pytest.mark.filterwarnings("ignore:The 'freq' argument in Timestamp:FutureWarning")
-def test_round_trip_current(current_pickle_data, pickle_writer, writer):
-    data = current_pickle_data
-    for typ, dv in data.items():
-        for dt, expected in dv.items():
+@pytest.mark.parametrize("typ, expected", flatten(create_pickle_data()))
+def test_round_trip_current(typ, expected, pickle_writer, writer):
+    with tm.ensure_clean() as path:
+        # test writing with each pickler
+        pickle_writer(expected, path)
 
-            with tm.ensure_clean() as path:
-                # test writing with each pickler
-                pickle_writer(expected, path)
+        # test reading with each unpickler
+        result = pd.read_pickle(path)
+        compare_element(result, expected, typ)
 
-                # test reading with each unpickler
-                result = pd.read_pickle(path)
-                compare_element(result, expected, typ)
+        result = python_unpickler(path)
+        compare_element(result, expected, typ)
 
-                result = python_unpickler(path)
-                compare_element(result, expected, typ)
-
-                # and the same for file objects (GH 35679)
-                with open(path, mode="wb") as handle:
-                    writer(expected, path)
-                    handle.seek(0)  # shouldn't close file handle
-                with open(path, mode="rb") as handle:
-                    result = pd.read_pickle(handle)
-                    handle.seek(0)  # shouldn't close file handle
-                compare_element(result, expected, typ)
+        # and the same for file objects (GH 35679)
+        with open(path, mode="wb") as handle:
+            writer(expected, path)
+            handle.seek(0)  # shouldn't close file handle
+        with open(path, mode="rb") as handle:
+            result = pd.read_pickle(handle)
+            handle.seek(0)  # shouldn't close file handle
+        compare_element(result, expected, typ)
 
 
 def test_pickle_path_pathlib():
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     result = tm.round_trip_pathlib(df.to_pickle, pd.read_pickle)
     tm.assert_frame_equal(df, result)
-
-
-def test_pickle_path_localpath():
-    df = tm.makeDataFrame()
-    result = tm.round_trip_localpath(df.to_pickle, pd.read_pickle)
-    tm.assert_frame_equal(df, result)
-
-
-@pytest.mark.parametrize("typ", ["sparseseries", "sparseframe"])
-def test_legacy_sparse_warning(datapath, typ):
-    """
-
-    Generated with
-
-    >>> df = pd.DataFrame({"A": [1, 2, 3, 4], "B": [0, 0, 1, 1]}).to_sparse()
-    >>> df.to_pickle("pandas/tests/io/data/pickle/sparseframe-0.20.3.pickle.gz",
-    ...              compression="gzip")
-
-    >>> s = df['B']
-    >>> s.to_pickle("pandas/tests/io/data/pickle/sparseseries-0.20.3.pickle.gz",
-    ...             compression="gzip")
-    """
-    with tm.assert_produces_warning(FutureWarning):
-        simplefilter("ignore", DeprecationWarning)  # from boto
-        pd.read_pickle(
-            datapath("io", "data", "pickle", f"{typ}-0.20.3.pickle.gz"),
-            compression="gzip",
-        )
 
 
 # ---------------------
@@ -254,8 +241,7 @@ def get_random_path():
 
 
 class TestCompression:
-
-    _extension_to_compression = icom._extension_to_compression
+    _extension_to_compression = icom.extension_to_compression
 
     def compress_file(self, src_path, dest_path, compression):
         if compression is None:
@@ -283,8 +269,9 @@ class TestCompression:
             raise ValueError(msg)
 
         if compression not in ["zip", "tar"]:
-            with open(src_path, "rb") as fh, f:
-                f.write(fh.read())
+            with open(src_path, "rb") as fh:
+                with f:
+                    f.write(fh.read())
 
     def test_write_explicit(self, compression, get_random_path):
         base = get_random_path
@@ -292,7 +279,11 @@ class TestCompression:
         path2 = base + ".raw"
 
         with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
-            df = tm.makeDataFrame()
+            df = DataFrame(
+                1.1 * np.arange(120).reshape((30, 4)),
+                columns=Index(list("ABCD"), dtype=object),
+                index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            )
 
             # write to compressed file
             df.to_pickle(p1, compression=compression)
@@ -309,9 +300,13 @@ class TestCompression:
 
     @pytest.mark.parametrize("compression", ["", "None", "bad", "7z"])
     def test_write_explicit_bad(self, compression, get_random_path):
-        with pytest.raises(ValueError, match="Unrecognized compression type"):
-            with tm.ensure_clean(get_random_path) as path:
-                df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
+        with tm.ensure_clean(get_random_path) as path:
+            with pytest.raises(ValueError, match="Unrecognized compression type"):
                 df.to_pickle(path, compression=compression)
 
     def test_write_infer(self, compression_ext, get_random_path):
@@ -321,7 +316,11 @@ class TestCompression:
         compression = self._extension_to_compression.get(compression_ext.lower())
 
         with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
-            df = tm.makeDataFrame()
+            df = DataFrame(
+                1.1 * np.arange(120).reshape((30, 4)),
+                columns=Index(list("ABCD"), dtype=object),
+                index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            )
 
             # write to compressed file by inferred compression method
             df.to_pickle(p1)
@@ -342,7 +341,11 @@ class TestCompression:
         path2 = base + ".compressed"
 
         with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
-            df = tm.makeDataFrame()
+            df = DataFrame(
+                1.1 * np.arange(120).reshape((30, 4)),
+                columns=Index(list("ABCD"), dtype=object),
+                index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            )
 
             # write to uncompressed file
             df.to_pickle(p1, compression=None)
@@ -352,7 +355,6 @@ class TestCompression:
 
             # read compressed file
             df2 = pd.read_pickle(p2, compression=compression)
-
             tm.assert_frame_equal(df, df2)
 
     def test_read_infer(self, compression_ext, get_random_path):
@@ -362,7 +364,11 @@ class TestCompression:
         compression = self._extension_to_compression.get(compression_ext.lower())
 
         with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
-            df = tm.makeDataFrame()
+            df = DataFrame(
+                1.1 * np.arange(120).reshape((30, 4)),
+                columns=Index(list("ABCD"), dtype=object),
+                index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            )
 
             # write to uncompressed file
             df.to_pickle(p1, compression=None)
@@ -372,7 +378,6 @@ class TestCompression:
 
             # read compressed file by inferred compression method
             df2 = pd.read_pickle(p2)
-
             tm.assert_frame_equal(df, df2)
 
 
@@ -385,40 +390,23 @@ class TestProtocol:
     @pytest.mark.parametrize("protocol", [-1, 0, 1, 2])
     def test_read(self, protocol, get_random_path):
         with tm.ensure_clean(get_random_path) as path:
-            df = tm.makeDataFrame()
+            df = DataFrame(
+                1.1 * np.arange(120).reshape((30, 4)),
+                columns=Index(list("ABCD"), dtype=object),
+                index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            )
             df.to_pickle(path, protocol=protocol)
             df2 = pd.read_pickle(path)
             tm.assert_frame_equal(df, df2)
 
 
-@pytest.mark.parametrize(
-    ["pickle_file", "excols"],
-    [
-        ("test_py27.pkl", Index(["a", "b", "c"])),
-        (
-            "test_mi_py27.pkl",
-            pd.MultiIndex.from_arrays([["a", "b", "c"], ["A", "B", "C"]]),
-        ),
-    ],
-)
-def test_unicode_decode_error(datapath, pickle_file, excols):
-    # pickle file written with py27, should be readable without raising
-    #  UnicodeDecodeError, see GH#28645 and GH#31988
-    path = datapath("io", "data", "pickle", pickle_file)
-    df = pd.read_pickle(path)
-
-    # just test the columns are correct since the values are random
-    tm.assert_index_equal(df.columns, excols)
-
-
-# ---------------------
-# tests for buffer I/O
-# ---------------------
-
-
 def test_pickle_buffer_roundtrip():
     with tm.ensure_clean() as path:
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         with open(path, "wb") as fh:
             df.to_pickle(fh)
         with open(path, "rb") as fh:
@@ -464,18 +452,26 @@ def test_pickle_generalurl_read(monkeypatch, mockurl):
         def mock_urlopen_read(*args, **kwargs):
             return MockReadResponse(path)
 
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         python_pickler(df, path)
         monkeypatch.setattr("urllib.request.urlopen", mock_urlopen_read)
         result = pd.read_pickle(mockurl)
         tm.assert_frame_equal(df, result)
 
 
-@td.skip_if_no("fsspec")
 def test_pickle_fsspec_roundtrip():
+    pytest.importorskip("fsspec")
     with tm.ensure_clean():
-        mockurl = "memory://afile"
-        df = tm.makeDataFrame()
+        mockurl = "memory://mockfile"
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         df.to_pickle(mockurl)
         result = pd.read_pickle(mockurl)
         tm.assert_frame_equal(df, result)
@@ -501,7 +497,11 @@ def test_pickle_binary_object_compression(compression):
 
     GH 26237, GH 29054, and GH 29570
     """
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
 
     # reference for compression
     with tm.ensure_clean() as path:
@@ -542,17 +542,16 @@ def test_pickle_dataframe_with_multilevel_index(
 def test_pickle_timeseries_periodindex():
     # GH#2891
     prng = period_range("1/1/2011", "1/1/2012", freq="M")
-    ts = Series(np.random.randn(len(prng)), prng)
+    ts = Series(np.random.default_rng(2).standard_normal(len(prng)), prng)
     new_ts = tm.round_trip_pickle(ts)
-    assert new_ts.index.freq == "M"
+    assert new_ts.index.freqstr == "M"
 
 
 @pytest.mark.parametrize(
     "name", [777, 777.0, "name", datetime.datetime(2001, 11, 11), (1, 2)]
 )
 def test_pickle_preserve_name(name):
-
-    unpickled = tm.round_trip_pickle(tm.makeTimeSeries(name=name))
+    unpickled = tm.round_trip_pickle(Series(np.arange(10, dtype=np.float64), name=name))
     assert unpickled.name == name
 
 
@@ -566,7 +565,6 @@ def test_pickle_strings(string_series):
     tm.assert_series_equal(unp_series, string_series)
 
 
-@td.skip_array_manager_invalid_test
 def test_pickle_preserves_block_ndim():
     # GH#37631
     ser = Series(list("abc")).astype("category").iloc[[0]]
@@ -582,7 +580,7 @@ def test_pickle_preserves_block_ndim():
 @pytest.mark.parametrize("protocol", [pickle.DEFAULT_PROTOCOL, pickle.HIGHEST_PROTOCOL])
 def test_pickle_big_dataframe_compression(protocol, compression):
     # GH#39002
-    df = pd.DataFrame(range(100000))
+    df = DataFrame(range(100000))
     result = tm.round_trip_pathlib(
         partial(df.to_pickle, protocol=protocol, compression=compression),
         partial(pd.read_pickle, compression=compression),
@@ -590,11 +588,17 @@ def test_pickle_big_dataframe_compression(protocol, compression):
     tm.assert_frame_equal(df, result)
 
 
-def test_pickle_frame_v124_unpickle_130():
+def test_pickle_frame_v124_unpickle_130(datapath):
     # GH#42345 DataFrame created in 1.2.x, unpickle in 1.3.x
-    path = os.path.join(legacy_dirname, "1.2.4", "empty_frame_v1_2_4-GH#42345.pkl")
+    path = datapath(
+        Path(__file__).parent,
+        "data",
+        "legacy_pickle",
+        "1.2.4",
+        "empty_frame_v1_2_4-GH#42345.pkl",
+    )
     with open(path, "rb") as fd:
         df = pickle.load(fd)
 
-    expected = pd.DataFrame()
+    expected = DataFrame(index=[], columns=[])
     tm.assert_frame_equal(df, expected)

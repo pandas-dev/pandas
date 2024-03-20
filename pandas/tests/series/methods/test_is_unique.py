@@ -2,13 +2,12 @@ import numpy as np
 import pytest
 
 from pandas import Series
-from pandas.core.construction import create_series_with_explicit_dtype
 
 
 @pytest.mark.parametrize(
     "data, expected",
     [
-        (np.random.randint(0, 10, size=1000), False),
+        (np.random.default_rng(2).integers(0, 10, size=1000), False),
         (np.arange(1000), True),
         ([], True),
         ([np.nan], True),
@@ -19,7 +18,7 @@ from pandas.core.construction import create_series_with_explicit_dtype
 )
 def test_is_unique(data, expected):
     # GH#11946 / GH#25180
-    ser = create_series_with_explicit_dtype(data, dtype_if_empty=object)
+    ser = Series(data)
     assert ser.is_unique is expected
 
 

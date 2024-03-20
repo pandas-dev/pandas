@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Iterable,
+    MutableMapping,
+    Sequence,
+)
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterable,
     Literal,
-    MutableMapping,
-    Sequence,
     TypeVar,
     overload,
 )
@@ -73,7 +75,6 @@ def get_default_engine(ext: str, mode: Literal["reader", "writer"] = "reader") -
         "xlsx": "openpyxl",
         "xlsm": "openpyxl",
         "xlsb": "pyxlsb",
-        "xls": "xlwt",
         "ods": "odf",
     }
     assert mode in ["reader", "writer"]
@@ -142,9 +143,9 @@ def _range2cols(areas: str) -> list[int]:
 
     Examples
     --------
-    >>> _range2cols('A:E')
+    >>> _range2cols("A:E")
     [0, 1, 2, 3, 4]
-    >>> _range2cols('A,C,Z:AB')
+    >>> _range2cols("A,C,Z:AB")
     [0, 2, 25, 26, 27]
     """
     cols: list[int] = []
@@ -160,23 +161,19 @@ def _range2cols(areas: str) -> list[int]:
 
 
 @overload
-def maybe_convert_usecols(usecols: str | list[int]) -> list[int]:
-    ...
+def maybe_convert_usecols(usecols: str | list[int]) -> list[int]: ...
 
 
 @overload
-def maybe_convert_usecols(usecols: list[str]) -> list[str]:
-    ...
+def maybe_convert_usecols(usecols: list[str]) -> list[str]: ...
 
 
 @overload
-def maybe_convert_usecols(usecols: usecols_func) -> usecols_func:
-    ...
+def maybe_convert_usecols(usecols: usecols_func) -> usecols_func: ...
 
 
 @overload
-def maybe_convert_usecols(usecols: None) -> None:
-    ...
+def maybe_convert_usecols(usecols: None) -> None: ...
 
 
 def maybe_convert_usecols(
@@ -211,13 +208,11 @@ def maybe_convert_usecols(
 
 
 @overload
-def validate_freeze_panes(freeze_panes: tuple[int, int]) -> Literal[True]:
-    ...
+def validate_freeze_panes(freeze_panes: tuple[int, int]) -> Literal[True]: ...
 
 
 @overload
-def validate_freeze_panes(freeze_panes: None) -> Literal[False]:
-    ...
+def validate_freeze_panes(freeze_panes: None) -> Literal[False]: ...
 
 
 def validate_freeze_panes(freeze_panes: tuple[int, int] | None) -> bool:

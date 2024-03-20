@@ -2,21 +2,21 @@
 Module that contains many useful utilities
 for validating data or function arguments
 """
+
 from __future__ import annotations
 
-import inspect
-from typing import (
-    Any,
+from collections.abc import (
     Iterable,
     Sequence,
+)
+from typing import (
     TypeVar,
     overload,
 )
-import warnings
 
 import numpy as np
 
-from pandas.util._exceptions import find_stack_level
+from pandas._libs import lib
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -27,7 +27,7 @@ BoolishT = TypeVar("BoolishT", bool, int)
 BoolishNoneT = TypeVar("BoolishNoneT", bool, int, None)
 
 
-def _check_arg_length(fname, args, max_fname_arg_count, compat_args):
+def _check_arg_length(fname, args, max_fname_arg_count, compat_args) -> None:
     """
     Checks whether 'args' has length of at most 'compat_args'. Raises
     a TypeError if that is not the case, similar to in Python when a
@@ -47,7 +47,7 @@ def _check_arg_length(fname, args, max_fname_arg_count, compat_args):
         )
 
 
-def _check_for_default_values(fname, arg_val_dict, compat_args):
+def _check_for_default_values(fname, arg_val_dict, compat_args) -> None:
     """
     Check that the keys in `arg_val_dict` are mapped to their
     default values as specified in `compat_args`.
@@ -126,7 +126,7 @@ def validate_args(fname, args, max_fname_arg_count, compat_args) -> None:
     _check_for_default_values(fname, kwargs, compat_args)
 
 
-def _check_for_invalid_keys(fname, kwargs, compat_args):
+def _check_for_invalid_keys(fname, kwargs, compat_args) -> None:
     """
     Checks whether 'kwargs' contains any keys that are not
     in 'compat_args' and raises a TypeError if there is one.
@@ -135,7 +135,7 @@ def _check_for_invalid_keys(fname, kwargs, compat_args):
     diff = set(kwargs) - set(compat_args)
 
     if diff:
-        bad_arg = list(diff)[0]
+        bad_arg = next(iter(diff))
         raise TypeError(f"{fname}() got an unexpected keyword argument '{bad_arg}'")
 
 
@@ -225,7 +225,10 @@ def validate_args_and_kwargs(
 
 
 def validate_bool_kwarg(
-    value: BoolishNoneT, arg_name, none_allowed=True, int_allowed=False
+    value: BoolishNoneT,
+    arg_name: str,
+    none_allowed: bool = True,
+    int_allowed: bool = False,
 ) -> BoolishNoneT:
     """
     Ensure that argument passed in arg_name can be interpreted as boolean.
@@ -253,7 +256,7 @@ def validate_bool_kwarg(
     """
     good_value = is_bool(value)
     if none_allowed:
-        good_value = good_value or value is None
+        good_value = good_value or (value is None)
 
     if int_allowed:
         good_value = good_value or isinstance(value, int)
@@ -264,106 +267,6 @@ def validate_bool_kwarg(
             f"type {type(value).__name__}."
         )
     return value
-
-
-def validate_axis_style_args(
-    data, args, kwargs, arg_name, method_name
-) -> dict[str, Any]:
-    """
-    Argument handler for mixed index, columns / axis functions
-
-    In an attempt to handle both `.method(index, columns)`, and
-    `.method(arg, axis=.)`, we have to do some bad things to argument
-    parsing. This translates all arguments to `{index=., columns=.}` style.
-
-    Parameters
-    ----------
-    data : DataFrame
-    args : tuple
-        All positional arguments from the user
-    kwargs : dict
-        All keyword arguments from the user
-    arg_name, method_name : str
-        Used for better error messages
-
-    Returns
-    -------
-    kwargs : dict
-        A dictionary of keyword arguments. Doesn't modify ``kwargs``
-        inplace, so update them with the return value here.
-
-    Examples
-    --------
-    >>> df = pd.DataFrame(range(2))
-    >>> validate_axis_style_args(df, (str.upper,), {'columns': id},
-    ...                          'mapper', 'rename')
-    {'columns': <built-in function id>, 'index': <method 'upper' of 'str' objects>}
-
-    This emits a warning
-    >>> validate_axis_style_args(df, (str.upper, id), {},
-    ...                          'mapper', 'rename')
-    {'index': <method 'upper' of 'str' objects>, 'columns': <built-in function id>}
-    """
-    # TODO: Change to keyword-only args and remove all this
-
-    out = {}
-    # Goal: fill 'out' with index/columns-style arguments
-    # like out = {'index': foo, 'columns': bar}
-
-    # Start by validating for consistency
-    if "axis" in kwargs and any(x in kwargs for x in data._AXIS_TO_AXIS_NUMBER):
-        msg = "Cannot specify both 'axis' and any of 'index' or 'columns'."
-        raise TypeError(msg)
-
-    # First fill with explicit values provided by the user...
-    if arg_name in kwargs:
-        if args:
-            msg = f"{method_name} got multiple values for argument '{arg_name}'"
-            raise TypeError(msg)
-
-        axis = data._get_axis_name(kwargs.get("axis", 0))
-        out[axis] = kwargs[arg_name]
-
-    # More user-provided arguments, now from kwargs
-    for k, v in kwargs.items():
-        try:
-            ax = data._get_axis_name(k)
-        except ValueError:
-            pass
-        else:
-            out[ax] = v
-
-    # All user-provided kwargs have been handled now.
-    # Now we supplement with positional arguments, emitting warnings
-    # when there's ambiguity and raising when there's conflicts
-
-    if len(args) == 0:
-        pass  # It's up to the function to decide if this is valid
-    elif len(args) == 1:
-        axis = data._get_axis_name(kwargs.get("axis", 0))
-        out[axis] = args[0]
-    elif len(args) == 2:
-        if "axis" in kwargs:
-            # Unambiguously wrong
-            msg = "Cannot specify both 'axis' and any of 'index' or 'columns'"
-            raise TypeError(msg)
-
-        msg = (
-            f"Interpreting call\n\t'.{method_name}(a, b)' as "
-            f"\n\t'.{method_name}(index=a, columns=b)'.\nUse named "
-            "arguments to remove any ambiguity. In the future, using "
-            "positional arguments for 'index' or 'columns' will raise "
-            "a 'TypeError'."
-        )
-        warnings.warn(
-            msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
-        )
-        out[data._get_axis_name(0)] = args[0]
-        out[data._get_axis_name(1)] = args[1]
-    else:
-        msg = f"Cannot specify all of '{arg_name}', 'index', 'columns'."
-        raise TypeError(msg)
-    return out
 
 
 def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):
@@ -389,7 +292,7 @@ def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = Tru
 
     if value is None and method is None:
         raise ValueError("Must specify a fill 'value' or 'method'.")
-    elif value is None and method is not None:
+    if value is None and method is not None:
         method = clean_fill_method(method)
 
     elif value is not None and method is None:
@@ -429,24 +332,21 @@ def validate_percentile(q: float | Iterable[float]) -> np.ndarray:
     q_arr = np.asarray(q)
     # Don't change this to an f-string. The string formatting
     # is too expensive for cases where we don't need it.
-    msg = "percentiles should all be in the interval [0, 1]. Try {} instead."
+    msg = "percentiles should all be in the interval [0, 1]"
     if q_arr.ndim == 0:
         if not 0 <= q_arr <= 1:
-            raise ValueError(msg.format(q_arr / 100.0))
-    else:
-        if not all(0 <= qs <= 1 for qs in q_arr):
-            raise ValueError(msg.format(q_arr / 100.0))
+            raise ValueError(msg)
+    elif not all(0 <= qs <= 1 for qs in q_arr):
+        raise ValueError(msg)
     return q_arr
 
 
 @overload
-def validate_ascending(ascending: BoolishT) -> BoolishT:
-    ...
+def validate_ascending(ascending: BoolishT) -> BoolishT: ...
 
 
 @overload
-def validate_ascending(ascending: Sequence[BoolishT]) -> list[BoolishT]:
-    ...
+def validate_ascending(ascending: Sequence[BoolishT]) -> list[BoolishT]: ...
 
 
 def validate_ascending(
@@ -542,4 +442,13 @@ def validate_insert_loc(loc: int, length: int) -> int:
         loc += length
     if not 0 <= loc <= length:
         raise IndexError(f"loc must be an integer between -{length} and {length}")
-    return loc
+    return loc  # pyright: ignore[reportReturnType]
+
+
+def check_dtype_backend(dtype_backend) -> None:
+    if dtype_backend is not lib.no_default:
+        if dtype_backend not in ["numpy_nullable", "pyarrow"]:
+            raise ValueError(
+                f"dtype_backend {dtype_backend} is invalid, only 'numpy_nullable' and "
+                f"'pyarrow' are allowed.",
+            )

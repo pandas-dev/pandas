@@ -12,13 +12,13 @@ import pandas._testing as tm
 def test_reindex(idx):
     result, indexer = idx.reindex(list(idx[:4]))
     assert isinstance(result, MultiIndex)
-    assert result.names == ["first", "second"]
+    assert result.names == ("first", "second")
     assert [level.name for level in result.levels] == ["first", "second"]
 
     result, indexer = idx.reindex(list(idx))
     assert isinstance(result, MultiIndex)
     assert indexer is None
-    assert result.names == ["first", "second"]
+    assert result.names == ("first", "second")
     assert [level.name for level in result.levels] == ["first", "second"]
 
 
@@ -52,34 +52,37 @@ def test_reindex_preserves_names_when_target_is_list_or_ndarray(idx):
     other_dtype = MultiIndex.from_product([[1, 2], [3, 4]])
 
     # list & ndarray cases
-    assert idx.reindex([])[0].names == [None, None]
-    assert idx.reindex(np.array([]))[0].names == [None, None]
-    assert idx.reindex(target.tolist())[0].names == [None, None]
-    assert idx.reindex(target.values)[0].names == [None, None]
-    assert idx.reindex(other_dtype.tolist())[0].names == [None, None]
-    assert idx.reindex(other_dtype.values)[0].names == [None, None]
+    assert idx.reindex([])[0].names == (None, None)
+    assert idx.reindex(np.array([]))[0].names == (None, None)
+    assert idx.reindex(target.tolist())[0].names == (None, None)
+    assert idx.reindex(target.values)[0].names == (None, None)
+    assert idx.reindex(other_dtype.tolist())[0].names == (None, None)
+    assert idx.reindex(other_dtype.values)[0].names == (None, None)
 
     idx.names = ["foo", "bar"]
-    assert idx.reindex([])[0].names == ["foo", "bar"]
-    assert idx.reindex(np.array([]))[0].names == ["foo", "bar"]
-    assert idx.reindex(target.tolist())[0].names == ["foo", "bar"]
-    assert idx.reindex(target.values)[0].names == ["foo", "bar"]
-    assert idx.reindex(other_dtype.tolist())[0].names == ["foo", "bar"]
-    assert idx.reindex(other_dtype.values)[0].names == ["foo", "bar"]
+    assert idx.reindex([])[0].names == ("foo", "bar")
+    assert idx.reindex(np.array([]))[0].names == ("foo", "bar")
+    assert idx.reindex(target.tolist())[0].names == ("foo", "bar")
+    assert idx.reindex(target.values)[0].names == ("foo", "bar")
+    assert idx.reindex(other_dtype.tolist())[0].names == ("foo", "bar")
+    assert idx.reindex(other_dtype.values)[0].names == ("foo", "bar")
 
 
 def test_reindex_lvl_preserves_names_when_target_is_list_or_array():
     # GH7774
     idx = MultiIndex.from_product([[0, 1], ["a", "b"]], names=["foo", "bar"])
-    assert idx.reindex([], level=0)[0].names == ["foo", "bar"]
-    assert idx.reindex([], level=1)[0].names == ["foo", "bar"]
+    assert idx.reindex([], level=0)[0].names == ("foo", "bar")
+    assert idx.reindex([], level=1)[0].names == ("foo", "bar")
 
 
-def test_reindex_lvl_preserves_type_if_target_is_empty_list_or_array():
+def test_reindex_lvl_preserves_type_if_target_is_empty_list_or_array(
+    using_infer_string,
+):
     # GH7774
     idx = MultiIndex.from_product([[0, 1], ["a", "b"]])
     assert idx.reindex([], level=0)[0].levels[0].dtype.type == np.int64
-    assert idx.reindex([], level=1)[0].levels[1].dtype.type == np.object_
+    exp = np.object_ if not using_infer_string else str
+    assert idx.reindex([], level=1)[0].levels[1].dtype.type == exp
 
     # case with EA levels
     cat = pd.Categorical(["foo", "bar"])
@@ -90,7 +93,6 @@ def test_reindex_lvl_preserves_type_if_target_is_empty_list_or_array():
 
 
 def test_reindex_base(idx):
-    idx = idx
     expected = np.arange(idx.size, dtype=np.intp)
 
     actual = idx.get_indexer(idx)
@@ -107,8 +109,7 @@ def test_reindex_non_unique():
 
     msg = "cannot handle a non-unique multi-index!"
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-            a.reindex(new_idx)
+        a.reindex(new_idx)
 
 
 @pytest.mark.parametrize("values", [[["a"], ["x"]], [[], []]])
@@ -159,3 +160,15 @@ def test_reindex_limit_arg_with_multiindex():
         match="limit argument only valid if doing pad, backfill or nearest reindexing",
     ):
         df.reindex(new_idx, fill_value=0, limit=1)
+
+
+def test_reindex_with_none_in_nested_multiindex():
+    # GH42883
+    index = MultiIndex.from_tuples([(("a", None), 1), (("b", None), 2)])
+    index2 = MultiIndex.from_tuples([(("b", None), 2), (("a", None), 1)])
+    df1_dtype = pd.DataFrame([1, 2], index=index)
+    df2_dtype = pd.DataFrame([2, 1], index=index2)
+
+    result = df1_dtype.reindex_like(df2_dtype)
+    expected = df2_dtype
+    tm.assert_frame_equal(result, expected)

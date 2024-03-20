@@ -2,6 +2,7 @@
 Tests the usecols functionality during parsing
 for all of the parsers defined in parsers.py
 """
+
 from io import StringIO
 
 import pytest
@@ -9,13 +10,8 @@ import pytest
 from pandas import DataFrame
 import pandas._testing as tm
 
-_msg_validate_usecols_arg = (
-    "'usecols' must either be list-like "
-    "of all strings, all unicode, all "
-    "integers or a callable."
-)
-_msg_validate_usecols_names = (
-    "Usecols do not match columns, columns expected but not found: {0}"
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
 
 
@@ -70,13 +66,16 @@ def test_usecols_with_mixed_encoding_strings(all_parsers, usecols):
 2.613230982,2,False,b
 3.568935038,7,False,a"""
     parser = all_parsers
-
+    _msg_validate_usecols_arg = (
+        "'usecols' must either be list-like "
+        "of all strings, all unicode, all "
+        "integers or a callable."
+    )
     with pytest.raises(ValueError, match=_msg_validate_usecols_arg):
         parser.read_csv(StringIO(data), usecols=usecols)
 
 
-@pytest.mark.parametrize("usecols", [["あああ", "いい"], ["あああ", "いい"]])
-def test_usecols_with_multi_byte_characters(all_parsers, usecols):
+def test_usecols_with_multi_byte_characters(all_parsers):
     data = """あああ,いい,ううう,ええええ
 0.056674973,8,True,a
 2.613230982,2,False,b
@@ -93,5 +92,5 @@ def test_usecols_with_multi_byte_characters(all_parsers, usecols):
     }
     expected = DataFrame(exp_data)
 
-    result = parser.read_csv(StringIO(data), usecols=usecols)
+    result = parser.read_csv(StringIO(data), usecols=["あああ", "いい"])
     tm.assert_frame_equal(result, expected)

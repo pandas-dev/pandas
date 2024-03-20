@@ -1,18 +1,17 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.astype import astype_nansafe
+from pandas.core.dtypes.astype import astype_array
 import pandas.core.dtypes.common as com
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     CategoricalDtypeType,
     DatetimeTZDtype,
+    ExtensionDtype,
     IntervalDtype,
     PeriodDtype,
 )
@@ -35,8 +34,7 @@ def to_numpy_dtypes(dtypes):
     return [getattr(np, dt) for dt in dtypes if isinstance(dt, str)]
 
 
-class TestPandasDtype:
-
+class TestNumpyEADtype:
     # Passing invalid dtype, both as a string or object, must raise TypeError
     # Per issue GH15520
     @pytest.mark.parametrize("box", [pd.Timestamp, "pd.Timestamp", list])
@@ -55,6 +53,7 @@ class TestPandasDtype:
             np.float64,
             float,
             np.dtype("float64"),
+            "object_",
         ],
     )
     def test_pandas_dtype_valid(self, dtype):
@@ -95,14 +94,14 @@ class TestPandasDtype:
         [
             "period[D]",
             "period[3M]",
-            "period[U]",
+            "period[us]",
             "Period[D]",
             "Period[3M]",
-            "Period[U]",
+            "Period[us]",
         ],
     )
     def test_period_dtype(self, dtype):
-        assert com.pandas_dtype(dtype) is PeriodDtype(dtype)
+        assert com.pandas_dtype(dtype) is not PeriodDtype(dtype)
         assert com.pandas_dtype(dtype) == PeriodDtype(dtype)
         assert com.pandas_dtype(dtype) == dtype
 
@@ -123,7 +122,6 @@ dtypes = {
 @pytest.mark.parametrize("name1,dtype1", list(dtypes.items()), ids=lambda x: str(x))
 @pytest.mark.parametrize("name2,dtype2", list(dtypes.items()), ids=lambda x: str(x))
 def test_dtype_equal(name1, dtype1, name2, dtype2):
-
     # match equal to self, but not equal to other
     assert com.is_dtype_equal(dtype1, dtype1)
     if name1 != name2:
@@ -166,13 +164,28 @@ def get_is_dtype_funcs():
     return [getattr(com, fname) for fname in fnames]
 
 
+@pytest.mark.filterwarnings(
+    "ignore:is_categorical_dtype is deprecated:DeprecationWarning"
+)
 @pytest.mark.parametrize("func", get_is_dtype_funcs(), ids=lambda x: x.__name__)
 def test_get_dtype_error_catch(func):
     # see gh-15941
     #
     # No exception should be raised.
 
-    assert not func(None)
+    msg = f"{func.__name__} is deprecated"
+    warn = None
+    if (
+        func is com.is_int64_dtype
+        or func is com.is_interval_dtype
+        or func is com.is_datetime64tz_dtype
+        or func is com.is_categorical_dtype
+        or func is com.is_period_dtype
+    ):
+        warn = DeprecationWarning
+
+    with tm.assert_produces_warning(warn, match=msg):
+        assert not func(None)
 
 
 def test_is_object():
@@ -185,42 +198,27 @@ def test_is_object():
 
 
 @pytest.mark.parametrize(
-    "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
+    "check_scipy", [False, pytest.param(True, marks=td.skip_if_no("scipy"))]
 )
 def test_is_sparse(check_scipy):
-    assert com.is_sparse(SparseArray([1, 2, 3]))
+    msg = "is_sparse is deprecated"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        assert com.is_sparse(SparseArray([1, 2, 3]))
 
-    assert not com.is_sparse(np.array([1, 2, 3]))
+        assert not com.is_sparse(np.array([1, 2, 3]))
 
-    if check_scipy:
-        import scipy.sparse
+        if check_scipy:
+            import scipy.sparse
 
-        assert not com.is_sparse(scipy.sparse.bsr_matrix([1, 2, 3]))
+            assert not com.is_sparse(scipy.sparse.bsr_matrix([1, 2, 3]))
 
 
-@td.skip_if_no_scipy
 def test_is_scipy_sparse():
-    from scipy.sparse import bsr_matrix
+    sp_sparse = pytest.importorskip("scipy.sparse")
 
-    assert com.is_scipy_sparse(bsr_matrix([1, 2, 3]))
+    assert com.is_scipy_sparse(sp_sparse.bsr_matrix([1, 2, 3]))
 
     assert not com.is_scipy_sparse(SparseArray([1, 2, 3]))
-
-
-def test_is_categorical():
-    cat = pd.Categorical([1, 2, 3])
-    with tm.assert_produces_warning(FutureWarning):
-        assert com.is_categorical(cat)
-        assert com.is_categorical(pd.Series(cat))
-        assert com.is_categorical(pd.CategoricalIndex([1, 2, 3]))
-
-        assert not com.is_categorical([1, 2, 3])
-
-
-def test_is_categorical_deprecation():
-    # GH#33385
-    with tm.assert_produces_warning(FutureWarning):
-        com.is_categorical([1, 2, 3])
 
 
 def test_is_datetime64_dtype():
@@ -233,10 +231,26 @@ def test_is_datetime64_dtype():
 
 
 def test_is_datetime64tz_dtype():
-    assert not com.is_datetime64tz_dtype(object)
-    assert not com.is_datetime64tz_dtype([1, 2, 3])
-    assert not com.is_datetime64tz_dtype(pd.DatetimeIndex([1, 2, 3]))
-    assert com.is_datetime64tz_dtype(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
+    msg = "is_datetime64tz_dtype is deprecated"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        assert not com.is_datetime64tz_dtype(object)
+        assert not com.is_datetime64tz_dtype([1, 2, 3])
+        assert not com.is_datetime64tz_dtype(pd.DatetimeIndex([1, 2, 3]))
+        assert com.is_datetime64tz_dtype(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
+
+
+def test_custom_ea_kind_M_not_datetime64tz():
+    # GH 34986
+    class NotTZDtype(ExtensionDtype):
+        @property
+        def kind(self) -> str:
+            return "M"
+
+    not_tz_dtype = NotTZDtype()
+    msg = "is_datetime64tz_dtype is deprecated"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        assert not com.is_datetime64tz_dtype(not_tz_dtype)
+        assert not com.needs_i8_conversion(not_tz_dtype)
 
 
 def test_is_timedelta64_dtype():
@@ -255,42 +269,66 @@ def test_is_timedelta64_dtype():
 
 
 def test_is_period_dtype():
-    assert not com.is_period_dtype(object)
-    assert not com.is_period_dtype([1, 2, 3])
-    assert not com.is_period_dtype(pd.Period("2017-01-01"))
+    msg = "is_period_dtype is deprecated"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        assert not com.is_period_dtype(object)
+        assert not com.is_period_dtype([1, 2, 3])
+        assert not com.is_period_dtype(pd.Period("2017-01-01"))
 
-    assert com.is_period_dtype(PeriodDtype(freq="D"))
-    assert com.is_period_dtype(pd.PeriodIndex([], freq="A"))
+        assert com.is_period_dtype(PeriodDtype(freq="D"))
+        assert com.is_period_dtype(pd.PeriodIndex([], freq="Y"))
 
 
 def test_is_interval_dtype():
-    assert not com.is_interval_dtype(object)
-    assert not com.is_interval_dtype([1, 2, 3])
+    msg = "is_interval_dtype is deprecated"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        assert not com.is_interval_dtype(object)
+        assert not com.is_interval_dtype([1, 2, 3])
 
-    assert com.is_interval_dtype(IntervalDtype())
+        assert com.is_interval_dtype(IntervalDtype())
 
-    interval = pd.Interval(1, 2, closed="right")
-    assert not com.is_interval_dtype(interval)
-    assert com.is_interval_dtype(pd.IntervalIndex([interval]))
+        interval = pd.Interval(1, 2, closed="right")
+        assert not com.is_interval_dtype(interval)
+        assert com.is_interval_dtype(pd.IntervalIndex([interval]))
 
 
 def test_is_categorical_dtype():
-    assert not com.is_categorical_dtype(object)
-    assert not com.is_categorical_dtype([1, 2, 3])
+    msg = "is_categorical_dtype is deprecated"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        assert not com.is_categorical_dtype(object)
+        assert not com.is_categorical_dtype([1, 2, 3])
 
-    assert com.is_categorical_dtype(CategoricalDtype())
-    assert com.is_categorical_dtype(pd.Categorical([1, 2, 3]))
-    assert com.is_categorical_dtype(pd.CategoricalIndex([1, 2, 3]))
+        assert com.is_categorical_dtype(CategoricalDtype())
+        assert com.is_categorical_dtype(pd.Categorical([1, 2, 3]))
+        assert com.is_categorical_dtype(pd.CategoricalIndex([1, 2, 3]))
 
 
-def test_is_string_dtype():
-    assert not com.is_string_dtype(int)
-    assert not com.is_string_dtype(pd.Series([1, 2]))
+@pytest.mark.parametrize(
+    "dtype, expected",
+    [
+        (int, False),
+        (pd.Series([1, 2]), False),
+        (str, True),
+        (object, True),
+        (np.array(["a", "b"]), True),
+        (pd.StringDtype(), True),
+        (pd.Index([], dtype="O"), True),
+    ],
+)
+def test_is_string_dtype(dtype, expected):
+    # GH#54661
 
-    assert com.is_string_dtype(str)
-    assert com.is_string_dtype(object)
-    assert com.is_string_dtype(np.array(["a", "b"]))
-    assert com.is_string_dtype(pd.StringDtype())
+    result = com.is_string_dtype(dtype)
+    assert result is expected
+
+
+@pytest.mark.parametrize(
+    "data",
+    [[(0, 1), (1, 1)], pd.Categorical([1, 2, 3]), np.array([1, 2], dtype=object)],
+)
+def test_is_string_dtype_arraylike_with_object_elements_not_strings(data):
+    # GH 15585
+    assert not com.is_string_dtype(pd.Series(data))
 
 
 def test_is_string_dtype_nullable(nullable_string_dtype):
@@ -405,7 +443,9 @@ def test_is_not_unsigned_integer_dtype(dtype):
     "dtype", [np.int64, np.array([1, 2], dtype=np.int64), "Int64", pd.Int64Dtype]
 )
 def test_is_int64_dtype(dtype):
-    assert com.is_int64_dtype(dtype)
+    msg = "is_int64_dtype is deprecated"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        assert com.is_int64_dtype(dtype)
 
 
 def test_type_comparison_with_numeric_ea_dtype(any_numeric_ea_dtype):
@@ -441,7 +481,9 @@ def test_type_comparison_with_signed_int_ea_dtype_and_signed_int_numpy_dtype(
     ],
 )
 def test_is_not_int64_dtype(dtype):
-    assert not com.is_int64_dtype(dtype)
+    msg = "is_int64_dtype is deprecated"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        assert not com.is_int64_dtype(dtype)
 
 
 def test_is_datetime64_any_dtype():
@@ -486,21 +528,6 @@ def test_is_timedelta64_ns_dtype():
     assert com.is_timedelta64_ns_dtype(np.array([1, 2], dtype="m8[ns]"))
 
 
-def test_is_datetime_or_timedelta_dtype():
-    assert not com.is_datetime_or_timedelta_dtype(int)
-    assert not com.is_datetime_or_timedelta_dtype(str)
-    assert not com.is_datetime_or_timedelta_dtype(pd.Series([1, 2]))
-    assert not com.is_datetime_or_timedelta_dtype(np.array(["a", "b"]))
-
-    # TODO(jreback), this is slightly suspect
-    assert not com.is_datetime_or_timedelta_dtype(DatetimeTZDtype("ns", "US/Eastern"))
-
-    assert com.is_datetime_or_timedelta_dtype(np.datetime64)
-    assert com.is_datetime_or_timedelta_dtype(np.timedelta64)
-    assert com.is_datetime_or_timedelta_dtype(np.array([], dtype=np.timedelta64))
-    assert com.is_datetime_or_timedelta_dtype(np.array([], dtype=np.datetime64))
-
-
 def test_is_numeric_v_string_like():
     assert not com.is_numeric_v_string_like(np.array([1]), 1)
     assert not com.is_numeric_v_string_like(np.array([1]), np.array([2]))
@@ -511,30 +538,18 @@ def test_is_numeric_v_string_like():
     assert com.is_numeric_v_string_like(np.array(["foo"]), np.array([1, 2]))
 
 
-def test_is_datetimelike_v_numeric():
-    dt = np.datetime64(datetime(2017, 1, 1))
-
-    assert not com.is_datetimelike_v_numeric(1, 1)
-    assert not com.is_datetimelike_v_numeric(dt, dt)
-    assert not com.is_datetimelike_v_numeric(np.array([1]), np.array([2]))
-    assert not com.is_datetimelike_v_numeric(np.array([dt]), np.array([dt]))
-
-    assert com.is_datetimelike_v_numeric(1, dt)
-    assert com.is_datetimelike_v_numeric(1, dt)
-    assert com.is_datetimelike_v_numeric(np.array([dt]), 1)
-    assert com.is_datetimelike_v_numeric(np.array([1]), dt)
-    assert com.is_datetimelike_v_numeric(np.array([dt]), np.array([1]))
-
-
 def test_needs_i8_conversion():
     assert not com.needs_i8_conversion(str)
     assert not com.needs_i8_conversion(np.int64)
     assert not com.needs_i8_conversion(pd.Series([1, 2]))
     assert not com.needs_i8_conversion(np.array(["a", "b"]))
 
-    assert com.needs_i8_conversion(np.datetime64)
-    assert com.needs_i8_conversion(pd.Series([], dtype="timedelta64[ns]"))
-    assert com.needs_i8_conversion(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
+    assert not com.needs_i8_conversion(np.datetime64)
+    assert com.needs_i8_conversion(np.dtype(np.datetime64))
+    assert not com.needs_i8_conversion(pd.Series([], dtype="timedelta64[ns]"))
+    assert com.needs_i8_conversion(pd.Series([], dtype="timedelta64[ns]").dtype)
+    assert not com.needs_i8_conversion(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
+    assert com.needs_i8_conversion(pd.DatetimeIndex(["2000"], tz="US/Eastern").dtype)
 
 
 def test_is_numeric_dtype():
@@ -549,6 +564,38 @@ def test_is_numeric_dtype():
     assert com.is_numeric_dtype(np.uint64)
     assert com.is_numeric_dtype(pd.Series([1, 2]))
     assert com.is_numeric_dtype(pd.Index([1, 2.0]))
+
+    class MyNumericDType(ExtensionDtype):
+        @property
+        def type(self):
+            return str
+
+        @property
+        def name(self):
+            raise NotImplementedError
+
+        @classmethod
+        def construct_array_type(cls):
+            raise NotImplementedError
+
+        def _is_numeric(self) -> bool:
+            return True
+
+    assert com.is_numeric_dtype(MyNumericDType())
+
+
+def test_is_any_real_numeric_dtype():
+    assert not com.is_any_real_numeric_dtype(str)
+    assert not com.is_any_real_numeric_dtype(bool)
+    assert not com.is_any_real_numeric_dtype(complex)
+    assert not com.is_any_real_numeric_dtype(object)
+    assert not com.is_any_real_numeric_dtype(np.datetime64)
+    assert not com.is_any_real_numeric_dtype(np.array(["a", "b", complex(1, 2)]))
+    assert not com.is_any_real_numeric_dtype(pd.DataFrame([complex(1, 2), True]))
+
+    assert com.is_any_real_numeric_dtype(int)
+    assert com.is_any_real_numeric_dtype(float)
+    assert com.is_any_real_numeric_dtype(np.array([1, 2.5]))
 
 
 def test_is_float_dtype():
@@ -586,38 +633,8 @@ def test_is_bool_dtype_numpy_error():
     assert not com.is_bool_dtype("0 - Name")
 
 
-@pytest.mark.filterwarnings("ignore:'is_extension_type' is deprecated:FutureWarning")
 @pytest.mark.parametrize(
-    "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
-)
-def test_is_extension_type(check_scipy):
-    assert not com.is_extension_type([1, 2, 3])
-    assert not com.is_extension_type(np.array([1, 2, 3]))
-    assert not com.is_extension_type(pd.DatetimeIndex([1, 2, 3]))
-
-    cat = pd.Categorical([1, 2, 3])
-    assert com.is_extension_type(cat)
-    assert com.is_extension_type(pd.Series(cat))
-    assert com.is_extension_type(SparseArray([1, 2, 3]))
-    assert com.is_extension_type(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
-
-    dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-    s = pd.Series([], dtype=dtype)
-    assert com.is_extension_type(s)
-
-    if check_scipy:
-        import scipy.sparse
-
-        assert not com.is_extension_type(scipy.sparse.bsr_matrix([1, 2, 3]))
-
-
-def test_is_extension_type_deprecation():
-    with tm.assert_produces_warning(FutureWarning):
-        com.is_extension_type([1, 2, 3])
-
-
-@pytest.mark.parametrize(
-    "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
+    "check_scipy", [False, pytest.param(True, marks=td.skip_if_no("scipy"))]
 )
 def test_is_extension_array_dtype(check_scipy):
     assert not com.is_extension_array_dtype([1, 2, 3])
@@ -646,7 +663,7 @@ def test_is_complex_dtype():
     assert not com.is_complex_dtype(pd.Series([1, 2]))
     assert not com.is_complex_dtype(np.array(["a", "b"]))
 
-    assert com.is_complex_dtype(np.complex_)
+    assert com.is_complex_dtype(np.complex128)
     assert com.is_complex_dtype(complex)
     assert com.is_complex_dtype(np.array([1 + 1j, 5]))
 
@@ -661,9 +678,9 @@ def test_is_complex_dtype():
         (np.dtype("float64"), np.dtype("float64")),
         (str, np.dtype(str)),
         (pd.Series([1, 2], dtype=np.dtype("int16")), np.dtype("int16")),
-        (pd.Series(["a", "b"]), np.dtype(object)),
+        (pd.Series(["a", "b"], dtype=object), np.dtype(object)),
         (pd.Index([1, 2]), np.dtype("int64")),
-        (pd.Index(["a", "b"]), np.dtype(object)),
+        (pd.Index(["a", "b"], dtype=object), np.dtype(object)),
         ("category", "category"),
         (pd.Categorical(["a", "b"]).dtype, CategoricalDtype(["a", "b"])),
         (pd.Categorical(["a", "b"]), CategoricalDtype(["a", "b"])),
@@ -680,7 +697,7 @@ def test_is_complex_dtype():
     ],
 )
 def test_get_dtype(input_param, result):
-    assert com.get_dtype(input_param) == result
+    assert com._get_dtype(input_param) == result
 
 
 @pytest.mark.parametrize(
@@ -699,7 +716,7 @@ def test_get_dtype_fails(input_param, expected_error_message):
     # 2020-02-02 npdev changed error message
     expected_error_message += f"|Cannot interpret '{input_param}' as a data type"
     with pytest.raises(TypeError, match=expected_error_message):
-        com.get_dtype(input_param)
+        com._get_dtype(input_param)
 
 
 @pytest.mark.parametrize(
@@ -712,9 +729,9 @@ def test_get_dtype_fails(input_param, expected_error_message):
         (np.dtype("float64"), np.float64),
         (str, np.dtype(str).type),
         (pd.Series([1, 2], dtype=np.dtype("int16")), np.int16),
-        (pd.Series(["a", "b"]), np.object_),
+        (pd.Series(["a", "b"], dtype=object), np.object_),
         (pd.Index([1, 2], dtype="int64"), np.int64),
-        (pd.Index(["a", "b"]), np.object_),
+        (pd.Index(["a", "b"], dtype=object), np.object_),
         ("category", CategoricalDtypeType),
         (pd.Categorical(["a", "b"]).dtype, CategoricalDtypeType),
         (pd.Categorical(["a", "b"]), CategoricalDtypeType),
@@ -739,56 +756,21 @@ def test__is_dtype_type(input_param, result):
     assert com._is_dtype_type(input_param, lambda tipo: tipo == result)
 
 
-@pytest.mark.parametrize("val", [np.datetime64("NaT"), np.timedelta64("NaT")])
-@pytest.mark.parametrize("typ", [np.int64])
-def test_astype_nansafe(val, typ):
-    arr = np.array([val])
-
-    typ = np.dtype(typ)
-
-    msg = "Cannot convert NaT values to integer"
-    with pytest.raises(ValueError, match=msg):
-        astype_nansafe(arr, dtype=typ)
-
-
 def test_astype_nansafe_copy_false(any_int_numpy_dtype):
     # GH#34457 use astype, not view
     arr = np.array([1, 2, 3], dtype=any_int_numpy_dtype)
 
     dtype = np.dtype("float64")
-    result = astype_nansafe(arr, dtype, copy=False)
+    result = astype_array(arr, dtype, copy=False)
 
     expected = np.array([1.0, 2.0, 3.0], dtype=dtype)
     tm.assert_numpy_array_equal(result, expected)
 
 
 @pytest.mark.parametrize("from_type", [np.datetime64, np.timedelta64])
-@pytest.mark.parametrize(
-    "to_type",
-    [
-        np.uint8,
-        np.uint16,
-        np.uint32,
-        np.int8,
-        np.int16,
-        np.int32,
-        np.float16,
-        np.float32,
-    ],
-)
-def test_astype_datetime64_bad_dtype_raises(from_type, to_type):
-    arr = np.array([from_type("2018")])
-
-    to_type = np.dtype(to_type)
-
-    with pytest.raises(TypeError, match="cannot astype"):
-        astype_nansafe(arr, dtype=to_type)
-
-
-@pytest.mark.parametrize("from_type", [np.datetime64, np.timedelta64])
 def test_astype_object_preserves_datetime_na(from_type):
     arr = np.array([from_type("NaT", "ns")])
-    result = astype_nansafe(arr, dtype=np.dtype("object"))
+    result = astype_array(arr, dtype=np.dtype("object"))
 
     assert isna(result)[0]
 
@@ -801,3 +783,19 @@ def test_validate_allhashable():
 
     with pytest.raises(TypeError, match="list must be a hashable type"):
         com.validate_all_hashable([], error_name="list")
+
+
+def test_pandas_dtype_numpy_warning():
+    # GH#51523
+    with tm.assert_produces_warning(
+        DeprecationWarning,
+        check_stacklevel=False,
+        match="Converting `np.integer` or `np.signedinteger` to a dtype is deprecated",
+    ):
+        pandas_dtype(np.integer)
+
+
+def test_pandas_dtype_ea_not_instance():
+    # GH 31356 GH 54592
+    with tm.assert_produces_warning(UserWarning):
+        assert pandas_dtype(CategoricalDtype) == CategoricalDtype()

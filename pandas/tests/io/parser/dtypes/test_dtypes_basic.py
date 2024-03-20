@@ -2,6 +2,7 @@
 Tests dtype specification during parsing
 for all of the parsers defined in parsers.py
 """
+
 from collections import defaultdict
 from io import StringIO
 
@@ -16,20 +17,26 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
+from pandas.core.arrays import (
+    ArrowStringArray,
+    IntegerArray,
+    StringArray,
+)
 
-# TODO(1.4): Change me into xfail at release time
-# and xfail individual tests
-pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
 
 
 @pytest.mark.parametrize("dtype", [str, object])
 @pytest.mark.parametrize("check_orig", [True, False])
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_all_columns(all_parsers, dtype, check_orig):
     # see gh-3795, gh-6607
     parser = all_parsers
 
     df = DataFrame(
-        np.random.rand(5, 2).round(4),
+        np.random.default_rng(2).random((5, 2)).round(4),
         columns=list("AB"),
         index=["1A", "1B", "1C", "1D", "1E"],
     )
@@ -48,6 +55,7 @@ def test_dtype_all_columns(all_parsers, dtype, check_orig):
         tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_per_column(all_parsers):
     parser = all_parsers
     data = """\
@@ -87,11 +95,13 @@ def test_raise_on_passed_int_dtype_with_nas(all_parsers):
 2001,,11
 2001,106380451,67"""
 
-    msg = (
-        "Integer column has NA values"
-        if parser.engine == "c"
-        else "Unable to convert column DOY"
-    )
+    if parser.engine == "c":
+        msg = "Integer column has NA values"
+    elif parser.engine == "pyarrow":
+        msg = "The 'skipinitialspace' option is not supported with the 'pyarrow' engine"
+    else:
+        msg = "Unable to convert column DOY"
+
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(data), dtype={"DOY": np.int64}, skipinitialspace=True)
 
@@ -101,6 +111,14 @@ def test_dtype_with_converters(all_parsers):
     data = """a,b
 1.1,2.2
 1.2,2.3"""
+
+    if parser.engine == "pyarrow":
+        msg = "The 'converters' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(data), dtype={"a": "i8"}, converters={"a": lambda x: str(x)}
+            )
+        return
 
     # Dtype spec ignored if converted specified.
     result = parser.read_csv_check_warnings(
@@ -115,18 +133,16 @@ def test_dtype_with_converters(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "dtype", list(np.typecodes["AllInteger"] + np.typecodes["Float"])
-)
-def test_numeric_dtype(all_parsers, dtype):
+def test_numeric_dtype(all_parsers, any_real_numpy_dtype):
     data = "0\n1"
     parser = all_parsers
-    expected = DataFrame([0, 1], dtype=dtype)
+    expected = DataFrame([0, 1], dtype=any_real_numpy_dtype)
 
-    result = parser.read_csv(StringIO(data), header=None, dtype=dtype)
+    result = parser.read_csv(StringIO(data), header=None, dtype=any_real_numpy_dtype)
     tm.assert_frame_equal(expected, result)
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_boolean_dtype(all_parsers):
     parser = all_parsers
     data = "\n".join(
@@ -179,6 +195,7 @@ def test_boolean_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_delimiter_with_usecols_and_parse_dates(all_parsers):
     # GH#35873
     result = all_parsers.read_csv(
@@ -226,7 +243,7 @@ def decimal_number_check(request, parser, numeric_decimal, thousands, float_prec
     # GH#31920
     value = numeric_decimal[0]
     if thousands is None and value in ("1_,", "1_234,56", "1_234,56e0"):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason=f"thousands={thousands} and sep is in {value}")
         )
     df = parser.read_csv(
@@ -259,6 +276,7 @@ def test_skip_whitespace(c_parser_only, float_precision):
     tm.assert_series_equal(df.iloc[:, 1], pd.Series([1.2, 2.1, 1.0, 1.2], name="num"))
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_true_values_cast_to_bool(all_parsers):
     # GH#34655
     text = """a,b
@@ -281,6 +299,7 @@ no,yyy
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 @pytest.mark.parametrize("dtypes, exp_value", [({}, "1"), ({"a.1": "int64"}, 1)])
 def test_dtype_mangle_dup_cols(all_parsers, dtypes, exp_value):
     # GH#35211
@@ -295,6 +314,7 @@ def test_dtype_mangle_dup_cols(all_parsers, dtypes, exp_value):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_mangle_dup_cols_single_dtype(all_parsers):
     # GH#42022
     parser = all_parsers
@@ -304,6 +324,7 @@ def test_dtype_mangle_dup_cols_single_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_multi_index(all_parsers):
     # GH 42446
     parser = all_parsers
@@ -350,6 +371,7 @@ def test_nullable_int_dtype(all_parsers, any_int_ea_dtype):
     tm.assert_frame_equal(actual, expected)
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 @pytest.mark.parametrize("default", ["float", "float64"])
 def test_dtypes_defaultdict(all_parsers, default):
     # GH#41574
@@ -363,6 +385,7 @@ def test_dtypes_defaultdict(all_parsers, default):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtypes_defaultdict_mangle_dup_cols(all_parsers):
     # GH#41574
     data = """a,b,a,b,b.1
@@ -376,6 +399,7 @@ def test_dtypes_defaultdict_mangle_dup_cols(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtypes_defaultdict_invalid(all_parsers):
     # GH#41574
     data = """a,b
@@ -385,3 +409,233 @@ def test_dtypes_defaultdict_invalid(all_parsers):
     parser = all_parsers
     with pytest.raises(TypeError, match="not understood"):
         parser.read_csv(StringIO(data), dtype=dtype)
+
+
+def test_dtype_backend(all_parsers):
+    # GH#36712
+
+    parser = all_parsers
+
+    data = """a,b,c,d,e,f,g,h,i,j
+1,2.5,True,a,,,,,12-31-2019,
+3,4.5,False,b,6,7.5,True,a,12-31-2019,
+"""
+    result = parser.read_csv(
+        StringIO(data), dtype_backend="numpy_nullable", parse_dates=["i"]
+    )
+    expected = DataFrame(
+        {
+            "a": pd.Series([1, 3], dtype="Int64"),
+            "b": pd.Series([2.5, 4.5], dtype="Float64"),
+            "c": pd.Series([True, False], dtype="boolean"),
+            "d": pd.Series(["a", "b"], dtype="string"),
+            "e": pd.Series([pd.NA, 6], dtype="Int64"),
+            "f": pd.Series([pd.NA, 7.5], dtype="Float64"),
+            "g": pd.Series([pd.NA, True], dtype="boolean"),
+            "h": pd.Series([pd.NA, "a"], dtype="string"),
+            "i": pd.Series([Timestamp("2019-12-31")] * 2),
+            "j": pd.Series([pd.NA, pd.NA], dtype="Int64"),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_backend_and_dtype(all_parsers):
+    # GH#36712
+
+    parser = all_parsers
+
+    data = """a,b
+1,2.5
+,
+"""
+    result = parser.read_csv(
+        StringIO(data), dtype_backend="numpy_nullable", dtype="float64"
+    )
+    expected = DataFrame({"a": [1.0, np.nan], "b": [2.5, np.nan]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_backend_string(all_parsers, string_storage):
+    # GH#36712
+    pa = pytest.importorskip("pyarrow")
+
+    with pd.option_context("mode.string_storage", string_storage):
+        parser = all_parsers
+
+        data = """a,b
+a,x
+b,
+"""
+        result = parser.read_csv(StringIO(data), dtype_backend="numpy_nullable")
+
+        if string_storage == "python":
+            expected = DataFrame(
+                {
+                    "a": StringArray(np.array(["a", "b"], dtype=np.object_)),
+                    "b": StringArray(np.array(["x", pd.NA], dtype=np.object_)),
+                }
+            )
+        else:
+            expected = DataFrame(
+                {
+                    "a": ArrowStringArray(pa.array(["a", "b"])),
+                    "b": ArrowStringArray(pa.array(["x", None])),
+                }
+            )
+        tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_backend_ea_dtype_specified(all_parsers):
+    # GH#491496
+    data = """a,b
+1,2
+"""
+    parser = all_parsers
+    result = parser.read_csv(
+        StringIO(data), dtype="Int64", dtype_backend="numpy_nullable"
+    )
+    expected = DataFrame({"a": [1], "b": 2}, dtype="Int64")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_backend_pyarrow(all_parsers, request):
+    # GH#36712
+    pa = pytest.importorskip("pyarrow")
+    parser = all_parsers
+
+    data = """a,b,c,d,e,f,g,h,i,j
+1,2.5,True,a,,,,,12-31-2019,
+3,4.5,False,b,6,7.5,True,a,12-31-2019,
+"""
+    result = parser.read_csv(StringIO(data), dtype_backend="pyarrow", parse_dates=["i"])
+    expected = DataFrame(
+        {
+            "a": pd.Series([1, 3], dtype="int64[pyarrow]"),
+            "b": pd.Series([2.5, 4.5], dtype="float64[pyarrow]"),
+            "c": pd.Series([True, False], dtype="bool[pyarrow]"),
+            "d": pd.Series(["a", "b"], dtype=pd.ArrowDtype(pa.string())),
+            "e": pd.Series([pd.NA, 6], dtype="int64[pyarrow]"),
+            "f": pd.Series([pd.NA, 7.5], dtype="float64[pyarrow]"),
+            "g": pd.Series([pd.NA, True], dtype="bool[pyarrow]"),
+            "h": pd.Series(
+                [pd.NA, "a"],
+                dtype=pd.ArrowDtype(pa.string()),
+            ),
+            "i": pd.Series([Timestamp("2019-12-31")] * 2),
+            "j": pd.Series([pd.NA, pd.NA], dtype="null[pyarrow]"),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+# pyarrow engine failing:
+# https://github.com/pandas-dev/pandas/issues/56136
+@pytest.mark.usefixtures("pyarrow_xfail")
+def test_ea_int_avoid_overflow(all_parsers):
+    # GH#32134
+    parser = all_parsers
+    data = """a,b
+1,1
+,1
+1582218195625938945,1
+"""
+    result = parser.read_csv(StringIO(data), dtype={"a": "Int64"})
+    expected = DataFrame(
+        {
+            "a": IntegerArray(
+                np.array([1, 1, 1582218195625938945]), np.array([False, True, False])
+            ),
+            "b": 1,
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_string_inference(all_parsers):
+    # GH#54430
+    pytest.importorskip("pyarrow")
+    dtype = "string[pyarrow_numpy]"
+
+    data = """a,b
+x,1
+y,2
+,3"""
+    parser = all_parsers
+    with pd.option_context("future.infer_string", True):
+        result = parser.read_csv(StringIO(data))
+
+    expected = DataFrame(
+        {"a": pd.Series(["x", "y", None], dtype=dtype), "b": [1, 2, 3]},
+        columns=pd.Index(["a", "b"], dtype=dtype),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["O", object, "object", np.object_, str, np.str_])
+def test_string_inference_object_dtype(all_parsers, dtype):
+    # GH#56047
+    pytest.importorskip("pyarrow")
+
+    data = """a,b
+x,a
+y,a
+z,a"""
+    parser = all_parsers
+    with pd.option_context("future.infer_string", True):
+        result = parser.read_csv(StringIO(data), dtype=dtype)
+
+    expected = DataFrame(
+        {
+            "a": pd.Series(["x", "y", "z"], dtype=object),
+            "b": pd.Series(["a", "a", "a"], dtype=object),
+        },
+        columns=pd.Index(["a", "b"], dtype="string[pyarrow_numpy]"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+    with pd.option_context("future.infer_string", True):
+        result = parser.read_csv(StringIO(data), dtype={"a": dtype})
+
+    expected = DataFrame(
+        {
+            "a": pd.Series(["x", "y", "z"], dtype=object),
+            "b": pd.Series(["a", "a", "a"], dtype="string[pyarrow_numpy]"),
+        },
+        columns=pd.Index(["a", "b"], dtype="string[pyarrow_numpy]"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_accurate_parsing_of_large_integers(all_parsers):
+    # GH#52505
+    data = """SYMBOL,MOMENT,ID,ID_DEAL
+AAPL,20230301181139587,1925036343869802844,
+AAPL,20230301181139587,2023552585717889863,2023552585717263358
+NVDA,20230301181139587,2023552585717889863,2023552585717263359
+AMC,20230301181139587,2023552585717889863,2023552585717263360
+AMZN,20230301181139587,2023552585717889759,2023552585717263360
+MSFT,20230301181139587,2023552585717889863,2023552585717263361
+NVDA,20230301181139587,2023552585717889827,2023552585717263361"""
+    orders = pd.read_csv(StringIO(data), dtype={"ID_DEAL": pd.Int64Dtype()})
+    assert len(orders.loc[orders["ID_DEAL"] == 2023552585717263358, "ID_DEAL"]) == 1
+    assert len(orders.loc[orders["ID_DEAL"] == 2023552585717263359, "ID_DEAL"]) == 1
+    assert len(orders.loc[orders["ID_DEAL"] == 2023552585717263360, "ID_DEAL"]) == 2
+    assert len(orders.loc[orders["ID_DEAL"] == 2023552585717263361, "ID_DEAL"]) == 2
+
+
+def test_dtypes_with_usecols(all_parsers):
+    # GH#54868
+
+    parser = all_parsers
+    data = """a,b,c
+1,2,3
+4,5,6"""
+
+    result = parser.read_csv(StringIO(data), usecols=["a", "c"], dtype={"a": object})
+    if parser.engine == "pyarrow":
+        values = [1, 4]
+    else:
+        values = ["1", "4"]
+    expected = DataFrame({"a": pd.Series(values, dtype=object), "c": [3, 6]})
+    tm.assert_frame_equal(result, expected)

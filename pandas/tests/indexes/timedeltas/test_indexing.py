@@ -1,7 +1,4 @@
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
 import re
 
 import numpy as np
@@ -24,7 +21,7 @@ import pandas._testing as tm
 class TestGetItem:
     def test_getitem_slice_keeps_name(self):
         # GH#4226
-        tdi = timedelta_range("1d", "5d", freq="H", name="timebucket")
+        tdi = timedelta_range("1d", "5d", freq="h", name="timebucket")
         assert tdi[1:].name == tdi.name
 
     def test_getitem(self):
@@ -75,34 +72,24 @@ class TestGetItem:
 
 
 class TestGetLoc:
-    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
+    def test_get_loc_key_unit_mismatch(self):
+        idx = to_timedelta(["0 days", "1 days", "2 days"])
+        key = idx[1].as_unit("ms")
+        loc = idx.get_loc(key)
+        assert loc == 1
+
+    def test_get_loc_key_unit_mismatch_not_castable(self):
+        tdi = to_timedelta(["0 days", "1 days", "2 days"]).astype("m8[s]")
+        assert tdi.dtype == "m8[s]"
+        key = tdi[0].as_unit("ns") + Timedelta(1)
+
+        with pytest.raises(KeyError, match=r"Timedelta\('0 days 00:00:00.000000001'\)"):
+            tdi.get_loc(key)
+
+        assert key not in tdi
+
     def test_get_loc(self):
         idx = to_timedelta(["0 days", "1 days", "2 days"])
-
-        for method in [None, "pad", "backfill", "nearest"]:
-            assert idx.get_loc(idx[1], method) == 1
-            assert idx.get_loc(idx[1].to_pytimedelta(), method) == 1
-            assert idx.get_loc(str(idx[1]), method) == 1
-
-        assert idx.get_loc(idx[1], "pad", tolerance=Timedelta(0)) == 1
-        assert idx.get_loc(idx[1], "pad", tolerance=np.timedelta64(0, "s")) == 1
-        assert idx.get_loc(idx[1], "pad", tolerance=timedelta(0)) == 1
-
-        with pytest.raises(ValueError, match="unit abbreviation w/o a number"):
-            idx.get_loc(idx[1], method="nearest", tolerance="foo")
-
-        with pytest.raises(ValueError, match="tolerance size must match"):
-            idx.get_loc(
-                idx[1],
-                method="nearest",
-                tolerance=[
-                    Timedelta(0).to_timedelta64(),
-                    Timedelta(0).to_timedelta64(),
-                ],
-            )
-
-        for method, loc in [("pad", 1), ("backfill", 2), ("nearest", 1)]:
-            assert idx.get_loc("1 day 1 hour", method) == loc
 
         # GH 16909
         assert idx.get_loc(idx[1].to_timedelta64()) == 1
@@ -157,7 +144,7 @@ class TestWhere:
         i2 = Index([NaT, NaT] + tail)
         mask = notna(i2)
 
-        expected = Index([NaT.value, NaT.value] + tail, dtype=object, name="idx")
+        expected = Index([NaT._value, NaT._value] + tail, dtype=object, name="idx")
         assert isinstance(expected[0], int)
         result = tdi.where(mask, i2.asi8)
         tm.assert_index_equal(result, expected)
@@ -243,7 +230,7 @@ class TestTake:
 
     def test_take_equiv_getitem(self):
         tds = ["1day 02:00:00", "1 day 04:00:00", "1 day 10:00:00"]
-        idx = timedelta_range(start="1d", end="2d", freq="H", name="idx")
+        idx = timedelta_range(start="1d", end="2d", freq="h", name="idx")
         expected = TimedeltaIndex(tds, freq=None, name="idx")
 
         taken1 = idx.take([2, 4, 10])
@@ -298,7 +285,7 @@ class TestMaybeCastSliceBound:
             tdi = tdi[::-1]
         elif monotonic is None:
             taker = np.arange(10, dtype=np.intp)
-            np.random.shuffle(taker)
+            np.random.default_rng(2).shuffle(taker)
             tdi = tdi.take(taker)
         return tdi
 
@@ -353,7 +340,7 @@ class TestContains:
         # GH#13603
         td = to_timedelta(range(5), unit="d") + offsets.Hour(1)
         for v in [NaT, None, float("nan"), np.nan]:
-            assert not (v in td)
+            assert v not in td
 
         td = to_timedelta([NaT])
         for v in [NaT, None, float("nan"), np.nan]:

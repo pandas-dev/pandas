@@ -10,11 +10,16 @@ from abc import (
 )
 import enum
 from typing import (
+    TYPE_CHECKING,
     Any,
-    Iterable,
-    Sequence,
     TypedDict,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import (
+        Iterable,
+        Sequence,
+    )
 
 
 class DlpackDeviceType(enum.IntEnum):
@@ -134,7 +139,6 @@ class Buffer(ABC):
         """
         Buffer size in bytes.
         """
-        pass
 
     @property
     @abstractmethod
@@ -142,7 +146,6 @@ class Buffer(ABC):
         """
         Pointer to start of the buffer as an integer.
         """
-        pass
 
     @abstractmethod
     def __dlpack__(self):
@@ -166,7 +169,6 @@ class Buffer(ABC):
         Uses device type codes matching DLPack.
         Note: must be implemented even if ``__dlpack__`` is not.
         """
-        pass
 
 
 class Column(ABC):
@@ -213,7 +215,6 @@ class Column(ABC):
           doesn't need its own version or ``__column__`` protocol.
     """
 
-    @property
     @abstractmethod
     def size(self) -> int:
         """
@@ -222,7 +223,6 @@ class Column(ABC):
         Corresponds to DataFrame.num_rows() if column is a single chunk;
         equal to size of this current chunk otherwise.
         """
-        pass
 
     @property
     @abstractmethod
@@ -234,7 +234,6 @@ class Column(ABC):
         equal size M (only the last chunk may be shorter),
         ``offset = n * M``, ``n = 0 .. N-1``.
         """
-        pass
 
     @property
     @abstractmethod
@@ -266,7 +265,6 @@ class Column(ABC):
             - Data types not included: complex, Arrow-style null, binary, decimal,
               and nested (list, struct, map, union) dtypes.
         """
-        pass
 
     @property
     @abstractmethod
@@ -289,7 +287,6 @@ class Column(ABC):
 
         TBD: are there any other in-memory representations that are needed?
         """
-        pass
 
     @property
     @abstractmethod
@@ -302,7 +299,6 @@ class Column(ABC):
         mask or a byte mask, the value (0 or 1) indicating a missing value. None
         otherwise.
         """
-        pass
 
     @property
     @abstractmethod
@@ -312,7 +308,6 @@ class Column(ABC):
 
         Note: Arrow uses -1 to indicate "unknown", but None seems cleaner.
         """
-        pass
 
     @property
     @abstractmethod
@@ -320,14 +315,12 @@ class Column(ABC):
         """
         The metadata for the column. See `DataFrame.metadata` for more details.
         """
-        pass
 
     @abstractmethod
     def num_chunks(self) -> int:
         """
         Return the number of chunks the column consists of.
         """
-        pass
 
     @abstractmethod
     def get_chunks(self, n_chunks: int | None = None) -> Iterable[Column]:
@@ -336,7 +329,6 @@ class Column(ABC):
 
         See `DataFrame.get_chunks` for details on ``n_chunks``.
         """
-        pass
 
     @abstractmethod
     def get_buffers(self) -> ColumnBuffers:
@@ -360,7 +352,6 @@ class Column(ABC):
                          if the data buffer does not have an associated offsets
                          buffer.
         """
-        pass
 
 
 #    def get_children(self) -> Iterable[Column]:
@@ -391,7 +382,6 @@ class DataFrame(ABC):
     @abstractmethod
     def __dataframe__(self, nan_as_null: bool = False, allow_copy: bool = True):
         """Construct a new interchange object, potentially changing the parameters."""
-        pass
 
     @property
     @abstractmethod
@@ -405,14 +395,12 @@ class DataFrame(ABC):
         entries, please add name the keys with the name of the library
         followed by a period and the desired name, e.g, ``pandas.indexcol``.
         """
-        pass
 
     @abstractmethod
     def num_columns(self) -> int:
         """
         Return the number of columns in the DataFrame.
         """
-        pass
 
     @abstractmethod
     def num_rows(self) -> int | None:
@@ -422,56 +410,48 @@ class DataFrame(ABC):
         """
         Return the number of rows in the DataFrame, if available.
         """
-        pass
 
     @abstractmethod
     def num_chunks(self) -> int:
         """
         Return the number of chunks the DataFrame consists of.
         """
-        pass
 
     @abstractmethod
     def column_names(self) -> Iterable[str]:
         """
         Return an iterator yielding the column names.
         """
-        pass
 
     @abstractmethod
     def get_column(self, i: int) -> Column:
         """
         Return the column at the indicated position.
         """
-        pass
 
     @abstractmethod
     def get_column_by_name(self, name: str) -> Column:
         """
         Return the column whose name is the indicated name.
         """
-        pass
 
     @abstractmethod
     def get_columns(self) -> Iterable[Column]:
         """
         Return an iterator yielding the columns.
         """
-        pass
 
     @abstractmethod
     def select_columns(self, indices: Sequence[int]) -> DataFrame:
         """
         Create a new DataFrame by selecting a subset of columns by index.
         """
-        pass
 
     @abstractmethod
     def select_columns_by_name(self, names: Sequence[str]) -> DataFrame:
         """
         Create a new DataFrame by selecting a subset of columns by name.
         """
-        pass
 
     @abstractmethod
     def get_chunks(self, n_chunks: int | None = None) -> Iterable[DataFrame]:
@@ -483,4 +463,3 @@ class DataFrame(ABC):
         ``self.num_chunks()``, meaning the producer must subdivide each chunk
         before yielding it.
         """
-        pass

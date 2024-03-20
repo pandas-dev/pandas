@@ -23,7 +23,7 @@ def test_insert(idx):
 
     exp0 = Index(list(idx.levels[0]) + ["abc"], name="first")
     tm.assert_index_equal(new_index.levels[0], exp0)
-    assert new_index.names == ["first", "second"]
+    assert new_index.names == ("first", "second")
 
     exp1 = Index(list(idx.levels[1]) + ["three"], name="second")
     tm.assert_index_equal(new_index.levels[1], exp1)
@@ -35,7 +35,7 @@ def test_insert(idx):
         idx.insert(0, ("foo2",))
 
     left = pd.DataFrame([["a", "b", 0], ["b", "d", 1]], columns=["1st", "2nd", "3rd"])
-    left = left.set_index(["1st", "2nd"], copy=False)
+    left.set_index(["1st", "2nd"], inplace=True)
     ts = left["3rd"].copy(deep=True)
 
     left.loc[("b", "x"), "3rd"] = 2
@@ -65,7 +65,7 @@ def test_insert(idx):
         ],
         columns=["1st", "2nd", "3rd"],
     )
-    right = right.set_index(["1st", "2nd"], copy=False)
+    right.set_index(["1st", "2nd"], inplace=True)
     # FIXME data types changes to float because
     # of intermediate nan insertion;
     tm.assert_frame_equal(left, right, check_dtype=False)
@@ -169,6 +169,28 @@ def test_append_names_dont_match():
     tm.assert_index_equal(result, expected)
 
 
+def test_append_overlapping_interval_levels():
+    # GH 54934
+    ivl1 = pd.IntervalIndex.from_breaks([0.0, 1.0, 2.0])
+    ivl2 = pd.IntervalIndex.from_breaks([0.5, 1.5, 2.5])
+    mi1 = MultiIndex.from_product([ivl1, ivl1])
+    mi2 = MultiIndex.from_product([ivl2, ivl2])
+    result = mi1.append(mi2)
+    expected = MultiIndex.from_tuples(
+        [
+            (pd.Interval(0.0, 1.0), pd.Interval(0.0, 1.0)),
+            (pd.Interval(0.0, 1.0), pd.Interval(1.0, 2.0)),
+            (pd.Interval(1.0, 2.0), pd.Interval(0.0, 1.0)),
+            (pd.Interval(1.0, 2.0), pd.Interval(1.0, 2.0)),
+            (pd.Interval(0.5, 1.5), pd.Interval(0.5, 1.5)),
+            (pd.Interval(0.5, 1.5), pd.Interval(1.5, 2.5)),
+            (pd.Interval(1.5, 2.5), pd.Interval(0.5, 1.5)),
+            (pd.Interval(1.5, 2.5), pd.Interval(1.5, 2.5)),
+        ]
+    )
+    tm.assert_index_equal(result, expected)
+
+
 def test_repeat():
     reps = 2
     numbers = [1, 2, 3]
@@ -180,7 +202,6 @@ def test_repeat():
 
 
 def test_insert_base(idx):
-
     result = idx[1:4]
 
     # test 0th element
@@ -188,7 +209,6 @@ def test_insert_base(idx):
 
 
 def test_delete_base(idx):
-
     expected = idx[1:]
     result = idx.delete(0)
     assert result.equals(expected)

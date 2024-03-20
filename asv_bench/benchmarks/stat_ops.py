@@ -2,18 +2,14 @@ import numpy as np
 
 import pandas as pd
 
-ops = ["mean", "sum", "median", "std", "skew", "kurt", "mad", "prod", "sem", "var"]
+ops = ["mean", "sum", "median", "std", "skew", "kurt", "prod", "sem", "var"]
 
 
 class FrameOps:
-
-    params = [ops, ["float", "int", "Int64"], [0, 1]]
+    params = [ops, ["float", "int", "Int64"], [0, 1, None]]
     param_names = ["op", "dtype", "axis"]
 
     def setup(self, op, dtype, axis):
-        if op == "mad" and dtype == "Int64":
-            # GH-33036, GH#33600
-            raise NotImplementedError
         values = np.random.randn(100000, 4)
         if dtype == "Int64":
             values = values.astype(int)
@@ -24,12 +20,45 @@ class FrameOps:
         self.df_func(axis=axis)
 
 
+class FrameMixedDtypesOps:
+    params = [ops, [0, 1, None]]
+    param_names = ["op", "axis"]
+
+    def setup(self, op, axis):
+        if op in ("sum", "skew", "kurt", "prod", "sem", "var") or (
+            (op, axis)
+            in (
+                ("mean", 1),
+                ("mean", None),
+                ("median", 1),
+                ("median", None),
+                ("std", 1),
+                ("std", None),
+            )
+        ):
+            # Skipping cases where datetime aggregations are not implemented
+            raise NotImplementedError
+
+        N = 1_000_000
+        df = pd.DataFrame(
+            {
+                "f": np.random.normal(0.0, 1.0, N),
+                "i": np.random.randint(0, N, N),
+                "ts": pd.date_range(start="1/1/2000", periods=N, freq="h"),
+            }
+        )
+
+        self.df_func = getattr(df, op)
+
+    def time_op(self, op, axis):
+        self.df_func(axis=axis)
+
+
 class FrameMultiIndexOps:
+    params = [ops]
+    param_names = ["op"]
 
-    params = ([0, 1, [0, 1]], ops)
-    param_names = ["level", "op"]
-
-    def setup(self, level, op):
+    def setup(self, op):
         levels = [np.arange(10), np.arange(100), np.arange(100)]
         codes = [
             np.arange(10).repeat(10000),
@@ -40,12 +69,11 @@ class FrameMultiIndexOps:
         df = pd.DataFrame(np.random.randn(len(index), 4), index=index)
         self.df_func = getattr(df, op)
 
-    def time_op(self, level, op):
-        self.df_func(level=level)
+    def time_op(self, op):
+        self.df_func()
 
 
 class SeriesOps:
-
     params = [ops, ["float", "int"]]
     param_names = ["op", "dtype"]
 
@@ -58,11 +86,10 @@ class SeriesOps:
 
 
 class SeriesMultiIndexOps:
+    params = [ops]
+    param_names = ["op"]
 
-    params = ([0, 1, [0, 1]], ops)
-    param_names = ["level", "op"]
-
-    def setup(self, level, op):
+    def setup(self, op):
         levels = [np.arange(10), np.arange(100), np.arange(100)]
         codes = [
             np.arange(10).repeat(10000),
@@ -73,12 +100,11 @@ class SeriesMultiIndexOps:
         s = pd.Series(np.random.randn(len(index)), index=index)
         self.s_func = getattr(s, op)
 
-    def time_op(self, level, op):
-        self.s_func(level=level)
+    def time_op(self, op):
+        self.s_func()
 
 
 class Rank:
-
     params = [["DataFrame", "Series"], [True, False]]
     param_names = ["constructor", "pct"]
 
@@ -94,7 +120,6 @@ class Rank:
 
 
 class Correlation:
-
     params = [["spearman", "kendall", "pearson"]]
     param_names = ["method"]
 
@@ -129,7 +154,6 @@ class Correlation:
 
 
 class Covariance:
-
     params = []
     param_names = []
 

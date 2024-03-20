@@ -1,22 +1,25 @@
 from __future__ import annotations
 
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+)
+
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    Dtype,
-    NpDtype,
-    Scalar,
-    npt,
-)
+from pandas._libs.tslibs import is_supported_dtype
 from pandas.compat.numpy import function as nv
 
+from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
-from pandas.core.dtypes.dtypes import PandasDtype
+from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.dtypes import NumpyEADtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
     arraylike,
+    missing,
     nanops,
     ops,
 )
@@ -25,8 +28,24 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        AxisInt,
+        Dtype,
+        FillnaOptions,
+        InterpolateOptions,
+        NpDtype,
+        Scalar,
+        Self,
+        npt,
+    )
 
-class PandasArray(
+    from pandas import Index
+
+
+# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
+# incompatible with definition in base class "ExtensionArray"
+class NumpyExtensionArray(  # type: ignore[misc]
     OpsMixin,
     NDArrayBackedExtensionArray,
     ObjectStringArrayMixin,
@@ -51,22 +70,31 @@ class PandasArray(
     Methods
     -------
     None
+
+    Examples
+    --------
+    >>> pd.arrays.NumpyExtensionArray(np.array([0, 1, 2, 3]))
+    <NumpyExtensionArray>
+    [0, 1, 2, 3]
+    Length: 4, dtype: int64
     """
 
     # If you're wondering why pd.Series(cls) doesn't put the array in an
-    # ExtensionBlock, search for `ABCPandasArray`. We check for
+    # ExtensionBlock, search for `ABCNumpyExtensionArray`. We check for
     # that _typ to ensure that users don't unnecessarily use EAs inside
     # pandas internals, which turns off things like block consolidation.
     _typ = "npy_extension"
     __array_priority__ = 1000
     _ndarray: np.ndarray
-    _dtype: PandasDtype
+    _dtype: NumpyEADtype
     _internal_fill_value = np.nan
 
     # ------------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values: np.ndarray | PandasArray, copy: bool = False) -> None:
+    def __init__(
+        self, values: np.ndarray | NumpyExtensionArray, copy: bool = False
+    ) -> None:
         if isinstance(values, type(self)):
             values = values._ndarray
         if not isinstance(values, np.ndarray):
@@ -76,19 +104,19 @@ class PandasArray(
 
         if values.ndim == 0:
             # Technically we support 2, but do not advertise that fact.
-            raise ValueError("PandasArray must be 1-dimensional.")
+            raise ValueError("NumpyExtensionArray must be 1-dimensional.")
 
         if copy:
             values = values.copy()
 
-        dtype = PandasDtype(values.dtype)
+        dtype = NumpyEADtype(values.dtype)
         super().__init__(values, dtype)
 
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
-    ) -> PandasArray:
-        if isinstance(dtype, PandasDtype):
+    ) -> NumpyExtensionArray:
+        if isinstance(dtype, NumpyEADtype):
             dtype = dtype._dtype
 
         # error: Argument "dtype" to "asarray" has incompatible type
@@ -109,30 +137,32 @@ class PandasArray(
             result = result.copy()
         return cls(result)
 
-    def _from_backing_data(self, arr: np.ndarray) -> PandasArray:
+    def _from_backing_data(self, arr: np.ndarray) -> NumpyExtensionArray:
         return type(self)(arr)
 
     # ------------------------------------------------------------------------
     # Data
 
     @property
-    def dtype(self) -> PandasDtype:
+    def dtype(self) -> NumpyEADtype:
         return self._dtype
 
     # ------------------------------------------------------------------------
     # NumPy Array Interface
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(
+        self, dtype: NpDtype | None = None, copy: bool | None = None
+    ) -> np.ndarray:
         return np.asarray(self._ndarray, dtype=dtype)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # Lightly modified version of
         # https://numpy.org/doc/stable/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html
         # The primary modification is not boxing scalar return values
-        # in PandasArray, since pandas' ExtensionArrays are 1-d.
+        # in NumpyExtensionArray, since pandas' ExtensionArrays are 1-d.
         out = kwargs.get("out", ())
 
-        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+        result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
             self, ufunc, method, *inputs, **kwargs
         )
         if result is not NotImplemented:
@@ -153,10 +183,12 @@ class PandasArray(
                 return result
 
         # Defer to the implementation of the ufunc on unwrapped values.
-        inputs = tuple(x._ndarray if isinstance(x, PandasArray) else x for x in inputs)
+        inputs = tuple(
+            x._ndarray if isinstance(x, NumpyExtensionArray) else x for x in inputs
+        )
         if out:
             kwargs["out"] = tuple(
-                x._ndarray if isinstance(x, PandasArray) else x for x in out
+                x._ndarray if isinstance(x, NumpyExtensionArray) else x for x in out
             )
         result = getattr(ufunc, method)(*inputs, **kwargs)
 
@@ -180,6 +212,17 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Pandas ExtensionArray Interface
 
+    def astype(self, dtype, copy: bool = True):
+        dtype = pandas_dtype(dtype)
+
+        if dtype == self.dtype:
+            if copy:
+                return self.copy()
+            return self
+
+        result = astype_array(self._ndarray, dtype=dtype, copy=copy)
+        return result
+
     def isna(self) -> np.ndarray:
         return isna(self._ndarray)
 
@@ -190,11 +233,79 @@ class PandasArray(
         return fill_value
 
     def _values_for_factorize(self) -> tuple[np.ndarray, float | None]:
-        if self.dtype.kind in ["i", "u", "b"]:
+        if self.dtype.kind in "iub":
             fv = None
         else:
             fv = np.nan
         return self._ndarray, fv
+
+    # Base EA class (and all other EA classes) don't have limit_area keyword
+    # This can be removed here as well when the interpolate ffill/bfill method
+    # deprecation is enforced
+    def _pad_or_backfill(
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
+    ) -> Self:
+        """
+        ffill or bfill along axis=0.
+        """
+        if copy:
+            out_data = self._ndarray.copy()
+        else:
+            out_data = self._ndarray
+
+        meth = missing.clean_fill_method(method)
+        missing.pad_or_backfill_inplace(
+            out_data.T,
+            method=meth,
+            axis=0,
+            limit=limit,
+            limit_area=limit_area,
+        )
+
+        if not copy:
+            return self
+        return type(self)._simple_new(out_data, dtype=self.dtype)
+
+    def interpolate(
+        self,
+        *,
+        method: InterpolateOptions,
+        axis: int,
+        index: Index,
+        limit,
+        limit_direction,
+        limit_area,
+        copy: bool,
+        **kwargs,
+    ) -> Self:
+        """
+        See NDFrame.interpolate.__doc__.
+        """
+        # NB: we return type(self) even if copy=False
+        if not copy:
+            out_data = self._ndarray
+        else:
+            out_data = self._ndarray.copy()
+
+        # TODO: assert we have floating dtype?
+        missing.interpolate_2d_inplace(
+            out_data,
+            method=method,
+            axis=axis,
+            index=index,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            **kwargs,
+        )
+        if not copy:
+            return self
+        return type(self)._simple_new(out_data, dtype=self.dtype)
 
     # ------------------------------------------------------------------------
     # Reductions
@@ -202,7 +313,7 @@ class PandasArray(
     def any(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         out=None,
         keepdims: bool = False,
         skipna: bool = True,
@@ -214,7 +325,7 @@ class PandasArray(
     def all(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         out=None,
         keepdims: bool = False,
         skipna: bool = True,
@@ -223,14 +334,18 @@ class PandasArray(
         result = nanops.nanall(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
-    def min(self, *, axis: int | None = None, skipna: bool = True, **kwargs) -> Scalar:
+    def min(
+        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+    ) -> Scalar:
         nv.validate_min((), kwargs)
         result = nanops.nanmin(
             values=self._ndarray, axis=axis, mask=self.isna(), skipna=skipna
         )
         return self._wrap_reduction_result(axis, result)
 
-    def max(self, *, axis: int | None = None, skipna: bool = True, **kwargs) -> Scalar:
+    def max(
+        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+    ) -> Scalar:
         nv.validate_max((), kwargs)
         result = nanops.nanmax(
             values=self._ndarray, axis=axis, mask=self.isna(), skipna=skipna
@@ -238,7 +353,12 @@ class PandasArray(
         return self._wrap_reduction_result(axis, result)
 
     def sum(
-        self, *, axis: int | None = None, skipna: bool = True, min_count=0, **kwargs
+        self,
+        *,
+        axis: AxisInt | None = None,
+        skipna: bool = True,
+        min_count: int = 0,
+        **kwargs,
     ) -> Scalar:
         nv.validate_sum((), kwargs)
         result = nanops.nansum(
@@ -247,7 +367,12 @@ class PandasArray(
         return self._wrap_reduction_result(axis, result)
 
     def prod(
-        self, *, axis: int | None = None, skipna: bool = True, min_count=0, **kwargs
+        self,
+        *,
+        axis: AxisInt | None = None,
+        skipna: bool = True,
+        min_count: int = 0,
+        **kwargs,
     ) -> Scalar:
         nv.validate_prod((), kwargs)
         result = nanops.nanprod(
@@ -258,7 +383,7 @@ class PandasArray(
     def mean(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
         keepdims: bool = False,
@@ -271,7 +396,7 @@ class PandasArray(
     def median(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         out=None,
         overwrite_input: bool = False,
         keepdims: bool = False,
@@ -286,10 +411,10 @@ class PandasArray(
     def std(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
-        ddof=1,
+        ddof: int = 1,
         keepdims: bool = False,
         skipna: bool = True,
     ):
@@ -302,10 +427,10 @@ class PandasArray(
     def var(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
-        ddof=1,
+        ddof: int = 1,
         keepdims: bool = False,
         skipna: bool = True,
     ):
@@ -318,10 +443,10 @@ class PandasArray(
     def sem(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
-        ddof=1,
+        ddof: int = 1,
         keepdims: bool = False,
         skipna: bool = True,
     ):
@@ -334,7 +459,7 @@ class PandasArray(
     def kurt(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
         keepdims: bool = False,
@@ -349,7 +474,7 @@ class PandasArray(
     def skew(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
         keepdims: bool = False,
@@ -370,40 +495,43 @@ class PandasArray(
         copy: bool = False,
         na_value: object = lib.no_default,
     ) -> np.ndarray:
-        result = np.asarray(self._ndarray, dtype=dtype)
+        mask = self.isna()
+        if na_value is not lib.no_default and mask.any():
+            result = self._ndarray.copy()
+            result[mask] = na_value
+        else:
+            result = self._ndarray
 
-        if (copy or na_value is not lib.no_default) and result is self._ndarray:
+        result = np.asarray(result, dtype=dtype)
+
+        if copy and result is self._ndarray:
             result = result.copy()
-
-        if na_value is not lib.no_default:
-            result[self.isna()] = na_value
 
         return result
 
     # ------------------------------------------------------------------------
     # Ops
 
-    def __invert__(self) -> PandasArray:
+    def __invert__(self) -> NumpyExtensionArray:
         return type(self)(~self._ndarray)
 
-    def __neg__(self) -> PandasArray:
+    def __neg__(self) -> NumpyExtensionArray:
         return type(self)(-self._ndarray)
 
-    def __pos__(self) -> PandasArray:
+    def __pos__(self) -> NumpyExtensionArray:
         return type(self)(+self._ndarray)
 
-    def __abs__(self) -> PandasArray:
+    def __abs__(self) -> NumpyExtensionArray:
         return type(self)(abs(self._ndarray))
 
     def _cmp_method(self, other, op):
-        if isinstance(other, PandasArray):
+        if isinstance(other, NumpyExtensionArray):
             other = other._ndarray
 
         other = ops.maybe_prepare_scalar_for_op(other, (len(self),))
         pd_op = ops.get_array_op(op)
         other = ensure_wrapped_if_datetimelike(other)
-        with np.errstate(all="ignore"):
-            result = pd_op(self._ndarray, other)
+        result = pd_op(self._ndarray, other)
 
         if op is divmod or op is ops.rdivmod:
             a, b = result
@@ -423,11 +551,11 @@ class PandasArray(
 
     def _wrap_ndarray_result(self, result: np.ndarray):
         # If we have timedelta64[ns] result, return a TimedeltaArray instead
-        #  of a PandasArray
-        if result.dtype == "timedelta64[ns]":
+        #  of a NumpyExtensionArray
+        if result.dtype.kind == "m" and is_supported_dtype(result.dtype):
             from pandas.core.arrays import TimedeltaArray
 
-            return TimedeltaArray._simple_new(result)
+            return TimedeltaArray._simple_new(result, dtype=result.dtype)
         return type(self)(result)
 
     # ------------------------------------------------------------------------

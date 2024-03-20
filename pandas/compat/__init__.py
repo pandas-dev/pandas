@@ -7,6 +7,7 @@ Cross-compatible functions for different versions of Python.
 Other items:
 * platform checker
 """
+
 from __future__ import annotations
 
 import os
@@ -14,34 +15,30 @@ import platform
 import sys
 from typing import TYPE_CHECKING
 
-from pandas._typing import F
-from pandas.compat.numpy import (
-    is_numpy_dev,
-    np_version_under1p21,
+from pandas.compat._constants import (
+    IS64,
+    ISMUSL,
+    PY310,
+    PY311,
+    PY312,
+    PYPY,
 )
+import pandas.compat.compressors
+from pandas.compat.numpy import is_numpy_dev
 from pandas.compat.pyarrow import (
-    pa_version_under1p01,
-    pa_version_under2p0,
-    pa_version_under3p0,
-    pa_version_under4p0,
-    pa_version_under5p0,
-    pa_version_under6p0,
-    pa_version_under7p0,
-    pa_version_under8p0,
-    pa_version_under9p0,
+    pa_version_under10p1,
+    pa_version_under11p0,
+    pa_version_under13p0,
+    pa_version_under14p0,
+    pa_version_under14p1,
+    pa_version_under16p0,
 )
 
 if TYPE_CHECKING:
-    import lzma
-
-PY39 = sys.version_info >= (3, 9)
-PY310 = sys.version_info >= (3, 10)
-PY311 = sys.version_info >= (3, 11)
-PYPY = platform.python_implementation() == "PyPy"
-IS64 = sys.maxsize > 2**32
+    from pandas._typing import F
 
 
-def set_function_name(f: F, name: str, cls) -> F:
+def set_function_name(f: F, name: str, cls: type) -> F:
     """
     Bind the name/qualname attributes of the function.
     """
@@ -113,6 +110,18 @@ def is_platform_arm() -> bool:
     )
 
 
+def is_platform_power() -> bool:
+    """
+    Checking if the running platform use Power architecture.
+
+    Returns
+    -------
+    bool
+        True if the running platform uses ARM architecture.
+    """
+    return platform.machine() in ("ppc64", "ppc64le")
+
+
 def is_ci_environment() -> bool:
     """
     Checking if running in a continuous integration environment by checking
@@ -126,7 +135,7 @@ def is_ci_environment() -> bool:
     return os.environ.get("PANDAS_CI", "0") == "1"
 
 
-def get_lzma_file() -> type[lzma.LZMAFile]:
+def get_lzma_file() -> type[pandas.compat.compressors.LZMAFile]:
     """
     Importing the `LZMAFile` class from the `lzma` module.
 
@@ -140,27 +149,50 @@ def get_lzma_file() -> type[lzma.LZMAFile]:
     RuntimeError
         If the `lzma` module was not imported correctly, or didn't exist.
     """
-    try:
-        import lzma
-    except ImportError:
+    if not pandas.compat.compressors.has_lzma:
         raise RuntimeError(
             "lzma module not available. "
             "A Python re-install with the proper dependencies, "
             "might be required to solve this issue."
         )
-    return lzma.LZMAFile
+    return pandas.compat.compressors.LZMAFile
+
+
+def get_bz2_file() -> type[pandas.compat.compressors.BZ2File]:
+    """
+    Importing the `BZ2File` class from the `bz2` module.
+
+    Returns
+    -------
+    class
+        The `BZ2File` class from the `bz2` module.
+
+    Raises
+    ------
+    RuntimeError
+        If the `bz2` module was not imported correctly, or didn't exist.
+    """
+    if not pandas.compat.compressors.has_bz2:
+        raise RuntimeError(
+            "bz2 module not available. "
+            "A Python re-install with the proper dependencies, "
+            "might be required to solve this issue."
+        )
+    return pandas.compat.compressors.BZ2File
 
 
 __all__ = [
     "is_numpy_dev",
-    "np_version_under1p21",
-    "pa_version_under1p01",
-    "pa_version_under2p0",
-    "pa_version_under3p0",
-    "pa_version_under4p0",
-    "pa_version_under5p0",
-    "pa_version_under6p0",
-    "pa_version_under7p0",
-    "pa_version_under8p0",
-    "pa_version_under9p0",
+    "pa_version_under10p1",
+    "pa_version_under11p0",
+    "pa_version_under13p0",
+    "pa_version_under14p0",
+    "pa_version_under14p1",
+    "pa_version_under16p0",
+    "IS64",
+    "ISMUSL",
+    "PY310",
+    "PY311",
+    "PY312",
+    "PYPY",
 ]

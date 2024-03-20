@@ -161,7 +161,7 @@ See :ref:`Dtypes <basics.dtypes>` and :ref:`Attributes and Underlying Data <basi
 
 A new top-level method :func:`array` has been added for creating 1-dimensional arrays (:issue:`22860`).
 This can be used to create any :ref:`extension array <extending.extension-types>`, including
-extension arrays registered by :ref:`3rd party libraries <ecosystem.extensions>`.
+extension arrays registered by `3rd party libraries <https://pandas.pydata.org/community/ecosystem.html>`_.
 See the :ref:`dtypes docs <basics.dtypes>` for more on extension arrays.
 
 .. ipython:: python
@@ -286,7 +286,8 @@ value. (:issue:`17054`)
 
 .. ipython:: python
 
-    result = pd.read_html("""
+    from io import StringIO
+    result = pd.read_html(StringIO("""
       <table>
         <thead>
           <tr>
@@ -298,7 +299,7 @@ value. (:issue:`17054`)
             <td colspan="2">1</td><td>2</td>
           </tr>
         </tbody>
-      </table>""")
+      </table>"""))
 
 *Previous behavior*:
 
@@ -334,7 +335,7 @@ convenient way to apply users' predefined styling functions, and can help reduce
     df.style.pipe(format_and_align).set_caption('Summary of results.')
 
 Similar methods already exist for other classes in pandas, including :meth:`DataFrame.pipe`,
-:meth:`GroupBy.pipe() <pandas.core.groupby.GroupBy.pipe>`, and :meth:`Resampler.pipe() <pandas.core.resample.Resampler.pipe>`.
+:meth:`GroupBy.pipe() <.GroupBy.pipe>`, and :meth:`Resampler.pipe() <.Resampler.pipe>`.
 
 .. _whatsnew_0240.enhancements.rename_axis:
 
@@ -404,7 +405,7 @@ Other enhancements
   now support an ``ambiguous`` argument for handling datetimes that are rounded to ambiguous times (:issue:`18946`)
   and a ``nonexistent`` argument for handling datetimes that are rounded to nonexistent times. See :ref:`timeseries.timezone_nonexistent` (:issue:`22647`)
 - The result of :meth:`~DataFrame.resample` is now iterable similar to ``groupby()`` (:issue:`15314`).
-- :meth:`Series.resample` and :meth:`DataFrame.resample` have gained the :meth:`pandas.core.resample.Resampler.quantile` (:issue:`15023`).
+- :meth:`Series.resample` and :meth:`DataFrame.resample` have gained the :meth:`.Resampler.quantile` (:issue:`15023`).
 - :meth:`DataFrame.resample` and :meth:`Series.resample` with a :class:`PeriodIndex` will now respect the ``base`` argument in the same fashion as with a :class:`DatetimeIndex`. (:issue:`23882`)
 - :meth:`pandas.api.types.is_list_like` has gained a keyword ``allow_sets`` which is ``True`` by default; if ``False``,
   all instances of ``set`` will not be considered "list-like" anymore (:issue:`23061`)
@@ -556,7 +557,7 @@ You must pass in the ``line_terminator`` explicitly, even in this case.
 
 .. _whatsnew_0240.bug_fixes.nan_with_str_dtype:
 
-Proper handling of ``np.NaN`` in a string data-typed column with the Python engine
+Proper handling of ``np.nan`` in a string data-typed column with the Python engine
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 There was bug in :func:`read_excel` and :func:`read_csv` with the Python
@@ -632,13 +633,19 @@ Parsing datetime strings with the same UTC offset will preserve the UTC offset i
 Parsing datetime strings with different UTC offsets will now create an Index of
 ``datetime.datetime`` objects with different UTC offsets
 
-.. ipython:: python
+.. code-block:: ipython
 
-    idx = pd.to_datetime(["2015-11-18 15:30:00+05:30",
-                          "2015-11-18 16:30:00+06:30"])
-    idx
-    idx[0]
-    idx[1]
+    In [59]: idx = pd.to_datetime(["2015-11-18 15:30:00+05:30",
+                                   "2015-11-18 16:30:00+06:30"])
+
+    In[60]: idx
+    Out[60]: Index([2015-11-18 15:30:00+05:30, 2015-11-18 16:30:00+06:30], dtype='object')
+
+    In[61]: idx[0]
+    Out[61]: Timestamp('2015-11-18 15:30:00+0530', tz='UTC+05:30')
+
+    In[62]: idx[1]
+    Out[62]: Timestamp('2015-11-18 16:30:00+0630', tz='UTC+06:30')
 
 Passing ``utc=True`` will mimic the previous behavior but will correctly indicate
 that the dates have been converted to UTC
@@ -673,24 +680,39 @@ Parsing mixed-timezones with :func:`read_csv`
 
 *New behavior*
 
-.. ipython:: python
+.. code-block:: ipython
 
-   import io
-   content = """\
-   a
-   2000-01-01T00:00:00+05:00
-   2000-01-01T00:00:00+06:00"""
-   df = pd.read_csv(io.StringIO(content), parse_dates=['a'])
-   df.a
+   In[64]: import io
+
+   In[65]: content = """\
+      ...: a
+      ...: 2000-01-01T00:00:00+05:00
+      ...: 2000-01-01T00:00:00+06:00"""
+
+   In[66]: df = pd.read_csv(io.StringIO(content), parse_dates=['a'])
+
+   In[67]: df.a
+   Out[67]:
+   0   2000-01-01 00:00:00+05:00
+   1   2000-01-01 00:00:00+06:00
+   Name: a, Length: 2, dtype: object
 
 As can be seen, the ``dtype`` is object; each value in the column is a string.
 To convert the strings to an array of datetimes, the ``date_parser`` argument
 
-.. ipython:: python
+.. code-block:: ipython
 
-   df = pd.read_csv(io.StringIO(content), parse_dates=['a'],
-                    date_parser=lambda col: pd.to_datetime(col, utc=True))
-   df.a
+   In [3]: df = pd.read_csv(
+      ...:     io.StringIO(content),
+      ...:     parse_dates=['a'],
+      ...:     date_parser=lambda col: pd.to_datetime(col, utc=True),
+      ...: )
+
+   In [4]: df.a
+   Out[4]:
+   0   1999-12-31 19:00:00+00:00
+   1   1999-12-31 18:00:00+00:00
+   Name: a, dtype: datetime64[ns, UTC]
 
 See :ref:`whatsnew_0240.api.timezone_offset_parsing` for more.
 
@@ -1356,17 +1378,22 @@ the object's ``freq`` attribute (:issue:`21939`, :issue:`23878`).
 
 *New behavior*:
 
-.. ipython:: python
-    :okwarning:
+.. code-block:: ipython
 
-    ts = pd.Timestamp('1994-05-06 12:15:16', freq=pd.offsets.Hour())
-    ts + 2 * ts.freq
+    In [108]: ts = pd.Timestamp('1994-05-06 12:15:16', freq=pd.offsets.Hour())
 
-    tdi = pd.timedelta_range('1D', periods=2)
-    tdi - np.array([2 * tdi.freq, 1 * tdi.freq])
+    In[109]: ts + 2 * ts.freq
+    Out[109]: Timestamp('1994-05-06 14:15:16', freq='H')
 
-    dti = pd.date_range('2001-01-01', periods=2, freq='7D')
-    dti + pd.Index([1 * dti.freq, 2 * dti.freq])
+    In [110]: tdi = pd.timedelta_range('1D', periods=2)
+
+    In [111]: tdi - np.array([2 * tdi.freq, 1 * tdi.freq])
+    Out[111]: TimedeltaIndex(['-1 days', '1 days'], dtype='timedelta64[ns]', freq=None)
+
+    In [112]: dti = pd.date_range('2001-01-01', periods=2, freq='7D')
+
+    In [113]: dti + pd.Index([1 * dti.freq, 2 * dti.freq])
+    Out[113]: DatetimeIndex(['2001-01-08', '2001-01-22'], dtype='datetime64[ns]', freq=None)
 
 
 .. _whatsnew_0240.deprecations.integer_tz:
@@ -1522,7 +1549,7 @@ Performance improvements
   shows similar speed improvements as above (:issue:`21659`)
 - Improved performance of :meth:`CategoricalIndex.equals` when comparing to another :class:`CategoricalIndex` (:issue:`24023`)
 - Improved performance of :func:`Series.describe` in case of numeric dtpyes (:issue:`21274`)
-- Improved performance of :func:`pandas.core.groupby.GroupBy.rank` when dealing with tied rankings (:issue:`21237`)
+- Improved performance of :func:`.GroupBy.rank` when dealing with tied rankings (:issue:`21237`)
 - Improved performance of :func:`DataFrame.set_index` with columns consisting of :class:`Period` objects (:issue:`21582`, :issue:`21606`)
 - Improved performance of :meth:`Series.at` and :meth:`Index.get_value` for Extension Arrays values (e.g. :class:`Categorical`) (:issue:`24204`)
 - Improved performance of membership checks in :class:`Categorical` and :class:`CategoricalIndex`
@@ -1830,28 +1857,28 @@ Plotting
 GroupBy/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-- Bug in :func:`pandas.core.window.Rolling.min` and :func:`pandas.core.window.Rolling.max` with ``closed='left'``, a datetime-like index and only one entry in the series leading to segfault (:issue:`24718`)
-- Bug in :func:`pandas.core.groupby.GroupBy.first` and :func:`pandas.core.groupby.GroupBy.last` with ``as_index=False`` leading to the loss of timezone information (:issue:`15884`)
+- Bug in :func:`.Rolling.min` and :func:`.Rolling.max` with ``closed='left'``, a datetime-like index and only one entry in the series leading to segfault (:issue:`24718`)
+- Bug in :func:`.GroupBy.first` and :func:`.GroupBy.last` with ``as_index=False`` leading to the loss of timezone information (:issue:`15884`)
 - Bug in :meth:`DateFrame.resample` when downsampling across a DST boundary (:issue:`8531`)
 - Bug in date anchoring for :meth:`DateFrame.resample` with offset :class:`Day` when n > 1 (:issue:`24127`)
-- Bug where ``ValueError`` is wrongly raised when calling :func:`~pandas.core.groupby.SeriesGroupBy.count` method of a
+- Bug where ``ValueError`` is wrongly raised when calling :func:`.SeriesGroupBy.count` method of a
   ``SeriesGroupBy`` when the grouping variable only contains NaNs and numpy version < 1.13 (:issue:`21956`).
-- Multiple bugs in :func:`pandas.core.window.Rolling.min` with ``closed='left'`` and a
+- Multiple bugs in :func:`.Rolling.min` with ``closed='left'`` and a
   datetime-like index leading to incorrect results and also segfault. (:issue:`21704`)
-- Bug in :meth:`pandas.core.resample.Resampler.apply` when passing positional arguments to applied func (:issue:`14615`).
+- Bug in :meth:`.Resampler.apply` when passing positional arguments to applied func (:issue:`14615`).
 - Bug in :meth:`Series.resample` when passing ``numpy.timedelta64`` to ``loffset`` kwarg (:issue:`7687`).
-- Bug in :meth:`pandas.core.resample.Resampler.asfreq` when frequency of ``TimedeltaIndex`` is a subperiod of a new frequency (:issue:`13022`).
-- Bug in :meth:`pandas.core.groupby.SeriesGroupBy.mean` when values were integral but could not fit inside of int64, overflowing instead. (:issue:`22487`)
-- :func:`pandas.core.groupby.RollingGroupby.agg` and :func:`pandas.core.groupby.ExpandingGroupby.agg` now support multiple aggregation functions as parameters (:issue:`15072`)
+- Bug in :meth:`.Resampler.asfreq` when frequency of ``TimedeltaIndex`` is a subperiod of a new frequency (:issue:`13022`).
+- Bug in :meth:`.SeriesGroupBy.mean` when values were integral but could not fit inside of int64, overflowing instead. (:issue:`22487`)
+- :func:`.RollingGroupby.agg` and :func:`.ExpandingGroupby.agg` now support multiple aggregation functions as parameters (:issue:`15072`)
 - Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` when resampling by a weekly offset (``'W'``) across a DST transition (:issue:`9119`, :issue:`21459`)
 - Bug in :meth:`DataFrame.expanding` in which the ``axis`` argument was not being respected during aggregations (:issue:`23372`)
-- Bug in :meth:`pandas.core.groupby.GroupBy.transform` which caused missing values when the input function can accept a :class:`DataFrame` but renames it (:issue:`23455`).
-- Bug in :func:`pandas.core.groupby.GroupBy.nth` where column order was not always preserved (:issue:`20760`)
-- Bug in :meth:`pandas.core.groupby.GroupBy.rank` with ``method='dense'`` and ``pct=True`` when a group has only one member would raise a ``ZeroDivisionError`` (:issue:`23666`).
-- Calling :meth:`pandas.core.groupby.GroupBy.rank` with empty groups and ``pct=True`` was raising a ``ZeroDivisionError`` (:issue:`22519`)
+- Bug in :meth:`.GroupBy.transform` which caused missing values when the input function can accept a :class:`DataFrame` but renames it (:issue:`23455`).
+- Bug in :func:`.GroupBy.nth` where column order was not always preserved (:issue:`20760`)
+- Bug in :meth:`.GroupBy.rank` with ``method='dense'`` and ``pct=True`` when a group has only one member would raise a ``ZeroDivisionError`` (:issue:`23666`).
+- Calling :meth:`.GroupBy.rank` with empty groups and ``pct=True`` was raising a ``ZeroDivisionError`` (:issue:`22519`)
 - Bug in :meth:`DataFrame.resample` when resampling ``NaT`` in ``TimeDeltaIndex`` (:issue:`13223`).
 - Bug in :meth:`DataFrame.groupby` did not respect the ``observed`` argument when selecting a column and instead always used ``observed=False`` (:issue:`23970`)
-- Bug in :func:`pandas.core.groupby.SeriesGroupBy.pct_change` or :func:`pandas.core.groupby.DataFrameGroupBy.pct_change` would previously work across groups when calculating the percent change, where it now correctly works per group (:issue:`21200`, :issue:`21235`).
+- Bug in :func:`.SeriesGroupBy.pct_change` or :func:`.DataFrameGroupBy.pct_change` would previously work across groups when calculating the percent change, where it now correctly works per group (:issue:`21200`, :issue:`21235`).
 - Bug preventing hash table creation with very large number (2^32) of rows (:issue:`22805`)
 - Bug in groupby when grouping on categorical causes ``ValueError`` and incorrect grouping if ``observed=True`` and ``nan`` is present in categorical column (:issue:`24740`, :issue:`21151`).
 
@@ -1865,7 +1892,7 @@ Reshaping
 - Bug in :meth:`DataFrame.where` with an empty DataFrame and empty ``cond`` having non-bool dtype (:issue:`21947`)
 - Bug in :meth:`Series.mask` and :meth:`DataFrame.mask` with ``list`` conditionals (:issue:`21891`)
 - Bug in :meth:`DataFrame.replace` raises RecursionError when converting OutOfBounds ``datetime64[ns, tz]`` (:issue:`20380`)
-- :func:`pandas.core.groupby.GroupBy.rank` now raises a ``ValueError`` when an invalid value is passed for argument ``na_option`` (:issue:`22124`)
+- :func:`.GroupBy.rank` now raises a ``ValueError`` when an invalid value is passed for argument ``na_option`` (:issue:`22124`)
 - Bug in :func:`get_dummies` with Unicode attributes in Python 2 (:issue:`22084`)
 - Bug in :meth:`DataFrame.replace` raises ``RecursionError`` when replacing empty lists (:issue:`22083`)
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` when dict is used as the ``to_replace`` value and one key in the dict is another key's value, the results were inconsistent between using integer key and using string key (:issue:`20656`)
@@ -1883,7 +1910,7 @@ Reshaping
 - Bug in :func:`pandas.concat` when joining ``Series`` datetimetz with ``Series`` category would lose timezone (:issue:`23816`)
 - Bug in :meth:`DataFrame.join` when joining on partial MultiIndex would drop names (:issue:`20452`).
 - :meth:`DataFrame.nlargest` and :meth:`DataFrame.nsmallest` now returns the correct n values when keep != 'all' also when tied on the first columns (:issue:`22752`)
-- Constructing a DataFrame with an index argument that wasn't already an instance of :class:`~pandas.core.Index` was broken (:issue:`22227`).
+- Constructing a DataFrame with an index argument that wasn't already an instance of :class:`.Index` was broken (:issue:`22227`).
 - Bug in :class:`DataFrame` prevented list subclasses to be used to construction (:issue:`21226`)
 - Bug in :func:`DataFrame.unstack` and :func:`DataFrame.pivot_table` returning a misleading error message when the resulting DataFrame has more elements than int32 can handle. Now, the error message is improved, pointing towards the actual problem (:issue:`20601`)
 - Bug in :func:`DataFrame.unstack` where a ``ValueError`` was raised when unstacking timezone aware values (:issue:`18338`)

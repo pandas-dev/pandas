@@ -36,19 +36,23 @@ _ALLOWLIST = [  # should be empty
     "pandas._libs.hashtable.HashTable.factorize",
     "pandas._libs.hashtable.HashTable.get_item",
     "pandas._libs.hashtable.HashTable.get_labels",
+    "pandas._libs.hashtable.HashTable.get_na",
     "pandas._libs.hashtable.HashTable.get_state",
     "pandas._libs.hashtable.HashTable.lookup",
     "pandas._libs.hashtable.HashTable.map_locations",
     "pandas._libs.hashtable.HashTable.set_item",
+    "pandas._libs.hashtable.HashTable.set_na",
     "pandas._libs.hashtable.HashTable.sizeof",
     "pandas._libs.hashtable.HashTable.unique",
     # stubtest might be too sensitive
     "pandas._libs.lib.NoDefault",
     "pandas._libs.lib._NoDefault.no_default",
+    # stubtest/Cython is not recognizing the default value for the dtype parameter
+    "pandas._libs.lib.map_infer_mask",
     # internal type alias (should probably be private)
     "pandas._libs.lib.ndarray_obj_2d",
-    # workaround for mypy (cache_readonly = property)
-    "pandas._libs.properties.cache_readonly.__get__",
+    # runtime argument "owner" has a default value but stub argument does not
+    "pandas._libs.properties.AxisProperty.__get__",
     "pandas._libs.properties.cache_readonly.deleter",
     "pandas._libs.properties.cache_readonly.getter",
     "pandas._libs.properties.cache_readonly.setter",
@@ -65,7 +69,6 @@ _ALLOWLIST = [  # should be empty
     "pandas._libs.sparse.SparseIndex.to_block_index",
     "pandas._libs.sparse.SparseIndex.to_int_index",
     # TODO (decorator changes argument names)
-    "pandas._libs.tslibs.offsets.BaseOffset._apply_array",
     "pandas._libs.tslibs.offsets.BusinessHour.rollback",
     "pandas._libs.tslibs.offsets.BusinessHour.rollforward ",
     # type alias

@@ -25,14 +25,14 @@ class IndexCache:
         N = 10**5
         if index_type == "MultiIndex":
             self.idx = pd.MultiIndex.from_product(
-                [pd.date_range("1/1/2000", freq="T", periods=N // 2), ["a", "b"]]
+                [pd.date_range("1/1/2000", freq="min", periods=N // 2), ["a", "b"]]
             )
         elif index_type == "DatetimeIndex":
-            self.idx = pd.date_range("1/1/2000", freq="T", periods=N)
+            self.idx = pd.date_range("1/1/2000", freq="min", periods=N)
         elif index_type == "Int64Index":
-            self.idx = pd.Index(range(N))
+            self.idx = pd.Index(range(N), dtype="int64")
         elif index_type == "PeriodIndex":
-            self.idx = pd.period_range("1/1/2000", freq="T", periods=N)
+            self.idx = pd.period_range("1/1/2000", freq="min", periods=N)
         elif index_type == "RangeIndex":
             self.idx = pd.RangeIndex(start=0, stop=N)
         elif index_type == "IntervalIndex":
@@ -40,9 +40,9 @@ class IndexCache:
         elif index_type == "TimedeltaIndex":
             self.idx = pd.TimedeltaIndex(range(N))
         elif index_type == "Float64Index":
-            self.idx = pd.Float64Index(range(N))
+            self.idx = pd.Index(range(N), dtype="float64")
         elif index_type == "UInt64Index":
-            self.idx = pd.UInt64Index(range(N))
+            self.idx = pd.Index(range(N), dtype="uint64")
         elif index_type == "CategoricalIndex":
             self.idx = pd.CategoricalIndex(range(N), range(N))
         else:
@@ -70,6 +70,3 @@ class IndexCache:
 
     def time_inferred_type(self, index_type):
         self.idx.inferred_type
-
-    def time_is_all_dates(self, index_type):
-        self.idx.is_all_dates

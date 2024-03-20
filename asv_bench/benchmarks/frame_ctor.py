@@ -12,8 +12,6 @@ from pandas import (
     date_range,
 )
 
-from .pandas_vb_common import tm
-
 try:
     from pandas.tseries.offsets import (
         Hour,
@@ -30,8 +28,8 @@ except ImportError:
 class FromDicts:
     def setup(self):
         N, K = 5000, 50
-        self.index = tm.makeStringIndex(N)
-        self.columns = tm.makeStringIndex(K)
+        self.index = pd.Index([f"i-{i}" for i in range(N)], dtype=object)
+        self.columns = pd.Index([f"i-{i}" for i in range(K)], dtype=object)
         frame = DataFrame(np.random.randn(N, K), index=self.index, columns=self.columns)
         self.data = frame.to_dict()
         self.dict_list = frame.to_dict(orient="records")
@@ -74,7 +72,6 @@ class FromSeries:
 
 
 class FromDictwithTimestamp:
-
     params = [Nano(1), Hour(1)]
     param_names = ["offset"]
 
@@ -89,7 +86,6 @@ class FromDictwithTimestamp:
 
 
 class FromRecords:
-
     params = [None, 1000]
     param_names = ["nrows"]
 
@@ -116,7 +112,6 @@ class FromNDArray:
 
 
 class FromLists:
-
     goal_time = 0.2
 
     def setup(self):
@@ -129,7 +124,6 @@ class FromLists:
 
 
 class FromRange:
-
     goal_time = 0.2
 
     def setup(self):
@@ -162,7 +156,6 @@ class FromScalar:
 
 
 class FromArrays:
-
     goal_time = 0.2
 
     def setup(self):
@@ -203,23 +196,6 @@ class FromArrays:
             columns=self.columns,
             verify_integrity=False,
         )
-
-
-class From3rdParty:
-    # GH#44616
-
-    def setup(self):
-        try:
-            import torch
-        except ImportError:
-            raise NotImplementedError
-
-        row = 700000
-        col = 64
-        self.val_tensor = torch.randn(row, col)
-
-    def time_from_torch(self):
-        DataFrame(self.val_tensor)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

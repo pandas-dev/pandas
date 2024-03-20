@@ -3,9 +3,10 @@ import pytest
 
 from pandas._libs import groupby as libgroupby
 from pandas._libs.groupby import (
-    group_cumprod_float64,
+    group_cumprod,
     group_cumsum,
     group_mean,
+    group_sum,
     group_var,
 )
 
@@ -17,11 +18,11 @@ import pandas._testing as tm
 
 class GroupVarTestMixin:
     def test_group_var_generic_1d(self):
-        prng = np.random.RandomState(1234)
+        prng = np.random.default_rng(2)
 
         out = (np.nan * np.ones((5, 1))).astype(self.dtype)
         counts = np.zeros(5, dtype="int64")
-        values = 10 * prng.rand(15, 1).astype(self.dtype)
+        values = 10 * prng.random((15, 1)).astype(self.dtype)
         labels = np.tile(np.arange(5), (3,)).astype("intp")
 
         expected_out = (
@@ -34,11 +35,11 @@ class GroupVarTestMixin:
         tm.assert_numpy_array_equal(counts, expected_counts)
 
     def test_group_var_generic_1d_flat_labels(self):
-        prng = np.random.RandomState(1234)
+        prng = np.random.default_rng(2)
 
         out = (np.nan * np.ones((1, 1))).astype(self.dtype)
         counts = np.zeros(1, dtype="int64")
-        values = 10 * prng.rand(5, 1).astype(self.dtype)
+        values = 10 * prng.random((5, 1)).astype(self.dtype)
         labels = np.zeros(5, dtype="intp")
 
         expected_out = np.array([[values.std(ddof=1) ** 2]])
@@ -50,11 +51,11 @@ class GroupVarTestMixin:
         tm.assert_numpy_array_equal(counts, expected_counts)
 
     def test_group_var_generic_2d_all_finite(self):
-        prng = np.random.RandomState(1234)
+        prng = np.random.default_rng(2)
 
         out = (np.nan * np.ones((5, 2))).astype(self.dtype)
         counts = np.zeros(5, dtype="int64")
-        values = 10 * prng.rand(10, 2).astype(self.dtype)
+        values = 10 * prng.random((10, 2)).astype(self.dtype)
         labels = np.tile(np.arange(5), (2,)).astype("intp")
 
         expected_out = np.std(values.reshape(2, 5, 2), ddof=1, axis=0) ** 2
@@ -65,11 +66,11 @@ class GroupVarTestMixin:
         tm.assert_numpy_array_equal(counts, expected_counts)
 
     def test_group_var_generic_2d_some_nan(self):
-        prng = np.random.RandomState(1234)
+        prng = np.random.default_rng(2)
 
         out = (np.nan * np.ones((5, 2))).astype(self.dtype)
         counts = np.zeros(5, dtype="int64")
-        values = 10 * prng.rand(10, 2).astype(self.dtype)
+        values = 10 * prng.random((10, 2)).astype(self.dtype)
         values[:, 1] = np.nan
         labels = np.tile(np.arange(5), (2,)).astype("intp")
 
@@ -108,11 +109,11 @@ class TestGroupVarFloat64(GroupVarTestMixin):
     rtol = 1e-5
 
     def test_group_var_large_inputs(self):
-        prng = np.random.RandomState(1234)
+        prng = np.random.default_rng(2)
 
         out = np.array([[np.nan]], dtype=self.dtype)
         counts = np.array([0], dtype="int64")
-        values = (prng.rand(10**6) + 10**12).astype(self.dtype)
+        values = (prng.random(10**6) + 10**12).astype(self.dtype)
         values.shape = (10**6, 1)
         labels = np.zeros(10**6, dtype="intp")
 
@@ -132,7 +133,7 @@ class TestGroupVarFloat32(GroupVarTestMixin):
 
 @pytest.mark.parametrize("dtype", ["float32", "float64"])
 def test_group_ohlc(dtype):
-    obj = np.array(np.random.randn(20), dtype=dtype)
+    obj = np.array(np.random.default_rng(2).standard_normal(20), dtype=dtype)
 
     bins = np.array([6, 12, 20])
     out = np.zeros((3, 4), dtype)
@@ -194,7 +195,7 @@ def test_cython_group_transform_cumsum(np_dtype):
 def test_cython_group_transform_cumprod():
     # see gh-4095
     dtype = np.float64
-    pd_op, np_op = group_cumprod_float64, np.cumproduct
+    pd_op, np_op = group_cumprod, np.cumprod
     _check_cython_group_transform_cumulative(pd_op, np_op, dtype)
 
 
@@ -209,7 +210,7 @@ def test_cython_group_transform_algos():
     data = np.array([[1], [2], [3], [np.nan], [4]], dtype="float64")
     actual = np.zeros_like(data)
     actual.fill(np.nan)
-    group_cumprod_float64(actual, data, labels, ngroups, is_datetimelike)
+    group_cumprod(actual, data, labels, ngroups, is_datetimelike)
     expected = np.array([1, 2, 6, np.nan, 24], dtype="float64")
     tm.assert_numpy_array_equal(actual[:, 0], expected)
 
@@ -281,4 +282,50 @@ def test_cython_group_mean_not_datetimelike_but_has_NaT_values():
 
     tm.assert_numpy_array_equal(
         actual[:, 0], np.array(np.divide(np.add(data[0], data[1]), 2), dtype="float64")
+    )
+
+
+def test_cython_group_mean_Inf_at_begining_and_end():
+    # GH 50367
+    actual = np.array([[np.nan, np.nan], [np.nan, np.nan]], dtype="float64")
+    counts = np.array([0, 0], dtype="int64")
+    data = np.array(
+        [[np.inf, 1.0], [1.0, 2.0], [2.0, 3.0], [3.0, 4.0], [4.0, 5.0], [5, np.inf]],
+        dtype="float64",
+    )
+    labels = np.array([0, 1, 0, 1, 0, 1], dtype=np.intp)
+
+    group_mean(actual, counts, data, labels, is_datetimelike=False)
+
+    expected = np.array([[np.inf, 3], [3, np.inf]], dtype="float64")
+
+    tm.assert_numpy_array_equal(
+        actual,
+        expected,
+    )
+
+
+@pytest.mark.parametrize(
+    "values, out",
+    [
+        ([[np.inf], [np.inf], [np.inf]], [[np.inf], [np.inf]]),
+        ([[np.inf], [np.inf], [-np.inf]], [[np.inf], [np.nan]]),
+        ([[np.inf], [-np.inf], [np.inf]], [[np.inf], [np.nan]]),
+        ([[np.inf], [-np.inf], [-np.inf]], [[np.inf], [-np.inf]]),
+    ],
+)
+def test_cython_group_sum_Inf_at_begining_and_end(values, out):
+    # GH #53606
+    actual = np.array([[np.nan], [np.nan]], dtype="float64")
+    counts = np.array([0, 0], dtype="int64")
+    data = np.array(values, dtype="float64")
+    labels = np.array([0, 1, 1], dtype=np.intp)
+
+    group_sum(actual, counts, data, labels, None, is_datetimelike=False)
+
+    expected = np.array(out, dtype="float64")
+
+    tm.assert_numpy_array_equal(
+        actual,
+        expected,
     )

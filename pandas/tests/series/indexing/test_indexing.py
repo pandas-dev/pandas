@@ -1,4 +1,5 @@
-""" test get/set & misc """
+"""test get/set & misc"""
+
 from datetime import timedelta
 import re
 
@@ -10,13 +11,16 @@ from pandas.errors import IndexingError
 from pandas import (
     NA,
     DataFrame,
+    Index,
     IndexSlice,
     MultiIndex,
+    NaT,
     Series,
     Timedelta,
     Timestamp,
     concat,
     date_range,
+    isna,
     period_range,
     timedelta_range,
 )
@@ -24,13 +28,18 @@ import pandas._testing as tm
 
 
 def test_basic_indexing():
-    s = Series(np.random.randn(5), index=["a", "b", "a", "a", "b"])
+    s = Series(
+        np.random.default_rng(2).standard_normal(5), index=["a", "b", "a", "a", "b"]
+    )
 
+    warn_msg = "Series.__[sg]etitem__ treating keys as positions is deprecated"
     msg = "index 5 is out of bounds for axis 0 with size 5"
     with pytest.raises(IndexError, match=msg):
-        s[5]
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            s[5]
     with pytest.raises(IndexError, match=msg):
-        s[5] = 0
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            s[5] = 0
 
     with pytest.raises(KeyError, match=r"^'c'$"):
         s["c"]
@@ -38,10 +47,32 @@ def test_basic_indexing():
     s = s.sort_index()
 
     with pytest.raises(IndexError, match=msg):
-        s[5]
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            s[5]
     msg = r"index 5 is out of bounds for axis (0|1) with size 5|^5$"
     with pytest.raises(IndexError, match=msg):
-        s[5] = 0
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            s[5] = 0
+
+
+def test_getitem_numeric_should_not_fallback_to_positional(any_numeric_dtype):
+    # GH51053
+    dtype = any_numeric_dtype
+    idx = Index([1, 0, 1], dtype=dtype)
+    ser = Series(range(3), index=idx)
+    result = ser[1]
+    expected = Series([0, 2], index=Index([1, 1], dtype=dtype))
+    tm.assert_series_equal(result, expected, check_exact=True)
+
+
+def test_setitem_numeric_should_not_fallback_to_positional(any_numeric_dtype):
+    # GH51053
+    dtype = any_numeric_dtype
+    idx = Index([1, 0, 1], dtype=dtype)
+    ser = Series(range(3), index=idx)
+    ser[1] = 10
+    expected = Series([10, 1, 10], index=idx)
+    tm.assert_series_equal(ser, expected, check_exact=True)
 
 
 def test_basic_getitem_with_labels(datetime_series):
@@ -57,7 +88,6 @@ def test_basic_getitem_with_labels(datetime_series):
 
 
 def test_basic_getitem_dt64tz_values():
-
     # GH12089
     # with tz for values
     ser = Series(
@@ -73,37 +103,33 @@ def test_basic_getitem_dt64tz_values():
 
 
 def test_getitem_setitem_ellipsis():
-    s = Series(np.random.randn(10))
-
-    np.fix(s)
+    s = Series(np.random.default_rng(2).standard_normal(10))
 
     result = s[...]
     tm.assert_series_equal(result, s)
 
-    s[...] = 5
-    assert (result == 5).all()
 
-
-@pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
 @pytest.mark.parametrize(
     "result_1, duplicate_item, expected_1",
     [
         [
-            Series({1: 12, 2: [1, 2, 2, 3]}),
-            Series({1: 313}),
+            {1: 12, 2: [1, 2, 2, 3]},
+            {1: 313},
             Series({1: 12}, dtype=object),
         ],
         [
-            Series({1: [1, 2, 3], 2: [1, 2, 2, 3]}),
-            Series({1: [1, 2, 3]}),
+            {1: [1, 2, 3], 2: [1, 2, 2, 3]},
+            {1: [1, 2, 3]},
             Series({1: [1, 2, 3]}),
         ],
     ],
 )
 def test_getitem_with_duplicates_indices(result_1, duplicate_item, expected_1):
     # GH 17610
-    result = result_1.append(duplicate_item)
-    expected = expected_1.append(duplicate_item)
+    result_1 = Series(result_1)
+    duplicate_item = Series(duplicate_item)
+    result = result_1._append(duplicate_item)
+    expected = expected_1._append(duplicate_item)
     tm.assert_series_equal(result[1], expected)
     assert result[2] == result_1[2]
 
@@ -127,7 +153,9 @@ def test_series_box_timestamp():
     assert isinstance(ser.iloc[4], Timestamp)
 
     ser = Series(rng, index=rng)
-    assert isinstance(ser[0], Timestamp)
+    msg = "Series.__getitem__ treating keys as positions is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert isinstance(ser[0], Timestamp)
     assert isinstance(ser.at[rng[1]], Timestamp)
     assert isinstance(ser.iat[2], Timestamp)
     assert isinstance(ser.loc[rng[3]], Timestamp)
@@ -169,13 +197,13 @@ def test_setitem_ambiguous_keyerror(indexer_sl):
 
 
 def test_setitem(datetime_series):
-    datetime_series[datetime_series.index[5]] = np.NaN
-    datetime_series[[1, 2, 17]] = np.NaN
-    datetime_series[6] = np.NaN
-    assert np.isnan(datetime_series[6])
-    assert np.isnan(datetime_series[2])
+    datetime_series[datetime_series.index[5]] = np.nan
+    datetime_series.iloc[[1, 2, 17]] = np.nan
+    datetime_series.iloc[6] = np.nan
+    assert np.isnan(datetime_series.iloc[6])
+    assert np.isnan(datetime_series.iloc[2])
     datetime_series[np.isnan(datetime_series)] = 5
-    assert not np.isnan(datetime_series[2])
+    assert not np.isnan(datetime_series.iloc[2])
 
 
 def test_setslice(datetime_series):
@@ -184,8 +212,6 @@ def test_setslice(datetime_series):
     assert sl.index.is_unique is True
 
 
-# FutureWarning from NumPy about [slice(None, 5).
-@pytest.mark.filterwarnings("ignore:Using a non-tuple:FutureWarning")
 def test_basic_getitem_setitem_corner(datetime_series):
     # invalid tuples, e.g. td.ts[:, None] vs. td.ts[:, 2]
     msg = "key of type tuple not found and not a MultiIndex"
@@ -194,22 +220,26 @@ def test_basic_getitem_setitem_corner(datetime_series):
     with pytest.raises(KeyError, match=msg):
         datetime_series[:, 2] = 2
 
-    # weird lists. [slice(0, 5)] will work but not two slices
-    with tm.assert_produces_warning(FutureWarning):
+    # weird lists. [slice(0, 5)] raises but not two slices
+    msg = "Indexing with a single-item list"
+    with pytest.raises(ValueError, match=msg):
         # GH#31299
-        result = datetime_series[[slice(None, 5)]]
+        datetime_series[[slice(None, 5)]]
+
+    # but we're OK with a single-element tuple
+    result = datetime_series[(slice(None, 5),)]
     expected = datetime_series[:5]
     tm.assert_series_equal(result, expected)
 
     # OK
     msg = r"unhashable type(: 'slice')?"
     with pytest.raises(TypeError, match=msg):
-        datetime_series[[5, slice(None, None)]]
+        datetime_series[[5, [None, None]]]
     with pytest.raises(TypeError, match=msg):
-        datetime_series[[5, slice(None, None)]] = 2
+        datetime_series[[5, [None, None]]] = 2
 
 
-def test_slice(string_series, object_series, using_copy_on_write):
+def test_slice(string_series, object_series):
     original = string_series.copy()
     numSlice = string_series[10:20]
     numSliceEnd = string_series[-10:]
@@ -222,17 +252,14 @@ def test_slice(string_series, object_series, using_copy_on_write):
     assert string_series[numSlice.index[0]] == numSlice[numSlice.index[0]]
 
     assert numSlice.index[1] == string_series.index[11]
-    assert tm.equalContents(numSliceEnd, np.array(string_series)[-10:])
+    tm.assert_numpy_array_equal(np.array(numSliceEnd), np.array(string_series)[-10:])
 
     # Test return view.
     sl = string_series[10:20]
     sl[:] = 0
 
-    if using_copy_on_write:
-        # Doesn't modify parent (CoW)
-        tm.assert_series_equal(string_series, original)
-    else:
-        assert (string_series[10:20] == 0).all()
+    # Doesn't modify parent (CoW)
+    tm.assert_series_equal(string_series, original)
 
 
 def test_timedelta_assignment():
@@ -249,48 +276,39 @@ def test_timedelta_assignment():
     tm.assert_series_equal(s, expected)
 
 
-def test_underlying_data_conversion(using_copy_on_write):
+def test_underlying_data_conversion():
     # GH 4080
     df = DataFrame({c: [1, 2, 3] for c in ["a", "b", "c"]})
-    msg = "The 'inplace' keyword"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        return_value = df.set_index(["a", "b", "c"], inplace=True)
+    return_value = df.set_index(["a", "b", "c"], inplace=True)
     assert return_value is None
     s = Series([1], index=[(2, 2, 2)])
     df["val"] = 0
     df_original = df.copy()
     df
-    df["val"].update(s)
 
-    if using_copy_on_write:
-        expected = df_original
-    else:
-        expected = DataFrame(
-            {"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3], "val": [0, 1, 0]}
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            return_value = expected.set_index(["a", "b", "c"], inplace=True)
-        assert return_value is None
+    with tm.raises_chained_assignment_error():
+        df["val"].update(s)
+    expected = df_original
     tm.assert_frame_equal(df, expected)
 
 
 def test_preserve_refs(datetime_series):
-    seq = datetime_series[[5, 10, 15]]
-    seq[1] = np.NaN
-    assert not np.isnan(datetime_series[10])
+    seq = datetime_series.iloc[[5, 10, 15]]
+    seq.iloc[1] = np.nan
+    assert not np.isnan(datetime_series.iloc[10])
 
 
 def test_multilevel_preserve_name(lexsorted_two_level_string_multiindex, indexer_sl):
     index = lexsorted_two_level_string_multiindex
-    ser = Series(np.random.randn(len(index)), index=index, name="sth")
+    ser = Series(
+        np.random.default_rng(2).standard_normal(len(index)), index=index, name="sth"
+    )
 
     result = indexer_sl(ser)["foo"]
     assert result.name == ser.name
 
 
-"""
-miscellaneous methods
-"""
+# miscellaneous methods
 
 
 @pytest.mark.parametrize(
@@ -298,7 +316,7 @@ miscellaneous methods
     [
         date_range("2014-01-01", periods=20, freq="MS"),
         period_range("2014-01", periods=20, freq="M"),
-        timedelta_range("0", periods=20, freq="H"),
+        timedelta_range("0", periods=20, freq="h"),
     ],
 )
 def test_slice_with_negative_step(index):
@@ -361,31 +379,125 @@ def test_loc_boolean_indexer_miss_matching_index():
         ser.loc[indexer]
 
 
+def test_loc_setitem_nested_data_enlargement():
+    # GH#48614
+    df = DataFrame({"a": [1]})
+    ser = Series({"label": df})
+    ser.loc["new_label"] = df
+    expected = Series({"label": df, "new_label": df})
+    tm.assert_series_equal(ser, expected)
+
+
+def test_loc_ea_numeric_index_oob_slice_end():
+    # GH#50161
+    ser = Series(1, index=Index([0, 1, 2], dtype="Int64"))
+    result = ser.loc[2:3]
+    expected = Series(1, index=Index([2], dtype="Int64"))
+    tm.assert_series_equal(result, expected)
+
+
+def test_getitem_bool_int_key():
+    # GH#48653
+    ser = Series({True: 1, False: 0})
+    with pytest.raises(KeyError, match="0"):
+        ser.loc[0]
+
+
+@pytest.mark.parametrize("val", [{}, {"b": "x"}])
+@pytest.mark.parametrize("indexer", [[], [False, False], slice(0, -1), np.array([])])
+def test_setitem_empty_indexer(indexer, val):
+    # GH#45981
+    df = DataFrame({"a": [1, 2], **val})
+    expected = df.copy()
+    df.loc[indexer] = 1.5
+    tm.assert_frame_equal(df, expected)
+
+
 class TestDeprecatedIndexers:
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
     def test_getitem_dict_and_set_deprecated(self, key):
-        # GH#42825
+        # GH#42825 enforced in 2.0
         ser = Series([1, 2])
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser.loc[key]
 
     @pytest.mark.parametrize("key", [{1}, {1: 1}, ({1}, 2), ({1: 1}, 2)])
     def test_getitem_dict_and_set_deprecated_multiindex(self, key):
-        # GH#42825
+        # GH#42825 enforced in 2.0
         ser = Series([1, 2], index=MultiIndex.from_tuples([(1, 2), (3, 4)]))
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser.loc[key]
 
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
-    def test_setitem_dict_and_set_deprecated(self, key):
-        # GH#42825
+    def test_setitem_dict_and_set_disallowed(self, key):
+        # GH#42825 enforced in 2.0
         ser = Series([1, 2])
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser.loc[key] = 1
 
     @pytest.mark.parametrize("key", [{1}, {1: 1}, ({1}, 2), ({1: 1}, 2)])
-    def test_setitem_dict_and_set_deprecated_multiindex(self, key):
-        # GH#42825
+    def test_setitem_dict_and_set_disallowed_multiindex(self, key):
+        # GH#42825 enforced in 2.0
         ser = Series([1, 2], index=MultiIndex.from_tuples([(1, 2), (3, 4)]))
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser.loc[key] = 1
+
+
+class TestSetitemValidation:
+    # This is adapted from pandas/tests/arrays/masked/test_indexing.py
+    # but checks for warnings instead of errors.
+    def _check_setitem_invalid(self, ser, invalid, indexer, warn):
+        msg = "Setting an item of incompatible dtype is deprecated"
+        msg = re.escape(msg)
+
+        orig_ser = ser.copy()
+
+        with tm.assert_produces_warning(warn, match=msg):
+            ser[indexer] = invalid
+            ser = orig_ser.copy()
+
+        with tm.assert_produces_warning(warn, match=msg):
+            ser.iloc[indexer] = invalid
+            ser = orig_ser.copy()
+
+        with tm.assert_produces_warning(warn, match=msg):
+            ser.loc[indexer] = invalid
+            ser = orig_ser.copy()
+
+        with tm.assert_produces_warning(warn, match=msg):
+            ser[:] = invalid
+
+    _invalid_scalars = [
+        1 + 2j,
+        "True",
+        "1",
+        "1.0",
+        NaT,
+        np.datetime64("NaT"),
+        np.timedelta64("NaT"),
+    ]
+    _indexers = [0, [0], slice(0, 1), [True, False, False], slice(None, None, None)]
+
+    @pytest.mark.parametrize(
+        "invalid", _invalid_scalars + [1, 1.0, np.int64(1), np.float64(1)]
+    )
+    @pytest.mark.parametrize("indexer", _indexers)
+    def test_setitem_validation_scalar_bool(self, invalid, indexer):
+        ser = Series([True, False, False], dtype="bool")
+        self._check_setitem_invalid(ser, invalid, indexer, FutureWarning)
+
+    @pytest.mark.parametrize("invalid", _invalid_scalars + [True, 1.5, np.float64(1.5)])
+    @pytest.mark.parametrize("indexer", _indexers)
+    def test_setitem_validation_scalar_int(self, invalid, any_int_numpy_dtype, indexer):
+        ser = Series([1, 2, 3], dtype=any_int_numpy_dtype)
+        if isna(invalid) and invalid is not NaT and not np.isnat(invalid):
+            warn = None
+        else:
+            warn = FutureWarning
+        self._check_setitem_invalid(ser, invalid, indexer, warn)
+
+    @pytest.mark.parametrize("invalid", _invalid_scalars + [True])
+    @pytest.mark.parametrize("indexer", _indexers)
+    def test_setitem_validation_scalar_float(self, invalid, float_numpy_dtype, indexer):
+        ser = Series([1, 2, None], dtype=float_numpy_dtype)
+        self._check_setitem_invalid(ser, invalid, indexer, FutureWarning)

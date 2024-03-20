@@ -18,25 +18,6 @@ from pandas.core.reshape.concat import concat
 
 
 @pytest.fixture
-def frame_with_period_index():
-    return DataFrame(
-        data=np.arange(20).reshape(4, 5),
-        columns=list("abcde"),
-        index=period_range(start="2000", freq="A", periods=4),
-    )
-
-
-@pytest.fixture
-def left():
-    return DataFrame({"a": [20, 10, 0]}, index=[2, 1, 0])
-
-
-@pytest.fixture
-def right():
-    return DataFrame({"b": [300, 100, 200]}, index=[3, 1, 2])
-
-
-@pytest.fixture
 def left_no_dup():
     return DataFrame(
         {"a": ["a", "b", "c", "d"], "b": ["cat", "dog", "weasel", "horse"]},
@@ -112,8 +93,9 @@ def right_w_dups(right_no_dup):
         ),
     ],
 )
-def test_join(left, right, how, sort, expected):
-
+def test_join(how, sort, expected):
+    left = DataFrame({"a": [20, 10, 0]}, index=[2, 1, 0])
+    right = DataFrame({"b": [300, 100, 200]}, index=[3, 1, 2])
     result = left.join(right, how=how, sort=sort, validate="1:1")
     tm.assert_frame_equal(result, expected)
 
@@ -143,14 +125,30 @@ def test_suffix_on_list_join():
 def test_join_invalid_validate(left_no_dup, right_no_dup):
     # GH 46622
     # Check invalid arguments
-    msg = "Not a valid argument for validate"
+    msg = (
+        '"invalid" is not a valid argument. '
+        "Valid arguments are:\n"
+        '- "1:1"\n'
+        '- "1:m"\n'
+        '- "m:1"\n'
+        '- "m:m"\n'
+        '- "one_to_one"\n'
+        '- "one_to_many"\n'
+        '- "many_to_one"\n'
+        '- "many_to_many"'
+    )
     with pytest.raises(ValueError, match=msg):
         left_no_dup.merge(right_no_dup, on="a", validate="invalid")
 
 
-def test_join_on_single_col_dup_on_right(left_no_dup, right_w_dups):
+@pytest.mark.parametrize("dtype", ["object", "string[pyarrow]"])
+def test_join_on_single_col_dup_on_right(left_no_dup, right_w_dups, dtype):
     # GH 46622
     # Dups on right allowed by one_to_many constraint
+    if dtype == "string[pyarrow]":
+        pytest.importorskip("pyarrow")
+    left_no_dup = left_no_dup.astype(dtype)
+    right_w_dups.index = right_w_dups.index.astype(dtype)
     left_no_dup.join(
         right_w_dups,
         on="a",
@@ -332,7 +330,12 @@ def test_join_overlap(float_frame):
     tm.assert_frame_equal(joined, expected.loc[:, joined.columns])
 
 
-def test_join_period_index(frame_with_period_index):
+def test_join_period_index():
+    frame_with_period_index = DataFrame(
+        data=np.arange(20).reshape(4, 5),
+        columns=list("abcde"),
+        index=period_range(start="2000", freq="Y", periods=4),
+    )
     other = frame_with_period_index.rename(columns=lambda key: f"{key}{key}")
 
     joined_values = np.concatenate([frame_with_period_index.values] * 2, axis=1)
@@ -376,8 +379,8 @@ def test_join_list_series(float_frame):
     tm.assert_frame_equal(result, float_frame)
 
 
-@pytest.mark.parametrize("sort_kw", [True, False])
-def test_suppress_future_warning_with_sort_kw(sort_kw):
+def test_suppress_future_warning_with_sort_kw(sort):
+    sort_kw = sort
     a = DataFrame({"col1": [1, 2]}, index=["c", "a"])
 
     b = DataFrame({"col2": [4, 5]}, index=["b", "a"])
@@ -407,7 +410,7 @@ class TestDataFrameJoin:
         b = frame.loc[frame.index[2:], ["B", "C"]]
 
         joined = a.join(b, how="outer").reindex(frame.index)
-        expected = frame.copy().values
+        expected = frame.copy().values.copy()
         expected[np.isnan(joined.values)] = np.nan
         expected = DataFrame(expected, index=frame.index, columns=frame.columns)
 
@@ -516,8 +519,9 @@ class TestDataFrameJoin:
 
         tm.assert_equal(result, expected)
 
-    def test_merge_join_different_levels(self):
+    def test_merge_join_different_levels_raises(self):
         # GH#9455
+        # GH 40993: For raising, enforced in 2.0
 
         # first dataframe
         df1 = DataFrame(columns=["a", "b"], data=[[1, 11], [0, 22]])
@@ -527,32 +531,28 @@ class TestDataFrameJoin:
         df2 = DataFrame(columns=columns, data=[[1, 33], [0, 44]])
 
         # merge
-        columns = ["a", "b", ("c", "c1")]
-        expected = DataFrame(columns=columns, data=[[1, 11, 33], [0, 22, 44]])
-        with tm.assert_produces_warning(FutureWarning):
-            result = pd.merge(df1, df2, on="a")
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(
+            MergeError, match="Not allowed to merge between different levels"
+        ):
+            pd.merge(df1, df2, on="a")
 
         # join, see discussion in GH#12219
-        columns = ["a", "b", ("a", ""), ("c", "c1")]
-        expected = DataFrame(columns=columns, data=[[1, 11, 0, 44], [0, 22, 1, 33]])
-        msg = "merging between different levels is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # stacklevel is chosen to be correct for pd.merge, not DataFrame.join
-            result = df1.join(df2, on="a")
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(
+            MergeError, match="Not allowed to merge between different levels"
+        ):
+            df1.join(df2, on="a")
 
     def test_frame_join_tzaware(self):
         test1 = DataFrame(
             np.zeros((6, 3)),
             index=date_range(
-                "2012-11-15 00:00:00", periods=6, freq="100L", tz="US/Central"
+                "2012-11-15 00:00:00", periods=6, freq="100ms", tz="US/Central"
             ),
         )
         test2 = DataFrame(
             np.zeros((3, 3)),
             index=date_range(
-                "2012-11-15 00:00:00", periods=3, freq="250L", tz="US/Central"
+                "2012-11-15 00:00:00", periods=3, freq="250ms", tz="US/Central"
             ),
             columns=range(3, 6),
         )

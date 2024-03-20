@@ -40,6 +40,9 @@ Excel
 
    read_excel
    DataFrame.to_excel
+   ExcelFile
+   ExcelFile.book
+   ExcelFile.sheet_names
    ExcelFile.parse
 
 .. currentmodule:: pandas.io.formats.style
@@ -184,13 +187,6 @@ SQL
    read_sql_query
    read_sql
    DataFrame.to_sql
-
-Google BigQuery
-~~~~~~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-   read_gbq
 
 STATA
 ~~~~~

@@ -1,5 +1,4 @@
 from datetime import datetime
-import re
 
 import numpy as np
 import pytest
@@ -8,34 +7,6 @@ from pandas._libs import iNaT
 
 import pandas._testing as tm
 import pandas.core.algorithms as algos
-
-
-@pytest.fixture(params=[True, False])
-def writeable(request):
-    return request.param
-
-
-# Check that take_nd works both with writeable arrays
-# (in which case fast typed memory-views implementation)
-# and read-only arrays alike.
-@pytest.fixture(
-    params=[
-        (np.float64, True),
-        (np.float32, True),
-        (np.uint64, False),
-        (np.uint32, False),
-        (np.uint16, False),
-        (np.uint8, False),
-        (np.int64, False),
-        (np.int32, False),
-        (np.int16, False),
-        (np.int8, False),
-        (np.object_, True),
-        (np.bool_, False),
-    ]
-)
-def dtype_can_hold_na(request):
-    return request.param
 
 
 @pytest.fixture(
@@ -69,12 +40,9 @@ def dtype_fill_out_dtype(request):
 
 
 class TestTake:
-    # Standard incompatible fill error.
-    fill_error = re.compile("Incompatible type for fill_value")
-
     def test_1d_fill_nonna(self, dtype_fill_out_dtype):
         dtype, fill_value, out_dtype = dtype_fill_out_dtype
-        data = np.random.randint(0, 2, 4).astype(dtype)
+        data = np.random.default_rng(2).integers(0, 2, 4).astype(dtype)
         indexer = [2, 1, 0, -1]
 
         result = algos.take_nd(data, indexer, fill_value=fill_value)
@@ -90,7 +58,7 @@ class TestTake:
 
     def test_2d_fill_nonna(self, dtype_fill_out_dtype):
         dtype, fill_value, out_dtype = dtype_fill_out_dtype
-        data = np.random.randint(0, 2, (5, 3)).astype(dtype)
+        data = np.random.default_rng(2).integers(0, 2, (5, 3)).astype(dtype)
         indexer = [2, 1, 0, -1]
 
         result = algos.take_nd(data, indexer, axis=0, fill_value=fill_value)
@@ -115,7 +83,7 @@ class TestTake:
     def test_3d_fill_nonna(self, dtype_fill_out_dtype):
         dtype, fill_value, out_dtype = dtype_fill_out_dtype
 
-        data = np.random.randint(0, 2, (5, 4, 3)).astype(dtype)
+        data = np.random.default_rng(2).integers(0, 2, (5, 4, 3)).astype(dtype)
         indexer = [2, 1, 0, -1]
 
         result = algos.take_nd(data, indexer, axis=0, fill_value=fill_value)
@@ -147,7 +115,7 @@ class TestTake:
         assert result.dtype == dtype
 
     def test_1d_other_dtypes(self):
-        arr = np.random.randn(10).astype(np.float32)
+        arr = np.random.default_rng(2).standard_normal(10).astype(np.float32)
 
         indexer = [1, 2, 3, -1]
         result = algos.take_nd(arr, indexer)
@@ -156,7 +124,7 @@ class TestTake:
         tm.assert_almost_equal(result, expected)
 
     def test_2d_other_dtypes(self):
-        arr = np.random.randn(10, 5).astype(np.float32)
+        arr = np.random.default_rng(2).standard_normal((10, 5)).astype(np.float32)
 
         indexer = [1, 2, 3, -1]
 
@@ -197,7 +165,7 @@ class TestTake:
         assert result.dtype == np.object_
 
     def test_2d_float32(self):
-        arr = np.random.randn(4, 3).astype(np.float32)
+        arr = np.random.default_rng(2).standard_normal((4, 3)).astype(np.float32)
         indexer = [0, 2, -1, 1, -1]
 
         # axis=0
@@ -215,7 +183,10 @@ class TestTake:
 
     def test_2d_datetime64(self):
         # 2005/01/01 - 2006/01/01
-        arr = np.random.randint(11_045_376, 11_360_736, (5, 3)) * 100_000_000_000
+        arr = (
+            np.random.default_rng(2).integers(11_045_376, 11_360_736, (5, 3))
+            * 100_000_000_000
+        )
         arr = arr.view(dtype="datetime64[ns]")
         indexer = [0, 2, -1, 1, -1]
 
@@ -329,6 +300,8 @@ class TestExtensionTake:
 
     def test_take_coerces_list(self):
         arr = [1, 2, 3]
-        result = algos.take(arr, [0, 0])
+        msg = "take accepting non-standard inputs is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = algos.take(arr, [0, 0])
         expected = np.array([1, 1])
         tm.assert_numpy_array_equal(result, expected)

@@ -3,15 +3,14 @@ Test extension array for storing nested data in a pandas container.
 
 The ListArray stores an ndarray of lists.
 """
+
 from __future__ import annotations
 
 import numbers
-import random
 import string
+from typing import TYPE_CHECKING
 
 import numpy as np
-
-from pandas._typing import type_t
 
 from pandas.core.dtypes.base import ExtensionDtype
 
@@ -21,6 +20,9 @@ from pandas.api.types import (
     is_string_dtype,
 )
 from pandas.core.arrays import ExtensionArray
+
+if TYPE_CHECKING:
+    from pandas._typing import type_t
 
 
 class ListDtype(ExtensionDtype):
@@ -53,7 +55,7 @@ class ListArray(ExtensionArray):
         self.data = values
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
         data = np.empty(len(scalars), dtype=object)
         data[:] = scalars
         return cls(data)
@@ -114,7 +116,10 @@ class ListArray(ExtensionArray):
         elif is_string_dtype(dtype) and not is_object_dtype(dtype):
             # numpy has problems with astype(str) for nested elements
             return np.array([str(x) for x in self.data], dtype=dtype)
-        return np.array(self.data, dtype=dtype, copy=copy)
+        elif not copy:
+            return np.asarray(self.data, dtype=dtype)
+        else:
+            return np.array(self.data, dtype=dtype, copy=copy)
 
     @classmethod
     def _concat_same_type(cls, to_concat):
@@ -124,9 +129,10 @@ class ListArray(ExtensionArray):
 
 def make_data():
     # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer
+    rng = np.random.default_rng(2)
     data = np.empty(100, dtype=object)
     data[:] = [
-        [random.choice(string.ascii_letters) for _ in range(random.randint(0, 10))]
+        [rng.choice(list(string.ascii_letters)) for _ in range(rng.integers(0, 10))]
         for _ in range(100)
     ]
     return data

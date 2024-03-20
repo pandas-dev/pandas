@@ -1,6 +1,7 @@
 """
 Tests for offset behavior with indices.
 """
+
 import pytest
 
 from pandas import (
@@ -44,7 +45,7 @@ from pandas.tseries.offsets import (
 )
 def test_apply_index(cls, n):
     offset = cls(n=n)
-    rng = date_range(start="1/1/2000", periods=100000, freq="T")
+    rng = date_range(start="1/1/2000", periods=100000, freq="min")
     ser = Series(rng)
 
     res = rng + offset

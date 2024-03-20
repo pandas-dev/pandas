@@ -4,9 +4,9 @@ from typing import Final
 
 magic: Final = (
     b"\x00\x00\x00\x00\x00\x00\x00\x00"
-    + b"\x00\x00\x00\x00\xc2\xea\x81\x60"
-    + b"\xb3\x14\x11\xcf\xbd\x92\x08\x00"
-    + b"\x09\xc7\x31\x8c\x18\x1f\x10\x11"
+    b"\x00\x00\x00\x00\xc2\xea\x81\x60"
+    b"\xb3\x14\x11\xcf\xbd\x92\x08\x00"
+    b"\x09\xc7\x31\x8c\x18\x1f\x10\x11"
 )
 
 align_1_checker_value: Final = b"3"
@@ -107,15 +107,64 @@ rdc_compression: Final = b"SASYZCR2"
 compression_literals: Final = [rle_compression, rdc_compression]
 
 # Incomplete list of encodings, using SAS nomenclature:
-# http://support.sas.com/documentation/cdl/en/nlsref/61893/HTML/default/viewer.htm#a002607278.htm
+# https://support.sas.com/documentation/onlinedoc/dfdmstudio/2.6/dmpdmsug/Content/dfU_Encodings_SAS.html
+# corresponding to the Python documentation of standard encodings
+# https://docs.python.org/3/library/codecs.html#standard-encodings
 encoding_names: Final = {
-    29: "latin1",
     20: "utf-8",
+    29: "latin1",
+    30: "latin2",
+    31: "latin3",
+    32: "latin4",
     33: "cyrillic",
-    60: "wlatin2",
-    61: "wcyrillic",
-    62: "wlatin1",
-    90: "ebcdic870",
+    34: "arabic",
+    35: "greek",
+    36: "hebrew",
+    37: "latin5",
+    38: "latin6",
+    39: "cp874",
+    40: "latin9",
+    41: "cp437",
+    42: "cp850",
+    43: "cp852",
+    44: "cp857",
+    45: "cp858",
+    46: "cp862",
+    47: "cp864",
+    48: "cp865",
+    49: "cp866",
+    50: "cp869",
+    51: "cp874",
+    # 52: "",  # not found
+    # 53: "",  # not found
+    # 54: "",  # not found
+    55: "cp720",
+    56: "cp737",
+    57: "cp775",
+    58: "cp860",
+    59: "cp863",
+    60: "cp1250",
+    61: "cp1251",
+    62: "cp1252",
+    63: "cp1253",
+    64: "cp1254",
+    65: "cp1255",
+    66: "cp1256",
+    67: "cp1257",
+    68: "cp1258",
+    118: "cp950",
+    # 119: "",  # not found
+    123: "big5",
+    125: "gb2312",
+    126: "cp936",
+    134: "euc_jp",
+    136: "cp932",
+    138: "shift_jis",
+    140: "euc-kr",
+    141: "cp949",
+    227: "latin8",
+    # 228: "", # not found
+    # 229: ""  # not found
 }
 
 
@@ -132,36 +181,36 @@ class SASIndex:
 
 
 subheader_signature_to_index: Final = {
-    b"\xF7\xF7\xF7\xF7": SASIndex.row_size_index,
-    b"\x00\x00\x00\x00\xF7\xF7\xF7\xF7": SASIndex.row_size_index,
-    b"\xF7\xF7\xF7\xF7\x00\x00\x00\x00": SASIndex.row_size_index,
-    b"\xF7\xF7\xF7\xF7\xFF\xFF\xFB\xFE": SASIndex.row_size_index,
-    b"\xF6\xF6\xF6\xF6": SASIndex.column_size_index,
-    b"\x00\x00\x00\x00\xF6\xF6\xF6\xF6": SASIndex.column_size_index,
-    b"\xF6\xF6\xF6\xF6\x00\x00\x00\x00": SASIndex.column_size_index,
-    b"\xF6\xF6\xF6\xF6\xFF\xFF\xFB\xFE": SASIndex.column_size_index,
-    b"\x00\xFC\xFF\xFF": SASIndex.subheader_counts_index,
-    b"\xFF\xFF\xFC\x00": SASIndex.subheader_counts_index,
-    b"\x00\xFC\xFF\xFF\xFF\xFF\xFF\xFF": SASIndex.subheader_counts_index,
-    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFC\x00": SASIndex.subheader_counts_index,
-    b"\xFD\xFF\xFF\xFF": SASIndex.column_text_index,
-    b"\xFF\xFF\xFF\xFD": SASIndex.column_text_index,
-    b"\xFD\xFF\xFF\xFF\xFF\xFF\xFF\xFF": SASIndex.column_text_index,
-    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFD": SASIndex.column_text_index,
-    b"\xFF\xFF\xFF\xFF": SASIndex.column_name_index,
-    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF": SASIndex.column_name_index,
-    b"\xFC\xFF\xFF\xFF": SASIndex.column_attributes_index,
-    b"\xFF\xFF\xFF\xFC": SASIndex.column_attributes_index,
-    b"\xFC\xFF\xFF\xFF\xFF\xFF\xFF\xFF": SASIndex.column_attributes_index,
-    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFC": SASIndex.column_attributes_index,
-    b"\xFE\xFB\xFF\xFF": SASIndex.format_and_label_index,
-    b"\xFF\xFF\xFB\xFE": SASIndex.format_and_label_index,
-    b"\xFE\xFB\xFF\xFF\xFF\xFF\xFF\xFF": SASIndex.format_and_label_index,
-    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFB\xFE": SASIndex.format_and_label_index,
-    b"\xFE\xFF\xFF\xFF": SASIndex.column_list_index,
-    b"\xFF\xFF\xFF\xFE": SASIndex.column_list_index,
-    b"\xFE\xFF\xFF\xFF\xFF\xFF\xFF\xFF": SASIndex.column_list_index,
-    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFE": SASIndex.column_list_index,
+    b"\xf7\xf7\xf7\xf7": SASIndex.row_size_index,
+    b"\x00\x00\x00\x00\xf7\xf7\xf7\xf7": SASIndex.row_size_index,
+    b"\xf7\xf7\xf7\xf7\x00\x00\x00\x00": SASIndex.row_size_index,
+    b"\xf7\xf7\xf7\xf7\xff\xff\xfb\xfe": SASIndex.row_size_index,
+    b"\xf6\xf6\xf6\xf6": SASIndex.column_size_index,
+    b"\x00\x00\x00\x00\xf6\xf6\xf6\xf6": SASIndex.column_size_index,
+    b"\xf6\xf6\xf6\xf6\x00\x00\x00\x00": SASIndex.column_size_index,
+    b"\xf6\xf6\xf6\xf6\xff\xff\xfb\xfe": SASIndex.column_size_index,
+    b"\x00\xfc\xff\xff": SASIndex.subheader_counts_index,
+    b"\xff\xff\xfc\x00": SASIndex.subheader_counts_index,
+    b"\x00\xfc\xff\xff\xff\xff\xff\xff": SASIndex.subheader_counts_index,
+    b"\xff\xff\xff\xff\xff\xff\xfc\x00": SASIndex.subheader_counts_index,
+    b"\xfd\xff\xff\xff": SASIndex.column_text_index,
+    b"\xff\xff\xff\xfd": SASIndex.column_text_index,
+    b"\xfd\xff\xff\xff\xff\xff\xff\xff": SASIndex.column_text_index,
+    b"\xff\xff\xff\xff\xff\xff\xff\xfd": SASIndex.column_text_index,
+    b"\xff\xff\xff\xff": SASIndex.column_name_index,
+    b"\xff\xff\xff\xff\xff\xff\xff\xff": SASIndex.column_name_index,
+    b"\xfc\xff\xff\xff": SASIndex.column_attributes_index,
+    b"\xff\xff\xff\xfc": SASIndex.column_attributes_index,
+    b"\xfc\xff\xff\xff\xff\xff\xff\xff": SASIndex.column_attributes_index,
+    b"\xff\xff\xff\xff\xff\xff\xff\xfc": SASIndex.column_attributes_index,
+    b"\xfe\xfb\xff\xff": SASIndex.format_and_label_index,
+    b"\xff\xff\xfb\xfe": SASIndex.format_and_label_index,
+    b"\xfe\xfb\xff\xff\xff\xff\xff\xff": SASIndex.format_and_label_index,
+    b"\xff\xff\xff\xff\xff\xff\xfb\xfe": SASIndex.format_and_label_index,
+    b"\xfe\xff\xff\xff": SASIndex.column_list_index,
+    b"\xff\xff\xff\xfe": SASIndex.column_list_index,
+    b"\xfe\xff\xff\xff\xff\xff\xff\xff": SASIndex.column_list_index,
+    b"\xff\xff\xff\xff\xff\xff\xff\xfe": SASIndex.column_list_index,
 }
 
 

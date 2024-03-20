@@ -1,6 +1,7 @@
 """
 Benchmarks for pandas at the package-level.
 """
+
 import subprocess
 import sys
 
@@ -11,7 +12,7 @@ class TimeImport:
         #  measurement of the import time we actually care about,
         #  without the subprocess or interpreter overhead
         cmd = [sys.executable, "-X", "importtime", "-c", "import pandas as pd"]
-        p = subprocess.run(cmd, stderr=subprocess.PIPE)
+        p = subprocess.run(cmd, stderr=subprocess.PIPE, check=True)
 
         line = p.stderr.splitlines()[-1]
         field = line.split(b"|")[-2].strip()

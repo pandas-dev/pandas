@@ -1,4 +1,5 @@
 """Tests dealing with the NDFrame.allows_duplicates."""
+
 import operator
 
 import numpy as np
@@ -45,12 +46,11 @@ class TestPreserves:
         s = pd.Series([0, 1], index=["a", "b"]).set_flags(allows_duplicate_labels=False)
         assert func(s).flags.allows_duplicate_labels is False
 
-    @pytest.mark.parametrize(
-        "other", [pd.Series(0, index=["a", "b", "c"]), pd.Series(0, index=["a", "b"])]
-    )
+    @pytest.mark.parametrize("index", [["a", "b", "c"], ["a", "b"]])
     # TODO: frame
     @not_implemented
-    def test_align(self, other):
+    def test_align(self, index):
+        other = pd.Series(0, index=index)
         s = pd.Series([0, 1], index=["a", "b"]).set_flags(allows_duplicate_labels=False)
         a, b = s.align(other)
         assert a.flags.allows_duplicate_labels is False
@@ -68,9 +68,7 @@ class TestPreserves:
         assert ser.to_frame().flags.allows_duplicate_labels is False
 
     @pytest.mark.parametrize("func", ["add", "sub"])
-    @pytest.mark.parametrize(
-        "frame", [False, pytest.param(True, marks=not_implemented)]
-    )
+    @pytest.mark.parametrize("frame", [False, True])
     @pytest.mark.parametrize("other", [1, pd.Series([1, 2], name="A")])
     def test_binops(self, func, other, frame):
         df = pd.Series([1, 2], name="A", index=["a", "b"]).set_flags(
@@ -92,106 +90,70 @@ class TestPreserves:
         assert df.loc[[0]].flags.allows_duplicate_labels is False
         assert df.loc[0, ["A"]].flags.allows_duplicate_labels is False
 
-    @pytest.mark.xfail(reason="Unclear behavior.")
-    def test_ndframe_getitem_caching_issue(self):
-        # NDFrame.__getitem__ will cache the first df['A']. May need to
-        # invalidate that cache? Update the cached entries?
-        df = pd.DataFrame({"A": [0]}).set_flags(allows_duplicate_labels=False)
-        assert df["A"].flags.allows_duplicate_labels is False
-        df.flags.allows_duplicate_labels = True
-        assert df["A"].flags.allows_duplicate_labels is True
-
     @pytest.mark.parametrize(
         "objs, kwargs",
         [
             # Series
             (
                 [
-                    pd.Series(1, index=["a", "b"]).set_flags(
-                        allows_duplicate_labels=False
-                    ),
-                    pd.Series(2, index=["c", "d"]).set_flags(
-                        allows_duplicate_labels=False
-                    ),
+                    pd.Series(1, index=["a", "b"]),
+                    pd.Series(2, index=["c", "d"]),
                 ],
                 {},
             ),
             (
                 [
-                    pd.Series(1, index=["a", "b"]).set_flags(
-                        allows_duplicate_labels=False
-                    ),
-                    pd.Series(2, index=["a", "b"]).set_flags(
-                        allows_duplicate_labels=False
-                    ),
+                    pd.Series(1, index=["a", "b"]),
+                    pd.Series(2, index=["a", "b"]),
                 ],
                 {"ignore_index": True},
             ),
             (
                 [
-                    pd.Series(1, index=["a", "b"]).set_flags(
-                        allows_duplicate_labels=False
-                    ),
-                    pd.Series(2, index=["a", "b"]).set_flags(
-                        allows_duplicate_labels=False
-                    ),
+                    pd.Series(1, index=["a", "b"]),
+                    pd.Series(2, index=["a", "b"]),
                 ],
                 {"axis": 1},
             ),
             # Frame
             (
                 [
-                    pd.DataFrame({"A": [1, 2]}, index=["a", "b"]).set_flags(
-                        allows_duplicate_labels=False
-                    ),
-                    pd.DataFrame({"A": [1, 2]}, index=["c", "d"]).set_flags(
-                        allows_duplicate_labels=False
-                    ),
+                    pd.DataFrame({"A": [1, 2]}, index=["a", "b"]),
+                    pd.DataFrame({"A": [1, 2]}, index=["c", "d"]),
                 ],
                 {},
             ),
             (
                 [
-                    pd.DataFrame({"A": [1, 2]}, index=["a", "b"]).set_flags(
-                        allows_duplicate_labels=False
-                    ),
-                    pd.DataFrame({"A": [1, 2]}, index=["a", "b"]).set_flags(
-                        allows_duplicate_labels=False
-                    ),
+                    pd.DataFrame({"A": [1, 2]}, index=["a", "b"]),
+                    pd.DataFrame({"A": [1, 2]}, index=["a", "b"]),
                 ],
                 {"ignore_index": True},
             ),
             (
                 [
-                    pd.DataFrame({"A": [1, 2]}, index=["a", "b"]).set_flags(
-                        allows_duplicate_labels=False
-                    ),
-                    pd.DataFrame({"B": [1, 2]}, index=["a", "b"]).set_flags(
-                        allows_duplicate_labels=False
-                    ),
+                    pd.DataFrame({"A": [1, 2]}, index=["a", "b"]),
+                    pd.DataFrame({"B": [1, 2]}, index=["a", "b"]),
                 ],
                 {"axis": 1},
             ),
             # Series / Frame
             (
                 [
-                    pd.DataFrame({"A": [1, 2]}, index=["a", "b"]).set_flags(
-                        allows_duplicate_labels=False
-                    ),
-                    pd.Series([1, 2], index=["a", "b"], name="B",).set_flags(
-                        allows_duplicate_labels=False,
-                    ),
+                    pd.DataFrame({"A": [1, 2]}, index=["a", "b"]),
+                    pd.Series([1, 2], index=["a", "b"], name="B"),
                 ],
                 {"axis": 1},
             ),
         ],
     )
     def test_concat(self, objs, kwargs):
+        objs = [x.set_flags(allows_duplicate_labels=False) for x in objs]
         result = pd.concat(objs, **kwargs)
         assert result.flags.allows_duplicate_labels is False
 
     @pytest.mark.parametrize(
-        "left, right, kwargs, expected",
+        "left, right, expected",
         [
             # false false false
             pytest.param(
@@ -201,7 +163,6 @@ class TestPreserves:
                 pd.DataFrame({"B": [0, 1]}, index=["a", "d"]).set_flags(
                     allows_duplicate_labels=False
                 ),
-                {"left_index": True, "right_index": True},
                 False,
                 marks=not_implemented,
             ),
@@ -211,7 +172,6 @@ class TestPreserves:
                     allows_duplicate_labels=False
                 ),
                 pd.DataFrame({"B": [0, 1]}, index=["a", "d"]),
-                {"left_index": True, "right_index": True},
                 False,
                 marks=not_implemented,
             ),
@@ -219,13 +179,12 @@ class TestPreserves:
             (
                 pd.DataFrame({"A": [0, 1]}, index=["a", "b"]),
                 pd.DataFrame({"B": [0, 1]}, index=["a", "d"]),
-                {"left_index": True, "right_index": True},
                 True,
             ),
         ],
     )
-    def test_merge(self, left, right, kwargs, expected):
-        result = pd.merge(left, right, **kwargs)
+    def test_merge(self, left, right, expected):
+        result = pd.merge(left, right, left_index=True, right_index=True)
         assert result.flags.allows_duplicate_labels is expected
 
     @not_implemented
@@ -327,26 +286,15 @@ class TestRaises:
         with pytest.raises(pd.errors.DuplicateLabelError, match=msg):
             getter(target)
 
-    @pytest.mark.parametrize(
-        "objs, kwargs",
-        [
-            (
-                [
-                    pd.Series(1, index=[0, 1], name="a").set_flags(
-                        allows_duplicate_labels=False
-                    ),
-                    pd.Series(2, index=[0, 1], name="a").set_flags(
-                        allows_duplicate_labels=False
-                    ),
-                ],
-                {"axis": 1},
-            )
-        ],
-    )
-    def test_concat_raises(self, objs, kwargs):
+    def test_concat_raises(self):
+        objs = [
+            pd.Series(1, index=[0, 1], name="a"),
+            pd.Series(2, index=[0, 1], name="a"),
+        ]
+        objs = [x.set_flags(allows_duplicate_labels=False) for x in objs]
         msg = "Index has duplicates."
         with pytest.raises(pd.errors.DuplicateLabelError, match=msg):
-            pd.concat(objs, **kwargs)
+            pd.concat(objs, axis=1)
 
     @not_implemented
     def test_merge_raises(self):
@@ -416,7 +364,6 @@ def test_dataframe_insert_raises():
     "method, frame_only",
     [
         (operator.methodcaller("set_index", "A", inplace=True), True),
-        (operator.methodcaller("set_axis", ["A", "B"], inplace=True), False),
         (operator.methodcaller("reset_index", inplace=True), True),
         (operator.methodcaller("rename", lambda x: x, inplace=True), False),
     ],
@@ -429,19 +376,11 @@ def test_inplace_raises(method, frame_only):
     s.flags.allows_duplicate_labels = False
     msg = "Cannot specify"
 
-    warn_msg = "Series.set_axis 'inplace' keyword"
-    if "set_axis" in str(method):
-        warn = FutureWarning
-    else:
-        warn = None
-
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(warn, match=warn_msg):
-            method(df)
+        method(df)
     if not frame_only:
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(warn, match=warn_msg):
-                method(s)
+            method(s)
 
 
 def test_pickle():

@@ -328,19 +328,36 @@ More consistent behavior for some groupby methods:
 
 - groupby ``head`` and ``tail`` now act more like ``filter`` rather than an aggregation:
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     df = pd.DataFrame([[1, 2], [1, 4], [5, 6]], columns=['A', 'B'])
-     g = df.groupby('A')
-     g.head(1)  # filters DataFrame
+     In [1]: df = pd.DataFrame([[1, 2], [1, 4], [5, 6]], columns=['A', 'B'])
 
-     g.apply(lambda x: x.head(1))  # used to simply fall-through
+     In [2]: g = df.groupby('A')
+
+     In [3]: g.head(1)  # filters DataFrame
+     Out[3]:
+        A  B
+     0  1  2
+     2  5  6
+
+     In [4]: g.apply(lambda x: x.head(1))  # used to simply fall-through
+     Out[4]:
+          A  B
+     A
+     1 0  1  2
+     5 2  5  6
 
 - groupby head and tail respect column selection:
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     g[['B']].head(1)
+     In [19]: g[['B']].head(1)
+     Out[19]:
+        B
+     0  2
+     2  6
+
+     [2 rows x 1 columns]
 
 - groupby ``nth`` now reduces by default; filtering can be achieved by passing ``as_index=False``. With an optional ``dropna`` argument to ignore
   NaN. See :ref:`the docs <groupby.nth>`.
@@ -437,7 +454,7 @@ This ``engine`` can then be used to write or read data to/from this database:
 .. ipython:: python
 
     df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'c']})
-    df.to_sql('db_table', engine, index=False)
+    df.to_sql(name='db_table', con=engine, index=False)
 
 You can read data from a database by specifying the table name:
 
@@ -494,7 +511,7 @@ See also issues (:issue:`6134`, :issue:`4036`, :issue:`3057`, :issue:`2598`, :is
 
    You should specify all axes in the ``.loc`` specifier, meaning the indexer for the **index** and
    for the **columns**. Their are some ambiguous cases where the passed indexer could be mis-interpreted
-   as indexing *both* axes, rather than into say the MuliIndex for the rows.
+   as indexing *both* axes, rather than into say the MultiIndex for the rows.
 
    You should do this:
 
@@ -843,22 +860,61 @@ Enhancements
                     datetime.datetime(2013, 9, 5, 10, 0)]})
      df
 
-     df.pivot_table(values='Quantity',
-                    index=pd.Grouper(freq='M', key='Date'),
-                    columns=pd.Grouper(freq='M', key='PayDay'),
-                    aggfunc=np.sum)
+  .. code-block:: ipython
+
+     In [75]: df.pivot_table(values='Quantity',
+        ....:                index=pd.Grouper(freq='M', key='Date'),
+        ....:                columns=pd.Grouper(freq='M', key='PayDay'),
+        ....:                aggfunc="sum")
+     Out[75]:
+     PayDay      2013-09-30  2013-10-31  2013-11-30
+     Date
+     2013-09-30         NaN         3.0         NaN
+     2013-10-31         6.0         NaN         1.0
+     2013-11-30         NaN         9.0         NaN
+
+     [3 rows x 3 columns]
 
 - Arrays of strings can be wrapped to a specified width (``str.wrap``) (:issue:`6999`)
 - Add :meth:`~Series.nsmallest` and :meth:`Series.nlargest` methods to Series, See :ref:`the docs <basics.nsorted>` (:issue:`3960`)
 
 - ``PeriodIndex`` fully supports partial string indexing like ``DatetimeIndex`` (:issue:`7043`)
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     prng = pd.period_range('2013-01-01 09:00', periods=100, freq='H')
-     ps = pd.Series(np.random.randn(len(prng)), index=prng)
-     ps
-     ps['2013-01-02']
+     In [76]: prng = pd.period_range('2013-01-01 09:00', periods=100, freq='H')
+
+     In [77]: ps = pd.Series(np.random.randn(len(prng)), index=prng)
+
+     In [78]: ps
+     Out[78]:
+     2013-01-01 09:00    0.015696
+     2013-01-01 10:00   -2.242685
+     2013-01-01 11:00    1.150036
+     2013-01-01 12:00    0.991946
+     2013-01-01 13:00    0.953324
+                           ...
+     2013-01-05 08:00    0.285296
+     2013-01-05 09:00    0.484288
+     2013-01-05 10:00    1.363482
+     2013-01-05 11:00   -0.781105
+     2013-01-05 12:00   -0.468018
+     Freq: H, Length: 100, dtype: float64
+
+     In [79]: ps['2013-01-02']
+     Out[79]:
+     2013-01-02 00:00    0.553439
+     2013-01-02 01:00    1.318152
+     2013-01-02 02:00   -0.469305
+     2013-01-02 03:00    0.675554
+     2013-01-02 04:00   -1.817027
+                           ...
+     2013-01-02 19:00    0.036142
+     2013-01-02 20:00   -2.074978
+     2013-01-02 21:00    0.247792
+     2013-01-02 22:00   -0.897157
+     2013-01-02 23:00   -0.136795
+     Freq: H, Length: 24, dtype: float64
 
 - ``read_excel`` can now read milliseconds in Excel dates and times with xlrd >= 0.9.3. (:issue:`5945`)
 - ``pd.stats.moments.rolling_var`` now uses Welford's method for increased numerical stability (:issue:`6817`)

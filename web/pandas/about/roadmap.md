@@ -17,7 +17,7 @@ tracked on our [issue tracker](https://github.com/pandas-dev/pandas/issues).
 
 The roadmap is defined as a set of major enhancement proposals named PDEPs.
 For more information about PDEPs, and how to submit one, please refer to
-[PEDP-1](/pdeps/0001-purpose-and-guidelines.html).
+[PEDP-1]({{ base_url }}pdeps/0001-purpose-and-guidelines.html).
 
 ## PDEPs
 
@@ -27,7 +27,7 @@ For more information about PDEPs, and how to submit one, please refer to
 
 <ul>
 {% for pdep in pdeps[pdep_type] %}
-    <li><a href="{{ pdep.url }}">{{ pdep.title }}</a></li>
+    <li><a href="{% if not pdep.url.startswith("http") %}{{ base_url }}{% endif %}{{ pdep.url }}">{{ pdep.title }}</a></li>
 {% else %}
     <li>There are currently no PDEPs with this status</li>
 {% endfor %}
@@ -89,33 +89,6 @@ We'd like to provide better-integrated support for Arrow memory and
 data types within pandas. This will let us take advantage of its I/O
 capabilities and provide for better interoperability with other
 languages and libraries using Arrow.
-
-### Block manager rewrite
-
-We'd like to replace pandas current internal data structures (a
-collection of 1 or 2-D arrays) with a simpler collection of 1-D arrays.
-
-Pandas internal data model is quite complex. A DataFrame is made up of
-one or more 2-dimensional "blocks", with one or more blocks per dtype.
-This collection of 2-D arrays is managed by the BlockManager.
-
-The primary benefit of the BlockManager is improved performance on
-certain operations (construction from a 2D array, binary operations,
-reductions across the columns), especially for wide DataFrames. However,
-the BlockManager substantially increases the complexity and maintenance
-burden of pandas.
-
-By replacing the BlockManager we hope to achieve
-
--   Substantially simpler code
--   Easier extensibility with new logical types
--   Better user control over memory use and layout
--   Improved micro-performance
--   Option to provide a C / Cython API to pandas' internals
-
-See [these design
-documents](https://dev.pandas.io/pandas2/internal-architecture.html#removal-of-blockmanager-new-dataframe-internals)
-for more.
 
 ### Decoupling of indexing and internals
 

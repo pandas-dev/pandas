@@ -1,7 +1,5 @@
 # Test GroupBy._positional_selector positional grouped indexing GH#42864
 
-import random
-
 import numpy as np
 import pytest
 
@@ -120,43 +118,39 @@ def test_doc_examples():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.fixture()
-def multiindex_data():
+def test_multiindex():
+    # Test the multiindex mentioned as the use-case in the documentation
+
+    def _make_df_from_data(data):
+        rows = {}
+        for date in data:
+            for level in data[date]:
+                rows[(date, level[0])] = {"A": level[1], "B": level[2]}
+
+        df = pd.DataFrame.from_dict(rows, orient="index")
+        df.index.names = ("Date", "Item")
+        return df
+
+    rng = np.random.default_rng(2)
     ndates = 100
     nitems = 20
     dates = pd.date_range("20130101", periods=ndates, freq="D")
     items = [f"item {i}" for i in range(nitems)]
 
-    data = {}
+    multiindex_data = {}
     for date in dates:
-        nitems_for_date = nitems - random.randint(0, 12)
+        nitems_for_date = nitems - rng.integers(0, 12)
         levels = [
-            (item, random.randint(0, 10000) / 100, random.randint(0, 10000) / 100)
+            (item, rng.integers(0, 10000) / 100, rng.integers(0, 10000) / 100)
             for item in items[:nitems_for_date]
         ]
         levels.sort(key=lambda x: x[1])
-        data[date] = levels
+        multiindex_data[date] = levels
 
-    return data
-
-
-def _make_df_from_data(data):
-    rows = {}
-    for date in data:
-        for level in data[date]:
-            rows[(date, level[0])] = {"A": level[1], "B": level[2]}
-
-    df = pd.DataFrame.from_dict(rows, orient="index")
-    df.index.names = ("Date", "Item")
-    return df
-
-
-def test_multiindex(multiindex_data):
-    # Test the multiindex mentioned as the use-case in the documentation
     df = _make_df_from_data(multiindex_data)
     result = df.groupby("Date", as_index=False).nth(slice(3, -3))
 
-    sliced = {date: multiindex_data[date][3:-3] for date in multiindex_data}
+    sliced = {date: values[3:-3] for date, values in multiindex_data.items()}
     expected = _make_df_from_data(sliced)
 
     tm.assert_frame_equal(result, expected)
@@ -188,12 +182,12 @@ def test_against_head_and_tail(arg, method, simulated):
         result = grouped._positional_selector[:arg]
 
         if simulated:
-            indices = []
-            for j in range(size):
-                for i in range(n_groups):
-                    if j * n_groups + i < n_groups * n_rows_per_group:
-                        indices.append(j * n_groups + i)
-
+            indices = [
+                j * n_groups + i
+                for j in range(size)
+                for i in range(n_groups)
+                if j * n_groups + i < n_groups * n_rows_per_group
+            ]
             expected = df.iloc[indices]
 
         else:
@@ -203,12 +197,12 @@ def test_against_head_and_tail(arg, method, simulated):
         result = grouped._positional_selector[-arg:]
 
         if simulated:
-            indices = []
-            for j in range(size):
-                for i in range(n_groups):
-                    if (n_rows_per_group + j - size) * n_groups + i >= 0:
-                        indices.append((n_rows_per_group + j - size) * n_groups + i)
-
+            indices = [
+                (n_rows_per_group + j - size) * n_groups + i
+                for j in range(size)
+                for i in range(n_groups)
+                if (n_rows_per_group + j - size) * n_groups + i >= 0
+            ]
             expected = df.iloc[indices]
 
         else:
@@ -268,22 +262,6 @@ def test_step(step):
     index += [9 + i for i in range(0, 3, step)]
 
     expected = pd.DataFrame(data, columns=["A", "B"], index=index)
-
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.fixture()
-def column_group_df():
-    return pd.DataFrame(
-        [[0, 1, 2, 3, 4, 5, 6], [0, 0, 1, 0, 1, 0, 2]],
-        columns=["A", "B", "C", "D", "E", "F", "G"],
-    )
-
-
-def test_column_axis(column_group_df):
-    g = column_group_df.groupby(column_group_df.iloc[1], axis=1)
-    result = g._positional_selector[1:-1]
-    expected = column_group_df.iloc[:, [1, 3]]
 
     tm.assert_frame_equal(result, expected)
 

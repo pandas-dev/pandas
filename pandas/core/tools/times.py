@@ -4,6 +4,7 @@ from datetime import (
     datetime,
     time,
 )
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -15,8 +16,16 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
+if TYPE_CHECKING:
+    from pandas._typing import DateTimeErrorChoices
 
-def to_time(arg, format=None, infer_time_format=False, errors="raise"):
+
+def to_time(
+    arg,
+    format: str | None = None,
+    infer_time_format: bool = False,
+    errors: DateTimeErrorChoices = "raise",
+):
     """
     Parse time strings to time objects using fixed strptime formats ("%H:%M",
     "%H%M", "%I:%M%p", "%I%M%p", "%H:%M:%S", "%H%M%S", "%I:%M:%S%p",
@@ -34,18 +43,18 @@ def to_time(arg, format=None, infer_time_format=False, errors="raise"):
     infer_time_format: bool, default False
         Infer the time format based on the first non-NaN element.  If all
         strings are in the same format, this will speed up conversion.
-    errors : {'ignore', 'raise', 'coerce'}, default 'raise'
+    errors : {'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception
         - If 'coerce', then invalid parsing will be set as None
-        - If 'ignore', then invalid parsing will return the input
 
     Returns
     -------
     datetime.time
     """
+    if errors not in ("raise", "coerce"):
+        raise ValueError("errors must be one of 'raise', or 'coerce'.")
 
     def _convert_listlike(arg, format):
-
         if isinstance(arg, (list, tuple)):
             arg = np.array(arg, dtype="O")
 
@@ -71,33 +80,31 @@ def to_time(arg, format=None, infer_time_format=False, errors="raise"):
                             f"format {format}"
                         )
                         raise ValueError(msg) from err
-                    elif errors == "ignore":
-                        return arg
-                    else:
-                        times.append(None)
+                    times.append(None)
         else:
             formats = _time_formats[:]
             format_found = False
             for element in arg:
                 time_object = None
-                for time_format in formats:
-                    try:
-                        time_object = datetime.strptime(element, time_format).time()
-                        if not format_found:
-                            # Put the found format in front
-                            fmt = formats.pop(formats.index(time_format))
-                            formats.insert(0, fmt)
-                            format_found = True
-                        break
-                    except (ValueError, TypeError):
-                        continue
+                try:
+                    time_object = time.fromisoformat(element)
+                except (ValueError, TypeError):
+                    for time_format in formats:
+                        try:
+                            time_object = datetime.strptime(element, time_format).time()
+                            if not format_found:
+                                # Put the found format in front
+                                fmt = formats.pop(formats.index(time_format))
+                                formats.insert(0, fmt)
+                                format_found = True
+                            break
+                        except (ValueError, TypeError):
+                            continue
 
                 if time_object is not None:
                     times.append(time_object)
                 elif errors == "raise":
                     raise ValueError(f"Cannot convert arg {arg} to a time")
-                elif errors == "ignore":
-                    return arg
                 else:
                     times.append(None)
 

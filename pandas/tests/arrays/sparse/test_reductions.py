@@ -3,13 +3,11 @@ import pytest
 
 from pandas import (
     NaT,
+    SparseDtype,
     Timestamp,
     isna,
 )
-from pandas.core.arrays.sparse import (
-    SparseArray,
-    SparseDtype,
-)
+from pandas.core.arrays.sparse import SparseArray
 
 
 class TestReductions:
@@ -128,13 +126,13 @@ class TestReductions:
 
     @pytest.mark.parametrize(
         "arr",
-        [np.array([0, 1, np.nan, 1]), np.array([0, 1, 1])],
+        [[0, 1, np.nan, 1], [0, 1, 1]],
     )
     @pytest.mark.parametrize("fill_value", [0, 1, np.nan])
     @pytest.mark.parametrize("min_count, expected", [(3, 2), (4, np.nan)])
     def test_sum_min_count(self, arr, fill_value, min_count, expected):
         # GH#25777
-        sparray = SparseArray(arr, fill_value=fill_value)
+        sparray = SparseArray(np.array(arr), fill_value=fill_value)
         result = sparray.sum(min_count=min_count)
         if np.isnan(expected):
             assert np.isnan(result)
@@ -142,7 +140,7 @@ class TestReductions:
             assert result == expected
 
     def test_bool_sum_min_count(self):
-        spar_bool = SparseArray([False, True] * 5, dtype=np.bool8, fill_value=True)
+        spar_bool = SparseArray([False, True] * 5, dtype=np.bool_, fill_value=True)
         res = spar_bool.sum(min_count=1)
         assert res == 5
         res = spar_bool.sum(min_count=11)
@@ -298,11 +296,9 @@ class TestArgmaxArgmin:
         assert argmax_result == argmax_expected
         assert argmin_result == argmin_expected
 
-    @pytest.mark.parametrize(
-        "arr,method",
-        [(SparseArray([]), "argmax"), (SparseArray([]), "argmin")],
-    )
-    def test_empty_array(self, arr, method):
+    @pytest.mark.parametrize("method", ["argmax", "argmin"])
+    def test_empty_array(self, method):
         msg = f"attempt to get {method} of an empty sequence"
+        arr = SparseArray([])
         with pytest.raises(ValueError, match=msg):
-            arr.argmax() if method == "argmax" else arr.argmin()
+            getattr(arr, method)()

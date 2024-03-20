@@ -51,7 +51,7 @@ def test_conversions(data_missing):
     # astype to object series
     df = pd.DataFrame({"A": data_missing})
     result = df["A"].astype("object")
-    expected = pd.Series(np.array([np.nan, 1], dtype=object), name="A")
+    expected = pd.Series(np.array([pd.NA, 1], dtype=object), name="A")
     tm.assert_series_equal(result, expected)
 
     # convert to object ndarray
@@ -175,32 +175,34 @@ def test_to_integer_array_dtype_keyword(constructor):
 
 
 def test_to_integer_array_float():
-    result = IntegerArray._from_sequence([1.0, 2.0])
+    result = IntegerArray._from_sequence([1.0, 2.0], dtype="Int64")
     expected = pd.array([1, 2], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
     with pytest.raises(TypeError, match="cannot safely cast non-equivalent"):
-        IntegerArray._from_sequence([1.5, 2.0])
+        IntegerArray._from_sequence([1.5, 2.0], dtype="Int64")
 
     # for float dtypes, the itemsize is not preserved
-    result = IntegerArray._from_sequence(np.array([1.0, 2.0], dtype="float32"))
+    result = IntegerArray._from_sequence(
+        np.array([1.0, 2.0], dtype="float32"), dtype="Int64"
+    )
     assert result.dtype == Int64Dtype()
 
 
 def test_to_integer_array_str():
-    result = IntegerArray._from_sequence(["1", "2", None])
+    result = IntegerArray._from_sequence(["1", "2", None], dtype="Int64")
     expected = pd.array([1, 2, np.nan], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
     with pytest.raises(
         ValueError, match=r"invalid literal for int\(\) with base 10: .*"
     ):
-        IntegerArray._from_sequence(["1", "2", ""])
+        IntegerArray._from_sequence(["1", "2", ""], dtype="Int64")
 
     with pytest.raises(
         ValueError, match=r"invalid literal for int\(\) with base 10: .*"
     ):
-        IntegerArray._from_sequence(["1.5", "2.0"])
+        IntegerArray._from_sequence(["1.5", "2.0"], dtype="Int64")
 
 
 @pytest.mark.parametrize(
@@ -233,4 +235,11 @@ def test_to_integer_array(values, to_dtype, result_dtype):
     result = IntegerArray._from_sequence(values, dtype=to_dtype)
     assert result.dtype == result_dtype()
     expected = pd.array(values, dtype=result_dtype())
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_integer_array_from_boolean():
+    # GH31104
+    expected = pd.array(np.array([True, False]), dtype="Int64")
+    result = pd.array(np.array([True, False], dtype=object), dtype="Int64")
     tm.assert_extension_array_equal(result, expected)

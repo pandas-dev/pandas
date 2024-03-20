@@ -36,7 +36,11 @@
 *.py[ocd]
 *.so
 .build_cache_dir
+.mesonpy-native-file.ini
 MANIFEST
+compile_commands.json
+debug
+.debug
 
 # Python files #
 ################
@@ -53,6 +57,9 @@ dist
 # type checkers
 pandas/py.typed
 
+# pyenv
+.python-version
+
 # tox testing tool
 .tox
 # rope
@@ -67,11 +74,14 @@ coverage.xml
 coverage_html_report
 .mypy_cache
 *.pytest_cache
+.ruff_cache
 # hypothesis test database
 .hypothesis/
 __pycache__
 # pytest-monkeytype
 monkeytype.sqlite3
+# meson editable install folder
+.mesonpy
 
 
 # OS generated files #
@@ -95,10 +105,11 @@ scikits
 # Generated Sources #
 #####################
 !skts.c
-!np_datetime.c
-!np_datetime_strings.c
 *.c
 *.cpp
+!pandas/_libs/src/**/*.c
+!pandas/_libs/src/**/*.h
+!pandas/_libs/include/**/*.h
 
 # Unit / Performance Testing #
 ##############################

@@ -20,11 +20,19 @@ from pandas.core.base import (
 )
 
 
+def series_via_frame_from_dict(x, **kwargs):
+    return DataFrame({"a": x}, **kwargs)["a"]
+
+
+def series_via_frame_from_scalar(x, **kwargs):
+    return DataFrame(x, **kwargs)[0]
+
+
 @pytest.fixture(
     params=[
         Series,
-        lambda x, **kwargs: DataFrame({"a": x}, **kwargs)["a"],
-        lambda x, **kwargs: DataFrame(x, **kwargs)[0],
+        series_via_frame_from_dict,
+        series_via_frame_from_scalar,
         Index,
     ],
     ids=["Series", "DataFrame-dict", "DataFrame-array", "Index"],
@@ -35,20 +43,19 @@ def constructor(request):
 
 class TestPandasDelegate:
     class Delegator:
-        _properties = ["foo"]
-        _methods = ["bar"]
+        _properties = ["prop"]
+        _methods = ["test_method"]
 
-        def _set_foo(self, value):
-            self.foo = value
+        def _set_prop(self, value):
+            self.prop = value
 
-        def _get_foo(self):
-            return self.foo
+        def _get_prop(self):
+            return self.prop
 
-        foo = property(_get_foo, _set_foo, doc="foo property")
+        prop = property(_get_prop, _set_prop, doc="foo property")
 
-        def bar(self, *args, **kwargs):
-            """a test bar method"""
-            pass
+        def test_method(self, *args, **kwargs):
+            """a test method"""
 
     class Delegate(PandasDelegate, PandasObject):
         def __init__(self, obj) -> None:
@@ -70,17 +77,17 @@ class TestPandasDelegate:
 
         delegate = self.Delegate(self.Delegator())
 
-        msg = "You cannot access the property foo"
+        msg = "You cannot access the property prop"
         with pytest.raises(TypeError, match=msg):
-            delegate.foo
+            delegate.prop
 
-        msg = "The property foo cannot be set"
+        msg = "The property prop cannot be set"
         with pytest.raises(TypeError, match=msg):
-            delegate.foo = 5
+            delegate.prop = 5
 
-        msg = "You cannot access the property foo"
+        msg = "You cannot access the property prop"
         with pytest.raises(TypeError, match=msg):
-            delegate.foo()
+            delegate.prop
 
     @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
     def test_memory_usage(self):
@@ -117,15 +124,6 @@ class TestConstruction:
     # Index and DataFrame
 
     @pytest.mark.parametrize(
-        "klass",
-        [
-            Series,
-            lambda x, **kwargs: DataFrame({"a": x}, **kwargs)["a"],
-            lambda x, **kwargs: DataFrame(x, **kwargs)[0],
-            Index,
-        ],
-    )
-    @pytest.mark.parametrize(
         "a",
         [
             np.array(["2263-01-01"], dtype="datetime64[D]"),
@@ -140,30 +138,38 @@ class TestConstruction:
             "object-string",
         ],
     )
-    def test_constructor_datetime_outofbound(self, a, klass):
+    def test_constructor_datetime_outofbound(
+        self, a, constructor, request, using_infer_string
+    ):
         # GH-26853 (+ bug GH-26206 out of bound non-ns unit)
 
         # No dtype specified (dtype inference)
         # datetime64[non-ns] raise error, other cases result in object dtype
         # and preserve original data
         if a.dtype.kind == "M":
-            msg = "Out of bounds"
-            with pytest.raises(pd.errors.OutOfBoundsDatetime, match=msg):
-                klass(a)
+            # Can't fit in nanosecond bounds -> get the nearest supported unit
+            result = constructor(a)
+            assert result.dtype == "M8[s]"
         else:
-            result = klass(a)
-            assert result.dtype == "object"
+            result = constructor(a)
+            if using_infer_string and "object-string" in request.node.callspec.id:
+                assert result.dtype == "string"
+            else:
+                assert result.dtype == "object"
             tm.assert_numpy_array_equal(result.to_numpy(), a)
 
         # Explicit dtype specified
         # Forced conversion fails for all -> all cases raise error
         msg = "Out of bounds|Out of bounds .* present at position 0"
         with pytest.raises(pd.errors.OutOfBoundsDatetime, match=msg):
-            klass(a, dtype="datetime64[ns]")
+            constructor(a, dtype="datetime64[ns]")
 
     def test_constructor_datetime_nonns(self, constructor):
         arr = np.array(["2020-01-01T00:00:00.000000"], dtype="datetime64[us]")
-        expected = constructor(pd.to_datetime(["2020-01-01"]))
+        dta = pd.core.arrays.DatetimeArray._simple_new(arr, dtype=arr.dtype)
+        expected = constructor(dta)
+        assert expected.dtype == arr.dtype
+
         result = constructor(arr)
         tm.assert_equal(result, expected)
 

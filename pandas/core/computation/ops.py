@@ -8,8 +8,8 @@ from datetime import datetime
 from functools import partial
 import operator
 from typing import (
+    TYPE_CHECKING,
     Callable,
-    Iterable,
     Literal,
 )
 
@@ -34,7 +34,13 @@ from pandas.io.formats.printing import (
     pprint_thing_encoded,
 )
 
-REDUCTIONS = ("sum", "prod")
+if TYPE_CHECKING:
+    from collections.abc import (
+        Iterable,
+        Iterator,
+    )
+
+REDUCTIONS = ("sum", "prod", "min", "max")
 
 _unary_math_ops = (
     "sin",
@@ -154,7 +160,7 @@ class Term:
 
     @property
     def raw(self) -> str:
-        return f"{type(self).__name__}(name={repr(self.name)}, type={self.type})"
+        return f"{type(self).__name__}(name={self.name!r}, type={self.type})"
 
     @property
     def is_datetime(self) -> bool:
@@ -170,7 +176,7 @@ class Term:
         return self._value
 
     @value.setter
-    def value(self, new_value):
+    def value(self, new_value) -> None:
         self._value = new_value
 
     @property
@@ -183,9 +189,6 @@ class Term:
 
 
 class Constant(Term):
-    def __init__(self, value, env, side=None, encoding=None) -> None:
-        super().__init__(value, env, side=side, encoding=encoding)
-
     def _resolve_name(self):
         return self._name
 
@@ -214,7 +217,7 @@ class Op:
         self.operands = operands
         self.encoding = encoding
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         return iter(self.operands)
 
     def __repr__(self) -> str:
@@ -317,19 +320,13 @@ _arith_ops_funcs = (
 )
 _arith_ops_dict = dict(zip(ARITH_OPS_SYMS, _arith_ops_funcs))
 
-SPECIAL_CASE_ARITH_OPS_SYMS = ("**", "//", "%")
-_special_case_arith_ops_funcs = (operator.pow, operator.floordiv, operator.mod)
-_special_case_arith_ops_dict = dict(
-    zip(SPECIAL_CASE_ARITH_OPS_SYMS, _special_case_arith_ops_funcs)
-)
-
 _binary_ops_dict = {}
 
 for d in (_cmp_ops_dict, _bool_ops_dict, _arith_ops_dict):
     _binary_ops_dict.update(d)
 
 
-def _cast_inplace(terms, acceptable_dtypes, dtype):
+def _cast_inplace(terms, acceptable_dtypes, dtype) -> None:
     """
     Cast an expression inplace.
 
@@ -384,7 +381,7 @@ class BinOp(Op):
             # has to be made a list for python3
             keys = list(_binary_ops_dict.keys())
             raise ValueError(
-                f"Invalid binary operator {repr(op)}, valid operators are {keys}"
+                f"Invalid binary operator {op!r}, valid operators are {keys}"
             ) from err
 
     def __call__(self, env):
@@ -488,7 +485,7 @@ class BinOp(Op):
                 v = v.tz_convert("UTC")
             self.lhs.update(v)
 
-    def _disallow_scalar_only_bool_ops(self):
+    def _disallow_scalar_only_bool_ops(self) -> None:
         rhs = self.rhs
         lhs = self.lhs
 
@@ -534,8 +531,8 @@ class Div(BinOp):
             )
 
         # do not upcast float32s to float64 un-necessarily
-        acceptable_dtypes = [np.float32, np.float_]
-        _cast_inplace(com.flatten(self), acceptable_dtypes, np.float_)
+        acceptable_dtypes = [np.float32, np.float64]
+        _cast_inplace(com.flatten(self), acceptable_dtypes, np.float64)
 
 
 UNARY_OPS_SYMS = ("+", "-", "~", "not")
@@ -568,7 +565,7 @@ class UnaryOp(Op):
             self.func = _unary_ops_dict[op]
         except KeyError as err:
             raise ValueError(
-                f"Invalid unary operator {repr(op)}, "
+                f"Invalid unary operator {op!r}, "
                 f"valid operators are {UNARY_OPS_SYMS}"
             ) from err
 
@@ -600,8 +597,7 @@ class MathCall(Op):
     def __call__(self, env):
         # error: "Op" not callable
         operands = [op(env) for op in self.operands]  # type: ignore[operator]
-        with np.errstate(all="ignore"):
-            return self.func.func(*operands)
+        return self.func.func(*operands)
 
     def __repr__(self) -> str:
         operands = map(str, self.operands)
@@ -615,5 +611,5 @@ class FuncNode:
         self.name = name
         self.func = getattr(np, name)
 
-    def __call__(self, *args):
+    def __call__(self, *args) -> MathCall:
         return MathCall(self, args)

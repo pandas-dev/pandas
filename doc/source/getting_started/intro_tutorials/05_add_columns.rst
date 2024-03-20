@@ -9,13 +9,13 @@
 .. raw:: html
 
     <div class="card gs-data">
-        <div class="card-header">
+        <div class="card-header gs-data-header">
             <div class="gs-data-title">
                 Data used for this tutorial:
             </div>
         </div>
         <ul class="list-group list-group-flush">
-            <li class="list-group-item">
+            <li class="list-group-item gs-data-list">
 
 .. include:: includes/air_quality_no2.rst
 
@@ -51,7 +51,7 @@ hPa, the conversion factor is 1.882*)
     air_quality["london_mg_per_cubic"] = air_quality["station_london"] * 1.882
     air_quality.head()
 
-To create a new column, use the ``[]`` brackets with the new column name
+To create a new column, use the square brackets ``[]`` with the new column name
 at the left side of the assignment.
 
 .. raw:: html

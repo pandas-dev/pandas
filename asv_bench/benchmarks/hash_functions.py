@@ -55,16 +55,15 @@ class Unique:
 
 
 class NumericSeriesIndexing:
-
     params = [
-        (pd.Int64Index, pd.UInt64Index, pd.Float64Index),
+        (np.int64, np.uint64, np.float64),
         (10**4, 10**5, 5 * 10**5, 10**6, 5 * 10**6),
     ]
-    param_names = ["index_dtype", "N"]
+    param_names = ["dtype", "N"]
 
-    def setup(self, index, N):
-        vals = np.array(list(range(55)) + [54] + list(range(55, N - 1)))
-        indices = index(vals)
+    def setup(self, dtype, N):
+        vals = np.array(list(range(55)) + [54] + list(range(55, N - 1)), dtype=dtype)
+        indices = pd.Index(vals)
         self.data = pd.Series(np.arange(N), index=indices)
 
     def time_loc_slice(self, index, N):
@@ -73,17 +72,16 @@ class NumericSeriesIndexing:
 
 
 class NumericSeriesIndexingShuffled:
-
     params = [
-        (pd.Int64Index, pd.UInt64Index, pd.Float64Index),
+        (np.int64, np.uint64, np.float64),
         (10**4, 10**5, 5 * 10**5, 10**6, 5 * 10**6),
     ]
-    param_names = ["index_dtype", "N"]
+    param_names = ["dtype", "N"]
 
-    def setup(self, index, N):
-        vals = np.array(list(range(55)) + [54] + list(range(55, N - 1)))
+    def setup(self, dtype, N):
+        vals = np.array(list(range(55)) + [54] + list(range(55, N - 1)), dtype=dtype)
         np.random.shuffle(vals)
-        indices = index(vals)
+        indices = pd.Index(vals)
         self.data = pd.Series(np.arange(N), index=indices)
 
     def time_loc_slice(self, index, N):

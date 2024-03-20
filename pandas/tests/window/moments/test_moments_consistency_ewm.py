@@ -65,12 +65,7 @@ def test_ewm_consistency_mean(all_data, adjust, ignore_na, min_periods):
         com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
     ).mean()
     weights = create_mock_weights(all_data, com=com, adjust=adjust, ignore_na=ignore_na)
-    expected = (
-        all_data.multiply(weights)
-        .cumsum()
-        .divide(weights.cumsum())
-        .fillna(method="ffill")
-    )
+    expected = all_data.multiply(weights).cumsum().divide(weights.cumsum()).ffill()
     expected[
         all_data.expanding().count() < (max(min_periods, 1) if min_periods else 1)
     ] = np.nan
@@ -118,8 +113,8 @@ def test_ewm_consistency_var_debiasing_factors(
     ).var(bias=True)
 
     weights = create_mock_weights(all_data, com=com, adjust=adjust, ignore_na=ignore_na)
-    cum_sum = weights.cumsum().fillna(method="ffill")
-    cum_sum_sq = (weights * weights).cumsum().fillna(method="ffill")
+    cum_sum = weights.cumsum().ffill()
+    cum_sum_sq = (weights * weights).cumsum().ffill()
     numerator = cum_sum * cum_sum
     denominator = numerator - cum_sum_sq
     denominator[denominator <= 0.0] = np.nan
@@ -220,10 +215,9 @@ def test_ewm_consistency_series_cov_corr(
 
     # check that corr(x, y) == cov(x, y) / (std(x) *
     # std(y))
-    with tm.assert_produces_warning(FutureWarning, match="Passing additional kwargs"):
-        corr_x_y = series_data.ewm(
-            com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-        ).corr(series_data, bias=bias)
+    corr_x_y = series_data.ewm(
+        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+    ).corr(series_data)
     std_x = series_data.ewm(
         com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
     ).std(bias=bias)

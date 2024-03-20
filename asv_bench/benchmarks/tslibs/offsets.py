@@ -2,6 +2,7 @@
 offsets benchmarks that rely only on tslibs.  See benchmarks.offset for
 offsets benchmarks that rely on other parts of pandas.
 """
+
 from datetime import datetime
 
 import numpy as np
@@ -45,7 +46,6 @@ offset_objs = non_apply + other_offsets
 
 
 class OnOffset:
-
     params = offset_objs
     param_names = ["offset"]
 
@@ -63,7 +63,6 @@ class OnOffset:
 
 
 class OffestDatetimeArithmetic:
-
     params = offset_objs
     param_names = ["offset"]
 
@@ -71,11 +70,8 @@ class OffestDatetimeArithmetic:
         self.date = datetime(2011, 1, 1)
         self.dt64 = np.datetime64("2011-01-01 09:00Z")
 
-    def time_apply(self, offset):
-        offset.apply(self.date)
-
-    def time_apply_np_dt64(self, offset):
-        offset.apply(self.dt64)
+    def time_add_np_dt64(self, offset):
+        offset + self.dt64
 
     def time_add(self, offset):
         self.date + offset

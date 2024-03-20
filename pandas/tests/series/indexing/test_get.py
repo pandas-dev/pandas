@@ -2,9 +2,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Series
+from pandas import (
+    DatetimeIndex,
+    Index,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
-from pandas.core.api import Float64Index
 
 
 def test_get():
@@ -65,7 +69,7 @@ def test_get():
                 54,
             ]
         ),
-        index=Float64Index(
+        index=Index(
             [
                 25.0,
                 36.0,
@@ -87,7 +91,8 @@ def test_get():
                 1764.0,
                 1849.0,
                 1936.0,
-            ]
+            ],
+            dtype=np.float64,
         ),
     )
 
@@ -110,18 +115,18 @@ def test_get():
     assert result == "Missing"
 
 
-def test_get_nan():
+def test_get_nan(float_numpy_dtype):
     # GH 8569
-    s = Float64Index(range(10)).to_series()
+    s = Index(range(10), dtype=float_numpy_dtype).to_series()
     assert s.get(np.nan) is None
     assert s.get(np.nan, default="Missing") == "Missing"
 
 
-def test_get_nan_multiple():
+def test_get_nan_multiple(float_numpy_dtype):
     # GH 8569
     # ensure that fixing "test_get_nan" above hasn't broken get
     # with multiple elements
-    s = Float64Index(range(10)).to_series()
+    s = Index(range(10), dtype=float_numpy_dtype).to_series()
 
     idx = [2, 30]
     assert s.get(idx) is None
@@ -141,7 +146,6 @@ def test_get_with_default():
     # GH#7725
     d0 = ["a", "b", "c", "d"]
     d1 = np.arange(4, dtype="int64")
-    others = ["e", 10]
 
     for data, index in ((d0, d1), (d1, d0)):
         s = Series(data, index=index)
@@ -149,14 +153,27 @@ def test_get_with_default():
             assert s.get(i) == d
             assert s.get(i, d) == d
             assert s.get(i, "z") == d
-            for other in others:
-                assert s.get(other, "z") == "z"
-                assert s.get(other, other) == other
+
+            assert s.get("e", "z") == "z"
+            assert s.get("e", "e") == "e"
+
+            msg = "Series.__getitem__ treating keys as positions is deprecated"
+            warn = None
+            if index is d0:
+                warn = FutureWarning
+            with tm.assert_produces_warning(warn, match=msg):
+                assert s.get(10, "z") == "z"
+                assert s.get(10, 10) == 10
 
 
 @pytest.mark.parametrize(
     "arr",
-    [np.random.randn(10), tm.makeDateIndex(10, name="a").tz_localize(tz="US/Eastern")],
+    [
+        np.random.default_rng(2).standard_normal(10),
+        DatetimeIndex(date_range("2020-01-01", periods=10), name="a").tz_localize(
+            tz="US/Eastern"
+        ),
+    ],
 )
 def test_get_with_ea(arr):
     # GH#21260
@@ -167,8 +184,7 @@ def test_get_with_ea(arr):
     expected = ser.iloc[[2, 3]]
     tm.assert_series_equal(result, expected)
 
-    with tm.assert_produces_warning(FutureWarning, match="label-based"):
-        result = ser.get(slice(2))
+    result = ser.get(slice(2))
     expected = ser.iloc[[0, 1]]
     tm.assert_series_equal(result, expected)
 
@@ -185,9 +201,13 @@ def test_get_with_ea(arr):
     result = ser.get("Z")
     assert result is None
 
-    assert ser.get(4) == ser.iloc[4]
-    assert ser.get(-1) == ser.iloc[-1]
-    assert ser.get(len(ser)) is None
+    msg = "Series.__getitem__ treating keys as positions is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert ser.get(4) == ser.iloc[4]
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert ser.get(-1) == ser.iloc[-1]
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert ser.get(len(ser)) is None
 
     # GH#21257
     ser = Series(arr)
@@ -196,14 +216,17 @@ def test_get_with_ea(arr):
 
 
 def test_getitem_get(string_series, object_series):
+    msg = "Series.__getitem__ treating keys as positions is deprecated"
+
     for obj in [string_series, object_series]:
         idx = obj.index[5]
 
         assert obj[idx] == obj.get(idx)
-        assert obj[idx] == obj[5]
+        assert obj[idx] == obj.iloc[5]
 
-    assert string_series.get(-1) == string_series.get(string_series.index[-1])
-    assert string_series[5] == string_series.get(string_series.index[5])
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert string_series.get(-1) == string_series.get(string_series.index[-1])
+    assert string_series.iloc[5] == string_series.get(string_series.index[5])
 
 
 def test_get_none():

@@ -1,31 +1,32 @@
 """
 Methods used by Block.replace and related methods.
 """
+
 from __future__ import annotations
 
 import operator
 import re
+from re import Pattern
 from typing import (
+    TYPE_CHECKING,
     Any,
-    Pattern,
 )
 
 import numpy as np
 
-from pandas._typing import (
-    ArrayLike,
-    Scalar,
-    npt,
-)
-
 from pandas.core.dtypes.common import (
-    is_datetimelike_v_numeric,
-    is_numeric_v_string_like,
+    is_bool,
     is_re,
     is_re_compilable,
-    is_scalar,
 )
 from pandas.core.dtypes.missing import isna
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Scalar,
+        npt,
+    )
 
 
 def should_use_regex(regex: bool, to_replace: Any) -> bool:
@@ -44,7 +45,7 @@ def should_use_regex(regex: bool, to_replace: Any) -> bool:
 
 def compare_or_regex_search(
     a: ArrayLike, b: Scalar | Pattern, regex: bool, mask: npt.NDArray[np.bool_]
-) -> ArrayLike | bool:
+) -> ArrayLike:
     """
     Compare two array-like inputs of the same shape or two scalar values
 
@@ -67,18 +68,18 @@ def compare_or_regex_search(
 
     def _check_comparison_types(
         result: ArrayLike | bool, a: ArrayLike, b: Scalar | Pattern
-    ):
+    ) -> None:
         """
         Raises an error if the two arrays (a,b) cannot be compared.
         Otherwise, returns the comparison result as expected.
         """
-        if is_scalar(result) and isinstance(a, np.ndarray):
+        if is_bool(result) and isinstance(a, np.ndarray):
             type_names = [type(a).__name__, type(b).__name__]
 
             type_names[0] = f"ndarray(dtype={a.dtype})"
 
             raise TypeError(
-                f"Cannot compare types {repr(type_names[0])} and {repr(type_names[1])}"
+                f"Cannot compare types {type_names[0]!r} and {type_names[1]!r}"
             )
 
     if not regex or not should_use_regex(regex, b):
@@ -94,15 +95,6 @@ def compare_or_regex_search(
     # GH#32621 use mask to avoid comparing to NAs
     if isinstance(a, np.ndarray):
         a = a[mask]
-
-    if is_numeric_v_string_like(a, b):
-        # GH#29553 avoid deprecation warnings from numpy
-        return np.zeros(a.shape, dtype=bool)
-
-    elif is_datetimelike_v_numeric(a, b):
-        # GH#29553 avoid deprecation warnings from numpy
-        _check_comparison_types(False, a, b)
-        return False
 
     result = op(a)
 

@@ -8,7 +8,8 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas.errors import InvalidIndexError
+from pandas._libs import index as libindex
+from pandas.compat.numpy import np_long
 
 import pandas as pd
 from pandas import (
@@ -31,49 +32,46 @@ class TestGetItem:
         # GH4226
         st = Timestamp("2013-07-01 00:00:00", tz="America/Los_Angeles")
         et = Timestamp("2013-07-02 00:00:00", tz="America/Los_Angeles")
-        dr = date_range(st, et, freq="H", name="timebucket")
+        dr = date_range(st, et, freq="h", name="timebucket")
         assert dr[1:].name == dr.name
 
-    def test_getitem(self):
-        idx1 = date_range("2011-01-01", "2011-01-31", freq="D", name="idx")
-        idx2 = date_range(
-            "2011-01-01", "2011-01-31", freq="D", tz="Asia/Tokyo", name="idx"
+    @pytest.mark.parametrize("tz", [None, "Asia/Tokyo"])
+    def test_getitem(self, tz):
+        idx = date_range("2011-01-01", "2011-01-31", freq="D", tz=tz, name="idx")
+
+        result = idx[0]
+        assert result == Timestamp("2011-01-01", tz=idx.tz)
+
+        result = idx[0:5]
+        expected = date_range(
+            "2011-01-01", "2011-01-05", freq="D", tz=idx.tz, name="idx"
         )
+        tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
 
-        for idx in [idx1, idx2]:
-            result = idx[0]
-            assert result == Timestamp("2011-01-01", tz=idx.tz)
+        result = idx[0:10:2]
+        expected = date_range(
+            "2011-01-01", "2011-01-09", freq="2D", tz=idx.tz, name="idx"
+        )
+        tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
 
-            result = idx[0:5]
-            expected = date_range(
-                "2011-01-01", "2011-01-05", freq="D", tz=idx.tz, name="idx"
-            )
-            tm.assert_index_equal(result, expected)
-            assert result.freq == expected.freq
+        result = idx[-20:-5:3]
+        expected = date_range(
+            "2011-01-12", "2011-01-24", freq="3D", tz=idx.tz, name="idx"
+        )
+        tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
 
-            result = idx[0:10:2]
-            expected = date_range(
-                "2011-01-01", "2011-01-09", freq="2D", tz=idx.tz, name="idx"
-            )
-            tm.assert_index_equal(result, expected)
-            assert result.freq == expected.freq
-
-            result = idx[-20:-5:3]
-            expected = date_range(
-                "2011-01-12", "2011-01-24", freq="3D", tz=idx.tz, name="idx"
-            )
-            tm.assert_index_equal(result, expected)
-            assert result.freq == expected.freq
-
-            result = idx[4::-1]
-            expected = DatetimeIndex(
-                ["2011-01-05", "2011-01-04", "2011-01-03", "2011-01-02", "2011-01-01"],
-                freq="-1D",
-                tz=idx.tz,
-                name="idx",
-            )
-            tm.assert_index_equal(result, expected)
-            assert result.freq == expected.freq
+        result = idx[4::-1]
+        expected = DatetimeIndex(
+            ["2011-01-05", "2011-01-04", "2011-01-03", "2011-01-02", "2011-01-01"],
+            dtype=idx.dtype,
+            freq="-1D",
+            name="idx",
+        )
+        tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
 
     @pytest.mark.parametrize("freq", ["B", "C"])
     def test_dti_business_getitem(self, freq):
@@ -93,19 +91,17 @@ class TestGetItem:
         assert fancy_indexed.freq is None
 
         # 32-bit vs. 64-bit platforms
-        assert rng[4] == rng[np.int_(4)]
+        assert rng[4] == rng[np_long(4)]
 
     @pytest.mark.parametrize("freq", ["B", "C"])
     def test_dti_business_getitem_matplotlib_hackaround(self, freq):
         rng = bdate_range(START, END, freq=freq)
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(ValueError, match="Multi-dimensional indexing"):
             # GH#30588 multi-dimensional indexing deprecated
-            values = rng[:, None]
-        expected = rng.values[:, None]
-        tm.assert_numpy_array_equal(values, expected)
+            rng[:, None]
 
     def test_getitem_int_list(self):
-        dti = date_range(start="1/1/2005", end="12/1/2005", freq="M")
+        dti = date_range(start="1/1/2005", end="12/1/2005", freq="ME")
         dti2 = dti[[1, 3, 5]]
 
         v1 = dti2[0]
@@ -179,7 +175,7 @@ class TestWhere:
         tm.assert_index_equal(result, expected)
 
         result = dti.where(mask, i2.asi8)
-        expected = Index([pd.NaT.value, pd.NaT.value] + tail, dtype=object)
+        expected = Index([pd.NaT._value, pd.NaT._value] + tail, dtype=object)
         assert isinstance(expected[0], int)
         tm.assert_index_equal(result, expected)
 
@@ -216,63 +212,68 @@ class TestWhere:
 
 
 class TestTake:
+    @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_dti_take_dont_lose_meta(self, tzstr):
+        rng = date_range("1/1/2000", periods=20, tz=tzstr)
+
+        result = rng.take(range(5))
+        assert result.tz == rng.tz
+        assert result.freq == rng.freq
+
     def test_take_nan_first_datetime(self):
         index = DatetimeIndex([pd.NaT, Timestamp("20130101"), Timestamp("20130102")])
         result = index.take([-1, 0, 1])
         expected = DatetimeIndex([index[-1], index[0], index[1]])
         tm.assert_index_equal(result, expected)
 
-    def test_take(self):
+    @pytest.mark.parametrize("tz", [None, "Asia/Tokyo"])
+    def test_take(self, tz):
         # GH#10295
-        idx1 = date_range("2011-01-01", "2011-01-31", freq="D", name="idx")
-        idx2 = date_range(
-            "2011-01-01", "2011-01-31", freq="D", tz="Asia/Tokyo", name="idx"
+        idx = date_range("2011-01-01", "2011-01-31", freq="D", name="idx", tz=tz)
+
+        result = idx.take([0])
+        assert result == Timestamp("2011-01-01", tz=idx.tz)
+
+        result = idx.take([0, 1, 2])
+        expected = date_range(
+            "2011-01-01", "2011-01-03", freq="D", tz=idx.tz, name="idx"
         )
+        tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
 
-        for idx in [idx1, idx2]:
-            result = idx.take([0])
-            assert result == Timestamp("2011-01-01", tz=idx.tz)
+        result = idx.take([0, 2, 4])
+        expected = date_range(
+            "2011-01-01", "2011-01-05", freq="2D", tz=idx.tz, name="idx"
+        )
+        tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
 
-            result = idx.take([0, 1, 2])
-            expected = date_range(
-                "2011-01-01", "2011-01-03", freq="D", tz=idx.tz, name="idx"
-            )
-            tm.assert_index_equal(result, expected)
-            assert result.freq == expected.freq
+        result = idx.take([7, 4, 1])
+        expected = date_range(
+            "2011-01-08", "2011-01-02", freq="-3D", tz=idx.tz, name="idx"
+        )
+        tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
 
-            result = idx.take([0, 2, 4])
-            expected = date_range(
-                "2011-01-01", "2011-01-05", freq="2D", tz=idx.tz, name="idx"
-            )
-            tm.assert_index_equal(result, expected)
-            assert result.freq == expected.freq
+        result = idx.take([3, 2, 5])
+        expected = DatetimeIndex(
+            ["2011-01-04", "2011-01-03", "2011-01-06"],
+            dtype=idx.dtype,
+            freq=None,
+            name="idx",
+        )
+        tm.assert_index_equal(result, expected)
+        assert result.freq is None
 
-            result = idx.take([7, 4, 1])
-            expected = date_range(
-                "2011-01-08", "2011-01-02", freq="-3D", tz=idx.tz, name="idx"
-            )
-            tm.assert_index_equal(result, expected)
-            assert result.freq == expected.freq
-
-            result = idx.take([3, 2, 5])
-            expected = DatetimeIndex(
-                ["2011-01-04", "2011-01-03", "2011-01-06"],
-                freq=None,
-                tz=idx.tz,
-                name="idx",
-            )
-            tm.assert_index_equal(result, expected)
-            assert result.freq is None
-
-            result = idx.take([-3, 2, 5])
-            expected = DatetimeIndex(
-                ["2011-01-29", "2011-01-03", "2011-01-06"],
-                freq=None,
-                tz=idx.tz,
-                name="idx",
-            )
-            tm.assert_index_equal(result, expected)
-            assert result.freq is None
+        result = idx.take([-3, 2, 5])
+        expected = DatetimeIndex(
+            ["2011-01-29", "2011-01-03", "2011-01-06"],
+            dtype=idx.dtype,
+            freq=None,
+            name="idx",
+        )
+        tm.assert_index_equal(result, expected)
+        assert result.freq is None
 
     def test_take_invalid_kwargs(self):
         idx = date_range("2011-01-01", "2011-01-31", freq="D", name="idx")
@@ -303,11 +304,11 @@ class TestTake:
         idx = date_range(
             start="2010-01-01 09:00",
             end="2010-02-01 09:00",
-            freq="H",
+            freq="h",
             tz=tz,
             name="idx",
         )
-        expected = DatetimeIndex(dates, freq=None, name="idx", tz=tz)
+        expected = DatetimeIndex(dates, freq=None, name="idx", dtype=idx.dtype)
 
         taken1 = idx.take([5, 6, 8, 12])
         taken2 = idx[[5, 6, 8, 12]]
@@ -388,78 +389,28 @@ class TestTake:
 
 
 class TestGetLoc:
-    @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
-    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
-    def test_get_loc_method_exact_match(self, method):
+    def test_get_loc_key_unit_mismatch(self):
         idx = date_range("2000-01-01", periods=3)
-        assert idx.get_loc(idx[1], method) == 1
-        assert idx.get_loc(idx[1].to_pydatetime(), method) == 1
-        assert idx.get_loc(str(idx[1]), method) == 1
+        key = idx[1].as_unit("ms")
+        loc = idx.get_loc(key)
+        assert loc == 1
+        assert key in idx
 
-        if method is not None:
-            assert idx.get_loc(idx[1], method, tolerance=pd.Timedelta("0 days")) == 1
+    def test_get_loc_key_unit_mismatch_not_castable(self):
+        dta = date_range("2000-01-01", periods=3)._data.astype("M8[s]")
+        dti = DatetimeIndex(dta)
+        key = dta[0].as_unit("ns") + pd.Timedelta(1)
 
-    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
-    def test_get_loc(self):
-        idx = date_range("2000-01-01", periods=3)
-
-        assert idx.get_loc("2000-01-01", method="nearest") == 0
-        assert idx.get_loc("2000-01-01T12", method="nearest") == 1
-
-        assert idx.get_loc("2000-01-01T12", method="nearest", tolerance="1 day") == 1
-        assert (
-            idx.get_loc("2000-01-01T12", method="nearest", tolerance=pd.Timedelta("1D"))
-            == 1
-        )
-        assert (
-            idx.get_loc(
-                "2000-01-01T12", method="nearest", tolerance=np.timedelta64(1, "D")
-            )
-            == 1
-        )
-        assert (
-            idx.get_loc("2000-01-01T12", method="nearest", tolerance=timedelta(1)) == 1
-        )
-        with pytest.raises(ValueError, match="unit abbreviation w/o a number"):
-            idx.get_loc("2000-01-01T12", method="nearest", tolerance="foo")
-        with pytest.raises(KeyError, match="'2000-01-01T03'"):
-            idx.get_loc("2000-01-01T03", method="nearest", tolerance="2 hours")
         with pytest.raises(
-            ValueError, match="tolerance size must match target index size"
+            KeyError, match=r"Timestamp\('2000-01-01 00:00:00.000000001'\)"
         ):
-            idx.get_loc(
-                "2000-01-01",
-                method="nearest",
-                tolerance=[
-                    pd.Timedelta("1day").to_timedelta64(),
-                    pd.Timedelta("1day").to_timedelta64(),
-                ],
-            )
+            dti.get_loc(key)
 
-        assert idx.get_loc("2000", method="nearest") == slice(0, 3)
-        assert idx.get_loc("2000-01", method="nearest") == slice(0, 3)
-
-        assert idx.get_loc("1999", method="nearest") == 0
-        assert idx.get_loc("2001", method="nearest") == 2
-
-        with pytest.raises(KeyError, match="'1999'"):
-            idx.get_loc("1999", method="pad")
-        with pytest.raises(KeyError, match="'2001'"):
-            idx.get_loc("2001", method="backfill")
-
-        with pytest.raises(KeyError, match="'foobar'"):
-            idx.get_loc("foobar")
-        with pytest.raises(InvalidIndexError, match=r"slice\(None, 2, None\)"):
-            idx.get_loc(slice(2))
-
-        idx = DatetimeIndex(["2000-01-01", "2000-01-04"])
-        assert idx.get_loc("2000-01-02", method="nearest") == 0
-        assert idx.get_loc("2000-01-03", method="nearest") == 1
-        assert idx.get_loc("2000-01", method="nearest") == slice(0, 2)
+        assert key not in dti
 
     def test_get_loc_time_obj(self):
         # time indexing
-        idx = date_range("2000-01-01", periods=24, freq="H")
+        idx = date_range("2000-01-01", periods=24, freq="h")
 
         result = idx.get_loc(time(12))
         expected = np.array([12])
@@ -469,24 +420,19 @@ class TestGetLoc:
         expected = np.array([])
         tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
-        msg = "cannot yet lookup inexact labels when key is a time object"
-        with pytest.raises(NotImplementedError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
-                idx.get_loc(time(12, 30), method="pad")
-
-    def test_get_loc_time_obj2(self):
+    @pytest.mark.parametrize("offset", [-10, 10])
+    def test_get_loc_time_obj2(self, monkeypatch, offset):
         # GH#8667
-
-        from pandas._libs.index import _SIZE_CUTOFF
-
-        ns = _SIZE_CUTOFF + np.array([-100, 100], dtype=np.int64)
+        size_cutoff = 50
+        n = size_cutoff + offset
         key = time(15, 11, 30)
         start = key.hour * 3600 + key.minute * 60 + key.second
         step = 24 * 3600
 
-        for n in ns:
-            idx = date_range("2014-11-26", periods=n, freq="S")
-            ts = pd.Series(np.random.randn(n), index=idx)
+        with monkeypatch.context():
+            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
+            idx = date_range("2014-11-26", periods=n, freq="s")
+            ts = pd.Series(np.random.default_rng(2).standard_normal(n), index=idx)
             locs = np.arange(start, n, step, dtype=np.intp)
 
             result = ts.index.get_loc(key)
@@ -507,18 +453,6 @@ class TestGetLoc:
         loc = dti.get_loc(tic)
         expected = np.array([], dtype=np.intp)
         tm.assert_numpy_array_equal(loc, expected)
-
-    def test_get_loc_tz_aware(self):
-        # https://github.com/pandas-dev/pandas/issues/32140
-        dti = date_range(
-            Timestamp("2019-12-12 00:00:00", tz="US/Eastern"),
-            Timestamp("2019-12-13 00:00:00", tz="US/Eastern"),
-            freq="5s",
-        )
-        key = Timestamp("2019-12-12 10:19:25", tz="US/Eastern")
-        with tm.assert_produces_warning(FutureWarning, match="deprecated"):
-            result = dti.get_loc(key, method="nearest")
-        assert result == 7433
 
     def test_get_loc_nat(self):
         # GH#20464
@@ -651,7 +585,6 @@ class TestGetIndexer:
             ([date(9999, 1, 1), date(9999, 1, 1)], [-1, -1]),
         ],
     )
-    @pytest.mark.filterwarnings("ignore:Comparison of Timestamp.*:FutureWarning")
     def test_get_indexer_out_of_bounds_date(self, target, positions):
         values = DatetimeIndex([Timestamp("2020-01-01"), Timestamp("2020-01-02")])
 
@@ -673,7 +606,7 @@ class TestGetIndexer:
 class TestMaybeCastSliceBound:
     def test_maybe_cast_slice_bounds_empty(self):
         # GH#14354
-        empty_idx = date_range(freq="1H", periods=0, end="2015")
+        empty_idx = date_range(freq="1h", periods=0, end="2015")
 
         right = empty_idx._maybe_cast_slice_bound("2015-01-02", "right")
         exp = Timestamp("2015-01-02 23:59:59.999999999")
@@ -691,83 +624,59 @@ class TestMaybeCastSliceBound:
         assert result == expected
 
 
-class TestGetValue:
-    def test_get_value(self):
-        # specifically make sure we have test for np.datetime64 key
-        dti = date_range("2016-01-01", periods=3)
-
-        arr = np.arange(6, 9)
-        ser = pd.Series(arr, index=dti)
-
-        key = dti[1]
-
-        with pytest.raises(AttributeError, match="has no attribute '_values'"):
-            with tm.assert_produces_warning(FutureWarning):
-                dti.get_value(arr, key)
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = dti.get_value(ser, key)
-        assert result == 7
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = dti.get_value(ser, key.to_pydatetime())
-        assert result == 7
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = dti.get_value(ser, key.to_datetime64())
-        assert result == 7
-
-
 class TestGetSliceBounds:
     @pytest.mark.parametrize("box", [date, datetime, Timestamp])
-    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
     @pytest.mark.parametrize("side, expected", [("left", 4), ("right", 5)])
     def test_get_slice_bounds_datetime_within(
-        self, box, kind, side, expected, tz_aware_fixture
+        self, box, side, expected, tz_aware_fixture
     ):
         # GH 35690
         tz = tz_aware_fixture
         index = bdate_range("2000-01-03", "2000-02-11").tz_localize(tz)
         key = box(year=2000, month=1, day=7)
 
-        warn = None if tz is None else FutureWarning
-        with tm.assert_produces_warning(warn):
-            # GH#36148 will require tzawareness-compat
-            result = index.get_slice_bound(key, kind=kind, side=side)
-        assert result == expected
+        if tz is not None:
+            with pytest.raises(TypeError, match="Cannot compare tz-naive"):
+                # GH#36148 we require tzawareness-compat as of 2.0
+                index.get_slice_bound(key, side=side)
+        else:
+            result = index.get_slice_bound(key, side=side)
+            assert result == expected
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
-    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
     @pytest.mark.parametrize("side", ["left", "right"])
     @pytest.mark.parametrize("year, expected", [(1999, 0), (2020, 30)])
     def test_get_slice_bounds_datetime_outside(
-        self, box, kind, side, year, expected, tz_aware_fixture
+        self, box, side, year, expected, tz_aware_fixture
     ):
         # GH 35690
         tz = tz_aware_fixture
         index = bdate_range("2000-01-03", "2000-02-11").tz_localize(tz)
         key = box(year=year, month=1, day=7)
 
-        warn = None if tz is None else FutureWarning
-        with tm.assert_produces_warning(warn):
-            # GH#36148 will require tzawareness-compat
-            result = index.get_slice_bound(key, kind=kind, side=side)
-        assert result == expected
+        if tz is not None:
+            with pytest.raises(TypeError, match="Cannot compare tz-naive"):
+                # GH#36148 we require tzawareness-compat as of 2.0
+                index.get_slice_bound(key, side=side)
+        else:
+            result = index.get_slice_bound(key, side=side)
+            assert result == expected
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
-    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
-    def test_slice_datetime_locs(self, box, kind, tz_aware_fixture):
+    def test_slice_datetime_locs(self, box, tz_aware_fixture):
         # GH 34077
         tz = tz_aware_fixture
         index = DatetimeIndex(["2010-01-01", "2010-01-03"]).tz_localize(tz)
         key = box(2010, 1, 1)
 
-        warn = None if tz is None else FutureWarning
-        with tm.assert_produces_warning(warn):
-            # GH#36148 will require tzawareness-compat
+        if tz is not None:
+            with pytest.raises(TypeError, match="Cannot compare tz-naive"):
+                # GH#36148 we require tzawareness-compat as of 2.0
+                index.slice_locs(key, box(2010, 1, 2))
+        else:
             result = index.slice_locs(key, box(2010, 1, 2))
-        expected = (0, 1)
-        assert result == expected
+            expected = (0, 1)
+            assert result == expected
 
 
 class TestIndexerBetweenTime:

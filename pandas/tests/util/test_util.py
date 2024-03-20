@@ -2,26 +2,11 @@ import os
 
 import pytest
 
-import pandas.compat as compat
-
+from pandas import (
+    array,
+    compat,
+)
 import pandas._testing as tm
-
-
-def test_rands():
-    r = tm.rands(10)
-    assert len(r) == 10
-
-
-def test_rands_array_1d():
-    arr = tm.rands_array(5, size=10)
-    assert arr.shape == (10,)
-    assert len(arr[0]) == 5
-
-
-def test_rands_array_2d():
-    arr = tm.rands_array(7, size=(10, 10))
-    assert arr.shape == (10, 10)
-    assert len(arr[1, 1]) == 7
 
 
 def test_numpy_err_state_is_default():
@@ -44,13 +29,6 @@ def test_convert_rows_list_to_csv_str():
     assert ret == expected
 
 
-def test_create_temp_directory():
-    with tm.ensure_clean_dir() as path:
-        assert os.path.exists(path)
-        assert os.path.isdir(path)
-    assert not os.path.exists(path)
-
-
 @pytest.mark.parametrize("strict_data_files", [True, False])
 def test_datapath_missing(datapath):
     with pytest.raises(ValueError, match="Could not find file"):
@@ -66,18 +44,15 @@ def test_datapath(datapath):
     assert result == expected
 
 
-def test_rng_context():
-    import numpy as np
-
-    expected0 = 1.764052345967664
-    expected1 = 1.6243453636632417
-
-    with tm.RNGContext(0):
-        with tm.RNGContext(1):
-            assert np.random.randn() == expected1
-        assert np.random.randn() == expected0
-
-
 def test_external_error_raised():
     with tm.external_error_raised(TypeError):
         raise TypeError("Should not check this error message, so it will pass")
+
+
+def test_is_sorted():
+    arr = array([1, 2, 3], dtype="Int64")
+    tm.assert_is_sorted(arr)
+
+    arr = array([4, 2, 3], dtype="Int64")
+    with pytest.raises(AssertionError, match="ExtensionArray are different"):
+        tm.assert_is_sorted(arr)

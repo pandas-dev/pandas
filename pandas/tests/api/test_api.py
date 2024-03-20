@@ -1,13 +1,17 @@
 from __future__ import annotations
 
-import subprocess
-import sys
-
 import pytest
 
 import pandas as pd
 from pandas import api
 import pandas._testing as tm
+from pandas.api import (
+    extensions as api_extensions,
+    indexers as api_indexers,
+    interchange as api_interchange,
+    types as api_types,
+    typing as api_typing,
+)
 
 
 class Base:
@@ -29,7 +33,7 @@ class Base:
 class TestPDApi(Base):
     # these are optionally imported based on testing
     # & need to be ignored
-    ignored = ["tests", "locale", "conftest"]
+    ignored = ["tests", "locale", "conftest", "_version_meson"]
 
     # top-level sub-packages
     public_lib = [
@@ -43,10 +47,7 @@ class TestPDApi(Base):
         "io",
         "tseries",
     ]
-    private_lib = ["compat", "core", "pandas", "util"]
-
-    # these are already deprecated; awaiting removal
-    deprecated_modules: list[str] = ["np", "datetime"]
+    private_lib = ["compat", "core", "pandas", "util", "_built_with_meson"]
 
     # misc
     misc = ["IndexSlice", "NaT", "NA"]
@@ -61,17 +62,14 @@ class TestPDApi(Base):
         "DatetimeIndex",
         "ExcelFile",
         "ExcelWriter",
-        "Float64Index",
         "Flags",
         "Grouper",
         "HDFStore",
         "Index",
-        "Int64Index",
         "MultiIndex",
         "Period",
         "PeriodIndex",
         "RangeIndex",
-        "UInt64Index",
         "Series",
         "SparseDtype",
         "StringDtype",
@@ -99,10 +97,7 @@ class TestPDApi(Base):
     ]
 
     # these are already deprecated; awaiting removal
-    deprecated_classes: list[str] = ["Float64Index", "Int64Index", "UInt64Index"]
-
-    # these should be deprecated in the future
-    deprecated_classes_in_future: list[str] = ["SparseArray"]
+    deprecated_classes: list[str] = []
 
     # external modules exposed in pandas namespace
     modules: list[str] = []
@@ -138,7 +133,6 @@ class TestPDApi(Base):
         "show_versions",
         "timedelta_range",
         "unique",
-        "value_counts",
         "wide_to_long",
     ]
 
@@ -158,7 +152,6 @@ class TestPDApi(Base):
         "read_csv",
         "read_excel",
         "read_fwf",
-        "read_gbq",
         "read_hdf",
         "read_html",
         "read_xml",
@@ -193,13 +186,15 @@ class TestPDApi(Base):
         "_config",
         "_libs",
         "_is_numpy_dev",
+        "_pandas_datetime_CAPI",
+        "_pandas_parser_CAPI",
         "_testing",
         "_typing",
-        "_version",
     ]
+    if not pd._built_with_meson:
+        private_modules.append("_version")
 
     def test_api(self):
-
         checkthese = (
             self.public_lib
             + self.private_lib
@@ -237,9 +232,7 @@ class TestPDApi(Base):
 
     def test_depr(self):
         deprecated_list = (
-            self.deprecated_modules
-            + self.deprecated_classes
-            + self.deprecated_classes_in_future
+            self.deprecated_classes
             + self.deprecated_funcs
             + self.deprecated_funcs_in_future
         )
@@ -248,40 +241,140 @@ class TestPDApi(Base):
                 _ = getattr(pd, depr)
 
 
-def test_datetime():
-    from datetime import datetime
-    import warnings
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", FutureWarning)
-        assert datetime(2015, 1, 2, 0, 0) == datetime(2015, 1, 2, 0, 0)
-
-        assert isinstance(datetime(2015, 1, 2, 0, 0), datetime)
-
-
-def test_sparsearray():
-    import warnings
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", FutureWarning)
-        assert isinstance(pd.array([1, 2, 3], dtype="Sparse"), pd.SparseArray)
-
-
-def test_np():
-    import warnings
-
-    import numpy as np
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", FutureWarning)
-        assert (pd.np.arange(0, 10) == np.arange(0, 10)).all()
-
-
 class TestApi(Base):
-    allowed = ["types", "extensions", "indexers", "interchange"]
+    allowed_api_dirs = [
+        "types",
+        "extensions",
+        "indexers",
+        "interchange",
+        "typing",
+    ]
+    allowed_typing = [
+        "DataFrameGroupBy",
+        "DatetimeIndexResamplerGroupby",
+        "Expanding",
+        "ExpandingGroupby",
+        "ExponentialMovingWindow",
+        "ExponentialMovingWindowGroupby",
+        "JsonReader",
+        "NaTType",
+        "NAType",
+        "PeriodIndexResamplerGroupby",
+        "Resampler",
+        "Rolling",
+        "RollingGroupby",
+        "SeriesGroupBy",
+        "StataReader",
+        "TimedeltaIndexResamplerGroupby",
+        "TimeGrouper",
+        "Window",
+    ]
+    allowed_api_types = [
+        "is_any_real_numeric_dtype",
+        "is_array_like",
+        "is_bool",
+        "is_bool_dtype",
+        "is_categorical_dtype",
+        "is_complex",
+        "is_complex_dtype",
+        "is_datetime64_any_dtype",
+        "is_datetime64_dtype",
+        "is_datetime64_ns_dtype",
+        "is_datetime64tz_dtype",
+        "is_dict_like",
+        "is_dtype_equal",
+        "is_extension_array_dtype",
+        "is_file_like",
+        "is_float",
+        "is_float_dtype",
+        "is_hashable",
+        "is_int64_dtype",
+        "is_integer",
+        "is_integer_dtype",
+        "is_interval_dtype",
+        "is_iterator",
+        "is_list_like",
+        "is_named_tuple",
+        "is_number",
+        "is_numeric_dtype",
+        "is_object_dtype",
+        "is_period_dtype",
+        "is_re",
+        "is_re_compilable",
+        "is_scalar",
+        "is_signed_integer_dtype",
+        "is_sparse",
+        "is_string_dtype",
+        "is_timedelta64_dtype",
+        "is_timedelta64_ns_dtype",
+        "is_unsigned_integer_dtype",
+        "pandas_dtype",
+        "infer_dtype",
+        "union_categoricals",
+        "CategoricalDtype",
+        "DatetimeTZDtype",
+        "IntervalDtype",
+        "PeriodDtype",
+    ]
+    allowed_api_interchange = ["from_dataframe", "DataFrame"]
+    allowed_api_indexers = [
+        "check_array_indexer",
+        "BaseIndexer",
+        "FixedForwardWindowIndexer",
+        "VariableOffsetWindowIndexer",
+    ]
+    allowed_api_extensions = [
+        "no_default",
+        "ExtensionDtype",
+        "register_extension_dtype",
+        "register_dataframe_accessor",
+        "register_index_accessor",
+        "register_series_accessor",
+        "take",
+        "ExtensionArray",
+        "ExtensionScalarOpsMixin",
+    ]
 
     def test_api(self):
-        self.check(api, self.allowed)
+        self.check(api, self.allowed_api_dirs)
+
+    def test_api_typing(self):
+        self.check(api_typing, self.allowed_typing)
+
+    def test_api_types(self):
+        self.check(api_types, self.allowed_api_types)
+
+    def test_api_interchange(self):
+        self.check(api_interchange, self.allowed_api_interchange)
+
+    def test_api_indexers(self):
+        self.check(api_indexers, self.allowed_api_indexers)
+
+    def test_api_extensions(self):
+        self.check(api_extensions, self.allowed_api_extensions)
+
+
+class TestErrors(Base):
+    def test_errors(self):
+        self.check(pd.errors, pd.errors.__all__, ignored=["ctypes", "cow"])
+
+
+class TestUtil(Base):
+    def test_util(self):
+        self.check(
+            pd.util,
+            ["hash_array", "hash_pandas_object"],
+            ignored=[
+                "_decorators",
+                "_test_decorators",
+                "_exceptions",
+                "_validators",
+                "capitalize_first_letter",
+                "version",
+                "_print_versions",
+                "_tester",
+            ],
+        )
 
 
 class TestTesting(Base):
@@ -293,40 +386,18 @@ class TestTesting(Base):
     ]
 
     def test_testing(self):
-        from pandas import testing  # noqa: PDF015
+        from pandas import testing
 
         self.check(testing, self.funcs)
 
-    def test_util_testing_deprecated(self):
-        # avoid cache state affecting the test
-        sys.modules.pop("pandas.util.testing", None)
-
-        with tm.assert_produces_warning(FutureWarning) as m:
-            import pandas.util.testing  # noqa: F401
-
-        assert "pandas.util.testing is deprecated" in str(m[0].message)
-        assert "pandas.testing instead" in str(m[0].message)
-
-    def test_util_testing_deprecated_direct(self):
-        # avoid cache state affecting the test
-        sys.modules.pop("pandas.util.testing", None)
-        with tm.assert_produces_warning(FutureWarning) as m:
-            from pandas.util.testing import assert_series_equal  # noqa: F401
-
-        assert "pandas.util.testing is deprecated" in str(m[0].message)
-        assert "pandas.testing instead" in str(m[0].message)
-
     def test_util_in_top_level(self):
-        # in a subprocess to avoid import caching issues
-        out = subprocess.check_output(
-            [
-                sys.executable,
-                "-c",
-                "import pandas; pandas.util.testing.assert_series_equal",
-            ],
-            stderr=subprocess.STDOUT,
-        ).decode()
-        assert "pandas.util.testing is deprecated" in out
-
         with pytest.raises(AttributeError, match="foo"):
             pd.util.foo
+
+
+def test_pandas_array_alias():
+    msg = "PandasArray has been renamed NumpyExtensionArray"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = pd.arrays.PandasArray
+
+    assert res is pd.arrays.NumpyExtensionArray

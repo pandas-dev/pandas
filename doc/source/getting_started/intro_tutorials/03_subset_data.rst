@@ -9,13 +9,13 @@
 .. raw:: html
 
     <div class="card gs-data">
-        <div class="card-header">
+        <div class="card-header gs-data-header">
             <div class="gs-data-title">
                 Data used for this tutorial:
             </div>
         </div>
         <ul class="list-group list-group-flush">
-            <li class="list-group-item">
+            <li class="list-group-item gs-data-list">
 
 .. include:: includes/titanic.rst
 
@@ -101,7 +101,7 @@ selection brackets ``[]``.
 .. note::
     The inner square brackets define a
     :ref:`Python list <python:tut-morelists>` with column names, whereas
-    the outer brackets are used to select the data from a pandas
+    the outer square brackets are used to select the data from a pandas
     ``DataFrame`` as seen in the previous example.
 
 The returned data type is a pandas DataFrame:
@@ -330,7 +330,7 @@ selection brackets ``[]``.
 
 When selecting specific rows and/or columns with ``loc`` or ``iloc``,
 new values can be assigned to the selected data. For example, to assign
-the name ``anonymous`` to the first 3 elements of the third column:
+the name ``anonymous`` to the first 3 elements of the fourth column:
 
 .. ipython:: python
 
@@ -354,7 +354,7 @@ See the user guide section on :ref:`different choices for indexing <indexing.cho
         <h4>REMEMBER</h4>
 
 -  When selecting subsets of data, square brackets ``[]`` are used.
--  Inside these brackets, you can use a single column/row label, a list
+-  Inside these square brackets, you can use a single column/row label, a list
    of column/row labels, a slice of labels, a conditional expression or
    a colon.
 -  Select specific rows and/or columns using ``loc`` when using the row

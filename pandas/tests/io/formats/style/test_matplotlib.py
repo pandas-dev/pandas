@@ -14,6 +14,8 @@ import matplotlib as mpl
 
 from pandas.io.formats.style import Styler
 
+pytestmark = pytest.mark.usefixtures("mpl_cleanup")
+
 
 @pytest.fixture
 def df():
@@ -238,15 +240,10 @@ def test_background_gradient_gmap_series_align(styler_blank, gmap, axis, exp_gma
     assert expected.ctx == result.ctx
 
 
-@pytest.mark.parametrize(
-    "gmap, axis",
-    [
-        (DataFrame([[1, 2], [2, 1]], columns=["A", "B"], index=["X", "Y"]), 1),
-        (DataFrame([[1, 2], [2, 1]], columns=["A", "B"], index=["X", "Y"]), 0),
-    ],
-)
-def test_background_gradient_gmap_wrong_dataframe(styler_blank, gmap, axis):
+@pytest.mark.parametrize("axis", [1, 0])
+def test_background_gradient_gmap_wrong_dataframe(styler_blank, axis):
     # test giving a gmap in DataFrame but with wrong axis
+    gmap = DataFrame([[1, 2], [2, 1]], columns=["A", "B"], index=["X", "Y"])
     msg = "'gmap' is a DataFrame but underlying data for operations is a Series"
     with pytest.raises(ValueError, match=msg):
         styler_blank.background_gradient(gmap=gmap, axis=axis)._compute()
@@ -260,7 +257,20 @@ def test_background_gradient_gmap_wrong_series(styler_blank):
         styler_blank.background_gradient(gmap=gmap, axis=None)._compute()
 
 
-@pytest.mark.parametrize("cmap", ["PuBu", mpl.cm.get_cmap("PuBu")])
+def test_background_gradient_nullable_dtypes():
+    # GH 50712
+    df1 = DataFrame([[1], [0], [np.nan]], dtype=float)
+    df2 = DataFrame([[1], [0], [None]], dtype="Int64")
+
+    ctx1 = df1.style.background_gradient()._compute().ctx
+    ctx2 = df2.style.background_gradient()._compute().ctx
+    assert ctx1 == ctx2
+
+
+@pytest.mark.parametrize(
+    "cmap",
+    ["PuBu", mpl.colormaps["PuBu"]],
+)
 def test_bar_colormap(cmap):
     data = DataFrame([[1, 2], [3, 4]])
     ctx = data.style.bar(cmap=cmap, axis=None)._compute().ctx
@@ -284,3 +294,14 @@ def test_bar_color_raises(df):
     msg = "`color` and `cmap` cannot both be given"
     with pytest.raises(ValueError, match=msg):
         df.style.bar(color="something", cmap="something else").to_html()
+
+
+@pytest.mark.parametrize("plot_method", ["scatter", "hexbin"])
+def test_pass_colormap_instance(df, plot_method):
+    # https://github.com/pandas-dev/pandas/issues/49374
+    cmap = mpl.colors.ListedColormap([[1, 1, 1], [0, 0, 0]])
+    df["c"] = df.A + df.B
+    kwargs = {"x": "A", "y": "B", "c": "c", "colormap": cmap}
+    if plot_method == "hexbin":
+        kwargs["C"] = kwargs.pop("c")
+    getattr(df.plot, plot_method)(**kwargs)

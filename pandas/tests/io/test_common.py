@@ -1,6 +1,7 @@
 """
 Tests for the pandas.io.common functionalities
 """
+
 import codecs
 import errno
 from functools import partial
@@ -12,17 +13,22 @@ from io import (
 import mmap
 import os
 from pathlib import Path
+import pickle
 import tempfile
 
+import numpy as np
 import pytest
 
 from pandas.compat import is_platform_windows
-import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
 
 import pandas.io.common as icom
+
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
 
 
 class CustomFSPath:
@@ -35,21 +41,10 @@ class CustomFSPath:
         return self.path
 
 
-# Functions that consume a string path and return a string or path-like object
-path_types = [str, CustomFSPath, Path]
-
-try:
-    from py.path import local as LocalPath
-
-    path_types.append(LocalPath)
-except ImportError:
-    pass
-
 HERE = os.path.abspath(os.path.dirname(__file__))
 
 
 # https://github.com/cython/cython/issues/1720
-@pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
 class TestCommonIOCapabilities:
     data1 = """index,A,B,C,D
 foo,2,3,4,5
@@ -81,13 +76,6 @@ bar2,12,13,14,15
         redundant_path = icom.stringify_path(Path("foo//bar"))
         assert redundant_path == os.path.join("foo", "bar")
 
-    @td.skip_if_no("py.path")
-    def test_stringify_path_localpath(self):
-        path = os.path.join("foo", "bar")
-        abs_path = os.path.abspath(path)
-        lpath = LocalPath(path)
-        assert icom.stringify_path(lpath) == abs_path
-
     def test_stringify_path_fspath(self):
         p = CustomFSPath("foo/bar.csv")
         result = icom.stringify_path(p)
@@ -100,7 +88,7 @@ bar2,12,13,14,15
             with fsspec.open(f"file://{path}", mode="wb") as fsspec_obj:
                 assert fsspec_obj == icom.stringify_path(fsspec_obj)
 
-    @pytest.mark.parametrize("path_type", path_types)
+    @pytest.mark.parametrize("path_type", [str, CustomFSPath, Path])
     def test_infer_compression_from_path(self, compression_format, path_type):
         extension, expected = compression_format
         path = path_type("foo/bar.csv" + extension)
@@ -109,7 +97,6 @@ bar2,12,13,14,15
 
     @pytest.mark.parametrize("path_type", [str, CustomFSPath, Path])
     def test_get_handle_with_path(self, path_type):
-        # ignore LocalPath: it creates strange paths: /absolute/~/sometest
         with tempfile.TemporaryDirectory(dir=Path.home()) as tmp:
             filename = path_type("~/" + Path(tmp).name + "/sometest")
             with icom.get_handle(filename, "w") as handles:
@@ -117,11 +104,11 @@ bar2,12,13,14,15
                 assert os.path.expanduser(filename) == handles.handle.name
 
     def test_get_handle_with_buffer(self):
-        input_buffer = StringIO()
-        with icom.get_handle(input_buffer, "r") as handles:
-            assert handles.handle == input_buffer
-        assert not input_buffer.closed
-        input_buffer.close()
+        with StringIO() as input_buffer:
+            with icom.get_handle(input_buffer, "r") as handles:
+                assert handles.handle == input_buffer
+            assert not input_buffer.closed
+        assert input_buffer.closed
 
     # Test that BytesIOWrapper(get_handle) returns correct amount of bytes every time
     def test_bytesiowrapper_returns_correct_bytes(self):
@@ -147,9 +134,8 @@ Look,a snake,🐍"""
             assert result == data.encode("utf-8")
 
     # Test that pyarrow can handle a file opened with get_handle
-    @td.skip_if_no("pyarrow", min_version="0.15.0")
     def test_get_handle_pyarrow_compat(self):
-        from pyarrow import csv
+        pa_csv = pytest.importorskip("pyarrow.csv")
 
         # Test latin1, ucs-2, and ucs-4 chars
         data = """a,b,c
@@ -161,7 +147,7 @@ Look,a snake,🐍"""
         )
         s = StringIO(data)
         with icom.get_handle(s, "rb", is_text=False) as handles:
-            df = csv.read_csv(handles.handle).to_pandas()
+            df = pa_csv.read_csv(handles.handle).to_pandas()
             tm.assert_frame_equal(df, expected)
             assert not s.closed
 
@@ -304,7 +290,7 @@ Look,a snake,🐍"""
             (
                 pd.read_hdf,
                 "tables",
-                ("io", "data", "legacy_hdf", "datetimetz_object.h5"),
+                ("io", "data", "legacy_hdf", "pytables_native2.h5"),
             ),
             (pd.read_stata, "os", ("io", "data", "stata", "stata10_115.dta")),
             (pd.read_sas, "os", ("io", "sas", "data", "test1.sas7bdat")),
@@ -315,12 +301,6 @@ Look,a snake,🐍"""
                 ("io", "data", "pickle", "categorical.0.25.0.pickle"),
             ),
         ],
-    )
-    @pytest.mark.filterwarnings(
-        "ignore:CategoricalBlock is deprecated:DeprecationWarning"
-    )
-    @pytest.mark.filterwarnings(  # pytables np.object usage
-        "ignore:`np.object` is a deprecated alias:DeprecationWarning"
     )
     def test_read_fspath_all(self, reader, module, path, datapath):
         pytest.importorskip(module)
@@ -336,12 +316,11 @@ Look,a snake,🐍"""
         else:
             tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:In future versions `DataFrame.to_latex`")
     @pytest.mark.parametrize(
         "writer_name, writer_kwargs, module",
         [
             ("to_csv", {}, "os"),
-            ("to_excel", {"engine": "xlwt"}, "xlwt"),
+            ("to_excel", {"engine": "openpyxl"}, "openpyxl"),
             ("to_feather", {}, "pyarrow"),
             ("to_html", {}, "os"),
             ("to_json", {}, "os"),
@@ -351,6 +330,8 @@ Look,a snake,🐍"""
         ],
     )
     def test_write_fspath_all(self, writer_name, writer_kwargs, module):
+        if writer_name in ["to_latex"]:  # uses Styler implementation
+            pytest.importorskip("jinja2")
         p1 = tm.ensure_clean("string")
         p2 = tm.ensure_clean("fspath")
         df = pd.DataFrame({"A": [1, 2]})
@@ -361,18 +342,19 @@ Look,a snake,🐍"""
             writer = getattr(df, writer_name)
 
             writer(string, **writer_kwargs)
-            with open(string, "rb") as f:
-                expected = f.read()
-
             writer(mypath, **writer_kwargs)
-            with open(fspath, "rb") as f:
-                result = f.read()
+            with open(string, "rb") as f_str, open(fspath, "rb") as f_path:
+                if writer_name == "to_excel":
+                    # binary representation of excel contains time creation
+                    # data that causes flaky CI failures
+                    result = pd.read_excel(f_str, **writer_kwargs)
+                    expected = pd.read_excel(f_path, **writer_kwargs)
+                    tm.assert_frame_equal(result, expected)
+                else:
+                    result = f_str.read()
+                    expected = f_path.read()
+                    assert result == expected
 
-            assert result == expected
-
-    @pytest.mark.filterwarnings(  # pytables np.object usage
-        "ignore:`np.object` is a deprecated alias:DeprecationWarning"
-    )
     def test_write_fspath_hdf5(self):
         # Same test as write_fspath_all, except HDF5 files aren't
         # necessarily byte-for-byte identical for a given dataframe, so we'll
@@ -415,7 +397,7 @@ class TestMMapWrapper:
         with pytest.raises(err, match=msg):
             icom._maybe_memory_map(non_file, True)
 
-        with open(mmap_file) as target:
+        with open(mmap_file, encoding="utf-8") as target:
             pass
 
         msg = "I/O operation on closed file"
@@ -423,7 +405,7 @@ class TestMMapWrapper:
             icom._maybe_memory_map(target, True)
 
     def test_next(self, mmap_file):
-        with open(mmap_file) as target:
+        with open(mmap_file, encoding="utf-8") as target:
             lines = target.readlines()
 
             with icom.get_handle(
@@ -441,7 +423,11 @@ class TestMMapWrapper:
 
     def test_unknown_engine(self):
         with tm.ensure_clean() as path:
-            df = tm.makeDataFrame()
+            df = pd.DataFrame(
+                1.1 * np.arange(120).reshape((30, 4)),
+                columns=pd.Index(list("ABCD"), dtype=object),
+                index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+            )
             df.to_csv(path)
             with pytest.raises(ValueError, match="Unknown engine"):
                 pd.read_csv(path, engine="pyt")
@@ -453,7 +439,11 @@ class TestMMapWrapper:
         GH 35058
         """
         with tm.ensure_clean() as path:
-            df = tm.makeDataFrame()
+            df = pd.DataFrame(
+                1.1 * np.arange(120).reshape((30, 4)),
+                columns=pd.Index(list("ABCD"), dtype=object),
+                index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+            )
             df.to_csv(path, mode="w+b")
             tm.assert_frame_equal(df, pd.read_csv(path, index_col=0))
 
@@ -467,7 +457,11 @@ class TestMMapWrapper:
 
         GH 35681
         """
-        df = tm.makeDataFrame()
+        df = pd.DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         with tm.ensure_clean() as path:
             with tm.assert_produces_warning(UnicodeWarning):
                 df.to_csv(path, compression=compression_, encoding=encoding)
@@ -497,7 +491,11 @@ def test_is_fsspec_url():
 @pytest.mark.parametrize("format", ["csv", "json"])
 def test_codecs_encoding(encoding, format):
     # GH39247
-    expected = tm.makeDataFrame()
+    expected = pd.DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=pd.Index(list("ABCD"), dtype=object),
+        index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     with tm.ensure_clean() as path:
         with codecs.open(path, mode="w", encoding=encoding) as handle:
             getattr(expected, f"to_{format}")(handle)
@@ -511,7 +509,11 @@ def test_codecs_encoding(encoding, format):
 
 def test_codecs_get_writer_reader():
     # GH39247
-    expected = tm.makeDataFrame()
+    expected = pd.DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=pd.Index(list("ABCD"), dtype=object),
+        index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     with tm.ensure_clean() as path:
         with open(path, "wb") as handle:
             with codecs.getwriter("utf-8")(handle) as encoded:
@@ -533,7 +535,11 @@ def test_explicit_encoding(io_class, mode, msg):
     # GH39247; this test makes sure that if a user provides mode="*t" or "*b",
     # it is used. In the case of this test it leads to an error as intentionally the
     # wrong mode is requested
-    expected = tm.makeDataFrame()
+    expected = pd.DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=pd.Index(list("ABCD"), dtype=object),
+        index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     with io_class() as buffer:
         with pytest.raises(TypeError, match=msg):
             expected.to_csv(buffer, mode=f"w{mode}")
@@ -604,3 +610,23 @@ def test_close_on_error():
         with BytesIO() as buffer:
             with icom.get_handle(buffer, "rb") as handles:
                 handles.created_handles.append(TestError())
+
+
+@pytest.mark.parametrize(
+    "reader",
+    [
+        pd.read_csv,
+        pd.read_fwf,
+        pd.read_excel,
+        pd.read_feather,
+        pd.read_hdf,
+        pd.read_stata,
+        pd.read_sas,
+        pd.read_json,
+        pd.read_pickle,
+    ],
+)
+def test_pickle_reader(reader):
+    # GH 22265
+    with BytesIO() as buffer:
+        pickle.dump(reader, buffer)

@@ -3,16 +3,14 @@ Tests for the following offsets:
 - BQuarterBegin
 - BQuarterEnd
 """
+
 from __future__ import annotations
 
 from datetime import datetime
 
 import pytest
 
-from pandas._libs.tslibs.offsets import QuarterOffset
-
 from pandas.tests.tseries.offsets.common import (
-    Base,
     assert_is_on_offset,
     assert_offset_equal,
 )
@@ -47,9 +45,7 @@ def test_on_offset(offset):
         assert res == slow_version
 
 
-class TestBQuarterBegin(Base):
-    _offset: type[QuarterOffset] = BQuarterBegin
-
+class TestBQuarterBegin:
     def test_repr(self):
         expected = "<BusinessQuarterBegin: startingMonth=3>"
         assert repr(BQuarterBegin()) == expected
@@ -57,11 +53,6 @@ class TestBQuarterBegin(Base):
         assert repr(BQuarterBegin(startingMonth=3)) == expected
         expected = "<BusinessQuarterBegin: startingMonth=1>"
         assert repr(BQuarterBegin(startingMonth=1)) == expected
-
-    def test_is_anchored(self):
-        assert BQuarterBegin(startingMonth=1).is_anchored()
-        assert BQuarterBegin().is_anchored()
-        assert not BQuarterBegin(2, startingMonth=1).is_anchored()
 
     def test_offset_corner_case(self):
         # corner
@@ -172,9 +163,7 @@ class TestBQuarterBegin(Base):
             assert_offset_equal(offset, base, expected)
 
 
-class TestBQuarterEnd(Base):
-    _offset: type[QuarterOffset] = BQuarterEnd
-
+class TestBQuarterEnd:
     def test_repr(self):
         expected = "<BusinessQuarterEnd: startingMonth=3>"
         assert repr(BQuarterEnd()) == expected
@@ -182,11 +171,6 @@ class TestBQuarterEnd(Base):
         assert repr(BQuarterEnd(startingMonth=3)) == expected
         expected = "<BusinessQuarterEnd: startingMonth=1>"
         assert repr(BQuarterEnd(startingMonth=1)) == expected
-
-    def test_is_anchored(self):
-        assert BQuarterEnd(startingMonth=1).is_anchored()
-        assert BQuarterEnd().is_anchored()
-        assert not BQuarterEnd(2, startingMonth=1).is_anchored()
 
     def test_offset_corner_case(self):
         # corner

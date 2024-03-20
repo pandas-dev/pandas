@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from pandas import (
     Categorical,
@@ -12,43 +13,34 @@ import pandas._testing as tm
 class TestReindex:
     def test_reindex_list_non_unique(self):
         # GH#11586
+        msg = "cannot reindex on an axis with duplicate labels"
         ci = CategoricalIndex(["a", "b", "c", "a"])
-        with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-            res, indexer = ci.reindex(["a", "c"])
-
-        tm.assert_index_equal(res, Index(["a", "a", "c"]), exact=True)
-        tm.assert_numpy_array_equal(indexer, np.array([0, 3, 2], dtype=np.intp))
+        with pytest.raises(ValueError, match=msg):
+            ci.reindex(["a", "c"])
 
     def test_reindex_categorical_non_unique(self):
+        msg = "cannot reindex on an axis with duplicate labels"
         ci = CategoricalIndex(["a", "b", "c", "a"])
-        with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-            res, indexer = ci.reindex(Categorical(["a", "c"]))
-
-        exp = CategoricalIndex(["a", "a", "c"], categories=["a", "c"])
-        tm.assert_index_equal(res, exp, exact=True)
-        tm.assert_numpy_array_equal(indexer, np.array([0, 3, 2], dtype=np.intp))
+        with pytest.raises(ValueError, match=msg):
+            ci.reindex(Categorical(["a", "c"]))
 
     def test_reindex_list_non_unique_unused_category(self):
+        msg = "cannot reindex on an axis with duplicate labels"
         ci = CategoricalIndex(["a", "b", "c", "a"], categories=["a", "b", "c", "d"])
-        with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-            res, indexer = ci.reindex(["a", "c"])
-        exp = Index(["a", "a", "c"], dtype="object")
-        tm.assert_index_equal(res, exp, exact=True)
-        tm.assert_numpy_array_equal(indexer, np.array([0, 3, 2], dtype=np.intp))
+        with pytest.raises(ValueError, match=msg):
+            ci.reindex(["a", "c"])
 
     def test_reindex_categorical_non_unique_unused_category(self):
+        msg = "cannot reindex on an axis with duplicate labels"
         ci = CategoricalIndex(["a", "b", "c", "a"], categories=["a", "b", "c", "d"])
-        with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-            res, indexer = ci.reindex(Categorical(["a", "c"]))
-        exp = CategoricalIndex(["a", "a", "c"], categories=["a", "c"])
-        tm.assert_index_equal(res, exp, exact=True)
-        tm.assert_numpy_array_equal(indexer, np.array([0, 3, 2], dtype=np.intp))
+        with pytest.raises(ValueError, match=msg):
+            ci.reindex(Categorical(["a", "c"]))
 
     def test_reindex_duplicate_target(self):
         # See GH25459
         cat = CategoricalIndex(["a", "b", "c"], categories=["a", "b", "c", "d"])
         res, indexer = cat.reindex(["a", "c", "c"])
-        exp = Index(["a", "c", "c"], dtype="object")
+        exp = Index(["a", "c", "c"])
         tm.assert_index_equal(res, exp, exact=True)
         tm.assert_numpy_array_equal(indexer, np.array([0, 2, 2], dtype=np.intp))
 

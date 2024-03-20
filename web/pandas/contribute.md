@@ -3,8 +3,8 @@
 _pandas_ is and will always be **free**. To make the development sustainable, we need _pandas_ users, corporate
 and individual, to support the development by providing their time and money.
 
-You can find more information about current developers in the [team page](about/team.html),
-and about current sponsors in the [sponsors page](about/sponsors.html).
+You can find more information about current developers in the [team page]({{ base_url }}about/team.html),
+and about current sponsors in the [sponsors page]({{ base_url }}about/sponsors.html).
 
 <section>
     <div class="container mt-5">
@@ -19,9 +19,9 @@ and about current sponsors in the [sponsors page](about/sponsors.html).
             pandas depends on companies and institutions using the software to support its development. Hiring
             people to work on pandas, or letting existing employees to contribute to the
             software. Or sponsoring pandas with funds, so the project can hire people to
-            progress on the <a href="about/roadmap.html">pandas roadmap</a>.
+            progress on the <a href="{{ base_url }}about/roadmap.html">pandas roadmap</a>.
           </p>
-          <p>More information in the <a href="about/sponsors.html">sponsors page</a></p>
+          <p>More information in the <a href="{{ base_url }}about/sponsors.html">sponsors page</a></p>
         </div>
         <div class="col-md-4">
           <span class="fa-stack fa-4x">
@@ -35,7 +35,7 @@ and about current sponsors in the [sponsors page](about/sponsors.html).
             to the documentation (including translators) and others. There are tasks for all
             levels, including beginners.
           </p>
-          <p>More information in the <a href="{{ base_url }}/docs/development/index.html">contributing page</a></p>
+          <p>More information in the <a href="{{ base_url }}docs/development/index.html">contributing page</a></p>
         </div>
         <div class="col-md-4">
           <span class="fa-stack fa-4x">
@@ -48,7 +48,7 @@ and about current sponsors in the [sponsors page](about/sponsors.html).
             infrastructure, travel expenses for our volunteer contributors to attend
             the in-person sprints, or to give small grants to develop features.
           </p>
-          <p>Make your donation in the <a href="donate.html">donate page</a></p>
+          <p>Make your donation in the <a href="{{ base_url }}donate.html">donate page</a></p>
         </div>
       </div>
     </div>

@@ -5,7 +5,6 @@ import pandas as pd
 import pandas._testing as tm
 
 
-@pytest.mark.parametrize("ordered", [True, False])
 @pytest.mark.parametrize("categories", [["b", "a", "c"], ["a", "b", "c", "d"]])
 def test_factorize(categories, ordered):
     cat = pd.Categorical(
@@ -59,6 +58,15 @@ def test_isin_cats():
     tm.assert_numpy_array_equal(expected, result)
 
 
+@pytest.mark.parametrize("value", [[""], [None, ""], [pd.NaT, ""]])
+def test_isin_cats_corner_cases(value):
+    # GH36550
+    cat = pd.Categorical([""])
+    result = cat.isin(value)
+    expected = np.array([True], dtype=bool)
+    tm.assert_numpy_array_equal(expected, result)
+
+
 @pytest.mark.parametrize("empty", [[], pd.Series(dtype=object), np.array([])])
 def test_isin_empty(empty):
     s = pd.Categorical(["a", "b"])
@@ -69,15 +77,12 @@ def test_isin_empty(empty):
 
 
 def test_diff():
-    s = pd.Series([1, 2, 3], dtype="category")
-    with tm.assert_produces_warning(FutureWarning):
-        result = s.diff()
-    expected = pd.Series([np.nan, 1, 1])
-    tm.assert_series_equal(result, expected)
+    ser = pd.Series([1, 2, 3], dtype="category")
 
-    expected = expected.to_frame(name="A")
-    df = s.to_frame(name="A")
-    with tm.assert_produces_warning(FutureWarning):
-        result = df.diff()
+    msg = "Convert to a suitable dtype"
+    with pytest.raises(TypeError, match=msg):
+        ser.diff()
 
-    tm.assert_frame_equal(result, expected)
+    df = ser.to_frame(name="A")
+    with pytest.raises(TypeError, match=msg):
+        df.diff()

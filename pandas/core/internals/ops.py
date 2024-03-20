@@ -2,14 +2,16 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Iterator,
     NamedTuple,
 )
 
-from pandas._typing import ArrayLike
+from pandas.core.dtypes.common import is_1d_only_ea_dtype
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from pandas._libs.internals import BlockPlacement
+    from pandas._typing import ArrayLike
 
     from pandas.core.internals.blocks import Block
     from pandas.core.internals.managers import BlockManager
@@ -36,7 +38,7 @@ def _iter_block_pairs(
 
         left_ea = blk_vals.ndim == 1
 
-        rblks, _ = right._slice_take_blocks_ax0(locs.indexer, only_slice=True)
+        rblks = right._slice_take_blocks_ax0(locs.indexer, only_slice=True)
 
         # Assertions are disabled for performance, but should hold:
         # if left_ea:
@@ -61,7 +63,12 @@ def operate_blockwise(
     res_blks: list[Block] = []
     for lvals, rvals, locs, left_ea, right_ea, rblk in _iter_block_pairs(left, right):
         res_values = array_op(lvals, rvals)
-        if left_ea and not right_ea and hasattr(res_values, "reshape"):
+        if (
+            left_ea
+            and not right_ea
+            and hasattr(res_values, "reshape")
+            and not is_1d_only_ea_dtype(res_values.dtype)
+        ):
             res_values = res_values.reshape(1, -1)
         nbs = rblk._split_op_result(res_values)
 
@@ -86,7 +93,7 @@ def operate_blockwise(
     return new_mgr
 
 
-def _reset_block_mgr_locs(nbs: list[Block], locs):
+def _reset_block_mgr_locs(nbs: list[Block], locs) -> None:
     """
     Reset mgr_locs to correspond to our original DataFrame.
     """

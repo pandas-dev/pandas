@@ -3,30 +3,32 @@ Collection of tests asserting things that should be true for
 any index subclass except for MultiIndex. Makes use of the `index_flat`
 fixture defined in pandas/conftest.py.
 """
+
+from copy import (
+    copy,
+    deepcopy,
+)
 import re
 
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    pa_version_under7p0,
-)
-from pandas.errors import PerformanceWarning
+from pandas.compat import IS64
+from pandas.compat.numpy import np_version_gte1p25
 
-from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import (
+    is_integer_dtype,
+    is_numeric_dtype,
+)
 
 import pandas as pd
 from pandas import (
     CategoricalIndex,
-    DatetimeIndex,
     MultiIndex,
     PeriodIndex,
     RangeIndex,
-    TimedeltaIndex,
 )
 import pandas._testing as tm
-from pandas.core.api import NumericIndex
 
 
 class TestCommon:
@@ -45,7 +47,6 @@ class TestCommon:
         assert df.index is idx
         assert len(df.columns) == 1
         assert df.columns[0] == idx_name
-        assert df[idx_name].values is not idx.values
 
         df = idx.to_frame(index=False, name=idx_name)
         assert df.index is not idx
@@ -118,11 +119,7 @@ class TestCommon:
         # should return None
         assert res is None
         assert index.name == new_name
-        assert index.names == [new_name]
-        # FIXME: dont leave commented-out
-        # with pytest.raises(TypeError, match="list-like"):
-        #    # should still fail even if it would be the right length
-        #    ind.set_names("a")
+        assert index.names == (new_name,)
         with pytest.raises(ValueError, match="Level must be None"):
             index.set_names("a", level=0)
 
@@ -130,14 +127,15 @@ class TestCommon:
         name = ("A", "B")
         index.rename(name, inplace=True)
         assert index.name == name
-        assert index.names == [name]
+        assert index.names == (name,)
+
+    @pytest.mark.xfail
+    def test_set_names_single_label_no_level(self, index_flat):
+        with pytest.raises(TypeError, match="list-like"):
+            # should still fail even if it would be the right length
+            index_flat.set_names("a")
 
     def test_copy_and_deepcopy(self, index_flat):
-        from copy import (
-            copy,
-            deepcopy,
-        )
-
         index = index_flat
 
         for func in (copy, deepcopy):
@@ -170,12 +168,7 @@ class TestCommon:
         s1 = pd.Series(2, index=first)
         s2 = pd.Series(3, index=second[:-1])
         # See GH#13365
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
-            s3 = s1 * s2
+        s3 = s1 * s2
         assert s3.index.name == "mario"
 
     def test_copy_name2(self, index_flat):
@@ -248,10 +241,12 @@ class TestCommon:
         assert idx_unique_nan.dtype == index.dtype
 
         expected = idx_unique_nan
-        for i in [idx_nan, idx_unique_nan]:
+        for pos, i in enumerate([idx_nan, idx_unique_nan]):
             result = i.unique()
             tm.assert_index_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Period with BDay freq:FutureWarning")
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_searchsorted_monotonic(self, index_flat, request):
         # GH17271
         index = index_flat
@@ -262,7 +257,7 @@ class TestCommon:
                 reason="IntervalIndex.searchsorted does not support Interval arg",
                 raises=NotImplementedError,
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         # nothing to test if the index is empty
         if index.empty:
@@ -302,6 +297,7 @@ class TestCommon:
             with pytest.raises(ValueError, match=msg):
                 index._searchsorted_monotonic(value, side="left")
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_drop_duplicates(self, index_flat, keep):
         # MultiIndex is tested separately
         index = index_flat
@@ -319,12 +315,12 @@ class TestCommon:
         # make unique index
         holder = type(index)
         unique_values = list(set(index))
-        dtype = index.dtype if isinstance(index, NumericIndex) else None
+        dtype = index.dtype if is_numeric_dtype(index) else None
         unique_idx = holder(unique_values, dtype=dtype)
 
         # make duplicated index
         n = len(unique_idx)
-        duplicated_selection = np.random.choice(n, int(n * 1.5))
+        duplicated_selection = np.random.default_rng(2).choice(n, int(n * 1.5))
         idx = holder(unique_idx.values[duplicated_selection])
 
         # Series.duplicated is tested separately
@@ -337,6 +333,7 @@ class TestCommon:
         expected_dropped = holder(pd.Series(idx).drop_duplicates(keep=keep))
         tm.assert_index_equal(idx.drop_duplicates(keep=keep), expected_dropped)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_drop_duplicates_no_duplicates(self, index_flat):
         # MultiIndex is tested separately
         index = index_flat
@@ -348,7 +345,7 @@ class TestCommon:
         else:
             holder = type(index)
             unique_values = list(set(index))
-            dtype = index.dtype if isinstance(index, NumericIndex) else None
+            dtype = index.dtype if is_numeric_dtype(index) else None
             unique_idx = holder(unique_values, dtype=dtype)
 
         # check on unique index
@@ -364,6 +361,7 @@ class TestCommon:
         with pytest.raises(TypeError, match=msg):
             index.drop_duplicates(inplace=True)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_has_duplicates(self, index_flat):
         # MultiIndex tested separately in:
         #   tests/indexes/multi/test_unique_and_duplicates.
@@ -391,22 +389,14 @@ class TestCommon:
             index.name = "idx"
 
         warn = None
-        if (
-            isinstance(index, DatetimeIndex)
-            and index.tz is not None
-            and dtype == "datetime64[ns]"
-        ):
-            # This astype is deprecated in favor of tz_localize
-            warn = FutureWarning
-        elif index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]:
+        if index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]:
             # imaginary components discarded
-            warn = np.ComplexWarning
+            if np_version_gte1p25:
+                warn = np.exceptions.ComplexWarning
+            else:
+                warn = np.ComplexWarning
 
-        is_pyarrow_str = (
-            str(index.dtype) == "string[pyarrow]"
-            and pa_version_under7p0
-            and dtype == "category"
-        )
+        is_pyarrow_str = str(index.dtype) == "string[pyarrow]" and dtype == "category"
         try:
             # Some of these conversions cannot succeed so we use a try / except
             with tm.assert_produces_warning(
@@ -423,16 +413,6 @@ class TestCommon:
         else:
             assert result.name == index.name
 
-    def test_asi8_deprecation(self, index):
-        # GH#37877
-        if isinstance(index, (DatetimeIndex, TimedeltaIndex, PeriodIndex)):
-            warn = None
-        else:
-            warn = FutureWarning
-
-        with tm.assert_produces_warning(warn):
-            index.asi8
-
     def test_hasnans_isnans(self, index_flat):
         # GH#11343, added tests for hasnans / isnans
         index = index_flat
@@ -448,7 +428,7 @@ class TestCommon:
 
         if len(index) == 0:
             return
-        elif isinstance(index, NumericIndex) and is_integer_dtype(index.dtype):
+        elif is_integer_dtype(index.dtype):
             return
         elif index.dtype == bool:
             # values[1] = np.nan below casts to True!
@@ -464,25 +444,21 @@ class TestCommon:
         assert idx.hasnans is True
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("na_position", [None, "middle"])
 def test_sort_values_invalid_na_position(index_with_missing, na_position):
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        pa_version_under7p0
-        and getattr(index_with_missing.dtype, "storage", "") == "pyarrow",
-        check_stacklevel=False,
-    ):
-        with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
-            index_with_missing.sort_values(na_position=na_position)
+    with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
+        index_with_missing.sort_values(na_position=na_position)
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("na_position", ["first", "last"])
 def test_sort_values_with_missing(index_with_missing, na_position, request):
     # GH 35584. Test that sort_values works with missing values,
     # sort non-missing and place missing according to na_position
 
     if isinstance(index_with_missing, CategoricalIndex):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="missing value sorting order not well-defined", strict=False
             )
@@ -499,13 +475,7 @@ def test_sort_values_with_missing(index_with_missing, na_position, request):
     # Explicitly pass dtype needed for Index backed by EA e.g. IntegerArray
     expected = type(index_with_missing)(sorted_values, dtype=index_with_missing.dtype)
 
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        pa_version_under7p0
-        and getattr(index_with_missing.dtype, "storage", "") == "pyarrow",
-        check_stacklevel=False,
-    ):
-        result = index_with_missing.sort_values(na_position=na_position)
+    result = index_with_missing.sort_values(na_position=na_position)
     tm.assert_index_equal(result, expected)
 
 
@@ -529,3 +499,12 @@ def test_ndarray_compat_properties(index):
     # test for validity
     idx.nbytes
     idx.values.nbytes
+
+
+def test_compare_read_only_array():
+    # GH#57130
+    arr = np.array([], dtype=object)
+    arr.flags.writeable = False
+    idx = pd.Index(arr)
+    result = idx > 69
+    assert result.dtype == bool

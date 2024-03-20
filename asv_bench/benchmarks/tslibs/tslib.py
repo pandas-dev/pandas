@@ -15,6 +15,7 @@ for box in tr.params[0]:
             val = %timeit -o tr.time_ints_to_pydatetime(box, size, tz)
             df.loc[key] = (val.average, val.stdev)
 """
+
 from datetime import (
     timedelta,
     timezone,
@@ -51,7 +52,7 @@ class TimeIntsToPydatetime:
         _tzs,
     )
     param_names = ["box", "size", "tz"]
-    # TODO: fold? freq?
+    # TODO: fold?
 
     def setup(self, box, size, tz):
         if box == "date" and tz is not None:

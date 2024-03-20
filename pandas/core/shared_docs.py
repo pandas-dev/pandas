@@ -2,9 +2,7 @@ from __future__ import annotations
 
 _shared_docs: dict[str, str] = {}
 
-_shared_docs[
-    "aggregate"
-] = """
+_shared_docs["aggregate"] = """
 Aggregate using one or more operations over the specified axis.
 
 Parameters
@@ -34,11 +32,16 @@ scalar, Series or DataFrame
     * scalar : when Series.agg is called with single function
     * Series : when DataFrame.agg is called with a single function
     * DataFrame : when DataFrame.agg is called with several functions
-
-    Return scalar, Series or DataFrame.
 {see_also}
 Notes
 -----
+The aggregation operations are always performed over an axis, either the
+index (default) or the column axis. This behavior is different from
+`numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
+`var`), where the default is to compute the aggregation of the flattened
+array, e.g., ``numpy.mean(arr_2d)`` as opposed to
+``numpy.mean(arr_2d, axis=0)``.
+
 `agg` is an alias for `aggregate`. Use the alias.
 
 Functions that mutate the passed object can produce unexpected
@@ -48,12 +51,8 @@ for more details.
 A passed user-defined-function will be passed a Series for evaluation.
 {examples}"""
 
-_shared_docs[
-    "compare"
-] = """
+_shared_docs["compare"] = """
 Compare to another {klass} and show the differences.
-
-.. versionadded:: 1.1.0
 
 Parameters
 ----------
@@ -82,9 +81,7 @@ result_names : tuple, default ('self', 'other')
     .. versionadded:: 1.5.0
 """
 
-_shared_docs[
-    "groupby"
-] = """
+_shared_docs["groupby"] = """
 Group %(klass)s using a mapper or by a Series of columns.
 
 A groupby operation involves some combination of splitting the
@@ -94,7 +91,7 @@ groups.
 
 Parameters
 ----------
-by : mapping, function, label, or list of labels
+by : mapping, function, label, pd.Grouper or list of such
     Used to determine the groups for the groupby.
     If ``by`` is a function, it's called on each value of the object's
     index. If a dict or Series is passed, the Series or dict VALUES
@@ -105,54 +102,69 @@ by : mapping, function, label, or list of labels
     the values are used as-is to determine the groups. A label or list
     of labels may be passed to group by the columns in ``self``.
     Notice that a tuple is interpreted as a (single) key.
-axis : {0 or 'index', 1 or 'columns'}, default 0
-    Split along rows (0) or columns (1). For `Series` this parameter
-    is unused and defaults to 0.
 level : int, level name, or sequence of such, default None
     If the axis is a MultiIndex (hierarchical), group by a particular
     level or levels. Do not specify both ``by`` and ``level``.
 as_index : bool, default True
-    For aggregated output, return object with group labels as the
+    Return object with group labels as the
     index. Only relevant for DataFrame input. as_index=False is
-    effectively "SQL-style" grouped output.
+    effectively "SQL-style" grouped output. This argument has no effect
+    on filtrations (see the `filtrations in the user guide
+    <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
+    such as ``head()``, ``tail()``, ``nth()`` and in transformations
+    (see the `transformations in the user guide
+    <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
 sort : bool, default True
     Sort group keys. Get better performance by turning this off.
     Note this does not influence the order of observations within each
-    group. Groupby preserves the order of rows within each group.
-group_keys : bool, optional
+    group. Groupby preserves the order of rows within each group. If False,
+    the groups will appear in the same order as they did in the original DataFrame.
+    This argument has no effect on filtrations (see the `filtrations in the user guide
+    <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
+    such as ``head()``, ``tail()``, ``nth()`` and in transformations
+    (see the `transformations in the user guide
+    <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
+
+    .. versionchanged:: 2.0.0
+
+        Specifying ``sort=False`` with an ordered categorical grouper will no
+        longer sort the values.
+
+group_keys : bool, default True
     When calling apply and the ``by`` argument produces a like-indexed
     (i.e. :ref:`a transform <groupby.transform>`) result, add group keys to
     index to identify pieces. By default group keys are not included
     when the result's index (and column) labels match the inputs, and
-    are included otherwise. This argument has no effect if the result produced
-    is not like-indexed with respect to the input.
+    are included otherwise.
 
     .. versionchanged:: 1.5.0
 
-       Warns that `group_keys` will no longer be ignored when the
+       Warns that ``group_keys`` will no longer be ignored when the
        result from ``apply`` is a like-indexed Series or DataFrame.
        Specify ``group_keys`` explicitly to include the group keys or
        not.
-squeeze : bool, default False
-    Reduce the dimensionality of the return type if possible,
-    otherwise return a consistent type.
 
-    .. deprecated:: 1.1.0
+    .. versionchanged:: 2.0.0
 
-observed : bool, default False
+       ``group_keys`` now defaults to ``True``.
+
+observed : bool, default True
     This only applies if any of the groupers are Categoricals.
     If True: only show observed values for categorical groupers.
     If False: show all values for categorical groupers.
+
+    .. versionchanged:: 3.0.0
+
+        The default value is now ``True``.
+
 dropna : bool, default True
     If True, and if group keys contain NA values, NA values together
     with row/column will be dropped.
     If False, NA values will also be treated as the key in groups.
 
-    .. versionadded:: 1.1.0
-
 Returns
 -------
-%(klass)sGroupBy
+pandas.api.typing.%(klass)sGroupBy
     Returns a groupby object that contains information about the groups.
 
 See Also
@@ -166,129 +178,15 @@ See the `user guide
 <https://pandas.pydata.org/pandas-docs/stable/groupby.html>`__ for more
 detailed usage and examples, including splitting an object into groups,
 iterating through groups, selecting a group, aggregation, and more.
+
+The implementation of groupby is hash-based, meaning in particular that
+objects that compare as equal will be considered to be in the same group.
+An exception to this is that pandas has special handling of NA values:
+any NA values will be collapsed to a single group, regardless of how
+they compare. See the user guide linked above for more details.
 """
 
-_shared_docs[
-    "melt"
-] = """
-Unpivot a DataFrame from wide to long format, optionally leaving identifiers set.
-
-This function is useful to massage a DataFrame into a format where one
-or more columns are identifier variables (`id_vars`), while all other
-columns, considered measured variables (`value_vars`), are "unpivoted" to
-the row axis, leaving just two non-identifier columns, 'variable' and
-'value'.
-
-Parameters
-----------
-id_vars : tuple, list, or ndarray, optional
-    Column(s) to use as identifier variables.
-value_vars : tuple, list, or ndarray, optional
-    Column(s) to unpivot. If not specified, uses all columns that
-    are not set as `id_vars`.
-var_name : scalar
-    Name to use for the 'variable' column. If None it uses
-    ``frame.columns.name`` or 'variable'.
-value_name : scalar, default 'value'
-    Name to use for the 'value' column.
-col_level : int or str, optional
-    If columns are a MultiIndex then use this level to melt.
-ignore_index : bool, default True
-    If True, original index is ignored. If False, the original index is retained.
-    Index labels will be repeated as necessary.
-
-    .. versionadded:: 1.1.0
-
-Returns
--------
-DataFrame
-    Unpivoted DataFrame.
-
-See Also
---------
-%(other)s : Identical method.
-pivot_table : Create a spreadsheet-style pivot table as a DataFrame.
-DataFrame.pivot : Return reshaped DataFrame organized
-    by given index / column values.
-DataFrame.explode : Explode a DataFrame from list-like
-        columns to long format.
-
-Notes
------
-Reference :ref:`the user guide <reshaping.melt>` for more examples.
-
-Examples
---------
->>> df = pd.DataFrame({'A': {0: 'a', 1: 'b', 2: 'c'},
-...                    'B': {0: 1, 1: 3, 2: 5},
-...                    'C': {0: 2, 1: 4, 2: 6}})
->>> df
-   A  B  C
-0  a  1  2
-1  b  3  4
-2  c  5  6
-
->>> %(caller)sid_vars=['A'], value_vars=['B'])
-   A variable  value
-0  a        B      1
-1  b        B      3
-2  c        B      5
-
->>> %(caller)sid_vars=['A'], value_vars=['B', 'C'])
-   A variable  value
-0  a        B      1
-1  b        B      3
-2  c        B      5
-3  a        C      2
-4  b        C      4
-5  c        C      6
-
-The names of 'variable' and 'value' columns can be customized:
-
->>> %(caller)sid_vars=['A'], value_vars=['B'],
-...         var_name='myVarname', value_name='myValname')
-   A myVarname  myValname
-0  a         B          1
-1  b         B          3
-2  c         B          5
-
-Original index values can be kept around:
-
->>> %(caller)sid_vars=['A'], value_vars=['B', 'C'], ignore_index=False)
-   A variable  value
-0  a        B      1
-1  b        B      3
-2  c        B      5
-0  a        C      2
-1  b        C      4
-2  c        C      6
-
-If you have multi-index columns:
-
->>> df.columns = [list('ABC'), list('DEF')]
->>> df
-   A  B  C
-   D  E  F
-0  a  1  2
-1  b  3  4
-2  c  5  6
-
->>> %(caller)scol_level=0, id_vars=['A'], value_vars=['B'])
-   A variable  value
-0  a        B      1
-1  b        B      3
-2  c        B      5
-
->>> %(caller)sid_vars=[('A', 'D')], value_vars=[('B', 'E')])
-  (A, D) variable_0 variable_1  value
-0      a          B          E      1
-1      b          B          E      3
-2      c          B          E      5
-"""
-
-_shared_docs[
-    "transform"
-] = """
+_shared_docs["transform"] = """
 Call ``func`` on self producing a {klass} with the same axis shape as self.
 
 Parameters
@@ -413,9 +311,7 @@ Name: Data, dtype: int64
 6  2    n    4
 """
 
-_shared_docs[
-    "storage_options"
-] = """storage_options : dict, optional
+_shared_docs["storage_options"] = """storage_options : dict, optional
     Extra options that make sense for a particular storage connection, e.g.
     host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
     are forwarded to ``urllib.request.Request`` as header options. For other
@@ -425,30 +321,26 @@ _shared_docs[
     <https://pandas.pydata.org/docs/user_guide/io.html?
     highlight=storage_options#reading-writing-remote-files>`_."""
 
-_shared_docs[
-    "compression_options"
-] = """compression : str or dict, default 'infer'
+_shared_docs["compression_options"] = """compression : str or dict, default 'infer'
     For on-the-fly compression of the output data. If 'infer' and '%s' is
     path-like, then detect compression from the following extensions: '.gz',
     '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
     (otherwise no compression).
     Set to ``None`` for no compression.
     Can also be a dict with key ``'method'`` set
-    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'tar'``} and other
-    key-value pairs are forwarded to
+    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
+    other key-value pairs are forwarded to
     ``zipfile.ZipFile``, ``gzip.GzipFile``,
-    ``bz2.BZ2File``, ``zstandard.ZstdCompressor`` or
+    ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
     ``tarfile.TarFile``, respectively.
     As an example, the following could be passed for faster compression and to create
     a reproducible gzip archive:
     ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files."""
+    .. versionadded:: 1.5.0
+        Added support for `.tar` files."""
 
-_shared_docs[
-    "decompression_options"
-] = """compression : str or dict, default 'infer'
+_shared_docs["decompression_options"] = """compression : str or dict, default 'infer'
     For on-the-fly decompression of on-disk data. If 'infer' and '%s' is
     path-like, then detect compression from the following extensions: '.gz',
     '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
@@ -456,25 +348,24 @@ _shared_docs[
     If using 'zip' or 'tar', the ZIP file must contain only one data file to be read in.
     Set to ``None`` for no decompression.
     Can also be a dict with key ``'method'`` set
-    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'tar'``} and other
-    key-value pairs are forwarded to
+    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
+    other key-value pairs are forwarded to
     ``zipfile.ZipFile``, ``gzip.GzipFile``,
-    ``bz2.BZ2File``, ``zstandard.ZstdDecompressor`` or
+    ``bz2.BZ2File``, ``zstandard.ZstdDecompressor``, ``lzma.LZMAFile`` or
     ``tarfile.TarFile``, respectively.
     As an example, the following could be passed for Zstandard decompression using a
     custom compression dictionary:
     ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
 
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files."""
+    .. versionadded:: 1.5.0
+        Added support for `.tar` files."""
 
-_shared_docs[
-    "replace"
-] = """
+_shared_docs["replace"] = """
     Replace values given in `to_replace` with `value`.
 
     Values of the {klass} are replaced with other values dynamically.
-    {replace_iloc}
+    This differs from updating with ``.loc`` or ``.iloc``, which require
+    you to specify a location to update with some value.
 
     Parameters
     ----------
@@ -540,18 +431,18 @@ _shared_docs[
     {inplace}
     limit : int, default None
         Maximum size gap to forward or backward fill.
+
+        .. deprecated:: 2.1.0
     regex : bool or same types as `to_replace`, default False
         Whether to interpret `to_replace` and/or `value` as regular
-        expressions. If this is ``True`` then `to_replace` *must* be a
-        string. Alternatively, this could be a regular expression or a
+        expressions. Alternatively, this could be a regular expression or a
         list, dict, or array of regular expressions in which case
         `to_replace` must be ``None``.
     method : {{'pad', 'ffill', 'bfill'}}
         The method to use when for replacement, when `to_replace` is a
         scalar, list or tuple and `value` is ``None``.
 
-        .. versionchanged:: 0.23.0
-            Added to DataFrame.
+        .. deprecated:: 2.1.0
 
     Returns
     -------
@@ -581,8 +472,12 @@ _shared_docs[
 
     See Also
     --------
-    {klass}.fillna : Fill NA values.
-    {klass}.where : Replace values based on boolean condition.
+    Series.fillna : Fill NA values.
+    DataFrame.fillna : Fill NA values.
+    Series.where : Replace values based on boolean condition.
+    DataFrame.where : Replace values based on boolean condition.
+    DataFrame.map: Apply a function to a Dataframe elementwise.
+    Series.map: Map values of Series according to an input mapping or function.
     Series.str.replace : Simple string replacement.
 
     Notes
@@ -743,6 +638,9 @@ _shared_docs[
     4     b
     dtype: object
 
+        .. deprecated:: 2.1.0
+            The 'method' parameter and padding behavior are deprecated.
+
     On the other hand, if ``None`` is explicitly passed for ``value``, it will
     be respected:
 
@@ -756,11 +654,35 @@ _shared_docs[
 
         .. versionchanged:: 1.4.0
             Previously the explicit ``None`` was silently ignored.
+
+    When ``regex=True``, ``value`` is not ``None`` and `to_replace` is a string,
+    the replacement will be applied in all columns of the DataFrame.
+
+    >>> df = pd.DataFrame({{'A': [0, 1, 2, 3, 4],
+    ...                    'B': ['a', 'b', 'c', 'd', 'e'],
+    ...                    'C': ['f', 'g', 'h', 'i', 'j']}})
+
+    >>> df.replace(to_replace='^[a-g]', value='e', regex=True)
+        A  B  C
+    0  0  e  e
+    1  1  e  e
+    2  2  e  h
+    3  3  e  i
+    4  4  e  j
+
+    If ``value`` is not ``None`` and `to_replace` is a dictionary, the dictionary
+    keys will be the DataFrame columns that the replacement will be applied.
+
+    >>> df.replace(to_replace={{'B': '^[a-c]', 'C': '^[h-j]'}}, value='e', regex=True)
+        A  B  C
+    0  0  e  f
+    1  1  e  g
+    2  2  e  e
+    3  3  d  e
+    4  4  e  e
 """
 
-_shared_docs[
-    "idxmin"
-] = """
+_shared_docs["idxmin"] = """
     Return index of first occurrence of minimum over requested axis.
 
     NA/null values are excluded.
@@ -800,8 +722,8 @@ _shared_docs[
     Consider a dataset containing food consumption in Argentina.
 
     >>> df = pd.DataFrame({{'consumption': [10.51, 103.11, 55.48],
-    ...                    'co2_emissions': [37.2, 19.66, 1712]}},
-    ...                    index=['Pork', 'Wheat Products', 'Beef'])
+    ...                   'co2_emissions': [37.2, 19.66, 1712]}},
+    ...                   index=['Pork', 'Wheat Products', 'Beef'])
 
     >>> df
                     consumption  co2_emissions
@@ -825,9 +747,7 @@ _shared_docs[
     dtype: object
 """
 
-_shared_docs[
-    "idxmax"
-] = """
+_shared_docs["idxmax"] = """
     Return index of first occurrence of maximum over requested axis.
 
     NA/null values are excluded.
@@ -867,8 +787,8 @@ _shared_docs[
     Consider a dataset containing food consumption in Argentina.
 
     >>> df = pd.DataFrame({{'consumption': [10.51, 103.11, 55.48],
-    ...                    'co2_emissions': [37.2, 19.66, 1712]}},
-    ...                    index=['Pork', 'Wheat Products', 'Beef'])
+    ...                   'co2_emissions': [37.2, 19.66, 1712]}},
+    ...                   index=['Pork', 'Wheat Products', 'Beef'])
 
     >>> df
                     consumption  co2_emissions

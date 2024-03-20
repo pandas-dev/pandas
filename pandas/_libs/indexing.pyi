@@ -9,7 +9,7 @@ _IndexingMixinT = TypeVar("_IndexingMixinT", bound=IndexingMixin)
 
 class NDFrameIndexerBase(Generic[_IndexingMixinT]):
     name: str
-    # in practise obj is either a DataFrame or a Series
+    # in practice obj is either a DataFrame or a Series
     obj: _IndexingMixinT
 
     def __init__(self, name: str, obj: _IndexingMixinT) -> None: ...

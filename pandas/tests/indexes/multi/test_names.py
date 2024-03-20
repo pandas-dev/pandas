@@ -56,26 +56,24 @@ def test_take_preserve_name(idx):
 def test_copy_names():
     # Check that adding a "names" parameter to the copy is honored
     # GH14302
-    with tm.assert_produces_warning(FutureWarning):
-        # subclass-specific kwargs to pd.Index
-        multi_idx = pd.Index([(1, 2), (3, 4)], names=["MyName1", "MyName2"])
+    multi_idx = MultiIndex.from_tuples([(1, 2), (3, 4)], names=["MyName1", "MyName2"])
     multi_idx1 = multi_idx.copy()
 
     assert multi_idx.equals(multi_idx1)
-    assert multi_idx.names == ["MyName1", "MyName2"]
-    assert multi_idx1.names == ["MyName1", "MyName2"]
+    assert multi_idx.names == ("MyName1", "MyName2")
+    assert multi_idx1.names == ("MyName1", "MyName2")
 
     multi_idx2 = multi_idx.copy(names=["NewName1", "NewName2"])
 
     assert multi_idx.equals(multi_idx2)
-    assert multi_idx.names == ["MyName1", "MyName2"]
-    assert multi_idx2.names == ["NewName1", "NewName2"]
+    assert multi_idx.names == ("MyName1", "MyName2")
+    assert multi_idx2.names == ("NewName1", "NewName2")
 
     multi_idx3 = multi_idx.copy(name=["NewName1", "NewName2"])
 
     assert multi_idx.equals(multi_idx3)
-    assert multi_idx.names == ["MyName1", "MyName2"]
-    assert multi_idx3.names == ["NewName1", "NewName2"]
+    assert multi_idx.names == ("MyName1", "MyName2")
+    assert multi_idx3.names == ("NewName1", "NewName2")
 
     # gh-35592
     with pytest.raises(ValueError, match="Length of new names must be 2, got 1"):
@@ -85,12 +83,11 @@ def test_copy_names():
         multi_idx.copy(names=[["mario"], ["luigi"]])
 
 
-def test_names(idx, index_names):
-
+def test_names(idx):
     # names are assigned in setup
-    assert index_names == ["first", "second"]
-    level_names = [level.name for level in idx.levels]
-    assert level_names == index_names
+    assert idx.names == ("first", "second")
+    level_names = tuple(level.name for level in idx.levels)
+    assert level_names == idx.names
 
     # setting bad names on existing
     index = idx
@@ -148,7 +145,6 @@ def test_setting_names_from_levels_raises():
         new.index.name = "bar"
 
     assert pd.Index._no_setting_name is False
-    assert pd.core.api.NumericIndex._no_setting_name is False
     assert pd.RangeIndex._no_setting_name is False
 
 

@@ -4,6 +4,10 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager|Passing a SingleBlockManager:DeprecationWarning"
+)
+
 
 class TestSeriesSubclassing:
     @pytest.mark.parametrize(
@@ -35,8 +39,7 @@ class TestSeriesSubclassing:
         tm.assert_frame_equal(res, exp)
 
     def test_subclass_empty_repr(self):
-        with tm.assert_produces_warning(FutureWarning):
-            sub_series = tm.SubclassedSeries()
+        sub_series = tm.SubclassedSeries()
         assert "SubclassedSeries" in repr(sub_series)
 
     def test_asof(self):
@@ -59,3 +62,21 @@ class TestSeriesSubclassing:
         s2 = tm.SubclassedSeries([1, 2, 3])
         assert s1.equals(s2)
         assert s2.equals(s1)
+
+
+class SubclassedSeries(pd.Series):
+    @property
+    def _constructor(self):
+        def _new(*args, **kwargs):
+            # some constructor logic that accesses the Series' name
+            if self.name == "test":
+                return pd.Series(*args, **kwargs)
+            return SubclassedSeries(*args, **kwargs)
+
+        return _new
+
+
+def test_constructor_from_dict():
+    # https://github.com/pandas-dev/pandas/issues/52445
+    result = SubclassedSeries({"a": 1, "b": 2, "c": 3})
+    assert isinstance(result, SubclassedSeries)

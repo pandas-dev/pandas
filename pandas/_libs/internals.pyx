@@ -2,12 +2,9 @@ from collections import defaultdict
 import weakref
 
 cimport cython
+from cpython.pyport cimport PY_SSIZE_T_MAX
 from cpython.slice cimport PySlice_GetIndicesEx
 from cython cimport Py_ssize_t
-
-
-cdef extern from "Python.h":
-    Py_ssize_t PY_SSIZE_T_MAX
 
 import numpy as np
 
@@ -23,7 +20,6 @@ cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
 
-from pandas._libs.arrays cimport NDArrayBacked
 from pandas._libs.util cimport (
     is_array,
     is_integer_object,
@@ -33,7 +29,6 @@ from pandas._libs.util cimport (
 @cython.final
 @cython.freelist(32)
 cdef class BlockPlacement:
-    # __slots__ = '_as_slice', '_as_array', '_len'
     cdef:
         slice _as_slice
         ndarray _as_array  # Note: this still allows `None`; will be intp_t
@@ -69,7 +64,7 @@ cdef class BlockPlacement:
                 or not cnp.PyArray_ISWRITEABLE(val)
                 or (<ndarray>val).descr.type_num != cnp.NPY_INTP
             ):
-                arr = np.require(val, dtype=np.intp, requirements='W')
+                arr = np.require(val, dtype=np.intp, requirements="W")
             else:
                 arr = val
             # Caller is responsible for ensuring arr.ndim == 1
@@ -133,7 +128,7 @@ cdef class BlockPlacement:
     @property
     def as_array(self) -> np.ndarray:
         cdef:
-            Py_ssize_t start, stop, end, _
+            Py_ssize_t start, stop, _
 
         if not self._has_array:
             start, stop, step, _ = slice_get_indices_ex(self._as_slice)
@@ -226,7 +221,7 @@ cdef class BlockPlacement:
         """
         cdef:
             slice nv, s = self._ensure_has_slice()
-            Py_ssize_t other_int, start, stop, step
+            Py_ssize_t start, stop, step
             ndarray[intp_t, ndim=1] newarr
 
         if s is not None:
@@ -259,7 +254,6 @@ cdef class BlockPlacement:
         """
         cdef:
             slice slc = self._ensure_has_slice()
-            slice new_slice
             ndarray[intp_t, ndim=1] new_placement
 
         if slc is not None and slc.step == 1:
@@ -441,6 +435,64 @@ cdef slice indexer_as_slice(intp_t[:] vals):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def get_concat_blkno_indexers(list blknos_list not None):
+    """
+    Given the mgr.blknos for a list of mgrs, break range(len(mgrs[0])) into
+    slices such that within each slice blknos_list[i] is constant for each i.
+
+    This is a multi-Manager analogue to get_blkno_indexers with group=False.
+    """
+    # we have the blknos for each of several BlockManagers
+    # list[np.ndarray[int64_t]]
+    cdef:
+        Py_ssize_t i, j, k, start, ncols
+        cnp.npy_intp n_mgrs
+        ndarray[intp_t] blknos, cur_blknos, run_blknos
+        BlockPlacement bp
+        list result = []
+
+    n_mgrs = len(blknos_list)
+    cur_blknos = cnp.PyArray_EMPTY(1, &n_mgrs, cnp.NPY_INTP, 0)
+
+    blknos = blknos_list[0]
+    ncols = len(blknos)
+    if ncols == 0:
+        return []
+
+    start = 0
+    for i in range(n_mgrs):
+        blknos = blknos_list[i]
+        cur_blknos[i] = blknos[0]
+        assert len(blknos) == ncols
+
+    for i in range(1, ncols):
+        # For each column, we check if the Block it is part of (i.e. blknos[i])
+        #  is the same the previous column (i.e. blknos[i-1]) *and* if this is
+        #  the case for each blknos in blknos_list.  If not, we start a new "run".
+        for k in range(n_mgrs):
+            blknos = blknos_list[k]
+            # assert cur_blknos[k] == blknos[i - 1]
+
+            if blknos[i] != blknos[i - 1]:
+                bp = BlockPlacement(slice(start, i))
+                run_blknos = cnp.PyArray_Copy(cur_blknos)
+                result.append((run_blknos, bp))
+
+                start = i
+                for j in range(n_mgrs):
+                    blknos = blknos_list[j]
+                    cur_blknos[j] = blknos[i]
+                break  # break out of `for k in range(n_mgrs)` loop
+
+    if start != ncols:
+        bp = BlockPlacement(slice(start, ncols))
+        run_blknos = cnp.PyArray_Copy(cur_blknos)
+        result.append((run_blknos, bp))
+    return result
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def get_blkno_indexers(
     int64_t[:] blknos, bint group=True
 ) -> list[tuple[int, slice | np.ndarray]]:
@@ -570,21 +622,39 @@ cpdef update_blklocs_and_blknos(
 def _unpickle_block(values, placement, ndim):
     # We have to do some gymnastics b/c "ndim" is keyword-only
 
-    from pandas.core.internals.blocks import new_block
+    from pandas.core.internals.blocks import (
+        maybe_coerce_values,
+        new_block,
+    )
+    values = maybe_coerce_values(values)
 
+    if not isinstance(placement, BlockPlacement):
+        placement = BlockPlacement(placement)
     return new_block(values, placement, ndim=ndim)
 
 
 @cython.freelist(64)
-cdef class SharedBlock:
+cdef class Block:
     """
     Defining __init__ in a cython class significantly improves performance.
     """
     cdef:
         public BlockPlacement _mgr_locs
+        public BlockValuesRefs refs
         readonly int ndim
+        # 2023-08-15 no apparent performance improvement from declaring values
+        #  as ndarray in a type-special subclass (similar for NDArrayBacked).
+        #  This might change if slice_block_rows can be optimized with something
+        #  like https://github.com/numpy/numpy/issues/23934
+        public object values
 
-    def __cinit__(self, values, placement: BlockPlacement, ndim: int):
+    def __cinit__(
+        self,
+        values,
+        placement: BlockPlacement,
+        ndim: int,
+        refs: BlockValuesRefs | None = None,
+    ):
         """
         Parameters
         ----------
@@ -593,9 +663,24 @@ cdef class SharedBlock:
         placement : BlockPlacement
         ndim : int
             1 for SingleBlockManager/Series, 2 for BlockManager/DataFrame
+        refs: BlockValuesRefs, optional
+            Ref tracking object or None if block does not have any refs.
         """
+        self.values = values
+
         self._mgr_locs = placement
         self.ndim = ndim
+        if refs is None:
+            # if no refs are passed, that means we are creating a Block from
+            # new values that it uniquely owns -> start a new BlockValuesRefs
+            # object that only references this block
+            self.refs = BlockValuesRefs(self)
+        else:
+            # if refs are passed, this is the BlockValuesRefs object that is shared
+            # with the parent blocks which share the values, and a reference to this
+            # new block is added
+            refs.add_reference(self)
+            self.refs = refs
 
     cpdef __reduce__(self):
         args = (self.values, self.mgr_locs.indexer, self.ndim)
@@ -616,56 +701,14 @@ cdef class SharedBlock:
             ndim = maybe_infer_ndim(self.values, self.mgr_locs)
             self.ndim = ndim
 
-
-cdef class NumpyBlock(SharedBlock):
-    cdef:
-        public ndarray values
-
-    def __cinit__(self, ndarray values, BlockPlacement placement, int ndim):
-        # set values here the (implicit) call to SharedBlock.__cinit__ will
-        #  set placement and ndim
-        self.values = values
-
-    cpdef NumpyBlock getitem_block_index(self, slice slicer):
+    cpdef Block slice_block_rows(self, slice slicer):
         """
         Perform __getitem__-like specialized to slicing along index.
 
         Assumes self.ndim == 2
         """
         new_values = self.values[..., slicer]
-        return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
-
-
-cdef class NDArrayBackedBlock(SharedBlock):
-    """
-    Block backed by NDArrayBackedExtensionArray
-    """
-    cdef public:
-        NDArrayBacked values
-
-    def __cinit__(self, NDArrayBacked values, BlockPlacement placement, int ndim):
-        # set values here the (implicit) call to SharedBlock.__cinit__ will
-        #  set placement and ndim
-        self.values = values
-
-    cpdef NDArrayBackedBlock getitem_block_index(self, slice slicer):
-        """
-        Perform __getitem__-like specialized to slicing along index.
-
-        Assumes self.ndim == 2
-        """
-        new_values = self.values[..., slicer]
-        return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
-
-
-cdef class Block(SharedBlock):
-    cdef:
-        public object values
-
-    def __cinit__(self, object values, BlockPlacement placement, int ndim):
-        # set values here the (implicit) call to SharedBlock.__cinit__ will
-        #  set placement and ndim
-        self.values = values
+        return type(self)(new_values, self._mgr_locs, ndim=self.ndim, refs=self.refs)
 
 
 @cython.freelist(64)
@@ -675,9 +718,13 @@ cdef class BlockManager:
         public list axes
         public bint _known_consolidated, _is_consolidated
         public ndarray _blknos, _blklocs
-        public list refs
 
-    def __cinit__(self, blocks=None, axes=None, refs=None, verify_integrity=True):
+    def __cinit__(
+        self,
+        blocks=None,
+        axes=None,
+        verify_integrity=True,
+    ):
         # None as defaults for unpickling GH#42345
         if blocks is None:
             # This adds 1-2 microseconds to DataFrame(np.array([]))
@@ -689,7 +736,6 @@ cdef class BlockManager:
 
         self.blocks = blocks
         self.axes = axes.copy()  # copy to make sure we are not remotely-mutable
-        self.refs = refs
 
         # Populate known_consolidate, blknos, and blklocs lazily
         self._known_consolidated = False
@@ -707,7 +753,7 @@ cdef class BlockManager:
         cdef:
             intp_t blkno, i, j
             cnp.npy_intp length = self.shape[0]
-            SharedBlock blk
+            Block blk
             BlockPlacement bp
             ndarray[intp_t, ndim=1] new_blknos, new_blklocs
 
@@ -755,6 +801,7 @@ cdef class BlockManager:
         from pandas.core.construction import extract_array
         from pandas.core.internals.blocks import (
             ensure_block_shape,
+            maybe_coerce_values,
             new_block,
         )
         from pandas.core.internals.managers import ensure_index
@@ -768,7 +815,10 @@ cdef class BlockManager:
                 vals = blk["values"]
                 # older versions may hold e.g. DatetimeIndex instead of DTA
                 vals = extract_array(vals, extract_numpy=True)
-                blk["values"] = ensure_block_shape(vals, ndim=ndim)
+                blk["values"] = maybe_coerce_values(ensure_block_shape(vals, ndim=ndim))
+
+                if not isinstance(blk["mgr_locs"], BlockPlacement):
+                    blk["mgr_locs"] = BlockPlacement(blk["mgr_locs"])
 
             nbs = [
                 new_block(blk["values"], blk["mgr_locs"], ndim=ndim)
@@ -791,21 +841,19 @@ cdef class BlockManager:
     # -------------------------------------------------------------------
     # Indexing
 
-    cdef BlockManager _get_index_slice(self, slobj):
+    cdef BlockManager _slice_mgr_rows(self, slice slobj):
         cdef:
-            SharedBlock blk, nb
+            Block blk, nb
             BlockManager mgr
             ndarray blknos, blklocs
 
         nbs = []
-        nrefs = []
         for blk in self.blocks:
-            nb = blk.getitem_block_index(slobj)
+            nb = blk.slice_block_rows(slobj)
             nbs.append(nb)
-            nrefs.append(weakref.ref(blk))
 
         new_axes = [self.axes[0], self.axes[1]._getitem_slice(slobj)]
-        mgr = type(self)(tuple(nbs), new_axes, nrefs, verify_integrity=False)
+        mgr = type(self)(tuple(nbs), new_axes, verify_integrity=False)
 
         # We can avoid having to rebuild blklocs/blknos
         blklocs = self._blklocs
@@ -818,13 +866,82 @@ cdef class BlockManager:
     def get_slice(self, slobj: slice, axis: int = 0) -> BlockManager:
 
         if axis == 0:
-            new_blocks, new_refs = self._slice_take_blocks_ax0(slobj)
+            new_blocks = self._slice_take_blocks_ax0(slobj)
         elif axis == 1:
-            return self._get_index_slice(slobj)
+            return self._slice_mgr_rows(slobj)
         else:
             raise IndexError("Requested axis not found in manager")
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
 
-        return type(self)(tuple(new_blocks), new_axes, new_refs, verify_integrity=False)
+        return type(self)(tuple(new_blocks), new_axes, verify_integrity=False)
+
+
+cdef class BlockValuesRefs:
+    """Tracks all references to a given array.
+
+    Keeps track of all blocks (through weak references) that reference the same
+    data.
+    """
+    cdef:
+        public list referenced_blocks
+        public int clear_counter
+
+    def __cinit__(self, blk: Block | None = None) -> None:
+        if blk is not None:
+            self.referenced_blocks = [weakref.ref(blk)]
+        else:
+            self.referenced_blocks = []
+        self.clear_counter = 500  # set reasonably high
+
+    def _clear_dead_references(self, force=False) -> None:
+        # Use exponential backoff to decide when we want to clear references
+        # if force=False. Clearing for every insertion causes slowdowns if
+        # all these objects stay alive, e.g. df.items() for wide DataFrames
+        # see GH#55245 and GH#55008
+        if force or len(self.referenced_blocks) > self.clear_counter:
+            self.referenced_blocks = [
+                ref for ref in self.referenced_blocks if ref() is not None
+            ]
+            nr_of_refs = len(self.referenced_blocks)
+            if nr_of_refs < self.clear_counter // 2:
+                self.clear_counter = max(self.clear_counter // 2, 500)
+            elif nr_of_refs > self.clear_counter:
+                self.clear_counter = max(self.clear_counter * 2, nr_of_refs)
+
+    def add_reference(self, blk: Block) -> None:
+        """Adds a new reference to our reference collection.
+
+        Parameters
+        ----------
+        blk : Block
+            The block that the new references should point to.
+        """
+        self._clear_dead_references()
+        self.referenced_blocks.append(weakref.ref(blk))
+
+    def add_index_reference(self, index: object) -> None:
+        """Adds a new reference to our reference collection when creating an index.
+
+        Parameters
+        ----------
+        index : Index
+            The index that the new reference should point to.
+        """
+        self._clear_dead_references()
+        self.referenced_blocks.append(weakref.ref(index))
+
+    def has_reference(self) -> bool:
+        """Checks if block has foreign references.
+
+        A reference is only relevant if it is still alive. The reference to
+        ourselves does not count.
+
+        Returns
+        -------
+        bool
+        """
+        self._clear_dead_references(force=True)
+        # Checking for more references than block pointing to itself
+        return len(self.referenced_blocks) > 1

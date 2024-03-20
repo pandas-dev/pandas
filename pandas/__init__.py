@@ -9,29 +9,27 @@ _missing_dependencies = []
 for _dependency in _hard_dependencies:
     try:
         __import__(_dependency)
-    except ImportError as _e:
+    except ImportError as _e:  # pragma: no cover
         _missing_dependencies.append(f"{_dependency}: {_e}")
 
-if _missing_dependencies:
+if _missing_dependencies:  # pragma: no cover
     raise ImportError(
         "Unable to import required dependencies:\n" + "\n".join(_missing_dependencies)
     )
 del _hard_dependencies, _dependency, _missing_dependencies
 
-# numpy compat
-from pandas.compat import is_numpy_dev as _is_numpy_dev  # pyright: ignore # noqa:F401
-
 try:
-    from pandas._libs import hashtable as _hashtable, lib as _lib, tslib as _tslib
+    # numpy compat
+    from pandas.compat import (
+        is_numpy_dev as _is_numpy_dev,  # pyright: ignore[reportUnusedImport] # noqa: F401
+    )
 except ImportError as _err:  # pragma: no cover
     _module = _err.name
     raise ImportError(
         f"C extension: {_module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
-        "'python setup.py build_ext --force' to build the C extensions first."
+        "'python setup.py build_ext' to build the C extensions first."
     ) from _err
-else:
-    del _tslib, _lib, _hashtable
 
 from pandas._config import (
     get_option,
@@ -43,7 +41,7 @@ from pandas._config import (
 )
 
 # let init-time option registration happen
-import pandas.core.config_init  # pyright: ignore # noqa:F401
+import pandas.core.config_init  # pyright: ignore[reportUnusedImport] # noqa: F401
 
 from pandas.core.api import (
     # dtype
@@ -101,7 +99,6 @@ from pandas.core.api import (
     Grouper,
     factorize,
     unique,
-    value_counts,
     NamedAgg,
     array,
     Categorical,
@@ -110,7 +107,7 @@ from pandas.core.api import (
     DataFrame,
 )
 
-from pandas.core.arrays.sparse import SparseDtype
+from pandas.core.dtypes.dtypes import SparseDtype
 
 from pandas.tseries.api import infer_freq
 from pandas.tseries import offsets
@@ -135,7 +132,7 @@ from pandas.core.reshape.api import (
 )
 
 from pandas import api, arrays, errors, io, plotting, tseries
-from pandas import testing  # noqa:PDF015
+from pandas import testing
 from pandas.util._print_versions import show_versions
 
 from pandas.io.api import (
@@ -162,7 +159,6 @@ from pandas.io.api import (
     read_parquet,
     read_orc,
     read_feather,
-    read_gbq,
     read_html,
     read_xml,
     read_json,
@@ -171,97 +167,26 @@ from pandas.io.api import (
     read_spss,
 )
 
-from pandas.io.json import _json_normalize as json_normalize
+from pandas.io.json._normalize import json_normalize
 
 from pandas.util._tester import test
 
 # use the closest tagged version if possible
-from pandas._version import get_versions
+_built_with_meson = False
+try:
+    from pandas._version_meson import (  # pyright: ignore [reportMissingImports]
+        __version__,
+        __git_version__,
+    )
 
-v = get_versions()
-__version__ = v.get("closest-tag", v["version"])
-__git_version__ = v.get("full-revisionid")
-del get_versions, v
+    _built_with_meson = True
+except ImportError:
+    from pandas._version import get_versions
 
-# GH 27101
-__deprecated_num_index_names = ["Float64Index", "Int64Index", "UInt64Index"]
-
-
-def __dir__() -> list[str]:
-    # GH43028
-    # Int64Index etc. are deprecated, but we still want them to be available in the dir.
-    # Remove in Pandas 2.0, when we remove Int64Index etc. from the code base.
-    return list(globals().keys()) + __deprecated_num_index_names
-
-
-def __getattr__(name):
-    import warnings
-
-    if name in __deprecated_num_index_names:
-        warnings.warn(
-            f"pandas.{name} is deprecated "
-            "and will be removed from pandas in a future version. "
-            "Use pandas.Index with the appropriate dtype instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        from pandas.core.api import Float64Index, Int64Index, UInt64Index
-
-        return {
-            "Float64Index": Float64Index,
-            "Int64Index": Int64Index,
-            "UInt64Index": UInt64Index,
-        }[name]
-    elif name == "datetime":
-        warnings.warn(
-            "The pandas.datetime class is deprecated "
-            "and will be removed from pandas in a future version. "
-            "Import from datetime module instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        from datetime import datetime as dt
-
-        return dt
-
-    elif name == "np":
-
-        warnings.warn(
-            "The pandas.np module is deprecated "
-            "and will be removed from pandas in a future version. "
-            "Import numpy directly instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        import numpy as np
-
-        return np
-
-    elif name in {"SparseSeries", "SparseDataFrame"}:
-        warnings.warn(
-            f"The {name} class is removed from pandas. Accessing it from "
-            "the top-level namespace will also be removed in the next version.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        return type(name, (), {})
-
-    elif name == "SparseArray":
-
-        warnings.warn(
-            "The pandas.SparseArray class is deprecated "
-            "and will be removed from pandas in a future version. "
-            "Use pandas.arrays.SparseArray instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        from pandas.core.arrays.sparse import SparseArray as _SparseArray
-
-        return _SparseArray
-
-    raise AttributeError(f"module 'pandas' has no attribute '{name}'")
+    v = get_versions()
+    __version__ = v.get("closest-tag", v["version"])
+    __git_version__ = v.get("full-revisionid")
+    del get_versions, v
 
 
 # module level doc-string
@@ -393,7 +318,6 @@ __all__ = [
     "read_excel",
     "read_feather",
     "read_fwf",
-    "read_gbq",
     "read_hdf",
     "read_html",
     "read_json",
@@ -421,6 +345,5 @@ __all__ = [
     "to_timedelta",
     "tseries",
     "unique",
-    "value_counts",
     "wide_to_long",
 ]

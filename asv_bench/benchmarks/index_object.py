@@ -4,7 +4,6 @@ import numpy as np
 
 from pandas import (
     DatetimeIndex,
-    Float64Index,
     Index,
     IntervalIndex,
     MultiIndex,
@@ -13,34 +12,41 @@ from pandas import (
     date_range,
 )
 
-from .pandas_vb_common import tm
-
 
 class SetOperations:
-
     params = (
-        ["datetime", "date_string", "int", "strings"],
+        ["monotonic", "non_monotonic"],
+        ["datetime", "date_string", "int", "strings", "ea_int"],
         ["intersection", "union", "symmetric_difference"],
     )
-    param_names = ["dtype", "method"]
+    param_names = ["index_structure", "dtype", "method"]
 
-    def setup(self, dtype, method):
+    def setup(self, index_structure, dtype, method):
         N = 10**5
-        dates_left = date_range("1/1/2000", periods=N, freq="T")
+        dates_left = date_range("1/1/2000", periods=N, freq="min")
         fmt = "%Y-%m-%d %H:%M:%S"
         date_str_left = Index(dates_left.strftime(fmt))
         int_left = Index(np.arange(N))
-        str_left = tm.makeStringIndex(N)
+        ea_int_left = Index(np.arange(N), dtype="Int64")
+        str_left = Index([f"i-{i}" for i in range(N)], dtype=object)
+
         data = {
-            "datetime": {"left": dates_left, "right": dates_left[:-1]},
-            "date_string": {"left": date_str_left, "right": date_str_left[:-1]},
-            "int": {"left": int_left, "right": int_left[:-1]},
-            "strings": {"left": str_left, "right": str_left[:-1]},
+            "datetime": dates_left,
+            "date_string": date_str_left,
+            "int": int_left,
+            "strings": str_left,
+            "ea_int": ea_int_left,
         }
+
+        if index_structure == "non_monotonic":
+            data = {k: mi[::-1] for k, mi in data.items()}
+
+        data = {k: {"left": idx, "right": idx[:-1]} for k, idx in data.items()}
+
         self.left = data[dtype]["left"]
         self.right = data[dtype]["right"]
 
-    def time_operation(self, dtype, method):
+    def time_operation(self, index_structure, dtype, method):
         getattr(self.left, method)(self.right)
 
 
@@ -53,6 +59,15 @@ class SetDisjoint:
 
     def time_datetime_difference_disjoint(self):
         self.datetime_left.difference(self.datetime_right)
+
+
+class UnionWithDuplicates:
+    def setup(self):
+        self.left = Index(np.repeat(np.arange(1000), 100))
+        self.right = Index(np.tile(np.arange(500, 1500), 50))
+
+    def time_union_with_duplicates(self):
+        self.left.union(self.right)
 
 
 class Range:
@@ -107,7 +122,6 @@ class IndexEquals:
 
 class IndexAppend:
     def setup(self):
-
         N = 10_000
         self.range_idx = RangeIndex(0, 100)
         self.int_idx = self.range_idx.astype(int)
@@ -122,9 +136,13 @@ class IndexAppend:
             self.int_idxs.append(i_idx)
             o_idx = i_idx.astype(str)
             self.object_idxs.append(o_idx)
+        self.same_range_idx = [self.range_idx] * N
 
     def time_append_range_list(self):
         self.range_idx.append(self.range_idxs)
+
+    def time_append_range_list_same(self):
+        self.range_idx.append(self.same_range_idx)
 
     def time_append_int_list(self):
         self.int_idx.append(self.int_idxs)
@@ -134,21 +152,23 @@ class IndexAppend:
 
 
 class Indexing:
-
     params = ["String", "Float", "Int"]
     param_names = ["dtype"]
 
     def setup(self, dtype):
         N = 10**6
-        self.idx = getattr(tm, f"make{dtype}Index")(N)
+        if dtype == "String":
+            self.idx = Index([f"i-{i}" for i in range(N)], dtype=object)
+        elif dtype == "Float":
+            self.idx = Index(np.arange(N), dtype=np.float64)
+        elif dtype == "Int":
+            self.idx = Index(np.arange(N), dtype=np.int64)
         self.array_mask = (np.arange(N) % 3) == 0
         self.series_mask = Series(self.array_mask)
         self.sorted = self.idx.sort_values()
         half = N // 2
         self.non_unique = self.idx[:half].append(self.idx[:half])
-        self.non_unique_sorted = (
-            self.sorted[:half].append(self.sorted[:half]).sort_values()
-        )
+        self.non_unique_sorted = self.sorted[:half].repeat(2)
         self.key = self.sorted[N // 4]
 
     def time_boolean_array(self, dtype):
@@ -183,8 +203,8 @@ class Float64IndexMethod:
     # GH 13166
     def setup(self):
         N = 100_000
-        a = np.arange(N)
-        self.ind = Float64Index(a * 4.8000000418824129e-08)
+        a = np.arange(N, dtype=np.float64)
+        self.ind = Index(a * 4.8000000418824129e-08)
 
     def time_get_loc(self):
         self.ind.get_loc(0)

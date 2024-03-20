@@ -170,7 +170,7 @@ class TestDataFrameRound:
         # GH#11611
 
         df = DataFrame(
-            np.random.random([3, 3]),
+            np.random.default_rng(2).random([3, 3]),
             columns=["A", "B", "C"],
             index=["first", "second", "third"],
         )
@@ -196,7 +196,7 @@ class TestDataFrameRound:
     def test_round_nonunique_categorical(self):
         # See GH#21809
         idx = pd.CategoricalIndex(["low"] * 3 + ["hi"] * 3)
-        df = DataFrame(np.random.rand(6, 3), columns=list("abc"))
+        df = DataFrame(np.random.default_rng(2).random((6, 3)), columns=list("abc"))
 
         expected = df.round(3)
         expected.index = idx
@@ -216,3 +216,10 @@ class TestDataFrameRound:
         result = df.round()
         expected = DataFrame([[1.0, 1.0], [0.0, 0.0]], columns=columns)
         tm.assert_frame_equal(result, expected)
+
+    def test_round_empty_not_input(self):
+        # GH#51032
+        df = DataFrame()
+        result = df.round()
+        tm.assert_frame_equal(df, result)
+        assert df is not result

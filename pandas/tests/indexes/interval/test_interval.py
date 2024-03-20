@@ -18,13 +18,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import Float64Index
 import pandas.core.common as com
-
-
-@pytest.fixture(scope="class", params=[None, "foo"])
-def name(request):
-    return request.param
 
 
 class TestIntervalIndex:
@@ -47,9 +41,9 @@ class TestIntervalIndex:
         assert index.size == 10
         assert index.shape == (10,)
 
-        tm.assert_index_equal(index.left, Index(np.arange(10)))
-        tm.assert_index_equal(index.right, Index(np.arange(1, 11)))
-        tm.assert_index_equal(index.mid, Index(np.arange(0.5, 10.5)))
+        tm.assert_index_equal(index.left, Index(np.arange(10, dtype=np.int64)))
+        tm.assert_index_equal(index.right, Index(np.arange(1, 11, dtype=np.int64)))
+        tm.assert_index_equal(index.mid, Index(np.arange(0.5, 10.5, dtype=np.float64)))
 
         assert index.closed == closed
 
@@ -87,8 +81,12 @@ class TestIntervalIndex:
         [
             [1, 1, 2, 5, 15, 53, 217, 1014, 5335, 31240, 201608],
             [-np.inf, -100, -10, 0.5, 1, 1.5, 3.8, 101, 202, np.inf],
-            pd.to_datetime(["20170101", "20170202", "20170303", "20170404"]),
-            pd.to_timedelta(["1ns", "2ms", "3s", "4min", "5H", "6D"]),
+            date_range("2017-01-01", "2017-01-04"),
+            pytest.param(
+                date_range("2017-01-01", "2017-01-04", unit="s"),
+                marks=pytest.mark.xfail(reason="mismatched result unit"),
+            ),
+            pd.to_timedelta(["1ns", "2ms", "3s", "4min", "5h", "6D"]),
         ],
     )
     def test_length(self, closed, breaks):
@@ -160,7 +158,8 @@ class TestIntervalIndex:
         )
 
     def test_delete(self, closed):
-        expected = IntervalIndex.from_breaks(np.arange(1, 11), closed=closed)
+        breaks = np.arange(1, 11, dtype=np.int64)
+        expected = IntervalIndex.from_breaks(breaks, closed=closed)
         result = self.create_index(closed=closed).delete(0)
         tm.assert_index_equal(result, expected)
 
@@ -247,12 +246,12 @@ class TestIntervalIndex:
         assert idx.is_unique is True
 
         # unique NaN
-        idx = IntervalIndex.from_tuples([(np.NaN, np.NaN)], closed=closed)
+        idx = IntervalIndex.from_tuples([(np.nan, np.nan)], closed=closed)
         assert idx.is_unique is True
 
         # non-unique NaN
         idx = IntervalIndex.from_tuples(
-            [(np.NaN, np.NaN), (np.NaN, np.NaN)], closed=closed
+            [(np.nan, np.nan), (np.nan, np.nan)], closed=closed
         )
         assert idx.is_unique is False
 
@@ -337,26 +336,6 @@ class TestIntervalIndex:
         assert not index._is_strictly_monotonic_decreasing
         assert not index.is_monotonic_decreasing
 
-    def test_get_item(self, closed):
-        i = IntervalIndex.from_arrays((0, 1, np.nan), (1, 2, np.nan), closed=closed)
-        assert i[0] == Interval(0.0, 1.0, closed=closed)
-        assert i[1] == Interval(1.0, 2.0, closed=closed)
-        assert isna(i[2])
-
-        result = i[0:1]
-        expected = IntervalIndex.from_arrays((0.0,), (1.0,), closed=closed)
-        tm.assert_index_equal(result, expected)
-
-        result = i[0:2]
-        expected = IntervalIndex.from_arrays((0.0, 1), (1.0, 2.0), closed=closed)
-        tm.assert_index_equal(result, expected)
-
-        result = i[1:3]
-        expected = IntervalIndex.from_arrays(
-            (1.0, np.nan), (2.0, np.nan), closed=closed
-        )
-        tm.assert_index_equal(result, expected)
-
     @pytest.mark.parametrize(
         "breaks",
         [
@@ -378,7 +357,7 @@ class TestIntervalIndex:
         # interval
         interval = Interval(breaks[0], breaks[1])
         result = index._maybe_convert_i8(interval)
-        expected = Interval(breaks[0].value, breaks[1].value)
+        expected = Interval(breaks[0]._value, breaks[1]._value)
         assert result == expected
 
         # datetimelike index
@@ -388,7 +367,7 @@ class TestIntervalIndex:
 
         # datetimelike scalar
         result = index._maybe_convert_i8(breaks[0])
-        expected = breaks[0].value
+        expected = breaks[0]._value
         assert result == expected
 
         # list-like of datetimelike scalars
@@ -404,38 +383,49 @@ class TestIntervalIndex:
         # GH 20636
         index = IntervalIndex.from_breaks(breaks)
 
-        to_convert = breaks._constructor([pd.NaT] * 3)
-        expected = Float64Index([np.nan] * 3)
+        to_convert = breaks._constructor([pd.NaT] * 3).as_unit("ns")
+        expected = Index([np.nan] * 3, dtype=np.float64)
         result = index._maybe_convert_i8(to_convert)
         tm.assert_index_equal(result, expected)
 
         to_convert = to_convert.insert(0, breaks[0])
-        expected = expected.insert(0, float(breaks[0].value))
+        expected = expected.insert(0, float(breaks[0]._value))
         result = index._maybe_convert_i8(to_convert)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "breaks",
-        [np.arange(5, dtype="int64"), np.arange(5, dtype="float64")],
-        ids=lambda x: str(x.dtype),
+        "make_key",
+        [lambda breaks: breaks, list],
+        ids=["lambda", "list"],
     )
+    def test_maybe_convert_i8_numeric(self, make_key, any_real_numpy_dtype):
+        # GH 20636
+        breaks = np.arange(5, dtype=any_real_numpy_dtype)
+        index = IntervalIndex.from_breaks(breaks)
+        key = make_key(breaks)
+
+        result = index._maybe_convert_i8(key)
+        kind = breaks.dtype.kind
+        expected_dtype = {"i": np.int64, "u": np.uint64, "f": np.float64}[kind]
+        expected = Index(key, dtype=expected_dtype)
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize(
         "make_key",
         [
             IntervalIndex.from_breaks,
             lambda breaks: Interval(breaks[0], breaks[1]),
-            lambda breaks: breaks,
             lambda breaks: breaks[0],
-            list,
         ],
-        ids=["IntervalIndex", "Interval", "Index", "scalar", "list"],
+        ids=["IntervalIndex", "Interval", "scalar"],
     )
-    def test_maybe_convert_i8_numeric(self, breaks, make_key):
+    def test_maybe_convert_i8_numeric_identical(self, make_key, any_real_numpy_dtype):
         # GH 20636
+        breaks = np.arange(5, dtype=any_real_numpy_dtype)
         index = IntervalIndex.from_breaks(breaks)
         key = make_key(breaks)
 
-        # no conversion occurs for numeric
+        # test if _maybe_convert_i8 won't change key if an Interval or IntervalIndex
         result = index._maybe_convert_i8(key)
         assert result is key
 
@@ -499,7 +489,6 @@ class TestIntervalIndex:
             i.contains(Interval(0, 1))
 
     def test_dropna(self, closed):
-
         expected = IntervalIndex.from_tuples([(0.0, 1.0), (1.0, 2.0)], closed=closed)
 
         ii = IntervalIndex.from_tuples([(0, 1), (1, 2), np.nan], closed=closed)
@@ -537,7 +526,7 @@ class TestIntervalIndex:
         result = index.isin(other.tolist())
         tm.assert_numpy_array_equal(result, expected)
 
-        for other_closed in {"right", "left", "both", "neither"}:
+        for other_closed in ["right", "left", "both", "neither"]:
             other = self.create_index(closed=other_closed)
             expected = np.repeat(closed == other_closed, len(index))
             result = index.isin(other)
@@ -679,19 +668,18 @@ class TestIntervalIndex:
 
         # test get_indexer
         start = Timestamp("1999-12-31T12:00", tz=tz)
-        target = date_range(start=start, periods=7, freq="12H")
+        target = date_range(start=start, periods=7, freq="12h")
         actual = index.get_indexer(target)
         expected = np.array([-1, -1, 0, 0, 1, 1, 2], dtype="intp")
         tm.assert_numpy_array_equal(actual, expected)
 
         start = Timestamp("2000-01-08T18:00", tz=tz)
-        target = date_range(start=start, periods=7, freq="6H")
+        target = date_range(start=start, periods=7, freq="6h")
         actual = index.get_indexer(target)
         expected = np.array([7, 7, 8, 8, 8, 8, -1], dtype="intp")
         tm.assert_numpy_array_equal(actual, expected)
 
     def test_append(self, closed):
-
         index1 = IntervalIndex.from_arrays([0, 1], [1, 2], closed=closed)
         index2 = IntervalIndex.from_arrays([1, 2], [2, 3], closed=closed)
 
@@ -791,26 +779,30 @@ class TestIntervalIndex:
         result = index.is_overlapping
         assert result is expected
 
+        # intervals with duplicate left values
+        a = [10, 15, 20, 25, 30, 35, 40, 45, 45, 50, 55, 60, 65, 70, 75, 80, 85]
+        b = [15, 20, 25, 30, 35, 40, 45, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90]
+        index = IntervalIndex.from_arrays(a, b, closed="right")
+        result = index.is_overlapping
+        assert result is False
+
     @pytest.mark.parametrize(
         "tuples",
         [
-            list(zip(range(10), range(1, 11))),
-            list(
-                zip(
-                    date_range("20170101", periods=10),
-                    date_range("20170101", periods=10),
-                )
+            zip(range(10), range(1, 11)),
+            zip(
+                date_range("20170101", periods=10),
+                date_range("20170101", periods=10),
             ),
-            list(
-                zip(
-                    timedelta_range("0 days", periods=10),
-                    timedelta_range("1 day", periods=10),
-                )
+            zip(
+                timedelta_range("0 days", periods=10),
+                timedelta_range("1 day", periods=10),
             ),
         ],
     )
     def test_to_tuples(self, tuples):
         # GH 18756
+        tuples = list(tuples)
         idx = IntervalIndex.from_tuples(tuples)
         result = idx.to_tuples()
         expected = Index(com.asarray_tuplesafe(tuples))
@@ -865,12 +857,12 @@ class TestIntervalIndex:
         expected = 64  # 4 * 8 * 2
         assert result == expected
 
-    @pytest.mark.parametrize("new_closed", ["left", "right", "both", "neither"])
-    def test_set_closed(self, name, closed, new_closed):
+    @pytest.mark.parametrize("name", [None, "foo"])
+    def test_set_closed(self, name, closed, other_closed):
         # GH 21670
         index = interval_range(0, 5, closed=closed, name=name)
-        result = index.set_closed(new_closed)
-        expected = interval_range(0, 5, closed=new_closed, name=name)
+        result = index.set_closed(other_closed)
+        expected = interval_range(0, 5, closed=other_closed, name=name)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("bad_closed", ["foo", 10, "LEFT", True, False])

@@ -6,12 +6,13 @@ from pandas.tseries.offsets import (
     DateOffset,
     Day,
     Hour,
+    MonthEnd,
 )
 
 
 class TestFreq:
     @pytest.mark.parametrize("values", [["0 days", "2 days", "4 days"], []])
-    @pytest.mark.parametrize("freq", ["2D", Day(2), "48H", Hour(48)])
+    @pytest.mark.parametrize("freq", ["2D", Day(2), "48h", Hour(48)])
     def test_freq_setter(self, values, freq):
         # GH#20678
         idx = TimedeltaIndex(values)
@@ -24,6 +25,16 @@ class TestFreq:
         # can reset to None
         idx._data.freq = None
         assert idx.freq is None
+
+    def test_with_freq_empty_requires_tick(self):
+        idx = TimedeltaIndex([])
+
+        off = MonthEnd(1)
+        msg = "TimedeltaArray/Index freq must be a Tick"
+        with pytest.raises(TypeError, match=msg):
+            idx._with_freq(off)
+        with pytest.raises(TypeError, match=msg):
+            idx._data._with_freq(off)
 
     def test_freq_setter_errors(self):
         # GH#20678

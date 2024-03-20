@@ -9,13 +9,13 @@
 .. raw:: html
 
     <div class="card gs-data">
-        <div class="card-header">
+        <div class="card-header gs-data-header">
             <div class="gs-data-title">
                 Data used for this tutorial:
             </div>
         </div>
         <ul class="list-group list-group-flush">
-            <li class="list-group-item">
+            <li class="list-group-item gs-data-list">
 
 .. include:: includes/titanic.rst
 
@@ -162,7 +162,7 @@ columns by passing ``numeric_only=True``:
 
 It does not make much sense to get the average value of the ``Pclass``.
 If we are only interested in the average age for each gender, the
-selection of columns (rectangular brackets ``[]`` as usual) is supported
+selection of columns (square brackets ``[]`` as usual) is supported
 on the grouped data as well:
 
 .. ipython:: python

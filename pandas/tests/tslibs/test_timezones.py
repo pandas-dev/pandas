@@ -12,6 +12,7 @@ from pandas._libs.tslibs import (
     conversion,
     timezones,
 )
+from pandas.compat import is_platform_windows
 
 from pandas import Timestamp
 
@@ -29,7 +30,9 @@ def test_cache_keys_are_distinct_for_pytz_vs_dateutil(tz_name):
     if tz_d is None:
         pytest.skip(tz_name + ": dateutil does not know about this one")
 
-    assert timezones._p_tz_cache_key(tz_p) != timezones._p_tz_cache_key(tz_d)
+    if not (tz_name == "UTC" and is_platform_windows()):
+        # they both end up as tzwin("UTC") on windows
+        assert timezones._p_tz_cache_key(tz_p) != timezones._p_tz_cache_key(tz_d)
 
 
 def test_tzlocal_repr():
@@ -52,9 +55,9 @@ def test_tzlocal_offset():
     ts = Timestamp("2011-01-01", tz=dateutil.tz.tzlocal())
 
     offset = dateutil.tz.tzlocal().utcoffset(datetime(2011, 1, 1))
-    offset = offset.total_seconds() * 1000000000
+    offset = offset.total_seconds()
 
-    assert ts.value + offset == Timestamp("2011-01-01").value
+    assert ts._value + offset == Timestamp("2011-01-01")._value
 
 
 def test_tzlocal_is_not_utc():

@@ -12,6 +12,7 @@ import pytest
 
 from pandas import (
     Categorical,
+    CategoricalIndex,
     DataFrame,
     DatetimeIndex,
     Index,
@@ -24,28 +25,35 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.fixture
+def frame_of_index_cols():
+    """
+    Fixture for DataFrame of columns that can be used for indexing
+
+    Columns are ['A', 'B', 'C', 'D', 'E', ('tuple', 'as', 'label')];
+    'A' & 'B' contain duplicates (but are jointly unique), the rest are unique.
+
+         A      B  C         D         E  (tuple, as, label)
+    0  foo    one  a  0.608477 -0.012500           -1.664297
+    1  foo    two  b -0.633460  0.249614           -0.364411
+    2  foo  three  c  0.615256  2.154968           -0.834666
+    3  bar    one  d  0.234246  1.085675            0.718445
+    4  bar    two  e  0.533841 -0.005702           -3.533912
+    """
+    df = DataFrame(
+        {
+            "A": ["foo", "foo", "foo", "bar", "bar"],
+            "B": ["one", "two", "three", "one", "two"],
+            "C": ["a", "b", "c", "d", "e"],
+            "D": np.random.default_rng(2).standard_normal(5),
+            "E": np.random.default_rng(2).standard_normal(5),
+            ("tuple", "as", "label"): np.random.default_rng(2).standard_normal(5),
+        }
+    )
+    return df
+
+
 class TestSetIndex:
-    def test_set_index_copy(self):
-        # GH#48043
-        df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
-        expected = DataFrame({"B": [3, 4], "C": [5, 6]}, index=Index([1, 2], name="A"))
-
-        res = df.set_index("A", copy=True)
-        tm.assert_frame_equal(res, expected)
-        assert not any(tm.shares_memory(df[col], res[col]) for col in res.columns)
-
-        res = df.set_index("A", copy=False)
-        tm.assert_frame_equal(res, expected)
-        assert all(tm.shares_memory(df[col], res[col]) for col in res.columns)
-
-        msg = "Cannot specify copy when inplace=True"
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="The 'inplace'"):
-                df.set_index("A", inplace=True, copy=True)
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="The 'inplace'"):
-                df.set_index("A", inplace=True, copy=False)
-
     def test_set_index_multiindex(self):
         # segfault in GH#3308
         d = {"t1": [2, 2.5, 3], "t2": [4, 5, 6]}
@@ -88,7 +96,9 @@ class TestSetIndex:
 
     def test_set_index_multiindexcolumns(self):
         columns = MultiIndex.from_tuples([("foo", 1), ("foo", 2), ("bar", 1)])
-        df = DataFrame(np.random.randn(3, 3), columns=columns)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((3, 3)), columns=columns
+        )
 
         result = df.set_index(df.columns[0])
 
@@ -110,7 +120,7 @@ class TestSetIndex:
         df = DataFrame(
             {
                 "A": [datetime(2000, 1, 1) + timedelta(i) for i in range(1000)],
-                "B": np.random.randn(1000),
+                "B": np.random.default_rng(2).standard_normal(1000),
             }
         )
 
@@ -118,7 +128,7 @@ class TestSetIndex:
         assert isinstance(idf.index, DatetimeIndex)
 
     def test_set_index_dst(self):
-        di = date_range("2006-10-29 00:00:00", periods=3, freq="H", tz="US/Pacific")
+        di = date_range("2006-10-29 00:00:00", periods=3, freq="h", tz="US/Pacific")
 
         df = DataFrame(data={"a": [0, 1, 2], "b": [3, 4, 5]}, index=di).reset_index()
         # single level
@@ -146,10 +156,14 @@ class TestSetIndex:
             df.set_index(idx[::2])
 
     def test_set_index_names(self):
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            np.ones((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(10)], dtype=object),
+        )
         df.index.name = "name"
 
-        assert df.set_index(df.index).index.names == ["name"]
+        assert df.set_index(df.index).index.names == ("name",)
 
         mi = MultiIndex.from_arrays(df[["A", "B"]].T.values, names=["A", "B"])
         mi2 = MultiIndex.from_arrays(
@@ -158,7 +172,7 @@ class TestSetIndex:
 
         df = df.set_index(["A", "B"])
 
-        assert df.set_index(df.index).index.names == ["A", "B"]
+        assert df.set_index(df.index).index.names == ("A", "B")
 
         # Check that set_index isn't converting a MultiIndex into an Index
         assert isinstance(df.set_index(df.index).index, MultiIndex)
@@ -174,14 +188,6 @@ class TestSetIndex:
 
         # Check equality
         tm.assert_index_equal(df.set_index([df.index, idx2]).index, mi2)
-
-    def test_set_index_cast(self):
-        # issue casting an index then set_index
-        df = DataFrame(
-            {"A": [1.1, 2.2, 3.3], "B": [5.0, 6.1, 7.2]}, index=[2010, 2011, 2012]
-        )
-        df2 = df.set_index(df.index.astype(np.int32))
-        tm.assert_frame_equal(df, df2)
 
     # A has duplicate values, C does not
     @pytest.mark.parametrize("keys", ["A", "C", ["A", "B"], ("tuple", "as", "label")])
@@ -199,10 +205,7 @@ class TestSetIndex:
 
         if inplace:
             result = df.copy()
-            with tm.assert_produces_warning(
-                FutureWarning, match="The 'inplace' keyword"
-            ):
-                return_value = result.set_index(keys, drop=drop, inplace=True)
+            return_value = result.set_index(keys, drop=drop, inplace=True)
             assert return_value is None
         else:
             result = df.set_index(keys, drop=drop)
@@ -289,7 +292,7 @@ class TestSetIndex:
             # only valid column keys are dropped
             # since B is always passed as array above, nothing is dropped
             expected = df.set_index(["B"], drop=False, append=append)
-            expected.index.names = [index_name] + name if append else name
+            expected.index.names = [index_name] + list(name) if append else name
 
             tm.assert_frame_equal(result, expected)
 
@@ -400,16 +403,17 @@ class TestSetIndex:
         tm.assert_frame_equal(result, expected)
 
     def test_construction_with_categorical_index(self):
-        ci = tm.makeCategoricalIndex(10)
-        ci.name = "B"
+        ci = CategoricalIndex(list("ab") * 5, name="B")
 
         # with Categorical
-        df = DataFrame({"A": np.random.randn(10), "B": ci.values})
+        df = DataFrame(
+            {"A": np.random.default_rng(2).standard_normal(10), "B": ci.values}
+        )
         idf = df.set_index("B")
         tm.assert_index_equal(idf.index, ci)
 
         # from a CategoricalIndex
-        df = DataFrame({"A": np.random.randn(10), "B": ci})
+        df = DataFrame({"A": np.random.default_rng(2).standard_normal(10), "B": ci})
         idf = df.set_index("B")
         tm.assert_index_equal(idf.index, ci)
 
@@ -460,14 +464,14 @@ class TestSetIndex:
         df = df.set_index("label", append=True)
         tm.assert_index_equal(df.index.levels[0], expected)
         tm.assert_index_equal(df.index.levels[1], Index(["a", "b"], name="label"))
-        assert df.index.names == ["datetime", "label"]
+        assert df.index.names == ("datetime", "label")
 
         df = df.swaplevel(0, 1)
         tm.assert_index_equal(df.index.levels[0], Index(["a", "b"], name="label"))
         tm.assert_index_equal(df.index.levels[1], expected)
-        assert df.index.names == ["label", "datetime"]
+        assert df.index.names == ("label", "datetime")
 
-        df = DataFrame(np.random.random(6))
+        df = DataFrame(np.random.default_rng(2).random(6))
         idx1 = DatetimeIndex(
             [
                 "2011-07-19 07:00:00",
@@ -516,19 +520,19 @@ class TestSetIndex:
 
     def test_set_index_period(self):
         # GH#6631
-        df = DataFrame(np.random.random(6))
+        df = DataFrame(np.random.default_rng(2).random(6))
         idx1 = period_range("2011-01-01", periods=3, freq="M")
         idx1 = idx1.append(idx1)
-        idx2 = period_range("2013-01-01 09:00", periods=2, freq="H")
+        idx2 = period_range("2013-01-01 09:00", periods=2, freq="h")
         idx2 = idx2.append(idx2).append(idx2)
-        idx3 = period_range("2005", periods=6, freq="A")
+        idx3 = period_range("2005", periods=6, freq="Y")
 
         df = df.set_index(idx1)
         df = df.set_index(idx2, append=True)
         df = df.set_index(idx3, append=True)
 
         expected1 = period_range("2011-01-01", periods=3, freq="M")
-        expected2 = period_range("2013-01-01 09:00", periods=2, freq="H")
+        expected2 = period_range("2013-01-01 09:00", periods=2, freq="h")
 
         tm.assert_index_equal(df.index.levels[0], expected1)
         tm.assert_index_equal(df.index.levels[1], expected2)
@@ -573,8 +577,8 @@ class TestSetIndexInvalid:
 
     @pytest.mark.parametrize("append", [True, False])
     @pytest.mark.parametrize("drop", [True, False])
-    @pytest.mark.parametrize("box", [set], ids=["set"])
-    def test_set_index_raise_on_type(self, frame_of_index_cols, box, drop, append):
+    def test_set_index_raise_on_type(self, frame_of_index_cols, drop, append):
+        box = set
         df = frame_of_index_cols
 
         msg = 'The parameter "keys" may be a column key, .*'
@@ -601,7 +605,7 @@ class TestSetIndexInvalid:
         # GH 24984
         df = frame_of_index_cols  # has length 5
 
-        values = np.random.randint(0, 10, (length,))
+        values = np.random.default_rng(2).integers(0, 10, (length,))
 
         msg = "Length mismatch: Expected 5 rows, received array of length.*"
 
@@ -624,7 +628,7 @@ class TestSetIndexCustomLabelType:
                 self.color = color
 
             def __str__(self) -> str:
-                return f"<Thing {repr(self.name)}>"
+                return f"<Thing {self.name!r}>"
 
             # necessary for pretty KeyError
             __repr__ = __str__
@@ -702,7 +706,7 @@ class TestSetIndexCustomLabelType:
                 self.color = color
 
             def __str__(self) -> str:
-                return f"<Thing {repr(self.name)}>"
+                return f"<Thing {self.name!r}>"
 
         thing1 = Thing("One", "red")
         thing2 = Thing("Two", "blue")
@@ -720,23 +724,11 @@ class TestSetIndexCustomLabelType:
 
     def test_set_index_periodindex(self):
         # GH#6631
-        df = DataFrame(np.random.random(6))
+        df = DataFrame(np.random.default_rng(2).random(6))
         idx1 = period_range("2011/01/01", periods=6, freq="M")
-        idx2 = period_range("2013", periods=6, freq="A")
+        idx2 = period_range("2013", periods=6, freq="Y")
 
         df = df.set_index(idx1)
         tm.assert_index_equal(df.index, idx1)
         df = df.set_index(idx2)
         tm.assert_index_equal(df.index, idx2)
-
-    def test_drop_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"In a future version of pandas all arguments of DataFrame\.set_index "
-            r"except for the argument 'keys' will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.set_index("a", True)
-        expected = DataFrame(index=Index([1, 2, 3], name="a"))
-        tm.assert_frame_equal(result, expected)

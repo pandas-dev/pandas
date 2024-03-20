@@ -25,9 +25,9 @@ Exceptions and warnings
    :toctree: api/
 
    errors.AbstractMethodError
-   errors.AccessorRegistrationWarning
    errors.AttributeConflictWarning
    errors.CategoricalConversionWarning
+   errors.ChainedAssignmentError
    errors.ClosedFileError
    errors.CSSWarning
    errors.DatabaseError
@@ -38,9 +38,13 @@ Exceptions and warnings
    errors.IncompatibilityWarning
    errors.IndexingError
    errors.InvalidColumnName
+   errors.InvalidComparison
    errors.InvalidIndexError
+   errors.InvalidVersion
    errors.IntCastingNaNError
+   errors.LossySetitemError
    errors.MergeError
+   errors.NoBufferPresent
    errors.NullFrequencyError
    errors.NumbaUtilError
    errors.NumExprClobberingError
@@ -54,8 +58,6 @@ Exceptions and warnings
    errors.PossiblePrecisionLoss
    errors.PyperclipException
    errors.PyperclipWindowsException
-   errors.SettingWithCopyError
-   errors.SettingWithCopyWarning
    errors.SpecificationError
    errors.UndefinedVariableError
    errors.UnsortedIndexError

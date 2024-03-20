@@ -79,17 +79,6 @@ def state_data():
 
 
 @pytest.fixture
-def author_missing_data():
-    return [
-        {"info": None},
-        {
-            "info": {"created_at": "11/08/1993", "last_updated": "26/05/2012"},
-            "author_name": {"first": "Jane", "last_name": "Doe"},
-        },
-    ]
-
-
-@pytest.fixture
 def missing_metadata():
     return [
         {
@@ -117,23 +106,6 @@ def missing_metadata():
             ],
             "previous_residences": {"cities": [{"city_name": "Barmingham"}]},
         },
-    ]
-
-
-@pytest.fixture
-def max_level_test_input_data():
-    """
-    input data to test json_normalize with max_level param
-    """
-    return [
-        {
-            "CreatedBy": {"Name": "User001"},
-            "Lookup": {
-                "TextField": "Some text",
-                "UserField": {"Id": "ID001", "Name": "Name001"},
-            },
-            "Image": {"a": "b"},
-        }
     ]
 
 
@@ -170,6 +142,20 @@ class TestJSONNormalize:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_fields_list_type_normalize(self):
+        parse_metadata_fields_list_type = [
+            {"values": [1, 2, 3], "metadata": {"listdata": [1, 2]}}
+        ]
+        result = json_normalize(
+            parse_metadata_fields_list_type,
+            record_path=["values"],
+            meta=[["metadata", "listdata"]],
+        )
+        expected = DataFrame(
+            {0: [1, 2, 3], "metadata.listdata": [[1, 2], [1, 2], [1, 2]]}
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_empty_array(self):
         result = json_normalize([])
         expected = DataFrame()
@@ -186,7 +172,7 @@ class TestJSONNormalize:
     )
     def test_accepted_input(self, data, record_path, exception_type):
         if exception_type is not None:
-            with pytest.raises(exception_type, match=tm.EMPTY_STRING_PATTERN):
+            with pytest.raises(exception_type, match=""):
                 json_normalize(data, record_path=record_path)
         else:
             result = json_normalize(data, record_path=record_path)
@@ -250,7 +236,6 @@ class TestJSONNormalize:
         tm.assert_frame_equal(result, expected)
 
     def test_more_deeply_nested(self, deep_nested):
-
         result = json_normalize(
             deep_nested, ["states", "cities"], meta=["country", ["states", "name"]]
         )
@@ -398,7 +383,7 @@ class TestJSONNormalize:
     def test_non_ascii_key(self):
         testjson = (
             b'[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},'
-            + b'{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]'
+            b'{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]'
         ).decode("utf8")
 
         testdata = {
@@ -411,8 +396,15 @@ class TestJSONNormalize:
         result = json_normalize(json.loads(testjson))
         tm.assert_frame_equal(result, expected)
 
-    def test_missing_field(self, author_missing_data):
+    def test_missing_field(self):
         # GH20030:
+        author_missing_data = [
+            {"info": None},
+            {
+                "info": {"created_at": "11/08/1993", "last_updated": "26/05/2012"},
+                "author_name": {"first": "Jane", "last_name": "Doe"},
+            },
+        ]
         result = json_normalize(author_missing_data)
         ex_data = [
             {
@@ -534,8 +526,8 @@ class TestJSONNormalize:
         test_input = {"state": "Texas", "info": parsed_value}
         test_path = "info"
         msg = (
-            f"{test_input} has non list value {parsed_value} for path {test_path}. "
-            "Must be list or null."
+            f"Path must contain list or null, "
+            f"but got {type(parsed_value).__name__} at 'info'"
         )
         with pytest.raises(TypeError, match=msg):
             json_normalize([test_input], record_path=[test_path])
@@ -560,6 +552,22 @@ class TestJSONNormalize:
         expected = DataFrame(state_data[0]["counties"])
 
         tm.assert_frame_equal(result, expected)
+
+    def test_top_column_with_leading_underscore(self):
+        # 49861
+        data = {"_id": {"a1": 10, "l2": {"l3": 0}}, "gg": 4}
+        result = json_normalize(data, sep="_")
+        expected = DataFrame([[4, 10, 0]], columns=["gg", "_id_a1", "_id_l2_l3"])
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_series_index(self, state_data):
+        idx = Index([7, 8])
+        series = Series(state_data, index=idx)
+        result = json_normalize(series)
+        tm.assert_index_equal(result.index, idx)
+        result = json_normalize(series, "counties")
+        tm.assert_index_equal(result.index, idx.repeat([3, 2]))
 
 
 class TestNestedToRecord:
@@ -822,8 +830,18 @@ class TestNestedToRecord:
             ),
         ],
     )
-    def test_with_max_level(self, max_level, expected, max_level_test_input_data):
+    def test_with_max_level(self, max_level, expected):
         # GH23843: Enhanced JSON normalize
+        max_level_test_input_data = [
+            {
+                "CreatedBy": {"Name": "User001"},
+                "Lookup": {
+                    "TextField": "Some text",
+                    "UserField": {"Id": "ID001", "Name": "Name001"},
+                },
+                "Image": {"a": "b"},
+            }
+        ]
         output = nested_to_record(max_level_test_input_data, max_level=max_level)
         assert output == expected
 
@@ -864,13 +882,6 @@ class TestNestedToRecord:
         output = nested_to_record(input_data, max_level=max_level)
         assert output == expected
 
-    def test_deprecated_import(self):
-        with tm.assert_produces_warning(FutureWarning):
-            from pandas.io.json import json_normalize
-
-            recs = [{"a": 1, "b": 2, "c": 3}, {"a": 4, "b": 5, "c": 6}]
-            json_normalize(recs)
-
     def test_series_non_zero_index(self):
         # GH 19020
         data = {
@@ -888,6 +899,7 @@ class TestNestedToRecord:
                 "elements.a": [1.0, np.nan, np.nan],
                 "elements.b": [np.nan, 2.0, np.nan],
                 "elements.c": [np.nan, np.nan, 3.0],
-            }
+            },
+            index=[1, 2, 3],
         )
         tm.assert_frame_equal(result, expected)

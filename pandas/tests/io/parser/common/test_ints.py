@@ -2,6 +2,7 @@
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
+
 from io import StringIO
 
 import numpy as np
@@ -13,8 +14,11 @@ from pandas import (
 )
 import pandas._testing as tm
 
-# GH#43650: Some expected failures with the pyarrow engine can occasionally
-# cause a deadlock instead, so we skip these instead of xfailing
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
@@ -37,31 +41,29 @@ def test_int_conversion(all_parsers):
         (
             "A,B\nTrue,1\nFalse,2\nTrue,3",
             {},
-            DataFrame([[True, 1], [False, 2], [True, 3]], columns=["A", "B"]),
+            [[True, 1], [False, 2], [True, 3]],
         ),
         (
             "A,B\nYES,1\nno,2\nyes,3\nNo,3\nYes,3",
             {"true_values": ["yes", "Yes", "YES"], "false_values": ["no", "NO", "No"]},
-            DataFrame(
-                [[True, 1], [False, 2], [True, 3], [False, 3], [True, 3]],
-                columns=["A", "B"],
-            ),
+            [[True, 1], [False, 2], [True, 3], [False, 3], [True, 3]],
         ),
         (
             "A,B\nTRUE,1\nFALSE,2\nTRUE,3",
             {},
-            DataFrame([[True, 1], [False, 2], [True, 3]], columns=["A", "B"]),
+            [[True, 1], [False, 2], [True, 3]],
         ),
         (
             "A,B\nfoo,bar\nbar,foo",
             {"true_values": ["foo"], "false_values": ["bar"]},
-            DataFrame([[True, False], [False, True]], columns=["A", "B"]),
+            [[True, False], [False, True]],
         ),
     ],
 )
 def test_parse_bool(all_parsers, data, kwargs, expected):
     parser = all_parsers
     result = parser.read_csv(StringIO(data), **kwargs)
+    expected = DataFrame(expected, columns=["A", "B"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -98,12 +100,16 @@ def test_parse_integers_above_fp_precision(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow  # Flaky
 @pytest.mark.parametrize("sep", [" ", r"\s+"])
 def test_integer_overflow_bug(all_parsers, sep):
     # see gh-2601
     data = "65248E10 11\n55555E55 22\n"
     parser = all_parsers
+    if parser.engine == "pyarrow" and sep != " ":
+        msg = "the 'pyarrow' engine does not support regex separators"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), header=None, sep=sep)
+        return
 
     result = parser.read_csv(StringIO(data), header=None, sep=sep)
     expected = DataFrame([[6.5248e14, 11], [5.5555e59, 22]])
@@ -120,9 +126,8 @@ def test_int64_min_issues(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
 @pytest.mark.parametrize("conv", [None, np.int64, np.uint64])
-def test_int64_overflow(all_parsers, conv):
+def test_int64_overflow(all_parsers, conv, request):
     data = """ID
 00013007854817840016671868
 00013007854817840016749251
@@ -136,6 +141,10 @@ def test_int64_overflow(all_parsers, conv):
     if conv is None:
         # 13007854817840016671868 > UINT64_MAX, so this
         # will overflow and return object as the dtype.
+        if parser.engine == "pyarrow":
+            mark = pytest.mark.xfail(reason="parses to float64")
+            request.applymarker(mark)
+
         result = parser.read_csv(StringIO(data))
         expected = DataFrame(
             [
@@ -154,17 +163,23 @@ def test_int64_overflow(all_parsers, conv):
         # 13007854817840016671868 > UINT64_MAX, so attempts
         # to cast to either int64 or uint64 will result in
         # an OverflowError being raised.
-        msg = (
-            "(Python int too large to convert to C long)|"
-            "(long too big to convert)|"
-            "(int too big to convert)"
+        msg = "|".join(
+            [
+                "Python int too large to convert to C long",
+                "long too big to convert",
+                "int too big to convert",
+            ]
         )
+        err = OverflowError
+        if parser.engine == "pyarrow":
+            err = ValueError
+            msg = "The 'converters' option is not supported with the 'pyarrow' engine"
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(err, match=msg):
             parser.read_csv(StringIO(data), converters={"ID": conv})
 
 
-@skip_pyarrow
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 @pytest.mark.parametrize(
     "val", [np.iinfo(np.uint64).max, np.iinfo(np.int64).max, np.iinfo(np.int64).min]
 )
@@ -178,7 +193,7 @@ def test_int64_uint64_range(all_parsers, val):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 @pytest.mark.parametrize(
     "val", [np.iinfo(np.uint64).max + 1, np.iinfo(np.int64).min - 1]
 )
@@ -192,7 +207,7 @@ def test_outside_int64_uint64_range(all_parsers, val):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # gets float64 dtype instead of object
 @pytest.mark.parametrize("exp_data", [[str(-1), str(2**63)], [str(2**63), str(-1)]])
 def test_numeric_range_too_wide(all_parsers, exp_data):
     # No numerical dtype can hold both negative and uint64
