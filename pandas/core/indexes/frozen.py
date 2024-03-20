@@ -6,6 +6,7 @@ These are used for:
 - .names (FrozenList)
 
 """
+
 from __future__ import annotations
 
 from typing import (
