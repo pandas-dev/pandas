@@ -301,6 +301,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :func:`date_range` where the last valid timestamp would sometimes not be produced (:issue:`56134`)
+- Bug in :func:`date_range` where using a negative frequency value would not include all points between the start and end values (:issue:`56382`)
 -
 
 Timedelta
