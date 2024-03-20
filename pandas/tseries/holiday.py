@@ -7,7 +7,6 @@ from datetime import (
 from typing import (
     TYPE_CHECKING,
     Callable,
-    SupportsIndex,
 )
 import warnings
 
@@ -164,10 +163,10 @@ class Holiday:
     def __init__(
         self,
         name: str,
-        year: SupportsIndex | None = None,
-        month: SupportsIndex | None = None,
-        day: SupportsIndex | None = None,
-        offset: None | BaseOffset | list[BaseOffset | list[BaseOffset]] = None,
+        year=None,
+        month=None,
+        day=None,
+        offset: BaseOffset | list[BaseOffset | list[BaseOffset]] | None = None,
         observance: Callable | None = None,
         start_date=None,
         end_date=None,
@@ -239,15 +238,14 @@ class Holiday:
         self.year = year
         self.month = month
         self.day = day
+        self.offset: None | BaseOffset | list[BaseOffset]
         if isinstance(offset, list):
             self.offset = []
             for off in offset:
-                # check if we are handling offsets of another holiday
+                # check if we are handling composite offsets of another holiday
                 if isinstance(off, list):
-                    self.offset.extend(np.ravel(off))
+                    self.offset.extend(off)
                 else:
-                    # otherwise it should be a DateOffset, we do not support other
-                    # array-like types
                     self.offset.append(off)
         else:
             self.offset = offset
