@@ -722,7 +722,7 @@ def _get_sample_object(
     if len(ndims) > 1:
         max_ndim = max(ndims)
         for obj in objs:
-            if obj.ndim == max_ndim and sum(obj.shape):
+            if obj.ndim == max_ndim and sum(obj.shape):  # type: ignore[arg-type]
                 return obj, objs
     elif keys is None and names is None and levels is None and not intersect:
         # filter out the empties if we have not multi-index possibilities
