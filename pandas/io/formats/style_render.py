@@ -1019,6 +1019,7 @@ class StylerRenderer:
         Returns
         -------
         Styler
+            Returns itself for chaining.
 
         See Also
         --------
@@ -1275,6 +1276,7 @@ class StylerRenderer:
         Returns
         -------
         Styler
+            Returns itself for chaining.
 
         See Also
         --------
@@ -1439,6 +1441,7 @@ class StylerRenderer:
         Returns
         -------
         Styler
+            Returns itself for chaining.
 
         See Also
         --------
@@ -1624,6 +1627,7 @@ class StylerRenderer:
         Returns
         -------
         Styler
+            Returns itself for chaining.
 
         See Also
         --------
