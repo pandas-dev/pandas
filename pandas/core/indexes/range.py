@@ -29,7 +29,6 @@ from pandas.util._decorators import (
     doc,
 )
 
-from pandas.core.dtypes import missing
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -475,28 +474,13 @@ class RangeIndex(Index):
         if values.dtype.kind == "i" and values.ndim == 1:
             # GH 46675 & 43885: If values is equally spaced, return a
             # more memory-compact RangeIndex instead of Index with 64-bit dtype
-            if len(values) == 0:
-                return type(self)._simple_new(_empty_range, name=name)
-            elif len(values) == 1:
+            if len(values) == 1:
                 start = values[0]
                 new_range = range(start, start + self.step, self.step)
                 return type(self)._simple_new(new_range, name=name)
-            diff = values[1] - values[0]
-            if not missing.isna(diff) and diff != 0:
-                if len(values) == 2:
-                    # Can skip is_range_indexer check
-                    new_range = range(values[0], values[-1] + diff, diff)
-                    return type(self)._simple_new(new_range, name=name)
-                else:
-                    maybe_range_indexer, remainder = np.divmod(values - values[0], diff)
-                    if (
-                        lib.is_range_indexer(
-                            maybe_range_indexer, len(maybe_range_indexer)
-                        )
-                        and not remainder.any()
-                    ):
-                        new_range = range(values[0], values[-1] + diff, diff)
-                        return type(self)._simple_new(new_range, name=name)
+            maybe_range = ibase.maybe_sequence_to_range(values)
+            if isinstance(maybe_range, range):
+                return type(self)._simple_new(maybe_range, name=name)
         return self._constructor._simple_new(values, name=name)
 
     def _view(self) -> Self:
