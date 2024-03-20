@@ -177,21 +177,23 @@ class Holiday:
         ----------
         name : str
             Name of the holiday , defaults to class name
-        year: int
+        year : int, default None
             Year of the holiday
-        month: int
+        month : int, default None
             Month of the holiday
-        day: int
+        day : int, default None
             Day of the holiday
         offset : array of pandas.tseries.offsets or
-                class from pandas.tseries.offsets
-            computes offset from date
-        observance: function
-            computes when holiday is given a pandas Timestamp
-        start_date : datetime-like, optional
-        end_date : datetime-like, optional
-        days_of_week:
-            provide a tuple of days e.g  (0,1,2,3,) for Monday Through Thursday
+                class from pandas.tseries.offsets, default None
+            Computes offset from date
+        observance : function, default None
+            Computes when holiday is given a pandas Timestamp
+        start_date : datetime-like, default None
+            First date the holiday is observed
+        end_date : datetime-like, default None
+            Last date the holiday is observed
+        days_of_week : tuple of int or dateutil.relativedelta weekday strs, default None
+            Provide a tuple of days e.g  (0,1,2,3,) for Monday Through Thursday
             Monday=0,..,Sunday=6
 
         Examples
