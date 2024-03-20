@@ -562,3 +562,21 @@ class TestDataFrameJoin:
 
         tm.assert_index_equal(result.index, expected)
         assert result.index.tz.zone == "US/Central"
+
+    def test_join_list_with_single_element(self):
+        test1 = DataFrame(
+            {"cat": pd.Categorical(["a", "v", "d"])},
+            index=Index(["a", "b", "c"], name="y"),
+        )
+        test2 = DataFrame(
+            {"foo": np.arange(6)},
+            index=MultiIndex.from_tuples(
+                [(0, "a"), (0, "b"), (0, "c"), (1, "a"), (1, "b"), (1, "c")],
+                names=("x", "y"),
+            ),
+        )
+
+        result = test2.join([test1])
+        expected = test2.join(test1)
+
+        assert result.equals(expected)
