@@ -145,12 +145,12 @@ cdef class IntervalTree(IntervalMixin):
                 # overflow -> no match, which is already handled below
                 pass
 
-            if result.data.n == old_len:
+            if result.data.size == old_len:
                 result.append(-1)
-            elif result.data.n > old_len + 1:
+            elif result.data.size > old_len + 1:
                 raise KeyError(
                     'indexer does not intersect a unique set of intervals')
-            old_len = result.data.n
+            old_len = result.data.size
         return result.to_array().astype('intp')
 
     def get_indexer_non_unique(self, ndarray[scalar_t, ndim=1] target):
@@ -172,10 +172,10 @@ cdef class IntervalTree(IntervalMixin):
                 # overflow -> no match, which is already handled below
                 pass
 
-            if result.data.n == old_len:
+            if result.data.size == old_len:
                 result.append(-1)
                 missing.append(i)
-            old_len = result.data.n
+            old_len = result.data.size
         return (result.to_array().astype('intp'),
                 missing.to_array().astype('intp'))
 
