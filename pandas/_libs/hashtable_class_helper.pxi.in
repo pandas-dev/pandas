@@ -257,7 +257,7 @@ cdef class StringVector(Vector):
         self.data.n = 0
         self.data.m = _INIT_VEC_CAP
         self.data.data = <char **>malloc(self.data.m * sizeof(char *))
-        if not self.data.data:
+        if self.data.data is NULL:
             raise MemoryError()
 
     cdef resize(self):
@@ -270,7 +270,7 @@ cdef class StringVector(Vector):
 
         orig_data = self.data.data
         self.data.data = <char **>malloc(self.data.m * sizeof(char *))
-        if not self.data.data:
+        if self.data.data is NULL:
             raise MemoryError()
         for i in range(m):
             self.data.data[i] = orig_data[i]
@@ -975,6 +975,8 @@ cdef class StringHashTable(HashTable):
             const char **vecs
 
         vecs = <const char **>malloc(n * sizeof(char *))
+        if vecs is NULL:
+            raise MemoryError()
         for i in range(n):
             val = values[i]
             v = get_c_string(val)
@@ -1005,6 +1007,8 @@ cdef class StringHashTable(HashTable):
 
         # these by-definition *must* be strings
         vecs = <const char **>malloc(n * sizeof(char *))
+        if vecs is NULL:
+            raise MemoryError()
         for i in range(n):
             val = values[i]
 
@@ -1041,6 +1045,8 @@ cdef class StringHashTable(HashTable):
 
         # these by-definition *must* be strings
         vecs = <const char **>malloc(n * sizeof(char *))
+        if vecs is NULL:
+            raise MemoryError()
         for i in range(n):
             val = values[i]
 
@@ -1116,6 +1122,8 @@ cdef class StringHashTable(HashTable):
 
         # assign pointers and pre-filter out missing (if ignore_na)
         vecs = <const char **>malloc(n * sizeof(char *))
+        if vecs is NULL:
+            raise MemoryError()
         for i in range(n):
             val = values[i]
 
