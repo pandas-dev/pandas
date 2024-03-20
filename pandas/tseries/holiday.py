@@ -5,6 +5,7 @@ from datetime import (
     timedelta,
 )
 from typing import (
+    TYPE_CHECKING,
     Callable,
     SupportsIndex,
 )
@@ -36,6 +37,9 @@ from pandas.tseries.offsets import (
     Day,
     Easter,
 )
+
+if TYPE_CHECKING:
+    from pandas._libs.tslibs.offsets import BaseOffset
 
 
 def next_monday(dt: datetime) -> datetime:
@@ -163,7 +167,7 @@ class Holiday:
         year: SupportsIndex | None = None,
         month: SupportsIndex | None = None,
         day: SupportsIndex | None = None,
-        offset: None | DateOffset | list[DateOffset | list[DateOffset]] = None,
+        offset: None | BaseOffset | list[BaseOffset | list[BaseOffset]] = None,
         observance: Callable | None = None,
         start_date=None,
         end_date=None,
