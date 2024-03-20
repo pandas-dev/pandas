@@ -174,7 +174,7 @@ cdef class StringHashTable(HashTable):
 
 cdef struct Int64VectorData:
     int64_t *data
-    Py_ssize_t n, m
+    Py_ssize_t size, capacity
 
 cdef class Vector:
     cdef bint external_view_exists
