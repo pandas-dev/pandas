@@ -429,7 +429,9 @@ class _Concatenator:
 
         # Standardize axis parameter to int
         if sample.ndim == 1:
-            axis = sample._constructor_expanddim._get_axis_number(axis)
+            from pandas import DataFrame
+
+            axis = DataFrame._get_axis_number(axis)
             self._is_frame = False
             self._is_series = True
         else:
