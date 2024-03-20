@@ -298,6 +298,7 @@ Bug fixes
 - Fixed bug in :meth:`DataFrameGroupBy.apply` that was returning a completely empty DataFrame when all return values of ``func`` were ``None`` instead of returning an empty DataFrame with the original columns and dtypes. (:issue:`57775`)
 - Fixed bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
 - Fixed bug in :meth:`Series.rank` that doesn't preserve missing values for nullable integers when ``na_option='keep'``. (:issue:`56976`)
+- Fixed bug in :meth:`Series.replace` and :meth:`DataFrame.replace` inconsistently replacing matching instances when ``regex=True`` and missing values are present. (:issue:`56599`)
 
 Categorical
 ^^^^^^^^^^^
@@ -307,6 +308,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :func:`date_range` where the last valid timestamp would sometimes not be produced (:issue:`56134`)
+- Bug in :func:`date_range` where using a negative frequency value would not include all points between the start and end values (:issue:`56382`)
 -
 
 Timedelta
@@ -357,6 +359,7 @@ MultiIndex
 I/O
 ^^^
 - Bug in :meth:`DataFrame.to_excel` when writing empty :class:`DataFrame` with :class:`MultiIndex` on both axes (:issue:`57696`)
+- Now all ``Mapping`` s are pretty printed correctly. Before only literal ``dict`` s were. (:issue:`57915`)
 -
 -
 
