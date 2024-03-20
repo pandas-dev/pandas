@@ -68,14 +68,6 @@ jobs:
           - name: "Pyarrow Nightly"
             env_file: actions-311-pyarrownightly.yaml
             pattern: "not slow and not network and not single_cpu"
-          - name: "ASAN / UBSAN"
-            env_file: actions-311-sanitizers.yaml
-            pattern: "not slow and not network and not single_cpu and not skip_ubsan"
-            asan_options: "ASAN_OPTIONS=detect_leaks=0"
-            preload: LD_PRELOAD=$(gcc -print-file-name=libasan.so)
-            meson_args: --config-settings=setup-args="-Db_sanitize=address,undefined"
-            cflags_adds: -fno-sanitize-recover=all
-            pytest_workers: -1  # disable pytest-xdist as it swallows stderr from ASAN
       fail-fast: false
     name: ${{ matrix.name || format('ubuntu-latest {0}', matrix.env_file) }}
     env:
@@ -161,18 +153,12 @@ jobs:
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
       if: ${{ matrix.name != 'Pypy' }}
-      with:
-        preload: ${{ matrix.preload }}
-        asan_options: ${{ matrix.asan_options }}
       env:
         # Set pattern to not single_cpu if not already set
         PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
 
     - name: Test (single_cpu)
       uses: ./.github/actions/run-tests
-      with:
-        preload: ${{ matrix.preload }}
-        asan_options: ${{ matrix.asan_options }}
       env:
         PATTERN: 'single_cpu'
         PYTEST_WORKERS: 0

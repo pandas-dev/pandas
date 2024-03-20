@@ -78,7 +78,7 @@ repos:
     hooks:
     -   id: pylint
         stages: [manual]
-        args: [--load-plugins=pylint.extensions.redefined_loop_name]
+        args: [--load-plugins=pylint.extensions.redefined_loop_name, --fail-on=I0021]
     -   id: pylint
         alias: redefined-outer-name
         name: Redefining name from outer scope
