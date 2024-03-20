@@ -1,6 +1,7 @@
 """
 test where we are determining what we are grouping, or getting groups
 """
+
 from datetime import (
     date,
     timedelta,
@@ -8,6 +9,8 @@ from datetime import (
 
 import numpy as np
 import pytest
+
+from pandas.errors import SpecificationError
 
 import pandas as pd
 from pandas import (
@@ -530,12 +533,10 @@ class TestGrouping:
         ).sum()
         tm.assert_frame_equal(result, expected)
 
-    def test_multifunc_select_col_integer_cols(self, df):
+    def test_agg_with_dict_raises(self, df):
         df.columns = np.arange(len(df.columns))
-
-        # it works!
-        msg = "Passing a dictionary to SeriesGroupBy.agg is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg = "nested renamer is not supported"
+        with pytest.raises(SpecificationError, match=msg):
             df.groupby(1, as_index=False)[2].agg({"Q": np.mean})
 
     def test_multiindex_columns_empty_level(self):
@@ -1128,28 +1129,3 @@ def test_grouping_by_key_is_in_axis():
     result = gb.sum()
     expected = DataFrame({"a": [1, 2], "b": [1, 2], "c": [7, 5]})
     tm.assert_frame_equal(result, expected)
-
-
-def test_grouper_groups():
-    # GH#51182 check Grouper.groups does not raise AttributeError
-    df = DataFrame({"a": [1, 2, 3], "b": 1})
-    grper = Grouper(key="a")
-    gb = df.groupby(grper)
-
-    msg = "Use GroupBy.groups instead"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        res = grper.groups
-    assert res is gb.groups
-
-    msg = "Grouper.obj is deprecated and will be removed"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        res = grper.obj
-    assert res is gb.obj
-
-    msg = "Use Resampler.ax instead"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        grper.ax
-
-    msg = "Grouper.indexer is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        grper.indexer

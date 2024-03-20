@@ -1,6 +1,7 @@
 """
 Tests for DatetimeIndex timezone-related methods
 """
+
 from datetime import (
     datetime,
     timedelta,

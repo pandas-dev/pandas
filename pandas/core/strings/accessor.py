@@ -259,7 +259,6 @@ class StringMethods(NoNewAttributesMixin):
         expand: bool | None = None,
         fill_value=np.nan,
         returns_string: bool = True,
-        returns_bool: bool = False,
         dtype=None,
     ):
         from pandas import (
@@ -321,10 +320,8 @@ class StringMethods(NoNewAttributesMixin):
                             new_values.append(row)
                         pa_type = result._pa_array.type
                         result = ArrowExtensionArray(pa.array(new_values, type=pa_type))
-                if name is not None:
-                    labels = name
-                else:
-                    labels = range(max_len)
+                if name is None:
+                    name = range(max_len)
                 result = (
                     pa.compute.list_flatten(result._pa_array)
                     .to_numpy()
@@ -332,7 +329,7 @@ class StringMethods(NoNewAttributesMixin):
                 )
                 result = {
                     label: ArrowExtensionArray(pa.array(res))
-                    for label, res in zip(labels, result.T)
+                    for label, res in zip(name, result.T)
                 }
             elif is_object_dtype(result):
 

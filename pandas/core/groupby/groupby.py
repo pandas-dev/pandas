@@ -6,6 +6,7 @@ The SeriesGroupBy and DataFrameGroupBy sub-class
 (defined in pandas.core.groupby.generic)
 expose these user-facing objects to provide specific functionality.
 """
+
 from __future__ import annotations
 
 from collections.abc import (
@@ -802,8 +803,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         func: Callable[Concatenate[Self, P], T],
         *args: P.args,
         **kwargs: P.kwargs,
-    ) -> T:
-        ...
+    ) -> T: ...
 
     @overload
     def pipe(
@@ -811,8 +811,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         func: tuple[Callable[..., T], str],
         *args: Any,
         **kwargs: Any,
-    ) -> T:
-        ...
+    ) -> T: ...
 
     @Substitution(
         klass="GroupBy",
@@ -919,17 +918,9 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         ):
             # GH#25971
             if isinstance(name, tuple) and len(name) == 1:
-                # Allow users to pass tuples of length 1 to silence warning
                 name = name[0]
-            elif not isinstance(name, tuple):
-                warnings.warn(
-                    "When grouping with a length-1 list-like, "
-                    "you will need to pass a length-1 tuple to get_group in a future "
-                    "version of pandas. Pass `(name,)` instead of `name` to silence "
-                    "this warning.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
+            else:
+                raise KeyError(name)
 
         inds = self._get_index(name)
         if not len(inds):
@@ -1015,18 +1006,11 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         keys = self.keys
         level = self.level
         result = self._grouper.get_iterator(self._selected_obj)
-        # error: Argument 1 to "len" has incompatible type "Hashable"; expected "Sized"
-        if is_list_like(level) and len(level) == 1:  # type: ignore[arg-type]
-            # GH 51583
-            warnings.warn(
-                "Creating a Groupby object with a length-1 list-like "
-                "level parameter will yield indexes as tuples in a future version. "
-                "To keep indexes as scalars, create Groupby objects with "
-                "a scalar level parameter instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        if isinstance(keys, list) and len(keys) == 1:
+        # mypy: Argument 1 to "len" has incompatible type "Hashable"; expected "Sized"
+        if (
+            (is_list_like(level) and len(level) == 1)  # type: ignore[arg-type]
+            or (isinstance(keys, list) and len(keys) == 1)
+        ):
             # GH#42795 - when keys is a list, return tuples even when length is 1
             result = (((key,), group) for key, group in result)
         return result
@@ -1218,7 +1202,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:
                 # GH5610, returns a MI, with the first level being a
                 # range index
-                keys = list(range(len(values)))
+                keys = RangeIndex(len(values))
                 result = concat(values, axis=0, keys=keys)
 
         elif not not_indexed_same:
@@ -1652,6 +1636,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         a    5
         b    2
         dtype: int64
+
+        Example 4: The function passed to ``apply`` returns ``None`` for one of the
+        group. This group is filtered from the result:
+
+        >>> g1.apply(lambda x: None if x.iloc[0, 0] == 3 else x, include_groups=False)
+           B  C
+        0  1  4
+        1  2  6
         """
         if isinstance(func, str):
             if hasattr(self, func):
@@ -2694,7 +2686,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             names = result_series.index.names
             # GH#55951 - Temporarily replace names in case they are integers
             result_series.index.names = range(len(names))
-            index_level = list(range(len(self._grouper.groupings)))
+            index_level = range(len(self._grouper.groupings))
             result_series = result_series.sort_index(
                 level=index_level, sort_remaining=False
             )

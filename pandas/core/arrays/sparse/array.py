@@ -1,6 +1,7 @@
 """
 SparseArray data structure
 """
+
 from __future__ import annotations
 
 from collections import abc
@@ -672,12 +673,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def _null_fill_value(self) -> bool:
         return self._dtype._is_na_fill_value
 
-    def _fill_value_matches(self, fill_value) -> bool:
-        if self._null_fill_value:
-            return isna(fill_value)
-        else:
-            return self.fill_value == fill_value
-
     @property
     def nbytes(self) -> int:
         return self.sp_values.nbytes + self.sp_index.nbytes
@@ -930,15 +925,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # Indexing
     # --------
     @overload
-    def __getitem__(self, key: ScalarIndexer) -> Any:
-        ...
+    def __getitem__(self, key: ScalarIndexer) -> Any: ...
 
     @overload
     def __getitem__(
         self,
         key: SequenceIndexer | tuple[int | ellipsis, ...],
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     def __getitem__(
         self,
@@ -1916,13 +1909,11 @@ def _make_sparse(
 
 
 @overload
-def make_sparse_index(length: int, indices, kind: Literal["block"]) -> BlockIndex:
-    ...
+def make_sparse_index(length: int, indices, kind: Literal["block"]) -> BlockIndex: ...
 
 
 @overload
-def make_sparse_index(length: int, indices, kind: Literal["integer"]) -> IntIndex:
-    ...
+def make_sparse_index(length: int, indices, kind: Literal["integer"]) -> IntIndex: ...
 
 
 def make_sparse_index(length: int, indices, kind: SparseIndexKind) -> SparseIndex:

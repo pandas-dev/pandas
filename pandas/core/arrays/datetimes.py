@@ -103,13 +103,11 @@ _ITER_CHUNKSIZE = 10_000
 
 
 @overload
-def tz_to_dtype(tz: tzinfo, unit: str = ...) -> DatetimeTZDtype:
-    ...
+def tz_to_dtype(tz: tzinfo, unit: str = ...) -> DatetimeTZDtype: ...
 
 
 @overload
-def tz_to_dtype(tz: None, unit: str = ...) -> np.dtype[np.datetime64]:
-    ...
+def tz_to_dtype(tz: None, unit: str = ...) -> np.dtype[np.datetime64]: ...
 
 
 def tz_to_dtype(
@@ -768,17 +766,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
     # -----------------------------------------------------------------
     # Comparison Methods
-
-    def _has_same_tz(self, other) -> bool:
-        # vzone shouldn't be None if value is non-datetime like
-        if isinstance(other, np.datetime64):
-            # convert to Timestamp as np.datetime64 doesn't have tz attr
-            other = Timestamp(other)
-
-        if not hasattr(other, "tzinfo"):
-            return False
-        other_tz = other.tzinfo
-        return timezones.tz_compare(self.tzinfo, other_tz)
 
     def _assert_tzawareness_compat(self, other) -> None:
         # adapted from _Timestamp._assert_tzawareness_compat
@@ -2790,7 +2777,12 @@ def _generate_range(
     if start and not offset.is_on_offset(start):
         # Incompatible types in assignment (expression has type "datetime",
         # variable has type "Optional[Timestamp]")
-        start = offset.rollforward(start)  # type: ignore[assignment]
+
+        # GH #56147 account for negative direction and range bounds
+        if offset.n >= 0:
+            start = offset.rollforward(start)  # type: ignore[assignment]
+        else:
+            start = offset.rollback(start)  # type: ignore[assignment]
 
     # Unsupported operand types for < ("Timestamp" and "None")
     if periods is None and end < start and offset.n >= 0:  # type: ignore[operator]

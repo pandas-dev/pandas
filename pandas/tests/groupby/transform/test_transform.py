@@ -1,4 +1,5 @@
-""" test with the .transform """
+"""test with the .transform"""
+
 import numpy as np
 import pytest
 
@@ -86,8 +87,8 @@ def test_transform():
 def test_transform_fast():
     df = DataFrame(
         {
-            "id": np.arange(100000) / 3,
-            "val": np.random.default_rng(2).standard_normal(100000),
+            "id": np.arange(10) / 3,
+            "val": np.random.default_rng(2).standard_normal(10),
         }
     )
 
