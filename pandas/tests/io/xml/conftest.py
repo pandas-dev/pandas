@@ -11,7 +11,7 @@ def xml_data_path():
     Examples
     --------
     >>> def test_read_xml(xml_data_path):
-    ...     read_xml(xml_data_path / "file.xsl")
+    ...     pd.read_xml(xml_data_path / "file.xsl")
     """
     return Path(__file__).parent.parent / "data" / "xml"
 
@@ -24,7 +24,7 @@ def xml_books(xml_data_path, datapath):
     Examples
     --------
     >>> def test_read_xml(xml_books):
-    ...     read_xml(xml_books)
+    ...     pd.read_xml(xml_books)
     """
     return datapath(xml_data_path / "books.xml")
 
@@ -37,7 +37,7 @@ def xml_doc_ch_utf(xml_data_path, datapath):
     Examples
     --------
     >>> def test_read_xml(xml_doc_ch_utf):
-    ...     read_xml(xml_doc_ch_utf)
+    ...     pd.read_xml(xml_doc_ch_utf)
     """
     return datapath(xml_data_path / "doc_ch_utf.xml")
 
@@ -50,7 +50,7 @@ def xml_baby_names(xml_data_path, datapath):
     Examples
     --------
     >>> def test_read_xml(xml_baby_names):
-    ...     read_xml(xml_baby_names)
+    ...     pd.read_xml(xml_baby_names)
     """
     return datapath(xml_data_path / "baby_names.xml")
 
@@ -63,7 +63,7 @@ def kml_cta_rail_lines(xml_data_path, datapath):
     Examples
     --------
     >>> def test_read_xml(kml_cta_rail_lines):
-    ...     read_xml(
+    ...     pd.read_xml(
     ...         kml_cta_rail_lines,
     ...         xpath=".//k:Placemark",
     ...         namespaces={"k": "http://www.opengis.net/kml/2.2"},
@@ -80,7 +80,7 @@ def xsl_flatten_doc(xml_data_path, datapath):
 
     Examples
     --------
-    >>> def test_read_xsl(xsl_flatten_doc):
+    >>> def test_read_xsl(xsl_flatten_doc, mode):
     ...     with open(
     ...         xsl_flatten_doc, mode, encoding="utf-8" if mode == "r" else None
     ...     ) as f:
@@ -96,7 +96,7 @@ def xsl_row_field_output(xml_data_path, datapath):
 
     Examples
     --------
-    >>> def test_read_xsl(xsl_row_field_output):
+    >>> def test_read_xsl(xsl_row_field_output, mode):
     ...     with open(
     ...         xsl_row_field_output, mode, encoding="utf-8" if mode == "r" else None
     ...     ) as f:

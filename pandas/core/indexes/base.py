@@ -7154,6 +7154,43 @@ class Index(IndexOpsMixin, PandasObject):
         return (len(self),)
 
 
+def maybe_sequence_to_range(sequence) -> Any | range:
+    """
+    Convert a 1D, non-pandas sequence to a range if possible.
+
+    Returns the input if not possible.
+
+    Parameters
+    ----------
+    sequence : 1D sequence
+    names : sequence of str
+
+    Returns
+    -------
+    Any : input or range
+    """
+    if isinstance(sequence, (ABCSeries, Index)):
+        return sequence
+    np_sequence = np.asarray(sequence)
+    if np_sequence.dtype.kind != "i" or len(np_sequence) == 1:
+        return sequence
+    elif len(np_sequence) == 0:
+        return range(0)
+    diff = np_sequence[1] - np_sequence[0]
+    if diff == 0:
+        return sequence
+    elif len(np_sequence) == 2:
+        return range(np_sequence[0], np_sequence[1] + diff, diff)
+    maybe_range_indexer, remainder = np.divmod(np_sequence - np_sequence[0], diff)
+    if (
+        lib.is_range_indexer(maybe_range_indexer, len(maybe_range_indexer))
+        and not remainder.any()
+    ):
+        return range(np_sequence[0], np_sequence[-1] + diff, diff)
+    else:
+        return sequence
+
+
 def ensure_index_from_sequences(sequences, names=None) -> Index:
     """
     Construct an index from sequences of data.
@@ -7172,8 +7209,8 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
 
     Examples
     --------
-    >>> ensure_index_from_sequences([[1, 2, 3]], names=["name"])
-    Index([1, 2, 3], dtype='int64', name='name')
+    >>> ensure_index_from_sequences([[1, 2, 4]], names=["name"])
+    Index([1, 2, 4], dtype='int64', name='name')
 
     >>> ensure_index_from_sequences([["a", "a"], ["a", "b"]], names=["L1", "L2"])
     MultiIndex([('a', 'a'),
@@ -7189,8 +7226,9 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
     if len(sequences) == 1:
         if names is not None:
             names = names[0]
-        return Index(sequences[0], name=names)
+        return Index(maybe_sequence_to_range(sequences[0]), name=names)
     else:
+        # TODO: Apply maybe_sequence_to_range to sequences?
         return MultiIndex.from_arrays(sequences, names=names)
 
 
