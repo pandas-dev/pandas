@@ -363,76 +363,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name=None,
         copy: bool | None = None,
     ) -> None:
-        # todo management
-        # This one I will do a single commit documenting each sub-step, so
-        # that other programmers can understand the refactoring procedure.
-        # DONE 1:
-        # DONE 2.1: Organize if-else logic to visualize decoupling
-        # DONE 2.2: Decouple warnings / DATA MANIPULATION.
-        # DONE 2.3: Here Slide the warnings to Series Task 7.
-        # DONE 2.4: Slide copying the manager to Series TASK 5.A
-        # DONE 2.5.0: Check if it is possible to separate copying from DF Creation.
-        # DONE 2.5.1: Move block to TASK 5.A
-        # DONE 2.5.2: Decouple DF Copying from Creation. Send to to TASKS 5.A AND 6.
-        # DONE 2: Decouple warning/Manager manipulation IN THE TWO CALLS BELOW.
-        # DONE 2.5.3: Grouping again because it is a Fast Path for DataFrame Creation
-        # DONE 2.5.4: Implement fast path logic
-        # DONE 2.5.5: Move DataFrame Creation to 'Series Task 6'.
-        # DONE 3: (DONE) FINAL: Recover the FINAL Steps used on that for final register.
-        # DONE 4: Move Warning to Series TASK 7
-        # DONE 4.1: Recreate if
-        # DONE 4.2: and move.
-        # DONE 4.3: Unify if-else structure.
-        # DONE 5.0: Move ndarray ValueError to TASK-0.
-        # DONE 6: DECOUPLE MANAGER PREPARATION FROM COPYING. I realize it will help
-        # ------ with the other tasks if I do this first! Let's do it.
-        # DONE 6.1: Avoid copying twice when type(data) is SingleBlockManager
-        # DONE 6.2: Unify the copying signature when
-        #          type(data) is Series (index is None: ... else: ...)
-        # DONE 6.3: Simplify logic on copy for both Series and manager.
-        # --------
-        # DONE 6.4: Move the copying logic on the series to below.
-        # DONE 6.5: Unify the if-else within the (Series, SingleBlockManager) case.
-        # DONE 6.6: Use deep arg for NDArrays and Extension Array
-        # DONE 6.7: Simplify dtype = object for (Index, arrays, is_list) +
-        # -------- single element group.
-        # DONE 6.7: DO TASK 8 HERE
-        # DONE 6.8 Move single element to outside the (Index, arrays, is_list) group
-        # DONE 6.9: Separate the index is None case on the group (Index,arrays,is_list)
-        # DONE 6.10: Separate copy logic when data is ndarray or extended array
-        # DONE 6.11: Move copy logic below preparation.
-        # DONE 7:  Move code to Final Requirements. Task 5.
-        # ------  dtype Series with arguments equivalent to empty list,
-        # ------  with dtype=None, must be object.
-        # DONE 8: Decouple single element from the other data.
-        # Use 'single_element' signature.
-        # DONE 8.0. Separate if-else single element;
-        # DONE 8.1. Group common 'index' definitions on 'not single_element' cases.
-
-        # DONE 10: Move codes for Copying ExtensionArray to TASK 5.B.
-        # DONE 10.1: Understand that the logic is different for
-        # ---------  ExtensionArrays + Arrays   vs
-        # ---------  Managers, Series, etc.
-        # DONE 10.2: Split if-else logic for Extension Arrays and arrays
-        # DONE 10.3: Move np.ndarray
-        # DONE 10.4: Move ExtensionArray
-        # OTHERTODO: 10.5: Unify if-else np.ndarray --- Unnecessary.
-        # OTHERTODO: 10.6: Unify if-else ExtensionArray --- Solves in OTHERTODO.
-
-        # DONE 11: Invert the name 'Series TASK 0' and 'Series TASK 2'.
-        # -------- There is an array error that most be done after validating
-        # TODO 12: Investigate. This is an unknown type that is being converted to list.
-        # DONE 13: 'allow_mgr' were not used anyware.
-        # DONE 14: capture final data type that seems scalar.
-        # -------- But does not satisfy is_scalar(). It comes directly from args.
-        # TODO 15: Check GH#52419. This is somewhat peculiar. There were 3 identical
-        # -------- warnings. Check if there is a reason for it. If so:
-        # -------- fix and create a new test.
-        # TODO 16: Check GitHub Issue
-        # TODO 17: GH#33357 called with just the SingleBlockManager,
-        # -------- Avoid warnings on fast_path_manager?
-        # DONE 18: Check if DataFrame.astype() copies. 'copy: bool, default True'.
-
         allow_mgr = False
         deep = True  # deep copy, by standard.
 
@@ -451,7 +381,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if isinstance(data, SingleBlockManager):
             if not (data.index.equals(index) or index is None) or copy:
-                # TODO 15: Check GitHub Issue
                 # GH #19275 SingleBlockManager input should only be called internally
                 raise AssertionError(
                     "Cannot pass both SingleBlockManager "
@@ -510,19 +439,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if is_scalar and index is None:
             data = [data]
 
-        # TODO 11: Investigate. This is an unknown type that must be converted to list.
+        # TODO: Investigate. This is an unknown type that must be converted to list.
         if is_list_like(data) and not isinstance(data, Sized):
             data = list(data)
 
         # Series TASK 5: TRANSFORMATION ON INDEX
         # ENSURE that there is always an index below.
-        # Except for Series, whose index can be None.
         original_index = index
         if index is None:
             if data is None:
                 index = default_index(0)
             else:
-                if isinstance(data, SingleBlockManager):
+                if isinstance(data, SingleBlockManager):  # TODO: GROUP SERIES AND MANAG
                     index = data.index
                 if isinstance(data, Series):
                     index = data.index
@@ -532,7 +460,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             index = ensure_index(index)
 
         # Series TASK 6: TRANSFORMATIONS ON DATA.
-        # WITH REQUISITES FOR COPYING AND MANAGER CREATION (WHEN NEEDED).
+        # REQUIREMENTS FOR COPYING AND MANAGER CREATION (WHEN NEEDED).
         list_like_input = False
         require_manager = True
         fast_path_manager = False
@@ -541,13 +469,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         elif isinstance(data, Series):
             require_manager = False
-            # copy logic is delicate and maybe has no been fully implemented.
-            # Each data instance has it's own logic.
             copy = True if original_index is None else False
             deep = not copy
 
             if original_index is not None:
-                data = data.reindex(index)  # Copy the manager
+                data = data.reindex(index)
                 index = data.index
 
             data = data._mgr
