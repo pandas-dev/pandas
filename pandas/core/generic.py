@@ -4242,12 +4242,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         except (KeyError, ValueError, IndexError):
             return default
 
-    @final
-    @property
-    def _is_view(self) -> bool:
-        """Return boolean indicating if self is view of another array"""
-        return self._mgr.is_view
-
     @staticmethod
     def _check_copy_deprecation(copy):
         if copy is not lib.no_default:
@@ -7816,17 +7810,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             obj, should_transpose = self, False
         else:
             obj, should_transpose = (self.T, True) if axis == 1 else (self, False)
+            # GH#53631
             if np.any(obj.dtypes == object):
-                # GH#53631
-                if not (obj.ndim == 2 and np.all(obj.dtypes == object)):
-                    # don't warn in cases that already raise
-                    warnings.warn(
-                        f"{type(self).__name__}.interpolate with object dtype is "
-                        "deprecated and will raise in a future version. Call "
-                        "obj.infer_objects(copy=False) before interpolating instead.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
+                raise TypeError(
+                    f"{type(self).__name__} cannot interpolate with object dtype."
+                )
 
         if method in fillna_methods and "fill_value" in kwargs:
             raise ValueError(
@@ -7841,13 +7829,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
 
         limit_direction = missing.infer_limit_direction(limit_direction, method)
-
-        if obj.ndim == 2 and np.all(obj.dtypes == object):
-            raise TypeError(
-                "Cannot interpolate with all object-dtype columns "
-                "in the DataFrame. Try setting at least one "
-                "column to a numeric dtype."
-            )
 
         if method.lower() in fillna_methods:
             # TODO(3.0): remove this case
