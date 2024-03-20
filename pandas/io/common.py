@@ -361,10 +361,7 @@ def _get_filepath_or_buffer(
             stacklevel=find_stack_level(),
         )
 
-    if (
-        "a" in mode
-        and compression_method in ["zip", "tar"]
-    ):
+    if "a" in mode and compression_method in ["zip", "tar"]:
         # GH56778
         warnings.warn(
             "zip and tar do not support mode 'a' properly. "
