@@ -309,7 +309,7 @@ Datetimelike
 
 Timedelta
 ^^^^^^^^^
--
+- Accuracy improvement in :method:`Timedelta.to_pytimedelta` to round microseconds consistently for large nanosecond based Timedelta (:issue:`57841`)
 -
 
 Timezones
