@@ -93,12 +93,12 @@ class TestRangeIndexSetOps:
         # GH 17296: intersect two decreasing RangeIndexes
         first = RangeIndex(10, -2, -2)
         other = RangeIndex(5, -4, -1)
-        expected = first.astype(int).intersection(other.astype(int), sort=sort)
-        result = first.intersection(other, sort=sort).astype(int)
+        expected = RangeIndex(start=4, stop=-2, step=-2)
+        result = first.intersection(other, sort=sort)
         tm.assert_index_equal(result, expected)
 
         # reversed
-        result = other.intersection(first, sort=sort).astype(int)
+        result = other.intersection(first, sort=sort)
         tm.assert_index_equal(result, expected)
 
         index = RangeIndex(5, name="foo")
