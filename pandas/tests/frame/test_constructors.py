@@ -2709,6 +2709,11 @@ class TestDataFrameConstructors:
         result = DataFrame({"a": ser})
         assert result.dtypes.iloc[0] == np.object_
 
+    def test_dict_keys_returns_rangeindex(self):
+        result = DataFrame({0: [1], 1: [2]}).columns
+        expected = RangeIndex(2)
+        tm.assert_index_equal(result, expected, exact=True)
+
 
 class TestDataFrameConstructorIndexInference:
     def test_frame_from_dict_of_series_overlapping_monthly_period_indexes(self):
