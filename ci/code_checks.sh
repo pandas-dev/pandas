@@ -57,7 +57,7 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Python and Cython Doctests' ; echo $MSG
-    PY_IGNORE_IMPORTMISMATCH=1 python -c 'import pandas as pd; pd.test(run_doctests=True)'
+    python -c 'import pandas as pd; pd.test(run_doctests=True)'
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
