@@ -1097,7 +1097,7 @@ class MultiIndex(Index):
         >>> arrays = [[1, 1, 2, 2], ["red", "blue", "red", "blue"]]
         >>> mi = pd.MultiIndex.from_arrays(arrays, names=("number", "color"))
         >>> mi.codes
-        (array([0, 0, 1, 1], dtype=int8), array([1, 0, 1, 0], dtype=int8))
+        FrozenList([[0, 0, 1, 1], [1, 0, 1, 0]])
         """
         return self._codes
 
@@ -1583,7 +1583,7 @@ class MultiIndex(Index):
                     (2, 4, 6)],
                    names=['x', 'y', 'z'])
         >>> mi.names
-        ('x', 'y', 'z')
+        FrozenList(['x', 'y', 'z'])
         """,
     )
 
