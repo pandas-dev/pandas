@@ -9,6 +9,7 @@ from pandas import (
     RangeIndex,
 )
 import pandas._testing as tm
+from pandas.core.indexes.range import min_fitting_element
 
 
 class TestRangeIndex:
@@ -419,21 +420,21 @@ class TestRangeIndex:
         assert 2 == result[0]
 
     def test_min_fitting_element(self):
-        result = RangeIndex(0, 20, 2)._min_fitting_element(1)
+        result = min_fitting_element(0, 2, 1)
         assert 2 == result
 
-        result = RangeIndex(1, 6)._min_fitting_element(1)
+        result = min_fitting_element(1, 1, 1)
         assert 1 == result
 
-        result = RangeIndex(18, -2, -2)._min_fitting_element(1)
+        result = min_fitting_element(18, -2, 1)
         assert 2 == result
 
-        result = RangeIndex(5, 0, -1)._min_fitting_element(1)
+        result = min_fitting_element(5, -1, 1)
         assert 1 == result
 
         big_num = 500000000000000000000000
 
-        result = RangeIndex(5, big_num * 2, 1)._min_fitting_element(big_num)
+        result = min_fitting_element(5, 1, big_num)
         assert big_num == result
 
     def test_slice_specialised(self, simple_index):

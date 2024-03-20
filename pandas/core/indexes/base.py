@@ -2116,7 +2116,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(level, (tuple, list)):
             level = [level]
 
-        levnums = sorted(self._get_level_number(lev) for lev in level)[::-1]
+        levnums = sorted((self._get_level_number(lev) for lev in level), reverse=True)
 
         return self._drop_level_numbers(levnums)
 
