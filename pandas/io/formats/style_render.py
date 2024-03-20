@@ -1632,17 +1632,17 @@ class StylerRenderer:
 
         Notes
         -----
-    This method has a similar signature to :meth:`Styler.format_index`. Since `names` are generally label 
-    based, and often not numeric, the typical features expected to be more frequently used here are 
-    ``escape`` and ``hyperlinks``.
+        This method has a similar signature to :meth:`Styler.format_index`. Since
+        `names` are generally label based, and often not numeric, the typical features
+        expected to be more frequently used here are ``escape`` and ``hyperlinks``.
 
         When using a ``formatter`` string the dtypes must be compatible, otherwise a
         `ValueError` will be raised.
 
         .. warning::
-           `Styler.format_index_names` is ignored when using the output format
-           `Styler.to_excel`, since Excel and Python have inherrently different
-           formatting structures.
+            `Styler.format_index_names` is ignored when using the output format
+            `Styler.to_excel`, since Excel and Python have inherrently different
+            formatting structures.
         """
         axis = self.data._get_axis_number(axis)
         if axis == 0:
