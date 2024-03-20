@@ -245,6 +245,9 @@ cdef class {{name}}Vector(Vector):
 
     cdef extend(self, const {{c_type}}[:] x):
         cdef Py_ssize_t x_size = len(x)
+        if x_size == 0:
+            return
+
         cdef Py_ssize_t needed_size = self.data.size + x_size
         if needs_resize(needed_size, self.data.capacity):
             if self.external_view_exists:
