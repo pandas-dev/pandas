@@ -1311,7 +1311,6 @@ class TestToLatexMultiindex:
         )
         col_names = [n if (bool(n) and 1 in axes) else "" for n in names]
         observed = df.to_latex(multirow=False)
-        # pylint: disable-next=consider-using-f-string
         expected = r"""\begin{tabular}{llrrrr}
 \toprule
  & %s & \multicolumn{2}{r}{1} & \multicolumn{2}{r}{2} \\
