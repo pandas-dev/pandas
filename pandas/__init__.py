@@ -172,6 +172,8 @@ from pandas.io.json._normalize import json_normalize
 from pandas.util._tester import test
 
 # If a version with git hash was stored, use that instead
+from pandas import version
+from pandas.version import __version__
 
 
 # module level doc-string
