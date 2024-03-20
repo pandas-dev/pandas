@@ -307,6 +307,7 @@ class PandasColumn(Column):
         """
         Return the buffer containing the data and the buffer's associated dtype.
         """
+        buffer: Buffer
         if self.dtype[0] == DtypeKind.DATETIME:
             # self.dtype[2] is an ArrowCTypes.TIMESTAMP where the tz will make
             # it longer than 4 characters
@@ -314,7 +315,7 @@ class PandasColumn(Column):
                 np_arr = self._col.dt.tz_convert(None).to_numpy()
             else:
                 np_arr = self._col.to_numpy()
-            buffer: Buffer = PandasBuffer(np_arr, allow_copy=self._allow_copy)
+            buffer = PandasBuffer(np_arr, allow_copy=self._allow_copy)
             dtype = (
                 DtypeKind.INT,
                 64,
@@ -382,7 +383,7 @@ class PandasColumn(Column):
         Raises NoBufferPresent if null representation is not a bit or byte mask.
         """
         null, invalid = self.describe_null
-
+        buffer: Buffer
         if isinstance(self._col.dtype, ArrowDtype):
             # We already rechunk (if necessary / allowed) upon initialization, so this
             # is already single-chunk by the time we get here.
@@ -390,7 +391,7 @@ class PandasColumn(Column):
             dtype = (DtypeKind.BOOL, 1, ArrowCTypes.BOOL, Endianness.NATIVE)
             if arr.buffers()[0] is None:
                 return None
-            buffer: Buffer = PandasBufferPyarrow(
+            buffer = PandasBufferPyarrow(
                 arr.buffers()[0],
                 length=len(arr),
             )
