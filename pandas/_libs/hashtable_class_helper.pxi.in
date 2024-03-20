@@ -235,25 +235,25 @@ cdef class {{name}}Vector(Vector):
 
     cdef void append(self, {{c_type}} x) noexcept:
 
-        if needs_resize(self.data.n, self.data.m):
+        if needs_resize(self.data.size, self.data.capacity):
             if self.external_view_exists:
                 raise ValueError("external reference but "
                                  "Vector.resize() needed")
-            self.resize(self.data.m * 4)
+            self.resize(self.data.capacity * 4)
 
         append_data_{{dtype}}(&self.data, x)
 
     cdef extend(self, const {{c_type}}[:] x):
         cdef Py_ssize_t x_size = len(x)
-        cdef Py_ssize_t needed_size = self.data.n + x_size
-        if needs_resize(needed_size, self.data.m):
+        cdef Py_ssize_t needed_size = self.data.size + x_size
+        if needs_resize(needed_size, self.data.capacity):
             if self.external_view_exists:
                 raise ValueError("external reference but "
                                  "Vector.resize() needed")
             self.resize(needed_size)
 
-        memcpy(self.data.data + self.data.n, &x[0], x_size * sizeof({{c_type}}))
-        self.data.n = needed_size
+        memcpy(self.data.data + self.data.size, &x[0], x_size * sizeof({{c_type}}))
+        self.data.size = needed_size
 
 {{endfor}}
 
@@ -306,8 +306,8 @@ cdef class StringVector(Vector):
 
     cdef void append(self, char *x) noexcept:
 
-        if needs_resize(self.data.n, self.data.m):
-            self.resize(self.data.m * 4)
+        if needs_resize(self.data.size, self.data.capacity):
+            self.resize(self.data.capacity * 4)
 
         append_data_string(&self.data, x)
 
@@ -693,18 +693,18 @@ cdef class {{name}}HashTable(HashTable):
                             continue
 
                         seen_na = True
-                        if needs_resize(ud.n, ud.m):
+                        if needs_resize(ud.size, ud.capacity):
                             with gil:
                                 if uniques.external_view_exists:
                                     raise ValueError("external reference to "
                                                      "uniques held, but "
                                                      "Vector.resize() needed")
-                                uniques.resize(uniques.data.m * 4)
+                                uniques.resize(uniques.data.capacity * 4)
                                 if result_mask.external_view_exists:
                                     raise ValueError("external reference to "
                                                      "result_mask held, but "
                                                      "Vector.resize() needed")
-                                result_mask.resize(result_mask.data.m * 4)
+                                result_mask.resize(result_mask.data.capacity * 4)
                         append_data_{{dtype}}(ud, val)
                         append_data_uint8(rmd, 1)
                         continue
@@ -715,19 +715,19 @@ cdef class {{name}}HashTable(HashTable):
                     # k hasn't been seen yet
                     k = kh_put_{{dtype}}(self.table, val, &ret)
 
-                    if needs_resize(ud.n, ud.m):
+                    if needs_resize(ud.size, ud.capacity):
                         with gil:
                             if uniques.external_view_exists:
                                 raise ValueError("external reference to "
                                                  "uniques held, but "
                                                  "Vector.resize() needed")
-                            uniques.resize(uniques.data.m * 4)
+                            uniques.resize(uniques.data.capacity * 4)
                             if use_result_mask:
                                 if result_mask.external_view_exists:
                                     raise ValueError("external reference to "
                                                      "result_mask held, but "
                                                      "Vector.resize() needed")
-                                result_mask.resize(result_mask.data.m * 4)
+                                result_mask.resize(result_mask.data.capacity * 4)
                     append_data_{{dtype}}(ud, val)
                     if use_result_mask:
                         append_data_uint8(rmd, 0)
@@ -858,9 +858,9 @@ cdef class {{name}}HashTable(HashTable):
                     k = kh_put_{{dtype}}(self.table, val, &ret)
                     self.table.vals[k] = count
 
-                    if needs_resize(ud.n, ud.m):
+                    if needs_resize(ud.size, ud.capacity):
                         with gil:
-                            uniques.resize(uniques.data.m * 4)
+                            uniques.resize(uniques.data.capacity * 4)
                     append_data_{{dtype}}(ud, val)
                     labels[i] = count
                     count += 1
