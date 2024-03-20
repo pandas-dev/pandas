@@ -2506,7 +2506,7 @@ class TestStackUnstackMultiLevel:
                     ]
                 ),
             )
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_index_type=False)
 
     @pytest.mark.filterwarnings(
         "ignore:The previous implementation of stack is deprecated"
@@ -2643,7 +2643,7 @@ def test_stack_tuple_columns(future_stack):
     expected = Series(
         [1, 2, 3, 4, 5, 6, 7, 8, 9],
         index=MultiIndex(
-            levels=[[0, 1, 2], [("a", 1), ("a", 2), ("b", 1)]],
+            levels=[range(3), [("a", 1), ("a", 2), ("b", 1)]],
             codes=[[0, 0, 0, 1, 1, 1, 2, 2, 2], [0, 1, 2, 0, 1, 2, 0, 1, 2]],
         ),
     )
