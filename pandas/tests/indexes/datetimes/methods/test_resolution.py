@@ -1,7 +1,10 @@
 from dateutil.tz import tzlocal
 import pytest
 
-from pandas.compat import IS64, WASM
+from pandas.compat import (
+    IS64,
+    WASM,
+)
 
 from pandas import date_range
 

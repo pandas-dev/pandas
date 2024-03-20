@@ -5,8 +5,9 @@ import dateutil.tz
 import pytest
 import pytz  # a test below uses pytz but only inside a `eval` call
 
-from pandas import Timestamp
 import pandas.util._test_decorators as td
+
+from pandas import Timestamp
 
 ts_no_ns = Timestamp(
     year=2019,

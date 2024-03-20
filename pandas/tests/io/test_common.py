@@ -20,10 +20,10 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_windows
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
-import pandas.util._test_decorators as td
 
 import pandas.io.common as icom
 
@@ -229,7 +229,6 @@ Look,a snake,🐍"""
             match=r"Cannot save file into a non-existent directory: .*missing_folder",
         ):
             method(dummy_frame, path)
-
 
     @td.skip_if_wasm  # limited file system access on WASM
     @pytest.mark.parametrize(
@@ -591,6 +590,7 @@ def test_bad_encdoing_errors():
     with tm.ensure_clean() as path:
         with pytest.raises(LookupError, match="unknown error handler name"):
             icom.get_handle(path, "w", errors="bad")
+
 
 @td.skip_if_wasm  # limited file system access on WASM
 def test_errno_attribute():

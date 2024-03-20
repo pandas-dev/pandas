@@ -26,8 +26,6 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 
 from __future__ import annotations
 
-import sys
-import platform
 import locale
 from typing import (
     TYPE_CHECKING,
@@ -41,6 +39,7 @@ if TYPE_CHECKING:
 
 from pandas.compat import (
     IS64,
+    WASM,
     is_platform_windows,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -118,8 +117,8 @@ skip_if_not_us_locale = pytest.mark.skipif(
     reason=f"Set local {locale.getlocale()[0]} is not en_US",
 )
 skip_if_wasm = pytest.mark.skipif(
-    (sys.platform == "emscripten") or (platform.machine() in ["wasm32", "wasm64"]),
-    reason="does not support wasm"
+    WASM,
+    reason="does not support wasm",
 )
 
 

@@ -131,7 +131,11 @@ def test_apply_out_of_range(request, tz_naive_fixture, _offset):
         if tz is not None:
             assert t.tzinfo is not None
 
-        if isinstance(tz, tzlocal) and ((not IS64) or WASM) and _offset is not DateOffset:
+        if (
+            isinstance(tz, tzlocal)
+            and ((not IS64) or WASM)
+            and _offset is not DateOffset
+        ):
             # If we hit OutOfBoundsDatetime on non-64 bit machines
             # we'll drop out of the try clause before the next test
             request.applymarker(

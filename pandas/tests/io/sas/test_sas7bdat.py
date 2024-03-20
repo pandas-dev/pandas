@@ -7,7 +7,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pandas.compat import IS64, WASM
+from pandas.compat import (
+    IS64,
+    WASM,
+)
 from pandas.errors import EmptyDataError
 
 import pandas as pd
