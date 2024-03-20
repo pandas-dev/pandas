@@ -103,26 +103,22 @@ def test_pass_args_kwargs(ts, tsframe):
     # DataFrame
     for as_index in [True, False]:
         df_grouped = tsframe.groupby(lambda x: x.month, as_index=as_index)
-        warn = None if as_index else FutureWarning
-        msg = "A grouping .* was excluded from the result"
-        with tm.assert_produces_warning(warn, match=msg):
-            agg_result = df_grouped.agg(np.percentile, 80, axis=0)
-        with tm.assert_produces_warning(warn, match=msg):
-            apply_result = df_grouped.apply(DataFrame.quantile, 0.8)
-        with tm.assert_produces_warning(warn, match=msg):
-            expected = df_grouped.quantile(0.8)
+        agg_result = df_grouped.agg(np.percentile, 80, axis=0)
+        apply_result = df_grouped.apply(DataFrame.quantile, 0.8)
+        expected = df_grouped.quantile(0.8)
         tm.assert_frame_equal(apply_result, expected, check_names=False)
         tm.assert_frame_equal(agg_result, expected)
 
         apply_result = df_grouped.apply(DataFrame.quantile, [0.4, 0.8])
-        with tm.assert_produces_warning(warn, match=msg):
-            expected_seq = df_grouped.quantile([0.4, 0.8])
+        expected_seq = df_grouped.quantile([0.4, 0.8])
+        if not as_index:
+            # apply treats the op as a transform; .quantile knows it's a reduction
+            apply_result = apply_result.reset_index()
+            apply_result["level_0"] = [1, 1, 2, 2]
         tm.assert_frame_equal(apply_result, expected_seq, check_names=False)
 
-        with tm.assert_produces_warning(warn, match=msg):
-            agg_result = df_grouped.agg(f, q=80)
-        with tm.assert_produces_warning(warn, match=msg):
-            apply_result = df_grouped.apply(DataFrame.quantile, q=0.8)
+        agg_result = df_grouped.agg(f, q=80)
+        apply_result = df_grouped.apply(DataFrame.quantile, q=0.8)
         tm.assert_frame_equal(agg_result, expected)
         tm.assert_frame_equal(apply_result, expected, check_names=False)
 
@@ -2533,19 +2529,14 @@ def test_groupby_string_dtype():
 @pytest.mark.parametrize(
     "level_arg, multiindex", [([0], False), ((0,), False), ([0], True), ((0,), True)]
 )
-def test_single_element_listlike_level_grouping_deprecation(level_arg, multiindex):
+def test_single_element_listlike_level_grouping(level_arg, multiindex):
     # GH 51583
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
     if multiindex:
         df = df.set_index(["a", "b"])
-    depr_msg = (
-        "Creating a Groupby object with a length-1 list-like "
-        "level parameter will yield indexes as tuples in a future version. "
-        "To keep indexes as scalars, create Groupby objects with "
-        "a scalar level parameter instead."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-        [key for key, _ in df.groupby(level=level_arg)]
+    result = [key for key, _ in df.groupby(level=level_arg)]
+    expected = [(1,), (2,)] if multiindex else [("x",), ("y",)]
+    assert result == expected
 
 
 @pytest.mark.parametrize("func", ["sum", "cumsum", "cumprod", "prod"])
@@ -2832,9 +2823,6 @@ def test_groupby_selection_other_methods(df):
     g_exp = df[["C"]].groupby(df["A"])
 
     # methods which aren't just .foo()
-    msg = "DataFrameGroupBy.dtypes is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        tm.assert_frame_equal(g.dtypes, g_exp.dtypes)
     tm.assert_frame_equal(g.apply(lambda x: x.sum()), g_exp.apply(lambda x: x.sum()))
 
     tm.assert_frame_equal(g.resample("D").mean(), g_exp.resample("D").mean())
@@ -2887,22 +2875,18 @@ def test_groupby_series_with_datetimeindex_month_name():
     "kwarg, value, name, warn",
     [
         ("by", "a", 1, None),
-        ("by", ["a"], 1, FutureWarning),
         ("by", ["a"], (1,), None),
         ("level", 0, 1, None),
-        ("level", [0], 1, FutureWarning),
         ("level", [0], (1,), None),
     ],
 )
-def test_depr_get_group_len_1_list_likes(test_series, kwarg, value, name, warn):
+def test_get_group_len_1_list_likes(test_series, kwarg, value, name, warn):
     # GH#25971
     obj = DataFrame({"b": [3, 4, 5]}, index=Index([1, 1, 2], name="a"))
     if test_series:
         obj = obj["b"]
     gb = obj.groupby(**{kwarg: value})
-    msg = "you will need to pass a length-1 tuple"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = gb.get_group(name)
+    result = gb.get_group(name)
     if test_series:
         expected = Series([3, 4], index=Index([1, 1], name="a"), name="b")
     else:
@@ -2945,3 +2929,23 @@ def test_decimal_na_sort(test_series):
     result = gb._grouper.result_index
     expected = Index([Decimal(1), None], name="key")
     tm.assert_index_equal(result, expected)
+
+
+def test_groupby_dropna_with_nunique_unique():
+    # GH#42016
+    df = [[1, 1, 1, "A"], [1, None, 1, "A"], [1, None, 2, "A"], [1, None, 3, "A"]]
+    df_dropna = DataFrame(df, columns=["a", "b", "c", "partner"])
+    result = df_dropna.groupby(["a", "b", "c"], dropna=False).agg(
+        {"partner": ["nunique", "unique"]}
+    )
+
+    index = MultiIndex.from_tuples(
+        [(1, 1.0, 1), (1, np.nan, 1), (1, np.nan, 2), (1, np.nan, 3)],
+        names=["a", "b", "c"],
+    )
+    columns = MultiIndex.from_tuples([("partner", "nunique"), ("partner", "unique")])
+    expected = DataFrame(
+        [(1, ["A"]), (1, ["A"]), (1, ["A"]), (1, ["A"])], index=index, columns=columns
+    )
+
+    tm.assert_frame_equal(result, expected)

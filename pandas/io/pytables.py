@@ -2,6 +2,7 @@
 High level interface to PyTables for reading and writing pandas data structures
 to disk
 """
+
 from __future__ import annotations
 
 from contextlib import suppress
@@ -31,7 +32,6 @@ from pandas._config import (
     get_option,
     using_pyarrow_string_dtype,
 )
-from pandas._config.config import _get_option
 
 from pandas._libs import (
     lib,
@@ -779,6 +779,7 @@ class HDFStore:
         Parameters
         ----------
         key : str
+            Object to retrieve from file. Raises KeyError if not found.
 
         Returns
         -------
@@ -1110,7 +1111,9 @@ class HDFStore:
         Parameters
         ----------
         key : str
+            Key of object to store in file.
         value : {Series, DataFrame}
+            Value of object to store in file.
         format : 'fixed(f)|table(t)', default is 'fixed'
             Format to use when storing object in HDFStore. Value can be one of:
 
@@ -1248,7 +1251,9 @@ class HDFStore:
         Parameters
         ----------
         key : str
+            Key of object to append.
         value : {Series, DataFrame}
+            Value of object to append.
         format : 'table' is the default
             Format to use when storing object in HDFStore.  Value can be one of:
 
@@ -1265,11 +1270,16 @@ class HDFStore:
             queries, or True to use all columns. By default only the axes
             of the object are indexed. See `here
             <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
-        min_itemsize : dict of columns that specify minimum str sizes
-        nan_rep : str to use as str nan representation
-        chunksize : size to chunk the writing
-        expectedrows : expected TOTAL row size of this table
-        encoding : default None, provide an encoding for str
+        min_itemsize : int, dict, or None
+            Dict of columns that specify minimum str sizes.
+        nan_rep : str
+            Str to use as str nan representation.
+        chunksize : int or None
+            Size to chunk the writing.
+        expectedrows : int
+            Expected TOTAL row size of this table.
+        encoding : default None
+            Provide an encoding for str.
         dropna : bool, default False, optional
             Do not write an ALL nan row to the store settable
             by the option 'io.hdf.dropna_table'.
@@ -3149,7 +3159,7 @@ class GenericFixed(Fixed):
                 pass
             elif inferred_type == "string":
                 pass
-            elif _get_option("performance_warnings"):
+            elif get_option("performance_warnings"):
                 ws = performance_doc % (inferred_type, key, items)
                 warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
 
@@ -4043,7 +4053,7 @@ class Table(Fixed):
             if isinstance(data_converted.dtype, CategoricalDtype):
                 ordered = data_converted.ordered
                 meta = "category"
-                metadata = np.array(data_converted.categories, copy=False).ravel()
+                metadata = np.asarray(data_converted.categories).ravel()
 
             data, dtype_name = _get_data_and_dtype_name(data_converted)
 

@@ -87,12 +87,6 @@ if TYPE_CHECKING:
 
 
 _shared_docs: dict[str, str] = {}
-_indexops_doc_kwargs = {
-    "klass": "IndexOpsMixin",
-    "inplace": "",
-    "unique": "IndexOpsMixin",
-    "duplicated": "IndexOpsMixin",
-}
 
 
 class PandasObject(DirNamesMixin):
@@ -1319,8 +1313,7 @@ class IndexOpsMixin(OpsMixin):
         value: ScalarLike_co,
         side: Literal["left", "right"] = ...,
         sorter: NumpySorter = ...,
-    ) -> np.intp:
-        ...
+    ) -> np.intp: ...
 
     @overload
     def searchsorted(
@@ -1328,8 +1321,7 @@ class IndexOpsMixin(OpsMixin):
         value: npt.ArrayLike | ExtensionArray,
         side: Literal["left", "right"] = ...,
         sorter: NumpySorter = ...,
-    ) -> npt.NDArray[np.intp]:
-        ...
+    ) -> npt.NDArray[np.intp]: ...
 
     @doc(_shared_docs["searchsorted"], klass="Index")
     def searchsorted(

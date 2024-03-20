@@ -18,7 +18,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import _get_option
+from pandas._config.config import get_option
 
 from pandas._libs import (
     algos as libalgos,
@@ -267,12 +267,6 @@ class BaseBlockManager(PandasObject):
     # Python3 compat
     __bool__ = __nonzero__
 
-    def _normalize_axis(self, axis: AxisInt) -> int:
-        # switch axis to follow BlockManager logic
-        if self.ndim == 2:
-            axis = 1 if axis == 0 else 0
-        return axis
-
     def set_axis(self, axis: AxisInt, new_labels: Index) -> None:
         # Caller is responsible for ensuring we have an Index object.
         self._validate_set_axis(axis, new_labels)
@@ -445,14 +439,6 @@ class BaseBlockManager(PandasObject):
 
         out = type(self).from_blocks(result_blocks, self.axes)
         return out
-
-    def apply_with_block(
-        self,
-        f,
-        align_keys: list[str] | None = None,
-        **kwargs,
-    ) -> Self:
-        raise AbstractMethodError(self)
 
     @final
     def isna(self, func) -> Self:
@@ -1529,7 +1515,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self._known_consolidated = False
 
         if (
-            _get_option("performance_warnings")
+            get_option("performance_warnings")
             and sum(not block.is_extension for block in self.blocks) > 100
         ):
             warnings.warn(
@@ -1563,9 +1549,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._blklocs = np.append(self._blklocs, 0)
             self._blknos = np.append(self._blknos, len(self.blocks))
         elif loc == 0:
-            # np.append is a lot faster, let's use it if we can.
-            self._blklocs = np.append(self._blklocs[::-1], 0)[::-1]
-            self._blknos = np.append(self._blknos[::-1], len(self.blocks))[::-1]
+            # As of numpy 1.26.4, np.concatenate faster than np.append
+            self._blklocs = np.concatenate([[0], self._blklocs])
+            self._blknos = np.concatenate([[len(self.blocks)], self._blknos])
         else:
             new_blklocs, new_blknos = libinternals.update_blklocs_and_blknos(
                 self.blklocs, self.blknos, loc, len(self.blocks)
@@ -1824,6 +1810,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     na_value=na_value,
                     copy=copy,
                 ).reshape(blk.shape)
+            elif not copy:
+                arr = np.asarray(blk.values, dtype=dtype)
             else:
                 arr = np.array(blk.values, dtype=dtype, copy=copy)
 
