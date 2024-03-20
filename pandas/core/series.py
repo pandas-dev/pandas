@@ -364,7 +364,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         copy: bool | None = None,
     ) -> None:
         allow_mgr = False
-        deep = True  # deep copy, by standard.
+        deep = True  # deep copy
 
         # Series TASK 1: VALIDATE BASIC TYPES.
         if dtype is not None:
@@ -373,7 +373,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         copy_arrays = copy is True or copy is None  # Arrays and ExtendedArrays
         copy = copy is True  # Series and Manager
 
-        # Series TASK 2: RAISE ERRORS ON KNOWN UNACEPPTED CASES, ETC.
+        # Series TASK 2: RAISE ERRORS ON KNOWN UNACEPPTED CASES.
         if isinstance(data, MultiIndex):
             raise NotImplementedError(
                 "initializing a Series from a MultiIndex is not supported"
@@ -397,7 +397,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "compound dtype. Use DataFrame instead."
                 )
 
-        # Series TASK 3: CAPTURE INPUT SIGNATURE. NECESSARY FOR WARNINGS AND ERRORS.
+        # Series TASK 3: CAPTURE INPUT SIGNATURE.
         is_array = isinstance(data, (np.ndarray, ExtensionArray))
         is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
         original_dtype = dtype
@@ -418,10 +418,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # Series TASK 4: DATA TRANSFORMATIONS.
         if is_dict_like(data) and not is_pandas_object and data is not None:
-            # COMMENT: Dict is SPECIAL case, since it's data has
-            # data values and index keys.
-            # Here it is being sent to Series, but it could different, for simplicity.
-            # It could be sent to array (for faster manipulation, for example).
+            # Dict is SPECIAL case, since it's data has data values and index keys.
 
             # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
             # raises KeyError). Send it to Series for "standard" construction:
@@ -443,8 +440,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if is_list_like(data) and not isinstance(data, Sized):
             data = list(data)
 
-        # Series TASK 5: TRANSFORMATION ON INDEX
-        # ENSURE that there is always an index below.
+        # Series TASK 5: TRANSFORMATION ON INDEX. There is always an index after this.
         original_index = index
         if index is None:
             if data is None:
@@ -471,7 +467,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             deep = not copy
 
             if original_index is not None:
-                data = data.reindex(index)
+                data = data.reindex(index)  # copy
                 index = data.index
 
             data = data._mgr
