@@ -8,8 +8,6 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 
-import pandas._testing as tm
-
 
 def test_get_resolution_nano():
     # don't return the fallback RESO_DAY
@@ -46,15 +44,6 @@ def test_get_attrname_from_abbrev(freqstr, expected):
     reso = Resolution.get_reso_from_freqstr(freqstr)
     assert reso.attr_abbrev == freqstr
     assert reso.attrname == expected
-
-
-@pytest.mark.parametrize("freq", ["A", "A-NOV"])
-def test_A_deprecated_from_attrname_to_abbrevs(freq):
-    # GH#52536
-    msg = f"'{freq}' is deprecated and will be removed in a future version."
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        Resolution.get_reso_from_freqstr(freq)
 
 
 @pytest.mark.parametrize("freq", ["H", "T", "S", "L", "U", "N"])
