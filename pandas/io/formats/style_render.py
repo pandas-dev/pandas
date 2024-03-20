@@ -1647,6 +1647,25 @@ class StylerRenderer:
             `Styler.format_index_names` is ignored when using the output format
             `Styler.to_excel`, since Excel and Python have inherrently different
             formatting structures.
+
+        Examples
+        --------
+        Basic use
+
+        >>> df = pd.DataFrame(
+        ...     [[1, 2], [3, 4]],
+        ...     index=pd.Index(["a", "b"], name="idx"),
+        ... )
+        >>> df  # doctest: +SKIP
+             0  1
+        idx
+        a    1  2
+        b    3  4
+        >>> df.style.format_index_names(lambda x: x.upper(), axis=0)  # doctest: +SKIP
+             0  1
+        IDX
+        a    1  2
+        b    3  4
         """
         axis = self.data._get_axis_number(axis)
         if axis == 0:
