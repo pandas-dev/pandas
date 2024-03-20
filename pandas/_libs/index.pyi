@@ -78,7 +78,7 @@ class BaseMultiIndexCodesEngine:
 
     def __init__(
         self,
-        levels: list[Index, ...],  # all entries hashable
+        levels: list[Index],  # all entries hashable
         labels: list[np.ndarray],  # all entries integer-dtyped
         offsets: np.ndarray,  # np.ndarray[np.uint64, ndim=1]
     ) -> None: ...
