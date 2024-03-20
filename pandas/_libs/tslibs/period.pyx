@@ -679,6 +679,8 @@ cdef char* c_strftime(npy_datetimestruct *dts, char *fmt):
     c_date.tm_isdst = -1
 
     result = <char*>malloc(result_len * sizeof(char))
+    if result is NULL:
+        raise MemoryError()
 
     strftime(result, result_len, fmt, &c_date)
 

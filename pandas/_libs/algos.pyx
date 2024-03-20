@@ -180,6 +180,8 @@ def is_lexsorted(list_of_arrays: list) -> bool:
     n = len(list_of_arrays[0])
 
     cdef int64_t **vecs = <int64_t**>malloc(nlevels * sizeof(int64_t*))
+    if vecs is NULL:
+        raise MemoryError()
     for i in range(nlevels):
         arr = list_of_arrays[i]
         assert arr.dtype.name == "int64"

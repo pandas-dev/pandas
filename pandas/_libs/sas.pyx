@@ -49,7 +49,7 @@ cdef bytes buf_as_bytes(Buffer buf, size_t offset, size_t length):
 
 cdef Buffer buf_new(size_t length) except *:
     cdef uint8_t *data = <uint8_t *>calloc(length, sizeof(uint8_t))
-    if data == NULL:
+    if data is NULL:
         raise MemoryError(f"Failed to allocate {length} bytes")
     return Buffer(data, length)
 
