@@ -682,7 +682,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.groupby.DataFrameGroupBy.__iter__ RT03,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.agg RT03" \
         -i "pandas.core.groupby.DataFrameGroupBy.aggregate RT03" \
-        -i "pandas.core.groupby.DataFrameGroupBy.apply RT03" \
         -i "pandas.core.groupby.DataFrameGroupBy.boxplot PR07,RT03,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.filter SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.get_group RT03,SA01" \
