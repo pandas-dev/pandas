@@ -44,12 +44,9 @@ class TestUnsupportedFeatures:
         data = "a b c\n1 2 3"
         msg = "does not support"
 
-        depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
-
         # specify C engine with unsupported options (raise)
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-                read_csv(StringIO(data), engine="c", sep=None, delim_whitespace=False)
+            read_csv(StringIO(data), engine="c", sep=None)
         with pytest.raises(ValueError, match=msg):
             read_csv(StringIO(data), engine="c", sep=r"\s")
         with pytest.raises(ValueError, match=msg):
@@ -58,8 +55,8 @@ class TestUnsupportedFeatures:
             read_csv(StringIO(data), engine="c", skipfooter=1)
 
         # specify C-unsupported options without python-unsupported options
-        with tm.assert_produces_warning((parsers.ParserWarning, FutureWarning)):
-            read_csv(StringIO(data), sep=None, delim_whitespace=False)
+        with tm.assert_produces_warning(parsers.ParserWarning):
+            read_csv(StringIO(data), sep=None)
         with tm.assert_produces_warning(parsers.ParserWarning):
             read_csv(StringIO(data), sep=r"\s")
         with tm.assert_produces_warning(parsers.ParserWarning):
