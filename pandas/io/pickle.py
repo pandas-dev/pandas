@@ -1,4 +1,5 @@
-""" pickle compat """
+"""pickle compat"""
+
 from __future__ import annotations
 
 import pickle
@@ -8,7 +9,7 @@ from typing import (
 )
 import warnings
 
-from pandas.compat import pickle_compat as pc
+from pandas.compat import pickle_compat
 from pandas.util._decorators import doc
 
 from pandas.core.shared_docs import _shared_docs
@@ -78,7 +79,9 @@ def to_pickle(
 
     Examples
     --------
-    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})  # doctest: +SKIP
+    >>> original_df = pd.DataFrame(
+    ...     {{"foo": range(5), "bar": range(5, 10)}}
+    ... )  # doctest: +SKIP
     >>> original_df  # doctest: +SKIP
        foo  bar
     0    0    5
@@ -96,7 +99,7 @@ def to_pickle(
     2    2    7
     3    3    8
     4    4    9
-    """  # noqa: E501
+    """
     if protocol < 0:
         protocol = pickle.HIGHEST_PROTOCOL
 
@@ -121,7 +124,7 @@ def read_pickle(
     storage_options: StorageOptions | None = None,
 ) -> DataFrame | Series:
     """
-    Load pickled pandas object (or any object) from file.
+    Load pickled pandas object (or any object) from file and return unpickled object.
 
     .. warning::
 
@@ -143,7 +146,8 @@ def read_pickle(
 
     Returns
     -------
-    same type as object stored in file
+    object
+        The unpickled pandas object (or any object) that was stored in file.
 
     See Also
     --------
@@ -155,14 +159,14 @@ def read_pickle(
 
     Notes
     -----
-    read_pickle is only guaranteed to be backwards compatible to pandas 0.20.3
+    read_pickle is only guaranteed to be backwards compatible to pandas 1.0
     provided the object was serialized with to_pickle.
 
     Examples
     --------
     >>> original_df = pd.DataFrame(
     ...     {{"foo": range(5), "bar": range(5, 10)}}
-    ...    )  # doctest: +SKIP
+    ... )  # doctest: +SKIP
     >>> original_df  # doctest: +SKIP
        foo  bar
     0    0    5
@@ -181,6 +185,7 @@ def read_pickle(
     3    3    8
     4    4    9
     """
+    # TypeError for Cython complaints about object.__new__ vs Tick.__new__
     excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)
     with get_handle(
         filepath_or_buffer,
@@ -191,20 +196,14 @@ def read_pickle(
     ) as handles:
         # 1) try standard library Pickle
         # 2) try pickle_compat (older pandas version) to handle subclass changes
-        # 3) try pickle_compat with latin-1 encoding upon a UnicodeDecodeError
-
         try:
-            # TypeError for Cython complaints about object.__new__ vs Tick.__new__
-            try:
-                with warnings.catch_warnings(record=True):
-                    # We want to silence any warnings about, e.g. moved modules.
-                    warnings.simplefilter("ignore", Warning)
-                    return pickle.load(handles.handle)
-            except excs_to_catch:
-                # e.g.
-                #  "No module named 'pandas.core.sparse.series'"
-                #  "Can't get attribute '__nat_unpickle' on <module 'pandas._libs.tslib"
-                return pc.load(handles.handle, encoding=None)
-        except UnicodeDecodeError:
-            # e.g. can occur for files written in py27; see GH#28645 and GH#31988
-            return pc.load(handles.handle, encoding="latin-1")
+            with warnings.catch_warnings(record=True):
+                # We want to silence any warnings about, e.g. moved modules.
+                warnings.simplefilter("ignore", Warning)
+                return pickle.load(handles.handle)
+        except excs_to_catch:
+            # e.g.
+            #  "No module named 'pandas.core.sparse.series'"
+            #  "Can't get attribute '_nat_unpickle' on <module 'pandas._libs.tslib"
+            handles.handle.seek(0)
+            return pickle_compat.Unpickler(handles.handle).load()

@@ -329,7 +329,6 @@ def test_value_counts_timedelta64(index_or_series, unit):
     tm.assert_series_equal(result2, expected_s)
 
 
-@pytest.mark.parametrize("dropna", [True, False])
 def test_value_counts_with_nan(dropna, index_or_series):
     # GH31944
     klass = index_or_series

@@ -97,11 +97,9 @@ class TestToPeriod:
             ("2QE-SEP", "2Q-SEP"),
             ("1YE", "1Y"),
             ("2YE-MAR", "2Y-MAR"),
-            ("1YE", "1A"),
-            ("2YE-MAR", "2A-MAR"),
         ],
     )
-    def test_to_period_frequency_M_Q_Y_A_deprecated(self, freq, freq_depr):
+    def test_to_period_frequency_M_Q_Y_deprecated(self, freq, freq_depr):
         # GH#9586
         msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
         f"in a future version, please use '{freq[1:]}' instead."
@@ -110,23 +108,6 @@ class TestToPeriod:
         prng = rng.to_period()
         with tm.assert_produces_warning(FutureWarning, match=msg):
             assert prng.freq == freq_depr
-
-    @pytest.mark.parametrize(
-        "freq, freq_depr",
-        [
-            ("2BQE-SEP", "2BQ-SEP"),
-            ("2BYE-MAR", "2BY-MAR"),
-        ],
-    )
-    def test_to_period_frequency_BQ_BY_deprecated(self, freq, freq_depr):
-        # GH#9586
-        msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
-        f"in a future version, please use '{freq[1:]}' instead."
-
-        rng = date_range("01-Jan-2012", periods=8, freq=freq)
-        prng = rng.to_period()
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            prng.freq == freq_depr
 
     def test_to_period_infer(self):
         # https://github.com/pandas-dev/pandas/issues/33358
@@ -238,5 +219,5 @@ class TestToPeriod:
         # GH#56243
         msg = f"{freq[1:]} is not supported as period frequency"
         ts = date_range("1/1/2012", periods=4, freq=freq)
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             ts.to_period()

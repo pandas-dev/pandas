@@ -94,7 +94,9 @@ jobs:
         buildplat:
         - [ubuntu-22.04, manylinux_x86_64]
         - [ubuntu-22.04, musllinux_x86_64]
-        - [macos-12, macosx_*]
+        - [macos-12, macosx_x86_64]
+        # Note: M1 images on Github Actions start from macOS 14
+        - [macos-14, macosx_arm64]
         - [windows-2022, win_amd64]
         # TODO: support PyPy?
         python: [["cp39", "3.9"], ["cp310", "3.10"], ["cp311", "3.11"], ["cp312", "3.12"]]
@@ -128,7 +130,7 @@ jobs:
       # Python version used to build sdist doesn't matter
       # wheel will be built from sdist with the correct version
       - name: Unzip sdist (macOS)
-        if: ${{ matrix.buildplat[1] == 'macosx_*' }}
+        if: ${{ startsWith(matrix.buildplat[1], 'macosx') }}
         run: |
           tar -xzf ./dist/${{ env.sdist_name }} -C ./dist
 
@@ -139,18 +141,18 @@ jobs:
 
       - name: Build normal wheels
         if: ${{ (env.IS_SCHEDULE_DISPATCH != 'true' || env.IS_PUSH == 'true') }}
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.17.0
         with:
-         package-dir: ./dist/${{ matrix.buildplat[1] == 'macosx_*' && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
+         package-dir: ./dist/${{ startsWith(matrix.buildplat[1], 'macosx') && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
         env:
           CIBW_PRERELEASE_PYTHONS: True
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
 
       - name: Build nightly wheels (with NumPy pre-release)
         if: ${{ (env.IS_SCHEDULE_DISPATCH == 'true' && env.IS_PUSH != 'true') }}
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.17.0
         with:
-         package-dir: ./dist/${{ matrix.buildplat[1] == 'macosx_*' && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
+         package-dir: ./dist/${{ startsWith(matrix.buildplat[1], 'macosx') && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
         env:
           # The nightly wheels should be build witht he NumPy 2.0 pre-releases
           # which requires the additional URL.
@@ -183,7 +185,7 @@ jobs:
           $TST_CMD = @"
           python -m pip install hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0;
           python -m pip install `$(Get-Item pandas\wheelhouse\*.whl);
-          python -c `'import pandas as pd; pd.test(extra_args=[\"`\"--no-strict-data-files`\"\", \"`\"-m not clipboard and not single_cpu and not slow and not network and not db`\"\"])`';
+          python -c `'import pandas as pd; pd.test(extra_args=[`\"--no-strict-data-files`\", `\"-m not clipboard and not single_cpu and not slow and not network and not db`\"])`';
           "@
           # add rc to the end of the image name if the Python version is unreleased
           docker pull python:${{ matrix.python[1] == '3.12' && '3.12-rc' || format('{0}-windowsservercore', matrix.python[1]) }}
@@ -191,7 +193,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.python[0] }}-${{ startsWith(matrix.buildplat[1], 'macosx') && 'macosx' || matrix.buildplat[1] }}
+          name: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
           path: ./wheelhouse/*.whl
 
       - name: Upload wheels & sdist

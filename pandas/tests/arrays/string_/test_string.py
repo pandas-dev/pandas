@@ -2,6 +2,7 @@
 This module tests the functionality of StringArray and ArrowStringArray.
 Tests for the str accessors are in pandas/tests/strings/test_string_array.py
 """
+
 import operator
 
 import numpy as np
@@ -415,7 +416,6 @@ def test_astype_float(dtype, any_float_dtype):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce(skipna, dtype):
     arr = pd.Series(["a", "b", "c"], dtype=dtype)
@@ -423,7 +423,6 @@ def test_reduce(skipna, dtype):
     assert result == "abc"
 
 
-@pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce_missing(skipna, dtype):
     arr = pd.Series([None, "a", None, "b", "c", None], dtype=dtype)
@@ -435,7 +434,6 @@ def test_reduce_missing(skipna, dtype):
 
 
 @pytest.mark.parametrize("method", ["min", "max"])
-@pytest.mark.parametrize("skipna", [True, False])
 def test_min_max(method, skipna, dtype):
     arr = pd.Series(["a", "b", "c", None], dtype=dtype)
     result = getattr(arr, method)(skipna=skipna)
@@ -487,13 +485,15 @@ def test_fillna_args(dtype, arrow_string_storage):
 def test_arrow_array(dtype):
     # protocol added in 0.15.0
     pa = pytest.importorskip("pyarrow")
+    import pyarrow.compute as pc
 
     data = pd.array(["a", "b", "c"], dtype=dtype)
     arr = pa.array(data)
-    expected = pa.array(list(data), type=pa.string(), from_pandas=True)
+    expected = pa.array(list(data), type=pa.large_string(), from_pandas=True)
     if dtype.storage in ("pyarrow", "pyarrow_numpy") and pa_version_under12p0:
         expected = pa.chunked_array(expected)
-
+    if dtype.storage == "python":
+        expected = pc.cast(expected, pa.string())
     assert arr.equals(expected)
 
 
@@ -512,7 +512,10 @@ def test_arrow_roundtrip(dtype, string_storage2, request, using_infer_string):
     data = pd.array(["a", "b", None], dtype=dtype)
     df = pd.DataFrame({"a": data})
     table = pa.table(df)
-    assert table.field("a").type == "string"
+    if dtype.storage == "python":
+        assert table.field("a").type == "string"
+    else:
+        assert table.field("a").type == "large_string"
     with pd.option_context("string_storage", string_storage2):
         result = table.to_pandas()
     assert isinstance(result["a"].dtype, pd.StringDtype)
@@ -539,7 +542,10 @@ def test_arrow_load_from_zero_chunks(
     data = pd.array([], dtype=dtype)
     df = pd.DataFrame({"a": data})
     table = pa.table(df)
-    assert table.field("a").type == "string"
+    if dtype.storage == "python":
+        assert table.field("a").type == "string"
+    else:
+        assert table.field("a").type == "large_string"
     # Instantiate the same table with no chunks at all
     table = pa.table([pa.chunked_array([], type=pa.string())], schema=table.schema)
     with pd.option_context("string_storage", string_storage2):
@@ -579,29 +585,17 @@ def test_value_counts_with_normalize(dtype):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "values, expected",
-    [
-        (["a", "b", "c"], np.array([False, False, False])),
-        (["a", "b", None], np.array([False, False, True])),
-    ],
-)
-def test_use_inf_as_na(values, expected, dtype):
-    # https://github.com/pandas-dev/pandas/issues/33655
-    values = pd.array(values, dtype=dtype)
-    msg = "use_inf_as_na option is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        with pd.option_context("mode.use_inf_as_na", True):
-            result = values.isna()
-            tm.assert_numpy_array_equal(result, expected)
-
-            result = pd.Series(values).isna()
-            expected = pd.Series(expected)
-            tm.assert_series_equal(result, expected)
-
-            result = pd.DataFrame(values).isna()
-            expected = pd.DataFrame(expected)
-            tm.assert_frame_equal(result, expected)
+def test_value_counts_sort_false(dtype):
+    if getattr(dtype, "storage", "") == "pyarrow":
+        exp_dtype = "int64[pyarrow]"
+    elif getattr(dtype, "storage", "") == "pyarrow_numpy":
+        exp_dtype = "int64"
+    else:
+        exp_dtype = "Int64"
+    ser = pd.Series(["a", "b", "c", "b"], dtype=dtype)
+    result = ser.value_counts(sort=False)
+    expected = pd.Series([1, 2, 1], index=ser[:3], dtype=exp_dtype, name="count")
+    tm.assert_series_equal(result, expected)
 
 
 def test_memory_usage(dtype, arrow_string_storage):

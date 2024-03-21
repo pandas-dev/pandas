@@ -59,7 +59,6 @@ def test_astype_nansafe():
         arr.astype("uint32")
 
 
-@pytest.mark.parametrize("dropna", [True, False])
 def test_construct_index(all_data, dropna):
     # ensure that we do not coerce to different Index dtype or non-index
 
@@ -76,7 +75,6 @@ def test_construct_index(all_data, dropna):
     tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.parametrize("dropna", [True, False])
 def test_astype_index(all_data, dropna):
     # as an int/uint index to Index
 
@@ -271,7 +269,7 @@ def test_to_numpy_dtype(dtype, in_series):
     tm.assert_numpy_array_equal(result, expected)
 
 
-@pytest.mark.parametrize("dtype", ["float64", "int64", "bool"])
+@pytest.mark.parametrize("dtype", ["int64", "bool"])
 def test_to_numpy_na_raises(dtype):
     a = pd.array([0, 1, None], dtype="Int64")
     with pytest.raises(ValueError, match=dtype):

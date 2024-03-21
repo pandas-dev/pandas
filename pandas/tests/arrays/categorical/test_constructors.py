@@ -24,6 +24,7 @@ from pandas import (
     IntervalIndex,
     MultiIndex,
     NaT,
+    RangeIndex,
     Series,
     Timestamp,
     date_range,
@@ -437,7 +438,6 @@ class TestCategoricalConstructors:
             Categorical(["a", "b"], ordered=False, dtype=dtype)
 
     @pytest.mark.parametrize("categories", [None, ["a", "b"], ["a", "c"]])
-    @pytest.mark.parametrize("ordered", [True, False])
     def test_constructor_str_category(self, categories, ordered):
         result = Categorical(
             ["a", "b"], categories=categories, ordered=ordered, dtype="category"
@@ -683,7 +683,6 @@ class TestCategoricalConstructors:
         expected = Categorical([1, 1, 2, np.nan])
         tm.assert_categorical_equal(result, expected)
 
-    @pytest.mark.parametrize("ordered", [None, True, False])
     def test_construction_with_ordered(self, ordered):
         # GH 9347, 9190
         cat = Categorical([0, 1, 2], ordered=ordered)
@@ -781,3 +780,17 @@ class TestCategoricalConstructors:
         result = cat.categories.freq
 
         assert expected == result
+
+    @pytest.mark.parametrize(
+        "values, categories",
+        [
+            [range(5), None],
+            [range(4), range(5)],
+            [[0, 1, 2, 3], range(5)],
+            [[], range(5)],
+        ],
+    )
+    def test_range_values_preserves_rangeindex_categories(self, values, categories):
+        result = Categorical(values=values, categories=categories).categories
+        expected = RangeIndex(range(5))
+        tm.assert_index_equal(result, expected, exact=True)

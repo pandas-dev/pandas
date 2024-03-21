@@ -23,19 +23,13 @@ def test_namespace():
         "concat",
         "managers",
         "construction",
-        "array_manager",
-        "base",
         "api",
         "ops",
     ]
     expected = [
         "make_block",
-        "DataManager",
-        "ArrayManager",
         "BlockManager",
-        "SingleDataManager",
         "SingleBlockManager",
-        "SingleArrayManager",
         "concatenate_managers",
     ]
 
@@ -46,8 +40,6 @@ def test_namespace():
 @pytest.mark.parametrize(
     "name",
     [
-        "NumericBlock",
-        "ObjectBlock",
         "Block",
         "ExtensionBlock",
         "DatetimeTZBlock",
@@ -59,18 +51,11 @@ def test_deprecations(name):
     with tm.assert_produces_warning(DeprecationWarning, match=msg):
         getattr(internals, name)
 
-    if name not in ["NumericBlock", "ObjectBlock"]:
-        # NumericBlock and ObjectBlock are not in the internals.api namespace
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            getattr(api, name)
-
 
 def test_make_block_2d_with_dti():
     # GH#41168
     dti = pd.date_range("2012", periods=3, tz="UTC")
-    msg = "make_block is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        blk = api.make_block(dti, placement=[0])
+    blk = api.make_block(dti, placement=[0])
 
     assert blk.shape == (1, 3)
     assert blk.values.shape == (1, 3)

@@ -205,7 +205,10 @@ def _get_ax_freq(ax: Axes):
 
 
 def _get_period_alias(freq: timedelta | BaseOffset | str) -> str | None:
-    freqstr = to_offset(freq, is_period=True).rule_code
+    if isinstance(freq, BaseOffset):
+        freqstr = freq.name
+    else:
+        freqstr = to_offset(freq, is_period=True).rule_code
 
     return get_period_alias(freqstr)
 
@@ -250,9 +253,7 @@ def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
     if isinstance(data.index, ABCDatetimeIndex):
         # error: "BaseOffset" has no attribute "_period_dtype_code"
         freq_str = OFFSET_TO_PERIOD_FREQSTR.get(freq_str, freq_str)
-        base = to_offset(
-            freq_str, is_period=True
-        )._period_dtype_code  # type: ignore[attr-defined]
+        base = to_offset(freq_str, is_period=True)._period_dtype_code  # type: ignore[attr-defined]
         x = data.index
         if base <= FreqGroup.FR_DAY.value:
             return x[:1].is_normalized

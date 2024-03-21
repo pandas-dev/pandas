@@ -27,7 +27,7 @@ def test_constructor_single_level():
     assert isinstance(result, MultiIndex)
     expected = Index(["foo", "bar", "baz", "qux"], name="first")
     tm.assert_index_equal(result.levels[0], expected)
-    assert result.names == ["first"]
+    assert result.names == ("first",)
 
 
 def test_constructor_no_levels():
@@ -277,7 +277,7 @@ def test_from_arrays_empty():
     assert isinstance(result, MultiIndex)
     expected = Index([], name="A")
     tm.assert_index_equal(result.levels[0], expected)
-    assert result.names == ["A"]
+    assert result.names == ("A",)
 
     # N levels
     for N in [2, 3]:
@@ -304,7 +304,6 @@ def test_from_arrays_empty():
         (1, 2),
         ([1], 2),
         (1, [2]),
-        "a",
         ("a",),
         ("a", "b"),
         (["a"], "b"),
@@ -425,7 +424,7 @@ def test_from_product_empty_one_level():
     result = MultiIndex.from_product([[]], names=["A"])
     expected = Index([], name="A")
     tm.assert_index_equal(result.levels[0], expected)
-    assert result.names == ["A"]
+    assert result.names == ("A",)
 
 
 @pytest.mark.parametrize(
@@ -713,7 +712,7 @@ def test_from_frame_dtype_fidelity():
 
 
 @pytest.mark.parametrize(
-    "names_in,names_out", [(None, [("L1", "x"), ("L2", "y")]), (["x", "y"], ["x", "y"])]
+    "names_in,names_out", [(None, (("L1", "x"), ("L2", "y"))), (["x", "y"], ("x", "y"))]
 )
 def test_from_frame_valid_names(names_in, names_out):
     # GH 22420
@@ -813,13 +812,13 @@ def test_constructor_with_tz():
 
     result = MultiIndex.from_arrays([index, columns])
 
-    assert result.names == ["dt1", "dt2"]
+    assert result.names == ("dt1", "dt2")
     tm.assert_index_equal(result.levels[0], index)
     tm.assert_index_equal(result.levels[1], columns)
 
     result = MultiIndex.from_arrays([Series(index), Series(columns)])
 
-    assert result.names == ["dt1", "dt2"]
+    assert result.names == ("dt1", "dt2")
     tm.assert_index_equal(result.levels[0], index)
     tm.assert_index_equal(result.levels[1], columns)
 

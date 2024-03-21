@@ -1,6 +1,7 @@
 """
 Read SAS sas7bdat or xport files.
 """
+
 from __future__ import annotations
 
 from abc import (
@@ -38,12 +39,10 @@ class ReaderBase(ABC):
     """
 
     @abstractmethod
-    def read(self, nrows: int | None = None) -> DataFrame:
-        ...
+    def read(self, nrows: int | None = None) -> DataFrame: ...
 
     @abstractmethod
-    def close(self) -> None:
-        ...
+    def close(self) -> None: ...
 
     def __enter__(self) -> Self:
         return self
@@ -67,8 +66,7 @@ def read_sas(
     chunksize: int = ...,
     iterator: bool = ...,
     compression: CompressionOptions = ...,
-) -> ReaderBase:
-    ...
+) -> ReaderBase: ...
 
 
 @overload
@@ -81,8 +79,7 @@ def read_sas(
     chunksize: None = ...,
     iterator: bool = ...,
     compression: CompressionOptions = ...,
-) -> DataFrame | ReaderBase:
-    ...
+) -> DataFrame | ReaderBase: ...
 
 
 @doc(decompression_options=_shared_docs["decompression_options"] % "filepath_or_buffer")
@@ -122,8 +119,9 @@ def read_sas(
 
     Returns
     -------
-    DataFrame if iterator=False and chunksize=None, else SAS7BDATReader
-    or XportReader
+    DataFrame, SAS7BDATReader, or XportReader
+        DataFrame if iterator=False and chunksize=None, else SAS7BDATReader
+        or XportReader, file format is inferred from file extension.
 
     Examples
     --------
@@ -144,7 +142,7 @@ def read_sas(
             format = "sas7bdat"
         else:
             raise ValueError(
-                f"unable to infer format of SAS file from filename: {repr(fname)}"
+                f"unable to infer format of SAS file from filename: {fname!r}"
             )
 
     reader: ReaderBase

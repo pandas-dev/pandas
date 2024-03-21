@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 import warnings
 
 import dateutil
@@ -35,16 +36,6 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 
-@pytest.fixture()
-def _index_factory():
-    return period_range
-
-
-@pytest.fixture
-def _series_name():
-    return "pi"
-
-
 @pytest.fixture
 def simple_period_range_series():
     """
@@ -69,11 +60,11 @@ def simple_period_range_series():
 class TestPeriodIndex:
     @pytest.mark.parametrize("freq", ["2D", "1h", "2h"])
     @pytest.mark.parametrize("kind", ["period", None, "timestamp"])
-    def test_asfreq(self, series_and_frame, freq, kind):
+    def test_asfreq(self, frame_or_series, freq, kind):
         # GH 12884, 15944
         # make sure .asfreq() returns PeriodIndex (except kind='timestamp')
 
-        obj = series_and_frame
+        obj = frame_or_series(range(5), index=period_range("2020-01-01", periods=5))
         if kind == "timestamp":
             expected = obj.to_timestamp().resample(freq).asfreq()
         else:
@@ -86,10 +77,11 @@ class TestPeriodIndex:
             result = obj.resample(freq, kind=kind).asfreq()
         tm.assert_almost_equal(result, expected)
 
-    def test_asfreq_fill_value(self, series):
+    def test_asfreq_fill_value(self):
         # test for fill value during resampling, issue 3715
 
-        s = series
+        index = period_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
+        s = Series(range(len(index)), index=index)
         new_index = date_range(
             s.index[0].to_timestamp(how="start"),
             (s.index[-1]).to_timestamp(how="start"),
@@ -116,9 +108,10 @@ class TestPeriodIndex:
     @pytest.mark.parametrize("freq", ["h", "12h", "2D", "W"])
     @pytest.mark.parametrize("kind", [None, "period", "timestamp"])
     @pytest.mark.parametrize("kwargs", [{"on": "date"}, {"level": "d"}])
-    def test_selection(self, index, freq, kind, kwargs):
+    def test_selection(self, freq, kind, kwargs):
         # This is a bug, these should be implemented
         # GH 14008
+        index = period_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
         rng = np.arange(len(index), dtype=np.int64)
         df = DataFrame(
             {"date": index, "a": rng},
@@ -990,21 +983,45 @@ class TestPeriodIndex:
 
     def test_resample_t_l_deprecated(self):
         # GH#52536
-        msg_t = "'T' is deprecated and will be removed in a future version."
-        msg_l = "'L' is deprecated and will be removed in a future version."
+        msg_t = "Invalid frequency: T"
+        msg_l = "Invalid frequency: L"
 
-        with tm.assert_produces_warning(FutureWarning, match=msg_l):
-            rng_l = period_range(
+        with pytest.raises(ValueError, match=msg_l):
+            period_range(
                 "2020-01-01 00:00:00 00:00", "2020-01-01 00:00:00 00:01", freq="L"
             )
+        rng_l = period_range(
+            "2020-01-01 00:00:00 00:00", "2020-01-01 00:00:00 00:01", freq="ms"
+        )
         ser = Series(np.arange(len(rng_l)), index=rng_l)
 
-        rng = period_range(
-            "2020-01-01 00:00:00 00:00", "2020-01-01 00:00:00 00:01", freq="min"
-        )
-        expected = Series([29999.5, 60000.0], index=rng)
-        with tm.assert_produces_warning(FutureWarning, match=msg_t):
-            result = ser.resample("T").mean()
+        with pytest.raises(ValueError, match=msg_t):
+            ser.resample("T").mean()
+
+    @pytest.mark.parametrize(
+        "freq, freq_depr, freq_res, freq_depr_res, data",
+        [
+            ("2Q", "2q", "2Y", "2y", [0.5]),
+            ("2M", "2m", "2Q", "2q", [1.0, 3.0]),
+        ],
+    )
+    def test_resample_lowercase_frequency_deprecated(
+        self, freq, freq_depr, freq_res, freq_depr_res, data
+    ):
+        depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
+        f"future version. Please use '{freq[1:]}' instead."
+        depr_msg_res = f"'{freq_depr_res[1:]}' is deprecated and will be removed in a "
+        f"future version. Please use '{freq_res[1:]}' instead."
+
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            rng_l = period_range("2020-01-01", "2020-08-01", freq=freq_depr)
+        ser = Series(np.arange(len(rng_l)), index=rng_l)
+
+        rng = period_range("2020-01-01", "2020-08-01", freq=freq_res)
+        expected = Series(data=data, index=rng)
+
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg_res):
+            result = ser.resample(freq_depr_res).mean()
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1015,13 +1032,13 @@ class TestPeriodIndex:
             offsets.BusinessHour(2),
         ],
     )
-    def test_asfreq_invalid_period_freq(self, offset, series_and_frame):
-        # GH#9586
-        msg = f"Invalid offset: '{offset.base}' for converting time series "
+    def test_asfreq_invalid_period_offset(self, offset, frame_or_series):
+        # GH#55785
+        msg = re.escape(f"{offset} is not supported as period frequency")
 
-        df = series_and_frame
+        obj = frame_or_series(range(5), index=period_range("2020-01-01", periods=5))
         with pytest.raises(ValueError, match=msg):
-            df.asfreq(freq=offset)
+            obj.asfreq(freq=offset)
 
 
 @pytest.mark.parametrize(
@@ -1032,13 +1049,16 @@ class TestPeriodIndex:
         ("2Q-FEB", "2QE-FEB"),
         ("2Y", "2YE"),
         ("2Y-MAR", "2YE-MAR"),
+        ("2M", "2me"),
+        ("2Q", "2qe"),
+        ("2Y-MAR", "2ye-mar"),
     ],
 )
-def test_resample_frequency_ME_QE_YE_error_message(series_and_frame, freq, freq_depr):
+def test_resample_frequency_ME_QE_YE_error_message(frame_or_series, freq, freq_depr):
     # GH#9586
     msg = f"for Period, please use '{freq[1:]}' instead of '{freq_depr[1:]}'"
 
-    obj = series_and_frame
+    obj = frame_or_series(range(5), index=period_range("2020-01-01", periods=5))
     with pytest.raises(ValueError, match=msg):
         obj.resample(freq_depr)
 
@@ -1063,10 +1083,10 @@ def test_corner_cases_period(simple_period_range_series):
         "2BYE-MAR",
     ],
 )
-def test_resample_frequency_invalid_freq(series_and_frame, freq_depr):
+def test_resample_frequency_invalid_freq(frame_or_series, freq_depr):
     # GH#9586
     msg = f"Invalid frequency: {freq_depr[1:]}"
 
-    obj = series_and_frame
+    obj = frame_or_series(range(5), index=period_range("2020-01-01", periods=5))
     with pytest.raises(ValueError, match=msg):
         obj.resample(freq_depr)

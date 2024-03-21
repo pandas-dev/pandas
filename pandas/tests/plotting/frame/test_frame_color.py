@@ -1,4 +1,5 @@
-""" Test cases for DataFrame.plot """
+"""Test cases for DataFrame.plot"""
+
 import re
 
 import numpy as np
@@ -30,11 +31,10 @@ def _check_colors_box(bp, box_c, whiskers_c, medians_c, caps_c="k", fliers_c=Non
 
 
 class TestDataFrameColor:
-    @pytest.mark.parametrize(
-        "color", ["C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9"]
-    )
+    @pytest.mark.parametrize("color", list(range(10)))
     def test_mpl2_color_cycle_str(self, color):
         # GH 15516
+        color = f"C{color}"
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 3)), columns=["a", "b", "c"]
         )

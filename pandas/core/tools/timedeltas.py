@@ -1,13 +1,14 @@
 """
 timedelta support tools
 """
+
 from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -21,7 +22,6 @@ from pandas._libs.tslibs.timedeltas import (
     disallow_ambiguous_unit,
     parse_timedelta_unit,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.dtypes import ArrowDtype
@@ -54,8 +54,7 @@ def to_timedelta(
     arg: str | float | timedelta,
     unit: UnitChoices | None = ...,
     errors: DateTimeErrorChoices = ...,
-) -> Timedelta:
-    ...
+) -> Timedelta: ...
 
 
 @overload
@@ -63,8 +62,7 @@ def to_timedelta(
     arg: Series,
     unit: UnitChoices | None = ...,
     errors: DateTimeErrorChoices = ...,
-) -> Series:
-    ...
+) -> Series: ...
 
 
 @overload
@@ -72,8 +70,7 @@ def to_timedelta(
     arg: list | tuple | range | ArrayLike | Index,
     unit: UnitChoices | None = ...,
     errors: DateTimeErrorChoices = ...,
-) -> TimedeltaIndex:
-    ...
+) -> TimedeltaIndex: ...
 
 
 def to_timedelta(
@@ -89,7 +86,7 @@ def to_timedelta(
     | Series,
     unit: UnitChoices | None = None,
     errors: DateTimeErrorChoices = "raise",
-) -> Timedelta | TimedeltaIndex | Series:
+) -> Timedelta | TimedeltaIndex | Series | NaTType | Any:
     """
     Convert argument to timedelta.
 
@@ -115,23 +112,21 @@ def to_timedelta(
         * 'W'
         * 'D' / 'days' / 'day'
         * 'hours' / 'hour' / 'hr' / 'h' / 'H'
-        * 'm' / 'minute' / 'min' / 'minutes' / 'T'
+        * 'm' / 'minute' / 'min' / 'minutes'
         * 's' / 'seconds' / 'sec' / 'second' / 'S'
-        * 'ms' / 'milliseconds' / 'millisecond' / 'milli' / 'millis' / 'L'
-        * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros' / 'U'
-        * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond' / 'N'
+        * 'ms' / 'milliseconds' / 'millisecond' / 'milli' / 'millis'
+        * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros'
+        * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond'
 
         Must not be specified when `arg` contains strings and ``errors="raise"``.
 
         .. deprecated:: 2.2.0
-            Units 'H', 'T', 'S', 'L', 'U' and 'N' are deprecated and will be removed
-            in a future version. Please use 'h', 'min', 's', 'ms', 'us', and 'ns'
-            instead of 'H', 'T', 'S', 'L', 'U' and 'N'.
+            Units 'H'and 'S' are deprecated and will be removed
+            in a future version. Please use 'h' and 's'.
 
-    errors : {'ignore', 'raise', 'coerce'}, default 'raise'
+    errors : {'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaT.
-        - If 'ignore', then invalid parsing will return the input.
 
     Returns
     -------
@@ -158,24 +153,24 @@ def to_timedelta(
     --------
     Parsing a single string to a Timedelta:
 
-    >>> pd.to_timedelta('1 days 06:05:01.00003')
+    >>> pd.to_timedelta("1 days 06:05:01.00003")
     Timedelta('1 days 06:05:01.000030')
-    >>> pd.to_timedelta('15.5us')
+    >>> pd.to_timedelta("15.5us")
     Timedelta('0 days 00:00:00.000015500')
 
     Parsing a list or array of strings:
 
-    >>> pd.to_timedelta(['1 days 06:05:01.00003', '15.5us', 'nan'])
+    >>> pd.to_timedelta(["1 days 06:05:01.00003", "15.5us", "nan"])
     TimedeltaIndex(['1 days 06:05:01.000030', '0 days 00:00:00.000015500', NaT],
                    dtype='timedelta64[ns]', freq=None)
 
     Converting numbers by specifying the `unit` keyword argument:
 
-    >>> pd.to_timedelta(np.arange(5), unit='s')
+    >>> pd.to_timedelta(np.arange(5), unit="s")
     TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:01', '0 days 00:00:02',
                     '0 days 00:00:03', '0 days 00:00:04'],
                    dtype='timedelta64[ns]', freq=None)
-    >>> pd.to_timedelta(np.arange(5), unit='d')
+    >>> pd.to_timedelta(np.arange(5), unit="d")
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq=None)
     """
@@ -183,17 +178,8 @@ def to_timedelta(
         unit = parse_timedelta_unit(unit)
         disallow_ambiguous_unit(unit)
 
-    if errors not in ("ignore", "raise", "coerce"):
-        raise ValueError("errors must be one of 'ignore', 'raise', or 'coerce'.")
-    if errors == "ignore":
-        # GH#54467
-        warnings.warn(
-            "errors='ignore' is deprecated and will raise in a future version. "
-            "Use to_timedelta without passing `errors` and catch exceptions "
-            "explicitly instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
+    if errors not in ("raise", "coerce"):
+        raise ValueError("errors must be one of 'raise', or 'coerce'.")
 
     if arg is None:
         return arg
@@ -225,7 +211,7 @@ def to_timedelta(
 
 def _coerce_scalar_to_timedelta_type(
     r, unit: UnitChoices | None = "ns", errors: DateTimeErrorChoices = "raise"
-):
+) -> Timedelta | NaTType:
     """Convert string 'r' to a timedelta object."""
     result: Timedelta | NaTType
 
@@ -234,9 +220,6 @@ def _coerce_scalar_to_timedelta_type(
     except ValueError:
         if errors == "raise":
             raise
-        if errors == "ignore":
-            return r
-
         # coerce
         result = NaT
 
@@ -252,30 +235,11 @@ def _convert_listlike(
     """Convert a list of objects to a timedelta index object."""
     arg_dtype = getattr(arg, "dtype", None)
     if isinstance(arg, (list, tuple)) or arg_dtype is None:
-        # This is needed only to ensure that in the case where we end up
-        #  returning arg (errors == "ignore"), and where the input is a
-        #  generator, we return a useful list-like instead of a
-        #  used-up generator
-        if not hasattr(arg, "__array__"):
-            arg = list(arg)
         arg = np.array(arg, dtype=object)
     elif isinstance(arg_dtype, ArrowDtype) and arg_dtype.kind == "m":
         return arg
 
-    try:
-        td64arr = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]
-    except ValueError:
-        if errors == "ignore":
-            return arg
-        else:
-            # This else-block accounts for the cases when errors='raise'
-            # and errors='coerce'. If errors == 'raise', these errors
-            # should be raised. If errors == 'coerce', we shouldn't
-            # expect any errors to be raised, since all parsing errors
-            # cause coercion to pd.NaT. However, if an error / bug is
-            # introduced that causes an Exception to be raised, we would
-            # like to surface it.
-            raise
+    td64arr = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]
 
     from pandas import TimedeltaIndex
 

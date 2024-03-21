@@ -1,11 +1,11 @@
-""" miscellaneous sorting / groupby utilities """
+"""miscellaneous sorting / groupby utilities"""
+
 from __future__ import annotations
 
-from collections import defaultdict
+import itertools
 from typing import (
     TYPE_CHECKING,
     Callable,
-    DefaultDict,
     cast,
 )
 
@@ -33,7 +33,6 @@ from pandas.core.construction import extract_array
 if TYPE_CHECKING:
     from collections.abc import (
         Hashable,
-        Iterable,
         Sequence,
     )
 
@@ -336,13 +335,15 @@ def lexsort_indexer(
         raise ValueError(f"invalid na_position: {na_position}")
 
     if isinstance(orders, bool):
-        orders = [orders] * len(keys)
+        orders = itertools.repeat(orders, len(keys))
     elif orders is None:
-        orders = [True] * len(keys)
+        orders = itertools.repeat(True, len(keys))
+    else:
+        orders = reversed(orders)
 
     labels = []
 
-    for k, order in zip(keys, orders):
+    for k, order in zip(reversed(keys), orders):
         k = ensure_key_mapped(k, key)
         if codes_given:
             codes = cast(np.ndarray, k)
@@ -363,7 +364,7 @@ def lexsort_indexer(
 
         labels.append(codes)
 
-    return np.lexsort(labels[::-1])
+    return np.lexsort(labels)
 
 
 def nargsort(
@@ -525,13 +526,13 @@ def _ensure_key_mapped_multiindex(
 
     if level is not None:
         if isinstance(level, (str, int)):
-            sort_levels = [level]
+            level_iter = [level]
         else:
-            sort_levels = level
+            level_iter = level
 
-        sort_levels = [index._get_level_number(lev) for lev in sort_levels]
+        sort_levels: range | set = {index._get_level_number(lev) for lev in level_iter}
     else:
-        sort_levels = list(range(index.nlevels))  # satisfies mypy
+        sort_levels = range(index.nlevels)
 
     mapped = [
         ensure_key_mapped(index._get_level_values(level), key)
@@ -582,30 +583,13 @@ def ensure_key_mapped(
             type_of_values = type(values)
             #  error: Too many arguments for "ExtensionArray"
             result = type_of_values(result)  # type: ignore[call-arg]
-    except TypeError:
+    except TypeError as err:
         raise TypeError(
             f"User-provided `key` function returned an invalid type {type(result)} \
             which could not be converted to {type(values)}."
-        )
+        ) from err
 
     return result
-
-
-def get_flattened_list(
-    comp_ids: npt.NDArray[np.intp],
-    ngroups: int,
-    levels: Iterable[Index],
-    labels: Iterable[np.ndarray],
-) -> list[tuple]:
-    """Map compressed group id -> key tuple."""
-    comp_ids = comp_ids.astype(np.int64, copy=False)
-    arrays: DefaultDict[int, list[int]] = defaultdict(list)
-    for labs, level in zip(labels, levels):
-        table = hashtable.Int64HashTable(ngroups)
-        table.map_keys_to_values(comp_ids, labs.astype(np.int64, copy=False))
-        for i in range(ngroups):
-            arrays[i].append(level[table.get_item(i)])
-    return [tuple(array) for array in arrays.values()]
 
 
 def get_indexer_dict(

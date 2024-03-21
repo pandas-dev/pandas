@@ -678,6 +678,28 @@ def is_range_indexer(ndarray[int6432_t, ndim=1] left, Py_ssize_t n) -> bool:
     return True
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def is_sequence_range(ndarray[int6432_t, ndim=1] sequence, int64_t step) -> bool:
+    """
+    Check if sequence is equivalent to a range with the specified step.
+    """
+    cdef:
+        Py_ssize_t i, n = len(sequence)
+        int6432_t first_element
+
+    if step == 0:
+        return False
+    if n == 0:
+        return True
+
+    first_element = sequence[0]
+    for i in range(1, n):
+        if sequence[i] != first_element + i * step:
+            return False
+    return True
+
+
 ctypedef fused ndarr_object:
     ndarray[object, ndim=1]
     ndarray[object, ndim=2]
@@ -759,7 +781,7 @@ cpdef ndarray[object] ensure_string_array(
             out = arr.astype(str).astype(object)
             out[arr.isna()] = na_value
             return out
-        arr = arr.to_numpy()
+        arr = arr.to_numpy(dtype=object)
     elif not util.is_array(arr):
         arr = np.array(arr, dtype="object")
 
@@ -769,6 +791,9 @@ cpdef ndarray[object] ensure_string_array(
         # GH#54654
         result = result.copy()
     elif not copy and result is arr:
+        already_copied = False
+    elif not copy and not result.flags.writeable:
+        # Weird edge case where result is a view
         already_copied = False
 
     if issubclass(arr.dtype.type, np.str_):
@@ -1159,43 +1184,6 @@ def is_complex(obj: object) -> bool:
 
 cpdef bint is_decimal(object obj):
     return isinstance(obj, Decimal)
-
-
-cpdef bint is_interval(object obj):
-    import warnings
-
-    from pandas.util._exceptions import find_stack_level
-
-    warnings.warn(
-        # GH#55264
-        "is_interval is deprecated and will be removed in a future version. "
-        "Use isinstance(obj, pd.Interval) instead.",
-        FutureWarning,
-        stacklevel=find_stack_level(),
-    )
-    return getattr(obj, "_typ", "_typ") == "interval"
-
-
-def is_period(val: object) -> bool:
-    """
-    Return True if given object is Period.
-
-    Returns
-    -------
-    bool
-    """
-    import warnings
-
-    from pandas.util._exceptions import find_stack_level
-
-    warnings.warn(
-        # GH#55264
-        "is_period is deprecated and will be removed in a future version. "
-        "Use isinstance(obj, pd.Period) instead.",
-        FutureWarning,
-        stacklevel=find_stack_level(),
-    )
-    return is_period_object(val)
 
 
 def is_list_like(obj: object, allow_sets: bool = True) -> bool:
@@ -2864,10 +2852,11 @@ def map_infer_mask(
         ndarray[object] arr,
         object f,
         const uint8_t[:] mask,
+        *,
         bint convert=True,
         object na_value=no_default,
         cnp.dtype dtype=np.dtype(object)
-) -> np.ndarray:
+) -> "ArrayLike":
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2887,7 +2876,7 @@ def map_infer_mask(
 
     Returns
     -------
-    np.ndarray
+    np.ndarray or an ExtensionArray
     """
     cdef Py_ssize_t n = len(arr)
     result = np.empty(n, dtype=dtype)
@@ -2941,8 +2930,8 @@ def _map_infer_mask(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def map_infer(
-    ndarray arr, object f, bint convert=True, bint ignore_na=False
-) -> np.ndarray:
+    ndarray arr, object f, *, bint convert=True, bint ignore_na=False
+) -> "ArrayLike":
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2956,7 +2945,7 @@ def map_infer(
 
     Returns
     -------
-    np.ndarray
+    np.ndarray or an ExtensionArray
     """
     cdef:
         Py_ssize_t i, n
@@ -3091,7 +3080,7 @@ def to_object_array_tuples(rows: object) -> np.ndarray:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_multiget(dict mapping, object[:] keys, default=np.nan) -> np.ndarray:
+def fast_multiget(dict mapping, object[:] keys, default=np.nan) -> "ArrayLike":
     cdef:
         Py_ssize_t i, n = len(keys)
         object val

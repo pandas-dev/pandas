@@ -43,10 +43,9 @@ def test_apply_with_string_funcs(request, float_frame, func, args, kwds, how):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("arg", ["sum", "mean", "min", "max", "std"])
-def test_with_string_args(datetime_series, arg):
-    result = datetime_series.apply(arg)
-    expected = getattr(datetime_series, arg)()
+def test_with_string_args(datetime_series, all_numeric_reductions):
+    result = datetime_series.apply(all_numeric_reductions)
+    expected = getattr(datetime_series, all_numeric_reductions)()
     assert result == expected
 
 
@@ -271,7 +270,7 @@ def test_transform_groupby_kernel_series(request, string_series, op):
 
 
 @pytest.mark.parametrize("op", frame_transform_kernels)
-def test_transform_groupby_kernel_frame(request, axis, float_frame, op):
+def test_transform_groupby_kernel_frame(request, float_frame, op):
     if op == "ngroup":
         request.applymarker(
             pytest.mark.xfail(raises=ValueError, reason="ngroup not valid for NDFrame")
@@ -280,22 +279,15 @@ def test_transform_groupby_kernel_frame(request, axis, float_frame, op):
     # GH 35964
 
     args = [0.0] if op == "fillna" else []
-    if axis in (0, "index"):
-        ones = np.ones(float_frame.shape[0])
-        msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
-    else:
-        ones = np.ones(float_frame.shape[1])
-        msg = "DataFrame.groupby with axis=1 is deprecated"
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = float_frame.groupby(ones, axis=axis)
+    ones = np.ones(float_frame.shape[0])
+    gb = float_frame.groupby(ones)
 
     warn = FutureWarning if op == "fillna" else None
     op_msg = "DataFrameGroupBy.fillna is deprecated"
     with tm.assert_produces_warning(warn, match=op_msg):
         expected = gb.transform(op, *args)
 
-    result = float_frame.transform(op, axis, *args)
+    result = float_frame.transform(op, 0, *args)
     tm.assert_frame_equal(result, expected)
 
     # same thing, but ensuring we have multiple blocks
@@ -303,17 +295,10 @@ def test_transform_groupby_kernel_frame(request, axis, float_frame, op):
     float_frame["E"] = float_frame["A"].copy()
     assert len(float_frame._mgr.arrays) > 1
 
-    if axis in (0, "index"):
-        ones = np.ones(float_frame.shape[0])
-    else:
-        ones = np.ones(float_frame.shape[1])
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb2 = float_frame.groupby(ones, axis=axis)
-    warn = FutureWarning if op == "fillna" else None
-    op_msg = "DataFrameGroupBy.fillna is deprecated"
-    with tm.assert_produces_warning(warn, match=op_msg):
-        expected2 = gb2.transform(op, *args)
-    result2 = float_frame.transform(op, axis, *args)
+    ones = np.ones(float_frame.shape[0])
+    gb2 = float_frame.groupby(ones)
+    expected2 = gb2.transform(op, *args)
+    result2 = float_frame.transform(op, 0, *args)
     tm.assert_frame_equal(result2, expected2)
 
 
