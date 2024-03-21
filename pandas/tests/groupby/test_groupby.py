@@ -145,6 +145,13 @@ def test_len_nan_group():
     assert len(df.groupby(["a", "b"])) == 0
 
 
+def test_groupby_timedelta_median():
+    # issue 57926
+    df = DataFrame({"label": ["foo", "foo"], "timedelta": [pd.NaT, Timedelta("1d")]})
+    median = df.groupby("label")["timedelta"].median()
+    assert median.loc["foo"] == Timedelta("1d")
+
+
 @pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
 def test_len_categorical(dropna, observed, keys):
     # GH#57595
