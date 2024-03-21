@@ -216,7 +216,7 @@ cdef class {{name}}Vector(Vector):
         self.data.data = <{{c_type}}*>self.ao.data
 
     cdef resize(self, Py_ssize_t new_size):
-        self.data.capacity = max(self.data.capacity * 4, _INIT_VEC_CAP)
+        self.data.capacity = max(new_size, _INIT_VEC_CAP)
         self.ao.resize(self.data.capacity, refcheck=False)
         self.data.data = <{{c_type}}*>self.ao.data
 
