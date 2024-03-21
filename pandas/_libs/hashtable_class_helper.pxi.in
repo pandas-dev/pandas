@@ -546,6 +546,38 @@ cdef class {{name}}HashTable(HashTable):
         self.na_position = na_position
 
     @cython.boundscheck(False)
+    def inner_join_unique(self, const {{dtype}}_t[:] values, const uint8_t[:] mask = None) -> tuple[ndarray, ndarray]:
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int ret = 0, ctr = 0
+            {{c_type}} val
+            khiter_t k
+            intp_t[::1] locs = np.empty(n, dtype=np.intp)
+            intp_t[::1] self_locs = np.empty(n, dtype=np.intp)
+            int8_t na_position = self.na_position
+
+        if self.uses_mask and mask is None:
+            raise NotImplementedError  # pragma: no cover
+
+        with nogil:
+            for i in range(n):
+                if self.uses_mask and mask[i]:
+                    if self.na_position == -1:
+                        continue
+                    self_locs[ctr] = na_position
+                    locs[ctr] = na_position
+                    ctr += 1
+                else:
+                    val = {{to_c_type}}(values[i])
+                    k = kh_get_{{dtype}}(self.table, val)
+                    if k != self.table.n_buckets:
+                        self_locs[ctr] = self.table.vals[k]
+                        locs[ctr] = i
+                        ctr += 1
+
+        return np.asarray(self_locs)[:ctr], np.asarray(locs)[:ctr]
+
+    @cython.boundscheck(False)
     def lookup(self, const {{dtype}}_t[:] values, const uint8_t[:] mask = None) -> ndarray:
         # -> np.ndarray[np.intp]
         # Used in safe_sort, IndexEngine.get_indexer

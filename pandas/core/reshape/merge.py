@@ -1745,6 +1745,8 @@ def get_join_indexers(
         and (left.is_unique or right.is_unique)
     ):
         _, lidx, ridx = left.join(right, how=how, return_indexers=True, sort=sort)
+    elif left._can_use_unique_join(right, how, sort):
+        lidx, ridx = left._unique_join(right)
     else:
         lidx, ridx = get_join_indexers_non_unique(
             left._values, right._values, sort, how
