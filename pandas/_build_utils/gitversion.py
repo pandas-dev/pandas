@@ -26,6 +26,7 @@ def git_version(version: str) -> tuple[str, str]:
     # if available
 
     ghash = ""
+    ret_version = version
     try:
         p = subprocess.Popen(
             ["git", "log", "-1", '--format="%H %aI"'],
@@ -50,8 +51,6 @@ def git_version(version: str) -> tuple[str, str]:
             # Only attach git tag to development versions
             if "dev" in version:
                 ret_version = f"{version}+git{git_date}.{ghash[:7]}"
-            else:
-                ret_version = version
 
     return ret_version, ghash
 
