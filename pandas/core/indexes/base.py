@@ -7176,7 +7176,7 @@ def maybe_sequence_to_range(sequence) -> Any | range:
     except ValueError:
         # sequence has nested values
         return sequence
-    if np_sequence.dtype.kind != "i" or len(np_sequence) == 1:
+    if np_sequence.dtype.kind != "i" or len(np_sequence) == 1 or np_sequence.ndim != 1:
         return sequence
     elif len(np_sequence) == 0:
         return range(0)
