@@ -424,21 +424,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             else:
                 data = None
 
-        # TODO: Investigate. This is an unknown type that must be converted to list.
         if is_list_like(data) and not isinstance(data, Sized):
             data = list(data)
 
-        # if data_is_scalar and index is None and data is not None:
         if (
             (is_scalar(data) or not isinstance(data, Sized))
             and index is None
             and data is not None
         ):
             data = [data]
-
-        # # TODO: Investigate. This is an unknown type that must be converted to list.
-        # if is_list_like(data) and not isinstance(data, Sized):
-        #     data = list(data)
 
         # Series TASK 5: TRANSFORMATION ON INDEX. There is always an index after this.
         original_index = index
