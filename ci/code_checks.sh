@@ -97,7 +97,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.infer_objects RT03" \
         -i "pandas.DataFrame.keys SA01" \
         -i "pandas.DataFrame.kurt SA01" \
-        -i "pandas.DataFrame.kurtosis RT03,SA01" \
+        -i "pandas.DataFrame.kurtosis SA01" \
         -i "pandas.DataFrame.last_valid_index SA01" \
         -i "pandas.DataFrame.mask RT03" \
         -i "pandas.DataFrame.mean SA01" \
@@ -105,8 +105,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.pad PR01,SA01" \
         -i "pandas.DataFrame.plot PR02,SA01" \
         -i "pandas.DataFrame.pop SA01" \
-        -i "pandas.DataFrame.prod RT03" \
-        -i "pandas.DataFrame.product RT03" \
         -i "pandas.DataFrame.reorder_levels SA01" \
         -i "pandas.DataFrame.sem PR01,SA01" \
         -i "pandas.DataFrame.skew SA01" \
@@ -116,7 +114,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.sparse.to_coo SA01" \
         -i "pandas.DataFrame.sparse.to_dense SA01" \
         -i "pandas.DataFrame.std PR01,SA01" \
-        -i "pandas.DataFrame.sum RT03" \
         -i "pandas.DataFrame.swapaxes PR01,SA01" \
         -i "pandas.DataFrame.swaplevel SA01" \
         -i "pandas.DataFrame.to_feather SA01" \
@@ -391,7 +388,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.item SA01" \
         -i "pandas.Series.keys SA01" \
         -i "pandas.Series.kurt SA01" \
-        -i "pandas.Series.kurtosis RT03,SA01" \
+        -i "pandas.Series.kurtosis SA01" \
         -i "pandas.Series.last_valid_index SA01" \
         -i "pandas.Series.le PR07,SA01" \
         -i "pandas.Series.list.__getitem__ SA01" \
@@ -412,8 +409,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.plot PR02,SA01" \
         -i "pandas.Series.pop RT03,SA01" \
         -i "pandas.Series.pow PR07" \
-        -i "pandas.Series.prod RT03" \
-        -i "pandas.Series.product RT03" \
         -i "pandas.Series.radd PR07" \
         -i "pandas.Series.rdiv PR07" \
         -i "pandas.Series.reorder_levels RT03,SA01" \
@@ -467,7 +462,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.str.zfill RT03" \
         -i "pandas.Series.struct.dtypes SA01" \
         -i "pandas.Series.sub PR07" \
-        -i "pandas.Series.sum RT03" \
         -i "pandas.Series.swaplevel SA01" \
         -i "pandas.Series.to_dict SA01" \
         -i "pandas.Series.to_frame SA01" \
