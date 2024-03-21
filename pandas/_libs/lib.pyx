@@ -686,15 +686,17 @@ def is_sequence_range(ndarray[int6432_t, ndim=1] sequence, int64_t step) -> bool
     """
     cdef:
         Py_ssize_t i, n = len(sequence)
+        int6432_t first_element
 
     if step == 0:
         return False
+    if n == 0:
+        return True
 
-    for i in range(n):
-
-        if sequence[i] != sequence[0] + i * step:
+    first_element = sequence[0]
+    for i in range(1, n):
+        if sequence[i] != first_element + i * step:
             return False
-
     return True
 
 
