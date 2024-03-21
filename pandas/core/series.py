@@ -407,10 +407,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name = ibase.maybe_extract_name(name, data, type(self))
         na_value = na_value_for_dtype(pandas_dtype(dtype), compat=False)
 
-        data_is_scalar = not is_list_like(data) and (
-            is_scalar(data) or not isinstance(data, Sized)
-        )
-
         # Series TASK 4: DATA TRANSFORMATIONS.
         if is_dict_like(data) and not is_pandas_object and data is not None:
             # Dict is SPECIAL case, since it's data has data values and index keys.
@@ -428,12 +424,21 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             else:
                 data = None
 
-        if data_is_scalar and index is None and data is not None:
-            data = [data]
-
         # TODO: Investigate. This is an unknown type that must be converted to list.
         if is_list_like(data) and not isinstance(data, Sized):
             data = list(data)
+
+        # if data_is_scalar and index is None and data is not None:
+        if (
+            (is_scalar(data) or not isinstance(data, Sized))
+            and index is None
+            and data is not None
+        ):
+            data = [data]
+
+        # # TODO: Investigate. This is an unknown type that must be converted to list.
+        # if is_list_like(data) and not isinstance(data, Sized):
+        #     data = list(data)
 
         # Series TASK 5: TRANSFORMATION ON INDEX. There is always an index after this.
         original_index = index
