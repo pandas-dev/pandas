@@ -48,27 +48,28 @@ def test_agg_regression1(tsframe):
 
 def test_agg_must_agg(df):
     grouped = df.groupby("A")["C"]
-    expected = pd.Series(
+    expected = Series(
         {
             "bar": df[df.A == "bar"]["C"].describe(),
             "foo": df[df.A == "foo"]["C"].describe(),
         },
-        index=pd.Index(["bar", "foo"], name="A"),
+        index=Index(["bar", "foo"], name="A"),
         name="C",
     )
     result = grouped.agg(lambda x: x.describe())
     tm.assert_series_equal(result, expected)
 
-    expected = pd.Series(
+    expected = Series(
         {
             "bar": df[df.A == "bar"]["C"].index[:2],
             "foo": df[df.A == "foo"]["C"].index[:2],
         },
-        index=pd.Index(["bar", "foo"], name="A"),
+        index=Index(["bar", "foo"], name="A"),
         name="C",
     )
     result = grouped.agg(lambda x: x.index[:2])
     tm.assert_series_equal(result, expected)
+
 
 def test_agg_ser_multi_key(df):
     f = lambda x: x.sum()
@@ -485,6 +486,9 @@ def test_groupby_agg_dict_dup_columns():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:In the future, using the non-aggregation func:DeprecationWarning"
+)
 @pytest.mark.parametrize(
     "op",
     [
@@ -564,7 +568,9 @@ def test_order_aggregate_multiple_funcs():
     # GH 25692
     df = DataFrame({"A": [1, 1, 2, 2], "B": [1, 2, 3, 4]})
 
-    res = df.groupby("A").agg(["sum", "max", "mean", "ohlc", "min"])
+    msg = "using the non-aggregation func='ohlc' will raise"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        res = df.groupby("A").agg(["sum", "max", "mean", "ohlc", "min"])
     result = res.columns.levels[1]
 
     expected = Index(["sum", "max", "mean", "ohlc", "min"])
@@ -1377,9 +1383,14 @@ def test_nonagg_agg():
     df = DataFrame({"a": [1, 1, 2, 2], "b": [1, 2, 2, 1]})
     g = df.groupby("a")
 
-    result = g.agg(["cumsum"])
+    msg = "using the non-aggregation func='cumsum' will raise"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        result = g.agg(["cumsum"])
     result.columns = result.columns.droplevel(-1)
-    expected = g.agg("cumsum")
+
+    msg = "using the non-aggregation func='cumsum' will raise"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        expected = g.agg("cumsum")
 
     tm.assert_frame_equal(result, expected)
 
@@ -1450,8 +1461,12 @@ def test_groupby_agg_precision(any_real_numeric_dtype):
         }
     )
 
-    expected = DataFrame({"key3": [df["key3"]]},
-                         index=pd.MultiIndex(levels=[["a"], ["b"]], codes=[[0], [0]], names=["key1", "key2"]))
+    expected = DataFrame(
+        {"key3": [df["key3"]]},
+        index=MultiIndex(
+            levels=[["a"], ["b"]], codes=[[0], [0]], names=["key1", "key2"]
+        ),
+    )
 
     result = df.groupby(["key1", "key2"]).agg(lambda x: x)
     tm.assert_frame_equal(result, expected)
@@ -1547,10 +1562,8 @@ def test_agg_of_mode_list(test, values):
     # Mode usually only returns 1 value, but can return a list in the case of a tie.
 
     expected = DataFrame(
-        [
-            [df1[df1[0] == value][1].mode()] for value in values
-        ],
-        index=pd.Index(values, name=0),
+        [[df1[df1[0] == value][1].mode()] for value in values],
+        index=Index(values, name=0),
         columns=[1],
     )
 
@@ -1659,7 +1672,9 @@ def test_groupby_agg_extension_timedelta_cumsum_with_named_aggregation():
         }
     )
     gb = df.groupby("grps")
-    result = gb.agg(td=("td", "cumsum"))
+    msg = "using the non-aggregation func='cumsum' will raise"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        result = gb.agg(td=("td", "cumsum"))
     tm.assert_frame_equal(result, expected)
 
 

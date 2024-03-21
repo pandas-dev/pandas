@@ -2467,7 +2467,7 @@ def test_by_column_values_with_same_starting_value(dtype):
     result = df.groupby(["Name"]).agg(aggregate_details)
     expected_result = DataFrame(
         {
-            "Mood": [pd.Series(["happy", "sad"]), pd.Series(["happy"])],
+            "Mood": [Series(["happy", "sad"]), Series(["happy"])],
             "Credit": [2500, 900],
             "Name": ["Thomas", "Thomas John"],
         }
@@ -2935,9 +2935,12 @@ def test_groupby_dropna_with_nunique_unique():
     # GH#42016
     df = [[1, 1, 1, "A"], [1, None, 1, "A"], [1, None, 2, "A"], [1, None, 3, "A"]]
     df_dropna = DataFrame(df, columns=["a", "b", "c", "partner"])
-    result = df_dropna.groupby(["a", "b", "c"], dropna=False).agg(
-        {"partner": ["nunique", "unique"]}
-    )
+
+    msg = "using the non-aggregation func='unique' will raise"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        result = df_dropna.groupby(["a", "b", "c"], dropna=False).agg(
+            {"partner": ["nunique", "unique"]}
+        )
 
     index = MultiIndex.from_tuples(
         [(1, 1.0, 1), (1, np.nan, 1), (1, np.nan, 2), (1, np.nan, 3)],
