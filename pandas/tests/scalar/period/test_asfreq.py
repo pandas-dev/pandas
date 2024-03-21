@@ -116,8 +116,8 @@ class TestFreqConversion:
             assert ival_A.asfreq("H", "E") == ival_A_to_H_end
         assert ival_A.asfreq("min", "s") == ival_A_to_T_start
         assert ival_A.asfreq("min", "E") == ival_A_to_T_end
-        msg = "'T' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg = "Invalid frequency: T"
+        with pytest.raises(ValueError, match=msg):
             assert ival_A.asfreq("T", "s") == ival_A_to_T_start
             assert ival_A.asfreq("T", "E") == ival_A_to_T_end
         msg = "'S' is deprecated and will be removed in a future version."
