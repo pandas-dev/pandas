@@ -5,7 +5,7 @@ import os
 import textwrap
 
 
-def init_version():
+def init_version() -> str:
     init = os.path.join(os.path.dirname(__file__), "../../pyproject.toml")
     with open(init) as fid:
         data = fid.readlines()
@@ -18,7 +18,7 @@ def init_version():
     return version
 
 
-def git_version(version):
+def git_version(version) -> tuple[str, str]:
     # Append last commit date and hash to dev version information,
     # if available
 
