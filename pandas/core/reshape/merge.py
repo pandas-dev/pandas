@@ -1751,7 +1751,7 @@ def get_join_indexers(
     elif how == "inner" and not sort and right.dtype.kind in "iufb":
         arr, mask = _convert_arrays_for_rizer(rkey)
         htable, arr = algos._get_hashtable_algo(arr)
-        tbl = htable()
+        tbl = htable(len(arr))
         if tbl.is_unique(arr, mask):
             ridx, lidx = tbl.inner_join_unique(*_convert_arrays_for_rizer(lkey))
             computed = True
