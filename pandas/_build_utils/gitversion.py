@@ -19,7 +19,7 @@ def init_version() -> str:
     return version
 
 
-def git_version(version) -> tuple[str, str]:
+def git_version(version: str) -> tuple[str, str]:
     # Append last commit date and hash to dev version information,
     # if available
 
