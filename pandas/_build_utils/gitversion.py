@@ -49,9 +49,11 @@ def git_version(version: str) -> tuple[str, str]:
 
             # Only attach git tag to development versions
             if "dev" in version:
-                version += f"+git{git_date}.{ghash[:7]}"
+                ret_version = f"{version}+git{git_date}.{ghash[:7]}"
+            else:
+                ret_version = version
 
-    return version, ghash
+    return ret_version, ghash
 
 
 if __name__ == "__main__":
