@@ -20,7 +20,6 @@ from typing import (
     Callable,
     Generic,
     Literal,
-    NamedTuple,
     TypedDict,
     overload,
 )
@@ -561,11 +560,6 @@ _pyarrow_unsupported = {
     "skipinitialspace",
     "low_memory",
 }
-
-
-class _DeprecationConfig(NamedTuple):
-    default_value: Any
-    msg: str | None
 
 
 @overload
@@ -1155,6 +1149,11 @@ def read_fwf(
     infer_nrows : int, default 100
         The number of rows to consider when letting the parser determine the
         `colspecs`.
+    iterator : bool, default False
+        Return ``TextFileReader`` object for iteration or getting chunks with
+        ``get_chunk()``.
+    chunksize : int, optional
+        Number of lines to read from the file per chunk.
     **kwds : optional
         Optional keyword arguments can be passed to ``TextFileReader``.
 
@@ -1483,7 +1482,7 @@ class TextFileReader(abc.Iterator):
                 )
         else:
             if is_integer(skiprows):
-                skiprows = list(range(skiprows))
+                skiprows = range(skiprows)
             if skiprows is None:
                 skiprows = set()
             elif not callable(skiprows):
