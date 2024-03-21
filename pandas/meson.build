@@ -35,7 +35,7 @@ if not fs.exists('version.py')
     install: true,
     build_always_stale: true,
     build_by_default: true,
-    output: 'version.py',
+    output: '_version.py',
     input: '_build_utils/gitversion.py',
     command: [py, '@INPUT@', '--write', '@OUTPUT@'],
     install_dir: pd_dir,
