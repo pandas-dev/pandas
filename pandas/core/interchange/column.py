@@ -171,7 +171,7 @@ class PandasColumn(Column):
             # rather than a bytemask
             return (
                 kind,
-                dtype.itemsize,  # pyright: ignore[reportAttributeAccessIssue]
+                dtype.itemsize,  # pyright: ignore[reportGeneralTypeIssues]
                 ArrowCTypes.BOOL,
                 byteorder,
             )
