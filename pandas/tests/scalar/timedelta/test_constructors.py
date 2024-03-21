@@ -32,6 +32,16 @@ class TestTimedeltaConstructorUnitKeyword:
         with pytest.raises(ValueError, match=msg):
             to_timedelta([1, 2], unit)
 
+    @pytest.mark.parametrize("unit", ["h", "s"])
+    def test_units_H_S_deprecated(self, unit):
+        # GH#52536
+        msg = f"'{unit.upper()}' is deprecated and will be removed in a future version."
+
+        expected = Timedelta(1, unit=unit)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = Timedelta(1, unit=unit.upper())
+        tm.assert_equal(result, expected)
+
     @pytest.mark.parametrize(
         "unit, np_unit",
         [(value, "W") for value in ["W", "w"]]

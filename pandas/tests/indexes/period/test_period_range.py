@@ -205,7 +205,7 @@ class TestPeriodRangeDisallowedFreqs:
         with pytest.raises(ValueError, match="Invalid frequency: X"):
             period_range("2007-1-1", periods=500, freq="X")
 
-    @pytest.mark.parametrize("freq_depr", ["2MIN", "2US", "2NS"])
+    @pytest.mark.parametrize("freq_depr", ["2H", "2MIN", "2S", "2US", "2NS"])
     def test_uppercase_freq_deprecated_from_time_series(self, freq_depr):
         # GH#52536, GH#54939
         msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "

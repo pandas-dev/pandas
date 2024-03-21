@@ -310,8 +310,10 @@ cdef dict c_REVERSE_OFFSET_DEPR_FREQSTR = {
 
 # Map deprecated resolution abbreviations to correct resolution abbreviations
 cdef dict c_DEPR_ABBREVS = {
+    "H": "h",
     "BH": "bh",
     "CBH": "cbh",
+    "S": "s",
 }
 
 
@@ -405,7 +407,7 @@ class Resolution(Enum):
         """
         cdef:
             str abbrev
-        if freq in {"H", "T", "S", "L", "U", "N"}:
+        if freq in {"T", "t", "L", "l", "U", "u", "N", "n"}:
             raise ValueError(
                 f"Frequency \'{freq}\' is no longer supported."
             )

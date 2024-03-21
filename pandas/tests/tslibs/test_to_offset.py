@@ -203,8 +203,10 @@ def test_to_offset_lowercase_frequency_deprecated(freq_depr):
 @pytest.mark.parametrize(
     "freq_depr",
     [
+        "2H",
         "2BH",
         "2MIN",
+        "2S",
         "2Us",
         "2NS",
     ],

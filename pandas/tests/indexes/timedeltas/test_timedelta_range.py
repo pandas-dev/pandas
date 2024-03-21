@@ -3,6 +3,7 @@ import pytest
 
 from pandas import (
     Timedelta,
+    TimedeltaIndex,
     timedelta_range,
     to_timedelta,
 )
@@ -42,6 +43,17 @@ class TestTimedeltas:
         result = timedelta_range("0 days", freq="30min", periods=50)
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize("depr_unit, unit", [("H", "hour"), ("S", "second")])
+    def test_timedelta_units_H_S_deprecated(self, depr_unit, unit):
+        # GH#52536
+        depr_msg = (
+            f"'{depr_unit}' is deprecated and will be removed in a future version."
+        )
+        expected = to_timedelta(np.arange(5), unit=unit)
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            result = to_timedelta(np.arange(5), unit=depr_unit)
+            tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize("unit", ["T", "t", "L", "l", "U", "u", "N", "n"])
     def test_timedelta_unit_T_L_U_N_raises(self, unit):
         msg = f"invalid unit abbreviation: {unit}"
@@ -58,12 +70,20 @@ class TestTimedeltas:
         expected = timedelta_range(start="0 days", end="4 days", freq=freq)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("msg_freq, freq", [("H", "19H12min"), ("T", "19h12T")])
-    def test_timedelta_range_H_T_raises(self, msg_freq, freq):
-        msg = f"Invalid frequency: {msg_freq}"
+    def test_timedelta_range_H_deprecated(self):
+        # GH#52536
+        msg = "'H' is deprecated and will be removed in a future version."
+
+        result = timedelta_range(start="0 days", end="4 days", periods=6)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = timedelta_range(start="0 days", end="4 days", freq="19H12min")
+        tm.assert_index_equal(result, expected)
+
+    def test_timedelta_range_T_raises(self):
+        msg = "Invalid frequency: T"
 
         with pytest.raises(ValueError, match=msg):
-            timedelta_range(start="0 days", end="4 days", freq=freq)
+            timedelta_range(start="0 days", end="4 days", freq="19h12T")
 
     def test_errors(self):
         # not enough params
@@ -111,10 +131,37 @@ class TestTimedeltas:
         assert result.freq is None
 
     @pytest.mark.parametrize(
-        "freq_depr, start, end",
+        "freq_depr, start, end, expected_values, expected_freq",
         [
             (
                 "3.5S",
+                "05:03:01",
+                "05:03:10",
+                ["0 days 05:03:01", "0 days 05:03:04.500000", "0 days 05:03:08"],
+                "3500ms",
+            ),
+        ],
+    )
+    def test_timedelta_range_deprecated_freq(
+        self, freq_depr, start, end, expected_values, expected_freq
+    ):
+        # GH#52536
+        msg = (
+            f"'{freq_depr[-1]}' is deprecated and will be removed in a future version."
+        )
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = timedelta_range(start=start, end=end, freq=freq_depr)
+        expected = TimedeltaIndex(
+            expected_values, dtype="timedelta64[ns]", freq=expected_freq
+        )
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "freq_depr, start, end",
+        [
+            (
+                "3.5l",
                 "05:03:01",
                 "05:03:10",
             ),
@@ -125,7 +172,7 @@ class TestTimedeltas:
             ),
         ],
     )
-    def test_timedelta_range_deprecated_freq(self, freq_depr, start, end):
+    def test_timedelta_range_removed_freq(self, freq_depr, start, end):
         msg = f"Invalid frequency: {freq_depr}"
         with pytest.raises(ValueError, match=msg):
             timedelta_range(start=start, end=end, freq=freq_depr)

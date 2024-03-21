@@ -772,7 +772,7 @@ class TestDateRanges:
         )
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("freq", ["H", "2T", "1S", "2L", "1U", "2N"])
+    @pytest.mark.parametrize("freq", ["2T", "2L", "1l", "1U", "2N", "2n"])
     def test_frequency_H_T_S_L_U_N_raises(self, freq):
         msg = f"Invalid frequency: {freq}"
         with pytest.raises(ValueError, match=msg):
