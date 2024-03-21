@@ -567,21 +567,19 @@ cdef class {{name}}HashTable(HashTable):
                         na_position = i
                     else:
                         val = {{to_c_type}}(values[i])
-                        k = kh_get_{{dtype}}(self.table, val)
-                        if k != self.table.n_buckets:
-                            i = 0
-                            break
                         k = kh_put_{{dtype}}(self.table, val, &ret)
                         self.table.vals[k] = i
             else:
                 for i in range(n):
                     val = {{to_c_type}}(values[i])
-                    k = kh_get_{{dtype}}(self.table, val)
-                    if k != self.table.n_buckets:
-                        i = 0
-                        break
                     k = kh_put_{{dtype}}(self.table, val, &ret)
                     self.table.vals[k] = i
+
+                    if i % 10_000 == 0:
+                        if self.table.size != i + 1:
+                            i = 0
+                            break
+
         self.na_position = na_position
         if i == 0:
             return False
