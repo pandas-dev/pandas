@@ -1752,7 +1752,8 @@ def get_join_indexers(
         arr, mask = _convert_arrays_for_rizer(rkey)
         htable, arr = algos._get_hashtable_algo(arr)
         tbl = htable()
-        if tbl.is_unique(arr, mask):
+        tbl.is_unique(arr, mask)
+        if len(tbl) == len(arr):
             ridx, lidx = tbl.inner_join_unique(*_convert_arrays_for_rizer(lkey))
             computed = True
 

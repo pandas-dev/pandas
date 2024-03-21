@@ -575,11 +575,6 @@ cdef class {{name}}HashTable(HashTable):
                     k = kh_put_{{dtype}}(self.table, val, &ret)
                     self.table.vals[k] = i
 
-                    if i % 10_000 == 0:
-                        if self.table.size != i + 1:
-                            i = 0
-                            break
-
         self.na_position = na_position
         if i == 0:
             return False
