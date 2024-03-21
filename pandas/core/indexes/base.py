@@ -4707,17 +4707,11 @@ class Index(IndexOpsMixin, PandasObject):
             return False
 
         if self.dtype.kind in "iufb" or self.dtype == "O":
-            return other.is_unique or self.is_unique
+            return other.is_unique
         return False
 
     def _unique_join(self, other: Index) -> tuple[np.ndarray, np.ndarray]:
-        if other.is_unique:
-            ridx, lidx = other._engine.mapping.inner_join_unique(self._values)
-        else:
-            lidx, ridx = self._engine.mapping.inner_join_unique(other._values)
-            indexer = np.argsort(lidx)
-            lidx = lidx[indexer]
-            ridx = ridx[indexer]
+        ridx, lidx = other._engine.mapping.inner_join_unique(self._values)
         return lidx, ridx
 
     # --------------------------------------------------------------------
