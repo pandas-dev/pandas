@@ -1,4 +1,5 @@
-""" test with the .transform """
+"""test with the .transform"""
+
 import numpy as np
 import pytest
 
@@ -86,8 +87,8 @@ def test_transform():
 def test_transform_fast():
     df = DataFrame(
         {
-            "id": np.arange(100000) / 3,
-            "val": np.random.default_rng(2).standard_normal(100000),
+            "id": np.arange(10) / 3,
+            "val": np.random.default_rng(2).standard_normal(10),
         }
     )
 
@@ -344,31 +345,12 @@ def test_transform_transformation_func(transformation_func):
         test_op = lambda x: x.transform(transformation_func)
         mock_op = lambda x: getattr(x, transformation_func)()
 
-    if transformation_func == "pct_change":
-        msg = "The default fill_method='pad' in DataFrame.pct_change is deprecated"
-        groupby_msg = (
-            "The default fill_method='ffill' in DataFrameGroupBy.pct_change "
-            "is deprecated"
-        )
-        warn = FutureWarning
-        groupby_warn = FutureWarning
-    elif transformation_func == "fillna":
-        msg = ""
-        groupby_msg = "DataFrameGroupBy.fillna is deprecated"
-        warn = None
-        groupby_warn = FutureWarning
-    else:
-        msg = groupby_msg = ""
-        warn = groupby_warn = None
-
-    with tm.assert_produces_warning(groupby_warn, match=groupby_msg):
-        result = test_op(df.groupby("A"))
+    result = test_op(df.groupby("A"))
 
     # pass the group in same order as iterating `for ... in df.groupby(...)`
     # but reorder to match df's index since this is a transform
     groups = [df[["B"]].iloc[4:6], df[["B"]].iloc[6:], df[["B"]].iloc[:4]]
-    with tm.assert_produces_warning(warn, match=msg):
-        expected = concat([mock_op(g) for g in groups]).sort_index()
+    expected = concat([mock_op(g) for g in groups]).sort_index()
     # sort_index does not preserve the freq
     expected = expected.set_axis(df.index)
 
@@ -917,9 +899,7 @@ def test_pad_stable_sorting(fill_method):
     ],
 )
 @pytest.mark.parametrize("periods", [1, -1])
-@pytest.mark.parametrize("fill_method", ["ffill", "bfill", None])
-@pytest.mark.parametrize("limit", [None, 1])
-def test_pct_change(frame_or_series, freq, periods, fill_method, limit):
+def test_pct_change(frame_or_series, freq, periods):
     # GH 21200, 21621, 30463
     vals = [3, np.nan, np.nan, np.nan, 1, 2, 4, 10, np.nan, 4]
     keys = ["a", "b"]
@@ -927,8 +907,6 @@ def test_pct_change(frame_or_series, freq, periods, fill_method, limit):
     df = DataFrame({"key": key_v, "vals": vals * 2})
 
     df_g = df
-    if fill_method is not None:
-        df_g = getattr(df.groupby("key"), fill_method)(limit=limit)
     grp = df_g.groupby(df.key)
 
     expected = grp["vals"].obj / grp["vals"].shift(periods) - 1
@@ -940,14 +918,7 @@ def test_pct_change(frame_or_series, freq, periods, fill_method, limit):
     else:
         expected = expected.to_frame("vals")
 
-    msg = (
-        "The 'fill_method' keyword being not None and the 'limit' keyword in "
-        f"{type(gb).__name__}.pct_change are deprecated"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = gb.pct_change(
-            periods=periods, fill_method=fill_method, limit=limit, freq=freq
-        )
+    result = gb.pct_change(periods=periods, freq=freq)
     tm.assert_equal(result, expected)
 
 
@@ -1360,7 +1331,7 @@ def test_null_group_str_reducer(request, dropna, reduction_func):
     tm.assert_equal(result, expected)
 
 
-def test_null_group_str_transformer(request, dropna, transformation_func):
+def test_null_group_str_transformer(dropna, transformation_func):
     # GH 17093
     df = DataFrame({"A": [1, 1, np.nan], "B": [1, 2, 2]}, index=[1, 2, 3])
     args = get_groupby_method_args(transformation_func, df)
@@ -1385,21 +1356,7 @@ def test_null_group_str_transformer(request, dropna, transformation_func):
         # ngroup/cumcount always returns a Series as it counts the groups, not values
         expected = expected["B"].rename(None)
 
-    if transformation_func == "pct_change" and not dropna:
-        warn = FutureWarning
-        msg = (
-            "The default fill_method='ffill' in DataFrameGroupBy.pct_change "
-            "is deprecated"
-        )
-    elif transformation_func == "fillna":
-        warn = FutureWarning
-        msg = "DataFrameGroupBy.fillna is deprecated"
-    else:
-        warn = None
-        msg = ""
-    with tm.assert_produces_warning(warn, match=msg):
-        result = gb.transform(transformation_func, *args)
-
+    result = gb.transform(transformation_func, *args)
     tm.assert_equal(result, expected)
 
 
@@ -1525,10 +1482,11 @@ def test_idxmin_idxmax_transform_args(how, skipna, numeric_only):
     # GH#55268 - ensure *args are passed through when calling transform
     df = DataFrame({"a": [1, 1, 1, 2], "b": [3.0, 4.0, np.nan, 6.0], "c": list("abcd")})
     gb = df.groupby("a")
-    warn = None if skipna else FutureWarning
-    msg = f"The behavior of DataFrameGroupBy.{how} with .* any-NA and skipna=False"
-    with tm.assert_produces_warning(warn, match=msg):
+    if skipna:
         result = gb.transform(how, skipna, numeric_only)
-    with tm.assert_produces_warning(warn, match=msg):
         expected = gb.transform(how, skipna=skipna, numeric_only=numeric_only)
-    tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
+    else:
+        msg = f"DataFrameGroupBy.{how} with skipna=False encountered an NA value"
+        with pytest.raises(ValueError, match=msg):
+            gb.transform(how, skipna, numeric_only)
