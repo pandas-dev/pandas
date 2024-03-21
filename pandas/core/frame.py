@@ -8,6 +8,7 @@ Similar to its R counterpart, data.frame, except providing automatic data
 alignment and a host of useful data manipulation methods having to do with the
 labeling information
 """
+
 from __future__ import annotations
 
 import collections
@@ -217,6 +218,8 @@ if TYPE_CHECKING:
         FormattersType,
         Frequency,
         FromDictOrient,
+        HashableT,
+        HashableT2,
         IgnoreRaise,
         IndexKeyFunc,
         IndexLabel,
@@ -239,6 +242,7 @@ if TYPE_CHECKING:
         SortKind,
         StorageOptions,
         Suffixes,
+        T,
         ToStataByteorder,
         ToTimestampHow,
         UpdateJoin,
@@ -643,10 +647,10 @@ class DataFrame(NDFrame, OpsMixin):
     __pandas_priority__ = 4000
 
     @property
-    def _constructor(self) -> Callable[..., DataFrame]:
+    def _constructor(self) -> type[DataFrame]:
         return DataFrame
 
-    def _constructor_from_mgr(self, mgr, axes):
+    def _constructor_from_mgr(self, mgr, axes) -> DataFrame:
         if self._constructor is DataFrame:
             # we are pandas.DataFrame (or a subclass that doesn't override _constructor)
             return DataFrame._from_mgr(mgr, axes=axes)
@@ -659,7 +663,7 @@ class DataFrame(NDFrame, OpsMixin):
     def _sliced_from_mgr(self, mgr, axes) -> Series:
         return Series._from_mgr(mgr, axes)
 
-    def _constructor_sliced_from_mgr(self, mgr, axes):
+    def _constructor_sliced_from_mgr(self, mgr, axes) -> Series:
         if self._constructor_sliced is Series:
             ser = self._sliced_from_mgr(mgr, axes)
             ser._name = None  # caller is responsible for setting real name
@@ -938,21 +942,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         return PandasDataFrameXchg(self, allow_copy=allow_copy)
 
-    def __dataframe_consortium_standard__(
-        self, *, api_version: str | None = None
-    ) -> Any:
-        """
-        Provide entry point to the Consortium DataFrame Standard API.
-
-        This is developed and maintained outside of pandas.
-        Please report any issues to https://github.com/data-apis/dataframe-api-compat.
-        """
-        dataframe_api_compat = import_optional_dependency("dataframe_api_compat")
-        convert_to_standard_compliant_dataframe = (
-            dataframe_api_compat.pandas_standard.convert_to_standard_compliant_dataframe
-        )
-        return convert_to_standard_compliant_dataframe(self, api_version=api_version)
-
     def __arrow_c_stream__(self, requested_schema=None):
         """
         Export the pandas DataFrame as an Arrow C stream PyCapsule.
@@ -1228,8 +1217,7 @@ class DataFrame(NDFrame, OpsMixin):
         min_rows: int | None = ...,
         max_colwidth: int | None = ...,
         encoding: str | None = ...,
-    ) -> str:
-        ...
+    ) -> str: ...
 
     @overload
     def to_string(
@@ -1254,8 +1242,7 @@ class DataFrame(NDFrame, OpsMixin):
         min_rows: int | None = ...,
         max_colwidth: int | None = ...,
         encoding: str | None = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @Substitution(
         header_type="bool or list of str",
@@ -1353,7 +1340,7 @@ class DataFrame(NDFrame, OpsMixin):
         decimal: str,
         na_rep: str,
         quoting,  # int csv.QUOTE_FOO from stdlib
-    ) -> Self:
+    ) -> DataFrame:
         # helper used by to_csv
         mgr = self._mgr.get_values_for_csv(
             float_format=float_format,
@@ -1585,12 +1572,10 @@ class DataFrame(NDFrame, OpsMixin):
         return len(self.index)
 
     @overload
-    def dot(self, other: Series) -> Series:
-        ...
+    def dot(self, other: Series) -> Series: ...
 
     @overload
-    def dot(self, other: DataFrame | Index | ArrayLike) -> DataFrame:
-        ...
+    def dot(self, other: DataFrame | Index | ArrayLike) -> DataFrame: ...
 
     def dot(self, other: AnyArrayLike | DataFrame) -> DataFrame | Series:
         """
@@ -1711,12 +1696,10 @@ class DataFrame(NDFrame, OpsMixin):
             raise TypeError(f"unsupported type: {type(other)}")
 
     @overload
-    def __matmul__(self, other: Series) -> Series:
-        ...
+    def __matmul__(self, other: Series) -> Series: ...
 
     @overload
-    def __matmul__(self, other: AnyArrayLike | DataFrame) -> DataFrame | Series:
-        ...
+    def __matmul__(self, other: AnyArrayLike | DataFrame) -> DataFrame | Series: ...
 
     def __matmul__(self, other: AnyArrayLike | DataFrame) -> DataFrame | Series:
         """
@@ -1831,7 +1814,7 @@ class DataFrame(NDFrame, OpsMixin):
         a  b   1  3
            c   2  4
         """
-        index = None
+        index: list | Index | None = None
         orient = orient.lower()  # type: ignore[assignment]
         if orient == "index":
             if len(data) > 0:
@@ -1857,7 +1840,7 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             realdata = data["data"]
 
-            def create_index(indexlist, namelist):
+            def create_index(indexlist, namelist) -> Index:
                 index: Index
                 if len(namelist) > 1:
                     index = MultiIndex.from_tuples(indexlist, names=namelist)
@@ -1900,6 +1883,7 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         numpy.ndarray
+            The NumPy array representing the values in the DataFrame.
 
         See Also
         --------
@@ -1931,7 +1915,7 @@ class DataFrame(NDFrame, OpsMixin):
             dtype = np.dtype(dtype)
         result = self._mgr.as_array(dtype=dtype, copy=copy, na_value=na_value)
         if result.dtype is not dtype:
-            result = np.array(result, dtype=dtype, copy=False)
+            result = np.asarray(result, dtype=dtype)
 
         return result
 
@@ -1942,8 +1926,7 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         into: type[MutableMappingT] | MutableMappingT,
         index: bool = ...,
-    ) -> MutableMappingT:
-        ...
+    ) -> MutableMappingT: ...
 
     @overload
     def to_dict(
@@ -1952,8 +1935,7 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         into: type[MutableMappingT] | MutableMappingT,
         index: bool = ...,
-    ) -> list[MutableMappingT]:
-        ...
+    ) -> list[MutableMappingT]: ...
 
     @overload
     def to_dict(
@@ -1962,8 +1944,7 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         into: type[dict] = ...,
         index: bool = ...,
-    ) -> dict:
-        ...
+    ) -> dict: ...
 
     @overload
     def to_dict(
@@ -1972,8 +1953,7 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         into: type[dict] = ...,
         index: bool = ...,
-    ) -> list[dict]:
-        ...
+    ) -> list[dict]: ...
 
     # error: Incompatible default for argument "into" (default has type "type
     # [dict[Any, Any]]", argument has type "type[MutableMappingT] | MutableMappingT")
@@ -2700,6 +2680,39 @@ class DataFrame(NDFrame, OpsMixin):
 
         to_feather(self, path, **kwargs)
 
+    @overload
+    def to_markdown(
+        self,
+        buf: None = ...,
+        *,
+        mode: str = ...,
+        index: bool = ...,
+        storage_options: StorageOptions | None = ...,
+        **kwargs,
+    ) -> str: ...
+
+    @overload
+    def to_markdown(
+        self,
+        buf: FilePath | WriteBuffer[str],
+        *,
+        mode: str = ...,
+        index: bool = ...,
+        storage_options: StorageOptions | None = ...,
+        **kwargs,
+    ) -> None: ...
+
+    @overload
+    def to_markdown(
+        self,
+        buf: FilePath | WriteBuffer[str] | None,
+        *,
+        mode: str = ...,
+        index: bool = ...,
+        storage_options: StorageOptions | None = ...,
+        **kwargs,
+    ) -> str | None: ...
+
     @doc(
         Series.to_markdown,
         klass=_shared_doc_kwargs["klass"],
@@ -2761,8 +2774,7 @@ class DataFrame(NDFrame, OpsMixin):
         partition_cols: list[str] | None = ...,
         storage_options: StorageOptions = ...,
         **kwargs,
-    ) -> bytes:
-        ...
+    ) -> bytes: ...
 
     @overload
     def to_parquet(
@@ -2775,8 +2787,7 @@ class DataFrame(NDFrame, OpsMixin):
         partition_cols: list[str] | None = ...,
         storage_options: StorageOptions = ...,
         **kwargs,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @doc(storage_options=_shared_docs["storage_options"])
     def to_parquet(
@@ -2881,6 +2892,36 @@ class DataFrame(NDFrame, OpsMixin):
             **kwargs,
         )
 
+    @overload
+    def to_orc(
+        self,
+        path: None = ...,
+        *,
+        engine: Literal["pyarrow"] = ...,
+        index: bool | None = ...,
+        engine_kwargs: dict[str, Any] | None = ...,
+    ) -> bytes: ...
+
+    @overload
+    def to_orc(
+        self,
+        path: FilePath | WriteBuffer[bytes],
+        *,
+        engine: Literal["pyarrow"] = ...,
+        index: bool | None = ...,
+        engine_kwargs: dict[str, Any] | None = ...,
+    ) -> None: ...
+
+    @overload
+    def to_orc(
+        self,
+        path: FilePath | WriteBuffer[bytes] | None,
+        *,
+        engine: Literal["pyarrow"] = ...,
+        index: bool | None = ...,
+        engine_kwargs: dict[str, Any] | None = ...,
+    ) -> bytes | None: ...
+
     def to_orc(
         self,
         path: FilePath | WriteBuffer[bytes] | None = None,
@@ -2890,7 +2931,7 @@ class DataFrame(NDFrame, OpsMixin):
         engine_kwargs: dict[str, Any] | None = None,
     ) -> bytes | None:
         """
-        Write a DataFrame to the ORC format.
+        Write a DataFrame to the Optimized Row Columnar (ORC) format.
 
         .. versionadded:: 1.5.0
 
@@ -2917,7 +2958,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        bytes if no path argument is provided else None
+        bytes if no ``path`` argument is provided else None
+            Bytes object with DataFrame data if ``path`` is not specified else None.
 
         Raises
         ------
@@ -2937,6 +2979,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
+        * Find more information on ORC
+          `here <https://en.wikipedia.org/wiki/Apache_ORC>`__.
         * Before using this function you should read the :ref:`user guide about
           ORC <io.orc>` and :ref:`install optional dependencies <install.warn_orc>`.
         * This function requires `pyarrow <https://arrow.apache.org/docs/python/>`_
@@ -2996,8 +3040,7 @@ class DataFrame(NDFrame, OpsMixin):
         table_id: str | None = ...,
         render_links: bool = ...,
         encoding: str | None = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def to_html(
@@ -3026,8 +3069,7 @@ class DataFrame(NDFrame, OpsMixin):
         table_id: str | None = ...,
         render_links: bool = ...,
         encoding: str | None = ...,
-    ) -> str:
-        ...
+    ) -> str: ...
 
     @Substitution(
         header_type="bool",
@@ -3168,8 +3210,7 @@ class DataFrame(NDFrame, OpsMixin):
         stylesheet: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = ...,
         compression: CompressionOptions = ...,
         storage_options: StorageOptions | None = ...,
-    ) -> str:
-        ...
+    ) -> str: ...
 
     @overload
     def to_xml(
@@ -3191,8 +3232,7 @@ class DataFrame(NDFrame, OpsMixin):
         stylesheet: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = ...,
         compression: CompressionOptions = ...,
         storage_options: StorageOptions | None = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @doc(
         storage_options=_shared_docs["storage_options"],
@@ -3961,6 +4001,11 @@ class DataFrame(NDFrame, OpsMixin):
         value : scalar or arraylike
             Value(s) for the column.
 
+        See Also
+        --------
+        DataFrame.iloc : Purely integer-location based indexing for selection by
+            position.
+
         Notes
         -----
         ``frame.isetitem(loc, value)`` is an in-place method as it will
@@ -3971,6 +4016,15 @@ class DataFrame(NDFrame, OpsMixin):
 
         In cases where ``frame.columns`` is unique, this is equivalent to
         ``frame[frame.columns[i]] = value``.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
+        >>> df.isetitem(1, [5, 6])
+        >>> df
+              A  B
+        0     1  5
+        1     2  6
         """
         if isinstance(value, DataFrame):
             if is_integer(loc):
@@ -4027,7 +4081,7 @@ class DataFrame(NDFrame, OpsMixin):
         #  backwards-compat, xref GH#31469
         self.iloc[key] = value
 
-    def _setitem_array(self, key, value):
+    def _setitem_array(self, key, value) -> None:
         # also raises Exception if object array with NA values
         if com.is_bool_indexer(key):
             # bool indexer is indexing along rows
@@ -4061,7 +4115,7 @@ class DataFrame(NDFrame, OpsMixin):
             elif np.ndim(value) > 1:
                 # list of lists
                 value = DataFrame(value).values
-                return self._setitem_array(key, value)
+                self._setitem_array(key, value)
 
             else:
                 self._iset_not_inplace(key, value)
@@ -4313,16 +4367,17 @@ class DataFrame(NDFrame, OpsMixin):
     # Unsorted
 
     @overload
-    def query(self, expr: str, *, inplace: Literal[False] = ..., **kwargs) -> DataFrame:
-        ...
+    def query(
+        self, expr: str, *, inplace: Literal[False] = ..., **kwargs
+    ) -> DataFrame: ...
 
     @overload
-    def query(self, expr: str, *, inplace: Literal[True], **kwargs) -> None:
-        ...
+    def query(self, expr: str, *, inplace: Literal[True], **kwargs) -> None: ...
 
     @overload
-    def query(self, expr: str, *, inplace: bool = ..., **kwargs) -> DataFrame | None:
-        ...
+    def query(
+        self, expr: str, *, inplace: bool = ..., **kwargs
+    ) -> DataFrame | None: ...
 
     def query(self, expr: str, *, inplace: bool = False, **kwargs) -> DataFrame | None:
         """
@@ -4483,12 +4538,10 @@ class DataFrame(NDFrame, OpsMixin):
             return result
 
     @overload
-    def eval(self, expr: str, *, inplace: Literal[False] = ..., **kwargs) -> Any:
-        ...
+    def eval(self, expr: str, *, inplace: Literal[False] = ..., **kwargs) -> Any: ...
 
     @overload
-    def eval(self, expr: str, *, inplace: Literal[True], **kwargs) -> None:
-        ...
+    def eval(self, expr: str, *, inplace: Literal[True], **kwargs) -> None: ...
 
     def eval(self, expr: str, *, inplace: bool = False, **kwargs) -> Any | None:
         """
@@ -4595,7 +4648,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return _eval(expr, inplace=inplace, **kwargs)
 
-    def select_dtypes(self, include=None, exclude=None) -> Self:
+    def select_dtypes(self, include=None, exclude=None) -> DataFrame:
         """
         Return a subset of the DataFrame's columns based on the column dtypes.
 
@@ -4742,7 +4795,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         loc: int,
         column: Hashable,
-        value: Scalar | AnyArrayLike,
+        value: object,
         allow_duplicates: bool | lib.NoDefault = lib.no_default,
     ) -> None:
         """
@@ -5013,7 +5066,7 @@ class DataFrame(NDFrame, OpsMixin):
         columns=None,
         axis: Axis | None = None,
         method: ReindexMethod | None = None,
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
         level: Level | None = None,
         fill_value: Scalar | None = np.nan,
         limit: int | None = None,
@@ -5029,6 +5082,7 @@ class DataFrame(NDFrame, OpsMixin):
             fill_value=fill_value,
             limit=limit,
             tolerance=tolerance,
+            copy=copy,
         )
 
     @overload
@@ -5042,8 +5096,7 @@ class DataFrame(NDFrame, OpsMixin):
         level: Level = ...,
         inplace: Literal[True],
         errors: IgnoreRaise = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def drop(
@@ -5056,8 +5109,7 @@ class DataFrame(NDFrame, OpsMixin):
         level: Level = ...,
         inplace: Literal[False] = ...,
         errors: IgnoreRaise = ...,
-    ) -> DataFrame:
-        ...
+    ) -> DataFrame: ...
 
     @overload
     def drop(
@@ -5070,8 +5122,7 @@ class DataFrame(NDFrame, OpsMixin):
         level: Level = ...,
         inplace: bool = ...,
         errors: IgnoreRaise = ...,
-    ) -> DataFrame | None:
-        ...
+    ) -> DataFrame | None: ...
 
     def drop(
         self,
@@ -5253,8 +5304,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[True],
         level: Level = ...,
         errors: IgnoreRaise = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def rename(
@@ -5268,8 +5318,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[False] = ...,
         level: Level = ...,
         errors: IgnoreRaise = ...,
-    ) -> DataFrame:
-        ...
+    ) -> DataFrame: ...
 
     @overload
     def rename(
@@ -5283,8 +5332,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: bool = ...,
         level: Level = ...,
         errors: IgnoreRaise = ...,
-    ) -> DataFrame | None:
-        ...
+    ) -> DataFrame | None: ...
 
     def rename(
         self,
@@ -5429,7 +5477,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def pop(self, item: Hashable) -> Series:
         """
-        Return item and drop from frame. Raise KeyError if not found.
+        Return item and drop it from DataFrame. Raise KeyError if not found.
 
         Parameters
         ----------
@@ -5439,6 +5487,7 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         Series
+            Series representing the item that is dropped.
 
         Examples
         --------
@@ -5474,9 +5523,19 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return super().pop(item=item)
 
+    @overload
+    def _replace_columnwise(
+        self, mapping: dict[Hashable, tuple[Any, Any]], inplace: Literal[True], regex
+    ) -> None: ...
+
+    @overload
+    def _replace_columnwise(
+        self, mapping: dict[Hashable, tuple[Any, Any]], inplace: Literal[False], regex
+    ) -> Self: ...
+
     def _replace_columnwise(
         self, mapping: dict[Hashable, tuple[Any, Any]], inplace: bool, regex
-    ):
+    ) -> Self | None:
         """
         Dispatch to Series.replace column-wise.
 
@@ -5505,7 +5564,7 @@ class DataFrame(NDFrame, OpsMixin):
                 res._iset_item(i, newobj, inplace=inplace)
 
         if inplace:
-            return
+            return None
         return res.__finalize__(self)
 
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
@@ -5519,14 +5578,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         if freq is not None and fill_value is not lib.no_default:
             # GH#53832
-            warnings.warn(
-                "Passing a 'freq' together with a 'fill_value' silently ignores "
-                "the fill_value and is deprecated. This will raise in a future "
-                "version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            raise ValueError(
+                "Passing a 'freq' together with a 'fill_value' is not allowed."
             )
-            fill_value = lib.no_default
 
         if self.empty:
             return self.copy()
@@ -5631,8 +5685,7 @@ class DataFrame(NDFrame, OpsMixin):
         append: bool = ...,
         inplace: Literal[False] = ...,
         verify_integrity: bool = ...,
-    ) -> DataFrame:
-        ...
+    ) -> DataFrame: ...
 
     @overload
     def set_index(
@@ -5643,8 +5696,7 @@ class DataFrame(NDFrame, OpsMixin):
         append: bool = ...,
         inplace: Literal[True],
         verify_integrity: bool = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def set_index(
         self,
@@ -5864,8 +5916,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
         names: Hashable | Sequence[Hashable] | None = None,
-    ) -> DataFrame:
-        ...
+    ) -> DataFrame: ...
 
     @overload
     def reset_index(
@@ -5878,8 +5929,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
         names: Hashable | Sequence[Hashable] | None = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def reset_index(
@@ -5892,8 +5942,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
         names: Hashable | Sequence[Hashable] | None = None,
-    ) -> DataFrame | None:
-        ...
+    ) -> DataFrame | None: ...
 
     def reset_index(
         self,
@@ -6179,8 +6228,7 @@ class DataFrame(NDFrame, OpsMixin):
         subset: IndexLabel = ...,
         inplace: Literal[False] = ...,
         ignore_index: bool = ...,
-    ) -> DataFrame:
-        ...
+    ) -> DataFrame: ...
 
     @overload
     def dropna(
@@ -6192,8 +6240,7 @@ class DataFrame(NDFrame, OpsMixin):
         subset: IndexLabel = ...,
         inplace: Literal[True],
         ignore_index: bool = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def dropna(
         self,
@@ -6201,7 +6248,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = 0,
         how: AnyAll | lib.NoDefault = lib.no_default,
         thresh: int | lib.NoDefault = lib.no_default,
-        subset: IndexLabel | None = None,
+        subset: IndexLabel | AnyArrayLike | None = None,
         inplace: bool = False,
         ignore_index: bool = False,
     ) -> DataFrame | None:
@@ -6325,7 +6372,7 @@ class DataFrame(NDFrame, OpsMixin):
         if subset is not None:
             # subset needs to be list
             if not is_list_like(subset):
-                subset = [subset]
+                subset = [cast(Hashable, subset)]
             ax = self._get_axis(agg_axis)
             indices = ax.get_indexer_for(subset)
             check = indices == -1
@@ -6366,8 +6413,7 @@ class DataFrame(NDFrame, OpsMixin):
         keep: DropKeep = ...,
         inplace: Literal[True],
         ignore_index: bool = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def drop_duplicates(
@@ -6377,8 +6423,7 @@ class DataFrame(NDFrame, OpsMixin):
         keep: DropKeep = ...,
         inplace: Literal[False] = ...,
         ignore_index: bool = ...,
-    ) -> DataFrame:
-        ...
+    ) -> DataFrame: ...
 
     @overload
     def drop_duplicates(
@@ -6388,8 +6433,7 @@ class DataFrame(NDFrame, OpsMixin):
         keep: DropKeep = ...,
         inplace: bool = ...,
         ignore_index: bool = ...,
-    ) -> DataFrame | None:
-        ...
+    ) -> DataFrame | None: ...
 
     def drop_duplicates(
         self,
@@ -6430,6 +6474,11 @@ class DataFrame(NDFrame, OpsMixin):
         See Also
         --------
         DataFrame.value_counts: Count unique combinations of columns.
+
+        Notes
+        -----
+        This method requires columns specified by ``subset`` to be of hashable type.
+        Passing unhashable columns will raise a ``TypeError``.
 
         Examples
         --------
@@ -6643,8 +6692,7 @@ class DataFrame(NDFrame, OpsMixin):
         na_position: NaPosition = ...,
         ignore_index: bool = ...,
         key: ValueKeyFunc = ...,
-    ) -> DataFrame:
-        ...
+    ) -> DataFrame: ...
 
     @overload
     def sort_values(
@@ -6658,8 +6706,7 @@ class DataFrame(NDFrame, OpsMixin):
         na_position: str = ...,
         ignore_index: bool = ...,
         key: ValueKeyFunc = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def sort_values(
         self,
@@ -6740,7 +6787,9 @@ class DataFrame(NDFrame, OpsMixin):
         4    D     7     2    e
         5    C     4     3    F
 
-        Sort by col1
+        **Sort by a single column**
+
+        In this case, we are sorting the rows according to values in ``col1``:
 
         >>> df.sort_values(by=["col1"])
           col1  col2  col3 col4
@@ -6751,7 +6800,12 @@ class DataFrame(NDFrame, OpsMixin):
         4    D     7     2    e
         3  NaN     8     4    D
 
-        Sort by multiple columns
+        **Sort by multiple columns**
+
+        You can also provide multiple columns to ``by`` argument, as shown below.
+        In this example, the rows are first sorted according to ``col1``, and then
+        the rows that have an identical value in ``col1`` are sorted according
+        to ``col2``.
 
         >>> df.sort_values(by=["col1", "col2"])
           col1  col2  col3 col4
@@ -6762,7 +6816,9 @@ class DataFrame(NDFrame, OpsMixin):
         4    D     7     2    e
         3  NaN     8     4    D
 
-        Sort Descending
+        **Sort in a descending order**
+
+        The sort order can be reversed using ``ascending`` argument, as shown below:
 
         >>> df.sort_values(by="col1", ascending=False)
           col1  col2  col3 col4
@@ -6773,7 +6829,11 @@ class DataFrame(NDFrame, OpsMixin):
         1    A     1     1    B
         3  NaN     8     4    D
 
-        Putting NAs first
+        **Placing any** ``NA`` **first**
+
+        Note that in the above example, the rows that contain an ``NA`` value in their
+        ``col1`` are placed at the end of the dataframe. This behavior can be modified
+        via ``na_position`` argument, as shown below:
 
         >>> df.sort_values(by="col1", ascending=False, na_position="first")
           col1  col2  col3 col4
@@ -6784,7 +6844,12 @@ class DataFrame(NDFrame, OpsMixin):
         0    A     2     0    a
         1    A     1     1    B
 
-        Sorting with a key function
+        **Customized sort order**
+
+        The ``key`` argument allows for a further customization of sorting behaviour.
+        For example, you may want
+        to ignore the `letter's case <https://en.wikipedia.org/wiki/Letter_case>`__
+        when sorting strings:
 
         >>> df.sort_values(by="col4", key=lambda col: col.str.lower())
            col1  col2  col3 col4
@@ -6795,8 +6860,12 @@ class DataFrame(NDFrame, OpsMixin):
         4    D     7     2    e
         5    C     4     3    F
 
-        Natural sort with the key argument,
-        using the `natsort <https://github.com/SethMMorton/natsort>` package.
+        Another typical example is
+        `natural sorting <https://en.wikipedia.org/wiki/Natural_sort_order>`__.
+        This can be done using
+        ``natsort`` `package <https://github.com/SethMMorton/natsort>`__,
+        which provides sorted indices according
+        to their natural order, as shown below:
 
         >>> df = pd.DataFrame(
         ...     {
@@ -6812,8 +6881,11 @@ class DataFrame(NDFrame, OpsMixin):
         3   48hr     40
         4   96hr     50
         >>> from natsort import index_natsorted
+        >>> index_natsorted(df["time"])
+        [0, 3, 2, 4, 1]
         >>> df.sort_values(
-        ...     by="time", key=lambda x: np.argsort(index_natsorted(df["time"]))
+        ...     by="time",
+        ...     key=lambda x: np.argsort(index_natsorted(x)),
         ... )
             time  value
         0    0hr     10
@@ -6914,8 +6986,7 @@ class DataFrame(NDFrame, OpsMixin):
         sort_remaining: bool = ...,
         ignore_index: bool = ...,
         key: IndexKeyFunc = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def sort_index(
@@ -6930,8 +7001,7 @@ class DataFrame(NDFrame, OpsMixin):
         sort_remaining: bool = ...,
         ignore_index: bool = ...,
         key: IndexKeyFunc = ...,
-    ) -> DataFrame:
-        ...
+    ) -> DataFrame: ...
 
     @overload
     def sort_index(
@@ -6946,8 +7016,7 @@ class DataFrame(NDFrame, OpsMixin):
         sort_remaining: bool = ...,
         ignore_index: bool = ...,
         key: IndexKeyFunc = ...,
-    ) -> DataFrame | None:
-        ...
+    ) -> DataFrame | None: ...
 
     def sort_index(
         self,
@@ -7368,6 +7437,7 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
+            DataFrame with the first `n` rows ordered by `columns` in ascending order.
 
         See Also
         --------
@@ -7547,7 +7617,9 @@ class DataFrame(NDFrame, OpsMixin):
 
     def reorder_levels(self, order: Sequence[int | str], axis: Axis = 0) -> DataFrame:
         """
-        Rearrange index levels using input order. May not drop or duplicate levels.
+        Rearrange index or column levels using input ``order``.
+
+        May not drop or duplicate levels.
 
         Parameters
         ----------
@@ -7560,6 +7632,7 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
+            DataFrame with indices or columns with reordered levels.
 
         Examples
         --------
@@ -8627,6 +8700,10 @@ class DataFrame(NDFrame, OpsMixin):
         dict.update : Similar method for dictionaries.
         DataFrame.merge : For column(s)-on-column(s) operations.
 
+        Notes
+        -----
+        1. Duplicate indices on `other` are not supported and raises `ValueError`.
+
         Examples
         --------
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [400, 500, 600]})
@@ -8699,11 +8776,22 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(other, DataFrame):
             other = DataFrame(other)
 
-        other = other.reindex(self.index)
+        if other.index.has_duplicates:
+            raise ValueError("Update not allowed with duplicate indexes on other.")
+
+        index_intersection = other.index.intersection(self.index)
+        if index_intersection.empty:
+            raise ValueError(
+                "Update not allowed when the index on `other` has no intersection "
+                "with this dataframe."
+            )
+
+        other = other.reindex(index_intersection)
+        this_data = self.loc[index_intersection]
 
         for col in self.columns.intersection(other.columns):
-            this = self[col]._values
-            that = other[col]._values
+            this = this_data[col]
+            that = other[col]
 
             if filter_func is not None:
                 mask = ~filter_func(this) | isna(that)
@@ -8723,7 +8811,7 @@ class DataFrame(NDFrame, OpsMixin):
             if mask.all():
                 continue
 
-            self.loc[:, col] = self[col].where(mask, that)
+            self.loc[index_intersection, col] = this.where(mask, that)
 
     # ----------------------------------------------------------------------
     # Data reshaping
@@ -9217,7 +9305,7 @@ class DataFrame(NDFrame, OpsMixin):
             section.
         sort : bool, default True
             Whether to sort the levels of the resulting MultiIndex.
-        future_stack : bool, default False
+        future_stack : bool, default True
             Whether to use the new implementation that will replace the current
             implementation in pandas 3.0. When True, dropna and sort have no impact
             on the result and must remain unspecified. See :ref:`pandas 2.1.0 Release
@@ -9594,7 +9682,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         return result.__finalize__(self, method="unstack")
 
-    @Appender(_shared_docs["melt"] % {"caller": "df.melt(", "other": "melt"})
     def melt(
         self,
         id_vars=None,
@@ -9604,6 +9691,127 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Level | None = None,
         ignore_index: bool = True,
     ) -> DataFrame:
+        """
+        Unpivot DataFrame from wide to long format, optionally leaving identifiers set.
+
+        This function is useful to massage a DataFrame into a format where one
+        or more columns are identifier variables (`id_vars`), while all other
+        columns, considered measured variables (`value_vars`), are "unpivoted" to
+        the row axis, leaving just two non-identifier columns, 'variable' and
+        'value'.
+
+        Parameters
+        ----------
+        id_vars : scalar, tuple, list, or ndarray, optional
+            Column(s) to use as identifier variables.
+        value_vars : scalar, tuple, list, or ndarray, optional
+            Column(s) to unpivot. If not specified, uses all columns that
+            are not set as `id_vars`.
+        var_name : scalar, default None
+            Name to use for the 'variable' column. If None it uses
+            ``frame.columns.name`` or 'variable'.
+        value_name : scalar, default 'value'
+            Name to use for the 'value' column, can't be an existing column label.
+        col_level : scalar, optional
+            If columns are a MultiIndex then use this level to melt.
+        ignore_index : bool, default True
+            If True, original index is ignored. If False, original index is retained.
+            Index labels will be repeated as necessary.
+
+        Returns
+        -------
+        DataFrame
+            Unpivoted DataFrame.
+
+        See Also
+        --------
+        melt : Identical method.
+        pivot_table : Create a spreadsheet-style pivot table as a DataFrame.
+        DataFrame.pivot : Return reshaped DataFrame organized
+            by given index / column values.
+        DataFrame.explode : Explode a DataFrame from list-like
+                columns to long format.
+
+        Notes
+        -----
+        Reference :ref:`the user guide <reshaping.melt>` for more examples.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "A": {0: "a", 1: "b", 2: "c"},
+        ...         "B": {0: 1, 1: 3, 2: 5},
+        ...         "C": {0: 2, 1: 4, 2: 6},
+        ...     }
+        ... )
+        >>> df
+        A  B  C
+        0  a  1  2
+        1  b  3  4
+        2  c  5  6
+
+        >>> df.melt(id_vars=["A"], value_vars=["B"])
+        A variable  value
+        0  a        B      1
+        1  b        B      3
+        2  c        B      5
+
+        >>> df.melt(id_vars=["A"], value_vars=["B", "C"])
+        A variable  value
+        0  a        B      1
+        1  b        B      3
+        2  c        B      5
+        3  a        C      2
+        4  b        C      4
+        5  c        C      6
+
+        The names of 'variable' and 'value' columns can be customized:
+
+        >>> df.melt(
+        ...     id_vars=["A"],
+        ...     value_vars=["B"],
+        ...     var_name="myVarname",
+        ...     value_name="myValname",
+        ... )
+        A myVarname  myValname
+        0  a         B          1
+        1  b         B          3
+        2  c         B          5
+
+        Original index values can be kept around:
+
+        >>> df.melt(id_vars=["A"], value_vars=["B", "C"], ignore_index=False)
+        A variable  value
+        0  a        B      1
+        1  b        B      3
+        2  c        B      5
+        0  a        C      2
+        1  b        C      4
+        2  c        C      6
+
+        If you have multi-index columns:
+
+        >>> df.columns = [list("ABC"), list("DEF")]
+        >>> df
+        A  B  C
+        D  E  F
+        0  a  1  2
+        1  b  3  4
+        2  c  5  6
+
+        >>> df.melt(col_level=0, id_vars=["A"], value_vars=["B"])
+        A variable  value
+        0  a        B      1
+        1  b        B      3
+        2  c        B      5
+
+        >>> df.melt(id_vars=[("A", "D")], value_vars=[("B", "E")])
+        (A, D) variable_0 variable_1  value
+        0      a          B          E      1
+        1      b          B          E      3
+        2      c          B          E      5
+        """
         return melt(
             self,
             id_vars=id_vars,
@@ -11232,8 +11440,7 @@ class DataFrame(NDFrame, OpsMixin):
         bool_only: bool = ...,
         skipna: bool = ...,
         **kwargs,
-    ) -> Series:
-        ...
+    ) -> Series: ...
 
     @overload
     def any(
@@ -11243,8 +11450,7 @@ class DataFrame(NDFrame, OpsMixin):
         bool_only: bool = ...,
         skipna: bool = ...,
         **kwargs,
-    ) -> bool:
-        ...
+    ) -> bool: ...
 
     @overload
     def any(
@@ -11254,8 +11460,7 @@ class DataFrame(NDFrame, OpsMixin):
         bool_only: bool = ...,
         skipna: bool = ...,
         **kwargs,
-    ) -> Series | bool:
-        ...
+    ) -> Series | bool: ...
 
     @doc(make_doc("any", ndim=2))
     def any(
@@ -11281,8 +11486,7 @@ class DataFrame(NDFrame, OpsMixin):
         bool_only: bool = ...,
         skipna: bool = ...,
         **kwargs,
-    ) -> Series:
-        ...
+    ) -> Series: ...
 
     @overload
     def all(
@@ -11292,8 +11496,7 @@ class DataFrame(NDFrame, OpsMixin):
         bool_only: bool = ...,
         skipna: bool = ...,
         **kwargs,
-    ) -> bool:
-        ...
+    ) -> bool: ...
 
     @overload
     def all(
@@ -11303,8 +11506,7 @@ class DataFrame(NDFrame, OpsMixin):
         bool_only: bool = ...,
         skipna: bool = ...,
         **kwargs,
-    ) -> Series | bool:
-        ...
+    ) -> Series | bool: ...
 
     @doc(make_doc("all", ndim=2))
     def all(
@@ -11330,8 +11532,7 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Series:
-        ...
+    ) -> Series: ...
 
     @overload
     def min(
@@ -11341,8 +11542,7 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Any:
-        ...
+    ) -> Any: ...
 
     @overload
     def min(
@@ -11352,8 +11552,7 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Series | Any:
-        ...
+    ) -> Series | Any: ...
 
     @doc(make_doc("min", ndim=2))
     def min(
@@ -11379,8 +11578,7 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Series:
-        ...
+    ) -> Series: ...
 
     @overload
     def max(
@@ -11390,8 +11588,7 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Any:
-        ...
+    ) -> Any: ...
 
     @overload
     def max(
@@ -11401,8 +11598,7 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Series | Any:
-        ...
+    ) -> Series | Any: ...
 
     @doc(make_doc("max", ndim=2))
     def max(
@@ -11435,7 +11631,9 @@ class DataFrame(NDFrame, OpsMixin):
             min_count=min_count,
             **kwargs,
         )
-        return result.__finalize__(self, method="sum")
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="sum")
+        return result
 
     @doc(make_doc("prod", ndim=2))
     def prod(
@@ -11453,7 +11651,9 @@ class DataFrame(NDFrame, OpsMixin):
             min_count=min_count,
             **kwargs,
         )
-        return result.__finalize__(self, method="prod")
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="prod")
+        return result
 
     # error: Signature of "mean" incompatible with supertype "NDFrame"
     @overload  # type: ignore[override]
@@ -11464,8 +11664,7 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Series:
-        ...
+    ) -> Series: ...
 
     @overload
     def mean(
@@ -11475,8 +11674,7 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Any:
-        ...
+    ) -> Any: ...
 
     @overload
     def mean(
@@ -11486,8 +11684,7 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Series | Any:
-        ...
+    ) -> Series | Any: ...
 
     @doc(make_doc("mean", ndim=2))
     def mean(
@@ -11513,8 +11710,7 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Series:
-        ...
+    ) -> Series: ...
 
     @overload
     def median(
@@ -11524,8 +11720,7 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Any:
-        ...
+    ) -> Any: ...
 
     @overload
     def median(
@@ -11535,8 +11730,7 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Series | Any:
-        ...
+    ) -> Series | Any: ...
 
     @doc(make_doc("median", ndim=2))
     def median(
@@ -11563,8 +11757,7 @@ class DataFrame(NDFrame, OpsMixin):
         ddof: int = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Series:
-        ...
+    ) -> Series: ...
 
     @overload
     def sem(
@@ -11575,8 +11768,7 @@ class DataFrame(NDFrame, OpsMixin):
         ddof: int = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Any:
-        ...
+    ) -> Any: ...
 
     @overload
     def sem(
@@ -11587,8 +11779,7 @@ class DataFrame(NDFrame, OpsMixin):
         ddof: int = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Series | Any:
-        ...
+    ) -> Series | Any: ...
 
     @doc(make_doc("sem", ndim=2))
     def sem(
@@ -11616,8 +11807,7 @@ class DataFrame(NDFrame, OpsMixin):
         ddof: int = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Series:
-        ...
+    ) -> Series: ...
 
     @overload
     def var(
@@ -11628,8 +11818,7 @@ class DataFrame(NDFrame, OpsMixin):
         ddof: int = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Any:
-        ...
+    ) -> Any: ...
 
     @overload
     def var(
@@ -11640,8 +11829,7 @@ class DataFrame(NDFrame, OpsMixin):
         ddof: int = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Series | Any:
-        ...
+    ) -> Series | Any: ...
 
     @doc(make_doc("var", ndim=2))
     def var(
@@ -11669,8 +11857,7 @@ class DataFrame(NDFrame, OpsMixin):
         ddof: int = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Series:
-        ...
+    ) -> Series: ...
 
     @overload
     def std(
@@ -11681,8 +11868,7 @@ class DataFrame(NDFrame, OpsMixin):
         ddof: int = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Any:
-        ...
+    ) -> Any: ...
 
     @overload
     def std(
@@ -11693,8 +11879,7 @@ class DataFrame(NDFrame, OpsMixin):
         ddof: int = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Series | Any:
-        ...
+    ) -> Series | Any: ...
 
     @doc(make_doc("std", ndim=2))
     def std(
@@ -11721,8 +11906,7 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Series:
-        ...
+    ) -> Series: ...
 
     @overload
     def skew(
@@ -11732,8 +11916,7 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Any:
-        ...
+    ) -> Any: ...
 
     @overload
     def skew(
@@ -11743,8 +11926,7 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Series | Any:
-        ...
+    ) -> Series | Any: ...
 
     @doc(make_doc("skew", ndim=2))
     def skew(
@@ -11770,8 +11952,7 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Series:
-        ...
+    ) -> Series: ...
 
     @overload
     def kurt(
@@ -11781,8 +11962,7 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Any:
-        ...
+    ) -> Any: ...
 
     @overload
     def kurt(
@@ -11792,8 +11972,7 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = ...,
         numeric_only: bool = ...,
         **kwargs,
-    ) -> Series | Any:
-        ...
+    ) -> Series | Any: ...
 
     @doc(make_doc("kurt", ndim=2))
     def kurt(
@@ -11815,19 +11994,19 @@ class DataFrame(NDFrame, OpsMixin):
     product = prod
 
     @doc(make_doc("cummin", ndim=2))
-    def cummin(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+    def cummin(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
         return NDFrame.cummin(self, axis, skipna, *args, **kwargs)
 
     @doc(make_doc("cummax", ndim=2))
-    def cummax(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+    def cummax(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
         return NDFrame.cummax(self, axis, skipna, *args, **kwargs)
 
     @doc(make_doc("cumsum", ndim=2))
-    def cumsum(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+    def cumsum(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
         return NDFrame.cumsum(self, axis, skipna, *args, **kwargs)
 
     @doc(make_doc("cumprod", 2))
-    def cumprod(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+    def cumprod(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
         return NDFrame.cumprod(self, axis, skipna, *args, **kwargs)
 
     def nunique(self, axis: Axis = 0, dropna: bool = True) -> Series:
@@ -11848,6 +12027,7 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         Series
+            Series with counts of unique values per row or column, depending on `axis`.
 
         See Also
         --------
@@ -12059,8 +12239,7 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = ...,
         interpolation: QuantileInterpolation = ...,
         method: Literal["single", "table"] = ...,
-    ) -> Series:
-        ...
+    ) -> Series: ...
 
     @overload
     def quantile(
@@ -12070,8 +12249,7 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = ...,
         interpolation: QuantileInterpolation = ...,
         method: Literal["single", "table"] = ...,
-    ) -> Series | DataFrame:
-        ...
+    ) -> Series | DataFrame: ...
 
     @overload
     def quantile(
@@ -12081,8 +12259,7 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = ...,
         interpolation: QuantileInterpolation = ...,
         method: Literal["single", "table"] = ...,
-    ) -> Series | DataFrame:
-        ...
+    ) -> Series | DataFrame: ...
 
     def quantile(
         self,
@@ -12710,8 +12887,12 @@ class DataFrame(NDFrame, OpsMixin):
         return self._mgr.as_array()
 
 
-def _from_nested_dict(data) -> collections.defaultdict:
-    new_data: collections.defaultdict = collections.defaultdict(dict)
+def _from_nested_dict(
+    data: Mapping[HashableT, Mapping[HashableT2, T]],
+) -> collections.defaultdict[HashableT2, dict[HashableT, T]]:
+    new_data: collections.defaultdict[HashableT2, dict[HashableT, T]] = (
+        collections.defaultdict(dict)
+    )
     for index, s in data.items():
         for col, v in s.items():
             new_data[col][index] = v

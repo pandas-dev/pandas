@@ -1,4 +1,4 @@
-""" Test cases for DataFrame.plot """
+"""Test cases for DataFrame.plot"""
 
 import string
 
@@ -187,9 +187,9 @@ class TestDataFramePlotsSubplots:
         data = {
             "numeric": np.array([1, 2, 5]),
             "period": [
-                pd.Period("2017-08-01 00:00:00", freq="H"),
-                pd.Period("2017-08-01 02:00", freq="H"),
-                pd.Period("2017-08-02 00:00:00", freq="H"),
+                pd.Period("2017-08-01 00:00:00", freq="h"),
+                pd.Period("2017-08-01 02:00", freq="h"),
+                pd.Period("2017-08-02 00:00:00", freq="h"),
             ],
             "categorical": pd.Categorical(
                 ["c", "b", "a"], categories=["a", "b", "c"], ordered=False
@@ -544,7 +544,7 @@ class TestDataFramePlotsSubplots:
         tm.assert_numpy_array_equal(axs[0].get_xticks(), expected_ax1)
         tm.assert_numpy_array_equal(axs[1].get_xticks(), expected_ax2)
 
-    def test_subplots_constrained_layout(self):
+    def test_subplots_constrained_layout(self, temp_file):
         # GH 25261
         idx = date_range(start="now", periods=10)
         df = DataFrame(np.random.default_rng(2).random((10, 3)), index=idx)
@@ -554,7 +554,7 @@ class TestDataFramePlotsSubplots:
         _, axes = mpl.pyplot.subplots(2, **kwargs)
         with tm.assert_produces_warning(None):
             df.plot(ax=axes[0])
-            with tm.ensure_clean(return_filelike=True) as path:
+            with temp_file.open(mode="wb") as path:
                 mpl.pyplot.savefig(path)
 
     @pytest.mark.parametrize(

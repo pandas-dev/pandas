@@ -659,7 +659,9 @@ class ArrowExtensionArray(
         """Convert myself to a pyarrow ChunkedArray."""
         return self._pa_array
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(
+        self, dtype: NpDtype | None = None, copy: bool | None = None
+    ) -> np.ndarray:
         """Correctly construct numpy arrays when passed to `np.asarray()`."""
         return self.to_numpy(dtype=dtype)
 
@@ -850,12 +852,10 @@ class ArrowExtensionArray(
         return self._pa_array.is_null().to_numpy()
 
     @overload
-    def any(self, *, skipna: Literal[True] = ..., **kwargs) -> bool:
-        ...
+    def any(self, *, skipna: Literal[True] = ..., **kwargs) -> bool: ...
 
     @overload
-    def any(self, *, skipna: bool, **kwargs) -> bool | NAType:
-        ...
+    def any(self, *, skipna: bool, **kwargs) -> bool | NAType: ...
 
     def any(self, *, skipna: bool = True, **kwargs) -> bool | NAType:
         """
@@ -916,12 +916,10 @@ class ArrowExtensionArray(
         return self._reduce("any", skipna=skipna, **kwargs)
 
     @overload
-    def all(self, *, skipna: Literal[True] = ..., **kwargs) -> bool:
-        ...
+    def all(self, *, skipna: Literal[True] = ..., **kwargs) -> bool: ...
 
     @overload
-    def all(self, *, skipna: bool, **kwargs) -> bool | NAType:
-        ...
+    def all(self, *, skipna: bool, **kwargs) -> bool | NAType: ...
 
     def all(self, *, skipna: bool = True, **kwargs) -> bool | NAType:
         """
@@ -2918,7 +2916,9 @@ class ArrowExtensionArray(
             locale = "C"
         return type(self)(pc.strftime(self._pa_array, format="%B", locale=locale))
 
-    def _dt_to_pydatetime(self) -> np.ndarray:
+    def _dt_to_pydatetime(self) -> Series:
+        from pandas import Series
+
         if pa.types.is_date(self.dtype.pyarrow_dtype):
             raise ValueError(
                 f"to_pydatetime cannot be called with {self.dtype.pyarrow_dtype} type. "
@@ -2927,7 +2927,7 @@ class ArrowExtensionArray(
         data = self._pa_array.to_pylist()
         if self._dtype.pyarrow_dtype.unit == "ns":
             data = [None if ts is None else ts.to_pydatetime(warn=False) for ts in data]
-        return np.array(data, dtype=object)
+        return Series(data, dtype=object)
 
     def _dt_tz_localize(
         self,

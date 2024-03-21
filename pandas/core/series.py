@@ -1,6 +1,7 @@
 """
 Data structure for 1-dimensional cross-sectional and time series data
 """
+
 from __future__ import annotations
 
 from collections.abc import (
@@ -33,7 +34,6 @@ from pandas._libs import (
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
 from pandas.compat._constants import REF_COUNT
-from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     ChainedAssignmentError,
@@ -46,6 +46,7 @@ from pandas.errors.cow import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import find_stack_level
@@ -451,7 +452,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 data = data.reindex(index)
                 copy = False
                 data = data._mgr
-        elif is_dict_like(data):
+        elif isinstance(data, Mapping):
             data, index = self._init_dict(data, index, dtype)
             dtype = None
             copy = False
@@ -518,7 +519,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 )
 
     def _init_dict(
-        self, data, index: Index | None = None, dtype: DtypeObj | None = None
+        self, data: Mapping, index: Index | None = None, dtype: DtypeObj | None = None
     ):
         """
         Derive the "_mgr" and "index" attributes of a new Series from a
@@ -571,7 +572,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # ----------------------------------------------------------------------
 
     @property
-    def _constructor(self) -> Callable[..., Series]:
+    def _constructor(self) -> type[Series]:
         return Series
 
     def _constructor_from_mgr(self, mgr, axes):
@@ -789,7 +790,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     # ----------------------------------------------------------------------
     # NDArray Compat
-    def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
+    def __array__(
+        self, dtype: npt.DTypeLike | None = None, copy: bool | None = None
+    ) -> np.ndarray:
         """
         Return the values as a NumPy array.
 
@@ -801,6 +804,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype : str or numpy.dtype, optional
             The dtype to use for the resulting NumPy array. By default,
             the dtype is inferred from the data.
+
+        copy : bool or None, optional
+            Unused.
 
         Returns
         -------
@@ -842,22 +848,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             arr = arr.view()
             arr.flags.writeable = False
         return arr
-
-    # ----------------------------------------------------------------------
-
-    def __column_consortium_standard__(self, *, api_version: str | None = None) -> Any:
-        """
-        Provide entry point to the Consortium DataFrame Standard API.
-
-        This is developed and maintained outside of pandas.
-        Please report any issues to https://github.com/data-apis/dataframe-api-compat.
-        """
-        dataframe_api_compat = import_optional_dependency("dataframe_api_compat")
-        return (
-            dataframe_api_compat.pandas_standard.convert_to_standard_compliant_column(
-                self, api_version=api_version
-            )
-        )
 
     # ----------------------------------------------------------------------
 
@@ -1293,8 +1283,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name: Level = ...,
         inplace: Literal[False] = ...,
         allow_duplicates: bool = ...,
-    ) -> DataFrame:
-        ...
+    ) -> DataFrame: ...
 
     @overload
     def reset_index(
@@ -1305,8 +1294,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name: Level = ...,
         inplace: Literal[False] = ...,
         allow_duplicates: bool = ...,
-    ) -> Series:
-        ...
+    ) -> Series: ...
 
     @overload
     def reset_index(
@@ -1317,8 +1305,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name: Level = ...,
         inplace: Literal[True],
         allow_duplicates: bool = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def reset_index(
         self,
@@ -1488,6 +1475,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def to_string(
         self,
         buf: None = ...,
+        *,
         na_rep: str = ...,
         float_format: str | None = ...,
         header: bool = ...,
@@ -1497,13 +1485,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name=...,
         max_rows: int | None = ...,
         min_rows: int | None = ...,
-    ) -> str:
-        ...
+    ) -> str: ...
 
     @overload
     def to_string(
         self,
         buf: FilePath | WriteBuffer[str],
+        *,
         na_rep: str = ...,
         float_format: str | None = ...,
         header: bool = ...,
@@ -1513,9 +1501,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name=...,
         max_rows: int | None = ...,
         min_rows: int | None = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0.0", allowed_args=["self", "buf"], name="to_string"
+    )
     def to_string(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
@@ -1600,6 +1590,39 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     f.write(result)
         return None
 
+    @overload
+    def to_markdown(
+        self,
+        buf: None = ...,
+        *,
+        mode: str = ...,
+        index: bool = ...,
+        storage_options: StorageOptions | None = ...,
+        **kwargs,
+    ) -> str: ...
+
+    @overload
+    def to_markdown(
+        self,
+        buf: IO[str],
+        *,
+        mode: str = ...,
+        index: bool = ...,
+        storage_options: StorageOptions | None = ...,
+        **kwargs,
+    ) -> None: ...
+
+    @overload
+    def to_markdown(
+        self,
+        buf: IO[str] | None,
+        *,
+        mode: str = ...,
+        index: bool = ...,
+        storage_options: StorageOptions | None = ...,
+        **kwargs,
+    ) -> str | None: ...
+
     @doc(
         klass=_shared_doc_kwargs["klass"],
         storage_options=_shared_docs["storage_options"],
@@ -1630,6 +1653,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             |  3 | quetzal  |
             +----+----------+"""
         ),
+    )
+    @deprecate_nonkeyword_arguments(
+        version="3.0.0", allowed_args=["self", "buf"], name="to_markdown"
     )
     def to_markdown(
         self,
@@ -1726,12 +1752,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @overload
     def to_dict(
         self, *, into: type[MutableMappingT] | MutableMappingT
-    ) -> MutableMappingT:
-        ...
+    ) -> MutableMappingT: ...
 
     @overload
-    def to_dict(self, *, into: type[dict] = ...) -> dict:
-        ...
+    def to_dict(self, *, into: type[dict] = ...) -> dict: ...
 
     # error: Incompatible default for argument "into" (default has type "type[
     # dict[Any, Any]]", argument has type "type[MutableMappingT] | MutableMappingT")
@@ -2107,20 +2131,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         keep: DropKeep = ...,
         inplace: Literal[False] = ...,
         ignore_index: bool = ...,
-    ) -> Series:
-        ...
+    ) -> Series: ...
 
     @overload
     def drop_duplicates(
         self, *, keep: DropKeep = ..., inplace: Literal[True], ignore_index: bool = ...
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def drop_duplicates(
         self, *, keep: DropKeep = ..., inplace: bool = ..., ignore_index: bool = ...
-    ) -> Series | None:
-        ...
+    ) -> Series | None: ...
 
     def drop_duplicates(
         self,
@@ -2506,24 +2527,21 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @overload
     def quantile(
         self, q: float = ..., interpolation: QuantileInterpolation = ...
-    ) -> float:
-        ...
+    ) -> float: ...
 
     @overload
     def quantile(
         self,
         q: Sequence[float] | AnyArrayLike,
         interpolation: QuantileInterpolation = ...,
-    ) -> Series:
-        ...
+    ) -> Series: ...
 
     @overload
     def quantile(
         self,
         q: float | Sequence[float] | AnyArrayLike = ...,
         interpolation: QuantileInterpolation = ...,
-    ) -> float | Series:
-        ...
+    ) -> float | Series: ...
 
     def quantile(
         self,
@@ -2863,7 +2881,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self.corr(cast(Series, self.shift(lag)))
 
-    def dot(self, other: AnyArrayLike) -> Series | np.ndarray:
+    def dot(self, other: AnyArrayLike | DataFrame) -> Series | np.ndarray:
         """
         Compute the dot product between the Series and the columns of other.
 
@@ -3336,8 +3354,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         na_position: NaPosition = ...,
         ignore_index: bool = ...,
         key: ValueKeyFunc = ...,
-    ) -> Series:
-        ...
+    ) -> Series: ...
 
     @overload
     def sort_values(
@@ -3350,8 +3367,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         na_position: NaPosition = ...,
         ignore_index: bool = ...,
         key: ValueKeyFunc = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def sort_values(
@@ -3364,8 +3380,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         na_position: NaPosition = ...,
         ignore_index: bool = ...,
         key: ValueKeyFunc = ...,
-    ) -> Series | None:
-        ...
+    ) -> Series | None: ...
 
     def sort_values(
         self,
@@ -3574,8 +3589,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         sort_remaining: bool = ...,
         ignore_index: bool = ...,
         key: IndexKeyFunc = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def sort_index(
@@ -3590,8 +3604,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         sort_remaining: bool = ...,
         ignore_index: bool = ...,
         key: IndexKeyFunc = ...,
-    ) -> Series:
-        ...
+    ) -> Series: ...
 
     @overload
     def sort_index(
@@ -3606,8 +3619,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         sort_remaining: bool = ...,
         ignore_index: bool = ...,
         key: IndexKeyFunc = ...,
-    ) -> Series | None:
-        ...
+    ) -> Series | None: ...
 
     def sort_index(
         self,
@@ -4635,8 +4647,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         inplace: Literal[True],
         level: Level | None = ...,
         errors: IgnoreRaise = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def rename(
@@ -4648,8 +4659,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         inplace: Literal[False] = ...,
         level: Level | None = ...,
         errors: IgnoreRaise = ...,
-    ) -> Series:
-        ...
+    ) -> Series: ...
 
     @overload
     def rename(
@@ -4661,8 +4671,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         inplace: bool = ...,
         level: Level | None = ...,
         errors: IgnoreRaise = ...,
-    ) -> Series | None:
-        ...
+    ) -> Series | None: ...
 
     def rename(
         self,
@@ -4816,7 +4825,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         *,
         axis: Axis | None = None,
         method: ReindexMethod | None = None,
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
         level: Level | None = None,
         fill_value: Scalar | None = None,
         limit: int | None = None,
@@ -4829,6 +4838,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             fill_value=fill_value,
             limit=limit,
             tolerance=tolerance,
+            copy=copy,
         )
 
     @overload  # type: ignore[override]
@@ -4840,8 +4850,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = ...,
         copy: bool = ...,
         inplace: Literal[True],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def rename_axis(
@@ -4852,8 +4861,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = ...,
         copy: bool = ...,
         inplace: Literal[False] = ...,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     @overload
     def rename_axis(
@@ -4864,8 +4872,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = ...,
         copy: bool = ...,
         inplace: bool = ...,
-    ) -> Self | None:
-        ...
+    ) -> Self | None: ...
 
     def rename_axis(
         self,
@@ -4955,8 +4962,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level: Level | None = ...,
         inplace: Literal[True],
         errors: IgnoreRaise = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def drop(
@@ -4969,8 +4975,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level: Level | None = ...,
         inplace: Literal[False] = ...,
         errors: IgnoreRaise = ...,
-    ) -> Series:
-        ...
+    ) -> Series: ...
 
     @overload
     def drop(
@@ -4983,8 +4988,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level: Level | None = ...,
         inplace: bool = ...,
         errors: IgnoreRaise = ...,
-    ) -> Series | None:
-        ...
+    ) -> Series | None: ...
 
     def drop(
         self,
@@ -5135,8 +5139,25 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             show_counts=show_counts,
         )
 
+    @overload
+    def _replace_single(
+        self, to_replace, method: str, inplace: Literal[False], limit
+    ) -> Self: ...
+
+    @overload
+    def _replace_single(
+        self, to_replace, method: str, inplace: Literal[True], limit
+    ) -> None: ...
+
+    @overload
+    def _replace_single(
+        self, to_replace, method: str, inplace: bool, limit
+    ) -> Self | None: ...
+
     # TODO(3.0): this can be removed once GH#33302 deprecation is enforced
-    def _replace_single(self, to_replace, method: str, inplace: bool, limit):
+    def _replace_single(
+        self, to_replace, method: str, inplace: bool, limit
+    ) -> Self | None:
         """
         Replaces values in a Series using the fill method specified when no
         replacement value is given in the replace method
@@ -5155,7 +5176,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             fill_f(values, limit=limit, mask=mask)
 
         if inplace:
-            return
+            return None
         return result
 
     def memory_usage(self, index: bool = True, deep: bool = False) -> int:
@@ -5489,9 +5510,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             replacements = updated_replacements
             default = default.astype(common_dtype)
 
-        counter = reversed(range(len(conditions)))
+        counter = range(len(conditions) - 1, -1, -1)
         for position, condition, replacement in zip(
-            counter, conditions[::-1], replacements[::-1]
+            counter, reversed(conditions), reversed(replacements)
         ):
             try:
                 default = default.mask(
@@ -5537,8 +5558,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         inplace: Literal[False] = ...,
         how: AnyAll | None = ...,
         ignore_index: bool = ...,
-    ) -> Series:
-        ...
+    ) -> Series: ...
 
     @overload
     def dropna(
@@ -5548,8 +5568,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         inplace: Literal[True],
         how: AnyAll | None = ...,
         ignore_index: bool = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def dropna(
         self,
@@ -6297,7 +6316,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
-    ):
+    ) -> Any:
         return NDFrame.mean(
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
@@ -6309,7 +6328,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         skipna: bool = True,
         numeric_only: bool = False,
         **kwargs,
-    ):
+    ) -> Any:
         return NDFrame.median(
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
@@ -6396,17 +6415,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     product = prod
 
     @doc(make_doc("cummin", ndim=1))
-    def cummin(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+    def cummin(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
         return NDFrame.cummin(self, axis, skipna, *args, **kwargs)
 
     @doc(make_doc("cummax", ndim=1))
-    def cummax(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+    def cummax(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
         return NDFrame.cummax(self, axis, skipna, *args, **kwargs)
 
     @doc(make_doc("cumsum", ndim=1))
-    def cumsum(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+    def cumsum(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
         return NDFrame.cumsum(self, axis, skipna, *args, **kwargs)
 
     @doc(make_doc("cumprod", 1))
-    def cumprod(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+    def cumprod(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
         return NDFrame.cumprod(self, axis, skipna, *args, **kwargs)

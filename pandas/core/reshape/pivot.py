@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import (
-    Hashable,
-    Sequence,
-)
+import itertools
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -44,11 +41,14 @@ from pandas.core.reshape.util import cartesian_product
 from pandas.core.series import Series
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import (
         AggFuncType,
         AggFuncTypeBase,
         AggFuncTypeDict,
         IndexLabel,
+        SequenceNotStr,
     )
 
     from pandas import DataFrame
@@ -423,7 +423,7 @@ def _generate_marginal_results(
         row_margin = row_margin.stack()
 
         # GH#26568. Use names instead of indices in case of numeric names
-        new_order_indices = [len(cols)] + list(range(len(cols)))
+        new_order_indices = itertools.chain([len(cols)], range(len(cols)))
         new_order_names = [row_margin.index.names[i] for i in new_order_indices]
         row_margin.index = row_margin.index.reorder_levels(new_order_names)
     else:
@@ -546,9 +546,10 @@ def pivot(
 
         if is_list_like(values) and not isinstance(values, tuple):
             # Exclude tuple because it is seen as a single column name
-            values = cast(Sequence[Hashable], values)
             indexed = data._constructor(
-                data[values]._values, index=multiindex, columns=values
+                data[values]._values,
+                index=multiindex,
+                columns=cast("SequenceNotStr", values),
             )
         else:
             indexed = data._constructor_sliced(data[values]._values, index=multiindex)
@@ -904,13 +905,7 @@ def _build_names_mapper(
         a list of column names with duplicate names replaced by dummy names
 
     """
-
-    def get_duplicates(names):
-        seen: set = set()
-        return {name for name in names if name not in seen}
-
-    shared_names = set(rownames).intersection(set(colnames))
-    dup_names = get_duplicates(rownames) | get_duplicates(colnames) | shared_names
+    dup_names = set(rownames) | set(colnames)
 
     rownames_mapper = {
         f"row_{i}": name for i, name in enumerate(rownames) if name in dup_names
