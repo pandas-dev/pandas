@@ -1383,9 +1383,6 @@ class Block(PandasObject, libinternals.Block):
         limit_area: Literal["inside", "outside"] | None = None,
         **kwargs,
     ) -> list[Block]:
-        valid = missing.NP_METHODS + missing.SP_METHODS
-        if method not in valid:
-            raise ValueError(f"Can not interpolate with method={method}.")
         inplace = validate_bool_kwarg(inplace, "inplace")
         # error: Non-overlapping equality check [...]
         if method == "asfreq":  # type: ignore[comparison-overlap]

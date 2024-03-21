@@ -323,15 +323,16 @@ def get_interp_index(method, index: Index) -> Index:
             or lib.is_np_dtype(index.dtype, "mM")
         )
         valid = NP_METHODS + SP_METHODS
-        if method not in valid:
+        if method in valid:
+            if method not in methods and not is_numeric_or_datetime:
+                raise ValueError(
+                    "Index column must be numeric or datetime type when "
+                    f"using {method} method other than linear. "
+                    "Try setting a numeric or datetime index column before "
+                    "interpolating."
+                )
+        else:
             raise ValueError(f"Can not interpolate with method={method}.")
-        if method not in methods and not is_numeric_or_datetime:
-            raise ValueError(
-                "Index column must be numeric or datetime type when "
-                f"using {method} method other than linear. "
-                "Try setting a numeric or datetime index column before "
-                "interpolating."
-            )
 
     if isna(index).any():
         raise NotImplementedError(
@@ -588,6 +589,9 @@ def _interpolate_scipy_wrapper(
         "cubic",
         "polynomial",
     ]
+    valid = NP_METHODS + SP_METHODS
+    if method not in valid:
+        raise ValueError(f"Can not interpolate with method={method}.")
     if method in interp1d_methods:
         if method == "polynomial":
             kind = order
