@@ -972,6 +972,9 @@ cdef class {{name}}Factorizer(Factorizer):
         self.count = len(self.uniques)
         return labels
 
+    def inner_join_unique(self, const {{c_type}}[:] values, const uint8_t[:] mask = None) -> tuple[np.ndarray, np.ndarray]:
+        return self.table.inner_join_unique(values, mask)
+
 {{endfor}}
 
 

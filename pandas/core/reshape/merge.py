@@ -1739,24 +1739,13 @@ def get_join_indexers(
     left = Index(lkey)
     right = Index(rkey)
 
-    computed = False
-
     if (
         left.is_monotonic_increasing
         and right.is_monotonic_increasing
         and (left.is_unique or right.is_unique)
     ):
         _, lidx, ridx = left.join(right, how=how, return_indexers=True, sort=sort)
-        computed = True
-    elif how == "inner" and not sort and right.dtype.kind in "iufb":
-        arr, mask = _convert_arrays_for_rizer(rkey)
-        htable, arr = algos._get_hashtable_algo(arr)
-        tbl = htable(len(arr))
-        if tbl.is_unique(arr, mask):
-            ridx, lidx = tbl.inner_join_unique(*_convert_arrays_for_rizer(lkey))
-            computed = True
-
-    if not computed:
+    else:
         lidx, ridx = get_join_indexers_non_unique(
             left._values, right._values, sort, how
         )
@@ -1791,7 +1780,12 @@ def get_join_indexers_non_unique(
     np.ndarray[np.intp]
         Indexer into right.
     """
-    lkey, rkey, count = _factorize_keys(left, right, sort=sort)
+    lkey, rkey, count = _factorize_keys(
+        left, right, sort=sort, how=how, unique_merge=True
+    )
+    if count == -1:
+        # unique merge
+        return lkey, rkey
     if how == "left":
         lidx, ridx = libjoin.left_outer_join(lkey, rkey, count, sort=sort)
     elif how == "right":
@@ -2396,7 +2390,11 @@ def _left_join_on_index(
 
 
 def _factorize_keys(
-    lk: ArrayLike, rk: ArrayLike, sort: bool = True
+    lk: ArrayLike,
+    rk: ArrayLike,
+    sort: bool = True,
+    how: str = "inner",
+    unique_merge: bool = False,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
     """
     Encode left and right keys as enumerated types.
@@ -2542,20 +2540,31 @@ def _factorize_keys(
 
     if isinstance(lk, BaseMaskedArray):
         assert isinstance(rk, BaseMaskedArray)
-        llab = rizer.factorize(*_convert_arrays_for_rizer(lk))
-        rlab = rizer.factorize(*_convert_arrays_for_rizer(rk))
+        lk_data = lk._data
+        lk_mask = lk._mask
+        rlab = rizer.factorize(rk._data, mask=rk._mask)
     elif isinstance(lk, ArrowExtensionArray):
         assert isinstance(rk, ArrowExtensionArray)
         # we can only get here with numeric dtypes
         # TODO: Remove when we have a Factorizer for Arrow
-        llab = rizer.factorize(*_convert_arrays_for_rizer(lk))
-        rlab = rizer.factorize(*_convert_arrays_for_rizer(rk))
+        lk_data = lk.to_numpy(na_value=1, dtype=lk.dtype.numpy_dtype)
+        lk_mask = lk.isna()
+        rlab = rizer.factorize(
+            rk.to_numpy(na_value=1, dtype=lk.dtype.numpy_dtype), mask=rk.isna()
+        )
     else:
         # Argument 1 to "factorize" of "ObjectFactorizer" has incompatible type
         # "Union[ndarray[Any, dtype[signedinteger[_64Bit]]],
         # ndarray[Any, dtype[object_]]]"; expected "ndarray[Any, dtype[object_]]"
-        llab = rizer.factorize(lk)  # type: ignore[arg-type]
+        lk_data = lk
+        lk_mask = None
         rlab = rizer.factorize(rk)  # type: ignore[arg-type]
+
+    if not sort and how == "inner" and rizer.get_count() == len(rlab) and unique_merge:
+        ridx, lidx = rizer.inner_join_unique(lk_data, lk_mask)
+        return lidx, ridx, -1
+
+    llab = rizer.factorize(lk_data, mask=lk_mask)
     assert llab.dtype == np.dtype(np.intp), llab.dtype
     assert rlab.dtype == np.dtype(np.intp), rlab.dtype
 
