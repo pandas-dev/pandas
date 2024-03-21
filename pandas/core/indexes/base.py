@@ -7171,7 +7171,11 @@ def maybe_sequence_to_range(sequence) -> Any | range:
     """
     if isinstance(sequence, (ABCSeries, Index)):
         return sequence
-    np_sequence = np.asarray(sequence)
+    try:
+        np_sequence = np.asarray(sequence)
+    except ValueError:
+        # sequence has nested values
+        return sequence
     if np_sequence.dtype.kind != "i" or len(np_sequence) == 1:
         return sequence
     elif len(np_sequence) == 0:
