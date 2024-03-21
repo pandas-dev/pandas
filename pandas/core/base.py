@@ -87,12 +87,6 @@ if TYPE_CHECKING:
 
 
 _shared_docs: dict[str, str] = {}
-_indexops_doc_kwargs = {
-    "klass": "IndexOpsMixin",
-    "inplace": "",
-    "unique": "IndexOpsMixin",
-    "duplicated": "IndexOpsMixin",
-}
 
 
 class PandasObject(DirNamesMixin):
