@@ -11880,7 +11880,7 @@ numeric_only : bool, default False
 
 Returns
 -------
-{return_type} (if level specified)
+{return_type}
     The result of applying the {name} function to the {obj_type} elements,
     possibly just for rows or columns based on the ``axis`` parameter.\
 {notes}\
@@ -12862,17 +12862,17 @@ def make_doc(name: str, ndim: int) -> str:
         raise NotImplementedError
 
     if ndim == 1:
-        return_type = "Scalar or Series"
+        return_type = "Scalar"
         axis_descr = "{index (0)}"
         obj_type = "Series"
-        if base_doc in (_num_doc, _sum_prod_doc):
-            return_type = "Scalar"
+        if base_doc in (_cnum_doc):
+            return_type = "Series or Scalar"
     else:
-        return_type = "Series or DataFrame"
+        return_type = "Series or Scalar"
         axis_descr = "{index (0), columns (1)}"
         obj_type = "DataFrame"
-        if base_doc in (_num_doc, _sum_prod_doc):
-            return_type = "Series or Scalar"
+        if base_doc in (_cnum_doc):
+            return_type = "DataFrame or Series"
 
     docstr = base_doc.format(
         desc=desc,
