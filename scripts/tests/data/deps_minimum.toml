@@ -6,7 +6,6 @@ requires = [
     "wheel",
     "Cython>=0.29.32,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
     "oldest-supported-numpy>=2022.8.16",
-    "versioneer[toml]"
 ]
 # build-backend = "setuptools.build_meta"
 
@@ -126,17 +125,6 @@ namespaces = false
 [tool.setuptools.exclude-package-data]
 "*" = ["*.c", "*.h"]
 
-# See the docstring in versioneer.py for instructions. Note that you must
-# re-run 'versioneer.py setup' after changing this section, and commit the
-# resulting files.
-[tool.versioneer]
-VCS = "git"
-style = "pep440"
-versionfile_source = "pandas/_version.py"
-versionfile_build = "pandas/_version.py"
-tag_prefix = "v"
-parentdir_prefix = "pandas-"
-
 [tool.cibuildwheel]
 skip = "cp36-* cp37-* pp37-* *-manylinux_i686 *_ppc64le *_s390x *-musllinux*"
 build-verbosity = "3"
@@ -226,7 +214,6 @@ exclude = [
   "doc/build/*.py",
   "doc/temp/*.py",
   ".eggs/*.py",
-  "versioneer.py",
   # exclude asv benchmark environments from linting
   "env",
 ]

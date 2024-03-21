@@ -30,7 +30,6 @@ requirements:
     - cython >=0.29.33,<3
     - numpy >=1.21.6  # [py<311]
     - numpy >=1.23.2  # [py>=311]
-    - versioneer
     - tomli  # [py<311]
   run:
     - python

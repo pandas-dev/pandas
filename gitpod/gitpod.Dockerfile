@@ -4,7 +4,7 @@
 ARG BASE_CONTAINER="pandas/pandas-dev:latest"
 FROM gitpod/workspace-base:latest as clone
 
-# the clone should be deep enough for versioneer to work
+# the clone should be deep enough for version detection to work
 RUN git clone https://github.com/pandas-dev/pandas --depth 12 /tmp/pandas
 
 # -----------------------------------------------------------------------------

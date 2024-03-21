@@ -6,7 +6,6 @@ dependencies:
   - python=3.8
 
   # build dependencies
-  - versioneer[toml]
   - cython>=0.29.32
 
   # test dependencies

@@ -21,7 +21,7 @@ from pandas.compat._optional import (
 
 def _get_commit_hash() -> str | None:
     """
-    Use vendored versioneer code to get git hash, which handles
+    Use vendored versioning code to get git hash, which handles
     git worktree correctly.
     """
     from pandas._version import git_revision  # pyright: ignore [reportMissingImports]
