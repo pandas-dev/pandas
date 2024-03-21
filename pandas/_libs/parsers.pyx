@@ -1603,7 +1603,7 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
 
 # -> ndarray[f'|S{width}']
 cdef _to_fw_string(parser_t *parser, int64_t col, int64_t line_start,
-                   int64_t line_end, int64_t width) noexcept:
+                   int64_t line_end, int64_t width):
     cdef:
         char *data
         ndarray result
