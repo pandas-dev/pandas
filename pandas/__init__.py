@@ -179,7 +179,7 @@ from pandas._version import (  # pyright: ignore [reportMissingImports]
 
 __version__ = generated_ver
 __git_version__ = git_revision
-del git_revision
+del git_revision, generated_ver
 
 
 # module level doc-string
