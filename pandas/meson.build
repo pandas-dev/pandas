@@ -27,9 +27,9 @@ pd_dir = py.get_install_dir() / 'pandas'
 # Generate version.py for sdist
 meson.add_dist_script(
    ['_build_utils/gitversion.py', '--meson-dist', '--write',
-     'pandas/version.py']
+     'pandas/_version.py']
 )
-if not fs.exists('version.py')
+if not fs.exists('_version.py')
   generate_version = custom_target(
     'generate-version',
     install: true,
