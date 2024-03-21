@@ -3,30 +3,29 @@
 # This file is vendored from NumPy. See NUMPY_LICENSE.txt
 
 import os
+import os.path
+import subprocess
 import textwrap
 
 
 def init_version() -> str:
     init = os.path.join(os.path.dirname(__file__), "../../pyproject.toml")
-    with open(init) as fid:
+    with open(init, encoding="utf-8") as fid:
         data = fid.readlines()
 
     version_line = next(line for line in data if line.startswith("version ="))
 
-    version = version_line.strip().split(" = ")[1]
-    version = version.replace('"', "").replace("'", "")
+    result = version_line.strip().split(" = ")[1]
+    result = result.replace('"', "").replace("'", "")
 
-    return version
+    return result
 
 
 def git_version(version: str) -> tuple[str, str]:
     # Append last commit date and hash to dev version information,
     # if available
 
-    import os.path
-    import subprocess
-
-    git_hash = ""
+    ghash = ""
     try:
         p = subprocess.Popen(
             ["git", "log", "-1", '--format="%H %aI"'],
@@ -39,20 +38,20 @@ def git_version(version: str) -> tuple[str, str]:
     else:
         out, err = p.communicate()
         if p.returncode == 0:
-            git_hash, git_date = (
+            ghash, git_date = (
                 out.decode("utf-8")
                 .strip()
                 .replace('"', "")
-                .split("T")[0]
+                .split("T", maxsplit=1)[0]
                 .replace("-", "")
                 .split()
             )
 
             # Only attach git tag to development versions
             if "dev" in version:
-                version += f"+git{git_date}.{git_hash[:7]}"
+                version += f"+git{git_date}.{ghash[:7]}"
 
-    return version, git_hash
+    return version, ghash
 
 
 if __name__ == "__main__":
@@ -85,7 +84,7 @@ if __name__ == "__main__":
         if relpath.startswith("."):
             relpath = outfile
 
-        with open(outfile, "w") as f:
+        with open(outfile, "w", encoding="utf-8") as f:
             print(f"Saving version to {relpath}")
             f.write(template)
     else:
