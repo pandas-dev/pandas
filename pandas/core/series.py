@@ -452,7 +452,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 data = data.reindex(index)
                 copy = False
                 data = data._mgr
-        elif is_dict_like(data):
+        elif isinstance(data, Mapping):
             data, index = self._init_dict(data, index, dtype)
             dtype = None
             copy = False
@@ -519,7 +519,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 )
 
     def _init_dict(
-        self, data, index: Index | None = None, dtype: DtypeObj | None = None
+        self, data: Mapping, index: Index | None = None, dtype: DtypeObj | None = None
     ):
         """
         Derive the "_mgr" and "index" attributes of a new Series from a
@@ -5514,9 +5514,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             replacements = updated_replacements
             default = default.astype(common_dtype)
 
-        counter = reversed(range(len(conditions)))
+        counter = range(len(conditions) - 1, -1, -1)
         for position, condition, replacement in zip(
-            counter, conditions[::-1], replacements[::-1]
+            counter, reversed(conditions), reversed(replacements)
         ):
             try:
                 default = default.mask(
