@@ -44,7 +44,7 @@ if not fs.exists('version.py')
 else
   # When building from sdist, version.py exists and should be included
   py.install_sources(
-    ['version.py'],
+    ['_version.py'],
     subdir : 'pandas'
   )
 endif

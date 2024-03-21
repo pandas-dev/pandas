@@ -71,6 +71,7 @@ if __name__ == "__main__":
     template = textwrap.dedent(f"""
         version = "{version}"
         __version__ = version
+        git_revision = "{git_hash}"
     """)
 
     if args.write:

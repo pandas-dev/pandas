@@ -172,8 +172,11 @@ from pandas.io.json._normalize import json_normalize
 from pandas.util._tester import test
 
 # If a version with git hash was stored, use that instead
-from pandas import version
-from pandas.version import __version__
+_built_with_meson = True
+from . import _version
+
+__version__ = _version.__version__
+__git_version__ = _version.git_revision
 
 
 # module level doc-string
@@ -221,6 +224,8 @@ Here are just a few of the things that pandas does well:
 # Pandas is not (yet) a py.typed library: the public API is determined
 # based on the documentation.
 __all__ = [
+    "__version__",
+    "__git_version__",
     "ArrowDtype",
     "BooleanDtype",
     "Categorical",
