@@ -173,8 +173,12 @@ from pandas.util._tester import test
 
 # If a version with git hash was stored, use that instead
 _built_with_meson = True
-from pandas._version import git_revision  # pyright: ignore [reportMissingImports]
+from pandas._version import (  # pyright: ignore [reportMissingImports]
+    __version__ as generated_ver,
+    git_revision,
+)
 
+__version__ = generated_ver
 __git_version__ = git_revision
 del git_revision
 
