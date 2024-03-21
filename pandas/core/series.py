@@ -407,13 +407,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name = ibase.maybe_extract_name(name, data, type(self))
         na_value = na_value_for_dtype(pandas_dtype(dtype), compat=False)
 
-        is_scalar = (
-            not is_pandas_object
-            and not is_array
-            and not is_list_like(data)
-            and not isinstance(data, SingleBlockManager)
-            and not (is_list_like(data) and not isinstance(data, Sized))  #
-            and data is not None
+        data_is_scalar = not is_list_like(data) and (
+            is_scalar(data) or not isinstance(data, Sized)
         )
 
         # Series TASK 4: DATA TRANSFORMATIONS.
@@ -433,7 +428,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             else:
                 data = None
 
-        if is_scalar and index is None:
+        if data_is_scalar and index is None and data is not None:
             data = [data]
 
         # TODO: Investigate. This is an unknown type that must be converted to list.
