@@ -231,3 +231,7 @@ def is_range_indexer(
     left: np.ndarray,
     n: int,  # np.ndarray[np.int64, ndim=1]
 ) -> bool: ...
+def is_sequence_range(
+    sequence: np.ndarray,
+    step: int,  # np.ndarray[np.int64, ndim=1]
+) -> bool: ...

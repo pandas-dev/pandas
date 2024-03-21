@@ -678,6 +678,28 @@ def is_range_indexer(ndarray[int6432_t, ndim=1] left, Py_ssize_t n) -> bool:
     return True
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def is_sequence_range(ndarray[int6432_t, ndim=1] sequence, int64_t step) -> bool:
+    """
+    Check if sequence is equivalent to a range with the specified step.
+    """
+    cdef:
+        Py_ssize_t i, n = len(sequence)
+        int6432_t first_element
+
+    if step == 0:
+        return False
+    if n == 0:
+        return True
+
+    first_element = sequence[0]
+    for i in range(1, n):
+        if sequence[i] != first_element + i * step:
+            return False
+    return True
+
+
 ctypedef fused ndarr_object:
     ndarray[object, ndim=1]
     ndarray[object, ndim=2]
