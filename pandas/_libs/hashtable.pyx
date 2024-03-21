@@ -75,7 +75,7 @@ cdef class Factorizer:
     def get_count(self) -> int:
         return self.count
 
-    def factorize(self, values, na_sentinel=-1, na_value=None, mask=None) -> np.ndarray:
+    def factorize(self, values, mask=None, na_sentinel=-1, na_value=None) -> np.ndarray:
         raise NotImplementedError
 
 
@@ -89,7 +89,7 @@ cdef class ObjectFactorizer(Factorizer):
         self.uniques = ObjectVector()
 
     def factorize(
-        self, ndarray[object] values, na_sentinel=-1, na_value=None, mask=None
+        self, ndarray[object] values, mask=None, na_sentinel=-1, na_value=None
     ) -> np.ndarray:
         """
 

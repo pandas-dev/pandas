@@ -4698,22 +4698,6 @@ class Index(IndexOpsMixin, PandasObject):
         #  Doing so seems to break test_concat_datetime_timezone
         return not isinstance(self, (ABCIntervalIndex, ABCMultiIndex))
 
-    @final
-    def _can_use_unique_join(self, other: Index, how, sort: bool) -> bool:
-        if how != "inner":
-            return False
-        if sort:
-            # Not worth it if we're going to sort the result
-            return False
-
-        if self.dtype.kind in "iufb":
-            return other.is_unique and other._engine.is_mapping_populated
-        return False
-
-    def _unique_join(self, other: Index) -> tuple[np.ndarray, np.ndarray]:
-        ridx, lidx = other._engine.mapping.inner_join_unique(self._values)
-        return lidx, ridx
-
     # --------------------------------------------------------------------
     # Uncategorized Methods
 

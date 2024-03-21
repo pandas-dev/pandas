@@ -1739,15 +1739,24 @@ def get_join_indexers(
     left = Index(lkey)
     right = Index(rkey)
 
+    computed = False
+
     if (
         left.is_monotonic_increasing
         and right.is_monotonic_increasing
         and (left.is_unique or right.is_unique)
     ):
         _, lidx, ridx = left.join(right, how=how, return_indexers=True, sort=sort)
-    elif left._can_use_unique_join(right, how, sort):
-        lidx, ridx = left._unique_join(right)
-    else:
+        computed = True
+    elif how == "inner" and not sort and right.dtype.kind in "iufb":
+        arr, mask = _convert_arrays_for_rizer(rkey)
+        htable, arr = algos._get_hashtable_algo(arr)
+        tbl = htable()
+        if tbl.is_unique(arr, mask):
+            ridx, lidx = tbl.inner_join_unique(*_convert_arrays_for_rizer(lkey))
+            computed = True
+
+    if not computed:
         lidx, ridx = get_join_indexers_non_unique(
             left._values, right._values, sort, how
         )
@@ -2533,18 +2542,14 @@ def _factorize_keys(
 
     if isinstance(lk, BaseMaskedArray):
         assert isinstance(rk, BaseMaskedArray)
-        llab = rizer.factorize(lk._data, mask=lk._mask)
-        rlab = rizer.factorize(rk._data, mask=rk._mask)
+        llab = rizer.factorize(*_convert_arrays_for_rizer(lk))
+        rlab = rizer.factorize(*_convert_arrays_for_rizer(rk))
     elif isinstance(lk, ArrowExtensionArray):
         assert isinstance(rk, ArrowExtensionArray)
         # we can only get here with numeric dtypes
         # TODO: Remove when we have a Factorizer for Arrow
-        llab = rizer.factorize(
-            lk.to_numpy(na_value=1, dtype=lk.dtype.numpy_dtype), mask=lk.isna()
-        )
-        rlab = rizer.factorize(
-            rk.to_numpy(na_value=1, dtype=lk.dtype.numpy_dtype), mask=rk.isna()
-        )
+        llab = rizer.factorize(*_convert_arrays_for_rizer(lk))
+        rlab = rizer.factorize(*_convert_arrays_for_rizer(rk))
     else:
         # Argument 1 to "factorize" of "ObjectFactorizer" has incompatible type
         # "Union[ndarray[Any, dtype[signedinteger[_64Bit]]],
@@ -2574,6 +2579,14 @@ def _factorize_keys(
         count += 1
 
     return llab, rlab, count
+
+
+def _convert_arrays_for_rizer(arr):
+    if isinstance(arr, BaseMaskedArray):
+        return arr._data, arr._mask
+    elif isinstance(arr, ArrowExtensionArray):
+        return arr.to_numpy(na_value=1, dtype=arr.dtype.numpy_dtype), arr.isna()
+    return arr, None
 
 
 def _convert_arrays_and_get_rizer_klass(
