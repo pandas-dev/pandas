@@ -1,6 +1,7 @@
+#!/usr/bin/env python3
+
 # This file is vendored from NumPy. See NUMPY_LICENSE.txt
 
-#!/usr/bin/env python3
 import os
 import textwrap
 
