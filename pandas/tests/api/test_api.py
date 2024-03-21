@@ -33,7 +33,7 @@ class Base:
 class TestPDApi(Base):
     # these are optionally imported based on testing
     # & need to be ignored
-    ignored = ["tests", "locale", "conftest", "_version_meson"]
+    ignored = ["tests", "locale", "conftest", "_version"]
 
     # top-level sub-packages
     public_lib = [
