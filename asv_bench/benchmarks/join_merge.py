@@ -234,10 +234,10 @@ class I8Merge:
 
 
 class UniqueMerge:
-    params = [["left", "right"], [4_000_000, 1_000_000]]
-    param_names = ["unique", "unique_elements"]
+    params = [4_000_000, 1_000_000]
+    param_names = ["unique_elements"]
 
-    def setup(self, unique, unique_elements):
+    def setup(self, unique_elements):
         N = 1_000_000
         self.left = DataFrame({"a": np.random.randint(1, unique_elements, (N,))})
         self.right = DataFrame({"a": np.random.randint(1, unique_elements, (N,))})
@@ -245,10 +245,8 @@ class UniqueMerge:
         self.right["a"] = concat(
             [uniques, Series(np.arange(0, -(N - len(uniques)), -1))], ignore_index=True
         )
-        if unique == "left":
-            self.left, self.right = self.right, self.left
 
-    def time_unique_merge(self, unique, unique_elements):
+    def time_unique_merge(self, unique_elements):
         merge(self.left, self.right, how="inner")
 
 

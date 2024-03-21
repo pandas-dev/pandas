@@ -4706,8 +4706,8 @@ class Index(IndexOpsMixin, PandasObject):
             # Not worth it if we're going to sort the result
             return False
 
-        if self.dtype.kind in "iufb" or self.dtype == "O":
-            return other.is_unique
+        if self.dtype.kind in "iufb":
+            return other.is_unique and other._engine.is_mapping_populated
         return False
 
     def _unique_join(self, other: Index) -> tuple[np.ndarray, np.ndarray]:
