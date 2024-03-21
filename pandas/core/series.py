@@ -408,7 +408,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         na_value = na_value_for_dtype(pandas_dtype(dtype), compat=False)
 
         # Series TASK 4: DATA TRANSFORMATIONS.
-        if is_dict_like(data) and not is_pandas_object and data is not None:
+        if isinstance(data, Mapping):
+            # if is_dict_like(data) and not is_pandas_object and data is not None:
             # Dict is SPECIAL case, since it's data has data values and index keys.
 
             # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
