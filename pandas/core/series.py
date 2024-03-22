@@ -5510,9 +5510,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             replacements = updated_replacements
             default = default.astype(common_dtype)
 
-        counter = reversed(range(len(conditions)))
+        counter = range(len(conditions) - 1, -1, -1)
         for position, condition, replacement in zip(
-            counter, conditions[::-1], replacements[::-1]
+            counter, reversed(conditions), reversed(replacements)
         ):
             try:
                 default = default.mask(
