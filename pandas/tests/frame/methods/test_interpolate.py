@@ -129,13 +129,7 @@ class TestDataFrameInterpolate:
                 "C": [1, 2, 3, 5],
             }
         )
-        msg = (
-            r"method must be one of \['linear', 'time', 'index', 'values', "
-            r"'nearest', 'zero', 'slinear', 'quadratic', 'cubic', "
-            r"'barycentric', 'krogh', 'spline', 'polynomial', "
-            r"'from_derivatives', 'piecewise_polynomial', 'pchip', 'akima', "
-            r"'cubicspline'\]. Got 'not_a_method' instead."
-        )
+        msg = "Can not interpolate with method=not_a_method"
         with pytest.raises(ValueError, match=msg):
             df.interpolate(method="not_a_method")
 
@@ -398,12 +392,9 @@ class TestDataFrameInterpolate:
             df["D"] = np.nan
             df["E"] = 1.0
 
-        method2 = method if method != "pad" else "ffill"
-        expected = getattr(df, method2)(axis=axis)
-        msg = f"DataFrame.interpolate with method={method} is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.interpolate(method=method, axis=axis)
-        tm.assert_frame_equal(result, expected)
+        msg = f"Can not interpolate with method={method}"
+        with pytest.raises(ValueError, match=msg):
+            df.interpolate(method=method, axis=axis)
 
     def test_interpolate_empty_df(self):
         # GH#53199
