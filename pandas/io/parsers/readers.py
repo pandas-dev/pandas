@@ -1139,7 +1139,7 @@ def read_fwf(
         ``file://localhost/path/to/table.csv``.
     colspecs : list of tuple (int, int) or 'infer'. optional
         A list of tuples giving the extents of the fixed-width
-        fields of each line as half-open intervals (i.e.,  [from, to[ ).
+        fields of each line as half-open intervals (i.e.,  [from, to] ).
         String value 'infer' can be used to instruct the parser to try
         detecting the column specifications from the first 100 rows of
         the data which are not being skipped via skiprows (default='infer').
