@@ -372,7 +372,7 @@ Period
 
 Plotting
 ^^^^^^^^
--
+- Bug in :meth:`MPLPlot._plot` ignoring parameter ``style`` when using error bar parameters ``yerr`` or ``xerr`` (:issue:`7023`)
 -
 
 Groupby/resample/rolling
