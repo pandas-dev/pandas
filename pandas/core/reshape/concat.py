@@ -635,15 +635,12 @@ class _Concatenator:
                 indexes, self.keys, self.levels, self.names
             )
 
-        self._maybe_check_integrity(concat_axis)
+        if self.verify_integrity:
+            if not concat_axis.is_unique:
+                overlap = concat_axis[concat_axis.duplicated()].unique()
+                raise ValueError(f"Indexes have overlapping values: {overlap}")
 
         return concat_axis
-
-    def _maybe_check_integrity(self, concat_index: Index) -> None:
-        if self.verify_integrity:
-            if not concat_index.is_unique:
-                overlap = concat_index[concat_index.duplicated()].unique()
-                raise ValueError(f"Indexes have overlapping values: {overlap}")
 
 
 def _clean_keys_and_objs(
