@@ -11,4 +11,5 @@ RUN apt-get install -y libhdf5-dev libgles2-mesa-dev
 RUN python -m pip install --upgrade pip
 COPY requirements-dev.txt /tmp
 RUN python -m pip install -r /tmp/requirements-dev.txt
+RUN git config --global --add safe.directory /home/pandas
 CMD ["/bin/bash"]
