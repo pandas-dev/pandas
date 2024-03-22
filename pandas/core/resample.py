@@ -80,6 +80,7 @@ from pandas.core.indexes.timedeltas import (
     TimedeltaIndex,
     timedelta_range,
 )
+from pandas.core.reshape.concat import concat
 
 from pandas.tseries.frequencies import (
     is_subperiod,
@@ -890,30 +891,69 @@ class Resampler(BaseGroupBy, PandasObject):
         Freq: 500ms, dtype: float64
 
         Internal reindexing with ``asfreq()`` prior to interpolation leads to
-        an interpolated timeseries on the basis the reindexed timestamps (anchors).
-        Since not all datapoints from original series become anchors,
-        it can lead to misleading interpolation results as in the following example:
+        an interpolated timeseries on the basis of the reindexed timestamps
+        (anchors). It is assured that all available datapoints from original
+        series become anchors, so it also works for resampling-cases that lead
+        to non-aligned timestamps, as in the following example:
 
         >>> series.resample("400ms").interpolate("linear")
         2023-03-01 07:00:00.000    1.0
-        2023-03-01 07:00:00.400    1.2
-        2023-03-01 07:00:00.800    1.4
-        2023-03-01 07:00:01.200    1.6
-        2023-03-01 07:00:01.600    1.8
+        2023-03-01 07:00:00.400    0.2
+        2023-03-01 07:00:00.800   -0.6
+        2023-03-01 07:00:01.200   -0.4
+        2023-03-01 07:00:01.600    0.8
         2023-03-01 07:00:02.000    2.0
-        2023-03-01 07:00:02.400    2.2
-        2023-03-01 07:00:02.800    2.4
-        2023-03-01 07:00:03.200    2.6
-        2023-03-01 07:00:03.600    2.8
+        2023-03-01 07:00:02.400    1.6
+        2023-03-01 07:00:02.800    1.2
+        2023-03-01 07:00:03.200    1.4
+        2023-03-01 07:00:03.600    2.2
         2023-03-01 07:00:04.000    3.0
         Freq: 400ms, dtype: float64
 
-        Note that the series erroneously increases between two anchors
+        Note that the series correctly decreases between two anchors
         ``07:00:00`` and ``07:00:02``.
         """
         assert downcast is lib.no_default  # just checking coverage
         result = self._upsample("asfreq")
-        return result.interpolate(
+
+        # If the original data has timestamps which are not aligned with the
+        # target timestamps, we need to add those points back to the data frame
+        # that is supposed to be interpolated. This does not work with
+        # PeriodIndex, so we skip this case. GH#21351
+        obj = self._selected_obj
+        is_period_index = isinstance(obj.index, PeriodIndex)
+
+        # Skip this step for PeriodIndex
+        if not is_period_index:
+            final_index = result.index
+            if isinstance(final_index, MultiIndex):
+                # MultiIndex case: the `self._selected_obj` is the object before
+                # the groupby that led to this MultiIndex, so that the index
+                # is not directly available. We reconstruct it by obtaining the
+                # groupby columns from the final index, but assuming that the
+                # name of the datetime index is not included...
+                group_columns = list(
+                    set(final_index.names).difference({obj.index.name})
+                )
+
+                # ... To obtain a DataFrame with the groupby columns and the
+                # datetime index, we need to reset the index and groupby again,
+                # then apply the (cheap) first-aggregator.
+                index_name = obj.index.name or "index"
+                obj = obj.reset_index().groupby(group_columns + [index_name]).first()
+
+                # The value columns that became index levels have to be added
+                # back manually. This is not ideal performance-wise.
+                for column in group_columns:
+                    obj[column] = obj.index.get_level_values(column)
+
+            missing_data_points_index = obj.index.difference(final_index)
+            if len(missing_data_points_index) > 0:
+                result = concat(
+                    [result, obj.loc[missing_data_points_index]]
+                ).sort_index()
+
+        result_interpolated = result.interpolate(
             method=method,
             axis=axis,
             limit=limit,
@@ -923,6 +963,16 @@ class Resampler(BaseGroupBy, PandasObject):
             downcast=downcast,
             **kwargs,
         )
+
+        # We make sure that original data points which do not align with the
+        # resampled index are removed
+        if is_period_index:
+            return result_interpolated
+
+        result_interpolated = result_interpolated.loc[final_index]
+        # We make sure frequency indexes are preserved
+        result_interpolated.index = final_index
+        return result_interpolated
 
     @final
     def asfreq(self, fill_value=None):
