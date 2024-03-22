@@ -92,13 +92,6 @@ def sql_strings():
     }
 
 
-def is_adbc_080():
-    adbc = import_optional_dependency("adbc_driver_manager")
-    if isinstance(adbc, bool):
-        return False
-    return adbc.__version__ == "0.8.0"
-
-
 def iris_table_metadata():
     import sqlalchemy
     from sqlalchemy import (
@@ -1827,9 +1820,7 @@ def test_api_custom_dateparsing_error(
             }
         )
 
-    if conn_name == "postgresql_adbc_types" and is_adbc_080():
-        expected["DateCol"] = expected["DateCol"].astype("datetime64[ns]")
-    elif "postgres" in conn_name or "mysql" in conn_name:
+    if "postgres" in conn_name or "mysql" in conn_name:
         expected["DateCol"] = expected["DateCol"].astype("datetime64[us]")
     else:
         expected["DateCol"] = expected["DateCol"].astype("datetime64[s]")
