@@ -175,6 +175,7 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
         d = concat(
             [x.reindex(col_names) for x in ldesc],
             axis=1,
+            ignore_index=True,
             sort=False,
         )
         d.columns = data.columns.copy()
