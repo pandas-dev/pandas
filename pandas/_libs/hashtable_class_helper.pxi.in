@@ -903,8 +903,8 @@ cdef class {{name}}Factorizer(Factorizer):
         self.table = {{name}}HashTable(size_hint, uses_mask=uses_mask)
         self.uniques = {{name}}Vector()
 
-    def factorize(self, const {{c_type}}[:] values, object mask=None,
-                  na_sentinel=-1, na_value=None) -> np.ndarray:
+    def factorize(self, const {{c_type}}[:] values,
+                  na_sentinel=-1, na_value=None, object mask=None) -> np.ndarray:
         """
         Returns
         -------

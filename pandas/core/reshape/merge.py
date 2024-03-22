@@ -2595,14 +2595,6 @@ def _factorize_keys(
     return llab, rlab, count
 
 
-def _convert_arrays_for_rizer(arr):
-    if isinstance(arr, BaseMaskedArray):
-        return arr._data, arr._mask
-    elif isinstance(arr, ArrowExtensionArray):
-        return arr.to_numpy(na_value=1, dtype=arr.dtype.numpy_dtype), arr.isna()
-    return arr, None
-
-
 def _convert_arrays_and_get_rizer_klass(
     lk: ArrayLike, rk: ArrayLike
 ) -> tuple[type[libhashtable.Factorizer], ArrayLike, ArrayLike]:
