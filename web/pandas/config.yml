@@ -123,11 +123,10 @@ workgroups:
     contact: finance@pandas.pydata.org
     responsibilities: "Approve the project expenses."
     members:
-    - Wes McKinney
+    - Matthew Roeschke
     - Jeff Reback
     - Joris Van den Bossche
     - Tom Augspurger
-    - Matthew Roeschke
   infrastructure:
     name: Infrastructure
     contact: infrastructure@pandas.pydata.org
