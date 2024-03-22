@@ -589,9 +589,6 @@ def _interpolate_scipy_wrapper(
         "cubic",
         "polynomial",
     ]
-    valid = NP_METHODS + SP_METHODS
-    if method not in valid:
-        raise ValueError(f"Can not interpolate with method={method}.")
     if method in interp1d_methods:
         if method == "polynomial":
             kind = order
@@ -618,7 +615,9 @@ def _interpolate_scipy_wrapper(
             y = y.copy()
         if not new_x.flags.writeable:
             new_x = new_x.copy()
-        terp = alt_methods[method]
+        terp = alt_methods.get(method, None)
+        if terp is None:
+            raise ValueError(f"Can not interpolate with method={method}.")
         new_y = terp(x, y, new_x, **kwargs)
     return new_y
 
