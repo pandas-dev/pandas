@@ -69,7 +69,7 @@ cdef class Factorizer:
     cdef readonly:
         Py_ssize_t count
 
-    def __cinit__(self, size_hint: int):
+    def __cinit__(self, size_hint: int, uses_mask: bool = False):
         self.count = 0
 
     def get_count(self) -> int:
@@ -84,7 +84,7 @@ cdef class ObjectFactorizer(Factorizer):
         PyObjectHashTable table
         ObjectVector uniques
 
-    def __cinit__(self, size_hint: int):
+    def __cinit__(self, size_hint: int, uses_mask: bool = False):
         self.table = PyObjectHashTable(size_hint)
         self.uniques = ObjectVector()
 

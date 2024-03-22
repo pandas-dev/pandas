@@ -546,47 +546,6 @@ cdef class {{name}}HashTable(HashTable):
         self.na_position = na_position
 
     @cython.boundscheck(False)
-    def is_unique(self, const {{dtype}}_t[:] values, const uint8_t[:] mask = None) -> bool:
-        cdef:
-            Py_ssize_t i, n = len(values)
-            int ret = 0
-            {{c_type}} val
-            khiter_t k
-            int8_t na_position = self.na_position
-
-        if self.uses_mask and mask is None:
-            raise NotImplementedError  # pragma: no cover
-
-        with nogil:
-            if self.uses_mask:
-                for i in range(n):
-                    if mask[i]:
-                        if na_position != -1:
-                            i = 0
-                            break
-                        na_position = i
-                    else:
-                        val = {{to_c_type}}(values[i])
-                        k = kh_put_{{dtype}}(self.table, val, &ret)
-                        self.table.vals[k] = i
-            else:
-                for i in range(n):
-                    val = {{to_c_type}}(values[i])
-                    k = kh_put_{{dtype}}(self.table, val, &ret)
-                    self.table.vals[k] = i
-
-                    if i % 10_000 == 0:
-                        if self.table.size != i + 1:
-                            i = 0
-                            break
-
-        self.na_position = na_position
-        if i == 0:
-            return False
-        else:
-            return True
-
-    @cython.boundscheck(False)
     def inner_join_unique(self, const {{dtype}}_t[:] values, const uint8_t[:] mask = None) -> tuple[ndarray, ndarray]:
         cdef:
             Py_ssize_t i, n = len(values)
@@ -940,8 +899,8 @@ cdef class {{name}}Factorizer(Factorizer):
         {{name}}HashTable table
         {{name}}Vector uniques
 
-    def __cinit__(self, size_hint: int):
-        self.table = {{name}}HashTable(size_hint)
+    def __cinit__(self, size_hint: int, uses_mask: bool = False):
+        self.table = {{name}}HashTable(size_hint, uses_mask=uses_mask)
         self.uniques = {{name}}Vector()
 
     def factorize(self, const {{c_type}}[:] values, object mask=None,
