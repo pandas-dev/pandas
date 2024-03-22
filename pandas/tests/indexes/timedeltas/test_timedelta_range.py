@@ -43,31 +43,23 @@ class TestTimedeltas:
         result = timedelta_range("0 days", freq="30min", periods=50)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "depr_unit, unit",
-        [
-            ("H", "hour"),
-            ("T", "minute"),
-            ("t", "minute"),
-            ("S", "second"),
-            ("L", "millisecond"),
-            ("l", "millisecond"),
-            ("U", "microsecond"),
-            ("u", "microsecond"),
-            ("N", "nanosecond"),
-            ("n", "nanosecond"),
-        ],
-    )
-    def test_timedelta_units_H_T_S_L_U_N_deprecated(self, depr_unit, unit):
+    @pytest.mark.parametrize("depr_unit, unit", [("H", "hour"), ("S", "second")])
+    def test_timedelta_units_H_S_deprecated(self, depr_unit, unit):
         # GH#52536
         depr_msg = (
             f"'{depr_unit}' is deprecated and will be removed in a future version."
         )
-
         expected = to_timedelta(np.arange(5), unit=unit)
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):
             result = to_timedelta(np.arange(5), unit=depr_unit)
             tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("unit", ["T", "t", "L", "l", "U", "u", "N", "n"])
+    def test_timedelta_unit_T_L_U_N_raises(self, unit):
+        msg = f"invalid unit abbreviation: {unit}"
+
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta(np.arange(5), unit=unit)
 
     @pytest.mark.parametrize(
         "periods, freq", [(3, "2D"), (5, "D"), (6, "19h12min"), (7, "16h"), (9, "12h")]
@@ -78,15 +70,20 @@ class TestTimedeltas:
         expected = timedelta_range(start="0 days", end="4 days", freq=freq)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("msg_freq, freq", [("H", "19H12min"), ("T", "19h12T")])
-    def test_timedelta_range_H_T_deprecated(self, freq, msg_freq):
+    def test_timedelta_range_H_deprecated(self):
         # GH#52536
-        msg = f"'{msg_freq}' is deprecated and will be removed in a future version."
+        msg = "'H' is deprecated and will be removed in a future version."
 
         result = timedelta_range(start="0 days", end="4 days", periods=6)
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = timedelta_range(start="0 days", end="4 days", freq=freq)
+            expected = timedelta_range(start="0 days", end="4 days", freq="19H12min")
         tm.assert_index_equal(result, expected)
+
+    def test_timedelta_range_T_raises(self):
+        msg = "Invalid frequency: T"
+
+        with pytest.raises(ValueError, match=msg):
+            timedelta_range(start="0 days", end="4 days", freq="19h12T")
 
     def test_errors(self):
         # not enough params
@@ -143,18 +140,6 @@ class TestTimedeltas:
                 ["0 days 05:03:01", "0 days 05:03:04.500000", "0 days 05:03:08"],
                 "3500ms",
             ),
-            (
-                "2.5T",
-                "5 hours",
-                "5 hours 8 minutes",
-                [
-                    "0 days 05:00:00",
-                    "0 days 05:02:30",
-                    "0 days 05:05:00",
-                    "0 days 05:07:30",
-                ],
-                "150s",
-            ),
         ],
     )
     def test_timedelta_range_deprecated_freq(
@@ -171,3 +156,23 @@ class TestTimedeltas:
             expected_values, dtype="timedelta64[ns]", freq=expected_freq
         )
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "freq_depr, start, end",
+        [
+            (
+                "3.5l",
+                "05:03:01",
+                "05:03:10",
+            ),
+            (
+                "2.5T",
+                "5 hours",
+                "5 hours 8 minutes",
+            ),
+        ],
+    )
+    def test_timedelta_range_removed_freq(self, freq_depr, start, end):
+        msg = f"Invalid frequency: {freq_depr}"
+        with pytest.raises(ValueError, match=msg):
+            timedelta_range(start=start, end=end, freq=freq_depr)

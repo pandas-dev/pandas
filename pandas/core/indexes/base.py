@@ -7169,7 +7169,7 @@ def maybe_sequence_to_range(sequence) -> Any | range:
     -------
     Any : input or range
     """
-    if isinstance(sequence, (ABCSeries, Index)):
+    if isinstance(sequence, (ABCSeries, Index, range)):
         return sequence
     np_sequence = np.asarray(sequence)
     if np_sequence.dtype.kind != "i" or len(np_sequence) == 1:
@@ -7179,13 +7179,7 @@ def maybe_sequence_to_range(sequence) -> Any | range:
     diff = np_sequence[1] - np_sequence[0]
     if diff == 0:
         return sequence
-    elif len(np_sequence) == 2:
-        return range(np_sequence[0], np_sequence[1] + diff, diff)
-    maybe_range_indexer, remainder = np.divmod(np_sequence - np_sequence[0], diff)
-    if (
-        lib.is_range_indexer(maybe_range_indexer, len(maybe_range_indexer))
-        and not remainder.any()
-    ):
+    elif len(np_sequence) == 2 or lib.is_sequence_range(np_sequence, diff):
         return range(np_sequence[0], np_sequence[-1] + diff, diff)
     else:
         return sequence

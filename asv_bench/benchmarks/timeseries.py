@@ -183,7 +183,7 @@ class ResampleDatetetime64:
         self.dt_ts = Series(5, rng3, dtype="datetime64[ns]")
 
     def time_resample(self):
-        self.dt_ts.resample("1S").last()
+        self.dt_ts.resample("1s").last()
 
 
 class AsOf:
