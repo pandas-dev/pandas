@@ -519,7 +519,6 @@ class ParserBase:
         dct: Mapping,
         na_values,
         na_fvalues,
-        verbose: bool = False,
         converters=None,
         dtypes=None,
     ) -> dict[Any, np.ndarray]:
@@ -596,8 +595,6 @@ class ParserBase:
                     cvals = self._cast_types(cvals, cast_type, c)
 
             result[c] = cvals
-            if verbose and na_count:
-                print(f"Filled {na_count} NA values in column {c!s}")
         return result
 
     @final
@@ -1236,7 +1233,6 @@ parser_defaults = {
     "usecols": None,
     # 'iterator': False,
     "chunksize": None,
-    "verbose": False,
     "encoding": None,
     "compression": None,
     "skip_blank_lines": True,
