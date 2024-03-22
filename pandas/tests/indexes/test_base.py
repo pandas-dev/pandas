@@ -686,41 +686,6 @@ class TestIndex:
     def test_summary(self, index):
         index._summary()
 
-    def test_format_bug(self):
-        # GH 14626
-        # windows has different precision on datetime.datetime.now (it doesn't
-        # include us since the default for Timestamp shows these but Index
-        # formatting does not we are skipping)
-        now = datetime.now()
-        msg = r"Index\.format is deprecated"
-
-        if not str(now).endswith("000"):
-            index = Index([now])
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                formatted = index.format()
-            expected = [str(index[0])]
-            assert formatted == expected
-
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            Index([]).format()
-
-    @pytest.mark.parametrize("vals", [[1, 2.0 + 3.0j, 4.0], ["a", "b", "c"]])
-    def test_format_missing(self, vals, nulls_fixture):
-        # 2845
-        vals = list(vals)  # Copy for each iteration
-        vals.append(nulls_fixture)
-        index = Index(vals, dtype=object)
-        # TODO: case with complex dtype?
-
-        msg = r"Index\.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            formatted = index.format()
-        null_repr = "NaN" if isinstance(nulls_fixture, float) else str(nulls_fixture)
-        expected = [str(index[0]), str(index[1]), str(index[2]), null_repr]
-
-        assert formatted == expected
-        assert index[3] is nulls_fixture
-
     def test_logical_compat(self, all_boolean_reductions, simple_index):
         index = simple_index
         left = getattr(index, all_boolean_reductions)()
@@ -942,7 +907,7 @@ class TestIndex:
     @pytest.mark.parametrize("label", [1.0, "foobar", "xyzzy", np.nan])
     def test_isin_level_kwarg_bad_label_raises(self, label, index):
         if isinstance(index, MultiIndex):
-            index = index.rename(["foo", "bar"] + index.names[2:])
+            index = index.rename(("foo", "bar") + index.names[2:])
             msg = f"'Level {label} not found'"
         else:
             index = index.rename("foo")
@@ -1549,8 +1514,10 @@ class TestIndexUtils:
     @pytest.mark.parametrize(
         "data, names, expected",
         [
-            ([[1, 2, 3]], None, Index([1, 2, 3])),
-            ([[1, 2, 3]], ["name"], Index([1, 2, 3], name="name")),
+            ([[1, 2, 4]], None, Index([1, 2, 4])),
+            ([[1, 2, 4]], ["name"], Index([1, 2, 4], name="name")),
+            ([[1, 2, 3]], None, RangeIndex(1, 4)),
+            ([[1, 2, 3]], ["name"], RangeIndex(1, 4, name="name")),
             (
                 [["a", "a"], ["c", "d"]],
                 None,
@@ -1565,7 +1532,7 @@ class TestIndexUtils:
     )
     def test_ensure_index_from_sequences(self, data, names, expected):
         result = ensure_index_from_sequences(data, names)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_ensure_index_mixed_closed_intervals(self):
         # GH27172
@@ -1721,3 +1688,13 @@ def test_nan_comparison_same_object(op):
 
     result = op(idx, idx.copy())
     tm.assert_numpy_array_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_is_monotonic_pyarrow_list_type():
+    # GH 57333
+    import pyarrow as pa
+
+    idx = Index([[1], [2, 3]], dtype=pd.ArrowDtype(pa.list_(pa.int64())))
+    assert not idx.is_monotonic_increasing
+    assert not idx.is_monotonic_decreasing

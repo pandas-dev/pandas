@@ -8,7 +8,6 @@ from collections.abc import (
 )
 import datetime
 from functools import partial
-from io import BytesIO
 import os
 from textwrap import fill
 from typing import (
@@ -44,6 +43,7 @@ from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
     is_bool,
+    is_file_like,
     is_float,
     is_integer,
     is_list_like,
@@ -77,6 +77,7 @@ if TYPE_CHECKING:
         DtypeBackend,
         ExcelWriterIfSheetExists,
         FilePath,
+        HashableT,
         IntStrT,
         ReadBuffer,
         Self,
@@ -94,7 +95,7 @@ a single sheet or a list of sheets.
 
 Parameters
 ----------
-io : str, bytes, ExcelFile, xlrd.Book, path object, or file-like object
+io : str, ExcelFile, xlrd.Book, path object, or file-like object
     Any valid string path is acceptable. The string could be a URL. Valid
     URL schemes include http, ftp, s3, and file. For file URLs, a host is
     expected. A local file could be: ``file://localhost/path/to/table.xlsx``.
@@ -383,7 +384,7 @@ def read_excel(
     | str
     | Sequence[int]
     | Sequence[str]
-    | Callable[[str], bool]
+    | Callable[[HashableT], bool]
     | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = ...,
@@ -405,8 +406,7 @@ def read_excel(
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
@@ -422,7 +422,7 @@ def read_excel(
     | str
     | Sequence[int]
     | Sequence[str]
-    | Callable[[str], bool]
+    | Callable[[HashableT], bool]
     | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = ...,
@@ -444,8 +444,7 @@ def read_excel(
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> dict[IntStrT, DataFrame]:
-    ...
+) -> dict[IntStrT, DataFrame]: ...
 
 
 @doc(storage_options=_shared_docs["storage_options"])
@@ -461,7 +460,7 @@ def read_excel(
     | str
     | Sequence[int]
     | Sequence[str]
-    | Callable[[str], bool]
+    | Callable[[HashableT], bool]
     | None = None,
     dtype: DtypeArg | None = None,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = None,
@@ -551,10 +550,6 @@ class BaseExcelReader(Generic[_WorkbookT]):
     ) -> None:
         if engine_kwargs is None:
             engine_kwargs = {}
-
-        # First argument can also be bytes, so create a buffer
-        if isinstance(filepath_or_buffer, bytes):
-            filepath_or_buffer = BytesIO(filepath_or_buffer)
 
         self.handles = IOHandles(
             handle=filepath_or_buffer, compression={"method": None}
@@ -1019,7 +1014,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     date_format="YYYY-MM-DD",
-    ...     datetime_format="YYYY-MM-DD HH:MM:SS"
+    ...     datetime_format="YYYY-MM-DD HH:MM:SS",
     ... ) as writer:
     ...     df.to_excel(writer)  # doctest: +SKIP
 
@@ -1073,7 +1068,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     engine="xlsxwriter",
-    ...     engine_kwargs={{"options": {{"nan_inf_to_errors": True}}}}
+    ...     engine_kwargs={{"options": {{"nan_inf_to_errors": True}}}},
     ... ) as writer:
     ...     df.to_excel(writer)  # doctest: +SKIP
 
@@ -1084,7 +1079,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     ...     "path_to_file.xlsx",
     ...     engine="openpyxl",
     ...     mode="a",
-    ...     engine_kwargs={{"keep_vba": True}}
+    ...     engine_kwargs={{"keep_vba": True}},
     ... ) as writer:
     ...     df.to_excel(writer, sheet_name="Sheet2")  # doctest: +SKIP
     """
@@ -1134,7 +1129,7 @@ class ExcelWriter(Generic[_WorkbookT]):
                     ext = "xlsx"
 
                 try:
-                    engine = config.get_option(f"io.excel.{ext}.writer", silent=True)
+                    engine = config.get_option(f"io.excel.{ext}.writer")
                     if engine == "auto":
                         engine = get_default_engine(ext, mode="writer")
                 except KeyError as err:
@@ -1326,7 +1321,16 @@ class ExcelWriter(Generic[_WorkbookT]):
             fmt = "0"
         else:
             val = str(val)
-
+            # GH#56954
+            # Excel's limitation on cell contents is 32767 characters
+            # xref https://support.microsoft.com/en-au/office/excel-specifications-and-limits-1672b34d-7043-467e-8e27-269d656771c3
+            if len(val) > 32767:
+                warnings.warn(
+                    f"Cell contents too long ({len(val)}), "
+                    "truncated to 32767 characters",
+                    UserWarning,
+                    stacklevel=find_stack_level(),
+                )
         return val, fmt
 
     @classmethod
@@ -1363,7 +1367,7 @@ XLS_SIGNATURES = (
     b"\x09\x00\x04\x00\x07\x00\x10\x00",  # BIFF2
     b"\x09\x02\x06\x00\x00\x00\x10\x00",  # BIFF3
     b"\x09\x04\x06\x00\x00\x00\x10\x00",  # BIFF4
-    b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1",  # Compound File Binary
+    b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1",  # Compound File Binary
 )
 ZIP_SIGNATURE = b"PK\x03\x04"
 PEEK_SIZE = max(map(len, XLS_SIGNATURES + (ZIP_SIGNATURE,)))
@@ -1397,9 +1401,6 @@ def inspect_excel_format(
     BadZipFile
         If resulting stream does not have an XLS signature and is not a valid zipfile.
     """
-    if isinstance(content_or_path, bytes):
-        content_or_path = BytesIO(content_or_path)
-
     with get_handle(
         content_or_path, "rb", storage_options=storage_options, is_text=False
     ) as handle:
@@ -1441,7 +1442,7 @@ class ExcelFile:
 
     Parameters
     ----------
-    path_or_buffer : str, bytes, path object (pathlib.Path or py._path.local.LocalPath),
+    path_or_buffer : str, bytes, pathlib.Path,
         A file-like object, xlrd workbook or openpyxl workbook.
         If a string or path object, expected to be a path to a
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
@@ -1486,7 +1487,7 @@ class ExcelFile:
 
     Examples
     --------
-    >>> file = pd.ExcelFile('myfile.xlsx')  # doctest: +SKIP
+    >>> file = pd.ExcelFile("myfile.xlsx")  # doctest: +SKIP
     >>> with pd.ExcelFile("myfile.xls") as xls:  # doctest: +SKIP
     ...     df1 = pd.read_excel(xls, "Sheet1")  # doctest: +SKIP
     """
@@ -1518,36 +1519,28 @@ class ExcelFile:
         if engine is not None and engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
 
-        # First argument can also be bytes, so create a buffer
-        if isinstance(path_or_buffer, bytes):
-            path_or_buffer = BytesIO(path_or_buffer)
-            warnings.warn(
-                "Passing bytes to 'read_excel' is deprecated and "
-                "will be removed in a future version. To read from a "
-                "byte string, wrap it in a `BytesIO` object.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
-        # Could be a str, ExcelFile, Book, etc.
-        self.io = path_or_buffer
         # Always a string
         self._io = stringify_path(path_or_buffer)
 
-        # Determine xlrd version if installed
-        if import_optional_dependency("xlrd", errors="ignore") is None:
-            xlrd_version = None
-        else:
-            import xlrd
-
-            xlrd_version = Version(get_version(xlrd))
-
         if engine is None:
             # Only determine ext if it is needed
-            ext: str | None
-            if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
-                ext = "xls"
-            else:
+            ext: str | None = None
+
+            if not isinstance(
+                path_or_buffer, (str, os.PathLike, ExcelFile)
+            ) and not is_file_like(path_or_buffer):
+                # GH#56692 - avoid importing xlrd if possible
+                if import_optional_dependency("xlrd", errors="ignore") is None:
+                    xlrd_version = None
+                else:
+                    import xlrd
+
+                    xlrd_version = Version(get_version(xlrd))
+
+                if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
+                    ext = "xls"
+
+            if ext is None:
                 ext = inspect_excel_format(
                     content_or_path=path_or_buffer, storage_options=storage_options
                 )
@@ -1557,7 +1550,7 @@ class ExcelFile:
                         "an engine manually."
                     )
 
-            engine = config.get_option(f"io.excel.{ext}.reader", silent=True)
+            engine = config.get_option(f"io.excel.{ext}.reader")
             if engine == "auto":
                 engine = get_default_engine(ext, mode="reader")
 
@@ -1609,9 +1602,9 @@ class ExcelFile:
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
-        >>> df.to_excel('myfile.xlsx')  # doctest: +SKIP
-        >>> file = pd.ExcelFile('myfile.xlsx')  # doctest: +SKIP
+        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"])
+        >>> df.to_excel("myfile.xlsx")  # doctest: +SKIP
+        >>> file = pd.ExcelFile("myfile.xlsx")  # doctest: +SKIP
         >>> file.parse()  # doctest: +SKIP
         """
         return self._reader.parse(
@@ -1638,10 +1631,59 @@ class ExcelFile:
 
     @property
     def book(self):
+        """
+        Gets the Excel workbook.
+
+        Workbook is the top-level container for all document information.
+
+        Returns
+        -------
+        Excel Workbook
+            The workbook object of the type defined by the engine being used.
+
+        See Also
+        --------
+        read_excel : Read an Excel file into a pandas DataFrame.
+
+        Examples
+        --------
+        >>> file = pd.ExcelFile("myfile.xlsx")  # doctest: +SKIP
+        >>> file.book  # doctest: +SKIP
+        <openpyxl.workbook.workbook.Workbook object at 0x11eb5ad70>
+        >>> file.book.path  # doctest: +SKIP
+        '/xl/workbook.xml'
+        >>> file.book.active  # doctest: +SKIP
+        <openpyxl.worksheet._read_only.ReadOnlyWorksheet object at 0x11eb5b370>
+        >>> file.book.sheetnames  # doctest: +SKIP
+        ['Sheet1', 'Sheet2']
+        """
         return self._reader.book
 
     @property
     def sheet_names(self):
+        """
+        Names of the sheets in the document.
+
+        This is particularly useful for loading a specific sheet into a DataFrame when
+        you do not know the sheet names beforehand.
+
+        Returns
+        -------
+        list of str
+            List of sheet names in the document.
+
+        See Also
+        --------
+        ExcelFile.parse : Parse a sheet into a DataFrame.
+        read_excel : Read an Excel file into a pandas DataFrame. If you know the sheet
+            names, it may be easier to specify them directly to read_excel.
+
+        Examples
+        --------
+        >>> file = pd.ExcelFile("myfile.xlsx")  # doctest: +SKIP
+        >>> file.sheet_names  # doctest: +SKIP
+        ["Sheet1", "Sheet2"]
+        """
         return self._reader.sheet_names
 
     def close(self) -> None:

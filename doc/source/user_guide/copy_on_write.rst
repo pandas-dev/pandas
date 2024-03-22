@@ -8,15 +8,11 @@ Copy-on-Write (CoW)
 
 .. note::
 
-    Copy-on-Write will become the default in pandas 3.0. We recommend
-    :ref:`turning it on now <copy_on_write_enabling>`
-    to benefit from all improvements.
+    Copy-on-Write is now the default with pandas 3.0.
 
 Copy-on-Write was first introduced in version 1.5.0. Starting from version 2.0 most of the
 optimizations that become possible through CoW are implemented and supported. All possible
 optimizations are supported starting from pandas 2.1.
-
-CoW will be enabled by default in version 3.0.
 
 CoW will lead to more predictable behavior since it is not possible to update more than
 one object with one statement, e.g. indexing operations or methods won't have side-effects. Additionally, through
@@ -29,20 +25,24 @@ pandas indexing behavior is tricky to understand. Some operations return views w
 other return copies. Depending on the result of the operation, mutating one object
 might accidentally mutate another:
 
-.. ipython:: python
+.. code-block:: ipython
 
-    df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
-    subset = df["foo"]
-    subset.iloc[0] = 100
-    df
+    In [1]: df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
+    In [2]: subset = df["foo"]
+    In [3]: subset.iloc[0] = 100
+    In [4]: df
+    Out[4]:
+       foo  bar
+    0  100    4
+    1    2    5
+    2    3    6
 
-Mutating ``subset``, e.g. updating its values, also updates ``df``. The exact behavior is
+
+Mutating ``subset``, e.g. updating its values, also updated ``df``. The exact behavior was
 hard to predict. Copy-on-Write solves accidentally modifying more than one object,
-it explicitly disallows this. With CoW enabled, ``df`` is unchanged:
+it explicitly disallows this. ``df`` is unchanged:
 
 .. ipython:: python
-
-    pd.options.mode.copy_on_write = True
 
     df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
     subset = df["foo"]
@@ -57,13 +57,13 @@ applications.
 Migrating to Copy-on-Write
 --------------------------
 
-Copy-on-Write will be the default and only mode in pandas 3.0. This means that users
+Copy-on-Write is the default and only mode in pandas 3.0. This means that users
 need to migrate their code to be compliant with CoW rules.
 
-The default mode in pandas will raise warnings for certain cases that will actively
+The default mode in pandas < 3.0 raises warnings for certain cases that will actively
 change behavior and thus change user intended behavior.
 
-We added another mode, e.g.
+pandas 2.2 has a warning mode
 
 .. code-block:: python
 
@@ -84,7 +84,6 @@ The following few items describe the user visible changes:
 
 **Accessing the underlying array of a pandas object will return a read-only view**
 
-
 .. ipython:: python
 
     ser = pd.Series([1, 2, 3])
@@ -101,16 +100,21 @@ for more details.
 
 **Only one pandas object is updated at once**
 
-The following code snippet updates both ``df`` and ``subset`` without CoW:
+The following code snippet updated both ``df`` and ``subset`` without CoW:
 
-.. ipython:: python
+.. code-block:: ipython
 
-    df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
-    subset = df["foo"]
-    subset.iloc[0] = 100
-    df
+    In [1]: df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
+    In [2]: subset = df["foo"]
+    In [3]: subset.iloc[0] = 100
+    In [4]: df
+    Out[4]:
+       foo  bar
+    0  100    4
+    1    2    5
+    2    3    6
 
-This won't be possible anymore with CoW, since the CoW rules explicitly forbid this.
+This is not possible anymore with CoW, since the CoW rules explicitly forbid this.
 This includes updating a single column as a :class:`Series` and relying on the change
 propagating back to the parent :class:`DataFrame`.
 This statement can be rewritten into a single statement with ``loc`` or ``iloc`` if
@@ -146,7 +150,7 @@ A different alternative would be to not use ``inplace``:
 
 **Constructors now copy NumPy arrays by default**
 
-The Series and DataFrame constructors will now copy NumPy array by default when not
+The Series and DataFrame constructors now copies a NumPy array by default when not
 otherwise specified. This was changed to avoid mutating a pandas object when the
 NumPy array is changed inplace outside of pandas. You can set ``copy=False`` to
 avoid this copy.
@@ -162,7 +166,7 @@ that shares data with another DataFrame or Series object inplace.
 This avoids side-effects when modifying values and hence, most methods can avoid
 actually copying the data and only trigger a copy when necessary.
 
-The following example will operate inplace with CoW:
+The following example will operate inplace:
 
 .. ipython:: python
 
@@ -207,15 +211,17 @@ listed in :ref:`Copy-on-Write optimizations <copy_on_write.optimizations>`.
 
 Previously, when operating on views, the view and the parent object was modified:
 
-.. ipython:: python
+.. code-block:: ipython
 
-    with pd.option_context("mode.copy_on_write", False):
-        df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
-        view = df[:]
-        df.iloc[0, 0] = 100
-
-        df
-        view
+    In [1]: df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
+    In [2]: subset = df["foo"]
+    In [3]: subset.iloc[0] = 100
+    In [4]: df
+    Out[4]:
+       foo  bar
+    0  100    4
+    1    2    5
+    2    3    6
 
 CoW triggers a copy when ``df`` is changed to avoid mutating ``view`` as well:
 
@@ -236,16 +242,19 @@ Chained Assignment
 Chained assignment references a technique where an object is updated through
 two subsequent indexing operations, e.g.
 
-.. ipython:: python
-    :okwarning:
+.. code-block:: ipython
 
-    with pd.option_context("mode.copy_on_write", False):
-        df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
-        df["foo"][df["bar"] > 5] = 100
-        df
+    In [1]: df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
+    In [2]: df["foo"][df["bar"] > 5] = 100
+    In [3]: df
+    Out[3]:
+       foo  bar
+    0  100    4
+    1    2    5
+    2    3    6
 
-The column ``foo`` is updated where the column ``bar`` is greater than 5.
-This violates the CoW principles though, because it would have to modify the
+The column ``foo`` was updated where the column ``bar`` is greater than 5.
+This violated the CoW principles though, because it would have to modify the
 view ``df["foo"]`` and ``df`` in one step. Hence, chained assignment will
 consistently never work and raise a ``ChainedAssignmentError`` warning
 with CoW enabled:
@@ -272,7 +281,6 @@ shares data with the initial DataFrame:
 
 The array is a copy if the initial DataFrame consists of more than one array:
 
-
 .. ipython:: python
 
     df = pd.DataFrame({"a": [1, 2], "b": [1.5, 2.5]})
@@ -295,7 +303,7 @@ This array is read-only, which means that it can't be modified inplace:
 
 The same holds true for a Series, since a Series always consists of a single array.
 
-There are two potential solution to this:
+There are two potential solutions to this:
 
 - Trigger a copy manually if you want to avoid updating DataFrames that share memory with your array.
 - Make the array writeable. This is a more performant solution but circumvents Copy-on-Write rules, so
@@ -347,22 +355,3 @@ and :meth:`DataFrame.rename`.
 
 These methods return views when Copy-on-Write is enabled, which provides a significant
 performance improvement compared to the regular execution.
-
-.. _copy_on_write_enabling:
-
-How to enable CoW
------------------
-
-Copy-on-Write can be enabled through the configuration option ``copy_on_write``. The option can
-be turned on __globally__ through either of the following:
-
-.. ipython:: python
-
-    pd.set_option("mode.copy_on_write", True)
-
-    pd.options.mode.copy_on_write = True
-
-.. ipython:: python
-    :suppress:
-
-    pd.options.mode.copy_on_write = False

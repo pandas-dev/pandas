@@ -1,6 +1,7 @@
 """
 Define extension dtypes.
 """
+
 from __future__ import annotations
 
 from datetime import (
@@ -20,6 +21,8 @@ import warnings
 
 import numpy as np
 import pytz
+
+from pandas._config.config import get_option
 
 from pandas._libs import (
     lib,
@@ -61,8 +64,6 @@ from pandas.core.dtypes.inference import (
     is_bool,
     is_list_like,
 )
-
-from pandas.util import capitalize_first_letter
 
 if not pa_version_under10p1:
     import pyarrow as pa
@@ -190,8 +191,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     Examples
     --------
-    >>> t = pd.CategoricalDtype(categories=['b', 'a'], ordered=True)
-    >>> pd.Series(['a', 'b', 'a', 'c'], dtype=t)
+    >>> t = pd.CategoricalDtype(categories=["b", "a"], ordered=True)
+    >>> pd.Series(["a", "b", "a", "c"], dtype=t)
     0      a
     1      b
     2      a
@@ -288,14 +289,14 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         >>> pd.CategoricalDtype._from_values_or_dtype()
         CategoricalDtype(categories=None, ordered=None, categories_dtype=None)
         >>> pd.CategoricalDtype._from_values_or_dtype(
-        ...     categories=['a', 'b'], ordered=True
+        ...     categories=["a", "b"], ordered=True
         ... )
         CategoricalDtype(categories=['a', 'b'], ordered=True, categories_dtype=object)
-        >>> dtype1 = pd.CategoricalDtype(['a', 'b'], ordered=True)
-        >>> dtype2 = pd.CategoricalDtype(['x', 'y'], ordered=False)
+        >>> dtype1 = pd.CategoricalDtype(["a", "b"], ordered=True)
+        >>> dtype2 = pd.CategoricalDtype(["x", "y"], ordered=False)
         >>> c = pd.Categorical([0, 1], dtype=dtype1)
         >>> pd.CategoricalDtype._from_values_or_dtype(
-        ...     c, ['x', 'y'], ordered=True, dtype=dtype2
+        ...     c, ["x", "y"], ordered=True, dtype=dtype2
         ... )
         Traceback (most recent call last):
             ...
@@ -623,7 +624,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         Examples
         --------
-        >>> cat_type = pd.CategoricalDtype(categories=['a', 'b'], ordered=True)
+        >>> cat_type = pd.CategoricalDtype(categories=["a", "b"], ordered=True)
         >>> cat_type.categories
         Index(['a', 'b'], dtype='object')
         """
@@ -636,11 +637,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         Examples
         --------
-        >>> cat_type = pd.CategoricalDtype(categories=['a', 'b'], ordered=True)
+        >>> cat_type = pd.CategoricalDtype(categories=["a", "b"], ordered=True)
         >>> cat_type.ordered
         True
 
-        >>> cat_type = pd.CategoricalDtype(categories=['a', 'b'], ordered=False)
+        >>> cat_type = pd.CategoricalDtype(categories=["a", "b"], ordered=False)
         >>> cat_type.ordered
         False
         """
@@ -719,10 +720,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
     Examples
     --------
     >>> from zoneinfo import ZoneInfo
-    >>> pd.DatetimeTZDtype(tz=ZoneInfo('UTC'))
+    >>> pd.DatetimeTZDtype(tz=ZoneInfo("UTC"))
     datetime64[ns, UTC]
 
-    >>> pd.DatetimeTZDtype(tz=ZoneInfo('Europe/Paris'))
+    >>> pd.DatetimeTZDtype(tz=ZoneInfo("Europe/Paris"))
     datetime64[ns, Europe/Paris]
     """
 
@@ -795,7 +796,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         Examples
         --------
         >>> from zoneinfo import ZoneInfo
-        >>> dtype = pd.DatetimeTZDtype(tz=ZoneInfo('America/Los_Angeles'))
+        >>> dtype = pd.DatetimeTZDtype(tz=ZoneInfo("America/Los_Angeles"))
         >>> dtype.unit
         'ns'
         """
@@ -809,7 +810,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         Examples
         --------
         >>> from zoneinfo import ZoneInfo
-        >>> dtype = pd.DatetimeTZDtype(tz=ZoneInfo('America/Los_Angeles'))
+        >>> dtype = pd.DatetimeTZDtype(tz=ZoneInfo("America/Los_Angeles"))
         >>> dtype.tz
         zoneinfo.ZoneInfo(key='America/Los_Angeles')
         """
@@ -842,7 +843,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
         Examples
         --------
-        >>> DatetimeTZDtype.construct_from_string('datetime64[ns, UTC]')
+        >>> DatetimeTZDtype.construct_from_string("datetime64[ns, UTC]")
         datetime64[ns, UTC]
         """
         if not isinstance(string, str):
@@ -964,7 +965,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
 
     Examples
     --------
-    >>> pd.PeriodDtype(freq='D')
+    >>> pd.PeriodDtype(freq="D")
     period[D]
 
     >>> pd.PeriodDtype(freq=pd.offsets.MonthEnd())
@@ -1028,7 +1029,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
 
         Examples
         --------
-        >>> dtype = pd.PeriodDtype(freq='D')
+        >>> dtype = pd.PeriodDtype(freq="D")
         >>> dtype.freq
         <Day>
         """
@@ -1087,7 +1088,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
-            return other in [self.name, capitalize_first_letter(self.name)]
+            return other[:1].lower() + other[1:] == self.name
 
         return super().__eq__(other)
 
@@ -1183,7 +1184,7 @@ class IntervalDtype(PandasExtensionDtype):
 
     Examples
     --------
-    >>> pd.IntervalDtype(subtype='int64', closed='both')
+    >>> pd.IntervalDtype(subtype="int64", closed="both")
     interval[int64, both]
     """
 
@@ -1283,7 +1284,7 @@ class IntervalDtype(PandasExtensionDtype):
 
         Examples
         --------
-        >>> dtype = pd.IntervalDtype(subtype='int64', closed='both')
+        >>> dtype = pd.IntervalDtype(subtype="int64", closed="both")
         >>> dtype.subtype
         dtype('int64')
         """
@@ -1704,17 +1705,15 @@ class SparseDtype(ExtensionDtype):
 
         if isinstance(other, type(self)):
             subtype = self.subtype == other.subtype
-            if self._is_na_fill_value:
+            if self._is_na_fill_value or other._is_na_fill_value:
                 # this case is complicated by two things:
                 # SparseDtype(float, float(nan)) == SparseDtype(float, np.nan)
                 # SparseDtype(float, np.nan)     != SparseDtype(float, pd.NaT)
                 # i.e. we want to treat any floating-point NaN as equal, but
                 # not a floating-point NaN and a datetime NaT.
-                fill_value = (
-                    other._is_na_fill_value
-                    and isinstance(self.fill_value, type(other.fill_value))
-                    or isinstance(other.fill_value, type(self.fill_value))
-                )
+                fill_value = isinstance(
+                    self.fill_value, type(other.fill_value)
+                ) or isinstance(other.fill_value, type(self.fill_value))
             else:
                 with warnings.catch_warnings():
                     # Ignore spurious numpy warning
@@ -2001,7 +2000,7 @@ class SparseDtype(ExtensionDtype):
         >>> SparseDtype(object, 1)._subtype_with_str
         dtype('O')
 
-        >>> dtype = SparseDtype(str, '')
+        >>> dtype = SparseDtype(str, "")
         >>> dtype.subtype
         dtype('O')
 
@@ -2030,7 +2029,9 @@ class SparseDtype(ExtensionDtype):
 
         # np.nan isn't a singleton, so we may end up with multiple
         # NaNs here, so we ignore the all NA case too.
-        if not (len(set(fill_values)) == 1 or isna(fill_values).all()):
+        if get_option("performance_warnings") and (
+            not (len(set(fill_values)) == 1 or isna(fill_values).all())
+        ):
             warnings.warn(
                 "Concatenating sparse arrays with multiple fill "
                 f"values: '{fill_values}'. Picking the first and "
@@ -2073,6 +2074,10 @@ class ArrowDtype(StorageExtensionDtype):
     Returns
     -------
     ArrowDtype
+
+    See Also
+    --------
+    DataFrame.convert_dtypes : Convert columns to the best possible dtypes.
 
     Examples
     --------
@@ -2339,7 +2344,7 @@ class ArrowDtype(StorageExtensionDtype):
         except NotImplementedError:
             return None
 
-    def __from_arrow__(self, array: pa.Array | pa.ChunkedArray):
+    def __from_arrow__(self, array: pa.Array | pa.ChunkedArray) -> ArrowExtensionArray:
         """
         Construct IntegerArray/FloatingArray from pyarrow Array/ChunkedArray.
         """

@@ -7,8 +7,6 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -81,25 +79,10 @@ class TestDataFrameBlockInternals:
         for letter in range(ord("A"), ord("Z")):
             float_frame[chr(letter)] = chr(letter)
 
-    def test_modify_values(self, float_frame, using_copy_on_write):
-        if using_copy_on_write:
-            with pytest.raises(ValueError, match="read-only"):
-                float_frame.values[5] = 5
-            assert (float_frame.values[5] != 5).all()
-            return
-
-        float_frame.values[5] = 5
-        assert (float_frame.values[5] == 5).all()
-
-        # unconsolidated
-        float_frame["E"] = 7.0
-        col = float_frame["E"]
-        float_frame.values[6] = 6
-        # as of 2.0 .values does not consolidate, so subsequent calls to .values
-        #  does not share data
-        assert not (float_frame.values[6] == 6).all()
-
-        assert (col == 7).all()
+    def test_modify_values(self, float_frame):
+        with pytest.raises(ValueError, match="read-only"):
+            float_frame.values[5] = 5
+        assert (float_frame.values[5] != 5).all()
 
     def test_boolean_set_uncons(self, float_frame):
         float_frame["E"] = 7.0
@@ -332,7 +315,7 @@ class TestDataFrameBlockInternals:
         assert not float_frame._is_mixed_type
         assert float_string_frame._is_mixed_type
 
-    def test_stale_cached_series_bug_473(self, using_copy_on_write, warn_copy_on_write):
+    def test_stale_cached_series_bug_473(self):
         # this is chained, but ok
         with option_context("chained_assignment", None):
             Y = DataFrame(
@@ -347,30 +330,23 @@ class TestDataFrameBlockInternals:
             repr(Y)
             Y.sum()
             Y["g"].sum()
-            if using_copy_on_write:
-                assert not pd.isna(Y["g"]["c"])
-            else:
-                assert pd.isna(Y["g"]["c"])
+            assert not pd.isna(Y["g"]["c"])
 
-    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
-    def test_strange_column_corruption_issue(self, using_copy_on_write):
+    def test_strange_column_corruption_issue(self, performance_warning):
         # TODO(wesm): Unclear how exactly this is related to internal matters
         df = DataFrame(index=[0, 1])
         df[0] = np.nan
         wasCol = {}
 
         with tm.assert_produces_warning(
-            PerformanceWarning, raise_on_extra_warnings=False
+            performance_warning, raise_on_extra_warnings=False
         ):
             for i, dt in enumerate(df.index):
                 for col in range(100, 200):
                     if col not in wasCol:
                         wasCol[col] = 1
                         df[col] = np.nan
-                    if using_copy_on_write:
-                        df.loc[dt, col] = i
-                    else:
-                        df[col][dt] = i
+                    df.loc[dt, col] = i
 
         myid = 100
 
@@ -408,24 +384,16 @@ class TestDataFrameBlockInternals:
         tm.assert_frame_equal(df, df2)
 
 
-def test_update_inplace_sets_valid_block_values(using_copy_on_write):
+def test_update_inplace_sets_valid_block_values():
     # https://github.com/pandas-dev/pandas/issues/33457
     df = DataFrame({"a": Series([1, 2, None], dtype="category")})
 
     # inplace update of a single column
-    if using_copy_on_write:
-        with tm.raises_chained_assignment_error():
-            df["a"].fillna(1, inplace=True)
-    else:
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
-            df["a"].fillna(1, inplace=True)
+    with tm.raises_chained_assignment_error():
+        df["a"].fillna(1, inplace=True)
 
     # check we haven't put a Series into any block.values
     assert isinstance(df._mgr.blocks[0].values, Categorical)
-
-    if not using_copy_on_write:
-        # smoketest for OP bug from GH#35731
-        assert df.isnull().sum().sum() == 0
 
 
 def test_nonconsolidated_item_cache_take():

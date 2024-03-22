@@ -1,18 +1,18 @@
 """
 datetimelike delegation
 """
+
 from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    NoReturn,
     cast,
 )
-import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -106,18 +106,9 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         else:
             index = self._parent.index
         # return the result as a Series
-        result = Series(result, index=index, name=self.name).__finalize__(self._parent)
+        return Series(result, index=index, name=self.name).__finalize__(self._parent)
 
-        # setting this object will show a SettingWithCopyWarning/Error
-        result._is_copy = (
-            "modifications to a property of a datetimelike "
-            "object are not supported and are discarded. "
-            "Change values on the original."
-        )
-
-        return result
-
-    def _delegate_property_set(self, name: str, value, *args, **kwargs):
+    def _delegate_property_set(self, name: str, value, *args, **kwargs) -> NoReturn:
         raise ValueError(
             "modifications to a property of a datetimelike object are not supported. "
             "Change values on the original."
@@ -134,18 +125,9 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         if not is_list_like(result):
             return result
 
-        result = Series(result, index=self._parent.index, name=self.name).__finalize__(
+        return Series(result, index=self._parent.index, name=self.name).__finalize__(
             self._parent
         )
-
-        # setting this object will show a SettingWithCopyWarning/Error
-        result._is_copy = (
-            "modifications to a method of a datetimelike "
-            "object are not supported and are discarded. "
-            "Change values on the original."
-        )
-
-        return result
 
 
 @delegate_names(
@@ -230,16 +212,8 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
     def to_pytimedelta(self):
         return cast(ArrowExtensionArray, self._parent.array)._dt_to_pytimedelta()
 
-    def to_pydatetime(self):
+    def to_pydatetime(self) -> Series:
         # GH#20306
-        warnings.warn(
-            f"The behavior of {type(self).__name__}.to_pydatetime is deprecated, "
-            "in a future version this will return a Series containing python "
-            "datetime objects instead of an ndarray. To retain the old behavior, "
-            "call `np.array` on the result",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
         return cast(ArrowExtensionArray, self._parent.array)._dt_to_pydatetime()
 
     def isocalendar(self) -> DataFrame:
@@ -335,15 +309,9 @@ class DatetimeProperties(Properties):
     Raises TypeError if the Series does not contain datetimelike values.
     """
 
-    def to_pydatetime(self) -> np.ndarray:
+    def to_pydatetime(self) -> Series:
         """
-        Return the data as an array of :class:`datetime.datetime` objects.
-
-        .. deprecated:: 2.1.0
-
-            The current behavior of dt.to_pydatetime is deprecated.
-            In a future version this will return a Series containing python
-            datetime objects instead of a ndarray.
+        Return the data as a Series of :class:`datetime.datetime` objects.
 
         Timezone information is retained if present.
 
@@ -363,38 +331,34 @@ class DatetimeProperties(Properties):
 
         Examples
         --------
-        >>> s = pd.Series(pd.date_range('20180310', periods=2))
+        >>> s = pd.Series(pd.date_range("20180310", periods=2))
         >>> s
         0   2018-03-10
         1   2018-03-11
         dtype: datetime64[ns]
 
         >>> s.dt.to_pydatetime()
-        array([datetime.datetime(2018, 3, 10, 0, 0),
-               datetime.datetime(2018, 3, 11, 0, 0)], dtype=object)
+        0    2018-03-10 00:00:00
+        1    2018-03-11 00:00:00
+        dtype: object
 
         pandas' nanosecond precision is truncated to microseconds.
 
-        >>> s = pd.Series(pd.date_range('20180310', periods=2, freq='ns'))
+        >>> s = pd.Series(pd.date_range("20180310", periods=2, freq="ns"))
         >>> s
         0   2018-03-10 00:00:00.000000000
         1   2018-03-10 00:00:00.000000001
         dtype: datetime64[ns]
 
         >>> s.dt.to_pydatetime()
-        array([datetime.datetime(2018, 3, 10, 0, 0),
-               datetime.datetime(2018, 3, 10, 0, 0)], dtype=object)
+        0    2018-03-10 00:00:00
+        1    2018-03-10 00:00:00
+        dtype: object
         """
         # GH#20306
-        warnings.warn(
-            f"The behavior of {type(self).__name__}.to_pydatetime is deprecated, "
-            "in a future version this will return a Series containing python "
-            "datetime objects instead of an ndarray. To retain the old behavior, "
-            "call `np.array` on the result",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._get_values().to_pydatetime()
+        from pandas import Series
+
+        return Series(self._get_values().to_pydatetime(), dtype=object)
 
     @property
     def freq(self):
@@ -501,7 +465,7 @@ class TimedeltaProperties(Properties):
         return self._get_values().to_pytimedelta()
 
     @property
-    def components(self):
+    def components(self) -> DataFrame:
         """
         Return a Dataframe of the components of the Timedeltas.
 
@@ -511,7 +475,7 @@ class TimedeltaProperties(Properties):
 
         Examples
         --------
-        >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit='s'))
+        >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit="s"))
         >>> s
         0   0 days 00:00:00
         1   0 days 00:00:01
@@ -608,6 +572,44 @@ class PeriodProperties(Properties):
 class CombinedDatetimelikeProperties(
     DatetimeProperties, TimedeltaProperties, PeriodProperties
 ):
+    """
+    Accessor object for Series values' datetime-like, timedelta and period properties.
+
+    See Also
+    --------
+    DatetimeIndex : Index of datetime64 data.
+
+    Examples
+    --------
+    >>> dates = pd.Series(
+    ...     ["2024-01-01", "2024-01-15", "2024-02-5"], dtype="datetime64[ns]"
+    ... )
+    >>> dates.dt.day
+    0     1
+    1    15
+    2     5
+    dtype: int32
+    >>> dates.dt.month
+    0    1
+    1    1
+    2    2
+    dtype: int32
+
+    >>> dates = pd.Series(
+    ...     ["2024-01-01", "2024-01-15", "2024-02-5"], dtype="datetime64[ns, UTC]"
+    ... )
+    >>> dates.dt.day
+    0     1
+    1    15
+    2     5
+    dtype: int32
+    >>> dates.dt.month
+    0    1
+    1    1
+    2    2
+    dtype: int32
+    """
+
     def __new__(cls, data: Series):  # pyright: ignore[reportInconsistentConstructor]
         # CombinedDatetimelikeProperties isn't really instantiated. Instead
         # we need to choose which parent (datetime or timedelta) is

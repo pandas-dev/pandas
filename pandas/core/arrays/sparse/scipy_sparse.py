@@ -3,6 +3,7 @@ Interaction with scipy.sparse matrices.
 
 Currently only includes to_coo helpers.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

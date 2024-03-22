@@ -1,6 +1,7 @@
 """
 Tests for offsets.Tick and subclasses
 """
+
 from datetime import (
     datetime,
     timedelta,
@@ -335,14 +336,6 @@ def test_tick_zero(cls1, cls2):
 @pytest.mark.parametrize("cls", tick_classes)
 def test_tick_equalities(cls):
     assert cls() == cls(1)
-
-
-@pytest.mark.parametrize("cls", tick_classes)
-def test_tick_offset(cls):
-    msg = f"{cls.__name__}.is_anchored is deprecated "
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        assert not cls().is_anchored()
 
 
 @pytest.mark.parametrize("cls", tick_classes)

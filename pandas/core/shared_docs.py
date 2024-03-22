@@ -102,15 +102,6 @@ by : mapping, function, label, pd.Grouper or list of such
     the values are used as-is to determine the groups. A label or list
     of labels may be passed to group by the columns in ``self``.
     Notice that a tuple is interpreted as a (single) key.
-axis : {0 or 'index', 1 or 'columns'}, default 0
-    Split along rows (0) or columns (1). For `Series` this parameter
-    is unused and defaults to 0.
-
-    .. deprecated:: 2.1.0
-
-        Will be removed and behave like axis=0 in a future version.
-        For ``axis=1``, do ``frame.T.groupby(...)`` instead.
-
 level : int, level name, or sequence of such, default None
     If the axis is a MultiIndex (hierarchical), group by a particular
     level or levels. Do not specify both ``by`` and ``level``.
@@ -157,14 +148,14 @@ group_keys : bool, default True
 
        ``group_keys`` now defaults to ``True``.
 
-observed : bool, default False
+observed : bool, default True
     This only applies if any of the groupers are Categoricals.
     If True: only show observed values for categorical groupers.
     If False: show all values for categorical groupers.
 
-    .. deprecated:: 2.1.0
+    .. versionchanged:: 3.0.0
 
-        The default value will change to True in a future version of pandas.
+        The default value is now ``True``.
 
 dropna : bool, default True
     If True, and if group keys contain NA values, NA values together
@@ -187,120 +178,12 @@ See the `user guide
 <https://pandas.pydata.org/pandas-docs/stable/groupby.html>`__ for more
 detailed usage and examples, including splitting an object into groups,
 iterating through groups, selecting a group, aggregation, and more.
-"""
 
-_shared_docs["melt"] = """
-Unpivot a DataFrame from wide to long format, optionally leaving identifiers set.
-
-This function is useful to massage a DataFrame into a format where one
-or more columns are identifier variables (`id_vars`), while all other
-columns, considered measured variables (`value_vars`), are "unpivoted" to
-the row axis, leaving just two non-identifier columns, 'variable' and
-'value'.
-
-Parameters
-----------
-id_vars : scalar, tuple, list, or ndarray, optional
-    Column(s) to use as identifier variables.
-value_vars : scalar, tuple, list, or ndarray, optional
-    Column(s) to unpivot. If not specified, uses all columns that
-    are not set as `id_vars`.
-var_name : scalar, default None
-    Name to use for the 'variable' column. If None it uses
-    ``frame.columns.name`` or 'variable'.
-value_name : scalar, default 'value'
-    Name to use for the 'value' column, can't be an existing column label.
-col_level : scalar, optional
-    If columns are a MultiIndex then use this level to melt.
-ignore_index : bool, default True
-    If True, original index is ignored. If False, the original index is retained.
-    Index labels will be repeated as necessary.
-
-Returns
--------
-DataFrame
-    Unpivoted DataFrame.
-
-See Also
---------
-%(other)s : Identical method.
-pivot_table : Create a spreadsheet-style pivot table as a DataFrame.
-DataFrame.pivot : Return reshaped DataFrame organized
-    by given index / column values.
-DataFrame.explode : Explode a DataFrame from list-like
-        columns to long format.
-
-Notes
------
-Reference :ref:`the user guide <reshaping.melt>` for more examples.
-
-Examples
---------
->>> df = pd.DataFrame({'A': {0: 'a', 1: 'b', 2: 'c'},
-...                    'B': {0: 1, 1: 3, 2: 5},
-...                    'C': {0: 2, 1: 4, 2: 6}})
->>> df
-   A  B  C
-0  a  1  2
-1  b  3  4
-2  c  5  6
-
->>> %(caller)sid_vars=['A'], value_vars=['B'])
-   A variable  value
-0  a        B      1
-1  b        B      3
-2  c        B      5
-
->>> %(caller)sid_vars=['A'], value_vars=['B', 'C'])
-   A variable  value
-0  a        B      1
-1  b        B      3
-2  c        B      5
-3  a        C      2
-4  b        C      4
-5  c        C      6
-
-The names of 'variable' and 'value' columns can be customized:
-
->>> %(caller)sid_vars=['A'], value_vars=['B'],
-...         var_name='myVarname', value_name='myValname')
-   A myVarname  myValname
-0  a         B          1
-1  b         B          3
-2  c         B          5
-
-Original index values can be kept around:
-
->>> %(caller)sid_vars=['A'], value_vars=['B', 'C'], ignore_index=False)
-   A variable  value
-0  a        B      1
-1  b        B      3
-2  c        B      5
-0  a        C      2
-1  b        C      4
-2  c        C      6
-
-If you have multi-index columns:
-
->>> df.columns = [list('ABC'), list('DEF')]
->>> df
-   A  B  C
-   D  E  F
-0  a  1  2
-1  b  3  4
-2  c  5  6
-
->>> %(caller)scol_level=0, id_vars=['A'], value_vars=['B'])
-   A variable  value
-0  a        B      1
-1  b        B      3
-2  c        B      5
-
->>> %(caller)sid_vars=[('A', 'D')], value_vars=[('B', 'E')])
-  (A, D) variable_0 variable_1  value
-0      a          B          E      1
-1      b          B          E      3
-2      c          B          E      5
+The implementation of groupby is hash-based, meaning in particular that
+objects that compare as equal will be considered to be in the same group.
+An exception to this is that pandas has special handling of NA values:
+any NA values will be collapsed to a single group, regardless of how
+they compare. See the user guide linked above for more details.
 """
 
 _shared_docs["transform"] = """

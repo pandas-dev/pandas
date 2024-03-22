@@ -1,16 +1,9 @@
 name: Run tests and report results
-inputs:
-  preload:
-    description: Preload arguments for sanitizer
-    required: false
-  asan_options:
-    description: Arguments for Address Sanitizer (ASAN)
-    required: false
 runs:
   using: composite
   steps:
     - name: Test
-      run: ${{ inputs.asan_options }} ${{ inputs.preload }} ci/run_tests.sh
+      run: ci/run_tests.sh
       shell: bash -el {0}
 
     - name: Publish test results
@@ -18,11 +11,6 @@ runs:
       with:
         name: Test results
         path: test-data.xml
-      if: failure()
-
-    - name: Report Coverage
-      run: coverage report -m
-      shell: bash -el {0}
       if: failure()
 
     - name: Upload coverage to Codecov

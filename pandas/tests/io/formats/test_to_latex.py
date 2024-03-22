@@ -187,22 +187,6 @@ class TestToLatex:
         )
         assert result == expected
 
-    def test_to_latex_pos_args_deprecation(self):
-        # GH-54229
-        df = DataFrame(
-            {
-                "name": ["Raphael", "Donatello"],
-                "age": [26, 45],
-                "height": [181.23, 177.65],
-            }
-        )
-        msg = (
-            r"Starting with pandas version 3.0 all arguments of to_latex except for "
-            r"the argument 'buf' will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.to_latex(None, None)
-
 
 class TestToLatexLongtable:
     def test_to_latex_empty_longtable(self):
@@ -1327,7 +1311,6 @@ class TestToLatexMultiindex:
         )
         col_names = [n if (bool(n) and 1 in axes) else "" for n in names]
         observed = df.to_latex(multirow=False)
-        # pylint: disable-next=consider-using-f-string
         expected = r"""\begin{tabular}{llrrrr}
 \toprule
  & %s & \multicolumn{2}{r}{1} & \multicolumn{2}{r}{2} \\

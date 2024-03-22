@@ -38,10 +38,7 @@ from libc.time cimport (
     tm,
 )
 
-from pandas._libs.tslibs.dtypes cimport (
-    c_OFFSET_TO_PERIOD_FREQSTR,
-    freq_to_period_freqstr,
-)
+from pandas._libs.tslibs.dtypes cimport c_OFFSET_TO_PERIOD_FREQSTR
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
@@ -97,9 +94,6 @@ from pandas._libs.tslibs.dtypes cimport (
     attrname_to_abbrevs,
     freq_group_code_to_npy_unit,
 )
-
-from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
-
 from pandas._libs.tslibs.parsing cimport quarter_to_myear
 
 from pandas._libs.tslibs.parsing import parse_datetime_string_with_reso
@@ -685,6 +679,8 @@ cdef char* c_strftime(npy_datetimestruct *dts, char *fmt):
     c_date.tm_isdst = -1
 
     result = <char*>malloc(result_len * sizeof(char))
+    if result is NULL:
+        raise MemoryError()
 
     strftime(result, result_len, fmt, &c_date)
 
@@ -1554,7 +1550,7 @@ def extract_ordinals(ndarray values, freq) -> np.ndarray:
         # if we don't raise here, we'll segfault later!
         raise TypeError("extract_ordinals values must be object-dtype")
 
-    freqstr = freq_to_period_freqstr(freq.n, freq.name)
+    freqstr = PeriodDtypeBase(freq._period_dtype_code, freq.n)._freqstr
 
     for i in range(n):
         # Analogous to: p = values[i]
@@ -1722,8 +1718,15 @@ cdef class PeriodMixin:
             condition = self.freq != other
 
         if condition:
-            freqstr = freq_to_period_freqstr(self.freq.n, self.freq.name)
-            other_freqstr = freq_to_period_freqstr(other.n, other.name)
+            freqstr = PeriodDtypeBase(
+                self.freq._period_dtype_code, self.freq.n
+            )._freqstr
+            if hasattr(other, "_period_dtype_code"):
+                other_freqstr = PeriodDtypeBase(
+                    other._period_dtype_code, other.n
+                )._freqstr
+            else:
+                other_freqstr = other.freqstr
             msg = DIFFERENT_FREQ.format(
                 cls=type(self).__name__,
                 own_freq=freqstr,
@@ -2479,7 +2482,7 @@ cdef class _Period(PeriodMixin):
         >>> pd.Period('2020-01', 'D').freqstr
         'D'
         """
-        freqstr = freq_to_period_freqstr(self.freq.n, self.freq.name)
+        freqstr = PeriodDtypeBase(self.freq._period_dtype_code, self.freq.n)._freqstr
         return freqstr
 
     def __repr__(self) -> str:

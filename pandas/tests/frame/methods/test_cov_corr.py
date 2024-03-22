@@ -207,7 +207,7 @@ class TestDataFrameCorr:
         expected = DataFrame(np.ones((2, 2)), columns=["a", "b"], index=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
-    def test_corr_item_cache(self, using_copy_on_write, warn_copy_on_write):
+    def test_corr_item_cache(self):
         # Check that corr does not lead to incorrect entries in item_cache
 
         df = DataFrame({"A": range(10)})
@@ -218,16 +218,8 @@ class TestDataFrameCorr:
 
         _ = df.corr(numeric_only=True)
 
-        if using_copy_on_write:
-            ser.iloc[0] = 99
-            assert df.loc[0, "A"] == 0
-        else:
-            # Check that the corr didn't break link between ser and df
-            ser.values[0] = 99
-            assert df.loc[0, "A"] == 99
-            if not warn_copy_on_write:
-                assert df["A"] is ser
-            assert df.values[0, 0] == 99
+        ser.iloc[0] = 99
+        assert df.loc[0, "A"] == 0
 
     @pytest.mark.parametrize("length", [2, 20, 200, 2000])
     def test_corr_for_constant_columns(self, length):
@@ -363,8 +355,8 @@ class TestDataFrameCorrWith:
         tm.assert_series_equal(result, expected)
 
     def test_corrwith_matches_corrcoef(self):
-        df1 = DataFrame(np.arange(10000), columns=["a"])
-        df2 = DataFrame(np.arange(10000) ** 2, columns=["a"])
+        df1 = DataFrame(np.arange(100), columns=["a"])
+        df2 = DataFrame(np.arange(100) ** 2, columns=["a"])
         c1 = df1.corrwith(df2)["a"]
         c2 = np.corrcoef(df1["a"], df2["a"])[0][1]
 

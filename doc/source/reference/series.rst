@@ -47,7 +47,6 @@ Conversion
    Series.convert_dtypes
    Series.infer_objects
    Series.copy
-   Series.bool
    Series.to_numpy
    Series.to_period
    Series.to_timestamp
@@ -183,12 +182,10 @@ Reindexing / selection / label manipulation
    Series.drop_duplicates
    Series.duplicated
    Series.equals
-   Series.first
    Series.head
    Series.idxmax
    Series.idxmin
    Series.isin
-   Series.last
    Series.reindex
    Series.reindex_like
    Series.rename
@@ -210,7 +207,6 @@ Missing data handling
 .. autosummary::
    :toctree: api/
 
-   Series.backfill
    Series.bfill
    Series.dropna
    Series.ffill
@@ -220,7 +216,6 @@ Missing data handling
    Series.isnull
    Series.notna
    Series.notnull
-   Series.pad
    Series.replace
 
 Reshaping, sorting
@@ -238,10 +233,8 @@ Reshaping, sorting
    Series.unstack
    Series.explode
    Series.searchsorted
-   Series.ravel
    Series.repeat
    Series.squeeze
-   Series.view
 
 Combining / comparing / joining / merging
 -----------------------------------------
@@ -342,7 +335,6 @@ Datetime properties
    Series.dt.tz
    Series.dt.freq
    Series.dt.unit
-   Series.dt.normalize
 
 Datetime methods
 ^^^^^^^^^^^^^^^^

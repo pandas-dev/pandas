@@ -2,6 +2,7 @@
 Functions for arithmetic and comparison operations on NumPy arrays and
 ExtensionArrays.
 """
+
 from __future__ import annotations
 
 import datetime
@@ -130,7 +131,7 @@ def comp_method_OBJECT_ARRAY(op, x, y):
     return result.reshape(x.shape)
 
 
-def _masked_arith_op(x: np.ndarray, y, op):
+def _masked_arith_op(x: np.ndarray, y, op) -> np.ndarray:
     """
     If the given arithmetic operation fails, attempt it again on
     only the non-null elements of the input array(s).

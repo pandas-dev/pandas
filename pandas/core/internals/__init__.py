@@ -1,12 +1,4 @@
 from pandas.core.internals.api import make_block  # 2023-09-18 pyarrow uses this
-from pandas.core.internals.array_manager import (
-    ArrayManager,
-    SingleArrayManager,
-)
-from pandas.core.internals.base import (
-    DataManager,
-    SingleDataManager,
-)
 from pandas.core.internals.concat import concatenate_managers
 from pandas.core.internals.managers import (
     BlockManager,
@@ -18,12 +10,8 @@ __all__ = [
     "DatetimeTZBlock",  # pylint: disable=undefined-all-variable
     "ExtensionBlock",  # pylint: disable=undefined-all-variable
     "make_block",
-    "DataManager",
-    "ArrayManager",
     "BlockManager",
-    "SingleDataManager",
     "SingleBlockManager",
-    "SingleArrayManager",
     "concatenate_managers",
 ]
 
@@ -47,8 +35,6 @@ def __getattr__(name: str):
         return create_block_manager_from_blocks
 
     if name in [
-        "NumericBlock",
-        "ObjectBlock",
         "Block",
         "ExtensionBlock",
         "DatetimeTZBlock",
@@ -61,11 +47,7 @@ def __getattr__(name: str):
             # on hard-coding stacklevel
             stacklevel=2,
         )
-        if name == "NumericBlock":
-            from pandas.core.internals.blocks import NumericBlock
-
-            return NumericBlock
-        elif name == "DatetimeTZBlock":
+        if name == "DatetimeTZBlock":
             from pandas.core.internals.blocks import DatetimeTZBlock
 
             return DatetimeTZBlock
@@ -73,13 +55,9 @@ def __getattr__(name: str):
             from pandas.core.internals.blocks import ExtensionBlock
 
             return ExtensionBlock
-        elif name == "Block":
+        else:
             from pandas.core.internals.blocks import Block
 
             return Block
-        else:
-            from pandas.core.internals.blocks import ObjectBlock
-
-            return ObjectBlock
 
     raise AttributeError(f"module 'pandas.core.internals' has no attribute '{name}'")

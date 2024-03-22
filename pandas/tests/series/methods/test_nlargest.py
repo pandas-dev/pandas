@@ -2,6 +2,7 @@
 Note: for naming purposes, most tests are title with as e.g. "test_nlargest_foo"
 but are implicitly also testing nsmallest_foo.
 """
+
 import numpy as np
 import pytest
 

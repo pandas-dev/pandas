@@ -175,12 +175,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         raise AbstractMethodError(self)
 
     @overload
-    def __getitem__(self, item: ScalarIndexer) -> Any:
-        ...
+    def __getitem__(self, item: ScalarIndexer) -> Any: ...
 
     @overload
-    def __getitem__(self, item: SequenceIndexer) -> Self:
-        ...
+    def __getitem__(self, item: SequenceIndexer) -> Self: ...
 
     def __getitem__(self, item: PositionalIndexer) -> Self | Any:
         item = check_array_indexer(self, item)
@@ -431,6 +429,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     # ------------------------------------------------------------------
 
+    def _values_for_json(self) -> np.ndarray:
+        return np.asarray(self, dtype=object)
+
     def to_numpy(
         self,
         dtype: npt.DTypeLike | None = None,
@@ -499,6 +500,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         """
         hasna = self._hasna
         dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, hasna)
+        if dtype is None:
+            dtype = object
 
         if hasna:
             if (
@@ -530,16 +533,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self.to_numpy(dtype=dtype, na_value=libmissing.NA).tolist()
 
     @overload
-    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
-        ...
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray: ...
 
     @overload
-    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
-        ...
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray: ...
 
     @overload
-    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
-        ...
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike: ...
 
     def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         dtype = pandas_dtype(dtype)
@@ -589,7 +589,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(
+        self, dtype: NpDtype | None = None, copy: bool | None = None
+    ) -> np.ndarray:
         """
         the array interface, return my values
         We return an object array here to preserve our scalar values
@@ -1330,19 +1332,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._wrap_reduction_result("max", result, skipna=skipna, axis=axis)
 
     def map(self, mapper, na_action=None):
-        return map_array(self.to_numpy(), mapper, na_action=None)
+        return map_array(self.to_numpy(), mapper, na_action=na_action)
 
     @overload
     def any(
         self, *, skipna: Literal[True] = ..., axis: AxisInt | None = ..., **kwargs
-    ) -> np.bool_:
-        ...
+    ) -> np.bool_: ...
 
     @overload
     def any(
         self, *, skipna: bool, axis: AxisInt | None = ..., **kwargs
-    ) -> np.bool_ | NAType:
-        ...
+    ) -> np.bool_ | NAType: ...
 
     def any(
         self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs
@@ -1430,14 +1430,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     @overload
     def all(
         self, *, skipna: Literal[True] = ..., axis: AxisInt | None = ..., **kwargs
-    ) -> np.bool_:
-        ...
+    ) -> np.bool_: ...
 
     @overload
     def all(
         self, *, skipna: bool, axis: AxisInt | None = ..., **kwargs
-    ) -> np.bool_ | NAType:
-        ...
+    ) -> np.bool_ | NAType: ...
 
     def all(
         self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs
@@ -1646,13 +1644,24 @@ def transpose_homogeneous_masked_arrays(
     same dtype. The caller is responsible for ensuring validity of input data.
     """
     masked_arrays = list(masked_arrays)
+    dtype = masked_arrays[0].dtype
+
     values = [arr._data.reshape(1, -1) for arr in masked_arrays]
-    transposed_values = np.concatenate(values, axis=0)
+    transposed_values = np.concatenate(
+        values,
+        axis=0,
+        out=np.empty(
+            (len(masked_arrays), len(masked_arrays[0])),
+            order="F",
+            dtype=dtype.numpy_dtype,
+        ),
+    )
 
     masks = [arr._mask.reshape(1, -1) for arr in masked_arrays]
-    transposed_masks = np.concatenate(masks, axis=0)
+    transposed_masks = np.concatenate(
+        masks, axis=0, out=np.empty_like(transposed_values, dtype=bool)
+    )
 
-    dtype = masked_arrays[0].dtype
     arr_type = dtype.construct_array_type()
     transposed_arrays: list[BaseMaskedArray] = []
     for i in range(transposed_values.shape[1]):
