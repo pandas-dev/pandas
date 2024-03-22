@@ -963,6 +963,13 @@ class TestIndex:
         index = Index(["a", "b"], name="asdf")
         assert index.name == index[1:].name
 
+    def test_slice_is_unique(self):
+        # GH 57911
+        index = Index([1, 1, 2, 3, 4])
+        assert not index.is_unique
+        filtered_index = index[2:].copy()
+        assert filtered_index.is_unique
+
     @pytest.mark.parametrize(
         "index",
         [

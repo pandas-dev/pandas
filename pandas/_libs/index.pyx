@@ -253,8 +253,10 @@ cdef class IndexEngine:
         return self.sizeof()
 
     cpdef _update_from_sliced(self, IndexEngine other, reverse: bool):
-        self.unique = other.unique
-        self.need_unique_check = other.need_unique_check
+        if other.unique:
+            self.unique = 1
+            self.need_unique_check = 0
+
         if not other.need_monotonic_check and (
                 other.is_monotonic_increasing or other.is_monotonic_decreasing):
             self.need_monotonic_check = other.need_monotonic_check
@@ -854,8 +856,10 @@ cdef class SharedEngine:
         pass
 
     cpdef _update_from_sliced(self, ExtensionEngine other, reverse: bool):
-        self.unique = other.unique
-        self.need_unique_check = other.need_unique_check
+        if other.unique:
+            self.unique = 1
+            self.need_unique_check = 0
+
         if not other.need_monotonic_check and (
                 other.is_monotonic_increasing or other.is_monotonic_decreasing):
             self.need_monotonic_check = other.need_monotonic_check
