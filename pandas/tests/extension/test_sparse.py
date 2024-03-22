@@ -235,11 +235,6 @@ class TestSparseArray(base.ExtensionTests):
         tm.assert_equal(sarr.isna(), expected)
 
     def test_fillna_no_op_returns_copy(self, data, request):
-        # `data` never contains complex numbers in these tests
-        if np.isnan(data.fill_value):
-            request.applymarker(
-                pytest.mark.xfail(reason="returns array with different fill value")
-            )
         super().test_fillna_no_op_returns_copy(data)
 
     @pytest.mark.xfail(reason="Unsupported")
