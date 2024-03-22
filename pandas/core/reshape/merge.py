@@ -1781,7 +1781,7 @@ def get_join_indexers_non_unique(
         Indexer into right.
     """
     lkey, rkey, count = _factorize_keys(
-        left, right, sort=sort, try_unique_merge=not sort and how == "inner"
+        left, right, sort=sort, hash_join_available=not sort and how == "inner"
     )
     if count == -1:
         # unique merge
@@ -2393,7 +2393,7 @@ def _factorize_keys(
     lk: ArrayLike,
     rk: ArrayLike,
     sort: bool = True,
-    try_unique_merge: bool = False,
+    hash_join_available: bool = False,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
     """
     Encode left and right keys as enumerated types.
@@ -2558,8 +2558,8 @@ def _factorize_keys(
         lk_data, rk_data = lk, rk  # type: ignore[assignment]
         lk_mask, rk_mask = None, None
 
-    try_unique_merge = try_unique_merge and lk.dtype.kind in "iufb"
-    if try_unique_merge:
+    hash_join_available = hash_join_available and lk.dtype.kind in "iufb"
+    if hash_join_available:
         rlab = rizer.factorize(rk_data, mask=rk_mask)
         if rizer.get_count() == len(rlab):
             ridx, lidx = rizer.hash_inner_join(lk_data, lk_mask)
