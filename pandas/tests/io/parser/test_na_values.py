@@ -532,6 +532,47 @@ def test_na_values_dict_aliasing(all_parsers):
     tm.assert_dict_equal(na_values, na_values_copy)
 
 
+def test_na_values_dict_null_column_name(all_parsers):
+    # see gh-57547
+    parser = all_parsers
+    data = ",x,y\n\nMA,1,2\nNA,2,1\nOA,,3"
+    names = [None, "x", "y"]
+    na_values = {name: STR_NA_VALUES for name in names}
+    dtype = {None: "object", "x": "float64", "y": "float64"}
+
+    if parser.engine == "pyarrow":
+        msg = "The pyarrow engine doesn't support passing a dict for na_values"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(data),
+                index_col=0,
+                header=0,
+                dtype=dtype,
+                names=names,
+                na_values=na_values,
+                keep_default_na=False,
+            )
+        return
+
+    expected = DataFrame(
+        {None: ["MA", "NA", "OA"], "x": [1.0, 2.0, np.nan], "y": [2.0, 1.0, 3.0]}
+    )
+
+    expected = expected.set_index(None)
+
+    result = parser.read_csv(
+        StringIO(data),
+        index_col=0,
+        header=0,
+        dtype=dtype,
+        names=names,
+        na_values=na_values,
+        keep_default_na=False,
+    )
+
+    tm.assert_frame_equal(result, expected)
+
+
 def test_na_values_dict_col_index(all_parsers):
     # see gh-14203
     data = "a\nfoo\n1"
