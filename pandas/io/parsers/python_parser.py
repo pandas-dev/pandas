@@ -110,8 +110,6 @@ class PythonParser(ParserBase):
         if "has_index_names" in kwds:
             self.has_index_names = kwds["has_index_names"]
 
-        self.verbose = kwds["verbose"]
-
         self.thousands = kwds["thousands"]
         self.decimal = kwds["decimal"]
 
@@ -372,7 +370,6 @@ class PythonParser(ParserBase):
             data,
             clean_na_values,
             clean_na_fvalues,
-            self.verbose,
             clean_conv,
             clean_dtypes,
         )
