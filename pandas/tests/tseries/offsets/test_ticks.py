@@ -243,10 +243,8 @@ def test_tick_delta_overflow():
     # GH#55503 raise OutOfBoundsTimedelta, not OverflowError
     tick = offsets.Hour(24 * 10**9)
     msg = "Cannot cast 1000000000 days 00:00:00 to unit='ns' without overflow"
-    depr_msg = "Day.delta is deprecated"
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            tick.delta
+        tick.delta
 
 
 @pytest.mark.parametrize("cls", tick_classes)
