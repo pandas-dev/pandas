@@ -20,6 +20,101 @@ except ImportError:
     from pandas import ordered_merge as merge_ordered
 
 
+class Concat:
+    params = [0, 1]
+    param_names = ["axis"]
+
+    def setup(self, axis):
+        N = 1000
+        s = Series(N, index=Index([f"i-{i}" for i in range(N)], dtype=object))
+        self.series = [s[i:-i] for i in range(1, 10)] * 50
+        self.small_frames = [DataFrame(np.random.randn(5, 4))] * 1000
+        df = DataFrame(
+            {"A": range(N)}, index=date_range("20130101", periods=N, freq="s")
+        )
+        self.empty_left = [DataFrame(), df]
+        self.empty_right = [df, DataFrame()]
+        self.mixed_ndims = [df, df.head(N // 2)]
+
+    def time_concat_series(self, axis):
+        concat(self.series, axis=axis, sort=False)
+
+    def time_concat_small_frames(self, axis):
+        concat(self.small_frames, axis=axis)
+
+    def time_concat_empty_right(self, axis):
+        concat(self.empty_right, axis=axis)
+
+    def time_concat_empty_left(self, axis):
+        concat(self.empty_left, axis=axis)
+
+    def time_concat_mixed_ndims(self, axis):
+        concat(self.mixed_ndims, axis=axis)
+
+
+class ConcatDataFrames:
+    params = ([0, 1], [True, False])
+    param_names = ["axis", "ignore_index"]
+
+    def setup(self, axis, ignore_index):
+        frame_c = DataFrame(np.zeros((10000, 200), dtype=np.float32, order="C"))
+        self.frame_c = [frame_c] * 20
+        frame_f = DataFrame(np.zeros((10000, 200), dtype=np.float32, order="F"))
+        self.frame_f = [frame_f] * 20
+
+    def time_c_ordered(self, axis, ignore_index):
+        concat(self.frame_c, axis=axis, ignore_index=ignore_index)
+
+    def time_f_ordered(self, axis, ignore_index):
+        concat(self.frame_f, axis=axis, ignore_index=ignore_index)
+
+
+class ConcatIndexDtype:
+    params = (
+        [
+            "datetime64[ns]",
+            "int64",
+            "Int64",
+            "int64[pyarrow]",
+            "string[python]",
+            "string[pyarrow]",
+        ],
+        ["monotonic", "non_monotonic", "has_na"],
+        [0, 1],
+        [True, False],
+    )
+    param_names = ["dtype", "structure", "axis", "sort"]
+
+    def setup(self, dtype, structure, axis, sort):
+        N = 10_000
+        if dtype == "datetime64[ns]":
+            vals = date_range("1970-01-01", periods=N)
+        elif dtype in ("int64", "Int64", "int64[pyarrow]"):
+            vals = np.arange(N, dtype=np.int64)
+        elif dtype in ("string[python]", "string[pyarrow]"):
+            vals = Index([f"i-{i}" for i in range(N)], dtype=object)
+        else:
+            raise NotImplementedError
+
+        idx = Index(vals, dtype=dtype)
+
+        if structure == "monotonic":
+            idx = idx.sort_values()
+        elif structure == "non_monotonic":
+            idx = idx[::-1]
+        elif structure == "has_na":
+            if not idx._can_hold_na:
+                raise NotImplementedError
+            idx = Index([None], dtype=dtype).append(idx)
+        else:
+            raise NotImplementedError
+
+        self.series = [Series(i, idx[:-i]) for i in range(1, 6)]
+
+    def time_concat_series(self, dtype, structure, axis, sort):
+        concat(self.series, axis=axis, sort=sort)
+
+
 class Join:
     params = [True, False]
     param_names = ["sort"]

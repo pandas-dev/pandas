@@ -2555,14 +2555,14 @@ def _factorize_keys(
         # Argument 1 to "factorize" of "ObjectFactorizer" has incompatible type
         # "Union[ndarray[Any, dtype[signedinteger[_64Bit]]],
         # ndarray[Any, dtype[object_]]]"; expected "ndarray[Any, dtype[object_]]"
-        lk_data, rk_data = lk, rk
+        lk_data, rk_data = lk, rk  # type: ignore[assignment]
         lk_mask, rk_mask = None, None
 
     try_unique_merge = try_unique_merge and lk.dtype.kind in "iufb"
     if try_unique_merge:
         rlab = rizer.factorize(rk_data, mask=rk_mask)
         if rizer.get_count() == len(rlab):
-            ridx, lidx = rizer.inner_join_unique(lk_data, lk_mask)
+            ridx, lidx = rizer.hash_inner_join(lk_data, lk_mask)
             return lidx, ridx, -1
         else:
             llab = rizer.factorize(lk_data, mask=lk_mask)

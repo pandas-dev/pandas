@@ -546,7 +546,7 @@ cdef class {{name}}HashTable(HashTable):
         self.na_position = na_position
 
     @cython.boundscheck(False)
-    def inner_join_unique(self, const {{dtype}}_t[:] values, const uint8_t[:] mask = None) -> tuple[ndarray, ndarray]:
+    def hash_inner_join(self, const {{dtype}}_t[:] values, const uint8_t[:] mask = None) -> tuple[ndarray, ndarray]:
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0, ctr = 0
@@ -931,8 +931,8 @@ cdef class {{name}}Factorizer(Factorizer):
         self.count = len(self.uniques)
         return labels
 
-    def inner_join_unique(self, const {{c_type}}[:] values, const uint8_t[:] mask = None) -> tuple[np.ndarray, np.ndarray]:
-        return self.table.inner_join_unique(values, mask)
+    def hash_inner_join(self, const {{c_type}}[:] values, const uint8_t[:] mask = None) -> tuple[np.ndarray, np.ndarray]:
+        return self.table.hash_inner_join(values, mask)
 
 {{endfor}}
 
