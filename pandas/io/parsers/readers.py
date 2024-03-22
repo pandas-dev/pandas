@@ -119,7 +119,6 @@ if TYPE_CHECKING:
         skip_blank_lines: bool
         parse_dates: bool | Sequence[Hashable] | None
         keep_date_col: bool | lib.NoDefault
-        date_parser: Callable | lib.NoDefault
         date_format: str | dict[Hashable, str] | None
         dayfirst: bool
         cache_dates: bool
@@ -299,7 +298,7 @@ list}}, default None
     The behavior is as follows:
 
     * ``bool``. If ``True`` -> try parsing the index.
-    * ``None``. Behaves like ``True`` if ``date_parser`` or ``date_format`` are
+    * ``None``. Behaves like ``True`` if ``date_format`` is
       specified.
     * ``list`` of ``int`` or names. e.g. If ``[1, 2, 3]`` -> try parsing columns 1, 2, 3
       each as a separate date column.
