@@ -257,13 +257,8 @@ def test_open_file(request, all_parsers):
 
     msg = "Could not determine delimiter"
     err = csv.Error
-    if parser.engine == "c":
-        msg = "the 'c' engine does not support sep=None with delim_whitespace=False"
-        err = ValueError
-    elif parser.engine == "pyarrow":
-        msg = (
-            "the 'pyarrow' engine does not support sep=None with delim_whitespace=False"
-        )
+    if parser.engine in {"c", "pyarrow"}:
+        msg = f"the '{parser.engine}' engine does not support sep=None"
         err = ValueError
 
     with tm.ensure_clean() as path:
