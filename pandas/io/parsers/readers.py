@@ -116,7 +116,6 @@ if TYPE_CHECKING:
         )
         keep_default_na: bool
         na_filter: bool
-        verbose: bool | lib.NoDefault
         skip_blank_lines: bool
         parse_dates: bool | Sequence[Hashable] | None
         infer_datetime_format: bool | lib.NoDefault
@@ -295,10 +294,6 @@ na_filter : bool, default True
     Detect missing value markers (empty strings and the value of ``na_values``). In
     data without any ``NA`` values, passing ``na_filter=False`` can improve the
     performance of reading a large file.
-verbose : bool, default False
-    Indicate number of ``NA`` values placed in non-numeric columns.
-
-    .. deprecated:: 2.2.0
 skip_blank_lines : bool, default True
     If ``True``, skip over blank lines rather than interpreting as ``NaN`` values.
 parse_dates : bool, None, list of Hashable, list of lists or dict of {{Hashable : \
@@ -556,7 +551,6 @@ _pyarrow_unsupported = {
     "converters",
     "iterator",
     "dayfirst",
-    "verbose",
     "skipinitialspace",
     "low_memory",
 }
@@ -755,7 +749,6 @@ def read_csv(
     | None = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
-    verbose: bool | lib.NoDefault = lib.no_default,
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] | None = None,
@@ -844,17 +837,6 @@ def read_csv(
         )
     else:
         delim_whitespace = False
-
-    if verbose is not lib.no_default:
-        # GH#55569
-        warnings.warn(
-            "The 'verbose' keyword in pd.read_csv is deprecated and "
-            "will be removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    else:
-        verbose = False
 
     # locals() should never be modified
     kwds = locals().copy()
@@ -958,7 +940,6 @@ def read_table(
     | None = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
-    verbose: bool | lib.NoDefault = lib.no_default,
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] | None = None,
@@ -1038,17 +1019,6 @@ def read_table(
         )
     else:
         delim_whitespace = False
-
-    if verbose is not lib.no_default:
-        # GH#55569
-        warnings.warn(
-            "The 'verbose' keyword in pd.read_table is deprecated and "
-            "will be removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    else:
-        verbose = False
 
     # locals() should never be modified
     kwds = locals().copy()
