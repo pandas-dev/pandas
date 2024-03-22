@@ -742,6 +742,12 @@ def _concat_indexes(indexes) -> Index:
     return indexes[0].append(indexes[1:])
 
 
+def validate_unique_levels(levels: list[Index]) -> None:
+    for level in levels:
+        if not level.is_unique:
+            raise ValueError(f"Level values not unique: {level.tolist()}")
+
+
 def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiIndex:
     if (levels is None and isinstance(keys[0], tuple)) or (
         levels is not None and len(levels) > 1
@@ -754,6 +760,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
             _, levels = factorize_from_iterables(zipped)
         else:
             levels = [ensure_index(x) for x in levels]
+            validate_unique_levels(levels)
     else:
         zipped = [keys]
         if names is None:
@@ -763,12 +770,9 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
             levels = [ensure_index(keys).unique()]
         else:
             levels = [ensure_index(x) for x in levels]
+            validate_unique_levels(levels)
 
-    for level in levels:
-        if not level.is_unique:
-            raise ValueError(f"Level values not unique: {level.tolist()}")
-
-    if not all_indexes_same(indexes) or not all(level.is_unique for level in levels):
+    if not all_indexes_same(indexes):
         codes_list = []
 
         # things are potentially different sizes, so compute the exact codes
