@@ -1959,6 +1959,47 @@ class TestDataFramePlots:
         _check_has_errorbars(ax, xerr=0, yerr=1)
         _check_errorbar_color(ax.containers, "green", has_err="has_yerr")
 
+    def test_errorbar_plot_line_style(self):
+        def _check_line_style(ax, expected):
+            for line_num, line_data in enumerate(ax.get_lines()):
+                received = [
+                    line_data.get_linestyle(),
+                    line_data.get_color(),
+                    line_data.get_marker(),
+                    line_data.get_markeredgecolor(),
+                    line_data.get_markerfacecolor(),
+                ]
+                assert received == expected[line_num]
+
+        # GH 7023
+        data1 = np.array([9, 3, 5, 1, 7])
+        data2 = np.array([1, 2, 2, 8, 4])
+        err1 = data1 * 0.1
+        err2 = data2 * 0.1
+        df = DataFrame({"data1": data1, "data2": data2})
+        err_x = DataFrame({"data1": err1, "data2": err2})
+        err_y = DataFrame({"data1": err2, "data2": err1})
+        expected = [[":", "r", "o", "r", "r"], ["--", "g", "v", "g", "g"]]
+
+        # check for single line
+        ax = df["data1"].plot(xerr=err_x["data1"], yerr=err_y["data1"], style="or:")
+        num_lines = len(ax.get_lines())
+        _check_has_errorbars(ax, xerr=num_lines, yerr=num_lines)
+        _check_line_style(ax, expected)
+
+        # check for two lines on a single plot
+        ax = df.plot(xerr=err_x, yerr=err_y, style=["or:", "vg--"], subplots=False)
+        num_lines = len(ax.get_lines())
+        _check_has_errorbars(ax, xerr=num_lines, yerr=num_lines)
+        _check_line_style(ax, expected)
+
+        # check for two lines, each on separate subplots
+        axes = df.plot(xerr=err_x, yerr=err_y, style=["or:", "vg--"], subplots=True)
+        for ax_num, ax in enumerate(axes):
+            num_lines = len(ax.get_lines())
+            _check_has_errorbars(ax, xerr=num_lines, yerr=num_lines)
+            _check_line_style(ax, [expected[ax_num]])
+
     def test_scatter_unknown_colormap(self):
         # GH#48726
         df = DataFrame({"a": [1, 2, 3], "b": 4})
