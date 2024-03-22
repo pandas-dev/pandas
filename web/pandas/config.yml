@@ -72,11 +72,9 @@ blog:
   - https://phofl.github.io/feeds/pandas.atom.xml
 maintainers:
   active:
-  - wesm
   - jorisvandenbossche
   - TomAugspurger
   - jreback
-  - gfyoung
   - WillAyd
   - mroeschke
   - jbrockmendel
@@ -84,7 +82,6 @@ maintainers:
   - simonjayhawkins
   - topper-123
   - alimcmaster1
-  - bashtage
   - Dr-Irv
   - MarcoGorelli
   - rhshadrach
@@ -93,7 +90,6 @@ maintainers:
   - fangchenli
   - twoertwein
   - lithomas1
-  - mzeitlin11
   - lukemanley
   - noatamir
   inactive:
@@ -108,6 +104,10 @@ maintainers:
   - jschendel
   - charlesdong1991
   - dsaxton
+  - wesm
+  - gfyoung
+  - mzeitlin11
+  - bashtage
 workgroups:
   coc:
     name: Code of Conduct
