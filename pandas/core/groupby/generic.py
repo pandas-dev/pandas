@@ -5,6 +5,7 @@ classes that hold the groupby interfaces (and some implementations).
 These are user facing as the result of the ``df.groupby(...)`` operations,
 which here returns a DataFrameGroupBy object.
 """
+
 from __future__ import annotations
 
 from collections import abc
@@ -63,6 +64,10 @@ from pandas.core.apply import (
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import base
+from pandas.core.groupby.base import (
+    reduction_kernels,
+    transformation_kernels,
+)
 from pandas.core.groupby.groupby import (
     GroupBy,
     GroupByPlot,
@@ -327,6 +332,14 @@ class SeriesGroupBy(GroupBy[Series]):
             kwargs = {}
 
         if isinstance(func, str):
+            if func not in reduction_kernels and not self._grouper._is_resample:
+                meth = "transform" if func in transformation_kernels else "apply"
+                warnings.warn(
+                    f"In the future, using the non-aggregation {func=} will raise a "
+                    f"ValueError, use this function with {type(self).__name__}.{meth}",
+                    category=DeprecationWarning,
+                    stacklevel=find_stack_level(),
+                )
             if maybe_use_numba(engine) and engine is not None:
                 # Not all agg functions support numba, only propagate numba kwargs
                 # if user asks for numba, and engine is not None
@@ -439,23 +452,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
     def _aggregate_multiple_funcs(self, arg, *args, **kwargs) -> DataFrame:
         if isinstance(arg, dict):
-            if self.as_index:
-                # GH 15931
-                raise SpecificationError("nested renamer is not supported")
-            else:
-                # GH#50684 - This accidentally worked in 1.x
-                msg = (
-                    "Passing a dictionary to SeriesGroupBy.agg is deprecated "
-                    "and will raise in a future version of pandas. Pass a list "
-                    "of aggregations instead."
-                )
-                warnings.warn(
-                    message=msg,
-                    category=FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                arg = list(arg.items())
-        elif any(isinstance(x, (tuple, list)) for x in arg):
+            raise SpecificationError("nested renamer is not supported")
+
+        if any(isinstance(x, (tuple, list)) for x in arg):
             arg = [(x, x) if not isinstance(x, (tuple, list)) else x for x in arg]
         else:
             # list of functions / function names
@@ -1234,8 +1233,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Parameters
         ----------
         skipna : bool, default True
-            Exclude NA/null values. If the entire Series is NA, the result
-            will be NA.
+            Exclude NA values.
 
         Returns
         -------
@@ -1245,7 +1243,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Raises
         ------
         ValueError
-            If the Series is empty.
+            If the Series is empty or skipna=False and any value is NA.
 
         See Also
         --------
@@ -1288,8 +1286,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Parameters
         ----------
         skipna : bool, default True
-            Exclude NA/null values. If the entire Series is NA, the result
-            will be NA.
+            Exclude NA values.
 
         Returns
         -------
@@ -1299,7 +1296,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Raises
         ------
         ValueError
-            If the Series is empty.
+            If the Series is empty or skipna=False and any value is NA.
 
         See Also
         --------
@@ -1579,6 +1576,19 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             kwargs["engine"] = engine
             kwargs["engine_kwargs"] = engine_kwargs
 
+        if (
+            isinstance(func, str)
+            and func not in reduction_kernels
+            and not self._grouper._is_resample
+        ):
+            meth = "transform" if func in transformation_kernels else "apply"
+            warnings.warn(
+                f"In the future, using the non-aggregation {func=} will raise a "
+                f"ValueError, use this function with {type(self).__name__}.{meth}",
+                category=DeprecationWarning,
+                stacklevel=find_stack_level(),
+            )
+
         op = GroupByApply(self, func, args=args, kwargs=kwargs)
         result = op.agg()
         if not is_dict_like(func) and result is not None:
@@ -1714,7 +1724,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         obj = self._obj_with_exclusions
 
-        if not len(obj.columns):
+        if self._grouper._is_resample and not len(obj.columns):
             # e.g. test_margins_no_values_no_cols
             return obj._constructor(
                 index=self._grouper.result_index, columns=obj.columns
@@ -1769,8 +1779,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         first_not_none = next(com.not_none(*values), None)
 
         if first_not_none is None:
-            # GH9684 - All values are None, return an empty frame.
-            return self.obj._constructor()
+            # GH9684 - All values are None, return an empty frame
+            # GH57775 - Ensure that columns and dtypes from original frame are kept.
+            result = self.obj._constructor(columns=data.columns)
+            result = result.astype(data.dtypes)
+            return result
         elif isinstance(first_not_none, DataFrame):
             return self._concat_objects(
                 values,
@@ -2275,13 +2288,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         Return index of first occurrence of maximum in each group.
 
-        NA/null values are excluded.
-
         Parameters
         ----------
         skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA.
+            Exclude NA values.
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
@@ -2295,7 +2305,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Raises
         ------
         ValueError
-            * If the row/column is empty
+            * If a column is empty or skipna=False and any value is NA.
 
         See Also
         --------
@@ -2340,13 +2350,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         Return index of first occurrence of minimum in each group.
 
-        NA/null values are excluded.
-
         Parameters
         ----------
         skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA.
+            Exclude NA values.
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
@@ -2360,7 +2367,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Raises
         ------
         ValueError
-            * If the row/column is empty
+            * If a column is empty or skipna=False and any value is NA.
 
         See Also
         --------
@@ -2837,22 +2844,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             **kwargs,
         )
         return result
-
-    @property
-    @doc(DataFrame.dtypes.__doc__)
-    def dtypes(self) -> Series:
-        # GH#51045
-        warnings.warn(
-            f"{type(self).__name__}.dtypes is deprecated and will be removed in "
-            "a future version. Check the dtypes on the base object instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-        # error: Incompatible return value type (got "DataFrame", expected "Series")
-        return self._python_apply_general(  # type: ignore[return-value]
-            lambda df: df.dtypes, self._selected_obj
-        )
 
     def corrwith(
         self,

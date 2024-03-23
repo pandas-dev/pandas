@@ -20,7 +20,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import _get_option
+from pandas._config.config import get_option
 
 from pandas._libs import (
     algos,
@@ -353,22 +353,22 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(
+        self, dtype: NpDtype | None = None, copy: bool | None = None
+    ) -> np.ndarray:
         # used for Timedelta/DatetimeArray, overwritten by PeriodArray
         if is_object_dtype(dtype):
             return np.array(list(self), dtype=object)
         return self._ndarray
 
     @overload
-    def __getitem__(self, key: ScalarIndexer) -> DTScalarOrNaT:
-        ...
+    def __getitem__(self, key: ScalarIndexer) -> DTScalarOrNaT: ...
 
     @overload
     def __getitem__(
         self,
         key: SequenceIndexer | PositionalIndexerTuple,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     def __getitem__(self, key: PositionalIndexer2D) -> Self | DTScalarOrNaT:
         """
@@ -496,20 +496,16 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             return np.asarray(self, dtype=dtype)
 
     @overload
-    def view(self) -> Self:
-        ...
+    def view(self) -> Self: ...
 
     @overload
-    def view(self, dtype: Literal["M8[ns]"]) -> DatetimeArray:
-        ...
+    def view(self, dtype: Literal["M8[ns]"]) -> DatetimeArray: ...
 
     @overload
-    def view(self, dtype: Literal["m8[ns]"]) -> TimedeltaArray:
-        ...
+    def view(self, dtype: Literal["m8[ns]"]) -> TimedeltaArray: ...
 
     @overload
-    def view(self, dtype: Dtype | None = ...) -> ArrayLike:
-        ...
+    def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
 
     # pylint: disable-next=useless-parent-delegation
     def view(self, dtype: Dtype | None = None) -> ArrayLike:
@@ -1334,7 +1330,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             # If both 1D then broadcasting is unambiguous
             return op(self, other[0])
 
-        if _get_option("performance_warnings"):
+        if get_option("performance_warnings"):
             warnings.warn(
                 "Adding/subtracting object-dtype array to "
                 f"{type(self).__name__} not vectorized.",
@@ -1581,6 +1577,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         skipna : bool, default True
             Whether to ignore any NaT elements.
         axis : int, optional, default 0
+            Axis for the function to be applied on.
 
         Returns
         -------
@@ -2374,11 +2371,12 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     ):
         if self.freq is not None:
             # We must be unique, so can short-circuit (and retain freq)
-            codes = np.arange(len(self), dtype=np.intp)
-            uniques = self.copy()  # TODO: copy or view?
             if sort and self.freq.n < 0:
-                codes = codes[::-1]
-                uniques = uniques[::-1]
+                codes = np.arange(len(self) - 1, -1, -1, dtype=np.intp)
+                uniques = self[::-1]
+            else:
+                codes = np.arange(len(self), dtype=np.intp)
+                uniques = self.copy()  # TODO: copy or view?
             return codes, uniques
 
         if sort:
@@ -2525,13 +2523,11 @@ def ensure_arraylike_for_datetimelike(
 
 
 @overload
-def validate_periods(periods: None) -> None:
-    ...
+def validate_periods(periods: None) -> None: ...
 
 
 @overload
-def validate_periods(periods: int | float) -> int:
-    ...
+def validate_periods(periods: int | float) -> int: ...
 
 
 def validate_periods(periods: int | float | None) -> int | None:

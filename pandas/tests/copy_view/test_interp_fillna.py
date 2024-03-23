@@ -111,20 +111,12 @@ def test_interp_fill_functions_inplace(func, dtype):
     assert view._mgr._has_no_reference(0)
 
 
-def test_interpolate_cleaned_fill_method():
-    # Check that "method is set to None" case works correctly
+def test_interpolate_cannot_with_object_dtype():
     df = DataFrame({"a": ["a", np.nan, "c"], "b": 1})
-    df_orig = df.copy()
 
-    msg = "DataFrame.interpolate with object dtype"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.interpolate(method="linear")
-
-    assert np.shares_memory(get_array(result, "a"), get_array(df, "a"))
-    result.iloc[0, 0] = Timestamp("2021-12-31")
-
-    assert not np.shares_memory(get_array(result, "a"), get_array(df, "a"))
-    tm.assert_frame_equal(df, df_orig)
+    msg = "DataFrame cannot interpolate with object dtype"
+    with pytest.raises(TypeError, match=msg):
+        df.interpolate()
 
 
 def test_interpolate_object_convert_no_op():

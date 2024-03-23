@@ -15,6 +15,7 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
+from pandas.core.groupby.base import reduction_kernels
 from pandas.tests.groupby import get_groupby_method_args
 
 
@@ -84,8 +85,10 @@ def df_with_cat_col():
     return df
 
 
-def _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=""):
-    warn_klass = None if warn_msg == "" else FutureWarning
+def _call_and_check(
+    klass, msg, how, gb, groupby_func, args, warn_msg="", warn_category=FutureWarning
+):
+    warn_klass = None if warn_msg == "" else warn_category
     with tm.assert_produces_warning(warn_klass, match=warn_msg, check_stacklevel=False):
         if klass is None:
             if how == "method":
@@ -183,9 +186,23 @@ def test_groupby_raises_string(
     if groupby_func == "fillna":
         kind = "Series" if groupby_series else "DataFrame"
         warn_msg = f"{kind}GroupBy.fillna is deprecated"
+    elif groupby_func not in reduction_kernels and how == "agg":
+        warn_msg = (
+            f"In the future, using the non-aggregation func='{groupby_func}' will "
+            "raise a ValueError"
+        )
     else:
         warn_msg = ""
-    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg)
+    _call_and_check(
+        klass,
+        msg,
+        how,
+        gb,
+        groupby_func,
+        args,
+        warn_msg,
+        warn_category=DeprecationWarning,
+    )
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
@@ -222,11 +239,7 @@ def test_groupby_raises_string_np(
             "Could not convert string .* to numeric",
         ),
     }[groupby_func_np]
-    if how == "transform" and groupby_func_np is np.sum and not groupby_series:
-        warn_msg = "The behavior of DataFrame.sum with axis=None is deprecated"
-    else:
-        warn_msg = ""
-    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg)
+    _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
@@ -291,12 +304,30 @@ def test_groupby_raises_datetime(
 
     if groupby_func in ["any", "all"]:
         warn_msg = f"'{groupby_func}' with datetime64 dtypes is deprecated"
+        warn_category = FutureWarning
     elif groupby_func == "fillna":
         kind = "Series" if groupby_series else "DataFrame"
         warn_msg = f"{kind}GroupBy.fillna is deprecated"
+        warn_category = FutureWarning
+    elif groupby_func not in reduction_kernels and how == "agg":
+        warn_msg = (
+            f"In the future, using the non-aggregation func='{groupby_func}' will "
+            "raise a ValueError"
+        )
+        warn_category = DeprecationWarning
     else:
         warn_msg = ""
-    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=warn_msg)
+        warn_category = FutureWarning
+    _call_and_check(
+        klass,
+        msg,
+        how,
+        gb,
+        groupby_func,
+        args,
+        warn_msg=warn_msg,
+        warn_category=warn_category,
+    )
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
@@ -491,9 +522,19 @@ def test_groupby_raises_category(
     if groupby_func == "fillna":
         kind = "Series" if groupby_series else "DataFrame"
         warn_msg = f"{kind}GroupBy.fillna is deprecated"
+        warn_category = FutureWarning
+    elif groupby_func not in reduction_kernels and how == "agg":
+        warn_msg = (
+            f"In the future, using the non-aggregation func='{groupby_func}' "
+            "will raise a ValueError"
+        )
+        warn_category = DeprecationWarning
     else:
         warn_msg = ""
-    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg)
+        warn_category = FutureWarning
+    _call_and_check(
+        klass, msg, how, gb, groupby_func, args, warn_msg, warn_category=warn_category
+    )
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
@@ -664,6 +705,13 @@ def test_groupby_raises_category_on_category(
     if groupby_func == "fillna":
         kind = "Series" if groupby_series else "DataFrame"
         warn_msg = f"{kind}GroupBy.fillna is deprecated"
+        warn_category = FutureWarning
+    elif groupby_func not in reduction_kernels and how == "agg":
+        warn_msg = f"using the non-aggregation func='{groupby_func}' will raise"
+        warn_category = DeprecationWarning
     else:
         warn_msg = ""
-    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg)
+        warn_category = FutureWarning
+    _call_and_check(
+        klass, msg, how, gb, groupby_func, args, warn_msg, warn_category=warn_category
+    )
