@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import itertools
+from math import frexp
 from typing import (
     Any,
     Callable,
@@ -1358,8 +1359,14 @@ def nankurt(
     #
     # #18044 in _libs/windows.pyx calc_kurt follow this behavior
     # to fix the fperr to treat denom <1e-14 as zero
-    numerator = _zero_out_fperr(numerator)
-    denominator = _zero_out_fperr(denominator)
+    is_zero_out = True
+    if count < 100:
+        _, numexp = frexp(numerator)
+        _, denomexp = frexp(denominator)
+        is_zero_out = abs(numexp - denomexp) > 24
+    if is_zero_out:
+        numerator = _zero_out_fperr(numerator)
+        denominator = _zero_out_fperr(denominator)
 
     if not isinstance(denominator, np.ndarray):
         # if ``denom`` is a scalar, check these corner cases first before
