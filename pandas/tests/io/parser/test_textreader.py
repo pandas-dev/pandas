@@ -50,7 +50,7 @@ class TestTextReader:
 
     def test_encoding_mismatch_warning(self, csv_path):
         # GH-57954
-        with open(csv_path) as f:
+        with open(csv_path, encoding="UTF-8") as f:
             msg = "latin1 is different from the encoding"
             with pytest.raises(ValueError, match=msg):
                 read_csv(f, encoding="latin1")
