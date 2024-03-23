@@ -2333,8 +2333,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
         skipna : bool, default True
-            Exclude NA/null values. If the entire Series is NA, the result
-            will be NA.
+            Exclude NA/null values. If the entire Series is NA, or if ``skipna=False``
+            and there is an NA value, this method will raise a ``ValueError``.
         *args, **kwargs
             Additional arguments and keywords have no effect but might be
             accepted for compatibility with NumPy.
@@ -2376,12 +2376,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         >>> s.idxmin()
         'A'
-
-        If `skipna` is False and there is an NA value in the data,
-        the function returns ``nan``.
-
-        >>> s.idxmin(skipna=False)
-        nan
         """
         axis = self._get_axis_number(axis)
         iloc = self.argmin(axis, skipna, *args, **kwargs)
@@ -2399,8 +2393,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
         skipna : bool, default True
-            Exclude NA/null values. If the entire Series is NA, the result
-            will be NA.
+            Exclude NA/null values. If the entire Series is NA, or if ``skipna=False``
+            and there is an NA value, this method will raise a ``ValueError``.
         *args, **kwargs
             Additional arguments and keywords have no effect but might be
             accepted for compatibility with NumPy.
@@ -2443,12 +2437,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         >>> s.idxmax()
         'C'
-
-        If `skipna` is False and there is an NA value in the data,
-        the function returns ``nan``.
-
-        >>> s.idxmax(skipna=False)
-        nan
         """
         axis = self._get_axis_number(axis)
         iloc = self.argmax(axis, skipna, *args, **kwargs)

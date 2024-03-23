@@ -684,7 +684,8 @@ class IndexOpsMixin(OpsMixin):
         axis : {{None}}
             Unused. Parameter needed for compatibility with DataFrame.
         skipna : bool, default True
-            Exclude NA/null values when showing the result.
+            Exclude NA/null values. If the entire Series is NA, or if ``skipna=False``
+            and there is an NA value, this method will raise a ``ValueError``.
         *args, **kwargs
             Additional arguments and keywords for compatibility with NumPy.
 
