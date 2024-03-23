@@ -855,7 +855,7 @@ class DataFrameRenderer:
         - to_csv
         - to_latex
 
-    Called in pandas.core.frame.DataFrame:
+    Called in pandas.DataFrame:
         - to_html
         - to_string
 

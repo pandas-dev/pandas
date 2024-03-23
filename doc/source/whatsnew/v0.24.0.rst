@@ -840,7 +840,7 @@ then all the columns are dummy-encoded, and a :class:`SparseDataFrame` was retur
    In [2]: df = pd.DataFrame({"A": [1, 2], "B": ['a', 'b'], "C": ['a', 'a']})
 
    In [3]: type(pd.get_dummies(df, sparse=True))
-   Out[3]: pandas.core.frame.DataFrame
+   Out[3]: pandas.DataFrame
 
    In [4]: type(pd.get_dummies(df[['B', 'C']], sparse=True))
    Out[4]: pandas.core.sparse.frame.SparseDataFrame
