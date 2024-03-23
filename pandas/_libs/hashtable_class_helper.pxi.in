@@ -545,16 +545,20 @@ cdef class {{name}}HashTable(HashTable):
                     self.table.vals[k] = i
         self.na_position = na_position
 
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     def hash_inner_join(self, const {{dtype}}_t[:] values, const uint8_t[:] mask = None) -> tuple[ndarray, ndarray]:
         cdef:
             Py_ssize_t i, n = len(values)
-            int ret = 0, ctr = 0
             {{c_type}} val
             khiter_t k
-            intp_t[::1] locs = np.empty(n, dtype=np.intp)
-            intp_t[::1] self_locs = np.empty(n, dtype=np.intp)
+            Int64Vector locs = Int64Vector(), self_locs = Int64Vector()
+            Int64VectorData *l
+            Int64VectorData *sl
             int8_t na_position = self.na_position
+
+        l = &locs.data
+        sl = &self_locs.data
 
         if self.uses_mask and mask is None:
             raise NotImplementedError  # pragma: no cover
@@ -564,18 +568,24 @@ cdef class {{name}}HashTable(HashTable):
                 if self.uses_mask and mask[i]:
                     if self.na_position == -1:
                         continue
-                    self_locs[ctr] = na_position
-                    locs[ctr] = na_position
-                    ctr += 1
+                    if needs_resize(l):
+                        with gil:
+                            locs.resize()
+                            self_locs.resize()
+                    append_data_int64(l, na_position)
+                    append_data_int64(sl, na_position)
                 else:
                     val = {{to_c_type}}(values[i])
                     k = kh_get_{{dtype}}(self.table, val)
                     if k != self.table.n_buckets:
-                        self_locs[ctr] = self.table.vals[k]
-                        locs[ctr] = i
-                        ctr += 1
+                        if needs_resize(l):
+                            with gil:
+                                locs.resize()
+                                self_locs.resize()
+                        append_data_int64(l, i)
+                        append_data_int64(sl, self.table.vals[k])
 
-        return np.asarray(self_locs)[:ctr], np.asarray(locs)[:ctr]
+        return self_locs.to_array(), locs.to_array()
 
     @cython.boundscheck(False)
     def lookup(self, const {{dtype}}_t[:] values, const uint8_t[:] mask = None) -> ndarray:

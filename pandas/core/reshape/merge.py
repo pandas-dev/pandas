@@ -1780,11 +1780,9 @@ def get_join_indexers_non_unique(
     np.ndarray[np.intp]
         Indexer into right.
     """
-    lkey, rkey, count = _factorize_keys(
-        left, right, sort=sort, hash_join_available=not sort and how == "inner"
-    )
+    lkey, rkey, count = _factorize_keys(left, right, sort=sort, how=how)
     if count == -1:
-        # unique merge
+        # hash join
         return lkey, rkey
     if how == "left":
         lidx, ridx = libjoin.left_outer_join(lkey, rkey, count, sort=sort)
@@ -2393,7 +2391,7 @@ def _factorize_keys(
     lk: ArrayLike,
     rk: ArrayLike,
     sort: bool = True,
-    hash_join_available: bool = False,
+    how: str | None = None,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
     """
     Encode left and right keys as enumerated types.
@@ -2409,6 +2407,9 @@ def _factorize_keys(
     sort : bool, defaults to True
         If True, the encoding is done such that the unique elements in the
         keys are sorted.
+    how: str, optional
+        Used to determine if we can use hash-join. If not given, then just factorize
+        keys.
 
     Returns
     -------
@@ -2558,7 +2559,7 @@ def _factorize_keys(
         lk_data, rk_data = lk, rk  # type: ignore[assignment]
         lk_mask, rk_mask = None, None
 
-    hash_join_available = hash_join_available and lk.dtype.kind in "iufb"
+    hash_join_available = how == "inner" and not sort and lk.dtype.kind in "iufb"
     if hash_join_available:
         rlab = rizer.factorize(rk_data, mask=rk_mask)
         if rizer.get_count() == len(rlab):
