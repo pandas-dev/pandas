@@ -568,17 +568,17 @@ cdef class {{name}}HashTable(HashTable):
                 if self.uses_mask and mask[i]:
                     if self.na_position == -1:
                         continue
-                    if needs_resize(l) or needs_resize(sl):
+                    if needs_resize(l):
                         with gil:
                             locs.resize()
                             self_locs.resize()
-                    append_data_int64(l, na_position)
+                    append_data_int64(l, i)
                     append_data_int64(sl, na_position)
                 else:
                     val = {{to_c_type}}(values[i])
                     k = kh_get_{{dtype}}(self.table, val)
                     if k != self.table.n_buckets:
-                        if needs_resize(l) or needs_resize(sl):
+                        if needs_resize(l):
                             with gil:
                                 locs.resize()
                                 self_locs.resize()
