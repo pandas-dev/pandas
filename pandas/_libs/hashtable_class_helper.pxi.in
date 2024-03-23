@@ -552,7 +552,8 @@ cdef class {{name}}HashTable(HashTable):
             Py_ssize_t i, n = len(values)
             {{c_type}} val
             khiter_t k
-            Int64Vector locs = Int64Vector(), self_locs = Int64Vector()
+            Int64Vector locs = Int64Vector()
+            Int64Vector self_locs = Int64Vector()
             Int64VectorData *l
             Int64VectorData *sl
             int8_t na_position = self.na_position
