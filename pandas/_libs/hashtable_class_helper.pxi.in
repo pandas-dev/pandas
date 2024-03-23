@@ -581,7 +581,7 @@ cdef class {{name}}HashTable(HashTable):
                 if self.uses_mask and mask[i]:
                     if self.na_position == -1:
                         continue
-                    if needs_resize(&locs.data):
+                    if needs_resize(l.size, l.capacity):
                         with gil:
                             locs.resize()
                             self_locs.resize()
@@ -591,7 +591,7 @@ cdef class {{name}}HashTable(HashTable):
                     val = {{to_c_type}}(values[i])
                     k = kh_get_{{dtype}}(self.table, val)
                     if k != self.table.n_buckets:
-                        if needs_resize(&locs.data):
+                        if needs_resize(l.size, l.capacity):
                             with gil:
                                 locs.resize()
                                 self_locs.resize()
